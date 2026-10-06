@@ -1,4 +1,5 @@
-// Himmelen: gradient, sol, og om natta stjerner, måne og nordlys.
+// Himmelen: gradient, sol, skyer, og om natta stjerner, måne og nordlys.
+// Tåka legges på etterpå i tåkepasset, som også dekker himmelen.
 
 struct SkyOut {
     @builtin(position) clip: vec4<f32>,
@@ -15,7 +16,6 @@ fn vs(@builtin(vertex_index) vi: u32) -> SkyOut {
 }
 
 fn stars(dir: vec3<f32>) -> vec3<f32> {
-    // Retningen deles i små celler. Noen få celler har en stjerne.
     let d = dir * 220.0;
     let cell = floor(d);
     let h = hash31(cell);
@@ -34,7 +34,6 @@ fn aurora(dir: vec3<f32>) -> vec3<f32> {
     if (dir.y < 0.02) {
         return vec3<f32>(0.0);
     }
-    // Lysgardiner: bånd projisert opp på et høyt plan, med bølger i tid.
     var acc = vec3<f32>(0.0);
     let t = g.camera.w * 0.05;
     for (var i = 0; i < 6; i++) {
@@ -58,29 +57,37 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     let near = g.inv_view_proj * vec4<f32>(i.ndc, 0.0, 1.0);
     let dir = normalize(far.xyz / far.w - near.xyz / near.w);
     let night = g.sun_color.w;
+    let cover_amount = g.sky.x;
 
     var c = sky_gradient(dir);
 
-    // Skyer: et lag med støy projisert på et høyt, flatt plan.
+    // Skyer: to lag med støy projisert på et høyt, flatt plan. Skydekket
+    // fra været gjør dem tettere og mørkere.
     if (dir.y > 0.0) {
-        let p = dir.xz / (dir.y + 0.08) * 1.6 + vec2<f32>(g.camera.w * 0.004, 0.0);
+        let t = g.camera.w;
+        let p = dir.xz / (dir.y + 0.08) * 1.6 + vec2<f32>(t * 0.004 + g.jitter.w * t * 0.01, t * 0.001);
         let shape = fbm2(p * 0.9) * 0.65 + fbm2(p * 2.7 + 4.0) * 0.35;
-        let cover = smoothstep(0.5, 0.78, shape) * smoothstep(0.0, 0.22, dir.y);
+        let lo = mix(0.5, 0.18, cover_amount);
+        let hi = mix(0.78, 0.5, cover_amount);
+        let cover = smoothstep(lo, hi, shape) * smoothstep(0.0, 0.22, dir.y);
         let sunward = pow(max(dot(dir, g.sun_dir.xyz), 0.0), 3.0);
         let lit = mix(g.sky_horizon.rgb * 1.15 + g.sun_color.rgb * 0.25, g.sun_color.rgb * 1.2, sunward * 0.5);
-        let shade = mix(lit, g.sky_top.rgb * 0.9, smoothstep(0.62, 0.95, shape) * 0.35);
-        c = mix(c, shade * (1.0 - night * 0.85), cover * 0.9);
+        let thick = smoothstep(0.62, 0.95, shape) * (0.35 + cover_amount * 0.5);
+        var shade = mix(lit, g.sky_top.rgb * 0.9, thick);
+        shade = mix(shade, shade * 0.45, cover_amount * 0.8);
+        c = mix(c, shade * (1.0 - night * 0.85), cover * 0.92);
     }
 
-    // Sola om dagen, månen om natta: begge er en skive i sun_dir.
     let s = dot(dir, g.sun_dir.xyz);
     let disk = smoothstep(0.99985, 0.99995, s);
-    let sun_disk = g.sun_color.rgb * disk * 40.0 * (1.0 - night);
-    let moon = vec3<f32>(0.85, 0.9, 1.0) * smoothstep(0.99955, 0.99968, s) * 3.0 * night;
+    let sun_disk = g.sun_color.rgb * disk * 40.0 * (1.0 - night) * (1.0 - cover_amount);
+    let moon = vec3<f32>(0.85, 0.9, 1.0) * smoothstep(0.99955, 0.99968, s) * 3.0 * night * (1.0 - cover_amount);
     c += sun_disk + moon;
 
     if (night > 0.0) {
-        c += (stars(dir) * smoothstep(0.0, 0.15, dir.y) + aurora(dir)) * night;
+        c += (stars(dir) * smoothstep(0.0, 0.15, dir.y) + aurora(dir) * g.sky.y) * night * (1.0 - cover_amount);
     }
+    // Lyn: hele himmelen blinker.
+    c += vec3<f32>(0.8, 0.85, 1.0) * g.sky.z * (0.3 + 0.7 * smoothstep(-0.2, 0.6, dir.y));
     return vec4<f32>(c, 1.0);
 }

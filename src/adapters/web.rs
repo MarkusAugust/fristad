@@ -1,13 +1,16 @@
-//! Fristad i nettleseren.
+//! Fristad i nettleseren: den drivende adapteren for wasm.
 //!
 //! JavaScript-laget (`web/main.js`) eier løkka, input og panelene, og kaller
-//! inn hit. Rust eier verden, fysikken og rendereren. Hendelser går tilbake
+//! inn hit. Rust eier byen, fysikken og rendereren. Hendelser går tilbake
 //! som JSON fra `frame()`.
 
-use crate::game::{Event, Game, Input};
-use crate::render::Renderer;
-use crate::tokens::{Theme, Tokens};
-use crate::world;
+use crate::adapters::gltf::Embedded;
+use crate::adapters::rapier::RapierPhysics;
+use crate::adapters::wgpu::Renderer;
+use crate::app::{self, App};
+use crate::domain::game::Event;
+use crate::domain::installations::WeatherKind;
+use crate::domain::tokens::Theme;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -18,31 +21,21 @@ pub fn boot() {
 
 #[wasm_bindgen]
 pub struct Engine {
-    game: Game,
-    input: Input,
-    renderer: Renderer,
+    app: App<Renderer, RapierPhysics>,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
+    device: wgpu::Device,
     backend: String,
 }
 
-async fn connect(
-    canvas: &web_sys::HtmlCanvasElement,
-    webgpu: bool,
-) -> Result<(wgpu::Surface<'static>, wgpu::Adapter, wgpu::Device, wgpu::Queue), String> {
+async fn connect(canvas: &web_sys::HtmlCanvasElement, webgpu: bool) -> Result<(wgpu::Surface<'static>, wgpu::Adapter, wgpu::Device, wgpu::Queue), String> {
     let instance = if webgpu {
-        wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::BROWSER_WEBGPU,
-            ..Default::default()
-        })
-        .await
+        wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor { backends: wgpu::Backends::BROWSER_WEBGPU, ..Default::default() }).await
     } else {
         wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::GL, ..Default::default() })
     };
-    let surface = instance
-        .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
-        .map_err(|e| format!("Kunne ikke tegne i canvas: {e}"))?;
-    let (adapter, device, queue) = crate::gpu(&instance, Some(&surface)).await?;
+    let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone())).map_err(|e| format!("Kunne ikke tegne i canvas: {e}"))?;
+    let (adapter, device, queue) = crate::adapters::gpu(&instance, Some(&surface)).await?;
     Ok((surface, adapter, device, queue))
 }
 
@@ -69,21 +62,22 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool) -> Result<E
     };
     surface.configure(&device, &config);
 
-    let tokens = Tokens::load();
-    let world = world::build(&tokens);
-    let renderer = Renderer::new(device, queue, &adapter, format, &world, config.width, config.height);
-    let game = Game::new(tokens, &world);
-    Ok(Engine { game, input: Input::default(), renderer, surface, config, backend })
+    let prepared = app::prepare(&Embedded);
+    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, config.width, config.height);
+    let app = App::new(prepared, renderer, RapierPhysics::new());
+    Ok(Engine { app, surface, config, device, backend })
 }
 
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
-        Event::Prompt(Some(p)) => json!({"type": "prompt", "component": p.component, "class": p.class, "variant": p.variant}),
+        Event::Prompt(Some(p)) => json!({"type": "prompt", "component": p.component, "class": p.class, "variant": p.variant, "variants": p.has_variants, "usable": p.usable}),
         Event::Prompt(None) => json!({"type": "prompt"}),
         Event::Inspect { component, variant } => json!({"type": "inspect", "component": component, "variant": variant}),
         Event::Theme(t) => json!({"type": "theme", "theme": if *t == Theme::Dark { "dark" } else { "light" }}),
         Event::Variant { component, variant } => json!({"type": "variant", "component": component, "variant": variant}),
+        Event::Toast(t) => json!({"type": "toast", "text": t}),
+        Event::Weather(w) => json!({"type": "weather", "weather": w}),
     }
 }
 
@@ -95,44 +89,60 @@ impl Engine {
     }
 
     pub fn fristil_version(&self) -> String {
-        self.game.fristil_version().to_string()
+        self.app.game.fristil_version().to_string()
     }
 
-    pub fn variant(&self) -> String {
-        self.game.variant().to_string()
+    pub fn variant(&self, component: &str) -> String {
+        self.app.game.variant_of(component)
+    }
+
+    pub fn weather(&self) -> String {
+        self.app.game.weather().name().to_string()
     }
 
     pub fn key(&mut self, code: &str, down: bool) {
-        self.input.key(code, down);
+        self.app.input.key(code, down);
     }
 
     pub fn look(&mut self, dx: f32, dy: f32) {
-        self.input.look.0 += dx;
-        self.input.look.1 += dy;
+        self.app.input.look.0 += dx;
+        self.app.input.look.1 += dy;
     }
 
     pub fn release_all(&mut self) {
-        self.input.release_all();
+        self.app.input.release_all();
     }
 
     pub fn set_paused(&mut self, paused: bool) {
-        self.game.paused = paused;
+        self.app.game.paused = paused;
         if paused {
-            self.input.release_all();
+            self.app.input.release_all();
         }
     }
 
     pub fn set_theme(&mut self, dark: bool) {
-        self.game.set_theme(if dark { Theme::Dark } else { Theme::Light }, false);
+        self.app.game.set_theme(if dark { Theme::Dark } else { Theme::Light }, false);
     }
 
-    pub fn set_variant(&mut self, variant: &str) {
-        self.game.set_variant(variant);
+    pub fn set_variant(&mut self, component: &str, variant: &str) {
+        self.app.game.set_variant(component, variant);
+    }
+
+    /// klart, overskyet, regn, uvær, snø eller tåke.
+    pub fn set_weather(&mut self, name: &str) {
+        if let Some(k) = WeatherKind::ALL.iter().copied().find(|k| k.name() == name) {
+            self.app.game.set_weather(k, false);
+        }
+    }
+
+    /// Forbindelsen til serveren, fra `navigator.onLine`.
+    pub fn set_online(&mut self, online: bool) {
+        self.app.game.set_online(online);
     }
 
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
-        self.game.place(glam::Vec3::new(x, y, z), yaw_deg.to_radians(), pitch_deg.to_radians());
+        self.app.game.place(glam::Vec3::new(x, y, z), yaw_deg.to_radians(), pitch_deg.to_radians());
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -142,23 +152,23 @@ impl Engine {
         }
         self.config.width = w;
         self.config.height = h;
-        self.surface.configure(self.renderer.device(), &self.config);
-        self.renderer.resize(w, h);
+        self.surface.configure(&self.device, &self.config);
+        self.app.resize(w, h);
     }
 
     /// Ett bilde. Returnerer hendelsene som JSON-liste.
     pub fn frame(&mut self, dt: f32) -> String {
-        let events = self.game.update(&mut self.input, dt);
+        let events = self.app.tick(dt);
         match self.surface.get_current_texture() {
             Ok(frame) => {
                 let view = frame.texture.create_view(&Default::default());
-                let data = self.game.frame(self.config.width as f32 / self.config.height as f32);
-                self.renderer.render(&view, &data);
+                self.app.renderer.set_target(view);
+                self.app.draw(self.config.width as f32 / self.config.height as f32);
                 frame.present();
             }
             Err(e) => {
                 log::warn!("Fikk ikke bilde fra canvas: {e}");
-                self.surface.configure(self.renderer.device(), &self.config);
+                self.surface.configure(&self.device, &self.config);
             }
         }
         serde_json::Value::Array(events.iter().map(json).collect()).to_string()

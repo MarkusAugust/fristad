@@ -6,5 +6,85 @@
     "intro": "Klassen settes på et vanlig `<button>`. Ingen JavaScript lastes, og den virker likt i alle rammeverk.",
     "code": "<button class=\"fs-button\">Send søknad</button>\n<button class=\"fs-button\" data-variant=\"secondary\">Lagre utkast</button>\n<button class=\"fs-button\" data-variant=\"ghost\">Legg til vedlegg</button>\n<button class=\"fs-button\" data-variant=\"danger\">Slett søknad</button>",
     "url": "https://fristil.sobernetics.no/components/button/"
+  },
+  "alert": {
+    "name": "alert",
+    "title": "Alert",
+    "description": "Melding som gjelder hele siden eller hele skjemaet. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "En boks som sier noe om helheten: at søknaden ble sendt, at tjenesten er nede, at fristen nærmer seg. Gjelder meldingen ett felt, hører den hjemme under feltet som [Error Text](../error-text/) eller [Help Text](../help-text/).",
+    "code": "<div class=\"fs-alert\">\n  <p class=\"fs-alert__title\">Saken er registrert</p>\n  <p>Du får svar innen tre uker.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"info\">\n  <p>Vi har oppdatert tjenesten. Du må logge inn på nytt.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"success\">\n  <p>Søknaden er sendt. Kvittering er på vei til e-posten din.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"warning\">\n  <p>Søknadsfristen går ut om tre dager.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"danger\">\n  <p class=\"fs-alert__title\">Søknaden ble ikke sendt</p>\n  <p>Nettverket svarte ikke. Prøv igjen om litt.</p>\n</div>",
+    "url": "https://fristil.sobernetics.no/components/alert/"
+  },
+  "tag": {
+    "name": "tag",
+    "title": "Tag",
+    "description": "Merkelapp for emneord og filtre. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "En merkelapp merker innhold: emneord på en artikkel, valgte filtre over en liste. Sier lappen hvilken tilstand noe er i, som «Innvilget» eller «Forfalt», er [Badge](../badge/) riktig i stedet.",
+    "code": "<span class=\"fs-tag\">Bostøtte</span>\n<span class=\"fs-tag\" data-variant=\"filled\">Barnehage</span>\n<span class=\"fs-tag\" aria-disabled=\"true\">Arkivert</span>",
+    "url": "https://fristil.sobernetics.no/components/tag/"
+  },
+  "badge": {
+    "name": "badge",
+    "title": "Badge",
+    "description": "Kompakt statusmerke. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Et lite merke som viser hvilken tilstand noe er i. Fargen styres med `data-color`.",
+    "code": "<span class=\"fs-badge\">Under behandling</span>\n<span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n<span class=\"fs-badge\" data-color=\"warning\">Mangler vedlegg</span>\n<span class=\"fs-badge\" data-color=\"danger\">Avslått</span>\n<span class=\"fs-badge\" data-color=\"neutral\">Arkivert</span>",
+    "url": "https://fristil.sobernetics.no/components/badge/"
+  },
+  "switch": {
+    "name": "switch",
+    "title": "Switch",
+    "description": "Bryter for en innstilling som slår inn med en gang. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "En avkryssingsboks med `role=\"switch\"`. Skjermlesere sier da «på» og «av» framfor «avkrysset», mens tastaturet og `FormData` virker som for en vanlig boks.",
+    "code": "<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"epost\" checked />\n  <label class=\"fs-label\" for=\"epost\">Varsle meg på e-post</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"sms\" />\n  <label class=\"fs-label\" for=\"sms\">Varsle meg på SMS</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"brev\" disabled />\n  <label class=\"fs-label\" for=\"brev\">Varsle meg i posten</label>\n</div>",
+    "url": "https://fristil.sobernetics.no/components/switch/"
+  },
+  "spinner": {
+    "name": "spinner",
+    "title": "Spinner",
+    "description": "Venteindikator for noe som pågår. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "En ring som snurrer mens noe lastes. Vet du hvor lenge det tar, eller hvor langt det er kommet, er [Progress](../progress/) bedre. Denne sier bare at noe pågår.",
+    "code": "<span class=\"fs-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>",
+    "url": "https://fristil.sobernetics.no/components/spinner/"
+  },
+  "breadcrumbs": {
+    "name": "breadcrumbs",
+    "title": "Breadcrumbs",
+    "description": "Brødsmulesti som viser hvor på siden brukeren er. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Stien fra forsiden til der brukeren står nå. Klassen settes på en `<ol>` inne i en `<nav>`: rekkefølgen betyr noe, så listen må være nummerert selv om tallene ikke vises.",
+    "code": "<nav aria-label=\"Du er her\">\n  <ol class=\"fs-breadcrumbs\">\n    <li><a href=\"#\">Forsiden</a></li>\n    <li><a href=\"#\">Mine saker</a></li>\n    <li><a href=\"#\" aria-current=\"page\">Søknad 2026-0481</a></li>\n  </ol>\n</nav>",
+    "url": "https://fristil.sobernetics.no/components/breadcrumbs/"
+  },
+  "progress": {
+    "name": "progress",
+    "title": "Progress",
+    "description": "Framdriftsstolpe for noe som har en ende. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Klassen settes på et ekte `<progress>`. Elementet har semantikken innebygd: nettleseren melder det som `role=\"progressbar\"` og leser opp hvor langt det er kommet, så du skriver verken rolle, `aria-valuenow` eller `aria-valuemax`. Bygger du stolpen av `<div>`-er, må du skrive alt det selv, og holde det i takt med tallet.",
+    "code": "<progress class=\"fs-progress\" value=\"3\" max=\"7\"\n          aria-label=\"Steg 3 av 7\"></progress>\n\n<progress class=\"fs-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n          aria-label=\"Opplastingen er ferdig\"></progress>\n\n<progress class=\"fs-progress\" aria-label=\"Henter søknadene dine\"></progress>",
+    "url": "https://fristil.sobernetics.no/components/progress/"
+  },
+  "toast": {
+    "name": "toast",
+    "title": "Toast",
+    "description": "Kø av korte meldinger i hjørnet av skjermen. Frittstående komponent.",
+    "intro": "Elementet er beholderen, ikke meldingen. Du legger det inn én gang i appen og kaller `show()` når noe skal meldes.",
+    "code": "",
+    "url": "https://fristil.sobernetics.no/components/toast/"
+  },
+  "skeleton": {
+    "name": "skeleton",
+    "title": "Skeleton",
+    "description": "Plassholder som viser formen på innhold som lastes. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Grå former som viser hvor innholdet kommer. De er alltid skjult for skjermlesere, så ventingen må meldes ett sted i tillegg. Er det ingen form å vise, eller tar ventingen kort tid, er [Spinner](../spinner/) enklere.",
+    "code": "<div class=\"fs-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-siste-linje\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-bilde\" aria-hidden=\"true\"></div>",
+    "url": "https://fristil.sobernetics.no/components/skeleton/"
+  },
+  "connection-status": {
+    "name": "connection-status",
+    "title": "Connection Status",
+    "description": "Sier fra når forbindelsen til serveren er borte. Frittstående komponent.",
+    "intro": "En side som mister forbindelsen ser helt normal ut, men er frosset. Fyller brukeren ut et skjema inn i en død forbindelse, er alt borte når hun trykker send.",
+    "code": "",
+    "url": "https://fristil.sobernetics.no/components/connection-status/"
   }
 }

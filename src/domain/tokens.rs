@@ -50,7 +50,7 @@ pub fn hex(s: &str) -> Vec3 {
 
 impl Tokens {
     pub fn load() -> Self {
-        let raw: Raw = serde_json::from_str(include_str!("../assets/tokens.json"))
+        let raw: Raw = serde_json::from_str(include_str!("../../assets/tokens.json"))
             .expect("assets/tokens.json er ugyldig. Kjør `bun run tokens`.");
         let conv = |m: HashMap<String, String>| {
             m.into_iter()

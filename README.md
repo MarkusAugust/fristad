@@ -2,7 +2,7 @@
 
 Dokumentasjonen til [Fristil](https://github.com/MarkusAugust/fristil), som en by du kan gå rundt i.
 
-Fristad er en 3D-verden i nettleseren der komponentene i designsystemet står som ting i byen. Den store knappen ved porten er `.fs-button`: sikt på den og trykk **E**, så åpnes den ekte komponenten med varianter, kode og lenke til dokumentasjonssiden. **R** bytter variant, også på knappen i byen. **F** trykker på den, og porten går opp. **T** bytter mellom lyst og mørkt tema, som i Fristad er dag og natt.
+Fristad er en 3D-verden i nettleseren der komponentene i designsystemet står som ting i byen: knappen ved porten er `.fs-button`, oppslaget på veggen er `.fs-alert`, bryteren for gatelysene er `.fs-switch`, framdriftsstolpen over porten er `.fs-progress`, merkelappene og statusmerkene på oppslagstavla er `.fs-tag` og `.fs-badge`, ringen på masta er `.fs-spinner`, messingplatene i brosteinen er `.fs-breadcrumbs`, huset under bygging er `.fs-skeleton` og masta ved torget er `.fs-connection-status`. Sikt på en av dem og trykk **E**, så åpnes den ekte komponenten med eksempel, varianter, kode og lenke til dokumentasjonssiden. **R** bytter variant, også i byen. **F** bruker den: knappen åpner porten, bryteren tenner gatelysene. **T** bytter mellom lyst og mørkt tema, som i Fristad er dag og natt, og **V** bytter vær.
 
 ## Kontroller
 
@@ -16,6 +16,7 @@ Fristad er en 3D-verden i nettleseren der komponentene i designsystemet står so
 | R | Neste variant |
 | F | Bruk |
 | T | Dag og natt (lyst og mørkt tema) |
+| V | Vær: klart, overskyet, regn, uvær, snø, tåke |
 | Esc | Pause |
 
 ## Hvordan den henger sammen med Fristil
@@ -28,24 +29,27 @@ Fristad er en 3D-verden i nettleseren der komponentene i designsystemet står so
 
 ## Teknologi
 
-Motoren er skrevet i Rust og kompilert til WebAssembly:
+Motoren er skrevet i Rust og kompilert til WebAssembly, med hexagonal arkitektur (ports and adapters):
 
-- **wgpu** mot WebGPU, med WebGL2 som reserve.
-- **Rapier** for fysikk og karakterkontroller.
-- Ingen modeller eller teksturer: byen bygges prosedyrisk i `src/world.rs`, og brostein, puss, mur, skifer og treverk tegnes i shaderne.
-- Rendering: skyggekart med myke kanter, PBR-lys, himmellys, punktlys fra lyktene, høydetåke, himmel med sol, stjerner og nordlys, glød og ACES-tonemapping.
+- `src/domain/` er kjernen, uten avhengighet til GPU, nettleser eller fysikkmotor: tokens, geometri, tekst, byen, komponentene i byen og spillet.
+- `src/domain/ports.rs` er portene (`Renderer`, `Physics`, `ModelSource`), og `src/adapters/` er adapterne: wgpu (WebGPU, med WebGL2 som reserve), Rapier, glTF, nettleser og eget vindu.
+- Rendering: tre kaskader med skyggekart, dybdeprepass, SSAO, PBR-lys med normalkart, himmellys, lykter, vinduer med rom bak glasset, volumetrisk tåke med lysstråler, regn og snø, våte flater og snødekke, TAA, glød og ACES-tonemapping.
+- Materialene bakes prosedyrisk på GPU-en ved oppstart (brostein, puss, panel, skifer, takstein, stein, mur, eik, metall, gress, bark, grus, betong) som teksturer med normal-, ruhets- og høydekart. Byen laster ingen bildefiler; bare modellene (lyktene og reven, CC0 fra Khronos) har egne teksturer.
+- Teksten på skiltene er Inter som SDF-atlas, så den er skarp uansett avstand. Én CSS-piksel er én centimeter for komponentene.
 
 ```
 src/
-  world.rs      byen, bygget fra tokens
-  game.rs       spilleren, fysikken, døgnet og knappen
-  render.rs     rendereren
-  shaders/      WGSL
-  web.rs        inngangen fra nettleseren
-  native.rs     eget vindu på Mac, Windows og Linux
+  domain/          kjernen
+    city/          byen: fasadegrammatikk, trær, gatemøbler
+    installations/ komponentene i byen, én fil per komponent
+    game.rs        spilleren, døgnet, været
+    ports.rs       portene
+  adapters/        wgpu, rapier, gltf, web, native
+  app.rs           setter sammen kjernen og portene
   bin/snapshot.rs  skjermbilde til PNG uten vindu
-web/            HTML, JavaScript-laget og panelene
-tools/          eksport av tokens og dokumentasjon, og nettbygget
+  bin/bake_font.rs SDF-atlas av Inter
+web/               HTML, JavaScript-laget og panelene
+tools/             eksport av tokens og dokumentasjon, og nettbygget
 ```
 
 ## Kjøre lokalt
@@ -63,4 +67,4 @@ cargo run --release --bin snapshot -- --out torg.png --theme dark
 sh tools/build-web.sh
 ```
 
-Netlify bygger og publiserer `dist/` ved hver push til `master`.
+GitHub Actions bygger og publiserer `dist/` ved hver push: `master` til fristad.netlify.app, `claude/**` til forhåndsvisningen claude--fristad.netlify.app.

@@ -1,7 +1,13 @@
 // JavaScript-laget i Fristad: løkka, input, pekerlås og panelene.
-// Verden, fysikk og grafikk bor i Rust (pkg/fristad.js og .wasm).
+// Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm).
+// Meldingene og forbindelsesstatusen er Fristils egne web-komponenter.
 
 import init, { start } from "./pkg/fristad.js";
+import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
+import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
+
+defineFsToast();
+defineFsConnectionStatus();
 
 const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
@@ -10,6 +16,7 @@ const panel = $("panel");
 const promptEl = $("prompt");
 const status = $("status");
 const enterBtn = $("enter");
+const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
 let engine = null;
@@ -17,12 +24,49 @@ let docs = {};
 let panelOpen = false;
 let current = { component: "button", variant: "primary" };
 
-const VARIANTS = [
-  { name: "primary", label: "Send søknad", note: "Standard. Trenger ingen data-variant." },
-  { name: "secondary", label: "Lagre utkast", note: "Omriss, gjennomsiktig bakgrunn." },
-  { name: "ghost", label: "Legg til vedlegg", note: "Ingen kant, ingen bakgrunn." },
-  { name: "danger", label: "Slett søknad", note: "For handlinger som ikke kan angres." },
-];
+// Variantene per komponent, i samme rekkefølge som R blar gjennom dem i
+// byen, med en tekst til panelet.
+const VARIANTS = {
+  button: [
+    { name: "primary", label: "Send søknad", note: "Standard. Trenger ingen data-variant." },
+    { name: "secondary", label: "Lagre utkast", note: "Omriss, gjennomsiktig bakgrunn." },
+    { name: "ghost", label: "Legg til vedlegg", note: "Ingen kant, ingen bakgrunn." },
+    { name: "danger", label: "Slett søknad", note: "For handlinger som ikke kan angres." },
+  ],
+  alert: [
+    { name: "neutral", note: "Standard, nøytral." },
+    { name: "info", note: 'data-color="info"' },
+    { name: "success", note: 'data-color="success"' },
+    { name: "warning", note: 'data-color="warning"' },
+    { name: "danger", note: 'data-color="danger"' },
+  ],
+  tag: [
+    { name: "default", note: "Standard, med kant." },
+    { name: "filled", note: 'data-variant="filled"' },
+    { name: "disabled", note: 'aria-disabled="true"' },
+  ],
+  badge: [
+    { name: "accent", note: "Standard." },
+    { name: "success", note: 'data-color="success"' },
+    { name: "warning", note: 'data-color="warning"' },
+    { name: "danger", note: 'data-color="danger"' },
+    { name: "neutral", note: 'data-color="neutral"' },
+  ],
+  progress: [
+    { name: "accent", note: "Standard." },
+    { name: "success", note: 'data-color="success"' },
+  ],
+  spinner: [
+    { name: "small", note: 'data-size="small"' },
+    { name: "medium", note: "Standard." },
+    { name: "large", note: 'data-size="large"' },
+  ],
+  skeleton: [
+    { name: "text", note: 'data-variant="text"' },
+    { name: "circle", note: 'data-variant="circle"' },
+    { name: "block", note: "Standard, en blokk." },
+  ],
+};
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
 // høy pikseltetthet. Forskjellen synes knapt, men GPU-en får mye mindre å gjøre.
@@ -59,6 +103,7 @@ async function boot() {
   // Til feilsøking i konsollen og til testene.
   window.fristad = { engine, openPanel, closePanel };
   $("version").textContent = engine.fristil_version();
+  $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
   fit();
   bindInput();
@@ -89,6 +134,9 @@ function handle(e) {
         $("prompt-name").textContent = docs[e.component]?.title ?? e.component;
         $("prompt-class").textContent = e.class;
         $("prompt-variant").textContent = e.variant;
+        $("prompt-variant").hidden = !e.variant;
+        $("key-variant").hidden = !e.variants;
+        $("key-use").hidden = !e.usable;
         promptEl.hidden = false;
       } else {
         promptEl.hidden = true;
@@ -103,6 +151,12 @@ function handle(e) {
       break;
     case "theme":
       document.documentElement.dataset.theme = e.theme;
+      break;
+    case "toast":
+      toast?.show?.(e.text);
+      break;
+    case "weather":
+      $("weather").textContent = e.weather;
       break;
   }
 }
@@ -160,6 +214,11 @@ function bindInput() {
   });
   window.addEventListener("blur", () => engine.release_all());
 
+  // Forbindelsen: `.fs-connection-status` viser linja, byen får uvær.
+  engine.set_online(navigator.onLine);
+  window.addEventListener("offline", () => engine.set_online(false));
+  window.addEventListener("online", () => engine.set_online(true));
+
   $("close").addEventListener("click", () => closePanel(true));
 }
 
@@ -168,7 +227,7 @@ function fadeHelp() {
   const help = $("help");
   help.classList.remove("faded");
   clearTimeout(helpTimer);
-  helpTimer = setTimeout(() => help.classList.add("faded"), 7000);
+  helpTimer = setTimeout(() => help.classList.add("faded"), 9000);
 }
 
 function openPanel() {
@@ -180,10 +239,12 @@ function openPanel() {
 
   $("panel-title").textContent = d.title ?? current.component;
   $("panel-class").textContent = `.fs-${current.component}`;
+  $("panel-kind").textContent = d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
   $("panel-description").textContent = d.description ?? "";
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";
   $("panel-link").href = d.url ?? "https://fristil.sobernetics.no/";
+  renderDemo(d.code ?? "");
   renderVariants();
   panel.hidden = false;
   $("close").focus();
@@ -201,36 +262,61 @@ function closePanel(relock) {
   }
 }
 
-// Ekte Fristil-knapper. Velger du en, bytter knappen i byen variant.
+// Eksempelet fra dokumentasjonen, levende: samme HTML som i Fristil-docs.
+function renderDemo(code) {
+  const demo = $("demo");
+  demo.replaceChildren();
+  if (!code) {
+    demo.hidden = true;
+    return;
+  }
+  demo.hidden = false;
+  const tpl = document.createElement("template");
+  tpl.innerHTML = code;
+  // Lenker i eksemplene skal ikke føre noen steder.
+  for (const a of tpl.content.querySelectorAll("a[href]")) a.setAttribute("href", "#");
+  for (const s of tpl.content.querySelectorAll("script")) s.remove();
+  demo.append(tpl.content);
+}
+
+// Variantene som chips. Velger du en, bytter komponenten i byen.
 function renderVariants() {
   const list = $("variants");
+  const section = $("variants-section");
   list.replaceChildren();
-  for (const v of VARIANTS) {
+  const variants = VARIANTS[current.component];
+  if (!variants) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  for (const v of variants) {
     const row = document.createElement("div");
     row.className = "variant";
     row.dataset.active = String(v.name === current.variant);
 
     const btn = document.createElement("button");
     btn.className = "fs-button";
-    if (v.name !== "primary") btn.dataset.variant = v.name;
-    btn.textContent = v.label;
+    if (current.component === "button") {
+      if (v.name !== "primary") btn.dataset.variant = v.name;
+      btn.textContent = v.label;
+    } else {
+      btn.dataset.variant = v.name === current.variant ? "primary" : "secondary";
+      btn.textContent = v.name;
+    }
     btn.setAttribute("aria-pressed", String(v.name === current.variant));
     btn.addEventListener("click", () => {
       current.variant = v.name;
-      engine.set_variant(v.name);
+      engine.set_variant(current.component, v.name);
       renderVariants();
     });
 
-    const info = document.createElement("div");
-    const code = document.createElement("code");
-    code.textContent = v.name === "primary" ? "uten data-variant" : `data-variant="${v.name}"`;
     const note = document.createElement("div");
     note.className = "fs-paragraph";
     note.dataset.size = "small";
     note.textContent = v.note;
-    info.append(code, note);
 
-    row.append(btn, info);
+    row.append(btn, note);
     list.append(row);
   }
 }

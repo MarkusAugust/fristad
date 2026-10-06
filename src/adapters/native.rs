@@ -1,11 +1,11 @@
-//! Fristad som eget vindu på Mac, Windows og Linux.
-//!
-//! Klikk i vinduet for å fange musa, Esc for å slippe den.
+//! Fristad som eget vindu på Mac, Windows og Linux: den drivende adapteren
+//! for winit. Klikk i vinduet for å fange musa, Esc for å slippe den.
 
-use crate::game::{Event, Game, Input};
-use crate::render::Renderer;
-use crate::tokens::Tokens;
-use crate::world;
+use crate::adapters::gltf::Embedded;
+use crate::adapters::rapier::RapierPhysics;
+use crate::adapters::wgpu::Renderer;
+use crate::app::{self, App, Prepared};
+use crate::domain::game::Event;
 use std::sync::Arc;
 use std::time::Instant;
 use winit::application::ApplicationHandler;
@@ -14,44 +14,42 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::PhysicalKey;
 use winit::window::{CursorGrabMode, Window, WindowId};
 
-struct Gpu {
+struct Running {
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
-    renderer: Renderer,
+    device: wgpu::Device,
+    app: App<Renderer, RapierPhysics>,
 }
 
-struct App {
-    game: Game,
-    world: world::World,
-    gpu: Option<Gpu>,
-    input: Input,
+struct Host {
+    prepared: Option<Prepared>,
+    running: Option<Running>,
     last: Instant,
     grabbed: bool,
 }
 
-impl App {
+impl Host {
     fn grab(&mut self, on: bool) {
-        let Some(g) = &self.gpu else { return };
+        let Some(r) = &mut self.running else { return };
         if on {
-            let ok = g.window.set_cursor_grab(CursorGrabMode::Locked).is_ok()
-                || g.window.set_cursor_grab(CursorGrabMode::Confined).is_ok();
+            let ok = r.window.set_cursor_grab(CursorGrabMode::Locked).is_ok() || r.window.set_cursor_grab(CursorGrabMode::Confined).is_ok();
             if ok {
-                g.window.set_cursor_visible(false);
+                r.window.set_cursor_visible(false);
                 self.grabbed = true;
             }
         } else {
-            let _ = g.window.set_cursor_grab(CursorGrabMode::None);
-            g.window.set_cursor_visible(true);
+            let _ = r.window.set_cursor_grab(CursorGrabMode::None);
+            r.window.set_cursor_visible(true);
             self.grabbed = false;
-            self.input.release_all();
+            r.app.input.release_all();
         }
     }
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler for Host {
     fn resumed(&mut self, el: &ActiveEventLoop) {
-        if self.gpu.is_some() {
+        if self.running.is_some() {
             return;
         }
         let window = Arc::new(
@@ -60,7 +58,7 @@ impl ApplicationHandler for App {
         );
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone()).expect("surface");
-        let (adapter, device, queue) = pollster::block_on(crate::gpu(&instance, Some(&surface))).expect("GPU");
+        let (adapter, device, queue) = pollster::block_on(crate::adapters::gpu(&instance, Some(&surface))).expect("GPU");
         let caps = surface.get_capabilities(&adapter);
         let format = caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(caps.formats[0]);
         let size = window.inner_size();
@@ -75,16 +73,20 @@ impl ApplicationHandler for App {
             view_formats: vec![],
         };
         surface.configure(&device, &config);
-        let renderer = Renderer::new(device, queue, &adapter, format, &self.world, config.width, config.height);
-        self.gpu = Some(Gpu { window, surface, config, renderer });
+        let prepared = self.prepared.take().expect("byen er allerede brukt");
+        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, config.width, config.height);
+        let app = App::new(prepared, renderer, RapierPhysics::new());
+        self.running = Some(Running { window, surface, config, device, app });
         self.last = Instant::now();
     }
 
     fn device_event(&mut self, _: &ActiveEventLoop, _: winit::event::DeviceId, event: DeviceEvent) {
         if let DeviceEvent::MouseMotion { delta } = event {
             if self.grabbed {
-                self.input.look.0 += delta.0 as f32;
-                self.input.look.1 += delta.1 as f32;
+                if let Some(r) = &mut self.running {
+                    r.app.input.look.0 += delta.0 as f32;
+                    r.app.input.look.1 += delta.1 as f32;
+                }
             }
         }
     }
@@ -93,11 +95,11 @@ impl ApplicationHandler for App {
         match event {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::Resized(size) => {
-                if let Some(g) = &mut self.gpu {
-                    g.config.width = size.width.max(1);
-                    g.config.height = size.height.max(1);
-                    g.surface.configure(g.renderer.device(), &g.config);
-                    g.renderer.resize(g.config.width, g.config.height);
+                if let Some(r) = &mut self.running {
+                    r.config.width = size.width.max(1);
+                    r.config.height = size.height.max(1);
+                    r.surface.configure(&r.device, &r.config);
+                    r.app.resize(r.config.width, r.config.height);
                 }
             }
             WindowEvent::Focused(false) => self.grab(false),
@@ -111,9 +113,10 @@ impl ApplicationHandler for App {
                     let name = format!("{code:?}");
                     if name == "Escape" && event.state == ElementState::Pressed {
                         self.grab(false);
-                        self.game.paused = false;
-                    } else if !event.repeat || event.state == ElementState::Released {
-                        self.input.key(&name, event.state == ElementState::Pressed);
+                    } else if let Some(r) = &mut self.running {
+                        if !event.repeat || event.state == ElementState::Released {
+                            r.app.input.key(&name, event.state == ElementState::Pressed);
+                        }
                     }
                 }
             }
@@ -121,38 +124,27 @@ impl ApplicationHandler for App {
                 let now = Instant::now();
                 let dt = (now - self.last).as_secs_f32();
                 self.last = now;
-                for e in self.game.update(&mut self.input, dt) {
+                let Some(r) = &mut self.running else { return };
+                for e in r.app.tick(dt) {
                     match e {
-                        Event::Prompt(Some(p)) => {
-                            if let Some(g) = &self.gpu {
-                                g.window.set_title(&format!("Fristad · {} ({}) · E inspiser · R variant · F trykk", p.class, p.variant));
-                            }
-                        }
-                        Event::Prompt(None) => {
-                            if let Some(g) = &self.gpu {
-                                g.window.set_title("Fristad");
-                            }
-                        }
-                        Event::Inspect { component, variant } => {
-                            log::info!("Inspiser {component} ({variant}). Panelet finnes i nettleserversjonen.");
-                        }
+                        Event::Prompt(Some(p)) => r.window.set_title(&format!("Fristad · {} ({}) · E inspiser · R variant · F bruk", p.class, p.variant)),
+                        Event::Prompt(None) => r.window.set_title("Fristad"),
+                        Event::Inspect { component, variant } => log::info!("Inspiser {component} ({variant}). Panelet finnes i nettleserversjonen."),
                         other => log::info!("{other:?}"),
                     }
                 }
-                let Some(g) = &mut self.gpu else { return };
-                let frame = match g.surface.get_current_texture() {
+                let frame = match r.surface.get_current_texture() {
                     Ok(f) => f,
                     Err(_) => {
-                        g.surface.configure(g.renderer.device(), &g.config);
+                        r.surface.configure(&r.device, &r.config);
                         return;
                     }
                 };
-                let view = frame.texture.create_view(&Default::default());
-                let data = self.game.frame(g.config.width as f32 / g.config.height as f32);
-                g.renderer.render(&view, &data);
-                g.window.pre_present_notify();
+                r.app.renderer.set_target(frame.texture.create_view(&Default::default()));
+                r.app.draw(r.config.width as f32 / r.config.height as f32);
+                r.window.pre_present_notify();
                 frame.present();
-                g.window.request_redraw();
+                r.window.request_redraw();
             }
             _ => {}
         }
@@ -161,10 +153,8 @@ impl ApplicationHandler for App {
 
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    let tokens = Tokens::load();
-    let world = world::build(&tokens);
-    let game = Game::new(tokens, &world);
+    let prepared = app::prepare(&Embedded);
     let el = EventLoop::new().expect("event loop");
-    let mut app = App { game, world, gpu: None, input: Input::default(), last: Instant::now(), grabbed: false };
-    el.run_app(&mut app).expect("kjøring");
+    let mut host = Host { prepared: Some(prepared), running: None, last: Instant::now(), grabbed: false };
+    el.run_app(&mut host).expect("kjøring");
 }

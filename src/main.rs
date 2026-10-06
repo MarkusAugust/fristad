@@ -1,3 +1,3 @@
 fn main() {
-    fristad::native::run();
+    fristad::adapters::native::run();
 }

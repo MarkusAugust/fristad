@@ -42,4 +42,12 @@ mkdir -p dist
   target/wasm32-unknown-unknown/release/fristad.wasm
 cp web/index.html web/main.js web/style.css web/docs.json dist/
 cp node_modules/@fristil/designsystem/dist/fristil.css dist/
+# De frittstående web-komponentene (toast, connection-status) importeres som
+# ES-moduler fra pakken, uten kildekart og typer.
+SRC=node_modules/@fristil/designsystem/dist
+(cd "$SRC" && find . -name "*.js" ! -name "cli.js" ! -name "react.js" ! -name "*.map") | while read -r f; do
+  mkdir -p "dist/fristil/$(dirname "$f")"
+  cp "$SRC/$f" "dist/fristil/$f"
+done
 ls -la dist dist/pkg
+du -sh dist/fristil

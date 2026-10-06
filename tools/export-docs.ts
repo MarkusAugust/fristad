@@ -11,10 +11,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Komponentene som finnes i Fristad så langt. */
-const COMPONENTS = ["button"];
+const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status"];
 
 const local = process.argv[2];
-const RAW = "https://raw.githubusercontent.com/MarkusAugust/fristil/main";
+const RAW = "https://raw.githubusercontent.com/MarkusAugust/fristil/master";
 const PATH = "documentation/src/content/docs/components";
 
 async function source(name: string): Promise<string> {
