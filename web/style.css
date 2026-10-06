@@ -121,6 +121,17 @@ code {
   opacity: 0;
 }
 
+.perf {
+  position: absolute;
+  right: var(--fs-spacing-4);
+  bottom: var(--fs-spacing-3);
+  font-size: var(--fs-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+  opacity: 0.8;
+}
+
 @keyframes rise {
   from { opacity: 0; transform: translate(-50%, 6px); }
 }

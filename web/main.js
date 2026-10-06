@@ -153,11 +153,20 @@ function setStatus(text) {
 }
 
 let last = performance.now();
+let frames = 0;
+let perfAt = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
+  // Bilder per sekund, så eieren kan si hvordan det flyter.
+  frames++;
+  if (now - perfAt > 1000) {
+    $("perf").textContent = `${Math.round((frames * 1000) / (now - perfAt))} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${canvas.width}×${canvas.height}`;
+    frames = 0;
+    perfAt = now;
+  }
   requestAnimationFrame(loop);
 }
 
