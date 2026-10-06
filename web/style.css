@@ -1,6 +1,11 @@
 /* Alt som ikke er Fristil-komponenter: oppsettet rundt verden.
    Farger, avstander og skrift kommer fra Fristil-tokens. */
 
+/* `hidden` skal alltid skjule, også elementer som har egen `display`. */
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   margin: 0;
   height: 100%;
