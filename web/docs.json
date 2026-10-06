@@ -1,0 +1,10 @@
+{
+  "button": {
+    "name": "button",
+    "title": "Button",
+    "description": "Knapp for handlinger. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Klassen settes på et vanlig `<button>`. Ingen JavaScript lastes, og den virker likt i alle rammeverk.",
+    "code": "<button class=\"fs-button\">Send søknad</button>\n<button class=\"fs-button\" data-variant=\"secondary\">Lagre utkast</button>\n<button class=\"fs-button\" data-variant=\"ghost\">Legg til vedlegg</button>\n<button class=\"fs-button\" data-variant=\"danger\">Slett søknad</button>",
+    "url": "https://fristil.sobernetics.no/components/button/"
+  }
+}

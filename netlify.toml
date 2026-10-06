@@ -1,0 +1,11 @@
+[build]
+  command = "sh tools/build-web.sh"
+  publish = "dist"
+
+[build.environment]
+  RUST_VERSION = "stable"
+
+[[headers]]
+  for = "/pkg/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
