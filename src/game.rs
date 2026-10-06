@@ -78,6 +78,8 @@ pub struct Prompt {
     pub variant: String,
 }
 
+/// Radianer per piksel musa flytter seg.
+const SENSITIVITY: f32 = 0.0035;
 const EYE: f32 = 0.8;
 const RADIUS: f32 = 0.35;
 const HALF: f32 = 0.55;
@@ -270,8 +272,8 @@ impl Game {
         let actions = std::mem::take(&mut input.actions);
 
         if !self.paused {
-            self.yaw -= input.look.0 * 0.0022;
-            self.pitch = (self.pitch - input.look.1 * 0.0022).clamp(-1.5, 1.5);
+            self.yaw -= input.look.0 * SENSITIVITY;
+            self.pitch = (self.pitch - input.look.1 * SENSITIVITY).clamp(-1.5, 1.5);
         }
         input.look = (0.0, 0.0);
 
