@@ -498,17 +498,19 @@ fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
 /// inn) og normal xy, ruhet, høyde.
 fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let diffuse = fit(&imgs.diffuse);
-    // Gjennomsnittlig lyshet, så tonede lag kan skaleres mot 0,85.
-    let mut gain = 1.0f32;
-    if normalize {
-        let d = diffuse.as_raw();
-        let mean = d.chunks(4).map(|p| (p[0] as f32 * 0.3 + p[1] as f32 * 0.59 + p[2] as f32 * 0.11) / 255.0).sum::<f32>() / (d.len() / 4) as f32;
-        gain = (0.85 / mean.max(0.05)).clamp(0.5, 3.0);
-    }
     let normal = imgs.normal.as_ref().map(fit);
     let rough = imgs.rough.as_ref().map(fit);
     let height = imgs.height.as_ref().map(fit);
     let ao = imgs.ao.as_ref().map(fit);
+    // Gjennomsnittlig lyshet, så tonede lag kan skaleres mot 0,85.
+    let mut gain = 1.0f32;
+    if normalize {
+        let d = diffuse.as_raw();
+        let occl = |i: usize| ao.as_ref().map(|m| 0.35 + 0.65 * m.as_raw()[i * 4] as f32 / 255.0).unwrap_or(1.0);
+        let n = d.len() / 4;
+        let mean = (0..n).map(|i| (d[i * 4] as f32 * 0.3 + d[i * 4 + 1] as f32 * 0.59 + d[i * 4 + 2] as f32 * 0.11) / 255.0 * occl(i)).sum::<f32>() / n as f32;
+        gain = (0.92 / mean.max(0.05)).clamp(0.5, 4.0);
+    }
     let n = (SIZE * SIZE) as usize;
     let mut a = Vec::with_capacity(n * 4);
     let mut nrh = Vec::with_capacity(n * 4);

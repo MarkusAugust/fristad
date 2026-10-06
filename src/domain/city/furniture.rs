@@ -181,12 +181,11 @@ pub fn plaza(b: &mut Builder) {
 
     // Eksterne modeller der de finnes: tønner og kasser ved butikkene,
     // søppelbøtte og sykkel ved sykkelstativet, en kjerre ved brønnen.
-    let extras: [(&'static str, Vec3, f32); 7] = [
-        ("barrel", Vec3::new(-17.6, 0.0, -9.0), 0.3),
-        ("barrel", Vec3::new(-17.2, 0.0, -8.2), 1.9),
+    // Poly Haven-modellene er grupper (flere tønner, flere bøtter), så én av hver.
+    let extras: [(&'static str, Vec3, f32); 5] = [
+        ("barrel", Vec3::new(-16.6, 0.0, -9.5), 0.3),
         ("crate", Vec3::new(17.4, 0.0, 9.5), 0.4),
-        ("crate", Vec3::new(17.4, 0.0, 10.4), 0.1),
-        ("bin", Vec3::new(12.6, 0.0, -15.2), 0.0),
+        ("bin", Vec3::new(12.0, 0.0, -15.6), 0.0),
         ("bicycle", Vec3::new(10.4, 0.0, -14.7), 1.2),
         ("cart", Vec3::new(-13.4, 0.0, 7.2), 0.6),
     ];

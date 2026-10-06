@@ -36,7 +36,9 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
     let city = city::build(&tokens, &font, &infos, &mut installations);
     log::info!("Byen: {} hjørner, {} props, {} modeller tilgjengelig", city.mesh.vertices.len(), city.props.len(), infos.len());
     let models: Vec<Model> = loaded.into_iter().filter(|m| city.placements.iter().any(|p| p.model == m.name)).collect();
-    let layers: Vec<(Layer, LayerImages)> = Layer::ALL.iter().filter_map(|l| textures.layer(l.name()).map(|i| (*l, i))).collect();
+    // Panelet holdes bakt: malte bord skal være rene, og de skannede plankene
+    // er for værbitte til å tones med malingsfargen.
+    let layers: Vec<(Layer, LayerImages)> = Layer::ALL.iter().filter(|l| **l != Layer::Cladding).filter_map(|l| textures.layer(l.name()).map(|i| (*l, i))).collect();
     if !layers.is_empty() {
         log::info!("Fotoskannede materialer: {}", layers.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
     }

@@ -25,7 +25,6 @@ const RES = "1k";
 const TEXTURES: Record<string, string[]> = {
   cobble: ["cobblestone_floor_08", "cobblestone_large", "cobblestone_floor", "cobblestone"],
   plaster: ["plastered_wall_02", "plastered_wall", "painted_plaster", "plaster"],
-  cladding: ["painted_wooden_wall", "wooden_wall", "wood_wall", "weathered_planks", "planks"],
   slate: ["roof_slates", "slate_roof", "slates"],
   tiles: ["roof_tiles_14", "roof_tiles", "clay_roof"],
   stone: ["stone_wall_04", "castle_wall", "stone_wall", "stone_bricks"],
