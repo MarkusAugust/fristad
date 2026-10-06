@@ -1,0 +1,51 @@
+[package]
+name = "fristad"
+version = "0.1.0"
+edition = "2021"
+description = "Fristad: dokumentasjonen til Fristil som en by du kan gå rundt i."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "fristad"
+path = "src/main.rs"
+
+[[bin]]
+name = "snapshot"
+path = "src/bin/snapshot.rs"
+
+[dependencies]
+wgpu = { version = "25", features = ["webgl"] }
+winit = "0.30"
+glam = { version = "0.30", features = ["bytemuck"] }
+bytemuck = { version = "1", features = ["derive"] }
+rapier3d = "0.24"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+pollster = "0.4"
+env_logger = "0.11"
+png = "0.17"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement", "Performance"] }
+console_error_panic_hook = "0.1"
+console_log = "1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

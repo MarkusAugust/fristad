@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "fristad",
+      "dependencies": {
+        "@fristil/designsystem": "^0.31.0",
+      },
+    },
+  },
+  "packages": {
+    "@fristil/designsystem": ["@fristil/designsystem@0.31.0", "", { "bin": { "fristil": "dist/cli.js" } }, "sha512-FraO8HW5+5FQDXcr1h1ZZqOxOcVJgwIrGJskpBSO21hrN6P0CCgZqEKQEHPshzReiGXVcr1EEJbOOghI5VBn5Q=="],
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "fristad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tokens": "bun tools/export-tokens.ts",
+    "build:web": "sh tools/build-web.sh"
+  },
+  "dependencies": {
+    "@fristil/designsystem": "^0.31.0"
+  }
+}
