@@ -1,7 +1,7 @@
 //! Fristad som eget vindu på Mac, Windows og Linux: den drivende adapteren
 //! for winit. Klikk i vinduet for å fange musa, Esc for å slippe den.
 
-use crate::adapters::gltf::Embedded;
+use crate::adapters::assets::MemoryAssets;
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
 use crate::app::{self, App, Prepared};
@@ -74,7 +74,7 @@ impl ApplicationHandler for Host {
         };
         surface.configure(&device, &config);
         let prepared = self.prepared.take().expect("byen er allerede brukt");
-        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, config.width, config.height);
+        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, &prepared.layers, config.width, config.height);
         let app = App::new(prepared, renderer, RapierPhysics::new());
         self.running = Some(Running { window, surface, config, device, app });
         self.last = Instant::now();
@@ -153,7 +153,8 @@ impl ApplicationHandler for Host {
 
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    let prepared = app::prepare(&Embedded);
+    let assets = MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+    let prepared = app::prepare(&assets, &assets);
     let el = EventLoop::new().expect("event loop");
     let mut host = Host { prepared: Some(prepared), running: None, last: Instant::now(), grabbed: false };
     el.run_app(&mut host).expect("kjøring");

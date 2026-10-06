@@ -13,13 +13,23 @@ const BARK: Mat = Mat::tex(Layer::Bark, 0xffffff);
 pub fn plaza_trees(b: &mut Builder) {
     // Det store treet i bedet midt på torget.
     tree(b, Vec3::new(0.0, 0.55, 0.0), 1.7, 0);
-    // Mindre trær i hjørnene.
+    // Mindre trær i hjørnene: modellen om den finnes, ellers de prosedyriske.
     for (i, (x, z)) in [(-14.0, -12.0), (14.0, -12.0), (-14.0, 12.5), (14.0, 12.5)].into_iter().enumerate() {
-        tree(b, Vec3::new(x, 0.3, z), 1.0, i as u32 + 1);
+        if b.has_model("tree") {
+            b.place("tree", super::at(Vec3::new(x, 0.3, z), i as f32 * 1.7));
+            b.colliders.push(Shape::Cylinder { center: Vec3::new(x, 1.5, z), radius: 0.3, half_height: 1.5 });
+        } else {
+            tree(b, Vec3::new(x, 0.3, z), 1.0, i as u32 + 1);
+        }
     }
     // Busker langs gata sørover og bak porten.
-    for (x, z) in [(-2.6, 30.0), (2.6, 36.0), (-2.6, 42.0), (-3.6, -30.0), (3.6, -40.0)] {
-        bush(b, Vec3::new(x, 0.0, z), 0.9);
+    for (k, (x, z)) in [(-2.6, 30.0), (2.6, 36.0), (-2.6, 42.0), (-3.6, -30.0), (3.6, -40.0)].into_iter().enumerate() {
+        if b.has_model("bush") {
+            b.place("bush", super::at(Vec3::new(x, 0.0, z), k as f32 * 2.1));
+            b.colliders.push(Shape::Cylinder { center: Vec3::new(x, 0.5, z), radius: 0.5, half_height: 0.5 });
+        } else {
+            bush(b, Vec3::new(x, 0.0, z), 0.9);
+        }
     }
 }
 

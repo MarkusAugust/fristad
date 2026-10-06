@@ -5,12 +5,14 @@
 //! - `Physics` holder kolliderne, flytter spilleren og skyter stråler.
 //!   Adapter: Rapier.
 //! - `ModelSource` gir modellene byen ber om ved navn. Adapter: glTF.
+//! - `TextureSource` gir fotoskannede materialer per lag. Adapter: filene
+//!   fra Poly Haven i `assets/external/`.
 //!
 //! Den drivende siden (nettleser, eget vindu, skjermbilde) kaller
 //! `app::App`, som eier kjernen og portene.
 
 use crate::domain::city::Shape;
-use crate::domain::model::Model;
+use crate::domain::model::{LayerImages, Model};
 use crate::domain::scene::Frame;
 use glam::{Affine3A, Vec3};
 
@@ -42,4 +44,23 @@ pub trait Physics {
 
 pub trait ModelSource {
     fn load(&self, name: &str) -> Option<Model>;
+    /// Navnene på modellene som finnes, så byen kan velge modell framfor
+    /// prosedyrisk geometri.
+    fn names(&self) -> Vec<String> {
+        vec![]
+    }
+}
+
+/// Fotoskannede materialer som erstatter de bakte lagene. Adapter: filene
+/// `tools/fetch-assets.ts` henter fra Poly Haven.
+pub trait TextureSource {
+    fn layer(&self, name: &str) -> Option<LayerImages>;
+}
+
+/// Ingen eksterne materialer.
+pub struct NoTextures;
+impl TextureSource for NoTextures {
+    fn layer(&self, _name: &str) -> Option<LayerImages> {
+        None
+    }
 }

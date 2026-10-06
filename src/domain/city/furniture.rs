@@ -11,6 +11,14 @@ const GRASS: Mat = Mat::tex(Layer::Grass, 0xffffff);
 /// henger mot −X i modellen, så `yaw` vender det ut mot gata.
 pub fn lantern(b: &mut Builder, p: Vec3, yaw: f32) {
     let t = at(p, yaw);
+    if b.has_model("lamp") {
+        // Ekstern lykt: lyset settes nær toppen av modellen.
+        let h = b.model_height("lamp");
+        b.place("lamp", t);
+        b.light(p + Vec3::Y * (h - 0.4), Vec3::new(1.0, 0.74, 0.46), 9.0, 15.0);
+        b.solid(Shape::Cylinder { center: p + Vec3::Y * (h * 0.5), radius: 0.25, half_height: h * 0.5 });
+        return;
+    }
     b.place("lantern", t);
     let head = t.transform_point3(Vec3::new(-0.94, 2.85, 0.0));
     b.light(head, Vec3::new(1.0, 0.74, 0.46), 9.0, 15.0);
@@ -18,6 +26,11 @@ pub fn lantern(b: &mut Builder, p: Vec3, yaw: f32) {
 }
 
 pub fn bench(b: &mut Builder, p: Vec3, yaw: f32) {
+    if b.has_model("bench") {
+        b.place("bench", at(p, yaw));
+        b.solid_box(p + Vec3::Y * 0.4, Vec3::new(2.0, 0.8, 0.8), yaw);
+        return;
+    }
     let rot = Quat::from_rotation_y(yaw);
     let t = |q: Vec3| Affine3A::from_rotation_translation(rot, p + rot * q);
     let m = &mut b.mesh;
@@ -50,6 +63,11 @@ pub fn manhole(b: &mut Builder, p: Vec3) {
 
 pub fn planter(b: &mut Builder, p: Vec3, yaw: f32) {
     let t = at(p, yaw);
+    if b.has_model("planter") {
+        b.place("planter", t);
+        b.solid_box(p + Vec3::Y * 0.4, Vec3::new(1.0, 0.8, 1.0), yaw);
+        return;
+    }
     let m = &mut b.mesh;
     m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.3, 0.0))), Vec3::new(1.4, 0.6, 0.6), &CONCRETE);
     m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.59, 0.0))), Vec3::new(1.3, 0.04, 0.5), &GRASS);
@@ -160,6 +178,25 @@ pub fn plaza(b: &mut Builder) {
 
     // Reven som står og ser på deg ved bedet.
     b.place("fox", at(Vec3::new(5.4, 0.55, 2.6), 2.3));
+
+    // Eksterne modeller der de finnes: tønner og kasser ved butikkene,
+    // søppelbøtte og sykkel ved sykkelstativet, en kjerre ved brønnen.
+    let extras: [(&'static str, Vec3, f32); 7] = [
+        ("barrel", Vec3::new(-17.6, 0.0, -9.0), 0.3),
+        ("barrel", Vec3::new(-17.2, 0.0, -8.2), 1.9),
+        ("crate", Vec3::new(17.4, 0.0, 9.5), 0.4),
+        ("crate", Vec3::new(17.4, 0.0, 10.4), 0.1),
+        ("bin", Vec3::new(12.6, 0.0, -15.2), 0.0),
+        ("bicycle", Vec3::new(10.4, 0.0, -14.7), 1.2),
+        ("cart", Vec3::new(-13.4, 0.0, 7.2), 0.6),
+    ];
+    for (name, p, yaw) in extras {
+        if b.has_model(name) {
+            b.place(name, at(p, yaw));
+            let h = b.model_height(name).max(0.5);
+            b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(0.8, h, 0.8), yaw);
+        }
+    }
 }
 
 fn well(b: &mut Builder, p: Vec3) {

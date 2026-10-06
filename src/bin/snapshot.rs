@@ -9,7 +9,7 @@
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek,
 //! --frames N (TAA-bilder som blandes, standard 12), --lights off.
 
-use fristad::adapters::gltf::Embedded;
+use fristad::adapters::assets::MemoryAssets;
 use fristad::adapters::rapier::RapierPhysics;
 use fristad::adapters::wgpu::Renderer;
 use fristad::app::{self, App};
@@ -29,11 +29,13 @@ fn main() {
         .unwrap_or((1280u32, 720u32));
     let theme = if arg("--theme").as_deref() == Some("dark") { Theme::Dark } else { Theme::Light };
 
-    let prepared = app::prepare(&Embedded);
+    // Eksterne ressurser fra assets/external/ (eller --assets KATALOG), om de finnes.
+    let assets = MemoryAssets::from_dir(std::path::Path::new(&arg("--assets").unwrap_or_else(|| "assets/external".into())));
+    let prepared = app::prepare(&assets, &assets);
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
     let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
     let format = wgpu::TextureFormat::Rgba8UnormSrgb;
-    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &prepared.city, &prepared.models, width, height);
+    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &prepared.city, &prepared.models, &prepared.layers, width, height);
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
 
     app.game.set_theme(theme, true);

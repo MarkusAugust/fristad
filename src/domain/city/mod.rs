@@ -10,7 +10,8 @@
 
 use crate::domain::geometry::{Layer, Mat, Mesh};
 use crate::domain::installations::Installation;
-use crate::domain::model::Placement;
+use crate::domain::model::{ModelInfo, Placement};
+use std::collections::HashMap;
 use crate::domain::scene::Light;
 use crate::domain::text::Font;
 use crate::domain::tokens::{Theme, Tokens};
@@ -80,6 +81,9 @@ pub struct Builder<'a> {
     pub rng: Rng,
     /// Installasjonen som bygger nå, så propsene får riktig eier.
     pub owner: Option<usize>,
+    /// Modellene som finnes, med mål. Byen bruker dem framfor prosedyrisk
+    /// geometri når de er der.
+    pub models: HashMap<String, ModelInfo>,
 }
 
 impl Builder<'_> {
@@ -98,6 +102,15 @@ impl Builder<'_> {
 
     pub fn solid_box(&mut self, center: Vec3, size: Vec3, yaw: f32) {
         self.colliders.push(Shape::Cuboid { center, size, yaw });
+    }
+
+    pub fn has_model(&self, name: &str) -> bool {
+        self.models.contains_key(name)
+    }
+
+    /// Høyden på en modell, eller 0 om den ikke finnes.
+    pub fn model_height(&self, name: &str) -> f32 {
+        self.models.get(name).map(|m| m.max.y - m.min.y).unwrap_or(0.0)
     }
 
     pub fn place(&mut self, model: &'static str, t: Affine3A) {
@@ -143,7 +156,7 @@ pub const CONCRETE: Mat = Mat::tex(Layer::Concrete, 0xffffff);
 pub const COBBLE: Mat = Mat::tex(Layer::Cobble, 0xffffff);
 pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 
-pub fn build(tokens: &Tokens, font: &Font, installations: &mut [Box<dyn Installation>]) -> City {
+pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: &mut [Box<dyn Installation>]) -> City {
     let mut b = Builder {
         mesh: Mesh::default(),
         colliders: vec![],
@@ -154,6 +167,7 @@ pub fn build(tokens: &Tokens, font: &Font, installations: &mut [Box<dyn Installa
         tokens,
         rng: Rng(0x5eed_f215_7a1d),
         owner: None,
+        models: models.iter().map(|m| (m.name.clone(), m.clone())).collect(),
     };
 
     // Bakken: brostein på torget og i gatene, grus utenfor.

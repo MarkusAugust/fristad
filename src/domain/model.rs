@@ -27,3 +27,23 @@ pub struct Placement {
     pub model: &'static str,
     pub transforms: Vec<glam::Affine3A>,
 }
+
+/// Et fotoskannet materiale som erstatter et bakt teksturlag.
+pub struct LayerImages {
+    pub diffuse: Image,
+    pub normal: Option<Image>,
+    pub rough: Option<Image>,
+    pub height: Option<Image>,
+    pub ao: Option<Image>,
+    /// Hvor mange meter én flis dekker.
+    pub size_m: f32,
+}
+
+/// Det byen trenger å vite om en modell før den bygges: at den finnes, og
+/// hvor stor den er (føttene i y = 0, sentrert i x og z).
+#[derive(Clone, Debug)]
+pub struct ModelInfo {
+    pub name: String,
+    pub min: glam::Vec3,
+    pub max: glam::Vec3,
+}

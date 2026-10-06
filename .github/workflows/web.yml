@@ -33,6 +33,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: Swatinem/rust-cache@v2
+      - name: Hurtiglager for ressursene fra Poly Haven
+        uses: actions/cache@v4
+        with:
+          path: assets/external
+          key: external-assets-${{ hashFiles('tools/fetch-assets.ts') }}
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
       - name: Publiser på Netlify (master)

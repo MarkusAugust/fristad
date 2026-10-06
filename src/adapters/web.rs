@@ -4,7 +4,7 @@
 //! inn hit. Rust eier byen, fysikken og rendereren. Hendelser går tilbake
 //! som JSON fra `frame()`.
 
-use crate::adapters::gltf::Embedded;
+use crate::adapters::assets::MemoryAssets;
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
 use crate::app::{self, App};
@@ -44,8 +44,15 @@ async fn connect(canvas: &web_sys::HtmlCanvasElement, webgpu: bool) -> Result<(w
 /// Et canvas som har gitt ut en WebGPU-kontekst kan ikke gi WebGL etterpå,
 /// så JavaScript-laget prøver WebGPU først og gir oss et nytt canvas hvis
 /// det må falle tilbake.
+/// Filstiene nettleseren må hente for et manifest, så den kan gi dem til
+/// `start`.
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool) -> Result<Engine, JsValue> {
+pub fn asset_paths(manifest_json: &str) -> Vec<String> {
+    MemoryAssets::paths_in(manifest_json)
+}
+
+#[wasm_bindgen]
+pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -62,8 +69,19 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool) -> Result<E
     };
     surface.configure(&device, &config);
 
-    let prepared = app::prepare(&Embedded);
-    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, config.width, config.height);
+    let assets = match manifest_json {
+        Some(m) => {
+            let files: Vec<(String, Vec<u8>)> = names
+                .iter()
+                .zip(blobs.iter())
+                .filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec())))
+                .collect();
+            MemoryAssets::from_files(&m, files)
+        }
+        None => MemoryAssets::empty(),
+    };
+    let prepared = app::prepare(&assets, &assets);
+    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, &prepared.layers, config.width, config.height);
     let app = App::new(prepared, renderer, RapierPhysics::new());
     Ok(Engine { app, surface, config, device, backend })
 }

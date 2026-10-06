@@ -42,6 +42,31 @@ pub enum Layer {
 }
 pub const LAYERS: u32 = 13;
 
+impl Layer {
+    pub const ALL: [Layer; LAYERS as usize] = [
+        Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
+        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete,
+    ];
+    /// Navnet i `assets/external/manifest.json`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Layer::Cobble => "cobble",
+            Layer::Plaster => "plaster",
+            Layer::Cladding => "cladding",
+            Layer::Slate => "slate",
+            Layer::Tiles => "tiles",
+            Layer::Stone => "stone",
+            Layer::Brick => "brick",
+            Layer::Oak => "oak",
+            Layer::Metal => "metal",
+            Layer::Grass => "grass",
+            Layer::Bark => "bark",
+            Layer::Gravel => "gravel",
+            Layer::Concrete => "concrete",
+        }
+    }
+}
+
 /// Meter per teksturflis for hvert lag.
 pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0];
 

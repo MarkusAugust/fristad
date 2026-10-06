@@ -4,8 +4,9 @@
 use crate::domain::city::{self, City};
 use crate::domain::game::{Event, Game, Input};
 use crate::domain::installations;
-use crate::domain::model::Model;
-use crate::domain::ports::{ModelSource, Physics, Renderer};
+use crate::domain::model::{LayerImages, Model, ModelInfo};
+use crate::domain::ports::{ModelSource, Physics, Renderer, TextureSource};
+use crate::domain::geometry::Layer;
 use crate::domain::text::Font;
 use crate::domain::tokens::Tokens;
 
@@ -14,18 +15,32 @@ pub struct Prepared {
     pub tokens: Tokens,
     pub city: City,
     pub models: Vec<Model>,
+    /// Fotoskannede materialer per teksturlag, der de finnes.
+    pub layers: Vec<(Layer, LayerImages)>,
     pub installations: Vec<Box<dyn installations::Installation>>,
 }
 
-pub fn prepare(models: &dyn ModelSource) -> Prepared {
+pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepared {
     let tokens = Tokens::load();
     let font = Font::load();
     let mut installations = installations::all();
-    let city = city::build(&tokens, &font, &mut installations);
-    let text_verts = city.mesh.vertices.iter().filter(|v| v.mat[0] == 203).count() + city.props.iter().flat_map(|p| p.mesh.vertices.iter()).filter(|v| v.mat[0] == 203).count();
-    log::info!("Byen: {} hjørner, {} props, {} tekst-hjørner", city.mesh.vertices.len(), city.props.len(), text_verts);
-    let models: Vec<Model> = city.placements.iter().filter_map(|p| models.load(p.model)).collect();
-    Prepared { tokens, city, models, installations }
+    // Modellene lastes først, så byen vet hvilke som finnes og hvor store de er.
+    let loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
+    let infos: Vec<ModelInfo> = loaded
+        .iter()
+        .map(|m| {
+            let (min, max) = m.mesh.bounds();
+            ModelInfo { name: m.name.clone(), min, max }
+        })
+        .collect();
+    let city = city::build(&tokens, &font, &infos, &mut installations);
+    log::info!("Byen: {} hjørner, {} props, {} modeller tilgjengelig", city.mesh.vertices.len(), city.props.len(), infos.len());
+    let models: Vec<Model> = loaded.into_iter().filter(|m| city.placements.iter().any(|p| p.model == m.name)).collect();
+    let layers: Vec<(Layer, LayerImages)> = Layer::ALL.iter().filter_map(|l| textures.layer(l.name()).map(|i| (*l, i))).collect();
+    if !layers.is_empty() {
+        log::info!("Fotoskannede materialer: {}", layers.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
+    }
+    Prepared { tokens, city, models, layers, installations }
 }
 
 pub struct App<R: Renderer, P: Physics> {

@@ -3,7 +3,8 @@
 //! bladkortet og skriftatlaset. Ingen bildefiler lastes ned for byen; bare
 //! modellene har egne teksturer.
 
-use crate::domain::geometry::{LAYERS, TEX_SCALE};
+use crate::domain::geometry::{Layer, LAYERS, TEX_SCALE};
+use crate::domain::model::LayerImages;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
@@ -17,6 +18,9 @@ struct BakeUniform {
 }
 
 pub struct Materials {
+    /// Meter per flis for hvert lag: de bakte verdiene, eller målene til de
+    /// fotoskannede materialene som erstatter dem.
+    pub scales: [f32; LAYERS as usize],
     /// De bakte lagene, til feilsøking (`snapshot --dump-layer`).
     pub albedo_tex: wgpu::Texture,
     pub nrh_tex: wgpu::Texture,
@@ -182,7 +186,7 @@ impl Mipper {
 }
 
 impl Materials {
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> (Self, Mipper) {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, external: &[(Layer, LayerImages)]) -> (Self, Mipper) {
         let src = format!("{}\n{}", include_str!("shaders/noise.wgsl"), include_str!("shaders/bake.wgsl"));
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("bake"),
@@ -257,7 +261,7 @@ impl Materials {
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             })
         };
@@ -313,6 +317,21 @@ impl Materials {
                 pass.draw(0..3, 0..1);
             }
             queue.submit([enc.finish()]);
+        }
+        // Fotoskannede materialer skrives over de bakte lagene.
+        let mut scales = TEX_SCALE;
+        for (layer, imgs) in external {
+            let (a, n) = pack_external(imgs);
+            for (tex, data) in [(&albedo, &a), (&nrh, &n)] {
+                queue.write_texture(
+                    wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: *layer as u32 }, aspect: wgpu::TextureAspect::All },
+                    data,
+                    wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(SIZE * 4), rows_per_image: Some(SIZE) },
+                    wgpu::Extent3d { width: SIZE, height: SIZE, depth_or_array_layers: 1 },
+                );
+            }
+            scales[*layer as usize] = imgs.size_m.max(0.1);
+            log::info!("Lag {} bruker fotoskannet materiale ({} m per flis)", layer.name(), imgs.size_m);
         }
         mipper.generate(device, queue, &albedo, &nrh, srgb, lin, LAYERS, mips);
 
@@ -436,7 +455,7 @@ impl Materials {
             ],
         });
 
-        (Self { albedo_tex: albedo, nrh_tex: nrh, layout, bind_group, model_layout, dummy_model, repeat }, mipper)
+        (Self { scales, albedo_tex: albedo, nrh_tex: nrh, layout, bind_group, model_layout, dummy_model, repeat }, mipper)
     }
 
     /// Bindingen for en modell med egne teksturer.
@@ -460,4 +479,39 @@ impl Materials {
             ],
         })
     }
+}
+
+/// Skalerer et bilde til lagstørrelsen.
+fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
+    let src = image::RgbaImage::from_raw(img.width, img.height, img.rgba.clone()).expect("bilde");
+    if img.width == SIZE && img.height == SIZE {
+        src
+    } else {
+        image::imageops::resize(&src, SIZE, SIZE, image::imageops::FilterType::Triangle)
+    }
+}
+
+/// Pakker et fotoskannet materiale til lagformatene: albedo (med AO bakt
+/// inn) og normal xy, ruhet, høyde.
+fn pack_external(imgs: &LayerImages) -> (Vec<u8>, Vec<u8>) {
+    let diffuse = fit(&imgs.diffuse);
+    let normal = imgs.normal.as_ref().map(fit);
+    let rough = imgs.rough.as_ref().map(fit);
+    let height = imgs.height.as_ref().map(fit);
+    let ao = imgs.ao.as_ref().map(fit);
+    let n = (SIZE * SIZE) as usize;
+    let mut a = Vec::with_capacity(n * 4);
+    let mut nrh = Vec::with_capacity(n * 4);
+    for i in 0..n {
+        let d = diffuse.as_raw();
+        let occl = ao.as_ref().map(|m| m.as_raw()[i * 4] as f32 / 255.0).unwrap_or(1.0);
+        // AO i sRGB-rom er en grov tilnærming, men bra nok for skygger i fugene.
+        let k = 0.35 + 0.65 * occl;
+        a.extend_from_slice(&[(d[i * 4] as f32 * k) as u8, (d[i * 4 + 1] as f32 * k) as u8, (d[i * 4 + 2] as f32 * k) as u8, 255]);
+        let (nx, ny) = normal.as_ref().map(|m| (m.as_raw()[i * 4], m.as_raw()[i * 4 + 1])).unwrap_or((128, 128));
+        let r = rough.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(200);
+        let h = height.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(128);
+        nrh.extend_from_slice(&[nx, ny, r, h]);
+    }
+    (a, nrh)
 }

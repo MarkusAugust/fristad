@@ -1,5 +1,6 @@
-//! glTF-adapteren: modellene bygges inn i binæren (`assets/models/`) og
-//! leses til `domain::model::Model` bak `ports::ModelSource`.
+//! glTF-adapteren: leser glTF til `domain::model::Model`. `Embedded` er de
+//! to modellene som er bygget inn i binæren (lykta og reven); eksterne
+//! modeller kommer gjennom `adapters::assets`.
 
 use crate::domain::geometry::{kind, Mat, Mesh};
 use crate::domain::model::{Image, Model};
@@ -16,9 +17,13 @@ macro_rules! embed {
 pub struct Embedded;
 
 impl ModelSource for Embedded {
+    fn names(&self) -> Vec<String> {
+        vec!["lantern".into(), "fox".into()]
+    }
+
     fn load(&self, name: &str) -> Option<Model> {
-        match name {
-            "lantern" => Some(load(
+        let r = match name {
+            "lantern" => load(
                 "lantern",
                 embed!("lantern", [
                     "Lantern.gltf",
@@ -30,10 +35,12 @@ impl ModelSource for Embedded {
                 ]),
                 // Lykta er 4,2 m høy.
                 4.2,
-            )),
-            "fox" => Some(load("fox", embed!("fox", ["Fox.gltf", "Fox.bin", "Texture.png"]), 0.75)),
-            _ => None,
-        }
+                0.0,
+            ),
+            "fox" => load("fox", embed!("fox", ["Fox.gltf", "Fox.bin", "Texture.png"]), 0.75, 0.0),
+            _ => return None,
+        };
+        r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 
@@ -43,21 +50,27 @@ fn decode(bytes: &[u8]) -> Option<Image> {
     Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
 }
 
-/// Leser en glTF-fil med tilhørende filer fra minnet, flater ut nodene og
-/// skalerer så modellen blir `height` meter høy med føttene i y = 0.
-fn load(name: &'static str, files: &[(&str, &[u8])], height: f32) -> Model {
-    let get = |n: &str| files.iter().find(|(f, _)| *f == n).map(|(_, b)| *b).unwrap_or_else(|| panic!("{name}: mangler {n}"));
-    let doc = gltf::Gltf::from_slice(get(files[0].0)).expect("ugyldig glTF");
-    let buffers: Vec<Vec<u8>> = doc
-        .buffers()
-        .map(|b| match b.source() {
-            gltf::buffer::Source::Uri(u) => get(u).to_vec(),
-            gltf::buffer::Source::Bin => doc.blob.clone().expect("glb-blob"),
-        })
-        .collect();
+/// Leser en glTF-fil med tilhørende filer fra minnet (første fil er
+/// .gltf-fila, stiene er som i fila), flater ut nodene, dreier `yaw`
+/// grader om Y og setter føttene i y = 0. `height` > 0 skalerer modellen
+/// til den høyden; 0 beholder modellens egne mål (meter).
+pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Result<Model, String> {
+    let get = |n: &str| -> Result<&[u8], String> {
+        // Stier i glTF kan være URL-kodet.
+        let plain = n.replace("%20", " ");
+        files.iter().find(|(f, _)| *f == n || *f == plain || f.rsplit('/').next() == Some(n)).map(|(_, b)| *b).ok_or_else(|| format!("mangler {n}"))
+    };
+    let doc = gltf::Gltf::from_slice(get(files[0].0)?).map_err(|e| format!("ugyldig glTF: {e}"))?;
+    let mut buffers: Vec<Vec<u8>> = vec![];
+    for b in doc.buffers() {
+        buffers.push(match b.source() {
+            gltf::buffer::Source::Uri(u) => get(u)?.to_vec(),
+            gltf::buffer::Source::Bin => doc.blob.clone().ok_or("glb uten blob")?,
+        });
+    }
     let image = |t: Option<gltf::Texture>| -> Option<Image> {
         match t?.source().source() {
-            gltf::image::Source::Uri { uri, .. } => decode(get(uri)),
+            gltf::image::Source::Uri { uri, .. } => decode(get(uri).ok()?),
             gltf::image::Source::View { view, .. } => {
                 let b = &buffers[view.buffer().index()];
                 decode(&b[view.offset()..view.offset() + view.length()])
@@ -72,7 +85,7 @@ fn load(name: &'static str, files: &[(&str, &[u8])], height: f32) -> Model {
     let mut emissive = None;
     let mut roughness = 0.6;
     let mut metallic = 0.0;
-    let scene = doc.default_scene().or_else(|| doc.scenes().next()).expect("ingen scene");
+    let scene = doc.default_scene().or_else(|| doc.scenes().next()).ok_or("ingen scene")?;
     let mut stack: Vec<(gltf::Node, Mat4)> = scene.nodes().map(|n| (n, Mat4::IDENTITY)).collect();
     while let Some((node, parent)) = stack.pop() {
         let local = Mat4::from_cols_array_2d(&node.transform().matrix());
@@ -93,7 +106,8 @@ fn load(name: &'static str, files: &[(&str, &[u8])], height: f32) -> Model {
                 emissive = image(mat.emissive_texture().map(|t| t.texture()));
             }
             let reader = prim.reader(|b| Some(&buffers[b.index()]));
-            let pos: Vec<[f32; 3]> = reader.read_positions().expect("posisjoner").collect();
+            let Some(positions) = reader.read_positions() else { continue };
+            let pos: Vec<[f32; 3]> = positions.collect();
             let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             let norms: Vec<[f32; 3]> = match reader.read_normals() {
@@ -117,13 +131,20 @@ fn load(name: &'static str, files: &[(&str, &[u8])], height: f32) -> Model {
             mesh.indices.extend(idx.iter().map(|i| i + base));
         }
     }
-    // Skaler og sett føttene på bakken.
+    if mesh.indices.is_empty() {
+        return Err("ingen geometri".into());
+    }
+    // Drei, skaler og sett føttene på bakken.
+    if yaw != 0.0 {
+        mesh.transform(&Affine3A::from_rotation_y(yaw.to_radians()));
+    }
     let (lo, hi) = mesh.bounds();
-    let s = height / (hi.y - lo.y).max(1e-3);
+    let s = if height > 0.0 { height / (hi.y - lo.y).max(1e-3) } else { 1.0 };
     let center = Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5);
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
-    log::info!("Modell {name}: {} trekanter", mesh.indices.len() / 3);
-    Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic }
+    let (lo, hi) = mesh.bounds();
+    log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic })
 }
 
 fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {

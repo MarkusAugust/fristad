@@ -2,7 +2,7 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm).
 // Meldingene og forbindelsesstatusen er Fristils egne web-komponenter.
 
-import init, { start } from "./pkg/fristad.js";
+import init, { start, asset_paths } from "./pkg/fristad.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
 
@@ -89,15 +89,18 @@ async function boot() {
   } catch {
     docs = {};
   }
+  // Fotoskannede materialer og modeller (CC0 fra Poly Haven), hentet av
+  // tools/fetch-assets.ts under byggingen. Mangler de, bakes alt i motoren.
+  const assets = await loadAssets();
   try {
-    engine = await start(canvas, true);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
@@ -115,6 +118,38 @@ async function boot() {
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
     $("touch-note").hidden = false;
   }
+}
+
+async function loadAssets() {
+  const none = { manifest: undefined, names: [], blobs: [] };
+  let manifest;
+  try {
+    const res = await fetch("assets/manifest.json");
+    if (!res.ok) return none;
+    manifest = await res.text();
+  } catch {
+    return none;
+  }
+  const paths = asset_paths(manifest);
+  setStatus(`Henter materialer og modeller (${paths.length} filer) …`);
+  const blobs = await Promise.all(
+    paths.map(async (p) => {
+      const r = await fetch(`assets/${p}`);
+      if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    }),
+  ).catch((e) => {
+    console.warn("Ressursene kunne ikke hentes, bruker de bakte:", e);
+    return null;
+  });
+  if (!blobs) return none;
+  setStatus("Bygger byen …");
+  return { manifest, names: paths, blobs };
+}
+
+function setStatus(text) {
+  const span = status.querySelector("span:last-child");
+  if (span) span.textContent = text;
 }
 
 let last = performance.now();

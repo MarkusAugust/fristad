@@ -1,6 +1,7 @@
 //! Adapterne: det som kobler kjernen til GPU, fysikkmotor, filformater og
 //! verten (nettleser eller vindu).
 
+pub mod assets;
 pub mod gltf;
 pub mod rapier;
 pub mod wgpu;

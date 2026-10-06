@@ -10,7 +10,8 @@
 //! 7. Glød og tonemapping til skjermen.
 
 use crate::domain::city::City;
-use crate::domain::geometry::{Mesh, Vertex, LAYERS, TEX_SCALE};
+use crate::domain::geometry::{Layer, Mesh, Vertex, LAYERS};
+use crate::domain::model::LayerImages;
 use crate::domain::model::Model;
 use crate::domain::ports;
 pub use crate::domain::scene::{Frame, Weather};
@@ -263,11 +264,12 @@ impl Renderer {
         output: wgpu::TextureFormat,
         world: &City,
         models: &[Model],
+        external: &[(Layer, LayerImages)],
         width: u32,
         height: u32,
     ) -> Self {
         log::info!("Utdata: {output:?}");
-        let (materials, mipper) = Materials::new(&device, &queue);
+        let (materials, mipper) = Materials::new(&device, &queue, external);
 
         let globals = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("globals"),
@@ -785,7 +787,7 @@ impl Renderer {
             palette[i] = v4(*c, 1.0);
         }
         let mut tex_scale = [[1.0f32; 4]; 4];
-        for (i, s) in TEX_SCALE.iter().enumerate().take(LAYERS as usize) {
+        for (i, s) in self.materials.scales.iter().enumerate().take(LAYERS as usize) {
             tex_scale[i / 4][i % 4] = *s;
         }
         let wx = &f.weather;
