@@ -61,6 +61,17 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
 
     var c = sky_gradient(dir);
 
+    // Skyer: et lag med støy projisert på et høyt, flatt plan.
+    if (dir.y > 0.0) {
+        let p = dir.xz / (dir.y + 0.08) * 1.6 + vec2<f32>(g.camera.w * 0.004, 0.0);
+        let shape = fbm2(p * 0.9) * 0.65 + fbm2(p * 2.7 + 4.0) * 0.35;
+        let cover = smoothstep(0.5, 0.78, shape) * smoothstep(0.0, 0.22, dir.y);
+        let sunward = pow(max(dot(dir, g.sun_dir.xyz), 0.0), 3.0);
+        let lit = mix(g.sky_horizon.rgb * 1.15 + g.sun_color.rgb * 0.25, g.sun_color.rgb * 1.2, sunward * 0.5);
+        let shade = mix(lit, g.sky_top.rgb * 0.9, smoothstep(0.62, 0.95, shape) * 0.35);
+        c = mix(c, shade * (1.0 - night * 0.85), cover * 0.9);
+    }
+
     // Sola om dagen, månen om natta: begge er en skive i sun_dir.
     let s = dot(dir, g.sun_dir.xyz);
     let disk = smoothstep(0.99985, 0.99995, s);

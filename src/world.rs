@@ -509,10 +509,12 @@ fn tree(w: &mut World, rng: &mut Rng, base: Vec3, scale: f32) {
     let h = 3.2 * scale;
     w.mesh.cylinder(&Affine3A::from_translation(base), 0.22 * scale, 0.14 * scale, h, 10, &BARK, false);
     w.colliders.push(Shape::Cylinder { center: base + Vec3::Y * h * 0.5, radius: 0.3 * scale, half_height: h * 0.5 });
-    let blobs = 3 + (rng.next() * 3.0) as i32;
-    for _ in 0..blobs {
-        let o = Vec3::new(rng.range(-1.0, 1.0), rng.range(-0.3, 0.8), rng.range(-1.0, 1.0)) * scale;
-        let r = rng.range(1.3, 1.9) * scale;
+    let blobs = 7 + (rng.next() * 4.0) as i32;
+    for k in 0..blobs {
+        let a = k as f32 * 2.4 + rng.range(0.0, 0.6);
+        let spread = rng.range(0.6, 1.5);
+        let o = Vec3::new(a.cos() * spread, rng.range(-0.4, 1.1), a.sin() * spread) * scale;
+        let r = rng.range(0.85, 1.35) * scale;
         w.mesh.sphere(
             &Affine3A::from_translation(base + Vec3::Y * (h + 0.6 * scale) + o),
             Vec3::new(r, r * 0.85, r),
