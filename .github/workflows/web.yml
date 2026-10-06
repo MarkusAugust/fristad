@@ -1,20 +1,40 @@
 name: Nettbygg
 
+# Bygger bare når noe som påvirker nettversjonen er endret.
 on:
   push:
     branches: [master]
-  pull_request:
+    paths:
+      - "src/**"
+      - "web/**"
+      - "tools/**"
+      - "assets/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: nettbygg
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ebbbcf71-5653-4288-821d-98495279f03c
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: Swatinem/rust-cache@v2
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fristad-web
-          path: dist
+      - name: Publiser på Netlify
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        run: npx -y netlify-cli@latest deploy --prod --no-build --dir dist --site "$NETLIFY_SITE_ID" --message "${GITHUB_SHA::7}"
+      - name: Mangler Netlify-nøkkel
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: echo "::warning::Legg inn NETLIFY_AUTH_TOKEN som secret i repoet for å publisere."

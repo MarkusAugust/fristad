@@ -130,6 +130,11 @@ impl Engine {
         self.game.set_variant(variant);
     }
 
+    /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
+    pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
+        self.game.place(glam::Vec3::new(x, y, z), yaw_deg.to_radians(), pitch_deg.to_radians());
+    }
+
     pub fn resize(&mut self, width: u32, height: u32) {
         let (w, h) = (width.max(1), height.max(1));
         if w == self.config.width && h == self.config.height {

@@ -1,9 +1,10 @@
-[build]
-  command = "sh tools/build-web.sh"
-  publish = "dist"
+# Netlify bygger ingenting selv. Wasm-bygget skjer i GitHub Actions, som
+# laster opp ferdig `dist/` med Netlify CLI. Da bruker vi ingen byggeminutter
+# på Netlify, selv om repoet er koblet til prosjektet.
 
-[build.environment]
-  RUST_VERSION = "stable"
+[build]
+  publish = "dist"
+  ignore = "exit 0"
 
 [[headers]]
   for = "/pkg/*"

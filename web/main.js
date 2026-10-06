@@ -56,6 +56,8 @@ async function boot() {
     engine = await start(canvas, false);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
+  // Til feilsøking i konsollen og til testene.
+  window.fristad = { engine, openPanel, closePanel };
   $("version").textContent = engine.fristil_version();
   new ResizeObserver(fit).observe(canvas);
   fit();
