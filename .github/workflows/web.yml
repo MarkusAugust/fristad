@@ -23,6 +23,9 @@ concurrency:
   group: nettbygg-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,13 +43,22 @@ jobs:
           key: external-assets-${{ hashFiles('tools/fetch-assets.ts') }}
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
-      - name: Ressursene som artefakt (til lokale skjermbilder)
-        uses: actions/upload-artifact@v4
-        with:
-          name: external-assets
-          path: assets/external
-          retention-days: 7
-          if-no-files-found: ignore
+      # Claude når ikke Poly Haven fra skymiljøet sitt, men når GitHub.
+      # Ressursene legges derfor på grenen external-assets (bare filene,
+      # uten historikk), som hentes med `sh tools/pull-assets.sh`.
+      - name: Ressursene til grenen external-assets
+        if: hashFiles('assets/external/manifest.json') != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git worktree add --detach /tmp/extwt
+          cd /tmp/extwt
+          git checkout --orphan external-assets
+          git rm -rfq . || true
+          cp -r "$GITHUB_WORKSPACE/assets/external/." .
+          git add -A
+          git commit -qm "Ressurser fra Poly Haven (CC0), hentet $(date -u +%F) for ${GITHUB_SHA::7}"
+          git push -f origin external-assets
       - name: Publiser på Netlify (master)
         if: env.NETLIFY_AUTH_TOKEN != '' && github.ref == 'refs/heads/master'
         run: npx -y netlify-cli@latest deploy --prod --no-build --dir dist --site "$NETLIFY_SITE_ID" --message "${GITHUB_SHA::7}"
