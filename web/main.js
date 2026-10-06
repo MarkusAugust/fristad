@@ -131,18 +131,36 @@ async function loadAssets() {
     return none;
   }
   const paths = asset_paths(manifest);
-  setStatus(`Henter materialer og modeller (${paths.length} filer) …`);
-  const blobs = await Promise.all(
-    paths.map(async (p) => {
-      const r = await fetch(`assets/${p}`);
-      if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
-      return new Uint8Array(await r.arrayBuffer());
-    }),
-  ).catch((e) => {
-    console.warn("Ressursene kunne ikke hentes, bruker de bakte:", e);
-    return null;
-  });
-  if (!blobs) return none;
+  const bar = $("loading");
+  bar.hidden = false;
+  let done = 0;
+  const tick = () => {
+    done++;
+    bar.value = Math.round((done / paths.length) * 100);
+    setStatus(`Henter materialer og modeller (${done} av ${paths.length}) …`);
+  };
+  setStatus(`Henter materialer og modeller (0 av ${paths.length}) …`);
+  // Seks om gangen, så nettleseren ikke åpner hundre forbindelser.
+  const blobs = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      const r = await fetch(`assets/${paths[i]}`);
+      if (!r.ok) throw new Error(`${paths[i]}: HTTP ${r.status}`);
+      blobs[i] = new Uint8Array(await r.arrayBuffer());
+      tick();
+    }
+  };
+  const ok = await Promise.all(Array.from({ length: 6 }, worker)).then(
+    () => true,
+    (e) => {
+      console.warn("Ressursene kunne ikke hentes, bruker de bakte:", e);
+      return false;
+    },
+  );
+  bar.hidden = true;
+  if (!ok) return none;
   setStatus("Bygger byen …");
   return { manifest, names: paths, blobs };
 }

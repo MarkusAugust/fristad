@@ -184,6 +184,10 @@ code {
   color: var(--fs-color-danger-text);
 }
 
+.gate-card .fs-progress {
+  inline-size: 100%;
+}
+
 /* Panelet */
 
 .panel {

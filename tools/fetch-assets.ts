@@ -25,7 +25,7 @@ const RES = "1k";
 const TEXTURES: Record<string, string[]> = {
   cobble: ["cobblestone_floor_08", "cobblestone_large", "cobblestone_floor", "cobblestone"],
   plaster: ["plastered_wall_02", "plastered_wall", "painted_plaster", "plaster"],
-  cladding: ["painted_wood_planks", "wood_planks_white", "weathered_planks", "planks"],
+  cladding: ["painted_wooden_wall", "wooden_wall", "wood_wall", "weathered_planks", "planks"],
   slate: ["roof_slates", "slate_roof", "slates"],
   tiles: ["roof_tiles_14", "roof_tiles", "clay_roof"],
   stone: ["stone_wall_04", "castle_wall", "stone_wall", "stone_bricks"],
@@ -51,8 +51,7 @@ const MODELS: Record<string, { search: string[]; height: number; yaw: number }> 
   bush: { search: ["bush", "shrub", "boxwood"], height: 0, yaw: 0 },
   bicycle: { search: ["bicycle", "bike"], height: 0, yaw: 0 },
   bin: { search: ["trash_can", "garbage", "dustbin", "bin"], height: 0, yaw: 0 },
-  cart: { search: ["wheelbarrow", "cart", "wagon"], height: 0, yaw: 0 },
-  tree: { search: ["tree", "oak_tree", "birch"], height: 0, yaw: 0 },
+  cart: { search: ["wheelbarrow", "wooden_cart", "hand_cart", "wagon"], height: 0, yaw: 0 },
 };
 
 const force = process.argv.includes("--force");
@@ -119,7 +118,6 @@ for (const [layer, searches] of Object.entries(TEXTURES)) {
     ["diffuse", ["Diffuse", "diff", "Diff"], ["jpg", "png"]],
     ["normal", ["nor_gl", "Normal_gl", "nor"], ["jpg", "png"]],
     ["rough", ["Rough", "rough", "Roughness"], ["jpg", "png"]],
-    ["height", ["Displacement", "disp"], ["jpg", "png"]],
     ["ao", ["AO", "ao"], ["jpg", "png"]],
   ];
   for (const [name, keys, formats] of want) {

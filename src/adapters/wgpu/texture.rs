@@ -321,7 +321,10 @@ impl Materials {
         // Fotoskannede materialer skrives over de bakte lagene.
         let mut scales = TEX_SCALE;
         for (layer, imgs) in external {
-            let (a, n) = pack_external(imgs);
+            // Lagene som får malingsfarge fra geometrien (puss og panel) skal
+            // bare bidra med variasjon, så albedoen skaleres til lys grå.
+            let tinted = matches!(layer, Layer::Plaster | Layer::Cladding);
+            let (a, n) = pack_external(imgs, tinted);
             for (tex, data) in [(&albedo, &a), (&nrh, &n)] {
                 queue.write_texture(
                     wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: *layer as u32 }, aspect: wgpu::TextureAspect::All },
@@ -493,8 +496,15 @@ fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
 
 /// Pakker et fotoskannet materiale til lagformatene: albedo (med AO bakt
 /// inn) og normal xy, ruhet, høyde.
-fn pack_external(imgs: &LayerImages) -> (Vec<u8>, Vec<u8>) {
+fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let diffuse = fit(&imgs.diffuse);
+    // Gjennomsnittlig lyshet, så tonede lag kan skaleres mot 0,85.
+    let mut gain = 1.0f32;
+    if normalize {
+        let d = diffuse.as_raw();
+        let mean = d.chunks(4).map(|p| (p[0] as f32 * 0.3 + p[1] as f32 * 0.59 + p[2] as f32 * 0.11) / 255.0).sum::<f32>() / (d.len() / 4) as f32;
+        gain = (0.85 / mean.max(0.05)).clamp(0.5, 3.0);
+    }
     let normal = imgs.normal.as_ref().map(fit);
     let rough = imgs.rough.as_ref().map(fit);
     let height = imgs.height.as_ref().map(fit);
@@ -506,8 +516,11 @@ fn pack_external(imgs: &LayerImages) -> (Vec<u8>, Vec<u8>) {
         let d = diffuse.as_raw();
         let occl = ao.as_ref().map(|m| m.as_raw()[i * 4] as f32 / 255.0).unwrap_or(1.0);
         // AO i sRGB-rom er en grov tilnærming, men bra nok for skygger i fugene.
-        let k = 0.35 + 0.65 * occl;
-        a.extend_from_slice(&[(d[i * 4] as f32 * k) as u8, (d[i * 4 + 1] as f32 * k) as u8, (d[i * 4 + 2] as f32 * k) as u8, 255]);
+        let k = (0.35 + 0.65 * occl) * gain;
+        let c = |v: u8| (v as f32 * k).min(255.0) as u8;
+        a.extend_from_slice(&[c(d[i * 4]), c(d[i * 4 + 1]), c(d[i * 4 + 2]), 255]);
+        // Poly Haven-normalene er i OpenGL-konvensjon, som de bakte lagene
+        // (prøvd med en syntetisk kule: lyset faller riktig uten snuing).
         let (nx, ny) = normal.as_ref().map(|m| (m.as_raw()[i * 4], m.as_raw()[i * 4 + 1])).unwrap_or((128, 128));
         let r = rough.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(200);
         let h = height.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(128);
