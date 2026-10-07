@@ -44,16 +44,19 @@ fn building(b: &mut Builder) {
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.5 + y, 0.12))), Vec3::new(3.0, 0.1, 0.04), &IRON, 1.0);
     }
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.5 + 3.15, 0.1))), Vec3::new(4.0, 0.08, 0.14), &IRON, 1.0);
+    // Vinduene sitter på sideveggene, så de ikke dekker tavlene på fronten.
     let glass = Mat::special(kind::GLASS, 0x1d2630, 0.05);
-    for x in [-6.9f32] {
-        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, 0.5 + 2.6, 0.0))), Vec3::new(1.4, 1.0, 0.2), &WHITE_TRIM, 1.0);
-        m.cuboid(&(t * Affine3A::from_translation(Vec3::new(x, 0.5 + 2.6, 0.11))), Vec3::new(1.2, 0.8, 0.02), &glass);
+    for sx in [-1.0f32, 1.0] {
+        let wt = t * Affine3A::from_rotation_translation(Quat::from_rotation_y(sx * std::f32::consts::FRAC_PI_2), Vec3::new(sx * (W * 0.5), 0.5 + 2.6, -D * 0.5));
+        m.cuboid_ao(&(wt * Affine3A::from_translation(Vec3::new(0.0, 0.0, 0.0))), Vec3::new(1.4, 1.0, 0.2), &WHITE_TRIM, 1.0);
+        m.cuboid(&(wt * Affine3A::from_translation(Vec3::new(0.0, 0.0, 0.11))), Vec3::new(1.2, 0.8, 0.02), &glass);
     }
     // Skuret: et pulttak på stolper langs hele fronten.
     let roof = Mat::tex(Layer::Slate, 0xffffff);
     m.cuboid_ao(&(t * Affine3A::from_rotation_translation(Quat::from_rotation_x(0.28), Vec3::new(0.0, WALL_H + 0.1, 1.4))), Vec3::new(W + 0.6, 0.1, 3.2), &roof, 1.0);
+    // Stolpene går 1,5 m ned i bakken, så de står på hellingen.
     for x in [-W * 0.5 + 0.3, -3.4, 0.2, 3.8, W * 0.5 - 0.3] {
-        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, (WALL_H - 0.4) * 0.5 + 0.5, 2.8))), Vec3::new(0.16, WALL_H - 0.4, 0.16), &OAK, 1.0);
+        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, (WALL_H + 0.1) * 0.5 - 1.0, 2.8))), Vec3::new(0.16, WALL_H + 1.6, 0.16), &OAK, 1.0);
     }
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H - 0.3, 2.8))), Vec3::new(W + 0.4, 0.14, 0.14), &OAK, 1.0);
     // Skiltet over døra.
@@ -65,14 +68,19 @@ fn building(b: &mut Builder) {
     b.mesh.append(&label);
     // Esse i hjørnet: en murt kasse med glør, og en ambolt.
     let brick = Mat::tex(Layer::Brick, 0xffffff);
-    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 1.6, 0.5 + 0.45, 1.0))), Vec3::new(1.4, 0.9, 1.2), &brick, 1.0);
-    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 1.6, 0.5 + 0.93, 1.0))), Vec3::new(0.9, 0.06, 0.8), &Mat::special(kind::LAMP, 0xff6a2a, 0.9), 1.0);
-    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 3.4, 0.5 + 0.35, 1.2))), Vec3::new(0.3, 0.7, 0.3), &OAK, 1.0);
-    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 3.4, 0.5 + 0.8, 1.2))), Vec3::new(0.7, 0.2, 0.25), &IRON, 1.0);
+    // Essen og ambolten står på bakken der de er, og essen går litt ned i den.
+    let fp = t.transform_point3(Vec3::new(W * 0.5 - 1.6, 0.0, 1.0));
+    let gf = b.ground(fp.x, fp.z) - p.y;
+    let ap = t.transform_point3(Vec3::new(W * 0.5 - 3.4, 0.0, 1.2));
+    let ga = b.ground(ap.x, ap.z) - p.y;
+    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 1.6, gf + 0.2, 1.0))), Vec3::new(1.4, 1.4, 1.2), &brick, 1.0);
+    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 1.6, gf + 0.93, 1.0))), Vec3::new(0.9, 0.06, 0.8), &Mat::special(kind::LAMP, 0xff6a2a, 0.9), 1.0);
+    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 3.4, ga + 0.25, 1.2))), Vec3::new(0.3, 0.9, 0.3), &OAK, 1.0);
+    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(W * 0.5 - 3.4, ga + 0.8, 1.2))), Vec3::new(0.7, 0.2, 0.25), &IRON, 1.0);
     let q = Quat::from_rotation_y(YAW);
     b.light(p + q * Vec3::new(W * 0.5 - 1.6, 1.6, 1.0), Vec3::new(1.0, 0.45, 0.15), 2.5, 5.0);
     b.solid_box(p + q * Vec3::new(0.0, WALL_H * 0.5 + 0.5, -D * 0.5), Vec3::new(W, WALL_H, D), YAW);
-    b.solid_box(p + q * Vec3::new(W * 0.5 - 1.6, 0.95, 1.0), Vec3::new(1.4, 0.9, 1.2), YAW);
+    b.solid_box(p + q * Vec3::new(W * 0.5 - 1.6, gf + 0.45, 1.0), Vec3::new(1.4, 0.9, 1.2), YAW);
     b.prop("workshop", Mesh::default(), Affine3A::IDENTITY, None);
 }
 
@@ -81,19 +89,23 @@ fn bench(b: &mut Builder, name: &'static str, x: f32, title: &str, lines: &[&str
     building(b);
     let p = b.on_ground(POS);
     let t = at(p, YAW);
+    // Benken står på bakken der den er, ikke på sokkelens høyde: bakken
+    // heller langs fronten. Beina går litt ned i grusen.
+    let foot = t.transform_point3(Vec3::new(x, 0.0, 1.3));
+    let g = b.ground(foot.x, foot.z) - p.y;
     let m = &mut b.mesh;
     let top = Mat::tex(Layer::Oak, 0xffffff).flags(flag::ROT_UV);
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, 0.5 + 0.86, 1.3))), Vec3::new(2.6, 0.08, 0.8), &top, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, g + 0.86, 1.3))), Vec3::new(2.6, 0.08, 0.8), &top, 1.0);
     for (sx, sz) in [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
-        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x + sx * 1.2, 0.5 + 0.41, 1.3 + sz * 0.32))), Vec3::new(0.08, 0.82, 0.08), &OAK, 1.0);
+        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x + sx * 1.2, g + 0.36, 1.3 + sz * 0.32))), Vec3::new(0.08, 1.0, 0.08), &OAK, 1.0);
     }
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, 0.5 + 0.3, 1.3))), Vec3::new(2.4, 0.04, 0.6), &OAK, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, g + 0.3, 1.3))), Vec3::new(2.4, 0.04, 0.6), &OAK, 1.0);
     // Verktøy: en skrustikke, en hammer og noen bord.
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x - 1.0, 0.5 + 1.0, 1.55))), Vec3::new(0.22, 0.2, 0.3), &IRON, 1.0);
-    m.cylinder(&(t * Affine3A::from_rotation_translation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2), Vec3::new(x + 0.9, 0.5 + 0.92, 1.2))), 0.014, 0.014, 0.3, 6, &OAK, true);
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x + 0.6, 0.5 + 0.93, 1.2))), Vec3::new(0.1, 0.06, 0.06), &IRON, 1.0);
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, 0.5 + 0.34, 1.3))), Vec3::new(1.6, 0.05, 0.2), &OAK, 1.0);
-    b.solid_box(p + Quat::from_rotation_y(YAW) * Vec3::new(x, 0.95, 1.3), Vec3::new(2.6, 0.9, 0.8), YAW);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x - 1.0, g + 1.0, 1.55))), Vec3::new(0.22, 0.2, 0.3), &IRON, 1.0);
+    m.cylinder(&(t * Affine3A::from_rotation_translation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2), Vec3::new(x + 0.9, g + 0.92, 1.2))), 0.014, 0.014, 0.3, 6, &OAK, true);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x + 0.6, g + 0.93, 1.2))), Vec3::new(0.1, 0.06, 0.06), &IRON, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(x, g + 0.34, 1.3))), Vec3::new(1.6, 0.05, 0.2), &OAK, 1.0);
+    b.solid_box(p + Quat::from_rotation_y(YAW) * Vec3::new(x, g + 0.45, 1.3), Vec3::new(2.6, 0.9, 0.8), YAW);
     // Tavla på veggen: tittel i 20 px og tre linjer i 16.
     let (bw, bh) = (300.0, 16.0 + 25.0 + 8.0 + 24.0 * lines.len() as f32 + 16.0);
     let mut board = Mesh::default();
