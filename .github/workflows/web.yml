@@ -36,8 +36,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: Swatinem/rust-cache@v2
+      - name: Hurtiglager for teksturene fra Poly Haven
+        uses: actions/cache@v4
+        with:
+          path: assets/external
+          key: external-assets-${{ hashFiles('tools/fetch-assets.ts', 'assets/textures/**') }}
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
+      # Claude når ikke Poly Haven fra skymiljøet sitt, men når GitHub.
+      # Teksturene legges derfor på grenen external-assets (bare filene,
+      # uten historikk), som hentes med `sh tools/pull-assets.sh`.
+      - name: Teksturene til grenen external-assets
+        if: hashFiles('assets/external/manifest.json') != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git worktree add --detach /tmp/extwt
+          cd /tmp/extwt
+          git checkout --orphan external-assets
+          git rm -rfq . || true
+          cp -r "$GITHUB_WORKSPACE/assets/external/." .
+          git add -A
+          git commit -qm "Teksturlag hentet $(date -u +%F) for ${GITHUB_SHA::7}"
+          git push -f origin external-assets
       # Den ferdige nettsiden (uten ressursene) legges på grenen web-dist, så
       # Claude kan hente den og kjøre den i Chromium i skymiljøet sitt.
       - name: Nettsiden til grenen web-dist

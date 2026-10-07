@@ -9,7 +9,6 @@
 //! origo midt på grunnflaten i bakkehøyde, så `yaw` vender døra mot gata.
 
 use super::{at, terrain, Builder, NpcSpec, Shape, Use};
-use crate::domain::geometry::{Layer, Mat};
 use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -304,25 +303,60 @@ fn people(b: &mut Builder) {
     }
 }
 
-/// Hva bakken er dekket av i et punkt: brostein på torget og i Storgata,
-/// tråkket jord i Tverrgata og på veiene, gress ellers.
-pub fn ground_mat(x: f32, z: f32) -> Mat {
-    let inside = terrain::town_edge(x, z) < -1.0;
-    let in_square = x.abs() < SQUARE.x && z.abs() < SQUARE.y;
-    let in_main = x.abs() < MAIN && inside;
-    if in_square || in_main {
-        return Mat::tex(Layer::Cobble, 0xffffff);
+/// Hva bakken er dekket av i et punkt, som vekter mellom 0 og 1: brostein
+/// på torget og i Storgata, tråkket jord i Tverrgata, på veiene og rundt
+/// husene, berg i bratte skråninger og på borghaugen, skogbunn under
+/// granskogen, og gress i resten. `dry` gjør gresset gult (åkrene,
+/// ryggene), `wet` gir søle i kantene av veiene.
+pub struct Ground {
+    pub cobble: f32,
+    pub dirt: f32,
+    pub rock: f32,
+    pub forest: f32,
+    pub dry: f32,
+    pub wet: f32,
+}
+
+fn soft(edge: f32, d: f32, width: f32) -> f32 {
+    let t = ((edge - d) / width + 0.5).clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+pub fn ground_weights(x: f32, z: f32) -> Ground {
+    let n1 = terrain::noise(x * 0.35, z * 0.35);
+    let n2 = terrain::noise(x * 0.09 + 5.0, z * 0.09);
+    let inside = soft(0.0, terrain::town_edge(x, z) + 1.0, 2.0);
+    // Brosteinen: torget og Storgata, med ujevn kant der jorda tar over.
+    let sq = (x.abs() - SQUARE.x).max(z.abs() - SQUARE.y);
+    let main = (x.abs() - MAIN) / inside.max(0.01) + (1.0 - inside) * 50.0;
+    let cobble = soft(0.0, sq.min(main) + (n1 - 0.5) * 1.2, 1.4);
+    // Jorda: Tverrgata, veiene ut, og flekker rundt husene i byen.
+    let cross = (z.abs() - CROSS) / inside.max(0.01) + (1.0 - inside) * 50.0;
+    let road = path_dist(x, z) - 1.6;
+    let yards = inside * soft(0.0, (0.4 - n2) * 12.0, 3.0);
+    let dirt = soft(0.0, cross.min(road) + (n1 - 0.5) * 1.6, 1.8).max(yards * 0.6);
+    // Berg der det er bratt, og litt i toppen av borghaugen.
+    let slope = 1.0 - terrain::normal(x, z).y;
+    let (hx, hz, hr, _) = terrain::HILL;
+    let hill = (((x - hx).powi(2) + (z - hz).powi(2)).sqrt() / hr).clamp(0.0, 1.0);
+    let rock = (soft(0.0, 0.06 - slope + (n1 - 0.5) * 0.05, 0.05)).max(soft(0.0, hill - 0.55 + (n2 - 0.5) * 0.5, 0.2) * 0.5 * (1.0 - soft(0.0, hill - 0.35, 0.1)));
+    // Skogbunn der granskogen står tett, langt ute.
+    let far = (x * x + z * z).sqrt();
+    let forest = soft(0.0, 115.0 - far + (n2 - 0.5) * 40.0, 20.0) * (1.0 - inside);
+    // Fordel: brostein over jord over berg over skogbunn, gress resten.
+    let cobble = cobble.clamp(0.0, 1.0);
+    let dirt = (dirt * (1.0 - cobble)).clamp(0.0, 1.0);
+    let rock = (rock * (1.0 - cobble - dirt)).clamp(0.0, 1.0);
+    let forest = (forest * (1.0 - cobble - dirt - rock)).clamp(0.0, 1.0);
+    // Tørt gress på ryggene og i åkrene.
+    let mut dry = (terrain::noise(x * 0.05 + 2.0, z * 0.05) * 1.3 - 0.35).clamp(0.0, 1.0) * 0.6;
+    for (cx, cz, rx, rz) in FIELDS {
+        let e = ((x - cx) / rx).powi(2) + ((z - cz) / rz).powi(2);
+        dry = dry.max(soft(1.0, e, 0.25));
     }
-    let edge = 1.4 + terrain::noise(x * 0.2, z * 0.2) * 1.4;
-    let in_cross = z.abs() < CROSS + 0.5 && inside;
-    if in_cross || path_dist(x, z) < edge {
-        return Mat::tex(Layer::Gravel, 0xb8a080);
-    }
-    // Inne i byen er bakken tråkket rundt husene og grønn i hagene.
-    if inside && terrain::noise(x * 0.15, z * 0.15) > 0.42 {
-        return Mat::tex(Layer::Gravel, 0x9c8a6c);
-    }
-    Mat::tex(Layer::Grass, super::meadow_tint(x, z))
+    // Søle i kantene av jordveiene og i gatene i byen.
+    let wet = (dirt * (1.0 - dirt) * 4.0 * soft(0.0, 0.55 - n2, 0.2)).clamp(0.0, 1.0);
+    Ground { cobble, dirt, rock, forest, dry, wet }
 }
 
 /// Avstand fra et punkt til veiene utenfor muren: sørover fra sørporten,

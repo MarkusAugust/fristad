@@ -43,8 +43,14 @@ async fn connect(canvas: &web_sys::HtmlCanvasElement, webgpu: bool) -> Result<(w
 /// Et canvas som har gitt ut en WebGPU-kontekst kan ikke gi WebGL etterpå,
 /// så JavaScript-laget prøver WebGPU først og gir oss et nytt canvas hvis
 /// det må falle tilbake.
+/// Filstiene i teksturmanifestet, så nettleseren kan hente dem til `start`.
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool) -> Result<Engine, JsValue> {
+pub fn asset_paths(manifest_json: &str) -> Vec<String> {
+    crate::adapters::layers::paths_in(manifest_json)
+}
+
+#[wasm_bindgen]
+pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -63,7 +69,14 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool) -> Result<E
     // Ny kjeller for hver økt i nettleseren.
     let seed = (js_sys::Date::now() as u64) ^ 0x5eed;
     let prepared = prepare(&Embedded, seed);
-    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &crate::adapters::layers::all(), config.width, config.height);
+    let layers = match manifest_json {
+        Some(m) => {
+            let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();
+            crate::adapters::layers::from_files(&m, &files)
+        }
+        None => vec![],
+    };
+    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, config.width, config.height);
     let app = App::new(prepared, renderer, RapierPhysics::new());
     Ok(Engine { app, surface, config, device, backend })
 }

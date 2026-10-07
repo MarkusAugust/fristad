@@ -71,7 +71,7 @@ impl ApplicationHandler for Host {
         };
         surface.configure(&device, &config);
         let prepared = self.prepared.take().expect("verden er allerede brukt");
-        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &crate::adapters::layers::all(), config.width, config.height);
+        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &crate::adapters::layers::from_dir(std::path::Path::new("assets/external")), config.width, config.height);
         let app = App::new(prepared, renderer, RapierPhysics::new());
         self.running = Some(Running { window, surface, config, device, app });
         self.last = Instant::now();

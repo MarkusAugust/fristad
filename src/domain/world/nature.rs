@@ -494,11 +494,13 @@ pub fn grass(b: &mut Builder) {
             let (px, pz) = (x + b.rng.range(-0.6, 0.6), z + b.rng.range(-0.6, 0.6));
             x += step;
             let d = (px * px + pz * pz).sqrt();
-            let keep = if d < 60.0 { 1.0 } else { (1.0 - (d - 60.0) / 80.0).max(0.15) };
+            let keep = if d < 90.0 { 1.0 } else { (1.0 - (d - 90.0) / 70.0).max(0.12) };
             if !b.rng.chance(keep) {
                 continue;
             }
-            if super::town::town_dist(px, pz) < 1.5 || super::town::town_dist(px, pz) < 6.5 || super::town::path_dist(px, pz) < 3.0 {
+            // Gresset gror der bakken er gress (ikke på stein, jord eller berg).
+            let gw = super::town::ground_weights(px, pz);
+            if gw.cobble + gw.dirt + gw.rock + gw.forest > 0.35 {
                 continue;
             }
             let yaw = b.rng.range(0.0, std::f32::consts::TAU);

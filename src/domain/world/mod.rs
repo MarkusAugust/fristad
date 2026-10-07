@@ -349,15 +349,16 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
 pub(crate) fn meadow_tint(x: f32, z: f32) -> u32 {
     let n1 = terrain::noise(x * 0.05 + 2.0, z * 0.05);
     let n2 = terrain::noise(x * 0.17, z * 0.17 + 3.0);
-    let green = Vec3::new(0.72, 0.95, 0.55);
-    let straw = Vec3::new(1.0, 0.93, 0.62);
-    let dark = Vec3::new(0.6, 0.82, 0.48);
+    // Dempede farger: olivengrønt, halm og mørk eng, ikke neongrønt.
+    let green = Vec3::new(0.66, 0.74, 0.46);
+    let straw = Vec3::new(0.86, 0.78, 0.5);
+    let dark = Vec3::new(0.5, 0.6, 0.4);
     let mut c = green.lerp(straw, (n1 * 1.3 - 0.2).clamp(0.0, 1.0));
     c = c.lerp(dark, (n2 - 0.55).max(0.0) * 1.5);
     for (cx, cz, rx, rz) in town::FIELDS {
         let e = ((x - cx) / rx).powi(2) + ((z - cz) / rz).powi(2);
         if e < 1.0 {
-            c = Vec3::new(1.05, 0.95, 0.6);
+            c = Vec3::new(0.9, 0.8, 0.5);
         }
     }
     let to8 = |v: f32| ((v.clamp(0.0, 1.0)) * 255.0) as u32;
@@ -376,32 +377,44 @@ pub fn srgb_to_linear(c: u32) -> Vec3 {
     Vec3::new(f((c >> 16) & 255), f((c >> 8) & 255), f(c & 255))
 }
 
+/// Bakken: et rutenett på 2 m som deler hjørnene, så vektene mellom
+/// lagene glir jevnt over (`town::ground_weights`), og heightfield-kollider.
 fn ground(b: &mut Builder) {
+    use crate::domain::geometry::{kind, Vertex};
     let half = 200.0f32;
     let cell = 2.0f32;
     let n = (2.0 * half / cell) as usize;
     let mut heights = Vec::with_capacity((n + 1) * (n + 1));
+    let base = b.mesh.vertices.len() as u32;
     for iz in 0..=n {
         for ix in 0..=n {
             let x = -half + ix as f32 * cell;
             let z = -half + iz as f32 * cell;
-            heights.push(terrain::height(x, z));
+            let y = terrain::height(x, z);
+            heights.push(y);
+            let w = town::ground_weights(x, z);
+            let to8 = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+            b.mesh.vertices.push(Vertex {
+                pos: [x, y, z],
+                normal: terrain::normal(x, z).to_array(),
+                uv: [w.dry, w.wet],
+                color: [to8(w.cobble), to8(w.dirt), to8(w.rock), to8(w.forest)],
+                mat: [kind::TERRAIN, 0, 0, 255],
+                joints: [0; 4],
+                weights: [0; 4],
+            });
         }
     }
+    let at = |ix: usize, iz: usize| base + (iz * (n + 1) + ix) as u32;
     for iz in 0..n {
         for ix in 0..n {
-            let x0 = -half + ix as f32 * cell;
-            let z0 = -half + iz as f32 * cell;
-            let h = |i: usize, j: usize| heights[j * (n + 1) + i];
-            let p = [
-                Vec3::new(x0, h(ix, iz + 1), z0 + cell),
-                Vec3::new(x0 + cell, h(ix + 1, iz + 1), z0 + cell),
-                Vec3::new(x0 + cell, h(ix + 1, iz), z0),
-                Vec3::new(x0, h(ix, iz), z0),
-            ];
-            let nrm = [terrain::normal(p[0].x, p[0].z), terrain::normal(p[1].x, p[1].z), terrain::normal(p[2].x, p[2].z), terrain::normal(p[3].x, p[3].z)];
-            let mat = town::ground_mat(x0 + cell * 0.5, z0 + cell * 0.5);
-            b.mesh.quad_n(p, nrm, &mat, 1.0);
+            let (a, c, d, e) = (at(ix, iz), at(ix + 1, iz), at(ix + 1, iz + 1), at(ix, iz + 1));
+            // Diagonalen følger bakken: den korteste av de to.
+            if (heights[iz * (n + 1) + ix] - heights[(iz + 1) * (n + 1) + ix + 1]).abs() < (heights[iz * (n + 1) + ix + 1] - heights[(iz + 1) * (n + 1) + ix]).abs() {
+                b.mesh.indices.extend_from_slice(&[a, e, d, a, d, c]);
+            } else {
+                b.mesh.indices.extend_from_slice(&[a, e, c, c, e, d]);
+            }
         }
     }
     b.solid(Shape::Heightfield { center: Vec3::ZERO, size: Vec3::new(2.0 * half, 1.0, 2.0 * half), cols: n + 1, rows: n + 1, heights });

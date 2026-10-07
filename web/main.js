@@ -2,7 +2,7 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
 // den drivende porten.
 
-import init, { start } from "./pkg/fristad.js";
+import init, { start, asset_paths } from "./pkg/fristad.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 
@@ -48,6 +48,9 @@ async function boot() {
   } catch {
     docs = {};
   }
+  // Teksturlagene: egne bilder og fotoskannede CC0-materialer, samlet av
+  // tools/fetch-assets.ts under byggingen. Mangler de, bakes lagene i motoren.
+  const assets = await loadAssets();
   stage("Bygger byen og baker materialene …");
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
@@ -55,14 +58,14 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
@@ -81,6 +84,49 @@ async function boot() {
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
     $("touch-note").hidden = false;
   }
+}
+
+async function loadAssets() {
+  const none = { manifest: undefined, names: [], blobs: [] };
+  let manifest;
+  try {
+    const res = await fetch("assets/manifest.json");
+    if (!res.ok) return none;
+    manifest = await res.text();
+  } catch {
+    return none;
+  }
+  const paths = asset_paths(manifest);
+  const bar = $("loading");
+  bar.hidden = false;
+  let done = 0;
+  const tick = () => {
+    done++;
+    bar.value = Math.round((done / paths.length) * 100);
+    setStatus(`Henter teksturer (${done} av ${paths.length}) …`);
+  };
+  setStatus(`Henter teksturer (0 av ${paths.length}) …`);
+  // Seks om gangen, så nettleseren ikke åpner hundre forbindelser.
+  const blobs = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      const r = await fetch(`assets/${paths[i]}`);
+      if (!r.ok) throw new Error(`${paths[i]}: HTTP ${r.status}`);
+      blobs[i] = new Uint8Array(await r.arrayBuffer());
+      tick();
+    }
+  };
+  const ok = await Promise.all(Array.from({ length: 6 }, worker)).then(
+    () => true,
+    (e) => {
+      console.warn("Teksturene kunne ikke hentes, bruker de bakte:", e);
+      return false;
+    },
+  );
+  if (!ok) return none;
+  return { manifest, names: paths, blobs };
 }
 
 function setStatus(text) {

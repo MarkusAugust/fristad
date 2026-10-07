@@ -47,6 +47,7 @@ const K_LAMP: u32 = 204u;
 const K_SKELETON: u32 = 205u;
 const K_WATER: u32 = 206u;
 const K_MODEL: u32 = 207u;
+const K_TERRAIN: u32 = 209u;
 
 const F_WIND: u32 = 4u;
 const F_ROT_UV: u32 = 8u;
@@ -340,6 +341,64 @@ fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, d
     return sample_plane(layer, uv, gx, gy, t, b, n);
 }
 
+// Bakken: brostein, jord, berg, skogbunn og gress blandet etter vektene i
+// hjørnene og høydekartene, så steinene stikker opp gjennom jorda og gresset
+// vokser mellom steinene, i stedet for harde kanter. Planart fra oven, berget
+// triplanart (det står i skråninger).
+fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>) -> Tex {
+    let grass_w = max(0.0, 1.0 - w_in.x - w_in.y - w_in.z - w_in.w);
+    // Lagene: brostein 0, jord 11, berg 15, skogbunn 14, gress 9.
+    var layers = array<i32, 5>(0, 11, 15, 14, 9);
+    var weights = array<f32, 5>(w_in.x, w_in.y, w_in.z, w_in.w, grass_w);
+    var samples: array<Tex, 5>;
+    var best = -1.0;
+    for (var k = 0; k < 5; k++) {
+        if (weights[k] > 0.003) {
+            let layer = layers[k];
+            if (layer == 15) {
+                samples[k] = triplanar(layer, world, dp1, dp2, n, false);
+            } else {
+                let scale = g.tex_scale[layer / 4][layer % 4];
+                let uv = vec2<f32>(world.x, -world.z) / scale;
+                let s = sample_plane(layer, uv, vec2<f32>(dp1.x, -dp1.z) / scale, vec2<f32>(dp2.x, -dp2.z) / scale, vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, -1.0), vec3<f32>(0.0, 1.0, 0.0));
+                samples[k] = s;
+                // Normalen fra oven vippes etter bakken.
+                samples[k].n = normalize(n + vec3<f32>(s.n.x, 0.0, s.n.z));
+            }
+            best = max(best, weights[k] + samples[k].height * 0.6);
+        }
+    }
+    // Høydeblanding: det som stikker høyest der vektene er like, vinner.
+    var o: Tex;
+    o.albedo = vec3<f32>(0.0);
+    o.n = vec3<f32>(0.0);
+    o.rough = 0.0;
+    o.height = 0.0;
+    var total = 0.0;
+    for (var k = 0; k < 5; k++) {
+        if (weights[k] > 0.003) {
+            let b = max(weights[k] + samples[k].height * 0.6 - best + 0.18, 0.0);
+            o.albedo += samples[k].albedo * b;
+            o.n += samples[k].n * b;
+            o.rough += samples[k].rough * b;
+            o.height += samples[k].height * b;
+            total += b;
+        }
+    }
+    o.albedo /= max(total, 1e-4);
+    o.n = normalize(o.n);
+    o.rough /= max(total, 1e-4);
+    o.height /= max(total, 1e-4);
+    // Gresset gulner på ryggene og i åkrene, og varierer i store flekker.
+    let tone = mix(vec3<f32>(0.86, 0.9, 0.78), vec3<f32>(1.12, 0.98, 0.7), dry);
+    let gw = grass_w * smoothstep(0.0, 0.3, grass_w);
+    o.albedo *= mix(vec3<f32>(1.0), tone * (0.85 + 0.3 * fbm2(world.xz * 0.04)), gw);
+    // Søle: mørkere, glattere og blank.
+    o.albedo *= 1.0 - wet * 0.45;
+    o.rough = mix(o.rough, 0.25, wet * 0.7);
+    return o;
+}
+
 // Rommet bak et vindu. `p` er verdensposisjonen på glasset, `v` retningen
 // fra øyet. Rommet er 3 × 3 × 3 m, forankret i gulvet og vinduscella.
 fn interior(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, night: f32) -> vec3<f32> {
@@ -563,6 +622,13 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         if (kind == 8u) {
             s.metal = 0.6;
         }
+    } else if (kind == K_TERRAIN) {
+        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo);
+        s.albedo = t.albedo * (0.9 + 0.2 * fbm2(i.world.xz * 0.11));
+        s.n = t.n;
+        s.rough = clamp(t.rough, 0.04, 1.0);
+        height = t.height;
+        s.cavity = mix(0.65, 1.0, smoothstep(0.0, 0.5, height));
     } else if (kind == K_MODEL) {
         let a = textureSampleGrad(model_albedo, tex_sampler, i.uv, duv1, duv2);
         if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {

@@ -102,6 +102,10 @@ pub mod kind {
     pub const WATER: u8 = 206;
     /// Modell med egne teksturer (albedo, normal, metall/ruhet, emissiv).
     pub const MODEL: u8 = 207;
+    /// Bakken: hjørnefargen er vektene til brostein, jord, berg og
+    /// skogbunn (gress er resten), uv er tørrhet og søle. Shaderen blander
+    /// lagene etter høydekartene.
+    pub const TERRAIN: u8 = 209;
 }
 
 /// Flagg i `mat.z`. De to nederste bitene er glød.
