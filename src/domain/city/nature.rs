@@ -295,7 +295,7 @@ pub fn meadow(b: &mut Builder) {
     }
     // Steingjerder langs åkrene og enga.
     for (from, to, bend) in [
-        (Vec3::new(50.0, 0.0, -14.0), Vec3::new(140.0, 0.0, -22.0), 6.0),
+        (Vec3::new(59.0, 0.0, -15.0), Vec3::new(140.0, 0.0, -22.0), 6.0),
         (Vec3::new(52.0, 0.0, -66.0), Vec3::new(130.0, 0.0, -70.0), -4.0),
         (Vec3::new(-48.0, 0.0, 30.0), Vec3::new(-115.0, 0.0, 85.0), 8.0),
         (Vec3::new(-40.0, 0.0, -40.0), Vec3::new(-90.0, 0.0, -75.0), -5.0),

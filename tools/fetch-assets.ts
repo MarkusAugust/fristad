@@ -35,6 +35,8 @@ const TEXTURES: Record<string, string[]> = {
   bark: ["bark_willow", "bark_brown", "pine_bark", "bark"],
   gravel: ["gravel_floor", "gravel_road", "gravel"],
   concrete: ["concrete_floor_02", "concrete_wall", "concrete_floor", "concrete"],
+  timber: ["wood_planks_dirt", "wooden_planks", "pine_planks", "planks"],
+  plywood: ["plywood", "osb", "chipboard", "particle_board"],
 };
 
 /**

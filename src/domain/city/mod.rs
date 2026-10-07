@@ -464,8 +464,9 @@ pub fn buildings_dist(x: f32, z: f32) -> f32 {
         .min(rect_dist(x, z, 12.0, 19.0, 62.0))
         .min(rect_dist(z, x, 11.0, -46.0, -19.0))
         .min(rect_dist(z, x, 17.0, 19.0, 52.0))
-        // Gorveks tomt ved veien nordover.
+        // Gorveks tomt ved veien nordover, og byggeplassen ved Østre gate.
         .min(box_dist(x, z, 10.5, 24.5, -78.0, -65.0))
+        .min(box_dist(x, z, 42.0, 56.0, -29.0, -10.0))
 }
 
 /// Midten av grusveien østover (z for en x øst for bebyggelsen).

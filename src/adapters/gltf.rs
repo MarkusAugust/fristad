@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg_front".into(), "cow_leg_hind".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg_front".into(), "cow_leg_hind".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into(), "site_container".into(), "site_excavator".into(), "site_mixer".into(), "site_pallet".into(), "site_fence".into(), "site_wheelbarrow".into(), "site_toilet".into(), "site_crane".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -100,6 +100,15 @@ impl ModelSource for Embedded {
             "bush1_leaves" => load("bush1_leaves", embed!("trees", ["bush1_leaves.glb"]), -1.0, 0.0),
             "bush2_trunk" => load("bush2_trunk", embed!("trees", ["bush2_trunk.glb"]), -1.0, 0.0),
             "bush2_leaves" => load("bush2_leaves", embed!("trees", ["bush2_leaves.glb"]), -1.0, 0.0),
+            // Byggeplassen fra tools/models/site.py, med bakte teksturer.
+            "site_container" => load("site_container", embed!("site", ["container.glb"]), -1.0, 0.0),
+            "site_excavator" => load("site_excavator", embed!("site", ["excavator.glb"]), -1.0, 0.0),
+            "site_mixer" => load("site_mixer", embed!("site", ["mixer.glb"]), -1.0, 0.0),
+            "site_pallet" => load("site_pallet", embed!("site", ["pallet.glb"]), -1.0, 0.0),
+            "site_fence" => load("site_fence", embed!("site", ["fence.glb"]), -1.0, 0.0),
+            "site_wheelbarrow" => load("site_wheelbarrow", embed!("site", ["wheelbarrow.glb"]), -1.0, 0.0),
+            "site_toilet" => load("site_toilet", embed!("site", ["toilet.glb"]), -1.0, 0.0),
+            "site_crane" => load("site_crane", embed!("site", ["crane.glb"]), -1.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()

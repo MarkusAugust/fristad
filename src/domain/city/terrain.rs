@@ -32,7 +32,7 @@ fn d_from_center(x: f32, z: f32) -> f32 {
 
 /// Planerte tomter utenfor torget: midtpunkt, halve mål og hvor bred
 /// overgangen til terrenget er. Gorveks hus står på den første.
-const PLOTS: [(f32, f32, f32, f32, f32); 1] = [(17.5, -71.5, 6.5, 5.0, 6.0)];
+const PLOTS: [(f32, f32, f32, f32, f32); 2] = [(17.5, -71.5, 6.5, 5.0, 6.0), (49.0, -19.5, 7.0, 9.5, 5.0)];
 
 /// Terrenget uten tomtene.
 fn natural(x: f32, z: f32) -> f32 {

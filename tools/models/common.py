@@ -121,3 +121,178 @@ def export(path):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter")
+
+
+def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
+    """Skitt og slitasje på et materiale: fargen mørkner mot bunnen (z fra
+    dirt_from til dirt_to i objektets koordinater), med støy så det blir
+    flekkete. Brukes før baking, så det havner i albedoen."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    base = bsdf.inputs["Base Color"].default_value[:]
+    src = bsdf.inputs["Base Color"].links[0].from_socket if bsdf.inputs["Base Color"].is_linked else None
+    if src is None:
+        rgb = nodes.new("ShaderNodeRGB")
+        rgb.outputs[0].default_value = base
+        src = rgb.outputs[0]
+    geo = nodes.new("ShaderNodeNewGeometry")
+    sep = nodes.new("ShaderNodeSeparateXYZ")
+    links.new(geo.outputs["Position"], sep.inputs[0])
+    ramp = nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = dirt_from
+    ramp.inputs["From Max"].default_value = dirt_to
+    ramp.inputs["To Min"].default_value = 1.0 - strength
+    ramp.inputs["To Max"].default_value = 1.0
+    links.new(sep.outputs["Z"], ramp.inputs["Value"])
+    noise = nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = noise_scale
+    noise.inputs["Detail"].default_value = 4.0
+    mixn = nodes.new("ShaderNodeMix")
+    mixn.data_type = "FLOAT"
+    mixn.inputs["Factor"].default_value = 0.4
+    links.new(ramp.outputs["Result"], mixn.inputs["A"])
+    noise_fac = nodes.new("ShaderNodeMapRange")
+    links.new(noise.outputs["Fac"], noise_fac.inputs["Value"])
+    noise_fac.inputs["To Min"].default_value = 0.75
+    noise_fac.inputs["To Max"].default_value = 1.05
+    links.new(noise_fac.outputs["Result"], mixn.inputs["B"])
+    gray = nodes.new("ShaderNodeCombineColor")
+    for ch in ("Red", "Green", "Blue"):
+        links.new(mixn.outputs["Result"], gray.inputs[ch])
+    mul = nodes.new("ShaderNodeMix")
+    mul.data_type = "RGBA"
+    mul.blend_type = "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1.0
+    links.new(src, mul.inputs["A"])
+    links.new(gray.outputs[0], mul.inputs["B"])
+    links.new(mul.outputs["Result"], bsdf.inputs["Base Color"])
+
+
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16):
+    """Slår sammen alle mesh-objektene (unntatt dem med materialer som
+    begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
+    normalkart og ruhet/metall til teksturer, bytter til teksturerte
+    materialer og eksporterer glTF. Materialer som begynner på «paint» bakes
+    hvite og beholder navnet, så motoren farger dem per instans; resten
+    samles i «body» (metallfaktoren ligger i teksturen)."""
+    import os
+
+    import numpy as np
+
+    def kept(ob):
+        return any(m is not None and m.name.startswith(k) for m in ob.data.materials for k in keep)
+
+    meshes = [o for o in bpy.data.objects if o.type == "MESH" and not kept(o)]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in meshes:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = meshes[0]
+    bpy.ops.object.join()
+    ob = bpy.context.active_object
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.003)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.device = "CPU"
+    scene.cycles.samples = samples
+    scene.render.bake.margin = 4
+    # Tomme materialplasser (fra boolean-kutt) fjernes.
+    for i in reversed(range(len(ob.data.materials))):
+        if ob.data.materials[i] is None:
+            ob.data.materials.pop(index=i)
+    for mat in ob.data.materials:
+        if mat.name.startswith("paint"):
+            bsdf = mat.node_tree.nodes["Principled BSDF"]
+            if bsdf.inputs["Base Color"].is_linked:
+                # Skitten er lagt på: bytt grunnfargen under den til hvit.
+                src = bsdf.inputs["Base Color"].links[0].from_node
+                for n in mat.node_tree.nodes:
+                    if n.bl_idname == "ShaderNodeRGB":
+                        n.outputs[0].default_value = (1.0, 1.0, 1.0, 1.0)
+                del src
+            else:
+                bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+
+    def bake_to(label, bake_type, colorspace, **kw):
+        img = bpy.data.images.new(label, size, size, alpha=False)
+        img.colorspace_settings.name = colorspace
+        for mat in ob.data.materials:
+            tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.name = "bake_target"
+            mat.node_tree.nodes.active = tex
+        bpy.ops.object.bake(type=bake_type, **kw)
+        for mat in ob.data.materials:
+            n = mat.node_tree.nodes.get("bake_target")
+            if n:
+                mat.node_tree.nodes.remove(n)
+        return img
+
+    albedo = bake_to("albedo", "DIFFUSE", "sRGB", pass_filter={"COLOR"})
+    bumps = [n for mat in ob.data.materials for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBump"]
+    for n in bumps:
+        n.mute = True
+    ao = bake_to("ao", "AO", "Non-Color")
+    for n in bumps:
+        n.mute = False
+    normal = bake_to("normal", "NORMAL", "Non-Color", normal_space="TANGENT")
+    rough = bake_to("rough", "ROUGHNESS", "Non-Color")
+    for mat in ob.data.materials:
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        m = bsdf.inputs["Metallic"].default_value
+        bsdf.inputs["Emission Color"].default_value = (m, m, m, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 1.0
+    metal = bake_to("metal", "EMIT", "Non-Color")
+    a = np.array(albedo.pixels[:]).reshape(size, size, 4)
+    o = np.array(ao.pixels[:]).reshape(size, size, 4)
+    a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
+    albedo.pixels = a.ravel().tolist()
+    r = np.array(rough.pixels[:]).reshape(size, size, 4)
+    mt = np.array(metal.pixels[:]).reshape(size, size, 4)
+    mr = np.zeros_like(r)
+    mr[:, :, 1] = r[:, :, 0]
+    mr[:, :, 2] = mt[:, :, 0]
+    mr[:, :, 3] = 1.0
+    mr_img = bpy.data.images.new("mr", size, size, alpha=False)
+    mr_img.colorspace_settings.name = "Non-Color"
+    mr_img.pixels = mr.ravel().tolist()
+    tex_mat = {}
+
+    def key_of(name):
+        return "paint" if name.startswith("paint") else "body"
+
+    for mat in ob.data.materials:
+        key = key_of(mat.name)
+        if key not in tex_mat:
+            nm = bpy.data.materials.new(key)
+            nm.use_nodes = True
+            nt = nm.node_tree
+            bsdf = nt.nodes["Principled BSDF"]
+            bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
+            bsdf.inputs["Roughness"].default_value = 1.0
+            bsdf.inputs["Emission Strength"].default_value = 0.0
+            ta = nt.nodes.new("ShaderNodeTexImage")
+            ta.image = albedo
+            nt.links.new(ta.outputs[0], bsdf.inputs["Base Color"])
+            tn = nt.nodes.new("ShaderNodeTexImage")
+            tn.image = normal
+            nmap = nt.nodes.new("ShaderNodeNormalMap")
+            nt.links.new(tn.outputs[0], nmap.inputs["Color"])
+            nt.links.new(nmap.outputs["Normal"], bsdf.inputs["Normal"])
+            tm = nt.nodes.new("ShaderNodeTexImage")
+            tm.image = mr_img
+            sep = nt.nodes.new("ShaderNodeSeparateColor")
+            nt.links.new(tm.outputs[0], sep.inputs[0])
+            nt.links.new(sep.outputs["Green"], bsdf.inputs["Roughness"])
+            nt.links.new(sep.outputs["Blue"], bsdf.inputs["Metallic"])
+            # Metallfaktoren 1 i materialet, så motoren leser teksturen;
+            # lakken er aldri metall.
+            bsdf.inputs["Metallic"].default_value = 0.0 if key == "paint" else 1.0
+            tex_mat[key] = nm
+    for slot in ob.material_slots:
+        slot.material = tex_mat[key_of(slot.material.name)]
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)
+    print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")

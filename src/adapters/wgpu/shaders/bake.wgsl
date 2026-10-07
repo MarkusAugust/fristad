@@ -288,6 +288,42 @@ fn mat_oak(uv: vec2<f32>) -> Sample {
     return s;
 }
 
+fn mat_timber(uv: vec2<f32>) -> Sample {
+    // Høvlet gran: lys, gulhvit ved med tydelige årringer og små kvister,
+    // bord på 10 cm langs y.
+    let boards = 12.0;
+    let x = uv.x * boards;
+    let col = floor(x);
+    let f = fract(x);
+    let id = phash(vec2<f32>(col, 3.0), boards);
+    let gap = smoothstep(0.0, 0.03, f) * smoothstep(1.0, 0.97, f);
+    let grain = pnoise(vec2<f32>(uv.x * 360.0 + id * 40.0, uv.y * 6.0), 360.0);
+    let rings = pow(abs(fract(uv.y * 4.0 + pnoise(vec2<f32>(uv.x * 24.0, uv.y * 2.0 + id), 24.0) * 1.2 + id * 5.0) - 0.5) * 2.0, 3.0);
+    let knot = smoothstep(0.88, 0.97, pnoise(vec2<f32>(uv.x * 9.0 + id * 3.0, uv.y * 3.0), 9.0));
+    var s: Sample;
+    let base = mix(vec3<f32>(0.86, 0.74, 0.52), vec3<f32>(0.78, 0.64, 0.42), id);
+    s.albedo = base * (0.88 + grain * 0.12 - rings * 0.18) * (1.0 - knot * 0.45) * mix(0.6, 1.0, gap);
+    s.height = gap * (0.55 + grain * 0.05 - rings * 0.03 - knot * 0.08) + (1.0 - gap) * 0.3;
+    s.rough = 0.6 + grain * 0.15 + knot * 0.15;
+    return s;
+}
+
+fn mat_plywood(uv: vec2<f32>) -> Sample {
+    // OSB: flak av treflis i alle retninger, gulbrun med mørke kanter,
+    // og en svak skjøt mellom platene (1,2 m).
+    var s: Sample;
+    let v = voronoi(uv * 40.0, 40.0, 1.0);
+    let id = v.id;
+    let flake = pnoise(vec2<f32>(uv.x * 80.0 + id * 30.0, uv.y * 80.0), 80.0);
+    let edge = smoothstep(0.0, 0.08, v.d1);
+    let seam = smoothstep(0.0, 0.015, fract(uv.x)) * smoothstep(1.0, 0.985, fract(uv.x));
+    let base = mix(vec3<f32>(0.78, 0.6, 0.34), vec3<f32>(0.6, 0.44, 0.22), id);
+    s.albedo = base * (0.85 + flake * 0.3) * mix(0.75, 1.0, edge) * mix(0.6, 1.0, seam);
+    s.height = 0.5 + (id - 0.5) * 0.3 + flake * 0.1;
+    s.rough = 0.75 + flake * 0.1;
+    return s;
+}
+
 fn mat_metal(uv: vec2<f32>) -> Sample {
     let dent = pfbm(uv * 8.0, 8.0, 3);
     let rust = smoothstep(0.62, 0.8, pfbm(uv * 5.0 + 4.0, 5.0, 4));
@@ -359,6 +395,8 @@ fn material(layer: i32, uv: vec2<f32>) -> Sample {
         case 9: { return mat_grass(uv); }
         case 10: { return mat_bark(uv); }
         case 11: { return mat_gravel(uv); }
+        case 13: { return mat_timber(uv); }
+        case 14: { return mat_plywood(uv); }
         default: { return mat_concrete(uv); }
     }
 }
@@ -378,6 +416,8 @@ fn relief(layer: i32) -> f32 {
         case 9: { return 0.04; }
         case 10: { return 0.03; }
         case 11: { return 0.02; }
+        case 13: { return 0.008; }
+        case 14: { return 0.004; }
         default: { return 0.004; }
     }
 }
