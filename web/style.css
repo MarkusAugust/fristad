@@ -121,6 +121,24 @@ code {
   opacity: 0;
 }
 
+.vitals {
+  position: absolute;
+  left: var(--fs-spacing-4);
+  top: var(--fs-spacing-4);
+  display: grid;
+  gap: var(--fs-spacing-1);
+  width: 220px;
+  padding: var(--fs-spacing-3);
+  border-radius: var(--fs-spacing-2);
+  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
+}
+
+.vitals .fs-badge {
+  justify-self: start;
+}
+
 .perf {
   position: absolute;
   right: var(--fs-spacing-4);

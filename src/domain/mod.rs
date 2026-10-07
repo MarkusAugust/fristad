@@ -18,6 +18,7 @@ pub mod game;
 pub mod geometry;
 pub mod herd;
 pub mod installations;
+pub mod mobs;
 pub mod model;
 pub mod palette;
 pub mod ports;

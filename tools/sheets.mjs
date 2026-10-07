@@ -153,6 +153,8 @@ export const SHEETS = [
   // eller fokus, og forskjøvet med translateX(-50%); i byen er det siktet
   // som er hover, så den rendres synlig og uten forskyvningen.
   { id: "tooltip:bubble", html: '<span class="fs-tooltip__bubble" role="tooltip" style="position:static;display:inline-block;visibility:visible;opacity:1;transform:none">Saken flyttes til arkivet og kan hentes fram igjen</span>' },
+  // Våpenet i kjelleren: knappen du slår med.
+  { id: "button:weapon", html: '<button class="fs-button" type="button">Slå</button>' },
   { id: "tooltip:button", html: '<button class="fs-button" data-variant="ghost" type="button">Arkiver</button>' },
   // Dialog.
   { id: "dialog", html: '<dialog class="fs-dialog" open style="position:static;margin:0;width:420px"><h2 class="fs-dialog__title">Slette søknaden?</h2><div class="fs-dialog__body"><p>Søknaden og vedleggene blir borte. Dette kan ikke angres.</p></div><div class="fs-dialog__footer"><button class="fs-button" data-variant="secondary" type="button">Avbryt</button><button class="fs-button" data-variant="danger" type="button">Slett søknaden</button></div></dialog>' },

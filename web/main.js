@@ -376,12 +376,15 @@ function handle(e) {
     case "prompt":
       if (e.component) {
         current = { component: e.component, variant: e.variant, class: e.class };
-        $("prompt-name").textContent = docs[e.component]?.title ?? e.component;
+        $("prompt-name").textContent = e.label || docs[e.component]?.title || e.component;
         $("prompt-class").textContent = e.class;
+        $("prompt-class").hidden = !e.class;
         $("prompt-variant").textContent = e.variant;
         $("prompt-variant").hidden = !e.variant;
+        $("key-inspect").hidden = e.inspectable === false;
         $("key-variant").hidden = !e.variants;
         $("key-use").hidden = !e.usable;
+        $("key-use-text").textContent = e.verb || "Bruk";
         promptEl.hidden = false;
       } else {
         promptEl.hidden = true;
@@ -402,6 +405,12 @@ function handle(e) {
       break;
     case "weather":
       $("weather").textContent = e.weather;
+      break;
+    case "hud":
+      $("hp").value = e.hp;
+      $("tokens").textContent = `${e.tokens} tokens`;
+      // Liv og tokens vises nede i kjelleren, og oppe når du har noe.
+      $("vitals").hidden = !(e.cellar || e.tokens > 0);
       break;
   }
 }

@@ -105,6 +105,8 @@ pub enum Event {
     /// En kort melding, til `.fs-toast`.
     Toast(String),
     Weather(String),
+    /// Liv, tokens og om du er nede i kjelleren, når noe av det endrer seg.
+    Hud { hp: u32, tokens: u32, cellar: bool },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -116,6 +118,12 @@ pub struct Prompt {
     pub has_variants: bool,
     /// Om F gjør noe.
     pub usable: bool,
+    /// Navnet i siktet når det ikke er en komponent (tom ellers).
+    pub label: String,
+    /// Om E åpner panelet.
+    pub inspectable: bool,
+    /// Hva F gjør.
+    pub verb: String,
 }
 
 /// Radianer per piksel musa flytter seg.
@@ -276,6 +284,21 @@ pub struct Game {
     editing: Option<usize>,
     /// Dyrene på engene.
     herd: crate::domain::herd::Herd,
+    /// Kjelleren og fiendene i den.
+    dungeon: crate::domain::city::dungeon::Dungeon,
+    mobs: crate::domain::mobs::Mobs,
+    /// Liv (0–100) og tokens (mynter) du bærer.
+    hp: f32,
+    coins: u32,
+    attack_cd: f32,
+    /// Slaget med våpenet, 1 rett etter F og ned til 0.
+    swing: f32,
+    /// Fienden du sikter på nå.
+    aimed_mob: Option<usize>,
+    /// Hvor mye du er i kjelleren (0 oppe, 1 nede), glattet, til lyset.
+    cellar_t: f32,
+    weapon: Option<usize>,
+    last_hud: Option<(u32, u32, bool)>,
     pub debug: u32,
 }
 
@@ -330,6 +353,16 @@ impl Game {
             parachute: city.props.iter().position(|p| p.name == "parachute"),
             editing: None,
             herd: crate::domain::herd::Herd::new(),
+            mobs: crate::domain::mobs::Mobs::new(&city.dungeon),
+            dungeon: city.dungeon.clone(),
+            hp: 100.0,
+            coins: 0,
+            attack_cd: 0.0,
+            swing: 0.0,
+            aimed_mob: None,
+            cellar_t: 0.0,
+            weapon: city.props.iter().position(|p| p.name == "weapon"),
+            last_hud: None,
             debug: 0,
         }
     }
@@ -492,6 +525,9 @@ impl Game {
             variant: i.variants().get(i.variant()).copied().unwrap_or("").into(),
             has_variants: !i.variants().is_empty(),
             usable: i.usable(),
+            label: i.label().into(),
+            inspectable: i.inspectable(),
+            verb: i.verb().into(),
         }
     }
 
@@ -598,15 +634,22 @@ impl Game {
         let eye = self.eye();
         let dir = self.forward();
         let hit = physics.cast_ray(eye, dir, 3.5);
-        let aim = hit.and_then(|h| self.by_collider.get(&h.collider).copied()).filter(|p| !self.props[*p].part).and_then(|p| self.props[p].owner.map(|o| (p, o)));
+        let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
+        // Fiendene i kjelleren går foran propsene i siktet.
+        let aimed_mob = if in_cellar { self.mobs.aimed(eye, dir, 2.6) } else { None };
+        let aim = if aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()).filter(|p| !self.props[*p].part).and_then(|p| self.props[p].owner.map(|o| (p, o))) };
         // Installasjonene får vite hva som siktes på før de får handlingene.
         self.env.aimed_prop = aim.map(|(p, _)| p);
-        if aim.map(|a| a.1) != self.aim.map(|a| a.1) {
+        let mob_changed = aimed_mob.is_some() != self.aimed_mob.is_some();
+        self.aimed_mob = aimed_mob;
+        if aim.map(|a| a.1) != self.aim.map(|a| a.1) || mob_changed {
             self.aim = aim;
-            events.push(Event::Prompt(aim.map(|(_, o)| self.prompt_for(o))));
+            events.push(Event::Prompt(if aimed_mob.is_some() { Some(Self::mob_prompt()) } else { aim.map(|(_, o)| self.prompt_for(o)) }));
         } else {
             self.aim = aim;
         }
+        self.attack_cd = (self.attack_cd - dt).max(0.0);
+        self.swing = (self.swing - dt * 3.5).max(0.0);
         let target = if self.aim.is_some() { 1.0 } else { 0.0 };
         self.highlight += (target - self.highlight) * (dt * 10.0).min(1.0);
 
@@ -632,6 +675,21 @@ impl Game {
                             let p = self.prompt_for(o);
                             events.push(Event::Variant { component: p.component.clone(), variant: p.variant.clone() });
                             events.push(Event::Prompt(Some(p)));
+                        }
+                    }
+                }
+                Action::Use if in_cellar && self.aim.is_none() => {
+                    // Et slag med knappen: treffer fienden du sikter på.
+                    if self.attack_cd <= 0.0 {
+                        self.attack_cd = 0.45;
+                        self.swing = 1.0;
+                        if let Some(i) = self.aimed_mob {
+                            let feet = self.pos - Vec3::Y * (half + radius);
+                            if self.mobs.strike(i, 34.0, feet, &self.dungeon) {
+                                events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
+                                self.aimed_mob = None;
+                                events.push(Event::Prompt(None));
+                            }
                         }
                     }
                 }
@@ -722,11 +780,58 @@ impl Game {
             let _ = prev;
         }
 
+        // Ned i kjelleren og opp igjen: rett dit, uten flytur.
+        if let Some((feet, yaw)) = self.env.drop.take() {
+            let (half, radius) = self.stance.capsule();
+            self.pos = feet + Vec3::Y * (half + radius + 0.05);
+            self.yaw = yaw;
+            self.flight = None;
+            self.vel_y = 0.0;
+            self.jumped = true;
+        }
+
         self.update_weather(dt);
         self.update_props(physics, dt);
         let (half, radius) = self.stance.capsule();
-        self.herd.update(dt, self.pos - Vec3::Y * (half + radius));
+        let feet = self.pos - Vec3::Y * (half + radius);
+        self.herd.update(dt, feet);
+        // Fiendene: de biter, og du plukker tokens.
+        let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
+        self.cellar_t += ((if in_cellar { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
+        let outcome = self.mobs.update(dt, feet, in_cellar, &self.dungeon);
+        self.coins += outcome.tokens;
+        if outcome.damage > 0.0 {
+            self.hp -= outcome.damage;
+            self.jumped = true;
+            if self.hp <= 0.0 {
+                // Død: opp til brønnen, en firedel av tokenene blir igjen nede.
+                let lost = self.coins / 4;
+                self.coins -= lost;
+                self.hp = 100.0;
+                self.mobs.reset(&self.dungeon);
+                let up = crate::domain::city::terrain::at(crate::domain::city::dungeon::WELL + Vec3::new(1.9, 0.0, 0.0));
+                self.pos = up + Vec3::Y * (half + radius + 0.05);
+                self.yaw = std::f32::consts::FRAC_PI_2;
+                self.flight = None;
+                events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
+            }
+        }
+        let hud = (self.hp.round().max(0.0) as u32, self.coins, in_cellar);
+        if self.last_hud != Some(hud) {
+            self.last_hud = Some(hud);
+            events.push(Event::Hud { hp: hud.0, tokens: hud.1, cellar: hud.2 });
+        }
         events
+    }
+
+    /// Den nærmeste levende fienden (føttene), til testene.
+    pub fn nearest_mob(&self, from: Vec3) -> Option<Vec3> {
+        self.mobs.mobs.iter().filter(|m| m.alive).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
+    }
+
+    /// Siktet på en fiende.
+    fn mob_prompt() -> Prompt {
+        Prompt { component: "mutant".into(), class: String::new(), variant: String::new(), has_variants: false, usable: true, label: "Korrupt knapp".into(), inspectable: false, verb: "Slå".into() }
     }
 
     fn weather_target(kind: WeatherKind) -> (Weather, f32) {
@@ -800,6 +905,22 @@ impl Game {
             };
             self.props[i].pose = pose;
         }
+        // Våpenet: knappen i høyre hånd, nede i kjelleren. Slaget svinger den
+        // fram og ned.
+        if let Some(i) = self.weapon {
+            let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
+            self.props[i].pose = if in_cellar {
+                let fwd = self.forward();
+                let right = Vec3::new(-fwd.z, 0.0, fwd.x).normalize_or_zero();
+                let up = right.cross(fwd).normalize_or_zero();
+                let s = (self.swing * std::f32::consts::PI).sin();
+                let p = self.eye() + fwd * (0.55 + s * 0.2) + right * 0.34 - up * (0.27 - s * 0.1);
+                let look = Quat::from_rotation_y(self.yaw) * Quat::from_rotation_x(self.pitch);
+                Affine3A::from_rotation_translation(look * Quat::from_rotation_y(-0.7 + s * 0.7) * Quat::from_rotation_x(-0.5 * s) * Quat::from_rotation_z(0.15), p) * Affine3A::from_scale(Vec3::splat(0.3))
+            } else {
+                Affine3A::from_scale(Vec3::splat(0.0001))
+            };
+        }
     }
 
     pub fn frame(&self, aspect: f32) -> Frame {
@@ -833,12 +954,17 @@ impl Game {
 
         let lamp = ((t - 0.35) / 0.5).clamp(0.0, 1.0).max(overcast * 0.5 * (1.0 - t)) * 0.6 + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
         let street = self.installations.iter().map(|i| i.lights_on(&self.env)).fold(1.0, f32::min);
-        let lights: Vec<Light> = self
+        let eye_now = self.eye();
+        let mut lights: Vec<Light> = self
             .lights
             .iter()
             .map(|l| Light { intensity: l.intensity * if l.always { 1.0 } else { lamp * street }, ..*l })
             .filter(|l| l.intensity > 0.01)
             .collect();
+        // Rendereren tar de første 48: de nærmeste først.
+        lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));
+        // Nede i kjelleren: lite himmellys, mer tåke, øynene vant til mørket.
+        let c = self.cellar_t;
 
         let mut pal = palette::build(&self.tokens, t);
         for inst in &self.installations {
@@ -854,15 +980,15 @@ impl Game {
             time: self.time,
             sun_dir,
             sun_color,
-            sun_intensity,
+            sun_intensity: sun_intensity * (1.0 - c * 0.85),
             night: t,
-            sky_top,
-            sky_horizon,
-            ground_bounce: ground + snow_bounce,
-            fog_color: grey(lerp3(Vec3::new(0.6, 0.7, 0.82), Vec3::new(0.012, 0.02, 0.04))),
-            fog_density: (0.0013 + dusk * 0.0012) * self.fog_mul,
+            sky_top: sky_top * (1.0 - c * 0.9),
+            sky_horizon: sky_horizon * (1.0 - c * 0.9),
+            ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.8),
+            fog_color: grey(lerp3(Vec3::new(0.6, 0.7, 0.82), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
+            fog_density: (0.0013 + dusk * 0.0012) * self.fog_mul * (1.0 + c * 6.0),
             fog_falloff: 0.03,
-            exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35),
+            exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 1.5),
             bloom: 0.06 + t * 0.06,
             windows_lit: 0.55,
             street_lights: street,
@@ -871,7 +997,7 @@ impl Game {
             palette: pal,
             lights,
             props,
-            instances: self.herd.instances(self.time),
+            instances: { let mut v = self.herd.instances(self.time); v.extend(self.mobs.instances(self.time)); v },
             taa: !self.jumped,
             debug: self.debug,
         }

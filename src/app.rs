@@ -218,6 +218,63 @@ mod tests {
         assert!(problems.is_empty(), "\n{}", problems.join("\n"));
     }
 
+    /// Brønnen tar deg ned i kjelleren, og stigen opp igjen; fiendene
+    /// kommer, biter, og kan slås i hjel med F.
+    #[test]
+    fn kjelleren_kan_nas_og_fiendene_biter() {
+        use crate::domain::city::dungeon::DEPTH;
+        use crate::domain::game::{Action, Event};
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        let mut physics = crate::adapters::rapier::RapierPhysics::new();
+        let mut game = crate::domain::game::Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics);
+        let mut input = crate::domain::game::Input::default();
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+        assert!(game.eye().y > 0.0, "starter oppe");
+        game.use_component("cellar");
+        let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        assert!(game.eye().y < DEPTH + 3.0, "F på brønnen skal ta deg ned: øyet er på y = {:.1}", game.eye().y);
+        assert!(events.iter().any(|e| matches!(e, Event::Hud { cellar: true, .. })), "HUD-en skal melde at du er nede");
+        // Fiendene jager: etter noen sekunder biter en, og livet synker.
+        let mut bitten = false;
+        for _ in 0..(30 * 25) {
+            for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+                if let Event::Hud { hp, .. } = e {
+                    if hp < 100 {
+                        bitten = true;
+                    }
+                }
+            }
+            if bitten {
+                break;
+            }
+        }
+        assert!(bitten, "ingen fiende rakk fram og bet på 25 sekunder");
+        // Snu deg mot den nærmeste og slå til den dør.
+        let mut killed = false;
+        'outer: for _ in 0..(30 * 20) {
+            let feet = game.eye() - glam::Vec3::Y * 0.8;
+            if let Some(m) = game.nearest_mob(feet) {
+                let d = m + glam::Vec3::Y * 0.8 - game.eye();
+                let flat = d.with_y(0.0).length();
+                game.set_look(-d.x.atan2(-d.z), d.y.atan2(flat));
+            }
+            input.actions.push(Action::Use);
+            for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+                if let Event::Toast(t) = e {
+                    if t.contains("falt fra hverandre") {
+                        killed = true;
+                        break 'outer;
+                    }
+                }
+            }
+        }
+        assert!(killed, "fikk ikke slått i hjel en fiende på 20 sekunder");
+        // Og opp igjen med stigen.
+        game.use_component("cellar#0");
+        let _ = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+
     /// Variantene skal virke 1:1 med designsystemet: alle installasjonene
     /// som er samme komponent må ha de samme variantene (ellers bytter R og
     /// panelet bare noen av dem), og det du sikter på må endre seg for hver

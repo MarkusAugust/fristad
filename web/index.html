@@ -24,10 +24,15 @@
         <span id="prompt-variant" class="fs-tag" data-variant="filled">primary</span>
       </div>
       <div class="keys">
-        <span><kbd>E</kbd> Inspiser</span>
+        <span id="key-inspect"><kbd>E</kbd> Inspiser</span>
         <span id="key-variant"><kbd>R</kbd> Variant</span>
-        <span id="key-use"><kbd>F</kbd> Bruk</span>
+        <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
       </div>
+    </div>
+    <div id="vitals" class="vitals" hidden>
+      <label class="fs-label" for="hp">Liv</label>
+      <progress id="hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+      <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
     </div>
     <div id="help" class="help">
       <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gå</span>

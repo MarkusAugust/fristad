@@ -90,13 +90,14 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
-        Event::Prompt(Some(p)) => json!({"type": "prompt", "component": p.component, "class": p.class, "variant": p.variant, "variants": p.has_variants, "usable": p.usable}),
+        Event::Prompt(Some(p)) => json!({"type": "prompt", "component": p.component, "class": p.class, "variant": p.variant, "variants": p.has_variants, "usable": p.usable, "label": p.label, "inspectable": p.inspectable, "verb": p.verb}),
         Event::Prompt(None) => json!({"type": "prompt"}),
         Event::Inspect { component, variant } => json!({"type": "inspect", "component": component, "variant": variant}),
         Event::Theme(t) => json!({"type": "theme", "theme": if *t == Theme::Dark { "dark" } else { "light" }}),
         Event::Variant { component, variant } => json!({"type": "variant", "component": component, "variant": variant}),
         Event::Toast(t) => json!({"type": "toast", "text": t}),
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
+        Event::Hud { hp, tokens, cellar } => json!({"type": "hud", "hp": hp, "tokens": tokens, "cellar": cellar}),
     }
 }
 

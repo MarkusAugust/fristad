@@ -25,6 +25,7 @@ pub mod park;
 pub mod poster;
 pub mod street_life;
 pub mod terrain;
+pub mod dungeon;
 pub mod text_audit;
 pub mod towers;
 
@@ -71,6 +72,7 @@ pub struct City {
     /// Det `Builder::audit` fant: modeller som svever eller synker. Tomt
     /// når alt står på bakken; testen i `app.rs` krever det.
     pub audit: Vec<String>,
+    pub dungeon: dungeon::Dungeon,
 }
 
 pub struct Rng(pub u64);
@@ -132,6 +134,9 @@ pub struct Builder<'a> {
     /// Instanser som henger på vegger eller står oppå noe (`place_mounted`):
     /// (modell, instansnummer), som `audit` hopper over.
     pub mounted: Vec<(&'static str, usize)>,
+    /// Kjelleren, når den er bygd (før installasjonene), så brønnen kan
+    /// finne startrommet.
+    pub dungeon: Option<dungeon::Dungeon>,
 }
 
 impl Builder<'_> {
@@ -386,6 +391,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         floors: vec![],
         mounted: vec![],
         text_audit: vec![],
+        dungeon: None,
     };
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget og i
@@ -406,6 +412,12 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     nature::grass(&mut b);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
+    // Legacy-kjelleren under torget. Et nytt frø gir en ny etasje.
+    let dungeon = dungeon::build(&mut b, dungeon_seed());
+    b.dungeon = Some(dungeon);
+    for (model, n) in crate::domain::mobs::Mobs::reserve() {
+        b.reserve(model, n);
+    }
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
     for (model, n) in crate::domain::herd::Herd::reserve() {
         b.reserve(model, n);
@@ -438,6 +450,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         lights: b.lights,
         props: b.props,
         placements: b.placements,
+        dungeon: b.dungeon.take().expect("kjelleren er bygd"),
         spawn: SPAWN,
         spawn_yaw: SPAWN_YAW,
         audit,
@@ -592,6 +605,22 @@ fn ground(b: &mut Builder) {
         }
     }
     b.solid(Shape::Heightfield { center: Vec3::ZERO, size: Vec3::new(2.0 * half, 1.0, 2.0 * half), cols: n + 1, rows: n + 1, heights });
+}
+
+/// Frøet til kjelleren: fast i tester og skjermbilder (`FRISTAD_SEED`
+/// overstyrer), ellers fra klokka i nettleseren.
+fn dungeon_seed() -> u64 {
+    if let Ok(s) = std::env::var("FRISTAD_SEED") {
+        return s.parse().unwrap_or(7);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        (js_sys::Date::now() as u64) ^ 0x5eed
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        7
+    }
 }
 
 /// Transform med rotasjon om Y og posisjon.

@@ -2,7 +2,7 @@
 //! plantekasser, sykkelstativ og lyktene (glTF-modellen Lantern).
 
 use super::{at, Builder, Shape, CONCRETE, IRON, OAK, STONE};
-use crate::domain::geometry::{kind, Layer, Mat, Mesh};
+use crate::domain::geometry::{Layer, Mat, Mesh};
 use glam::{Affine3A, Quat, Vec2, Vec3};
 
 const GRASS: Mat = Mat::tex(Layer::Grass, 0xffffff);
@@ -185,8 +185,7 @@ pub fn plaza(b: &mut Builder) {
     bike_rack(b, Vec3::new(11.0, 0.0, -15.0), 0.0);
     bike_rack(b, Vec3::new(-11.0, 0.0, 15.0), 0.0);
 
-    // En gammel brønn med vann i, sørvest på torget.
-    well(b, Vec3::new(-11.0, 0.0, 9.0));
+    // Brønnen sørvest på torget er nedgangen til kjelleren (installations/cellar.rs).
 
     // Reven som står og ser på deg ved bedet.
     let fox = b.on_ground(Vec3::new(6.3, 0.0, 3.2));
@@ -217,21 +216,6 @@ pub fn plaza(b: &mut Builder) {
             b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(0.8, h, 0.8), yaw);
         }
     }
-}
-
-fn well(b: &mut Builder, p: Vec3) {
-    let p = b.on_ground(p);
-    let m = &mut b.mesh;
-    m.lathe(&Affine3A::from_translation(p), &[Vec2::new(1.1, 0.0), Vec2::new(1.1, 0.9), Vec2::new(0.85, 0.95), Vec2::new(0.85, 0.3)], 20, &STONE, false, 0.7);
-    let water = Mat::special(kind::WATER, 0x203040, 0.02);
-    m.cylinder(&Affine3A::from_translation(p + Vec3::Y * 0.6), 0.86, 0.86, 0.01, 20, &water, true);
-    // Stolper og lite tak.
-    for sx in [-0.9, 0.9] {
-        m.cuboid(&Affine3A::from_translation(p + Vec3::new(sx, 1.4, 0.0)), Vec3::new(0.12, 1.6, 0.12), &OAK);
-    }
-    m.cylinder(&Affine3A::from_rotation_translation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2), p + Vec3::new(1.0, 1.75, 0.0)), 0.06, 0.06, 2.0, 8, &OAK, true);
-    m.gable_roof(&Affine3A::from_translation(p + Vec3::Y * 2.1), 2.4, 1.6, 0.6, 0.2, &Mat::tex(Layer::Tiles, 0xffffff), &OAK, &OAK);
-    b.solid(Shape::Cylinder { center: p + Vec3::Y * 0.5, radius: 1.15, half_height: 0.5 });
 }
 
 pub fn streets(b: &mut Builder) {

@@ -38,6 +38,7 @@ pub mod search;
 pub mod select;
 pub mod signs;
 pub mod gorvek;
+pub mod cellar;
 pub mod skeleton;
 pub mod spinner;
 pub mod submit;
@@ -144,6 +145,9 @@ pub struct Env {
     /// Dit spilleren skal flyttes: føttene på bakken, og retningen (yaw).
     /// Lenker og brødsmuler setter den; spillet tar den.
     pub teleport: Option<(Vec3, f32)>,
+    /// Dit spilleren skal flyttes med én gang, uten flytur (ned i kjelleren
+    /// og opp igjen): føttene i verden (absolutt y), og retningen.
+    pub drop: Option<(Vec3, f32)>,
     /// Skrifta, til tekst som bygges mens spillet går.
     pub font: Option<std::sync::Arc<crate::domain::text::Font>>,
     /// Props som har fått ny geometri og må lastes opp på nytt.
@@ -155,7 +159,7 @@ pub struct Env {
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, font: None, dirty: vec![], edit: None, form: FormState::default() }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default() }
     }
 }
 
@@ -181,6 +185,21 @@ pub trait Installation {
     /// Om F gjør noe med den.
     fn usable(&self) -> bool {
         false
+    }
+
+    /// Om E åpner et panel: komponentene ja, ting i byen (brønnen) nei.
+    fn inspectable(&self) -> bool {
+        true
+    }
+
+    /// Navnet i siktet for ting som ikke er komponenter (tom: dokumentasjonens tittel).
+    fn label(&self) -> &'static str {
+        ""
+    }
+
+    /// Hva F gjør, slik siktet sier det.
+    fn verb(&self) -> &'static str {
+        "Bruk"
     }
 
     fn act(&mut self, _action: Action, _env: &mut Env) {}
@@ -240,6 +259,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(workshop::TypeSafe),
         Box::new(workshop::Accessibility),
         Box::new(gorvek::Gorvek::default()),
+        Box::new(cellar::Cellar::default()),
     ]
 }
 
