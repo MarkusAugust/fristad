@@ -69,10 +69,10 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 
 ## Status (7. oktober 2026)
 
-Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`) og bymuren med hjørnetårn og porthus (`tools/models/walls.py`). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding, gravel med hjulspor, plywood = skogbunn).
+Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`), bymuren med hjørnetårn og porthus (`tools/models/walls.py`) og torget (`tools/models/props.py`: torgkors, to boder, kjerre, tønne, kasse, lyktestolpe). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding, gravel med hjulspor, plywood = skogbunn).
 
 Neste:
-1. Resten av byen i Blender med høy detalj: Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, markedsboder, torgkors, lykter, kjerrer, tønner, kasser, borgruinen, krypta og trappa i startrommet, portgitteret.
+1. Resten av byen i Blender med høy detalj: Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, borgruinen, krypta og trappa i startrommet, portgitteret.
 2. Håndlagde teksturlag fra Blender (`tools/textures/`) til bakken og det som fortsatt er bymesh; overgangene mellom brostein, jord og eng skal blandes, ikke gå i ruter.
 3. Kjelleren som modulsett av modeller.
 4. Bedre figurer: innbyggerne og monstrene med mer detalj (ansikt, klær, hår), og bedre lys og materialer i rendereren.

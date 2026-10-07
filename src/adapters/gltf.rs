@@ -82,6 +82,14 @@ models! {
     "town_wall" => "town/town_wall.glb",
     "wall_tower" => "town/wall_tower.glb",
     "gatehouse" => "town/gatehouse.glb",
+    // Torget fra tools/models/props.py.
+    "market_cross" => "town/market_cross.glb",
+    "market_stall" => "town/market_stall.glb",
+    "market_stall_b" => "town/market_stall_b.glb",
+    "cart" => "town/cart.glb",
+    "barrel" => "town/barrel.glb",
+    "crate" => "town/crate.glb",
+    "lantern_post" => "town/lantern_post.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }
