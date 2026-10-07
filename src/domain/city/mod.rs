@@ -20,6 +20,7 @@ use glam::{Affine3A, Quat, Vec3};
 pub mod furniture;
 pub mod house;
 pub mod nature;
+pub mod park;
 pub mod street_life;
 pub mod terrain;
 
@@ -212,6 +213,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     furniture::plaza(&mut b);
     furniture::streets(&mut b);
     street_life::all(&mut b);
+    park::build(&mut b);
     nature::plaza_trees(&mut b);
     nature::tufts(&mut b);
     nature::meadow(&mut b);
@@ -246,8 +248,22 @@ fn rect_dist(x: f32, z: f32, hx: f32, z0: f32, z1: f32) -> f32 {
     (dx * dx + dz * dz).sqrt()
 }
 
-/// Avstand fra et punkt til bebyggelsen: torget med husrekkene og gatene.
+/// Avstand fra et punkt til et vilkårlig rektangel (0 innenfor).
+fn box_dist(x: f32, z: f32, x0: f32, x1: f32, z0: f32, z1: f32) -> f32 {
+    let dx = (x0 - x).max(x - x1).max(0.0);
+    let dz = (z0 - z).max(z - z1).max(0.0);
+    (dx * dx + dz * dz).sqrt()
+}
+
+/// Avstand fra et punkt til bebyggelsen eller Tokenparken: der holder enga
+/// seg unna.
 pub fn town_dist(x: f32, z: f32) -> f32 {
+    buildings_dist(x, z).min(box_dist(x, z, park::X0 - 1.0, park::X1 + 1.0, park::Z0 - 1.0, park::Z1 + 1.0))
+}
+
+/// Avstand fra et punkt til husene: torget med husrekkene og gatene. Rundt
+/// dem ligger grusbeltet.
+pub fn buildings_dist(x: f32, z: f32) -> f32 {
     rect_dist(x, z, 34.0, -32.0, 32.0)
         .min(rect_dist(x, z, 13.0, -66.0, -19.0))
         .min(rect_dist(x, z, 12.0, 19.0, 62.0))
@@ -273,8 +289,16 @@ pub fn path_dist(x: f32, z: f32) -> f32 {
         d = d.min((z - (n - 0.5) * 26.0).abs());
     }
     if x < -44.0 {
-        let n = terrain::noise(x * 0.03, 6.0);
-        d = d.min((z - (n - 0.5) * 20.0 + (x + 44.0) * 0.2).abs());
+        // Rett inn porten til Tokenparken, og stiene inne i parken.
+        d = d.min(z.abs());
+        if (park::X0..=park::X1).contains(&x) && (park::Z0..=park::Z1).contains(&z) {
+            d = d.min((x - (park::X0 + 12.0)).abs()).min((x - (park::X0 + 24.0)).abs());
+        }
+        // Videre vestover fra parken.
+        if x < park::X0 {
+            let n = terrain::noise(x * 0.03, 6.0);
+            d = d.min((z - (n - 0.5) * 20.0 + (x - park::X0) * 0.2).abs());
+        }
     }
     d
 }
@@ -312,7 +336,7 @@ fn ground_mat(x: f32, z: f32) -> Mat {
     }
     // Et smalt belte med grus rundt husene, med ujevn kant, og grusstiene.
     let edge = 2.0 + terrain::noise(x * 0.09, z * 0.09) * 4.0;
-    if town_dist(x, z) < edge || path_dist(x, z) < 1.6 + terrain::noise(x * 0.2, z * 0.2) * 1.2 {
+    if buildings_dist(x, z) < edge || path_dist(x, z) < 1.6 + terrain::noise(x * 0.2, z * 0.2) * 1.2 {
         return Mat::tex(Layer::Gravel, 0xf0e6d6);
     }
     Mat::tex(Layer::Grass, meadow_tint(x, z))
