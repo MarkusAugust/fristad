@@ -417,6 +417,8 @@ def crane(m):
     # Rekkverk på utliggeren.
     for sy in (1, -1):
         tube(f"rail{sy}", (0.8, sy * 0.6, zj + 0.6), (J - 1.0, sy * 0.6, zj + 0.6), 0.015, y, 6)
+    # Varsellampa på toppen, rød, lyser om natta («glow» blir lampe i motoren).
+    ellipsoid("beacon", (0.0, 0.0, H + 6.9), (0.3, 0.3, 0.3), material("glow_red", (1.0, 0.08, 0.04), 0.3), 10, 6)
 
 
 BUILDERS = {

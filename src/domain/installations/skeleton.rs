@@ -328,6 +328,8 @@ fn site(b: &mut Builder, g: f32) {
     // Krana bak huset i nordøst, med utliggeren over huset.
     place(b, "site_crane", 53.7, -26.3, std::f32::consts::PI, Vec3::new(4.4, 1.0, 4.4));
     b.solid_box(Vec3::new(53.7, g + 11.0, -26.3), Vec3::new(1.8, 22.0, 1.8), 0.0);
+    // Varsellampa på toppen av krana lyser rødt om natta.
+    b.light(Vec3::new(53.7, g + 28.9, -26.3), Vec3::new(1.0, 0.1, 0.05), 4.0, 14.0);
     // Graveren og blanderen på østsida av huset, paller og trillebår ved porten.
     place(b, "site_excavator", 54.3, -18.5, 1.6, Vec3::new(3.6, 2.6, 1.8));
     place(b, "site_mixer", 54.3, -13.5, 0.6, Vec3::new(1.2, 1.3, 1.0));
