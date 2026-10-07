@@ -62,7 +62,8 @@ fn fs_ssao(i: VsOut) -> @location(0) vec4<f32> {
     let tr = t * cos(rot) + b * sin(rot);
     let br = cross(n, tr);
     var occ = 0.0;
-    let taps = 10;
+    // Kvaliteten skalerer antall prøver: 4–10.
+    let taps = max(4, i32(round(10.0 * mix(0.4, 1.0, g.cascade.w))));
     for (var k = 0; k < taps; k++) {
         let fk = f32(k) + rnd2;
         let a = fk * 2.39996;
@@ -150,7 +151,8 @@ fn fs_fog(i: VsOut) -> @location(0) vec4<f32> {
     let transmittance = exp(-optical);
 
     // Innspredning fra sola: marsj gjennom skyggekartet med dithering.
-    let steps = 14;
+    // Kvaliteten skalerer marsjen: 5–14 steg.
+    let steps = max(5, i32(round(14.0 * mix(0.35, 1.0, g.cascade.w))));
     let march_len = min(dist, 90.0);
     let jitter = ign(i.clip.xy);
     var sun_vis = 0.0;

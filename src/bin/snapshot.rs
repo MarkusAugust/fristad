@@ -126,6 +126,9 @@ fn main() {
     if let Some(scale) = arg("--scale") {
         app.renderer.set_scale(scale.parse().unwrap());
     }
+    if let Some(q) = arg("--quality") {
+        app.renderer.set_quality(q.parse().unwrap());
+    }
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);

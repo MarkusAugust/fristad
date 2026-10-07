@@ -244,6 +244,8 @@ pub struct Renderer {
     current: Option<wgpu::TextureView>,
     /// Intern oppløsning som andel av vinduet.
     scale: f32,
+    /// Kvalitet 0–1: antall prøver i skygger, SSAO og tåkemarsj.
+    quality: f32,
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
@@ -645,6 +647,7 @@ impl Renderer {
             history_valid: false,
             current: None,
             scale: 1.0,
+            quality: 1.0,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
             hidden_props: std::cell::RefCell::new(vec![]),
@@ -814,6 +817,10 @@ impl Renderer {
         self.triangles.get()
     }
 
+    pub fn set_quality(&mut self, quality: f32) {
+        self.quality = quality.clamp(0.0, 1.0);
+    }
+
     pub fn set_scale(&mut self, scale: f32) {
         let scale = scale.clamp(0.4, 1.0);
         if (scale - self.scale).abs() < 1e-3 {
@@ -942,7 +949,7 @@ impl Renderer {
             weather: [wx.wet, wx.snow_cover, wx.rain, wx.snow],
             screen: [w, h, 1.0 / w, 1.0 / h],
             jitter: [jitter[0], jitter[1], self.frame_index as f32, wx.wind],
-            cascade: [CASCADES[0], CASCADES[1], CASCADES[2], 0.0],
+            cascade: [CASCADES[0], CASCADES[1], CASCADES[2], self.quality],
             sky: [wx.cloud, f.aurora, wx.lightning, f.debug as f32],
             tex_scale,
             palette,
@@ -1216,6 +1223,9 @@ impl ports::Renderer for Renderer {
     }
     fn set_scale(&mut self, scale: f32) {
         Renderer::set_scale(self, scale);
+    }
+    fn set_quality(&mut self, quality: f32) {
+        Renderer::set_quality(self, quality);
     }
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();

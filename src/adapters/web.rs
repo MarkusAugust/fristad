@@ -170,6 +170,11 @@ impl Engine {
     }
 
     /// Intern oppløsning som andel av vinduet, 0.4–1.0.
+    /// Kvalitet 0–1 (skygger, SSAO, tåke).
+    pub fn set_quality(&mut self, quality: f32) {
+        self.app.renderer.set_quality(quality);
+    }
+
     pub fn set_scale(&mut self, scale: f32) {
         self.app.renderer.set_scale(scale);
     }

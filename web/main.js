@@ -177,7 +177,7 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, setScale };
+  window.fristad = { engine, openPanel, closePanel, setScale, setQuality };
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -255,7 +255,10 @@ let frames = 0;
 let perfAt = performance.now();
 // Intern oppløsning: senkes automatisk når bildefrekvensen faller, og heves
 // igjen når det flyter. `setScale(tall)` låser den, `setScale(null)` slipper.
+// Først senkes kvaliteten (færre prøver i skygger, SSAO og tåke: 1 → 0.5 → 0),
+// så oppløsningen. Opp igjen i motsatt rekkefølge.
 let scale = 1;
+let quality = 1;
 let autoScale = true;
 let slowSeconds = 0;
 let fastSeconds = 0;
@@ -264,6 +267,13 @@ function setScale(s) {
   if (!autoScale) {
     scale = Math.min(1, Math.max(0.4, s));
     engine.set_scale(scale);
+  }
+}
+function setQuality(q) {
+  autoScale = q === null || q === undefined;
+  if (!autoScale) {
+    quality = Math.min(1, Math.max(0, q));
+    engine.set_quality(quality);
   }
 }
 function adapt(fps) {
@@ -278,13 +288,23 @@ function adapt(fps) {
     slowSeconds = 0;
     fastSeconds = 0;
   }
-  if (slowSeconds >= 2 && scale > 0.5) {
-    scale = Math.round((scale - 0.1) * 10) / 10;
-    engine.set_scale(scale);
+  if (slowSeconds >= 2) {
+    if (quality > 0) {
+      quality = Math.max(0, quality - 0.5);
+      engine.set_quality(quality);
+    } else if (scale > 0.5) {
+      scale = Math.round((scale - 0.1) * 10) / 10;
+      engine.set_scale(scale);
+    }
     slowSeconds = 0;
-  } else if (fastSeconds >= 5 && scale < 1) {
-    scale = Math.round((scale + 0.1) * 10) / 10;
-    engine.set_scale(scale);
+  } else if (fastSeconds >= 5) {
+    if (scale < 1) {
+      scale = Math.round((scale + 0.1) * 10) / 10;
+      engine.set_scale(scale);
+    } else if (quality < 1) {
+      quality = Math.min(1, quality + 0.5);
+      engine.set_quality(quality);
+    }
     fastSeconds = 0;
   }
 }
@@ -300,7 +320,8 @@ function loop(now) {
     adapt(fps);
     const tris = Math.round(engine.triangles() / 1000);
     const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""} · ${tris}k △`;
+    const q = quality >= 1 ? "" : quality > 0 ? " · middels" : " · lav";
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △`;
     frames = 0;
     perfAt = now;
   }

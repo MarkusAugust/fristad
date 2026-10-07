@@ -21,6 +21,8 @@ pub trait Renderer {
     fn resize(&mut self, width: u32, height: u32);
     /// Intern oppløsning som andel av vinduet (0.5–1.0), for svake GPU-er.
     fn set_scale(&mut self, scale: f32);
+    /// Kvalitet 0–1: færre prøver i skygger, SSAO og tåke på svake GPU-er.
+    fn set_quality(&mut self, quality: f32);
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
 }

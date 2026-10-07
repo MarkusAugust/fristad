@@ -46,14 +46,17 @@ fn sun_shadow(world: vec3<f32>, n: vec3<f32>, rot_seed: vec2<f32>) -> f32 {
     let c = cascade_for(world);
     let scale = select(select(0.12, 0.05, c == 1), 0.025, c == 0);
     let offset = n * scale * (1.0 + 2.0 * (1.0 - clamp(ndl, 0.0, 1.0)));
-    let taps = select(select(6, 8, c == 1), 12, c == 0);
+    // Kvaliteten (g.cascade.w, 0–1) skalerer antall prøver: 3–12 i nærmeste kaskade.
+    let q = mix(0.25, 1.0, g.cascade.w);
+    let base = select(select(6, 8, c == 1), 12, c == 0);
+    let taps = max(2, i32(round(f32(base) * q)));
     var s = shadow_sample(c, world + offset, taps, rot_seed);
     // Bland mot neste kaskade nær grensa.
     let d = distance(world, g.camera.xyz);
     let edge = select(select(1e9, g.cascade.y, c == 1), g.cascade.x, c == 0);
     let blend = smoothstep(edge * 0.85, edge, d);
     if (blend > 0.0 && c < 2) {
-        let s2 = shadow_sample(c + 1, world + offset * 2.5, 6, rot_seed);
+        let s2 = shadow_sample(c + 1, world + offset * 2.5, max(2, i32(round(6.0 * q))), rot_seed);
         s = mix(s, s2, blend);
     }
     return s;
