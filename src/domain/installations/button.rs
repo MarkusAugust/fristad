@@ -83,7 +83,8 @@ impl Installation for Button {
         let w = text_w + 32.0 + 2.0;
         let h = 24.0 + 16.0 + 2.0;
         let mut m = Mesh::default();
-        signs::boxed(&mut m, Vec3::ZERO, &Box2 { w, h, radius: b.unit("1") * 100.0, fill: slot::BUTTON_BODY, border: Some(slot::BUTTON_RIM), depth: 0.05 });
+        // Radius er spacing-1 (4 px), i piksler som resten av boksen.
+        signs::boxed(&mut m, Vec3::ZERO, &Box2 { w, h, radius: b.tokens.spacing_px("1"), fill: slot::BUTTON_BODY, border: Some(slot::BUTTON_RIM), depth: 0.05 });
         let label_mat = slot::BUTTON_LABEL;
         signs::text(&mut m, b.font, label, Vec3::new(0.0, 0.0, 0.045), 16.0, label_mat);
         // Plata knappen sitter på.
