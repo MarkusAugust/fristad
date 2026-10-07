@@ -8,7 +8,7 @@ use crate::domain::palette;
 use crate::domain::ports::{ColliderId, Physics};
 use crate::domain::scene::{Frame, Light, Weather};
 use crate::domain::tokens::{Theme, Tokens};
-use glam::{Affine3A, Mat4, Vec3};
+use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -144,6 +144,66 @@ impl Stance {
     }
 }
 
+/// Reisen når du følger en lenke: løftes rett opp over hustakene, flys
+/// bort, og dales ned i fallskjerm dit du skulle. Posisjonene er føttene.
+#[derive(Clone, Copy, Debug)]
+struct Flight {
+    from: Vec3,
+    to: Vec3,
+    yaw_to: f32,
+    /// Hvor høyt turen går.
+    altitude: f32,
+    /// Sekunder brukt, og hvor lenge hver fase varer.
+    t: f32,
+    lift: f32,
+    cruise: f32,
+    drop: f32,
+}
+
+impl Flight {
+    const SPEED: f32 = 30.0;
+    const SINK: f32 = 7.5;
+    const ABOVE: f32 = 26.0;
+
+    fn new(from: Vec3, to: Vec3, yaw_to: f32) -> Self {
+        let altitude = from.y.max(to.y) + Self::ABOVE;
+        let dist = (Vec2::new(to.x, to.z) - Vec2::new(from.x, from.z)).length();
+        Self { from, to, yaw_to, altitude, t: 0.0, lift: 1.6, cruise: (dist / Self::SPEED).max(1.2), drop: (altitude - to.y) / Self::SINK }
+    }
+
+    fn total(&self) -> f32 {
+        self.lift + self.cruise + self.drop
+    }
+
+    /// Retningen turen går, som yaw.
+    fn heading(&self) -> f32 {
+        let d = self.to - self.from;
+        (-d.x).atan2(-d.z)
+    }
+
+    /// Føttene nå, og hvor langt ut i dalingen vi er (0 før fallskjermen).
+    fn feet(&self) -> (Vec3, f32) {
+        let smooth = |u: f32| {
+            let u = u.clamp(0.0, 1.0);
+            u * u * (3.0 - 2.0 * u)
+        };
+        if self.t < self.lift {
+            let u = smooth(self.t / self.lift);
+            return (Vec3::new(self.from.x, self.from.y + (self.altitude - self.from.y) * u, self.from.z), 0.0);
+        }
+        if self.t < self.lift + self.cruise {
+            let u = smooth((self.t - self.lift) / self.cruise);
+            let p = self.from.lerp(self.to, u);
+            return (Vec3::new(p.x, self.altitude, p.z), 0.0);
+        }
+        let v = ((self.t - self.lift - self.cruise) / self.drop).clamp(0.0, 1.0);
+        // Dalingen: jevn fart, med litt sving i vinden.
+        let sway = (1.0 - v) * 0.6;
+        let p = Vec3::new(self.to.x + (self.t * 1.1).sin() * sway, self.to.y + (self.altitude - self.to.y) * (1.0 - v), self.to.z + (self.t * 0.8).cos() * sway);
+        (p, v)
+    }
+}
+
 struct PropState {
     rest: Affine3A,
     offset: Vec3,
@@ -185,6 +245,9 @@ pub struct Game {
     /// Der du starter, og dit H tar deg: føttene og retningen.
     spawn: Vec3,
     spawn_yaw: f32,
+    flight: Option<Flight>,
+    /// Fallskjermen, en prop uten eier som spillet selv poserer.
+    parachute: Option<usize>,
     pub debug: u32,
 }
 
@@ -234,8 +297,26 @@ impl Game {
             eye_h: EYE,
             spawn: city.spawn,
             spawn_yaw: city.spawn_yaw,
+            flight: None,
+            parachute: city.props.iter().position(|p| p.name == "parachute"),
             debug: 0,
         }
+    }
+
+    /// Om du er på reise (løftet, i lufta eller i fallskjermen).
+    pub fn flying(&self) -> bool {
+        self.flight.is_some()
+    }
+
+    /// Start en flytur dit (føttene, y over terrenget). Til testene.
+    pub fn fly_to(&mut self, feet: Vec3, yaw: f32) {
+        self.env.teleport = Some((feet, yaw));
+    }
+
+    /// Snu kameraet uten å flytte det.
+    pub fn set_look(&mut self, yaw: f32, pitch: f32) {
+        self.yaw = yaw;
+        self.pitch = pitch;
     }
 
     /// Tilbake til torget, som H og knappen i pausemenyen.
@@ -386,7 +467,7 @@ impl Game {
         let (half, radius) = self.stance.capsule();
         self.eye_h += (self.stance.eye() - self.eye_h) * (dt * 10.0).min(1.0);
         let speed = self.stance.speed(input.sprint);
-        let horizontal = wish.normalize_or_zero() * speed;
+        let horizontal = if self.flight.is_some() { Vec3::ZERO } else { wish.normalize_or_zero() * speed };
         if self.grounded {
             self.vel_y = -1.0;
             if input.jump && !self.paused && self.stance == Stance::Stand {
@@ -395,12 +476,38 @@ impl Game {
         } else {
             self.vel_y -= 18.0 * dt;
         }
-        let desired = (horizontal + Vec3::Y * self.vel_y) * dt;
-        let (moved, grounded) = physics.move_capsule(self.pos, half, radius, desired, dt);
-        self.pos += moved;
-        self.grounded = grounded;
+        if let Some(mut f) = self.flight {
+            // På reise: ingen fysikk, bare turen. Kameraet snus mot reisemålet
+            // under løftet og mot landingsretningen i starten av dalingen.
+            f.t += dt;
+            let (feet, v) = f.feet();
+            self.pos = feet + Vec3::Y * (half + radius);
+            self.vel_y = 0.0;
+            self.grounded = false;
+            let target = if f.t < f.lift { Some(f.heading()) } else if v > 0.0 && v < 0.35 { Some(f.yaw_to) } else { None };
+            if let Some(goal) = target {
+                let diff = (goal - self.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+                self.yaw += diff * (dt * 2.5).min(1.0);
+            }
+            if f.t >= f.total() {
+                self.pos = f.to + Vec3::Y * (half + radius + 0.1);
+                self.yaw = f.yaw_to;
+                self.flight = None;
+            } else {
+                self.flight = Some(f);
+            }
+        } else {
+            let desired = (horizontal + Vec3::Y * self.vel_y) * dt;
+            let (moved, grounded) = physics.move_capsule(self.pos, half, radius, desired, dt);
+            self.pos += moved;
+            self.grounded = grounded;
+        }
         if self.pos.y < -20.0 {
-            self.env.teleport = Some((self.spawn, self.spawn_yaw));
+            // Falt gjennom verden: rett tilbake til torget.
+            let (half, radius) = self.stance.capsule();
+            self.pos = crate::domain::city::terrain::at(self.spawn) + Vec3::Y * (half + radius + 0.2);
+            self.yaw = self.spawn_yaw;
+            self.flight = None;
         }
         if self.grounded && horizontal.length_squared() > 0.0 {
             self.bob += dt * speed / 4.2;
@@ -480,14 +587,17 @@ impl Game {
         for inst in &mut self.installations {
             inst.tick(&mut self.env);
         }
-        // Teleport fra lenker, brødsmuler og H: føttene på bakken (målets y
-        // er høyden over terrenget), se rett fram.
+        // Lenker, brødsmuler og H: en flytur dit (målets y er høyden over
+        // terrenget). Er du alt på reise, byttes målet.
         if let Some((feet, yaw)) = self.env.teleport.take() {
             let (half, radius) = self.stance.capsule();
             let ground = crate::domain::city::terrain::height(feet.x, feet.z);
-            self.pos = Vec3::new(feet.x, ground + feet.y + half + radius + 0.15, feet.z);
-            self.yaw = yaw;
-            self.pitch = 0.0;
+            let to = Vec3::new(feet.x, ground + feet.y, feet.z);
+            let from = match self.flight {
+                Some(f) => f.feet().0,
+                None => self.pos - Vec3::Y * (half + radius),
+            };
+            self.flight = Some(Flight::new(from, to, yaw));
             self.vel_y = 0.0;
         }
         for t in self.env.toasts.drain(..) {
@@ -551,6 +661,20 @@ impl Game {
         }
         if let Some((prop, _)) = self.aim {
             self.props[prop].extra[0] = self.highlight;
+        }
+        // Fallskjermen henger over hodet mens du daler, og folder seg ut de
+        // første tidelene. Ellers er den gjemt.
+        if let Some(i) = self.parachute {
+            let pose = match self.flight.map(|f| (f, f.feet().1)) {
+                Some((f, v)) if v > 0.0 => {
+                    let open = ((f.t - f.lift - f.cruise) / 0.5).clamp(0.05, 1.0);
+                    let open = open * open * (3.0 - 2.0 * open);
+                    let sway = Quat::from_rotation_x((f.t * 0.8).sin() * 0.08) * Quat::from_rotation_z((f.t * 1.1).cos() * 0.08);
+                    Affine3A::from_rotation_translation(sway, self.eye() + Vec3::Y * 0.9) * Affine3A::from_scale(Vec3::new(open, open.max(0.6), open))
+                }
+                _ => Affine3A::from_scale(Vec3::splat(0.0001)),
+            };
+            self.props[i].pose = pose;
         }
     }
 

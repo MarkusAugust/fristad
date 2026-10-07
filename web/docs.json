@@ -199,6 +199,62 @@
     "code": "<p>Saken er registrert.</p>\n<hr class=\"fs-divider\" />\n<p>Du får svar innen tre uker.</p>\n<hr class=\"fs-divider\" data-variant=\"strong\" />\n<p>Kontakt oss hvis noe er uklart.</p>\n<hr class=\"fs-divider\" data-variant=\"subtle\" />\n<p>Saksnummer 2026-0481.</p>",
     "url": "https://fristil.sobernetics.no/components/divider/"
   },
+  "heading": {
+    "name": "heading",
+    "title": "Heading",
+    "description": "Overskrifter i seks størrelser, uavhengig av nivå. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Størrelsen og nivået er to forskjellige ting. Nivået er `<h1>` til `<h6>` og bestemmer strukturen skjermlesere navigerer etter. `data-size` bestemmer bare hvor stor teksten ser ut.",
+    "code": "<h1 class=\"fs-heading\" data-size=\"mega\">Søknad om bostøtte</h1>\n<h2 class=\"fs-heading\" data-size=\"xl\">Om søkeren</h2>\n<h2 class=\"fs-heading\">Boforhold</h2>\n<h3 class=\"fs-heading\" data-size=\"m\">Vedlegg</h3>\n<h4 class=\"fs-heading\" data-size=\"s\">Fødselsattest</h4>\n<h5 class=\"fs-heading\" data-size=\"xs\">Sist endret</h5>",
+    "url": "https://fristil.sobernetics.no/components/heading/"
+  },
+  "label": {
+    "name": "label",
+    "title": "Label",
+    "description": "Ledetekst for skjemafelt, med markering av påkrevd og valgfritt. CSS-komponent.",
+    "intro": "Riktig typografi på `<label>`, og en fast måte å markere påkrevde og valgfrie felt på. Setter du opp et helt felt, er [Field](../field/) som regel enklere. Den setter `for`, `id` og `aria-describedby` for deg.",
+    "code": "<label class=\"fs-label\" for=\"navn\">Fullt navn</label>\n<input class=\"fs-input\" id=\"navn\" type=\"text\" />\n\n<label class=\"fs-label\" data-required=\"symbol\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" required />\n\n<label class=\"fs-label\" data-required=\"text\" for=\"telefon\">Telefonnummer</label>\n<input class=\"fs-input\" id=\"telefon\" type=\"tel\" required />\n\n<label class=\"fs-label\" data-optional=\"\" for=\"adresse\">Adresse</label>\n<input class=\"fs-input\" id=\"adresse\" type=\"text\" />\n\n<label class=\"fs-label\" aria-disabled=\"true\" for=\"orgnr\">Organisasjonsnummer</label>\n<input class=\"fs-input\" id=\"orgnr\" type=\"text\" disabled />",
+    "url": "https://fristil.sobernetics.no/components/label/"
+  },
+  "fieldset": {
+    "name": "fieldset",
+    "title": "Fieldset",
+    "description": "Gruppe av kontroller med en felles ledetekst. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "`<fieldset>` med `<legend>` er den ene måten å gi et sett radioknapper eller avkryssingsbokser en felles ledetekst som skjermlesere leser opp før hvert alternativ. En overskrift over gruppen ser likedan ut, men høres ikke.",
+    "code": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvem søker du på vegne av?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"selv\" name=\"soker\" value=\"selv\" checked />\n    <label class=\"fs-label\" for=\"selv\">Meg selv</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"annen\" name=\"soker\" value=\"annen\" />\n    <label class=\"fs-label\" for=\"annen\">En annen person</label>\n  </div>\n</fieldset>",
+    "url": "https://fristil.sobernetics.no/components/fieldset/"
+  },
+  "help-text": {
+    "name": "help-text",
+    "title": "Help Text",
+    "description": "Forklarende tekst under et skjemafelt. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Den lille teksten under et felt som forklarer hva systemet forventer. Er teksten en feilmelding, bruk [Error Text](../error-text/).",
+    "code": "<p class=\"fs-help-text\">Du finner nummeret øverst til høyre på fakturaen.</p>\n<p class=\"fs-help-text\" data-variant=\"strong\">Endringen gjelder fra neste månedsskifte.</p>\n<p class=\"fs-help-text\" data-variant=\"success\">Vedlegget er lastet opp.</p>\n<p class=\"fs-help-text\" data-variant=\"warning\">Søknadsfristen går ut om tre dager.</p>",
+    "url": "https://fristil.sobernetics.no/components/help-text/"
+  },
+  "error-text": {
+    "name": "error-text",
+    "title": "Error Text",
+    "description": "Feilmelding under et skjemafelt. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Meldingen som vises når et felt ikke kan sendes inn slik det står. Den hører rett under feltet, ikke øverst på siden. Skal teksten forklare hva feltet forventer før brukeren har gjort noe, bruk [Help Text](../help-text/).",
+    "code": "<p class=\"fs-error-text\">Skriv en e-postadresse med krøllalfa, for eksempel ola&#64;eksempel.no.</p>\n<p class=\"fs-error-text\" data-variant=\"warning\">Adressen finnes ikke i folkeregisteret. Sjekk at den stemmer.</p>",
+    "url": "https://fristil.sobernetics.no/components/error-text/"
+  },
+  "file-upload": {
+    "name": "file-upload",
+    "title": "File Upload",
+    "description": "Felt for opplasting av filer. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "Klassen settes på et vanlig `<input type=\"file\">`. Knappen inni er nettleserens egen, og teksten på den kommer fra operativsystemets språk. Den kan ikke oversettes, så ledeteksten over feltet må si hva som skal lastes opp.",
+    "code": "<label class=\"fs-label\" for=\"vedlegg\">Last opp vedlegg</label>\n<input class=\"fs-file-upload\" type=\"file\" id=\"vedlegg\" multiple accept=\".pdf,.jpg\" aria-describedby=\"vedlegg-hjelp\" />\n<p class=\"fs-help-text\" id=\"vedlegg-hjelp\">PDF eller bilde, opptil 10 MB per fil.</p>",
+    "url": "https://fristil.sobernetics.no/components/file-upload/"
+  },
+  "search": {
+    "name": "search",
+    "title": "Search",
+    "description": "Søkefelt med forstørrelsesglass. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "Et `fs-input` med plass til et forstørrelsesglass. Begge klassene settes, så alle tilstandene og variablene fra [Input](../input/) gjelder her også.",
+    "code": "<form class=\"fs-search-row\" role=\"search\">\n  <label class=\"fs-label fs-sr-only\" for=\"sok\">Søk i saker</label>\n  <input class=\"fs-input fs-search\" type=\"search\" id=\"sok\" name=\"q\" placeholder=\"Søk i saker\" />\n  <button class=\"fs-button\" type=\"submit\">Søk</button>\n</form>",
+    "url": "https://fristil.sobernetics.no/components/search/"
+  },
   "kom-i-gang": {
     "name": "kom-i-gang",
     "title": "Kom i gang",

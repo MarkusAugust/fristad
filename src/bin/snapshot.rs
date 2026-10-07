@@ -44,11 +44,16 @@ fn main() {
         let kind = WeatherKind::ALL.iter().copied().find(|k| k.name() == w).unwrap_or(WeatherKind::Clear);
         app.game.set_weather(kind, true);
     }
-    if let Some(v) = arg("--variant") {
+    // --variant kan gis flere ganger: én per komponent.
+    for (i, a) in args.iter().enumerate() {
+        if a != "--variant" {
+            continue;
+        }
+        let Some(v) = args.get(i + 1) else { continue };
         if let Some((c, n)) = v.split_once('=') {
             app.game.set_variant(c, n);
         } else {
-            app.game.set_variant("button", &v);
+            app.game.set_variant("button", v);
         }
     }
     if flag("--gate") {
@@ -56,6 +61,12 @@ fn main() {
     }
     if let Some(c) = arg("--use") {
         app.game.use_component(&c);
+    }
+    // --fly X,Z: start en flytur dit fra --eye, og la --time bestemme hvor
+    // langt turen er kommet når bildet tas.
+    if let Some(f) = arg("--fly") {
+        let v: Vec<f32> = f.split(',').map(|s| s.parse().unwrap()).collect();
+        app.game.fly_to(glam::Vec3::new(v[0], 0.0, v[1]), 0.0);
     }
     if let Some(st) = arg("--stance") {
         match st.as_str() {
@@ -93,7 +104,12 @@ fn main() {
     for _ in 0..steps.max(1) {
         app.tick(1.0 / 30.0);
     }
-    app.game.place(eye, yaw.to_radians(), pitch.to_radians());
+    // Med --fly beholdes stedet spillet har flyttet deg til; bare kameraet snus.
+    if arg("--fly").is_some() {
+        app.game.set_look(yaw.to_radians(), pitch.to_radians());
+    } else {
+        app.game.place(eye, yaw.to_radians(), pitch.to_radians());
+    }
 
     if let Some(l) = arg("--dump-layer") {
         let layer: u32 = l.parse().unwrap();

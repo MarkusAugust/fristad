@@ -132,6 +132,49 @@ const VARIANTS = {
     { name: "strong", note: 'data-variant="strong"' },
     { name: "subtle", note: 'data-variant="subtle"' },
   ],
+  heading: [
+    { name: "default", note: "Standard, --fs-font-size-xl." },
+    { name: "mega", note: 'data-size="mega"' },
+    { name: "xl", note: 'data-size="xl"' },
+    { name: "m", note: 'data-size="m"' },
+    { name: "s", note: 'data-size="s"' },
+    { name: "xs", note: 'data-size="xs", i versaler.' },
+  ],
+  label: [
+    { name: "default", note: "Vanlig ledetekst." },
+    { name: "required", note: 'data-required="symbol": stjerne i farefargen.' },
+    { name: "required-text", note: 'data-required="text": «(påkrevd)».' },
+    { name: "optional", note: 'data-optional="": «(valgfri)» i dempet farge.' },
+    { name: "disabled", note: 'aria-disabled="true"' },
+  ],
+  fieldset: [
+    { name: "default", note: "Vanlig legend." },
+    { name: "required", note: 'data-required="symbol" på legenden.' },
+    { name: "invalid", note: 'data-state="invalid" på gruppa.' },
+    { name: "success", note: 'data-state="success"' },
+    { name: "disabled", note: "disabled på gruppa." },
+  ],
+  "help-text": [
+    { name: "default", note: "Dempet. Standardvalget." },
+    { name: "strong", note: 'data-variant="strong"' },
+    { name: "success", note: 'data-variant="success"' },
+    { name: "warning", note: 'data-variant="warning"' },
+  ],
+  "error-text": [
+    { name: "default", note: "Feil som stopper innsending." },
+    { name: "warning", note: 'data-variant="warning"' },
+  ],
+  "file-upload": [
+    { name: "default", note: "Standard, stiplet kant." },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "success", note: 'data-state="success"' },
+    { name: "disabled", note: "disabled" },
+  ],
+  search: [
+    { name: "default", note: "Standard." },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "disabled", note: "disabled" },
+  ],
 };
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
@@ -388,6 +431,22 @@ function enter() {
   lock();
 }
 
+function quit() {
+  playing = false;
+  dragging = false;
+  panelOpen = false;
+  panel.hidden = true;
+  engine.set_paused(true);
+  engine.respawn();
+  if (locked()) document.exitPointerLock?.();
+  enterBtn.textContent = "Gå inn i Fristad";
+  $("respawn").hidden = true;
+  $("quit").hidden = true;
+  hud.hidden = true;
+  gateEl.hidden = false;
+  enterBtn.focus();
+}
+
 function pause() {
   playing = false;
   dragging = false;
@@ -396,6 +455,7 @@ function pause() {
   if (!panelOpen) {
     enterBtn.textContent = "Fortsett";
     $("respawn").hidden = false;
+    $("quit").hidden = false;
     gateEl.hidden = false;
     enterBtn.focus();
   }
@@ -408,6 +468,8 @@ function bindInput() {
     engine.respawn();
     enter();
   });
+  // Avslutt: tilbake til startskjermen, med spilleren på torget igjen.
+  $("quit").addEventListener("click", quit);
   canvas.addEventListener("click", () => {
     if (playing && !locked()) lock();
   });
@@ -428,8 +490,9 @@ function bindInput() {
 
   const keys = new Set(["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
   document.addEventListener("keydown", (e) => {
+    // Esc med panelet oppe lukker panelet og tar deg rett tilbake i spillet.
     if (panelOpen && e.code === "Escape") {
-      closePanel(false);
+      closePanel(true);
       return;
     }
     if (!playing) return;

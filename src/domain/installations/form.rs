@@ -36,6 +36,79 @@ pub const CHECK_ROWS: [f32; 2] = [-5.0, -37.0];
 pub const FIELD_H: f32 = 42.0;
 pub const TEXTAREA_H: f32 = 90.0;
 
+/// Vedleggsarket på baksiden av kontoret (mot sør): overskriften,
+/// ledeteksten, hjelpeteksten og feilmeldingen, søkefeltet, feltsettet og
+/// filopplastingen er hver sin installasjon og legger seg her. Målene er
+/// i px relativt til arkets sentrum, y opp, samme kolonner som forsiden.
+pub const ANNEX_TITLE_TOP: f32 = 128.0;
+/// Kolonnenes overkant under overskriften (mega-størrelsen rekker ned hit).
+pub const ANNEX_TOP: f32 = 64.0;
+pub const ID_FIELD_TOP: f32 = 39.0;
+pub const HELP_TOP: f32 = -7.0;
+pub const ERROR_TOP: f32 = -28.0;
+pub const SEARCH_LABEL_TOP: f32 = -62.0;
+pub const SEARCH_TOP: f32 = -87.0;
+pub const SEARCH_W: f32 = 250.0;
+pub const UPLOAD_LABEL_TOP: f32 = 28.0;
+pub const UPLOAD_TOP: f32 = 3.0;
+pub const UPLOAD_H: f32 = 56.0;
+pub const FILE_ROW_TOP: f32 = -82.0;
+pub const FILE_ROW_H: f32 = 44.0;
+
+/// Vedleggsarkets ramme: sentrum i arket, forsiden mot sør.
+pub fn annex_t() -> Affine3A {
+    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.0, 2.75, -D - 0.13)) * Affine3A::from_rotation_y(std::f32::consts::PI)
+}
+
+/// Et punkt på vedleggsarket, i px, som transform.
+pub fn on_annex(x: f32, y: f32, z: f32) -> Affine3A {
+    annex_t() * Affine3A::from_translation(Vec3::new(x * PX, y * PX, z))
+}
+
+/// Stiplet 1 px kant (strek 6, mellomrom 4) rundt en flate, som
+/// `border: 1px dashed`. Ligger i z.
+pub fn dashed(m: &mut Mesh, w: f32, h: f32, slot: u8, z: f32) {
+    let mat = Mat::plain(0xffffff, 0.5).slot(slot).flags(flag::NO_DIRT | flag::NO_WEATHER);
+    let (dash, gap) = (6.0, 4.0);
+    let mut x = -w * 0.5 + 2.0;
+    while x + dash <= w * 0.5 - 2.0 {
+        for sy in [-1.0f32, 1.0] {
+            m.cuboid(&Affine3A::from_translation(Vec3::new((x + dash * 0.5) * PX, sy * (h * 0.5 - 0.5) * PX, z)), Vec3::new(dash * PX, PX, 0.004), &mat);
+        }
+        x += dash + gap;
+    }
+    let mut y = -h * 0.5 + 2.0;
+    while y + dash <= h * 0.5 - 2.0 {
+        for sx in [-1.0f32, 1.0] {
+            m.cuboid(&Affine3A::from_translation(Vec3::new(sx * (w * 0.5 - 0.5) * PX, (y + dash * 0.5) * PX, z)), Vec3::new(PX, dash * PX, 0.004), &mat);
+        }
+        y += dash + gap;
+    }
+}
+
+/// Bygg vedleggsarket om det ikke finnes: plata og det som står fast
+/// (fødselsnummerfeltet, hjelpeteksten under opplastingen).
+pub fn annex(b: &mut Builder) {
+    office(b);
+    if b.props.iter().any(|p| p.name == "annex") {
+        return;
+    }
+    let st = annex_t();
+    let mut sheet = Mesh::default();
+    signs::boxed(&mut sheet, Vec3::ZERO, &Box2 { w: SHEET_W + 40.0, h: SHEET_H + 40.0, radius: 8.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.04 });
+    let z = 0.03;
+    // Fødselsnummerfeltet under ledeteksten, tomt, med plassholder.
+    let mut f = Mesh::default();
+    field(&mut f, COL_W, FIELD_H, slot::NEUTRAL_CANVAS, slot::NEUTRAL_BORDER);
+    f.transform(&Affine3A::from_translation(Vec3::new((LEFT + COL_W * 0.5) * PX, (ID_FIELD_TOP - FIELD_H * 0.5) * PX, z)));
+    sheet.append(&f);
+    signs::text_left(&mut sheet, b.font, "11 siffer", Vec3::new((LEFT + 12.0) * PX, (ID_FIELD_TOP - FIELD_H * 0.5 - 0.36 * 16.0) * PX, z + 0.015), 16.0, slot::NEUTRAL_TEXT_SUBTLE);
+    signs::paragraph(&mut sheet, b.font, &["PDF eller bilde, opptil 10 MB per fil."], RIGHT, UPLOAD_TOP - UPLOAD_H - 4.0, 12.0, 1.4, z, slot::NEUTRAL_TEXT_SUBTLE);
+    sheet.transform(&st);
+    b.mesh.append(&sheet);
+    b.prop("annex", Mesh::default(), Affine3A::IDENTITY, None);
+}
+
 /// Arkets ramme: sentrum i arket, forsiden mot +Z.
 pub fn sheet_t() -> Affine3A {
     at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.6, 2.75, 0.13))

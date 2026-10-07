@@ -22,11 +22,19 @@ pub mod checkbox;
 pub mod connection_status;
 pub mod dialog;
 pub mod divider;
+pub mod error_text;
+pub mod fieldset;
+pub mod file_upload;
 pub mod form;
+pub mod heading;
+pub mod help_text;
+pub mod home_signs;
 pub mod input;
+pub mod label;
 pub mod link;
 pub mod progress;
 pub mod radio;
+pub mod search;
 pub mod select;
 pub mod signs;
 pub mod skeleton;
@@ -177,6 +185,14 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(link::Link::default()),
         Box::new(avatar::Avatar::default()),
         Box::new(divider::Divider::default()),
+        Box::new(heading::Heading::default()),
+        Box::new(label::Label::default()),
+        Box::new(help_text::HelpText::default()),
+        Box::new(error_text::ErrorText::default()),
+        Box::new(fieldset::Fieldset::default()),
+        Box::new(file_upload::FileUpload::default()),
+        Box::new(search::Search::default()),
+        Box::new(home_signs::HomeSigns::default()),
         Box::new(workshop::GetStarted),
         Box::new(workshop::TypeSafe),
         Box::new(workshop::Accessibility),

@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Komponentene som finnes i Fristad så langt. */
-const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion", "input", "select", "checkbox", "radio", "textarea", "table", "tooltip", "link", "avatar", "divider"];
+const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion", "input", "select", "checkbox", "radio", "textarea", "table", "tooltip", "link", "avatar", "divider", "heading", "label", "fieldset", "help-text", "error-text", "file-upload", "search"];
 
 /// Veiledningssidene i roten av dokumentasjonen, som Verkstedet viser.
 const PAGES = ["kom-i-gang", "typesikker-bruk", "tilgjengelighet"];

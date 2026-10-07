@@ -20,6 +20,7 @@ use glam::{Affine3A, Quat, Vec3};
 pub mod furniture;
 pub mod house;
 pub mod nature;
+pub mod parachute;
 pub mod park;
 pub mod poster;
 pub mod street_life;
@@ -192,6 +193,11 @@ pub const CONCRETE: Mat = Mat::tex(Layer::Concrete, 0xffffff);
 pub const COBBLE: Mat = Mat::tex(Layer::Cobble, 0xffffff);
 pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 
+/// Der du starter, og dit «Torget»-skiltene og H tar deg: føttene på torget
+/// (y er høyde over terrenget) og retningen, mot plakaten.
+pub const SPAWN: Vec3 = Vec3::new(7.0, 0.0, 9.0);
+pub const SPAWN_YAW: f32 = -0.9;
+
 pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: &mut [Box<dyn Installation>]) -> City {
     let mut b = Builder {
         mesh: Mesh::default(),
@@ -214,6 +220,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     house::district(&mut b);
     furniture::plaza(&mut b);
     poster::build(&mut b);
+    parachute::build(&mut b);
     furniture::streets(&mut b);
     street_life::all(&mut b);
     park::build(&mut b);
@@ -240,8 +247,8 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
         lights: b.lights,
         props: b.props,
         placements: b.placements,
-        spawn: Vec3::new(7.0, 0.0, 9.0),
-        spawn_yaw: -0.9,
+        spawn: SPAWN,
+        spawn_yaw: SPAWN_YAW,
     }
 }
 
