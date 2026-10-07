@@ -13,6 +13,7 @@ use glam::{Affine3A, Vec3};
 
 pub mod accordion;
 pub mod alert;
+pub mod avatar;
 pub mod badge;
 pub mod breadcrumbs;
 pub mod button;
@@ -20,8 +21,10 @@ pub mod card;
 pub mod checkbox;
 pub mod connection_status;
 pub mod dialog;
+pub mod divider;
 pub mod form;
 pub mod input;
+pub mod link;
 pub mod progress;
 pub mod radio;
 pub mod select;
@@ -29,9 +32,11 @@ pub mod signs;
 pub mod skeleton;
 pub mod spinner;
 pub mod switch;
+pub mod table;
 pub mod tabs;
 pub mod tag;
 pub mod textarea;
+pub mod tooltip;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Component {
@@ -90,11 +95,13 @@ pub struct Env {
     pub online: bool,
     /// Korte meldinger som skal vises som toasts.
     pub toasts: Vec<String>,
+    /// Propen spilleren sikter på nå, om noen (som hover).
+    pub aimed_prop: Option<usize>,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![] }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None }
     }
 }
 
@@ -161,6 +168,11 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(radio::Radio::default()),
         Box::new(checkbox::Checkbox::default()),
         Box::new(textarea::Textarea::default()),
+        Box::new(table::Table::default()),
+        Box::new(tooltip::Tooltip::default()),
+        Box::new(link::Link::default()),
+        Box::new(avatar::Avatar::default()),
+        Box::new(divider::Divider::default()),
     ]
 }
 

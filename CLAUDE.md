@@ -37,15 +37,15 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 - Egen motor i Rust + wgpu (WebGPU, WebGL2 som reserve) + Rapier, for maks ytelse og realisme.
 - Stil: stilisert realisme, nordisk arkitektur. Realismen kommer fra geometrisk detalj (fasadegrammatikken i `city/house.rs`), bakte PBR-teksturer med normalkart, kaskadeskygger, SSAO, TAA, volumetrisk tåke og vær. Modellfiler (glTF) er greit.
 - Lyst tema = dag, mørkt tema = natt. V bytter vær; `connection-status` gir uvær når nettleseren er offline.
-- Komponentene skal ikke stå på sokler: hver komponent får en metafor i byen (knappen ved porten, oppslaget på veggen, bryteren for gatelysene, framdriftsstolpen over porten, tagger og badges på oppslagstavla, spinneren på masta, brødsmulene i brosteinen, skeleton-huset under bygging, masta for forbindelsen, dialogen i telefonkiosken på torget, tabs som huset med tre dører ved Østre gate, kortene på infotavla og accordion som oppslagsskapet ved Vestre gate).
+- Komponentene skal ikke stå på sokler: hver komponent får en metafor i byen (knappen ved porten, oppslaget på veggen, bryteren for gatelysene, framdriftsstolpen over porten, tagger og badges på oppslagstavla, spinneren på masta, brødsmulene i brosteinen, skeleton-huset under bygging, masta for forbindelsen, dialogen i telefonkiosken på torget, tabs som huset med tre dører ved Østre gate, kortene på infotavla og accordion som oppslagsskapet ved Vestre gate, skjemafeltene på søknadskontoret sør for Østre gate med tooltip-stolpen, avatarene og divider-oppslaget på sideveggene, tabellen som rutetabell i busskuret, lenkene som veiviseren på torget). `Env.aimed_prop` sier hvilken prop spilleren sikter på (hover).
 - Hosting: Netlify for den statiske byen. Railway er aktuelt senere for en flerspillerserver.
 
 ## Status (7. oktober 2026)
 
-Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fotoskannede materialer og modeller fra Poly Haven, fasadegrammatikk med variasjon, terreng med eng, åser og granskog, gateliv med biler, sykler, kafé, torgboder og lyslenker, trær med bladkort og vind, SDF-tekst i Inter, fjorten komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget, lasteskjerm og inngang uten pekerlås (dra med musa).
+Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fotoskannede materialer og modeller fra Poly Haven, fasadegrammatikk med variasjon, terreng med eng, åser og granskog, gateliv med biler, sykler, kafé, torgboder og lyslenker, trær med bladkort og vind, SDF-tekst i Inter, tjuefire komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget, lasteskjerm og inngang uten pekerlås (dra med musa).
 
 Neste:
 1. Tilbakemelding fra eieren på forhåndsvisningen (bybildet, lys, materialer, lesbarhet på skiltene, ytelse i WebGL2 med den nye culling-en og oppløsningsjusteringen).
 2. Ytelse videre: timestamp-queries på WebGPU, færre tegnekall i WebGL2, lettere skygger og tåke på svake GPU-er.
-3. Flere komponenter: input, select, checkbox, radio, textarea, table, tooltip, link, avatar, divider (alle har dokumentasjon i fristil); bydelene Verkstedet, Tårnene, Tokenparken.
+3. Bydelene Verkstedet, Tårnene, Tokenparken. Komponenter uten egen installasjon ennå: toast (vises i nettlaget), heading, label, fieldset, help-text, error-text, file-upload, search og det som kommer i fristil.
 4. Lyd, kart, touch-kontroller, tilgjengelig 2D-modus.

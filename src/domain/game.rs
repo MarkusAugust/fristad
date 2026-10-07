@@ -385,6 +385,7 @@ impl Game {
         self.env.time = self.time;
         self.env.dt = dt;
         self.env.night = self.night;
+        self.env.aimed_prop = self.aim.map(|(p, _)| p);
         for inst in &mut self.installations {
             inst.tick(&mut self.env);
         }

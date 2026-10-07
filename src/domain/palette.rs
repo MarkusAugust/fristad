@@ -94,6 +94,10 @@ pub mod slot {
     pub const TA_FILL: u8 = 56;
     pub const TA_BORDER: u8 = 57;
     pub const TA_TEXT: u8 = 58;
+    pub const LINK_TEXT: u8 = 59;
+    pub const LINK_LINE: u8 = 60;
+    pub const VISITED_TEXT: u8 = 61;
+    pub const DIVIDER_FIRST: u8 = 62;
 }
 
 /// Paletten for et øyeblikk mellom dag (0) og natt (1).
