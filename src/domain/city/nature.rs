@@ -26,8 +26,31 @@ pub fn plaza_trees(b: &mut Builder) {
     }
 }
 
-/// Et tre med stamme, greiner og bladkort. `seed` varierer formen.
+/// Løvtrærne fra tools/models/trees.py: stamme og bladverk, i par.
+const BROADLEAF: [(&str, &str); 3] = [("oak1_trunk", "oak1_leaves"), ("oak2_trunk", "oak2_leaves"), ("birch1_trunk", "birch1_leaves")];
+const SPRUCES: [(&str, &str, f32); 2] = [("spruce1_trunk", "spruce1_needles", 12.0), ("spruce2_trunk", "spruce2_needles", 9.0)];
+const BUSHES: [(&str, &str); 2] = [("bush1_trunk", "bush1_leaves"), ("bush2_trunk", "bush2_leaves")];
+
+/// Et tre med stamme, greiner og bladkort. `seed` varierer formen. Finnes
+/// modellene fra Blender, brukes de (eik eller bjørk etter seed); ellers
+/// det prosedyriske treet.
 pub fn tree(b: &mut Builder, base: Vec3, scale: f32, seed: u32) {
+    let (trunk, leaves) = BROADLEAF[seed as usize % BROADLEAF.len()];
+    if b.has_model(trunk) && b.has_model(leaves) {
+        // Modellen er ca. 8 m høy ved skala 1; det prosedyriske treet var 5,5.
+        let s = scale * 0.72;
+        let yaw = b.rng.next() * std::f32::consts::TAU;
+        let t = at(base, yaw) * Affine3A::from_scale(Vec3::splat(s));
+        // Trær i plantekasser (torget) står oppå kassen, ikke på bakken.
+        if base.y - b.ground(base.x, base.z) > 0.1 {
+            b.place_mounted(trunk, t);
+        } else {
+            b.place(trunk, t);
+        }
+        b.place_mounted(leaves, t);
+        b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * 2.5 * s, radius: 0.32 * s, half_height: 2.5 * s });
+        return;
+    }
     let rng = &mut b.rng;
     for _ in 0..seed {
         rng.next();
@@ -91,6 +114,15 @@ fn leaf_cluster(m: &mut Mesh, c: Vec3, size: f32, height_frac: f32, yaw: f32, le
 }
 
 pub fn bush(b: &mut Builder, base: Vec3, scale: f32) {
+    let (stems, leaves) = BUSHES[(b.rng.next() * 2.0) as usize % 2];
+    if b.has_model(stems) && b.has_model(leaves) {
+        let yaw = b.rng.next() * std::f32::consts::TAU;
+        let t = at(base, yaw) * Affine3A::from_scale(Vec3::splat(scale));
+        b.place(stems, t);
+        b.place_mounted(leaves, t);
+        b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * 0.5 * scale, radius: 0.5 * scale, half_height: 0.5 * scale });
+        return;
+    }
     let leaf = Mat::special(kind::LEAF, 0xd9f0c0, 0.75).flags(flag::WIND | flag::NO_WEATHER);
     let rng = &mut b.rng;
     for _ in 0..5 {
@@ -154,6 +186,16 @@ pub fn ivy(b: &mut Builder, t: &Affine3A, x: f32, height: f32) {
 
 /// Ei gran: stamme og tre kjegler oppå hverandre, litt skjev.
 pub fn spruce(b: &mut Builder, base: Vec3, h: f32, seed: f32) {
+    let (trunk, needles, model_h) = SPRUCES[(seed as usize) % SPRUCES.len()];
+    if b.has_model(trunk) && b.has_model(needles) {
+        let s = h / model_h;
+        let lean = Quat::from_rotation_z((seed * 3.1).sin() * 0.03) * Quat::from_rotation_x((seed * 5.3).cos() * 0.03);
+        let t = Affine3A::from_rotation_translation(lean * Quat::from_rotation_y(seed * 2.4), base) * Affine3A::from_scale(Vec3::splat(s));
+        b.place(trunk, t);
+        b.place_mounted(needles, t);
+        b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * h * 0.4, radius: 0.25 * s, half_height: h * 0.4 });
+        return;
+    }
     let m = &mut b.mesh;
     let g = 0.85 + (seed * 7.0).sin() * 0.15;
     let needles = Mat::plain(rgb(0.14 * g, 0.26 * g, 0.16 * g), 0.9);
@@ -290,7 +332,7 @@ pub fn meadow(b: &mut Builder) {
             continue;
         }
         let h = b.rng.range(7.0, 15.0);
-        let p = super::terrain::at(Vec3::new(x, 0.0, z)) - Vec3::Y * 0.3;
+        let p = super::terrain::at(Vec3::new(x, 0.0, z)) - Vec3::Y * 0.05;
         spruce(b, p, h, i as f32);
     }
 }

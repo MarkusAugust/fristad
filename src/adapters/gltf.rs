@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -83,6 +83,22 @@ impl ModelSource for Embedded {
             "gorvek_antlers" => load("gorvek_antlers", embed!("gorvek", ["antlers.glb"]), -1.0, 0.0),
             "gorvek_stool" => load("gorvek_stool", embed!("gorvek", ["stool.glb"]), -1.0, 0.0),
             "gorvek_skull" => load("gorvek_skull", embed!("gorvek", ["skull.glb"]), -1.0, 0.0),
+            // Trærne og buskene fra tools/models/trees.py: stammen med bakt
+            // bark, og bladverket som kort (to modeller med samme origo).
+            "oak1_trunk" => load("oak1_trunk", embed!("trees", ["oak1_trunk.glb"]), -1.0, 0.0),
+            "oak1_leaves" => load("oak1_leaves", embed!("trees", ["oak1_leaves.glb"]), -1.0, 0.0),
+            "oak2_trunk" => load("oak2_trunk", embed!("trees", ["oak2_trunk.glb"]), -1.0, 0.0),
+            "oak2_leaves" => load("oak2_leaves", embed!("trees", ["oak2_leaves.glb"]), -1.0, 0.0),
+            "birch1_trunk" => load("birch1_trunk", embed!("trees", ["birch1_trunk.glb"]), -1.0, 0.0),
+            "birch1_leaves" => load("birch1_leaves", embed!("trees", ["birch1_leaves.glb"]), -1.0, 0.0),
+            "spruce1_trunk" => load("spruce1_trunk", embed!("trees", ["spruce1_trunk.glb"]), -1.0, 0.0),
+            "spruce1_needles" => load("spruce1_needles", embed!("trees", ["spruce1_needles.glb"]), -1.0, 0.0),
+            "spruce2_trunk" => load("spruce2_trunk", embed!("trees", ["spruce2_trunk.glb"]), -1.0, 0.0),
+            "spruce2_needles" => load("spruce2_needles", embed!("trees", ["spruce2_needles.glb"]), -1.0, 0.0),
+            "bush1_trunk" => load("bush1_trunk", embed!("trees", ["bush1_trunk.glb"]), -1.0, 0.0),
+            "bush1_leaves" => load("bush1_leaves", embed!("trees", ["bush1_leaves.glb"]), -1.0, 0.0),
+            "bush2_trunk" => load("bush2_trunk", embed!("trees", ["bush2_trunk.glb"]), -1.0, 0.0),
+            "bush2_leaves" => load("bush2_leaves", embed!("trees", ["bush2_leaves.glb"]), -1.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
@@ -181,6 +197,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if named("fire") {
                 mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
+            // Bladkort og nålekvister: alfatestes og svaier i vinden.
+            if named("leaf") || named("needle") {
+                mmat = mmat.flags(flag::ALPHA | flag::WIND | flag::NO_WEATHER);
+            }
             if metallic >= 0.5 {
                 mmat = mmat.flags(flag::METAL);
             }
@@ -215,7 +235,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
-    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell: 0.0 })
+    // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
+    // detaljnivået er det samme meshet.
+    let far_cell = if name.ends_with("_leaves") || name.ends_with("_needles") { 0.0005 } else { 0.0 };
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell })
 }
 
 fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {

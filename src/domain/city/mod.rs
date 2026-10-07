@@ -284,7 +284,10 @@ impl Builder<'_> {
                 if self.mounted.contains(&(pl.model, n)) {
                     continue;
                 }
-                let corners = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
+                // Måles innen 60 cm fra origo: trær og busker har krona langt
+                // utenfor stammen, og der er bakken en annen.
+                let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
+                let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
                 let gaps = corners.map(|(x, z)| {
                     let w = t.transform_point3(Vec3::new(x, info.min.y, z));
                     w.y - self.stand_height(w.x, w.z)
