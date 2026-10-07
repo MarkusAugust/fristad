@@ -27,6 +27,7 @@ pub mod street_life;
 pub mod terrain;
 pub mod towers;
 
+#[derive(Clone, Debug)]
 pub enum Shape {
     /// Boks med sentrum, hele mål og rotasjon om Y.
     Cuboid { center: Vec3, size: Vec3, yaw: f32 },
@@ -59,6 +60,9 @@ pub struct City {
     pub placements: Vec<Placement>,
     pub spawn: Vec3,
     pub spawn_yaw: f32,
+    /// Det `Builder::audit` fant: modeller som svever eller synker. Tomt
+    /// når alt står på bakken; testen i `app.rs` krever det.
+    pub audit: Vec<String>,
 }
 
 pub struct Rng(pub u64);
@@ -105,6 +109,8 @@ pub struct Builder<'a> {
     pub placements: Vec<Placement>,
     pub font: &'a Font,
     pub tokens: &'a Tokens,
+    /// Komponentarkene rendret fra CSS, til `signs::sheet`.
+    pub sheets: &'a crate::domain::sheets::Sheets,
     pub rng: Rng,
     /// Installasjonen som bygger nå, så propsene får riktig eier.
     pub owner: Option<usize>,
@@ -129,6 +135,29 @@ impl Builder<'_> {
 
     pub fn solid_box(&mut self, center: Vec3, size: Vec3, yaw: f32) {
         self.colliders.push(Shape::Cuboid { center, size, yaw });
+    }
+
+    /// Om en boks (sentrum, hele mål, rotasjon om Y) overlapper et hus
+    /// eller en annen bokskollider som alt er lagt inn. Brukes til å
+    /// parkere biler uten å kjøre dem inn i veggene.
+    pub fn overlaps_solid(&self, center: Vec3, size: Vec3, yaw: f32) -> bool {
+        let hit = self.colliders.iter().find(|c| match c {
+            Shape::Cuboid { center: c2, size: s2, yaw: y2 } => {
+                // Bare bokser som når ned til bakken teller (hus, sokler).
+                let (lo, hi) = (c2.y - s2.y * 0.5, c2.y + s2.y * 0.5);
+                hi > center.y - size.y * 0.5 && lo < center.y + size.y * 0.5 && rects_overlap((center.x, center.z), (size.x * 0.5, size.z * 0.5), yaw, (c2.x, c2.z), (s2.x * 0.5, s2.z * 0.5), *y2)
+            }
+            Shape::Cylinder { center: c2, radius, half_height } => {
+                // Sylinderen tilnærmes med den omskrevne boksen.
+                let (lo, hi) = (c2.y - half_height, c2.y + half_height);
+                hi > center.y - size.y * 0.5 && lo < center.y + size.y * 0.5 && rects_overlap((center.x, center.z), (size.x * 0.5, size.z * 0.5), yaw, (c2.x, c2.z), (*radius, *radius), 0.0)
+            }
+            Shape::Heightfield { .. } => false,
+        });
+        if let Some(c) = hit {
+            log::debug!("boks ({:.1}, {:.1}) {:.1}×{:.1} treffer {:?}", center.x, center.z, size.x, size.z, c);
+        }
+        hit.is_some()
     }
 
     pub fn has_model(&self, name: &str) -> bool {
@@ -163,6 +192,43 @@ impl Builder<'_> {
     /// Punktet løftet opp på bakken.
     pub fn on_ground(&self, p: Vec3) -> Vec3 {
         Vec3::new(p.x, p.y + terrain::height(p.x, p.z), p.z)
+    }
+
+    /// Noe som står på bakken og vippes etter hellingen (biler, dyr), så
+    /// ingen av hjørnene svever på nedsida eller synker på oppsida.
+    pub fn on_slope(&self, p: Vec3, yaw: f32) -> Affine3A {
+        let n = terrain::normal(p.x, p.z);
+        Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(yaw), self.on_ground(p))
+    }
+
+    /// Rutinen mot svevende modeller: hver instans av hver modell sjekkes
+    /// mot terrenget. Svever det laveste hjørnet mer enn 8 cm over bakken,
+    /// eller står et hjørne mer enn 30 cm under den, meldes det. Modeller
+    /// som henger på vegger (vinduer, dørlamper, blomsterkasser) hoppes over.
+    pub fn audit(&self) -> Vec<String> {
+        const ON_WALLS: &[&str] = &["window_22", "window_23", "door_lamp", "flower_box"];
+        let mut out = vec![];
+        for pl in &self.placements {
+            if ON_WALLS.contains(&pl.model) {
+                continue;
+            }
+            let Some(info) = self.models.get(pl.model) else { continue };
+            for t in &pl.transforms {
+                let corners = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
+                let gaps = corners.map(|(x, z)| {
+                    let w = t.transform_point3(Vec3::new(x, info.min.y, z));
+                    w.y - terrain::height(w.x, w.z)
+                });
+                let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
+                let at = t.translation;
+                if lowest > 0.08 {
+                    out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", pl.model, at.x, at.z, lowest * 100.0));
+                } else if lowest < -0.3 {
+                    out.push(format!("{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken", pl.model, at.x, at.z, -lowest * 100.0));
+                }
+            }
+        }
+        out
     }
 
     /// Meter per spacing-trinn.
@@ -205,7 +271,7 @@ pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 pub const SPAWN: Vec3 = Vec3::new(7.0, 0.0, 9.0);
 pub const SPAWN_YAW: f32 = -0.9;
 
-pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: &mut [Box<dyn Installation>]) -> City {
+pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheets, models: &[ModelInfo], installations: &mut [Box<dyn Installation>]) -> City {
     let mut b = Builder {
         mesh: Mesh::default(),
         facades: vec![],
@@ -215,6 +281,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
         placements: vec![],
         font,
         tokens,
+        sheets,
         rng: Rng(0x5eed_f215_7a1d),
         owner: None,
         models: models.iter().map(|m| (m.name.clone(), m.clone())).collect(),
@@ -244,6 +311,11 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     }
     b.owner = None;
 
+    let audit = b.audit();
+    for line in &audit {
+        log::warn!("{line}");
+    }
+
     // Biter på 24 m, med småting (under 18 cm) sist i hver bit.
     let (mesh, chunks) = b.mesh.chunked(24.0, 0.18);
     log::info!("Byen: {} biter", chunks.len());
@@ -256,6 +328,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
         placements: b.placements,
         spawn: SPAWN,
         spawn_yaw: SPAWN_YAW,
+        audit,
     }
 }
 
@@ -289,7 +362,12 @@ pub fn buildings_dist(x: f32, z: f32) -> f32 {
         .min(rect_dist(x, z, 13.0, -66.0, -19.0))
         .min(rect_dist(x, z, 12.0, 19.0, 62.0))
         .min(rect_dist(z, x, 11.0, -46.0, -19.0))
-        .min(rect_dist(z, x, 11.0, 19.0, 46.0))
+        .min(rect_dist(z, x, 17.0, 19.0, 52.0))
+}
+
+/// Midten av grusveien østover (z for en x øst for bebyggelsen).
+pub fn road_east_z(x: f32) -> f32 {
+    (terrain::noise(x * 0.03, 4.0) - 0.5) * 26.0
 }
 
 /// Stiene ut av byen: grusveier som slynger seg videre fra gatene.
@@ -309,8 +387,7 @@ pub fn path_dist(x: f32, z: f32) -> f32 {
         d = d.min((x - (n - 0.5) * 30.0 - (z - 56.0) * 0.25).abs());
     }
     if x > 44.0 {
-        let n = terrain::noise(x * 0.03, 4.0);
-        d = d.min((z - (n - 0.5) * 26.0).abs());
+        d = d.min((z - road_east_z(x)).abs());
     }
     if x < -44.0 {
         // Rett inn porten til Tokenparken, og stiene inne i parken.
@@ -403,6 +480,37 @@ fn ground(b: &mut Builder) {
 }
 
 /// Transform med rotasjon om Y og posisjon.
+/// To roterte rektangler i xz-planet, testet med skilleakser.
+fn rects_overlap(c1: (f32, f32), h1: (f32, f32), yaw1: f32, c2: (f32, f32), h2: (f32, f32), yaw2: f32) -> bool {
+    let corners = |c: (f32, f32), h: (f32, f32), yaw: f32| -> [(f32, f32); 4] {
+        // Lokal x-akse (cos, −sin) og z-akse (sin, cos), som `at`.
+        let (s, co) = yaw.sin_cos();
+        let ax = (co, -s);
+        let az = (s, co);
+        let mut out = [(0.0, 0.0); 4];
+        for (k, (sx, sz)) in [(-1.0f32, -1.0f32), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)].into_iter().enumerate() {
+            out[k] = (c.0 + ax.0 * h.0 * sx + az.0 * h.1 * sz, c.1 + ax.1 * h.0 * sx + az.1 * h.1 * sz);
+        }
+        out
+    };
+    let (a, b) = (corners(c1, h1, yaw1), corners(c2, h2, yaw2));
+    for yaw in [yaw1, yaw2] {
+        let (s, co) = yaw.sin_cos();
+        for axis in [(co, -s), (s, co)] {
+            let proj = |r: &[(f32, f32); 4]| {
+                let ps = r.map(|(x, z)| x * axis.0 + z * axis.1);
+                (ps.iter().cloned().fold(f32::MAX, f32::min), ps.iter().cloned().fold(f32::MIN, f32::max))
+            };
+            let (a0, a1) = proj(&a);
+            let (b0, b1) = proj(&b);
+            if a1 < b0 || b1 < a0 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 pub fn at(p: Vec3, yaw: f32) -> Affine3A {
     Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)
 }

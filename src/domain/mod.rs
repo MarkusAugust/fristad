@@ -21,5 +21,6 @@ pub mod model;
 pub mod palette;
 pub mod ports;
 pub mod scene;
+pub mod sheets;
 pub mod text;
 pub mod tokens;

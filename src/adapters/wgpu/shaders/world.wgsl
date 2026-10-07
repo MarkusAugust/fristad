@@ -29,6 +29,8 @@ struct Pass {
 @group(2) @binding(3) var font_tex: texture_2d<f32>;
 @group(2) @binding(4) var leaf_tex: texture_2d<f32>;
 @group(2) @binding(5) var clamp_sampler: sampler;
+/// Komponentarkene rendret fra CSS: lag 0 lyst tema, lag 1 mørkt.
+@group(2) @binding(6) var sheet_tex: texture_2d_array<f32>;
 
 @group(3) @binding(0) var model_albedo: texture_2d<f32>;
 @group(3) @binding(1) var model_normal: texture_2d<f32>;
@@ -43,6 +45,7 @@ const K_LAMP: u32 = 204u;
 const K_SKELETON: u32 = 205u;
 const K_WATER: u32 = 206u;
 const K_MODEL: u32 = 207u;
+const K_SHEET: u32 = 208u;
 
 const F_WIND: u32 = 4u;
 const F_ROT_UV: u32 = 8u;
@@ -145,6 +148,10 @@ fn coverage(kind: u32, flags: u32, uv: vec2<f32>, duvx: vec2<f32>, duvy: vec2<f3
         // Teksturene er JPEG uten alfa; bakgrunnen bak bladene er svart.
         let a = textureSampleGrad(model_albedo, tex_sampler, uv, duvx, duvy);
         return a.a * smoothstep(0.03, 0.12, max(a.r, max(a.g, a.b)));
+    }
+    if (kind == K_SHEET) {
+        // Alfa er lik i begge temaene; lyst lag holder.
+        return textureSampleGrad(sheet_tex, clamp_sampler, uv, 0, duvx, duvy).a;
     }
     if (kind == K_TEXT) {
         let d = textureSampleGrad(font_tex, clamp_sampler, uv, duvx, duvy).r;
@@ -556,6 +563,17 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.albedo = l.rgb * tint;
         s.rough = 0.7;
         s.ao = 0.85;
+    } else if (kind == K_SHEET) {
+        // Komponenten slik CSS-en rendrer den, blandet mellom lyst og mørkt
+        // tema med natta; de runde hjørnene alfatestes.
+        let light = textureSampleGrad(sheet_tex, clamp_sampler, i.uv, 0, duv1, duv2);
+        let dark = textureSampleGrad(sheet_tex, clamp_sampler, i.uv, 1, duv1, duv2);
+        let c = mix(light, dark, night);
+        if (c.a < 0.5) {
+            discard;
+        }
+        s.albedo = c.rgb;
+        s.rough = i.color.a;
     } else if (kind == K_TEXT) {
         if (coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {
             discard;

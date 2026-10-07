@@ -16,7 +16,8 @@ const GATE_Z: f32 = -18.0;
 #[derive(Default)]
 pub struct Button {
     variant: usize,
-    button: usize,
+    /// Ett ark per variant; bare det valgte vises.
+    buttons: [usize; 4],
     doors: [usize; 2],
     press: f32,
 }
@@ -76,23 +77,23 @@ impl Installation for Button {
             self.doors[k] = b.prop(name, m, Affine3A::from_translation(Vec3::new(hinge_x, 0.0, z - 1.0)), Some((Vec3::new(cx, door_h * 0.5, 0.0), Vec3::new(door_w * 0.5, door_h * 0.5, 0.12))));
         }
 
-        // Knappen: `.fs-button` med 16px tekst, padding 8/16, linjehøyde
-        // 1,5 og 1px kant, i målestokken 1 px = 1 cm.
-        let label = "Åpne porten";
-        let text_w = signs::width(b.font, label, 16.0) / super::PX;
-        let w = text_w + 32.0 + 2.0;
-        let h = 24.0 + 16.0 + 2.0;
-        let mut m = Mesh::default();
-        // Radius er spacing-1 (4 px), i piksler som resten av boksen.
-        signs::boxed(&mut m, Vec3::ZERO, &Box2 { w, h, radius: b.tokens.spacing_px("1"), fill: slot::BUTTON_BODY, border: Some(slot::BUTTON_RIM), depth: 0.05 });
-        let label_mat = slot::BUTTON_LABEL;
-        signs::text(&mut m, b.font, label, Vec3::new(0.0, 0.0, 0.045), 16.0, label_mat);
-        // Plata knappen sitter på.
+        // Knappen: `.fs-button` rendret fra CSS-en, ett ark per variant,
+        // som en plate med 5 cm dybde på en metallplate.
         let plate = Mat::tex(Layer::Metal, 0xffffff);
         let mount = Vec3::new(4.5, 1.35, z + 0.02);
-        b.mesh.cuboid(&Affine3A::from_translation(mount), Vec3::new(w * super::PX + 0.16, h * super::PX + 0.16, 0.04), &plate);
-        self.button = b.prop("button", m, Affine3A::from_translation(mount + Vec3::Z * 0.045), Some((Vec3::new(0.0, 0.0, 0.0), Vec3::new(w * super::PX * 0.5, h * super::PX * 0.5, 0.08))));
-        let _ = at;
+        let mut size = (0.0, 0.0);
+        for (k, v) in VARIANTS.iter().enumerate() {
+            let mut m = Mesh::default();
+            let back = match *v {
+                "primary" => slot::ACCENT_FILL,
+                "danger" => slot::DANGER_FILL,
+                _ => slot::NEUTRAL_CANVAS,
+            };
+            size = signs::sheet(&mut m, b.sheets, &format!("button:{v}"), Vec3::ZERO, 0.05, 4.0, back);
+            self.buttons[k] = b.prop("button", m, Affine3A::from_translation(mount + Vec3::Z * 0.045), Some((Vec3::ZERO, Vec3::new(size.0 * super::PX * 0.5, size.1 * super::PX * 0.5, 0.08))));
+        }
+        b.mesh.cuboid(&Affine3A::from_translation(mount), Vec3::new(size.0 * super::PX + 0.16, size.1 * super::PX + 0.16, 0.04), &plate);
+        let _ = (at, Box2 { w: 0.0, h: 0.0, radius: 0.0, fill: 0, border: None, depth: 0.0 });
     }
 
     fn tick(&mut self, env: &mut Env) {
@@ -115,9 +116,10 @@ impl Installation for Button {
     }
 
     fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
-        if prop == self.button {
-            let push = (self.press * std::f32::consts::PI).sin().max(0.0) * 0.03;
-            return (rest * Affine3A::from_translation(Vec3::new(0.0, 0.0, -push)), [0.0; 4]);
+        if self.buttons.contains(&prop) {
+            let k = self.buttons.iter().position(|p| *p == prop).unwrap_or(0);
+            let _ = self.press;
+            return (if k == self.variant { rest } else { rest * Affine3A::from_scale(Vec3::splat(0.0001)) }, [0.0; 4]);
         }
         let ease = |t: f32| t * t * (3.0 - 2.0 * t);
         let angle = ease(env.gate_t) * 105f32.to_radians();

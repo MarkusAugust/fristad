@@ -150,21 +150,8 @@ pub fn district(b: &mut Builder) {
         }
     }
 
-    // Husene som lukker gatene.
-    let ends = [
-        (Vec3::new(0.0, 0.0, -53.0), Vec3::Z, 10.0),
-        (Vec3::new(0.0, 0.0, 49.0), -Vec3::Z, 8.0),
-        (Vec3::new(-30.0, 0.0, 0.0), Vec3::X, 7.2),
-    ];
-    for (front, facing, width) in ends {
-        let paint = b.rng.pick(&paints);
-        let mut spec = Spec::random(b, front, facing, width, paint, None);
-        spec.floors = 3;
-        spec.gable_front = false;
-        spec.dormer = true;
-        spec.door_lamp = true;
-        house(b, &spec);
-    }
+    // Gatene lukkes ikke av hus: veiene fortsetter buktende ut i landskapet
+    // (`path_dist`), med veivisere til stedene utenfor (home_signs.rs).
 }
 
 /// Et smug mellom to hus: plankegjerde med port, og et tre bak.

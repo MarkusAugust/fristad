@@ -4,7 +4,7 @@
 use super::PX;
 use crate::domain::geometry::{flag, kind, Mat, Mesh};
 use crate::domain::text::Font;
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
 /// En boks slik CSS ser den: bredde og høyde i piksler, hjørneradius,
 /// kantlinje og fyll som palettplasser.
@@ -30,6 +30,29 @@ pub fn boxed(m: &mut Mesh, c: Vec3, b: &Box2) {
     } else {
         m.rounded_slab(&glam::Affine3A::IDENTITY, c, w, h, b.depth, r, &fill);
     }
+}
+
+/// Et komponentark fra atlaset som en plate med dybde: forsiden er bildet
+/// av komponenten slik CSS-en rendrer den, baksiden og kantene en flate i
+/// `back`-plassen (komponentens bakgrunn). `c` er platas sentrum, forsiden
+/// vender mot +Z. Returnerer målene i px.
+pub fn sheet(m: &mut Mesh, sheets: &crate::domain::sheets::Sheets, id: &str, c: Vec3, depth: f32, radius_px: f32, back: u8) -> (f32, f32) {
+    let s = sheets.sheet(id);
+    let (w, h) = (s.w * PX, s.h * PX);
+    // Kroppen stopper 2 mm bak forsiden, så bildet ikke flimrer mot den.
+    let body = Mat::plain(0xffffff, 0.5).slot(back).flags(flag::NO_DIRT | flag::NO_WEATHER);
+    m.rounded_slab(&glam::Affine3A::IDENTITY, c - Vec3::Z * 0.001, w - PX, h - PX, depth - 0.002, (radius_px * PX).max(0.0), &body);
+    let front = Mat::special(kind::SHEET, 0xffffff, 0.45).flags(flag::NO_DIRT | flag::NO_WEATHER);
+    let z = c.z + depth * 0.5;
+    let (x0, x1, y0, y1) = (c.x - w * 0.5, c.x + w * 0.5, c.y - h * 0.5, c.y + h * 0.5);
+    m.quad_uv(
+        &glam::Affine3A::IDENTITY,
+        [Vec3::new(x0, y0, z), Vec3::new(x1, y0, z), Vec3::new(x1, y1, z), Vec3::new(x0, y1, z)],
+        &front,
+        [1.0; 4],
+        [Vec2::new(s.uv0.x, s.uv1.y), Vec2::new(s.uv1.x, s.uv1.y), Vec2::new(s.uv1.x, s.uv0.y), Vec2::new(s.uv0.x, s.uv0.y)],
+    );
+    (s.w, s.h)
 }
 
 /// Tekst med skriftstørrelse i piksler, sentrert om `c` (midten av

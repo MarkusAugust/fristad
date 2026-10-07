@@ -85,14 +85,34 @@ pub fn car(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32) {
         CarStyle::Van => "car_van",
     };
     if b.has_model(model) {
-        let p = b.on_ground(p);
-        b.place_tinted(model, at(p, yaw), srgb_to_linear(paint));
         let (len, w, h) = match style {
             CarStyle::Estate => (4.8, 1.75, 1.5),
             CarStyle::Hatch => (3.9, 1.7, 1.5),
             CarStyle::Van => (4.9, 1.95, 2.0),
         };
-        b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(len, h, w), yaw);
+        // Står bilen inne i et hus, flyttes den sidelengs (bort fra huset)
+        // i små steg; får den ikke plass, parkeres den ikke. Fronten er
+        // lokal +X, så siden er lokal Z.
+        let side = Vec3::new(yaw.sin(), 0.0, yaw.cos());
+        let flat = Vec3::new(p.x, 0.0, p.z);
+        let mut spot = None;
+        'search: for step in 0..=8 {
+            for dir in [1.0f32, -1.0] {
+                let q = flat + side * dir * step as f32 * 0.25;
+                let g = b.on_ground(q);
+                if !b.overlaps_solid(g + Vec3::Y * (h * 0.5), Vec3::new(len + 0.6, h, w + 0.6), yaw) {
+                    spot = Some(q);
+                    break 'search;
+                }
+            }
+        }
+        let Some(q) = spot else {
+            log::warn!("Bilen ved ({:.1}, {:.1}) fikk ikke plass", p.x, p.z);
+            return;
+        };
+        // Bilen står på bakken og følger hellingen.
+        b.place_tinted(model, b.on_slope(q, yaw), srgb_to_linear(paint));
+        b.solid_box(b.on_ground(q) + Vec3::Y * (h * 0.5), Vec3::new(len, h, w), yaw);
         return;
     }
     car_extruded(b, p, yaw, style, paint);
@@ -542,17 +562,19 @@ pub fn laundry(m: &mut Mesh, a: Vec3, c: Vec3, rng: &mut super::Rng) {
 pub fn all(b: &mut Builder) {
     let pi = std::f32::consts::PI;
     // Biler.
-    let cars: [(f32, f32, f32, CarStyle); 10] = [
-        (-3.3, -31.0, 0.0, CarStyle::Estate),
-        (-3.3, -37.5, 0.0, CarStyle::Hatch),
-        (-3.3, -45.0, pi, CarStyle::Estate),
-        (2.7, 31.5, pi, CarStyle::Hatch),
-        (2.7, 38.5, 0.0, CarStyle::Estate),
-        (16.3, -8.0, 0.0, CarStyle::Hatch),
-        (16.3, 6.0, pi, CarStyle::Estate),
-        (-16.3, -10.0, pi, CarStyle::Hatch),
-        (36.0, -2.6, -pi * 0.5, CarStyle::Van),
-        (25.5, 2.6, pi * 0.5, CarStyle::Estate),
+    let cars: [(f32, f32, f32, CarStyle); 11] = [
+        // Langs fortauene i gatene, med fronten i kjøreretningen.
+        (-2.7, -31.0, pi * 0.5, CarStyle::Estate),
+        (-2.7, -38.0, pi * 0.5, CarStyle::Hatch),
+        (2.7, -45.0, -pi * 0.5, CarStyle::Estate),
+        (2.2, 31.5, -pi * 0.5, CarStyle::Hatch),
+        (-2.2, 39.0, pi * 0.5, CarStyle::Estate),
+        (16.0, -8.0, pi * 0.5, CarStyle::Hatch),
+        (16.0, 13.0, -pi * 0.5, CarStyle::Estate),
+        (-16.0, -13.0, -pi * 0.5, CarStyle::Hatch),
+        (36.0, -2.6, 0.0, CarStyle::Van),
+        (31.0, 3.4, pi, CarStyle::Estate),
+        (-28.0, 2.0, pi, CarStyle::Hatch),
     ];
     for (i, (x, z, yaw, style)) in cars.into_iter().enumerate() {
         let paint = PAINTS[(i * 3 + 1) % PAINTS.len()];
@@ -578,7 +600,9 @@ pub fn all(b: &mut Builder) {
             if (u - f.door).abs() < 1.3 {
                 u = if f.door > 0.0 { f.door - 1.6 } else { f.door + 1.6 };
             }
+            // Fasadens origo ligger alt i bakkehøyde; sykkelen finner sin egen.
             let p = f.origin + f.along * u + f.facing * 0.38;
+            let p = Vec3::new(p.x, 0.0, p.z);
             let yaw = f.along.x.atan2(f.along.z);
             // Len toppen inn mot veggen.
             let wall_local = Quat::from_rotation_y(-yaw) * (-f.facing);
@@ -590,7 +614,7 @@ pub fn all(b: &mut Builder) {
         if !f.shop && b.rng.chance(0.45) {
             let side = if b.rng.chance(0.5) { 1.0 } else { -1.0 };
             let p = f.origin + f.along * (f.door + side * 0.85) + f.facing * 0.5;
-            let p = b.on_ground(p);
+            let p = b.on_ground(Vec3::new(p.x, 0.0, p.z));
             let size = b.rng.range(0.22, 0.32);
             let flower = b.rng.pick(&[0xd84a5a, 0xf2c14e, 0xe9e2d0, 0xc05aa0, 0xf07f3c]);
             flower_pot(&mut b.mesh, &Affine3A::from_translation(p), size, flower);
@@ -619,10 +643,8 @@ pub fn all(b: &mut Builder) {
     }
 
     // Gateskilt ved gatemunningene, postkasse og busskur.
-    street_sign(b, Vec3::new(-6.6, 0.0, -18.2), 0.0, "Nordgata");
-    street_sign(b, Vec3::new(5.6, 0.0, 18.2), pi, "Sørgata");
-    street_sign(b, Vec3::new(18.6, 0.0, -5.4), pi * 0.5, "Østre gate");
-    street_sign(b, Vec3::new(-18.6, 0.0, 5.4), -pi * 0.5, "Vestre gate");
+    // Gateskiltene er `.fs-badge`-ark og bygges i installations/badge.rs.
+    let _ = street_sign;
     mailbox(b, Vec3::new(13.6, 0.0, -16.6), 0.0);
     bus_shelter(b, Vec3::new(46.0, 0.0, -4.6), 0.0);
 

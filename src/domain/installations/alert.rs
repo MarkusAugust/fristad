@@ -60,19 +60,12 @@ impl Installation for Alert {
             b.mesh.cuboid(&(wall * Affine3A::from_translation(Vec3::new(dx, 0.0, -0.04))), Vec3::new(0.06, 0.9, 0.08), &IRON);
         }
         // Ett oppslag per variant; bare det valgte vises.
-        for (k, (title, body)) in TEXTS.iter().enumerate() {
+        for (k, v) in VARIANTS.iter().enumerate() {
             let mut m = Mesh::default();
-            let (surface, accent, text) = colors(k);
-            // Padding 12/16, kantlinje 4 px til venstre, radius 4.
-            let w = 340.0;
-            let h = 12.0 + 24.0 + 4.0 + 24.0 + 12.0;
-            signs::boxed(&mut m, Vec3::ZERO, &Box2 { w, h, radius: 4.0, fill: surface, border: None, depth: 0.04 });
-            signs::boxed(&mut m, Vec3::new((-w * 0.5 + 2.0) * PX, 0.0, 0.004), &Box2 { w: 4.0, h, radius: 2.0, fill: accent, border: None, depth: 0.04 });
-            let left = (-w * 0.5 + 16.0) * PX;
-            signs::text_left(&mut m, b.font, title, Vec3::new(left, (h * 0.5 - 12.0 - 18.0) * PX, 0.04), 16.0, text);
-            signs::text_left(&mut m, b.font, body, Vec3::new(left, (h * 0.5 - 12.0 - 24.0 - 4.0 - 18.0) * PX, 0.04), 16.0, text);
+            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("alert:{v}"), Vec3::ZERO, 0.04, 4.0, slot::NEUTRAL_SURFACE);
             self.boards[k] = b.prop("alert", m, wall, if k == 0 { Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.06))) } else { None });
         }
+        let _ = (TEXTS, colors, Box2 { w: 0.0, h: 0.0, radius: 0.0, fill: 0, border: None, depth: 0.0 });
     }
 
     fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {

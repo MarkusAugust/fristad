@@ -40,9 +40,11 @@ impl ModelSource for Embedded {
             ),
             "fox" => load("fox", embed!("fox", ["Fox.gltf", "Fox.bin", "Texture.png"]), 0.75, 0.0),
             // Bilene er modellert i meter med fronten mot +X.
-            "car_estate" => load("car_estate", embed!("cars", ["estate.glb"]), 0.0, 0.0),
-            "car_hatch" => load("car_hatch", embed!("cars", ["hatch.glb"]), 0.0, 0.0),
-            "car_van" => load("car_van", embed!("cars", ["van.glb"]), 0.0, 0.0),
+            // Med bakt tekstur (tools/models/bake_cars.py): AO, skitt og
+            // ruhet/metall i ett atlas per bil.
+            "car_estate" => load("car_estate", embed!("cars", ["estate_tex.glb"]), 0.0, 0.0),
+            "car_hatch" => load("car_hatch", embed!("cars", ["hatch_tex.glb"]), 0.0, 0.0),
+            "car_van" => load("car_van", embed!("cars", ["van_tex.glb"]), 0.0, 0.0),
             // Gatemøblene fra tools/models/street.py, i meter.
             "lamp" => load("lamp", embed!("street", ["lamp.glb"]), 0.0, 0.0),
             "bench" => load("bench", embed!("street", ["bench.glb"]), 0.0, 0.0),
@@ -140,15 +142,17 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             // Fargefaktoren er lineær; hjørnefargen er sRGB.
             let mut mmat = Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
             // «paint» får fargen fra instansen; metall merkes med flagg.
-            if mat.name() == Some("paint") {
+            // Blender legger på .001 når navnet finnes fra før, så prefikset holder.
+            let named = |n: &str| mat.name().map(|m| m.starts_with(n)).unwrap_or(false);
+            if named("paint") {
                 mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
             }
             // «glow» lyser om natta, som lampene ellers i byen; «glass»
             // speiler som vinduene.
-            if mat.name() == Some("glow") {
+            if named("glow") {
                 mmat.kind = kind::LAMP;
             }
-            if mat.name() == Some("glass") {
+            if named("glass") {
                 mmat.kind = kind::GLASS;
             }
             if metallic >= 0.5 {

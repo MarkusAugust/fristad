@@ -152,7 +152,8 @@ fn pond(b: &mut Builder, p: Vec3) {
             b.mesh.cylinder(&Affine3A::from_translation(base + o), 0.012, 0.004, h, 4, &reed, false);
         }
     }
-    super::furniture::bench(b, p + Vec3::new(0.0, 0.0, 4.6), std::f32::consts::PI);
+    // `p` ligger alt på bakken; benken får flate koordinater og finner sin egen høyde.
+    super::furniture::bench(b, Vec3::new(p.x, 0.0, p.z + 4.6), std::f32::consts::PI);
 }
 
 pub fn build(b: &mut Builder) {

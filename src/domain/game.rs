@@ -225,6 +225,8 @@ impl Flight {
 }
 
 struct PropState {
+    /// Trykket inn (1 rett etter F), glir tilbake på et kvart sekund.
+    press: f32,
     rest: Affine3A,
     offset: Vec3,
     owner: Option<usize>,
@@ -286,7 +288,7 @@ impl Game {
                 by_collider.insert(id, i);
                 id
             });
-            props.push(PropState { rest: p.rest, offset: p.collider.map(|c| c.0).unwrap_or(Vec3::ZERO), owner: p.owner, collider, pose: p.rest, extra: [0.0; 4] });
+            props.push(PropState { press: 0.0, rest: p.rest, offset: p.collider.map(|c| c.0).unwrap_or(Vec3::ZERO), owner: p.owner, collider, pose: p.rest, extra: [0.0; 4] });
         }
         for inst in &mut installations {
             inst.set_variant(inst.variant());
@@ -637,7 +639,10 @@ impl Game {
                             self.env.edit = None;
                         }
                     }
-                    if let Some((_, o)) = self.aim {
+                    if let Some((p, o)) = self.aim {
+                        if self.installations[o].usable() {
+                            self.props[p].press = 1.0;
+                        }
                         self.installations[o].act(InstallAction::Use, &mut self.env);
                         self.sync_edit(o);
                     }
@@ -698,7 +703,7 @@ impl Game {
         }
 
         self.update_weather(dt);
-        self.update_props(physics);
+        self.update_props(physics, dt);
         events
     }
 
@@ -737,12 +742,19 @@ impl Game {
         w.lightning *= (1.0 - dt * 9.0).max(0.0);
     }
 
-    fn update_props(&mut self, physics: &mut dyn Physics) {
+    fn update_props(&mut self, physics: &mut dyn Physics, dt: f32) {
         for (i, p) in self.props.iter_mut().enumerate() {
-            let (pose, extra) = match p.owner {
+            let (mut pose, extra) = match p.owner {
                 Some(o) => self.installations[o].pose(i, p.rest, &self.env),
                 None => (p.rest, [0.0; 4]),
             };
+            // Trykket: propen går 2 cm inn langs sin egen −Z (inn i plata) og
+            // tilbake, som en knapp som trykkes.
+            if p.press > 0.0 {
+                p.press = (p.press - dt * 4.0).max(0.0);
+                let push = (p.press * std::f32::consts::PI).sin().max(0.0) * 0.02;
+                pose = pose * Affine3A::from_translation(Vec3::new(0.0, 0.0, -push));
+            }
             p.pose = pose;
             p.extra = extra;
             if let Some(id) = p.collider {

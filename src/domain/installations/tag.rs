@@ -1,7 +1,7 @@
 //! `.fs-tag`: merkelappene på oppslagstavla ved gata i sør. R bytter
 //! variant på den første (vanlig, fylt, deaktivert).
 
-use super::signs::{self, Box2};
+use super::signs;
 use super::{Component, Env, Installation, PX};
 use crate::domain::city::{at, Builder, OAK};
 use crate::domain::geometry::{Layer, Mat, Mesh};
@@ -61,24 +61,36 @@ impl Installation for Tag {
 
     fn build(&mut self, b: &mut Builder) {
         board(b);
-        // Tre tagger på en rad: 14px tekst, padding 2/8, linjehøyde 1,4, 1px kant.
-        let labels = ["Bostøtte", "Barnehage", "Arkivert"];
+        // Tre tagger på en rad, som ark fra CSS-en. Den første finnes i
+        // alle tre variantene oppå hverandre; bare den valgte vises.
+        let back = |v: &str| match v {
+            "filled" => slot::NEUTRAL_SURFACE,
+            "disabled" => slot::NEUTRAL_RAISED,
+            _ => slot::NEUTRAL_CANVAS,
+        };
         let mut x = -1.0;
-        for (k, label) in labels.iter().enumerate() {
-            let tw = signs::width(b.font, label, 14.0) / PX;
-            let w = tw + 16.0 + 2.0;
-            let h = 14.0 * 1.4 + 4.0 + 2.0;
+        let mut w0 = 0.0;
+        for (k, v) in VARIANTS.iter().enumerate() {
             let mut m = Mesh::default();
-            let (fill, border, text) = style(if k == 0 { self.variant } else { k });
-            signs::boxed(&mut m, Vec3::ZERO, &Box2 { w, h, radius: 4.0, fill, border: Some(border), depth: 0.02 });
-            signs::text(&mut m, b.font, label, Vec3::new(0.0, 0.0, 0.024), 14.0, text);
+            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("tag:{v}:Bostøtte"), Vec3::ZERO, 0.02, 4.0, back(v));
+            w0 = w;
             let pos = board_t() * Affine3A::from_translation(Vec3::new(x + w * PX * 0.5, 1.85, 0.04));
-            self.tags[k] = b.prop("tag", m, pos, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.03))));
+            self.tags[k] = b.prop("tag", m, pos, if k == 0 { Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.03))) } else { None });
+        }
+        x += w0 * PX + 0.08;
+        for (v, label) in [("filled", "Barnehage"), ("disabled", "Arkivert")] {
+            let mut m = Mesh::default();
+            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("tag:{v}:{label}"), Vec3::ZERO, 0.02, 4.0, back(v));
+            let pos = board_t() * Affine3A::from_translation(Vec3::new(x + w * PX * 0.5, 1.85, 0.04));
+            b.prop("tag", m, pos, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.03))));
             x += w * PX + 0.08;
         }
     }
 
-    fn pose(&self, _prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+        if let Some(k) = self.tags.iter().position(|p| *p == prop) {
+            return (if k == self.variant { rest } else { rest * Affine3A::from_scale(Vec3::splat(0.0001)) }, [0.0; 4]);
+        }
         (rest, [0.0; 4])
     }
 
@@ -101,10 +113,3 @@ pub const TAG_FILL: u8 = slot::TAG_FILL;
 pub const TAG_BORDER: u8 = slot::TAG_BORDER;
 pub const TAG_TEXT: u8 = slot::TAG_TEXT;
 
-fn style(variant: usize) -> (u8, u8, u8) {
-    match variant {
-        0 => (TAG_FILL, TAG_BORDER, TAG_TEXT),
-        1 => (slot::NEUTRAL_SURFACE, slot::NEUTRAL_SURFACE, slot::NEUTRAL_TEXT_STRONG),
-        _ => (slot::NEUTRAL_RAISED, slot::NEUTRAL_RAISED, slot::NEUTRAL_BORDER),
-    }
-}

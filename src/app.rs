@@ -24,6 +24,7 @@ pub struct Prepared {
 pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepared {
     let tokens = Tokens::load();
     let font = Font::load();
+    let sheets = crate::domain::sheets::Sheets::load();
     let mut installations = installations::all();
     // Modellene lastes først, så byen vet hvilke som finnes og hvor store de er.
     let loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
@@ -34,7 +35,7 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
             ModelInfo { name: m.name.clone(), min, max }
         })
         .collect();
-    let city = city::build(&tokens, &font, &infos, &mut installations);
+    let city = city::build(&tokens, &font, &sheets, &infos, &mut installations);
     log::info!("Byen: {} hjørner, {} props, {} modeller tilgjengelig", city.mesh.vertices.len(), city.props.len(), infos.len());
     let models: Vec<Model> = loaded.into_iter().filter(|m| city.placements.iter().any(|p| p.model == m.name)).collect();
     // Panelet holdes bakt: malte bord skal være rene, og de skannede plankene
@@ -44,6 +45,19 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
         log::info!("Fotoskannede materialer: {}", layers.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
     }
     Prepared { tokens, city, models, layers, installations, font }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Rutinen mot svevende modeller: byen bygges med de innebygde
+    /// modellene (og de eksterne om de er hentet), og ingen instans får
+    /// sveve over eller stå nede i terrenget. `cargo test` før push.
+    #[test]
+    fn modellene_star_pa_bakken() {
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        assert!(prepared.city.audit.is_empty(), "\n{}", prepared.city.audit.join("\n"));
+    }
 }
 
 pub struct App<R: Renderer, P: Physics> {

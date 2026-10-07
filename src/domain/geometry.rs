@@ -88,6 +88,8 @@ pub mod kind {
     pub const WATER: u8 = 206;
     /// Modell med egne teksturer (albedo, normal, metall/ruhet, emissiv).
     pub const MODEL: u8 = 207;
+    /// Komponentark: uv inn i atlaset med komponentene rendret fra CSS.
+    pub const SHEET: u8 = 208;
 }
 
 /// Flagg i `mat.z`. De to nederste bitene er glød.
