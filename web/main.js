@@ -59,6 +59,8 @@ const VARIANTS = {
   progress: [
     { name: "accent", note: "Standard." },
     { name: "success", note: 'data-color="success"' },
+    { name: "warning", note: 'data-color="warning"' },
+    { name: "danger", note: 'data-color="danger"' },
   ],
   spinner: [
     { name: "small", note: 'data-size="small"' },
@@ -425,13 +427,8 @@ function bindInput() {
   $("close").addEventListener("click", () => closePanel(true));
 }
 
-let helpTimer = 0;
-function fadeHelp() {
-  const help = $("help");
-  help.classList.remove("faded");
-  clearTimeout(helpTimer);
-  helpTimer = setTimeout(() => help.classList.add("faded"), 9000);
-}
+// Tastekartet nederst står hele tida, så det alltid går an å se hva tastene gjør.
+function fadeHelp() {}
 
 function openPanel() {
   const d = docs[current.component] ?? {};

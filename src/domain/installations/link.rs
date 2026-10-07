@@ -1,8 +1,9 @@
 //! `.fs-link`: veiviseren på torget, med armer som peker dit lenkene går.
-//! Den første armen bytter tilstand med R (vanlig, besøkt, deaktivert).
+//! F på en arm følger lenka: du teleporteres dit. Den første armen bytter
+//! tilstand med R (vanlig, besøkt, deaktivert).
 
 use super::signs;
-use super::{Component, Env, Installation, PX};
+use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::{at, Builder, OAK};
 use crate::domain::geometry::{flag, Mat, Mesh};
 use crate::domain::palette::slot;
@@ -12,12 +13,19 @@ use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 3] = ["default", "visited", "disabled"];
 const POS: Vec3 = Vec3::new(-7.4, 0.0, 12.4);
-/// Armene: tekst, retning (yaw) og høyde.
-const ARMS: [(&str, f32, f32); 3] = [("Mine søknader", 1.2, 2.45), ("Torget", -0.4, 2.1), ("Dokumentasjonen", 2.5, 1.75)];
+/// Armene: tekst, retning (yaw, dit armen peker) og høyde.
+const ARMS: [(&str, f32, f32); 3] = [("Mine søknader", 0.05, 2.45), ("Torget", 0.53, 2.1), ("Dokumentasjonen", -1.32, 1.75)];
+/// Dit lenkene går: føttene, og retningen du ser i når du kommer fram.
+const TARGETS: [(Vec3, f32); 3] = [
+    (Vec3::new(36.0, 0.0, 5.0), std::f32::consts::PI),
+    (Vec3::new(0.0, 0.0, 8.5), 0.0),
+    (Vec3::new(9.0, 0.0, 76.0), -std::f32::consts::FRAC_PI_2),
+];
 
 #[derive(Default)]
 pub struct Link {
     variant: usize,
+    arms: [usize; 3],
 }
 
 impl Installation for Link {
@@ -64,9 +72,27 @@ impl Installation for Link {
                 arm.append(&txt);
             }
             arm.transform(&(t * Affine3A::from_translation(Vec3::new(0.06, 0.0, 0.0))));
-            let collider = if k == 0 { Some((t.transform_point3(Vec3::new(0.06 + w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX * 0.5, 0.12, 0.05))) } else { None };
-            let _ = b.prop("link", arm, Affine3A::IDENTITY, collider);
+            let collider = Some((t.transform_point3(Vec3::new(0.06 + w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX * 0.5, 0.12, 0.05)));
+            self.arms[k] = b.prop("link", arm, Affine3A::IDENTITY, collider);
         }
+    }
+
+    fn usable(&self) -> bool {
+        true
+    }
+
+    fn act(&mut self, action: Action, env: &mut Env) {
+        if action != Action::Use {
+            return;
+        }
+        let Some(k) = self.arms.iter().position(|a| Some(*a) == env.aimed_prop) else { return };
+        if k == 0 && VARIANTS[self.variant] == "disabled" {
+            env.toasts.push("Lenka er deaktivert".into());
+            return;
+        }
+        let (feet, yaw) = TARGETS[k];
+        env.teleport = Some((feet, yaw));
+        env.toasts.push(format!("Fulgte lenka «{}»", ARMS[k].0));
     }
 
     fn pose(&self, _prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {

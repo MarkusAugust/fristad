@@ -98,11 +98,14 @@ pub struct Env {
     pub toasts: Vec<String>,
     /// Propen spilleren sikter på nå, om noen (som hover).
     pub aimed_prop: Option<usize>,
+    /// Dit spilleren skal flyttes: føttene på bakken, og retningen (yaw).
+    /// Lenker og brødsmuler setter den; spillet tar den.
+    pub teleport: Option<(Vec3, f32)>,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None }
     }
 }
 

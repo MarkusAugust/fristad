@@ -10,7 +10,7 @@ use crate::domain::scene::PALETTE;
 use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
-pub const VARIANTS: [&str; 2] = ["accent", "success"];
+pub const VARIANTS: [&str; 4] = ["accent", "success", "warning", "danger"];
 
 #[derive(Default)]
 pub struct Progress {
@@ -60,7 +60,12 @@ impl Installation for Progress {
     }
 
     fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
-        let name = if VARIANTS[self.variant] == "success" { "success-fill" } else { "accent-fill" };
+        let name = match VARIANTS[self.variant] {
+            "success" => "success-fill",
+            "warning" => "warning-fill",
+            "danger" => "danger-fill",
+            _ => "accent-fill",
+        };
         p[PROGRESS_FILL as usize] = tokens.blend(name, night);
     }
 }

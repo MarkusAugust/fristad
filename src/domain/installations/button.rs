@@ -131,10 +131,10 @@ impl Installation for Button {
 
     fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
         let c = |name: &str| tokens.blend(name, night);
-        let stone = crate::domain::tokens::hex("#8f8c86");
         let (body, rim, label) = match VARIANTS[self.variant] {
             "secondary" => (c("neutral-canvas"), c("accent-border"), c("accent-text")),
-            "ghost" => (stone, stone, c("accent-text")),
+            // Ghost: ingen bakgrunn og ingen kant, så plata viser canvas-fargen.
+            "ghost" => (c("neutral-canvas"), c("neutral-canvas"), c("accent-text")),
             "danger" => (c("danger-surface"), c("danger-text"), c("danger-text")),
             _ => (c("accent-fill"), c("accent-fill"), c("accent-content")),
         };

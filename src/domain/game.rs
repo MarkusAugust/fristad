@@ -19,6 +19,8 @@ pub struct Input {
     pub right: bool,
     pub jump: bool,
     pub sprint: bool,
+    /// C holdes inne: huk.
+    pub crouch: bool,
     pub look: (f32, f32),
     pub actions: Vec<Action>,
 }
@@ -34,6 +36,8 @@ impl Input {
             "KeyD" | "ArrowRight" => self.right = down,
             "Space" => self.jump = down,
             "ShiftLeft" | "ShiftRight" => self.sprint = down,
+            "KeyC" => self.crouch = down,
+            "KeyX" if down => self.actions.push(Action::Crawl),
             "KeyE" if down => self.actions.push(Action::Inspect),
             "KeyR" if down => self.actions.push(Action::Variant),
             "KeyF" if down => self.actions.push(Action::Use),
@@ -58,6 +62,8 @@ pub enum Action {
     Variant,
     /// F: bruk.
     Use,
+    /// X: kryp av og på.
+    Crawl,
     /// T: bytt tema, og dermed dag og natt.
     Theme,
     /// V: neste vær.
@@ -95,6 +101,46 @@ const EYE: f32 = 0.8;
 const RADIUS: f32 = 0.35;
 const HALF: f32 = 0.55;
 
+/// Stående, på huk eller krypende: kapselen (halv høyde, radius), øyet over
+/// kapselens sentrum, og farten.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum Stance {
+    #[default]
+    Stand,
+    Crouch,
+    Crawl,
+}
+
+impl Stance {
+    fn capsule(self) -> (f32, f32) {
+        match self {
+            Stance::Stand => (HALF, RADIUS),
+            Stance::Crouch => (0.15, RADIUS),
+            Stance::Crawl => (0.0, 0.3),
+        }
+    }
+    fn eye(self) -> f32 {
+        match self {
+            Stance::Stand => EYE,
+            Stance::Crouch => 0.5,
+            Stance::Crawl => 0.15,
+        }
+    }
+    fn speed(self, sprint: bool) -> f32 {
+        match self {
+            Stance::Stand => {
+                if sprint {
+                    7.5
+                } else {
+                    4.2
+                }
+            }
+            Stance::Crouch => 2.0,
+            Stance::Crawl => 1.0,
+        }
+    }
+}
+
 struct PropState {
     rest: Affine3A,
     offset: Vec3,
@@ -129,6 +175,10 @@ pub struct Game {
     pub paused: bool,
     bob: f32,
     jumped: bool,
+    stance: Stance,
+    crawl: bool,
+    /// Øyehøyden over kapselens sentrum, glattet mellom stillingene.
+    eye_h: f32,
     pub debug: u32,
 }
 
@@ -173,6 +223,9 @@ impl Game {
             paused: false,
             bob: 0.0,
             jumped: false,
+            stance: Stance::Stand,
+            crawl: false,
+            eye_h: EYE,
             debug: 0,
         }
     }
@@ -257,7 +310,7 @@ impl Game {
     }
 
     pub fn eye(&self) -> Vec3 {
-        self.pos + Vec3::Y * (EYE + (self.bob * 9.0).sin() * 0.025)
+        self.pos + Vec3::Y * (self.eye_h + (self.bob * 9.0).sin() * 0.025)
     }
 
     fn prompt_for(&self, inst: usize) -> Prompt {
@@ -302,18 +355,35 @@ impl Game {
                 wish -= right;
             }
         }
-        let speed = if input.sprint { 7.5 } else { 4.2 };
+        // Stillingen: X slår kryping av og på, C holdes for huk.
+        let stance = if self.crawl {
+            Stance::Crawl
+        } else if input.crouch && !self.paused {
+            Stance::Crouch
+        } else {
+            Stance::Stand
+        };
+        if stance != self.stance {
+            // Føttene blir der de er når kapselen bytter størrelse.
+            let (h0, r0) = self.stance.capsule();
+            let (h1, r1) = stance.capsule();
+            self.pos.y += (h1 + r1) - (h0 + r0);
+            self.stance = stance;
+        }
+        let (half, radius) = self.stance.capsule();
+        self.eye_h += (self.stance.eye() - self.eye_h) * (dt * 10.0).min(1.0);
+        let speed = self.stance.speed(input.sprint);
         let horizontal = wish.normalize_or_zero() * speed;
         if self.grounded {
             self.vel_y = -1.0;
-            if input.jump && !self.paused {
+            if input.jump && !self.paused && self.stance == Stance::Stand {
                 self.vel_y = 5.4;
             }
         } else {
             self.vel_y -= 18.0 * dt;
         }
         let desired = (horizontal + Vec3::Y * self.vel_y) * dt;
-        let (moved, grounded) = physics.move_capsule(self.pos, HALF, RADIUS, desired, dt);
+        let (moved, grounded) = physics.move_capsule(self.pos, half, radius, desired, dt);
         self.pos += moved;
         self.grounded = grounded;
         if self.pos.y < -20.0 {
@@ -328,6 +398,8 @@ impl Game {
         let dir = self.forward();
         let hit = physics.cast_ray(eye, dir, 3.5);
         let aim = hit.and_then(|h| self.by_collider.get(&h.collider).copied()).and_then(|p| self.props[p].owner.map(|o| (p, o)));
+        // Installasjonene får vite hva som siktes på før de får handlingene.
+        self.env.aimed_prop = aim.map(|(p, _)| p);
         if aim.map(|a| a.1) != self.aim.map(|a| a.1) {
             self.aim = aim;
             events.push(Event::Prompt(aim.map(|(_, o)| self.prompt_for(o))));
@@ -367,6 +439,9 @@ impl Game {
                         self.installations[o].act(InstallAction::Use, &mut self.env);
                     }
                 }
+                Action::Crawl => {
+                    self.crawl = !self.crawl;
+                }
                 Action::Inspect => {
                     if let Some((_, o)) = self.aim {
                         let p = self.prompt_for(o);
@@ -385,9 +460,16 @@ impl Game {
         self.env.time = self.time;
         self.env.dt = dt;
         self.env.night = self.night;
-        self.env.aimed_prop = self.aim.map(|(p, _)| p);
         for inst in &mut self.installations {
             inst.tick(&mut self.env);
+        }
+        // Teleport fra lenker og brødsmuler: føttene på bakken, se rett fram.
+        if let Some((feet, yaw)) = self.env.teleport.take() {
+            let (half, radius) = self.stance.capsule();
+            self.pos = feet + Vec3::Y * (half + radius + 0.05);
+            self.yaw = yaw;
+            self.pitch = 0.0;
+            self.vel_y = 0.0;
         }
         for t in self.env.toasts.drain(..) {
             events.push(Event::Toast(t));

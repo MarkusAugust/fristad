@@ -86,8 +86,9 @@ impl Installation for Tag {
         // Den første taggen bytter stil med varianten via egne plasser.
         let c = |n: &str| tokens.blend(n, night);
         let (fill, border, text) = match VARIANTS[self.variant] {
-            "filled" => (c("neutral-fill"), c("neutral-fill"), c("neutral-content")),
-            "disabled" => (c("neutral-canvas"), c("neutral-border-subtle"), c("neutral-text-subtle")),
+            "filled" => (c("neutral-surface"), c("neutral-surface"), c("neutral-text-strong")),
+            // disabled-surface er neutral-raised, disabled-text er neutral-border.
+            "disabled" => (c("neutral-raised"), c("neutral-raised"), c("neutral-border")),
             _ => (c("neutral-canvas"), c("neutral-border-subtle"), c("neutral-text-strong")),
         };
         p[TAG_FILL as usize] = fill;
@@ -103,7 +104,7 @@ pub const TAG_TEXT: u8 = slot::TAG_TEXT;
 fn style(variant: usize) -> (u8, u8, u8) {
     match variant {
         0 => (TAG_FILL, TAG_BORDER, TAG_TEXT),
-        1 => (slot::NEUTRAL_FILL, slot::NEUTRAL_FILL, slot::NEUTRAL_CANVAS),
-        _ => (slot::NEUTRAL_CANVAS, slot::NEUTRAL_BORDER_SUBTLE, slot::NEUTRAL_TEXT_SUBTLE),
+        1 => (slot::NEUTRAL_SURFACE, slot::NEUTRAL_SURFACE, slot::NEUTRAL_TEXT_STRONG),
+        _ => (slot::NEUTRAL_RAISED, slot::NEUTRAL_RAISED, slot::NEUTRAL_BORDER),
     }
 }

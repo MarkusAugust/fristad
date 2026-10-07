@@ -77,10 +77,12 @@ impl Installation for Alert {
 /// Flate, kantlinje og tekst per variant, som palettplasser.
 fn colors(k: usize) -> (u8, u8, u8) {
     match VARIANTS[k] {
-        "info" => (slot::ACCENT_SURFACE, slot::ACCENT_FILL, slot::ACCENT_TEXT),
-        "success" => (slot::SUCCESS_SURFACE, slot::SUCCESS_FILL, slot::SUCCESS_TEXT),
-        "warning" => (slot::WARNING_SURFACE, slot::WARNING_FILL, slot::WARNING_TEXT),
-        "danger" => (slot::DANGER_SURFACE, slot::DANGER_FILL, slot::DANGER_TEXT),
+        // Teksten er neutral-text-strong i alle fargene; streken er
+        // fargens text (accent-border for info).
+        "info" => (slot::ACCENT_SURFACE, slot::ACCENT_BORDER, slot::NEUTRAL_TEXT_STRONG),
+        "success" => (slot::SUCCESS_SURFACE, slot::SUCCESS_TEXT, slot::NEUTRAL_TEXT_STRONG),
+        "warning" => (slot::WARNING_SURFACE, slot::WARNING_TEXT, slot::NEUTRAL_TEXT_STRONG),
+        "danger" => (slot::DANGER_SURFACE, slot::DANGER_TEXT, slot::NEUTRAL_TEXT_STRONG),
         _ => (slot::NEUTRAL_SURFACE, slot::NEUTRAL_TEXT, slot::NEUTRAL_TEXT_STRONG),
     }
 }

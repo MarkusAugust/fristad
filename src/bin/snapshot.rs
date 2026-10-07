@@ -5,7 +5,7 @@
 //!   cargo run --release --bin snapshot -- --out torg.png --theme dark
 //!
 //! Valg: --out FIL, --size BxH, --theme light|dark, --eye x,y,z,
-//! --yaw grader, --pitch grader, --gate, --use komponent, --variant komponent=navn,
+//! --yaw grader, --pitch grader, --gate, --use komponent, --stance huk|kryp, --variant komponent=navn,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek,
 //! --frames N (TAA-bilder som blandes, standard 12), --lights off.
 
@@ -56,6 +56,13 @@ fn main() {
     }
     if let Some(c) = arg("--use") {
         app.game.use_component(&c);
+    }
+    if let Some(st) = arg("--stance") {
+        match st.as_str() {
+            "huk" => app.input.key("KeyC", true),
+            "kryp" => app.input.key("KeyX", true),
+            _ => {}
+        }
     }
     if let Some(d) = arg("--debug") {
         app.game.debug = match d.as_str() {
