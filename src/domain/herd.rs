@@ -21,18 +21,21 @@ impl Kind {
             Kind::Cow => "cow_body",
         }
     }
-    fn leg(self) -> &'static str {
-        match self {
-            Kind::Sheep => "sheep_leg",
-            Kind::Cow => "cow_leg",
+    /// Beinmodellen for bein k (0–1 fram, 2–3 bak): kua har egne fram- og
+    /// bakbein (`tools/models/cow.py`), sauen ett bein for alle fire.
+    fn leg(self, k: usize) -> &'static str {
+        match (self, k < 2) {
+            (Kind::Sheep, _) => "sheep_leg",
+            (Kind::Cow, true) => "cow_leg_front",
+            (Kind::Cow, false) => "cow_leg_hind",
         }
     }
     /// Beinfestene i modellens koordinater (x fram, y opp, z høyre), fra
-    /// LEGS i animals.py (Blender: x fram, y venstre, z opp).
+    /// LEGS og SHEEP_LEGS i animals.py (Blender: x fram, y venstre, z opp).
     fn legs(self) -> [Vec3; 4] {
         match self {
-            Kind::Sheep => [Vec3::new(0.28, 0.42, -0.14), Vec3::new(0.28, 0.42, 0.14), Vec3::new(-0.3, 0.42, -0.14), Vec3::new(-0.3, 0.42, 0.14)],
-            Kind::Cow => [Vec3::new(0.65, 0.95, -0.28), Vec3::new(0.65, 0.95, 0.28), Vec3::new(-0.7, 0.95, -0.28), Vec3::new(-0.7, 0.95, 0.28)],
+            Kind::Sheep => [Vec3::new(0.3, 0.46, -0.13), Vec3::new(0.3, 0.46, 0.13), Vec3::new(-0.32, 0.46, -0.13), Vec3::new(-0.32, 0.46, 0.13)],
+            Kind::Cow => [Vec3::new(0.6, 1.0, -0.24), Vec3::new(0.6, 1.0, 0.24), Vec3::new(-0.62, 1.02, -0.26), Vec3::new(-0.62, 1.02, 0.26)],
         }
     }
     fn walk_speed(self) -> f32 {
@@ -129,7 +132,7 @@ impl Herd {
     pub fn reserve() -> Vec<(&'static str, usize)> {
         let mut out: Vec<(&'static str, usize)> = vec![];
         for (kind, _, _, count) in HERDS {
-            for (name, n) in [(kind.body(), count), (kind.leg(), count * 4)] {
+            for (name, n) in [(kind.body(), count), (kind.leg(0), count * 2), (kind.leg(2), count * 2)] {
                 if let Some(e) = out.iter_mut().find(|e| e.0 == name) {
                     e.1 += n;
                 } else {
@@ -239,7 +242,7 @@ impl Herd {
                 let sign = if k == 0 || k == 3 { 1.0 } else { -1.0 };
                 let swing = a.phase.sin() * amp * sign + idle;
                 let leg = body * Affine3A::from_translation(*hip) * Affine3A::from_rotation_z(swing);
-                out.push(ModelInstance { model: a.kind.leg(), transform: leg });
+                out.push(ModelInstance { model: a.kind.leg(k), transform: leg });
             }
         }
         out

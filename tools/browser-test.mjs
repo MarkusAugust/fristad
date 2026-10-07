@@ -39,13 +39,16 @@ await page.goto(`http://127.0.0.1:${port}/${mode === "webgl" ? "?webgl" : ""}`, 
 try {
   await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 120000 });
   console.log("[test] motoren er klar, backend:", await page.evaluate(() => window.fristad.engine.backend()));
+  // SwiftShader er treg: lås laveste kvalitet og oppløsning, så det første
+  // bildet kommer innen rimelig tid.
+  await page.evaluate(() => { window.fristad.setQuality(0); window.fristad.setScale(0.4); });
   await page.evaluate(() => document.querySelector("#enter")?.click());
   await page.waitForTimeout(Number(wait));
   console.log("[test] perf:", await page.evaluate(() => document.querySelector("#perf")?.textContent));
 } catch (e) {
   console.log("[test] motoren ble ikke klar:", e.message);
 }
-await page.screenshot({ path: out });
+await page.screenshot({ path: out, timeout: 300000 });
 console.log("[test] skjermbilde:", out);
 await browser.close();
 server.close();
