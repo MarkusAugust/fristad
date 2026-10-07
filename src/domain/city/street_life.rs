@@ -331,6 +331,21 @@ pub fn bicycle(b: &mut Builder, p: Vec3, yaw: f32, lean: f32, paint: u32) {
 pub fn cafe_set(b: &mut Builder, p: Vec3, yaw: f32, parasol: bool) {
     let p = b.on_ground(p);
     let t = at(p, yaw);
+    if b.has_model("cafe_table") {
+        b.place("cafe_table", t);
+        for k in 0..3 {
+            let a = k as f32 * 2.1 + 0.4 + yaw;
+            let c = p + Vec3::new(a.cos() * 0.62, 0.0, a.sin() * 0.62);
+            // Stolen vender mot +X i modellen; snu den mot bordet.
+            let yaw_chair = a.sin().atan2(-a.cos());
+            b.place("cafe_chair", at(c, yaw_chair));
+        }
+        if parasol {
+            b.place("parasol", t);
+        }
+        b.solid(Shape::Cylinder { center: p + Vec3::Y * 0.4, radius: 0.9, half_height: 0.4 });
+        return;
+    }
     let green = Mat::plain(0x2c4a3e, 0.45);
     let m = &mut b.mesh;
     m.lathe(&t, &[Vec2::new(0.22, 0.0), Vec2::new(0.22, 0.02), Vec2::new(0.03, 0.04), Vec2::new(0.03, 0.72)], 12, &green, true, 0.8);
@@ -359,6 +374,11 @@ pub fn cafe_set(b: &mut Builder, p: Vec3, yaw: f32, parasol: bool) {
 pub fn market_stall(b: &mut Builder, p: Vec3, yaw: f32) {
     let p = b.on_ground(p);
     let t = at(p, yaw);
+    if b.has_model("market_stall") {
+        b.place("market_stall", t);
+        b.solid_box(p + Vec3::Y * 0.5, Vec3::new(2.7, 1.0, 1.3), yaw);
+        return;
+    }
     let m = &mut b.mesh;
     let wood = Mat::tex(Layer::Oak, 0xffffff).flags(flag::ROT_UV);
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::Y * 0.9)), Vec3::new(2.6, 0.06, 1.2), &wood, 1.0);
@@ -435,10 +455,16 @@ pub fn mailbox(b: &mut Builder, p: Vec3, yaw: f32) {
     let p = b.on_ground(p);
     let t = at(p, yaw);
     let red = Mat::plain(0xc8102e, 0.35).flags(flag::NO_DIRT);
+    let model = b.has_model("mailbox");
+    if model {
+        b.place("mailbox", t);
+    }
     let m = &mut b.mesh;
-    m.cylinder(&t, 0.04, 0.04, 0.95, 8, &IRON, false);
-    m.rounded_slab(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.2, 0.0))), Vec3::ZERO, 0.46, 0.52, 0.34, 0.06, &red);
-    m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.36, 0.175))), Vec3::new(0.3, 0.025, 0.01), &DARK);
+    if !model {
+        m.cylinder(&t, 0.04, 0.04, 0.95, 8, &IRON, false);
+        m.rounded_slab(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.2, 0.0))), Vec3::ZERO, 0.46, 0.52, 0.34, 0.06, &red);
+        m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.36, 0.175))), Vec3::new(0.3, 0.025, 0.01), &DARK);
+    }
     let mut text = Mesh::default();
     b.font.centered(&mut text, "POST", Vec3::ZERO, 10.0, 0.012, &Mat::plain(0xf6f0e6, 0.5));
     text.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.14, 0.172))));

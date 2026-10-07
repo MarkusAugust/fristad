@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -48,6 +48,12 @@ impl ModelSource for Embedded {
             "bench" => load("bench", embed!("street", ["bench.glb"]), 0.0, 0.0),
             "bicycle" => load("bicycle", embed!("street", ["bicycle.glb"]), 0.0, 0.0),
             "bin" => load("bin", embed!("street", ["bin.glb"]), 0.0, 0.0),
+            // Torget fra tools/models/plaza.py.
+            "cafe_table" => load("cafe_table", embed!("plaza", ["cafe_table.glb"]), 0.0, 0.0),
+            "cafe_chair" => load("cafe_chair", embed!("plaza", ["cafe_chair.glb"]), 0.0, 0.0),
+            "parasol" => load("parasol", embed!("plaza", ["parasol.glb"]), 0.0, 0.0),
+            "market_stall" => load("market_stall", embed!("plaza", ["market_stall.glb"]), 0.0, 0.0),
+            "mailbox" => load("mailbox", embed!("plaza", ["mailbox.glb"]), 0.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
