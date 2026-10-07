@@ -42,13 +42,9 @@ const TEXTURES: Record<string, string[]> = {
  * modellens egne mål stå, siden Poly Haven er i meter) og rotasjon.
  */
 const MODELS: Record<string, { search: string[]; height: number; yaw: number }> = {
-  bench: { search: ["wooden_bench", "park_bench", "bench"], height: 0, yaw: 0 },
-  lamp: { search: ["street_lamp", "lamp_post", "lantern", "street_light"], height: 0, yaw: 0 },
   barrel: { search: ["wooden_barrel", "barrel"], height: 0, yaw: 0 },
   crate: { search: ["wooden_crate", "crate"], height: 0, yaw: 0 },
   planter: { search: ["flower_pot", "planter", "plant_pot"], height: 0, yaw: 0 },
-  bicycle: { search: ["bicycle", "bike"], height: 0, yaw: 0 },
-  bin: { search: ["trash_can", "garbage", "dustbin", "bin"], height: 0, yaw: 0 },
   cart: { search: ["wheelbarrow", "wooden_cart", "hand_cart", "wagon"], height: 0, yaw: 0 },
 };
 

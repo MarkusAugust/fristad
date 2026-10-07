@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -43,6 +43,11 @@ impl ModelSource for Embedded {
             "car_estate" => load("car_estate", embed!("cars", ["estate.glb"]), 0.0, 0.0),
             "car_hatch" => load("car_hatch", embed!("cars", ["hatch.glb"]), 0.0, 0.0),
             "car_van" => load("car_van", embed!("cars", ["van.glb"]), 0.0, 0.0),
+            // Gatemøblene fra tools/models/street.py, i meter.
+            "lamp" => load("lamp", embed!("street", ["lamp.glb"]), 0.0, 0.0),
+            "bench" => load("bench", embed!("street", ["bench.glb"]), 0.0, 0.0),
+            "bicycle" => load("bicycle", embed!("street", ["bicycle.glb"]), 0.0, 0.0),
+            "bin" => load("bin", embed!("street", ["bin.glb"]), 0.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
@@ -127,6 +132,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if mat.name() == Some("paint") {
                 mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
             }
+            // «glow» lyser om natta, som lampene ellers i byen.
+            if mat.name() == Some("glow") {
+                mmat.kind = kind::LAMP;
+            }
             if metallic >= 0.5 {
                 mmat = mmat.flags(flag::METAL);
             }
@@ -141,7 +150,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let v = Mat { kind: kind::MODEL, flags, ..mmat };
+                let v = Mat { kind: if mmat.kind == kind::LAMP { kind::LAMP } else { kind::MODEL }, flags, ..mmat };
                 mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
             }
             mesh.indices.extend(idx.iter().map(|i| i + base));

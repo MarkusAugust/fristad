@@ -205,7 +205,13 @@ pub fn plaza(b: &mut Builder) {
     for (name, p, yaw) in extras {
         if b.has_model(name) {
             let p = b.on_ground(p);
-            b.place(name, at(p, yaw));
+            // Lakken på egne modeller: mørk grønn bøtte, rød sykkel.
+            let tint = match name {
+                "bin" => super::street_life::srgb_to_linear(0x2f4a3a),
+                "bicycle" => super::street_life::srgb_to_linear(0x8c2f2f),
+                _ => Vec3::ONE,
+            };
+            b.place_tinted(name, at(p, yaw), tint);
             let h = b.model_height(name).max(0.5);
             b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(0.8, h, 0.8), yaw);
         }

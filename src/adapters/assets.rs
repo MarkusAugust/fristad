@@ -150,6 +150,12 @@ impl ModelSource for MemoryAssets {
     }
 
     fn load(&self, name: &str) -> Option<Model> {
+        // Egne modeller (bilene, gatemøblene) går foran de hentede.
+        if self.embedded.names().iter().any(|n| n == name) && name != "lantern" {
+            if let Some(m) = self.embedded.load(name) {
+                return Some(m);
+            }
+        }
         if let Some(entry) = self.manifest.models.get(name) {
             if let Some(g) = &entry.gltf {
                 let base = g.rsplit_once('/').map(|(d, _)| d).unwrap_or("").to_string();

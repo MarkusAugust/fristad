@@ -67,6 +67,15 @@ fn wheel(m: &mut Mesh, t: &Affine3A, c: Vec3, r: f32, width: f32, side: f32) {
     m.cylinder(&(*t * Affine3A::from_rotation_translation(rot, face + Vec3::Z * side * 0.012)), r * 0.2, r * 0.2, 0.03, 10, &DARK, true);
 }
 
+/// sRGB-heltall (0xrrggbb) til lineær farge, til lakken på modellene.
+pub fn srgb_to_linear(c: u32) -> Vec3 {
+    let lin = |v: u32| {
+        let s = v as f32 / 255.0;
+        if s <= 0.04045 { s / 12.92 } else { ((s + 0.055) / 1.055).powf(2.4) }
+    };
+    Vec3::new(lin(c >> 16 & 255), lin(c >> 8 & 255), lin(c & 255))
+}
+
 /// En parkert bil. `yaw` er retningen fronten peker. Modellene fra
 /// `tools/models/cars.py` brukes når de finnes, ellers den ekstruderte.
 pub fn car(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32) {
@@ -77,12 +86,7 @@ pub fn car(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32) {
     };
     if b.has_model(model) {
         let p = b.on_ground(p);
-        let lin = |v: u32| {
-            let s = v as f32 / 255.0;
-            if s <= 0.04045 { s / 12.92 } else { ((s + 0.055) / 1.055).powf(2.4) }
-        };
-        let tint = Vec3::new(lin(paint >> 16 & 255), lin(paint >> 8 & 255), lin(paint & 255));
-        b.place_tinted(model, at(p, yaw), tint);
+        b.place_tinted(model, at(p, yaw), srgb_to_linear(paint));
         let (len, w, h) = match style {
             CarStyle::Estate => (4.8, 1.75, 1.5),
             CarStyle::Hatch => (3.9, 1.7, 1.5),
@@ -264,6 +268,10 @@ fn car_extruded(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32)
 pub fn bicycle(b: &mut Builder, p: Vec3, yaw: f32, lean: f32, paint: u32) {
     let p = b.on_ground(p);
     let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw) * Quat::from_rotation_x(lean), p);
+    if b.has_model("bicycle") {
+        b.place_tinted("bicycle", t, srgb_to_linear(paint));
+        return;
+    }
     let m = &mut b.mesh;
     let frame = Mat::plain(paint, 0.3).flags(flag::NO_DIRT);
     let r = 0.34;
@@ -596,7 +604,7 @@ pub fn all(b: &mut Builder) {
     if b.has_model("bin") {
         for (x, z, yaw) in [(-8.0, 5.2, 0.7), (8.4, -5.0, -0.5)] {
             let p = b.on_ground(Vec3::new(x, 0.0, z));
-            b.place("bin", at(p, yaw));
+            b.place_tinted("bin", at(p, yaw), srgb_to_linear(0x2f4a3a));
             b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * 0.5, radius: 0.3, half_height: 0.5 });
         }
     }
