@@ -598,7 +598,9 @@ pub fn house(b: &mut Builder, s: &Spec) {
         // Takrenner langs langsidene (x-sidene).
         let eave_y = -overhang * roof_h / (width * 0.5);
         for side in [1.0f32, -1.0] {
-            m.cylinder(&(roof_t * Affine3A::from_rotation_translation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), Vec3::new(side * (width * 0.5 + overhang + 0.06), eave_y - 0.02, -fz - overhang))), 0.07, 0.07, depth + 2.0 * overhang, 8, &IRON, true);
+            // Renna ligger langs takfoten (lokal +z fra bakkanten): rotasjon
+            // +90° om x gjør sylinderens y til +z.
+            m.cylinder(&(roof_t * Affine3A::from_rotation_translation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2), Vec3::new(side * (width * 0.5 + overhang + 0.06), eave_y - 0.02, -fz - overhang))), 0.07, 0.07, depth + 2.0 * overhang, 8, &IRON, true);
             let px = side * (width * 0.5 + 0.1);
             m.cylinder(&local(Vec3::new(px, 0.1, fz - 0.3)), 0.045, 0.045, plinth + wall_h + eave_y - 0.2, 8, &IRON, false);
         }

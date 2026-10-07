@@ -20,6 +20,7 @@ body { font-family: Inter, system-ui, sans-serif; }
 .sheet { position: absolute; display: inline-block; }
 .sheet > * { margin: 0; }
 .fs-link--visited { color: var(--fs-color-visited-text); }
+.fs-table[data-hoverable] tbody tr[data-hover] { background: var(--fs-color-accent-surface); }
 </style></head><body></body></html>`;
 
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });

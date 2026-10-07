@@ -17,8 +17,8 @@ pub struct Skeleton {
     first: [usize; 3],
 }
 
-/// Tomta: nord for Østre gate, øst for tabs-huset, med fasaden mot gata.
-const FRONT: Vec3 = Vec3::new(47.0, 0.0, -6.5);
+/// Tomta: nord for Østre gate bak busskuret, øst for tabs-huset, med fasaden mot gata.
+const FRONT: Vec3 = Vec3::new(47.0, 0.0, -14.0);
 
 impl Installation for Skeleton {
     fn component(&self) -> Component {

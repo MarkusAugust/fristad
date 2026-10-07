@@ -116,7 +116,7 @@ const VARIANTS = {
   table: [
     { name: "default", note: "Standard." },
     { name: "striped", note: 'data-variant="striped"' },
-    { name: "hoverable", note: "data-hoverable, vist med raden under musa markert." },
+    { name: "hoverable", note: "data-hoverable, vist med raden du sikter på markert." },
   ],
   link: [
     { name: "default", note: "Standard." },

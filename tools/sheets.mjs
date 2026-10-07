@@ -115,11 +115,26 @@ export const SHEETS = [
     // Det andre panelet i skapet, lukket.
     { id: `accordion2:${v}:closed`, html: `<details class="fs-accordion"${a} style="width:360px"><summary>Hvor lang er behandlingstiden?</summary><div class="fs-accordion__content"><p>Vi behandler søknaden innen tre uker.</p></div></details>` },
   ]),
-  // Table.
-  ...[["default", ""], ["striped", ' data-variant="striped"'], ["hoverable", " data-hoverable"]].map(([v, a]) => ({
-    id: `table:${v}`,
-    html: `<table class="fs-table"${a} style="width:420px"><caption>Rutetabell</caption><thead><tr><th scope="col">Linje</th><th scope="col">Til</th><th scope="col" data-align="end">Avgang</th></tr></thead><tbody><tr><th scope="row">1</th><td>Tårnene</td><td data-align="end">08:10</td></tr><tr${v === "hoverable" ? ' data-hover' : ""}><th scope="row">2</th><td>Tokenparken</td><td data-align="end">08:25</td></tr><tr><th scope="row">3</th><td>Verkstedet</td><td data-align="end">08:40</td></tr></tbody></table>`,
+  // Table: rutetabellen på oppslagsplata ved busskuret, i biter som motoren
+  // setter sammen og sorterer: bildeteksten, overskriftsraden per sortering
+  // (aria-sort), og hver rad med bakgrunn vanlig/stripet/hover, med og uten
+  // kantlinje under (siste rad har ingen).
+  { id: "table-caption", html: `<table class="fs-table" style="width:480px"><caption>Avganger fra Torget</caption></table>` },
+  ...["none", "0a", "0d", "1a", "1d", "2a", "2d"].map((sort) => ({
+    id: `table-head:${sort}`,
+    html: `<table class="fs-table" style="width:480px"><colgroup><col style="width:240px"><col style="width:120px"><col style="width:120px"></colgroup><thead><tr>${["Rute", "Avgang", "Pris"].map((h, c) => {
+      const dir = sort === `${c}a` ? "ascending" : sort === `${c}d` ? "descending" : null;
+      return `<th scope="col"${c === 2 ? ' data-align="end"' : ""}${dir ? ` aria-sort="${dir}"` : ""}><button class="fs-table__sort" type="button">${h}</button></th>`;
+    }).join("")}</tr></thead></table>`,
   })),
+  ...[["12 Nordgata", "08:15", "42 kr"], ["14 Sørgata", "08:40", "42 kr"], ["20 Tårnene", "09:05", "58 kr"]].flatMap((row, i) =>
+    [["plain", ""], ["striped", ' data-variant="striped"'], ["hover", " data-hoverable"]].flatMap(([bg, attr]) =>
+      [false, true].map((last) => ({
+        id: `table-row:${bg}:${i}:${last ? "last" : "mid"}`,
+        // Stripet bakgrunn gjelder partallsrader: en skjult rad foran gjør
+        // denne til nummer to. En skjult rad etter gjør at den ikke er sist.
+        html: `<table class="fs-table"${attr} style="width:480px"><colgroup><col style="width:240px"><col style="width:120px"><col style="width:120px"></colgroup><tbody>${bg === "striped" ? '<tr style="display:none"></tr>' : ""}<tr${bg === "hover" ? " data-hover" : ""}><th scope="row">${row[0]}</th><td>${row[1]}</td><td data-align="end">${row[2]}</td></tr>${last ? "" : '<tr style="display:none"></tr>'}</tbody></table>`,
+      })))),
   // Tabs.
   ...[0, 1, 2].map((k) => ({
     id: `tabs:${k}`,
