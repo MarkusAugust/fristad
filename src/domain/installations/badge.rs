@@ -13,12 +13,13 @@ use crate::domain::palette::slot;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 5] = ["accent", "success", "warning", "danger", "neutral"];
-/// Gateskiltene: sted, og retningen skiltet vender.
+/// Gateskiltene: sted (1,1 m foran husrekka ved gatemunningen), og
+/// retningen skiltet vender.
 const STREETS: [(&str, Vec3, f32); 4] = [
-    ("Nordgata", Vec3::new(-6.6, 0.0, -18.2), 0.0),
-    ("Sørgata", Vec3::new(5.6, 0.0, 18.2), std::f32::consts::PI),
-    ("Østre gate", Vec3::new(18.6, 0.0, -5.4), std::f32::consts::FRAC_PI_2),
-    ("Vestre gate", Vec3::new(-18.6, 0.0, 5.4), -std::f32::consts::FRAC_PI_2),
+    ("Nordgata", Vec3::new(-6.6, 0.0, -16.9), 0.0),
+    ("Sørgata", Vec3::new(5.6, 0.0, 16.9), std::f32::consts::PI),
+    ("Østre gate", Vec3::new(16.9, 0.0, -5.4), std::f32::consts::FRAC_PI_2),
+    ("Vestre gate", Vec3::new(-16.9, 0.0, 5.4), -std::f32::consts::FRAC_PI_2),
 ];
 
 #[derive(Default)]

@@ -37,6 +37,7 @@ pub mod radio;
 pub mod search;
 pub mod select;
 pub mod signs;
+pub mod gorvek;
 pub mod skeleton;
 pub mod spinner;
 pub mod submit;
@@ -238,6 +239,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(workshop::GetStarted),
         Box::new(workshop::TypeSafe),
         Box::new(workshop::Accessibility),
+        Box::new(gorvek::Gorvek::default()),
     ]
 }
 

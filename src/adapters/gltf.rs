@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -67,6 +67,22 @@ impl ModelSource for Embedded {
             "sheep_leg" => load("sheep_leg", embed!("animals", ["sheep_leg.glb"]), -1.0, 0.0),
             "cow_body" => load("cow_body", embed!("animals", ["cow_body.glb"]), -1.0, 0.0),
             "cow_leg" => load("cow_leg", embed!("animals", ["cow_leg.glb"]), -1.0, 0.0),
+            // Innboet i Gorveks hus fra tools/models/gorvek.py, origo beholdt.
+            "gorvek_table" => load("gorvek_table", embed!("gorvek", ["table.glb"]), -1.0, 0.0),
+            "gorvek_bench" => load("gorvek_bench", embed!("gorvek", ["bench_long.glb"]), -1.0, 0.0),
+            "gorvek_throne" => load("gorvek_throne", embed!("gorvek", ["throne.glb"]), -1.0, 0.0),
+            "gorvek_bed" => load("gorvek_bed", embed!("gorvek", ["bed.glb"]), -1.0, 0.0),
+            "gorvek_bearskin" => load("gorvek_bearskin", embed!("gorvek", ["bearskin.glb"]), -1.0, 0.0),
+            "gorvek_shield" => load("gorvek_shield", embed!("gorvek", ["shield.glb"]), -1.0, 0.0),
+            "gorvek_axe" => load("gorvek_axe", embed!("gorvek", ["axe.glb"]), -1.0, 0.0),
+            "gorvek_sword" => load("gorvek_sword", embed!("gorvek", ["sword.glb"]), -1.0, 0.0),
+            "gorvek_chest" => load("gorvek_chest", embed!("gorvek", ["chest.glb"]), -1.0, 0.0),
+            "gorvek_keg" => load("gorvek_keg", embed!("gorvek", ["keg.glb"]), -1.0, 0.0),
+            "gorvek_cauldron" => load("gorvek_cauldron", embed!("gorvek", ["cauldron.glb"]), -1.0, 0.0),
+            "gorvek_torch" => load("gorvek_torch", embed!("gorvek", ["torch.glb"]), -1.0, 0.0),
+            "gorvek_antlers" => load("gorvek_antlers", embed!("gorvek", ["antlers.glb"]), -1.0, 0.0),
+            "gorvek_stool" => load("gorvek_stool", embed!("gorvek", ["stool.glb"]), -1.0, 0.0),
+            "gorvek_skull" => load("gorvek_skull", embed!("gorvek", ["skull.glb"]), -1.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
@@ -160,6 +176,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             }
             if named("glass") {
                 mmat.kind = kind::GLASS;
+            }
+            // «fire» brenner hele døgnet (fakler, ildsteder).
+            if named("fire") {
+                mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
             if metallic >= 0.5 {
                 mmat = mmat.flags(flag::METAL);

@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use crate::domain::scene::Light;
 use crate::domain::text::Font;
 use crate::domain::tokens::{Theme, Tokens};
-use glam::{Affine3A, Quat, Vec3};
+use glam::{Affine3A, Quat, Vec2, Vec3};
 
 pub mod furniture;
 pub mod house;
@@ -120,6 +120,11 @@ pub struct Builder<'a> {
     /// Modellene som finnes, med mål. Byen bruker dem framfor prosedyrisk
     /// geometri når de er der.
     pub models: HashMap<String, ModelInfo>,
+    /// Gulv over terrenget, til `audit` (`floor`).
+    pub floors: Vec<(Vec3, Vec2, f32, f32)>,
+    /// Instanser som henger på vegger eller står oppå noe (`place_mounted`):
+    /// (modell, instansnummer), som `audit` hopper over.
+    pub mounted: Vec<(&'static str, usize)>,
 }
 
 impl Builder<'_> {
@@ -137,7 +142,35 @@ impl Builder<'_> {
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity });
+        self.lights.push(Light { pos, radius, color, intensity, always: false });
+    }
+
+    /// Et lys som brenner hele døgnet (ild).
+    pub fn fire_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
+        self.lights.push(Light { pos, radius, color, intensity, always: true });
+    }
+
+    /// Et gulv over terrenget (inne i et hus): `audit` måler mot det i
+    /// stedet for bakken innenfor rektangelet. `center` er midten, `half`
+    /// halve målene i x og z, `top` gulvets overkant (y i verden).
+    pub fn floor(&mut self, center: Vec3, half: Vec2, yaw: f32, top: f32) {
+        self.floors.push((center, half, yaw, top));
+    }
+
+    /// Høyden på det noe kan stå på i et punkt: gulvet om punktet er på et
+    /// registrert gulv, ellers terrenget.
+    pub fn stand_height(&self, x: f32, z: f32) -> f32 {
+        for (c, half, yaw, top) in &self.floors {
+            let (s, co) = yaw.sin_cos();
+            let (dx, dz) = (x - c.x, z - c.z);
+            // Inn i gulvets lokale akser (som `at`).
+            let lx = dx * co - dz * s;
+            let lz = dx * s + dz * co;
+            if lx.abs() <= half.x && lz.abs() <= half.y {
+                return *top;
+            }
+        }
+        terrain::height(x, z)
     }
 
     pub fn solid(&mut self, shape: Shape) {
@@ -195,6 +228,15 @@ impl Builder<'_> {
         }
     }
 
+    /// Sett ut en modell som henger på en vegg eller står oppå noe annet,
+    /// så `audit` ikke måler den mot bakken.
+    pub fn place_mounted(&mut self, model: &'static str, t: Affine3A) {
+        self.place(model, t);
+        if let Some(p) = self.placements.iter().find(|p| p.model == model) {
+            self.mounted.push((model, p.transforms.len() - 1));
+        }
+    }
+
     /// Sett av plass til `n` instanser av en modell som spillet flytter
     /// per bilde (dyrene). Gjør ingenting om modellen mangler.
     pub fn reserve(&mut self, model: &'static str, n: usize) {
@@ -238,11 +280,14 @@ impl Builder<'_> {
                 continue;
             }
             let Some(info) = self.models.get(pl.model) else { continue };
-            for t in &pl.transforms {
+            for (n, t) in pl.transforms.iter().enumerate() {
+                if self.mounted.contains(&(pl.model, n)) {
+                    continue;
+                }
                 let corners = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
                 let gaps = corners.map(|(x, z)| {
                     let w = t.transform_point3(Vec3::new(x, info.min.y, z));
-                    w.y - terrain::height(w.x, w.z)
+                    w.y - self.stand_height(w.x, w.z)
                 });
                 let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
                 let at = t.translation;
@@ -310,6 +355,8 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         rng: Rng(0x5eed_f215_7a1d),
         owner: None,
         models: models.iter().map(|m| (m.name.clone(), m.clone())).collect(),
+        floors: vec![],
+        mounted: vec![],
     };
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget og i
@@ -392,6 +439,8 @@ pub fn buildings_dist(x: f32, z: f32) -> f32 {
         .min(rect_dist(x, z, 12.0, 19.0, 62.0))
         .min(rect_dist(z, x, 11.0, -46.0, -19.0))
         .min(rect_dist(z, x, 17.0, 19.0, 52.0))
+        // Gorveks tomt ved veien nordover.
+        .min(box_dist(x, z, 9.0, 26.0, -80.0, -63.0))
 }
 
 /// Midten av grusveien østover (z for en x øst for bebyggelsen).

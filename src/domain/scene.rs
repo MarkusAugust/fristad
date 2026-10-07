@@ -28,6 +28,8 @@ pub struct Light {
     pub radius: f32,
     pub color: Vec3,
     pub intensity: f32,
+    /// Brenner hele døgnet (ildsteder, fakler), ikke bare når lampene er på.
+    pub always: bool,
 }
 
 /// En modellinstans som flytter seg (dyrene): tegnes sammen med de faste

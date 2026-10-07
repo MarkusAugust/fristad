@@ -821,7 +821,7 @@ impl Game {
         let lights: Vec<Light> = self
             .lights
             .iter()
-            .map(|l| Light { intensity: l.intensity * lamp * street, ..*l })
+            .map(|l| Light { intensity: l.intensity * if l.always { 1.0 } else { lamp * street }, ..*l })
             .filter(|l| l.intensity > 0.01)
             .collect();
 

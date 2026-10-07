@@ -33,6 +33,7 @@ def mats():
         "horn": material("horn", (0.5, 0.42, 0.3), 0.55),
         "stone": material("stone", (0.4, 0.4, 0.38), 0.9),
         "glow": material("glow", (1.0, 0.55, 0.15), 0.3),
+        "fire": material("fire", (1.0, 0.5, 0.12), 0.4),
         "rope": material("rope", (0.6, 0.5, 0.3), 0.9),
     }
 
@@ -197,8 +198,8 @@ def torch(m):
     tube("ring", (0.0, -0.02, 0.05), (0.0, -0.12, 0.1), 0.02, m["iron"], 8)
     tube("shaft", (0.0, -0.1, -0.2), (0.0, -0.16, 0.26), 0.022, m["dark_oak"], 8)
     ellipsoid("wrap", (0.0, -0.165, 0.26), (0.07, 0.07, 0.1), m["rope"], 8, 6)
-    ellipsoid("flame", (0.0, -0.17, 0.38), (0.09, 0.09, 0.18), m["glow"], 8, 6)
-    ellipsoid("flame_tip", (0.0, -0.17, 0.5), (0.04, 0.04, 0.1), m["glow"], 6, 5)
+    ellipsoid("flame", (0.0, -0.17, 0.38), (0.09, 0.09, 0.18), m["fire"], 8, 6)
+    ellipsoid("flame_tip", (0.0, -0.17, 0.5), (0.04, 0.04, 0.1), m["fire"], 6, 5)
 
 
 def antlers(m):
