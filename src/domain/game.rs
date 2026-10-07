@@ -548,7 +548,12 @@ impl Game {
         if let Some(mut f) = self.flight {
             // På reise: ingen fysikk, bare turen. Kameraet snus mot reisemålet
             // under løftet og mot landingsretningen i starten av dalingen.
+            // Mellomrom hopper over resten av turen.
             f.t += dt;
+            if input.jump && !self.paused {
+                f.t = f.total();
+                input.jump = false;
+            }
             let (feet, v) = f.feet();
             self.pos = feet + Vec3::Y * (half + radius);
             self.vel_y = 0.0;
@@ -683,6 +688,7 @@ impl Game {
             };
             self.flight = Some(Flight::new(from, to, yaw));
             self.vel_y = 0.0;
+            self.env.toasts.push("Mellomrom hopper over flyturen".into());
         }
         for t in self.env.toasts.drain(..) {
             events.push(Event::Toast(t));

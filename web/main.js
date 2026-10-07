@@ -421,14 +421,14 @@ function locked() {
   return document.pointerLockElement === canvas;
 }
 
-function enter() {
+function enter(relock = true) {
   playing = true;
   gateEl.hidden = true;
   hud.hidden = false;
   engine.set_paused(false);
   canvas.focus();
   fadeHelp();
-  lock();
+  if (relock) lock();
 }
 
 function quit() {
@@ -490,9 +490,13 @@ function bindInput() {
 
   const keys = new Set(["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
   document.addEventListener("keydown", (e) => {
-    // Esc med panelet oppe lukker panelet og tar deg rett tilbake i spillet.
+    // Esc med panelet oppe lukker panelet og tar deg rett tilbake i spillet,
+    // uten å be om pekerlås (Esc gir ingen brukerhandling å låse på, og et
+    // avslått forsøk åpnet pausemenyen). Klikk i bildet låser igjen; neste
+    // Esc åpner menyen.
     if (panelOpen && e.code === "Escape") {
-      closePanel(true);
+      e.preventDefault();
+      closePanel("resume");
       return;
     }
     if (!playing) return;
@@ -555,7 +559,9 @@ function openPanel() {
 function closePanel(relock) {
   panelOpen = false;
   panel.hidden = true;
-  if (relock) {
+  if (relock === "resume") {
+    enter(false);
+  } else if (relock) {
     enter();
   } else {
     enterBtn.textContent = "Fortsett";
