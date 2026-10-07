@@ -14,7 +14,7 @@
 //! og brøler fram tooltips når det mister liv.
 
 use crate::domain::anim::{Animator, Rig};
-use crate::domain::city::dungeon::Dungeon;
+use crate::domain::world::dungeon::Dungeon;
 use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec3};
 

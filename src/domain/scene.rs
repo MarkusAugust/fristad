@@ -74,9 +74,6 @@ pub struct Frame {
     pub weather: Weather,
     pub palette: [Vec3; PALETTE],
     pub lights: Vec<Light>,
-    /// Transform og ekstra (markering, animasjon) for hver prop, i samme
-    /// rekkefølge som i byen.
-    pub props: Vec<(Affine3A, [f32; 4])>,
     /// Modellinstansene som flytter seg (dyrene), per bilde.
     pub instances: Vec<ModelInstance>,
     /// Leddmatrisene (hjørne i meshen → posert) for de skinnede

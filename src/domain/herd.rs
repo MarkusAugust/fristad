@@ -4,7 +4,7 @@
 //! som spillet poserer per bilde, så beina svinger når de går. Kroppen
 //! står på bakken og vippes etter hellingen.
 
-use crate::domain::city::terrain;
+use crate::domain::world::terrain;
 use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 

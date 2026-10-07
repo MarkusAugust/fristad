@@ -381,7 +381,7 @@ impl Combat {
 
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
-    pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::city::dungeon::Dungeon) -> Vec<CombatEvent> {
+    pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::world::dungeon::Dungeon) -> Vec<CombatEvent> {
         let mut out = vec![];
         self.hitstop = (self.hitstop - dt).max(0.0);
         // Fjæra på kameraet.
@@ -539,7 +539,7 @@ impl Combat {
 
     /// Sverdet treffer alle fiender innen rekkevidde i kjeglen foran.
     #[allow(clippy::too_many_arguments)]
-    fn strike(&mut self, damage: f32, heavy: bool, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::city::dungeon::Dungeon, out: &mut Vec<CombatEvent>) {
+    fn strike(&mut self, damage: f32, heavy: bool, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::world::dungeon::Dungeon, out: &mut Vec<CombatEvent>) {
         let fwd = forward.with_y(0.0).normalize_or_zero();
         let mut any = false;
         let n = mobs.mobs.len();

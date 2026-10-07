@@ -1,11 +1,11 @@
 //! Fristad som eget vindu på Mac, Windows og Linux: den drivende adapteren
 //! for winit. Klikk i vinduet for å fange musa, Esc for å slippe den.
 
-use crate::adapters::assets::MemoryAssets;
+use crate::adapters::gltf::Embedded;
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
-use crate::app::{self, App, Prepared};
-use crate::domain::game::Event;
+use crate::application::{prepare, App, Prepared};
+use crate::ports::driving::{Event, Play};
 use std::sync::Arc;
 use std::time::Instant;
 use winit::application::ApplicationHandler;
@@ -42,7 +42,7 @@ impl Host {
             let _ = r.window.set_cursor_grab(CursorGrabMode::None);
             r.window.set_cursor_visible(true);
             self.grabbed = false;
-            r.app.input.release_all();
+            r.app.input().release_all();
         }
     }
 }
@@ -52,10 +52,7 @@ impl ApplicationHandler for Host {
         if self.running.is_some() {
             return;
         }
-        let window = Arc::new(
-            el.create_window(Window::default_attributes().with_title("Fristad").with_inner_size(winit::dpi::LogicalSize::new(1280, 760)))
-                .expect("vindu"),
-        );
+        let window = Arc::new(el.create_window(Window::default_attributes().with_title("Fristad").with_inner_size(winit::dpi::LogicalSize::new(1280, 760))).expect("vindu"));
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone()).expect("surface");
         let (adapter, device, queue) = pollster::block_on(crate::adapters::gpu(&instance, Some(&surface))).expect("GPU");
@@ -73,8 +70,8 @@ impl ApplicationHandler for Host {
             view_formats: vec![],
         };
         surface.configure(&device, &config);
-        let prepared = self.prepared.take().expect("byen er allerede brukt");
-        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &prepared.city, &prepared.models, &prepared.layers, config.width, config.height);
+        let prepared = self.prepared.take().expect("verden er allerede brukt");
+        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &crate::adapters::layers::all(), config.width, config.height);
         let app = App::new(prepared, renderer, RapierPhysics::new());
         self.running = Some(Running { window, surface, config, device, app });
         self.last = Instant::now();
@@ -84,8 +81,8 @@ impl ApplicationHandler for Host {
         if let DeviceEvent::MouseMotion { delta } = event {
             if self.grabbed {
                 if let Some(r) = &mut self.running {
-                    r.app.input.look.0 += delta.0 as f32;
-                    r.app.input.look.1 += delta.1 as f32;
+                    r.app.input().look.0 += delta.0 as f32;
+                    r.app.input().look.1 += delta.1 as f32;
                 }
             }
         }
@@ -103,9 +100,18 @@ impl ApplicationHandler for Host {
                 }
             }
             WindowEvent::Focused(false) => self.grab(false),
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
+            WindowEvent::MouseInput { state, button, .. } => {
                 if !self.grabbed {
-                    self.grab(true);
+                    if state == ElementState::Pressed && button == MouseButton::Left {
+                        self.grab(true);
+                    }
+                } else if let Some(r) = &mut self.running {
+                    let b = match button {
+                        MouseButton::Left => 0,
+                        MouseButton::Right => 2,
+                        _ => 1,
+                    };
+                    r.app.input().mouse(b, state == ElementState::Pressed);
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
@@ -115,7 +121,7 @@ impl ApplicationHandler for Host {
                         self.grab(false);
                     } else if let Some(r) = &mut self.running {
                         if !event.repeat || event.state == ElementState::Released {
-                            r.app.input.key(&name, event.state == ElementState::Pressed);
+                            r.app.input().key(&name, event.state == ElementState::Pressed);
                         }
                     }
                 }
@@ -127,9 +133,9 @@ impl ApplicationHandler for Host {
                 let Some(r) = &mut self.running else { return };
                 for e in r.app.tick(dt) {
                     match e {
-                        Event::Prompt(Some(p)) => r.window.set_title(&format!("Fristad · {} ({}) · E inspiser · R variant · F bruk", p.class, p.variant)),
+                        Event::Prompt(Some(p)) => r.window.set_title(&format!("Fristad · {} · F {} · E {}", p.label, p.verb, p.trade)),
                         Event::Prompt(None) => r.window.set_title("Fristad"),
-                        Event::Inspect { component, variant } => log::info!("Inspiser {component} ({variant}). Panelet finnes i nettleserversjonen."),
+                        Event::Marks(_) | Event::Speech(_) => {}
                         other => log::info!("{other:?}"),
                     }
                 }
@@ -151,10 +157,14 @@ impl ApplicationHandler for Host {
     }
 }
 
+/// Frøet til kjelleren: `FRISTAD_SEED`, ellers 7.
+pub fn seed() -> u64 {
+    std::env::var("FRISTAD_SEED").ok().and_then(|s| s.parse().ok()).unwrap_or(7)
+}
+
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    let assets = MemoryAssets::from_dir(std::path::Path::new("assets/external"));
-    let prepared = app::prepare(&assets, &assets);
+    let prepared = prepare(&Embedded, seed());
     let el = EventLoop::new().expect("event loop");
     let mut host = Host { prepared: Some(prepared), running: None, last: Instant::now(), grabbed: false };
     el.run_app(&mut host).expect("kjøring");

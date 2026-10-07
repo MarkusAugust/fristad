@@ -1,32 +1,24 @@
-//! Kjernen i Fristad: byen, komponentene og spillet, uten noen avhengighet
-//! til GPU, nettleser, vindu, fysikkmotor eller filformater. Alt det bor i
-//! `adapters/`, og snakker med kjernen gjennom portene i `ports.rs`.
+//! Kjernen i Fristad: verden, reglene og figurene, uten noen avhengighet
+//! til porter, applikasjon, adaptere, GPU, nettleser, vindu, fysikkmotor
+//! eller filformater. Testen i `architecture.rs` passer på det.
 //!
-//! Lagene, innenfra og ut:
-//!
-//! - `tokens`, `geometry`, `text`, `model`, `palette`: rene data og bygging.
-//! - `city`: byen bygges prosedyrisk fra tokens, med fasader, trær og
-//!   gatemøbler.
-//! - `installations`: hver Fristil-komponent slik den står i byen, med
-//!   geometri, hva den gjør når du bruker den, og hvordan den animeres.
-//!   Nye komponenter legges til som en fil her og én linje i `all()`.
-//! - `game`: spilleren, døgnet, været og samspillet mellom installasjonene.
-//! - `scene`: det rendereren får per bilde.
+//! - `geometry`, `model`, `anim`, `scene`, `rng`: rene data og bygging.
+//! - `world`: middelalderbyen, terrenget, naturen og kjelleren, bygd fra
+//!   modellene som finnes.
+//! - `combat`, `mobs`, `craft`, `npcs`, `herd`: reglene for kampen,
+//!   fiendene, smiinga, innbyggerne og dyrene.
+//! - `weather`: værtypene og hva de gjør med lyset.
 
 pub mod anim;
-pub mod city;
 pub mod combat;
 pub mod craft;
-pub mod game;
 pub mod geometry;
 pub mod herd;
-pub mod installations;
 pub mod mobs;
 pub mod model;
 pub mod npcs;
-pub mod palette;
-pub mod ports;
+pub mod rng;
 pub mod scene;
-pub mod sheets;
-pub mod text;
 pub mod tokens;
+pub mod weather;
+pub mod world;

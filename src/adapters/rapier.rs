@@ -1,7 +1,7 @@
 //! Fysikk-adapteren: Rapier bak `ports::Physics`.
 
-use crate::domain::city::Shape;
-use crate::domain::ports::{ColliderId, Hit, Physics};
+use crate::domain::world::Shape;
+use crate::ports::{ColliderId, Hit, Physics};
 use glam::{Affine3A, Vec3};
 use rapier3d::control::{CharacterAutostep, CharacterLength, KinematicCharacterController};
 use rapier3d::prelude::*;

@@ -370,13 +370,8 @@ def broadleaf(name, sp, kind, texture, seed, trunks=1, skeleton_only=False):
     bpy.context.view_layer.objects.active = parts[0]
     bpy.ops.object.join()
     trunk = bpy.context.active_object
-    if sp.trunk_r > 0.1:
-        bake_bark(trunk, kind, name)
-    else:
-        m = bpy.data.materials.new("stem")
-        m.use_nodes = True
-        m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.1, 0.07, 0.05, 1)
-        trunk.data.materials.append(m)
+    # Alt får bakt bark, også de tynne stilkene i buskene (modellregelen).
+    bake_bark(trunk, kind if kind != "bush" else "oak", name)
     export(f"{OUT}/{name}_trunk.glb")
     delete_all()
     # Bladene: kort rundt hver spiss, litt forskjøvet og tilfeldig vridd.

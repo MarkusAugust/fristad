@@ -1,15 +1,13 @@
-// JavaScript-laget i Fristad: løkka, input, pekerlås og panelene.
-// Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm).
-// Meldingene og forbindelsesstatusen er Fristils egne web-komponenter.
+// JavaScript-laget i Fristad: løkka, input, pekerlås, overleggene og lyden.
+// Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
+// den drivende porten.
 
-import init, { start, asset_paths } from "./pkg/fristad.js";
+import init, { start } from "./pkg/fristad.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
-import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 
 defineFsToast();
-defineFsConnectionStatus();
-// Panelet viser eksempelet fra dokumentasjonen levende, så fanene må være
+// Boka viser eksempelet fra dokumentasjonen levende, så fanene må være
 // registrert for at <fs-tabs> skal koble fanene til panelene.
 defineFsTabs();
 
@@ -26,156 +24,7 @@ let canvas = $("world");
 let engine = null;
 let docs = {};
 let panelOpen = false;
-let current = { component: "button", variant: "primary" };
-
-// Variantene per komponent, i samme rekkefølge som R blar gjennom dem i
-// byen, med en tekst til panelet.
-const VARIANTS = {
-  button: [
-    { name: "primary", label: "Send søknad", note: "Standard. Trenger ingen data-variant." },
-    { name: "secondary", label: "Lagre utkast", note: "Omriss, gjennomsiktig bakgrunn." },
-    { name: "ghost", label: "Legg til vedlegg", note: "Ingen kant, ingen bakgrunn." },
-    { name: "danger", label: "Slett søknad", note: "For handlinger som ikke kan angres." },
-  ],
-  alert: [
-    { name: "neutral", note: "Standard, nøytral." },
-    { name: "info", note: 'data-color="info"' },
-    { name: "success", note: 'data-color="success"' },
-    { name: "warning", note: 'data-color="warning"' },
-    { name: "danger", note: 'data-color="danger"' },
-  ],
-  tag: [
-    { name: "default", note: "Standard, med kant." },
-    { name: "filled", note: 'data-variant="filled"' },
-    { name: "disabled", note: 'aria-disabled="true"' },
-  ],
-  badge: [
-    { name: "accent", note: "Standard." },
-    { name: "success", note: 'data-color="success"' },
-    { name: "warning", note: 'data-color="warning"' },
-    { name: "danger", note: 'data-color="danger"' },
-    { name: "neutral", note: 'data-color="neutral"' },
-  ],
-  progress: [
-    { name: "accent", note: "Standard." },
-    { name: "success", note: 'data-color="success"' },
-    { name: "warning", note: 'data-color="warning"' },
-    { name: "danger", note: 'data-color="danger"' },
-  ],
-  spinner: [
-    { name: "small", note: 'data-size="small"' },
-    { name: "medium", note: "Standard." },
-    { name: "large", note: 'data-size="large"' },
-  ],
-  skeleton: [
-    { name: "text", note: 'data-variant="text"' },
-    { name: "circle", note: 'data-variant="circle"' },
-    { name: "block", note: "Standard, en blokk." },
-  ],
-  tabs: [
-    { name: "Søknaden", note: "Første fane valgt." },
-    { name: "Vedlegg", note: "Andre fane valgt." },
-    { name: "Vedtak", note: "Tredje fane valgt." },
-  ],
-  card: [
-    { name: "default", note: "Standard, med kant." },
-    { name: "filled", note: 'data-variant="filled"' },
-    { name: "interactive", note: "data-interactive, vist med aksentkant som ved hover." },
-  ],
-  accordion: [
-    { name: "default", note: "Standard, med kant og radius." },
-    { name: "plain", note: 'data-variant="plain": uten kant på sidene og toppen.' },
-  ],
-  input: [
-    { name: "default", note: "Standard." },
-    { name: "success", note: 'data-state="success"' },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "disabled", note: "disabled" },
-  ],
-  select: [
-    { name: "default", note: "Standard." },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "disabled", note: "disabled" },
-  ],
-  checkbox: [
-    { name: "default", note: "Standard." },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "disabled", note: "disabled" },
-    { name: "indeterminate", note: "indeterminate satt fra JavaScript." },
-  ],
-  radio: [
-    { name: "default", note: "Standard." },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-  ],
-  textarea: [
-    { name: "default", note: "Standard." },
-    { name: "success", note: 'data-state="success"' },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "disabled", note: "disabled" },
-  ],
-  table: [
-    { name: "default", note: "Standard." },
-    { name: "striped", note: 'data-variant="striped"' },
-    { name: "hoverable", note: "data-hoverable, vist med raden du sikter på markert." },
-  ],
-  link: [
-    { name: "default", note: "Standard." },
-    { name: "visited", note: ":visited" },
-    { name: "disabled", note: 'aria-disabled="true"' },
-  ],
-  avatar: [
-    { name: "circle", note: "Standard, rund." },
-    { name: "square", note: 'data-variant="square"' },
-  ],
-  divider: [
-    { name: "default", note: "Standard." },
-    { name: "strong", note: 'data-variant="strong"' },
-    { name: "subtle", note: 'data-variant="subtle"' },
-  ],
-  heading: [
-    { name: "default", note: "Standard, --fs-font-size-xl." },
-    { name: "mega", note: 'data-size="mega"' },
-    { name: "xl", note: 'data-size="xl"' },
-    { name: "m", note: 'data-size="m"' },
-    { name: "s", note: 'data-size="s"' },
-    { name: "xs", note: 'data-size="xs", i versaler.' },
-  ],
-  label: [
-    { name: "default", note: "Vanlig ledetekst." },
-    { name: "required", note: 'data-required="symbol": stjerne i farefargen.' },
-    { name: "required-text", note: 'data-required="text": «(påkrevd)».' },
-    { name: "optional", note: 'data-optional="": «(valgfri)» i dempet farge.' },
-    { name: "disabled", note: 'aria-disabled="true"' },
-  ],
-  fieldset: [
-    { name: "default", note: "Vanlig legend." },
-    { name: "required", note: 'data-required="symbol" på legenden.' },
-    { name: "invalid", note: 'data-state="invalid" på gruppa.' },
-    { name: "success", note: 'data-state="success"' },
-    { name: "disabled", note: "disabled på gruppa." },
-  ],
-  "help-text": [
-    { name: "default", note: "Dempet. Standardvalget." },
-    { name: "strong", note: 'data-variant="strong"' },
-    { name: "success", note: 'data-variant="success"' },
-    { name: "warning", note: 'data-variant="warning"' },
-  ],
-  "error-text": [
-    { name: "default", note: "Feil som stopper innsending." },
-    { name: "warning", note: 'data-variant="warning"' },
-  ],
-  "file-upload": [
-    { name: "default", note: "Standard, stiplet kant." },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "success", note: 'data-state="success"' },
-    { name: "disabled", note: "disabled" },
-  ],
-  search: [
-    { name: "default", note: "Standard." },
-    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
-    { name: "disabled", note: "disabled" },
-  ],
-};
+let current = { component: "" };
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
 // høy pikseltetthet. Forskjellen synes knapt, men GPU-en får mye mindre å gjøre.
@@ -199,9 +48,6 @@ async function boot() {
   } catch {
     docs = {};
   }
-  // Fotoskannede materialer og modeller (CC0 fra Poly Haven), hentet av
-  // tools/fetch-assets.ts under byggingen. Mangler de, bakes alt i motoren.
-  const assets = await loadAssets();
   stage("Bygger byen og baker materialene …");
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
@@ -209,14 +55,14 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs);
+    engine = await start(canvas, true);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs);
+    engine = await start(canvas, false);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
@@ -235,49 +81,6 @@ async function boot() {
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
     $("touch-note").hidden = false;
   }
-}
-
-async function loadAssets() {
-  const none = { manifest: undefined, names: [], blobs: [] };
-  let manifest;
-  try {
-    const res = await fetch("assets/manifest.json");
-    if (!res.ok) return none;
-    manifest = await res.text();
-  } catch {
-    return none;
-  }
-  const paths = asset_paths(manifest);
-  const bar = $("loading");
-  bar.hidden = false;
-  let done = 0;
-  const tick = () => {
-    done++;
-    bar.value = Math.round((done / paths.length) * 100);
-    setStatus(`Henter materialer og modeller (${done} av ${paths.length}) …`);
-  };
-  setStatus(`Henter materialer og modeller (0 av ${paths.length}) …`);
-  // Seks om gangen, så nettleseren ikke åpner hundre forbindelser.
-  const blobs = new Array(paths.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < paths.length) {
-      const i = next++;
-      const r = await fetch(`assets/${paths[i]}`);
-      if (!r.ok) throw new Error(`${paths[i]}: HTTP ${r.status}`);
-      blobs[i] = new Uint8Array(await r.arrayBuffer());
-      tick();
-    }
-  };
-  const ok = await Promise.all(Array.from({ length: 6 }, worker)).then(
-    () => true,
-    (e) => {
-      console.warn("Ressursene kunne ikke hentes, bruker de bakte:", e);
-      return false;
-    },
-  );
-  if (!ok) return none;
-  return { manifest, names: paths, blobs };
 }
 
 function setStatus(text) {
@@ -374,28 +177,19 @@ function loop(now) {
 function handle(e) {
   switch (e.type) {
     case "prompt":
-      if (e.component) {
-        current = { component: e.component, variant: e.variant, class: e.class };
-        $("prompt-name").textContent = e.label || docs[e.component]?.title || e.component;
-        $("prompt-class").textContent = e.class;
-        $("prompt-class").hidden = !e.class;
-        $("prompt-variant").textContent = e.variant;
-        $("prompt-variant").hidden = !e.variant;
-        $("key-inspect").hidden = e.inspectable === false;
-        $("key-variant").hidden = !e.variants;
-        $("key-use").hidden = !e.usable;
-        $("key-use-text").textContent = e.verb || "Bruk";
+      if (e.label) {
+        $("prompt-name").textContent = e.label;
+        $("key-use").hidden = !e.verb;
+        $("key-use-text").textContent = e.verb || "";
+        $("key-trade").hidden = !e.trade;
+        $("key-trade-text").textContent = e.trade || "";
         promptEl.hidden = false;
       } else {
         promptEl.hidden = true;
       }
       break;
-    case "variant":
-      current.variant = e.variant;
-      break;
-    case "inspect":
-      current = { component: e.component, variant: e.variant, class: current.class };
-      openPanel();
+    case "fade":
+      fade();
       break;
     case "theme":
       document.documentElement.dataset.theme = e.theme;
@@ -477,10 +271,18 @@ function esc(t) {
 function readDoc(component) {
   engine.read_doc(component);
   if (docs[component]) {
-    current = { component, variant: "", class: `.fs-${component}` };
+    current = { component };
     closeOverlay(false);
     openPanel();
   }
+}
+
+// Ned i krypta og opp igjen: skjermen går i svart et øyeblikk.
+function fade() {
+  const el = $("fade");
+  el.classList.remove("on");
+  void el.offsetWidth;
+  el.classList.add("on");
 }
 
 // Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
@@ -531,7 +333,7 @@ function openShop(npc, wares) {
 // Skjemakontoret: oppskriften er et Fristil-skjema. Feltene er
 // komponentene som trengs, feilteksten sier hva som mangler.
 function openWorkshop(recipes) {
-  const body = openOverlay("Skjemakontoret");
+  const body = openOverlay("Skriptoriet");
   const form = document.createElement("form");
   form.className = "workshop";
   form.innerHTML = `
@@ -557,7 +359,7 @@ function openWorkshop(recipes) {
     for (const [c, need, have] of r.needs) {
       const wrap = document.createElement("div");
       wrap.className = "field";
-      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i kjelleren og hos Knappesmeden.</p>`;
+      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i krypta og hos Knappesmeden.</p>`;
       fields.appendChild(wrap);
     }
     if (r.requires.length) {
@@ -807,6 +609,12 @@ const sfx = (() => {
       tone(c, "sawtooth", 160, 30, 0.5, 0.02, 1.4);
       crunch(c, 0.4, 0.8, 600);
     },
+    door: (c) => {
+      // Tung tredør med jernbeslag: knirk og et dunk.
+      tone(c, "sawtooth", 140, 210, 0.08, 0.05, 0.5);
+      crunch(c, 0.5, 0.25, 500, 0.45);
+      tone(c, "sine", 70, 40, 0.5, 0.005, 0.3, 0.45);
+    },
   };
   return {
     play(name) {
@@ -888,12 +696,12 @@ function pause() {
 
 function bindInput() {
   enterBtn.addEventListener("click", enter);
-  // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til torget.
+  // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til sørporten.
   $("respawn").addEventListener("click", () => {
     engine.respawn();
     enter();
   });
-  // Avslutt: tilbake til startskjermen, med spilleren på torget igjen.
+  // Avslutt: tilbake til startskjermen, med spilleren ved sørporten igjen.
   $("quit").addEventListener("click", quit);
   canvas.addEventListener("click", () => {
     if (playing && !locked()) lock();
@@ -948,15 +756,6 @@ function bindInput() {
       pause();
       return;
     }
-    // Skriver du i et skjemafelt, går tastene dit: tegn, rettetast og Enter.
-    if (engine.editing()) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter" || e.key === "Escape") {
-        e.preventDefault();
-        engine.text(e.key);
-      }
-      return;
-    }
     if (keys.has(e.code)) e.preventDefault();
     if (e.repeat) return;
     engine.key(e.code, true);
@@ -965,11 +764,6 @@ function bindInput() {
     if (playing) engine.key(e.code, false);
   });
   window.addEventListener("blur", () => engine.release_all());
-
-  // Forbindelsen: `.fs-connection-status` viser linja, byen får uvær.
-  engine.set_online(navigator.onLine);
-  window.addEventListener("offline", () => engine.set_online(false));
-  window.addEventListener("online", () => engine.set_online(true));
 
   $("close").addEventListener("click", () => closePanel(true));
   $("overlay-close").addEventListener("click", () => closeOverlay(true));
@@ -988,15 +782,13 @@ function openPanel() {
   hud.hidden = true;
 
   $("panel-title").textContent = d.title ?? current.component;
-  const page = !current.class;
-  $("panel-class").textContent = page ? "" : `.fs-${current.component}`;
-  $("panel-kind").textContent = page ? "Veiledning" : d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
+  $("panel-class").textContent = `.fs-${current.component}`;
+  $("panel-kind").textContent = d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
   $("panel-description").textContent = d.description ?? "";
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";
   $("panel-link").href = d.url ?? "https://fristil.sobernetics.no/";
   renderDemo(d.code ?? "");
-  renderVariants();
   panel.hidden = false;
   $("close").focus();
 }
@@ -1030,48 +822,6 @@ function renderDemo(code) {
   for (const a of tpl.content.querySelectorAll("a[href]")) a.setAttribute("href", "#");
   for (const s of tpl.content.querySelectorAll("script")) s.remove();
   demo.append(tpl.content);
-}
-
-// Variantene som chips. Velger du en, bytter komponenten i byen.
-function renderVariants() {
-  const list = $("variants");
-  const section = $("variants-section");
-  list.replaceChildren();
-  const variants = VARIANTS[current.component];
-  if (!variants) {
-    section.hidden = true;
-    return;
-  }
-  section.hidden = false;
-  for (const v of variants) {
-    const row = document.createElement("div");
-    row.className = "variant";
-    row.dataset.active = String(v.name === current.variant);
-
-    const btn = document.createElement("button");
-    btn.className = "fs-button";
-    if (current.component === "button") {
-      if (v.name !== "primary") btn.dataset.variant = v.name;
-      btn.textContent = v.label;
-    } else {
-      btn.dataset.variant = v.name === current.variant ? "primary" : "secondary";
-      btn.textContent = v.name;
-    }
-    btn.setAttribute("aria-pressed", String(v.name === current.variant));
-    btn.addEventListener("click", () => {
-      current.variant = v.name;
-      engine.set_variant(current.component, v.name);
-      renderVariants();
-    });
-
-    const note = document.createElement("div");
-    note.className = "fs-paragraph";
-    note.dataset.size = "small";
-    note.textContent = v.note;
-
-    row.append(btn, note);
-    list.append(row);
-  }
 }
 
 function inlineCode(text) {

@@ -1,8 +1,14 @@
-//! Adapterne: det som kobler kjernen til GPU, fysikkmotor, filformater og
-//! verten (nettleser eller vindu).
+//! Adapterne: det som kobler applikasjonen til GPU, fysikkmotor,
+//! filformater og verten (nettleser eller vindu).
+//!
+//! Drevne: `wgpu` (`ports::Renderer`), `rapier` (`ports::Physics`), `gltf`
+//! (`ports::ModelSource`) og `layers` (teksturlagene til rendereren).
+//! Drivende: `web` (nettleseren), `native` (eget vindu) og
+//! `src/bin/snapshot.rs` (skjermbilder), som alle snakker med
+//! `ports::driving::Play`.
 
-pub mod assets;
 pub mod gltf;
+pub mod layers;
 pub mod rapier;
 pub mod wgpu;
 

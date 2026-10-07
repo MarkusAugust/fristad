@@ -1,18 +1,72 @@
-//! glTF-adapteren: leser glTF til `domain::model::Model`. `Embedded` er
-//! modellene som er bygget inn i binæren (lykta, reven og bilene fra
-//! `tools/models/cars.py`); eksterne modeller kommer gjennom
-//! `adapters::assets`.
+//! glTF-adapteren: leser glTF til `domain::model::Model`, bak porten
+//! `ModelSource`. `Embedded` er modellene fra `tools/models/` som er bygd
+//! inn i binæren.
 
 use crate::domain::anim::{Channel, Clip, Joint, Keys, Rig};
 use crate::domain::geometry::{flag, kind, Mat, Mesh};
 use crate::domain::model::{Image, Model};
-use crate::domain::ports::ModelSource;
+use crate::ports::ModelSource;
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 
-macro_rules! embed {
-    ($dir:literal, [$($file:literal),*]) => {
-        &[$(($file, include_bytes!(concat!("../../assets/models/", $dir, "/", $file)) as &[u8])),*]
+/// Modellene som er bygd inn i binæren: navn, og fila under
+/// `assets/models/`. Alle er laget i Blender av skriptene i
+/// `tools/models/`, med origo og målestokk som skriptene beskriver.
+macro_rules! models {
+    ($($name:literal => $path:literal),* $(,)?) => {
+        const MODELS: &[(&str, &[u8])] = &[$(($name, include_bytes!(concat!("../../assets/models/", $path)) as &[u8])),*];
     };
+}
+
+models! {
+    // Dyrene fra tools/models/animals.py: kroppen har origo i bakken under
+    // midten, beina i hofteleddet (domain/herd.rs poserer dem).
+    "sheep_body" => "animals/sheep_body.glb",
+    "sheep_leg" => "animals/sheep_leg.glb",
+    "cow_body" => "animals/cow_body.glb",
+    "cow_leg_front" => "animals/cow_leg_front.glb",
+    "cow_leg_hind" => "animals/cow_leg_hind.glb",
+    // Trærne og buskene fra tools/models/trees.py: stammen med bakt bark,
+    // og bladverket som kort (to modeller med samme origo).
+    "oak1_trunk" => "trees/oak1_trunk.glb",
+    "oak1_leaves" => "trees/oak1_leaves.glb",
+    "oak2_trunk" => "trees/oak2_trunk.glb",
+    "oak2_leaves" => "trees/oak2_leaves.glb",
+    "birch1_trunk" => "trees/birch1_trunk.glb",
+    "birch1_leaves" => "trees/birch1_leaves.glb",
+    "spruce1_trunk" => "trees/spruce1_trunk.glb",
+    "spruce1_needles" => "trees/spruce1_needles.glb",
+    "spruce2_trunk" => "trees/spruce2_trunk.glb",
+    "spruce2_needles" => "trees/spruce2_needles.glb",
+    "bush1_trunk" => "trees/bush1_trunk.glb",
+    "bush1_leaves" => "trees/bush1_leaves.glb",
+    "bush2_trunk" => "trees/bush2_trunk.glb",
+    "bush2_leaves" => "trees/bush2_leaves.glb",
+    // Pynten i kjelleren (tools/models/gorvek.py og house.py).
+    "gorvek_chest" => "gorvek/chest.glb",
+    "gorvek_keg" => "gorvek/keg.glb",
+    "gorvek_torch" => "gorvek/torch.glb",
+    "gorvek_skull" => "gorvek/skull.glb",
+    "door_lamp" => "house/door_lamp.glb",
+    // Fiendene og lootet i kjelleren fra tools/models/mobs.py.
+    "mutant_button" => "mobs/mutant_button.glb",
+    "mutant_tooltip" => "mobs/mutant_tooltip.glb",
+    "mutant_input" => "mobs/mutant_input.glb",
+    "mutant_modal" => "mobs/mutant_modal.glb",
+    "mutant_table" => "mobs/mutant_table.glb",
+    "framework" => "mobs/framework.glb",
+    "token" => "mobs/token.glb",
+    "bolt" => "mobs/bolt.glb",
+    "key" => "mobs/key.glb",
+    // Spillerens armer fra tools/models/arms.py, i kamerarommet (origo i
+    // øyet, −Z fram), og våpnene og skjoldene i armenes rom.
+    "arms" => "arms/arms.glb",
+    "sword" => "arms/sword.glb",
+    "axe" => "arms/axe.glb",
+    "dagger" => "arms/dagger.glb",
+    "shield_round" => "arms/shield_round.glb",
+    "shield_tower" => "arms/shield_tower.glb",
+    // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
+    "npc" => "npc/npc.glb",
 }
 
 /// Modellene som er med, lest ved behov.
@@ -20,120 +74,12 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg_front".into(), "cow_leg_hind".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into(), "site_container".into(), "site_excavator".into(), "site_mixer".into(), "site_pallet".into(), "site_fence".into(), "site_wheelbarrow".into(), "site_toilet".into(), "site_crane".into(), "mutant_button".into(), "mutant_tooltip".into(), "mutant_input".into(), "mutant_modal".into(), "mutant_table".into(), "framework".into(), "token".into(), "key".into(), "bolt".into(), "arms".into(), "sword".into(), "axe".into(), "dagger".into(), "shield_round".into(), "shield_tower".into(), "npc".into()]
+        MODELS.iter().map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let r = match name {
-            "lantern" => load(
-                "lantern",
-                embed!("lantern", [
-                    "Lantern.gltf",
-                    "Lantern.bin",
-                    "Lantern_baseColor.jpg",
-                    "Lantern_roughnessMetallic.jpg",
-                    "Lantern_normal.jpg",
-                    "Lantern_emissive.jpg"
-                ]),
-                // Lykta er 4,2 m høy.
-                4.2,
-                0.0,
-            ),
-            "fox" => load("fox", embed!("fox", ["Fox.gltf", "Fox.bin", "Texture.png"]), 0.75, 0.0),
-            // Bilene er modellert i meter med fronten mot +X.
-            // Med bakt tekstur (tools/models/bake_cars.py): AO, skitt og
-            // ruhet/metall i ett atlas per bil.
-            "car_estate" => load("car_estate", embed!("cars", ["estate_tex.glb"]), 0.0, 0.0),
-            "car_hatch" => load("car_hatch", embed!("cars", ["hatch_tex.glb"]), 0.0, 0.0),
-            "car_van" => load("car_van", embed!("cars", ["van_tex.glb"]), 0.0, 0.0),
-            // Gatemøblene fra tools/models/street.py, i meter.
-            "lamp" => load("lamp", embed!("street", ["lamp.glb"]), 0.0, 0.0),
-            "bench" => load("bench", embed!("street", ["bench.glb"]), 0.0, 0.0),
-            "bicycle" => load("bicycle", embed!("street", ["bicycle.glb"]), 0.0, 0.0),
-            "bin" => load("bin", embed!("street", ["bin.glb"]), 0.0, 0.0),
-            // Torget fra tools/models/plaza.py.
-            "cafe_table" => load("cafe_table", embed!("plaza", ["cafe_table.glb"]), 0.0, 0.0),
-            "cafe_chair" => load("cafe_chair", embed!("plaza", ["cafe_chair.glb"]), 0.0, 0.0),
-            "parasol" => load("parasol", embed!("plaza", ["parasol.glb"]), 0.0, 0.0),
-            "market_stall" => load("market_stall", embed!("plaza", ["market_stall.glb"]), 0.0, 0.0),
-            "mailbox" => load("mailbox", embed!("plaza", ["mailbox.glb"]), 0.0, 0.0),
-            // Husdetaljene fra tools/models/house.py.
-            "window_22" => load("window_22", embed!("house", ["window_22.glb"]), -1.0, 0.0),
-            "window_23" => load("window_23", embed!("house", ["window_23.glb"]), -1.0, 0.0),
-            "door_lamp" => load("door_lamp", embed!("house", ["door_lamp.glb"]), -1.0, 0.0),
-            "flower_box" => load("flower_box", embed!("house", ["flower_box.glb"]), -1.0, 0.0),
-            // Dyrene fra tools/models/animals.py: kroppen har origo i bakken
-            // under midten, beina i hofteleddet (domain/herd.rs poserer dem).
-            "sheep_body" => load("sheep_body", embed!("animals", ["sheep_body.glb"]), -1.0, 0.0),
-            "sheep_leg" => load("sheep_leg", embed!("animals", ["sheep_leg.glb"]), -1.0, 0.0),
-            "cow_body" => load("cow_body", embed!("animals", ["cow_body.glb"]), -1.0, 0.0),
-            "cow_leg_front" => load("cow_leg_front", embed!("animals", ["cow_leg_front.glb"]), -1.0, 0.0),
-            "cow_leg_hind" => load("cow_leg_hind", embed!("animals", ["cow_leg_hind.glb"]), -1.0, 0.0),
-            // Innboet i Gorveks hus fra tools/models/gorvek.py, origo beholdt.
-            "gorvek_table" => load("gorvek_table", embed!("gorvek", ["table.glb"]), -1.0, 0.0),
-            "gorvek_bench" => load("gorvek_bench", embed!("gorvek", ["bench_long.glb"]), -1.0, 0.0),
-            "gorvek_throne" => load("gorvek_throne", embed!("gorvek", ["throne.glb"]), -1.0, 0.0),
-            "gorvek_bed" => load("gorvek_bed", embed!("gorvek", ["bed.glb"]), -1.0, 0.0),
-            "gorvek_bearskin" => load("gorvek_bearskin", embed!("gorvek", ["bearskin.glb"]), -1.0, 0.0),
-            "gorvek_shield" => load("gorvek_shield", embed!("gorvek", ["shield.glb"]), -1.0, 0.0),
-            "gorvek_axe" => load("gorvek_axe", embed!("gorvek", ["axe.glb"]), -1.0, 0.0),
-            "gorvek_sword" => load("gorvek_sword", embed!("gorvek", ["sword.glb"]), -1.0, 0.0),
-            "gorvek_chest" => load("gorvek_chest", embed!("gorvek", ["chest.glb"]), -1.0, 0.0),
-            "gorvek_keg" => load("gorvek_keg", embed!("gorvek", ["keg.glb"]), -1.0, 0.0),
-            "gorvek_cauldron" => load("gorvek_cauldron", embed!("gorvek", ["cauldron.glb"]), -1.0, 0.0),
-            "gorvek_torch" => load("gorvek_torch", embed!("gorvek", ["torch.glb"]), -1.0, 0.0),
-            "gorvek_antlers" => load("gorvek_antlers", embed!("gorvek", ["antlers.glb"]), -1.0, 0.0),
-            "gorvek_stool" => load("gorvek_stool", embed!("gorvek", ["stool.glb"]), -1.0, 0.0),
-            "gorvek_skull" => load("gorvek_skull", embed!("gorvek", ["skull.glb"]), -1.0, 0.0),
-            // Trærne og buskene fra tools/models/trees.py: stammen med bakt
-            // bark, og bladverket som kort (to modeller med samme origo).
-            "oak1_trunk" => load("oak1_trunk", embed!("trees", ["oak1_trunk.glb"]), -1.0, 0.0),
-            "oak1_leaves" => load("oak1_leaves", embed!("trees", ["oak1_leaves.glb"]), -1.0, 0.0),
-            "oak2_trunk" => load("oak2_trunk", embed!("trees", ["oak2_trunk.glb"]), -1.0, 0.0),
-            "oak2_leaves" => load("oak2_leaves", embed!("trees", ["oak2_leaves.glb"]), -1.0, 0.0),
-            "birch1_trunk" => load("birch1_trunk", embed!("trees", ["birch1_trunk.glb"]), -1.0, 0.0),
-            "birch1_leaves" => load("birch1_leaves", embed!("trees", ["birch1_leaves.glb"]), -1.0, 0.0),
-            "spruce1_trunk" => load("spruce1_trunk", embed!("trees", ["spruce1_trunk.glb"]), -1.0, 0.0),
-            "spruce1_needles" => load("spruce1_needles", embed!("trees", ["spruce1_needles.glb"]), -1.0, 0.0),
-            "spruce2_trunk" => load("spruce2_trunk", embed!("trees", ["spruce2_trunk.glb"]), -1.0, 0.0),
-            "spruce2_needles" => load("spruce2_needles", embed!("trees", ["spruce2_needles.glb"]), -1.0, 0.0),
-            "bush1_trunk" => load("bush1_trunk", embed!("trees", ["bush1_trunk.glb"]), -1.0, 0.0),
-            "bush1_leaves" => load("bush1_leaves", embed!("trees", ["bush1_leaves.glb"]), -1.0, 0.0),
-            "bush2_trunk" => load("bush2_trunk", embed!("trees", ["bush2_trunk.glb"]), -1.0, 0.0),
-            "bush2_leaves" => load("bush2_leaves", embed!("trees", ["bush2_leaves.glb"]), -1.0, 0.0),
-            // Byggeplassen fra tools/models/site.py, med bakte teksturer.
-            "site_container" => load("site_container", embed!("site", ["container.glb"]), -1.0, 0.0),
-            "site_excavator" => load("site_excavator", embed!("site", ["excavator.glb"]), -1.0, 0.0),
-            "site_mixer" => load("site_mixer", embed!("site", ["mixer.glb"]), -1.0, 0.0),
-            "site_pallet" => load("site_pallet", embed!("site", ["pallet.glb"]), -1.0, 0.0),
-            "site_fence" => load("site_fence", embed!("site", ["fence.glb"]), -1.0, 0.0),
-            "site_wheelbarrow" => load("site_wheelbarrow", embed!("site", ["wheelbarrow.glb"]), -1.0, 0.0),
-            "site_toilet" => load("site_toilet", embed!("site", ["toilet.glb"]), -1.0, 0.0),
-            "site_crane" => load("site_crane", embed!("site", ["crane.glb"]), -1.0, 0.0),
-            // Fiendene og lootet i kjelleren fra tools/models/mobs.py.
-            "mutant_button" => load("mutant_button", embed!("mobs", ["mutant_button.glb"]), -1.0, 0.0),
-            "mutant_tooltip" => load("mutant_tooltip", embed!("mobs", ["mutant_tooltip.glb"]), -1.0, 0.0),
-            "mutant_input" => load("mutant_input", embed!("mobs", ["mutant_input.glb"]), -1.0, 0.0),
-            "mutant_modal" => load("mutant_modal", embed!("mobs", ["mutant_modal.glb"]), -1.0, 0.0),
-            "mutant_table" => load("mutant_table", embed!("mobs", ["mutant_table.glb"]), -1.0, 0.0),
-            "framework" => load("framework", embed!("mobs", ["framework.glb"]), -1.0, 0.0),
-            "token" => load("token", embed!("mobs", ["token.glb"]), -1.0, 0.0),
-            "bolt" => load("bolt", embed!("mobs", ["bolt.glb"]), -1.0, 0.0),
-            "key" => load("key", embed!("mobs", ["key.glb"]), -1.0, 0.0),
-            // Spillerens armer med sverd og skjold fra tools/models/arms.py,
-            // i kamerarommet (origo i øyet, −Z fram).
-            "arms" => load("arms", embed!("arms", ["arms.glb"]), -1.0, 0.0),
-            // Våpnene og skjoldene, i armenes rom; spillet fester dem i hendene.
-            "sword" => load("sword", embed!("arms", ["sword.glb"]), -1.0, 0.0),
-            "axe" => load("axe", embed!("arms", ["axe.glb"]), -1.0, 0.0),
-            "dagger" => load("dagger", embed!("arms", ["dagger.glb"]), -1.0, 0.0),
-            "shield_round" => load("shield_round", embed!("arms", ["shield_round.glb"]), -1.0, 0.0),
-            "shield_tower" => load("shield_tower", embed!("arms", ["shield_tower.glb"]), -1.0, 0.0),
-            // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
-            "npc" => load("npc", embed!("npc", ["npc.glb"]), -1.0, 0.0),
-            _ => return None,
-        };
-        r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        let (_, bytes) = MODELS.iter().find(|(n, _)| *n == name)?;
+        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 

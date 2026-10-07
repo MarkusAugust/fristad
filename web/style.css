@@ -506,3 +506,21 @@ code {
   gap: var(--fs-spacing-2);
   margin-top: var(--fs-spacing-4);
 }
+
+/* Ned i krypta og opp igjen: et kort sort teppe over bildet. */
+.fade {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.fade.on {
+  animation: fade-through 0.9s ease-in-out;
+}
+@keyframes fade-through {
+  0% { opacity: 1; }
+  35% { opacity: 1; }
+  100% { opacity: 0; }
+}

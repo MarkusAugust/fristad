@@ -446,105 +446,6 @@ impl Materials {
         }
         mipper.generate(device, queue, &leaf, &leaf, srgb, srgb, 1, leaf_mips);
 
-        // Skriftatlaset, med mipnivåer regnet ut her (boksfilter på
-        // avstandsfeltet), så teksten ikke flimrer og gråner på avstand.
-        let font_img = image::load_from_memory(crate::domain::text::ATLAS_PNG).expect("inter.png").into_luma8();
-        let (fw, fh) = font_img.dimensions();
-        let font_mips = 5u32.min(fw.max(fh).ilog2() + 1);
-        let mut font_data: Vec<u8> = font_img.as_raw().clone();
-        let (mut lw, mut lh, mut prev) = (fw as usize, fh as usize, font_img.as_raw().clone());
-        for _ in 1..font_mips {
-            let (nw, nh) = ((lw / 2).max(1), (lh / 2).max(1));
-            let mut next = vec![0u8; nw * nh];
-            for y in 0..nh {
-                for x in 0..nw {
-                    let (x0, y0) = ((x * 2).min(lw - 1), (y * 2).min(lh - 1));
-                    let (x1, y1) = ((x * 2 + 1).min(lw - 1), (y * 2 + 1).min(lh - 1));
-                    let sum = prev[y0 * lw + x0] as u32 + prev[y0 * lw + x1] as u32 + prev[y1 * lw + x0] as u32 + prev[y1 * lw + x1] as u32;
-                    next[y * nw + x] = ((sum + 2) / 4) as u8;
-                }
-            }
-            font_data.extend_from_slice(&next);
-            prev = next;
-            lw = nw;
-            lh = nh;
-        }
-        let font = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: Some("font"),
-                size: wgpu::Extent3d { width: fw, height: fh, depth_or_array_layers: 1 },
-                mip_level_count: font_mips,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::R8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING,
-                view_formats: &[],
-            },
-            wgpu::util::TextureDataOrder::LayerMajor,
-            &font_data,
-        );
-
-        // Komponentarkene: to atlas (lyst og mørkt tema) som ett array med
-        // mipnivåer regnet ut her, vektet med alfa så kantene ikke mørkner.
-        let sheet_tex = {
-            let mut layers: Vec<Vec<u8>> = vec![];
-            let mut sw = 0;
-            for png in [crate::domain::sheets::LIGHT_PNG, crate::domain::sheets::DARK_PNG] {
-                let img = image::load_from_memory(png).expect("sheets png").into_rgba8();
-                sw = img.width();
-                layers.push(img.into_raw());
-            }
-            let mips = 6u32.min(sw.ilog2() + 1);
-            let mut data: Vec<u8> = vec![];
-            for base in &layers {
-                data.extend_from_slice(base);
-                let (mut w, mut prev) = (sw as usize, base.clone());
-                for _ in 1..mips {
-                    let nw = (w / 2).max(1);
-                    let mut next = vec![0u8; nw * nw * 4];
-                    for y in 0..nw {
-                        for x in 0..nw {
-                            let (mut r, mut g, mut b, mut a) = (0u32, 0u32, 0u32, 0u32);
-                            for (dx, dy) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
-                                let i = (((y * 2 + dy).min(w - 1)) * w + (x * 2 + dx).min(w - 1)) * 4;
-                                let pa = prev[i + 3] as u32;
-                                r += prev[i] as u32 * pa;
-                                g += prev[i + 1] as u32 * pa;
-                                b += prev[i + 2] as u32 * pa;
-                                a += pa;
-                            }
-                            let o = (y * nw + x) * 4;
-                            if a > 0 {
-                                next[o] = (r / a) as u8;
-                                next[o + 1] = (g / a) as u8;
-                                next[o + 2] = (b / a) as u8;
-                            }
-                            next[o + 3] = (a / 4) as u8;
-                        }
-                    }
-                    data.extend_from_slice(&next);
-                    prev = next;
-                    w = nw;
-                }
-            }
-            device.create_texture_with_data(
-                queue,
-                &wgpu::TextureDescriptor {
-                    label: Some("sheets"),
-                    size: wgpu::Extent3d { width: sw, height: sw, depth_or_array_layers: 2 },
-                    mip_level_count: mips,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                    usage: wgpu::TextureUsages::TEXTURE_BINDING,
-                    view_formats: &[],
-                },
-                wgpu::util::TextureDataOrder::LayerMajor,
-                &data,
-            )
-        };
-
         let repeat = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("repeat"),
             address_mode_u: wgpu::AddressMode::Repeat,
@@ -567,7 +468,7 @@ impl Materials {
 
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("materials"),
-            entries: &[tex2d(0, true), tex2d(1, true), sampler_entry(2), tex2d(3, false), tex2d(4, false), sampler_entry(5), tex2d(6, true)],
+            entries: &[tex2d(0, true), tex2d(1, true), sampler_entry(2), tex2d(4, false), sampler_entry(5)],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("materials"),
@@ -576,10 +477,8 @@ impl Materials {
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&albedo.create_view(&Default::default())) },
                 wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&nrh.create_view(&Default::default())) },
                 wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&repeat) },
-                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&font.create_view(&Default::default())) },
                 wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&leaf.create_view(&Default::default())) },
                 wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&clamp) },
-                wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&sheet_tex.create_view(&wgpu::TextureViewDescriptor { dimension: Some(wgpu::TextureViewDimension::D2Array), ..Default::default() })) },
             ],
         });
 

@@ -9,11 +9,9 @@
 //! 6. TAA: bildet blandes med forrige, reprojisert gjennom dybden.
 //! 7. Glød og tonemapping til skjermen.
 
-use crate::domain::city::City;
 use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
-use crate::domain::model::Model;
-use crate::domain::ports;
+use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
 use crate::domain::scene::{Frustum, MAX_LIGHTS, PALETTE};
 use bytemuck::{Pod, Zeroable};
@@ -123,7 +121,6 @@ impl InstanceData {
 struct GpuMesh {
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    count: u32,
 }
 
 impl GpuMesh {
@@ -139,18 +136,9 @@ impl GpuMesh {
         Self {
             vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: v, usage: wgpu::BufferUsages::VERTEX }),
             indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: i, usage: wgpu::BufferUsages::INDEX }),
-            count: mesh.indices.len() as u32,
         }
     }
 
-    fn draw(&self, pass: &mut wgpu::RenderPass, instances: std::ops::Range<u32>) {
-        if self.count == 0 {
-            return;
-        }
-        pass.set_vertex_buffer(0, self.vertices.slice(..));
-        pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint32);
-        pass.draw_indexed(0..self.count, 0, instances);
-    }
 
     fn bind(&self, pass: &mut wgpu::RenderPass) {
         pass.set_vertex_buffer(0, self.vertices.slice(..));
@@ -270,7 +258,6 @@ pub struct Renderer {
     black: wgpu::TextureView,
     world: GpuMesh,
     chunks: Vec<Chunk>,
-    props: Vec<GpuMesh>,
     instances: wgpu::Buffer,
     models: Vec<GpuModel>,
     /// Leddpaletten (se `SKIN_W`).
@@ -287,7 +274,6 @@ pub struct Renderer {
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
-    hidden_props: std::cell::RefCell<Vec<bool>>,
 }
 
 fn shader(device: &wgpu::Device, name: &str, parts: &[&str]) -> wgpu::ShaderModule {
@@ -344,8 +330,7 @@ impl Renderer {
         queue: wgpu::Queue,
         _adapter: &wgpu::Adapter,
         output: wgpu::TextureFormat,
-        world: &City,
-        models: &[Model],
+        scene: &ports::StaticScene,
         external: &[(Layer, LayerImages)],
         width: u32,
         height: u32,
@@ -607,15 +592,15 @@ impl Renderer {
             })
             .create_view(&Default::default());
 
-        let world_mesh = GpuMesh::new(&device, &world.mesh, "world");
-        let props: Vec<GpuMesh> = world.props.iter().map(|p| GpuMesh::new(&device, &p.mesh, p.name)).collect();
+        let world_mesh = GpuMesh::new(&device, scene.mesh, "world");
+        let models = scene.models;
         let instances = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("instances"),
-            size: INSTANCE_STRIDE * (1 + props.len().max(1)) as u64,
+            size: INSTANCE_STRIDE,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let gpu_models: Vec<GpuModel> = world
+        let gpu_models: Vec<GpuModel> = scene
             .placements
             .iter()
             .filter_map(|pl| {
@@ -675,15 +660,14 @@ impl Renderer {
             })
             .collect();
         log::info!(
-            "Verden: {} hjørner, {} trekanter, {} props, {} modeller",
-            world.mesh.vertices.len(),
-            world.mesh.indices.len() / 3,
-            world.props.len(),
+            "Verden: {} hjørner, {} trekanter, {} modeller",
+            scene.mesh.vertices.len(),
+            scene.mesh.indices.len() / 3,
             gpu_models.len()
         );
 
         let targets = Self::make_targets(&device, &frame_layout, &post_layout, &shadow_view, &shadow_sampler, &pass_buf, &linear, &nearest, &black, width, height);
-        let chunks = world.chunks.clone();
+        let chunks = scene.chunks.to_vec();
         Self {
             device,
             queue,
@@ -713,7 +697,6 @@ impl Renderer {
             black,
             world: world_mesh,
             chunks,
-            props,
             instances,
             models: gpu_models,
             skins,
@@ -726,7 +709,6 @@ impl Renderer {
             quality: 1.0,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
-            hidden_props: std::cell::RefCell::new(vec![]),
         }
     }
 
@@ -1069,15 +1051,8 @@ impl Renderer {
         put(&mut pass_data, 4, [1.0, wx.snow, 0.0, 0.0]);
         self.queue.write_buffer(&self.pass_buf, 0, &pass_data);
 
-        // Instans 0 er den faste verdenen, resten er propsene.
-        let mut inst = vec![InstanceData::new(&Affine3A::IDENTITY, [0.0; 4])];
-        // Props som er skalert bort (skjulte varianter) tegnes ikke.
-        let mut hidden = vec![false; f.props.len()];
-        for (i, (t, extra)) in f.props.iter().enumerate() {
-            inst.push(InstanceData::new(t, *extra));
-            hidden[i] = t.matrix3.x_axis.length_squared() < 1e-6;
-        }
-        self.hidden_props.replace(hidden);
+        // Den faste verdenen har én instans uten transform.
+        let inst = [InstanceData::new(&Affine3A::IDENTITY, [0.0; 4])];
         self.queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
 
         // Leddpaletten: matrisene kolonne for kolonne, fire texels hver.
@@ -1257,7 +1232,7 @@ impl Renderer {
         self.frame_index = self.frame_index.wrapping_add(1);
     }
 
-    /// Tegn verden, propsene og modellene. Verden tegnes bit for bit, bare
+    /// Tegn verden og modellene. Verden tegnes bit for bit, bare
     /// de bitene som er innenfor synsfeltet, og småtingene bare nær
     /// kameraet. Naboer som begge skal tegnes slås sammen til ett kall.
     /// Returnerer antall trekanter.
@@ -1291,17 +1266,7 @@ impl Renderer {
         }
         flush(&mut run, pass);
         let world = indices / 3;
-        let mut props = 0;
-        let hidden = self.hidden_props.borrow();
-        for (i, m) in self.props.iter().enumerate() {
-            if hidden.get(i).copied().unwrap_or(false) {
-                continue;
-            }
-            let at = (i + 1) as u64 * INSTANCE_STRIDE;
-            pass.set_vertex_buffer(1, self.instances.slice(at..at + INSTANCE_STRIDE));
-            m.draw(pass, 0..1);
-            props += m.count / 3;
-        }
+        let props = 0;
         let mut models = 0;
         for (m, draws) in self.models.iter().zip(model_draws) {
             let d = draws[region];
@@ -1348,11 +1313,6 @@ impl ports::Renderer for Renderer {
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();
         w + p + m
-    }
-    fn update_prop(&mut self, index: usize, mesh: &Mesh) {
-        if let Some(p) = self.props.get_mut(index) {
-            *p = GpuMesh::new(&self.device, mesh, "dynamic");
-        }
     }
 }
 

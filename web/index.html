@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fristad</title>
-  <meta name="description" content="Dokumentasjonen til designsystemet Fristil, som en by du kan gå rundt i.">
+  <meta name="description" content="Fristad: en kjøpstad i 1350 med en krypt full av korrupte komponenter fra designsystemet Fristil.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -12,21 +12,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="world" aria-label="Fristad, en 3D-by du styrer med mus og tastatur"></canvas>
+  <canvas id="world" aria-label="Fristad, en middelalderby du styrer med mus og tastatur"></canvas>
+  <div id="fade" class="fade" aria-hidden="true"></div>
 
   <!-- Siktekors og hva du ser på. -->
   <div id="hud" hidden>
     <div class="crosshair" aria-hidden="true"></div>
     <div id="prompt" class="prompt" hidden aria-live="polite">
       <div class="prompt-title">
-        <span id="prompt-name">Button</span>
-        <code id="prompt-class">.fs-button</code>
-        <span id="prompt-variant" class="fs-tag" data-variant="filled">primary</span>
+        <span id="prompt-name"></span>
       </div>
       <div class="keys">
-        <span id="key-inspect"><kbd>E</kbd> Inspiser</span>
-        <span id="key-variant"><kbd>R</kbd> Variant</span>
         <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+        <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
       </div>
     </div>
     <div id="vitals" class="vitals" hidden>
@@ -66,7 +64,7 @@
       <span><kbd>X</kbd> Kryp</span>
       <span><kbd>T</kbd> Dag og natt</span>
       <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>
-      <span><kbd>H</kbd> Til torget</span>
+      <span><kbd>H</kbd> Til sørporten</span>
       <span><kbd>Esc</kbd> Pause</span>
     </div>
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>
@@ -77,8 +75,8 @@
     <div class="fs-card gate-card">
       <p class="eyebrow">Fristil <span id="version"></span></p>
       <h1 class="fs-heading" data-size="xl">Fristad</h1>
-      <p class="fs-paragraph" data-variant="lead">Dokumentasjonen til Fristil, som en by du kan gå rundt i.</p>
-      <p class="fs-paragraph">Komponentene står rundt på torget: knappen ved porten, oppslaget på veggen, bryteren for gatelysene, framdriftsstolpen over porten, merkelappene på tavla, ringen på masta, messingplatene i brosteinen og huset under bygging. Sikt på en av dem og trykk <kbd>E</kbd> for å se den ekte komponenten, <kbd>R</kbd> for å bytte variant og <kbd>F</kbd> for å bruke den.</p>
+      <p class="fs-paragraph" data-variant="lead">En kjøpstad i 1350. Under borgruinen i nord ligger krypta, og der nede holder de korrupte komponentene til.</p>
+      <p class="fs-paragraph">Gå opp til borgen og ned i krypta. Komponentene du vinner smis til våpen og rustning hos Knappesmeden og i Skriptoriet, og bøkene om dem leger sårene dine. Sikt på noe og trykk <kbd>F</kbd> for å bruke det, <kbd>E</kbd> for å handle.</p>
       <div id="status" class="status" role="status">
         <span class="fs-spinner" aria-hidden="true"></span>
         <span>Laster motoren …</span>
@@ -86,14 +84,14 @@
       <progress id="loading" class="fs-progress" max="100" aria-label="Laster Fristad"></progress>
       <div class="gate-actions">
         <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
-        <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til torget</button>
+        <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til sørporten</button>
         <button id="quit" class="fs-button" data-variant="ghost" hidden>Avslutt</button>
       </div>
       <p id="touch-note" class="fs-paragraph" data-size="small" hidden>Fristad styres med mus og tastatur foreløpig. På mobil kan du se, men ikke gå.</p>
     </div>
   </section>
 
-  <!-- Komponentpanelet. -->
+  <!-- Boka: dokumentasjonen for en komponent du har vunnet. -->
   <aside id="panel" class="panel" hidden aria-labelledby="panel-title">
     <div class="panel-inner">
       <p class="eyebrow"><span id="panel-kind" class="fs-tag" data-variant="filled">CSS-komponent</span></p>
@@ -106,12 +104,6 @@
       <p class="fs-paragraph" data-size="small">Dette er den ekte komponenten, fra samme CSS som i produksjon.</p>
       <div id="demo" class="demo"></div>
 
-      <div id="variants-section">
-        <h3 class="fs-heading" data-size="s">Varianter</h3>
-        <p class="fs-paragraph" data-size="small">Velg en variant, så bytter den i byen også.</p>
-        <div id="variants" class="variants"></div>
-      </div>
-
       <h3 class="fs-heading" data-size="s">Kode</h3>
       <pre class="code"><code id="panel-code"></code></pre>
 
@@ -123,9 +115,8 @@
     </div>
   </aside>
 
-  <!-- De frittstående komponentene: meldingskøen og forbindelsesstatusen. -->
+  <!-- Meldingskøen er Fristils frittstående toast. -->
   <fs-toast class="fs-toast" role="status" aria-live="polite" aria-atomic="false" aria-label="Varsler" data-ignore-morph></fs-toast>
-  <fs-connection-status class="fs-connection-status"></fs-connection-status>
 
   <script type="module" src="main.js"></script>
 </body>

@@ -1,12 +1,10 @@
 # Fristad
 
-Dokumentasjonen til [Fristil](https://github.com/MarkusAugust/fristil), som en by du kan gå rundt i.
+Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypta, og der nede holder de korrupte komponentene fra designsystemet [Fristil](https://github.com/MarkusAugust/fristil) til: knapper med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
 
-Fristad er en 3D-verden i nettleseren der komponentene i designsystemet står som ting i byen: knappen ved porten er `.fs-button`, oppslaget på veggen er `.fs-alert`, bryteren for gatelysene er `.fs-switch`, framdriftsstolpen over porten er `.fs-progress`, merkelappene og statusmerkene på oppslagstavla er `.fs-tag` og `.fs-badge`, ringen på masta er `.fs-spinner`, messingplatene i brosteinen er `.fs-breadcrumbs`, huset under bygging på byggeplassen ved Østre gate er `.fs-skeleton` og masta ved torget er `.fs-connection-status`. Telefonkiosken er `.fs-dialog`, huset med tre dører ved Østre gate er `.fs-tabs`, infotavla og oppslagsskapet ved Vestre gate er `.fs-card` og `.fs-accordion`, søknadskontoret har skjemafeltene (`.fs-input`, `.fs-select`, `.fs-checkbox`, `.fs-radio`, `.fs-textarea`) med `.fs-tooltip`, `.fs-avatar` og `.fs-divider` rundt seg, rutetabellen på oppslagsplata ved busskuret er `.fs-table` (sorter med F på kolonnene) og veiviseren på torget er `.fs-link`. Vedleggsarket på baksiden av søknadskontoret har `.fs-heading`, `.fs-label`, `.fs-help-text`, `.fs-error-text`, `.fs-fieldset`, `.fs-file-upload` og `.fs-search`. Brønnen sørvest på torget er nedgangen til Legacy-kjelleren, der korrupte komponenter (knapper som har mutert av for mye JavaScript) jager deg; **F** slår med knappen i hånda, og de faller fra hverandre i tokens. Lenker, brødsmuler og «Torget»-skiltene utenfor torget tar deg dit med flytur: løftet over hustakene, fløyet bort og dalt ned i fallskjerm. Sikt på en av dem og trykk **E**, så åpnes den ekte komponenten med eksempel, varianter, kode og lenke til dokumentasjonssiden. **R** bytter variant, også i byen. **F** bruker den: knappen åpner porten, bryteren tenner gatelysene, og skjemaet på søknadskontoret kan fylles ut med tastaturet og sendes med validering. **T** bytter mellom lyst og mørkt tema, som i Fristad er dag og natt, og **V** bytter vær.
+Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypta smis til våpen, skjold og rustning hos Knappesmeden og i Skriptoriet, der oppskriftene er Fristil-skjemaer. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
 
-Komponentene i byen er rendret fra Fristils egen HTML og CSS, så de ser ut akkurat som på en nettside, bare med litt dybde: hver variant og tilstand er sitt eget ark, og velger du en variant i panelet, bytter alle forekomstene i byen. Gateskiltene i gatemunningene er `.fs-badge`, veiviserne til Linelord, Cobble og Streamlord der gatene går over i grusveier er `.fs-link`.
-
-Utenfor byen ligger tre bydeler: **Tokenparken** vest for torget, der fargepalettene står som blomsterbed og avstandsskalaen som steinblokker; **Tårnene** nord for Nordgata, åtte tårn med høyde etter skriftstørrelsene; og **Verkstedet** sør for Sørgata, der veiledningssidene «Kom i gang», «Typesikker bruk» og «Tilgjengelighet» ligger på arbeidsbenkene. Ved veien nordover står **Gorveks hus**, et tømmerhus med torvtak du kan gå inn i: peisen brenner, bjørnefellen ligger på gulvet, og skjoldet, øksa og sverdet henger på veggen. På engene rundt byen beiter sauer og kuer; kommer du for nær, løper de unna.
+Alt du ser er egne modeller laget i Blender med håndlagde teksturer, og motoren er skrevet fra bunnen i Rust.
 
 ## Kontroller
 
@@ -14,65 +12,40 @@ Utenfor byen ligger tre bydeler: **Tokenparken** vest for torget, der fargepalet
 | --- | --- |
 | W A S D | Gå |
 | Mus | Se |
-| Shift | Løp |
+| Shift | Løp, og med en retning i krypta: unnamanøver |
 | Mellomrom | Hopp |
 | C | Huk (hold inne) |
 | X | Kryp av og på |
-| H | Tilbake til torget med flytur (også knappen i pausemenyen) |
-| E | Inspiser komponenten du sikter på |
-| R | Neste variant |
-| F | Bruk |
-| T | Dag og natt (lyst og mørkt tema) |
+| F | Bruk det du sikter på: snakk, åpne, lås opp, gå ned eller opp |
+| E | Handle med innbyggeren du sikter på |
+| Venstre mus | Hugg, hold for tungt hugg |
+| Høyre mus | Blokk, parade i det bittet kommer |
+| H | Tilbake til sørporten |
+| T | Dag og natt |
 | V | Vær: klart, overskyet, regn, uvær, snø, tåke |
 | Esc | Pause |
 
-## Hvordan den henger sammen med Fristil
-
-- **Tokens.** `tools/export-tokens.ts` leser `tokens.css` fra `@fristil/designsystem` og skriver fargene for begge temaene og spacing-skalaen til `assets/tokens.json`, som motoren bygger inn. Fasadefargene, dørene og knappen kommer derfra.
-- **Målestokk.** 1 rem er en meter. `spacing-12` er etasjehøyden, `spacing-6` vindushøyden og `spacing-4` vindusbredden.
-- **Tema.** Lyst tema er dag og mørkt tema er natt. Knappen bruker mørkt temas tokens om natta, akkurat som på en nettside.
-- **Dokumentasjon.** `tools/export-docs.ts` henter beskrivelse, ingress og eksempelkode fra MDX-sidene i Fristil til `web/docs.json`.
-- **Ekte komponenter.** Panelet bruker `fristil.css` fra pakken, så knappene der er de samme som i produksjon.
-
 ## Teknologi
 
-Motoren er skrevet i Rust og kompilert til WebAssembly, med hexagonal arkitektur (ports and adapters):
+Motoren er skrevet i Rust og kompilert til WebAssembly, med hexagonal arkitektur (porter og adaptere):
 
-- `src/domain/` er kjernen, uten avhengighet til GPU, nettleser eller fysikkmotor: tokens, geometri, tekst, byen, komponentene i byen og spillet.
-- `src/domain/ports.rs` er portene (`Renderer`, `Physics`, `ModelSource`), og `src/adapters/` er adapterne: wgpu (WebGPU, med WebGL2 som reserve), Rapier, glTF, nettleser og eget vindu.
-- Rendering: tre kaskader med skyggekart, dybdeprepass, SSAO, PBR-lys med normalkart, himmellys, lykter, vinduer med rom bak glasset, volumetrisk tåke med lysstråler, regn og snø, våte flater og snødekke, TAA, glød og ACES-tonemapping.
-- Materialene bakes prosedyrisk på GPU-en ved oppstart (brostein, puss, panel, skifer, takstein, stein, mur, eik, metall, gress, bark, grus, betong) som teksturer med normal-, ruhets- og høydekart, og byttes ut med fotoskannede materialer fra Poly Haven når de er hentet. Bilene, gatemøblene, husdetaljene, dyrene og Gorveks innbo er modellert i Blender fra Python (`tools/models/`) og bygget inn i binæren.
-- Komponentene rendres fra Fristils CSS i Chromium til et teksturatlas per tema (`tools/render-sheets.mjs`), og annen tekst på skiltene er Inter som SDF-atlas, så den er skarp uansett avstand. Én CSS-piksel er én centimeter for komponentene.
-- `cargo test` bygger byen og krever at ingen modell svever eller synker i terrenget, og at hver variant av en komponent endrer det du sikter på.
+- `src/domain/`: kjernen. Byen, terrenget, naturen, krypta, kampen, fiendene, smiinga og innbyggerne, uten avhengigheter til motor eller nettleser.
+- `src/ports/`: grensesnittene. Rendereren, fysikken og modellkilden som applikasjonen bruker, og den drivende porten (`Play`) som nettleseren, vinduet og skjermbildeverktøyet bruker.
+- `src/application/`: setter kjernen sammen med portene.
+- `src/adapters/`: wgpu (WebGPU, med WebGL2 som reserve), Rapier (fysikk), glTF (modellene), nettleseren og eget vindu.
 
-```
-src/
-  domain/          kjernen
-    city/          byen: fasadegrammatikk, trær, gatemøbler
-    installations/ komponentene i byen, én fil per komponent
-    game.rs        spilleren, døgnet, været
-    ports.rs       portene
-  adapters/        wgpu, rapier, gltf, web, native
-  app.rs           setter sammen kjernen og portene
-  bin/snapshot.rs  skjermbilde til PNG uten vindu
-  bin/bake_font.rs SDF-atlas av Inter
-web/               HTML, JavaScript-laget og panelene
-tools/             eksport av tokens og dokumentasjon, og nettbygget
-```
+En test (`src/architecture.rs`) leser kildefilene og feiler om et lag bruker noe det ikke skal.
 
-## Kjøre lokalt
+Rendereren har kaskadeskygger, SSAO, TAA, volumetrisk tåke med lysstråler, regn, snø, våte flater og ekte skjelettanimasjon. Modellene og teksturene lages med skriptene i `tools/models/` i Blender (som Python-modul) og bygges inn i binæren.
+
+## Utvikling
 
 ```sh
-bun install && bun run tokens
-
-# Eget vindu:
-cargo run --release
-
-# Skjermbilde uten vindu:
-cargo run --release --bin snapshot -- --out torg.png --theme dark
-
-# Nettversjonen til dist/:
-sh tools/build-web.sh
+cargo test                     # testene, også arkitekturen
+cargo run --release            # eget vindu
+cargo run --release --bin snapshot -- --out bilde.png --eye 0,+1.7,44
+sh tools/build-web.sh          # nettversjonen til dist/
+python3 tools/models/mobs.py   # fiendene i Blender
 ```
 
-GitHub Actions bygger og publiserer `dist/` ved hver push: `master` til fristad.netlify.app, `claude/**` til forhåndsvisningen claude--fristad.netlify.app.
+Se `CLAUDE.md` for detaljene og `docs/spilldesign.md` for spillet.

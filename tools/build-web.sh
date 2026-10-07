@@ -32,10 +32,6 @@ bun tools/export-tokens.ts
 # ligger i repoet.
 bun tools/export-docs.ts || echo "Bruker web/docs.json fra repoet"
 
-echo "== Ressurser fra Poly Haven (CC0)"
-# Feiler nedlastingen, bygges byen med de bakte materialene.
-bun tools/fetch-assets.ts || echo "Bruker bakte materialer"
-
 echo "== Motoren"
 cargo build --release --lib --target wasm32-unknown-unknown
 
@@ -53,9 +49,5 @@ SRC=node_modules/@fristil/designsystem/dist
   mkdir -p "dist/fristil/$(dirname "$f")"
   cp "$SRC/$f" "dist/fristil/$f"
 done
-if [ -f assets/external/manifest.json ]; then
-  mkdir -p dist/assets
-  cp -r assets/external/. dist/assets/
-fi
 ls -la dist dist/pkg
-du -sh dist/fristil dist/assets 2>/dev/null || true
+du -sh dist/fristil 2>/dev/null || true

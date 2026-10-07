@@ -94,8 +94,6 @@ pub mod kind {
     pub const GLASS: u8 = 201;
     /// Bladkort med alfa, uv inn i bladteksturen.
     pub const LEAF: u8 = 202;
-    /// Tekst, uv inn i skriftatlaset.
-    pub const TEXT: u8 = 203;
     /// Lampeglass som lyser om natta.
     pub const LAMP: u8 = 204;
     /// Skeleton-komponenten: grå flate som skimrer.
@@ -104,8 +102,6 @@ pub mod kind {
     pub const WATER: u8 = 206;
     /// Modell med egne teksturer (albedo, normal, metall/ruhet, emissiv).
     pub const MODEL: u8 = 207;
-    /// Komponentark: uv inn i atlaset med komponentene rendret fra CSS.
-    pub const SHEET: u8 = 208;
 }
 
 /// Flagg i `mat.z`. De to nederste bitene er glød.

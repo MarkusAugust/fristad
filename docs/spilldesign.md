@@ -141,3 +141,14 @@ Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, tre
 ### Status
 
 Gjort: skjelettanimasjon (1–2), kampen (3–5), kjelleren med fem etasjer, trapper, avsatser, tema per epoke, porter og nøkler (11–13), død med tapt bytte (14), innbyggerne med snakkebobler (10), lager, kister, oppskrifter som skjema, butikker, trening, boka som gir liv (7–9, 15–16), lyd (17), lagring (18), og fiendene (6): den korrupte knappen, tooltip-flokkene, inputen som spytter markører, modalen som slår med nevene og tåler mye forfra, tabellen som miniboss med nøkkelen nederst, og Rammeverket som sluttboss (sveip, slag i bakken, brøl som kaller på tooltips, egen livsstolpe). Gjenstår: fjerne komponentene som står rundt i byen (eller la dem dukke opp etter hvert som de vinnes), mer realisme på innbyggere og monstre, og en slutt når Rammeverket er beseiret.
+
+## Middelalderbyen (eieren, 7. oktober, etter fiendene)
+
+Eieren ba om å forkaste byen og bygge den på nytt for spillet: ingen brønn som nedgang, ingen stiger, alt som ekte modeller med håndlagde teksturer, og koden i hexagonal arkitektur. Svarene på spørsmålene:
+
+1. **Setting:** nordisk kjøpstad rundt 1350, med bymur og porter, torg med markedsboder, Smia, Apoteket, Skriptoriet, Vertshuset, stavkirke og Gorveks øvingsplass. Borgruinen står på haugen nord for byen, og krypta under den er nedgangen til kjelleren (en dør med overgang i svart, og en trapp opp igjen nede).
+2. **Komponentene** finnes bare som bytte, utstyr og bøker, ikke som ting rundt i byen.
+3. **Det som blir:** landskapet, dyrene og trærne. Alt annet i den gamle byen er borte.
+4. **Grafikken:** detaljgraden på modeller og figurer skal opp; motoren skal brukes for alt den er god for.
+
+Brønnen og stigene i avsnittene over er erstattet av krypta og trappa; Skjemakontoret heter nå Skriptoriet.
