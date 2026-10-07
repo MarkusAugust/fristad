@@ -27,7 +27,7 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 - **Ingenting skal sveve eller synke.** `Builder::audit` sjekker hver modellinstans mot bakken (eller gulvet registrert med `Builder::floor`); `cargo test` feiler om noe svever mer enn 8 cm eller står 30 cm nede (trestammer og murverket i `town::FOUNDED`, med fundament 80 cm ned, får gå ned i bakken i skråninger). Ting i skråninger bruker `Builder::on_slope`; ting på vegger eller oppå noe `place_mounted`.
 - **Ingen går gjennom noe.** `alt_stort_har_kollider` krever kollider ved foten av hver modellinstans over 60 cm (eller høyere opp på midtlinja for det som er åpent nede, som portrommet), og `kapselen_stopper_mot_trær_og_kanten` går med Rapier mot eiker og mot kanten av verden (`nature::world_edge`, 199 m).
 - **Terrenget** (`world/terrain.rs`): planert innenfor muren (`town_edge`), borghaugen, og utenfor bølger enga. Bakken er et 2 m-rutenett med heightfield-kollider; `town::ground_weights` gir vektene for brostein, jord, berg og skogbunn i hjørnene (resten er eng), og `world.wgsl` (`terrain()`) blander lagene etter høydekartene. Landskapet utenfor (±200 m) går over i åser og fjell (`nature::landscape`).
-- **Naturen** (`world/nature.rs`): trær og busker (modellene fra `tools/models/trees.py`, kapselkollidere langs greinskjelettet), gress (`grass_model`, instansiert og vippet etter bakken), steiner og steingjerder (skal bli modeller), granskog mot åsene. Ikke i byen, på veiene eller i bratte skråninger. Dyrene (`domain/herd.rs`) beiter på engene utenfor muren.
+- **Naturen** (`world/nature.rs`): trær og busker (modellene fra `tools/models/trees.py`, kapselkollidere langs greinskjelettet), gress (`grass_a`–`d` fra `tools/models/grass.py`: kryssede alfakort med strå fra eierens ark, renset med `tools/textures/grass_atlas.py`, instansiert og vippet etter bakken), steiner og steingjerder (skal bli modeller), granskog mot åsene. Ikke i byen, på veiene eller i bratte skråninger. Dyrene (`domain/herd.rs`) beiter på engene utenfor muren.
 
 ## Spillet
 
@@ -69,7 +69,7 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 
 ## Status (7. oktober 2026)
 
-Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`) og bymuren med hjørnetårn og porthus (`tools/models/walls.py`). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding).
+Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`) og bymuren med hjørnetårn og porthus (`tools/models/walls.py`). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding, gravel med hjulspor, plywood = skogbunn).
 
 Neste:
 1. Resten av byen i Blender med høy detalj: Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, markedsboder, torgkors, lykter, kjerrer, tønner, kasser, borgruinen, krypta og trappa i startrommet, portgitteret.

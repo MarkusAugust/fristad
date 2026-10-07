@@ -15,7 +15,6 @@ pub struct Prepared {
 pub fn prepare(models: &dyn ModelSource, seed: u64) -> Prepared {
     let mut loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
     // Gresstusten og ruskbitene lages i kjernen, ikke i Blender.
-    loaded.push(world::nature::grass_model());
     loaded.push(crate::domain::combat::debris_model());
     let infos: Vec<ModelInfo> = loaded
         .iter()

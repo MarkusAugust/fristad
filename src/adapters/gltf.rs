@@ -27,6 +27,11 @@ models! {
     "cow_leg_hind" => "animals/cow_leg_hind.glb",
     // Trærne og buskene fra tools/models/trees.py: stammen med bakt bark,
     // og bladverket som kort (to modeller med samme origo).
+    // Gresstustene fra tools/models/grass.py (kort med eierens strå).
+    "grass_a" => "trees/grass_a.glb",
+    "grass_b" => "trees/grass_b.glb",
+    "grass_c" => "trees/grass_c.glb",
+    "grass_d" => "trees/grass_d.glb",
     "oak1_trunk" => "trees/oak1_trunk.glb",
     "oak1_leaves" => "trees/oak1_leaves.glb",
     "oak2_trunk" => "trees/oak2_trunk.glb",
@@ -281,9 +286,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
             // Bladkort og nålekvister: alfatestes og svaier i vinden.
-            if named("leaf") || named("needle") {
+            if named("leaf") || named("needle") || named("grass") {
                 mmat = mmat.flags(flag::ALPHA | flag::WIND | flag::NO_WEATHER);
             }
+            // Gresstrå: mørkere mot rota (høyden i primitivet).
+            let (y_lo, y_hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| (lo.min(p[1]), hi.max(p[1])));
+            let grass = named("grass");
             if metallic >= 0.5 && layer.is_none() {
                 mmat = mmat.flags(flag::METAL);
             }
@@ -298,7 +306,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let occl = ao.get(i).copied().unwrap_or(1.0);
+                let occl = if grass { 0.45 + 0.55 * ((p[1] - y_lo) / (y_hi - y_lo).max(1e-3)) } else { ao.get(i).copied().unwrap_or(1.0) };
                 let v = match layer {
                     Some(l) => Mat { kind: l as u8, flags: flags | flag::UVMAP, ..mmat },
                     None => Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat },

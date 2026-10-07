@@ -345,26 +345,6 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
     }
 }
 
-/// Fargen på enga i et punkt: grønnere i søkk, gulere på ryggene, med
-/// flekker, og et par åkrer i gult.
-pub(crate) fn meadow_tint(x: f32, z: f32) -> u32 {
-    let n1 = terrain::noise(x * 0.05 + 2.0, z * 0.05);
-    let n2 = terrain::noise(x * 0.17, z * 0.17 + 3.0);
-    // Dempede farger: olivengrønt, halm og mørk eng, ikke neongrønt.
-    let green = Vec3::new(0.66, 0.74, 0.46);
-    let straw = Vec3::new(0.86, 0.78, 0.5);
-    let dark = Vec3::new(0.5, 0.6, 0.4);
-    let mut c = green.lerp(straw, (n1 * 1.3 - 0.2).clamp(0.0, 1.0));
-    c = c.lerp(dark, (n2 - 0.55).max(0.0) * 1.5);
-    for (cx, cz, rx, rz) in town::FIELDS {
-        let e = ((x - cx) / rx).powi(2) + ((z - cz) / rz).powi(2);
-        if e < 1.0 {
-            c = Vec3::new(0.9, 0.8, 0.5);
-        }
-    }
-    let to8 = |v: f32| ((v.clamp(0.0, 1.0)) * 255.0) as u32;
-    (to8(c.x) << 16) | (to8(c.y) << 8) | to8(c.z)
-}
 
 pub fn srgb_to_linear(c: u32) -> Vec3 {
     let f = |v: u32| {

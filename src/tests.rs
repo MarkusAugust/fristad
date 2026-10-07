@@ -32,12 +32,12 @@ fn modellene_star_pa_bakken() {
 /// Modellregelen: alt som står i verden er en ekte modell fra
 /// `tools/models/` med teksturer: bakte (albedo) eller de håndlagde
 /// teksturlagene (`layer_`-materialer). Glass og lys er egne slag. Bare
-/// gresstusten og ruskbitene, som lages i kjernen, er unntatt.
+/// ruskbitene, som lages i kjernen, er unntatt.
 #[test]
 fn alt_er_ekte_modeller_med_teksturer() {
     use crate::domain::geometry::kind;
     let p = world();
-    let procedural = ["grass", "debris"];
+    let procedural = ["debris"];
     let mut problems = vec![];
     for m in &p.models {
         if procedural.contains(&m.name.as_str()) {
@@ -80,7 +80,7 @@ fn alt_stort_har_kollider() {
             Shape::Heightfield { .. } | Shape::Hull { .. } => false,
         }
     };
-    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name == "grass" || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
+    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
     let mut problems = vec![];
     for pl in &p.world.placements {
         if skip(pl.model) {

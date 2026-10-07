@@ -126,10 +126,13 @@ fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
     // Hele treet svaier sakte, bladene flagrer raskere. uv.y er hvor høyt opp i kronen.
     let sway = sin(t * 0.9 + world.x * 0.3 + world.z * 0.2) * 0.5 + sin(t * 1.7 + world.z * 0.5) * 0.25;
     let flutter = sin(t * 5.0 + world.x * 7.0 + world.y * 5.0) * 0.5 + sin(t * 7.3 + world.z * 9.0) * 0.5;
-    // Bladene bærer vindvekten i okklusjonsbyten, annet i uv.y.
+    // Bladene bærer vindvekten i okklusjonsbyten; alfakort fra modellene
+    // (blad, gress) svaier etter høyden over rota; annet etter uv.y.
     var h = clamp(v.uv.y, 0.0, 1.0);
     if (v.mat.x == K_LEAF) {
         h = f32(v.mat.w) / 255.0;
+    } else if ((v.mat.z & F_ALPHA) != 0u) {
+        h = clamp(v.pos.y / 0.7, 0.0, 1.0);
     }
     return vec3<f32>(sway * 0.12 + flutter * 0.025, flutter * 0.015, sway * 0.08) * (0.3 + strength) * h;
 }
@@ -587,7 +590,8 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     let duv2 = dpdy(i.uv);
     let glow = flags & 3u;
     var n_geo = normalize(i.normal);
-    if (!front) {
+    // Alfakort (blad, gress) har normalen ut eller opp på begge sider.
+    if (!front && (flags & F_ALPHA) == 0u) {
         n_geo = -n_geo;
     }
     let night = g.sun_color.w;
