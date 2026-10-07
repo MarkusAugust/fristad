@@ -72,6 +72,10 @@ impl Installation for Radio {
         b.mesh.append(&dis);
     }
 
+    fn tick(&mut self, env: &mut Env) {
+        env.form.delivery = self.selected;
+    }
+
     fn act(&mut self, action: Action, env: &mut Env) {
         if action == Action::Use {
             self.selected = (self.selected + 1) % 2;

@@ -25,6 +25,8 @@ pub trait Renderer {
     fn set_quality(&mut self, quality: f32);
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
+    /// Bytt ut geometrien til en prop mens spillet går (tekst du skriver).
+    fn update_prop(&mut self, index: usize, mesh: &crate::domain::geometry::Mesh);
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

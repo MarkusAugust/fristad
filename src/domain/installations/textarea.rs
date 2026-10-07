@@ -1,11 +1,13 @@
 //! `.fs-textarea`: begrunnelsesfeltet på søknadsskjemaet, tre rader høyt.
-//! F skriver inn begrunnelsen ord for ord, R bytter tilstand.
+//! F gir feltet tastaturfokus, så du skriver begrunnelsen selv (teksten
+//! brytes til feltets bredde); Enter avslutter. R bytter tilstand fram til
+//! «Send søknad» er trykket; da følger tilstanden valideringen.
 
-use super::form::{self, COL_W, LEFT, TEXTAREA_H, TEXTAREA_TOP};
+use super::form::{self, COL_W, ERROR_TOPS, LEFT, TEXTAREA_H, TEXTAREA_TOP};
 use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
-use crate::domain::geometry::Mesh;
+use crate::domain::geometry::{flag, Mat, Mesh};
 use crate::domain::palette::slot;
 use crate::domain::scene::PALETTE;
 use crate::domain::tokens::Tokens;
@@ -13,24 +15,57 @@ use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 4] = ["default", "success", "invalid", "disabled"];
 const PLACEHOLDER: &str = "Skriv en kort begrunnelse";
-/// Teksten kommer ord for ord, med linjeskift der feltet brekker.
-const STEPS: [[&str; 2]; 6] = [
-    ["Jeg flytter", ""],
-    ["Jeg flytter til", ""],
-    ["Jeg flytter til ny", ""],
-    ["Jeg flytter til ny adresse", ""],
-    ["Jeg flytter til ny adresse", "1. juni."],
-    ["Jeg flytter til ny adresse", "1. juni. Leiekontrakten er"],
-];
+const MAX: usize = 160;
+const LINES: usize = 3;
+const LH: f32 = 24.0;
 
 #[derive(Default)]
 pub struct Textarea {
     variant: usize,
-    filled: bool,
-    typed: f32,
+    value: String,
+    editing: bool,
+    /// Hvor markøren står: linje og bredde i px.
+    caret_at: (usize, f32),
     field: usize,
     placeholder: usize,
-    steps: [usize; 6],
+    text: usize,
+    caret: usize,
+    error: usize,
+}
+
+/// Padding 8/12, linjene øverst i feltet.
+fn left() -> f32 {
+    -COL_W * 0.5 + 12.0
+}
+fn top() -> f32 {
+    TEXTAREA_H * 0.5 - 8.0
+}
+
+impl Textarea {
+    fn rebuild(&mut self, env: &mut Env) {
+        let Some(font) = env.font.clone() else { return };
+        let mut lines = signs::wrap(&font, &self.value, 16.0, COL_W - 24.0);
+        if self.value.ends_with(' ') {
+            // Mellomrommet på slutten hører til linja, så markøren flytter seg.
+            if let Some(last) = lines.last_mut() {
+                last.push(' ');
+            }
+        }
+        // Viser de siste linjene om teksten er lengre enn feltet.
+        let skip = lines.len().saturating_sub(LINES);
+        let shown: Vec<&str> = lines.iter().skip(skip).map(String::as_str).collect();
+        let mut m = Mesh::default();
+        signs::paragraph(&mut m, &font, &shown, left(), top(), 16.0, 1.5, 0.025, TA_TEXT);
+        self.caret_at = (shown.len().saturating_sub(1), shown.last().map(|l| font.width(l, 16.0)).unwrap_or(0.0));
+        env.dirty.push((self.text, m));
+    }
+
+    fn stop(&mut self, env: &mut Env) {
+        if self.editing {
+            self.editing = false;
+            env.edit = Some(false);
+        }
+    }
 }
 
 impl Installation for Textarea {
@@ -58,43 +93,72 @@ impl Installation for Textarea {
         let mut m = Mesh::default();
         form::field(&mut m, COL_W, TEXTAREA_H, TA_FILL, TA_BORDER);
         self.field = b.prop("textarea", m, rest, Some((Vec3::ZERO, Vec3::new(COL_W * PX * 0.5, TEXTAREA_H * PX * 0.5, 0.04))));
-        // Padding 8/12, linjene øverst i feltet.
-        let left = -COL_W * 0.5 + 12.0;
-        let top = TEXTAREA_H * 0.5 - 8.0;
         let mut ph = Mesh::default();
-        signs::paragraph(&mut ph, b.font, &[PLACEHOLDER], left, top, 16.0, 1.5, 0.025, slot::NEUTRAL_TEXT_SUBTLE);
+        signs::paragraph(&mut ph, b.font, &[PLACEHOLDER], left(), top(), 16.0, 1.5, 0.025, slot::NEUTRAL_TEXT_SUBTLE);
         self.placeholder = b.prop("textarea_placeholder", ph, rest, None);
-        for (k, lines) in STEPS.iter().enumerate() {
-            let mut tm = Mesh::default();
-            let shown: Vec<&str> = lines.iter().copied().filter(|l| !l.is_empty()).collect();
-            signs::paragraph(&mut tm, b.font, &shown, left, top, 16.0, 1.5, 0.025, TA_TEXT);
-            self.steps[k] = b.prop("textarea_value", tm, rest, None);
-        }
+        self.text = b.prop("textarea_value", Mesh::default(), rest, None);
+        let mut caret = Mesh::default();
+        caret.cuboid(&Affine3A::IDENTITY, Vec3::new(1.5 * PX, 20.0 * PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(slot::NEUTRAL_TEXT_STRONG).flags(flag::NO_DIRT | flag::NO_WEATHER));
+        self.caret = b.prop("textarea_caret", caret, rest, None);
+        self.error = form::error_text(b, "Skriv en kort begrunnelse, minst ti tegn.", LEFT, ERROR_TOPS[2]);
     }
 
     fn tick(&mut self, env: &mut Env) {
-        let goal = if self.filled { STEPS.len() as f32 } else { 0.0 };
-        let step = env.dt * 2.5;
-        self.typed = if self.typed < goal { (self.typed + step).min(goal) } else { (self.typed - step * 3.0).max(goal) };
+        if env.form.reason != self.value {
+            env.form.reason = self.value.clone();
+        }
+        if env.form.submitted && self.variant != 3 {
+            self.variant = if env.form.errors[2] { 2 } else { 1 };
+        }
     }
 
     fn act(&mut self, action: Action, env: &mut Env) {
-        if action == Action::Use && self.variant != 3 {
-            self.filled = !self.filled;
-            env.toasts.push(if self.filled { "Skriver begrunnelsen".into() } else { "Feltet er tømt".into() });
+        match action {
+            Action::Use => {
+                if self.variant == 3 {
+                    env.toasts.push("Feltet er deaktivert".into());
+                } else if self.editing {
+                    self.stop(env);
+                } else {
+                    self.editing = true;
+                    env.edit = Some(true);
+                    env.toasts.push("Skriv begrunnelsen. Enter avslutter.".into());
+                }
+            }
+            Action::Type('\n') | Action::Type('\u{1b}') => self.stop(env),
+            Action::Type('\u{8}') => {
+                if self.value.pop().is_some() {
+                    self.rebuild(env);
+                }
+            }
+            Action::Type(c) => {
+                if !c.is_control() && self.value.chars().count() < MAX {
+                    self.value.push(c);
+                    self.rebuild(env);
+                }
+            }
+            Action::Blur => self.stop(env),
         }
     }
 
-    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
-        let shown = self.typed.floor() as usize;
+        let show = |on: bool| if on { rest } else { rest * hidden };
         if prop == self.placeholder {
-            return (if shown == 0 { rest } else { rest * hidden }, [0.0; 4]);
+            return (show(self.value.is_empty() && !self.editing), [0.0; 4]);
         }
-        for (k, p) in self.steps.iter().enumerate() {
-            if prop == *p {
-                return (if shown == k + 1 { rest } else { rest * hidden }, [0.0; 4]);
+        if prop == self.caret {
+            let blink = (env.time * 2.0).fract() < 0.5;
+            if !(self.editing && blink) {
+                return (rest * hidden, [0.0; 4]);
             }
+            let (line, w) = self.caret_at;
+            let x = left() + w + 1.0;
+            let y = top() - line as f32 * LH - LH * 0.5;
+            return (rest * Affine3A::from_translation(Vec3::new(x * PX, y * PX, 0.025)), [0.0; 4]);
+        }
+        if prop == self.error {
+            return (show(env.form.submitted && env.form.errors[2]), [0.0; 4]);
         }
         (rest, [0.0; 4])
     }

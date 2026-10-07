@@ -1231,6 +1231,11 @@ impl ports::Renderer for Renderer {
         let (w, p, m) = self.triangles.get();
         w + p + m
     }
+    fn update_prop(&mut self, index: usize, mesh: &Mesh) {
+        if let Some(p) = self.props.get_mut(index) {
+            *p = GpuMesh::new(&self.device, mesh, "dynamic");
+        }
+    }
 }
 
 impl Renderer {

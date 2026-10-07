@@ -1,7 +1,8 @@
 //! `.fs-select`: fylkesvelgeren på søknadsskjemaet. F åpner lista, og
-//! neste F velger neste fylke og lukker den. R bytter tilstand.
+//! neste F velger neste fylke og lukker den. R bytter tilstand fram til
+//! «Send søknad» er trykket; da er den ugyldig til et fylke er valgt.
 
-use super::form::{self, COL_W, FIELD_H, LEFT, SELECT_TOP};
+use super::form::{self, COL_W, ERROR_TOPS, FIELD_H, LEFT, SELECT_TOP};
 use super::signs::{self, Box2};
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
@@ -25,6 +26,7 @@ pub struct Select {
     values: [usize; 4],
     list: usize,
     highlight: [usize; 4],
+    error: usize,
 }
 
 impl Installation for Select {
@@ -46,7 +48,8 @@ impl Installation for Select {
 
     fn build(&mut self, b: &mut Builder) {
         form::office(b);
-        self.selected = 2;
+        self.selected = 0;
+        self.error = form::error_text(b, "Velg fylket du bor i.", LEFT, ERROR_TOPS[1]);
         let cx = LEFT + COL_W * 0.5;
         let cy = SELECT_TOP - FIELD_H * 0.5;
         let rest = form::on_sheet(cx, cy, 0.035);
@@ -89,6 +92,10 @@ impl Installation for Select {
     fn tick(&mut self, env: &mut Env) {
         let goal = if self.open { 1.0 } else { 0.0 };
         self.t += (goal - self.t) * (env.dt * 14.0).min(1.0);
+        env.form.county = self.selected;
+        if env.form.submitted && self.variant != 2 {
+            self.variant = if env.form.errors[1] { 1 } else { 0 };
+        }
     }
 
     fn act(&mut self, action: Action, env: &mut Env) {
@@ -104,8 +111,11 @@ impl Installation for Select {
         }
     }
 
-    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
+        if prop == self.error {
+            return (if env.form.submitted && env.form.errors[1] { rest } else { rest * hidden }, [0.0; 4]);
+        }
         for (k, p) in self.values.iter().enumerate() {
             if prop == *p {
                 return (if k == self.selected { rest } else { rest * hidden }, [0.0; 4]);

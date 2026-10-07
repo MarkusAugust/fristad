@@ -18,6 +18,7 @@ pub struct Prepared {
     /// Fotoskannede materialer per teksturlag, der de finnes.
     pub layers: Vec<(Layer, LayerImages)>,
     pub installations: Vec<Box<dyn installations::Installation>>,
+    pub font: Font,
 }
 
 pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepared {
@@ -42,7 +43,7 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
     if !layers.is_empty() {
         log::info!("Fotoskannede materialer: {}", layers.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
     }
-    Prepared { tokens, city, models, layers, installations }
+    Prepared { tokens, city, models, layers, installations, font }
 }
 
 pub struct App<R: Renderer, P: Physics> {
@@ -54,13 +55,18 @@ pub struct App<R: Renderer, P: Physics> {
 
 impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
-        let game = Game::new(prepared.tokens, &prepared.city, prepared.installations, &mut physics);
+        let game = Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics);
         Self { game, input: Input::default(), renderer, physics }
     }
 
     /// Ett steg av spillet. Gir hendelsene til verten.
     pub fn tick(&mut self, dt: f32) -> Vec<Event> {
-        self.game.update(&mut self.input, dt, &mut self.physics)
+        let events = self.game.update(&mut self.input, dt, &mut self.physics);
+        // Tekst som ble skrevet: propsene får ny geometri.
+        for (i, mesh) in self.game.take_dirty() {
+            self.renderer.update_prop(i, &mesh);
+        }
+        events
     }
 
     /// Tegn bildet.

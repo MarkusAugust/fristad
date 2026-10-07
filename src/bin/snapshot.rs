@@ -59,8 +59,18 @@ fn main() {
     if flag("--gate") {
         app.game.set_gate(true, true);
     }
-    if let Some(c) = arg("--use") {
-        app.game.use_component(&c);
+    // --use komponent og --type tekst i den rekkefølgen de står: F på
+    // komponenten (navn#n velger den n-te), og skriving i feltet som har fokus.
+    for (i, a) in args.iter().enumerate() {
+        match a.as_str() {
+            "--use" => app.game.use_component(args.get(i + 1).map(String::as_str).unwrap_or("")),
+            "--type" => app.game.type_text(args.get(i + 1).map(String::as_str).unwrap_or("")),
+            _ => {}
+        }
+        if a == "--use" || a == "--type" {
+            // Handlingene virker først etter et steg.
+            app.tick(1.0 / 30.0);
+        }
     }
     // --fly X,Z: start en flytur dit fra --eye, og la --time bestemme hvor
     // langt turen er kommet når bildet tas.

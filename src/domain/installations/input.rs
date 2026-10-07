@@ -1,8 +1,9 @@
-//! `.fs-input`: e-postfeltet på søknadsskjemaet. F skriver inn adressen
-//! (og tømmer feltet igjen), R bytter tilstand (standard, suksess, ugyldig,
-//! deaktivert).
+//! `.fs-input`: e-postfeltet på søknadsskjemaet. F gir feltet tastaturfokus,
+//! så du skriver adressen selv; Enter eller F et annet sted avslutter. R
+//! bytter tilstand (standard, suksess, ugyldig, deaktivert) fram til
+//! «Send søknad» er trykket; da følger tilstanden valideringen.
 
-use super::form::{self, COL_W, FIELD_H, INPUT_TOP, LEFT};
+use super::form::{self, COL_W, ERROR_TOPS, FIELD_H, INPUT_TOP, LEFT};
 use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
@@ -13,20 +14,47 @@ use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 4] = ["default", "success", "invalid", "disabled"];
-const VALUE: &str = "ola@eksempel.no";
-/// Skrivingen går ord for ord.
-const STEPS: [&str; 3] = ["ola", "ola@eksempel", "ola@eksempel.no"];
+const PLACEHOLDER: &str = "navn@eksempel.no";
+const MAX: usize = 40;
 
 #[derive(Default)]
 pub struct Input {
     variant: usize,
-    filled: bool,
-    /// Hvor mye som er skrevet, 0..=STEPS.len().
-    typed: f32,
+    value: String,
+    editing: bool,
+    /// Bredden på det som er skrevet, i px, til markøren.
+    width: f32,
     field: usize,
     placeholder: usize,
-    steps: [usize; 3],
+    text: usize,
     caret: usize,
+    error: usize,
+}
+
+impl Input {
+    /// Bygg teksten på nytt etter en endring.
+    fn rebuild(&mut self, env: &mut Env) {
+        let Some(font) = env.font.clone() else { return };
+        let mut m = Mesh::default();
+        signs::text_left(&mut m, &font, &self.value, baseline(), 16.0, INPUT_TEXT);
+        self.width = font.width(&self.value, 16.0);
+        env.dirty.push((self.text, m));
+    }
+
+    fn stop(&mut self, env: &mut Env) {
+        if self.editing {
+            self.editing = false;
+            env.edit = Some(false);
+        }
+    }
+}
+
+/// Padding 8/12: teksten starter 12 px inn, grunnlinja midt i feltet.
+fn text_x() -> f32 {
+    -COL_W * 0.5 + 12.0
+}
+fn baseline() -> Vec3 {
+    Vec3::new(text_x() * PX, -0.36 * 16.0 * PX, 0.025)
 }
 
 impl Installation for Input {
@@ -54,56 +82,71 @@ impl Installation for Input {
         let mut m = Mesh::default();
         form::field(&mut m, COL_W, FIELD_H, INPUT_FILL, INPUT_BORDER);
         self.field = b.prop("input", m, rest, Some((Vec3::ZERO, Vec3::new(COL_W * PX * 0.5, FIELD_H * PX * 0.5, 0.04))));
-        // Padding 8/12: teksten starter 12 px inn, grunnlinja midt i feltet.
-        let text_x = -COL_W * 0.5 + 12.0;
-        let baseline = Vec3::new(text_x * PX, -0.36 * 16.0 * PX, 0.025);
         let mut ph = Mesh::default();
-        signs::text_left(&mut ph, b.font, VALUE, baseline, 16.0, slot::NEUTRAL_TEXT_SUBTLE);
+        signs::text_left(&mut ph, b.font, PLACEHOLDER, baseline(), 16.0, slot::NEUTRAL_TEXT_SUBTLE);
         self.placeholder = b.prop("input_placeholder", ph, rest, None);
-        for (k, s) in STEPS.iter().enumerate() {
-            let mut tm = Mesh::default();
-            signs::text_left(&mut tm, b.font, s, baseline, 16.0, INPUT_TEXT);
-            self.steps[k] = b.prop("input_value", tm, rest, None);
-        }
+        // Det du skriver: tom til å begynne med, bygges om underveis.
+        self.text = b.prop("input_value", Mesh::default(), rest, None);
         let mut caret = Mesh::default();
         caret.cuboid(&Affine3A::IDENTITY, Vec3::new(1.5 * PX, 20.0 * PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(slot::NEUTRAL_TEXT_STRONG).flags(flag::NO_DIRT | flag::NO_WEATHER));
-        self.caret = b.prop("input_caret", caret, rest * Affine3A::from_translation(Vec3::new(text_x * PX, 0.0, 0.025)), None);
+        self.caret = b.prop("input_caret", caret, rest * Affine3A::from_translation(Vec3::new(text_x() * PX, 0.0, 0.025)), None);
+        self.error = form::error_text(b, "Skriv en e-postadresse med krøllalfa og punktum.", LEFT, ERROR_TOPS[0]);
     }
 
     fn tick(&mut self, env: &mut Env) {
-        let goal = if self.filled { STEPS.len() as f32 } else { 0.0 };
-        let step = env.dt * 3.0;
-        self.typed = if self.typed < goal { (self.typed + step).min(goal) } else { (self.typed - step * 3.0).max(goal) };
+        if env.form.email != self.value {
+            env.form.email = self.value.clone();
+        }
+        if env.form.submitted {
+            self.variant = if env.form.errors[0] { 2 } else { 1 };
+        }
     }
 
     fn act(&mut self, action: Action, env: &mut Env) {
-        if action == Action::Use && self.variant != 3 {
-            self.filled = !self.filled;
-            env.toasts.push(if self.filled { "Skriver inn e-postadressen".into() } else { "Feltet er tømt".into() });
+        match action {
+            Action::Use => {
+                if self.variant == 3 {
+                    env.toasts.push("Feltet er deaktivert".into());
+                } else if self.editing {
+                    self.stop(env);
+                } else {
+                    self.editing = true;
+                    env.edit = Some(true);
+                    env.toasts.push("Skriv e-postadressen. Enter avslutter.".into());
+                }
+            }
+            Action::Type('\n') | Action::Type('\u{1b}') => self.stop(env),
+            Action::Type('\u{8}') => {
+                if self.value.pop().is_some() {
+                    self.rebuild(env);
+                }
+            }
+            Action::Type(c) => {
+                if !c.is_control() && self.value.chars().count() < MAX {
+                    self.value.push(c);
+                    self.rebuild(env);
+                }
+            }
+            Action::Blur => self.stop(env),
         }
     }
 
     fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
-        let shown = self.typed.floor() as usize;
+        let show = |on: bool| if on { rest } else { rest * hidden };
         if prop == self.placeholder {
-            return (if shown == 0 { rest } else { rest * hidden }, [0.0; 4]);
-        }
-        for (k, p) in self.steps.iter().enumerate() {
-            if prop == *p {
-                return (if shown == k + 1 { rest } else { rest * hidden }, [0.0; 4]);
-            }
+            return (show(self.value.is_empty() && !self.editing), [0.0; 4]);
         }
         if prop == self.caret {
-            // Markøren står etter teksten og blinker mens feltet er «i fokus».
-            let typing = (self.typed - (if self.filled { STEPS.len() as f32 } else { 0.0 })).abs() > 0.01;
+            // Markøren står etter teksten og blinker mens feltet har fokus.
             let blink = (env.time * 2.0).fract() < 0.5;
-            if !(typing || (self.filled && blink)) {
+            if !(self.editing && blink) {
                 return (rest * hidden, [0.0; 4]);
             }
-            let text = if shown == 0 { "" } else { STEPS[shown - 1] };
-            let w = text.chars().count() as f32 * 8.6 + 1.0;
-            return (rest * Affine3A::from_translation(Vec3::new(w * PX, 0.0, 0.0)), [0.0; 4]);
+            return (rest * Affine3A::from_translation(Vec3::new((self.width + 1.0) * PX, 0.0, 0.0)), [0.0; 4]);
+        }
+        if prop == self.error {
+            return (show(env.form.submitted && env.form.errors[0]), [0.0; 4]);
         }
         (rest, [0.0; 4])
     }

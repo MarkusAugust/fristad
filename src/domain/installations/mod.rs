@@ -39,6 +39,7 @@ pub mod select;
 pub mod signs;
 pub mod skeleton;
 pub mod spinner;
+pub mod submit;
 pub mod switch;
 pub mod table;
 pub mod tabs;
@@ -59,6 +60,40 @@ pub struct Component {
 pub enum Action {
     /// F: bruk den.
     Use,
+    /// Et tegn skrevet mens feltet har fokus: '\u{8}' er rettetast,
+    /// '\n' Enter og '\u{1b}' Escape.
+    Type(char),
+    /// Fokuset gikk et annet sted.
+    Blur,
+}
+
+/// Det som står i søknadsskjemaet, delt mellom feltene og sendeknappen.
+#[derive(Clone, Debug, Default)]
+pub struct FormState {
+    pub email: String,
+    /// Valgt fylke; 0 er «Velg fylke».
+    pub county: usize,
+    pub reason: String,
+    pub delivery: usize,
+    pub terms: bool,
+    /// Om «Send søknad» er trykket; da valideres feltene fortløpende.
+    pub submitted: bool,
+    pub sent: bool,
+    /// Feil i e-post, fylke, begrunnelse og vilkår.
+    pub errors: [bool; 4],
+}
+
+impl FormState {
+    pub fn validate(&mut self) -> bool {
+        let at = self.email.find('@');
+        let email_ok = matches!(at, Some(i) if i > 0 && self.email[i + 1..].contains('.') && !self.email.ends_with('.'));
+        self.errors = [!email_ok, self.county == 0, self.reason.trim().chars().count() < 10, !self.terms];
+        let ok = !self.errors.iter().any(|e| *e);
+        if !ok {
+            self.sent = false;
+        }
+        ok
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -89,7 +124,6 @@ impl WeatherKind {
 /// Tilstanden i byen som installasjonene deler. Knappen åpner porten,
 /// framdriftsstolpen viser hvor åpen den er, bryteren tenner gatelysene og
 /// forbindelsesstatusen styrer været.
-#[derive(Debug)]
 pub struct Env {
     pub time: f32,
     pub dt: f32,
@@ -109,11 +143,18 @@ pub struct Env {
     /// Dit spilleren skal flyttes: føttene på bakken, og retningen (yaw).
     /// Lenker og brødsmuler setter den; spillet tar den.
     pub teleport: Option<(Vec3, f32)>,
+    /// Skrifta, til tekst som bygges mens spillet går.
+    pub font: Option<std::sync::Arc<crate::domain::text::Font>>,
+    /// Props som har fått ny geometri og må lastes opp på nytt.
+    pub dirty: Vec<(usize, crate::domain::geometry::Mesh)>,
+    /// En installasjon ber om tastaturfokus (true) eller slipper det (false).
+    pub edit: Option<bool>,
+    pub form: FormState,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, font: None, dirty: vec![], edit: None, form: FormState::default() }
     }
 }
 
@@ -180,6 +221,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(radio::Radio::default()),
         Box::new(checkbox::Checkbox::default()),
         Box::new(textarea::Textarea::default()),
+        Box::new(submit::Submit::default()),
         Box::new(table::Table::default()),
         Box::new(tooltip::Tooltip::default()),
         Box::new(link::Link::default()),

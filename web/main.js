@@ -500,6 +500,15 @@ function bindInput() {
       pause();
       return;
     }
+    // Skriver du i et skjemafelt, går tastene dit: tegn, rettetast og Enter.
+    if (engine.editing()) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter" || e.key === "Escape") {
+        e.preventDefault();
+        engine.text(e.key);
+      }
+      return;
+    }
     if (keys.has(e.code)) e.preventDefault();
     if (e.repeat) return;
     engine.key(e.code, true);

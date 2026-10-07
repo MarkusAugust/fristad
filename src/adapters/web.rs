@@ -132,6 +132,16 @@ impl Engine {
         self.app.input.release_all();
     }
 
+    /// Et tegn (`KeyboardEvent.key`) til feltet som har fokus.
+    pub fn text(&mut self, key: &str) {
+        self.app.input.text(key);
+    }
+
+    /// Om et skjemafelt har tastaturfokus: da skal tastene skrives, ikke styre.
+    pub fn editing(&self) -> bool {
+        self.app.game.editing()
+    }
+
     pub fn set_paused(&mut self, paused: bool) {
         self.app.game.paused = paused;
         if paused {

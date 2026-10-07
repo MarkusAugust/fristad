@@ -48,6 +48,24 @@ impl Input {
         }
     }
 
+    /// Et tegn skrevet mens et felt har fokus. `key` er `KeyboardEvent.key`:
+    /// ett tegn, eller "Backspace", "Enter", "Escape".
+    pub fn text(&mut self, key: &str) {
+        let c = match key {
+            "Backspace" => '\u{8}',
+            "Enter" => '\n',
+            "Escape" => '\u{1b}',
+            _ => {
+                let mut it = key.chars();
+                match (it.next(), it.next()) {
+                    (Some(c), None) => c,
+                    _ => return,
+                }
+            }
+        };
+        self.actions.push(Action::Text(c));
+    }
+
     /// Slipp alle taster, for eksempel når vinduet mister fokus.
     pub fn release_all(&mut self) {
         let actions = std::mem::take(&mut self.actions);
@@ -71,6 +89,8 @@ pub enum Action {
     Weather,
     /// H: tilbake til torget.
     Home,
+    /// Et tegn til feltet som har fokus.
+    Text(char),
 }
 
 /// Det spillet forteller verten, som i nettleseren er JavaScript-laget.
@@ -248,11 +268,13 @@ pub struct Game {
     flight: Option<Flight>,
     /// Fallskjermen, en prop uten eier som spillet selv poserer.
     parachute: Option<usize>,
+    /// Installasjonen som har tastaturfokus (et skjemafelt du skriver i).
+    editing: Option<usize>,
     pub debug: u32,
 }
 
 impl Game {
-    pub fn new(tokens: Tokens, city: &City, mut installations: Vec<Box<dyn Installation>>, physics: &mut dyn Physics) -> Self {
+    pub fn new(tokens: Tokens, font: crate::domain::text::Font, city: &City, mut installations: Vec<Box<dyn Installation>>, physics: &mut dyn Physics) -> Self {
         for c in &city.colliders {
             physics.add(c);
         }
@@ -269,13 +291,14 @@ impl Game {
         for inst in &mut installations {
             inst.set_variant(inst.variant());
         }
+        let env = Env { font: Some(std::sync::Arc::new(font)), ..Env::default() };
         Self {
             tokens,
             lights: city.lights.clone(),
             props,
             by_collider,
             installations,
-            env: Env::default(),
+            env,
             pos: crate::domain::city::terrain::at(city.spawn) + Vec3::Y * (RADIUS + HALF + 0.05),
             vel_y: 0.0,
             grounded: false,
@@ -299,7 +322,25 @@ impl Game {
             spawn_yaw: city.spawn_yaw,
             flight: None,
             parachute: city.props.iter().position(|p| p.name == "parachute"),
+            editing: None,
             debug: 0,
+        }
+    }
+
+    /// Om et felt har tastaturfokus, så tastene skal skrives, ikke styre.
+    pub fn editing(&self) -> bool {
+        self.editing.is_some()
+    }
+
+    /// Props med ny geometri siden sist, til rendereren.
+    pub fn take_dirty(&mut self) -> Vec<(usize, crate::domain::geometry::Mesh)> {
+        std::mem::take(&mut self.env.dirty)
+    }
+
+    /// Etter en handling: tok eller slapp installasjonen fokuset?
+    fn sync_edit(&mut self, owner: usize) {
+        if let Some(e) = self.env.edit.take() {
+            self.editing = if e { Some(owner) } else { None };
         }
     }
 
@@ -358,11 +399,39 @@ impl Game {
 
     /// Sett variant på en komponent, for eksempel fra panelet i nettleseren.
     /// Bruk en komponent (som F), uten å sikte på den. Til testene.
+    /// `navn` eller `navn#n` for den n-te installasjonen med det navnet
+    /// (sendeknappen er `button#1`).
     pub fn use_component(&mut self, component: &str) {
-        for inst in &mut self.installations {
-            if inst.component().name == component {
-                inst.act(InstallAction::Use, &mut self.env);
+        let (name, nth) = match component.split_once('#') {
+            Some((n, k)) => (n, k.parse().unwrap_or(0)),
+            None => (component, 0),
+        };
+        let mut seen = 0;
+        for (i, inst) in self.installations.iter_mut().enumerate() {
+            if inst.component().name == name {
+                if seen == nth {
+                    if let Some(e) = self.editing.filter(|e| *e != i) {
+                        self.installations[e].act(InstallAction::Blur, &mut self.env);
+                        self.editing = None;
+                        self.env.edit = None;
+                        return self.use_component(component);
+                    }
+                    inst.act(InstallAction::Use, &mut self.env);
+                    self.sync_edit(i);
+                    break;
+                }
+                seen += 1;
             }
+        }
+    }
+
+    /// Skriv i feltet som har fokus. Til testene.
+    pub fn type_text(&mut self, text: &str) {
+        if let Some(o) = self.editing {
+            for c in text.chars() {
+                self.installations[o].act(InstallAction::Type(c), &mut self.env);
+            }
+            self.sync_edit(o);
         }
     }
 
@@ -431,9 +500,9 @@ impl Game {
         }
         input.look = (0.0, 0.0);
 
-        // Gåing.
+        // Gåing. Skriver du i et felt, går tastene dit i stedet.
         let mut wish = Vec3::ZERO;
-        if !self.paused {
+        if !self.paused && self.editing.is_none() {
             let fwd = Vec3::new(-self.yaw.sin(), 0.0, -self.yaw.cos());
             let right = Vec3::new(-fwd.z, 0.0, fwd.x);
             if input.forward {
@@ -470,7 +539,7 @@ impl Game {
         let horizontal = if self.flight.is_some() { Vec3::ZERO } else { wish.normalize_or_zero() * speed };
         if self.grounded {
             self.vel_y = -1.0;
-            if input.jump && !self.paused && self.stance == Stance::Stand {
+            if input.jump && !self.paused && self.editing.is_none() && self.stance == Stance::Stand {
                 self.vel_y = 5.4;
             }
         } else {
@@ -555,8 +624,23 @@ impl Game {
                     }
                 }
                 Action::Use => {
+                    // F et annet sted tar fokuset fra feltet du skrev i.
+                    if let Some(e) = self.editing {
+                        if self.aim.map(|a| a.1) != Some(e) {
+                            self.installations[e].act(InstallAction::Blur, &mut self.env);
+                            self.editing = None;
+                            self.env.edit = None;
+                        }
+                    }
                     if let Some((_, o)) = self.aim {
                         self.installations[o].act(InstallAction::Use, &mut self.env);
+                        self.sync_edit(o);
+                    }
+                }
+                Action::Text(c) => {
+                    if let Some(o) = self.editing {
+                        self.installations[o].act(InstallAction::Type(c), &mut self.env);
+                        self.sync_edit(o);
                     }
                 }
                 Action::Crawl => {

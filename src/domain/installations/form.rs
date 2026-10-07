@@ -5,7 +5,9 @@
 //! etikettene, legenden og sendeknappen står fast.
 //!
 //! Målene er i piksler relativt til arkets sentrum, y opp. Arket er
-//! 784 × 360 px i to kolonner på 360 px.
+//! 784 × 400 px i to kolonner på 360 px, med plass til en feilmelding
+//! (`.fs-error-text`) under hvert felt. Skjemaet virker som et skjema: F på
+//! et felt gir det tastaturfokus, og «Send søknad» (`submit.rs`) validerer.
 
 use super::signs::{self, Box2};
 use super::PX;
@@ -21,20 +23,24 @@ const D: f32 = 5.0;
 const WALL_H: f32 = 4.9;
 
 pub const SHEET_W: f32 = 784.0;
-pub const SHEET_H: f32 = 360.0;
+pub const SHEET_H: f32 = 400.0;
 /// Kolonnenes venstrekant og bredde.
 pub const COL_W: f32 = 360.0;
 pub const LEFT: f32 = -372.0;
 pub const RIGHT: f32 = 12.0;
 
 /// Feltenes plass (overkant i px fra sentrum), fra oppsettet i modulteksten.
-pub const INPUT_TOP: f32 = 98.0;
-pub const SELECT_TOP: f32 = 19.0;
-pub const TEXTAREA_TOP: f32 = -60.0;
-pub const RADIO_ROWS: [f32; 3] = [95.0, 63.0, 31.0];
-pub const CHECK_ROWS: [f32; 2] = [-5.0, -37.0];
+pub const INPUT_TOP: f32 = 125.0;
+pub const SELECT_TOP: f32 = 33.0;
+pub const TEXTAREA_TOP: f32 = -59.0;
+pub const RADIO_ROWS: [f32; 3] = [120.0, 88.0, 56.0];
+pub const CHECK_ROWS: [f32; 2] = [20.0, -12.0];
 pub const FIELD_H: f32 = 42.0;
-pub const TEXTAREA_H: f32 = 90.0;
+pub const TEXTAREA_H: f32 = 80.0;
+/// Feilmeldingenes overkant: under e-post, fylke, begrunnelse og vilkår.
+pub const ERROR_TOPS: [f32; 4] = [80.0, -12.0, -142.0, -40.0];
+/// Sendeknappens sentrum.
+pub const BUTTON_Y: f32 = -85.0;
 
 /// Vedleggsarket på baksiden av kontoret (mot sør): overskriften,
 /// ledeteksten, hjelpeteksten og feilmeldingen, søkefeltet, feltsettet og
@@ -57,7 +63,7 @@ pub const FILE_ROW_H: f32 = 44.0;
 
 /// Vedleggsarkets ramme: sentrum i arket, forsiden mot sør.
 pub fn annex_t() -> Affine3A {
-    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.0, 2.75, -D - 0.13)) * Affine3A::from_rotation_y(std::f32::consts::PI)
+    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.0, 2.6, -D - 0.13)) * Affine3A::from_rotation_y(std::f32::consts::PI)
 }
 
 /// Et punkt på vedleggsarket, i px, som transform.
@@ -111,7 +117,7 @@ pub fn annex(b: &mut Builder) {
 
 /// Arkets ramme: sentrum i arket, forsiden mot +Z.
 pub fn sheet_t() -> Affine3A {
-    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.6, 2.75, 0.13))
+    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.6, 2.6, 0.13))
 }
 
 /// Et punkt på arket, i px, som transform.
@@ -122,6 +128,16 @@ pub fn on_sheet(x: f32, y: f32, z: f32) -> Affine3A {
 /// Et skjemafelt: 1 px kant, radius 4, med fyll og kant fra palettplasser.
 pub fn field(m: &mut Mesh, w: f32, h: f32, fill: u8, border: u8) {
     signs::boxed(m, Vec3::ZERO, &Box2 { w, h, radius: 4.0, fill, border: Some(border), depth: 0.02 });
+}
+
+/// En feilmelding (`.fs-error-text`: 12 px medium, linjehøyde 1,4, farefargen)
+/// under et felt, brutt til kolonnebredden, som en prop som vises ved feil.
+pub fn error_text(b: &mut Builder, text: &str, left: f32, top: f32) -> usize {
+    let lines = signs::wrap(b.font, text, 12.0, COL_W);
+    let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
+    let mut m = Mesh::default();
+    signs::paragraph(&mut m, b.font, &lines, 0.0, 0.0, 12.0, 1.4, 0.0, slot::DANGER_TEXT);
+    b.prop("error_text", m, on_sheet(left, top, 0.035), None)
 }
 
 /// Bygg kontoret og arket om det ikke finnes.
@@ -149,10 +165,10 @@ pub fn office(b: &mut Builder) {
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 3.0, 0.12))), Vec3::new(0.22, 0.16, 0.16), &Mat::special(crate::domain::geometry::kind::LAMP, 0xfff1d6, 0.3), 1.0);
     // Skiltet over arket.
     let plate = Mat::plain(0x24303a, 0.6);
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.0, 0.06))), Vec3::new(5.2, 0.5, 0.1), &plate, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.1, 0.06))), Vec3::new(5.2, 0.5, 0.1), &plate, 1.0);
     let mut label = Mesh::default();
     b.font.centered(&mut label, "SØKNADSKONTORET", Vec3::ZERO, 26.0, 0.012, &Mat::plain(0xf4efe4, 0.5).flags(flag::GLOW_ALWAYS));
-    label.transform(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.0, 0.115))));
+    label.transform(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.1, 0.115))));
     m.append(&label);
 
     // Arket: en lys plate med kant, og teksten som står fast.
@@ -160,15 +176,17 @@ pub fn office(b: &mut Builder) {
     let mut sheet = Mesh::default();
     signs::boxed(&mut sheet, Vec3::ZERO, &Box2 { w: SHEET_W + 40.0, h: SHEET_H + 40.0, radius: 8.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.04 });
     let z = 0.03;
-    signs::paragraph(&mut sheet, b.font, &["Søknad om bostøtte"], LEFT, 160.0, 20.0, 1.25, z, slot::NEUTRAL_TEXT_STRONG);
-    // Etikettene: 14 px, linjehøyde 1,5.
-    signs::paragraph(&mut sheet, b.font, &["E-postadresse"], LEFT, 123.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
-    signs::paragraph(&mut sheet, b.font, &["Fylke"], LEFT, 44.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
-    signs::paragraph(&mut sheet, b.font, &["Begrunnelse"], LEFT, -35.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    signs::paragraph(&mut sheet, b.font, &["Søknad om bostøtte"], LEFT, 180.0, 20.0, 1.25, z, slot::NEUTRAL_TEXT_STRONG);
+    // Etikettene: 14 px, linjehøyde 1,5, med påkrevd-stjerne.
+    for (label, top) in [("E-postadresse", 148.0), ("Fylke", 56.0), ("Begrunnelse", -36.0)] {
+        signs::paragraph(&mut sheet, b.font, &[label], LEFT, top, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+        let lw = signs::width(b.font, label, 14.0) / PX;
+        signs::paragraph(&mut sheet, b.font, &["*"], LEFT + lw + 3.0, top, 14.0, 1.5, z, slot::DANGER_TEXT);
+    }
     // Legenden med påkrevd-stjerne.
-    signs::paragraph(&mut sheet, b.font, &["Hvordan vil du ha svaret?"], RIGHT, 123.0, 16.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    signs::paragraph(&mut sheet, b.font, &["Hvordan vil du ha svaret?"], RIGHT, 148.0, 16.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
     let lw = signs::width(b.font, "Hvordan vil du ha svaret?", 16.0) / PX;
-    signs::paragraph(&mut sheet, b.font, &["*"], RIGHT + lw + 4.0, 123.0, 16.0, 1.5, z, slot::DANGER_TEXT);
+    signs::paragraph(&mut sheet, b.font, &["*"], RIGHT + lw + 4.0, 148.0, 16.0, 1.5, z, slot::DANGER_TEXT);
     for (k, label) in ["I digital postkasse", "Som brev i posten", "Hentes på kontoret"].iter().enumerate() {
         let s = if k == 2 { slot::NEUTRAL_TEXT_SUBTLE } else { slot::NEUTRAL_TEXT_STRONG };
         signs::paragraph(&mut sheet, b.font, &[label], RIGHT + 28.0, RADIO_ROWS[k], 14.0, 1.5, z, s);
@@ -176,8 +194,6 @@ pub fn office(b: &mut Builder) {
     for (k, label) in ["Jeg godtar vilkårene", "Send meg nyhetsbrev"].iter().enumerate() {
         signs::paragraph(&mut sheet, b.font, &[label], RIGHT + 28.0, CHECK_ROWS[k], 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
     }
-    let bw = signs::width(b.font, "Send søknad", 16.0) / PX + 34.0;
-    signs::button(&mut sheet, b.font, "Send søknad", Vec3::new((RIGHT + bw * 0.5) * PX, -98.0 * PX, z), slot::ACCENT_FILL, slot::ACCENT_FILL, slot::ACCENT_CONTENT);
     sheet.transform(&st);
     b.mesh.append(&sheet);
 

@@ -1,7 +1,7 @@
 //! `.fs-checkbox`: avkryssingsboksene på søknadsskjemaet. F krysser av
 //! den første, R bytter tilstand (standard, ugyldig, deaktivert, ubestemt).
 
-use super::form::{self, CHECK_ROWS, RIGHT};
+use super::form::{self, CHECK_ROWS, ERROR_TOPS, RIGHT};
 use super::signs::{self, Box2};
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
@@ -20,7 +20,7 @@ pub struct Checkbox {
     checked: bool,
     unchecked: usize,
     checked_box: usize,
-    dash: usize,
+    dash: usize,    error: usize,
 }
 
 /// Boksen: 20 px, 1 px kant, radius 4.
@@ -69,12 +69,20 @@ impl Installation for Checkbox {
         boxed(&mut ind, CHECK_ON, CHECK_ON);
         ind.cuboid(&Affine3A::from_translation(Vec3::new(0.0, 0.0, 0.025)), Vec3::new(10.0 * PX, 2.2 * PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(CHECK_MARK).flags(flag::NO_DIRT | flag::NO_WEATHER));
         self.dash = b.prop("checkbox_indeterminate", ind, rest, None);
+        self.error = form::error_text(b, "Du må godta vilkårene for å sende søknaden.", RIGHT, ERROR_TOPS[3]);
         // Den andre raden står avkrysset.
         let mut row2 = Mesh::default();
         boxed(&mut row2, slot::ACCENT_FILL, slot::ACCENT_FILL);
         check(&mut row2, slot::ACCENT_CONTENT);
         row2.transform(&form::on_sheet(cx, CHECK_ROWS[1] - 12.0, 0.035));
         b.mesh.append(&row2);
+    }
+
+    fn tick(&mut self, env: &mut Env) {
+        env.form.terms = self.checked;
+        if env.form.submitted && self.variant != 2 {
+            self.variant = if env.form.errors[3] { 1 } else { 0 };
+        }
     }
 
     fn act(&mut self, action: Action, env: &mut Env) {
@@ -84,10 +92,13 @@ impl Installation for Checkbox {
         }
     }
 
-    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
         let indeterminate = self.variant == 3 && !self.checked;
         let show = |on: bool| if on { rest } else { rest * hidden };
+        if prop == self.error {
+            return (show(env.form.submitted && env.form.errors[3]), [0.0; 4]);
+        }
         if prop == self.unchecked {
             return (show(!self.checked && !indeterminate), [0.0; 4]);
         }
