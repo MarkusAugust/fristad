@@ -410,6 +410,8 @@ function handle(e) {
       $("hp").value = e.hp;
       $("stamina").value = e.stamina;
       $("tokens").textContent = `${e.tokens} tokens`;
+      $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
+      $("keys").hidden = !e.keys;
       // Liv og tokens vises nede i kjelleren, og oppe når du har noe.
       $("vitals").hidden = !(e.cellar || e.tokens > 0);
       $("fight-keys").hidden = !e.cellar;

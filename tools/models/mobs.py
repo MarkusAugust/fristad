@@ -316,7 +316,26 @@ def build_token(size):
     bake_textured(f"{OUT}/token.glb", size, keep=("glass", "glow", "fire", "mesh"))
 
 
-BUILDERS = {"mutant_button": (build_mutant_button, 1024), "token": (build_token, 256)}
+def key(m):
+    """Nøkkelen til de rustne portene: 30 cm lang, rustent jern, med et
+    rundt grep og to tenner. Origo i bakken under midten."""
+    cylinder("shaft", (0.0, 0.0, 0.06), 0.014, 0.22, m["rust"], rot=(0, math.pi / 2, 0), vertices=10)
+    bpy.ops.mesh.primitive_torus_add(location=(-0.15, 0.0, 0.06), rotation=(0, 0, 0), major_radius=0.05, minor_radius=0.012, major_segments=16, minor_segments=8)
+    t = bpy.context.active_object
+    t.name = "bow"
+    t.data.materials.append(m["rust"])
+    for i, (x, h) in enumerate(((0.07, 0.05), (0.1, 0.035))):
+        box(f"bit{i}", (x, 0.0, 0.06 - h * 0.5 - 0.01), (0.02, 0.012, h), m["rust"])
+
+
+def build_key(size):
+    m = mats()
+    m["rust"] = material("rust", (0.38, 0.22, 0.12), 0.75, 0.6)
+    key(m)
+    bake_textured(f"{OUT}/key.glb", size, keep=("glass", "glow", "fire", "mesh"))
+
+
+BUILDERS = {"mutant_button": (build_mutant_button, 1024), "token": (build_token, 256), "key": (build_key, 256)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

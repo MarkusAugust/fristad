@@ -490,11 +490,11 @@ impl Combat {
         }
 
         // Rusket faller, spretter på gulvet og blir borte.
-        let floor = crate::domain::city::dungeon::DEPTH;
         for p in &mut self.debris {
             p.age += sim_dt;
             p.vel.y -= 14.0 * sim_dt;
             p.pos += p.vel * sim_dt;
+            let floor = dungeon.height_at(p.pos);
             if p.pos.y < floor + 0.02 {
                 p.pos.y = floor + 0.02;
                 p.vel.y = -p.vel.y * 0.35;

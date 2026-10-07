@@ -30,6 +30,8 @@ pub struct Light {
     pub intensity: f32,
     /// Brenner hele døgnet (ildsteder, fakler), ikke bare når lampene er på.
     pub always: bool,
+    /// Flakker: 0 rolig, 1 slukker i rykk (lysrør som er i ferd med å ryke).
+    pub flicker: f32,
 }
 
 /// En modellinstans som flytter seg (dyrene): tegnes sammen med de faste

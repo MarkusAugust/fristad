@@ -97,7 +97,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Variant { component, variant } => json!({"type": "variant", "component": component, "variant": variant}),
         Event::Toast(t) => json!({"type": "toast", "text": t}),
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
-        Event::Hud { hp, stamina, tokens, cellar } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar}),
+        Event::Hud { hp, stamina, tokens, cellar, keys } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys}),
         Event::Sound(name) => json!({"type": "sound", "name": name}),
         Event::Marks(marks) => json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()}),
     }

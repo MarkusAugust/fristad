@@ -13,10 +13,15 @@ use glam::{Affine3A, Mat4, Quat, Vec3};
 
 pub const MOB_MODEL: &str = "mutant_button";
 pub const TOKEN_MODEL: &str = "token";
-const MAX_MOBS: usize = 24;
-const MAX_TOKENS: usize = 72;
+pub const KEY_MODEL: &str = "key";
+const MAX_MOBS: usize = 72;
+const MAX_TOKENS: usize = 160;
+const MAX_KEYS: usize = 8;
+/// Elitefienden: større, seigere, og bærer nøkkelen til porten.
+const ELITE_SCALE: f32 = 1.35;
+const ELITE_HP: f32 = 260.0;
 /// Fienden ser deg innen denne avstanden og jager.
-const SIGHT: f32 = 16.0;
+const SIGHT: f32 = 26.0;
 const SPEED: f32 = 2.1;
 /// Så nær må du være før den går til angrep, og så langt rekker bittet
 /// (den stuper et stykke fram i angrepet).
@@ -64,6 +69,8 @@ pub struct Mob {
     pub pos: Vec3,
     pub yaw: f32,
     pub hp: f32,
+    pub max_hp: f32,
+    pub elite: bool,
     pub state: State,
     /// Sekunder siden den ble truffet (blink).
     pub hit: f32,
@@ -92,12 +99,20 @@ pub struct Token {
     pub taken: bool,
 }
 
+/// Det du plukker opp: tokens, og nøkler til portene.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pickup {
+    Token,
+    Key,
+}
+
 /// Det som skjedde dette bildet, til spillet.
 #[derive(Default, Debug)]
 pub struct Outcome {
     /// Bitt som landet: (fiende, skade, hvor det kom fra).
     pub bites: Vec<(usize, f32, Vec3)>,
     pub tokens: u32,
+    pub keys: u32,
     /// Fiender som begynte et angrep (til lyd og varsel).
     pub windups: u32,
 }
@@ -106,6 +121,7 @@ pub struct Outcome {
 pub struct Mobs {
     pub mobs: Vec<Mob>,
     pub tokens: Vec<Token>,
+    pub keys: Vec<Token>,
     seed: u64,
     rig: Option<Rig>,
     clips: Clips,
@@ -127,7 +143,7 @@ impl Mobs {
                 }
             }
         }
-        let mut m = Self { mobs: vec![], tokens: vec![], seed: 0x9e37_79b9_7f4a_7c15, rig, clips };
+        let mut m = Self { mobs: vec![], tokens: vec![], keys: vec![], seed: 0x9e37_79b9_7f4a_7c15, rig, clips };
         m.reset(dungeon);
         m
     }
@@ -139,12 +155,14 @@ impl Mobs {
         (self.seed >> 40) as f32 / (1u64 << 24) as f32
     }
 
-    /// Ny besetning: en fiende på hvert startsted, opptil MAX_MOBS.
+    /// Ny besetning: en fiende på hvert startsted og en elite i hvert
+    /// utgangsrom, opptil MAX_MOBS, og skatten nederst.
     pub fn reset(&mut self, dungeon: &Dungeon) {
         self.tokens.clear();
+        self.keys.clear();
         self.mobs.clear();
-        let spawns: Vec<Vec3> = dungeon.spawns.iter().copied().take(MAX_MOBS).collect();
-        for p in &spawns {
+        let spawns: Vec<(Vec3, bool)> = dungeon.elites.iter().map(|p| (*p, true)).chain(dungeon.spawns.iter().map(|p| (*p, false))).take(MAX_MOBS).collect();
+        for (p, elite) in spawns {
             let phase = self.rnd() * 6.0;
             let yaw = self.rnd() * std::f32::consts::TAU;
             let repath = self.rnd() * 0.5;
@@ -152,13 +170,17 @@ impl Mobs {
             if let Some(a) = &mut anim {
                 a.time = phase;
             }
-            self.mobs.push(Mob { pos: *p, yaw, hp: MOB_HP, state: State::Idle, hit: 9.0, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, target: None, repath });
+            let hp = if elite { ELITE_HP } else { MOB_HP };
+            self.mobs.push(Mob { pos: p, yaw, hp, max_hp: hp, elite, state: State::Idle, hit: 9.0, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, target: None, repath });
+        }
+        for p in &dungeon.loot {
+            self.tokens.push(Token { pos: *p, age: 9.0, taken: false });
         }
     }
 
     /// Hvor mange instanser hver modell trenger plass til.
     pub fn reserve() -> Vec<(&'static str, usize)> {
-        vec![(MOB_MODEL, MAX_MOBS), (TOKEN_MODEL, MAX_TOKENS)]
+        vec![(MOB_MODEL, MAX_MOBS), (TOKEN_MODEL, MAX_TOKENS), (KEY_MODEL, MAX_KEYS)]
     }
 
     pub fn alive(&self) -> usize {
@@ -174,7 +196,8 @@ impl Mobs {
             if !m.alive() {
                 continue;
             }
-            let (a, b) = (m.pos + Vec3::Y * 0.2, m.pos + Vec3::Y * BODY_TOP);
+            let s = if m.elite { ELITE_SCALE } else { 1.0 };
+            let (a, b) = (m.pos + Vec3::Y * 0.2, m.pos + Vec3::Y * BODY_TOP * s);
             // Nærmeste avstand mellom strålen (eye + dir·t, t ≥ 0) og segmentet a–b.
             let (d1, d2, r) = (dir, b - a, eye - a);
             let (a11, a12, a22) = (d1.dot(d1), -d1.dot(d2), d2.dot(d2));
@@ -187,7 +210,7 @@ impl Mobs {
                 continue;
             }
             let miss = (eye + d1 * t - (a + d2 * u)).length();
-            if miss < BODY_R && best.map_or(true, |(_, bt)| t < bt) {
+            if miss < BODY_R * s && best.map_or(true, |(_, bt)| t < bt) {
                 best = Some((i, t));
             }
         }
@@ -218,9 +241,13 @@ impl Mobs {
             m.state = State::Dying;
             m.t = 0.0;
             let base = m.pos;
+            let elite = m.elite;
             let die = self.clips.die;
             self.play(i, die, false, 0.08);
-            for k in 0..3 {
+            if elite && self.keys.len() < MAX_KEYS {
+                self.keys.push(Token { pos: base + Vec3::new(0.0, 0.0, 0.3), age: 0.0, taken: false });
+            }
+            for k in 0..(if elite { 8 } else { 3 }) {
                 if self.tokens.len() >= MAX_TOKENS {
                     break;
                 }
@@ -286,6 +313,8 @@ impl Mobs {
             };
             let to_player = (player - m.pos).with_y(0.0);
             let dist = to_player.length();
+            // Spilleren i en annen etasje er utenfor syne.
+            let same_floor = (player.y - m.pos.y).abs() < 5.0;
             match m.state {
                 State::Gone => continue,
                 State::Dying => {
@@ -314,8 +343,8 @@ impl Mobs {
                         }
                         if clip_time(m) >= ATTACK_HIT {
                             let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
-                            if dist <= BITE_REACH && facing.dot(to_player.normalize_or_zero()) > 0.3 {
-                                out.bites.push((i, BITE_DAMAGE, m.pos));
+                            if dist <= BITE_REACH * (if m.elite { 1.3 } else { 1.0 }) && facing.dot(to_player.normalize_or_zero()) > 0.3 {
+                                out.bites.push((i, if m.elite { BITE_DAMAGE * 1.8 } else { BITE_DAMAGE }, m.pos));
                             }
                             m.state = State::Attack { bitten: true };
                         }
@@ -331,7 +360,7 @@ impl Mobs {
                 }
                 State::Idle | State::Walk => {}
             }
-            if !in_cellar || dist > SIGHT {
+            if !in_cellar || dist > SIGHT || !same_floor {
                 // Står og vagger.
                 m.target = None;
                 if m.state != State::Idle {
@@ -390,7 +419,8 @@ impl Mobs {
             } else if dungeon.walkable(Vec3::new(m.pos.x, m.pos.y, next.z), 0.6) {
                 m.pos.z = next.z;
             }
-            let moved = (m.pos - from).length() / dt.max(1e-4);
+            m.pos.y = dungeon.height_at(m.pos);
+            let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);
             let want_state = if moved > 0.3 { State::Walk } else { State::Idle };
             if m.state != want_state {
                 m.state = want_state;
@@ -416,6 +446,13 @@ impl Mobs {
                 out.tokens += 1;
             }
         }
+        for k in &mut self.keys {
+            k.age += dt;
+            if !k.taken && in_cellar && (k.pos - player).with_y(0.0).length() < 1.1 && (k.pos.y - player.y).abs() < 2.0 {
+                k.taken = true;
+                out.keys += 1;
+            }
+        }
         out
     }
 
@@ -436,7 +473,8 @@ impl Mobs {
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw), m.pos) * Affine3A::from_scale(Vec3::splat(1.0 + flinch * 0.06));
+                    let s = if m.elite { ELITE_SCALE } else { 1.0 };
+                    let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw), m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
                     out.push(ModelInstance { model: MOB_MODEL, transform: t, skin: Some((base, mats.len() as u32)), flash });
                 }
                 _ => {
@@ -455,6 +493,15 @@ impl Mobs {
             let pop = (t.age * 4.0).min(1.0);
             let hover = 0.1 + (time * 3.0 + t.age).sin() * 0.05;
             out.push(ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0 });
+        }
+        for k in &self.keys {
+            if k.taken {
+                continue;
+            }
+            let spin = Quat::from_rotation_y(time * 1.5 + k.age) * Quat::from_rotation_x(0.4);
+            let pop = (k.age * 4.0).min(1.0);
+            let hover = 0.25 + (time * 2.5 + k.age).sin() * 0.06;
+            out.push(ModelInstance { model: KEY_MODEL, transform: Affine3A::from_rotation_translation(spin, k.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0 });
         }
         out
     }

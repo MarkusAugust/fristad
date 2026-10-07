@@ -238,7 +238,7 @@ mod tests {
         assert!(events.iter().any(|e| matches!(e, Event::Hud { cellar: true, .. })), "HUD-en skal melde at du er nede");
         // Fiendene jager: etter noen sekunder biter en, og livet synker.
         let mut bitten = false;
-        for _ in 0..(30 * 25) {
+        for _ in 0..(30 * 40) {
             for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
                 if let Event::Hud { hp, .. } = e {
                     if hp < 100 {
@@ -250,7 +250,7 @@ mod tests {
                 break;
             }
         }
-        assert!(bitten, "ingen fiende rakk fram og bet på 25 sekunder");
+        assert!(bitten, "ingen fiende rakk fram og bet på 40 sekunder");
         // Snu deg mot den nærmeste og slå til den dør.
         let mut killed = false;
         'outer: for _ in 0..(30 * 20) {

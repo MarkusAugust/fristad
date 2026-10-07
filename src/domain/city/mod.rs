@@ -154,12 +154,17 @@ impl Builder<'_> {
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: false });
+        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.0 });
     }
 
-    /// Et lys som brenner hele døgnet (ild).
+    /// Et lys som brenner hele døgnet (ild), med et lite flakk.
     pub fn fire_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: true });
+        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker: 0.18 });
+    }
+
+    /// Et lys som brenner hele døgnet og flakker så mye du vil (lysrør).
+    pub fn flicker_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32, flicker: f32) {
+        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker });
     }
 
     /// Et gulv over terrenget (inne i et hus): `audit` måler mot det i
@@ -169,20 +174,23 @@ impl Builder<'_> {
         self.floors.push((center, half, yaw, top));
     }
 
-    /// Høyden på det noe kan stå på i et punkt: gulvet om punktet er på et
-    /// registrert gulv, ellers terrenget.
-    pub fn stand_height(&self, x: f32, z: f32) -> f32 {
+    /// Høyden på det noe kan stå på i et punkt: det registrerte gulvet (hus,
+    /// kjelleretasjene) eller terrenget som ligger nærmest under `y`, så
+    /// ting på torget ikke måles mot kjelleren under.
+    pub fn stand_height(&self, x: f32, z: f32, y: f32) -> f32 {
+        let mut best = terrain::height(x, z);
+        let score = |top: f32| if top <= y + 0.3 { y - top } else { 1e6 + top - y };
         for (c, half, yaw, top) in &self.floors {
             let (s, co) = yaw.sin_cos();
             let (dx, dz) = (x - c.x, z - c.z);
             // Inn i gulvets lokale akser (som `at`).
             let lx = dx * co - dz * s;
             let lz = dx * s + dz * co;
-            if lx.abs() <= half.x && lz.abs() <= half.y {
-                return *top;
+            if lx.abs() <= half.x && lz.abs() <= half.y && score(*top) < score(best) {
+                best = *top;
             }
         }
-        terrain::height(x, z)
+        best
     }
 
     pub fn solid(&mut self, shape: Shape) {
@@ -320,7 +328,7 @@ impl Builder<'_> {
                 let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
                 let gaps = corners.map(|(x, z)| {
                     let w = t.transform_point3(Vec3::new(x, info.min.y, z));
-                    w.y - self.stand_height(w.x, w.z)
+                    w.y - self.stand_height(w.x, w.z, w.y)
                 });
                 let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
                 let at = t.translation;

@@ -144,7 +144,7 @@ pub enum Event {
     Weather(String),
     /// Liv, utholdenhet, tokens og om du er nede i kjelleren, når noe av
     /// det endrer seg.
-    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool },
+    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32 },
     /// En lyd å spille: swing, swing_heavy, hit, hit_heavy, kill, block,
     /// parry, hurt, dodge, growl, pickup, death.
     Sound(String),
@@ -345,7 +345,7 @@ pub struct Game {
     aimed_mob: Option<usize>,
     /// Hvor mye du er i kjelleren (0 oppe, 1 nede), glattet, til lyset.
     cellar_t: f32,
-    last_hud: Option<(u32, u32, u32, bool)>,
+    last_hud: Option<(u32, u32, u32, bool, u32)>,
     pub debug: u32,
 }
 
@@ -858,6 +858,11 @@ impl Game {
         if outcome.tokens > 0 {
             events.push(Event::Sound("pickup".into()));
         }
+        if outcome.keys > 0 {
+            self.env.keys += outcome.keys;
+            events.push(Event::Sound("pickup".into()));
+            events.push(Event::Toast("En rusten nøkkel. Porten i utgangsrommet kan låses opp.".into()));
+        }
         for _ in 0..outcome.windups {
             events.push(Event::Sound("growl".into()));
         }
@@ -886,6 +891,7 @@ impl Game {
                 self.mobs.reset(&self.dungeon);
                 self.combat.reset();
                 self.popups.clear();
+                self.env.keys = 0;
                 let up = crate::domain::city::terrain::at(crate::domain::city::dungeon::WELL + Vec3::new(1.9, 0.0, 0.0));
                 self.pos = up + Vec3::Y * (half + radius + 0.05);
                 self.yaw = std::f32::consts::FRAC_PI_2;
@@ -899,11 +905,11 @@ impl Game {
         for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.dungeon) {
             use crate::domain::combat::CombatEvent;
             match e {
-                CombatEvent::Hit { damage, killed, pos, .. } => {
+                CombatEvent::Hit { mob, damage, killed, pos } => {
                     self.popup_seq = self.popup_seq.wrapping_add(1);
                     self.popups.push((pos, damage, 0.0, self.popup_seq));
                     if killed {
-                        events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
+                        events.push(Event::Toast(if self.mobs.mobs.get(mob).is_some_and(|m| m.elite) { "Elitefienden falt fra hverandre. Nøkkelen ligger igjen." } else { "Den korrupte knappen falt fra hverandre. Plukk opp tokenene." }.into()));
                         if self.aimed_mob.is_some() {
                             self.aimed_mob = None;
                             events.push(Event::Prompt(None));
@@ -920,10 +926,10 @@ impl Game {
             self.marks_shown = !marks.is_empty();
             events.push(Event::Marks(marks));
         }
-        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar);
+        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar, self.env.keys);
         if self.last_hud != Some(hud) {
             self.last_hud = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3 });
+            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4 });
         }
         events
     }
@@ -948,7 +954,7 @@ impl Game {
                 continue;
             }
             if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65) {
-                out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / crate::domain::mobs::MOB_HP).clamp(0.0, 1.0), text: String::new() });
+                out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / m.max_hp).clamp(0.0, 1.0), text: String::new() });
             }
         }
         for p in &mut self.popups {
@@ -1089,13 +1095,24 @@ impl Game {
         let mut lights: Vec<Light> = self
             .lights
             .iter()
-            .map(|l| Light { intensity: l.intensity * if l.always { 1.0 } else { lamp * street }, ..*l })
+            .enumerate()
+            .map(|(i, l)| {
+                // Flakket: ild blafrer mykt, lysrør slukker i rykk.
+                let mut k = 1.0;
+                if l.flicker > 0.0 {
+                    let t = self.time * 9.0 + i as f32 * 1.7;
+                    let soft = 1.0 - l.flicker * 0.5 * (0.5 + 0.5 * (t.sin() * (t * 0.37).cos() + (t * 2.3).sin() * 0.5));
+                    let blackout = if l.flicker > 0.4 && ((t * 0.31).sin() * (t * 0.173 + i as f32).cos()) > 0.72 { 0.1 } else { 1.0 };
+                    k = soft * blackout;
+                }
+                Light { intensity: l.intensity * k * if l.always { 1.0 } else { lamp * street }, ..*l }
+            })
             .filter(|l| l.intensity > 0.01)
             .collect();
         // Nede i kjelleren bærer du et lys, så du ser våpenet og det som
         // kommer mot deg.
         if in_cellar {
-            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 7.0, color: Vec3::new(1.0, 0.8, 0.6), intensity: 1.1, always: true });
+            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0, color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8, always: true, flicker: 0.0 });
         }
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));

@@ -39,6 +39,7 @@ pub mod select;
 pub mod signs;
 pub mod gorvek;
 pub mod cellar;
+pub mod gate;
 pub mod skeleton;
 pub mod spinner;
 pub mod submit;
@@ -155,11 +156,13 @@ pub struct Env {
     /// En installasjon ber om tastaturfokus (true) eller slipper det (false).
     pub edit: Option<bool>,
     pub form: FormState,
+    /// Nøklene spilleren bærer (til de rustne portene i kjelleren).
+    pub keys: u32,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default() }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default(), keys: 0 }
     }
 }
 
@@ -260,6 +263,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(workshop::Accessibility),
         Box::new(gorvek::Gorvek::default()),
         Box::new(cellar::Cellar::default()),
+        Box::new(gate::Gate::default()),
     ]
 }
 
