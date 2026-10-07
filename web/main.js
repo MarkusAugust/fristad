@@ -408,12 +408,191 @@ function handle(e) {
       break;
     case "hud":
       $("hp").value = e.hp;
+      $("stamina").value = e.stamina;
       $("tokens").textContent = `${e.tokens} tokens`;
       // Liv og tokens vises nede i kjelleren, og oppe når du har noe.
       $("vitals").hidden = !(e.cellar || e.tokens > 0);
+      $("fight-keys").hidden = !e.cellar;
+      break;
+    case "sound":
+      sfx.play(e.name);
+      break;
+    case "marks":
+      updateMarks(e.marks);
       break;
   }
 }
+
+// Merkene i kampen: ett element per id, flyttet dit spillet sier.
+const markEls = new Map();
+function updateMarks(marks) {
+  const root = $("marks");
+  const seen = new Set();
+  for (const m of marks) {
+    seen.add(m.id);
+    let el = markEls.get(m.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "mark";
+      if (m.kind === "bar") {
+        el.innerHTML = '<div class="mark-bar"><i></i></div>';
+      } else {
+        el.innerHTML = `<span class="mark-text${Number(m.text) >= 50 ? " heavy" : ""}"></span>`;
+      }
+      root.appendChild(el);
+      markEls.set(m.id, el);
+    }
+    el.style.left = `${m.x * 100}%`;
+    el.style.top = `${m.y * 100}%`;
+    if (m.kind === "bar") {
+      el.firstChild.firstChild.style.width = `${Math.round(m.value * 100)}%`;
+    } else {
+      el.firstChild.textContent = m.text;
+      el.style.opacity = String(Math.max(0, Math.min(1, m.value * 1.5)));
+    }
+  }
+  for (const [id, el] of markEls) {
+    if (!seen.has(id)) {
+      el.remove();
+      markEls.delete(id);
+    }
+  }
+}
+
+// Lyd: syntetisert med WebAudio, ingen filer. Konteksten lages ved
+// første lyd (etter at spilleren har klikket seg inn).
+const sfx = (() => {
+  let ctx = null;
+  const get = () => {
+    if (!ctx) {
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch {
+        return null;
+      }
+    }
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    return ctx;
+  };
+  const noise = (c, dur) => {
+    const b = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource();
+    s.buffer = b;
+    return s;
+  };
+  const env = (c, peak, attack, decay, at = 0) => {
+    const g = c.createGain();
+    const t = c.currentTime + at;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    g.connect(c.destination);
+    return g;
+  };
+  const tone = (c, type, f0, f1, peak, attack, decay, at = 0) => {
+    const o = c.createOscillator();
+    o.type = type;
+    const t = c.currentTime + at;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + attack + decay);
+    o.connect(env(c, peak, attack, decay, at));
+    o.start(t);
+    o.stop(t + attack + decay + 0.05);
+  };
+  const whoosh = (c, f0, f1, peak, dur, at = 0) => {
+    const s = noise(c, dur + 0.1);
+    const f = c.createBiquadFilter();
+    f.type = "bandpass";
+    f.Q.value = 1.4;
+    const t = c.currentTime + at;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.4);
+    f.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + dur);
+    s.connect(f).connect(env(c, peak, dur * 0.25, dur * 0.75, at));
+    s.start(t);
+  };
+  const crunch = (c, peak, dur, cutoff, at = 0) => {
+    const s = noise(c, dur + 0.05);
+    const f = c.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = cutoff;
+    s.connect(f).connect(env(c, peak, 0.005, dur, at));
+    s.start(c.currentTime + at);
+  };
+  const play = {
+    swing: (c) => whoosh(c, 500, 2600, 0.35, 0.28),
+    swing_heavy: (c) => whoosh(c, 220, 1400, 0.5, 0.5),
+    hit: (c) => {
+      tone(c, "sine", 140, 45, 0.7, 0.005, 0.18);
+      crunch(c, 0.45, 0.12, 2500);
+    },
+    hit_heavy: (c) => {
+      tone(c, "sine", 110, 35, 0.9, 0.005, 0.3);
+      crunch(c, 0.6, 0.2, 1800);
+      tone(c, "square", 400, 90, 0.08, 0.005, 0.1);
+    },
+    kill: (c) => {
+      tone(c, "sawtooth", 180, 30, 0.5, 0.01, 0.6);
+      crunch(c, 0.6, 0.45, 1200);
+      tone(c, "square", 900, 200, 0.12, 0.01, 0.35, 0.05);
+    },
+    block: (c) => {
+      tone(c, "square", 700, 500, 0.25, 0.003, 0.09);
+      crunch(c, 0.3, 0.08, 4000);
+    },
+    parry: (c) => {
+      tone(c, "sine", 1900, 1700, 0.35, 0.003, 0.5);
+      tone(c, "sine", 2850, 2600, 0.2, 0.003, 0.4);
+      crunch(c, 0.25, 0.05, 6000);
+    },
+    hurt: (c) => {
+      tone(c, "sine", 90, 40, 0.8, 0.005, 0.25);
+      crunch(c, 0.35, 0.15, 900);
+    },
+    dodge: (c) => whoosh(c, 180, 700, 0.3, 0.3),
+    growl: (c) => {
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      const t = c.currentTime;
+      o.frequency.setValueAtTime(70, t);
+      o.frequency.linearRampToValueAtTime(95, t + 0.4);
+      const v = c.createOscillator();
+      v.frequency.value = 11;
+      const vg = c.createGain();
+      vg.gain.value = 9;
+      v.connect(vg).connect(o.frequency);
+      const f = c.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 700;
+      o.connect(f).connect(env(c, 0.3, 0.05, 0.5));
+      o.start(t);
+      v.start(t);
+      o.stop(t + 0.6);
+      v.stop(t + 0.6);
+    },
+    pickup: (c) => {
+      tone(c, "sine", 880, 880, 0.2, 0.005, 0.12);
+      tone(c, "sine", 1320, 1320, 0.2, 0.005, 0.25, 0.08);
+    },
+    death: (c) => {
+      tone(c, "sawtooth", 160, 30, 0.5, 0.02, 1.4);
+      crunch(c, 0.4, 0.8, 600);
+    },
+  };
+  return {
+    play(name) {
+      const c = get();
+      if (!c || !play[name]) return;
+      try {
+        play[name](c);
+      } catch {
+        /* lyden er pynt */
+      }
+    },
+  };
+})();
 
 // Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
 // nettleseren gir oss den; ellers ser du deg rundt ved å dra med musa, så
@@ -488,10 +667,22 @@ function bindInput() {
     if (!locked() && playing && !panelOpen) pause();
   });
 
+  // Musetastene er hugg og blokk når musa er fanget; uten pekerlås drar
+  // venstre tast kameraet.
   canvas.addEventListener("mousedown", (e) => {
-    if (playing && !locked() && e.button === 0) dragging = true;
+    if (!playing) return;
+    if (locked()) {
+      e.preventDefault();
+      engine.mouse(e.button, true);
+    } else if (e.button === 0) {
+      dragging = true;
+    }
   });
-  window.addEventListener("mouseup", () => (dragging = false));
+  window.addEventListener("mouseup", (e) => {
+    dragging = false;
+    if (playing) engine.mouse(e.button, false);
+  });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   document.addEventListener("mousemove", (e) => {
     if (!playing) return;
     if (locked() || dragging) engine.look(e.movementX, e.movementY);

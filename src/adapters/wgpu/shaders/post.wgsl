@@ -344,6 +344,11 @@ fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
     // Vignett og fint korn.
     let v = i.uv * 2.0 - 1.0;
     c *= 1.0 - dot(v, v) * 0.12;
+    // Rødt flash langs kantene når spilleren er truffet.
+    let hurt = post.params.w;
+    if (hurt > 0.0) {
+        c = mix(c, vec3<f32>(0.55, 0.02, 0.0), hurt * smoothstep(0.78, 1.45, length(v)) * 0.85);
+    }
     let grain = (ign(i.clip.xy) - 0.5) * 0.02 * (1.0 - lum * 0.5);
     c = clamp(c + grain, vec3<f32>(0.0), vec3<f32>(1.0));
     if (post.params.z > 0.5) {

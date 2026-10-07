@@ -444,10 +444,14 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     color += s.emissive;
 
     // Markering når du sikter på noe.
+    // Markering når du sikter på noe (0..1), og hvitt blink når en fiende
+    // er truffet (over 1).
     let hl = i.extra.x;
     if (hl > 0.0) {
         let rim = pow(1.0 - max(dot(n, v), 0.0), 2.0);
-        color += (s.albedo * 0.35 + vec3<f32>(rim * 0.6)) * hl * (0.5 + 0.5 * sin(g.camera.w * 5.0));
+        let mark = select(min(hl, 1.0), 0.0, hl > 1.0);
+        let flash = max(hl - 1.0, 0.0);
+        color += (s.albedo * 0.35 + vec3<f32>(rim * 0.6)) * mark * (0.5 + 0.5 * sin(g.camera.w * 5.0)) + vec3<f32>(2.5) * flash;
     }
     return color;
 }

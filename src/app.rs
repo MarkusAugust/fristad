@@ -30,6 +30,7 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
     let mut loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
     // Gresstusten er en prosedyrisk modell, instansiert over enga.
     loaded.push(city::nature::grass_model());
+    loaded.push(crate::domain::combat::debris_model());
     let infos: Vec<ModelInfo> = loaded
         .iter()
         .map(|m| {

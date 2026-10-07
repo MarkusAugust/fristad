@@ -418,6 +418,10 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     for (model, n) in crate::domain::mobs::Mobs::reserve() {
         b.reserve(model, n);
     }
+    // Armene med sverdet, og rusket som spruter.
+    for (model, n) in crate::domain::combat::Combat::reserve() {
+        b.reserve(model, n);
+    }
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
     for (model, n) in crate::domain::herd::Herd::reserve() {
         b.reserve(model, n);

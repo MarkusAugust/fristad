@@ -21,6 +21,8 @@ pub struct Input {
     pub sprint: bool,
     /// C holdes inne: huk.
     pub crouch: bool,
+    /// Høyre musetast holdes inne: blokk med skjoldet.
+    pub block: bool,
     pub look: (f32, f32),
     pub actions: Vec<Action>,
 }
@@ -35,7 +37,13 @@ impl Input {
             "KeyA" | "ArrowLeft" => self.left = down,
             "KeyD" | "ArrowRight" => self.right = down,
             "Space" => self.jump = down,
-            "ShiftLeft" | "ShiftRight" => self.sprint = down,
+            "ShiftLeft" | "ShiftRight" => {
+                self.sprint = down;
+                // I kjelleren er Shift med en retning en unnamanøver.
+                if down {
+                    self.actions.push(Action::Dodge);
+                }
+            }
             "KeyC" => self.crouch = down,
             "KeyX" if down => self.actions.push(Action::Crawl),
             "KeyE" if down => self.actions.push(Action::Inspect),
@@ -44,6 +52,16 @@ impl Input {
             "KeyT" if down => self.actions.push(Action::Theme),
             "KeyV" if down => self.actions.push(Action::Weather),
             "KeyH" if down => self.actions.push(Action::Home),
+            _ => {}
+        }
+    }
+
+    /// Musetast trykket eller sluppet: 0 er venstre (hugg, hold for tungt),
+    /// 2 er høyre (blokk mens den holdes).
+    pub fn mouse(&mut self, button: u32, down: bool) {
+        match button {
+            0 => self.actions.push(if down { Action::Attack } else { Action::AttackRelease }),
+            2 => self.block = down,
             _ => {}
         }
     }
@@ -91,6 +109,25 @@ pub enum Action {
     Home,
     /// Et tegn til feltet som har fokus.
     Text(char),
+    /// Venstre musetast ned: hugg (i kjelleren), ellers som F.
+    Attack,
+    AttackRelease,
+    /// Shift trykket: unnamanøver i kjelleren om du går en vei.
+    Dodge,
+}
+
+/// Et merke på skjermen (0..1 fra øverst til venstre): helsestolpe over en
+/// fiende som er truffet, eller et skadetall som stiger.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Mark {
+    pub id: u32,
+    pub x: f32,
+    pub y: f32,
+    /// "bar" eller "text".
+    pub kind: &'static str,
+    /// Stolpens fyll, eller tekstens styrke, 0..1.
+    pub value: f32,
+    pub text: String,
 }
 
 /// Det spillet forteller verten, som i nettleseren er JavaScript-laget.
@@ -105,8 +142,14 @@ pub enum Event {
     /// En kort melding, til `.fs-toast`.
     Toast(String),
     Weather(String),
-    /// Liv, tokens og om du er nede i kjelleren, når noe av det endrer seg.
-    Hud { hp: u32, tokens: u32, cellar: bool },
+    /// Liv, utholdenhet, tokens og om du er nede i kjelleren, når noe av
+    /// det endrer seg.
+    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool },
+    /// En lyd å spille: swing, swing_heavy, hit, hit_heavy, kill, block,
+    /// parry, hurt, dodge, growl, pickup, death.
+    Sound(String),
+    /// Merkene på skjermen dette bildet (tom liste når de er borte).
+    Marks(Vec<Mark>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -290,15 +333,19 @@ pub struct Game {
     /// Liv (0–100) og tokens (mynter) du bærer.
     hp: f32,
     coins: u32,
-    attack_cd: f32,
-    /// Slaget med våpenet, 1 rett etter F og ned til 0.
-    swing: f32,
+    /// Nærkampen: armene, utholdenheten, huggene og treffeffektene.
+    combat: crate::domain::combat::Combat,
+    /// Skadetall som stiger: (sted, skade, alder), med løpenummer.
+    popups: Vec<(Vec3, f32, f32, u32)>,
+    popup_seq: u32,
+    marks_shown: bool,
+    /// Bildeforholdet fra sist `frame`, til å regne skjermposisjoner.
+    aspect: std::cell::Cell<f32>,
     /// Fienden du sikter på nå.
     aimed_mob: Option<usize>,
     /// Hvor mye du er i kjelleren (0 oppe, 1 nede), glattet, til lyset.
     cellar_t: f32,
-    weapon: Option<usize>,
-    last_hud: Option<(u32, u32, bool)>,
+    last_hud: Option<(u32, u32, u32, bool)>,
     pub debug: u32,
 }
 
@@ -323,6 +370,9 @@ impl Game {
             inst.set_variant(inst.variant());
         }
         let env = Env { font: Some(std::sync::Arc::new(font)), ..Env::default() };
+        let rig_of = |n: &str| rigs.iter().find(|(m, _)| m == n).map(|(_, r)| r.clone());
+        let mob_rig = rig_of(crate::domain::mobs::MOB_MODEL);
+        let arms_rig = rig_of(crate::domain::combat::ARMS_MODEL);
         Self {
             tokens,
             lights: city.lights.clone(),
@@ -355,15 +405,17 @@ impl Game {
             parachute: city.props.iter().position(|p| p.name == "parachute"),
             editing: None,
             herd: crate::domain::herd::Herd::new(),
-            mobs: crate::domain::mobs::Mobs::new(&city.dungeon, rigs.into_iter().find(|(n, _)| n == crate::domain::mobs::MOB_MODEL).map(|(_, r)| r)),
+            mobs: crate::domain::mobs::Mobs::new(&city.dungeon, mob_rig),
             dungeon: city.dungeon.clone(),
             hp: 100.0,
             coins: 0,
-            attack_cd: 0.0,
-            swing: 0.0,
+            combat: crate::domain::combat::Combat::new(arms_rig),
+            popups: vec![],
+            popup_seq: 0,
+            marks_shown: false,
+            aspect: std::cell::Cell::new(16.0 / 9.0),
             aimed_mob: None,
             cellar_t: 0.0,
-            weapon: city.props.iter().position(|p| p.name == "weapon"),
             last_hud: None,
             debug: 0,
         }
@@ -581,7 +633,8 @@ impl Game {
         let (half, radius) = self.stance.capsule();
         self.eye_h += (self.stance.eye() - self.eye_h) * (dt * 10.0).min(1.0);
         let speed = self.stance.speed(input.sprint);
-        let horizontal = if self.flight.is_some() { Vec3::ZERO } else { wish.normalize_or_zero() * speed };
+        // Hugg og blokk bremser, unnamanøveren kaster deg til sida.
+        let horizontal = if self.flight.is_some() { Vec3::ZERO } else { wish.normalize_or_zero() * speed * self.combat.move_factor() + self.combat.dodge_velocity() };
         if self.grounded {
             self.vel_y = -1.0;
             if input.jump && !self.paused && self.editing.is_none() && self.stance == Stance::Stand {
@@ -650,13 +703,19 @@ impl Game {
         } else {
             self.aim = aim;
         }
-        self.attack_cd = (self.attack_cd - dt).max(0.0);
-        self.swing = (self.swing - dt * 3.5).max(0.0);
         let target = if self.aim.is_some() { 1.0 } else { 0.0 };
         self.highlight += (target - self.highlight) * (dt * 10.0).min(1.0);
+        self.combat.set_block(input.block && in_cellar && !self.paused);
 
         for a in actions {
             match a {
+                Action::Attack if in_cellar => self.combat.press_attack(),
+                Action::AttackRelease => self.combat.release_attack(),
+                Action::Dodge => {
+                    if in_cellar && self.grounded && wish.length_squared() > 0.0 && !self.paused && self.combat.dodge(wish) {
+                        events.push(Event::Sound("dodge".into()));
+                    }
+                }
                 Action::Theme => {
                     self.theme = if self.theme == Theme::Light { Theme::Dark } else { Theme::Light };
                     events.push(Event::Theme(self.theme));
@@ -681,21 +740,11 @@ impl Game {
                     }
                 }
                 Action::Use if in_cellar && self.aim.is_none() => {
-                    // Et slag med knappen: treffer fienden du sikter på.
-                    if self.attack_cd <= 0.0 {
-                        self.attack_cd = 0.45;
-                        self.swing = 1.0;
-                        if let Some(i) = self.aimed_mob {
-                            let feet = self.pos - Vec3::Y * (half + radius);
-                            if self.mobs.strike(i, 34.0, feet, &self.dungeon) {
-                                events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
-                                self.aimed_mob = None;
-                                events.push(Event::Prompt(None));
-                            }
-                        }
-                    }
+                    // F uten noe å bruke: et hugg.
+                    self.combat.press_attack();
+                    self.combat.release_attack();
                 }
-                Action::Use => {
+                Action::Use | Action::Attack => {
                     // F et annet sted tar fokuset fra feltet du skrev i.
                     if let Some(e) = self.editing {
                         if self.aim.map(|a| a.1) != Some(e) {
@@ -797,33 +846,121 @@ impl Game {
         let (half, radius) = self.stance.capsule();
         let feet = self.pos - Vec3::Y * (half + radius);
         self.herd.update(dt, feet);
-        // Fiendene: de biter, og du plukker tokens.
+        // Fiendene: de biter, og du plukker tokens. Under hitstop står
+        // alt stille et øyeblikk.
         let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
         self.cellar_t += ((if in_cellar { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
-        let outcome = self.mobs.update(dt, feet, in_cellar, &self.dungeon);
+        let sim_dt = if self.combat.hitstop > 0.0 { 0.0 } else { dt };
+        let eye = self.eye();
+        let fwd = self.forward();
+        let outcome = self.mobs.update(sim_dt, feet, in_cellar, &self.dungeon);
         self.coins += outcome.tokens;
-        if outcome.damage > 0.0 {
-            self.hp -= outcome.damage;
-            self.jumped = true;
+        if outcome.tokens > 0 {
+            events.push(Event::Sound("pickup".into()));
+        }
+        for _ in 0..outcome.windups {
+            events.push(Event::Sound("growl".into()));
+        }
+        // Bittene: blokk tar det meste, en parade alt (og lamslår), en
+        // unnamanøver går klar.
+        let mut taken_total = 0.0;
+        for (mob, damage, from) in &outcome.bites {
+            let (taken, parried) = self.combat.incoming(*from, *damage, eye, fwd);
+            if parried {
+                self.mobs.stagger(*mob, 1.3);
+                events.push(Event::Sound("parry".into()));
+            } else if taken < *damage * 0.99 && taken > 0.0 {
+                events.push(Event::Sound("block".into()));
+            } else if taken > 0.0 {
+                events.push(Event::Sound("hurt".into()));
+            }
+            taken_total += taken;
+        }
+        if taken_total > 0.0 {
+            self.hp -= taken_total;
             if self.hp <= 0.0 {
                 // Død: opp til brønnen, en firedel av tokenene blir igjen nede.
                 let lost = self.coins / 4;
                 self.coins -= lost;
                 self.hp = 100.0;
                 self.mobs.reset(&self.dungeon);
+                self.combat.reset();
+                self.popups.clear();
                 let up = crate::domain::city::terrain::at(crate::domain::city::dungeon::WELL + Vec3::new(1.9, 0.0, 0.0));
                 self.pos = up + Vec3::Y * (half + radius + 0.05);
                 self.yaw = std::f32::consts::FRAC_PI_2;
                 self.flight = None;
+                self.jumped = true;
+                events.push(Event::Sound("death".into()));
                 events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
             }
         }
-        let hud = (self.hp.round().max(0.0) as u32, self.coins, in_cellar);
+        // Våre hugg.
+        for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.dungeon) {
+            use crate::domain::combat::CombatEvent;
+            match e {
+                CombatEvent::Hit { damage, killed, pos, .. } => {
+                    self.popup_seq = self.popup_seq.wrapping_add(1);
+                    self.popups.push((pos, damage, 0.0, self.popup_seq));
+                    if killed {
+                        events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
+                        if self.aimed_mob.is_some() {
+                            self.aimed_mob = None;
+                            events.push(Event::Prompt(None));
+                        }
+                    }
+                }
+                CombatEvent::Miss => {}
+                CombatEvent::Sound(s) => events.push(Event::Sound(s.into())),
+            }
+        }
+        // Merkene: helsestolper over fiender som er truffet, og skadetall.
+        let marks = self.marks(dt);
+        if !marks.is_empty() || self.marks_shown {
+            self.marks_shown = !marks.is_empty();
+            events.push(Event::Marks(marks));
+        }
+        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar);
         if self.last_hud != Some(hud) {
             self.last_hud = Some(hud);
-            events.push(Event::Hud { hp: hud.0, tokens: hud.1, cellar: hud.2 });
+            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3 });
         }
         events
+    }
+
+    /// Et punkt i verden til skjermen (0..1), om det er foran kameraet.
+    fn project(&self, p: Vec3) -> Option<(f32, f32)> {
+        let view = Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y);
+        let proj = Mat4::perspective_rh(72f32.to_radians(), self.aspect.get(), 0.1, 2500.0);
+        let c = proj * view * p.extend(1.0);
+        if c.w < 0.1 {
+            return None;
+        }
+        let x = (c.x / c.w + 1.0) * 0.5;
+        let y = (1.0 - c.y / c.w) * 0.5;
+        ((-0.1..=1.1).contains(&x) && (-0.1..=1.1).contains(&y)).then_some((x, y))
+    }
+
+    fn marks(&mut self, dt: f32) -> Vec<Mark> {
+        let mut out = vec![];
+        for (i, m) in self.mobs.mobs.iter().enumerate() {
+            if !m.alive() || m.hit > 3.0 {
+                continue;
+            }
+            if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65) {
+                out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / crate::domain::mobs::MOB_HP).clamp(0.0, 1.0), text: String::new() });
+            }
+        }
+        for p in &mut self.popups {
+            p.2 += dt;
+        }
+        self.popups.retain(|p| p.2 < 0.9);
+        for (pos, dmg, age, id) in &self.popups {
+            if let Some((x, y)) = self.project(*pos + Vec3::Y * (0.3 + age * 0.6)) {
+                out.push(Mark { id: 100_000 + id, x, y, kind: "text", value: 1.0 - age / 0.9, text: format!("{}", dmg.round() as i32) });
+            }
+        }
+        out
     }
 
     /// Den nærmeste levende fienden (føttene), til testene.
@@ -833,7 +970,7 @@ impl Game {
 
     /// Siktet på en fiende.
     fn mob_prompt() -> Prompt {
-        Prompt { component: "mutant".into(), class: String::new(), variant: String::new(), has_variants: false, usable: true, label: "Korrupt knapp".into(), inspectable: false, verb: "Slå".into() }
+        Prompt { component: "mutant".into(), class: String::new(), variant: String::new(), has_variants: false, usable: true, label: "Korrupt knapp".into(), inspectable: false, verb: "Hugg".into() }
     }
 
     fn weather_target(kind: WeatherKind) -> (Weather, f32) {
@@ -907,26 +1044,17 @@ impl Game {
             };
             self.props[i].pose = pose;
         }
-        // Våpenet: knappen i høyre hånd, nede i kjelleren. Slaget svinger den
-        // fram og ned.
-        if let Some(i) = self.weapon {
-            let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
-            self.props[i].pose = if in_cellar {
-                let fwd = self.forward();
-                let right = Vec3::new(-fwd.z, 0.0, fwd.x).normalize_or_zero();
-                let up = right.cross(fwd).normalize_or_zero();
-                let s = (self.swing * std::f32::consts::PI).sin();
-                let p = self.eye() + fwd * (0.55 + s * 0.2) + right * 0.34 - up * (0.27 - s * 0.1);
-                let look = Quat::from_rotation_y(self.yaw) * Quat::from_rotation_x(self.pitch);
-                Affine3A::from_rotation_translation(look * Quat::from_rotation_y(-0.7 + s * 0.7) * Quat::from_rotation_x(-0.5 * s) * Quat::from_rotation_z(0.15), p) * Affine3A::from_scale(Vec3::splat(0.3))
-            } else {
-                Affine3A::from_scale(Vec3::splat(0.0001))
-            };
-        }
     }
 
     pub fn frame(&self, aspect: f32) -> Frame {
+        self.aspect.set(aspect);
         let mut skins = vec![];
+        // Kameraet sparkes og skjelver når vi treffes (bare det du ser,
+        // ikke retningen du går).
+        let (ky, kp) = self.combat.view_kick(self.time);
+        let (vyaw, vpitch) = (self.yaw + ky, (self.pitch + kp).clamp(-1.5, 1.5));
+        let view_dir = Vec3::new(-vyaw.sin() * vpitch.cos(), vpitch.sin(), -vyaw.cos() * vpitch.cos());
+        let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
         let t = self.night;
         let dusk = (t * std::f32::consts::PI).sin();
         let lerp3 = |a: Vec3, b: Vec3| a.lerp(b, t);
@@ -964,6 +1092,11 @@ impl Game {
             .map(|l| Light { intensity: l.intensity * if l.always { 1.0 } else { lamp * street }, ..*l })
             .filter(|l| l.intensity > 0.01)
             .collect();
+        // Nede i kjelleren bærer du et lys, så du ser våpenet og det som
+        // kommer mot deg.
+        if in_cellar {
+            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 7.0, color: Vec3::new(1.0, 0.8, 0.6), intensity: 1.1, always: true });
+        }
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));
         // Nede i kjelleren: lite himmellys, mer tåke, øynene vant til mørket.
@@ -977,7 +1110,7 @@ impl Game {
 
         let eye = self.eye();
         Frame {
-            view: Mat4::look_to_rh(eye, self.forward(), Vec3::Y),
+            view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
             proj: Mat4::perspective_rh(72f32.to_radians(), aspect, 0.1, 2500.0),
             camera: eye,
             time: self.time,
@@ -1000,8 +1133,14 @@ impl Game {
             palette: pal,
             lights,
             props,
-            instances: { let mut v = self.herd.instances(self.time); v.extend(self.mobs.instances(self.time, &mut skins)); v },
+            instances: {
+                let mut v = self.herd.instances(self.time);
+                v.extend(self.mobs.instances(self.time, &mut skins));
+                v.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
+                v
+            },
             skins,
+            hurt: self.combat.hurt,
             taa: !self.jumped,
             debug: self.debug,
         }

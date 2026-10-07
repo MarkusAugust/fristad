@@ -247,7 +247,16 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
                 mat.node_tree.nodes.remove(n)
         return img
 
+    # Metall har ingen diffus farge i Cycles, så albedoen bakes med
+    # metallfaktoren skrudd av; metallkartet bakes for seg lenger ned.
+    metals = []
+    for mat in ob.data.materials:
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        metals.append(bsdf.inputs["Metallic"].default_value)
+        bsdf.inputs["Metallic"].default_value = 0.0
     albedo = bake_to("albedo", "DIFFUSE", "sRGB", pass_filter={"COLOR"})
+    for mat, m in zip(ob.data.materials, metals):
+        mat.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = m
     bumps = [n for mat in ob.data.materials for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBump"]
     for n in bumps:
         n.mute = True

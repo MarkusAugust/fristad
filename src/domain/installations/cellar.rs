@@ -3,9 +3,7 @@
 //! tar deg opp igjen. Begge er «drop»-teleporter (ingen flytur). Dette
 //! er ingen komponent, så E gjør ingenting.
 
-use super::signs;
 use super::{Action, Component, Env, Installation};
-use crate::domain::palette::slot;
 use crate::domain::city::dungeon::{DEPTH, WELL};
 use crate::domain::city::{Builder, Shape, IRON, OAK, STONE};
 use crate::domain::geometry::{kind, Layer, Mat, Mesh};
@@ -15,7 +13,6 @@ use glam::{Affine3A, Quat, Vec2, Vec3};
 pub struct Cellar {
     well: usize,
     ladder: usize,
-    weapon: usize,
     /// Føttene nede i startrommet, og ved brønnkanten oppe.
     down: Vec3,
     up: Vec3,
@@ -71,20 +68,6 @@ impl Installation for Cellar {
         }
         self.ladder = b.prop("ladder", ladder, Affine3A::from_translation(foot), Some((Vec3::new(0.0, 1.2, 0.0), Vec3::new(0.3, 1.2, 0.15))));
         b.solid_box(foot + Vec3::Y * 1.5, Vec3::new(0.6, 3.0, 0.2), 0.0);
-        // Våpenet: knappen du holder i hånda nede i kjelleren. Spillet
-        // poserer den foran kameraet; ellers er den gjemt.
-        let mut weapon = Mesh::default();
-        signs::sheet(&mut weapon, b.sheets, "button:weapon", Vec3::ZERO, 0.04, 4.0, slot::ACCENT_FILL);
-        weapon.cylinder(&Affine3A::from_rotation_translation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2), Vec3::new(0.0, -0.21, -0.1)), 0.02, 0.02, 0.24, 8, &IRON, true);
-        self.weapon = b.prop("weapon", weapon, Affine3A::from_scale(Vec3::splat(0.0001)), None);
-    }
-
-    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
-        if prop == self.weapon {
-            // Spillet overstyrer posen når du er nede; ellers gjemt.
-            return (Affine3A::from_scale(Vec3::splat(0.0001)), [0.0; 4]);
-        }
-        (rest, [0.0; 4])
     }
 
     fn tick(&mut self, env: &mut Env) {
@@ -100,7 +83,7 @@ impl Installation for Cellar {
             env.toasts.push("Opp i dagslyset igjen".into());
         } else {
             env.drop = Some((self.down, 0.0));
-            env.toasts.push("Ned i Legacy-kjelleren. F slår når du sikter på en fiende.".into());
+            env.toasts.push("Ned i Legacy-kjelleren. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.".into());
         }
     }
 }

@@ -115,7 +115,20 @@ fn main() {
     // Kjør spillet litt, så animasjoner og markering står der de skal.
     let time: f32 = arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5);
     let steps = (time * 30.0) as usize;
-    for _ in 0..steps.max(1) {
+    // --attack S: venstre musetast trykkes S sekunder før bildet (og holdes
+    // med --hold), --block holder høyre musetast de siste 0,5 sekundene.
+    let attack_at = arg("--attack").map(|s| steps.saturating_sub((s.parse::<f32>().unwrap() * 30.0) as usize));
+    let hold = flag("--hold");
+    for step in 0..steps.max(1) {
+        if attack_at == Some(step) {
+            app.input.mouse(0, true);
+            if !hold {
+                app.input.mouse(0, false);
+            }
+        }
+        if flag("--block") && step + 15 >= steps {
+            app.input.mouse(2, true);
+        }
         app.tick(1.0 / 30.0);
     }
     // Med --fly beholdes stedet spillet har flyttet deg til; bare kameraet snus.

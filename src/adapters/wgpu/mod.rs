@@ -975,9 +975,12 @@ impl Renderer {
                 .take(m.reserve)
                 .map(|i| {
                     let (lo, hi) = world_aabb(&i.transform, m.bounds.0, m.bounds.1);
+                    // Blinket ligger over 1 i markeringen (extra.x).
+                    let mut extra = m.extra;
+                    extra[0] = if i.flash > 0.0 { 1.0 + i.flash } else { 0.0 };
                     let inst = match i.skin {
-                        Some((base, _)) if m.skinned && (base as usize) < SKIN_MAX => InstanceData::skinned(&i.transform, m.extra, base),
-                        _ => InstanceData::new(&i.transform, m.extra),
+                        Some((base, _)) if m.skinned && (base as usize) < SKIN_MAX => InstanceData::skinned(&i.transform, extra, base),
+                        _ => InstanceData::new(&i.transform, extra),
                     };
                     (inst, lo, hi)
                 })
@@ -1241,7 +1244,7 @@ impl Renderer {
         }
 
         // 8. Tonemapping til skjermen.
-        post(&t.tonemap_bg[cur].1, [f.exposure, f.bloom, if self.encode_srgb { 1.0 } else { 0.0 }, 0.0], t.width, t.height);
+        post(&t.tonemap_bg[cur].1, [f.exposure, f.bloom, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
         fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg[cur].0, clear);
 
         self.queue.submit([enc.finish()]);

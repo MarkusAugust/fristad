@@ -40,6 +40,8 @@ pub struct ModelInstance {
     pub transform: Affine3A,
     /// Skinnmatrisene i `Frame.skins` (start, antall) for en skinnet figur.
     pub skin: Option<(u32, u32)>,
+    /// Blinker hvitt (0..1), rett etter et treff.
+    pub flash: f32,
 }
 
 pub struct Frame {
@@ -76,6 +78,8 @@ pub struct Frame {
     /// Leddmatrisene (hjørne i meshen → posert) for de skinnede
     /// instansene, som `ModelInstance.skin` peker inn i.
     pub skins: Vec<Mat4>,
+    /// Rødt flash langs kantene (0..1) når spilleren er truffet.
+    pub hurt: f32,
     /// Bland med forrige bilde. Av første bilde og når kameraet hopper.
     pub taa: bool,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.

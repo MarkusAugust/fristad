@@ -69,6 +69,8 @@ pub struct Mob {
     pub hit: f32,
     /// Sekunder i tilstanden (til dem uten rigg, og til liket).
     t: f32,
+    /// Står lamslått minst så lenge i Hit (paraden gir lang stun).
+    stun: f32,
     cooldown: f32,
     phase: f32,
     anim: Option<Animator>,
@@ -93,7 +95,8 @@ pub struct Token {
 /// Det som skjedde dette bildet, til spillet.
 #[derive(Default, Debug)]
 pub struct Outcome {
-    pub damage: f32,
+    /// Bitt som landet: (fiende, skade, hvor det kom fra).
+    pub bites: Vec<(usize, f32, Vec3)>,
     pub tokens: u32,
     /// Fiender som begynte et angrep (til lyd og varsel).
     pub windups: u32,
@@ -149,7 +152,7 @@ impl Mobs {
             if let Some(a) = &mut anim {
                 a.time = phase;
             }
-            self.mobs.push(Mob { pos: *p, yaw, hp: MOB_HP, state: State::Idle, hit: 9.0, t: 0.0, cooldown: 0.5, phase, anim, target: None, repath });
+            self.mobs.push(Mob { pos: *p, yaw, hp: MOB_HP, state: State::Idle, hit: 9.0, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, target: None, repath });
         }
     }
 
@@ -230,9 +233,25 @@ impl Mobs {
         }
         m.state = State::Hit;
         m.t = 0.0;
+        m.stun = 0.0;
         let hit = self.clips.hit;
         self.play(i, hit, false, 0.05);
         false
+    }
+
+    /// Lamslått i `secs` sekunder (etter en parade): står og rister.
+    pub fn stagger(&mut self, i: usize, secs: f32) {
+        let Some(m) = self.mobs.get_mut(i) else { return };
+        if !m.alive() {
+            return;
+        }
+        m.state = State::Hit;
+        m.t = 0.0;
+        m.stun = secs;
+        m.hit = 0.0;
+        m.cooldown = secs + ATTACK_COOLDOWN;
+        let hit = self.clips.hit;
+        self.play(i, hit, false, 0.05);
     }
 
     /// Flytter fiendene, lar dem angripe, og plukker tokens. `player` er
@@ -276,7 +295,7 @@ impl Mobs {
                     continue;
                 }
                 State::Hit => {
-                    if finished(m, HIT_LEN) {
+                    if finished(m, HIT_LEN) && m.t >= m.stun {
                         m.state = State::Idle;
                         if let Some(a) = m.anim.as_mut() {
                             a.play(clips.idle, true, 0.15);
@@ -296,7 +315,7 @@ impl Mobs {
                         if clip_time(m) >= ATTACK_HIT {
                             let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
                             if dist <= BITE_REACH && facing.dot(to_player.normalize_or_zero()) > 0.3 {
-                                out.damage += BITE_DAMAGE;
+                                out.bites.push((i, BITE_DAMAGE, m.pos));
                             }
                             m.state = State::Attack { bitten: true };
                         }
@@ -408,9 +427,9 @@ impl Mobs {
             if m.state == State::Gone {
                 continue;
             }
-            // Blinker hvitt rett etter et slag (markeringen i extra.x gjør
-            // det i shaderen), og forstørres et øyeblikk.
+            // Blinker hvitt rett etter et slag, og forstørres et øyeblikk.
             let flinch = (0.25 - m.hit).max(0.0) * 4.0;
+            let flash = ((0.16 - m.hit) / 0.16).clamp(0.0, 1.0);
             match (&self.rig, &m.anim) {
                 (Some(rig), Some(a)) => {
                     let pose = a.pose(rig);
@@ -418,13 +437,13 @@ impl Mobs {
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
                     let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw), m.pos) * Affine3A::from_scale(Vec3::splat(1.0 + flinch * 0.06));
-                    out.push(ModelInstance { model: MOB_MODEL, transform: t, skin: Some((base, mats.len() as u32)) });
+                    out.push(ModelInstance { model: MOB_MODEL, transform: t, skin: Some((base, mats.len() as u32)), flash });
                 }
                 _ => {
                     let bob = (m.phase * 2.3).sin() * 0.05;
                     let tilt = (m.phase * 1.7).cos() * 0.06;
                     let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw) * Quat::from_rotation_z(tilt - flinch * 0.3), m.pos + Vec3::Y * bob) * Affine3A::from_scale(Vec3::splat(1.0 + flinch * 0.15));
-                    out.push(ModelInstance { model: MOB_MODEL, transform: t, skin: None });
+                    out.push(ModelInstance { model: MOB_MODEL, transform: t, skin: None, flash });
                 }
             }
         }
@@ -435,7 +454,7 @@ impl Mobs {
             let spin = Quat::from_rotation_y(time * 2.0 + t.age);
             let pop = (t.age * 4.0).min(1.0);
             let hover = 0.1 + (time * 3.0 + t.age).sin() * 0.05;
-            out.push(ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None });
+            out.push(ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0 });
         }
         out
     }
