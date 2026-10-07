@@ -42,9 +42,22 @@ impl Installation for Alert {
     }
 
     fn build(&mut self, b: &mut Builder) {
+        // Oppslaget henger på den nærmeste fasaden: husrekkene bølger, så
+        // veggen står ikke nøyaktig der POS sier. Det legges ved siden av døra.
+        let f = b.facades.iter().filter(|f| f.width > 5.0).min_by(|a, c| a.origin.distance(POS).total_cmp(&c.origin.distance(POS))).copied();
+        let wall = match f {
+            Some(f) => {
+                let half = 1.7;
+                let u = if f.door >= 0.0 { f.door - half - 0.7 } else { f.door + half + 0.7 };
+                let u = u.clamp(-f.width * 0.5 + half + 0.3, f.width * 0.5 - half - 0.3);
+                let yaw = f.facing.x.atan2(f.facing.z);
+                Affine3A::from_rotation_translation(glam::Quat::from_rotation_y(yaw), f.origin + f.along * u + f.facing * 0.1 + Vec3::Y * POS.y)
+            }
+            None => Affine3A::from_translation(POS),
+        };
         // Festene på veggen.
         for dx in [-1.5, 1.5] {
-            b.mesh.cuboid(&Affine3A::from_translation(POS + Vec3::new(dx, 0.0, -0.04)), Vec3::new(0.06, 0.9, 0.08), &IRON);
+            b.mesh.cuboid(&(wall * Affine3A::from_translation(Vec3::new(dx, 0.0, -0.04))), Vec3::new(0.06, 0.9, 0.08), &IRON);
         }
         // Ett oppslag per variant; bare det valgte vises.
         for (k, (title, body)) in TEXTS.iter().enumerate() {
@@ -58,7 +71,7 @@ impl Installation for Alert {
             let left = (-w * 0.5 + 16.0) * PX;
             signs::text_left(&mut m, b.font, title, Vec3::new(left, (h * 0.5 - 12.0 - 18.0) * PX, 0.04), 16.0, text);
             signs::text_left(&mut m, b.font, body, Vec3::new(left, (h * 0.5 - 12.0 - 24.0 - 4.0 - 18.0) * PX, 0.04), 16.0, text);
-            self.boards[k] = b.prop("alert", m, Affine3A::from_translation(POS), if k == 0 { Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.06))) } else { None });
+            self.boards[k] = b.prop("alert", m, wall, if k == 0 { Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.06))) } else { None });
         }
     }
 
