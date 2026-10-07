@@ -56,6 +56,17 @@ const spacing = Object.fromEntries(
     .map(([k, v]) => [k.slice("spacing-".length), remToPx(v)]),
 );
 
+const fontSize = Object.fromEntries(
+  Object.entries(root)
+    .filter(([k]) => k.startsWith("font-size-") && k !== "font-size-reference")
+    .map(([k, v]) => [k.slice("font-size-".length), remToPx(v)]),
+);
+const lineHeight = Object.fromEntries(
+  Object.entries(root)
+    .filter(([k]) => k.startsWith("line-height-"))
+    .map(([k, v]) => [k.slice("line-height-".length), parseFloat(v)]),
+);
+
 const pkg = JSON.parse(
   readFileSync("node_modules/@fristil/designsystem/package.json", "utf8"),
 );
@@ -65,11 +76,13 @@ const out = {
   light: colors(light),
   dark: colors(dark),
   spacing,
+  font_size: fontSize,
+  line_height: lineHeight,
 };
 
 mkdirSync("assets", { recursive: true });
 writeFileSync("assets/tokens.json", JSON.stringify(out, null, 2) + "\n");
 console.log(
   `Fristil ${pkg.version}: ${Object.keys(out.light).length} farger (lys), ` +
-    `${Object.keys(out.dark).length} (mørk), ${Object.keys(spacing).length} spacing-trinn`,
+    `${Object.keys(out.dark).length} (mørk), ${Object.keys(spacing).length} spacing-trinn, ${Object.keys(fontSize).length} skriftstørrelser`,
 );

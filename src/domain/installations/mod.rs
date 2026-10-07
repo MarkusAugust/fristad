@@ -37,6 +37,7 @@ pub mod tabs;
 pub mod tag;
 pub mod textarea;
 pub mod tooltip;
+pub mod workshop;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Component {
@@ -173,6 +174,9 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(link::Link::default()),
         Box::new(avatar::Avatar::default()),
         Box::new(divider::Divider::default()),
+        Box::new(workshop::GetStarted),
+        Box::new(workshop::TypeSafe),
+        Box::new(workshop::Accessibility),
     ]
 }
 

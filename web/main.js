@@ -309,7 +309,7 @@ function handle(e) {
   switch (e.type) {
     case "prompt":
       if (e.component) {
-        current = { component: e.component, variant: e.variant };
+        current = { component: e.component, variant: e.variant, class: e.class };
         $("prompt-name").textContent = docs[e.component]?.title ?? e.component;
         $("prompt-class").textContent = e.class;
         $("prompt-variant").textContent = e.variant;
@@ -325,7 +325,7 @@ function handle(e) {
       current.variant = e.variant;
       break;
     case "inspect":
-      current = { component: e.component, variant: e.variant };
+      current = { component: e.component, variant: e.variant, class: current.class };
       openPanel();
       break;
     case "theme":
@@ -443,8 +443,9 @@ function openPanel() {
   hud.hidden = true;
 
   $("panel-title").textContent = d.title ?? current.component;
-  $("panel-class").textContent = `.fs-${current.component}`;
-  $("panel-kind").textContent = d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
+  const page = !current.class;
+  $("panel-class").textContent = page ? "" : `.fs-${current.component}`;
+  $("panel-kind").textContent = page ? "Veiledning" : d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
   $("panel-description").textContent = d.description ?? "";
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";

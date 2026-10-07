@@ -111,6 +111,25 @@ const VARIANTS = {
     { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
     { name: "disabled", note: "disabled" },
   ],
+  table: [
+    { name: "default", note: "Standard." },
+    { name: "striped", note: 'data-variant="striped"' },
+    { name: "hoverable", note: "data-hoverable, vist med raden under musa markert." },
+  ],
+  link: [
+    { name: "default", note: "Standard." },
+    { name: "visited", note: ":visited" },
+    { name: "disabled", note: 'aria-disabled="true"' },
+  ],
+  avatar: [
+    { name: "circle", note: "Standard, rund." },
+    { name: "square", note: 'data-variant="square"' },
+  ],
+  divider: [
+    { name: "default", note: "Standard." },
+    { name: "strong", note: 'data-variant="strong"' },
+    { name: "subtle", note: 'data-variant="subtle"' },
+  ],
 };
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med

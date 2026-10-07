@@ -23,6 +23,7 @@ pub mod nature;
 pub mod park;
 pub mod street_life;
 pub mod terrain;
+pub mod towers;
 
 pub enum Shape {
     /// Boks med sentrum, hele mål og rotasjon om Y.
@@ -214,6 +215,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     furniture::streets(&mut b);
     street_life::all(&mut b);
     park::build(&mut b);
+    towers::build(&mut b);
     nature::plaza_trees(&mut b);
     nature::tufts(&mut b);
     nature::meadow(&mut b);
@@ -258,13 +260,16 @@ fn box_dist(x: f32, z: f32, x0: f32, x1: f32, z0: f32, z1: f32) -> f32 {
 /// Avstand fra et punkt til bebyggelsen eller Tokenparken: der holder enga
 /// seg unna.
 pub fn town_dist(x: f32, z: f32) -> f32 {
-    buildings_dist(x, z).min(box_dist(x, z, park::X0 - 1.0, park::X1 + 1.0, park::Z0 - 1.0, park::Z1 + 1.0))
+    buildings_dist(x, z)
+        .min(box_dist(x, z, park::X0 - 1.0, park::X1 + 1.0, park::Z0 - 1.0, park::Z1 + 1.0))
+        .min(((x - towers::CENTER.x).powi(2) + (z - towers::CENTER.z).powi(2)).sqrt() - towers::RADIUS - 4.0)
 }
 
 /// Avstand fra et punkt til husene: torget med husrekkene og gatene. Rundt
 /// dem ligger grusbeltet.
 pub fn buildings_dist(x: f32, z: f32) -> f32 {
     rect_dist(x, z, 34.0, -32.0, 32.0)
+        .min(box_dist(x, z, 6.0, 26.0, 66.0, 86.0))
         .min(rect_dist(x, z, 13.0, -66.0, -19.0))
         .min(rect_dist(x, z, 12.0, 19.0, 62.0))
         .min(rect_dist(z, x, 11.0, -46.0, -19.0))
@@ -278,7 +283,10 @@ pub fn path_dist(x: f32, z: f32) -> f32 {
     // Nordover fra gata, østover og vestover fra torget, sørover fra sørgata.
     let n = terrain::noise(z * 0.03, 1.0);
     if z < -60.0 {
-        d = d.min((x - (n - 0.5) * 24.0).abs());
+        // Svinger inn mot plassen mellom tårnene, som er grus.
+        let blend = ((-z - 60.0) / 16.0).clamp(0.0, 1.0);
+        d = d.min((x - (n - 0.5) * 24.0 * (1.0 - blend)).abs());
+        d = d.min((((x - towers::CENTER.x).powi(2) + (z - towers::CENTER.z).powi(2)).sqrt() - 10.0).max(0.0));
     }
     if z > 56.0 {
         let n = terrain::noise(z * 0.03, 9.0);

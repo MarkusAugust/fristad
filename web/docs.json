@@ -198,5 +198,29 @@
     "intro": "Klassen settes på et vanlig `<hr>`. Nettleserens egen strek har både ramme og høyde, og begge må nullstilles før fargen fra tokenene er den eneste som vises.",
     "code": "<p>Saken er registrert.</p>\n<hr class=\"fs-divider\" />\n<p>Du får svar innen tre uker.</p>\n<hr class=\"fs-divider\" data-variant=\"strong\" />\n<p>Kontakt oss hvis noe er uklart.</p>\n<hr class=\"fs-divider\" data-variant=\"subtle\" />\n<p>Saksnummer 2026-0481.</p>",
     "url": "https://fristil.sobernetics.no/components/divider/"
+  },
+  "kom-i-gang": {
+    "name": "kom-i-gang",
+    "title": "Kom i gang",
+    "description": "Installer Fristil, importer det du trenger, og få den første komponenten på skjermen.",
+    "intro": "",
+    "code": "npm install @fristil/designsystem\n\n// main.js eller main.ts, øverst\n    import \"@fristil/designsystem/tokens.css\"\n    import \"@fristil/designsystem/button.css\"",
+    "url": "https://fristil.sobernetics.no/kom-i-gang/"
+  },
+  "typesikker-bruk": {
+    "name": "typesikker-bruk",
+    "title": "Typesikker bruk",
+    "description": "Ett navnerom, én form. Autofullføring på hele systemet, uten å binde deg til et rammeverk.",
+    "intro": "Klasser og dataattributter gjør komponentene rammeverksuavhengige, men alt er strenger:",
+    "code": "<button class=\"fs-button\" data-variant=\"secundary\">Lagre utkast</button>\n\nimport { fs } from \"@fristil/designsystem\"\n\n<button {...fs.button({ variant: \"secondary\" })}>Lagre utkast</button>\n<input {...fs.input({ type: \"email\", state: \"invalid\" })} />\n<span {...fs.badge({ color: \"success\" })}>Innvilget</span>\n<a {...fs.link()} href=\"/kvittering\">Se kvittering</a>",
+    "url": "https://fristil.sobernetics.no/typesikker-bruk/"
+  },
+  "tilgjengelighet": {
+    "name": "tilgjengelighet",
+    "title": "Tilgjengelighet",
+    "description": "Hva Fristil tar seg av sentralt, hva som er kontrollert av tester, og hva du må gjøre selv.",
+    "intro": "Fristil lover at tilgjengelighet er løst ett sted, slik at hver app slipper å løse det på nytt. Denne siden sier hva løftet dekker, og hvor det slutter.",
+    "code": "@media (forced-colors: active) {\n\t.min-valgte-rad {\n\t\tbackground-color: Highlight;\n\t\tcolor: HighlightText;\n\t}\n}\n\n<html lang=\"ar\" dir=\"rtl\">",
+    "url": "https://fristil.sobernetics.no/tilgjengelighet/"
   }
 }

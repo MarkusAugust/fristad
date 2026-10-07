@@ -13,18 +13,21 @@ import { join } from "node:path";
 /** Komponentene som finnes i Fristad så langt. */
 const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion", "input", "select", "checkbox", "radio", "textarea", "table", "tooltip", "link", "avatar", "divider"];
 
+/// Veiledningssidene i roten av dokumentasjonen, som Verkstedet viser.
+const PAGES = ["kom-i-gang", "typesikker-bruk", "tilgjengelighet"];
+
 const local = process.argv[2];
 const RAW = "https://raw.githubusercontent.com/MarkusAugust/fristil/master";
 const PATH = "documentation/src/content/docs/components";
 
-async function source(name: string): Promise<string> {
-  if (local) return readFileSync(join(local, PATH, `${name}.mdx`), "utf8");
-  const res = await fetch(`${RAW}/${PATH}/${name}.mdx`);
+async function source(name: string, dir = PATH): Promise<string> {
+  if (local) return readFileSync(join(local, dir, `${name}.mdx`), "utf8");
+  const res = await fetch(`${RAW}/${dir}/${name}.mdx`);
   if (!res.ok) throw new Error(`${name}.mdx: HTTP ${res.status}`);
   return res.text();
 }
 
-function parse(name: string, mdx: string) {
+function parse(name: string, mdx: string, page = false) {
   const front = mdx.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
   const field = (k: string) =>
     front.match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1].trim() ?? "";
@@ -42,6 +45,13 @@ function parse(name: string, mdx: string) {
   // (tabs, dialog) viser den i stedet i en ```html-blokk med markupen; skript
   // og kommentarer tas bort, siden panelet selv registrerer komponentene.
   let code = body.match(/kode=\{`\n?([\s\S]*?)`\}/)?.[1].trim() ?? "";
+  if (!code && page) {
+    // Veiledningssidene: de første kodeblokkene, uansett språk.
+    code = [...body.matchAll(/```[a-z]*\n([\s\S]*?)```/g)]
+      .slice(0, 2)
+      .map((m) => m[1].trim())
+      .join("\n\n");
+  }
   if (!code) {
     const fences = [...body.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]);
     const markup = fences.find((f) => /class="fs-|<fs-/.test(f) && !/<link /.test(f)) ?? "";
@@ -61,12 +71,13 @@ function parse(name: string, mdx: string) {
     description: field("description"),
     intro,
     code,
-    url: `https://fristil.sobernetics.no/components/${name}/`,
+    url: page ? `https://fristil.sobernetics.no/${name}/` : `https://fristil.sobernetics.no/components/${name}/`,
   };
 }
 
 const docs: Record<string, ReturnType<typeof parse>> = {};
 for (const name of COMPONENTS) docs[name] = parse(name, await source(name));
+for (const name of PAGES) docs[name] = parse(name, await source(name, "documentation/src/content/docs"), true);
 
 writeFileSync("web/docs.json", JSON.stringify(docs, null, 2) + "\n");
-console.log(`Dokumentasjon for ${COMPONENTS.length} komponent(er) skrevet til web/docs.json`);
+console.log(`Dokumentasjon for ${COMPONENTS.length} komponent(er) og ${PAGES.length} side(r) skrevet til web/docs.json`);

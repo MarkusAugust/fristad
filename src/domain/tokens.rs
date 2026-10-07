@@ -15,6 +15,10 @@ struct Raw {
     light: HashMap<String, String>,
     dark: HashMap<String, String>,
     spacing: HashMap<String, f32>,
+    #[serde(default)]
+    font_size: HashMap<String, f32>,
+    #[serde(default)]
+    line_height: HashMap<String, f32>,
 }
 
 pub struct Tokens {
@@ -22,6 +26,8 @@ pub struct Tokens {
     light: HashMap<String, Vec3>,
     dark: HashMap<String, Vec3>,
     spacing: HashMap<String, f32>,
+    font_size: HashMap<String, f32>,
+    line_height: HashMap<String, f32>,
 }
 
 /// Lyst eller mørkt tema. I Fristad er lyst tema dag og mørkt tema natt.
@@ -62,7 +68,19 @@ impl Tokens {
             light: conv(raw.light),
             dark: conv(raw.dark),
             spacing: raw.spacing,
+            font_size: raw.font_size,
+            line_height: raw.line_height,
         }
+    }
+
+    /// Skriftstørrelsen i piksler, for eksempel `m` gir 16.
+    pub fn font_size_px(&self, name: &str) -> f32 {
+        self.font_size.get(name).copied().unwrap_or(16.0)
+    }
+
+    /// Linjehøyden som faktor, for eksempel `default` gir 1,5.
+    pub fn line_height(&self, name: &str) -> f32 {
+        self.line_height.get(name).copied().unwrap_or(1.5)
     }
 
     /// Fargen til et token, for eksempel `accent-fill`, i lineært lys.
