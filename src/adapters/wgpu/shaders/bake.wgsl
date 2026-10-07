@@ -324,6 +324,34 @@ fn mat_plywood(uv: vec2<f32>) -> Sample {
     return s;
 }
 
+fn mat_rock(uv: vec2<f32>) -> Sample {
+    // Berg i stor skala: lag som ligger på skrå (strata), sprekker fra en
+    // ridged støy, og lysere, forvitrede flater.
+    let tilt = uv.x * 0.35 + uv.y;
+    let strata = abs(fract(tilt * 9.0 + pfbm(uv * 5.0, 5.0, 3) * 0.8) - 0.5) * 2.0;
+    let ridges = 1.0 - abs(pfbm(uv * 7.0 + 3.0, 7.0, 5) * 2.0 - 1.0);
+    let cracks = smoothstep(0.75, 0.95, ridges);
+    let weathered = pfbm(uv * 2.0 + 9.0, 2.0, 3);
+    var s: Sample;
+    let dark = vec3<f32>(0.04, 0.045, 0.05);
+    let light = vec3<f32>(0.2, 0.19, 0.18);
+    s.albedo = mix(dark, light, weathered * 0.7 + strata * 0.3) * (1.0 - cracks * 0.5) * (0.85 + ridges * 0.2);
+    s.height = 0.5 + strata * 0.2 - cracks * 0.35 + ridges * 0.15;
+    s.rough = 0.9 - weathered * 0.1;
+    return s;
+}
+
+fn mat_snow(uv: vec2<f32>) -> Sample {
+    // Snø: lys, blåhvit, med myke driver og små skavler.
+    let drifts = pfbm(uv * 3.0 + 5.0, 3.0, 3);
+    let crust = pnoise(uv * 60.0, 60.0);
+    var s: Sample;
+    s.albedo = mix(vec3<f32>(0.78, 0.82, 0.88), vec3<f32>(0.94, 0.95, 0.97), drifts) * (0.96 + crust * 0.06);
+    s.height = 0.4 + drifts * 0.4 + crust * 0.05;
+    s.rough = 0.45 + crust * 0.2;
+    return s;
+}
+
 fn mat_metal(uv: vec2<f32>) -> Sample {
     let dent = pfbm(uv * 8.0, 8.0, 3);
     let rust = smoothstep(0.62, 0.8, pfbm(uv * 5.0 + 4.0, 5.0, 4));
@@ -397,6 +425,8 @@ fn material(layer: i32, uv: vec2<f32>) -> Sample {
         case 11: { return mat_gravel(uv); }
         case 13: { return mat_timber(uv); }
         case 14: { return mat_plywood(uv); }
+        case 15: { return mat_rock(uv); }
+        case 16: { return mat_snow(uv); }
         default: { return mat_concrete(uv); }
     }
 }
@@ -418,6 +448,8 @@ fn relief(layer: i32) -> f32 {
         case 11: { return 0.02; }
         case 13: { return 0.008; }
         case 14: { return 0.004; }
+        case 15: { return 1.5; }
+        case 16: { return 0.3; }
         default: { return 0.004; }
     }
 }

@@ -126,10 +126,9 @@ mod tests {
     }
 
     /// Og fysikken må faktisk stoppe deg: kapselen går mot en trestamme og
-    /// mot foten av et fjell, og skal bli stående utenfor begge.
+    /// mot kanten av verden, og skal bli stående innenfor begge.
     #[test]
-    fn kapselen_stopper_mot_trær_og_fjell() {
-        use crate::domain::city::Shape;
+    fn kapselen_stopper_mot_trær_og_kanten() {
         use crate::domain::ports::Physics;
         let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
         let prepared = super::prepare(&assets, &assets);
@@ -160,17 +159,10 @@ mod tests {
             let (_, nearest) = walk(base + glam::Vec3::new(2.0, y, 0.0), base + glam::Vec3::new(-2.0, y, 0.0), base);
             assert!(nearest > 0.45, "gikk gjennom eika ved ({:.1}, {:.1}): kom {:.2} m fra stammen", base.x, base.z, nearest);
         }
-        // Et fjell: foten er den laveste ringen i omhyllingen; gå mot midten.
-        let hull = prepared.city.colliders.iter().filter_map(|c| match c { Shape::Hull { points } if points.len() < 12 => Some(points), _ => None }).next().expect("ingen fjell");
-        let apex = *hull.iter().max_by(|a, b| a.y.total_cmp(&b.y)).unwrap();
-        let foot = hull.iter().filter(|p| p.y < apex.y - 1.0).fold(glam::Vec3::ZERO, |a, p| a + *p) / (hull.len() - 1) as f32;
-        let r = hull.iter().filter(|p| p.y < apex.y - 1.0).map(|p| (*p - foot).with_y(0.0).length()).fold(0.0, f32::max);
-        let out = (foot + (foot - apex).with_y(0.0).normalize_or_zero() * 0.0).with_y(foot.y);
-        let dir = glam::Vec3::X;
-        let start = out + dir * (r + 8.0) + glam::Vec3::Y * 40.0;
-        let (end, _) = walk(start, out + glam::Vec3::Y * 40.0, out);
-        let got = (end - out).with_y(0.0).length();
-        assert!(got > r * 0.5, "gikk inn i fjellet ved ({:.0}, {:.0}): endte {:.0} m fra midten (foten er {:.0} m)", foot.x, foot.z, got, r);
+        // Kanten av verden: fra 185 m ute, rett utover; veggen ved 199 m skal stoppe oss.
+        let start = glam::Vec3::new(185.0, crate::domain::city::terrain::height(185.0, 0.0) + half + radius + 0.1, 0.0);
+        let (end, _) = walk(start, glam::Vec3::new(215.0, start.y, 0.0), glam::Vec3::ZERO);
+        assert!(end.x < 199.0, "gikk ut av verden: endte ved x = {:.1}", end.x);
     }
 
     /// Variantene skal virke 1:1 med designsystemet: alle installasjonene

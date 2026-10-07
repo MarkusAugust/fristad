@@ -77,7 +77,7 @@ struct Globals {
     jitter: [f32; 4],
     cascade: [f32; 4],
     sky: [f32; 4],
-    tex_scale: [[f32; 4]; 4],
+    tex_scale: [[f32; 4]; 5],
     palette: [[f32; 4]; PALETTE],
     lights: [GpuLight; MAX_LIGHTS],
 }
@@ -963,7 +963,7 @@ impl Renderer {
         for (i, c) in f.palette.iter().enumerate() {
             palette[i] = v4(*c, 1.0);
         }
-        let mut tex_scale = [[1.0f32; 4]; 4];
+        let mut tex_scale = [[1.0f32; 4]; 5];
         for (i, s) in self.materials.scales.iter().enumerate().take(LAYERS as usize) {
             tex_scale[i / 4][i % 4] = *s;
         }

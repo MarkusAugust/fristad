@@ -37,7 +37,7 @@ struct Globals {
     // x skydekke, y nordlys, z lyn, w feilsøkingsvisning.
     sky: vec4<f32>,
     // Meter per flis for teksturlagene, 4 per vec4.
-    tex_scale: array<vec4<f32>, 4>,
+    tex_scale: array<vec4<f32>, 5>,
     palette: array<vec4<f32>, 64>,
     lights: array<Light, 48>,
 }

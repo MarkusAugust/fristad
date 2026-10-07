@@ -13,24 +13,28 @@ const CELL: f32 = 0.5;
 struct Grid {
     tris: Vec<[Vec3; 3]>,
     cells: HashMap<(i32, i32, i32), Vec<u32>>,
+    /// Bare flater innenfor dette området (rundt all teksten) tas med;
+    /// landskapet langt ute ville ellers fylt millioner av celler.
+    lo: Vec3,
+    hi: Vec3,
 }
 
 impl Grid {
-    fn new() -> Self {
-        Self { tris: vec![], cells: HashMap::new() }
+    fn new(lo: Vec3, hi: Vec3) -> Self {
+        Self { tris: vec![], cells: HashMap::new(), lo, hi }
     }
 
     fn add(&mut self, t: [Vec3; 3]) {
-        let i = self.tris.len() as u32;
-        self.tris.push(t);
         let lo = t[0].min(t[1]).min(t[2]);
         let hi = t[0].max(t[1]).max(t[2]);
         // Store flater (bakken, åsene, fjellene) hopper vi over: de er
-        // aldri plater, og de ville fylt tusenvis av celler.
-        if (hi - lo).max_element() > 24.0 {
-            self.tris.pop();
+        // aldri plater, og de ville fylt tusenvis av celler. Det samme med
+        // alt som ligger utenfor området teksten står i.
+        if (hi - lo).max_element() > 24.0 || hi.cmplt(self.lo).any() || lo.cmpgt(self.hi).any() {
             return;
         }
+        let i = self.tris.len() as u32;
+        self.tris.push(t);
         let c0 = (lo / CELL).floor().as_ivec3();
         let c1 = (hi / CELL).floor().as_ivec3();
         for x in c0.x..=c1.x {
@@ -110,7 +114,27 @@ fn tris(mesh: &Mesh, t: &Affine3A, text: bool) -> Vec<([Vec3; 3], Vec3)> {
 /// Sjekker bymeshen og propsene (i hvilestillingen). Gir én melding per
 /// halvmeter der bokstaver står utenfor plata.
 pub fn audit(mesh: &Mesh, props: &[(&Mesh, Affine3A)]) -> Vec<String> {
-    let mut grid = Grid::new();
+    // Området teksten står i, med en margin.
+    let mut lo = Vec3::splat(f32::MAX);
+    let mut hi = Vec3::splat(f32::MIN);
+    let mut extend = |p: [Vec3; 3]| {
+        for c in p {
+            lo = lo.min(c);
+            hi = hi.max(c);
+        }
+    };
+    for (p, _) in tris(mesh, &Affine3A::IDENTITY, true) {
+        extend(p);
+    }
+    for (m, rest) in props {
+        if rest.matrix3.x_axis.length_squared() < 1e-6 {
+            continue;
+        }
+        for (p, _) in tris(m, rest, true) {
+            extend(p);
+        }
+    }
+    let mut grid = Grid::new(lo - Vec3::splat(2.0), hi + Vec3::splat(2.0));
     for (t, _) in tris(mesh, &Affine3A::IDENTITY, false) {
         grid.add(t);
     }

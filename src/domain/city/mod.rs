@@ -404,8 +404,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     nature::tufts(&mut b);
     nature::meadow(&mut b);
     nature::grass(&mut b);
-    nature::hills(&mut b);
-    nature::mountains(&mut b);
+    nature::landscape(&mut b);
     nature::world_edge(&mut b);
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
     for (model, n) in crate::domain::herd::Herd::reserve() {

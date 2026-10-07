@@ -4,7 +4,7 @@
 //! kryssede firkanter med en bakt bladtekstur som alfatestes, og som svaier
 //! i vinden i vertex-shaderen.
 
-use super::{at, Builder, Shape};
+use super::{at, terrain, Builder, Shape};
 use crate::domain::geometry::{flag, kind, Layer, Mat, Mesh};
 use crate::domain::model::Model;
 use glam::{Affine3A, Quat, Vec2, Vec3};
@@ -380,37 +380,80 @@ pub fn meadow(b: &mut Builder) {
     }
 }
 
-/// Åser mellom skogen og fjellene: myke, gresskledde rygger.
-pub fn hills(b: &mut Builder) {
+/// Landskapet rundt terrenget: fra kanten av bakken (±200 m) stiger
+/// åser og så fjell i ett sammenhengende polart rutenett, formet av
+/// ridged noise. Lavt er det eng, bratt og høyt er det berg, og toppene
+/// har snø. Ingen kollider: kanten av terrenget (`world_edge`) stopper deg
+/// før du kommer dit.
+pub fn landscape(b: &mut Builder) {
+    let (r0, r1) = (196.0f32, 600.0f32);
+    let (rings, spokes) = (64usize, 288usize);
     let grass = Mat::tex(Layer::Grass, 0xc8f098);
-    for i in 0..14 {
-        let a = i as f32 / 14.0 * std::f32::consts::TAU + b.rng.range(-0.2, 0.2);
-        let dist = b.rng.range(190.0, 300.0);
-        let p = Vec3::new(a.sin() * dist, -6.0, a.cos() * dist);
-        let r = b.rng.range(70.0, 130.0);
-        let h = b.rng.range(14.0, 30.0);
-        let size = Vec3::new(r, h, r * b.rng.range(0.7, 1.0));
-        b.mesh.sphere(&Affine3A::from_translation(p), size, 8, 20, &grass);
-        b.colliders.push(Shape::Hull { points: ellipsoid_points(&Affine3A::from_translation(p), size) });
+    let rock = Mat::tex(Layer::Rock, 0xffffff);
+    let snow = Mat::tex(Layer::Snow, 0xffffff);
+    // Radiene tettere innerst, der detaljene er nær.
+    let radius = |j: usize| {
+        let t = j as f32 / rings as f32;
+        r0 + (r1 - r0) * t * t.sqrt()
+    };
+    let pos = |j: usize, i: usize| {
+        let a = i as f32 / spokes as f32 * std::f32::consts::TAU;
+        let r = radius(j);
+        let (x, z) = (a.sin() * r, a.cos() * r);
+        Vec3::new(x, landscape_height(x, z), z)
+    };
+    let normal = |p: Vec3| {
+        let d = 3.0;
+        let hx = landscape_height(p.x + d, p.z) - landscape_height(p.x - d, p.z);
+        let hz = landscape_height(p.x, p.z + d) - landscape_height(p.x, p.z - d);
+        Vec3::new(-hx, 2.0 * d, -hz).normalize()
+    };
+    for j in 0..rings {
+        for i in 0..spokes {
+            let i2 = (i + 1) % spokes;
+            let p = [pos(j, i), pos(j, i2), pos(j + 1, i2), pos(j + 1, i)];
+            let n = [normal(p[0]), normal(p[1]), normal(p[2]), normal(p[3])];
+            let c = (p[0] + p[1] + p[2] + p[3]) * 0.25;
+            let up = (n[0] + n[1] + n[2] + n[3]).normalize().y;
+            let ground = terrain::height(c.x, c.z);
+            let rise = c.y - ground;
+            // Snøgrensa varierer rundt horisonten; bratte sider er berg.
+            let snowline = 200.0 + (terrain::noise(c.x * 0.004, c.z * 0.004) - 0.5) * 80.0;
+            let mat = if c.y > snowline && up > 0.6 {
+                &snow
+            } else if rise > 60.0 || up < 0.62 {
+                &rock
+            } else {
+                &grass
+            };
+            b.mesh.quad_n([p[3], p[2], p[1], p[0]], [n[3], n[2], n[1], n[0]], mat, 1.0);
+        }
     }
 }
 
-/// Punkter på en ellipsoide, til en konveks kollider.
-fn ellipsoid_points(t: &Affine3A, r: Vec3) -> Vec<Vec3> {
-    let mut pts = vec![];
-    for j in 0..=6 {
-        let v = j as f32 / 6.0 * std::f32::consts::PI;
-        for i in 0..12 {
-            let u = i as f32 / 12.0 * std::f32::consts::TAU;
-            let n = Vec3::new(v.sin() * u.cos(), v.cos(), v.sin() * u.sin());
-            pts.push(t.transform_point3(n * r));
-        }
-    }
-    pts
+/// Høyden i landskapet utenfor terrenget: bakken glir over i åser fra
+/// 200 m og fjell fra 280 m, med rygger og tinder fra ridged noise som
+/// stiger utover, så horisonten er en sammenhengende fjellrekke.
+pub fn landscape_height(x: f32, z: f32) -> f32 {
+    let r = (x * x + z * z).sqrt();
+    let base = terrain::height(x, z);
+    let smooth = |t: f32| {
+        let t = t.clamp(0.0, 1.0);
+        t * t * (3.0 - 2.0 * t)
+    };
+    let hills = smooth((r - 200.0) / 70.0) * (terrain::noise(x * 0.012 + 20.0, z * 0.012 + 20.0) * 28.0 + terrain::noise(x * 0.03 + 40.0, z * 0.03) * 8.0);
+    // Ridged noise: toppene blir skarpe rygger.
+    let ridge = |fx: f32, fz: f32, s: f32| 1.0 - (terrain::noise(fx * s, fz * s) * 2.0 - 1.0).abs();
+    let ridges = ridge(x + 300.0, z, 0.0055) * 0.6 + ridge(x, z + 700.0, 0.012) * 0.28 + ridge(x + 900.0, z + 100.0, 0.03) * 0.12;
+    // Store massiv per retning, så noen tinder rager over de andre.
+    let massif = 0.55 + terrain::noise((x + 1000.0) * 0.0025, (z + 1000.0) * 0.0025) * 0.9;
+    let rise = smooth((r - 280.0) / 150.0) * (120.0 + (r - 280.0).max(0.0) * 0.35);
+    let mountains = rise * ridges.powf(1.4) * massif;
+    base + hills + mountains
 }
 
 /// Usynlige vegger rundt kanten av terrenget (±200 m), så ingen faller
-/// ut av verden.
+/// ut av verden eller går inn i fjellene.
 pub fn world_edge(b: &mut Builder) {
     let n = 36;
     let radius = 199.0;
@@ -418,40 +461,6 @@ pub fn world_edge(b: &mut Builder) {
         let a = (i as f32 + 0.5) / n as f32 * std::f32::consts::TAU;
         let c = Vec3::new(a.sin() * radius, 20.0, a.cos() * radius);
         b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 80.0, 2.0), yaw: a });
-    }
-}
-
-/// Fjell i det fjerne, så byen ligger i et landskap og ikke i et tomrom.
-pub fn mountains(b: &mut Builder) {
-    let rock = Mat::plain(0x5d6670, 0.95);
-    let snow = Mat::plain(0xf4f6f8, 0.6);
-    let n = 34;
-    for i in 0..n {
-        let a = i as f32 / n as f32 * std::f32::consts::TAU + b.rng.range(-0.06, 0.06);
-        let dist = b.rng.range(330.0, 480.0);
-        let h = b.rng.range(70.0, 190.0);
-        let r = b.rng.range(110.0, 190.0);
-        let p = Vec3::new(a.sin() * dist, -4.0, a.cos() * dist);
-        // Et fjell av flere skjeve kjegler, så silhuetten blir ujevn.
-        for j in 0..3 {
-            let off = Vec3::new(b.rng.range(-0.4, 0.4) * r, 0.0, b.rng.range(-0.4, 0.4) * r);
-            let hj = h * b.rng.range(0.6, 1.0);
-            let rj = r * b.rng.range(0.5, 0.9);
-            let lean = Quat::from_rotation_z(b.rng.range(-0.08, 0.08)) * Quat::from_rotation_x(b.rng.range(-0.08, 0.08));
-            let t = Affine3A::from_rotation_translation(lean, p + off);
-            b.mesh.cylinder(&t, rj, 0.0, hj, 7 + j, &rock, false);
-            // Kollideren: kjeglen som konveks omhylling av foten og toppen.
-            let mut pts = vec![t.transform_point3(Vec3::Y * hj)];
-            for k in 0..(7 + j) {
-                let u = k as f32 / (7 + j) as f32 * std::f32::consts::TAU;
-                pts.push(t.transform_point3(Vec3::new(u.cos() * rj, 0.0, u.sin() * rj)));
-            }
-            b.colliders.push(Shape::Hull { points: pts });
-            if hj > 110.0 {
-                let k = 0.24;
-                b.mesh.cylinder(&(t * Affine3A::from_translation(Vec3::Y * (hj * (1.0 - k) + 0.3))), rj * k * 1.03, 0.0, hj * k, 7 + j, &snow, false);
-            }
-        }
     }
 }
 

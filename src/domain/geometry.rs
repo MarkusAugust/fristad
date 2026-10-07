@@ -43,13 +43,17 @@ pub enum Layer {
     Timber = 13,
     /// OSB-/sponplater.
     Plywood = 14,
+    /// Fjellsider: lagdelt berg i stor skala (30 m per flis).
+    Rock = 15,
+    /// Snø på toppene.
+    Snow = 16,
 }
-pub const LAYERS: u32 = 15;
+pub const LAYERS: u32 = 17;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
         Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
-        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood,
+        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow,
     ];
     /// Navnet i `assets/external/manifest.json`.
     pub fn name(self) -> &'static str {
@@ -69,12 +73,14 @@ impl Layer {
             Layer::Concrete => "concrete",
             Layer::Timber => "timber",
             Layer::Plywood => "plywood",
+            Layer::Rock => "rock",
+            Layer::Snow => "snow",
         }
     }
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {
