@@ -422,6 +422,37 @@ function handle(e) {
     case "marks":
       updateMarks(e.marks);
       break;
+    case "speech":
+      updateBubbles(e.bubbles);
+      break;
+  }
+}
+
+// Snakkeboblene over innbyggerne: vanlige bobler, ikke designsystemet.
+const bubbleEls = new Map();
+function updateBubbles(bubbles) {
+  const root = $("bubbles");
+  const seen = new Set();
+  for (const b of bubbles) {
+    seen.add(b.id);
+    let el = bubbleEls.get(b.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "bubble";
+      el.innerHTML = '<div class="bubble-name"></div><div class="bubble-text"></div>';
+      root.appendChild(el);
+      bubbleEls.set(b.id, el);
+    }
+    el.style.left = `${b.x * 100}%`;
+    el.style.top = `${b.y * 100}%`;
+    el.firstChild.textContent = b.name;
+    el.lastChild.textContent = b.text;
+  }
+  for (const [id, el] of bubbleEls) {
+    if (!seen.has(id)) {
+      el.remove();
+      bubbleEls.delete(id);
+    }
   }
 }
 
@@ -573,6 +604,11 @@ const sfx = (() => {
       v.start(t);
       o.stop(t + 0.6);
       v.stop(t + 0.6);
+    },
+    talk: (c) => {
+      // Et lite mumlende «hm-hm».
+      tone(c, "triangle", 220, 180, 0.12, 0.02, 0.12);
+      tone(c, "triangle", 260, 200, 0.1, 0.02, 0.14, 0.14);
     },
     pickup: (c) => {
       tone(c, "sine", 880, 880, 0.2, 0.005, 0.12);

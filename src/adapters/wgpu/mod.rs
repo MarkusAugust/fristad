@@ -978,6 +978,10 @@ impl Renderer {
                     // Blinket ligger over 1 i markeringen (extra.x).
                     let mut extra = m.extra;
                     extra[0] = if i.flash > 0.0 { 1.0 + i.flash } else { 0.0 };
+                    if let Some(t) = i.tint {
+                        let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
+                        extra[1] = (c(t.x) << 16 | c(t.y) << 8 | c(t.z)) as f32;
+                    }
                     let inst = match i.skin {
                         Some((base, _)) if m.skinned && (base as usize) < SKIN_MAX => InstanceData::skinned(&i.transform, extra, base),
                         _ => InstanceData::new(&i.transform, extra),

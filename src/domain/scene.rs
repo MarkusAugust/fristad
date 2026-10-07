@@ -44,6 +44,8 @@ pub struct ModelInstance {
     pub skin: Option<(u32, u32)>,
     /// Blinker hvitt (0..1), rett etter et treff.
     pub flash: f32,
+    /// Lakkfargen (lineær RGB) på flatene merket «paint», om modellen har dem.
+    pub tint: Option<Vec3>,
 }
 
 pub struct Frame {

@@ -184,6 +184,43 @@ code {
   text-shadow: 0 0 6px rgb(0 0 0 / 0.9), 0 2px 2px rgb(0 0 0 / 0.8);
 }
 
+/* Snakkebobler: hvit boble med spiss, over hodet på den som snakker. */
+.bubble {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  max-width: 320px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fffdf6;
+  color: #1c1a17;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.35;
+  box-shadow: 0 6px 22px rgb(0 0 0 / 0.35);
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 11px solid #fffdf6;
+}
+
+.bubble-name {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a5a2a;
+  margin-bottom: 2px;
+}
+
 .mark-text.heavy {
   font-size: 30px;
   color: #ffd166;

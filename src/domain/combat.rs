@@ -568,15 +568,15 @@ impl Combat {
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: Some((base, mats.len() as u32)), flash: 0.0 });
+                    out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
                 }
-                _ => out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: None, flash: 0.0 }),
+                _ => out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: None, flash: 0.0, tint: None }),
             }
         }
         for p in &self.debris {
             let fade = (1.6 - p.age).clamp(0.0, 1.0).min(1.0);
             let rot = Quat::from_euler(glam::EulerRot::XYZ, p.spin.x * p.age, p.spin.y * p.age, p.spin.z * p.age);
-            out.push(ModelInstance { model: DEBRIS_MODEL, transform: Affine3A::from_rotation_translation(rot, p.pos) * Affine3A::from_scale(Vec3::splat(p.size * fade)), skin: None, flash: 0.0 });
+            out.push(ModelInstance { model: DEBRIS_MODEL, transform: Affine3A::from_rotation_translation(rot, p.pos) * Affine3A::from_scale(Vec3::splat(p.size * fade)), skin: None, flash: 0.0, tint: None });
         }
         out
     }

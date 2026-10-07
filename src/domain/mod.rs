@@ -22,6 +22,7 @@ pub mod herd;
 pub mod installations;
 pub mod mobs;
 pub mod model;
+pub mod npcs;
 pub mod palette;
 pub mod ports;
 pub mod scene;

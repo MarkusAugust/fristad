@@ -73,6 +73,9 @@ pub struct City {
     /// når alt står på bakken; testen i `app.rs` krever det.
     pub audit: Vec<String>,
     pub dungeon: dungeon::Dungeon,
+    /// Innbyggerne: navn, føtter, yaw, tunikafarge og replikker
+    /// (`installations/npcs.rs` setter dem ut, `domain/npcs.rs` poserer dem).
+    pub npcs: Vec<NpcSpec>,
 }
 
 pub struct Rng(pub u64);
@@ -137,6 +140,17 @@ pub struct Builder<'a> {
     /// Kjelleren, når den er bygd (før installasjonene), så brønnen kan
     /// finne startrommet.
     pub dungeon: Option<dungeon::Dungeon>,
+    pub npcs: Vec<NpcSpec>,
+}
+
+/// En innbygger slik byen beskriver den for spillet.
+#[derive(Clone, Debug)]
+pub struct NpcSpec {
+    pub name: &'static str,
+    pub pos: Vec3,
+    pub yaw: f32,
+    pub tint: Vec3,
+    pub lines: &'static [&'static str],
 }
 
 impl Builder<'_> {
@@ -399,6 +413,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         floors: vec![],
         mounted: vec![],
         text_audit: vec![],
+        npcs: vec![],
         dungeon: None,
     };
 
@@ -428,6 +443,10 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     }
     // Armene med sverdet, og rusket som spruter.
     for (model, n) in crate::domain::combat::Combat::reserve() {
+        b.reserve(model, n);
+    }
+    // Innbyggerne.
+    for (model, n) in crate::domain::npcs::Npcs::reserve() {
         b.reserve(model, n);
     }
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
@@ -463,6 +482,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         props: b.props,
         placements: b.placements,
         dungeon: b.dungeon.take().expect("kjelleren er bygd"),
+        npcs: b.npcs.clone(),
         spawn: SPAWN,
         spawn_yaw: SPAWN_YAW,
         audit,

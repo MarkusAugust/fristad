@@ -40,6 +40,7 @@ pub mod signs;
 pub mod gorvek;
 pub mod cellar;
 pub mod gate;
+pub mod npcs;
 pub mod skeleton;
 pub mod spinner;
 pub mod submit;
@@ -158,11 +159,13 @@ pub struct Env {
     pub form: FormState,
     /// Nøklene spilleren bærer (til de rustne portene i kjelleren).
     pub keys: u32,
+    /// F på en innbygger: hvem (indeks i rollelista) spillet skal la snakke.
+    pub talk_to: Option<usize>,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default(), keys: 0 }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default(), keys: 0, talk_to: None }
     }
 }
 
@@ -264,6 +267,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(gorvek::Gorvek::default()),
         Box::new(cellar::Cellar::default()),
         Box::new(gate::Gate::default()),
+        Box::new(npcs::Npcs::default()),
     ]
 }
 

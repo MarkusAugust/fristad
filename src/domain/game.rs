@@ -150,6 +150,18 @@ pub enum Event {
     Sound(String),
     /// Merkene på skjermen dette bildet (tom liste når de er borte).
     Marks(Vec<Mark>),
+    /// Snakkeboblene over innbyggerne dette bildet (tom liste når de er borte).
+    Speech(Vec<Bubble>),
+}
+
+/// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Bubble {
+    pub id: u32,
+    pub x: f32,
+    pub y: f32,
+    pub name: String,
+    pub text: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -327,6 +339,9 @@ pub struct Game {
     editing: Option<usize>,
     /// Dyrene på engene.
     herd: crate::domain::herd::Herd,
+    /// Innbyggerne rundt torget.
+    npcs: crate::domain::npcs::Npcs,
+    bubbles_shown: bool,
     /// Kjelleren og fiendene i den.
     dungeon: crate::domain::city::dungeon::Dungeon,
     mobs: crate::domain::mobs::Mobs,
@@ -405,6 +420,8 @@ impl Game {
             parachute: city.props.iter().position(|p| p.name == "parachute"),
             editing: None,
             herd: crate::domain::herd::Herd::new(),
+            npcs: crate::domain::npcs::Npcs::new(rig_of(crate::domain::npcs::NPC_MODEL), city.npcs.iter().map(|n| (n.name, n.pos, n.yaw, n.tint, n.lines)).collect()),
+            bubbles_shown: false,
             mobs: crate::domain::mobs::Mobs::new(&city.dungeon, mob_rig),
             dungeon: city.dungeon.clone(),
             hp: 100.0,
@@ -846,6 +863,22 @@ impl Game {
         let (half, radius) = self.stance.capsule();
         let feet = self.pos - Vec3::Y * (half + radius);
         self.herd.update(dt, feet);
+        // Innbyggerne: F på en av dem gir neste replikk; boblene som står
+        // sendes hvert bilde (og én tom når de er borte).
+        if let Some(i) = self.env.talk_to.take() {
+            if self.npcs.talk(i).is_some() {
+                events.push(Event::Sound("talk".into()));
+            }
+        }
+        let speeches = self.npcs.update(dt, feet);
+        if !speeches.is_empty() || self.bubbles_shown {
+            self.bubbles_shown = !speeches.is_empty();
+            let bubbles = speeches
+                .iter()
+                .filter_map(|s| self.project(s.pos).map(|(x, y)| Bubble { id: s.npc as u32, x, y, name: s.name.into(), text: s.text.clone() }))
+                .collect();
+            events.push(Event::Speech(bubbles));
+        }
         // Fiendene: de biter, og du plukker tokens. Under hitstop står
         // alt stille et øyeblikk.
         let in_cellar = self.pos.y < crate::domain::city::dungeon::DEPTH + 6.0;
@@ -1152,6 +1185,7 @@ impl Game {
             props,
             instances: {
                 let mut v = self.herd.instances(self.time);
+                v.extend(self.npcs.instances(&mut skins));
                 v.extend(self.mobs.instances(self.time, &mut skins));
                 v.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
                 v
