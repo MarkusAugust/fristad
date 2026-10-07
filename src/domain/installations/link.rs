@@ -1,6 +1,6 @@
 //! `.fs-link`: veiviseren på torget, med armer som peker dit lenkene går.
-//! F på en arm følger lenka: du teleporteres dit. Den første armen bytter
-//! tilstand med R (vanlig, besøkt, deaktivert).
+//! F på en arm følger lenka: du flys dit. R bytter tilstand på alle armene
+//! (vanlig, besøkt, deaktivert).
 
 use super::signs;
 use super::{Action, Component, Env, Installation, PX};
@@ -57,8 +57,7 @@ impl Installation for Link {
             let plank = Mat::plain(0xf2efe8, 0.6).flags(flag::NO_DIRT);
             arm.cuboid(&Affine3A::from_translation(Vec3::new(w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX, 0.22, 0.03), &plank);
             arm.cuboid(&(Affine3A::from_translation(Vec3::new(w * PX + 0.078, 0.0, 0.0)) * Affine3A::from_rotation_z(0.785)), Vec3::new(0.155, 0.155, 0.03), &plank);
-            let (text, _) = if k == 0 { (LINK_TEXT, LINK_LINE) } else if k == 1 { (slot::VISITED_TEXT, slot::VISITED_TEXT) } else { (slot::ACCENT_TEXT, slot::ACCENT_TEXT) };
-            let line = if k == 0 { LINK_LINE } else { text };
+            let (text, line) = (LINK_TEXT, LINK_LINE);
             for side in [1.0f32, -1.0] {
                 // Teksten og understreken (0,08 em tykk, 0,14 em under
                 // grunnlinja) på hver side av planken; baksiden speiles.
@@ -86,7 +85,7 @@ impl Installation for Link {
             return;
         }
         let Some(k) = self.arms.iter().position(|a| Some(*a) == env.aimed_prop) else { return };
-        if k == 0 && VARIANTS[self.variant] == "disabled" {
+        if VARIANTS[self.variant] == "disabled" {
             env.toasts.push("Lenka er deaktivert".into());
             return;
         }
@@ -109,7 +108,6 @@ impl Installation for Link {
         };
         p[LINK_TEXT as usize] = text;
         p[LINK_LINE as usize] = line;
-        p[slot::VISITED_TEXT as usize] = c("visited-text");
     }
 }
 
