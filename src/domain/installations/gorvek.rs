@@ -135,7 +135,8 @@ impl Installation for Gorvek {
         // Tomta: steinmur ned i bakken og plankegulv oppå.
         {
             let m = &mut b.mesh;
-            m.cuboid_ao(&local(Vec3::new(0.0, FLOOR * 0.5 - 0.7, 0.0)), Vec3::new(W + 0.5, FLOOR + 1.4, D + 0.5), &STONE, 1.0);
+            // Sokkelen stopper 6 cm under plankene, så gulvet ikke z-kjemper med steinen.
+            m.cuboid_ao(&local(Vec3::new(0.0, (FLOOR - 0.06 - 1.4) * 0.5, 0.0)), Vec3::new(W + 0.5, FLOOR - 0.06 + 1.4, D + 0.5), &STONE, 1.0);
             m.cuboid_ao(&local(Vec3::new(0.0, FLOOR - 0.04, 0.0)), Vec3::new(W, 0.08, D), &OAK.flags(flag::NO_WEATHER), 1.0);
             // To trappesteiner foran døra.
             m.cuboid_ao(&local(Vec3::new(0.0, FLOOR * 0.5 - 0.5, hd + 0.5)), Vec3::new(2.0, FLOOR + 1.0, 1.0), &STONE, 1.0);

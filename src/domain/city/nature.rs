@@ -4,8 +4,9 @@
 //! kryssede firkanter med en bakt bladtekstur som alfatestes, og som svaier
 //! i vinden i vertex-shaderen.
 
-use super::{Builder, Shape};
+use super::{at, Builder, Shape};
 use crate::domain::geometry::{flag, kind, Layer, Mat, Mesh};
+use crate::domain::model::Model;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 
 const BARK: Mat = Mat::tex(Layer::Bark, 0xffffff);
@@ -332,4 +333,69 @@ pub fn mountains(b: &mut Builder) {
             }
         }
     }
+}
+
+/// Gresstusten: sju strå som smale trekanter, mørkere mot rota, som
+/// svaier i vinden (uv.y er høyden). Én modell som instansieres tusenvis
+/// av ganger over enga (`grass`); fargen per tust kommer fra instansen.
+pub fn grass_model() -> Model {
+    let mut m = Mesh::default();
+    let mut rng = super::Rng(0x6ea5_0a11);
+    let mut dark = Mat::plain(0x5c8a36, 0.85).flags(flag::WIND | flag::PAINT | flag::NO_DIRT);
+    let mut light = Mat::plain(0xb9dc7c, 0.8).flags(flag::WIND | flag::PAINT | flag::NO_DIRT);
+    dark.kind = kind::MODEL;
+    light.kind = kind::MODEL;
+    for k in 0..7 {
+        let a = k as f32 * 0.9 + rng.range(0.0, 0.6);
+        let r = rng.range(0.02, 0.13);
+        let base = Vec3::new(a.cos() * r, 0.0, a.sin() * r);
+        let h = rng.range(0.26, 0.5);
+        let lean = Vec3::new(rng.range(-0.2, 0.2), 0.0, rng.range(-0.2, 0.2));
+        let w = rng.range(0.03, 0.045);
+        let side = Vec3::new(-lean.z, 0.0, lean.x).normalize_or_zero();
+        let side = if side.length_squared() < 0.5 { Vec3::X } else { side };
+        let n = Vec3::Y;
+        let i0 = m.vert(base - side * w * 0.5, n, Vec2::new(0.0, 0.0), &dark, 1.0);
+        let i1 = m.vert(base + side * w * 0.5, n, Vec2::new(1.0, 0.0), &dark, 1.0);
+        let i2 = m.vert(base + lean + Vec3::Y * h, n, Vec2::new(0.5, 1.0), &light, 1.0);
+        m.indices.extend_from_slice(&[i0, i1, i2]);
+    }
+    Model { name: "grass".into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.85, metallic: 0.0, far_cell: 0.3 }
+}
+
+/// Gresset på enga: tuster i et rutenett med tilfeldig forskyvning, tettest
+/// nær byen og tynnere utover, utenom byen, grusbeltet, stiene og parken.
+/// Fargen følger engas tone (`meadow_tint`), så tustene står i samme farge
+/// som bakken under.
+pub fn grass(b: &mut Builder) {
+    if !b.has_model("grass") {
+        return;
+    }
+    let step = 1.25;
+    let mut n = 0;
+    let mut z = -150.0;
+    while z < 150.0 {
+        let mut x = -150.0;
+        while x < 150.0 {
+            let (px, pz) = (x + b.rng.range(-0.6, 0.6), z + b.rng.range(-0.6, 0.6));
+            x += step;
+            let d = (px * px + pz * pz).sqrt();
+            let keep = if d < 60.0 { 1.0 } else { (1.0 - (d - 60.0) / 80.0).max(0.15) };
+            if !b.rng.chance(keep) {
+                continue;
+            }
+            if super::town_dist(px, pz) < 1.5 || super::buildings_dist(px, pz) < 6.5 || super::path_dist(px, pz) < 3.0 {
+                continue;
+            }
+            let yaw = b.rng.range(0.0, std::f32::consts::TAU);
+            let s = b.rng.range(0.8, 1.3);
+            let sy = s * b.rng.range(0.8, 1.2);
+            let tint = super::street_life::srgb_to_linear(super::meadow_tint(px, pz)) * b.rng.range(0.85, 1.1);
+            let p = b.on_ground(Vec3::new(px, 0.0, pz));
+            b.place_tinted("grass", at(p, yaw) * Affine3A::from_scale(Vec3::new(s, sy, s)), tint);
+            n += 1;
+        }
+        z += step;
+    }
+    log::info!("Gress: {n} tuster");
 }

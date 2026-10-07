@@ -20,6 +20,9 @@ pub struct Model {
     pub emissive: Option<Image>,
     pub roughness: f32,
     pub metallic: f32,
+    /// Cellestørrelsen for det grove detaljnivået (meter); 0 lar rendereren
+    /// velge etter modellens størrelse.
+    pub far_cell: f32,
 }
 
 /// Hvor en modell står i byen, med alle instansene.

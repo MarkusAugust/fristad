@@ -374,6 +374,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     nature::plaza_trees(&mut b);
     nature::tufts(&mut b);
     nature::meadow(&mut b);
+    nature::grass(&mut b);
     nature::hills(&mut b);
     nature::mountains(&mut b);
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
@@ -440,7 +441,7 @@ pub fn buildings_dist(x: f32, z: f32) -> f32 {
         .min(rect_dist(z, x, 11.0, -46.0, -19.0))
         .min(rect_dist(z, x, 17.0, 19.0, 52.0))
         // Gorveks tomt ved veien nordover.
-        .min(box_dist(x, z, 9.0, 26.0, -80.0, -63.0))
+        .min(box_dist(x, z, 10.5, 24.5, -78.0, -65.0))
 }
 
 /// Midten av grusveien østover (z for en x øst for bebyggelsen).
@@ -484,7 +485,7 @@ pub fn path_dist(x: f32, z: f32) -> f32 {
 
 /// Fargen på enga i et punkt: grønnere i søkk, gulere på ryggene, med
 /// flekker, og et par åkrer i gult.
-fn meadow_tint(x: f32, z: f32) -> u32 {
+pub(crate) fn meadow_tint(x: f32, z: f32) -> u32 {
     let n1 = terrain::noise(x * 0.05 + 2.0, z * 0.05);
     let n2 = terrain::noise(x * 0.17, z * 0.17 + 3.0);
     let green = Vec3::new(0.72, 0.95, 0.55);

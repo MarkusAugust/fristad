@@ -27,7 +27,9 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
     let sheets = crate::domain::sheets::Sheets::load();
     let mut installations = installations::all();
     // Modellene lastes først, så byen vet hvilke som finnes og hvor store de er.
-    let loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
+    let mut loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
+    // Gresstusten er en prosedyrisk modell, instansiert over enga.
+    loaded.push(city::nature::grass_model());
     let infos: Vec<ModelInfo> = loaded
         .iter()
         .map(|m| {

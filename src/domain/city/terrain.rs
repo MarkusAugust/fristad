@@ -30,8 +30,12 @@ fn d_from_center(x: f32, z: f32) -> f32 {
     (x * x + z * z).sqrt()
 }
 
-/// Bakkehøyden i meter.
-pub fn height(x: f32, z: f32) -> f32 {
+/// Planerte tomter utenfor torget: midtpunkt, halve mål og hvor bred
+/// overgangen til terrenget er. Gorveks hus står på den første.
+const PLOTS: [(f32, f32, f32, f32, f32); 1] = [(17.5, -71.5, 6.5, 5.0, 6.0)];
+
+/// Terrenget uten tomtene.
+fn natural(x: f32, z: f32) -> f32 {
     // Hellingen: opp mot nord, med en svak skråning mot vest.
     let slope = -z * 0.022 + x * 0.006;
     // Bølger på 40–90 meter.
@@ -45,6 +49,21 @@ pub fn height(x: f32, z: f32) -> f32 {
     let t = ((d - FLAT) / BLEND).clamp(0.0, 1.0);
     let t = t * t * (3.0 - 2.0 * t);
     raw * t
+}
+
+/// Bakkehøyden i meter.
+pub fn height(x: f32, z: f32) -> f32 {
+    let mut h = natural(x, z);
+    // Tomtene er planert til høyden i midten, med en glidende kant rundt.
+    for (cx, cz, hw, hd, blend) in PLOTS {
+        let d = ((x - cx).abs() - hw).max((z - cz).abs() - hd).max(0.0);
+        if d < blend {
+            let t = d / blend;
+            let t = t * t * (3.0 - 2.0 * t);
+            h = natural(cx, cz) * (1.0 - t) + h * t;
+        }
+    }
+    h
 }
 
 pub fn at(p: Vec3) -> Vec3 {
