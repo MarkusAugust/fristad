@@ -150,7 +150,11 @@ fn coverage(kind: u32, flags: u32, uv: vec2<f32>, duvx: vec2<f32>, duvy: vec2<f3
         let atlas = vec2<f32>(1024.0, 512.0);
         let tpp = length(duvx * atlas) + length(duvy * atlas);
         let w = tpp * 0.05;
-        return smoothstep(0.5 - w, 0.5 + w, d);
+        // På avstand (mange texels per piksel) gjøres strekene fetere, så
+        // de holder seg minst én piksel brede gjennom alfatesten i stedet
+        // for å smuldre opp til grått.
+        let bold = clamp((tpp - 1.5) * 0.03, 0.0, 0.14);
+        return smoothstep(0.5 - bold - w, 0.5 - bold + w, d);
     }
     return 1.0;
 }

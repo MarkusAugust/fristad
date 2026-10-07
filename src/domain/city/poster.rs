@@ -13,7 +13,7 @@ const POS: Vec3 = Vec3::new(12.6, 0.0, 3.2);
 /// Vender skrått mot nordvest, mot stedet du står når du kommer inn.
 const YAW: f32 = -0.74;
 /// Platas bredde i piksler (1 px = 1 cm); høyden følger teksten.
-const W: f32 = 600.0;
+const W: f32 = 640.0;
 const BOTTOM: f32 = 0.9;
 
 const TITLE: &str = "Velkommen til Fristad";
@@ -39,11 +39,11 @@ pub fn build(b: &mut Builder) {
     let margin = 24.0;
     let left = -W * 0.5 + margin;
     let mut top = 0.0;
-    top -= signs::paragraph(&mut text, b.font, &[TITLE], left, top, 32.0, 1.25, z, slot::NEUTRAL_TEXT_STRONG);
+    top -= signs::paragraph(&mut text, b.font, &[TITLE], left, top, 36.0, 1.25, z, slot::NEUTRAL_TEXT_STRONG);
     top -= 4.0;
-    let lead = signs::wrap(b.font, LEAD, 20.0, W - 2.0 * margin);
+    let lead = signs::wrap(b.font, LEAD, 22.0, W - 2.0 * margin);
     let lead: Vec<&str> = lead.iter().map(String::as_str).collect();
-    top -= signs::paragraph(&mut text, b.font, &lead, left, top, 20.0, 1.5, z, slot::NEUTRAL_TEXT);
+    top -= signs::paragraph(&mut text, b.font, &lead, left, top, 22.0, 1.5, z, slot::NEUTRAL_TEXT);
     top -= 16.0;
     // En strek under ingressen, som `.fs-divider`.
     text.cuboid(&Affine3A::from_translation(Vec3::new(0.0, top * PX, z)), Vec3::new((W - 2.0 * margin) * PX, PX, 0.004), &thin);
@@ -54,12 +54,12 @@ pub fn build(b: &mut Builder) {
     for (k, (heading, paras)) in [("Hva du finner", &FIND[..]), ("Slik spiller du", &PLAY[..])].iter().enumerate() {
         let x = left + k as f32 * (col + gutter);
         let mut y = top;
-        y -= signs::paragraph(&mut text, b.font, &[heading], x, y, 18.0, 1.4, z, slot::NEUTRAL_TEXT_STRONG);
+        y -= signs::paragraph(&mut text, b.font, &[heading], x, y, 20.0, 1.4, z, slot::NEUTRAL_TEXT_STRONG);
         y -= 4.0;
         for para in paras.iter() {
-            let lines = signs::wrap(b.font, para, 16.0, col);
+            let lines = signs::wrap(b.font, para, 18.0, col);
             let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
-            y -= signs::paragraph(&mut text, b.font, &lines, x, y, 16.0, 1.5, z, slot::NEUTRAL_TEXT);
+            y -= signs::paragraph(&mut text, b.font, &lines, x, y, 18.0, 1.45, z, slot::NEUTRAL_TEXT);
             y -= 8.0;
         }
         bottom = bottom.min(y + 8.0);

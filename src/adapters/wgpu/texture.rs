@@ -446,15 +446,35 @@ impl Materials {
         }
         mipper.generate(device, queue, &leaf, &leaf, srgb, srgb, 1, leaf_mips);
 
-        // Skriftatlaset.
+        // Skriftatlaset, med mipnivåer regnet ut her (boksfilter på
+        // avstandsfeltet), så teksten ikke flimrer og gråner på avstand.
         let font_img = image::load_from_memory(crate::domain::text::ATLAS_PNG).expect("inter.png").into_luma8();
         let (fw, fh) = font_img.dimensions();
+        let font_mips = 5u32.min(fw.max(fh).ilog2() + 1);
+        let mut font_data: Vec<u8> = font_img.as_raw().clone();
+        let (mut lw, mut lh, mut prev) = (fw as usize, fh as usize, font_img.as_raw().clone());
+        for _ in 1..font_mips {
+            let (nw, nh) = ((lw / 2).max(1), (lh / 2).max(1));
+            let mut next = vec![0u8; nw * nh];
+            for y in 0..nh {
+                for x in 0..nw {
+                    let (x0, y0) = ((x * 2).min(lw - 1), (y * 2).min(lh - 1));
+                    let (x1, y1) = ((x * 2 + 1).min(lw - 1), (y * 2 + 1).min(lh - 1));
+                    let sum = prev[y0 * lw + x0] as u32 + prev[y0 * lw + x1] as u32 + prev[y1 * lw + x0] as u32 + prev[y1 * lw + x1] as u32;
+                    next[y * nw + x] = ((sum + 2) / 4) as u8;
+                }
+            }
+            font_data.extend_from_slice(&next);
+            prev = next;
+            lw = nw;
+            lh = nh;
+        }
         let font = device.create_texture_with_data(
             queue,
             &wgpu::TextureDescriptor {
                 label: Some("font"),
                 size: wgpu::Extent3d { width: fw, height: fh, depth_or_array_layers: 1 },
-                mip_level_count: 1,
+                mip_level_count: font_mips,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::R8Unorm,
@@ -462,7 +482,7 @@ impl Materials {
                 view_formats: &[],
             },
             wgpu::util::TextureDataOrder::LayerMajor,
-            font_img.as_raw(),
+            &font_data,
         );
 
         let repeat = device.create_sampler(&wgpu::SamplerDescriptor {
