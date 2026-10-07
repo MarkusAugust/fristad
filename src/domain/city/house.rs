@@ -269,13 +269,27 @@ fn reveal(m: &mut Mesh, t: &Affine3A, h: Hole, depth: f32, mat: &Mat) {
 }
 
 /// Vindu i et hull: karm, glass, sprosser, vindusbrett, og omramming på trehus.
-fn window(m: &mut Mesh, t: &Affine3A, h: Hole, depth: f32, wall: Wall, panes: (u32, u32)) {
+/// Modeller som skal settes ut etter at fasaden er bygd (vinduer,
+/// dørlampe, blomsterkasser), siden meshen er lånt mens huset bygges.
+type Models = Vec<(&'static str, Affine3A)>;
+
+fn window(m: &mut Mesh, t: &Affine3A, h: Hole, depth: f32, wall: Wall, panes: (u32, u32), models: Option<&mut Models>) {
     let glass = Mat::special(kind::GLASS, 0x1d2630, 0.05);
     let z = -depth;
     let fw = 0.07;
     let (x0, x1, y0, y1) = (h.x - h.w * 0.5, h.x + h.w * 0.5, h.y, h.y + h.h);
-    // Karmen: fire lister.
     let frame = |m: &mut Mesh, c: Vec3, s: Vec3| m.cuboid_ao(&(*t * Affine3A::from_translation(c)), s, &WHITE_TRIM, 1.0);
+    // Standardvinduet som modell fra Blender, om den finnes: karm, ramme,
+    // sprosser og glass i ett. Brettet og omrammingen bygges under uansett.
+    let modelled = match models {
+        Some(models) if (h.w - 1.0).abs() < 0.01 && (h.h - 1.5).abs() < 0.01 => {
+            models.push((if panes.1 >= 3 { "window_23" } else { "window_22" }, *t * Affine3A::from_translation(Vec3::new(h.x, h.y, z))));
+            true
+        }
+        _ => false,
+    };
+    if !modelled {
+    // Karmen: fire lister.
     frame(m, Vec3::new(x0 + fw * 0.5, (y0 + y1) * 0.5, z + 0.04), Vec3::new(fw, h.h, 0.08));
     frame(m, Vec3::new(x1 - fw * 0.5, (y0 + y1) * 0.5, z + 0.04), Vec3::new(fw, h.h, 0.08));
     frame(m, Vec3::new(h.x, y1 - fw * 0.5, z + 0.04), Vec3::new(h.w, fw, 0.08));
@@ -296,6 +310,7 @@ fn window(m: &mut Mesh, t: &Affine3A, h: Hole, depth: f32, wall: Wall, panes: (u
     for j in 1..panes.1 {
         let y = y0 + fw + (h.h - 2.0 * fw) * j as f32 / panes.1 as f32;
         frame(m, Vec3::new(h.x, y, z + 0.025), Vec3::new(h.w - 2.0 * fw, bar, 0.05));
+    }
     }
     // Vindusbrettet: en profil som stikker ut.
     let sill = [Vec2::new(0.0, 0.0), Vec2::new(0.12, 0.0), Vec2::new(0.12, -0.05), Vec2::new(0.0, -0.08)];
@@ -326,6 +341,8 @@ pub fn house(b: &mut Builder, s: &Spec) {
     let local = |p: Vec3| base * Affine3A::from_translation(p);
     let mut solids: Vec<(Vec3, Vec3, f32)> = vec![];
     let mut lights: Vec<(Vec3, Vec3, f32, f32)> = vec![];
+    let mut models: Models = vec![];
+    let has = (b.has_model("window_22"), b.has_model("flower_box"), b.has_model("door_lamp"));
     let m = &mut b.mesh;
 
     let plinth = 0.45;
@@ -421,14 +438,14 @@ pub fn house(b: &mut Builder, s: &Spec) {
     }
     for h in &back_holes {
         reveal(m, &back_t, *h, reveal_depth, &reveal_mat);
-        window(m, &back_t, *h, reveal_depth, s.wall, (2, 2));
+        window(m, &back_t, *h, reveal_depth, s.wall, (2, 2), has.0.then_some(&mut models));
     }
     for h in &holes {
         if Some(*h).map(|x| x.y) == door.map(|d| d.y) && door.map(|d| d.x) == Some(h.x) {
             continue;
         }
         if shop_hole.map(|sh| sh.x) == Some(h.x) && shop_hole.map(|sh| sh.y) == Some(h.y) {
-            window(m, &front_t, *h, reveal_depth, s.wall, (3, 1));
+            window(m, &front_t, *h, reveal_depth, s.wall, (3, 1), None);
             continue;
         }
         if balcony.map(|bh| (bh.x, bh.y)) == Some((h.x, h.y)) {
@@ -456,7 +473,7 @@ pub fn house(b: &mut Builder, s: &Spec) {
             continue;
         }
         let panes = if b.rng.chance(0.5) { (2, 2) } else { (2, 3) };
-        window(m, &front_t, *h, reveal_depth, s.wall, panes);
+        window(m, &front_t, *h, reveal_depth, s.wall, panes, has.0.then_some(&mut models));
         // Skodder på hver side, i dørfargen.
         if s.shutters {
             let shutter = Mat::tex(Layer::Cladding, 0xffffff).slot(s.door_slot).flags(flag::ROT_UV | flag::NO_DIRT);
@@ -466,6 +483,10 @@ pub fn house(b: &mut Builder, s: &Spec) {
         }
         // Blomsterkasser under vinduene i etasjene over.
         if s.flower_boxes && h.y > floor_h && b.rng.chance(0.6) {
+            if has.1 {
+                models.push(("flower_box", front_t * Affine3A::from_translation(Vec3::new(h.x, h.y - 0.31, 0.0))));
+                continue;
+            }
             let bz = 0.16;
             m.cuboid_ao(&(front_t * Affine3A::from_translation(Vec3::new(h.x, h.y - 0.2, bz))), Vec3::new(h.w + 0.1, 0.22, 0.26), &OAK, 1.0);
             for k in 0..6 {
@@ -522,7 +543,12 @@ pub fn house(b: &mut Builder, s: &Spec) {
             m.extrude(&top, from, to, rot * Vec3::X * sx, &IRON, true);
         }
         // Lampe over døra.
-        if s.door_lamp {
+        if s.door_lamp && has.2 {
+            let p = Vec3::new(d.x, d.h + 0.4, 0.0);
+            models.push(("door_lamp", front_t * Affine3A::from_translation(p)));
+            let wp = front_t.transform_point3(p + Vec3::new(0.0, -0.05, 0.3));
+            lights.push((wp, Vec3::new(1.0, 0.8, 0.55), 2.2, 6.0));
+        } else if s.door_lamp {
             let lamp = Mat::special(kind::LAMP, 0xfff1d6, 0.3);
             let p = Vec3::new(d.x, d.h + 0.35, 0.18);
             m.cuboid_ao(&(front_t * Affine3A::from_translation(p + Vec3::new(0.0, 0.14, -0.12))), Vec3::new(0.06, 0.06, 0.22), &IRON, 1.0);
@@ -596,6 +622,9 @@ pub fn house(b: &mut Builder, s: &Spec) {
         for (p, c, i, r) in lights {
             b.light(p, c, i, r);
         }
+        for (n, t) in models {
+            b.place(n, t);
+        }
         b.facades.push(facade);
         return;
     }
@@ -647,7 +676,7 @@ pub fn house(b: &mut Builder, s: &Spec) {
         let ft = dt * Affine3A::from_translation(Vec3::new(0.0, -1.0, 0.8));
         let hole = Hole { x: 0.0, y: 0.5, w: 0.9, h: 1.2 };
         reveal(m, &ft, hole, 0.1, &reveal_mat);
-        window(m, &ft, hole, 0.1, s.wall, (2, 2));
+        window(m, &ft, hole, 0.1, s.wall, (2, 2), None);
     }
 
     for (c, sz, y) in solids {
@@ -655,6 +684,9 @@ pub fn house(b: &mut Builder, s: &Spec) {
     }
     for (p, c, i, r) in lights {
         b.light(p, c, i, r);
+    }
+    for (n, t) in models {
+        b.place(n, t);
     }
     b.solid(Shape::Cuboid { center: center + Vec3::Y * (plinth + wall_h) * 0.5, size: Vec3::new(width + 0.1, plinth + wall_h, depth + 0.1), yaw });
     b.facades.push(facade);

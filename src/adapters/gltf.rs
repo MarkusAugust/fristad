@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -54,6 +54,11 @@ impl ModelSource for Embedded {
             "parasol" => load("parasol", embed!("plaza", ["parasol.glb"]), 0.0, 0.0),
             "market_stall" => load("market_stall", embed!("plaza", ["market_stall.glb"]), 0.0, 0.0),
             "mailbox" => load("mailbox", embed!("plaza", ["mailbox.glb"]), 0.0, 0.0),
+            // Husdetaljene fra tools/models/house.py.
+            "window_22" => load("window_22", embed!("house", ["window_22.glb"]), -1.0, 0.0),
+            "window_23" => load("window_23", embed!("house", ["window_23.glb"]), -1.0, 0.0),
+            "door_lamp" => load("door_lamp", embed!("house", ["door_lamp.glb"]), -1.0, 0.0),
+            "flower_box" => load("flower_box", embed!("house", ["flower_box.glb"]), -1.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
@@ -138,9 +143,13 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if mat.name() == Some("paint") {
                 mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
             }
-            // «glow» lyser om natta, som lampene ellers i byen.
+            // «glow» lyser om natta, som lampene ellers i byen; «glass»
+            // speiler som vinduene.
             if mat.name() == Some("glow") {
                 mmat.kind = kind::LAMP;
+            }
+            if mat.name() == Some("glass") {
+                mmat.kind = kind::GLASS;
             }
             if metallic >= 0.5 {
                 mmat = mmat.flags(flag::METAL);
@@ -156,7 +165,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let v = Mat { kind: if mmat.kind == kind::LAMP { kind::LAMP } else { kind::MODEL }, flags, ..mmat };
+                let v = Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat };
                 mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
             }
             mesh.indices.extend(idx.iter().map(|i| i + base));
@@ -165,13 +174,14 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     if mesh.indices.is_empty() {
         return Err("ingen geometri".into());
     }
-    // Drei, skaler og sett føttene på bakken.
+    // Drei, skaler og sett føttene på bakken. `height` < 0 beholder
+    // modellens eget origo (husdetaljene som står i et hull i veggen).
     if yaw != 0.0 {
         mesh.transform(&Affine3A::from_rotation_y(yaw.to_radians()));
     }
     let (lo, hi) = mesh.bounds();
     let s = if height > 0.0 { height / (hi.y - lo.y).max(1e-3) } else { 1.0 };
-    let center = Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5);
+    let center = if height < 0.0 { Vec3::ZERO } else { Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5) };
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
