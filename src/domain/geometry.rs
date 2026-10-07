@@ -104,6 +104,11 @@ pub mod flag {
     pub const NO_DIRT: u8 = 32;
     /// Modellflater med alfamaske (blader på kort): alfatestes i alle pass.
     pub const ALPHA: u8 = 64;
+    /// Modellflater som er metall (krom): metallfaktoren er 1.
+    pub const METAL: u8 = 128;
+    /// Modellflater som er lakk: fargen kommer fra instansen (`Placement::tints`).
+    /// Samme bit som ROT_UV, som ikke betyr noe for modeller.
+    pub const PAINT: u8 = 8;
 }
 
 #[derive(Clone, Copy, Debug)]

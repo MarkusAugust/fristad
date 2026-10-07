@@ -67,8 +67,35 @@ fn wheel(m: &mut Mesh, t: &Affine3A, c: Vec3, r: f32, width: f32, side: f32) {
     m.cylinder(&(*t * Affine3A::from_rotation_translation(rot, face + Vec3::Z * side * 0.012)), r * 0.2, r * 0.2, 0.03, 10, &DARK, true);
 }
 
-/// En parkert bil. `yaw` er retningen fronten peker.
+/// En parkert bil. `yaw` er retningen fronten peker. Modellene fra
+/// `tools/models/cars.py` brukes når de finnes, ellers den ekstruderte.
 pub fn car(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32) {
+    let model = match style {
+        CarStyle::Estate => "car_estate",
+        CarStyle::Hatch => "car_hatch",
+        CarStyle::Van => "car_van",
+    };
+    if b.has_model(model) {
+        let p = b.on_ground(p);
+        let lin = |v: u32| {
+            let s = v as f32 / 255.0;
+            if s <= 0.04045 { s / 12.92 } else { ((s + 0.055) / 1.055).powf(2.4) }
+        };
+        let tint = Vec3::new(lin(paint >> 16 & 255), lin(paint >> 8 & 255), lin(paint & 255));
+        b.place_tinted(model, at(p, yaw), tint);
+        let (len, w, h) = match style {
+            CarStyle::Estate => (4.8, 1.75, 1.5),
+            CarStyle::Hatch => (3.9, 1.7, 1.5),
+            CarStyle::Van => (4.9, 1.95, 2.0),
+        };
+        b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(len, h, w), yaw);
+        return;
+    }
+    car_extruded(b, p, yaw, style, paint);
+}
+
+/// Den prosedyriske bilen: sideprofil ekstrudert til bredden.
+fn car_extruded(b: &mut Builder, p: Vec3, yaw: f32, style: CarStyle, paint: u32) {
     let (profile, half_w, wheel_x, wheel_r): (Vec<Vec2>, f32, [f32; 2], f32) = match style {
         CarStyle::Estate => (
             vec![

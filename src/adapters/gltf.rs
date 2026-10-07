@@ -1,6 +1,7 @@
-//! glTF-adapteren: leser glTF til `domain::model::Model`. `Embedded` er de
-//! to modellene som er bygget inn i binæren (lykta og reven); eksterne
-//! modeller kommer gjennom `adapters::assets`.
+//! glTF-adapteren: leser glTF til `domain::model::Model`. `Embedded` er
+//! modellene som er bygget inn i binæren (lykta, reven og bilene fra
+//! `tools/models/cars.py`); eksterne modeller kommer gjennom
+//! `adapters::assets`.
 
 use crate::domain::geometry::{flag, kind, Mat, Mesh};
 use crate::domain::model::{Image, Model};
@@ -18,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -38,6 +39,10 @@ impl ModelSource for Embedded {
                 0.0,
             ),
             "fox" => load("fox", embed!("fox", ["Fox.gltf", "Fox.bin", "Texture.png"]), 0.75, 0.0),
+            // Bilene er modellert i meter med fronten mot +X.
+            "car_estate" => load("car_estate", embed!("cars", ["estate.glb"]), 0.0, 0.0),
+            "car_hatch" => load("car_hatch", embed!("cars", ["hatch.glb"]), 0.0, 0.0),
+            "car_van" => load("car_van", embed!("cars", ["van.glb"]), 0.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()
@@ -116,16 +121,22 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             };
             let base = mesh.vertices.len() as u32;
             let tint = pbr.base_color_factor();
-            let mmat = Mat::plain(
-                ((tint[0] * 255.0) as u32) << 16 | ((tint[1] * 255.0) as u32) << 8 | (tint[2] * 255.0) as u32,
-                roughness,
-            );
+            // Fargefaktoren er lineær; hjørnefargen er sRGB.
+            let mut mmat = Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
+            // «paint» får fargen fra instansen; metall merkes med flagg.
+            if mat.name() == Some("paint") {
+                mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
+            }
+            if metallic >= 0.5 {
+                mmat = mmat.flags(flag::METAL);
+            }
             let nmat = Mat4::from_mat3(glam::Mat3::from_mat4(world).inverse().transpose());
             // Blader og kvister på kort: flagget får rendereren til å alfateste.
-            let flags = match mat.alpha_mode() {
-                gltf::material::AlphaMode::Opaque => 0,
-                _ => flag::ALPHA,
-            };
+            let flags = mmat.flags
+                | match mat.alpha_mode() {
+                    gltf::material::AlphaMode::Opaque => 0,
+                    _ => flag::ALPHA,
+                };
             for (i, p) in pos.iter().enumerate() {
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();

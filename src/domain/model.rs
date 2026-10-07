@@ -26,6 +26,8 @@ pub struct Model {
 pub struct Placement {
     pub model: &'static str,
     pub transforms: Vec<glam::Affine3A>,
+    /// Lakkfargen per instans (lineær RGB), for flater med flagget PAINT.
+    pub tints: Vec<glam::Vec3>,
 }
 
 /// Et fotoskannet materiale som erstatter et bakt teksturlag.

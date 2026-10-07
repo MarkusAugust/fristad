@@ -563,7 +563,8 @@ impl Renderer {
                 let placements: Vec<(InstanceData, Vec3, Vec3)> = pl
                     .transforms
                     .iter()
-                    .map(|t| {
+                    .zip(pl.tints.iter().chain(std::iter::repeat(&Vec3::ONE)))
+                    .map(|(t, tint)| {
                         // Boksen i verden: de åtte hjørnene transformert.
                         let (mut wlo, mut whi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
                         for k in 0..8 {
@@ -572,7 +573,10 @@ impl Renderer {
                             wlo = wlo.min(w);
                             whi = whi.max(w);
                         }
-                        (InstanceData::new(t, [0.0, 0.0, m.roughness, m.metallic]), wlo, whi)
+                        // Lakkfargen pakkes som 8 bit per kanal i et heltall (eksakt i f32).
+                        let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
+                        let packed = (c(tint.x) << 16 | c(tint.y) << 8 | c(tint.z)) as f32;
+                        (InstanceData::new(t, [0.0, packed, m.roughness, m.metallic]), wlo, whi)
                     })
                     .collect();
                 // Nær og fjern detalj i samme buffer.

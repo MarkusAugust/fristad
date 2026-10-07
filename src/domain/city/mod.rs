@@ -141,10 +141,17 @@ impl Builder<'_> {
     }
 
     pub fn place(&mut self, model: &'static str, t: Affine3A) {
+        self.place_tinted(model, t, Vec3::ONE);
+    }
+
+    /// Sett ut en modell med egen lakkfarge (lineær RGB) på flatene som er
+    /// merket «paint» i modellen.
+    pub fn place_tinted(&mut self, model: &'static str, t: Affine3A, tint: Vec3) {
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.transforms.push(t);
+            p.tints.push(tint);
         } else {
-            self.placements.push(Placement { model, transforms: vec![t] });
+            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint] });
         }
     }
 

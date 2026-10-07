@@ -49,6 +49,9 @@ const F_ROT_UV: u32 = 8u;
 const F_NO_WEATHER: u32 = 16u;
 const F_NO_DIRT: u32 = 32u;
 const F_ALPHA: u32 = 64u;
+const F_METAL: u32 = 128u;
+/// Lakk på modeller: samme bit som ROT_UV, som modeller ikke bruker.
+const F_PAINT: u32 = 8u;
 
 struct VsIn {
     @location(0) pos: vec3<f32>,
@@ -516,10 +519,17 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {
             discard;
         }
-        s.albedo = a.rgb * tint;
+        var paint = vec3<f32>(1.0);
+        if ((flags & F_PAINT) != 0u) {
+            // Lakkfargen ligger pakket i instansen, 8 bit per kanal.
+            let p = u32(i.extra.y);
+            paint = vec3<f32>(f32((p >> 16u) & 255u), f32((p >> 8u) & 255u), f32(p & 255u)) / 255.0;
+        }
+        s.albedo = a.rgb * tint * paint;
         let mr = textureSampleGrad(model_mr, tex_sampler, i.uv, duv1, duv2);
-        s.rough = clamp(mr.g * i.extra.z, 0.03, 1.0);
-        s.metal = mr.b * i.extra.w;
+        // Ruheten per materiale ligger i hjørnefargens alfa; metall er et flagg.
+        s.rough = clamp(mr.g * i.color.a, 0.03, 1.0);
+        s.metal = mr.b * select(0.0, 1.0, (flags & F_METAL) != 0u);
         // Normal map med tangent fra skjermderivatene.
         let nm = textureSampleGrad(model_normal, tex_sampler, i.uv, duv1, duv2).xyz * 2.0 - 1.0;
         let dp2perp = cross(dp2, n_geo);
