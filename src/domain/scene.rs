@@ -30,6 +30,14 @@ pub struct Light {
     pub intensity: f32,
 }
 
+/// En modellinstans som flytter seg (dyrene): tegnes sammen med de faste
+/// instansene av samme modell. Byen må ha satt av plass (`Placement.reserve`).
+#[derive(Clone, Copy, Debug)]
+pub struct ModelInstance {
+    pub model: &'static str,
+    pub transform: Affine3A,
+}
+
 pub struct Frame {
     pub view: Mat4,
     pub proj: Mat4,
@@ -59,6 +67,8 @@ pub struct Frame {
     /// Transform og ekstra (markering, animasjon) for hver prop, i samme
     /// rekkefølge som i byen.
     pub props: Vec<(Affine3A, [f32; 4])>,
+    /// Modellinstansene som flytter seg (dyrene), per bilde.
+    pub instances: Vec<ModelInstance>,
     /// Bland med forrige bilde. Av første bilde og når kameraet hopper.
     pub taa: bool,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.

@@ -157,13 +157,21 @@ struct Cull {
 /// En modell med to detaljnivåer i samme buffer (nær og fjern), og
 /// instansene med hver sin boks, så bare de synlige tegnes.
 struct GpuModel {
+    name: String,
     mesh: GpuMesh,
     near: std::ops::Range<u32>,
     far: std::ops::Range<u32>,
     textures: wgpu::BindGroup,
-    /// Instansbufferet har plass til alle instansene to ganger per pass-region.
+    /// Instansbufferet har plass til alle instansene (faste og bevegelige)
+    /// to ganger per pass-region.
     instances: wgpu::Buffer,
     placements: Vec<(InstanceData, Vec3, Vec3)>,
+    /// Plass til instanser som kommer med `Frame.instances`.
+    reserve: usize,
+    /// Modellens boks, til å regne ut boksen for de bevegelige.
+    bounds: (Vec3, Vec3),
+    /// Ekstradata for de bevegelige: hvit lakk, modellens ruhet og metall.
+    extra: [f32; 4],
 }
 
 /// Hvilke instanser et pass tegner av en modell: (nær, fjern) som områder i
@@ -176,6 +184,18 @@ struct ModelDraw {
 
 /// Pass-regioner i instansbufferet: tre kaskader og kameraet.
 const REGIONS: u32 = 4;
+
+/// Boksen i verden: de åtte hjørnene transformert.
+fn world_aabb(t: &Affine3A, lo: Vec3, hi: Vec3) -> (Vec3, Vec3) {
+    let (mut wlo, mut whi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+    for k in 0..8 {
+        let c = Vec3::new(if k & 1 == 0 { lo.x } else { hi.x }, if k & 2 == 0 { lo.y } else { hi.y }, if k & 4 == 0 { lo.z } else { hi.z });
+        let w = t.transform_point3(c);
+        wlo = wlo.min(w);
+        whi = whi.max(w);
+    }
+    (wlo, whi)
+}
 /// Nærmere enn dette tegnes modellene i full detalj.
 const MODEL_NEAR: f32 = 28.0;
 
@@ -560,23 +580,18 @@ impl Renderer {
             .filter_map(|pl| {
                 let m = models.iter().find(|m| m.name == pl.model)?;
                 let (lo, hi) = m.mesh.bounds();
+                // Lakkfargen pakkes som 8 bit per kanal i et heltall (eksakt i f32).
+                let packed = |tint: &Vec3| {
+                    let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
+                    (c(tint.x) << 16 | c(tint.y) << 8 | c(tint.z)) as f32
+                };
                 let placements: Vec<(InstanceData, Vec3, Vec3)> = pl
                     .transforms
                     .iter()
                     .zip(pl.tints.iter().chain(std::iter::repeat(&Vec3::ONE)))
                     .map(|(t, tint)| {
-                        // Boksen i verden: de åtte hjørnene transformert.
-                        let (mut wlo, mut whi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
-                        for k in 0..8 {
-                            let c = Vec3::new(if k & 1 == 0 { lo.x } else { hi.x }, if k & 2 == 0 { lo.y } else { hi.y }, if k & 4 == 0 { lo.z } else { hi.z });
-                            let w = t.transform_point3(c);
-                            wlo = wlo.min(w);
-                            whi = whi.max(w);
-                        }
-                        // Lakkfargen pakkes som 8 bit per kanal i et heltall (eksakt i f32).
-                        let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
-                        let packed = (c(tint.x) << 16 | c(tint.y) << 8 | c(tint.z)) as f32;
-                        (InstanceData::new(t, [0.0, packed, m.roughness, m.metallic]), wlo, whi)
+                        let (wlo, whi) = world_aabb(t, lo, hi);
+                        (InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]), wlo, whi)
                     })
                     .collect();
                 // Nær og fjern detalj i samme buffer.
@@ -589,17 +604,21 @@ impl Renderer {
                 let near_count = m.mesh.indices.len() as u32;
                 log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far.indices.len() / 3);
                 Some(GpuModel {
+                    name: m.name.clone(),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
                     far: near_count..combined.indices.len() as u32,
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
                     instances: device.create_buffer(&wgpu::BufferDescriptor {
                         label: Some(&m.name),
-                        size: INSTANCE_STRIDE * (placements.len() as u64 * 2 * REGIONS as u64).max(1),
+                        size: INSTANCE_STRIDE * ((placements.len() + pl.reserve) as u64 * 2 * REGIONS as u64).max(1),
                         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
                         mapped_at_creation: false,
                     }),
                     placements,
+                    reserve: pl.reserve,
+                    bounds: (lo, hi),
+                    extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
                 })
             })
             .collect();
@@ -894,14 +913,26 @@ impl Renderer {
         let culls = [sun_cull[0], sun_cull[1], sun_cull[2], cam_cull];
         let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
         for m in &self.models {
-            let n = m.placements.len() as u32;
+            // De bevegelige instansene (dyrene) legges til de faste, innenfor
+            // plassen byen satte av.
+            let moving: Vec<(InstanceData, Vec3, Vec3)> = f
+                .instances
+                .iter()
+                .filter(|i| i.model == m.name)
+                .take(m.reserve)
+                .map(|i| {
+                    let (lo, hi) = world_aabb(&i.transform, m.bounds.0, m.bounds.1);
+                    (InstanceData::new(&i.transform, m.extra), lo, hi)
+                })
+                .collect();
+            let n = (m.placements.len() + m.reserve) as u32;
             let mut data: Vec<InstanceData> = Vec::with_capacity((n * 2 * REGIONS) as usize);
             let mut draws = [ModelDraw::default(); REGIONS as usize];
             for (r, cull) in culls.iter().enumerate() {
                 let base = r as u32 * n * 2;
                 let mut near = vec![];
                 let mut far = vec![];
-                for (inst, lo, hi) in &m.placements {
+                for (inst, lo, hi) in m.placements.iter().chain(moving.iter()) {
                     if !cull.frustum.contains_aabb(*lo, *hi) {
                         continue;
                     }

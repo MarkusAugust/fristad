@@ -28,6 +28,8 @@ pub struct Placement {
     pub transforms: Vec<glam::Affine3A>,
     /// Lakkfargen per instans (lineær RGB), for flater med flagget PAINT.
     pub tints: Vec<glam::Vec3>,
+    /// Plass til instanser spillet poserer per bilde (`Frame.instances`).
+    pub reserve: usize,
 }
 
 /// Et fotoskannet materiale som erstatter et bakt teksturlag.

@@ -272,6 +272,8 @@ pub struct Game {
     parachute: Option<usize>,
     /// Installasjonen som har tastaturfokus (et skjemafelt du skriver i).
     editing: Option<usize>,
+    /// Dyrene på engene.
+    herd: crate::domain::herd::Herd,
     pub debug: u32,
 }
 
@@ -325,6 +327,7 @@ impl Game {
             flight: None,
             parachute: city.props.iter().position(|p| p.name == "parachute"),
             editing: None,
+            herd: crate::domain::herd::Herd::new(),
             debug: 0,
         }
     }
@@ -704,6 +707,8 @@ impl Game {
 
         self.update_weather(dt);
         self.update_props(physics, dt);
+        let (half, radius) = self.stance.capsule();
+        self.herd.update(dt, self.pos - Vec3::Y * (half + radius));
         events
     }
 
@@ -849,6 +854,7 @@ impl Game {
             palette: pal,
             lights,
             props,
+            instances: self.herd.instances(self.time),
             taa: !self.jumped,
             debug: self.debug,
         }

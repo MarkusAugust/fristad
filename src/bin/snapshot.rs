@@ -98,10 +98,14 @@ fn main() {
     if arg("--lights").as_deref() == Some("off") {
         app.game.set_online(true);
     }
+    // --eye X,Y,Z; Y med pluss foran («+1.7») er høyde over terrenget.
     let eye = arg("--eye")
         .map(|s| {
-            let v: Vec<f32> = s.split(',').map(|x| x.parse().unwrap()).collect();
-            Vec3::new(v[0], v[1], v[2])
+            let parts: Vec<&str> = s.split(',').collect();
+            let (x, z): (f32, f32) = (parts[0].parse().unwrap(), parts[2].parse().unwrap());
+            let y: f32 = parts[1].trim_start_matches('+').parse().unwrap();
+            let y = if parts[1].starts_with('+') { y + fristad::domain::city::terrain::height(x, z) } else { y };
+            Vec3::new(x, y, z)
         })
         .unwrap_or(Vec3::new(0.0, 1.7, 11.0));
     let yaw: f32 = arg("--yaw").map(|s| s.parse().unwrap()).unwrap_or(0.0);

@@ -16,6 +16,7 @@
 pub mod city;
 pub mod game;
 pub mod geometry;
+pub mod herd;
 pub mod installations;
 pub mod model;
 pub mod palette;

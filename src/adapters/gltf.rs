@@ -19,7 +19,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -61,6 +61,12 @@ impl ModelSource for Embedded {
             "window_23" => load("window_23", embed!("house", ["window_23.glb"]), -1.0, 0.0),
             "door_lamp" => load("door_lamp", embed!("house", ["door_lamp.glb"]), -1.0, 0.0),
             "flower_box" => load("flower_box", embed!("house", ["flower_box.glb"]), -1.0, 0.0),
+            // Dyrene fra tools/models/animals.py: kroppen har origo i bakken
+            // under midten, beina i hofteleddet (domain/herd.rs poserer dem).
+            "sheep_body" => load("sheep_body", embed!("animals", ["sheep_body.glb"]), -1.0, 0.0),
+            "sheep_leg" => load("sheep_leg", embed!("animals", ["sheep_leg.glb"]), -1.0, 0.0),
+            "cow_body" => load("cow_body", embed!("animals", ["cow_body.glb"]), -1.0, 0.0),
+            "cow_leg" => load("cow_leg", embed!("animals", ["cow_leg.glb"]), -1.0, 0.0),
             _ => return None,
         };
         r.map_err(|e| log::warn!("Modell {name}: {e}")).ok()

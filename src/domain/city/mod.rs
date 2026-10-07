@@ -180,7 +180,21 @@ impl Builder<'_> {
             p.transforms.push(t);
             p.tints.push(tint);
         } else {
-            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint] });
+            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], reserve: 0 });
+        }
+    }
+
+    /// Sett av plass til `n` instanser av en modell som spillet flytter
+    /// per bilde (dyrene). Gjør ingenting om modellen mangler.
+    pub fn reserve(&mut self, model: &'static str, n: usize) {
+        if !self.has_model(model) {
+            log::warn!("Modellen {model} mangler, ingen plass satt av");
+            return;
+        }
+        if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
+            p.reserve += n;
+        } else {
+            self.placements.push(Placement { model, transforms: vec![], tints: vec![], reserve: n });
         }
     }
 
@@ -304,6 +318,10 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     nature::meadow(&mut b);
     nature::hills(&mut b);
     nature::mountains(&mut b);
+    // Dyrene: spillet poserer dem, byen setter av plass til instansene.
+    for (model, n) in crate::domain::herd::Herd::reserve() {
+        b.reserve(model, n);
+    }
 
     for (i, inst) in installations.iter_mut().enumerate() {
         b.owner = Some(i);
