@@ -23,6 +23,9 @@ pub struct Model {
     /// Cellestørrelsen for det grove detaljnivået (meter); 0 lar rendereren
     /// velge etter modellens størrelse.
     pub far_cell: f32,
+    /// Et ferdig grovt detaljnivå (bladverk som tynnede kort); ellers
+    /// lager rendereren det med `Mesh::clustered`.
+    pub far_mesh: Option<Mesh>,
 }
 
 /// Hvor en modell står i byen, med alle instansene.

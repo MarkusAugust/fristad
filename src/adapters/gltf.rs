@@ -246,8 +246,9 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
     // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
-    // detaljnivået er det samme meshet.
-    let far_cell = if name.ends_with("_leaves") || name.ends_with("_needles") {
+    // detaljnivået er hvert tredje kort, forstørret.
+    let far_mesh = (name.ends_with("_leaves") || name.ends_with("_needles")).then(|| mesh.thinned_cards(3, 1.7));
+    let far_cell = if far_mesh.is_some() {
         0.0005
     } else if name.ends_with("_trunk") {
         // Stammene: grovt på avstand, kvistene forsvinner i bladverket.
@@ -255,7 +256,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     } else {
         0.0
     };
-    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell })
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh })
 }
 
 fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {

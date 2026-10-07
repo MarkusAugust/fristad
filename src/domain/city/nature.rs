@@ -489,7 +489,7 @@ pub fn grass_model() -> Model {
         let i2 = m.vert(base + lean + Vec3::Y * h, n, Vec2::new(0.5, 1.0), &light, 1.0);
         m.indices.extend_from_slice(&[i0, i1, i2]);
     }
-    Model { name: "grass".into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.85, metallic: 0.0, far_cell: 0.3 }
+    Model { name: "grass".into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.85, metallic: 0.0, far_cell: 0.3, far_mesh: None }
 }
 
 /// Gresset på enga: tuster i et rutenett med tilfeldig forskyvning, tettest

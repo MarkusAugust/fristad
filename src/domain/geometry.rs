@@ -594,6 +594,34 @@ impl Mesh {
         (Mesh { vertices: self.vertices.clone(), indices }, chunks)
     }
 
+    /// Grovere bladverk til bruk på avstand: meshet er kort (fire hjørner
+    /// og to trekanter hver, slik `card_mesh` i trees.py lager dem); hvert
+    /// `keep`-te kort beholdes og forstørres `grow` ganger om midten sitt,
+    /// så krona holder på tettheten med en brøkdel av trekantene.
+    pub fn thinned_cards(&self, keep: usize, grow: f32) -> Mesh {
+        let mut out = Mesh::default();
+        for (k, tri) in self.indices.chunks(6).enumerate() {
+            if k % keep != 0 || tri.len() < 6 {
+                continue;
+            }
+            let mut ids: Vec<u32> = tri.to_vec();
+            ids.sort_unstable();
+            ids.dedup();
+            let center = ids.iter().map(|i| Vec3::from(self.vertices[*i as usize].pos)).sum::<Vec3>() / ids.len() as f32;
+            let base = out.vertices.len() as u32;
+            for i in &ids {
+                let mut v = self.vertices[*i as usize];
+                v.pos = (center + (Vec3::from(v.pos) - center) * grow).to_array();
+                out.vertices.push(v);
+            }
+            for i in tri {
+                let j = ids.iter().position(|x| x == i).unwrap_or(0) as u32;
+                out.indices.push(base + j);
+            }
+        }
+        out
+    }
+
     /// En grovere utgave til bruk på avstand: hjørnene snappes til et
     /// rutenett på `cell` meter og slås sammen, og trekanter som faller
     /// sammen fjernes. Posisjon og normal midles i hver rute, uv og

@@ -596,7 +596,7 @@ impl Renderer {
                     .collect();
                 // Nær og fjern detalj i samme buffer.
                 let size = (hi - lo).max_element();
-                let far = m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 });
+                let far = m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
                 let mut combined = m.mesh.clone();
                 let base = combined.vertices.len() as u32;
                 combined.vertices.extend_from_slice(&far.vertices);
