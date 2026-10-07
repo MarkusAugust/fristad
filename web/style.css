@@ -255,6 +255,18 @@ code {
   display: block;
 }
 
+/* Dialogen står i flyten i demoen: nettleseren gir <dialog> position:
+   absolute, og Fristil gjør den fixed inne i <fs-dialog>. */
+.demo .fs-dialog,
+.demo fs-dialog .fs-dialog[open]:not(:modal) {
+  position: static;
+  inset: auto;
+  margin: 0;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  box-shadow: var(--fs-shadow-overlay);
+}
+
 @keyframes slide {
   from { transform: translateX(40px); opacity: 0; }
 }
