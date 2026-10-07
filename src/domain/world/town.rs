@@ -200,6 +200,8 @@ fn wall(b: &mut Builder) {
                 let side = at(base, yaw).transform_point3(Vec3::new(sx * 4.6, 5.0, 0.0));
                 b.solid_box(side, Vec3::new(4.0, 10.0, 5.0), yaw);
             }
+            // Murblokken over portrommet (buen går opp til 3 m over veien).
+            b.solid_box(at(base, yaw).transform_point3(Vec3::new(0.0, 6.4, 0.0)), Vec3::new(5.6, 6.6, 4.4), yaw);
         }
     }
 }

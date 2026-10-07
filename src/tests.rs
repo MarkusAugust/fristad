@@ -101,9 +101,12 @@ fn alt_stort_har_kollider() {
             if size.y < 0.6 || size.x.max(size.z) < 0.3 {
                 continue;
             }
+            // Ved foten, eller høyere opp på midtlinja for det som er åpent
+            // nede (portrommet i porthuset).
             let o = Vec3::from(t.translation);
             let q = Vec3::new(o.x, wlo.y + 0.5, o.z);
-            if !p.world.colliders.iter().any(|c| covers(c, q)) {
+            let steps = ((whi.y - wlo.y - 1.0) / 0.5).max(0.0) as usize;
+            if !(0..=steps).any(|k| p.world.colliders.iter().any(|c| covers(c, q + Vec3::Y * (k as f32 * 0.5)))) {
                 problems.push(format!("{} ved ({:.1}, {:.1}, {:.1}) har ingen kollider", pl.model, q.x, q.y, q.z));
             }
         }

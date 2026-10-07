@@ -24,9 +24,9 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 - **Ting du kan bruke** er `Target` (`domain/world/mod.rs`): en boks med pose og hva F gjør (`Use::Talk`, `Chest`, `Gate`, `Descend`, `Ascend`). `Builder::target` registrerer dem, økta gir hver en flyttbar kollider å sikte på, og siktet (`Event::Prompt`) viser navn, F-verb og E (handle). Testen `alt_du_kan_bruke_kan_siktes_pa` skyter en stråle mot hvert mål forfra.
 - **Ned og opp**: F på døra i krypta toner til svart (`Event::Fade`) og setter deg i startrommet i kjelleren (`Dungeon.start`); døra øverst i trappa (`crypt_stair`) i startrommet tar deg opp igjen til `World.crypt`, og det du bar legges i lageret. Dør du, havner du der også.
 - **Plasser ting som i en ekte by.** Se på et oversiktsbilde (`snapshot --eye X,60,Z --pitch -89`) før du plasserer noe nytt. Alt som bygges får kollider (`solid_box`/`solid`; `building()` gir husene en boks rundt modellens mål).
-- **Ingenting skal sveve eller synke.** `Builder::audit` sjekker hver modellinstans mot bakken (eller gulvet registrert med `Builder::floor`); `cargo test` feiler om noe svever mer enn 8 cm eller står 30 cm nede (trestammer får gå ned i bakken på oversida i skråninger). Ting i skråninger bruker `Builder::on_slope`; ting på vegger eller oppå noe `place_mounted`.
-- **Ingen går gjennom noe.** `alt_stort_har_kollider` krever kollider ved foten av hver modellinstans over 60 cm, og `kapselen_stopper_mot_trær_og_kanten` går med Rapier mot eiker og mot kanten av verden (`nature::world_edge`, 199 m).
-- **Terrenget** (`world/terrain.rs`): planert innenfor muren (`town_edge`), borghaugen, og utenfor bølger enga. Bakken er et 2 m-rutenett med heightfield-kollider; `town::ground_mat` velger brostein (torget, Storgata), tråkket jord (Tverrgata, veiene, gårdsplassene) eller eng. Landskapet utenfor (±200 m) går over i åser og fjell (`nature::landscape`).
+- **Ingenting skal sveve eller synke.** `Builder::audit` sjekker hver modellinstans mot bakken (eller gulvet registrert med `Builder::floor`); `cargo test` feiler om noe svever mer enn 8 cm eller står 30 cm nede (trestammer og murverket i `town::FOUNDED`, med fundament 80 cm ned, får gå ned i bakken i skråninger). Ting i skråninger bruker `Builder::on_slope`; ting på vegger eller oppå noe `place_mounted`.
+- **Ingen går gjennom noe.** `alt_stort_har_kollider` krever kollider ved foten av hver modellinstans over 60 cm (eller høyere opp på midtlinja for det som er åpent nede, som portrommet), og `kapselen_stopper_mot_trær_og_kanten` går med Rapier mot eiker og mot kanten av verden (`nature::world_edge`, 199 m).
+- **Terrenget** (`world/terrain.rs`): planert innenfor muren (`town_edge`), borghaugen, og utenfor bølger enga. Bakken er et 2 m-rutenett med heightfield-kollider; `town::ground_weights` gir vektene for brostein, jord, berg og skogbunn i hjørnene (resten er eng), og `world.wgsl` (`terrain()`) blander lagene etter høydekartene. Landskapet utenfor (±200 m) går over i åser og fjell (`nature::landscape`).
 - **Naturen** (`world/nature.rs`): trær og busker (modellene fra `tools/models/trees.py`, kapselkollidere langs greinskjelettet), gress (`grass_model`, instansiert og vippet etter bakken), steiner og steingjerder (skal bli modeller), granskog mot åsene. Ikke i byen, på veiene eller i bratte skråninger. Dyrene (`domain/herd.rs`) beiter på engene utenfor muren.
 
 ## Spillet
@@ -42,7 +42,8 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 ## Grafikk
 
 - Rendereren (`adapters/wgpu/`): kaskadeskygger, dybdeprepass, SSAO, TAA, volumetrisk tåke med lysstråler, regn, snø, våte flater, snødekke, glød og tonemapping. Modellene har to detaljnivåer (`Mesh::clustered`), bymeshen stokkes i biter på 24 m (`Mesh::chunked`) og cules per pass. `Renderer::set_quality` (0–1) og `set_scale` (0.4–1.0); `web/main.js` justerer dem etter bildefrekvensen.
-- Materialene i modellene: `glow` blir `kind::LAMP` (lyser om natta), `glass` blir `kind::GLASS`, `paint` farges per instans (`Builder::place_tinted`), metall flagges `flag::METAL`. Teksturlagene (triplanart på bakken og bymeshen) bakes prosedyrisk i `bake.wgsl` til de håndlagde lagene fra Blender er på plass (`adapters/layers.rs`).
+- Materialene i modellene: `glow` blir `kind::LAMP` (lyser om natta), `glass` blir `kind::GLASS`, `paint` farges per instans (`Builder::place_tinted`), metall flagges `flag::METAL`. Et materiale som heter `layer_<lag>` (f.eks. `layer_stone`) legger teksturlaget på etter modellens uv i meter (`flag::UVMAP`), med materialfargen som lineær tone; okklusjonen bakt i hjørnefargen (COLOR_0) blandes over trekanten. Lagene uten bilde bakes prosedyrisk i `bake.wgsl` (`adapters/layers.rs`).
+- I Blender: alle deler må ha uv-laget `UVMap` (`town.ensure_uv`); booleaner tar med kutterens uv-lag, som `town.keep_uv` fjerner. Ellers eksporteres tom uv og flatene blir grå.
 - `snapshot --debug albedo|normal|ao|rough|shadow` og `--dump-layer N` til feilsøking.
 
 ## Arbeidsflyt
@@ -68,10 +69,10 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 
 ## Status (7. oktober 2026)
 
-Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Igjen er landskapet, trærne, dyrene, kjelleren med fiendene og bossen, kampen, smiinga, innbyggerne og nettlaget. Byplanen for kjøpstaden står i `town.rs`, men modellene mangler.
+Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`) og bymuren med hjørnetårn og porthus (`tools/models/walls.py`). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding).
 
 Neste:
-1. Modellene til byen i Blender med høy detalj: husene (bindingsverk, laft, steinhus), Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, bymuren med tårn og porthus, markedsboder, torgkors, lykter, kjerrer, tønner, kasser, borgruinen, krypta og trappa i startrommet, portgitteret.
+1. Resten av byen i Blender med høy detalj: Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, markedsboder, torgkors, lykter, kjerrer, tønner, kasser, borgruinen, krypta og trappa i startrommet, portgitteret.
 2. Håndlagde teksturlag fra Blender (`tools/textures/`) til bakken og det som fortsatt er bymesh; overgangene mellom brostein, jord og eng skal blandes, ikke gå i ruter.
 3. Kjelleren som modulsett av modeller.
 4. Bedre figurer: innbyggerne og monstrene med mer detalj (ansikt, klær, hår), og bedre lys og materialer i rendereren.
