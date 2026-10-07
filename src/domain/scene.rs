@@ -3,7 +3,7 @@
 
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 
-pub const PALETTE: usize = 48;
+pub const PALETTE: usize = 64;
 pub const MAX_LIGHTS: usize = 48;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]

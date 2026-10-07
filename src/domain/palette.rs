@@ -80,6 +80,20 @@ pub mod slot {
     pub const CARD_FILL: u8 = 42;
     pub const CARD_BORDER: u8 = 43;
     pub const ACC_BORDER: u8 = 44;
+    pub const INPUT_FILL: u8 = 45;
+    pub const INPUT_BORDER: u8 = 46;
+    pub const INPUT_TEXT: u8 = 47;
+    pub const SELECT_FILL: u8 = 48;
+    pub const SELECT_BORDER: u8 = 49;
+    pub const SELECT_TEXT: u8 = 50;
+    pub const CHECK_FILL: u8 = 51;
+    pub const CHECK_BORDER: u8 = 52;
+    pub const CHECK_ON: u8 = 53;
+    pub const CHECK_MARK: u8 = 54;
+    pub const RADIO_BORDER: u8 = 55;
+    pub const TA_FILL: u8 = 56;
+    pub const TA_BORDER: u8 = 57;
+    pub const TA_TEXT: u8 = 58;
 }
 
 /// Paletten for et øyeblikk mellom dag (0) og natt (1).

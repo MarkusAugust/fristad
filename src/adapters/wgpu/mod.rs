@@ -37,6 +37,8 @@ const VERTEX_LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayou
 const HDR: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 const DEPTH: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const NORMAL: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+/// Dybden som fargetekstur, så etterbehandlingen kan lese den i WebGL2.
+const DEPTH_LIN: wgpu::TextureFormat = wgpu::TextureFormat::R32Float;
 const AO: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
 const SHADOW_ATLAS: u32 = 4096;
 const CASCADE_RES: u32 = SHADOW_ATLAS / 2;
@@ -181,6 +183,7 @@ struct Targets {
     width: u32,
     height: u32,
     depth: wgpu::TextureView,
+    depth_lin: wgpu::TextureView,
     normal: wgpu::TextureView,
     hdr: wgpu::TextureView,
     hdr_fog: wgpu::TextureView,
@@ -244,6 +247,7 @@ pub struct Renderer {
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
+    hidden_props: std::cell::RefCell<Vec<bool>>,
 }
 
 fn shader(device: &wgpu::Device, name: &str, parts: &[&str]) -> wgpu::ShaderModule {
@@ -369,7 +373,7 @@ impl Renderer {
                 tex_entry(0, FILTER),
                 tex_entry(1, FILTER),
                 tex_entry(2, FILTER),
-                tex_entry(3, wgpu::TextureSampleType::Depth),
+                tex_entry(3, wgpu::TextureSampleType::Float { filterable: false }),
                 sampler_entry(4, wgpu::SamplerBindingType::Filtering),
                 sampler_entry(5, wgpu::SamplerBindingType::NonFiltering),
                 uniform_entry(6, false),
@@ -426,7 +430,10 @@ impl Renderer {
                 module: &world_mod,
                 entry_point: Some("fs_prepass"),
                 compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState { format: NORMAL, blend: None, write_mask: wgpu::ColorWrites::ALL })],
+                targets: &[
+                    Some(wgpu::ColorTargetState { format: NORMAL, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                    Some(wgpu::ColorTargetState { format: DEPTH_LIN, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                ],
             }),
             multiview: None,
             cache: None,
@@ -640,6 +647,7 @@ impl Renderer {
             scale: 1.0,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
+            hidden_props: std::cell::RefCell::new(vec![]),
         }
     }
 
@@ -674,6 +682,7 @@ impl Renderer {
                 .create_view(&Default::default())
         };
         let depth = tex("depth", width, height, DEPTH);
+        let depth_lin = tex("depth lin", width, height, DEPTH_LIN);
         let normal = tex("normal", width, height, NORMAL);
         let hdr = tex("hdr", width, height, HDR);
         let hdr_fog = tex("hdr fog", width, height, HDR);
@@ -748,7 +757,7 @@ impl Renderer {
                     wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(t0) },
                     wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(t1) },
                     wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(t2) },
-                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&depth) },
+                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&depth_lin) },
                     wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::Sampler(linear) },
                     wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(nearest) },
                     wgpu::BindGroupEntry { binding: 6, resource: buf.as_entire_binding() },
@@ -770,7 +779,7 @@ impl Renderer {
             up_bg.push(bind(&bloom[i].0, black, black));
         }
         let tonemap_bg = [bind(&resolved[0], &bloom[0].0, black), bind(&resolved[1], &bloom[0].0, black)];
-        Targets { width, height, depth, normal, hdr, hdr_fog, resolved, ao, bloom, frame_bg, shadow_frame_bg, post_frame_bg, ssao_bg, blur_bg, fog_bg, taa_bg, down0_bg, down_bg, up_bg, tonemap_bg }
+        Targets { width, height, depth, depth_lin, normal, hdr, hdr_fog, resolved, ao, bloom, frame_bg, shadow_frame_bg, post_frame_bg, ssao_bg, blur_bg, fog_bg, taa_bg, down0_bg, down_bg, up_bg, tonemap_bg }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -956,9 +965,13 @@ impl Renderer {
 
         // Instans 0 er den faste verdenen, resten er propsene.
         let mut inst = vec![InstanceData::new(&Affine3A::IDENTITY, [0.0; 4])];
-        for (t, extra) in &f.props {
+        // Props som er skalert bort (skjulte varianter) tegnes ikke.
+        let mut hidden = vec![false; f.props.len()];
+        for (i, (t, extra)) in f.props.iter().enumerate() {
             inst.push(InstanceData::new(t, *extra));
+            hidden[i] = t.matrix3.x_axis.length_squared() < 1e-6;
         }
+        self.hidden_props.replace(hidden);
         self.queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
 
         let mut enc = self.device.create_command_encoder(&Default::default());
@@ -992,11 +1005,18 @@ impl Renderer {
         {
             let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("prepass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &t.normal,
-                    resolve_target: None,
-                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
-                })],
+                color_attachments: &[
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: &t.normal,
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
+                    }),
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: &t.depth_lin,
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::WHITE), store: wgpu::StoreOp::Store },
+                    }),
+                ],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &t.depth,
                     depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }),
@@ -1147,7 +1167,11 @@ impl Renderer {
         flush(&mut run, pass);
         let world = indices / 3;
         let mut props = 0;
+        let hidden = self.hidden_props.borrow();
         for (i, m) in self.props.iter().enumerate() {
+            if hidden.get(i).copied().unwrap_or(false) {
+                continue;
+            }
             let at = (i + 1) as u64 * INSTANCE_STRIDE;
             pass.set_vertex_buffer(1, self.instances.slice(at..at + INSTANCE_STRIDE));
             m.draw(pass, 0..1);

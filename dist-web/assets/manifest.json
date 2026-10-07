@@ -1,0 +1,224 @@
+{
+  "textures": {
+    "cobble": {
+      "id": "cobblestone_floor_08",
+      "name": "Cobblestone Floor 08",
+      "size_m": 2,
+      "diffuse": "textures/cobble/diffuse.jpg",
+      "normal": "textures/cobble/normal.jpg",
+      "rough": "textures/cobble/rough.jpg",
+      "ao": "textures/cobble/ao.jpg"
+    },
+    "plaster": {
+      "id": "plastered_wall_02",
+      "name": "Plastered Wall 02",
+      "size_m": 2.229999542236328,
+      "diffuse": "textures/plaster/diffuse.jpg",
+      "normal": "textures/plaster/normal.jpg",
+      "rough": "textures/plaster/rough.jpg",
+      "ao": "textures/plaster/ao.jpg"
+    },
+    "cladding": {
+      "id": "weathered_planks",
+      "name": "Weathered Planks",
+      "size_m": 2,
+      "diffuse": "textures/cladding/diffuse.jpg",
+      "normal": "textures/cladding/normal.jpg",
+      "rough": "textures/cladding/rough.jpg",
+      "ao": "textures/cladding/ao.jpg"
+    },
+    "slate": {
+      "id": "roof_slates_02",
+      "name": "Roof Slates 02",
+      "size_m": 3,
+      "diffuse": "textures/slate/diffuse.jpg",
+      "normal": "textures/slate/normal.jpg",
+      "rough": "textures/slate/rough.jpg",
+      "ao": "textures/slate/ao.jpg"
+    },
+    "tiles": {
+      "id": "roof_tiles_14",
+      "name": "Roof Tiles 14",
+      "size_m": 1.5,
+      "diffuse": "textures/tiles/diffuse.jpg",
+      "normal": "textures/tiles/normal.jpg",
+      "rough": "textures/tiles/rough.jpg",
+      "ao": "textures/tiles/ao.jpg"
+    },
+    "stone": {
+      "id": "stone_wall_04",
+      "name": "Stone Wall 04",
+      "size_m": 1.7000000476837158,
+      "diffuse": "textures/stone/diffuse.jpg",
+      "normal": "textures/stone/normal.jpg",
+      "rough": "textures/stone/rough.jpg",
+      "ao": "textures/stone/ao.jpg"
+    },
+    "brick": {
+      "id": "red_brick_03",
+      "name": "Red Brick 03",
+      "size_m": 1,
+      "diffuse": "textures/brick/diffuse.jpg",
+      "normal": "textures/brick/normal.jpg",
+      "rough": "textures/brick/rough.jpg",
+      "ao": "textures/brick/ao.jpg"
+    },
+    "oak": {
+      "id": "wood_table_001",
+      "name": "Wood Table 001",
+      "size_m": 1.5,
+      "diffuse": "textures/oak/diffuse.jpg",
+      "normal": "textures/oak/normal.jpg",
+      "rough": "textures/oak/rough.jpg",
+      "ao": "textures/oak/ao.jpg"
+    },
+    "metal": {
+      "id": "metal_plate_02",
+      "name": "Metal Plate 02",
+      "size_m": 2,
+      "diffuse": "textures/metal/diffuse.jpg",
+      "normal": "textures/metal/normal.jpg",
+      "rough": "textures/metal/rough.jpg",
+      "ao": "textures/metal/ao.jpg"
+    },
+    "grass": {
+      "id": "leafy_grass",
+      "name": "Leafy Grass",
+      "size_m": 2,
+      "diffuse": "textures/grass/diffuse.jpg",
+      "normal": "textures/grass/normal.jpg",
+      "rough": "textures/grass/rough.jpg",
+      "ao": "textures/grass/ao.jpg"
+    },
+    "bark": {
+      "id": "bark_willow",
+      "name": "Bark Willow",
+      "size_m": 1,
+      "diffuse": "textures/bark/diffuse.jpg",
+      "normal": "textures/bark/normal.jpg",
+      "rough": "textures/bark/rough.jpg",
+      "ao": "textures/bark/ao.jpg"
+    },
+    "gravel": {
+      "id": "gravel_floor",
+      "name": "Gravel Floor",
+      "size_m": 2.25,
+      "diffuse": "textures/gravel/diffuse.jpg",
+      "normal": "textures/gravel/normal.jpg",
+      "rough": "textures/gravel/rough.jpg",
+      "ao": "textures/gravel/ao.jpg"
+    },
+    "concrete": {
+      "id": "concrete_floor_02",
+      "name": "Concrete Floor 02",
+      "size_m": 2,
+      "diffuse": "textures/concrete/diffuse.jpg",
+      "normal": "textures/concrete/normal.jpg",
+      "rough": "textures/concrete/rough.jpg",
+      "ao": "textures/concrete/ao.jpg"
+    }
+  },
+  "models": {
+    "bench": {
+      "id": "painted_wooden_bench",
+      "name": "Painted Wooden Bench",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/bench/model.gltf",
+      "files": [
+        "textures/painted_wooden_bench_diff_1k.jpg",
+        "textures/painted_wooden_bench_nor_gl_1k.jpg",
+        "textures/painted_wooden_bench_arm_1k.jpg",
+        "painted_wooden_bench.bin"
+      ]
+    },
+    "lamp": {
+      "id": "street_lamp_01",
+      "name": "Street Lamp 01",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/lamp/model.gltf",
+      "files": [
+        "textures/street_lamp_01_arm_1k.jpg",
+        "textures/street_lamp_01_diff_1k.jpg",
+        "textures/street_lamp_01_nor_gl_1k.jpg",
+        "street_lamp_01.bin"
+      ]
+    },
+    "barrel": {
+      "id": "wooden_barrels_01",
+      "name": "Wooden Barrels 01",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/barrel/model.gltf",
+      "files": [
+        "textures/wooden_barrels_01_barrel02_nor_gl_1k.jpg",
+        "textures/wooden_barrels_01_barrel02_arm_1k.jpg",
+        "textures/wooden_barrels_01_barrel01_arm_1k.jpg",
+        "textures/wooden_barrels_01_pieces_nor_gl_1k.jpg",
+        "wooden_barrels_01.bin",
+        "textures/wooden_barrels_01_barrel01_nor_gl_1k.jpg",
+        "textures/wooden_barrels_01_pieces_diff_1k.jpg",
+        "textures/wooden_barrels_01_barrel01_diff_1k.jpg",
+        "textures/wooden_barrels_01_barrel02_diff_1k.jpg",
+        "textures/wooden_barrels_01_pieces_arm_1k.jpg"
+      ]
+    },
+    "crate": {
+      "id": "wooden_crate_01",
+      "name": "Wooden Crate 01",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/crate/model.gltf",
+      "files": [
+        "textures/wooden_crate_01_diff_1k.jpg",
+        "textures/wooden_crate_01_nor_gl_1k.jpg",
+        "wooden_crate_01.bin",
+        "textures/wooden_crate_01_arm_1k.jpg"
+      ]
+    },
+    "planter": {
+      "id": "planter_box_01",
+      "name": "Planter Box 01",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/planter/model.gltf",
+      "files": [
+        "textures/planter_box_01_nor_gl_1k.jpg",
+        "textures/planter_box_01_arm_1k.jpg",
+        "planter_box_01.bin",
+        "textures/planter_box_01_diff_1k.jpg"
+      ]
+    },
+    "bush": {
+      "id": "wild_rooibos_bush",
+      "name": "Wild Rooibos Bush",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/bush/model.gltf",
+      "files": [
+        "textures/wild_rooibos_bush_nor_gl_1k.jpg",
+        "textures/wild_rooibos_bush_diff_1k.jpg",
+        "textures/wild_rooibos_bush_arm_1k.jpg",
+        "wild_rooibos_bush.bin"
+      ]
+    },
+    "bin": {
+      "id": "metal_trash_can",
+      "name": "Metal Trash Can",
+      "height": 0,
+      "yaw": 0,
+      "gltf": "models/bin/model.gltf",
+      "files": [
+        "textures/metal_trash_can_diff_1k.jpg",
+        "textures/metal_trash_can_rust_diff_1k.jpg",
+        "textures/metal_trash_can_arm_1k.jpg",
+        "textures/metal_trash_can_rust_nor_gl_1k.jpg",
+        "textures/metal_trash_can_nor_gl_1k.jpg",
+        "metal_trash_can.bin",
+        "textures/metal_trash_can_rust_arm_1k.jpg"
+      ]
+    }
+  },
+  "source": "https://polyhaven.com (CC0)"
+}

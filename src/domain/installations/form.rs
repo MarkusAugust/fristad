@@ -1,0 +1,116 @@
+//! Søknadskontoret sør for Østre gate: et lite kontorbygg med skjemaet
+//! «Søknad om bostøtte» på fronten. Skjemakomponentene (input, select,
+//! radio, checkbox, textarea) er hver sin installasjon og legger feltene
+//! sine på arket her. Den første som bygger lager kontoret og arket;
+//! etikettene, legenden og sendeknappen står fast.
+//!
+//! Målene er i piksler relativt til arkets sentrum, y opp. Arket er
+//! 784 × 360 px i to kolonner på 360 px.
+
+use super::signs::{self, Box2};
+use super::PX;
+use crate::domain::city::{at, Builder, DARK_TRIM, STONE, WHITE_TRIM};
+use crate::domain::geometry::{flag, Layer, Mat, Mesh};
+use crate::domain::palette::slot;
+use glam::{Affine3A, Quat, Vec3};
+
+pub const POS: Vec3 = Vec3::new(36.0, 0.0, 10.5);
+pub const YAW: f32 = std::f32::consts::PI;
+const W: f32 = 9.6;
+const D: f32 = 5.0;
+const WALL_H: f32 = 4.9;
+
+pub const SHEET_W: f32 = 784.0;
+pub const SHEET_H: f32 = 360.0;
+/// Kolonnenes venstrekant og bredde.
+pub const COL_W: f32 = 360.0;
+pub const LEFT: f32 = -372.0;
+pub const RIGHT: f32 = 12.0;
+
+/// Feltenes plass (overkant i px fra sentrum), fra oppsettet i modulteksten.
+pub const INPUT_TOP: f32 = 98.0;
+pub const SELECT_TOP: f32 = 19.0;
+pub const TEXTAREA_TOP: f32 = -60.0;
+pub const RADIO_ROWS: [f32; 3] = [95.0, 63.0, 31.0];
+pub const CHECK_ROWS: [f32; 2] = [-5.0, -37.0];
+pub const FIELD_H: f32 = 42.0;
+pub const TEXTAREA_H: f32 = 90.0;
+
+/// Arkets ramme: sentrum i arket, forsiden mot +Z.
+pub fn sheet_t() -> Affine3A {
+    at(POS, YAW) * Affine3A::from_translation(Vec3::new(0.6, 2.75, 0.13))
+}
+
+/// Et punkt på arket, i px, som transform.
+pub fn on_sheet(x: f32, y: f32, z: f32) -> Affine3A {
+    sheet_t() * Affine3A::from_translation(Vec3::new(x * PX, y * PX, z))
+}
+
+/// Et skjemafelt: 1 px kant, radius 4, med fyll og kant fra palettplasser.
+pub fn field(m: &mut Mesh, w: f32, h: f32, fill: u8, border: u8) {
+    signs::boxed(m, Vec3::ZERO, &Box2 { w, h, radius: 4.0, fill, border: Some(border), depth: 0.02 });
+}
+
+/// Bygg kontoret og arket om det ikke finnes.
+pub fn office(b: &mut Builder) {
+    if b.props.iter().any(|p| p.name == "form") {
+        return;
+    }
+    let p = b.on_ground(POS);
+    let t = at(p, YAW);
+    let wall = Mat::tex(Layer::Plaster, 0xffffff).tint(Vec3::new(0.88, 0.86, 0.8));
+    let m = &mut b.mesh;
+    m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, -0.75, -D * 0.5))), Vec3::new(W + 0.12, 2.5, D + 0.12), &STONE);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H * 0.5 + 0.5, -D * 0.5))), Vec3::new(W, WALL_H, D), &wall, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 0.56, -D * 0.5))), Vec3::new(W + 0.5, 0.14, D + 0.5), &WHITE_TRIM, 1.0);
+    m.gable_roof(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 0.62, -D * 0.5))), W, D, 1.5, 0.4, &Mat::tex(Layer::Slate, 0xffffff), &wall, &DARK_TRIM);
+    // Døra til venstre, med trinn og lampe.
+    let door = Mat::tex(Layer::Cladding, 0xffffff).tint(Vec3::new(0.2, 0.3, 0.45)).flags(flag::ROT_UV | flag::NO_DIRT);
+    let dx = -4.1;
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.5 + 1.05, 0.04))), Vec3::new(1.0, 2.1, 0.06), &door, 1.0);
+    for sx in [-1.0f32, 1.0] {
+        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx + sx * 0.55, 0.5 + 1.05, 0.05))), Vec3::new(0.1, 2.2, 0.16), &WHITE_TRIM, 1.0);
+    }
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.5 + 2.15, 0.05))), Vec3::new(1.2, 0.1, 0.16), &WHITE_TRIM, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.25, 0.35))), Vec3::new(1.6, 0.5, 0.7), &STONE, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 3.0, 0.12))), Vec3::new(0.22, 0.16, 0.16), &Mat::special(crate::domain::geometry::kind::LAMP, 0xfff1d6, 0.3), 1.0);
+    // Skiltet over arket.
+    let plate = Mat::plain(0x24303a, 0.6);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.0, 0.06))), Vec3::new(5.2, 0.5, 0.1), &plate, 1.0);
+    let mut label = Mesh::default();
+    b.font.centered(&mut label, "SØKNADSKONTORET", Vec3::ZERO, 26.0, 0.012, &Mat::plain(0xf4efe4, 0.5).flags(flag::GLOW_ALWAYS));
+    label.transform(&(t * Affine3A::from_translation(Vec3::new(0.6, 5.0, 0.115))));
+    m.append(&label);
+
+    // Arket: en lys plate med kant, og teksten som står fast.
+    let st = sheet_t();
+    let mut sheet = Mesh::default();
+    signs::boxed(&mut sheet, Vec3::ZERO, &Box2 { w: SHEET_W + 40.0, h: SHEET_H + 40.0, radius: 8.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.04 });
+    let z = 0.03;
+    signs::paragraph(&mut sheet, b.font, &["Søknad om bostøtte"], LEFT, 160.0, 20.0, 1.25, z, slot::NEUTRAL_TEXT_STRONG);
+    // Etikettene: 14 px, linjehøyde 1,5.
+    signs::paragraph(&mut sheet, b.font, &["E-postadresse"], LEFT, 123.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    signs::paragraph(&mut sheet, b.font, &["Fylke"], LEFT, 44.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    signs::paragraph(&mut sheet, b.font, &["Begrunnelse"], LEFT, -35.0, 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    // Legenden med påkrevd-stjerne.
+    signs::paragraph(&mut sheet, b.font, &["Hvordan vil du ha svaret?"], RIGHT, 123.0, 16.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    let lw = signs::width(b.font, "Hvordan vil du ha svaret?", 16.0) / PX;
+    signs::paragraph(&mut sheet, b.font, &["*"], RIGHT + lw + 4.0, 123.0, 16.0, 1.5, z, slot::DANGER_TEXT);
+    for (k, label) in ["I digital postkasse", "Som brev i posten", "Hentes på kontoret"].iter().enumerate() {
+        let s = if k == 2 { slot::NEUTRAL_TEXT_SUBTLE } else { slot::NEUTRAL_TEXT_STRONG };
+        signs::paragraph(&mut sheet, b.font, &[label], RIGHT + 28.0, RADIO_ROWS[k], 14.0, 1.5, z, s);
+    }
+    for (k, label) in ["Jeg godtar vilkårene", "Send meg nyhetsbrev"].iter().enumerate() {
+        signs::paragraph(&mut sheet, b.font, &[label], RIGHT + 28.0, CHECK_ROWS[k], 14.0, 1.5, z, slot::NEUTRAL_TEXT_STRONG);
+    }
+    let bw = signs::width(b.font, "Send søknad", 16.0) / PX + 34.0;
+    signs::button(&mut sheet, b.font, "Send søknad", Vec3::new((RIGHT + bw * 0.5) * PX, -98.0 * PX, z), slot::ACCENT_FILL, slot::ACCENT_FILL, slot::ACCENT_CONTENT);
+    sheet.transform(&st);
+    b.mesh.append(&sheet);
+
+    let q = Quat::from_rotation_y(YAW);
+    b.solid_box(p + q * Vec3::new(0.0, WALL_H * 0.5 + 0.5, -D * 0.5), Vec3::new(W, WALL_H, D), YAW);
+    b.solid_box(p + q * Vec3::new(dx, 0.25, 0.35), Vec3::new(1.6, 0.5, 0.7), YAW);
+    b.light(p + q * Vec3::new(dx, 2.9, 0.4), Vec3::new(1.0, 0.85, 0.6), 2.0, 5.0);
+    b.prop("form", Mesh::default(), Affine3A::IDENTITY, None);
+}

@@ -102,9 +102,11 @@ fn solid(device: &wgpu::Device, queue: &wgpu::Queue, rgba: [u8; 4], srgb: bool) 
 /// teksturer samtidig (albedo og nrh) og for enkle teksturer.
 pub struct Mipper {
     layout: wgpu::BindGroupLayout,
+    layout_array: wgpu::BindGroupLayout,
     pipeline_srgb: wgpu::RenderPipeline,
     pipeline_pair: wgpu::RenderPipeline,
     pipeline_lin: wgpu::RenderPipeline,
+    pipeline_array: wgpu::RenderPipeline,
     sampler: wgpu::Sampler,
     uniform: wgpu::Buffer,
 }
@@ -130,8 +132,16 @@ impl Mipper {
             &self.pipeline_lin
         };
         let _ = fb;
+        let array = layers > 1;
+        let pipeline = if array { &self.pipeline_array } else { pipeline };
         let mut enc = device.create_command_encoder(&Default::default());
         for layer in 0..layers {
+            // Laget som uniform, til array-banen.
+            let layer_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("mip layer"),
+                contents: bytemuck::bytes_of(&[layer as f32, 0.0, 0.0, 0.0]),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
             for level in 1..mips {
                 let view = |t: &wgpu::Texture, l: u32| {
                     t.create_view(&wgpu::TextureViewDescriptor {
@@ -143,20 +153,43 @@ impl Mipper {
                         ..Default::default()
                     })
                 };
-                let src_a = view(a, level - 1);
-                let src_b = view(b, level - 1);
+                // Kilden: hele arrayet på nivået over (WebGL2 kan ikke lese ett
+                // lag som 2D), eller teksturen selv når den ikke er et array.
+                let src_view = |t: &wgpu::Texture| {
+                    t.create_view(&wgpu::TextureViewDescriptor {
+                        base_mip_level: level - 1,
+                        mip_level_count: Some(1),
+                        dimension: Some(if array { wgpu::TextureViewDimension::D2Array } else { wgpu::TextureViewDimension::D2 }),
+                        ..Default::default()
+                    })
+                };
+                let src_a = src_view(a);
+                let src_b = src_view(b);
                 let dst_a = view(a, level);
                 let dst_b = view(b, level);
-                let bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("mip"),
-                    layout: &self.layout,
-                    entries: &[
-                        wgpu::BindGroupEntry { binding: 0, resource: self.uniform.as_entire_binding() },
-                        wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&src_a) },
-                        wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&src_b) },
-                        wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.sampler) },
-                    ],
-                });
+                let bg = if array {
+                    device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: Some("mip array"),
+                        layout: &self.layout_array,
+                        entries: &[
+                            wgpu::BindGroupEntry { binding: 0, resource: layer_buf.as_entire_binding() },
+                            wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.sampler) },
+                            wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&src_a) },
+                            wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::TextureView(&src_b) },
+                        ],
+                    })
+                } else {
+                    device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: Some("mip"),
+                        layout: &self.layout,
+                        entries: &[
+                            wgpu::BindGroupEntry { binding: 0, resource: self.uniform.as_entire_binding() },
+                            wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&src_a) },
+                            wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&src_b) },
+                            wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.sampler) },
+                        ],
+                    })
+                };
                 let mut attachments = vec![Some(wgpu::RenderPassColorAttachment {
                     view: &dst_a,
                     resolve_target: None,
@@ -235,6 +268,36 @@ impl Materials {
         let mip_pair = make("fs_mip", &[srgb, lin]);
         let mip_srgb = make("fs_mip_one", &[srgb]);
         let mip_lin = make("fs_mip_one", &[lin]);
+        // Mip for array-teksturene: kilden bindes som array, laget i uniformen.
+        let array_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("mip array"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None }, count: None },
+                wgpu::BindGroupLayoutEntry { binding: 3, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering), count: None },
+                wgpu::BindGroupLayoutEntry { binding: 4, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2Array, multisampled: false }, count: None },
+                wgpu::BindGroupLayoutEntry { binding: 5, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2Array, multisampled: false }, count: None },
+            ],
+        });
+        let array_pipe_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: Some("mip array"), bind_group_layouts: &[&array_layout], push_constant_ranges: &[] });
+        let mip_array = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("fs_mip_array"),
+            layout: Some(&array_pipe_layout),
+            vertex: wgpu::VertexState { module: &module, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
+            primitive: Default::default(),
+            depth_stencil: None,
+            multisample: Default::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &module,
+                entry_point: Some("fs_mip_array"),
+                compilation_options: Default::default(),
+                targets: &[
+                    Some(wgpu::ColorTargetState { format: srgb, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                    Some(wgpu::ColorTargetState { format: lin, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                ],
+            }),
+            multiview: None,
+            cache: None,
+        });
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("mip"),
@@ -250,7 +313,7 @@ impl Materials {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let mipper = Mipper { layout: bake_layout.clone(), pipeline_srgb: mip_srgb, pipeline_pair: mip_pair, pipeline_lin: mip_lin, sampler: sampler.clone(), uniform: uniform.clone() };
+        let mipper = Mipper { layout: bake_layout.clone(), layout_array: array_layout, pipeline_srgb: mip_srgb, pipeline_pair: mip_pair, pipeline_lin: mip_lin, pipeline_array: mip_array, sampler: sampler.clone(), uniform: uniform.clone() };
 
         let mips = (SIZE as f32).log2() as u32 + 1;
         let array = |label: &str, format| {

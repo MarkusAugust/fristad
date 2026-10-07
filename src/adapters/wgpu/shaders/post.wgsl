@@ -10,7 +10,9 @@ struct Post {
 @group(2) @binding(0) var tex0: texture_2d<f32>;
 @group(2) @binding(1) var tex1: texture_2d<f32>;
 @group(2) @binding(2) var tex2: texture_2d<f32>;
-@group(2) @binding(3) var depth_tex: texture_depth_2d;
+// Dybden er en R32Float-fargetekstur fra prepasset: WebGL2 kan ikke lese
+// dybdeteksturer med textureLoad.
+@group(2) @binding(3) var depth_tex: texture_2d<f32>;
 @group(2) @binding(4) var lin: sampler;
 @group(2) @binding(5) var near: sampler;
 @group(2) @binding(6) var<uniform> post: Post;
@@ -32,7 +34,7 @@ fn vs(@builtin(vertex_index) vi: u32) -> VsOut {
 fn depth_at(uv: vec2<f32>) -> f32 {
     let size = vec2<f32>(textureDimensions(depth_tex));
     let c = vec2<i32>(clamp(uv * size, vec2<f32>(0.0), size - 1.0));
-    return textureLoad(depth_tex, c, 0);
+    return textureLoad(depth_tex, c, 0).r;
 }
 
 // ---- SSAO i halv oppløsning. tex0 er normalene fra prepasset. ----
@@ -44,7 +46,7 @@ fn fs_ssao(i: VsOut) -> @location(0) vec4<f32> {
         return vec4<f32>(1.0);
     }
     let p = world_from_depth(i.uv, d);
-    let n = normalize(textureSample(tex0, near, i.uv).xyz * 2.0 - 1.0);
+    let n = normalize(textureSampleLevel(tex0, near, i.uv, 0.0).xyz * 2.0 - 1.0);
     let dist = distance(p, g.camera.xyz);
     let radius = post.params.x;
     let px = i.clip.xy;
@@ -96,7 +98,7 @@ fn fs_blur(i: VsOut) -> @location(0) vec4<f32> {
         let uv = i.uv + post.params.zw * post.texel.zw * f32(k);
         let d = linear_depth(depth_at(uv));
         let w = exp(-f32(k * k) * 0.3) * exp(-abs(d - d0) * 2.0);
-        sum += textureSample(tex0, lin, uv).r * w;
+        sum += textureSampleLevel(tex0, lin, uv, 0.0).r * w;
         wsum += w;
     }
     return vec4<f32>(sum / max(wsum, 1e-4));
@@ -123,7 +125,7 @@ fn lamp_scatter(origin: vec3<f32>, dir: vec3<f32>, len: f32, lp: vec3<f32>, radi
 
 @fragment
 fn fs_fog(i: VsOut) -> @location(0) vec4<f32> {
-    let color = textureSample(tex0, near, i.uv).rgb;
+    let color = textureSampleLevel(tex0, near, i.uv, 0.0).rgb;
     let d = depth_at(i.uv);
     let cam = g.camera.xyz;
     var p_end = world_from_depth(i.uv, min(d, 0.99999));
@@ -196,7 +198,7 @@ fn ycocg_to_rgb(c: vec3<f32>) -> vec3<f32> {
 
 @fragment
 fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
-    let cur = textureSample(tex0, near, i.uv).rgb;
+    let cur = textureSampleLevel(tex0, near, i.uv, 0.0).rgb;
     if (post.params.x < 0.5) {
         return vec4<f32>(cur, 1.0);
     }
@@ -215,7 +217,7 @@ fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
                 best_d = d;
                 best_uv = uv;
             }
-            let c = rgb_to_ycocg(textureSample(tex0, near, uv).rgb);
+            let c = rgb_to_ycocg(textureSampleLevel(tex0, near, uv, 0.0).rgb);
             mn = min(mn, c);
             mx = max(mx, c);
             m1 += c;
@@ -239,14 +241,14 @@ fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
             let pr = g.prev_view_proj * vec4<f32>(far, 1.0);
             let suv = vec2<f32>(pr.x / pr.w * 0.5 + 0.5, 0.5 - pr.y / pr.w * 0.5);
             if (all(suv >= vec2<f32>(0.0)) && all(suv <= vec2<f32>(1.0))) {
-                let h = rgb_to_ycocg(textureSample(tex1, lin, suv).rgb);
+                let h = rgb_to_ycocg(textureSampleLevel(tex1, lin, suv, 0.0).rgb);
                 let hc = clamp(h, mn, mx);
                 return vec4<f32>(ycocg_to_rgb(mix(rgb_to_ycocg(cur), hc, 0.9)), 1.0);
             }
         }
         return vec4<f32>(cur, 1.0);
     }
-    let hist = rgb_to_ycocg(textureSample(tex1, lin, puv).rgb);
+    let hist = rgb_to_ycocg(textureSampleLevel(tex1, lin, puv, 0.0).rgb);
     let clamped = clamp(hist, mn, mx);
     // Mindre vekt på historien der den måtte klemmes mye (bevegelse).
     let dev = length(hist - clamped) / max(length(sigma), 1e-3);
@@ -275,7 +277,7 @@ fn fs_down(i: VsOut) -> @location(0) vec4<f32> {
     let w = array<f32, 13>(0.03125, 0.0625, 0.03125, 0.125, 0.125, 0.0625, 0.125, 0.0625, 0.125, 0.125, 0.03125, 0.0625, 0.03125);
     let first = post.params.w > 0.5;
     for (var k = 0; k < 13; k++) {
-        var s = textureSample(tex0, lin, i.uv + offs[k] * t).rgb;
+        var s = textureSampleLevel(tex0, lin, i.uv + offs[k] * t, 0.0).rgb;
         if (first) {
             // Bare det som er lysere enn hvitt gløder, dempet mot flimmer.
             s = max(s - vec3<f32>(1.0), vec3<f32>(0.0)) * karis(s);
@@ -289,15 +291,15 @@ fn fs_down(i: VsOut) -> @location(0) vec4<f32> {
 fn fs_up(i: VsOut) -> @location(0) vec4<f32> {
     let t = post.texel.zw;
     var c = vec3<f32>(0.0);
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(-1.0, -1.0) * t).rgb * 1.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(0.0, -1.0) * t).rgb * 2.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(1.0, -1.0) * t).rgb * 1.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(-1.0, 0.0) * t).rgb * 2.0;
-    c += textureSample(tex0, lin, i.uv).rgb * 4.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(1.0, 0.0) * t).rgb * 2.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(-1.0, 1.0) * t).rgb * 1.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(0.0, 1.0) * t).rgb * 2.0;
-    c += textureSample(tex0, lin, i.uv + vec2<f32>(1.0, 1.0) * t).rgb * 1.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(-1.0, -1.0) * t, 0.0).rgb * 1.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(0.0, -1.0) * t, 0.0).rgb * 2.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(1.0, -1.0) * t, 0.0).rgb * 1.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(-1.0, 0.0) * t, 0.0).rgb * 2.0;
+    c += textureSampleLevel(tex0, lin, i.uv, 0.0).rgb * 4.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(1.0, 0.0) * t, 0.0).rgb * 2.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(-1.0, 1.0) * t, 0.0).rgb * 1.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(0.0, 1.0) * t, 0.0).rgb * 2.0;
+    c += textureSampleLevel(tex0, lin, i.uv + vec2<f32>(1.0, 1.0) * t, 0.0).rgb * 1.0;
     return vec4<f32>(c / 16.0, 1.0);
 }
 
@@ -322,7 +324,7 @@ fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
 fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
     let exposure = post.params.x;
     let bloom = post.params.y;
-    var hdr = textureSample(tex0, lin, i.uv).rgb;
+    var hdr = textureSampleLevel(tex0, lin, i.uv, 0.0).rgb;
     if (g.sky.w > 0.0 && g.sky.w < 13.0) {
         var d = clamp(hdr, vec3<f32>(0.0), vec3<f32>(1.0));
         if (post.params.z > 0.5) {
@@ -330,7 +332,7 @@ fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
         }
         return vec4<f32>(d, 1.0);
     }
-    hdr += textureSample(tex1, lin, i.uv).rgb * bloom;
+    hdr += textureSampleLevel(tex1, lin, i.uv, 0.0).rgb * bloom;
     hdr *= exposure;
     var c = aces(hdr);
     // Litt varmere i lysene og kjøligere i skyggene, som film.

@@ -17,15 +17,21 @@ pub mod badge;
 pub mod breadcrumbs;
 pub mod button;
 pub mod card;
+pub mod checkbox;
 pub mod connection_status;
 pub mod dialog;
+pub mod form;
+pub mod input;
 pub mod progress;
+pub mod radio;
+pub mod select;
 pub mod signs;
 pub mod skeleton;
 pub mod spinner;
 pub mod switch;
 pub mod tabs;
 pub mod tag;
+pub mod textarea;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Component {
@@ -150,6 +156,11 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(tabs::Tabs::default()),
         Box::new(card::Card::default()),
         Box::new(accordion::Accordion::default()),
+        Box::new(input::Input::default()),
+        Box::new(select::Select::default()),
+        Box::new(radio::Radio::default()),
+        Box::new(checkbox::Checkbox::default()),
+        Box::new(textarea::Textarea::default()),
     ]
 }
 

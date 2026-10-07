@@ -131,18 +131,25 @@ fn vs_shadow(v: VsIn, inst: Instance) -> ShadowOut {
 }
 
 // Dekning for blad, tekst og modellblader, som er gjennomhullet med alfatest.
-fn coverage(kind: u32, flags: u32, uv: vec2<f32>) -> f32 {
+// Dawn krever at textureSample står i uniform kontrollflyt, og grenene her
+// avhenger av per-piksel-verdier. Derfor sendes uv-gradientene inn fra
+// toppen av passet (der flyten er uniform) og samplingen bruker dem.
+fn coverage(kind: u32, flags: u32, uv: vec2<f32>, duvx: vec2<f32>, duvy: vec2<f32>) -> f32 {
     if (kind == K_LEAF) {
-        return textureSample(leaf_tex, clamp_sampler, uv).a;
+        return textureSampleGrad(leaf_tex, clamp_sampler, uv, duvx, duvy).a;
     }
     if (kind == K_MODEL && (flags & F_ALPHA) != 0u) {
         // Teksturene er JPEG uten alfa; bakgrunnen bak bladene er svart.
-        let a = textureSample(model_albedo, tex_sampler, uv);
+        let a = textureSampleGrad(model_albedo, tex_sampler, uv, duvx, duvy);
         return a.a * smoothstep(0.03, 0.12, max(a.r, max(a.g, a.b)));
     }
     if (kind == K_TEXT) {
-        let d = textureSample(font_tex, clamp_sampler, uv).r;
-        let w = fwidth(d) * 0.8;
+        let d = textureSampleGrad(font_tex, clamp_sampler, uv, duvx, duvy).r;
+        // Avstandsfeltet går 1,0 over 16 atlastexels (spredning 8), så bredden
+        // på kanten i avstandsenheter er texels per piksel delt på 16.
+        let atlas = vec2<f32>(1024.0, 512.0);
+        let tpp = length(duvx * atlas) + length(duvy * atlas);
+        let w = tpp * 0.05;
         return smoothstep(0.5 - w, 0.5 + w, d);
     }
     return 1.0;
@@ -150,22 +157,34 @@ fn coverage(kind: u32, flags: u32, uv: vec2<f32>) -> f32 {
 
 @fragment
 fn fs_shadow(i: ShadowOut) {
-    if (coverage(i.mat.x, i.mat.z, i.uv) < 0.5) {
+    let duvx = dpdx(i.uv);
+    let duvy = dpdy(i.uv);
+    if (coverage(i.mat.x, i.mat.z, i.uv, duvx, duvy) < 0.5) {
         discard;
     }
 }
 
 // Dybdeprepasset skriver normalen til SSAO, og tester alfa likt med hovedpasset.
+struct PreOut {
+    @location(0) normal: vec4<f32>,
+    @location(1) depth: f32,
+}
+
 @fragment
-fn fs_prepass(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
-    if (coverage(i.mat.x, i.mat.z, i.uv) < 0.5) {
+fn fs_prepass(i: VsOut, @builtin(front_facing) front: bool) -> PreOut {
+    let duvx = dpdx(i.uv);
+    let duvy = dpdy(i.uv);
+    if (coverage(i.mat.x, i.mat.z, i.uv, duvx, duvy) < 0.5) {
         discard;
     }
     var n = normalize(i.normal);
     if (!front) {
         n = -n;
     }
-    return vec4<f32>(n * 0.5 + 0.5, 1.0);
+    var o: PreOut;
+    o.normal = vec4<f32>(n * 0.5 + 0.5, 1.0);
+    o.depth = i.clip.z;
+    return o;
 }
 
 fn ggx(n: vec3<f32>, v: vec3<f32>, l: vec3<f32>, rough: f32, f0: vec3<f32>) -> vec3<f32> {
@@ -204,9 +223,9 @@ struct Tex {
     height: f32,
 }
 
-fn sample_plane(layer: i32, uv: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
-    let a = textureSample(tex_albedo, tex_sampler, uv, layer).rgb;
-    let nrh = textureSample(tex_nrh, tex_sampler, uv, layer);
+fn sample_plane(layer: i32, uv: vec2<f32>, gx: vec2<f32>, gy: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
+    let a = textureSampleGrad(tex_albedo, tex_sampler, uv, layer, gx, gy).rgb;
+    let nrh = textureSampleGrad(tex_nrh, tex_sampler, uv, layer, gx, gy);
     let tn = vec3<f32>(nrh.xy * 2.0 - 1.0, 0.0);
     let tz = sqrt(max(0.0, 1.0 - dot(tn.xy, tn.xy)));
     var o: Tex;
@@ -217,9 +236,12 @@ fn sample_plane(layer: i32, uv: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f
     return o;
 }
 
-fn triplanar(layer: i32, world: vec3<f32>, n_geo: vec3<f32>, rot: bool) -> Tex {
+fn triplanar(layer: i32, world: vec3<f32>, dwx: vec3<f32>, dwy: vec3<f32>, n_geo: vec3<f32>, rot: bool) -> Tex {
     let scale = g.tex_scale[layer / 4][layer % 4];
     let p = world / scale;
+    // Gradientene til uv-ene følger av gradientene til verdensposisjonen.
+    let dx = dwx / scale;
+    let dy = dwy / scale;
     var w = pow(abs(n_geo), vec3<f32>(6.0));
     w = w / (w.x + w.y + w.z);
     // Flaten i xz (gulv og tak), xy (vegger mot ±z) og zy (vegger mot ±x).
@@ -229,11 +251,21 @@ fn triplanar(layer: i32, world: vec3<f32>, n_geo: vec3<f32>, rot: bool) -> Tex {
     let sy = sign(n_geo.y + 1e-5);
     var uv_x = vec2<f32>(-p.z * sx, p.y);
     var uv_z = vec2<f32>(p.x * sz, p.y);
+    var gx_x = vec2<f32>(-dx.z * sx, dx.y);
+    var gy_x = vec2<f32>(-dy.z * sx, dy.y);
+    var gx_z = vec2<f32>(dx.x * sz, dx.y);
+    var gy_z = vec2<f32>(dy.x * sz, dy.y);
     if (rot) {
         uv_x = vec2<f32>(p.y, p.z * sx);
         uv_z = vec2<f32>(p.y, -p.x * sz);
+        gx_x = vec2<f32>(dx.y, dx.z * sx);
+        gy_x = vec2<f32>(dy.y, dy.z * sx);
+        gx_z = vec2<f32>(dx.y, -dx.x * sz);
+        gy_z = vec2<f32>(dy.y, -dy.x * sz);
     }
     let uv_y = vec2<f32>(p.x, -p.z * sy);
+    let gx_y = vec2<f32>(dx.x, -dx.z * sy);
+    let gy_y = vec2<f32>(dy.x, -dy.z * sy);
     var o: Tex;
     o.albedo = vec3<f32>(0.0);
     o.n = vec3<f32>(0.0);
@@ -243,18 +275,18 @@ fn triplanar(layer: i32, world: vec3<f32>, n_geo: vec3<f32>, rot: bool) -> Tex {
         var t = vec3<f32>(0.0, 0.0, -sx);
         var b = vec3<f32>(0.0, 1.0, 0.0);
         if (rot) { t = vec3<f32>(0.0, 1.0, 0.0); b = vec3<f32>(0.0, 0.0, sx); }
-        let s = sample_plane(layer, uv_x, t, b, vec3<f32>(sx, 0.0, 0.0));
+        let s = sample_plane(layer, uv_x, gx_x, gy_x, t, b, vec3<f32>(sx, 0.0, 0.0));
         o.albedo += s.albedo * w.x; o.n += s.n * w.x; o.rough += s.rough * w.x; o.height += s.height * w.x;
     }
     if (w.z > 0.01) {
         var t = vec3<f32>(sz, 0.0, 0.0);
         var b = vec3<f32>(0.0, 1.0, 0.0);
         if (rot) { t = vec3<f32>(0.0, 1.0, 0.0); b = vec3<f32>(-sz, 0.0, 0.0); }
-        let s = sample_plane(layer, uv_z, t, b, vec3<f32>(0.0, 0.0, sz));
+        let s = sample_plane(layer, uv_z, gx_z, gy_z, t, b, vec3<f32>(0.0, 0.0, sz));
         o.albedo += s.albedo * w.z; o.n += s.n * w.z; o.rough += s.rough * w.z; o.height += s.height * w.z;
     }
     if (w.y > 0.01) {
-        let s = sample_plane(layer, uv_y, vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, -sy), vec3<f32>(0.0, sy, 0.0));
+        let s = sample_plane(layer, uv_y, gx_y, gy_y, vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, -sy), vec3<f32>(0.0, sy, 0.0));
         o.albedo += s.albedo * w.y; o.n += s.n * w.y; o.rough += s.rough * w.y; o.height += s.height * w.y;
     }
     o.n = normalize(o.n);
@@ -312,7 +344,7 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     let f0 = mix(vec3<f32>(0.04), s.albedo, s.metal);
     let diffuse_albedo = s.albedo * (1.0 - s.metal);
     let screen_uv = i.clip.xy * g.screen.zw;
-    let ssao = textureSample(ao_tex, frame_sampler, screen_uv).r;
+    let ssao = textureSampleLevel(ao_tex, frame_sampler, screen_uv, 0.0).r;
 
     // Sola eller månen.
     let l = g.sun_dir.xyz;
@@ -427,6 +459,11 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     let kind = i.mat.x;
     let slot = i.mat.y;
     let flags = i.mat.z;
+    // Gradientene tas her, i uniform kontrollflyt, og brukes i alle oppslag.
+    let dp1 = dpdx(i.world);
+    let dp2 = dpdy(i.world);
+    let duv1 = dpdx(i.uv);
+    let duv2 = dpdy(i.uv);
     let glow = flags & 3u;
     var n_geo = normalize(i.normal);
     if (!front) {
@@ -452,7 +489,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     var height = 0.5;
 
     if (kind < 32u) {
-        let t = triplanar(i32(kind), i.world, n_geo, (flags & F_ROT_UV) != 0u);
+        let t = triplanar(i32(kind), i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
         // Stor, svak variasjon så flisene ikke repeterer synlig.
         let variation = 0.86 + 0.28 * fbm2(i.world.xz * 0.11 + i.world.y * 0.07);
         s.albedo = t.albedo * tint * variation;
@@ -471,20 +508,16 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             s.metal = 0.6;
         }
     } else if (kind == K_MODEL) {
-        let a = textureSample(model_albedo, tex_sampler, i.uv);
-        if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv) < 0.5) {
+        let a = textureSampleGrad(model_albedo, tex_sampler, i.uv, duv1, duv2);
+        if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {
             discard;
         }
         s.albedo = a.rgb * tint;
-        let mr = textureSample(model_mr, tex_sampler, i.uv);
+        let mr = textureSampleGrad(model_mr, tex_sampler, i.uv, duv1, duv2);
         s.rough = clamp(mr.g * i.extra.z, 0.03, 1.0);
         s.metal = mr.b * i.extra.w;
         // Normal map med tangent fra skjermderivatene.
-        let nm = textureSample(model_normal, tex_sampler, i.uv).xyz * 2.0 - 1.0;
-        let dp1 = dpdx(i.world);
-        let dp2 = dpdy(i.world);
-        let duv1 = dpdx(i.uv);
-        let duv2 = dpdy(i.uv);
+        let nm = textureSampleGrad(model_normal, tex_sampler, i.uv, duv1, duv2).xyz * 2.0 - 1.0;
         let dp2perp = cross(dp2, n_geo);
         let dp1perp = cross(n_geo, dp1);
         let t = dp2perp * duv1.x + dp1perp * duv2.x;
@@ -494,14 +527,14 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         if (dot(t, t) > 1e-8) {
             s.n = normalize(tbn * nm);
         }
-        s.emissive = textureSample(model_emissive, tex_sampler, i.uv).rgb * (0.2 + night * 8.0 * g.params.w);
+        s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * (0.2 + night * 8.0 * g.params.w);
     } else if (kind == K_GLASS) {
         s.kind = 2u;
         s.albedo = vec3<f32>(0.0);
         s.rough = 0.04;
         s.emissive = interior(i.world, n_geo, v, night);
     } else if (kind == K_LEAF) {
-        let l = textureSample(leaf_tex, clamp_sampler, i.uv);
+        let l = textureSampleGrad(leaf_tex, clamp_sampler, i.uv, duv1, duv2);
         if (l.a < 0.5) {
             discard;
         }
@@ -510,7 +543,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.rough = 0.7;
         s.ao = 0.85;
     } else if (kind == K_TEXT) {
-        if (coverage(kind, flags, i.uv) < 0.5) {
+        if (coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {
             discard;
         }
         s.rough = 0.6;
@@ -545,7 +578,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         switch dbg {
             case 1: { return vec4<f32>(s.albedo, 1.0); }
             case 2: { return vec4<f32>(s.n * 0.5 + 0.5, 1.0); }
-            case 3: { return vec4<f32>(vec3<f32>(textureSample(ao_tex, frame_sampler, screen_uv).r * s.ao), 1.0); }
+            case 3: { return vec4<f32>(vec3<f32>(textureSampleLevel(ao_tex, frame_sampler, screen_uv, 0.0).r * s.ao), 1.0); }
             case 4: { return vec4<f32>(vec3<f32>(s.rough), 1.0); }
             case 5: { return vec4<f32>(vec3<f32>(sun_shadow(i.world, n_geo, i.world.xz)), 1.0); }
             case 6: { return vec4<f32>(shade(i, s, n_geo) * 0.4, 1.0); }
@@ -564,7 +597,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             }
             case 10: {
                 let screen_uv2 = i.clip.xy * g.screen.zw;
-                let ssao = textureSample(ao_tex, frame_sampler, screen_uv2).r;
+                let ssao = textureSampleLevel(ao_tex, frame_sampler, screen_uv2, 0.0).r;
                 let ao = s.ao * s.cavity * ssao;
                 let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.6) * 1.25;
                 let hemi = mix(g.ground_bounce.rgb, sky_amb, s.n.y * 0.5 + 0.5);

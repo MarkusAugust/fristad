@@ -14,6 +14,10 @@ struct Bake {
 @group(0) @binding(1) var src_a: texture_2d<f32>;
 @group(0) @binding(2) var src_b: texture_2d<f32>;
 @group(0) @binding(3) var src_sampler: sampler;
+// Array-teksturene leses som arrays med laget i bake.params.x: WebGL2 kan
+// ikke binde ett lag av en array som en 2D-tekstur.
+@group(0) @binding(4) var arr_a: texture_2d_array<f32>;
+@group(0) @binding(5) var arr_b: texture_2d_array<f32>;
 
 struct VsOut {
     @builtin(position) clip: vec4<f32>,
@@ -446,6 +450,16 @@ fn fs_leaf(i: VsOut) -> @location(0) vec4<f32> {
     }
     // Litt dekning i kantene tas av alfatesten; gi 0 rundt.
     return vec4<f32>(col, best);
+}
+
+// Ett mip-nivå ned for lagene i array-teksturene.
+@fragment
+fn fs_mip_array(i: VsOut) -> BakeOut {
+    let layer = i32(bake.params.x);
+    var o: BakeOut;
+    o.albedo = textureSampleLevel(arr_a, src_sampler, i.uv, layer, 0.0);
+    o.nrh = textureSampleLevel(arr_b, src_sampler, i.uv, layer, 0.0);
+    return o;
 }
 
 // Ett mip-nivå ned for én tekstur alene.
