@@ -270,8 +270,9 @@ impl Builder {
                 let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
                 let at = t.translation;
                 // Trestammer står i skråninger og går ned i bakken på oversida,
-                // som ekte trær; de sjekkes bare for sveving.
-                let rooted = pl.model.ends_with("_trunk");
+                // som ekte trær, og murverket har fundament under bakken; de
+                // sjekkes bare for sveving.
+                let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
                 if lowest > 0.08 {
                     out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", pl.model, at.x, at.z, lowest * 100.0));
                 } else if lowest < -0.3 && !rooted {

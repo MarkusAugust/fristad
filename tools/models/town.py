@@ -85,12 +85,23 @@ class M:
 PIECES = []
 
 
+def ensure_uv(me):
+    """Alle delene skal ha uv-laget «UVMap»: når delene slås sammen, holdes
+    lag med ulike navn adskilt, og eksporten tar bare det første."""
+    if "UVMap" not in me.uv_layers:
+        for layer in list(me.uv_layers):
+            me.uv_layers.remove(layer)
+        me.uv_layers.new(name="UVMap")
+    me.uv_layers.active = me.uv_layers["UVMap"]
+
+
 def uv_box(ob, along=None):
     """Uv i meter fra de lokale koordinatene, etter flatens hovedakse: vegger
     mot ±Y får (x, z), vegger mot ±X (y, z), flater opp og ned (x, y).
     `along` = "x" legger u langs lokal x på alle flater (bjelker), så årene
     følger lengden."""
     me = ob.data
+    ensure_uv(me)
     bm = bmesh.new()
     bm.from_mesh(me)
     uvl = bm.loops.layers.uv.verify()
@@ -172,8 +183,16 @@ def prism(name, pts2d, depth, mat, at, rot=(0, 0, 0)):
     return ob
 
 
+def keep_uv(target, names):
+    """Booleanen tar med uv-lagene til kutteren; behold bare de målet hadde
+    (ellers eksporteres kubens 0..1-uv i stedet for uv i meter)."""
+    for layer in [l for l in target.data.uv_layers if l.name not in names]:
+        target.data.uv_layers.remove(layer)
+
+
 def cut(target, size, at, rot=(0, 0, 0)):
     """Skjær et hull (vindu, dør) gjennom en del, med boolean."""
+    names = {l.name for l in target.data.uv_layers}
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=at, rotation=rot)
     c = bpy.context.active_object
     c.scale = size
@@ -184,6 +203,7 @@ def cut(target, size, at, rot=(0, 0, 0)):
     bpy.context.view_layer.objects.active = target
     bpy.ops.object.modifier_apply(modifier=mod.name)
     bpy.data.objects.remove(c)
+    keep_uv(target, names)
 
 
 def carve(target, cutters):
@@ -199,6 +219,7 @@ def carve(target, cutters):
         d.data = c.data
         coll.objects.link(d)
         copies.append(d)
+    names = {l.name for l in target.data.uv_layers}
     mod = target.modifiers.new("carve", "BOOLEAN")
     mod.operation = "DIFFERENCE"
     mod.operand_type = "COLLECTION"
@@ -209,6 +230,7 @@ def carve(target, cutters):
     for d in copies:
         bpy.data.objects.remove(d)
     bpy.data.collections.remove(coll)
+    keep_uv(target, names)
     uv_box(target)
 
 

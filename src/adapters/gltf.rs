@@ -73,6 +73,10 @@ models! {
     "house_d" => "town/house_d.glb",
     "house_e" => "town/house_e.glb",
     "house_f" => "town/house_f.glb",
+    // Bymuren fra tools/models/walls.py: segment, hjørnetårn og porthus.
+    "town_wall" => "town/town_wall.glb",
+    "wall_tower" => "town/wall_tower.glb",
+    "gatehouse" => "town/gatehouse.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }

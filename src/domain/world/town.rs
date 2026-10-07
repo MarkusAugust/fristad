@@ -139,6 +139,10 @@ fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     }
 }
 
+/// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
+/// skråninger.
+pub const FOUNDED: [&str; 3] = ["town_wall", "wall_tower", "gatehouse"];
+
 /// Bymuren: segmenter langs kanten av byen (`terrain::town_edge` = 0), med
 /// tårn i hjørnene og porthus der Storgata går gjennom.
 fn wall(b: &mut Builder) {
