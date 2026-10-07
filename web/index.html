@@ -36,6 +36,8 @@
       <progress id="stamina" class="fs-progress" max="100" value="100"></progress>
       <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
       <span id="keys" class="fs-badge" data-variant="warning" hidden>0 nøkler</span>
+      <div id="gear" class="gear"></div>
+      <div id="inventory" class="inventory"></div>
       <div id="fight-keys" class="fight-keys" hidden>
         <span><kbd>Venstre mus</kbd> Hugg, hold for tungt</span>
         <span><kbd>Høyre mus</kbd> Blokk (parade i det bittet kommer)</span>
@@ -44,6 +46,13 @@
     </div>
     <div id="marks" class="marks" aria-hidden="true"></div>
     <div id="bubbles" class="marks" aria-live="polite"></div>
+    <div id="overlay" class="overlay" hidden role="dialog" aria-labelledby="overlay-title">
+      <div class="overlay-inner">
+        <h2 id="overlay-title" class="fs-heading" data-size="m">Butikk</h2>
+        <div id="overlay-body"></div>
+        <div class="panel-actions"><button id="overlay-close" class="fs-button">Tilbake</button></div>
+      </div>
+    </div>
     <div id="help" class="help">
       <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gå</span>
       <span><kbd>Mus</kbd> Se (dra om musa ikke fanges)</span>

@@ -6,6 +6,7 @@
 //! (`game.rs`) gir inndata og fiendene, og tar imot hendelsene.
 
 use crate::domain::anim::{Animator, Rig};
+use crate::domain::craft::{Gear, WeaponKind, OLD_SHIELD, RUSTY_SWORD};
 use crate::domain::geometry::{kind, Mat, Mesh};
 use crate::domain::mobs::Mobs;
 use crate::domain::model::Model;
@@ -40,9 +41,6 @@ const COST_DODGE: f32 = 22.0;
 const COST_BLOCK: f32 = 18.0;
 const REGEN: f32 = 24.0;
 const REGEN_DELAY: f32 = 0.8;
-/// Blokk: så mye slipper gjennom; parade: blokken må ha startet nylig.
-const BLOCK_FACTOR: f32 = 0.2;
-const PARRY_WINDOW: f32 = 0.25;
 const DODGE_LEN: f32 = 0.42;
 const DODGE_IFRAMES: f32 = 0.34;
 const DODGE_SPEED: f32 = 7.5;
@@ -91,6 +89,8 @@ struct Clips {
 }
 
 pub struct Combat {
+    pub gear: Gear,
+    pub max_stamina: f32,
     pub stamina: f32,
     regen_delay: f32,
     pub phase: Phase,
@@ -134,6 +134,8 @@ impl Combat {
             .unwrap_or_default();
         let anim = rig.as_ref().map(|_| Animator::new(clips.idle, true));
         Self {
+            gear: Gear { weapon: RUSTY_SWORD, shield: OLD_SHIELD, armor: None, lantern: 1.0 },
+            max_stamina: STAMINA_MAX,
             stamina: STAMINA_MAX,
             regen_delay: 0.0,
             phase: Phase::Idle,
@@ -160,9 +162,25 @@ impl Combat {
         }
     }
 
-    /// Hvor mange instanser hver modell trenger plass til.
+    /// Hvor mange instanser hver modell trenger plass til: armene, rusket,
+    /// og hvert våpen og skjold (ett av hvert kan være i hendene).
     pub fn reserve() -> Vec<(&'static str, usize)> {
-        vec![(ARMS_MODEL, 1), (DEBRIS_MODEL, MAX_DEBRIS)]
+        let mut v = vec![(ARMS_MODEL, 1), (DEBRIS_MODEL, MAX_DEBRIS)];
+        for w in crate::domain::craft::WEAPONS {
+            if !v.iter().any(|(m, _)| *m == w.model) {
+                v.push((w.model, 1));
+            }
+        }
+        for s in crate::domain::craft::SHIELDS {
+            if !v.iter().any(|(m, _)| *m == s.model) {
+                v.push((s.model, 1));
+            }
+        }
+        v
+    }
+
+    pub fn set_gear(&mut self, gear: Gear) {
+        self.gear = gear;
     }
 
     fn rnd(&mut self) -> f32 {
@@ -185,7 +203,7 @@ impl Combat {
     }
 
     pub fn reset(&mut self) {
-        self.stamina = STAMINA_MAX;
+        self.stamina = self.max_stamina;
         self.enter(Phase::Idle);
         self.queued = false;
         self.held = false;
@@ -280,6 +298,9 @@ impl Combat {
         self.enter(Phase::Swing { n, hit: false });
         let clip = self.clips.swing[n];
         self.play(clip, false, 0.06);
+        if let Some(a) = &mut self.anim {
+            a.speed = self.gear.weapon.speed;
+        }
     }
 
     fn start_heavy(&mut self) {
@@ -300,8 +321,10 @@ impl Combat {
         }
         let to = (from - eye).with_y(0.0).normalize_or_zero();
         let front = forward.with_y(0.0).normalize_or_zero().dot(to) > 0.2;
+        let armor = self.gear.armor.map(|a| a.taken).unwrap_or(1.0);
+        let damage = damage * armor;
         if self.blocking() && front {
-            if self.block_t <= PARRY_WINDOW && self.phase == Phase::Block {
+            if self.block_t <= self.gear.shield.parry_window && self.phase == Phase::Block {
                 self.enter(Phase::Parry);
                 let parry = self.clips.parry;
                 self.play(parry, false, 0.05);
@@ -319,7 +342,7 @@ impl Combat {
                 return (damage * 0.6, false);
             }
             self.kick_vel += Vec2::new(0.0, 0.5);
-            return (damage * BLOCK_FACTOR, false);
+            return (damage * self.gear.shield.block, false);
         }
         self.got_hit(to);
         (damage, false)
@@ -364,14 +387,16 @@ impl Combat {
         self.hurt = (self.hurt - dt * 1.8).max(0.0);
         self.regen_delay = (self.regen_delay - dt).max(0.0);
         if self.regen_delay <= 0.0 && !matches!(self.phase, Phase::Block | Phase::Heavy { charging: true, .. }) {
-            self.stamina = (self.stamina + REGEN * dt).min(STAMINA_MAX);
+            self.stamina = (self.stamina + REGEN * dt).min(self.max_stamina);
         }
         self.since_swing += sim_dt;
         self.block_t += dt;
         if self.held {
             self.hold_t += dt;
         }
-        self.t += sim_dt;
+        // Fasetida går i våpenets tempo under hugg.
+        let tempo = if matches!(self.phase, Phase::Swing { .. } | Phase::Heavy { .. }) { self.gear.weapon.speed } else { 1.0 };
+        self.t += sim_dt * tempo;
         if let (Some(r), Some(a)) = (&self.rig, &mut self.anim) {
             a.update(sim_dt, r);
         }
@@ -416,9 +441,9 @@ impl Combat {
                     self.stamina += COST_LIGHT;
                     self.start_heavy();
                 } else if !hit && ct >= SWING_HIT[n] {
-                    let mut dmg = LIGHT_DAMAGE[n];
+                    let mut dmg = LIGHT_DAMAGE[n] * self.gear.weapon.damage;
                     if self.riposte {
-                        dmg *= 2.0;
+                        dmg *= if self.gear.weapon.id == "divider_blade" { 3.0 } else { 2.0 };
                         self.riposte = false;
                     }
                     self.phase = Phase::Swing { n, hit: true };
@@ -460,9 +485,9 @@ impl Combat {
                         }
                     }
                 } else if !hit && ct >= HEAVY_HIT {
-                    let mut dmg = HEAVY_DAMAGE * (1.0 + (charge / 1.2).clamp(0.0, 1.0) * 0.4);
+                    let mut dmg = HEAVY_DAMAGE * self.gear.weapon.damage * (1.0 + (charge / 1.2).clamp(0.0, 1.0) * 0.4);
                     if self.riposte {
-                        dmg *= 2.0;
+                        dmg *= if self.gear.weapon.id == "divider_blade" { 3.0 } else { 2.0 };
                         self.riposte = false;
                     }
                     self.phase = Phase::Heavy { charging: false, hit: true, charge };
@@ -512,6 +537,7 @@ impl Combat {
         let fwd = forward.with_y(0.0).normalize_or_zero();
         let mut any = false;
         let n = mobs.mobs.len();
+        let reach = self.gear.weapon.reach.max(REACH * 0.6);
         for i in 0..n {
             let m = &mobs.mobs[i];
             if !m.alive() {
@@ -520,10 +546,18 @@ impl Combat {
             let to = m.pos - feet;
             let flat = to.with_y(0.0);
             let dist = flat.length();
-            if dist > REACH || flat.normalize_or_zero().dot(fwd) < ARC {
+            if dist > reach || flat.normalize_or_zero().dot(fwd) < ARC {
                 continue;
             }
             any = true;
+            // Dolken gjør dobbelt bakfra: fienden vender bort fra deg.
+            let mut damage = damage;
+            if self.gear.weapon.kind == WeaponKind::Dagger {
+                let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
+                if facing.dot(flat.normalize_or_zero()) > 0.3 {
+                    damage *= 2.0;
+                }
+            }
             let killed = mobs.strike(i, damage, feet, dungeon);
             let body = mobs.mobs[i].pos + Vec3::Y * 1.0;
             self.spawn_debris(body, fwd, if heavy { 14 } else { 8 });
@@ -562,15 +596,28 @@ impl Combat {
         let mut out = vec![];
         if show_arms {
             let look = Quat::from_rotation_y(yaw) * Quat::from_rotation_x(pitch);
+            let arms_t = Affine3A::from_rotation_translation(look, eye);
             match (&self.rig, &self.anim) {
                 (Some(rig), Some(a)) => {
                     let pose = a.pose(rig);
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
+                    // Våpenet og skjoldet er modellert i armenes rom og følger
+                    // hendenes skinnmatriser.
+                    for (joint, model) in [("hand.R", self.gear.weapon.model), ("hand.L", self.gear.shield.model)] {
+                        if let Some(j) = rig.joint(joint) {
+                            let t = arms_t * Affine3A::from_mat4(mats[j]);
+                            out.push(ModelInstance { model, transform: t, skin: None, flash: 0.0, tint: None });
+                        }
+                    }
                 }
-                _ => out.push(ModelInstance { model: ARMS_MODEL, transform: Affine3A::from_rotation_translation(look, eye), skin: None, flash: 0.0, tint: None }),
+                _ => {
+                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.gear.weapon.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.gear.shield.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                }
             }
         }
         for p in &self.debris {

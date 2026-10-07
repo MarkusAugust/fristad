@@ -99,6 +99,9 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Hud { hp, stamina, tokens, cellar, keys } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys}),
         Event::Sound(name) => json!({"type": "sound", "name": name}),
+        Event::Inventory(v) => json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read}),
+        Event::Shop { npc, wares } => json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()}),
+        Event::Workshop { recipes } => json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "ok": r.ok})).collect::<Vec<_>>()}),
         Event::Speech(bubbles) => json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()}),
         Event::Marks(marks) => json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()}),
     }
@@ -125,6 +128,46 @@ impl Engine {
 
     pub fn key(&mut self, code: &str, down: bool) {
         self.app.input.key(code, down);
+    }
+
+    /// Smi etter en oppskrift (id fra verkstedet). Gir om det gikk.
+    pub fn craft(&mut self, recipe: &str) -> bool {
+        self.app.game.craft(recipe)
+    }
+
+    /// Kjøp en vare (id fra butikken). Gir om det gikk.
+    pub fn buy(&mut self, ware: &str) -> bool {
+        self.app.game.buy(ware)
+    }
+
+    /// Boka: lesing av en komponents dokumentasjon gir liv.
+    pub fn read_doc(&mut self, component: &str) -> bool {
+        self.app.game.read_doc(component)
+    }
+
+    /// Lageret og utstyret som JSON, til localStorage.
+    pub fn save_state(&self) -> String {
+        let d = self.app.game.save();
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins}).to_string()
+    }
+
+    pub fn load_state(&mut self, json: &str) {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return };
+        let stash = v["stash"]
+            .as_array()
+            .map(|a| a.iter().filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_u64()? as u32))).collect())
+            .unwrap_or_default();
+        let d = crate::domain::game::SaveData {
+            stash,
+            weapon: v["weapon"].as_str().unwrap_or("").into(),
+            shield: v["shield"].as_str().unwrap_or("").into(),
+            armor: v["armor"].as_str().map(|s| s.to_string()),
+            lantern: v["lantern"].as_f64().unwrap_or(1.0) as f32,
+            max_hp: v["max_hp"].as_f64().unwrap_or(100.0) as f32,
+            max_stamina: v["max_stamina"].as_f64().unwrap_or(100.0) as f32,
+            coins: v["coins"].as_u64().unwrap_or(0) as u32,
+        };
+        self.app.game.load(d);
     }
 
     /// Musetast: 0 venstre (hugg), 2 høyre (blokk).

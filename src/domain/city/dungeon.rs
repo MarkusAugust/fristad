@@ -82,6 +82,9 @@ pub struct Dungeon {
     pub gates: Vec<(Vec3, f32)>,
     /// Tokens som ligger og venter (skatten nederst).
     pub loot: Vec<Vec3>,
+    /// Kistene: (føtter, yaw, etasje). `installations/chests.rs` gjør dem
+    /// brukbare, og innholdet følger etasjen (`craft::LOOT`).
+    pub chests: Vec<(Vec3, f32, usize)>,
 }
 
 impl Floor {
@@ -377,7 +380,7 @@ pub fn build(b: &mut Builder, seed: u64) -> Dungeon {
     // Egen tilfeldighet til fiendenes startsteder, så kartet ikke endrer
     // seg når reglene for dem gjør det.
     let mut srng = Rng((seed | 1) ^ 0x5bd1_e995_1234_5678);
-    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![] };
+    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![] };
     let mut origin = (WELL.x - (START.0 as f32 + 0.5) * CELL, WELL.z - (START.1 as f32 + 0.5) * CELL);
     let mut y = DEPTH;
     for k in 0..FLOORS {
@@ -428,7 +431,7 @@ pub fn build(b: &mut Builder, seed: u64) -> Dungeon {
             let next_start_x = if floor.dir > 0 { (N - 1 - START.0) as f32 } else { START.0 as f32 };
             origin = (a.x + dir * (SHAFT as f32 + 2.0) * CELL - (next_start_x + 0.5) * CELL, a.z - (START.1 as f32 + 0.5) * CELL);
         }
-        mesh(b, &floor, &mut rng, !last);
+        mesh(b, &floor, &mut rng, !last, &mut d.chests);
         let s = floor.center(floor.start.0, floor.start.1);
         let e = floor.exit.map(|e| floor.center(e.0, e.1)).unwrap_or(Vec3::ZERO);
         log::info!("Etasje {k} ({}): start ({:.0}, {:.0}, {:.0}), utgang ({:.0}, {:.0}, {:.0})", EPOCHS[k], s.x, s.y, s.z, e.x, e.y, e.z);
@@ -665,7 +668,7 @@ fn carve(origin: (f32, f32), y: f32, k: usize, rng: &mut Rng, last: bool) -> (Fl
 
 /// Gulv, tak, vegger, trapper, kollidere, lys og pynt for én etasje, og
 /// trappesjakten ned til neste.
-fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool) {
+fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool, chests: &mut Vec<(Vec3, f32, usize)>) {
     let th = theme(f.theme);
     let open = f.cells.iter().filter(|c| **c != Cell::Rock).count();
     log::debug!("Etasje {}: {open} åpne celler, hjørne ({:.0}, {:.0}), gulv y {:.0}, {} trekanter i bymeshen før", f.theme, f.origin.0, f.origin.1, f.y, b.mesh.indices.len() / 3);
@@ -794,7 +797,7 @@ fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool) {
                     }
                 }
             }
-            decorate_floor(b, &th, rng, f, ix, iz, fy, ceil_y, &mut lights);
+            decorate_floor(b, &th, rng, f, ix, iz, fy, ceil_y, &mut lights, chests);
         }
     }
     for (p, c) in lights {
@@ -863,7 +866,7 @@ fn decorate_wall(b: &mut Builder, th: &Theme, rng: &mut Rng, mid: Vec3, normal: 
 /// Pynt og lys på gulvet i en celle: lysrør, stearinlys, lava, pytter,
 /// gjørme, søyler, tønner, kister, hodeskaller.
 #[allow(clippy::too_many_arguments)]
-fn decorate_floor(b: &mut Builder, th: &Theme, rng: &mut Rng, f: &Floor, ix: i32, iz: i32, fy: f32, ceil_y: f32, _lights: &mut Vec<(Vec3, Vec3)>) {
+fn decorate_floor(b: &mut Builder, th: &Theme, rng: &mut Rng, f: &Floor, ix: i32, iz: i32, fy: f32, ceil_y: f32, _lights: &mut Vec<(Vec3, Vec3)>, chests: &mut Vec<(Vec3, f32, usize)>) {
     let cell = f.cell(ix, iz);
     if matches!(cell, Cell::Stair(..)) {
         return;
@@ -954,18 +957,22 @@ fn decorate_floor(b: &mut Builder, th: &Theme, rng: &mut Rng, f: &Floor, ix: i32
         b.mesh.cylinder(&Affine3A::from_translation(p), 0.5, 0.42, 0.3, 10, &STONE.tint(Vec3::new(0.45, 0.43, 0.4)), true);
         b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * h * 0.5, radius: 0.42, half_height: h * 0.5 });
     }
-    // Tønner og kister inntil veggene.
-    if th.kegs > 0.0 && !walls.is_empty() && rng.chance(th.kegs) {
+    // Tønner inntil veggene, og kister med komponenter (fire per etasje,
+    // i rom, bare der det er vegg å stå inntil).
+    if th.kegs > 0.0 && !walls.is_empty() && rng.chance(th.kegs) && b.has_model("gorvek_keg") {
         let w = rng.pick(&walls);
         let p = center + w * 1.45 + Vec3::new(rng.range(-0.8, 0.8) * w.z.abs(), 0.0, rng.range(-0.8, 0.8) * w.x.abs());
-        if rng.chance(0.75) && b.has_model("gorvek_keg") {
-            b.place("gorvek_keg", Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), p));
-            b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * 0.45, radius: 0.35, half_height: 0.45 });
-        } else if b.has_model("gorvek_chest") {
-            let yaw = -w.x.atan2(-w.z);
-            b.place("gorvek_chest", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p));
-            b.colliders.push(Shape::Cuboid { center: p + Vec3::Y * 0.3, size: Vec3::new(0.9, 0.6, 0.6), yaw });
-        }
+        b.place("gorvek_keg", Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), p));
+        b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * 0.45, radius: 0.35, half_height: 0.45 });
+    }
+    let chests_here = chests.iter().filter(|c| c.2 == f.theme).count();
+    if is_room && !walls.is_empty() && chests_here < 4 && rng.chance(0.06) && b.has_model("gorvek_chest") {
+        let w = rng.pick(&walls);
+        let p = center + w * 1.4;
+        let yaw = (-w.x).atan2(-w.z);
+        b.place("gorvek_chest", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p));
+        b.colliders.push(Shape::Cuboid { center: p + Vec3::Y * 0.3, size: Vec3::new(0.9, 0.6, 0.6), yaw });
+        chests.push((p, yaw, f.theme));
     }
     // Hodeskaller og knokler i hjørnene.
     if th.skulls > 0.0 && !walls.is_empty() && rng.chance(th.skulls) {

@@ -425,7 +425,155 @@ function handle(e) {
     case "speech":
       updateBubbles(e.bubbles);
       break;
+    case "inventory":
+      renderInventory(e);
+      try {
+        localStorage.setItem("fristad.save", engine.save_state());
+      } catch {
+        /* lagring er en bekvemmelighet */
+      }
+      break;
+    case "shop":
+      openShop(e.npc, e.wares);
+      break;
+    case "workshop":
+      openWorkshop(e.recipes);
+      break;
   }
+}
+
+// Lageret og utstyret i hjørnet: utstyret som linjer, komponentene som
+// chips du kan lese om i boka (det gir liv tilbake, én gang per tur).
+function renderInventory(e) {
+  $("gear").innerHTML = `<div><b>Våpen:</b> ${esc(e.weapon)} <i>${esc(e.weapon_special)}</i></div><div><b>Skjold:</b> ${esc(e.shield)}</div><div><b>Rustning:</b> ${esc(e.armor)}${e.lantern ? " · Søkelykt" : ""}</div>`;
+  const inv = $("inventory");
+  inv.replaceChildren();
+  const chip = (name, n, carried) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (carried ? " carried" : "") + (e.read.includes(name) ? " read" : "");
+    b.textContent = `${name} ×${n}`;
+    b.title = carried ? "Bæres: trygt når du er oppe igjen. Klikk for å lese i boka." : "Klikk for å lese i boka (+20 liv første gang per tur).";
+    b.addEventListener("click", () => readDoc(name));
+    inv.appendChild(b);
+  };
+  for (const [name, n] of e.stash) chip(name, n, false);
+  for (const [name, n] of e.carried) chip(name, n, true);
+  $("vitals").hidden = false;
+}
+
+function esc(t) {
+  const d = document.createElement("div");
+  d.textContent = t ?? "";
+  return d.innerHTML;
+}
+
+// Boka: dokumentasjonen for en komponent du har vunnet.
+function readDoc(component) {
+  engine.read_doc(component);
+  if (docs[component]) {
+    current = { component, variant: "", class: `.fs-${component}` };
+    closeOverlay(false);
+    openPanel();
+  }
+}
+
+// Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
+// spillet på pause mens den står.
+let overlayOpen = false;
+function openOverlay(title) {
+  overlayOpen = true;
+  playing = false;
+  dragging = false;
+  engine.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  $("overlay-title").textContent = title;
+  $("overlay-body").replaceChildren();
+  $("overlay").hidden = false;
+  return $("overlay-body");
+}
+
+function closeOverlay(resume = true) {
+  if (!overlayOpen) return;
+  overlayOpen = false;
+  $("overlay").hidden = true;
+  if (resume) enter(false);
+}
+
+function openShop(npc, wares) {
+  const body = openOverlay(npc);
+  const list = document.createElement("div");
+  list.className = "wares";
+  for (const w of wares) {
+    const row = document.createElement("div");
+    row.className = "ware";
+    const name = document.createElement("span");
+    name.textContent = w.name;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fs-button";
+    btn.dataset.variant = "secondary";
+    btn.textContent = `Kjøp (${w.price} tokens)`;
+    btn.addEventListener("click", () => {
+      engine.buy(w.id);
+    });
+    row.append(name, btn);
+    list.appendChild(row);
+  }
+  body.appendChild(list);
+}
+
+// Skjemakontoret: oppskriften er et Fristil-skjema. Feltene er
+// komponentene som trengs, feilteksten sier hva som mangler.
+function openWorkshop(recipes) {
+  const body = openOverlay("Skjemakontoret");
+  const form = document.createElement("form");
+  form.className = "workshop";
+  form.innerHTML = `
+    <p class="fs-paragraph" data-size="small">Søknad om smiing. Velg oppskrift, så fylles feltene ut fra lageret ditt.</p>
+    <label class="fs-label" for="recipe">Oppskrift</label>
+    <select id="recipe" class="fs-select"></select>
+    <p id="recipe-result" class="fs-help-text"></p>
+    <div id="recipe-fields"></div>
+    <div class="panel-actions"><button type="submit" class="fs-button" data-variant="primary">Send søknad</button></div>`;
+  body.appendChild(form);
+  const sel = form.querySelector("#recipe");
+  for (const r of recipes) {
+    const o = document.createElement("option");
+    o.value = r.id;
+    o.textContent = `${r.name} (${r.rarity})${r.ok ? "" : " · mangler"}`;
+    sel.appendChild(o);
+  }
+  const fields = form.querySelector("#recipe-fields");
+  const render = () => {
+    const r = recipes.find((x) => x.id === sel.value) ?? recipes[0];
+    form.querySelector("#recipe-result").textContent = r.result;
+    fields.replaceChildren();
+    for (const [c, need, have] of r.needs) {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i kjelleren og hos Knappesmeden.</p>`;
+      fields.appendChild(wrap);
+    }
+    if (r.requires.length) {
+      const fs = document.createElement("fieldset");
+      fs.className = "fs-fieldset";
+      fs.innerHTML = `<legend>Avanserte felt (må være i lageret)</legend>`;
+      for (const [c, ok] of r.requires) {
+        const p = document.createElement("p");
+        p.className = ok ? "fs-help-text" : "fs-error-text";
+        p.textContent = ok ? `${c}: i lageret` : `${c}: mangler`;
+        fs.appendChild(p);
+      }
+      fields.appendChild(fs);
+    }
+  };
+  sel.addEventListener("change", render);
+  render();
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    if (engine.craft(sel.value)) closeOverlay(true);
+  });
 }
 
 // Snakkeboblene over innbyggerne: vanlige bobler, ikke designsystemet.
@@ -647,7 +795,17 @@ function locked() {
   return document.pointerLockElement === canvas;
 }
 
+let loadedSave = false;
 function enter(relock = true) {
+  if (!loadedSave) {
+    loadedSave = true;
+    try {
+      const saved = localStorage.getItem("fristad.save");
+      if (saved) engine.load_state(saved);
+    } catch {
+      /* ingen lagring */
+    }
+  }
   playing = true;
   gateEl.hidden = true;
   hud.hidden = false;
@@ -737,6 +895,13 @@ function bindInput() {
       closePanel("resume");
       return;
     }
+    if (overlayOpen) {
+      if (e.code === "Escape") {
+        e.preventDefault();
+        closeOverlay(true);
+      }
+      return;
+    }
     if (!playing) return;
     if (e.code === "Escape" && !locked()) {
       pause();
@@ -766,6 +931,7 @@ function bindInput() {
   window.addEventListener("online", () => engine.set_online(true));
 
   $("close").addEventListener("click", () => closePanel(true));
+  $("overlay-close").addEventListener("click", () => closeOverlay(true));
 }
 
 // Tastekartet nederst står hele tida, så det alltid går an å se hva tastene gjør.

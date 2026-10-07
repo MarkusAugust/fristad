@@ -41,6 +41,7 @@ pub mod gorvek;
 pub mod cellar;
 pub mod gate;
 pub mod npcs;
+pub mod chests;
 pub mod skeleton;
 pub mod spinner;
 pub mod submit;
@@ -161,11 +162,15 @@ pub struct Env {
     pub keys: u32,
     /// F på en innbygger: hvem (indeks i rollelista) spillet skal la snakke.
     pub talk_to: Option<usize>,
+    /// Innbyggeren du sikter på nå (til E: butikk eller verksted).
+    pub aimed_npc: Option<usize>,
+    /// F på en kiste: hvilken (indeks i `Dungeon.chests`) som ble åpnet.
+    pub open_chest: Option<usize>,
 }
 
 impl Default for Env {
     fn default() -> Self {
-        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default(), keys: 0, talk_to: None }
+        Self { time: 0.0, dt: 0.0, night: 0.0, gate_open: false, gate_t: 0.0, street_lights: true, weather: WeatherKind::Clear, online: true, toasts: vec![], aimed_prop: None, teleport: None, drop: None, font: None, dirty: vec![], edit: None, form: FormState::default(), keys: 0, talk_to: None, aimed_npc: None, open_chest: None }
     }
 }
 
@@ -268,6 +273,7 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(cellar::Cellar::default()),
         Box::new(gate::Gate::default()),
         Box::new(npcs::Npcs::default()),
+        Box::new(chests::Chests::default()),
     ]
 }
 

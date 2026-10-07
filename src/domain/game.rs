@@ -8,8 +8,9 @@ use crate::domain::palette;
 use crate::domain::ports::{ColliderId, Physics};
 use crate::domain::scene::{Frame, Light, Weather};
 use crate::domain::tokens::{Theme, Tokens};
+use crate::domain::craft::{self, Gear};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Default)]
 pub struct Input {
@@ -152,6 +153,62 @@ pub enum Event {
     Marks(Vec<Mark>),
     /// Snakkeboblene over innbyggerne dette bildet (tom liste når de er borte).
     Speech(Vec<Bubble>),
+    /// Lageret og utstyret, når noe endrer seg (og en gang ved start).
+    Inventory(InventoryView),
+    /// E på en innbygger med butikk: varene.
+    Shop { npc: String, wares: Vec<WareView> },
+    /// E på Skjemakontoret: oppskriftene som skjema.
+    Workshop { recipes: Vec<RecipeView> },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct InventoryView {
+    /// Trygt i byen, og det du bærer på turen (mistes om du dør).
+    pub stash: Vec<(String, u32)>,
+    pub carried: Vec<(String, u32)>,
+    pub weapon: String,
+    pub weapon_special: String,
+    pub shield: String,
+    pub armor: String,
+    pub lantern: bool,
+    pub max_hp: u32,
+    pub max_stamina: u32,
+    pub tokens: u32,
+    /// Komponentene du har lest om i boka denne turen.
+    pub read: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct WareView {
+    pub id: String,
+    pub name: String,
+    pub price: u32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RecipeView {
+    pub id: String,
+    pub name: String,
+    pub rarity: String,
+    pub result: String,
+    /// (komponent, trengs, har).
+    pub needs: Vec<(String, u32, u32)>,
+    /// (komponent, har).
+    pub requires: Vec<(String, bool)>,
+    pub ok: bool,
+}
+
+/// Det som lagres i nettleseren mellom øktene.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct SaveData {
+    pub stash: Vec<(String, u32)>,
+    pub weapon: String,
+    pub shield: String,
+    pub armor: Option<String>,
+    pub lantern: f32,
+    pub max_hp: f32,
+    pub max_stamina: f32,
+    pub coins: u32,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.
@@ -345,9 +402,20 @@ pub struct Game {
     /// Kjelleren og fiendene i den.
     dungeon: crate::domain::city::dungeon::Dungeon,
     mobs: crate::domain::mobs::Mobs,
-    /// Liv (0–100) og tokens (mynter) du bærer.
+    /// Liv og tokens (mynter) du bærer.
     hp: f32,
+    max_hp: f32,
     coins: u32,
+    /// Komponentene: trygt lagret i byen, og det du bærer på turen.
+    inventory: BTreeMap<String, u32>,
+    carried: BTreeMap<String, u32>,
+    gear: Gear,
+    /// Komponentene du har lest om i boka denne turen (liv tilbake én gang per).
+    read_docs: HashSet<String>,
+    inv_dirty: bool,
+    loot_seed: u64,
+    /// Hendelser fra kall utenfra (kjøp, smiing, lesing), til neste `update`.
+    pending: Vec<Event>,
     /// Nærkampen: armene, utholdenheten, huggene og treffeffektene.
     combat: crate::domain::combat::Combat,
     /// Skadetall som stiger: (sted, skade, alder), med løpenummer.
@@ -425,7 +493,15 @@ impl Game {
             mobs: crate::domain::mobs::Mobs::new(&city.dungeon, mob_rig),
             dungeon: city.dungeon.clone(),
             hp: 100.0,
+            max_hp: 100.0,
             coins: 0,
+            inventory: BTreeMap::new(),
+            carried: BTreeMap::new(),
+            gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
+            read_docs: HashSet::new(),
+            inv_dirty: true,
+            loot_seed: 0x2545_f491_4f6c_dd1d,
+            pending: vec![],
             combat: crate::domain::combat::Combat::new(arms_rig),
             popups: vec![],
             popup_seq: 0,
@@ -605,7 +681,7 @@ impl Game {
     pub fn update(&mut self, input: &mut Input, dt: f32, physics: &mut dyn Physics) -> Vec<Event> {
         let dt = dt.clamp(0.0, 1.0 / 20.0);
         self.time += dt;
-        let mut events = vec![];
+        let mut events = std::mem::take(&mut self.pending);
         let actions = std::mem::take(&mut input.actions);
 
         if !self.paused {
@@ -809,7 +885,14 @@ impl Game {
                 Action::Inspect => {
                     if let Some((_, o)) = self.aim {
                         let p = self.prompt_for(o);
-                        events.push(Event::Inspect { component: p.component, variant: p.variant });
+                        if p.component == "npc" {
+                            // Butikk eller verksted, etter hvem du sikter på.
+                            if let Some(i) = self.env.aimed_npc {
+                                events.push(self.npc_panel(i));
+                            }
+                        } else {
+                            events.push(Event::Inspect { component: p.component, variant: p.variant });
+                        }
                     }
                 }
             }
@@ -841,6 +924,19 @@ impl Game {
             self.vel_y = 0.0;
             self.env.toasts.push("Mellomrom hopper over flyturen".into());
         }
+        // Kister: en komponent fra etasjens liste.
+        if let Some(c) = self.env.open_chest.take() {
+            let floor = self.dungeon.chests.get(c).map(|c| c.2).unwrap_or(0);
+            let list = craft::LOOT[floor.min(craft::LOOT.len() - 1)];
+            self.loot_seed ^= self.loot_seed << 13;
+            self.loot_seed ^= self.loot_seed >> 7;
+            self.loot_seed ^= self.loot_seed << 17;
+            let pick = list[(self.loot_seed >> 33) as usize % list.len()];
+            *self.carried.entry(pick.to_string()).or_insert(0) += 1;
+            self.inv_dirty = true;
+            events.push(Event::Sound("pickup".into()));
+            events.push(Event::Toast(format!("I kista: {pick}. Bær den opp, så er den din.")));
+        }
         for t in self.env.toasts.drain(..) {
             events.push(Event::Toast(t));
         }
@@ -848,7 +944,8 @@ impl Game {
             let _ = prev;
         }
 
-        // Ned i kjelleren og opp igjen: rett dit, uten flytur.
+        // Ned i kjelleren og opp igjen: rett dit, uten flytur. Opp i dagen
+        // er det du bærer trygt.
         if let Some((feet, yaw)) = self.env.drop.take() {
             let (half, radius) = self.stance.capsule();
             self.pos = feet + Vec3::Y * (half + radius + 0.05);
@@ -856,6 +953,9 @@ impl Game {
             self.flight = None;
             self.vel_y = 0.0;
             self.jumped = true;
+            if feet.y > crate::domain::city::dungeon::DEPTH + 6.0 {
+                self.bank(&mut events);
+            }
         }
 
         self.update_weather(dt);
@@ -920,11 +1020,18 @@ impl Game {
                 // Død: opp til brønnen, en firedel av tokenene blir igjen nede.
                 let lost = self.coins / 4;
                 self.coins -= lost;
-                self.hp = 100.0;
                 self.mobs.reset(&self.dungeon);
                 self.combat.reset();
                 self.popups.clear();
                 self.env.keys = 0;
+                self.hp = self.max_hp;
+                if !self.carried.is_empty() {
+                    let n: u32 = self.carried.values().sum();
+                    self.carried.clear();
+                    self.inv_dirty = true;
+                    events.push(Event::Toast(format!("{n} komponenter ble igjen i kjelleren.")));
+                }
+                self.read_docs.clear();
                 let up = crate::domain::city::terrain::at(crate::domain::city::dungeon::WELL + Vec3::new(1.9, 0.0, 0.0));
                 self.pos = up + Vec3::Y * (half + radius + 0.05);
                 self.yaw = std::f32::consts::FRAC_PI_2;
@@ -942,7 +1049,16 @@ impl Game {
                     self.popup_seq = self.popup_seq.wrapping_add(1);
                     self.popups.push((pos, damage, 0.0, self.popup_seq));
                     if killed {
-                        events.push(Event::Toast(if self.mobs.mobs.get(mob).is_some_and(|m| m.elite) { "Elitefienden falt fra hverandre. Nøkkelen ligger igjen." } else { "Den korrupte knappen falt fra hverandre. Plukk opp tokenene." }.into()));
+                        let elite = self.mobs.mobs.get(mob).is_some_and(|m| m.elite);
+                        if elite {
+                            let floor = self.dungeon.floor_of(pos).unwrap_or(0).min(craft::ELITE_LOOT.len() - 1);
+                            let c = craft::ELITE_LOOT[floor];
+                            *self.carried.entry(c.to_string()).or_insert(0) += 1;
+                            self.inv_dirty = true;
+                            events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen.")));
+                        } else {
+                            events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
+                        }
                         if self.aimed_mob.is_some() {
                             self.aimed_mob = None;
                             events.push(Event::Prompt(None));
@@ -961,10 +1077,215 @@ impl Game {
         }
         let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar, self.env.keys);
         if self.last_hud != Some(hud) {
+            if self.last_hud.map(|h| h.2) != Some(self.coins) {
+                self.inv_dirty = true;
+            }
             self.last_hud = Some(hud);
             events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4 });
         }
+        if self.inv_dirty {
+            self.inv_dirty = false;
+            events.push(Event::Inventory(self.inventory_view()));
+        }
         events
+    }
+
+    /// Det du bar opp fra kjelleren legges i lageret.
+    fn bank(&mut self, events: &mut Vec<Event>) {
+        if self.carried.is_empty() {
+            return;
+        }
+        let n: u32 = self.carried.values().sum();
+        for (k, v) in std::mem::take(&mut self.carried) {
+            *self.inventory.entry(k).or_insert(0) += v;
+        }
+        self.inv_dirty = true;
+        events.push(Event::Toast(format!("{n} komponenter er trygt i lageret.")));
+    }
+
+    pub fn inventory_view(&self) -> InventoryView {
+        InventoryView {
+            stash: self.inventory.iter().filter(|(_, n)| **n > 0).map(|(k, v)| (k.clone(), *v)).collect(),
+            carried: self.carried.iter().filter(|(_, n)| **n > 0).map(|(k, v)| (k.clone(), *v)).collect(),
+            weapon: format!("{} ({})", self.gear.weapon.name, self.gear.weapon.rarity.name()),
+            weapon_special: self.gear.weapon.special.into(),
+            shield: format!("{} ({})", self.gear.shield.name, self.gear.shield.rarity.name()),
+            armor: self.gear.armor.map(|a| format!("{} ({})", a.name, a.rarity.name())).unwrap_or_else(|| "ingen".into()),
+            lantern: self.gear.lantern > 1.0,
+            max_hp: self.max_hp.round() as u32,
+            max_stamina: self.combat.max_stamina.round() as u32,
+            tokens: self.coins,
+            read: self.read_docs.iter().cloned().collect(),
+        }
+    }
+
+    /// Butikken eller verkstedet til innbygger `i`.
+    fn npc_panel(&self, i: usize) -> Event {
+        let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
+        let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
+        match name {
+            "Knappesmeden" => Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) },
+            "Apotekeren" => Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) },
+            "Gorvek" => Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) },
+            _ => Event::Workshop { recipes: self.recipe_views() },
+        }
+    }
+
+    fn recipe_views(&self) -> Vec<RecipeView> {
+        craft::RECIPES
+            .iter()
+            .map(|r| {
+                let have = |c: &str| self.inventory.get(c).copied().unwrap_or(0);
+                let result = match r.result {
+                    craft::Result::Weapon(id) => craft::weapon(id).map(|w| format!("{} (skade ×{:.2}, fart ×{:.2}, rekkevidde {:.1} m, {})", w.name, w.damage, w.speed, w.reach, w.special)).unwrap_or_default(),
+                    craft::Result::Shield(id) => craft::shield(id).map(|s| format!("{} (slipper {:.0} % gjennom, paradevindu {:.2} s)", s.name, s.block * 100.0, s.parry_window)).unwrap_or_default(),
+                    craft::Result::Armor(id) => craft::armor(id).map(|a| format!("{} (tar {:.0} % skade)", a.name, a.taken * 100.0)).unwrap_or_default(),
+                    craft::Result::Lantern(k) => format!("Søkelykt (bærelyset ×{k:.1})"),
+                };
+                RecipeView {
+                    id: r.id.into(),
+                    name: r.name.into(),
+                    rarity: r.rarity.name().into(),
+                    result,
+                    needs: r.needs.iter().map(|(c, n)| (c.to_string(), *n, have(c))).collect(),
+                    requires: r.requires.iter().map(|c| (c.to_string(), have(c) > 0)).collect(),
+                    ok: craft::missing(r, &self.inventory).is_empty(),
+                }
+            })
+            .collect()
+    }
+
+    /// Smi etter en oppskrift (fra skjemaet i verkstedet). Gir om det gikk.
+    pub fn craft(&mut self, id: &str) -> bool {
+        let Some(r) = craft::recipe(id) else { return false };
+        let missing = craft::missing(&r, &self.inventory);
+        if !missing.is_empty() {
+            let list: Vec<String> = missing.iter().map(|(c, n)| format!("{c} ×{n}")).collect();
+            self.pending.push(Event::Toast(format!("Skjemaet avvist: mangler {}.", list.join(", "))));
+            return false;
+        }
+        for (c, n) in r.needs {
+            if let Some(v) = self.inventory.get_mut(*c) {
+                *v = v.saturating_sub(*n);
+            }
+        }
+        let what = match r.result {
+            craft::Result::Weapon(id) => {
+                if let Some(w) = craft::weapon(id) {
+                    self.gear.weapon = w;
+                }
+                "våpenet"
+            }
+            craft::Result::Shield(id) => {
+                if let Some(s) = craft::shield(id) {
+                    self.gear.shield = s;
+                }
+                "skjoldet"
+            }
+            craft::Result::Armor(id) => {
+                self.gear.armor = craft::armor(id);
+                "rustningen"
+            }
+            craft::Result::Lantern(k) => {
+                self.gear.lantern = k;
+                "lykta"
+            }
+        };
+        self.combat.set_gear(self.gear);
+        self.inv_dirty = true;
+        self.pending.push(Event::Sound("parry".into()));
+        self.pending.push(Event::Toast(format!("Skjemaet er godkjent. {} er smidd: {what} er byttet.", r.name)));
+        true
+    }
+
+    /// Kjøp i en butikk, for tokens. Gir om det gikk.
+    pub fn buy(&mut self, id: &str) -> bool {
+        let Some(w) = craft::ware(id) else { return false };
+        if self.coins < w.price {
+            self.pending.push(Event::Toast(format!("Du mangler {} tokens.", w.price - self.coins)));
+            return false;
+        }
+        self.coins -= w.price;
+        match w.what {
+            craft::WareKind::Component(c) => {
+                *self.inventory.entry(c.to_string()).or_insert(0) += 1;
+            }
+            craft::WareKind::Heal(h) => self.hp = (self.hp + h).min(self.max_hp),
+            craft::WareKind::MaxHp(h) => {
+                self.max_hp += h;
+                self.hp = (self.hp + h).min(self.max_hp);
+            }
+            craft::WareKind::MaxStamina(st) => {
+                self.combat.max_stamina += st;
+                self.combat.stamina = self.combat.max_stamina;
+            }
+        }
+        self.inv_dirty = true;
+        self.pending.push(Event::Sound("pickup".into()));
+        self.pending.push(Event::Toast(format!("Kjøpt: {}.", w.name)));
+        true
+    }
+
+    /// Boka: å lese dokumentasjonen for en komponent gir liv tilbake, én
+    /// gang per komponent per tur.
+    pub fn read_doc(&mut self, component: &str) -> bool {
+        if self.read_docs.contains(component) {
+            return false;
+        }
+        self.read_docs.insert(component.to_string());
+        let before = self.hp;
+        self.hp = (self.hp + 20.0).min(self.max_hp);
+        self.inv_dirty = true;
+        if self.hp > before {
+            self.pending.push(Event::Toast(format!("Du leste om {component}: +{:.0} liv.", self.hp - before)));
+        }
+        true
+    }
+
+    pub fn save(&self) -> SaveData {
+        SaveData {
+            stash: self.inventory.iter().map(|(k, v)| (k.clone(), *v)).collect(),
+            weapon: self.gear.weapon.id.into(),
+            shield: self.gear.shield.id.into(),
+            armor: self.gear.armor.map(|a| a.id.to_string()),
+            lantern: self.gear.lantern,
+            max_hp: self.max_hp,
+            max_stamina: self.combat.max_stamina,
+            coins: self.coins,
+        }
+    }
+
+    pub fn load(&mut self, d: SaveData) {
+        self.inventory = d.stash.into_iter().collect();
+        if let Some(w) = craft::weapon(&d.weapon) {
+            self.gear.weapon = w;
+        }
+        if let Some(s) = craft::shield(&d.shield) {
+            self.gear.shield = s;
+        }
+        self.gear.armor = d.armor.as_deref().and_then(craft::armor);
+        self.gear.lantern = if d.lantern > 0.0 { d.lantern } else { 1.0 };
+        if d.max_hp >= 100.0 {
+            self.max_hp = d.max_hp;
+            self.hp = self.max_hp;
+        }
+        if d.max_stamina >= 100.0 {
+            self.combat.max_stamina = d.max_stamina;
+            self.combat.stamina = d.max_stamina;
+        }
+        self.coins = d.coins;
+        self.combat.set_gear(self.gear);
+        self.inv_dirty = true;
+    }
+
+    /// Til testene: legg komponenter i lageret.
+    pub fn give(&mut self, component: &str, n: u32) {
+        *self.inventory.entry(component.to_string()).or_insert(0) += n;
+        self.inv_dirty = true;
+    }
+
+    pub fn gear(&self) -> Gear {
+        self.gear
     }
 
     /// Et punkt i verden til skjermen (0..1), om det er foran kameraet.
@@ -1145,7 +1466,7 @@ impl Game {
         // Nede i kjelleren bærer du et lys, så du ser våpenet og det som
         // kommer mot deg.
         if in_cellar {
-            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0, color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8, always: true, flicker: 0.0 });
+            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear.lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear.lantern, always: true, flicker: 0.0 });
         }
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));

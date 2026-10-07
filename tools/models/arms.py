@@ -122,11 +122,56 @@ def shield(m):
     box("handle", c + Vector((0, -0.03, 0)), (0.03, 0.025, 0.14), m["grip"])
 
 
+def axe(m):
+    """Øks: kort skaft i hånda, tungt blad i enden."""
+    g0, g1 = AT["sword"]
+    d = (g1 - g0).normalized()
+    tube("grip", g0 - d * 0.1, g0 + d * 0.55, 0.018, m["wood"], 10)
+    head = g0 + d * 0.5
+    rot = d.to_track_quat("Y", "Z").to_euler()
+    # Bladet: en kile på tvers av skaftet, egg mot +X i kamerarommet.
+    rounded_box("blade", head + Vector((0.08, 0.0, 0.0)), (0.2, 0.08, 0.28), m["steel"], 0.01, rot=rot, segments=2)
+    box("blade_back", head + Vector((-0.03, 0.0, 0.0)), (0.08, 0.05, 0.1), m["iron"], rot=rot)
+    tube("collar", head - d * 0.07, head + d * 0.07, 0.03, m["iron"], 10)
+
+
+def dagger(m):
+    """Dolk: kort, smal klinge og liten parerstang."""
+    g0, g1 = AT["sword"]
+    d = (g1 - g0).normalized()
+    tube("grip", g0 - d * 0.07, g0 + d * 0.06, 0.014, m["grip"], 10)
+    ellipsoid("pommel", g0 - d * 0.085, (0.035, 0.035, 0.035), m["iron"], 10, 6)
+    guard_c = g0 + d * 0.07
+    rot = d.to_track_quat("Y", "Z").to_euler()
+    box("guard", guard_c, (0.1, 0.02, 0.016), m["iron"], rot=rot)
+    rounded_box("blade", guard_c + d * 0.2, (0.035, 0.38, 0.005), m["steel"], 0.002, rot=rot, segments=1)
+    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.018, radius2=0.0, depth=0.07, location=guard_c + d * 0.425, rotation=d.to_track_quat("Z", "Y").to_euler())
+    tip = bpy.context.active_object
+    tip.name = "blade_tip"
+    tip.scale = (1.0, 0.25, 1.0)
+    tip.data.materials.append(m["steel"])
+
+
+def tower_shield(m):
+    """Tårnskjold: høyt rektangulært skjold med jernbeslag."""
+    h0, h1 = AT["shield"]
+    c = h0 + Vector((-0.02, 0.06, 0.08))
+    rounded_box("shield", c, (0.42, 0.03, 0.62), m["wood"], 0.02, segments=2)
+    for z in (-0.28, 0.0, 0.28):
+        box(f"band{z}", c + Vector((0.0, 0.017, z)), (0.44, 0.012, 0.04), m["iron"])
+    ellipsoid("boss", c + Vector((0, 0.03, 0)), (0.1, 0.07, 0.1), m["iron"], 14, 8)
+    box("handle", c + Vector((0, -0.03, 0)), (0.03, 0.025, 0.14), m["grip"])
+
+
 def build_arms(m):
     arm("R", m)
     arm("L", m)
-    sword(m)
-    shield(m)
+
+
+# Våpnene og skjoldene er egne modeller i armenes rom (grepet der hånda
+# er i hvileposen); spillet fester dem i håndleddet per bilde.
+WEAPONS = {"sword": sword, "axe": axe, "dagger": dagger}
+SHIELDS = {"shield_round": shield, "shield_tower": tower_shield}
 
 
 def clips(arm):
@@ -238,10 +283,16 @@ def clips(arm):
 if __name__ == "__main__":
     args = sys.argv[1:]
     size = next((int(a) for a in args if a.isdigit()), 1024)
+    which = [a for a in args if a in WEAPONS or a in SHIELDS or a == "arms"] or ["arms"] + list(WEAPONS) + list(SHIELDS)
     os.makedirs(OUT, exist_ok=True)
-    clear()
-    m = mats()
-    build_arms(m)
-    rig = armature("arms_rig", BONES)
-    clips(rig)
-    bake_textured(f"{OUT}/arms.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid=RIGID, skin={"blend": 0.04, "radii": RADII})
+    for name in which:
+        clear()
+        m = mats()
+        if name == "arms":
+            build_arms(m)
+            rig = armature("arms_rig", BONES)
+            clips(rig)
+            bake_textured(f"{OUT}/arms.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid=RIGID, skin={"blend": 0.04, "radii": RADII})
+        else:
+            (WEAPONS.get(name) or SHIELDS[name])(m)
+            bake_textured(f"{OUT}/{name}.glb", 512, keep=("glass", "glow", "fire", "mesh"))

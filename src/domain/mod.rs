@@ -16,6 +16,7 @@
 pub mod anim;
 pub mod city;
 pub mod combat;
+pub mod craft;
 pub mod game;
 pub mod geometry;
 pub mod herd;

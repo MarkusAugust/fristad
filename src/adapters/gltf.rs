@@ -20,7 +20,7 @@ pub struct Embedded;
 
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg_front".into(), "cow_leg_hind".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into(), "site_container".into(), "site_excavator".into(), "site_mixer".into(), "site_pallet".into(), "site_fence".into(), "site_wheelbarrow".into(), "site_toilet".into(), "site_crane".into(), "mutant_button".into(), "token".into(), "key".into(), "arms".into(), "npc".into()]
+        vec!["lantern".into(), "fox".into(), "car_estate".into(), "car_hatch".into(), "car_van".into(), "lamp".into(), "bench".into(), "bicycle".into(), "bin".into(), "cafe_table".into(), "cafe_chair".into(), "parasol".into(), "market_stall".into(), "mailbox".into(), "window_22".into(), "window_23".into(), "door_lamp".into(), "flower_box".into(), "sheep_body".into(), "sheep_leg".into(), "cow_body".into(), "cow_leg_front".into(), "cow_leg_hind".into(), "gorvek_table".into(), "gorvek_bench".into(), "gorvek_throne".into(), "gorvek_bed".into(), "gorvek_bearskin".into(), "gorvek_shield".into(), "gorvek_axe".into(), "gorvek_sword".into(), "gorvek_chest".into(), "gorvek_keg".into(), "gorvek_cauldron".into(), "gorvek_torch".into(), "gorvek_antlers".into(), "gorvek_stool".into(), "gorvek_skull".into(), "oak1_trunk".into(), "oak1_leaves".into(), "oak2_trunk".into(), "oak2_leaves".into(), "birch1_trunk".into(), "birch1_leaves".into(), "spruce1_trunk".into(), "spruce1_needles".into(), "spruce2_trunk".into(), "spruce2_needles".into(), "bush1_trunk".into(), "bush1_leaves".into(), "bush2_trunk".into(), "bush2_leaves".into(), "site_container".into(), "site_excavator".into(), "site_mixer".into(), "site_pallet".into(), "site_fence".into(), "site_wheelbarrow".into(), "site_toilet".into(), "site_crane".into(), "mutant_button".into(), "token".into(), "key".into(), "arms".into(), "sword".into(), "axe".into(), "dagger".into(), "shield_round".into(), "shield_tower".into(), "npc".into()]
     }
 
     fn load(&self, name: &str) -> Option<Model> {
@@ -117,6 +117,12 @@ impl ModelSource for Embedded {
             // Spillerens armer med sverd og skjold fra tools/models/arms.py,
             // i kamerarommet (origo i øyet, −Z fram).
             "arms" => load("arms", embed!("arms", ["arms.glb"]), -1.0, 0.0),
+            // Våpnene og skjoldene, i armenes rom; spillet fester dem i hendene.
+            "sword" => load("sword", embed!("arms", ["sword.glb"]), -1.0, 0.0),
+            "axe" => load("axe", embed!("arms", ["axe.glb"]), -1.0, 0.0),
+            "dagger" => load("dagger", embed!("arms", ["dagger.glb"]), -1.0, 0.0),
+            "shield_round" => load("shield_round", embed!("arms", ["shield_round.glb"]), -1.0, 0.0),
+            "shield_tower" => load("shield_tower", embed!("arms", ["shield_tower.glb"]), -1.0, 0.0),
             // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
             "npc" => load("npc", embed!("npc", ["npc.glb"]), -1.0, 0.0),
             _ => return None,

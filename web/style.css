@@ -184,6 +184,83 @@ code {
   text-shadow: 0 0 6px rgb(0 0 0 / 0.9), 0 2px 2px rgb(0 0 0 / 0.8);
 }
 
+/* Utstyret og lageret i hjørnet. */
+.gear {
+  font-size: var(--fs-font-size-xs);
+  line-height: 1.4;
+}
+
+.gear i {
+  opacity: 0.7;
+}
+
+.inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  font: inherit;
+  font-size: var(--fs-font-size-xs);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.2);
+  background: #fff;
+  color: #1c1a17;
+  cursor: pointer;
+}
+
+.chip.carried {
+  border-style: dashed;
+  background: #fff7e0;
+}
+
+.chip.read {
+  opacity: 0.6;
+}
+
+/* Butikk og verksted: en boks midt på skjermen med spillet på pause. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.overlay-inner {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: var(--fs-spacing-5);
+  border-radius: var(--fs-spacing-3);
+  background: var(--fs-color-neutral-canvas, #fff);
+  color: var(--fs-color-neutral-text, #1c1a17);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+}
+
+.wares {
+  display: grid;
+  gap: var(--fs-spacing-2);
+  margin: var(--fs-spacing-3) 0;
+}
+
+.ware {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--fs-spacing-3);
+}
+
+.workshop .field {
+  margin-top: var(--fs-spacing-3);
+}
+
+.workshop .fs-fieldset {
+  margin-top: var(--fs-spacing-3);
+}
+
 /* Snakkebobler: hvit boble med spiss, over hodet på den som snakker. */
 .bubble {
   position: absolute;

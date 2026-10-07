@@ -88,8 +88,9 @@ impl Installation for Npcs {
     fn usable(&self) -> bool {
         true
     }
+    /// E åpner butikken eller verkstedet.
     fn inspectable(&self) -> bool {
-        false
+        true
     }
     fn label(&self) -> &'static str {
         self.aimed.and_then(|i| self.cast.get(i)).map(|c| c.name).unwrap_or("Innbygger")
@@ -111,6 +112,7 @@ impl Installation for Npcs {
 
     fn tick(&mut self, env: &mut Env) {
         self.aimed = env.aimed_prop.and_then(|p| self.props.iter().position(|q| *q == p));
+        env.aimed_npc = self.aimed;
     }
 
     fn act(&mut self, action: Action, env: &mut Env) {

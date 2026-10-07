@@ -276,6 +276,33 @@ mod tests {
         let _ = game.update(&mut input, 1.0 / 30.0, &mut physics);
     }
 
+    /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
+    /// og våpenet byttes; uten dem avvises det. Kjøp koster tokens, og
+    /// lagringen tar med utstyret.
+    #[test]
+    fn skjemaet_smir_utstyr() {
+        use crate::domain::game::{Event, SaveData};
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        let mut physics = crate::adapters::rapier::RapierPhysics::new();
+        let mut game = crate::domain::game::Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics, super::rigs(&prepared.models));
+        let mut input = crate::domain::game::Input::default();
+        assert!(!game.craft("component_sword"), "uten komponenter skal skjemaet avvises");
+        game.give("button", 2);
+        game.give("divider", 1);
+        assert!(game.craft("component_sword"), "med komponentene skal sverdet smis");
+        assert_eq!(game.gear().weapon.id, "component_sword");
+        let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        assert!(events.iter().any(|e| matches!(e, Event::Inventory(v) if v.stash.iter().all(|(c, n)| !(c == "button" && *n > 0)))), "knappene skal være brukt opp");
+        assert!(!game.buy("potion"), "uten tokens kan du ikke kjøpe");
+        let saved = game.save();
+        assert_eq!(saved.weapon, "component_sword");
+        let mut fresh = crate::domain::game::Game::new(crate::domain::tokens::Tokens::load(), crate::domain::text::Font::load(), &prepared.city, crate::domain::installations::all(), &mut physics, vec![]);
+        fresh.load(SaveData { coins: 50, ..saved });
+        assert_eq!(fresh.gear().weapon.id, "component_sword");
+        assert!(fresh.buy("potion"), "med tokens går kjøpet");
+    }
+
     /// Variantene skal virke 1:1 med designsystemet: alle installasjonene
     /// som er samme komponent må ha de samme variantene (ellers bytter R og
     /// panelet bare noen av dem), og det du sikter på må endre seg for hver

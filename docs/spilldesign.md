@@ -137,3 +137,7 @@ Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, tre
 17. **Lyd** skal inn (WebAudio).
 18. **Lagring** i nettleseren; en nedstigning kan ikke lagres midt i.
 19. **Rekkefølge:** skjelettanimasjon i motoren først, så kampfølelsen (armer, sverd, treff, fiendeangrep, lyd), så generatoren med trapper og tema, så butikker og bygging, så flere fiender og bossene.
+
+### Status
+
+Gjort: skjelettanimasjon (1–2), kampen (3–5), det riggede monsteret (6, første versjon), kjelleren med fem etasjer, trapper, avsatser, tema per epoke, porter og nøkler (11–13), død med tapt bytte (14), innbyggerne med snakkebobler (10), lager, kister, oppskrifter som skjema, butikker, trening, boka som gir liv (7–9, 15–16), lyd (17) og lagring (18). Gjenstår: flere fiendetyper og bossene (6), fjerne komponentene som står rundt i byen (eller la dem dukke opp etter hvert som de vinnes), og mer realisme på innbyggere og monstre.
