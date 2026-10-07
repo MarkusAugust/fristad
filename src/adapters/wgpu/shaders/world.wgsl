@@ -78,6 +78,8 @@ struct VsOut {
     @location(3) @interpolate(flat) mat: vec4<u32>,
     @location(4) uv: vec2<f32>,
     @location(5) @interpolate(flat) extra: vec4<f32>,
+    // Okklusjonen fra modellen, blandet over trekanten (mat er flat).
+    @location(6) ao: f32,
 }
 
 fn joint_mat(i: u32) -> mat4x4<f32> {
@@ -143,6 +145,7 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
     o.normal = (m * vec4<f32>(v.normal, 0.0)).xyz;
     o.color = v.color;
     o.mat = v.mat;
+    o.ao = f32(v.mat.w) / 255.0;
     o.uv = v.uv;
     o.extra = inst.extra;
     return o;
@@ -595,7 +598,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     s.cavity = 1.0;
     s.emissive = vec3<f32>(0.0);
     s.kind = 0u;
-    s.ao = f32(i.mat.w) / 255.0;
+    s.ao = i.ao;
     var height = 0.5;
 
     if (kind < 32u) {

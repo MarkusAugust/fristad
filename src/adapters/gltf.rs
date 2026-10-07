@@ -65,6 +65,14 @@ models! {
     "dagger" => "arms/dagger.glb",
     "shield_round" => "arms/shield_round.glb",
     "shield_tower" => "arms/shield_tower.glb",
+    // Husene i kjøpstaden fra tools/models/town.py: teksturlag i meter-uv
+    // og bakt okklusjon i hjørnefargen; døra mot +Z, origo midt på grunnflaten.
+    "house_a" => "town/house_a.glb",
+    "house_b" => "town/house_b.glb",
+    "house_c" => "town/house_c.glb",
+    "house_d" => "town/house_d.glb",
+    "house_e" => "town/house_e.glb",
+    "house_f" => "town/house_f.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }
