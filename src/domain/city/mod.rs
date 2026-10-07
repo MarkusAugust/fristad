@@ -21,6 +21,7 @@ pub mod furniture;
 pub mod house;
 pub mod nature;
 pub mod park;
+pub mod poster;
 pub mod street_life;
 pub mod terrain;
 pub mod towers;
@@ -212,6 +213,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
 
     house::district(&mut b);
     furniture::plaza(&mut b);
+    poster::build(&mut b);
     furniture::streets(&mut b);
     street_life::all(&mut b);
     park::build(&mut b);
@@ -238,8 +240,8 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
         lights: b.lights,
         props: b.props,
         placements: b.placements,
-        spawn: terrain::at(Vec3::new(7.0, 0.0, 9.0)),
-        spawn_yaw: 0.25,
+        spawn: Vec3::new(7.0, 0.0, 9.0),
+        spawn_yaw: -0.9,
     }
 }
 

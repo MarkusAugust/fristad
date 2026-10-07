@@ -164,6 +164,11 @@ impl Engine {
         self.app.game.set_online(online);
     }
 
+    /// Tilbake til torget, fra knappen i pausemenyen.
+    pub fn respawn(&mut self) {
+        self.app.game.respawn();
+    }
+
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
         self.app.game.place(glam::Vec3::new(x, y, z), yaw_deg.to_radians(), pitch_deg.to_radians());

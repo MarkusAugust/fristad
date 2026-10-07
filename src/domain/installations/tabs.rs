@@ -57,8 +57,10 @@ impl Installation for Tabs {
         for side in [-1.0f32, 1.0] {
             m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(side * (W * 0.5 - 0.1), WALL_H * 0.5 + 0.5, -D * 0.5))), Vec3::new(0.2, WALL_H, D), &wall, 1.0);
         }
-        m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 0.4, -D * 0.5))), Vec3::new(W, 0.2, D), &dark);
-        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.5 + 0.02, -D * 0.5))), Vec3::new(W, 0.04, D), &OAK, 1.0);
+        // Himlingen og gulvet stopper inne i veggene, så flatene deres ikke
+        // ligger i samme plan som fasaden (det ga svarte striper som flimret).
+        m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 0.3, -D * 0.5))), Vec3::new(W - 0.3, 0.2, D - 0.3), &dark);
+        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.5 + 0.02, -D * 0.5))), Vec3::new(W - 0.3, 0.04, D - 0.3), &OAK, 1.0);
         for x in [-1.35f32, 1.35] {
             m.cuboid(&(t * Affine3A::from_translation(Vec3::new(x, WALL_H * 0.5 + 0.5, -D * 0.5))), Vec3::new(0.1, WALL_H, D - 0.2), &dark);
         }

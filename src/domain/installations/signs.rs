@@ -50,6 +50,25 @@ pub fn width(font: &Font, s: &str, px: f32) -> f32 {
     font.width(s, px) * PX
 }
 
+/// Bryter en tekst i linjer som ikke er bredere enn `max_px` piksler.
+pub fn wrap(font: &Font, text: &str, px: f32, max_px: f32) -> Vec<String> {
+    let mut lines = vec![];
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let candidate = if line.is_empty() { word.to_string() } else { format!("{line} {word}") };
+        if !line.is_empty() && font.width(&candidate, px) > max_px {
+            lines.push(std::mem::take(&mut line));
+            line = word.to_string();
+        } else {
+            line = candidate;
+        }
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
 /// Avsnitt med flere linjer, i piksler relativt til platas sentrum (y opp):
 /// `left` er venstrekanten, `top` overkanten av første linjeboks, `lh` er
 /// linjehøyden som faktor. Returnerer høyden i piksler.

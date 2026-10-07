@@ -43,6 +43,7 @@ impl Input {
             "KeyF" if down => self.actions.push(Action::Use),
             "KeyT" if down => self.actions.push(Action::Theme),
             "KeyV" if down => self.actions.push(Action::Weather),
+            "KeyH" if down => self.actions.push(Action::Home),
             _ => {}
         }
     }
@@ -68,6 +69,8 @@ pub enum Action {
     Theme,
     /// V: neste vær.
     Weather,
+    /// H: tilbake til torget.
+    Home,
 }
 
 /// Det spillet forteller verten, som i nettleseren er JavaScript-laget.
@@ -179,6 +182,9 @@ pub struct Game {
     crawl: bool,
     /// Øyehøyden over kapselens sentrum, glattet mellom stillingene.
     eye_h: f32,
+    /// Der du starter, og dit H tar deg: føttene og retningen.
+    spawn: Vec3,
+    spawn_yaw: f32,
     pub debug: u32,
 }
 
@@ -207,7 +213,7 @@ impl Game {
             by_collider,
             installations,
             env: Env::default(),
-            pos: city.spawn + Vec3::Y * (RADIUS + HALF + 0.05),
+            pos: crate::domain::city::terrain::at(city.spawn) + Vec3::Y * (RADIUS + HALF + 0.05),
             vel_y: 0.0,
             grounded: false,
             yaw: city.spawn_yaw,
@@ -226,8 +232,15 @@ impl Game {
             stance: Stance::Stand,
             crawl: false,
             eye_h: EYE,
+            spawn: city.spawn,
+            spawn_yaw: city.spawn_yaw,
             debug: 0,
         }
+    }
+
+    /// Tilbake til torget, som H og knappen i pausemenyen.
+    pub fn respawn(&mut self) {
+        self.env.teleport = Some((self.spawn, self.spawn_yaw));
     }
 
     pub fn theme(&self) -> Theme {
@@ -387,7 +400,7 @@ impl Game {
         self.pos += moved;
         self.grounded = grounded;
         if self.pos.y < -20.0 {
-            self.pos = Vec3::new(0.0, 2.0, 11.0);
+            self.env.teleport = Some((self.spawn, self.spawn_yaw));
         }
         if self.grounded && horizontal.length_squared() > 0.0 {
             self.bob += dt * speed / 4.2;
@@ -442,6 +455,10 @@ impl Game {
                 Action::Crawl => {
                     self.crawl = !self.crawl;
                 }
+                Action::Home => {
+                    self.env.teleport = Some((self.spawn, self.spawn_yaw));
+                    events.push(Event::Toast("Tilbake til torget".into()));
+                }
                 Action::Inspect => {
                     if let Some((_, o)) = self.aim {
                         let p = self.prompt_for(o);
@@ -463,10 +480,12 @@ impl Game {
         for inst in &mut self.installations {
             inst.tick(&mut self.env);
         }
-        // Teleport fra lenker og brødsmuler: føttene på bakken, se rett fram.
+        // Teleport fra lenker, brødsmuler og H: føttene på bakken (målets y
+        // er høyden over terrenget), se rett fram.
         if let Some((feet, yaw)) = self.env.teleport.take() {
             let (half, radius) = self.stance.capsule();
-            self.pos = feet + Vec3::Y * (half + radius + 0.05);
+            let ground = crate::domain::city::terrain::height(feet.x, feet.z);
+            self.pos = Vec3::new(feet.x, ground + feet.y + half + radius + 0.15, feet.z);
             self.yaw = yaw;
             self.pitch = 0.0;
             self.vel_y = 0.0;

@@ -1,6 +1,7 @@
 //! `.fs-avatar`: saksbehandlerne på tavla på vestveggen av søknadskontoret.
-//! Tre størrelser, en firkantet, og en stabel. R bytter variant på den
-//! første (sirkel, firkant).
+//! Tre størrelser, en firkantet, og stabelen fra dokumentasjonen: tre små
+//! som overlapper 8 px, med navnene i teksten under. R bytter form på den
+//! fjerde (sirkel, firkant).
 
 use super::signs::{self, Box2};
 use super::{Component, Env, Installation, PX};
@@ -27,7 +28,7 @@ pub struct Avatar {
 fn avatar(m: &mut Mesh, font: &crate::domain::text::Font, c: Vec3, size: f32, px: f32, initials: &str, square: bool) {
     let r = if square { 4.0 } else { size * 0.5 };
     signs::boxed(m, c, &Box2 { w: size, h: size, radius: r, fill: slot::ACCENT_SURFACE, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.02 });
-    signs::text(m, font, initials, c + Vec3::Z * 0.024, px, slot::ACCENT_TEXT);
+    signs::text(m, font, initials, c + Vec3::Z * 0.013, px, slot::ACCENT_TEXT);
 }
 
 impl Installation for Avatar {
@@ -58,14 +59,24 @@ impl Installation for Avatar {
         avatar(&mut board, b.font, Vec3::new((-bw * 0.5 + 16.0 + 12.0) * PX, y * PX, 0.03), 24.0, 12.0, "ON", false);
         avatar(&mut board, b.font, Vec3::new((-bw * 0.5 + 16.0 + 24.0 + 16.0 + 20.0) * PX, y * PX, 0.03), 40.0, 14.0, "ON", false);
         avatar(&mut board, b.font, Vec3::new((-bw * 0.5 + 16.0 + 24.0 + 16.0 + 40.0 + 16.0 + 32.0) * PX, y * PX, 0.03), 64.0, 20.0, "ON", false);
-        // Stabelen: tre overlappende med 2 px canvas-ring, nederst.
-        let sy = -62.0;
-        for (k, ini) in ["KB", "ON", "AL"].iter().enumerate().rev() {
-            let x = -bw * 0.5 + 16.0 + 20.0 + k as f32 * 32.0;
-            signs::boxed(&mut board, Vec3::new(x * PX, sy * PX, 0.03 + k as f32 * 0.003), &Box2 { w: 44.0, h: 44.0, radius: 22.0, fill: slot::NEUTRAL_CANVAS, border: None, depth: 0.02 });
-            avatar(&mut board, b.font, Vec3::new(x * PX, sy * PX, 0.033 + k as f32 * 0.003), 40.0, 14.0, ini, false);
+        // Stabelen som i dokumentasjonen: `.fs-avatar-stack` med tre små
+        // (24 px) som overlapper 8 px (spacing-2) og har 2 px canvas-ring.
+        // Rekkefølgen snus i CSS: det første i markupen (ON) står lengst til
+        // høyre, og de seinere tegnes oppå, så det venstre ligger øverst.
+        let sy = -52.0;
+        let left = -bw * 0.5 + 16.0;
+        let stack = ["ON", "KB", "MH"];
+        for (k, ini) in stack.iter().enumerate() {
+            let x = left + 12.0 + (stack.len() - 1 - k) as f32 * 16.0;
+            // Hver neste ligger 1,6 cm lenger fram, så ringen dekker
+            // initialene på den under.
+            let z = 0.03 + k as f32 * 0.016;
+            signs::boxed(&mut board, Vec3::new(x * PX, sy * PX, z), &Box2 { w: 28.0, h: 28.0, radius: 14.0, fill: slot::NEUTRAL_CANVAS, border: None, depth: 0.02 });
+            avatar(&mut board, b.font, Vec3::new(x * PX, sy * PX, z + 0.003), 24.0, 12.0, ini, false);
         }
-        signs::paragraph(&mut board, b.font, &["Tre på saken"], -bw * 0.5 + 16.0 + 120.0, sy + 10.0, 14.0, 1.5, 0.03, slot::NEUTRAL_TEXT_SUBTLE);
+        let names = signs::wrap(b.font, "Ola Nordmann, Kari Berg og Mats Hansen følger saken", 14.0, bw - 32.0);
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        signs::paragraph(&mut board, b.font, &names, left, sy - 12.0 - 8.0, 14.0, 1.5, 0.03, slot::NEUTRAL_TEXT);
         let rest = t * Affine3A::from_translation(Vec3::new(0.0, 2.1, 0.03));
         let _ = b.prop("avatar_board", board, rest, Some((Vec3::ZERO, Vec3::new(bw * PX * 0.5, bh * PX * 0.5, 0.05))));
         // Den fjerde (firkantet i dokumentasjonen) bytter form med R.

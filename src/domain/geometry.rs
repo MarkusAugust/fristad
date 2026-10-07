@@ -466,7 +466,8 @@ impl Mesh {
     /// Avrundet rektangel som en plate, forsiden mot +Z, sentrert i `c`.
     pub fn rounded_slab(&mut self, t: &Affine3A, c: Vec3, w: f32, h: f32, d: f32, r: f32, m: &Mat) {
         let r = r.min(w * 0.5).min(h * 0.5);
-        let corner_seg = 6;
+        // Flere segmenter på store hjørner, så sirkler ikke blir kantete.
+        let corner_seg = ((r / 0.02) as usize).clamp(6, 16);
         // Omrisset mot klokka sett forfra.
         let mut outline = vec![];
         for (k, (sx, sy)) in [(1.0f32, -1.0f32), (1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0)].iter().enumerate() {

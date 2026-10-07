@@ -395,6 +395,7 @@ function pause() {
   if (locked()) document.exitPointerLock?.();
   if (!panelOpen) {
     enterBtn.textContent = "Fortsett";
+    $("respawn").hidden = false;
     gateEl.hidden = false;
     enterBtn.focus();
   }
@@ -402,6 +403,11 @@ function pause() {
 
 function bindInput() {
   enterBtn.addEventListener("click", enter);
+  // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til torget.
+  $("respawn").addEventListener("click", () => {
+    engine.respawn();
+    enter();
+  });
   canvas.addEventListener("click", () => {
     if (playing && !locked()) lock();
   });

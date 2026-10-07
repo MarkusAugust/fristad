@@ -167,6 +167,16 @@ code {
   justify-self: start;
 }
 
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-spacing-3);
+}
+
+.gate-actions [hidden] {
+  display: none;
+}
+
 .eyebrow {
   margin: 0;
   font-size: var(--fs-font-size-s);

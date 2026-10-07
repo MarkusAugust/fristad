@@ -543,7 +543,7 @@ pub fn all(b: &mut Builder) {
     cafe_set(b, Vec3::new(2.4, 0.0, 14.4), 2.2, false);
 
     // Torgboder.
-    market_stall(b, Vec3::new(9.5, 0.0, 6.5), -0.6);
+    market_stall(b, Vec3::new(10.5, 0.0, -5.5), 0.6);
     market_stall(b, Vec3::new(-9.0, 0.0, -5.0), 2.1);
 
     // Lyslenker mellom lyktene rundt torget, i en åttekant.

@@ -16,6 +16,7 @@ Utenfor byen ligger tre bydeler: **Tokenparken** vest for torget, der fargepalet
 | Mellomrom | Hopp |
 | C | Huk (hold inne) |
 | X | Kryp av og på |
+| H | Tilbake til torget (også knappen i pausemenyen) |
 | E | Inspiser komponenten du sikter på |
 | R | Neste variant |
 | F | Bruk |

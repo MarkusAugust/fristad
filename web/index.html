@@ -38,6 +38,7 @@
       <span><kbd>X</kbd> Kryp</span>
       <span><kbd>T</kbd> Dag og natt</span>
       <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>
+      <span><kbd>H</kbd> Til torget</span>
       <span><kbd>Esc</kbd> Pause</span>
     </div>
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>
@@ -55,7 +56,10 @@
         <span>Laster motoren …</span>
       </div>
       <progress id="loading" class="fs-progress" max="100" aria-label="Laster Fristad"></progress>
-      <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
+      <div class="gate-actions">
+        <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
+        <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til torget</button>
+      </div>
       <p id="touch-note" class="fs-paragraph" data-size="small" hidden>Fristad styres med mus og tastatur foreløpig. På mobil kan du se, men ikke gå.</p>
     </div>
   </section>
