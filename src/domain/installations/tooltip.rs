@@ -37,7 +37,8 @@ impl Installation for Tooltip {
         signs::boxed(&mut plate, Vec3::ZERO, &Box2 { w: bw_btn + 32.0, h: 58.0, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.05 });
         plate.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.3, 0.0))));
         b.mesh.append(&plate);
-        b.solid_box(p + Vec3::Y * 0.7, Vec3::new(0.3, 1.6, 0.3), YAW);
+        // Bare stolpen er tett, og smal nok til at knappen foran kan siktes på.
+        b.solid_box(p + Vec3::Y * 0.7, Vec3::new(0.1, 1.6, 0.1), YAW);
         // Ghost-knappen «Arkiver» fra CSS-en.
         let mut m = Mesh::default();
         let (w, h) = signs::sheet(&mut m, b.sheets, "tooltip:button", Vec3::ZERO, 0.02, 4.0, slot::NEUTRAL_CANVAS);

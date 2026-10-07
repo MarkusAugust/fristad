@@ -51,13 +51,14 @@ impl Installation for Alert {
                 let u = if f.door >= 0.0 { f.door - half - 0.7 } else { f.door + half + 0.7 };
                 let u = u.clamp(-f.width * 0.5 + half + 0.3, f.width * 0.5 - half - 0.3);
                 let yaw = f.facing.x.atan2(f.facing.z);
-                Affine3A::from_rotation_translation(glam::Quat::from_rotation_y(yaw), f.origin + f.along * u + f.facing * 0.1 + Vec3::Y * POS.y)
+                // 22 cm ut fra veggen: skilt, vinduskarmer og sokkel stikker ut 10–15 cm.
+                Affine3A::from_rotation_translation(glam::Quat::from_rotation_y(yaw), f.origin + f.along * u + f.facing * 0.22 + Vec3::Y * POS.y)
             }
             None => Affine3A::from_translation(POS),
         };
         // Festene på veggen.
         for dx in [-1.5, 1.5] {
-            b.mesh.cuboid(&(wall * Affine3A::from_translation(Vec3::new(dx, 0.0, -0.04))), Vec3::new(0.06, 0.9, 0.08), &IRON);
+            b.mesh.cuboid(&(wall * Affine3A::from_translation(Vec3::new(dx, 0.0, -0.12))), Vec3::new(0.06, 0.9, 0.24), &IRON);
         }
         // Ett oppslag per variant; bare det valgte vises.
         for (k, v) in VARIANTS.iter().enumerate() {

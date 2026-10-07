@@ -165,6 +165,59 @@ mod tests {
         assert!(end.x < 199.0, "gikk ut av verden: endte ved x = {:.1}", end.x);
     }
 
+    /// Alt du kan sikte på må kunne treffes: for hver prop med kollider
+    /// (som ikke er en bevegelig del) skytes en stråle fra 60 cm rett foran
+    /// den, og det første den treffer må være en prop fra samme
+    /// installasjon. Ellers ligger en tavle eller vegg i veien, og
+    /// komponenten er «død» i spillet.
+    #[test]
+    fn alt_du_kan_sikte_pa_kan_treffes() {
+        use crate::domain::ports::Physics;
+        use std::collections::HashMap;
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        let mut physics = crate::adapters::rapier::RapierPhysics::new();
+        for c in &prepared.city.colliders {
+            physics.add(c);
+        }
+        // Propsene slik installasjonene poserer dem i ro (gjemte varianter,
+        // lukkede lister), som i spillet: kolliderne følger posen.
+        let env = crate::domain::installations::Env::default();
+        let posed: Vec<glam::Affine3A> = prepared.city.props.iter().enumerate().map(|(i, p)| match p.owner { Some(o) => prepared.installations[o].pose(i, p.rest, &env).0, None => p.rest }).collect();
+        let mut by_collider = HashMap::new();
+        for (i, p) in prepared.city.props.iter().enumerate() {
+            if let Some((offset, half)) = p.collider {
+                let id = physics.add_movable(half, posed[i] * glam::Affine3A::from_translation(offset));
+                by_collider.insert(id, i);
+            }
+        }
+        // Spørrestrukturen bygges først når noe beveger seg (som i spillet).
+        physics.move_capsule(glam::Vec3::new(0.0, 50.0, 0.0), 0.5, 0.3, glam::Vec3::ZERO, 0.016);
+        let mut problems = vec![];
+        for (i, p) in prepared.city.props.iter().enumerate() {
+            let (Some((offset, _)), Some(owner), false) = (p.collider, p.owner, p.part) else { continue };
+            // Gjemte props (skala ~0) kan ikke siktes på, og skal ikke.
+            if posed[i].matrix3.x_axis.length_squared() < 1e-6 {
+                continue;
+            }
+            let center = posed[i].transform_point3(offset);
+            let facing = posed[i].transform_vector3(glam::Vec3::Z).normalize_or_zero();
+            if facing.length_squared() < 0.5 {
+                continue;
+            }
+            // Fra 60 cm foran, så smug og vegger på andre siden ikke forstyrrer.
+            let from = center + facing * 0.6;
+            let hit = physics.cast_ray(from, -facing, 0.9);
+            let ok = hit.as_ref().and_then(|h| by_collider.get(&h.collider)).is_some_and(|j| prepared.city.props[*j].owner == Some(owner));
+            if !ok {
+                let name = prepared.installations[owner].component().name;
+                problems.push(format!("{} ({}) ved ({:.1}, {:.1}, {:.1}) kan ikke siktes på: {}", name, p.name, center.x, center.y, center.z, match hit { Some(h) => format!("strålen traff noe annet {:.2} m unna: {}", h.distance, by_collider.get(&h.collider).map(|j| format!("prop {} ({})", prepared.city.props[*j].name, prepared.city.props[*j].owner.map(|o| prepared.installations[o].component().name).unwrap_or("-"))).unwrap_or_else(|| prepared.city.colliders.get((h.collider.0 - 1) as usize).map(|c| format!("{c:?}").chars().take(160).collect()).unwrap_or_default())), None => "strålen traff ingenting".into() }));
+            }
+            let _ = i;
+        }
+        assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+    }
+
     /// Variantene skal virke 1:1 med designsystemet: alle installasjonene
     /// som er samme komponent må ha de samme variantene (ellers bytter R og
     /// panelet bare noen av dem), og det du sikter på må endre seg for hver

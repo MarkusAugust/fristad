@@ -66,7 +66,8 @@ impl Installation for Divider {
             signs::sheet(&mut board, b.sheets, &format!("divider:{v}"), Vec3::new(0.0, line_ys[k + 1] * PX, 0.03), 0.01, 0.0, slot::NEUTRAL_CANVAS);
         }
         let _ = b.prop("divider", board, rest, Some((Vec3::ZERO, Vec3::new(bw * PX * 0.5, bh * PX * 0.5, 0.05))));
-        b.solid_box(p + Vec3::Y * 2.1, Vec3::new(0.1, bh * PX, bw * PX), YAW);
+        // Tavla er bw bred langs veggen og 10 cm tykk ut fra den (lokal z er forsiden).
+        b.solid_box(p + Vec3::Y * 2.1, Vec3::new(bw * PX, bh * PX, 0.1), YAW);
     }
 
     fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {

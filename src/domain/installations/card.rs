@@ -47,7 +47,8 @@ impl Installation for Card {
         let board = Mat::tex(Layer::Oak, 0xffffff).tint(Vec3::new(0.45, 0.4, 0.33));
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.6 + bh * 0.5, 0.0))), Vec3::new(bw, bh, 0.06), &board, 1.0);
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 0.6 + bh + 0.08, 0.0))), Vec3::new(bw + 0.2, 0.1, 0.5), &OAK, 1.0);
-        b.solid_box(p + Vec3::Y * (0.6 + bh * 0.5), Vec3::new(bw, bh, 0.2), YAW);
+        // Tynn kollider: kortene (med kollidere foran plata) må treffes før tavla.
+        b.solid_box(p + Vec3::Y * (0.6 + bh * 0.5), Vec3::new(bw, bh, 0.06), YAW);
 
         // Kort 1 i alle tre variantene, oppå hverandre.
         let mut h1 = 0.0;

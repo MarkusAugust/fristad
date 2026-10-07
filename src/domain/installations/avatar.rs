@@ -88,7 +88,8 @@ impl Installation for Avatar {
         let mut sq = Mesh::default();
         avatar(&mut sq, b.font, Vec3::ZERO, 40.0, 14.0, "KB", true);
         self.square = b.prop("avatar_square", sq, rest * Affine3A::from_translation(Vec3::new(cx, y * PX, 0.02)), None);
-        b.solid_box(p + Vec3::Y * 2.1, Vec3::new(0.1, bh * PX, bw * PX), YAW);
+        // Tavla er bw bred langs veggen og 10 cm tykk ut fra den (lokal z er forsiden).
+        b.solid_box(p + Vec3::Y * 2.1, Vec3::new(bw * PX, bh * PX, 0.1), YAW);
         let _ = flag::NO_DIRT;
         let _ = Mat::plain(0, 0.0);
     }

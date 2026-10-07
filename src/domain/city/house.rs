@@ -560,8 +560,10 @@ pub fn house(b: &mut Builder, s: &Spec) {
         m.append(&text);
         // Markise.
         let awning = Mat::tex(Layer::Cladding, 0xffffff).tint(Vec3::new(0.55, 0.12, 0.1)).flags(flag::NO_DIRT);
-        let aw = Affine3A::from_rotation_x(-0.5);
-        m.cuboid_ao(&(front_t * Affine3A::from_translation(Vec3::new(sh.x, y - 0.05, 0.45)) * aw), Vec3::new(sh.w + 0.4, 0.03, 1.0), &awning, 1.0);
+        // Markisa henger fra veggen og skrår nedover utover: innerkanten ved
+        // veggen like over vinduet, ytterkanten 24 cm lavere.
+        let aw = Affine3A::from_rotation_x(0.5);
+        m.cuboid_ao(&(front_t * Affine3A::from_translation(Vec3::new(sh.x, y - 0.22, 0.44)) * aw), Vec3::new(sh.w + 0.4, 0.03, 1.0), &awning, 1.0);
     }
 
     // Hjørnekasser på trehus.

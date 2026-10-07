@@ -105,7 +105,7 @@ impl Installation for Table {
         let center_y = 1.0 + bh * 0.5;
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, center_y, 0.0))), Vec3::new(bw + 0.1, bh + 0.1, 0.06), &board, 1.0);
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.0 + bh + 0.08, 0.0))), Vec3::new(bw + 0.3, 0.1, 0.2), &OAK, 1.0);
-        b.solid_box(p + Vec3::new(0.0, center_y, 0.0), Vec3::new(bw + 0.1, bh + 0.1, 0.2), 0.0);
+        b.solid_box(p + Vec3::new(0.0, center_y, 0.0), Vec3::new(bw + 0.1, bh + 0.1, 0.06), 0.0);
         let rest = t * Affine3A::from_translation(Vec3::new(0.0, center_y, 0.04));
         let mut sheet = Mesh::default();
         signs::boxed(&mut sheet, Vec3::ZERO, &Box2 { w: W + 48.0, h: h + 48.0, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });

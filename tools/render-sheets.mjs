@@ -42,8 +42,19 @@ await page.evaluate(() => document.fonts.ready);
 const sizes = await page.evaluate(() =>
   [...document.querySelectorAll(".sheet")].map((d) => {
     const r = d.getBoundingClientRect();
-    return { id: d.dataset.id, w: Math.ceil(r.width), h: Math.ceil(r.height) };
+    // Et ark som CSS-en skjuler (tooltip-bobla uten hover) ville blitt en
+    // tom plate i byen; stopp her i stedet.
+    const el = d.firstElementChild;
+    const cs = el && getComputedStyle(el);
+    // En transform flytter arket ut av ruta si i atlaset uten å endre målene.
+    // Rotasjon (spinneren) er greit; forskyvning (tx, ty i matrisen) er ikke.
+    const m = cs && cs.transform !== "none" ? cs.transform.match(/matrix\(([^)]*)\)/) : null;
+    const shifted = m ? m[1].split(",").slice(4).some((v) => Math.abs(Number(v)) > 0.5) : false;
+    const hidden = !cs || cs.visibility === "hidden" || cs.display === "none" || Number(cs.opacity) === 0 || r.width < 1 || r.height < 1 || shifted;
+    return { id: d.dataset.id, w: Math.ceil(r.width), h: Math.ceil(r.height), hidden };
   }));
+const invisible = sizes.filter((s) => s.hidden).map((s) => s.id);
+if (invisible.length) throw new Error(`ark som er usynlige eller forskjøvet i CSS-en: ${invisible.join(", ")}`);
 const order = sizes.slice().sort((a, b) => b.h - a.h);
 const W = Math.floor(SIZE / SCALE);
 let x = PAD, y = PAD, row = 0;

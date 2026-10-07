@@ -114,6 +114,7 @@ export const SHEETS = [
     { id: `accordion:${v}:open`, html: `<details class="fs-accordion"${a} open style="width:360px"><summary>Hvem kan søke om bostøtte?</summary><div class="fs-accordion__content"><p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p></div></details>` },
     // Det andre panelet i skapet, lukket.
     { id: `accordion2:${v}:closed`, html: `<details class="fs-accordion"${a} style="width:360px"><summary>Hvor lang er behandlingstiden?</summary><div class="fs-accordion__content"><p>Vi behandler søknaden innen tre uker.</p></div></details>` },
+  { id: `accordion2:${v}:open`, html: `<details class="fs-accordion"${a} open style="width:360px"><summary>Hvor lang er behandlingstiden?</summary><div class="fs-accordion__content"><p>Vi behandler søknaden innen tre uker. Du får svar på e-post når den er ferdig.</p></div></details>` },
   ]),
   // Table: rutetabellen på oppslagsplata ved busskuret, i biter som motoren
   // setter sammen og sorterer: bildeteksten, overskriftsraden per sortering
@@ -148,7 +149,10 @@ export const SHEETS = [
   { id: "avatar:square", html: '<span class="fs-avatar" data-variant="square">KB</span>' },
   { id: "avatar:stack", html: '<ul class="fs-avatar-stack"><li><span class="fs-avatar" data-size="small">ON</span></li><li><span class="fs-avatar" data-size="small">KB</span></li><li><span class="fs-avatar" data-size="small">MH</span></li></ul>' },
   // Tooltip.
-  { id: "tooltip:bubble", html: '<span class="fs-tooltip__bubble" role="tooltip" style="position:static;display:inline-block">Saken flyttes til arkivet og kan hentes fram igjen</span>' },
+  // Boblen er skjult i CSS-en (visibility/opacity) til utløseren får hover
+  // eller fokus, og forskjøvet med translateX(-50%); i byen er det siktet
+  // som er hover, så den rendres synlig og uten forskyvningen.
+  { id: "tooltip:bubble", html: '<span class="fs-tooltip__bubble" role="tooltip" style="position:static;display:inline-block;visibility:visible;opacity:1;transform:none">Saken flyttes til arkivet og kan hentes fram igjen</span>' },
   { id: "tooltip:button", html: '<button class="fs-button" data-variant="ghost" type="button">Arkiver</button>' },
   // Dialog.
   { id: "dialog", html: '<dialog class="fs-dialog" open style="position:static;margin:0;width:420px"><h2 class="fs-dialog__title">Slette søknaden?</h2><div class="fs-dialog__body"><p>Søknaden og vedleggene blir borte. Dette kan ikke angres.</p></div><div class="fs-dialog__footer"><button class="fs-button" data-variant="secondary" type="button">Avbryt</button><button class="fs-button" data-variant="danger" type="button">Slett søknaden</button></div></dialog>' },

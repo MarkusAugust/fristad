@@ -35,7 +35,7 @@ impl Installation for Spinner {
         self.variant = 1;
         let m = &mut b.mesh;
         m.lathe(&Affine3A::from_translation(POS), &[glam::Vec2::new(0.25, 0.0), glam::Vec2::new(0.25, 0.08), glam::Vec2::new(0.06, 0.12), glam::Vec2::new(0.06, 2.4), glam::Vec2::new(0.04, 2.6)], 12, &IRON, true, 0.7);
-        b.solid_box(POS + Vec3::Y * 1.3, Vec3::new(0.3, 2.6, 0.3), 0.0);
+        b.solid_box(POS + Vec3::Y * 1.3, Vec3::new(0.12, 2.6, 0.12), 0.0);
         // Ringen: 2px tykk kant av 24px ring i CSS; her forstørret 4×, så
         // middels er 96 cm. Det øverste kvartsegmentet har aksentfargen.
         let mut ring = Mesh::default();

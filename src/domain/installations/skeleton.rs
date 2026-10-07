@@ -172,7 +172,8 @@ impl Skeleton {
             }
         }
         // Kollisjon: huset som ett volum (veggene er tette nok med platene).
-        b.solid_box(front + Vec3::new(0.0, (top + roof_h) * 0.5, zc), Vec3::new(W + 0.4, top + roof_h, D + 0.4), 0.0);
+        // Kollideren slutter bak OSB-platene, så plassholderne foran kan siktes på.
+        b.solid_box(front + Vec3::new(0.0, (top + roof_h) * 0.5, zc - 0.1), Vec3::new(W + 0.4, top + roof_h, D + 0.3), 0.0);
     }
 
     /// Plassholderne på fasaden, som i eksempelet: linje, sirkel og blokk
@@ -272,8 +273,17 @@ fn scaffold(b: &mut Builder, local: &dyn Fn(Vec3) -> Affine3A) {
         let p = Vec3::new(lx, 2.6 * s, outer - 0.3 + (inner + 0.2 - outer + 0.3) * s);
         bar(m, p + Vec3::X * -0.2, p + Vec3::X * 0.2, r * 0.5);
     }
+    // Kollidere: spirene og dekkene, ikke hele volumet, så plassholderne
+    // på fasaden kan siktes på gjennom stillaset.
     let front = Vec3::from(local(Vec3::ZERO).translation);
-    b.solid_box(front + Vec3::new(0.0, top * 0.5, (inner + outer) * 0.5), Vec3::new(xs[4] - xs[0] + 0.3, top, outer - inner + 0.3), 0.0);
+    for &x in &xs {
+        for z in [inner, outer] {
+            b.solid_box(front + Vec3::new(x, top * 0.5, z), Vec3::new(0.1, top, 0.1), 0.0);
+        }
+    }
+    for &y in &lifts {
+        b.solid_box(front + Vec3::new(0.0, y + 0.02, inner + 0.45), Vec3::new(xs[4] - xs[0] + 0.3, 0.06, 0.9), 0.0);
+    }
 }
 
 /// Tomta rundt huset: byggegjerde med port mot veien, skilt, brakke,

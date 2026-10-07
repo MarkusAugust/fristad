@@ -40,7 +40,8 @@ pub fn board(b: &mut Builder) {
     m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(2.4, 1.3, 0.06), &cork);
     m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 2.15, 0.0))), Vec3::new(2.5, 0.1, 0.12), &OAK);
     m.gable_roof(&(t * Affine3A::from_translation(Vec3::new(0.0, 2.2, 0.0))), 2.6, 0.5, 0.3, 0.1, &Mat::tex(Layer::Slate, 0xffffff), &OAK, &OAK);
-    b.solid_box(BOARD + Vec3::Y * 1.1, Vec3::new(2.5, 2.2, 0.3), 0.0);
+    // Tynn kollider, så taggene og badgene på tavla kan siktes på.
+    b.solid_box(BOARD + Vec3::Y * 1.1, Vec3::new(2.5, 2.2, 0.06), 0.0);
     // En tom prop som markerer at tavla finnes.
     b.prop("board", Mesh::default(), Affine3A::IDENTITY, None);
 }
