@@ -118,5 +118,45 @@
     "intro": "Klassen settes på et `<details>` med et `<summary>` først. Nettleseren tar seg av åpning, lukking, tastatur og at skjermlesere melder «utvidet» eller «sammenfoldet».",
     "code": "<details class=\"fs-accordion\">\n  <summary>Hvem kan søke om bostøtte?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p>\n  </div>\n</details>\n\n<details class=\"fs-accordion\" open>\n  <summary>Hvor lang er behandlingstiden?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Vi behandler søknaden innen tre uker. Mangler vi vedlegg, får du beskjed i digital postkasse.</p>\n  </div>\n</details>",
     "url": "https://fristil.sobernetics.no/components/accordion/"
+  },
+  "input": {
+    "name": "input",
+    "title": "Input",
+    "description": "Tekstfelt for skjema, med tilstander for gyldig og ugyldig. CSS-komponent.",
+    "intro": "Ren CSS på et vanlig `<input>`, så nettleserens egen validering, autofyll og tastaturhåndtering virker som før.",
+    "code": "<label class=\"fs-label\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" placeholder=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"bekreft\">Bekreft e-postadresse</label>\n<input class=\"fs-input\" id=\"bekreft\" type=\"email\" data-state=\"success\" value=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"reserve\">Reserve-e-post</label>\n<input class=\"fs-input\" id=\"reserve\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"ola&#64;\" />\n\n<label class=\"fs-label\" for=\"registrert\">Registrert e-postadresse</label>\n<input class=\"fs-input\" id=\"registrert\" type=\"email\" value=\"ola&#64;eksempel.no\" disabled />",
+    "url": "https://fristil.sobernetics.no/components/input/"
+  },
+  "select": {
+    "name": "select",
+    "title": "Select",
+    "description": "Nedtrekksliste. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Samme utseende og tilstander som [Input](../input/), på et ekte `<select>`. Da brukes nettleserens egen liste, den som allerede virker med tastatur, skjermleser og mobilens innebygde velger.",
+    "code": "<label class=\"fs-label\" for=\"fylke\">Fylke</label>\n<select class=\"fs-select\" id=\"fylke\" name=\"fylke\">\n  <option value=\"\">Velg fylke</option>\n  <option>Innlandet</option>\n  <option selected>Vestland</option>\n  <option>Troms</option>\n</select>\n\n<label class=\"fs-label\" for=\"kommune\">Kommune</label>\n<select class=\"fs-select\" id=\"kommune\" data-state=\"invalid\" aria-invalid=\"true\">\n  <option value=\"\" selected>Velg kommune</option>\n</select>\n\n<label class=\"fs-label\" for=\"registrert\">Registrert fylke</label>\n<select class=\"fs-select\" id=\"registrert\" disabled>\n  <option selected>Vestland</option>\n</select>",
+    "url": "https://fristil.sobernetics.no/components/select/"
+  },
+  "checkbox": {
+    "name": "checkbox",
+    "title": "Checkbox",
+    "description": "Avkryssingsboks for valg som står for seg selv. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "Ren CSS på et vanlig `<input type=\"checkbox\">`, så tastatur, `FormData` og nettleserens egen validering virker som før. Skal brukeren velge ett av flere alternativer, er [Radio](../radio/) riktig. Er valget av eller på for en innstilling som slår inn med en gang, bruk [Switch](../switch/).",
+    "code": "<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"vilkar\" />\n  <label class=\"fs-label\" for=\"vilkar\">Jeg godtar vilkårene</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"nyhetsbrev\" checked />\n  <label class=\"fs-label\" for=\"nyhetsbrev\">Send meg nyhetsbrev</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"bekreft\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"fs-label\" for=\"bekreft\">Jeg bekrefter at opplysningene stemmer</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"arkivert\" checked disabled />\n  <label class=\"fs-label\" for=\"arkivert\">Saken er arkivert</label>\n</div>",
+    "url": "https://fristil.sobernetics.no/components/checkbox/"
+  },
+  "radio": {
+    "name": "radio",
+    "title": "Radio",
+    "description": "Radioknapper for ett valg blant flere. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "Ren CSS på et vanlig `<input type=\"radio\">`. Knappene i en gruppe kobles sammen av `name`, og det er den koblingen som gjør at bare én kan være valgt, og at piltastene flytter mellom dem.",
+    "code": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvordan vil du ha svaret?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-digital\" name=\"svar\" value=\"digital\" checked />\n    <label class=\"fs-label\" for=\"svar-digital\">I digital postkasse</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-post\" name=\"svar\" value=\"post\" />\n    <label class=\"fs-label\" for=\"svar-post\">Som brev i posten</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-hentes\" name=\"svar\" value=\"hentes\" disabled />\n    <label class=\"fs-label\" for=\"svar-hentes\">Hentes på kontoret</label>\n  </div>\n</fieldset>",
+    "url": "https://fristil.sobernetics.no/components/radio/"
+  },
+  "textarea": {
+    "name": "textarea",
+    "title": "Textarea",
+    "description": "Flerlinjet tekstfelt. CSS-komponent med én klasse og ingen JavaScript.",
+    "intro": "Samme utseende og tilstander som [Input](../input/), for svar som blir lengre enn én linje.",
+    "code": "<label class=\"fs-label\" for=\"begrunnelse\">Begrunnelse</label>\n<textarea class=\"fs-textarea\" id=\"begrunnelse\" rows=\"3\"\n  placeholder=\"Skriv en kort begrunnelse\"></textarea>\n\n<label class=\"fs-label\" for=\"melding\">Melding til saksbehandler</label>\n<textarea class=\"fs-textarea\" id=\"melding\" rows=\"2\"\n  data-state=\"success\">Jeg flytter til ny adresse 1. juni.</textarea>\n\n<label class=\"fs-label\" for=\"svar\">Utfyllende svar</label>\n<textarea class=\"fs-textarea\" id=\"svar\" rows=\"2\"\n  data-state=\"invalid\" aria-invalid=\"true\">For kort</textarea>\n\n<label class=\"fs-label\" for=\"merknad\">Merknad</label>\n<textarea class=\"fs-textarea\" id=\"merknad\" rows=\"2\"\n  disabled>Saken er avsluttet og kan ikke endres.</textarea>",
+    "url": "https://fristil.sobernetics.no/components/textarea/"
   }
 }

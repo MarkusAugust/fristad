@@ -84,6 +84,33 @@ const VARIANTS = {
     { name: "default", note: "Standard, med kant og radius." },
     { name: "plain", note: 'data-variant="plain": uten kant på sidene og toppen.' },
   ],
+  input: [
+    { name: "default", note: "Standard." },
+    { name: "success", note: 'data-state="success"' },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "disabled", note: "disabled" },
+  ],
+  select: [
+    { name: "default", note: "Standard." },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "disabled", note: "disabled" },
+  ],
+  checkbox: [
+    { name: "default", note: "Standard." },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "disabled", note: "disabled" },
+    { name: "indeterminate", note: "indeterminate satt fra JavaScript." },
+  ],
+  radio: [
+    { name: "default", note: "Standard." },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+  ],
+  textarea: [
+    { name: "default", note: "Standard." },
+    { name: "success", note: 'data-state="success"' },
+    { name: "invalid", note: 'data-state="invalid" aria-invalid="true"' },
+    { name: "disabled", note: "disabled" },
+  ],
 };
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
@@ -114,6 +141,7 @@ async function boot() {
   stage("Bygger byen og baker materialene …");
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
+  // `?webgl` i adressen tvinger WebGL2, til testing.
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");

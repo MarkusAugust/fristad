@@ -1,6 +1,6 @@
 // Kjører den ferdige nettsiden (dist/ eller grenen web-dist) i Chromium uten
 // skjerm, og skriver konsollen og et skjermbilde. Brukes slik:
-//   node tools/browser-test.mjs KATALOG [webgpu|webgl] [UT.png]
+//   node tools/browser-test.mjs KATALOG [webgpu|webgl] [UT.png] [ventetid ms] [BxH]
 // Claude henter nettsiden fra grenen web-dist: `sh tools/pull-dist.sh`.
 import { createRequire } from "node:module";
 // Playwright ligger globalt i skymiljøet (/opt/node-tools); lokalt holder `npm i -D playwright`.
@@ -10,7 +10,8 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 
-const [dir = "dist", mode = "webgl", out = "browser.png"] = process.argv.slice(2);
+const [dir = "dist", mode = "webgl", out = "browser.png", wait = "4000", size = "1280x720"] = process.argv.slice(2);
+const [vw, vh] = size.split("x").map(Number);
 const types = { ".html": "text/html", ".js": "text/javascript", ".wasm": "application/wasm", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".gltf": "model/gltf+json", ".bin": "application/octet-stream" };
 const server = createServer(async (req, res) => {
   const path = join(dir, decodeURIComponent(req.url.split("?")[0]).replace(/\/$/, "/index.html"));
@@ -30,7 +31,7 @@ const args = mode === "webgpu"
   ? ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=swiftshader", "--use-vulkan=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
   : ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args, headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: vw, height: vh } });
 page.on("console", (m) => console.log(`[${m.type()}] ${m.text().slice(0, 400)}`));
 page.on("pageerror", (e) => console.log(`[pageerror] ${e.message}`));
 await page.goto(`http://127.0.0.1:${port}/${mode === "webgl" ? "?webgl" : ""}`, { waitUntil: "load" });
@@ -39,7 +40,7 @@ try {
   await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 120000 });
   console.log("[test] motoren er klar, backend:", await page.evaluate(() => window.fristad.engine.backend()));
   await page.evaluate(() => document.querySelector("#enter")?.click());
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(Number(wait));
   console.log("[test] perf:", await page.evaluate(() => document.querySelector("#perf")?.textContent));
 } catch (e) {
   console.log("[test] motoren ble ikke klar:", e.message);
