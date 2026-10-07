@@ -92,3 +92,24 @@ Veiviserne på torget peker alt til Linelord, Streamlord og Cobble. De blir tre 
 3. Temageneratoren (akt 5) som belønningen som faktisk er nyttig.
 4. Legacy-kjelleren som den store, morsomme utvidelsen.
 5. Resten etter hva som fenger i spilltestene.
+
+## Retningen (eieren, 7. oktober)
+
+Eieren valgte: fjern alle komponentene som er plassert rundt i byen. Komponentene vinnes tilbake i **Legacy-kjelleren**, et roguelite under torget, og kjøpes i **bodene rundt torget** av NPC-er. Hvert oppdrag bygger et **arsenal** av designsystemkomponenter som settes sammen til kraftigere utstyr, og mer avansert utstyr krever mer avanserte skjemaer.
+
+### Fiendene
+
+- **Trashmobs: de korrupte komponentene.** Komponenter som siden 2026 ble blandet med for mye JavaScript- og forretningslogikk, og har mutert: en Knapp som også validerer, henter data og viser en modal (den slår tre ganger og åpner en dialog du må lukke); et Input som husker alt du har skrevet og hvisker det tilbake; en Tabell som sorterer deg; et Kort med 40 props som bytter form hvert sekund; en Accordion som folder seg rundt deg; en Spinner som aldri stopper og suger tid; en Toast-sverm. De ser ut som komponentene, men feil: varianter blandet, tokens i feil plass, tekst i Comic Sans, `!important`-arr. Du kjenner dem igjen fordi du har sett de riktige i bodene. Når de dør, faller de fra hverandre i det de var bygd av: ren komponent (loot) og en klump forretningslogikk (søppel du kan selge).
+- **Epokene** nedover: tabellayout, floats, `!important`, Bootstrap-hydraen, jQuery-spaghettien, div-suppa, og nederst 2026-mutantene.
+- **Siste bossen: Rammeverket.** Designsystemet selv, som krever at du skriver React, og vil ta livet av deg for å ha vurdert andre språk. Et tårn av JSX som skyter `<Component prop={...} />`-prosjektiler, kaster deg i en «re-render»-løkke, og påstår at ingenting virker uten det. Du vinner ikke med et annet rammeverk (det gjør den bare sintere), men med det Fristil faktisk er: **frittstående** HTML og CSS. Hver komponent du har vunnet og smidd, brukt som ren markup, tar fra den en lagbit, til bare tokenene står igjen. Da får du nøkkelen til temageneratoren.
+
+### Spillsløyfa (roguelite)
+
+- Byen er navet og varig: bodene, boka (dokumentasjonen), smia (søknadskontoret), temagenerator (parken). Brønnen på torget er nedgangen.
+- Kjelleren er prosedyrisk per nedstigning. Dør du, mister du det du bar, men beholder en andel tokens og alt som er skrevet i boka. Komponenter du har vunnet én gang kan kjøpes i boden etterpå.
+- Utstyret følger komponentenes betydning (knapp = våpen, alert = skjold, progress = liv, spinner = fryse tid, toast = kast, tooltip = avslør svakhet, tabs = bytte sett, accordion = sekk, breadcrumbs = vei tilbake, link = teleport, divider = vegg, switch = feller, badge/tag = buffer, avatar = følgesvenn, connection-status = varsling).
+- Sammensetning er Fristils egne mønstre, og skjemaet er smia: label + input + help-text + error-text = Felt; felt × n + fieldset + button = Skjema; card + avatar + badge = Profil; dialog + knapper = Bekreftelse. Valideringen er om smiinga lykkes.
+
+### Milepæl 1
+
+Brønnen leder ned til én prosedyrisk etasje, én fiendetype (en korrupt knapp), knappen som våpen, liv (progress), tokens, og død som sender deg opp med tokenene i behold. Så Knappesmeden og Skjemakontoret som de to første bodene, og det første Feltet du kan smi.
