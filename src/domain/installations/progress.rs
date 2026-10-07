@@ -37,8 +37,8 @@ impl Installation for Progress {
     fn build(&mut self, b: &mut Builder) {
         let mut track = Mesh::default();
         let (w, h) = signs::sheet(&mut track, b.sheets, "progress:track", Vec3::ZERO, 0.03, 4.0, slot::NEUTRAL_SURFACE);
-        // Etiketten under, som aria-label ville sagt det.
-        signs::text(&mut track, b.font, "Porten åpnes", Vec3::new(0.0, -0.2, 0.025), 14.0, slot::NEUTRAL_TEXT_SUBTLE);
+        // Etiketten over stolpen, på overliggeren (under den er porten åpen luft).
+        signs::text(&mut track, b.font, "Porten åpnes", Vec3::new(0.0, 0.22, 0.025), 14.0, slot::NEUTRAL_TEXT_SUBTLE);
         self.track = b.prop("progress", track, Affine3A::from_translation(POS), Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, 0.25, 0.05))));
         for (k, c) in VARIANTS.iter().enumerate() {
             let mut fill = Mesh::default();

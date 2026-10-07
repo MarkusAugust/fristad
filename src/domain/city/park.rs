@@ -39,11 +39,11 @@ fn sign(b: &mut Builder, p: Vec3, yaw: f32, title: &str, sub: &str, min_w: f32) 
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.75, -0.07))), Vec3::new(0.08, 1.9, 0.08), &OAK, 1.0);
     }
     let board = Mat::tex(crate::domain::geometry::Layer::Oak, 0xffffff).tint(Vec3::new(0.5, 0.45, 0.38));
-    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(w, 0.5, 0.05), &board, 1.0);
+    m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(w, 0.76, 0.05), &board, 1.0);
     let ink = Mat::plain(0xf4efe4, 0.5).flags(flag::NO_DIRT);
     let mut text = Mesh::default();
-    b.font.centered(&mut text, title, Vec3::new(0.0, 0.08, 0.0), 26.0, 0.012, &ink);
-    b.font.centered(&mut text, sub, Vec3::new(0.0, -0.12, 0.0), 14.0, 0.012, &ink);
+    b.font.centered(&mut text, title, Vec3::new(0.0, 0.12, 0.0), 26.0, 0.012, &ink);
+    b.font.centered(&mut text, sub, Vec3::new(0.0, -0.17, 0.0), 14.0, 0.012, &ink);
     text.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.03))));
     m.append(&text);
     b.solid_box(p + Vec3::Y * 0.95, Vec3::new(w, 1.9, 0.15), yaw);
@@ -88,7 +88,9 @@ fn bed(b: &mut Builder, from: Vec3, palette: &str) {
         // Platen foran: trinnets navn i 10 px på messing, lagt skrått.
         let brass = Mat::plain(0xb8924a, 0.35).flags(flag::NO_DIRT);
         let pt = Affine3A::from_rotation_translation(Quat::from_rotation_x(-0.9), Vec3::new(x, c.y + 0.3, c.z + 0.78));
-        m.cuboid_ao(&pt, Vec3::new(0.6, 0.12, 0.012), &brass, 1.0);
+        let pw = (b.font.width(step, 10.0) * 0.012 + 0.16).max(0.6);
+        let m = &mut b.mesh;
+        m.cuboid_ao(&pt, Vec3::new(pw, 0.2, 0.012), &brass, 1.0);
         let mut label = Mesh::default();
         b.font.centered(&mut label, step, Vec3::ZERO, 10.0, 0.012, &Mat::plain(0x2a2418, 0.6).flags(flag::NO_DIRT));
         label.transform(&(pt * Affine3A::from_translation(Vec3::Z * 0.008)));
@@ -101,7 +103,7 @@ fn bed(b: &mut Builder, from: Vec3, palette: &str) {
     m.cylinder(&Affine3A::from_translation(post - Vec3::Z * 0.05), 0.03, 0.03, 1.08, 8, &IRON, false);
     let brass = Mat::plain(0xb8924a, 0.35).flags(flag::NO_DIRT);
     let pw = b.font.width(palette, 16.0) * 0.012 + 0.16;
-    m.cuboid_ao(&Affine3A::from_translation(post + Vec3::new(0.0, 1.0, 0.0)), Vec3::new(pw, 0.22, 0.03), &brass, 1.0);
+    m.cuboid_ao(&Affine3A::from_translation(post + Vec3::new(0.0, 1.0, 0.0)), Vec3::new(pw, 0.3, 0.03), &brass, 1.0);
     let mut label = Mesh::default();
     b.font.centered(&mut label, palette, Vec3::ZERO, 16.0, 0.012, &Mat::plain(0x2a2418, 0.6).flags(flag::NO_DIRT));
     label.transform(&Affine3A::from_translation(post + Vec3::new(0.0, 1.0, 0.018)));
@@ -130,9 +132,11 @@ fn spacing_scale(b: &mut Builder, from: Vec3) {
         m.cuboid_ao(&Affine3A::from_translation(Vec3::new(c.x, c.y + 0.3 + h * 0.5, z)), Vec3::new(0.5, h, 0.4), &block, 1.0);
         let brass = Mat::plain(0xb8924a, 0.35).flags(flag::NO_DIRT);
         let pt = Affine3A::from_rotation_translation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(-0.9), Vec3::new(c.x - 0.42, c.y + 0.32, z));
-        m.cuboid_ao(&pt, Vec3::new(0.46, 0.11, 0.012), &brass, 1.0);
-        let mut label = Mesh::default();
         let text = format!("{step}  {px:.0} px");
+        let pw = (b.font.width(&text, 9.0) * 0.012 + 0.14).max(0.5);
+        let m = &mut b.mesh;
+        m.cuboid_ao(&pt, Vec3::new(pw, 0.18, 0.012), &brass, 1.0);
+        let mut label = Mesh::default();
         b.font.centered(&mut label, &text, Vec3::ZERO, 9.0, 0.012, &Mat::plain(0x2a2418, 0.6).flags(flag::NO_DIRT));
         label.transform(&(pt * Affine3A::from_translation(Vec3::Z * 0.008)));
         b.mesh.append(&label);

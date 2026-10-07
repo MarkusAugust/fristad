@@ -25,6 +25,7 @@ pub mod park;
 pub mod poster;
 pub mod street_life;
 pub mod terrain;
+pub mod text_audit;
 pub mod towers;
 
 #[derive(Clone, Debug)]
@@ -407,6 +408,11 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
 
     let mut audit = b.audit();
     audit.extend(b.text_audit.iter().cloned());
+    if std::env::var("TEXT_AUDIT").is_ok() {
+        // Tar noen sekunder; kjøres av cargo test og `TEXT_AUDIT=1 snapshot`.
+        let props: Vec<(&Mesh, Affine3A)> = b.props.iter().map(|p| (&p.mesh, p.rest)).collect();
+        audit.extend(text_audit::audit(&b.mesh, &props));
+    }
     for line in &audit {
         log::warn!("{line}");
     }

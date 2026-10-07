@@ -57,6 +57,7 @@ mod tests {
     /// meldt med `Builder::fits` får være bredere enn plata. `cargo test` før push.
     #[test]
     fn modellene_star_pa_bakken() {
+        std::env::set_var("TEXT_AUDIT", "1");
         let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
         let prepared = super::prepare(&assets, &assets);
         assert!(prepared.city.audit.is_empty(), "\n{}", prepared.city.audit.join("\n"));

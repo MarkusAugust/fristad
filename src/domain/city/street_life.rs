@@ -485,10 +485,13 @@ pub fn mailbox(b: &mut Builder, p: Vec3, yaw: f32) {
         m.rounded_slab(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.2, 0.0))), Vec3::ZERO, 0.46, 0.52, 0.34, 0.06, &red);
         m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.36, 0.175))), Vec3::new(0.3, 0.025, 0.01), &DARK);
     }
-    let mut text = Mesh::default();
-    b.font.centered(&mut text, "POST", Vec3::ZERO, 10.0, 0.012, &Mat::plain(0xf6f0e6, 0.5));
-    text.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.14, 0.172))));
-    m.append(&text);
+    if !model {
+        // Modellen har sin egen front; teksten hører til den prosedyriske kassa.
+        let mut text = Mesh::default();
+        b.font.centered(&mut text, "POST", Vec3::ZERO, 10.0, 0.012, &Mat::plain(0xf6f0e6, 0.5));
+        text.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.14, 0.172))));
+        m.append(&text);
+    }
     b.solid_box(p + Vec3::Y * 0.75, Vec3::new(0.5, 1.5, 0.4), yaw);
 }
 

@@ -78,11 +78,15 @@ pub fn build(b: &mut Builder) {
         b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.75, 0.0))), Vec3::new(0.08, 1.9, 0.08), &OAK, 1.0);
     }
     let board = Mat::tex(Layer::Oak, 0xffffff).tint(Vec3::new(0.5, 0.45, 0.38));
-    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(2.8, 0.5, 0.05), &board, 1.0);
+    let (title, sub) = ("TÅRNENE", "Skriftstørrelsene, 20 cm per px");
+    let bw = (b.font.width(title, 26.0).max(b.font.width(sub, 14.0)) * 0.012 + 0.5).max(2.8);
+    b.fits("tårnskiltet", title, 26.0, 0.012, bw);
+    b.fits("tårnskiltet", sub, 14.0, 0.012, bw);
+    b.mesh.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(bw, 0.76, 0.05), &board, 1.0);
     let ink = Mat::plain(0xf4efe4, 0.5).flags(flag::NO_DIRT);
     let mut text = Mesh::default();
-    b.font.centered(&mut text, "TÅRNENE", Vec3::new(0.0, 0.08, 0.0), 26.0, 0.012, &ink);
-    b.font.centered(&mut text, "Skriftstørrelsene, 20 cm per px", Vec3::new(0.0, -0.12, 0.0), 14.0, 0.012, &ink);
+    b.font.centered(&mut text, title, Vec3::new(0.0, 0.12, 0.0), 26.0, 0.012, &ink);
+    b.font.centered(&mut text, sub, Vec3::new(0.0, -0.17, 0.0), 14.0, 0.012, &ink);
     text.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.03))));
     b.mesh.append(&text);
     b.solid_box(sp + Vec3::Y * 0.95, Vec3::new(2.8, 1.9, 0.15), 0.0);
