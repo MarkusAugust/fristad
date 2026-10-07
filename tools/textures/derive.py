@@ -46,7 +46,10 @@ def main():
     rgb = np.asarray(img, dtype=np.float32) / 255.0
     lum = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
     if invert:
-        lum = 1.0 - lum
+        # Lyse fuger blir lave, men de dypeste sprekkene (mørkest i bildet)
+        # ligger fortsatt lavest.
+        shadow = np.clip((lum - 0.12) / 0.18, 0.0, 1.0)
+        lum = (1.0 - lum) * shadow
     # Høyden: lysheten minus det store (belysning og fargeflekker), litt
     # myket opp, og strukket til 0..1.
     h = blur(lum, 2.0) - blur(lum, 40.0) * 0.85
