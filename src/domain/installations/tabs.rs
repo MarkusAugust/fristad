@@ -17,9 +17,8 @@ const PANEL_TEXT: [[&str; 2]; 3] = [["Mottatt 4. mars.", "Saksnummer 2026-0481."
 pub struct Tabs {
     variant: usize,
     doors: [usize; 3],
-    /// Fanen i valgt og uvalgt stil, og streken under.
-    labels: [[usize; 2]; 3],
-    underline: [usize; 3],
+    /// Faneraden med hver av de tre fanene valgt.
+    rows: [usize; 3],
     t: [f32; 3],
 }
 
@@ -107,31 +106,15 @@ impl Installation for Tabs {
             b.light(p + Vec3::new(x, WALL_H + 0.1, -D * 0.5), Vec3::new(1.0, 0.92, 0.8), 2.5, 6.0);
         }
 
-        // Faneraden over dørene: knapper med padding 8/16, min-høyde 40,
-        // mellomrom 4, og en strek under hele raden.
-        let gap = 4.0;
-        let widths: Vec<f32> = VARIANTS.iter().map(|l| signs::width(b.font, l, 16.0) / PX + 32.0).collect();
-        let total: f32 = widths.iter().sum::<f32>() + gap * 2.0;
+        // Faneraden over dørene: hele raden som ark fra Fristils CSS, én
+        // utgave per valgt fane; bare den valgte vises.
         let row_y = 0.5 + door_h + 0.55;
         let z = 0.03;
-        let mut list = Mesh::default();
-        list.cuboid(&Affine3A::from_translation(Vec3::new(0.0, -20.0 * PX, 0.0)), Vec3::new((total + 32.0) * PX, PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(slot::NEUTRAL_BORDER_SUBTLE).flags(flag::NO_DIRT | flag::NO_WEATHER));
-        list.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, row_y, z))));
-        b.mesh.append(&list);
-        let mut x = -total * 0.5;
+        let rest = t * Affine3A::from_translation(Vec3::new(0.0, row_y, z));
         for k in 0..3 {
-            let cx = x + widths[k] * 0.5;
-            let rest = t * Affine3A::from_translation(Vec3::new(cx * PX, row_y, z));
-            for (s, (text_slot, label_name)) in [(slot::NEUTRAL_TEXT_STRONG, "tab_selected"), (slot::ACCENT_TEXT, "tab")].into_iter().enumerate() {
-                let mut lm = Mesh::default();
-                signs::text(&mut lm, b.font, VARIANTS[k], Vec3::new(0.0, 0.0, 0.01), 16.0, text_slot);
-                let collider = if s == 0 { Some((Vec3::ZERO, Vec3::new(widths[k] * PX * 0.5, 20.0 * PX, 0.05))) } else { None };
-                self.labels[k][s] = b.prop(label_name, lm, rest, collider);
-            }
-            let mut ul = Mesh::default();
-            ul.cuboid(&Affine3A::from_translation(Vec3::new(0.0, -19.0 * PX, 0.0)), Vec3::new(widths[k] * PX, 2.0 * PX, 0.012), &Mat::plain(0xffffff, 0.5).slot(slot::ACCENT_BORDER).flags(flag::NO_DIRT | flag::NO_WEATHER));
-            self.underline[k] = b.prop("tab_underline", ul, rest, None);
-            x += widths[k] + gap;
+            let mut lm = Mesh::default();
+            let (w, h) = signs::sheet(&mut lm, b.sheets, &format!("tabs:{k}"), Vec3::ZERO, 0.02, 0.0, slot::NEUTRAL_CANVAS);
+            self.rows[k] = b.prop("tabs", lm, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.05))));
         }
 
         // Dørene: fyllingsdører i malt tre, hengslet til venstre.
@@ -143,7 +126,7 @@ impl Installation for Tabs {
                 door.cuboid_ao(&Affine3A::from_translation(Vec3::new(door_w * 0.5, y, 0.035)), Vec3::new(door_w - 0.3, 0.6, 0.02), &paint, 1.0);
             }
             door.sphere(&Affine3A::from_translation(Vec3::new(door_w - 0.15, 1.05, 0.06)), Vec3::splat(0.035), 5, 8, &Mat::tex(Layer::Metal, 0xffffff));
-            self.doors[k] = b.prop("tab_door", door, t * Affine3A::from_translation(Vec3::new(x - door_w * 0.5, 0.5, 0.0)), Some((Vec3::new(door_w * 0.5, door_h * 0.5, 0.0), Vec3::new(door_w * 0.5, door_h * 0.5, 0.04))));
+            self.doors[k] = b.prop_part("tab_door", door, t * Affine3A::from_translation(Vec3::new(x - door_w * 0.5, 0.5, 0.0)), Some((Vec3::new(door_w * 0.5, door_h * 0.5, 0.0), Vec3::new(door_w * 0.5, door_h * 0.5, 0.04))));
         }
 
         // Kollidere: veggene og trinnene.
@@ -177,15 +160,8 @@ impl Installation for Tabs {
                 let e = self.t[k] * self.t[k] * (3.0 - 2.0 * self.t[k]);
                 return (rest * Affine3A::from_rotation_y(-e * 1.75), [0.0; 4]);
             }
-            let selected = k == self.variant;
-            if prop == self.labels[k][0] {
-                return (if selected { rest } else { rest * hidden }, [0.0; 4]);
-            }
-            if prop == self.labels[k][1] {
-                return (if selected { rest * hidden } else { rest }, [0.0; 4]);
-            }
-            if prop == self.underline[k] {
-                return (if selected { rest } else { rest * hidden }, [0.0; 4]);
+            if prop == self.rows[k] {
+                return (if k == self.variant { rest } else { rest * hidden }, [0.0; 4]);
             }
         }
         (rest, [0.0; 4])

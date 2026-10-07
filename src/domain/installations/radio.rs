@@ -1,14 +1,14 @@
 //! `.fs-radio`: radioknappene på søknadsskjemaet, i en fieldset med legend.
 //! F velger neste svaralternativ (det tredje er deaktivert), R bytter
-//! tilstand (standard, ugyldig).
+//! tilstand (standard, ugyldig). Knappene er ark fra Fristils CSS, ett per
+//! tilstand og valgt/uvalgt.
 
 use super::form::{self, RADIO_ROWS, RIGHT};
+use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
-use crate::domain::geometry::{flag, Mat, Mesh};
+use crate::domain::geometry::Mesh;
 use crate::domain::palette::slot;
-use crate::domain::scene::PALETTE;
-use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 2] = ["default", "invalid"];
@@ -18,21 +18,8 @@ const SIZE: f32 = 20.0;
 pub struct Radio {
     variant: usize,
     selected: usize,
-    off: [usize; 2],
-    on: [usize; 2],
-}
-
-/// Ringen: en sirkel med 1 px kant.
-fn ring(m: &mut Mesh, fill: u8, border: u8, dot: Option<u8>) {
-    let r = Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
-    let bm = Mat::plain(0xffffff, 0.5).slot(border).flags(flag::NO_DIRT | flag::NO_WEATHER);
-    let fm = Mat::plain(0xffffff, 0.5).slot(fill).flags(flag::NO_DIRT | flag::NO_WEATHER);
-    m.cylinder(&(Affine3A::from_translation(Vec3::new(0.0, 0.0, -0.01)) * r), SIZE * 0.5 * PX, SIZE * 0.5 * PX, 0.02, 24, &bm, true);
-    m.cylinder(&(Affine3A::from_translation(Vec3::new(0.0, 0.0, -0.006)) * r), (SIZE * 0.5 - 1.0) * PX, (SIZE * 0.5 - 1.0) * PX, 0.02, 24, &fm, true);
-    if let Some(d) = dot {
-        let dm = Mat::plain(0xffffff, 0.5).slot(d).flags(flag::NO_DIRT | flag::NO_WEATHER);
-        m.cylinder(&(Affine3A::from_translation(Vec3::new(0.0, 0.0, -0.002)) * r), SIZE * 0.32 * PX, SIZE * 0.32 * PX, 0.02, 20, &dm, true);
-    }
+    /// [rad][variant][av, på]
+    rings: [[[usize; 2]; 2]; 2],
 }
 
 impl Installation for Radio {
@@ -57,17 +44,17 @@ impl Installation for Radio {
         let cx = RIGHT + SIZE * 0.5;
         for k in 0..2 {
             let rest = form::on_sheet(cx, RADIO_ROWS[k] - 12.0, 0.04);
-            let mut off = Mesh::default();
-            ring(&mut off, slot::NEUTRAL_CANVAS, RADIO_BORDER, None);
-            let collider = if k == 0 { Some((Vec3::ZERO, Vec3::new(SIZE * PX * 0.5 + 0.02, SIZE * PX * 0.5 + 0.02, 0.04))) } else { None };
-            self.off[k] = b.prop("radio", off, rest, collider);
-            let mut on = Mesh::default();
-            ring(&mut on, slot::ACCENT_FILL, slot::ACCENT_FILL, Some(slot::ACCENT_CONTENT));
-            self.on[k] = b.prop("radio_checked", on, rest, None);
+            for (v, name) in VARIANTS.iter().enumerate() {
+                for (s, state) in ["off", "on"].iter().enumerate() {
+                    let mut m = Mesh::default();
+                    let (w, h) = signs::sheet(&mut m, b.sheets, &format!("radio:{name}:{state}"), Vec3::ZERO, 0.02, 999.0, slot::NEUTRAL_CANVAS);
+                    self.rings[k][v][s] = b.prop("radio", m, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5 + 0.02, h * PX * 0.5 + 0.02, 0.04))));
+                }
+            }
         }
-        // Det tredje alternativet er deaktivert.
+        // Det tredje alternativet er deaktivert: en kulisse.
         let mut dis = Mesh::default();
-        ring(&mut dis, slot::NEUTRAL_RAISED, slot::NEUTRAL_RAISED, None);
+        signs::sheet(&mut dis, b.sheets, "radio:disabled:off", Vec3::ZERO, 0.02, 999.0, slot::NEUTRAL_RAISED);
         dis.transform(&form::on_sheet(cx, RADIO_ROWS[2] - 12.0, 0.04));
         b.mesh.append(&dis);
     }
@@ -86,20 +73,15 @@ impl Installation for Radio {
     fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
         for k in 0..2 {
-            if prop == self.off[k] {
-                return (if k == self.selected { rest * hidden } else { rest }, [0.0; 4]);
-            }
-            if prop == self.on[k] {
-                return (if k == self.selected { rest } else { rest * hidden }, [0.0; 4]);
+            for v in 0..2 {
+                for s in 0..2 {
+                    if prop == self.rings[k][v][s] {
+                        let shown = v == self.variant && (s == 1) == (k == self.selected);
+                        return (if shown { rest } else { rest * hidden }, [0.0; 4]);
+                    }
+                }
             }
         }
         (rest, [0.0; 4])
     }
-
-    fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
-        let c = |n: &str| tokens.blend(n, night);
-        p[RADIO_BORDER as usize] = if VARIANTS[self.variant] == "invalid" { c("danger-text") } else { c("neutral-border") };
-    }
 }
-
-pub const RADIO_BORDER: u8 = slot::RADIO_BORDER;

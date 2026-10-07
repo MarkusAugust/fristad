@@ -1,14 +1,13 @@
 //! `.fs-link`: veiviseren på torget, med armer som peker dit lenkene går.
-//! F på en arm følger lenka: du flys dit. R bytter tilstand på alle armene
-//! (vanlig, besøkt, deaktivert).
+//! F på en arm følger lenka: du flys dit. R og panelet bytter tilstand på
+//! alle lenkene i byen (vanlig, besøkt, deaktivert); teksten på armene er
+//! ark rendret fra Fristils CSS, ett per tilstand og side.
 
 use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::{at, Builder, OAK};
 use crate::domain::geometry::{flag, Mat, Mesh};
 use crate::domain::palette::slot;
-use crate::domain::scene::PALETTE;
-use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 3] = ["default", "visited", "disabled"];
@@ -25,7 +24,10 @@ const TARGETS: [(Vec3, f32); 3] = [
 #[derive(Default)]
 pub struct Link {
     variant: usize,
+    /// Planken per arm (den du sikter på).
     arms: [usize; 3],
+    /// Teksten per arm, side og variant.
+    labels: [[[usize; 3]; 2]; 3],
 }
 
 impl Installation for Link {
@@ -50,29 +52,25 @@ impl Installation for Link {
         b.solid_box(p + Vec3::Y * 1.3, Vec3::new(0.3, 2.6, 0.3), 0.0);
         for (k, (label, yaw, y)) in ARMS.iter().enumerate() {
             let t = at(p + Vec3::Y * *y, *yaw);
-            let tw = signs::width(b.font, label, 16.0) / PX;
-            let w = tw + 40.0;
-            // Armen: en planke med spiss ende, teksten på begge sider.
+            let sw = b.sheets.sheet(&format!("link:default:{label}")).w;
+            let w = sw + 40.0;
+            // Armen: en planke med spiss ende.
             let mut arm = Mesh::default();
             let plank = Mat::plain(0xf2efe8, 0.6).flags(flag::NO_DIRT);
-            arm.cuboid(&Affine3A::from_translation(Vec3::new(w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX, 0.22, 0.03), &plank);
-            arm.cuboid(&(Affine3A::from_translation(Vec3::new(w * PX + 0.078, 0.0, 0.0)) * Affine3A::from_rotation_z(0.785)), Vec3::new(0.155, 0.155, 0.03), &plank);
-            let (text, line) = (LINK_TEXT, LINK_LINE);
-            for side in [1.0f32, -1.0] {
-                // Teksten og understreken (0,08 em tykk, 0,14 em under
-                // grunnlinja) på hver side av planken; baksiden speiles.
-                let mut txt = Mesh::default();
-                signs::text(&mut txt, b.font, label, Vec3::new(0.0, 0.0, 0.016), 16.0, text);
-                txt.cuboid(&Affine3A::from_translation(Vec3::new(0.0, (-0.36 * 16.0 - 0.14 * 16.0 - 0.6) * PX, 0.016)), Vec3::new(tw * PX, 1.3 * PX, 0.004), &Mat::plain(0xffffff, 0.5).slot(line).flags(flag::NO_DIRT | flag::NO_WEATHER));
-                if side < 0.0 {
-                    txt.transform(&Affine3A::from_rotation_y(std::f32::consts::PI));
-                }
-                txt.transform(&Affine3A::from_translation(Vec3::new(w * PX * 0.5, 0.0, 0.0)));
-                arm.append(&txt);
-            }
+            arm.cuboid(&Affine3A::from_translation(Vec3::new(w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX, 0.26, 0.03), &plank);
+            arm.cuboid(&(Affine3A::from_translation(Vec3::new(w * PX + 0.092, 0.0, 0.0)) * Affine3A::from_rotation_z(0.785)), Vec3::new(0.184, 0.184, 0.03), &plank);
             arm.transform(&(t * Affine3A::from_translation(Vec3::new(0.06, 0.0, 0.0))));
-            let collider = Some((t.transform_point3(Vec3::new(0.06 + w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX * 0.5, 0.12, 0.05)));
+            let collider = Some((t.transform_point3(Vec3::new(0.06 + w * PX * 0.5, 0.0, 0.0)), Vec3::new(w * PX * 0.5, 0.13, 0.05)));
             self.arms[k] = b.prop("link", arm, Affine3A::IDENTITY, collider);
+            // Teksten på hver side, i alle tre tilstandene.
+            for (s, side) in [1.0f32, -1.0].into_iter().enumerate() {
+                for (v, name) in VARIANTS.iter().enumerate() {
+                    let mut txt = Mesh::default();
+                    signs::sheet(&mut txt, b.sheets, &format!("link:{name}:{label}"), Vec3::ZERO, 0.01, 0.0, slot::NEUTRAL_CANVAS);
+                    let rest = t * Affine3A::from_translation(Vec3::new(0.06 + w * PX * 0.5, 0.0, side * 0.02)) * Affine3A::from_rotation_y(if side < 0.0 { std::f32::consts::PI } else { 0.0 });
+                    self.labels[k][s][v] = b.prop("link_label", txt, rest, None);
+                }
+            }
         }
     }
 
@@ -94,22 +92,14 @@ impl Installation for Link {
         env.toasts.push(format!("Fulgte lenka «{}»", ARMS[k].0));
     }
 
-    fn pose(&self, _prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+        for arm in &self.labels {
+            for side in arm {
+                if let Some(v) = side.iter().position(|p| *p == prop) {
+                    return (if v == self.variant { rest } else { rest * Affine3A::from_scale(Vec3::splat(0.0001)) }, [0.0; 4]);
+                }
+            }
+        }
         (rest, [0.0; 4])
     }
-
-    fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
-        let c = |n: &str| tokens.blend(n, night);
-        let (text, line) = match VARIANTS[self.variant] {
-            "visited" => (c("visited-text"), c("visited-text")),
-            // Deaktivert: dempet tekst uten understrek (streken får platas farge).
-            "disabled" => (c("neutral-text-subtle"), crate::domain::tokens::hex("#f2efe8")),
-            _ => (c("accent-text"), c("accent-text")),
-        };
-        p[LINK_TEXT as usize] = text;
-        p[LINK_LINE as usize] = line;
-    }
 }
-
-pub const LINK_TEXT: u8 = slot::LINK_TEXT;
-pub const LINK_LINE: u8 = slot::LINK_LINE;

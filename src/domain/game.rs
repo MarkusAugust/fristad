@@ -227,6 +227,8 @@ impl Flight {
 struct PropState {
     /// Trykket inn (1 rett etter F), glir tilbake på et kvart sekund.
     press: f32,
+    /// En bevegelig del, ikke komponenten: kan ikke siktes på.
+    part: bool,
     rest: Affine3A,
     offset: Vec3,
     owner: Option<usize>,
@@ -290,7 +292,7 @@ impl Game {
                 by_collider.insert(id, i);
                 id
             });
-            props.push(PropState { press: 0.0, rest: p.rest, offset: p.collider.map(|c| c.0).unwrap_or(Vec3::ZERO), owner: p.owner, collider, pose: p.rest, extra: [0.0; 4] });
+            props.push(PropState { press: 0.0, part: p.part, rest: p.rest, offset: p.collider.map(|c| c.0).unwrap_or(Vec3::ZERO), owner: p.owner, collider, pose: p.rest, extra: [0.0; 4] });
         }
         for inst in &mut installations {
             inst.set_variant(inst.variant());
@@ -596,7 +598,7 @@ impl Game {
         let eye = self.eye();
         let dir = self.forward();
         let hit = physics.cast_ray(eye, dir, 3.5);
-        let aim = hit.and_then(|h| self.by_collider.get(&h.collider).copied()).and_then(|p| self.props[p].owner.map(|o| (p, o)));
+        let aim = hit.and_then(|h| self.by_collider.get(&h.collider).copied()).filter(|p| !self.props[*p].part).and_then(|p| self.props[p].owner.map(|o| (p, o)));
         // Installasjonene får vite hva som siktes på før de får handlingene.
         self.env.aimed_prop = aim.map(|(p, _)| p);
         if aim.map(|a| a.1) != self.aim.map(|a| a.1) {

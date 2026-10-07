@@ -24,13 +24,17 @@ fn rgb(c: Vec3) -> u32 {
     (q(c.x) << 16) | (q(c.y) << 8) | q(c.z)
 }
 
-/// Et skilt på to stolper: tittel i 26 px, undertekst i 14 px.
-fn sign(b: &mut Builder, p: Vec3, yaw: f32, title: &str, sub: &str, w: f32) {
+/// Et skilt på to stolper: tittel i 26 px, undertekst i 14 px. Plata er så
+/// brei som teksten trenger (`min_w` er det minste), og stolpene står bak
+/// plata, aldri foran teksten.
+fn sign(b: &mut Builder, p: Vec3, yaw: f32, title: &str, sub: &str, min_w: f32) {
     let p = b.on_ground(p);
     let t = at(p, yaw);
+    let w = (b.font.width(title, 26.0) * 0.012).max(b.font.width(sub, 14.0) * 0.012) + 0.5;
+    let w = w.max(min_w);
     let m = &mut b.mesh;
-    for dx in [-w * 0.5 + 0.1, w * 0.5 - 0.1] {
-        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.75, 0.0))), Vec3::new(0.08, 1.9, 0.08), &OAK, 1.0);
+    for dx in [-w * 0.5 + 0.15, w * 0.5 - 0.15] {
+        m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.75, -0.07))), Vec3::new(0.08, 1.9, 0.08), &OAK, 1.0);
     }
     let board = Mat::tex(crate::domain::geometry::Layer::Oak, 0xffffff).tint(Vec3::new(0.5, 0.45, 0.38));
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, 1.45, 0.0))), Vec3::new(w, 0.5, 0.05), &board, 1.0);
@@ -88,10 +92,11 @@ fn bed(b: &mut Builder, from: Vec3, palette: &str) {
         label.transform(&(pt * Affine3A::from_translation(Vec3::Z * 0.008)));
         b.mesh.append(&label);
     }
-    // Palettens navn på en stolpe ved enden.
+    // Palettens navn på en plate ved enden; stolpen står bak plata, så den
+    // aldri går gjennom teksten (teksten på baksiden sitter ved siden av).
     let post = Vec3::new(c.x - len * 0.5 - 0.35, c.y, c.z);
     let m = &mut b.mesh;
-    m.cylinder(&Affine3A::from_translation(post), 0.03, 0.03, 1.0, 8, &IRON, false);
+    m.cylinder(&Affine3A::from_translation(post - Vec3::Z * 0.05), 0.03, 0.03, 1.08, 8, &IRON, false);
     let brass = Mat::plain(0xb8924a, 0.35).flags(flag::NO_DIRT);
     let pw = b.font.width(palette, 16.0) * 0.012 + 0.16;
     m.cuboid_ao(&Affine3A::from_translation(post + Vec3::new(0.0, 1.0, 0.0)), Vec3::new(pw, 0.22, 0.03), &brass, 1.0);

@@ -1,7 +1,8 @@
 //! `.fs-input`: e-postfeltet på søknadsskjemaet. F gir feltet tastaturfokus,
 //! så du skriver adressen selv; Enter eller F et annet sted avslutter. R
 //! bytter tilstand (standard, suksess, ugyldig, deaktivert) fram til
-//! «Send søknad» er trykket; da følger tilstanden valideringen.
+//! «Send søknad» er trykket; da følger tilstanden valideringen. Feltet er
+//! ark fra Fristils CSS, ett per tilstand; det du skriver legges oppå.
 
 use super::form::{self, COL_W, ERROR_TOPS, FIELD_H, INPUT_TOP, LEFT};
 use super::signs;
@@ -24,7 +25,7 @@ pub struct Input {
     editing: bool,
     /// Bredden på det som er skrevet, i px, til markøren.
     width: f32,
-    field: usize,
+    fields: [usize; 4],
     placeholder: usize,
     text: usize,
     caret: usize,
@@ -54,7 +55,16 @@ fn text_x() -> f32 {
     -COL_W * 0.5 + 12.0
 }
 fn baseline() -> Vec3 {
-    Vec3::new(text_x() * PX, -0.36 * 16.0 * PX, 0.025)
+    Vec3::new(text_x() * PX, -0.36 * 16.0 * PX, 0.03)
+}
+
+fn surface(v: &str) -> u8 {
+    match v {
+        "success" => slot::SUCCESS_SURFACE,
+        "invalid" => slot::DANGER_SURFACE,
+        "disabled" => slot::NEUTRAL_RAISED,
+        _ => slot::NEUTRAL_CANVAS,
+    }
 }
 
 impl Installation for Input {
@@ -79,9 +89,11 @@ impl Installation for Input {
         let cx = LEFT + COL_W * 0.5;
         let cy = INPUT_TOP - FIELD_H * 0.5;
         let rest = form::on_sheet(cx, cy, 0.035);
-        let mut m = Mesh::default();
-        form::field(&mut m, COL_W, FIELD_H, INPUT_FILL, INPUT_BORDER);
-        self.field = b.prop("input", m, rest, Some((Vec3::ZERO, Vec3::new(COL_W * PX * 0.5, FIELD_H * PX * 0.5, 0.04))));
+        for (k, v) in VARIANTS.iter().enumerate() {
+            let mut m = Mesh::default();
+            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("input:{v}"), Vec3::ZERO, 0.02, 4.0, surface(v));
+            self.fields[k] = b.prop("input", m, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.04))));
+        }
         let mut ph = Mesh::default();
         signs::text_left(&mut ph, b.font, PLACEHOLDER, baseline(), 16.0, slot::NEUTRAL_TEXT_SUBTLE);
         self.placeholder = b.prop("input_placeholder", ph, rest, None);
@@ -89,7 +101,7 @@ impl Installation for Input {
         self.text = b.prop("input_value", Mesh::default(), rest, None);
         let mut caret = Mesh::default();
         caret.cuboid(&Affine3A::IDENTITY, Vec3::new(1.5 * PX, 20.0 * PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(slot::NEUTRAL_TEXT_STRONG).flags(flag::NO_DIRT | flag::NO_WEATHER));
-        self.caret = b.prop("input_caret", caret, rest * Affine3A::from_translation(Vec3::new(text_x() * PX, 0.0, 0.025)), None);
+        self.caret = b.prop("input_caret", caret, rest * Affine3A::from_translation(Vec3::new(text_x() * PX, 0.0, 0.03)), None);
         self.error = form::error_text(b, "Skriv en e-postadresse med krøllalfa og punktum.", LEFT, ERROR_TOPS[0]);
     }
 
@@ -134,6 +146,9 @@ impl Installation for Input {
     fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
         let show = |on: bool| if on { rest } else { rest * hidden };
+        if let Some(k) = self.fields.iter().position(|p| *p == prop) {
+            return (show(k == self.variant), [0.0; 4]);
+        }
         if prop == self.placeholder {
             return (show(self.value.is_empty() && !self.editing), [0.0; 4]);
         }
@@ -151,20 +166,11 @@ impl Installation for Input {
         (rest, [0.0; 4])
     }
 
+    /// Tekstfargen i feltet følger tilstanden (deaktivert er dempet).
     fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
         let c = |n: &str| tokens.blend(n, night);
-        let (fill, border, text) = match VARIANTS[self.variant] {
-            "success" => (c("success-surface"), c("success-text"), c("neutral-text-strong")),
-            "invalid" => (c("danger-surface"), c("danger-text"), c("neutral-text-strong")),
-            "disabled" => (c("neutral-raised"), c("neutral-raised"), c("neutral-border")),
-            _ => (c("neutral-canvas"), c("neutral-border"), c("neutral-text-strong")),
-        };
-        p[INPUT_FILL as usize] = fill;
-        p[INPUT_BORDER as usize] = border;
-        p[INPUT_TEXT as usize] = text;
+        p[INPUT_TEXT as usize] = if VARIANTS[self.variant] == "disabled" { c("neutral-border") } else { c("neutral-text-strong") };
     }
 }
 
-pub const INPUT_FILL: u8 = slot::INPUT_FILL;
-pub const INPUT_BORDER: u8 = slot::INPUT_BORDER;
 pub const INPUT_TEXT: u8 = slot::INPUT_TEXT;

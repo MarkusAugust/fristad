@@ -74,7 +74,7 @@ impl Installation for Button {
             }
             // Ring å dra i.
             m.torus(&(Affine3A::from_translation(Vec3::new(dir * (door_w - 0.4), 1.6, 0.2)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2)), 0.12, 0.02, 14, 6, &IRON);
-            self.doors[k] = b.prop(name, m, Affine3A::from_translation(Vec3::new(hinge_x, 0.0, z - 1.0)), Some((Vec3::new(cx, door_h * 0.5, 0.0), Vec3::new(door_w * 0.5, door_h * 0.5, 0.12))));
+            self.doors[k] = b.prop_part(name, m, Affine3A::from_translation(Vec3::new(hinge_x, 0.0, z - 1.0)), Some((Vec3::new(cx, door_h * 0.5, 0.0), Vec3::new(door_w * 0.5, door_h * 0.5, 0.12))));
         }
 
         // Knappen: `.fs-button` rendret fra CSS-en, ett ark per variant,

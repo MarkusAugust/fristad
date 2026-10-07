@@ -1,14 +1,13 @@
 //! `.fs-checkbox`: avkryssingsboksene på søknadsskjemaet. F krysser av
 //! den første, R bytter tilstand (standard, ugyldig, deaktivert, ubestemt).
+//! Boksene er ark fra Fristils CSS, ett per tilstand og av/på.
 
 use super::form::{self, CHECK_ROWS, ERROR_TOPS, RIGHT};
-use super::signs::{self, Box2};
+use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
-use crate::domain::geometry::{flag, Mat, Mesh};
+use crate::domain::geometry::Mesh;
 use crate::domain::palette::slot;
-use crate::domain::scene::PALETTE;
-use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 4] = ["default", "invalid", "disabled", "indeterminate"];
@@ -18,22 +17,10 @@ const SIZE: f32 = 20.0;
 pub struct Checkbox {
     variant: usize,
     checked: bool,
-    unchecked: usize,
-    checked_box: usize,
-    dash: usize,    error: usize,
-}
-
-/// Boksen: 20 px, 1 px kant, radius 4.
-fn boxed(m: &mut Mesh, fill: u8, border: u8) {
-    signs::boxed(m, Vec3::ZERO, &Box2 { w: SIZE, h: SIZE, radius: 4.0, fill, border: Some(border), depth: 0.02 });
-}
-
-/// Haken: to streker i aksentens innholdsfarge.
-fn check(m: &mut Mesh, color: u8) {
-    let mat = Mat::plain(0xffffff, 0.5).slot(color).flags(flag::NO_DIRT | flag::NO_WEATHER);
-    // Kort strek ned mot høyre, lang strek opp mot høyre.
-    m.cuboid(&(Affine3A::from_translation(Vec3::new(-3.6 * PX, -0.6 * PX, 0.025)) * Affine3A::from_rotation_z(-0.785)), Vec3::new(6.0 * PX, 2.2 * PX, 0.01), &mat);
-    m.cuboid(&(Affine3A::from_translation(Vec3::new(1.8 * PX, 0.8 * PX, 0.025)) * Affine3A::from_rotation_z(0.785)), Vec3::new(10.5 * PX, 2.2 * PX, 0.01), &mat);
+    /// [tilstand default/invalid/disabled][av, på], og den ubestemte.
+    boxes: [[usize; 2]; 3],
+    dash: usize,
+    error: usize,
 }
 
 impl Installation for Checkbox {
@@ -56,24 +43,22 @@ impl Installation for Checkbox {
     fn build(&mut self, b: &mut Builder) {
         form::office(b);
         let cx = RIGHT + SIZE * 0.5;
-        // Den første raden: tre utgaver av boksen, én vises.
         let rest = form::on_sheet(cx, CHECK_ROWS[0] - 12.0, 0.035);
-        let mut off = Mesh::default();
-        boxed(&mut off, CHECK_FILL, CHECK_BORDER);
-        self.unchecked = b.prop("checkbox", off, rest, Some((Vec3::ZERO, Vec3::new(SIZE * PX * 0.5 + 0.02, SIZE * PX * 0.5 + 0.02, 0.04))));
-        let mut on = Mesh::default();
-        boxed(&mut on, CHECK_ON, CHECK_ON);
-        check(&mut on, CHECK_MARK);
-        self.checked_box = b.prop("checkbox_checked", on, rest, None);
+        let collider = Some((Vec3::ZERO, Vec3::new(SIZE * PX * 0.5 + 0.02, SIZE * PX * 0.5 + 0.02, 0.04)));
+        for (v, name) in ["default", "invalid", "disabled"].iter().enumerate() {
+            for (s, state) in ["off", "on"].iter().enumerate() {
+                let mut m = Mesh::default();
+                signs::sheet(&mut m, b.sheets, &format!("checkbox:{name}:{state}"), Vec3::ZERO, 0.02, 4.0, if *name == "disabled" { slot::NEUTRAL_RAISED } else { slot::NEUTRAL_CANVAS });
+                self.boxes[v][s] = b.prop("checkbox", m, rest, collider);
+            }
+        }
         let mut ind = Mesh::default();
-        boxed(&mut ind, CHECK_ON, CHECK_ON);
-        ind.cuboid(&Affine3A::from_translation(Vec3::new(0.0, 0.0, 0.025)), Vec3::new(10.0 * PX, 2.2 * PX, 0.01), &Mat::plain(0xffffff, 0.5).slot(CHECK_MARK).flags(flag::NO_DIRT | flag::NO_WEATHER));
-        self.dash = b.prop("checkbox_indeterminate", ind, rest, None);
+        signs::sheet(&mut ind, b.sheets, "checkbox:indeterminate", Vec3::ZERO, 0.02, 4.0, slot::NEUTRAL_CANVAS);
+        self.dash = b.prop("checkbox", ind, rest, collider);
         self.error = form::error_text(b, "Du må godta vilkårene for å sende søknaden.", RIGHT, ERROR_TOPS[3]);
-        // Den andre raden står avkrysset.
+        // Den andre raden står avkrysset, som en kulisse.
         let mut row2 = Mesh::default();
-        boxed(&mut row2, slot::ACCENT_FILL, slot::ACCENT_FILL);
-        check(&mut row2, slot::ACCENT_CONTENT);
+        signs::sheet(&mut row2, b.sheets, "checkbox:default:on", Vec3::ZERO, 0.02, 4.0, slot::NEUTRAL_CANVAS);
         row2.transform(&form::on_sheet(cx, CHECK_ROWS[1] - 12.0, 0.035));
         b.mesh.append(&row2);
     }
@@ -94,38 +79,23 @@ impl Installation for Checkbox {
 
     fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
-        let indeterminate = self.variant == 3 && !self.checked;
         let show = |on: bool| if on { rest } else { rest * hidden };
         if prop == self.error {
             return (show(env.form.submitted && env.form.errors[3]), [0.0; 4]);
         }
-        if prop == self.unchecked {
-            return (show(!self.checked && !indeterminate), [0.0; 4]);
-        }
-        if prop == self.checked_box {
-            return (show(self.checked), [0.0; 4]);
-        }
+        // Ubestemt: egen boks til den krysses av; ellers tilstandens av/på.
+        let indeterminate = self.variant == 3 && !self.checked;
         if prop == self.dash {
             return (show(indeterminate), [0.0; 4]);
         }
+        let state = if self.variant == 3 { 0 } else { self.variant };
+        for v in 0..3 {
+            for s in 0..2 {
+                if prop == self.boxes[v][s] {
+                    return (show(!indeterminate && v == state && (s == 1) == self.checked), [0.0; 4]);
+                }
+            }
+        }
         (rest, [0.0; 4])
     }
-
-    fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
-        let c = |n: &str| tokens.blend(n, night);
-        let (fill, border, on, mark) = match VARIANTS[self.variant] {
-            "invalid" => (c("neutral-canvas"), c("danger-text"), c("accent-fill"), c("accent-content")),
-            "disabled" => (c("neutral-raised"), c("neutral-raised"), c("neutral-border"), c("neutral-canvas")),
-            _ => (c("neutral-canvas"), c("neutral-border"), c("accent-fill"), c("accent-content")),
-        };
-        p[CHECK_FILL as usize] = fill;
-        p[CHECK_BORDER as usize] = border;
-        p[CHECK_ON as usize] = on;
-        p[CHECK_MARK as usize] = mark;
-    }
 }
-
-pub const CHECK_FILL: u8 = slot::CHECK_FILL;
-pub const CHECK_BORDER: u8 = slot::CHECK_BORDER;
-pub const CHECK_ON: u8 = slot::CHECK_ON;
-pub const CHECK_MARK: u8 = slot::CHECK_MARK;

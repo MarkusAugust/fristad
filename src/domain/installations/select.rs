@@ -1,12 +1,13 @@
 //! `.fs-select`: fylkesvelgeren på søknadsskjemaet. F åpner lista, og
 //! neste F velger neste fylke og lukker den. R bytter tilstand fram til
 //! «Send søknad» er trykket; da er den ugyldig til et fylke er valgt.
+//! Feltet og lista er ark fra Fristils CSS, ett felt per tilstand.
 
 use super::form::{self, COL_W, ERROR_TOPS, FIELD_H, LEFT, SELECT_TOP};
 use super::signs::{self, Box2};
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::Builder;
-use crate::domain::geometry::{flag, Mat, Mesh};
+use crate::domain::geometry::Mesh;
 use crate::domain::palette::slot;
 use crate::domain::scene::PALETTE;
 use crate::domain::tokens::Tokens;
@@ -22,11 +23,19 @@ pub struct Select {
     selected: usize,
     open: bool,
     t: f32,
-    field: usize,
+    fields: [usize; 3],
     values: [usize; 4],
     list: usize,
     highlight: [usize; 4],
     error: usize,
+}
+
+fn surface(v: &str) -> u8 {
+    match v {
+        "invalid" => slot::DANGER_SURFACE,
+        "disabled" => slot::NEUTRAL_RAISED,
+        _ => slot::NEUTRAL_CANVAS,
+    }
 }
 
 impl Installation for Select {
@@ -53,32 +62,28 @@ impl Installation for Select {
         let cx = LEFT + COL_W * 0.5;
         let cy = SELECT_TOP - FIELD_H * 0.5;
         let rest = form::on_sheet(cx, cy, 0.035);
-        let mut m = Mesh::default();
-        form::field(&mut m, COL_W, FIELD_H, SELECT_FILL, SELECT_BORDER);
-        // Pila: to streker som danner en vinkel ned, 1 rem fra høyre kant.
-        let arrow = Mat::plain(0xffffff, 0.5).slot(slot::NEUTRAL_TEXT_SUBTLE).flags(flag::NO_DIRT | flag::NO_WEATHER);
-        let ax = COL_W * 0.5 - 16.0 - 5.0;
-        for sign in [-1.0f32, 1.0] {
-            let r = Affine3A::from_rotation_z(sign * 0.785);
-            m.cuboid(&(Affine3A::from_translation(Vec3::new((ax + sign * 2.8) * PX, 1.0 * PX, 0.025)) * r), Vec3::new(8.0 * PX, 2.0 * PX, 0.01), &arrow);
+        for (k, v) in VARIANTS.iter().enumerate() {
+            let mut m = Mesh::default();
+            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("select:{v}"), Vec3::ZERO, 0.02, 4.0, surface(v));
+            self.fields[k] = b.prop("select", m, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.04))));
         }
-        self.field = b.prop("select", m, rest, Some((Vec3::ZERO, Vec3::new(COL_W * PX * 0.5, FIELD_H * PX * 0.5, 0.04))));
+        // Arket viser «Velg fylke»; de andre verdiene legges oppå når de velges.
         let text_x = -COL_W * 0.5 + 12.0;
-        let baseline = Vec3::new(text_x * PX, -0.36 * 16.0 * PX, 0.025);
+        let baseline = Vec3::new(text_x * PX, -0.36 * 16.0 * PX, 0.03);
         for (k, o) in OPTIONS.iter().enumerate() {
             let mut tm = Mesh::default();
-            signs::text_left(&mut tm, b.font, o, baseline, 16.0, SELECT_TEXT);
+            if k > 0 {
+                // Dekker arkets egen tekst med feltets farge før verdien.
+                signs::boxed(&mut tm, Vec3::new((text_x + 60.0) * PX, 0.0, 0.028), &Box2 { w: 130.0, h: 24.0, radius: 0.0, fill: slot::NEUTRAL_CANVAS, border: None, depth: 0.002 });
+                signs::text_left(&mut tm, b.font, o, baseline, 16.0, SELECT_TEXT);
+            }
             self.values[k] = b.prop("select_value", tm, rest, None);
         }
         // Lista som åpner seg under feltet: origo i overkanten, så den kan
         // foldes ut i høyden.
-        let lh = OPTIONS.len() as f32 * ROW_H + 8.0;
         let mut list = Mesh::default();
-        signs::boxed(&mut list, Vec3::new(0.0, -lh * PX * 0.5, 0.0), &Box2 { w: COL_W, h: lh, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER), depth: 0.03 });
-        for (k, o) in OPTIONS.iter().enumerate() {
-            let y = -4.0 - ROW_H * (k as f32 + 0.5);
-            signs::text_left(&mut list, b.font, o, Vec3::new(text_x * PX, (y - 0.36 * 16.0) * PX, 0.04), 16.0, slot::NEUTRAL_TEXT_STRONG);
-        }
+        let lh = b.sheets.sheet("select:list").h;
+        signs::sheet(&mut list, b.sheets, "select:list", Vec3::new(0.0, -lh * PX * 0.5, 0.0), 0.03, 4.0, slot::NEUTRAL_CANVAS);
         let list_rest = rest * Affine3A::from_translation(Vec3::new(0.0, (-FIELD_H * 0.5 - 4.0) * PX, 0.03));
         self.list = b.prop("select_list", list, list_rest, None);
         for k in 0..OPTIONS.len() {
@@ -113,6 +118,9 @@ impl Installation for Select {
 
     fn pose(&self, prop: usize, rest: Affine3A, env: &Env) -> (Affine3A, [f32; 4]) {
         let hidden = Affine3A::from_scale(Vec3::splat(0.0001));
+        if let Some(k) = self.fields.iter().position(|p| *p == prop) {
+            return (if k == self.variant { rest } else { rest * hidden }, [0.0; 4]);
+        }
         if prop == self.error {
             return (if env.form.submitted && env.form.errors[1] { rest } else { rest * hidden }, [0.0; 4]);
         }
@@ -136,17 +144,8 @@ impl Installation for Select {
 
     fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
         let c = |n: &str| tokens.blend(n, night);
-        let (fill, border, text) = match VARIANTS[self.variant] {
-            "invalid" => (c("danger-surface"), c("danger-text"), c("neutral-text-strong")),
-            "disabled" => (c("neutral-raised"), c("neutral-raised"), c("neutral-border")),
-            _ => (c("neutral-canvas"), c("neutral-border"), c("neutral-text-strong")),
-        };
-        p[SELECT_FILL as usize] = fill;
-        p[SELECT_BORDER as usize] = border;
-        p[SELECT_TEXT as usize] = text;
+        p[SELECT_TEXT as usize] = if VARIANTS[self.variant] == "disabled" { c("neutral-border") } else { c("neutral-text-strong") };
     }
 }
 
-pub const SELECT_FILL: u8 = slot::SELECT_FILL;
-pub const SELECT_BORDER: u8 = slot::SELECT_BORDER;
 pub const SELECT_TEXT: u8 = slot::SELECT_TEXT;

@@ -7,17 +7,30 @@ export const SHEETS = [
   { id: "button:secondary", html: '<button class="fs-button" data-variant="secondary" type="button">Åpne porten</button>' },
   { id: "button:ghost", html: '<button class="fs-button" data-variant="ghost" type="button">Åpne porten</button>' },
   { id: "button:danger", html: '<button class="fs-button" data-variant="danger" type="button">Åpne porten</button>' },
-  { id: "button:submit", html: '<button class="fs-button" type="button">Send søknad</button>' },
+  // Sendeknappen på skjemaet er også en .fs-button, med de samme variantene.
+  ...[["primary", ""], ["secondary", ' data-variant="secondary"'], ["ghost", ' data-variant="ghost"'], ["danger", ' data-variant="danger"']].map(([v, a]) => ({
+    id: `submit:${v}`,
+    html: `<button class="fs-button"${a} type="button">Send søknad</button>`,
+  })),
   { id: "button:search", html: '<button class="fs-button" type="button">Søk</button>' },
+  { id: "button:upload", html: '<button class="fs-button" data-variant="secondary" type="button">Last opp vedlegg</button>' },
   // Badge: tavla og gateskiltene.
   ...["accent", "success", "warning", "danger", "neutral"].flatMap((c) =>
     [["Under behandling", "behandling"], ["Innvilget", "innvilget"], ["Mangler vedlegg", "mangler"], ["Avslått", "avslatt"], ["Arkivert", "arkivert"]].map(([t, k]) => ({
       id: `badge:${c}:${k}`,
       html: `<span class="fs-badge"${c === "accent" ? "" : ` data-color="${c}"`}>${t}</span>`,
     }))),
-  ...["Nordgata", "Sørgata", "Østre gate", "Vestre gate"].map((n) => ({ id: `sign:${n}`, html: `<span class="fs-badge">${n}</span>`, zoom: 3 })),
-  // Veiviserne ut av byen: lenker til stedene utenfor, med avstand.
-  ...[["Linelord", "12 km"], ["Streamlord", "7 km"], ["Cobble", "3 km"], ["Fristad", "1 km"]].map(([n, d]) => ({ id: `place:${n}`, html: `<a class="fs-link" href="#">${n}</a><span style="margin-left:12px;color:var(--fs-color-neutral-text-subtle)">${d}</span>`, zoom: 2 })),
+  // Gateskiltene: badgen i alle fem fargene, forstørret tre ganger.
+  ...["Nordgata", "Sørgata", "Østre gate", "Vestre gate"].flatMap((n) =>
+    ["accent", "success", "warning", "danger", "neutral"].map((c) => ({ id: `sign:${n}:${c}`, html: `<span class="fs-badge"${c === "accent" ? "" : ` data-color="${c}"`}>${n}</span>`, zoom: 3 }))),
+  // Veiviserne ut av byen: lenker til stedene utenfor, med avstand, i
+  // lenkas tre tilstander (samme varianter som link).
+  ...[["Linelord", "12 km"], ["Streamlord", "7 km"], ["Cobble", "3 km"], ["Fristad", "1 km"]].flatMap(([n, d]) =>
+    [["default", ""], ["visited", ""], ["disabled", ' aria-disabled="true"']].map(([v, a]) => ({
+      id: `place:${n}:${v}`,
+      html: `<a class="fs-link${v === "visited" ? " fs-link--visited" : ""}" href="#"${a}>${n}</a><span style="margin-left:12px;color:var(--fs-color-neutral-text-subtle)">${d}</span>`,
+      zoom: 2,
+    }))),
   // Tag.
   ...["Bostøtte", "Barnehage", "Arkivert", "Innvilget", "Klage"].flatMap((t) => [
     { id: `tag:default:${t}`, html: `<span class="fs-tag">${t}</span>` },
@@ -97,6 +110,8 @@ export const SHEETS = [
   ...[["default", ""], ["plain", ' data-variant="plain"']].flatMap(([v, a]) => [
     { id: `accordion:${v}:closed`, html: `<details class="fs-accordion"${a} style="width:360px"><summary>Hvem kan søke om bostøtte?</summary><div class="fs-accordion__content"><p>Alle som bor og er folkeregistrert i boligen kan søke.</p></div></details>` },
     { id: `accordion:${v}:open`, html: `<details class="fs-accordion"${a} open style="width:360px"><summary>Hvem kan søke om bostøtte?</summary><div class="fs-accordion__content"><p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p></div></details>` },
+    // Det andre panelet i skapet, lukket.
+    { id: `accordion2:${v}:closed`, html: `<details class="fs-accordion"${a} style="width:360px"><summary>Hvor lang er behandlingstiden?</summary><div class="fs-accordion__content"><p>Vi behandler søknaden innen tre uker.</p></div></details>` },
   ]),
   // Table.
   ...[["default", ""], ["striped", ' data-variant="striped"'], ["hoverable", " data-hoverable"]].map(([v, a]) => ({

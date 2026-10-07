@@ -41,6 +41,9 @@ pub enum Shape {
 /// Noe i byen som flytter seg eller kan siktes på: knapper, dører, brytere.
 pub struct Prop {
     pub name: &'static str,
+    /// En bevegelig del (portdør, fanedør) som installasjonen poserer, men
+    /// som ikke er komponenten: kan ikke siktes på, og testene hopper over den.
+    pub part: bool,
     pub mesh: Mesh,
     /// Hvor den står i ro.
     pub rest: Affine3A,
@@ -121,8 +124,16 @@ pub struct Builder<'a> {
 
 impl Builder<'_> {
     pub fn prop(&mut self, name: &'static str, mesh: Mesh, rest: Affine3A, collider: Option<(Vec3, Vec3)>) -> usize {
-        self.props.push(Prop { name, mesh, rest, collider, owner: self.owner });
+        self.props.push(Prop { name, part: false, mesh, rest, collider, owner: self.owner });
         self.props.len() - 1
+    }
+
+    /// En bevegelig del av en installasjon (dører): poseres av den, men er
+    /// ikke komponenten, så den kan ikke siktes på.
+    pub fn prop_part(&mut self, name: &'static str, mesh: Mesh, rest: Affine3A, collider: Option<(Vec3, Vec3)>) -> usize {
+        let i = self.prop(name, mesh, rest, collider);
+        self.props[i].part = true;
+        i
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {

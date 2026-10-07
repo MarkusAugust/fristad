@@ -16,13 +16,26 @@ struct VsOut {
 
 const BOX: vec3<f32> = vec3<f32>(28.0, 16.0, 28.0);
 
+/// Heltallshash (lowbias32) til 0..1.
+fn ihash(x: u32) -> f32 {
+    var h = x;
+    h ^= h >> 16u;
+    h *= 0x7feb352du;
+    h ^= h >> 15u;
+    h *= 0x846ca68bu;
+    h ^= h >> 16u;
+    return f32(h & 0xffffffu) / 16777216.0;
+}
+
 @vertex
 fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VsOut {
     let snow = pass_u.params.x > 0.5;
     let fi = f32(ii);
-    let h1 = hash21(vec2<f32>(fi, 1.0));
-    let h2 = hash21(vec2<f32>(fi, 2.0));
-    let h3 = hash21(vec2<f32>(fi, 3.0));
+    // Heltallshash per flak: den flyttallsbaserte hash21 på en tellende
+    // indeks ga et gitter, og snøen falt i firkantede klumper.
+    let h1 = ihash(ii * 4u + 1u);
+    let h2 = ihash(ii * 4u + 2u);
+    let h3 = ihash(ii * 4u + 3u);
     let t = g.camera.w;
     let wind = g.jitter.w;
     var speed = 9.0 + h3 * 3.0;
@@ -30,7 +43,7 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VsOut
         speed = 0.9 + h3 * 0.6;
     }
     // Fall: y går nedover med tida, og brettes inn i boksen.
-    var p = vec3<f32>(h1 * BOX.x, h2 * BOX.y, hash21(vec2<f32>(fi, 4.0)) * BOX.z);
+    var p = vec3<f32>(h1 * BOX.x, h2 * BOX.y, ihash(ii * 4u) * BOX.z);
     p.y = BOX.y - fract((p.y / BOX.y) + t * speed / BOX.y) * BOX.y;
     var drift = vec3<f32>(wind * 2.0, 0.0, wind * 0.6) * (p.y / speed);
     if (snow) {

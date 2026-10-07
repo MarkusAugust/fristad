@@ -1,14 +1,12 @@
 //! `.fs-divider`: oppslaget på østveggen av søknadskontoret, der fire
-//! avsnitt skilles med linjer: vanlig, sterk og svak. R bytter variant på
-//! den første.
+//! avsnitt skilles med linjer. R bytter variant på den første (vanlig,
+//! sterk, svak); linjene er ark fra Fristils CSS.
 
 use super::signs::{self, Box2};
 use super::{Component, Env, Installation, PX};
 use crate::domain::city::{at, Builder, OAK};
-use crate::domain::geometry::{flag, Mat, Mesh};
+use crate::domain::geometry::Mesh;
 use crate::domain::palette::slot;
-use crate::domain::scene::PALETTE;
-use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
 pub const VARIANTS: [&str; 3] = ["default", "strong", "subtle"];
@@ -20,6 +18,7 @@ const LINES: [&str; 4] = ["Saken er registrert.", "Du får svar innen tre uker."
 #[derive(Default)]
 pub struct Divider {
     variant: usize,
+    first: [usize; 3],
 }
 
 impl Installation for Divider {
@@ -46,33 +45,34 @@ impl Installation for Divider {
         // Avsnitt på 24 px, med 16 px marg over og under hver linje (33 px i alt).
         let left = -bw * 0.5 + 16.0;
         let mut top = bh * 0.5 - 16.0;
-        let slots = [DIVIDER_FIRST, slot::NEUTRAL_BORDER, slot::NEUTRAL_SURFACE];
+        let rest = t * Affine3A::from_translation(Vec3::new(0.0, 2.1, 0.03));
+        let mut line_ys = vec![];
         for (k, line) in LINES.iter().enumerate() {
             signs::paragraph(&mut board, b.font, &[line], left, top, 16.0, 1.5, 0.03, slot::NEUTRAL_TEXT_STRONG);
             top -= 24.0;
             if k < 3 {
-                let y = top - 16.0;
-                board.cuboid(&Affine3A::from_translation(Vec3::new(0.0, y * PX, 0.03)), Vec3::new((bw - 32.0) * PX, 1.0 * PX, 0.006), &Mat::plain(0xffffff, 0.5).slot(slots[k]).flags(flag::NO_DIRT | flag::NO_WEATHER));
+                line_ys.push(top - 16.0);
                 top -= 33.0;
             }
         }
-        let rest = t * Affine3A::from_translation(Vec3::new(0.0, 2.1, 0.03));
+        // Den første linja i alle tre variantene (bare den valgte vises), de
+        // to andre faste: sterk og svak, som i dokumentasjonen.
+        for (k, v) in VARIANTS.iter().enumerate() {
+            let mut m = Mesh::default();
+            signs::sheet(&mut m, b.sheets, &format!("divider:{v}"), Vec3::ZERO, 0.01, 0.0, slot::NEUTRAL_CANVAS);
+            self.first[k] = b.prop("divider_line", m, rest * Affine3A::from_translation(Vec3::new(0.0, line_ys[0] * PX, 0.03)), None);
+        }
+        for (k, v) in ["strong", "subtle"].iter().enumerate() {
+            signs::sheet(&mut board, b.sheets, &format!("divider:{v}"), Vec3::new(0.0, line_ys[k + 1] * PX, 0.03), 0.01, 0.0, slot::NEUTRAL_CANVAS);
+        }
         let _ = b.prop("divider", board, rest, Some((Vec3::ZERO, Vec3::new(bw * PX * 0.5, bh * PX * 0.5, 0.05))));
         b.solid_box(p + Vec3::Y * 2.1, Vec3::new(0.1, bh * PX, bw * PX), YAW);
     }
 
-    fn pose(&self, _prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+        if let Some(k) = self.first.iter().position(|p| *p == prop) {
+            return (if k == self.variant { rest } else { rest * Affine3A::from_scale(Vec3::splat(0.0001)) }, [0.0; 4]);
+        }
         (rest, [0.0; 4])
     }
-
-    fn palette(&self, tokens: &Tokens, night: f32, p: &mut [Vec3; PALETTE]) {
-        let c = |n: &str| tokens.blend(n, night);
-        p[DIVIDER_FIRST as usize] = match VARIANTS[self.variant] {
-            "strong" => c("neutral-border-strong"),
-            "subtle" => c("neutral-surface"),
-            _ => c("neutral-border-subtle"),
-        };
-    }
 }
-
-pub const DIVIDER_FIRST: u8 = slot::DIVIDER_FIRST;

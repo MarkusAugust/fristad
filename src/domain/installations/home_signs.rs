@@ -1,14 +1,16 @@
-//! «Torget»-skiltene: lenker (`.fs-link`) på stolper utenfor torget, ved
-//! Tårnene, Tokenparken, Verkstedet, søknadskontoret og infotavlene i vest.
-//! F på et skilt tar deg med flytur tilbake til torget.
+//! «Torget»-skiltene og veiviserne ut av byen: lenker (`.fs-link`) på
+//! stolper. F på et «Torget»-skilt tar deg med flytur tilbake til torget;
+//! veiviserne til Linelord, Cobble og Streamlord peker ut i landskapet.
+//! Lenka har de samme tre tilstandene som veiviseren på torget (link.rs):
+//! vanlig, besøkt og deaktivert, rendret fra Fristils CSS som egne ark.
 
+use super::link::VARIANTS;
 use super::signs;
 use super::{Action, Component, Env, Installation, PX};
 use crate::domain::city::{at, Builder, OAK, SPAWN, SPAWN_YAW};
-use crate::domain::geometry::{flag, Mat, Mesh};
+use crate::domain::geometry::Mesh;
 use crate::domain::palette::slot;
 use glam::{Affine3A, Vec3};
-
 use std::f32::consts::{FRAC_PI_2, PI};
 
 /// Skiltene: hvor de står, og hvilken vei de vender (yaw). De står i
@@ -45,13 +47,30 @@ fn places() -> [(&'static str, Vec3, f32); 3] {
 
 #[derive(Default)]
 pub struct HomeSigns {
-    arms: Vec<usize>,
-    places: Vec<usize>,
+    variant: usize,
+    /// Én prop per variant for hvert skilt; posen gjemmer de andre.
+    arms: Vec<[usize; 3]>,
+    places: Vec<[usize; 3]>,
+}
+
+impl HomeSigns {
+    fn hidden() -> Affine3A {
+        Affine3A::from_scale(Vec3::splat(0.0001))
+    }
 }
 
 impl Installation for HomeSigns {
     fn component(&self) -> Component {
         Component { name: "link", class: ".fs-link" }
+    }
+    fn variants(&self) -> &'static [&'static str] {
+        &VARIANTS
+    }
+    fn variant(&self) -> usize {
+        self.variant
+    }
+    fn set_variant(&mut self, i: usize) {
+        self.variant = i % VARIANTS.len();
     }
     fn usable(&self) -> bool {
         true
@@ -61,26 +80,24 @@ impl Installation for HomeSigns {
         for (pos, yaw) in SIGNS {
             let p = b.on_ground(pos);
             let t = at(p, yaw);
-            let m = &mut b.mesh;
-            m.cylinder(&Affine3A::from_translation(p - Vec3::Y * 0.4), 0.06, 0.05, 2.7, 8, &OAK, true);
+            b.mesh.cylinder(&Affine3A::from_translation(p - Vec3::Y * 0.4), 0.06, 0.05, 2.7, 8, &OAK, true);
             b.solid_box(p + Vec3::Y * 1.2, Vec3::new(0.2, 2.4, 0.2), 0.0);
-            // Plakaten: canvas med kant, lenka «Torget» med understrek, og
-            // avstanden under i dempet tekst.
+            // Plakaten: lenka «Torget» fra arket, og avstanden under i
+            // dempet tekst, på en canvasplate.
             let dist = ((SPAWN.x - pos.x).powi(2) + (SPAWN.z - pos.z).powi(2)).sqrt();
-            let label = "Torget";
             let sub = format!("{} m, F for å fly dit", (dist / 10.0).round() as i32 * 10);
-            let w = (signs::width(b.font, &sub, 12.0) / PX).max(signs::width(b.font, label, 20.0) / PX) + 32.0;
-            let h = 78.0;
-            let mut arm = Mesh::default();
-            signs::boxed(&mut arm, Vec3::ZERO, &signs::Box2 { w, h, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });
-            let tw = signs::width(b.font, label, 20.0) / PX;
-            let lx = -w * 0.5 + 16.0;
-            signs::text_left(&mut arm, b.font, label, Vec3::new(lx * PX, 10.0 * PX, 0.02), 20.0, slot::ACCENT_TEXT);
-            arm.cuboid(&Affine3A::from_translation(Vec3::new((lx + tw * 0.5) * PX, (10.0 - 0.14 * 20.0 - 1.0) * PX, 0.02)), Vec3::new(tw * PX, 1.6 * PX, 0.004), &Mat::plain(0xffffff, 0.5).slot(slot::ACCENT_TEXT).flags(flag::NO_DIRT | flag::NO_WEATHER));
-            signs::text_left(&mut arm, b.font, &sub, Vec3::new(lx * PX, -18.0 * PX, 0.02), 12.0, slot::NEUTRAL_TEXT_SUBTLE);
-            let rest = t * Affine3A::from_translation(Vec3::new(0.0, 1.9, 0.07));
-            let id = b.prop("link", arm, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.05))));
-            self.arms.push(id);
+            let mut ids = [0usize; 3];
+            for (k, v) in VARIANTS.iter().enumerate() {
+                let mut arm = Mesh::default();
+                let (lw, lh) = signs::sheet(&mut arm, b.sheets, &format!("link:{v}:Torget"), Vec3::new(0.0, 14.0 * PX, 0.0), 0.03, 2.0, slot::NEUTRAL_CANVAS);
+                let w = (signs::width(b.font, &sub, 12.0) / PX).max(lw) + 32.0;
+                let h = lh + 16.0 + 12.0 + 24.0;
+                signs::boxed(&mut arm, Vec3::new(0.0, 0.0, -0.02), &signs::Box2 { w, h, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });
+                signs::text(&mut arm, b.font, &sub, Vec3::new(0.0, -h * 0.5 * PX + 16.0 * PX, 0.0), 12.0, slot::NEUTRAL_TEXT_SUBTLE);
+                let rest = t * Affine3A::from_translation(Vec3::new(0.0, 1.9, 0.08));
+                ids[k] = b.prop("link", arm, rest, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5, h * PX * 0.5, 0.05))));
+            }
+            self.arms.push(ids);
         }
         // Veiviserne ut av byen: lenka med avstanden, rendret fra CSS-en,
         // på en stolpe der gata går over i grusveien.
@@ -89,13 +106,16 @@ impl Installation for HomeSigns {
             let t = at(p, yaw);
             b.mesh.cylinder(&Affine3A::from_translation(p - Vec3::Y * 0.4), 0.06, 0.05, 2.6, 8, &OAK, true);
             b.solid_box(p + Vec3::Y * 1.2, Vec3::new(0.2, 2.4, 0.2), 0.0);
-            let mut m = Mesh::default();
-            let (w, h) = signs::sheet(&mut m, b.sheets, &format!("place:{name}"), Vec3::ZERO, 0.03, 4.0, slot::NEUTRAL_CANVAS);
-            // Plata rundt arket, i canvas, litt større.
-            signs::boxed(&mut m, Vec3::new(0.0, 0.0, -0.02), &signs::Box2 { w: w + 24.0, h: h + 16.0, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });
-            let rest = t * Affine3A::from_translation(Vec3::new(0.0, 2.0, 0.08));
-            let id = b.prop("link", m, rest, Some((Vec3::ZERO, Vec3::new((w + 24.0) * PX * 0.5, (h + 16.0) * PX * 0.5, 0.05))));
-            self.places.push(id);
+            let mut ids = [0usize; 3];
+            for (k, v) in VARIANTS.iter().enumerate() {
+                let mut m = Mesh::default();
+                let (w, h) = signs::sheet(&mut m, b.sheets, &format!("place:{name}:{v}"), Vec3::ZERO, 0.03, 4.0, slot::NEUTRAL_CANVAS);
+                // Plata rundt arket, i canvas, litt større.
+                signs::boxed(&mut m, Vec3::new(0.0, 0.0, -0.02), &signs::Box2 { w: w + 24.0, h: h + 16.0, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });
+                let rest = t * Affine3A::from_translation(Vec3::new(0.0, 2.0, 0.08));
+                ids[k] = b.prop("link", m, rest, Some((Vec3::ZERO, Vec3::new((w + 24.0) * PX * 0.5, (h + 16.0) * PX * 0.5, 0.05))));
+            }
+            self.places.push(ids);
         }
     }
 
@@ -103,14 +123,27 @@ impl Installation for HomeSigns {
         if action != Action::Use {
             return;
         }
-        if let Some(k) = self.places.iter().position(|a| Some(*a) == env.aimed_prop) {
-            env.toasts.push(format!("{} ligger langt der ute. Veien dit er ikke bygd ennå.", places()[k].0));
+        let aimed = |ids: &[usize; 3]| ids.iter().any(|a| Some(*a) == env.aimed_prop);
+        let place = self.places.iter().position(aimed);
+        let arm = self.arms.iter().position(aimed);
+        if place.is_none() && arm.is_none() {
             return;
         }
-        if !self.arms.iter().any(|a| Some(*a) == env.aimed_prop) {
+        // Deaktivert lenke: som i nettleseren gjør den ingenting.
+        if VARIANTS[self.variant] == "disabled" {
+            env.toasts.push("Lenka er deaktivert".into());
+            return;
+        }
+        if let Some(k) = place {
+            env.toasts.push(format!("{} ligger langt der ute. Veien dit er ikke bygd ennå.", places()[k].0));
             return;
         }
         env.teleport = Some((SPAWN, SPAWN_YAW));
         env.toasts.push("Flyr til Torget".into());
+    }
+
+    fn pose(&self, prop: usize, rest: Affine3A, _env: &Env) -> (Affine3A, [f32; 4]) {
+        let shown = self.arms.iter().chain(self.places.iter()).any(|ids| ids[self.variant] == prop);
+        (if shown { rest } else { Self::hidden() }, [0.0; 4])
     }
 }
