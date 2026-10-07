@@ -5,3 +5,4 @@ pkg/
 shots/
 assets/external/
 dist-web/
+__pycache__/

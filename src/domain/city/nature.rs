@@ -8,6 +8,8 @@ use super::{at, Builder, Shape};
 use crate::domain::geometry::{flag, kind, Layer, Mat, Mesh};
 use crate::domain::model::Model;
 use glam::{Affine3A, Quat, Vec2, Vec3};
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
 const BARK: Mat = Mat::tex(Layer::Bark, 0xffffff);
 
@@ -34,6 +36,43 @@ const BUSHES: [(&str, &str); 2] = [("bush1_trunk", "bush1_leaves"), ("bush2_trun
 /// Et tre med stamme, greiner og bladkort. `seed` varierer formen. Finnes
 /// modellene fra Blender, brukes de (eik eller bjørk etter seed); ellers
 /// det prosedyriske treet.
+/// Greinskjelettene fra `tools/models/trees.py` (`<navn>_branches.json`):
+/// segmenter [x0, y0, z0, x1, y1, z1, r] grovere enn 5 cm, som blir
+/// kapselkollidere så ingen går gjennom stammer og lave greiner.
+const BRANCHES: [(&str, &str); 7] = [
+    ("oak1_trunk", include_str!("../../../assets/models/trees/oak1_branches.json")),
+    ("oak2_trunk", include_str!("../../../assets/models/trees/oak2_branches.json")),
+    ("birch1_trunk", include_str!("../../../assets/models/trees/birch1_branches.json")),
+    ("spruce1_trunk", include_str!("../../../assets/models/trees/spruce1_branches.json")),
+    ("spruce2_trunk", include_str!("../../../assets/models/trees/spruce2_branches.json")),
+    ("bush1_trunk", include_str!("../../../assets/models/trees/bush1_branches.json")),
+    ("bush2_trunk", include_str!("../../../assets/models/trees/bush2_branches.json")),
+];
+
+fn branches(model: &str) -> &'static [[f32; 7]] {
+    static PARSED: OnceLock<HashMap<&'static str, Vec<[f32; 7]>>> = OnceLock::new();
+    let all = PARSED.get_or_init(|| BRANCHES.iter().map(|(n, json)| (*n, serde_json::from_str(json).unwrap_or_default())).collect());
+    all.get(model).map(|v| v.as_slice()).unwrap_or(&[])
+}
+
+/// Kollidere for stammen og greinene du kan nå (under 3,6 m), som kapsler
+/// langs skjelettet; `true` om modellen har et skjelett.
+fn branch_colliders(b: &mut Builder, model: &str, t: &Affine3A, scale: f32) -> bool {
+    let segs = branches(model);
+    if segs.is_empty() {
+        return false;
+    }
+    for s in segs {
+        if s[1].min(s[4]) * scale > 3.6 {
+            continue;
+        }
+        let a = t.transform_point3(Vec3::new(s[0], s[1], s[2]));
+        let c = t.transform_point3(Vec3::new(s[3], s[4], s[5]));
+        b.colliders.push(Shape::Capsule { a, b: c, radius: s[6] * scale });
+    }
+    true
+}
+
 pub fn tree(b: &mut Builder, base: Vec3, scale: f32, seed: u32) {
     let (trunk, leaves) = BROADLEAF[seed as usize % BROADLEAF.len()];
     if b.has_model(trunk) && b.has_model(leaves) {
@@ -48,7 +87,9 @@ pub fn tree(b: &mut Builder, base: Vec3, scale: f32, seed: u32) {
             b.place(trunk, t);
         }
         b.place_mounted(leaves, t);
-        b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * 2.5 * s, radius: 0.32 * s, half_height: 2.5 * s });
+        if !branch_colliders(b, trunk, &t, s) {
+            b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * 2.5 * s, radius: 0.32 * s, half_height: 2.5 * s });
+        }
         return;
     }
     let rng = &mut b.rng;
@@ -193,7 +234,9 @@ pub fn spruce(b: &mut Builder, base: Vec3, h: f32, seed: f32) {
         let t = Affine3A::from_rotation_translation(lean * Quat::from_rotation_y(seed * 2.4), base) * Affine3A::from_scale(Vec3::splat(s));
         b.place(trunk, t);
         b.place_mounted(needles, t);
-        b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * h * 0.4, radius: 0.25 * s, half_height: h * 0.4 });
+        if !branch_colliders(b, trunk, &t, s) {
+            b.colliders.push(Shape::Cylinder { center: base + Vec3::Y * h * 0.4, radius: 0.25 * s, half_height: h * 0.4 });
+        }
         return;
     }
     let m = &mut b.mesh;
@@ -346,7 +389,35 @@ pub fn hills(b: &mut Builder) {
         let p = Vec3::new(a.sin() * dist, -6.0, a.cos() * dist);
         let r = b.rng.range(70.0, 130.0);
         let h = b.rng.range(14.0, 30.0);
-        b.mesh.sphere(&Affine3A::from_translation(p), Vec3::new(r, h, r * b.rng.range(0.7, 1.0)), 8, 20, &grass);
+        let size = Vec3::new(r, h, r * b.rng.range(0.7, 1.0));
+        b.mesh.sphere(&Affine3A::from_translation(p), size, 8, 20, &grass);
+        b.colliders.push(Shape::Hull { points: ellipsoid_points(&Affine3A::from_translation(p), size) });
+    }
+}
+
+/// Punkter på en ellipsoide, til en konveks kollider.
+fn ellipsoid_points(t: &Affine3A, r: Vec3) -> Vec<Vec3> {
+    let mut pts = vec![];
+    for j in 0..=6 {
+        let v = j as f32 / 6.0 * std::f32::consts::PI;
+        for i in 0..12 {
+            let u = i as f32 / 12.0 * std::f32::consts::TAU;
+            let n = Vec3::new(v.sin() * u.cos(), v.cos(), v.sin() * u.sin());
+            pts.push(t.transform_point3(n * r));
+        }
+    }
+    pts
+}
+
+/// Usynlige vegger rundt kanten av terrenget (±200 m), så ingen faller
+/// ut av verden.
+pub fn world_edge(b: &mut Builder) {
+    let n = 36;
+    let radius = 199.0;
+    for i in 0..n {
+        let a = (i as f32 + 0.5) / n as f32 * std::f32::consts::TAU;
+        let c = Vec3::new(a.sin() * radius, 20.0, a.cos() * radius);
+        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 80.0, 2.0), yaw: a });
     }
 }
 
@@ -369,6 +440,13 @@ pub fn mountains(b: &mut Builder) {
             let lean = Quat::from_rotation_z(b.rng.range(-0.08, 0.08)) * Quat::from_rotation_x(b.rng.range(-0.08, 0.08));
             let t = Affine3A::from_rotation_translation(lean, p + off);
             b.mesh.cylinder(&t, rj, 0.0, hj, 7 + j, &rock, false);
+            // Kollideren: kjeglen som konveks omhylling av foten og toppen.
+            let mut pts = vec![t.transform_point3(Vec3::Y * hj)];
+            for k in 0..(7 + j) {
+                let u = k as f32 / (7 + j) as f32 * std::f32::consts::TAU;
+                pts.push(t.transform_point3(Vec3::new(u.cos() * rj, 0.0, u.sin() * rj)));
+            }
+            b.colliders.push(Shape::Hull { points: pts });
             if hj > 110.0 {
                 let k = 0.24;
                 b.mesh.cylinder(&(t * Affine3A::from_translation(Vec3::Y * (hj * (1.0 - k) + 0.3))), rj * k * 1.03, 0.0, hj * k, 7 + j, &snow, false);

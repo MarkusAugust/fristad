@@ -37,6 +37,10 @@ pub enum Shape {
     /// Terrenget: et rutenett av høyder, `cols` langs X og `rows` langs Z,
     /// sentrert i `center` og `size` meter stort.
     Heightfield { center: Vec3, size: Vec3, cols: usize, rows: usize, heights: Vec<f32> },
+    /// Kapsel mellom to punkter (trestammer og greiner).
+    Capsule { a: Vec3, b: Vec3, radius: f32 },
+    /// Konveks omhylling av punktene (fjell, åser).
+    Hull { points: Vec<Vec3> },
 }
 
 /// Noe i byen som flytter seg eller kan siktes på: knapper, dører, brytere.
@@ -199,7 +203,14 @@ impl Builder<'_> {
                 let (lo, hi) = (c2.y - half_height, c2.y + half_height);
                 hi > center.y - size.y * 0.5 && lo < center.y + size.y * 0.5 && rects_overlap((center.x, center.z), (size.x * 0.5, size.z * 0.5), yaw, (c2.x, c2.z), (*radius, *radius), 0.0)
             }
-            Shape::Heightfield { .. } => false,
+            Shape::Capsule { a, b, radius } => {
+                // Kapselen tilnærmes med boksen rundt den.
+                let (lo, hi) = (a.y.min(b.y) - radius, a.y.max(b.y) + radius);
+                let c2 = (*a + *b) * 0.5;
+                let half = ((*a - *b) * 0.5).abs() + Vec3::splat(*radius);
+                hi > center.y - size.y * 0.5 && lo < center.y + size.y * 0.5 && rects_overlap((center.x, center.z), (size.x * 0.5, size.z * 0.5), yaw, (c2.x, c2.z), (half.x, half.z), 0.0)
+            }
+            Shape::Heightfield { .. } | Shape::Hull { .. } => false,
         });
         if let Some(c) = hit {
             log::debug!("boks ({:.1}, {:.1}) {:.1}×{:.1} treffer {:?}", center.x, center.z, size.x, size.z, c);
@@ -395,6 +406,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     nature::grass(&mut b);
     nature::hills(&mut b);
     nature::mountains(&mut b);
+    nature::world_edge(&mut b);
     // Dyrene: spillet poserer dem, byen setter av plass til instansene.
     for (model, n) in crate::domain::herd::Herd::reserve() {
         b.reserve(model, n);

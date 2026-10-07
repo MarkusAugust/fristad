@@ -63,6 +63,116 @@ mod tests {
         assert!(prepared.city.audit.is_empty(), "\n{}", prepared.city.audit.join("\n"));
     }
 
+    /// Ingen skal kunne gå gjennom noe: hver modellinstans som er høy nok
+    /// til å gå inn i (over 60 cm) og bred nok til å merke (over 30 cm) må
+    /// ha en kollider rundt foten: et punkt 50 cm over bunnen ved origo
+    /// skal ligge i (eller innen 35 cm fra) en boks, sylinder
+    /// eller kapsel. Bladverk, gress og det som henger på vegger er unntatt.
+    #[test]
+    fn alt_stort_har_kollider() {
+        use crate::domain::city::Shape;
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        let tol = 0.35;
+        let covers = |shape: &Shape, p: glam::Vec3| -> bool {
+            match shape {
+                Shape::Cuboid { center, size, yaw } => {
+                    let d = glam::Quat::from_rotation_y(-*yaw) * (p - *center);
+                    d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
+                }
+                Shape::Cylinder { center, radius, half_height } => {
+                    let d = p - *center;
+                    (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
+                }
+                Shape::Capsule { a, b, radius } => {
+                    let ab = *b - *a;
+                    let t = ((p - *a).dot(ab) / ab.length_squared().max(1e-6)).clamp(0.0, 1.0);
+                    (p - (*a + ab * t)).length() <= radius + tol
+                }
+                Shape::Heightfield { .. } | Shape::Hull { .. } => false,
+            }
+        };
+        let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name == "grass" || name.starts_with("window_") || name == "door_lamp" || name == "flower_box";
+        let mut problems = vec![];
+        for pl in &prepared.city.placements {
+            if skip(pl.model) {
+                continue;
+            }
+            let Some(model) = prepared.models.iter().find(|m| m.name == pl.model) else { continue };
+            let (lo, hi) = model.mesh.bounds();
+            for t in &pl.transforms {
+                // Boksen rundt instansen i verden.
+                let mut wlo = glam::Vec3::splat(f32::MAX);
+                let mut whi = glam::Vec3::splat(f32::MIN);
+                for k in 0..8 {
+                    let c = glam::Vec3::new(if k & 1 == 0 { lo.x } else { hi.x }, if k & 2 == 0 { lo.y } else { hi.y }, if k & 4 == 0 { lo.z } else { hi.z });
+                    let w = t.transform_point3(c);
+                    wlo = wlo.min(w);
+                    whi = whi.max(w);
+                }
+                let size = whi - wlo;
+                if size.y < 0.6 || size.x.max(size.z) < 0.3 {
+                    continue;
+                }
+                // Origo står ved foten (trær, kraner har tyngdepunktet langt unna).
+                let o = glam::Vec3::from(t.translation);
+                let p = glam::Vec3::new(o.x, wlo.y + 0.5, o.z);
+                if !prepared.city.colliders.iter().any(|c| covers(c, p)) {
+                    problems.push(format!("{} ved ({:.1}, {:.1}, {:.1}) har ingen kollider", pl.model, p.x, p.y, p.z));
+                }
+            }
+        }
+        assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+    }
+
+    /// Og fysikken må faktisk stoppe deg: kapselen går mot en trestamme og
+    /// mot foten av et fjell, og skal bli stående utenfor begge.
+    #[test]
+    fn kapselen_stopper_mot_trær_og_fjell() {
+        use crate::domain::city::Shape;
+        use crate::domain::ports::Physics;
+        let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
+        let prepared = super::prepare(&assets, &assets);
+        let mut physics = crate::adapters::rapier::RapierPhysics::new();
+        for c in &prepared.city.colliders {
+            physics.add(c);
+        }
+        let (half, radius) = (0.5f32, 0.3f32);
+        // Gå rett mot et mål fra `from`, 0,1 m om gangen; gir sluttpunktet og
+        // det nærmeste vi kom `mark` (vannrett).
+        let mut walk = |from: glam::Vec3, to: glam::Vec3, mark: glam::Vec3| -> (glam::Vec3, f32) {
+            let mut pos = from;
+            let dir = (to - from).normalize();
+            let mut nearest = f32::MAX;
+            for _ in 0..((to - from).length() / 0.1) as usize {
+                let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.1 - glam::Vec3::Y * 0.05, 0.016);
+                pos += moved;
+                nearest = nearest.min((pos - mark).with_y(0.0).length());
+            }
+            (pos, nearest)
+        };
+        // Eiker: stammen står i instansens origo. Kapselen (radius 0,3) skal
+        // aldri komme nærmere enn stammens radius pluss sin egen.
+        let oak = prepared.city.placements.iter().find(|p| p.model == "oak1_trunk" && p.transforms.len() > 3).expect("ingen eik");
+        for t in oak.transforms.iter().take(4) {
+            let base = glam::Vec3::from(t.translation);
+            let y = half + radius + 0.1;
+            let (_, nearest) = walk(base + glam::Vec3::new(2.0, y, 0.0), base + glam::Vec3::new(-2.0, y, 0.0), base);
+            assert!(nearest > 0.45, "gikk gjennom eika ved ({:.1}, {:.1}): kom {:.2} m fra stammen", base.x, base.z, nearest);
+        }
+        // Et fjell: foten er den laveste ringen i omhyllingen; gå mot midten.
+        let hull = prepared.city.colliders.iter().filter_map(|c| match c { Shape::Hull { points } if points.len() < 12 => Some(points), _ => None }).next().expect("ingen fjell");
+        let apex = *hull.iter().max_by(|a, b| a.y.total_cmp(&b.y)).unwrap();
+        let foot = hull.iter().filter(|p| p.y < apex.y - 1.0).fold(glam::Vec3::ZERO, |a, p| a + *p) / (hull.len() - 1) as f32;
+        let r = hull.iter().filter(|p| p.y < apex.y - 1.0).map(|p| (*p - foot).with_y(0.0).length()).fold(0.0, f32::max);
+        let out = (foot + (foot - apex).with_y(0.0).normalize_or_zero() * 0.0).with_y(foot.y);
+        let dir = glam::Vec3::X;
+        let start = out + dir * (r + 8.0) + glam::Vec3::Y * 40.0;
+        let (end, _) = walk(start, out + glam::Vec3::Y * 40.0, out);
+        let got = (end - out).with_y(0.0).length();
+        assert!(got > r * 0.5, "gikk inn i fjellet ved ({:.0}, {:.0}): endte {:.0} m fra midten (foten er {:.0} m)", foot.x, foot.z, got, r);
+    }
+
     /// Variantene skal virke 1:1 med designsystemet: alle installasjonene
     /// som er samme komponent må ha de samme variantene (ellers bytter R og
     /// panelet bare noen av dem), og det du sikter på må endre seg for hver

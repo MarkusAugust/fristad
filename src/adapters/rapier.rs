@@ -79,6 +79,14 @@ impl Physics for RapierPhysics {
                 let m = rapier3d::na::DMatrix::from_fn(*rows, *cols, |i, j| heights[i * cols + j]);
                 ColliderBuilder::heightfield(m, vector![size.x, size.y, size.z]).position(iso(*center, 0.0)).build()
             }
+            Shape::Capsule { a, b, radius } => ColliderBuilder::new(SharedShape::capsule(point![a.x, a.y, a.z], point![b.x, b.y, b.z], *radius)).build(),
+            Shape::Hull { points } => {
+                let pts: Vec<_> = points.iter().map(|p| point![p.x, p.y, p.z]).collect();
+                match SharedShape::convex_hull(&pts) {
+                    Some(hull) => ColliderBuilder::new(hull).build(),
+                    None => return ColliderId(u64::MAX),
+                }
+            }
         };
         self.insert(c)
     }

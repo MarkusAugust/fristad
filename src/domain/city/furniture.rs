@@ -191,6 +191,7 @@ pub fn plaza(b: &mut Builder) {
     // Reven som står og ser på deg ved bedet.
     let fox = b.on_ground(Vec3::new(6.3, 0.0, 3.2));
     b.place("fox", at(fox, 2.3));
+    b.solid_box(fox + Vec3::Y * 0.4, Vec3::new(1.2, 0.8, 0.5), 2.3);
 
     // Eksterne modeller der de finnes: tønner og kasser ved butikkene,
     // søppelbøtte og sykkel ved sykkelstativet, en kjerre ved brønnen.

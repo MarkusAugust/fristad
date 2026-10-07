@@ -327,7 +327,24 @@ def delete_all():
     bpy.ops.object.delete()
 
 
-def broadleaf(name, sp, kind, texture, seed, trunks=1):
+def write_skeleton(name, splines):
+    """Skjelettet til kolliderne i motoren: greinsegmenter grovere enn 5 cm
+    som [x0, y0, z0, x1, y1, z1, r] i glTF-koordinater (Y opp)."""
+    segs = []
+    for pts in splines:
+        if isinstance(pts, tuple):
+            pts = pts[0]
+        for (a, ra), (b, rb) in zip(pts, pts[1:]):
+            r = (ra + rb) * 0.5
+            if r >= 0.05:
+                segs.append([round(v, 3) for v in (a.x, a.z, -a.y, b.x, b.z, -b.y, r)])
+    import json
+    with open(f"{OUT}/{name}_branches.json", "w") as f:
+        json.dump(segs, f, separators=(",", ":"))
+    print(f"{name}: {len(segs)} greinsegmenter til kollidere")
+
+
+def broadleaf(name, sp, kind, texture, seed, trunks=1, skeleton_only=False):
     rng = random.Random(seed)
     splines, tips = [], []
     for k in range(trunks):
@@ -336,6 +353,9 @@ def broadleaf(name, sp, kind, texture, seed, trunks=1):
         grow(base, d, sp.trunk_len * rng.uniform(0.9, 1.1), sp.trunk_r, 0, sp, rng, splines, tips, 0.55)
     # Rotfoten: den første stokken får bredere fot.
     splines[0][0][0] = (splines[0][0][0][0], splines[0][0][0][1] * 1.35)
+    write_skeleton(name, splines)
+    if skeleton_only:
+        return
     # Stammen og de grove greinene med flere sider; kvistene ytterst som
     # firkantede rør med færre segmenter, de er gjemt i bladverket.
     thick = [pts for pts, lv in splines if lv < 2]
@@ -374,7 +394,7 @@ def broadleaf(name, sp, kind, texture, seed, trunks=1):
     delete_all()
 
 
-def spruce(name, seed, height=12.0):
+def spruce(name, seed, height=12.0, skeleton_only=False):
     rng = random.Random(seed)
     h = height * rng.uniform(0.9, 1.1)
     # Stammen: rett med litt sving, smalner mot toppen.
@@ -388,6 +408,9 @@ def spruce(name, seed, height=12.0):
         d = (d + Vector((rng.gauss(0, 0.02), rng.gauss(0, 0.02), 0))).normalized()
         pos = pos + d * (h / n)
     pts[0] = (pts[0][0], pts[0][1] * 1.4)
+    write_skeleton(name, [pts])
+    if skeleton_only:
+        return
     trunk = to_mesh(curve_object("trunk", [pts], bevel_res=2, res_u=2))
     bake_bark(trunk, "spruce", name)
     export(f"{OUT}/{name}_trunk.glb")
@@ -424,13 +447,13 @@ def spruce(name, seed, height=12.0):
 
 
 BUILDERS = {
-    "oak1": lambda: broadleaf("oak1", OAK, "oak", f"{OUT}/leaves_oak.png", 101),
-    "oak2": lambda: broadleaf("oak2", OAK, "oak", f"{OUT}/leaves_oak.png", 202),
-    "birch1": lambda: broadleaf("birch1", BIRCH, "birch", f"{OUT}/leaves_birch.png", 303),
-    "spruce1": lambda: spruce("spruce1", 404, 12.0),
-    "spruce2": lambda: spruce("spruce2", 505, 9.0),
-    "bush1": lambda: broadleaf("bush1", BUSH, "bush", f"{OUT}/leaves_bush.png", 606, trunks=4),
-    "bush2": lambda: broadleaf("bush2", BUSH, "bush", f"{OUT}/leaves_bush.png", 707, trunks=3),
+    "oak1": lambda so=False: broadleaf("oak1", OAK, "oak", f"{OUT}/leaves_oak.png", 101, skeleton_only=so),
+    "oak2": lambda so=False: broadleaf("oak2", OAK, "oak", f"{OUT}/leaves_oak.png", 202, skeleton_only=so),
+    "birch1": lambda so=False: broadleaf("birch1", BIRCH, "birch", f"{OUT}/leaves_birch.png", 303, skeleton_only=so),
+    "spruce1": lambda so=False: spruce("spruce1", 404, 12.0, skeleton_only=so),
+    "spruce2": lambda so=False: spruce("spruce2", 505, 9.0, skeleton_only=so),
+    "bush1": lambda so=False: broadleaf("bush1", BUSH, "bush", f"{OUT}/leaves_bush.png", 606, trunks=4, skeleton_only=so),
+    "bush2": lambda so=False: broadleaf("bush2", BUSH, "bush", f"{OUT}/leaves_bush.png", 707, trunks=3, skeleton_only=so),
 }
 
 if __name__ == "__main__":
