@@ -232,6 +232,25 @@ mod tests {
         let mut input = crate::domain::game::Input::default();
         game.update(&mut input, 1.0 / 30.0, &mut physics);
         assert!(game.eye().y > 0.0, "starter oppe");
+        // Alle slagene er med: knapper øverst, tooltips, inputer og
+        // modaler nedover, tabellen som elite nederst, og én boss.
+        let roster = game.roster();
+        for k in crate::domain::mobs::Kind::ALL {
+            assert!(roster.iter().any(|(r, _)| *r == k), "ingen {k:?} i kjelleren");
+        }
+        assert_eq!(roster.iter().filter(|(k, _)| k.boss()).count(), 1, "akkurat én boss");
+        assert!(roster.iter().any(|(k, e)| *k == crate::domain::mobs::Kind::Table && *e), "tabellen er elite nederst");
+        // De dype etasjene er under −20 m: du skal kunne stå der uten å
+        // bli sendt tilbake til torget som «falt gjennom verden».
+        let deep = &prepared.city.dungeon.floors[prepared.city.dungeon.floors.len() - 1];
+        let there = deep.center(deep.start.0, deep.start.1);
+        game.place(there + glam::Vec3::Y * 1.7, 0.0, 0.0);
+        for _ in 0..30 {
+            game.update(&mut input, 1.0 / 30.0, &mut physics);
+        }
+        assert!((game.eye().y - there.y - 1.7).abs() < 1.0, "sto ikke igjen nederst: øyet er på y = {:.1}, gulvet på {:.1}", game.eye().y, there.y);
+        game.place(crate::domain::city::terrain::at(prepared.city.spawn) + glam::Vec3::Y * 1.7, prepared.city.spawn_yaw, 0.0);
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
         game.use_component("cellar");
         let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
         assert!(game.eye().y < DEPTH + 3.0, "F på brønnen skal ta deg ned: øyet er på y = {:.1}", game.eye().y);

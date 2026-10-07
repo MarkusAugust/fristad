@@ -412,6 +412,11 @@ function handle(e) {
       $("tokens").textContent = `${e.tokens} tokens`;
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;
+      $("boss").hidden = !e.boss;
+      if (e.boss) {
+        $("boss-name").textContent = e.boss.name;
+        $("boss-hp").value = e.boss.hp;
+      }
       // Liv og tokens vises nede i kjelleren, og oppe når du har noe.
       $("vitals").hidden = !(e.cellar || e.tokens > 0);
       $("fight-keys").hidden = !e.cellar;
@@ -733,6 +738,42 @@ const sfx = (() => {
       crunch(c, 0.35, 0.15, 900);
     },
     dodge: (c) => whoosh(c, 180, 700, 0.3, 0.3),
+    clang: (c) => {
+      tone(c, "square", 1200, 900, 0.2, 0.003, 0.12);
+      tone(c, "sine", 2400, 2300, 0.12, 0.003, 0.25);
+      crunch(c, 0.2, 0.06, 5000);
+    },
+    spit: (c) => {
+      whoosh(c, 900, 3200, 0.3, 0.22);
+      tone(c, "sawtooth", 600, 1400, 0.12, 0.01, 0.15);
+    },
+    slam: (c) => {
+      tone(c, "sine", 60, 25, 1.0, 0.005, 0.7);
+      crunch(c, 0.7, 0.5, 600);
+      crunch(c, 0.3, 0.9, 200, 0.05);
+    },
+    roar: (c) => {
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      const t = c.currentTime;
+      o.frequency.setValueAtTime(45, t);
+      o.frequency.linearRampToValueAtTime(70, t + 0.5);
+      o.frequency.linearRampToValueAtTime(40, t + 1.3);
+      const v = c.createOscillator();
+      v.frequency.value = 7;
+      const vg = c.createGain();
+      vg.gain.value = 12;
+      v.connect(vg).connect(o.frequency);
+      const f = c.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 500;
+      o.connect(f).connect(env(c, 0.5, 0.1, 1.3));
+      o.start(t);
+      v.start(t);
+      o.stop(t + 1.5);
+      v.stop(t + 1.5);
+      crunch(c, 0.3, 1.0, 400, 0.1);
+    },
     growl: (c) => {
       const o = c.createOscillator();
       o.type = "sawtooth";

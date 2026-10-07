@@ -85,6 +85,8 @@ pub struct Dungeon {
     /// Kistene: (føtter, yaw, etasje). `installations/chests.rs` gjør dem
     /// brukbare, og innholdet følger etasjen (`craft::LOOT`).
     pub chests: Vec<(Vec3, f32, usize)>,
+    /// Der Rammeverket står: midt i utgangsrommet på nederste etasje.
+    pub boss: Option<Vec3>,
 }
 
 impl Floor {
@@ -380,7 +382,7 @@ pub fn build(b: &mut Builder, seed: u64) -> Dungeon {
     // Egen tilfeldighet til fiendenes startsteder, så kartet ikke endrer
     // seg når reglene for dem gjør det.
     let mut srng = Rng((seed | 1) ^ 0x5bd1_e995_1234_5678);
-    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![] };
+    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None };
     let mut origin = (WELL.x - (START.0 as f32 + 0.5) * CELL, WELL.z - (START.1 as f32 + 0.5) * CELL);
     let mut y = DEPTH;
     for k in 0..FLOORS {
@@ -412,7 +414,11 @@ pub fn build(b: &mut Builder, seed: u64) -> Dungeon {
         }
         if let Some(exit_room) = rooms.last() {
             let c = exit_room.center();
-            d.elites.push(floor.center(c.0, c.1));
+            if last {
+                d.boss = Some(floor.center(c.0, c.1));
+            } else {
+                d.elites.push(floor.center(c.0, c.1));
+            }
         }
         if let Some(exit) = floor.exit {
             // Porten står i alkovens munning, mot rommet.

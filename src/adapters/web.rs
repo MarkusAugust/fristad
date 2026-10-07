@@ -97,7 +97,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Variant { component, variant } => json!({"type": "variant", "component": component, "variant": variant}),
         Event::Toast(t) => json!({"type": "toast", "text": t}),
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
-        Event::Hud { hp, stamina, tokens, cellar, keys } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys}),
+        Event::Hud { hp, stamina, tokens, cellar, keys, boss } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))}),
         Event::Sound(name) => json!({"type": "sound", "name": name}),
         Event::Inventory(v) => json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read}),
         Event::Shop { npc, wares } => json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()}),

@@ -139,6 +139,18 @@ code {
   justify-self: start;
 }
 
+.boss {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-danger-border, #a00);
+  border-radius: 0.5rem;
+  background: var(--color-neutral-surface, #fff);
+}
+.boss .fs-label {
+  font-weight: 600;
+}
 .fight-keys {
   display: grid;
   gap: 2px;

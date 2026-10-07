@@ -365,6 +365,12 @@ impl Combat {
         }
     }
 
+    /// Bakken rister (bossens slag): kameraet skjelver.
+    pub fn quake(&mut self) {
+        self.shake = 1.0;
+        self.kick_vel += Vec2::new(0.0, 1.2);
+    }
+
     /// Kameradreiningen fra spark og skjelv nå: (yaw, pitch) i radianer.
     pub fn view_kick(&self, time: f32) -> (f32, f32) {
         let s = self.shake * self.shake;
@@ -558,11 +564,12 @@ impl Combat {
                     damage *= 2.0;
                 }
             }
-            let killed = mobs.strike(i, damage, feet, dungeon);
-            let body = mobs.mobs[i].pos + Vec3::Y * 1.0;
-            self.spawn_debris(body, fwd, if heavy { 14 } else { 8 });
+            let strike = mobs.strike(i, damage, feet, dungeon);
+            let killed = strike.killed;
+            let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
+            self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
             out.push(CombatEvent::Hit { mob: i, damage, killed, pos: body });
-            out.push(CombatEvent::Sound(if killed { "kill" } else if heavy { "hit_heavy" } else { "hit" }));
+            out.push(CombatEvent::Sound(if killed { "kill" } else if strike.armored { "clang" } else if heavy { "hit_heavy" } else { "hit" }));
         }
         if any {
             self.hitstop = HITSTOP;

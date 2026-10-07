@@ -145,7 +145,7 @@ pub enum Event {
     Weather(String),
     /// Liv, utholdenhet, tokens og om du er nede i kjelleren, når noe av
     /// det endrer seg.
-    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32 },
+    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32, boss: Option<(String, u32)> },
     /// En lyd å spille: swing, swing_heavy, hit, hit_heavy, kill, block,
     /// parry, hurt, dodge, growl, pickup, death.
     Sound(String),
@@ -428,7 +428,9 @@ pub struct Game {
     aimed_mob: Option<usize>,
     /// Hvor mye du er i kjelleren (0 oppe, 1 nede), glattet, til lyset.
     cellar_t: f32,
-    last_hud: Option<(u32, u32, u32, bool, u32)>,
+    last_hud: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>)>,
+    /// Rammeverket er beseiret (denne turen).
+    pub won: bool,
     pub debug: u32,
 }
 
@@ -454,7 +456,6 @@ impl Game {
         }
         let env = Env { font: Some(std::sync::Arc::new(font)), ..Env::default() };
         let rig_of = |n: &str| rigs.iter().find(|(m, _)| m == n).map(|(_, r)| r.clone());
-        let mob_rig = rig_of(crate::domain::mobs::MOB_MODEL);
         let arms_rig = rig_of(crate::domain::combat::ARMS_MODEL);
         Self {
             tokens,
@@ -490,7 +491,7 @@ impl Game {
             herd: crate::domain::herd::Herd::new(),
             npcs: crate::domain::npcs::Npcs::new(rig_of(crate::domain::npcs::NPC_MODEL), city.npcs.iter().map(|n| (n.name, n.pos, n.yaw, n.tint, n.lines)).collect()),
             bubbles_shown: false,
-            mobs: crate::domain::mobs::Mobs::new(&city.dungeon, mob_rig),
+            mobs: crate::domain::mobs::Mobs::new(&city.dungeon, &rigs),
             dungeon: city.dungeon.clone(),
             hp: 100.0,
             max_hp: 100.0,
@@ -510,6 +511,7 @@ impl Game {
             aimed_mob: None,
             cellar_t: 0.0,
             last_hud: None,
+            won: false,
             debug: 0,
         }
     }
@@ -767,7 +769,9 @@ impl Game {
             self.pos += moved;
             self.grounded = grounded;
         }
-        if self.pos.y < -20.0 {
+        // Under nederste etasje i kjelleren er det ingenting.
+        let abyss = self.dungeon.floors.last().map(|f| f.y).unwrap_or(crate::domain::city::dungeon::DEPTH) - 12.0;
+        if self.pos.y < abyss {
             // Falt gjennom verden: rett tilbake til torget.
             let (half, radius) = self.stance.capsule();
             self.pos = crate::domain::city::terrain::at(self.spawn) + Vec3::Y * (half + radius + 0.2);
@@ -792,7 +796,7 @@ impl Game {
         self.aimed_mob = aimed_mob;
         if aim.map(|a| a.1) != self.aim.map(|a| a.1) || mob_changed {
             self.aim = aim;
-            events.push(Event::Prompt(if aimed_mob.is_some() { Some(Self::mob_prompt()) } else { aim.map(|(_, o)| self.prompt_for(o)) }));
+            events.push(Event::Prompt(if let Some(i) = aimed_mob { Some(Self::mob_prompt(self.mobs.mobs[i].kind.label())) } else { aim.map(|(_, o)| self.prompt_for(o)) }));
         } else {
             self.aim = aim;
         }
@@ -999,6 +1003,17 @@ impl Game {
         for _ in 0..outcome.windups {
             events.push(Event::Sound("growl".into()));
         }
+        for _ in 0..outcome.spits {
+            events.push(Event::Sound("spit".into()));
+        }
+        for _ in 0..outcome.roars {
+            events.push(Event::Sound("roar".into()));
+            events.push(Event::Toast("Rammeverket brøler, og tooltips kryper ut av veggene.".into()));
+        }
+        if outcome.quakes > 0 {
+            events.push(Event::Sound("slam".into()));
+            self.combat.quake();
+        }
         // Bittene: blokk tar det meste, en parade alt (og lamslår), en
         // unnamanøver går klar.
         let mut taken_total = 0.0;
@@ -1049,15 +1064,22 @@ impl Game {
                     self.popup_seq = self.popup_seq.wrapping_add(1);
                     self.popups.push((pos, damage, 0.0, self.popup_seq));
                     if killed {
-                        let elite = self.mobs.mobs.get(mob).is_some_and(|m| m.elite);
-                        if elite {
+                        let (kind, elite) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite)).unwrap_or((crate::domain::mobs::Kind::Button, false));
+                        if kind.boss() {
+                            for c in ["dialog", "tabs"] {
+                                *self.carried.entry(c.to_string()).or_insert(0) += 1;
+                            }
+                            self.inv_dirty = true;
+                            self.won = true;
+                            events.push(Event::Toast("Rammeverket er beseiret! Skatten i alkoven er din, og en dialog og en tabs ligger igjen i buret.".into()));
+                        } else if elite {
                             let floor = self.dungeon.floor_of(pos).unwrap_or(0).min(craft::ELITE_LOOT.len() - 1);
                             let c = craft::ELITE_LOOT[floor];
                             *self.carried.entry(c.to_string()).or_insert(0) += 1;
                             self.inv_dirty = true;
                             events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen.")));
-                        } else {
-                            events.push(Event::Toast("Den korrupte knappen falt fra hverandre. Plukk opp tokenene.".into()));
+                        } else if kind != crate::domain::mobs::Kind::Tooltip {
+                            events.push(Event::Toast(format!("{} falt fra hverandre. Plukk opp tokenene.", kind.label())));
                         }
                         if self.aimed_mob.is_some() {
                             self.aimed_mob = None;
@@ -1075,13 +1097,14 @@ impl Game {
             self.marks_shown = !marks.is_empty();
             events.push(Event::Marks(marks));
         }
-        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar, self.env.keys);
+        let boss = if in_cellar { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
+        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar, self.env.keys, boss);
         if self.last_hud != Some(hud) {
-            if self.last_hud.map(|h| h.2) != Some(self.coins) {
+            if self.last_hud.as_ref().map(|h| h.2) != Some(self.coins) {
                 self.inv_dirty = true;
             }
-            self.last_hud = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4 });
+            self.last_hud = Some(hud.clone());
+            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)) });
         }
         if self.inv_dirty {
             self.inv_dirty = false;
@@ -1304,10 +1327,10 @@ impl Game {
     fn marks(&mut self, dt: f32) -> Vec<Mark> {
         let mut out = vec![];
         for (i, m) in self.mobs.mobs.iter().enumerate() {
-            if !m.alive() || m.hit > 3.0 {
+            if !m.alive() || m.hit > 3.0 || m.kind.boss() {
                 continue;
             }
-            if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65) {
+            if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65 * m.scale()) {
                 out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / m.max_hp).clamp(0.0, 1.0), text: String::new() });
             }
         }
@@ -1323,14 +1346,19 @@ impl Game {
         out
     }
 
+    /// Besetningen: slag og om den er elite, til testene.
+    pub fn roster(&self) -> Vec<(crate::domain::mobs::Kind, bool)> {
+        self.mobs.mobs.iter().map(|m| (m.kind, m.elite)).collect()
+    }
+
     /// Den nærmeste levende fienden (føttene), til testene.
     pub fn nearest_mob(&self, from: Vec3) -> Option<Vec3> {
         self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
     }
 
     /// Siktet på en fiende.
-    fn mob_prompt() -> Prompt {
-        Prompt { component: "mutant".into(), class: String::new(), variant: String::new(), has_variants: false, usable: true, label: "Korrupt knapp".into(), inspectable: false, verb: "Hugg".into() }
+    fn mob_prompt(label: &str) -> Prompt {
+        Prompt { component: "mutant".into(), class: String::new(), variant: String::new(), has_variants: false, usable: true, label: label.into(), inspectable: false, verb: "Hugg".into() }
     }
 
     fn weather_target(kind: WeatherKind) -> (Weather, f32) {
