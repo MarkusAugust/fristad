@@ -37,13 +37,15 @@ impl Installation for Skeleton {
         // Huset: et grått volum i skeleton-materialet, med plassholdere
         // der vinduene og døra skulle vært.
         let rot = Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2);
-        let local = |p: Vec3| Affine3A::from_rotation_translation(rot, FRONT + rot * p);
+        let front = b.on_ground(FRONT);
+        let local = |p: Vec3| Affine3A::from_rotation_translation(rot, front + rot * p);
         let m = &mut b.mesh;
         let body = Mat::special(kind::SKELETON, 0xffffff, 0.8).slot(slot::NEUTRAL_SURFACE).flags(flag::NO_DIRT);
         let (w, d, h) = (7.2, 9.0, 9.4);
-        m.cuboid(&local(Vec3::new(0.0, h * 0.5, -d * 0.5)), Vec3::new(w, h, d), &body);
+        // Kroppen går 1,5 m ned i bakken, så den står støtt i hellingen.
+        m.cuboid(&local(Vec3::new(0.0, h * 0.5 - 0.75, -d * 0.5)), Vec3::new(w, h + 1.5, d), &body);
         m.gable_roof(&local(Vec3::new(0.0, h, -d * 0.5)), w, d, 3.0, 0.4, &body, &body, &body);
-        b.solid_box(FRONT + rot * Vec3::new(0.0, h * 0.5, -d * 0.5), Vec3::new(d + 0.2, h, w + 0.2), -std::f32::consts::FRAC_PI_2);
+        b.solid_box(front + rot * Vec3::new(0.0, h * 0.5, -d * 0.5), Vec3::new(d + 0.2, h, w + 0.2), -std::f32::consts::FRAC_PI_2);
 
         // Plassholderne på fasaden, som i eksempelet: sirkel, to tekstlinjer, bilde.
         let canvas = slot::NEUTRAL_CANVAS;

@@ -48,6 +48,7 @@ const F_WIND: u32 = 4u;
 const F_ROT_UV: u32 = 8u;
 const F_NO_WEATHER: u32 = 16u;
 const F_NO_DIRT: u32 = 32u;
+const F_ALPHA: u32 = 64u;
 
 struct VsIn {
     @location(0) pos: vec3<f32>,
@@ -129,10 +130,15 @@ fn vs_shadow(v: VsIn, inst: Instance) -> ShadowOut {
     return o;
 }
 
-// Dekning for blad og tekst, som er gjennomhullet med alfatest.
-fn coverage(kind: u32, uv: vec2<f32>) -> f32 {
+// Dekning for blad, tekst og modellblader, som er gjennomhullet med alfatest.
+fn coverage(kind: u32, flags: u32, uv: vec2<f32>) -> f32 {
     if (kind == K_LEAF) {
         return textureSample(leaf_tex, clamp_sampler, uv).a;
+    }
+    if (kind == K_MODEL && (flags & F_ALPHA) != 0u) {
+        // Teksturene er JPEG uten alfa; bakgrunnen bak bladene er svart.
+        let a = textureSample(model_albedo, tex_sampler, uv);
+        return a.a * smoothstep(0.03, 0.12, max(a.r, max(a.g, a.b)));
     }
     if (kind == K_TEXT) {
         let d = textureSample(font_tex, clamp_sampler, uv).r;
@@ -144,7 +150,7 @@ fn coverage(kind: u32, uv: vec2<f32>) -> f32 {
 
 @fragment
 fn fs_shadow(i: ShadowOut) {
-    if (coverage(i.mat.x, i.uv) < 0.5) {
+    if (coverage(i.mat.x, i.mat.z, i.uv) < 0.5) {
         discard;
     }
 }
@@ -152,7 +158,7 @@ fn fs_shadow(i: ShadowOut) {
 // Dybdeprepasset skriver normalen til SSAO, og tester alfa likt med hovedpasset.
 @fragment
 fn fs_prepass(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
-    if (coverage(i.mat.x, i.uv) < 0.5) {
+    if (coverage(i.mat.x, i.mat.z, i.uv) < 0.5) {
         discard;
     }
     var n = normalize(i.normal);
@@ -466,6 +472,9 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         }
     } else if (kind == K_MODEL) {
         let a = textureSample(model_albedo, tex_sampler, i.uv);
+        if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv) < 0.5) {
+            discard;
+        }
         s.albedo = a.rgb * tint;
         let mr = textureSample(model_mr, tex_sampler, i.uv);
         s.rough = clamp(mr.g * i.extra.z, 0.03, 1.0);
@@ -501,7 +510,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.rough = 0.7;
         s.ao = 0.85;
     } else if (kind == K_TEXT) {
-        if (coverage(kind, i.uv) < 0.5) {
+        if (coverage(kind, flags, i.uv) < 0.5) {
             discard;
         }
         s.rough = 0.6;

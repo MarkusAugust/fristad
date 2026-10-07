@@ -70,9 +70,15 @@ impl RapierPhysics {
 
 impl Physics for RapierPhysics {
     fn add(&mut self, shape: &Shape) -> ColliderId {
-        let c = match *shape {
-            Shape::Cuboid { center, size, yaw } => ColliderBuilder::cuboid(size.x * 0.5, size.y * 0.5, size.z * 0.5).position(iso(center, yaw)).build(),
-            Shape::Cylinder { center, radius, half_height } => ColliderBuilder::cylinder(half_height, radius).position(iso(center, 0.0)).build(),
+        let c = match shape {
+            Shape::Cuboid { center, size, yaw } => ColliderBuilder::cuboid(size.x * 0.5, size.y * 0.5, size.z * 0.5).position(iso(*center, *yaw)).build(),
+            Shape::Cylinder { center, radius, half_height } => ColliderBuilder::cylinder(*half_height, *radius).position(iso(*center, 0.0)).build(),
+            Shape::Heightfield { center, size, cols, rows, ref heights } => {
+                // Rapier: rader langs X? Nei: matrisen er (nrows × ncols) der
+                // rad i er langs Z og kolonne j langs X, skalert til `size`.
+                let m = rapier3d::na::DMatrix::from_fn(*rows, *cols, |i, j| heights[i * cols + j]);
+                ColliderBuilder::heightfield(m, vector![size.x, size.y, size.z]).position(iso(*center, 0.0)).build()
+            }
         };
         self.insert(c)
     }

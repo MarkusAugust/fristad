@@ -2,7 +2,7 @@
 //! to modellene som er bygget inn i binæren (lykta og reven); eksterne
 //! modeller kommer gjennom `adapters::assets`.
 
-use crate::domain::geometry::{kind, Mat, Mesh};
+use crate::domain::geometry::{flag, kind, Mat, Mesh};
 use crate::domain::model::{Image, Model};
 use crate::domain::ports::ModelSource;
 use glam::{Affine3A, Mat4, Vec2, Vec3};
@@ -121,11 +121,16 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 roughness,
             );
             let nmat = Mat4::from_mat3(glam::Mat3::from_mat4(world).inverse().transpose());
+            // Blader og kvister på kort: flagget får rendereren til å alfateste.
+            let flags = match mat.alpha_mode() {
+                gltf::material::AlphaMode::Opaque => 0,
+                _ => flag::ALPHA,
+            };
             for (i, p) in pos.iter().enumerate() {
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let v = Mat { kind: kind::MODEL, ..mmat };
+                let v = Mat { kind: kind::MODEL, flags, ..mmat };
                 mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
             }
             mesh.indices.extend(idx.iter().map(|i| i + base));

@@ -415,7 +415,8 @@ fn fs_mip(i: VsOut) -> BakeOut {
 fn fs_leaf(i: VsOut) -> @location(0) vec4<f32> {
     let p = i.uv * 2.0 - 1.0;
     var best = 0.0;
-    var col = vec3<f32>(0.0);
+    // Bladgrønt også utenfor bladene, så mip-nivåene ikke mørkner mot svart.
+    var col = vec3<f32>(0.28, 0.42, 0.12);
     for (var k = 0; k < 26; k++) {
         let fk = f32(k);
         let h1 = hash21(vec2<f32>(fk, 1.0));

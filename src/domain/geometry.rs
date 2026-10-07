@@ -102,6 +102,8 @@ pub mod flag {
     pub const NO_WEATHER: u8 = 16;
     /// Ingen slitasje nederst på veggen.
     pub const NO_DIRT: u8 = 32;
+    /// Modellflater med alfamaske (blader på kort): alfatestes i alle pass.
+    pub const ALPHA: u8 = 64;
 }
 
 #[derive(Clone, Copy, Debug)]

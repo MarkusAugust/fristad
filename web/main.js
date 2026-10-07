@@ -83,6 +83,7 @@ function fit() {
 
 async function boot() {
   fit();
+  stage("Laster motoren …");
   await init();
   try {
     docs = await (await fetch("docs.json")).json();
@@ -92,6 +93,9 @@ async function boot() {
   // Fotoskannede materialer og modeller (CC0 fra Poly Haven), hentet av
   // tools/fetch-assets.ts under byggingen. Mangler de, bakes alt i motoren.
   const assets = await loadAssets();
+  stage("Bygger byen og baker materialene …");
+  // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
+  await new Promise((r) => setTimeout(r, 30));
   try {
     engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs);
   } catch (e) {
@@ -113,6 +117,7 @@ async function boot() {
   requestAnimationFrame(loop);
 
   status.hidden = true;
+  $("loading").hidden = true;
   enterBtn.hidden = false;
   enterBtn.focus();
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
@@ -159,15 +164,21 @@ async function loadAssets() {
       return false;
     },
   );
-  bar.hidden = true;
   if (!ok) return none;
-  setStatus("Bygger byen …");
   return { manifest, names: paths, blobs };
 }
 
 function setStatus(text) {
   const span = status.querySelector("span:last-child");
   if (span) span.textContent = text;
+}
+
+// Et trinn uten kjent framdrift: stolpen vises uten verdi (ubestemt).
+function stage(text) {
+  setStatus(text);
+  const bar = $("loading");
+  bar.hidden = false;
+  bar.removeAttribute("value");
 }
 
 let last = performance.now();
@@ -223,41 +234,61 @@ function handle(e) {
   }
 }
 
-// Pekerlås: musa fanges når du er i byen, og slippes med Esc.
+// Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
+// nettleseren gir oss den; ellers ser du deg rundt ved å dra med musa, så
+// knappen virker også i innebygde nettlesere uten pekerlås.
+let playing = false;
+let dragging = false;
+
 function lock() {
   const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
-  if (p?.catch) p.catch(() => canvas.requestPointerLock());
+  if (p?.catch) p.catch(() => canvas.requestPointerLock?.());
 }
 
 function locked() {
   return document.pointerLockElement === canvas;
 }
 
+function enter() {
+  playing = true;
+  gateEl.hidden = true;
+  hud.hidden = false;
+  engine.set_paused(false);
+  canvas.focus();
+  fadeHelp();
+  lock();
+}
+
+function pause() {
+  playing = false;
+  dragging = false;
+  engine.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  if (!panelOpen) {
+    enterBtn.textContent = "Fortsett";
+    gateEl.hidden = false;
+    enterBtn.focus();
+  }
+}
+
 function bindInput() {
-  enterBtn.addEventListener("click", lock);
+  enterBtn.addEventListener("click", enter);
   canvas.addEventListener("click", () => {
-    if (!locked() && !panelOpen) lock();
+    if (playing && !locked()) lock();
   });
 
   document.addEventListener("pointerlockchange", () => {
-    if (locked()) {
-      gateEl.hidden = true;
-      hud.hidden = false;
-      engine.set_paused(false);
-      canvas.focus();
-      fadeHelp();
-    } else {
-      engine.set_paused(true);
-      if (!panelOpen) {
-        enterBtn.textContent = "Fortsett";
-        gateEl.hidden = false;
-        enterBtn.focus();
-      }
-    }
+    // Slippes låsen mens du spiller (Esc), er det pause.
+    if (!locked() && playing && !panelOpen) pause();
   });
 
+  canvas.addEventListener("mousedown", (e) => {
+    if (playing && !locked() && e.button === 0) dragging = true;
+  });
+  window.addEventListener("mouseup", () => (dragging = false));
   document.addEventListener("mousemove", (e) => {
-    if (locked()) engine.look(e.movementX, e.movementY);
+    if (!playing) return;
+    if (locked() || dragging) engine.look(e.movementX, e.movementY);
   });
 
   const keys = new Set(["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
@@ -266,13 +297,17 @@ function bindInput() {
       closePanel(false);
       return;
     }
-    if (!locked()) return;
+    if (!playing) return;
+    if (e.code === "Escape" && !locked()) {
+      pause();
+      return;
+    }
     if (keys.has(e.code)) e.preventDefault();
     if (e.repeat) return;
     engine.key(e.code, true);
   });
   document.addEventListener("keyup", (e) => {
-    if (locked()) engine.key(e.code, false);
+    if (playing) engine.key(e.code, false);
   });
   window.addEventListener("blur", () => engine.release_all());
 
@@ -295,8 +330,10 @@ function fadeHelp() {
 function openPanel() {
   const d = docs[current.component] ?? {};
   panelOpen = true;
+  playing = false;
+  dragging = false;
   engine.set_paused(true);
-  document.exitPointerLock();
+  if (locked()) document.exitPointerLock?.();
   hud.hidden = true;
 
   $("panel-title").textContent = d.title ?? current.component;
@@ -316,7 +353,7 @@ function closePanel(relock) {
   panelOpen = false;
   panel.hidden = true;
   if (relock) {
-    lock();
+    enter();
   } else {
     enterBtn.textContent = "Fortsett";
     gateEl.hidden = false;

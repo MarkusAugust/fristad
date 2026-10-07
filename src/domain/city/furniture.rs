@@ -10,6 +10,7 @@ const GRASS: Mat = Mat::tex(Layer::Grass, 0xffffff);
 /// Lykt: modellen Lantern (CC0, Khronos) med lyset i lyktehodet. Hodet
 /// henger mot −X i modellen, så `yaw` vender det ut mot gata.
 pub fn lantern(b: &mut Builder, p: Vec3, yaw: f32) {
+    let p = b.on_ground(p);
     let t = at(p, yaw);
     if b.has_model("lamp") {
         // Ekstern lykt: lyset settes nær toppen av modellen.
@@ -26,6 +27,7 @@ pub fn lantern(b: &mut Builder, p: Vec3, yaw: f32) {
 }
 
 pub fn bench(b: &mut Builder, p: Vec3, yaw: f32) {
+    let p = b.on_ground(p);
     if b.has_model("bench") {
         b.place("bench", at(p, yaw));
         b.solid_box(p + Vec3::Y * 0.4, Vec3::new(2.0, 0.8, 0.8), yaw);
@@ -52,16 +54,19 @@ pub fn bench(b: &mut Builder, p: Vec3, yaw: f32) {
 }
 
 pub fn bollard(b: &mut Builder, p: Vec3) {
+    let p = b.on_ground(p);
     let profile = [Vec2::new(0.11, 0.0), Vec2::new(0.11, 0.08), Vec2::new(0.07, 0.1), Vec2::new(0.07, 0.8), Vec2::new(0.09, 0.84), Vec2::new(0.09, 0.9), Vec2::new(0.0, 0.98)];
     b.mesh.lathe(&Affine3A::from_translation(p), &profile, 12, &IRON, true, 0.7);
     b.solid(Shape::Cylinder { center: p + Vec3::Y * 0.5, radius: 0.12, half_height: 0.5 });
 }
 
 pub fn manhole(b: &mut Builder, p: Vec3) {
-    b.mesh.cylinder(&Affine3A::from_translation(p + Vec3::Y * 0.0), 0.4, 0.4, 0.025, 20, &IRON, true);
+    let p = b.on_ground(p);
+    b.mesh.cylinder(&Affine3A::from_translation(p), 0.4, 0.4, 0.025, 20, &IRON, true);
 }
 
 pub fn planter(b: &mut Builder, p: Vec3, yaw: f32) {
+    let p = b.on_ground(p);
     let t = at(p, yaw);
     if b.has_model("planter") {
         b.place("planter", t);
@@ -83,6 +88,7 @@ pub fn planter(b: &mut Builder, p: Vec3, yaw: f32) {
 }
 
 pub fn bike_rack(b: &mut Builder, p: Vec3, yaw: f32) {
+    let p = b.on_ground(p);
     let t = at(p, yaw);
     for k in 0..3 {
         let x = -0.6 + k as f32 * 0.6;
@@ -91,20 +97,26 @@ pub fn bike_rack(b: &mut Builder, p: Vec3, yaw: f32) {
     b.solid_box(p + Vec3::Y * 0.3, Vec3::new(1.8, 0.6, 0.2), yaw);
 }
 
-/// Fortau langs en fasaderekke: kantstein og en plate i betong.
+/// Fortau langs en fasaderekke: kantstein og en plate i betong, i stykker på
+/// tre meter som hvert ligger på bakkehøyden, så de følger terrenget med
+/// små trinn.
 pub fn sidewalk(b: &mut Builder, from: Vec3, to: Vec3, outward: Vec3, width: f32) {
-    let m = &mut b.mesh;
     let along = (to - from).normalize();
-    let len = (to - from).length();
-    let center = (from + to) * 0.5 + outward * (width * 0.5);
-    let yaw = along.x.atan2(along.z) + std::f32::consts::FRAC_PI_2;
-    let _ = yaw;
+    let total = (to - from).length();
     let rot = Quat::from_rotation_arc(Vec3::X, along);
-    let t = Affine3A::from_rotation_translation(rot, center + Vec3::Y * 0.06);
-    m.cuboid_ao(&t, Vec3::new(len, 0.12, width), &CONCRETE, 1.0);
-    // Kantsteinen ytterst, litt høyere og i stein.
-    let curb = Affine3A::from_rotation_translation(rot, center + outward * (width * 0.5 - 0.15) + Vec3::Y * 0.07);
-    m.cuboid_ao(&curb, Vec3::new(len, 0.14, 0.3), &STONE, 1.0);
+    let n = (total / 3.0).ceil().max(1.0) as i32;
+    let len = total / n as f32;
+    for k in 0..n {
+        let c = from + along * (len * (k as f32 + 0.5)) + outward * (width * 0.5);
+        let gy = b.ground(c.x, c.z);
+        let m = &mut b.mesh;
+        // Kassene strekker seg 60 cm ned i bakken, så de ikke henger i lufta i hellinger.
+        let t = Affine3A::from_rotation_translation(rot, Vec3::new(c.x, gy + 0.12 - 0.36, c.z));
+        m.cuboid_ao(&t, Vec3::new(len + 0.02, 0.12 + 0.6, width), &CONCRETE, 1.0);
+        let cc = c + outward * (width * 0.5 - 0.15);
+        let curb = Affine3A::from_rotation_translation(rot, Vec3::new(cc.x, gy + 0.14 - 0.37, cc.z));
+        m.cuboid_ao(&curb, Vec3::new(len + 0.02, 0.14 + 0.6, 0.3), &STONE, 1.0);
+    }
 }
 
 pub fn plaza(b: &mut Builder) {
@@ -191,6 +203,7 @@ pub fn plaza(b: &mut Builder) {
     ];
     for (name, p, yaw) in extras {
         if b.has_model(name) {
+            let p = b.on_ground(p);
             b.place(name, at(p, yaw));
             let h = b.model_height(name).max(0.5);
             b.solid_box(p + Vec3::Y * (h * 0.5), Vec3::new(0.8, h, 0.8), yaw);
@@ -199,6 +212,7 @@ pub fn plaza(b: &mut Builder) {
 }
 
 fn well(b: &mut Builder, p: Vec3) {
+    let p = b.on_ground(p);
     let m = &mut b.mesh;
     m.lathe(&Affine3A::from_translation(p), &[Vec2::new(1.1, 0.0), Vec2::new(1.1, 0.9), Vec2::new(0.85, 0.95), Vec2::new(0.85, 0.3)], 20, &STONE, false, 0.7);
     let water = Mat::special(kind::WATER, 0x203040, 0.02);

@@ -10,6 +10,8 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 - `src/app.rs` setter sammen kjernen og portene. De drivende adapterne snakker bare med `App`.
 - **Ny komponent i byen:** én fil i `src/domain/installations/`, implementer `Installation` (bygg geometri og props, `tick`, `act`, `pose`, `palette`), legg den til i `all()`, legg navnet til i `COMPONENTS` i `tools/export-docs.ts`, og eventuelt variantene i `VARIANTS` i `web/main.js`. Resten (sikting, E/R/F, panel, tema) følger av `component()`.
 - Målestokk: 1 rem = 1 m for arkitekturen (etasjehøyde fra spacing-skalaen). For komponentene er **1 CSS-piksel = 1 cm** (`installations::PX`), så `.fs-button` med 16px tekst og 8/16px padding blir 42 × 80 cm.
+- Terrenget (`city/terrain.rs`) er en høydefunksjon: torget er planert innenfor 21 m, utenfor heller og bølger bakken. Alt som bygges spør `Builder::ground`/`on_ground`, og bakken er et 2 m-rutenett med heightfield-kollider. `city::town_dist` og `path_dist` sier hvor nær bebyggelsen og stiene et punkt er; `ground_mat` velger brostein, grus eller eng etter det.
+- Husene varieres av `house::Spec::random` (gavl mot gata, steinsokkel, skodder, blomsterkasser, balkong, etasjehøyde) i rekker som bølger, med smug i mellom. Enga (`nature::meadow`) har løvtrær, busker, steiner, steingjerder, tuster og granskog.
 
 ## Arbeidsflyt
 
@@ -21,7 +23,9 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 - **Test nettversjonen** i eierens nettleser. `window.fristad.engine` har `place(x,y,z,yaw,pitch)`, `key(code, down)`, `set_paused`, `set_variant(component, variant)`, `set_weather(navn)`, `set_online(bool)`, og `window.fristad.openPanel/closePanel`.
 - Tokens: `bun tools/export-tokens.ts`. Dokumentasjonstekst: `bun tools/export-docs.ts [sti-til-fristil-klone]` (henter fra `master` i fristil-repoet). Skriftatlas: `cargo run --release --bin bake_font -- /usr/share/fonts/opentype/inter/Inter-Medium.otf`.
 - **Eksterne ressurser (CC0 fra Poly Haven):** `bun tools/fetch-assets.ts` henter fotoskannede materialer per teksturlag og modeller (benk, lykt, tønne, kasse, plantekasse, busk, sykkel, søppelbøtte, kjerre, tre) til `assets/external/` med `manifest.json`. Actions kjører det under byggingen (hurtiglagret), nettleseren henter filene ved oppstart, og motoren bruker dem framfor de bakte lagene og den prosedyriske geometrien når de finnes (`adapters/assets.rs`, portene `TextureSource` og `ModelSource`). Lista over hva som hentes står øverst i skriptet.
-- Nettverk i skyen: GitHub (raw-filer) og crates.io er åpne; Poly Haven, ambientCG, Kenney og Quaternius er sperret, så Claude ser ikke de eksterne ressursene i skjermbildene sine med mindre eieren committer `assets/external/` (katalogen er i .gitignore). `snapshot --assets KATALOG` peker på en annen katalog. De innebygde modellene (Lantern, Fox) er fra `KhronosGroup/glTF-Sample-Assets`, og teksturene bakes prosedyrisk på GPU-en som reserve (`adapters/wgpu/shaders/bake.wgsl`).
+- Nettverk i skyen: GitHub (raw-filer) og crates.io er åpne; Poly Haven, ambientCG, Kenney og Quaternius er sperret. Actions legger de hentede ressursene på grenen `external-assets`; `tools/pull-assets.sh` henter dem til `assets/external/` (i .gitignore), og `snapshot --assets assets/external` bruker dem.
+- Poly Havens 1k-modeller har JPEG-teksturer uten alfa. Materialer med `alphaMode` BLEND/MASK får `flag::ALPHA`, og rendereren alfatester dem mot svart bakgrunn i alle pass. Busker med bladkort blir likevel for tynne, så buskene er prosedyriske.
+- Bladteksturen må ha bladgrønn RGB også utenfor bladene, ellers mørkner mip-nivåene mot svart på avstand. De innebygde modellene (Lantern, Fox) er fra `KhronosGroup/glTF-Sample-Assets`, og teksturene bakes prosedyrisk på GPU-en som reserve (`adapters/wgpu/shaders/bake.wgsl`).
 - Pass på at `[hidden]` faktisk skjuler: elementer med egen `display` trenger regelen øverst i `web/style.css`.
 
 ## Beslutninger
@@ -34,10 +38,10 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 
 ## Status (7. oktober 2026)
 
-Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fasadegrammatikk, trær med bladkort og vind, glTF-modeller (lykter, rev), SDF-tekst i Inter, ti komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget.
+Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fotoskannede materialer og modeller fra Poly Haven, fasadegrammatikk med variasjon, terreng med eng, åser og granskog, trær med bladkort og vind, SDF-tekst i Inter, ti komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget, lasteskjerm og inngang uten pekerlås (dra med musa).
 
 Neste:
-1. Tilbakemelding fra eieren på forhåndsvisningen (lys, materialer, lesbarhet på skiltene, ytelse i WebGL2).
+1. Tilbakemelding fra eieren på forhåndsvisningen (bybildet, lys, materialer, lesbarhet på skiltene, ytelse i WebGL2).
 2. Ytelse: frustum-culling og LOD, lavere oppløsning på svake GPU-er, måling med timestamp-queries.
 3. Flere komponenter: dialog som telefonkiosk, tabs som hus med dører, card, accordion; bydelene Verkstedet, Tårnene, Tokenparken.
 4. Lyd, kart, touch-kontroller, tilgjengelig 2D-modus.

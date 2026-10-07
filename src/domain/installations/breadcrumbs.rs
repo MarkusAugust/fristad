@@ -46,7 +46,7 @@ impl Installation for Breadcrumbs {
             }
             // Platene vender mot den som kommer sørfra.
             let yaw = (steps[(k + 1).min(2)].1 - steps[k.max(1) - 1].1).x.atan2((steps[(k + 1).min(2)].1 - steps[k.max(1) - 1].1).z) + std::f32::consts::PI;
-            let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), *pos + Vec3::Y * 0.012);
+            let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), b.on_ground(*pos) + Vec3::Y * 0.012);
             let i = b.prop("breadcrumbs", m, t, Some((Vec3::ZERO, Vec3::new(w * PX * 0.5 + 0.2, 0.4, h * PX * 0.5))));
             self.plates.push(i);
         }

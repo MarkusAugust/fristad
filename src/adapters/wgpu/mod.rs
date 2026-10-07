@@ -993,10 +993,9 @@ impl Renderer {
             pass.set_vertex_buffer(1, self.instances.slice(at..at + INSTANCE_STRIDE));
             m.draw(pass, 0..1);
         }
+        let _ = shadow;
         for m in &self.models {
-            if !shadow {
-                pass.set_bind_group(3, &m.textures, &[]);
-            }
+            pass.set_bind_group(3, &m.textures, &[]);
             pass.set_vertex_buffer(1, m.instances.slice(..));
             m.mesh.draw(pass, 0..m.count);
         }
