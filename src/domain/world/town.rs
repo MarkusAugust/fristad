@@ -321,6 +321,8 @@ pub struct Ground {
     pub forest: f32,
     pub dry: f32,
     pub wet: f32,
+    /// Veien går øst–vest her (Tverrgata): hjulsporene i jordlaget snus.
+    pub east_west: bool,
 }
 
 fn soft(edge: f32, d: f32, width: f32) -> f32 {
@@ -334,13 +336,14 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let inside = soft(0.0, terrain::town_edge(x, z) + 1.0, 2.0);
     // Brosteinen: torget og Storgata, med ujevn kant der jorda tar over.
     let sq = (x.abs() - SQUARE.x).max(z.abs() - SQUARE.y);
-    let main = (x.abs() - MAIN) / inside.max(0.01) + (1.0 - inside) * 50.0;
+    let main = (x.abs() - MAIN) + (1.0 - inside) * 50.0;
     let cobble = soft(0.0, sq.min(main) + (n1 - 0.5) * 1.2, 1.4);
-    // Jorda: Tverrgata, veiene ut, og flekker rundt husene i byen.
-    let cross = (z.abs() - CROSS) / inside.max(0.01) + (1.0 - inside) * 50.0;
+    // Jorda: Tverrgata og veiene ut.
+    let cross = (z.abs() - CROSS) + (1.0 - inside) * 50.0;
     let road = path_dist(x, z) - 1.6;
-    let yards = inside * soft(0.0, (0.4 - n2) * 12.0, 3.0);
-    let dirt = soft(0.0, cross.min(road) + (n1 - 0.5) * 1.6, 1.8).max(yards * 0.6);
+    // Gårdsplassene får tråkket jord når det finnes et jordlag uten
+    // hjulspor; sølelaget har spor og passer bare på veiene.
+    let dirt = soft(0.0, cross.min(road) + (n1 - 0.5) * 1.6, 1.8);
     // Berg der det er bratt, og litt i toppen av borghaugen.
     let slope = 1.0 - terrain::normal(x, z).y;
     let (hx, hz, hr, _) = terrain::HILL;
@@ -362,7 +365,8 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     }
     // Søle i kantene av jordveiene og i gatene i byen.
     let wet = (dirt * (1.0 - dirt) * 4.0 * soft(0.0, 0.55 - n2, 0.2)).clamp(0.0, 1.0);
-    Ground { cobble, dirt, rock, forest, dry, wet }
+    let east_west = inside > 0.5 && z.abs() < CROSS + 4.0 && x.abs() > MAIN - 1.0;
+    Ground { cobble, dirt, rock, forest, dry, wet, east_west }
 }
 
 /// Avstand fra et punkt til veiene utenfor muren: sørover fra sørporten,

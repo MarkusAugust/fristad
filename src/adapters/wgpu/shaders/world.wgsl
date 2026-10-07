@@ -348,7 +348,9 @@ fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, d
 // hjørnene og høydekartene, så steinene stikker opp gjennom jorda og gresset
 // vokser mellom steinene, i stedet for harde kanter. Planart fra oven, berget
 // triplanart (det står i skråninger).
-fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>) -> Tex {
+// `east_west`: hjulsporene i jordlaget går øst–vest (Tverrgata), ellers
+// nord–sør.
+fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, east_west: bool) -> Tex {
     let grass_w = max(0.0, 1.0 - w_in.x - w_in.y - w_in.z - w_in.w);
     // Lagene: brostein 0, jord 11, berg 15, skogbunn 14, gress 9.
     var layers = array<i32, 5>(0, 11, 15, 14, 9);
@@ -360,6 +362,12 @@ fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>
             let layer = layers[k];
             if (layer == 15) {
                 samples[k] = triplanar(layer, world, dp1, dp2, n, false);
+            } else if (layer == 11 && east_west) {
+                let scale = g.tex_scale[layer / 4][layer % 4];
+                let uv = vec2<f32>(world.z, world.x) / scale;
+                let s = sample_plane(layer, uv, vec2<f32>(dp1.z, dp1.x) / scale, vec2<f32>(dp2.z, dp2.x) / scale, vec3<f32>(0.0, 0.0, 1.0), vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 1.0, 0.0));
+                samples[k] = s;
+                samples[k].n = normalize(n + vec3<f32>(s.n.x, 0.0, s.n.z));
             } else {
                 let scale = g.tex_scale[layer / 4][layer % 4];
                 let uv = vec2<f32>(world.x, -world.z) / scale;
@@ -626,7 +634,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             s.metal = 0.6;
         }
     } else if (kind == K_TERRAIN) {
-        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo);
+        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
         s.albedo = t.albedo * (0.9 + 0.2 * fbm2(i.world.xz * 0.11));
         s.n = t.n;
         s.rough = clamp(t.rough, 0.04, 1.0);

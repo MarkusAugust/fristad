@@ -400,7 +400,7 @@ fn ground(b: &mut Builder) {
                 normal: terrain::normal(x, z).to_array(),
                 uv: [w.dry, w.wet],
                 color: [to8(w.cobble), to8(w.dirt), to8(w.rock), to8(w.forest)],
-                mat: [kind::TERRAIN, 0, 0, 255],
+                mat: [kind::TERRAIN, 0, if w.east_west { crate::domain::geometry::flag::ROT_UV } else { 0 }, 255],
                 joints: [0; 4],
                 weights: [0; 4],
             });
