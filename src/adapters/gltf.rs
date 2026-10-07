@@ -3,7 +3,7 @@
 //! inn i binæren.
 
 use crate::domain::anim::{Channel, Clip, Joint, Keys, Rig};
-use crate::domain::geometry::{flag, kind, Mat, Mesh};
+use crate::domain::geometry::{flag, kind, Layer, Mat, Mesh};
 use crate::domain::model::{Image, Model};
 use crate::ports::ModelSource;
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
@@ -234,6 +234,13 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let skinned = rig.is_some() && joints.len() == pos.len() && weights.len() == pos.len();
             let world = if skinned { Mat4::IDENTITY } else { world };
             let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
+            // Okklusjonen Blender har bakt i hjørnefargen (rød kanal, lineær).
+            let ao: Vec<f32> = reader.read_colors(0).map(|c| c.into_rgba_f32().map(|c| c[0]).collect()).unwrap_or_default();
+            // «layer_<lag>»: et flisbart teksturlag lagt på etter uv i meter.
+            let layer = mat.name().and_then(|n| n.strip_prefix("layer_")).map(|n| n.split('.').next().unwrap_or(n)).and_then(|n| Layer::ALL.iter().copied().find(|l| l.name() == n));
+            if mat.name().is_some_and(|n| n.starts_with("layer_")) && layer.is_none() {
+                log::warn!("Modell {name}: ukjent teksturlag i materialet {:?}", mat.name());
+            }
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             let norms: Vec<[f32; 3]> = match reader.read_normals() {
                 Some(n) => n.collect(),
@@ -265,7 +272,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if named("leaf") || named("needle") {
                 mmat = mmat.flags(flag::ALPHA | flag::WIND | flag::NO_WEATHER);
             }
-            if metallic >= 0.5 {
+            if metallic >= 0.5 && layer.is_none() {
                 mmat = mmat.flags(flag::METAL);
             }
             let nmat = Mat4::from_mat3(glam::Mat3::from_mat4(world).inverse().transpose());
@@ -279,8 +286,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 let wp = world.transform_point3(Vec3::from(*p));
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let v = Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat };
-                let vi = mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
+                let occl = ao.get(i).copied().unwrap_or(1.0);
+                let v = match layer {
+                    Some(l) => Mat { kind: l as u8, flags: flags | flag::UVMAP, ..mmat },
+                    None => Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat },
+                };
+                let vi = mesh.vert(wp, wn, Vec2::from(t), &v, occl);
                 if skinned {
                     let (j, w) = skin_weights(joints[i], weights[i]);
                     let vert = &mut mesh.vertices[vi as usize];

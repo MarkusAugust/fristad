@@ -120,6 +120,11 @@ pub mod flag {
     pub const ALPHA: u8 = 64;
     /// Modellflater som er metall (krom): metallfaktoren er 1.
     pub const METAL: u8 = 128;
+    /// Teksturlag lagt på etter flatens egen uv (i meter) i stedet for
+    /// triplanart: modellene fra Blender med «layer_»-materialer, så
+    /// årene følger bjelkene og radene følger takflaten. Samme bit som
+    /// METAL, som ikke betyr noe for teksturlag.
+    pub const UVMAP: u8 = 128;
     /// Modellflater som er lakk: fargen kommer fra instansen (`Placement::tints`).
     /// Samme bit som ROT_UV, som ikke betyr noe for modeller.
     pub const PAINT: u8 = 8;

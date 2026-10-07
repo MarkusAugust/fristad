@@ -30,10 +30,12 @@ fn modellene_star_pa_bakken() {
 }
 
 /// Modellregelen: alt som står i verden er en ekte modell fra
-/// `tools/models/` med bakte teksturer. Bare gresstusten og ruskbitene,
-/// som lages i kjernen, er unntatt.
+/// `tools/models/` med teksturer: bakte (albedo) eller de håndlagde
+/// teksturlagene (`layer_`-materialer). Glass og lys er egne slag. Bare
+/// gresstusten og ruskbitene, som lages i kjernen, er unntatt.
 #[test]
 fn alt_er_ekte_modeller_med_teksturer() {
+    use crate::domain::geometry::kind;
     let p = world();
     let procedural = ["grass", "debris"];
     let mut problems = vec![];
@@ -41,8 +43,13 @@ fn alt_er_ekte_modeller_med_teksturer() {
         if procedural.contains(&m.name.as_str()) {
             continue;
         }
-        if m.albedo.is_none() {
-            problems.push(format!("{} har ingen bakt albedo-tekstur", m.name));
+        let baked = m.mesh.vertices.iter().filter(|v| v.mat[0] == kind::MODEL).count();
+        if baked > 0 && m.albedo.is_none() {
+            problems.push(format!("{} har {baked} hjørner uten bakt albedo-tekstur", m.name));
+        }
+        let plain = m.mesh.vertices.iter().filter(|v| v.mat[0] == kind::PLAIN).count();
+        if plain > 0 {
+            problems.push(format!("{} har {plain} hjørner med flat farge", m.name));
         }
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));

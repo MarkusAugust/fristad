@@ -54,6 +54,8 @@ const F_NO_WEATHER: u32 = 16u;
 const F_NO_DIRT: u32 = 32u;
 const F_ALPHA: u32 = 64u;
 const F_METAL: u32 = 128u;
+/// Teksturlag etter flatens uv i meter (modeller med «layer_»-materialer).
+const F_UVMAP: u32 = 128u;
 /// Lakk på modeller: samme bit som ROT_UV, som modeller ikke bruker.
 const F_PAINT: u32 = 8u;
 
@@ -317,6 +319,27 @@ fn triplanar(layer: i32, world: vec3<f32>, dwx: vec3<f32>, dwy: vec3<f32>, n_geo
     return o;
 }
 
+// Et teksturlag lagt på etter flatens egen uv (i meter), med tangentene
+// fra skjermderivatene, så årene følger bjelken og radene takflaten.
+fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>) -> Tex {
+    let scale = g.tex_scale[layer / 4][layer % 4];
+    let uv = uv_m / scale;
+    let gx = duvx_m / scale;
+    let gy = duvy_m / scale;
+    let dp2perp = cross(dp2, n);
+    let dp1perp = cross(n, dp1);
+    var t = dp2perp * gx.x + dp1perp * gy.x;
+    var b = dp2perp * gx.y + dp1perp * gy.y;
+    let invmax = inverseSqrt(max(dot(t, t), dot(b, b)) + 1e-12);
+    t = t * invmax;
+    b = b * invmax;
+    if (dot(t, t) < 1e-8) {
+        t = normalize(cross(n, vec3<f32>(0.0, 1.0, 0.3)));
+        b = cross(n, t);
+    }
+    return sample_plane(layer, uv, gx, gy, t, b, n);
+}
+
 // Rommet bak et vindu. `p` er verdensposisjonen på glasset, `v` retningen
 // fra øyet. Rommet er 3 × 3 × 3 m, forankret i gulvet og vinduscella.
 fn interior(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, night: f32) -> vec3<f32> {
@@ -517,7 +540,12 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     var height = 0.5;
 
     if (kind < 32u) {
-        let t = triplanar(i32(kind), i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
+        var t: Tex;
+        if ((flags & F_UVMAP) != 0u) {
+            t = uvmapped(i32(kind), i.uv, duv1, duv2, dp1, dp2, n_geo);
+        } else {
+            t = triplanar(i32(kind), i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
+        }
         // Stor, svak variasjon så flisene ikke repeterer synlig.
         let variation = 0.86 + 0.28 * fbm2(i.world.xz * 0.11 + i.world.y * 0.07);
         s.albedo = t.albedo * tint * variation;
