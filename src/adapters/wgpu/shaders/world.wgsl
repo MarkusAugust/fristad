@@ -7,13 +7,19 @@
 // TAA-forskyvningen og vinden er identisk og dybden kan testes med Equal.
 
 struct Instance {
-    @location(5) m0: vec4<f32>,
-    @location(6) m1: vec4<f32>,
-    @location(7) m2: vec4<f32>,
-    @location(8) m3: vec4<f32>,
+    @location(7) m0: vec4<f32>,
+    @location(8) m1: vec4<f32>,
+    @location(9) m2: vec4<f32>,
+    @location(10) m3: vec4<f32>,
     // x markering, y animasjon (0..1), z og w ubrukt.
-    @location(9) extra: vec4<f32>,
+    @location(11) extra: vec4<f32>,
+    // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers.
+    @location(12) extra2: vec4<f32>,
 }
+
+/// Leddmatrisene for skinnede figurer: fire texels (kolonnene) per
+/// matrise, 256 matriser per rad.
+@group(0) @binding(1) var skin_tex: texture_2d<f32>;
 
 struct Pass {
     // x kaskade (skygge) eller 0.
@@ -62,6 +68,8 @@ struct VsIn {
     @location(2) uv: vec2<f32>,
     @location(3) color: vec4<f32>,
     @location(4) mat: vec4<u32>,
+    @location(5) joints: vec4<u32>,
+    @location(6) weights: vec4<f32>,
 }
 
 struct VsOut {
@@ -74,8 +82,32 @@ struct VsOut {
     @location(5) @interpolate(flat) extra: vec4<f32>,
 }
 
-fn model_of(i: Instance) -> mat4x4<f32> {
-    return mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
+fn joint_mat(i: u32) -> mat4x4<f32> {
+    let x = i32((i % 256u) * 4u);
+    let y = i32(i / 256u);
+    return mat4x4<f32>(
+        textureLoad(skin_tex, vec2<i32>(x, y), 0),
+        textureLoad(skin_tex, vec2<i32>(x + 1, y), 0),
+        textureLoad(skin_tex, vec2<i32>(x + 2, y), 0),
+        textureLoad(skin_tex, vec2<i32>(x + 3, y), 0),
+    );
+}
+
+// Hjørnets skinnmatrise: de fire leddene vektet.
+fn skin_of(v: VsIn, base: u32) -> mat4x4<f32> {
+    return joint_mat(base + v.joints.x) * v.weights.x
+        + joint_mat(base + v.joints.y) * v.weights.y
+        + joint_mat(base + v.joints.z) * v.weights.z
+        + joint_mat(base + v.joints.w) * v.weights.w;
+}
+
+// Instansens matrise, med skinningen inni for skinnede figurer.
+fn model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
+    let m = mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
+    if (i.extra2.x > 0.5) {
+        return m * skin_of(v, u32(i.extra2.x) - 1u);
+    }
+    return m;
 }
 
 fn jittered(clip: vec4<f32>) -> vec4<f32> {
@@ -105,7 +137,7 @@ fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
 @vertex
 fn vs(v: VsIn, inst: Instance) -> VsOut {
     var o: VsOut;
-    let m = model_of(inst);
+    let m = model_of(inst, v);
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
     w += wind_offset(w, v);
     o.world = w;
@@ -126,7 +158,7 @@ struct ShadowOut {
 
 @vertex
 fn vs_shadow(v: VsIn, inst: Instance) -> ShadowOut {
-    let m = model_of(inst);
+    let m = model_of(inst, v);
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
     w += wind_offset(w, v);
     var o: ShadowOut;

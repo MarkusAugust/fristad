@@ -110,6 +110,30 @@ Eieren valgte: fjern alle komponentene som er plassert rundt i byen. Komponenten
 - Utstyret følger komponentenes betydning (knapp = våpen, alert = skjold, progress = liv, spinner = fryse tid, toast = kast, tooltip = avslør svakhet, tabs = bytte sett, accordion = sekk, breadcrumbs = vei tilbake, link = teleport, divider = vegg, switch = feller, badge/tag = buffer, avatar = følgesvenn, connection-status = varsling).
 - Sammensetning er Fristils egne mønstre, og skjemaet er smia: label + input + help-text + error-text = Felt; felt × n + fieldset + button = Skjema; card + avatar + badge = Profil; dialog + knapper = Bekreftelse. Valideringen er om smiinga lykkes.
 
-### Milepæl 1
+### Milepæl 1 (ferdig)
 
-Brønnen leder ned til én prosedyrisk etasje, én fiendetype (en korrupt knapp), knappen som våpen, liv (progress), tokens, og død som sender deg opp med tokenene i behold. Så Knappesmeden og Skjemakontoret som de to første bodene, og det første Feltet du kan smi.
+Brønnen leder ned til én prosedyrisk etasje, én fiendetype (en korrupt knapp), knappen som våpen, liv (progress), tokens, og død som sender deg opp med tokenene i behold.
+
+## Beslutningene (eieren, 7. oktober, etter milepæl 1)
+
+Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, treff skal synes, kjelleren skal være variert. «Spillmekanikkene må være mye mye mye bedre.» Det skal føles som en blanding av **The Witcher 2** og det gamle **Might and Magic** (ikke Heroes): tungt, taktisk nærkampspill i førsteperson, med utforsking av varierte kjellere og en by som nav.
+
+1. **Førsteperson**, med synlige armer og våpen.
+2. **Skjelettanimasjon i motoren.** Skinnet glTF med rigger og Blender-actions. Stive deler som instanser er ikke godt nok.
+3. **Angrep:** venstre mus lett hugg (kombo på tre), hold for tungt hugg, høyre mus blokk med skjold, parade i vinduet, Shift+retning unnamanøver med usårbarhet, utholdenhetsmåler som styrer alt.
+4. **Treff:** ingen frys når *vi* treffes, men kameraskjelv, kameraet dreies bort og tilbake, og rødt flash langs kantene. Når *fienden* treffes: kort frys (80 ms), blink hvit, kastes bakover, biter av krøllparenteser og piksler spruter, skadetall i Plex Mono, helsestolpe på fienden.
+5. **Fiendens angrep** varsles med animasjon: den gjør seg klar (reiser seg, gaper) før den stuper. Kan blokkes, pareres eller unngås.
+6. **Fiendetyper** først: korrupt knapp (nærkamp), korrupt input (skyter strenger), korrupt modal (sperrer gangen, tank), tooltip-sverm (små, raske), tabellen som miniboss. De skal se **mye mer monsteraktige** ut enn dagens knapp.
+7. **Utstyr** bygges av komponenter, men ser ut som ekte våpen og utstyr: sverd, skjold, øks, dolk, bue. Tematisk kobling er ok (divider = klinge, button = grep, card = skjoldplate, badge = skjoldbule, progress = bue, tag = pilspiss, tooltip = dolk).
+8. **Skjemaet er verkstedet:** oppskriften er et ekte Fristil-skjema i Skjemakontoret, feltene er plassene, validering er kravene. Avansert utstyr krever fieldset, file-upload og search.
+9. **Statistikk:** skade, fart, rekkevidde, blokk, ett spesialtrekk per våpen, sjeldenhetsgrader, ingen tilfeldige rulleverdier.
+10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Knappesmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Gorvek lærer trekk. De bor i husene rundt torget.
+11. **Fem etasjer per nedstigning**, hver en epoke (2026 forretningslogikk, 2019 klassekomponenter, 2014 jQuery, 2009 tabellayout, 1999 blink), trapp ned bak en rusten port med nøkkel fra minibossen, Rammeverket nederst. En nedstigning er 20 til 30 minutter.
+12. **Generator:** rom og ganger (BSP), to høydenivåer med trapper og avsatser, hemmelige rom, kister, tema per epoke (murstein med mose, kloakk med gjørme, serverrom med lysrør, katakomber med stearinlys, lava i dypet), varierte lys (fakler, lykter, glødende mose, flakkende lysrør, lysskjær fra sprekker).
+13. **Nøkler** fra minibosser og låste kister, porten er et rustent gitter som sveives opp, låste dører til valgfrie rom.
+14. **Død:** mister det du plukket opp, beholder det du hadde på deg og tre firedeler av tokenene. Vunne komponenter er låst opp for alltid.
+15. **Ingen erfaringspoeng.** Framgang er komponenter, oppskrifter, trekk, og faste oppgraderinger for tokens.
+16. **Dokumentasjonen** i boka: å lese dokumentasjonen for en komponent gir **liv tilbake**.
+17. **Lyd** skal inn (WebAudio).
+18. **Lagring** i nettleseren; en nedstigning kan ikke lagres midt i.
+19. **Rekkefølge:** skjelettanimasjon i motoren først, så kampfølelsen (armer, sverd, treff, fiendeangrep, lyd), så generatoren med trapper og tema, så butikker og bygging, så flere fiender og bossene.

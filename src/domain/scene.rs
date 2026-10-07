@@ -38,6 +38,8 @@ pub struct Light {
 pub struct ModelInstance {
     pub model: &'static str,
     pub transform: Affine3A,
+    /// Skinnmatrisene i `Frame.skins` (start, antall) for en skinnet figur.
+    pub skin: Option<(u32, u32)>,
 }
 
 pub struct Frame {
@@ -71,6 +73,9 @@ pub struct Frame {
     pub props: Vec<(Affine3A, [f32; 4])>,
     /// Modellinstansene som flytter seg (dyrene), per bilde.
     pub instances: Vec<ModelInstance>,
+    /// Leddmatrisene (hjørne i meshen → posert) for de skinnede
+    /// instansene, som `ModelInstance.skin` peker inn i.
+    pub skins: Vec<Mat4>,
     /// Bland med forrige bilde. Av første bilde og når kameraet hopper.
     pub taa: bool,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.

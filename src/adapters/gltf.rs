@@ -3,10 +3,11 @@
 //! `tools/models/cars.py`); eksterne modeller kommer gjennom
 //! `adapters::assets`.
 
+use crate::domain::anim::{Channel, Clip, Joint, Keys, Rig};
 use crate::domain::geometry::{flag, kind, Mat, Mesh};
 use crate::domain::model::{Image, Model};
 use crate::domain::ports::ModelSource;
-use glam::{Affine3A, Mat4, Vec2, Vec3};
+use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 
 macro_rules! embed {
     ($dir:literal, [$($file:literal),*]) => {
@@ -152,6 +153,86 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
         }
     };
 
+    // Skjelettet: det første skinnet, med leddene i glTF-rekkefølge og
+    // foreldrene funnet i nodetreet. Noder mellom rota og første ledd
+    // (armaturobjektet) foldes inn i rotleddets lokale transform.
+    let node_count = doc.nodes().count();
+    let mut node_parent: Vec<Option<usize>> = vec![None; node_count];
+    for n in doc.nodes() {
+        for c in n.children() {
+            node_parent[c.index()] = Some(n.index());
+        }
+    }
+    let node_local = |i: usize| doc.nodes().nth(i).map(|n| Mat4::from_cols_array_2d(&n.transform().matrix())).unwrap_or(Mat4::IDENTITY);
+    let mut rig: Option<Rig> = None;
+    if let Some(skin) = doc.skins().next() {
+        let joint_nodes: Vec<gltf::Node> = skin.joints().collect();
+        let mut joint_of: std::collections::HashMap<usize, usize> = Default::default();
+        for (k, j) in joint_nodes.iter().enumerate() {
+            joint_of.insert(j.index(), k);
+        }
+        let reader = skin.reader(|b| Some(&buffers[b.index()]));
+        let ibms: Vec<Mat4> = reader.read_inverse_bind_matrices().map(|it| it.map(|m| Mat4::from_cols_array_2d(&m)).collect()).unwrap_or_default();
+        let mut joints = vec![];
+        for (k, j) in joint_nodes.iter().enumerate() {
+            let mut local = Mat4::from_cols_array_2d(&j.transform().matrix());
+            let mut p = node_parent[j.index()];
+            let mut parent = None;
+            while let Some(pi) = p {
+                if let Some(&pj) = joint_of.get(&pi) {
+                    parent = Some(pj);
+                    break;
+                }
+                local = node_local(pi) * local;
+                p = node_parent[pi];
+            }
+            if parent.is_some_and(|pj| pj >= k) {
+                return Err(format!("leddet {k} ({}) kommer før forelderen sin", j.name().unwrap_or("")));
+            }
+            let (s, r, t) = local.to_scale_rotation_translation();
+            joints.push(Joint { name: j.name().unwrap_or("").to_string(), parent, translation: t, rotation: r, scale: s, inverse_bind: ibms.get(k).copied().unwrap_or(Mat4::IDENTITY) });
+        }
+        // Klippene: én kanal per ledd og egenskap. Kubiske splines har
+        // tre verdier per nøkkel (tangent inn, verdi, tangent ut).
+        fn middle<T: Clone>(v: Vec<T>, cubic: bool) -> Vec<T> {
+            if cubic {
+                v.into_iter().skip(1).step_by(3).collect()
+            } else {
+                v
+            }
+        }
+        let mut clips = vec![];
+        for a in doc.animations() {
+            let mut channels = vec![];
+            let mut duration: f32 = 0.0;
+            for ch in a.channels() {
+                let Some(&joint) = joint_of.get(&ch.target().node().index()) else { continue };
+                let r = ch.reader(|b| Some(&buffers[b.index()]));
+                let times: Vec<f32> = r.read_inputs().map(|i| i.collect()).unwrap_or_default();
+                let Some(outputs) = r.read_outputs() else { continue };
+                let cubic = ch.sampler().interpolation() == gltf::animation::Interpolation::CubicSpline;
+                let keys = match outputs {
+                    gltf::animation::util::ReadOutputs::Translations(v) => Keys::Translation(middle(v.map(Vec3::from).collect(), cubic)),
+                    gltf::animation::util::ReadOutputs::Rotations(v) => Keys::Rotation(middle(v.into_f32().map(|q| Quat::from_array(q).normalize()).collect(), cubic)),
+                    gltf::animation::util::ReadOutputs::Scales(v) => Keys::Scale(middle(v.map(Vec3::from).collect(), cubic)),
+                    gltf::animation::util::ReadOutputs::MorphTargetWeights(_) => continue,
+                };
+                let n = match &keys {
+                    Keys::Translation(v) | Keys::Scale(v) => v.len(),
+                    Keys::Rotation(v) => v.len(),
+                };
+                if n != times.len() || n == 0 {
+                    continue;
+                }
+                duration = duration.max(times.last().copied().unwrap_or(0.0));
+                channels.push(Channel { joint, times, keys, step: ch.sampler().interpolation() == gltf::animation::Interpolation::Step });
+            }
+            clips.push(Clip { name: a.name().unwrap_or("").to_string(), duration, channels });
+        }
+        log::info!("Modell {name}: {} ledd, klipp: {}", joints.len(), clips.iter().map(|c| format!("{} ({:.2} s)", c.name, c.duration)).collect::<Vec<_>>().join(", "));
+        rig = Some(Rig { joints, clips, root: Mat4::IDENTITY });
+    }
+
     let mut mesh = Mesh::default();
     let mut albedo = None;
     let mut normal = None;
@@ -182,6 +263,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let reader = prim.reader(|b| Some(&buffers[b.index()]));
             let Some(positions) = reader.read_positions() else { continue };
             let pos: Vec<[f32; 3]> = positions.collect();
+            // Skinnede hjørner ligger i skjelettets rom: nodens transform
+            // gjelder ikke, leddmatrisene gjør alt.
+            let joints: Vec<[u16; 4]> = reader.read_joints(0).map(|j| j.into_u16().collect()).unwrap_or_default();
+            let weights: Vec<[f32; 4]> = reader.read_weights(0).map(|w| w.into_f32().collect()).unwrap_or_default();
+            let skinned = rig.is_some() && joints.len() == pos.len() && weights.len() == pos.len();
+            let world = if skinned { Mat4::IDENTITY } else { world };
             let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             let norms: Vec<[f32; 3]> = match reader.read_normals() {
@@ -229,7 +316,13 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
                 let v = Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat };
-                mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
+                let vi = mesh.vert(wp, wn, Vec2::from(t), &v, 1.0);
+                if skinned {
+                    let (j, w) = skin_weights(joints[i], weights[i]);
+                    let vert = &mut mesh.vertices[vi as usize];
+                    vert.joints = j;
+                    vert.weights = w;
+                }
             }
             mesh.indices.extend(idx.iter().map(|i| i + base));
         }
@@ -246,6 +339,9 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     let s = if height > 0.0 { height / (hi.y - lo.y).max(1e-3) } else { 1.0 };
     let center = if height < 0.0 { Vec3::ZERO } else { Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5) };
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
+    if let Some(r) = &mut rig {
+        r.root = Mat4::from(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)) * Mat4::from_rotation_y(yaw.to_radians());
+    }
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
     // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
@@ -259,7 +355,26 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     } else {
         0.0
     };
-    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh })
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig })
+}
+
+/// Fire ledd og vekter per hjørne, kvantisert til byte med summen 255.
+/// Hjørner uten vekter henger på det første leddet.
+fn skin_weights(j: [u16; 4], w: [f32; 4]) -> ([u8; 4], [u8; 4]) {
+    let sum: f32 = w.iter().map(|x| x.max(0.0)).sum();
+    if sum <= 1e-6 {
+        return ([0; 4], [255, 0, 0, 0]);
+    }
+    let mut q = [0u8; 4];
+    let mut total = 0i32;
+    for k in 0..4 {
+        q[k] = ((w[k].max(0.0) / sum) * 255.0).round().clamp(0.0, 255.0) as u8;
+        total += q[k] as i32;
+    }
+    // Avrundingen rettes på den største vekta.
+    let big = (0..4).max_by_key(|k| q[*k]).unwrap_or(0);
+    q[big] = (q[big] as i32 + 255 - total).clamp(0, 255) as u8;
+    (j.map(|x| x.min(255) as u8), q)
 }
 
 fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {

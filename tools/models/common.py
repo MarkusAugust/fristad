@@ -118,7 +118,7 @@ def spin(name, profile, mat, steps=24):
 
 
 def export(path):
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter")
 
@@ -168,7 +168,7 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
     links.new(mul.outputs["Result"], bsdf.inputs["Base Color"])
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16):
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
     begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
     normalkart og ruhet/metall til teksturer, bytter til teksturerte
@@ -183,12 +183,29 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16):
         return any(m is not None and m.name.startswith(k) for m in ob.data.materials for k in keep)
 
     meshes = [o for o in bpy.data.objects if o.type == "MESH" and not kept(o)]
+    kept_objects = [o for o in bpy.data.objects if o.type == "MESH" and kept(o)]
+    # Faste tildelinger til bein (objektnavn-prefiks → bein) settes før
+    # sammenslåingen, så gruppene følger hjørnene.
+    for o in meshes + kept_objects:
+        for prefix, bone in (rigid or {}).items():
+            if o.name.startswith(prefix):
+                rigid_group(o, bone)
     bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
         o.select_set(True)
     bpy.context.view_layer.objects.active = meshes[0]
     bpy.ops.object.join()
     ob = bpy.context.active_object
+    with bpy.context.temp_override(object=ob, selected_editable_objects=[ob]):
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    if armature is not None:
+        # Skinning: vekter etter beina, armaturmodifikator, og de beholdte
+        # objektene (glødende øyne) henger på samme skjelett.
+        for o in [ob] + kept_objects:
+            weight_by_bones(o, armature, **(skin or {}))
+            mod = o.modifiers.new("Armature", "ARMATURE")
+            mod.object = armature
+            o.parent = armature
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.003)
@@ -293,6 +310,146 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16):
             tex_mat[key] = nm
     for slot in ob.material_slots:
         slot.material = tex_mat[key_of(slot.material.name)]
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
+
+
+# --- Rigging og animasjon -------------------------------------------------
+
+
+def armature(name, bones):
+    """En armatur fra en liste av (navn, hode, hale, forelder), med hode og
+    hale i armaturrommet. Foreldrene må komme før barna."""
+    data = bpy.data.armatures.new(name)
+    arm = bpy.data.objects.new(name, data)
+    bpy.context.collection.objects.link(arm)
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    made = {}
+    for bname, head, tail, parent in bones:
+        b = data.edit_bones.new(bname)
+        b.head = Vector(head)
+        b.tail = Vector(tail)
+        if parent:
+            b.parent = made[parent]
+        made[bname] = b
+    bpy.ops.object.mode_set(mode="OBJECT")
+    return arm
+
+
+def rigid_group(ob, bone):
+    """Alle hjørnene i objektet henger stivt på ett bein (gruppa overlever
+    sammenslåingen i bake_textured)."""
+    vg = ob.vertex_groups.new(name=bone)
+    vg.add([v.index for v in ob.data.vertices], 1.0, "REPLACE")
+
+
+def weight_by_bones(ob, arm, blend=0.06, radii=None):
+    """Vekter hjørnene som ikke alt har en gruppe etter avstanden til
+    beina: det nærmeste beinet får mest, og det nest nærmeste blandes inn
+    når avstandene er nesten like (innen `blend` meter). `radii` gir et
+    bein større rekkevidde (avstanden minus radius)."""
+    radii = radii or {}
+    bones = [(b.name, Vector(b.head_local), Vector(b.tail_local), radii.get(b.name, 0.0)) for b in arm.data.bones]
+    groups = {}
+    for name, _, _, _ in bones:
+        groups[name] = ob.vertex_groups.get(name) or ob.vertex_groups.new(name=name)
+    mw = ob.matrix_world
+    for v in ob.data.vertices:
+        if len(v.groups) > 0:
+            continue
+        p = mw @ v.co
+        ds = []
+        for name, h, t, r in bones:
+            ab = t - h
+            l2 = ab.length_squared
+            u = 0.0 if l2 < 1e-9 else max(0.0, min(1.0, (p - h).dot(ab) / l2))
+            ds.append(((p - (h + ab * u)).length - r, name))
+        ds.sort()
+        d1, n1 = ds[0]
+        if len(ds) > 1:
+            d2, n2 = ds[1]
+            w2 = max(0.0, 1.0 - (d2 - d1) / blend) * 0.5
+        else:
+            n2, w2 = n1, 0.0
+        groups[n1].add([v.index], 1.0 - w2, "REPLACE")
+        if w2 > 0.0:
+            groups[n2].add([v.index], w2, "REPLACE")
+
+
+class Clip:
+    """Et klipp: en action med nøkkelbilder, lagt på et eget NLA-spor så
+    glTF-eksporten tar den med som egen animasjon. Dreiningene gis i
+    armaturrommet om beinets hode (x, y, z i grader, X først), så en
+    klipp-definisjon ikke trenger å vite hvordan beinet er rullet."""
+
+    def __init__(self, arm, name, length, fps=24):
+        from mathutils import Matrix
+
+        self.arm = arm
+        self.name = name
+        self.length = length
+        self.Matrix = Matrix
+        self.act = bpy.data.actions.new(name)
+        arm.animation_data_create()
+        arm.animation_data.action = self.act
+        if hasattr(self.act, "slots") and len(self.act.slots) == 0:
+            slot = self.act.slots.new(id_type="OBJECT", name=arm.name)
+            arm.animation_data.action_slot = slot
+        self.slot = getattr(arm.animation_data, "action_slot", None)
+        for pb in arm.pose.bones:
+            pb.rotation_mode = "QUATERNION"
+            pb.rotation_quaternion = (1, 0, 0, 0)
+            pb.location = (0, 0, 0)
+            pb.scale = (1, 1, 1)
+        bpy.context.scene.render.fps = fps
+
+    def _rest(self, bone):
+        return self.arm.data.bones[bone].matrix_local.to_3x3()
+
+    def rot(self, bone, frame, x=0.0, y=0.0, z=0.0):
+        M = self.Matrix
+        R = M.Rotation(math.radians(z), 3, "Z") @ M.Rotation(math.radians(y), 3, "Y") @ M.Rotation(math.radians(x), 3, "X")
+        rest = self._rest(bone)
+        basis = rest.inverted() @ R @ rest
+        pb = self.arm.pose.bones[bone]
+        pb.rotation_quaternion = basis.to_quaternion()
+        pb.keyframe_insert("rotation_quaternion", frame=frame)
+
+    def loc(self, bone, frame, v):
+        rest = self._rest(bone)
+        pb = self.arm.pose.bones[bone]
+        pb.location = rest.inverted() @ Vector(v)
+        pb.keyframe_insert("location", frame=frame)
+
+    def scale(self, bone, frame, s):
+        pb = self.arm.pose.bones[bone]
+        pb.scale = (s, s, s) if isinstance(s, (int, float)) else s
+        pb.keyframe_insert("scale", frame=frame)
+
+    def rest_all(self, frame):
+        """Hvileposen for alle bein i dette bildet."""
+        for pb in self.arm.pose.bones:
+            self.rot(pb.name, frame)
+            self.loc(pb.name, frame, (0, 0, 0))
+
+    def finish(self):
+        ad = self.arm.animation_data
+        ad.action = None
+        track = ad.nla_tracks.new()
+        track.name = self.name
+        strip = track.strips.new(self.name, 0, self.act)
+        if self.slot is not None and hasattr(strip, "action_slot"):
+            strip.action_slot = self.slot
+        strip.action_frame_start = 0
+        strip.action_frame_end = self.length
+        strip.frame_end = self.length
+        return self.act
+
+
+def wave(length, period, amp, phase=0.0, step=4, offset=0.0):
+    """(bilde, verdi) for en sinus over klippet, til løkker som går opp."""
+    return [(f, offset + amp * math.sin(2 * math.pi * f / period + phase)) for f in range(0, length + 1, step)]

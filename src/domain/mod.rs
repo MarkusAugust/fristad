@@ -13,6 +13,7 @@
 //! - `game`: spilleren, døgnet, været og samspillet mellom installasjonene.
 //! - `scene`: det rendereren får per bilde.
 
+pub mod anim;
 pub mod city;
 pub mod game;
 pub mod geometry;

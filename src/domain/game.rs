@@ -303,7 +303,9 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(tokens: Tokens, font: crate::domain::text::Font, city: &City, mut installations: Vec<Box<dyn Installation>>, physics: &mut dyn Physics) -> Self {
+    /// `rigs` er skjelettene til de skinnede modellene (navn, rigg), fra
+    /// modellene appen lastet.
+    pub fn new(tokens: Tokens, font: crate::domain::text::Font, city: &City, mut installations: Vec<Box<dyn Installation>>, physics: &mut dyn Physics, rigs: Vec<(String, crate::domain::anim::Rig)>) -> Self {
         for c in &city.colliders {
             physics.add(c);
         }
@@ -353,7 +355,7 @@ impl Game {
             parachute: city.props.iter().position(|p| p.name == "parachute"),
             editing: None,
             herd: crate::domain::herd::Herd::new(),
-            mobs: crate::domain::mobs::Mobs::new(&city.dungeon),
+            mobs: crate::domain::mobs::Mobs::new(&city.dungeon, rigs.into_iter().find(|(n, _)| n == crate::domain::mobs::MOB_MODEL).map(|(_, r)| r)),
             dungeon: city.dungeon.clone(),
             hp: 100.0,
             coins: 0,
@@ -826,7 +828,7 @@ impl Game {
 
     /// Den nærmeste levende fienden (føttene), til testene.
     pub fn nearest_mob(&self, from: Vec3) -> Option<Vec3> {
-        self.mobs.mobs.iter().filter(|m| m.alive).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
+        self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
     }
 
     /// Siktet på en fiende.
@@ -924,6 +926,7 @@ impl Game {
     }
 
     pub fn frame(&self, aspect: f32) -> Frame {
+        let mut skins = vec![];
         let t = self.night;
         let dusk = (t * std::f32::consts::PI).sin();
         let lerp3 = |a: Vec3, b: Vec3| a.lerp(b, t);
@@ -997,7 +1000,8 @@ impl Game {
             palette: pal,
             lights,
             props,
-            instances: { let mut v = self.herd.instances(self.time); v.extend(self.mobs.instances(self.time)); v },
+            instances: { let mut v = self.herd.instances(self.time); v.extend(self.mobs.instances(self.time, &mut skins)); v },
+            skins,
             taa: !self.jumped,
             debug: self.debug,
         }

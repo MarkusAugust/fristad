@@ -32,8 +32,16 @@ const VERTEX_LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayou
         2 => Float32x2,
         3 => Unorm8x4,
         4 => Uint8x4,
+        5 => Uint8x4,
+        6 => Unorm8x4,
     ],
 };
+/// Leddpaletten: en flyttallstekstur med fire texels (kolonnene) per
+/// matrise, 256 matriser per rad. En tekstur, ikke et lagringsbuffer, så
+/// den virker i WebGL2 òg.
+const SKIN_W: u32 = 1024;
+const SKIN_ROWS: u32 = 16;
+const SKIN_MAX: usize = (SKIN_W / 4 * SKIN_ROWS) as usize;
 const HDR: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 const DEPTH: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const NORMAL: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -45,7 +53,7 @@ const CASCADE_RES: u32 = SHADOW_ATLAS / 2;
 /// Hvor kaskadene slutter, i meter fra kameraet.
 pub const CASCADES: [f32; 3] = [14.0, 45.0, 170.0];
 const BLOOM_LEVELS: usize = 5;
-const INSTANCE_STRIDE: u64 = 80;
+const INSTANCE_STRIDE: u64 = 96;
 const PASS_STRIDE: u64 = 256;
 const RAIN_COUNT: u32 = 6000;
 const SNOW_COUNT: u32 = 4000;
@@ -94,16 +102,21 @@ struct PostUniform {
 pub struct InstanceData {
     pub model: [[f32; 4]; 4],
     pub extra: [f32; 4],
+    /// x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers.
+    pub extra2: [f32; 4],
 }
 
 impl InstanceData {
     pub fn new(t: &Affine3A, extra: [f32; 4]) -> Self {
-        Self { model: Mat4::from(*t).to_cols_array_2d(), extra }
+        Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [0.0; 4] }
+    }
+    pub fn skinned(t: &Affine3A, extra: [f32; 4], base: u32) -> Self {
+        Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [base as f32 + 1.0, 0.0, 0.0, 0.0] }
     }
     const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: INSTANCE_STRIDE,
         step_mode: wgpu::VertexStepMode::Instance,
-        attributes: &wgpu::vertex_attr_array![5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4, 9 => Float32x4],
+        attributes: &wgpu::vertex_attr_array![7 => Float32x4, 8 => Float32x4, 9 => Float32x4, 10 => Float32x4, 11 => Float32x4, 12 => Float32x4],
     };
 }
 
@@ -172,6 +185,9 @@ struct GpuModel {
     bounds: (Vec3, Vec3),
     /// Ekstradata for de bevegelige: hvit lakk, modellens ruhet og metall.
     extra: [f32; 4],
+    /// Skinnet figur: instansene tar leddmatriser fra paletten, og det
+    /// finnes ikke noe grovt detaljnivå.
+    skinned: bool,
 }
 
 /// Hvilke instanser et pass tegner av en modell: (nær, fjern) som områder i
@@ -257,6 +273,8 @@ pub struct Renderer {
     props: Vec<GpuMesh>,
     instances: wgpu::Buffer,
     models: Vec<GpuModel>,
+    /// Leddpaletten (se `SKIN_W`).
+    skins: wgpu::Texture,
     targets: Targets,
     frame_index: u32,
     prev_view_proj: Mat4,
@@ -341,14 +359,37 @@ impl Renderer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        // Leddpaletten for skinnede modeller, skrevet per bilde.
+        let skins = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("skins"),
+            size: wgpu::Extent3d { width: SKIN_W, height: SKIN_ROWS, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba32Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let skins_view = skins.create_view(&Default::default());
         let globals_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("globals"),
-            entries: &[uniform_entry(0, false)],
+            entries: &[
+                uniform_entry(0, false),
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: false }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
+                    count: None,
+                },
+            ],
         });
         let globals_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("globals"),
             layout: &globals_layout,
-            entries: &[wgpu::BindGroupEntry { binding: 0, resource: globals.as_entire_binding() }],
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: globals.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&skins_view) },
+            ],
         });
 
         // Per pass: kaskadenummer for skyggene, regn og snø for partiklene.
@@ -580,6 +621,15 @@ impl Renderer {
             .filter_map(|pl| {
                 let m = models.iter().find(|m| m.name == pl.model)?;
                 let (lo, hi) = m.mesh.bounds();
+                let skinned = m.rig.is_some();
+                // En skinnet figur strekker seg utenfor hvileposen når den
+                // angriper eller faller; boksen får halvannen gang plassen.
+                let (lo, hi) = if skinned {
+                    let (c, h) = ((lo + hi) * 0.5, (hi - lo) * 0.75);
+                    (c - h, c + h)
+                } else {
+                    (lo, hi)
+                };
                 // Lakkfargen pakkes som 8 bit per kanal i et heltall (eksakt i f32).
                 let packed = |tint: &Vec3| {
                     let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
@@ -596,7 +646,7 @@ impl Renderer {
                     .collect();
                 // Nær og fjern detalj i samme buffer.
                 let size = (hi - lo).max_element();
-                let far = m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
+                let far = if skinned { Mesh::default() } else { m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 })) };
                 let mut combined = m.mesh.clone();
                 let base = combined.vertices.len() as u32;
                 combined.vertices.extend_from_slice(&far.vertices);
@@ -607,7 +657,8 @@ impl Renderer {
                     name: m.name.clone(),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
-                    far: near_count..combined.indices.len() as u32,
+                    // Skinnede figurer tegnes i full detalj på avstand òg.
+                    far: if skinned { 0..near_count } else { near_count..combined.indices.len() as u32 },
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
                     instances: device.create_buffer(&wgpu::BufferDescriptor {
                         label: Some(&m.name),
@@ -619,6 +670,7 @@ impl Renderer {
                     reserve: pl.reserve,
                     bounds: (lo, hi),
                     extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
+                    skinned,
                 })
             })
             .collect();
@@ -664,6 +716,7 @@ impl Renderer {
             props,
             instances,
             models: gpu_models,
+            skins,
             targets,
             frame_index: 0,
             prev_view_proj: Mat4::IDENTITY,
@@ -922,7 +975,11 @@ impl Renderer {
                 .take(m.reserve)
                 .map(|i| {
                     let (lo, hi) = world_aabb(&i.transform, m.bounds.0, m.bounds.1);
-                    (InstanceData::new(&i.transform, m.extra), lo, hi)
+                    let inst = match i.skin {
+                        Some((base, _)) if m.skinned && (base as usize) < SKIN_MAX => InstanceData::skinned(&i.transform, m.extra, base),
+                        _ => InstanceData::new(&i.transform, m.extra),
+                    };
+                    (inst, lo, hi)
                 })
                 .collect();
             let n = (m.placements.len() + m.reserve) as u32;
@@ -1015,6 +1072,25 @@ impl Renderer {
         }
         self.hidden_props.replace(hidden);
         self.queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
+
+        // Leddpaletten: matrisene kolonne for kolonne, fire texels hver.
+        if !f.skins.is_empty() {
+            let n = f.skins.len().min(SKIN_MAX);
+            if f.skins.len() > SKIN_MAX {
+                log::warn!("For mange leddmatriser: {} av {}", f.skins.len(), SKIN_MAX);
+            }
+            let rows = (n as u32).div_ceil(SKIN_W / 4);
+            let mut data = vec![0f32; (rows * SKIN_W * 4) as usize];
+            for (i, m) in f.skins.iter().take(n).enumerate() {
+                data[i * 16..i * 16 + 16].copy_from_slice(&m.to_cols_array());
+            }
+            self.queue.write_texture(
+                wgpu::TexelCopyTextureInfo { texture: &self.skins, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+                bytemuck::cast_slice(&data),
+                wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(SKIN_W * 16), rows_per_image: Some(rows) },
+                wgpu::Extent3d { width: SKIN_W, height: rows, depth_or_array_layers: 1 },
+            );
+        }
 
         let mut enc = self.device.create_command_encoder(&Default::default());
 

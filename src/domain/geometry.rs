@@ -20,6 +20,10 @@ pub struct Vertex {
     pub color: [u8; 4],
     /// Type, palettplass, flagg og okklusjon.
     pub mat: [u8; 4],
+    /// Skinning: fire ledd og vektene deres (0..255, summen 255). Alt
+    /// null for det som ikke er skinnet.
+    pub joints: [u8; 4],
+    pub weights: [u8; 4],
 }
 
 /// Lagene i de bakte teksturene. Må stemme med `bake.wgsl` og `TEX_SCALE`.
@@ -218,6 +222,8 @@ impl Mesh {
             uv: uv.to_array(),
             color: [m.srgb[0], m.srgb[1], m.srgb[2], (m.roughness.clamp(0.0, 1.0) * 255.0) as u8],
             mat: [m.kind, m.slot, m.flags, (ao.clamp(0.0, 1.0) * 255.0) as u8],
+            joints: [0; 4],
+            weights: [0; 4],
         });
         i
     }

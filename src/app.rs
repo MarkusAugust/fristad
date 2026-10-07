@@ -227,7 +227,7 @@ mod tests {
         let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));
         let prepared = super::prepare(&assets, &assets);
         let mut physics = crate::adapters::rapier::RapierPhysics::new();
-        let mut game = crate::domain::game::Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics);
+        let mut game = crate::domain::game::Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics, super::rigs(&prepared.models));
         let mut input = crate::domain::game::Input::default();
         game.update(&mut input, 1.0 / 30.0, &mut physics);
         assert!(game.eye().y > 0.0, "starter oppe");
@@ -344,6 +344,11 @@ mod tests {
     }
 }
 
+/// Skjelettene til de skinnede modellene, til spillet.
+pub fn rigs(models: &[Model]) -> Vec<(String, crate::domain::anim::Rig)> {
+    models.iter().filter_map(|m| m.rig.clone().map(|r| (m.name.clone(), r))).collect()
+}
+
 pub struct App<R: Renderer, P: Physics> {
     pub game: Game,
     pub input: Input,
@@ -353,7 +358,7 @@ pub struct App<R: Renderer, P: Physics> {
 
 impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
-        let game = Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics);
+        let game = Game::new(prepared.tokens, prepared.font, &prepared.city, prepared.installations, &mut physics, rigs(&prepared.models));
         Self { game, input: Input::default(), renderer, physics }
     }
 

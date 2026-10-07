@@ -26,6 +26,8 @@ pub struct Model {
     /// Et ferdig grovt detaljnivå (bladverk som tynnede kort); ellers
     /// lager rendereren det med `Mesh::clustered`.
     pub far_mesh: Option<Mesh>,
+    /// Skjelettet og klippene, for modeller som er skinnet (figurene).
+    pub rig: Option<crate::domain::anim::Rig>,
 }
 
 /// Hvor en modell står i byen, med alle instansene.
