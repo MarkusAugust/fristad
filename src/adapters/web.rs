@@ -143,6 +143,11 @@ impl Engine {
         self.app.game.set_theme(if dark { Theme::Dark } else { Theme::Light }, false);
     }
 
+    /// Bruk en komponent (som F), til testene.
+    pub fn use_component(&mut self, component: &str) {
+        self.app.game.use_component(component);
+    }
+
     pub fn set_variant(&mut self, component: &str, variant: &str) {
         self.app.game.set_variant(component, variant);
     }

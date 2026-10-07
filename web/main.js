@@ -5,9 +5,13 @@
 import init, { start, asset_paths } from "./pkg/fristad.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
+import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 
 defineFsToast();
 defineFsConnectionStatus();
+// Panelet viser eksempelet fra dokumentasjonen levende, så fanene må være
+// registrert for at <fs-tabs> skal koble fanene til panelene.
+defineFsTabs();
 
 const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
@@ -65,6 +69,20 @@ const VARIANTS = {
     { name: "text", note: 'data-variant="text"' },
     { name: "circle", note: 'data-variant="circle"' },
     { name: "block", note: "Standard, en blokk." },
+  ],
+  tabs: [
+    { name: "Søknaden", note: "Første fane valgt." },
+    { name: "Vedlegg", note: "Andre fane valgt." },
+    { name: "Vedtak", note: "Tredje fane valgt." },
+  ],
+  card: [
+    { name: "default", note: "Standard, med kant." },
+    { name: "filled", note: 'data-variant="filled"' },
+    { name: "interactive", note: "data-interactive, vist med aksentkant som ved hover." },
+  ],
+  accordion: [
+    { name: "default", note: "Standard, med kant og radius." },
+    { name: "plain", note: 'data-variant="plain": uten kant på sidene og toppen.' },
   ],
 };
 

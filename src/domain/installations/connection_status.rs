@@ -59,6 +59,10 @@ impl Installation for ConnectionStatus {
         }
     }
 
+    fn usable(&self) -> bool {
+        true
+    }
+
     fn act(&mut self, action: Action, env: &mut Env) {
         if action == Action::Use {
             env.online = !env.online;

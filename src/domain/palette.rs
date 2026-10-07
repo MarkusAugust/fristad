@@ -76,6 +76,10 @@ pub mod slot {
     pub const PROGRESS_FILL: u8 = 38;
     pub const SWITCH_KNOB: u8 = 39;
     pub const SWITCH_BORDER: u8 = 40;
+    pub const DIALOG_OVERLAY: u8 = 41;
+    pub const CARD_FILL: u8 = 42;
+    pub const CARD_BORDER: u8 = 43;
+    pub const ACC_BORDER: u8 = 44;
 }
 
 /// Paletten for et øyeblikk mellom dag (0) og natt (1).

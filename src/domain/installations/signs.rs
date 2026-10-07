@@ -49,3 +49,23 @@ pub fn text_left(m: &mut Mesh, font: &Font, s: &str, origin: Vec3, px: f32, slot
 pub fn width(font: &Font, s: &str, px: f32) -> f32 {
     font.width(s, px) * PX
 }
+
+/// Avsnitt med flere linjer, i piksler relativt til platas sentrum (y opp):
+/// `left` er venstrekanten, `top` overkanten av første linjeboks, `lh` er
+/// linjehøyden som faktor. Returnerer høyden i piksler.
+pub fn paragraph(m: &mut Mesh, font: &Font, lines: &[&str], left: f32, top: f32, px: f32, lh: f32, z: f32, slot: u8) -> f32 {
+    for (k, line) in lines.iter().enumerate() {
+        let baseline = top - k as f32 * lh * px - (lh * px * 0.5 + 0.36 * px);
+        text_left(m, font, line, Vec3::new(left * PX, baseline * PX, z), px, slot);
+    }
+    lines.len() as f32 * lh * px
+}
+
+/// En `.fs-button` som plate: 16px tekst, padding 8/16, linjehøyde 1,5 og
+/// 1px kant. Sentrert i `c`. Returnerer bredden i piksler.
+pub fn button(m: &mut Mesh, font: &Font, label: &str, c: Vec3, fill: u8, border: u8, text: u8) -> f32 {
+    let w = width(font, label, 16.0) / PX + 34.0;
+    boxed(m, c, &Box2 { w, h: 42.0, radius: 4.0, fill, border: Some(border), depth: 0.02 });
+    self::text(m, font, label, c + Vec3::Z * 0.024, 16.0, text);
+    w
+}

@@ -68,7 +68,7 @@
     "title": "Toast",
     "description": "Kø av korte meldinger i hjørnet av skjermen. Frittstående komponent.",
     "intro": "Elementet er beholderen, ikke meldingen. Du legger det inn én gang i appen og kaller `show()` når noe skal meldes.",
-    "code": "",
+    "code": "<fs-toast id=\"meldinger\" class=\"fs-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Meldinger\" data-ignore-morph></fs-toast>\n\n<button class=\"fs-button\" id=\"lagre\" type=\"button\">Lagre søknaden</button>",
     "url": "https://fristil.sobernetics.no/components/toast/"
   },
   "skeleton": {
@@ -84,7 +84,39 @@
     "title": "Connection Status",
     "description": "Sier fra når forbindelsen til serveren er borte. Frittstående komponent.",
     "intro": "En side som mister forbindelsen ser helt normal ut, men er frosset. Fyller brukeren ut et skjema inn i en død forbindelse, er alt borte når hun trykker send.",
-    "code": "",
+    "code": "<fs-connection-status class=\"fs-connection-status\" data-ignore-morph></fs-connection-status>",
     "url": "https://fristil.sobernetics.no/components/connection-status/"
+  },
+  "dialog": {
+    "name": "dialog",
+    "title": "Dialog",
+    "description": "Modal dialog bygget på det native dialog-elementet. Seks klasser og ingen JavaScript, med en valgfri komponent for servere som ikke kan kalle showModal().",
+    "intro": "Klassen settes på et `<dialog>`, og resten er nettleserens eget element. Har appen din JavaScript i nettleseren, trenger du ingenting fra Fristil: åpne dialogen med `showModal()`, lukk den med `close()`.",
+    "code": "<dialog class=\"fs-dialog\" aria-labelledby=\"slette-tittel\" open>\n  <h2 class=\"fs-dialog__title\" id=\"slette-tittel\">Slette søknaden?</h2>\n  <div class=\"fs-dialog__body\">\n    <p>Søknaden og vedleggene blir borte. Dette kan ikke angres.</p>\n  </div>\n  <div class=\"fs-dialog__footer\">\n    <button class=\"fs-button\" data-variant=\"secondary\" type=\"button\">Avbryt</button>\n    <button class=\"fs-button\" data-variant=\"danger\" type=\"button\">Slett søknaden</button>\n  </div>\n</dialog>",
+    "url": "https://fristil.sobernetics.no/components/dialog/"
+  },
+  "tabs": {
+    "name": "tabs",
+    "title": "Tabs",
+    "description": "Fanerad koblet til panelene sine. Rammekomponent.",
+    "intro": "Komponenten tar piltastene, og kobler fanene til panelene når markupen kommer uten koblingen.",
+    "code": "<fs-tabs id=\"saksfaner\">\n  <div class=\"fs-tabs__list\" aria-label=\"Deler av saken\">\n    <button>Søknaden</button>\n    <button>Vedlegg</button>\n  </div>\n  <div class=\"fs-tabs__panel\">Søknaden</div>\n  <div class=\"fs-tabs__panel\">Vedlegg</div>\n</fs-tabs>",
+    "url": "https://fristil.sobernetics.no/components/tabs/"
+  },
+  "card": {
+    "name": "card",
+    "title": "Card",
+    "description": "Boks som samler innhold som hører sammen. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "En ramme rundt innhold som hører sammen, som én sak i en liste over saker. Kortet er en beholder, ikke en komponent med oppførsel: det er innholdet som bestemmer hva brukeren kan gjøre.",
+    "code": "<div class=\"fs-card\">\n  <h3 class=\"fs-card__title\">Søknad om bostøtte</h3>\n  <p>Sendt 4. mars. Saksnummer 2026-0481.</p>\n  <span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n</div>\n\n<div class=\"fs-card\" data-variant=\"filled\">\n  <h3 class=\"fs-card__title\">Søknad om barnehageplass</h3>\n  <p>Vi mangler fødselsattest før vi kan behandle søknaden.</p>\n  <button class=\"fs-button\" data-variant=\"secondary\">Last opp vedlegg</button>\n</div>",
+    "url": "https://fristil.sobernetics.no/components/card/"
+  },
+  "accordion": {
+    "name": "accordion",
+    "title": "Accordion",
+    "description": "Panel som kan foldes ut, bygget på details og summary. CSS-komponent med to klasser og ingen JavaScript.",
+    "intro": "Klassen settes på et `<details>` med et `<summary>` først. Nettleseren tar seg av åpning, lukking, tastatur og at skjermlesere melder «utvidet» eller «sammenfoldet».",
+    "code": "<details class=\"fs-accordion\">\n  <summary>Hvem kan søke om bostøtte?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p>\n  </div>\n</details>\n\n<details class=\"fs-accordion\" open>\n  <summary>Hvor lang er behandlingstiden?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Vi behandler søknaden innen tre uker. Mangler vi vedlegg, får du beskjed i digital postkasse.</p>\n  </div>\n</details>",
+    "url": "https://fristil.sobernetics.no/components/accordion/"
   }
 }

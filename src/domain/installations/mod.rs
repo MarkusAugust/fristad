@@ -11,16 +11,20 @@ use crate::domain::scene::PALETTE;
 use crate::domain::tokens::Tokens;
 use glam::{Affine3A, Vec3};
 
+pub mod accordion;
 pub mod alert;
 pub mod badge;
 pub mod breadcrumbs;
 pub mod button;
+pub mod card;
 pub mod connection_status;
+pub mod dialog;
 pub mod progress;
 pub mod signs;
 pub mod skeleton;
 pub mod spinner;
 pub mod switch;
+pub mod tabs;
 pub mod tag;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -107,6 +111,11 @@ pub trait Installation {
 
     fn tick(&mut self, _env: &mut Env) {}
 
+    /// Om F gjør noe med den.
+    fn usable(&self) -> bool {
+        false
+    }
+
     fn act(&mut self, _action: Action, _env: &mut Env) {}
 
     /// Hvor en av propsene står nå, med ekstra verdier til shaderen
@@ -137,6 +146,10 @@ pub fn all() -> Vec<Box<dyn Installation>> {
         Box::new(breadcrumbs::Breadcrumbs::default()),
         Box::new(skeleton::Skeleton::default()),
         Box::new(connection_status::ConnectionStatus::default()),
+        Box::new(dialog::Dialog::default()),
+        Box::new(tabs::Tabs::default()),
+        Box::new(card::Card::default()),
+        Box::new(accordion::Accordion::default()),
     ]
 }
 

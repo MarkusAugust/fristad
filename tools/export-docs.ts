@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Komponentene som finnes i Fristad så langt. */
-const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status"];
+const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion"];
 
 const local = process.argv[2];
 const RAW = "https://raw.githubusercontent.com/MarkusAugust/fristil/master";
@@ -38,8 +38,22 @@ function parse(name: string, mdx: string) {
       .map((p) => p.trim())
       .find((p) => p && !p.startsWith("import") && !p.startsWith("<")) ?? "";
 
-  // Eksempelkoden står i `kode={`...`}` i første <Eksempel>.
-  const code = body.match(/kode=\{`\n?([\s\S]*?)`\}/)?.[1].trim() ?? "";
+  // Eksempelkoden står i `kode={`...`}` i første <Eksempel>. Rammekomponentene
+  // (tabs, dialog) viser den i stedet i en ```html-blokk med markupen; skript
+  // og kommentarer tas bort, siden panelet selv registrerer komponentene.
+  let code = body.match(/kode=\{`\n?([\s\S]*?)`\}/)?.[1].trim() ?? "";
+  if (!code) {
+    const fences = [...body.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]);
+    const markup = fences.find((f) => /class="fs-|<fs-/.test(f) && !/<link /.test(f)) ?? "";
+    code = markup
+      .replace(/<script[\s\S]*?<\/script>/g, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .split("\n")
+      .map((l) => l.replace(/^ {4}/, ""))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
 
   return {
     name,

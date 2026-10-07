@@ -210,6 +210,15 @@ impl Game {
     }
 
     /// Sett variant på en komponent, for eksempel fra panelet i nettleseren.
+    /// Bruk en komponent (som F), uten å sikte på den. Til testene.
+    pub fn use_component(&mut self, component: &str) {
+        for inst in &mut self.installations {
+            if inst.component().name == component {
+                inst.act(InstallAction::Use, &mut self.env);
+            }
+        }
+    }
+
     pub fn set_variant(&mut self, component: &str, name: &str) {
         for inst in &mut self.installations {
             if inst.component().name == component {
@@ -259,7 +268,7 @@ impl Game {
             class: c.class.into(),
             variant: i.variants().get(i.variant()).copied().unwrap_or("").into(),
             has_variants: !i.variants().is_empty(),
-            usable: matches!(c.name, "button" | "switch" | "connection-status"),
+            usable: i.usable(),
         }
     }
 

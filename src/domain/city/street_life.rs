@@ -490,8 +490,8 @@ pub fn all(b: &mut Builder) {
         (16.3, -8.0, 0.0, CarStyle::Hatch),
         (16.3, 6.0, pi, CarStyle::Estate),
         (-16.3, -10.0, pi, CarStyle::Hatch),
-        (-12.8, -14.0, pi * 0.5, CarStyle::Van),
-        (28.0, 2.6, pi * 0.5, CarStyle::Estate),
+        (36.0, -2.6, -pi * 0.5, CarStyle::Van),
+        (25.5, 2.6, pi * 0.5, CarStyle::Estate),
     ];
     for (i, (x, z, yaw, style)) in cars.into_iter().enumerate() {
         let paint = PAINTS[(i * 3 + 1) % PAINTS.len()];

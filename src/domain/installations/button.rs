@@ -101,6 +101,10 @@ impl Installation for Button {
         env.gate_t = if env.gate_t < goal { (env.gate_t + step).min(goal) } else { (env.gate_t - step).max(goal) };
     }
 
+    fn usable(&self) -> bool {
+        true
+    }
+
     fn act(&mut self, action: Action, env: &mut Env) {
         if action == Action::Use {
             self.press = 1.0;

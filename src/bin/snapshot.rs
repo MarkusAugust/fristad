@@ -5,7 +5,7 @@
 //!   cargo run --release --bin snapshot -- --out torg.png --theme dark
 //!
 //! Valg: --out FIL, --size BxH, --theme light|dark, --eye x,y,z,
-//! --yaw grader, --pitch grader, --gate, --variant komponent=navn,
+//! --yaw grader, --pitch grader, --gate, --use komponent, --variant komponent=navn,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek,
 //! --frames N (TAA-bilder som blandes, standard 12), --lights off.
 
@@ -53,6 +53,9 @@ fn main() {
     }
     if flag("--gate") {
         app.game.set_gate(true, true);
+    }
+    if let Some(c) = arg("--use") {
+        app.game.use_component(&c);
     }
     if let Some(d) = arg("--debug") {
         app.game.debug = match d.as_str() {
