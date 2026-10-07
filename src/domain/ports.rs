@@ -19,6 +19,10 @@ use glam::{Affine3A, Vec3};
 pub trait Renderer {
     fn render(&mut self, frame: &Frame);
     fn resize(&mut self, width: u32, height: u32);
+    /// Intern oppløsning som andel av vinduet (0.5–1.0), for svake GPU-er.
+    fn set_scale(&mut self, scale: f32);
+    /// Trekanter tegnet i hovedpasset sist bilde.
+    fn triangles(&self) -> u32;
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

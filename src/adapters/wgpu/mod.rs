@@ -10,12 +10,12 @@
 //! 7. Glød og tonemapping til skjermen.
 
 use crate::domain::city::City;
-use crate::domain::geometry::{Layer, Mesh, Vertex, LAYERS};
+use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
 use crate::domain::model::Model;
 use crate::domain::ports;
 pub use crate::domain::scene::{Frame, Weather};
-use crate::domain::scene::{MAX_LIGHTS, PALETTE};
+use crate::domain::scene::{Frustum, MAX_LIGHTS, PALETTE};
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
@@ -136,14 +136,46 @@ impl GpuMesh {
         pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint32);
         pass.draw_indexed(0..self.count, 0, instances);
     }
+
+    fn bind(&self, pass: &mut wgpu::RenderPass) {
+        pass.set_vertex_buffer(0, self.vertices.slice(..));
+        pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint32);
+    }
 }
 
+/// Hva et pass skal ha med av verden.
+#[derive(Clone, Copy)]
+struct Cull {
+    frustum: Frustum,
+    eye: Vec3,
+    /// Småting tegnes bare nærmere enn dette.
+    fine_within: f32,
+}
+
+/// En modell med to detaljnivåer i samme buffer (nær og fjern), og
+/// instansene med hver sin boks, så bare de synlige tegnes.
 struct GpuModel {
     mesh: GpuMesh,
+    near: std::ops::Range<u32>,
+    far: std::ops::Range<u32>,
     textures: wgpu::BindGroup,
+    /// Instansbufferet har plass til alle instansene to ganger per pass-region.
     instances: wgpu::Buffer,
-    count: u32,
+    placements: Vec<(InstanceData, Vec3, Vec3)>,
 }
+
+/// Hvilke instanser et pass tegner av en modell: (nær, fjern) som områder i
+/// instansbufferet.
+#[derive(Clone, Copy, Default)]
+struct ModelDraw {
+    near: (u32, u32),
+    far: (u32, u32),
+}
+
+/// Pass-regioner i instansbufferet: tre kaskader og kameraet.
+const REGIONS: u32 = 4;
+/// Nærmere enn dette tegnes modellene i full detalj.
+const MODEL_NEAR: f32 = 28.0;
 
 struct Targets {
     width: u32,
@@ -198,6 +230,7 @@ pub struct Renderer {
     nearest: wgpu::Sampler,
     black: wgpu::TextureView,
     world: GpuMesh,
+    chunks: Vec<Chunk>,
     props: Vec<GpuMesh>,
     instances: wgpu::Buffer,
     models: Vec<GpuModel>,
@@ -206,6 +239,11 @@ pub struct Renderer {
     prev_view_proj: Mat4,
     history_valid: bool,
     current: Option<wgpu::TextureView>,
+    /// Intern oppløsning som andel av vinduet.
+    scale: f32,
+    out_size: (u32, u32),
+    /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
+    triangles: std::cell::Cell<(u32, u32, u32)>,
 }
 
 fn shader(device: &wgpu::Device, name: &str, parts: &[&str]) -> wgpu::ShaderModule {
@@ -512,16 +550,43 @@ impl Renderer {
             .iter()
             .filter_map(|pl| {
                 let m = models.iter().find(|m| m.name == pl.model)?;
-                let data: Vec<InstanceData> = pl.transforms.iter().map(|t| InstanceData::new(t, [0.0, 0.0, m.roughness, m.metallic])).collect();
+                let (lo, hi) = m.mesh.bounds();
+                let placements: Vec<(InstanceData, Vec3, Vec3)> = pl
+                    .transforms
+                    .iter()
+                    .map(|t| {
+                        // Boksen i verden: de åtte hjørnene transformert.
+                        let (mut wlo, mut whi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+                        for k in 0..8 {
+                            let c = Vec3::new(if k & 1 == 0 { lo.x } else { hi.x }, if k & 2 == 0 { lo.y } else { hi.y }, if k & 4 == 0 { lo.z } else { hi.z });
+                            let w = t.transform_point3(c);
+                            wlo = wlo.min(w);
+                            whi = whi.max(w);
+                        }
+                        (InstanceData::new(t, [0.0, 0.0, m.roughness, m.metallic]), wlo, whi)
+                    })
+                    .collect();
+                // Nær og fjern detalj i samme buffer.
+                let size = (hi - lo).max_element();
+                let far = m.mesh.clustered(size / 70.0);
+                let mut combined = m.mesh.clone();
+                let base = combined.vertices.len() as u32;
+                combined.vertices.extend_from_slice(&far.vertices);
+                combined.indices.extend(far.indices.iter().map(|i| i + base));
+                let near_count = m.mesh.indices.len() as u32;
+                log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far.indices.len() / 3);
                 Some(GpuModel {
-                    mesh: GpuMesh::new(&device, &m.mesh, &m.name),
+                    mesh: GpuMesh::new(&device, &combined, &m.name),
+                    near: 0..near_count,
+                    far: near_count..combined.indices.len() as u32,
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
-                    instances: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    instances: device.create_buffer(&wgpu::BufferDescriptor {
                         label: Some(&m.name),
-                        contents: bytemuck::cast_slice(&data),
-                        usage: wgpu::BufferUsages::VERTEX,
+                        size: INSTANCE_STRIDE * (placements.len() as u64 * 2 * REGIONS as u64).max(1),
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
                     }),
-                    count: data.len() as u32,
+                    placements,
                 })
             })
             .collect();
@@ -534,6 +599,7 @@ impl Renderer {
         );
 
         let targets = Self::make_targets(&device, &frame_layout, &post_layout, &shadow_view, &shadow_sampler, &pass_buf, &linear, &nearest, &black, width, height);
+        let chunks = world.chunks.clone();
         Self {
             device,
             queue,
@@ -562,6 +628,7 @@ impl Renderer {
             nearest,
             black,
             world: world_mesh,
+            chunks,
             props,
             instances,
             models: gpu_models,
@@ -570,6 +637,9 @@ impl Renderer {
             prev_view_proj: Mat4::IDENTITY,
             history_valid: false,
             current: None,
+            scale: 1.0,
+            out_size: (width, height),
+            triangles: std::cell::Cell::new((0, 0, 0)),
         }
     }
 
@@ -704,6 +774,9 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
+        self.out_size = (width, height);
+        let width = ((width as f32 * self.scale).round() as u32).max(1);
+        let height = ((height as f32 * self.scale).round() as u32).max(1);
         if width == self.targets.width && height == self.targets.height {
             return;
         }
@@ -725,6 +798,21 @@ impl Renderer {
 
     pub fn size(&self) -> (u32, u32) {
         (self.targets.width, self.targets.height)
+    }
+
+    /// Trekanter sist bilde: verden, props, modeller.
+    pub fn stats(&self) -> (u32, u32, u32) {
+        self.triangles.get()
+    }
+
+    pub fn set_scale(&mut self, scale: f32) {
+        let scale = scale.clamp(0.4, 1.0);
+        if (scale - self.scale).abs() < 1e-3 {
+            return;
+        }
+        self.scale = scale;
+        let (w, h) = self.out_size;
+        self.resize(w, h);
     }
 
     /// Ortografisk projeksjon fra sola som dekker kamerafrustumet mellom
@@ -772,10 +860,48 @@ impl Renderer {
         };
         let view_proj = f.proj * f.view;
         let mut sun_vp = [[[0.0; 4]; 4]; 3];
+        let mut sun_cull = [Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: 0.0 }; 3];
         let mut near = 0.1;
         for (i, far) in CASCADES.iter().enumerate() {
-            sun_vp[i] = self.cascade(f, near, *far).to_cols_array_2d();
+            let m = self.cascade(f, near, *far);
+            sun_vp[i] = m.to_cols_array_2d();
+            // Småting kaster skygge bare i den nærmeste kaskaden.
+            sun_cull[i] = Cull { frustum: Frustum::from_view_proj(m), eye: f.camera, fine_within: if i == 0 { 40.0 } else { 0.0 } };
             near = far * 0.8;
+        }
+        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: 70.0 };
+        // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
+        let culls = [sun_cull[0], sun_cull[1], sun_cull[2], cam_cull];
+        let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
+        for m in &self.models {
+            let n = m.placements.len() as u32;
+            let mut data: Vec<InstanceData> = Vec::with_capacity((n * 2 * REGIONS) as usize);
+            let mut draws = [ModelDraw::default(); REGIONS as usize];
+            for (r, cull) in culls.iter().enumerate() {
+                let base = r as u32 * n * 2;
+                let mut near = vec![];
+                let mut far = vec![];
+                for (inst, lo, hi) in &m.placements {
+                    if !cull.frustum.contains_aabb(*lo, *hi) {
+                        continue;
+                    }
+                    let d = cull.eye.clamp(*lo, *hi).distance(cull.eye);
+                    // Skyggekaskadene lenger ute nøyer seg med den fjerne.
+                    if d < MODEL_NEAR && (r == 3 || r == 0) {
+                        near.push(*inst);
+                    } else {
+                        far.push(*inst);
+                    }
+                }
+                draws[r] = ModelDraw { near: (base, base + near.len() as u32), far: (base + near.len() as u32, base + (near.len() + far.len()) as u32) };
+                data.extend(near);
+                data.extend(far);
+                data.resize((base + n * 2) as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+            }
+            if !data.is_empty() {
+                self.queue.write_buffer(&m.instances, 0, bytemuck::cast_slice(&data));
+            }
+            model_draws.push(draws);
         }
         let mut lights = [GpuLight::zeroed(); MAX_LIGHTS];
         for (i, l) in f.lights.iter().take(MAX_LIGHTS).enumerate() {
@@ -858,7 +984,7 @@ impl Renderer {
                 let (x, y) = ((c % 2) * CASCADE_RES, (c / 2) * CASCADE_RES);
                 pass.set_viewport(x as f32, y as f32, CASCADE_RES as f32, CASCADE_RES as f32, 0.0, 1.0);
                 pass.set_bind_group(1, &t.shadow_frame_bg, &[(c as u64 * PASS_STRIDE) as u32]);
-                self.draw_all(&mut pass, true);
+                self.draw_all(&mut pass, &sun_cull[c as usize], &model_draws, c as usize);
             }
         }
 
@@ -884,7 +1010,7 @@ impl Renderer {
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            self.draw_all(&mut pass, false);
+            self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
         }
 
         // 3. SSAO i halv oppløsning, så to uskarphetspass.
@@ -937,7 +1063,8 @@ impl Renderer {
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            self.draw_all(&mut pass, false);
+            let tris = self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
+            self.triangles.set(tris);
             pass.set_pipeline(&self.sky_pipe);
             pass.set_bind_group(0, &self.globals_bg, &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
@@ -985,20 +1112,66 @@ impl Renderer {
         self.frame_index = self.frame_index.wrapping_add(1);
     }
 
-    fn draw_all(&self, pass: &mut wgpu::RenderPass, shadow: bool) {
+    /// Tegn verden, propsene og modellene. Verden tegnes bit for bit, bare
+    /// de bitene som er innenfor synsfeltet, og småtingene bare nær
+    /// kameraet. Naboer som begge skal tegnes slås sammen til ett kall.
+    /// Returnerer antall trekanter.
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize) -> (u32, u32, u32) {
         pass.set_vertex_buffer(1, self.instances.slice(0..INSTANCE_STRIDE));
-        self.world.draw(pass, 0..1);
+        self.world.bind(pass);
+        let mut indices = 0u32;
+        let mut run: Option<std::ops::Range<u32>> = None;
+        let mut flush = |run: &mut Option<std::ops::Range<u32>>, pass: &mut wgpu::RenderPass| {
+            if let Some(r) = run.take() {
+                if !r.is_empty() {
+                    indices += r.end - r.start;
+                    pass.draw_indexed(r, 0, 0..1);
+                }
+            }
+        };
+        for c in &self.chunks {
+            if !cull.frustum.contains_aabb(c.min, c.max) {
+                flush(&mut run, pass);
+                continue;
+            }
+            let fine = cull.fine_within > 0.0 && c.distance(cull.eye) < cull.fine_within;
+            let range = if fine { c.coarse.start..c.fine.end } else { c.coarse.clone() };
+            match &mut run {
+                Some(r) if r.end == range.start => r.end = range.end,
+                _ => {
+                    flush(&mut run, pass);
+                    run = Some(range);
+                }
+            }
+        }
+        flush(&mut run, pass);
+        let world = indices / 3;
+        let mut props = 0;
         for (i, m) in self.props.iter().enumerate() {
             let at = (i + 1) as u64 * INSTANCE_STRIDE;
             pass.set_vertex_buffer(1, self.instances.slice(at..at + INSTANCE_STRIDE));
             m.draw(pass, 0..1);
+            props += m.count / 3;
         }
-        let _ = shadow;
-        for m in &self.models {
+        let mut models = 0;
+        for (m, draws) in self.models.iter().zip(model_draws) {
+            let d = draws[region];
+            if d.near.1 == d.near.0 && d.far.1 == d.far.0 {
+                continue;
+            }
             pass.set_bind_group(3, &m.textures, &[]);
             pass.set_vertex_buffer(1, m.instances.slice(..));
-            m.mesh.draw(pass, 0..m.count);
+            m.mesh.bind(pass);
+            if d.near.1 > d.near.0 {
+                pass.draw_indexed(m.near.clone(), 0, d.near.0..d.near.1);
+                models += (m.near.end - m.near.start) / 3 * (d.near.1 - d.near.0);
+            }
+            if d.far.1 > d.far.0 {
+                pass.draw_indexed(m.far.clone(), 0, d.far.0..d.far.1);
+                models += (m.far.end - m.far.start) / 3 * (d.far.1 - d.far.0);
+            }
         }
+        (world, props, models)
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -1016,6 +1189,13 @@ impl ports::Renderer for Renderer {
     }
     fn resize(&mut self, width: u32, height: u32) {
         Renderer::resize(self, width, height);
+    }
+    fn set_scale(&mut self, scale: f32) {
+        Renderer::set_scale(self, scale);
+    }
+    fn triangles(&self) -> u32 {
+        let (w, p, m) = self.triangles.get();
+        w + p + m
     }
 }
 

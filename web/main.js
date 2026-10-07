@@ -108,7 +108,7 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel };
+  window.fristad = { engine, openPanel, closePanel, setScale };
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -184,6 +184,41 @@ function stage(text) {
 let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
+// Intern oppløsning: senkes automatisk når bildefrekvensen faller, og heves
+// igjen når det flyter. `setScale(tall)` låser den, `setScale(null)` slipper.
+let scale = 1;
+let autoScale = true;
+let slowSeconds = 0;
+let fastSeconds = 0;
+function setScale(s) {
+  autoScale = s === null || s === undefined;
+  if (!autoScale) {
+    scale = Math.min(1, Math.max(0.4, s));
+    engine.set_scale(scale);
+  }
+}
+function adapt(fps) {
+  if (!autoScale || !playing) return;
+  if (fps < 40) {
+    slowSeconds++;
+    fastSeconds = 0;
+  } else if (fps > 57) {
+    fastSeconds++;
+    slowSeconds = 0;
+  } else {
+    slowSeconds = 0;
+    fastSeconds = 0;
+  }
+  if (slowSeconds >= 2 && scale > 0.5) {
+    scale = Math.round((scale - 0.1) * 10) / 10;
+    engine.set_scale(scale);
+    slowSeconds = 0;
+  } else if (fastSeconds >= 5 && scale < 1) {
+    scale = Math.round((scale + 0.1) * 10) / 10;
+    engine.set_scale(scale);
+    fastSeconds = 0;
+  }
+}
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
@@ -192,7 +227,11 @@ function loop(now) {
   // Bilder per sekund, så eieren kan si hvordan det flyter.
   frames++;
   if (now - perfAt > 1000) {
-    $("perf").textContent = `${Math.round((frames * 1000) / (now - perfAt))} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${canvas.width}×${canvas.height}`;
+    const fps = Math.round((frames * 1000) / (now - perfAt));
+    adapt(fps);
+    const tris = Math.round(engine.triangles() / 1000);
+    const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""} · ${tris}k △`;
     frames = 0;
     perfAt = now;
   }

@@ -1,7 +1,7 @@
 //! Det rendereren får per bilde: kamera, lys, vær, palett og hvor propsene
 //! står. Rene tall, ingen GPU-typer.
 
-use glam::{Affine3A, Mat4, Vec3};
+use glam::{Affine3A, Mat4, Vec3, Vec4};
 
 pub const PALETTE: usize = 48;
 pub const MAX_LIGHTS: usize = 48;
@@ -63,4 +63,35 @@ pub struct Frame {
     pub taa: bool,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.
     pub debug: u32,
+}
+
+/// Synsfeltet som seks plan, til å hoppe over biter som er utenfor.
+/// Fungerer for både perspektiv og ortografisk projeksjon med dybde 0..1.
+#[derive(Clone, Copy, Debug)]
+pub struct Frustum {
+    planes: [Vec4; 6],
+}
+
+impl Frustum {
+    pub fn from_view_proj(m: Mat4) -> Self {
+        let r = |i: usize| m.row(i);
+        let planes = [r(3) + r(0), r(3) - r(0), r(3) + r(1), r(3) - r(1), r(2), r(3) - r(2)];
+        Self { planes }
+    }
+
+    /// Om boksen er (delvis) innenfor.
+    pub fn contains_aabb(&self, min: Vec3, max: Vec3) -> bool {
+        for p in &self.planes {
+            // Hjørnet lengst i planets retning.
+            let corner = Vec3::new(
+                if p.x >= 0.0 { max.x } else { min.x },
+                if p.y >= 0.0 { max.y } else { min.y },
+                if p.z >= 0.0 { max.z } else { min.z },
+            );
+            if p.x * corner.x + p.y * corner.y + p.z * corner.z + p.w < 0.0 {
+                return false;
+            }
+        }
+        true
+    }
 }

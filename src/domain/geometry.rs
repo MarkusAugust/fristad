@@ -165,6 +165,31 @@ pub struct Mesh {
     pub indices: Vec<u32>,
 }
 
+/// En bit av et mesh med egen boks, så rendereren kan hoppe over det som
+/// er utenfor synsfeltet. Indeksene ligger [grov][fin] etter hverandre:
+/// de fine trekantene (småting) trengs bare nær kameraet.
+#[derive(Clone, Debug)]
+pub struct Chunk {
+    pub min: Vec3,
+    pub max: Vec3,
+    /// Indeksområdet for de grove trekantene.
+    pub coarse: std::ops::Range<u32>,
+    /// Indeksområdet for de fine, rett etter de grove.
+    pub fine: std::ops::Range<u32>,
+}
+
+impl Chunk {
+    pub fn center(&self) -> Vec3 {
+        (self.min + self.max) * 0.5
+    }
+
+    /// Avstanden fra et punkt til boksen (0 innenfor).
+    pub fn distance(&self, p: Vec3) -> f32 {
+        let q = p.clamp(self.min, self.max);
+        p.distance(q)
+    }
+}
+
 impl Mesh {
     pub fn vert(&mut self, p: Vec3, n: Vec3, uv: Vec2, m: &Mat, ao: f32) -> u32 {
         let i = self.vertices.len() as u32;
@@ -499,6 +524,91 @@ impl Mesh {
             v.pos = t.transform_point3(Vec3::from(v.pos)).to_array();
             v.normal = t.transform_vector3(Vec3::from(v.normal)).normalize_or_zero().to_array();
         }
+    }
+
+    /// Del meshet i biter på `cell` meter i XZ-planet, sortert i rader, og
+    /// legg trekanter mindre enn `fine_radius` sist i hver bit. Hjørnene
+    /// beholdes, bare indeksene stokkes om.
+    pub fn chunked(&self, cell: f32, fine_radius: f32) -> (Mesh, Vec<Chunk>) {
+        use std::collections::BTreeMap;
+        let pos = |i: u32| Vec3::from(self.vertices[i as usize].pos);
+        // (rad, kolonne, fin) → trekanter.
+        let mut buckets: BTreeMap<(i32, i32, bool), Vec<usize>> = BTreeMap::new();
+        for t in 0..self.indices.len() / 3 {
+            let (a, b, c) = (pos(self.indices[t * 3]), pos(self.indices[t * 3 + 1]), pos(self.indices[t * 3 + 2]));
+            let centroid = (a + b + c) / 3.0;
+            let r = a.distance(centroid).max(b.distance(centroid)).max(c.distance(centroid));
+            let key = ((centroid.z / cell).floor() as i32, (centroid.x / cell).floor() as i32, r < fine_radius);
+            buckets.entry(key).or_default().push(t);
+        }
+        let mut indices = Vec::with_capacity(self.indices.len());
+        let mut chunks: Vec<Chunk> = vec![];
+        let mut current: Option<(i32, i32)> = None;
+        for ((row, col, fine), tris) in buckets {
+            let start = indices.len() as u32;
+            let (mut lo, mut hi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+            for t in tris {
+                for k in 0..3 {
+                    let i = self.indices[t * 3 + k];
+                    indices.push(i);
+                    let p = pos(i);
+                    lo = lo.min(p);
+                    hi = hi.max(p);
+                }
+            }
+            let end = indices.len() as u32;
+            if current != Some((row, col)) {
+                current = Some((row, col));
+                chunks.push(Chunk { min: lo, max: hi, coarse: start..start, fine: start..start });
+            }
+            let c = chunks.last_mut().unwrap();
+            c.min = c.min.min(lo);
+            c.max = c.max.max(hi);
+            if fine {
+                c.fine = start..end;
+            } else {
+                c.coarse = start..end;
+                c.fine = end..end;
+            }
+        }
+        (Mesh { vertices: self.vertices.clone(), indices }, chunks)
+    }
+
+    /// En grovere utgave til bruk på avstand: hjørnene snappes til et
+    /// rutenett på `cell` meter og slås sammen, og trekanter som faller
+    /// sammen fjernes. Posisjon og normal midles i hver rute, uv og
+    /// materiale tas fra det første hjørnet.
+    pub fn clustered(&self, cell: f32) -> Mesh {
+        use std::collections::HashMap;
+        let mut cells: HashMap<(i32, i32, i32), u32> = HashMap::new();
+        let mut remap = vec![0u32; self.vertices.len()];
+        let mut out = Mesh::default();
+        let mut sums: Vec<(Vec3, Vec3, u32)> = vec![];
+        for (i, v) in self.vertices.iter().enumerate() {
+            let p = Vec3::from(v.pos);
+            let key = ((p.x / cell).floor() as i32, (p.y / cell).floor() as i32, (p.z / cell).floor() as i32);
+            let j = *cells.entry(key).or_insert_with(|| {
+                out.vertices.push(*v);
+                sums.push((Vec3::ZERO, Vec3::ZERO, 0));
+                (out.vertices.len() - 1) as u32
+            });
+            remap[i] = j;
+            let s = &mut sums[j as usize];
+            s.0 += p;
+            s.1 += Vec3::from(v.normal);
+            s.2 += 1;
+        }
+        for (v, (p, n, k)) in out.vertices.iter_mut().zip(&sums) {
+            v.pos = (*p / *k as f32).to_array();
+            v.normal = n.normalize_or_zero().to_array();
+        }
+        for t in self.indices.chunks(3) {
+            let (a, b, c) = (remap[t[0] as usize], remap[t[1] as usize], remap[t[2] as usize]);
+            if a != b && b != c && a != c {
+                out.indices.extend_from_slice(&[a, b, c]);
+            }
+        }
+        out
     }
 
     pub fn bounds(&self) -> (Vec3, Vec3) {

@@ -4,6 +4,7 @@
 //! inn hit. Rust eier byen, fysikken og rendereren. Hendelser går tilbake
 //! som JSON fra `frame()`.
 
+use crate::domain::ports::Renderer as _;
 use crate::adapters::assets::MemoryAssets;
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
@@ -161,6 +162,16 @@ impl Engine {
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
         self.app.game.place(glam::Vec3::new(x, y, z), yaw_deg.to_radians(), pitch_deg.to_radians());
+    }
+
+    /// Intern oppløsning som andel av vinduet, 0.4–1.0.
+    pub fn set_scale(&mut self, scale: f32) {
+        self.app.renderer.set_scale(scale);
+    }
+
+    /// Trekanter tegnet sist bilde.
+    pub fn triangles(&self) -> u32 {
+        self.app.renderer.triangles()
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {

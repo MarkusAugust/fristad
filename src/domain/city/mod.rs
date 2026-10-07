@@ -8,7 +8,7 @@
 //! Koordinater: X øst, Y opp, Z sør. Torget ligger rundt origo, og porten
 //! med den store knappen står i nord.
 
-use crate::domain::geometry::{Layer, Mat, Mesh};
+use crate::domain::geometry::{Chunk, Layer, Mat, Mesh};
 use crate::domain::installations::Installation;
 use crate::domain::model::{ModelInfo, Placement};
 use std::collections::HashMap;
@@ -46,7 +46,9 @@ pub struct Prop {
 }
 
 pub struct City {
+    /// Den faste geometrien, stokket i biter (`chunks`).
     pub mesh: Mesh,
+    pub chunks: Vec<Chunk>,
     pub colliders: Vec<Shape>,
     pub lights: Vec<Light>,
     pub props: Vec<Prop>,
@@ -222,8 +224,12 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     }
     b.owner = None;
 
+    // Biter på 24 m, med småting (under 18 cm) sist i hver bit.
+    let (mesh, chunks) = b.mesh.chunked(24.0, 0.18);
+    log::info!("Byen: {} biter", chunks.len());
     City {
-        mesh: b.mesh,
+        mesh,
+        chunks,
         colliders: b.colliders,
         lights: b.lights,
         props: b.props,

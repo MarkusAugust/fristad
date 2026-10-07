@@ -14,6 +14,7 @@ use fristad::adapters::rapier::RapierPhysics;
 use fristad::adapters::wgpu::Renderer;
 use fristad::app::{self, App};
 use fristad::domain::installations::WeatherKind;
+use fristad::domain::ports::Renderer as _;
 use fristad::domain::tokens::Theme;
 use glam::Vec3;
 
@@ -112,6 +113,9 @@ fn main() {
     let start = std::time::Instant::now();
     // Flere bilder med TAA gir et supersamplet, rolig bilde.
     let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(12);
+    if let Some(scale) = arg("--scale") {
+        app.renderer.set_scale(scale.parse().unwrap());
+    }
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);
@@ -133,7 +137,9 @@ fn main() {
     queue.submit([enc.finish()]);
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wgpu::PollType::Wait).expect("poll");
-    log::info!("Rendret {frames} bilder på {:.0} ms", start.elapsed().as_secs_f32() * 1000.0);
+    log::info!("Rendret {frames} bilder på {:.0} ms, {} trekanter i hovedpasset", start.elapsed().as_secs_f32() * 1000.0, app.renderer.triangles());
+    let (w, p, m) = app.renderer.stats();
+    log::info!("Verden {w}, props {p}, modeller {m} trekanter");
 
     let data = buf.slice(..).get_mapped_range();
     let mut pixels = Vec::with_capacity((width * height * 4) as usize);
