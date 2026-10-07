@@ -136,10 +136,25 @@ if (existsSync(OWN)) {
   }
 }
 
-// 2. Poly Haven for resten.
-const textures = await json<Record<string, Asset>>(`${API}/assets?t=textures`);
+// 2. Poly Haven for resten. Når Poly Haven ikke kan nås (skymiljøet),
+// beholdes lagene fra forrige manifest.
+let previous: any = { textures: {} };
+try {
+  previous = JSON.parse(await Bun.file(join(OUT, "manifest.json")).text());
+} catch {
+  /* første gang */
+}
+let textures: Record<string, Asset> = {};
+try {
+  textures = await json<Record<string, Asset>>(`${API}/assets?t=textures`);
+} catch (e) {
+  console.warn(`Poly Haven kan ikke nås (${e}); beholder lagene som er hentet fra før`);
+  for (const [layer, entry] of Object.entries<any>(previous.textures ?? {})) {
+    if (!manifest.textures[layer] && !String(entry.id ?? "").startsWith("egen:")) manifest.textures[layer] = entry;
+  }
+}
 for (const [layer, searches] of Object.entries(TEXTURES)) {
-  if (manifest.textures[layer]) continue;
+  if (manifest.textures[layer] || Object.keys(textures).length === 0) continue;
   const id = pick(textures, searches);
   if (!id) {
     console.warn(`${layer}: fant ingen tekstur for ${searches.join(", ")}`);
