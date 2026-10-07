@@ -70,7 +70,7 @@ def plain(name, rgb, rough=0.5):
 class M:
     """Materialene til et hus."""
 
-    def __init__(self, plaster_tint=(0.72, 0.7, 0.65), timber_tint=(1.0, 1.0, 1.0), roof="tiles"):
+    def __init__(self, plaster_tint=(0.42, 0.4, 0.37), timber_tint=(1.0, 1.0, 1.0), roof="tiles"):
         self.stone = layer("stone", (0.9, 0.88, 0.85), 0.5)
         self.plaster = layer("plaster", plaster_tint, 0.5)
         self.timber = layer("oak", timber_tint, 0.5)
@@ -437,7 +437,7 @@ def plinth(m, w, d, h, rng):
 def half_timbered(spec):
     """Et bindingsverkshus med gavlen eller langsida mot gata."""
     rng = random.Random(spec["seed"])
-    m = M(plaster_tint=tuple(c * 0.72 for c in spec.get("plaster", (1, 0.965, 0.905))), timber_tint=spec.get("timber", (1, 1, 1)))
+    m = M(plaster_tint=tuple(c * 0.42 for c in spec.get("plaster", (1, 0.965, 0.905))), timber_tint=spec.get("timber", (1, 1, 1)))
     w, d = spec["w"], spec["d"]
     floors = spec["floors"]
     fh = 2.7

@@ -639,13 +639,19 @@ impl Mesh {
     /// materiale tas fra det første hjørnet.
     pub fn clustered(&self, cell: f32) -> Mesh {
         use std::collections::HashMap;
-        let mut cells: HashMap<(i32, i32, i32), u32> = HashMap::new();
+        // Bare hjørner med samme materiale og omtrent samme retning slås
+        // sammen, så puss og bjelker ikke blandes og flatene holder seg flate.
+        let mut cells: HashMap<(i32, i32, i32, u8, [u8; 4], [u8; 4]), u32> = HashMap::new();
         let mut remap = vec![0u32; self.vertices.len()];
         let mut out = Mesh::default();
         let mut sums: Vec<(Vec3, Vec3, u32)> = vec![];
         for (i, v) in self.vertices.iter().enumerate() {
             let p = Vec3::from(v.pos);
-            let key = ((p.x / cell).floor() as i32, (p.y / cell).floor() as i32, (p.z / cell).floor() as i32);
+            let n = Vec3::from(v.normal);
+            let axis = (0..3).max_by(|&a, &b| n[a].abs().total_cmp(&n[b].abs())).unwrap_or(1);
+            let facing = axis as u8 * 2 + (n[axis] < 0.0) as u8;
+            let mat = [v.mat[0], v.mat[1], v.mat[2], 0];
+            let key = ((p.x / cell).floor() as i32, (p.y / cell).floor() as i32, (p.z / cell).floor() as i32, facing, mat, v.color);
             let j = *cells.entry(key).or_insert_with(|| {
                 out.vertices.push(*v);
                 sums.push((Vec3::ZERO, Vec3::ZERO, 0));
