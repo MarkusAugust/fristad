@@ -20,6 +20,7 @@ use glam::{Affine3A, Quat, Vec3};
 pub mod furniture;
 pub mod house;
 pub mod nature;
+pub mod street_life;
 pub mod terrain;
 
 pub enum Shape {
@@ -74,8 +75,24 @@ impl Rng {
 }
 
 /// Det installasjonene og bydelene bygger med.
+/// En husfasade, så gatelivet kan stille ting inntil ekte vegger.
+#[derive(Clone, Copy, Debug)]
+pub struct Facade {
+    /// Midt på fasaden, i bakkehøyde.
+    pub origin: Vec3,
+    /// Langs fasaden (lokal +X for huset).
+    pub along: Vec3,
+    /// Ut fra fasaden, mot gata.
+    pub facing: Vec3,
+    pub width: f32,
+    /// Dørposisjonen langs fasaden, fra midten.
+    pub door: f32,
+    pub shop: bool,
+}
+
 pub struct Builder<'a> {
     pub mesh: Mesh,
+    pub facades: Vec<Facade>,
     pub colliders: Vec<Shape>,
     pub lights: Vec<Light>,
     pub props: Vec<Prop>,
@@ -173,6 +190,7 @@ pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: &mut [Box<dyn Installation>]) -> City {
     let mut b = Builder {
         mesh: Mesh::default(),
+        facades: vec![],
         colliders: vec![],
         lights: vec![],
         props: vec![],
@@ -191,6 +209,7 @@ pub fn build(tokens: &Tokens, font: &Font, models: &[ModelInfo], installations: 
     house::district(&mut b);
     furniture::plaza(&mut b);
     furniture::streets(&mut b);
+    street_life::all(&mut b);
     nature::plaza_trees(&mut b);
     nature::tufts(&mut b);
     nature::meadow(&mut b);

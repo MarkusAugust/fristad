@@ -11,6 +11,7 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 - **Ny komponent i byen:** én fil i `src/domain/installations/`, implementer `Installation` (bygg geometri og props, `tick`, `act`, `pose`, `palette`), legg den til i `all()`, legg navnet til i `COMPONENTS` i `tools/export-docs.ts`, og eventuelt variantene i `VARIANTS` i `web/main.js`. Resten (sikting, E/R/F, panel, tema) følger av `component()`.
 - Målestokk: 1 rem = 1 m for arkitekturen (etasjehøyde fra spacing-skalaen). For komponentene er **1 CSS-piksel = 1 cm** (`installations::PX`), så `.fs-button` med 16px tekst og 8/16px padding blir 42 × 80 cm.
 - Terrenget (`city/terrain.rs`) er en høydefunksjon: torget er planert innenfor 21 m, utenfor heller og bølger bakken. Alt som bygges spør `Builder::ground`/`on_ground`, og bakken er et 2 m-rutenett med heightfield-kollider. `city::town_dist` og `path_dist` sier hvor nær bebyggelsen og stiene et punkt er; `ground_mat` velger brostein, grus eller eng etter det.
+- Gatelivet (`city/street_life.rs`) er prosedyrisk: biler (stasjonsvogn, kombi, varebil som ekstrudert sideprofil), sykler, kafébord, torgboder, lyslenker mellom lyktene, gateskilt, postkasse, busskur, krukker ved dørene og tøy på snor i smugene. Husene registrerer `Facade` i `Builder::facades`, så sykler og krukker står inntil ekte vegger. `Mesh::extrude` jobber i verdenskoordinater: bygg i en egen `Mesh` og `transform` den.
 - Husene varieres av `house::Spec::random` (gavl mot gata, steinsokkel, skodder, blomsterkasser, balkong, etasjehøyde) i rekker som bølger, med smug i mellom. Enga (`nature::meadow`) har løvtrær, busker, steiner, steingjerder, tuster og granskog.
 
 ## Arbeidsflyt
@@ -38,7 +39,7 @@ Fristad er dokumentasjonen til designsystemet [Fristil](https://github.com/Marku
 
 ## Status (7. oktober 2026)
 
-Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fotoskannede materialer og modeller fra Poly Haven, fasadegrammatikk med variasjon, terreng med eng, åser og granskog, trær med bladkort og vind, SDF-tekst i Inter, ti komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget, lasteskjerm og inngang uten pekerlås (dra med musa).
+Ferdig: ny renderer (kaskadeskygger, dybdeprepass, SSAO, TAA, tåke med lysstråler, regn, snø, våte flater, snødekke), bakte teksturer med normalkart, fotoskannede materialer og modeller fra Poly Haven, fasadegrammatikk med variasjon, terreng med eng, åser og granskog, gateliv med biler, sykler, kafé, torgboder og lyslenker, trær med bladkort og vind, SDF-tekst i Inter, ti komponenter i byen med panel for hver, Fristils egne toast og connection-status i nettlaget, lasteskjerm og inngang uten pekerlås (dra med musa).
 
 Neste:
 1. Tilbakemelding fra eieren på forhåndsvisningen (bybildet, lys, materialer, lesbarhet på skiltene, ytelse i WebGL2).

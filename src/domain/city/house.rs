@@ -187,7 +187,13 @@ fn alley_fence(b: &mut Builder, center: Vec3, along: Vec3, facing: Vec3, width: 
         m.cuboid(&(t * Affine3A::from_translation(Vec3::new(sx * (width * 0.5 - 0.06), 0.9, -0.05))), Vec3::new(0.12, 1.8, 0.12), &fence);
     }
     b.solid_box(Vec3::new(center.x, gy + 0.9, center.z), Vec3::new(width, 1.8, 0.2), yaw);
-    let _ = along;
+    // Tøy på snor bak gjerdet, mellom husveggene.
+    log::debug!("Smug ved ({:.1}, {:.1}), bredde {width:.1}", center.x, center.z);
+    if b.rng.chance(0.6) {
+        let a = Vec3::new(center.x, gy + 2.4, center.z) - facing * 2.2 - along * (width * 0.5 + 0.05);
+        let c = Vec3::new(center.x, gy + 2.3, center.z) - facing * 2.2 + along * (width * 0.5 + 0.05);
+        super::street_life::laundry(&mut b.mesh, a, c, &mut b.rng);
+    }
     // Treet bak gjerdet.
     let back = center - facing * 4.0;
     let tree_scale = b.rng.range(0.8, 1.2);
@@ -374,6 +380,14 @@ pub fn house(b: &mut Builder, s: &Spec) {
     }
     // Forsiden med hull, de tre andre sidene uten (bakgårdene ser ingen).
     let front_t = local(Vec3::new(0.0, plinth, fz));
+    let facade = super::Facade {
+        origin: Vec3::new(s.front.x, gy, s.front.z),
+        along: rot * Vec3::X,
+        facing: s.facing,
+        width,
+        door: door.map(|d| d.x).unwrap_or(0.0),
+        shop: s.shop.is_some(),
+    };
     let base_band = if s.stone_base { Some((floor_h - 0.05, STONE)) } else { None };
     wall_banded(m, &front_t, width, wall_h, &holes, &wall, base_band);
     let back_t = local(Vec3::new(0.0, plinth, -fz)) * Affine3A::from_rotation_y(std::f32::consts::PI);
@@ -582,6 +596,7 @@ pub fn house(b: &mut Builder, s: &Spec) {
         for (p, c, i, r) in lights {
             b.light(p, c, i, r);
         }
+        b.facades.push(facade);
         return;
     }
     m.gable_roof(&roof_t, width, depth, roof_h, overhang, &roof_mat, &wall, &DARK_TRIM);
@@ -642,5 +657,6 @@ pub fn house(b: &mut Builder, s: &Spec) {
         b.light(p, c, i, r);
     }
     b.solid(Shape::Cuboid { center: center + Vec3::Y * (plinth + wall_h) * 0.5, size: Vec3::new(width + 0.1, plinth + wall_h, depth + 0.1), yaw });
+    b.facades.push(facade);
     let _ = (OAK, Layer::Oak);
 }
