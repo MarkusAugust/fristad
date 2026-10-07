@@ -147,6 +147,7 @@ pub fn office(b: &mut Builder) {
     }
     let p = b.on_ground(POS);
     let t = at(p, YAW);
+    b.fits("kontorskiltet", "SØKNADSKONTORET", 26.0, 0.012, 5.2);
     let wall = Mat::tex(Layer::Plaster, 0xffffff).tint(Vec3::new(0.88, 0.86, 0.8));
     let m = &mut b.mesh;
     m.cuboid(&(t * Affine3A::from_translation(Vec3::new(0.0, -0.75, -D * 0.5))), Vec3::new(W + 0.12, 2.5, D + 0.12), &STONE);

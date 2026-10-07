@@ -122,6 +122,8 @@ pub struct Builder<'a> {
     pub models: HashMap<String, ModelInfo>,
     /// Gulv over terrenget, til `audit` (`floor`).
     pub floors: Vec<(Vec3, Vec2, f32, f32)>,
+    /// Tekst som er bredere enn plata si (`fits`), til `audit`.
+    pub text_audit: Vec<String>,
     /// Instanser som henger på vegger eller står oppå noe (`place_mounted`):
     /// (modell, instansnummer), som `audit` hopper over.
     pub mounted: Vec<(&'static str, usize)>,
@@ -268,6 +270,17 @@ impl Builder<'_> {
         Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(yaw), self.on_ground(p))
     }
 
+    /// Rutinen mot tekst utenfor skilt: meld til `audit` om teksten (i
+    /// `px` med `scale` meter per px) er bredere enn plata minus 8 cm marg.
+    /// Bruk den der ei plate har fast bredde; ellers regn plata ut fra
+    /// `font.width`.
+    pub fn fits(&mut self, what: &str, text: &str, px: f32, scale: f32, plate_w: f32) {
+        let w = self.font.width(text, px) * scale;
+        if w > plate_w - 0.08 {
+            self.text_audit.push(format!("{what}: «{text}» er {:.0} cm bred, plata {:.0} cm", w * 100.0, plate_w * 100.0));
+        }
+    }
+
     /// Rutinen mot svevende modeller: hver instans av hver modell sjekkes
     /// mot terrenget. Svever det laveste hjørnet mer enn 8 cm over bakken,
     /// eller står et hjørne mer enn 30 cm under den, meldes det. Modeller
@@ -360,6 +373,7 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
         models: models.iter().map(|m| (m.name.clone(), m.clone())).collect(),
         floors: vec![],
         mounted: vec![],
+        text_audit: vec![],
     };
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget og i
@@ -391,7 +405,8 @@ pub fn build(tokens: &Tokens, font: &Font, sheets: &crate::domain::sheets::Sheet
     }
     b.owner = None;
 
-    let audit = b.audit();
+    let mut audit = b.audit();
+    audit.extend(b.text_audit.iter().cloned());
     for line in &audit {
         log::warn!("{line}");
     }

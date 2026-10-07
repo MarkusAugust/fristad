@@ -70,7 +70,7 @@ def grow(p, d, length, radius, level, sp, rng, splines, tips, taper_end):
         wob = Vector((rng.gauss(0, sp.wobble), rng.gauss(0, sp.wobble), rng.gauss(0, sp.wobble)))
         dirv = (dirv + wob * seg + Vector((0, 0, sp.up[min(level, len(sp.up) - 1)])) * seg).normalized()
         pos = pos + dirv * seg
-    splines.append(pts)
+    splines.append((pts, level))
     if level >= sp.levels - 1:
         # Ytterste greinene: blader langs den ytre halvdelen.
         for k in range(n // 2, n + 1):
@@ -105,6 +105,8 @@ def curve_object(name, splines, bevel_res=1, res_u=2):
     cu.use_fill_caps = True
     cu.resolution_u = res_u
     for pts in splines:
+        if isinstance(pts, tuple):
+            pts = pts[0]
         spl = cu.splines.new("NURBS")
         spl.points.add(len(pts) - 1)
         for i, (p, r) in enumerate(pts):
@@ -333,8 +335,21 @@ def broadleaf(name, sp, kind, texture, seed, trunks=1):
         d = Vector((rng.uniform(-0.12, 0.12), rng.uniform(-0.12, 0.12), 1.0)) if trunks == 1 else Vector((rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5), 1.0))
         grow(base, d, sp.trunk_len * rng.uniform(0.9, 1.1), sp.trunk_r, 0, sp, rng, splines, tips, 0.55)
     # Rotfoten: den første stokken får bredere fot.
-    splines[0][0] = (splines[0][0][0], splines[0][0][1] * 1.35)
-    trunk = to_mesh(curve_object("trunk", splines, bevel_res=1 if sp.trunk_r > 0.1 else 0, res_u=2 if sp.trunk_r > 0.1 else 1))
+    splines[0][0][0] = (splines[0][0][0][0], splines[0][0][0][1] * 1.35)
+    # Stammen og de grove greinene med flere sider; kvistene ytterst som
+    # firkantede rør med færre segmenter, de er gjemt i bladverket.
+    thick = [pts for pts, lv in splines if lv < 2]
+    thin = [pts for pts, lv in splines if lv >= 2]
+    big = sp.trunk_r > 0.1
+    parts = [to_mesh(curve_object("trunk", thick, bevel_res=1 if big else 0, res_u=2 if big else 1))]
+    if thin:
+        parts.append(to_mesh(curve_object("twigs", thin, bevel_res=0, res_u=1)))
+    bpy.ops.object.select_all(action="DESELECT")
+    for ob in parts:
+        ob.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    trunk = bpy.context.active_object
     if sp.trunk_r > 0.1:
         bake_bark(trunk, kind, name)
     else:

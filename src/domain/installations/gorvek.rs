@@ -247,7 +247,9 @@ impl Installation for Gorvek {
         let hearth_z = -hd + 0.55;
         {
             let m = &mut b.mesh;
-            m.cuboid_ao(&local(Vec3::new(0.0, FLOOR + 0.06, hearth_z + 0.1)), Vec3::new(2.4, 0.12, 1.3), &STONE, 1.0);
+            // Steinplata foran peisen starter 2 cm over plankene, så undersiden
+            // ikke ligger i gulvplanet (det ga flimring).
+            m.cuboid_ao(&local(Vec3::new(0.0, FLOOR + 0.08, hearth_z + 0.1)), Vec3::new(2.4, 0.12, 1.3), &STONE, 1.0);
             m.cuboid_ao(&local(Vec3::new(0.0, FLOOR + 1.1, -hd + 0.2)), Vec3::new(2.4, 2.2, 0.4), &STONE, 1.0);
             for sx in [-1.0f32, 1.0] {
                 m.cuboid_ao(&local(Vec3::new(sx * 1.05, FLOOR + 0.75, hearth_z)), Vec3::new(0.3, 1.3, 0.9), &STONE, 1.0);
@@ -347,7 +349,7 @@ impl Installation for Gorvek {
             let m = &mut b.mesh;
             m.cylinder(&(sp * Affine3A::from_translation(Vec3::new(0.0, -0.4, -0.05))), 0.06, 0.05, 2.2, 8, &OAK, true);
             let mut board = Mesh::default();
-            let w = signs::width(b.font, "Gorveks hus", 22.0) / PX + 40.0;
+            let w = signs::width(b.font, "Gorveks hus", 22.0).max(signs::width(b.font, "Gå inn", 12.0)) / PX + 40.0;
             signs::boxed(&mut board, Vec3::ZERO, &Box2 { w, h: 60.0, radius: 4.0, fill: slot::NEUTRAL_CANVAS, border: Some(slot::NEUTRAL_BORDER_SUBTLE), depth: 0.03 });
             signs::text(&mut board, b.font, "Gorveks hus", Vec3::new(0.0, 6.0 * PX, 0.02), 22.0, slot::NEUTRAL_TEXT_STRONG);
             signs::text(&mut board, b.font, "Gå inn", Vec3::new(0.0, -16.0 * PX, 0.02), 12.0, slot::NEUTRAL_TEXT_SUBTLE);

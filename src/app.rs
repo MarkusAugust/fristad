@@ -51,9 +51,10 @@ pub fn prepare(models: &dyn ModelSource, textures: &dyn TextureSource) -> Prepar
 
 #[cfg(test)]
 mod tests {
-    /// Rutinen mot svevende modeller: byen bygges med de innebygde
-    /// modellene (og de eksterne om de er hentet), og ingen instans får
-    /// sveve over eller stå nede i terrenget. `cargo test` før push.
+    /// Rutinen mot svevende modeller og tekst utenfor skilt: byen bygges
+    /// med de innebygde modellene (og de eksterne om de er hentet); ingen
+    /// instans får sveve over eller stå nede i terrenget, og ingen tekst
+    /// meldt med `Builder::fits` får være bredere enn plata. `cargo test` før push.
     #[test]
     fn modellene_star_pa_bakken() {
         let assets = crate::adapters::assets::MemoryAssets::from_dir(std::path::Path::new("assets/external"));

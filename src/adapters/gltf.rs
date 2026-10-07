@@ -237,7 +237,14 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
     // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
     // detaljnivået er det samme meshet.
-    let far_cell = if name.ends_with("_leaves") || name.ends_with("_needles") { 0.0005 } else { 0.0 };
+    let far_cell = if name.ends_with("_leaves") || name.ends_with("_needles") {
+        0.0005
+    } else if name.ends_with("_trunk") {
+        // Stammene: grovt på avstand, kvistene forsvinner i bladverket.
+        0.6
+    } else {
+        0.0
+    };
     Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell })
 }
 

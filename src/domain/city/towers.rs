@@ -40,8 +40,12 @@ fn tower(b: &mut Builder, p: Vec3, px: f32, name: &str, face: f32) {
     m.cuboid_ao(&(dt * Affine3A::from_translation(Vec3::new(0.0, 2.05, 0.0))), Vec3::new(1.1, 0.12, 0.2), &STONE, 1.0);
     // Plaketten ved døra: ordet i tokenets størrelse, og navnet under.
     let word = "Søknad";
-    let ww = b.font.width(word, px) * 0.01;
+    let sub = format!("font-size-{name} · {px:.0} px");
+    // Plata er så brei som den bredeste linja trenger.
+    let ww = b.font.width(word, px).max(b.font.width(&sub, 10.0)) * 0.01;
     let pw = (ww + 0.24).max(0.9);
+    b.fits("tårnplakett", word, px, 0.01, pw);
+    b.fits("tårnplakett", &sub, 10.0, 0.01, pw);
     let ph = px * 0.01 * 1.2 + 0.3;
     let pt = Affine3A::from_rotation_translation(Quat::from_rotation_y(face), p + Vec3::new(face.sin() * (r + 0.1), 0.5 + 1.0, face.cos() * (r + 0.1)));
     let pt = pt * Affine3A::from_translation(Vec3::new(0.45 + pw * 0.5 + 0.1, if px > 20.0 { 0.9 } else { 0.4 }, 0.0));
@@ -51,7 +55,7 @@ fn tower(b: &mut Builder, p: Vec3, px: f32, name: &str, face: f32) {
     let ink = Mat::special(kind::TEXT, 0x2a2418, 0.6).flags(flag::NO_DIRT | flag::NO_WEATHER);
     let mut text = Mesh::default();
     b.font.centered(&mut text, word, Vec3::new(0.0, 0.08, 0.0), px, 0.01, &ink);
-    b.font.centered(&mut text, &format!("font-size-{name} · {px:.0} px"), Vec3::new(0.0, -ph * 0.5 + 0.09, 0.0), 10.0, 0.01, &ink);
+    b.font.centered(&mut text, &sub, Vec3::new(0.0, -ph * 0.5 + 0.09, 0.0), 10.0, 0.01, &ink);
     text.transform(&(pt * Affine3A::from_translation(Vec3::Z * 0.018)));
     b.mesh.append(&text);
     b.solid(Shape::Cylinder { center: p + Vec3::Y * (h * 0.5), radius: r + 0.1, half_height: h * 0.5 });

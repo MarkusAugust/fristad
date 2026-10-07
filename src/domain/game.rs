@@ -654,6 +654,21 @@ impl Game {
                 }
                 Action::Text(c) => {
                     if let Some(o) = self.editing {
+                        // F mens du sikter på en annen komponent: slipp feltet og
+                        // bruk den du sikter på, i stedet for å skrive «f».
+                        if matches!(c, 'f' | 'F') && self.aim.map(|a| a.1).is_some_and(|a| a != o) {
+                            self.installations[o].act(InstallAction::Blur, &mut self.env);
+                            self.editing = None;
+                            self.env.edit = None;
+                            if let Some((p, o2)) = self.aim {
+                                if self.installations[o2].usable() {
+                                    self.props[p].press = 1.0;
+                                }
+                                self.installations[o2].act(InstallAction::Use, &mut self.env);
+                                self.sync_edit(o2);
+                            }
+                            continue;
+                        }
                         self.installations[o].act(InstallAction::Type(c), &mut self.env);
                         self.sync_edit(o);
                     }

@@ -62,6 +62,7 @@ fn building(b: &mut Builder) {
     // Skiltet over døra.
     let plate = Mat::plain(0x24303a, 0.6);
     m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 1.4, -0.02))), Vec3::new(4.6, 0.5, 0.1), &plate, 1.0);
+    b.fits("verkstedskiltet", "VERKSTEDET", 26.0, 0.012, 4.6);
     let mut label = Mesh::default();
     b.font.centered(&mut label, "VERKSTEDET", Vec3::ZERO, 26.0, 0.012, &Mat::plain(0xf4efe4, 0.5).flags(flag::GLOW_ALWAYS));
     label.transform(&(t * Affine3A::from_translation(Vec3::new(0.0, WALL_H + 1.4, 0.035))));

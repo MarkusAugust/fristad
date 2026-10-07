@@ -98,9 +98,11 @@ export const SHEETS = [
   ]),
   ...[["default", ""], ["invalid", ' data-state="invalid"'], ["disabled", " disabled"]].map(([v, a]) => ({
     id: `select:${v}`,
-    html: `<select class="fs-select"${a} style="width:360px"><option>Velg fylke</option></select>`,
+    // Tom option: verdien tegnes som egen tekst i motoren.
+    html: `<select class="fs-select"${a} style="width:360px"><option></option></select>`,
   })),
-  { id: "select:list", html: '<ul class="fs-select-list" style="width:360px;list-style:none;margin:0;padding:4px 0;background:var(--fs-color-neutral-canvas);border:1px solid var(--fs-color-neutral-border);border-radius:4px"><li style="padding:8px 12px">Velg fylke</li><li style="padding:8px 12px">Innlandet</li><li style="padding:8px 12px">Vestland</li><li style="padding:8px 12px">Troms</li></ul>' },
+  // Lista: fire rader på 40 px (padding 8/12, linjehøyde 24) med 4 px rundt.
+  { id: "select:list", html: '<ul class="fs-select-list" style="width:360px;list-style:none;margin:0;padding:4px 0;background:var(--fs-color-neutral-canvas);border:1px solid var(--fs-color-neutral-border);border-radius:4px;font:16px/24px Inter,system-ui,sans-serif;color:var(--fs-color-neutral-text-strong)"><li style="padding:8px 12px">Velg fylke</li><li style="padding:8px 12px">Innlandet</li><li style="padding:8px 12px">Vestland</li><li style="padding:8px 12px">Troms</li></ul>' },
   // Card.
   ...[["default", ""], ["filled", ' data-variant="filled"'], ["interactive", " data-interactive"]].map(([v, a]) => ({
     id: `card:${v}`,

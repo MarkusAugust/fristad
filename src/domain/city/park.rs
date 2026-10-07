@@ -32,6 +32,8 @@ fn sign(b: &mut Builder, p: Vec3, yaw: f32, title: &str, sub: &str, min_w: f32) 
     let t = at(p, yaw);
     let w = (b.font.width(title, 26.0) * 0.012).max(b.font.width(sub, 14.0) * 0.012) + 0.5;
     let w = w.max(min_w);
+    b.fits("parkskilt", title, 26.0, 0.012, w);
+    b.fits("parkskilt", sub, 14.0, 0.012, w);
     let m = &mut b.mesh;
     for dx in [-w * 0.5 + 0.15, w * 0.5 - 0.15] {
         m.cuboid_ao(&(t * Affine3A::from_translation(Vec3::new(dx, 0.75, -0.07))), Vec3::new(0.08, 1.9, 0.08), &OAK, 1.0);
