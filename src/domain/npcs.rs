@@ -34,6 +34,12 @@ pub struct Npc {
     pub speaking: Option<(usize, f32)>,
     /// Vinker når du kommer nær første gang.
     waved: bool,
+    /// Gjøremålene: punktene innbyggeren går mellom (minst to, ellers står
+    /// hen), hvilket som står for tur, og hvor lenge hen blir stående.
+    route: Vec<Vec3>,
+    leg: usize,
+    wait: f32,
+    walking: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -41,7 +47,12 @@ struct Clips {
     idle: usize,
     talk: usize,
     wave: usize,
+    walk: usize,
 }
+
+/// Ganghastigheten (m/s) og hvor fort de snur seg.
+const WALK_SPEED: f32 = 0.95;
+const TURN: f32 = 4.0;
 
 #[derive(Default)]
 pub struct Npcs {
@@ -60,17 +71,18 @@ pub struct Speech {
 
 impl Npcs {
     /// `rig_of` gir skjelettet til en modell; hver innbygger har sin.
-    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str])>) -> Self {
+    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str], Vec<Vec3>)>) -> Self {
         let mut rigs: Vec<(Rig, Clips)> = vec![];
         let mut by_model: Vec<(&'static str, Option<usize>)> = vec![];
         let mut npcs = vec![];
-        for (i, (name, model, pos, yaw, tint, lines)) in cast.into_iter().enumerate().take(MAX_NPCS) {
+        for (i, (name, model, pos, yaw, tint, lines, route)) in cast.into_iter().enumerate().take(MAX_NPCS) {
             let rig = match by_model.iter().find(|(m, _)| *m == model) {
                 Some((_, r)) => *r,
                 None => {
                     let r = rig_of(model).map(|r| {
                         let find = |n: &str| r.clip(n).unwrap_or(0);
-                        let c = Clips { idle: find("idle"), talk: find("talk"), wave: find("wave") };
+                        let idle = find("idle");
+                        let c = Clips { idle, talk: find("talk"), wave: find("wave"), walk: r.clip("walk").unwrap_or(idle) };
                         rigs.push((r, c));
                         rigs.len() - 1
                     });
@@ -82,7 +94,7 @@ impl Npcs {
             if let Some(a) = &mut anim {
                 a.time = i as f32 * 0.9;
             }
-            npcs.push(Npc { name, pos, yaw, tint, lines, model, rig, next_line: 0, anim, speaking: None, waved: false });
+            npcs.push(Npc { name, pos, yaw, tint, lines, model, rig, next_line: 0, anim, speaking: None, waved: false, route, leg: 0, wait: 2.0 + i as f32 * 1.3, walking: false });
         }
         Self { npcs, rigs }
     }
@@ -119,6 +131,46 @@ impl Npcs {
                 a.update(dt, r);
                 if a.finished {
                     a.play(clips.idle, true, 0.2);
+                }
+            }
+            // Gjøremålene: går mellom punktene på ruta og blir stående litt
+            // ved hvert; står stille og snur seg mot deg når du er nær.
+            let busy = dist < TALK_RANGE + 1.0 || n.speaking.is_some();
+            if busy {
+                if n.walking {
+                    n.walking = false;
+                    if let Some(a) = n.anim.as_mut() {
+                        a.play(clips.idle, true, 0.25);
+                    }
+                }
+            } else if n.route.len() > 1 {
+                if !n.walking {
+                    n.wait -= dt;
+                    if n.wait <= 0.0 {
+                        n.leg = (n.leg + 1) % n.route.len();
+                        n.walking = true;
+                        if let Some(a) = n.anim.as_mut() {
+                            a.play(clips.walk, true, 0.3);
+                        }
+                    }
+                } else {
+                    let goal = n.route[n.leg];
+                    let to_goal = goal - n.pos;
+                    let flat = to_goal.with_y(0.0);
+                    let step = WALK_SPEED * dt;
+                    if flat.length() <= step {
+                        n.pos = goal;
+                        n.walking = false;
+                        n.wait = 3.0 + ((i * 7 + n.leg * 3) % 5) as f32;
+                        if let Some(a) = n.anim.as_mut() {
+                            a.play(clips.idle, true, 0.3);
+                        }
+                    } else {
+                        n.pos += to_goal * (step / flat.length());
+                        let want = flat.x.atan2(flat.z);
+                        let diff = (want - n.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+                        n.yaw += diff * (dt * TURN).min(1.0);
+                    }
                 }
             }
             if dist < TALK_RANGE {

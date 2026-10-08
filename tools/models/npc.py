@@ -127,6 +127,27 @@ def clips(arm):
     c.rot("forearm.R", 36)
     c.rot("hand.R", 36)
     c.finish()
+    # Går: ett skritt med hvert bein på et sekund, armene i motfase,
+    # kneet bøyd når foten svinger fram, hoftene opp og ned.
+    c = Clip(arm, "walk", 24, FPS)
+    for f in range(0, 25, 2):
+        a = 2 * math.pi * f / 24
+        sw = math.sin(a)
+        c.rot("thigh.L", f, y=-24 * sw)
+        c.rot("thigh.R", f, y=24 * sw)
+        c.rot("shin.L", f, y=32 * max(0.0, math.sin(a - 0.9)) + 4)
+        c.rot("shin.R", f, y=32 * max(0.0, math.sin(a - 0.9 + math.pi)) + 4)
+        c.rot("foot.L", f, y=-10 * math.sin(a - 0.4))
+        c.rot("foot.R", f, y=10 * math.sin(a - 0.4))
+        c.rot("upper_arm.L", f, y=16 * sw)
+        c.rot("upper_arm.R", f, y=-16 * sw)
+        c.rot("forearm.L", f, y=-12 - 6 * max(0.0, sw))
+        c.rot("forearm.R", f, y=-12 - 6 * max(0.0, -sw))
+        c.rot("spine", f, z=4 * sw)
+        c.rot("chest", f, z=-5 * sw, y=3)
+        c.rot("head", f, z=2 * sw)
+        c.loc("hips", f, (0, 0, -0.02 * abs(math.cos(a))))
+    c.finish()
     bpy.context.scene.frame_end = 72
 
 

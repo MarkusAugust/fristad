@@ -68,6 +68,8 @@ pub struct NpcSpec {
     pub yaw: f32,
     pub tint: Vec3,
     pub lines: &'static [&'static str],
+    /// Punktene innbyggeren går mellom (føttene på bakken).
+    pub route: Vec<Vec3>,
 }
 
 pub struct World {

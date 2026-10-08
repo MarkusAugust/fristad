@@ -189,7 +189,7 @@ impl Session {
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt,
             herd: Herd::new(),
-            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines)).collect()),
+            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.dungeon, rigs),
             dungeon: world.dungeon.clone(),
@@ -273,6 +273,16 @@ impl Session {
 
     pub(super) fn forward(&self) -> Vec3 {
         Vec3::new(-self.yaw.sin() * self.pitch.cos(), self.pitch.sin(), -self.yaw.cos() * self.pitch.cos())
+    }
+
+    /// Hvor innbyggerne står nå (til testene).
+    pub fn npc_positions(&self) -> Vec<Vec3> {
+        self.npcs.npcs.iter().map(|n| n.pos).collect()
+    }
+
+    /// Flytt spilleren (til testene).
+    pub fn place_feet(&mut self, feet: Vec3) {
+        self.teleport(feet, 0.0);
     }
 
     pub fn eye(&self) -> Vec3 {
@@ -483,6 +493,14 @@ impl Session {
         self.herd.update(dt, feet);
         // Innbyggerne: boblene som står sendes hvert bilde (og én tom når de er borte).
         let speeches = self.npcs.update(dt, feet);
+        // Siktemålet følger innbyggeren.
+        for t in &self.targets {
+            if let Use::Talk(n) = t.target.what {
+                if let Some(npc) = self.npcs.npcs.get(n) {
+                    physics.set_pose(t.collider, Affine3A::from_translation(npc.pos + t.target.center));
+                }
+            }
+        }
         if !speeches.is_empty() || self.bubbles_shown {
             self.bubbles_shown = !speeches.is_empty();
             let bubbles = speeches

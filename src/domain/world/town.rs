@@ -806,7 +806,16 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
         } else {
             crate::domain::npcs::NPC_MODEL
         };
-        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines });
+        // Ruta: fram og tilbake langs fasaden foran døra (torget holdes fritt
+        // 4,5 m ut fra dørene), og for Gorvek mellom dukkene.
+        let side = Vec2::new(yaw.cos(), -yaw.sin());
+        let pts: Vec<Vec2> = if name == "Gorvek" {
+            vec![p, Vec2::new(31.0, -23.5), Vec2::new(34.5, -25.5), Vec2::new(30.0, -26.0)]
+        } else {
+            vec![p, p + side * 2.4, p, p - side * 2.4]
+        };
+        let route = pts.iter().map(|q| b.on_ground(Vec3::new(q.x, 0.0, q.y))).collect();
+        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines, route });
         b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
     }
 }

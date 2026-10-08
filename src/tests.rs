@@ -407,3 +407,30 @@ fn pipene_ryker() {
         assert!(p.y > ground + 5.0 && *s > 0.0, "røyken ved ({:.1}, {:.1}, {:.1}) står for lavt", p.x, p.y, p.z);
     }
 }
+
+/// Innbyggerne går rundt på gjøremålene sine, og stopper når du kommer nær.
+#[test]
+fn innbyggerne_gar_og_stopper() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    // Langt unna alle: utenfor sørporten.
+    game.place_feet(Vec3::new(0.0, 0.5, 90.0));
+    let start = game.npc_positions();
+    for _ in 0..(20.0 * 30.0) as usize {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let moved = game.npc_positions().iter().zip(&start).filter(|(a, b)| a.distance(**b) > 0.5).count();
+    assert!(moved >= 3, "bare {moved} innbyggere har gått noe sted på 20 s");
+    // Stå ved den første: hen blir stående.
+    let near = game.npc_positions()[0];
+    game.place_feet(near + Vec3::new(2.0, 0.0, 0.0));
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let here = game.npc_positions()[0];
+    for _ in 0..(5.0 * 30.0) as usize {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(game.npc_positions()[0].distance(here) < 0.05, "innbyggeren gikk fra deg mens du sto ved siden av");
+}

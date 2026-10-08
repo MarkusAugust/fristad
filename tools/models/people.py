@@ -10,7 +10,7 @@ og forkleet henger foran. Kjør:
 
     python3.13 tools/models/people.py smith|innkeeper [--preview ut.png] [størrelse]
 
-MakeHuman-dataene hentes til tools/models/.makehuman/ første gang (fra
+MakeHuman-dataene ligger i .claude/makehuman/ (hentes på nytt fra
 github.com/makehumancommunity/mpfb2, CC0). Origo i bakken mellom føttene,
 fronten mot +X, venstre mot +Y."""
 
@@ -33,7 +33,7 @@ OUT = "assets/models/npc"
 TEX = os.path.abspath("assets/textures")
 FACES = os.path.abspath("assets/textures/faces")
 ATLAS = os.path.abspath("assets/models/npc")
-MH = os.path.abspath("tools/models/.makehuman")
+MH = os.path.abspath(".claude/makehuman")
 
 
 def fetch():
