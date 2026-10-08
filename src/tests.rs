@@ -343,30 +343,40 @@ fn man_kan_ga_inn_i_husene() {
 }
 
 #[test]
-fn man_kan_ga_opp_trappa_i_vertshuset() {
+fn man_kan_ga_opp_trappene() {
     let p = world();
     let mut physics = RapierPhysics::new();
     for c in &p.world.colliders {
         physics.add(c);
     }
     let (half, radius) = (0.55f32, 0.35f32);
-    let pl = p.world.placements.iter().find(|pl| pl.model == "tavern").expect("vertshuset mangler");
-    let t = pl.transforms[0];
-    // Trappa langs østveggen i Blenders akser: fra foten ved fasaden opp
-    // gjennom trapphullet, og videre inn i sovesalen.
-    let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
-    let (a, b) = (world((5.39, -3.98)), world((5.39, 1.2)));
-    let base = t.transform_point3(Vec3::ZERO).y;
-    let mut pos = a + Vec3::Y * (0.6 + half + radius + 0.05);
-    let dir = (b - a).with_y(0.0).normalize();
-    for _ in 0..400 {
-        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
-            break;
+    // Modell, foten av trappa og målet oppe (Blenders akser), gulvet nede
+    // og høyden oppe over bakken.
+    let stairs = [("tavern", (5.39, -3.6), (5.39, 1.6), 0.6, 3.0), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.9)];
+    let mut problems = vec![];
+    for (model, from, to, floor, up) in stairs {
+        let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
+            problems.push(format!("{model} mangler"));
+            continue;
+        };
+        let t = pl.transforms[0];
+        let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+        let (a, b) = (world(from), world(to));
+        let base = t.transform_point3(Vec3::ZERO).y;
+        let mut pos = a + Vec3::Y * (floor + half + radius + 0.05);
+        let dir = (b - a).with_y(0.0).normalize();
+        for _ in 0..500 {
+            if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+                break;
+            }
+            let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+            pos += moved;
         }
-        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
-        pos += moved;
+        let left = (pos - b).with_y(0.0).length();
+        let feet = pos.y - half - radius - base;
+        if left > 0.6 || feet < up {
+            problems.push(format!("{model}: stoppet {left:.1} m fra målet oppe, med føttene {feet:.2} m over bakken"));
+        }
     }
-    let left = (pos - b).with_y(0.0).length();
-    let feet = pos.y - half - radius - base;
-    assert!(left < 0.6 && feet > 3.0, "stoppet {left:.1} m fra målet oppe, med føttene {feet:.2} m over bakken");
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }

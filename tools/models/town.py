@@ -211,8 +211,29 @@ def keep_uv(target, names):
         target.data.uv_layers.remove(layer)
 
 
+# Steiner som står ut av en mur (navnet på muren → delene), så hull som
+# skjæres senere kan ta dem med.
+RELIEF = {}
+
+
+def clear_relief(target, size, at, margin=0.3):
+    """Fjern steinene utenpå `target` som ligger i åpningen."""
+    keep = []
+    for ob in RELIEF.get(target.name, []):
+        p = ob.location
+        if all(abs(p[i] - at[i]) < size[i] / 2 + margin for i in range(3)):
+            if ob in PIECES:
+                PIECES.remove(ob)
+            bpy.data.objects.remove(ob, do_unlink=True)
+        else:
+            keep.append(ob)
+    if target.name in RELIEF:
+        RELIEF[target.name] = keep
+
+
 def cut(target, size, at, rot=(0, 0, 0)):
     """Skjær et hull (vindu, dør) gjennom en del, med boolean."""
+    clear_relief(target, size, at)
     names = {l.name for l in target.data.uv_layers}
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=at, rotation=rot)
     c = bpy.context.active_object
@@ -668,6 +689,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
             json.dump(data, f)
         print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys")
     COLLIDERS.clear()
+    RELIEF.clear()
     LIGHTS.clear()
     HULLS.clear()
 

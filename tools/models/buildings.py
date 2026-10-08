@@ -83,6 +83,7 @@ def stone_wall(m, name, x0, x1, y0, y1, z0, z1, mat):
     rng = random.Random(hash(name) & 0xFFFF)
     ob = block(name, (x1 - x0, y1 - y0, z1 - z0), mat, at=((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), bevel=0.04, segments=2)
     along_x = (x1 - x0) > (y1 - y0)
+    before = len(PIECES)
     for _ in range(int(((x1 - x0) + (y1 - y0)) * (z1 - z0) * 0.9)):
         if along_x:
             x = rng.uniform(x0 + 0.2, x1 - 0.2)
@@ -94,6 +95,7 @@ def stone_wall(m, name, x0, x1, y0, y1, z0, z1, mat):
             for x in (x0 - 0.04, x1 + 0.04):
                 if rng.random() < 0.5:
                     block("stone", (0.1, rng.uniform(0.3, 0.6), rng.uniform(0.2, 0.35)), mat, at=(x, y, rng.uniform(z0 + 0.2, z1 - 0.2)), rot=(rng.uniform(-0.06, 0.06), 0, 0), bevel=0.04, segments=2)
+    town.RELIEF[ob.name] = PIECES[before:]
     return ob
 
 
@@ -267,6 +269,83 @@ def link_ring(m, x, y, z, yaw):
     town.ensure_uv(ob.data)
     town.uv_box(ob)
     PIECES.append(ob)
+
+
+def stairs(m, x0, x1, y_end, z0, z1, n, depth, open_x=()):
+    """En rett trapp langs +y mellom x0 og x1 som ender i y_end, fra z0 til
+    z1: trinn, opptrinn, vanger, og rekkverk på de åpne sidene (`open_x`).
+    Kolliderne er en rampe over trinnene og en vegg langs de åpne sidene
+    fra tredje trinn, så man kan gå på fra siden nederst."""
+    rise = (z1 - z0) / (n + 1)
+    y_start = y_end - n * depth
+    cx, w = (x0 + x1) / 2, x1 - x0
+    for k in range(n):
+        y = y_start + (k + 0.5) * depth
+        hz = z0 + (k + 1) * rise
+        block("stair", (w, depth, 0.06), m.wood, at=(cx, y, hz), bevel=0.008)
+        block("riser", (w, 0.03, rise), m.wood, at=(cx, y - depth / 2 + 0.015, hz - rise / 2), bevel=0.004)
+    for x in (x0, x1):
+        beam("stringer", (x, y_start - 0.15, z0), (x, y_end, z1 - 0.1), 0.06, 0.25, m.timber)
+    for x in open_x:
+        beam("rail", (x, y_start - 0.15, z0 + 0.95), (x, y_end - 0.1, z1 + 0.95), 0.05, 0.06, m.timber)
+        for k in range(0, n, 3):
+            y = y_start + (k + 0.5) * depth
+            beam("baluster", (x, y, z0 + (k + 1) * rise), (x, y, z0 + (k + 1) * rise + 0.95), 0.04, 0.04, m.timber)
+        beam("newel", (x, y_start - 0.12, z0), (x, y_start - 0.12, z0 + 1.05), 0.09, 0.09, m.timber)
+        beam("newel", (x, y_end - 0.1, z1 - 0.2), (x, y_end - 0.1, z1 + 1.0), 0.09, 0.09, m.timber)
+        ya = y_start + 2.5 * depth
+        collide((x, (ya + y_end) / 2, (z0 + z1) / 2 + 0.5), (0.08, y_end - ya, z1 - z0 + 1.0))
+    ramp(x0, x1, y_start - 0.2, y_end, z0, z1 + 0.02)
+    return y_start
+
+
+def rail_run(m, a, b, fz, h=0.95):
+    """Et rekkverk langs en rett linje fra a til b (x, y) på gulvet i fz:
+    stolper i endene, håndlist og spiler, og en kollider."""
+    a, b = Vector((a[0], a[1], fz)), Vector((b[0], b[1], fz))
+    up = Vector((0, 0, h))
+    beam("rail", a + up, b + up, 0.06, 0.07, m.timber)
+    for p in (a, b):
+        beam("rail_post", p, p + up + Vector((0, 0, 0.05)), 0.08, 0.08, m.timber)
+    n = max(1, int((b - a).length / 0.35))
+    for k in range(1, n):
+        p = a + (b - a) * (k / n)
+        beam("rail_spindle", p, p + up, 0.035, 0.035, m.timber)
+    c = (a + b) / 2
+    collide((c.x, c.y, fz + 0.5), (max(abs(b.x - a.x), 0.1), max(abs(b.y - a.y), 0.1), 1.0))
+
+
+def stairwell(m, x0, x1, y0, y1, top, hole, n_joists, upper_y0=None):
+    """Bjelkelaget mellom etasjene med trapphull: tak av bord under,
+    bjelker langs y (delt ved hullet) med vekslere, og gulvet oppe med
+    kollidere rundt hullet. Rommet er x0..x1, y0..y1 innvendig; gulvet oppe
+    kan gå lenger fram (`upper_y0`, framskutt etasje)."""
+    hx0, hx1, hy0, hy1 = hole
+    ceil = block("ceiling", (x1 - x0, y1 - y0, 0.05), m.floor, at=((x0 + x1) / 2, (y0 + y1) / 2, top - 0.03), bevel=0)
+    cut(ceil, (hx1 - hx0, hy1 - hy0, 0.4), ((hx0 + hx1) / 2, (hy0 + hy1) / 2, top))
+    town.uv_box(ceil)
+    for k in range(n_joists):
+        x = x0 + 0.25 + (x1 - x0 - 0.5) * k / (n_joists - 1)
+        if hx0 - 0.08 < x < hx1 + 0.08:
+            if hy0 - 0.08 > y0:
+                beam("joist", (x, y0, top - 0.15), (x, hy0 - 0.08, top - 0.15), 0.16, 0.2, m.timber)
+            if hy1 + 0.08 < y1:
+                beam("joist", (x, hy1 + 0.08, top - 0.15), (x, y1, top - 0.15), 0.16, 0.2, m.timber)
+        else:
+            beam("joist", (x, y0, top - 0.15), (x, y1, top - 0.15), 0.16, 0.2, m.timber)
+    for y in (hy0 - 0.08, hy1 + 0.08):
+        if y0 < y < y1:
+            beam("trimmer", (max(x0, hx0 - 0.1), y, top - 0.15), (min(x1, hx1 + 0.1), y, top - 0.15), 0.16, 0.2, m.timber)
+    uy0 = y0 if upper_y0 is None else upper_y0
+    fl = block("upper_floor", (x1 - x0, y1 - uy0, 0.04), m.floor, at=((x0 + x1) / 2, (uy0 + y1) / 2, top), bevel=0)
+    cut(fl, (hx1 - hx0, hy1 - hy0, 0.4), ((hx0 + hx1) / 2, (hy0 + hy1) / 2, top))
+    town.uv_box(fl)
+    # Kolliderne: gulvet oppe i fire biter rundt hullet.
+    e = 0.15
+    wall_box(x0 - e, uy0 - e, hx0, y1 + e, top - 0.2, top + 0.02)
+    wall_box(hx1, uy0 - e, x1 + e, y1 + e, top - 0.2, top + 0.02)
+    wall_box(hx0, uy0 - e, hx1, hy0, top - 0.2, top + 0.02)
+    wall_box(hx0, hy1, hx1, y1 + e, top - 0.2, top + 0.02)
 
 
 # --- Smia -------------------------------------------------------------------
@@ -562,19 +641,8 @@ def tavern():
         block("straw", (rng.uniform(0.6, 1.4), rng.uniform(0.5, 1.1), 0.012), m.straw, at=(rng.uniform(-4, 4), rng.uniform(-3.5, 3.5), z + 0.025), rot=(0, 0, rng.uniform(0, 3)), bevel=0)
     # Bjelkelaget under overetasjen, med tak av bord og et trapphull langs
     # østveggen (hx0..hx1, hy0..hy1).
-    hx0, hx1, hy0, hy1 = w / 2 - 1.1, w / 2 - 0.15, -3.5, 0.05
-    ceil = block("ceiling", (w - 0.3, d - 0.3, 0.05), m.floor, at=(0, 0, top - 0.03), bevel=0)
-    cut(ceil, (hx1 - hx0, hy1 - hy0, 0.4), ((hx0 + hx1) / 2, (hy0 + hy1) / 2, top))
-    town.uv_box(ceil)
-    for k in range(15):
-        x = -w / 2 + 0.4 + (w - 0.8) * k / 14
-        if hx0 < x < hx1:
-            beam("joist", (x, -d / 2 + 0.15, top - 0.15), (x, hy0 - 0.08, top - 0.15), 0.16, 0.2, m.timber)
-            beam("joist", (x, hy1 + 0.08, top - 0.15), (x, d / 2 - 0.15, top - 0.15), 0.16, 0.2, m.timber)
-        else:
-            beam("joist", (x, -d / 2 + 0.15, top - 0.15), (x, d / 2 - 0.15, top - 0.15), 0.16, 0.2, m.timber)
-    for y in (hy0 - 0.08, hy1 + 0.08):
-        beam("trimmer", (hx0 - 0.1, y, top - 0.15), (w / 2 - 0.15, y, top - 0.15), 0.16, 0.2, m.timber)
+    hx0, hx1, hy0, hy1 = w / 2 - 1.1, w / 2 - 0.15, -2.9, 0.65
+    stairwell(m, -w / 2 + 0.15, w / 2 - 0.15, -d / 2 + 0.15, d / 2 - 0.15, top, (hx0, hx1, hy0, hy1), 15, upper_y0=-d / 2 - spec["jetty"] + 0.15)
     # Drageren stopper i en veksel ved trapphullet.
     beam("summer", (-w / 2 + 0.15, 0.0, top - 0.32), (hx0 - 0.1, 0.0, top - 0.32), 0.26, 0.26, m.timber)
     beam("header", (hx0 - 0.1, hy0 - 0.16, top - 0.2), (hx0 - 0.1, hy1 + 0.16, top - 0.2), 0.2, 0.3, m.timber, roll=math.pi / 2)
@@ -632,25 +700,9 @@ def tavern():
         light((tx + 0.3, ty, tz + 0.3), (1.0, 0.7, 0.4), 0.9, 4.0)
         revolve("mug", [(0.0, 0.0), (0.05, 0.0), (0.055, 0.13), (0.0, 0.13)], m.wood, n=10, at=(tx - 0.5, ty + 0.15, tz))
         revolve("plate", [(0.0, 0.0), (0.12, 0.0), (0.13, 0.02), (0.0, 0.02)], m.wood, n=12, at=(tx - 0.1, ty - 0.1, tz))
-    # Trappa opp langs østveggen, med rekkverk, opp gjennom trapphullet.
-    n = 12
-    sx0 = hx0 + 0.03
-    scx, sw = (sx0 + hx1) / 2, hx1 - sx0
-    y_end = hy1
-    y_start = y_end - n * 0.33
-    for k in range(n):
-        y = y_start + (k + 0.5) * 0.33
-        hz = z + (k + 1) * fh / (n + 1)
-        block("stair", (sw, 0.33, 0.06), m.wood, at=(scx, y, hz), bevel=0.008)
-        block("riser", (sw, 0.03, fh / (n + 1)), m.wood, at=(scx, y - 0.15, hz - fh / (n + 1) / 2), bevel=0.004)
-    beam("stringer", (sx0, y_start - 0.15, z), (sx0, y_end, top - 0.1), 0.06, 0.25, m.timber)
-    beam("rail", (sx0 + 0.02, y_start - 0.15, z + 0.95), (sx0 + 0.02, y_end - 0.1, top + 0.95), 0.05, 0.06, m.timber)
-    for k in range(0, n, 3):
-        y = y_start + (k + 0.5) * 0.33
-        beam("baluster", (sx0 + 0.02, y, z + (k + 1) * fh / (n + 1)), (sx0 + 0.02, y, z + (k + 1) * fh / (n + 1) + 0.95), 0.04, 0.04, m.timber)
-    beam("newel", (sx0 + 0.02, y_end - 0.1, top - 0.2), (sx0 + 0.02, y_end - 0.1, top + 1.0), 0.09, 0.09, m.timber)
-    ramp(sx0, hx1, y_start - 0.2, y_end, z, top + 0.02)
-    collide((sx0 - 0.02, (y_start + y_end) / 2, z + 1.0), (0.08, y_end - y_start, 2.0))
+    # Trappa opp langs østveggen gjennom trapphullet, med en meter fri
+    # gulvplass foran nederste trinn.
+    stairs(m, hx0 + 0.03, hx1, hy1, z, top, 12, 0.33, open_x=(hx0 + 0.05,))
     # Lysekrona: en jernring med lys i kjetting fra takbjelken.
     cx, cy = -0.4, 0.0
     beam("chain", (cx, cy, top - 0.45), (cx, cy, top - 1.0), 0.015, 0.015, m.dark_iron)
@@ -716,25 +768,11 @@ def upper(m, w, d, jetty, z, fh, hole, rng):
     fz = z + 0.02
     y0, y1 = -d / 2 - jetty + 0.15, d / 2 - 0.15
     x0, x1 = -w / 2 + 0.15, w / 2 - 0.15
-    fl = block("upper_floor", (x1 - x0, y1 - y0, 0.04), m.floor, at=(0, (y0 + y1) / 2, z), bevel=0)
-    cut(fl, (hx1 - hx0, hy1 - hy0, 0.4), ((hx0 + hx1) / 2, (hy0 + hy1) / 2, z))
-    town.uv_box(fl)
     for k in range(6):
         block("straw", (rng.uniform(0.5, 1.1), rng.uniform(0.4, 0.9), 0.012), m.straw, at=(rng.uniform(-4.5, 3.5), rng.uniform(-3.5, 3.0), fz + 0.006), rot=(0, 0, rng.uniform(0, 3)), bevel=0)
     # Rekkverket rundt trapphullet.
-    rail_z = fz + 0.95
-    beam("gallery_rail", (hx0 - 0.04, hy0 - 0.04, rail_z), (hx0 - 0.04, hy1 - 0.1, rail_z), 0.06, 0.07, m.timber)
-    beam("gallery_rail", (hx0 - 0.04, hy0 - 0.04, rail_z), (hx1, hy0 - 0.04, rail_z), 0.06, 0.07, m.timber)
-    for (px, py) in ((hx0 - 0.04, hy0 - 0.04), (hx0 - 0.04, (hy0 + hy1) / 2), (hx1 - 0.05, hy0 - 0.04)):
-        beam("gallery_post", (px, py, fz), (px, py, rail_z + 0.04), 0.08, 0.08, m.timber)
-    for k in range(1, 9):
-        py = hy0 + (hy1 - hy0) * k / 9
-        beam("gallery_spindle", (hx0 - 0.04, py, fz), (hx0 - 0.04, py, rail_z), 0.035, 0.035, m.timber)
-    for k in range(1, 3):
-        px = hx0 + (hx1 - hx0) * k / 3
-        beam("gallery_spindle", (px, hy0 - 0.04, fz), (px, hy0 - 0.04, rail_z), 0.035, 0.035, m.timber)
-    collide((hx0 - 0.04, (hy0 + hy1) / 2, fz + 0.5), (0.1, hy1 - hy0, 1.0))
-    collide(((hx0 + hx1) / 2, hy0 - 0.04, fz + 0.5), (hx1 - hx0, 0.1, 1.0))
+    rail_run(m, (hx0 - 0.04, hy1 - 0.1), (hx0 - 0.04, hy0 - 0.04), fz)
+    rail_run(m, (hx0 - 0.04, hy0 - 0.04), (hx1, hy0 - 0.04), fz)
     # Sperrene og hanebjelkene under taket (mønet langs x).
     pitch = math.radians(50)
     run = (d + jetty) / 2 + 0.45
@@ -757,7 +795,7 @@ def upper(m, w, d, jetty, z, fh, hole, rng):
     for k, bx in enumerate((-4.6, -2.4, -0.2)):
         bed(m, bx, y1 - 1.05, fz, along_y=True, rng=rng, wool=m.wool2 if k == 1 else None)
         chest(m, bx, y1 - 2.4, fz)
-    bed(m, x1 - 1.05, 2.2, fz, along_y=False, rng=rng)
+    bed(m, x1 - 1.05, 3.0, fz, along_y=False, rng=rng)
     # Bordet ved vinduene mot gata, med krakk, lys og et krus.
     tx, ty = -3.2, y0 + 0.9
     block("table_top", (1.3, 0.7, 0.05), m.planks, at=(tx, ty, fz + 0.74), bevel=0.01)
@@ -795,10 +833,7 @@ def upper(m, w, d, jetty, z, fh, hole, rng):
     block("lamp_cage", (0.2, 0.2, 0.28), m.dark_iron, at=(lx, ly, fz + 2.05), bevel=0.01)
     candle(m, lx, ly, fz + 1.93, h=0.1)
     light((lx, ly, fz + 2.0), (1.0, 0.68, 0.38), 1.4, 7.0)
-    # Kolliderne: gulvet med trapphullet og veggene oppe.
-    wall_box(-w / 2, -d / 2 - jetty - 0.13, hx0, d / 2 + 0.13, z - 0.2, z)
-    wall_box(hx0, -d / 2 - jetty - 0.13, w / 2, hy0, z - 0.2, z)
-    wall_box(hx0, hy1, w / 2, d / 2 + 0.13, z - 0.2, z)
+    # Kolliderne: veggene oppe.
     t = 0.26
     yf = -d / 2 - jetty
     wall_box(-w / 2, yf - t / 2, w / 2, yf + t / 2, z, eave)
@@ -880,10 +915,10 @@ def apothecary():
     m.copper = layer("metal", (0.75, 0.42, 0.25), 0.5)
     m.glow = plain("fire_coals", (1.0, 0.45, 0.12), 0.4)
     block("floor", (w - 0.3, d - 0.3, 0.03), m.floor, at=(0, 0, z + 0.005), bevel=0)
-    block("ceiling", (w - 0.3, d - 0.3, 0.05), m.floor, at=(0, 0, top - 0.03), bevel=0)
-    for k in range(9):
-        x = -w / 2 + 0.4 + (w - 0.8) * k / 8
-        beam("joist", (x, -d / 2 + 0.15, top - 0.15), (x, d / 2 - 0.15, top - 0.15), 0.16, 0.2, m.timber)
+    # Bjelkelaget med trapphull langs østveggen.
+    hole = (w / 2 - 1.1, w / 2 - 0.15, -2.35, 1.1)
+    stairwell(m, -w / 2 + 0.15, w / 2 - 0.15, -d / 2 + 0.15, d / 2 - 0.15, top, hole, 9, upper_y0=-d / 2 - spec["jetty"] + 0.15)
+    stairs(m, hole[0] + 0.05, hole[1], hole[3], z, top, 13, 0.27, open_x=(hole[0] + 0.07,))
     # Hyllene langs bakveggen og vestveggen, med krukker, flasker og bøker.
     jar_mats = [m.clay, m.glass, m.clay, m.books[2]]
     for (sx, sy, ax, ln) in ((-1.4, d / 2 - 0.3, True, 2.6), (1.5, d / 2 - 0.3, True, 1.4), (-w / 2 + 0.3, 0.2, False, 3.0)):
@@ -935,7 +970,7 @@ def apothecary():
     collide((bx, by, z + 0.5), (1.6, 0.9, 1.0))
     # Urtebunter fra bjelkene.
     for k in range(10):
-        x = -w / 2 + 0.4 + (w - 0.8) * (k % 9) / 8
+        x = -w / 2 + 0.4 + (w - 0.8) * (k % 8) / 8
         y = rng.uniform(-2.5, 1.0)
         ln = rng.uniform(0.25, 0.4)
         revolve("herbs", [(0.0, top - 0.25 - ln), (0.06, top - 0.25 - ln * 0.8), (0.045, top - 0.3), (0.012, top - 0.25)], m.herb if k % 3 else m.herb2, n=8, at=(x, y, 0))
@@ -946,10 +981,107 @@ def apothecary():
     # Kolliderne: gulvet, veggene med døra, taket og rampa opp.
     collide((0, 0, (z - 0.24) / 2), (w + 0.16, d + 0.16, z + 0.24))
     walls_with_door(-w / 2, w / 2, -d / 2, d / 2, z, top, 0.26, 1.9, 1.0, 2.05, -d / 2)
-    collide((0, 0, top + 0.1), (w, d, 0.2))
+    herb_loft(m, w, d, spec["jetty"], top, fh, hole, rng)
     ramp(1.15, 2.65, -d / 2 - 1.4, -d / 2 - 0.05, 0.0, z)
     block("step_low", (1.6, 0.5, 0.36), m.stone, at=(1.9, -d / 2 - 0.8, 0.06), bevel=0.03, segments=2)
     return m
+
+
+def herb_loft(m, w, d, jetty, z, fh, hole, rng):
+    """Overetasjen i Apoteket: apotekerens kammer og urteloft under
+    sperrene, med seng, skrivepult, tørkestativ, kurver og urter i taket."""
+    m.wool = layer("wool", (0.5, 0.42, 0.36), 0.5)
+    m.linen = layer("linen", (0.85, 0.82, 0.75), 0.5)
+    hx0, hx1, hy0, hy1 = hole
+    fz = z + 0.02
+    y0, y1 = -d / 2 - jetty + 0.15, d / 2 - 0.15
+    x0, x1 = -w / 2 + 0.15, w / 2 - 0.15
+    rail_run(m, (hx0 - 0.04, hy1 - 0.1), (hx0 - 0.04, hy0 - 0.04), fz)
+    rail_run(m, (hx0 - 0.04, hy0 - 0.04), (hx1, hy0 - 0.04), fz)
+    for k in range(5):
+        block("straw", (rng.uniform(0.4, 0.9), rng.uniform(0.4, 0.8), 0.012), m.straw, at=(rng.uniform(-2.5, 1.5), rng.uniform(-2.5, 2.5), fz + 0.006), rot=(0, 0, rng.uniform(0, 3)), bevel=0)
+    # Sperrene (mønet langs y) med hanebjelker, og stenger med urter.
+    pitch = math.radians(55)
+    run = (w + 0.1) / 2 + 0.45
+    eave = z + fh
+
+    def under(x):
+        return eave + (run - abs(x)) * math.tan(pitch) - 0.22
+
+    for k in range(9):
+        y = y0 + 0.1 + (y1 - y0 - 0.2) * k / 8
+        for sx in (-1, 1):
+            xa = sx * (run - 0.75)
+            beam("rafter", (xa, y, under(xa)), (0, y, under(0) - 0.05), 0.12, 0.16, m.timber)
+        cz = eave + 1.7
+        half = run - (cz + 0.22 - eave) / math.tan(pitch)
+        beam("collar", (-half + 0.1, y, cz), (half - 0.1, y, cz), 0.12, 0.14, m.timber)
+    beam("purlin", (0, y0, under(0) - 0.2), (0, y1, under(0) - 0.2), 0.18, 0.18, m.timber)
+    for x in (-1.2, 0.0, 1.2):
+        bar_z = eave + 1.55
+        beam("herb_pole", (x, y0 + 0.3, bar_z), (x, y1 - 0.3, bar_z), 0.04, 0.04, m.timber)
+        y = y0 + 0.5
+        while y < y1 - 0.4:
+            ln = rng.uniform(0.3, 0.5)
+            revolve("herbs", [(0.0, bar_z - ln), (0.07, bar_z - ln * 0.8), (0.05, bar_z - 0.06), (0.015, bar_z - 0.01)], m.herb if rng.random() < 0.65 else m.herb2, n=8, at=(x + rng.uniform(-0.03, 0.03), y, 0))
+            y += rng.uniform(0.28, 0.45)
+    # Senga langs vestveggen med kiste ved foten.
+    bed(m, x0 + 0.55, y1 - 1.05, fz, along_y=True, rng=rng)
+    chest(m, x0 + 0.55, y1 - 2.4, fz)
+    # Skrivepulten under det vestre vinduet mot gata, med urteboka.
+    tx, ty = -1.85, y0 + 0.55
+    block("desk_top", (1.2, 0.6, 0.05), m.planks, at=(tx, ty, fz + 0.76), bevel=0.01)
+    for sx in (-1, 1):
+        block("desk_side", (0.05, 0.55, 0.74), m.planks, at=(tx + sx * 0.55, ty, fz + 0.37), bevel=0.006)
+    open_book(m, tx - 0.1, ty, fz + 0.785)
+    revolve("inkhorn", [(0.0, 0.0), (0.03, 0.0), (0.035, 0.08), (0.0, 0.08)], m.books[1], n=8, at=(tx + 0.3, ty + 0.12, fz + 0.785))
+    beam("quill", (tx + 0.3, ty + 0.12, fz + 0.86), (tx + 0.36, ty + 0.05, fz + 1.08), 0.008, 0.02, m.vellum)
+    holder(m, tx + 0.45, ty - 0.1, fz + 0.785)
+    candle(m, tx + 0.45, ty - 0.1, fz + 0.925, h=0.12)
+    for k in range(3):
+        jar(m, tx - 0.45 + k * 0.1, ty + 0.15, fz + 0.785, 0.035, 0.1, m.glass if k % 2 else m.clay)
+    revolve("stool", [(0.0, fz + 0.45), (0.17, fz + 0.45), (0.17, fz + 0.5), (0.0, fz + 0.5)], m.wood, n=14, at=(tx, ty + 0.65, 0))
+    for a in range(3):
+        ang = a * 2 * math.pi / 3
+        ox, oy = tx + math.cos(ang) * 0.1, ty + 0.65 + math.sin(ang) * 0.1
+        beam("stool_leg", (ox, oy, fz + 0.45), (ox + math.cos(ang) * 0.06, oy + math.sin(ang) * 0.06, fz), 0.03, 0.03, m.timber)
+    collide((tx, ty, fz + 0.4), (1.25, 0.65, 0.8))
+    light((tx + 0.45, ty - 0.1, fz + 1.2), (1.0, 0.7, 0.4), 1.0, 4.5)
+    # Tørkestativet: en ramme med fire brett urter, bak trapphullet.
+    rx, ry = 2.6, y1 - 0.45
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            beam("rack_post", (rx + sx * 0.6, ry + sy * 0.25, fz), (rx + sx * 0.6, ry + sy * 0.25, fz + 1.7), 0.05, 0.05, m.timber)
+    for k in range(4):
+        hz = fz + 0.3 + k * 0.4
+        block("tray", (1.2, 0.5, 0.03), m.planks, at=(rx, ry, hz), bevel=0.004)
+        for j in range(5):
+            block("drying_herbs", (rng.uniform(0.15, 0.25), rng.uniform(0.1, 0.2), 0.05), m.herb if (j + k) % 3 else m.herb2, at=(rx - 0.45 + j * 0.22, ry + rng.uniform(-0.1, 0.1), hz + 0.035), rot=(0, 0, rng.uniform(0, 3)), bevel=0.02)
+    collide((rx, ry, fz + 0.85), (1.3, 0.6, 1.7))
+    # Kurver med røtter i hjørnet ved vestveggen.
+    for k, (bx, by) in enumerate([(x0 + 0.35, -2.55), (x0 + 0.35, -2.0), (x0 + 0.9, -2.35)]):
+        revolve("basket", [(0.0, 0.0), (0.18, 0.0), (0.24, 0.28), (0.22, 0.29), (0.0, 0.05)], m.straw, n=14, at=(bx, by, fz))
+        revolve("roots", [(0.0, 0.2), (0.2, 0.22), (0.12, 0.32), (0.0, 0.34)], m.bark, n=10, at=(bx, by, fz))
+    collide((x0 + 0.6, -2.3, fz + 0.15), (0.9, 1.1, 0.3))
+    # Ei hylle med krukker på bakveggen.
+    shelf(m, 0.6, y1 - 0.18, fz, 1.4, 1.6, along_x=True, rows=3, books=False, rng=rng)
+    for r in range(3):
+        zz = fz + 0.05 + 1.5 * r / 3 + 0.015
+        for k in range(6):
+            jar(m, 0.0 + k * 0.22, y1 - 0.18, zz, rng.uniform(0.04, 0.06), rng.uniform(0.12, 0.3), rng.choice([m.clay, m.glass, m.clay]))
+    # Lykta midt i kammeret.
+    lx, ly = -0.6, 0.0
+    beam("lamp_chain", (lx, ly, eave + 1.62), (lx, ly, fz + 2.2), 0.015, 0.015, m.dark_iron)
+    block("lamp_cage", (0.2, 0.2, 0.28), m.dark_iron, at=(lx, ly, fz + 2.05), bevel=0.01)
+    candle(m, lx, ly, fz + 1.93, h=0.1)
+    light((lx, ly, fz + 2.0), (1.0, 0.68, 0.38), 1.3, 6.5)
+    # Veggene oppe.
+    t = 0.26
+    yf = -d / 2 - jetty
+    wall_box(-w / 2, yf - t / 2, w / 2, yf + t / 2, z, eave)
+    wall_box(-w / 2, d / 2 - t / 2, w / 2, d / 2 + t / 2, z, eave)
+    for x in (-w / 2, w / 2):
+        wall_box(x - t / 2, yf, x + t / 2, d / 2, z, eave)
 
 
 # --- Skriptoriet ------------------------------------------------------------
@@ -972,6 +1104,7 @@ def arched_window(m, target, u, face, normal, z0, w, h, thick, side=False):
     cut(target, size(w, thick + 0.4, straight), P(u, -thick / 2, z0 + straight / 2))
     bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=w / 2, depth=thick + 0.4, location=P(u, -thick / 2, z0 + straight), rotation=(0, math.pi / 2, 0) if side else (math.pi / 2, 0, 0))
     cutter(bpy.context.active_object, target)
+    town.clear_relief(target, size(w, thick + 0.4, w / 2), P(u, -thick / 2, z0 + straight + w / 4))
     town.uv_box(target)
     for k in range(9):
         a = math.pi * k / 8
@@ -996,7 +1129,7 @@ def arched_window(m, target, u, face, normal, z0, w, h, thick, side=False):
 def scriptorium():
     m = mats(roof="slate")
     m.ashlar = layer("brick", (0.62, 0.6, 0.57), 0.5)
-    W, D, H = 10.0, 8.0, 5.2
+    W, D, H = 10.0, 8.0, 6.2
     t = 0.65
     front = stone_wall(m, "front", -W / 2, W / 2, -D / 2, -D / 2 + t, -0.24, H, m.ashlar)
     back = stone_wall(m, "back", -W / 2, W / 2, D / 2 - t, D / 2, -0.24, H, m.ashlar)
@@ -1009,6 +1142,7 @@ def scriptorium():
     bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=dw / 2, depth=t + 0.4, location=(0, -D / 2 + t / 2, 0.35 + dh - dw / 2), rotation=(math.pi / 2, 0, 0))
     from walls import cutter
     cutter(bpy.context.active_object, front)
+    town.clear_relief(front, (dw, t + 0.4, dw / 2), (0, -D / 2 + t / 2, 0.35 + dh - dw / 4))
     for k in range(11):
         a = math.pi * k / 10
         c = Vector((math.cos(a) * (dw / 2 + 0.15), -D / 2 - 0.04, 0.35 + dh - dw / 2 + math.sin(a) * (dw / 2 + 0.15)))
@@ -1041,7 +1175,15 @@ def scriptorium():
             else:
                 block("buttress", (0.7, depth, hgt), m.ashlar, at=(x, y + math.copysign(depth / 2, y), z0 + hgt / 2 - (0.24 if k == 0 else 0)), bevel=0.04, segments=2)
     # Gesimsen under taket.
-    block("cornice", (W + 0.3, D + 0.3, 0.2), m.stone, at=(0, 0, H + 0.05), bevel=0.03, segments=2)
+    cornice = block("cornice", (W + 0.3, D + 0.3, 0.2), m.stone, at=(0, 0, H + 0.05), bevel=0.03, segments=2)
+    cut(cornice, (W - 2 * t, D - 2 * t, 0.6), (0, 0, H + 0.05))
+    town.uv_box(cornice)
+    # Himlingen inne: bord på bjelker langs salen.
+    inner = inside(m)
+    block("ceiling", (W - 2 * t, D - 2 * t, 0.05), inner.floor, at=(0, 0, H - 0.03), bevel=0)
+    for k in range(13):
+        x = -W / 2 + t + 0.2 + (W - 2 * t - 0.4) * k / 12
+        beam("ceiling_joist", (x, -D / 2 + t, H - 0.13), (x, D / 2 - t, H - 0.13), 0.14, 0.18, m.timber)
     # Taket: bratt saltak med gavlen mot torget, gavler av hogd stein.
     rise = roof(m, W + 0.2, D, H + 0.1, 52, gable_to_street=True)
     from town import prism
@@ -1130,13 +1272,14 @@ def scriptorium():
         light((x, y, z + 1.85), (1.0, 0.72, 0.42), 1.2, 6.0)
         collide((x, y, z + 0.75), (0.4, 0.4, 1.5))
     # Lysekroner under bindbjelkene.
-    for y in (-1.6, 1.6):
+    for y in (-1.6, 0.0):
         beam("chain", (0, y, H - 0.35), (0, y, H - 1.4), 0.015, 0.015, m.dark_iron)
         revolve("ring", [(0.5, H - 1.44), (0.54, H - 1.42), (0.5, H - 1.4), (0.46, H - 1.42)], m.dark_iron, n=24, at=(0, y, 0), cap=False)
         for k in range(6):
             aa = k * math.pi / 3
             candle(m, math.cos(aa) * 0.5, y + math.sin(aa) * 0.5, H - 1.4, h=0.14)
         light((0, y, H - 1.25), (1.0, 0.72, 0.42), 1.8, 8.0)
+    library_gallery(m, back, ix, iy, z, D, t, rng)
     # Kolliderne: sokkelen (gulvet), murene med døra, støttepilarene og trinnene.
     collide((0, 0, 0.06), (W + 0.3, D + 0.3, 0.6))
     walls_with_door(-W / 2 + t / 2, W / 2 - t / 2, -D / 2 + t / 2, D / 2 - t / 2, -0.24, H, t, 0.0, dw, dh - 0.1, -D / 2 + t / 2)
@@ -1148,6 +1291,71 @@ def scriptorium():
     ramp(-dw / 2 - 0.5, dw / 2 + 0.5, -D / 2 - 0.95, -D / 2 - 0.12, 0.0, 0.36)
     collide((0, 0, H + 0.1), (W, D, 0.2))
     return m
+
+
+def library_gallery(m, back, ix, iy, z, D, t, rng):
+    """Biblioteksgalleriet i Skriptoriet: et loft langs bakveggen på
+    stolper, med frittstående trapp, rekkverk, bokhyller, et høyt vindu i
+    bakmuren, lesepult og ei kiste med skriftruller."""
+    gx0, gx1, gy0, gy1 = -2.9, 2.9, 1.0, iy
+    gz = z + 2.84
+    # Gulvet på bjelker, med en kantbjelke foran og stolper med knekter.
+    fl = block("gallery_floor", (gx1 - gx0, gy1 - gy0, 0.05), m.floor, at=((gx0 + gx1) / 2, (gy0 + gy1) / 2, gz - 0.025), bevel=0)
+    town.uv_box(fl)
+    for k in range(11):
+        x = gx0 + 0.1 + (gx1 - gx0 - 0.2) * k / 10
+        beam("gallery_joist", (x, gy0, gz - 0.15), (x, gy1, gz - 0.15), 0.14, 0.2, m.timber)
+    beam("gallery_edge", (gx0 + 1.0, gy0 + 0.1, gz - 0.2), (gx1, gy0 + 0.1, gz - 0.2), 0.22, 0.3, m.timber)
+    for x in (-1.6, 0.6, gx1 - 0.12):
+        beam("gallery_post", (x, gy0 + 0.1, z), (x, gy0 + 0.1, gz - 0.35), 0.22, 0.22, m.timber, roll=math.pi / 2)
+        block("post_base", (0.32, 0.32, 0.12), m.stone, at=(x, gy0 + 0.1, z + 0.06), bevel=0.02)
+        for sx in (-1, 1):
+            if gx0 < x + sx * 0.6 < gx1:
+                beam("gallery_brace", (x, gy0 + 0.1, gz - 0.95), (x + sx * 0.55, gy0 + 0.1, gz - 0.38), 0.12, 0.12, m.timber)
+        collide((x, gy0 + 0.1, z + 1.3), (0.3, 0.3, 2.6))
+    wall_box(gx0, gy0, gx1, gy1, gz - 0.25, gz)
+    # Trappa opp til vestenden, åpen på begge sider.
+    stairs(m, gx0, gx0 + 0.95, gy0, z, gz, 13, 0.27, open_x=(gx0 - 0.02, gx0 + 0.97))
+    # Rekkverket: foran fra trappa, på østenden og langs vestenden.
+    rail_run(m, (gx0 + 1.0, gy0 + 0.05), (gx1, gy0 + 0.05), gz)
+    rail_run(m, (gx1, gy0 + 0.05), (gx1, gy1), gz)
+    rail_run(m, (gx0, gy0 + 0.05), (gx0, gy1), gz)
+    # Et høyt rundbuet vindu i bakmuren over galleriet.
+    arched_window(m, back, 0.0, D / 2, 1.0, gz + 0.9, 0.7, 1.7, t)
+    # Bokhyllene langs bakmuren på hver side av vinduet.
+    for x in (-1.9, 1.9):
+        shelf(m, x, gy1 - 0.18, gz, 1.6, 2.2, along_x=True, rows=5, rng=rng)
+    # Lesepulten foran vinduet, med krakk og lys.
+    dx, dy = 0.0, gy1 - 0.75
+    block("desk_top", (0.9, 0.55, 0.04), m.wood, at=(dx, dy, gz + 0.95), rot=(-0.3, 0, 0), bevel=0.006)
+    for k in (-1, 1):
+        block("desk_side", (0.05, 0.5, 0.95), m.wood, at=(dx + k * 0.42, dy, gz + 0.47), bevel=0.006)
+    block("desk_shelf", (0.85, 0.45, 0.03), m.wood, at=(dx, dy, gz + 0.35), bevel=0.004)
+    books_row(m, dx - 0.38, dx + 0.35, dy, gz + 0.365, rng=rng)
+    open_book(m, dx, dy - 0.02, gz + 0.99)
+    for ob in PIECES[-3:]:
+        ob.rotation_euler = (-0.3, ob.rotation_euler[1], ob.rotation_euler[2])
+    holder(m, dx + 0.35, dy - 0.35, gz)
+    candle(m, dx + 0.35, dy - 0.35, gz + 0.14, h=0.25, r=0.035)
+    light((dx + 0.35, dy - 0.35, gz + 0.6), (1.0, 0.72, 0.42), 1.0, 5.0)
+    revolve("stool", [(0.0, gz + 0.45), (0.2, gz + 0.45), (0.2, gz + 0.5), (0.0, gz + 0.5)], m.wood, n=12, at=(dx, dy - 0.65, 0))
+    for j in range(3):
+        aa = j * 2.1
+        beam("stool_leg", (dx + math.cos(aa) * 0.13, dy - 0.65 + math.sin(aa) * 0.13, gz + 0.45), (dx + math.cos(aa) * 0.18, dy - 0.65 + math.sin(aa) * 0.18, gz), 0.04, 0.04, m.timber)
+    collide((dx, dy - 0.2, gz + 0.5), (1.0, 1.2, 1.0))
+    # Kista med skriftruller ved østenden.
+    cx, cy = 2.3, gy0 + 0.75
+    block("scroll_chest", (0.9, 0.55, 0.45), m.wood, at=(cx, cy, gz + 0.225), bevel=0.015)
+    for k in (-1, 1):
+        block("chest_band", (0.05, 0.57, 0.47), m.dark_iron, at=(cx + k * 0.3, cy, gz + 0.225), bevel=0.004)
+    for k in range(9):
+        a = rng.uniform(-0.3, 0.3)
+        sx_ = cx - 0.32 + (k % 5) * 0.16
+        sy_ = cy - 0.12 + (k // 5) * 0.2
+        ob = revolve("scroll", [(0.0, -0.22), (0.035, -0.22), (0.035, 0.22), (0.0, 0.22)], m.vellum, n=10, at=(0, 0, 0))
+        ob.rotation_euler = (math.pi / 2 - 0.25, a, 0)
+        ob.location = (sx_, sy_, gz + 0.5 + 0.1)
+    collide((cx, cy, gz + 0.3), (0.95, 0.6, 0.6))
 
 
 # --- Stavkirka --------------------------------------------------------------
