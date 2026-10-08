@@ -94,6 +94,8 @@ models! {
     "barrel" => "town/barrel.glb",
     "crate" => "town/crate.glb",
     "lantern_post" => "town/lantern_post.glb",
+    "training_dummy" => "town/training_dummy.glb",
+    "weapon_rack" => "town/weapon_rack.glb",
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
     "tavern" => "town/tavern.glb",
@@ -101,6 +103,12 @@ models! {
     "scriptorium" => "town/scriptorium.glb",
     "stave_church" => "town/stave_church.glb",
     "gravestone" => "town/gravestone.glb",
+    // Borgruinen, krypta, døra opp fra kjelleren og portgitteret fra
+    // tools/models/castle.py.
+    "castle_ruin" => "town/castle_ruin.glb",
+    "crypt" => "town/crypt.glb",
+    "crypt_stair" => "town/crypt_stair.glb",
+    "portcullis" => "town/portcullis.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }

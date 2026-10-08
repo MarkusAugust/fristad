@@ -240,6 +240,62 @@ def lantern_post():
     return m
 
 
+def training_dummy():
+    """Treningsdukke: en stolpe i bakken med tverrarm, en kropp av halm
+    surret med tau, et skjold på armen og hugg i treet."""
+    m = mats()
+    m.straw = layer("thatch", (0.75, 0.7, 0.55), 0.5)
+    m.rope = layer("thatch", (0.5, 0.42, 0.32), 0.5)
+    rng = random.Random(9)
+    beam("post", (0, 0, -0.2), (0, 0, 1.9), 0.14, 0.14, m.timber, roll=math.pi / 2)
+    beam("arm", (-0.65, 0, 1.35), (0.65, 0, 1.35), 0.1, 0.1, m.timber)
+    revolve("body", [(0.0, 0.85), (0.24, 0.9), (0.3, 1.15), (0.28, 1.5), (0.18, 1.62), (0.0, 1.64)], m.straw, n=16)
+    revolve("head", [(0.0, 1.64), (0.13, 1.7), (0.15, 1.8), (0.1, 1.92), (0.0, 1.95)], m.straw, n=12)
+    for z in (0.95, 1.2, 1.45, 1.66):
+        r = 0.3 if z < 1.5 else 0.16
+        revolve("rope", [(r + 0.01, z - 0.015), (r + 0.025, z), (r + 0.01, z + 0.015)], m.rope, n=16, cap=False)
+    shield = revolve("shield", [(0.0, -0.02), (0.28, -0.02), (0.28, 0.02), (0.0, 0.02)], m.planks, n=20)
+    shield.rotation_euler = (0, math.pi / 2, 0)
+    shield.location = (-0.66, 0, 1.25)
+    boss = revolve("shield_boss", [(0.0, 0.02), (0.07, 0.02), (0.0, 0.07)], m.iron, n=12)
+    boss.rotation_euler = (0, -math.pi / 2, 0)
+    boss.location = (-0.68, 0, 1.25)
+    for k in range(5):
+        block("cut", (0.16, 0.02, 0.025), m.planks, at=(0.07, 0, 0.3 + k * 0.12 + rng.uniform(-0.03, 0.03)), rot=(0, rng.uniform(-0.4, 0.4), 0), bevel=0)
+    for k in range(3):
+        a = k * 2.1
+        beam("stake", (0, 0, 0.05), (math.cos(a) * 0.4, math.sin(a) * 0.4, -0.05), 0.06, 0.06, m.timber)
+    return m
+
+
+def weapon_rack():
+    """Våpenstativ: et A-stativ av bjelker med sverd, økser og spyd, og et
+    par skjold lent mot."""
+    m = mats()
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            beam("leg", (sx * 0.9, sy * 0.28, 0.0), (sx * 0.9, 0.0, 1.5), 0.08, 0.08, m.timber)
+    for z, sy in ((1.25, 0), (0.45, -0.22), (0.45, 0.22)):
+        beam("rail", (-1.0, sy, z), (1.0, sy, z), 0.07, 0.07, m.timber)
+    for k in range(7):
+        x = -0.75 + k * 0.25
+        if k % 3 == 0:
+            beam("spear", (x, 0.12, 0.0), (x, 0.0, 1.9), 0.035, 0.035, m.planks)
+            revolve("spear_head", [(0.03, 0.0), (0.0, 0.25)], m.iron, n=4, at=(x, 0.0, 1.9))
+        elif k % 3 == 1:
+            beam("blade", (x, -0.12, 0.25), (x, -0.02, 1.25), 0.05, 0.008, m.iron)
+            beam("guard", (x - 0.1, -0.03, 1.27), (x + 0.1, -0.03, 1.27), 0.03, 0.03, m.iron)
+            beam("grip", (x, -0.02, 1.28), (x, -0.01, 1.45), 0.03, 0.03, m.planks)
+        else:
+            beam("haft", (x, 0.12, 0.0), (x, 0.02, 1.3), 0.035, 0.035, m.planks)
+            block("axe_head", (0.16, 0.025, 0.12), m.iron, at=(x + 0.05, 0.03, 1.22), bevel=0.01)
+    for sx in (-1, 1):
+        sh = revolve("shield", [(0.0, -0.02), (0.3, -0.02), (0.3, 0.02), (0.0, 0.02)], m.planks, n=20)
+        sh.rotation_euler = (math.pi / 2 - 0.25, 0, 0)
+        sh.location = (sx * 1.25, -0.25, 0.32)
+    return m
+
+
 MODELS = {
     "market_cross": market_cross,
     "market_stall": market_stall,
@@ -248,6 +304,8 @@ MODELS = {
     "barrel": barrel_model,
     "crate": crate_model,
     "lantern_post": lantern_post,
+    "training_dummy": training_dummy,
+    "weapon_rack": weapon_rack,
 }
 
 if __name__ == "__main__":

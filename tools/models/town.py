@@ -524,7 +524,7 @@ def half_timbered(spec):
     return m
 
 
-def finish(path, ao_samples=160):
+def finish(path, ao_samples=160, max_edge=0.6):
     """Slå sammen delene, del store flater så okklusjonen får hjørner å
     bo i, bak AO til hjørnefargen, og eksporter."""
     bpy.ops.object.select_all(action="DESELECT")
@@ -542,7 +542,7 @@ def finish(path, ao_samples=160):
     # lange kantene; trekanter deles rent.
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
     for _ in range(4):
-        long = [e for e in bm.edges if e.calc_length() > 0.6]
+        long = [e for e in bm.edges if e.calc_length() > max_edge]
         if not long:
             break
         bmesh.ops.subdivide_edges(bm, edges=long, cuts=1, use_grid_fill=False)

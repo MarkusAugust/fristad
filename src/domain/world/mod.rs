@@ -263,16 +263,19 @@ impl Builder {
                 // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
                 let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
                 let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
+                // Trestammer står i skråninger og går ned i bakken på oversida,
+                // som ekte trær, og murverket har fundament under bakken; de
+                // sjekkes bare for sveving, og bakken letes etter opp til en
+                // meter over foten (ellers vinner et gulv lenger nede, som
+                // kjelleren under krypta).
+                let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
+                let reach = if rooted { 1.0 } else { 0.0 };
                 let gaps = corners.map(|(x, z)| {
                     let w = t.transform_point3(Vec3::new(x, info.min.y, z));
-                    w.y - self.stand_height(w.x, w.z, w.y)
+                    w.y - self.stand_height(w.x, w.z, w.y + reach)
                 });
                 let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
                 let at = t.translation;
-                // Trestammer står i skråninger og går ned i bakken på oversida,
-                // som ekte trær, og murverket har fundament under bakken; de
-                // sjekkes bare for sveving.
-                let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
                 if lowest > 0.08 {
                     out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", pl.model, at.x, at.z, lowest * 100.0));
                 } else if lowest < -0.3 && !rooted {

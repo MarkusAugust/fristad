@@ -31,7 +31,7 @@ pub const FIELDS: [(f32, f32, f32, f32); 3] = [(-95.0, 40.0, 30.0, 20.0), (90.0,
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
-pub const FOUNDED: [&str; 3] = ["town_wall", "wall_tower", "gatehouse"];
+pub const FOUNDED: [&str; 5] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt"];
 
 /// Det byen forteller resten av verden.
 pub struct Town {
@@ -575,6 +575,18 @@ fn castle(b: &mut Builder) -> (Vec3, f32) {
         for (c, size) in [(Vec3::new(0.0, 4.0, -20.0), Vec3::new(40.0, 8.0, 2.4)), (Vec3::new(-20.0, 4.0, 0.0), Vec3::new(2.4, 8.0, 40.0)), (Vec3::new(20.0, 4.0, 0.0), Vec3::new(2.4, 8.0, 40.0)), (Vec3::new(-12.5, 4.0, 20.0), Vec3::new(15.0, 8.0, 2.4)), (Vec3::new(12.5, 4.0, 20.0), Vec3::new(15.0, 8.0, 2.4))] {
             b.solid_box(keep + c, size, 0.0);
         }
+        // Hjørnetårnene, porttårnene, hovedtårnet i nordvest og den raste
+        // brønnen midt i borggården.
+        for (x, z) in [(-20.0, -20.0), (20.0, -20.0), (-20.0, 20.0), (20.0, 20.0)] {
+            b.solid(Shape::Cylinder { center: keep + Vec3::new(x, 4.0, z), radius: 3.3, half_height: 5.0 });
+        }
+        for x in [-6.6f32, 6.6] {
+            b.solid_box(keep + Vec3::new(x, 3.5, 20.0), Vec3::new(3.4, 7.0, 3.4), 0.0);
+        }
+        for (c, size) in [(Vec3::new(-11.0, 6.0, -14.5), Vec3::new(7.0, 12.0, 1.4)), (Vec3::new(-14.5, 6.0, -11.0), Vec3::new(1.4, 12.0, 7.0)), (Vec3::new(-7.5, 3.6, -11.0), Vec3::new(1.4, 7.2, 7.0))] {
+            b.solid_box(keep + c, size, 0.0);
+        }
+        b.solid(Shape::Cylinder { center: keep + Vec3::Y * 0.5, radius: 1.6, half_height: 0.8 });
     }
     // Krypta: et lite gravkapell med døra mot sør, og trappa ned bak døra.
     let crypt = b.on_ground(Vec3::new(CRYPT.x, 0.0, CRYPT.y));
