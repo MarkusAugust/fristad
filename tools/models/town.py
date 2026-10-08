@@ -258,6 +258,21 @@ def carve(target, cutters):
 # --- Delene i et hus ------------------------------------------------------
 
 
+def daylight(ob, inward):
+    """Flatene på ruta som vender inn i huset får «glass_day»: innenfra
+    skinner dagslyset gjennom, utenfra speiler ruta som før."""
+    mat = plain("glass_day", (0.05, 0.06, 0.06), 0.3)
+    ob.data.materials.append(mat)
+    idx = len(ob.data.materials) - 1
+    bpy.context.view_layer.update()
+    rot = ob.matrix_world.to_3x3()
+    inward = Vector(inward).normalized()
+    for p in ob.data.polygons:
+        if (rot @ p.normal).normalized().dot(inward) > 0.5:
+            p.material_index = idx
+    return ob
+
+
 def window(m, x, z, y_face, w, h, normal_y, shutters=True, rng=None):
     """Et vindu i en vegg med yta i y = y_face (normalen ±y): karm, sprosser,
     glass innfelt, og skodder som står ut."""
@@ -269,11 +284,13 @@ def window(m, x, z, y_face, w, h, normal_y, shutters=True, rng=None):
     for sx in (-1, 1):
         beam("win_side", (x + sx * (w / 2 + t / 2), y_face + s * 0.03, z - h / 2), (x + sx * (w / 2 + t / 2), y_face + s * 0.03, z + h / 2), 0.1, t, m.timber)
     # Glasset innfelt, med blysprosser i rutemønster.
-    block("glass", (w, 0.02, h), m.glass, at=(x, y_face - s * 0.12, z), bevel=0)
-    for k in range(1, 3):
-        block("lead", (0.012, 0.03, h), m.iron, at=(x - w / 2 + w * k / 3, y_face - s * 0.11, z), bevel=0)
-    for k in range(1, 4):
-        block("lead", (w, 0.03, 0.012), m.iron, at=(x, y_face - s * 0.11, z - h / 2 + h * k / 4), bevel=0)
+    daylight(block("glass", (w, 0.02, h), m.glass, at=(x, y_face - s * 0.12, z), bevel=0), (0, -s, 0))
+    # Blysprossene på begge sider av glasset.
+    for g in (0.11, 0.13):
+        for k in range(1, 3):
+            block("lead", (0.012, 0.012, h), m.iron, at=(x - w / 2 + w * k / 3, y_face - s * g, z), bevel=0)
+        for k in range(1, 4):
+            block("lead", (w, 0.012, 0.012), m.iron, at=(x, y_face - s * g, z - h / 2 + h * k / 4), bevel=0)
     if shutters:
         # Skoddene: to plankeflater som står litt ut fra veggen, slått opp.
         for sx in (-1, 1):
@@ -381,7 +398,14 @@ def side_wall(m, name, y0, y1, x, z0, z1, normal_x, openings, rng):
     """En bindingsverksvegg langs y i x: bygd som en vegg langs x og dreid 90°."""
     # Bygg i et midlertidig rom: x' = y, normalen ±y'; så drei om z.
     before = len(PIECES)
+    # Dreid −90° speiles y; bygg fra −y1 til −y0 så veggen havner riktig.
+    if normal_x < 0:
+        y0, y1 = -y1, -y0
+        openings = [(-o[0], *o[1:]) for o in openings]
     timber_wall(m, name, y0, y1, 0.0, z0, z1, -1.0, openings, rng)
+    for ox, oz, ob, oh, kind in openings:
+        if kind == "w":
+            window(m, ox, oz, -0.11, ob, oh, -1.0, shutters=rng.random() < 0.5, rng=rng)
     rot = Matrix.Rotation(math.radians(90 if normal_x > 0 else -90), 4, "Z")
     for ob in PIECES[before:]:
         mw = Matrix.Translation((x, 0, 0)) @ rot @ ob.matrix_world

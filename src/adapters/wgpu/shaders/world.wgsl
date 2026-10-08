@@ -696,7 +696,20 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.kind = 2u;
         s.albedo = vec3<f32>(0.0);
         s.rough = 0.04;
-        s.emissive = interior(i.world, n_geo, v, night);
+        if (glow == 3u) {
+            // Innsiden av en vindusrute: dagslyset slipper gjennom grønnlig,
+            // ujevnt blåst glass, med bobler og lysere midt i hver rute.
+            let sky_amb = mix(g.sky_horizon.rgb, g.sky_top.rgb, 0.35);
+            let q = vec2<f32>(dot(i.world.xz, vec2<f32>(0.7071, -0.7071)), i.world.y);
+            let wobble = 0.55 + 0.6 * fbm2(q * 7.0);
+            // Hver rute er blåst for seg: litt ulik tykkelse og farge.
+            let pane = hash31(vec3<f32>(floor(q * 3.8), 7.0));
+            let tone = mix(vec3<f32>(0.62, 0.78, 0.64), vec3<f32>(0.8, 0.84, 0.7), pane);
+            s.rough = 0.35;
+            s.emissive = tone * sky_amb * wobble * (0.9 + pane * 0.5);
+        } else {
+            s.emissive = interior(i.world, n_geo, v, night);
+        }
     } else if (kind == K_LEAF) {
         let l = textureSampleGrad(leaf_tex, clamp_sampler, i.uv, duv1, duv2);
         if (l.a < 0.5) {

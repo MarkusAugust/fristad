@@ -341,3 +341,32 @@ fn man_kan_ga_inn_i_husene() {
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
+
+#[test]
+fn man_kan_ga_opp_trappa_i_vertshuset() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    let pl = p.world.placements.iter().find(|pl| pl.model == "tavern").expect("vertshuset mangler");
+    let t = pl.transforms[0];
+    // Trappa langs østveggen i Blenders akser: fra foten ved fasaden opp
+    // gjennom trapphullet, og videre inn i sovesalen.
+    let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+    let (a, b) = (world((5.39, -3.98)), world((5.39, 1.2)));
+    let base = t.transform_point3(Vec3::ZERO).y;
+    let mut pos = a + Vec3::Y * (0.6 + half + radius + 0.05);
+    let dir = (b - a).with_y(0.0).normalize();
+    for _ in 0..400 {
+        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+            break;
+        }
+        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+        pos += moved;
+    }
+    let left = (pos - b).with_y(0.0).length();
+    let feet = pos.y - half - radius - base;
+    assert!(left < 0.6 && feet > 3.0, "stoppet {left:.1} m fra målet oppe, med føttene {feet:.2} m over bakken");
+}
