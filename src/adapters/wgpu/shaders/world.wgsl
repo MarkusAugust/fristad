@@ -396,7 +396,28 @@ fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, d
 // sporene følger veien og bøyer seg i svingene. Der to veier møtes, hopper
 // koordinatene over en trekant; der strekkes de, og søla tar verdens akser.
 // `earth`: hvor mye av jorda som er tråkket jord (lag 17) i stedet for søle.
-fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, road: vec2<f32>, dr1: vec2<f32>, dr2: vec2<f32>, earth: f32) -> Tex {
+fn terrain(w_raw: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, road: vec2<f32>, dr1: vec2<f32>, dr2: vec2<f32>, earth: f32) -> Tex {
+    // Vektene kommer fra hjørnene i et rutenett på 2 m og blandes lineært
+    // over trekantene; i overgangene forskyves de med støy i to skalaer,
+    // så kantene mellom brostein, jord og gress blir ujevne og flekkete i
+    // stedet for å følge rutene.
+    let warp = vec4<f32>(
+        fbm2(world.xz * 0.55 + vec2<f32>(3.1, 7.7)),
+        fbm2(world.xz * 0.45 + vec2<f32>(9.2, 1.3)),
+        fbm2(world.xz * 0.35 + vec2<f32>(5.5, 4.4)),
+        fbm2(world.xz * 0.3 + vec2<f32>(2.2, 8.8)),
+    ) + vec4<f32>(
+        fbm2(world.xz * 2.1 + vec2<f32>(1.7, 3.3)),
+        fbm2(world.xz * 1.9 + vec2<f32>(6.1, 2.2)),
+        fbm2(world.xz * 1.7 + vec2<f32>(4.4, 9.9)),
+        fbm2(world.xz * 1.5 + vec2<f32>(8.8, 5.5)),
+    ) * 0.4 - vec4<f32>(0.7);
+    let band = clamp(w_raw * (vec4<f32>(1.0) - w_raw) * 4.0, vec4<f32>(0.0), vec4<f32>(1.0));
+    var w_in = clamp(w_raw + warp * band * 0.9, vec4<f32>(0.0), vec4<f32>(1.0));
+    let total_w = w_in.x + w_in.y + w_in.z + w_in.w;
+    if (total_w > 1.0) {
+        w_in /= total_w;
+    }
     let grass_w = max(0.0, 1.0 - w_in.x - w_in.y - w_in.z - w_in.w);
     // Lagene: brostein 0, søle 11, berg 15, skogbunn 14, gress 9, tråkket jord 17.
     var layers = array<i32, 6>(0, 11, 15, 14, 9, 17);
