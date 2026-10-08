@@ -450,12 +450,14 @@ def build_human(spec):
                 pb.matrix = Matrix.Translation(head) @ rot @ Matrix.Translation(-head) @ pb.matrix
                 bpy.context.view_layer.update()
         grip = s in spec["grip"]
+        # `curl`: grader per ledd, felles eller per finger ({2: …, 5: …}).
         curl = spec.get("curl", 68) if grip else 18
         for f in range(2, 6):
+            c = curl[f] if isinstance(curl, dict) else curl
             for k in range(1, 4):
                 pb = arm.pose.bones[f"finger{f}-{k}.{s}"]
                 pb.rotation_mode = "XYZ"
-                pb.rotation_euler = (math.radians(curl * (1.1 if k == 1 else 1.0)), 0, 0)
+                pb.rotation_euler = (math.radians(c * (1.1 if k == 1 else 1.0)), 0, 0)
         for k in range(2, 4):
             pb = arm.pose.bones[f"finger1-{k}.{s}"]
             pb.rotation_mode = "XYZ"

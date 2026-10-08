@@ -29,6 +29,7 @@ import bmesh  # noqa: E402
 from arms import clips  # noqa: E402
 from common import armature, bake_textured, clear  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
+from mathutils.bvhtree import BVHTree  # noqa: E402
 from people import TEX, _boxtex, _bsdf, _math, _mix, _ramp, build_human, lin, shell  # noqa: E402
 
 OUT = "assets/models/arms"
@@ -51,7 +52,10 @@ PLAYER = {
     "macro": (1.0, 0.3, 0.9, 0.2),
     "height": 1.84,
     "grip": "LR",
-    "curl": float(os.environ.get("FRISTAD_CURL", 78)),
+    # Krummingen per finger er målt så hullet i neven (fist_holes) blir
+    # rundt 14–15 mm i radius, som et sverdgrep på 28–30 mm: den korte
+    # lillefingeren trenger minst.
+    "curl": float(os.environ["FRISTAD_CURL"]) if "FRISTAD_CURL" in os.environ else {2: 60.0, 3: 67.0, 4: 65.0, 5: 54.0},
     "thumb": 55.0,
     "thumb_in": tuple(float(v) for v in os.environ.get("FRISTAD_THUMB", "20,0,-25").split(",")),
     "arm_dirs": {s: (cam_to_mh(a), cam_to_mh(b)) for s, (a, b) in CAM_DIRS.items()},
@@ -350,13 +354,15 @@ def build_arms():
             n = top.normal.normalized()
             buckle(f"buckle{s}{t}", top.co + n * 0.034, d, n, iron)
     # Tykkelsen på klærne (solidify) kan skyte skarpe hjørner (fingertuppene)
-    # langt ut som pigger: hjørner mer enn 6 cm fra kroppen fjernes.
+    # langt ut som pigger: hjørner langt fra kroppen fjernes.
     from mathutils.bvhtree import BVHTree
     tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
     for ob in [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(("glove", "sleeve", "bracer", "strap"))]:
         bm = bmesh.new()
         bm.from_mesh(ob.data)
-        far = [v for v in bm.verts if (tree.find_nearest(v.co)[0] - v.co).length > 0.06]
+        # Hansken ligger tett på hånda; remmene står lenger ut.
+        limit = 0.015 if ob.name == "glove" else 0.06
+        far = [v for v in bm.verts if (tree.find_nearest(v.co)[0] - v.co).length > limit]
         if far:
             print(f"{ob.name}: fjerner {len(far)} pigger")
             bmesh.ops.delete(bm, geom=far, context="VERTS")
@@ -402,36 +408,17 @@ def build_arms():
                 q = p_ - centre
                 dist.append((q - axis * q.dot(axis)).length)
         radius = max(0.011, min(0.02, sum(dist) / len(dist) - 0.0095))
-        # Finjuster mot hanskens innside: punktene på fingrene som vender inn
-        # mot hullet, og en sirkel tilpasset dem i planet på tvers av aksen.
+        # Hullet i neven måles i hansken, finger for finger (fist_holes): en
+        # linje gjennom midtene gir aksen, og radien er den minste.
         glove = bpy.data.objects["glove"]
-        segs = [(J[f"finger{f}-1.{s}"][0], J[f"finger{f}-3.{s}"][1]) for f in range(2, 6)]
-
-        def near_finger(p_):
-            for a_, b_ in segs:
-                ab = b_ - a_
-                t = max(0.0, min(1.0, (p_ - a_).dot(ab) / ab.length_squared))
-                if (p_ - (a_ + ab * t)).length < 0.016:
-                    return True
-            return False
-
-        e1 = axis.orthogonal().normalized()
-        e2 = axis.cross(e1).normalized()
-        cand = [(v.co.copy(), v.normal.copy()) for v in glove.data.vertices if near_finger(v.co)]
-        for _ in range(4):
-            pts = [(p_ - centre) for p_, n_ in cand if n_.dot((centre - p_).normalized()) > 0.35 and abs((p_ - centre).dot(axis)) < 0.05]
-            if len(pts) < 12:
-                break
-            xs = [q.dot(e1) for q in pts]
-            ys = [q.dot(e2) for q in pts]
-            # Sirkeltilpasning (Kåsa): x² + y² + a·x + b·y + c = 0.
-            import numpy as np
-            A = np.array([[x, y, 1.0] for x, y in zip(xs, ys)])
-            bv = -np.array([x * x + y * y for x, y in zip(xs, ys)])
-            (a_, b_, c_), *_ = np.linalg.lstsq(A, bv, rcond=None)
-            cx, cy = -a_ / 2, -b_ / 2
-            centre = centre + e1 * cx + e2 * cy
-            radius = math.sqrt(max(1e-6, cx * cx + cy * cy - c_))
+        holes = fist_holes(J, glove, s)
+        import numpy as np
+        pts = np.array([list(h[0]) for h in holes])
+        c0 = pts.mean(axis=0)
+        ev = Vector(np.linalg.svd(pts - c0)[2][0])
+        axis = ev if ev.dot(axis) > 0 else -ev
+        centre = Vector(c0)
+        radius = max(0.011, min(0.02, sum(h[1] for h in holes) / len(holes)))
         knuckle = (((k2 + k5) / 2) - wr).normalized()
         grips[s] = {"centre": list(centre), "axis": list(axis), "knuckle": list(knuckle), "wrist": list(wr), "radius": radius}
         print(f"grep {s}: radius {radius * 1000:.1f} mm")
@@ -449,6 +436,53 @@ def build_arms():
         json.dump({"bones": bones, "grips": grips}, f, indent=1)
     return bones
 
+
+
+def fist_holes(J, glove, s):
+    """Hullet i neven for hver finger (2–5): i fingerens bøyeplan danner
+    knoken, leddene, tuppen og håndflata under tuppen en løkke. Inne i den
+    finnes punktet lengst fra hanskeflata (utenfor hansken). Gir (midte,
+    radius) per finger."""
+    tree = BVHTree.FromObject(glove, bpy.context.evaluated_depsgraph_get())
+    wr = J[f"wrist.{s}"][0]
+    out = []
+    for f in range(2, 6):
+        P = [J[f"finger{f}-{k}.{s}"][0] for k in (1, 2, 3)] + [J[f"finger{f}-3.{s}"][1]]
+        u = (P[0] - wr).normalized()
+        n = u.cross(P[1] - P[0]).normalized()
+        v = n.cross(u).normalized()
+        if v.dot(P[1] - P[0]) < 0:
+            v = -v
+        flat = [((p - P[0]).dot(u), (p - P[0]).dot(v)) for p in P]
+        poly = flat + [(flat[3][0], 0.0), (min(flat[3][0], 0.0) - 0.01, 0.0)]
+
+        def inside(x, y):
+            c = False
+            for k in range(len(poly)):
+                (x1, y1), (x2, y2) = poly[k], poly[(k + 1) % len(poly)]
+                if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+                    c = not c
+            return c
+
+        xs = [q[0] for q in poly]
+        ys = [q[1] for q in poly]
+        best = None
+        step = 0.00075
+        x = min(xs)
+        while x <= max(xs):
+            y = min(ys)
+            while y <= max(ys):
+                if inside(x, y):
+                    q = P[0] + u * x + v * y
+                    hit, nrm, _, d = tree.find_nearest(q)
+                    if hit is not None and (q - hit).dot(nrm) > 0 and (best is None or d > best[1]):
+                        best = (q, d)
+                y += step
+            x += step
+        if best:
+            out.append(best)
+            print(f"  hullet {s} finger {f}: r {best[1] * 1000:.1f} mm")
+    return out
 
 def strap_ring(name, c, d, r, w, t, mat, n=28):
     """En lærstropp rundt armen: ring med bredde w og tykkelse t."""
@@ -681,9 +715,10 @@ def shield_round():
         bm = bmesh.new()
         bmesh.ops.create_cube(bm, size=1.0)
         for v in bm.verts:
-            v.co = Vector((sx * (0.135 + v.co.x * 0.11), v.co.y * 0.034, -0.011 - 0.009 + v.co.z * 0.018))
+            # Fra kanten av hullet, der håndtaket går inn i plankene, og utover.
+            v.co = Vector((sx * (0.124 + v.co.x * 0.132), v.co.y * 0.034, -0.011 - 0.009 + v.co.z * 0.018))
         place(link_mesh(f"handle{sx}", bm, wood), F)
-    hgrip = lathe("handle_wrap", [(0.0, -0.07), (gr - 0.001, -0.068), (gr, 0.0), (gr - 0.001, 0.068), (0.0, 0.07)], grip_wood, 20)
+    hgrip = lathe("handle_wrap", [(0.0, -0.066), (gr - 0.001, -0.064), (gr, 0.0), (gr - 0.001, 0.064), (0.0, 0.066)], grip_wood, 20)
     place(hgrip, F @ Matrix.Translation((0, 0, -0.006)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
     # Hullet bak bula, der neven er: skjæres gjennom plankene og trekket.
     bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.062, depth=0.2)
