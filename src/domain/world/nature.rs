@@ -242,8 +242,8 @@ fn rgb(r: f32, g: f32, b: f32) -> u32 {
     (c(r) << 16) | (c(g) << 8) | c(b)
 }
 
-/// Et steingjerde som følger terrenget, i stykker på to meter med små
-/// forskyvninger, og med hull her og der.
+/// Et steingjerde (modellen `stone_wall`, tørrmur på 2 m) som følger
+/// terrenget, i stykker med små forskyvninger, og med hull her og der.
 pub fn stone_wall(b: &mut Builder, from: Vec3, to: Vec3, bend: f32) {
     let total = (to - from).length();
     let n = (total / 2.0).ceil() as i32;
@@ -257,23 +257,25 @@ pub fn stone_wall(b: &mut Builder, from: Vec3, to: Vec3, bend: f32) {
         let curve = (t * std::f32::consts::PI).sin() * bend;
         let c = from + dir * (t * total) + side * (curve + b.rng.range(-0.12, 0.12));
         let gy = b.ground(c.x, c.z);
-        let h = b.rng.range(0.8, 1.05);
-        let yaw = dir.x.atan2(dir.z) + std::f32::consts::FRAC_PI_2 + b.rng.range(-0.05, 0.05);
-        let tr = Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), Vec3::new(c.x, gy + h * 0.5 - 0.3, c.z));
-        b.mesh.cuboid_ao(&tr, Vec3::new(2.15, h + 0.6, b.rng.range(0.5, 0.65)), &super::STONE, 1.0);
-        b.colliders.push(Shape::Cuboid { center: Vec3::new(c.x, gy + h * 0.5, c.z), size: Vec3::new(2.15, h, 0.6), yaw });
+        // Modellens lengde går langs lokal x; snu x mot retningen gjerdet går.
+        let yaw = (-dir.z).atan2(dir.x) + b.rng.range(-0.05, 0.05);
+        let h = b.rng.range(0.9, 1.08);
+        let tr = Affine3A::from_scale_rotation_translation(Vec3::new(1.0, h, 1.0), Quat::from_rotation_y(yaw), Vec3::new(c.x, gy, c.z));
+        if b.place("stone_wall", tr) {
+            b.colliders.push(Shape::Cuboid { center: Vec3::new(c.x, gy + 0.45 * h, c.z), size: Vec3::new(2.15, 0.9 * h, 0.6), yaw });
+        }
     }
 }
 
-/// En stein: en flatklemt, halvt nedgravd kule i stein.
+/// En stein (modellene `boulder_a`–`c`), halvt nedgravd og dreid.
 pub fn boulder(b: &mut Builder, p: Vec3, r: f32) {
-    let p = b.on_ground(p);
-    let s = Vec3::new(r * b.rng.range(0.8, 1.3), r * b.rng.range(0.5, 0.8), r * b.rng.range(0.8, 1.2));
-    let rot = Quat::from_rotation_y(b.rng.next() * 6.28) * Quat::from_rotation_x(b.rng.range(-0.2, 0.2));
-    let g = b.rng.range(0.8, 1.0);
-    let rock = Mat::plain(rgb(0.42 * g, 0.41 * g, 0.39 * g), 0.95);
-    b.mesh.sphere(&Affine3A::from_rotation_translation(rot, p + Vec3::Y * s.y * 0.35), s, 7, 10, &rock);
-    b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * s.y * 0.5, radius: s.x.min(s.z) * 0.8, half_height: s.y * 0.6 });
+    let model = ["boulder_a", "boulder_b", "boulder_c"][(b.rng.next() * 2.99) as usize];
+    let s = r * b.rng.range(0.6, 0.9);
+    let p = b.on_ground(p) - Vec3::Y * 0.1 * s;
+    let yaw = b.rng.next() * std::f32::consts::TAU;
+    if b.place(model, Affine3A::from_scale_rotation_translation(Vec3::splat(s), Quat::from_rotation_y(yaw), p)) {
+        b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * 0.4 * s, radius: 0.55 * s, half_height: 0.45 * s });
+    }
 }
 
 /// Enga rundt byen: løvtrær, busker, steiner, steingjerder, tuster, og
@@ -329,21 +331,6 @@ pub fn meadow(b: &mut Builder) {
         (Vec3::new(25.0, 0.0, 72.0), Vec3::new(70.0, 0.0, 120.0), 7.0),
     ] {
         stone_wall(b, from, to, bend);
-    }
-    // Tuster i enga.
-    let grass = Mat::special(kind::LEAF, 0xd0dc90, 0.8).flags(flag::WIND | flag::NO_WEATHER);
-    for i in 0..260 {
-        let a = i as f32 * 2.399 + 0.9;
-        let dist = 36.0 + (i as f32 * 0.57).sin().abs() * 60.0;
-        let x = a.sin() * dist * 1.1 + b.rng.range(-4.0, 4.0);
-        let z = a.cos() * dist + b.rng.range(-4.0, 4.0);
-        if super::town::town_dist(x, z) < 1.0 {
-            continue;
-        }
-        let size = b.rng.range(0.4, 0.7);
-        let p = b.on_ground(Vec3::new(x, 0.0, z)) + Vec3::Y * size * 0.38;
-        let yaw = b.rng.next() * 6.28;
-        leaf_cluster(&mut b.mesh, p, size, 0.05, yaw, &grass);
     }
     // Granskog: spredt fra 70 meter, tett fra 110.
     for i in 0..520 {

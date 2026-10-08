@@ -96,6 +96,14 @@ models! {
     "lantern_post" => "town/lantern_post.glb",
     "training_dummy" => "town/training_dummy.glb",
     "weapon_rack" => "town/weapon_rack.glb",
+    // Gatelivet og landskapet fra tools/models/street.py.
+    "well" => "town/well.glb",
+    "wattle_fence" => "town/wattle_fence.glb",
+    "woodpile" => "town/woodpile.glb",
+    "stone_wall" => "town/stone_wall.glb",
+    "boulder_a" => "town/boulder_a.glb",
+    "boulder_b" => "town/boulder_b.glb",
+    "boulder_c" => "town/boulder_c.glb",
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
     "tavern" => "town/tavern.glb",

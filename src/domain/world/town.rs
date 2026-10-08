@@ -31,7 +31,7 @@ pub const FIELDS: [(f32, f32, f32, f32); 3] = [(-95.0, 40.0, 30.0, 20.0), (90.0,
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
-pub const FOUNDED: [&str; 5] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt"];
+pub const FOUNDED: [&str; 9] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c"];
 
 /// Det byen forteller resten av verden.
 pub struct Town {
@@ -337,7 +337,83 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         }
     }
     log::info!("Byen: {placed} hus i rekkene, {back} i bakgårdene");
+    street_life(b, &mut plan, &mut rng);
     doors
+}
+
+/// Gatelivet i hullene mellom husene: en brønn i hver bydel, flettverksgjerder
+/// rundt gårdsplasser og vedstabler inntil husveggene, vendt mot nærmeste
+/// gate. Plassen settes av i planen så ingenting havner oppå noe annet.
+fn street_life(b: &mut Builder, plan: &mut Plan, rng: &mut Rng) {
+    let mut wells: Vec<Vec2> = vec![];
+    let (mut fences, mut piles) = (0, 0);
+    for _ in 0..1500 {
+        let a = rng.range(0.0, TAU);
+        let r = rng.range(8.0, terrain::wall_radius(a) - 5.0);
+        let p = Vec2::new(a.cos(), a.sin()) * r;
+        // Nærmeste gate, og retningen mot den (fram for det som settes ut).
+        let (mut best, mut toward) = (f32::MAX, Vec2::Y);
+        for st in streets() {
+            let (d, t) = street_dist(st, p);
+            if d < best {
+                best = d;
+                let n = Vec2::new(-t.y, t.x);
+                let probe = p + n * 0.1;
+                toward = if street_dist(st, probe).0 < d { n } else { -n };
+            }
+        }
+        let yaw = facing(toward) + rng.range(-0.08, 0.08);
+        // Brønnene: én i hver kvart av byen, nær en gate.
+        if wells.len() < 4 && best < 9.0 && wells.iter().all(|w| w.distance(p) > 30.0) {
+            let rect = Rect { c: p, h: Vec2::splat(1.5), yaw };
+            if plan.fits(&rect) {
+                plan.taken.push(rect);
+                let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
+                if b.place("well", at(base, yaw)) {
+                    b.solid(Shape::Cylinder { center: base + Vec3::Y * 0.45, radius: 1.0, half_height: 0.5 });
+                    for sx in [-0.75f32, 0.75] {
+                        b.solid(Shape::Cylinder { center: at(base, yaw).transform_point3(Vec3::new(sx, 1.1, 0.0)), radius: 0.12, half_height: 1.1 });
+                    }
+                }
+                log::info!("Brønn ved ({:.1}, {:.1})", p.x, p.y);
+                wells.push(p);
+                continue;
+            }
+        }
+        // Vedstabler: langs gata, inntil et hus (noe tatt like bak).
+        if piles < 14 && best < 8.0 {
+            let rect = Rect { c: p, h: Vec2::new(1.4, 0.6), yaw };
+            let behind = Rect { c: p - toward * 1.2, h: Vec2::new(0.8, 0.4), yaw };
+            if plan.fits(&rect) && !plan.fits(&behind) {
+                plan.taken.push(rect);
+                let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
+                if b.place("woodpile", at(base, yaw)) {
+                    b.solid_box(at(base, yaw).transform_point3(Vec3::new(0.0, 0.7, 0.0)), Vec3::new(2.0, 1.4, 0.6), yaw);
+                }
+                piles += 1;
+                continue;
+            }
+        }
+        // Gjerder: tre-fem stykker i rekke langs gata, rundt en gårdsplass.
+        if fences < 16 && best > 5.0 && best < 16.0 {
+            let n = 3 + (rng.next() * 2.99) as usize;
+            let along = Vec2::new(yaw.cos(), -yaw.sin());
+            let len = n as f32 * 2.0;
+            let rect = Rect { c: p, h: Vec2::new(len * 0.5 + 0.2, 0.3), yaw };
+            if plan.fits(&rect) {
+                plan.taken.push(rect);
+                for k in 0..n {
+                    let c = p + along * ((k as f32 + 0.5) * 2.0 - len * 0.5);
+                    let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
+                    if b.place("wattle_fence", at(base, yaw + rng.range(-0.03, 0.03))) {
+                        b.solid_box(base + Vec3::Y * 0.5, Vec3::new(2.0, 1.0, 0.15), yaw);
+                    }
+                }
+                fences += 1;
+            }
+        }
+    }
+    log::info!("Gatelivet: {} brønner, {fences} gjerder, {piles} vedstabler", wells.len());
 }
 
 pub fn build(b: &mut Builder) -> Town {
