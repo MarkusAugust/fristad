@@ -175,6 +175,21 @@ pub enum Event {
     Shop { npc: String, wares: Vec<WareView> },
     /// E i skriptoriet: oppskriftene som skjema.
     Workshop { recipes: Vec<RecipeView> },
+    /// Lydbildet der du står, når det endrer seg merkbart.
+    Ambience(Ambience),
+}
+
+/// Hvor sterkt hvert lydlag i byen skal høres der du står (0–1): folk på
+/// torget, hamring i smia, kirka (klokka), dyrene på enga, og om det er
+/// natt eller du er i kjelleren (da er byen stille).
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub struct Ambience {
+    pub square: f32,
+    pub forge: f32,
+    pub church: f32,
+    pub meadow: f32,
+    pub night: bool,
+    pub cellar: bool,
 }
 
 /// Siktet: navnet på det du sikter på, hva F gjør, og hva E gjør (tom om

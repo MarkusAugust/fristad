@@ -13,9 +13,9 @@ use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::dungeon::{self, Dungeon};
 use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
-use crate::ports::driving::{Action, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, WareView};
+use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, WareView};
 use crate::ports::{ColliderId, Physics};
-use glam::{Affine3A, Mat4, Vec3};
+use glam::{Affine3A, Mat4, Vec2, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Radianer per piksel musa flytter seg.
@@ -103,6 +103,11 @@ pub struct Session {
     spawn_yaw: f32,
     crypt_exit: (Vec3, f32),
     pub(super) herd: Herd,
+    /// Der lydene i byen kommer fra: torget, smia og kirka (flatt), og
+    /// lydbildet som sist ble sendt.
+    sound_spots: [Vec2; 3],
+    last_ambience: Ambience,
+    ambience_t: f32,
     pub(super) npcs: Npcs,
     bubbles_shown: bool,
     pub(super) dungeon: Dungeon,
@@ -191,6 +196,13 @@ impl Session {
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt,
             herd: Herd::new(),
+            sound_spots: {
+                let at = |name: &str| world.placements.iter().find(|p| p.model == name).and_then(|p| p.transforms.first()).map(|t| Vec2::new(t.translation.x, t.translation.z)).unwrap_or(Vec2::splat(1.0e4));
+                let sq = crate::domain::world::town::square_center();
+                [Vec2::new(sq.x, sq.z), at("forge"), at("stave_church")]
+            },
+            last_ambience: Ambience::default(),
+            ambience_t: 0.0,
             npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.dungeon, rigs),
@@ -533,6 +545,7 @@ impl Session {
             self.inv_dirty = false;
             events.push(Event::Inventory(self.inventory_view()));
         }
+        self.ambience(dt, feet, in_cellar, &mut events);
         events
     }
 
@@ -711,6 +724,34 @@ impl Session {
                 CombatEvent::Miss => {}
                 CombatEvent::Sound(s) => events.push(Event::Sound(s.into())),
             }
+        }
+    }
+
+    /// Lydbildet: hvor nær du er torget, smia, kirka og dyrene, sendt fire
+    /// ganger i sekundet når det har endret seg.
+    fn ambience(&mut self, dt: f32, feet: Vec3, in_cellar: bool, events: &mut Vec<Event>) {
+        self.ambience_t -= dt;
+        if self.ambience_t > 0.0 {
+            return;
+        }
+        self.ambience_t = 0.25;
+        let p = Vec2::new(feet.x, feet.z);
+        let near = |at: Vec2, r: f32| (1.0 - p.distance(at) / r).clamp(0.0, 1.0).powi(2);
+        let [square, forge, church] = self.sound_spots;
+        let meadow = self.herd.positions().map(|a| near(a, 45.0)).fold(0.0, f32::max);
+        let a = Ambience {
+            square: near(square, 55.0),
+            forge: near(forge, 32.0),
+            church: near(church, 140.0),
+            meadow,
+            night: self.daylight == Daylight::Night,
+            cellar: in_cellar,
+        };
+        let last = self.last_ambience;
+        let moved = (a.square - last.square).abs().max((a.forge - last.forge).abs()).max((a.church - last.church).abs()).max((a.meadow - last.meadow).abs());
+        if moved > 0.02 || a.night != last.night || a.cellar != last.cellar {
+            self.last_ambience = a;
+            events.push(Event::Ambience(a));
         }
     }
 
@@ -1034,6 +1075,31 @@ impl Session {
     #[cfg(test)]
     pub fn loose_keys(&self) -> Vec<Vec3> {
         self.mobs.keys.iter().filter(|k| !k.taken).map(|k| k.pos).collect()
+    }
+
+    /// Felle eliten i en etasje med ett slag, til testene.
+    #[cfg(test)]
+    pub fn fell_elite(&mut self, floor: usize, events: &mut Vec<Event>) {
+        let i = self.mobs.mobs.iter().position(|m| m.alive() && m.elite && self.dungeon.floor_of(m.pos) == Some(floor)).expect("eliten");
+        let from = self.mobs.mobs[i].pos + Vec3::X;
+        let pos = self.mobs.mobs[i].pos;
+        if self.mobs.strike(i, 1.0e6, from, &self.dungeon).killed {
+            self.killed(i, pos, events);
+        }
+    }
+
+    /// Dø, til testene.
+    #[cfg(test)]
+    pub fn die_now(&mut self) -> Vec<Event> {
+        let mut events = vec![];
+        self.die(&mut events);
+        events
+    }
+
+    /// Hvor langt portgitteret er heist (0–1) og om det er låst opp.
+    #[cfg(test)]
+    pub fn gate(&self, n: usize) -> (f32, bool) {
+        self.gates[n]
     }
 
     /// Den nærmeste levende fienden (føttene), til testene.

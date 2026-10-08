@@ -4,6 +4,7 @@
 
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
+import { createAmbience } from "./ambience.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
@@ -349,6 +350,10 @@ function handle(e) {
       break;
     case "loot":
       openLoot(e.component);
+      break;
+    case "ambience":
+      lastAmbience = e;
+      if (playing) ambience.set(e);
       break;
     case "shop":
       openShop(e.npc, e.wares);
@@ -1012,6 +1017,9 @@ const sfx = (() => {
 
 // Musikken (web/music.js): fem stykker etter tur i byen, uhygge i krypten.
 const music = createMusic(() => sfx.context());
+// Lydene i byen (web/ambience.js) etter hvor du står.
+const ambience = createAmbience(() => sfx.context());
+let lastAmbience = null;
 
 // Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
 // nettleseren gir oss den; ellers ser du deg rundt ved å dra med musa, så
@@ -1041,6 +1049,7 @@ function enter(relock = true) {
   }
   playing = true;
   music.set(lastHud.cellar ? "cellar" : "town");
+  if (lastAmbience) ambience.set(lastAmbience);
   gateEl.hidden = true;
   hud.hidden = false;
   engine.set_paused(false);

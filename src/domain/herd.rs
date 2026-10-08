@@ -108,6 +108,11 @@ pub struct Herd {
 }
 
 impl Herd {
+    /// Hvor dyrene står (flatt), til lydbildet.
+    pub fn positions(&self) -> impl Iterator<Item = Vec2> + '_ {
+        self.animals.iter().map(|a| a.pos)
+    }
+
     pub fn new() -> Self {
         let mut seed = 0x9e37_79b9u32;
         let mut rnd = || {

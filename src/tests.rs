@@ -482,7 +482,9 @@ fn gjennomspilling() {
             let feet = game.eye() - Vec3::Y * 1.6;
             let spots = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].map(|v| *c + v * 1.3);
             let at = spots.into_iter().filter(|q| d.walkable(*q, 0.3)).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet))).unwrap_or(*c);
-            let reached = bot.walk_to_soft(&mut game, &mut physics, d, at, 0.5, 6.0);
+            // Veien kan gå bort fra kista først (ned trappa fra et galleri), så
+            // boten får god tid før den gir opp.
+            let reached = bot.walk_to_soft(&mut game, &mut physics, d, at, 0.5, 25.0);
             bot.aim(&mut game, *c + Vec3::Y * 0.4);
             bot.input.actions.push(Action::Use);
             let mut opened = false;
@@ -849,3 +851,73 @@ fn fiendene_gar_rundt_det_som_star() {
 
 
 
+
+
+/// Eliten slipper nøkkelen der den kan plukkes opp, også etter at du har
+/// dødd og fiendene er kommet igjen, og portgitteret du har låst opp, står
+/// oppe etter døden.
+#[test]
+fn nokkelen_og_porten_etter_doden() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let pick = |game: &mut Session, physics: &mut RapierPhysics, input: &mut Input| {
+        let mut events = vec![];
+        game.fell_elite(0, &mut events);
+        let key = *game.loose_keys().first().expect("eliten slapp ingen nøkkel");
+        let before = game.keys();
+        game.place_feet(key + Vec3::new(0.3, 0.0, 0.0));
+        for _ in 0..20 {
+            game.update(input, 1.0 / 30.0, physics);
+        }
+        assert_eq!(game.keys(), before + 1, "nøkkelen ved {key:?} ble ikke plukket opp");
+    };
+    pick(&mut game, &mut physics, &mut input);
+    game.use_first(|u| matches!(u, Use::Gate(0)));
+    for _ in 0..90 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert_eq!(game.gate(0), (1.0, true), "portgitteret gikk ikke opp");
+    game.use_first(|u| *u == Use::Descend);
+    game.die_now();
+    for _ in 0..10 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert_eq!(game.gate(0), (1.0, true), "portgitteret falt ned igjen da du døde");
+    // Fiendene er kommet igjen, og eliten slipper en ny nøkkel.
+    game.use_first(|u| *u == Use::Descend);
+    pick(&mut game, &mut physics, &mut input);
+}
+
+/// Lydbildet følger deg: folk på torget, hamring ved smia, stille i
+/// kjelleren.
+#[test]
+fn lydene_i_byen_folger_deg() {
+    use crate::ports::driving::Ambience;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let mut last = |game: &mut Session, physics: &mut RapierPhysics| -> Ambience {
+        let mut a = None;
+        for _ in 0..20 {
+            for e in game.update(&mut input, 1.0 / 30.0, physics) {
+                if let Event::Ambience(x) = e {
+                    a = Some(x);
+                }
+            }
+        }
+        a.unwrap_or_default()
+    };
+    let sq = crate::domain::world::town::square_center();
+    game.place_feet(sq);
+    let a = last(&mut game, &mut physics);
+    assert!(a.square > 0.8 && !a.cellar, "på torget: {a:?}");
+    let forge = world().world.placements.iter().find(|p| p.model == "forge").map(|p| Vec3::from(p.transforms[0].translation)).expect("smia");
+    game.place_feet(forge + Vec3::new(0.0, 0.0, 6.0));
+    let a = last(&mut game, &mut physics);
+    assert!(a.forge > 0.3, "ved smia: {a:?}");
+    game.use_first(|u| *u == Use::Descend);
+    let a = last(&mut game, &mut physics);
+    assert!(a.cellar, "i kjelleren: {a:?}");
+}

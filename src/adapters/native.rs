@@ -135,7 +135,7 @@ impl ApplicationHandler for Host {
                     match e {
                         Event::Prompt(Some(p)) => r.window.set_title(&format!("Fristad · {} · F {} · E {}", p.label, p.verb, p.trade)),
                         Event::Prompt(None) => r.window.set_title("Fristad"),
-                        Event::Marks(_) | Event::Speech(_) => {}
+                        Event::Marks(_) | Event::Speech(_) | Event::Ambience(_) => {}
                         other => log::info!("{other:?}"),
                     }
                 }
