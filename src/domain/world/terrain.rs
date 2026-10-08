@@ -33,14 +33,15 @@ pub const HILL: (f32, f32, f32, f32) = (0.0, -122.0, 46.0, 15.0);
 pub const KEEP_FLAT: f32 = 24.0;
 
 /// Hvor langt ut fra bymuren et punkt er, i meter (negativt innenfor).
-/// Muren følger en avrundet firkant rundt torget.
+/// Muren følger et ujevnt, eggeformet omriss rundt torget, slik den ble
+/// lagt der byen hadde vokst, ikke en tegnet firkant.
 pub fn town_edge(x: f32, z: f32) -> f32 {
-    let (hx, hz, r) = (44.0, 40.0, 12.0);
-    let qx = (x.abs() - hx).max(0.0);
-    let qz = (z.abs() - hz).max(0.0);
-    let outside = (qx * qx + qz * qz).sqrt();
-    let inside = (x.abs() - hx).max(z.abs() - hz).min(0.0);
-    outside + inside - r
+    (x * x + z * z).sqrt() - wall_radius(z.atan2(x))
+}
+
+/// Murens avstand fra torget i retningen `a` (radianer fra +x mot +z).
+pub fn wall_radius(a: f32) -> f32 {
+    56.0 + 3.0 * (2.0 * a + 0.7).sin() + 2.2 * (3.0 * a + 1.9).sin() + 1.3 * (5.0 * a + 0.4).sin()
 }
 
 /// Terrenget uten planeringene.
