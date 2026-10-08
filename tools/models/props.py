@@ -27,7 +27,7 @@ OUT = "assets/models/town"
 
 def mats():
     m = M()
-    m.planks = layer("timber", (0.85, 0.8, 0.75), 0.5)
+    m.planks = layer("cladding", (0.5, 0.42, 0.34), 0.5)
     m.canvas = layer("plaster", (0.62, 0.42, 0.22), 0.5)
     m.canvas2 = layer("plaster", (0.38, 0.12, 0.08), 0.5)
     m.glow = plain("glow", (1.0, 0.75, 0.4), 0.4)

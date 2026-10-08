@@ -60,6 +60,8 @@ const TEXTURES: Record<string, string[]> = {
   // Berg.
   rock: ["rock_face", "cliff_side", "rock_wall", "rock"],
   snow: ["snow_02", "snow_field", "snow"],
+  // Tråkket jord uten hjulspor på gårdsplassene.
+  earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
 };
 
 const force = process.argv.includes("--force");

@@ -69,7 +69,7 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 
 ## Status (7. oktober 2026)
 
-Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`), bymuren med hjørnetårn og porthus (`tools/models/walls.py`) og torget (`tools/models/props.py`: torgkors, to boder, kjerre, tønne, kasse, lyktestolpe). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding, gravel med hjulspor, plywood = skogbunn).
+Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for kjøpstaden står i `town.rs`. Ferdig i Blender: seks bindingsverkshus (`tools/models/town.py`, `house_a`–`f`), bymuren med hjørnetårn og porthus (`tools/models/walls.py`) og torget (`tools/models/props.py`: torgkors, to boder, kjerre, tønne, kasse, lyktestolpe). Teksturlagene fra eieren ligger i `assets/textures/` (cobble, plaster, oak, tiles, stone, cladding, gravel = søle med hjulspor, earth = tråkket jord på gårdsplassene, plywood = skogbunn, slate = skifer, timber = tjærebredde planker). `derive.py --keystone K --crop --seamless` retter opp skråfoto og gjør bildet flisbart.
 
 Neste:
 1. Resten av byen i Blender med høy detalj: Smia, Apoteket, Skriptoriet, Vertshuset, stavkirka, borgruinen, krypta og trappa i startrommet, portgitteret.

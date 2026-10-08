@@ -353,14 +353,15 @@ fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, d
 // triplanart (det står i skråninger).
 // `east_west`: hjulsporene i jordlaget går øst–vest (Tverrgata), ellers
 // nord–sør.
-fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, east_west: bool) -> Tex {
+// `earth`: hvor mye av jorda som er tråkket jord (lag 17) i stedet for søle.
+fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, east_west: bool, earth: f32) -> Tex {
     let grass_w = max(0.0, 1.0 - w_in.x - w_in.y - w_in.z - w_in.w);
-    // Lagene: brostein 0, jord 11, berg 15, skogbunn 14, gress 9.
-    var layers = array<i32, 5>(0, 11, 15, 14, 9);
-    var weights = array<f32, 5>(w_in.x, w_in.y, w_in.z, w_in.w, grass_w);
-    var samples: array<Tex, 5>;
+    // Lagene: brostein 0, søle 11, berg 15, skogbunn 14, gress 9, tråkket jord 17.
+    var layers = array<i32, 6>(0, 11, 15, 14, 9, 17);
+    var weights = array<f32, 6>(w_in.x, w_in.y * (1.0 - earth), w_in.z, w_in.w, grass_w, w_in.y * earth);
+    var samples: array<Tex, 6>;
     var best = -1.0;
-    for (var k = 0; k < 5; k++) {
+    for (var k = 0; k < 6; k++) {
         if (weights[k] > 0.003) {
             let layer = layers[k];
             if (layer == 15) {
@@ -389,7 +390,7 @@ fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>
     o.rough = 0.0;
     o.height = 0.0;
     var total = 0.0;
-    for (var k = 0; k < 5; k++) {
+    for (var k = 0; k < 6; k++) {
         if (weights[k] > 0.003) {
             let b = max(weights[k] + samples[k].height * 0.6 - best + 0.18, 0.0);
             o.albedo += samples[k].albedo * b;
@@ -638,7 +639,9 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             s.metal = 0.6;
         }
     } else if (kind == K_TERRAIN) {
-        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
+        // Okklusjonsbyten bærer andelen tråkket jord på bakken.
+        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u, i.ao);
+        s.ao = 1.0;
         s.albedo = t.albedo * (0.9 + 0.2 * fbm2(i.world.xz * 0.11));
         s.n = t.n;
         s.rough = clamp(t.rough, 0.04, 1.0);

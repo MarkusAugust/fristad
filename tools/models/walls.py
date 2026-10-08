@@ -239,7 +239,7 @@ def town_wall():
 
 
 def wall_tower():
-    m = M()
+    m = M(roof="slate")
     rng = random.Random(12)
     R = 3.4
     body = revolve("tower_body", [(R + 0.45, -0.8), (R + 0.3, 1.0), (R, 2.2), (R, 10.2), (R + 0.05, 10.2)], m.stone, n=48)
@@ -288,7 +288,7 @@ def wall_tower():
 
 
 def gatehouse():
-    m = M()
+    m = M(roof="slate")
     rng = random.Random(13)
     W, D = 13.2, 5.0
     pw, ph = 5.2, 3.3

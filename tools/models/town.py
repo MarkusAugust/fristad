@@ -75,7 +75,7 @@ class M:
         self.plaster = layer("plaster", plaster_tint, 0.5)
         self.timber = layer("oak", timber_tint, 0.5)
         self.boards = layer("cladding", (0.6, 0.57, 0.53), 0.5)
-        self.roof = layer(roof, (1.0, 1.0, 1.0), 0.5)
+        self.roof = layer(roof, (0.62, 0.62, 0.6) if roof == "slate" else (1.0, 1.0, 1.0), 0.5)
         self.iron = layer("metal", (0.55, 0.5, 0.48), 0.5)
         self.glass = plain("glass", (0.05, 0.06, 0.06), 0.05)
 
@@ -459,7 +459,7 @@ def plinth(m, w, d, h, rng):
 def half_timbered(spec):
     """Et bindingsverkshus med gavlen eller langsida mot gata."""
     rng = random.Random(spec["seed"])
-    m = M(plaster_tint=tuple(c * 0.42 for c in spec.get("plaster", (1, 0.965, 0.905))), timber_tint=spec.get("timber", (1, 1, 1)))
+    m = M(plaster_tint=tuple(c * 0.42 for c in spec.get("plaster", (1, 0.965, 0.905))), timber_tint=spec.get("timber", (1, 1, 1)), roof=spec.get("roof", "tiles"))
     w, d = spec["w"], spec["d"]
     floors = spec["floors"]
     fh = 2.7
@@ -602,11 +602,11 @@ HOUSES = {
     # Smalt hus med gavl mot gata, to etasjer, framskutt.
     "house_a": dict(seed=1, w=6.4, d=8.0, floors=2, jetty=0.4, pitch=54, door_x=-1.4, windows0=[1.3], windows_up=2),
     # Bredere, langsida mot gata, okerpuss.
-    "house_b": dict(seed=2, w=9.0, d=6.5, floors=2, jetty=0.3, pitch=48, gable=False, plaster=(0.95, 0.85, 0.66), door_x=-2.4, windows0=[0.4, 2.8], windows_up=3),
+    "house_b": dict(seed=2, roof="slate", w=9.0, d=6.5, floors=2, jetty=0.3, pitch=48, gable=False, plaster=(0.95, 0.85, 0.66), door_x=-2.4, windows0=[0.4, 2.8], windows_up=3),
     # Lavt hus med én etasje og bratt tak.
     "house_c": dict(seed=3, w=7.0, d=7.5, floors=1, jetty=0.0, pitch=56, door_x=1.6, windows0=[-1.5], windows_up=0, plinth=0.7),
     # Høyt, smalt kjøpmannshus med tre etasjer.
-    "house_d": dict(seed=4, w=6.0, d=9.0, floors=3, jetty=0.32, pitch=56, door_x=-1.3, windows0=[1.2], windows_up=2, plaster=(1.0, 0.97, 0.92)),
+    "house_d": dict(seed=4, roof="slate", w=6.0, d=9.0, floors=3, jetty=0.32, pitch=56, door_x=-1.3, windows0=[1.2], windows_up=2, plaster=(1.0, 0.97, 0.92)),
     # Langsida mot gata, to etasjer, mørkere tømmer.
     "house_e": dict(seed=5, w=10.0, d=7.0, floors=2, jetty=0.35, pitch=46, gable=False, door_x=0.0, windows0=[-3.0, 3.0], windows_up=4, timber=(0.8, 0.78, 0.76)),
     # Gavlhus med puss i gavlen og blekrosa puss.
