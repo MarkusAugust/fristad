@@ -428,12 +428,29 @@ def build_human(spec):
         bpy.context.view_layer.update()
 
     for s, sx in (("L", 1), ("R", -1)):
-        aim(f"upperarm01.{s}", (sx * 0.12, -0.04, -1.0))
-        aim(f"upperarm02.{s}", (sx * 0.1, -0.05, -1.0))
-        aim(f"lowerarm01.{s}", (sx * 0.06, -0.3, -1.0))
-        aim(f"lowerarm02.{s}", (sx * 0.05, -0.32, -1.0))
-        grip = spec["grip"] == s
-        curl = 68 if grip else 18
+        # `arm_dirs`: retningene for overarmen og underarmen per side i
+        # MakeHumans rom (x venstre, −y fram, z opp), ellers ned langs siden.
+        ua, fa = spec.get("arm_dirs", {}).get(s, ((sx * 0.12, -0.04, -1.0), (sx * 0.06, -0.3, -1.0)))
+        aim(f"upperarm01.{s}", ua)
+        aim(f"upperarm02.{s}", ua)
+        aim(f"lowerarm01.{s}", fa)
+        aim(f"lowerarm02.{s}", fa)
+        if "hand_dirs" in spec:
+            aim(f"wrist.{s}", spec["hand_dirs"][s])
+        # `roll`: vri underarmen om sin egen akse (grader), så knyttneven
+        # står riktig rundt grepet.
+        roll = spec.get("roll", {}).get(s, 0.0)
+        if roll:
+            for bn in (f"lowerarm01.{s}", f"lowerarm02.{s}"):
+                pb = arm.pose.bones[bn]
+                bpy.context.view_layer.update()
+                ax = (pb.tail - pb.head).normalized()
+                head = pb.matrix.translation.copy()
+                rot = Matrix.Rotation(math.radians(roll / 2), 4, ax)
+                pb.matrix = Matrix.Translation(head) @ rot @ Matrix.Translation(-head) @ pb.matrix
+                bpy.context.view_layer.update()
+        grip = s in spec["grip"]
+        curl = spec.get("curl", 68) if grip else 18
         for f in range(2, 6):
             for k in range(1, 4):
                 pb = arm.pose.bones[f"finger{f}-{k}.{s}"]
