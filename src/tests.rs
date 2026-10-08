@@ -597,6 +597,10 @@ impl Bot {
     fn step(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> Vec<Event> {
         let events = game.update(&mut self.input, Self::DT, physics);
         self.t += Self::DT;
+        if (self.t / 30.0).floor() != ((self.t - Self::DT) / 30.0).floor() {
+            let feet = game.eye() - Vec3::Y * 1.6;
+            eprintln!("  [{:.0} s] føttene ved ({:.1}, {:.1}, {:.1}), {} drept, {} kister, {} ganger nesten død", self.t, feet.x, feet.y, feet.z, self.kills, self.chests, self.near_deaths);
+        }
         for e in &events {
             match e {
                 Event::Hud { hp, cellar: true, .. } if *hp < 25 => {
@@ -628,7 +632,16 @@ impl Bot {
     /// Gir om det var noen å slåss med.
     fn fight(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> bool {
         let feet = game.eye() - Vec3::Y * 1.6;
-        let near = game.living().into_iter().filter(|(m, _, _)| (m.y - feet.y).abs() < 2.5 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0).min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
+        // Bare fiender boten faktisk når: i samme celle eller en nabocelle
+        // med fri vei (ikke bak en vegg).
+        let d = &world().world.dungeon;
+        let reach = |m: &Vec3| -> bool {
+            let Some(f) = d.floor_of(feet) else { return false };
+            let fl = &d.floors[f];
+            let (a, b) = (fl.cell_of(feet), fl.cell_of(*m));
+            a == b || ((a.0 - b.0).abs() + (a.1 - b.1).abs() == 1 && fl.passable(a, b))
+        };
+        let near = game.living().into_iter().filter(|(m, _, _)| (m.y - feet.y).abs() < 2.5 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0 && reach(m)).min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
         let Some((m, kind, _)) = near else { return false };
         self.input.key("KeyW", false);
         self.aim(game, m + Vec3::Y * 0.8 * if kind.boss() { 2.0 } else { 1.0 });
