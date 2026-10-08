@@ -459,7 +459,12 @@ def build_human(spec):
         for k in range(2, 4):
             pb = arm.pose.bones[f"finger1-{k}.{s}"]
             pb.rotation_mode = "XYZ"
-            pb.rotation_euler = (math.radians(35 if grip else 10), 0, 0)
+            pb.rotation_euler = (math.radians(spec.get("thumb", 35) if grip else 10), 0, 0)
+        # `thumb_in`: tommelen føres inn over fingrene (rundt grepet).
+        if grip and "thumb_in" in spec:
+            pb = arm.pose.bones[f"finger1-1.{s}"]
+            pb.rotation_mode = "XYZ"
+            pb.rotation_euler = tuple(math.radians(v) for v in spec["thumb_in"])
     bpy.context.view_layer.update()
     pose = {pb.name: (pb.head.copy(), pb.tail.copy()) for pb in arm.pose.bones}
     bpy.ops.object.mode_set(mode="OBJECT")

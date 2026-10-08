@@ -51,7 +51,9 @@ PLAYER = {
     "macro": (1.0, 0.3, 0.9, 0.2),
     "height": 1.84,
     "grip": "LR",
-    "curl": 74,
+    "curl": float(os.environ.get("FRISTAD_CURL", 78)),
+    "thumb": 55.0,
+    "thumb_in": tuple(float(v) for v in os.environ.get("FRISTAD_THUMB", "20,0,-25").split(",")),
     "arm_dirs": {s: (cam_to_mh(a), cam_to_mh(b)) for s, (a, b) in CAM_DIRS.items()},
     # Høyre knyttneve med tommelen opp (klinga peker opp og fram).
     "roll": {"R": 45.0},
@@ -102,6 +104,33 @@ def bump(nt, b, height, strength, distance=0.002):
     nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
 
 
+WEAP = os.path.abspath("assets/textures/weapons")
+
+
+def photo(nt, name, vec, scale):
+    """Et av eierens bilder i assets/textures/weapons, boksprojisert med
+    `scale` meter per flis."""
+    return _boxtex(nt, f"{WEAP}/{name}.jpeg", scale, vec)
+
+
+def planar(nt, name, vec, su, sv, ou, ov):
+    """Et bilde lagt flatt på (x, y) i det lokale rommet: u = ou + x·su,
+    v = ov + y·sv (skjoldmotivene)."""
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (su, sv, 1.0)
+    mp.inputs["Location"].default_value = (ou, ov, 0.0)
+    nt.links.new(vec, mp.inputs["Vector"])
+    img = nt.nodes.new("ShaderNodeTexImage")
+    img.image = bpy.data.images.load(f"{WEAP}/{name}.jpeg", check_existing=True)
+    img.extension = "EXTEND"
+    nt.links.new(mp.outputs["Vector"], img.inputs["Vector"])
+    return img
+
+
+def luma_bump(nt, b, img, strength, distance=0.002):
+    bump(nt, b, img.outputs["Color"], strength, distance)
+
+
 def steel(name, polish=0.2, tone=(0.62, 0.63, 0.66), streak=40.0):
     """Slipt stål: slipestriper langs klingen (lokal z), fine riper, litt
     anløpt og flekket mot parerstanga."""
@@ -110,8 +139,10 @@ def steel(name, polish=0.2, tone=(0.62, 0.63, 0.66), streak=40.0):
     streaks = noise(nt, lc, 260.0, 2.0, (1.0, 1.0, 1.0 / streak))
     scratches = noise(nt, lc, 90.0, 8.0)
     stains = noise(nt, lc, 9.0, 3.0)
-    col = _mix(nt, tone, _math(nt, "MULTIPLY", 1.0, 1.0) if False else (0.42, 0.4, 0.38), _ramp(nt, stains, 0.62, 0.8))
-    col = _mix(nt, col, (0.82, 0.83, 0.86), _math(nt, "MULTIPLY", _ramp(nt, streaks, 0.55, 0.75), 0.35))
+    # Eierens bilde av slipt klingestål, med stripene langs klinga.
+    img = photo(nt, "klinge", lc, 0.22)
+    col = _mix(nt, img.outputs["Color"], tuple(t / 0.62 for t in tone), 1.0, "MULTIPLY")
+    col = _mix(nt, col, (0.42, 0.4, 0.38), _ramp(nt, stains, 0.66, 0.82))
     nt.links.new(col, b.inputs["Base Color"])
     rough = _math(nt, "ADD", polish, _math(nt, "MULTIPLY", streaks, 0.18))
     rough = _math(nt, "ADD", rough, _math(nt, "MULTIPLY", _ramp(nt, stains, 0.62, 0.8), 0.25))
@@ -127,12 +158,14 @@ def forged(name, tone=(0.28, 0.27, 0.27)):
     lc = local_coords(nt)
     ham = noise(nt, lc, 70.0, 6.0)
     pit = noise(nt, lc, 220.0, 3.0)
-    col = _mix(nt, tone, (0.48, 0.47, 0.46), _ramp(nt, ham, 0.55, 0.7))
-    col = _mix(nt, col, (0.2, 0.12, 0.08), _math(nt, "MULTIPLY", _ramp(nt, pit, 0.66, 0.72), 0.6))
+    # Eierens bilde av hamret smijern.
+    img = photo(nt, "smijern", lc, 0.12)
+    col = _mix(nt, img.outputs["Color"], tuple(min(1.0, t / 0.28) for t in tone), 1.0, "MULTIPLY")
+    col = _mix(nt, col, (0.2, 0.12, 0.08), _math(nt, "MULTIPLY", _ramp(nt, pit, 0.68, 0.74), 0.5))
     nt.links.new(col, b.inputs["Base Color"])
     nt.links.new(_math(nt, "ADD", 0.38, _math(nt, "MULTIPLY", ham, 0.25)), b.inputs["Roughness"])
     b.inputs["Metallic"].default_value = 1.0
-    bump(nt, b, _math(nt, "ADD", ham, _math(nt, "MULTIPLY", pit, 0.5)), 0.35, 0.0015)
+    bump(nt, b, _math(nt, "ADD", img.outputs["Color"] if False else ham, _math(nt, "MULTIPLY", pit, 0.5)), 0.3, 0.0015)
     return m
 
 
@@ -151,27 +184,26 @@ def textured(name, layer, tint, scale, rough=0.7, bump_s=0.5, coords=None):
 
 
 def gambeson():
-    """Vattert lin: ullent, med quiltede kanaler på tvers av armen (bølger
-    langs kameraets y) og sting i fugene."""
-    m, nt, b = textured("gambeson", "linen", lin((0.55, 0.43, 0.3)), 0.12, rough=0.85, bump_s=0.3)
+    """Eierens vatterte lin, med de quiltede kanalene langs armen."""
+    m, nt, b = new_mat("gambeson")
     tc = nt.nodes.new("ShaderNodeTexCoord")
-    w = nt.nodes.new("ShaderNodeTexWave")
-    w.wave_type = "BANDS"
-    w.bands_direction = "Y"
-    w.inputs["Scale"].default_value = 26.0
-    w.inputs["Distortion"].default_value = 1.2
-    w.inputs["Detail"].default_value = 1.0
-    nt.links.new(tc.outputs["Object"], w.inputs["Vector"])
-    ridge = _math(nt, "POWER", w.outputs["Fac"], 0.35)
-    bump(nt, b, ridge, 0.9, 0.006)
-    # Mørkere i fugene.
-    base = b.inputs["Base Color"].links[0].from_socket
-    nt.links.new(_mix(nt, base, (0.5, 0.45, 0.4), _ramp(nt, w.outputs["Fac"], 0.2, 0.0), "MULTIPLY"), b.inputs["Base Color"])
+    img = photo(nt, "gabeson", tc.outputs["Object"], 0.3)
+    nt.links.new(img.outputs["Color"], b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.9
+    luma_bump(nt, b, img, 0.8, 0.004)
     return m
 
 
-def leather(name, tint, rough=0.55, scale=0.08, bump_s=0.25):
-    m, nt, b = textured(name, "leather", lin(tint), scale, rough=rough, bump_s=bump_s)
+def leather(name, tint, rough=0.55, scale=0.08, bump_s=0.25, file="armskinne"):
+    """Lær fra eierens bilder (armskinne, hanske), tonet etter `tint` mot
+    bildets egen farge."""
+    m, nt, b = new_mat(name)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    img = photo(nt, file, tc.outputs["Object"], scale * 2.5)
+    ref = {"armskinne": (0.45, 0.27, 0.15), "hanske": (0.25, 0.17, 0.13), "raahud": (0.78, 0.68, 0.5), "skaft": (0.75, 0.6, 0.42)}[file]
+    nt.links.new(_mix(nt, img.outputs["Color"], tuple(min(2.0, t / r) for t, r in zip(tint, ref)), 1.0, "MULTIPLY"), b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = rough
+    luma_bump(nt, b, img, bump_s * 1.5, 0.002)
     return m
 
 
@@ -226,7 +258,7 @@ def loft(name, sections, mat, cap=(True, True), mats_by_column=None):
     return link_mesh(name, bm, mat)
 
 
-def lathe(name, profile, mat, n=32, axis_frame=None):
+def lathe(name, profile, mat, n=32, axis_frame=None, cap=True):
     """Et omdreiningslegeme om lokal z fra profilen [(r, z)]."""
     secs = []
     for r, z in profile:
@@ -237,8 +269,12 @@ def lathe(name, profile, mat, n=32, axis_frame=None):
         for k in range(n):
             j = (k + 1) % n
             bm.faces.new((a[k], a[j], b2[j], b2[k]))
-    bm.faces.new(rings[0][::-1])
-    bm.faces.new(rings[-1])
+    if cap:
+        bm.faces.new(rings[0][::-1])
+        bm.faces.new(rings[-1])
+    else:
+        # Lukket profil (bula): sydd sammen der den begynner og slutter.
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return link_mesh(name, bm, mat)
 
@@ -293,7 +329,7 @@ def build_arms():
     # hansker med mansjett.
     gam = gambeson()
     brown = leather("bracer", (0.33, 0.2, 0.11), 0.5)
-    glove_m = leather("glove", (0.24, 0.16, 0.1), 0.5, 0.15, 0.12)
+    glove_m = leather("glove", (0.25, 0.17, 0.13), 0.55, 0.12, 0.2, "hanske")
     shell(body, "sleeve", lambda i, co: on_arm(i, co) and dom[i] != f"hand.{side(co)}" and along(co, side(co)) < 0.86, 0.013, 0.006, gam)
     shell(body, "bracer", lambda i, co: dom[i] == f"forearm.{side(co)}" and 0.3 < along(co, side(co)) < 0.8, 0.026, 0.004, brown)
     shell(body, "glove", lambda i, co: on_arm(i, co) and along(co, side(co)) > 0.8, 0.0028, 0.0015, glove_m)
@@ -313,6 +349,19 @@ def build_arms():
             top = max((v for v in body.data.vertices if band(v.index, v.co)), key=lambda v: v.co.z)
             n = top.normal.normalized()
             buckle(f"buckle{s}{t}", top.co + n * 0.034, d, n, iron)
+    # Tykkelsen på klærne (solidify) kan skyte skarpe hjørner (fingertuppene)
+    # langt ut som pigger: hjørner mer enn 6 cm fra kroppen fjernes.
+    from mathutils.bvhtree import BVHTree
+    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    for ob in [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(("glove", "sleeve", "bracer", "strap"))]:
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        far = [v for v in bm.verts if (tree.find_nearest(v.co)[0] - v.co).length > 0.06]
+        if far:
+            print(f"{ob.name}: fjerner {len(far)} pigger")
+            bmesh.ops.delete(bm, geom=far, context="VERTS")
+        bm.to_mesh(ob.data)
+        bm.free()
     # Bare armene blir igjen.
     bm = bmesh.new()
     bm.from_mesh(body.data)
@@ -336,12 +385,56 @@ def build_arms():
         sh, el, wr, k3 = J[f"upperarm01.{s}"][0], J[f"lowerarm01.{s}"][0], J[f"wrist.{s}"][0], J[f"finger3-1.{s}"][0]
         k2, k5 = J[f"finger2-1.{s}"][0], J[f"finger5-1.{s}"][0]
         m2, m5 = J[f"finger2-2.{s}"][0], J[f"finger5-2.{s}"][0]
-        # Grepet: midt mellom knokene og de bøyde fingrene; aksen fra
-        # lillefingeren mot pekefingeren (ut på tommelsida).
-        centre = (k2 + k5 + m2 + m5) / 4
+        # Hullet i neven: for hver finger midten mellom knoken, midtleddet og
+        # ytterleddet (fingrene krummer seg rundt det), snittet over de fire
+        # fingrene. Aksen går fra lillefingeren mot pekefingeren (ut på
+        # tommelsida), og radien er avstanden inn til leddene minus
+        # fingertykkelsen.
+        holes = []
+        for f in range(2, 6):
+            a1, a2, a3 = (J[f"finger{f}-{k}.{s}"][0] for k in (1, 2, 3))
+            holes.append((a1, a2, a3, (a1 + a2 + a3) / 3))
+        centre = sum((h[3] for h in holes), Vector()) / 4
         axis = (k2 - k5).normalized()
+        dist = []
+        for a1, a2, a3, _ in holes:
+            for p_ in (a1, a2, a3):
+                q = p_ - centre
+                dist.append((q - axis * q.dot(axis)).length)
+        radius = max(0.011, min(0.02, sum(dist) / len(dist) - 0.0095))
+        # Finjuster mot hanskens innside: punktene på fingrene som vender inn
+        # mot hullet, og en sirkel tilpasset dem i planet på tvers av aksen.
+        glove = bpy.data.objects["glove"]
+        segs = [(J[f"finger{f}-1.{s}"][0], J[f"finger{f}-3.{s}"][1]) for f in range(2, 6)]
+
+        def near_finger(p_):
+            for a_, b_ in segs:
+                ab = b_ - a_
+                t = max(0.0, min(1.0, (p_ - a_).dot(ab) / ab.length_squared))
+                if (p_ - (a_ + ab * t)).length < 0.016:
+                    return True
+            return False
+
+        e1 = axis.orthogonal().normalized()
+        e2 = axis.cross(e1).normalized()
+        cand = [(v.co.copy(), v.normal.copy()) for v in glove.data.vertices if near_finger(v.co)]
+        for _ in range(4):
+            pts = [(p_ - centre) for p_, n_ in cand if n_.dot((centre - p_).normalized()) > 0.35 and abs((p_ - centre).dot(axis)) < 0.05]
+            if len(pts) < 12:
+                break
+            xs = [q.dot(e1) for q in pts]
+            ys = [q.dot(e2) for q in pts]
+            # Sirkeltilpasning (Kåsa): x² + y² + a·x + b·y + c = 0.
+            import numpy as np
+            A = np.array([[x, y, 1.0] for x, y in zip(xs, ys)])
+            bv = -np.array([x * x + y * y for x, y in zip(xs, ys)])
+            (a_, b_, c_), *_ = np.linalg.lstsq(A, bv, rcond=None)
+            cx, cy = -a_ / 2, -b_ / 2
+            centre = centre + e1 * cx + e2 * cy
+            radius = math.sqrt(max(1e-6, cx * cx + cy * cy - c_))
         knuckle = (((k2 + k5) / 2) - wr).normalized()
-        grips[s] = {"centre": list(centre), "axis": list(axis), "knuckle": list(knuckle), "wrist": list(wr)}
+        grips[s] = {"centre": list(centre), "axis": list(axis), "knuckle": list(knuckle), "wrist": list(wr), "radius": radius}
+        print(f"grep {s}: radius {radius * 1000:.1f} mm")
         bones += [
             (f"upper_arm.{s}", tuple(sh), tuple(el), "root"),
             (f"forearm.{s}", tuple(el), tuple(wr), f"upper_arm.{s}"),
@@ -396,6 +489,10 @@ def buckle(name, c, d, n, mat):
 def grip_frame(s):
     g = json.load(open(RIG))["grips"][s]
     return Vector(g["centre"]), Vector(g["axis"]), Vector(g["knuckle"]), Vector(g["wrist"])
+
+
+def grip_radius(s):
+    return json.load(open(RIG))["grips"][s].get("radius", 0.015)
 
 
 def sword():
@@ -458,16 +555,18 @@ def sword():
     eblock.data.transform(Matrix.Scale(1.0, 4))
     place(eblock, F @ Matrix.Diagonal((1.0, 0.55, 1.0, 1.0)) @ Matrix.Rotation(math.pi / 4, 4, "Z"))
     place(guard, F)
-    # Grepet: lærtvunnet over tre, litt ovalt, med spiralrygger.
+    # Grepet: lærtvunnet over tre, litt ovalt, med spiralrygger, så tykt
+    # som hullet i neven.
+    gr = grip_radius("R")
     gsec = []
     for i in range(41):
         z = -0.075 + i / 40 * 0.13
         ring = []
         for k in range(24):
             a = 2 * math.pi * k / 24
-            r = 0.0155 + 0.0013 * max(0.0, math.sin(2 * math.pi * (z / 0.011 + a / (2 * math.pi))))
+            r = gr - 0.0008 + 0.0013 * max(0.0, math.sin(2 * math.pi * (z / 0.011 + a / (2 * math.pi))))
             r *= 1.0 - 0.12 * math.cos(2 * a)
-            ring.append(Vector((math.cos(a) * r * 0.85, math.sin(a) * r * 1.1, z)))
+            ring.append(Vector((math.cos(a) * r * 0.92, math.sin(a) * r * 1.06, z)))
         gsec.append(ring)
     place(loft("grip", gsec, grip_m), F)
     for z in (-0.078, 0.057):
@@ -490,37 +589,35 @@ def shield_round():
     # Skjoldet vender fram (som knokene) og litt inn mot midten.
     # Skjoldet holdes ut til venstre med kanten fram: flata vender fram og
     # ut mot venstre, så du ser kanten og litt av baksida.
-    normal = Vector((-0.25, 1.0, 0.05)).normalized()
-    F = frame_of(c + normal * 0.045, normal, Vector((0, 0, 1)))
+    # Håndtaket går rett gjennom neven: skjoldplanet inneholder grepets akse,
+    # og vender så nær fram og litt ut som mulig.
+    want = Vector((-0.25, 1.0, 0.05)).normalized()
+    normal = (want - axis * want.dot(axis)).normalized()
+    along = axis
+    # Håndtaket ligger i plankene (6 mm bak forsida), midt i neven; fingrene
+    # går gjennom hullet og inn under bula.
+    F = frame_of(c + normal * 0.006, normal, along)
+    gr = grip_radius("L")
     rng = random.Random(7)
     R = 0.34
-    wood, wnt, wb = textured("shield_wood", "oak", lin((0.75, 0.6, 0.45)), 0.25, rough=0.7, bump_s=0.6, coords=local_coords_turned)
+    # Plankene: eierens bilde av baksida, bordene langs lokal x.
+    wood, wnt, wb = new_mat("shield_wood")
+    wimg = planar(wnt, "skjold_bak", local_coords_turned(wnt), 1 / 0.7, 1 / 0.7, 0.5, 0.5)
+    wimg.extension = "REPEAT"
+    wnt.links.new(wimg.outputs["Color"], wb.inputs["Base Color"])
+    wb.inputs["Roughness"].default_value = 0.75
+    luma_bump(wnt, wb, wimg, 0.5)
     # Malingen på trekket: kvadrert rødt og oker, flasset av i kantene og
     # langs riper, så treet kommer fram.
+    # Forsida: eierens malte skjold, lagt flatt på (sirkelen i bildet har
+    # midten i (0,502; 0,5) og radius 0,481 av bredden).
     paint, pnt, pb = new_mat("shield_paint")
-    lc = local_coords(pnt)
-    sep = pnt.nodes.new("ShaderNodeSeparateXYZ")
-    pnt.links.new(lc, sep.inputs[0])
-    quad = _math(pnt, "GREATER_THAN", _math(pnt, "MULTIPLY", sep.outputs["X"], sep.outputs["Y"]), 0.0)
-    col = _mix(pnt, lin((0.55, 0.08, 0.05)), lin((0.78, 0.55, 0.18)), quad)
-    # Et svart kors gjennom midten.
-    cross = _math(pnt, "MAXIMUM", _ramp(pnt, _math(pnt, "ABSOLUTE", sep.outputs["X"]), 0.035, 0.03), _ramp(pnt, _math(pnt, "ABSOLUTE", sep.outputs["Y"]), 0.035, 0.03))
-    col = _mix(pnt, col, lin((0.06, 0.05, 0.05)), cross)
-    wear = noise(pnt, lc, 14.0, 8.0)
-    rad = _math(pnt, "LENGTH", lc) if False else None
-    rim = pnt.nodes.new("ShaderNodeVectorMath")
-    rim.operation = "LENGTH"
-    pnt.links.new(lc, rim.inputs[0])
-    worn = _math(pnt, "ADD", _ramp(pnt, wear, 0.62, 0.66), _ramp(pnt, rim.outputs["Value"], R - 0.06, R - 0.01))
-    img = _boxtex(pnt, f"{TEX}/oak/albedo.jpg", 0.25, lc)
-    bare = _mix(pnt, img.outputs["Color"], lin((0.7, 0.55, 0.4)), 1.0, "MULTIPLY")
-    grime = noise(pnt, lc, 4.0, 4.0)
-    col = _mix(pnt, col, (0.25, 0.22, 0.2), _math(pnt, "MULTIPLY", _ramp(pnt, grime, 0.45, 0.7), 0.5), "MULTIPLY")
-    col = _mix(pnt, col, bare, _math(pnt, "MINIMUM", worn, 1.0))
-    pnt.links.new(col, pb.inputs["Base Color"])
-    pnt.links.new(_math(pnt, "ADD", 0.55, _math(pnt, "MULTIPLY", worn, 0.2)), pb.inputs["Roughness"])
-    bump(pnt, pb, _math(pnt, "SUBTRACT", 1.0, _math(pnt, "MINIMUM", worn, 1.0)), 0.4, 0.001)
-    hide = leather("rawhide", (0.62, 0.5, 0.36), 0.6, 0.06)
+    k = 0.481 / R
+    pimg = planar(pnt, "skjold_rund", local_coords(pnt), k, k, 0.502, 0.5)
+    pnt.links.new(pimg.outputs["Color"], pb.inputs["Base Color"])
+    pb.inputs["Roughness"].default_value = 0.6
+    luma_bump(pnt, pb, pimg, 0.25, 0.001)
+    hide = leather("rawhide", (0.78, 0.68, 0.5), 0.6, 0.05, 0.3, "raahud")
     iron = forged("boss_iron", (0.3, 0.29, 0.28))
     grip_wood = leather("grip_wrap", (0.2, 0.13, 0.08), 0.6, 0.03)
     # Plankene: sju bord på tvers, klippet til sirkelen, med fuger.
@@ -573,18 +670,33 @@ def shield_round():
             v.co = d * (R - 0.008 + p.x * 0.008) + Vector((-d.y, d.x, 0)) * p.y * 0.0025 + Vector((0, 0, 0.0045 + p.z * 0.0015))
         place(link_mesh(f"stitch{k}", bm, hide, smooth=False), F)
     # Bula: flens med seks nagler og en kuppel.
+    # Bula (knokene ligger inne under kuppelen).
     place(lathe("boss", [(0.0, 0.0018), (0.088, 0.0018), (0.088, 0.0045), (0.072, 0.007), (0.066, 0.016), (0.06, 0.03), (0.045, 0.045), (0.022, 0.053), (0.0, 0.055)], iron, 40), F)
     for k in range(6):
         a = 2 * math.pi * k / 6
         place(lathe(f"rivet{k}", [(0.0, 0.004), (0.007, 0.0045), (0.006, 0.0075), (0.003, 0.009), (0.0, 0.0095)], iron, 10), F @ Matrix.Translation((math.cos(a) * 0.08, math.sin(a) * 0.08, 0)))
-    # Bak: håndtaket på tvers over hullet bak bula, og en polstret plate.
-    bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
-    for v in bm.verts:
-        v.co = Vector((v.co.x * 0.26, v.co.y * 0.03, -0.011 - 0.012 + v.co.z * 0.024))
-    place(link_mesh("handle", bm, wood), F)
-    hgrip = lathe("handle_wrap", [(0.0, -0.06), (0.017, -0.058), (0.018, 0.0), (0.017, 0.058), (0.0, 0.06)], grip_wood, 16)
-    place(hgrip, F @ Matrix.Translation((0, 0, -0.035)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
+    # Bak: håndtaket går tvers over hullet (lærtvunnet der neven griper),
+    # og fortsetter som en list limt på baksida av plankene.
+    for sx in (-1, 1):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        for v in bm.verts:
+            v.co = Vector((sx * (0.135 + v.co.x * 0.11), v.co.y * 0.034, -0.011 - 0.009 + v.co.z * 0.018))
+        place(link_mesh(f"handle{sx}", bm, wood), F)
+    hgrip = lathe("handle_wrap", [(0.0, -0.07), (gr - 0.001, -0.068), (gr, 0.0), (gr - 0.001, 0.068), (0.0, 0.07)], grip_wood, 20)
+    place(hgrip, F @ Matrix.Translation((0, 0, -0.006)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
+    # Hullet bak bula, der neven er: skjæres gjennom plankene og trekket.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.062, depth=0.2)
+    hole = bpy.context.active_object
+    hole.matrix_world = F
+    for ob in [o for o in bpy.data.objects if o.name.startswith(("plank", "shield_face"))]:
+        mod = ob.modifiers.new("hole", "BOOLEAN")
+        mod.operation = "DIFFERENCE"
+        mod.object = hole
+        mod.solver = "EXACT"
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(hole)
     return F
 
 
@@ -592,7 +704,7 @@ def axe():
     """Skjeggøks: askeskaft med jernhylse og et smidd blad med skjegg."""
     c, axis, knuckle, _ = grip_frame("R")
     F = frame_of(c, axis, knuckle)
-    shaft = leather("axe_shaft", (0.7, 0.55, 0.38), 0.6, 0.1)
+    shaft = leather("axe_shaft", (0.75, 0.6, 0.42), 0.6, 0.12, 0.2, "skaft")
     head_m = forged("axe_iron", (0.34, 0.33, 0.33))
     edge_m = steel("axe_edge", 0.15)
     place(lathe("shaft", [(0.0, -0.12), (0.017, -0.118), (0.018, 0.2), (0.016, 0.52), (0.0, 0.53)], shaft, 16), F)
@@ -645,16 +757,15 @@ def shield_tower():
     c, axis, knuckle, _ = grip_frame("L")
     normal = Vector((-0.95, 0.3, 0.05)).normalized()
     F = frame_of(c + normal * 0.05, normal, Vector((0, 0, 1)))
+    # Forsida: eierens malte trekantskjold (i bildet fra x 0,15 til 0,85 og
+    # fra 0,08 til 0,92 ovenfra), lagt flatt på omrisset.
     paint, pnt, pb = new_mat("heater_paint")
-    lc = local_coords(pnt)
-    sep = pnt.nodes.new("ShaderNodeSeparateXYZ")
-    pnt.links.new(lc, sep.inputs[0])
-    stripes = _math(pnt, "GREATER_THAN", _math(pnt, "SINE", _math(pnt, "MULTIPLY", sep.outputs["X"], 40.0)), 0.0)
-    col = _mix(pnt, lin((0.12, 0.2, 0.45)), lin((0.85, 0.82, 0.74)), stripes)
-    wear = noise(pnt, lc, 12.0, 8.0)
-    col = _mix(pnt, col, lin((0.5, 0.38, 0.26)), _ramp(pnt, wear, 0.64, 0.68))
-    pnt.links.new(col, pb.inputs["Base Color"])
+    su = 0.35 / 0.3
+    sv = 0.837 / 0.9
+    pimg = planar(pnt, "skjold_trekant", local_coords(pnt), su, sv, 0.5, 0.08 + 0.54 * sv)
+    pnt.links.new(pimg.outputs["Color"], pb.inputs["Base Color"])
     pb.inputs["Roughness"].default_value = 0.6
+    luma_bump(pnt, pb, pimg, 0.25, 0.001)
     iron = forged("heater_iron")
     grip_m = leather("heater_grip", (0.2, 0.13, 0.08), 0.6, 0.03)
     # Omrisset: rett topp, buede sider ned mot spissen; buet om lokal y.
@@ -720,6 +831,47 @@ def preview(out):
     scene.camera = cam
     scene.render.filepath = out
     bpy.ops.render.render(write_still=True)
+    # Nærbilder av hendene rundt grepene, fra fire kanter.
+    rig = json.load(open(RIG))["grips"]
+    for s in "RL":
+        cen = Vector(rig[s]["centre"])
+        ax = Vector(rig[s]["axis"])
+        kn = Vector(rig[s]["knuckle"])
+        side_v = ax.cross(kn).normalized()
+        for tag, d in (("over", ax), ("under", -ax), ("ut", kn), ("inn", side_v)):
+            d = Vector(d).normalized()
+            bpy.ops.object.camera_add(location=cen + d * 0.3)
+            ch = bpy.context.active_object
+            ch.rotation_euler = (-d).to_track_quat("-Z", "Y" if abs(d.z) > 0.9 else "Z").to_euler()
+            # Bare hånda og grepet: skjoldet og klinga skjules i nærbildene.
+            for o in bpy.data.objects:
+                if o.type == "MESH" and o.name.startswith(("plank", "shield_face", "rim", "stitch", "boss", "rivet", "blade")):
+                    o.hide_render = True
+            ch.data.lens = 50
+            ch.data.clip_start = 0.01
+            scene.camera = ch
+            scene.render.filepath = out.replace(".png", f"_hand{s}_{tag}.png")
+            bpy.ops.render.render(write_still=True)
+    for o in bpy.data.objects:
+        o.hide_render = False
+    # Forsida av skjoldet, sett av fienden.
+    face = bpy.data.objects.get("shield_face")
+    if face:
+        cen = sum((v.co for v in face.data.vertices), Vector()) / len(face.data.vertices)
+        ax_l = Vector(json.load(open(RIG))["grips"]["L"]["axis"])
+        nrm = Vector((-0.25, 1.0, 0.05)).normalized()
+        nrm = (nrm - ax_l * nrm.dot(ax_l)).normalized()
+        bpy.ops.object.camera_add(location=cen + nrm * 1.3)
+        c3 = bpy.context.active_object
+        c3.rotation_euler = (-nrm).to_track_quat("-Z", "Z").to_euler()
+        c3.data.lens = 35
+        bpy.ops.object.light_add(type="SUN", location=cen + nrm * 2)
+        sun = bpy.context.active_object
+        sun.rotation_euler = (-nrm).to_track_quat("-Z", "Z").to_euler()
+        sun.data.energy = 3.0
+        scene.camera = c3
+        scene.render.filepath = out.replace(".png", "_shield.png")
+        bpy.ops.render.render(write_still=True)
     # Og fra siden og ovenfra, til å se hele oppstillingen.
     for tag, loc in (("side", (1.1, 0.3, 0.1)), ("top", (0.0, 0.35, 1.2))):
         bpy.ops.object.camera_add(location=loc)
