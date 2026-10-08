@@ -365,7 +365,8 @@ struct Inside {
     hulls: Vec<Vec<[f32; 3]>>,
 }
 
-const INSIDE: [(&str, &str); 3] = [
+const INSIDE: [(&str, &str); 4] = [
+    ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
     ("forge", include_str!("../../../assets/models/town/forge_inside.json")),
     ("tavern", include_str!("../../../assets/models/town/tavern_inside.json")),
     ("scriptorium", include_str!("../../../assets/models/town/scriptorium_inside.json")),

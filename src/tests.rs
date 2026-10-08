@@ -315,7 +315,7 @@ fn man_kan_ga_inn_i_husene() {
     }
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, start ute og mål inne, i Blenders akser (x, y): døra mot −y.
-    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5))];
+    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5))];
     let mut problems = vec![];
     for (model, from, to) in houses {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
