@@ -463,7 +463,7 @@ fn gjennomspilling() {
     let d: &Dungeon = &p.world.dungeon;
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
-    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false };
+    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false, fighting: 0.0, ignore_until: 0.0 };
     bot.step(&mut game, &mut physics);
     let events = game.use_first(|u| *u == Use::Descend);
     assert!(events.iter().any(|e| matches!(e, Event::Fade)), "døra i krypten tok deg ikke ned");
@@ -584,6 +584,8 @@ struct Bot {
     stuck: f32,
     sidestep: f32,
     side: bool,
+    fighting: f32,
+    ignore_until: f32,
 }
 
 impl Bot {
@@ -607,7 +609,10 @@ impl Bot {
                     self.near_deaths += 1;
                     game.heal();
                 }
-                Event::Toast(t) if t.contains("falt fra hverandre") => self.kills += 1,
+                Event::Toast(t) if t.contains("falt fra hverandre") => {
+                    self.kills += 1;
+                    self.fighting = 0.0;
+                }
                 Event::Toast(t) if t.contains("overkjørt") => panic!("boten døde likevel: {t}\n{}", self.log.join("\n")),
                 _ => {}
             }
@@ -642,8 +647,24 @@ impl Bot {
             a == b || ((a.0 - b.0).abs() + (a.1 - b.1).abs() == 1 && fl.passable(a, b))
         };
         let near = game.living().into_iter().filter(|(m, _, _)| (m.y - feet.y).abs() < 2.5 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0 && reach(m)).min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
-        let Some((m, kind, _)) = near else { return false };
-        self.input.key("KeyW", false);
+        if self.t < self.ignore_until {
+            return false;
+        }
+        let Some((m, kind, _)) = near else {
+            self.fighting = 0.0;
+            return false;
+        };
+        // Står fienden utenfor rekkevidden (den kommer seg ikke nærmere forbi
+        // en sarkofag eller søyle), går boten inn til den. Blir det stående
+        // slik, går den videre en stund, som en spiller ville gjort.
+        self.fighting += Self::DT;
+        if self.fighting > 20.0 {
+            self.note(format!("    {:.0} s: ga opp {kind:?} ved ({:.1}, {:.1}, {:.1}) etter 20 s uten å felle den", self.t, m.x, m.y, m.z));
+            self.fighting = 0.0;
+            self.ignore_until = self.t + 6.0;
+            return false;
+        }
+        self.input.key("KeyW", m.with_y(0.0).distance(feet.with_y(0.0)) > 1.6 * if kind.boss() { 1.5 } else { 1.0 });
         self.aim(game, m + Vec3::Y * 0.8 * if kind.boss() { 2.0 } else { 1.0 });
         self.swing += 1;
         self.input.actions.push(if self.swing % 2 == 0 { Action::Attack } else { Action::AttackRelease });
