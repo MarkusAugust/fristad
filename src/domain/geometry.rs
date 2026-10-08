@@ -65,13 +65,21 @@ pub enum Layer {
     Linen = 22,
     /// Lær (belter, sko, bokbind).
     Leather = 23,
+    /// Fuktig kryptmur med mose og salt.
+    CryptWall = 24,
+    /// Løs halm på gulvet.
+    Straw = 25,
+    /// Plankegulv innendørs.
+    Floor = 26,
+    /// Sotet mur i smia.
+    Soot = 27,
 }
-pub const LAYERS: u32 = 24;
+pub const LAYERS: u32 = 28;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
         Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
-        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather,
+        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather, Layer::CryptWall, Layer::Straw, Layer::Floor, Layer::Soot,
     ];
     /// Navnet i `assets/external/manifest.json`.
     pub fn name(self) -> &'static str {
@@ -100,12 +108,16 @@ impl Layer {
             Layer::Wool => "wool",
             Layer::Linen => "linen",
             Layer::Leather => "leather",
+            Layer::CryptWall => "cryptwall",
+            Layer::Straw => "straw",
+            Layer::Floor => "floor",
+            Layer::Soot => "soot",
         }
     }
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

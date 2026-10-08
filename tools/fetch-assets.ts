@@ -68,6 +68,10 @@ const TEXTURES: Record<string, string[]> = {
   wool: ["wool", "fabric"],
   linen: ["linen", "fabric"],
   leather: ["leather"],
+  cryptwall: ["damp_wall", "stone_wall"],
+  straw: ["straw", "hay"],
+  floor: ["wood_floor", "planks"],
+  soot: ["burnt_wall", "stone_wall"],
   earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
 };
 

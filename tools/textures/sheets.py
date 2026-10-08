@@ -8,6 +8,11 @@ står nederst, og legges side om side og oppå hverandre til et tett
 barkort: assets/models/trees/needles_spruce.png (rota ved v = 0, langs
 kortet som trees.py legger det).
 
+hair / beard: hele arket med alfa (hår: fire farger × tre lokker, rota
+øverst; skjegg: fire farger med helskjegg, kinnskjegg, bart og stubb),
+til assets/models/npc/hair_atlas.png og beard_atlas.png, som
+tools/models/npc.py legger på kortene rundt hodet.
+
 flowers: arket er fem kolonner (smørblomst, blåklokke, ryllik, rødkløver,
 hundekjeks) og tre rader. Hver plante beskjæres og legges i et atlas med
 rota nederst: assets/models/trees/flowers_atlas.png og flowers_items.json
@@ -98,5 +103,17 @@ def flowers(path):
     print(f"{OUT}/flowers_atlas.png: {len(items)} planter")
 
 
+def sheet(path, name):
+    """Hele arket med alfa, halvert til 1024², fargen bredd ut bak alfaen."""
+    rgba = load(path)
+    a = rgba.copy()
+    known = a[..., 3] > 10
+    a[..., :3][~known] = a[..., :3][known].mean(0)
+    import os
+    os.makedirs("assets/models/npc", exist_ok=True)
+    Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA").resize((SIZE, SIZE), Image.LANCZOS).save(f"assets/models/npc/{name}_atlas.png", optimize=True)
+    print(f"assets/models/npc/{name}_atlas.png")
+
+
 if __name__ == "__main__":
-    {"needles": needles, "flowers": flowers}[sys.argv[1]](sys.argv[2])
+    {"needles": needles, "flowers": flowers, "hair": lambda p: sheet(p, "hair"), "beard": lambda p: sheet(p, "beard")}[sys.argv[1]](sys.argv[2])
