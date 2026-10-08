@@ -270,7 +270,12 @@ fn sample_plane(layer: i32, uv: vec2<f32>, gx: vec2<f32>, gy: vec2<f32>, t: vec3
 }
 
 fn triplanar(layer: i32, world: vec3<f32>, dwx: vec3<f32>, dwy: vec3<f32>, n_geo: vec3<f32>, rot: bool) -> Tex {
-    let scale = g.tex_scale[layer / 4][layer % 4];
+    return triplanar_s(layer, world, dwx, dwy, n_geo, rot, 1.0);
+}
+
+// Som `triplanar`, med flisa `mul` ganger større.
+fn triplanar_s(layer: i32, world: vec3<f32>, dwx: vec3<f32>, dwy: vec3<f32>, n_geo: vec3<f32>, rot: bool, mul: f32) -> Tex {
+    let scale = g.tex_scale[layer / 4][layer % 4] * mul;
     let p = world / scale;
     // Gradientene til uv-ene følger av gradientene til verdensposisjonen.
     let dx = dwx / scale;
@@ -620,6 +625,18 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             t = uvmapped(i32(kind), i.uv, duv1, duv2, dp1, dp2, n_geo);
         } else {
             t = triplanar(i32(kind), i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u);
+            // Berget i fjellene: på avstand tar en flis som er ti ganger
+            // større over, så de store flatene ikke gjentar seg i ruter.
+            if (kind == 15u) {
+                let far = smoothstep(40.0, 160.0, distance(i.world, g.camera.xyz));
+                if (far > 0.01) {
+                    let big = triplanar_s(15, i.world, dp1, dp2, n_geo, false, 10.0);
+                    t.albedo = mix(t.albedo, big.albedo, far);
+                    t.n = normalize(mix(t.n, big.n, far));
+                    t.rough = mix(t.rough, big.rough, far);
+                    t.height = mix(t.height, big.height, far);
+                }
+            }
         }
         // Stor, svak variasjon så flisene ikke repeterer synlig.
         let variation = 0.86 + 0.28 * fbm2(i.world.xz * 0.11 + i.world.y * 0.07);

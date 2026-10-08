@@ -373,7 +373,8 @@ pub fn landscape(b: &mut Builder) {
     let (r0, r1) = (196.0f32, 600.0f32);
     let (rings, spokes) = (64usize, 288usize);
     let grass = Mat::tex(Layer::Grass, 0xc8f098);
-    let rock = Mat::tex(Layer::Rock, 0xffffff);
+    // Granitten er lys i bildet; i fjellsida dempes den mot gråbrun.
+    let rock = Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.5, 0.47, 0.44));
     let snow = Mat::tex(Layer::Snow, 0xffffff);
     // Radiene tettere innerst, der detaljene er nær.
     let radius = |j: usize| {
