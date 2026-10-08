@@ -165,15 +165,20 @@ def castle_ruin():
         block("gate_tower", (3.4, 3.4, 7.5 - sx * 1.5), m.ashlar, at=(sx * 6.6, -S, (7.5 - sx * 1.5) / 2 - 0.8), bevel=0.05, segments=2)
         rubble(m, rng, sx * 6.6, -S - 2.5, 1.6, 10)
     # Hovedtårnet i nordvest: kvadratisk, tre vegger står, den fjerde ligger
-    # som en røys inne i borggården.
+    # som en røys inne i borggården. Veggene har rast ujevnt fra toppen:
+    # høyest i hjørnet der nord- og vestveggen møtes, nesten borte i øst,
+    # med takkete kanter, løse steiner og hull etter bjelkene i etasjene.
     kx, ky, kw, kh = -11.0, 11.0, 7.0, 12.0
-    for (cx, cy, sx_, sy_, hh) in [(kx, ky + kw / 2, kw, 1.4, kh), (kx - kw / 2, ky, 1.4, kw, kh - 1.5), (kx + kw / 2, ky, 1.4, kw, kh * 0.6)]:
-        ob = block("keep_wall", (sx_, sy_, hh + 0.8), m.ashlar, at=(cx, cy, (hh - 0.8) / 2), bevel=0.05, segments=2)
-        # Vinduer og en skyteskår.
-        for z in (4.0, 8.0):
-            if z < hh - 1.0:
-                cut(ob, (0.5 if sx_ > sy_ else 2.0, 2.0 if sx_ > sy_ else 0.5, 1.2), (cx, cy, z))
-        town.uv_box(ob)
+    x0, x1, y0, y1 = kx - kw / 2, kx + kw / 2, ky - kw / 2, ky + kw / 2
+    ruined_wall(m, rng, x0, y1, x1, y1, 1.4, kh * 0.55, kh)
+    ruined_wall(m, rng, x0, y0, x0, y1, 1.4, kh * 0.35, kh * 0.85)
+    ruined_wall(m, rng, x1, y0 + 1.5, x1, y1, 1.4, kh * 0.15, kh * 0.45)
+    # Bjelkehullene etter etasjeskillene, og to bjelker som har falt ned.
+    for z in (4.2, 8.2):
+        for k in range(4):
+            block("beam_socket", (0.3, 0.2, 0.3), m.dark if hasattr(m, "dark") else m.timber, at=(x0 + 1.0 + k * 1.6, y1 - 0.69, z), bevel=0.01)
+    for (bx, by, rz, tilt) in ((kx - 0.8, ky - 1.0, 0.4, 0.25), (kx + 1.6, ky + 0.6, -0.9, 0.1)):
+        block("fallen_beam", (5.2, 0.32, 0.3), m.timber, at=(bx, by, 0.35 + tilt * 2.0), rot=(0, tilt, rz), bevel=0.03)
     rubble(m, rng, kx + 1.0, ky - kw / 2 - 1.5, 3.5, 40, (0.4, 1.1))
     # Røysa midt i borggården: et rast brønnhus.
     rubble(m, rng, 0.0, 0.0, 1.8, 26, (0.4, 1.0))

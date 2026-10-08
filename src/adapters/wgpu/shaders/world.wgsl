@@ -522,7 +522,9 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     let v = normalize(g.camera.xyz - i.world);
     let night = g.sun_color.w;
     let f0 = mix(vec3<f32>(0.04), s.albedo, s.metal);
-    let diffuse_albedo = s.albedo * (1.0 - s.metal);
+    // Smijern er ikke speil: hamret, oksidert og sotet jern sprer også lys,
+    // ellers blir det svart innendørs der det ikke har himmel å speile.
+    let diffuse_albedo = s.albedo * (1.0 - s.metal * 0.55);
     let screen_uv = i.clip.xy * g.screen.zw;
     let ssao = textureSampleLevel(ao_tex, frame_sampler, screen_uv, 0.0).r;
 
@@ -538,8 +540,10 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     var color = sun * (diffuse_albedo * wrap + ggx(n, v, l, s.rough, f0) * PI * ndl);
     if (s.kind == 1u) {
         // Lys gjennom bladet.
-        let back = max(dot(-n, l), 0.0) * pow(max(dot(-v, l), 0.0), 2.0);
-        color += sun * s.albedo * vec3<f32>(0.9, 1.0, 0.5) * back * 0.6;
+        // Dempet der løvet er tett og skygget (okklusjonen), så tynne
+        // grantopper ikke lyser opp i motlys.
+        let back = max(dot(-n, l), 0.0) * pow(max(dot(-v, l), 0.0), 3.0);
+        color += sun * s.albedo * vec3<f32>(0.8, 0.95, 0.5) * back * 0.3 * s.ao * sh;
     }
 
     // Himmellys fra alle kanter, og lys som spretter opp fra bakken.
@@ -547,7 +551,13 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     // Himmellyset er sterkere og mindre blått enn himmelfargen rett opp:
     // det kommer fra hele hvelvingen, mest fra horisonten.
     let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.6) * 1.25;
-    let hemi = mix(g.ground_bounce.rgb, sky_amb, n.y * 0.5 + 0.5);
+    var hemi = mix(g.ground_bounce.rgb, sky_amb, n.y * 0.5 + 0.5);
+    if (s.kind == 1u) {
+        // Løv og barnåler: normalene peker ut fra kronen, og i toppen rett
+        // opp, men en tett krone skygger seg selv. Himmellyset tas nesten
+        // likt fra alle kanter, så grantoppene ikke lyser hvite.
+        hemi = mix(g.ground_bounce.rgb, sky_amb, 0.45 + n.y * 0.12) * 0.85;
+    }
     color += diffuse_albedo * hemi * ao;
 
     // Refleksjon av himmelen, uskarpere jo ruere flaten er.
@@ -746,6 +756,12 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             s.n = normalize(tbn * nm);
         }
         s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * (0.2 + night * 8.0 * g.params.w);
+        if ((flags & F_ALPHA) != 0u) {
+            // Alfakort (barnåler, gress, blader i modellene) er løv: matte,
+            // uten himmelspeiling i flate vinkler, og med lys gjennom.
+            s.kind = 1u;
+            s.rough = max(s.rough, 0.85);
+        }
     } else if (kind == K_GLASS) {
         s.kind = 2u;
         s.albedo = vec3<f32>(0.0);
@@ -774,6 +790,19 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             s.emissive = warm * (0.04 + night * 2.2) * wobble * flick;
         } else {
             s.emissive = interior(i.world, n_geo, v, night);
+        }
+        if (glow != 3u) {
+            // Om dagen utenfra: det grønnlige, ujevne glasset speiler himmelen
+            // (mer på skrå) og slipper litt av det lyse rommet bak gjennom,
+            // så rutene ikke blir svarte hull.
+            let day = 1.0 - night;
+            let q = vec2<f32>(dot(i.world.xz, vec2<f32>(0.7071, -0.7071)), i.world.y);
+            let pane = hash31(vec3<f32>(floor(q * 3.8), 5.0));
+            let wobble = 0.6 + 0.5 * fbm2(q * 7.0);
+            let sky = mix(g.sky_horizon.rgb, g.sky_top.rgb, 0.5);
+            let fres = 0.25 + 0.75 * pow(1.0 - max(dot(n_geo, v), 0.0), 3.0);
+            let glass = mix(vec3<f32>(0.55, 0.7, 0.58), vec3<f32>(0.75, 0.8, 0.66), pane);
+            s.emissive += day * (sky * fres * 0.55 + glass * sky * 0.18) * wobble;
         }
     } else if (kind == K_LEAF) {
         let l = textureSampleGrad(leaf_tex, clamp_sampler, i.uv, duv1, duv2);

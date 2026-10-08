@@ -48,6 +48,7 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 ## Grafikk
 
 - Rendereren (`adapters/wgpu/`): kaskadeskygger, dybdeprepass, SSAO, TAA, volumetrisk tåke med lysstråler (bare oppe; i kjelleren er det ingen tåke), regn, snø, våte flater, snødekke, glød og tonemapping. Modellene har to detaljnivåer (`Mesh::clustered`), bymeshen stokkes i biter på 24 m (`Mesh::chunked`) og cules per pass. `Renderer::set_quality` (0–1) og `set_scale` (0.4–1.0); `web/main.js` justerer dem etter bildefrekvensen.
+- Rutene speiler himmelen og slipper gjennom litt grønnlig dagslys utenfra om dagen; metall sprer også lys (`diffuse_albedo` med `metal * 0.55`), så jern ikke blir svart innendørs; alfakort i modellene (barnåler, gress) skygges som løv, matte og med himmellys nesten likt fra alle kanter.
 - Materialene i modellene: `glow` blir `kind::LAMP` (lyser om natta), `glass` blir `kind::GLASS`, `paint` farges per instans (`Builder::place_tinted`), metall flagges `flag::METAL`. Et materiale som heter `layer_<lag>` (f.eks. `layer_stone`) legger teksturlaget på etter modellens uv i meter (`flag::UVMAP`), med materialfargen som lineær tone; okklusjonen bakt i hjørnefargen (COLOR_0) blandes over trekanten. Lagene uten bilde bakes prosedyrisk i `bake.wgsl` (`adapters/layers.rs`).
 - I Blender: alle deler må ha uv-laget `UVMap` (`town.ensure_uv`); booleaner tar med kutterens uv-lag, som `town.keep_uv` fjerner. Ellers eksporteres tom uv og flatene blir grå.
 - `snapshot --debug albedo|normal|ao|rough|shadow` og `--dump-layer N` til feilsøking.
@@ -83,4 +84,3 @@ Neste:
 3. Kjelleren: egne modulsett per tema (kloakk, katakomber, lavadypet), skygger fra punktlys, snarveier og kløfter (se `docs/kjelleren.md`).
 4. Bedre figurer: innbyggerne med eierens ansikter (`assets/textures/faces/`), klær og hår, og monstrene med mer detalj, og bedre lys og materialer i rendereren.
 5. Ytelse på nett: KTX2-komprimerte teksturer og lettere modeller (Vertshuset er 221 000 trekanter og 15 MB).
-6. Småfeil: rutene er mørke utenfra om dagen, jernet på hyllene i Smia er mørkt, hovedtårnet i borgruinen ser for helt ut, portalen i `crypt_stair` står litt ut fra veggen, og grantoppene er lyse i motlys.

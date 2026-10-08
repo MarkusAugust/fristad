@@ -921,3 +921,4 @@ fn lydene_i_byen_folger_deg() {
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
 }
+

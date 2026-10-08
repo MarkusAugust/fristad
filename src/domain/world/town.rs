@@ -1099,6 +1099,9 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
         if !ok || route.len() < 2 {
             continue;
         }
+        // Starter midt på ruta, ute i gata (ikke i veien ved en brønn).
+        let half = route.len() / 2;
+        route.rotate_left(half);
         let (pos, _) = route[0];
         b.npcs.push(NpcSpec { name, model: crate::domain::npcs::NPC_MODEL, pos, yaw: 0.0, tint, lines, route });
         let i = b.npcs.len() - 1;
