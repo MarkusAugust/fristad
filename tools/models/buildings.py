@@ -41,7 +41,7 @@ from common import clear  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 
 import town  # noqa: E402
-from town import M, PIECES, beam, block, cut, door, finish, gable, layer, plain, roof, window  # noqa: E402
+from town import M, PIECES, beam, block, collide, cut, ramp, door, finish, gable, layer, light, plain, roof, window  # noqa: E402
 from walls import revolve  # noqa: E402
 from props import barrel, crate  # noqa: E402
 
@@ -50,12 +50,13 @@ OUT = "assets/models/town"
 
 def mats(**kw):
     m = M(**kw)
+    inside(m)
     m.planks = layer("cladding", (0.5, 0.42, 0.34), 0.5)
     m.soot = layer("soot", (0.8, 0.8, 0.8), 0.5)
     m.leather = layer("leather", (0.7, 0.62, 0.55), 0.5)
     m.bark = layer("bark", (0.8, 0.75, 0.7), 0.5)
     m.dark_iron = layer("metal", (0.28, 0.26, 0.25), 0.5)
-    m.glow = plain("glow", (1.0, 0.45, 0.12), 0.4)
+    m.glow = plain("fire_coals", (1.0, 0.45, 0.12), 0.4)
     m.water = plain("glass", (0.03, 0.04, 0.04), 0.05)
     return m
 
@@ -96,6 +97,128 @@ def stone_wall(m, name, x0, x1, y0, y1, z0, z1, mat):
     return ob
 
 
+# --- Innredning -------------------------------------------------------------
+
+
+def inside(m):
+    """Materialene til innredningen."""
+    m.floor = layer("floor", (0.75, 0.72, 0.68), 0.5)
+    m.straw = layer("straw", (0.8, 0.78, 0.7), 0.5)
+    m.flags = layer("concrete", (0.75, 0.73, 0.7), 0.5)
+    m.flame = plain("fire_flame", (1.0, 0.7, 0.35), 0.4)
+    m.wax = layer("plaster", (0.75, 0.7, 0.55), 0.5)
+    m.books = [layer("leather", c, 0.5) for c in ((0.55, 0.2, 0.12), (0.3, 0.22, 0.14), (0.18, 0.22, 0.3), (0.2, 0.3, 0.16), (0.6, 0.45, 0.3))]
+    m.vellum = layer("plaster", (0.9, 0.85, 0.72), 0.5)
+    m.wood = layer("cladding", (0.5, 0.42, 0.34), 0.5)
+    if not hasattr(m, "leather"):
+        m.leather = layer("leather", (0.7, 0.62, 0.55), 0.5)
+    return m
+
+
+def wall_box(x0, y0, x1, y1, z0, z1):
+    """Kollider for et veggstykke mellom to hjørner (Blender-akser)."""
+    collide(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (abs(x1 - x0), abs(y1 - y0), z1 - z0))
+
+
+def walls_with_door(x0, x1, y0, y1, z0, z1, t, door_x, door_w, door_h, front_y):
+    """Kollidere for fire vegger rundt et rom; fronten (y = front_y) har en
+    døråpning med overligger."""
+    yf0, yf1 = front_y - t / 2, front_y + t / 2
+    wall_box(x0, yf0, door_x - door_w / 2, yf1, z0, z1)
+    wall_box(door_x + door_w / 2, yf0, x1, yf1, z0, z1)
+    wall_box(door_x - door_w / 2, yf0, door_x + door_w / 2, yf1, z0 + door_h, z1)
+    back = y1 if abs(y1 - front_y) > abs(y0 - front_y) else y0
+    wall_box(x0, back - t / 2, x1, back + t / 2, z0, z1)
+    for x in (x0, x1):
+        wall_box(x - t / 2, min(y0, y1), x + t / 2, max(y0, y1), z0, z1)
+
+
+def candle(m, x, y, z, h=0.18, lit=True, r=0.025):
+    revolve("candle", [(0.0, z), (r, z), (r * 0.9, z + h), (0.0, z + h)], m.wax, n=8)
+    PIECES[-1].location = (x, y, 0)
+    beam("wick", (x, y, z + h), (x, y, z + h + 0.02), 0.004, 0.004, m.dark_iron if hasattr(m, "dark_iron") else m.iron)
+    if lit:
+        revolve("flame", [(0.0, z + h + 0.01), (0.012, z + h + 0.03), (0.0, z + h + 0.07)], m.flame, n=6)
+        PIECES[-1].location = (x, y, 0)
+
+
+def holder(m, x, y, z):
+    """Et lysestake av jern med et tent lys."""
+    revolve("holder", [(0.0, z), (0.06, z), (0.05, z + 0.02), (0.012, z + 0.03), (0.012, z + 0.12), (0.04, z + 0.13), (0.0, z + 0.14)], m.iron, n=10)
+    PIECES[-1].location = (x, y, 0)
+    candle(m, x, y, z + 0.14)
+
+
+def table(m, x, y, z0, along_x=True, ln=1.8, benches=True, rng=None):
+    """Et langbord på bukker med benker, med kollider rundt det hele."""
+    rng = rng or random.Random(int(x * 10 + y))
+    w = 0.8
+    sx, sy = (ln, w) if along_x else (w, ln)
+    block("table_top", (sx, sy, 0.07), m.wood, at=(x, y, z0 + 0.76), bevel=0.01)
+    for k in (-1, 1):
+        off = (k * (ln / 2 - 0.25), 0) if along_x else (0, k * (ln / 2 - 0.25))
+        for j in (-1, 1):
+            a = Vector((x + off[0], y + off[1], z0 + 0.73))
+            sp = Vector((0, j * 0.3, 0)) if along_x else Vector((j * 0.3, 0, 0))
+            beam("trestle", a, a + sp + Vector((0, 0, -0.73)), 0.07, 0.07, m.timber)
+    if benches:
+        for j in (-1, 1):
+            off = Vector((0, j * 0.65, 0)) if along_x else Vector((j * 0.65, 0, 0))
+            c = Vector((x, y, z0)) + off
+            block("bench", (sx, 0.3, 0.06) if along_x else (0.3, sy, 0.06), m.wood, at=c + Vector((0, 0, 0.45)), bevel=0.01)
+            for k in (-1, 1):
+                o = Vector((k * (ln / 2 - 0.15), 0, 0)) if along_x else Vector((0, k * (ln / 2 - 0.15), 0))
+                block("bench_leg", (0.06, 0.26, 0.42) if along_x else (0.26, 0.06, 0.42), m.timber, at=c + o + Vector((0, 0, 0.21)), bevel=0.01)
+    bw = sy + (1.6 if benches and along_x else 0.0)
+    bl = sx + (1.6 if benches and not along_x else 0.0)
+    collide((x, y, z0 + 0.42), (bl if not along_x else sx, bw if along_x else sy, 0.84))
+    return z0 + 0.795
+
+
+def books_row(m, x0, x1, y, z, depth=0.22, rng=None, axis_x=True):
+    """En rad bøker på en hylle, ulike høyder og farger, noen lent."""
+    rng = rng or random.Random(int(x0 * 7 + z * 13))
+    x = x0
+    while x < x1 - 0.05:
+        t = rng.uniform(0.035, 0.08)
+        h = rng.uniform(0.22, 0.34)
+        lean = rng.uniform(-0.12, 0.12) if rng.random() < 0.15 else 0.0
+        mat = rng.choice(m.books)
+        c = (x + t / 2, y, z + h / 2) if axis_x else (y, x + t / 2, z + h / 2)
+        size = (t, depth, h) if axis_x else (depth, t, h)
+        block("book", size, mat, at=c, rot=(0, lean, 0) if axis_x else (lean, 0, 0), bevel=0.006)
+        x += t + rng.uniform(0.0, 0.01)
+        if rng.random() < 0.06:
+            x += rng.uniform(0.08, 0.2)
+
+
+def shelf(m, x, y, z0, w, h, along_x=True, rows=4, books=True, rng=None):
+    """En bokhylle mot veggen: sider, hyller og bøker."""
+    d = 0.32
+    sx, sy = (w, d) if along_x else (d, w)
+    for k in (-1, 1):
+        if along_x:
+            block("shelf_side", (0.05, d, h), m.wood, at=(x + k * w / 2, y, z0 + h / 2), bevel=0.006)
+        else:
+            block("shelf_side", (d, 0.05, h), m.wood, at=(x, y + k * w / 2, z0 + h / 2), bevel=0.006)
+    for r in range(rows + 1):
+        z = z0 + 0.05 + (h - 0.1) * r / rows
+        block("shelf_board", (sx, sy, 0.03), m.wood, at=(x, y, z), bevel=0.004)
+        if books and r < rows:
+            if along_x:
+                books_row(m, x - w / 2 + 0.04, x + w / 2 - 0.04, y, z + 0.015, rng=rng)
+            else:
+                books_row(m, y - w / 2 + 0.04, y + w / 2 - 0.04, x, z + 0.015, rng=rng, axis_x=False)
+    collide((x, y, z0 + h / 2), (sx + 0.05, sy + 0.05, h))
+
+
+def open_book(m, x, y, z, yaw=0.0):
+    """En åpen bok: to sider pergament på et skinnbind."""
+    for k in (-1, 1):
+        block("page", (0.2, 0.28, 0.025), m.vellum, at=(x + k * 0.1 * math.cos(yaw), y + k * 0.1 * math.sin(yaw), z + 0.025), rot=(0, -k * 0.08, yaw), bevel=0.004)
+    block("cover", (0.44, 0.3, 0.012), m.books[0], at=(x, y, z + 0.006), rot=(0, 0, yaw), bevel=0.004)
+
+
 # --- Smia -------------------------------------------------------------------
 
 
@@ -114,7 +237,7 @@ def forge():
     stone_wall(m, "back", -W / 2, W / 2, yb1 - 0.55, yb1, -0.24, wh, m.stone)
     for sx in (-1, 1):
         stone_wall(m, f"side{sx}", sx * W / 2 - 0.275 - 0.275 * sx, sx * W / 2 + 0.275 - 0.275 * sx, yb0 + 0.55, yb1 - 0.55, -0.24, wh, m.stone)
-    door(m, 1.6, yb0 - 0.0, -1.0, 1.0, 2.0, 0.0)
+    door(m, 1.6, yb0 - 0.0, -1.0, 1.0, 2.0, 0.0, open=True)
     window(m, 3.4, 1.8, yb0 - 0.02, 0.6, 0.6, -1.0, shutters=True, rng=rng)
     # Taket over steinhuset: saltak med mønet langs x, flyttet bakover.
     before = len(PIECES)
@@ -232,6 +355,60 @@ def forge():
     block("sign_anvil", (0.75, 0.04, 0.18), m.dark_iron, at=(sx + 0.65, yf + 0.2, 1.88), bevel=0.01)
     block("sign_anvil_waist", (0.25, 0.04, 0.16), m.dark_iron, at=(sx + 0.62, yf + 0.2, 1.72), bevel=0.01)
     block("sign_anvil_foot", (0.5, 0.04, 0.08), m.dark_iron, at=(sx + 0.62, yf + 0.2, 1.6), bevel=0.01)
+    # --- Inne i steinhuset: lageret og smedens arbeidsbenk.
+    iy0, iy1 = yb0 + 0.55, yb1 - 0.55
+    block("floor", (W - 1.1, iy1 - iy0, 0.04), m.flags, at=(0, (iy0 + iy1) / 2, 0.0), bevel=0)
+    # Arbeidsbenken langs bakveggen, med skrustikke, tenger og et sverd under arbeid.
+    bx = -1.4
+    block("bench_top", (2.2, 0.7, 0.08), m.wood, at=(bx, iy1 - 0.4, 0.86), bevel=0.01)
+    for sx_ in (-1, 1):
+        for sy_ in (-1, 1):
+            block("bench_leg", (0.09, 0.09, 0.82), m.timber, at=(bx + sx_ * 0.98, iy1 - 0.4 + sy_ * 0.27, 0.41), bevel=0.01)
+    block("bench_shelf", (2.0, 0.6, 0.04), m.wood, at=(bx, iy1 - 0.4, 0.25), bevel=0.005)
+    block("vise", (0.16, 0.22, 0.2), m.dark_iron, at=(bx - 0.8, iy1 - 0.65, 0.98), bevel=0.01)
+    beam("blade", (bx - 0.2, iy1 - 0.45, 0.91), (bx + 0.6, iy1 - 0.4, 0.91), 0.05, 0.006, m.iron)
+    for k in range(3):
+        beam("tool", (bx + 0.2 + k * 0.15, iy1 - 0.25, 0.91), (bx + 0.25 + k * 0.15, iy1 - 0.6, 0.91), 0.02, 0.02, m.dark_iron)
+    collide((bx, iy1 - 0.4, 0.45), (2.3, 0.8, 0.9))
+    # Hyller på gavlveggen med jernstenger, emner og ferdige klinger.
+    shelf(m, -W / 2 + 0.75, (iy0 + iy1) / 2, 0.0, 2.4, 1.9, along_x=False, rows=3, books=False, rng=rng)
+    for r in range(3):
+        z = 0.05 + 1.8 * r / 3 + 0.03
+        for k in range(5):
+            y = (iy0 + iy1) / 2 - 1.0 + k * 0.45
+            if r == 2:
+                beam("blade", (-W / 2 + 0.7, y, z + 0.02), (-W / 2 + 0.7, y + 0.35, z + 0.02), 0.04, 0.006, m.iron)
+            else:
+                for j in range(3):
+                    beam("iron_bar", (-W / 2 + 0.62 + j * 0.07, y, z + 0.04), (-W / 2 + 0.62 + j * 0.07, y + 0.38, z + 0.04), 0.05, 0.05, m.iron)
+    # Kasser, en kulltønne og sekker ved døra.
+    crate(m, at=(2.9, iy1 - 0.45, 0.0), s=0.6, rng=rng)
+    crate(m, at=(2.85, iy1 - 0.45, 0.62), s=0.5, rng=rng)
+    collide((2.9, iy1 - 0.45, 0.55), (0.7, 0.7, 1.1))
+    barrel(m, at=(3.4, iy0 + 1.3, 0.0), h=0.8, r=0.28, staves=14, rng=rng)
+    collide((3.4, iy0 + 1.3, 0.4), (0.6, 0.6, 0.8))
+    for k, (x, y) in enumerate([(-2.6, iy0 + 0.4), (-2.1, iy0 + 0.35)]):
+        revolve("sack", [(0.0, 0.0), (0.2, 0.02), (0.24, 0.2), (0.18, 0.45), (0.06, 0.55), (0.0, 0.56)], m.leather, n=12, at=(x, y, 0))
+    collide((-2.35, iy0 + 0.38, 0.3), (1.0, 0.5, 0.6))
+    # En lykt under takbjelken.
+    beam("tie_beam", (-W / 2 + 0.5, (iy0 + iy1) / 2, 2.85), (W / 2 - 0.5, (iy0 + iy1) / 2, 2.85), 0.2, 0.2, m.timber)
+    beam("lamp_chain", (0.0, (iy0 + iy1) / 2, 2.75), (0.0, (iy0 + iy1) / 2, 2.3), 0.015, 0.015, m.dark_iron)
+    block("lamp_cage", (0.2, 0.2, 0.28), m.dark_iron, at=(0.0, (iy0 + iy1) / 2, 2.15), bevel=0.01)
+    candle(m, 0.0, (iy0 + iy1) / 2, 2.03, h=0.1)
+    light((0.0, (iy0 + iy1) / 2, 2.15), (1.0, 0.65, 0.35), 1.4, 6.0)
+    # Kolliderne: steinhuset med døråpning, og verkstedet foran.
+    walls_with_door(-W / 2 + 0.275, W / 2 - 0.275, yb0 + 0.275, yb1 - 0.275, -0.24, wh, 0.55, 1.6, 1.0, 2.24, yb0 + 0.275)
+    collide((hx, hy, 1.4), (1.9, 1.5, 2.8))
+    collide((bx_ := hx - 1.25, hy + 0.2, 0.5), (0.6, 1.1, 1.0))
+    collide((0.2, yf + 1.7, 0.45), (0.7, 0.7, 0.9))
+    collide((1.9, yf + 1.4, 0.3), (1.3, 0.65, 0.6))
+    collide((3.4, yf + 1.2, 0.47), (0.9, 0.5, 0.95))
+    collide((-4.0, yf + 1.0, 0.4), (0.6, 0.6, 0.8))
+    collide((-3.6, yb0 - 0.6, 0.25), (0.55, 0.55, 0.5))
+    for x in posts:
+        collide((x, yf + 0.2, 1.3), (0.3, 0.3, 2.6))
+    collide((W / 2 + 0.6, (yb0 + yb1) / 2 + 0.1, 0.65), (0.8, 3.6, 1.3))
+    light((hx, hy - 0.05, 1.3), (1.0, 0.45, 0.15), 3.0, 7.0)
     return m
 
 
@@ -240,8 +417,13 @@ def forge():
 
 def tavern():
     spec = dict(seed=31, w=12.0, d=9.0, floors=2, jetty=0.45, pitch=50, gable=False, roof="thatch",
-                plaster=(1.0, 0.93, 0.8), door_x=-1.2, windows0=[-4.4, -2.9, 1.6, 3.6], windows_up=5, plinth=0.6)
+                plaster=(1.0, 0.93, 0.8), door_x=-1.2, windows0=[-4.4, -2.9, 1.6, 3.6], windows_up=5, plinth=0.6, open_door=True)
     m = town.half_timbered(spec)
+    inside(m)
+    m.soot = layer("soot", (0.8, 0.8, 0.8), 0.5)
+    m.bark = layer("bark", (0.8, 0.75, 0.7), 0.5)
+    m.leather = layer("leather", (0.7, 0.62, 0.55), 0.5)
+    m.ember = plain("fire_ember", (1.0, 0.45, 0.12), 0.4)
     m.planks = layer("cladding", (0.5, 0.42, 0.34), 0.5)
     m.dark_iron = layer("metal", (0.28, 0.26, 0.25), 0.5)
     m.glow = plain("glow", (1.0, 0.75, 0.4), 0.4)
@@ -282,6 +464,105 @@ def tavern():
         barrel(m, at=(x, y, 0.0), h=0.86, r=0.3, staves=16, rng=rng)
     barrel(m, at=(5.4, fy - 0.9, 0.86), h=0.7, r=0.25, staves=14, rng=rng)
     crate(m, at=(-5.4, fy - 0.6, 0.0), s=0.6, rng=rng)
+    collide((5.4, fy - 0.95, 0.75), (1.5, 1.4, 1.5))
+    collide((-5.4, fy - 0.6, 0.3), (0.65, 0.65, 0.6))
+    for cx in (-3.6, 2.6):
+        collide((cx, fy - 1.1, 0.42), (1.9, 1.6, 0.84))
+    # --- Inne: skjenkestua.
+    w, d, z = spec["w"], spec["d"], spec["plinth"]
+    fh = 2.7
+    top = z + fh
+    block("floor", (w - 0.3, d - 0.3, 0.03), m.floor, at=(0, 0, z + 0.005), bevel=0)
+    for k in range(9):
+        block("straw", (rng.uniform(0.6, 1.4), rng.uniform(0.5, 1.1), 0.012), m.straw, at=(rng.uniform(-4, 4), rng.uniform(-3.5, 3.5), z + 0.025), rot=(0, 0, rng.uniform(0, 3)), bevel=0)
+    # Bjelkelaget under overetasjen, med tak av bord.
+    block("ceiling", (w - 0.3, d - 0.3, 0.05), m.floor, at=(0, 0, top - 0.03), bevel=0)
+    for k in range(15):
+        x = -w / 2 + 0.4 + (w - 0.8) * k / 14
+        beam("joist", (x, -d / 2 + 0.15, top - 0.15), (x, d / 2 - 0.15, top - 0.15), 0.16, 0.2, m.timber)
+    beam("summer", (-w / 2 + 0.15, 0.0, top - 0.32), (w / 2 - 0.15, 0.0, top - 0.32), 0.26, 0.26, m.timber)
+    for x in (-2.0, 2.0):
+        beam("post", (x, 0.0, z), (x, 0.0, top - 0.45), 0.24, 0.24, m.timber, roll=math.pi / 2)
+        collide((x, 0.0, z + 1.2), (0.3, 0.3, 2.4))
+    # Peisen mot bakveggen: mur av stein med åpning, glør og vedkubber, og
+    # en hette opp til taket.
+    px, py = 3.2, d / 2 - 0.62
+    hearth = block("hearth", (2.4, 0.95, 1.35), m.soot, at=(px, py, z + 0.675), bevel=0.04, segments=2)
+    cut(hearth, (1.4, 0.8, 0.85), (px, py - 0.35, z + 0.45))
+    town.uv_box(hearth)
+    for k in range(4):
+        t = k / 3
+        ww = 2.3 - 0.9 * t
+        block("hood", (ww, 0.85 - 0.25 * t, 0.36), m.soot, at=(px, py + 0.05 * t, z + 1.53 + t * 0.36), bevel=0.03, segments=2)
+    block("mantel", (2.6, 0.3, 0.14), m.timber, at=(px, py - 0.55, z + 1.42), bevel=0.02)
+    for k in range(3):
+        beam("log", (px - 0.45, py - 0.35 + k * 0.08, z + 0.12 + k * 0.08), (px + 0.45, py - 0.4 + k * 0.08, z + 0.12 + k * 0.08), 0.12, 0.12, m.bark)
+    block("embers", (1.1, 0.5, 0.05), m.ember, at=(px, py - 0.3, z + 0.05), bevel=0.02)
+    revolve("pot", [(0.0, z + 0.45), (0.16, z + 0.45), (0.2, z + 0.62), (0.18, z + 0.75), (0.0, z + 0.75)], m.dark_iron, n=14, at=(px + 0.2, py - 0.35, 0))
+    beam("pot_hook", (px + 0.2, py - 0.35, z + 0.75), (px + 0.2, py - 0.35, z + 1.0), 0.015, 0.015, m.dark_iron)
+    for k in range(3):
+        revolve("plate", [(0.0, z + 1.49), (0.12, z + 1.49), (0.13, z + 1.51), (0.0, z + 1.51)], m.dark_iron, n=12, at=(px - 0.8 + k * 0.35, py - 0.55, 0))
+    collide((px, py, z + 1.0), (2.5, 1.0, 2.0))
+    light((px, py - 0.5, z + 0.5), (1.0, 0.5, 0.2), 3.2, 9.0)
+    # Disken langs vestveggen, med tønner bak og en hylle med krus.
+    bxr = -w / 2 + 1.35
+    block("bar_top", (0.7, 4.4, 0.08), m.wood, at=(bxr, 1.1, z + 1.08), bevel=0.01)
+    block("bar_front", (0.06, 4.4, 1.04), m.wood, at=(bxr + 0.3, 1.1, z + 0.52), bevel=0.006)
+    for k in range(9):
+        beam("bar_plank", (bxr + 0.34, -1.1 + k * 0.55, z), (bxr + 0.34, -1.1 + k * 0.55, z + 1.04), 0.03, 0.08, m.timber, roll=math.pi / 2)
+    for k, y in enumerate((-0.6, 0.4, 1.4, 2.4)):
+        barrel(m, at=(-w / 2 + 0.45, y, z), h=0.86, r=0.3, staves=16, rng=rng)
+        beam("tap", (-w / 2 + 0.75, y, z + 0.25), (-w / 2 + 0.85, y, z + 0.25), 0.03, 0.03, m.wood)
+    beam("mug_shelf", (-w / 2 + 0.2, -0.9, z + 1.75), (-w / 2 + 0.2, 3.1, z + 1.75), 0.3, 0.04, m.wood)
+    for k in range(10):
+        y = -0.7 + k * 0.38
+        if k % 3 == 2:
+            jar_r = 0.05
+            revolve("bottle", [(0.0, 0.0), (jar_r, 0.0), (jar_r, 0.18), (0.02, 0.25), (0.02, 0.3), (0.0, 0.3)], m.glass, n=10, at=(-w / 2 + 0.22, y, z + 1.77))
+        else:
+            revolve("mug", [(0.0, 0.0), (0.05, 0.0), (0.055, 0.13), (0.0, 0.13)], m.wood, n=10, at=(-w / 2 + 0.22, y, z + 1.77))
+    for k in range(3):
+        revolve("mug", [(0.0, 0.0), (0.05, 0.0), (0.055, 0.13), (0.0, 0.13)], m.wood, n=10, at=(bxr, 0.2 + k * 0.6, z + 1.12))
+    collide((-w / 2 + 0.85, 1.1, z + 0.55), (1.4, 4.5, 1.1))
+    # Skinker og urter fra bjelkene over disken.
+    for k, y in enumerate((-0.2, 0.9, 2.2)):
+        beam("ham_string", (bxr - 0.3, y, top - 0.25), (bxr - 0.3, y, top - 0.55), 0.01, 0.01, m.wood)
+        revolve("ham", [(0.0, top - 1.05), (0.1, top - 0.95), (0.13, top - 0.75), (0.06, top - 0.58), (0.0, top - 0.55)], m.leather, n=10, at=(bxr - 0.3, y, 0))
+    # Bordene med benker og lys.
+    for (tx, ty, ax) in ((1.2, 1.3, True), (1.6, -2.1, True), (-2.0, 2.4, True)):
+        tz = table(m, tx, ty, z, along_x=ax, ln=1.9, rng=rng)
+        holder(m, tx + 0.3, ty, tz)
+        light((tx + 0.3, ty, tz + 0.3), (1.0, 0.7, 0.4), 0.9, 4.0)
+        revolve("mug", [(0.0, 0.0), (0.05, 0.0), (0.055, 0.13), (0.0, 0.13)], m.wood, n=10, at=(tx - 0.5, ty + 0.15, tz))
+        revolve("plate", [(0.0, 0.0), (0.12, 0.0), (0.13, 0.02), (0.0, 0.02)], m.wood, n=12, at=(tx - 0.1, ty - 0.1, tz))
+    # Trappa opp langs østveggen, med rekkverk.
+    n = 12
+    for k in range(n):
+        y = -d / 2 + 0.75 + k * 0.33
+        hz = z + (k + 1) * fh / (n + 1)
+        block("stair", (0.95, 0.33, 0.06), m.wood, at=(w / 2 - 0.65, y, hz), bevel=0.008)
+        block("riser", (0.95, 0.03, fh / (n + 1)), m.wood, at=(w / 2 - 0.65, y - 0.15, hz - fh / (n + 1) / 2), bevel=0.004)
+    beam("stringer", (w / 2 - 1.12, -d / 2 + 0.6, z), (w / 2 - 1.12, -d / 2 + 0.75 + n * 0.33, top - 0.1), 0.06, 0.25, m.timber)
+    beam("rail", (w / 2 - 1.12, -d / 2 + 0.6, z + 0.95), (w / 2 - 1.12, -d / 2 + 0.75 + n * 0.33, top + 0.4), 0.05, 0.06, m.timber)
+    for k in range(0, n, 3):
+        y = -d / 2 + 0.75 + k * 0.33
+        beam("baluster", (w / 2 - 1.12, y, z + (k + 1) * fh / (n + 1)), (w / 2 - 1.12, y, z + (k + 1) * fh / (n + 1) + 0.95), 0.04, 0.04, m.timber)
+    collide((w / 2 - 0.65, -d / 2 + 0.6 + n * 0.33 / 2, z + fh / 2), (1.1, n * 0.33 + 0.3, fh))
+    # Lysekrona: en jernring med lys i kjetting fra takbjelken.
+    cx, cy = -0.4, 0.0
+    beam("chain", (cx, cy, top - 0.45), (cx, cy, top - 1.0), 0.015, 0.015, m.dark_iron)
+    revolve("ring", [(0.42, top - 1.04), (0.46, top - 1.02), (0.42, top - 1.0), (0.38, top - 1.02)], m.dark_iron, n=24, at=(cx, cy, 0), cap=False)
+    for k in range(6):
+        a = k * math.pi / 3
+        candle(m, cx + math.cos(a) * 0.42, cy + math.sin(a) * 0.42, top - 1.0, h=0.14)
+    light((cx, cy, top - 0.85), (1.0, 0.72, 0.42), 1.8, 8.0)
+    # Kolliderne: gulvet (sokkelen), veggene med døra, taket over stua og
+    # trinnene ute.
+    collide((0, 0, (z - 0.24) / 2), (w + 0.16, d + 0.16, z + 0.24))
+    walls_with_door(-w / 2, w / 2, -d / 2, d / 2, z, top, 0.26, -1.2, 1.0, 2.05, -d / 2)
+    collide((0, 0, top + 0.1), (w, d, 0.2))
+    block("step_low", (1.8, 0.5, 0.3), m.stone, at=(-1.2, -d / 2 - 0.75, 0.15 - 0.12), bevel=0.03, segments=2)
+    ramp(-1.95, -0.45, -d / 2 - 1.3, -d / 2 - 0.05, 0.0, z)
     return m
 
 
@@ -406,13 +687,17 @@ def scriptorium():
         a = math.pi * k / 10
         c = Vector((math.cos(a) * (dw / 2 + 0.15), -D / 2 - 0.04, 0.35 + dh - dw / 2 + math.sin(a) * (dw / 2 + 0.15)))
         block("door_voussoir", (0.2, 0.16, 0.34), m.stone, at=c, rot=(0, math.pi / 2 - a, 0), bevel=0.02, segments=2)
+    # Døra står slått inn mot veggen, hengslet på venstre side.
     n = 6
+    a = math.radians(95)
+    dirv = Vector((math.cos(a), math.sin(a), 0))
+    hinge = Vector((-dw / 2, -D / 2 + t, 0))
     for k in range(n):
         px = -dw / 2 + dw * (k + 0.5) / n
         top = 0.35 + dh - dw / 2 + math.sqrt(max(0.0, (dw / 2) ** 2 - px * px)) - 0.02
-        block("door_plank", (dw / n - 0.008, 0.06, top - 0.35), m.boards, at=(px, -D / 2 + t * 0.55, 0.35 + (top - 0.35) / 2), bevel=0.005)
+        block("door_plank", (dw / n - 0.008, 0.06, top - 0.35), m.boards, at=hinge + dirv * (dw * (k + 0.5) / n) + Vector((0, 0, 0.35 + (top - 0.35) / 2)), rot=(0, 0, a), bevel=0.005)
     for z in (0.8, 2.0):
-        block("door_strap", (dw * 0.9, 0.03, 0.07), m.iron, at=(0, -D / 2 + t * 0.55 - 0.045, z), bevel=0.005)
+        block("door_strap", (dw * 0.9, 0.03, 0.07), m.iron, at=hinge + dirv * (dw * 0.47) + Vector((0.045, 0, z)), rot=(0, 0, a), bevel=0.005)
     block("step", (dw + 0.8, 0.6, 0.2), m.stone, at=(0, -D / 2 - 0.3, 0.1), bevel=0.03, segments=2)
     block("step2", (dw + 1.2, 0.5, 0.15), m.stone, at=(0, -D / 2 - 0.65, -0.02), bevel=0.03, segments=2)
     # Høye rundbuede vinduer: to på fronten, to på hver langside.
@@ -461,6 +746,81 @@ def scriptorium():
     for s in (-1, 1):
         block("sign_page", (0.04, 0.32, 0.4), m.planks, at=(sx, -D / 2 - 0.7 + s * 0.17, 2.85), rot=(s * 0.25, 0, 0), bevel=0.01)
     block("sign_spine", (0.06, 0.04, 0.42), m.dark_iron, at=(sx, -D / 2 - 0.7, 2.83), bevel=0.01)
+    # --- Inne: skrivesalen.
+    rng = random.Random(51)
+    z = 0.36
+    ix, iy = W / 2 - t, D / 2 - t
+    block("floor", (2 * ix, 2 * iy, 0.03), m.flags, at=(0, 0, z + 0.005), bevel=0)
+    for y in (-1.6, 1.6):
+        beam("tie_beam", (-ix, y, H - 0.2), (ix, y, H - 0.2), 0.25, 0.28, m.timber)
+    # Bokhyllene langs bakveggen og mellom vinduene på langsidene.
+    for x in (-2.6, -0.9, 0.9, 2.6):
+        shelf(m, x, iy - 0.18, z, 1.6, 2.3, along_x=True, rows=5, rng=rng)
+    for sx in (-1, 1):
+        shelf(m, sx * (ix - 0.18), 0.0, z, 1.6, 2.3, along_x=False, rows=5, rng=rng)
+    # Skrivepultene under vinduene: skrå pult, krakk, bok, blekkhorn og lys.
+    for sx in (-1, 1):
+        for y in (-1.9, 1.9):
+            x = sx * (ix - 0.55)
+            block("desk_top", (0.6, 0.9, 0.04), m.wood, at=(x, y, z + 0.95), rot=(0, sx * 0.3, 0), bevel=0.006)
+            for k in (-1, 1):
+                block("desk_side", (0.55, 0.05, 0.95), m.wood, at=(x, y + k * 0.42, z + 0.47), bevel=0.006)
+            block("desk_shelf", (0.5, 0.85, 0.03), m.wood, at=(x, y, z + 0.35), bevel=0.004)
+            books_row(m, y - 0.38, y + 0.3, x, z + 0.365, rng=rng, axis_x=False)
+            open_book(m, x, y, z + 0.99, yaw=math.pi / 2)
+            revolve("inkhorn", [(0.0, 0.0), (0.03, 0.0), (0.035, 0.08), (0.0, 0.08)], m.books[1], n=8, at=(x - sx * 0.2, y + 0.38, z + 1.05))
+            beam("quill", (x - sx * 0.2, y + 0.38, z + 1.12), (x - sx * 0.25, y + 0.3, z + 1.35), 0.008, 0.02, m.vellum)
+            holder(m, x - sx * 0.22, y - 0.38, z + 1.02)
+            light((x - sx * 0.22, y - 0.38, z + 1.35), (1.0, 0.72, 0.42), 0.8, 3.5)
+            sx2 = x - sx * 0.7
+            revolve("stool", [(0.0, z + 0.45), (0.2, z + 0.45), (0.2, z + 0.5), (0.0, z + 0.5)], m.wood, n=12, at=(sx2, y, 0))
+            for j in range(3):
+                aa = j * 2.1
+                beam("stool_leg", (sx2 + math.cos(aa) * 0.13, y + math.sin(aa) * 0.13, z + 0.45), (sx2 + math.cos(aa) * 0.18, y + math.sin(aa) * 0.18, z), 0.04, 0.04, m.timber)
+            collide((x - sx * 0.25, y, z + 0.5), (1.2, 1.0, 1.0))
+    # Lesepulten midt i salen med en stor bok i kjetting.
+    beam("lectern_post", (0, 0.3, z), (0, 0.3, z + 1.05), 0.14, 0.14, m.timber, roll=math.pi / 2)
+    for k in range(4):
+        aa = k * math.pi / 2 + math.pi / 4
+        beam("lectern_foot", (0, 0.3, z + 0.08), (math.cos(aa) * 0.35, 0.3 + math.sin(aa) * 0.35, z), 0.08, 0.08, m.timber)
+    block("lectern_top", (0.7, 0.55, 0.05), m.wood, at=(0, 0.3, z + 1.12), rot=(0.35, 0, 0), bevel=0.01)
+    open_book(m, 0, 0.28, z + 1.16, yaw=0.0)
+    PIECES[-1].rotation_euler = (0.35, 0, 0)
+    for ob in PIECES[-3:-1]:
+        ob.rotation_euler = (0.35, ob.rotation_euler[1], 0)
+    for k in range(6):
+        beam("chain", (0.15, 0.1 + k * 0.03, z + 1.05 - k * 0.12), (0.15, 0.13 + k * 0.03, z + 0.93 - k * 0.12), 0.02, 0.02, m.dark_iron)
+    collide((0, 0.3, z + 0.6), (0.8, 0.7, 1.2))
+    # Kista med skjemaene, og høye lysestaker ved døra.
+    from props import crate as _crate  # noqa: F401
+    block("chest", (1.1, 0.6, 0.55), m.wood, at=(-ix + 0.8, -iy + 0.5, z + 0.28), bevel=0.02)
+    for k in (-1, 0, 1):
+        block("chest_band", (0.06, 0.62, 0.57), m.dark_iron, at=(-ix + 0.8 + k * 0.4, -iy + 0.5, z + 0.28), bevel=0.005)
+    collide((-ix + 0.8, -iy + 0.5, z + 0.3), (1.2, 0.7, 0.6))
+    for sx in (-1, 1):
+        x, y = sx * 1.4, -iy + 0.45
+        revolve("candlestand", [(0.0, z), (0.2, z), (0.15, z + 0.06), (0.03, z + 0.1), (0.03, z + 1.4), (0.1, z + 1.44), (0.0, z + 1.46)], m.dark_iron, n=10, at=(x, y, 0))
+        candle(m, x, y, z + 1.46, h=0.3, r=0.04)
+        light((x, y, z + 1.85), (1.0, 0.72, 0.42), 1.2, 6.0)
+        collide((x, y, z + 0.75), (0.4, 0.4, 1.5))
+    # Lysekroner under bindbjelkene.
+    for y in (-1.6, 1.6):
+        beam("chain", (0, y, H - 0.35), (0, y, H - 1.4), 0.015, 0.015, m.dark_iron)
+        revolve("ring", [(0.5, H - 1.44), (0.54, H - 1.42), (0.5, H - 1.4), (0.46, H - 1.42)], m.dark_iron, n=24, at=(0, y, 0), cap=False)
+        for k in range(6):
+            aa = k * math.pi / 3
+            candle(m, math.cos(aa) * 0.5, y + math.sin(aa) * 0.5, H - 1.4, h=0.14)
+        light((0, y, H - 1.25), (1.0, 0.72, 0.42), 1.8, 8.0)
+    # Kolliderne: sokkelen (gulvet), murene med døra, støttepilarene og trinnene.
+    collide((0, 0, 0.06), (W + 0.3, D + 0.3, 0.6))
+    walls_with_door(-W / 2 + t / 2, W / 2 - t / 2, -D / 2 + t / 2, D / 2 - t / 2, -0.24, H, t, 0.0, dw, dh - 0.1, -D / 2 + t / 2)
+    for x, y, ax in [(-W / 2, -D / 2, 0), (W / 2, -D / 2, 0), (-W / 2, D / 2, 0), (W / 2, D / 2, 0), (-W / 2, 0, 1), (W / 2, 0, 1)]:
+        if ax:
+            collide((x + math.copysign(0.38, x), y, 1.9), (0.76, 0.7, 4.2))
+        else:
+            collide((x, y + math.copysign(0.38, y), 1.9), (0.7, 0.76, 4.2))
+    ramp(-dw / 2 - 0.5, dw / 2 + 0.5, -D / 2 - 0.95, -D / 2 - 0.12, 0.0, 0.36)
+    collide((0, 0, H + 0.1), (W, D, 0.2))
     return m
 
 
@@ -634,4 +994,4 @@ if __name__ == "__main__":
         clear()
         PIECES.clear()
         MODELS[name]()
-        finish(f"{OUT}/{name}.glb")
+        finish(f"{OUT}/{name}.glb", max_edge=1.0 if name in ("tavern", "scriptorium") else 0.6)

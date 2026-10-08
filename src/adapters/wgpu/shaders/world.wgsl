@@ -708,7 +708,9 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.ao = 0.85;
     } else if (kind == K_LAMP) {
         s.rough = 0.3;
-        s.emissive = tint * vec3<f32>(1.0, 0.8, 0.55) * (0.15 + night * 10.0 * g.params.w);
+        // Lamper tennes om natta; ild (glød 3) brenner hele døgnet.
+        let lit = select(0.15 + night * 10.0 * g.params.w, 6.0, glow == 3u);
+        s.emissive = tint * vec3<f32>(1.0, 0.8, 0.55) * lit;
     } else if (kind == K_SKELETON) {
         // Skimmeret i .fs-skeleton: et lyst bånd som glir over.
         let band = fract((i.world.x + i.world.y * 0.5 - g.camera.w * 1.2) / 6.0);

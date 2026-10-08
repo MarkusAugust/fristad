@@ -249,11 +249,7 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         let r = rect_at(base, yaw, mid, half);
         plan.taken.push(r);
         building(b, model, base, yaw);
-        // Glørne i essa lyser hele døgnet (Blender (-2,4, -1,15, 0,9) i smia).
-        if model == "forge" && b.has_model(model) {
-            let ground = b.on_ground(Vec3::new(base.x, 0.0, base.y));
-            b.fire_light(at(ground, yaw).transform_point3(Vec3::new(-2.4, 1.3, 1.15)), Vec3::new(1.0, 0.45, 0.15), 3.0, 7.0);
-        }
+        log::info!("{model} ved ({:.1}, {:.1}), yaw {:.2}", base.x, base.y, yaw);
         doors.push((m - out * 1.6, yaw));
     }
     // Så rekkene: langs kantene av torget (bare utover) og langs gatene på
@@ -357,12 +353,51 @@ pub fn build(b: &mut Builder) -> Town {
     Town { spawn, spawn_yaw: facing(out), crypt_anchor: CRYPT, crypt_exit }
 }
 
-/// Et hus: modellen på tomta, og en boks rundt grunnflaten så ingen går
-/// gjennom veggene. Bakken under er planert inne i byen, så huset står i
-/// terrenghøyden i midten; sokkelen i modellen tar resten.
+/// Husene man kan gå inn i: kollidere (midte, mål, yaw) og lys (posisjon,
+/// farge, styrke, radius) i modellens rom, fra `tools/models/buildings.py`
+/// (`<navn>_inside.json`).
+#[derive(serde::Deserialize, Default)]
+struct Inside {
+    boxes: Vec<([f32; 3], [f32; 3], f32)>,
+    lights: Vec<([f32; 3], [f32; 3], f32, f32)>,
+    /// Ramper over trinnene (punktene i et konvekst skall).
+    #[serde(default)]
+    hulls: Vec<Vec<[f32; 3]>>,
+}
+
+const INSIDE: [(&str, &str); 3] = [
+    ("forge", include_str!("../../../assets/models/town/forge_inside.json")),
+    ("tavern", include_str!("../../../assets/models/town/tavern_inside.json")),
+    ("scriptorium", include_str!("../../../assets/models/town/scriptorium_inside.json")),
+];
+
+fn inside(model: &str) -> Option<&'static Inside> {
+    static PARSED: OnceLock<Vec<(&'static str, Inside)>> = OnceLock::new();
+    let all = PARSED.get_or_init(|| INSIDE.iter().map(|(n, json)| (*n, serde_json::from_str(json).unwrap_or_default())).collect());
+    all.iter().find(|(n, _)| *n == model).map(|(_, i)| i)
+}
+
+/// Et hus: modellen på tomta, og kollidere så ingen går gjennom veggene.
+/// Hus man kan gå inn i har egne kollidere for vegger med døråpning og
+/// møblene, og lys inne; de andre får en boks rundt grunnflaten. Bakken
+/// under er planert inne i byen, så huset står i terrenghøyden i midten;
+/// sokkelen i modellen tar resten.
 fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     let base = b.on_ground(Vec3::new(pos.x, 0.0, pos.y));
-    if !b.place(model, at(base, yaw)) {
+    let t = at(base, yaw);
+    if !b.place(model, t) {
+        return;
+    }
+    if let Some(inside) = inside(model) {
+        for (c, size, y) in &inside.boxes {
+            b.solid_box(t.transform_point3(Vec3::from(*c)), Vec3::from(*size), yaw + y);
+        }
+        for pts in &inside.hulls {
+            b.solid(Shape::Hull { points: pts.iter().map(|p| t.transform_point3(Vec3::from(*p))).collect() });
+        }
+        for (p, color, intensity, radius) in &inside.lights {
+            b.fire_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
+        }
         return;
     }
     if let Some((lo, hi)) = b.bounds(model) {

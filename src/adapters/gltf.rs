@@ -310,6 +310,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             }
             // «fire» brenner hele døgnet (fakler, ildsteder).
             if named("fire") {
+                mmat.kind = kind::LAMP;
                 mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
             // Bladkort og nålekvister: alfatestes og svaier i vinden.

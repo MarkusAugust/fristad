@@ -83,6 +83,27 @@ class M:
 # --- Geometri --------------------------------------------------------------
 
 PIECES = []
+# Hus man kan gå inn i: kollidere (midte, mål, yaw om z) og lys (posisjon,
+# farge, styrke, radius) i Blenders akser; `finish` skriver dem til
+# `<navn>_inside.json` i motorens akser, og byen bruker dem i stedet for
+# en boks rundt huset.
+COLLIDERS = []
+LIGHTS = []
+HULLS = []
+
+
+def collide(c, size, yaw=0.0):
+    COLLIDERS.append((tuple(c), tuple(size), yaw))
+
+
+def ramp(x0, x1, y_low, y_high, z_low, z_high):
+    """En skrå rampe som kollider over trinn (spilleren går opp den), fra
+    bakken i y_low til gulvet i y_high, mellom x0 og x1."""
+    HULLS.append([(x, y_low, z_low - 0.3) for x in (x0, x1)] + [(x, y_low, z_low) for x in (x0, x1)] + [(x, y_high, z_high) for x in (x0, x1)] + [(x, y_high, z_low - 0.3) for x in (x0, x1)])
+
+
+def light(c, color=(1.0, 0.6, 0.3), intensity=1.0, radius=5.0):
+    LIGHTS.append((tuple(c), tuple(color), intensity, radius))
 
 
 def ensure_uv(me):
@@ -269,8 +290,9 @@ def window(m, x, z, y_face, w, h, normal_y, shutters=True, rng=None):
                 hb.location = hinge + off.xyz + Vector((0, 0, zz))
 
 
-def door(m, x, y_face, normal_y, w=1.0, h=2.0, z0=0.0):
-    """Plankedør med jernbeslag og ring, i karm, med steintrinn foran."""
+def door(m, x, y_face, normal_y, w=1.0, h=2.0, z0=0.0, open=False):
+    """Plankedør med jernbeslag og ring, i karm, med steintrinn foran.
+    `open`: døra står slått innover, hengslet på venstre side."""
     s = normal_y
     t = 0.12
     for sx in (-1, 1):
@@ -278,6 +300,18 @@ def door(m, x, y_face, normal_y, w=1.0, h=2.0, z0=0.0):
     beam("door_lintel", (x - w / 2 - t, y_face + s * 0.05, z0 + h + t / 2), (x + w / 2 + t, y_face + s * 0.05, z0 + h + t / 2), 0.16, t, m.timber)
     # Plankene, litt ulike, innfelt i døråpningen.
     n = 5
+    if open:
+        # Slått innover om hengslet: plankene langs en retning inn i huset.
+        a = math.radians(95)
+        d = Vector((math.cos(a), -s * math.sin(a), 0))
+        hinge = Vector((x - w / 2, y_face - s * 0.06, 0))
+        for k in range(n):
+            u = w * (k + 0.5) / n
+            block("door_plank", (w / n - 0.006, 0.05, h), m.boards, at=hinge + d * u + Vector((0, 0, z0 + h / 2)), rot=(0, 0, math.atan2(d.y, d.x)), bevel=0.005)
+        for zz in (0.35, h - 0.35):
+            block("door_strap", (w * 0.85, 0.02, 0.06), m.iron, at=hinge + d * (w * 0.45) + Vector((s * 0.03 * d.y, 0, z0 + zz)), rot=(0, 0, math.atan2(d.y, d.x)), bevel=0.004)
+        block("step", (w + 0.5, 0.45, 0.18), m.stone, at=(x, y_face + s * 0.25, z0 - 0.06), bevel=0.03, segments=2)
+        return
     for k in range(n):
         px = x - w / 2 + w * (k + 0.5) / n
         block("door_plank", (w / n - 0.006, 0.05, h), m.boards, at=(px, y_face - s * 0.06, z0 + h / 2), bevel=0.005)
@@ -487,7 +521,7 @@ def half_timbered(spec):
             if kind == "w":
                 window(m, ox, oz, fy - 0.11, ob, oh, -1.0, shutters=f > 0 or rng.random() < 0.7, rng=rng)
             else:
-                door(m, ox, fy - 0.11, -1.0, ob, oh, z)
+                door(m, ox, fy - 0.11, -1.0, ob, oh, z, open=spec.get("open_door", False))
         # Baksida og sidene.
         back = [(0.0, z + 1.45, 0.7, 0.8, "w")] if rng.random() < 0.8 else []
         timber_wall(m, f"back{f}", -w / 2, w / 2, d / 2, z, z1, 1.0, back, rng)
@@ -596,6 +630,22 @@ def finish(path, ao_samples=160, max_edge=0.6):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
+    if COLLIDERS or LIGHTS or HULLS:
+        import json
+        # Blender (x, y, z) er (x, z, −y) i motoren; yaw om z blir yaw om y.
+        eng = lambda v: [round(v[0], 3), round(v[2], 3), round(-v[1], 3)]
+        size = lambda v: [round(v[0], 3), round(v[2], 3), round(v[1], 3)]
+        data = {
+            "boxes": [[eng(c), size(sz), round(yaw, 4)] for c, sz, yaw in COLLIDERS],
+            "lights": [[eng(c), list(col), i, r] for c, col, i, r in LIGHTS],
+            "hulls": [[eng(p) for p in pts] for pts in HULLS],
+        }
+        with open(path.replace(".glb", "_inside.json"), "w") as f:
+            json.dump(data, f)
+        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys")
+    COLLIDERS.clear()
+    LIGHTS.clear()
+    HULLS.clear()
 
 
 HOUSES = {

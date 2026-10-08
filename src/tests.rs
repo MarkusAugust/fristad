@@ -303,3 +303,41 @@ fn hodet_gar_ikke_gjennom_taket() {
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
+
+/// Husene man kan gå inn i: gå med Rapier fra gata, gjennom døråpningen og
+/// inn i rommet (opp trinnene til gulvet), uten å bli stoppet av veggene.
+#[test]
+fn man_kan_ga_inn_i_husene() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    // Modell, start ute og mål inne, i Blenders akser (x, y): døra mot −y.
+    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5))];
+    let mut problems = vec![];
+    for (model, from, to) in houses {
+        let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
+            problems.push(format!("{model} mangler"));
+            continue;
+        };
+        let t = pl.transforms[0];
+        let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+        let (a, b) = (world(from), world(to));
+        let mut pos = a + Vec3::Y * (half + radius + 0.1);
+        let dir = (b - a).with_y(0.0).normalize();
+        for _ in 0..((b - a).length() / 0.05) as usize * 2 {
+            if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+                break;
+            }
+            let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+            pos += moved;
+        }
+        let left = (pos - b).with_y(0.0).length();
+        if left > 0.6 {
+            problems.push(format!("{model}: stoppet {left:.1} m fra målet inne, ved ({:.1}, {:.1}, {:.1})", pos.x, pos.y, pos.z));
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
