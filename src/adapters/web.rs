@@ -96,6 +96,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Prompt(None) => json!({"type": "prompt"}),
         Event::Daylight(d) => json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }}),
         Event::Toast(t) => json!({"type": "toast", "text": t}),
+        Event::Loot(c) => json!({"type": "loot", "component": c}),
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
         Event::Hud { hp, stamina, tokens, cellar, keys, boss } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))}),

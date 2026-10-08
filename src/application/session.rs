@@ -117,6 +117,8 @@ pub struct Session {
     /// negativ når ingen bruker den.
     pub(super) wells: Vec<f32>,
     chests: Vec<bool>,
+    /// Hvor langt lokket på hver kiste er åpnet (0–1).
+    chest_open: Vec<f32>,
     /// Komponentene: trygt lagret i byen, og det du bærer på turen.
     inventory: BTreeMap<String, u32>,
     carried: BTreeMap<String, u32>,
@@ -200,6 +202,7 @@ impl Session {
             gates: vec![(0.0, false); world.dungeon.gates.len()],
             wells: vec![-1.0; world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count()],
             chests: vec![false; world.dungeon.chests.len()],
+            chest_open: vec![0.0; world.dungeon.chests.len()],
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),
             gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
@@ -303,8 +306,8 @@ impl Session {
                     "Knappesmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
                     "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
                     "Gorvek" => ("Handle", "Lærer deg trekk på øvingsplassen."),
-                    "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypta, og les om dem i bøkene."),
-                    "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypta."),
+                    "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypten, og les om dem i bøkene."),
+                    "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypten."),
                     _ => ("", ""),
                 };
                 p(name, "Snakk", trade, info)
@@ -325,8 +328,8 @@ impl Session {
                     p("Rusten port", "Lås opp", "", "Låst. En sterkere fiende i denne etasjen bærer nøkkelen.")
                 }
             }
-            Use::Descend => p("Krypta under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
-            Use::Ascend => p("Døra opp til krypta", "Gå opp", "", "Opp til byen. Det du bærer legges i lageret."),
+            Use::Descend => p("Krypten under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
+            Use::Ascend => p("Døra opp til krypten", "Gå opp", "", "Opp til byen. Det du bærer legges i lageret."),
             Use::Well(n) => {
                 if self.wells.get(n).is_some_and(|w| *w >= 0.0) {
                     p("Brønn", "", "", "Sveiven går. Bøtta er på vei opp.")
@@ -554,8 +557,8 @@ impl Session {
                 let pick = list[(self.loot_seed >> 33) as usize % list.len()];
                 *self.carried.entry(pick.to_string()).or_insert(0) += 1;
                 self.inv_dirty = true;
-                events.push(Event::Sound("pickup".into()));
-                events.push(Event::Toast(format!("I kista: {pick}. Bær den opp, så er den din.")));
+                events.push(Event::Sound("chest".into()));
+                events.push(Event::Loot(Some(pick.to_string())));
             }
             Use::Gate(n) => {
                 if self.gates[n].1 {
@@ -605,8 +608,14 @@ impl Session {
         self.jumped = true;
     }
 
-    /// Portene sveives opp, og kolliderne følger.
+    /// Portene sveives opp, og kolliderne følger. Lokkene på kistene som er
+    /// åpnet, går opp.
     fn update_gates(&mut self, physics: &mut dyn Physics, dt: f32) {
+        for (open, opened) in self.chest_open.iter_mut().zip(&self.chests) {
+            if *opened && *open < 1.0 {
+                *open = (*open + dt / 0.9).min(1.0);
+            }
+        }
         for t in &self.targets {
             if let Use::Gate(n) = t.target.what {
                 let (open, unlocked) = &mut self.gates[n];
@@ -705,7 +714,7 @@ impl Session {
         }
     }
 
-    /// Død: opp til krypta, det du bar er borte, en firedel av tokenene
+    /// Død: opp til krypten, det du bar er borte, en firedel av tokenene
     /// blir igjen nede.
     fn die(&mut self, events: &mut Vec<Event>) {
         let lost = self.coins / 4;
@@ -1001,6 +1010,31 @@ impl Session {
         self.mobs.mobs.iter().map(|m| (m.kind, m.elite)).collect()
     }
 
+    /// De levende fiendene (føttene, slaget, om den er elite), til
+    /// gjennomspillingen i testene.
+    #[cfg(test)]
+    pub fn living(&self) -> Vec<(Vec3, MobKind, bool)> {
+        self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| (m.pos, m.kind, m.elite)).collect()
+    }
+
+    /// Fullt liv igjen, til gjennomspillingen i testene (som teller hvor
+    /// ofte boten ville ha dødd).
+    #[cfg(test)]
+    pub fn heal(&mut self) {
+        self.hp = self.max_hp;
+    }
+
+    #[cfg(test)]
+    pub fn keys(&self) -> u32 {
+        self.keys
+    }
+
+    /// Nøklene som ligger på gulvet etter en elite, til gjennomspillingen.
+    #[cfg(test)]
+    pub fn loose_keys(&self) -> Vec<Vec3> {
+        self.mobs.keys.iter().filter(|k| !k.taken).map(|k| k.pos).collect()
+    }
+
     /// Den nærmeste levende fienden (føttene), til testene.
     pub fn nearest_mob(&self, from: Vec3) -> Option<Vec3> {
         self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
@@ -1036,6 +1070,24 @@ impl Session {
             .iter()
             .filter_map(|t| match t.target.what {
                 Use::Gate(n) => Some(t.target.pose * Affine3A::from_translation(Vec3::Y * gate_lift(self.gates[n].0))),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Lokkene på kistene: dreid opp om hengslet etter hvor langt de er
+    /// åpnet, med en liten sprett når de slår mot stoppen.
+    pub(super) fn chest_poses(&self) -> Vec<Affine3A> {
+        self.targets
+            .iter()
+            .filter_map(|t| match t.target.what {
+                Use::Chest(n) => {
+                    let x = self.chest_open.get(n).copied().unwrap_or(0.0);
+                    // Ease-out med litt overskyting (lokket slår mot stoppen).
+                    let k = 1.0 + 2.2 * (x - 1.0).powi(3) + 1.2 * (x - 1.0).powi(2);
+                    let angle = 1.85 * k.clamp(0.0, 1.08);
+                    Some(t.target.pose * Affine3A::from_translation(dungeon::CHEST_HINGE) * Affine3A::from_rotation_x(-angle))
+                }
                 _ => None,
             })
             .collect()

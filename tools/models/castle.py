@@ -1,4 +1,4 @@
-"""Borgruinen på haugen, krypta, døra opp fra kjelleren og portgitteret,
+"""Borgruinen på haugen, krypten, døra opp fra kjelleren og portgitteret,
 modellert i Blender (bpy) og eksportert til assets/models/town/. Kjør:
 
     python3 tools/models/castle.py [castle_ruin crypt crypt_stair portcullis]
@@ -10,7 +10,7 @@ halvveis, et kvadratisk hovedtårn med én side falt ut, porttårn ved
 i borggården (der står en røys med kollider, så instansen har noe ved
 foten). Murene ligger der byen gir dem kollidere (`town::castle`).
 
-Krypta (`crypt`): et lite gravkapell av hogd stein med bratt skifertak,
+Krypten (`crypt`): et lite gravkapell av hogd stein med bratt skifertak,
 kors på gavlen, rundbuet portal med eierens jernbeslåtte dør (bildet i
 assets/textures/door), trinn ned foran og fakkelholdere. Døra vender mot
 sør (lokal +Z i motoren).
@@ -250,7 +250,7 @@ def crypt():
     cz = H + rise + 0.1
     block("cross_v", (0.14, 0.14, 1.0), m.ashlar, at=(0, y0 + 0.3, cz + 0.45), bevel=0.02)
     block("cross_h", (0.6, 0.14, 0.14), m.ashlar, at=(0, y0 + 0.3, cz + 0.65), bevel=0.02)
-    # Trinn ned foran døra (krypta ligger lavere enn borggården).
+    # Trinn ned foran døra (krypten ligger lavere enn borggården).
     for k in range(3):
         block("step", (2.2 - k * 0.2, 0.45, 0.16), m.rubble, at=(0, y0 - 0.25 - k * 0.42, 0.0 - k * 0.04), bevel=0.03, segments=2)
     torch_bracket(m, 1.3, y0 - 0.02, 2.0)

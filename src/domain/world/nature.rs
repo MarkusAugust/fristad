@@ -431,8 +431,9 @@ pub fn world_edge(b: &mut Builder) {
     let radius = 199.0;
     for i in 0..n {
         let a = (i as f32 + 0.5) / n as f32 * std::f32::consts::TAU;
-        let c = Vec3::new(a.sin() * radius, 20.0, a.cos() * radius);
-        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 80.0, 2.0), yaw: a });
+        // Fra 5 m under bakken og opp: kjelleren under kan gå ut under kanten.
+        let c = Vec3::new(a.sin() * radius, 37.5, a.cos() * radius);
+        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 85.0, 2.0), yaw: a });
     }
 }
 

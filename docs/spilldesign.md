@@ -146,9 +146,9 @@ Gjort: skjelettanimasjon (1–2), kampen (3–5), kjelleren med fem etasjer, tra
 
 Eieren ba om å forkaste byen og bygge den på nytt for spillet: ingen brønn som nedgang, ingen stiger, alt som ekte modeller med håndlagde teksturer, og koden i hexagonal arkitektur. Svarene på spørsmålene:
 
-1. **Setting:** nordisk kjøpstad rundt 1350, med bymur og porter, torg med markedsboder, Smia, Apoteket, Skriptoriet, Vertshuset, stavkirke og Gorveks øvingsplass. Borgruinen står på haugen nord for byen, og krypta under den er nedgangen til kjelleren (en dør med overgang i svart, og en trapp opp igjen nede).
+1. **Setting:** nordisk kjøpstad rundt 1350, med bymur og porter, torg med markedsboder, Smia, Apoteket, Skriptoriet, Vertshuset, stavkirke og Gorveks øvingsplass. Borgruinen står på haugen nord for byen, og krypten under den er nedgangen til kjelleren (en dør med overgang i svart, og en trapp opp igjen nede).
 2. **Komponentene** finnes bare som bytte, utstyr og bøker, ikke som ting rundt i byen.
 3. **Det som blir:** landskapet, dyrene og trærne. Alt annet i den gamle byen er borte.
 4. **Grafikken:** detaljgraden på modeller og figurer skal opp; motoren skal brukes for alt den er god for.
 
-Brønnen og stigene i avsnittene over er erstattet av krypta og trappa; Skjemakontoret heter nå Skriptoriet.
+Brønnen og stigene i avsnittene over er erstattet av krypten og trappa; Skjemakontoret heter nå Skriptoriet.

@@ -1,6 +1,6 @@
 //! Kjelleren: fem etasjer under borgruinen, én per epoke, der de korrupte
 //! komponentene holder til (se docs/kjelleren.md). Du kommer ned gjennom
-//! døra i krypta (`Use::Descend`) og opp igjen gjennom døra i startrommet
+//! døra i krypten (`Use::Descend`) og opp igjen gjennom døra i startrommet
 //! (`Use::Ascend`).
 //!
 //! Hver etasje settes sammen av håndbygde rom fra Blender
@@ -38,6 +38,11 @@ pub const FLOORS: usize = 5;
 pub const N: usize = 40;
 /// Portgitteret som sveives opp foran vindeltrappa (modell, posert av spillet).
 pub const PORTCULLIS: &str = "portcullis";
+/// Kistene: kassa står fast, lokket (`CHEST_LID`, origo i hengslet) dreies
+/// opp av økta. Hengslet sitter bak på overkanten av kassa.
+pub const CHEST: &str = "chest";
+pub const CHEST_LID: &str = "chest_lid";
+pub const CHEST_HINGE: Vec3 = Vec3::new(0.0, 0.46, -0.28);
 pub const EPOCHS: [&str; FLOORS] = ["2026: forretningslogikken", "2019: klassekomponentene", "2014: jQuery-kloakken", "2009: tabellayout-katakombene", "1999: blink-dypet"];
 /// Portgitteret: så bredt og høyt, og hvor langt det sveives opp.
 pub const GATE_W: f32 = 3.9;
@@ -85,7 +90,7 @@ pub struct Floor {
 #[derive(Clone, Debug)]
 pub struct Dungeon {
     pub floors: Vec<Floor>,
-    /// Føttene der du står når du kommer ned fra krypta.
+    /// Føttene der du står når du kommer ned fra krypten.
     pub start: Vec3,
     /// Steder fiendene kan starte, alle etasjer.
     pub spawns: Vec<Vec3>,
@@ -742,7 +747,7 @@ pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
 
 /// Plass til portgitrene, som spillet poserer etter hvor åpne de er.
 pub fn reserve(d: &Dungeon) -> Vec<(&'static str, usize)> {
-    vec![(PORTCULLIS, d.gates.len())]
+    vec![(PORTCULLIS, d.gates.len()), (CHEST_LID, d.chests.len())]
 }
 
 /// Planlegg og bygg én etasje. Gir etasjen og tårnet ned (midten i verden
@@ -757,7 +762,7 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
     };
     let (w0, d0) = first.size();
     let first = Placed { gx: if forward > 0 { 2 } else { n - 2 - w0 }, gz: n / 2 - d0 / 2, ..first };
-    // Opphavet: startstedet under krypta, eller tårncella under tårnet over.
+    // Opphavet: startstedet under krypten, eller tårncella under tårnet over.
     let origin = match from_above {
         None => {
             let s = first.spec().spots.start.unwrap_or([6.0, 0.0, 6.0, 0.0]);
@@ -1008,7 +1013,7 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
         if placed_chests >= 4 || !rng.chance(0.7) {
             continue;
         }
-        if b.place("gorvek_chest", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)) {
+        if b.place(CHEST, Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)) {
             b.solid_box(p + Vec3::Y * 0.3, Vec3::new(0.9, 0.6, 0.6), yaw);
             d.chests.push((p, yaw, k));
             placed_chests += 1;

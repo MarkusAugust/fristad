@@ -244,13 +244,15 @@ code {
   opacity: 0.6;
 }
 
-/* Butikk og verksted: en boks midt på skjermen med spillet på pause. */
+/* Butikk og verksted: en boks midt på skjermen med spillet på pause. Den
+   ligger i HUD-en (pointer-events: none), så den må ta imot musa selv. */
 .overlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   background: rgb(0 0 0 / 0.45);
+  pointer-events: auto;
 }
 
 .overlay-inner {
@@ -519,7 +521,7 @@ code {
   margin-top: var(--fs-spacing-4);
 }
 
-/* Ned i krypta og opp igjen: et kort sort teppe over bildet. */
+/* Ned i krypten og opp igjen: et kort sort teppe over bildet. */
 .fade {
   position: fixed;
   inset: 0;
@@ -535,4 +537,46 @@ code {
   0% { opacity: 1; }
   35% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Inventaret (I) og kistedialogen: Fristils dialog, litt bredere. */
+.inventory-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+}
+
+.loot {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.inv-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--fs-spacing-3);
+  align-items: end;
+  margin-bottom: var(--fs-spacing-4);
+}
+
+.inv-stats .fs-progress {
+  display: block;
+  width: 100%;
+  margin-top: var(--fs-spacing-1);
+}
+
+.inv-badges {
+  display: flex;
+  gap: var(--fs-spacing-2);
+}
+
+.inv-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--fs-spacing-3);
+  margin-top: var(--fs-spacing-3);
+}
+
+@media (max-width: 560px) {
+  .inv-stats {
+    grid-template-columns: 1fr;
+  }
 }

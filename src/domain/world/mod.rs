@@ -41,9 +41,9 @@ pub enum Use {
     Chest(usize),
     /// Lås opp port nummer n i kjelleren (`Dungeon.gates`).
     Gate(usize),
-    /// Døra i krypta under borgen: ned i kjelleren.
+    /// Døra i krypten under borgen: ned i kjelleren.
     Descend,
-    /// Døra øverst i trappa i startrommet: opp til krypta.
+    /// Døra øverst i trappa i startrommet: opp til krypten.
     Ascend,
     /// Brønn nummer n i byen: heis opp vann og drikk.
     Well(usize),
@@ -298,7 +298,7 @@ impl Builder {
                 // som ekte trær, og murverket har fundament under bakken; de
                 // sjekkes bare for sveving, og bakken letes etter opp til en
                 // meter over foten (ellers vinner et gulv lenger nede, som
-                // kjelleren under krypta).
+                // kjelleren under krypten).
                 let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
                 let reach = if rooted { 1.0 } else { 0.0 };
                 let gaps = corners.map(|(x, z)| {

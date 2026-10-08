@@ -154,8 +154,10 @@ pub enum Event {
     Daylight(Daylight),
     /// En kort melding.
     Toast(String),
+    /// En kiste er åpnet: komponenten som lå i den (eller ingenting).
+    Loot(Option<String>),
     Weather(String),
-    /// Skjermen går i svart og tilbake (ned i krypta og opp igjen).
+    /// Skjermen går i svart og tilbake (ned i krypten og opp igjen).
     Fade,
     /// Liv, utholdenhet, tokens, nøkler, om du er nede i kjelleren, og
     /// bossen om den har sett deg, når noe av det endrer seg.

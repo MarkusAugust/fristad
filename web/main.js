@@ -92,7 +92,9 @@ async function loadAssets() {
   const none = { manifest: undefined, names: [], blobs: [] };
   let manifest;
   try {
-    const res = await fetch("assets/manifest.json");
+    // Manifestet hentes alltid ferskt: et gammelt et i hurtigbufferet viser
+    // til filer som ikke finnes lenger.
+    const res = await fetch("assets/manifest.json", { cache: "no-cache" });
     if (!res.ok) return none;
     manifest = await res.text();
   } catch {
@@ -108,27 +110,26 @@ async function loadAssets() {
     setStatus(`Henter teksturer (${done} av ${paths.length}) …`);
   };
   setStatus(`Henter teksturer (0 av ${paths.length}) …`);
-  // Seks om gangen, så nettleseren ikke åpner hundre forbindelser.
+  // Seks om gangen, så nettleseren ikke åpner hundre forbindelser. En fil
+  // som mangler gjør bare at det laget bakes i motoren, ikke alle.
   const blobs = new Array(paths.length);
   let next = 0;
   const worker = async () => {
     while (next < paths.length) {
       const i = next++;
-      const r = await fetch(`assets/${paths[i]}`);
-      if (!r.ok) throw new Error(`${paths[i]}: HTTP ${r.status}`);
-      blobs[i] = new Uint8Array(await r.arrayBuffer());
+      try {
+        const r = await fetch(`assets/${paths[i]}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        blobs[i] = new Uint8Array(await r.arrayBuffer());
+      } catch (e) {
+        console.warn(`Teksturen ${paths[i]} kunne ikke hentes (${e.message}); laget bakes i stedet.`);
+      }
       tick();
     }
   };
-  const ok = await Promise.all(Array.from({ length: 6 }, worker)).then(
-    () => true,
-    (e) => {
-      console.warn("Teksturene kunne ikke hentes, bruker de bakte:", e);
-      return false;
-    },
-  );
-  if (!ok) return none;
-  return { manifest, names: paths, blobs };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  const got = paths.map((p, i) => [p, blobs[i]]).filter(([, b]) => b);
+  return { manifest, names: got.map(([p]) => p), blobs: got.map(([, b]) => b) };
 }
 
 // Henter modellfilene (models/<sti>.gz) og pakker dem ut. Framdriften
@@ -308,6 +309,8 @@ function handle(e) {
       $("weather").textContent = e.weather;
       break;
     case "hud":
+      lastHud = e;
+      if (playing) music.set(e.cellar ? "cellar" : "town");
       $("hp").value = e.hp;
       $("stamina").value = e.stamina;
       $("tokens").textContent = `${e.tokens} tokens`;
@@ -339,6 +342,9 @@ function handle(e) {
         /* lagring er en bekvemmelighet */
       }
       break;
+    case "loot":
+      openLoot(e.component);
+      break;
     case "shop":
       openShop(e.npc, e.wares);
       break;
@@ -350,7 +356,10 @@ function handle(e) {
 
 // Lageret og utstyret i hjørnet: utstyret som linjer, komponentene som
 // chips du kan lese om i boka (det gir liv tilbake, én gang per tur).
+let lastHud = { hp: 100, stamina: 100, tokens: 0, keys: 0 };
+let lastInv = null;
 function renderInventory(e) {
+  lastInv = e;
   $("gear").innerHTML = `<div><b>Våpen:</b> ${esc(e.weapon)} <i>${esc(e.weapon_special)}</i></div><div><b>Skjold:</b> ${esc(e.shield)}</div><div><b>Rustning:</b> ${esc(e.armor)}${e.lantern ? " · Søkelykt" : ""}</div>`;
   const inv = $("inventory");
   inv.replaceChildren();
@@ -384,12 +393,155 @@ function readDoc(component) {
   }
 }
 
-// Ned i krypta og opp igjen: skjermen går i svart et øyeblikk.
+// Ned i krypten og opp igjen: skjermen går i svart et øyeblikk.
 function fade() {
   const el = $("fade");
   el.classList.remove("on");
   void el.offsetWidth;
   el.classList.add("on");
+}
+
+// Kista: en Fristil-dialog som sier hva du fant, og lar deg lese om
+// komponenten i boka (panelet til høyre). Spillet står på pause så lenge.
+let lootOpen = false;
+function openLoot(component) {
+  lootOpen = true;
+  playing = false;
+  dragging = false;
+  engine.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const d = docs[component] ?? {};
+  const title = d.title ?? component;
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog loot";
+  dlg.setAttribute("aria-labelledby", "loot-title");
+  const found = component
+    ? `<p>Under lokket, mellom råtne filler og knokler, ligger <strong>${esc(title)}</strong>: en bit av Fristil, slik den så ut før den ble korrupt.</p>
+       <p class="fs-help-text">${esc(d.description ?? "")}</p>
+       <p>Bær den opp til byen, så er den din. Dør du før det, blir den liggende her nede.</p>`
+    : `<p>Kista er tom. Noen har vært her før deg.</p>`;
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="loot-title">${component ? "Du fant noe i kista" : "Ingenting"}</h2>
+    <div class="fs-dialog__body">${found}</div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="secondary" type="button" data-act="take">${component ? "Ta med og gå videre" : "Gå videre"}</button>
+      ${component && docs[component] ? `<button class="fs-button" data-variant="primary" type="button" data-act="read">Les om ${esc(title)}</button>` : ""}
+    </div>`;
+  document.body.appendChild(dlg);
+  const close = (then) => {
+    lootOpen = false;
+    dlg.close();
+    dlg.remove();
+    then();
+  };
+  dlg.querySelector('[data-act="take"]').addEventListener("click", () => close(() => enter()));
+  dlg.querySelector('[data-act="read"]')?.addEventListener("click", () => close(() => readDoc(component)));
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close(() => enter(false));
+  });
+  dlg.showModal();
+  dlg.querySelector('[data-act="read"], [data-act="take"]')?.focus();
+}
+
+// Inventaret (I): utstyret du har på deg og komponentene du har, bygd med
+// Fristils dialog, faner, kort, tabell, merker og framdriftsstolper.
+let invOpen = null;
+function toggleInventory() {
+  if (invOpen) {
+    closeInventory(true);
+    return;
+  }
+  const e = lastInv ?? { stash: [], carried: [], weapon: "Sverd", weapon_special: "", shield: "Rundskjold", armor: "Gambeson", lantern: false, max_hp: 100, max_stamina: 100, tokens: 0, read: [] };
+  const h = lastHud;
+  playing = false;
+  dragging = false;
+  engine.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const title = (c) => docs[c]?.title ?? c;
+  const counts = new Map();
+  for (const [c, n] of e.stash) counts.set(c, { stash: n, carried: 0 });
+  for (const [c, n] of e.carried) counts.set(c, { stash: counts.get(c)?.stash ?? 0, carried: n });
+  const rows = [...counts.entries()]
+    .sort((a, b) => title(a[0]).localeCompare(title(b[0]), "nb"))
+    .map(([c, k]) => `<tr>
+        <th scope="row">${esc(title(c))}</th>
+        <td data-align="end">${k.stash}</td>
+        <td data-align="end">${k.carried ? `<span class="fs-badge" data-color="warning">${k.carried}</span>` : "0"}</td>
+        <td>${e.read.includes(c) ? '<span class="fs-badge" data-color="success">Lest</span>' : '<span class="fs-badge" data-color="neutral">Ulest</span>'}</td>
+        <td data-align="end">${docs[c] ? `<button class="fs-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
+      </tr>`)
+    .join("");
+  const slot = (label, name, note, tag) => `<div class="fs-card" data-variant="filled">
+      <p class="eyebrow">${label}</p>
+      <h3 class="fs-card__title">${esc(name)}</h3>
+      ${note ? `<p class="fs-help-text">${esc(note)}</p>` : ""}
+      ${tag ? `<span class="fs-tag" data-variant="filled">${esc(tag)}</span>` : ""}
+    </div>`;
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog inventory-dialog";
+  dlg.setAttribute("aria-labelledby", "inv-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="inv-title">Utstyr og lager</h2>
+    <div class="fs-dialog__body">
+      <div class="inv-stats">
+        <label class="fs-label">Liv ${h.hp} av ${e.max_hp}<progress class="fs-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
+        <label class="fs-label">Utholdenhet ${h.stamina} av ${e.max_stamina}<progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
+        <div class="inv-badges">
+          <span class="fs-badge" data-color="warning">${e.tokens} tokens</span>
+          <span class="fs-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys} nøkler`}</span>
+        </div>
+      </div>
+      <fs-tabs>
+        <div class="fs-tabs__list" aria-label="Inventaret">
+          <button>Utstyr</button>
+          <button>Komponenter (${counts.size})</button>
+        </div>
+        <div class="fs-tabs__panel">
+          <div class="inv-slots">
+            ${slot("Våpen", e.weapon, e.weapon_special, "I høyre hånd")}
+            ${slot("Skjold", e.shield, "", "I venstre hånd")}
+            ${slot("Rustning", e.armor, "", "På kroppen")}
+            ${slot("Lys", e.lantern ? "Søkelykt" : "Fakkel", e.lantern ? "Lyser lenger inn i mørket." : "", "")}
+          </div>
+        </div>
+        <div class="fs-tabs__panel">
+          ${counts.size
+            ? `<table class="fs-table" data-variant="striped">
+                <caption>Komponentene du har vunnet. Det du bærer, er ditt først når du er oppe igjen.</caption>
+                <thead><tr><th scope="col">Komponent</th><th scope="col" data-align="end">I lageret</th><th scope="col" data-align="end">Bærer</th><th scope="col">Boka</th><th scope="col"></th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>`
+            : `<p class="fs-paragraph">Du har ingen komponenter ennå. De ligger i kistene og hos fiendene i krypten.</p>`}
+        </div>
+      </fs-tabs>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (I)</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  invOpen = dlg;
+  dlg.querySelector('[data-act="close"]').addEventListener("click", () => closeInventory(true));
+  for (const b of dlg.querySelectorAll("[data-read]")) {
+    b.addEventListener("click", () => {
+      const c = b.dataset.read;
+      closeInventory(false);
+      readDoc(c);
+    });
+  }
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    closeInventory(true);
+  });
+  dlg.showModal();
+}
+
+function closeInventory(resume) {
+  if (!invOpen) return;
+  invOpen.close();
+  invOpen.remove();
+  invOpen = null;
+  if (resume) enter();
 }
 
 // Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
@@ -466,7 +618,7 @@ function openWorkshop(recipes) {
     for (const [c, need, have] of r.needs) {
       const wrap = document.createElement("div");
       wrap.className = "field";
-      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i krypta og hos Knappesmeden.</p>`;
+      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i krypten og hos Knappesmeden.</p>`;
       fields.appendChild(wrap);
     }
     if (r.requires.length) {
@@ -616,22 +768,116 @@ const sfx = (() => {
     s.connect(f).connect(env(c, peak, 0.005, dur, at));
     s.start(c.currentTime + at);
   };
+  // En stemme: sagtann gjennom to formantfiltre (vokalen), med fallende
+  // tone, litt vibrato og pust. Til stønnet når du blir truffet.
+  const voice = (c, f0, f1, formants, peak, dur, at = 0) => {
+    const t = c.currentTime + at;
+    const o = c.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const v = c.createOscillator();
+    v.frequency.value = 5.5;
+    const vg = c.createGain();
+    vg.gain.value = f0 * 0.025;
+    v.connect(vg).connect(o.frequency);
+    const out = env(c, peak, dur * 0.12, dur * 0.88, at);
+    for (const [f, q, g] of formants) {
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = f;
+      bp.Q.value = q;
+      const gg = c.createGain();
+      gg.gain.value = g;
+      o.connect(bp).connect(gg).connect(out);
+    }
+    const br = noise(c, dur);
+    const bf = c.createBiquadFilter();
+    bf.type = "bandpass";
+    bf.frequency.value = 1400;
+    bf.Q.value = 0.8;
+    br.connect(bf).connect(env(c, peak * 0.35, dur * 0.1, dur * 0.9, at));
+    o.start(t);
+    v.start(t);
+    br.start(t);
+    o.stop(t + dur + 0.05);
+    v.stop(t + dur + 0.05);
+  };
+  // Glitch: firkantbølge som hopper tilfeldig i tone, stammer av og på og
+  // knuses i biter, som et digitalt vesen som går i stykker.
+  const glitch = (c, peak, dur, base = 220, at = 0) => {
+    const t = c.currentTime + at;
+    const o = c.createOscillator();
+    o.type = "square";
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    const steps = Math.max(4, Math.round(dur / 0.025));
+    for (let k = 0; k < steps; k++) {
+      const tk = t + (k * dur) / steps;
+      o.frequency.setValueAtTime(base * Math.pow(2, (Math.random() * 3 - 1.2)), tk);
+      g.gain.setValueAtTime(Math.random() < 0.7 ? peak * (1 - k / steps) : 0.0001, tk);
+    }
+    g.gain.setValueAtTime(0.0001, t + dur);
+    const crush = c.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) curve[i] = Math.round(((i / 255) * 2 - 1) * 4) / 4;
+    crush.curve = curve;
+    const f = c.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = 160;
+    o.connect(crush).connect(f).connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  };
+  let lastGroan = 0;
   const play = {
-    swing: (c) => whoosh(c, 500, 2600, 0.35, 0.28),
-    swing_heavy: (c) => whoosh(c, 220, 1400, 0.5, 0.5),
+    // Hogget: et lagdelt sus gjennom lufta og en kort, lys klang fra stålet.
+    swing: (c) => {
+      whoosh(c, 500, 2600, 0.35, 0.28);
+      whoosh(c, 260, 900, 0.18, 0.32, 0.02);
+      tone(c, "sine", 3100, 2900, 0.03, 0.01, 0.2, 0.06);
+    },
+    swing_heavy: (c) => {
+      whoosh(c, 220, 1400, 0.5, 0.5);
+      whoosh(c, 120, 500, 0.3, 0.55, 0.04);
+      tone(c, "sine", 2400, 2200, 0.035, 0.01, 0.3, 0.12);
+    },
+    // Treff på et monster: slaget, og monsteret som skjærer seg digitalt.
     hit: (c) => {
       tone(c, "sine", 140, 45, 0.7, 0.005, 0.18);
       crunch(c, 0.45, 0.12, 2500);
+      glitch(c, 0.14, 0.22, 260, 0.03);
     },
     hit_heavy: (c) => {
       tone(c, "sine", 110, 35, 0.9, 0.005, 0.3);
       crunch(c, 0.6, 0.2, 1800);
       tone(c, "square", 400, 90, 0.08, 0.005, 0.1);
+      glitch(c, 0.18, 0.35, 180, 0.03);
     },
     kill: (c) => {
       tone(c, "sawtooth", 180, 30, 0.5, 0.01, 0.6);
       crunch(c, 0.6, 0.45, 1200);
       tone(c, "square", 900, 200, 0.12, 0.01, 0.35, 0.05);
+      glitch(c, 0.2, 0.7, 140, 0.05);
+      glitch(c, 0.1, 0.5, 520, 0.2);
+    },
+    // Kista: lokket knirker opp på gamle hengsler.
+    chest: (c) => {
+      const t = c.currentTime;
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(95, t);
+      for (let k = 1; k <= 14; k++) o.frequency.linearRampToValueAtTime(95 + 70 * Math.random() + k * 6, t + k * 0.06);
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 1100;
+      bp.Q.value = 6;
+      o.connect(bp).connect(env(c, 0.22, 0.08, 0.85));
+      o.start(t);
+      o.stop(t + 1.0);
+      crunch(c, 0.25, 0.15, 700, 0.85);
+      tone(c, "sine", 880, 880, 0.12, 0.005, 0.15, 0.95);
+      tone(c, "sine", 1320, 1320, 0.12, 0.005, 0.3, 1.03);
     },
     block: (c) => {
       tone(c, "square", 700, 500, 0.25, 0.003, 0.09);
@@ -642,9 +888,16 @@ const sfx = (() => {
       tone(c, "sine", 2850, 2600, 0.2, 0.003, 0.4);
       crunch(c, 0.25, 0.05, 6000);
     },
+    // Du blir truffet: slaget, og et stønn (ikke oftere enn hvert 0,7 s).
     hurt: (c) => {
       tone(c, "sine", 90, 40, 0.8, 0.005, 0.25);
       crunch(c, 0.35, 0.15, 900);
+      if (c.currentTime - lastGroan > 0.7) {
+        lastGroan = c.currentTime;
+        const vowels = [[[650, 6, 1.0], [1080, 7, 0.6]], [[520, 6, 1.0], [880, 7, 0.5]], [[700, 5, 1.0], [1220, 8, 0.45]]];
+        const f0 = 115 + Math.random() * 30;
+        voice(c, f0, f0 * 0.72, vowels[Math.floor(Math.random() * vowels.length)], 0.5, 0.42 + Math.random() * 0.2, 0.03);
+      }
     },
     dodge: (c) => whoosh(c, 180, 700, 0.3, 0.3),
     clang: (c) => {
@@ -683,7 +936,10 @@ const sfx = (() => {
       v.stop(t + 1.5);
       crunch(c, 0.3, 1.0, 400, 0.1);
     },
+    // Monsteret slår: en digital snerring som bygger seg opp.
     growl: (c) => {
+      glitch(c, 0.12, 0.45, 90);
+      whoosh(c, 300, 1800, 0.18, 0.4, 0.15);
       const o = c.createOscillator();
       o.type = "sawtooth";
       const t = c.currentTime;
@@ -736,6 +992,7 @@ const sfx = (() => {
     },
   };
   return {
+    context: get,
     play(name) {
       const c = get();
       if (!c || !play[name]) return;
@@ -747,6 +1004,238 @@ const sfx = (() => {
     },
   };
 })();
+
+// Musikken: laget i nettleseren mens du spiller, ingen filer. Oppe i byen
+// koselig middelaldermusikk i D dorisk (plukkede strenger over en myk
+// bordun og en fløyte som vandrer); nede i krypten kalde, dissonante
+// bordunlyder, vind og fjerne klokkeklang. Overgangen tones over på tre
+// sekunder. M slår den av og på.
+const music = (() => {
+  let c = null;
+  let master = null;
+  let verb = null;
+  let mode = null;
+  let muted = false;
+  let timer = null;
+  let next = 0;
+  let beat = 0;
+  const layers = {};
+  try {
+    muted = localStorage.getItem("fristad.music") === "av";
+  } catch {
+    /* ingen lagring */
+  }
+  const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+  const setup = () => {
+    if (c) return true;
+    c = sfx.context();
+    if (!c) return false;
+    master = c.createGain();
+    master.gain.value = muted ? 0 : 0.5;
+    master.connect(c.destination);
+    // Etterklang: en impulsrespons av støy som dør ut.
+    verb = c.createConvolver();
+    const len = c.sampleRate * 3.2;
+    const ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+    }
+    verb.buffer = ir;
+    const wet = c.createGain();
+    wet.gain.value = 0.55;
+    verb.connect(wet).connect(master);
+    for (const name of ["town", "cellar"]) {
+      const g = c.createGain();
+      g.gain.value = 0;
+      g.connect(master);
+      g.connect(verb);
+      layers[name] = g;
+    }
+    return true;
+  };
+  // En plukket streng (Karplus–Strong), som en lutt.
+  const pluck = (bus, f, at, peak) => {
+    const n = Math.round(c.sampleRate / f);
+    const dur = 2.2;
+    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    for (let i = n; i < d.length; i++) d[i] = 0.497 * (d[i - n] + d[i - n + 1]);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 2600;
+    const g = c.createGain();
+    g.gain.value = peak;
+    src.connect(lp).connect(g).connect(bus);
+    src.start(at);
+  };
+  // En myk fløytetone med vibrato og litt pust.
+  const flute = (bus, f, at, dur, peak) => {
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    const v = c.createOscillator();
+    v.frequency.value = 5;
+    const vg = c.createGain();
+    vg.gain.setValueAtTime(0, at);
+    vg.gain.linearRampToValueAtTime(f * 0.008, at + dur * 0.6);
+    v.connect(vg).connect(o.frequency);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(peak, at + 0.12);
+    g.gain.setValueAtTime(peak, at + dur - 0.15);
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+    o.connect(g).connect(bus);
+    o.start(at);
+    v.start(at);
+    o.stop(at + dur + 0.05);
+    v.stop(at + dur + 0.05);
+  };
+  // En bordun som varer mens laget spiller.
+  const drone = (bus, freqs, type, cutoff, peak) => {
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = cutoff;
+    const g = c.createGain();
+    g.gain.value = peak;
+    lp.connect(g).connect(bus);
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.07;
+    const lg = c.createGain();
+    lg.gain.value = cutoff * 0.4;
+    lfo.connect(lg).connect(lp.frequency);
+    lfo.start();
+    for (const f of freqs) {
+      for (const det of [-4, 4]) {
+        const o = c.createOscillator();
+        o.type = type;
+        o.frequency.value = f;
+        o.detune.value = det;
+        o.connect(lp);
+        o.start();
+      }
+    }
+  };
+  // Byen: D dorisk, akkordene Dm, C, Dm, Am, F, C, G, Dm.
+  const chords = [[50, 57, 62, 65], [48, 55, 60, 64], [50, 57, 62, 65], [45, 52, 57, 60], [41, 48, 53, 57], [48, 55, 60, 64], [43, 50, 55, 59], [50, 57, 62, 65]];
+  const scale = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77];
+  let note = 4;
+  const town = (t) => {
+    const bar = Math.floor(beat / 8) % chords.length;
+    const ch = chords[bar];
+    const step = beat % 8;
+    // Brutte akkorder i åttedeler, litt ujevnt som en ekte spiller.
+    const pat = [0, 2, 1, 3, 2, 1, 3, 2];
+    pluck(layers.town, hz(ch[pat[step]]), t + Math.random() * 0.015, step === 0 ? 0.5 : 0.32);
+    if (step === 0) pluck(layers.town, hz(ch[0] - 12), t, 0.45);
+    // Fløyta: en frase hver andre takt, som vandrer i skalaen.
+    if (bar % 2 === 0 && (step === 0 || step === 3 || step === 4 || step === 6) && Math.random() < 0.85) {
+      note = Math.max(0, Math.min(scale.length - 1, note + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)]));
+      flute(layers.town, hz(scale[note]), t, step === 6 ? 0.9 : 0.42, 0.07);
+    }
+  };
+  // Krypten: fjerne klokker i frygisk, slag langt borte og vind.
+  const bells = [38, 39, 43, 45, 46, 50, 51, 55];
+  const cellar = (t) => {
+    if (beat % 8 === 0 && Math.random() < 0.55) {
+      const f = hz(bells[Math.floor(Math.random() * bells.length)] + 24);
+      for (const [mul, amp] of [[1, 0.07], [2.76, 0.03], [5.4, 0.015]]) {
+        const o = c.createOscillator();
+        o.frequency.value = f * mul;
+        const g = c.createGain();
+        g.gain.setValueAtTime(amp, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 4.5);
+        o.connect(g).connect(layers.cellar);
+        o.start(t);
+        o.stop(t + 4.6);
+      }
+    }
+    if (beat % 16 === 6 && Math.random() < 0.4) {
+      const o = c.createOscillator();
+      o.frequency.setValueAtTime(52, t);
+      o.frequency.exponentialRampToValueAtTime(30, t + 0.8);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+      o.connect(g).connect(layers.cellar);
+      o.start(t);
+      o.stop(t + 1.3);
+    }
+  };
+  const wind = () => {
+    const len = c.sampleRate * 4;
+    const b = c.createBuffer(1, len, c.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource();
+    src.buffer = b;
+    src.loop = true;
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 400;
+    bp.Q.value = 2.5;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.05;
+    const lg = c.createGain();
+    lg.gain.value = 260;
+    lfo.connect(lg).connect(bp.frequency);
+    const g = c.createGain();
+    g.gain.value = 0.05;
+    src.connect(bp).connect(g).connect(layers.cellar);
+    src.start();
+    lfo.start();
+  };
+  let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
+    drone(layers.town, [hz(38), hz(45)], "sawtooth", 380, 0.05);
+    drone(layers.cellar, [hz(26), hz(32), hz(33)], "sawtooth", 220, 0.09);
+    wind();
+    next = c.currentTime + 0.1;
+    // Planlegger åttedelene litt fram i tid.
+    timer = setInterval(() => {
+      const spb = 60 / 84 / 2;
+      while (next < c.currentTime + 0.25) {
+        if (mode === "town") town(next);
+        if (mode === "cellar") cellar(next);
+        next += spb;
+        beat++;
+      }
+    }, 60);
+  };
+  const fade = (name, to) => {
+    const g = layers[name].gain;
+    g.cancelScheduledValues(c.currentTime);
+    g.setValueAtTime(g.value, c.currentTime);
+    g.linearRampToValueAtTime(to, c.currentTime + 3);
+  };
+  return {
+    set(where) {
+      if (!setup()) return;
+      start();
+      if (where === mode) return;
+      mode = where;
+      fade("town", where === "town" ? 1 : 0);
+      fade("cellar", where === "cellar" ? 1 : 0);
+    },
+    toggle() {
+      if (!setup()) return;
+      muted = !muted;
+      master.gain.setTargetAtTime(muted ? 0 : 0.5, c.currentTime, 0.3);
+      try {
+        localStorage.setItem("fristad.music", muted ? "av" : "på");
+      } catch {
+        /* ingen lagring */
+      }
+      return !muted;
+    },
+  };
+})();
+
 
 // Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
 // nettleseren gir oss den; ellers ser du deg rundt ved å dra med musa, så
@@ -775,6 +1264,7 @@ function enter(relock = true) {
     }
   }
   playing = true;
+  music.set(lastHud.cellar ? "cellar" : "town");
   gateEl.hidden = true;
   hud.hidden = false;
   engine.set_paused(false);
@@ -861,6 +1351,18 @@ function bindInput() {
     if (panelOpen && e.code === "Escape") {
       e.preventDefault();
       closePanel("resume");
+      return;
+    }
+    if (lootOpen) return;
+    if (e.code === "KeyI" && !e.repeat && (playing || invOpen)) {
+      e.preventDefault();
+      toggleInventory();
+      return;
+    }
+    if (invOpen) return;
+    if (e.code === "KeyM" && !e.repeat && playing) {
+      const on = music.toggle();
+      toast?.show?.(on ? "Musikken er på." : "Musikken er av.");
       return;
     }
     if (overlayOpen) {

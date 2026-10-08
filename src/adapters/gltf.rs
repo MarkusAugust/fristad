@@ -105,6 +105,9 @@ models! {
     "well" => "town/well.glb",
     "npc_smith" => "npc/npc_smith.glb",
     "npc_innkeeper" => "npc/npc_innkeeper.glb",
+    "npc_apothecary" => "npc/npc_apothecary.glb",
+    "npc_clerk" => "npc/npc_clerk.glb",
+    "npc_gorvek" => "npc/npc_gorvek.glb",
     "well_winch" => "town/well_winch.glb",
     "well_rope" => "town/well_rope.glb",
     "well_bucket" => "town/well_bucket.glb",
@@ -114,6 +117,11 @@ models! {
     "boulder_a" => "town/boulder_a.glb",
     "boulder_b" => "town/boulder_b.glb",
     "boulder_c" => "town/boulder_c.glb",
+    // Veiskiltet til krypten.
+    "signpost" => "town/signpost.glb",
+    // Kista i kjelleren og lokket som åpnes (origo i hengslet).
+    "chest" => "town/chest.glb",
+    "chest_lid" => "town/chest_lid.glb",
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
     "tavern" => "town/tavern.glb",
@@ -121,7 +129,7 @@ models! {
     "scriptorium" => "town/scriptorium.glb",
     "stave_church" => "town/stave_church.glb",
     "gravestone" => "town/gravestone.glb",
-    // Borgruinen, krypta, døra opp fra kjelleren og portgitteret fra
+    // Borgruinen, krypten, døra opp fra kjelleren og portgitteret fra
     // tools/models/castle.py.
     "castle_ruin" => "town/castle_ruin.glb",
     "crypt" => "town/crypt.glb",

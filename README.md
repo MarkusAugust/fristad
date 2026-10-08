@@ -1,8 +1,8 @@
 # Fristad
 
-Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypta, og der nede holder de korrupte komponentene fra designsystemet [Fristil](https://github.com/MarkusAugust/fristil) til: knapper med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
+Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypten, og der nede holder de korrupte komponentene fra designsystemet [Fristil](https://github.com/MarkusAugust/fristil) til: knapper med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
 
-Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypta smis til våpen, skjold og rustning hos Knappesmeden og i Skriptoriet, der oppskriftene er Fristil-skjemaer. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
+Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypten smis til våpen, skjold og rustning hos Knappesmeden og i Skriptoriet, der oppskriftene er Fristil-skjemaer. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
 
 Alt du ser er egne modeller laget i Blender med håndlagde teksturer, og motoren er skrevet fra bunnen i Rust.
 
@@ -12,7 +12,7 @@ Alt du ser er egne modeller laget i Blender med håndlagde teksturer, og motoren
 | --- | --- |
 | W A S D | Gå |
 | Mus | Se |
-| Shift | Løp, og med en retning i krypta: unnamanøver |
+| Shift | Løp, og med en retning i krypten: unnamanøver |
 | Mellomrom | Hopp |
 | C | Huk (hold inne) |
 | X | Kryp av og på |
@@ -29,7 +29,7 @@ Alt du ser er egne modeller laget i Blender med håndlagde teksturer, og motoren
 
 Motoren er skrevet i Rust og kompilert til WebAssembly, med hexagonal arkitektur (porter og adaptere):
 
-- `src/domain/`: kjernen. Byen, terrenget, naturen, krypta, kampen, fiendene, smiinga og innbyggerne, uten avhengigheter til motor eller nettleser.
+- `src/domain/`: kjernen. Byen, terrenget, naturen, krypten, kampen, fiendene, smiinga og innbyggerne, uten avhengigheter til motor eller nettleser.
 - `src/ports/`: grensesnittene. Rendereren, fysikken og modellkilden som applikasjonen bruker, og den drivende porten (`Play`) som nettleseren, vinduet og skjermbildeverktøyet bruker.
 - `src/application/`: setter kjernen sammen med portene.
 - `src/adapters/`: wgpu (WebGPU, med WebGL2 som reserve), Rapier (fysikk), glTF (modellene), nettleseren og eget vindu.

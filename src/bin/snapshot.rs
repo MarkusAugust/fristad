@@ -6,7 +6,7 @@
 //! Valg: --out FIL, --size BxH, --night, --eye x,y,z (y med + foran er
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
-//! (gå ned i krypta først), --attack S [--hold], --block, --frames N,
+//! (gå ned i krypten først), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
 //! --quality Q, --scale S, --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N.
 
@@ -31,6 +31,7 @@ fn main() {
     let (width, height) = arg("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))).unwrap_or((1280u32, 720u32));
 
     let prepared = prepare(&Embedded, seed());
+    let chest = prepared.world.dungeon.chests.first().copied();
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
     let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
     let format = wgpu::TextureFormat::Rgba8UnormSrgb;
@@ -45,6 +46,16 @@ fn main() {
     }
     if flag("--descend") {
         app.session.use_first(|u| *u == Use::Descend);
+    }
+    // --chest: åpne den første kista i kjelleren og se på den forfra (--time
+    // styrer hvor langt lokket har kommet).
+    if flag("--chest") {
+        if let Some((p, yaw, _)) = chest {
+            let front = Vec3::new(yaw.sin(), 0.0, yaw.cos());
+            let eye = p + front * 1.8 + Vec3::Y * 1.5;
+            app.command(Command::Place { eye, yaw: (front.x).atan2(front.z), pitch: -0.45 });
+            app.session.use_first(|u| matches!(u, Use::Chest(0)));
+        }
     }
     // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
     if flag("--well") {

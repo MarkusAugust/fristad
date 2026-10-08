@@ -89,6 +89,7 @@ impl Session {
         instances.extend(self.mobs.instances(self.time, &mut skins));
         instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.chest_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::CHEST_LID, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
@@ -103,10 +104,9 @@ impl Session {
             sky_horizon: sky_horizon * (1.0 - c * 0.9),
             ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.8),
             fog_color: grey(lerp3(Vec3::new(0.6, 0.7, 0.82), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
-            // Høydetåka tetner nedover; i kjelleren skal den være like tett
-            // i alle etasjene (som i den første, 16 m under bakken).
-            fog_density: (0.0013 + dusk * 0.0012) * self.fog_mul * (1.0 + c * 6.0) * (1.0 + c * 0.6),
-            fog_falloff: 0.03 * (1.0 - c) + 0.0005 * c,
+            // Høydetåka tetner nedover. I kjelleren er det ingen tåke.
+            fog_density: (0.0013 + dusk * 0.0012) * self.fog_mul * (1.0 - c),
+            fog_falloff: 0.03,
             exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 1.5),
             bloom: 0.06 + t * 0.06,
             windows_lit: 0.55,

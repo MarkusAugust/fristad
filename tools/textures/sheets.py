@@ -18,7 +18,7 @@ assets/models/props/flames_atlas.png: alfa er lysstyrken, fargen delt på
 alfa, så flammen kan blandes additivt eller alfablandes uten svart kant.
 
 door: en hel jernbeslått dør (1:2) til assets/textures/door/ med albedo,
-høyde og normalkart i samme format, til dørene i husene og krypta.
+høyde og normalkart i samme format, til dørene i husene og krypten.
 
 flowers: arket er fem kolonner (smørblomst, blåklokke, ryllik, rødkløver,
 hundekjeks) og tre rader. Hver plante beskjæres og legges i et atlas med

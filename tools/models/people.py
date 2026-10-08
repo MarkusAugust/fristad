@@ -18,6 +18,7 @@ import gzip
 import json
 import math
 import os
+import random
 import subprocess
 import sys
 
@@ -798,7 +799,10 @@ def head_photos(body, spec, eye, mouth):
     ss = (ex - ear_x) / (ue - side["ear"])
     print(f"ankre: øyne x {ex:.3f} z {ez:.3f}, øret x {ear_x:.3f}, forfra {su:.3f} m per bilde, siden {ss:.3f}")
     project_uv(body, "right", lambda p: (ue + (p.x - ex) / ss, ve2 + (ez - p.z) / ss))
-    project_uv(body, "left", lambda p: ((1 - ue) - (p.x - ex) / ss, ve2 + (ez - p.z) / ss))
+    # Venstre profil: egne ankre om fotoet ikke er et rent speilbilde.
+    ul2, vl2 = side.get("eye_l", (1 - ue, ve2))
+    sl = (ex - ear_x) / (side.get("ear_l", 1 - side["ear"]) - ul2)
+    project_uv(body, "left", lambda p: (ul2 - (p.x - ex) / sl, vl2 + (ez - p.z) / sl))
     # Bakfra: personens venstre (+y) er til venstre i bildet; festet i ørene.
     back = ph["back"]
     ear_z = ez - 0.025
@@ -832,7 +836,12 @@ def head_material2(name, spec, skin_tex, hair_tex, beard_tex, ez, mouth_z, ear_x
     top = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Z"], 0.15, 0.45), _ramp(nt, pos.outputs["Z"], ez, ez + 0.03))
     # Bak øret og over det: hår.
     behind = _math(nt, "MULTIPLY", _ramp(nt, pos.outputs["X"], ear_x + 0.03, ear_x), _ramp(nt, pos.outputs["Z"], ez - 0.06, ez - 0.03))
-    col = _mix(nt, col, ht.outputs["Color"], _math(nt, "MAXIMUM", top, behind))
+    if ph.get("crown") == "skin":
+        # Skallet isse (munken): håret bare i kransen rundt, ikke på toppen.
+        hair = _math(nt, "MULTIPLY", behind, _ramp(nt, nrm.outputs["Z"], 0.6, 0.35))
+    else:
+        hair = _math(nt, "MAXIMUM", top, behind)
+    col = _mix(nt, col, ht.outputs["Color"], hair)
     if beard_tex:
         bt = _boxtex(nt, beard_tex, 0.1, tc.outputs["Object"])
         under = _math(nt, "MULTIPLY", _ramp(nt, pos.outputs["Z"], mouth_z, mouth_z - 0.02), _ramp(nt, pos.outputs["X"], -0.06, -0.02))
@@ -1037,7 +1046,295 @@ def innkeeper():
     return j
 
 
-MODELS = {"smith": smith, "innkeeper": innkeeper}
+APOTHECARY = {"name": "apothecary", "macro": (1.0, 0.85, 0.15, 0.1), "height": 1.74, "grip": "R",
+              "photo": {"file": f"{FACES}/gammel.jpg", "eyes": (0.372, 0.628, 0.515), "mouth": 0.825, "cheek": (0.32, 0.58, 0.4, 0.66),
+                        "side": {"file_r": f"{FACES}/apotek_right.jpeg", "file_l": f"{FACES}/apotek_left.jpeg", "eye": (0.67, 0.385), "ear": 0.355,
+                                 "eye_l": (0.325, 0.385), "ear_l": 0.66,
+                                 "skin_r": (0.55, 0.45, 0.62, 0.52), "skin_l": (0.38, 0.45, 0.45, 0.52)},
+                        "back": {"file": f"{FACES}/apotek_back.jpeg", "ears": (0.248, 0.752, 0.48), "skin": (0.44, 0.65, 0.56, 0.71)}},
+              "tiles": {"skin": f"{FACES}/apotek_skin.jpeg", "hair": f"{FACES}/apotek_hair.jpeg", "beard": None}}
+CLERK = {"name": "clerk", "macro": (1.0, 0.7, 0.2, 0.05), "height": 1.76, "grip": "R",
+         "photo": {"file": f"{FACES}/munk.jpg", "eyes": (0.4, 0.584, 0.412), "mouth": 0.644, "cheek": (0.33, 0.46, 0.4, 0.54), "crown": "skin",
+                   "side": {"file_r": f"{FACES}/scribe_right.jpeg", "file_l": f"{FACES}/scribe_left.jpeg", "eye": (0.685, 0.38), "ear": 0.395,
+                            "eye_l": (0.315, 0.38), "ear_l": 0.62,
+                            "skin_r": (0.55, 0.42, 0.62, 0.5), "skin_l": (0.38, 0.42, 0.45, 0.5)},
+                   "back": {"file": f"{FACES}/scribe_back.jpeg", "ears": (0.278, 0.722, 0.41), "skin": (0.42, 0.5, 0.58, 0.57)}},
+         "tiles": {"skin": f"{FACES}/scribe_skin.jpeg", "hair": f"{FACES}/scribe_hair.jpeg", "beard": None}}
+# Gorvek: en hardbarket barbar i førtiårene, høyere, tyngre og mer
+# muskuløs enn de andre i byen.
+GORVEK = {"name": "gorvek", "macro": (1.0, 0.62, 1.0, 0.6), "height": 1.98, "grip": "R",
+          "photo": {"file": f"{FACES}/gorvek_front.jpeg", "eyes": (0.418, 0.59, 0.385), "mouth": 0.575, "cheek": (0.34, 0.48, 0.4, 0.54),
+                    "side": {"file_r": f"{FACES}/gorvek_right.jpeg", "file_l": f"{FACES}/gorvek_left.jpeg", "eye": (0.651, 0.38), "ear": 0.38,
+                             "eye_l": (0.3, 0.38), "ear_l": 0.59,
+                             "skin_r": (0.52, 0.42, 0.58, 0.48), "skin_l": (0.42, 0.42, 0.48, 0.48)},
+                    "back": {"file": f"{FACES}/gorvek_back.jpeg", "ears": (0.314, 0.692, 0.348), "skin": (0.15, 0.7, 0.3, 0.8)}},
+          "tiles": {"skin": f"{FACES}/gorvek_skin.jpeg", "hair": f"{FACES}/gorvek_hair.jpeg", "beard": f"{FACES}/gorvek_beard.jpeg"}}
+
+
+def dress_photos(spec, skin_tone, body_mat=None):
+    """Kroppen og hodet med eierens fotoer og fliser (som smeden): gir
+    kroppen, leddene, øyehøyden og hvilket bein hvert hjørne følger."""
+    body, j, eye, mouth = build_human(spec)
+    ez = (eye["l"].z + eye["r"].z) / 2
+    t = spec["tiles"]
+    dom = dominant(body)
+    body.data.materials.append(body_mat(body, j) if body_mat else skin_material("skin", t["skin"], skin_tone, scale=0.22))
+    ear_x = head_photos(body, spec, eye, mouth)
+    body.data.materials.append(head_material2("face", spec, t["skin"], t["hair"], t["beard"], ez, ez - 0.065, ear_x))
+    for p in body.data.polygons:
+        p.material_index = 1 if all(dom[i] in ("head", "neck") for i in p.vertices) else 0
+    return body, j, ez, dom, ear_x
+
+
+def hand_grip(j, k=1.22):
+    w, m3 = j["wrist.R"][0], j["finger3-1.R"][0]
+    return w + (m3 - w) * k
+
+
+def apothecary():
+    spec = APOTHECARY
+    body, j, ez, dom, _ = dress_photos(spec, (0.9, 0.84, 0.8))
+    belt_z = j["spine04"][0].z + 0.02
+    neck_z = j["neck01"][0].z - 0.01
+    wrist_z = j["wrist.R"][0].z + 0.03
+    # Linskjorta under kjortelen, ermene ned til håndleddet.
+    linen = cloth("shirt", "linen", lin((0.82, 0.78, 0.68)), 0.3, dirt=(1.1, 0.25))
+    shell(body, "shirt", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.005, 0.003, linen)
+    # Den lange ullkjortelen i mosegrønt: livet og et skjørt til anklene.
+    wool = cloth("robe", "wool", lin((0.36, 0.4, 0.27)), 0.3, dirt=(0.5, 0.55))
+    shell(body, "robe_top", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R"} and belt_z - 0.06 < co.z < neck_z - 0.02, 0.012, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.06, wool, flare=0.09)
+    # Lærbeltet med punger og en kniv.
+    leather = cloth("belt", "leather", lin((0.3, 0.2, 0.12)), 0.15, rough=0.5)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.02 and dom[i] in {"hips", "spine"}, 0.03, 0.006, leather)
+    for k, (dy, h) in enumerate(((0.1, 0.09), (-0.06, 0.07))):
+        block(f"pouch{k}", Vector((0.1, dy, belt_z - h / 2 - 0.01)), (0.04, 0.08, h), leather, rot=(0, 0.1, 0), bevel=0.012)
+    shoes = cloth("shoes", "leather", lin((0.28, 0.2, 0.13)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    # En leirkrukke med tøy over munnen i høyre hånd.
+    clay = cloth("tool_clay", "earth", lin((0.75, 0.5, 0.36)), 0.1, rough=0.7)
+    c = hand_grip(j) + Vector((0.03, 0.0, -0.02))
+    tube("tool_jar", c + Vector((0, 0, -0.08)), c + Vector((0, 0, 0.05)), 0.048, 0.04, clay, n=18)
+    tube("tool_jar_lid", c + Vector((0, 0, 0.05)), c + Vector((0, 0, 0.065)), 0.042, 0.03, cloth("tool_cloth", "linen", lin((0.75, 0.7, 0.6)), 0.1), n=18)
+    return j
+
+
+def clerk():
+    spec = CLERK
+    body, j, ez, dom, _ = dress_photos(spec, (0.92, 0.86, 0.82))
+    belt_z = j["spine04"][0].z + 0.02
+    neck_z = j["neck01"][0].z - 0.01
+    wrist_z = j["wrist.R"][0].z + 0.04
+    # Kutta i brun ull: overkroppen og vide ermer, og skjørtet til føttene.
+    wool = cloth("habit", "wool", lin((0.24, 0.18, 0.14)), 0.3, dirt=(0.45, 0.6))
+    shell(body, "habit_top", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.014, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.04, wool, flare=0.13)
+    # Hetta ligger nede på skuldrene som en tykk krage.
+    shell(body, "hood", lambda i, co: dom[i] in {"neck", "chest", "spine"} and neck_z - 0.11 < co.z < neck_z + 0.035, 0.035, 0.012, wool)
+    # Taubeltet med ender som henger ned.
+    rope = cloth("cord", "linen", lin((0.7, 0.62, 0.48)), 0.06, rough=0.8, bump=0.8)
+    shell(body, "cord", lambda i, co: abs(co.z - belt_z) < 0.009 and dom[i] in {"hips", "spine"}, 0.03, 0.008, rope)
+    for k, dy in enumerate((0.03, 0.06)):
+        tube(f"cord_end{k}", Vector((0.11, dy, belt_z)), Vector((0.12, dy + 0.01, belt_z - 0.32 - k * 0.06)), 0.007, 0.006, rope, n=8)
+    shoes = cloth("shoes", "leather", lin((0.26, 0.18, 0.12)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    # Ei bok i lærbind med messinghjørner i høyre hånd.
+    g = hand_grip(j, 1.15)
+    cover = cloth("tool_cover", "leather", lin((0.32, 0.12, 0.08)), 0.1, rough=0.5)
+    pages = cloth("tool_pages", "linen", lin((0.85, 0.8, 0.66)), 0.05)
+    block("tool_book", g + Vector((0.03, 0.0, -0.06)), (0.17, 0.05, 0.23), cover, rot=(0, 0.15, 0), bevel=0.005)
+    block("tool_pages", g + Vector((0.035, 0.0, -0.06)), (0.165, 0.04, 0.22), pages, rot=(0, 0.15, 0), bevel=0.002)
+    return j
+
+
+def hair_locks(body, j, name, mat, z_top, z_bot, ez, n=230, arc=100.0, rows=12, seed=3):
+    """Langt hår som enkeltlokker: hver lokk starter på hodet (fra issen
+    bak, over øret på sidene), følger hodet ned og henger så rett ned over
+    nakken og skuldrene, smalner mot tuppen og ligger i lag utenpå
+    hverandre."""
+    rng = random.Random(seed)
+    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    cx = j["head"][0].x - 0.015
+    bm = bmesh.new()
+    for _ in range(n):
+        a = rng.uniform(-arc, arc)
+        side = abs(a) > 70
+        z0 = (ez + rng.uniform(0.03, 0.07)) if side else (z_top - rng.uniform(0.03, 0.08))
+        z1 = z_bot + rng.uniform(-0.07, 0.05) + (0.04 if side else 0.0)
+        lift = rng.uniform(0.002, 0.01)
+        width = rng.uniform(0.015, 0.026)
+        reach = 0.0
+        prev = None
+        for r in range(rows + 1):
+            t = r / rows
+            a += rng.uniform(-1.2, 1.2)
+            ar = math.radians(a)
+            d = Vector((-math.cos(ar), math.sin(ar), 0.0))
+            z = z0 + (z1 - z0) * t
+            c = Vector((cx, 0.0, z))
+            hit = tree.ray_cast(c + d * 0.6, -d, 0.6)
+            rad = (hit[0] - c).length if hit[0] is not None else reach
+            reach = max(rad + lift + 0.012 * t, reach - 0.003) if r else rad + lift
+            mid = c + d * reach
+            # Spiss i begge ender: glir ut av håret på hodet øverst.
+            tan = Vector((math.sin(ar), math.cos(ar), 0.0)) * (width * min(1.0, 0.15 + t / 0.2) * (1.0 - 0.75 * t) / 2)
+            pair = (bm.verts.new(mid - tan), bm.verts.new(mid + tan))
+            if prev:
+                bm.faces.new((prev[0], prev[1], pair[1], pair[0]))
+            prev = pair
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.0015)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    copy_weights(body, ob)
+    return ob
+
+
+def beard_tufts(body, dom, name, mat, ez, ear_x, seed=5):
+    """Skjegg med volum: korte, spisse tuster fra hjørnene i skjeggfeltet,
+    lagt ut fra huden og ned (lengre på haka), og en bart som henger over
+    overleppa. Leppene holdes fri."""
+    rng = random.Random(seed)
+    mz = ez - 0.068
+    bm = bmesh.new()
+    me = body.data
+    for v in me.vertices:
+        co, n = v.co, v.normal
+        if dom[v.index] not in ("head", "neck") or co.x < ear_x + 0.03 or n.x < -0.2:
+            continue
+        lip = abs(co.y) < 0.032 and abs(co.z - mz) < 0.013
+        moustache = abs(co.y) < 0.04 and mz + 0.013 < co.z < mz + 0.03 and n.x > 0.3
+        jaw = ez - 0.17 < co.z < mz - 0.013 or (mz - 0.013 <= co.z < ez - 0.035 and abs(co.y) > 0.045)
+        if lip or not (moustache or jaw):
+            continue
+        for _ in range(2):
+            p = co + n * 0.001 + Vector((rng.uniform(-0.003, 0.003), rng.uniform(-0.003, 0.003), rng.uniform(-0.003, 0.003)))
+            down = Vector((0, 0, -1)) - n * (-n.z)
+            chin = max(0.0, (mz - co.z) / 0.08)
+            d = (n * rng.uniform(0.12, 0.4) + down.normalized() * 0.9 + Vector((0, rng.uniform(-0.35, 0.35), 0))).normalized()
+            length = (0.011 if moustache else 0.014 + 0.024 * chin) * rng.uniform(0.6, 1.4)
+            side = n.cross(d).normalized() * (rng.uniform(0.004, 0.007) / 2)
+            prev = None
+            for k in range(3):
+                t = k / 2
+                q = p + d * length * t + n * 0.003 * math.sin(t * math.pi)
+                w = 1.0 - 0.85 * t
+                pair = (bm.verts.new(q - side * w), bm.verts.new(q + side * w))
+                if prev:
+                    bm.faces.new((prev[0], prev[1], pair[1], pair[0]))
+                prev = pair
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.0012)
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    ob = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(ob)
+    mesh.materials.append(mat)
+    for p_ in mesh.polygons:
+        p_.use_smooth = True
+    copy_weights(body, ob)
+    print(f"skjegg: {len(mesh.polygons)} flater")
+    return ob
+
+
+def scarred_back(spec):
+    """Huden til Gorvek: hudflisen, og bakfotoet (med arrene på skuldrene og
+    ryggen) lagt på øvre del av ryggen, festet i skuldrene."""
+    def make(body, j):
+        sl, sr = j["upperarm01.L"][0], j["upperarm01.R"][0]
+        sz = (sl.z + sr.z) / 2
+        # Skuldrene i fotoet står ved u 0,1 og 0,9 i høyde v 0,72.
+        sb = (sl.y - sr.y) / 0.8
+        project_uv(body, "backbody", lambda p: (0.5 - p.y / sb, 0.72 + (sz - p.z) / sb))
+        m = bpy.data.materials.new("skin")
+        m.use_nodes = True
+        nt = m.node_tree
+        b = _bsdf(m)
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        st = _boxtex(nt, spec["tiles"]["skin"], 0.22, tc.outputs["Object"])
+        col = _mix(nt, st.outputs["Color"], (0.88, 0.8, 0.74), 1.0, "MULTIPLY")
+        uv = nt.nodes.new("ShaderNodeUVMap")
+        uv.uv_map = "backbody"
+        img = nt.nodes.new("ShaderNodeTexImage")
+        img.image = bpy.data.images.load(spec["photo"]["back"]["file"], check_existing=True)
+        img.extension = "EXTEND"
+        nt.links.new(uv.outputs["UV"], img.inputs["Vector"])
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(uv.outputs["UV"], sep.inputs[0])
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        nrm = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(geo.outputs["Normal"], nrm.inputs[0])
+        # Bare ryggen (flater som vender bakover), og ikke utenfor fotoet
+        # (v under 0,98 er nederst i bildet).
+        w = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["X"], -0.2, -0.55), _ramp(nt, sep.outputs["Y"], 0.02, 0.08))
+        w = _math(nt, "MULTIPLY", w, _ramp(nt, sep.outputs["X"], 0.02, 0.08))
+        w = _math(nt, "MULTIPLY", w, _ramp(nt, sep.outputs["X"], 0.98, 0.92))
+        gain = tuple(float(min(1.4, max(0.7, a / max(1e-4, c)))) for a, c in zip(patch_mean(spec["tiles"]["skin"], (0.2, 0.2, 0.8, 0.8)), patch_mean(img.image.filepath, spec["photo"]["back"]["skin"])))
+        photo = _mix(nt, img.outputs["Color"], gain, 1.0, "MULTIPLY")
+        col = _mix(nt, col, photo, w)
+        nt.links.new(col, b.inputs["Base Color"])
+        b.inputs["Roughness"].default_value = 0.5
+        return m
+    return make
+
+
+def gorvek():
+    spec = GORVEK
+    body, j, ez, dom, ear_x = dress_photos(spec, None, body_mat=scarred_back(spec))
+    belt_z = j["spine04"][0].z + 0.02
+    neck_z = j["neck01"][0].z - 0.01
+    t = spec["tiles"]
+    # Det lange håret: fra over ørene ned over nakken til skulderbladene.
+    hair = skin_material("hair", t["hair"], (0.82, 0.74, 0.66), scale=0.18)
+    crown = max(v.co.z for v in body.data.vertices)
+    hair_locks(body, j, "hair", hair, crown - 0.01, neck_z - 0.27, ez)
+    # Skjegget med volum: korte tuster som vokser ut fra kjeven, haka og
+    # under haka og peker nedover, og en bart over leppa. Leppene er fri.
+    beard = skin_material("beard", t["beard"], (0.78, 0.7, 0.62), scale=0.04)
+    beard_tufts(body, dom, "beard", beard, ez, ear_x)
+    # Pelskappa over skuldrene (grå ulvepels), med en lærreim over brystet.
+    fur = skin_material("fur", t["beard"], (0.62, 0.52, 0.42), scale=0.07)
+    sh_z = (j["upperarm01.L"][0].z + j["upperarm01.R"][0].z) / 2
+    el_z = j["lowerarm01.L"][0].z
+    shell(body, "fur", lambda i, co: (dom[i] in {"chest", "spine", "neck"} and sh_z - 0.12 < co.z < neck_z + 0.03 and co.x < 0.06) or (dom[i] in {"upper_arm.L", "upper_arm.R"} and co.z > el_z + 0.17), 0.04, 0.03, fur)
+    leather = cloth("leather", "leather", lin((0.26, 0.18, 0.12)), 0.18, rough=0.55, dirt=(0.7, 0.5))
+    tube("strap_chest", Vector((0.16, 0.13, sh_z - 0.02)), Vector((0.17, -0.12, belt_z + 0.1)), 0.016, 0.016, leather)
+    # Lærbuksa og pelsviklede støvler.
+    shell(body, "trousers", lambda i, co: dom[i] in {"hips", "thigh.L", "thigh.R", "shin.L", "shin.R"} and 0.28 < co.z < belt_z + 0.04, 0.006, 0.003, leather)
+    shell(body, "wraps", lambda i, co: 0.07 < co.z < 0.4 and dom[i] in {"shin.L", "shin.R", "foot.L", "foot.R"}, 0.018, 0.006, fur)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, leather)
+    # Det brede beltet med jernspenne, og armskinner av lær.
+    iron = cloth("iron", "metal", lin((0.5, 0.48, 0.46)), 0.15, rough=0.45, bump=0.3)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.035 and dom[i] in {"hips", "spine"}, 0.035, 0.008, leather)
+    block("buckle", Vector((0.19, 0.0, belt_z)), (0.03, 0.09, 0.075), iron, bevel=0.006)
+    for s_ in "LR":
+        w_z = j[f"wrist.{s_}"][0].z
+        shell(body, f"bracer{s_}", lambda i, co, s_=s_, w_z=w_z: dom[i] == f"forearm.{s_}" and co.z > w_z + 0.02 and co.z < w_z + 0.17, 0.008, 0.005, leather)
+    # Skjeggøksa i høyre hånd: askeskaft gjennom grepet, hodet nede ved kneet.
+    ash = cloth("tool_ash", "oak", lin((0.7, 0.58, 0.44)), 0.15, rough=0.6)
+    g = hand_grip(j)
+    top, bot = g + Vector((-0.03, 0, 0.14)), g + Vector((0.06, 0, -0.62))
+    tube("tool_haft", top, bot, 0.017, 0.016, ash)
+    steel = cloth("tool_steel", "metal", lin((0.62, 0.6, 0.58)), 0.12, rough=0.35, bump=0.2)
+    d = (bot - top).normalized()
+    head = bot - d * 0.07
+    block("tool_eye", head, (0.05, 0.035, 0.08), steel, rot=(0, -math.atan2(d.x, -d.z), 0), bevel=0.006)
+    block("tool_blade", head + Vector((0.11, 0, -0.03)), (0.17, 0.012, 0.11), steel, rot=(0, -math.atan2(d.x, -d.z) + 0.12, 0), bevel=0.004)
+    block("tool_beard", head + Vector((0.16, 0, -0.1)), (0.07, 0.01, 0.12), steel, rot=(0, -math.atan2(d.x, -d.z) - 0.3, 0), bevel=0.004)
+    return j
+
+
+MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek}
 
 
 def preview(out, focus):
@@ -1081,4 +1378,4 @@ if __name__ == "__main__":
         sys.exit(0)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest"}, skin={"blend": 0.05})
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest"}, skin={"blend": 0.05})

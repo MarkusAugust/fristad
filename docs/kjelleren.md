@@ -28,7 +28,7 @@ sammen av en generator som følger en plan for flyten.
 
 ## Flyten i en etasje
 
-1. **Startrommet** (første etasje: døra opp til krypta; ellers trappefoten).
+1. **Startrommet** (første etasje: døra opp til krypten; ellers trappefoten).
 2. **Hovedveien**: 5–7 rom mot utgangen, med varierte rom: søylehall med
    krysshvelv, cisterne med vann og gangbaner, galleri i to høyder (du kan
    hoppe ned fra galleriet), kapell med apsis og sarkofager.

@@ -51,7 +51,7 @@ const TEXTURES: Record<string, string[]> = {
   bark: ["bark_brown_02", "bark_willow", "pine_bark", "bark"],
   // Tråkket jord og søle på veiene.
   gravel: ["brown_mud_leaves_01", "forest_ground_01", "brown_mud", "dirt", "mud"],
-  // Steinheller i krypta.
+  // Steinheller i krypten.
   concrete: ["stone_tiles_02", "floor_tiles_06", "flagstone", "stone_floor"],
   // Lysere tømmer (laft, planker).
   timber: ["wood_planks", "pine_planks", "wooden_planks", "planks"],

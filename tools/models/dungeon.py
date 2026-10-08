@@ -10,7 +10,7 @@ Delene (se docs/kjelleren.md):
   krysshvelv og diagonalribber) og `_end`. Gangen er 2,8 m bred med
   tønnehvelv; massen rundt er fjell.
 - `dng_seal`: en tilmurt dørbue (dører i et rom som ingen gang går til).
-- Rom: `dng_start` (trappa opp til krypta), `dng_gate` (portgitteret foran
+- Rom: `dng_start` (trappa opp til krypten), `dng_gate` (portgitteret foran
   vindeltrappa ned), `dng_landing` (foten av vindeltrappa), `dng_hall`
   (søylehall med krysshvelv), `dng_long` (lang hall med sarkofager),
   `dng_cistern` (cisterne med vann og søyler), `dng_gallery` (forhøyning
@@ -843,6 +843,10 @@ def tower_opening(room, i, j):
     zf = room.z1
     w, h = 3.4, 3.0
     cbox(cx - w / 2, cx + w / 2, -0.12, h, zf - 0.05, (j + 1) * CELL + 0.05)
+    # Hele tårncella skjæres bort: der står vindeltrappa med sin egen sjakt
+    # (ellers står rommets murmasse som en vegg bak gitteret og som et gulv
+    # midt i trappa).
+    cbox(i * CELL - 0.01, (i + 1) * CELL + 0.01, -1.0, 8.0, (j + 1) * CELL, (j + 2) * CELL + 0.05)
     room.gap("z", zf, cx, w / 2, h)
     room.passages.append((cx - w / 2, cx + w / 2, zf, (j + 1) * CELL))
     return (cx, zf, w, h)
@@ -883,7 +887,7 @@ def tower_trim(room, cx, zf, w, h, gate):
 
 
 def start_room():
-    """Startrommet i første etasje: søylehall der trappa opp til krypta står
+    """Startrommet i første etasje: søylehall der trappa opp til krypten står
     i nordmuren, med tønner, kasser og et bord ved inngangen."""
     r = Room(3, 3, seed=11)
     r.door(2, 1, 1, 0)

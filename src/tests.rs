@@ -179,7 +179,7 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
-/// Krypta tar deg ned i kjelleren og døra opp igjen; fiendene kommer,
+/// Krypten tar deg ned i kjelleren og døra opp igjen; fiendene kommer,
 /// biter, og kan slås i hjel.
 #[test]
 fn kjelleren_kan_nas_og_fiendene_biter() {
@@ -206,13 +206,13 @@ fn kjelleren_kan_nas_og_fiendene_biter() {
         game.update(&mut input, 1.0 / 30.0, &mut physics);
     }
     assert!((game.eye().y - there.y - 1.7).abs() < 1.0, "sto ikke igjen nederst: øyet er på y = {:.1}, gulvet på {:.1}", game.eye().y, there.y);
-    // Tilbake opp, og ned gjennom krypta.
+    // Tilbake opp, og ned gjennom krypten.
     game.respawn();
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     let events = game.use_first(|u| *u == Use::Descend);
     assert!(events.iter().any(|e| matches!(e, Event::Fade)), "nedgangen skal tone til svart");
     let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
-    assert!(game.eye().y < DEPTH + 3.0, "døra i krypta skal ta deg ned: øyet er på y = {:.1}", game.eye().y);
+    assert!(game.eye().y < DEPTH + 3.0, "døra i krypten skal ta deg ned: øyet er på y = {:.1}", game.eye().y);
     assert!(events.iter().any(|e| matches!(e, Event::Hud { cellar: true, .. })), "HUD-en skal melde at du er nede");
     // Fiendene jager: etter noen sekunder biter en, og livet synker.
     let mut bitten = false;
@@ -252,7 +252,7 @@ fn kjelleren_kan_nas_og_fiendene_biter() {
     // Og opp igjen gjennom døra i startrommet.
     game.use_first(|u| *u == Use::Ascend);
     game.update(&mut input, 1.0 / 30.0, &mut physics);
-    assert!(game.eye().y > 0.0, "døra opp skal ta deg til krypta: øyet er på y = {:.1}", game.eye().y);
+    assert!(game.eye().y > 0.0, "døra opp skal ta deg til krypten: øyet er på y = {:.1}", game.eye().y);
 }
 
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
@@ -447,3 +447,310 @@ fn nettleseren_far_de_samme_modellene() {
     assert_eq!(names(&web), names(native));
     assert_eq!(web.world.placements.len(), native.world.placements.len());
 }
+
+/// Gjennomspillingen: en bot går ned gjennom krypten og gjennom alle
+/// etasjene med ekte fysikk, slik en spiller må: åpner kistene, jakter
+/// eliten til den har nøkkelen, låser opp portgitteret, går ned
+/// vindeltrappa og slår Rammeverket nederst. Den slåss uten å blokke, så
+/// den får fullt liv når livet er under 25 (og teller det som et dødsfall
+/// en ekte spiller kunne fått). Står den fast, feiler testen med hvor.
+/// Tar noen minutter: `cargo test --release gjennomspilling -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn gjennomspilling() {
+    use crate::domain::world::dungeon::{Dungeon, FLOOR_DROP};
+    let p = world();
+    let d: &Dungeon = &p.world.dungeon;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false };
+    bot.step(&mut game, &mut physics);
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(events.iter().any(|e| matches!(e, Event::Fade)), "døra i krypten tok deg ikke ned");
+    bot.step(&mut game, &mut physics);
+    let spirals = p.world.placements.iter().find(|pl| pl.model == "dng_spiral").map(|pl| pl.transforms.clone()).unwrap_or_default();
+    for (f, floor) in d.floors.iter().enumerate() {
+        let t0 = bot.t;
+        bot.note(format!("etasje {f} ({}): starter ved {:?}", crate::domain::world::dungeon::EPOCHS[f], floor.cell_of(game.eye())));
+        // Kistene i etasjen.
+        for (c, yaw, cf) in d.chests.iter() {
+            if *cf != f {
+                continue;
+            }
+            // Et sted ved kista det går an å stå, helst foran den.
+            let _ = yaw;
+            let feet = game.eye() - Vec3::Y * 1.6;
+            let spots = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].map(|v| *c + v * 1.3);
+            let at = spots.into_iter().filter(|q| d.walkable(*q, 0.3)).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet))).unwrap_or(*c);
+            let reached = bot.walk_to_soft(&mut game, &mut physics, d, at, 0.5, 6.0);
+            bot.aim(&mut game, *c + Vec3::Y * 0.4);
+            bot.input.actions.push(Action::Use);
+            let mut opened = false;
+            for e in bot.step(&mut game, &mut physics) {
+                if let Event::Loot(c) = e {
+                    opened = true;
+                    bot.chests += 1;
+                    bot.note(format!("  kiste: {c:?}"));
+                }
+            }
+            if !opened {
+                bot.unopened += 1;
+                bot.note(format!("  FANT IKKE FRAM til kista ved {:?} (kom {}fram)", floor.cell_of(*c), if reached { "" } else { "ikke " }));
+            }
+        }
+        if f + 1 < d.floors.len() {
+            // Eliten bærer nøkkelen.
+            let keys = game.keys();
+            let deadline = bot.t + 600.0;
+            while game.keys() == keys {
+                assert!(bot.t < deadline, "etasje {f}: fant ikke eliten med nøkkelen på ti minutter\n{}", bot.log.join("\n"));
+                let feet = game.eye() - Vec3::Y * 1.6;
+                let elite = game.living().into_iter().filter(|(m, _, e)| *e && (m.y - feet.y).abs() < 4.0).map(|(m, _, _)| m).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet)));
+                // Eliten slipper nøkkelen på gulvet: gå og hent den.
+                let key = game.loose_keys().into_iter().filter(|k| (k.y - feet.y).abs() < 4.0).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet)));
+                let Some(e) = elite.or(key) else { panic!("etasje {f}: ingen elite og ingen nøkkel å finne\n{}", bot.log.join("\n")) };
+                if !bot.fight(&mut game, &mut physics) {
+                    bot.walk_toward(&mut game, &mut physics, d, e, &format!("eliten i etasje {f}"));
+                }
+            }
+            bot.note(format!("  nøkkelen etter {:.0} s", bot.t - t0));
+            // Portgitteret: still deg foran det på romsida og lås opp.
+            let (g, gyaw) = d.gates[f];
+            let exit = floor.exit.expect("etasjen har trapp");
+            let fwd = Vec3::new(gyaw.sin(), 0.0, gyaw.cos());
+            let stand = [g + fwd * 1.8, g - fwd * 1.8].into_iter().find(|q| {
+                let c = floor.cell_of(*q);
+                c != exit && floor.is_open(c.0, c.1)
+            });
+            let stand = stand.unwrap_or_else(|| panic!("etasje {f}: ingen plass foran portgitteret"));
+            bot.walk_to(&mut game, &mut physics, d, stand, 0.6, &format!("portgitteret i etasje {f}"));
+            bot.aim(&mut game, g + Vec3::Y * 1.3);
+            bot.input.actions.push(Action::Use);
+            bot.step(&mut game, &mut physics);
+            assert_eq!(game.keys(), keys, "etasje {f}: portgitteret tok ikke nøkkelen (siktet du på det?)\n{}", bot.log.join("\n"));
+            bot.idle(&mut game, &mut physics, 3.0);
+            // Vindeltrappa: inn, rundt og ned, og ut i trappefoten under.
+            let top = floor.center(exit.0, exit.1);
+            let tf = *spirals.iter().min_by(|a, b| Vec3::from(a.translation).distance(top).total_cmp(&Vec3::from(b.translation).distance(top))).expect("vindeltrapp");
+            let local = |x: f32, y: f32, z: f32| tf.transform_point3(Vec3::new(x, y, z));
+            let mut path = vec![local(0.0, 0.0, -2.2), local(0.0, 0.0, -1.3)];
+            let (a0, a1) = ((-50f32).to_radians(), (-130f32 + 1080.0).to_radians());
+            let mut a = (-70f32).to_radians();
+            while a < a1 {
+                let y = -FLOOR_DROP * ((a - a0) / (a1 - a0)).clamp(0.0, 1.0);
+                path.push(local(a.cos() * 1.2, y, a.sin() * 1.2));
+                a += 12f32.to_radians();
+            }
+            path.extend([local(0.0, -FLOOR_DROP, -1.3), local(0.0, -FLOOR_DROP, -2.4)]);
+            for (k, w) in path.iter().enumerate() {
+                bot.walk_straight(&mut game, &mut physics, *w, 0.45, &format!("vindeltrappa i etasje {f}, punkt {k} av {}", path.len()));
+            }
+            let below = &d.floors[f + 1];
+            let now = game.eye() - Vec3::Y * 1.6;
+            assert!((now.y - below.y).abs() < 2.5, "etasje {f}: kom ikke ned trappa (føttene på y = {:.1}, etasjen under på {:.1})\n{}", now.y, below.y, bot.log.join("\n"));
+            bot.note(format!("  ned trappa etter {:.0} s", bot.t - t0));
+        } else {
+            // Nederst: Rammeverket.
+            let boss = d.boss.expect("bossen");
+            let deadline = bot.t + 900.0;
+            loop {
+                let alive = game.living().into_iter().any(|(_, k, _)| k.boss());
+                if !alive {
+                    break;
+                }
+                assert!(bot.t < deadline, "slo ikke Rammeverket på et kvarter\n{}", bot.log.join("\n"));
+                if !bot.fight(&mut game, &mut physics) {
+                    bot.walk_toward(&mut game, &mut physics, d, boss, "Rammeverket");
+                }
+            }
+            bot.note(format!("  Rammeverket falt etter {:.0} s", bot.t - t0));
+        }
+    }
+    bot.note(format!("ferdig på {:.0} s spilltid: {} fiender drept, {} kister åpnet, {} ikke nådd, {} ganger nesten død", bot.t, bot.kills, bot.chests, bot.unopened, bot.near_deaths));
+    eprintln!("{}", bot.log.join("\n"));
+}
+
+/// Boten i gjennomspillingen: styrer med tastene og musa som en spiller.
+struct Bot {
+    input: Input,
+    t: f32,
+    near_deaths: u32,
+    kills: u32,
+    chests: u32,
+    unopened: u32,
+    log: Vec<String>,
+    swing: u32,
+    last: Vec3,
+    stuck: f32,
+    sidestep: f32,
+    side: bool,
+}
+
+impl Bot {
+    const DT: f32 = 1.0 / 30.0;
+
+    fn note(&mut self, s: String) {
+        eprintln!("{s}");
+        self.log.push(s);
+    }
+
+    fn step(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> Vec<Event> {
+        let events = game.update(&mut self.input, Self::DT, physics);
+        self.t += Self::DT;
+        for e in &events {
+            match e {
+                Event::Hud { hp, cellar: true, .. } if *hp < 25 => {
+                    self.near_deaths += 1;
+                    game.heal();
+                }
+                Event::Toast(t) if t.contains("falt fra hverandre") => self.kills += 1,
+                Event::Toast(t) if t.contains("overkjørt") => panic!("boten døde likevel: {t}\n{}", self.log.join("\n")),
+                _ => {}
+            }
+        }
+        events
+    }
+
+    fn aim(&mut self, game: &mut Session, at: Vec3) {
+        let d = at - game.eye();
+        game.set_look(-d.x.atan2(-d.z), d.y.atan2(d.with_y(0.0).length()));
+    }
+
+    fn idle(&mut self, game: &mut Session, physics: &mut RapierPhysics, secs: f32) {
+        self.input.key("KeyW", false);
+        let end = self.t + secs;
+        while self.t < end {
+            self.step(game, physics);
+        }
+    }
+
+    /// Slåss med den nærmeste fienden innen tre meter på samme etasje.
+    /// Gir om det var noen å slåss med.
+    fn fight(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> bool {
+        let feet = game.eye() - Vec3::Y * 1.6;
+        let near = game.living().into_iter().filter(|(m, _, _)| (m.y - feet.y).abs() < 2.5 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0).min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
+        let Some((m, kind, _)) = near else { return false };
+        self.input.key("KeyW", false);
+        self.aim(game, m + Vec3::Y * 0.8 * if kind.boss() { 2.0 } else { 1.0 });
+        self.swing += 1;
+        self.input.actions.push(if self.swing % 2 == 0 { Action::Attack } else { Action::AttackRelease });
+        self.step(game, physics);
+        true
+    }
+
+    /// Ett steg mot et mål som kan flytte seg, langs veien på rutenettet.
+    fn walk_toward(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, what: &str) {
+        let feet = game.eye() - Vec3::Y * 1.6;
+        let mut next = d.next_step(feet, to).unwrap_or_else(|| panic!("ingen vei til {what} fra {feet:?}\n{}", self.log.join("\n")));
+        // Følg linja mellom cellemidtene (gangene er smale): er boten langt
+        // ut til siden, går den først til midten av cella den står i.
+        if let Some(f) = d.floor_of(feet) {
+            let fl = &d.floors[f];
+            let c = fl.cell_of(feet);
+            let cur = fl.center(c.0, c.1);
+            let seg = (next - cur).with_y(0.0);
+            if seg.length() > 0.1 && fl.cell_of(next) != c {
+                let off = feet.with_y(0.0) - cur.with_y(0.0);
+                let side = (off - seg.normalize() * off.dot(seg.normalize())).length();
+                if side > 0.5 {
+                    next = cur;
+                }
+            }
+        }
+        if (self.t / 10.0).floor() != ((self.t - Self::DT) / 10.0).floor() {
+            let f = d.floor_of(feet).unwrap_or(0);
+            self.note(format!("    {:.0} s: står i {:?} ({:.1}, {:.1}, {:.1}), på vei til {what} i {:?}, neste {:?}", self.t, d.floors[f].cell_of(feet), feet.x, feet.y, feet.z, d.floors[f].cell_of(to), d.floors[f].cell_of(next)));
+        }
+        self.aim(game, next.with_y(game.eye().y));
+        self.input.key("KeyW", true);
+        // Står den stille (en sarkofag, en søyle), går den sidelengs en stund,
+        // annenhver gang til venstre og høyre, som en spiller ville gjort.
+        let moved = feet.distance(self.last);
+        self.last = feet;
+        self.stuck = if moved < 0.01 { self.stuck + Self::DT } else { 0.0 };
+        if self.stuck > 1.0 && self.sidestep <= 0.0 {
+            self.sidestep = 0.8;
+            self.side = !self.side;
+        }
+        let side = if self.side { "KeyA" } else { "KeyD" };
+        self.input.key(side, self.sidestep > 0.0);
+        self.sidestep -= Self::DT;
+        self.step(game, physics);
+        if self.sidestep <= 0.0 {
+            self.input.key("KeyA", false);
+            self.input.key("KeyD", false);
+        }
+    }
+
+    /// Gå langs veien på rutenettet til du er innen `near` meter fra målet,
+    /// og slåss med det som kommer underveis.
+    fn walk_to(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, near: f32, what: &str) {
+        let mut best = f32::MAX;
+        let mut since = self.t;
+        loop {
+            let feet = game.eye() - Vec3::Y * 1.6;
+            let dist = feet.with_y(0.0).distance(to.with_y(0.0));
+            if dist < near {
+                break;
+            }
+            if self.fight(game, physics) {
+                since = self.t;
+                continue;
+            }
+            if dist < best - 0.2 {
+                best = dist;
+                since = self.t;
+            }
+            if self.t - since > 8.0 {
+                panic!("sto fast på vei til {what}: føttene ved {feet:?} (celle {:?}), {dist:.1} m igjen\n{}", d.floor_of(feet).map(|f| d.floors[f].cell_of(feet)), self.log.join("\n"));
+            }
+            self.walk_toward(game, physics, d, to, what);
+        }
+        self.input.key("KeyW", false);
+    }
+
+    /// Som `walk_to`, men gir `false` i stedet for å feile om boten står
+    /// fast i `patience` sekunder.
+    fn walk_to_soft(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, near: f32, patience: f32) -> bool {
+        let mut best = f32::MAX;
+        let mut since = self.t;
+        loop {
+            let feet = game.eye() - Vec3::Y * 1.6;
+            let dist = feet.with_y(0.0).distance(to.with_y(0.0));
+            if dist < near {
+                self.input.key("KeyW", false);
+                return true;
+            }
+            if self.fight(game, physics) {
+                since = self.t;
+                continue;
+            }
+            if dist < best - 0.2 {
+                best = dist;
+                since = self.t;
+            }
+            if self.t - since > patience || d.next_step(feet, to).is_none() {
+                self.input.key("KeyW", false);
+                return false;
+            }
+            self.walk_toward(game, physics, d, to, "kista");
+        }
+    }
+
+    /// Gå rett mot et punkt (i trappa, der rutenettet ikke hjelper).
+    fn walk_straight(&mut self, game: &mut Session, physics: &mut RapierPhysics, to: Vec3, near: f32, what: &str) {
+        let start = self.t;
+        loop {
+            let feet = game.eye() - Vec3::Y * 1.6;
+            if feet.with_y(0.0).distance(to.with_y(0.0)) < near {
+                break;
+            }
+            assert!(self.t - start < 6.0, "sto fast i {what}: føttene ved {feet:?}, målet {to:?}\n{}", self.log.join("\n"));
+            self.aim(game, to.with_y(game.eye().y));
+            self.input.key("KeyW", true);
+            self.step(game, physics);
+        }
+    }
+}
+
+

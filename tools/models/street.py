@@ -1,7 +1,7 @@
 """Gatelivet og det som står ute i landskapet, modellert i Blender (bpy) og
 eksportert til assets/models/town/. Kjør:
 
-    python3 tools/models/street.py [well wattle_fence woodpile stone_wall boulder_a boulder_b boulder_c]
+    python3 tools/models/street.py [well wattle_fence woodpile stone_wall boulder_a boulder_b boulder_c signpost]
 
 Brønnen (`well`): en rund kum av kampestein med dekkstein, to stolper med
 et lite spontak, vinde med sveiv, tau og bøtte. Flettverksgjerdet
@@ -25,7 +25,7 @@ from common import clear  # noqa: E402
 from mathutils import Vector, noise  # noqa: E402
 
 import town  # noqa: E402
-from town import M, PIECES, beam, block, finish, layer, plain  # noqa: E402
+from town import M, PIECES, beam, block, finish, layer, plain, prism  # noqa: E402
 from walls import link, pyramid, revolve  # noqa: E402
 
 OUT = "assets/models/town"
@@ -266,6 +266,154 @@ def well_bucket():
     return m
 
 
+def carved_text(name, text, size, mat, at, back=False):
+    """Bokstaver skåret og svidd inn i en tavle i xz-planet: en tekst
+    gjort om til et tynt mesh, vendt mot −Y (eller +Y med `back`)."""
+    bpy.ops.object.text_add()
+    ob = bpy.context.active_object
+    ob.name = name
+    ob.data.body = text
+    ob.data.size = size
+    ob.data.extrude = 0.002
+    ob.data.align_x = "CENTER"
+    ob.data.align_y = "CENTER"
+    ob.rotation_euler = (math.pi / 2, 0, math.pi if back else 0)
+    ob.location = at
+    bpy.ops.object.convert(target="MESH")
+    ob = bpy.context.active_object
+    ob.data.materials.clear()
+    ob.data.materials.append(mat)
+    town.uv_box(ob)
+    PIECES.append(ob)
+    return ob
+
+
+def signpost():
+    """Veiskiltet til krypten: en tjærebredd stolpe med en pilformet tavle
+    der KRYPTEN er svidd inn på begge sider, og et lite jernkors ved
+    pilspissen. Pila peker langs lokal +X; tavla står 2 m oppe."""
+    m = mats()
+    board_m = layer("cladding", (1.0, 0.97, 0.92), 0.6)
+    burnt = layer("timber", (0.08, 0.06, 0.05), 0.8)
+    beam("sign_post", (0, 0, -0.35), (0, 0, 2.55), 0.13, 0.13, m.timber, roll=math.pi / 2)
+    block("post_cap", (0.17, 0.17, 0.05), m.dark_iron, at=(0, 0, 2.57), bevel=0.01)
+    z, h, L, d = 2.05, 0.3, 1.25, 0.05
+    pts = [(0.08, -h / 2), (L - 0.2, -h / 2), (L, 0.0), (L - 0.2, h / 2), (0.08, h / 2)]
+    prism("sign_board", pts, d, board_m, at=(0, 0, z))
+    # Beslagene som holder tavla til stolpen.
+    for dz in (-0.09, 0.09):
+        block("sign_strap", (0.26, d + 0.03, 0.035), m.dark_iron, at=(0.1, 0, z + dz), bevel=0.006)
+    for back in (False, True):
+        y = (d / 2 + 0.001) * (1 if back else -1)
+        carved_text("sign_text", "KRYPTEN", 0.15, burnt, (0.58, y, z), back=back)
+        # Et lite kors ved spissen, som på kirkegårdsporter.
+        cx = 1.0
+        block("sign_cross_v", (0.025, 0.006, 0.13), m.dark_iron, at=(cx, y, z), bevel=0.002)
+        block("sign_cross_h", (0.08, 0.006, 0.025), m.dark_iron, at=(cx, y, z + 0.025), bevel=0.002)
+    return m
+
+
+CHEST_W, CHEST_D, CHEST_H = 1.0, 0.56, 0.46
+
+
+def chest_body():
+    """Kista i kjelleren: kassa av eikeplanker med fuger, jernbeslag på
+    hjørnene, to jernbånd, nagler, håndtak av smijern på sidene og
+    låsplate foran (−Y). Lokket er en egen modell (`chest_lid`) som
+    spillet dreier opp om hengslet. Origo midt på gulvet under kassa."""
+    m = mats()
+    oak = layer("oak", (0.62, 0.48, 0.36), 0.6)
+    iron = m.dark_iron
+    W, D, H = CHEST_W, CHEST_D, CHEST_H
+    # Plankene: fire bord på hver langside, tre på endene, bunn.
+    n = 4
+    for k in range(n):
+        z0 = 0.05 + (H - 0.05) * k / n
+        hh = (H - 0.05) / n - 0.006
+        for sy in (-1, 1):
+            block("plank_long", (W, 0.035, hh), oak, at=(0, sy * (D / 2 - 0.0175), z0 + hh / 2), bevel=0.006, along="x")
+        for sx in (-1, 1):
+            block("plank_end", (0.035, D - 0.07, hh), oak, at=(sx * (W / 2 - 0.0175), 0, z0 + hh / 2), bevel=0.006, along="y")
+    block("bottom", (W - 0.02, D - 0.02, 0.05), oak, at=(0, 0, 0.025), bevel=0.006)
+    # Jernbeslag på de åtte hjørnene, bånd rundt kassa og nagler.
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            block("corner_v", (0.012, 0.012, H), iron, at=(sx * (W / 2 + 0.002), sy * (D / 2 + 0.002), H / 2), bevel=0.003)
+            for sz in (0.03, H - 0.03):
+                block("corner_plate", (0.1, 0.1, 0.06), iron, at=(sx * (W / 2 - 0.045), sy * (D / 2 - 0.045), sz), bevel=0.004)
+    for bx in (-0.3, 0.3):
+        for sy in (-1, 1):
+            block("band", (0.05, 0.008, H - 0.02), iron, at=(bx, sy * (D / 2 + 0.004), H / 2), bevel=0.002)
+            for bz in (0.1, 0.24, 0.38):
+                block("rivet", (0.016, 0.01, 0.016), iron, at=(bx, sy * (D / 2 + 0.01), bz), bevel=0.004)
+    # Håndtak på endene og låsplata foran.
+    for sx in (-1, 1):
+        block("handle_plate", (0.01, 0.12, 0.08), iron, at=(sx * (W / 2 + 0.006), 0, H * 0.62), bevel=0.003)
+        beam("handle", (sx * (W / 2 + 0.03), -0.07, H * 0.58), (sx * (W / 2 + 0.03), 0.07, H * 0.58), 0.016, 0.016, iron)
+    block("lock_plate", (0.13, 0.012, 0.16), iron, at=(0, -(D / 2 + 0.007), H - 0.09), bevel=0.004)
+    block("keyhole", (0.014, 0.004, 0.035), layer("metal", (0.05, 0.05, 0.05), 0.5), at=(0, -(D / 2 + 0.014), H - 0.1), bevel=0.001)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            block("foot", (0.09, 0.09, 0.03), iron, at=(sx * (W / 2 - 0.06), sy * (D / 2 - 0.06), 0.012), bevel=0.004)
+    return m
+
+
+def chest_lid():
+    """Lokket til kista: buet av sju planker, med jernbånd over buen og en
+    hasp som henger ned foran. Origo i hengslet (bakre øvre kant, +Y),
+    så spillet kan dreie det opp om X."""
+    m = mats()
+    oak = layer("oak", (0.66, 0.51, 0.38), 0.6)
+    iron = m.dark_iron
+    W, D = CHEST_W, CHEST_D
+    R = D / 2
+    k = 7
+    # Buen: planker langs X over en flatet halvsirkel (sentrert i y = −D/2
+    # fra hengslet), hver plank langs korden mellom to punkter på buen.
+    def arc(a, grow=0.0):
+        return Vector((0.0, -R + math.cos(a) * (R + grow), math.sin(a) * (R * 0.55 + grow)))
+
+    def along_arc(name, a0, a1, w, t, mat, grow=0.0, lift=0.0, bevel=0.005):
+        p0, p1 = arc(a0, grow), arc(a1, grow)
+        d = p1 - p0
+        mid = (p0 + p1) / 2
+        nrm = Vector((0.0, -d.z, d.y)).normalized()
+        if nrm.dot(mid - Vector((0.0, -R, 0.0))) < 0:
+            nrm = -nrm
+        return block(name, (w, d.length * 1.02, t), mat, at=tuple(mid + nrm * (t / 2 + lift)), rot=(math.atan2(d.z, d.y), 0, 0), bevel=bevel, along="x")
+
+    for i in range(k):
+        along_arc("lid_plank", math.pi * i / k, math.pi * (i + 1) / k, W, 0.03, oak)
+    for sx in (-1, 1):
+        # Endestykkene: halvsirkelplater.
+        pts = [(math.cos(math.pi * t / 12) * R, math.sin(math.pi * t / 12) * R * 0.55) for t in range(13)]
+        pts = [(-R + px, pz) for px, pz in pts]
+        bm = bmesh.new()
+        front = [bm.verts.new((sx * (W / 2 - 0.0175) - 0.0175, py, pz)) for py, pz in pts]
+        back = [bm.verts.new((sx * (W / 2 - 0.0175) + 0.0175, py, pz)) for py, pz in pts]
+        bm.faces.new(front)
+        bm.faces.new(back[::-1])
+        for j in range(len(pts) - 1):
+            bm.faces.new((front[j], front[j + 1], back[j + 1], back[j]))
+        bm.faces.new((front[-1], front[0], back[0], back[-1]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        ob = link("lid_end", bm, oak)
+        town.uv_box(ob)
+    # Jernbånd over buen og nagler.
+    for bx in (-0.3, 0.3):
+        for i in range(k):
+            b = along_arc("lid_band", math.pi * i / k, math.pi * (i + 1) / k, 0.05, 0.008, iron, lift=0.03, bevel=0.002)
+            b.location.x = bx
+            r = along_arc("lid_rivet", math.pi * (i + 0.45) / k, math.pi * (i + 0.55) / k, 0.016, 0.012, iron, lift=0.036, bevel=0.004)
+            r.location.x = bx
+    # Haspen foran som går ned over låsplata.
+    block("hasp", (0.07, 0.012, 0.13), iron, at=(0, -D - 0.008, -0.04), bevel=0.003)
+    # Hengslene bak.
+    for bx in (-0.3, 0.3):
+        beam("hinge", (bx - 0.05, 0.01, 0.0), (bx + 0.05, 0.01, 0.0), 0.025, 0.025, iron)
+    return m
+
+
 MODELS = {
     "well": well,
     "well_winch": well_winch,
@@ -277,6 +425,9 @@ MODELS = {
     "boulder_a": lambda: boulder(1, (1.6, 1.2, 1.0)),
     "boulder_b": lambda: boulder(2, (1.1, 1.0, 0.7)),
     "boulder_c": lambda: boulder(3, (2.4, 1.6, 1.3)),
+    "signpost": signpost,
+    "chest": chest_body,
+    "chest_lid": chest_lid,
 }
 
 if __name__ == "__main__":

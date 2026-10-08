@@ -5,7 +5,7 @@
 //! langs gatene med gavlen eller langsida mot gata, hver litt skjevt, med
 //! ulik avstand til gata og et smau her og der. Bymuren følger et ujevnt
 //! omriss (`terrain::wall_radius`) med tårn og porthus. Nord for byen står
-//! borgruinen på haugen, og under den ligger krypta.
+//! borgruinen på haugen, og under den ligger krypten.
 //!
 //! Alt som synes er modeller; byen bestemmer bare hvor de står. Husmodellene
 //! har døra mot sin lokale +Z og origo midt på grunnflaten i bakkehøyde, så
@@ -13,7 +13,7 @@
 
 use super::{at, terrain, Builder, NpcSpec, Shape, Use};
 use crate::domain::rng::Rng;
-use glam::{Affine3A, Vec2, Vec3};
+use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 use std::sync::OnceLock;
 
@@ -24,14 +24,14 @@ pub const SQUARE: [Vec2; 4] = [Vec2::new(-13.0, -11.0), Vec2::new(-11.0, 12.5), 
 pub const MAIN: f32 = 3.2;
 pub const CROSS: f32 = 2.6;
 pub const LANE: f32 = 1.5;
-/// Krypta i borgruinen: midten av inngangen.
-pub const CRYPT: Vec2 = Vec2::new(0.0, -128.0);
+/// Krypten i borgruinen: midten av inngangen.
+pub const CRYPT: Vec2 = Vec2::new(0.0, -138.0);
 /// Åkrene utenfor muren (midte, radier).
 pub const FIELDS: [(f32, f32, f32, f32); 3] = [(-95.0, 40.0, 30.0, 20.0), (90.0, 30.0, 26.0, 34.0), (70.0, -70.0, 24.0, 18.0)];
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
-pub const FOUNDED: [&str; 9] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c"];
+pub const FOUNDED: [&str; 10] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c", "signpost"];
 
 /// Det byen forteller resten av verden.
 pub struct Town {
@@ -474,6 +474,7 @@ pub fn build(b: &mut Builder) -> Town {
     church(b);
     yard(b);
     let crypt_exit = castle(b);
+    signposts(b);
     people(b, &doors);
     let (g, out) = gate(true);
     let spawn = Vec3::new(main_x(g.y - 8.0), 0.0, g.y - 8.0);
@@ -689,7 +690,7 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
 
 /// Hvem som står hvor, og hva de sier.
 const SMITH: &[&str] = &[
-    "Knappesmeden, til tjeneste. Jeg smir det du bærer opp fra krypta.",
+    "Knappesmeden, til tjeneste. Jeg smir det du bærer opp fra krypten.",
     "Et sverd trenger en klinge og et grep: en divider og en knapp. Resten er håndlag.",
     "Kom tilbake med komponenter, så får vi se hva stålet duger til.",
 ];
@@ -710,7 +711,7 @@ const GORVEK: &[&str] = &[
 ];
 const INNKEEPER: &[&str] = &[
     "Velkommen til Vertshuset. Øl er det nok av, nyheter også.",
-    "De sier krypta under borgen går dypere enn noen har gått.",
+    "De sier krypten under borgen går dypere enn noen har gått.",
     "Det kommer rare ting opp fra dypet om natta. Knapper med tenner.",
 ];
 
@@ -750,7 +751,31 @@ fn yard(b: &mut Builder) {
     }
 }
 
-/// Borgruinen på haugen, og krypta med døra ned. Gir stedet du kommer
+/// Veiskiltene til krypten: ved torget, innenfor nordporten og der stien
+/// begynner å klatre opp borghaugen. Pila (lokal +X) peker videre langs
+/// veien.
+fn signposts(b: &mut Builder) {
+    let (north, _) = gate(false);
+    let path = |t: f32| Vec2::new(north.x * (1.0 - t) + CRYPT.x * t + (t * PI).sin() * 6.0, north.y + (CRYPT.y - north.y) * t);
+    let street = |z: f32| Vec2::new(main_x(z), z);
+    // (der skiltet står, punktet det peker mot)
+    let signs = [
+        (street(-11.5) - Vec2::new(MAIN + 1.0, 0.0), street(-30.0)),
+        (street(north.y + 6.0) + Vec2::new(MAIN - 0.5, 0.0), north),
+        (path(0.25) + Vec2::new(2.6, 0.0), path(0.45)),
+    ];
+    for (at, to) in signs {
+        let d = to - at;
+        let pos = b.on_ground(Vec3::new(at.x, 0.0, at.y));
+        let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y((-d.y).atan2(d.x)), pos);
+        log::info!("Veiskilt ved ({:.1}, {:.1}) mot ({:.1}, {:.1})", at.x, at.y, to.x, to.y);
+        if b.place("signpost", pose) {
+            b.solid_box(pos + Vec3::Y * 1.3, Vec3::new(0.2, 2.6, 0.2), 0.0);
+        }
+    }
+}
+
+/// Borgruinen på haugen, og krypten med døra ned. Gir stedet du kommer
 /// opp til fra kjelleren.
 fn castle(b: &mut Builder) -> (Vec3, f32) {
     let (hx, hz, _, _) = terrain::HILL;
@@ -773,7 +798,7 @@ fn castle(b: &mut Builder) -> (Vec3, f32) {
         }
         b.solid(Shape::Cylinder { center: keep + Vec3::Y * 0.5, radius: 1.6, half_height: 0.8 });
     }
-    // Krypta: et lite gravkapell med døra mot sør, og trappa ned bak døra.
+    // Krypten: et lite gravkapell med døra mot sør, og trappa ned bak døra.
     let crypt = b.on_ground(Vec3::new(CRYPT.x, 0.0, CRYPT.y));
     if b.place("crypt", at(crypt, 0.0)) {
         b.solid_box(crypt + Vec3::new(0.0, 2.5, -2.0), Vec3::new(6.0, 5.0, 6.0), 0.0);
@@ -874,7 +899,9 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let slope = 1.0 - terrain::normal(x, z).y;
     let (hx, hz, hr, _) = terrain::HILL;
     let hill = (((x - hx).powi(2) + (z - hz).powi(2)).sqrt() / hr).clamp(0.0, 1.0);
-    let rock = (soft(0.0, 0.06 - slope + (n1 - 0.5) * 0.05, 0.05)).max(soft(0.0, hill - 0.55 + (n2 - 0.5) * 0.5, 0.2) * 0.5 * (1.0 - soft(0.0, hill - 0.35, 0.1)));
+    // Borghaugen er gress opp lia (berg bare i flekker i borggården).
+    let on_hill = 1.0 - ((hill - 0.95) / 0.05).clamp(0.0, 1.0);
+    let rock = (soft(0.0, 0.06 - slope + (n1 - 0.5) * 0.05, 0.05) * (1.0 - on_hill)).max(soft(0.0, hill - 0.45 + (n2 - 0.5) * 0.3, 0.1) * 0.4 * (1.0 - soft(0.0, hill - 0.25, 0.1)));
     // Skogbunn der granskogen står tett, langt ute.
     let far = (x * x + z * z).sqrt();
     let forest = soft(0.0, 115.0 - far + (n2 - 0.5) * 40.0, 20.0) * (1.0 - inside);
@@ -909,7 +936,7 @@ pub fn path_dist(x: f32, z: f32) -> f32 {
         d = d.min((x - south.x * (1.0 - k) - (n - 0.5) * 30.0 * k).abs());
     }
     if z < north.y + 2.0 && z > CRYPT.y - 4.0 {
-        // Svinger litt mens den klatrer, og ender ved krypta.
+        // Svinger litt mens den klatrer, og ender ved krypten.
         let t = ((north.y - z) / (north.y - CRYPT.y)).clamp(0.0, 1.0);
         d = d.min((x - north.x * (1.0 - t) - CRYPT.x * t - (t * PI).sin() * 6.0).abs());
     }

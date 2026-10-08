@@ -27,10 +27,13 @@ fn smooth(t: f32) -> f32 {
     t * t * (3.0 - 2.0 * t)
 }
 
-/// Borghaugen: midten, radius og høyde.
-pub const HILL: (f32, f32, f32, f32) = (0.0, -122.0, 46.0, 15.0);
-/// Borggården på toppen er planert innenfor denne radien.
-pub const KEEP_FLAT: f32 = 24.0;
+/// Borghaugen: midten, radius og høyde. Lav og bred, så lia opp er slak
+/// (aldri brattere enn 18°, så den blir gress og ikke berg), og foten
+/// slutter utenfor muren.
+pub const HILL: (f32, f32, f32, f32) = (0.0, -132.0, 72.0, 7.0);
+/// Borggården på toppen er planert innenfor denne radien: hele ruinen med
+/// hjørnetårnene (36 m ut) står på flat mark.
+pub const KEEP_FLAT: f32 = 39.0;
 
 /// Hvor langt ut fra bymuren et punkt er, i meter (negativt innenfor).
 /// Muren følger et ujevnt, eggeformet omriss rundt torget, slik den ble
