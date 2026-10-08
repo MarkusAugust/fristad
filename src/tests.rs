@@ -541,7 +541,8 @@ fn gjennomspilling() {
                 path.push(local(a.cos() * 1.2, y, a.sin() * 1.2));
                 a += 12f32.to_radians();
             }
-            path.extend([local(0.0, -FLOOR_DROP, -1.3), local(0.0, -FLOOR_DROP, -2.4)]);
+            // Helt ut av trappecella, ellers står boten på grensa til rommet.
+            path.extend([local(0.0, -FLOOR_DROP, -1.3), local(0.0, -FLOOR_DROP, -3.0)]);
             for (k, w) in path.iter().enumerate() {
                 bot.walk_straight(&mut game, &mut physics, *w, 0.45, &format!("vindeltrappa i etasje {f}, punkt {k} av {}", path.len()));
             }
@@ -607,7 +608,7 @@ impl Bot {
         }
         for e in &events {
             match e {
-                Event::Hud { hp, cellar: true, .. } if *hp < 25 => {
+                Event::Hud { hp, cellar: true, .. } if *hp < 45 => {
                     self.near_deaths += 1;
                     game.heal();
                 }
@@ -801,4 +802,46 @@ impl Bot {
     }
 }
 
+
+
+
+/// Fiendene går rundt det som står i rommene, men ingen dør eller gang er
+/// sperret av hindringene: langs hver dør og hvert gangforløp mellom to
+/// celler er det plass til en kropp. (Inne i rommene kan noe stenge, som
+/// apsisen rundt alteret i kapellet.)
+#[test]
+fn fiendene_gar_rundt_det_som_star() {
+    let d = &world().world.dungeon;
+    let (mut open, mut shut, mut centers, mut blocked) = (0, vec![], 0, 0);
+    for (f, fl) in d.floors.iter().enumerate() {
+        for iz in 0..40 {
+            for ix in 0..40 {
+                if !fl.is_open(ix, iz) {
+                    continue;
+                }
+                let c = fl.center(ix, iz);
+                centers += 1;
+                if !d.clear(c, 0.3) {
+                    blocked += 1;
+                }
+                for n in [(ix + 1, iz), (ix, iz + 1)] {
+                    if fl.is_open(n.0, n.1) && fl.passable((ix, iz), n) && !fl.same_room((ix, iz), n) {
+                        open += 1;
+                        // Et sted langs kanten der en kropp kommer forbi.
+                        let e = (c + fl.center(n.0, n.1)) * 0.5;
+                        let across = if n.0 != ix { Vec3::Z } else { Vec3::X };
+                        if !(-8..=8).any(|k| {
+                            let q = e + across * (k as f32 * 0.2);
+                            d.walkable(q, 0.3) && d.clear(q, 0.3)
+                        }) {
+                            shut.push(format!("etasje {f}: {:?}–{:?}", (ix, iz), n));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    eprintln!("{open} åpne kanter, {} sperret; {blocked} av {centers} cellemidter står i noe", shut.len());
+    assert!(shut.is_empty(), "hindringene sperrer veien mellom cellene:\n{}", shut.join("\n"));
+}
 

@@ -552,7 +552,9 @@ impl Combat {
             let to = m.pos - feet;
             let flat = to.with_y(0.0);
             let dist = flat.length();
-            if dist > reach || flat.normalize_or_zero().dot(fwd) < ARC {
+            // Rekkevidden måles til kroppen, ikke midten: store fiender
+            // (tabellene, Rammeverket) står lenger unna når de slår.
+            if dist > reach + 0.4 * m.scale() || flat.normalize_or_zero().dot(fwd) < ARC {
                 continue;
             }
             any = true;

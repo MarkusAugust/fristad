@@ -453,7 +453,7 @@ impl Mobs {
         m.hit = 0.0;
         m.aware = true;
         let push = (m.pos - from).with_y(0.0).normalize_or_zero() * 0.5 / m.scale();
-        if dungeon.walkable(m.pos + push, 0.5) {
+        if dungeon.walkable(m.pos + push, 0.5) && dungeon.clear(m.pos + push, 0.3 * m.scale()) {
             m.pos += push;
         }
         let clips = self.clips[m.kind as usize];
@@ -703,15 +703,18 @@ impl Mobs {
                     step += d / l * (keep - l) * dt * 2.0;
                 }
             }
-            let next = m.pos + step;
             let from = m.pos;
             let margin = (0.6 * s).min(1.5);
-            if dungeon.walkable(next, margin) {
-                m.pos = next;
-            } else if dungeon.walkable(Vec3::new(next.x, m.pos.y, m.pos.z), margin) {
-                m.pos.x = next.x;
-            } else if dungeon.walkable(Vec3::new(m.pos.x, m.pos.y, next.z), margin) {
-                m.pos.z = next.z;
+            // Går rundt det som står i rommet (sarkofager, søyler, kister):
+            // rett fram, langs aksene, eller skrått til sidene. Står den
+            // allerede i noe (født der), får den gå ut av det.
+            let body = 0.3 * s;
+            let free = dungeon.clear(from, body);
+            let ok = |q: Vec3| dungeon.walkable(q, margin) && (!free || dungeon.clear(q, body));
+            let turn = |a: f32| Quat::from_rotation_y(a) * step;
+            let tries = [step, Vec3::new(step.x, 0.0, 0.0), Vec3::new(0.0, 0.0, step.z), turn(0.9), turn(-0.9), turn(1.6), turn(-1.6)];
+            if let Some(t) = tries.into_iter().find(|t| t.length_squared() > 1e-10 && ok(from + *t)) {
+                m.pos = from + t;
             }
             m.pos.y = dungeon.height_at(m.pos);
             let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);

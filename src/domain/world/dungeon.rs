@@ -105,6 +105,43 @@ pub struct Dungeon {
     pub chests: Vec<(Vec3, f32, usize)>,
     /// Der Rammeverket står: midt i rotunden nederst.
     pub boss: Option<Vec3>,
+    /// Det som står i rommene (sarkofager, søyler, kister, murer) sett
+    /// ovenfra, så fiendene går rundt det i stedet for gjennom.
+    obstacles: Vec<(Obstacle, f32, f32)>,
+    /// Hindringene som berører hver celle: (etasje, celle) → indekser.
+    near: HashMap<(usize, i32, i32), Vec<u32>>,
+}
+
+/// Fotavtrykket til en kollider i kroppshøyde.
+#[derive(Clone, Copy, Debug)]
+enum Obstacle {
+    /// Boks: midten, halve mål og retningen til den lokale x-aksen.
+    Box { c: Vec2, half: Vec2, axis: Vec2 },
+    Circle { c: Vec2, r: f32 },
+}
+
+impl Obstacle {
+    /// Avstand fra punktet til kanten (negativ inni).
+    fn dist(&self, p: Vec2) -> f32 {
+        match *self {
+            Obstacle::Box { c, half, axis } => {
+                let d = p - c;
+                let l = Vec2::new(d.dot(axis), d.perp_dot(axis)).abs() - half;
+                l.max(Vec2::ZERO).length() + l.x.max(l.y).min(0.0)
+            }
+            Obstacle::Circle { c, r } => p.distance(c) - r,
+        }
+    }
+
+    fn bounds(&self) -> (Vec2, Vec2) {
+        match *self {
+            Obstacle::Box { c, half, axis } => {
+                let e = Vec2::new(half.x * axis.x.abs() + half.y * axis.y.abs(), half.x * axis.y.abs() + half.y * axis.x.abs());
+                (c - e, c + e)
+            }
+            Obstacle::Circle { c, r } => (c - Vec2::splat(r), c + Vec2::splat(r)),
+        }
+    }
 }
 
 fn edge(a: (i32, i32), b: (i32, i32)) -> ((i32, i32), (i32, i32)) {
@@ -126,6 +163,14 @@ impl Floor {
 
     pub fn is_open(&self, ix: i32, iz: i32) -> bool {
         self.cell(ix, iz) != Cell::Rock
+    }
+
+    /// Om to celler hører til samme rom.
+    pub fn same_room(&self, a: (i32, i32), b: (i32, i32)) -> bool {
+        match (Self::idx(a.0, a.1), Self::idx(b.0, b.1)) {
+            (Some(i), Some(j)) => self.unit[i] >= 0 && self.unit[i] == self.unit[j],
+            _ => false,
+        }
     }
 
     /// Cellen et verdenspunkt ligger i.
@@ -300,6 +345,64 @@ impl Dungeon {
     /// utenfor kjelleren.
     pub fn height_at(&self, p: Vec3) -> f32 {
         self.floor_of(p).map(|f| self.floors[f].height_at(p)).unwrap_or(p.y)
+    }
+
+    /// Om en kropp med radius `r` får plass ved `p` uten å stå i noe som
+    /// står i rommet (gulvet og murene i rutenettet sjekker `walkable`).
+    pub fn clear(&self, p: Vec3, r: f32) -> bool {
+        let Some(f) = self.floor_of(p) else { return true };
+        let c = self.floors[f].cell_of(p);
+        let Some(list) = self.near.get(&(f, c.0, c.1)) else { return true };
+        let q = Vec2::new(p.x, p.z);
+        // Det du står oppå (en plattform, et trinn) eller går under, er
+        // ikke i veien.
+        // I trappene regnes toppen av trappa: massen under trinnene står
+        // i kollidere, trinnene selv er rampa.
+        let fl = &self.floors[f];
+        let ground = match fl.cell(c.0, c.1) {
+            Cell::Ramp { hi, .. } => fl.y + hi,
+            _ => fl.height_at(p),
+        };
+        list.iter().all(|&i| {
+            let (o, lo, hi) = self.obstacles[i as usize];
+            hi < ground + 0.45 || lo > ground + 1.6 || o.dist(q) >= r
+        })
+    }
+
+    /// Fotavtrykkene til boksene og sylindrene som står i kroppshøyde over
+    /// gulvet (ikke gulvplatene, trinnene eller hvelvet), lagt i cellene de
+    /// berører.
+    fn index_obstacles(&mut self, shapes: &[Shape]) {
+        for s in shapes {
+            let (o, lo, hi, at) = match s {
+                Shape::Cuboid { center, size, yaw } => {
+                    let axis = Vec2::new(yaw.cos(), -yaw.sin());
+                    (Obstacle::Box { c: Vec2::new(center.x, center.z), half: Vec2::new(size.x, size.z) * 0.5, axis }, center.y - size.y * 0.5, center.y + size.y * 0.5, *center)
+                }
+                Shape::Cylinder { center, radius, half_height } => (Obstacle::Circle { c: Vec2::new(center.x, center.z), r: *radius }, center.y - half_height, center.y + half_height, *center),
+                // Omhyllingene er trinn og skrå trapper, som man går oppå.
+                _ => continue,
+            };
+            let Some(f) = self.floor_of(at) else { continue };
+            let fl = &self.floors[f];
+            // Gulvplatene og hvelvet tas ikke med; resten måles mot gulvet
+            // der kroppen står (`clear`).
+            if hi < fl.y + 0.3 || lo > fl.y + 4.0 || (o.bounds().1 - o.bounds().0).min_element() > 3.9 {
+                continue;
+            }
+            let i = self.obstacles.len() as u32;
+            self.obstacles.push((o, lo, hi));
+            // Cellene den berører, med en meters slingringsmonn for kroppene.
+            let (a, z) = o.bounds();
+            let ca = fl.cell_of(Vec3::new(a.x - 1.0, 0.0, a.y - 1.0));
+            let cz = fl.cell_of(Vec3::new(z.x + 1.0, 0.0, z.y + 1.0));
+            for iz in ca.1..=cz.1 {
+                for ix in ca.0..=cz.0 {
+                    self.near.entry((f, ix, iz)).or_default().push(i);
+                }
+            }
+        }
+        log::info!("Kjelleren: {} hindringer i rommene", self.obstacles.len());
     }
 }
 
@@ -720,7 +823,8 @@ impl Plan {
 /// bygges på nytt; i testene er den fast.
 pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
     let mut rng = Rng(seed | 1);
-    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None };
+    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None, obstacles: vec![], near: HashMap::new() };
+    let c0 = b.colliders.len();
     let mut y = DEPTH;
     // Tårnet fra etasjen over: cella i verden (midten) og dreiningen.
     let mut tower: Option<(Vec2, i32)> = None;
@@ -733,6 +837,7 @@ pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
         forward = -forward;
         y -= FLOOR_DROP;
     }
+    d.index_obstacles(&b.colliders[c0..]);
     // Det du kan bruke: portene og kistene.
     for (i, (p, yaw)) in d.gates.iter().enumerate() {
         let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(*yaw), *p);
