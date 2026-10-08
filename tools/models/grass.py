@@ -3,7 +3,8 @@
 
     python3 tools/models/grass.py
 
-Fire varianter i assets/models/trees/: grass_a (grønne tuster), grass_b
+Fire varianter i assets/models/trees/ (og fire blomstertuster flowers_a–d
+fra eierens blomsterark): grass_a (grønne tuster), grass_b
 (tørre tuster), grass_c (spredte strå) og grass_d (høye strå med aks).
 Hvert kort er to ledd høyt og bøyer litt utover, normalen peker opp (så
 baksidene ikke blir svarte), og materialet heter «grass»: motoren
@@ -24,6 +25,11 @@ from mathutils import Vector  # noqa: E402
 OUT = "assets/models/trees"
 ATLAS = f"{OUT}/grass_atlas.png"
 ITEMS = json.load(open(f"{OUT}/grass_items.json"))["items"]
+FLOWER_ATLAS = f"{OUT}/flowers_atlas.png"
+# Blomstene fra eierens ark (tools/textures/sheets.py flowers), etter slag.
+FLOWERS = {}
+for it in json.load(open(f"{OUT}/flowers_items.json"))["items"]:
+    FLOWERS.setdefault(it["kind"], []).append(it["box"])
 
 # Bitene i atlaset etter slag (indeksene fra grass_items.json).
 CLUMPS = [28, 29, 32, 33]
@@ -32,13 +38,13 @@ BLADES = [21, 22, 23, 25, 26, 30, 31, 18, 2]
 STALKS = [5, 6, 8, 9, 10, 11, 13, 14, 16, 17]
 
 
-def material():
+def material(atlas=ATLAS):
     m = bpy.data.materials.new("grass")
     m.use_nodes = True
     nt = m.node_tree
     bsdf = nt.nodes["Principled BSDF"]
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = bpy.data.images.load(os.path.abspath(ATLAS))
+    tex.image = bpy.data.images.load(os.path.abspath(atlas))
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
     bsdf.inputs["Roughness"].default_value = 0.8
@@ -52,7 +58,7 @@ def material():
 def card(bm, uvl, item, height, at, yaw, lean, rng):
     """Et kort med biten `item`, `height` høyt, rota i `at`, dreid `yaw`, i
     to ledd som bøyer `lean` utover."""
-    x0, y0, x1, y1 = ITEMS[item]
+    x0, y0, x1, y1 = ITEMS[item] if isinstance(item, int) else item
     width = height * (x1 - x0) / (y1 - y0)
     right = Vector((math.cos(yaw), math.sin(yaw), 0)) * (width / 2)
     out = Vector((-math.sin(yaw), math.cos(yaw), 0)) * lean * rng.choice((-1, 1))
@@ -67,7 +73,7 @@ def card(bm, uvl, item, height, at, yaw, lean, rng):
             loop[uvl].uv = uv
 
 
-def tuft(name, seed, parts):
+def tuft(name, seed, parts, atlas=ATLAS):
     """`parts`: [(bitene, antall, høyde (min, maks), spredning)]."""
     clear()
     rng = random.Random(seed)
@@ -85,7 +91,7 @@ def tuft(name, seed, parts):
     bm.to_mesh(me)
     bm.free()
     me.normals_split_custom_set_from_vertices([(0.0, 0.0, 1.0)] * len(me.vertices))
-    me.materials.append(material())
+    me.materials.append(material(atlas))
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     path = f"{OUT}/{name}.glb"
@@ -100,6 +106,18 @@ TUFTS = {
     "grass_d": (4, [(STALKS, 5, (0.6, 0.95), 0.18), (BLADES, 2, (0.3, 0.42), 0.1)]),
 }
 
+# Blomstertuster: noen planter av ett eller to slag, med gresstrå rundt
+# fra gressatlaset er ikke mulig i samme materiale, så tustene er rene
+# blomster (gresset står tett rundt dem på enga).
+FLOWER_TUFTS = {
+    "flowers_a": (11, [(FLOWERS["buttercup"], 3, (0.3, 0.45), 0.12), (FLOWERS["clover"], 2, (0.18, 0.26), 0.1)]),
+    "flowers_b": (12, [(FLOWERS["harebell"], 3, (0.28, 0.4), 0.12)]),
+    "flowers_c": (13, [(FLOWERS["yarrow"], 2, (0.45, 0.6), 0.1), (FLOWERS["buttercup"], 1, (0.3, 0.4), 0.1)]),
+    "flowers_d": (14, [(FLOWERS["cowparsley"], 2, (0.7, 0.95), 0.12), (FLOWERS["clover"], 2, (0.18, 0.26), 0.12)]),
+}
+
 if __name__ == "__main__":
     for name, (seed, parts) in TUFTS.items():
         tuft(name, seed, parts)
+    for name, (seed, parts) in FLOWER_TUFTS.items():
+        tuft(name, seed, parts, FLOWER_ATLAS)

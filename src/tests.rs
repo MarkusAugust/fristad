@@ -80,7 +80,7 @@ fn alt_stort_har_kollider() {
             Shape::Heightfield { .. } | Shape::Hull { .. } => false,
         }
     };
-    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
+    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name.starts_with("flowers_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
     let mut problems = vec![];
     for pl in &p.world.placements {
         if skip(pl.model) {

@@ -484,7 +484,18 @@ pub fn grass(b: &mut Builder) {
             let dry = gw.dry;
             let r = b.rng.range(0.0, 1.0);
             let pick = if r < dry * 0.6 { 1 } else if r < 0.55 { 0 } else if r < 0.85 { 2 } else { 3 };
-            let model = tufts[pick.min(tufts.len() - 1)];
+            let mut model = tufts[pick.min(tufts.len() - 1)];
+            // Blomster i flekker der enga er grønn og frodig.
+            let patch = super::terrain::noise(px * 0.08 + 7.0, pz * 0.08);
+            if dry < 0.4 && b.rng.chance(((patch - 0.45) * 1.2).clamp(0.0, 0.35)) {
+                let flowers = ["flowers_a", "flowers_b", "flowers_c", "flowers_d"];
+                // Mest smørblomst, kløver og blåklokke; ryllik og hundekjeks er sjeldnere.
+                let r = b.rng.range(0.0, 1.0);
+                let f = flowers[if r < 0.4 { 0 } else if r < 0.75 { 1 } else if r < 0.9 { 2 } else { 3 }];
+                if b.has_model(f) {
+                    model = f;
+                }
+            }
             // Tusten vippes etter bakken, så den står i skråningene også.
             b.place(model, b.on_slope(Vec3::new(px, -0.02, pz), yaw) * Affine3A::from_scale(Vec3::new(s, sy, s)));
             n += 1;
