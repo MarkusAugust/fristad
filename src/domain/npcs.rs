@@ -23,6 +23,10 @@ pub struct Npc {
     pub yaw: f32,
     pub tint: Vec3,
     pub lines: &'static [&'static str],
+    /// Modellen (en egen figur, eller den felles `NPC_MODEL`) og skjelettet
+    /// med klippene i `Npcs.rigs`.
+    pub model: &'static str,
+    rig: Option<usize>,
     /// Hvilken replikk som står for tur.
     next_line: usize,
     anim: Option<Animator>,
@@ -42,8 +46,7 @@ struct Clips {
 #[derive(Default)]
 pub struct Npcs {
     pub npcs: Vec<Npc>,
-    rig: Option<Rig>,
-    clips: Clips,
+    rigs: Vec<(Rig, Clips)>,
 }
 
 /// Det som sies dette bildet: hvem, hvor (over hodet) og hva.
@@ -56,23 +59,32 @@ pub struct Speech {
 }
 
 impl Npcs {
-    pub fn new(rig: Option<Rig>, cast: Vec<(&'static str, Vec3, f32, Vec3, &'static [&'static str])>) -> Self {
-        let clips = rig
-            .as_ref()
-            .map(|r| {
-                let find = |n: &str| r.clip(n).unwrap_or(0);
-                Clips { idle: find("idle"), talk: find("talk"), wave: find("wave") }
-            })
-            .unwrap_or_default();
+    /// `rig_of` gir skjelettet til en modell; hver innbygger har sin.
+    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str])>) -> Self {
+        let mut rigs: Vec<(Rig, Clips)> = vec![];
+        let mut by_model: Vec<(&'static str, Option<usize>)> = vec![];
         let mut npcs = vec![];
-        for (i, (name, pos, yaw, tint, lines)) in cast.into_iter().enumerate().take(MAX_NPCS) {
-            let mut anim = rig.as_ref().map(|_| Animator::new(clips.idle, true));
+        for (i, (name, model, pos, yaw, tint, lines)) in cast.into_iter().enumerate().take(MAX_NPCS) {
+            let rig = match by_model.iter().find(|(m, _)| *m == model) {
+                Some((_, r)) => *r,
+                None => {
+                    let r = rig_of(model).map(|r| {
+                        let find = |n: &str| r.clip(n).unwrap_or(0);
+                        let c = Clips { idle: find("idle"), talk: find("talk"), wave: find("wave") };
+                        rigs.push((r, c));
+                        rigs.len() - 1
+                    });
+                    by_model.push((model, r));
+                    r
+                }
+            };
+            let mut anim = rig.map(|r| Animator::new(rigs[r].1.idle, true));
             if let Some(a) = &mut anim {
                 a.time = i as f32 * 0.9;
             }
-            npcs.push(Npc { name, pos, yaw, tint, lines, next_line: 0, anim, speaking: None, waved: false });
+            npcs.push(Npc { name, pos, yaw, tint, lines, model, rig, next_line: 0, anim, speaking: None, waved: false });
         }
-        Self { npcs, rig, clips }
+        Self { npcs, rigs }
     }
 
     pub fn reserve() -> Vec<(&'static str, usize)> {
@@ -81,8 +93,8 @@ impl Npcs {
 
     /// F på en innbygger: neste replikk. Gir det som ble sagt.
     pub fn talk(&mut self, i: usize) -> Option<Speech> {
-        let clips = self.clips;
         let n = self.npcs.get_mut(i)?;
+        let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
         if n.lines.is_empty() {
             return None;
         }
@@ -99,11 +111,11 @@ impl Npcs {
     /// replikken står i LINE_SECS. Gir replikkene som står nå.
     pub fn update(&mut self, dt: f32, player: Vec3) -> Vec<Speech> {
         let mut out = vec![];
-        let clips = self.clips;
         for (i, n) in self.npcs.iter_mut().enumerate() {
+            let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
             let to = (player - n.pos).with_y(0.0);
             let dist = to.length();
-            if let (Some(r), Some(a)) = (&self.rig, n.anim.as_mut()) {
+            if let (Some(r), Some(a)) = (n.rig.map(|r| &self.rigs[r].0), n.anim.as_mut()) {
                 a.update(dt, r);
                 if a.finished {
                     a.play(clips.idle, true, 0.2);
@@ -141,14 +153,14 @@ impl Npcs {
         for n in &self.npcs {
             let rot = Quat::from_rotation_y(n.yaw - std::f32::consts::FRAC_PI_2);
             let t = Affine3A::from_rotation_translation(rot, n.pos);
-            match (&self.rig, &n.anim) {
+            match (n.rig.map(|r| &self.rigs[r].0), &n.anim) {
                 (Some(rig), Some(a)) => {
                     let mats = rig.skin(&a.pose(rig));
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: NPC_MODEL, transform: t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: Some(n.tint) });
+                    out.push(ModelInstance { model: n.model, transform: t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: Some(n.tint) });
                 }
-                _ => out.push(ModelInstance { model: NPC_MODEL, transform: t, skin: None, flash: 0.0, tint: Some(n.tint) }),
+                _ => out.push(ModelInstance { model: n.model, transform: t, skin: None, flash: 0.0, tint: Some(n.tint) }),
             }
         }
         out

@@ -62,6 +62,8 @@ pub struct Target {
 #[derive(Clone, Debug)]
 pub struct NpcSpec {
     pub name: &'static str,
+    /// Figuren: en egen modell (f.eks. `npc_smith`) eller `npcs::NPC_MODEL`.
+    pub model: &'static str,
     pub pos: Vec3,
     pub yaw: f32,
     pub tint: Vec3,

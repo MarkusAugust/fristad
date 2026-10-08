@@ -789,17 +789,24 @@ fn castle(b: &mut Builder) -> (Vec3, f32) {
 fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     let at_door = |i: usize| doors.get(i).copied().unwrap_or((Vec2::ZERO, 0.0));
     // Rekkefølgen i SPECIALS: apotek, vertshus, smie, skriptorium.
-    let cast: [(&'static str, (Vec2, f32), Vec3, &'static [&'static str]); 5] = [
-        ("Knappesmeden", at_door(2), Vec3::new(0.22, 0.1, 0.05), SMITH),
-        ("Skriptoriet", at_door(3), Vec3::new(0.06, 0.12, 0.42), CLERK),
-        ("Apotekeren", at_door(0), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
-        ("Vertinnen", at_door(1), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
-        ("Gorvek", (Vec2::new(31.0, -18.5), 0.15), Vec3::new(0.3, 0.1, 0.04), GORVEK),
+    // Figuren: en egen modell (fra tools/models/people.py) om den finnes.
+    let cast: [(&'static str, &'static str, (Vec2, f32), Vec3, &'static [&'static str]); 5] = [
+        ("Knappesmeden", "npc_smith", at_door(2), Vec3::new(0.22, 0.1, 0.05), SMITH),
+        ("Skriptoriet", "npc_clerk", at_door(3), Vec3::new(0.06, 0.12, 0.42), CLERK),
+        ("Apotekeren", "npc_apothecary", at_door(0), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
+        ("Vertinnen", "npc_innkeeper", at_door(1), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
+        ("Gorvek", "npc_gorvek", (Vec2::new(31.0, -18.5), 0.15), Vec3::new(0.3, 0.1, 0.04), GORVEK),
     ];
-    for (i, (name, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
+    for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
         let pos = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         log::info!("Innbygger {name} ved ({:.1}, {:.1}, {:.1})", pos.x, pos.y, pos.z);
-        b.npcs.push(NpcSpec { name, pos, yaw, tint, lines });
+        let model = if b.has_model(own) {
+            b.reserve(own, 1);
+            own
+        } else {
+            crate::domain::npcs::NPC_MODEL
+        };
+        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines });
         b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
     }
 }

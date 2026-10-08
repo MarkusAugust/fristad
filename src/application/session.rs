@@ -189,7 +189,7 @@ impl Session {
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt,
             herd: Herd::new(),
-            npcs: Npcs::new(rig_of(crate::domain::npcs::NPC_MODEL), world.npcs.iter().map(|n| (n.name, n.pos, n.yaw, n.tint, n.lines)).collect()),
+            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines)).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.dungeon, rigs),
             dungeon: world.dungeon.clone(),

@@ -93,6 +93,11 @@ def _math(nt, op, a, b=None, clamp=False):
     return n.outputs[0]
 
 
+def _mix_f(nt, a, b, t):
+    """a·(1−t) + b·t for tall."""
+    return _math(nt, "ADD", _math(nt, "MULTIPLY", a, _math(nt, "SUBTRACT", 1.0, t)), _math(nt, "MULTIPLY", b, t))
+
+
 def _ramp(nt, v, lo, hi):
     """0 under `lo`, 1 over `hi`, mykt imellom."""
     n = nt.nodes.new("ShaderNodeMapRange")
@@ -242,12 +247,12 @@ def head_material(name, face, skin_tex, skin_tone, hair=None, beard=None):
     return m
 
 
-def skin_material(name, skin_tex, tone):
+def skin_material(name, skin_tex, tone, scale=0.06):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
     tc = nt.nodes.new("ShaderNodeTexCoord")
-    st = _boxtex(nt, skin_tex, 0.06, tc.outputs["Object"])
+    st = _boxtex(nt, skin_tex, scale, tc.outputs["Object"])
     nt.links.new(_mix(nt, st.outputs["Color"], tone, 1.0, "MULTIPLY"), _bsdf(m).inputs["Base Color"])
     _bsdf(m).inputs["Roughness"].default_value = 0.55
     return m
@@ -578,6 +583,37 @@ def shell(body, name, pick, offset, thick, mat, shape=None):
     return ob
 
 
+def shoe(body, name, side, mat, top=0.13):
+    """En sko rundt foten: den konvekse innhyllingen av fotens hjørner,
+    delt opp, glattet og litt større, så tærne ikke synes."""
+    pts = [v.co.copy() for v in body.data.vertices if v.co.z < top and v.co.y * side > 0.02]
+    bm = bmesh.new()
+    vs = [bm.verts.new(p) for p in pts]
+    bmesh.ops.convex_hull(bm, input=vs)
+    loose = [v for v in bm.verts if not v.link_faces]
+    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=2, use_grid_fill=True)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    for _ in range(6):
+        bmesh.ops.smooth_vert(bm, verts=bm.verts[:], factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    c = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
+    for v in bm.verts:
+        d = v.co - c
+        v.co = c + Vector((d.x * 1.06, d.y * 1.12, d.z * 1.04))
+        v.co.z = max(v.co.z, 0.0)
+    bm.normal_update()
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    copy_weights(body, ob)
+    return ob
+
+
 def smooth_low(ob, below, n):
     """Glatter ut hjørnene under `below` (tærne i en støvel)."""
     bm = bmesh.new()
@@ -681,15 +717,147 @@ def hanging_panel(body, name, z_top, z_bot, w_top, w_bot, mat, gap=0.012, rows=1
     me.materials.append(mat)
     for p in me.polygons:
         p.use_smooth = True
-    copy_weights(body, ob)
+    # Forkleet henger stivt på ryggen (bake_textured: rigid «apron»).
     return ob
 
 
 # --- Figurene ----------------------------------------------------------------
 
 
+def patch_mean(path, box):
+    """Snittfargen (lineær) i et utsnitt (x0, y0, x1, y1 i 0..1 fra øverst
+    til venstre) av et bilde."""
+    import numpy as np
+    img = bpy.data.images.load(path, check_existing=True)
+    w, h = img.size
+    px = np.array(img.pixels[:]).reshape(h, w, 4)[::-1]
+    x0, y0, x1, y1 = (int(box[0] * w), int(box[1] * h), int(box[2] * w), int(box[3] * h))
+    return np.array(px[y0:y1, x0:x1, :3].reshape(-1, 3).mean(axis=0))
+
+
+def project_uv(ob, layer, fn):
+    """Et uv-lag der hvert hjørne får `fn(p) -> (u, v)` (v fra toppen)."""
+    me = ob.data
+    if "UVMap" not in me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    if layer not in me.uv_layers:
+        me.uv_layers.new(name=layer)
+    me.uv_layers.active = me.uv_layers["UVMap"]
+    data = me.uv_layers[layer].data
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            u, v = fn(me.vertices[me.loops[li].vertex_index].co)
+            data[li].uv = (u, 1.0 - v)
+
+
+def head_photos(body, spec, eye, mouth):
+    """Uv-lagene for de fire fotoene: forfra festet i øynene og munnen, fra
+    sidene i øyet og munnhøyden, bakfra i ørene."""
+    ph = spec["photo"]
+    el, er = eye["l"], eye["r"]
+    ez = (el.z + er.z) / 2
+    ex = (el.x + er.x) / 2
+    ul, ur, ve = ph["eyes"]
+    su = (el.y - er.y) / (ur - ul)
+    sv = su
+    mid_y = (el.y + er.y) / 2
+    project_uv(body, "front", lambda p: ((ul + ur) / 2 + (p.y - mid_y) / su, ve + (ez - p.z) / sv))
+    # Sidene: festet i øyet og midt i øret. Personens høyre side (−y) har
+    # fronten mot høyre i bildet.
+    side = ph["side"]
+    ear_z = ez - 0.025
+    near = [v.co for v in body.data.vertices if abs(v.co.z - ear_z) < 0.015 and v.co.x < ex - 0.03]
+    wide = max(abs(c.y) for c in near)
+    ear = [c for c in near if abs(c.y) > wide - 0.012]
+    ear_x = sum(c.x for c in ear) / len(ear)
+    ue, ve2 = side["eye"]
+    ss = (ex - ear_x) / (ue - side["ear"])
+    print(f"ankre: øyne x {ex:.3f} z {ez:.3f}, øret x {ear_x:.3f}, forfra {su:.3f} m per bilde, siden {ss:.3f}")
+    project_uv(body, "right", lambda p: (ue + (p.x - ex) / ss, ve2 + (ez - p.z) / ss))
+    project_uv(body, "left", lambda p: ((1 - ue) - (p.x - ex) / ss, ve2 + (ez - p.z) / ss))
+    # Bakfra: personens venstre (+y) er til venstre i bildet; festet i ørene.
+    back = ph["back"]
+    ear_z = ez - 0.025
+    head = [v.co for v in body.data.vertices if abs(v.co.z - ear_z) < 0.012 and v.co.x < ex - 0.05]
+    half = max(abs(c.y) for c in head) if head else 0.075
+    bl, br, bv = back["ears"]
+    sb = 2 * half / (br - bl)
+    project_uv(body, "back", lambda p: ((bl + br) / 2 - p.y / sb, bv + (ear_z - p.z) / sb))
+    return ear_x
+
+
+def head_material2(name, spec, skin_tex, hair_tex, beard_tex, ez, mouth_z, ear_x):
+    """Hodet: de fire fotoene blandet etter hvilken vei flaten vender
+    (forfra, sidene, bakfra), og der ingen dekker (issen, under haka):
+    hår- og skjeggflisene. Fotoene er fargejustert mot fotoet forfra."""
+    ph = spec["photo"]
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = _bsdf(m)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    pos = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], pos.inputs[0])
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    nrm = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], nrm.inputs[0])
+    # Bunnen: hud, hår på issen og bakhodet, skjegg under haka.
+    st = _boxtex(nt, skin_tex, 0.08, tc.outputs["Object"])
+    col = st.outputs["Color"]
+    ht = _boxtex(nt, hair_tex, 0.12, tc.outputs["Object"])
+    top = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Z"], 0.25, 0.6), _ramp(nt, pos.outputs["Z"], ez, ez + 0.03))
+    # Bak øret og over det: hår.
+    behind = _math(nt, "MULTIPLY", _ramp(nt, pos.outputs["X"], ear_x + 0.03, ear_x), _ramp(nt, pos.outputs["Z"], ez - 0.06, ez - 0.03))
+    col = _mix(nt, col, ht.outputs["Color"], _math(nt, "MAXIMUM", top, behind))
+    if beard_tex:
+        bt = _boxtex(nt, beard_tex, 0.1, tc.outputs["Object"])
+        under = _math(nt, "MULTIPLY", _ramp(nt, pos.outputs["Z"], mouth_z, mouth_z - 0.02), _ramp(nt, pos.outputs["X"], -0.06, -0.02))
+        col = _mix(nt, col, bt.outputs["Color"], under)
+    ref = patch_mean(ph["file"], ph["cheek"])
+
+    def photo(uvname, path, weight, patch):
+        uv = nt.nodes.new("ShaderNodeUVMap")
+        uv.uv_map = uvname
+        img = nt.nodes.new("ShaderNodeTexImage")
+        img.image = bpy.data.images.load(path, check_existing=True)
+        img.extension = "EXTEND"
+        nt.links.new(uv.outputs["UV"], img.inputs["Vector"])
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(uv.outputs["UV"], sep.inputs[0])
+        inside = _math(nt, "MULTIPLY", _ramp(nt, sep.outputs["Y"], 0.0, 0.04), _ramp(nt, sep.outputs["Y"], 1.0, 0.96))
+        inside = _math(nt, "MULTIPLY", inside, _math(nt, "MULTIPLY", _ramp(nt, sep.outputs["X"], 0.02, 0.06), _ramp(nt, sep.outputs["X"], 0.98, 0.94)))
+        gain = tuple(float(min(1.4, max(0.7, r / max(1e-4, c)))) for r, c in zip(ref, patch_mean(path, patch)))
+        c = _mix(nt, img.outputs["Color"], gain, 1.0, "MULTIPLY")
+        return c, _math(nt, "MULTIPLY", weight, inside)
+
+    side = ph["side"]
+    back = ph["back"]
+    w_back = _ramp(nt, nrm.outputs["X"], -0.25, -0.6)
+    # Profilfotoene bare fra litt bak øret og fram.
+    hi = _ramp(nt, pos.outputs["X"], ear_x - 0.045, ear_x - 0.02)
+    lo = _ramp(nt, pos.outputs["X"], ear_x + 0.0, ear_x + 0.025)
+    fwd = _mix_f(nt, lo, hi, _ramp(nt, pos.outputs["Z"], ez - 0.07, ez - 0.04))
+    fwd = _math(nt, "MULTIPLY", fwd, _ramp(nt, pos.outputs["Z"], ez + 0.085, ez + 0.06))
+    w_right = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Y"], -0.2, -0.55), fwd)
+    w_left = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Y"], 0.2, 0.55), fwd)
+    # Fotoet forfra bare over ansiktet: innenfor kinnene og under issen.
+    ay = _math(nt, "ABSOLUTE", pos.outputs["Y"])
+    w_front = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["X"], 0.3, 0.65), _ramp(nt, ay, 0.072, 0.058))
+    w_front = _math(nt, "MULTIPLY", w_front, _ramp(nt, pos.outputs["Z"], ez + 0.085, ez + 0.06))
+    for uvname, path, w, patch in (("back", back["file"], w_back, back["skin"]), ("right", side["file_r"], w_right, side["skin_r"]), ("left", side["file_l"], w_left, side["skin_l"]), ("front", ph["file"], w_front, ph["cheek"])):
+        c, f = photo(uvname, path, w, patch)
+        col = _mix(nt, col, c, f)
+    nt.links.new(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.55
+    return m
+
+
 SMITH = {"name": "smith", "macro": (1.0, 0.45, 0.7, 0.25), "height": 1.8, "grip": "R",
-         "photo": {"file": f"{FACES}/smed.jpg", "eyes": (0.373, 0.627, 0.49), "mouth": 0.79, "cheek": (0.27, 0.55, 0.35, 0.66)}}
+         "photo": {"file": f"{FACES}/smed.jpg", "eyes": (0.373, 0.627, 0.49), "mouth": 0.79, "cheek": (0.27, 0.55, 0.35, 0.66),
+                   "side": {"file_r": f"{FACES}/smed_hoyre.jpg", "file_l": f"{FACES}/smed_venstre.jpg", "eye": (0.635, 0.352), "ear": 0.35,
+                            "skin_r": (0.5, 0.37, 0.58, 0.45), "skin_l": (0.42, 0.37, 0.5, 0.45)},
+                   "back": {"file": f"{FACES}/smed_bak.jpg", "ears": (0.275, 0.7, 0.415), "skin": (0.42, 0.6, 0.58, 0.66)}},
+         "tiles": {"skin": f"{TEX}/people/smed_hud.jpg", "hair": f"{TEX}/people/smed_haar.jpg", "beard": f"{TEX}/people/smed_skjegg.jpg"}}
 INNKEEPER = {"name": "innkeeper", "macro": (0.0, 0.45, 0.2, 0.45), "height": 1.66, "grip": "R",
              "photo": {"file": f"{FACES}/vertinne.jpg", "eyes": (0.402, 0.598, 0.41), "mouth": 0.615, "cheek": (0.33, 0.47, 0.4, 0.56)}}
 
@@ -716,9 +884,13 @@ def smith():
     spec = SMITH
     body, j, eye, mouth = build_human(spec)
     ez = (eye["l"].z + eye["r"].z) / 2
-    hair_tex = crop(f"{ATLAS}/hair_atlas.png", (0.08, 0.38, 0.17, 0.6), "hair_dark")
-    beard_tex = crop(f"{ATLAS}/beard_atlas.png", (0.03, 0.03, 0.23, 0.2), "beard_red")
-    dom = dress_head(body, spec, eye, mouth, hair=(hair_tex, (0.62, 0.58, 0.55), ez + 0.06, ez + 0.02, ez - 0.07), beard=(beard_tex, (0.95, 0.9, 0.85), mouth.z + 0.01))
+    t = spec["tiles"]
+    dom = dominant(body)
+    body.data.materials.append(skin_material("skin", t["skin"], (0.86, 0.8, 0.76), scale=0.22))
+    ear_x = head_photos(body, spec, eye, mouth)
+    body.data.materials.append(head_material2("face", spec, t["skin"], t["hair"], t["beard"], ez, ez - 0.065, ear_x))
+    for p in body.data.polygons:
+        p.material_index = 1 if all(dom[i] in ("head", "neck") for i in p.vertices) else 0
     belt_z = j["spine04"][0].z + 0.02
     # Linskjorta: overkroppen og overarmene, ermene brettet opp over albuen.
     linen = cloth("shirt", "linen", lin((0.8, 0.74, 0.62)), 0.3, dirt=(1.2, 0.3))
@@ -730,8 +902,9 @@ def smith():
     shell(body, "trousers", lambda i, co: (dom[i] in {"hips", "thigh.L", "thigh.R", "shin.L", "shin.R"}) and co.z < belt_z + 0.04 and co.z > 0.25, 0.005, 0.003, wool)
     # Støvlene: føttene og leggen opp til midt på.
     leather = cloth("boots", "leather", lin((0.36, 0.25, 0.17)), 0.2, rough=0.6, dirt=(0.25, 0.5))
-    boots = shell(body, "boots", lambda i, co: co.z < 0.33, 0.012, 0.004, leather)
-    smooth_low(boots, 0.1, 12)
+    shell(body, "boots", lambda i, co: 0.07 < co.z < 0.33, 0.012, 0.004, leather)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, leather)
     # Lærforkleet fra brystet til knærne, med nakkestropp.
     apron = cloth("apron", "leather", lin((0.4, 0.28, 0.18)), 0.25, rough=0.55, bump=0.6, dirt=(1.3, 0.45))
     top = j["spine01"][0].z + 0.08
@@ -771,7 +944,7 @@ def preview(out, focus):
     sun = bpy.context.active_object
     sun.data.energy = 3.0
     sun.rotation_euler = (math.radians(50), math.radians(10), math.radians(60))
-    for name, loc, look, lens in (("full", (2.8, -1.2, 1.1), (0, 0, 0.92), 50), ("face", (0.75, -0.28, focus), (0, 0, focus - 0.02), 85)):
+    for name, loc, look, lens in (("full", (2.8, -1.2, 1.1), (0, 0, 0.92), 50), ("face", (0.75, -0.28, focus), (0, 0, focus - 0.02), 85), ("right", (0.0, -0.8, focus), (0, 0, focus - 0.02), 85), ("back", (-0.8, 0.0, focus), (0, 0, focus - 0.02), 85)):
         bpy.ops.object.camera_add(location=loc)
         cam = bpy.context.active_object
         cam.data.lens = lens
@@ -796,4 +969,4 @@ if __name__ == "__main__":
         sys.exit(0)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R"}, skin={"blend": 0.05})
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine"}, skin={"blend": 0.05})
