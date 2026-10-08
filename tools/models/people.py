@@ -805,7 +805,7 @@ def head_material2(name, spec, skin_tex, hair_tex, beard_tex, ez, mouth_z, ear_x
     st = _boxtex(nt, skin_tex, 0.08, tc.outputs["Object"])
     col = st.outputs["Color"]
     ht = _boxtex(nt, hair_tex, 0.12, tc.outputs["Object"])
-    top = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Z"], 0.25, 0.6), _ramp(nt, pos.outputs["Z"], ez, ez + 0.03))
+    top = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Z"], 0.15, 0.45), _ramp(nt, pos.outputs["Z"], ez, ez + 0.03))
     # Bak øret og over det: hår.
     behind = _math(nt, "MULTIPLY", _ramp(nt, pos.outputs["X"], ear_x + 0.03, ear_x), _ramp(nt, pos.outputs["Z"], ez - 0.06, ez - 0.03))
     col = _mix(nt, col, ht.outputs["Color"], _math(nt, "MAXIMUM", top, behind))
@@ -838,8 +838,12 @@ def head_material2(name, spec, skin_tex, hair_tex, beard_tex, ez, mouth_z, ear_x
     lo = _ramp(nt, pos.outputs["X"], ear_x + 0.0, ear_x + 0.025)
     fwd = _mix_f(nt, lo, hi, _ramp(nt, pos.outputs["Z"], ez - 0.07, ez - 0.04))
     fwd = _math(nt, "MULTIPLY", fwd, _ramp(nt, pos.outputs["Z"], ez + 0.085, ez + 0.06))
+    # ... og ikke på nesa og ansiktet (der tar fotoet forfra over).
+    fwd = _math(nt, "MULTIPLY", fwd, _ramp(nt, pos.outputs["X"], ear_x + 0.085, ear_x + 0.06))
     w_right = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Y"], -0.2, -0.55), fwd)
     w_left = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["Y"], 0.2, 0.55), fwd)
+    # Bakfotoet ikke over issen (der tar hår- eller skautflisen over).
+    w_back = _math(nt, "MULTIPLY", w_back, _ramp(nt, nrm.outputs["Z"], 0.55, 0.3))
     # Fotoet forfra bare over ansiktet: innenfor kinnene og under issen.
     ay = _math(nt, "ABSOLUTE", pos.outputs["Y"])
     w_front = _math(nt, "MULTIPLY", _ramp(nt, nrm.outputs["X"], 0.3, 0.65), _ramp(nt, ay, 0.072, 0.058))
@@ -859,7 +863,11 @@ SMITH = {"name": "smith", "macro": (1.0, 0.45, 0.7, 0.25), "height": 1.8, "grip"
                    "back": {"file": f"{FACES}/smed_bak.jpg", "ears": (0.275, 0.7, 0.415), "skin": (0.42, 0.6, 0.58, 0.66)}},
          "tiles": {"skin": f"{TEX}/people/smed_hud.jpg", "hair": f"{TEX}/people/smed_haar.jpg", "beard": f"{TEX}/people/smed_skjegg.jpg"}}
 INNKEEPER = {"name": "innkeeper", "macro": (0.0, 0.45, 0.2, 0.45), "height": 1.66, "grip": "R",
-             "photo": {"file": f"{FACES}/vertinne.jpg", "eyes": (0.402, 0.598, 0.41), "mouth": 0.615, "cheek": (0.33, 0.47, 0.4, 0.56)}}
+             "photo": {"file": f"{FACES}/vertinne.jpg", "eyes": (0.402, 0.598, 0.41), "mouth": 0.615, "cheek": (0.33, 0.47, 0.4, 0.56),
+                       "side": {"file_r": f"{FACES}/vertinne_hoyre.jpg", "file_l": f"{FACES}/vertinne_venstre.jpg", "eye": (0.685, 0.35), "ear": 0.44,
+                                "skin_r": (0.6, 0.5, 0.68, 0.6), "skin_l": (0.32, 0.5, 0.4, 0.6)},
+                       "back": {"file": f"{FACES}/vertinne_bak.jpg", "ears": (0.29, 0.665, 0.305), "skin": (0.4, 0.66, 0.6, 0.7)}},
+             "tiles": {"skin": f"{TEX}/people/vertinne_hud.jpg", "hair": f"{TEX}/people/vertinne_skaut.jpg", "beard": None}}
 
 
 def dress_head(body, spec, eye, mouth, hair, beard):
@@ -925,7 +933,87 @@ def smith():
     return j
 
 
-MODELS = {"smith": smith}
+def skirt(body, name, z_top, z_bot, mat, flare=0.12, rows=16, n=40):
+    """Et skjørt: ringer fra livet ned mot anklene, utenfor kroppen og
+    beina, som vider seg ut nedover. Henger stivt på hoftene (rigid
+    «skirt»)."""
+    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    bm = bmesh.new()
+    rings = []
+    rad = [0.0] * n
+    for r in range(rows + 1):
+        t = r / rows
+        z = z_top + (z_bot - z_top) * t
+        ring = []
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            d = Vector((math.cos(a), math.sin(a), 0))
+            hit = tree.ray_cast(Vector((0, 0, z)) + d * 0.6, -d, 0.6)
+            reach = (hit[0] - Vector((0, 0, z))).length if hit[0] is not None else 0.1
+            rad[k] = max(rad[k], reach + 0.015) if r else reach + 0.015
+            rr = rad[k] + flare * t * t
+            ring.append(bm.verts.new(Vector((0, 0, z)) + d * rr))
+        rings.append(ring)
+    for r in range(rows):
+        for k in range(n):
+            j = (k + 1) % n
+            bm.faces.new((rings[r][k], rings[r][j], rings[r + 1][j], rings[r + 1][k]))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.006)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    return ob
+
+
+def innkeeper():
+    spec = INNKEEPER
+    body, j, eye, mouth = build_human(spec)
+    ez = (eye["l"].z + eye["r"].z) / 2
+    t = spec["tiles"]
+    dom = dominant(body)
+    body.data.materials.append(skin_material("skin", t["skin"], (0.95, 0.9, 0.86), scale=0.22))
+    ear_x = head_photos(body, spec, eye, mouth)
+    body.data.materials.append(head_material2("face", spec, t["skin"], t["hair"], None, ez, ez - 0.06, ear_x))
+    for p in body.data.polygons:
+        p.material_index = 1 if all(dom[i] in ("head", "neck") for i in p.vertices) else 0
+    belt_z = j["spine04"][0].z + 0.02
+    neck_z = j["neck01"][0].z - 0.01
+    # Linserken: overkroppen og armene ned til håndleddet.
+    linen = cloth("chemise", "linen", lin((0.85, 0.81, 0.72)), 0.3, dirt=(1.1, 0.25))
+    wrist_z = j["wrist.R"][0].z + 0.03
+    shell(body, "chemise", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and co.z < neck_z and co.z > wrist_z, 0.006, 0.003, linen)
+    # Ullkjolen: livet over serken, og skjørtet ned mot anklene.
+    wool = cloth("dress", "wool", lin((0.3, 0.22, 0.16)), 0.3, dirt=(0.5, 0.5))
+    top = j["spine01"][0].z + 0.07
+    shell(body, "bodice", lambda i, co: dom[i] in {"hips", "spine", "chest"} and belt_z - 0.05 < co.z < top, 0.014, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.07, wool, flare=0.1)
+    # Lærselene over skuldrene.
+    leather = cloth("straps", "leather", lin((0.42, 0.26, 0.16)), 0.15, rough=0.5)
+    for sy in (-1, 1):
+        tube(f"bodice_strap{sy}", Vector((0.1, sy * 0.08, top - 0.02)), Vector((0.0, sy * 0.1, j["neck01"][0].z - 0.02)), 0.012, 0.012, leather)
+        tube(f"bodice_strapb{sy}", Vector((0.0, sy * 0.1, j["neck01"][0].z - 0.02)), Vector((-0.1, sy * 0.08, top - 0.02)), 0.012, 0.012, leather)
+    # Linforkleet foran skjørtet, og skoene.
+    apron = cloth("apron", "linen", lin((0.82, 0.78, 0.7)), 0.3, dirt=(0.8, 0.35))
+    hanging_panel(body, "apron", belt_z, 0.3, 0.13, 0.2, apron, gap=0.13)
+    shoes = cloth("shoes", "leather", lin((0.3, 0.21, 0.14)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    # Ølkruset av tre i høyre hånd.
+    wood = cloth("mug", "oak", lin((0.7, 0.55, 0.4)), 0.12, rough=0.6)
+    w, m3 = j["wrist.R"][0], j["finger3-1.R"][0]
+    grip = w + (m3 - w) * 1.2
+    c = grip + Vector((0.035, 0.0, -0.02))
+    tube("mug_body", c + Vector((0, 0, -0.07)), c + Vector((0, 0, 0.06)), 0.042, 0.046, wood, n=16)
+    tube("mug_band", c + Vector((0, 0, 0.02)), c + Vector((0, 0, 0.032)), 0.049, 0.049, cloth("mug_iron", "metal", lin((0.4, 0.38, 0.36)), 0.1), n=16)
+    return j
+
+
+MODELS = {"smith": smith, "innkeeper": innkeeper}
 
 
 def preview(out, focus):
@@ -969,4 +1057,4 @@ if __name__ == "__main__":
         sys.exit(0)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine"}, skin={"blend": 0.05})
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest"}, skin={"blend": 0.05})
