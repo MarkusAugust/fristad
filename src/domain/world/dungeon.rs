@@ -1,98 +1,111 @@
-//! Legacy-kjelleren: fem etasjer under borgruinen, én per epoke, der de
-//! korrupte komponentene holder til. Du kommer ned gjennom døra i krypta
-//! (`Use::Descend`) og opp igjen gjennom døra øverst i trappa i
-//! startrommet (`Use::Ascend`). Hver etasje er et rutenett av celler
-//! på 4 m: rom fra en BSP-deling, ganger som binder dem sammen, noen rom
-//! hevet 1,4 m med trapper opp og avsatser du kan hoppe ned fra, og en
-//! utgang i øst: en alkove bak en rusten port (`Use::Gate`, nøkkelen
-//! bærer elitefienden i rommet) med en trapp ned til neste
-//! etasje. Temaet følger epoken: murstein med mose og fakler, serverrom
-//! med lysrør og kabler, kloakk med gjørme, vann og lykter, katakomber
-//! med stearinlys og hodeskaller, og lavadypet nederst. Fiendene
-//! (`domain/mobs.rs`) går på rutenettet; spilleren går på kolliderne.
+//! Kjelleren: fem etasjer under borgruinen, én per epoke, der de korrupte
+//! komponentene holder til (se docs/kjelleren.md). Du kommer ned gjennom
+//! døra i krypta (`Use::Descend`) og opp igjen gjennom døra i startrommet
+//! (`Use::Ascend`).
+//!
+//! Hver etasje settes sammen av håndbygde rom fra Blender
+//! (`tools/models/dungeon.py`: hvelvede haller, cisterne, galleri, kapell,
+//! skattkamre, portrommet og bossarenaen) og et modulsett av hvelvede
+//! ganger. Rommene vokser ut fra startrommet: hvert nytt rom henges på en
+//! ledig dør i et rom som står, med en gang imellom (ruta med A* på
+//! rutenettet). Hovedveien ender i portrommet, der portgitteret
+//! (`Use::Gate`, nøkkelen bærer eliten) stenger vindeltrappa ned til
+//! neste etasje; der kommer du ut i trappefoten. Sidegrener går til
+//! skattkamre, og en løkke binder hovedveien sammen. Dører ingen gang går
+//! til mures igjen. Hvert rom har en json-fil fra Blender med gulv- og
+//! takhøyde per celle, dører, kollidere, lys og steder.
+//!
+//! Fiendene (`domain/mobs.rs`) går på rutenettet (`Floor::walkable`,
+//! `next_step`); spilleren går på kolliderne.
 
-use super::{Builder, Shape, Use, IRON, OAK, STONE};
+use super::{Builder, Shape, Use};
 use crate::domain::rng::Rng;
-use crate::domain::geometry::{flag, kind, Layer, Mat};
 use glam::{Affine3A, Quat, Vec2, Vec3};
-use std::collections::{HashSet, VecDeque};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+use std::sync::OnceLock;
 
 /// Gulvets overkant i den første etasjen, under alt i byen.
 pub const DEPTH: f32 = -16.0;
 pub const CELL: f32 = 4.0;
-/// Takhøyden i ganger og i rom.
-pub const WALL_H: f32 = 3.0;
-pub const ROOM_H: f32 = 4.4;
-/// Hvor høyt de hevede rommene ligger.
-pub const LEDGE: f32 = 1.4;
 /// Minste høyde fra gulvet til taket: spilleren er 1,8 m og hopper.
 pub const HEADROOM: f32 = 2.9;
-/// Høyden mellom etasjene.
+/// Høyden mellom etasjene (vindeltrappa).
 pub const FLOOR_DROP: f32 = 12.0;
 pub const FLOORS: usize = 5;
-/// Rutenettet er N × N celler.
-pub const N: usize = 28;
-/// Startrommet (3 × 3) ligger rundt denne cellen; i første etasje rett
-/// under krypta.
-pub const START: (usize, usize) = (4, 14);
-/// Portgitteret som sveives opp foran trappa ned (modell, posert av spillet).
+/// Rutenettet i hver etasje er N × N celler.
+pub const N: usize = 40;
+/// Portgitteret som sveives opp foran vindeltrappa (modell, posert av spillet).
 pub const PORTCULLIS: &str = "portcullis";
-/// Trappa mellom etasjene: så mange celler lang, mot øst.
-const SHAFT: i32 = 5;
 pub const EPOCHS: [&str; FLOORS] = ["2026: forretningslogikken", "2019: klassekomponentene", "2014: jQuery-kloakken", "2009: tabellayout-katakombene", "1999: blink-dypet"];
+/// Portgitteret: så bredt og høyt, og hvor langt det sveives opp.
+pub const GATE_W: f32 = 3.9;
+pub const GATE_H: f32 = 2.9;
+pub const GATE_LIFT: f32 = 2.7;
+/// Halv bredde og takhøyde i gangene.
+const HALL_HW: f32 = 1.4;
+const HALL_CEIL: f32 = 3.8;
+/// Kjelleren holder seg innenfor verdens kant (199 m).
+const REACH: f32 = 185.0;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Cell {
     Rock,
-    /// Gulv på nivå 0 eller 1 (hevet `LEDGE`).
-    Floor(u8),
-    /// Trapp som stiger mot (dx, dz), fra nivå 0 til 1.
-    Stair(i32, i32),
+    /// Gulv i denne høyden over etasjens gulv.
+    Floor(f32),
+    /// Trapp som stiger mot (dx, dz), fra `lo` til `hi`.
+    Ramp { dx: i32, dz: i32, lo: f32, hi: f32 },
 }
 
 #[derive(Clone, Debug)]
 pub struct Floor {
     pub cells: Vec<Cell>,
-    /// Rom (1) eller gang (2) per celle, 0 for fjell.
-    kind: Vec<u8>,
-    /// Takhøyde per celle.
+    /// Halv gangbredde fra cellemidten (2 i rom, 1,4 i gangene).
+    hw: Vec<f32>,
+    /// Takhøyde over etasjens gulv.
     ceil: Vec<f32>,
+    /// Hvilket rom en celle hører til (gangceller er hver for seg, −1).
+    unit: Vec<i32>,
+    /// Kanter mellom celler i ulike rom eller ganger som er åpne (dører
+    /// og gangforløp), og kanter inne i et rom som er stengt.
+    links: HashSet<((i32, i32), (i32, i32))>,
+    blocked: HashSet<((i32, i32), (i32, i32))>,
     /// Verdenskoordinatene (x, z) til hjørnet av celle (0, 0).
     pub origin: (f32, f32),
-    /// Gulvets overkant på nivå 0.
+    /// Gulvets overkant.
     pub y: f32,
     pub theme: usize,
-    /// Avsatser: (høy celle, lav celle) der veggen mellom er borte over
-    /// avsatsen, så du kan hoppe ned.
-    ledges: HashSet<((i32, i32), (i32, i32))>,
-    /// Veggåpninger som ikke skal tegnes: (celle, retning).
-    openings: HashSet<((i32, i32), (i32, i32))>,
+    /// Cella der du starter i etasjen.
     pub start: (i32, i32),
-    /// Alkoven med trappa ned (eller skatten nederst).
+    /// Tårncella med vindeltrappa ned (ingen nederst).
     pub exit: Option<(i32, i32)>,
-    /// Retningen utgangen ligger i (1 øst, −1 vest): etasjene sikksakker
-    /// under byen, så kjelleren holder seg innenfor landskapet.
-    pub dir: i32,
 }
 
 #[derive(Clone, Debug)]
 pub struct Dungeon {
     pub floors: Vec<Floor>,
-    /// Føttene der du står når du kommer ned trappa fra krypta.
+    /// Føttene der du står når du kommer ned fra krypta.
     pub start: Vec3,
     /// Steder fiendene kan starte, alle etasjer.
     pub spawns: Vec<Vec3>,
     /// Elitefiendene som bærer nøklene: en per etasje.
     pub elites: Vec<Vec3>,
-    /// De rustne portene: (midten i gulvhøyde, yaw), en per etasje med trapp.
+    /// Portgitrene: (midten i gulvhøyde, yaw), en per etasje med trapp.
     pub gates: Vec<(Vec3, f32)>,
     /// Tokens som ligger og venter (skatten nederst).
     pub loot: Vec<Vec3>,
     /// Kistene: (føtter, yaw, etasje). F åpner dem (`Use::Chest`), og
     /// innholdet følger etasjen (`craft::LOOT`).
     pub chests: Vec<(Vec3, f32, usize)>,
-    /// Der Rammeverket står: midt i utgangsrommet på nederste etasje.
+    /// Der Rammeverket står: midt i rotunden nederst.
     pub boss: Option<Vec3>,
+}
+
+fn edge(a: (i32, i32), b: (i32, i32)) -> ((i32, i32), (i32, i32)) {
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 impl Floor {
@@ -113,41 +126,27 @@ impl Floor {
         (((p.x - self.origin.0) / CELL).floor() as i32, ((p.z - self.origin.1) / CELL).floor() as i32)
     }
 
-    /// Nivået i en celle (0 eller 1); trapper regnes som 0 i den ene enden.
-    /// Taket i en celle (absolutt y): rommene høyere enn gangene, og alltid
-    /// minst `HEADROOM` over det høyeste gulvet i cella (toppen av trappa,
-    /// avsatsen), så hodet aldri går gjennom taket.
+    /// Taket over en celle (absolutt y).
     pub fn ceil_at(&self, ix: i32, iz: i32) -> f32 {
-        let Some(i) = Floor::idx(ix, iz) else { return self.y + WALL_H };
-        let level = self.level(ix, iz);
-        let top = match self.cell(ix, iz) {
-            Cell::Stair(..) => self.y + LEDGE,
-            _ => self.y + level as f32 * LEDGE,
-        };
-        (self.y + self.ceil[i] + level as f32 * LEDGE * 0.5).max(top + HEADROOM)
+        self.y + Self::idx(ix, iz).map(|i| self.ceil[i]).unwrap_or(HALL_CEIL)
     }
 
     /// Det høyeste gulvet i en celle (toppen av trappa).
     pub fn top_at(&self, ix: i32, iz: i32) -> f32 {
-        match self.cell(ix, iz) {
-            Cell::Stair(..) => self.y + LEDGE,
-            _ => self.y + self.level(ix, iz) as f32 * LEDGE,
-        }
-    }
-
-    fn level(&self, ix: i32, iz: i32) -> u8 {
-        match self.cell(ix, iz) {
-            Cell::Floor(l) => l,
-            _ => 0,
-        }
+        self.y
+            + match self.cell(ix, iz) {
+                Cell::Floor(h) => h,
+                Cell::Ramp { hi, .. } => hi,
+                Cell::Rock => 0.0,
+            }
     }
 
     /// Gulvhøyden i et verdenspunkt (absolutt y), trappene medregnet.
     pub fn height_at(&self, p: Vec3) -> f32 {
         let (ix, iz) = self.cell_of(p);
         match self.cell(ix, iz) {
-            Cell::Floor(l) => self.y + l as f32 * LEDGE,
-            Cell::Stair(dx, dz) => {
+            Cell::Floor(h) => self.y + h,
+            Cell::Ramp { dx, dz, lo, hi } => {
                 let lx = (p.x - (self.origin.0 + ix as f32 * CELL)) / CELL;
                 let lz = (p.z - (self.origin.1 + iz as f32 * CELL)) / CELL;
                 let t = if dx > 0 {
@@ -159,7 +158,7 @@ impl Floor {
                 } else {
                     1.0 - lz
                 };
-                self.y + t.clamp(0.0, 1.0) * LEDGE
+                self.y + lo + t.clamp(0.0, 1.0) * (hi - lo)
             }
             Cell::Rock => self.y,
         }
@@ -171,25 +170,30 @@ impl Floor {
         Vec3::new(p.x, self.height_at(p), p.z)
     }
 
-    /// Om du kan gå fra celle `a` til nabocellen `b`: begge åpne, og
-    /// samme nivå, eller via en trapp langs dens akse.
+    /// Om du kan gå fra celle `a` til nabocellen `b`: begge åpne, samme rom
+    /// (og kanten ikke stengt) eller en dør eller gang imellom, og samme
+    /// høyde der de møtes (trapper bare langs aksen).
     pub fn passable(&self, a: (i32, i32), b: (i32, i32)) -> bool {
-        let (ca, cb) = (self.cell(a.0, a.1), self.cell(b.0, b.1));
+        let (Some(ia), Some(ib)) = (Self::idx(a.0, a.1), Self::idx(b.0, b.1)) else { return false };
+        let (ca, cb) = (self.cells[ia], self.cells[ib]);
         if ca == Cell::Rock || cb == Cell::Rock {
             return false;
         }
+        let e = edge(a, b);
+        let joined = if self.unit[ia] >= 0 && self.unit[ia] == self.unit[ib] { !self.blocked.contains(&e) } else { self.links.contains(&e) };
+        if !joined {
+            return false;
+        }
         let d = (b.0 - a.0, b.1 - a.1);
-        // Nivået på hver side av overgangen.
-        let side = |c: Cell, dir: (i32, i32), leaving: bool| -> Option<u8> {
+        // Høyden på hver side av kanten.
+        let side = |c: Cell, toward: (i32, i32)| -> Option<f32> {
             match c {
-                Cell::Floor(l) => Some(l),
-                Cell::Stair(dx, dz) => {
-                    // Trappa kan bare brukes langs aksen sin: høy ende mot
-                    // (dx, dz), lav ende motsatt.
-                    if dir == (dx, dz) {
-                        Some(if leaving { 1 } else { 0 })
-                    } else if dir == (-dx, -dz) {
-                        Some(if leaving { 0 } else { 1 })
+                Cell::Floor(h) => Some(h),
+                Cell::Ramp { dx, dz, lo, hi } => {
+                    if toward == (dx, dz) {
+                        Some(hi)
+                    } else if toward == (-dx, -dz) {
+                        Some(lo)
                     } else {
                         None
                     }
@@ -197,29 +201,39 @@ impl Floor {
                 Cell::Rock => None,
             }
         };
-        match (side(ca, d, true), side(cb, d, false)) {
-            (Some(x), Some(y)) => x == y,
+        match (side(ca, d), side(cb, (-d.0, -d.1))) {
+            (Some(x), Some(y)) => (x - y).abs() < 0.3,
             _ => false,
         }
     }
 
-    /// Om et punkt (med margin inn fra veggene) er på gulvet, og innenfor
-    /// rekkevidde av cellen det står i.
+    /// Om et punkt (med margin inn fra murene) er på gulvet: inne i
+    /// midtfeltet av cella, eller i en arm mot en nabo du kan gå til.
     pub fn walkable(&self, p: Vec3, margin: f32) -> bool {
         let (ix, iz) = self.cell_of(p);
-        if !self.is_open(ix, iz) {
+        let Some(i) = Self::idx(ix, iz) else { return false };
+        if self.cells[i] == Cell::Rock {
             return false;
         }
-        let lx = p.x - (self.origin.0 + ix as f32 * CELL);
-        let lz = p.z - (self.origin.1 + iz as f32 * CELL);
-        (lx >= margin || self.passable((ix, iz), (ix - 1, iz)))
-            && (lx <= CELL - margin || self.passable((ix, iz), (ix + 1, iz)))
-            && (lz >= margin || self.passable((ix, iz), (ix, iz - 1)))
-            && (lz <= CELL - margin || self.passable((ix, iz), (ix, iz + 1)))
+        let hw = self.hw[i];
+        let lx = p.x - (self.origin.0 + (ix as f32 + 0.5) * CELL);
+        let lz = p.z - (self.origin.1 + (iz as f32 + 0.5) * CELL);
+        let lim = hw - margin;
+        let arm = |dx: i32, dz: i32| -> f32 {
+            let n = (ix + dx, iz + dz);
+            if self.passable((ix, iz), n) {
+                hw.min(Self::idx(n.0, n.1).map(|j| self.hw[j]).unwrap_or(hw)) - margin
+            } else {
+                -1.0
+            }
+        };
+        let ok_x = lx.abs() <= lim || (if lx > 0.0 { arm(1, 0) } else { arm(-1, 0) }) >= lz.abs();
+        let ok_z = lz.abs() <= lim || (if lz > 0.0 { arm(0, 1) } else { arm(0, -1) }) >= lx.abs();
+        ok_x && ok_z
     }
 
-    /// Neste cellemidte på korteste vei fra `from` til `to` (bredde først
-    /// på rutenettet), eller `None` om det ikke finnes noen vei.
+    /// Neste steg på korteste vei fra `from` til `to` (bredde først på
+    /// rutenettet), eller `None` om det ikke finnes noen vei.
     pub fn next_step(&self, from: Vec3, to: Vec3) -> Option<Vec3> {
         let a = self.cell_of(from);
         let b = self.cell_of(to);
@@ -240,7 +254,7 @@ impl Floor {
             }
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 let n = (c.0 + dx, c.1 + dz);
-                if Self::idx(n.0, n.1).is_some() && self.passable(c, n) && prev[idx(n)] == usize::MAX {
+                if Self::idx(n.0, n.1).is_some() && prev[idx(n)] == usize::MAX && self.passable(c, n) {
                     prev[idx(n)] = idx(c);
                     queue.push_back(n);
                 }
@@ -260,7 +274,7 @@ impl Floor {
 impl Dungeon {
     /// Etasjen et punkt er i, etter høyden.
     pub fn floor_of(&self, p: Vec3) -> Option<usize> {
-        self.floors.iter().position(|f| p.y >= f.y - 1.5 && p.y < f.y + FLOOR_DROP - 1.5)
+        self.floors.iter().position(|f| p.y >= f.y - 2.5 && p.y < f.y + FLOOR_DROP - 2.5)
     }
 
     pub fn walkable(&self, p: Vec3, margin: f32) -> bool {
@@ -282,123 +296,366 @@ impl Dungeon {
     }
 }
 
+// --- Rommene fra Blender --------------------------------------------------------
+
+#[derive(serde::Deserialize, Default)]
+struct Spots {
+    #[serde(default)]
+    spawn: Vec<[f32; 3]>,
+    #[serde(default)]
+    chest: Vec<[f32; 4]>,
+    #[serde(default)]
+    loot: Vec<[f32; 3]>,
+    elite: Option<[f32; 3]>,
+    boss: Option<[f32; 3]>,
+    start: Option<[f32; 4]>,
+    ascend: Option<[f32; 4]>,
+    gate: Option<[f32; 4]>,
+    tower: Option<[i32; 2]>,
+}
+
+/// Et rom eller en gangmodul: fotavtrykket w × d celler og det som står i
+/// json-fila ved siden av modellen.
+#[derive(serde::Deserialize, Default)]
+struct Spec {
+    w: i32,
+    d: i32,
+    floor: Vec<Vec<Option<f32>>>,
+    ceil: Vec<Vec<f32>>,
+    hw: Vec<Vec<f32>>,
+    #[serde(default)]
+    ramps: Vec<(i32, i32, i32, i32, f32, f32)>,
+    #[serde(default)]
+    doors: Vec<(i32, i32, i32, i32)>,
+    #[serde(default)]
+    blocked: Vec<(i32, i32, i32, i32)>,
+    #[serde(default)]
+    boxes: Vec<([f32; 3], [f32; 3], f32)>,
+    #[serde(default)]
+    hulls: Vec<Vec<[f32; 3]>>,
+    #[serde(default)]
+    lights: Vec<([f32; 3], [f32; 3], f32, f32)>,
+    #[serde(default)]
+    spots: Spots,
+}
+
+macro_rules! specs {
+    ($($name:literal),* $(,)?) => {
+        const SPECS: &[(&str, &str)] = &[$(($name, include_str!(concat!("../../../assets/models/dungeon/", $name, ".json")))),*];
+    };
+}
+
+specs!(
+    "dng_hall_i",
+    "dng_hall_i2",
+    "dng_hall_i3",
+    "dng_hall_l",
+    "dng_hall_t",
+    "dng_hall_x",
+    "dng_hall_end",
+    "dng_seal",
+    "dng_spiral",
+    "dng_start",
+    "dng_gate",
+    "dng_landing",
+    "dng_hall",
+    "dng_long",
+    "dng_cistern",
+    "dng_gallery",
+    "dng_chapel",
+    "dng_treasury",
+    "dng_arena",
+);
+
+fn spec(name: &str) -> &'static Spec {
+    static PARSED: OnceLock<HashMap<&'static str, Spec>> = OnceLock::new();
+    let all = PARSED.get_or_init(|| {
+        SPECS
+            .iter()
+            .map(|(n, json)| {
+                let s: Spec = serde_json::from_str(json).unwrap_or_else(|e| {
+                    log::warn!("Kjellerrommet {n}: {e}");
+                    Spec::default()
+                });
+                (*n, s)
+            })
+            .collect()
+    });
+    &all[name]
+}
+
+/// Rommene på hovedveien, og hvor mange ganger hvert kan brukes per etasje.
+const POOL: [(&str, usize); 5] = [("dng_hall", 2), ("dng_long", 1), ("dng_cistern", 1), ("dng_gallery", 1), ("dng_chapel", 1)];
+
+/// Et rom satt ut på rutenettet: modellen, hjørnet (gx, gz) og dreiningen
+/// i kvarte omganger (mot klokka sett ovenfra, som yaw −90° per steg).
 #[derive(Clone, Copy, Debug)]
-struct Room {
-    x0: i32,
-    z0: i32,
-    x1: i32,
-    z1: i32,
-    level: u8,
+struct Placed {
+    name: &'static str,
+    gx: i32,
+    gz: i32,
+    rot: i32,
 }
 
-impl Room {
-    fn center(&self) -> (i32, i32) {
-        ((self.x0 + self.x1) / 2, (self.z0 + self.z1) / 2)
+impl Placed {
+    fn spec(&self) -> &'static Spec {
+        spec(self.name)
     }
-    fn contains(&self, c: (i32, i32)) -> bool {
-        c.0 >= self.x0 && c.0 <= self.x1 && c.1 >= self.z0 && c.1 <= self.z1
+
+    /// Fotavtrykket på rutenettet etter dreiningen.
+    fn size(&self) -> (i32, i32) {
+        let s = self.spec();
+        if self.rot % 2 == 1 {
+            (s.d, s.w)
+        } else {
+            (s.w, s.d)
+        }
+    }
+
+    /// Et punkt i modellens rom (meter) dreid inn i fotavtrykket (meter fra
+    /// hjørnet på rutenettet).
+    fn turn(&self, p: Vec2) -> Vec2 {
+        let s = self.spec();
+        let (w, d) = (s.w as f32 * CELL, s.d as f32 * CELL);
+        match self.rot & 3 {
+            0 => p,
+            1 => Vec2::new(d - p.y, p.x),
+            2 => Vec2::new(w - p.x, d - p.y),
+            _ => Vec2::new(p.y, w - p.x),
+        }
+    }
+
+    fn dir(&self, d: (i32, i32)) -> (i32, i32) {
+        match self.rot & 3 {
+            0 => d,
+            1 => (-d.1, d.0),
+            2 => (-d.0, -d.1),
+            _ => (d.1, -d.0),
+        }
+    }
+
+    /// Cella på rutenettet for celle (i, j) i modellen.
+    fn cell(&self, i: i32, j: i32) -> (i32, i32) {
+        let p = self.turn(Vec2::new((i as f32 + 0.5) * CELL, (j as f32 + 0.5) * CELL));
+        (self.gx + (p.x / CELL).floor() as i32, self.gz + (p.y / CELL).floor() as i32)
+    }
+
+    fn yaw(&self) -> f32 {
+        -(self.rot as f32) * std::f32::consts::FRAC_PI_2
+    }
+
+    /// Modellens transform i verden.
+    fn affine(&self, origin: (f32, f32), y: f32) -> Affine3A {
+        let t = self.turn(Vec2::ZERO);
+        Affine3A::from_rotation_translation(Quat::from_rotation_y(self.yaw()), Vec3::new(origin.0 + self.gx as f32 * CELL + t.x, y, origin.1 + self.gz as f32 * CELL + t.y))
+    }
+
+    /// Dørene: (cella i rommet på rutenettet, retningen ut).
+    fn doors(&self) -> Vec<((i32, i32), (i32, i32))> {
+        self.spec().doors.iter().map(|&(i, j, dx, dz)| (self.cell(i, j), self.dir((dx, dz)))).collect()
     }
 }
 
-/// Temaet per epoke: materialer, lys og pynt.
-#[derive(Clone, Copy)]
-struct Theme {
-    wall: Mat,
-    floor: Mat,
-    ceil: Mat,
-    light: LightKind,
-    moss: f32,
-    mud: f32,
-    puddles: f32,
-    pillars: bool,
-    skulls: f32,
-    kegs: f32,
-    cables: bool,
-    pipes: bool,
+/// Planen for en etasje mens den vokser.
+struct Plan {
+    rooms: Vec<Placed>,
+    /// Hvem som eier en celle: rom (≥ 0), gang (−2) eller ingen (−1).
+    owner: Vec<i32>,
+    links: HashSet<((i32, i32), (i32, i32))>,
+    /// Dørene som er i bruk: (rom, dør).
+    used: HashSet<(usize, usize)>,
+    /// Hvilke celler i verden som er lov (innenfor verdens kant).
+    origin: (f32, f32),
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum LightKind {
-    Torch,
-    Tube,
-    Lantern,
-    Candle,
-    Lava,
-}
+impl Plan {
+    fn owner(&self, c: (i32, i32)) -> i32 {
+        Floor::idx(c.0, c.1).map(|i| self.owner[i]).unwrap_or(-3)
+    }
 
-fn theme(k: usize) -> Theme {
-    let nw = flag::NO_WEATHER;
-    match k % FLOORS {
-        0 => Theme {
-            wall: Mat::tex(Layer::Brick, 0xffffff).tint(Vec3::new(0.42, 0.36, 0.33)).flags(nw),
-            floor: Mat::tex(Layer::Concrete, 0xffffff).tint(Vec3::new(0.35, 0.34, 0.33)).flags(nw),
-            ceil: Mat::tex(Layer::Stone, 0xffffff).tint(Vec3::new(0.3, 0.29, 0.28)).flags(nw),
-            light: LightKind::Torch,
-            moss: 0.45,
-            mud: 0.0,
-            puddles: 0.15,
-            pillars: false,
-            skulls: 0.05,
-            kegs: 0.2,
-            cables: false,
-            pipes: false,
-        },
-        1 => Theme {
-            wall: Mat::tex(Layer::Concrete, 0xffffff).tint(Vec3::new(0.46, 0.48, 0.52)).flags(nw),
-            floor: Mat::tex(Layer::Concrete, 0xffffff).tint(Vec3::new(0.26, 0.27, 0.3)).flags(nw),
-            ceil: Mat::tex(Layer::Metal, 0xffffff).tint(Vec3::new(0.3, 0.32, 0.36)).flags(nw),
-            light: LightKind::Tube,
-            moss: 0.0,
-            mud: 0.0,
-            puddles: 0.3,
-            pillars: true,
-            skulls: 0.0,
-            kegs: 0.0,
-            cables: true,
-            pipes: false,
-        },
-        2 => Theme {
-            wall: Mat::tex(Layer::Stone, 0xffffff).tint(Vec3::new(0.32, 0.35, 0.3)).flags(nw),
-            floor: Mat::tex(Layer::Gravel, 0xffffff).tint(Vec3::new(0.24, 0.19, 0.13)).flags(nw),
-            ceil: Mat::tex(Layer::Brick, 0xffffff).tint(Vec3::new(0.28, 0.26, 0.24)).flags(nw),
-            light: LightKind::Lantern,
-            moss: 0.7,
-            mud: 0.6,
-            puddles: 0.55,
-            pillars: false,
-            skulls: 0.08,
-            kegs: 0.15,
-            cables: false,
-            pipes: true,
-        },
-        3 => Theme {
-            wall: Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.5, 0.46, 0.42)).flags(nw),
-            floor: Mat::tex(Layer::Stone, 0xffffff).tint(Vec3::new(0.38, 0.36, 0.33)).flags(nw),
-            ceil: Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.32, 0.3, 0.28)).flags(nw),
-            light: LightKind::Candle,
-            moss: 0.15,
-            mud: 0.0,
-            puddles: 0.05,
-            pillars: true,
-            skulls: 0.45,
-            kegs: 0.1,
-            cables: false,
-            pipes: false,
-        },
-        _ => Theme {
-            wall: Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.24, 0.2, 0.18)).flags(nw),
-            floor: Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.2, 0.17, 0.15)).flags(nw),
-            ceil: Mat::tex(Layer::Rock, 0xffffff).tint(Vec3::new(0.15, 0.13, 0.12)).flags(nw),
-            light: LightKind::Lava,
-            moss: 0.0,
-            mud: 0.0,
-            puddles: 0.0,
-            pillars: true,
-            skulls: 0.25,
-            kegs: 0.0,
-            cables: false,
-            pipes: false,
-        },
+    fn in_world(&self, c: (i32, i32)) -> bool {
+        let x = self.origin.0 + (c.0 as f32 + 0.5) * CELL;
+        let z = self.origin.1 + (c.1 as f32 + 0.5) * CELL;
+        x.abs() < REACH && z.abs() < REACH && c.0 >= 1 && c.1 >= 1 && c.0 < N as i32 - 1 && c.1 < N as i32 - 1
+    }
+
+    /// Får rommet plass: inne i rutenettet og verden, og en celle fritt
+    /// rundt (så gangene kan gå forbi).
+    fn fits(&self, p: &Placed) -> bool {
+        let (w, d) = p.size();
+        for z in p.gz - 1..p.gz + d + 1 {
+            for x in p.gx - 1..p.gx + w + 1 {
+                let inside = x >= p.gx && x < p.gx + w && z >= p.gz && z < p.gz + d;
+                if inside && !self.in_world((x, z)) {
+                    return false;
+                }
+                let o = self.owner((x, z));
+                if o >= 0 || (inside && o != -1) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn add(&mut self, p: Placed) -> usize {
+        let k = self.rooms.len();
+        let (w, d) = p.size();
+        for z in p.gz..p.gz + d {
+            for x in p.gx..p.gx + w {
+                if let Some(i) = Floor::idx(x, z) {
+                    self.owner[i] = k as i32;
+                }
+            }
+        }
+        self.rooms.push(p);
+        k
+    }
+
+    fn remove_last(&mut self) {
+        let k = self.rooms.len() as i32 - 1;
+        for o in self.owner.iter_mut() {
+            if *o == k {
+                *o = -1;
+            }
+        }
+        self.rooms.pop();
+    }
+
+    /// Ledige dører i et rom: (dørnummer, cella utenfor, retningen ut).
+    fn free_doors(&self, r: usize) -> Vec<(usize, (i32, i32), (i32, i32))> {
+        self.rooms[r]
+            .doors()
+            .into_iter()
+            .enumerate()
+            .filter(|(n, _)| !self.used.contains(&(r, *n)))
+            .map(|(n, (c, d))| (n, (c.0 + d.0, c.1 + d.1), d))
+            .filter(|(_, out, _)| self.owner(*out) == -1 || self.owner(*out) == -2)
+            .collect()
+    }
+
+    /// Den korteste gangen mellom to celler utenfor rom (A*): rette strekk
+    /// er billigere enn svinger, og gamle ganger kan gjenbrukes.
+    fn route(&self, a: (i32, i32), b: (i32, i32), max: usize) -> Option<Vec<(i32, i32)>> {
+        if !self.in_world(a) || !self.in_world(b) || !matches!(self.owner(a), -1 | -2) || !matches!(self.owner(b), -1 | -2) {
+            return None;
+        }
+        // Tilstand: celle og retningen vi kom fra (for svingene).
+        let dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        let key = |c: (i32, i32), d: usize| (c.1 as usize * N + c.0 as usize) * 5 + d;
+        let mut best = vec![u32::MAX; N * N * 5];
+        let mut prev = vec![usize::MAX; N * N * 5];
+        let mut heap = BinaryHeap::new();
+        let h = |c: (i32, i32)| ((c.0 - b.0).abs() + (c.1 - b.1).abs()) as u32 * 10;
+        best[key(a, 4)] = 0;
+        heap.push(std::cmp::Reverse((h(a), 0u32, a, 4usize)));
+        while let Some(std::cmp::Reverse((_, g, c, from))) = heap.pop() {
+            if g > best[key(c, from)] {
+                continue;
+            }
+            if c == b {
+                let mut path = vec![c];
+                let mut k = key(c, from);
+                while prev[k] != usize::MAX {
+                    k = prev[k];
+                    let cell = k / 5;
+                    path.push(((cell % N) as i32, (cell / N) as i32));
+                }
+                path.reverse();
+                return (path.len() <= max).then_some(path);
+            }
+            for (di, (dx, dz)) in dirs.iter().enumerate() {
+                let n = (c.0 + dx, c.1 + dz);
+                if !self.in_world(n) || !matches!(self.owner(n), -1 | -2) {
+                    continue;
+                }
+                let step = if self.owner(n) == -2 { 7 } else { 10 } + if from != 4 && from != di { 6 } else { 0 };
+                let ng = g + step;
+                if ng < best[key(n, di)] {
+                    best[key(n, di)] = ng;
+                    prev[key(n, di)] = key(c, from);
+                    heap.push(std::cmp::Reverse((ng + h(n), ng, n, di)));
+                }
+            }
+        }
+        None
+    }
+
+    /// Legg gangen og bind dørene til den.
+    fn connect(&mut self, ra: usize, da: usize, rb: usize, db: usize, path: &[(i32, i32)]) {
+        for c in path {
+            if let Some(i) = Floor::idx(c.0, c.1) {
+                self.owner[i] = -2;
+            }
+        }
+        for w in path.windows(2) {
+            self.links.insert(edge(w[0], w[1]));
+        }
+        for (r, d) in [(ra, da), (rb, db)] {
+            let (c, dir) = self.rooms[r].doors()[d];
+            self.links.insert(edge(c, (c.0 + dir.0, c.1 + dir.1)));
+            self.used.insert((r, d));
+        }
+    }
+
+    /// Prøv å binde to rom sammen med en gang (de nærmeste ledige dørene først).
+    fn join(&mut self, ra: usize, rb: usize, max: usize) -> bool {
+        let mut pairs = vec![];
+        for (na, oa, _) in self.free_doors(ra) {
+            for (nb, ob, _) in self.free_doors(rb) {
+                pairs.push(((oa.0 - ob.0).abs() + (oa.1 - ob.1).abs(), na, oa, nb, ob));
+            }
+        }
+        pairs.sort();
+        for (_, na, oa, nb, ob) in pairs.into_iter().take(6) {
+            if let Some(path) = self.route(oa, ob, max) {
+                self.connect(ra, na, rb, nb, &path);
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Heng et nytt rom på en ledig dør i rom `from`, med en gang på 1–4
+    /// celler imellom. `forward` er retningen etasjen vokser (x).
+    fn grow(&mut self, rng: &mut Rng, from: usize, name: &'static str, rot: Option<i32>, forward: i32) -> Option<usize> {
+        let mut doors = self.free_doors(from);
+        // Fram foretrekkes, så til sidene; aldri bakover.
+        doors.retain(|(_, _, d)| d.0 != -forward);
+        doors.sort_by_key(|(_, _, d)| if d.0 == forward { 0 } else { 1 });
+        for (_, out, d) in doors {
+            for _ in 0..24 {
+                let r = rot.unwrap_or((rng.next() * 4.0) as i32 % 4);
+                let mut cand = Placed { name, gx: 0, gz: 0, rot: r };
+                let theirs = cand.doors();
+                // En dør i det nye rommet som vender mot oss.
+                let facing: Vec<_> = theirs.iter().enumerate().filter(|(_, (_, td))| *td == (-d.0, -d.1)).collect();
+                if facing.is_empty() {
+                    continue;
+                }
+                let (_, (tc, td)) = facing[(rng.next() * facing.len() as f32) as usize % facing.len()];
+                let gap = 1 + (rng.next() * 3.0) as i32;
+                let side = if rng.chance(0.5) { 0 } else { (rng.next() * 5.0) as i32 - 2 };
+                // Cella utenfor deres dør ligger `gap` celler fram fra vår, litt til siden.
+                let (px, pz) = (-d.1, d.0);
+                let their_out = (out.0 + d.0 * gap + px * side, out.1 + d.1 * gap + pz * side);
+                let their_door = (their_out.0 - td.0, their_out.1 - td.1);
+                cand.gx = their_door.0 - tc.0;
+                cand.gz = their_door.1 - tc.1;
+                if !self.fits(&cand) {
+                    continue;
+                }
+                let k = self.add(cand);
+                let tn = self.rooms[k].doors().iter().position(|x| x.0 == their_door && x.1 == *td).unwrap_or(0);
+                let dn = self.rooms[from].doors().iter().position(|(c, dd)| (c.0 + dd.0, c.1 + dd.1) == out && *dd == d).unwrap_or(0);
+                if let Some(path) = self.route(out, their_out, 12) {
+                    self.connect(from, dn, k, tn, &path);
+                    return Some(k);
+                }
+                self.remove_last();
+            }
+        }
+        None
     }
 }
 
@@ -406,130 +663,29 @@ fn theme(k: usize) -> Theme {
 /// bygges på nytt; i testene er den fast.
 pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
     let mut rng = Rng(seed | 1);
-    // Egen tilfeldighet til fiendenes startsteder, så kartet ikke endrer
-    // seg når reglene for dem gjør det.
-    let mut srng = Rng((seed | 1) ^ 0x5bd1_e995_1234_5678);
     let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None };
-    let mut origin = (anchor.x - (START.0 as f32 + 0.5) * CELL, anchor.y - (START.1 as f32 + 0.5) * CELL);
     let mut y = DEPTH;
+    // Tårnet fra etasjen over: cella i verden (midten) og dreiningen.
+    let mut tower: Option<(Vec2, i32)> = None;
+    let mut forward = 1;
     for k in 0..FLOORS {
         let last = k == FLOORS - 1;
-        let (floor, rooms) = carve(origin, y, k, &mut rng, last);
-        // Startstedet, fiendene og elitefienden i utgangsrommet.
-        if k == 0 {
-            d.start = floor.center(START.0 as i32, START.1 as i32);
-        }
-        // Tolv fiender per etasje: de fire første i nærheten av startrommet
-        // (5–11 celler unna), resten hvor som helst.
-        let mut count = 0;
-        let mut tries = 0;
-        while count < 12 && tries < 2000 {
-            tries += 1;
-            let (ix, iz) = ((srng.next() * N as f32) as i32, (srng.next() * N as f32) as i32);
-            let far = (ix - floor.start.0).abs() + (iz - floor.start.1).abs();
-            let ok = if count < 2 {
-                (3..=5).contains(&far)
-            } else if count < 5 {
-                (5..=11).contains(&far)
-            } else {
-                far >= 6
-            };
-            if matches!(floor.cell(ix, iz), Cell::Floor(_)) && ok && floor.exit != Some((ix, iz)) {
-                d.spawns.push(floor.center(ix, iz));
-                count += 1;
-            }
-        }
-        if let Some(exit_room) = rooms.last() {
-            let c = exit_room.center();
-            if last {
-                d.boss = Some(floor.center(c.0, c.1));
-            } else {
-                d.elites.push(floor.center(c.0, c.1));
-            }
-        }
-        if let Some(exit) = floor.exit {
-            // Porten står i alkovens munning, mot rommet.
-            let a = floor.center(exit.0, exit.1);
-            let dir = floor.dir as f32;
-            if !last {
-                // Gitteret står i yz-planet (dreid 90°), med stengene langs z.
-                d.gates.push((Vec3::new(a.x - dir * CELL * 0.5, floor.y, a.z), std::f32::consts::FRAC_PI_2));
-            } else {
-                for i in 0..12 {
-                    let ang = i as f32 * 0.52;
-                    d.loot.push(a + Vec3::new(ang.cos() * 1.2, 0.0, ang.sin() * 1.2));
-                }
-            }
-            // Neste etasje begynner der trappa ender, og går motsatt vei.
-            let next_start_x = if floor.dir > 0 { (N - 1 - START.0) as f32 } else { START.0 as f32 };
-            origin = (a.x + dir * (SHAFT as f32 + 2.0) * CELL - (next_start_x + 0.5) * CELL, a.z - (START.1 as f32 + 0.5) * CELL);
-        }
-        mesh(b, &floor, &mut rng, !last, &mut d.chests);
-        let s = floor.center(floor.start.0, floor.start.1);
-        let e = floor.exit.map(|e| floor.center(e.0, e.1)).unwrap_or(Vec3::ZERO);
-        log::info!("Etasje {k} ({}): start ({:.0}, {:.0}, {:.0}), utgang ({:.0}, {:.0}, {:.0})", EPOCHS[k], s.x, s.y, s.z, e.x, e.y, e.z);
-        if log::log_enabled!(log::Level::Debug) {
-            // Kartet: . gang, # rom, ^ hevet rom, / trapp, S start, E utgang.
-            let mut map = String::new();
-            for iz in 0..N as i32 {
-                for ix in 0..N as i32 {
-                    let ch = if (ix, iz) == floor.start {
-                        'S'
-                    } else if floor.exit == Some((ix, iz)) {
-                        'E'
-                    } else {
-                        match floor.cell(ix, iz) {
-                            Cell::Rock => ' ',
-                            Cell::Stair(..) => '/',
-                            Cell::Floor(1) => '^',
-                            Cell::Floor(_) => {
-                                if floor.kind[iz as usize * N + ix as usize] == 1 {
-                                    '#'
-                                } else {
-                                    '.'
-                                }
-                            }
-                        }
-                    };
-                    map.push(ch);
-                }
-                map.push('\n');
-            }
-            log::debug!("Etasje {k}:\n{map}");
-        }
-        d.floors.push(floor);
+        let floor = plan_floor(b, &mut d, &mut rng, k, y, anchor, tower, forward, last);
+        tower = floor.1;
+        d.floors.push(floor.0);
+        forward = -forward;
         y -= FLOOR_DROP;
     }
-    // Det du kan bruke: portene, kistene, og døra opp i startrommet.
+    // Det du kan bruke: portene og kistene.
     for (i, (p, yaw)) in d.gates.iter().enumerate() {
         let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(*yaw), *p);
         b.target(Use::Gate(i), pose, Vec3::new(0.0, GATE_H * 0.5, 0.0), Vec3::new(GATE_W * 0.5, GATE_H * 0.5, 0.12));
-        gate_frame(b, pose);
     }
     for (i, (p, yaw, _)) in d.chests.iter().enumerate() {
         b.target(Use::Chest(i), Affine3A::from_rotation_translation(Quat::from_rotation_y(*yaw), *p), Vec3::new(0.0, 0.3, 0.0), Vec3::new(0.48, 0.33, 0.33));
     }
-    // Trappa opp ligger inntil nordveggen i startrommet, med døra øverst.
-    let door = d.start + Vec3::new(0.0, 0.0, -(1.5 * CELL - 0.35));
-    b.place("crypt_stair", Affine3A::from_translation(door));
-    b.target(Use::Ascend, Affine3A::from_translation(door), Vec3::new(0.0, 1.2, 0.0), Vec3::new(0.75, 1.2, 0.2));
-    b.solid_box(door + Vec3::new(0.0, 1.5, -0.1), Vec3::new(1.8, 3.0, 0.3), 0.0);
-    log::info!("Kjelleren: {} etasjer, {} fiender, {} porter", d.floors.len(), d.spawns.len(), d.gates.len());
+    log::info!("Kjelleren: {} etasjer, {} fiender, {} porter, {} kister", d.floors.len(), d.spawns.len(), d.gates.len(), d.chests.len());
     d
-}
-
-/// Portgitteret: så bredt og høyt, og hvor langt det sveives opp.
-pub const GATE_W: f32 = 3.9;
-pub const GATE_H: f32 = 2.9;
-pub const GATE_LIFT: f32 = 2.7;
-
-/// Rammen rundt portgitteret: to stolper og en overligger.
-fn gate_frame(b: &mut Builder, rest: Affine3A) {
-    let rust = IRON.tint(Vec3::new(0.32, 0.2, 0.13)).flags(flag::NO_WEATHER);
-    for sx in [-1.0, 1.0] {
-        b.mesh.cuboid(&(rest * Affine3A::from_translation(Vec3::new(sx * GATE_W * 0.5, GATE_H * 0.5 + 0.2, 0.0))), Vec3::new(0.2, GATE_H + 0.4, 0.3), &rust);
-    }
-    b.mesh.cuboid(&(rest * Affine3A::from_translation(Vec3::new(0.0, GATE_H + 0.35, 0.0))), Vec3::new(GATE_W + 0.2, 0.3, 0.3), &rust);
 }
 
 /// Plass til portgitrene, som spillet poserer etter hvor åpne de er.
@@ -537,603 +693,323 @@ pub fn reserve(d: &Dungeon) -> Vec<(&'static str, usize)> {
     vec![(PORTCULLIS, d.gates.len())]
 }
 
-/// Rom, ganger, nivåer, trapper og avsatser for én etasje.
-fn carve(origin: (f32, f32), y: f32, k: usize, rng: &mut Rng, last: bool) -> (Floor, Vec<Room>) {
+/// Planlegg og bygg én etasje. Gir etasjen og tårnet ned (midten i verden
+/// og dreiningen) om det er et.
+#[allow(clippy::too_many_arguments)]
+fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32, anchor: Vec2, from_above: Option<(Vec2, i32)>, forward: i32, last: bool) -> (Floor, Option<(Vec2, i32)>) {
     let n = N as i32;
-    let dir: i32 = if k % 2 == 0 { 1 } else { -1 };
-    let mut cells = vec![Cell::Rock; N * N];
-    let mut kind = vec![0u8; N * N];
-    let idx = |ix: i32, iz: i32| iz as usize * N + ix as usize;
-    // BSP: del arealet til bladene er små nok, ett rom i hvert blad.
-    let mut rooms: Vec<Room> = vec![];
-    let mut stack = vec![(1, 1, n - 2, n - 2, 0)];
-    while let Some((x0, z0, x1, z1, depth)) = stack.pop() {
-        let (w, h) = (x1 - x0 + 1, z1 - z0 + 1);
-        let split = (w > 10 || h > 10 || (w > 7 && h > 7 && rng.chance(0.65))) && depth < 7;
-        if split {
-            let vertical = if w > h * 5 / 4 { true } else if h > w * 5 / 4 { false } else { rng.chance(0.5) };
-            if vertical && w >= 8 {
-                let cut = x0 + 4 + ((w - 8) as f32 * rng.next()) as i32;
-                stack.push((x0, z0, cut - 1, z1, depth + 1));
-                stack.push((cut, z0, x1, z1, depth + 1));
-                continue;
-            } else if !vertical && h >= 8 {
-                let cut = z0 + 4 + ((h - 8) as f32 * rng.next()) as i32;
-                stack.push((x0, z0, x1, cut - 1, depth + 1));
-                stack.push((x0, cut, x1, z1, depth + 1));
-                continue;
-            }
-        }
-        // Et rom i bladet, med minst én celle marg.
-        let rw = 3.max(((w - 2) as f32 * rng.range(0.55, 0.95)) as i32).min(w - 2).min(7);
-        let rh = 3.max(((h - 2) as f32 * rng.range(0.55, 0.95)) as i32).min(h - 2).min(7);
-        if rw < 3 || rh < 3 {
-            continue;
-        }
-        let rx = x0 + 1 + ((w - 2 - rw) as f32 * rng.next()) as i32;
-        let rz = z0 + 1 + ((h - 2 - rh) as f32 * rng.next()) as i32;
-        rooms.push(Room { x0: rx, z0: rz, x1: rx + rw - 1, z1: rz + rh - 1, level: 0 });
-    }
-    // Startrommet: 3 × 3 rundt START, og rom som overlapper det fjernes.
-    let s = (if dir > 0 { START.0 as i32 } else { n - 1 - START.0 as i32 }, START.1 as i32);
-    let start_room = Room { x0: s.0 - 1, z0: s.1 - 1, x1: s.0 + 1, z1: s.1 + 1, level: 0 };
-    rooms.retain(|r| r.x1 < start_room.x0 - 1 || r.x0 > start_room.x1 + 1 || r.z1 < start_room.z0 - 1 || r.z0 > start_room.z1 + 1);
-    rooms.insert(0, start_room);
-    // Utgangsrommet: det ytterste i utgangsretningen (ikke startrommet),
-    // på nivå 0, sist i lista.
-    let exit_i = (1..rooms.len()).max_by_key(|i| (if dir > 0 { rooms[*i].x1 } else { -rooms[*i].x0 }) * 64 + (rooms[*i].z1 - rooms[*i].z0)).unwrap_or(0);
-    let exit_room = rooms.remove(exit_i);
-    rooms.push(exit_room);
-    let exit_room = *rooms.last().unwrap();
-    let alcove = (if dir > 0 { exit_room.x1 + 1 } else { exit_room.x0 - 1 }, exit_room.center().1);
-    // Trappesjakten videre i utgangsretningen er reservert.
-    let reserved: HashSet<(i32, i32)> = (1..=SHAFT + 1).map(|i| (alcove.0 + dir * i, alcove.1)).collect();
-    for r in &rooms {
-        for iz in r.z0..=r.z1 {
-            for ix in r.x0..=r.x1 {
-                cells[idx(ix, iz)] = Cell::Floor(0);
-                kind[idx(ix, iz)] = 1;
-            }
-        }
-    }
-    cells[idx(alcove.0, alcove.1)] = Cell::Floor(0);
-    kind[idx(alcove.0, alcove.1)] = 1;
-    // Gangene: hvert rom til det neste i bladrekkefølgen, pluss noen løkker.
-    let mut links: Vec<(usize, usize)> = (0..rooms.len().saturating_sub(1)).map(|i| (i, i + 1)).collect();
-    for _ in 0..3 {
-        if rooms.len() > 3 {
-            let a = (rng.next() * rooms.len() as f32) as usize % rooms.len();
-            let b = (rng.next() * rooms.len() as f32) as usize % rooms.len();
-            if a != b {
-                links.push((a, b));
-            }
-        }
-    }
-    let carve_line = |cells: &mut Vec<Cell>, kind: &mut Vec<u8>, from: (i32, i32), to: (i32, i32), x_first: bool| -> bool {
-        let mut path = vec![];
-        let (mut x, mut z) = from;
-        let step = |v: &mut i32, goal: i32| {
-            if *v < goal {
-                *v += 1
-            } else if *v > goal {
-                *v -= 1
-            }
-        };
-        for leg in 0..2 {
-            let horizontal = (leg == 0) == x_first;
-            loop {
-                if horizontal {
-                    if x == to.0 {
-                        break;
-                    }
-                    step(&mut x, to.0);
-                } else {
-                    if z == to.1 {
-                        break;
-                    }
-                    step(&mut z, to.1);
-                }
-                path.push((x, z));
-            }
-        }
-        if path.iter().any(|c| reserved.contains(c) || c.0 < 1 || c.1 < 1 || c.0 > n - 2 || c.1 > n - 2) {
-            return false;
-        }
-        for (x, z) in path {
-            let i = idx(x, z);
-            if cells[i] == Cell::Rock {
-                cells[i] = Cell::Floor(0);
-                kind[i] = 2;
-            }
-        }
-        true
+    // Startrommet ved kanten bakerst, midt på i z.
+    let first = match from_above {
+        None => Placed { name: "dng_start", gx: 0, gz: 0, rot: 0 },
+        Some((_, rot)) => Placed { name: "dng_landing", gx: 0, gz: 0, rot },
     };
-    for (a, b) in links {
-        let (ca, cb) = (rooms[a].center(), rooms[b].center());
-        let first = rng.chance(0.5);
-        if !carve_line(&mut cells, &mut kind, ca, cb, first) {
-            carve_line(&mut cells, &mut kind, ca, cb, !first);
+    let (w0, d0) = first.size();
+    let first = Placed { gx: if forward > 0 { 2 } else { n - 2 - w0 }, gz: n / 2 - d0 / 2, ..first };
+    // Opphavet: startstedet under krypta, eller tårncella under tårnet over.
+    let origin = match from_above {
+        None => {
+            let s = first.spec().spots.start.unwrap_or([6.0, 0.0, 6.0, 0.0]);
+            let p = first.turn(Vec2::new(s[0], s[2]));
+            (anchor.x - first.gx as f32 * CELL - p.x, anchor.y - first.gz as f32 * CELL - p.y)
         }
-    }
-    // Hevede rom (ikke start, ikke utgang), og trappene opp til dem: en
-    // gangcelle som ligger inntil rommet og fortsetter bakover.
-    let last_room = rooms.len() - 1;
-    for (i, r) in rooms.iter_mut().enumerate() {
-        if i != 0 && i != last_room && rng.chance(0.4) {
-            r.level = 1;
+        Some((at, _)) => {
+            let t = first.spec().spots.tower.unwrap_or([1, 3]);
+            let c = first.cell(t[0], t[1]);
+            (at.x - (c.0 as f32 + 0.5) * CELL, at.y - (c.1 as f32 + 0.5) * CELL)
         }
-    }
-    let dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-    for r in rooms.iter_mut() {
-        if r.level == 0 {
-            continue;
-        }
-        let mut stairs = 0;
-        for iz in r.z0..=r.z1 {
-            for ix in r.x0..=r.x1 {
-                for (dx, dz) in dirs {
-                    let c = (ix + dx, iz + dz);
-                    if r.contains(c) || Floor::idx(c.0, c.1).is_none() || kind[idx(c.0, c.1)] != 2 || cells[idx(c.0, c.1)] != Cell::Floor(0) {
-                        continue;
-                    }
-                    // Fortsetter gangen bakover, og er sidene lukket?
-                    let back = (c.0 + dx, c.1 + dz);
-                    let sides = [(c.0 + dz, c.1 + dx), (c.0 - dz, c.1 - dx)];
-                    let back_open = Floor::idx(back.0, back.1).is_some_and(|i| cells[i] != Cell::Rock);
-                    let sides_closed = sides.iter().all(|s| Floor::idx(s.0, s.1).is_none_or(|i| cells[i] == Cell::Rock || kind[i] == 1 && !r.contains(*s)));
-                    if back_open && sides_closed {
-                        cells[idx(c.0, c.1)] = Cell::Stair(-dx, -dz);
-                        stairs += 1;
-                    }
-                }
-            }
-        }
-        if stairs == 0 {
-            r.level = 0;
-        }
-    }
-    for r in &rooms {
-        for iz in r.z0..=r.z1 {
-            for ix in r.x0..=r.x1 {
-                cells[idx(ix, iz)] = Cell::Floor(r.level);
-            }
-        }
-    }
-    // Avsatser: der et hevet rom ligger inntil en lav gang uten trapp,
-    // åpnes veggen over avsatsen noen steder.
-    let mut ledges = HashSet::new();
-    for r in &rooms {
-        if r.level == 0 {
-            continue;
-        }
-        for iz in r.z0..=r.z1 {
-            for ix in r.x0..=r.x1 {
-                for (dx, dz) in dirs {
-                    let c = (ix + dx, iz + dz);
-                    if !r.contains(c) && matches!(cells.get(idx(c.0, c.1).min(N * N - 1)), Some(Cell::Floor(0))) && Floor::idx(c.0, c.1).is_some() && rng.chance(0.3) {
-                        ledges.insert(((ix, iz), c));
-                    }
-                }
-            }
-        }
-    }
-    // Takhøyder: rom høyere enn ganger.
-    let ceil: Vec<f32> = kind.iter().map(|k| if *k == 1 { ROOM_H } else { WALL_H }).collect();
-    let mut openings = HashSet::new();
-    if !last {
-        openings.insert((alcove, (dir, 0)));
-    }
-    // Startrommets vegg mot trappa fra etasjen over åpnes (trappa kommer
-    // fra den sida utgangen vår ligger på).
-    if k > 0 {
-        openings.insert(((s.0 + dir, s.1), (dir, 0)));
-    }
-    let floor = Floor { cells, kind, ceil, origin, y, theme: k, ledges, openings, start: s, exit: Some(alcove), dir };
-    (floor, rooms)
-}
+    };
+    // Rutenettet flyttes så startrommet havner på plass (hele celler).
+    let mut plan = Plan { rooms: vec![], owner: vec![-1; N * N], links: HashSet::new(), used: HashSet::new(), origin };
+    plan.add(first);
 
-/// Gulv, tak, vegger, trapper, kollidere, lys og pynt for én etasje, og
-/// trappesjakten ned til neste.
-fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool, chests: &mut Vec<(Vec3, f32, usize)>) {
-    let th = theme(f.theme);
-    let open = f.cells.iter().filter(|c| **c != Cell::Rock).count();
-    log::debug!("Etasje {}: {open} åpne celler, hjørne ({:.0}, {:.0}), gulv y {:.0}, {} trekanter i bymeshen før", f.theme, f.origin.0, f.origin.1, f.y, b.mesh.indices.len() / 3);
-    let (x0, z0) = f.origin;
-    let n = N as i32;
-    let dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-    let mut lights: Vec<(Vec3, Vec3)> = vec![];
-    let mut wall_count = 0;
+    // Hovedveien: 5–6 rom, så portrommet (eller rotunden nederst).
+    let mut uses: HashMap<&str, usize> = HashMap::new();
+    let target = 5 + (rng.next() * 2.0) as usize;
+    let mut main = vec![0usize];
+    let mut tries = 0;
+    while main.len() < target + 1 && tries < 60 {
+        tries += 1;
+        let opts: Vec<&str> = POOL.iter().filter(|(nm, max)| uses.get(nm).copied().unwrap_or(0) < *max && plan.rooms.last().map(|r| r.name) != Some(nm)).map(|(nm, _)| *nm).collect();
+        if opts.is_empty() {
+            break;
+        }
+        let name = opts[(rng.next() * opts.len() as f32) as usize % opts.len()];
+        // Fra det siste rommet, eller et tidligere om det står fast.
+        let from = if tries % 4 == 0 && main.len() > 1 { main[main.len() - 2] } else { *main.last().unwrap() };
+        if let Some(r) = plan.grow(rng, from, name, None, forward) {
+            *uses.entry(name).or_default() += 1;
+            main.push(r);
+        }
+    }
+    // Utgangen: portrommet med tårnet fram (lokal +z mot `forward`), eller rotunden.
+    let exit_name = if last { "dng_arena" } else { "dng_gate" };
+    let exit_rot = if last { None } else { Some(if forward > 0 { 3 } else { 1 }) };
+    let mut exit = None;
+    for &from in main.iter().rev() {
+        if let Some(r) = plan.grow(rng, from, exit_name, exit_rot, forward) {
+            exit = Some(r);
+            break;
+        }
+    }
+    if exit.is_none() {
+        log::warn!("Etasje {k}: fant ikke plass til {exit_name}");
+    }
+    // Sidegrener til skattkamre, og en løkke på hovedveien.
+    for _ in 0..2 {
+        let from = main[(rng.next() * main.len() as f32) as usize % main.len()];
+        let way = if rng.chance(0.5) { forward } else { -forward };
+        plan.grow(rng, from, "dng_treasury", None, way);
+    }
+    'loop_: for i in 0..main.len() {
+        for j in (i + 2..main.len()).rev() {
+            if plan.join(main[i], main[j], 16) {
+                break 'loop_;
+            }
+        }
+    }
+
+    // Cellene i etasjen.
+    let mut cells = vec![Cell::Rock; N * N];
+    let mut hw = vec![2.0; N * N];
+    let mut ceil = vec![HALL_CEIL; N * N];
+    let mut unit = vec![-1; N * N];
+    let mut blocked = HashSet::new();
+    for (r, p) in plan.rooms.iter().enumerate() {
+        let s = p.spec();
+        for j in 0..s.d {
+            for i in 0..s.w {
+                let c = p.cell(i, j);
+                let Some(ix) = Floor::idx(c.0, c.1) else { continue };
+                unit[ix] = r as i32;
+                ceil[ix] = s.ceil[j as usize][i as usize];
+                hw[ix] = s.hw[j as usize][i as usize];
+                if let Some(h) = s.floor[j as usize][i as usize] {
+                    cells[ix] = Cell::Floor(h);
+                }
+            }
+        }
+        for &(i, j, dx, dz, lo, hi) in &s.ramps {
+            let c = p.cell(i, j);
+            let (dx, dz) = p.dir((dx, dz));
+            if let Some(ix) = Floor::idx(c.0, c.1) {
+                cells[ix] = Cell::Ramp { dx, dz, lo, hi };
+            }
+        }
+        for &(i, j, dx, dz) in &s.blocked {
+            let c = p.cell(i, j);
+            let (dx, dz) = p.dir((dx, dz));
+            blocked.insert(edge(c, (c.0 + dx, c.1 + dz)));
+        }
+    }
+    let mut halls = vec![];
+    for (i, o) in plan.owner.iter().enumerate() {
+        if *o == -2 {
+            cells[i] = Cell::Floor(0.0);
+            hw[i] = HALL_HW;
+            ceil[i] = HALL_CEIL;
+            halls.push(((i % N) as i32, (i / N) as i32));
+        }
+    }
+    let start_room = &plan.rooms[0];
+    let start_spot = start_room.spec().spots.start.unwrap_or([6.0, 0.0, 6.0, 0.0]);
+    let sp = start_room.turn(Vec2::new(start_spot[0], start_spot[2]));
+    let start_world = Vec3::new(origin.0 + start_room.gx as f32 * CELL + sp.x, y, origin.1 + start_room.gz as f32 * CELL + sp.y);
+    let mut floor = Floor { cells, hw, ceil, unit, links: plan.links.clone(), blocked, origin, y, theme: k, start: (0, 0), exit: None };
+    floor.start = floor.cell_of(start_world);
+    if k == 0 {
+        d.start = start_world;
+    }
+
+    // Modellene, kolliderne, lysene og stedene i rommene.
+    let mut tower_down = None;
+    let mut candidates: Vec<Vec3> = vec![];
+    let mut chest_spots: Vec<(Vec3, f32)> = vec![];
+    for (r, p) in plan.rooms.iter().enumerate() {
+        let t = p.affine(origin, y);
+        put(b, p.name, t);
+        let (w, dd) = p.size();
+        log::debug!("  {} ved ({:.1}, {:.1}, {:.1})", p.name, origin.0 + (p.gx as f32 + w as f32 * 0.5) * CELL, y, origin.1 + (p.gz as f32 + dd as f32 * 0.5) * CELL);
+        let s = p.spec();
+        let at = |q: [f32; 3]| t.transform_point3(Vec3::from(q));
+        for q in &s.spots.spawn {
+            if r != 0 {
+                candidates.push(at(*q));
+            }
+        }
+        for q in &s.spots.chest {
+            chest_spots.push((at([q[0], q[1], q[2]]), q[3] + p.yaw()));
+        }
+        if let Some(q) = s.spots.elite {
+            d.elites.push(at(q));
+        }
+        if let Some(q) = s.spots.boss {
+            d.boss = Some(at(q));
+        }
+        for q in &s.spots.loot {
+            d.loot.push(at(*q));
+        }
+        if let Some(q) = s.spots.gate {
+            d.gates.push((at([q[0], q[1], q[2]]), q[3] + p.yaw()));
+        }
+        if let (Some(q), true) = (s.spots.ascend, k == 0) {
+            let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(q[3] + p.yaw()), at([q[0], q[1], q[2]]));
+            b.place("crypt_stair", pose);
+            b.target(Use::Ascend, pose, Vec3::new(0.0, 1.2, 0.0), Vec3::new(0.75, 1.2, 0.2));
+            b.solid_box(pose.transform_point3(Vec3::new(0.0, 1.8, -0.15)), Vec3::new(3.0, 3.6, 0.3), q[3] + p.yaw());
+        }
+        if let (Some(c), true) = (s.spots.tower, p.name == "dng_gate") {
+            // Vindeltrappa står midt i tårncella, dreid som rommet.
+            let cell = p.cell(c[0], c[1]);
+            let mid = Vec3::new(origin.0 + (cell.0 as f32 + 0.5) * CELL, y, origin.1 + (cell.1 as f32 + 0.5) * CELL);
+            put(b, "dng_spiral", Affine3A::from_rotation_translation(Quat::from_rotation_y(p.yaw()), mid));
+            tower_down = Some((Vec2::new(mid.x, mid.z), p.rot));
+            floor.exit = Some(cell);
+        }
+        // Dørene ingen gang går til, mures igjen.
+        for (n, (c, dir)) in p.doors().into_iter().enumerate() {
+            if plan.used.contains(&(r, n)) {
+                continue;
+            }
+            let mid = floor.center(c.0, c.1);
+            let at = Vec3::new(mid.x + dir.0 as f32 * CELL * 0.5, y + floor_height(&floor, c), mid.z + dir.1 as f32 * CELL * 0.5);
+            put(b, "dng_seal", Affine3A::from_rotation_translation(Quat::from_rotation_y((-dir.0 as f32).atan2(-dir.1 as f32)), at));
+        }
+    }
+    // Gangene: modulen etter hvilke naboer cella er bundet til.
+    for c in &halls {
+        let mut arms = vec![];
+        for (dx, dz) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
+            if floor.links.contains(&edge(*c, (c.0 + dx, c.1 + dz))) {
+                arms.push((dx, dz));
+            }
+        }
+        let (name, rot) = hall_module(&arms, rng);
+        let p = Placed { name, gx: c.0, gz: c.1, rot };
+        put(b, name, p.affine(origin, y));
+        if rng.chance(0.12) {
+            candidates.push(floor.center(c.0, c.1));
+        }
+    }
+    // Gulvene til rutinen mot svevende modeller (kistene står på dem).
     for iz in 0..n {
         for ix in 0..n {
-            let cell = f.cell(ix, iz);
-            if cell == Cell::Rock {
-                continue;
+            if let Cell::Floor(h) = floor.cell(ix, iz) {
+                let c = floor.center(ix, iz);
+                b.floor(Vec3::new(c.x, y + h, c.z), Vec2::splat(CELL * 0.5), 0.0, y + h);
             }
-            let (cx, cz) = (x0 + ix as f32 * CELL, z0 + iz as f32 * CELL);
-            let level = f.level(ix, iz);
-            let fy = f.y + level as f32 * LEDGE;
-            let ceil_y = f.ceil_at(ix, iz);
-            let m = &mut b.mesh;
-            // Gulv eller trapp, og tak.
-            match cell {
-                Cell::Stair(dx, dz) => {
-                    // Åtte trinn som stiger mot (dx, dz).
-                    let steps = 8;
-                    for s in 0..steps {
-                        let t0 = s as f32 / steps as f32;
-                        let t1 = (s + 1) as f32 / steps as f32;
-                        let y1 = f.y + t1 * LEDGE;
-                        let y0 = f.y + t0 * LEDGE;
-                        // Hjørnene langs trappas akse.
-                        let at = |t: f32, side: f32| -> Vec3 {
-                            let (ux, uz) = (dx as f32, dz as f32);
-                            let (vx, vz) = (-uz, ux);
-                            let base = Vec3::new(cx + CELL * 0.5, 0.0, cz + CELL * 0.5);
-                            base + Vec3::new(ux, 0.0, uz) * (t - 0.5) * CELL + Vec3::new(vx, 0.0, vz) * side * CELL * 0.5
-                        };
-                        // Trinnflata (på y1) og opptrinnet (fra y0 til y1).
-                        let a = at(t0, -1.0);
-                        let bq = at(t0, 1.0);
-                        let c = at(t1, 1.0);
-                        let d = at(t1, -1.0);
-                        m.quad_n([Vec3::new(a.x, y1, a.z), Vec3::new(bq.x, y1, bq.z), Vec3::new(c.x, y1, c.z), Vec3::new(d.x, y1, d.z)], [Vec3::Y; 4], &th.floor, 0.9);
-                        let riser_n = Vec3::new(-dx as f32, 0.0, -dz as f32);
-                        m.quad_n([Vec3::new(a.x, y0, a.z), Vec3::new(a.x, y1, a.z), Vec3::new(bq.x, y1, bq.z), Vec3::new(bq.x, y0, bq.z)], [riser_n; 4], &th.wall, 0.8);
-                        // Flipp om normalen peker feil vei i forhold til vindingen.
-                        let _ = riser_n;
-                    }
-                    // Kollideren: en kile.
-                    let (ux, uz) = (dx as f32, dz as f32);
-                    let (vx, vz) = (-uz, ux);
-                    let base = Vec3::new(cx + CELL * 0.5, f.y, cz + CELL * 0.5);
-                    let u = Vec3::new(ux, 0.0, uz) * CELL * 0.5;
-                    let v = Vec3::new(vx, 0.0, vz) * CELL * 0.5;
-                    let points = vec![
-                        base - u - v - Vec3::Y * 0.5,
-                        base - u + v - Vec3::Y * 0.5,
-                        base + u - v - Vec3::Y * 0.5,
-                        base + u + v - Vec3::Y * 0.5,
-                        base - u - v,
-                        base - u + v,
-                        base + u - v + Vec3::Y * LEDGE,
-                        base + u + v + Vec3::Y * LEDGE,
-                    ];
-                    b.colliders.push(Shape::Hull { points });
-                }
-                _ => {
-                    m.quad_n([Vec3::new(cx, fy, cz + CELL), Vec3::new(cx + CELL, fy, cz + CELL), Vec3::new(cx + CELL, fy, cz), Vec3::new(cx, fy, cz)], [Vec3::Y; 4], &th.floor, 1.0);
-                    b.colliders.push(Shape::Cuboid { center: Vec3::new(cx + CELL * 0.5, fy - 0.25, cz + CELL * 0.5), size: Vec3::new(CELL, 0.5, CELL), yaw: 0.0 });
-                    // Gulvet registreres, så rutinen mot svevende modeller
-                    // måler tønnene og kistene mot det, ikke mot terrenget.
-                    b.floor(Vec3::new(cx + CELL * 0.5, fy, cz + CELL * 0.5), glam::Vec2::splat(CELL * 0.5), 0.0, fy);
-                }
-            }
-            let m = &mut b.mesh;
-            m.quad_n([Vec3::new(cx, ceil_y, cz), Vec3::new(cx + CELL, ceil_y, cz), Vec3::new(cx + CELL, ceil_y, cz + CELL), Vec3::new(cx, ceil_y, cz + CELL)], [-Vec3::Y; 4], &th.ceil, 1.0);
-            // Veggene: mot fjell, mot celler på et annet nivå (hele veggen,
-            // eller en lav vegg på den lave sida av en avsats), og mot
-            // trappers sider.
-            for (dx, dz) in dirs {
-                let nb = (ix + dx, iz + dz);
-                let other = f.cell(nb.0, nb.1);
-                let opening = f.openings.contains(&((ix, iz), (dx, dz)));
-                let quad = |y_lo: f32, y_hi: f32| -> [Vec3; 4] {
-                    match (dx, dz) {
-                        (-1, 0) => [Vec3::new(cx, y_lo, cz), Vec3::new(cx, y_lo, cz + CELL), Vec3::new(cx, y_hi, cz + CELL), Vec3::new(cx, y_hi, cz)],
-                        (1, 0) => [Vec3::new(cx + CELL, y_lo, cz + CELL), Vec3::new(cx + CELL, y_lo, cz), Vec3::new(cx + CELL, y_hi, cz), Vec3::new(cx + CELL, y_hi, cz + CELL)],
-                        (0, -1) => [Vec3::new(cx + CELL, y_lo, cz), Vec3::new(cx, y_lo, cz), Vec3::new(cx, y_hi, cz), Vec3::new(cx + CELL, y_hi, cz)],
-                        _ => [Vec3::new(cx, y_lo, cz + CELL), Vec3::new(cx + CELL, y_lo, cz + CELL), Vec3::new(cx + CELL, y_hi, cz + CELL), Vec3::new(cx, y_hi, cz + CELL)],
-                    }
-                };
-                let normal = Vec3::new(-dx as f32, 0.0, -dz as f32);
-                let wall_center = |y_lo: f32, y_hi: f32| -> (Vec3, Vec3) {
-                    let q = quad(y_lo, y_hi);
-                    let center = (q[0] + q[2]) * 0.5 - normal * 0.1;
-                    let size = if dx != 0 { Vec3::new(0.2, y_hi - y_lo, CELL) } else { Vec3::new(CELL, y_hi - y_lo, 0.2) };
-                    (center, size)
-                };
-                let full = other == Cell::Rock && !opening || !f.passable((ix, iz), nb) && !f.ledges.contains(&((ix, iz), nb)) && !f.ledges.contains(&(nb, (ix, iz))) && !opening;
-                // Trappas egne sider får vegg fra gulvet og opp.
-                let (y_lo, y_hi) = (f.y + if matches!(cell, Cell::Stair(..)) { 0.0 } else { level as f32 * LEDGE }, ceil_y);
-                if full {
-                    let m = &mut b.mesh;
-                    m.quad_n(quad(y_lo, y_hi), [normal; 4], &th.wall, 0.85);
-                    let (center, size) = wall_center(y_lo, y_hi);
-                    b.colliders.push(Shape::Cuboid { center, size, yaw: 0.0 });
-                    wall_count += 1;
-                    // Lys og pynt på veggene.
-                    let mid = (quad(y_lo, y_hi)[0] + quad(y_lo, y_hi)[1]) * 0.5;
-                    decorate_wall(b, &th, rng, mid, normal, y_lo, y_hi, &mut lights, wall_count);
-                } else if f.ledges.contains(&(nb, (ix, iz))) {
-                    // Vi er den lave sida av en avsats: lav vegg opp til den.
-                    let hi = f.y + LEDGE;
-                    let m = &mut b.mesh;
-                    m.quad_n(quad(y_lo, hi), [normal; 4], &th.wall, 0.8);
-                    let (center, size) = wall_center(y_lo, hi);
-                    b.colliders.push(Shape::Cuboid { center, size, yaw: 0.0 });
-                }
-                // Over en åpning mot en celle med lavere tak (gang fra rom,
-                // trapp fra hevet rom) står veggen fra nabocellens tak til vårt.
-                if !full {
-                    let other_ceil = if Floor::idx(nb.0, nb.1).is_some() { f.ceil_at(nb.0, nb.1) } else { ceil_y };
-                    if other_ceil < ceil_y - 0.05 {
-                        let m = &mut b.mesh;
-                        m.quad_n(quad(other_ceil, ceil_y), [normal; 4], &th.wall, 0.85);
-                    }
-                }
-            }
-            decorate_floor(b, &th, rng, f, ix, iz, fy, ceil_y, &mut lights, chests);
         }
     }
-    for (p, c) in lights {
-        let _ = (p, c);
-    }
-    if shaft {
-        if let Some(exit) = f.exit {
-            shaft_down(b, f, exit, &th);
+    // Kistene: opptil fire per etasje.
+    let mut placed_chests = 0;
+    for (p, yaw) in chest_spots {
+        if placed_chests >= 4 || !rng.chance(0.7) {
+            continue;
+        }
+        if b.place("gorvek_chest", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)) {
+            b.solid_box(p + Vec3::Y * 0.3, Vec3::new(0.9, 0.6, 0.6), yaw);
+            d.chests.push((p, yaw, k));
+            placed_chests += 1;
         }
     }
-}
-
-/// Lys og pynt på en vegg: fakler, lykter, lysrør, mose, rør og kabler.
-#[allow(clippy::too_many_arguments)]
-fn decorate_wall(b: &mut Builder, th: &Theme, rng: &mut Rng, mid: Vec3, normal: Vec3, y_lo: f32, y_hi: f32, _lights: &mut Vec<(Vec3, Vec3)>, count: usize) {
-    let yaw = normal.x.atan2(normal.z);
-    let every = match th.light {
-        LightKind::Torch => 3,
-        LightKind::Lantern => 3,
-        LightKind::Tube => 0,
-        LightKind::Candle => 0,
-        LightKind::Lava => 7,
+    // Tolv fiender: to nær start (3–5 celler), tre litt lenger unna, resten
+    // hvor som helst.
+    let dist = |p: &Vec3| {
+        let c = floor.cell_of(*p);
+        (c.0 - floor.start.0).abs() + (c.1 - floor.start.1).abs()
     };
-    if every > 0 && count % every == 0 {
-        let p = Vec3::new(mid.x, y_lo + 1.8, mid.z) + normal * 0.02;
-        match th.light {
-            LightKind::Lantern if b.has_model("door_lamp") => {
-                b.place_mounted("door_lamp", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p));
-                b.fire_light(p + normal * 0.3 + Vec3::Y * 0.1, Vec3::new(1.0, 0.75, 0.45), 2.4, 9.0);
+    for (lo, hi, want) in [(2, 6, 2), (5, 12, 3), (6, 99, 7)] {
+        let mut pool: Vec<Vec3> = candidates.iter().copied().filter(|p| (lo..=hi).contains(&dist(p))).collect();
+        let mut got = 0;
+        while got < want && !pool.is_empty() {
+            let i = (rng.next() * pool.len() as f32) as usize % pool.len();
+            d.spawns.push(pool.swap_remove(i));
+            got += 1;
+        }
+    }
+    let s = start_world;
+    log::info!("Etasje {k} ({}): {} rom, {} gangceller, start ({:.0}, {:.0}, {:.0})", EPOCHS[k], plan.rooms.len(), halls.len(), s.x, s.y, s.z);
+    if log::log_enabled!(log::Level::Debug) {
+        let mut map = String::new();
+        for iz in 0..n {
+            for ix in 0..n {
+                let o = plan.owner[iz as usize * N + ix as usize];
+                map.push(match o {
+                    -2 => '.',
+                    -1 => ' ',
+                    r => (b'A' + (r as u8 % 26)) as char,
+                });
             }
-            _ => {
-                if b.has_model("gorvek_torch") {
-                    b.place_mounted("gorvek_torch", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p));
+            map.push('\n');
+        }
+        log::debug!("Etasje {k}:\n{map}");
+    }
+    (floor, tower_down)
+}
+
+fn floor_height(f: &Floor, c: (i32, i32)) -> f32 {
+    match f.cell(c.0, c.1) {
+        Cell::Floor(h) => h,
+        _ => 0.0,
+    }
+}
+
+/// Gangmodulen og dreiningen for armene (retninger ut av cella).
+fn hall_module(arms: &[(i32, i32)], rng: &mut Rng) -> (&'static str, i32) {
+    let canon: &[(&str, &[(i32, i32)])] = &[
+        ("dng_hall_i", &[(0, -1), (0, 1)]),
+        ("dng_hall_l", &[(0, -1), (1, 0)]),
+        ("dng_hall_t", &[(0, -1), (1, 0), (0, 1)]),
+        ("dng_hall_x", &[(0, -1), (1, 0), (0, 1), (-1, 0)]),
+        ("dng_hall_end", &[(0, 1)]),
+    ];
+    let mut want: Vec<(i32, i32)> = arms.to_vec();
+    want.sort();
+    for (name, local) in canon {
+        if local.len() != want.len() {
+            continue;
+        }
+        for rot in 0..4 {
+            let p = Placed { name, gx: 0, gz: 0, rot };
+            let mut got: Vec<(i32, i32)> = local.iter().map(|d| p.dir(*d)).collect();
+            got.sort();
+            if got == want {
+                let name = if *name == "dng_hall_i" {
+                    let r = rng.next();
+                    if r < 0.2 {
+                        "dng_hall_i2"
+                    } else if r < 0.3 {
+                        "dng_hall_i3"
+                    } else {
+                        "dng_hall_i"
+                    }
                 } else {
-                    b.mesh.cylinder(&Affine3A::from_rotation_translation(Quat::from_rotation_x(0.4) * Quat::from_rotation_y(yaw), p), 0.03, 0.03, 0.4, 6, &OAK, true);
-                }
-                let flicker = 0.9 + rng.next() * 0.3;
-                b.fire_light(p + normal * 0.25 + Vec3::Y * 0.3, Vec3::new(1.0, 0.55, 0.22), 2.2 * flicker, 9.0);
+                    name
+                };
+                return (name, rot);
             }
         }
     }
-    // Mose nederst på veggen.
-    if th.moss > 0.0 && rng.chance(th.moss) {
-        let w = rng.range(1.2, 3.4);
-        let h = rng.range(0.5, 1.4);
-        let moss = Mat::tex(Layer::Grass, 0xffffff).tint(Vec3::new(0.16, 0.26, 0.09)).flags(flag::NO_WEATHER);
-        let along = Vec3::new(normal.z, 0.0, -normal.x);
-        let c = Vec3::new(mid.x, y_lo, mid.z) + normal * 0.015 + along * rng.range(-0.8, 0.8);
-        let q = [c - along * w * 0.5, c + along * w * 0.5, c + along * w * 0.5 + Vec3::Y * h, c - along * w * 0.5 + Vec3::Y * h];
-        b.mesh.quad_n(q, [normal; 4], &moss, 0.7);
-        // Glødende mose i mursteinsetasjen: et grønt skjær.
-        if th.light == LightKind::Torch && rng.chance(0.3) {
-            b.flicker_light(c + normal * 0.3 + Vec3::Y * 0.4, Vec3::new(0.35, 0.9, 0.4), 0.7, 4.0, 0.05);
-        }
-    }
-    // Rør langs taket i kloakken, kabler i serverrommet.
-    if (th.pipes || th.cables) && rng.chance(0.5) {
-        let along = Vec3::new(normal.z, 0.0, -normal.x);
-        let r = if th.pipes { 0.09 } else { 0.025 };
-        let mat = if th.pipes { IRON.tint(Vec3::new(0.35, 0.25, 0.18)) } else { Mat::plain(0x101012, 0.6) };
-        let c = Vec3::new(mid.x, y_hi - 0.35 - rng.range(0.0, 0.4), mid.z) + normal * (r + 0.02) - along * CELL * 0.5;
-        b.mesh.cylinder(&Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, along), c), r, r, CELL, 8, &mat, false);
-    }
+    ("dng_hall_x", 0)
 }
 
-/// Pynt og lys på gulvet i en celle: lysrør, stearinlys, lava, pytter,
-/// gjørme, søyler, tønner, kister, hodeskaller.
-#[allow(clippy::too_many_arguments)]
-fn decorate_floor(b: &mut Builder, th: &Theme, rng: &mut Rng, f: &Floor, ix: i32, iz: i32, fy: f32, ceil_y: f32, _lights: &mut Vec<(Vec3, Vec3)>, chests: &mut Vec<(Vec3, f32, usize)>) {
-    let cell = f.cell(ix, iz);
-    if matches!(cell, Cell::Stair(..)) {
+/// Sett ut en kjellermodell med kolliderne og lysene fra json-fila. Murverket
+/// går ned under gulvet, så rutinen mot svevende modeller hopper over det.
+fn put(b: &mut Builder, name: &'static str, t: Affine3A) {
+    if !b.place_mounted(name, t) {
         return;
     }
-    let (cx, cz) = (f.origin.0 + (ix as f32 + 0.5) * CELL, f.origin.1 + (iz as f32 + 0.5) * CELL);
-    let center = Vec3::new(cx, fy, cz);
-    let is_room = f.kind[iz as usize * N + ix as usize] == 1;
-    let is_start = (ix - f.start.0).abs() <= 1 && (iz - f.start.1).abs() <= 1;
-    let is_exit = f.exit == Some((ix, iz));
-    // Hvilke sider som er vegg (til å stille ting inntil).
-    let walls: Vec<Vec3> = [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().filter(|(dx, dz)| !f.is_open(ix + dx, iz + dz)).map(|(dx, dz)| Vec3::new(*dx as f32, 0.0, *dz as f32)).collect();
-    match th.light {
-        LightKind::Tube if is_room || (ix + iz) % 2 == 0 => {
-            // Lysrør i taket, som flakker.
-            let tube = Mat::plain(0xe8f4ff, 0.3).flags(flag::GLOW_ALWAYS | flag::NO_WEATHER);
-            // Sylinderen har foten i origo og går langs lokal Y, så røret
-            // starter 0,7 m til sida og går 1,4 m.
-            let t = Affine3A::from_rotation_translation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2), Vec3::new(cx + 0.7, ceil_y - 0.08, cz));
-            b.mesh.cylinder(&t, 0.03, 0.03, 1.4, 6, &tube, true);
-            b.mesh.cuboid(&Affine3A::from_translation(Vec3::new(cx, ceil_y - 0.03, cz)), Vec3::new(1.5, 0.06, 0.14), &IRON.tint(Vec3::new(0.5, 0.5, 0.52)));
-            let bad = rng.chance(0.35);
-            b.flicker_light(Vec3::new(cx, ceil_y - 0.3, cz), Vec3::new(0.75, 0.9, 1.0), 2.0, 8.0, if bad { 0.7 } else { 0.08 });
-        }
-        LightKind::Candle if rng.chance(if is_room { 0.22 } else { 0.08 }) && !walls.is_empty() => {
-            // En klynge stearinlys inntil veggen.
-            let w = rng.pick(&walls);
-            let base = center + w * 1.6;
-            let wax = Mat::plain(0xe9dcc0, 0.6).flags(flag::NO_WEATHER);
-            let flame = Mat::plain(0xffc66a, 0.3).flags(flag::GLOW_ALWAYS | flag::NO_WEATHER);
-            let n = 3 + (rng.next() * 3.0) as i32;
-            for i in 0..n {
-                let a = i as f32 * 1.7;
-                let p = base + Vec3::new(a.cos() * 0.25, 0.0, a.sin() * 0.25);
-                let h = rng.range(0.06, 0.2);
-                b.mesh.cylinder(&Affine3A::from_translation(p), 0.02, 0.018, h, 6, &wax, true);
-                b.mesh.sphere(&Affine3A::from_translation(p + Vec3::Y * (h + 0.03)), Vec3::new(0.012, 0.025, 0.012), 4, 6, &flame);
-            }
-            b.fire_light(base + Vec3::Y * 0.4, Vec3::new(1.0, 0.72, 0.4), 1.4, 6.0);
-        }
-        LightKind::Lava if is_room && !is_start && !is_exit && rng.chance(0.14) => {
-            // En lavapøl: glødende flate litt under gulvet, i et hull.
-            let lava = Mat::plain(0xff5a16, 0.9).flags(flag::GLOW_ALWAYS | flag::NO_WEATHER);
-            let r = rng.range(0.9, 1.7);
-            let mut ring = vec![];
-            for i in 0..10 {
-                let a = i as f32 / 10.0 * std::f32::consts::TAU;
-                let rr = r * (0.8 + 0.2 * ((a * 3.0).sin() * 0.5 + 0.5));
-                ring.push(center + Vec3::new(a.cos() * rr, 0.012, a.sin() * rr));
-            }
-            for i in 0..10 {
-                let (p, q) = (ring[i], ring[(i + 1) % 10]);
-                b.mesh.quad_n([center + Vec3::Y * 0.012, p, q, center + Vec3::Y * 0.012], [Vec3::Y; 4], &lava, 1.0);
-            }
-            b.flicker_light(center + Vec3::Y * 0.5, Vec3::new(1.0, 0.45, 0.12), 1.8, 7.0, 0.25);
-        }
-        _ => {}
+    let s = spec(name);
+    let yaw = {
+        let x = t.transform_vector3(Vec3::X);
+        (-x.z).atan2(x.x)
+    };
+    for (c, size, y) in &s.boxes {
+        b.solid_box(t.transform_point3(Vec3::from(*c)), Vec3::from(*size), yaw + y);
     }
-    // Pytter: vann speiler lysene.
-    if th.puddles > 0.0 && rng.chance(th.puddles * 0.5) && !is_start {
-        let water = Mat::special(kind::WATER, 0x203040, 0.02).flags(flag::NO_WEATHER);
-        let r = rng.range(0.5, 1.5);
-        let c = center + Vec3::new(rng.range(-1.0, 1.0), 0.015, rng.range(-1.0, 1.0));
-        let mut ring = vec![];
-        for i in 0..8 {
-            let a = i as f32 / 8.0 * std::f32::consts::TAU + rng.next() * 0.3;
-            ring.push(c + Vec3::new(a.cos() * r * rng.range(0.6, 1.0), 0.0, a.sin() * r * rng.range(0.6, 1.0)));
-        }
-        for i in 0..8 {
-            b.mesh.quad_n([c, ring[i], ring[(i + 1) % 8], c], [Vec3::Y; 4], &water, 1.0);
-        }
+    for pts in &s.hulls {
+        b.solid(Shape::Hull { points: pts.iter().map(|p| t.transform_point3(Vec3::from(*p))).collect() });
     }
-    // Gjørme: mørke flekker på gulvet.
-    if th.mud > 0.0 && rng.chance(th.mud) {
-        let mud = Mat::tex(Layer::Gravel, 0xffffff).tint(Vec3::new(0.14, 0.1, 0.07)).flags(flag::NO_WEATHER);
-        let w = rng.range(1.0, 3.0);
-        let h = rng.range(1.0, 3.0);
-        let c = center + Vec3::new(rng.range(-0.6, 0.6), 0.008, rng.range(-0.6, 0.6));
-        b.mesh.quad_n([c + Vec3::new(-w * 0.5, 0.0, h * 0.5), c + Vec3::new(w * 0.5, 0.0, h * 0.5), c + Vec3::new(w * 0.5, 0.0, -h * 0.5), c + Vec3::new(-w * 0.5, 0.0, -h * 0.5)], [Vec3::Y; 4], &mud, 0.9);
+    for (p, color, intensity, radius) in &s.lights {
+        b.fire_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
     }
-    if is_start || is_exit {
-        return;
-    }
-    // Søyler i rommene, i cellene som har vegg på to sider (hjørnene).
-    if th.pillars && is_room && walls.len() >= 2 && rng.chance(0.6) {
-        let p = center + Vec3::new(walls[0].x + walls[1].x, 0.0, walls[0].z + walls[1].z) * 1.3;
-        let h = ceil_y - fy;
-        b.mesh.cylinder(&Affine3A::from_translation(p), 0.38, 0.32, h, 10, &STONE.tint(Vec3::new(0.5, 0.48, 0.45)), false);
-        b.mesh.cylinder(&Affine3A::from_translation(p), 0.5, 0.42, 0.3, 10, &STONE.tint(Vec3::new(0.45, 0.43, 0.4)), true);
-        b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * h * 0.5, radius: 0.42, half_height: h * 0.5 });
-    }
-    // Tønner inntil veggene, og kister med komponenter (fire per etasje,
-    // i rom, bare der det er vegg å stå inntil).
-    if th.kegs > 0.0 && !walls.is_empty() && rng.chance(th.kegs) && b.has_model("gorvek_keg") {
-        let w = rng.pick(&walls);
-        let p = center + w * 1.45 + Vec3::new(rng.range(-0.8, 0.8) * w.z.abs(), 0.0, rng.range(-0.8, 0.8) * w.x.abs());
-        b.place("gorvek_keg", Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), p));
-        b.colliders.push(Shape::Cylinder { center: p + Vec3::Y * 0.45, radius: 0.35, half_height: 0.45 });
-    }
-    let chests_here = chests.iter().filter(|c| c.2 == f.theme).count();
-    if is_room && !walls.is_empty() && chests_here < 4 && rng.chance(0.06) && b.has_model("gorvek_chest") {
-        let w = rng.pick(&walls);
-        let p = center + w * 1.4;
-        let yaw = (-w.x).atan2(-w.z);
-        b.place("gorvek_chest", Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p));
-        b.colliders.push(Shape::Cuboid { center: p + Vec3::Y * 0.3, size: Vec3::new(0.9, 0.6, 0.6), yaw });
-        chests.push((p, yaw, f.theme));
-    }
-    // Hodeskaller og knokler i hjørnene.
-    if th.skulls > 0.0 && !walls.is_empty() && rng.chance(th.skulls) {
-        let w = rng.pick(&walls);
-        let p = center + w * 1.6 + Vec3::new(rng.range(-1.0, 1.0) * w.z.abs(), 0.0, rng.range(-1.0, 1.0) * w.x.abs());
-        if b.has_model("gorvek_skull") {
-            b.place("gorvek_skull", Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), p));
-        }
-        let bone = Mat::plain(0xd8cdb4, 0.7).flags(flag::NO_WEATHER);
-        for i in 0..3 {
-            let a = rng.next() * 6.3;
-            let q = p + Vec3::new((a + i as f32).cos() * 0.3, 0.02, (a + i as f32).sin() * 0.3);
-            b.mesh.cylinder(&Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3) * Quat::from_rotation_z(std::f32::consts::FRAC_PI_2), q), 0.02, 0.02, rng.range(0.2, 0.4), 5, &bone, true);
-        }
-    }
-}
-
-/// Trappesjakten fra alkoven ned til neste etasjes startrom: trinn,
-/// vegger, tak og kilekollidere.
-fn shaft_down(b: &mut Builder, f: &Floor, exit: (i32, i32), th: &Theme) {
-    let a = f.center(exit.0, exit.1);
-    let dir = f.dir as f32;
-    let top = Vec3::new(a.x + dir * CELL * 0.5, f.y, a.z);
-    // Lengden langs x har fortegn etter retningen.
-    let len = dir * SHAFT as f32 * CELL;
-    let drop = FLOOR_DROP;
-    let steps = (len / 0.5) as i32;
-    let half_w = CELL * 0.5;
-    for s in 0..steps {
-        let t0 = s as f32 / steps as f32;
-        let t1 = (s + 1) as f32 / steps as f32;
-        let (x0, x1) = (top.x + t0 * len, top.x + t1 * len);
-        let (y0, y1) = (top.y - t0 * drop, top.y - t1 * drop);
-        let m = &mut b.mesh;
-        // Trinnet (flatt på y1 fra x0 til x1) og opptrinnet ved x0.
-        m.quad_n([Vec3::new(x0, y1, a.z + half_w), Vec3::new(x1, y1, a.z + half_w), Vec3::new(x1, y1, a.z - half_w), Vec3::new(x0, y1, a.z - half_w)], [Vec3::Y; 4], &th.floor, 0.9);
-        m.quad_n([Vec3::new(x0, y1, a.z - half_w), Vec3::new(x0, y1, a.z + half_w), Vec3::new(x0, y0, a.z + half_w), Vec3::new(x0, y0, a.z - half_w)], [Vec3::X * dir; 4], &th.wall, 0.8);
-    }
-    // Kollidere: kiler per celle.
-    for c in 0..SHAFT {
-        let t0 = c as f32 / SHAFT as f32;
-        let t1 = (c + 1) as f32 / SHAFT as f32;
-        let (x0, x1) = (top.x + t0 * len, top.x + t1 * len);
-        let (y0, y1) = (top.y - t0 * drop, top.y - t1 * drop);
-        let points = vec![
-            Vec3::new(x0, y0, a.z - half_w),
-            Vec3::new(x0, y0, a.z + half_w),
-            Vec3::new(x1, y1, a.z - half_w),
-            Vec3::new(x1, y1, a.z + half_w),
-            Vec3::new(x0, y0 - 1.0, a.z - half_w),
-            Vec3::new(x0, y0 - 1.0, a.z + half_w),
-            Vec3::new(x1, y1 - 1.0, a.z - half_w),
-            Vec3::new(x1, y1 - 1.0, a.z + half_w),
-        ];
-        b.colliders.push(Shape::Hull { points });
-        // Vegger og tak langs hellingen.
-        let h = WALL_H;
-        let m = &mut b.mesh;
-        for (zs, normal) in [(a.z - half_w, Vec3::Z), (a.z + half_w, -Vec3::Z)] {
-            let q = if normal.z > 0.0 {
-                [Vec3::new(x0, y0, zs), Vec3::new(x1, y1, zs), Vec3::new(x1, y1 + h, zs), Vec3::new(x0, y0 + h, zs)]
-            } else {
-                [Vec3::new(x1, y1, zs), Vec3::new(x0, y0, zs), Vec3::new(x0, y0 + h, zs), Vec3::new(x1, y1 + h, zs)]
-            };
-            m.quad_n(q, [normal; 4], &th.wall, 0.8);
-            let center = Vec3::new((x0 + x1) * 0.5, (y0 + y1) * 0.5 + h * 0.5, zs - normal.z * 0.1);
-            b.colliders.push(Shape::Cuboid { center, size: Vec3::new(CELL * 1.1, h + drop / SHAFT as f32 + 1.0, 0.2), yaw: 0.0 });
-        }
-        let m = &mut b.mesh;
-        m.quad_n([Vec3::new(x0, y0 + h, a.z - half_w), Vec3::new(x1, y1 + h, a.z - half_w), Vec3::new(x1, y1 + h, a.z + half_w), Vec3::new(x0, y0 + h, a.z + half_w)], [-Vec3::Y; 4], &th.ceil, 0.9);
-        // En fakkel halvveis.
-        if c == SHAFT / 2 {
-            let p = Vec3::new((x0 + x1) * 0.5, (y0 + y1) * 0.5 + 1.8, a.z - half_w + 0.02);
-            if b.has_model("gorvek_torch") {
-                b.place_mounted("gorvek_torch", Affine3A::from_rotation_translation(Quat::from_rotation_y(0.0), p));
-            }
-            b.fire_light(p + Vec3::Z * 0.25 + Vec3::Y * 0.3, Vec3::new(1.0, 0.55, 0.22), 2.0, 9.0);
-        }
-    }
-    // Den siste cellen før startrommet: et flatt stykke i neste etasjes høyde.
-    let x_end = top.x + len;
-    let y_end = top.y - drop;
-    let m = &mut b.mesh;
-    let x_far = x_end + dir * CELL;
-    m.quad_n([Vec3::new(x_end, y_end, a.z + half_w), Vec3::new(x_far, y_end, a.z + half_w), Vec3::new(x_far, y_end, a.z - half_w), Vec3::new(x_end, y_end, a.z - half_w)], [Vec3::Y; 4], &th.floor, 0.9);
-    b.colliders.push(Shape::Cuboid { center: Vec3::new((x_end + x_far) * 0.5, y_end - 0.25, a.z), size: Vec3::new(CELL, 0.5, CELL), yaw: 0.0 });
-    let m = &mut b.mesh;
-    for (zs, normal) in [(a.z - half_w, Vec3::Z), (a.z + half_w, -Vec3::Z)] {
-        let q = if normal.z > 0.0 {
-            [Vec3::new(x_end, y_end, zs), Vec3::new(x_far, y_end, zs), Vec3::new(x_far, y_end + WALL_H, zs), Vec3::new(x_end, y_end + WALL_H, zs)]
-        } else {
-            [Vec3::new(x_far, y_end, zs), Vec3::new(x_end, y_end, zs), Vec3::new(x_end, y_end + WALL_H, zs), Vec3::new(x_far, y_end + WALL_H, zs)]
-        };
-        m.quad_n(q, [normal; 4], &th.wall, 0.8);
-        b.colliders.push(Shape::Cuboid { center: Vec3::new((x_end + x_far) * 0.5, y_end + WALL_H * 0.5, zs - normal.z * 0.1), size: Vec3::new(CELL, WALL_H, 0.2), yaw: 0.0 });
-    }
-    let m = &mut b.mesh;
-    m.quad_n([Vec3::new(x_end, y_end + WALL_H, a.z - half_w), Vec3::new(x_far, y_end + WALL_H, a.z - half_w), Vec3::new(x_far, y_end + WALL_H, a.z + half_w), Vec3::new(x_end, y_end + WALL_H, a.z + half_w)], [-Vec3::Y; 4], &th.ceil, 0.9);
 }

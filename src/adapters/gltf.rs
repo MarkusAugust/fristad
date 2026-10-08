@@ -122,6 +122,28 @@ models! {
     "crypt" => "town/crypt.glb",
     "crypt_stair" => "town/crypt_stair.glb",
     "portcullis" => "town/portcullis.glb",
+    // Kjelleren fra tools/models/dungeon.py: gangene, rommene, den tilmurte
+    // døra og vindeltrappa (origo i hjørnet av fotavtrykket, trappa i midten
+    // av tårncella; domain/world/dungeon.rs setter dem sammen).
+    "dng_hall_i" => "dungeon/dng_hall_i.glb",
+    "dng_hall_i2" => "dungeon/dng_hall_i2.glb",
+    "dng_hall_i3" => "dungeon/dng_hall_i3.glb",
+    "dng_hall_l" => "dungeon/dng_hall_l.glb",
+    "dng_hall_t" => "dungeon/dng_hall_t.glb",
+    "dng_hall_x" => "dungeon/dng_hall_x.glb",
+    "dng_hall_end" => "dungeon/dng_hall_end.glb",
+    "dng_seal" => "dungeon/dng_seal.glb",
+    "dng_spiral" => "dungeon/dng_spiral.glb",
+    "dng_start" => "dungeon/dng_start.glb",
+    "dng_gate" => "dungeon/dng_gate.glb",
+    "dng_landing" => "dungeon/dng_landing.glb",
+    "dng_hall" => "dungeon/dng_hall.glb",
+    "dng_long" => "dungeon/dng_long.glb",
+    "dng_cistern" => "dungeon/dng_cistern.glb",
+    "dng_gallery" => "dungeon/dng_gallery.glb",
+    "dng_chapel" => "dungeon/dng_chapel.glb",
+    "dng_treasury" => "dungeon/dng_treasury.glb",
+    "dng_arena" => "dungeon/dng_arena.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }
@@ -329,6 +351,14 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             // lyset inne skinner ut om natta.
             if named("glass_lit") {
                 mmat = mmat.flags(flag::GLOW_LAMP);
+            }
+            // «water» er vann (cisternen i kjelleren).
+            if named("water") {
+                mmat.kind = kind::WATER;
+            }
+            // Kjelleren ligger under bakken: verken regn eller snø.
+            if name.starts_with("dng_") {
+                mmat = mmat.flags(flag::NO_WEATHER);
             }
             // «fire» brenner hele døgnet (fakler, ildsteder).
             if named("fire") {
