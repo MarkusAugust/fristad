@@ -463,7 +463,7 @@ fn gjennomspilling() {
     let d: &Dungeon = &p.world.dungeon;
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
-    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false, fighting: 0.0, ignore_until: 0.0 };
+    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false, fighting: 0.0, ignore_until: 0.0, cell: None, blocked: 0.0 };
     bot.step(&mut game, &mut physics);
     let events = game.use_first(|u| *u == Use::Descend);
     assert!(events.iter().any(|e| matches!(e, Event::Fade)), "døra i krypten tok deg ikke ned");
@@ -586,6 +586,8 @@ struct Bot {
     side: bool,
     fighting: f32,
     ignore_until: f32,
+    cell: Option<(i32, i32)>,
+    blocked: f32,
 }
 
 impl Bot {
@@ -686,7 +688,8 @@ impl Bot {
             if seg.length() > 0.1 && fl.cell_of(next) != c {
                 let off = feet.with_y(0.0) - cur.with_y(0.0);
                 let side = (off - seg.normalize() * off.dot(seg.normalize())).length();
-                if side > 0.5 {
+                // Står det en søyle midt i cella, går den rett på i stedet.
+                if side > 0.5 && self.stuck < 1.5 && self.blocked < 2.0 {
                     next = cur;
                 }
             }
@@ -702,6 +705,17 @@ impl Bot {
         let moved = feet.distance(self.last);
         self.last = feet;
         self.stuck = if moved < 0.01 { self.stuck + Self::DT } else { 0.0 };
+        // Hvor lenge boten har stått i samme celle uten å komme videre.
+        let cell = d.floor_of(feet).map(|f| d.floors[f].cell_of(feet));
+        if cell == self.cell {
+            self.blocked += Self::DT;
+        } else {
+            self.cell = cell;
+            self.blocked = 0.0;
+        }
+        if self.blocked > 8.0 {
+            self.blocked = 0.0;
+        }
         if self.stuck > 1.0 && self.sidestep <= 0.0 {
             self.sidestep = 0.8;
             self.side = !self.side;
