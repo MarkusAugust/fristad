@@ -561,7 +561,9 @@ fn gjennomspilling() {
                 }
                 assert!(bot.t < deadline, "slo ikke Rammeverket på et kvarter\n{}", bot.log.join("\n"));
                 if !bot.fight(&mut game, &mut physics) {
-                    bot.walk_toward(&mut game, &mut physics, d, boss, "Rammeverket");
+                    // Dit Rammeverket er nå, ikke der det sto.
+                    let at = game.living().into_iter().find(|(_, k, _)| k.boss()).map(|(m, _, _)| m).unwrap_or(boss);
+                    bot.walk_toward(&mut game, &mut physics, d, at, "Rammeverket");
                 }
             }
             bot.note(format!("  Rammeverket falt etter {:.0} s", bot.t - t0));
