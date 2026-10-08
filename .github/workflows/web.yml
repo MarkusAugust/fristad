@@ -59,7 +59,7 @@ jobs:
           git add -A
           git commit -qm "Teksturlag hentet $(date -u +%F) for ${GITHUB_SHA::7}"
           git push -f origin external-assets
-      # Den ferdige nettsiden (uten ressursene) legges på grenen web-dist, så
+      # Den ferdige nettsiden (uten teksturene og modellene) legges på grenen web-dist, så
       # Claude kan hente den og kjøre den i Chromium i skymiljøet sitt.
       - name: Nettsiden til grenen web-dist
         run: |
@@ -69,7 +69,7 @@ jobs:
           cd /tmp/distwt
           git checkout --orphan web-dist
           git rm -rfq . || true
-          rsync -a --exclude assets "$GITHUB_WORKSPACE/dist/" .
+          rsync -a --exclude assets --exclude models "$GITHUB_WORKSPACE/dist/" .
           git add -A
           git commit -qm "Nettsiden bygd fra ${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
           git push -f origin web-dist

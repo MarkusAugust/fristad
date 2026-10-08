@@ -4,7 +4,7 @@
 //! kaller inn hit. Alt går gjennom den drivende porten (`Play`), og
 //! hendelsene går tilbake som JSON fra `frame()`.
 
-use crate::adapters::gltf::Embedded;
+use crate::adapters::gltf::{Files, MODEL_FILES};
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
 use crate::application::{prepare, App};
@@ -49,8 +49,15 @@ pub fn asset_paths(manifest_json: &str) -> Vec<String> {
     crate::adapters::layers::paths_in(manifest_json)
 }
 
+/// Modellfilene (stier under `models/`, gzip-pakket med `.gz` på slutten
+/// av bygget), så nettleseren kan hente dem til `start` i samme rekkefølge.
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array) -> Result<Engine, JsValue> {
+pub fn model_paths() -> Vec<String> {
+    MODEL_FILES.iter().map(|(_, p)| p.to_string()).collect()
+}
+
+#[wasm_bindgen]
+pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -68,7 +75,8 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
     surface.configure(&device, &config);
     // Ny kjeller for hver økt i nettleseren.
     let seed = (js_sys::Date::now() as u64) ^ 0x5eed;
-    let prepared = prepare(&Embedded, seed);
+    let files = model_paths().into_iter().zip(models.iter()).filter(|(_, b)| !b.is_undefined()).map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec())).collect();
+    let prepared = prepare(&Files(files), seed);
     let layers = match manifest_json {
         Some(m) => {
             let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();

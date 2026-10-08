@@ -15,3 +15,11 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+# Modellene fra Blender, gzip-pakket av tools/build-web.sh (pakkes ut i
+# nettleseren). Filnavnene skifter ikke, så de sjekkes på nytt hver gang.
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/octet-stream"

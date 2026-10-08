@@ -53,6 +53,8 @@ SRC=node_modules/@fristil/designsystem/dist
   mkdir -p "dist/fristil/$(dirname "$f")"
   cp "$SRC/$f" "dist/fristil/$f"
 done
+# Modellene ligger ved siden av motoren, gzip-pakket (main.js pakker dem ut).
+sh tools/pack-models.sh dist
 if [ -f assets/external/manifest.json ]; then
   mkdir -p dist/assets
   cp -r assets/external/. dist/assets/

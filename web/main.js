@@ -2,7 +2,7 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
 // den drivende porten.
 
-import init, { start, asset_paths } from "./pkg/fristad.js";
+import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 
@@ -51,6 +51,8 @@ async function boot() {
   // Teksturlagene: egne bilder og fotoskannede CC0-materialer, samlet av
   // tools/fetch-assets.ts under byggingen. Mangler de, bakes lagene i motoren.
   const assets = await loadAssets();
+  // Modellene fra Blender ligger ved siden av motoren, gzip-pakket.
+  const models = await loadModels();
   stage("Bygger byen og baker materialene …");
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
@@ -58,14 +60,14 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
@@ -127,6 +129,63 @@ async function loadAssets() {
   );
   if (!ok) return none;
   return { manifest, names: paths, blobs };
+}
+
+// Henter modellfilene (models/<sti>.gz) og pakker dem ut. Framdriften
+// regnes i byte, fra størrelsene i models/sizes.json.
+async function loadModels() {
+  const paths = model_paths();
+  let sizes = {};
+  try {
+    sizes = await (await fetch("models/sizes.json")).json();
+  } catch {
+    sizes = {};
+  }
+  const total = paths.reduce((a, p) => a + (sizes[p] || 1), 0);
+  let got = 0;
+  const bar = $("loading");
+  bar.hidden = false;
+  const show = () => {
+    bar.value = Math.round((got / total) * 100);
+    setStatus(`Henter byen (${(got / 1e6).toFixed(0)} av ${(total / 1e6).toFixed(0)} MB) …`);
+  };
+  show();
+  const out = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      const r = await fetch(`models/${paths[i]}.gz`);
+      if (!r.ok) {
+        console.warn(`Modellen ${paths[i]} mangler: HTTP ${r.status}`);
+        continue;
+      }
+      // Telle bytene mens de kommer.
+      let last = 0;
+      const counted = r.body.pipeThrough(
+        new TransformStream({
+          transform(chunk, ctl) {
+            got += chunk.byteLength;
+            if (got - last > 256 * 1024) {
+              last = got;
+              show();
+            }
+            ctl.enqueue(chunk);
+          },
+        }),
+      );
+      let bytes = new Uint8Array(await new Response(counted).arrayBuffer());
+      // Pakket ut allerede hvis serveren sendte den med Content-Encoding.
+      if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        const plain = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+        bytes = new Uint8Array(await new Response(plain).arrayBuffer());
+      }
+      out[i] = bytes;
+      show();
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  return out;
 }
 
 function setStatus(text) {

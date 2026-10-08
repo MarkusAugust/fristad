@@ -434,3 +434,16 @@ fn innbyggerne_gar_og_stopper() {
     }
     assert!(game.npc_positions()[0].distance(here) < 0.05, "innbyggeren gikk fra deg mens du sto ved siden av");
 }
+
+/// Nettleseren henter modellfilene selv (`Files`, stiene i `MODEL_FILES`):
+/// byen skal bli den samme som med modellene bygd inn.
+#[test]
+fn nettleseren_far_de_samme_modellene() {
+    use crate::adapters::gltf::{Files, MODEL_FILES};
+    let files = MODEL_FILES.iter().map(|(_, p)| (p.to_string(), std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p))).collect();
+    let web = prepare(&Files(files), 7);
+    let native = world();
+    let names = |p: &Prepared| p.models.iter().map(|m| (m.name.clone(), m.mesh.indices.len())).collect::<Vec<_>>();
+    assert_eq!(names(&web), names(native));
+    assert_eq!(web.world.placements.len(), native.world.placements.len());
+}

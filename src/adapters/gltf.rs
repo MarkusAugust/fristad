@@ -1,6 +1,7 @@
 //! glTF-adapteren: leser glTF til `domain::model::Model`, bak porten
 //! `ModelSource`. `Embedded` er modellene fra `tools/models/` som er bygd
-//! inn i binæren.
+//! inn i binæren (ikke i nettleseren); `Files` er de samme filene hentet
+//! av nettleseren (`MODEL_FILES` sier hvilke).
 
 use crate::domain::anim::{Channel, Clip, Joint, Keys, Rig};
 use crate::domain::geometry::{flag, kind, Layer, Mat, Mesh};
@@ -8,11 +9,15 @@ use crate::domain::model::{Image, Model};
 use crate::ports::ModelSource;
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 
-/// Modellene som er bygd inn i binæren: navn, og fila under
+/// Modellene: navn, og fila under
 /// `assets/models/`. Alle er laget i Blender av skriptene i
 /// `tools/models/`, med origo og målestokk som skriptene beskriver.
 macro_rules! models {
     ($($name:literal => $path:literal),* $(,)?) => {
+        /// Navnet og fila under `assets/models/` for hver modell.
+        pub const MODEL_FILES: &[(&str, &str)] = &[$(($name, $path)),*];
+        // Nettleseren henter filene selv (`Files`), så wasm-fila holdes liten.
+        #[cfg(not(target_arch = "wasm32"))]
         const MODELS: &[(&str, &[u8])] = &[$(($name, include_bytes!(concat!("../../assets/models/", $path)) as &[u8])),*];
     };
 }
@@ -160,8 +165,10 @@ models! {
 }
 
 /// Modellene som er med, lest ved behov.
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Embedded;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
         MODELS.iter().map(|(n, _)| n.to_string()).collect()
@@ -173,6 +180,20 @@ impl ModelSource for Embedded {
     }
 }
 
+/// Modellfilene etter stien i `MODEL_FILES`, hentet utenfra.
+pub struct Files(pub std::collections::HashMap<String, Vec<u8>>);
+
+impl ModelSource for Files {
+    fn names(&self) -> Vec<String> {
+        MODEL_FILES.iter().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
+    }
+
+    fn load(&self, name: &str) -> Option<Model> {
+        let (_, path) = MODEL_FILES.iter().find(|(n, _)| *n == name)?;
+        let bytes = self.0.get(*path)?;
+        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+    }
+}
 
 fn decode(bytes: &[u8]) -> Option<Image> {
     let img = image::load_from_memory(bytes).ok()?.into_rgba8();

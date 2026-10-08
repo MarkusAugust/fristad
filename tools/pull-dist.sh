@@ -11,4 +11,6 @@ if [ -f assets/external/manifest.json ]; then
   mkdir -p dist-web/assets
   cp -r assets/external/. dist-web/assets/
 fi
+# Modellene ligger ikke på grenen; de pakkes fra repoet.
+sh tools/pack-models.sh dist-web
 echo "dist-web/ er klar ($(git log -1 --format=%s origin/web-dist))"
