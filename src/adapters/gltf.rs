@@ -94,6 +94,9 @@ models! {
     "barrel" => "town/barrel.glb",
     "crate" => "town/crate.glb",
     "lantern_post" => "town/lantern_post.glb",
+    // Bygningene på torget fra tools/models/buildings.py.
+    "forge" => "town/forge.glb",
+    "tavern" => "town/tavern.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }

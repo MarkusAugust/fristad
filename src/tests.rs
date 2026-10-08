@@ -279,3 +279,27 @@ fn skjemaet_smir_utstyr() {
     assert_eq!(fresh.gear().weapon.id, "component_sword");
     assert!(fresh.buy("potion"), "med tokens går kjøpet");
 }
+
+/// Hodet skal aldri gå gjennom taket i kjelleren: over hver celle, også
+/// toppen av trappene og de hevede rommene, er det minst plass til en
+/// stående spiller (1,8 m) som hopper.
+#[test]
+fn hodet_gar_ikke_gjennom_taket() {
+    use crate::domain::world::dungeon::{Cell, HEADROOM, N};
+    let p = world();
+    let mut problems = vec![];
+    for (k, f) in p.world.dungeon.floors.iter().enumerate() {
+        for iz in 0..N as i32 {
+            for ix in 0..N as i32 {
+                if f.cell(ix, iz) == Cell::Rock {
+                    continue;
+                }
+                let room = f.ceil_at(ix, iz) - f.top_at(ix, iz);
+                if room < HEADROOM - 0.01 {
+                    problems.push(format!("etasje {k}, celle ({ix}, {iz}): {room:.2} m under taket"));
+                }
+            }
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}

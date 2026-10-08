@@ -17,16 +17,20 @@
 
   <!-- Siktekors og hva du ser på. -->
   <div id="hud" hidden>
-    <div class="crosshair" aria-hidden="true"></div>
-    <div id="prompt" class="prompt" hidden aria-live="polite">
-      <div class="prompt-title">
-        <span id="prompt-name"></span>
-      </div>
-      <div class="keys">
-        <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
-        <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
-      </div>
-    </div>
+    <!-- Siktekorset er utløseren i Fristils tooltip; boblen åpnes når du
+         sikter på noe du kan bruke, og forteller hva det er og hva du kan
+         gjøre. -->
+    <span id="aim" class="fs-tooltip aim">
+      <span class="crosshair" aria-describedby="prompt"></span>
+      <span id="prompt" class="fs-tooltip__bubble prompt" role="tooltip" aria-live="polite">
+        <strong id="prompt-name" class="prompt-name"></strong>
+        <span id="prompt-info" class="prompt-info"></span>
+        <span class="keys">
+          <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+          <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
+        </span>
+      </span>
+    </span>
     <div id="vitals" class="vitals" hidden>
       <label class="fs-label" for="hp">Liv</label>
       <progress id="hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>

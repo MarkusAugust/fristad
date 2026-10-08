@@ -15,7 +15,7 @@ const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
 const hud = $("hud");
 const panel = $("panel");
-const promptEl = $("prompt");
+const aimEl = $("aim");
 const status = $("status");
 const enterBtn = $("enter");
 const toast = document.querySelector("fs-toast");
@@ -225,13 +225,15 @@ function handle(e) {
     case "prompt":
       if (e.label) {
         $("prompt-name").textContent = e.label;
+        $("prompt-info").textContent = e.info || "";
+        $("prompt-info").hidden = !e.info;
         $("key-use").hidden = !e.verb;
         $("key-use-text").textContent = e.verb || "";
         $("key-trade").hidden = !e.trade;
         $("key-trade-text").textContent = e.trade || "";
-        promptEl.hidden = false;
+        aimEl.classList.add("is-open");
       } else {
-        promptEl.hidden = true;
+        aimEl.classList.remove("is-open");
       }
       break;
     case "fade":

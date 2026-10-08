@@ -277,38 +277,43 @@ impl Session {
 
     /// Siktet for et mål, slik det er nå.
     fn prompt_for(&self, i: usize) -> Prompt {
-        let none = String::new;
+        let p = |label: &str, verb: &str, trade: &str, info: &str| Prompt { label: label.into(), verb: verb.into(), trade: trade.into(), info: info.into() };
         match self.targets[i].target.what {
             Use::Talk(n) => {
                 let name = self.npcs.npcs.get(n).map(|c| c.name).unwrap_or("Innbygger");
-                let trade = match name {
-                    "Knappesmeden" | "Apotekeren" | "Gorvek" => "Handle",
-                    "Skriptoriet" => "Smi og les",
-                    _ => "",
+                let (trade, info) = match name {
+                    "Knappesmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
+                    "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
+                    "Gorvek" => ("Handle", "Lærer deg trekk på øvingsplassen."),
+                    "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypta, og les om dem i bøkene."),
+                    "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypta."),
+                    _ => ("", ""),
                 };
-                Prompt { label: name.into(), verb: "Snakk".into(), trade: trade.into() }
+                p(name, "Snakk", trade, info)
             }
             Use::Chest(n) => {
                 if self.chests[n] {
-                    Prompt { label: "Tom kiste".into(), verb: none(), trade: none() }
+                    p("Tom kiste", "", "", "Du har allerede tatt det som lå her.")
                 } else {
-                    Prompt { label: "Kiste".into(), verb: "Åpne".into(), trade: none() }
+                    p("Kiste", "Åpne", "", "Komponenter og tokens. Det du bærer mistes om du dør.")
                 }
             }
             Use::Gate(n) => {
                 if self.gates[n].1 {
-                    Prompt { label: "Porten er oppe".into(), verb: none(), trade: none() }
+                    p("Porten er oppe", "", "", "Trappa ned til neste etasje er bak porten.")
+                } else if self.keys > 0 {
+                    p("Rusten port", "Lås opp", "", "Du har en nøkkel. Trappa ned til neste etasje er bak porten.")
                 } else {
-                    Prompt { label: "Rusten port".into(), verb: "Lås opp".into(), trade: none() }
+                    p("Rusten port", "Lås opp", "", "Låst. En sterkere fiende i denne etasjen bærer nøkkelen.")
                 }
             }
-            Use::Descend => Prompt { label: "Krypta under borgen".into(), verb: "Gå ned".into(), trade: none() },
-            Use::Ascend => Prompt { label: "Døra opp til krypta".into(), verb: "Gå opp".into(), trade: none() },
+            Use::Descend => p("Krypta under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
+            Use::Ascend => p("Døra opp til krypta", "Gå opp", "", "Opp til byen. Det du bærer legges i lageret."),
         }
     }
 
     fn mob_prompt(label: &str) -> Prompt {
-        Prompt { label: label.into(), verb: "Hugg".into(), trade: String::new() }
+        Prompt { label: label.into(), verb: "Hugg".into(), trade: String::new(), info: "Klikk for å hugge, høyreklikk for å blokke.".into() }
     }
 
     pub fn update(&mut self, input: &mut Input, dt: f32, physics: &mut dyn Physics) -> Vec<Event> {

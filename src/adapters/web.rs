@@ -84,7 +84,7 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
-        Event::Prompt(Some(p)) => json!({"type": "prompt", "label": p.label, "verb": p.verb, "trade": p.trade}),
+        Event::Prompt(Some(p)) => json!({"type": "prompt", "label": p.label, "verb": p.verb, "trade": p.trade, "info": p.info}),
         Event::Prompt(None) => json!({"type": "prompt"}),
         Event::Daylight(d) => json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }}),
         Event::Toast(t) => json!({"type": "toast", "text": t}),

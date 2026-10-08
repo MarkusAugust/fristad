@@ -25,6 +25,8 @@ pub const WALL_H: f32 = 3.0;
 pub const ROOM_H: f32 = 4.4;
 /// Hvor høyt de hevede rommene ligger.
 pub const LEDGE: f32 = 1.4;
+/// Minste høyde fra gulvet til taket: spilleren er 1,8 m og hopper.
+pub const HEADROOM: f32 = 2.9;
 /// Høyden mellom etasjene.
 pub const FLOOR_DROP: f32 = 12.0;
 pub const FLOORS: usize = 5;
@@ -112,6 +114,27 @@ impl Floor {
     }
 
     /// Nivået i en celle (0 eller 1); trapper regnes som 0 i den ene enden.
+    /// Taket i en celle (absolutt y): rommene høyere enn gangene, og alltid
+    /// minst `HEADROOM` over det høyeste gulvet i cella (toppen av trappa,
+    /// avsatsen), så hodet aldri går gjennom taket.
+    pub fn ceil_at(&self, ix: i32, iz: i32) -> f32 {
+        let Some(i) = Floor::idx(ix, iz) else { return self.y + WALL_H };
+        let level = self.level(ix, iz);
+        let top = match self.cell(ix, iz) {
+            Cell::Stair(..) => self.y + LEDGE,
+            _ => self.y + level as f32 * LEDGE,
+        };
+        (self.y + self.ceil[i] + level as f32 * LEDGE * 0.5).max(top + HEADROOM)
+    }
+
+    /// Det høyeste gulvet i en celle (toppen av trappa).
+    pub fn top_at(&self, ix: i32, iz: i32) -> f32 {
+        match self.cell(ix, iz) {
+            Cell::Stair(..) => self.y + LEDGE,
+            _ => self.y + self.level(ix, iz) as f32 * LEDGE,
+        }
+    }
+
     fn level(&self, ix: i32, iz: i32) -> u8 {
         match self.cell(ix, iz) {
             Cell::Floor(l) => l,
@@ -729,7 +752,7 @@ fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool, chests: &mut Vec
             let (cx, cz) = (x0 + ix as f32 * CELL, z0 + iz as f32 * CELL);
             let level = f.level(ix, iz);
             let fy = f.y + level as f32 * LEDGE;
-            let ceil_y = f.y + f.ceil[iz as usize * N + ix as usize] + level as f32 * LEDGE * 0.5;
+            let ceil_y = f.ceil_at(ix, iz);
             let m = &mut b.mesh;
             // Gulv eller trapp, og tak.
             match cell {
@@ -832,8 +855,7 @@ fn mesh(b: &mut Builder, f: &Floor, rng: &mut Rng, shaft: bool, chests: &mut Vec
                 // Over en åpning mot en celle med lavere tak (gang fra rom,
                 // trapp fra hevet rom) står veggen fra nabocellens tak til vårt.
                 if !full {
-                    let other_level = f.level(nb.0, nb.1);
-                    let other_ceil = Floor::idx(nb.0, nb.1).map(|i| f.y + f.ceil[i] + other_level as f32 * LEDGE * 0.5).unwrap_or(ceil_y);
+                    let other_ceil = if Floor::idx(nb.0, nb.1).is_some() { f.ceil_at(nb.0, nb.1) } else { ceil_y };
                     if other_ceil < ceil_y - 0.05 {
                         let m = &mut b.mesh;
                         m.quad_n(quad(other_ceil, ceil_y), [normal; 4], &th.wall, 0.85);

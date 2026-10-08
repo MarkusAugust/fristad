@@ -182,6 +182,9 @@ pub struct Prompt {
     pub label: String,
     pub verb: String,
     pub trade: String,
+    /// En kort forklaring av hva dette er og hva du kan gjøre (vises i
+    /// Fristil-tooltipen over siktet).
+    pub info: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]

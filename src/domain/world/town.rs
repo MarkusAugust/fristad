@@ -249,6 +249,11 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         let r = rect_at(base, yaw, mid, half);
         plan.taken.push(r);
         building(b, model, base, yaw);
+        // Glørne i essa lyser hele døgnet (Blender (-2,4, -1,15, 0,9) i smia).
+        if model == "forge" && b.has_model(model) {
+            let ground = b.on_ground(Vec3::new(base.x, 0.0, base.y));
+            b.fire_light(at(ground, yaw).transform_point3(Vec3::new(-2.4, 1.3, 1.15)), Vec3::new(1.0, 0.45, 0.15), 3.0, 7.0);
+        }
         doors.push((m - out * 1.6, yaw));
     }
     // Så rekkene: langs kantene av torget (bare utover) og langs gatene på

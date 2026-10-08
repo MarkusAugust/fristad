@@ -53,43 +53,55 @@ code {
   pointer-events: none;
 }
 
-.crosshair {
+/* Siktekorset midt på skjermen, som utløser i Fristils tooltip
+   (`.fs-tooltip`). Boblen er Fristils `.fs-tooltip__bubble`; den åpnes av
+   spillet (`.is-open`) når du sikter på noe, ikke av hover og fokus, og står
+   under siktet så den ikke dekker det du ser på. */
+.aim {
   position: absolute;
   left: 50%;
   top: 50%;
+  transform: translate(-50%, -50%);
+  --fs-tooltip-width: 22rem;
+  --fs-tooltip-padding: var(--fs-spacing-2) var(--fs-spacing-3);
+}
+
+.crosshair {
+  display: block;
   width: 6px;
   height: 6px;
-  margin: -3px 0 0 -3px;
   border-radius: 50%;
   background: rgb(255 255 255 / 0.85);
   box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.35);
 }
 
-.prompt {
-  position: absolute;
-  left: 50%;
-  bottom: 12vh;
-  transform: translateX(-50%);
+.aim .prompt {
+  inset-block-end: auto;
+  inset-block-start: calc(100% + 3.5rem);
   display: grid;
-  gap: var(--fs-spacing-2);
+  gap: var(--fs-spacing-1);
   justify-items: center;
-  padding: var(--fs-spacing-3) var(--fs-spacing-4);
-  border-radius: var(--fs-spacing-2);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 88%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
-  animation: rise 160ms ease-out;
+  text-align: center;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.3);
 }
 
-.prompt-title {
-  display: flex;
-  align-items: center;
-  gap: var(--fs-spacing-2);
+.aim.is-open .prompt {
+  visibility: visible;
+  opacity: 1;
+}
+
+.prompt-name {
   font-weight: var(--fs-font-weight-semibold);
+  font-size: var(--fs-font-size-m);
 }
 
-.prompt-title code {
-  color: var(--fs-color-accent-text);
+.prompt-info {
+  opacity: 0.85;
+}
+
+.prompt kbd {
+  color: var(--fs-color-neutral-text-strong);
+  background: var(--fs-color-neutral-canvas);
 }
 
 .keys, .help {
