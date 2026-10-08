@@ -532,14 +532,22 @@ const INNKEEPER: &[&str] = &[
 /// Stavkirka på kirkegården nordvest i byen, med steingjerde og gravsteiner.
 fn church(b: &mut Builder) {
     let c = Vec2::new(-30.0, -30.0);
-    let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
-    if b.place("stave_church", at(base, FRAC_PI_2)) {
-        b.solid_box(base + Vec3::Y * 4.0, Vec3::new(9.0, 8.0, 14.0), FRAC_PI_2);
-    }
-    for k in 0..7 {
-        let p = Vec2::new(-22.0 + (k % 4) as f32 * 1.6, -24.0 - (k / 4) as f32 * 2.2);
-        let g = b.on_ground(Vec3::new(p.x, 0.0, p.y));
-        b.place("gravestone", at(g, 0.1 * k as f32 - 0.2));
+    // Portalen mot øst, mot byen; boksen rundt modellens mål er kollideren.
+    building(b, "stave_church", c, FRAC_PI_2);
+    // Gravene i to ujevne rader sør for kirka, med haugen mot øst.
+    let mut rng = Rng(0x0c4e_7e12);
+    for row in 0..2 {
+        for k in 0..6 {
+            if rng.chance(0.15) {
+                continue;
+            }
+            let p = Vec2::new(-36.0 + k as f32 * 1.9 + rng.range(-0.3, 0.3), -22.6 + row as f32 * 2.6 + rng.range(-0.3, 0.3));
+            let g = b.on_ground(Vec3::new(p.x, 0.0, p.y));
+            let yaw = FRAC_PI_2 + rng.range(-0.12, 0.12);
+            if b.place("gravestone", at(g, yaw)) {
+                b.solid_box(g + Vec3::Y * 0.45, Vec3::new(0.6, 0.9, 0.2), yaw);
+            }
+        }
     }
 }
 

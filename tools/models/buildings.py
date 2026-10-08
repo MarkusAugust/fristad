@@ -1,7 +1,7 @@
 """Bygningene på torget, modellert i Blender (bpy) og eksportert til
 assets/models/town/. Kjør:
 
-    python3 tools/models/buildings.py [forge tavern apothecary scriptorium]
+    python3 tools/models/buildings.py [forge tavern apothecary scriptorium stave_church gravestone]
 
 Smia (`forge`): et lavt hus av bruddstein med sotet mur og spontak, og
 foran et åpent verksted under et skråtak på stolper: esse av stein med
@@ -21,6 +21,12 @@ og et skilt med morter og støter.
 Skriptoriet (`scriptorium`): et hus av hogd stein med støttepilarer,
 høye rundbuede vinduer med blyglass, rundbuet dør, skifertak, en liten
 klokkestol på mønet og et skilt med en åpen bok.
+
+Stavkirka (`stave_church`), bygd i lag som Borgund: svalgang rundt med
+stolper og lavt tak, sideskip med skråtak, høyt midtskip med bratt
+spontak og drakehoder på gavlene, takrytter med spir, kor og apsis med
+eget lite tårn, rundbuet portal med søyler, alt i tjærebredde planker.
+Gravsteinen (`gravestone`): en hogd steinhelle med rundet topp og kors.
 
 Samme hjelpere og teksturlag som husene (town.py): origo midt på
 grunnflaten, −Y fram (døra mot lokal +Z i motoren)."""
@@ -458,7 +464,169 @@ def scriptorium():
     return m
 
 
-MODELS = {"forge": forge, "tavern": tavern, "apothecary": apothecary, "scriptorium": scriptorium}
+# --- Stavkirka --------------------------------------------------------------
+
+
+def plank_walls(m, name, w, d, z0, z1, mat):
+    """Fire vegger av stående planker rundt et rektangel, med svill og
+    stavlegjer (bjelke øverst)."""
+    t = 0.14
+    for sy in (-1, 1):
+        block(f"{name}_wall", (w, t, z1 - z0), mat, at=(0, sy * (d / 2 - t / 2), (z0 + z1) / 2), bevel=0.01)
+    for sx in (-1, 1):
+        block(f"{name}_wall", (t, d - 2 * t, z1 - z0), mat, at=(sx * (w / 2 - t / 2), 0, (z0 + z1) / 2), bevel=0.01)
+    for z in (z0 + 0.1, z1 - 0.1):
+        for sy in (-1, 1):
+            beam(f"{name}_sill", (-w / 2 - 0.05, sy * (d / 2 + 0.02), z), (w / 2 + 0.05, sy * (d / 2 + 0.02), z), 0.12, 0.2, mat)
+        for sx in (-1, 1):
+            beam(f"{name}_sill", (sx * (w / 2 + 0.02), -d / 2 - 0.05, z), (sx * (w / 2 + 0.02), d / 2 + 0.05, z), 0.12, 0.2, mat)
+    # Hjørnestavene.
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            revolve(f"{name}_stave", [(0.16, z0), (0.16, z1)], mat, n=10, at=(sx * w / 2, sy * d / 2, 0))
+
+
+def skirt_roof(m, name, w_in, d_in, w_out, d_out, z_in, z_out, mat):
+    """Et lavt tak rundt et rektangel (svalgang, sideskip): fire skrå flater
+    fra den indre veggen ned til den ytre kanten."""
+    for sy in (-1, 1):
+        run = (d_out - d_in) / 2
+        tilt = math.atan2(z_in - z_out, run)
+        ln = math.hypot(run, z_in - z_out)
+        ob = block(f"{name}_roof", (w_out, ln, 0.12), mat, bevel=0.01)
+        town._roof_uv(ob, along_y=False)
+        ob.rotation_euler = (sy * tilt, 0, 0)
+        ob.location = (0, sy * (d_in / 2 + run / 2), (z_in + z_out) / 2 + 0.08)
+    for sx in (-1, 1):
+        run = (w_out - w_in) / 2
+        tilt = math.atan2(z_in - z_out, run)
+        ln = math.hypot(run, z_in - z_out)
+        ob = block(f"{name}_roof", (ln, d_in, 0.12), mat, bevel=0.01)
+        town._roof_uv(ob, along_y=True)
+        ob.rotation_euler = (0, -sx * tilt, 0)
+        ob.location = (sx * (w_in / 2 + run / 2), 0, (z_in + z_out) / 2 + 0.08)
+
+
+def dragon(m, x, y, z, out, mat):
+    """Et drakehode på gavlspissen: en buet hals ut og opp, og et hode med
+    gapende kjeft."""
+    pts = [Vector((x, y, z))]
+    for k in range(1, 5):
+        t = k / 4
+        pts.append(Vector((x, y + out * 0.9 * t, z + 0.55 * math.sin(t * math.pi * 0.7))))
+    for a, b in zip(pts, pts[1:]):
+        beam("dragon_neck", a, b, 0.12, 0.16, mat)
+    head = pts[-1]
+    block("dragon_head", (0.12, 0.38, 0.2), mat, at=head + Vector((0, out * 0.15, 0.05)), rot=(out * -0.35, 0, 0), bevel=0.03)
+    block("dragon_jaw", (0.1, 0.32, 0.08), mat, at=head + Vector((0, out * 0.2, -0.1)), rot=(out * 0.3, 0, 0), bevel=0.02)
+    for s in (-1, 1):
+        beam("dragon_horn", head + Vector((s * 0.04, 0, 0.12)), head + Vector((s * 0.08, -out * 0.15, 0.4)), 0.04, 0.04, mat)
+
+
+def stave_church():
+    m = mats(roof="tiles")
+    m.tar = layer("timber", (0.85, 0.85, 0.85), 0.5)
+    m.shingle = layer("tiles", (0.42, 0.36, 0.3), 0.5)
+    W, D = 6.0, 8.6  # sideskipet
+    # Steinfundamentet.
+    block("plinth", (W + 2.9, D + 2.9, 0.5), m.stone, at=(0, 0, 0.0), bevel=0.04, segments=2)
+    # Svalgangen: lav plankevegg med åpne buer mellom stolpene, og tak.
+    gw, gd = W + 2.6, D + 2.6
+    for sy in (-1, 1):
+        for k in range(9):
+            x = -gw / 2 + gw * k / 8
+            beam("gallery_post", (x, sy * gd / 2, 0.25), (x, sy * gd / 2, 2.0), 0.12, 0.12, m.tar, roll=math.pi / 2)
+        if sy > 0:
+            block("gallery_wall", (gw, 0.08, 0.9), m.tar, at=(0, sy * gd / 2, 0.7), bevel=0.01)
+        else:
+            for x0, x1 in ((-gw / 2, -0.9), (0.9, gw / 2)):
+                block("gallery_wall", (x1 - x0, 0.08, 0.9), m.tar, at=((x0 + x1) / 2, sy * gd / 2, 0.7), bevel=0.01)
+        beam("gallery_plate", (-gw / 2, sy * gd / 2, 2.0), (gw / 2, sy * gd / 2, 2.0), 0.14, 0.14, m.tar)
+    for sx in (-1, 1):
+        for k in range(11):
+            y = -gd / 2 + gd * k / 10
+            beam("gallery_post", (sx * gw / 2, y, 0.25), (sx * gw / 2, y, 2.0), 0.12, 0.12, m.tar, roll=math.pi / 2)
+        block("gallery_wall", (0.08, gd, 0.9), m.tar, at=(sx * gw / 2, 0, 0.7), bevel=0.01)
+        beam("gallery_plate", (sx * gw / 2, -gd / 2, 2.0), (sx * gw / 2, gd / 2, 2.0), 0.14, 0.14, m.tar)
+    skirt_roof(m, "gallery", W, D, gw + 0.5, gd + 0.5, 3.0, 2.0, m.shingle)
+    # Sideskipet og taket over det.
+    plank_walls(m, "aisle", W, D, 0.25, 3.6, m.tar)
+    NW, ND = 3.8, 6.6
+    skirt_roof(m, "aisle", NW, ND, W + 0.5, D + 0.5, 4.8, 3.55, m.shingle)
+    # Midtskipet: høye vegger over sideskipet, bratt tak med drakehoder.
+    plank_walls(m, "nave", NW, ND, 3.6, 7.2, m.tar)
+    before = len(PIECES)
+    rise = roof(m, NW + 0.1, ND, 7.2, 62, overhang=0.35, gable_to_street=True)
+    for ob in PIECES[before:]:
+        if ob.name.startswith("roof"):
+            ob.data.materials[0] = m.shingle
+    for sy, ny in ((-1, -1.0), (1, 1.0)):
+        gable(m, NW, 7.2, rise, sy * ND / 2, ny, random.Random(7), boards=True)
+        dragon(m, 0.0, sy * (ND / 2 + 0.35), 7.2 + rise + 0.15, sy, m.tar)
+    # Takrytteren midt på mønet: et lite tårn med svalganger og et spir.
+    tz = 7.2 + rise - 0.6
+    block("turret", (1.3, 1.3, 1.8), m.tar, at=(0, 0, tz + 0.9), bevel=0.02)
+    for sy in (-1, 1):
+        for k in range(3):
+            block("turret_arch", (0.25, 0.04, 0.5), m.glass, at=(-0.4 + k * 0.4, sy * 0.66, tz + 1.3), bevel=0)
+    from walls import pyramid
+    pyramid("turret_roof", 0.9, 0.9, tz + 1.8, tz + 2.3, m.shingle)
+    spire = revolve("spire", [(0.62, tz + 2.2), (0.0, tz + 5.0)], m.shingle, n=8, cap=False, uv="planar")
+    spire.rotation_euler = (0, 0, math.pi / 8)
+    revolve("spire_top", [(0.05, tz + 4.9), (0.04, tz + 5.6), (0.0, tz + 5.7)], m.iron, n=8)
+    # Koret og apsiden bak.
+    cy = D / 2 + 1.4
+    before = len(PIECES)
+    plank_walls(m, "choir", 3.4, 2.8, 0.25, 3.4, m.tar)
+    rr = roof(m, 3.5, 2.8, 3.4, 58, overhang=0.3, gable_to_street=True)
+    for ob in PIECES[before:]:
+        if ob.name.startswith("roof"):
+            ob.data.materials[0] = m.shingle
+    moved(before, Matrix.Translation((0, cy, 0)))
+    ay = cy + 1.4
+    apse = revolve("apse", [(1.3, 0.25), (1.3, 3.0)], m.tar, n=16, cap=False)
+    apse.location = (0, ay, 0)
+    revolve("apse_roof", [(1.6, 2.9), (0.0, 4.6)], m.shingle, n=16, cap=False, uv="planar").location = (0, ay, 0)
+    revolve("apse_tower", [(0.35, 4.3), (0.35, 5.2), (0.0, 6.4)], m.shingle, n=8, uv="planar").location = (0, ay, 0)
+    # Portalen: rundbuet dør i vestgavlen, med søyler og en buet karm.
+    py = -D / 2 - 0.08
+    n = 5
+    for k in range(n):
+        px = -0.55 + 1.1 * (k + 0.5) / n
+        top = 0.3 + 2.0 + math.sqrt(max(0.0, 0.55 ** 2 - px * px)) * 0.9
+        block("portal_plank", (1.1 / n - 0.01, 0.06, top - 0.3), m.boards, at=(px, py, 0.3 + (top - 0.3) / 2), bevel=0.005)
+    for sx in (-1, 1):
+        revolve("portal_column", [(0.1, 0.25), (0.08, 0.4), (0.08, 2.2), (0.12, 2.35), (0.0, 2.35)], m.tar, n=10, at=(sx * 0.75, py - 0.08, 0))
+        for k in range(6):
+            block("carving", (0.1, 0.05, 0.12), m.tar, at=(sx * 0.95, py - 0.06, 0.6 + k * 0.3), rot=(0, sx * 0.6 * (1 if k % 2 else -1), 0), bevel=0.02)
+    for k in range(9):
+        a = math.pi * k / 8
+        c = Vector((math.cos(a) * 0.72, py - 0.06, 2.3 + math.sin(a) * 0.6))
+        block("portal_arch", (0.18, 0.1, 0.22), m.tar, at=c, rot=(0, math.pi / 2 - a, 0), bevel=0.02)
+    for z in (0.8, 1.8):
+        block("portal_strap", (1.0, 0.03, 0.06), m.iron, at=(0, py - 0.04, z), bevel=0.005)
+    # Trinnet opp til svalgangen foran portalen.
+    block("step", (1.8, 0.8, 0.25), m.stone, at=(0, -gd / 2 - 0.5, 0.0), bevel=0.03, segments=2)
+    return m
+
+
+def gravestone():
+    m = mats()
+    m.moss = layer("sod", (0.6, 0.7, 0.55), 0.5)
+    # Hella med rundet topp, litt skjev, og et kors hogd ut i relieff.
+    block("slab", (0.55, 0.14, 0.75), m.stone, at=(0, 0, 0.25), rot=(0.04, 0.03, 0), bevel=0.03, segments=2)
+    top = revolve("slab_top", [(0.0, -0.07), (0.275, -0.07), (0.275, 0.07), (0.0, 0.07)], m.stone, n=16)
+    top.rotation_euler = (math.pi / 2 + 0.04, 0, 0)
+    top.location = (0, 0.03, 0.62)
+    block("cross_v", (0.06, 0.03, 0.42), m.stone, at=(0, -0.08, 0.5), rot=(0.04, 0, 0), bevel=0.01)
+    block("cross_h", (0.26, 0.03, 0.06), m.stone, at=(0, -0.08, 0.58), rot=(0.04, 0, 0), bevel=0.01)
+    # Mose ved foten og en liten haug foran.
+    block("moss", (0.6, 0.2, 0.1), m.moss, at=(0, 0, -0.07), bevel=0.04, segments=2)
+    block("mound", (0.7, 1.6, 0.18), m.moss, at=(0, -0.95, -0.05), bevel=0.08, segments=3)
+    return m
+
+
+MODELS = {"forge": forge, "tavern": tavern, "apothecary": apothecary, "scriptorium": scriptorium, "stave_church": stave_church, "gravestone": gravestone}
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if a in MODELS] or list(MODELS)

@@ -99,6 +99,8 @@ models! {
     "tavern" => "town/tavern.glb",
     "apothecary" => "town/apothecary.glb",
     "scriptorium" => "town/scriptorium.glb",
+    "stave_church" => "town/stave_church.glb",
+    "gravestone" => "town/gravestone.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }
