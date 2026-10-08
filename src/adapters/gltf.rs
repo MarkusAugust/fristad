@@ -97,6 +97,8 @@ models! {
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
     "tavern" => "town/tavern.glb",
+    "apothecary" => "town/apothecary.glb",
+    "scriptorium" => "town/scriptorium.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }

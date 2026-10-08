@@ -1,7 +1,7 @@
 """Bygningene på torget, modellert i Blender (bpy) og eksportert til
 assets/models/town/. Kjør:
 
-    python3 tools/models/buildings.py [forge tavern]
+    python3 tools/models/buildings.py [forge tavern apothecary scriptorium]
 
 Smia (`forge`): et lavt hus av bruddstein med sotet mur og spontak, og
 foran et åpent verksted under et skråtak på stolper: esse av stein med
@@ -12,6 +12,15 @@ smijernsskilt på arm.
 Vertshuset (`tavern`): et stort bindingsverkshus i to etasjer med
 langsida mot torget, framskutt overetasje og halmtak, og ved døra et
 skilt på jernarm, en lykt, benker og bord, og tønner.
+
+Apoteket (`apothecary`): et smalt bindingsverkshus med gavlen mot torget
+og skifertak, med en salgsluke der skodda er slått ned til et bord med
+krukker og glass, urtebunter til tørk under takskjegget, plantekrukker
+og et skilt med morter og støter.
+
+Skriptoriet (`scriptorium`): et hus av hogd stein med støttepilarer,
+høye rundbuede vinduer med blyglass, rundbuet dør, skifertak, en liten
+klokkestol på mønet og et skilt med en åpen bok.
 
 Samme hjelpere og teksturlag som husene (town.py): origo midt på
 grunnflaten, −Y fram (døra mot lokal +Z i motoren)."""
@@ -270,7 +279,186 @@ def tavern():
     return m
 
 
-MODELS = {"forge": forge, "tavern": tavern}
+# --- Apoteket ---------------------------------------------------------------
+
+
+def jar(m, x, y, z, r, h, mat):
+    """En krukke eller flaske (dreid), med kork."""
+    revolve("jar", [(0.0, z), (r * 0.8, z), (r, z + h * 0.15), (r, z + h * 0.7), (r * 0.45, z + h * 0.88), (r * 0.4, z + h), (0.0, z + h)], mat, n=12, at=(x, y, 0))
+    revolve("cork", [(0.0, z + h), (r * 0.36, z + h), (r * 0.36, z + h + 0.03), (0.0, z + h + 0.03)], m.bark, n=8, at=(x, y, 0))
+
+
+def apothecary():
+    spec = dict(seed=41, w=7.4, d=7.0, floors=2, jetty=0.4, pitch=55, gable=True, roof="slate",
+                plaster=(0.95, 0.97, 0.9), door_x=1.9, windows0=[-1.4], windows_up=2, plinth=0.7)
+    m = town.half_timbered(spec)
+    m.planks = layer("cladding", (0.5, 0.42, 0.34), 0.5)
+    m.dark_iron = layer("metal", (0.28, 0.26, 0.25), 0.5)
+    m.bark = layer("bark", (0.8, 0.75, 0.7), 0.5)
+    m.clay = layer("brick", (0.75, 0.5, 0.36), 0.5)
+    m.herb = layer("thatch", (0.45, 0.55, 0.3), 0.5)
+    m.herb2 = layer("thatch", (0.6, 0.45, 0.4), 0.5)
+    rng = random.Random(42)
+    fy = -spec["d"] / 2 - 0.11
+    # Salgsluka: skodda er slått ned til et bord på to knekter under vinduet.
+    wx, wz = -1.4, 0.7 + 1.45
+    block("counter", (1.25, 0.5, 0.05), m.planks, at=(wx, fy - 0.27, wz - 0.55), bevel=0.008)
+    for sx in (-1, 1):
+        beam("bracket", (wx + sx * 0.5, fy - 0.02, wz - 1.0), (wx + sx * 0.5, fy - 0.45, wz - 0.58), 0.05, 0.05, m.timber)
+    for k in range(6):
+        x = wx - 0.5 + k * 0.2
+        if k % 2:
+            jar(m, x, fy - 0.27 + rng.uniform(-0.08, 0.08), wz - 0.525, 0.06, rng.uniform(0.14, 0.2), m.clay)
+        else:
+            jar(m, x, fy - 0.27 + rng.uniform(-0.08, 0.08), wz - 0.525, 0.05, rng.uniform(0.16, 0.24), m.glass)
+    # En vekt og en morter på bordet.
+    revolve("mortar", [(0.0, 0.0), (0.09, 0.0), (0.11, 0.1), (0.08, 0.1), (0.06, 0.04), (0.0, 0.04)], m.stone, n=14, at=(wx + 0.45, fy - 0.35, wz - 0.525))
+    beam("pestle", (wx + 0.45, fy - 0.35, wz - 0.48), (wx + 0.52, fy - 0.3, wz - 0.3), 0.025, 0.025, m.planks)
+    # Urtebunter til tørk på en stang under den framskutte etasjen.
+    bar_z = 0.7 + 2.7 - 0.25
+    beam("herb_bar", (-3.4, fy - 0.55, bar_z), (0.6, fy - 0.55, bar_z), 0.04, 0.04, m.timber)
+    for k in range(9):
+        x = -3.2 + k * 0.42
+        mat = m.herb if k % 3 else m.herb2
+        ln = rng.uniform(0.3, 0.45)
+        b = revolve("herbs", [(0.0, -ln), (0.07, -ln * 0.8), (0.05, -0.05), (0.015, 0.0)], mat, n=8, at=(x, fy - 0.55, bar_z - 0.02))
+        b.rotation_euler = (rng.uniform(-0.1, 0.1), rng.uniform(-0.1, 0.1), 0)
+        beam("herb_tie", (x, fy - 0.55, bar_z), (x, fy - 0.55, bar_z - 0.06), 0.012, 0.012, m.planks)
+    # Plantekrukker ved døra.
+    for k, (x, y) in enumerate([(3.1, fy - 0.5), (3.3, fy - 1.0), (0.7, fy - 0.45)]):
+        r = rng.uniform(0.18, 0.24)
+        revolve("pot", [(0.0, 0.0), (r * 0.8, 0.0), (r, r * 1.3), (r * 1.05, r * 1.4), (0.0, r * 1.4)], m.clay, n=14, at=(x, y, 0))
+        for j in range(6):
+            a = j * 1.05
+            b = revolve("plant", [(0.0, 0.0), (0.04, 0.12), (0.0, 0.35)], m.herb, n=5, at=(x + math.cos(a) * r * 0.4, y + math.sin(a) * r * 0.4, r * 1.35))
+            b.rotation_euler = (math.cos(a) * 0.4, math.sin(a) * 0.4, 0)
+    # Skiltet: en morter med støter i smijern på en arm ved hjørnet.
+    sx = spec["w"] / 2 - 0.1
+    beam("sign_arm", (sx, fy, 3.6), (sx, fy - 1.0, 3.6), 0.05, 0.05, m.dark_iron)
+    beam("sign_strut", (sx, fy, 3.1), (sx, fy - 0.7, 3.58), 0.03, 0.03, m.dark_iron)
+    beam("sign_chain", (sx, fy - 0.75, 3.58), (sx, fy - 0.75, 3.35), 0.015, 0.015, m.dark_iron)
+    revolve("sign_mortar", [(0.0, -0.24), (0.16, -0.24), (0.2, 0.0), (0.16, 0.0), (0.0, -0.08)], m.dark_iron, n=14, at=(sx, fy - 0.75, 3.35))
+    beam("sign_pestle", (sx - 0.05, fy - 0.75, 3.2), (sx + 0.12, fy - 0.75, 3.5), 0.04, 0.04, m.dark_iron)
+    return m
+
+
+# --- Skriptoriet ------------------------------------------------------------
+
+
+def arched_window(m, target, u, face, normal, z0, w, h, thick, side=False):
+    """Et høyt rundbuet vindu i en mur: hull, buestein, sålbenk og blyglass
+    innfelt. Muren har yta i `face` med normalen `normal` (±1) langs y, eller
+    langs x når `side`; `u` er plassen langs muren."""
+    from walls import cutter
+    s = normal
+
+    def P(along, out, z):
+        return Vector((face + s * out, along, z)) if side else Vector((along, face + s * out, z))
+
+    def size(a, b, c):
+        return (b, a, c) if side else (a, b, c)
+
+    straight = h - w / 2
+    cut(target, size(w, thick + 0.4, straight), P(u, -thick / 2, z0 + straight / 2))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=w / 2, depth=thick + 0.4, location=P(u, -thick / 2, z0 + straight), rotation=(0, math.pi / 2, 0) if side else (math.pi / 2, 0, 0))
+    cutter(bpy.context.active_object, target)
+    town.uv_box(target)
+    for k in range(9):
+        a = math.pi * k / 8
+        c = P(u + math.cos(a) * (w / 2 + 0.12), 0.04, z0 + straight + math.sin(a) * (w / 2 + 0.12))
+        rot = (-(math.pi / 2 - a), 0, 0) if side else (0, math.pi / 2 - a, 0)
+        block("voussoir", size(0.16, 0.14, 0.3), m.stone, at=c, rot=rot, bevel=0.02, segments=2)
+    block("sill", size(w + 0.3, 0.22, 0.1), m.stone, at=P(u, 0.06, z0 - 0.05), bevel=0.02, segments=2)
+    g = -thick * 0.6
+    block("glass", size(w, 0.02, straight), m.glass, at=P(u, g, z0 + straight / 2), bevel=0)
+    disc = revolve("glass_top", [(0.0, -0.01), (w / 2, -0.01), (w / 2, 0.01), (0.0, 0.01)], m.glass, n=16)
+    disc.rotation_euler = (0, math.pi / 2, 0) if side else (math.pi / 2, 0, 0)
+    disc.location = P(u, g, z0 + straight)
+    for k in range(1, 3):
+        block("lead", size(0.012, 0.03, h - 0.05), m.iron, at=P(u - w / 2 + w * k / 3, g + 0.01, z0 + (h - 0.05) / 2), bevel=0)
+    for k in range(1, 6):
+        block("lead", size(w, 0.03, 0.012), m.iron, at=P(u, g + 0.01, z0 + straight * k / 5), bevel=0)
+
+
+def scriptorium():
+    m = mats(roof="slate")
+    m.ashlar = layer("brick", (0.62, 0.6, 0.57), 0.5)
+    W, D, H = 10.0, 8.0, 5.2
+    t = 0.65
+    front = stone_wall(m, "front", -W / 2, W / 2, -D / 2, -D / 2 + t, -0.24, H, m.ashlar)
+    back = stone_wall(m, "back", -W / 2, W / 2, D / 2 - t, D / 2, -0.24, H, m.ashlar)
+    sides = [stone_wall(m, f"side{sx}", (sx * W / 2) - (t if sx > 0 else 0), (sx * W / 2) + (0 if sx > 0 else t), -D / 2 + t, D / 2 - t, -0.24, H, m.ashlar) for sx in (-1, 1)]
+    # Sokkelen: en bredere steinrad nederst.
+    block("plinth", (W + 0.3, D + 0.3, 0.6), m.stone, at=(0, 0, 0.06), bevel=0.04, segments=2)
+    # Rundbuet dør midt på, med buestein og trinn.
+    dw, dh = 1.3, 2.6
+    cut(front, (dw, t + 0.4, dh - dw / 2), (0, -D / 2 + t / 2, 0.35 + (dh - dw / 2) / 2))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=dw / 2, depth=t + 0.4, location=(0, -D / 2 + t / 2, 0.35 + dh - dw / 2), rotation=(math.pi / 2, 0, 0))
+    from walls import cutter
+    cutter(bpy.context.active_object, front)
+    for k in range(11):
+        a = math.pi * k / 10
+        c = Vector((math.cos(a) * (dw / 2 + 0.15), -D / 2 - 0.04, 0.35 + dh - dw / 2 + math.sin(a) * (dw / 2 + 0.15)))
+        block("door_voussoir", (0.2, 0.16, 0.34), m.stone, at=c, rot=(0, math.pi / 2 - a, 0), bevel=0.02, segments=2)
+    n = 6
+    for k in range(n):
+        px = -dw / 2 + dw * (k + 0.5) / n
+        top = 0.35 + dh - dw / 2 + math.sqrt(max(0.0, (dw / 2) ** 2 - px * px)) - 0.02
+        block("door_plank", (dw / n - 0.008, 0.06, top - 0.35), m.boards, at=(px, -D / 2 + t * 0.55, 0.35 + (top - 0.35) / 2), bevel=0.005)
+    for z in (0.8, 2.0):
+        block("door_strap", (dw * 0.9, 0.03, 0.07), m.iron, at=(0, -D / 2 + t * 0.55 - 0.045, z), bevel=0.005)
+    block("step", (dw + 0.8, 0.6, 0.2), m.stone, at=(0, -D / 2 - 0.3, 0.1), bevel=0.03, segments=2)
+    block("step2", (dw + 1.2, 0.5, 0.15), m.stone, at=(0, -D / 2 - 0.65, -0.02), bevel=0.03, segments=2)
+    # Høye rundbuede vinduer: to på fronten, to på hver langside.
+    for x in (-3.0, 3.0):
+        arched_window(m, front, x, -D / 2, -1.0, 1.4, 0.9, 2.6, t)
+    for sx, side in zip((-1, 1), sides):
+        for y in (-1.9, 1.9):
+            arched_window(m, side, y, sx * W / 2, float(sx), 1.4, 0.8, 2.4, t, side=True)
+    # Støttepilarer på hjørnene og midt på langsidene, trappet inn.
+    for x, y, ax in [(-W / 2, -D / 2, 0), (W / 2, -D / 2, 0), (-W / 2, D / 2, 0), (W / 2, D / 2, 0), (-W / 2, 0, 1), (W / 2, 0, 1)]:
+        for k, (hgt, depth) in enumerate([(2.2, 0.75), (1.6, 0.5), (1.0, 0.3)]):
+            z0 = [0, 2.2, 3.8][k]
+            if ax:
+                block("buttress", (depth, 0.7, hgt), m.ashlar, at=(x + math.copysign(depth / 2, x), y, z0 + hgt / 2 - (0.24 if k == 0 else 0)), bevel=0.04, segments=2)
+            else:
+                block("buttress", (0.7, depth, hgt), m.ashlar, at=(x, y + math.copysign(depth / 2, y), z0 + hgt / 2 - (0.24 if k == 0 else 0)), bevel=0.04, segments=2)
+    # Gesimsen under taket.
+    block("cornice", (W + 0.3, D + 0.3, 0.2), m.stone, at=(0, 0, H + 0.05), bevel=0.03, segments=2)
+    # Taket: bratt saltak med gavlen mot torget, gavler av hogd stein.
+    rise = roof(m, W + 0.2, D, H + 0.1, 52, gable_to_street=True)
+    from town import prism
+    for sy in (-1, 1):
+        prism("gable_stone", [(-W / 2, 0.0), (W / 2, 0.0), (0.0, rise)], t, m.ashlar, at=(0, sy * (D / 2 - t / 2), H + 0.1))
+        # Et lite rundvindu i gavlen.
+        g = revolve("oculus", [(0.0, -0.02), (0.35, -0.02), (0.35, 0.02), (0.0, 0.02)], m.glass, n=16)
+        g.rotation_euler = (math.pi / 2, 0, 0)
+        g.location = (0, sy * (D / 2 + 0.01), H + 0.1 + rise * 0.35)
+        rim = revolve("oculus_rim", [(0.35, -0.08), (0.48, -0.08), (0.48, 0.08), (0.35, 0.08)], m.stone, n=16, cap=False)
+        rim.rotation_euler = (math.pi / 2, 0, 0)
+        rim.location = (0, sy * (D / 2 + 0.02), H + 0.1 + rise * 0.35)
+    # Klokkestolen på mønet, foran: fire stolper, et lite tak og ei klokke.
+    bz = H + 0.1 + rise
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            beam("bell_post", (sx * 0.35, -D / 2 + 1.2 + sy * 0.35, bz - 0.2), (sx * 0.35, -D / 2 + 1.2 + sy * 0.35, bz + 1.1), 0.1, 0.1, m.timber)
+    from walls import pyramid
+    pyramid("bell_roof", 0.6, 0.6, bz + 1.1, bz + 1.8, m.roof)
+    revolve("bell", [(0.0, bz + 0.85), (0.08, bz + 0.85), (0.14, bz + 0.6), (0.2, bz + 0.4), (0.0, bz + 0.42)], m.iron, n=16, at=(0, -D / 2 + 1.2, 0))
+    revolve("finial", [(0.05, bz + 1.75), (0.03, bz + 2.2), (0.0, bz + 2.3)], m.iron, n=8)
+    PIECES[-1].location = (0, -D / 2 + 1.2, 0)
+    # Skiltet: en åpen bok i smijern på en arm ved døra.
+    sx = 1.6
+    beam("sign_arm", (sx, -D / 2 - 0.05, 3.3), (sx, -D / 2 - 1.0, 3.3), 0.05, 0.05, m.dark_iron)
+    beam("sign_strut", (sx, -D / 2 - 0.05, 2.85), (sx, -D / 2 - 0.7, 3.28), 0.03, 0.03, m.dark_iron)
+    beam("sign_chain", (sx, -D / 2 - 0.7, 3.28), (sx, -D / 2 - 0.7, 3.05), 0.015, 0.015, m.dark_iron)
+    for s in (-1, 1):
+        block("sign_page", (0.04, 0.32, 0.4), m.planks, at=(sx, -D / 2 - 0.7 + s * 0.17, 2.85), rot=(s * 0.25, 0, 0), bevel=0.01)
+    block("sign_spine", (0.06, 0.04, 0.42), m.dark_iron, at=(sx, -D / 2 - 0.7, 2.83), bevel=0.01)
+    return m
+
+
+MODELS = {"forge": forge, "tavern": tavern, "apothecary": apothecary, "scriptorium": scriptorium}
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if a in MODELS] or list(MODELS)
