@@ -347,7 +347,7 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
 pub fn build(b: &mut Builder) -> Town {
     let doors = houses(b);
     wall(b);
-    square(b);
+    square(b, &doors);
     church(b);
     yard(b);
     let crypt_exit = castle(b);
@@ -437,16 +437,40 @@ fn wall(b: &mut Builder) {
     }
 }
 
-/// Torget: torgkorset, markedsbodene langs kantene utenom Storgata,
-/// kjerrer, tønner og kasser, og lykter.
-fn square(b: &mut Builder) {
-    let cross = b.on_ground(Vec3::new(-5.5, 0.0, -4.0));
+/// Torget: torgkorset, markedsbodene, kjerrer, tønner og kasser, og
+/// lykter. Hver ting skyves inn mot midten av torget til den står fri av
+/// Storgata og har plass foran dørene til bygningene langs kanten.
+fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
+    let center = SQUARE.iter().copied().sum::<Vec2>() * 0.25;
+    let mut placed = vec![];
+    let clear = |p: Vec2, r: f32, placed: &[(Vec2, f32)]| {
+        placed.iter().all(|(q, rq)| q.distance(p) > r + rq + 0.6) && street_dist(&streets()[0], p).0 > MAIN + r + 0.4 && doors.iter().all(|(d, _)| d.distance(p) > 4.5 + r) && square_dist(p) < -r - 0.3
+    };
+    let settle = |p: Vec2, r: f32, placed: &mut Vec<(Vec2, f32)>| {
+        // Nærmeste ledige plass i ringer rundt der tingen er tenkt.
+        for ring in 0..24 {
+            let rad = ring as f32 * 0.5;
+            let n = if ring == 0 { 1 } else { 12 + ring * 2 };
+            for k in 0..n {
+                let a = TAU * k as f32 / n as f32;
+                let q = p + Vec2::new(a.cos(), a.sin()) * rad;
+                if clear(q, r, placed) {
+                    placed.push((q, r));
+                    return Some(q);
+                }
+            }
+        }
+        None
+    };
+    let c = settle(Vec2::new(-5.5, -4.0), 1.2, &mut placed).unwrap_or(center);
+    let cross = b.on_ground(Vec3::new(c.x, 0.0, c.y));
     if b.place("market_cross", at(cross, 0.3)) {
         b.solid(Shape::Cylinder { center: cross + Vec3::Y * 1.5, radius: 0.9, half_height: 1.5 });
     }
     let stalls = [(-9.0, 6.5, 0.25), (-5.0, 8.0, 0.1), (9.0, 5.5, -0.2), (10.0, -6.5, PI - 0.15), (6.5, -9.0, PI + 0.1)];
     for (k, (x, z, yaw)) in stalls.into_iter().enumerate() {
-        let base = b.on_ground(Vec3::new(x, 0.0, z));
+        let Some(p) = settle(Vec2::new(x, z), 1.5, &mut placed) else { continue };
+        let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         let model = if k % 2 == 0 { "market_stall" } else { "market_stall_b" };
         if b.place(model, at(base, yaw)) {
             b.solid_box(base + Vec3::Y * 0.5, Vec3::new(2.6, 1.0, 1.4), yaw);
@@ -454,7 +478,8 @@ fn square(b: &mut Builder) {
     }
     let props = [("cart", -7.0, -9.0, 1.2), ("barrel", -7.6, 9.0, 0.0), ("barrel", -6.9, 9.6, 1.0), ("crate", 10.6, 7.2, 0.3), ("crate", 11.2, 6.4, 1.1), ("barrel", 11.6, -8.4, 2.0)];
     for (model, x, z, yaw) in props {
-        let base = b.on_ground(Vec3::new(x, 0.0, z));
+        let Some(p) = settle(Vec2::new(x, z), if model == "cart" { 1.5 } else { 0.5 }, &mut placed) else { continue };
+        let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         if b.place(model, at(base, yaw)) {
             if let Some((lo, hi)) = b.bounds(model) {
                 let size = hi - lo;
