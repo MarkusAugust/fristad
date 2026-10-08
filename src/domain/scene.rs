@@ -5,6 +5,8 @@ use glam::{Affine3A, Mat4, Vec3, Vec4};
 
 pub const PALETTE: usize = 64;
 pub const MAX_LIGHTS: usize = 48;
+/// Pipene som ryker i hvert bilde (de nærmeste kameraet).
+pub const MAX_SMOKE: usize = 32;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct Weather {
@@ -74,6 +76,9 @@ pub struct Frame {
     pub weather: Weather,
     pub palette: [Vec3; PALETTE],
     pub lights: Vec<Light>,
+    /// Røyken fra pipene: toppen av pipa (xyz) og tykkelsen (w), de
+    /// nærmeste først.
+    pub smoke: Vec<Vec4>,
     /// Modellinstansene som flytter seg (dyrene), per bilde.
     pub instances: Vec<ModelInstance>,
     /// Leddmatrisene (hjørne i meshen → posert) for de skinnede

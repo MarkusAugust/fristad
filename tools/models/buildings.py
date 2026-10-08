@@ -410,7 +410,7 @@ def forge():
         t = k / 4
         w = 1.7 - 0.8 * t
         block("hood", (w, w * 0.85, 0.24), m.soot, at=(hx, hy + 0.1 * t, 1.9 + t * 1.0), bevel=0.03, segments=2)
-    town.chimney(m, hx, hy + 0.1, 2.9, 6.6)
+    town.chimney(m, hx, hy + 0.1, 2.9, 6.6, smoke=1.0)
     # Blåsebelgen: to bord med lær mellom, og en stang til å trå.
     bx, by = hx - 1.25, hy + 0.2
     block("bellows_top", (0.55, 1.0, 0.05), m.planks, at=(bx, by, 0.9), rot=(0.12, 0, 0), bevel=0.01)
@@ -583,6 +583,8 @@ def tavern():
     spec = dict(seed=31, w=12.0, d=9.0, floors=2, jetty=0.45, pitch=50, gable=False, roof="thatch",
                 plaster=(1.0, 0.93, 0.8), door_x=-1.2, windows0=[-4.4, -2.9, 1.6, 3.6], windows_up=5, plinth=0.6, open_door=True, lantern=False)
     m = town.half_timbered(spec)
+    # Peisen i skjenkestua fyres hele dagen.
+    town.SMOKE[-1] = (town.SMOKE[-1][0], 0.9)
     inside(m)
     m.soot = layer("soot", (0.8, 0.8, 0.8), 0.5)
     m.bark = layer("bark", (0.8, 0.75, 0.7), 0.5)
@@ -1708,5 +1710,7 @@ if __name__ == "__main__":
     for name in names:
         clear()
         PIECES.clear()
+        # Hus man kan gå inn i lyser ut gjennom vinduene om natta.
+        town.LIT = name in ("forge", "tavern", "apothecary", "scriptorium", "stave_church")
         MODELS[name]()
         finish(f"{OUT}/{name}.glb", max_edge=1.0 if name in ("tavern", "scriptorium", "apothecary") else 0.6)

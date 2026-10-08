@@ -40,6 +40,8 @@ struct Globals {
     tex_scale: array<vec4<f32>, 7>,
     palette: array<vec4<f32>, 64>,
     lights: array<Light, 48>,
+    // Pipene som ryker: toppen (xyz) og tykkelsen (w), opptil 32.
+    smoke: array<vec4<f32>, 32>,
 }
 
 @group(0) @binding(0) var<uniform> g: Globals;

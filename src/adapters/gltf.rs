@@ -323,6 +323,11 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if named("glass_day") {
                 mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
+            // «glass_lit» er utsida av en rute i et hus man kan gå inn i:
+            // lyset inne skinner ut om natta.
+            if named("glass_lit") {
+                mmat = mmat.flags(flag::GLOW_LAMP);
+            }
             // «fire» brenner hele døgnet (fakler, ildsteder).
             if named("fire") {
                 mmat.kind = kind::LAMP;

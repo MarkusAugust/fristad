@@ -73,6 +73,8 @@ struct TargetState {
 pub struct Session {
     pub(super) tokens: Tokens,
     pub(super) lights: Vec<Light>,
+    /// Pipene som ryker (toppen, tykkelsen).
+    pub(super) smoke: Vec<(Vec3, f32)>,
     targets: Vec<TargetState>,
     by_collider: HashMap<ColliderId, usize>,
     pub(super) pos: Vec3,
@@ -160,6 +162,7 @@ impl Session {
         Self {
             tokens: Tokens::load(),
             lights: world.lights.clone(),
+            smoke: world.smoke.clone(),
             targets,
             by_collider,
             pos: feet + Vec3::Y * (half + radius + 0.05),

@@ -493,6 +493,9 @@ struct Inside {
     /// Lykter som tennes om natta (vegglykta ved døra).
     #[serde(default)]
     lamps: Vec<([f32; 3], [f32; 3], f32, f32)>,
+    /// Pipene: toppen og hvor tykk røyken er.
+    #[serde(default)]
+    smoke: Vec<([f32; 3], f32)>,
 }
 
 const INSIDE: [(&str, &str); 11] = [
@@ -530,6 +533,9 @@ fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     if let Some(inside) = inside {
         for (p, color, intensity, radius) in &inside.lamps {
             b.lamp_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
+        }
+        for (p, strength) in &inside.smoke {
+            b.smoke(t.transform_point3(Vec3::from(*p)), *strength);
         }
     }
     if let Some(inside) = inside.filter(|i| !i.boxes.is_empty()) {

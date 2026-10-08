@@ -395,3 +395,15 @@ fn bronnen_gir_vann() {
     assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s == "well")), "ingen lyd fra brønnen");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("drikker"))), "fikk ikke drikke");
 }
+
+/// Pipene ryker: husene, Smia og Vertshuset har røyk, og den står over
+/// bakken der pipene er.
+#[test]
+fn pipene_ryker() {
+    let smoke = &world().world.smoke;
+    assert!(smoke.len() >= 20, "bare {} piper ryker", smoke.len());
+    for (p, s) in smoke {
+        let ground = crate::domain::world::terrain::height(p.x, p.z);
+        assert!(p.y > ground + 5.0 && *s > 0.0, "røyken ved ({:.1}, {:.1}, {:.1}) står for lavt", p.x, p.y, p.z);
+    }
+}

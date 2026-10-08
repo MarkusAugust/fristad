@@ -330,18 +330,30 @@ def carve(target, cutters):
 # --- Delene i et hus ------------------------------------------------------
 
 
+# Hus man kan gå inn i: lyset inne skinner ut gjennom rutene om natta.
+LIT = False
+
+
 def daylight(ob, inward):
     """Flatene på ruta som vender inn i huset får «glass_day»: innenfra
-    skinner dagslyset gjennom, utenfra speiler ruta som før."""
+    skinner dagslyset gjennom, utenfra speiler ruta som før. I hus man kan
+    gå inn i (`LIT`) får utsida «glass_lit», som lyser varmt om natta."""
     mat = plain("glass_day", (0.05, 0.06, 0.06), 0.3)
     ob.data.materials.append(mat)
     idx = len(ob.data.materials) - 1
+    lit = None
+    if LIT:
+        ob.data.materials.append(plain("glass_lit", (0.05, 0.06, 0.06), 0.1))
+        lit = len(ob.data.materials) - 1
     bpy.context.view_layer.update()
     rot = ob.matrix_world.to_3x3()
     inward = Vector(inward).normalized()
     for p in ob.data.polygons:
-        if (rot @ p.normal).normalized().dot(inward) > 0.5:
+        d = (rot @ p.normal).normalized().dot(inward)
+        if d > 0.5:
             p.material_index = idx
+        elif d < -0.5 and lit is not None:
+            p.material_index = lit
     return ob
 
 
@@ -556,8 +568,15 @@ def gable(m, w, eave, rise, y, normal_y, rng, boards=True):
     return ob
 
 
-def chimney(m, x, y, z0, z1):
-    """Steinpipe: murt av enkeltstein, med en krage øverst."""
+# Pipene som ryker: toppen og tykkelsen (0..1); `finish` skriver dem som
+# «smoke».
+SMOKE = []
+
+
+def chimney(m, x, y, z0, z1, smoke=0.6):
+    """Steinpipe: murt av enkeltstein, med en krage øverst. Røyken stiger
+    fra toppen (`smoke` er tykkelsen)."""
+    SMOKE.append(((x, y, z1 + 0.15), smoke))
     rng = random.Random(int(x * 100 + y * 10))
     w = 0.7
     block("chimney", (w, w, z1 - z0), m.stone, at=(x, y, (z0 + z1) / 2), bevel=0.02)
@@ -659,6 +678,10 @@ def half_timbered(spec):
 def finish(path, ao_samples=160, max_edge=0.6):
     """Slå sammen delene, del store flater så okklusjonen får hjørner å
     bo i, bak AO til hjørnefargen, og eksporter."""
+    if os.environ.get("FRISTAD_JSON_ONLY"):
+        # Bare kolliderne, lysene og røyken (modellen er uendret).
+        write_inside(path)
+        return
     bpy.ops.object.select_all(action="DESELECT")
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
     for o in meshes:
@@ -728,7 +751,13 @@ def finish(path, ao_samples=160, max_edge=0.6):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
-    if COLLIDERS or LIGHTS or HULLS or LAMPS:
+    write_inside(path)
+
+
+def write_inside(path):
+    """Skriv kolliderne, lysene, lyktene og pipene til `<navn>_inside.json`
+    i motorens akser, og tøm registrene."""
+    if COLLIDERS or LIGHTS or HULLS or LAMPS or SMOKE:
         import json
         # Blender (x, y, z) er (x, z, −y) i motoren; yaw om z blir yaw om y.
         eng = lambda v: [round(v[0], 3), round(v[2], 3), round(-v[1], 3)]
@@ -738,12 +767,14 @@ def finish(path, ao_samples=160, max_edge=0.6):
             "lights": [[eng(c), list(col), i, r] for c, col, i, r in LIGHTS],
             "hulls": [[eng(p) for p in pts] for pts in HULLS],
             "lamps": [[eng(c), list(col), i, r] for c, col, i, r in LAMPS],
+            "smoke": [[eng(c), s] for c, s in SMOKE],
         }
         with open(path.replace(".glb", "_inside.json"), "w") as f:
             json.dump(data, f)
-        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter")
+        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper")
     COLLIDERS.clear()
     LAMPS.clear()
+    SMOKE.clear()
     RELIEF.clear()
     LIGHTS.clear()
     HULLS.clear()

@@ -13,7 +13,7 @@ use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
 use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
-use crate::domain::scene::{Frustum, MAX_LIGHTS, PALETTE};
+use crate::domain::scene::{Frustum, MAX_LIGHTS, MAX_SMOKE, PALETTE};
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
@@ -55,6 +55,8 @@ const INSTANCE_STRIDE: u64 = 96;
 const PASS_STRIDE: u64 = 256;
 const RAIN_COUNT: u32 = 6000;
 const SNOW_COUNT: u32 = 4000;
+/// Røykdotter per pipe (må stemme med `PUFFS` i particles.wgsl).
+const SMOKE_PUFFS: u32 = 24;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -86,6 +88,7 @@ struct Globals {
     tex_scale: [[f32; 4]; 7],
     palette: [[f32; 4]; PALETTE],
     lights: [GpuLight; MAX_LIGHTS],
+    smoke: [[f32; 4]; MAX_SMOKE],
 }
 
 #[repr(C)]
@@ -380,7 +383,7 @@ impl Renderer {
         // Per pass: kaskadenummer for skyggene, regn og snø for partiklene.
         let pass_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("pass"),
-            size: PASS_STRIDE * 5,
+            size: PASS_STRIDE * 6,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -1004,6 +1007,10 @@ impl Renderer {
         for (i, l) in f.lights.iter().take(MAX_LIGHTS).enumerate() {
             lights[i] = GpuLight { pos_radius: [l.pos.x, l.pos.y, l.pos.z, l.radius], color_intensity: [l.color.x, l.color.y, l.color.z, l.intensity] };
         }
+        let mut smoke = [[0.0f32; 4]; MAX_SMOKE];
+        for (i, s) in f.smoke.iter().take(MAX_SMOKE).enumerate() {
+            smoke[i] = s.to_array();
+        }
         let v4 = |v: Vec3, w: f32| [v.x, v.y, v.z, w];
         let mut palette = [[0.0; 4]; PALETTE];
         for (i, c) in f.palette.iter().enumerate() {
@@ -1035,11 +1042,12 @@ impl Renderer {
             tex_scale,
             palette,
             lights,
+            smoke,
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 
         // Per-pass-verdier: kaskade 0–2, regn, snø.
-        let mut pass_data = vec![0u8; PASS_STRIDE as usize * 5];
+        let mut pass_data = vec![0u8; PASS_STRIDE as usize * 6];
         let put = |data: &mut Vec<u8>, i: usize, v: [f32; 4]| {
             let at = i * PASS_STRIDE as usize;
             data[at..at + 16].copy_from_slice(bytemuck::cast_slice(&v));
@@ -1049,6 +1057,7 @@ impl Renderer {
         }
         put(&mut pass_data, 3, [0.0, wx.rain, 0.0, 0.0]);
         put(&mut pass_data, 4, [1.0, wx.snow, 0.0, 0.0]);
+        put(&mut pass_data, 5, [2.0, 1.0, 0.0, 0.0]);
         self.queue.write_buffer(&self.pass_buf, 0, &pass_data);
 
         // Den faste verdenen har én instans uten transform.
@@ -1189,6 +1198,11 @@ impl Renderer {
             pass.set_bind_group(0, &self.globals_bg, &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.draw(0..3, 0..1);
+            if !f.smoke.is_empty() {
+                pass.set_pipeline(&self.particle_pipe);
+                pass.set_bind_group(1, &t.frame_bg, &[(5 * PASS_STRIDE) as u32]);
+                pass.draw(0..4, 0..f.smoke.len() as u32 * SMOKE_PUFFS);
+            }
             if wx.rain > 0.0 || wx.snow > 0.0 {
                 pass.set_pipeline(&self.particle_pipe);
                 if wx.rain > 0.0 {

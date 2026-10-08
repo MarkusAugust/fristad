@@ -2,9 +2,9 @@
 //! lysene følger døgnet, været og om du er nede i kjelleren.
 
 use super::session::Session;
-use crate::domain::scene::{Frame, Light, ModelInstance, PALETTE};
+use crate::domain::scene::{Frame, Light, ModelInstance, MAX_SMOKE, PALETTE};
 use crate::domain::world::dungeon::PORTCULLIS;
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Vec3, Vec4};
 
 impl Session {
     pub fn frame(&self, aspect: f32) -> Frame {
@@ -74,6 +74,15 @@ impl Session {
         // Nede i kjelleren: lite himmellys, mer tåke, øynene vant til mørket.
         let c = self.cellar_t;
 
+        // Røyken fra de nærmeste pipene; tykkere om kvelden, når det fyres
+        // til mat og varme. Nede i kjelleren ser du ingen piper.
+        let mut smoke: Vec<Vec4> = if in_cellar {
+            vec![]
+        } else {
+            self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect()
+        };
+        smoke.sort_by(|a, b| a.truncate().distance_squared(eye_now).total_cmp(&b.truncate().distance_squared(eye_now)));
+        smoke.truncate(MAX_SMOKE);
         let eye = self.eye();
         let mut instances = self.herd.instances(self.time);
         instances.extend(self.npcs.instances(&mut skins));
@@ -104,6 +113,7 @@ impl Session {
             weather: w,
             palette: [Vec3::ONE; PALETTE],
             lights,
+            smoke,
             instances,
             skins,
             hurt: self.combat.hurt,

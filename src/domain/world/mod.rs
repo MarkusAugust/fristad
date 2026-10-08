@@ -74,6 +74,8 @@ pub struct World {
     pub chunks: Vec<Chunk>,
     pub colliders: Vec<Shape>,
     pub lights: Vec<Light>,
+    /// Pipene som ryker: toppen av pipa og hvor tykk røyken er (0..1).
+    pub smoke: Vec<(Vec3, f32)>,
     pub placements: Vec<Placement>,
     pub targets: Vec<Target>,
     pub spawn: Vec3,
@@ -90,6 +92,7 @@ pub struct Builder {
     pub mesh: Mesh,
     pub colliders: Vec<Shape>,
     pub lights: Vec<Light>,
+    pub smoke: Vec<(Vec3, f32)>,
     pub placements: Vec<Placement>,
     pub targets: Vec<Target>,
     pub rng: Rng,
@@ -110,6 +113,7 @@ impl Builder {
             mesh: Mesh::default(),
             colliders: vec![],
             lights: vec![],
+            smoke: vec![],
             placements: vec![],
             targets: vec![],
             rng: Rng(0x5eed_f215_7a1d),
@@ -123,6 +127,11 @@ impl Builder {
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
         self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.0 });
+    }
+
+    /// En pipe som ryker (toppen av pipa, tykkelse 0..1).
+    pub fn smoke(&mut self, top: Vec3, strength: f32) {
+        self.smoke.push((top, strength));
     }
 
     /// En lykt med et talglys: tennes i skumringen og blafrer svakt.
@@ -344,6 +353,7 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
         chunks,
         colliders: b.colliders,
         lights: b.lights,
+        smoke: b.smoke,
         placements: b.placements,
         targets: b.targets,
         dungeon,

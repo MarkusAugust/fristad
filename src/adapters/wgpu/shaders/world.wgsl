@@ -707,6 +707,17 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
             let tone = mix(vec3<f32>(0.62, 0.78, 0.64), vec3<f32>(0.8, 0.84, 0.7), pane);
             s.rough = 0.35;
             s.emissive = tone * sky_amb * wobble * (0.9 + pane * 0.5);
+        } else if (glow == 2u) {
+            // Utsida av en rute i et hus man kan gå inn i: lys, ild og
+            // lysekroner inne skinner varmt gjennom det ujevne glasset om
+            // natta, og blafrer litt.
+            let q = vec2<f32>(dot(i.world.xz, vec2<f32>(0.7071, -0.7071)), i.world.y);
+            let pane = hash31(vec3<f32>(floor(q * 3.8), 3.0));
+            let wobble = 0.6 + 0.5 * fbm2(q * 7.0);
+            let flick = 0.9 + 0.1 * sin(g.camera.w * 6.0 + pane * 17.0) * sin(g.camera.w * 2.3 + pane * 5.0);
+            let warm = mix(vec3<f32>(1.0, 0.55, 0.22), vec3<f32>(1.0, 0.72, 0.4), pane);
+            s.rough = 0.2;
+            s.emissive = warm * (0.04 + night * 2.2) * wobble * flick;
         } else {
             s.emissive = interior(i.world, n_geo, v, night);
         }
@@ -741,7 +752,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
 
     if (glow == 3u) {
         s.emissive += s.albedo * (0.05 + night * 0.35);
-    } else if (glow == 2u) {
+    } else if (glow == 2u && kind != K_GLASS) {
         s.emissive += tint * vec3<f32>(1.0, 0.78, 0.5) * (0.2 + night * 9.0 * g.params.w);
     }
 
