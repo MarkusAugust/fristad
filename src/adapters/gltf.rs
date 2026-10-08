@@ -144,6 +144,17 @@ models! {
     "dng_chapel" => "dungeon/dng_chapel.glb",
     "dng_treasury" => "dungeon/dng_treasury.glb",
     "dng_arena" => "dungeon/dng_arena.glb",
+    // Pynten per etasje (dungeon::theme).
+    "dngp_shelf" => "dungeon/dngp_shelf.glb",
+    "dngp_sacks" => "dungeon/dngp_sacks.glb",
+    "dngp_banner" => "dungeon/dngp_banner.glb",
+    "dngp_moss" => "dungeon/dngp_moss.glb",
+    "dngp_puddle" => "dungeon/dngp_puddle.glb",
+    "dngp_roots" => "dungeon/dngp_roots.glb",
+    "dngp_skulls" => "dungeon/dngp_skulls.glb",
+    "dngp_bonepile" => "dungeon/dngp_bonepile.glb",
+    "dngp_lava" => "dungeon/dngp_lava.glb",
+    "dngp_embers" => "dungeon/dngp_embers.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
 }

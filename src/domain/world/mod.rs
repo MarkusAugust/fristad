@@ -6,7 +6,7 @@
 //! sør og borgen på haugen i nord.
 
 use crate::domain::geometry::{Chunk, Layer, Mat, Mesh};
-use crate::domain::model::{ModelInfo, Placement};
+use crate::domain::model::{Look, ModelInfo, Placement};
 use crate::domain::rng::Rng;
 use crate::domain::scene::Light;
 use glam::{Affine3A, Quat, Vec2, Vec3};
@@ -212,6 +212,11 @@ impl Builder {
     /// Sett ut en modell med egen farge (lineær RGB) på flatene som er
     /// merket «paint» i modellen.
     pub fn place_tinted(&mut self, model: &'static str, t: Affine3A, tint: Vec3) -> bool {
+        self.place_look(model, t, tint, None)
+    }
+
+    /// Sett ut en modell med et annet utseende (`Look`: kjelleretasjene).
+    pub fn place_look(&mut self, model: &'static str, t: Affine3A, tint: Vec3, look: Option<Look>) -> bool {
         if !self.has_model(model) {
             if !self.missing.contains(&model) {
                 self.missing.push(model);
@@ -221,8 +226,9 @@ impl Builder {
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.transforms.push(t);
             p.tints.push(tint);
+            p.looks.push(look);
         } else {
-            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], reserve: 0 });
+            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], looks: vec![look], reserve: 0 });
         }
         true
     }
@@ -230,7 +236,12 @@ impl Builder {
     /// Sett ut en modell som henger på en vegg eller står oppå noe annet,
     /// så `audit` ikke måler den mot bakken.
     pub fn place_mounted(&mut self, model: &'static str, t: Affine3A) -> bool {
-        if !self.place(model, t) {
+        self.place_mounted_look(model, t, None)
+    }
+
+    /// Som `place_mounted`, med et annet utseende.
+    pub fn place_mounted_look(&mut self, model: &'static str, t: Affine3A, look: Option<Look>) -> bool {
+        if !self.place_look(model, t, Vec3::ONE, look) {
             return false;
         }
         if let Some(p) = self.placements.iter().find(|p| p.model == model) {
@@ -249,7 +260,7 @@ impl Builder {
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.reserve += n;
         } else {
-            self.placements.push(Placement { model, transforms: vec![], tints: vec![], reserve: n });
+            self.placements.push(Placement { model, transforms: vec![], tints: vec![], looks: vec![], reserve: n });
         }
     }
 

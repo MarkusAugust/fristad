@@ -1,7 +1,7 @@
 //! En modell med egne teksturer, slik kjernen ser den. Hvor den kommer fra
 //! (glTF) er adapterens sak.
 
-use crate::domain::geometry::Mesh;
+use crate::domain::geometry::{Layer, Mesh};
 
 pub struct Image {
     pub width: u32,
@@ -36,8 +36,26 @@ pub struct Placement {
     pub transforms: Vec<glam::Affine3A>,
     /// Lakkfargen per instans (lineær RGB), for flater med flagget PAINT.
     pub tints: Vec<glam::Vec3>,
+    /// Et annet utseende per instans (kjelleretasjene), eller ingen.
+    pub looks: Vec<Option<Look>>,
     /// Plass til instanser spillet poserer per bilde (`Frame.instances`).
     pub reserve: usize,
+}
+
+/// Et annet utseende på samme modell: kjellerens modulsett bygges med fire
+/// roller (`Look::ROLES`: mur, hvelv, kvaderstein og gulv), som hver etasje
+/// gir sine egne teksturlag. Tonen (lineær) ganges på rollene, og flammene
+/// (materialer som heter `fire…`) får fargen `flame`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Look {
+    pub layers: [Layer; 4],
+    pub tint: glam::Vec3,
+    pub flame: glam::Vec3,
+}
+
+impl Look {
+    /// Lagene modulsettet er bygd med, som rollene byttes ut fra.
+    pub const ROLES: [Layer; 4] = [Layer::Stone, Layer::Brick, Layer::Concrete, Layer::Tiles];
 }
 
 /// Et fotoskannet materiale som erstatter et bakt teksturlag.

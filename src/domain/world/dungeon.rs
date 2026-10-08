@@ -19,6 +19,8 @@
 //! `next_step`); spilleren går på kolliderne.
 
 use super::{Builder, Shape, Use};
+use crate::domain::geometry::Layer;
+use crate::domain::model::Look;
 use crate::domain::rng::Rng;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
@@ -312,6 +314,12 @@ struct Spots {
     ascend: Option<[f32; 4]>,
     gate: Option<[f32; 4]>,
     tower: Option<[i32; 2]>,
+    /// Ledige murflater for pynt: (x, z, normalen inn i rommet).
+    #[serde(default)]
+    wall: Vec<[f32; 4]>,
+    /// Ledige flekker på gulvet for pynt.
+    #[serde(default)]
+    floor: Vec<[f32; 3]>,
 }
 
 /// Et rom eller en gangmodul: fotavtrykket w × d celler og det som står i
@@ -365,6 +373,16 @@ specs!(
     "dng_chapel",
     "dng_treasury",
     "dng_arena",
+    "dngp_shelf",
+    "dngp_sacks",
+    "dngp_banner",
+    "dngp_moss",
+    "dngp_puddle",
+    "dngp_roots",
+    "dngp_skulls",
+    "dngp_bonepile",
+    "dngp_lava",
+    "dngp_embers",
 );
 
 fn spec(name: &str) -> &'static Spec {
@@ -386,6 +404,40 @@ fn spec(name: &str) -> &'static Spec {
 
 /// Rommene på hovedveien, og hvor mange ganger hvert kan brukes per etasje.
 const POOL: [(&str, usize); 5] = [("dng_hall", 2), ("dng_long", 1), ("dng_cistern", 1), ("dng_gallery", 1), ("dng_chapel", 1)];
+
+/// Preget til en etasje: lagene og tonen på murverket (`Look`), fargen og
+/// styrken på lyset, og pynten som settes ut på murene, gulvet og i hvelvet.
+struct Theme {
+    look: Look,
+    light: Option<Vec3>,
+    gain: f32,
+    wall: &'static [&'static str],
+    floor: &'static [&'static str],
+    ceiling: &'static [&'static str],
+    /// Hvor mye pynt (0..1).
+    density: f32,
+}
+
+fn theme(k: usize) -> Theme {
+    let look = |layers: [Layer; 4], tint: [f32; 3], flame: [f32; 3]| Look { layers, tint: Vec3::from(tint), flame: Vec3::from(flame) };
+    match k % FLOORS {
+        // 2026: forretningslogikken. Tørr bruddsteinsmur, hvelv av hogd
+        // stein, fakler, arkiv og sekker.
+        0 => Theme { look: look([Layer::Stone, Layer::Brick, Layer::Concrete, Layer::Concrete], [1.0, 1.0, 1.0], [1.0, 0.62, 0.26]), light: None, gain: 1.0, wall: &["dngp_shelf", "dngp_sacks"], floor: &[], ceiling: &[], density: 0.45 },
+        // 2019: klassekomponentene. Ordnet kvadermur i kaldt grått, skifer
+        // på gulvet, blå flammer, bannere og arkivhyller.
+        1 => Theme { look: look([Layer::Brick, Layer::Brick, Layer::Slate, Layer::Slate], [0.62, 0.68, 0.8], [0.5, 0.72, 1.0]), light: Some(Vec3::new(0.5, 0.68, 1.0)), gain: 1.1, wall: &["dngp_banner", "dngp_shelf", "dngp_banner"], floor: &[], ceiling: &[], density: 0.6 },
+        // 2014: jQuery-kloakken. Fuktig kryptmur med mose, søle på gulvet,
+        // gulgrønne lykter, pytter og røtter gjennom hvelvet.
+        2 => Theme { look: look([Layer::CryptWall, Layer::CryptWall, Layer::Stone, Layer::Gravel], [0.8, 0.86, 0.74], [0.75, 1.0, 0.45]), light: Some(Vec3::new(0.62, 0.85, 0.4)), gain: 0.55, wall: &["dngp_moss"], floor: &["dngp_puddle", "dngp_puddle"], ceiling: &["dngp_roots"], density: 0.7 },
+        // 2009: tabellayout-katakombene. Hogd berg, beinhyller i rutenett og
+        // knokkelhauger, bleke stearinlys.
+        3 => Theme { look: look([Layer::Rock, Layer::Rock, Layer::Stone, Layer::Stone], [0.62, 0.6, 0.58], [1.0, 0.86, 0.62]), light: Some(Vec3::new(1.0, 0.78, 0.5)), gain: 0.5, wall: &["dngp_skulls"], floor: &["dngp_bonepile"], ceiling: &[], density: 0.75 },
+        // 1999: blink-dypet. Sotet mur og svart berg, rødglødende sprekker
+        // og slagg.
+        _ => Theme { look: look([Layer::Soot, Layer::Rock, Layer::Soot, Layer::Rock], [0.5, 0.42, 0.4], [1.0, 0.38, 0.1]), light: Some(Vec3::new(1.0, 0.24, 0.06)), gain: 0.75, wall: &["dngp_embers"], floor: &["dngp_lava", "dngp_lava", "dngp_embers"], ceiling: &[], density: 0.65 },
+    }
+}
 
 /// Et rom satt ut på rutenettet: modellen, hjørnet (gx, gz) og dreiningen
 /// i kvarte omganger (mot klokka sett ovenfra, som yaw −90° per steg).
@@ -826,7 +878,8 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
     let mut chest_spots: Vec<(Vec3, f32)> = vec![];
     for (r, p) in plan.rooms.iter().enumerate() {
         let t = p.affine(origin, y);
-        put(b, p.name, t);
+        let th = theme(k);
+        put(b, p.name, t, &th);
         let (w, dd) = p.size();
         log::debug!("  {} ved ({:.1}, {:.1}, {:.1})", p.name, origin.0 + (p.gx as f32 + w as f32 * 0.5) * CELL, y, origin.1 + (p.gz as f32 + dd as f32 * 0.5) * CELL);
         let s = p.spec();
@@ -861,9 +914,23 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
             // Vindeltrappa står midt i tårncella, dreid som rommet.
             let cell = p.cell(c[0], c[1]);
             let mid = Vec3::new(origin.0 + (cell.0 as f32 + 0.5) * CELL, y, origin.1 + (cell.1 as f32 + 0.5) * CELL);
-            put(b, "dng_spiral", Affine3A::from_rotation_translation(Quat::from_rotation_y(p.yaw()), mid));
+            put(b, "dng_spiral", Affine3A::from_rotation_translation(Quat::from_rotation_y(p.yaw()), mid), &th);
             tower_down = Some((Vec2::new(mid.x, mid.z), p.rot));
             floor.exit = Some(cell);
+        }
+        // Pynten på de ledige stedene i rommet.
+        for q in &s.spots.wall {
+            if !th.wall.is_empty() && rng.chance(th.density) {
+                let name = th.wall[(rng.next() * th.wall.len() as f32) as usize % th.wall.len()];
+                let n = t.transform_vector3(Vec3::new(q[2], 0.0, q[3]));
+                put_deco(b, name, Affine3A::from_rotation_translation(Quat::from_rotation_y(n.x.atan2(n.z)), at([q[0], 0.0, q[1]])), &th, false);
+            }
+        }
+        for q in &s.spots.floor {
+            if !th.floor.is_empty() && rng.chance(th.density) {
+                let name = th.floor[(rng.next() * th.floor.len() as f32) as usize % th.floor.len()];
+                put_deco(b, name, Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), at(*q)), &th, false);
+            }
         }
         // Dørene ingen gang går til, mures igjen.
         for (n, (c, dir)) in p.doors().into_iter().enumerate() {
@@ -872,7 +939,7 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
             }
             let mid = floor.center(c.0, c.1);
             let at = Vec3::new(mid.x + dir.0 as f32 * CELL * 0.5, y + floor_height(&floor, c), mid.z + dir.1 as f32 * CELL * 0.5);
-            put(b, "dng_seal", Affine3A::from_rotation_translation(Quat::from_rotation_y((-dir.0 as f32).atan2(-dir.1 as f32)), at));
+            put(b, "dng_seal", Affine3A::from_rotation_translation(Quat::from_rotation_y((-dir.0 as f32).atan2(-dir.1 as f32)), at), &th);
         }
     }
     // Gangene: modulen etter hvilke naboer cella er bundet til.
@@ -885,9 +952,45 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
         }
         let (name, rot) = hall_module(&arms, rng);
         let p = Placed { name, gx: c.0, gz: c.1, rot };
-        put(b, name, p.affine(origin, y));
+        let th = theme(k);
+        put(b, name, p.affine(origin, y), &th);
+        // Pynt i de rette gangene uten fakkel: på muren ved siden av
+        // pilasteren, på gulvet og i hvelvet.
+        if name == "dng_hall_i" {
+            let mid = floor.center(c.0, c.1);
+            let along = Vec3::new(p.dir((0, 1)).0 as f32, 0.0, p.dir((0, 1)).1 as f32);
+            let side = Vec3::new(-along.z, 0.0, along.x) * if rng.chance(0.5) { 1.0 } else { -1.0 };
+            if !th.wall.is_empty() && rng.chance(th.density * 0.5) {
+                let name = th.wall[(rng.next() * th.wall.len() as f32) as usize % th.wall.len()];
+                let at = mid + side * HALL_HW + along * 1.05;
+                put_deco(b, name, Affine3A::from_rotation_translation(Quat::from_rotation_y((-side.x).atan2(-side.z)), at), &th, false);
+            }
+            if !th.floor.is_empty() && rng.chance(th.density * 0.4) {
+                let name = th.floor[(rng.next() * th.floor.len() as f32) as usize % th.floor.len()];
+                let at = if name == "dngp_puddle" || name == "dngp_lava" { mid - along * 0.9 } else { mid - along * 1.0 - side * 0.8 };
+                put_deco(b, name, Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), at), &th, false);
+            }
+            if !th.ceiling.is_empty() && rng.chance(th.density * 0.5) {
+                let name = th.ceiling[(rng.next() * th.ceiling.len() as f32) as usize % th.ceiling.len()];
+                put_deco(b, name, Affine3A::from_rotation_translation(Quat::from_rotation_y(rng.next() * 6.3), mid + along * 1.0 + Vec3::Y * HALL_CEIL), &th, true);
+            }
+        }
         if rng.chance(0.12) {
             candidates.push(floor.center(c.0, c.1));
+        }
+    }
+    // Hjørnene i rommene som fiendene ikke går i (utenfor rotunden), har
+    // også gulv: pynten ved murene står der.
+    for p in plan.rooms.iter().filter(|p| p.name != "dng_gate" && p.name != "dng_landing") {
+        let s = p.spec();
+        for j in 0..s.d {
+            for i in 0..s.w {
+                let c = p.cell(i, j);
+                if s.floor[j as usize][i as usize].is_none() && Floor::idx(c.0, c.1).is_some() {
+                    let m = Vec3::new(origin.0 + (c.0 as f32 + 0.5) * CELL, y, origin.1 + (c.1 as f32 + 0.5) * CELL);
+                    b.floor(m, Vec2::splat(CELL * 0.5), 0.0, y);
+                }
+            }
         }
     }
     // Gulvene til rutinen mot svevende modeller (kistene står på dem).
@@ -992,12 +1095,28 @@ fn hall_module(arms: &[(i32, i32)], rng: &mut Rng) -> (&'static str, i32) {
     ("dng_hall_x", 0)
 }
 
-/// Sett ut en kjellermodell med kolliderne og lysene fra json-fila. Murverket
-/// går ned under gulvet, så rutinen mot svevende modeller hopper over det.
-fn put(b: &mut Builder, name: &'static str, t: Affine3A) {
-    if !b.place_mounted(name, t) {
+/// Sett ut en kjellermodell med etasjens utseende, og kolliderne og lysene
+/// fra json-fila. Murverket går ned under gulvet, så rutinen mot svevende
+/// modeller hopper over det.
+fn put(b: &mut Builder, name: &'static str, t: Affine3A, th: &Theme) {
+    if !b.place_mounted_look(name, t, Some(th.look)) {
         return;
     }
+    extras(b, name, t, th);
+}
+
+/// Pynt: står på gulvet (rutinen mot svevende modeller måler den) eller
+/// henger i hvelvet (`hanging`).
+fn put_deco(b: &mut Builder, name: &'static str, t: Affine3A, th: &Theme, hanging: bool) {
+    // Bannere henger på muren, røtter i hvelvet.
+    let placed = if hanging || name == "dngp_banner" { b.place_mounted(name, t) } else { b.place(name, t) };
+    if placed {
+        extras(b, name, t, th);
+    }
+}
+
+/// Kolliderne og lysene fra json-fila, med lyset i etasjens farge.
+fn extras(b: &mut Builder, name: &'static str, t: Affine3A, th: &Theme) {
     let s = spec(name);
     let yaw = {
         let x = t.transform_vector3(Vec3::X);
@@ -1010,6 +1129,7 @@ fn put(b: &mut Builder, name: &'static str, t: Affine3A) {
         b.solid(Shape::Hull { points: pts.iter().map(|p| t.transform_point3(Vec3::from(*p))).collect() });
     }
     for (p, color, intensity, radius) in &s.lights {
-        b.fire_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
+        let color = th.light.unwrap_or(Vec3::from(*color));
+        b.fire_light(t.transform_point3(Vec3::from(*p)), color, *intensity * th.gain, *radius);
     }
 }

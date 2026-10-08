@@ -109,10 +109,14 @@ def erevolve(name, profile, mat, at, n=16, cap=True):
 # --- Registrene til json-fila -----------------------------------------------
 
 DATA = {}
+# Flater på gulvet som er opptatt utenom kolliderne (fakler, trapper), til
+# stedene for pynt.
+BUSY = []
 
 
 def reset(w, d):
     DATA.clear()
+    BUSY.clear()
     DATA.update(
         w=w,
         d=d,
@@ -146,8 +150,11 @@ def light(p, color=(1.0, 0.55, 0.22), intensity=2.3, radius=9.0):
 
 
 def spot(kind, value):
-    if kind in ("spawn", "chest", "loot"):
+    if kind in ("spawn", "chest", "loot", "wall", "floor"):
         DATA["spots"].setdefault(kind, []).append([round(v, 3) for v in value])
+        # Foran kista skal det være fritt (pynten holder seg unna).
+        if kind == "chest":
+            BUSY.append((value[0] - 1.0, value[0] + 1.0, value[2] - 1.0, value[2] + 1.0))
     else:
         DATA["spots"][kind] = [round(v, 3) if isinstance(v, float) else v for v in value]
 
@@ -170,7 +177,8 @@ class Style:
         self.vault = layer("brick", (0.6, 0.56, 0.5), 0.5)
         self.ashlar = layer("concrete", (0.86, 0.8, 0.72), 0.5)
         self.dark = layer("stone", (0.42, 0.4, 0.37), 0.5)
-        self.floor = layer("concrete", (0.62, 0.6, 0.56), 0.5)
+        # Gulvet er bygd med «tiles» som rolle (motoren gir hver etasje sitt lag).
+        self.floor = layer("tiles", (0.62, 0.6, 0.56), 0.5)
         self.iron = layer("metal", (0.34, 0.31, 0.29), 0.5)
         self.gold = layer("metal", (1.0, 0.72, 0.3), 0.3)
         self.wood = layer("oak", (0.95, 0.85, 0.72), 0.5)
@@ -407,6 +415,9 @@ def torch(p, n, s, y=1.9, lit=True):
     n innovernormalen."""
     n = Vector((n[0], 0, n[1])).normalized()
     base = Vector((p[0], y, p[1]))
+    side = Vector((n.z, 0, -n.x))
+    a, b = Vector((p[0], 0, p[1])) - side * 0.6, Vector((p[0], 0, p[1])) + side * 0.6 + n * 0.7
+    BUSY.append((min(a.x, b.x), max(a.x, b.x), min(a.z, b.z), max(a.z, b.z)))
     yaw = math.atan2(-n.z, n.x) - math.pi / 2
     eblock("torch_plate", (0.13, 0.3, 0.03), s.iron, at=base + n * 0.015, r=yaw_m(yaw), bevel=0.006)
     ebeam("torch_arm", base + n * 0.02, base + n * 0.24 + Vector((0, 0.05, 0)), 0.03, 0.03, s.iron)
@@ -628,6 +639,23 @@ def corridor(arms, variant=0, seed=1):
 # --- Rom ----------------------------------------------------------------------
 
 
+def free(x0, x1, z0, z1):
+    """Om rektangelet (x, z) på gulvet er fritt for kollidere (over gulvet)
+    og opptatte flater."""
+    for c, size, yaw in DATA["boxes"]:
+        if c[1] + size[1] / 2 <= 0.05 or c[1] - size[1] / 2 > 2.2:
+            continue
+        hx, hz = size[0] / 2, size[2] / 2
+        if abs(yaw) > 1e-3:
+            hx = hz = max(hx, hz)
+        if c[0] - hx < x1 and c[0] + hx > x0 and c[2] - hz < z1 and c[2] + hz > z0:
+            return False
+    for a0, a1, b0, b1 in BUSY:
+        if a0 < x1 and a1 > x0 and b0 < z1 and b1 > z0:
+            return False
+    return True
+
+
 class Room:
     """Et hvelvet rom w × d celler: krysshvelv over båsene, søyler i de
     indre krysningene, pilastre langs murene, ribber, sokkel, heller og
@@ -779,6 +807,35 @@ class Room:
     def floor_collider(self):
         collide(0, self.w * CELL, -0.5, 0.0, 0, self.d * CELL)
 
+    def decor(self):
+        """Steder for pynt hver etasje setter ut: ledige murflater (1,7 m
+        lange, 0,6 m dype, «wall»: x, z og normalen) og ledige flekker på
+        gulvet («floor»), utenom dører, fakler, søyler og møbler."""
+        lines = [("z", self.z0, self.x0, self.x1, (0, 1)), ("z", self.z1, self.x0, self.x1, (0, -1)), ("x", self.x0, self.z0, self.z1, (1, 0)), ("x", self.x1, self.z0, self.z1, (-1, 0))]
+        for axis, v, a0, a1, n in lines:
+            t = a0 + 1.0
+            while t < a1 - 0.95:
+                inward = (v + 0.02 * (n[0] + n[1]), v + 0.62 * (n[0] + n[1]))
+                lo, hi = min(inward), max(inward)
+                rect = (t - 0.85, t + 0.85, lo, hi) if axis == "z" else (lo, hi, t - 0.85, t + 0.85)
+                if not self.in_gap(axis, v, t, margin=1.3) and free(*rect):
+                    x, z = (t, (lo + hi) / 2 - 0.3 * (n[0] + n[1])) if axis == "z" else ((lo + hi) / 2 - 0.3 * (n[0] + n[1]), t)
+                    spot("wall", (x, z, float(n[0]), float(n[1])))
+                    BUSY.append(rect)
+                    t += 2.4
+                else:
+                    t += 0.5
+        for i in range(self.nx):
+            for j in range(self.nz):
+                x = self.x0 + (i + 0.5) * self.bx + self.rng.uniform(-0.6, 0.6)
+                z = self.z0 + (j + 0.5) * self.bz + self.rng.uniform(-0.6, 0.6)
+                rect = (x - 0.8, x + 0.8, z - 0.8, z + 0.8)
+                if any(h[0] < rect[1] and h[1] > rect[0] and h[2] < rect[3] and h[3] > rect[2] for h in self.holes):
+                    continue
+                if free(*rect):
+                    spot("floor", (x, 0.0, z))
+                    BUSY.append(rect)
+
 
 def tower_opening(room, i, j):
     """Åpningen fra rommet (celle i, j) inn til tårncella sør for den."""
@@ -856,6 +913,7 @@ def start_room():
     torch((12 - T, 10.0), (-1, 0), s)
     for p in [(3.0, 0.0, 8.0), (9.0, 0.0, 6.0)]:
         spot("spawn", p)
+    r.decor()
     return r
 
 
@@ -894,6 +952,7 @@ def gate_room(gate=True):
     torch((12 - T, 6.0 + 1.0), (-1, 0), s)
     spot("spawn", (3.0, 0.0, 5.0))
     spot("spawn", (9.0, 0.0, 5.0))
+    r.decor()
     return r
 
 
@@ -920,6 +979,7 @@ def hall_room():
     for p in [(3.0, 0.0, 3.0), (9.0, 0.0, 9.0), (9.0, 0.0, 3.0)]:
         spot("spawn", p)
     spot("chest", (1.4, 0.0, 6.0 + 2.2, math.pi / 2))
+    r.decor()
     return r
 
 
@@ -946,6 +1006,7 @@ def long_room():
     for p in [(4.0, 0.0, 4.0), (4.0, 0.0, 16.0), (2.0, 0.0, 10.0)]:
         spot("spawn", p)
     spot("chest", (6.8, 0.0, 9.8, -math.pi / 2))
+    r.decor()
     return r
 
 
@@ -1026,6 +1087,7 @@ def cistern_room():
     for p in [(2.0, 0.0, 2.0), (14.0, 0.0, 14.0), (14.0, 0.0, 2.0), (2.0, 0.0, 14.0)]:
         spot("spawn", p)
     spot("chest", (14.4, 0.0, 1.6, 0.0))
+    r.decor()
     return r
 
 
@@ -1064,6 +1126,7 @@ def gallery_room():
         z = 12.0 - (k + 1) * run
         eblock("stair", (4.0 - T, y, run + 0.02), s.ashlar, at=((T + 4.0) / 2, y / 2, z + run / 2), bevel=0.02)
     eblock("stair_rail", (0.3, 0.9, 8.0), s.ashlar, at=(4.0 - 0.15, 0.45 + up / 2, 8.0), r=Matrix.Rotation(math.atan2(up, 8.0), 3, "X"), bevel=0.03)
+    BUSY.append((T, 4.2, 4.0, 12.6))
     hull([(T, 0, 12.0), (4.0, 0, 12.0), (T, up, 4.0), (4.0, up, 4.0), (T, -0.3, 12.0), (4.0, -0.3, 12.0), (T, -0.3, 4.0), (4.0, -0.3, 4.0)])
     collide(3.85, 4.15, 0, up + 1.0, 4.0, 12.0)
     collide(0, 12, -0.5, 0, zf, 16)
@@ -1081,6 +1144,7 @@ def gallery_room():
     for p in [(8.0, 0.0, 9.0), (6.0, up, 2.2), (10.0, 0.0, 13.0)]:
         spot("spawn", p)
     bones(rng, 10.6, 13.8, s, 3)
+    r.decor()
     return r
 
 
@@ -1137,6 +1201,7 @@ def chapel_room():
     for p in [(3.5, 0.0, 10.5), (8.5, 0.0, 14.0)]:
         spot("spawn", p)
     spot("chest", (4.6, 0.0, 6.0, 0.0))
+    r.decor()
     return r
 
 
@@ -1159,6 +1224,7 @@ def treasury_room():
     spot("chest", (4.0, 0.0, 1.3, 0.0))
     spot("chest", (6.7, 0.0, 3.0, -math.pi / 2))
     spot("spawn", (4.0, 0.0, 5.5))
+    r.decor()
     return r
 
 
@@ -1264,6 +1330,15 @@ def arena_room():
                 DATA["floor"][j][i] = None
             DATA["ceil"][j][i] = spring + 3.0
     spot("boss", (c, 0.0, c))
+    for k in range(8):
+        a = 2 * math.pi * (k + 0.5) / 8 + 0.2
+        dirv = Vector((math.cos(a), 0, math.sin(a)))
+        if abs(dirv.z) > 0.9:
+            continue
+        p = Vector((c, 0, c)) + dirv * (R - 0.4)
+        spot("wall", (p.x, p.z, -dirv.x, -dirv.z))
+    for x, z in [(c + 3.5, c), (c - 3.5, c), (c, c + 3.5), (c, c - 3.5)]:
+        spot("floor", (x, 0.0, z))
     for k in range(12):
         a = k * 0.52
         spot("loot", (c + math.cos(a) * 1.6, 0.0, c + math.sin(a) * 1.6))
@@ -1404,6 +1479,241 @@ def spiral():
     return m
 
 
+# --- Pynten per etasje ------------------------------------------------------
+#
+# Modeller hver etasje setter ut på de ledige stedene i rommene og langs
+# gangene (`dungeon::theme`). Pynt på muren har origo ved foten av muren
+# og lokal +z inn i rommet; pynt på gulvet har origo midt på.
+
+
+def deco_shelf():
+    """Arkivhylle (forretningslogikken, klassekomponentene): eikereol med
+    fire hyller, protokoller, ruller og skrin."""
+    s = Style()
+    rng = random.Random(201)
+    reset(1, 1)
+    w, h, d = 1.6, 2.05, 0.42
+    for sx in (-1, 1):
+        for sz in (0.03, d - 0.03):
+            eblock("shelf_post", (0.06, h, 0.06), s.wood, at=(sx * (w / 2 - 0.03), h / 2, sz), bevel=0.008)
+    eblock("shelf_back", (w - 0.04, h - 0.1, 0.02), s.wood, at=(0, h / 2, 0.012), bevel=0.004)
+    books = [layer("leather", (0.55, 0.25, 0.15)), layer("leather", (0.3, 0.32, 0.4)), layer("linen", (0.7, 0.6, 0.4)), layer("leather", (0.25, 0.3, 0.18))]
+    for k, y in enumerate((0.08, 0.58, 1.08, 1.58)):
+        eblock("shelf_board", (w - 0.08, 0.035, d - 0.02), s.wood, at=(0, y, d / 2), bevel=0.006)
+        x = -w / 2 + 0.08
+        while x < w / 2 - 0.12:
+            kind = rng.random()
+            if kind < 0.65:
+                bw = rng.uniform(0.04, 0.09)
+                bh = rng.uniform(0.24, 0.38)
+                tilt = rng.uniform(-0.12, 0.12) if rng.random() < 0.2 else 0.0
+                eblock("book", (bw, bh, rng.uniform(0.2, 0.3)), rng.choice(books), at=(x + bw / 2, y + 0.02 + bh / 2, d / 2), r=Matrix.Rotation(tilt, 3, "Z"), bevel=0.006)
+                x += bw + 0.004
+            elif kind < 0.85:
+                # Ruller i en haug.
+                for q in range(3):
+                    bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.035, depth=0.32, location=B((x + 0.05 + q * 0.03, y + 0.055 + 0.06 * (q == 2), d / 2)), rotation=(math.pi / 2, 0, 0))
+                    ob = bpy.context.active_object
+                    ob.data.materials.append(layer("linen", (0.85, 0.78, 0.6)))
+                    town.uv_box(ob)
+                    PIECES.append(ob)
+                x += 0.16
+            else:
+                eblock("casket", (0.22, 0.14, 0.2), s.wood, at=(x + 0.11, y + 0.09, d / 2), bevel=0.012)
+                eblock("casket_band", (0.226, 0.03, 0.206), s.iron, at=(x + 0.11, y + 0.12, d / 2), bevel=0.004)
+                x += 0.25
+    eblock("shelf_top", (w + 0.04, 0.05, d + 0.02), s.wood, at=(0, h + 0.025, d / 2), bevel=0.01)
+    collide(-w / 2, w / 2, 0, h, 0, d)
+
+
+def deco_sacks():
+    """Sekker og en kasse (forretningslogikken): kornsekker som har sunket
+    sammen, bundet med tau."""
+    s = Style()
+    rng = random.Random(202)
+    reset(1, 1)
+    sack = layer("linen", (0.72, 0.62, 0.45))
+    for k, (x, z) in enumerate([(-0.45, 0.35), (0.1, 0.32), (-0.15, 0.75)]):
+        h = rng.uniform(0.55, 0.7)
+        erevolve("sack", [(0.22, 0.0), (0.3, 0.08), (0.31, h * 0.45), (0.24, h * 0.85), (0.08, h), (0.05, h + 0.06), (0.09, h + 0.12)], sack, at=(x, 0, z), n=14)
+        erevolve("sack_tie", [(0.07, h + 0.0), (0.075, h + 0.03), (0.07, h + 0.06)], s.rope, at=(x, 0, z), n=8, cap=False)
+    crate(0.55, 0.45, s, 0.2, 0.6)
+    collide(-0.8, 0.9, 0, 0.75, 0.0, 1.05)
+
+
+def deco_banner():
+    """Et banner på muren (klassekomponentene): smijernsstang, tøy med kant
+    og et merke av messing, og dusker nederst."""
+    s = Style()
+    reset(1, 1)
+    cloth = layer("wool", (0.16, 0.24, 0.5))
+    hem = layer("wool", (0.75, 0.6, 0.25))
+    y0, y1 = 0.85, 2.75
+    ebeam("banner_rod", (-0.62, y1 + 0.05, 0.16), (0.62, y1 + 0.05, 0.16), 0.03, 0.03, s.iron)
+    for sx in (-1, 1):
+        ebeam("banner_arm", (sx * 0.5, y1 + 0.05, 0.0), (sx * 0.5, y1 + 0.05, 0.18), 0.03, 0.03, s.iron)
+    # Tøyet: litt bølget, med tykkelse.
+    n = 8
+    for k in range(n):
+        x0 = -0.5 + k / n
+        x1 = -0.5 + (k + 1) / n
+        z = 0.16 + 0.025 * math.sin(k * 1.3)
+        eblock("banner_cloth", (x1 - x0 + 0.004, y1 - y0, 0.02), cloth, at=((x0 + x1) / 2, (y0 + y1) / 2, z), r=yaw_m(0.08 * math.cos(k * 1.3)), bevel=0.003)
+    for x in (-0.47, 0.47):
+        eblock("banner_hem", (0.05, y1 - y0, 0.026), hem, at=(x, (y0 + y1) / 2, 0.16), bevel=0.003)
+    eblock("banner_hem_low", (1.0, 0.06, 0.026), hem, at=(0, y0 + 0.03, 0.16), bevel=0.003)
+    # Merket: en ring og et kors av messing.
+    erevolve("banner_ring", [(0.2, 0.0), (0.2, 0.02)], s.gold, at=(0, 0, 0), n=20, cap=False)
+    PIECES[-1].location = B((0, 2.0, 0.19))
+    PIECES[-1].rotation_euler = (math.pi / 2, 0, 0)
+    eblock("banner_mark_v", (0.06, 0.5, 0.02), s.gold, at=(0, 2.0, 0.19), bevel=0.004)
+    eblock("banner_mark_h", (0.34, 0.06, 0.02), s.gold, at=(0, 2.05, 0.19), bevel=0.004)
+    for x in (-0.35, -0.12, 0.12, 0.35):
+        erevolve("tassel", [(0.0, y0 - 0.16), (0.03, y0 - 0.1), (0.015, y0 - 0.02), (0.01, y0)], hem, at=(x, 0, 0.16), n=6)
+
+
+def deco_moss():
+    """Mose og sopp ved foten av muren (kloakken), med salt og fukt."""
+    s = Style()
+    rng = random.Random(204)
+    reset(1, 1)
+    moss = layer("sod", (0.45, 0.62, 0.35))
+    for k in range(9):
+        x = rng.uniform(-0.8, 0.8)
+        r = rng.uniform(0.12, 0.3)
+        erevolve("moss", [(0.0, 0.0), (r, 0.0), (r * 0.8, r * 0.35), (0.0, r * 0.45)], moss, at=(x, 0, r * 0.5), n=10)
+    for k in range(6):
+        x = rng.uniform(-0.7, 0.7)
+        h = rng.uniform(0.05, 0.14)
+        z = rng.uniform(0.08, 0.35)
+        erevolve("mushroom_stem", [(0.012, 0.0), (0.01, h)], s.bone, at=(x, 0, z), n=6)
+        erevolve("mushroom_cap", [(0.0, h - 0.01), (0.045, h), (0.03, h + 0.02), (0.0, h + 0.03)], layer("leather", (0.6, 0.4, 0.2)), at=(x, 0, z), n=8)
+
+
+def deco_puddle():
+    """En pytt med gjørme rundt (kloakken)."""
+    rng = random.Random(205)
+    reset(1, 1)
+    mud = layer("gravel", (0.35, 0.3, 0.24))
+    water = plain("water", (0.04, 0.07, 0.08), 0.05)
+    for name, mat, scale, y in [("mud", mud, 1.0, 0.004), ("puddle", water, 0.78, 0.012)]:
+        bm = bmesh.new()
+        n = 14
+        c = bm.verts.new(B((0, y, 0)))
+        ring = []
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            r = scale * (0.75 + 0.3 * math.sin(a * 3 + 1.0) + rng.uniform(-0.05, 0.05))
+            ring.append(bm.verts.new(B((math.cos(a) * r, y, math.sin(a) * r * 0.75))))
+        for k in range(n):
+            bm.faces.new((c, ring[(k + 1) % n], ring[k]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        ob = link(name, bm, mat)
+        town.uv_box(ob)
+        for f in ob.data.polygons:
+            if f.normal.z < 0:
+                f.flip()
+
+
+def deco_roots():
+    """Røtter som har vokst ned gjennom hvelvet (kloakken). Origo i
+    hvelvet; røttene henger 0,8–1,5 m ned."""
+    rng = random.Random(206)
+    reset(1, 1)
+    bark = layer("bark", (0.7, 0.6, 0.5))
+    for k in range(7):
+        p = Vector((rng.uniform(-0.4, 0.4), 0.1, rng.uniform(-0.4, 0.4)))
+        length = rng.uniform(0.8, 1.5)
+        r = rng.uniform(0.02, 0.05)
+        steps = 5
+        for q in range(steps):
+            d = Vector((rng.uniform(-0.12, 0.12), -length / steps, rng.uniform(-0.12, 0.12)))
+            ebeam("root", p, p + d, r, r, bark)
+            p = p + d
+            r *= 0.75
+    # Over hodet: røttene henger ned til 2,3 m over gulvet.
+    collide(-0.5, 0.5, -1.2, 0.3, -0.5, 0.5)
+
+
+def deco_skulls():
+    """Beinhylle (tabellayout-katakombene): et rutenett av nisjer i hogd
+    stein, fire og fire, med en hodeskalle i hver, og lys på toppen."""
+    s = Style()
+    rng = random.Random(207)
+    reset(1, 1)
+    stone = layer("rock", (0.5, 0.48, 0.46))
+    w, h, d = 1.6, 1.9, 0.4
+    cols, rows = 4, 4
+    cw, ch = (w - 0.1) / cols, (h - 0.2) / rows
+    eblock("ossuary_back", (w, h, 0.06), stone, at=(0, h / 2, 0.03), bevel=0.01)
+    for i in range(cols + 1):
+        x = -w / 2 + 0.05 + i * cw
+        eblock("ossuary_post", (0.06, h, d), stone, at=(x, h / 2, d / 2), bevel=0.012)
+    for j in range(rows + 1):
+        y = 0.1 + j * ch
+        eblock("ossuary_shelf", (w, 0.06, d), stone, at=(0, y, d / 2), bevel=0.012)
+    for i in range(cols):
+        for j in range(rows):
+            x = -w / 2 + 0.05 + (i + 0.5) * cw
+            y = 0.13 + j * ch
+            if rng.random() < 0.85:
+                skull(x, y, d * 0.55, s, rng.uniform(-0.4, 0.4))
+            if rng.random() < 0.5:
+                ebeam("ossuary_bone", (x - 0.12, y + 0.02, d * 0.25), (x + 0.12, y + 0.025, d * 0.3), 0.03, 0.03, s.bone)
+    candles(rng, 0.4, d / 2, s, y0=h + 0.03, n=3, glow=True)
+    collide(-w / 2, w / 2, 0, h, 0, d)
+
+
+def deco_bonepile():
+    """En haug av knokler og hodeskaller (katakombene)."""
+    s = Style()
+    rng = random.Random(208)
+    reset(1, 1)
+    for layer_y in (0.0, 0.07, 0.14):
+        bones(rng, 0.0, 0.0, s, n=6, y0=layer_y)
+    for k in range(3):
+        skull(rng.uniform(-0.3, 0.3), 0.18, rng.uniform(-0.3, 0.3), s, rng.uniform(0, 6))
+
+
+def deco_lava():
+    """Sprekker med glødende lava i gulvet (blink-dypet): mørke heller av
+    berg med glød imellom."""
+    rng = random.Random(209)
+    reset(1, 1)
+    rock = layer("rock", (0.22, 0.18, 0.17))
+    glow = plain("fire_lava", (1.0, 0.36, 0.08), 0.6)
+    bpy.ops.mesh.primitive_plane_add(size=2.2, location=B((0, 0.004, 0)))
+    ob = bpy.context.active_object
+    ob.data.materials.append(glow)
+    town.uv_box(ob)
+    PIECES.append(ob)
+    # Hellene: et skjevt rutenett av flak med fuger der lavaen lyser.
+    for i in range(4):
+        for j in range(4):
+            x = -0.83 + i * 0.55 + rng.uniform(-0.05, 0.05)
+            z = -0.83 + j * 0.55 + rng.uniform(-0.05, 0.05)
+            sz = rng.uniform(0.38, 0.48)
+            eblock("lava_crust", (sz, 0.05, sz * rng.uniform(0.8, 1.0)), rock, at=(x, 0.02, z), r=yaw_m(rng.uniform(-0.4, 0.4)), bevel=0.02)
+    light((0, 0.4, 0), (1.0, 0.32, 0.08), 1.6, 6.0)
+
+
+def deco_embers():
+    """En haug glødende slagg og glør (blink-dypet), med små flammer."""
+    s = Style()
+    rng = random.Random(210)
+    reset(1, 1)
+    slag = layer("rock", (0.2, 0.17, 0.16))
+    for k in range(10):
+        a = rng.uniform(0, math.tau)
+        r = rng.uniform(0, 0.45)
+        k_ = rng.uniform(0.12, 0.3)
+        eblock("slag", (k_, k_ * 0.6, k_ * 0.8), slag if k % 3 else s.ember, at=(math.cos(a) * r, k_ * 0.25, 0.5 + math.sin(a) * r), r=yaw_m(rng.uniform(0, 6)), bevel=0.03)
+    for k in range(3):
+        erevolve("ember_flame", [(0.06, 0.05), (0.07, 0.15), (0.03, 0.3), (0.0, 0.42)], s.flame, at=(rng.uniform(-0.25, 0.25), 0, 0.5 + rng.uniform(-0.2, 0.2)), n=8)
+    light((0, 0.6, 0.5), (1.0, 0.35, 0.1), 1.8, 7.0)
+    collide(-0.5, 0.5, 0, 0.4, 0.05, 0.95)
+
+
 # --- Eksport ------------------------------------------------------------------
 
 MODELS = {
@@ -1426,6 +1736,16 @@ MODELS = {
     "dng_chapel": chapel_room,
     "dng_treasury": treasury_room,
     "dng_arena": arena_room,
+    "dngp_shelf": deco_shelf,
+    "dngp_sacks": deco_sacks,
+    "dngp_banner": deco_banner,
+    "dngp_moss": deco_moss,
+    "dngp_puddle": deco_puddle,
+    "dngp_roots": deco_roots,
+    "dngp_skulls": deco_skulls,
+    "dngp_bonepile": deco_bonepile,
+    "dngp_lava": deco_lava,
+    "dngp_embers": deco_embers,
 }
 
 if __name__ == "__main__":

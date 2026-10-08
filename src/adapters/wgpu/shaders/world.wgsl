@@ -11,9 +11,11 @@ struct Instance {
     @location(8) m1: vec4<f32>,
     @location(9) m2: vec4<f32>,
     @location(10) m3: vec4<f32>,
-    // x markering, y animasjon (0..1), z og w ubrukt.
+    // x markering, y animasjon (0..1) eller lakk; z utseendet (lagene for
+    // kjellerens fire roller, 5 bit hver, bit 20 slår det på), w tonen.
     @location(11) extra: vec4<f32>,
-    // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers.
+    // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers;
+    // y: flammefargen i utseendet.
     @location(12) extra2: vec4<f32>,
 }
 
@@ -151,7 +153,37 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
     o.ao = f32(v.mat.w) / 255.0;
     o.uv = v.uv;
     o.extra = inst.extra;
+    look(&o, v, inst);
     return o;
+}
+
+fn unpack_rgb(p: f32) -> vec3<f32> {
+    let u = u32(p);
+    return vec3<f32>(f32((u >> 16u) & 255u), f32((u >> 8u) & 255u), f32(u & 255u)) / 255.0;
+}
+
+// Utseendet per instans (kjelleretasjene): rollene mur (stein, 5), hvelv
+// (hogd stein, 6), kvader (heller, 12) og gulv (fliser, 4) får lagene og
+// tonen fra instansen, og flammene en annen farge. Hjørnefargen er sRGB.
+fn look(o: ptr<function, VsOut>, v: VsIn, inst: Instance) {
+    if (inst.extra.z < 1048576.0) {
+        return;
+    }
+    let roles = u32(inst.extra.z);
+    var role = 4u;
+    switch v.mat.x {
+        case 5u: { role = 0u; }
+        case 6u: { role = 1u; }
+        case 12u: { role = 2u; }
+        case 4u: { role = 3u; }
+        default: {}
+    }
+    if (role < 4u) {
+        (*o).mat.x = (roles >> (5u * role)) & 31u;
+        (*o).color = vec4<f32>((*o).color.rgb * pow(unpack_rgb(inst.extra.w), vec3<f32>(1.0 / 2.2)), (*o).color.a);
+    } else if (v.mat.x == K_LAMP && inst.extra2.y > 0.0) {
+        (*o).color = vec4<f32>(pow(unpack_rgb(inst.extra2.y), vec3<f32>(1.0 / 2.2)), (*o).color.a);
+    }
 }
 
 struct ShadowOut {

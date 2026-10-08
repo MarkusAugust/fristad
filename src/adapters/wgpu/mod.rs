@@ -627,9 +627,21 @@ impl Renderer {
                     .transforms
                     .iter()
                     .zip(pl.tints.iter().chain(std::iter::repeat(&Vec3::ONE)))
-                    .map(|(t, tint)| {
+                    .zip(pl.looks.iter().chain(std::iter::repeat(&None)))
+                    .map(|((t, tint), look)| {
                         let (wlo, whi) = world_aabb(t, lo, hi);
-                        (InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]), wlo, whi)
+                        let inst = match look {
+                            // Utseendet: lagene for de fire rollene (5 bit hver, bit 20
+                            // slår det på), tonen, og flammefargen i extra2.y.
+                            Some(l) => {
+                                let roles = l.layers.iter().enumerate().fold(1u32 << 20, |acc, (k, layer)| acc | (*layer as u32 & 31) << (5 * k));
+                                let mut inst = InstanceData::new(t, [0.0, packed(tint), roles as f32, packed(&l.tint)]);
+                                inst.extra2[1] = packed(&l.flame);
+                                inst
+                            }
+                            None => InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]),
+                        };
+                        (inst, wlo, whi)
                     })
                     .collect();
                 // Nær og fjern detalj i samme buffer.
