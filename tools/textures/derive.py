@@ -2,7 +2,7 @@
 bildegenerator eller et foto), så et enkelt bilde blir et fullt teksturlag.
 
     python3 tools/textures/derive.py <lag> <bilde> [--size-m 2.0] [--rough 0.8] [--depth 1.0] [--invert]
-        [--keystone 0.3] [--crop] [--seamless]
+        [--keystone 0.3] [--crop] [--seamless] [--flatten]
 
 Skriver assets/textures/<lag>/albedo.jpg, normal.jpg, height.jpg,
 rough.jpg og meta.json (meter per flis). Alt regnes med omslag i kantene,
@@ -12,7 +12,8 @@ for materialer der det mørke stikker opp. For bilder som ikke er rene
 fliser: `--keystone K` retter opp et bilde tatt på skrå (øverste rad K
 mindre enn nederste), `--crop` tar et kvadrat midt i bildet i stedet for å
 strekke det, og `--seamless` blander inn en kopi forskjøvet en halv flis
-langs kantene så bildet møtes uten søm. Lagnavnene er de i
+langs kantene så bildet møtes uten søm. `--flatten` glatter ut store folder
+(stoff) og beholder den fine strukturen. Lagnavnene er de i
 `Layer::name` (cobble, plaster, oak, tiles, stone, cladding …)."""
 
 import json
@@ -94,7 +95,7 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     img = Image.open(src).convert("RGB")
-    if "--keystone" in args or "--crop" in args or "--seamless" in args:
+    if any(f in args for f in ("--keystone", "--crop", "--seamless", "--flatten")):
         a = np.asarray(img, dtype=np.float32)
         if "--keystone" in args:
             a = keystone(a, opt("--keystone", 0.3))
@@ -102,6 +103,12 @@ def main():
             h, w = a.shape[:2]
             n = min(h, w)
             a = a[(h - n) // 2:(h - n) // 2 + n, (w - n) // 2:(w - n) // 2 + n]
+        if "--flatten" in args:
+            # Fjern store folder og lysvariasjon: del på den uskarpe
+            # lysheten, så bare den fine strukturen (vevingen) blir igjen.
+            lum = a.mean(-1)
+            big = blur(lum, a.shape[0] / 70.0)
+            a = a * (lum.mean() / np.maximum(big, 1.0))[..., None]
         if "--seamless" in args:
             a = seamless(a)
         img = Image.fromarray(a.clip(0, 255).astype(np.uint8))

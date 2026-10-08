@@ -64,6 +64,10 @@ const TEXTURES: Record<string, string[]> = {
   thatch: ["thatch_roof_angled", "thatch"],
   logs: ["log_wall", "logs"],
   sod: ["grass_roof", "moss"],
+  // Klærne og læret til figurene.
+  wool: ["wool", "fabric"],
+  linen: ["linen", "fabric"],
+  leather: ["leather"],
   earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
 };
 
