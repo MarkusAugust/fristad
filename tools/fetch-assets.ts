@@ -61,6 +61,9 @@ const TEXTURES: Record<string, string[]> = {
   rock: ["rock_face", "cliff_side", "rock_wall", "rock"],
   snow: ["snow_02", "snow_field", "snow"],
   // Tråkket jord uten hjulspor på gårdsplassene.
+  thatch: ["thatch_roof_angled", "thatch"],
+  logs: ["log_wall", "logs"],
+  sod: ["grass_roof", "moss"],
   earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
 };
 

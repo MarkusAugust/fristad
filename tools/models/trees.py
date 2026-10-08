@@ -145,7 +145,35 @@ def bark_material(kind):
     links.new(mapping.outputs["Vector"], noise.inputs["Vector"])
     bump = nodes.new("ShaderNodeBump")
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
-    if kind == "birch":
+    photo = os.path.abspath("assets/textures/bark/albedo.jpg")
+    if kind in ("oak", "spruce") and os.path.exists(photo):
+        # Eierens fotobark (assets/textures/bark), lagt på med boksprojeksjon
+        # i objektkoordinater (1,2 m per flis), med høydekartet som relieff.
+        mapping.inputs["Scale"].default_value = (1 / 1.2, 1 / 1.2, 1 / 1.2)
+        tex = nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(photo)
+        tex.projection = "BOX"
+        tex.projection_blend = 0.3
+        links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+        hgt = nodes.new("ShaderNodeTexImage")
+        hgt.image = bpy.data.images.load(os.path.abspath("assets/textures/bark/height.jpg"))
+        hgt.image.colorspace_settings.name = "Non-Color"
+        hgt.projection = "BOX"
+        hgt.projection_blend = 0.3
+        links.new(mapping.outputs["Vector"], hgt.inputs["Vector"])
+        # Eika brunere, grana rødere og mørkere enn bildet.
+        tint = nodes.new("ShaderNodeMix")
+        tint.data_type = "RGBA"
+        tint.blend_type = "MULTIPLY"
+        tint.inputs["Factor"].default_value = 1.0
+        tint.inputs["B"].default_value = (0.78, 0.68, 0.58, 1) if kind == "oak" else (0.8, 0.62, 0.52, 1)
+        links.new(tex.outputs["Color"], tint.inputs["A"])
+        ramp = tint
+        bump.inputs["Strength"].default_value = 0.9
+        bump.inputs["Distance"].default_value = 0.05
+        links.new(hgt.outputs["Color"], bump.inputs["Height"])
+        bsdf.inputs["Roughness"].default_value = 0.9
+    elif kind == "birch":
         mapping.inputs["Scale"].default_value = (18.0, 18.0, 2.0)
         noise.inputs["Scale"].default_value = 1.0
         ramp.color_ramp.elements[0].position = 0.42
@@ -208,7 +236,7 @@ def bark_material(kind):
     moss = nodes.new("ShaderNodeMix")
     moss.data_type = "RGBA"
     links.new(mul.outputs[0], moss.inputs["Factor"])
-    links.new(ramp.outputs["Color"], moss.inputs["A"])
+    links.new(ramp.outputs["Result"] if ramp.bl_idname == "ShaderNodeMix" else ramp.outputs["Color"], moss.inputs["A"])
     moss.inputs["B"].default_value = (0.18, 0.3, 0.1, 1)
     links.new(moss.outputs["Result"], bsdf.inputs["Base Color"])
     return mat

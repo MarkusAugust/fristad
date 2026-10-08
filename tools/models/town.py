@@ -604,13 +604,13 @@ HOUSES = {
     # Bredere, langsida mot gata, okerpuss.
     "house_b": dict(seed=2, roof="slate", w=9.0, d=6.5, floors=2, jetty=0.3, pitch=48, gable=False, plaster=(0.95, 0.85, 0.66), door_x=-2.4, windows0=[0.4, 2.8], windows_up=3),
     # Lavt hus med én etasje og bratt tak.
-    "house_c": dict(seed=3, w=7.0, d=7.5, floors=1, jetty=0.0, pitch=56, door_x=1.6, windows0=[-1.5], windows_up=0, plinth=0.7),
+    "house_c": dict(seed=3, roof="thatch", w=7.0, d=7.5, floors=1, jetty=0.0, pitch=56, door_x=1.6, windows0=[-1.5], windows_up=0, plinth=0.7),
     # Høyt, smalt kjøpmannshus med tre etasjer.
     "house_d": dict(seed=4, roof="slate", w=6.0, d=9.0, floors=3, jetty=0.32, pitch=56, door_x=-1.3, windows0=[1.2], windows_up=2, plaster=(1.0, 0.97, 0.92)),
     # Langsida mot gata, to etasjer, mørkere tømmer.
     "house_e": dict(seed=5, w=10.0, d=7.0, floors=2, jetty=0.35, pitch=46, gable=False, door_x=0.0, windows0=[-3.0, 3.0], windows_up=4, timber=(0.8, 0.78, 0.76)),
     # Gavlhus med puss i gavlen og blekrosa puss.
-    "house_f": dict(seed=6, w=7.2, d=8.5, floors=2, jetty=0.4, pitch=50, door_x=1.8, windows0=[-1.6], windows_up=3, gable_boards=False, plaster=(0.98, 0.9, 0.86)),
+    "house_f": dict(seed=6, roof="thatch", w=7.2, d=8.5, floors=2, jetty=0.4, pitch=50, door_x=1.8, windows0=[-1.6], windows_up=3, gable_boards=False, plaster=(0.98, 0.9, 0.86)),
 }
 
 if __name__ == "__main__":

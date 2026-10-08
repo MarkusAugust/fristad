@@ -428,6 +428,9 @@ fn material(layer: i32, uv: vec2<f32>) -> Sample {
         case 15: { return mat_rock(uv); }
         case 16: { return mat_snow(uv); }
         case 17: { return mat_gravel(uv); }
+        case 18: { return mat_tiles(uv); }
+        case 19: { return mat_timber(uv); }
+        case 20: { return mat_grass(uv); }
         default: { return mat_concrete(uv); }
     }
 }
@@ -452,6 +455,9 @@ fn relief(layer: i32) -> f32 {
         case 15: { return 1.5; }
         case 16: { return 0.3; }
         case 17: { return 0.02; }
+        case 18: { return 0.05; }
+        case 19: { return 0.03; }
+        case 20: { return 0.04; }
         default: { return 0.004; }
     }
 }
