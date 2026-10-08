@@ -496,6 +496,7 @@ pub fn build(b: &mut Builder) -> Town {
     let crypt_exit = castle(b);
     signposts(b);
     people(b, &doors);
+    wanderers(b, &doors);
     let (g, out) = gate(true);
     let spawn = Vec3::new(main_x(g.y - 8.0), 0.0, g.y - 8.0);
     Town { spawn, spawn_yaw: facing(out), crypt_anchor: CRYPT, crypt_exit }
@@ -884,11 +885,248 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
         } else {
             vec![p, p + side * 2.4, p, p - side * 2.4]
         };
-        let route = pts.iter().map(|q| b.on_ground(Vec3::new(q.x, 0.0, q.y))).collect();
+        let route = pts.iter().map(|q| (b.on_ground(Vec3::new(q.x, 0.0, q.y)), 3.0)).collect();
         b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines, route });
         b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
     }
 }
+
+/// Folk i byen som går ærender: til brønnene, over torget, til portene og
+/// dørene på torget, langs gatene. Veiene er et nett av midtlinjene i
+/// gatene og kanten av torget, uten kanter som går gjennom noe, og hver
+/// innbygger går korteste vei mellom ærendene sine og blir stående litt
+/// ved hvert.
+fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
+    // Fritt for kollidere i kroppshøyde, med en halv meter å gå på.
+    let shapes: Vec<(Vec2, Vec2, f32, f32)> = b
+        .colliders
+        .iter()
+        .filter_map(|c| match c {
+            Shape::Cuboid { center, size, yaw } if size.y > 0.6 && center.y > -5.0 => Some((Vec2::new(center.x, center.z), Vec2::new(size.x, size.z) * 0.5, *yaw, 0.0)),
+            Shape::Cylinder { center, radius, .. } if center.y > -5.0 => Some((Vec2::new(center.x, center.z), Vec2::ZERO, 0.0, *radius)),
+            _ => None,
+        })
+        .collect();
+    let free = |p: Vec2| {
+        terrain::town_edge(p.x, p.y) < -1.5
+            && shapes.iter().all(|(c, half, yaw, r)| {
+                let d = p - *c;
+                if *r > 0.0 {
+                    return d.length() > r + 0.45;
+                }
+                let (sn, cs) = yaw.sin_cos();
+                let l = Vec2::new(d.x * cs - d.y * sn, d.x * sn + d.y * cs).abs();
+                l.x > half.x + 0.45 || l.y > half.y + 0.45
+            })
+    };
+    let clear = |a: Vec2, c: Vec2| {
+        let n = ((a.distance(c) / 0.4).ceil() as usize).max(1);
+        (0..=n).all(|k| free(a.lerp(c, k as f32 / n as f32)))
+    };
+    // Nodene: punktene langs gatene og kanten av torget.
+    let mut nodes: Vec<Vec2> = vec![];
+    let mut edges: Vec<Vec<(usize, f32)>> = vec![];
+    let link = |nodes: &Vec<Vec2>, edges: &mut Vec<Vec<(usize, f32)>>, i: usize, j: usize| {
+        let d = nodes[i].distance(nodes[j]);
+        if i != j && clear(nodes[i], nodes[j]) && !edges[i].iter().any(|(k, _)| *k == j) {
+            edges[i].push((j, d));
+            edges[j].push((i, d));
+        }
+    };
+    for st in streets() {
+        let start = nodes.len();
+        // Tettere enn polylinjen, så folk følger svingene.
+        // Står det noe på midtlinja (en lykt, et skilt, en brønn), flyttes
+        // punktet sideveis til nærmeste ledige sted i gata.
+        let mut put = |p: Vec2, dir: Vec2| {
+            let across = Vec2::new(-dir.y, dir.x);
+            if let Some(q) = [0.0, 0.8, -0.8, 1.5, -1.5, 2.2, -2.2].iter().map(|o| p + across * *o).find(|q| free(*q)) {
+                nodes.push(q);
+            }
+        };
+        for w in st.pts.windows(2) {
+            let n = ((w[0].distance(w[1]) / 3.0).ceil() as usize).max(1);
+            let dir = (w[1] - w[0]).normalize_or_zero();
+            for k in 0..n {
+                put(w[0].lerp(w[1], k as f32 / n as f32), dir);
+            }
+        }
+        let last = st.pts.len() - 1;
+        put(st.pts[last], (st.pts[last] - st.pts[last - 1]).normalize_or_zero());
+        edges.resize(nodes.len(), vec![]);
+        for i in start..nodes.len() - 1 {
+            link(&nodes, &mut edges, i, i + 1);
+        }
+    }
+    let center = SQUARE.iter().copied().sum::<Vec2>() * 0.25;
+    let ring_start = nodes.len();
+    for i in 0..4 {
+        let (a, c) = (SQUARE[i], SQUARE[(i + 1) % 4]);
+        for k in 0..4 {
+            let p = a.lerp(c, k as f32 / 4.0);
+            let inward = (center - p).normalize();
+            if let Some(q) = [3.0, 2.0, 4.5, 6.0].iter().map(|d| p + inward * *d).find(|q| free(*q)) {
+                nodes.push(q);
+            }
+        }
+    }
+    edges.resize(nodes.len(), vec![]);
+    for i in ring_start..nodes.len() {
+        let j = if i + 1 == nodes.len() { ring_start } else { i + 1 };
+        link(&nodes, &mut edges, i, j);
+    }
+    // Der gatene møtes hverandre og torget.
+    for i in 0..nodes.len() {
+        for j in i + 1..nodes.len() {
+            if nodes[i].distance(nodes[j]) < 6.5 {
+                link(&nodes, &mut edges, i, j);
+            }
+        }
+    }
+    let path = |from: usize, to: usize| -> Option<Vec<usize>> {
+        let mut dist = vec![f32::MAX; nodes.len()];
+        let mut prev = vec![usize::MAX; nodes.len()];
+        let mut done = vec![false; nodes.len()];
+        dist[from] = 0.0;
+        loop {
+            let u = (0..nodes.len()).filter(|&i| !done[i] && dist[i] < f32::MAX).min_by(|a, b| dist[*a].total_cmp(&dist[*b]))?;
+            if u == to {
+                break;
+            }
+            done[u] = true;
+            for &(v, w) in &edges[u] {
+                if dist[u] + w < dist[v] {
+                    dist[v] = dist[u] + w;
+                    prev[v] = u;
+                }
+            }
+        }
+        let mut out = vec![to];
+        while *out.last().unwrap() != from {
+            out.push(prev[*out.last().unwrap()]);
+        }
+        out.reverse();
+        Some(out)
+    };
+    // Ærendene: brønnene, torget, dørene på torget og innsiden av portene.
+    let mut errands: Vec<(Vec2, f32)> = vec![];
+    for t in &b.targets {
+        if let Use::Well(_) = t.what {
+            let p = Vec2::new(t.pose.translation.x, t.pose.translation.z);
+            // Ved siden av brønnen, mot nærmeste gate.
+            if let Some(q) = (0..8).map(|k| p + Vec2::from_angle(k as f32 * 0.785) * 1.7).filter(|q| free(*q)).min_by(|a, b| street_gap(*a).total_cmp(&street_gap(*b))) {
+                errands.push((q, 8.0));
+            }
+        }
+    }
+    for (i, p) in nodes.iter().enumerate().skip(ring_start).step_by(3) {
+        let _ = i;
+        errands.push((*p, 6.0));
+    }
+    for (p, yaw) in doors {
+        let side = Vec2::new(yaw.cos(), -yaw.sin());
+        errands.push((*p + side * 3.5, 5.0));
+    }
+    for south in [true, false] {
+        let (g, out) = gate(south);
+        errands.push((g - out * 9.0, 4.0));
+    }
+    // Hvert ærend kobles til nærmeste node det er fri vei til.
+    let anchor: Vec<Option<usize>> = errands
+        .iter()
+        .map(|(p, _)| (0..nodes.len()).filter(|&i| nodes[i].distance(*p) < 12.0 && clear(nodes[i], *p)).min_by(|a, c| nodes[*a].distance(*p).total_cmp(&nodes[*c].distance(*p))))
+        .collect();
+    let usable: Vec<usize> = (0..errands.len()).filter(|&i| anchor[i].is_some() && free(errands[i].0)).collect();
+    log::info!("Byen: veinett med {} punkter, {} ærender", nodes.len(), usable.len());
+    // Bare ærender i den største sammenhengende delen av nettet (et smau
+    // som ender blindt bak et hus, er ikke med).
+    let mut comp = vec![usize::MAX; nodes.len()];
+    let mut sizes = vec![];
+    for s0 in 0..nodes.len() {
+        if comp[s0] != usize::MAX {
+            continue;
+        }
+        let mut stack = vec![s0];
+        comp[s0] = sizes.len();
+        let mut n = 0;
+        while let Some(u) = stack.pop() {
+            n += 1;
+            for &(v, _) in &edges[u] {
+                if comp[v] == usize::MAX {
+                    comp[v] = sizes.len();
+                    stack.push(v);
+                }
+            }
+        }
+        sizes.push(n);
+    }
+    let main = (0..sizes.len()).max_by_key(|&k| sizes[k]).unwrap_or(0);
+    let usable: Vec<usize> = usable.into_iter().filter(|&i| comp[anchor[i].unwrap()] == main).collect();
+    if usable.len() < 3 {
+        return;
+    }
+    let folk: [(&'static str, Vec3, &'static [&'static str]); 8] = [
+        ("Bonden", Vec3::new(0.35, 0.28, 0.12), TOWNSFOLK),
+        ("Tjenestejenta", Vec3::new(0.5, 0.12, 0.12), TOWNSFOLK),
+        ("Vaktmannen", Vec3::new(0.12, 0.14, 0.3), GUARD),
+        ("Kremmeren", Vec3::new(0.4, 0.3, 0.05), TOWNSFOLK),
+        ("Fiskerkona", Vec3::new(0.15, 0.3, 0.32), TOWNSFOLK),
+        ("Gutten", Vec3::new(0.45, 0.42, 0.2), TOWNSFOLK),
+        ("Pilegrimen", Vec3::new(0.25, 0.22, 0.2), PILGRIM),
+        ("Vaskekona", Vec3::new(0.55, 0.5, 0.42), TOWNSFOLK),
+    ];
+    let base = b.npcs.len();
+    for (k, (name, tint, lines)) in folk.into_iter().enumerate() {
+        // Tre ærender hver, fordelt over byen.
+        let pick: Vec<usize> = (0..3).map(|j| usable[(k * 5 + j * 7 + j * k) % usable.len()]).collect();
+        let mut route: Vec<(Vec3, f32)> = vec![];
+        let mut ok = true;
+        for j in 0..pick.len() {
+            let (a, c) = (pick[j], pick[(j + 1) % pick.len()]);
+            if a == c {
+                continue;
+            }
+            route.push((b.on_ground(Vec3::new(errands[a].0.x, 0.0, errands[a].0.y)), errands[a].1));
+            let Some(p) = path(anchor[a].unwrap(), anchor[c].unwrap()) else {
+                ok = false;
+                break;
+            };
+            for n in p {
+                let q = nodes[n];
+                route.push((b.on_ground(Vec3::new(q.x, 0.0, q.y)), 0.0));
+            }
+        }
+        if !ok || route.len() < 2 {
+            continue;
+        }
+        let (pos, _) = route[0];
+        b.npcs.push(NpcSpec { name, model: crate::domain::npcs::NPC_MODEL, pos, yaw: 0.0, tint, lines, route });
+        let i = b.npcs.len() - 1;
+        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
+    }
+    log::info!("Byen: {} innbyggere går ærender", b.npcs.len() - base);
+}
+
+/// Avstanden fra et punkt til nærmeste gate (midtlinja).
+fn street_gap(p: Vec2) -> f32 {
+    streets().iter().map(|s| street_dist(s, p).0).fold(f32::MAX, f32::min)
+}
+
+const TOWNSFOLK: &[&str] = &[
+    "God dag. Vannet i brønnen er kaldt i dag, kaldt som krypten.",
+    "Har du vært nede under borgen? Bror min gikk ned i fjor. Han snakker bare om knapper nå.",
+    "Torgdag i dag. Alt er dyrere enn i går.",
+    "Kirkeklokka ringte feil i natt. Tretten slag.",
+];
+const GUARD: &[&str] = &[
+    "Hold deg unna borghaugen etter mørkets frembrudd.",
+    "Portene stenges ikke, men jeg holder øye med hvem som går ut.",
+    "Ser du noe som kryper opp fra krypten, rop.",
+];
+const PILGRIM: &[&str] = &[
+    "Jeg har gått fra Nidaros for å se det tapte systemet. De sier det passer i alle rammeverk.",
+    "Fristil. Navnet alene gjør meg rolig.",
+];
 
 /// Hva bakken er dekket av i et punkt, som vekter mellom 0 og 1: brostein
 /// på torget og i Storgata, tråkket jord i Tverrgata, på veiene og rundt

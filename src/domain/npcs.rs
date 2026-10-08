@@ -9,7 +9,7 @@ use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec3};
 
 pub const NPC_MODEL: &str = "npc";
-pub const MAX_NPCS: usize = 8;
+pub const MAX_NPCS: usize = 16;
 /// Så lenge en replikk står.
 const LINE_SECS: f32 = 5.5;
 /// Så langt unna kan du være og fortsatt snakke.
@@ -36,7 +36,7 @@ pub struct Npc {
     waved: bool,
     /// Gjøremålene: punktene innbyggeren går mellom (minst to, ellers står
     /// hen), hvilket som står for tur, og hvor lenge hen blir stående.
-    route: Vec<Vec3>,
+    route: Vec<(Vec3, f32)>,
     leg: usize,
     wait: f32,
     walking: bool,
@@ -71,7 +71,7 @@ pub struct Speech {
 
 impl Npcs {
     /// `rig_of` gir skjelettet til en modell; hver innbygger har sin.
-    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str], Vec<Vec3>)>) -> Self {
+    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str], Vec<(Vec3, f32)>)>) -> Self {
         let mut rigs: Vec<(Rig, Clips)> = vec![];
         let mut by_model: Vec<(&'static str, Option<usize>)> = vec![];
         let mut npcs = vec![];
@@ -154,16 +154,21 @@ impl Npcs {
                         }
                     }
                 } else {
-                    let goal = n.route[n.leg];
+                    let (goal, pause) = n.route[n.leg];
                     let to_goal = goal - n.pos;
                     let flat = to_goal.with_y(0.0);
                     let step = WALK_SPEED * dt;
                     if flat.length() <= step {
                         n.pos = goal;
-                        n.walking = false;
-                        n.wait = 3.0 + ((i * 7 + n.leg * 3) % 5) as f32;
-                        if let Some(a) = n.anim.as_mut() {
-                            a.play(clips.idle, true, 0.3);
+                        if pause <= 0.0 {
+                            // Et punkt langs gata: rett videre til neste.
+                            n.leg = (n.leg + 1) % n.route.len();
+                        } else {
+                            n.walking = false;
+                            n.wait = pause + ((i * 7 + n.leg * 3) % 3) as f32;
+                            if let Some(a) = n.anim.as_mut() {
+                                a.play(clips.idle, true, 0.3);
+                            }
                         }
                     } else {
                         n.pos += to_goal * (step / flat.length());
