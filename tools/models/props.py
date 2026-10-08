@@ -231,7 +231,7 @@ def lantern_post():
     for a in range(4):
         rot = (0, 0, a * math.pi / 2)
         d = Vector((math.cos(a * math.pi / 2 + math.pi / 2), math.sin(a * math.pi / 2 + math.pi / 2), 0)) * 0.1
-        block("pane", (0.19, 0.006, 0.28), m.glass, at=(d.x, d.y, z0 + 0.18), rot=rot, bevel=0)
+        block("pane", (0.19, 0.006, 0.28), plain("glow_horn", (0.3, 0.19, 0.08), 0.5), at=(d.x, d.y, z0 + 0.18), rot=rot, bevel=0)
         block("bar", (0.19, 0.012, 0.012), m.iron, at=(d.x * 1.04, d.y * 1.04, z0 + 0.18), rot=rot, bevel=0.002)
     revolve("candle", [(0.0, z0 + 0.03), (0.03, z0 + 0.03), (0.03, z0 + 0.12), (0.0, z0 + 0.12)], m.planks, n=10)
     revolve("flame", [(0.0, z0 + 0.12), (0.022, z0 + 0.15), (0.0, z0 + 0.2)], m.glow, n=8)

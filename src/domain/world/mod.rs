@@ -45,6 +45,8 @@ pub enum Use {
     Descend,
     /// Døra øverst i trappa i startrommet: opp til krypta.
     Ascend,
+    /// Brønn nummer n i byen: heis opp vann og drikk.
+    Well(usize),
 }
 
 /// Noe du kan sikte på og bruke: en boks (sentrum og halve mål) med pose.
@@ -121,6 +123,11 @@ impl Builder {
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
         self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.0 });
+    }
+
+    /// En lykt med et talglys: tennes i skumringen og blafrer svakt.
+    pub fn lamp_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
+        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.12 });
     }
 
     /// Et lys som brenner hele døgnet (ild), med et lite flakk.

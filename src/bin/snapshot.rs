@@ -46,6 +46,10 @@ fn main() {
     if flag("--descend") {
         app.session.use_first(|u| *u == Use::Descend);
     }
+    // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
+    if flag("--well") {
+        app.session.use_first(|u| matches!(u, Use::Well(_)));
+    }
     if let Some(st) = arg("--stance") {
         match st.as_str() {
             "huk" => app.input().key("KeyC", true),

@@ -341,10 +341,56 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
     doors
 }
 
+/// Brønnvinda: vinda (med sveiv) dreier om x i høyden `WELL_AXLE`, tauet
+/// (1 m langt, skaleres) henger fra forkanten av valsen (`WELL_ROPE_Z`) ned
+/// til bøyla på bøtta. Bøtta henger i `WELL_REST` når ingen bruker brønnen
+/// og senkes ned i vannet til `WELL_DEPTH`.
+pub const WELL_PARTS: [&str; 3] = ["well_winch", "well_rope", "well_bucket"];
+pub const WELL_AXLE: f32 = 1.55;
+pub const WELL_ROPE_Z: f32 = 0.09;
+pub const WELL_REST: f32 = 1.05;
+pub const WELL_DEPTH: f32 = -0.25;
+pub const WELL_DRUM: f32 = 0.08;
+
 /// Gatelivet i hullene mellom husene: en brønn i hver bydel, flettverksgjerder
 /// rundt gårdsplasser og vedstabler inntil husveggene, vendt mot nærmeste
 /// gate. Plassen settes av i planen så ingenting havner oppå noe annet.
 fn street_life(b: &mut Builder, plan: &mut Plan, rng: &mut Rng) {
+    // Lyktestolper langs tverrgatene og smauene, annenhver side, omtrent
+    // hver 18. meter (Storgata og torget har sine fra før).
+    let mut lamps = 0;
+    for st in &streets()[1..] {
+        let mut acc = 0.0;
+        let mut side = 1.0f32;
+        let mut next = 6.0;
+        for w in st.pts.windows(2) {
+            let (a, bb) = (w[0], w[1]);
+            let seg = a.distance(bb);
+            while next < acc + seg {
+                let t = (next - acc) / seg;
+                let dir = (bb - a).normalize_or_zero();
+                let n = Vec2::new(-dir.y, dir.x) * side;
+                for off in [0.7f32, 1.2] {
+                    let c = a.lerp(bb, t) + n * (st.half + off);
+                    let rect = Rect { c, h: Vec2::splat(0.35), yaw: 0.0 };
+                    if plan.fits(&rect) && terrain::town_edge(c.x, c.y) < -2.0 {
+                        plan.taken.push(rect);
+                        let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
+                        if b.place("lantern_post", at(base, rng.range(0.0, TAU))) {
+                            b.solid(Shape::Cylinder { center: base + Vec3::Y * 1.4, radius: 0.15, half_height: 1.4 });
+                            b.lamp_light(base + Vec3::Y * 2.68, Vec3::new(1.0, 0.68, 0.38), 2.2, 10.0);
+                            lamps += 1;
+                        }
+                        break;
+                    }
+                }
+                side = -side;
+                next += 18.0;
+            }
+            acc += seg;
+        }
+    }
+    log::info!("Gatelys: {lamps} lyktestolper langs gatene");
     let mut wells: Vec<Vec2> = vec![];
     let (mut fences, mut piles) = (0, 0);
     for _ in 0..1500 {
@@ -374,8 +420,13 @@ fn street_life(b: &mut Builder, plan: &mut Plan, rng: &mut Rng) {
                     for sx in [-0.75f32, 0.75] {
                         b.solid(Shape::Cylinder { center: at(base, yaw).transform_point3(Vec3::new(sx, 1.1, 0.0)), radius: 0.12, half_height: 1.1 });
                     }
+                    // Vinda, tauet og bøtta flyttes av økta når du heiser.
+                    for model in WELL_PARTS {
+                        b.reserve(model, 1);
+                    }
+                    b.target(Use::Well(wells.len()), at(base, yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(1.1, 0.5, 1.1));
                 }
-                log::info!("Brønn ved ({:.1}, {:.1})", p.x, p.y);
+                log::info!("Brønn ved ({:.1}, {:.1}), yaw {:.2}", p.x, p.y, yaw);
                 wells.push(p);
                 continue;
             }
@@ -439,13 +490,23 @@ struct Inside {
     /// Ramper over trinnene (punktene i et konvekst skall).
     #[serde(default)]
     hulls: Vec<Vec<[f32; 3]>>,
+    /// Lykter som tennes om natta (vegglykta ved døra).
+    #[serde(default)]
+    lamps: Vec<([f32; 3], [f32; 3], f32, f32)>,
 }
 
-const INSIDE: [(&str, &str); 4] = [
+const INSIDE: [(&str, &str); 11] = [
     ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
+    ("house_a", include_str!("../../../assets/models/town/house_a_inside.json")),
+    ("house_b", include_str!("../../../assets/models/town/house_b_inside.json")),
+    ("house_c", include_str!("../../../assets/models/town/house_c_inside.json")),
+    ("house_d", include_str!("../../../assets/models/town/house_d_inside.json")),
+    ("house_e", include_str!("../../../assets/models/town/house_e_inside.json")),
+    ("house_f", include_str!("../../../assets/models/town/house_f_inside.json")),
     ("forge", include_str!("../../../assets/models/town/forge_inside.json")),
     ("tavern", include_str!("../../../assets/models/town/tavern_inside.json")),
     ("scriptorium", include_str!("../../../assets/models/town/scriptorium_inside.json")),
+    ("stave_church", include_str!("../../../assets/models/town/stave_church_inside.json")),
 ];
 
 fn inside(model: &str) -> Option<&'static Inside> {
@@ -465,7 +526,13 @@ fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     if !b.place(model, t) {
         return;
     }
-    if let Some(inside) = inside(model) {
+    let inside = inside(model);
+    if let Some(inside) = inside {
+        for (p, color, intensity, radius) in &inside.lamps {
+            b.lamp_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
+        }
+    }
+    if let Some(inside) = inside.filter(|i| !i.boxes.is_empty()) {
         for (c, size, y) in &inside.boxes {
             b.solid_box(t.transform_point3(Vec3::from(*c)), Vec3::from(*size), yaw + y);
         }
@@ -609,7 +676,7 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
         let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         if b.place("lantern_post", at(base, 0.0)) {
             b.solid(Shape::Cylinder { center: base + Vec3::Y * 1.4, radius: 0.15, half_height: 1.4 });
-            b.light(base + Vec3::Y * 2.7, Vec3::new(1.0, 0.7, 0.4), 2.4, 11.0);
+            b.lamp_light(base + Vec3::Y * 2.68, Vec3::new(1.0, 0.68, 0.38), 2.4, 11.0);
         }
     }
 }

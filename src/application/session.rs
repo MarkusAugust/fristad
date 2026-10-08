@@ -11,6 +11,7 @@ use crate::domain::scene::{Light, Weather};
 use crate::domain::tokens::Tokens;
 use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::dungeon::{self, Dungeon};
+use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
 use crate::ports::driving::{Action, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, WareView};
 use crate::ports::{ColliderId, Physics};
@@ -110,6 +111,9 @@ pub struct Session {
     keys: u32,
     /// Portene i kjelleren: 0 lukket, 1 oppe, og om de er låst opp.
     pub(super) gates: Vec<(f32, bool)>,
+    /// Hvor langt hver brønn er kommet i å heise opp vann (sekunder), eller
+    /// negativ når ingen bruker den.
+    pub(super) wells: Vec<f32>,
     chests: Vec<bool>,
     /// Komponentene: trygt lagret i byen, og det du bærer på turen.
     inventory: BTreeMap<String, u32>,
@@ -191,6 +195,7 @@ impl Session {
             coins: 0,
             keys: 0,
             gates: vec![(0.0, false); world.dungeon.gates.len()],
+            wells: vec![-1.0; world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count()],
             chests: vec![false; world.dungeon.chests.len()],
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),
@@ -309,6 +314,13 @@ impl Session {
             }
             Use::Descend => p("Krypta under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
             Use::Ascend => p("Døra opp til krypta", "Gå opp", "", "Opp til byen. Det du bærer legges i lageret."),
+            Use::Well(n) => {
+                if self.wells.get(n).is_some_and(|w| *w >= 0.0) {
+                    p("Brønn", "", "", "Sveiven går. Bøtta er på vei opp.")
+                } else {
+                    p("Brønn", "Heis opp vann", "", "Kaldt vann fra dypet: litt liv tilbake og full utholdenhet.")
+                }
+            }
         }
     }
 
@@ -462,6 +474,7 @@ impl Session {
 
         self.update_weather(dt);
         self.update_gates(physics, dt);
+        self.update_wells(dt, &mut events);
         let (half, radius) = self.stance.capsule();
         let feet = self.pos - Vec3::Y * (half + radius);
         self.herd.update(dt, feet);
@@ -536,6 +549,14 @@ impl Session {
                     events.push(Event::Toast("Porten er låst. Elitefienden i rommet bærer nøkkelen.".into()));
                 }
             }
+            Use::Well(n) => {
+                if let Some(w) = self.wells.get_mut(n) {
+                    if *w < 0.0 {
+                        *w = 0.0;
+                        events.push(Event::Sound("well".into()));
+                    }
+                }
+            }
             Use::Descend => {
                 let to = self.dungeon.start;
                 self.teleport(to, 0.0);
@@ -573,6 +594,25 @@ impl Session {
                     let lift = Affine3A::from_translation(Vec3::Y * gate_lift(*open));
                     physics.set_pose(t.collider, t.target.pose * lift * Affine3A::from_translation(t.target.center));
                 }
+            }
+        }
+    }
+
+    /// Brønnene: bøtta slippes ned, sveives opp, og du drikker.
+    fn update_wells(&mut self, dt: f32, events: &mut Vec<Event>) {
+        for w in &mut self.wells {
+            if *w < 0.0 {
+                continue;
+            }
+            let before = *w;
+            *w += dt;
+            if before < WELL_UP && *w >= WELL_UP {
+                self.hp = (self.hp + 25.0).min(self.max_hp);
+                self.combat.stamina = self.combat.max_stamina;
+                events.push(Event::Toast("Du heiser opp kaldt vann og drikker. Litt liv tilbake, og pusten er full.".into()));
+            }
+            if *w >= WELL_DONE {
+                *w = -1.0;
             }
         }
     }
@@ -978,6 +1018,43 @@ impl Session {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Brønnvindene, tauene og bøttene der de er nå (til bildet).
+    pub(super) fn well_poses(&self) -> Vec<(&'static str, Affine3A)> {
+        let mut out = vec![];
+        for t in &self.targets {
+            let Use::Well(n) = t.target.what else { continue };
+            let h = well_height(self.wells.get(n).copied().unwrap_or(-1.0));
+            let pose = t.target.pose;
+            let [winch, rope, bucket] = town::WELL_PARTS;
+            let turn = (town::WELL_REST - h) / town::WELL_DRUM;
+            out.push((winch, pose * Affine3A::from_translation(Vec3::Y * town::WELL_AXLE) * Affine3A::from_rotation_x(turn)));
+            let top = Vec3::new(0.0, town::WELL_AXLE, town::WELL_ROPE_Z);
+            out.push((rope, pose * Affine3A::from_translation(top) * Affine3A::from_scale(Vec3::new(1.0, town::WELL_AXLE - h, 1.0))));
+            out.push((bucket, pose * Affine3A::from_translation(Vec3::new(0.0, h, town::WELL_ROPE_Z))));
+        }
+        out
+    }
+}
+
+/// Når bøtta er oppe og du drikker, og når brønnen er ledig igjen (s).
+const WELL_UP: f32 = 3.8;
+const WELL_DONE: f32 = 4.2;
+
+/// Høyden på bøyla over brønnkanten etter `t` sekunder: slippes ned i
+/// vannet, ligger litt, og sveives opp i rykk.
+fn well_height(t: f32) -> f32 {
+    use town::{WELL_DEPTH as DOWN, WELL_REST as UP};
+    if t < 0.0 || t >= WELL_UP {
+        UP
+    } else if t < 1.0 {
+        UP + (DOWN - UP) * t * t
+    } else if t < 1.4 {
+        DOWN + ((t - 1.0) * 14.0).sin() * 0.02
+    } else {
+        let s = (t - 1.4) / (WELL_UP - 1.4);
+        DOWN + (UP - DOWN) * s + (s * 40.0).sin() * 0.01 * (1.0 - s)
     }
 }
 

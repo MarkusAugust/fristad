@@ -98,6 +98,9 @@ models! {
     "weapon_rack" => "town/weapon_rack.glb",
     // Gatelivet og landskapet fra tools/models/street.py.
     "well" => "town/well.glb",
+    "well_winch" => "town/well_winch.glb",
+    "well_rope" => "town/well_rope.glb",
+    "well_bucket" => "town/well_bucket.glb",
     "wattle_fence" => "town/wattle_fence.glb",
     "woodpile" => "town/woodpile.glb",
     "stone_wall" => "town/stone_wall.glb",

@@ -106,6 +106,57 @@ def light(c, color=(1.0, 0.6, 0.3), intensity=1.0, radius=5.0):
     LIGHTS.append((tuple(c), tuple(color), intensity, radius))
 
 
+# Lykter som bare lyser om natta (vegglykta ved døra); `finish` skriver dem
+# som «lamps».
+LAMPS = []
+
+
+def lamp(c, color=(1.0, 0.68, 0.38), intensity=1.6, radius=8.0):
+    LAMPS.append((tuple(c), tuple(color), intensity, radius))
+
+
+def wall_lantern(m, x, y_face, z, normal_y):
+    """Ei vegglykt ved døra: smijernsarm med stag, og en lykt med hornruter
+    og et talglys som henger i en krok. `z` er høyden på armen."""
+    s = normal_y
+    iron = m.iron
+    horn = plain("glow_horn", (0.3, 0.19, 0.08), 0.5)
+    flame = plain("glow_flame", (1.0, 0.7, 0.35), 0.4)
+    wax = layer("plaster", (0.75, 0.7, 0.55), 0.5)
+    block("lantern_plate", (0.12, 0.03, 0.34), iron, at=(x, y_face + s * 0.015, z - 0.08), bevel=0.006)
+    beam("lantern_arm", (x, y_face + s * 0.02, z), (x, y_face + s * 0.46, z), 0.03, 0.03, iron)
+    beam("lantern_strut", (x, y_face + s * 0.02, z - 0.22), (x, y_face + s * 0.3, z - 0.01), 0.022, 0.022, iron)
+    # Snirkelen ytterst på armen og kroken.
+    beam("lantern_curl", (x, y_face + s * 0.46, z), (x, y_face + s * 0.5, z + 0.05), 0.022, 0.022, iron)
+    ly = y_face + s * 0.4
+    beam("lantern_hook", (x, ly, z), (x, ly, z - 0.1), 0.012, 0.012, iron)
+    top = z - 0.1
+    revolve_ring = bpy.ops.mesh.primitive_torus_add
+    revolve_ring(major_radius=0.025, minor_radius=0.006, major_segments=10, minor_segments=4, location=(x, ly, top - 0.02), rotation=(math.pi / 2, 0, 0))
+    ring = bpy.context.active_object
+    ring.data.materials.append(iron)
+    ensure_uv(ring.data)
+    uv_box(ring)
+    PIECES.append(ring)
+    # Lykta: tak som en lav pyramide, ramme, hornruter og bunn.
+    h = 0.26
+    c = Vector((x, ly, top - 0.06 - h / 2))
+    prism("lantern_roof", [(-0.12, 0.0), (0.12, 0.0), (0.0, 0.07)], 0.24, iron, at=(c.x, c.y, top - 0.08))
+    block("lantern_top", (0.2, 0.2, 0.025), iron, at=c + Vector((0, 0, h / 2)), bevel=0.004)
+    block("lantern_base", (0.2, 0.2, 0.03), iron, at=c - Vector((0, 0, h / 2)), bevel=0.004)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            block("lantern_post", (0.016, 0.016, h), iron, at=c + Vector((sx * 0.092, sy * 0.092, 0)), bevel=0.002)
+    for k in range(4):
+        a = k * math.pi / 2
+        d = Vector((math.cos(a), math.sin(a), 0)) * 0.088
+        block("lantern_horn", (0.004, 0.17, h - 0.03) if k % 2 == 0 else (0.17, 0.004, h - 0.03), horn, at=c + d, bevel=0)
+        block("lantern_bar", (0.012, 0.18, 0.012) if k % 2 == 0 else (0.18, 0.012, 0.012), iron, at=c + d * 1.05, bevel=0.002)
+    block("lantern_candle", (0.04, 0.04, 0.09), wax, at=c - Vector((0, 0, h / 2 - 0.06)), bevel=0.01)
+    block("lantern_flame", (0.018, 0.018, 0.045), flame, at=c - Vector((0, 0, h / 2 - 0.13)), bevel=0.006)
+    lamp((c.x, c.y, c.z))
+
+
 def ensure_uv(me):
     """Alle delene skal ha uv-laget «UVMap»: når delene slås sammen, holdes
     lag med ulike navn adskilt, og eksporten tar bare det første."""
@@ -567,6 +618,8 @@ def half_timbered(spec):
                 window(m, ox, oz, fy - 0.11, ob, oh, -1.0, shutters=f > 0 or rng.random() < 0.7, rng=rng)
             else:
                 door(m, ox, fy - 0.11, -1.0, ob, oh, z, open=spec.get("open_door", False))
+                if spec.get("lantern", True):
+                    wall_lantern(m, ox + 0.95 * spec.get("lantern_side", 1), fy - 0.1, z + 2.25, -1.0)
         # Baksida og sidene.
         back = [(0.0, z + 1.45, 0.7, 0.8, "w")] if rng.random() < 0.8 else []
         timber_wall(m, f"back{f}", -w / 2, w / 2, d / 2, z, z1, 1.0, back, rng)
@@ -675,7 +728,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
-    if COLLIDERS or LIGHTS or HULLS:
+    if COLLIDERS or LIGHTS or HULLS or LAMPS:
         import json
         # Blender (x, y, z) er (x, z, −y) i motoren; yaw om z blir yaw om y.
         eng = lambda v: [round(v[0], 3), round(v[2], 3), round(-v[1], 3)]
@@ -684,11 +737,13 @@ def finish(path, ao_samples=160, max_edge=0.6):
             "boxes": [[eng(c), size(sz), round(yaw, 4)] for c, sz, yaw in COLLIDERS],
             "lights": [[eng(c), list(col), i, r] for c, col, i, r in LIGHTS],
             "hulls": [[eng(p) for p in pts] for pts in HULLS],
+            "lamps": [[eng(c), list(col), i, r] for c, col, i, r in LAMPS],
         }
         with open(path.replace(".glb", "_inside.json"), "w") as f:
             json.dump(data, f)
-        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys")
+        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter")
     COLLIDERS.clear()
+    LAMPS.clear()
     RELIEF.clear()
     LIGHTS.clear()
     HULLS.clear()

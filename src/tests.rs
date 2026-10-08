@@ -315,7 +315,7 @@ fn man_kan_ga_inn_i_husene() {
     }
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, start ute og mål inne, i Blenders akser (x, y): døra mot −y.
-    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5))];
+    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5)), ("stave_church", (0.0, -7.6), (0.0, 0.0))];
     let mut problems = vec![];
     for (model, from, to) in houses {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -379,4 +379,19 @@ fn man_kan_ga_opp_trappene() {
         }
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Brønnene: bøtta slippes ned og sveives opp, og du drikker når den er oppe.
+#[test]
+fn bronnen_gir_vann() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    assert!(world().world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count() >= 2, "for få brønner");
+    let mut events = game.use_first(|u| matches!(u, Use::Well(_)));
+    for _ in 0..(5.0 * 30.0) as usize {
+        events.extend(game.update(&mut input, 1.0 / 30.0, &mut physics));
+    }
+    assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s == "well")), "ingen lyd fra brønnen");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("drikker"))), "fikk ikke drikke");
 }

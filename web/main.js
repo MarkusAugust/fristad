@@ -663,6 +663,18 @@ const sfx = (() => {
       crunch(c, 0.5, 0.25, 500, 0.45);
       tone(c, "sine", 70, 40, 0.5, 0.005, 0.3, 0.45);
     },
+    well: (c) => {
+      // Brønnen: valsen surrer når bøtta slippes, plask i vannet, og så
+      // knirker sveiven i rykk mens bøtta heises opp.
+      tone(c, "triangle", 320, 120, 0.05, 0.02, 0.95);
+      crunch(c, 0.35, 0.45, 900, 0.95);
+      tone(c, "sine", 180, 90, 0.12, 0.005, 0.25, 0.97);
+      for (let k = 0; k < 10; k++) {
+        const at = 1.45 + k * 0.24;
+        tone(c, "sawtooth", 115 + (k % 2) * 35, 95, 0.045, 0.01, 0.12, at);
+        crunch(c, 0.06, 0.05, 1800, at + 0.06);
+      }
+    },
   };
   return {
     play(name) {

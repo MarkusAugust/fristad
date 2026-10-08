@@ -25,7 +25,7 @@ from common import clear  # noqa: E402
 from mathutils import Vector, noise  # noqa: E402
 
 import town  # noqa: E402
-from town import M, PIECES, beam, block, finish, layer  # noqa: E402
+from town import M, PIECES, beam, block, finish, layer, plain  # noqa: E402
 from walls import link, pyramid, revolve  # noqa: E402
 
 OUT = "assets/models/town"
@@ -95,21 +95,10 @@ def well():
         ob = block("roof", (2.2, 0.85, 0.08), m.roof, at=(0, sy * 0.36, 2.48), rot=(sy * 0.65, 0, 0), bevel=0.01)
         town._roof_uv(ob, along_y=False)
     beam("ridge", (-1.1, 0, 2.75), (1.1, 0, 2.75), 0.16, 0.06, m.wood)
-    # Vinda med tau, sveiv og bøtte.
-    roller = revolve("roller", [(0.08, -R + 0.05), (0.08, R - 0.05)], m.bark, n=12)
-    roller.rotation_euler = (0, math.pi / 2, 0)
-    roller.location = (0, 0, 1.55 - (-R + 0.05) * 0)
-    roller.location = (-R + 0.05, 0, 1.55)
-    roller.rotation_euler = (0, math.pi / 2, 0)
-    revolve("rope_coil", [(0.1, -0.2), (0.1, 0.2)], m.rope, n=12, cap=False).rotation_euler = (0, math.pi / 2, 0)
-    PIECES[-1].location = (-0.2, 0, 1.55)
-    beam("rope", (0.05, -0.1, 1.5), (0.05, -0.1, 1.05), 0.02, 0.02, m.rope)
-    beam("crank", (R - 0.1, 0, 1.55), (R + 0.15, 0, 1.55), 0.04, 0.04, m.dark_iron)
-    beam("crank_arm", (R + 0.15, 0, 1.55), (R + 0.15, 0, 1.3), 0.04, 0.04, m.dark_iron)
-    beam("crank_grip", (R + 0.15, 0, 1.3), (R + 0.3, 0, 1.3), 0.04, 0.04, m.wood)
-    revolve("bucket", [(0.0, 0.0), (0.13, 0.0), (0.16, 0.26), (0.0, 0.26)], m.wood, n=14, at=(0.05, -0.1, 0.79))
-    revolve("bucket_band", [(0.165, 0.2), (0.17, 0.22), (0.165, 0.24)], m.dark_iron, n=14, at=(0.05, -0.1, 0.79), cap=False)
-    beam("handle", (-0.1, -0.1, 1.05), (0.2, -0.1, 1.05), 0.015, 0.015, m.dark_iron)
+    # Lagrene for vinda i stolpene (vinda, tauet og bøtta er egne modeller
+    # som spillet dreier og heiser: well_winch, well_rope, well_bucket).
+    for sx in (-1, 1):
+        block("bearing", (0.16, 0.2, 0.12), m.dark_iron, at=(sx * (R - 0.1), 0, 1.55), bevel=0.01)
     # Steinheller rundt.
     for k in range(9):
         a = 2 * math.pi * k / 9 + rng.uniform(-0.1, 0.1)
@@ -215,8 +204,73 @@ def boulder(seed, size):
     return m
 
 
+def well_winch():
+    """Vinda: valsen med taukveil, jernbånd og sveiv. Origo i aksen, som
+    går langs x; spillet dreier modellen om x."""
+    m = mats()
+    roller = revolve("roller", [(0.08, -0.7), (0.08, 0.7)], m.bark, n=14)
+    roller.rotation_euler = (0, math.pi / 2, 0)
+    for x in (-0.68, 0.68):
+        band = revolve("roller_band", [(0.085, -0.025), (0.085, 0.025)], m.dark_iron, n=14, cap=False)
+        band.rotation_euler = (0, math.pi / 2, 0)
+        band.location = (x, 0, 0)
+    # Kveilen: tauet surret rundt valsen i vindinger.
+    for k in range(9):
+        x = -0.25 + k * 0.045
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.092, minor_radius=0.014, major_segments=16, minor_segments=6, location=(x, 0, 0), rotation=(0, math.pi / 2, 0))
+        ob = bpy.context.active_object
+        ob.data.materials.append(m.rope)
+        town.ensure_uv(ob.data)
+        town.uv_box(ob)
+        PIECES.append(ob)
+    # Akseltappene gjennom lagrene, og sveiven på østsida.
+    beam("axle", (-0.95, 0, 0), (-0.68, 0, 0), 0.04, 0.04, m.dark_iron)
+    beam("axle", (0.68, 0, 0), (1.0, 0, 0), 0.04, 0.04, m.dark_iron)
+    beam("crank_arm", (1.0, 0, 0.02), (1.0, 0, -0.3), 0.045, 0.03, m.dark_iron)
+    beam("crank_grip", (1.0, 0, -0.3), (1.17, 0, -0.3), 0.045, 0.045, m.wood)
+    return m
+
+
+def well_rope():
+    """Tauet fra valsen ned til bøtta: én meter, fra origo og ned; spillet
+    skalerer lengden."""
+    m = mats()
+    beam("rope", (0, 0, 0), (0, 0, -1.0), 0.024, 0.024, m.rope)
+    return m
+
+
+def well_bucket():
+    """Bøtta: staver i ring med jernbånd, vann i, og bøyla. Origo øverst på
+    bøyla, der tauet er knyttet."""
+    m = mats()
+    m.water = plain("glass", (0.03, 0.05, 0.05), 0.05)
+    rim, bottom = -0.13, -0.42
+    for k in range(14):
+        a = 2 * math.pi * k / 14
+        c = Vector((math.cos(a), math.sin(a), 0))
+        block("stave", (0.07, 0.025, rim - bottom), m.wood, at=c * 0.148 + Vector((0, 0, (rim + bottom) / 2)), rot=(0, 0, a + math.pi / 2), bevel=0.004)
+    revolve("bucket_floor", [(0.0, bottom), (0.14, bottom), (0.14, bottom + 0.03), (0.0, bottom + 0.03)], m.wood, n=14)
+    for z in (bottom + 0.05, rim - 0.06):
+        revolve("bucket_band", [(0.165, z - 0.02), (0.168, z), (0.165, z + 0.02)], m.dark_iron, n=16, cap=False)
+    revolve("bucket_water", [(0.0, rim - 0.05), (0.14, rim - 0.05), (0.0, rim - 0.05 + 0.001)], m.water, n=14)
+    # Bøyla: en bue av jern fra øret på hver side opp til tauet.
+    pts = []
+    for k in range(9):
+        a = math.pi * k / 8
+        pts.append(Vector((math.cos(a) * 0.16, 0, rim + math.sin(a) * (-rim))))
+    for p0, p1 in zip(pts, pts[1:]):
+        beam("bail", p0, p1, 0.014, 0.014, m.dark_iron)
+    for sx in (-1, 1):
+        block("ear", (0.03, 0.05, 0.06), m.dark_iron, at=(sx * 0.165, 0, rim - 0.01), bevel=0.005)
+    revolve("knot", [(0.0, -0.03), (0.03, -0.02), (0.03, 0.02), (0.0, 0.03)], m.rope, n=8)
+    return m
+
+
 MODELS = {
     "well": well,
+    "well_winch": well_winch,
+    "well_rope": well_rope,
+    "well_bucket": well_bucket,
     "wattle_fence": wattle_fence,
     "woodpile": woodpile,
     "stone_wall": stone_wall,
