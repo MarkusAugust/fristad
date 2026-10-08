@@ -847,3 +847,5 @@ fn fiendene_gar_rundt_det_som_star() {
     assert!(shut.is_empty(), "hindringene sperrer veien mellom cellene:\n{}", shut.join("\n"));
 }
 
+
+

@@ -95,6 +95,26 @@ pub fn street_dist(st: &Street, p: Vec2) -> (f32, Vec2) {
     best
 }
 
+/// Som `street_dist`, med koordinatene langs gata: (avstand, fortegnet
+/// avstand på tvers, meter langs midtlinja fra starten).
+pub fn street_coords(st: &Street, p: Vec2) -> (f32, f32, f32) {
+    let mut best = (f32::MAX, 0.0, 0.0);
+    let mut run = 0.0;
+    for w in st.pts.windows(2) {
+        let (a, b) = (w[0], w[1]);
+        let ab = b - a;
+        let len = ab.length().max(1e-6);
+        let t = ((p - a).dot(ab) / (len * len)).clamp(0.0, 1.0);
+        let d = (a + ab * t).distance(p);
+        if d < best.0 {
+            let across = (p - a).perp_dot(ab) / len;
+            best = (d, across, run + (p - a).dot(ab) / len);
+        }
+        run += len;
+    }
+    best
+}
+
 /// Fortegnet avstand fra (x, z) til kanten av torget (negativ innenfor).
 pub fn square_dist(p: Vec2) -> f32 {
     let mut d = f32::MIN;
@@ -585,18 +605,43 @@ fn wall(b: &mut Builder) {
         carry = d - (t - seg_len);
     }
     let gates = [gate(true), gate(false)];
+    // Ved portene kappes murbitene der de går inn i porttårnene (porthuset
+    // er 13 m bredt), så muren går helt inn til tårnene uten glipe.
+    const GATE_R: f32 = 5.4;
+    let mut pieces = vec![];
     for w in pts.windows(2) {
         let (a, c) = (w[0], w[1]);
-        let mid = (a + c) * 0.5;
-        if gates.iter().any(|(g, _)| (mid - *g).length() < 7.0) {
+        let Some(g) = gates.iter().map(|(g, _)| *g).find(|g| (a + c).distance(*g * 2.0) < 2.0 * (GATE_R + 6.0)) else {
+            pieces.push((a, c));
+            continue;
+        };
+        // Delene av a–c utenfor sirkelen rundt porten.
+        let d = c - a;
+        let f = a - g;
+        let (qa, qb, qc) = (d.dot(d), 2.0 * f.dot(d), f.dot(f) - GATE_R * GATE_R);
+        let disc = qb * qb - 4.0 * qa * qc;
+        if disc <= 0.0 {
+            pieces.push((a, c));
             continue;
         }
-        let dir = (c - a).normalize();
-        // Murens lokale +X går langs muren; utsida er lokal −Z.
+        let (t0, t1) = ((-qb - disc.sqrt()) / (2.0 * qa), (-qb + disc.sqrt()) / (2.0 * qa));
+        for (s0, s1) in [(0.0, t0.min(1.0)), (t1.max(0.0), 1.0)] {
+            if (s1 - s0) * d.length() > 0.8 {
+                pieces.push((a + d * s0, a + d * s1));
+            }
+        }
+    }
+    for (a, c) in pieces {
+        let mid = (a + c) * 0.5;
+        let len = (c - a).length();
+        let dir = (c - a) / len;
+        // Murens lokale +X går langs muren; utsida er lokal −Z. Kappede
+        // biter strekkes eller presses langs muren.
         let yaw = (-dir.y).atan2(dir.x);
         let base = b.on_ground(Vec3::new(mid.x, 0.0, mid.y));
-        if b.place("town_wall", at(base, yaw)) {
-            b.solid_box(base + Vec3::Y * 3.0, Vec3::new((c - a).length() + 0.2, 6.0, 1.6), yaw);
+        let pose = at(base, yaw) * Affine3A::from_scale(Vec3::new(len / seg_len, 1.0, 1.0));
+        if b.place("town_wall", pose) {
+            b.solid_box(base + Vec3::Y * 3.0, Vec3::new(len + 0.2, 6.0, 1.6), yaw);
         }
     }
     // Tårnene: med jevne mellomrom, utenom portene.
@@ -857,8 +902,10 @@ pub struct Ground {
     pub forest: f32,
     pub dry: f32,
     pub wet: f32,
-    /// Veien går øst–vest her (Tverrgata): hjulsporene i jordlaget snus.
-    pub east_west: bool,
+    /// Koordinatene langs nærmeste jordvei i meter: (på tvers fra
+    /// midtlinja, langs veien). Søla med hjulspor legges etter dem, så
+    /// sporene følger veien og bøyer seg i svingene.
+    pub road: Vec2,
     /// Hvor mye av jorda som er tråkket jord (gårdsplassene) i stedet
     /// for veisøle med hjulspor.
     pub earth: f32,
@@ -881,15 +928,23 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let cobble = soft(0.0, square_dist(p).min(main) + (n1 - 0.5) * 1.2, 1.4);
     // Jorda: Tverrgata og smauene, veiene ut, og gårdsplassene rundt husene.
     let mut lanes = f32::MAX;
-    let mut along = Vec2::Y;
+    let mut coords = Vec2::ZERO;
     for s in st.iter().filter(|s| !s.cobbled) {
-        let (d, t) = street_dist(s, p);
+        let (d, across, along) = street_coords(s, p);
         if d - s.half < lanes {
             lanes = d - s.half;
-            along = t;
+            coords = Vec2::new(across, along);
         }
     }
-    let road = path_dist(x, z) - 1.6;
+    let mut road = f32::MAX;
+    for (d, across, along) in paths(x, z) {
+        if d - 1.6 < road {
+            road = d - 1.6;
+            if road < lanes + off {
+                coords = Vec2::new(across, along);
+            }
+        }
+    }
     let roads = soft(0.0, (lanes + off).min(road) + (n1 - 0.5) * 1.6, 1.8);
     // Gårdsplassene er tråkket jord (eget lag uten hjulspor).
     let yards = inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85;
@@ -918,29 +973,48 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     }
     // Søle i kantene av jordveiene og i gatene i byen.
     let wet = (dirt * (1.0 - dirt) * 4.0 * soft(0.0, 0.55 - n2, 0.2)).clamp(0.0, 1.0);
-    // Hjulsporene følger gata: øst–vest der den nærmeste jordgata går mest
-    // øst–vest.
-    let east_west = inside > 0.5 && lanes < 4.0 && along.x.abs() > along.y.abs();
-    Ground { cobble, dirt, rock, forest, dry, wet, east_west, earth }
+    Ground { cobble, dirt, rock, forest, dry, wet, road: coords, earth }
 }
 
 /// Avstand fra et punkt til veiene utenfor muren: sørover fra sørporten,
 /// og opp til borgen fra nordporten.
 pub fn path_dist(x: f32, z: f32) -> f32 {
-    let mut d = f32::MAX;
+    paths(x, z).into_iter().map(|(d, _, _)| d).fold(f32::MAX, f32::min)
+}
+
+/// Veiene utenfor muren som gjelder for punktet: (avstand til midtlinja,
+/// fortegnet avstand på tvers, meter langs veien). Begge går omtrent
+/// nord–sør, så midtlinja er en x for hver z.
+fn paths(x: f32, z: f32) -> Vec<(f32, f32, f32)> {
+    let mut out = vec![];
     let (south, _) = gate(true);
     let (north, _) = gate(false);
+    // Lengden langs veien regnes med helningen til midtlinja.
+    let along = |cx: &dyn Fn(f32) -> f32, z0: f32, z: f32| -> (f32, f32) {
+        let c = cx(z);
+        let slope = (cx(z + 0.5) - cx(z - 0.5)).abs();
+        let stretch = (1.0 + slope * slope).sqrt();
+        ((x - c) / stretch, (z - z0) * stretch)
+    };
     if z > south.y - 2.0 {
-        let n = terrain::noise(z * 0.03, 9.0);
-        let k = ((z - south.y) / 60.0).clamp(0.0, 1.0);
-        d = d.min((x - south.x * (1.0 - k) - (n - 0.5) * 30.0 * k).abs());
+        let cx = |z: f32| {
+            let n = terrain::noise(z * 0.03, 9.0);
+            let k = ((z - south.y) / 60.0).clamp(0.0, 1.0);
+            south.x * (1.0 - k) + (n - 0.5) * 30.0 * k
+        };
+        let (u, v) = along(&cx, south.y, z);
+        out.push(((x - cx(z)).abs(), u, v));
     }
     if z < north.y + 2.0 && z > CRYPT.y - 4.0 {
         // Svinger litt mens den klatrer, og ender ved krypten.
-        let t = ((north.y - z) / (north.y - CRYPT.y)).clamp(0.0, 1.0);
-        d = d.min((x - north.x * (1.0 - t) - CRYPT.x * t - (t * PI).sin() * 6.0).abs());
+        let cx = |z: f32| {
+            let t = ((north.y - z) / (north.y - CRYPT.y)).clamp(0.0, 1.0);
+            north.x * (1.0 - t) + CRYPT.x * t + (t * PI).sin() * 6.0
+        };
+        let (u, v) = along(&cx, north.y, z);
+        out.push(((x - cx(z)).abs(), u, -v));
     }
-    d
+    out
 }
 
 /// Avstand fra et punkt til det bygde: byen innenfor muren, og borghaugen.

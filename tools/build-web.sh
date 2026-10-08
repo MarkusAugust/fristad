@@ -44,7 +44,7 @@ rm -rf dist
 mkdir -p dist
 "$TOOLS/wasm-bindgen" --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/fristad.wasm
-cp web/index.html web/main.js web/style.css web/docs.json dist/
+cp web/index.html web/main.js web/music.js web/style.css web/docs.json dist/
 cp node_modules/@fristil/designsystem/dist/fristil.css dist/
 # De frittstående web-komponentene (toast, connection-status) importeres som
 # ES-moduler fra pakken, uten kildekart og typer.

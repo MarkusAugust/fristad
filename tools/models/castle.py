@@ -194,8 +194,9 @@ def torch_bracket(m, x, y, z, normal_y=-1.0):
     revolve("flame", [(0.0, z + 0.4), (0.07, z + 0.48), (0.0, z + 0.72)], m.glow, n=8, at=(x, y + s * 0.3, 0))
 
 
-def arched_portal(m, front, x, y_face, z0, w, h, t, depth_door):
-    """En rundbuet åpning i muren med buestein, og fotodøra innfelt."""
+def arched_portal(m, front, x, y_face, z0, w, h, t, depth_door, tymp_back=0.12):
+    """En rundbuet åpning i muren med buestein, og fotodøra innfelt
+    (`depth_door` bak murflata, tympanonet `tymp_back` bak døra)."""
     straight = h - w / 2
     cut(front, (w, t + 0.4, straight), (x, y_face + t / 2, z0 + straight / 2))
     bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=w / 2, depth=t + 0.4, location=(x, y_face + t / 2, z0 + straight), rotation=(math.pi / 2, 0, 0))
@@ -210,8 +211,8 @@ def arched_portal(m, front, x, y_face, z0, w, h, t, depth_door):
     # Døra: bildet er 1:2; den rette delen dekkes av døra, buen over av et
     # tympanon av stein.
     photo_door(x, y_face + depth_door, z0, w, straight + w * 0.15)
-    tymp = prism("tympanum", [(-w / 2, 0.0), (w / 2, 0.0), (w / 2, w / 2), (-w / 2, w / 2)], 0.2, m.ashlar, at=(x, y_face + depth_door + 0.12, z0 + straight + w * 0.15))
-    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=w / 2, depth=0.6, location=(x, y_face + depth_door + 0.12, z0 + straight), rotation=(math.pi / 2, 0, 0))
+    tymp = prism("tympanum", [(-w / 2, 0.0), (w / 2, 0.0), (w / 2, w / 2), (-w / 2, w / 2)], 0.2, m.ashlar, at=(x, y_face + depth_door + tymp_back, z0 + straight + w * 0.15))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=w / 2, depth=0.6, location=(x, y_face + depth_door + tymp_back, z0 + straight), rotation=(math.pi / 2, 0, 0))
     inv = bpy.context.active_object
     mod = tymp.modifiers.new("keep", "BOOLEAN")
     mod.operation = "INTERSECT"
@@ -268,7 +269,9 @@ def crypt_stair():
     # er det mørkt (trappa opp).
     t = 0.5
     front = block("portal_wall", (3.0, t, 3.6), m.ashlar, at=(0, t / 2 - 0.1, 1.8 - 0.1), bevel=0.04, segments=2)
-    arched_portal(m, front, 0.0, -0.1, 0.0, 1.3, 2.7, t, 0.2)
+    # Murflata i rommet står i y = 0: døra og tympanonet må stå foran den,
+    # ellers dekker romveggen dem.
+    arched_portal(m, front, 0.0, -0.1, 0.0, 1.3, 2.7, t, 0.05, tymp_back=0.0)
     block("threshold", (1.6, 0.5, 0.12), m.ashlar, at=(0, -0.3, 0.02), bevel=0.03, segments=2)
     torch_bracket(m, 1.15, -0.12, 1.9)
     torch_bracket(m, -1.15, -0.12, 1.9)

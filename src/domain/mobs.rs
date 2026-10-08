@@ -465,7 +465,10 @@ impl Mobs {
             let n = if elite { 8 } else { stats.tokens };
             self.play(i, clips.die, false, 0.08);
             if elite && self.keys.len() < MAX_KEYS {
-                self.keys.push(Token { pos: base + Vec3::new(0.0, 0.0, 0.3), age: 0.0, taken: false });
+                // Der det går an å komme til: ikke inni en mur eller sarkofag.
+                let p = base + Vec3::new(0.0, 0.0, 0.3);
+                let p = if dungeon.walkable(p, 0.3) && dungeon.clear(p, 0.3) { p } else { base };
+                self.keys.push(Token { pos: p, age: 0.0, taken: false });
             }
             for k in 0..n {
                 if self.tokens.len() >= MAX_TOKENS {
@@ -773,7 +776,7 @@ impl Mobs {
         }
         for k in &mut self.keys {
             k.age += dt;
-            if !k.taken && in_cellar && (k.pos - player).with_y(0.0).length() < 1.1 && (k.pos.y - player.y).abs() < 2.0 {
+            if !k.taken && in_cellar && (k.pos - player).with_y(0.0).length() < 1.5 && (k.pos.y - player.y).abs() < 2.0 {
                 k.taken = true;
                 out.keys += 1;
             }

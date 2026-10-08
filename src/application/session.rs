@@ -329,7 +329,7 @@ impl Session {
                 }
             }
             Use::Descend => p("Krypten under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
-            Use::Ascend => p("Døra opp til krypten", "Gå opp", "", "Opp til byen. Det du bærer legges i lageret."),
+            Use::Ascend => p("Døra opp til overflaten", "Gå opp", "", "Opp til krypten og byen. Det du bærer legges i lageret."),
             Use::Well(n) => {
                 if self.wells.get(n).is_some_and(|w| *w >= 0.0) {
                     p("Brønn", "", "", "Sveiven går. Bøtta er på vei opp.")
@@ -715,7 +715,8 @@ impl Session {
     }
 
     /// Død: opp til krypten, det du bar er borte, en firedel av tokenene
-    /// blir igjen nede.
+    /// blir igjen nede. Fiendene kommer igjen, men portene du har låst opp,
+    /// står fortsatt oppe.
     fn die(&mut self, events: &mut Vec<Event>) {
         let lost = self.coins / 4;
         self.coins -= lost;
@@ -724,7 +725,7 @@ impl Session {
         self.popups.clear();
         self.keys = 0;
         self.hp = self.max_hp;
-        self.gates.iter_mut().for_each(|g| *g = (0.0, false));
+        // Portgitrene du har låst opp, står oppe: veien ned er din.
         if !self.carried.is_empty() {
             let n: u32 = self.carried.values().sum();
             self.carried.clear();

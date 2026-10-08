@@ -436,43 +436,10 @@ code {
   margin-top: var(--fs-spacing-4);
 }
 
-/* Eksempelet fra dokumentasjonen, levende. */
+/* Eksempelet fra dokumentasjonen, levende. Flaten og stilene ligger i
+   demoens shadow root (main.js), slik Fristil-docs viser den. */
 .demo {
-  display: grid;
-  gap: var(--fs-spacing-3);
-  padding: var(--fs-spacing-4);
-  border: 1px solid var(--fs-color-neutral-border-subtle);
-  border-radius: var(--fs-spacing-2);
-  background: var(--fs-color-neutral-canvas);
-}
-
-.demo > * {
-  margin: 0;
-}
-
-.demo .fs-progress {
-  inline-size: 100%;
-}
-
-.demo .fs-toast {
-  position: static;
-  inline-size: auto;
-}
-
-.demo .fs-connection-status {
   display: block;
-}
-
-/* Dialogen står i flyten i demoen: nettleseren gir <dialog> position:
-   absolute, og Fristil gjør den fixed inne i <fs-dialog>. */
-.demo .fs-dialog,
-.demo fs-dialog .fs-dialog[open]:not(:modal) {
-  position: static;
-  inset: auto;
-  margin: 0;
-  inline-size: 100%;
-  max-inline-size: 100%;
-  box-shadow: var(--fs-shadow-overlay);
 }
 
 @keyframes slide {

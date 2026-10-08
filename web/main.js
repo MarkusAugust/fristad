@@ -3,13 +3,18 @@
 // den drivende porten.
 
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
+import { createMusic } from "./music.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
+import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
+import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
 
 defineFsToast();
-// Boka viser eksempelet fra dokumentasjonen levende, så fanene må være
-// registrert for at <fs-tabs> skal koble fanene til panelene.
+// Boka viser eksempelet fra dokumentasjonen levende, så komponentene med
+// oppførsel må være registrert, som i Fristil-docs.
 defineFsTabs();
+defineFsDialog();
+defineFsConnectionStatus();
 
 const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
@@ -1005,237 +1010,8 @@ const sfx = (() => {
   };
 })();
 
-// Musikken: laget i nettleseren mens du spiller, ingen filer. Oppe i byen
-// koselig middelaldermusikk i D dorisk (plukkede strenger over en myk
-// bordun og en fløyte som vandrer); nede i krypten kalde, dissonante
-// bordunlyder, vind og fjerne klokkeklang. Overgangen tones over på tre
-// sekunder. M slår den av og på.
-const music = (() => {
-  let c = null;
-  let master = null;
-  let verb = null;
-  let mode = null;
-  let muted = false;
-  let timer = null;
-  let next = 0;
-  let beat = 0;
-  const layers = {};
-  try {
-    muted = localStorage.getItem("fristad.music") === "av";
-  } catch {
-    /* ingen lagring */
-  }
-  const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
-  const setup = () => {
-    if (c) return true;
-    c = sfx.context();
-    if (!c) return false;
-    master = c.createGain();
-    master.gain.value = muted ? 0 : 0.5;
-    master.connect(c.destination);
-    // Etterklang: en impulsrespons av støy som dør ut.
-    verb = c.createConvolver();
-    const len = c.sampleRate * 3.2;
-    const ir = c.createBuffer(2, len, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
-    }
-    verb.buffer = ir;
-    const wet = c.createGain();
-    wet.gain.value = 0.55;
-    verb.connect(wet).connect(master);
-    for (const name of ["town", "cellar"]) {
-      const g = c.createGain();
-      g.gain.value = 0;
-      g.connect(master);
-      g.connect(verb);
-      layers[name] = g;
-    }
-    return true;
-  };
-  // En plukket streng (Karplus–Strong), som en lutt.
-  const pluck = (bus, f, at, peak) => {
-    const n = Math.round(c.sampleRate / f);
-    const dur = 2.2;
-    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    for (let i = n; i < d.length; i++) d[i] = 0.497 * (d[i - n] + d[i - n + 1]);
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    const lp = c.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 2600;
-    const g = c.createGain();
-    g.gain.value = peak;
-    src.connect(lp).connect(g).connect(bus);
-    src.start(at);
-  };
-  // En myk fløytetone med vibrato og litt pust.
-  const flute = (bus, f, at, dur, peak) => {
-    const o = c.createOscillator();
-    o.type = "sine";
-    o.frequency.value = f;
-    const v = c.createOscillator();
-    v.frequency.value = 5;
-    const vg = c.createGain();
-    vg.gain.setValueAtTime(0, at);
-    vg.gain.linearRampToValueAtTime(f * 0.008, at + dur * 0.6);
-    v.connect(vg).connect(o.frequency);
-    const g = c.createGain();
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.linearRampToValueAtTime(peak, at + 0.12);
-    g.gain.setValueAtTime(peak, at + dur - 0.15);
-    g.gain.linearRampToValueAtTime(0.0001, at + dur);
-    o.connect(g).connect(bus);
-    o.start(at);
-    v.start(at);
-    o.stop(at + dur + 0.05);
-    v.stop(at + dur + 0.05);
-  };
-  // En bordun som varer mens laget spiller.
-  const drone = (bus, freqs, type, cutoff, peak) => {
-    const lp = c.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = cutoff;
-    const g = c.createGain();
-    g.gain.value = peak;
-    lp.connect(g).connect(bus);
-    const lfo = c.createOscillator();
-    lfo.frequency.value = 0.07;
-    const lg = c.createGain();
-    lg.gain.value = cutoff * 0.4;
-    lfo.connect(lg).connect(lp.frequency);
-    lfo.start();
-    for (const f of freqs) {
-      for (const det of [-4, 4]) {
-        const o = c.createOscillator();
-        o.type = type;
-        o.frequency.value = f;
-        o.detune.value = det;
-        o.connect(lp);
-        o.start();
-      }
-    }
-  };
-  // Byen: D dorisk, akkordene Dm, C, Dm, Am, F, C, G, Dm.
-  const chords = [[50, 57, 62, 65], [48, 55, 60, 64], [50, 57, 62, 65], [45, 52, 57, 60], [41, 48, 53, 57], [48, 55, 60, 64], [43, 50, 55, 59], [50, 57, 62, 65]];
-  const scale = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77];
-  let note = 4;
-  const town = (t) => {
-    const bar = Math.floor(beat / 8) % chords.length;
-    const ch = chords[bar];
-    const step = beat % 8;
-    // Brutte akkorder i åttedeler, litt ujevnt som en ekte spiller.
-    const pat = [0, 2, 1, 3, 2, 1, 3, 2];
-    pluck(layers.town, hz(ch[pat[step]]), t + Math.random() * 0.015, step === 0 ? 0.5 : 0.32);
-    if (step === 0) pluck(layers.town, hz(ch[0] - 12), t, 0.45);
-    // Fløyta: en frase hver andre takt, som vandrer i skalaen.
-    if (bar % 2 === 0 && (step === 0 || step === 3 || step === 4 || step === 6) && Math.random() < 0.85) {
-      note = Math.max(0, Math.min(scale.length - 1, note + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)]));
-      flute(layers.town, hz(scale[note]), t, step === 6 ? 0.9 : 0.42, 0.07);
-    }
-  };
-  // Krypten: fjerne klokker i frygisk, slag langt borte og vind.
-  const bells = [38, 39, 43, 45, 46, 50, 51, 55];
-  const cellar = (t) => {
-    if (beat % 8 === 0 && Math.random() < 0.55) {
-      const f = hz(bells[Math.floor(Math.random() * bells.length)] + 24);
-      for (const [mul, amp] of [[1, 0.07], [2.76, 0.03], [5.4, 0.015]]) {
-        const o = c.createOscillator();
-        o.frequency.value = f * mul;
-        const g = c.createGain();
-        g.gain.setValueAtTime(amp, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 4.5);
-        o.connect(g).connect(layers.cellar);
-        o.start(t);
-        o.stop(t + 4.6);
-      }
-    }
-    if (beat % 16 === 6 && Math.random() < 0.4) {
-      const o = c.createOscillator();
-      o.frequency.setValueAtTime(52, t);
-      o.frequency.exponentialRampToValueAtTime(30, t + 0.8);
-      const g = c.createGain();
-      g.gain.setValueAtTime(0.25, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
-      o.connect(g).connect(layers.cellar);
-      o.start(t);
-      o.stop(t + 1.3);
-    }
-  };
-  const wind = () => {
-    const len = c.sampleRate * 4;
-    const b = c.createBuffer(1, len, c.sampleRate);
-    const d = b.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    const src = c.createBufferSource();
-    src.buffer = b;
-    src.loop = true;
-    const bp = c.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = 400;
-    bp.Q.value = 2.5;
-    const lfo = c.createOscillator();
-    lfo.frequency.value = 0.05;
-    const lg = c.createGain();
-    lg.gain.value = 260;
-    lfo.connect(lg).connect(bp.frequency);
-    const g = c.createGain();
-    g.gain.value = 0.05;
-    src.connect(bp).connect(g).connect(layers.cellar);
-    src.start();
-    lfo.start();
-  };
-  let started = false;
-  const start = () => {
-    if (started) return;
-    started = true;
-    drone(layers.town, [hz(38), hz(45)], "sawtooth", 380, 0.05);
-    drone(layers.cellar, [hz(26), hz(32), hz(33)], "sawtooth", 220, 0.09);
-    wind();
-    next = c.currentTime + 0.1;
-    // Planlegger åttedelene litt fram i tid.
-    timer = setInterval(() => {
-      const spb = 60 / 84 / 2;
-      while (next < c.currentTime + 0.25) {
-        if (mode === "town") town(next);
-        if (mode === "cellar") cellar(next);
-        next += spb;
-        beat++;
-      }
-    }, 60);
-  };
-  const fade = (name, to) => {
-    const g = layers[name].gain;
-    g.cancelScheduledValues(c.currentTime);
-    g.setValueAtTime(g.value, c.currentTime);
-    g.linearRampToValueAtTime(to, c.currentTime + 3);
-  };
-  return {
-    set(where) {
-      if (!setup()) return;
-      start();
-      if (where === mode) return;
-      mode = where;
-      fade("town", where === "town" ? 1 : 0);
-      fade("cellar", where === "cellar" ? 1 : 0);
-    },
-    toggle() {
-      if (!setup()) return;
-      muted = !muted;
-      master.gain.setTargetAtTime(muted ? 0 : 0.5, c.currentTime, 0.3);
-      try {
-        localStorage.setItem("fristad.music", muted ? "av" : "på");
-      } catch {
-        /* ingen lagring */
-      }
-      return !muted;
-    },
-  };
-})();
-
+// Musikken (web/music.js): fem stykker etter tur i byen, uhygge i krypten.
+const music = createMusic(() => sfx.context());
 
 // Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
 // nettleseren gir oss den; ellers ser du deg rundt ved å dra med musa, så
@@ -1349,6 +1125,8 @@ function bindInput() {
     // avslått forsøk åpnet pausemenyen). Klikk i bildet låser igjen; neste
     // Esc åpner menyen.
     if (panelOpen && e.code === "Escape") {
+      // Er dialogen i demoen åpen, er det den Esc lukker.
+      if ($("demo").shadowRoot?.querySelector("dialog:modal")) return;
       e.preventDefault();
       closePanel("resume");
       return;
@@ -1409,7 +1187,7 @@ function openPanel() {
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";
   $("panel-link").href = d.url ?? "https://fristil.sobernetics.no/";
-  renderDemo(d.code ?? "");
+  renderDemo(d);
   panel.hidden = false;
   $("close").focus();
 }
@@ -1417,6 +1195,7 @@ function openPanel() {
 function closePanel(relock) {
   panelOpen = false;
   panel.hidden = true;
+  renderDemo({});
   if (relock === "resume") {
     enter(false);
   } else if (relock) {
@@ -1428,21 +1207,82 @@ function closePanel(relock) {
   }
 }
 
-// Eksempelet fra dokumentasjonen, levende: samme HTML som i Fristil-docs.
-function renderDemo(code) {
-  const demo = $("demo");
-  demo.replaceChildren();
-  if (!code) {
-    demo.hidden = true;
+// Eksempelet fra dokumentasjonen, levende, i en flate slik Fristil-docs
+// viser den (Preview.astro): i en shadow root med bare Fristils CSS, så
+// ingenting fra spillets stilark treffer komponentene.
+const FLATE = `
+  :host { display: block; }
+  .flate {
+    display: flex;
+    gap: var(--fs-spacing-3);
+    padding: var(--fs-spacing-6);
+    max-width: var(--fs-preview-max-width, none);
+    background: var(--fs-color-neutral-canvas);
+    color: var(--fs-color-neutral-text-strong);
+    border: 1px solid var(--fs-color-neutral-border-subtle);
+    border-radius: var(--fs-spacing-1);
+    font-family: inherit;
+    font-size: var(--fs-font-size-m);
+    line-height: 1.6;
+  }
+  .flate[data-fast-inni] { contain: layout; }
+  .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
+  .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; }
+  /* Docs-flaten gir <hr> nettleserens margin-inline: auto, og da blir
+     skillelinja null bred i stabelen. I boka skal den synes. */
+  .flate > .fs-divider { margin-inline: 0; }
+`;
+
+// Fristils stilark hentes som tekst: kopierte regler (cssRules) mister
+// `background: var(...)` når lengre ned i regelen setter enkeltdelene.
+const demoSheets = [new CSSStyleSheet(), new CSSStyleSheet()];
+demoSheets[1].replaceSync(FLATE);
+fetch("fristil.css")
+  .then((r) => r.text())
+  .then((css) => demoSheets[0].replace(css))
+  .catch((e) => console.warn("fristil.css til demoen:", e));
+
+// Det skriptet ved siden av demoen i docs gjør (ToastDemo.astro osv.).
+const DEMO_ACTIONS = {
+  toast: (root) =>
+    root.querySelector(".fs-button")?.addEventListener("click", () =>
+      root.querySelector("fs-toast")?.show("Søknaden er lagret", { color: "success" })),
+  "connection-status": (root) => {
+    const status = root.querySelector("fs-connection-status");
+    root.getElementById("demo-samband-av")?.addEventListener("click", () => status?.reportFailure());
+    root.getElementById("demo-samband-pa")?.addEventListener("click", () => status?.reportSuccess());
+  },
+  dialog: (root) =>
+    root.querySelector("[data-apne]")?.addEventListener("click", () =>
+      root.querySelector("fs-dialog")?.setAttribute("open", "")),
+};
+
+function renderDemo(d) {
+  const host = $("demo");
+  const demo = d.demo;
+  if (!demo?.html) {
+    host.hidden = true;
+    host.shadowRoot?.replaceChildren();
     return;
   }
-  demo.hidden = false;
+  host.hidden = false;
+  const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+  root.adoptedStyleSheets = demoSheets;
   const tpl = document.createElement("template");
-  tpl.innerHTML = code;
+  tpl.innerHTML = demo.html;
   // Lenker i eksemplene skal ikke føre noen steder.
   for (const a of tpl.content.querySelectorAll("a[href]")) a.setAttribute("href", "#");
   for (const s of tpl.content.querySelectorAll("script")) s.remove();
-  demo.append(tpl.content);
+  const flate = document.createElement("div");
+  flate.className = "flate";
+  flate.dataset.layout = demo.layout || "rad";
+  if (demo.fixed) flate.dataset.fastInni = "";
+  if (demo.maxWidth) flate.style.setProperty("--fs-preview-max-width", demo.maxWidth);
+  flate.append(tpl.content);
+  const style = document.createElement("style");
+  style.textContent = demo.css ?? "";
+  root.replaceChildren(style, flate);
+  DEMO_ACTIONS[d.name]?.(root);
 }
 
 function inlineCode(text) {

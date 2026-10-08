@@ -82,6 +82,8 @@ struct VsOut {
     @location(5) @interpolate(flat) extra: vec4<f32>,
     // Okklusjonen fra modellen, blandet over trekanten (mat er flat).
     @location(6) ao: f32,
+    // Bakken: tørt gress og søle (vektene i hjørnene).
+    @location(7) dw: vec2<f32>,
 }
 
 fn joint_mat(i: u32) -> mat4x4<f32> {
@@ -152,6 +154,7 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
     o.mat = v.mat;
     o.ao = f32(v.mat.w) / 255.0;
     o.uv = v.uv;
+    o.dw = v.weights.xy;
     o.extra = inst.extra;
     look(&o, v, inst);
     return o;
@@ -388,10 +391,12 @@ fn uvmapped(layer: i32, uv_m: vec2<f32>, duvx_m: vec2<f32>, duvy_m: vec2<f32>, d
 // hjørnene og høydekartene, så steinene stikker opp gjennom jorda og gresset
 // vokser mellom steinene, i stedet for harde kanter. Planart fra oven, berget
 // triplanart (det står i skråninger).
-// `east_west`: hjulsporene i jordlaget går øst–vest (Tverrgata), ellers
-// nord–sør.
+// `road`: koordinatene langs nærmeste jordvei i meter (på tvers, langs),
+// med gradientene `dr1`/`dr2`. Søla med hjulsporene legges etter dem, så
+// sporene følger veien og bøyer seg i svingene. Der to veier møtes, hopper
+// koordinatene over en trekant; der strekkes de, og søla tar verdens akser.
 // `earth`: hvor mye av jorda som er tråkket jord (lag 17) i stedet for søle.
-fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, east_west: bool, earth: f32) -> Tex {
+fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>, dp2: vec3<f32>, n: vec3<f32>, road: vec2<f32>, dr1: vec2<f32>, dr2: vec2<f32>, earth: f32) -> Tex {
     let grass_w = max(0.0, 1.0 - w_in.x - w_in.y - w_in.z - w_in.w);
     // Lagene: brostein 0, søle 11, berg 15, skogbunn 14, gress 9, tråkket jord 17.
     var layers = array<i32, 6>(0, 11, 15, 14, 9, 17);
@@ -403,10 +408,27 @@ fn terrain(w_in: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32>
             let layer = layers[k];
             if (layer == 15) {
                 samples[k] = triplanar(layer, world, dp1, dp2, n, false);
-            } else if (layer == 11 && east_west) {
+            } else if (layer == 11) {
                 let scale = g.tex_scale[layer / 4][layer % 4];
-                let uv = vec2<f32>(world.z, world.x) / scale;
-                let s = sample_plane(layer, uv, vec2<f32>(dp1.z, dp1.x) / scale, vec2<f32>(dp2.z, dp2.x) / scale, vec3<f32>(0.0, 0.0, 1.0), vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 1.0, 0.0));
+                // Retningene på bakken der veikoordinatene vokser (løst fra
+                // gradientene), og hvor mange meter en meter veikoordinat er:
+                // nær 1 langs veien, mye mindre der koordinatene hopper.
+                let det = dr1.x * dr2.y - dr1.y * dr2.x;
+                var pu = (dp1 * dr2.y - dp2 * dr1.y) / det;
+                var pv = (dp2 * dr1.x - dp1 * dr2.x) / det;
+                let trust = select(0.0, smoothstep(0.35, 0.7, min(length(pu.xz), length(pv.xz))), abs(det) > 1e-12);
+                pu = vec3<f32>(pu.x, 0.0, pu.z);
+                pv = vec3<f32>(pv.x, 0.0, pv.z);
+                let tu = select(vec3<f32>(1.0, 0.0, 0.0), normalize(pu), dot(pu, pu) > 1e-10);
+                let tv = select(vec3<f32>(0.0, 0.0, -1.0), normalize(pv), dot(pv, pv) > 1e-10);
+                let along = sample_plane(layer, road / scale, dr1 / scale, dr2 / scale, tu, tv, vec3<f32>(0.0, 1.0, 0.0));
+                let uv = vec2<f32>(world.x, -world.z) / scale;
+                let flat = sample_plane(layer, uv, vec2<f32>(dp1.x, -dp1.z) / scale, vec2<f32>(dp2.x, -dp2.z) / scale, vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, -1.0), vec3<f32>(0.0, 1.0, 0.0));
+                var s = flat;
+                s.albedo = mix(flat.albedo, along.albedo, trust);
+                s.n = normalize(mix(flat.n, along.n, trust));
+                s.rough = mix(flat.rough, along.rough, trust);
+                s.height = mix(flat.height, along.height, trust);
                 samples[k] = s;
                 samples[k].n = normalize(n + vec3<f32>(s.n.x, 0.0, s.n.z));
             } else {
@@ -689,7 +711,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         }
     } else if (kind == K_TERRAIN) {
         // Okklusjonsbyten bærer andelen tråkket jord på bakken.
-        let t = terrain(i.color, i.uv.x, i.uv.y, i.world, dp1, dp2, n_geo, (flags & F_ROT_UV) != 0u, i.ao);
+        let t = terrain(i.color, i.dw.x, i.dw.y, i.world, dp1, dp2, n_geo, i.uv, duv1, duv2, i.ao);
         s.ao = 1.0;
         s.albedo = t.albedo * (0.9 + 0.2 * fbm2(i.world.xz * 0.11));
         s.n = t.n;

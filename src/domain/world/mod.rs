@@ -413,11 +413,13 @@ fn ground(b: &mut Builder) {
             b.mesh.vertices.push(Vertex {
                 pos: [x, y, z],
                 normal: terrain::normal(x, z).to_array(),
-                uv: [w.dry, w.wet],
+                // Uv-en er veikoordinatene (søla legges etter veien), og
+                // vektene bærer tørt gress og søle.
+                uv: w.road.to_array(),
                 color: [to8(w.cobble), to8(w.dirt), to8(w.rock), to8(w.forest)],
-                mat: [kind::TERRAIN, 0, if w.east_west { crate::domain::geometry::flag::ROT_UV } else { 0 }, to8(w.earth)],
+                mat: [kind::TERRAIN, 0, 0, to8(w.earth)],
                 joints: [0; 4],
-                weights: [0; 4],
+                weights: [to8(w.dry), to8(w.wet), 0, 0],
             });
         }
     }

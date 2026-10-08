@@ -253,6 +253,9 @@ def carve(target):
             u.objects.unlink(c)
         coll.objects.link(c)
     names = {lay.name for lay in target.data.uv_layers}
+    box = [Vector(v) for v in target.bound_box]
+    lo = Vector((min(v.x for v in box), min(v.y for v in box), min(v.z for v in box)))
+    hi = Vector((max(v.x for v in box), max(v.y for v in box), max(v.z for v in box)))
     mod = target.modifiers.new("carve", "BOOLEAN")
     mod.operation = "DIFFERENCE"
     mod.operand_type = "COLLECTION"
@@ -265,6 +268,16 @@ def carve(target):
     bpy.data.collections.remove(coll)
     CUTS.clear()
     town.keep_uv(target, names)
+    # Yttersidene av blokken vender ut i fjellet og synes aldri, men der
+    # hvelvet og gangene går gjennom dem, trianguleres hullet feil og gir
+    # takkete halvsirkler midt i gangen der to celler møtes. De fjernes.
+    bm = bmesh.new()
+    bm.from_mesh(target.data)
+    eps = 1e-3
+    outer = [f for f in bm.faces if any(all(abs(v.co[k] - b[k]) < eps for v in f.verts) for k in range(3) for b in (lo, hi))]
+    bmesh.ops.delete(bm, geom=outer, context="FACES")
+    bm.to_mesh(target.data)
+    bm.free()
     # Uv i meter, og hvelvet (flater som vender ned) får hogd stein.
     rot = target.matrix_world.to_3x3()
     for p in target.data.polygons:
@@ -542,13 +555,15 @@ def corridor(arms, variant=0, seed=1):
     rects = [(lo, hi, lo, hi)]
     for a in arms:
         dx, dz = DIRS[a]
+        # Armene overlapper midtfeltet: kuttere som møtes i samme plan gir
+        # flisete rester i boolean-operasjonen.
         if dx:
             x0, x1 = (hi, CELL + 0.05) if dx > 0 else (-0.05, lo)
-            cbox(x0, x1, -0.12, SPRING, lo, hi)
+            cbox(c if dx > 0 else x0, x1 if dx > 0 else c, -0.12, SPRING, lo, hi)
             rects.append((max(x0, 0), min(x1, CELL), lo, hi))
         else:
             z0, z1 = (hi, CELL + 0.05) if dz > 0 else (-0.05, lo)
-            cbox(lo, hi, -0.12, SPRING, z0, z1)
+            cbox(lo, hi, -0.12, SPRING, c if dz > 0 else z0, z1 if dz > 0 else c)
             rects.append((lo, hi, max(z0, 0), min(z1, CELL)))
         DATA["doors"].append([0, 0, dx, dz])
     ns = [a for a in arms if a in "NS"]
