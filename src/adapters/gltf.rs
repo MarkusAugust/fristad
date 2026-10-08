@@ -361,9 +361,15 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 log::warn!("Modell {name}: ukjent teksturlag i materialet {:?}", mat.name());
             }
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
-            let norms: Vec<[f32; 3]> = match reader.read_normals() {
-                Some(n) => n.collect(),
-                None => flat_normals(&pos, &idx),
+            // Normalene kan være pakket som 8 bit med fortegn
+            // (KHR_mesh_quantization, `tools/models/slim.py`); leseren i
+            // gltf-kassa tar bare flyttall, så de pakkes ut her.
+            let norms: Vec<[f32; 3]> = match prim.get(&gltf::Semantic::Normals) {
+                Some(a) if a.data_type() == gltf::accessor::DataType::I8 => packed_normals(&a, &buffers).unwrap_or_else(|| flat_normals(&pos, &idx)),
+                _ => match reader.read_normals() {
+                    Some(n) => n.collect(),
+                    None => flat_normals(&pos, &idx),
+                },
             };
             let base = mesh.vertices.len() as u32;
             let tint = pbr.base_color_factor();
@@ -490,6 +496,22 @@ fn skin_weights(j: [u16; 4], w: [f32; 4]) -> ([u8; 4], [u8; 4]) {
     let big = (0..4).max_by_key(|k| q[*k]).unwrap_or(0);
     q[big] = (q[big] as i32 + 255 - total).clamp(0, 255) as u8;
     (j.map(|x| x.min(255) as u8), q)
+}
+
+/// Normaler lagret som tre bytes med fortegn (normalisert, −127..127).
+fn packed_normals(a: &gltf::Accessor, buffers: &[Vec<u8>]) -> Option<Vec<[f32; 3]>> {
+    let view = a.view()?;
+    let data = buffers.get(view.buffer().index())?;
+    let stride = view.stride().unwrap_or(a.size());
+    let start = view.offset() + a.offset();
+    (0..a.count())
+        .map(|i| {
+            let o = start + i * stride;
+            let b = data.get(o..o + 3)?;
+            let f = |v: u8| (v as i8 as f32 / 127.0).max(-1.0);
+            Some(Vec3::new(f(b[0]), f(b[1]), f(b[2])).normalize_or_zero().to_array())
+        })
+        .collect()
 }
 
 fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {

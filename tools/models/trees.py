@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
+import slim  # noqa: E402
 from mathutils import Quaternion, Vector  # noqa: E402
 
 OUT = "assets/models/trees"
@@ -346,6 +347,7 @@ def card_mesh(name, cards, texture, mat_name, center, aspect=1.0):
 
 def export(path):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="AUTO", export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter")
 

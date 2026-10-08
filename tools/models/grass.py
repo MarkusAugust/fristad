@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
+import slim  # noqa: E402
 import bmesh  # noqa: E402
 from common import clear  # noqa: E402
 from mathutils import Vector  # noqa: E402
@@ -96,6 +97,7 @@ def tuft(name, seed, parts, atlas=ATLAS):
     bpy.context.scene.collection.objects.link(ob)
     path = f"{OUT}/{name}.glb"
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="AUTO", export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     print(f"{path}: {len(me.polygons) * 2} trekanter, {os.path.getsize(path) // 1024} kB")
 
 

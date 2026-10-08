@@ -20,6 +20,7 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
+import slim  # noqa: E402
 import bmesh  # noqa: E402
 from common import apply_modifiers, clear, ellipsoid, material, new_object, smooth, tube  # noqa: E402
 from mathutils import Vector  # noqa: E402
@@ -557,6 +558,7 @@ def bake_part(name, size):
 
 def export(path):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
 

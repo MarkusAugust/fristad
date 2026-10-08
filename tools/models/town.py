@@ -24,6 +24,7 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
+import slim  # noqa: E402
 import bmesh  # noqa: E402
 from common import clear  # noqa: E402
 from mathutils import Euler, Matrix, Vector  # noqa: E402
@@ -749,6 +750,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
     attr.data.foreach_set("color", col.ravel())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
     write_inside(path)

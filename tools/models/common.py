@@ -5,6 +5,7 @@ eksporten gjør det til Y opp, så X fram og Z mot høyre i motoren."""
 import math
 
 import bpy
+import slim
 import bmesh
 from mathutils import Vector
 
@@ -119,6 +120,7 @@ def spin(name, profile, mat, steps=24):
 
 def export(path):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
     print(f"{path}: {tris} trekanter")
 
@@ -320,6 +322,7 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     for slot in ob.material_slots:
         slot.material = tex_mat[key_of(slot.material.name)]
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
+    slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
 
