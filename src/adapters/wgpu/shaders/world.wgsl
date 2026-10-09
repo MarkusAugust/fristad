@@ -15,13 +15,17 @@ struct Instance {
     // kjellerens fire roller, 5 bit hver, bit 20 slår det på), w tonen.
     @location(11) extra: vec4<f32>,
     // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers;
-    // y: flammefargen i utseendet.
+    // y: flammefargen i utseendet; z: plassen til forrige bildes transform
+    // i forrige palett + 1; w: forrige bildes skinn i forrige palett + 1.
     @location(12) extra2: vec4<f32>,
 }
 
 /// Leddmatrisene for skinnede figurer: fire texels (kolonnene) per
 /// matrise, 256 matriser per rad.
 @group(0) @binding(1) var skin_tex: texture_2d<f32>;
+/// Paletten fra forrige bilde, til bevegelsesvektorene. Bak skinnene ligger
+/// transformene til de bevegelige instansene (extra2.z er plassen + 1).
+@group(0) @binding(2) var prev_skin_tex: texture_2d<f32>;
 
 struct Pass {
     // x kaskade (skygge) eller 0.
@@ -106,6 +110,39 @@ fn skin_of(v: VsIn, base: u32) -> mat4x4<f32> {
         + joint_mat(base + v.joints.w) * v.weights.w;
 }
 
+fn prev_joint_mat(i: u32) -> mat4x4<f32> {
+    let x = i32((i % 256u) * 4u);
+    let y = i32(i / 256u);
+    return mat4x4<f32>(
+        textureLoad(prev_skin_tex, vec2<i32>(x, y), 0),
+        textureLoad(prev_skin_tex, vec2<i32>(x + 1, y), 0),
+        textureLoad(prev_skin_tex, vec2<i32>(x + 2, y), 0),
+        textureLoad(prev_skin_tex, vec2<i32>(x + 3, y), 0),
+    );
+}
+
+fn prev_skin_of(v: VsIn, base: u32) -> mat4x4<f32> {
+    return prev_joint_mat(base + v.joints.x) * v.weights.x
+        + prev_joint_mat(base + v.joints.y) * v.weights.y
+        + prev_joint_mat(base + v.joints.z) * v.weights.z
+        + prev_joint_mat(base + v.joints.w) * v.weights.w;
+}
+
+// Matrisen forrige bilde: samme som nå for det som står stille.
+fn prev_model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
+    var m = mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
+    if (i.extra2.z > 0.5) {
+        m = prev_joint_mat(u32(i.extra2.z) - 1u);
+    }
+    if (i.extra2.x > 0.5) {
+        if (i.extra2.w > 0.5) {
+            return m * prev_skin_of(v, u32(i.extra2.w) - 1u);
+        }
+        return m * skin_of(v, u32(i.extra2.x) - 1u);
+    }
+    return m;
+}
+
 // Instansens matrise, med skinningen inni for skinnede figurer.
 fn model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
     let m = mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
@@ -144,6 +181,11 @@ fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
 
 @vertex
 fn vs(v: VsIn, inst: Instance) -> VsOut {
+    return vertex(v, inst);
+}
+
+// Hovedpasset og prepasset regner likt, så dybden kan testes med Equal.
+fn vertex(v: VsIn, inst: Instance) -> VsOut {
     var o: VsOut;
     let m = model_of(inst, v);
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
@@ -233,14 +275,41 @@ fn fs_shadow(i: ShadowOut) {
     }
 }
 
-// Dybdeprepasset skriver normalen til SSAO, og tester alfa likt med hovedpasset.
+// Dybdeprepasset skriver normalen til SSAO og bevegelsen på skjermen til
+// TAA, og tester alfa likt med hovedpasset.
 struct PreOut {
     @location(0) normal: vec4<f32>,
     @location(1) depth: f32,
+    @location(2) velocity: vec2<f32>,
+}
+
+struct VsPre {
+    @builtin(position) @invariant clip: vec4<f32>,
+    @location(0) normal: vec3<f32>,
+    @location(1) uv: vec2<f32>,
+    @location(2) @interpolate(flat) mat: vec4<u32>,
+    // Uten TAA-forskyvning: nå og forrige bilde.
+    @location(3) now: vec4<f32>,
+    @location(4) before: vec4<f32>,
+}
+
+@vertex
+fn vs_prepass(v: VsIn, inst: Instance) -> VsPre {
+    let o = vertex(v, inst);
+    var p: VsPre;
+    p.clip = o.clip;
+    p.normal = o.normal;
+    p.uv = o.uv;
+    p.mat = o.mat;
+    p.now = g.view_proj * vec4<f32>(o.world, 1.0);
+    var w = (prev_model_of(inst, v) * vec4<f32>(v.pos, 1.0)).xyz;
+    w += wind_offset(w, v);
+    p.before = g.prev_view_proj * vec4<f32>(w, 1.0);
+    return p;
 }
 
 @fragment
-fn fs_prepass(i: VsOut, @builtin(front_facing) front: bool) -> PreOut {
+fn fs_prepass(i: VsPre, @builtin(front_facing) front: bool) -> PreOut {
     let duvx = dpdx(i.uv);
     let duvy = dpdy(i.uv);
     if (coverage(i.mat.x, i.mat.z, i.uv, duvx, duvy) < 0.5) {
@@ -253,6 +322,9 @@ fn fs_prepass(i: VsOut, @builtin(front_facing) front: bool) -> PreOut {
     var o: PreOut;
     o.normal = vec4<f32>(n * 0.5 + 0.5, 1.0);
     o.depth = i.clip.z;
+    // Fra ndc til uv (y ned).
+    let d = i.now.xy / i.now.w - i.before.xy / max(i.before.w, 1e-6);
+    o.velocity = vec2<f32>(d.x * 0.5, -d.y * 0.5);
     return o;
 }
 

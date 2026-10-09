@@ -45,6 +45,8 @@ const DEPTH: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const NORMAL: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 /// Dybden som fargetekstur, så etterbehandlingen kan lese den i WebGL2.
 const DEPTH_LIN: wgpu::TextureFormat = wgpu::TextureFormat::R32Float;
+/// Bevegelsen på skjermen siden forrige bilde (uv), til TAA.
+const VELOCITY: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Float;
 const AO: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
 const SHADOW_ATLAS: u32 = 4096;
 const CASCADE_RES: u32 = SHADOW_ATLAS / 2;
@@ -223,6 +225,7 @@ struct Targets {
     depth: wgpu::TextureView,
     depth_lin: wgpu::TextureView,
     normal: wgpu::TextureView,
+    velocity: wgpu::TextureView,
     hdr: wgpu::TextureView,
     hdr_fog: wgpu::TextureView,
     resolved: [wgpu::TextureView; 2],
@@ -253,7 +256,8 @@ pub struct Renderer {
     queue: wgpu::Queue,
     encode_srgb: bool,
     globals: wgpu::Buffer,
-    globals_bg: wgpu::BindGroup,
+    /// Én per leddpalett: nå i binding 1, forrige bilde i binding 2.
+    globals_bg: [wgpu::BindGroup; 2],
     pass_buf: wgpu::Buffer,
     shadow_view: wgpu::TextureView,
     shadow_sampler: wgpu::Sampler,
@@ -279,8 +283,12 @@ pub struct Renderer {
     chunks: Vec<Chunk>,
     instances: wgpu::Buffer,
     models: Vec<GpuModel>,
-    /// Leddpaletten (se `SKIN_W`).
-    skins: wgpu::Texture,
+    /// Leddpalettene (se `SKIN_W`), annethvert bilde, så forrige bildes
+    /// matriser kan leses til bevegelsesvektorene.
+    skins: [wgpu::Texture; 2],
+    /// Hvor de bevegelige instansene lå i paletten forrige bilde: (modell,
+    /// nummer blant modellens instanser) → (plass for transformen, skinnet).
+    prev_moving: std::collections::HashMap<(usize, usize), (u32, Option<u32>)>,
     targets: Targets,
     frame_index: u32,
     prev_view_proj: Mat4,
@@ -367,7 +375,7 @@ impl Renderer {
             mapped_at_creation: false,
         });
         // Leddpaletten for skinnede modeller, skrevet per bilde.
-        let skins = device.create_texture(&wgpu::TextureDescriptor {
+        let skin_tex = || device.create_texture(&wgpu::TextureDescriptor {
             label: Some("skins"),
             size: wgpu::Extent3d { width: SKIN_W, height: SKIN_ROWS, depth_or_array_layers: 1 },
             mip_level_count: 1,
@@ -377,7 +385,8 @@ impl Renderer {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        let skins_view = skins.create_view(&Default::default());
+        let skins = [skin_tex(), skin_tex()];
+        let skin_views = [skins[0].create_view(&Default::default()), skins[1].create_view(&Default::default())];
         let globals_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("globals"),
             entries: &[
@@ -388,15 +397,24 @@ impl Renderer {
                     ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: false }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: false }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
+                    count: None,
+                },
             ],
         });
-        let globals_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("globals"),
-            layout: &globals_layout,
-            entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: globals.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&skins_view) },
-            ],
+        let globals_bg = [0, 1].map(|k| {
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("globals"),
+                layout: &globals_layout,
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: globals.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&skin_views[k]) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&skin_views[1 - k]) },
+                ],
+            })
         });
 
         // Per pass: kaskadenummer for skyggene, regn og snø for partiklene.
@@ -492,7 +510,7 @@ impl Renderer {
         let prepass_pipe = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("prepass"),
             layout: Some(&world_layout),
-            vertex: wgpu::VertexState { module: &world_mod, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &buffers },
+            vertex: wgpu::VertexState { module: &world_mod, entry_point: Some("vs_prepass"), compilation_options: Default::default(), buffers: &buffers },
             primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
             depth_stencil: depth_state(true, wgpu::CompareFunction::Less, Default::default()),
             multisample: Default::default(),
@@ -503,6 +521,7 @@ impl Renderer {
                 targets: &[
                     Some(wgpu::ColorTargetState { format: NORMAL, blend: None, write_mask: wgpu::ColorWrites::ALL }),
                     Some(wgpu::ColorTargetState { format: DEPTH_LIN, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                    Some(wgpu::ColorTargetState { format: VELOCITY, blend: None, write_mask: wgpu::ColorWrites::ALL }),
                 ],
             }),
             multiview: None,
@@ -735,6 +754,7 @@ impl Renderer {
             instances,
             models: gpu_models,
             skins,
+            prev_moving: Default::default(),
             targets,
             frame_index: 0,
             prev_view_proj: Mat4::IDENTITY,
@@ -781,6 +801,7 @@ impl Renderer {
         let depth = tex("depth", width, height, DEPTH);
         let depth_lin = tex("depth lin", width, height, DEPTH_LIN);
         let normal = tex("normal", width, height, NORMAL);
+        let velocity = tex("velocity", width, height, VELOCITY);
         let hdr = tex("hdr", width, height, HDR);
         let hdr_fog = tex("hdr fog", width, height, HDR);
         let resolved = [tex("resolved 0", width, height, HDR), tex("resolved 1", width, height, HDR)];
@@ -865,7 +886,7 @@ impl Renderer {
         let ssao_bg = bind(&normal, black, black);
         let blur_bg = [bind(&ao[0], black, black), bind(&ao[1], black, black)];
         let fog_bg = bind(&hdr, black, black);
-        let taa_bg = [bind(&hdr_fog, &resolved[1], black), bind(&hdr_fog, &resolved[0], black)];
+        let taa_bg = [bind(&hdr_fog, &resolved[1], &velocity), bind(&hdr_fog, &resolved[0], &velocity)];
         let down0_bg = [bind(&resolved[0], black, black), bind(&resolved[1], black, black)];
         let mut down_bg = vec![];
         for i in 1..BLOOM_LEVELS {
@@ -876,7 +897,7 @@ impl Renderer {
             up_bg.push(bind(&bloom[i].0, black, black));
         }
         let tonemap_bg = [bind(&resolved[0], &bloom[0].0, black), bind(&resolved[1], &bloom[0].0, black)];
-        Targets { width, height, depth, depth_lin, normal, hdr, hdr_fog, resolved, ao, bloom, frame_bg, shadow_frame_bg, post_frame_bg, ssao_bg, blur_bg, fog_bg, taa_bg, down0_bg, down_bg, up_bg, tonemap_bg }
+        Targets { width, height, depth, depth_lin, normal, velocity, hdr, hdr_fog, resolved, ao, bloom, frame_bg, shadow_frame_bg, post_frame_bg, ssao_bg, blur_bg, fog_bg, taa_bg, down0_bg, down_bg, up_bg, tonemap_bg }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -991,8 +1012,15 @@ impl Renderer {
         let shadow_cascades = if self.reduced { 2u32 } else { 3 };
         // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
         let culls = [sun_cull[0], sun_cull[1], sun_cull[2], cam_cull];
+        // Paletten: skinnmatrisene først, så transformene til de bevegelige
+        // instansene, som neste bilde leser som «forrige» til
+        // bevegelsesvektorene.
+        let pal = (self.frame_index % 2) as usize;
+        let n_skins = f.skins.len().min(SKIN_MAX);
+        let mut palette_extra: Vec<Mat4> = vec![];
+        let mut moving_now: std::collections::HashMap<(usize, usize), (u32, Option<u32>)> = Default::default();
         let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
-        for m in &self.models {
+        for (mi, m) in self.models.iter().enumerate() {
             // De bevegelige instansene (dyrene) legges til de faste, innenfor
             // plassen byen satte av.
             let moving: Vec<(InstanceData, Vec3, Vec3)> = f
@@ -1000,7 +1028,8 @@ impl Renderer {
                 .iter()
                 .filter(|i| i.model == m.name)
                 .take(m.reserve)
-                .map(|i| {
+                .enumerate()
+                .map(|(k, i)| {
                     let (lo, hi) = world_aabb(&i.transform, m.bounds.0, m.bounds.1);
                     // Blinket ligger over 1 i markeringen (extra.x).
                     let mut extra = m.extra;
@@ -1009,10 +1038,23 @@ impl Renderer {
                         let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
                         extra[1] = (c(t.x) << 16 | c(t.y) << 8 | c(t.z)) as f32;
                     }
-                    let inst = match i.skin {
-                        Some((base, _)) if m.skinned && (base as usize) < SKIN_MAX => InstanceData::skinned(&i.transform, extra, base),
-                        _ => InstanceData::new(&i.transform, extra),
+                    let skin = i.skin.map(|(base, _)| base).filter(|base| m.skinned && (*base as usize) < SKIN_MAX);
+                    let mut inst = match skin {
+                        Some(base) => InstanceData::skinned(&i.transform, extra, base),
+                        None => InstanceData::new(&i.transform, extra),
                     };
+                    // Forrige bildes transform og skinn (plass + 1, 0 er ingen).
+                    if let Some((slot, prev_skin)) = self.prev_moving.get(&(mi, k)) {
+                        inst.extra2[2] = *slot as f32 + 1.0;
+                        if skin.is_some() {
+                            inst.extra2[3] = prev_skin.map_or(0.0, |b| b as f32 + 1.0);
+                        }
+                    }
+                    let slot = n_skins + palette_extra.len();
+                    if slot < SKIN_MAX {
+                        palette_extra.push(Mat4::from(i.transform));
+                        moving_now.insert((mi, k), (slot as u32, skin));
+                    }
                     (inst, lo, hi)
                 })
                 .collect();
@@ -1130,18 +1172,18 @@ impl Renderer {
         self.queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
 
         // Leddpaletten: matrisene kolonne for kolonne, fire texels hver.
-        if !f.skins.is_empty() {
-            let n = f.skins.len().min(SKIN_MAX);
+        if !f.skins.is_empty() || !palette_extra.is_empty() {
             if f.skins.len() > SKIN_MAX {
                 log::warn!("For mange leddmatriser: {} av {}", f.skins.len(), SKIN_MAX);
             }
+            let n = n_skins + palette_extra.len();
             let rows = (n as u32).div_ceil(SKIN_W / 4);
             let mut data = vec![0f32; (rows * SKIN_W * 4) as usize];
-            for (i, m) in f.skins.iter().take(n).enumerate() {
+            for (i, m) in f.skins.iter().take(n_skins).chain(palette_extra.iter()).enumerate() {
                 data[i * 16..i * 16 + 16].copy_from_slice(&m.to_cols_array());
             }
             self.queue.write_texture(
-                wgpu::TexelCopyTextureInfo { texture: &self.skins, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+                wgpu::TexelCopyTextureInfo { texture: &self.skins[pal], mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
                 bytemuck::cast_slice(&data),
                 wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(SKIN_W * 16), rows_per_image: Some(rows) },
                 wgpu::Extent3d { width: SKIN_W, height: rows, depth_or_array_layers: 1 },
@@ -1164,7 +1206,7 @@ impl Renderer {
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.shadow_pipe);
-            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
             for c in 0..shadow_cascades {
@@ -1190,6 +1232,11 @@ impl Renderer {
                         resolve_target: None,
                         ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::WHITE), store: wgpu::StoreOp::Store },
                     }),
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: &t.velocity,
+                        resolve_target: None,
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT), store: wgpu::StoreOp::Store },
+                    }),
                 ],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &t.depth,
@@ -1200,7 +1247,7 @@ impl Renderer {
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.prepass_pipe);
-            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
@@ -1223,7 +1270,7 @@ impl Renderer {
                 occlusion_query_set: None,
             });
             pass.set_pipeline(pipe);
-            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(1, &t.post_frame_bg, &[0]);
             pass.set_bind_group(2, bg, &[]);
             pass.draw(0..3, 0..1);
@@ -1265,14 +1312,14 @@ impl Renderer {
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.world_pipe);
-            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
             let tris = self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
             self.triangles.set(tris);
             pass.set_pipeline(&self.sky_pipe);
-            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.draw(0..3, 0..1);
             if !f.smoke.is_empty() {
@@ -1319,6 +1366,7 @@ impl Renderer {
 
         self.queue.submit([enc.finish()]);
         self.prev_view_proj = view_proj;
+        self.prev_moving = moving_now;
         self.history_valid = f.taa;
         self.frame_index = self.frame_index.wrapping_add(1);
     }

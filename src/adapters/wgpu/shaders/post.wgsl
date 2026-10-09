@@ -190,7 +190,7 @@ fn fs_fog(i: VsOut) -> @location(0) vec4<f32> {
     return vec4<f32>(out, 1.0);
 }
 
-// ---- TAA. tex0 er bildet nå, tex1 historien. ----
+// ---- TAA. tex0 er bildet nå, tex1 historien, tex2 bevegelsen. ----
 
 fn rgb_to_ycocg(c: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b, -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
@@ -261,9 +261,10 @@ fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
     mn = max(mn, mu - sigma * gamma);
     mx = min(mx, mu + sigma * gamma);
 
-    let wp = world_from_depth(best_uv, best_d);
-    let prev = g.prev_view_proj * vec4<f32>(wp, 1.0);
-    let puv = vec2<f32>(prev.x / prev.w * 0.5 + 0.5, 0.5 - prev.y / prev.w * 0.5);
+    // Bevegelsen fra prepasset (tex2): kameraet og alt som flytter seg eller
+    // er skinnet, tatt fra den nærmeste pikselen så kantene følger med.
+    let vel = textureSampleLevel(tex2, near, best_uv, 0.0).xy;
+    let puv = i.uv - vel;
     if (any(puv < vec2<f32>(0.0)) || any(puv > vec2<f32>(1.0)) || best_d >= 1.0) {
         // Himmelen: reprojiser retningen i stedet, den er langt unna.
         if (best_d >= 1.0) {
