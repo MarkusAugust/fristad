@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 
 /// Delene av bildet, i den rekkefølgen de tegnes.
-pub const SECTIONS: [&str; 5] = ["skygger", "prepass", "ssao", "verden", "etterbehandling"];
+pub const SECTIONS: [&str; 3] = ["skygge", "verden", "etterbehandling"];
 const QUERIES: u32 = SECTIONS.len() as u32 * 2;
 
 /// Tilbakelesingen: ledig, venter på kartlegging, klar til å leses.

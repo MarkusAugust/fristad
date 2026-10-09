@@ -146,17 +146,10 @@ fn main() {
         view_formats: &[],
     });
     let start = std::time::Instant::now();
-    // Flere bilder med TAA gir et supersamplet, rolig bilde.
-    let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(12);
-    if let Some(scale) = arg("--scale") {
-        app.command(Command::SetScale(scale.parse().unwrap()));
-    }
-    if flag("--reduced") {
-        app.command(Command::SetReduced(true));
-    }
-    if let Some(q) = arg("--quality") {
-        app.command(Command::SetQuality(q.parse().unwrap()));
-    }
+    // Noen bilder, så animasjonene og lysene har satt seg.
+    let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(4);
+    // Standard grafikk er det spillet starter med; --advanced slår på avansert.
+    app.command(Command::SetReduced(!flag("--advanced")));
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);
@@ -192,7 +185,7 @@ fn main() {
             total.instances += p.instances;
         }
         println!("{:<9} {:>11} {:>11} {:>7} {:>9}", "sum", total.world, total.models, total.calls, total.instances);
-        println!("STATS {} {} {} {} {}", total.world + total.models, st[4].world + st[4].models, total.calls, st[4].calls, st[4].instances);
+        println!("STATS {} {} {} {} {}", total.world + total.models, st[1].world + st[1].models, total.calls, st[1].calls, st[1].instances);
     }
 
     let data = buf.slice(..).get_mapped_range();

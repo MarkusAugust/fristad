@@ -3,8 +3,8 @@
 // at du går helt inntil. Vinduer har rom bak glasset (interior mapping),
 // blad og tekst bruker uv, og modeller bruker egne teksturer.
 //
-// Samme vertex-shader brukes av dybdeprepasset, skyggene og hovedpasset, så
-// TAA-forskyvningen og vinden er identisk og dybden kan testes med Equal.
+// Skyggen og hovedpasset regner hjørnene likt (vinden og skinningen), så
+// skyggene følger det som svaier og beveger seg.
 
 struct Instance {
     @location(7) m0: vec4<f32>,
@@ -15,26 +15,13 @@ struct Instance {
     // kjellerens fire roller, 5 bit hver, bit 20 slår det på), w tonen.
     @location(11) extra: vec4<f32>,
     // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers;
-    // y: flammefargen i utseendet; z: plassen til forrige bildes transform
-    // i forrige palett + 1; w: forrige bildes skinn i forrige palett + 1.
+    // y: flammefargen i utseendet.
     @location(12) extra2: vec4<f32>,
 }
 
 /// Leddmatrisene for skinnede figurer: fire texels (kolonnene) per
 /// matrise, 256 matriser per rad.
 @group(0) @binding(1) var skin_tex: texture_2d<f32>;
-/// Paletten fra forrige bilde, til bevegelsesvektorene. Bak skinnene ligger
-/// transformene til de bevegelige instansene (extra2.z er plassen + 1).
-@group(0) @binding(2) var prev_skin_tex: texture_2d<f32>;
-
-struct Pass {
-    // x kaskade (skygge) eller 0.
-    params: vec4<f32>,
-}
-@group(1) @binding(2) var ao_tex: texture_2d<f32>;
-@group(1) @binding(3) var frame_sampler: sampler;
-@group(1) @binding(4) var<uniform> pass_u: Pass;
-
 @group(2) @binding(0) var tex_albedo: texture_2d_array<f32>;
 @group(2) @binding(1) var tex_nrh: texture_2d_array<f32>;
 @group(2) @binding(2) var tex_sampler: sampler;
@@ -78,7 +65,7 @@ struct VsIn {
 }
 
 struct VsOut {
-    @builtin(position) @invariant clip: vec4<f32>,
+    @builtin(position) clip: vec4<f32>,
     @location(0) world: vec3<f32>,
     @location(1) normal: vec3<f32>,
     @location(2) color: vec4<f32>,
@@ -110,39 +97,6 @@ fn skin_of(v: VsIn, base: u32) -> mat4x4<f32> {
         + joint_mat(base + v.joints.w) * v.weights.w;
 }
 
-fn prev_joint_mat(i: u32) -> mat4x4<f32> {
-    let x = i32((i % 256u) * 4u);
-    let y = i32(i / 256u);
-    return mat4x4<f32>(
-        textureLoad(prev_skin_tex, vec2<i32>(x, y), 0),
-        textureLoad(prev_skin_tex, vec2<i32>(x + 1, y), 0),
-        textureLoad(prev_skin_tex, vec2<i32>(x + 2, y), 0),
-        textureLoad(prev_skin_tex, vec2<i32>(x + 3, y), 0),
-    );
-}
-
-fn prev_skin_of(v: VsIn, base: u32) -> mat4x4<f32> {
-    return prev_joint_mat(base + v.joints.x) * v.weights.x
-        + prev_joint_mat(base + v.joints.y) * v.weights.y
-        + prev_joint_mat(base + v.joints.z) * v.weights.z
-        + prev_joint_mat(base + v.joints.w) * v.weights.w;
-}
-
-// Matrisen forrige bilde: samme som nå for det som står stille.
-fn prev_model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
-    var m = mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
-    if (i.extra2.z > 0.5) {
-        m = prev_joint_mat(u32(i.extra2.z) - 1u);
-    }
-    if (i.extra2.x > 0.5) {
-        if (i.extra2.w > 0.5) {
-            return m * prev_skin_of(v, u32(i.extra2.w) - 1u);
-        }
-        return m * skin_of(v, u32(i.extra2.x) - 1u);
-    }
-    return m;
-}
-
 // Instansens matrise, med skinningen inni for skinnede figurer.
 fn model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
     let m = mat4x4<f32>(i.m0, i.m1, i.m2, i.m3);
@@ -152,19 +106,12 @@ fn model_of(i: Instance, v: VsIn) -> mat4x4<f32> {
     return m;
 }
 
-fn jittered(clip: vec4<f32>) -> vec4<f32> {
-    var c = clip;
-    c.x += g.jitter.x * g.screen.z * 2.0 * clip.w;
-    c.y -= g.jitter.y * g.screen.w * 2.0 * clip.w;
-    return c;
-}
-
 fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
     if ((v.mat.z & F_WIND) == 0u) {
         return vec3<f32>(0.0);
     }
     let t = g.camera.w;
-    let strength = g.jitter.w;
+    let strength = g.misc.x;
     // Hele treet svaier sakte, bladene flagrer raskere. uv.y er hvor høyt opp i kronen.
     let sway = sin(t * 0.9 + world.x * 0.3 + world.z * 0.2) * 0.5 + sin(t * 1.7 + world.z * 0.5) * 0.25;
     let flutter = sin(t * 5.0 + world.x * 7.0 + world.y * 5.0) * 0.5 + sin(t * 7.3 + world.z * 9.0) * 0.5;
@@ -181,17 +128,12 @@ fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
 
 @vertex
 fn vs(v: VsIn, inst: Instance) -> VsOut {
-    return vertex(v, inst);
-}
-
-// Hovedpasset og prepasset regner likt, så dybden kan testes med Equal.
-fn vertex(v: VsIn, inst: Instance) -> VsOut {
     var o: VsOut;
     let m = model_of(inst, v);
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
     w += wind_offset(w, v);
     o.world = w;
-    o.clip = jittered(g.view_proj * vec4<f32>(w, 1.0));
+    o.clip = g.view_proj * vec4<f32>(w, 1.0);
     o.normal = (m * vec4<f32>(v.normal.xyz, 0.0)).xyz;
     o.color = v.color;
     o.mat = v.mat;
@@ -244,7 +186,7 @@ fn vs_shadow(v: VsIn, inst: Instance) -> ShadowOut {
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
     w += wind_offset(w, v);
     var o: ShadowOut;
-    o.clip = g.sun_vp[i32(pass_u.params.x)] * vec4<f32>(w, 1.0);
+    o.clip = g.sun_vp * vec4<f32>(w, 1.0);
     o.uv = v.uv;
     o.mat = v.mat;
     return o;
@@ -273,59 +215,6 @@ fn fs_shadow(i: ShadowOut) {
     if (coverage(i.mat.x, i.mat.z, i.uv, duvx, duvy) < 0.5) {
         discard;
     }
-}
-
-// Dybdeprepasset skriver normalen til SSAO og bevegelsen på skjermen til
-// TAA, og tester alfa likt med hovedpasset.
-struct PreOut {
-    @location(0) normal: vec4<f32>,
-    @location(1) depth: f32,
-    @location(2) velocity: vec2<f32>,
-}
-
-struct VsPre {
-    @builtin(position) @invariant clip: vec4<f32>,
-    @location(0) normal: vec3<f32>,
-    @location(1) uv: vec2<f32>,
-    @location(2) @interpolate(flat) mat: vec4<u32>,
-    // Uten TAA-forskyvning: nå og forrige bilde.
-    @location(3) now: vec4<f32>,
-    @location(4) before: vec4<f32>,
-}
-
-@vertex
-fn vs_prepass(v: VsIn, inst: Instance) -> VsPre {
-    let o = vertex(v, inst);
-    var p: VsPre;
-    p.clip = o.clip;
-    p.normal = o.normal;
-    p.uv = o.uv;
-    p.mat = o.mat;
-    p.now = g.view_proj * vec4<f32>(o.world, 1.0);
-    var w = (prev_model_of(inst, v) * vec4<f32>(v.pos, 1.0)).xyz;
-    w += wind_offset(w, v);
-    p.before = g.prev_view_proj * vec4<f32>(w, 1.0);
-    return p;
-}
-
-@fragment
-fn fs_prepass(i: VsPre, @builtin(front_facing) front: bool) -> PreOut {
-    let duvx = dpdx(i.uv);
-    let duvy = dpdy(i.uv);
-    if (coverage(i.mat.x, i.mat.z, i.uv, duvx, duvy) < 0.5) {
-        discard;
-    }
-    var n = normalize(i.normal);
-    if (!front) {
-        n = -n;
-    }
-    var o: PreOut;
-    o.normal = vec4<f32>(n * 0.5 + 0.5, 1.0);
-    o.depth = i.clip.z;
-    // Fra ndc til uv (y ned).
-    let d = i.now.xy / i.now.w - i.before.xy / max(i.before.w, 1e-6);
-    o.velocity = vec2<f32>(d.x * 0.5, -d.y * 0.5);
-    return o;
 }
 
 fn ggx(n: vec3<f32>, v: vec3<f32>, l: vec3<f32>, rough: f32, f0: vec3<f32>) -> vec3<f32> {
@@ -619,8 +508,6 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     // Smijern er ikke speil: hamret, oksidert og sotet jern sprer også lys,
     // ellers blir det svart innendørs der det ikke har himmel å speile.
     let diffuse_albedo = s.albedo * (1.0 - s.metal * 0.55);
-    let screen_uv = i.clip.xy * g.screen.zw;
-    let ssao = textureSampleLevel(ao_tex, frame_sampler, screen_uv, 0.0).r;
 
     // Sola eller månen.
     let l = g.sun_dir.xyz;
@@ -629,7 +516,7 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     if (s.kind == 1u) {
         wrap = max((dot(n, l) + 0.4) / 1.4, 0.0);
     }
-    let sh = sun_shadow(i.world, n_geo, i.world.xz * 37.0 + i.world.y);
+    let sh = sun_shadow(i.world, n_geo);
     let sun = g.sun_color.rgb * g.sun_dir.w * sh;
     var color = sun * (diffuse_albedo * wrap + ggx(n, v, l, s.rough, f0) * PI * ndl);
     if (s.kind == 1u) {
@@ -641,7 +528,7 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     }
 
     // Himmellys fra alle kanter, og lys som spretter opp fra bakken.
-    let ao = s.ao * s.cavity * ssao;
+    let ao = s.ao * s.cavity;
     // Himmellyset er sterkere og mindre blått enn himmelfargen rett opp:
     // det kommer fra hele hvelvingen, mest fra horisonten.
     let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.6) * 1.25;
@@ -744,6 +631,19 @@ fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u
     return s;
 }
 
+// Alfakortene (gress, blad): med MSAA blir dekningen til prøver (alpha to
+// coverage), strammet inn så kantene er skarpe uten å flimre; uten MSAA
+// kuttes de ved halv dekning.
+fn card_alpha(a: f32) -> f32 {
+    if (g.misc.y < 1.5) {
+        if (a < 0.5) {
+            discard;
+        }
+        return 1.0;
+    }
+    return clamp((a - 0.5) * 2.0 + 0.5, 0.0, 1.0);
+}
+
 @fragment
 fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     let kind = i.mat.x;
@@ -778,6 +678,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     s.kind = 0u;
     s.ao = i.ao;
     var height = 0.5;
+    var alpha = 1.0;
 
     if (kind < 32u) {
         var t: Tex;
@@ -826,8 +727,8 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.cavity = mix(0.65, 1.0, smoothstep(0.0, 0.5, height));
     } else if (kind == K_MODEL) {
         let a = textureSampleGrad(model_albedo, tex_sampler, i.uv, duv1, duv2);
-        if ((flags & F_ALPHA) != 0u && coverage(kind, flags, i.uv, duv1, duv2) < 0.5) {
-            discard;
+        if ((flags & F_ALPHA) != 0u) {
+            alpha = card_alpha(coverage(kind, flags, i.uv, duv1, duv2));
         }
         var paint = vec3<f32>(1.0);
         if ((flags & F_PAINT) != 0u) {
@@ -902,9 +803,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         }
     } else if (kind == K_LEAF) {
         let l = textureSampleGrad(leaf_tex, clamp_sampler, i.uv, duv1, duv2);
-        if (l.a < 0.5) {
-            discard;
-        }
+        alpha = card_alpha(l.a);
         s.kind = 1u;
         s.albedo = l.rgb * tint;
         s.rough = 0.7;
@@ -943,59 +842,18 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     s = weather(s, i.world, n_geo, height, flags);
     let dbg = i32(g.sky.w);
     if (dbg > 0) {
-        let screen_uv = i.clip.xy * g.screen.zw;
         switch dbg {
-            case 1: { return vec4<f32>(s.albedo, 1.0); }
-            case 2: { return vec4<f32>(s.n * 0.5 + 0.5, 1.0); }
-            case 3: { return vec4<f32>(vec3<f32>(textureSampleLevel(ao_tex, frame_sampler, screen_uv, 0.0).r * s.ao), 1.0); }
-            case 4: { return vec4<f32>(vec3<f32>(s.rough), 1.0); }
-            case 5: { return vec4<f32>(vec3<f32>(sun_shadow(i.world, n_geo, i.world.xz)), 1.0); }
-            case 6: { return vec4<f32>(shade(i, s, n_geo) * 0.4, 1.0); }
-            case 7: {
-                // Bare sol-diffus.
-                let l = g.sun_dir.xyz;
-                return vec4<f32>(g.sun_color.rgb * g.sun_dir.w * max(dot(s.n, l), 0.0) * s.albedo * 0.4, 1.0);
-            }
-            case 8: {
-                // Bare refleksjon av himmelen.
-                let v = normalize(g.camera.xyz - i.world);
-                let r = reflect(-v, s.n);
-                let f0 = vec3<f32>(0.04);
-                let fres = f0 + (max(vec3<f32>(1.0 - s.rough), f0) - f0) * pow(1.0 - max(dot(s.n, v), 0.0), 5.0);
-                return vec4<f32>(sky_gradient(r) * fres * 3.0, 1.0);
-            }
-            case 10: {
-                let screen_uv2 = i.clip.xy * g.screen.zw;
-                let ssao = textureSampleLevel(ao_tex, frame_sampler, screen_uv2, 0.0).r;
-                let ao = s.ao * s.cavity * ssao;
-                let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.6) * 1.25;
-                let hemi = mix(g.ground_bounce.rgb, sky_amb, s.n.y * 0.5 + 0.5);
-                return vec4<f32>(s.albedo * hemi * ao, 1.0);
-            }
-            case 11: {
-                let v = normalize(g.camera.xyz - i.world);
-                let f0 = mix(vec3<f32>(0.04), s.albedo, s.metal);
-                let r = reflect(-v, s.n);
-                let fres = f0 + (max(vec3<f32>(1.0 - s.rough), f0) - f0) * pow(1.0 - max(dot(s.n, v), 0.0), 5.0);
-                let r_blur = normalize(mix(r, s.n, s.rough * s.rough));
-                let hemi = mix(g.ground_bounce.rgb, g.sky_top.rgb, s.n.y * 0.5 + 0.5);
-                let env = mix(sky_gradient(r_blur), hemi, s.rough * 0.7) * 0.8;
-                return vec4<f32>(env * fres, 1.0);
-            }
-            case 12: {
-                let v = normalize(g.camera.xyz - i.world);
-                let f0 = mix(vec3<f32>(0.04), s.albedo, s.metal);
-                let l = g.sun_dir.xyz;
-                let ndl = max(dot(s.n, l), 0.0);
-                return vec4<f32>(g.sun_color.rgb * g.sun_dir.w * (s.albedo * ndl + ggx(s.n, v, l, s.rough, f0) * PI * ndl) * 0.4, 1.0);
-            }
-            case 13: { return vec4<f32>(vec3<f32>(0.18), 1.0); }
-            default: { return vec4<f32>(s.emissive, 1.0); }
+            case 1: { return vec4<f32>(s.albedo, alpha); }
+            case 2: { return vec4<f32>(s.n * 0.5 + 0.5, alpha); }
+            case 3: { return vec4<f32>(vec3<f32>(s.ao * s.cavity), alpha); }
+            case 4: { return vec4<f32>(vec3<f32>(s.rough), alpha); }
+            case 5: { return vec4<f32>(vec3<f32>(sun_shadow(i.world, n_geo)), alpha); }
+            default: { return vec4<f32>(s.emissive, alpha); }
         }
     }
     var color = shade(i, s, n_geo);
     if (kind == K_SKELETON && i.extra.y > 0.0) {
         color += tint * i.extra.y;
     }
-    return vec4<f32>(color, 1.0);
+    return vec4<f32>(fog(color, i.world), alpha);
 }

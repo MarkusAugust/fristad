@@ -8,9 +8,8 @@ struct Light {
 struct Globals {
     view_proj: mat4x4<f32>,
     inv_view_proj: mat4x4<f32>,
-    prev_view_proj: mat4x4<f32>,
-    // Skyggekartene, ett per kaskade.
-    sun_vp: array<mat4x4<f32>, 3>,
+    // Skyggekartet fra sola (én kaskade).
+    sun_vp: mat4x4<f32>,
     // xyz kamera, w tid i sekunder.
     camera: vec4<f32>,
     // xyz retning mot sola (eller månen), w styrke.
@@ -30,10 +29,9 @@ struct Globals {
     weather: vec4<f32>,
     // bredde, høyde, 1/bredde, 1/høyde.
     screen: vec4<f32>,
-    // xy TAA-forskyvning i piksler, z bildenummer, w vind.
-    jitter: vec4<f32>,
-    // Hvor kaskadene slutter, i meter fra kameraet.
-    cascade: vec4<f32>,
+    // x vind, y MSAA-prøver, z der skyggen begynner å tone bort, w der den
+    // slutter (meter fra kameraet).
+    misc: vec4<f32>,
     // x skydekke, y nordlys, z lyn, w feilsøkingsvisning.
     sky: vec4<f32>,
     // Meter per flis for teksturlagene, 4 per vec4.
@@ -100,13 +98,6 @@ fn grid_lit(p: vec3<f32>, light: vec3<f32>) -> f32 {
 
 @group(0) @binding(0) var<uniform> g: Globals;
 
-// Blått-ish støymønster per piksel som bytter hvert bilde, til TAA og dithering.
-fn ign(px: vec2<f32>) -> f32 {
-    let f = g.jitter.z;
-    let p = px + 5.588238 * (f % 64.0);
-    return fract(52.9829189 * fract(0.06711056 * p.x + 0.00583715 * p.y));
-}
-
 // Himmelfargen i en retning, uten sol og stjerner. Brukes både av himmelen og
 // til refleksjoner og tåke.
 fn sky_gradient(dir: vec3<f32>) -> vec3<f32> {
@@ -119,16 +110,31 @@ fn sky_gradient(dir: vec3<f32>) -> vec3<f32> {
     return c;
 }
 
-// Lineær dybde fra dybdebufferet (perspektiv, revers-ikke).
-fn linear_depth(d: f32) -> f32 {
-    // proj er perspective_rh med near 0.1 og far 2500.
-    let n = 0.1;
-    let f = 2500.0;
-    return n * f / (f - d * (f - n));
-}
-
-fn world_from_depth(uv: vec2<f32>, depth: f32) -> vec3<f32> {
-    let ndc = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);
-    let w = g.inv_view_proj * ndc;
-    return w.xyz / w.w;
+// Tåka i et punkt: høydetåke regnet analytisk langs strålen fra kameraet,
+// lyst opp av himmelen og (mot sola) av sollyset, og lyn. Regnes rett i
+// hvert punkt i hovedpasset, uten eget pass og uten støy.
+fn fog(color: vec3<f32>, p: vec3<f32>) -> vec3<f32> {
+    let density = g.sky_horizon.w;
+    if (density <= 0.0) {
+        return color;
+    }
+    let cam = g.camera.xyz;
+    let ray = p - cam;
+    let dist = length(ray);
+    let dir = ray / max(dist, 1e-4);
+    let falloff = g.ground_bounce.w;
+    let dy = dir.y * dist;
+    var height_term = exp(-falloff * cam.y);
+    if (abs(dy) > 0.01) {
+        height_term = (exp(-falloff * cam.y) - exp(-falloff * (cam.y + dy))) / (falloff * dy);
+    }
+    let transmittance = exp(-density * dist * height_term);
+    let cos_t = dot(dir, g.sun_dir.xyz);
+    let gg = 0.55;
+    let phase = (1.0 - gg * gg) / pow(1.0 + gg * gg - 2.0 * gg * cos_t, 1.5);
+    let sun_in = g.sun_color.rgb * g.sun_dir.w * 0.6 * mix(0.35, phase, 0.6);
+    let ambient_in = mix(g.fog_color.rgb, sky_gradient(normalize(vec3<f32>(dir.x, 0.05, dir.z))), 0.5);
+    var inscatter = (ambient_in * 0.7 + sun_in * 0.3) * (1.0 - transmittance);
+    inscatter += g.sky.z * (1.0 - transmittance) * vec3<f32>(0.8, 0.85, 1.0);
+    return color * transmittance + inscatter;
 }

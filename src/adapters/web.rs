@@ -219,19 +219,9 @@ impl Engine {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
     }
 
-    /// Kvalitet 0–1 (skygger, SSAO, tåke).
-    pub fn set_quality(&mut self, quality: f32) {
-        self.app.command(Command::SetQuality(quality));
-    }
-
-    /// Redusert grafikk (av eller på), til svake maskiner.
+    /// Standard grafikk (`true`) eller avansert.
     pub fn set_reduced(&mut self, reduced: bool) {
         self.app.command(Command::SetReduced(reduced));
-    }
-
-    /// Intern oppløsning som andel av vinduet, 0.4–1.0.
-    pub fn set_scale(&mut self, scale: f32) {
-        self.app.command(Command::SetScale(scale));
     }
 
     /// Trekanter tegnet sist bilde.

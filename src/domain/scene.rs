@@ -88,9 +88,7 @@ pub struct Frame {
     pub skins: Vec<Mat4>,
     /// Rødt flash langs kantene (0..1) når spilleren er truffet.
     pub hurt: f32,
-    /// Bland med forrige bilde. Av første bilde og når kameraet hopper.
-    pub taa: bool,
-    /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.
+    /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 okklusjon, 4 ruhet, 5 skygge.
     pub debug: u32,
     /// Etasjen i kjelleren du er i, så lyset ikke går gjennom veggene:
     /// hjørnet av celle (0, 0) i x og z, gulvhøyden, cellestørrelsen og én

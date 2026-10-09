@@ -122,7 +122,6 @@ impl Session {
             instances,
             skins,
             hurt: self.combat.hurt,
-            taa: !self.jumped,
             debug: self.debug,
             grid: if in_cellar { self.dungeon.grid_at(self.pos - Vec3::Y * 1.6) } else { None },
             band: self.band(in_cellar),
@@ -149,7 +148,8 @@ impl Session {
         }
     }
 
-    /// Etter at `frame` er hentet: neste bilde kan blandes igjen.
+    /// Etter at bildet er tegnet: en flytting (`jumped`, som demper
+    /// landingslyden) gjelder bare det ene bildet.
     pub fn settle(&mut self) {
         self.jumped = false;
     }
