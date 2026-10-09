@@ -1,12 +1,14 @@
 //! Det rendereren får per bilde: kamera, lys, vær, palett og hvor propsene
 //! står. Rene tall, ingen GPU-typer.
 
-use glam::{Affine3A, Mat4, Vec3, Vec4};
+use glam::{Affine3A, Mat4, Vec2, Vec3, Vec4};
 
 pub const PALETTE: usize = 64;
 pub const MAX_LIGHTS: usize = 48;
 /// Pipene som ryker i hvert bilde (de nærmeste kameraet).
 pub const MAX_SMOKE: usize = 32;
+/// Rutenettet i kjelleren som rendereren får (celler per side).
+pub const GRID: usize = 40;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct Weather {
@@ -90,6 +92,18 @@ pub struct Frame {
     pub taa: bool,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 SSAO, 4 ruhet, 5 skygge.
     pub debug: u32,
+    /// Etasjen i kjelleren du er i, så lyset ikke går gjennom veggene:
+    /// hjørnet av celle (0, 0) i x og z, gulvhøyden, cellestørrelsen og én
+    /// byte per celle (bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z).
+    pub grid: Option<CellGrid>,
+}
+
+#[derive(Clone, Debug)]
+pub struct CellGrid {
+    pub origin: Vec2,
+    pub floor_y: f32,
+    pub cell: f32,
+    pub bits: Vec<u8>,
 }
 
 /// Synsfeltet som seks plan, til å hoppe over biter som er utenfor.

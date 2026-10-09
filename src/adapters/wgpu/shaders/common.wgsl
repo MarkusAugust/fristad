@@ -42,6 +42,60 @@ struct Globals {
     lights: array<Light, 48>,
     // Pipene som ryker: toppen (xyz) og tykkelsen (w), opptil 32.
     smoke: array<vec4<f32>, 32>,
+    // Kjellerens rutenett (40 × 40): hjørnet i x og z, gulvhøyden og
+    // cellestørrelsen (0 utenfor kjelleren); én byte per celle, fire per
+    // u32: bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z.
+    grid_info: vec4<f32>,
+    grid: array<vec4<u32>, 100>,
+}
+
+fn grid_cell(ix: i32, iz: i32) -> u32 {
+    if (ix < 0 || iz < 0 || ix >= 40 || iz >= 40) {
+        return 0u;
+    }
+    let i = u32(iz * 40 + ix);
+    let word = g.grid[i / 16u][(i / 4u) % 4u];
+    return (word >> ((i % 4u) * 8u)) & 255u;
+}
+
+// Om lyset i `light` når punktet `p` uten å gå gjennom en mur i kjelleren:
+// går cellene langs linja mellom dem (flatt) og sjekker hver kant.
+fn grid_lit(p: vec3<f32>, light: vec3<f32>) -> f32 {
+    let cell = g.grid_info.w;
+    if (cell <= 0.0) {
+        return 1.0;
+    }
+    let a = (p.xz - g.grid_info.xy) / cell;
+    let b = (light.xz - g.grid_info.xy) / cell;
+    var c = vec2<i32>(floor(a));
+    let end = vec2<i32>(floor(b));
+    let d = b - a;
+    let stepv = vec2<i32>(select(-1, 1, d.x >= 0.0), select(-1, 1, d.y >= 0.0));
+    let inv = vec2<f32>(1.0 / max(abs(d.x), 1e-5), 1.0 / max(abs(d.y), 1e-5));
+    let fr = a - floor(a);
+    var t = vec2<f32>(select(fr.x, 1.0 - fr.x, d.x >= 0.0) * inv.x, select(fr.y, 1.0 - fr.y, d.y >= 0.0) * inv.y);
+    for (var k = 0; k < 8; k++) {
+        if (c.x == end.x && c.y == end.y) {
+            return 1.0;
+        }
+        if (t.x < t.y) {
+            // Over kanten i x: fri vei står i cella med lavest x.
+            let lo = select(c.x - 1, c.x, stepv.x > 0);
+            if ((grid_cell(lo, c.y) & 2u) == 0u) {
+                return 0.0;
+            }
+            c.x += stepv.x;
+            t.x += inv.x;
+        } else {
+            let lo = select(c.y - 1, c.y, stepv.y > 0);
+            if ((grid_cell(c.x, lo) & 4u) == 0u) {
+                return 0.0;
+            }
+            c.y += stepv.y;
+            t.y += inv.y;
+        }
+    }
+    return 1.0;
 }
 
 @group(0) @binding(0) var<uniform> g: Globals;

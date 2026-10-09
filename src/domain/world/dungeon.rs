@@ -347,6 +347,28 @@ impl Dungeon {
         self.floor_of(p).map(|f| self.floors[f].height_at(p)).unwrap_or(p.y)
     }
 
+    /// Rutenettet i etasjen du står i, til lyset (se `scene::CellGrid`).
+    pub fn grid_at(&self, p: Vec3) -> Option<crate::domain::scene::CellGrid> {
+        let fl = &self.floors[self.floor_of(p)?];
+        let mut bits = vec![0u8; N * N];
+        for iz in 0..N as i32 {
+            for ix in 0..N as i32 {
+                if !fl.is_open(ix, iz) {
+                    continue;
+                }
+                let mut b = 1u8;
+                if fl.is_open(ix + 1, iz) && fl.passable((ix, iz), (ix + 1, iz)) {
+                    b |= 2;
+                }
+                if fl.is_open(ix, iz + 1) && fl.passable((ix, iz), (ix, iz + 1)) {
+                    b |= 4;
+                }
+                bits[iz as usize * N + ix as usize] = b;
+            }
+        }
+        Some(crate::domain::scene::CellGrid { origin: Vec2::new(fl.origin.0, fl.origin.1), floor_y: fl.y, cell: CELL, bits })
+    }
+
     /// Om en kropp med radius `r` får plass ved `p` uten å stå i noe som
     /// står i rommet (gulvet og murene i rutenettet sjekker `walkable`).
     pub fn clear(&self, p: Vec3, r: f32) -> bool {
@@ -465,6 +487,9 @@ specs!(
     "dng_hall_i",
     "dng_hall_i2",
     "dng_hall_i3",
+    "dng_hall_sewer",
+    "dng_hall_crypt",
+    "dng_hall_lava",
     "dng_hall_l",
     "dng_hall_t",
     "dng_hall_x",
@@ -1060,7 +1085,7 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
                 arms.push((dx, dz));
             }
         }
-        let (name, rot) = hall_module(&arms, rng);
+        let (name, rot) = hall_module(&arms, k, rng);
         let p = Placed { name, gx: c.0, gz: c.1, rot };
         let th = theme(k);
         put(b, name, p.affine(origin, y), &th);
@@ -1167,7 +1192,7 @@ fn floor_height(f: &Floor, c: (i32, i32)) -> f32 {
 }
 
 /// Gangmodulen og dreiningen for armene (retninger ut av cella).
-fn hall_module(arms: &[(i32, i32)], rng: &mut Rng) -> (&'static str, i32) {
+fn hall_module(arms: &[(i32, i32)], k: usize, rng: &mut Rng) -> (&'static str, i32) {
     let canon: &[(&str, &[(i32, i32)])] = &[
         ("dng_hall_i", &[(0, -1), (0, 1)]),
         ("dng_hall_l", &[(0, -1), (1, 0)]),
@@ -1188,7 +1213,17 @@ fn hall_module(arms: &[(i32, i32)], rng: &mut Rng) -> (&'static str, i32) {
             if got == want {
                 let name = if *name == "dng_hall_i" {
                     let r = rng.next();
-                    if r < 0.2 {
+                    // Etasjene med eget tema får sine egne rette ganger:
+                    // kloakkrenne, gravnisjer og glødende sprekker.
+                    let own = match k % FLOORS {
+                        2 => Some("dng_hall_sewer"),
+                        3 => Some("dng_hall_crypt"),
+                        4 => Some("dng_hall_lava"),
+                        _ => None,
+                    };
+                    if let Some(own) = own.filter(|_| r < 0.55) {
+                        own
+                    } else if r < 0.2 {
                         "dng_hall_i2"
                     } else if r < 0.3 {
                         "dng_hall_i3"

@@ -572,6 +572,21 @@ def corridor(arms, variant=0, seed=1):
         cbarrel("z", -0.05 if "N" in arms else lo, CELL + 0.05 if "S" in arms else hi, c, SPRING, HW)
     if ew:
         cbarrel("x", -0.05 if "W" in arms else lo, CELL + 0.05 if "E" in arms else hi, c, SPRING, HW)
+    # Temavariantene av den rette gangen (N–S): en renne langs østmuren
+    # (kloakken), gravnisjer i begge murene (katakombene) eller en glødende
+    # sprekk langs vestmuren (lavadypet). Hellene legges utenom.
+    if variant == 3:
+        cbox(hi - 0.8, hi + 0.01, -0.4, 0.02, -0.05, CELL + 0.05)
+        rects = [(x0, min(x1, hi - 0.8), z0, z1) for x0, x1, z0, z1 in rects]
+    if variant == 4:
+        for x, out in ((lo, -1), (hi, 1)):
+            for z0n, z1n in ((0.55, 1.55), (2.45, 3.45)):
+                for y0n, y1n in ((0.45, 0.98), (1.3, 1.83)):
+                    xa, xb = sorted((x - 0.02 * out, x + 0.5 * out))
+                    cbox(xa, xb, y0n, y1n, z0n, z1n)
+    if variant == 5:
+        cbox(lo - 0.01, lo + 0.45, -0.35, 0.02, -0.05, CELL + 0.05)
+        rects = [(max(x0, lo + 0.45), x1, z0, z1) for x0, x1, z0, z1 in rects]
     carve(m)
     slabs(rng, rects, s)
     # Murene: sidene av midtfeltet uten arm, og sidene langs armene.
@@ -640,6 +655,52 @@ def corridor(arms, variant=0, seed=1):
         for k in range(5):
             eblock("drain_bar", (0.04, 0.035, 0.46), s.iron, at=(c - 0.2 + k * 0.1, 0.012, c + 0.9), bevel=0.006)
         bones(rng, hi - 0.4, c + 1.4, s, n=3)
+    if variant == 3:
+        # Kloakken: kantstein langs renna, stillestående vann, et utløp i
+        # muren som drypper, mose og en rist over renna.
+        for k in range(8):
+            eblock("curb", (0.16, 0.12, CELL / 8 - 0.02), s.ashlar, at=(hi - 0.86, 0.02, (k + 0.5) * CELL / 8), r=yaw_m(rng.uniform(-0.02, 0.02)), bevel=0.02)
+        bpy.ops.mesh.primitive_plane_add(size=1.0, location=B((hi - 0.39, -0.14, CELL / 2)))
+        water = bpy.context.active_object
+        water.scale = (0.8, CELL + 0.1, 1)
+        water.data.materials.append(s.water)
+        town.uv_box(water)
+        PIECES.append(water)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=0.2, depth=0.4, location=B((hi - 0.05, 0.75, c - 1.1)), rotation=(0, math.pi / 2, 0))
+        pipe = bpy.context.active_object
+        pipe.data.materials.append(s.ashlar)
+        town.uv_box(pipe)
+        PIECES.append(pipe)
+        eblock("pipe_slime", (0.06, 0.6, 0.18), s.moss, at=(hi - 0.03, 0.4, c - 1.1), bevel=0.02)
+        for k in range(6):
+            eblock("grate_bar", (0.72, 0.04, 0.04), s.iron, at=(hi - 0.4, 0.0, c + 0.8 + k * 0.1), bevel=0.006)
+        for k in range(3):
+            eblock("wall_moss", (0.04, rng.uniform(0.4, 1.1), rng.uniform(0.3, 0.8)), s.moss, at=(lo + 0.01, rng.uniform(0.3, 1.2), rng.uniform(0.5, 3.5)), bevel=0.02)
+        light((hi - 0.4, 0.4, c), (0.55, 0.85, 0.45), 0.6, 5.0)
+    if variant == 4:
+        # Katakombene: gravnisjer med hodeskaller og knokler, og stearinlys
+        # i noen av dem.
+        lit = 0
+        for x, out in ((lo, -1), (hi, 1)):
+            for z0n, z1n in ((0.55, 1.55), (2.45, 3.45)):
+                for y0n in (0.45, 1.3):
+                    zc = (z0n + z1n) / 2
+                    xc = x + 0.25 * out
+                    for k in range(3):
+                        ebeam("niche_bone", (xc + rng.uniform(-0.1, 0.1), y0n + 0.03, zc - 0.4 + k * 0.05), (xc + rng.uniform(-0.1, 0.1), y0n + 0.03, zc + 0.35 - k * 0.04), 0.035, 0.035, s.bone)
+                    skull(xc, y0n + 0.04, zc + rng.uniform(-0.25, 0.25), s, math.pi / 2 * -out + rng.uniform(-0.4, 0.4))
+                    if lit < 2 and rng.random() < 0.4:
+                        candles(rng, xc, zc - 0.3, s, y0=y0n, n=3, glow=True)
+                        lit += 1
+    if variant == 5:
+        # Lavadypet: en sprekk langs muren med glør og slagg.
+        for k in range(14):
+            z = (k + 0.5) * CELL / 14
+            eblock("lava_glow", (0.3, 0.1, CELL / 14 + 0.05), s.ember, at=(lo + 0.22 + rng.uniform(-0.04, 0.04), -0.2, z), r=yaw_m(rng.uniform(-0.15, 0.15)), bevel=0.02)
+            if rng.random() < 0.5:
+                kk = rng.uniform(0.1, 0.22)
+                eblock("slag", (kk, kk * 0.6, kk), s.dark, at=(lo + 0.22 + rng.uniform(-0.1, 0.1), -0.1, z), r=yaw_m(rng.uniform(0, 6)), bevel=0.03)
+        light((lo + 0.3, 0.3, c), (1.0, 0.3, 0.08), 1.6, 6.0)
     if variant == 2:
         # Delvis rast: en røys inntil muren og nedfalne buesteiner.
         x = hi - 0.5 if "N" in arms else c
@@ -1739,6 +1800,9 @@ MODELS = {
     "dng_hall_i": lambda: corridor("NS", 0, 1),
     "dng_hall_i2": lambda: corridor("NS", 1, 2),
     "dng_hall_i3": lambda: corridor("NS", 2, 3),
+    "dng_hall_sewer": lambda: corridor("NS", 3, 8),
+    "dng_hall_crypt": lambda: corridor("NS", 4, 9),
+    "dng_hall_lava": lambda: corridor("NS", 5, 10),
     "dng_hall_l": lambda: corridor("NE", 0, 4),
     "dng_hall_t": lambda: corridor("NES", 0, 5),
     "dng_hall_x": lambda: corridor("NESW", 0, 6),

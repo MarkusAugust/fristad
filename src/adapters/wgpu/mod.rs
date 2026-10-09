@@ -13,7 +13,7 @@ use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
 use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
-use crate::domain::scene::{Frustum, MAX_LIGHTS, MAX_SMOKE, PALETTE};
+use crate::domain::scene::{Frustum, GRID, MAX_LIGHTS, MAX_SMOKE, PALETTE};
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
@@ -89,6 +89,10 @@ struct Globals {
     palette: [[f32; 4]; PALETTE],
     lights: [GpuLight; MAX_LIGHTS],
     smoke: [[f32; 4]; MAX_SMOKE],
+    /// Kjellerens rutenett: hjørnet (x, z), gulvhøyden og cellestørrelsen
+    /// (0 utenfor kjelleren), og cellene, fire per u32.
+    grid_info: [f32; 4],
+    grid: [[u32; 4]; GRID * GRID / 16],
 }
 
 #[repr(C)]
@@ -1033,6 +1037,14 @@ impl Renderer {
             tex_scale[i / 4][i % 4] = *s;
         }
         let wx = &f.weather;
+        let mut grid = [[0u32; 4]; GRID * GRID / 16];
+        let mut grid_info = [0.0f32; 4];
+        if let Some(g) = &f.grid {
+            grid_info = [g.origin.x, g.origin.y, g.floor_y, g.cell];
+            for (i, b) in g.bits.iter().take(GRID * GRID).enumerate() {
+                grid[i / 16][(i / 4) % 4] |= (*b as u32) << ((i % 4) * 8);
+            }
+        }
         let globals = Globals {
             view_proj: view_proj.to_cols_array_2d(),
             inv_view_proj: view_proj.inverse().to_cols_array_2d(),
@@ -1055,6 +1067,8 @@ impl Renderer {
             palette,
             lights,
             smoke,
+            grid_info,
+            grid,
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 

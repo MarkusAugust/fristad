@@ -121,6 +121,7 @@ impl Session {
             hurt: self.combat.hurt,
             taa: !self.jumped,
             debug: self.debug,
+            grid: if in_cellar { self.dungeon.grid_at(self.pos - Vec3::Y * 1.6) } else { None },
         }
     }
 

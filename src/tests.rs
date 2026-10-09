@@ -922,3 +922,4 @@ fn lydene_i_byen_folger_deg() {
     assert!(a.cellar, "i kjelleren: {a:?}");
 }
 
+

@@ -596,7 +596,9 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
         let d = li.pos_radius.xyz - i.world;
         let dist = length(d);
         let rad = li.pos_radius.w;
-        if (dist < rad) {
+        // I kjelleren stopper murene lyset (punktet flyttes litt ut fra
+        // flaten, så muren ikke skygger for seg selv).
+        if (dist < rad && grid_lit(i.world + n_geo * 0.35, li.pos_radius.xyz) > 0.5) {
             let ld = d / dist;
             let win = pow(clamp(1.0 - pow(dist / rad, 4.0), 0.0, 1.0), 2.0);
             let att = win / (dist * dist + 0.5);
