@@ -92,7 +92,7 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, setScale, setQuality, setGraphics };
+  window.fristad = { engine, openPanel, closePanel, openShop, setScale, setQuality, setGraphics };
   setGraphics(reducedGfx, false, false);
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
