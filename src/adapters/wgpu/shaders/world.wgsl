@@ -69,7 +69,7 @@ const F_PAINT: u32 = 8u;
 
 struct VsIn {
     @location(0) pos: vec3<f32>,
-    @location(1) normal: vec3<f32>,
+    @location(1) normal: vec4<f32>, // snorm8, w ubrukt
     @location(2) uv: vec2<f32>,
     @location(3) color: vec4<f32>,
     @location(4) mat: vec4<u32>,
@@ -192,7 +192,7 @@ fn vertex(v: VsIn, inst: Instance) -> VsOut {
     w += wind_offset(w, v);
     o.world = w;
     o.clip = jittered(g.view_proj * vec4<f32>(w, 1.0));
-    o.normal = (m * vec4<f32>(v.normal, 0.0)).xyz;
+    o.normal = (m * vec4<f32>(v.normal.xyz, 0.0)).xyz;
     o.color = v.color;
     o.mat = v.mat;
     o.ao = f32(v.mat.w) / 255.0;

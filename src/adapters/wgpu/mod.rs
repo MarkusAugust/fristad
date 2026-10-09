@@ -21,12 +21,35 @@ use wgpu::util::DeviceExt;
 
 pub mod texture;
 
+/// Hjørnet slik grafikkortet får det: som `Vertex`, men normalen som 8 bit
+/// med fortegn (modellene har dem slik i fila uansett), 40 byte mot 48.
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct GpuVertex {
+    pos: [f32; 3],
+    normal: [i8; 4],
+    uv: [f32; 2],
+    color: [u8; 4],
+    mat: [u8; 4],
+    joints: [u8; 4],
+    weights: [u8; 4],
+}
+
+impl GpuVertex {
+    fn from(v: &Vertex) -> Self {
+        let q = |x: f32| (x.clamp(-1.0, 1.0) * 127.0).round() as i8;
+        Self { pos: v.pos, normal: [q(v.normal[0]), q(v.normal[1]), q(v.normal[2]), 0], uv: v.uv, color: v.color, mat: v.mat, joints: v.joints, weights: v.weights }
+    }
+}
+
+const _: () = assert!(std::mem::size_of::<GpuVertex>() == 40);
+
 const VERTEX_LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
-    array_stride: std::mem::size_of::<Vertex>() as u64,
+    array_stride: std::mem::size_of::<GpuVertex>() as u64,
     step_mode: wgpu::VertexStepMode::Vertex,
     attributes: &wgpu::vertex_attr_array![
         0 => Float32x3,
-        1 => Float32x3,
+        1 => Snorm8x4,
         2 => Float32x2,
         3 => Unorm8x4,
         4 => Uint8x4,
@@ -134,28 +157,39 @@ impl InstanceData {
 struct GpuMesh {
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
+    /// 16 bit når meshen har færre enn 65 536 hjørner.
+    format: wgpu::IndexFormat,
 }
 
 impl GpuMesh {
     fn new(device: &wgpu::Device, mesh: &Mesh, label: &str) -> Self {
         // Tomme mesh (markører) får små buffere og tegnes ikke.
-        let empty_v = [Vertex::zeroed()];
-        let empty_i = [0u32; 3];
-        let (v, i): (&[u8], &[u8]) = if mesh.indices.is_empty() {
-            (bytemuck::cast_slice(&empty_v), bytemuck::cast_slice(&empty_i))
+        let (v, i32s): (Vec<GpuVertex>, Vec<u32>) = if mesh.indices.is_empty() {
+            (vec![GpuVertex::zeroed()], vec![0u32; 3])
         } else {
-            (bytemuck::cast_slice(&mesh.vertices), bytemuck::cast_slice(&mesh.indices))
+            (mesh.vertices.iter().map(GpuVertex::from).collect(), mesh.indices.clone())
+        };
+        let (format, i): (wgpu::IndexFormat, Vec<u8>) = if v.len() <= u16::MAX as usize {
+            // Et jevnt antall, så bufferet er delelig på fire.
+            let mut short: Vec<u16> = i32s.iter().map(|k| *k as u16).collect();
+            if short.len() % 2 == 1 {
+                short.push(0);
+            }
+            (wgpu::IndexFormat::Uint16, bytemuck::cast_slice(&short).to_vec())
+        } else {
+            (wgpu::IndexFormat::Uint32, bytemuck::cast_slice(&i32s).to_vec())
         };
         Self {
-            vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: v, usage: wgpu::BufferUsages::VERTEX }),
-            indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: i, usage: wgpu::BufferUsages::INDEX }),
+            vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: bytemuck::cast_slice(&v), usage: wgpu::BufferUsages::VERTEX }),
+            indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: &i, usage: wgpu::BufferUsages::INDEX }),
+            format,
         }
     }
 
 
     fn bind(&self, pass: &mut wgpu::RenderPass) {
         pass.set_vertex_buffer(0, self.vertices.slice(..));
-        pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint32);
+        pass.set_index_buffer(self.indices.slice(..), self.format);
     }
 }
 
@@ -197,8 +231,7 @@ struct GpuModel {
     bounds: (Vec3, Vec3),
     /// Ekstradata for de bevegelige: hvit lakk, modellens ruhet og metall.
     extra: [f32; 4],
-    /// Skinnet figur: instansene tar leddmatriser fra paletten, og det
-    /// finnes ikke noe grovt detaljnivå.
+    /// Skinnet figur: instansene tar leddmatriser fra paletten.
     skinned: bool,
     /// Småting (gress, blomster, krukker, stein): i redusert grafikk tegnes
     /// de bare nær kameraet og kaster skygge bare helt nær.
@@ -747,7 +780,10 @@ impl Renderer {
                 }
                 // Nær og fjern detalj i samme buffer.
                 let size = (hi - lo).max_element();
-                let far = if skinned { Mesh::default() } else { m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 })) };
+                // Figurene får også et grovt nivå (leddene og vektene følger med
+                // fra hjørnet som blir stående), så de ikke tegnes med full
+                // detalj langt unna og i skyggene.
+                let far = m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
                 let mut combined = m.mesh.clone();
                 let base = combined.vertices.len() as u32;
                 combined.vertices.extend_from_slice(&far.vertices);
@@ -758,8 +794,7 @@ impl Renderer {
                     name: m.name.clone(),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
-                    // Skinnede figurer tegnes i full detalj på avstand òg.
-                    far: if skinned { 0..near_count } else { near_count..combined.indices.len() as u32 },
+                    far: near_count..combined.indices.len() as u32,
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
                     instances: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: Some(&m.name),
