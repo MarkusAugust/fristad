@@ -1228,6 +1228,75 @@ def gallery_room():
     return r
 
 
+def chasm_room():
+    """Kløfta: 3 × 3 celler der midtstripen har rast ned i en dyp kløft med
+    glør langt nede. En plankebro med tau går over midten (vest–øst); på
+    sørsida har rekkverket røket. Faller du, havner du på bunnen (økta
+    løfter deg opp igjen der du sto trygt, med vondt)."""
+    r = Room(3, 3, seed=73, columns=False, mass_bottom=-9.0)
+    r.door(0, 1, -1, 0)
+    r.door(2, 1, 1, 0)
+    r.door(1, 2, 0, 1)
+    s, rng = r.s, r.rng
+    px0, px1 = CELL + 0.1, 2 * CELL - 0.1
+    deep = -8.0
+    zc = 1.5 * CELL
+    cbox(px0, px1, deep - 0.2, 0.1, r.z0 - 0.01, r.z1 + 0.01)
+    r.holes.append((px0, px1, r.z0, r.z1))
+    r.build()
+    # Kløftveggene: brudd i fjellet med takkete kanter og røtter.
+    for x, out in ((px0, -1), (px1, 1)):
+        z = r.z0
+        while z < r.z1 - 0.1:
+            w = min(rng.uniform(0.5, 1.2), r.z1 - z)
+            eblock("ledge", (0.3, rng.uniform(0.2, 0.45), w), s.dark, at=(x - 0.1 * out, -rng.uniform(0.1, 0.3), z + w / 2), r=yaw_m(rng.uniform(-0.1, 0.1)), bevel=0.04)
+            z += w
+        for k in range(6):
+            eblock("cliff_rock", (rng.uniform(0.3, 0.6), rng.uniform(0.6, 1.6), rng.uniform(0.5, 1.2)), s.dark, at=(x + 0.15 * out, rng.uniform(deep + 1, -0.8), rng.uniform(r.z0 + 0.5, r.z1 - 0.5)), r=yaw_m(rng.uniform(0, 6)), bevel=0.05)
+    # Bunnen: steinur og glør som lyser opp kløfta nedenfra.
+    rubble(rng, (px0 + px1) / 2, zc, 1.6, 22, s, (0.3, 0.8), y0=deep)
+    for k in range(12):
+        kk = rng.uniform(0.15, 0.35)
+        eblock("chasm_ember", (kk, kk * 0.5, kk), s.ember, at=(rng.uniform(px0 + 0.3, px1 - 0.3), deep + 0.1, rng.uniform(r.z0 + 0.4, r.z1 - 0.4)), r=yaw_m(rng.uniform(0, 6)), bevel=0.03)
+    light(((px0 + px1) / 2, deep + 1.0, zc - 2.5), (1.0, 0.35, 0.1), 3.0, 9.0)
+    light(((px0 + px1) / 2, deep + 1.0, zc + 2.5), (1.0, 0.35, 0.1), 3.0, 9.0)
+    # Broen: tverrplanker på to bjelker, stolper og tau, ett tau røket.
+    for sz in (-0.5, 0.5):
+        ebeam("bridge_beam", (px0 - 0.4, -0.12, zc + sz), (px1 + 0.4, -0.12, zc + sz), 0.16, 0.18, s.wood)
+    x = px0 - 0.3
+    while x < px1 + 0.3:
+        w = rng.uniform(0.2, 0.28)
+        if rng.random() > 0.06:
+            eblock("bridge_plank", (w - 0.02, 0.05, 1.3), s.wood, at=(x + w / 2, 0.0, zc), r=yaw_m(rng.uniform(-0.04, 0.04)), bevel=0.008)
+        x += w
+    for xp in (px0 - 0.2, (px0 + px1) / 2, px1 + 0.2):
+        for sz in (-0.62, 0.62):
+            if sz > 0 and abs(xp - (px0 + px1) / 2) < 0.1:
+                continue
+            ebeam("bridge_post", (xp, -0.1, zc + sz), (xp, 1.0, zc + sz), 0.08, 0.08, s.wood)
+    ebeam("bridge_rope", (px0 - 0.2, 0.95, zc - 0.62), (px1 + 0.2, 0.95, zc - 0.62), 0.035, 0.035, s.rope)
+    ebeam("bridge_rope", (px0 - 0.2, 0.55, zc - 0.62), (px1 + 0.2, 0.55, zc - 0.62), 0.03, 0.03, s.rope)
+    ebeam("rope_snapped", (px1 + 0.2, 0.95, zc + 0.62), ((px0 + px1) / 2 + 0.4, -0.9, zc + 0.75), 0.035, 0.035, s.rope)
+    # Kollidere: gulvet på hver side, broen, tauet i nord og bunnen.
+    collide(0, px0, -0.5, 0.0, 0, 3 * CELL)
+    collide(px1, 3 * CELL, -0.5, 0.0, 0, 3 * CELL)
+    collide(px0 - 0.1, px1 + 0.1, -0.3, 0.0, zc - 0.65, zc + 0.65)
+    collide(px0, px1, 0.0, 1.0, zc - 0.7, zc - 0.6)
+    collide(px0, px1, deep - 0.5, deep, r.z0, r.z1)
+    # Rutenettet: midtstripen er kløft (ingen celle), bare broen i midten,
+    # smal.
+    DATA["floor"][0][1] = None
+    DATA["floor"][2][1] = None
+    DATA["hw"][1][1] = 0.6
+    torch((T, zc + 2.2), (1, 0), s)
+    torch((3 * CELL - T, zc - 2.2), (-1, 0), s)
+    for p in [(2.0, 0.0, 2.5), (2.0, 0.0, 9.5), (10.0, 0.0, 2.5), (10.0, 0.0, 9.5)]:
+        spot("spawn", p)
+    spot("chest", (10.6, 0.0, 2.0, -math.pi / 2))
+    r.decor()
+    return r
+
+
 def chapel_room():
     """Kapellet: skip på 3 × 3 båser med apsis i nord, alter med kors og
     lys, sarkofager langs murene og et gravmæle midt i skipet."""
@@ -1817,6 +1886,7 @@ MODELS = {
     "dng_cistern": cistern_room,
     "dng_gallery": gallery_room,
     "dng_chapel": chapel_room,
+    "dng_chasm": chasm_room,
     "dng_treasury": treasury_room,
     "dng_arena": arena_room,
     "dngp_shelf": deco_shelf,

@@ -351,16 +351,19 @@ impl Dungeon {
     pub fn grid_at(&self, p: Vec3) -> Option<crate::domain::scene::CellGrid> {
         let fl = &self.floors[self.floor_of(p)?];
         let mut bits = vec![0u8; N * N];
+        // Lyset går også over celler i et rom som ikke er gulv (kløfta).
+        let open = |c: (i32, i32)| fl.is_open(c.0, c.1) || fl.same_room(c, c);
+        let through = |a: (i32, i32), b: (i32, i32)| open(a) && open(b) && (fl.passable(a, b) || fl.same_room(a, b));
         for iz in 0..N as i32 {
             for ix in 0..N as i32 {
-                if !fl.is_open(ix, iz) {
+                if !open((ix, iz)) {
                     continue;
                 }
                 let mut b = 1u8;
-                if fl.is_open(ix + 1, iz) && fl.passable((ix, iz), (ix + 1, iz)) {
+                if through((ix, iz), (ix + 1, iz)) {
                     b |= 2;
                 }
-                if fl.is_open(ix, iz + 1) && fl.passable((ix, iz), (ix, iz + 1)) {
+                if through((ix, iz), (ix, iz + 1)) {
                     b |= 4;
                 }
                 bits[iz as usize * N + ix as usize] = b;
@@ -503,6 +506,7 @@ specs!(
     "dng_long",
     "dng_cistern",
     "dng_gallery",
+    "dng_chasm",
     "dng_chapel",
     "dng_treasury",
     "dng_arena",
@@ -536,7 +540,7 @@ fn spec(name: &str) -> &'static Spec {
 }
 
 /// Rommene på hovedveien, og hvor mange ganger hvert kan brukes per etasje.
-const POOL: [(&str, usize); 5] = [("dng_hall", 2), ("dng_long", 1), ("dng_cistern", 1), ("dng_gallery", 1), ("dng_chapel", 1)];
+const POOL: [(&str, usize); 6] = [("dng_hall", 2), ("dng_long", 1), ("dng_cistern", 1), ("dng_gallery", 1), ("dng_chapel", 1), ("dng_chasm", 1)];
 
 /// Preget til en etasje: lagene og tonen på murverket (`Look`), fargen og
 /// styrken på lyset, og pynten som settes ut på murene, gulvet og i hvelvet.

@@ -923,3 +923,39 @@ fn lydene_i_byen_folger_deg() {
 }
 
 
+
+/// Kløfta: faller du utfor broen, havner du der du sist sto trygt, med
+/// vondt.
+#[test]
+fn kloften_tar_deg_opp_igjen() {
+    let w = &world().world;
+    let Some(pl) = w.placements.iter().find(|p| p.model == "dng_chasm") else {
+        panic!("ingen kløft i kjelleren med dette frøet");
+    };
+    let t = pl.transforms[0];
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    // Stå trygt på vestsida av kløfta, og hopp så ned i den.
+    let west = t.transform_point3(Vec3::new(2.0, 0.0, 6.0));
+    let pit = t.transform_point3(Vec3::new(6.0, 0.0, 2.5));
+    game.place_feet(west);
+    for _ in 0..20 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let hp = game.hp_now();
+    game.place_feet(pit + Vec3::Y * 0.5);
+    let mut fell = false;
+    for _ in 0..120 {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if matches!(&e, Event::Toast(s) if s.contains("kløfta")) {
+                fell = true;
+            }
+        }
+    }
+    let feet = game.eye() - Vec3::Y * 1.6;
+    assert!(fell, "falt ikke i kløfta (føttene ved {feet:?})");
+    assert!((feet.y - west.y).abs() < 1.0 && feet.with_y(0.0).distance(west.with_y(0.0)) < 2.0, "kom ikke opp igjen der du sto: {feet:?}, trygt var {west:?}");
+    assert!(game.hp_now() < hp, "fallet gjorde ikke vondt");
+}
+

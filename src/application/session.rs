@@ -107,6 +107,8 @@ pub struct Session {
     /// lydbildet som sist ble sendt.
     sound_spots: [Vec2; 3],
     last_ambience: Ambience,
+    /// Der du sist sto trygt i kjelleren (til fall i kløftene).
+    safe: Vec3,
     ambience_t: f32,
     pub(super) npcs: Npcs,
     bubbles_shown: bool,
@@ -202,6 +204,7 @@ impl Session {
                 [Vec2::new(sq.x, sq.z), at("forge"), at("stave_church")]
             },
             last_ambience: Ambience::default(),
+            safe: Vec3::ZERO,
             ambience_t: 0.0,
             npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
             bubbles_shown: false,
@@ -427,6 +430,28 @@ impl Session {
             self.bob += dt * speed / 4.2;
         }
 
+        // Kløftene i kjelleren: står du trygt på gulvet, huskes stedet; har
+        // du falt mer enn tre meter under gulvet, løftes du opp dit igjen,
+        // med vondt.
+        {
+            let (half, radius) = self.stance.capsule();
+            let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+            if self.in_cellar() {
+                if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 3.5) {
+                    let floor_y = self.dungeon.floors[f].y;
+                    if self.grounded && (feet.y - self.dungeon.height_at(feet)).abs() < 0.4 && self.dungeon.walkable(feet, 0.0) {
+                        self.safe = feet;
+                    } else if feet.y < floor_y - 3.0 && self.safe != Vec3::ZERO {
+                        self.hp -= 30.0;
+                        let back = self.safe;
+                        self.teleport(back, self.yaw);
+                        events.push(Event::Fade);
+                        events.push(Event::Sound("hurt".into()));
+                        events.push(Event::Toast("Du falt i kløfta, og kom deg opp igjen med skrubbsår og en vond rygg.".into()));
+                    }
+                }
+            }
+        }
         // Hva sikter vi på? Fiendene i kjelleren går foran.
         let eye = self.eye();
         let dir = self.forward();
@@ -1064,6 +1089,11 @@ impl Session {
     #[cfg(test)]
     pub fn heal(&mut self) {
         self.hp = self.max_hp;
+    }
+
+    #[cfg(test)]
+    pub fn hp_now(&self) -> f32 {
+        self.hp
     }
 
     #[cfg(test)]

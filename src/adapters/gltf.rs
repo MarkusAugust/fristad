@@ -157,6 +157,7 @@ models! {
     "dng_long" => "dungeon/dng_long.glb",
     "dng_cistern" => "dungeon/dng_cistern.glb",
     "dng_gallery" => "dungeon/dng_gallery.glb",
+    "dng_chasm" => "dungeon/dng_chasm.glb",
     "dng_chapel" => "dungeon/dng_chapel.glb",
     "dng_treasury" => "dungeon/dng_treasury.glb",
     "dng_arena" => "dungeon/dng_arena.glb",
