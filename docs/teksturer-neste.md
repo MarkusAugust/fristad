@@ -6,11 +6,16 @@ teksturer fra eieren (bildegenerator, fotoskann eller Blender).
 
 ## Figurer
 
-- **Byfolkene** (`npc`, den felles figuren til bonden, vaktmannen, kremmeren,
-  gutten og pilegrimen): egne figurer trenger hodefoto forfra, fra høyre,
-  venstre og bak, og hud- og hårflis, som Apotekeren og Gorvek har.
-  - `gutt.jpg` og `ung_mann.jpg` finnes forfra, men mangler side- og
-    bakfoto.
+- **Byfolkene** (bonden `npc_farmer`, gutten `npc_boy`, vaktmannen
+  `npc_guard`, kremmeren `npc_merchant`, pilegrimen `npc_pilgrim`): har egne
+  figurer, men bare fotoet forfra er deres eget. Hetta, brynjehetta og
+  hattene dekker sidene og bakhodet, som lånes fra Apotekeren, Smeden og
+  Skriveren.
+  - Bonden bruker `ung_mann.jpg` og gutten `gutt.jpg`. Side- og bakfoto ville
+    latt dem ta av seg hetta.
+  - Vaktmannen, kremmeren og pilegrimen låner ansiktet fra Smeden,
+    Apotekeren og Skriveren (`smed.jpg`, `gammel.jpg`, `munk.jpg`). De
+    trenger egne ansikter forfra, så ingen i byen ser ut som tvillinger.
   - Kona på torget (`npc_woman`) bruker `kvinne.jpg` forfra og Vertinnens
     side- og bakfoto. Egne fotoer ville gitt et riktigere bakhode.
 - **Klærne** til alle figurene (ull, lin, lær er felles lag): egne tøyteksturer

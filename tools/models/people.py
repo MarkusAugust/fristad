@@ -966,11 +966,18 @@ def smith():
     return j
 
 
-def skirt(body, name, z_top, z_bot, mat, flare=0.12, rows=16, n=40):
+def skirt(body, name, z_top, z_bot, mat, flare=0.12, rows=16, n=40, legs=False):
     """Et skjørt: ringer fra livet ned mot anklene, utenfor kroppen og
     beina, som vider seg ut nedover. Henger stivt på hoftene (rigid
     «skirt»)."""
-    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    if legs:
+        # Bare overkroppen og beina, så armene og hendene ikke tar med seg skjørtet.
+        dom = dominant(body)
+        part = {"hips", "spine", "thigh.L", "thigh.R", "shin.L", "shin.R"}
+        polys = [list(p.vertices) for p in body.data.polygons if all(dom[i] in part for i in p.vertices)]
+        tree = BVHTree.FromPolygons([v.co for v in body.data.vertices], polys)
+    else:
+        tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
     bm = bmesh.new()
     rings = []
     rad = [0.0] * n
@@ -1190,6 +1197,391 @@ def clerk():
     return j
 
 
+# --- Byfolkene -----------------------------------------------------------
+# Bonden, gutten, vaktmannen, kremmeren og pilegrimen. Rundt 1350 gikk de
+# fleste med hette (kaprun med kappe over skuldrene og en tipp bak), hatt
+# eller hjelm, så bare fotoet forfra synes; sidene og bakhodet lånes fra
+# en annen figur og havner under stoffet. Kremmeren, vaktmannen og
+# pilegrimen låner ansikt fra Apotekeren, Smeden og Skriveren til eieren
+# lager egne (docs/teksturer-neste.md).
+def borrowed(name, front, eyes, mouth, cheek, macro, height, sides=SMITH):
+    return {"name": name, "macro": macro, "height": height, "grip": "R",
+            "photo": {"file": f"{FACES}/{front}", "eyes": eyes, "mouth": mouth, "cheek": cheek,
+                      "side": sides["photo"]["side"], "back": sides["photo"]["back"]},
+            "tiles": {"skin": sides["tiles"]["skin"], "hair": sides["tiles"]["hair"], "beard": None}}
+
+
+FARMER = borrowed("farmer", "ung_mann.jpg", (0.396, 0.6, 0.473), 0.69, (0.33, 0.52, 0.4, 0.6), (1.0, 0.1, 0.45, 0.2), 1.78, APOTHECARY)
+BOY = borrowed("boy", "gutt.jpg", (0.406, 0.59, 0.42), 0.62, (0.33, 0.48, 0.4, 0.56), (1.0, 0.0, 0.0, 0.0), 1.58, APOTHECARY)
+GUARD = borrowed("guard", "smed.jpg", (0.373, 0.627, 0.49), 0.79, (0.27, 0.55, 0.35, 0.66), (1.0, 0.35, 0.65, 0.3), 1.82, SMITH)
+MERCHANT = borrowed("merchant", "gammel.jpg", (0.372, 0.628, 0.515), 0.825, (0.32, 0.58, 0.4, 0.66), (1.0, 0.75, 0.1, 0.55), 1.72, APOTHECARY)
+PILGRIM = borrowed("pilgrim", "munk.jpg", (0.4, 0.584, 0.412), 0.644, (0.33, 0.46, 0.4, 0.54), (1.0, 0.55, 0.2, 0.0), 1.75, CLERK)
+
+
+def face_ellipse(j, ez):
+    """Åpningen for ansiktet: en ellipse i yz-planet fra brynene til under
+    haka, smal nok til at tinningene og ørene (det lånte håret) dekkes."""
+    c = Vector((0.0, 0.0, ez - 0.035))
+    ry, rz = 0.06, 0.095
+    front = j["head"][0].x + 0.02
+    return c, ry, rz, front
+
+
+def hooded(body, name, j, ez, dom, below, offset, thick, mat):
+    """Et plagg over hodet (hette eller brynjehette): stoffet spennes over
+    hodet og halsen som et konvekst skall (over ørene og fra haka ned mot
+    halsen, slik en ekte hette faller), med en rein, elliptisk åpning for
+    ansiktet og en rullet kant rundt den."""
+    c, ry, rz, front = face_ellipse(j, ez)
+    inside = lambda co: co.x > front - 0.03 and ((co.y - c.y) / ry) ** 2 + ((co.z - c.z) / rz) ** 2 < 1.0  # noqa: E731
+    pts = [v.co.copy() for i, v in enumerate(body.data.vertices) if dom[i] in {"head", "neck"} and v.co.z > below and not inside(v.co)]
+    bm = bmesh.new()
+    vs = [bm.verts.new(p) for p in pts]
+    bmesh.ops.convex_hull(bm, input=vs)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    for _ in range(3):
+        bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if e.calc_length() > 0.02], cuts=1, use_grid_fill=True)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    # Bunnen (snittet gjennom halsen) og ansiktet skjæres bort.
+    cut = lambda f: inside(f.calc_center_median()) or all(v.co.z < below + 0.012 for v in f.verts)  # noqa: E731
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if cut(f)], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # Glatt ut fasettene og løft stoffet ut fra kroppen.
+    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    inner = [v for v in bm.verts if not v.is_boundary]
+    for _ in range(4):
+        bmesh.ops.smooth_vert(bm, verts=inner, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+        for v in inner:
+            loc, nrm, _, _ = tree.find_nearest(v.co)
+            if loc is not None and (v.co - loc).dot(nrm) < offset:
+                v.co = loc + nrm * offset
+    bmesh.ops.smooth_vert(bm, verts=inner, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    bm.normal_update()
+    # Kanten mot ansiktet legges på ellipsen, så den ikke blir trappete.
+    rim = []
+    for v in bm.verts:
+        if v.is_boundary and v.co.z > c.z - rz * 1.3 and v.co.x > front - 0.04:
+            k = math.hypot((v.co.y - c.y) / ry, (v.co.z - c.z) / rz) or 1.0
+            v.co.y = c.y + (v.co.y - c.y) / k
+            v.co.z = c.z + (v.co.z - c.z) / k
+            rim.append(v.co.copy())
+    for f in bm.faces:
+        if f.normal.dot(f.calc_center_median() - Vector((j["head"][0].x, 0.0, ez))) < 0:
+            f.normal_flip()
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    # Tykkelsen med modifikatoren (jevn langs normalene, uten spisser der
+    # utglattingen har gjort flatene små).
+    mod = ob.modifiers.new("thick", "SOLIDIFY")
+    mod.thickness = thick
+    mod.offset = -1.0
+    ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    ob.modifiers.clear()
+    copy_weights(body, ob)
+    # Den rullede kanten: en lukket kurve gjennom kantpunktene.
+    if len(rim) > 6:
+        # Jevnt rundt ellipsen, med dybden (x) som snittet av kantpunktene
+        # i hver sektor.
+        nb = 40
+        bins = [[] for _ in range(nb)]
+        for q in rim:
+            a = math.atan2((q.z - c.z) / rz, (q.y - c.y) / ry)
+            bins[int((a + math.pi) / (2 * math.pi) * nb) % nb].append(q.x)
+        xs = [sum(b) / len(b) if b else None for b in bins]
+        known = [x for x in xs if x is not None]
+        xs = [x if x is not None else min(known) for x in xs]
+        rim = []
+        for k in range(nb):
+            a = -math.pi + (k + 0.5) / nb * 2 * math.pi
+            x = sum(xs[(k + d) % nb] for d in range(-3, 4)) / 7
+            rim.append(Vector((x, c.y + math.cos(a) * ry, c.z + math.sin(a) * rz)))
+        cu = bpy.data.curves.new(name + "_rim", "CURVE")
+        cu.dimensions = "3D"
+        cu.bevel_depth = 0.011
+        cu.bevel_resolution = 3
+        sp = cu.splines.new("NURBS")
+        sp.points.add(len(rim) - 1)
+        for p, q in zip(sp.points, rim):
+            p.co = (q.x - 0.004, q.y, q.z, 1.0)
+        sp.use_cyclic_u = True
+        sp.order_u = 4
+        tmp = bpy.data.objects.new(name + "_rim", cu)
+        bpy.context.scene.collection.objects.link(tmp)
+        rme = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+        bpy.data.objects.remove(tmp)
+        ro = bpy.data.objects.new(name + "_rim", rme)
+        bpy.context.scene.collection.objects.link(ro)
+        rme.materials.clear()
+        rme.materials.append(mat)
+        for p in rme.polygons:
+            p.use_smooth = True
+        copy_weights(body, ro)
+    return ob
+
+
+def dome(name, base, r, h, mat, n=32, rows=8):
+    """En kuppel (hattepull eller hjelm): en halv ellipsoide over `base`."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=n, v_segments=rows * 2, radius=1.0)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -1e-4], context="VERTS")
+    for v in bm.verts:
+        v.co = base + Vector((v.co.x * r, v.co.y * r, v.co.z * h))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    mod = ob.modifiers.new("thick", "SOLIDIFY")
+    mod.thickness = 0.006
+    ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    ob.modifiers.clear()
+    return ob
+
+
+def ball(name, c, r, mat, n=20):
+    """En ellipsoide med halvaksene `r`."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=n, v_segments=n // 2 + 2, radius=1.0)
+    for v in bm.verts:
+        v.co = c + Vector((v.co.x * r[0], v.co.y * r[1], v.co.z * r[2]))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    return ob
+
+
+def brim(name, base, r_in, r_out, drop, mat, thick=0.008, n=40):
+    """En hattebrem: en ring fra `r_in` til `r_out`, som heller `drop` ned
+    mot kanten, med avrundet kant."""
+    bm = bmesh.new()
+    rings = []
+    for t in (0.0, 0.33, 0.66, 1.0):
+        r = r_in + (r_out - r_in) * t
+        z = -drop * t * t
+        rings.append([bm.verts.new(base + Vector((math.cos(2 * math.pi * k / n) * r, math.sin(2 * math.pi * k / n) * r, z))) for k in range(n)])
+    for a, b in zip(rings, rings[1:]):
+        for k in range(n):
+            bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    for p in me.polygons:
+        p.use_smooth = True
+    mod = ob.modifiers.new("thick", "SOLIDIFY")
+    mod.thickness = thick
+    mod.offset = 0.0
+    ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    ob.modifiers.clear()
+    return ob
+
+
+def hood(body, j, ez, dom, mat, tail=0.32):
+    """Kaprunhette: over hodet og halsen, åpen for ansiktet, med en kappe
+    over skuldrene og en tipp (liripipe) som henger ned på ryggen."""
+    neck_z = j["neck01"][0].z - 0.01
+    hooded(body, "hood", j, ez, dom, neck_z - 0.05, 0.012, 0.006, mat)
+    # Kappa over skuldrene, ned til midt på overarmen.
+    cape_z = neck_z - 0.17
+    shell(body, "hood_cape", lambda i, co: dom[i] in {"neck", "chest", "spine", "upper_arm.L", "upper_arm.R"} and cape_z < co.z < neck_z + 0.02, 0.034, 0.006, mat)
+    # Tippen bak, fra bakhodet ned over kappa.
+    if tail:
+        top = Vector((j["head"][0].x - 0.125, 0.0, ez - 0.01))
+        tube("strap_chest_tail", top, top + Vector((-0.05, 0.0, -tail)), 0.024, 0.009, mat, n=14)
+
+
+def dress_common(spec, tone):
+    """Kroppen med fotoet, og ledd, øyehøyde og bein per hjørne."""
+    body, j, ez, dom, _ = dress_photos(spec, tone)
+    return body, j, ez, dom, j["spine04"][0].z + 0.02, j["neck01"][0].z - 0.01
+
+
+def farmer():
+    """Bonden: linskjorte med ermene brettet opp, kne-lang kjortel i
+    jordbrun ull, hoser, lærbelte, kaprun i grått og en høygaffel."""
+    spec = FARMER
+    body, j, ez, dom, belt_z, neck_z = dress_common(spec, (0.92, 0.85, 0.8))
+    elbow_z = j["wrist.R"][0].z + 0.2
+    linen = cloth("shirt", "linen", lin((0.78, 0.72, 0.6)), 0.3, dirt=(1.1, 0.35))
+    shell(body, "shirt", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and elbow_z < co.z < neck_z, 0.005, 0.003, linen)
+    wool = cloth("kirtle", "wool", lin((0.4, 0.3, 0.2)), 0.3, dirt=(0.7, 0.55))
+    shell(body, "kirtle", lambda i, co: dom[i] in {"hips", "spine", "chest"} and belt_z - 0.05 < co.z < neck_z - 0.03, 0.013, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, j["lowerleg01.L"][0].z + 0.06 if "lowerleg01.L" in j else 0.5, wool, flare=0.06, legs=True)
+    hose = cloth("hose", "wool", lin((0.28, 0.27, 0.24)), 0.3, dirt=(0.5, 0.6))
+    shell(body, "hose", lambda i, co: dom[i] in {"thigh.L", "thigh.R", "shin.L", "shin.R"} and 0.09 < co.z < belt_z - 0.05, 0.004, 0.002, hose)
+    belt = cloth("belt", "leather", lin((0.3, 0.2, 0.12)), 0.15, rough=0.5)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.02 and dom[i] in {"hips", "spine"}, 0.03, 0.006, belt)
+    shoes = cloth("shoes", "leather", lin((0.27, 0.19, 0.13)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    hood(body, j, ez, dom, cloth("hood", "wool", lin((0.42, 0.4, 0.36)), 0.3, dirt=(0.3, 0.4)))
+    # Høygaffelen: skaftet gjennom hånda, tre tinder av tre øverst.
+    oak = cloth("tool_shaft", "oak", lin((0.7, 0.58, 0.44)), 0.15, rough=0.6)
+    g = hand_grip(j)
+    base = g + Vector((0.0, 0.0, -0.72))
+    tip = g + Vector((0.04, 0.0, 0.85))
+    tube("tool_shaft", base, tip, 0.016, 0.015, oak)
+    for dy in (-0.05, 0.0, 0.05):
+        tube(f"tool_tine{dy}", tip + Vector((0, 0, -0.02)), tip + Vector((0.02, dy, 0.24)), 0.009, 0.005, oak, n=8)
+    tube("tool_bar", tip + Vector((0, -0.055, 0.0)), tip + Vector((0, 0.055, 0.0)), 0.01, 0.01, oak, n=8)
+    return j
+
+
+def boy():
+    """Gutten: kort, grønn kjortel over linskjorta, hoser, kaprun i
+    blått og en sekk over skulderen."""
+    spec = BOY
+    body, j, ez, dom, belt_z, neck_z = dress_common(spec, (0.94, 0.86, 0.8))
+    wrist_z = j["wrist.R"][0].z + 0.03
+    linen = cloth("shirt", "linen", lin((0.82, 0.78, 0.68)), 0.3, dirt=(1.0, 0.3))
+    shell(body, "shirt", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.005, 0.003, linen)
+    wool = cloth("kirtle", "wool", lin((0.3, 0.38, 0.24)), 0.3, dirt=(0.7, 0.5))
+    shell(body, "kirtle", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R"} and belt_z - 0.05 < co.z < neck_z - 0.03, 0.012, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, belt_z - 0.3, wool, flare=0.05, legs=True)
+    hose = cloth("hose", "wool", lin((0.36, 0.3, 0.24)), 0.3, dirt=(0.5, 0.6))
+    shell(body, "hose", lambda i, co: dom[i] in {"thigh.L", "thigh.R", "shin.L", "shin.R"} and 0.09 < co.z < belt_z - 0.05, 0.004, 0.002, hose)
+    belt = cloth("belt", "leather", lin((0.3, 0.2, 0.12)), 0.15, rough=0.5)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.018 and dom[i] in {"hips", "spine"}, 0.026, 0.006, belt)
+    shoes = cloth("shoes", "leather", lin((0.3, 0.21, 0.14)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    hood(body, j, ez, dom, cloth("hood", "wool", lin((0.26, 0.32, 0.46)), 0.3, dirt=(0.3, 0.4)), tail=0.22)
+    # Sekken over venstre skulder: en pølse av strie bak på ryggen.
+    sack = cloth("strap_chest_sack", "linen", lin((0.62, 0.55, 0.42)), 0.12, rough=0.85, bump=0.7, dirt=(0.6, 0.5))
+    back = Vector((j["spine01"][0].x - 0.17, 0.05, j["spine01"][0].z - 0.05))
+    block("strap_chest_sack", back, (0.12, 0.26, 0.3), sack, rot=(0.3, 0.1, 0), bevel=0.05)
+    tube("strap_chest_sackstrap", back + Vector((0.05, 0.08, 0.13)), j["neck01"][0] + Vector((0.03, 0.08, -0.04)), 0.012, 0.012, sack, n=8)
+    return j
+
+
+def guard():
+    """Vaktmannen: vattert våpenkjortel, brynjehette under en jernhatt
+    med brem, lærbelte med sverd i skjeden, støvler og et spyd."""
+    spec = GUARD
+    body, j, ez, dom, belt_z, neck_z = dress_common(spec, (0.86, 0.8, 0.76))
+    wrist_z = j["wrist.R"][0].z + 0.03
+    gambeson = cloth("gambeson", "linen", lin((0.62, 0.5, 0.34)), 0.12, rough=0.85, bump=1.0, dirt=(0.8, 0.5))
+    shell(body, "gambeson", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.022, 0.006, gambeson)
+    skirt(body, "skirt", belt_z - 0.02, j["lowerleg01.L"][0].z + 0.12 if "lowerleg01.L" in j else 0.55, gambeson, flare=0.07, legs=True)
+    wool = cloth("hose", "wool", lin((0.25, 0.22, 0.2)), 0.3, dirt=(0.5, 0.6))
+    shell(body, "hose", lambda i, co: dom[i] in {"thigh.L", "thigh.R", "shin.L", "shin.R"} and 0.25 < co.z < belt_z - 0.05, 0.004, 0.002, wool)
+    boots = cloth("boots", "leather", lin((0.3, 0.21, 0.14)), 0.2, rough=0.55, dirt=(0.25, 0.5))
+    shell(body, "boots", lambda i, co: 0.07 < co.z < 0.36, 0.012, 0.004, boots)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, boots)
+    # Brynjehetta: jernringer over hodet, halsen og skuldrene, åpen for ansiktet.
+    mail = cloth("mail", "metal", lin((0.66, 0.66, 0.68)), 0.05, rough=0.45, bump=1.2, dirt=(0.6, 0.35))
+    hooded(body, "mail_coif", j, ez, dom, neck_z - 0.05, 0.014, 0.005, mail)
+    shell(body, "mail_cape", lambda i, co: dom[i] in {"neck", "chest", "spine", "upper_arm.L", "upper_arm.R"} and neck_z - 0.16 < co.z < neck_z + 0.02, 0.032, 0.005, mail)
+    # Jernhatten (kettle hat): en kuppel og en brem
+    # som heller nedover.
+    iron = cloth("hat_iron", "metal", lin((0.55, 0.54, 0.52)), 0.2, rough=0.4, bump=0.2, dirt=(0.4, 0.35))
+    crown = Vector((j["head"][0].x + 0.005, 0.0, ez + 0.03))
+    dome("hat_dome", crown, 0.135, 0.135, iron)
+    brim("hat_brim", crown + Vector((0, 0, 0.004)), 0.12, 0.2, 0.045, iron, thick=0.005)
+    leather = cloth("belt", "leather", lin((0.28, 0.19, 0.12)), 0.15, rough=0.5)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.022 and dom[i] in {"hips", "spine"}, 0.045, 0.006, leather)
+    # Sverdet i skjeden på venstre hofte.
+    block("pouch_scabbard", Vector((0.0, 0.16, belt_z - 0.4)), (0.05, 0.03, 0.8), leather, rot=(0.0, -0.25, 0.0), bevel=0.01)
+    block("pouch_hilt", Vector((0.08, 0.16, belt_z + 0.02)), (0.03, 0.12, 0.03), iron, bevel=0.005)
+    # Spydet: askeskaft og jernspiss.
+    ash = cloth("tool_spear", "oak", lin((0.72, 0.62, 0.48)), 0.15, rough=0.6)
+    g = hand_grip(j)
+    base = g + Vector((-0.02, 0.0, -0.8))
+    tip = g + Vector((0.03, 0.0, 1.15))
+    tube("tool_spear", base, tip, 0.016, 0.015, ash)
+    tube("tool_spearhead", tip, tip + Vector((0.005, 0, 0.24)), 0.03, 0.002, iron, n=4)
+    return j
+
+
+def merchant():
+    """Kremmeren: lang kjortel i dyr rødbrun ull med pelskant, lærbelte
+    med en tung pung, kaprun i mørkt grønt, og en vekt i hånda."""
+    spec = MERCHANT
+    body, j, ez, dom, belt_z, neck_z = dress_common(spec, (0.9, 0.84, 0.8))
+    wrist_z = j["wrist.R"][0].z + 0.03
+    wool = cloth("gown", "wool", lin((0.42, 0.18, 0.12)), 0.3, dirt=(0.5, 0.45))
+    shell(body, "gown", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.014, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.09, wool, flare=0.1, legs=True)
+    fur = cloth("fur", "wool", lin((0.55, 0.47, 0.38)), 0.08, rough=0.95, bump=1.4)
+    shell(body, "fur_cuff", lambda i, co: dom[i] in {"forearm.L", "forearm.R"} and wrist_z < co.z < wrist_z + 0.05, 0.022, 0.012, fur)
+    shoes = cloth("shoes", "leather", lin((0.22, 0.15, 0.1)), 0.2, rough=0.5)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    leather = cloth("belt", "leather", lin((0.25, 0.16, 0.1)), 0.15, rough=0.45)
+    shell(body, "belt", lambda i, co: abs(co.z - belt_z) < 0.02 and dom[i] in {"hips", "spine"}, 0.03, 0.006, leather)
+    block("pouch_purse", Vector((0.11, -0.1, belt_z - 0.07)), (0.05, 0.1, 0.12), leather, rot=(0, 0.1, 0), bevel=0.02)
+    brass = cloth("pouch_brass", "metal", lin((0.75, 0.6, 0.3)), 0.1, rough=0.35)
+    block("pouch_clasp", Vector((0.14, -0.1, belt_z - 0.02)), (0.012, 0.08, 0.012), brass, bevel=0.003)
+    hood(body, j, ez, dom, cloth("hood", "wool", lin((0.18, 0.28, 0.2)), 0.3, dirt=(0.25, 0.4)), tail=0.45)
+    shell(body, "fur_collar", lambda i, co: dom[i] in {"neck", "chest", "spine"} and neck_z - 0.18 < co.z < neck_z - 0.13, 0.05, 0.015, fur)
+    # Skålvekta: en stang med to skåler i kjeder, holdt i midten.
+    g = hand_grip(j)
+    tube("tool_beam", g + Vector((0.02, -0.12, -0.02)), g + Vector((0.02, 0.12, -0.02)), 0.006, 0.006, brass, n=8)
+    for dy in (-0.11, 0.11):
+        tube(f"tool_chain{dy}", g + Vector((0.02, dy, -0.02)), g + Vector((0.02, dy, -0.16)), 0.002, 0.002, brass, n=6)
+        tube(f"tool_pan{dy}", g + Vector((0.02, dy, -0.17)), g + Vector((0.02, dy, -0.16)), 0.05, 0.05, brass, n=16)
+    return j
+
+
+def pilgrim():
+    """Pilegrimen: lang grå reisekappe, hette under en vid filthatt med
+    kamskjell, en veske av lær på hofta, og staven med kalebass."""
+    spec = PILGRIM
+    body, j, ez, dom, belt_z, neck_z = dress_common(spec, (0.9, 0.84, 0.8))
+    wrist_z = j["wrist.R"][0].z + 0.03
+    wool = cloth("robe", "wool", lin((0.4, 0.38, 0.35)), 0.3, dirt=(0.9, 0.75))
+    shell(body, "robe", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R", "forearm.L", "forearm.R"} and wrist_z < co.z < neck_z, 0.016, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.05, wool, flare=0.14, legs=True)
+    shoes = cloth("shoes", "leather", lin((0.3, 0.22, 0.15)), 0.2, rough=0.65, dirt=(0.3, 0.7))
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    rope = cloth("cord", "linen", lin((0.65, 0.58, 0.45)), 0.06, rough=0.8, bump=0.8)
+    shell(body, "cord", lambda i, co: abs(co.z - belt_z) < 0.009 and dom[i] in {"hips", "spine"}, 0.03, 0.008, rope)
+    hood(body, j, ez, dom, cloth("hood", "wool", lin((0.3, 0.27, 0.24)), 0.3, dirt=(0.5, 0.5)), tail=0)
+    # Filthatten med bred brem, brettet opp foran, og et kamskjell.
+    felt = cloth("hat_felt", "wool", lin((0.3, 0.25, 0.2)), 0.1, rough=0.9, bump=0.5)
+    crown = Vector((j["head"][0].x + 0.0, 0.0, ez + 0.045))
+    dome("hat_crown", crown, 0.125, 0.11, felt)
+    brim("hat_brim", crown + Vector((0, 0, 0.004)), 0.11, 0.24, 0.035, felt, thick=0.007)
+    shell_mat = cloth("hat_shell", "linen", lin((0.92, 0.88, 0.8)), 0.05, rough=0.5)
+    sh = dome("hat_shell", Vector((0, 0, 0)), 0.03, 0.012, shell_mat, n=12, rows=4)
+    sh.rotation_euler = (0, math.radians(80), 0)
+    sh.location = crown + Vector((0.112, 0.0, 0.045))
+    leather = cloth("scrip", "leather", lin((0.34, 0.24, 0.15)), 0.15, rough=0.55)
+    block("pouch_scrip", Vector((0.03, 0.17, belt_z - 0.12)), (0.06, 0.16, 0.18), leather, rot=(0, 0.05, 0), bevel=0.02)
+    # Staven, høyere enn ham, med en kalebass.
+    ash = cloth("tool_staff", "oak", lin((0.6, 0.48, 0.34)), 0.15, rough=0.65)
+    g = hand_grip(j)
+    base = g + Vector((0.0, 0.0, -0.78))
+    top = g + Vector((0.05, 0.0, 1.05))
+    tube("tool_staff", base, top, 0.018, 0.016, ash)
+    gourd = cloth("tool_gourd", "earth", lin((0.75, 0.6, 0.35)), 0.1, rough=0.6)
+    # Kalebassen: to kuler oppå hverandre, hengt i en snor fra staven.
+    g0 = top + Vector((0.05, 0.0, -0.32))
+    ball("tool_gourd0", g0, (0.055, 0.055, 0.05), gourd)
+    ball("tool_gourd1", g0 + Vector((0, 0, 0.075)), (0.036, 0.036, 0.04), gourd)
+    tube("tool_gourd_cord", top + Vector((0.0, 0.0, -0.2)), g0 + Vector((0, 0, 0.11)), 0.003, 0.003, rope, n=6)
+    return j
+
+
 def hair_locks(body, j, name, mat, z_top, z_bot, ez, n=230, arc=100.0, rows=12, seed=3):
     """Langt hår som enkeltlokker: hver lokk starter på hodet (fra issen
     bak, over øret på sidene), følger hodet ned og henger så rett ned over
@@ -1375,7 +1767,7 @@ def gorvek():
     return j
 
 
-MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek, "woman": woman}
+MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek, "woman": woman, "farmer": farmer, "boy": boy, "guard": guard, "merchant": merchant, "pilgrim": pilgrim}
 
 
 def preview(out, focus):
@@ -1419,4 +1811,4 @@ if __name__ == "__main__":
         sys.exit(0)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest"}, skin={"blend": 0.05})
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05})
