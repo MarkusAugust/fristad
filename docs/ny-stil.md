@@ -55,6 +55,45 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 4. **Naturen:** trær, gress og steiner.
 5. **Kjelleren og monstrene.**
 
+## Byen bygges på nytt (eieren, 9. oktober)
+
+Alle modellene i byen forkastes og lages på nytt for den nye stilen.
+
+- **Byplanen beholdes:** gatene, torget, muren og plasseringen i `town.rs` står. Bare modellene byttes.
+- **Overgang:** de gamle modellene står til den nye utgaven er klar, og slettes når de er byttet ut. Spillet virker hele veien.
+- **Former:** litt overdrevet, som WoW og Fable: tykke bjelker, høye bratte tak, utkragede overetasjer, litt skjeve vegger og tak som henger.
+- **Kanter:** store kanter får én liten avfasing, og mørke hjørner og takskjegg bakes inn i hjørnefargen (AO).
+
+### Vanlige hus: byggesett i Blender
+
+- Et sett deler (vegg i én etasje, hjørnestolpe, gavl, tak, vindu, dør, pipe, utbygg) som skriptet setter sammen til rundt 20 ulike hus. Hvert hus blir én modell på 3 000–10 000 trekanter.
+- Husslag: bindingsverk med puss (gul, hvit, rød, forvitret), laftede hus med torv- eller sponstak, bordkledde hus (liggende eller loddrett kledning, grå eller brun), og steinhus med hogd stein i første etasje og bindingsverk over.
+- Vinduer: modellert karm og sprosser med trim-arket, glass som gløder om natta. Byttes til malte vinduer når de finnes.
+
+### Husene på torget
+
+- Hvert hus deles i en **utside** (høyst 10 000 trekanter) og en **innside** (høyst 40 000), som bare tegnes når du er nær døra eller inne.
+- Innredningen blir rikere enn før, med egne møbler til hvert hus:
+  - **Vertshuset:** skjenkestue, kjøkken med grue, gryter, spekeskinker og brødbakst, ølkjeller med tønner og hyller (lem og trapp ned fra kjøkkenet), og sovesal oppe.
+  - **Smia:** verksted, og bakgård med kullbinge, vedstabel, slipestein og høner.
+  - **Apoteket:** salgsrom, urteloft, og laboratorium med destillerkolber, mortere, tørkede urter og bokhylle.
+  - **Skriptoriet:** skrivestue og biblioteksgalleri.
+
+### Resten
+
+- Stavkirka (skjellspon og stavkirkeplanker), bymuren med tårn og porthus (bymurstein), og borgruinen og krypten (ruinmur), på samme plass og i samme størrelse.
+- Hele gatelivet på nytt i samme stil og på samme plass: brønner, boder, gjerder, vedstabler, kjerrer, lyktestolper og veiskilt.
+
+### Rekkefølge og godkjenning
+
+Jeg jobber i lange økter og stopper med skjermbilder ved hver godkjenning:
+
+1. Vertshuset (utside og innside).
+2. Byggesettet med de vanlige husene.
+3. Smia, Apoteket og Skriptoriet.
+4. Bymuren, stavkirka og borgruinen.
+5. Gatelivet.
+
 ## Måling
 
 - `sh tools/stats.sh` skriver trekanter, tegnekall og instanser fra faste kameraposisjoner (sørporten, Storgata, torget, Vertshuset, borghaugen, utenfor muren, oversikt og kjelleren).
