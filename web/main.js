@@ -108,6 +108,52 @@ async function boot() {
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
     $("touch-note").hidden = false;
   }
+  checkGpu();
+}
+
+// Tegner nettleseren uten grafikkortet (maskinvareakselerasjon slått av,
+// eller driveren svartelistet), faller den tilbake til programvare som
+// SwiftShader eller Microsoft Basic Render Driver, og alt går svært tregt.
+// Da sier startkortet fra og forklarer hvordan det slås på; grafikken
+// byttes bare om spilleren velger det.
+let gpuName = "";
+let softwareGpu = false;
+let gpuToastShown = false;
+const SOFTWARE = /swiftshader|llvmpipe|softpipe|lavapipe|basic render driver|software rasterizer|microsoft basic/i;
+async function checkGpu() {
+  let name = "";
+  let fallback = false;
+  try {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    const info = gl?.getExtension("WEBGL_debug_renderer_info");
+    name = (info && gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) || gl?.getParameter(gl.RENDERER) || "";
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
+  } catch {
+    /* ingen WebGL2 */
+  }
+  if (engine.backend() !== "Gl" && navigator.gpu) {
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+      fallback = !!(adapter?.info?.isFallbackAdapter ?? adapter?.isFallbackAdapter);
+      const d = adapter?.info?.description || adapter?.info?.device || "";
+      if (d) name = d;
+      else if (adapter?.info?.vendor && !name) name = adapter.info.vendor;
+    } catch {
+      /* ingen adapter */
+    }
+  }
+  gpuName = name;
+  softwareGpu = fallback || SOFTWARE.test(name);
+  console.info(`Grafikk: ${name || "ukjent"}${softwareGpu ? " (programvare, uten grafikkort)" : ""}`);
+  if (!softwareGpu) return;
+  const short = name.match(/swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic render driver|basic render driver/i)?.[0];
+  $("gpu-name").textContent = short ? `tegnes med ${short}` : "tegnes med programvare";
+  $("gpu-warning").hidden = false;
+  $("gpu-reduced").hidden = reducedGfx;
+  $("gpu-reduced").addEventListener("click", () => {
+    setGraphics(true);
+    $("gpu-reduced").hidden = true;
+  });
 }
 
 async function loadAssets() {
@@ -294,7 +340,8 @@ function loop(now) {
     const tris = Math.round(engine.triangles() / 1000);
     const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
     const q = quality >= 1 ? "" : quality > 0 ? " · middels" : " · lav";
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △`;
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △`;
+    $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}`;
     frames = 0;
     perfAt = now;
   }
@@ -961,6 +1008,10 @@ function enter(relock = true) {
   }
   if (soundsLoading && !panelOpen) sfx.play("resume");
   playing = true;
+  if (softwareGpu && !gpuToastShown) {
+    gpuToastShown = true;
+    toast?.show?.("Nettleseren tegner uten grafikkortet, så spillet går tregt. Se startkortet (Esc) for hvordan du slår på maskinvareakselerasjon.");
+  }
   if (!soundsLoading) {
     soundsLoading = true;
     sfx.preload();
