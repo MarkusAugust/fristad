@@ -239,6 +239,12 @@ impl Engine {
         self.app.status().triangles
     }
 
+    /// Millisekunder på grafikkortet per del av bildet, som «skygger 1.2 ·
+    /// prepass 0.8 · …» (tomt om nettleseren ikke kan måle det).
+    pub fn gpu_times(&self) -> String {
+        self.app.status().gpu_times.iter().map(|(n, ms)| format!("{n} {ms:.1}")).collect::<Vec<_>>().join(" · ")
+    }
+
     pub fn resize(&mut self, width: u32, height: u32) {
         let (w, h) = (width.max(1), height.max(1));
         if w == self.config.width && h == self.config.height {

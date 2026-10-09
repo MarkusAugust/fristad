@@ -340,8 +340,12 @@ function loop(now) {
     const tris = Math.round(engine.triangles() / 1000);
     const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
     const q = quality >= 1 ? "" : quality > 0 ? " · middels" : " · lav";
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △`;
-    $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}`;
+    // Tiden på grafikkortet per del (bare der nettleseren kan måle den):
+    // summen i telleren, delene når du holder musa over.
+    const parts = engine.gpu_times ? engine.gpu_times() : "";
+    const gpuMs = parts ? parts.split(" · ").reduce((sum, p) => sum + parseFloat(p.split(" ").pop()), 0) : 0;
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △${parts ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
+    $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${parts ? `. GPU-tid (ms): ${parts}` : ""}`;
     frames = 0;
     perfAt = now;
   }

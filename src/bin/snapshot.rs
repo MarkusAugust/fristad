@@ -174,6 +174,10 @@ fn main() {
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wgpu::PollType::Wait).expect("poll");
     log::info!("Rendret {frames} bilder på {:.0} ms, {} trekanter i hovedpasset", start.elapsed().as_secs_f32() * 1000.0, app.renderer.triangles());
+    let times = app.renderer.pass_times();
+    if !times.is_empty() {
+        log::info!("GPU-tid per del: {}", times.iter().map(|(n, ms)| format!("{n} {ms:.2} ms")).collect::<Vec<_>>().join(", "));
+    }
 
     let data = buf.slice(..).get_mapped_range();
     let mut pixels = Vec::with_capacity((width * height * 4) as usize);

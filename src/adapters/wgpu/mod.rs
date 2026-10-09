@@ -20,6 +20,7 @@ use texture::Materials;
 use wgpu::util::DeviceExt;
 
 pub mod texture;
+mod timer;
 
 /// Hjørnet slik grafikkortet får det: som `Vertex`, men normalen som 8 bit
 /// med fortegn (modellene har dem slik i fila uansett), 40 byte mot 48.
@@ -372,6 +373,8 @@ pub struct Renderer {
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
+    /// Tiden på grafikkortet per del, når kortet kan måle den.
+    timer: Option<timer::GpuTimer>,
 }
 
 fn shader(device: &wgpu::Device, name: &str, parts: &[&str]) -> wgpu::ShaderModule {
@@ -823,6 +826,7 @@ impl Renderer {
 
         let targets = Self::make_targets(&device, &frame_layout, &post_layout, &shadow_view, &shadow_sampler, &pass_buf, &linear, &nearest, &black, width, height);
         let chunks = scene.chunks.to_vec();
+        let timer = timer::GpuTimer::new(&device, &queue);
         Self {
             device,
             queue,
@@ -866,6 +870,7 @@ impl Renderer {
             reduced: false,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
+            timer,
         }
     }
 
@@ -1029,6 +1034,12 @@ impl Renderer {
     }
 
     /// Trekanter sist bilde: verden, props, modeller.
+    /// Millisekunder på grafikkortet per del av bildet (tomt om kortet
+    /// ikke kan måle det).
+    pub fn pass_times(&self) -> Vec<(&'static str, f32)> {
+        self.timer.as_ref().map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect()).unwrap_or_default()
+    }
+
     pub fn stats(&self) -> (u32, u32, u32) {
         self.triangles.get()
     }
@@ -1309,6 +1320,11 @@ impl Renderer {
             );
         }
 
+        if let Some(tm) = &mut self.timer {
+            let _ = self.device.poll(wgpu::PollType::Poll);
+            tm.collect();
+        }
+        let ts = |k: usize, begin: bool, end: bool| self.timer.as_ref().and_then(|tm| tm.writes(k, begin, end));
         let mut enc = self.device.create_command_encoder(&Default::default());
 
         // 1. Skygger: tre kaskader i hvert sitt hjørne av atlaset.
@@ -1321,7 +1337,7 @@ impl Renderer {
                     depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }),
                     stencil_ops: None,
                 }),
-                timestamp_writes: None,
+                timestamp_writes: ts(0, true, true),
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.shadow_pipe);
@@ -1362,7 +1378,7 @@ impl Renderer {
                     depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }),
                     stencil_ops: None,
                 }),
-                timestamp_writes: None,
+                timestamp_writes: ts(1, true, true),
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.prepass_pipe);
@@ -1380,12 +1396,12 @@ impl Renderer {
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
         let (hw, hh) = ((t.width / 2).max(1), (t.height / 2).max(1));
-        let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>| {
+        let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>, timestamps: Option<wgpu::RenderPassTimestampWrites>| {
             let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some(label),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: target, resolve_target: None, ops: wgpu::Operations { load, store: wgpu::StoreOp::Store } })],
                 depth_stencil_attachment: None,
-                timestamp_writes: None,
+                timestamp_writes: timestamps,
                 occlusion_query_set: None,
             });
             pass.set_pipeline(pipe);
@@ -1401,16 +1417,16 @@ impl Renderer {
                 label: Some("no ssao"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &t.ao[0], resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::WHITE), store: wgpu::StoreOp::Store } })],
                 depth_stencil_attachment: None,
-                timestamp_writes: None,
+                timestamp_writes: ts(2, true, true),
                 occlusion_query_set: None,
             });
         } else {
             post(&t.ssao_bg.1, [0.7, 1.1, 0.0, 0.0], t.width, t.height);
-            fullscreen(&mut enc, "ssao", &t.ao[0], &self.ssao_pipe, &t.ssao_bg.0, clear);
+            fullscreen(&mut enc, "ssao", &t.ao[0], &self.ssao_pipe, &t.ssao_bg.0, clear, ts(2, true, false));
             post(&t.blur_bg[0].1, [0.0, 0.0, 1.0, 0.0], hw, hh);
-            fullscreen(&mut enc, "blur x", &t.ao[1], &self.blur_pipe, &t.blur_bg[0].0, clear);
+            fullscreen(&mut enc, "blur x", &t.ao[1], &self.blur_pipe, &t.blur_bg[0].0, clear, None);
             post(&t.blur_bg[1].1, [0.0, 0.0, 0.0, 1.0], hw, hh);
-            fullscreen(&mut enc, "blur y", &t.ao[0], &self.blur_pipe, &t.blur_bg[1].0, clear);
+            fullscreen(&mut enc, "blur y", &t.ao[0], &self.blur_pipe, &t.blur_bg[1].0, clear, ts(2, false, true));
         }
 
         // 4. Verden, himmel og nedbør.
@@ -1427,7 +1443,7 @@ impl Renderer {
                     depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store }),
                     stencil_ops: None,
                 }),
-                timestamp_writes: None,
+                timestamp_writes: ts(3, true, true),
                 occlusion_query_set: None,
             });
             pass.set_pipeline(&self.world_pipe);
@@ -1461,29 +1477,35 @@ impl Renderer {
 
         // 5. Tåke.
         post(&t.fog_bg.1, [0.0; 4], t.width, t.height);
-        fullscreen(&mut enc, "fog", &t.hdr_fog, &self.fog_pipe, &t.fog_bg.0, clear);
+        fullscreen(&mut enc, "fog", &t.hdr_fog, &self.fog_pipe, &t.fog_bg.0, clear, ts(4, true, false));
 
         // 6. TAA.
         let cur = (self.frame_index % 2) as usize;
         post(&t.taa_bg[cur].1, [if taa { 1.0 } else { 0.0 }, 0.9, 0.0, 0.0], t.width, t.height);
-        fullscreen(&mut enc, "taa", &t.resolved[cur], &self.taa_pipe, &t.taa_bg[cur].0, clear);
+        fullscreen(&mut enc, "taa", &t.resolved[cur], &self.taa_pipe, &t.taa_bg[cur].0, clear, None);
 
         // 7. Glød (ikke i redusert grafikk).
         for i in (0..BLOOM_LEVELS).filter(|_| !self.reduced) {
             let (bg, sw, sh) = if i == 0 { (&t.down0_bg[cur], t.width, t.height) } else { (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2) };
             post(&bg.1, [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }], sw, sh);
-            fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear);
+            fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear, None);
         }
         for (k, i) in (1..BLOOM_LEVELS).rev().enumerate().filter(|_| !self.reduced) {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
-            fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load);
+            fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load, None);
         }
 
         // 8. Tonemapping til skjermen.
         post(&t.tonemap_bg[cur].1, [f.exposure, if self.reduced { 0.0 } else { f.bloom }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
-        fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg[cur].0, clear);
+        fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg[cur].0, clear, ts(4, false, true));
 
+        if let Some(tm) = &mut self.timer {
+            tm.resolve(&mut enc);
+        }
         self.queue.submit([enc.finish()]);
+        if let Some(tm) = &mut self.timer {
+            tm.map();
+        }
         self.prev_view_proj = view_proj;
         self.prev_moving = moving_now;
         self.history_valid = f.taa;
@@ -1574,6 +1596,9 @@ impl ports::Renderer for Renderer {
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();
         w + p + m
+    }
+    fn gpu_times(&self) -> Vec<(&'static str, f32)> {
+        self.pass_times()
     }
 }
 

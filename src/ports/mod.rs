@@ -41,6 +41,10 @@ pub trait Renderer {
     fn set_reduced(&mut self, reduced: bool);
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
+    /// Millisekunder på grafikkortet per del av bildet, om det kan måles.
+    fn gpu_times(&self) -> Vec<(&'static str, f32)> {
+        vec![]
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

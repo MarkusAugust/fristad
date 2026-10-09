@@ -40,7 +40,8 @@ pub async fn gpu(
     let (device, queue) = adapter
         .request_device(&::wgpu::DeviceDescriptor {
             label: Some("fristad"),
-            required_features: ::wgpu::Features::empty(),
+            // Tidsmåling per pass når kortet kan (ikke i WebGL2).
+            required_features: adapter.features() & ::wgpu::Features::TIMESTAMP_QUERY,
             required_limits: limits,
             memory_hints: ::wgpu::MemoryHints::Performance,
             trace: ::wgpu::Trace::Off,

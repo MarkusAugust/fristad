@@ -134,6 +134,9 @@ pub struct Status {
     pub weather: WeatherKind,
     pub daylight: Daylight,
     pub triangles: u32,
+    /// Millisekunder på grafikkortet per del av bildet (tomt om det ikke
+    /// kan måles).
+    pub gpu_times: Vec<(&'static str, f32)>,
 }
 
 /// Et merke på skjermen (0..1 fra øverst til venstre): helsestolpe over en
