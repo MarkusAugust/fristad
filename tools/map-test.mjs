@@ -49,9 +49,11 @@ check(await page.isVisible("#bars"), "liv og energi står over knappelinja");
 check(/\d+ \/ \d+/.test(await page.textContent("#hp-text")), `livet med tall: ${await page.textContent("#hp-text")}`);
 check(await page.isHidden("#minimap"), "oppe i byen er det ikke noe minikart");
 // Ned i kjelleren: minikartet kommer.
+// SwiftShader tegner sakte: redusert grafikk, og god tid.
+await page.keyboard.press("g");
 await page.evaluate(() => window.fristad.engine.descend());
-await page.waitForSelector("#minimap:not([hidden])", { timeout: 20000 });
-await page.waitForTimeout(1500);
+await page.waitForSelector("#minimap:not([hidden])", { timeout: 180000 });
+await page.waitForTimeout(8000);
 check(await page.isVisible("#minimap"), "minikartet står i hjørnet nede i kjelleren");
 check((await page.textContent("#map-name")).startsWith("Etasje 1"), `navnet på etasjen: ${await page.textContent("#map-name")}`);
 const lit = await page.evaluate(() => {
@@ -65,7 +67,7 @@ console.log(`     tegnet på minikartet: ${Math.round(lit * 100)} %`);
 check(lit > 0.05, "minikartet har tegnet startrommet");
 await page.screenshot({ path: `${out}-minikart.png` });
 await page.keyboard.press("k");
-await page.waitForTimeout(500);
+await page.waitForTimeout(3000);
 check(await page.isVisible("#bigmap"), "K åpner det store kartet");
 await page.screenshot({ path: `${out}-kart.png` });
 await page.keyboard.press("k");

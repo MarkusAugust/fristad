@@ -204,19 +204,33 @@ code {
   background: #120e0b;
 }
 .legend { font-weight: 700; }
-.legend.exit { color: #4cc3ff; }
-.legend.gate { color: #c9a24a; }
-.legend.chest { color: #e8b84a; }
-.legend.ascend { color: #9be08a; }
-.legend.boss { color: #e0483a; }
+.legend-exit { color: #4cc3ff; }
+.legend-gate { color: #c9a24a; }
+.legend-chest { color: #e8b84a; }
+.legend-ascend { color: #9be08a; }
+.legend-boss { color: #e0483a; }
 
 /* Liv og energi over knappelinja, som kulene i Diablo: livet til venstre,
    energien til høyre, med plass i midten. */
-.bars {
+/* Nederst: stolpene, og knappelinja under dem. */
+.bottom {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--fs-spacing-5) + 2.4rem);
+  bottom: var(--fs-spacing-5);
   transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: var(--fs-spacing-3);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+.bottom .help {
+  position: static;
+  transform: none;
+  text-align: center;
+}
+.bars {
   display: flex;
   gap: min(14rem, 20vw);
   pointer-events: none;
