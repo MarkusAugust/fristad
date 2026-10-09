@@ -6,6 +6,8 @@ struct Post {
     params: vec4<f32>,
     // Størrelsen på kilden: bredde, høyde, 1/bredde, 1/høyde.
     texel: vec4<f32>,
+    // x: skarpingen etter TAA (0 av).
+    extra: vec4<f32>,
 }
 @group(2) @binding(0) var tex0: texture_2d<f32>;
 @group(2) @binding(1) var tex1: texture_2d<f32>;
@@ -198,6 +200,32 @@ fn ycocg_to_rgb(c: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(c.x + c.y - c.z, c.x + c.z, c.x - c.y - c.z);
 }
 
+// Historien leses med Catmull-Rom (fem bilineære oppslag), ikke bare
+// bilineært: et bilineært oppslag midt mellom pikslene visker ut litt hver
+// gang bildet flyttes, og med 90 % historie hoper det seg opp.
+fn history(uv: vec2<f32>) -> vec3<f32> {
+    let size = post.texel.xy;
+    let pos = uv * size;
+    let c = floor(pos - 0.5) + 0.5;
+    let f = pos - c;
+    let w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
+    let w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
+    let w2 = f * (0.5 + f * (2.0 - 1.5 * f));
+    let w3 = f * f * (-0.5 + 0.5 * f);
+    let w12 = w1 + w2;
+    let t0 = (c - 1.0) * post.texel.zw;
+    let t3 = (c + 2.0) * post.texel.zw;
+    let t12 = (c + w2 / w12) * post.texel.zw;
+    var r = textureSampleLevel(tex1, lin, vec2<f32>(t12.x, t0.y), 0.0).rgb * (w12.x * w0.y);
+    r += textureSampleLevel(tex1, lin, vec2<f32>(t0.x, t12.y), 0.0).rgb * (w0.x * w12.y);
+    r += textureSampleLevel(tex1, lin, t12, 0.0).rgb * (w12.x * w12.y);
+    r += textureSampleLevel(tex1, lin, vec2<f32>(t3.x, t12.y), 0.0).rgb * (w3.x * w12.y);
+    r += textureSampleLevel(tex1, lin, vec2<f32>(t12.x, t3.y), 0.0).rgb * (w12.x * w3.y);
+    let wsum = w12.x * w0.y + w0.x * w12.y + w12.x * w12.y + w3.x * w12.y + w12.x * w3.y;
+    // Catmull-Rom kan skyte under null ved skarpe kanter.
+    return max(r / wsum, vec3<f32>(0.0));
+}
+
 @fragment
 fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
     let cur = textureSampleLevel(tex0, near, i.uv, 0.0).rgb;
@@ -250,7 +278,7 @@ fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
         }
         return vec4<f32>(cur, 1.0);
     }
-    let hist = rgb_to_ycocg(textureSampleLevel(tex1, lin, puv, 0.0).rgb);
+    let hist = rgb_to_ycocg(history(puv));
     let clamped = clamp(hist, mn, mx);
     // Mindre vekt på historien der den måtte klemmes mye (bevegelse).
     let dev = length(hist - clamped) / max(length(sigma), 1e-3);
@@ -322,11 +350,40 @@ fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
     return select(hi, lo, c <= vec3<f32>(0.0031308));
 }
 
+// Skarping etter TAA (som AMDs CAS): pikselen trekkes bort fra naboene i
+// et kors, mindre der kontrasten alt er høy, så kantene ikke får glorie.
+// Styrken står i extra.x (0 av).
+fn sharpened(uv: vec2<f32>) -> vec3<f32> {
+    let c = textureSampleLevel(tex0, near, uv, 0.0).rgb;
+    let amount = post.extra.x;
+    if (amount <= 0.0) {
+        return textureSampleLevel(tex0, lin, uv, 0.0).rgb;
+    }
+    let t = post.texel.zw;
+    let n = textureSampleLevel(tex0, near, uv - vec2<f32>(0.0, t.y), 0.0).rgb;
+    let s = textureSampleLevel(tex0, near, uv + vec2<f32>(0.0, t.y), 0.0).rgb;
+    let w = textureSampleLevel(tex0, near, uv - vec2<f32>(t.x, 0.0), 0.0).rgb;
+    let e = textureSampleLevel(tex0, near, uv + vec2<f32>(t.x, 0.0), 0.0).rgb;
+    // Vektene regnes i et komprimert rom, så sterke lys ikke styrer dem.
+    let tc = c / (1.0 + c);
+    let tn = n / (1.0 + n);
+    let ts = s / (1.0 + s);
+    let tw = w / (1.0 + w);
+    let te = e / (1.0 + e);
+    let mn = min(tc, min(min(tn, ts), min(tw, te)));
+    let mx = max(tc, max(max(tn, ts), max(tw, te)));
+    let amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3<f32>(1e-4)), vec3<f32>(0.0), vec3<f32>(1.0)));
+    let peak = -1.0 / mix(8.0, 5.0, amount);
+    let wt = amp * peak;
+    let out = (c + (n + s + w + e) * wt) / (1.0 + 4.0 * wt);
+    return max(out, vec3<f32>(0.0));
+}
+
 @fragment
 fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
     let exposure = post.params.x;
     let bloom = post.params.y;
-    var hdr = textureSampleLevel(tex0, lin, i.uv, 0.0).rgb;
+    var hdr = sharpened(i.uv);
     if (g.sky.w > 0.0 && g.sky.w < 13.0) {
         var d = clamp(hdr, vec3<f32>(0.0), vec3<f32>(1.0));
         if (post.params.z > 0.5) {

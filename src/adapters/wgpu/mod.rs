@@ -51,6 +51,8 @@ const CASCADE_RES: u32 = SHADOW_ATLAS / 2;
 /// Hvor kaskadene slutter, i meter fra kameraet.
 pub const CASCADES: [f32; 3] = [14.0, 45.0, 170.0];
 const BLOOM_LEVELS: usize = 5;
+/// Skarpingen etter TAA (0..1), som tar igjen det TAA visker ut.
+const SHARPEN: f32 = 0.6;
 const INSTANCE_STRIDE: u64 = 96;
 const PASS_STRIDE: u64 = 256;
 const RAIN_COUNT: u32 = 6000;
@@ -100,6 +102,8 @@ struct Globals {
 struct PostUniform {
     params: [f32; 4],
     texel: [f32; 4],
+    /// x: skarpingen etter TAA (bare tonemappingen leser den).
+    extra: [f32; 4],
 }
 
 #[repr(C)]
@@ -1204,8 +1208,9 @@ impl Renderer {
         }
 
         // 3. SSAO i halv oppløsning, så to uskarphetspass.
+        let sharpen = if taa { SHARPEN } else { 0.0 };
         let post = |buf: &wgpu::Buffer, params: [f32; 4], sw: u32, sh: u32| {
-            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32] };
+            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32], extra: [sharpen, 0.0, 0.0, 0.0] };
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
         let (hw, hh) = ((t.width / 2).max(1), (t.height / 2).max(1));
