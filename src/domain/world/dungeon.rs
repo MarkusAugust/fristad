@@ -42,6 +42,14 @@ pub const PORTCULLIS: &str = "portcullis";
 /// opp av økta. Hengslet sitter bak på overkanten av kassa.
 pub const CHEST: &str = "chest";
 pub const CHEST_LID: &str = "chest_lid";
+/// Snarveidøra: rammen står fast, døra dreies opp av økta.
+pub const SHORTCUT: &str = "dng_shortcut";
+pub const SHORTCUT_LEAF: &str = "dng_shortcut_leaf";
+/// Hengslet til snarveidøra i rammens rom (x mot venstre stolpe, z midt i
+/// muren), og døras bredde og høyde.
+pub const SHORTCUT_HINGE: Vec3 = Vec3::new(-1.31, 0.0, 0.3);
+pub const SHORTCUT_W: f32 = 2.62;
+pub const SHORTCUT_H: f32 = 2.28;
 pub const CHEST_HINGE: Vec3 = Vec3::new(0.0, 0.46, -0.28);
 pub const EPOCHS: [&str; FLOORS] = ["2026: forretningslogikken", "2019: klassekomponentene", "2014: jQuery-kloakken", "2009: tabellayout-katakombene", "1999: blink-dypet"];
 /// Portgitteret: så bredt og høyt, og hvor langt det sveives opp.
@@ -76,6 +84,8 @@ pub struct Floor {
     /// og gangforløp), og kanter inne i et rom som er stengt.
     links: HashSet<((i32, i32), (i32, i32))>,
     blocked: HashSet<((i32, i32), (i32, i32))>,
+    /// Kanter som er stengt av en dør (snarveiene), til den åpnes.
+    closed: HashSet<((i32, i32), (i32, i32))>,
     /// Verdenskoordinatene (x, z) til hjørnet av celle (0, 0).
     pub origin: (f32, f32),
     /// Gulvets overkant.
@@ -105,11 +115,24 @@ pub struct Dungeon {
     pub chests: Vec<(Vec3, f32, usize)>,
     /// Der Rammeverket står: midt i rotunden nederst.
     pub boss: Option<Vec3>,
+    /// Snarveiene: dører fra startrommet i en etasje til en gang som går til
+    /// et rom lenger inn, med slå på gangsida.
+    pub shortcuts: Vec<Shortcut>,
     /// Det som står i rommene (sarkofager, søyler, kister, murer) sett
     /// ovenfra, så fiendene går rundt det i stedet for gjennom.
     obstacles: Vec<(Obstacle, f32, f32)>,
     /// Hindringene som berører hver celle: (etasje, celle) → indekser.
     near: HashMap<(usize, i32, i32), Vec<u32>>,
+}
+
+/// En snarveidør: rammen står i celleveggen med lokal +z inn i rommet
+/// (`yaw`), og kanten den stenger.
+#[derive(Clone, Copy, Debug)]
+pub struct Shortcut {
+    pub pos: Vec3,
+    pub yaw: f32,
+    pub floor: usize,
+    pub edge: ((i32, i32), (i32, i32)),
 }
 
 /// Fotavtrykket til en kollider i kroppshøyde.
@@ -163,6 +186,11 @@ impl Floor {
 
     pub fn is_open(&self, ix: i32, iz: i32) -> bool {
         self.cell(ix, iz) != Cell::Rock
+    }
+
+    /// Åpne en dør som stengte kanten mellom to celler (en snarvei).
+    pub fn open(&mut self, e: ((i32, i32), (i32, i32))) {
+        self.closed.remove(&e);
     }
 
     /// Om to celler hører til samme rom.
@@ -233,7 +261,7 @@ impl Floor {
         }
         let e = edge(a, b);
         let joined = if self.unit[ia] >= 0 && self.unit[ia] == self.unit[ib] { !self.blocked.contains(&e) } else { self.links.contains(&e) };
-        if !joined {
+        if !joined || self.closed.contains(&e) {
             return false;
         }
         let d = (b.0 - a.0, b.1 - a.1);
@@ -498,6 +526,7 @@ specs!(
     "dng_hall_x",
     "dng_hall_end",
     "dng_seal",
+    "dng_shortcut",
     "dng_spiral",
     "dng_start",
     "dng_gate",
@@ -852,7 +881,7 @@ impl Plan {
 /// bygges på nytt; i testene er den fast.
 pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
     let mut rng = Rng(seed | 1);
-    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None, obstacles: vec![], near: HashMap::new() };
+    let mut d = Dungeon { floors: vec![], start: Vec3::ZERO, spawns: vec![], elites: vec![], gates: vec![], loot: vec![], chests: vec![], boss: None, shortcuts: vec![], obstacles: vec![], near: HashMap::new() };
     let c0 = b.colliders.len();
     let mut y = DEPTH;
     // Tårnet fra etasjen over: cella i verden (midten) og dreiningen.
@@ -872,6 +901,10 @@ pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
         let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(*yaw), *p);
         b.target(Use::Gate(i), pose, Vec3::new(0.0, GATE_H * 0.5, 0.0), Vec3::new(GATE_W * 0.5, GATE_H * 0.5, 0.12));
     }
+    for (i, sc) in d.shortcuts.iter().enumerate() {
+        let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(sc.yaw), sc.pos);
+        b.target(Use::Shortcut(i), pose, Vec3::new(0.0, SHORTCUT_H * 0.5, SHORTCUT_HINGE.z), Vec3::new(SHORTCUT_W * 0.5, SHORTCUT_H * 0.5, 0.08));
+    }
     for (i, (p, yaw, _)) in d.chests.iter().enumerate() {
         b.target(Use::Chest(i), Affine3A::from_rotation_translation(Quat::from_rotation_y(*yaw), *p), Vec3::new(0.0, 0.3, 0.0), Vec3::new(0.48, 0.33, 0.33));
     }
@@ -881,7 +914,7 @@ pub fn build(b: &mut Builder, seed: u64, anchor: Vec2) -> Dungeon {
 
 /// Plass til portgitrene, som spillet poserer etter hvor åpne de er.
 pub fn reserve(d: &Dungeon) -> Vec<(&'static str, usize)> {
-    vec![(PORTCULLIS, d.gates.len()), (CHEST_LID, d.chests.len())]
+    vec![(PORTCULLIS, d.gates.len()), (CHEST_LID, d.chests.len()), (SHORTCUT_LEAF, d.shortcuts.len())]
 }
 
 /// Planlegg og bygg én etasje. Gir etasjen og tårnet ned (midten i verden
@@ -958,6 +991,16 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
             }
         }
     }
+    // Snarveien: en gang fra et rom langt inne tilbake til startrommet, med
+    // en dør inn til startrommet som bare kan åpnes fra gangsida.
+    let mut shortcut = None;
+    for j in (3..main.len()).rev() {
+        let before = plan.used.clone();
+        if plan.join(main[0], main[j], 26) {
+            shortcut = plan.used.difference(&before).find(|(r, _)| *r == main[0]).copied();
+            break;
+        }
+    }
 
     // Cellene i etasjen.
     let mut cells = vec![Cell::Rock; N * N];
@@ -1005,10 +1048,23 @@ fn plan_floor(b: &mut Builder, d: &mut Dungeon, rng: &mut Rng, k: usize, y: f32,
     let start_spot = start_room.spec().spots.start.unwrap_or([6.0, 0.0, 6.0, 0.0]);
     let sp = start_room.turn(Vec2::new(start_spot[0], start_spot[2]));
     let start_world = Vec3::new(origin.0 + start_room.gx as f32 * CELL + sp.x, y, origin.1 + start_room.gz as f32 * CELL + sp.y);
-    let mut floor = Floor { cells, hw, ceil, unit, links: plan.links.clone(), blocked, origin, y, theme: k, start: (0, 0), exit: None };
+    let mut floor = Floor { cells, hw, ceil, unit, links: plan.links.clone(), blocked, closed: HashSet::new(), origin, y, theme: k, start: (0, 0), exit: None };
     floor.start = floor.cell_of(start_world);
     if k == 0 {
         d.start = start_world;
+    }
+    // Snarveidøra i døråpningen til startrommet; kanten er stengt til den
+    // åpnes fra gangsida.
+    if let Some((r, n)) = shortcut {
+        let (c, dir) = plan.rooms[r].doors()[n];
+        let e = edge(c, (c.0 + dir.0, c.1 + dir.1));
+        floor.closed.insert(e);
+        let mid = floor.center(c.0, c.1);
+        let pos = Vec3::new(mid.x + dir.0 as f32 * CELL * 0.5, y + floor_height(&floor, c), mid.z + dir.1 as f32 * CELL * 0.5);
+        let yaw = (-dir.0 as f32).atan2(-dir.1 as f32);
+        put(b, SHORTCUT, Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), pos), &theme(k));
+        d.shortcuts.push(Shortcut { pos, yaw, floor: k, edge: e });
+        log::info!("Etasje {k}: snarvei fra startrommet ved {c:?}");
     }
 
     // Modellene, kolliderne, lysene og stedene i rommene.

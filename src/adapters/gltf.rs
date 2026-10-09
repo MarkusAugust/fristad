@@ -149,6 +149,8 @@ models! {
     "dng_hall_x" => "dungeon/dng_hall_x.glb",
     "dng_hall_end" => "dungeon/dng_hall_end.glb",
     "dng_seal" => "dungeon/dng_seal.glb",
+    "dng_shortcut" => "dungeon/dng_shortcut.glb",
+    "dng_shortcut_leaf" => "dungeon/dng_shortcut_leaf.glb",
     "dng_spiral" => "dungeon/dng_spiral.glb",
     "dng_start" => "dungeon/dng_start.glb",
     "dng_gate" => "dungeon/dng_gate.glb",

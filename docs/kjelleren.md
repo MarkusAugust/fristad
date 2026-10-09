@@ -51,9 +51,13 @@ epoken: tørr hogd stein med fakler (2026), kald grå stein og
 blålig lys (2019), kloakk med vann og lykter (2014), katakomber med
 gravnisjer og stearinlys (2009), og lavadypet (1999).
 
-## Senere
+## Tema-ganger, lys, snarveier og kløfter
 
-- Egne modulsett per tema (kloakkrenner, gravnisjer, lavagrotter).
-- Skygger fra punktlys, så lyset ikke går gjennom veggene.
-- Snarveier som låses opp fra innsida (dører med slå).
-- Fall i kløfter og broer.
+- Egne rette ganger per tema: kloakkrenne med vann (2014), gravnisjer med
+  hodeskaller og stearinlys (2009), glødende sprekk (1999).
+- Lyset stoppes av murene: rendereren får rutenettet i etasjen og går
+  cellene mellom punktet og lyset.
+- Snarveier: en dør med slå fra en gang tilbake til startrommet, som bare
+  kan åpnes fra gangsida.
+- Kløfta: et rom med en dyp kløft og en plankebro; faller du, løftes du
+  opp igjen der du sist sto trygt.

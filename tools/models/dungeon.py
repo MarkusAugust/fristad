@@ -1500,6 +1500,58 @@ def arena_room():
 # --- Tilmurt dør og vindeltrappa ------------------------------------------
 
 
+def shortcut_frame():
+    """Snarveidøra (rammen): karm av eik i dørbua, et tympanon av planker
+    over døra, og en slå på den ene sida (lokal −z, gangen). Origo i
+    celleveggen som tilmuringen, lokal +z inn i rommet. Selve døra er
+    `dng_shortcut_leaf`, som økta dreier opp."""
+    s = Style()
+    reset(1, 1)
+    DATA["floor"] = [[None]]
+    zc = T * 0.5
+    # Karmen: to stolper og en overligger, tympanonet i buen over.
+    for sx in (-1, 1):
+        eblock("door_jamb", (0.16, SPRING, 0.22), s.wood, at=(sx * (HW - 0.08), SPRING / 2, zc), bevel=0.02)
+    eblock("door_lintel", (2 * HW, 0.18, 0.24), s.wood, at=(0, SPRING - 0.02, zc), bevel=0.02)
+    k = 0
+    x = -HW
+    while x < HW - 0.02:
+        w = 0.22
+        top = SPRING + math.sqrt(max(0.0, HW * HW - (x + w / 2) ** 2)) - 0.05
+        eblock("tympanum_board", (w - 0.01, top - SPRING, 0.06), s.wood, at=(x + w / 2, (SPRING + top) / 2, zc), bevel=0.006)
+        x += w
+        k += 1
+    # Slåfestet på gangsida.
+    eblock("bolt_keeper", (0.1, 0.2, 0.1), s.iron, at=(HW - 0.2, 1.1, zc - 0.17), bevel=0.01)
+    for sx in (-1, 1):
+        collide(sx * (HW - 0.08) - 0.08, sx * (HW - 0.08) + 0.08, 0.0, SPRING, zc - 0.11, zc + 0.11)
+    collide(-HW, HW, SPRING - 0.11, SPRING + HW, zc - 0.12, zc + 0.12)
+    return None
+
+
+def shortcut_leaf():
+    """Snarveidøra: en kraftig eikedør med jernbånd, nagler og en slå på
+    baksida. Hengslet i origo (lokal x = 0 er hengselsida), døra går mot +x."""
+    s = Style()
+    reset(1, 1)
+    DATA["floor"] = [[None]]
+    W, H = 2 * HW - 0.18, SPRING - 0.12
+    n = 7
+    for k in range(n):
+        w = W / n
+        eblock("door_plank", (w - 0.012, H, 0.08), s.wood, at=(w * (k + 0.5), H / 2, 0.0), bevel=0.008)
+    for y in (0.35, H / 2, H - 0.35):
+        eblock("door_band", (W - 0.1, 0.09, 0.015), s.iron, at=(W / 2 - 0.02, y, 0.05), bevel=0.004)
+        eblock("door_band_back", (W - 0.1, 0.09, 0.015), s.iron, at=(W / 2 - 0.02, y, -0.05), bevel=0.004)
+        for k in range(8):
+            eblock("door_nail", (0.03, 0.03, 0.02), s.iron, at=(0.12 + k * (W - 0.24) / 7, y, 0.06), bevel=0.006)
+    # Slåen på baksida (gangsida), og en ring å dra i.
+    eblock("bolt_bar", (0.6, 0.07, 0.06), s.iron, at=(W - 0.35, 1.1, -0.09), bevel=0.01)
+    eblock("bolt_handle", (0.05, 0.12, 0.05), s.iron, at=(W - 0.5, 1.16, -0.13), bevel=0.008)
+    erevolve("door_ring", [(0.07, 1.0), (0.08, 1.04), (0.07, 1.08), (0.06, 1.04)], s.iron, at=(W - 0.3, 0, 0.08), n=12)
+    return None
+
+
 def seal():
     """En tilmurt dørbue: skift av hogd stein satt inn i åpningen (origo i
     celleveggen, lokal +z inn i rommet), og løse steiner foran."""
@@ -1877,6 +1929,8 @@ MODELS = {
     "dng_hall_x": lambda: corridor("NESW", 0, 6),
     "dng_hall_end": lambda: corridor("S", 0, 7),
     "dng_seal": seal,
+    "dng_shortcut": shortcut_frame,
+    "dng_shortcut_leaf": shortcut_leaf,
     "dng_spiral": spiral,
     "dng_start": start_room,
     "dng_gate": lambda: gate_room(True),

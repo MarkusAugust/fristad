@@ -41,6 +41,8 @@ pub enum Use {
     Chest(usize),
     /// Lås opp port nummer n i kjelleren (`Dungeon.gates`).
     Gate(usize),
+    /// En snarveidør med slå på gangsida.
+    Shortcut(usize),
     /// Døra i krypten under borgen: ned i kjelleren.
     Descend,
     /// Døra øverst i trappa i startrommet: opp til krypten.

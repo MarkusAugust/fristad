@@ -959,3 +959,42 @@ fn kloften_tar_deg_opp_igjen() {
     assert!(game.hp_now() < hp, "fallet gjorde ikke vondt");
 }
 
+
+/// Snarveidøra er boltet fra startrommet, kan åpnes fra gangsida, og
+/// står åpen så du kan gå gjennom.
+#[test]
+fn snarveien_apnes_fra_innsida() {
+    let d = &world().world.dungeon;
+    let sc = *d.shortcuts.first().expect("ingen snarvei i kjelleren");
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let into_room = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
+    let room_side = sc.pos + into_room * 1.6;
+    let hall_side = sc.pos - into_room * 1.6;
+    game.place_feet(room_side);
+    for _ in 0..5 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let events = game.use_first(|u| *u == Use::Shortcut(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("boltet"))), "døra gikk opp fra startrommet: {events:?}");
+    game.place_feet(hall_side);
+    for _ in 0..5 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let events = game.use_first(|u| *u == Use::Shortcut(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("åpen"))), "døra gikk ikke opp fra gangen: {events:?}");
+    for _ in 0..60 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    // Gå gjennom døråpningen og inn i startrommet.
+    let yaw = (-(into_room.x)).atan2(-(into_room.z));
+    game.set_look(yaw, 0.0);
+    input.key("KeyW", true);
+    for _ in 0..90 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.eye() - Vec3::Y * 1.6;
+    assert!((feet - sc.pos).with_y(0.0).dot(into_room) > 1.0, "kom ikke gjennom snarveien: føttene ved {feet:?}");
+}
+

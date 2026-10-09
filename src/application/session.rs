@@ -15,7 +15,7 @@ use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
 use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, WareView};
 use crate::ports::{ColliderId, Physics};
-use glam::{Affine3A, Mat4, Vec2, Vec3};
+use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Radianer per piksel musa flytter seg.
@@ -109,6 +109,8 @@ pub struct Session {
     last_ambience: Ambience,
     /// Der du sist sto trygt i kjelleren (til fall i kløftene).
     safe: Vec3,
+    /// Snarveidørene: hvor langt de er åpnet (0..1), −1 når de er stengt.
+    pub(super) shortcuts: Vec<f32>,
     ambience_t: f32,
     pub(super) npcs: Npcs,
     bubbles_shown: bool,
@@ -205,6 +207,7 @@ impl Session {
             },
             last_ambience: Ambience::default(),
             safe: Vec3::ZERO,
+            shortcuts: vec![-1.0; world.dungeon.shortcuts.len()],
             ambience_t: 0.0,
             npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
             bubbles_shown: false,
@@ -326,6 +329,15 @@ impl Session {
                     _ => ("", ""),
                 };
                 p(name, "Snakk", trade, info)
+            }
+            Use::Shortcut(n) => {
+                if self.shortcuts.get(n).is_some_and(|o| *o >= 0.0) {
+                    p("Snarveien", "", "", "Døra står åpen: veien tilbake til startrommet.")
+                } else if self.shortcut_inside(n) {
+                    p("Døra med slå", "Skyv slåen", "", "En snarvei tilbake til startrommet i etasjen.")
+                } else {
+                    p("Låst dør", "", "", "Boltet fra den andre siden. Kanskje du finner veien rundt.")
+                }
             }
             Use::Chest(n) => {
                 if self.chests[n] {
@@ -598,6 +610,21 @@ impl Session {
                 events.push(Event::Sound("chest".into()));
                 events.push(Event::Loot(Some(pick.to_string())));
             }
+            Use::Shortcut(n) => {
+                if self.shortcuts.get(n).is_some_and(|o| *o >= 0.0) {
+                    return;
+                }
+                if self.shortcut_inside(n) {
+                    self.shortcuts[n] = 0.0;
+                    if let Some(sc) = self.dungeon.shortcuts.get(n).copied() {
+                        self.dungeon.floors[sc.floor].open(sc.edge);
+                    }
+                    events.push(Event::Sound("door".into()));
+                    events.push(Event::Toast("Du skyver slåen fra. Snarveien tilbake til startrommet er åpen.".into()));
+                } else {
+                    events.push(Event::Toast("Døra er boltet fra den andre siden.".into()));
+                }
+            }
             Use::Gate(n) => {
                 if self.gates[n].1 {
                     return;
@@ -652,6 +679,15 @@ impl Session {
         for (open, opened) in self.chest_open.iter_mut().zip(&self.chests) {
             if *opened && *open < 1.0 {
                 *open = (*open + dt / 0.9).min(1.0);
+            }
+        }
+        for n in 0..self.shortcuts.len() {
+            if self.shortcuts[n] >= 0.0 && self.shortcuts[n] < 1.0 {
+                self.shortcuts[n] = (self.shortcuts[n] + dt / 1.2).min(1.0);
+                if let (Some(pose), Some(t)) = (self.shortcut_pose(n), self.targets.iter().find(|t| t.target.what == Use::Shortcut(n))) {
+                    use crate::domain::world::dungeon::{SHORTCUT_H, SHORTCUT_W};
+                    physics.set_pose(t.collider, pose * Affine3A::from_translation(Vec3::new(SHORTCUT_W * 0.5, SHORTCUT_H * 0.5, 0.0)));
+                }
             }
         }
         for t in &self.targets {
@@ -1170,6 +1206,28 @@ impl Session {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Om du står på gangsida av snarveidøra (der slåen sitter).
+    fn shortcut_inside(&self, n: usize) -> bool {
+        let Some(sc) = self.dungeon.shortcuts.get(n) else { return false };
+        let into_room = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
+        (self.pos - sc.pos).with_y(0.0).dot(into_room) < 0.0
+    }
+
+    /// Snarveidøra dreid om hengslet, ut mot gangen, etter hvor langt den
+    /// er åpnet.
+    fn shortcut_pose(&self, n: usize) -> Option<Affine3A> {
+        use crate::domain::world::dungeon::SHORTCUT_HINGE;
+        let sc = self.dungeon.shortcuts.get(n)?;
+        let open = self.shortcuts.get(n).copied().unwrap_or(-1.0).max(0.0);
+        let ease = 1.0 - (1.0 - open).powi(3);
+        let frame = Affine3A::from_rotation_translation(Quat::from_rotation_y(sc.yaw), sc.pos);
+        Some(frame * Affine3A::from_translation(SHORTCUT_HINGE) * Affine3A::from_rotation_y(ease * 1.75))
+    }
+
+    pub(super) fn shortcut_poses(&self) -> Vec<Affine3A> {
+        (0..self.shortcuts.len()).filter_map(|n| self.shortcut_pose(n)).collect()
     }
 
     /// Lokkene på kistene: dreid opp om hengslet etter hvor langt de er
