@@ -353,18 +353,19 @@ fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
 
 // Skarping etter TAA (som AMDs CAS): pikselen trekkes bort fra naboene i
 // et kors, mindre der kontrasten alt er høy, så kantene ikke får glorie.
+// Alt leses med samme sampler: WebGL2 tåler ikke to samplere på ett bilde.
 // Styrken står i extra.x (0 av).
 fn sharpened(uv: vec2<f32>) -> vec3<f32> {
-    let c = textureSampleLevel(tex0, near, uv, 0.0).rgb;
+    let c = textureSampleLevel(tex0, lin, uv, 0.0).rgb;
     let amount = post.extra.x;
     if (amount <= 0.0) {
         return textureSampleLevel(tex0, lin, uv, 0.0).rgb;
     }
     let t = post.texel.zw;
-    let n = textureSampleLevel(tex0, near, uv - vec2<f32>(0.0, t.y), 0.0).rgb;
-    let s = textureSampleLevel(tex0, near, uv + vec2<f32>(0.0, t.y), 0.0).rgb;
-    let w = textureSampleLevel(tex0, near, uv - vec2<f32>(t.x, 0.0), 0.0).rgb;
-    let e = textureSampleLevel(tex0, near, uv + vec2<f32>(t.x, 0.0), 0.0).rgb;
+    let n = textureSampleLevel(tex0, lin, uv - vec2<f32>(0.0, t.y), 0.0).rgb;
+    let s = textureSampleLevel(tex0, lin, uv + vec2<f32>(0.0, t.y), 0.0).rgb;
+    let w = textureSampleLevel(tex0, lin, uv - vec2<f32>(t.x, 0.0), 0.0).rgb;
+    let e = textureSampleLevel(tex0, lin, uv + vec2<f32>(t.x, 0.0), 0.0).rgb;
     // Vektene regnes i et komprimert rom, så sterke lys ikke styrer dem.
     let tc = c / (1.0 + c);
     let tn = n / (1.0 + n);

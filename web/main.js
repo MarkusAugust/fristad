@@ -343,9 +343,10 @@ function loop(now) {
     // Tiden på grafikkortet per del (bare der nettleseren kan måle den):
     // summen i telleren, delene når du holder musa over.
     const parts = engine.gpu_times ? engine.gpu_times() : "";
+    // (Programvaregrafikk kan gi bare nuller; da vises ingenting.)
     const gpuMs = parts ? parts.split(" · ").reduce((sum, p) => sum + parseFloat(p.split(" ").pop()), 0) : 0;
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △${parts ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
-    $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${parts ? `. GPU-tid (ms): ${parts}` : ""}`;
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
+    $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${gpuMs > 0 ? `. GPU-tid (ms): ${parts}` : ""}`;
     frames = 0;
     perfAt = now;
   }
