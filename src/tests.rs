@@ -255,6 +255,28 @@ fn kjelleren_kan_nas_og_fiendene_biter() {
     assert!(game.eye().y > 0.0, "døra opp skal ta deg til krypten: øyet er på y = {:.1}", game.eye().y);
 }
 
+/// Det du finner i kjelleren havner i lageret uansett hvordan du kommer
+/// deg opp: også med H (tilbake til sørporten), ikke bare gjennom døra i
+/// trappa. Skriptoriet ser det da.
+#[test]
+fn funnet_havner_i_lageret_ogsa_med_h() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let events = game.use_first(|u| matches!(u, Use::Chest(_)));
+    let found = events.iter().find_map(|e| if let Event::Loot(Some(c)) = e { Some(c.clone()) } else { None }).expect("kista skal gi en komponent");
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.inventory_view().carried.iter().any(|(c, _)| *c == found), "{found} skal ligge i sekken nede");
+    input.actions.push(Action::Home);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let v = game.inventory_view();
+    assert!(v.carried.is_empty(), "sekken skal være tømt oppe: {:?}", v.carried);
+    assert!(v.stash.iter().any(|(c, n)| *c == found && *n > 0), "{found} skal være i lageret: {:?}", v.stash);
+}
+
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
 /// og våpenet byttes; uten dem avvises det. Kjøp koster tokens, og
 /// lagringen tar med utstyret.

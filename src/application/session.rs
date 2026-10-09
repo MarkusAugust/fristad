@@ -685,6 +685,11 @@ impl Session {
         if self.update_weather(dt) && !in_cellar {
             events.push(Event::Sound(Sound { name: "thunder".into(), at: None, gain: if self.indoor { 0.6 } else { 1.0 } }));
         }
+        // Oppe i dagslyset er det du bar trygt i lageret, uansett hvordan du
+        // kom deg opp (døra i trappa, H eller «Tilbake til sørporten»).
+        if !self.carried.is_empty() && !self.in_cellar() {
+            self.bank(&mut events);
+        }
         self.update_gates(physics, dt);
         self.update_wells(dt, &mut events);
         let (half, radius) = self.stance.capsule();
