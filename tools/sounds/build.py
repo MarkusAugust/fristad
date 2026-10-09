@@ -6,6 +6,8 @@ Kildene klones fra GitHub (bare lydmappene):
 - 0 A.D. (Wildfire Games), CC BY-SA 3.0
 - Flare (flareteam), CC BY-SA 3.0
 - Minetest Game (luanti-org), lisens per mod (CC0, CC BY 3.0, CC BY-SA 3.0)
+- Still North Media, The Medieval Weapons Sound Effects Library (CC0), via
+  PanderMusubi/sound-effects-library-weapons
 
 Hver lyd blir mono mp3 (44,1 kHz), stillhet foran kuttes, og toppen
 normaliseres til −1 dBFS; nivået i spillet settes med `gain` i manifestet.
@@ -31,11 +33,15 @@ RATE = 44100
 A0 = "0ad/binaries/data/mods/public/audio"
 FL = "flare-game/mods/fantasycore/soundfx"
 MT = "minetest_game/mods"
+SN = "sound-effects-library-weapons/samples"
+# Slagene i øks mot sverd-opptaket (sekunder): hvert blir sin variant.
+CLASHES = [0.12, 0.67, 1.36, 2.09, 2.8, 4.05, 4.74, 5.38, 5.87]
 
 REPOS = {
     "0ad": ("https://github.com/0ad/0ad", [A0]),
     "flare-game": ("https://github.com/flareteam/flare-game", None),
     "minetest_game": ("https://github.com/luanti-org/minetest_game", None),
+    "sound-effects-library-weapons": ("https://github.com/PanderMusubi/sound-effects-library-weapons", None),
 }
 
 LICENSES = {
@@ -59,8 +65,8 @@ MT_LICENSES = {
 }
 
 
-def S(*paths, gain=1.0, pitch=0.06, rate=1.0, synth=None, loop=None, start=0.0, max_len=None, cut=True):
-    return dict(paths=list(paths), gain=gain, pitch=pitch, rate=rate, synth=synth, loop=loop, start=start, max_len=max_len, cut=cut)
+def S(*paths, gain=1.0, pitch=0.06, rate=1.0, synth=None, loop=None, start=0.0, max_len=None, cut=True, slices=None):
+    return dict(paths=list(paths), gain=gain, pitch=pitch, rate=rate, synth=synth, loop=loop, start=start, max_len=max_len, cut=cut, slices=slices)
 
 
 # Navnet spillet bruker → kildene (globber), nivå, variasjon i tonehøyde,
@@ -85,12 +91,12 @@ SOUNDS = {
     "hit": S(f"{A0}/attack/impact/fleshimp_1*.ogg", f"{A0}/attack/impact/fleshstab_0[12].ogg", gain=0.7, pitch=0.1, synth="hit"),
     "hit_heavy": S(f"{A0}/attack/impact/fleshstab_0[12].ogg", f"{A0}/attack/impact/fleshimp_1*.ogg", gain=0.9, pitch=0.06, synth="hit_heavy"),
     "hit_wood": S(f"{A0}/attack/impact/shield_wood_1*.ogg", gain=0.7, pitch=0.08),
-    "hit_metal": S(f"{A0}/attack/weapon/swordhit_1[0-9].ogg", gain=0.55, pitch=0.06),
+    "hit_metal": S(f"{SN}/axe-norse-sword-blade-on-blade.ogg", f"{A0}/attack/weapon/swordhit_1[0-9].ogg", gain=0.55, pitch=0.06, slices=CLASHES),
     "clang": S(f"{A0}/attack/impact/shield_metal_1*.ogg", gain=0.6, pitch=0.06),
     "kill": S(f"{FL}/enemies/skeleton_die.ogg", f"{FL}/enemies/skeleton_critdie.ogg", f"{FL}/enemies/grave_die.ogg", gain=0.6, pitch=0.1, synth="kill"),
     "block": S(f"{A0}/attack/impact/shield_wood_1*.ogg", gain=0.85, pitch=0.06),
     "block_metal": S(f"{A0}/attack/impact/shield_metal_1*.ogg", gain=0.75, pitch=0.06),
-    "parry": S(f"{A0}/attack/weapon/swordhit_1[0-9]a.ogg", f"{A0}/attack/weapon/swordhit_1[0-9]b.ogg", gain=0.8, pitch=0.04, synth="parry"),
+    "parry": S(f"{SN}/axe-norse-sword-blade-on-blade.ogg", f"{A0}/attack/weapon/swordhit_1[0-9]a.ogg", gain=0.8, pitch=0.04, synth="parry", slices=CLASHES),
     "hurt": S(f"{FL}/male_hit.ogg", gain=0.65, pitch=0.08, synth="thump"),
     "death": S(f"{A0}/actor/human/death/male_death_0[1-8].ogg", gain=0.7, pitch=0.03, synth="death"),
     "dodge": S(f"{FL}/steps/step_cloth[1-4].ogg", gain=0.4, pitch=0.08, synth="dodge"),
@@ -215,6 +221,8 @@ def credit(rel):
         return LICENSES["0ad"]
     if rel.startswith("flare-game/"):
         return LICENSES["flare"]
+    if rel.startswith("sound-effects-library-weapons/"):
+        return "CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com)"
     base = os.path.basename(rel).split(".")[0]
     return MT_LICENSES.get(base, "CC BY-SA 3.0, Minetest Game") + ", https://github.com/luanti-org/minetest_game"
 
@@ -247,6 +255,29 @@ def main():
             files.append(out)
             credits.append((out, os.path.relpath(sources[0], args.src), credit(os.path.relpath(sources[0], args.src))))
         else:
+            # Et opptak med flere slag deles opp: hvert slag blir en variant
+            # (første kilde), og de andre kildene legges til etter.
+            if spec["slices"]:
+                full = decode(sources[0])
+                cuts = spec["slices"] + [len(full) / RATE]
+                for k in range(len(spec["slices"])):
+                    key = (sources[0], "slice", k)
+                    if key in done:
+                        files.append(done[key])
+                        continue
+                    a = int(max(0.0, cuts[k] - 0.01) * RATE)
+                    b = int(min(cuts[k + 1] - 0.02, cuts[k] + 0.7) * RATE)
+                    x = full[a:b].copy()
+                    fade = int(0.06 * RATE)
+                    x[-fade:] *= np.linspace(1, 0, fade)
+                    out = f"{name}_s{k + 1}.mp3"
+                    encode(normalize(x), os.path.join(OUT, out))
+                    total += os.path.getsize(os.path.join(OUT, out))
+                    done[key] = out
+                    files.append(out)
+                    rel = os.path.relpath(sources[0], args.src)
+                    credits.append((out, f"{rel} ({cuts[k]:.2f} s)", credit(rel)))
+                sources = sources[1:]
             for i, s in enumerate(sources):
                 # Samme kilde, kuttet likt, blir samme fil.
                 key = (s, spec["start"], spec["max_len"], spec["cut"])

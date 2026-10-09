@@ -181,6 +181,15 @@
  },
  "hit_metal": {
   "files": [
+   "hit_metal_s1.mp3",
+   "hit_metal_s2.mp3",
+   "hit_metal_s3.mp3",
+   "hit_metal_s4.mp3",
+   "hit_metal_s5.mp3",
+   "hit_metal_s6.mp3",
+   "hit_metal_s7.mp3",
+   "hit_metal_s8.mp3",
+   "hit_metal_s9.mp3",
    "hit_metal_1.mp3",
    "hit_metal_2.mp3",
    "hit_metal_3.mp3",
@@ -244,6 +253,15 @@
  },
  "parry": {
   "files": [
+   "hit_metal_s1.mp3",
+   "hit_metal_s2.mp3",
+   "hit_metal_s3.mp3",
+   "hit_metal_s4.mp3",
+   "hit_metal_s5.mp3",
+   "hit_metal_s6.mp3",
+   "hit_metal_s7.mp3",
+   "hit_metal_s8.mp3",
+   "hit_metal_s9.mp3",
    "parry_1.mp3",
    "parry_2.mp3",
    "parry_3.mp3",
@@ -253,14 +271,7 @@
    "parry_7.mp3",
    "parry_8.mp3",
    "parry_9.mp3",
-   "parry_10.mp3",
-   "parry_11.mp3",
-   "parry_12.mp3",
-   "parry_13.mp3",
-   "parry_14.mp3",
-   "parry_15.mp3",
-   "parry_16.mp3",
-   "parry_17.mp3"
+   "parry_10.mp3"
   ],
   "gain": 0.8,
   "pitch": 0.04,

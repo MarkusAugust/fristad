@@ -74,6 +74,15 @@ kuttet og normalisert (løkkene er krysstonet over sømmen). Lisensene følger f
 | `hit_wood_5.mp3` | `0ad/binaries/data/mods/public/audio/attack/impact/shield_wood_14.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `hit_wood_6.mp3` | `0ad/binaries/data/mods/public/audio/attack/impact/shield_wood_15.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `hit_wood_7.mp3` | `0ad/binaries/data/mods/public/audio/attack/impact/shield_wood_16.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `hit_metal_s1.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (0.12 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s2.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (0.67 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s3.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (1.36 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s4.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (2.09 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s5.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (2.80 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s6.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (4.05 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s7.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (4.74 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s8.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (5.38 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
+| `hit_metal_s9.mp3` | `sound-effects-library-weapons/samples/axe-norse-sword-blade-on-blade.ogg (5.87 s)` | CC0 1.0, Still North Media (The Medieval Weapons Sound Effects Library, stillnorthmedia.com) |
 | `hit_metal_1.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_10.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `hit_metal_2.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_11.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `hit_metal_3.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_12.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
@@ -103,13 +112,6 @@ kuttet og normalisert (løkkene er krysstonet over sømmen). Lisensene følger f
 | `parry_8.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_17a.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `parry_9.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_18a.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `parry_10.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_19a.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_11.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_11b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_12.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_12b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_13.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_13b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_14.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_14b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_15.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_15b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_16.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_16b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
-| `parry_17.mp3` | `0ad/binaries/data/mods/public/audio/attack/weapon/swordhit_17b.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `hurt_1.mp3` | `flare-game/mods/fantasycore/soundfx/male_hit.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `death_1.mp3` | `0ad/binaries/data/mods/public/audio/actor/human/death/male_death_01.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `death_2.mp3` | `0ad/binaries/data/mods/public/audio/actor/human/death/male_death_02.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
