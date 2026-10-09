@@ -255,7 +255,7 @@ def skin_material(name, skin_tex, tone, scale=0.06):
     tc = nt.nodes.new("ShaderNodeTexCoord")
     st = _boxtex(nt, skin_tex, scale, tc.outputs["Object"])
     nt.links.new(_mix(nt, st.outputs["Color"], tone, 1.0, "MULTIPLY"), _bsdf(m).inputs["Base Color"])
-    _bsdf(m).inputs["Roughness"].default_value = 0.55
+    _bsdf(m).inputs["Roughness"].default_value = 0.64
     return m
 
 
@@ -578,6 +578,29 @@ def face_uv(ob, eye, mouth, photo):
             layer.data[li].uv = (u, 1.0 - v)
 
 
+# Flatene på kroppen som et klesplagg ligger over (kroppsnavn → flater).
+COVERED = {}
+
+
+def hide_covered(body):
+    """Fjerner huden under klærne: flatene et plagg ligger over, når alle
+    naboene også er dekket (én rad hud blir igjen under kanten, så det ikke
+    blir hull når plagget bøyer seg). Ingen ser dem, og de tok plass i
+    teksturen fra ansiktet."""
+    covered = COVERED.get(body.name)
+    if not covered:
+        return
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    bm.faces.ensure_lookup_table()
+    kill = [f for f in bm.faces if f.index in covered and all(g.index in covered for e in f.edges for g in e.link_faces)]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(body.data)
+    bm.free()
+    print(f"hud under klærne: {len(kill)} flater fjernet")
+
+
 def shell(body, name, pick, offset, thick, mat, shape=None):
     """Et klesplagg av kroppens egne flater: flatene der alle hjørnene
     oppfyller `pick(i, co)`, løftet `offset` ut langs normalen (og flyttet
@@ -586,6 +609,7 @@ def shell(body, name, pick, offset, thick, mat, shape=None):
     bm.from_mesh(body.data)
     bm.verts.ensure_lookup_table()
     keep = [f for f in bm.faces if all(pick(v.index, v.co) for v in f.verts)]
+    COVERED.setdefault(body.name, set()).update(f.index for f in keep)
     kill = [f for f in bm.faces if f not in set(keep)]
     bmesh.ops.delete(bm, geom=kill, context="FACES")
     bm.normal_update()
@@ -885,7 +909,9 @@ def head_material2(name, spec, skin_tex, hair_tex, beard_tex, ez, mouth_z, ear_x
         c, f = photo(uvname, path, w, patch)
         col = _mix(nt, col, c, f)
     nt.links.new(col, b.inputs["Base Color"])
-    b.inputs["Roughness"].default_value = 0.55
+    # Huden er matt med litt glans, håret mattere: med fast 0,55 glinset
+    # issen og håret som plast i spillet.
+    nt.links.new(_mix_f(nt, 0.64, 0.8, hair), b.inputs["Roughness"])
     return m
 
 
@@ -1582,6 +1608,39 @@ def pilgrim():
     return j
 
 
+def strap_over(body, name, a, b, r, mat, n=14):
+    """En reim forfra over kroppen fra `a` til `b`: punktene langs linja
+    legges på huden (en stråle bakover mot kroppen) og løftes litt ut, så
+    reima ligger over brystet i stedet for å gå gjennom det."""
+    tree = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+    pts = []
+    for k in range(n + 1):
+        p = a.lerp(b, k / n)
+        hit = tree.ray_cast(p + Vector((0.4, 0.0, 0.0)), Vector((-1.0, 0.0, 0.0)), 0.8)
+        pts.append(Vector((max(p.x, hit[0].x + r * 0.5 + 0.003), p.y, p.z)) if hit[0] is not None else p)
+    # Ei flat reim, dobbelt så bred som tykk, med kantene avfaset av
+    # solidify.
+    bm = bmesh.new()
+    prev = None
+    for k, p in enumerate(pts):
+        d = (pts[min(k + 1, n)] - pts[max(k - 1, 0)]).normalized()
+        side = d.cross(Vector((1.0, 0.0, 0.0))).normalized() * r * 1.4
+        pair = (bm.verts.new(p - side), bm.verts.new(p + side))
+        if prev:
+            bm.faces.new((prev[0], prev[1], pair[1], pair[0]))
+        prev = pair
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=r * 0.7)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat)
+    copy_weights(body, ob)
+    return ob
+
+
 def hair_locks(body, j, name, mat, z_top, z_bot, ez, n=230, arc=100.0, rows=12, seed=3):
     """Langt hår som enkeltlokker: hver lokk starter på hodet (fra issen
     bak, over øret på sidene), følger hodet ned og henger så rett ned over
@@ -1595,7 +1654,11 @@ def hair_locks(body, j, name, mat, z_top, z_bot, ez, n=230, arc=100.0, rows=12, 
         a = rng.uniform(-arc, arc)
         side = abs(a) > 70
         z0 = (ez + rng.uniform(0.03, 0.07)) if side else (z_top - rng.uniform(0.03, 0.08))
-        z1 = z_bot + rng.uniform(-0.07, 0.05) + (0.04 if side else 0.0)
+        z1 = z_bot + rng.uniform(-0.07, 0.05)
+        if side:
+            # Lokkene foran øret slutter ved kjeven: lenger ned falt de over
+            # pelsen og hang som svarte flak foran brystet.
+            z1 = ez - rng.uniform(0.08, 0.14)
         lift = rng.uniform(0.002, 0.01)
         width = rng.uniform(0.015, 0.026)
         reach = 0.0
@@ -1740,7 +1803,7 @@ def gorvek():
     el_z = j["lowerarm01.L"][0].z
     shell(body, "fur", lambda i, co: (dom[i] in {"chest", "spine", "neck"} and sh_z - 0.12 < co.z < neck_z + 0.03 and co.x < 0.06) or (dom[i] in {"upper_arm.L", "upper_arm.R"} and co.z > el_z + 0.17), 0.04, 0.03, fur)
     leather = cloth("leather", "leather", lin((0.26, 0.18, 0.12)), 0.18, rough=0.55, dirt=(0.7, 0.5))
-    tube("strap_chest", Vector((0.16, 0.13, sh_z - 0.02)), Vector((0.17, -0.12, belt_z + 0.1)), 0.016, 0.016, leather)
+    strap_over(body, "strap_chest", Vector((0.16, 0.13, sh_z - 0.02)), Vector((0.17, -0.12, belt_z + 0.1)), 0.016, leather)
     # Lærbuksa og pelsviklede støvler.
     shell(body, "trousers", lambda i, co: dom[i] in {"hips", "thigh.L", "thigh.R", "shin.L", "shin.R"} and 0.28 < co.z < belt_z + 0.04, 0.006, 0.003, leather)
     shell(body, "wraps", lambda i, co: 0.07 < co.z < 0.4 and dom[i] in {"shin.L", "shin.R", "foot.L", "foot.R"}, 0.018, 0.006, fur)
@@ -1817,6 +1880,7 @@ if __name__ == "__main__":
     size = next((int(a) for a in args if a.isdigit()), 2048)
     clear()
     j = MODELS[name]()
+    hide_covered(bpy.data.objects["body"])
     for ob in bpy.data.objects:
         if ob.type == "MESH" and "UVMap" not in ob.data.uv_layers:
             ob.data.uv_layers.new(name="UVMap")
@@ -1827,4 +1891,4 @@ if __name__ == "__main__":
     face_density(bpy.data.objects.get("body"), j)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05}, density=DENSITY)
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05}, density=DENSITY, jpeg_quality=92)

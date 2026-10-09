@@ -175,7 +175,7 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None):
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
     begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
     normalkart og ruhet/metall til teksturer, bytter til teksturerte
@@ -242,6 +242,12 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         dens = bm.faces.layers.float.get("uv_density")
         stacked = []
         area = 0.0
+        # Hver øy flyttes til sin egen rute langt unna før pakkingen: når
+        # øyene skaleres om midten sin, vokser de inn i naboene, og
+        # pakkingen (som slår sammen øyer som overlapper, for de stablede)
+        # ville latt dem ligge oppå hverandre, så bakingen skrev ansiktet
+        # over med kroppen under klærne.
+        spread = 0
         for island in bmesh_linked_uv_islands(bm, uv):
             w = sum(f[dens] for f in island) / len(island)
             loops = [l for f in island for l in f.loops]
@@ -254,6 +260,9 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
                 for l in loops:
                     l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
                     l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
+            spread += 1
+            for l in loops:
+                l[uv].uv.x += 10.0 * spread
             for f in island:
                 pts = [l[uv].uv for l in f.loops]
                 area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
@@ -274,14 +283,16 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.select_all(action="SELECT")
         bpy.ops.uv.select_all(action="SELECT")
-        bpy.ops.uv.pack_islands(rotate=True, margin=0.002, merge_overlap=True)
+        bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
         bpy.ops.object.mode_set(mode="OBJECT")
         ob.data.attributes.remove(ob.data.attributes["uv_density"])
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
     scene.cycles.samples = samples
-    scene.render.bake.margin = 4
+    # Kanten rundt øyene fylles godt ut, så mipmapene ikke blander inn
+    # svart fra mellomrommene på avstand.
+    scene.render.bake.margin = 8
     # Tomme materialplasser (fra boolean-kutt) fjernes.
     for i in reversed(range(len(ob.data.materials))):
         if ob.data.materials[i] is None:
@@ -386,7 +397,7 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
             tex_mat[key] = nm
     for slot in ob.material_slots:
         slot.material = tex_mat[key_of(slot.material.name)]
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=82, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=jpeg_quality, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)
     print(f"{path}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
