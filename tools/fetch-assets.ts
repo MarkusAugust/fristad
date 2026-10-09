@@ -73,6 +73,18 @@ const TEXTURES: Record<string, string[]> = {
   floor: ["wood_floor", "planks"],
   soot: ["burnt_wall", "stone_wall"],
   earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
+  // Malte lag fra eieren (bare egne bilder).
+  plaster_white: [],
+  plaster_red: [],
+  plaster_old: [],
+  weatherboard: [],
+  weatherboard_grey: [],
+  wattle: [],
+  shingles: [],
+  shingles_tar: [],
+  trim: [],
+  door_oak: [],
+  door_dark: [],
 };
 
 const force = process.argv.includes("--force");

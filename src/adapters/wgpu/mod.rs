@@ -105,7 +105,7 @@ struct Globals {
     /// den slutter.
     misc: [f32; 4],
     sky: [f32; 4],
-    tex_scale: [[f32; 4]; 7],
+    tex_scale: [[f32; 4]; 12],
     palette: [[f32; 4]; PALETTE],
     lights: [GpuLight; MAX_LIGHTS],
     smoke: [[f32; 4]; MAX_SMOKE],
@@ -1043,7 +1043,7 @@ impl Renderer {
         for (i, c) in f.palette.iter().enumerate() {
             palette[i] = v4(*c, 1.0);
         }
-        let mut tex_scale = [[1.0f32; 4]; 7];
+        let mut tex_scale = [[1.0f32; 4]; 12];
         for (i, s) in self.materials.scales.iter().enumerate().take(LAYERS as usize) {
             tex_scale[i / 4][i % 4] = *s;
         }

@@ -73,13 +73,37 @@ pub enum Layer {
     Floor = 26,
     /// Sotet mur i smia.
     Soot = 27,
+    /// Kalket hvit puss (malt).
+    PlasterWhite = 28,
+    /// Rødokker kalkpuss (malt).
+    PlasterRed = 29,
+    /// Forvitret puss med flettverk under (malt).
+    PlasterOld = 30,
+    /// Liggende kledning (malt).
+    Weatherboard = 31,
+    /// Grå, værbitt liggende kledning (malt).
+    WeatherboardGrey = 32,
+    /// Flettverk av hassel (malt).
+    Wattle = 33,
+    /// Takspon (malt).
+    Shingles = 34,
+    /// Tjærebredd skjellspon på stavkirka (malt).
+    ShinglesTar = 35,
+    /// Trim-arket: vannrette striper med list, bjelke, karm, jernbånd og tau (malt). Uv-ene legges på stripene i Blender.
+    Trim = 36,
+    /// Jernbeslått eikedør (malt, ikke flisbar).
+    Door = 37,
+    /// Mørk eikedør (malt, ikke flisbar).
+    DoorB = 38,
 }
-pub const LAYERS: u32 = 28;
+/// Høyst 48: `tex_scale` i `Globals` har plass til 12 × 4.
+pub const LAYERS: u32 = 39;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
         Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
         Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather, Layer::CryptWall, Layer::Straw, Layer::Floor, Layer::Soot,
+        Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle, Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB,
     ];
     /// Navnet i `assets/external/manifest.json`.
     pub fn name(self) -> &'static str {
@@ -112,12 +136,23 @@ impl Layer {
             Layer::Straw => "straw",
             Layer::Floor => "floor",
             Layer::Soot => "soot",
+            Layer::PlasterWhite => "plaster_white",
+            Layer::PlasterRed => "plaster_red",
+            Layer::PlasterOld => "plaster_old",
+            Layer::Weatherboard => "weatherboard",
+            Layer::WeatherboardGrey => "weatherboard_grey",
+            Layer::Wattle => "wattle",
+            Layer::Shingles => "shingles",
+            Layer::ShinglesTar => "shingles_tar",
+            Layer::Trim => "trim",
+            Layer::Door => "door_oak",
+            Layer::DoorB => "door_dark",
         }
     }
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

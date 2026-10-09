@@ -384,10 +384,9 @@ impl Materials {
         // Fotoskannede materialer skrives over de bakte lagene.
         let mut scales = TEX_SCALE;
         for (layer, imgs) in external {
-            // Lagene som får malingsfarge fra geometrien (puss og panel) skal
-            // bare bidra med variasjon, så albedoen skaleres til lys grå.
-            let tinted = matches!(layer, Layer::Plaster | Layer::Cladding);
-            let (a, n) = pack_external(imgs, tinted);
+            // De malte lagene har fargen sin i bildet; modellene toner dem
+            // med hvit.
+            let (a, n) = pack_external(imgs, false);
             for (tex, data) in [(&albedo, &a), (&nrh, &n)] {
                 queue.write_texture(
                     wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: *layer as u32 }, aspect: wgpu::TextureAspect::All },

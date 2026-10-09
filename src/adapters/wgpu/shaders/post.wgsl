@@ -31,6 +31,13 @@ fn karis(c: vec3<f32>) -> f32 {
     return 1.0 / (1.0 + max(max(c.r, c.g), c.b));
 }
 
+// Byttes et ugyldig tall (NaN eller uendelig) ut med 0. Ett eneste slikt i
+// bildet ville ellers spredd seg gjennom gløden til en svart firkant.
+fn finite(c: vec3<f32>) -> vec3<f32> {
+    let bad = (bitcast<vec3<u32>>(c) & vec3<u32>(0x7f800000u)) == vec3<u32>(0x7f800000u);
+    return select(c, vec3<f32>(0.0), bad);
+}
+
 @fragment
 fn fs_down(i: VsOut) -> @location(0) vec4<f32> {
     let t = post.texel.zw;
@@ -47,6 +54,7 @@ fn fs_down(i: VsOut) -> @location(0) vec4<f32> {
     for (var k = 0; k < 13; k++) {
         var s = textureSampleLevel(tex0, lin, i.uv + offs[k] * t, 0.0).rgb;
         if (first) {
+            s = finite(s);
             // Bare det som er lysere enn hvitt gløder, dempet mot flimmer.
             s = max(s - vec3<f32>(1.0), vec3<f32>(0.0)) * karis(s);
         }
