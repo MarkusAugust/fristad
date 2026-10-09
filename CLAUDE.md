@@ -5,8 +5,8 @@ Fristad er et spill i en nordisk kjøpstad rundt 1350. Under borgruinen ligger k
 ## Regler
 
 - **Alt som synes er en ekte modell.** Hus, murer, møbler, figurer, fiender, våpen, trær: alt lages i Blender av skriptene i `tools/models/`, med teksturer. Ingen bokser rett i bymeshen og ingen prosedyrisk geometri i Rust som erstatning for en modell. `Builder::place` setter ikke ut noe om modellen mangler, og melder det (`Builder.missing`, WARN i loggen). Testen `alt_er_ekte_modeller_med_teksturer` krever bakte teksturer eller teksturlag på alle modellene, ikke flate farger.
-- **Teksturene kan komme fra hvor som helst** (eieren, 7. oktober): fotoskannede CC0-materialer fra Poly Haven (`tools/fetch-assets.ts`, hentet i Actions), bilder eieren lager med en bildegenerator (`assets/textures/<lag>/albedo.png`, normal, ruhet og høyde avledes med `tools/textures/derive.py`), og bakte teksturer fra Blender. Det som gir mest realisme vinner.
-- **Detaljgraden skal være høy.** Eieren vil ha det maksimale ut av motoren: avfasede kanter, enkeltstein i murene, enkeltbjelker og -planker, takstein eller spon som egne flater, jernbeslag, slitasje og skitt nederst (`common.weather`). Se på hver modell med `tools/models/preview.py` før den tas i bruk, og vis eieren skjermbilder.
+- **Ny stil (eieren, 9. oktober): malt by, skarpt bilde, 60 fps på jobb-PC.** Se `docs/ny-stil.md`. Stilisert og håndmalt uten konturer, varm by og kald kjeller. Detaljene (stein, planker, takstein) males inn i teksturene; bare det som synes i silhuetten er geometri (bjelker, takskjegg, piper, karmer, trapper). Budsjett: vanlige hus 3 000–10 000 trekanter, hus med interiør høyst 25 000, rundt 500 000 trekanter og under 300 tegnekall per bilde for alle pass. Teksturene er malte, flisbare og skarpe (rundt 1 teksel per mm nær), laget av eieren med bildegenerator etter prompts fra Claude (`assets/textures/painted/<navn>/albedo.png`, avledet med `tools/textures/derive.py`). Ingen uskarphet, spøkelser, støy, korn eller flimmer: MSAA i stedet for TAA, ingen SSAO i standard grafikk. Bygges om i rekkefølgen pilot (Vertshuset og torget) → byen → figurene → naturen → kjelleren; eieren godkjenner piloten før resten. Til ombyggingen er ferdig, står de gamle modellene og rendereren som beskrevet under.
+- **Se på hver modell** med `tools/models/preview.py` før den tas i bruk, og vis eieren skjermbilder. Mål trekanter og tegnekall med `sh tools/stats.sh` (faste kameraposisjoner; grunnlinjen står i `docs/ny-stil.md`).
 - **Hexagonal arkitektur.** Se under. Testen `lagene_holder_seg_innenfor` (`src/architecture.rs`) leser kildefilene og feiler om et lag bruker noe det ikke skal.
 
 ## Arkitektur: porter og adaptere
@@ -90,9 +90,8 @@ Den gamle byen er revet og koden lagt om til hexagonal arkitektur. Byplanen for 
 
 Utgitt til produksjon 9. oktober 2026 (`master`, https://fristad.netlify.app): hele spillet fra krypten til Rammeverket (gjennomspillingen går gjennom alle fem etasjene), byfolk som går ærender, lyd og musikk i byen, kjelleren med tema-ganger, kløft, snarveier og lys som stoppes av murene.
 
-Neste (se `docs/teksturer-neste.md`):
+Neste (se `docs/ny-stil.md` og `docs/teksturer-neste.md`):
 1. Egne teksturer og fotoer: egne ansikter til vaktmannen, kremmeren og pilegrimen (de låner fra Smeden, Apotekeren og Skriveren), klærne, monstrene, pynten i kjelleren, brønnen, bodene, dyrene.
 2. Side- og bakfoto til byfolkene (`gutt`, `ung_mann`), så de kan ta av seg hetta.
 3. Monstrene med mer detalj og egne teksturer (korrodert plast, glitchy piksler, lysende sømmer).
-4. Ytelse: nedlastingen er rundt 75 MB gzip; neste steg er kvantiserte posisjoner og uv-er (meshopt) eller færre trekanter i de største byggene, å laste kjelleren etter byen, komprimerte teksturer (KTX2/Basis) og grove detaljnivåer bakt i fila i stedet for ved oppstart.
-5. Figurene: hår og skjegg som alfakort (motoren har bare ett sett teksturer per modell, så kortene trenger egne materialer), egne øyeepler, og flere bein (fingre, ansikt).
+4. **Ny stil, se `docs/ny-stil.md`:** først piloten (ny renderer med MSAA og én skyggekaskade, Vertshuset bygd om med malte teksturer, torget), så resten.

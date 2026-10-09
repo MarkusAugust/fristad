@@ -194,6 +194,19 @@ impl GpuMesh {
     }
 }
 
+/// Hva et pass tegnet: trekanter i verden og i modellene, tegnekall og
+/// modellinstanser.
+#[derive(Clone, Copy, Default, Debug)]
+pub struct PassStats {
+    pub world: u32,
+    pub models: u32,
+    pub calls: u32,
+    pub instances: u32,
+}
+
+/// Passene i `Renderer::pass_stats`.
+pub const PASSES: [&str; 5] = ["skygge 0", "skygge 1", "skygge 2", "dybde", "hoved"];
+
 /// Hva et pass skal ha med av verden.
 #[derive(Clone, Copy)]
 struct Cull {
@@ -373,6 +386,8 @@ pub struct Renderer {
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
+    /// Hva hvert pass tegnet sist bilde (`PASSES`).
+    pass_stats: std::cell::Cell<[PassStats; 5]>,
     /// Tiden på grafikkortet per del, når kortet kan måle den.
     timer: Option<timer::GpuTimer>,
 }
@@ -870,6 +885,7 @@ impl Renderer {
             reduced: false,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
+            pass_stats: Default::default(),
             timer,
         }
     }
@@ -1038,6 +1054,11 @@ impl Renderer {
     /// ikke kan måle det).
     pub fn pass_times(&self) -> Vec<(&'static str, f32)> {
         self.timer.as_ref().map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect()).unwrap_or_default()
+    }
+
+    /// Hva hvert pass tegnet sist bilde, navngitt etter `PASSES`.
+    pub fn pass_stats(&self) -> [PassStats; 5] {
+        self.pass_stats.get()
     }
 
     pub fn stats(&self) -> (u32, u32, u32) {
@@ -1325,6 +1346,7 @@ impl Renderer {
             tm.collect();
         }
         let ts = |k: usize, begin: bool, end: bool| self.timer.as_ref().and_then(|tm| tm.writes(k, begin, end));
+        let mut stats = [PassStats::default(); 5];
         let mut enc = self.device.create_command_encoder(&Default::default());
 
         // 1. Skygger: tre kaskader i hvert sitt hjørne av atlaset.
@@ -1348,7 +1370,7 @@ impl Renderer {
                 let (x, y) = ((c % 2) * CASCADE_RES, (c / 2) * CASCADE_RES);
                 pass.set_viewport(x as f32, y as f32, CASCADE_RES as f32, CASCADE_RES as f32, 0.0, 1.0);
                 pass.set_bind_group(1, &t.shadow_frame_bg, &[(c as u64 * PASS_STRIDE) as u32]);
-                self.draw_all(&mut pass, &sun_cull[c as usize], &model_draws, c as usize);
+                stats[c as usize] = self.draw_all(&mut pass, &sun_cull[c as usize], &model_draws, c as usize);
             }
         }
 
@@ -1386,7 +1408,7 @@ impl Renderer {
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
+            stats[3] = self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
         }
 
         // 3. SSAO i halv oppløsning, så to uskarphetspass.
@@ -1451,8 +1473,8 @@ impl Renderer {
             pass.set_bind_group(1, &t.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            let tris = self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
-            self.triangles.set(tris);
+            stats[4] = self.draw_all(&mut pass, &cam_cull, &model_draws, 3);
+            self.triangles.set((stats[4].world, 0, stats[4].models));
             pass.set_pipeline(&self.sky_pipe);
             pass.set_bind_group(0, &self.globals_bg[pal], &[]);
             pass.set_bind_group(1, &t.frame_bg, &[0]);
@@ -1502,6 +1524,7 @@ impl Renderer {
         if let Some(tm) = &mut self.timer {
             tm.resolve(&mut enc);
         }
+        self.pass_stats.set(stats);
         self.queue.submit([enc.finish()]);
         if let Some(tm) = &mut self.timer {
             tm.map();
@@ -1515,8 +1538,10 @@ impl Renderer {
     /// Tegn verden og modellene. Verden tegnes bit for bit, bare
     /// de bitene som er innenfor synsfeltet, og småtingene bare nær
     /// kameraet. Naboer som begge skal tegnes slås sammen til ett kall.
-    /// Returnerer antall trekanter.
-    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize) -> (u32, u32, u32) {
+    /// Returnerer hva som ble tegnet.
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize) -> PassStats {
+        let mut calls = 0u32;
+        let mut instances = 0u32;
         pass.set_vertex_buffer(1, self.instances.slice(0..INSTANCE_STRIDE));
         self.world.bind(pass);
         let mut indices = 0u32;
@@ -1525,6 +1550,7 @@ impl Renderer {
             if let Some(r) = run.take() {
                 if !r.is_empty() {
                     indices += r.end - r.start;
+                    calls += 1;
                     pass.draw_indexed(r, 0, 0..1);
                 }
             }
@@ -1546,7 +1572,6 @@ impl Renderer {
         }
         flush(&mut run, pass);
         let world = indices / 3;
-        let props = 0;
         let mut models = 0;
         for (m, draws) in self.models.iter().zip(model_draws) {
             let d = &draws[region];
@@ -1559,13 +1584,17 @@ impl Renderer {
             for r in &d.near {
                 pass.draw_indexed(m.near.clone(), 0, r.clone());
                 models += (m.near.end - m.near.start) / 3 * r.len() as u32;
+                calls += 1;
+                instances += r.len() as u32;
             }
             for r in &d.far {
                 pass.draw_indexed(m.far.clone(), 0, r.clone());
                 models += (m.far.end - m.far.start) / 3 * r.len() as u32;
+                calls += 1;
+                instances += r.len() as u32;
             }
         }
-        (world, props, models)
+        PassStats { world, models, calls, instances }
     }
 
     pub fn device(&self) -> &wgpu::Device {

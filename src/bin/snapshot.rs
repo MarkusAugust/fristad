@@ -179,6 +179,22 @@ fn main() {
         log::info!("GPU-tid per del: {}", times.iter().map(|(n, ms)| format!("{n} {ms:.2} ms")).collect::<Vec<_>>().join(", "));
     }
 
+    // Hva hvert pass tegnet i siste bilde, til før/etter-tabellene.
+    if flag("--stats") {
+        let st = app.renderer.pass_stats();
+        let mut total = fristad::adapters::wgpu::PassStats::default();
+        println!("{:<9} {:>11} {:>11} {:>7} {:>9}", "pass", "trek. verden", "trek. modell", "kall", "instanser");
+        for (name, p) in fristad::adapters::wgpu::PASSES.iter().zip(st) {
+            println!("{name:<9} {:>11} {:>11} {:>7} {:>9}", p.world, p.models, p.calls, p.instances);
+            total.world += p.world;
+            total.models += p.models;
+            total.calls += p.calls;
+            total.instances += p.instances;
+        }
+        println!("{:<9} {:>11} {:>11} {:>7} {:>9}", "sum", total.world, total.models, total.calls, total.instances);
+        println!("STATS {} {} {} {} {}", total.world + total.models, st[4].world + st[4].models, total.calls, st[4].calls, st[4].instances);
+    }
+
     let data = buf.slice(..).get_mapped_range();
     let mut pixels = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
