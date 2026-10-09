@@ -1117,3 +1117,44 @@ fn lydene_finnes() {
         }
     }
 }
+
+/// Fiendene har alle klippene fra mob_motion.py, og hodet dreier seg mot
+/// spilleren når de har sett deg.
+#[test]
+fn fiendene_ser_mot_deg() {
+    use crate::domain::mobs::{Kind, Mobs, State};
+    let p = world();
+    let all = rigs(&p.models);
+    for k in Kind::ALL {
+        let (_, rig) = all.iter().find(|(n, _)| n == k.model()).unwrap_or_else(|| panic!("{} har ingen rigg", k.model()));
+        for c in ["idle", "walk", "attack", "alert", "hit", "hit2", "stagger", "die", "die2"] {
+            assert!(rig.clip(c).is_some(), "{} mangler klippet {c}", k.model());
+        }
+    }
+    let mut mobs = Mobs::new(&p.world.dungeon, &all);
+    let i = mobs.mobs.iter().position(|m| !m.kind.boss()).expect("en fiende");
+    let mut flip = 0;
+    for side in [1.0f32, -1.0] {
+        let m = &mut mobs.mobs[i];
+        m.yaw = 0.0;
+        m.aware = true;
+        m.state = State::Idle;
+        // Spilleren står skrått til siden for fienden (front er +z ved yaw 0).
+        let to = Vec3::new(side * 0.8, 0.0, 0.6).normalize();
+        let player = m.pos + to * 6.0;
+        for _ in 0..60 {
+            // Utenfor kjelleren står den stille, men ser fortsatt mot deg.
+            mobs.update(1.0 / 30.0, player, false, &p.world.dungeon);
+        }
+        let turned = mobs.head_dir(i).expect("hodet");
+        let look = mobs.mobs[i].look;
+        mobs.mobs[i].look = 0.0;
+        let ahead = mobs.head_dir(i).expect("hodet");
+        mobs.mobs[i].look = look;
+        let ang = |d: Vec3| d.dot(to).clamp(-1.0, 1.0).acos();
+        assert!(ahead.dot(Vec3::Z) > 0.7, "uten dreining ser hodet ikke fram ({ahead:?})");
+        assert!(ang(turned) < ang(ahead) - 0.3, "hodet dreier seg ikke mot spilleren på side {side}: {turned:?} mot {ahead:?}, ønsket {to:?}");
+        flip += 1;
+    }
+    assert_eq!(flip, 2);
+}

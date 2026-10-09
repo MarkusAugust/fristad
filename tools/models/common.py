@@ -431,6 +431,15 @@ class Clip:
         pb.rotation_quaternion = basis.to_quaternion()
         pb.keyframe_insert("rotation_quaternion", frame=frame)
 
+    def rotq(self, bone, frame, q):
+        """Som `rot`, men dreiningen gis som kvaternion i armaturrommet
+        (fra IK-løseren i mob_motion.py)."""
+        rest = self._rest(bone)
+        basis = rest.inverted() @ q.to_matrix() @ rest
+        pb = self.arm.pose.bones[bone]
+        pb.rotation_quaternion = basis.to_quaternion()
+        pb.keyframe_insert("rotation_quaternion", frame=frame)
+
     def loc(self, bone, frame, v):
         rest = self._rest(bone)
         pb = self.arm.pose.bones[bone]

@@ -4,7 +4,7 @@ med armatur og klipp, og bakt til teksturer (common.bake_textured). Kjør:
     python3 tools/models/mobs.py [mutant_button|mutant_tooltip|mutant_input|mutant_modal|mutant_table|framework|token|key|bolt ...] [størrelse]
 
 Alle fiendene er komponenter som har mutert av for mye JavaScript og
-forretningslogikk, og deler samme skjelett (BONES) og klipp (biped_clips),
+forretningslogikk, og deler samme skjelett (BONES) og klippnavn (mob_motion.py),
 men har hver sin kropp og sitt angrep. Origo i bakken under hoftene,
 fronten mot +X; størrelsen settes per slag i `domain/mobs.rs`.
 
@@ -24,8 +24,11 @@ fronten mot +X; størrelsen settes per slag i `domain/mobs.rs`.
   vinkelparenteser. Sveiper, slår i bakken (`slam`) og brøler (`roar`,
   kaller på tooltips).
 
-Klippene: idle (løkke), walk (løkke), attack (treffet lander ved
-ATTACK_HIT, SLAM_HIT for slaget), hit, die, og for bossen slam og roar.
+Klippene lages i mob_motion.py, i stilen til hvert slag: idle og walk
+(løkker), attack (treffet lander ved ATTACK_HIT, SLAM_HIT for slaget),
+alert (får øye på deg), hit og hit2, stagger (svimmel, løkke), die og
+die2, og for bossen slam og roar. `tools/models/clip_sheet.py` viser et
+klipp som kontaktark.
 `token` er en designtoken som mynt, `key` nøkkelen til portene og `bolt`
 markøren inputen spytter."""
 
@@ -35,8 +38,9 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
-from common import Clip, armature, bake_textured, box, clear, cylinder, ellipsoid, material, rounded_box, tube, wave, weather  # noqa: E402
+from common import Clip, armature, bake_textured, box, clear, cylinder, ellipsoid, material, rounded_box, tube, weather  # noqa: E402
 from mathutils import Vector  # noqa: E402
+import mob_motion  # noqa: E402
 
 OUT = "assets/models/mobs"
 FPS = 24
@@ -417,189 +421,6 @@ def framework(m):
     tail(m, radii=(0.045, 0.036, 0.028))
 
 
-def keys(c, table):
-    for bone, ks in table.items():
-        for f, kind, v in ks:
-            if kind == "loc":
-                c.loc(bone, f, v)
-            else:
-                c.rot(bone, f, *v)
-
-
-def attack_bite(c):
-    """Reiser seg og gaper (varselet), stuper fram og smeller kjeven igjen
-    ved bilde 15, og samler seg."""
-    keys(c, {
-        "root": [(10, "loc", (-0.12, 0, 0.05)), (15, "loc", (0.55, 0, -0.05)), (22, "loc", (0.4, 0, 0.0)), (30, "loc", (0, 0, 0))],
-        "hips": [(10, "rot", (0, -22, 0)), (15, "rot", (0, 32, 0)), (22, "rot", (0, 12, 0)), (30, "rot", (0, 0, 0))],
-        "chest": [(10, "rot", (0, -18, 0)), (15, "rot", (0, 15, 0)), (22, "rot", (0, 5, 0)), (30, "rot", (0, 0, 0))],
-        "head": [(10, "rot", (0, -28, 0)), (15, "rot", (0, 14, 0)), (22, "rot", (0, 4, 0)), (30, "rot", (0, 0, 0))],
-        "jaw": [(10, "rot", (0, 45, 0)), (14, "rot", (0, 40, 0)), (15, "rot", (0, 0, 0)), (22, "rot", (0, 8, 0)), (30, "rot", (0, 10, 0))],
-        "upper_arm.L": [(10, "rot", (35, -70, 0)), (15, "rot", (10, 45, 0)), (22, "rot", (5, 20, 0)), (30, "rot", (0, 0, 0))],
-        "upper_arm.R": [(10, "rot", (-35, -70, 0)), (15, "rot", (-10, 45, 0)), (22, "rot", (-5, 20, 0)), (30, "rot", (0, 0, 0))],
-        "forearm.L": [(10, "rot", (0, -40, 0)), (15, "rot", (0, 25, 0)), (30, "rot", (0, 0, 0))],
-        "forearm.R": [(10, "rot", (0, -40, 0)), (15, "rot", (0, 25, 0)), (30, "rot", (0, 0, 0))],
-        "thigh.L": [(10, "rot", (0, 15, 0)), (15, "rot", (0, -25, 0)), (30, "rot", (0, 0, 0))],
-        "thigh.R": [(10, "rot", (0, 15, 0)), (15, "rot", (0, -25, 0)), (30, "rot", (0, 0, 0))],
-        "tail1": [(10, "rot", (0, -20, 0)), (15, "rot", (0, 25, 0)), (30, "rot", (0, 0, 0))],
-        "tail2": [(10, "rot", (0, -25, 0)), (15, "rot", (0, 30, 0)), (30, "rot", (0, 0, 0))],
-    })
-
-
-def attack_spit(c):
-    """Kaster hodet bakover med armene bak (varselet), og slenger det fram
-    med gapet åpent ved bilde 15: markøren går."""
-    keys(c, {
-        "root": [(10, "loc", (-0.1, 0, 0.03)), (15, "loc", (0.25, 0, 0.0)), (30, "loc", (0, 0, 0))],
-        "chest": [(10, "rot", (0, -20, 0)), (15, "rot", (0, 18, 0)), (30, "rot", (0, 0, 0))],
-        "neck": [(10, "rot", (0, -15, 0)), (15, "rot", (0, 10, 0)), (30, "rot", (0, 0, 0))],
-        "head": [(10, "rot", (0, -32, 0)), (14, "rot", (0, -26, 0)), (15, "rot", (0, 24, 0)), (22, "rot", (0, 10, 0)), (30, "rot", (0, 0, 0))],
-        "jaw": [(10, "rot", (0, 35, 0)), (15, "rot", (0, 55, 0)), (22, "rot", (0, 15, 0)), (30, "rot", (0, 10, 0))],
-        "upper_arm.L": [(10, "rot", (20, -45, 0)), (15, "rot", (25, -65, 0)), (30, "rot", (0, 0, 0))],
-        "upper_arm.R": [(10, "rot", (-20, -45, 0)), (15, "rot", (-25, -65, 0)), (30, "rot", (0, 0, 0))],
-        "tail1": [(10, "rot", (0, -15, 0)), (15, "rot", (0, 20, 0)), (30, "rot", (0, 0, 0))],
-    })
-
-
-def attack_slam(c):
-    """Løfter begge nevene over hodet (varselet, lenge), og slår dem i
-    bakken ved bilde 28."""
-    keys(c, {
-        "root": [(18, "loc", (-0.1, 0, 0.1)), (26, "loc", (-0.05, 0, 0.12)), (28, "loc", (0.35, 0, -0.15)), (36, "loc", (0.3, 0, -0.1)), (44, "loc", (0, 0, 0))],
-        "hips": [(18, "rot", (0, -10, 0)), (28, "rot", (0, 18, 0)), (44, "rot", (0, 0, 0))],
-        "chest": [(18, "rot", (0, -25, 0)), (26, "rot", (0, -28, 0)), (28, "rot", (0, 30, 0)), (36, "rot", (0, 25, 0)), (44, "rot", (0, 0, 0))],
-        "head": [(18, "rot", (0, -20, 0)), (28, "rot", (0, 20, 0)), (44, "rot", (0, 0, 0))],
-        "jaw": [(18, "rot", (0, 30, 0)), (28, "rot", (0, 40, 0)), (44, "rot", (0, 10, 0))],
-        "upper_arm.L": [(18, "rot", (15, -150, 0)), (26, "rot", (15, -155, 0)), (28, "rot", (5, 40, 0)), (36, "rot", (5, 35, 0)), (44, "rot", (0, 0, 0))],
-        "upper_arm.R": [(18, "rot", (-15, -150, 0)), (26, "rot", (-15, -155, 0)), (28, "rot", (-5, 40, 0)), (36, "rot", (-5, 35, 0)), (44, "rot", (0, 0, 0))],
-        "forearm.L": [(18, "rot", (0, -30, 0)), (28, "rot", (0, 20, 0)), (44, "rot", (0, 0, 0))],
-        "forearm.R": [(18, "rot", (0, -30, 0)), (28, "rot", (0, 20, 0)), (44, "rot", (0, 0, 0))],
-        "thigh.L": [(18, "rot", (0, 10, 0)), (28, "rot", (0, -20, 0)), (44, "rot", (0, 0, 0))],
-        "thigh.R": [(18, "rot", (0, 10, 0)), (28, "rot", (0, -20, 0)), (44, "rot", (0, 0, 0))],
-    })
-
-
-def roar(c):
-    """Reiser seg, slår ut med armene og brøler: kjeven helt åpen, brystet
-    svulmer."""
-    keys(c, {
-        "root": [(12, "loc", (-0.05, 0, 0.08)), (24, "loc", (-0.05, 0, 0.08)), (36, "loc", (0, 0, 0))],
-        "hips": [(12, "rot", (0, -18, 0)), (24, "rot", (0, -18, 0)), (36, "rot", (0, 0, 0))],
-        "chest": [(12, "rot", (0, -22, 0)), (24, "rot", (0, -22, 0)), (36, "rot", (0, 0, 0))],
-        "head": [(12, "rot", (0, -35, 0)), (24, "rot", (0, -35, 0)), (36, "rot", (0, 0, 0))],
-        "jaw": [(12, "rot", (0, 55, 0)), (24, "rot", (0, 55, 0)), (36, "rot", (0, 10, 0))],
-        "upper_arm.L": [(12, "rot", (60, -30, 0)), (24, "rot", (65, -35, 0)), (36, "rot", (0, 0, 0))],
-        "upper_arm.R": [(12, "rot", (-60, -30, 0)), (24, "rot", (-65, -35, 0)), (36, "rot", (0, 0, 0))],
-        "forearm.L": [(12, "rot", (0, -40, 0)), (24, "rot", (0, -40, 0)), (36, "rot", (0, 0, 0))],
-        "forearm.R": [(12, "rot", (0, -40, 0)), (24, "rot", (0, -40, 0)), (36, "rot", (0, 0, 0))],
-    })
-    c.scale("chest", 0, 1.0)
-    c.scale("chest", 12, 1.1)
-    c.scale("chest", 24, 1.1)
-    c.scale("chest", 36, 1.0)
-
-
-def biped_clips(arm, attack="bite", extra=()):
-    """Klippene. Dreiningene er i armaturrommet: y er nikk (positiv = framover
-    ned for det som peker mot +X), z er sving, x er sidelengs helling.
-    `attack` velger angrepet (bite, spit, slam), `extra` legger til egne
-    klipp (slam, roar) for bossen."""
-    # Idle: puster, ser seg rundt, kjeven henger og halen vagger.
-    c = Clip(arm, "idle", 48, FPS)
-    c.rest_all(0)
-    for f, v in wave(48, 48, 1.0):
-        c.rot("chest", f, y=-3 * v)
-        c.scale("chest", f, 1.0 + 0.02 * v)
-        c.rot("head", f, z=9 * v, y=-3 * abs(v))
-        c.rot("jaw", f, y=10 + 7 * v)
-        c.rot("upper_arm.L", f, x=4 * v)
-        c.rot("upper_arm.R", f, x=-4 * v)
-    for f, v in wave(48, 48, 1.0, phase=0.9):
-        c.rot("tail1", f, z=18 * v)
-    for f, v in wave(48, 48, 1.0, phase=0.3):
-        c.rot("tail2", f, z=22 * v)
-        c.rot("tail3", f, z=20 * v)
-    c.finish()
-    # Walk: beina i motfase, armene mot, kroppen dupper.
-    c = Clip(arm, "walk", 24, FPS)
-    c.rest_all(0)
-    for f, v in wave(24, 24, 1.0, step=3):
-        c.rot("thigh.L", f, y=38 * v)
-        c.rot("thigh.R", f, y=-38 * v)
-        c.rot("upper_arm.L", f, y=-28 * v)
-        c.rot("upper_arm.R", f, y=28 * v)
-        c.rot("head", f, z=4 * v)
-        c.rot("tail1", f, z=14 * v)
-        c.rot("tail2", f, z=18 * v)
-    # Kneet bøyes når beinet svinger fram (legg bakover = +y).
-    for f, v in wave(24, 24, 1.0, step=3, phase=math.pi / 2):
-        c.rot("shin.L", f, y=18 + 20 * max(0.0, -v) * 2)
-        c.rot("shin.R", f, y=18 + 20 * max(0.0, v) * 2)
-    for f, v in wave(24, 12, 1.0, step=3):
-        c.loc("root", f, (0, 0, 0.025 * v))
-        c.rot("chest", f, y=3 * v)
-    c.finish()
-    # Attack.
-    length = {"bite": 30, "spit": 30, "slam": 44}[attack]
-    c = Clip(arm, "attack", length, FPS)
-    c.rest_all(0)
-    {"bite": attack_bite, "spit": attack_spit, "slam": attack_slam}[attack](c)
-    c.finish()
-    for name in extra:
-        length = {"slam": 44, "roar": 36}[name]
-        c = Clip(arm, name, length, FPS)
-        c.rest_all(0)
-        {"slam": attack_slam, "roar": roar}[name](c)
-        c.finish()
-    # Hit: rykker bakover, hodet slenges til sida.
-    c = Clip(arm, "hit", 12, FPS)
-    c.rest_all(0)
-    c.loc("root", 3, (-0.14, 0, 0.0))
-    c.rot("chest", 3, y=-22)
-    c.rot("head", 3, z=28, y=-10)
-    c.rot("jaw", 3, y=30)
-    c.rot("upper_arm.L", 3, y=-25)
-    c.rot("upper_arm.R", 3, y=-25)
-    c.loc("root", 12, (0, 0, 0))
-    for b in ("chest", "head", "jaw", "upper_arm.L", "upper_arm.R"):
-        c.rot(b, 12)
-    c.finish()
-    # Die: skriker, beina svikter, segner om på sida og blir liggende.
-    c = Clip(arm, "die", 36, FPS)
-    c.rest_all(0)
-    c.rot("head", 8, y=-25)
-    c.rot("jaw", 8, y=45)
-    c.rot("chest", 8, y=-12)
-    c.rot("upper_arm.L", 8, x=30, y=-40)
-    c.rot("upper_arm.R", 8, x=-30, y=-40)
-    for b in ("thigh.L", "thigh.R"):
-        c.rot(b, 20, y=55)
-    for b in ("shin.L", "shin.R"):
-        c.rot(b, 20, y=-75)
-    c.loc("root", 20, (0.05, 0, -0.42))
-    c.rot("hips", 20, y=20, x=20)
-    c.rot("head", 20, y=25)
-    c.rot("jaw", 20, y=20)
-    c.loc("root", 36, (0.12, 0.1, -0.62))
-    c.rot("hips", 36, y=8, x=78)
-    c.rot("chest", 36, y=4)
-    c.rot("head", 36, y=12, z=10)
-    c.rot("jaw", 36, y=28)
-    c.rot("upper_arm.L", 36, x=10, y=35)
-    c.rot("upper_arm.R", 36, x=-60, y=20)
-    c.rot("forearm.L", 36, y=20)
-    c.rot("forearm.R", 36, y=-30)
-    for b in ("thigh.L", "thigh.R"):
-        c.rot(b, 36, y=70)
-    for b in ("shin.L", "shin.R"):
-        c.rot(b, 36, y=-80)
-    c.rot("tail1", 36, y=18, z=0)
-    c.rot("tail2", 36, y=10)
-    c.rot("tail3", 36, y=6)
-    c.finish()
-    bpy.context.scene.frame_end = 48
-
-
 def token(m):
     """Tokenmynten: skive 36 cm i diameter, 4 cm tykk, med glødende kant og
     en opphøyd ring på hver side."""
@@ -630,12 +451,14 @@ def bolt(m):
     cone("tip", (0.05, 0.0, 0.0), 0.03, 0.08, m["glow_caret"], direction=(1, 0, 0), vertices=6)
 
 
-def build_rigged(name, body, attack, extra=()):
+def build_rigged(name, body, attack, extra=(), style="button"):
     def build(size):
         m = mats()
         body(m)
         arm = armature(f"{name}_rig", BONES)
-        biped_clips(arm, attack, extra)
+        # Klippene i slagets stil (mob_motion.py), med IK for føttene.
+        mob_motion.make_clips(Clip, arm, BONES, style, attack, extra)
+        bpy.context.scene.frame_end = 64
         bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=arm, rigid=RIGID, skin={"blend": 0.05, "radii": RADII})
 
     return build
@@ -650,12 +473,12 @@ def build_plain(name, body):
 
 
 BUILDERS = {
-    "mutant_button": (build_rigged("mutant_button", mutant_button, "bite"), 1024),
-    "mutant_tooltip": (build_rigged("mutant_tooltip", mutant_tooltip, "bite"), 512),
-    "mutant_input": (build_rigged("mutant_input", mutant_input, "spit"), 512),
-    "mutant_modal": (build_rigged("mutant_modal", mutant_modal, "slam"), 1024),
-    "mutant_table": (build_rigged("mutant_table", mutant_table, "bite"), 512),
-    "framework": (build_rigged("framework", framework, "bite", ("slam", "roar")), 1024),
+    "mutant_button": (build_rigged("mutant_button", mutant_button, "bite", style="button"), 1024),
+    "mutant_tooltip": (build_rigged("mutant_tooltip", mutant_tooltip, "bite", style="tooltip"), 512),
+    "mutant_input": (build_rigged("mutant_input", mutant_input, "spit", style="input"), 512),
+    "mutant_modal": (build_rigged("mutant_modal", mutant_modal, "slam", style="modal"), 1024),
+    "mutant_table": (build_rigged("mutant_table", mutant_table, "bite", style="table"), 512),
+    "framework": (build_rigged("framework", framework, "bite", ("slam", "roar"), style="framework"), 1024),
     "token": (build_plain("token", token), 256),
     "key": (build_plain("key", key), 256),
     "bolt": (build_plain("bolt", bolt), 128),
