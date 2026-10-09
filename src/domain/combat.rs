@@ -89,6 +89,8 @@ struct Clips {
 }
 
 pub struct Combat {
+    /// Lyder fra trekk som starter utenfor `update` (ladningen), til neste bilde.
+    cues: Vec<&'static str>,
     pub gear: Gear,
     pub max_stamina: f32,
     pub stamina: f32,
@@ -148,6 +150,7 @@ impl Combat {
             block_wanted: false,
             block_t: 9.0,
             riposte: false,
+            cues: vec![],
             dodge_dir: Vec3::ZERO,
             hitstop: 0.0,
             kick: Vec2::ZERO,
@@ -308,6 +311,7 @@ impl Combat {
         self.regen_delay = REGEN_DELAY;
         self.queued = false;
         self.enter(Phase::Heavy { charging: true, hit: false, charge: 0.0 });
+        self.cues.push("charge");
         let clip = self.clips.heavy;
         log::debug!("Tungt hugg lades (klipp {clip})");
         self.play(clip, false, 0.1);
@@ -382,7 +386,7 @@ impl Combat {
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
     pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::world::dungeon::Dungeon) -> Vec<CombatEvent> {
-        let mut out = vec![];
+        let mut out: Vec<CombatEvent> = self.cues.drain(..).map(CombatEvent::Sound).collect();
         self.hitstop = (self.hitstop - dt).max(0.0);
         // Fjæra på kameraet.
         let k = 60.0;
@@ -474,6 +478,10 @@ impl Combat {
                 if charging {
                     // Holdes ved toppen av ladningen til knappen slippes
                     // (eller ladningen er full).
+                    // Full ladning: et lite klang i stålet.
+                    if charge < 1.0 && charge + dt >= 1.0 {
+                        out.push(CombatEvent::Sound("charged"));
+                    }
                     let charge = charge + dt;
                     self.phase = Phase::Heavy { charging: true, hit: false, charge };
                     if ct >= HEAVY_HOLD {
@@ -572,6 +580,9 @@ impl Combat {
             self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
             out.push(CombatEvent::Hit { mob: i, damage, killed, pos: body });
             out.push(CombatEvent::Sound(if killed { "kill" } else if strike.armored { "clang" } else if heavy { "hit_heavy" } else { "hit" }));
+            if strike.staggered {
+                out.push(CombatEvent::Sound("stagger"));
+            }
         }
         if any {
             self.hitstop = HITSTOP;

@@ -123,6 +123,12 @@ pub struct Session {
     fires: Vec<Vec3>,
     waters: Vec<Vec3>,
     lavas: Vec<Vec3>,
+    /// Kløftene (vind fra dypet).
+    chasms: Vec<Vec3>,
+    /// Sekunder til neste fjerne lyd i kjelleren (rotter, kjetting, dører,
+    /// noe som knurrer i et rom ved siden av), og terningen til dem.
+    distant_t: f32,
+    sound_seed: u32,
     /// Innendørs (tak over deg og vegger rundt), målt med stråler.
     indoor: bool,
     /// Innbyggerne: hvor de sto sist bilde og hvor langt de har gått siden
@@ -231,6 +237,9 @@ impl Session {
             fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
             waters: Self::places(world, &["dng_hall_sewer", "dng_cistern"]),
             lavas: Self::places(world, &["dng_hall_lava", "dng_chasm"]),
+            chasms: Self::places(world, &["dng_chasm"]),
+            distant_t: 6.0,
+            sound_seed: 0x9e37_79b9,
             indoor: false,
             npc_steps: vec![],
             shortcuts: vec![-1.0; world.dungeon.shortcuts.len()],
@@ -550,6 +559,10 @@ impl Session {
                     if self.weather.wet > 0.6 && matches!(surface, "step_gravel" | "step_dirt") {
                         events.push(Event::Sound(Sound { name: "step_water".into(), at: None, gain: gain * 0.5 * self.weather.wet }));
                     }
+                    // Tauet og plankene knirker på brua over kløfta.
+                    if self.in_cellar() && surface == "step_wood" {
+                        events.push(Event::Sound(Sound { name: "rope".into(), at: None, gain: gain * 0.8 }));
+                    }
                     if let Some(a) = self.gear.armor {
                         let layer = if a.id.contains("mail") { "gear_mail" } else { "gear_leather" };
                         events.push(Event::Sound(Sound { name: layer.into(), at: None, gain }));
@@ -612,6 +625,11 @@ impl Session {
                 }
                 Action::Daylight => {
                     self.daylight = if self.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
+                    // Kirkeklokka ringer inn skumringen og morgenen.
+                    if !in_cellar {
+                        let church = self.sound_spots[2];
+                        events.push(self.sound_at("bell", Vec3::new(church.x, self.eye().y + 12.0, church.y), 2.5));
+                    }
                     events.push(Event::Daylight(self.daylight));
                 }
                 Action::Weather => {
@@ -890,7 +908,11 @@ impl Session {
             events.push(Event::Toast("En rusten nøkkel. Porten i utgangsrommet kan låses opp.".into()));
         }
         for (name, at) in &outcome.sounds {
-            events.push(self.sound_at(name, *at + Vec3::Y * 1.0, 1.0));
+            // Tassingen høres bare når de er nær.
+            if *name == "mob_step" && at.distance(feet) > 14.0 {
+                continue;
+            }
+            events.push(self.sound_at(name, *at + Vec3::Y * if *name == "mob_step" { 0.0 } else { 1.0 }, 1.0));
         }
         for _ in 0..outcome.roars {
             events.push(Event::Toast("Rammeverket brøler, og tooltips kryper ut av veggene.".into()));
@@ -957,6 +979,24 @@ impl Session {
             return;
         }
         self.ambience_t = 0.25;
+        // Fjerne lyder i kjelleren: noe beveger seg i rommene ved siden av.
+        if in_cellar {
+            self.distant_t -= 0.25;
+            if self.distant_t <= 0.0 {
+                let mut roll = || {
+                    self.sound_seed ^= self.sound_seed << 13;
+                    self.sound_seed ^= self.sound_seed >> 17;
+                    self.sound_seed ^= self.sound_seed << 5;
+                    (self.sound_seed % 10_000) as f32 / 10_000.0
+                };
+                let (wait, pick, angle, dist) = (roll(), roll(), roll(), roll());
+                self.distant_t = 8.0 + wait * 14.0;
+                let name = ["rats", "rats", "door_close", "locked", "notice", "windup", "crack"][(pick * 7.0) as usize % 7];
+                let a = angle * std::f32::consts::TAU;
+                let at = self.eye() + Vec3::new(a.cos(), 0.0, a.sin()) * (12.0 + dist * 14.0);
+                events.push(self.sound_at(name, at, if name == "rats" { 0.9 } else { 0.35 }));
+            }
+        }
         // Innendørs: tak over deg og vegger på minst tre kanter.
         let eye = self.eye();
         let roof = physics.cast_ray(eye, Vec3::Y, 12.0).is_some();
@@ -975,6 +1015,7 @@ impl Session {
             fire: close(&self.fires, 7.0),
             water: if in_cellar { close(&self.waters, 9.0) } else { 0.0 },
             lava: if in_cellar { close(&self.lavas, 10.0) } else { 0.0 },
+            chasm: if in_cellar { close(&self.chasms, 14.0) } else { 0.0 },
             rain: if in_cellar { 0.0 } else { self.weather.rain },
             wind: if in_cellar { 0.0 } else { self.weather.wind },
             night: self.daylight == Daylight::Night,
@@ -982,7 +1023,7 @@ impl Session {
             indoor: self.indoor,
         };
         let last = self.last_ambience;
-        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.rain - last.rain, a.wind - last.wind]
+        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.rain - last.rain, a.wind - last.wind]
             .iter()
             .fold(0.0f32, |m, d| m.max(d.abs()));
         if moved > 0.02 || a.night != last.night || a.cellar != last.cellar || a.indoor != last.indoor {

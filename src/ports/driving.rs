@@ -202,7 +202,7 @@ impl PartialEq<&str> for Sound {
 
 /// Hvor sterkt hvert lydlag skal høres der du står (0–1): folk på torget,
 /// hamring i smia, kirka (klokka), dyrene på enga, ild (ildsteder og
-/// fakler), rennende vann, lava, regn og vind; om det er natt, om du er
+/// fakler), rennende vann, lava, vinden fra kløftene, regn og vind; om det er natt, om du er
 /// i kjelleren (da er byen stille) eller innendørs (rommet gir etterklang).
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Ambience {
@@ -213,6 +213,7 @@ pub struct Ambience {
     pub fire: f32,
     pub water: f32,
     pub lava: f32,
+    pub chasm: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,

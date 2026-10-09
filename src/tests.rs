@@ -1064,7 +1064,7 @@ fn lydene_finnes() {
         let src = std::fs::read_to_string(format!("{root}/{path}")).expect("kilden");
         // Lydnavnene er strenger med små bokstaver og understrek i kall
         // til sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene.
-        for marker in ["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_"] {
+        for marker in ["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_", "cues.push(\"", "sounds.push((if", "let name = ["] {
             let mut rest = src.as_str();
             while let Some(i) = rest.find(marker) {
                 rest = &rest[i + marker.len()..];

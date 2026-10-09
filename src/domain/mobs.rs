@@ -266,6 +266,8 @@ pub struct Strike {
     pub killed: bool,
     /// Panseret tok det meste (modalen forfra).
     pub armored: bool,
+    /// Slaget brøt gjennom balansen til en av de tunge (`poise`).
+    pub staggered: bool,
 }
 
 /// Det som skjedde dette bildet, til spillet.
@@ -482,17 +484,17 @@ impl Mobs {
                 let p = if dungeon.walkable(p, 0.3) { p } else { base };
                 self.tokens.push(Token { pos: p, age: 0.0, taken: false });
             }
-            return Strike { killed: true, armored };
+            return Strike { killed: true, armored, staggered: false };
         }
         // De tunge lar seg ikke avbryte av lette slag.
         if damage < stats.poise {
-            return Strike { killed: false, armored };
+            return Strike { killed: false, armored, staggered: false };
         }
         m.state = State::Hit;
         m.t = 0.0;
         m.stun = 0.0;
         self.play(i, clips.hit, false, 0.05);
-        Strike { killed: false, armored }
+        Strike { killed: false, armored, staggered: stats.poise > 0.0 }
     }
 
     /// Lamslått i `secs` sekunder (etter en parade): står og rister.
@@ -609,6 +611,7 @@ impl Mobs {
                                 Blow::Roar => {
                                     out.roars += 1;
                                     out.sounds.push(("roar", m.pos));
+                                    out.sounds.push(("crack", m.pos));
                                     for k in 0..3 {
                                         let a = k as f32 * 2.1 + r * 6.0;
                                         summons.push(m.pos + Vec3::new(a.cos(), 0.0, a.sin()) * 2.2);
@@ -728,11 +731,12 @@ impl Mobs {
                 m.pos = from + t;
             }
             m.pos.y = dungeon.height_at(m.pos);
-            if kind.boss() {
+            // Skrittene: bossens tunge, de andres tassing (ikke tooltipene, som svever).
+            if kind != Kind::Tooltip {
                 m.stride += (m.pos - from).with_y(0.0).length();
-                if m.stride > 1.6 * s {
+                if m.stride > 1.4 * s {
                     m.stride = 0.0;
-                    out.sounds.push(("boss_step", m.pos));
+                    out.sounds.push((if kind.boss() { "boss_step" } else { "mob_step" }, m.pos));
                 }
             }
             let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);

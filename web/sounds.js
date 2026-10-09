@@ -334,6 +334,63 @@ export function createSounds() {
       tone(c, "sine", 70, 30, 0.6, 0.004, 0.22);
       crunch(c, 0.2, 0.1, 400);
     },
+    // Tungt hugg lades: en stigende spenning i stålet og et pust inn.
+    charge: (c) => {
+      whoosh(c, 300, 1200, 0.12, 0.6);
+      tone(c, "sine", 520, 780, 0.03, 0.25, 0.4);
+    },
+    // Full ladning: et kort, lyst klang.
+    charged: (c) => {
+      tone(c, "sine", 2200, 2150, 0.12, 0.004, 0.5);
+      tone(c, "sine", 3300, 3250, 0.06, 0.004, 0.35);
+    },
+    // Balansen brister: noe digitalt som knekker.
+    stagger: (c) => {
+      glitch(c, 0.16, 0.4, 110);
+      crunch(c, 0.35, 0.25, 1500, 0.02);
+      tone(c, "square", 300, 60, 0.08, 0.005, 0.35);
+    },
+    // Knirk i tre og tau: friksjon som hakker.
+    creak: (c) => {
+      const t = c.currentTime;
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      const f = 120 + Math.random() * 90;
+      o.frequency.setValueAtTime(f, t);
+      for (let k = 1; k <= 8; k++) o.frequency.linearRampToValueAtTime(f + Math.random() * 60 + k * 4, t + k * 0.05);
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 900 + Math.random() * 500;
+      bp.Q.value = 7;
+      o.connect(bp).connect(env(c, 0.12, 0.05, 0.4));
+      o.start(t);
+      o.stop(t + 0.5);
+    },
+    // Rotter: pip og små klør som kraver over steinen.
+    rats: (c) => {
+      for (let k = 0; k < 3 + Math.floor(Math.random() * 3); k++) {
+        const at = k * (0.08 + Math.random() * 0.2);
+        tone(c, "sine", 3800 + Math.random() * 1500, 4200 + Math.random() * 1500, 0.04, 0.005, 0.06, at);
+      }
+      for (let k = 0; k < 10; k++) crunch(c, 0.05, 0.02, 5000, 0.3 + k * 0.045);
+    },
+    // Kirkeklokka ringer inn skumringen eller morgenen.
+    bell: (c) => {
+      for (let k = 0; k < 3; k++) {
+        for (const [mul, a, d] of [[0.5, 0.5, 6], [1, 1, 5], [1.183, 0.5, 3.5], [1.506, 0.35, 3], [2, 0.3, 2.5]]) {
+          tone(c, "sine", 196 * mul, 196 * mul, a * 0.08, 0.004, d, k * 2.4);
+        }
+      }
+    },
+    // Pause og tilbake: to myke toner ned og opp.
+    pause: (c) => {
+      tone(c, "triangle", 660, 660, 0.06, 0.01, 0.25);
+      tone(c, "triangle", 440, 440, 0.06, 0.01, 0.35, 0.12);
+    },
+    resume: (c) => {
+      tone(c, "triangle", 440, 440, 0.06, 0.01, 0.2);
+      tone(c, "triangle", 660, 660, 0.06, 0.01, 0.3, 0.1);
+    },
     // Tom for pust: et hest, langt utpust og et kortere innpust.
     breath: (c) => {
       whoosh(c, 900, 1400, 0.12, 0.7);
@@ -537,6 +594,7 @@ export function createSounds() {
       loop("loop_cave", a.cellar ? 0.5 : 0);
       loop("loop_water", a.water);
       loop("loop_lava", a.lava);
+      loop("loop_chasm", a.chasm ?? 0);
     },
     // Om opptaket finnes (lydene i byen bruker opptak når de kan).
     has(name) {

@@ -311,6 +311,60 @@
   "pitch": 0.08,
   "synth": "dodge"
  },
+ "charge": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "charge"
+ },
+ "charged": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "charged"
+ },
+ "stagger": {
+  "files": [
+   "stagger_1.mp3",
+   "stagger_2.mp3",
+   "stagger_3.mp3",
+   "stagger_4.mp3"
+  ],
+  "gain": 0.55,
+  "pitch": 0.08,
+  "synth": "stagger"
+ },
+ "mob_step": {
+  "files": [
+   "step_rock_1.mp3",
+   "step_rock_2.mp3",
+   "step_rock_3.mp3",
+   "step_rock_4.mp3",
+   "step_rock_5.mp3",
+   "step_rock_6.mp3",
+   "step_rock_7.mp3",
+   "step_rock_8.mp3"
+  ],
+  "gain": 0.22,
+  "pitch": 0.12,
+  "rate": 1.5
+ },
+ "crack": {
+  "files": [
+   "crack_1.mp3",
+   "crack_2.mp3",
+   "crack_3.mp3",
+   "crack_4.mp3"
+  ],
+  "gain": 0.8,
+  "pitch": 0.04
+ },
+ "rats": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "rats"
+ },
  "windup": {
   "files": [
    "windup_1.mp3",
@@ -376,7 +430,14 @@
    "boss_step_2.mp3"
   ],
   "gain": 0.35,
-  "pitch": 0.08
+  "pitch": 0.08,
+  "synth": "creak"
+ },
+ "rope": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "creak"
  },
  "gate": {
   "files": [
@@ -565,6 +626,24 @@
   "pitch": 0.06,
   "synth": "talk"
  },
+ "bell": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "bell"
+ },
+ "pause": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "pause"
+ },
+ "resume": {
+  "files": [],
+  "gain": 1.0,
+  "pitch": 0.06,
+  "synth": "resume"
+ },
  "well": {
   "files": [
    "well_1.mp3"
@@ -640,6 +719,14 @@
  "loop_drips": {
   "files": [
    "loop_drips.mp3"
+  ],
+  "gain": 0.4,
+  "pitch": 0.06,
+  "loop": true
+ },
+ "loop_chasm": {
+  "files": [
+   "loop_chasm.mp3"
   ],
   "gain": 0.4,
   "pitch": 0.06,

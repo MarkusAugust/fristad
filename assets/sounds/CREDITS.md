@@ -121,6 +121,14 @@ kuttet og normalisert (løkkene er krysstonet over sømmen). Lisensene følger f
 | `death_6.mp3` | `0ad/binaries/data/mods/public/audio/actor/human/death/male_death_06.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `death_7.mp3` | `0ad/binaries/data/mods/public/audio/actor/human/death/male_death_07.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `death_8.mp3` | `0ad/binaries/data/mods/public/audio/actor/human/death/male_death_08.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `stagger_1.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_tree_10.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `stagger_2.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_tree_11.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `stagger_3.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_tree_12.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `stagger_4.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_tree_13.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `crack_1.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_treeexpire_01.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `crack_2.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_treeexpire_02.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `crack_3.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_treeexpire_03.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `crack_4.mp3` | `0ad/binaries/data/mods/public/audio/resource/lumbering/lumber_treeexpire_04.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `windup_1.mp3` | `flare-game/mods/fantasycore/soundfx/enemies/goblin_phys.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `windup_2.mp3` | `flare-game/mods/fantasycore/soundfx/enemies/antlion_phys.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `windup_3.mp3` | `flare-game/mods/fantasycore/soundfx/enemies/zombie_phys.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
@@ -185,6 +193,7 @@ kuttet og normalisert (løkkene er krysstonet over sømmen). Lisensene følger f
 | `loop_forge.mp3` | `flare-game/mods/fantasycore/soundfx/environment/anvil_loop.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `loop_fire.mp3` | `minetest_game/mods/fire/sounds/fire_small.ogg` | CC BY 3.0, dobroide (Minetest Game, freesound.org/people/dobroide/sounds/4211), https://github.com/luanti-org/minetest_game |
 | `loop_drips.mp3` | `flare-game/mods/fantasycore/soundfx/environment/cave_droplets_loop.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
+| `loop_chasm.mp3` | `0ad/binaries/data/mods/public/audio/ambient/weather/windstorm_11.ogg` | CC BY-SA 3.0, Wildfire Games (https://play0ad.com), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `loop_cave.mp3` | `flare-game/mods/fantasycore/soundfx/environment/cave_wind_loop.ogg` | CC BY-SA 3.0, Flare-bidragsyterne (https://github.com/flareteam/flare-game/wiki/Credits), https://creativecommons.org/licenses/by-sa/3.0/ |
 | `loop_water.mp3` | `minetest_game/mods/env_sounds/sounds/env_sounds_water.1.ogg` | CC0 1.0, Yuval (Minetest Game), https://github.com/luanti-org/minetest_game |
 | `loop_lava.mp3` | `minetest_game/mods/env_sounds/sounds/env_sounds_lava.1.ogg` | CC0 1.0, Yuval (Minetest Game), https://github.com/luanti-org/minetest_game |

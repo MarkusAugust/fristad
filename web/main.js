@@ -767,6 +767,7 @@ function enter(relock = true) {
       /* ingen lagring */
     }
   }
+  if (soundsLoading && !panelOpen) sfx.play("resume");
   playing = true;
   if (!soundsLoading) {
     soundsLoading = true;
@@ -802,6 +803,7 @@ function quit() {
 }
 
 function pause() {
+  if (playing) sfx.play("pause");
   playing = false;
   dragging = false;
   engine.set_paused(true);
