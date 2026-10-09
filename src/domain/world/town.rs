@@ -519,7 +519,18 @@ struct Inside {
     /// Pipene: toppen og hvor tykk røyken er.
     #[serde(default)]
     smoke: Vec<([f32; 3], f32)>,
+    /// Kjelleren under huset: midten og halve mål (x, z) i modellens rom.
+    /// Bakken tas bort der (`Builder::hole`).
+    #[serde(default)]
+    cellar: Option<([f32; 3], [f32; 2])>,
+    /// Kjellergulvet: midten (y er overkanten) og halve mål (x, z).
+    #[serde(default)]
+    cellar_floor: Option<([f32; 3], [f32; 2])>,
 }
+
+/// Husene med en egen innsidemodell, som bare tegnes når du er nær
+/// (rendereren kjenner dem på navnet `…_interior`).
+const INTERIORS: [(&str, &str); 1] = [("tavern", "tavern_interior")];
 
 const INSIDE: [(&str, &str); 11] = [
     ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
@@ -552,7 +563,17 @@ fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     if !b.place(model, t) {
         return;
     }
+    if let Some((_, interior)) = INTERIORS.iter().find(|(m, _)| *m == model) {
+        b.place(interior, t);
+    }
     let inside = inside(model);
+    if let Some((c, h)) = inside.and_then(|i| i.cellar) {
+        b.hole(t.transform_point3(Vec3::from(c)), Vec2::from(h), yaw);
+    }
+    if let Some((c, h)) = inside.and_then(|i| i.cellar_floor) {
+        let c = t.transform_point3(Vec3::from(c));
+        b.floor(c, Vec2::from(h), yaw, c.y);
+    }
     if let Some(inside) = inside {
         for (p, color, intensity, radius) in &inside.lamps {
             b.lamp_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);

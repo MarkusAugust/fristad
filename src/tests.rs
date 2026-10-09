@@ -500,7 +500,7 @@ fn man_kan_ga_inn_i_husene() {
     }
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, start ute og mål inne, i Blenders akser (x, y): døra mot −y.
-    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5)), ("stave_church", (0.0, -7.6), (0.0, 0.0))];
+    let houses = [("tavern", (-1.6, -7.0), (-1.6, -2.0)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5)), ("stave_church", (0.0, -7.6), (0.0, 0.0))];
     let mut problems = vec![];
     for (model, from, to) in houses {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -537,7 +537,7 @@ fn man_kan_ga_opp_trappene() {
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, foten av trappa og målet oppe (Blenders akser), gulvet nede
     // og høyden oppe over bakken.
-    let stairs = [("tavern", (5.39, -3.6), (5.39, 1.6), 0.6, 3.0), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.9)];
+    let stairs = [("tavern", (5.3, -3.55), (0.2, -3.55), 0.6, 3.6), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.9)];
     let mut problems = vec![];
     for (model, from, to, floor, up) in stairs {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -564,6 +564,34 @@ fn man_kan_ga_opp_trappene() {
         }
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Ølkjelleren under Vertshuset: ned trappa fra kjøkkenet, gjennom hullet
+/// i bakken (`Builder::hole`), til kjellergulvet.
+#[test]
+fn man_kan_ga_ned_i_kjelleren() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    let pl = p.world.placements.iter().find(|pl| pl.model == "tavern").expect("tavern");
+    let t = pl.transforms[0];
+    let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+    let (a, b) = (world((1.5, 2.4)), world((1.5, -2.6)));
+    let base = t.transform_point3(Vec3::ZERO).y;
+    let mut pos = a + Vec3::Y * (0.6 + half + radius + 0.05);
+    let dir = (b - a).with_y(0.0).normalize();
+    for _ in 0..600 {
+        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+            break;
+        }
+        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.06, 0.016);
+        pos += moved;
+    }
+    let feet = pos.y - half - radius - base;
+    assert!(feet < -1.8 && (pos - b).with_y(0.0).length() < 0.6, "stoppet med føttene {feet:.2} m over bakken, {:.1} m fra målet", (pos - b).with_y(0.0).length());
 }
 
 /// Brønnene: bøtta slippes ned og sveives opp, og du drikker når den er oppe.

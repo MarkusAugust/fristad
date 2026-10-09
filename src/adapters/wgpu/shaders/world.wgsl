@@ -680,7 +680,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     var height = 0.5;
     var alpha = 1.0;
 
-    if (kind < 32u) {
+    if (kind < K_PLAIN) {
         var t: Tex;
         if ((flags & F_UVMAP) != 0u) {
             t = uvmapped(i32(kind), i.uv, duv1, duv2, dp1, dp2, n_geo);

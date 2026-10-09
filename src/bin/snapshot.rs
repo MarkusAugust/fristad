@@ -7,7 +7,7 @@
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
 //! (gå ned i krypten først), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
-//! --quality Q, --scale S, --debug albedo|normal|ao|rough|shadow,
+//! --at MODELL X,Y,Z YAW (kamera i modellens rom), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N.
 
 use fristad::adapters::gltf::Embedded;
@@ -31,6 +31,18 @@ fn main() {
     let (width, height) = arg("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))).unwrap_or((1280u32, 720u32));
 
     let prepared = prepare(&Embedded, seed());
+    // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
+    // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
+    let model_at = args.iter().position(|a| a == "--at").map(|i| {
+        let model = args[i + 1].clone();
+        let v: Vec<f32> = args[i + 2].split(',').map(|x| x.parse().unwrap()).collect();
+        let yaw: f32 = args.get(i + 3).and_then(|y| y.parse().ok()).unwrap_or(0.0);
+        let t = prepared.world.placements.iter().find(|pl| pl.model == model).map(|pl| pl.transforms[0]).expect("modellen finnes ikke i byen");
+        let eye = t.transform_point3(Vec3::new(v[0], v[2], -v[1]));
+        // Retningen mot modellens midte, dreid `yaw` grader.
+        let to = t.transform_point3(Vec3::new(0.0, v[2], 0.0)) - eye;
+        (eye, (-to.x).atan2(-to.z) + yaw.to_radians())
+    });
     let chest = prepared.world.dungeon.chests.first().copied();
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
     let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
@@ -95,7 +107,8 @@ fn main() {
         let y = if parts[1].starts_with('+') { y + fristad::domain::world::terrain::height(x, z) } else { y };
         Vec3::new(x, y, z)
     });
-    let yaw: f32 = arg("--yaw").map(|s| s.parse().unwrap()).unwrap_or(0.0);
+    let eye = eye.or(model_at.map(|(e, _)| e));
+    let yaw: f32 = model_at.map(|(_, y)| y.to_degrees()).or(arg("--yaw").map(|s| s.parse().unwrap())).unwrap_or(0.0);
     let pitch: f32 = arg("--pitch").map(|s| s.parse().unwrap()).unwrap_or(4.0);
     if let Some(eye) = eye {
         app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });

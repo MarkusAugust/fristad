@@ -136,6 +136,7 @@ models! {
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
     "tavern" => "town/tavern.glb",
+    "tavern_interior" => "town/tavern_interior.glb",
     "apothecary" => "town/apothecary.glb",
     "scriptorium" => "town/scriptorium.glb",
     "stave_church" => "town/stave_church.glb",

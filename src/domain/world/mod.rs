@@ -25,7 +25,9 @@ pub enum Shape {
     Cylinder { center: Vec3, radius: f32, half_height: f32 },
     /// Terrenget: et rutenett av høyder, `cols` langs X og `rows` langs Z,
     /// sentrert i `center` og `size` meter stort.
-    Heightfield { center: Vec3, size: Vec3, cols: usize, rows: usize, heights: Vec<f32> },
+    /// `holes` er rutene (rad langs Z, kolonne langs X) som er fjernet, så
+    /// man kan gå ned i en kjeller under et hus.
+    Heightfield { center: Vec3, size: Vec3, cols: usize, rows: usize, heights: Vec<f32>, holes: Vec<(usize, usize)> },
     /// Kapsel mellom to punkter (trestammer og greiner).
     Capsule { a: Vec3, b: Vec3, radius: f32 },
     /// Konveks omhylling av punktene (trappetrinn, fjell).
@@ -115,6 +117,8 @@ pub struct Builder {
     pub npcs: Vec<NpcSpec>,
     /// Modeller byen ville bruke, men som mangler (til loggen og testene).
     pub missing: Vec<&'static str>,
+    /// Kjellere under husene (`hole`): bakken tas bort der.
+    pub holes: Vec<(Vec3, Vec2, f32)>,
 }
 
 impl Builder {
@@ -132,7 +136,15 @@ impl Builder {
             mounted: vec![],
             npcs: vec![],
             missing: vec![],
+            holes: vec![],
         }
+    }
+
+    /// En kjeller under et hus: rutene i bakken som ligger helt innenfor
+    /// rektangelet (midte, halve mål, yaw) fjernes, både i bildet og i
+    /// kollideren, så man kan gå ned. Kjellerens murer må dekke kanten.
+    pub fn hole(&mut self, center: Vec3, half: Vec2, yaw: f32) {
+        self.holes.push((center, half, yaw));
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
@@ -334,8 +346,9 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget,
     // jordveier og gress.
-    ground(&mut b);
+    let ground_at = ground(&mut b);
     let town = town::build(&mut b);
+    cut_ground(&mut b, ground_at);
     nature::meadow(&mut b);
     nature::grass(&mut b);
     nature::landscape(&mut b);
@@ -401,7 +414,7 @@ pub fn srgb_to_linear(c: u32) -> Vec3 {
 
 /// Bakken: et rutenett på 2 m som deler hjørnene, så vektene mellom
 /// lagene glir jevnt over (`town::ground_weights`), og heightfield-kollider.
-fn ground(b: &mut Builder) {
+fn ground(b: &mut Builder) -> usize {
     use crate::domain::geometry::{kind, Vertex};
     let half = 200.0f32;
     let cell = 2.0f32;
@@ -430,6 +443,7 @@ fn ground(b: &mut Builder) {
         }
     }
     let at = |ix: usize, iz: usize| base + (iz * (n + 1) + ix) as u32;
+    let first = b.mesh.indices.len();
     for iz in 0..n {
         for ix in 0..n {
             let (a, c, d, e) = (at(ix, iz), at(ix + 1, iz), at(ix + 1, iz + 1), at(ix, iz + 1));
@@ -441,7 +455,52 @@ fn ground(b: &mut Builder) {
             }
         }
     }
-    b.solid(Shape::Heightfield { center: Vec3::ZERO, size: Vec3::new(2.0 * half, 1.0, 2.0 * half), cols: n + 1, rows: n + 1, heights });
+    b.solid(Shape::Heightfield { center: Vec3::ZERO, size: Vec3::new(2.0 * half, 1.0, 2.0 * half), cols: n + 1, rows: n + 1, heights, holes: vec![] });
+    first
+}
+
+/// Tar bort rutene i bakken over kjellerne (`Builder::hole`): trekantene
+/// blir tomme, og kollideren får hull. `first` er der bakkens indekser
+/// begynner (to trekanter per rute, rad for rad).
+fn cut_ground(b: &mut Builder, first: usize) {
+    let (half, cell) = (200.0f32, 2.0f32);
+    let n = (2.0 * half / cell) as usize;
+    let inside = |p: Vec2| {
+        b.holes.iter().any(|(c, h, yaw)| {
+            let d = p - Vec2::new(c.x, c.z);
+            let (s, co) = yaw.sin_cos();
+            // Lokale akser som i `at`: x dreid med yaw om Y.
+            let lx = d.x * co - d.y * s;
+            let lz = d.x * s + d.y * co;
+            lx.abs() <= h.x && lz.abs() <= h.y
+        })
+    };
+    let mut removed = vec![];
+    for (c, h, _) in b.holes.clone() {
+        let r = h.length();
+        let lo = |v: f32| (((v - r + half) / cell).floor().max(0.0) as usize).min(n - 1);
+        let hi = |v: f32| (((v + r + half) / cell).ceil().max(0.0) as usize).min(n - 1);
+        for iz in lo(c.z)..=hi(c.z) {
+            for ix in lo(c.x)..=hi(c.x) {
+                let x0 = -half + ix as f32 * cell;
+                let z0 = -half + iz as f32 * cell;
+                let corners = [Vec2::new(x0, z0), Vec2::new(x0 + cell, z0), Vec2::new(x0, z0 + cell), Vec2::new(x0 + cell, z0 + cell)];
+                if corners.iter().all(|p| inside(*p)) && !removed.contains(&(iz, ix)) {
+                    removed.push((iz, ix));
+                }
+            }
+        }
+    }
+    for &(iz, ix) in &removed {
+        let k = first + (iz * n + ix) * 6;
+        let v = b.mesh.indices[k];
+        b.mesh.indices[k..k + 6].fill(v);
+    }
+    for shape in &mut b.colliders {
+        if let Shape::Heightfield { holes, .. } = shape {
+            holes.extend(removed.iter().copied());
+        }
+    }
 }
 
 pub fn at(p: Vec3, yaw: f32) -> Affine3A {

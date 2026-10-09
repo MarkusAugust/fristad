@@ -241,6 +241,8 @@ struct GpuModel {
     /// Småting (gress, blomster, krukker, stein): i redusert grafikk tegnes
     /// de bare nær kameraet og kaster skygge bare helt nær.
     small: bool,
+    /// Innsiden av et hus (`…_interior`): tegnes bare innen `INTERIOR_FAR`.
+    interior: bool,
 }
 
 /// De faste instansene i en rute på `CELL_M` meter: boksen rundt dem og
@@ -310,6 +312,9 @@ struct Targets {
 /// tåka minst er, så kanten ikke synes. Bakken og fjellene tegnes som før.
 /// Avansert grafikk ser lenger.
 const REDUCED_FAR: f32 = 160.0;
+/// Innsiden av husene (modellene `…_interior`) tegnes bare så nær, så de
+/// ikke koster noe ute i byen. Ytterveggene skjuler den til du er ved døra.
+const INTERIOR_FAR: f32 = 22.0;
 const REDUCED_FOG: f32 = 0.005;
 
 /// Pipelinene som tegner inn i MSAA-bildet, laget for et antall prøver.
@@ -766,6 +771,7 @@ impl Renderer {
                     extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
                     skinned,
                     small: !skinned && size < 1.3,
+                    interior: m.name.ends_with("_interior"),
                 })
             })
             .collect();
@@ -985,6 +991,9 @@ impl Renderer {
                 // fjernt eller ikke.
                 let lod = |lo: Vec3, hi: Vec3| -> Option<bool> {
                     let d = cull.eye.clamp(lo, hi).distance(cull.eye);
+                    if m.interior && d > INTERIOR_FAR {
+                        return None;
+                    }
                     if self.reduced && m.small && d > if r == 1 { 32.0 } else { 12.0 } {
                         return None;
                     }
