@@ -1046,6 +1046,47 @@ def innkeeper():
     return j
 
 
+# Kona på torget: fotoet forfra er «kvinne», sidene og bakhodet lånes fra
+# Vertinnen (samme skaut), og flisene likeså.
+WOMAN = {"name": "woman", "macro": (0.0, 0.55, 0.15, 0.35), "height": 1.63, "grip": "R",
+         "photo": {"file": f"{FACES}/kvinne.jpg", "eyes": (0.396, 0.613, 0.449), "mouth": 0.684, "cheek": (0.33, 0.52, 0.4, 0.6),
+                   "side": {"file_r": f"{FACES}/vertinne_hoyre.jpg", "file_l": f"{FACES}/vertinne_venstre.jpg", "eye": (0.685, 0.35), "ear": 0.44,
+                            "skin_r": (0.6, 0.5, 0.68, 0.6), "skin_l": (0.32, 0.5, 0.4, 0.6)},
+                   "back": {"file": f"{FACES}/vertinne_bak.jpg", "ears": (0.29, 0.665, 0.305), "skin": (0.4, 0.66, 0.6, 0.7)}},
+         "tiles": {"skin": f"{TEX}/people/vertinne_hud.jpg", "hair": f"{TEX}/people/vertinne_skaut.jpg", "beard": None}}
+
+
+def woman():
+    """Kona på torget: linserk, kjole av blåfarget ull med opprullede
+    ermer, et grått overforkle og en trebøtte i hånda."""
+    spec = WOMAN
+    body, j, ez, dom, _ = dress_photos(spec, (0.93, 0.86, 0.8))
+    belt_z = j["spine04"][0].z + 0.02
+    neck_z = j["neck01"][0].z - 0.01
+    elbow_z = j["lowerarm01.R"][0].z if "lowerarm01.R" in j else j["wrist.R"][0].z + 0.2
+    linen = cloth("chemise", "linen", lin((0.8, 0.76, 0.66)), 0.3, dirt=(1.1, 0.3))
+    shell(body, "chemise", lambda i, co: dom[i] in {"hips", "spine", "chest", "upper_arm.L", "upper_arm.R"} and elbow_z < co.z < neck_z, 0.006, 0.003, linen)
+    wool = cloth("dress", "wool", lin((0.2, 0.26, 0.36)), 0.3, dirt=(0.5, 0.55))
+    top = j["spine01"][0].z + 0.06
+    shell(body, "bodice", lambda i, co: dom[i] in {"hips", "spine", "chest"} and belt_z - 0.05 < co.z < top, 0.014, 0.004, wool)
+    skirt(body, "skirt", belt_z - 0.02, 0.06, wool, flare=0.12)
+    apron = cloth("apron", "linen", lin((0.55, 0.53, 0.5)), 0.3, dirt=(0.9, 0.4))
+    hanging_panel(body, "apron", belt_z, 0.32, 0.14, 0.22, apron, gap=0.07)
+    shoes = cloth("shoes", "leather", lin((0.26, 0.18, 0.12)), 0.2, rough=0.6)
+    for sy in (-1, 1):
+        shoe(body, f"shoe{sy}", sy, shoes)
+    # Trebøtta med jernbånd, hengende i hanken fra høyre hånd.
+    wood = cloth("tool_bucket", "oak", lin((0.62, 0.48, 0.34)), 0.12, rough=0.6)
+    c = hand_grip(j) + Vector((0.0, 0.0, -0.2))
+    tube("tool_bucket_body", c + Vector((0, 0, -0.14)), c + Vector((0, 0, 0.04)), 0.1, 0.12, wood, n=18)
+    iron = cloth("tool_band", "metal", lin((0.36, 0.34, 0.32)), 0.1)
+    for dz in (-0.1, 0.0):
+        tube(f"tool_bucket_band{dz}", c + Vector((0, 0, dz)), c + Vector((0, 0, dz + 0.015)), 0.112 + dz * 0.1, 0.112 + dz * 0.1, iron, n=18)
+    tube("tool_bucket_bail", c + Vector((0, -0.11, 0.04)), hand_grip(j), 0.006, 0.006, iron)
+    tube("tool_bucket_bail2", c + Vector((0, 0.11, 0.04)), hand_grip(j), 0.006, 0.006, iron)
+    return j
+
+
 APOTHECARY = {"name": "apothecary", "macro": (1.0, 0.85, 0.15, 0.1), "height": 1.74, "grip": "R",
               "photo": {"file": f"{FACES}/gammel.jpg", "eyes": (0.372, 0.628, 0.515), "mouth": 0.825, "cheek": (0.32, 0.58, 0.4, 0.66),
                         "side": {"file_r": f"{FACES}/apotek_right.jpeg", "file_l": f"{FACES}/apotek_left.jpeg", "eye": (0.67, 0.385), "ear": 0.355,
@@ -1334,7 +1375,7 @@ def gorvek():
     return j
 
 
-MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek}
+MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek, "woman": woman}
 
 
 def preview(out, focus):

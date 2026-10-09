@@ -612,7 +612,7 @@ impl Bot {
         }
         for e in &events {
             match e {
-                Event::Hud { hp, cellar: true, .. } if *hp < 45 => {
+                Event::Hud { hp, cellar: true, .. } if *hp < 60 => {
                     self.near_deaths += 1;
                     game.heal();
                 }
@@ -997,4 +997,6 @@ fn snarveien_apnes_fra_innsida() {
     let feet = game.eye() - Vec3::Y * 1.6;
     assert!((feet - sc.pos).with_y(0.0).dot(into_room) > 1.0, "kom ikke gjennom snarveien: føttene ved {feet:?}");
 }
+
+
 

@@ -1103,7 +1103,14 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
         let half = route.len() / 2;
         route.rotate_left(half);
         let (pos, _) = route[0];
-        b.npcs.push(NpcSpec { name, model: crate::domain::npcs::NPC_MODEL, pos, yaw: 0.0, tint, lines, route });
+        // Kvinnene på torget har sin egen figur (kona med skaut og bøtte).
+        let model = if matches!(name, "Tjenestejenta" | "Fiskerkona" | "Vaskekona") && b.has_model("npc_woman") {
+            b.reserve("npc_woman", 1);
+            "npc_woman"
+        } else {
+            crate::domain::npcs::NPC_MODEL
+        };
+        b.npcs.push(NpcSpec { name, model, pos, yaw: 0.0, tint, lines, route });
         let i = b.npcs.len() - 1;
         b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
     }

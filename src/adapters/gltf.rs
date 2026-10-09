@@ -108,6 +108,7 @@ models! {
     "npc_apothecary" => "npc/npc_apothecary.glb",
     "npc_clerk" => "npc/npc_clerk.glb",
     "npc_gorvek" => "npc/npc_gorvek.glb",
+    "npc_woman" => "npc/npc_woman.glb",
     "well_winch" => "town/well_winch.glb",
     "well_rope" => "town/well_rope.glb",
     "well_bucket" => "town/well_bucket.glb",

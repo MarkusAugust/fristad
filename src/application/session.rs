@@ -449,7 +449,9 @@ impl Session {
             let (half, radius) = self.stance.capsule();
             let feet = self.pos - Vec3::Y * (half + radius + 0.05);
             if self.in_cellar() {
-                if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 3.5) {
+                // (Vindeltrappa ned i tårncella er ikke et fall.)
+                let stair = |f: usize| self.dungeon.floors[f].exit == Some(self.dungeon.floors[f].cell_of(feet));
+                if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 3.5).filter(|f| !stair(*f)) {
                     let floor_y = self.dungeon.floors[f].y;
                     if self.grounded && (feet.y - self.dungeon.height_at(feet)).abs() < 0.4 && self.dungeon.walkable(feet, 0.0) {
                         self.safe = feet;
