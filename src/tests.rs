@@ -322,6 +322,124 @@ fn portalen_tar_deg_tilbake() {
     assert_eq!(floor, 0, "bare første etasje er nådd");
 }
 
+/// Kartet: nede i kjelleren sendes kartet over etasjen med det du har sett
+/// (startrommet og døra opp), og hvor du står; mer blir sett når du går;
+/// oppe forsvinner det.
+#[test]
+fn kartet_viser_det_du_har_sett() {
+    use crate::ports::driving::MapView;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let mut map: Option<MapView> = None;
+    let mut wheres = 0;
+    let mut take = |events: Vec<Event>, map: &mut Option<MapView>, wheres: &mut usize| {
+        for e in events {
+            match e {
+                Event::Map(m) => *map = m,
+                Event::Where { .. } => *wheres += 1,
+                _ => {}
+            }
+        }
+    };
+    let e = game.use_first(|u| *u == Use::Descend);
+    take(e, &mut map, &mut wheres);
+    for _ in 0..10 {
+        let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        take(e, &mut map, &mut wheres);
+    }
+    let m = map.clone().expect("kartet skal sendes nede i kjelleren");
+    assert_eq!(m.floor, 0);
+    let seen = m.seen.iter().filter(|s| **s).count();
+    assert!(seen >= 6, "startrommet skal være sett: {seen} celler");
+    assert!(m.seen.iter().zip(&m.cells).all(|(s, c)| !*s || *c > 0), "bare gulv kan være sett");
+    assert!(m.marks.iter().any(|k| k.kind == "ascend"), "døra opp skal stå på kartet: {:?}", m.marks);
+    assert!(wheres > 0, "hvor du står skal sendes");
+    // Går du, ser du mer.
+    input.forward = true;
+    for _ in 0..90 {
+        let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        take(e, &mut map, &mut wheres);
+    }
+    input.forward = false;
+    let more = map.as_ref().map(|m| m.seen.iter().filter(|s| **s).count()).unwrap_or(0);
+    assert!(more >= seen, "kartet skal ikke glemme: {seen} → {more}");
+    // Oppe forsvinner kartet.
+    input.actions.push(Action::Home);
+    let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    take(e, &mut map, &mut wheres);
+    let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    take(e, &mut map, &mut wheres);
+    assert!(map.is_none(), "oppe i byen skal kartet være borte");
+}
+
+/// Hver etasje kan gås gjennom, uansett frø: fra startcella er det vei på
+/// rutenettet til tårnet med trappa ned (og nederst til Rammeverket), uten
+/// snarveiene, og hver etasje har fiender. (Kløfta hadde en dør rett ut i
+/// hullet, så noen etasjer var stengt.)
+#[test]
+fn alle_etasjer_kan_gas_gjennom() {
+    use crate::domain::world::dungeon::N;
+    let mut problems = vec![];
+    for seed in [7u64, 1, 2, 3, 5, 11, 13, 42, 1350, 2026] {
+        let p = prepare(&Embedded, seed);
+        let d = &p.world.dungeon;
+        for (k, f) in d.floors.iter().enumerate() {
+            let goal = match (f.exit, d.boss) {
+                (Some(e), _) => e,
+                (None, Some(b)) => f.cell_of(b),
+                _ => continue,
+            };
+            let mut seen = vec![false; N * N];
+            let mut queue = std::collections::VecDeque::from([f.start]);
+            seen[f.start.1 as usize * N + f.start.0 as usize] = true;
+            while let Some(c) = queue.pop_front() {
+                for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                    let n = (c.0 + dx, c.1 + dz);
+                    if n.0 < 0 || n.1 < 0 || n.0 >= N as i32 || n.1 >= N as i32 || seen[n.1 as usize * N + n.0 as usize] || !f.passable(c, n) {
+                        continue;
+                    }
+                    seen[n.1 as usize * N + n.0 as usize] = true;
+                    queue.push_back(n);
+                }
+            }
+            // Tårncella er selve vindeltrappa (uten gulv): målet er en celle
+            // ved siden av den.
+            let at = |c: (i32, i32)| c.0 >= 0 && c.1 >= 0 && c.0 < N as i32 && c.1 < N as i32 && seen[c.1 as usize * N + c.0 as usize];
+            if ![(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dz)| at((goal.0 + dx, goal.1 + dz))) {
+                problems.push(format!("frø {seed}, etasje {}: ingen vei fra start {:?} til {:?}", k + 1, f.start, goal));
+            }
+            let mobs = d.spawns.iter().filter(|s| d.floor_of(**s) == Some(k)).count();
+            if mobs < 6 {
+                problems.push(format!("frø {seed}, etasje {}: bare {mobs} fiender", k + 1));
+            }
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Skriptoriet sier hvor hver komponent i oppskriftene finnes, og de som
+/// ikke kan kjøpes hos Buttonsmeden merkes «bare i krypten». Alle
+/// komponentene i oppskriftene må finnes et sted.
+#[test]
+fn skjemaet_sier_hvor_komponentene_finnes() {
+    use crate::domain::craft;
+    let button = craft::source("button");
+    assert!(!button.crypt_only() && button.describe().contains("Buttonsmeden"), "{}", button.describe());
+    let card = craft::source("card");
+    assert!(card.crypt_only() && card.describe().starts_with("Finnes bare i krypten"), "{}", card.describe());
+    let mut nowhere = vec![];
+    for r in craft::RECIPES {
+        for c in r.needs.iter().map(|(c, _)| *c).chain(r.requires.iter().copied()) {
+            let s = craft::source(c);
+            if s.chests.is_empty() && s.elite.is_empty() && !s.boss && s.smith.is_none() {
+                nowhere.push(format!("{c} ({})", r.name));
+            }
+        }
+    }
+    assert!(nowhere.is_empty(), "finnes ingen steder: {}", nowhere.join(", "));
+}
+
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
 /// og våpenet byttes; uten dem avvises det. Kjøp koster tokens, og
 /// lagringen tar med utstyret.

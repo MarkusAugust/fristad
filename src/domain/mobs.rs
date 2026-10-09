@@ -95,7 +95,7 @@ impl Kind {
 
     pub fn label(self) -> &'static str {
         match self {
-            Kind::Button => "Korrupt knapp",
+            Kind::Button => "Korrupt button",
             Kind::Tooltip => "Korrupt tooltip",
             Kind::Input => "Korrupt input",
             Kind::Modal => "Korrupt modal",

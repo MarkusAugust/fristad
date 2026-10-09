@@ -101,11 +101,19 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
         Event::Warp => json!({"type": "warp"}),
+        Event::Map(None) => json!({"type": "map", "map": null}),
+        Event::Map(Some(m)) => json!({"type": "map", "map": {
+            "floor": m.floor, "name": m.name, "origin": m.origin, "cell": m.cell, "n": m.n,
+            "cells": m.cells.iter().map(|c| char::from_digit(*c as u32, 16).unwrap_or('0')).collect::<String>(),
+            "seen": m.seen.iter().map(|s| if *s { '1' } else { '0' }).collect::<String>(),
+            "marks": m.marks.iter().map(|k| json!({"kind": k.kind, "x": k.x, "z": k.z})).collect::<Vec<_>>(),
+        }}),
+        Event::Where { x, z, yaw } => json!({"type": "where", "x": x, "z": z, "yaw": yaw}),
         Event::Hud { hp, stamina, tokens, cellar, keys, boss } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))}),
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
         Event::Inventory(v) => json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read}),
         Event::Shop { npc, wares } => json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()}),
-        Event::Workshop { recipes } => json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "ok": r.ok})).collect::<Vec<_>>()}),
+        Event::Workshop { recipes } => json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok})).collect::<Vec<_>>()}),
         Event::Speech(bubbles) => json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()}),
         Event::Marks(marks) => json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()}),
     }
@@ -194,6 +202,11 @@ impl Engine {
         if let Some(k) = WeatherKind::from_name(name) {
             self.app.command(Command::SetWeather(k));
         }
+    }
+
+    /// Rett ned i kjelleren (til nettlesertestene).
+    pub fn descend(&mut self) {
+        self.app.command(Command::Descend);
     }
 
     /// Tilbake til sørporten, fra knappen i pausemenyen.

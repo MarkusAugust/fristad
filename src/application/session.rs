@@ -13,7 +13,7 @@ use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::dungeon::{self, Dungeon};
 use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
-use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, Sound, WareView};
+use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, MapMark, MapView, Mark, Prompt, RecipeView, SaveData, Sound, WareView};
 use crate::ports::{ColliderId, Physics};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -116,6 +116,13 @@ pub struct Session {
     /// Kolliderne til ringen (flyttes inn når den står der).
     portal_solids: Vec<ColliderId>,
     entries: Vec<Option<(Vec3, f32)>>,
+    /// Kartet: cellene du har sett i hver etasje, etasjen kartet sist ble
+    /// sendt for (`None` oppe), om det må sendes på nytt, og hvor du sto da
+    /// posisjonen sist ble sendt.
+    seen: Vec<Vec<bool>>,
+    map_floor: Option<usize>,
+    map_dirty: bool,
+    last_where: (f32, f32, f32),
     /// Sekunder siden du sist reiste gjennom virvelen (synsfeltet strekkes).
     pub(super) warp_t: f32,
     pub(super) herd: Herd,
@@ -240,6 +247,10 @@ impl Session {
             portal_shown: true,
             portal_solids: town::PORTAL_SOLIDS.iter().map(|(_, size)| physics.add_movable(*size * 0.5, Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)))).collect(),
             entries: vec![None; world.dungeon.floors.len()],
+            seen: vec![vec![false; dungeon::N * dungeon::N]; world.dungeon.floors.len()],
+            map_floor: None,
+            map_dirty: false,
+            last_where: (0.0, 0.0, 0.0),
             warp_t: 10.0,
             herd: Herd::new(),
             sound_spots: {
@@ -426,7 +437,7 @@ impl Session {
             Use::Talk(n) => {
                 let name = self.npcs.npcs.get(n).map(|c| c.name).unwrap_or("Innbygger");
                 let (trade, info) = match name {
-                    "Knappesmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
+                    "Buttonsmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
                     "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
                     "Gorvek" => ("Handle", "Lærer deg trekk på øvingsplassen."),
                     "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypten, og les om dem i bøkene."),
@@ -630,6 +641,7 @@ impl Session {
         let dir = self.forward();
         let in_cellar = self.in_cellar();
         self.update_portal(dt, in_cellar, physics);
+        self.update_map(in_cellar, &mut events);
         let hit = physics.cast_ray(eye, dir, 3.5);
         let aimed_mob = if in_cellar { self.mobs.aimed(eye, dir, 2.6) } else { None };
         self.aimed_mob = aimed_mob;
@@ -774,6 +786,8 @@ impl Session {
 
     /// F på mål nummer `i`.
     fn use_target(&mut self, i: usize, events: &mut Vec<Event>) {
+        // Kister, porter og snarveier endrer merkene på kartet.
+        self.map_dirty = true;
         match self.targets[i].target.what {
             Use::Talk(n) => {
                 if self.npcs.talk(n).is_some() {
@@ -894,6 +908,11 @@ impl Session {
         }
     }
 
+    /// Hendelser som skal ut neste bilde.
+    pub fn queue(&mut self, events: Vec<Event>) {
+        self.pending.extend(events);
+    }
+
     /// «Tilbake til sørporten» fra menyen i nettleseren.
     pub fn go_home_now(&mut self) {
         let mut events = vec![];
@@ -949,6 +968,125 @@ impl Session {
                 }
             }
         }
+    }
+
+    /// Kartet: avdekk det du ser (hele rommet du står i, og gangene et par
+    /// celler rundt deg), send kartet når det endrer seg, og hvor du står
+    /// hvert bilde.
+    fn update_map(&mut self, in_cellar: bool, events: &mut Vec<Event>) {
+        let (half, radius) = self.stance.capsule();
+        let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+        let floor = if in_cellar { self.dungeon.floor_of(feet) } else { None };
+        let Some(k) = floor else {
+            if self.map_floor.is_some() {
+                self.map_floor = None;
+                events.push(Event::Map(None));
+            }
+            return;
+        };
+        let n = dungeon::N as i32;
+        let f = &self.dungeon.floors[k];
+        let me = f.cell_of(feet);
+        let unit = f.unit_at(me);
+        let seen = &mut self.seen[k];
+        let mut fresh = false;
+        for iz in (me.1 - 3).max(0)..(me.1 + 4).min(n) {
+            for ix in (me.0 - 3).max(0)..(me.0 + 4).min(n) {
+                let i = (iz * n + ix) as usize;
+                if seen[i] || f.cell(ix, iz) == dungeon::Cell::Rock {
+                    continue;
+                }
+                let near = ((ix - me.0) as f32).hypot((iz - me.1) as f32) <= 2.3;
+                if near || (unit >= 0 && f.unit_at((ix, iz)) == unit) {
+                    seen[i] = true;
+                    fresh = true;
+                }
+            }
+        }
+        // Store rom kan gå utenfor ruta rundt deg: hele rommet avdekkes.
+        if unit >= 0 && fresh {
+            for iz in 0..n {
+                for ix in 0..n {
+                    if f.unit_at((ix, iz)) == unit {
+                        seen[(iz * n + ix) as usize] = true;
+                    }
+                }
+            }
+        }
+        if fresh || self.map_floor != Some(k) || self.map_dirty {
+            self.map_floor = Some(k);
+            self.map_dirty = false;
+            events.push(Event::Map(Some(self.map_view(k))));
+        }
+        let w = (feet.x, feet.z, self.yaw);
+        if (w.0 - self.last_where.0).abs() + (w.1 - self.last_where.1).abs() > 0.02 || (w.2 - self.last_where.2).abs() > 0.005 {
+            self.last_where = w;
+            events.push(Event::Where { x: w.0, z: w.1, yaw: w.2 });
+        }
+    }
+
+    /// Kartet over etasje `k` slik du kjenner det.
+    fn map_view(&self, k: usize) -> MapView {
+        let n = dungeon::N as i32;
+        let f = &self.dungeon.floors[k];
+        let seen = &self.seen[k];
+        let mut cells = vec![0u8; (n * n) as usize];
+        for iz in 0..n {
+            for ix in 0..n {
+                if f.cell(ix, iz) == dungeon::Cell::Rock {
+                    continue;
+                }
+                let mut c = 1;
+                if f.passable((ix, iz), (ix + 1, iz)) {
+                    c |= 2;
+                }
+                if f.passable((ix, iz), (ix, iz + 1)) {
+                    c |= 4;
+                }
+                cells[(iz * n + ix) as usize] = c;
+            }
+        }
+        let known = |p: Vec3| {
+            let c = f.cell_of(p);
+            (0..n).contains(&c.0) && (0..n).contains(&c.1) && seen[(c.1 * n + c.0) as usize]
+        };
+        let mut marks = vec![];
+        // Trappa ned står i en celle uten gulv: den synes når en nabo er sett.
+        if let Some(e) = f.exit {
+            let c = f.center(e.0, e.1);
+            if [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dz)| (0..n).contains(&(e.0 + dx)) && (0..n).contains(&(e.1 + dz)) && seen[((e.1 + dz) * n + e.0 + dx) as usize]) {
+                marks.push(MapMark { kind: "exit".into(), x: c.x, z: c.z });
+            }
+        }
+        let mut mark = |kind: &str, p: Vec3| {
+            if known(p) {
+                marks.push(MapMark { kind: kind.into(), x: p.x, z: p.z });
+            }
+        };
+        for (g, (p, _)) in self.dungeon.gates.iter().enumerate() {
+            if self.dungeon.floor_of(*p) == Some(k) {
+                mark(if self.gates.get(g).is_some_and(|s| s.1) { "gate_open" } else { "gate" }, *p);
+            }
+        }
+        for (c, (p, _, fl)) in self.dungeon.chests.iter().enumerate() {
+            if *fl == k && !self.chests.get(c).copied().unwrap_or(true) {
+                mark("chest", *p);
+            }
+        }
+        for s in self.dungeon.shortcuts.iter().filter(|s| s.floor == k) {
+            mark("shortcut", s.pos);
+        }
+        if k == 0 {
+            if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Ascend) {
+                mark("ascend", t.target.pose.transform_point3(Vec3::ZERO));
+            }
+        }
+        if let (Some(b), false) = (self.dungeon.boss, self.won) {
+            if self.dungeon.floor_of(b) == Some(k) {
+                mark("boss", b);
+            }
+        }
+        MapView { floor: k, name: dungeon::EPOCHS.get(k).copied().unwrap_or("").into(), origin: [f.origin.0, f.origin.1], cell: dungeon::CELL, n: dungeon::N, cells, seen: seen.clone(), marks }
     }
 
     /// Den åpne portalen: runene, virvelen (to lag som dreier hver sin vei
@@ -1238,11 +1376,12 @@ impl Session {
     fn killed(&mut self, mob: usize, pos: Vec3, events: &mut Vec<Event>) {
         let (kind, elite) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite)).unwrap_or((MobKind::Button, false));
         if kind.boss() {
-            for c in ["dialog", "tabs"] {
+            for c in craft::BOSS_LOOT {
                 *self.carried.entry(c.to_string()).or_insert(0) += 1;
             }
             self.inv_dirty = true;
             self.won = true;
+            self.map_dirty = true;
             events.push(Event::Toast("Rammeverket er beseiret! Skatten i alkoven er din, og en dialog og en tabs ligger igjen i buret.".into()));
         } else if elite {
             let floor = self.dungeon.floor_of(pos).unwrap_or(0).min(craft::ELITE_LOOT.len() - 1);
@@ -1293,7 +1432,7 @@ impl Session {
         let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
         let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
         match name {
-            "Knappesmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
+            "Buttonsmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
             "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) }),
             "Gorvek" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
             "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
@@ -1319,6 +1458,10 @@ impl Session {
                     result,
                     needs: r.needs.iter().map(|(c, n)| (c.to_string(), *n, have(c))).collect(),
                     requires: r.requires.iter().map(|c| (c.to_string(), have(c) > 0)).collect(),
+                    sources: r.needs.iter().map(|(c, _)| *c).chain(r.requires.iter().copied()).map(|c| {
+                        let s = craft::source(c);
+                        (c.to_string(), s.describe(), s.crypt_only())
+                    }).collect(),
                     ok: craft::missing(r, &self.inventory).is_empty(),
                 }
             })

@@ -59,6 +59,10 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
                 }
             }
             Command::Respawn => self.session.go_home_now(),
+            Command::Descend => {
+                let events = self.session.use_first(|u| *u == crate::domain::world::Use::Descend);
+                self.session.queue(events);
+            }
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
             Command::SetQuality(q) => self.renderer.set_quality(q),
             Command::SetScale(s) => self.renderer.set_scale(s),

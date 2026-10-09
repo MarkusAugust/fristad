@@ -1,4 +1,4 @@
-//! Innbyggerne rundt torget: Knappesmeden, Skjemakontoret, Apotekeren og
+//! Innbyggerne rundt torget: Buttonsmeden, Skjemakontoret, Apotekeren og
 //! Gorvek. Én rigget menneskemodell (`tools/models/npc.py`) i ulike farger,
 //! som spillet poserer per bilde (idle, talk, wave). Installasjonen
 //! (`installations/npcs.rs`) gir dem props å sikte på og replikkene;

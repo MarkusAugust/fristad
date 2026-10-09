@@ -201,6 +201,11 @@ impl Floor {
         }
     }
 
+    /// Rommet en celle hører til (−1 for gangceller og fjell).
+    pub fn unit_at(&self, c: (i32, i32)) -> i32 {
+        Self::idx(c.0, c.1).map(|i| self.unit[i]).unwrap_or(-1)
+    }
+
     /// Cellen et verdenspunkt ligger i.
     pub fn cell_of(&self, p: Vec3) -> (i32, i32) {
         (((p.x - self.origin.0) / CELL).floor() as i32, ((p.z - self.origin.1) / CELL).floor() as i32)
@@ -557,9 +562,17 @@ fn spec(name: &str) -> &'static Spec {
         SPECS
             .iter()
             .map(|(n, json)| {
-                let s: Spec = serde_json::from_str(json).unwrap_or_else(|e| {
+                let mut s: Spec = serde_json::from_str(json).unwrap_or_else(|e| {
                     log::warn!("Kjellerrommet {n}: {e}");
                     Spec::default()
+                });
+                // En dør må gå ut fra en celle med gulv (ikke ut i kløfta).
+                s.doors.retain(|&(i, j, _, _)| {
+                    let ok = s.floor.get(j as usize).and_then(|row| row.get(i as usize)).is_some_and(|f| f.is_some());
+                    if !ok {
+                        log::warn!("Kjellerrommet {n}: døra i celle ({i}, {j}) har ikke gulv og brukes ikke");
+                    }
+                    ok
                 });
                 (*n, s)
             })

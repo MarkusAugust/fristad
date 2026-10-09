@@ -1770,6 +1770,20 @@ def gorvek():
 MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "clerk": clerk, "gorvek": gorvek, "woman": woman, "farmer": farmer, "boy": boy, "guard": guard, "merchant": merchant, "pilgrim": pilgrim}
 
 
+# Hvor tett teksturen er per del (1 er som flatene tilsier).
+DENSITY = {"hair": 0.0, "beard": 0.0, "fur": 0.5, "wraps": 0.5, "hood": 0.7, "mail": 0.6, "tool": 0.5, "strap": 0.5, "pouch": 0.5, "shoe": 0.5, "boots": 0.6, "skirt": 0.6, "hose": 0.6, "trousers": 0.6}
+
+
+def face_density(body, j, k=3.0):
+    """Flateattributtet «uv_density» på kroppen: hodet og halsen k ganger
+    tettere enn resten."""
+    if body is None:
+        return
+    dom = dominant(body)
+    a = body.data.attributes.new("uv_density", "FLOAT", "FACE")
+    a.data.foreach_set("value", [k if all(dom[i] in ("head", "neck") for i in p.vertices) else 1.0 for p in body.data.polygons])
+
+
 def preview(out, focus):
     """Rendrer figuren rett fra Blender (Cycles), helfigur og nær ansiktet."""
     scene = bpy.context.scene
@@ -1809,6 +1823,8 @@ if __name__ == "__main__":
     if "--preview" in args:
         preview(args[args.index("--preview") + 1], j["head"][0].z + 0.08)
         sys.exit(0)
+    # Ansiktet får mest plass i teksturen; hårlokker, skjegg og pels minst.
+    face_density(bpy.data.objects.get("body"), j)
     rig = armature(f"{name}_rig", game_bones(j))
     clips(rig)
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05})
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05}, density=DENSITY)

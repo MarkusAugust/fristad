@@ -127,7 +127,7 @@ Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, tre
 7. **Utstyr** bygges av komponenter, men ser ut som ekte våpen og utstyr: sverd, skjold, øks, dolk, bue. Tematisk kobling er ok (divider = klinge, button = grep, card = skjoldplate, badge = skjoldbule, progress = bue, tag = pilspiss, tooltip = dolk).
 8. **Skjemaet er verkstedet:** oppskriften er et ekte Fristil-skjema i Skjemakontoret, feltene er plassene, validering er kravene. Avansert utstyr krever fieldset, file-upload og search.
 9. **Statistikk:** skade, fart, rekkevidde, blokk, ett spesialtrekk per våpen, sjeldenhetsgrader, ingen tilfeldige rulleverdier.
-10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Knappesmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Gorvek lærer trekk. De bor i husene rundt torget.
+10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Buttonsmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Gorvek lærer trekk. De bor i husene rundt torget.
 11. **Fem etasjer per nedstigning**, hver en epoke (2026 forretningslogikk, 2019 klassekomponenter, 2014 jQuery, 2009 tabellayout, 1999 blink), trapp ned bak en rusten port med nøkkel fra minibossen, Rammeverket nederst. En nedstigning er 20 til 30 minutter.
 12. **Generator:** rom og ganger (BSP), to høydenivåer med trapper og avsatser, hemmelige rom, kister, tema per epoke (murstein med mose, kloakk med gjørme, serverrom med lysrør, katakomber med stearinlys, lava i dypet), varierte lys (fakler, lykter, glødende mose, flakkende lysrør, lysskjær fra sprekker).
 13. **Nøkler** fra minibosser og låste kister, porten er et rustent gitter som sveives opp, låste dører til valgfrie rom.

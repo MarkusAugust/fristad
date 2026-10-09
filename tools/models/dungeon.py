@@ -1234,9 +1234,10 @@ def chasm_room():
     sørsida har rekkverket røket. Faller du, havner du på bunnen (økta
     løfter deg opp igjen der du sto trygt, med vondt)."""
     r = Room(3, 3, seed=73, columns=False, mass_bottom=-9.0)
+    # Bare dørene i vest og øst: brua går vest–øst, og midtstripen i nord
+    # og sør er kløft (en dør der ville gått rett ut i hullet).
     r.door(0, 1, -1, 0)
     r.door(2, 1, 1, 0)
-    r.door(1, 2, 0, 1)
     s, rng = r.s, r.rng
     px0, px1 = CELL + 0.1, 2 * CELL - 0.1
     deep = -8.0

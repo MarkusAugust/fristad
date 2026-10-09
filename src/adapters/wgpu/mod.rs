@@ -239,6 +239,11 @@ struct Targets {
     tonemap_bg: [(wgpu::BindGroup, wgpu::Buffer); 2],
 }
 
+/// Redusert grafikk: hvor langt unna modellene tegnes (m), og hvor tett
+/// tåka minst er, så kanten ikke synes. Bakken og fjellene tegnes som før.
+const REDUCED_FAR: f32 = 160.0;
+const REDUCED_FOG: f32 = 0.005;
+
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -1027,6 +1032,11 @@ impl Renderer {
                     if self.reduced && m.small && d > if r == 3 { 32.0 } else if r == 0 { 12.0 } else { 0.0 } {
                         continue;
                     }
+                    // Redusert grafikk ser kortere: det som er langt unna
+                    // tegnes ikke (tåka er tettere, så kanten glir bort).
+                    if self.reduced && d > REDUCED_FAR {
+                        continue;
+                    }
                     // Skyggekaskadene lenger ute nøyer seg med den fjerne.
                     if d < model_near && (r == 3 || r == 0) {
                         near.push(*inst);
@@ -1079,7 +1089,7 @@ impl Renderer {
             sun_dir: v4(f.sun_dir, f.sun_intensity),
             sun_color: v4(f.sun_color, f.night),
             sky_top: v4(f.sky_top, 0.0),
-            sky_horizon: v4(f.sky_horizon, f.fog_density),
+            sky_horizon: v4(f.sky_horizon, if self.reduced && f.fog_density > 0.0 { (f.fog_density * 3.0).max(REDUCED_FOG) } else { f.fog_density }),
             ground_bounce: v4(f.ground_bounce, f.fog_falloff),
             fog_color: v4(f.fog_color, f.windows_lit),
             params: [f.exposure, f.lights.len().min(if self.reduced { 8 } else { MAX_LIGHTS }) as f32, 1.0 / CASCADE_RES as f32, f.street_lights],

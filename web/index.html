@@ -33,10 +33,6 @@
       </span>
     </span>
     <div id="vitals" class="vitals" hidden>
-      <label class="fs-label" for="hp">Liv</label>
-      <progress id="hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
-      <label class="fs-label" for="stamina">Utholdenhet</label>
-      <progress id="stamina" class="fs-progress" max="100" value="100"></progress>
       <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
       <span id="keys" class="fs-badge" data-variant="warning" hidden>0 nøkler</span>
       <div id="boss" class="boss" hidden>
@@ -51,6 +47,32 @@
         <span><kbd>Shift</kbd> + retning Unna</span>
       </div>
     </div>
+    <!-- Liv og energi som to Fristil-stolper over knappelinja, som i Diablo:
+         livet til venstre, energien (utholdenheten) til høyre. -->
+    <div id="bars" class="bars">
+      <div class="bar">
+        <div class="bar-head"><label class="fs-label" for="hp">Liv</label><span id="hp-text" class="bar-num">100 / 100</span></div>
+        <progress id="hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+      </div>
+      <div class="bar">
+        <div class="bar-head"><label class="fs-label" for="stamina">Energi</label><span id="stamina-text" class="bar-num">100 / 100</span></div>
+        <progress id="stamina" class="fs-progress" max="100" value="100"></progress>
+      </div>
+    </div>
+    <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
+         dreier med deg, og det store kartet (K) med nord opp. Det du ikke
+         har sett, er mørkt. -->
+    <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
+      <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
+      <canvas id="minimap-canvas" width="200" height="200"></canvas>
+    </aside>
+    <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
+      <div class="bigmap-card">
+        <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
+        <canvas id="bigmap-canvas" width="640" height="640"></canvas>
+        <p class="fs-paragraph" data-size="small"><span class="legend exit">▼</span> trappa ned · <span class="legend gate">▮</span> portgitter · <span class="legend chest">■</span> kiste · <span class="legend ascend">▲</span> døra opp · <span class="legend boss">●</span> Rammeverket</p>
+      </div>
+    </section>
     <div id="marks" class="marks" aria-hidden="true"></div>
     <div id="bubbles" class="marks" aria-live="polite"></div>
     <div id="overlay" class="overlay" hidden role="dialog" aria-labelledby="overlay-title">
@@ -68,6 +90,7 @@
       <span><kbd>C</kbd> Huk</span>
       <span><kbd>X</kbd> Kryp</span>
       <span><kbd>I</kbd> Utstyr og lager</span>
+      <span><kbd>K</kbd> Kart (i kjelleren)</span>
       <span><kbd>M</kbd> Musikk</span>
       <span><kbd>T</kbd> Dag og natt</span>
       <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>
@@ -83,8 +106,8 @@
     <div class="fs-card gate-card">
       <p class="eyebrow">Fristil <span id="version"></span></p>
       <h1 class="fs-heading" data-size="xl">Fristad</h1>
-      <p class="fs-paragraph" data-variant="lead">De gamle mestrene snakket om Fristil: et designsystem som passet i alle rammeverk, og som klarte seg uten, slik nettsider ble bygd i gamle dager. Så ble det borte, og ingen har sett en ekte knapp siden.</p>
-      <p class="fs-paragraph">Det er år 1350 i kjøpstaden Fristad, og ryktet går at restene ligger begravd under borgruinen på haugen i nord. Der nede har komponentene råtnet til noe annet: knapper med tenner, tabeller som kryper langs veggene, vinduer som ikke lar seg lukke. Hver av dem du feller, slipper biter av det tapte systemet. Smeden og munkene i Skriptoriet former bitene om til sverd og brynje, og bøkene røper hva hver del en gang var ment å gjøre. Lær nok av dem, og hemmeligheten er din.</p>
+      <p class="fs-paragraph" data-variant="lead">De gamle mestrene snakket om Fristil: et designsystem som passet i alle rammeverk, og som klarte seg uten, slik nettsider ble bygd i gamle dager. Så ble det borte, og ingen har sett en ekte button siden.</p>
+      <p class="fs-paragraph">Det er år 1350 i kjøpstaden Fristad, og ryktet går at restene ligger begravd under borgruinen på haugen i nord. Der nede har komponentene råtnet til noe annet: buttons med tenner, tabeller som kryper langs veggene, vinduer som ikke lar seg lukke. Hver av dem du feller, slipper biter av det tapte systemet. Smeden og munkene i Skriptoriet former bitene om til sverd og brynje, og bøkene røper hva hver del en gang var ment å gjøre. Lær nok av dem, og hemmeligheten er din.</p>
       <p class="fs-paragraph" data-size="small">Sikt på noe og trykk <kbd>F</kbd> for å bruke det, <kbd>E</kbd> for å handle.</p>
       <div id="status" class="status" role="status">
         <span class="fs-spinner" aria-hidden="true"></span>

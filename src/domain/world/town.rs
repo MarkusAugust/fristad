@@ -737,8 +737,8 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
 
 /// Hvem som står hvor, og hva de sier.
 const SMITH: &[&str] = &[
-    "Knappesmeden, til tjeneste. Jeg smir det du bærer opp fra krypten.",
-    "Et sverd trenger en klinge og et grep: en divider og en knapp. Resten er håndlag.",
+    "Buttonsmeden, til tjeneste. Jeg smir det du bærer opp fra krypten.",
+    "Et sverd trenger en klinge og et grep: en divider og en button. Resten er håndlag.",
     "Kom tilbake med komponenter, så får vi se hva stålet duger til.",
 ];
 const CLERK: &[&str] = &[
@@ -759,7 +759,7 @@ const GORVEK: &[&str] = &[
 const INNKEEPER: &[&str] = &[
     "Velkommen til Vertshuset. Øl er det nok av, nyheter også.",
     "De sier krypten under borgen går dypere enn noen har gått.",
-    "Det kommer rare ting opp fra dypet om natta. Knapper med tenner.",
+    "Det kommer rare ting opp fra dypet om natta. Buttons med tenner.",
 ];
 
 /// Stavkirka på kirkegården nordvest i byen, med steingjerde og gravsteiner.
@@ -863,7 +863,7 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     // Rekkefølgen i SPECIALS: apotek, vertshus, smie, skriptorium.
     // Figuren: en egen modell (fra tools/models/people.py) om den finnes.
     let cast: [(&'static str, &'static str, (Vec2, f32), Vec3, &'static [&'static str]); 5] = [
-        ("Knappesmeden", "npc_smith", at_door(2), Vec3::new(0.22, 0.1, 0.05), SMITH),
+        ("Buttonsmeden", "npc_smith", at_door(2), Vec3::new(0.22, 0.1, 0.05), SMITH),
         ("Skriptoriet", "npc_clerk", at_door(3), Vec3::new(0.06, 0.12, 0.42), CLERK),
         ("Apotekeren", "npc_apothecary", at_door(0), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
         ("Vertinnen", "npc_innkeeper", at_door(1), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
@@ -1177,7 +1177,7 @@ fn street_gap(p: Vec2) -> f32 {
 
 const TOWNSFOLK: &[&str] = &[
     "God dag. Vannet i brønnen er kaldt i dag, kaldt som krypten.",
-    "Har du vært nede under borgen? Bror min gikk ned i fjor. Han snakker bare om knapper nå.",
+    "Har du vært nede under borgen? Bror min gikk ned i fjor. Han snakker bare om buttons nå.",
     "Torgdag i dag. Alt er dyrere enn i går.",
     "Kirkeklokka ringte feil i natt. Tretten slag.",
 ];

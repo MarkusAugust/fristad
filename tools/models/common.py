@@ -170,13 +170,24 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
     links.new(mul.outputs["Result"], bsdf.inputs["Base Color"])
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None):
+# Siden på flisen som de stablede øyene (tetthet 0) deler, som en del av
+# kvadratroten av flaten til resten av øyene.
+STACK = 0.12
+
+
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
     begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
     normalkart og ruhet/metall til teksturer, bytter til teksturerte
     materialer og eksporterer glTF. Materialer som begynner på «paint» bakes
     hvite og beholder navnet, så motoren farger dem per instans; resten
-    samles i «body» (metallfaktoren ligger i teksturen)."""
+    samles i «body» (metallfaktoren ligger i teksturen).
+
+    `density` (objektnavn-prefiks → faktor) gir delene mer eller mindre
+    plass i teksturen enn flatene deres tilsier, så ansiktet ikke presses
+    ned til noen få piksler; 0 stabler øyene oppå hverandre i én flis
+    (hårlokker og skjeggtuster). Et objekt kan
+    også ha flateattributtet «uv_density» selv (ansiktet på en figur)."""
     import os
 
     import numpy as np
@@ -192,6 +203,13 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         for prefix, bone in (rigid or {}).items():
             if o.name.startswith(prefix):
                 rigid_group(o, bone)
+    weighted = bool(density) or any("uv_density" in o.data.attributes for o in meshes)
+    if weighted:
+        for o in meshes:
+            if "uv_density" not in o.data.attributes:
+                f = next((v for k, v in (density or {}).items() if o.name.startswith(k)), 1.0)
+                a = o.data.attributes.new("uv_density", "FLOAT", "FACE")
+                a.data.foreach_set("value", [f] * len(o.data.polygons))
     bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
         o.select_set(True)
@@ -212,6 +230,53 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.003)
     bpy.ops.object.mode_set(mode="OBJECT")
+    if weighted:
+        # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
+        # (pakkingen beholder forholdet mellom øyene).
+        import bmesh
+        from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
+
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        uv = bm.loops.layers.uv.active
+        dens = bm.faces.layers.float.get("uv_density")
+        stacked = []
+        area = 0.0
+        for island in bmesh_linked_uv_islands(bm, uv):
+            w = sum(f[dens] for f in island) / len(island)
+            loops = [l for f in island for l in f.loops]
+            if w <= 0.0:
+                stacked.append(loops)
+                continue
+            if abs(w - 1.0) > 1e-3:
+                cu = sum(l[uv].uv.x for l in loops) / len(loops)
+                cv = sum(l[uv].uv.y for l in loops) / len(loops)
+                for l in loops:
+                    l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
+                    l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
+            for f in island:
+                pts = [l[uv].uv for l in f.loops]
+                area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
+        # Tetthet 0: øyene legges oppå hverandre i én liten flis (hårlokker
+        # og skjeggtuster, som ser like ut uansett), så tusenvis av øyer ikke
+        # spiser teksturen. Flisen er en liten del av resten.
+        side = STACK * area ** 0.5
+        for loops in stacked:
+            u0 = min(l[uv].uv.x for l in loops)
+            v0 = min(l[uv].uv.y for l in loops)
+            du = max(max(l[uv].uv.x for l in loops) - u0, 1e-6)
+            dv = max(max(l[uv].uv.y for l in loops) - v0, 1e-6)
+            for l in loops:
+                l[uv].uv.x = (l[uv].uv.x - u0) / du * side
+                l[uv].uv.y = (l[uv].uv.y - v0) / dv * side
+        bm.to_mesh(ob.data)
+        bm.free()
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.select_all(action="SELECT")
+        bpy.ops.uv.pack_islands(rotate=True, margin=0.002, merge_overlap=True)
+        bpy.ops.object.mode_set(mode="OBJECT")
+        ob.data.attributes.remove(ob.data.attributes["uv_density"])
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"

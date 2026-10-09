@@ -227,30 +227,23 @@ function stage(text) {
 let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
-// Intern oppløsning: senkes automatisk når bildefrekvensen faller, og heves
-// igjen når det flyter. `setScale(tall)` låser den, `setScale(null)` slipper.
-// Først senkes kvaliteten (færre prøver i skygger, SSAO og tåke: 1 → 0.5 → 0),
-// så oppløsningen. Opp igjen i motsatt rekkefølge.
+// Intern oppløsning og kvalitet: endres aldri av seg selv, bare når
+// spilleren bytter grafikk (G eller knappen i menyen). `setScale(tall)` og
+// `setQuality(tall)` setter dem for hånd (til feilsøking).
 let scale = 1;
 let quality = 1;
-let autoScale = true;
-let slowSeconds = 0;
-let fastSeconds = 0;
 function setScale(s) {
-  autoScale = s === null || s === undefined;
-  if (!autoScale) {
-    scale = Math.min(1, Math.max(0.4, s));
-    engine.set_scale(scale);
-  }
+  scale = Math.min(1, Math.max(0.4, s ?? 1));
+  engine.set_scale(scale);
 }
 function setQuality(q) {
-  autoScale = q === null || q === undefined;
-  if (!autoScale) {
-    quality = Math.min(1, Math.max(0, q));
-    engine.set_quality(quality);
-  }
+  quality = Math.min(1, Math.max(0, q ?? 1));
+  engine.set_quality(quality);
 }
-// Byttes grafikken: motoren, kvaliteten, oppløsningen og knappene.
+// Byttes grafikken: motoren, kvaliteten og knappene. Redusert grafikk ser
+// kortere (rendereren kutter det som er langt unna og tetner tåka) og
+// sparer skygger, SSAO og glød, men beholder full oppløsning, så bildet
+// ikke blir uskarpt.
 function setGraphics(reduced, chosen = true, announce = true) {
   reducedGfx = reduced;
   if (chosen) {
@@ -265,69 +258,27 @@ function setGraphics(reduced, chosen = true, announce = true) {
     engine.set_reduced(reduced);
     quality = reduced ? 0 : 1;
     engine.set_quality(quality);
-    scale = reduced ? 0.75 : 1;
+    scale = 1;
     engine.set_scale(scale);
   }
   slowSeconds = 0;
-  fastSeconds = 0;
-  lowStreak = 0;
   fit();
   const name = reduced ? "redusert" : "avansert";
   $("graphics").textContent = `Grafikk: ${name}`;
   $("graphics").setAttribute("aria-pressed", String(reduced));
   $("graphics-label").textContent = name;
-  if (announce) toast?.show?.(reduced ? "Redusert grafikk: lettere å kjøre, litt enklere bilde. G bytter tilbake." : "Avansert grafikk: alt på. G bytter til redusert.");
+  if (announce) toast?.show?.(reduced ? "Redusert grafikk: kortere sikt og enklere lys, lettere å kjøre. G bytter tilbake." : "Avansert grafikk: alt på. G bytter til redusert.");
 }
-let lowStreak = 0;
+// Går det tregt over tid i avansert grafikk, foreslås redusert én gang.
+// Ingenting byttes uten at spilleren ber om det.
+let slowSeconds = 0;
 let suggested = false;
 function adapt(fps) {
-  if (!playing) return;
-  // Går det tregt selv med lav kvalitet og oppløsning i avansert grafikk,
-  // byttes det til redusert (eller foreslås, om avansert er valgt).
-  if (!reducedGfx && quality === 0 && scale <= 0.6 && fps < 28) {
-    lowStreak++;
-    if (lowStreak >= 4) {
-      lowStreak = 0;
-      if (!gfxChosen) {
-        setGraphics(true, false, false);
-        toast?.show?.("Spillet gikk tregt, så grafikken er satt til redusert. G bytter.");
-      } else if (!suggested) {
-        suggested = true;
-        toast?.show?.("Spillet går tregt. Trykk G for redusert grafikk.");
-      }
-    }
-  } else {
-    lowStreak = 0;
-  }
-  if (!autoScale) return;
-  if (fps < 40) {
-    slowSeconds++;
-    fastSeconds = 0;
-  } else if (fps > 57) {
-    fastSeconds++;
-    slowSeconds = 0;
-  } else {
-    slowSeconds = 0;
-    fastSeconds = 0;
-  }
-  if (slowSeconds >= 2) {
-    if (quality > 0 && !reducedGfx) {
-      quality = Math.max(0, quality - 0.5);
-      engine.set_quality(quality);
-    } else if (scale > 0.5) {
-      scale = Math.round((scale - 0.1) * 10) / 10;
-      engine.set_scale(scale);
-    }
-    slowSeconds = 0;
-  } else if (fastSeconds >= 5) {
-    if (scale < (reducedGfx ? 0.85 : 1)) {
-      scale = Math.round((scale + 0.1) * 10) / 10;
-      engine.set_scale(scale);
-    } else if (quality < 1 && !reducedGfx) {
-      quality = Math.min(1, quality + 0.5);
-      engine.set_quality(quality);
-    }
-    fastSeconds = 0;
+  if (!playing || reducedGfx || suggested) return;
+  slowSeconds = fps < 25 ? slowSeconds + 1 : 0;
+  if (slowSeconds >= 8) {
+    suggested = true;
+    toast?.show?.("Spillet går tregt. Trykk G for redusert grafikk.");
   }
 }
 function loop(now) {
@@ -377,6 +328,13 @@ function handle(e) {
     case "warp":
       warp();
       break;
+    case "map":
+      setMap(e.map);
+      break;
+    case "where":
+      mapWhere = e;
+      drawMaps();
+      break;
     case "theme":
       document.documentElement.dataset.theme = e.theme;
       break;
@@ -393,8 +351,7 @@ function handle(e) {
       if (playing) sfx.heart(e.hp);
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
-      $("hp").value = e.hp;
-      $("stamina").value = e.stamina;
+      setBars(e.hp, e.stamina);
       $("tokens").textContent = `${e.tokens} tokens`;
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;
@@ -418,6 +375,7 @@ function handle(e) {
       break;
     case "inventory":
       renderInventory(e);
+      setBars(lastHud.hp, lastHud.stamina);
       try {
         localStorage.setItem("fristad.save", engine.save_state());
       } catch {
@@ -446,6 +404,18 @@ function handle(e) {
 // Lageret og utstyret i hjørnet: utstyret som linjer, komponentene som
 // chips du kan lese om i boka (det gir liv tilbake, én gang per tur).
 let lastHud = { hp: 100, stamina: 100, tokens: 0, keys: 0 };
+
+// Stolpene over knappelinja: liv og energi med tall (maks fra utstyret).
+function setBars(hp, stamina) {
+  const maxHp = lastInv?.max_hp ?? 100;
+  const maxSt = lastInv?.max_stamina ?? 100;
+  $("hp").max = maxHp;
+  $("hp").value = hp;
+  $("hp-text").textContent = `${hp} / ${maxHp}`;
+  $("stamina").max = maxSt;
+  $("stamina").value = stamina;
+  $("stamina-text").textContent = `${stamina} / ${maxSt}`;
+}
 let lastInv = null;
 function renderInventory(e) {
   lastInv = e;
@@ -489,6 +459,134 @@ function fade() {
   el.classList.remove("on");
   void el.offsetWidth;
   el.classList.add("on");
+}
+
+// Kartet over etasjen i kjelleren: minikartet dreier med deg (fram er
+// opp), det store kartet (K) har nord opp. Bare det du har sett tegnes.
+let mapData = null;
+let mapWhere = null;
+let bigMapOpen = false;
+function setMap(m) {
+  mapData = m && { ...m, cells: Array.from(m.cells, (c) => parseInt(c, 16)), seen: Array.from(m.seen, (s) => s === "1") };
+  $("minimap").hidden = !mapData;
+  if (!mapData) toggleBigMap(false);
+  else $("map-name").textContent = `Etasje ${m.floor + 1} · ${m.name.replace(/^\d+: /, "")}`;
+  drawMaps();
+}
+function toggleBigMap(on = !bigMapOpen) {
+  bigMapOpen = on && !!mapData;
+  $("bigmap").hidden = !bigMapOpen;
+  drawMaps();
+}
+const MAP_COLORS = { floor: "#6b5a44", wall: "#e8d9b8", player: "#ffd75e", exit: "#4cc3ff", gate: "#c9a24a", gate_open: "#7d6a3c", chest: "#e8b84a", ascend: "#9be08a", boss: "#e0483a", shortcut: "#b08a5a" };
+function drawMap(canvas, rotate, metres) {
+  const dpr = window.devicePixelRatio || 1;
+  const css = canvas.getBoundingClientRect();
+  if (!css.width) return;
+  const w = Math.round(css.width * dpr);
+  if (canvas.width !== w) canvas.width = canvas.height = w;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, w, w);
+  const m = mapData;
+  if (!m) return;
+  const n = m.n;
+  const cs = m.cell;
+  const [ox, oz] = m.origin;
+  const me = mapWhere ?? { x: ox + (n * cs) / 2, z: oz + (n * cs) / 2, yaw: 0 };
+  // Verden (x, z) til skjermen: dreid så fram er opp, eller nord opp med
+  // hele det oppdagede kartet.
+  let a, b, c, d, e, f;
+  if (rotate) {
+    const s = w / 2 / metres;
+    const cy = Math.cos(me.yaw), sy = Math.sin(me.yaw);
+    a = cy * s; b = sy * s; c = -sy * s; d = cy * s;
+    e = w / 2 - (a * me.x + c * me.z);
+    f = w / 2 - (b * me.x + d * me.z);
+  } else {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let i = 0; i < n * n; i++) {
+      if (!m.seen[i] || !m.cells[i]) continue;
+      const ix = i % n, iz = Math.floor(i / n);
+      x0 = Math.min(x0, ix); x1 = Math.max(x1, ix + 1); z0 = Math.min(z0, iz); z1 = Math.max(z1, iz + 1);
+    }
+    if (x0 === Infinity) { x0 = 0; x1 = n; z0 = 0; z1 = n; }
+    const span = Math.max(x1 - x0, z1 - z0, 8) * cs * 1.1;
+    const s = w / span;
+    a = s; b = 0; c = 0; d = s;
+    e = w / 2 - s * (ox + ((x0 + x1) / 2) * cs);
+    f = w / 2 - s * (oz + ((z0 + z1) / 2) * cs);
+  }
+  const at = (x, z) => [a * x + c * z + e, b * x + d * z + f];
+  ctx.save();
+  if (rotate) {
+    ctx.beginPath();
+    ctx.arc(w / 2, w / 2, w / 2, 0, Math.PI * 2);
+    ctx.clip();
+  }
+  ctx.setTransform(a, b, c, d, e, f);
+  ctx.fillStyle = MAP_COLORS.floor;
+  for (let i = 0; i < n * n; i++) {
+    if (!m.seen[i] || !m.cells[i]) continue;
+    const ix = i % n, iz = Math.floor(i / n);
+    ctx.fillRect(ox + ix * cs - 0.02, oz + iz * cs - 0.02, cs + 0.04, cs + 0.04);
+  }
+  // Murene: kantene der du ikke kan gå videre.
+  ctx.strokeStyle = MAP_COLORS.wall;
+  ctx.lineWidth = rotate ? 0.45 : Math.max(0.3, 1.6 / Math.abs(a));
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  for (let i = 0; i < n * n; i++) {
+    const v = m.cells[i];
+    if (!m.seen[i] || !v) continue;
+    const ix = i % n, iz = Math.floor(i / n);
+    const x = ox + ix * cs, z = oz + iz * cs;
+    const west = ix > 0 ? m.cells[i - 1] : 0;
+    const north = iz > 0 ? m.cells[i - n] : 0;
+    if (!(v & 2)) { ctx.moveTo(x + cs, z); ctx.lineTo(x + cs, z + cs); }
+    if (!(v & 4)) { ctx.moveTo(x, z + cs); ctx.lineTo(x + cs, z + cs); }
+    if (!(west & 2)) { ctx.moveTo(x, z); ctx.lineTo(x, z + cs); }
+    if (!(north & 4)) { ctx.moveTo(x, z); ctx.lineTo(x + cs, z); }
+  }
+  ctx.stroke();
+  // Merkene og deg selv står rett opp, med fast størrelse.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const r = Math.max(4, w / (rotate ? 36 : 70));
+  for (const k of m.marks) {
+    const [x, y] = at(k.x, k.z);
+    ctx.fillStyle = MAP_COLORS[k.kind] ?? "#fff";
+    ctx.beginPath();
+    switch (k.kind) {
+      case "exit": ctx.moveTo(x - r, y - r * 0.7); ctx.lineTo(x + r, y - r * 0.7); ctx.lineTo(x, y + r); break;
+      case "ascend": ctx.moveTo(x - r, y + r * 0.7); ctx.lineTo(x + r, y + r * 0.7); ctx.lineTo(x, y - r); break;
+      case "chest": ctx.rect(x - r * 0.7, y - r * 0.55, r * 1.4, r * 1.1); break;
+      case "gate": case "gate_open": case "shortcut": ctx.rect(x - r * 0.35, y - r, r * 0.7, r * 2); break;
+      default: ctx.arc(x, y, r * 0.8, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+  const [px, py] = at(me.x, me.z);
+  // Pila peker dit du ser: rett opp på minikartet.
+  const dir = rotate ? -Math.PI / 2 : Math.atan2(-Math.cos(me.yaw), -Math.sin(me.yaw));
+  ctx.translate(px, py);
+  ctx.rotate(dir + Math.PI / 2);
+  ctx.fillStyle = MAP_COLORS.player;
+  ctx.strokeStyle = "#1c1a17";
+  ctx.lineWidth = Math.max(1, r * 0.25);
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 1.4);
+  ctx.lineTo(r * 0.9, r);
+  ctx.lineTo(0, r * 0.45);
+  ctx.lineTo(-r * 0.9, r);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fill();
+  ctx.restore();
+}
+function drawMaps() {
+  if (!mapData) return;
+  drawMap($("minimap-canvas"), true, 30);
+  if (bigMapOpen) drawMap($("bigmap-canvas"), false, 0);
 }
 
 // Gjennom portalen: en virvel over skjermen (synsfeltet strekkes i motoren).
@@ -721,10 +819,14 @@ function openWorkshop(recipes) {
     const r = recipes.find((x) => x.id === sel.value) ?? recipes[0];
     form.querySelector("#recipe-result").textContent = r.result;
     fields.replaceChildren();
+    // Hvor hver komponent finnes; de som bare finnes i krypten merkes.
+    const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
+    const mark = (c) => (where.get(c)?.cryptOnly ? ` <span class="fs-badge" data-color="warning">Bare i krypten</span>` : "");
     for (const [c, need, have] of r.needs) {
       const wrap = document.createElement("div");
       wrap.className = "field";
-      wrap.innerHTML = `<label class="fs-label">${esc(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="fs-error-text" ${have >= need ? "hidden" : ""}>Mangler ${Math.max(0, need - have)}. Finnes i krypten og hos Knappesmeden.</p>`;
+      const src = where.get(c)?.text ?? "";
+      wrap.innerHTML = `<label class="fs-label">${esc(c)}${mark(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="${have >= need ? "fs-help-text" : "fs-error-text"}">${have >= need ? "" : `Mangler ${Math.max(0, need - have)}. `}${esc(src)}</p>`;
       fields.appendChild(wrap);
     }
     if (r.requires.length) {
@@ -734,7 +836,7 @@ function openWorkshop(recipes) {
       for (const [c, ok] of r.requires) {
         const p = document.createElement("p");
         p.className = ok ? "fs-help-text" : "fs-error-text";
-        p.textContent = ok ? `${c}: i lageret` : `${c}: mangler`;
+        p.innerHTML = `${esc(c)}${mark(c)}: ${ok ? "i lageret" : `mangler. ${esc(where.get(c)?.text ?? "")}`}`;
         fs.appendChild(p);
       }
       fields.appendChild(fs);
@@ -1005,6 +1107,11 @@ function bindInput() {
         e.preventDefault();
         closeOverlay(true, true);
       }
+      return;
+    }
+    if (e.code === "KeyK" && !e.repeat && playing) {
+      e.preventDefault();
+      toggleBigMap();
       return;
     }
     if (e.code === "KeyG" && !e.repeat && (playing || !gateEl.hidden)) {

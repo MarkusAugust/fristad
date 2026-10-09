@@ -103,6 +103,9 @@ pub enum Command {
     SetPaused(bool),
     /// Tilbake til sørporten.
     Respawn,
+    /// Rett ned i kjelleren, som om du gikk inn døra i krypten (til
+    /// nettlesertestene).
+    Descend,
     /// Flytt kameraet (øyet), til skjermbilder og tester.
     Place { eye: Vec3, yaw: f32, pitch: f32 },
     SetQuality(f32),
@@ -180,6 +183,40 @@ pub enum Event {
     Workshop { recipes: Vec<RecipeView> },
     /// Lydbildet der du står, når det endrer seg merkbart.
     Ambience(Ambience),
+    /// Kartet over etasjen du er i (minikartet og det store kartet), når
+    /// du har oppdaget mer eller bytter etasje; `None` oppe i byen.
+    Map(Option<MapView>),
+    /// Hvor du står og hvilken vei du ser i kjelleren (til minikartet).
+    Where { x: f32, z: f32, yaw: f32 },
+}
+
+/// Kartet over en etasje: rutenettet med åpningene mellom cellene, hva du
+/// har sett (fog of war), og merkene du har oppdaget.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MapView {
+    /// Etasjen (fra 0) og navnet på epoken.
+    pub floor: usize,
+    pub name: String,
+    /// Hjørnet av celle (0, 0) i verden (x, z), cellens side og antall
+    /// celler langs hver kant.
+    pub origin: [f32; 2],
+    pub cell: f32,
+    pub n: usize,
+    /// Per celle (rad for rad langs z): 0 er fjell; ellers 1 for gulv, + 2
+    /// om du kan gå østover (+x), + 4 om du kan gå sørover (+z).
+    pub cells: Vec<u8>,
+    /// Per celle: om du har sett den.
+    pub seen: Vec<bool>,
+    pub marks: Vec<MapMark>,
+}
+
+/// Et merke på kartet: «exit» (trappa ned), «gate» og «gate_open», «chest»,
+/// «ascend» (døra opp), «boss», «shortcut».
+#[derive(Clone, Debug, PartialEq)]
+pub struct MapMark {
+    pub kind: String,
+    pub x: f32,
+    pub z: f32,
 }
 
 /// En lyd: navnet (i `assets/sounds/sounds.json`), hvor den kommer fra sett
@@ -273,6 +310,9 @@ pub struct RecipeView {
     pub needs: Vec<(String, u32, u32)>,
     /// (komponent, har).
     pub requires: Vec<(String, bool)>,
+    /// (komponent, hvor den finnes, bare i krypten) for alle komponentene
+    /// over.
+    pub sources: Vec<(String, String, bool)>,
     pub ok: bool,
 }
 

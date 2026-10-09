@@ -143,6 +143,9 @@ pub const LOOT: [&[&str]; 5] = [
     &["fieldset", "file-upload", "search", "dialog", "tabs"],
 ];
 
+/// Det Rammeverket legger igjen i buret når det er beseiret.
+pub const BOSS_LOOT: [&str; 2] = ["dialog", "tabs"];
+
 /// Det elitefienden alltid bærer, per etasje.
 pub const ELITE_LOOT: [&str; 5] = ["divider", "card", "label", "fieldset", "file-upload"];
 
@@ -197,7 +200,7 @@ pub enum WareKind {
 }
 
 pub const SMITH_WARES: &[Ware] = &[
-    Ware { id: "buy_button", name: "Knapp", price: 12, what: WareKind::Component("button") },
+    Ware { id: "buy_button", name: "Button", price: 12, what: WareKind::Component("button") },
     Ware { id: "buy_divider", name: "Divider", price: 14, what: WareKind::Component("divider") },
     Ware { id: "buy_badge", name: "Badge", price: 10, what: WareKind::Component("badge") },
     Ware { id: "buy_tag", name: "Tag", price: 8, what: WareKind::Component("tag") },
@@ -210,6 +213,61 @@ pub const GORVEK_WARES: &[Ware] = &[
     Ware { id: "train_hp", name: "Herding (+20 maks liv)", price: 30, what: WareKind::MaxHp(20.0) },
     Ware { id: "train_stamina", name: "Pust (+20 maks utholdenhet)", price: 30, what: WareKind::MaxStamina(20.0) },
 ];
+
+/// Hvor en komponent finnes: i kistene (etasjene, fra 1), hos eliten
+/// (etasjene), hos Rammeverket, og prisen hos Buttonsmeden om han selger
+/// den.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Source {
+    pub chests: Vec<usize>,
+    pub elite: Vec<usize>,
+    pub boss: bool,
+    pub smith: Option<u32>,
+}
+
+pub fn source(component: &str) -> Source {
+    Source {
+        chests: LOOT.iter().enumerate().filter(|(_, l)| l.contains(&component)).map(|(f, _)| f + 1).collect(),
+        elite: ELITE_LOOT.iter().enumerate().filter(|(_, c)| **c == component).map(|(f, _)| f + 1).collect(),
+        boss: BOSS_LOOT.contains(&component),
+        smith: SMITH_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
+    }
+}
+
+impl Source {
+    /// Bare i krypten (ikke til salgs i byen).
+    pub fn crypt_only(&self) -> bool {
+        self.smith.is_none()
+    }
+
+    /// Hvor den finnes, som en setning.
+    pub fn describe(&self) -> String {
+        let floors = |v: &[usize]| match v {
+            [a] => format!("etasje {a}"),
+            [rest @ .., last] => format!("etasje {} og {last}", rest.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(", ")),
+            [] => String::new(),
+        };
+        let mut parts = vec![];
+        if !self.chests.is_empty() {
+            parts.push(format!("kister i {}", floors(&self.chests)));
+        }
+        if !self.elite.is_empty() {
+            parts.push(format!("eliten i {}", floors(&self.elite)));
+        }
+        if self.boss {
+            parts.push("Rammeverket".to_string());
+        }
+        let crypt = match parts.as_slice() {
+            [] => "krypten".to_string(),
+            [a] => a.clone(),
+            [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
+        };
+        match self.smith {
+            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens."),
+            None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes."),
+        }
+    }
+}
 
 pub fn ware(id: &str) -> Option<Ware> {
     SMITH_WARES.iter().chain(APOTHECARY_WARES).chain(GORVEK_WARES).copied().find(|w| w.id == id)
