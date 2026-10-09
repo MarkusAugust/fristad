@@ -142,6 +142,9 @@ fn main() {
     if let Some(scale) = arg("--scale") {
         app.command(Command::SetScale(scale.parse().unwrap()));
     }
+    if flag("--reduced") {
+        app.command(Command::SetReduced(true));
+    }
     if let Some(q) = arg("--quality") {
         app.command(Command::SetQuality(q.parse().unwrap()));
     }

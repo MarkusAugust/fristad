@@ -210,6 +210,11 @@ impl Engine {
         self.app.command(Command::SetQuality(quality));
     }
 
+    /// Redusert grafikk (av eller på), til svake maskiner.
+    pub fn set_reduced(&mut self, reduced: bool) {
+        self.app.command(Command::SetReduced(reduced));
+    }
+
     /// Intern oppløsning som andel av vinduet, 0.4–1.0.
     pub fn set_scale(&mut self, scale: f32) {
         self.app.command(Command::SetScale(scale));

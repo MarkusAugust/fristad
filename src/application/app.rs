@@ -62,6 +62,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
             Command::SetQuality(q) => self.renderer.set_quality(q),
             Command::SetScale(s) => self.renderer.set_scale(s),
+            Command::SetReduced(r) => self.renderer.set_reduced(r),
         }
         true
     }

@@ -107,6 +107,7 @@ pub enum Command {
     Place { eye: Vec3, yaw: f32, pitch: f32 },
     SetQuality(f32),
     SetScale(f32),
+    SetReduced(bool),
 }
 
 /// Spillet sett utenfra.

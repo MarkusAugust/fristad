@@ -28,6 +28,19 @@ const enterBtn = $("enter");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
+// Grafikken: avansert (alt på) eller redusert (to skyggekaskader, ingen SSAO
+// eller glød, færre lys, grovere detalj, lavere oppløsning) for vanlige
+// jobb-PC-er. Valget huskes; uten valg byttes det til redusert av seg selv
+// om bildefrekvensen blir liggende lavt.
+let reducedGfx = false;
+let gfxChosen = false;
+try {
+  const g = localStorage.getItem("fristad.graphics");
+  gfxChosen = g === "redusert" || g === "avansert";
+  reducedGfx = g === "redusert";
+} catch {
+  /* ingen lagring */
+}
 let engine = null;
 let docs = {};
 let panelOpen = false;
@@ -35,8 +48,9 @@ let current = { component: "" };
 
 // Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
 // høy pikseltetthet. Forskjellen synes knapt, men GPU-en får mye mindre å gjøre.
+// I redusert grafikk tegnes det aldri tettere enn én piksel per CSS-piksel.
 function fit() {
-  const scale = Math.min(window.devicePixelRatio || 1, 1.5);
+  const scale = Math.min(window.devicePixelRatio || 1, reducedGfx ? 1 : 1.5);
   const w = Math.max(1, Math.round(canvas.clientWidth * scale));
   const h = Math.max(1, Math.round(canvas.clientHeight * scale));
   if (canvas.width !== w || canvas.height !== h) {
@@ -78,7 +92,8 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, setScale, setQuality };
+  window.fristad = { engine, openPanel, closePanel, setScale, setQuality, setGraphics };
+  setGraphics(reducedGfx, false, false);
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -235,8 +250,56 @@ function setQuality(q) {
     engine.set_quality(quality);
   }
 }
+// Byttes grafikken: motoren, kvaliteten, oppløsningen og knappene.
+function setGraphics(reduced, chosen = true, announce = true) {
+  reducedGfx = reduced;
+  if (chosen) {
+    gfxChosen = true;
+    try {
+      localStorage.setItem("fristad.graphics", reduced ? "redusert" : "avansert");
+    } catch {
+      /* ingen lagring */
+    }
+  }
+  if (engine) {
+    engine.set_reduced(reduced);
+    quality = reduced ? 0 : 1;
+    engine.set_quality(quality);
+    scale = reduced ? 0.75 : 1;
+    engine.set_scale(scale);
+  }
+  slowSeconds = 0;
+  fastSeconds = 0;
+  lowStreak = 0;
+  fit();
+  const name = reduced ? "redusert" : "avansert";
+  $("graphics").textContent = `Grafikk: ${name}`;
+  $("graphics").setAttribute("aria-pressed", String(reduced));
+  $("graphics-label").textContent = name;
+  if (announce) toast?.show?.(reduced ? "Redusert grafikk: lettere å kjøre, litt enklere bilde. G bytter tilbake." : "Avansert grafikk: alt på. G bytter til redusert.");
+}
+let lowStreak = 0;
+let suggested = false;
 function adapt(fps) {
-  if (!autoScale || !playing) return;
+  if (!playing) return;
+  // Går det tregt selv med lav kvalitet og oppløsning i avansert grafikk,
+  // byttes det til redusert (eller foreslås, om avansert er valgt).
+  if (!reducedGfx && quality === 0 && scale <= 0.6 && fps < 28) {
+    lowStreak++;
+    if (lowStreak >= 4) {
+      lowStreak = 0;
+      if (!gfxChosen) {
+        setGraphics(true, false, false);
+        toast?.show?.("Spillet gikk tregt, så grafikken er satt til redusert. G bytter.");
+      } else if (!suggested) {
+        suggested = true;
+        toast?.show?.("Spillet går tregt. Trykk G for redusert grafikk.");
+      }
+    }
+  } else {
+    lowStreak = 0;
+  }
+  if (!autoScale) return;
   if (fps < 40) {
     slowSeconds++;
     fastSeconds = 0;
@@ -248,7 +311,7 @@ function adapt(fps) {
     fastSeconds = 0;
   }
   if (slowSeconds >= 2) {
-    if (quality > 0) {
+    if (quality > 0 && !reducedGfx) {
       quality = Math.max(0, quality - 0.5);
       engine.set_quality(quality);
     } else if (scale > 0.5) {
@@ -257,10 +320,10 @@ function adapt(fps) {
     }
     slowSeconds = 0;
   } else if (fastSeconds >= 5) {
-    if (scale < 1) {
+    if (scale < (reducedGfx ? 0.85 : 1)) {
       scale = Math.round((scale + 0.1) * 10) / 10;
       engine.set_scale(scale);
-    } else if (quality < 1) {
+    } else if (quality < 1 && !reducedGfx) {
       quality = Math.min(1, quality + 0.5);
       engine.set_quality(quality);
     }
@@ -462,7 +525,10 @@ function openLoot(component) {
   dlg.querySelector('[data-act="read"]')?.addEventListener("click", () => close(() => readDoc(component)));
   dlg.addEventListener("cancel", (ev) => {
     ev.preventDefault();
-    close(() => enter(false));
+    close(() => {
+      enter(false);
+      clickHint();
+    });
   });
   dlg.showModal();
   dlg.querySelector('[data-act="read"], [data-act="take"]')?.focus();
@@ -584,11 +650,15 @@ function openOverlay(title) {
   return $("overlay-body");
 }
 
-function closeOverlay(resume = true) {
+// Lukkes med knappen eller E (en brukerhandling), fanges musa igjen med en
+// gang, så du kan se deg rundt uten å klikke. Med Esc gir ikke nettleseren
+// oss musa; da sier en melding at et klikk i bildet tar deg tilbake.
+function closeOverlay(resume = true, relock = true) {
   if (!overlayOpen) return;
   overlayOpen = false;
   $("overlay").hidden = true;
-  if (resume) enter(false);
+  if (resume) enter(relock);
+  if (resume && !relock) clickHint();
 }
 
 function openShop(npc, wares) {
@@ -755,6 +825,15 @@ function locked() {
   return document.pointerLockElement === canvas;
 }
 
+// Sier fra (én gang i blant) at et klikk i bildet fanger musa igjen.
+let hintAt = 0;
+function clickHint() {
+  const now = performance.now();
+  if (now - hintAt < 8000) return;
+  hintAt = now;
+  toast?.show?.("Klikk i bildet for å se deg rundt med musa igjen. Uten fanget mus: dra for å se, klikk for å hugge.");
+}
+
 let loadedSave = false;
 let soundsLoading = false;
 function enter(relock = true) {
@@ -834,25 +913,51 @@ function bindInput() {
     // Slippes låsen mens du spiller (Esc), er det pause.
     if (!locked() && playing && !panelOpen) pause();
   });
+  // Ga ikke nettleseren oss musa, går det an å spille uten: dra for å se,
+  // klikk for å hugge.
+  document.addEventListener("pointerlockerror", () => {
+    if (playing) clickHint();
+  });
 
-  // Musetastene er hugg og blokk når musa er fanget; uten pekerlås drar
-  // venstre tast kameraet.
-  canvas.addEventListener("mousedown", (e) => {
-    if (!playing) return;
+  // Musetastene er hugg og blokk. Når musa er fanget, går hvert trykk rett
+  // til spillet. Uten pekerlås (noen nettlesere og jobb-PC-er gir den ikke)
+  // drar venstre tast kameraet, og et kort klikk uten å dra er et hugg;
+  // høyre tast blokker uansett. Trykk i HUD-en over bildet teller òg, men
+  // ikke i dialogene.
+  let dragDist = 0;
+  const inGame = (t) => t === canvas || (t instanceof Element && !t.closest("dialog, #overlay, #panel, #gate, button, a, input"));
+  document.addEventListener("mousedown", (e) => {
+    if (!playing || !inGame(e.target)) return;
     if (locked()) {
       e.preventDefault();
       engine.mouse(e.button, true);
     } else if (e.button === 0) {
       dragging = true;
+      dragDist = 0;
+    } else {
+      e.preventDefault();
+      engine.mouse(e.button, true);
     }
   });
   window.addEventListener("mouseup", (e) => {
+    const wasDrag = dragging;
     dragging = false;
-    if (playing) engine.mouse(e.button, false);
+    if (!playing) return;
+    if (!locked() && e.button === 0 && wasDrag && dragDist < 6 && inGame(e.target)) {
+      // Et kort klikk uten pekerlås: et hugg.
+      engine.mouse(0, true);
+      engine.mouse(0, false);
+      return;
+    }
+    engine.mouse(e.button, false);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  document.addEventListener("contextmenu", (e) => {
+    if (playing && inGame(e.target)) e.preventDefault();
+  });
   document.addEventListener("mousemove", (e) => {
     if (!playing) return;
+    if (dragging) dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     if (locked() || dragging) engine.look(e.movementX, e.movementY);
   });
 
@@ -884,8 +989,15 @@ function bindInput() {
     if (overlayOpen) {
       if (e.code === "Escape") {
         e.preventDefault();
-        closeOverlay(true);
+        closeOverlay(true, false);
+      } else if (e.code === "KeyE" && !e.repeat) {
+        e.preventDefault();
+        closeOverlay(true, true);
       }
+      return;
+    }
+    if (e.code === "KeyG" && !e.repeat && (playing || !gateEl.hidden)) {
+      setGraphics(!reducedGfx);
       return;
     }
     if (!playing) return;
@@ -903,7 +1015,8 @@ function bindInput() {
   window.addEventListener("blur", () => engine.release_all());
 
   $("close").addEventListener("click", () => closePanel(true));
-  $("overlay-close").addEventListener("click", () => closeOverlay(true));
+  $("overlay-close").addEventListener("click", () => closeOverlay(true, true));
+  $("graphics").addEventListener("click", () => setGraphics(!reducedGfx));
 }
 
 // Tastekartet nederst står hele tida, så det alltid går an å se hva tastene gjør.
@@ -936,6 +1049,7 @@ function closePanel(relock) {
   renderDemo({});
   if (relock === "resume") {
     enter(false);
+    clickHint();
   } else if (relock) {
     enter();
   } else {

@@ -183,6 +183,9 @@ struct GpuModel {
     /// Skinnet figur: instansene tar leddmatriser fra paletten, og det
     /// finnes ikke noe grovt detaljnivå.
     skinned: bool,
+    /// Småting (gress, blomster, krukker, stein): i redusert grafikk tegnes
+    /// de bare nær kameraet og kaster skygge bare helt nær.
+    small: bool,
 }
 
 /// Hvilke instanser et pass tegner av en modell: (nær, fjern) som områder i
@@ -278,6 +281,9 @@ pub struct Renderer {
     scale: f32,
     /// Kvalitet 0–1: antall prøver i skygger, SSAO og tåkemarsj.
     quality: f32,
+    /// Redusert grafikk: to skyggekaskader, ingen SSAO eller glød, færre
+    /// lys, grovere detalj tidligere og småting bare nær.
+    reduced: bool,
     out_size: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
     triangles: std::cell::Cell<(u32, u32, u32)>,
@@ -675,6 +681,7 @@ impl Renderer {
                     bounds: (lo, hi),
                     extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
                     skinned,
+                    small: !skinned && size < 1.3,
                 })
             })
             .collect();
@@ -726,6 +733,7 @@ impl Renderer {
             current: None,
             scale: 1.0,
             quality: 1.0,
+            reduced: false,
             out_size: (width, height),
             triangles: std::cell::Cell::new((0, 0, 0)),
         }
@@ -898,6 +906,11 @@ impl Renderer {
         self.quality = quality.clamp(0.0, 1.0);
     }
 
+    /// Redusert grafikk for svake maskiner (se `reduced`).
+    pub fn set_reduced(&mut self, reduced: bool) {
+        self.reduced = reduced;
+    }
+
     pub fn set_scale(&mut self, scale: f32) {
         let scale = scale.clamp(0.4, 1.0);
         if (scale - self.scale).abs() < 1e-3 {
@@ -959,10 +972,14 @@ impl Renderer {
             let m = self.cascade(f, near, *far);
             sun_vp[i] = m.to_cols_array_2d();
             // Småting kaster skygge bare i den nærmeste kaskaden.
-            sun_cull[i] = Cull { frustum: Frustum::from_view_proj(m), eye: f.camera, fine_within: if i == 0 { 40.0 } else { 0.0 } };
+            sun_cull[i] = Cull { frustum: Frustum::from_view_proj(m), eye: f.camera, fine_within: if i == 0 { if self.reduced { 18.0 } else { 40.0 } } else { 0.0 } };
             near = far * 0.8;
         }
-        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: 70.0 };
+        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if self.reduced { 35.0 } else { 70.0 } };
+        // Redusert: grovere detalj tidligere, småting bare nær, og bare to
+        // skyggekaskader.
+        let model_near = if self.reduced { MODEL_NEAR * 0.5 } else { MODEL_NEAR };
+        let shadow_cascades = if self.reduced { 2u32 } else { 3 };
         // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
         let culls = [sun_cull[0], sun_cull[1], sun_cull[2], cam_cull];
         let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
@@ -997,13 +1014,21 @@ impl Renderer {
                 let base = r as u32 * n * 2;
                 let mut near = vec![];
                 let mut far = vec![];
+                if r < 3 && r as u32 >= shadow_cascades {
+                    draws[r] = ModelDraw { near: (base, base), far: (base, base) };
+                    data.resize((base + n * 2) as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+                    continue;
+                }
                 for (inst, lo, hi) in m.placements.iter().chain(moving.iter()) {
                     if !cull.frustum.contains_aabb(*lo, *hi) {
                         continue;
                     }
                     let d = cull.eye.clamp(*lo, *hi).distance(cull.eye);
+                    if self.reduced && m.small && d > if r == 3 { 32.0 } else if r == 0 { 12.0 } else { 0.0 } {
+                        continue;
+                    }
                     // Skyggekaskadene lenger ute nøyer seg med den fjerne.
-                    if d < MODEL_NEAR && (r == 3 || r == 0) {
+                    if d < model_near && (r == 3 || r == 0) {
                         near.push(*inst);
                     } else {
                         far.push(*inst);
@@ -1057,7 +1082,7 @@ impl Renderer {
             sky_horizon: v4(f.sky_horizon, f.fog_density),
             ground_bounce: v4(f.ground_bounce, f.fog_falloff),
             fog_color: v4(f.fog_color, f.windows_lit),
-            params: [f.exposure, f.lights.len().min(MAX_LIGHTS) as f32, 1.0 / CASCADE_RES as f32, f.street_lights],
+            params: [f.exposure, f.lights.len().min(if self.reduced { 8 } else { MAX_LIGHTS }) as f32, 1.0 / CASCADE_RES as f32, f.street_lights],
             weather: [wx.wet, wx.snow_cover, wx.rain, wx.snow],
             screen: [w, h, 1.0 / w, 1.0 / h],
             jitter: [jitter[0], jitter[1], self.frame_index as f32, wx.wind],
@@ -1128,7 +1153,7 @@ impl Renderer {
             pass.set_bind_group(0, &self.globals_bg, &[]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            for c in 0..3u32 {
+            for c in 0..shadow_cascades {
                 let (x, y) = ((c % 2) * CASCADE_RES, (c / 2) * CASCADE_RES);
                 pass.set_viewport(x as f32, y as f32, CASCADE_RES as f32, CASCADE_RES as f32, 0.0, 1.0);
                 pass.set_bind_group(1, &t.shadow_frame_bg, &[(c as u64 * PASS_STRIDE) as u32]);
@@ -1189,12 +1214,23 @@ impl Renderer {
             pass.draw(0..3, 0..1);
         };
         let clear = wgpu::LoadOp::Clear(wgpu::Color::BLACK);
-        post(&t.ssao_bg.1, [0.7, 1.1, 0.0, 0.0], t.width, t.height);
-        fullscreen(&mut enc, "ssao", &t.ao[0], &self.ssao_pipe, &t.ssao_bg.0, clear);
-        post(&t.blur_bg[0].1, [0.0, 0.0, 1.0, 0.0], hw, hh);
-        fullscreen(&mut enc, "blur x", &t.ao[1], &self.blur_pipe, &t.blur_bg[0].0, clear);
-        post(&t.blur_bg[1].1, [0.0, 0.0, 0.0, 1.0], hw, hh);
-        fullscreen(&mut enc, "blur y", &t.ao[0], &self.blur_pipe, &t.blur_bg[1].0, clear);
+        if self.reduced {
+            // Ingen SSAO: okklusjonen er hvit (ingenting skygges).
+            enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("no ssao"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &t.ao[0], resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::WHITE), store: wgpu::StoreOp::Store } })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        } else {
+            post(&t.ssao_bg.1, [0.7, 1.1, 0.0, 0.0], t.width, t.height);
+            fullscreen(&mut enc, "ssao", &t.ao[0], &self.ssao_pipe, &t.ssao_bg.0, clear);
+            post(&t.blur_bg[0].1, [0.0, 0.0, 1.0, 0.0], hw, hh);
+            fullscreen(&mut enc, "blur x", &t.ao[1], &self.blur_pipe, &t.blur_bg[0].0, clear);
+            post(&t.blur_bg[1].1, [0.0, 0.0, 0.0, 1.0], hw, hh);
+            fullscreen(&mut enc, "blur y", &t.ao[0], &self.blur_pipe, &t.blur_bg[1].0, clear);
+        }
 
         // 4. Verden, himmel og nedbør.
         {
@@ -1251,19 +1287,19 @@ impl Renderer {
         post(&t.taa_bg[cur].1, [if taa { 1.0 } else { 0.0 }, 0.9, 0.0, 0.0], t.width, t.height);
         fullscreen(&mut enc, "taa", &t.resolved[cur], &self.taa_pipe, &t.taa_bg[cur].0, clear);
 
-        // 7. Glød.
-        for i in 0..BLOOM_LEVELS {
+        // 7. Glød (ikke i redusert grafikk).
+        for i in (0..BLOOM_LEVELS).filter(|_| !self.reduced) {
             let (bg, sw, sh) = if i == 0 { (&t.down0_bg[cur], t.width, t.height) } else { (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2) };
             post(&bg.1, [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }], sw, sh);
             fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear);
         }
-        for (k, i) in (1..BLOOM_LEVELS).rev().enumerate() {
+        for (k, i) in (1..BLOOM_LEVELS).rev().enumerate().filter(|_| !self.reduced) {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
             fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load);
         }
 
         // 8. Tonemapping til skjermen.
-        post(&t.tonemap_bg[cur].1, [f.exposure, f.bloom, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
+        post(&t.tonemap_bg[cur].1, [f.exposure, if self.reduced { 0.0 } else { f.bloom }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
         fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg[cur].0, clear);
 
         self.queue.submit([enc.finish()]);
@@ -1349,6 +1385,9 @@ impl ports::Renderer for Renderer {
     }
     fn set_quality(&mut self, quality: f32) {
         Renderer::set_quality(self, quality);
+    }
+    fn set_reduced(&mut self, reduced: bool) {
+        Renderer::set_reduced(self, reduced);
     }
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();

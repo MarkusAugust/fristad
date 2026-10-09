@@ -36,6 +36,9 @@ pub trait Renderer {
     fn set_scale(&mut self, scale: f32);
     /// Kvalitet 0–1: færre prøver i skygger, SSAO og tåke på svake GPU-er.
     fn set_quality(&mut self, quality: f32);
+    /// Redusert grafikk for svake maskiner: færre skygger, ingen SSAO eller
+    /// glød, færre lys og grovere detalj.
+    fn set_reduced(&mut self, reduced: bool);
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
 }
