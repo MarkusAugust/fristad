@@ -49,8 +49,7 @@ check(await page.isVisible("#bars"), "liv og energi står over knappelinja");
 check(/\d+ \/ \d+/.test(await page.textContent("#hp-text")), `livet med tall: ${await page.textContent("#hp-text")}`);
 check(await page.isHidden("#minimap"), "oppe i byen er det ikke noe minikart");
 // Ned i kjelleren: minikartet kommer.
-// SwiftShader tegner sakte: redusert grafikk, og god tid.
-await page.keyboard.press("g");
+// SwiftShader tegner sakte: god tid (standard grafikk er valgt fra start).
 await page.evaluate(() => window.fristad.engine.descend());
 await page.waitForSelector("#minimap:not([hidden])", { timeout: 180000 });
 await page.waitForTimeout(8000);

@@ -28,16 +28,13 @@ const enterBtn = $("enter");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
-// Grafikken: avansert (alt på) eller redusert (to skyggekaskader, ingen SSAO
-// eller glød, færre lys, grovere detalj, lavere oppløsning) for vanlige
-// jobb-PC-er. Valget huskes; uten valg byttes det til redusert av seg selv
-// om bildefrekvensen blir liggende lavt.
-let reducedGfx = false;
-let gfxChosen = false;
+// Grafikken: standard (MSAA 4×, én piksel per CSS-piksel, laget for
+// jobb-PC-er) eller avansert (lengre sikt, MSAA 8× der kortet kan, og
+// høyere oppløsning på skjermer med høy pikseltetthet). Valget huskes, og
+// grafikken byttes aldri av seg selv.
+let reducedGfx = true;
 try {
-  const g = localStorage.getItem("fristad.graphics");
-  gfxChosen = g === "redusert" || g === "avansert";
-  reducedGfx = g === "redusert";
+  reducedGfx = localStorage.getItem("fristad.graphics") !== "avansert";
 } catch {
   /* ingen lagring */
 }
@@ -46,9 +43,8 @@ let docs = {};
 let panelOpen = false;
 let current = { component: "" };
 
-// Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
-// høy pikseltetthet. Forskjellen synes knapt, men GPU-en får mye mindre å gjøre.
-// I redusert grafikk tegnes det aldri tettere enn én piksel per CSS-piksel.
+// I standard grafikk tegnes det aldri tettere enn én piksel per CSS-piksel;
+// avansert går opp til 1,5 på skjermer med høy pikseltetthet.
 function fit() {
   const scale = Math.min(window.devicePixelRatio || 1, reducedGfx ? 1 : 1.5);
   const w = Math.max(1, Math.round(canvas.clientWidth * scale));
@@ -92,7 +88,7 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, openShop, setScale, setQuality, setGraphics };
+  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics };
   setGraphics(reducedGfx, false, false);
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
@@ -273,49 +269,28 @@ function stage(text) {
 let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
-// Intern oppløsning og kvalitet: endres aldri av seg selv, bare når
-// spilleren bytter grafikk (G eller knappen i menyen). `setScale(tall)` og
-// `setQuality(tall)` setter dem for hånd (til feilsøking).
-let scale = 1;
-let quality = 1;
-function setScale(s) {
-  scale = Math.min(1, Math.max(0.4, s ?? 1));
-  engine.set_scale(scale);
-}
-function setQuality(q) {
-  quality = Math.min(1, Math.max(0, q ?? 1));
-  engine.set_quality(quality);
-}
-// Byttes grafikken: motoren, kvaliteten og knappene. Redusert grafikk ser
-// kortere (rendereren kutter det som er langt unna og tetner tåka) og
-// sparer skygger, SSAO og glød, men beholder full oppløsning, så bildet
-// ikke blir uskarpt.
+// Byttes grafikken: motoren, oppløsningen og knappene.
 function setGraphics(reduced, chosen = true, announce = true) {
   reducedGfx = reduced;
   if (chosen) {
-    gfxChosen = true;
     try {
-      localStorage.setItem("fristad.graphics", reduced ? "redusert" : "avansert");
+      localStorage.setItem("fristad.graphics", reduced ? "standard" : "avansert");
     } catch {
       /* ingen lagring */
     }
   }
   if (engine) {
     engine.set_reduced(reduced);
-    quality = reduced ? 0 : 1;
-    engine.set_quality(quality);
-    scale = 1;
-    engine.set_scale(scale);
   }
   slowSeconds = 0;
   fit();
-  const name = reduced ? "redusert" : "avansert";
+  const name = reduced ? "standard" : "avansert";
   $("graphics").textContent = `Grafikk: ${name}`;
   $("graphics").setAttribute("aria-pressed", String(reduced));
   $("graphics-label").textContent = name;
-  if (announce) toast?.show?.(reduced ? "Redusert grafikk: kortere sikt og enklere lys, lettere å kjøre. G bytter tilbake." : "Avansert grafikk: alt på. G bytter til redusert.");
+  if (announce) toast?.show?.(reduced ? "Standard grafikk. G bytter til avansert." : "Avansert grafikk: lengre sikt og skarpere kanter. G bytter tilbake til standard.");
 }
-// Går det tregt over tid i avansert grafikk, foreslås redusert én gang.
+// Går det tregt over tid i avansert grafikk, foreslås standard én gang.
 // Ingenting byttes uten at spilleren ber om det.
 let slowSeconds = 0;
 let suggested = false;
@@ -324,7 +299,7 @@ function adapt(fps) {
   slowSeconds = fps < 25 ? slowSeconds + 1 : 0;
   if (slowSeconds >= 8) {
     suggested = true;
-    toast?.show?.("Spillet går tregt. Trykk G for redusert grafikk.");
+    toast?.show?.("Spillet går tregt. Trykk G for standard grafikk.");
   }
 }
 function loop(now) {
@@ -338,14 +313,13 @@ function loop(now) {
     const fps = Math.round((frames * 1000) / (now - perfAt));
     adapt(fps);
     const tris = Math.round(engine.triangles() / 1000);
-    const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
-    const q = quality >= 1 ? "" : quality > 0 ? " · middels" : " · lav";
+    const res = `${canvas.width}×${canvas.height}`;
     // Tiden på grafikkortet per del (bare der nettleseren kan måle den):
     // summen i telleren, delene når du holder musa over.
     const parts = engine.gpu_times ? engine.gpu_times() : "";
     // (Programvaregrafikk kan gi bare nuller; da vises ingenting.)
     const gpuMs = parts ? parts.split(" · ").reduce((sum, p) => sum + parseFloat(p.split(" ").pop()), 0) : 0;
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
     $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${gpuMs > 0 ? `. GPU-tid (ms): ${parts}` : ""}`;
     frames = 0;
     perfAt = now;
