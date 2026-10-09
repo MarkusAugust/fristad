@@ -166,6 +166,14 @@ struct Cull {
     eye: Vec3,
     /// Småting tegnes bare nærmere enn dette.
     fine_within: f32,
+    /// Høydene som kan synes (`Frame.band`).
+    band: (f32, f32),
+}
+
+impl Cull {
+    fn sees(&self, lo: Vec3, hi: Vec3) -> bool {
+        hi.y >= self.band.0 && lo.y <= self.band.1 && self.frustum.contains_aabb(lo, hi)
+    }
 }
 
 /// En modell med to detaljnivåer i samme buffer (nær og fjern), og
@@ -176,10 +184,13 @@ struct GpuModel {
     near: std::ops::Range<u32>,
     far: std::ops::Range<u32>,
     textures: wgpu::BindGroup,
-    /// Instansbufferet har plass til alle instansene (faste og bevegelige)
-    /// to ganger per pass-region.
+    /// Instansbufferet: de faste instansene sortert i ruter (lastet opp én
+    /// gang), og så plass til de bevegelige én gang per pass-region.
     instances: wgpu::Buffer,
-    placements: Vec<(InstanceData, Vec3, Vec3)>,
+    /// Rutene med de faste instansene, i bufferets rekkefølge.
+    cells: Vec<InstanceCell>,
+    /// Antall faste instanser (der de bevegelige begynner).
+    statics: u32,
     /// Plass til instanser som kommer med `Frame.instances`.
     reserve: usize,
     /// Modellens boks, til å regne ut boksen for de bevegelige.
@@ -194,12 +205,36 @@ struct GpuModel {
     small: bool,
 }
 
-/// Hvilke instanser et pass tegner av en modell: (nær, fjern) som områder i
-/// instansbufferet.
-#[derive(Clone, Copy, Default)]
+/// De faste instansene i en rute på `CELL_M` meter: boksen rundt dem og
+/// hvor de ligger i instansbufferet.
+struct InstanceCell {
+    lo: Vec3,
+    hi: Vec3,
+    range: std::ops::Range<u32>,
+}
+
+/// Rutene de faste instansene sorteres i. Hele ruter kuttes bort, og
+/// naboer i samme rad som begge tegnes blir ett kall.
+const CELL_M: f32 = 20.0;
+
+/// Hvilke instanser et pass tegner av en modell: nær og fjern detalj, som
+/// områder i instansbufferet.
+#[derive(Clone, Default)]
 struct ModelDraw {
-    near: (u32, u32),
-    far: (u32, u32),
+    near: Vec<std::ops::Range<u32>>,
+    far: Vec<std::ops::Range<u32>>,
+}
+
+impl ModelDraw {
+    fn push(list: &mut Vec<std::ops::Range<u32>>, r: std::ops::Range<u32>) {
+        if r.is_empty() {
+            return;
+        }
+        match list.last_mut() {
+            Some(last) if last.end == r.start => last.end = r.end,
+            _ => list.push(r),
+        }
+    }
 }
 
 /// Pass-regioner i instansbufferet: tre kaskader og kameraet.
@@ -682,6 +717,34 @@ impl Renderer {
                         (inst, wlo, whi)
                     })
                     .collect();
+                // De faste instansene sorteres i ruter (rad for rad) og lastes
+                // opp én gang; bak dem står plassen til de bevegelige.
+                let key = |(_, lo, hi): &(InstanceData, Vec3, Vec3)| {
+                    let c = (*lo + *hi) * 0.5 / CELL_M;
+                    (c.z.floor() as i32, c.x.floor() as i32)
+                };
+                let mut placements = placements;
+                placements.sort_by_key(key);
+                let mut cells: Vec<InstanceCell> = vec![];
+                let mut last = None;
+                for (k, p) in placements.iter().enumerate() {
+                    let id = key(p);
+                    match cells.last_mut() {
+                        Some(c) if last == Some(id) => {
+                            c.lo = c.lo.min(p.1);
+                            c.hi = c.hi.max(p.2);
+                            c.range.end = k as u32 + 1;
+                        }
+                        _ => cells.push(InstanceCell { lo: p.1, hi: p.2, range: k as u32..k as u32 + 1 }),
+                    }
+                    last = Some(id);
+                }
+                let statics = placements.len() as u32;
+                let mut data: Vec<InstanceData> = placements.iter().map(|p| p.0).collect();
+                data.resize(placements.len() + pl.reserve * REGIONS as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+                if data.is_empty() {
+                    data.push(InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+                }
                 // Nær og fjern detalj i samme buffer.
                 let size = (hi - lo).max_element();
                 let far = if skinned { Mesh::default() } else { m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 })) };
@@ -698,13 +761,13 @@ impl Renderer {
                     // Skinnede figurer tegnes i full detalj på avstand òg.
                     far: if skinned { 0..near_count } else { near_count..combined.indices.len() as u32 },
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
-                    instances: device.create_buffer(&wgpu::BufferDescriptor {
+                    instances: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: Some(&m.name),
-                        size: INSTANCE_STRIDE * ((placements.len() + pl.reserve) as u64 * 2 * REGIONS as u64).max(1),
+                        contents: bytemuck::cast_slice(&data),
                         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                        mapped_at_creation: false,
                     }),
-                    placements,
+                    cells,
+                    statics,
                     reserve: pl.reserve,
                     bounds: (lo, hi),
                     extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
@@ -714,10 +777,13 @@ impl Renderer {
             })
             .collect();
         log::info!(
-            "Verden: {} hjørner, {} trekanter, {} modeller",
+            "Verden: {} hjørner, {} trekanter, {} modeller, {} faste instanser i {} ruter, plass til {} bevegelige",
             scene.mesh.vertices.len(),
             scene.mesh.indices.len() / 3,
-            gpu_models.len()
+            gpu_models.len(),
+            gpu_models.iter().map(|m| m.statics).sum::<u32>(),
+            gpu_models.iter().map(|m| m.cells.len()).sum::<usize>(),
+            gpu_models.iter().map(|m| m.reserve).sum::<usize>()
         );
 
         let targets = Self::make_targets(&device, &frame_layout, &post_layout, &shadow_view, &shadow_sampler, &pass_buf, &linear, &nearest, &black, width, height);
@@ -996,20 +1062,22 @@ impl Renderer {
         };
         let view_proj = f.proj * f.view;
         let mut sun_vp = [[[0.0; 4]; 4]; 3];
-        let mut sun_cull = [Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: 0.0 }; 3];
+        let mut sun_cull = [Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: 0.0, band: f.band }; 3];
         let mut near = 0.1;
         for (i, far) in CASCADES.iter().enumerate() {
             let m = self.cascade(f, near, *far);
             sun_vp[i] = m.to_cols_array_2d();
             // Småting kaster skygge bare i den nærmeste kaskaden.
-            sun_cull[i] = Cull { frustum: Frustum::from_view_proj(m), eye: f.camera, fine_within: if i == 0 { if self.reduced { 18.0 } else { 40.0 } } else { 0.0 } };
+            sun_cull[i] = Cull { frustum: Frustum::from_view_proj(m), eye: f.camera, fine_within: if i == 0 { if self.reduced { 18.0 } else { 40.0 } } else { 0.0 }, band: f.band };
             near = far * 0.8;
         }
-        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if self.reduced { 35.0 } else { 70.0 } };
+        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if self.reduced { 35.0 } else { 70.0 }, band: f.band };
         // Redusert: grovere detalj tidligere, småting bare nær, og bare to
         // skyggekaskader.
         let model_near = if self.reduced { MODEL_NEAR * 0.5 } else { MODEL_NEAR };
-        let shadow_cascades = if self.reduced { 2u32 } else { 3 };
+        // Nede i kjelleren når ikke sola ned: ingen skyggekaskader (atlaset
+        // tømmes bare).
+        let shadow_cascades = if f.grid.is_some() || f.band.1 < 0.0 { 0 } else if self.reduced { 2u32 } else { 3 };
         // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
         let culls = [sun_cull[0], sun_cull[1], sun_cull[2], cam_cull];
         // Paletten: skinnmatrisene først, så transformene til de bevegelige
@@ -1058,45 +1126,59 @@ impl Renderer {
                     (inst, lo, hi)
                 })
                 .collect();
-            let n = (m.placements.len() + m.reserve) as u32;
-            let mut data: Vec<InstanceData> = Vec::with_capacity((n * 2 * REGIONS) as usize);
-            let mut draws = [ModelDraw::default(); REGIONS as usize];
+            let mut draws: [ModelDraw; REGIONS as usize] = Default::default();
+            let mut dynamic: Vec<InstanceData> = Vec::with_capacity(m.reserve * REGIONS as usize);
             for (r, cull) in culls.iter().enumerate() {
-                let base = r as u32 * n * 2;
-                let mut near = vec![];
-                let mut far = vec![];
                 if r < 3 && r as u32 >= shadow_cascades {
-                    draws[r] = ModelDraw { near: (base, base), far: (base, base) };
-                    data.resize((base + n * 2) as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
                     continue;
                 }
-                for (inst, lo, hi) in m.placements.iter().chain(moving.iter()) {
-                    if !cull.frustum.contains_aabb(*lo, *hi) {
-                        continue;
-                    }
-                    let d = cull.eye.clamp(*lo, *hi).distance(cull.eye);
+                // Hvor langt unna noe i boksen er, og om det tegnes nær,
+                // fjernt eller ikke.
+                let lod = |lo: Vec3, hi: Vec3| -> Option<bool> {
+                    let d = cull.eye.clamp(lo, hi).distance(cull.eye);
                     if self.reduced && m.small && d > if r == 3 { 32.0 } else if r == 0 { 12.0 } else { 0.0 } {
-                        continue;
+                        return None;
                     }
                     // Redusert grafikk ser kortere: det som er langt unna
                     // tegnes ikke (tåka er tettere, så kanten glir bort).
                     if self.reduced && d > REDUCED_FAR {
-                        continue;
+                        return None;
                     }
                     // Skyggekaskadene lenger ute nøyer seg med den fjerne.
-                    if d < model_near && (r == 3 || r == 0) {
-                        near.push(*inst);
-                    } else {
-                        far.push(*inst);
+                    Some(d < model_near && (r == 3 || r == 0))
+                };
+                let d = &mut draws[r];
+                for c in &m.cells {
+                    if !cull.sees(c.lo, c.hi) {
+                        continue;
+                    }
+                    match lod(c.lo, c.hi) {
+                        Some(true) => ModelDraw::push(&mut d.near, c.range.clone()),
+                        Some(false) => ModelDraw::push(&mut d.far, c.range.clone()),
+                        None => {}
                     }
                 }
-                draws[r] = ModelDraw { near: (base, base + near.len() as u32), far: (base + near.len() as u32, base + (near.len() + far.len()) as u32) };
-                data.extend(near);
-                data.extend(far);
-                data.resize((base + n * 2) as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+                // De bevegelige: hver region sin plass bak de faste.
+                let base = m.statics + (r * m.reserve) as u32;
+                let (mut near, mut far) = (vec![], vec![]);
+                for (inst, lo, hi) in &moving {
+                    if !cull.sees(*lo, *hi) {
+                        continue;
+                    }
+                    match lod(*lo, *hi) {
+                        Some(true) => near.push(*inst),
+                        Some(false) => far.push(*inst),
+                        None => {}
+                    }
+                }
+                dynamic.resize(r * m.reserve, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
+                ModelDraw::push(&mut d.near, base..base + near.len() as u32);
+                ModelDraw::push(&mut d.far, base + near.len() as u32..base + (near.len() + far.len()) as u32);
+                dynamic.extend(near);
+                dynamic.extend(far);
             }
-            if !data.is_empty() {
-                self.queue.write_buffer(&m.instances, 0, bytemuck::cast_slice(&data));
+            if !dynamic.is_empty() {
+                self.queue.write_buffer(&m.instances, m.statics as u64 * INSTANCE_STRIDE, bytemuck::cast_slice(&dynamic));
             }
             model_draws.push(draws);
         }
@@ -1132,7 +1214,9 @@ impl Renderer {
             prev_view_proj: self.prev_view_proj.to_cols_array_2d(),
             sun_vp,
             camera: v4(f.camera, f.time),
-            sun_dir: v4(f.sun_dir, f.sun_intensity),
+            // Uten skyggekart (kjelleren) når ikke sollyset ned: murene og
+            // byen over ville ellers skygget for det.
+            sun_dir: v4(f.sun_dir, if shadow_cascades == 0 { 0.0 } else { f.sun_intensity }),
             sun_color: v4(f.sun_color, f.night),
             sky_top: v4(f.sky_top, 0.0),
             sky_horizon: v4(f.sky_horizon, if self.reduced && f.fog_density > 0.0 { (f.fog_density * 3.0).max(REDUCED_FOG) } else { f.fog_density }),
@@ -1389,7 +1473,7 @@ impl Renderer {
             }
         };
         for c in &self.chunks {
-            if !cull.frustum.contains_aabb(c.min, c.max) {
+            if !cull.sees(c.min, c.max) {
                 flush(&mut run, pass);
                 continue;
             }
@@ -1408,20 +1492,20 @@ impl Renderer {
         let props = 0;
         let mut models = 0;
         for (m, draws) in self.models.iter().zip(model_draws) {
-            let d = draws[region];
-            if d.near.1 == d.near.0 && d.far.1 == d.far.0 {
+            let d = &draws[region];
+            if d.near.is_empty() && d.far.is_empty() {
                 continue;
             }
             pass.set_bind_group(3, &m.textures, &[]);
             pass.set_vertex_buffer(1, m.instances.slice(..));
             m.mesh.bind(pass);
-            if d.near.1 > d.near.0 {
-                pass.draw_indexed(m.near.clone(), 0, d.near.0..d.near.1);
-                models += (m.near.end - m.near.start) / 3 * (d.near.1 - d.near.0);
+            for r in &d.near {
+                pass.draw_indexed(m.near.clone(), 0, r.clone());
+                models += (m.near.end - m.near.start) / 3 * r.len() as u32;
             }
-            if d.far.1 > d.far.0 {
-                pass.draw_indexed(m.far.clone(), 0, d.far.0..d.far.1);
-                models += (m.far.end - m.far.start) / 3 * (d.far.1 - d.far.0);
+            for r in &d.far {
+                pass.draw_indexed(m.far.clone(), 0, r.clone());
+                models += (m.far.end - m.far.start) / 3 * r.len() as u32;
             }
         }
         (world, props, models)

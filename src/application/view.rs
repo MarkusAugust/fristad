@@ -125,6 +125,27 @@ impl Session {
             taa: !self.jumped,
             debug: self.debug,
             grid: if in_cellar { self.dungeon.grid_at(self.pos - Vec3::Y * 1.6) } else { None },
+            band: self.band(in_cellar),
+        }
+    }
+
+    /// Høydene som kan synes (`Frame.band`). Oppe: alt over taket i
+    /// kjellerens øverste etasje. Nede: etasjen du står i, med vindeltrappa
+    /// fra etasjen over (den går ned hit) og det som rager opp fra etasjen
+    /// under (rotunden), men ikke rommene der.
+    pub(super) fn band(&self, in_cellar: bool) -> (f32, f32) {
+        use crate::domain::world::dungeon::DEPTH;
+        if !in_cellar {
+            return (DEPTH + 9.0, f32::INFINITY);
+        }
+        let feet = self.pos - Vec3::Y * 1.6;
+        match self.dungeon.floor_of(feet) {
+            Some(i) => {
+                let y = self.dungeon.floors[i].y;
+                (y - 3.0, y + 8.0)
+            }
+            // Mellom etasjene (i vindeltrappa): begge.
+            None => (feet.y - 14.0, feet.y + 10.0),
         }
     }
 

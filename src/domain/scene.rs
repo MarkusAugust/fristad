@@ -96,6 +96,10 @@ pub struct Frame {
     /// hjørnet av celle (0, 0) i x og z, gulvhøyden, cellestørrelsen og én
     /// byte per celle (bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z).
     pub grid: Option<CellGrid>,
+    /// Høydene (y fra, til) som kan synes: byen ser ikke kjelleren under
+    /// seg, og en etasje i kjelleren ser ikke byen eller de andre etasjene.
+    /// Det som ligger helt utenfor tegnes ikke, heller ikke i skyggene.
+    pub band: (f32, f32),
 }
 
 #[derive(Clone, Debug)]
