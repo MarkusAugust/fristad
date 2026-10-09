@@ -1129,37 +1129,38 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
     log::info!("Byen: {} innbyggere går ærender", b.npcs.len() - base);
 }
 
-/// Portalen ved sørporten (`tools/models/portal.py`): steinringen står på
-/// den åpne plassen vest for Storgata, mellom muren og husene, med forsiden
-/// mot gata. Virvelen, runene og splintene settes av økta når den er åpen
-/// (`Session::portal_poses`).
+/// Portalen ved sørporten (`tools/models/portal.py`): står ikke der før du
+/// har gått hjem fra kjelleren med H (eller dødd nede). Da stiger
+/// steinringen opp av bakken på den åpne plassen vest for Storgata, mellom
+/// muren og husene, med forsiden mot gata, og virvelen åpner seg. Økta
+/// setter ringen, runene, virvlene og splintene (`Session::portal_poses`)
+/// og flytter kolliderne inn (`PORTAL_SOLIDS`).
 pub const PORTAL_RING: &str = "portal_ring";
 pub const PORTAL_PARTS: [&str; 3] = ["portal_runes", "portal_swirl", "portal_shard"];
 /// Midten av ringen over plattformen, og ringens indre radius.
 pub const PORTAL_CENTER: f32 = 1.62;
 pub const PORTAL_RADIUS: f32 = 1.12;
+/// Kolliderne til ringen i dens eget rom (midte, hele mål): plattformen,
+/// sidene og toppen; åpningen er fri, så virvelen kan siktes på.
+pub const PORTAL_SOLIDS: [(Vec3, Vec3); 4] = [
+    (Vec3::new(0.0, 0.06, 0.0), Vec3::new(4.0, 0.2, 2.0)),
+    (Vec3::new(-1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
+    (Vec3::new(1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
+    (Vec3::new(0.0, 3.0, 0.0), Vec3::new(2.4, 0.45, 0.55)),
+];
 
 fn portal(b: &mut Builder, spawn: Vec3) {
+    if !b.has_model(PORTAL_RING) {
+        log::warn!("Modellen {PORTAL_RING} mangler, ingen portal");
+        return;
+    }
     let at = Vec2::new(spawn.x - 11.8, spawn.z - 0.3);
     let base = b.on_ground(Vec3::new(at.x, 0.0, at.y));
     // Forsiden (+z i modellen) mot gata i øst.
-    let yaw = FRAC_PI_2;
-    let rot = Quat::from_rotation_y(yaw);
-    let pose = Affine3A::from_rotation_translation(rot, base);
-    if !b.place(PORTAL_RING, pose) {
-        return;
-    }
+    let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(FRAC_PI_2), base);
     log::debug!("Portalen står ved {:.1}, {:.1}", base.x, base.z);
-    // Plattformen, sidene og toppen av ringen; åpningen er fri.
-    for (c, size) in [
-        (Vec3::new(0.0, 0.06, 0.0), Vec3::new(4.0, 0.2, 2.0)),
-        (Vec3::new(-1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
-        (Vec3::new(1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
-        (Vec3::new(0.0, 3.0, 0.0), Vec3::new(2.4, 0.45, 0.55)),
-    ] {
-        b.solid_box(base + rot * c, size, yaw);
-    }
     b.target(Use::Portal, pose, Vec3::new(0.0, PORTAL_CENTER, 0.0), Vec3::new(PORTAL_RADIUS * 0.85, PORTAL_RADIUS * 0.85, 0.12));
+    b.reserve(PORTAL_RING, 1);
     let [runes, swirl, shard] = PORTAL_PARTS;
     b.reserve(runes, 1);
     b.reserve(swirl, 2);

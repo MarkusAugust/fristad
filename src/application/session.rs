@@ -113,6 +113,8 @@ pub struct Session {
     portal: Option<(Vec3, f32, usize)>,
     pub(super) portal_t: f32,
     portal_shown: bool,
+    /// Kolliderne til ringen (flyttes inn når den står der).
+    portal_solids: Vec<ColliderId>,
     entries: Vec<Option<(Vec3, f32)>>,
     /// Sekunder siden du sist reiste gjennom virvelen (synsfeltet strekkes).
     pub(super) warp_t: f32,
@@ -236,6 +238,7 @@ impl Session {
             portal: None,
             portal_t: 0.0,
             portal_shown: true,
+            portal_solids: town::PORTAL_SOLIDS.iter().map(|(_, size)| physics.add_movable(*size * 0.5, Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)))).collect(),
             entries: vec![None; world.dungeon.floors.len()],
             warp_t: 10.0,
             herd: Herd::new(),
@@ -461,7 +464,7 @@ impl Session {
             Use::Ascend => p("Døra opp til overflaten", "Gå opp", "", "Opp til krypten og byen. Det du bærer legges i lageret."),
             Use::Portal => match self.portal {
                 Some((_, _, f)) => p("Portalen", "Gå gjennom", "", &format!("Virvelen tar deg tilbake til kjelleren, etasje {}.", f + 1)),
-                None => p("Portalsteinene", "", "", "Sover. Går du hjem fra kjelleren med H, våkner de."),
+                None => p("Portalen", "", "", "Lukket."),
             },
             Use::Well(n) => {
                 if self.wells.get(n).is_some_and(|w| *w >= 0.0) {
@@ -880,7 +883,9 @@ impl Session {
                 self.yaw = (-d.x).atan2(-d.z);
                 self.pitch = 0.05;
             }
-            events.push(self.sound_at("portal_open", self.portal_center().unwrap_or(self.pos), 1.0));
+            let c = self.portal_center().unwrap_or(self.pos);
+            events.push(self.sound_at("gate", c - Vec3::Y * 1.4, 1.0));
+            events.push(self.sound_at("portal_open", c, 1.0));
             events.push(Event::Toast("Virvelen tok deg hjem. Portalen ved sørporten tar deg tilbake dit du var.".into()));
         } else {
             self.respawn();
@@ -936,9 +941,12 @@ impl Session {
         let show = self.portal.is_some();
         if show != self.portal_shown {
             self.portal_shown = show;
+            let away = Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0));
             if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Portal) {
-                let pose = if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)) };
-                physics.set_pose(t.collider, pose);
+                physics.set_pose(t.collider, if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { away });
+                for (id, (c, _)) in self.portal_solids.iter().zip(town::PORTAL_SOLIDS) {
+                    physics.set_pose(*id, if show { t.target.pose * Affine3A::from_translation(c) } else { away });
+                }
             }
         }
     }
@@ -949,11 +957,21 @@ impl Session {
     pub(super) fn portal_poses(&self) -> Vec<(&'static str, Affine3A)> {
         let (Some(pose), true) = (self.portal_pose(), self.portal.is_some()) else { return vec![] };
         let [runes, swirl, shard] = town::PORTAL_PARTS;
-        let x = (self.portal_t / 1.6).clamp(0.0, 1.0);
+        // Ringen stiger opp av bakken (med en liten skjelving), så åpner
+        // virvelen seg.
+        let r = (self.portal_t / PORTAL_RISE).clamp(0.0, 1.0);
+        let rise = 1.0 - (1.0 - r).powi(3);
+        let shake = if r < 1.0 { (self.portal_t * 47.0).sin() * 0.02 * (1.0 - r) } else { 0.0 };
+        let ring = pose * Affine3A::from_translation(Vec3::new(shake, -3.4 * (1.0 - rise), 0.0));
+        let mut out = vec![(town::PORTAL_RING, ring)];
+        let x = ((self.portal_t - PORTAL_RISE) / 1.6).clamp(0.0, 1.0);
+        if x <= 0.0 {
+            return out;
+        }
         let grow = (1.0 + 2.2 * (x - 1.0).powi(3) + 1.2 * (x - 1.0).powi(2)).max(0.001);
         let t = self.time;
         let center = pose * Affine3A::from_translation(Vec3::Y * town::PORTAL_CENTER);
-        let mut out = vec![(runes, pose)];
+        out.push((runes, pose));
         let s1 = grow * (1.0 + 0.035 * (t * 3.1).sin());
         out.push((swirl, center * Affine3A::from_rotation_z(-t * 1.7) * Affine3A::from_scale(Vec3::splat(s1))));
         let s2 = grow * 0.8 * (1.0 + 0.05 * (t * 2.3 + 1.0).sin());
@@ -974,7 +992,7 @@ impl Session {
         if self.portal.is_none() {
             return None;
         }
-        let x = (self.portal_t / 1.6).clamp(0.0, 1.0);
+        let x = ((self.portal_t - PORTAL_RISE) / 1.6).clamp(0.0, 1.0);
         let t = self.time;
         let front = self.portal_pose()?.transform_vector3(Vec3::Z);
         Some(Light { pos: c + front * 0.6, radius: 11.0, color: Vec3::new(0.55, 0.45, 1.0), intensity: 2.4 * x * (0.85 + 0.15 * (t * 4.7).sin() * (t * 1.9).cos()), always: true, flicker: 0.0 })
@@ -1654,6 +1672,9 @@ impl Session {
         out
     }
 }
+
+/// Sekunder ringen bruker på å stige opp av bakken før virvelen åpner seg.
+const PORTAL_RISE: f32 = 1.4;
 
 /// Når bøtta er oppe og du drikker, og når brønnen er ledig igjen (s).
 const WELL_UP: f32 = 3.8;
