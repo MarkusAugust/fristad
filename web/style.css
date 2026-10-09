@@ -220,7 +220,7 @@ code {
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
-  gap: var(--fs-spacing-3);
+  gap: var(--fs-spacing-5);
   width: max-content;
   max-width: calc(100vw - 32px);
   pointer-events: none;
@@ -231,14 +231,17 @@ code {
   text-align: center;
 }
 .bars {
+  --bars-gap: clamp(8px, 20vw, 14rem);
   display: flex;
-  gap: min(14rem, 20vw);
+  gap: var(--bars-gap);
   pointer-events: none;
 }
 .bar {
   display: grid;
   gap: var(--fs-spacing-1);
-  width: min(260px, 40vw);
+  /* To stolper og mellomrommet skal alltid få plass innenfor kantene. */
+  width: min(260px, calc((100vw - 32px - var(--bars-gap)) / 2));
+  box-sizing: border-box;
   padding: var(--fs-spacing-2) var(--fs-spacing-3);
   border-radius: var(--fs-spacing-2);
   background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
