@@ -222,6 +222,8 @@ pub struct Mob {
     repath: f32,
     /// Hvor mange ganger bossen har brølt (ved 2/3 og 1/3 liv).
     roars: u32,
+    /// Meter gått siden forrige skritt (bossens tunge skritt).
+    stride: f32,
 }
 
 impl Mob {
@@ -273,10 +275,10 @@ pub struct Outcome {
     pub bites: Vec<(usize, f32, Vec3)>,
     pub tokens: u32,
     pub keys: u32,
-    /// Fiender som begynte et angrep (til lyd og varsel).
-    pub windups: u32,
-    /// Markører som ble spyttet.
-    pub spits: u32,
+    /// Lydene fiendene lager, og hvor: varsel før slaget (`windup`,
+    /// `windup_big`), at de får øye på deg (`notice`), spytt, slag i
+    /// bakken, brøl og bossens tunge skritt (`boss_step`).
+    pub sounds: Vec<(&'static str, Vec3)>,
     /// Slag i bakken (kameraet rister).
     pub quakes: u32,
     /// Brøl.
@@ -343,7 +345,7 @@ impl Mobs {
             a.time = phase;
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, target: None, repath, roars: 0 });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, target: None, repath, roars: 0, stride: 0.0 });
     }
 
     /// Ny besetning: fiender etter etasjens tabell på hvert startsted, en
@@ -594,17 +596,19 @@ impl Mobs {
                                         let from = m.pos + Vec3::Y * 1.3 * s + facing * 0.6 * s;
                                         let aim = (player + Vec3::Y * 0.9 - from).normalize_or_zero();
                                         bolts.push(Bolt { owner: i, pos: from, vel: aim * BOLT_SPEED, age: 0.0, damage: dmg });
-                                        out.spits += 1;
+                                        out.sounds.push(("spit", m.pos));
                                     }
                                 }
                                 Blow::Slam => {
                                     out.quakes += 1;
+                                    out.sounds.push(("slam", m.pos));
                                     if dist <= SLAM_RADIUS {
                                         out.bites.push((i, stats.damage * 1.3, m.pos));
                                     }
                                 }
                                 Blow::Roar => {
                                     out.roars += 1;
+                                    out.sounds.push(("roar", m.pos));
                                     for k in 0..3 {
                                         let a = k as f32 * 2.1 + r * 6.0;
                                         summons.push(m.pos + Vec3::new(a.cos(), 0.0, a.sin()) * 2.2);
@@ -636,7 +640,11 @@ impl Mobs {
                 }
                 continue;
             }
+            if !m.aware {
+                out.sounds.push(("notice", m.pos));
+            }
             m.aware = true;
+            let windup = if kind.boss() || m.elite { "windup_big" } else { "windup" };
             // Bossen brøler ved 2/3 og 1/3 liv og kaller på tooltips.
             if kind.boss() {
                 let frac = m.hp / m.max_hp;
@@ -648,7 +656,7 @@ impl Mobs {
                     if let Some(a) = m.anim.as_mut() {
                         a.play(clips.roar.unwrap_or(clips.attack), false, 0.1);
                     }
-                    out.windups += 1;
+                    out.sounds.push((windup, m.pos));
                     continue;
                 }
             }
@@ -659,7 +667,7 @@ impl Mobs {
                 if let Some(a) = m.anim.as_mut() {
                     a.play(if blow == Blow::Slam { clips.slam.unwrap_or(clips.attack) } else { clips.attack }, false, 0.08);
                 }
-                out.windups += 1;
+                out.sounds.push((windup, m.pos));
                 continue;
             }
             // Skyter på avstand når sikten er fri.
@@ -671,7 +679,7 @@ impl Mobs {
                     if let Some(a) = m.anim.as_mut() {
                         a.play(clips.attack, false, 0.08);
                     }
-                    out.windups += 1;
+                    out.sounds.push((windup, m.pos));
                     continue;
                 }
             }
@@ -720,6 +728,13 @@ impl Mobs {
                 m.pos = from + t;
             }
             m.pos.y = dungeon.height_at(m.pos);
+            if kind.boss() {
+                m.stride += (m.pos - from).with_y(0.0).length();
+                if m.stride > 1.6 * s {
+                    m.stride = 0.0;
+                    out.sounds.push(("boss_step", m.pos));
+                }
+            }
             let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);
             let want_state = if moved > 0.3 { State::Walk } else { State::Idle };
             if m.state != want_state {

@@ -5,6 +5,7 @@
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
+import { createSounds } from "./sounds.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
@@ -286,6 +287,11 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// Et lite klikk når du trykker på en knapp i dialogene og panelet.
+document.addEventListener("click", (ev) => {
+  if (ev.target.closest?.("dialog button, .fs-button, #panel button")) sfx.play("click");
+});
+
 function handle(e) {
   switch (e.type) {
     case "prompt":
@@ -315,6 +321,10 @@ function handle(e) {
       $("weather").textContent = e.weather;
       break;
     case "hud":
+      // Pusten går når utholdenheten er brukt opp, og hjertet slår når
+      // livet er lavt.
+      if (playing && e.stamina === 0 && lastHud && lastHud.stamina > 0) sfx.play("breath");
+      if (playing) sfx.heart(e.hp);
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
       $("hp").value = e.hp;
@@ -332,7 +342,7 @@ function handle(e) {
       $("fight-keys").hidden = !e.cellar;
       break;
     case "sound":
-      sfx.play(e.name);
+      sfx.play(e.name, e);
       break;
     case "marks":
       updateMarks(e.marks);
@@ -353,7 +363,10 @@ function handle(e) {
       break;
     case "ambience":
       lastAmbience = e;
-      if (playing) ambience.set(e);
+      if (playing) {
+        ambience.set(e);
+        sfx.ambience(e);
+      }
       break;
     case "shop":
       openShop(e.npc, e.wares);
@@ -395,6 +408,7 @@ function esc(t) {
 
 // Boka: dokumentasjonen for en komponent du har vunnet.
 function readDoc(component) {
+  sfx.play("page");
   engine.read_doc(component);
   if (docs[component]) {
     current = { component };
@@ -543,6 +557,7 @@ function toggleInventory() {
     ev.preventDefault();
     closeInventory(true);
   });
+  sfx.play("bag");
   dlg.showModal();
 }
 
@@ -716,309 +731,13 @@ function updateMarks(marks) {
   }
 }
 
-// Lyd: syntetisert med WebAudio, ingen filer. Konteksten lages ved
-// første lyd (etter at spilleren har klikket seg inn).
-const sfx = (() => {
-  let ctx = null;
-  const get = () => {
-    if (!ctx) {
-      try {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-      } catch {
-        return null;
-      }
-    }
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    return ctx;
-  };
-  const noise = (c, dur) => {
-    const b = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
-    const d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const s = c.createBufferSource();
-    s.buffer = b;
-    return s;
-  };
-  const env = (c, peak, attack, decay, at = 0) => {
-    const g = c.createGain();
-    const t = c.currentTime + at;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(peak, t + attack);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-    g.connect(c.destination);
-    return g;
-  };
-  const tone = (c, type, f0, f1, peak, attack, decay, at = 0) => {
-    const o = c.createOscillator();
-    o.type = type;
-    const t = c.currentTime + at;
-    o.frequency.setValueAtTime(f0, t);
-    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + attack + decay);
-    o.connect(env(c, peak, attack, decay, at));
-    o.start(t);
-    o.stop(t + attack + decay + 0.05);
-  };
-  const whoosh = (c, f0, f1, peak, dur, at = 0) => {
-    const s = noise(c, dur + 0.1);
-    const f = c.createBiquadFilter();
-    f.type = "bandpass";
-    f.Q.value = 1.4;
-    const t = c.currentTime + at;
-    f.frequency.setValueAtTime(f0, t);
-    f.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.4);
-    f.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + dur);
-    s.connect(f).connect(env(c, peak, dur * 0.25, dur * 0.75, at));
-    s.start(t);
-  };
-  const crunch = (c, peak, dur, cutoff, at = 0) => {
-    const s = noise(c, dur + 0.05);
-    const f = c.createBiquadFilter();
-    f.type = "lowpass";
-    f.frequency.value = cutoff;
-    s.connect(f).connect(env(c, peak, 0.005, dur, at));
-    s.start(c.currentTime + at);
-  };
-  // En stemme: sagtann gjennom to formantfiltre (vokalen), med fallende
-  // tone, litt vibrato og pust. Til stønnet når du blir truffet.
-  const voice = (c, f0, f1, formants, peak, dur, at = 0) => {
-    const t = c.currentTime + at;
-    const o = c.createOscillator();
-    o.type = "sawtooth";
-    o.frequency.setValueAtTime(f0, t);
-    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    const v = c.createOscillator();
-    v.frequency.value = 5.5;
-    const vg = c.createGain();
-    vg.gain.value = f0 * 0.025;
-    v.connect(vg).connect(o.frequency);
-    const out = env(c, peak, dur * 0.12, dur * 0.88, at);
-    for (const [f, q, g] of formants) {
-      const bp = c.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = f;
-      bp.Q.value = q;
-      const gg = c.createGain();
-      gg.gain.value = g;
-      o.connect(bp).connect(gg).connect(out);
-    }
-    const br = noise(c, dur);
-    const bf = c.createBiquadFilter();
-    bf.type = "bandpass";
-    bf.frequency.value = 1400;
-    bf.Q.value = 0.8;
-    br.connect(bf).connect(env(c, peak * 0.35, dur * 0.1, dur * 0.9, at));
-    o.start(t);
-    v.start(t);
-    br.start(t);
-    o.stop(t + dur + 0.05);
-    v.stop(t + dur + 0.05);
-  };
-  // Glitch: firkantbølge som hopper tilfeldig i tone, stammer av og på og
-  // knuses i biter, som et digitalt vesen som går i stykker.
-  const glitch = (c, peak, dur, base = 220, at = 0) => {
-    const t = c.currentTime + at;
-    const o = c.createOscillator();
-    o.type = "square";
-    const g = c.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    const steps = Math.max(4, Math.round(dur / 0.025));
-    for (let k = 0; k < steps; k++) {
-      const tk = t + (k * dur) / steps;
-      o.frequency.setValueAtTime(base * Math.pow(2, (Math.random() * 3 - 1.2)), tk);
-      g.gain.setValueAtTime(Math.random() < 0.7 ? peak * (1 - k / steps) : 0.0001, tk);
-    }
-    g.gain.setValueAtTime(0.0001, t + dur);
-    const crush = c.createWaveShaper();
-    const curve = new Float32Array(256);
-    for (let i = 0; i < 256; i++) curve[i] = Math.round(((i / 255) * 2 - 1) * 4) / 4;
-    crush.curve = curve;
-    const f = c.createBiquadFilter();
-    f.type = "highpass";
-    f.frequency.value = 160;
-    o.connect(crush).connect(f).connect(g).connect(c.destination);
-    o.start(t);
-    o.stop(t + dur + 0.05);
-  };
-  let lastGroan = 0;
-  const play = {
-    // Hogget: et lagdelt sus gjennom lufta og en kort, lys klang fra stålet.
-    swing: (c) => {
-      whoosh(c, 500, 2600, 0.35, 0.28);
-      whoosh(c, 260, 900, 0.18, 0.32, 0.02);
-      tone(c, "sine", 3100, 2900, 0.03, 0.01, 0.2, 0.06);
-    },
-    swing_heavy: (c) => {
-      whoosh(c, 220, 1400, 0.5, 0.5);
-      whoosh(c, 120, 500, 0.3, 0.55, 0.04);
-      tone(c, "sine", 2400, 2200, 0.035, 0.01, 0.3, 0.12);
-    },
-    // Treff på et monster: slaget, og monsteret som skjærer seg digitalt.
-    hit: (c) => {
-      tone(c, "sine", 140, 45, 0.7, 0.005, 0.18);
-      crunch(c, 0.45, 0.12, 2500);
-      glitch(c, 0.14, 0.22, 260, 0.03);
-    },
-    hit_heavy: (c) => {
-      tone(c, "sine", 110, 35, 0.9, 0.005, 0.3);
-      crunch(c, 0.6, 0.2, 1800);
-      tone(c, "square", 400, 90, 0.08, 0.005, 0.1);
-      glitch(c, 0.18, 0.35, 180, 0.03);
-    },
-    kill: (c) => {
-      tone(c, "sawtooth", 180, 30, 0.5, 0.01, 0.6);
-      crunch(c, 0.6, 0.45, 1200);
-      tone(c, "square", 900, 200, 0.12, 0.01, 0.35, 0.05);
-      glitch(c, 0.2, 0.7, 140, 0.05);
-      glitch(c, 0.1, 0.5, 520, 0.2);
-    },
-    // Kista: lokket knirker opp på gamle hengsler.
-    chest: (c) => {
-      const t = c.currentTime;
-      const o = c.createOscillator();
-      o.type = "sawtooth";
-      o.frequency.setValueAtTime(95, t);
-      for (let k = 1; k <= 14; k++) o.frequency.linearRampToValueAtTime(95 + 70 * Math.random() + k * 6, t + k * 0.06);
-      const bp = c.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = 1100;
-      bp.Q.value = 6;
-      o.connect(bp).connect(env(c, 0.22, 0.08, 0.85));
-      o.start(t);
-      o.stop(t + 1.0);
-      crunch(c, 0.25, 0.15, 700, 0.85);
-      tone(c, "sine", 880, 880, 0.12, 0.005, 0.15, 0.95);
-      tone(c, "sine", 1320, 1320, 0.12, 0.005, 0.3, 1.03);
-    },
-    block: (c) => {
-      tone(c, "square", 700, 500, 0.25, 0.003, 0.09);
-      crunch(c, 0.3, 0.08, 4000);
-    },
-    parry: (c) => {
-      tone(c, "sine", 1900, 1700, 0.35, 0.003, 0.5);
-      tone(c, "sine", 2850, 2600, 0.2, 0.003, 0.4);
-      crunch(c, 0.25, 0.05, 6000);
-    },
-    // Du blir truffet: slaget, og et stønn (ikke oftere enn hvert 0,7 s).
-    hurt: (c) => {
-      tone(c, "sine", 90, 40, 0.8, 0.005, 0.25);
-      crunch(c, 0.35, 0.15, 900);
-      if (c.currentTime - lastGroan > 0.7) {
-        lastGroan = c.currentTime;
-        const vowels = [[[650, 6, 1.0], [1080, 7, 0.6]], [[520, 6, 1.0], [880, 7, 0.5]], [[700, 5, 1.0], [1220, 8, 0.45]]];
-        const f0 = 115 + Math.random() * 30;
-        voice(c, f0, f0 * 0.72, vowels[Math.floor(Math.random() * vowels.length)], 0.5, 0.42 + Math.random() * 0.2, 0.03);
-      }
-    },
-    dodge: (c) => whoosh(c, 180, 700, 0.3, 0.3),
-    clang: (c) => {
-      tone(c, "square", 1200, 900, 0.2, 0.003, 0.12);
-      tone(c, "sine", 2400, 2300, 0.12, 0.003, 0.25);
-      crunch(c, 0.2, 0.06, 5000);
-    },
-    spit: (c) => {
-      whoosh(c, 900, 3200, 0.3, 0.22);
-      tone(c, "sawtooth", 600, 1400, 0.12, 0.01, 0.15);
-    },
-    slam: (c) => {
-      tone(c, "sine", 60, 25, 1.0, 0.005, 0.7);
-      crunch(c, 0.7, 0.5, 600);
-      crunch(c, 0.3, 0.9, 200, 0.05);
-    },
-    roar: (c) => {
-      const o = c.createOscillator();
-      o.type = "sawtooth";
-      const t = c.currentTime;
-      o.frequency.setValueAtTime(45, t);
-      o.frequency.linearRampToValueAtTime(70, t + 0.5);
-      o.frequency.linearRampToValueAtTime(40, t + 1.3);
-      const v = c.createOscillator();
-      v.frequency.value = 7;
-      const vg = c.createGain();
-      vg.gain.value = 12;
-      v.connect(vg).connect(o.frequency);
-      const f = c.createBiquadFilter();
-      f.type = "lowpass";
-      f.frequency.value = 500;
-      o.connect(f).connect(env(c, 0.5, 0.1, 1.3));
-      o.start(t);
-      v.start(t);
-      o.stop(t + 1.5);
-      v.stop(t + 1.5);
-      crunch(c, 0.3, 1.0, 400, 0.1);
-    },
-    // Monsteret slår: en digital snerring som bygger seg opp.
-    growl: (c) => {
-      glitch(c, 0.12, 0.45, 90);
-      whoosh(c, 300, 1800, 0.18, 0.4, 0.15);
-      const o = c.createOscillator();
-      o.type = "sawtooth";
-      const t = c.currentTime;
-      o.frequency.setValueAtTime(70, t);
-      o.frequency.linearRampToValueAtTime(95, t + 0.4);
-      const v = c.createOscillator();
-      v.frequency.value = 11;
-      const vg = c.createGain();
-      vg.gain.value = 9;
-      v.connect(vg).connect(o.frequency);
-      const f = c.createBiquadFilter();
-      f.type = "lowpass";
-      f.frequency.value = 700;
-      o.connect(f).connect(env(c, 0.3, 0.05, 0.5));
-      o.start(t);
-      v.start(t);
-      o.stop(t + 0.6);
-      v.stop(t + 0.6);
-    },
-    talk: (c) => {
-      // Et lite mumlende «hm-hm».
-      tone(c, "triangle", 220, 180, 0.12, 0.02, 0.12);
-      tone(c, "triangle", 260, 200, 0.1, 0.02, 0.14, 0.14);
-    },
-    pickup: (c) => {
-      tone(c, "sine", 880, 880, 0.2, 0.005, 0.12);
-      tone(c, "sine", 1320, 1320, 0.2, 0.005, 0.25, 0.08);
-    },
-    death: (c) => {
-      tone(c, "sawtooth", 160, 30, 0.5, 0.02, 1.4);
-      crunch(c, 0.4, 0.8, 600);
-    },
-    door: (c) => {
-      // Tung tredør med jernbeslag: knirk og et dunk.
-      tone(c, "sawtooth", 140, 210, 0.08, 0.05, 0.5);
-      crunch(c, 0.5, 0.25, 500, 0.45);
-      tone(c, "sine", 70, 40, 0.5, 0.005, 0.3, 0.45);
-    },
-    well: (c) => {
-      // Brønnen: valsen surrer når bøtta slippes, plask i vannet, og så
-      // knirker sveiven i rykk mens bøtta heises opp.
-      tone(c, "triangle", 320, 120, 0.05, 0.02, 0.95);
-      crunch(c, 0.35, 0.45, 900, 0.95);
-      tone(c, "sine", 180, 90, 0.12, 0.005, 0.25, 0.97);
-      for (let k = 0; k < 10; k++) {
-        const at = 1.45 + k * 0.24;
-        tone(c, "sawtooth", 115 + (k % 2) * 35, 95, 0.045, 0.01, 0.12, at);
-        crunch(c, 0.06, 0.05, 1800, at + 0.06);
-      }
-    },
-  };
-  return {
-    context: get,
-    play(name) {
-      const c = get();
-      if (!c || !play[name]) return;
-      try {
-        play[name](c);
-      } catch {
-        /* lyden er pynt */
-      }
-    },
-  };
-})();
+// Lydene (web/sounds.js): opptak og syntetiske lyder, med retning og etterklang.
+const sfx = createSounds();
 
 // Musikken (web/music.js): fem stykker etter tur i byen, uhygge i krypten.
 const music = createMusic(() => sfx.context());
 // Lydene i byen (web/ambience.js) etter hvor du står.
-const ambience = createAmbience(() => sfx.context());
+const ambience = createAmbience(() => sfx.context(), sfx);
 let lastAmbience = null;
 
 // Du er «inne» når startkortet er borte. Musa fanges med pekerlås når
@@ -1037,6 +756,7 @@ function locked() {
 }
 
 let loadedSave = false;
+let soundsLoading = false;
 function enter(relock = true) {
   if (!loadedSave) {
     loadedSave = true;
@@ -1048,8 +768,15 @@ function enter(relock = true) {
     }
   }
   playing = true;
+  if (!soundsLoading) {
+    soundsLoading = true;
+    sfx.preload();
+  }
   music.set(lastHud.cellar ? "cellar" : "town");
-  if (lastAmbience) ambience.set(lastAmbience);
+  if (lastAmbience) {
+    ambience.set(lastAmbience);
+    sfx.ambience(lastAmbience);
+  }
   gateEl.hidden = true;
   hud.hidden = false;
   engine.set_paused(false);

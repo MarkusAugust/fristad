@@ -13,10 +13,15 @@ use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::dungeon::{self, Dungeon};
 use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
-use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, WareView};
+use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, Mark, Prompt, RecipeView, SaveData, Sound, WareView};
 use crate::ports::{ColliderId, Physics};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
+
+/// En lyd i hodet: dine egne skritt, hugg og stønn.
+fn sfx(name: &str) -> Event {
+    Event::Sound(Sound::new(name))
+}
 
 /// Radianer per piksel musa flytter seg.
 const SENSITIVITY: f32 = 0.0035;
@@ -109,6 +114,20 @@ pub struct Session {
     last_ambience: Ambience,
     /// Der du sist sto trygt i kjelleren (til fall i kløftene).
     safe: Vec3,
+    /// Meter gått siden forrige skritt, og den raskeste fallfarten siden
+    /// du sist sto (til landingen).
+    stride: f32,
+    fall: f32,
+    /// Det som lager lyd i løkke der det står: ild (ildsteder og fakler),
+    /// rennende vann og lava.
+    fires: Vec<Vec3>,
+    waters: Vec<Vec3>,
+    lavas: Vec<Vec3>,
+    /// Innendørs (tak over deg og vegger rundt), målt med stråler.
+    indoor: bool,
+    /// Innbyggerne: hvor de sto sist bilde og hvor langt de har gått siden
+    /// forrige skritt (skrittene deres høres når du er nær).
+    npc_steps: Vec<(Vec3, f32)>,
     /// Snarveidørene: hvor langt de er åpnet (0..1), −1 når de er stengt.
     pub(super) shortcuts: Vec<f32>,
     ambience_t: f32,
@@ -207,6 +226,13 @@ impl Session {
             },
             last_ambience: Ambience::default(),
             safe: Vec3::ZERO,
+            stride: 0.0,
+            fall: 0.0,
+            fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
+            waters: Self::places(world, &["dng_hall_sewer", "dng_cistern"]),
+            lavas: Self::places(world, &["dng_hall_lava", "dng_chasm"]),
+            indoor: false,
+            npc_steps: vec![],
             shortcuts: vec![-1.0; world.dungeon.shortcuts.len()],
             ambience_t: 0.0,
             npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
@@ -239,6 +265,59 @@ impl Session {
             won: false,
             debug: 0,
         }
+    }
+
+    /// Hvor modellene med disse navnene står.
+    fn places(world: &World, names: &[&str]) -> Vec<Vec3> {
+        world.placements.iter().filter(|p| names.contains(&p.model)).flat_map(|p| p.transforms.iter().map(|t| Vec3::from(t.translation))).collect()
+    }
+
+    /// En lyd fra et sted i verden, sett fra øyet: x til høyre, y opp, −z
+    /// rett fram (slik nettleserens lytter står).
+    pub(super) fn sound_at(&self, name: &str, at: Vec3, gain: f32) -> Event {
+        let d = at - self.eye();
+        let (s, c) = self.yaw.sin_cos();
+        Event::Sound(Sound { name: name.into(), at: Some([d.x * c - d.z * s, d.y, d.x * s + d.z * c]), gain })
+    }
+
+    /// Midten av et mål i verden.
+    fn target_pos(&self, i: usize) -> Vec3 {
+        let t = &self.targets[i].target;
+        t.pose.transform_point3(t.center)
+    }
+
+    /// Hva du går på: navnet på skrittlyden.
+    fn surface(&self, feet: Vec3) -> &'static str {
+        if self.in_cellar() {
+            // Plankebrua over kløfta, vann i kloakkgangene, ellers stein.
+            if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 0.5) {
+                if self.waters.iter().any(|w| (w.y - self.dungeon.floors[f].y).abs() < 3.0 && w.with_y(0.0).distance(feet.with_y(0.0)) < 2.2) && self.dungeon.floors[f].theme == 2 {
+                    return "step_water";
+                }
+            }
+            if self.lavas.iter().any(|c| c.distance(feet) < 3.0) && self.dungeon.walkable(feet, 0.0) && !self.dungeon.walkable(feet + Vec3::X * 1.2, 0.0) {
+                return "step_wood";
+            }
+            return "step_rock";
+        }
+        let ground = crate::domain::world::terrain::height(feet.x, feet.z);
+        if feet.y > ground + 0.3 {
+            // Gulv, trapper og galleri i husene (og murkronene).
+            return if self.indoor { "step_wood" } else { "step_rock" };
+        }
+        if self.weather.snow_cover > 0.35 {
+            return "step_snow";
+        }
+        let g = town::ground_weights(feet.x, feet.z);
+        let grass = (1.0 - g.cobble - g.dirt - g.rock - g.forest).max(0.0);
+        let (mut best, mut name) = (grass, "step_grass");
+        for (w, n) in [(g.cobble, "step_rock"), (g.rock, "step_rock"), (g.dirt * (1.0 - g.earth), "step_gravel"), (g.dirt * g.earth, "step_dirt"), (g.forest, "step_dirt")] {
+            if w > best {
+                best = w;
+                name = n;
+            }
+        }
+        name
     }
 
     pub fn fristil_version(&self) -> &str {
@@ -421,10 +500,12 @@ impl Session {
         let speed = self.stance.speed(input.sprint);
         // Hugg og blokk bremser, unnamanøveren kaster deg til sida.
         let horizontal = wish.normalize_or_zero() * speed * self.combat.move_factor() + self.combat.dodge_velocity();
+        let mut jumped_now = false;
         if self.grounded {
             self.vel_y = -1.0;
             if input.jump && !self.paused && self.stance == Stance::Stand {
                 self.vel_y = 5.4;
+                jumped_now = true;
             }
         } else {
             self.vel_y -= 18.0 * dt;
@@ -432,7 +513,50 @@ impl Session {
         let desired = (horizontal + Vec3::Y * self.vel_y) * dt;
         let (moved, grounded) = physics.move_capsule(self.pos, half, radius, desired, dt);
         self.pos += moved;
+        let was_grounded = self.grounded;
         self.grounded = grounded;
+        // Skrittene: ett per skrittlengde, etter underlaget, med rustningen
+        // som rasler i takt; hopp og landing (hardere jo lenger fallet).
+        {
+            let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+            if jumped_now {
+                events.push(sfx("jump"));
+                self.fall = 0.0;
+            }
+            if !self.grounded {
+                self.fall = self.fall.min(self.vel_y);
+            } else if !was_grounded && !self.jumped {
+                if self.fall < -4.0 {
+                    let hard = ((-self.fall - 4.0) / 8.0).clamp(0.0, 1.0);
+                    events.push(Event::Sound(Sound { name: "land".into(), at: None, gain: 0.5 + hard * 0.7 }));
+                    events.push(Event::Sound(Sound { name: self.surface(feet).into(), at: None, gain: 0.9 }));
+                    self.stride = 0.0;
+                }
+                self.fall = 0.0;
+            }
+            if self.grounded && !self.paused {
+                self.stride += moved.with_y(0.0).length();
+                let (length, gain) = match self.stance {
+                    Stance::Stand if input.sprint => (1.25, 1.0),
+                    Stance::Stand => (0.85, 0.75),
+                    Stance::Crouch => (0.6, 0.35),
+                    Stance::Crawl => (0.5, 0.25),
+                };
+                if self.stride >= length {
+                    self.stride = 0.0;
+                    let surface = self.surface(feet);
+                    events.push(Event::Sound(Sound { name: surface.into(), at: None, gain }));
+                    // Søle i regnvær.
+                    if self.weather.wet > 0.6 && matches!(surface, "step_gravel" | "step_dirt") {
+                        events.push(Event::Sound(Sound { name: "step_water".into(), at: None, gain: gain * 0.5 * self.weather.wet }));
+                    }
+                    if let Some(a) = self.gear.armor {
+                        let layer = if a.id.contains("mail") { "gear_mail" } else { "gear_leather" };
+                        events.push(Event::Sound(Sound { name: layer.into(), at: None, gain }));
+                    }
+                }
+            }
+        }
         // Under nederste etasje i kjelleren er det ingenting.
         let abyss = self.dungeon.floors.last().map(|f| f.y).unwrap_or(dungeon::DEPTH) - 12.0;
         if self.pos.y < abyss {
@@ -460,7 +584,8 @@ impl Session {
                         let back = self.safe;
                         self.teleport(back, self.yaw);
                         events.push(Event::Fade);
-                        events.push(Event::Sound("hurt".into()));
+                        events.push(sfx("land"));
+                        events.push(sfx("hurt"));
                         events.push(Event::Toast("Du falt i kløfta, og kom deg opp igjen med skrubbsår og en vond rygg.".into()));
                     }
                 }
@@ -482,7 +607,7 @@ impl Session {
                 Action::AttackRelease => self.combat.release_attack(),
                 Action::Dodge => {
                     if in_cellar && self.grounded && wish.length_squared() > 0.0 && !self.paused && self.combat.dodge(wish) {
-                        events.push(Event::Sound("dodge".into()));
+                        events.push(sfx("dodge"));
                     }
                 }
                 Action::Daylight => {
@@ -539,7 +664,9 @@ impl Session {
         let step = dt / 2.8;
         self.night = if self.night < goal { (self.night + step).min(goal) } else { (self.night - step).max(goal) };
 
-        self.update_weather(dt);
+        if self.update_weather(dt) && !in_cellar {
+            events.push(Event::Sound(Sound { name: "thunder".into(), at: None, gain: if self.indoor { 0.6 } else { 1.0 } }));
+        }
         self.update_gates(physics, dt);
         self.update_wells(dt, &mut events);
         let (half, radius) = self.stance.capsule();
@@ -547,6 +674,22 @@ impl Session {
         self.herd.update(dt, feet);
         // Innbyggerne: boblene som står sendes hvert bilde (og én tom når de er borte).
         let speeches = self.npcs.update(dt, feet);
+        // Skrittene til innbyggerne som går nær deg.
+        self.npc_steps.resize(self.npcs.npcs.len(), (Vec3::ZERO, 0.0));
+        for i in 0..self.npcs.npcs.len() {
+            let p = self.npcs.npcs[i].pos;
+            let (last, stride) = self.npc_steps[i];
+            let d = p.with_y(0.0).distance(last.with_y(0.0));
+            let mut stride = if d < 1.0 { stride + d } else { 0.0 };
+            if stride > 0.8 {
+                stride = 0.0;
+                if p.distance(feet) < 16.0 && !in_cellar {
+                    let surface = self.surface(p + Vec3::Y * 0.05);
+                    events.push(self.sound_at(surface, p, 0.45));
+                }
+            }
+            self.npc_steps[i] = (p, stride);
+        }
         // Siktemålet følger innbyggeren.
         for t in &self.targets {
             if let Use::Talk(n) = t.target.what {
@@ -584,7 +727,7 @@ impl Session {
             self.inv_dirty = false;
             events.push(Event::Inventory(self.inventory_view()));
         }
-        self.ambience(dt, feet, in_cellar, &mut events);
+        self.ambience(dt, feet, in_cellar, physics, &mut events);
         events
     }
 
@@ -593,7 +736,8 @@ impl Session {
         match self.targets[i].target.what {
             Use::Talk(n) => {
                 if self.npcs.talk(n).is_some() {
-                    events.push(Event::Sound("talk".into()));
+                    let at = self.npcs.npcs.get(n).map(|p| p.pos + Vec3::Y * 1.6).unwrap_or(self.eye());
+                    events.push(self.sound_at("talk", at, 1.0));
                 }
             }
             Use::Chest(n) => {
@@ -609,7 +753,8 @@ impl Session {
                 let pick = list[(self.loot_seed >> 33) as usize % list.len()];
                 *self.carried.entry(pick.to_string()).or_insert(0) += 1;
                 self.inv_dirty = true;
-                events.push(Event::Sound("chest".into()));
+                events.push(self.sound_at("chest", self.target_pos(i), 1.0));
+                events.push(sfx("loot"));
                 events.push(Event::Loot(Some(pick.to_string())));
             }
             Use::Shortcut(n) => {
@@ -621,9 +766,11 @@ impl Session {
                     if let Some(sc) = self.dungeon.shortcuts.get(n).copied() {
                         self.dungeon.floors[sc.floor].open(sc.edge);
                     }
-                    events.push(Event::Sound("door".into()));
+                    events.push(self.sound_at("bolt", self.target_pos(i), 1.0));
+                    events.push(self.sound_at("door", self.target_pos(i), 0.9));
                     events.push(Event::Toast("Du skyver slåen fra. Snarveien tilbake til startrommet er åpen.".into()));
                 } else {
+                    events.push(self.sound_at("locked", self.target_pos(i), 0.8));
                     events.push(Event::Toast("Døra er boltet fra den andre siden.".into()));
                 }
             }
@@ -634,9 +781,11 @@ impl Session {
                 if self.keys > 0 {
                     self.keys -= 1;
                     self.gates[n].1 = true;
-                    events.push(Event::Sound("door".into()));
+                    events.push(sfx("key"));
+                    events.push(self.sound_at("gate", self.target_pos(i), 1.0));
                     events.push(Event::Toast("Nøkkelen passer. Porten sveives opp; trappa ned ligger bak.".into()));
                 } else {
+                    events.push(self.sound_at("locked", self.target_pos(i), 1.0));
                     events.push(Event::Toast("Porten er låst. Elitefienden i rommet bærer nøkkelen.".into()));
                 }
             }
@@ -644,7 +793,8 @@ impl Session {
                 if let Some(w) = self.wells.get_mut(n) {
                     if *w < 0.0 {
                         *w = 0.0;
-                        events.push(Event::Sound("well".into()));
+                        let at = self.target_pos(i);
+                        events.push(self.sound_at("well", at, 1.0));
                     }
                 }
             }
@@ -652,14 +802,14 @@ impl Session {
                 let to = self.dungeon.start;
                 self.teleport(to, 0.0);
                 events.push(Event::Fade);
-                events.push(Event::Sound("door".into()));
+                events.push(sfx("crypt_door"));
                 events.push(Event::Toast("Ned i kjelleren under borgen. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.".into()));
             }
             Use::Ascend => {
                 let (to, yaw) = self.crypt_exit;
                 self.teleport(to, yaw);
                 events.push(Event::Fade);
-                events.push(Event::Sound("door".into()));
+                events.push(sfx("door"));
                 self.bank(events);
             }
         }
@@ -732,25 +882,20 @@ impl Session {
         let outcome = self.mobs.update(sim_dt, feet, in_cellar, &self.dungeon);
         self.coins += outcome.tokens;
         if outcome.tokens > 0 {
-            events.push(Event::Sound("pickup".into()));
+            events.push(sfx("pickup"));
         }
         if outcome.keys > 0 {
             self.keys += outcome.keys;
-            events.push(Event::Sound("pickup".into()));
+            events.push(sfx("key"));
             events.push(Event::Toast("En rusten nøkkel. Porten i utgangsrommet kan låses opp.".into()));
         }
-        for _ in 0..outcome.windups {
-            events.push(Event::Sound("growl".into()));
-        }
-        for _ in 0..outcome.spits {
-            events.push(Event::Sound("spit".into()));
+        for (name, at) in &outcome.sounds {
+            events.push(self.sound_at(name, *at + Vec3::Y * 1.0, 1.0));
         }
         for _ in 0..outcome.roars {
-            events.push(Event::Sound("roar".into()));
             events.push(Event::Toast("Rammeverket brøler, og tooltips kryper ut av veggene.".into()));
         }
         if outcome.quakes > 0 {
-            events.push(Event::Sound("slam".into()));
             self.combat.quake();
         }
         // Bittene: blokk tar det meste, en parade alt (og lamslår), en
@@ -760,11 +905,11 @@ impl Session {
             let (taken, parried) = self.combat.incoming(*from, *damage, eye, fwd);
             if parried {
                 self.mobs.stagger(*mob, 1.3);
-                events.push(Event::Sound("parry".into()));
+                events.push(sfx("parry"));
             } else if taken < *damage * 0.99 && taken > 0.0 {
-                events.push(Event::Sound("block".into()));
+                events.push(sfx(if self.gear.shield.model == "shield_tower" { "block_metal" } else { "block" }));
             } else if taken > 0.0 {
-                events.push(Event::Sound("hurt".into()));
+                events.push(sfx("hurt"));
             }
             taken_total += taken;
         }
@@ -774,30 +919,50 @@ impl Session {
                 self.die(events);
             }
         }
-        // Våre hugg.
+        // Våre hugg. Treffet høres der fienden står, med materialet den er
+        // laget av (tabellen er tre, Rammeverket jern).
+        let mut struck: Option<Vec3> = None;
         for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.dungeon) {
             match e {
                 CombatEvent::Hit { mob, damage, killed, pos } => {
                     self.popup_seq = self.popup_seq.wrapping_add(1);
                     self.popups.push((pos, damage, 0.0, self.popup_seq));
+                    struck = Some(pos);
+                    let material = match self.mobs.mobs.get(mob).map(|m| m.kind) {
+                        Some(MobKind::Table) => Some("hit_wood"),
+                        Some(MobKind::Framework) => Some("hit_metal"),
+                        _ => None,
+                    };
+                    if let Some(m) = material {
+                        events.push(self.sound_at(m, pos, 1.0));
+                    }
                     if killed {
                         self.killed(mob, pos, events);
                     }
                 }
                 CombatEvent::Miss => {}
-                CombatEvent::Sound(s) => events.push(Event::Sound(s.into())),
+                CombatEvent::Sound(s) => match struck {
+                    Some(at) if s != "swing" && s != "swing_heavy" => events.push(self.sound_at(s, at, 1.0)),
+                    _ => events.push(sfx(s)),
+                },
             }
         }
     }
 
     /// Lydbildet: hvor nær du er torget, smia, kirka og dyrene, sendt fire
     /// ganger i sekundet når det har endret seg.
-    fn ambience(&mut self, dt: f32, feet: Vec3, in_cellar: bool, events: &mut Vec<Event>) {
+    fn ambience(&mut self, dt: f32, feet: Vec3, in_cellar: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
         self.ambience_t -= dt;
         if self.ambience_t > 0.0 {
             return;
         }
         self.ambience_t = 0.25;
+        // Innendørs: tak over deg og vegger på minst tre kanter.
+        let eye = self.eye();
+        let roof = physics.cast_ray(eye, Vec3::Y, 12.0).is_some();
+        let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].iter().filter(|d| physics.cast_ray(eye, **d, 9.0).is_some()).count();
+        self.indoor = !in_cellar && roof && walls >= 3;
+        let close = |list: &[Vec3], r: f32| list.iter().map(|q| (1.0 - q.distance(eye) / r).clamp(0.0, 1.0)).fold(0.0, f32::max).powi(2);
         let p = Vec2::new(feet.x, feet.z);
         let near = |at: Vec2, r: f32| (1.0 - p.distance(at) / r).clamp(0.0, 1.0).powi(2);
         let [square, forge, church] = self.sound_spots;
@@ -807,12 +972,20 @@ impl Session {
             forge: near(forge, 32.0),
             church: near(church, 140.0),
             meadow,
+            fire: close(&self.fires, 7.0),
+            water: if in_cellar { close(&self.waters, 9.0) } else { 0.0 },
+            lava: if in_cellar { close(&self.lavas, 10.0) } else { 0.0 },
+            rain: if in_cellar { 0.0 } else { self.weather.rain },
+            wind: if in_cellar { 0.0 } else { self.weather.wind },
             night: self.daylight == Daylight::Night,
             cellar: in_cellar,
+            indoor: self.indoor,
         };
         let last = self.last_ambience;
-        let moved = (a.square - last.square).abs().max((a.forge - last.forge).abs()).max((a.church - last.church).abs()).max((a.meadow - last.meadow).abs());
-        if moved > 0.02 || a.night != last.night || a.cellar != last.cellar {
+        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.rain - last.rain, a.wind - last.wind]
+            .iter()
+            .fold(0.0f32, |m, d| m.max(d.abs()));
+        if moved > 0.02 || a.night != last.night || a.cellar != last.cellar || a.indoor != last.indoor {
             self.last_ambience = a;
             events.push(Event::Ambience(a));
         }
@@ -840,7 +1013,7 @@ impl Session {
         let (to, yaw) = self.crypt_exit;
         self.teleport(to, yaw);
         events.push(Event::Fade);
-        events.push(Event::Sound("death".into()));
+        events.push(sfx("death"));
         events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
     }
 
@@ -858,6 +1031,7 @@ impl Session {
             let c = craft::ELITE_LOOT[floor];
             *self.carried.entry(c.to_string()).or_insert(0) += 1;
             self.inv_dirty = true;
+            events.push(self.sound_at("key", pos - Vec3::Y * 0.8, 1.0));
             events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen.")));
         } else if kind != MobKind::Tooltip {
             events.push(Event::Toast(format!("{} falt fra hverandre. Plukk opp tokenene.", kind.label())));
@@ -939,6 +1113,7 @@ impl Session {
         let missing = craft::missing(&r, &self.inventory);
         if !missing.is_empty() {
             let list: Vec<String> = missing.iter().map(|(c, n)| format!("{c} ×{n}")).collect();
+            self.pending.push(sfx("deny"));
             self.pending.push(Event::Toast(format!("Skjemaet avvist: mangler {}.", list.join(", "))));
             return false;
         }
@@ -971,7 +1146,12 @@ impl Session {
         };
         self.combat.set_gear(self.gear);
         self.inv_dirty = true;
-        self.pending.push(Event::Sound("parry".into()));
+        self.pending.push(sfx("craft"));
+        self.pending.push(sfx(match r.result {
+            craft::Result::Shield(_) => "equip_wood",
+            craft::Result::Armor(_) => "equip_leather",
+            _ => "equip_metal",
+        }));
         self.pending.push(Event::Toast(format!("Skjemaet er godkjent. {} er smidd: {what} er byttet.", r.name)));
         true
     }
@@ -980,6 +1160,7 @@ impl Session {
     pub fn buy(&mut self, id: &str) -> bool {
         let Some(w) = craft::ware(id) else { return false };
         if self.coins < w.price {
+            self.pending.push(sfx("deny"));
             self.pending.push(Event::Toast(format!("Du mangler {} tokens.", w.price - self.coins)));
             return false;
         }
@@ -999,7 +1180,7 @@ impl Session {
             }
         }
         self.inv_dirty = true;
-        self.pending.push(Event::Sound("pickup".into()));
+        self.pending.push(sfx("coins"));
         self.pending.push(Event::Toast(format!("Kjøpt: {}.", w.name)));
         true
     }
@@ -1014,7 +1195,9 @@ impl Session {
         let before = self.hp;
         self.hp = (self.hp + 20.0).min(self.max_hp);
         self.inv_dirty = true;
+        self.pending.push(sfx("book"));
         if self.hp > before {
+            self.pending.push(sfx("heal"));
             self.pending.push(Event::Toast(format!("Du leste om {component}: +{:.0} liv.", self.hp - before)));
         }
         true
@@ -1175,7 +1358,9 @@ impl Session {
         self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
     }
 
-    fn update_weather(&mut self, dt: f32) {
+    /// Været glir mot målet. Gir om det lynte (tordenen kommer etter).
+    fn update_weather(&mut self, dt: f32) -> bool {
+        let mut flash = false;
         let (t, fog) = self.weather_kind.target();
         let w = &mut self.weather;
         let ease = |v: &mut f32, goal: f32, rate: f32| *v += (goal - *v) * (dt * rate).min(1.0);
@@ -1193,10 +1378,12 @@ impl Session {
             self.lightning_timer -= dt;
             if self.lightning_timer <= 0.0 {
                 w.lightning = 1.0;
+                flash = true;
                 self.lightning_timer = 3.0 + ((self.time * 7.3).sin() * 0.5 + 0.5) * 9.0;
             }
         }
         w.lightning *= (1.0 - dt * 9.0).max(0.0);
+        flash
     }
 
     /// Portgitrene der de står nå (til bildet).

@@ -392,7 +392,7 @@ fn bronnen_gir_vann() {
     for _ in 0..(5.0 * 30.0) as usize {
         events.extend(game.update(&mut input, 1.0 / 30.0, &mut physics));
     }
-    assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s == "well")), "ingen lyd fra brønnen");
+    assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "well")), "ingen lyd fra brønnen");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("drikker"))), "fikk ikke drikke");
 }
 
@@ -1000,3 +1000,120 @@ fn snarveien_apnes_fra_innsida() {
 
 
 
+
+/// Skrittene følger underlaget: brostein på torget, gress på enga og stein
+/// i kjelleren.
+#[test]
+fn skrittene_folger_underlaget() {
+    use crate::domain::world::{terrain, town};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let steps = |game: &mut Session, physics: &mut RapierPhysics, feet: Vec3| -> Vec<String> {
+        let mut heard = vec![];
+        // Prøv fire retninger, i tilfelle noe står i veien.
+        for k in 0..4 {
+            game.place_feet(feet);
+            game.set_look(k as f32 * std::f32::consts::FRAC_PI_2, 0.0);
+            let mut input = Input { forward: true, ..Default::default() };
+            for _ in 0..60 {
+                for e in game.update(&mut input, 1.0 / 30.0, physics) {
+                    if let Event::Sound(s) = e {
+                        if s.name.starts_with("step_") {
+                            heard.push(s.name);
+                        }
+                    }
+                }
+            }
+        }
+        heard
+    };
+    let sq = town::square_center();
+    let heard = steps(&mut game, &mut physics, terrain::at(sq + Vec3::new(4.0, 0.0, 4.0)));
+    assert!(heard.iter().any(|s| s == "step_rock"), "ingen skritt på brosteinen: {heard:?}");
+    // Et sted på enga der det bare er gress.
+    let meadow = (0..400)
+        .map(|i| {
+            let a = i as f32 * 0.37;
+            let r = 70.0 + (i % 40) as f32 * 2.0;
+            terrain::at(Vec3::new(a.cos() * r, 0.0, a.sin() * r))
+        })
+        .find(|p| {
+            let g = town::ground_weights(p.x, p.z);
+            g.cobble + g.dirt + g.rock + g.forest < 0.05 && terrain::normal(p.x, p.z).y > 0.97
+        })
+        .expect("fant ingen eng");
+    let heard = steps(&mut game, &mut physics, meadow);
+    assert!(heard.iter().any(|s| s == "step_grass"), "ingen skritt i gresset ved {meadow:?}: {heard:?}");
+    let start = world().world.dungeon.start;
+    let heard = steps(&mut game, &mut physics, start);
+    assert!(heard.iter().all(|s| s != "step_grass") && heard.iter().any(|s| s == "step_rock"), "skrittene i kjelleren: {heard:?}");
+}
+
+/// Alle lydene spillet ber om finnes i lydbiblioteket (`assets/sounds`), med
+/// filer og kreditering, og de syntetiske lydene manifestet viser til finnes
+/// i `web/sounds.js`.
+#[test]
+fn lydene_finnes() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let manifest: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{root}/assets/sounds/sounds.json")).expect("sounds.json")).expect("gyldig json");
+    let manifest = manifest.as_object().expect("et objekt");
+    let credits = std::fs::read_to_string(format!("{root}/assets/sounds/CREDITS.md")).expect("CREDITS.md");
+    let js = std::fs::read_to_string(format!("{root}/web/sounds.js")).expect("sounds.js");
+    let mut used = std::collections::BTreeSet::new();
+    for path in ["src/application/session.rs", "src/domain/mobs.rs", "src/domain/combat.rs"] {
+        let src = std::fs::read_to_string(format!("{root}/{path}")).expect("kilden");
+        // Lydnavnene er strenger med små bokstaver og understrek i kall
+        // til sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene.
+        for marker in ["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_"] {
+            let mut rest = src.as_str();
+            while let Some(i) = rest.find(marker) {
+                rest = &rest[i + marker.len()..];
+                // Hent alle strengene på resten av linja.
+                let line = &rest[..rest.find('\n').unwrap_or(rest.len())];
+                let line = if marker.starts_with('"') {
+                    format!("\"{}{line}", &marker[1..])
+                } else if marker.ends_with('"') {
+                    format!("\"{line}")
+                } else {
+                    line.to_string()
+                };
+                for (k, part) in line.split('"').enumerate() {
+                    if k % 2 == 1 && !part.is_empty() && part.chars().all(|c| c.is_ascii_lowercase() || c == '_') {
+                        used.insert(part.to_string());
+                    }
+                }
+            }
+        }
+    }
+    // Lydene nettlaget selv ber om.
+    for n in ["page", "bag", "click", "heartbeat", "sheep", "cow"] {
+        used.insert(n.to_string());
+    }
+    // Ord som ikke er lyder.
+    for n in ["mail", "shield_tower", "outdoor"] {
+        used.remove(n);
+    }
+    let missing: Vec<_> = used.iter().filter(|n| !manifest.contains_key(n.as_str())).collect();
+    assert!(missing.is_empty(), "lyder spillet ber om som ikke er i sounds.json: {missing:?}");
+    let synth_has = |n: &str| js.contains(&format!("    {n}: (c)"));
+    let mut files = std::collections::BTreeSet::new();
+    for (name, e) in manifest {
+        let list = e["files"].as_array().expect("files");
+        assert!(!list.is_empty() || e.get("synth").is_some(), "{name} har verken filer eller syntetisk lyd");
+        if let Some(s) = e.get("synth").and_then(|s| s.as_str()) {
+            assert!(synth_has(s), "{name}: den syntetiske lyden {s} finnes ikke i web/sounds.js");
+        }
+        for f in list {
+            let f = f.as_str().expect("filnavn");
+            assert!(std::path::Path::new(&format!("{root}/assets/sounds/{f}")).exists(), "{name}: {f} mangler");
+            assert!(credits.contains(&format!("`{f}`")), "{f} er ikke kreditert i CREDITS.md");
+            files.insert(f.to_string());
+        }
+    }
+    for f in std::fs::read_dir(format!("{root}/assets/sounds")).expect("mappa").flatten() {
+        let n = f.file_name().to_string_lossy().to_string();
+        if n.ends_with(".mp3") {
+            assert!(files.contains(&n), "{n} er ikke i sounds.json");
+        }
+    }
+}

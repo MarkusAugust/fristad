@@ -162,9 +162,8 @@ pub enum Event {
     /// Liv, utholdenhet, tokens, nøkler, om du er nede i kjelleren, og
     /// bossen om den har sett deg, når noe av det endrer seg.
     Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32, boss: Option<(String, u32)> },
-    /// En lyd å spille: swing, hit, kill, block, parry, hurt, dodge, growl,
-    /// pickup, death, talk, door, clang, spit, slam, roar.
-    Sound(String),
+    /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
+    Sound(Sound),
     /// Merkene på skjermen dette bildet (tom liste når de er borte).
     Marks(Vec<Mark>),
     /// Snakkeboblene over innbyggerne dette bildet (tom liste når de er borte).
@@ -179,17 +178,46 @@ pub enum Event {
     Ambience(Ambience),
 }
 
-/// Hvor sterkt hvert lydlag i byen skal høres der du står (0–1): folk på
-/// torget, hamring i smia, kirka (klokka), dyrene på enga, og om det er
-/// natt eller du er i kjelleren (da er byen stille).
+/// En lyd: navnet (i `assets/sounds/sounds.json`), hvor den kommer fra sett
+/// fra deg (meter; x til høyre, y opp, −z rett fram), eller `None` for lyder
+/// i hodet (dine egne skritt, hugg og stønn), og hvor sterk den er (1 vanlig).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Sound {
+    pub name: String,
+    pub at: Option<[f32; 3]>,
+    pub gain: f32,
+}
+
+impl Sound {
+    pub fn new(name: &str) -> Self {
+        Self { name: name.into(), at: None, gain: 1.0 }
+    }
+}
+
+impl PartialEq<&str> for Sound {
+    fn eq(&self, other: &&str) -> bool {
+        self.name == *other
+    }
+}
+
+/// Hvor sterkt hvert lydlag skal høres der du står (0–1): folk på torget,
+/// hamring i smia, kirka (klokka), dyrene på enga, ild (ildsteder og
+/// fakler), rennende vann, lava, regn og vind; om det er natt, om du er
+/// i kjelleren (da er byen stille) eller innendørs (rommet gir etterklang).
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Ambience {
     pub square: f32,
     pub forge: f32,
     pub church: f32,
     pub meadow: f32,
+    pub fire: f32,
+    pub water: f32,
+    pub lava: f32,
+    pub rain: f32,
+    pub wind: f32,
     pub night: bool,
     pub cellar: bool,
+    pub indoor: bool,
 }
 
 /// Siktet: navnet på det du sikter på, hva F gjør, og hva E gjør (tom om

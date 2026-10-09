@@ -2,9 +2,11 @@
 // hamring og blåsebelg i smia, kirkeklokka som ringer med jevne mellomrom,
 // sauer og kuer på enga, fugler om dagen og sirisser om natta, og vinden.
 // Spillet sender hvor nær du er hver kilde (`set`), og lagene blandes etter
-// det. I kjelleren er byen stille.
+// det. I kjelleren er byen stille. Når opptakene i `sounds` (web/sounds.js)
+// er lastet, brukes de for dyrene, og fuglene, smia og vinden kommer fra
+// løkkene der; de syntetiske lagene er reserve.
 
-export function createAmbience(context) {
+export function createAmbience(context, sounds) {
   let c = null;
   let out = null;
   let state = { square: 0, forge: 0, church: 0, meadow: 0, night: false, cellar: true };
@@ -309,17 +311,20 @@ export function createAmbience(context) {
     if (people > 0.02 && Math.random() < 0.06 + people * 0.4) voice(t + rnd(0, 0.1), Math.random() < 0.45);
     if (people > 0.1 && Math.random() < 0.004) laugh(t);
     if (people > 0.2 && day && Math.random() < 0.0015) cart(t);
-    if (day && s.forge > 0.01) {
+    const rec = (name) => sounds?.has(name);
+    if (day && s.forge > 0.01 && !rec("loop_forge")) {
       // Tre-fire slag, så en pause.
       forgeBeat = (forgeBeat + 1) % 14;
       if (forgeBeat < 4 && forgeBeat % 1 === 0 && Math.random() < 0.9) anvil(t, forgeBeat === 3 ? 0.6 : 1);
       if (forgeBeat === 8 && Math.random() < 0.15) bellows(t);
     }
     if (town && s.meadow > 0.02) {
-      if (Math.random() < 0.012 * s.meadow) sheep(t);
-      if (Math.random() < 0.004 * s.meadow) cow(t);
+      // Dyrene står spredt rundt deg på enga.
+      const around = () => [Math.random() * 30 - 15, 0, Math.random() * 30 - 15];
+      if (Math.random() < 0.012 * s.meadow) rec("sheep") ? sounds.play("sheep", { at: around(), gain: 0.4 + s.meadow * 0.6 }) : sheep(t);
+      if (Math.random() < 0.004 * s.meadow) rec("cow") ? sounds.play("cow", { at: around(), gain: 0.4 + s.meadow * 0.6 }) : cow(t);
     }
-    if (day && Math.random() < 0.03) bird(t);
+    if (day && Math.random() < 0.03 && !rec("loop_birds")) bird(t);
     if (town && s.night && Math.random() < 0.12) cricket(t);
     // Kirkeklokka: et par minutter mellom hver gang, i hele byen.
     if (town && c.currentTime > nextBell) {
@@ -344,7 +349,7 @@ export function createAmbience(context) {
       level("meadow", town ? Math.min(1, next.meadow * 1.2) : 0);
       level("birds", town && !next.night ? 0.8 : 0);
       level("night", town && next.night ? 0.9 : 0);
-      level("wind", town ? 1 : 0);
+      level("wind", town && !sounds?.has("loop_wind") ? 1 : 0);
     },
   };
 }
