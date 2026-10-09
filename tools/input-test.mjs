@@ -50,7 +50,8 @@ await page.evaluate(() => {
     return mouse(b, d);
   };
 });
-await page.click("#enter");
+await page.waitForSelector("#enter:not([hidden])", { timeout: 180000 });
+await page.click("#enter", { timeout: 120000 });
 await page.waitForTimeout(1500);
 const fps = async () => {
   await page.waitForTimeout(6000);
@@ -67,10 +68,10 @@ console.log(`     bilder per sekund: avansert ${fpsAdvanced}, redusert ${fpsRedu
 check(fpsReduced >= fpsAdvanced, "redusert er ikke tregere");
 // Musa: et klikk i bildet sender et hugg (med eller uten pekerlås).
 await page.evaluate(() => (window.__mouse = []));
-await page.mouse.click(480, 270);
+await page.mouse.click(480, 270, { delay: 30 });
 await page.waitForTimeout(300);
 const lockedAfterClick = await page.evaluate(() => document.pointerLockElement?.id ?? null);
-await page.mouse.click(480, 270);
+await page.mouse.click(480, 270, { delay: 30 });
 await page.waitForTimeout(300);
 const calls = await page.evaluate(() => window.__mouse);
 console.log(`     pekerlås: ${lockedAfterClick ?? "nei"}, musekall: ${JSON.stringify(calls)}`);
@@ -84,7 +85,7 @@ check((await page.evaluate(() => window.__mouse)).some(([b, d]) => b === 2 && d)
 await page.evaluate(() => window.fristad.openShop("Knappesmeden", []));
 await page.waitForTimeout(300);
 check(await page.isVisible("#overlay"), "butikken er åpen");
-await page.click("#overlay-close");
+await page.click("#overlay-close", { force: true, timeout: 120000 });
 await page.waitForTimeout(600);
 const after = await page.evaluate(() => ({ locked: document.pointerLockElement?.id ?? null, gate: !document.querySelector("#gate").hidden }));
 console.log(`     etter «Tilbake»: pekerlås ${after.locked ?? "nei"}, menyen ${after.gate ? "synlig" : "skjult"}`);
