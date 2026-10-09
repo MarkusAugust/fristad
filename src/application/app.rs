@@ -58,7 +58,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
                     self.input.release_all();
                 }
             }
-            Command::Respawn => self.session.respawn(),
+            Command::Respawn => self.session.go_home_now(),
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
             Command::SetQuality(q) => self.renderer.set_quality(q),
             Command::SetScale(s) => self.renderer.set_scale(s),

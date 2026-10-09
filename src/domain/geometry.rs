@@ -127,6 +127,9 @@ pub mod kind {
     pub const GLASS: u8 = 201;
     /// Bladkort med alfa, uv inn i bladteksturen.
     pub const LEAF: u8 = 202;
+    /// Magisk glød (portalen): lyser hele døgnet i sin egen farge, uten
+    /// ildens varme filter.
+    pub const MAGIC: u8 = 203;
     /// Lampeglass som lyser om natta.
     pub const LAMP: u8 = 204;
     /// Skeleton-komponenten: grå flate som skimrer.

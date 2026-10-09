@@ -69,6 +69,7 @@ impl Session {
         if in_cellar {
             lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear().lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear().lantern, always: true, flicker: 0.0 });
         }
+        lights.extend(self.portal_light());
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));
         // Nede i kjelleren: lite himmellys, mer tåke, øynene vant til mørket.
@@ -88,13 +89,14 @@ impl Session {
         instances.extend(self.npcs.instances(&mut skins));
         instances.extend(self.mobs.instances(self.time, &mut skins));
         instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.portal_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.shortcut_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::SHORTCUT_LEAF, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.chest_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::CHEST_LID, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
-            proj: Mat4::perspective_rh(72f32.to_radians(), aspect, 0.1, 2500.0),
+            proj: Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0),
             camera: eye,
             time: self.time,
             sun_dir,
@@ -129,5 +131,16 @@ impl Session {
     /// Etter at `frame` er hentet: neste bilde kan blandes igjen.
     pub fn settle(&mut self) {
         self.jumped = false;
+    }
+
+    /// Synsfeltet: 72°, strukket ut og tilbake når du reiser gjennom
+    /// virvelen.
+    pub(super) fn fov(&self) -> f32 {
+        let t = self.warp_t / 1.3;
+        if t < 1.0 {
+            72.0 + 46.0 * (t * std::f32::consts::PI).sin().powi(2) * (1.0 - t * 0.3)
+        } else {
+            72.0
+        }
     }
 }

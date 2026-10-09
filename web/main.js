@@ -374,6 +374,9 @@ function handle(e) {
     case "fade":
       fade();
       break;
+    case "warp":
+      warp();
+      break;
     case "theme":
       document.documentElement.dataset.theme = e.theme;
       break;
@@ -483,6 +486,14 @@ function readDoc(component) {
 // Ned i krypten og opp igjen: skjermen går i svart et øyeblikk.
 function fade() {
   const el = $("fade");
+  el.classList.remove("on");
+  void el.offsetWidth;
+  el.classList.add("on");
+}
+
+// Gjennom portalen: en virvel over skjermen (synsfeltet strekkes i motoren).
+function warp() {
+  const el = $("warp");
   el.classList.remove("on");
   void el.offsetWidth;
   el.classList.add("on");

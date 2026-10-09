@@ -49,6 +49,9 @@ pub enum Use {
     Ascend,
     /// Brønn nummer n i byen: heis opp vann og drikk.
     Well(usize),
+    /// Portalen ved sørporten: tilbake dit du var i kjelleren (åpen bare
+    /// når du har gått hjem med H, eller har dødd nede).
+    Portal,
 }
 
 /// Noe du kan sikte på og bruke: en boks (sentrum og halve mål) med pose.

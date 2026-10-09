@@ -568,6 +568,20 @@
   "gain": 0.45,
   "pitch": 0.03
  },
+ "warp": {
+  "files": [
+   "warp_1.mp3"
+  ],
+  "gain": 0.8,
+  "pitch": 0.04
+ },
+ "portal_open": {
+  "files": [
+   "portal_open_1.mp3"
+  ],
+  "gain": 0.6,
+  "pitch": 0.03
+ },
  "bag": {
   "files": [
    "bag_1.mp3"
@@ -721,6 +735,14 @@
    "loop_drips.mp3"
   ],
   "gain": 0.4,
+  "pitch": 0.06,
+  "loop": true
+ },
+ "loop_portal": {
+  "files": [
+   "loop_portal.mp3"
+  ],
+  "gain": 0.45,
   "pitch": 0.06,
   "loop": true
  },

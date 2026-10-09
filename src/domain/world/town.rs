@@ -496,9 +496,10 @@ pub fn build(b: &mut Builder) -> Town {
     let crypt_exit = castle(b);
     signposts(b);
     people(b, &doors);
-    wanderers(b, &doors);
     let (g, out) = gate(true);
     let spawn = Vec3::new(main_x(g.y - 8.0), 0.0, g.y - 8.0);
+    portal(b, spawn);
+    wanderers(b, &doors);
     Town { spawn, spawn_yaw: facing(out), crypt_anchor: CRYPT, crypt_exit }
 }
 
@@ -1127,6 +1128,46 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
     }
     log::info!("Byen: {} innbyggere går ærender", b.npcs.len() - base);
 }
+
+/// Portalen ved sørporten (`tools/models/portal.py`): steinringen står på
+/// den åpne plassen vest for Storgata, mellom muren og husene, med forsiden
+/// mot gata. Virvelen, runene og splintene settes av økta når den er åpen
+/// (`Session::portal_poses`).
+pub const PORTAL_RING: &str = "portal_ring";
+pub const PORTAL_PARTS: [&str; 3] = ["portal_runes", "portal_swirl", "portal_shard"];
+/// Midten av ringen over plattformen, og ringens indre radius.
+pub const PORTAL_CENTER: f32 = 1.62;
+pub const PORTAL_RADIUS: f32 = 1.12;
+
+fn portal(b: &mut Builder, spawn: Vec3) {
+    let at = Vec2::new(spawn.x - 11.8, spawn.z - 0.3);
+    let base = b.on_ground(Vec3::new(at.x, 0.0, at.y));
+    // Forsiden (+z i modellen) mot gata i øst.
+    let yaw = FRAC_PI_2;
+    let rot = Quat::from_rotation_y(yaw);
+    let pose = Affine3A::from_rotation_translation(rot, base);
+    if !b.place(PORTAL_RING, pose) {
+        return;
+    }
+    log::debug!("Portalen står ved {:.1}, {:.1}", base.x, base.z);
+    // Plattformen, sidene og toppen av ringen; åpningen er fri.
+    for (c, size) in [
+        (Vec3::new(0.0, 0.06, 0.0), Vec3::new(4.0, 0.2, 2.0)),
+        (Vec3::new(-1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
+        (Vec3::new(1.3, 1.4, 0.0), Vec3::new(0.5, 2.8, 0.55)),
+        (Vec3::new(0.0, 3.0, 0.0), Vec3::new(2.4, 0.45, 0.55)),
+    ] {
+        b.solid_box(base + rot * c, size, yaw);
+    }
+    b.target(Use::Portal, pose, Vec3::new(0.0, PORTAL_CENTER, 0.0), Vec3::new(PORTAL_RADIUS * 0.85, PORTAL_RADIUS * 0.85, 0.12));
+    let [runes, swirl, shard] = PORTAL_PARTS;
+    b.reserve(runes, 1);
+    b.reserve(swirl, 2);
+    b.reserve(shard, PORTAL_SHARDS);
+}
+
+/// Splintene som svever rundt den åpne portalen.
+pub const PORTAL_SHARDS: usize = 8;
 
 /// Avstanden fra et punkt til nærmeste gate (midtlinja).
 fn street_gap(p: Vec2) -> f32 {

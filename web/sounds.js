@@ -595,6 +595,7 @@ export function createSounds() {
       loop("loop_water", a.water);
       loop("loop_lava", a.lava);
       loop("loop_chasm", a.chasm ?? 0);
+      loop("loop_portal", a.portal ?? 0);
     },
     // Om opptaket finnes (lydene i byen bruker opptak når de kan).
     has(name) {

@@ -7,7 +7,7 @@ use crate::application::{prepare, rigs, Prepared, Session};
 use crate::domain::world::{Shape, Use};
 use crate::ports::driving::{Action, Event, Input, SaveData};
 use crate::ports::Physics;
-use glam::{Affine3A, Quat, Vec3};
+use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::sync::OnceLock;
 
 /// Verden bygges én gang og deles av testene (det tar noen sekunder).
@@ -275,6 +275,51 @@ fn funnet_havner_i_lageret_ogsa_med_h() {
     let v = game.inventory_view();
     assert!(v.carried.is_empty(), "sekken skal være tømt oppe: {:?}", v.carried);
     assert!(v.stash.iter().any(|(c, n)| *c == found && *n > 0), "{found} skal være i lageret: {:?}", v.stash);
+}
+
+/// H fra kjelleren tar deg gjennom en virvel til sørporten, og portalen der
+/// våkner: F på den tar deg tilbake akkurat dit du var, og den lukker seg.
+/// Dør du, tar den deg til inngangen til den dypeste etasjen du har nådd.
+#[test]
+fn portalen_tar_deg_tilbake() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    assert!(game.portal_destination().is_none(), "portalen sover før du har vært nede");
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    // Gå litt inn i startrommet, så stedet ikke er det samme som starten.
+    input.forward = true;
+    for _ in 0..20 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    input.forward = false;
+    for _ in 0..10 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let was = game.eye();
+    input.actions.push(Action::Home);
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(events.iter().any(|e| *e == Event::Warp), "H fra kjelleren skal gi virvelen");
+    assert!(game.eye().y > 0.0, "H skal ta deg opp til byen");
+    let (to, _, floor) = game.portal_destination().expect("portalen skal være åpen etter H");
+    assert_eq!(floor, 0);
+    // Portalen er åpen, kan siktes på forfra og tar deg tilbake.
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let events = game.use_first(|u| *u == Use::Portal);
+    assert!(events.iter().any(|e| *e == Event::Warp), "portalen skal gi virvelen");
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let back = game.eye();
+    assert!(Vec2::new(back.x - was.x, back.z - was.z).length() < 0.2 && (back.y - was.y).abs() < 0.3, "portalen skal ta deg tilbake dit du var: {was:?}, kom til {back:?} (føttene {to:?})");
+    assert!(game.portal_destination().is_none(), "portalen lukker seg når du har gått gjennom");
+    // Dør du nede, våkner den med inngangen til etasjen.
+    game.die_now();
+    let (_, _, floor) = game.portal_destination().expect("portalen skal våkne når du dør");
+    assert_eq!(floor, 0, "bare første etasje er nådd");
 }
 
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet

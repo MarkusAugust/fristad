@@ -107,6 +107,15 @@ pub struct Session {
     spawn: Vec3,
     spawn_yaw: f32,
     crypt_exit: (Vec3, f32),
+    /// Portalen ved sørporten: dit den tar deg (føttene, retningen og
+    /// etasjen) når den er åpen, hvor lenge den har vært åpen (s), om
+    /// siktemålet står ute nå, og inngangen til hver etasje du har nådd.
+    portal: Option<(Vec3, f32, usize)>,
+    pub(super) portal_t: f32,
+    portal_shown: bool,
+    entries: Vec<Option<(Vec3, f32)>>,
+    /// Sekunder siden du sist reiste gjennom virvelen (synsfeltet strekkes).
+    pub(super) warp_t: f32,
     pub(super) herd: Herd,
     /// Der lydene i byen kommer fra: torget, smia og kirka (flatt), og
     /// lydbildet som sist ble sendt.
@@ -224,6 +233,11 @@ impl Session {
             spawn: world.spawn,
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt,
+            portal: None,
+            portal_t: 0.0,
+            portal_shown: true,
+            entries: vec![None; world.dungeon.floors.len()],
+            warp_t: 10.0,
             herd: Herd::new(),
             sound_spots: {
                 let at = |name: &str| world.placements.iter().find(|p| p.model == name).and_then(|p| p.transforms.first()).map(|t| Vec2::new(t.translation.x, t.translation.z)).unwrap_or(Vec2::splat(1.0e4));
@@ -445,6 +459,10 @@ impl Session {
             }
             Use::Descend => p("Krypten under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
             Use::Ascend => p("Døra opp til overflaten", "Gå opp", "", "Opp til krypten og byen. Det du bærer legges i lageret."),
+            Use::Portal => match self.portal {
+                Some((_, _, f)) => p("Portalen", "Gå gjennom", "", &format!("Virvelen tar deg tilbake til kjelleren, etasje {}.", f + 1)),
+                None => p("Portalsteinene", "", "", "Sover. Går du hjem fra kjelleren med H, våkner de."),
+            },
             Use::Well(n) => {
                 if self.wells.get(n).is_some_and(|w| *w >= 0.0) {
                     p("Brønn", "", "", "Sveiven går. Bøtta er på vei opp.")
@@ -608,6 +626,7 @@ impl Session {
         let eye = self.eye();
         let dir = self.forward();
         let in_cellar = self.in_cellar();
+        self.update_portal(dt, in_cellar, physics);
         let hit = physics.cast_ray(eye, dir, 3.5);
         let aimed_mob = if in_cellar { self.mobs.aimed(eye, dir, 2.6) } else { None };
         self.aimed_mob = aimed_mob;
@@ -658,11 +677,7 @@ impl Session {
                     }
                 }
                 Action::Crawl => self.crawl = !self.crawl,
-                Action::Home => {
-                    self.respawn();
-                    events.push(Event::Fade);
-                    events.push(Event::Toast("Tilbake ved sørporten".into()));
-                }
+                Action::Home => self.go_home(&mut events),
             }
         }
 
@@ -823,10 +838,19 @@ impl Session {
             }
             Use::Descend => {
                 let to = self.dungeon.start;
+                if let Some(e) = self.entries.first_mut() {
+                    e.get_or_insert((to, 0.0));
+                }
                 self.teleport(to, 0.0);
                 events.push(Event::Fade);
                 events.push(sfx("crypt_door"));
                 events.push(Event::Toast("Ned i kjelleren under borgen. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.".into()));
+            }
+            Use::Portal => {
+                let Some((to, yaw, floor)) = self.portal.take() else { return };
+                self.warp(events);
+                self.teleport(to, yaw);
+                events.push(Event::Toast(format!("Gjennom virvelen og ned i etasje {}. Portalen lukker seg bak deg.", floor + 1)));
             }
             Use::Ascend => {
                 let (to, yaw) = self.crypt_exit;
@@ -836,6 +860,124 @@ impl Session {
                 self.bank(events);
             }
         }
+    }
+
+    /// H (eller «Tilbake til sørporten»): fra kjelleren gjennom en virvel
+    /// til sørporten, og portalen der våkner og husker hvor du var. Oppe i
+    /// byen bare tilbake til porten.
+    pub(super) fn go_home(&mut self, events: &mut Vec<Event>) {
+        if self.in_cellar() && self.hp > 0.0 {
+            let (half, radius) = self.stance.capsule();
+            let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+            let floor = self.dungeon.floor_of(feet).unwrap_or(0);
+            self.portal = Some((feet, self.yaw, floor));
+            self.portal_t = 0.0;
+            self.warp(events);
+            self.respawn();
+            // Snu deg mot portalen, så du ser den våkne.
+            if let Some(ring) = self.portal_pose() {
+                let d = Vec3::from(ring.translation) - self.pos;
+                self.yaw = (-d.x).atan2(-d.z);
+                self.pitch = 0.05;
+            }
+            events.push(self.sound_at("portal_open", self.portal_center().unwrap_or(self.pos), 1.0));
+            events.push(Event::Toast("Virvelen tok deg hjem. Portalen ved sørporten tar deg tilbake dit du var.".into()));
+        } else {
+            self.respawn();
+            events.push(Event::Fade);
+            events.push(Event::Toast("Tilbake ved sørporten".into()));
+        }
+    }
+
+    /// «Tilbake til sørporten» fra menyen i nettleseren.
+    pub fn go_home_now(&mut self) {
+        let mut events = vec![];
+        self.go_home(&mut events);
+        self.pending.extend(events);
+    }
+
+    fn warp(&mut self, events: &mut Vec<Event>) {
+        self.warp_t = 0.0;
+        self.jumped = true;
+        events.push(Event::Warp);
+        events.push(sfx("warp"));
+    }
+
+    /// Ringen (plattformens midte og retning), om byen har den.
+    pub(super) fn portal_pose(&self) -> Option<Affine3A> {
+        self.targets.iter().find(|t| t.target.what == Use::Portal).map(|t| t.target.pose)
+    }
+
+    fn portal_center(&self) -> Option<Vec3> {
+        self.portal_pose().map(|p| p.transform_point3(Vec3::Y * town::PORTAL_CENTER))
+    }
+
+    /// Hvor portalen tar deg nå (føttene, retningen og etasjen).
+    pub fn portal_destination(&self) -> Option<(Vec3, f32, usize)> {
+        self.portal
+    }
+
+    /// Klokkene til portalen og virvelen, inngangene til etasjene, og
+    /// siktemålet i ringen (bare ute når portalen er åpen).
+    fn update_portal(&mut self, dt: f32, in_cellar: bool, physics: &mut dyn Physics) {
+        self.warp_t += dt;
+        if self.portal.is_some() {
+            self.portal_t += dt;
+        }
+        if in_cellar && self.grounded && self.hp > 0.0 {
+            let (half, radius) = self.stance.capsule();
+            let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+            if let Some(f) = self.dungeon.floor_of(feet) {
+                if self.entries.get(f).is_some_and(|e| e.is_none()) && self.dungeon.walkable(feet, 0.3) {
+                    self.entries[f] = Some((feet, self.yaw));
+                }
+            }
+        }
+        let show = self.portal.is_some();
+        if show != self.portal_shown {
+            self.portal_shown = show;
+            if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Portal) {
+                let pose = if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)) };
+                physics.set_pose(t.collider, pose);
+            }
+        }
+    }
+
+    /// Den åpne portalen: runene, virvelen (to lag som dreier hver sin vei
+    /// og pulserer) og splintene som svever rundt ringen. Den vokser fram de
+    /// første sekundene med litt overskyting.
+    pub(super) fn portal_poses(&self) -> Vec<(&'static str, Affine3A)> {
+        let (Some(pose), true) = (self.portal_pose(), self.portal.is_some()) else { return vec![] };
+        let [runes, swirl, shard] = town::PORTAL_PARTS;
+        let x = (self.portal_t / 1.6).clamp(0.0, 1.0);
+        let grow = (1.0 + 2.2 * (x - 1.0).powi(3) + 1.2 * (x - 1.0).powi(2)).max(0.001);
+        let t = self.time;
+        let center = pose * Affine3A::from_translation(Vec3::Y * town::PORTAL_CENTER);
+        let mut out = vec![(runes, pose)];
+        let s1 = grow * (1.0 + 0.035 * (t * 3.1).sin());
+        out.push((swirl, center * Affine3A::from_rotation_z(-t * 1.7) * Affine3A::from_scale(Vec3::splat(s1))));
+        let s2 = grow * 0.8 * (1.0 + 0.05 * (t * 2.3 + 1.0).sin());
+        out.push((swirl, center * Affine3A::from_translation(Vec3::Z * -0.06) * Affine3A::from_rotation_z(t * 1.1 + 1.0) * Affine3A::from_scale(Vec3::splat(s2))));
+        for k in 0..town::PORTAL_SHARDS {
+            let a = t * 0.55 + k as f32 * std::f32::consts::TAU / town::PORTAL_SHARDS as f32;
+            let wobble = (t * 1.3 + k as f32 * 2.1).sin();
+            let at = Vec3::new(a.cos() * (2.05 + 0.1 * wobble), 1.95 + a.sin() * 1.6, 0.25 + 0.2 * (t * 0.9 + k as f32).sin());
+            let spin = Quat::from_rotation_y(t * 2.0 + k as f32) * Quat::from_rotation_x(0.5 * wobble);
+            out.push((shard, pose * Affine3A::from_scale_rotation_translation(Vec3::splat(grow * (0.8 + 0.25 * (k % 3) as f32)), spin, at)));
+        }
+        out
+    }
+
+    /// Lyset fra den åpne portalen: fiolett, pulserende.
+    pub(super) fn portal_light(&self) -> Option<Light> {
+        let c = self.portal_center()?;
+        if self.portal.is_none() {
+            return None;
+        }
+        let x = (self.portal_t / 1.6).clamp(0.0, 1.0);
+        let t = self.time;
+        let front = self.portal_pose()?.transform_vector3(Vec3::Z);
+        Some(Light { pos: c + front * 0.6, radius: 11.0, color: Vec3::new(0.55, 0.45, 1.0), intensity: 2.4 * x * (0.85 + 0.15 * (t * 4.7).sin() * (t * 1.9).cos()), always: true, flicker: 0.0 })
     }
 
     /// Rett dit, uten fysikk på veien: føttene og retningen.
@@ -1021,6 +1163,10 @@ impl Session {
             water: if in_cellar { close(&self.waters, 9.0) } else { 0.0 },
             lava: if in_cellar { close(&self.lavas, 10.0) } else { 0.0 },
             chasm: if in_cellar { close(&self.chasms, 14.0) } else { 0.0 },
+            portal: match (in_cellar, self.portal.is_some(), self.portal_center()) {
+                (false, true, Some(c)) => close(&[c], 16.0),
+                _ => 0.0,
+            },
             rain: if in_cellar { 0.0 } else { self.weather.rain },
             wind: if in_cellar { 0.0 } else { self.weather.wind },
             night: self.daylight == Daylight::Night,
@@ -1028,7 +1174,7 @@ impl Session {
             indoor: self.indoor,
         };
         let last = self.last_ambience;
-        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.rain - last.rain, a.wind - last.wind]
+        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.portal - last.portal, a.rain - last.rain, a.wind - last.wind]
             .iter()
             .fold(0.0f32, |m, d| m.max(d.abs()));
         if moved > 0.02 || a.night != last.night || a.cellar != last.cellar || a.indoor != last.indoor {
@@ -1056,6 +1202,14 @@ impl Session {
             events.push(Event::Toast(format!("{n} komponenter ble igjen i kjelleren.")));
         }
         self.read_docs.clear();
+        // Portalen ved sørporten tar deg til inngangen til den dypeste
+        // etasjen du har nådd.
+        let deepest = self.entries.iter().enumerate().rev().find_map(|(f, e)| e.map(|(p, y)| (p, y, f)));
+        if let Some((p, y, f)) = deepest {
+            self.portal = Some((p, y, f));
+            self.portal_t = 0.0;
+            events.push(Event::Toast(format!("Portalen ved sørporten har våknet: den tar deg til inngangen til etasje {}.", f + 1)));
+        }
         let (to, yaw) = self.crypt_exit;
         self.teleport(to, yaw);
         events.push(Event::Fade);

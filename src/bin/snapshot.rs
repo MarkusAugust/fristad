@@ -6,7 +6,7 @@
 //! Valg: --out FIL, --size BxH, --night, --eye x,y,z (y med + foran er
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
-//! (gå ned i krypten først), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
+//! (gå ned i krypten først), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
 //! --quality Q, --scale S, --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N.
 
@@ -56,6 +56,15 @@ fn main() {
             app.command(Command::Place { eye, yaw: (front.x).atan2(front.z), pitch: -0.45 });
             app.session.use_first(|u| matches!(u, Use::Chest(0)));
         }
+    }
+    // --portal: ned i kjelleren, og hjem igjen med H, så portalen ved
+    // sørporten våkner (--time styrer hvor langt den har åpnet seg).
+    if flag("--portal") {
+        app.session.use_first(|u| *u == Use::Descend);
+        for _ in 0..20 {
+            app.tick(1.0 / 30.0);
+        }
+        app.command(Command::Respawn);
     }
     // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
     if flag("--well") {

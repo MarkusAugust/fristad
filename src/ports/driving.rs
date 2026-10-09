@@ -160,6 +160,9 @@ pub enum Event {
     Weather(String),
     /// Skjermen går i svart og tilbake (ned i krypten og opp igjen).
     Fade,
+    /// Du reiser gjennom portalen (hjem med H, eller tilbake): en virvel
+    /// over skjermen.
+    Warp,
     /// Liv, utholdenhet, tokens, nøkler, om du er nede i kjelleren, og
     /// bossen om den har sett deg, når noe av det endrer seg.
     Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32, boss: Option<(String, u32)> },
@@ -215,6 +218,8 @@ pub struct Ambience {
     pub water: f32,
     pub lava: f32,
     pub chasm: f32,
+    /// Den åpne portalen ved sørporten summer.
+    pub portal: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,

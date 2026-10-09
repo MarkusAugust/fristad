@@ -109,6 +109,11 @@ models! {
     "npc_clerk" => "npc/npc_clerk.glb",
     "npc_gorvek" => "npc/npc_gorvek.glb",
     "npc_woman" => "npc/npc_woman.glb",
+    // Portalen ved sørporten (tools/models/portal.py).
+    "portal_ring" => "town/portal_ring.glb",
+    "portal_runes" => "town/portal_runes.glb",
+    "portal_swirl" => "town/portal_swirl.glb",
+    "portal_shard" => "town/portal_shard.glb",
     "npc_farmer" => "npc/npc_farmer.glb",
     "npc_boy" => "npc/npc_boy.glb",
     "npc_guard" => "npc/npc_guard.glb",
@@ -421,6 +426,11 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             // «fire» brenner hele døgnet (fakler, ildsteder).
             if named("fire") {
                 mmat.kind = kind::LAMP;
+                mmat = mmat.flags(flag::GLOW_ALWAYS);
+            }
+            // «magic» gløder i sin egen farge hele døgnet (portalen).
+            if named("magic") {
+                mmat.kind = kind::MAGIC;
                 mmat = mmat.flags(flag::GLOW_ALWAYS);
             }
             // Bladkort og nålekvister: alfatestes og svaier i vinden.

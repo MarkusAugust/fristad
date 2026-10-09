@@ -45,6 +45,7 @@ struct Pass {
 const K_PLAIN: u32 = 200u;
 const K_GLASS: u32 = 201u;
 const K_LEAF: u32 = 202u;
+const K_MAGIC: u32 = 203u;
 const K_LAMP: u32 = 204u;
 const K_SKELETON: u32 = 205u;
 const K_WATER: u32 = 206u;
@@ -841,6 +842,11 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         // Lamper tennes om natta; ild (glød 3) brenner hele døgnet.
         let lit = select(0.15 + night * 10.0 * g.params.w, 6.0, glow == 3u);
         s.emissive = tint * vec3<f32>(1.0, 0.8, 0.55) * lit;
+    } else if (kind == K_MAGIC) {
+        // Portalen: lyser i sin egen farge, uten ildens varme filter.
+        s.rough = 0.3;
+        s.albedo = tint * 0.3;
+        s.emissive = tint * 2.4;
     } else if (kind == K_SKELETON) {
         // Skimmeret i .fs-skeleton: et lyst bånd som glir over.
         let band = fract((i.world.x + i.world.y * 0.5 - g.camera.w * 1.2) / 6.0);

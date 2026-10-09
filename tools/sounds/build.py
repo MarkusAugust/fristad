@@ -133,6 +133,10 @@ SOUNDS = {
     "book": S(f"{FL}/inventory/inventory_book.ogg", gain=0.6, pitch=0.05),
     "page": S(f"{FL}/inventory/inventory_page.ogg", gain=0.5, pitch=0.1),
     "heal": S(f"{FL}/powers/heal.ogg", gain=0.45, pitch=0.03),
+    # Portalen ved sørporten: suset når du reiser, og et tidsstopp-gufs når
+    # den åpner seg.
+    "warp": S(f"{FL}/powers/teleport.ogg", gain=0.8, pitch=0.04),
+    "portal_open": S(f"{FL}/powers/timestop.ogg", gain=0.6, pitch=0.03),
     "bag": S(f"{FL}/inventory/inventory_leather.ogg", gain=0.55, pitch=0.06),
     "equip_metal": S(f"{FL}/inventory/inventory_metal.ogg", f"{FL}/inventory/inventory_maille.ogg", gain=0.6, pitch=0.06),
     "equip_wood": S(f"{FL}/inventory/inventory_wood.ogg", gain=0.6, pitch=0.06),
@@ -155,6 +159,7 @@ SOUNDS = {
     "loop_forge": S(f"{FL}/environment/anvil_loop.ogg", gain=0.45, loop=22.0),
     "loop_fire": S(f"{MT}/fire/sounds/fire_small.ogg", f"{FL}/environment/open_fire_loop.ogg", gain=0.4, loop=6.0),
     "loop_drips": S(f"{FL}/environment/cave_droplets_loop.ogg", gain=0.4, loop=10.0),
+    "loop_portal": S(f"{FL}/environment/teleporter.ogg", gain=0.45, loop=2.0),
     "loop_chasm": S(f"{A0}/ambient/weather/windstorm_11.ogg", gain=0.4, loop=14.0, start=70.0),
     "loop_cave": S(f"{FL}/environment/cave_wind_loop.ogg", gain=0.4, loop=20.0),
     "loop_water": S(f"{MT}/env_sounds/sounds/env_sounds_water.*.ogg", gain=0.5, loop=6.0),
