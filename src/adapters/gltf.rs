@@ -155,14 +155,18 @@ models! {
     "chest_lid" => "town/chest_lid.glb",
     // Bygningene på torget fra tools/models/buildings.py.
     "forge" => "town/forge.glb",
+    "forge_interior" => "town/forge_interior.glb",
     "tavern" => "town/tavern.glb",
     "tavern_interior" => "town/tavern_interior.glb",
     "home" => "town/home.glb",
     "home_interior" => "town/home_interior.glb",
     "gallery_piece" => "town/gallery_piece.glb",
     "apothecary" => "town/apothecary.glb",
+    "apothecary_interior" => "town/apothecary_interior.glb",
     "scriptorium" => "town/scriptorium.glb",
+    "scriptorium_interior" => "town/scriptorium_interior.glb",
     "stave_church" => "town/stave_church.glb",
+    "stave_church_interior" => "town/stave_church_interior.glb",
     "gravestone" => "town/gravestone.glb",
     // Borgruinen, krypten, døra opp fra kjelleren og portgitteret fra
     // tools/models/castle.py.

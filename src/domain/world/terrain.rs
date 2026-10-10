@@ -36,11 +36,45 @@ pub fn town_edge(x: f32, z: f32) -> f32 {
     (x * x + z * z).sqrt() - wall_radius(z.atan2(x))
 }
 
-/// Murens avstand fra torget i retningen `a` (radianer fra +x mot +z).
+/// Hjørnene i bymuren: retning (grader fra +x mot +z) og avstand fra
+/// torget. Muren går rett fra hjørne til hjørne, med et tårn i hvert
+/// hjørne, slik muren ble lagt rundt det som var bygd: lengst ut mot sørøst
+/// og inntrykt i nord, ingen to stykker like lange. Portene står midt på
+/// stykkene rundt 90° (sør) og 270° (nord).
+pub const WALL_CORNERS: [(f32, f32); 10] = [
+    (22.0, 50.5),
+    (64.0, 49.5),
+    (112.0, 47.0),
+    (138.0, 47.5),
+    (181.0, 43.0),
+    (214.0, 46.5),
+    (246.0, 39.0),
+    (292.0, 39.0),
+    (318.0, 42.0),
+    (349.0, 48.5),
+];
+
+/// Hjørnene i bymuren som punkter (x, z).
+pub fn wall_corners() -> [glam::Vec2; 10] {
+    WALL_CORNERS.map(|(deg, r)| {
+        let a = deg.to_radians();
+        glam::Vec2::new(a.cos(), a.sin()) * r
+    })
+}
+
+/// Murens avstand fra torget i retningen `a` (radianer fra +x mot +z):
+/// der strålen fra torget treffer det rette murstykket mellom to hjørner.
 pub fn wall_radius(a: f32) -> f32 {
-    // Ujevnt og eggeformet, slik muren ble lagt rundt det som var bygd:
-    // lengst ut mot sørøst, inntrykt i nordvest, med knekker.
-    44.0 + 3.6 * (a + 0.4).sin() + 2.4 * (2.0 * a + 0.7).sin() + 1.5 * (3.0 * a + 1.9).sin() + 0.9 * (5.0 * a + 0.3).sin()
+    let deg = a.to_degrees().rem_euclid(360.0);
+    let n = WALL_CORNERS.len();
+    // Stykket strålen går gjennom: fra det siste hjørnet før `deg`.
+    let i = (0..n).rev().find(|&i| WALL_CORNERS[i].0 <= deg).unwrap_or(n - 1);
+    let k = wall_corners();
+    let (p, q) = (k[i], k[(i + 1) % n]);
+    let e = q - p;
+    let d = glam::Vec2::new(a.cos(), a.sin());
+    // t·d = p + s·e, kryssproduktet med e på begge sider.
+    p.perp_dot(e) / d.perp_dot(e)
 }
 
 /// Terrenget uten planeringene: rullende åser som vokser utover.

@@ -107,24 +107,29 @@ def well():
 
 
 def wattle_fence():
+    """Flettverket er en tett plate med eierens flettverkstekstur (som
+    gjerdene rundt kjøkkenhagene), med staker som stikker opp og ned i
+    bakken, og to vidjer som binder toppen. Tidligere var vidjene enkeltris,
+    og på avstand ble gjerdet bare tynne mørke staver."""
     m = mats()
     rng = random.Random(72)
     L, H = 2.0, 1.0
-    stakes = [-L / 2 + L * k / 5 for k in range(6)]
-    for x in stakes:
-        beam("stake", (x, 0, -0.25), (x + rng.uniform(-0.02, 0.02), rng.uniform(-0.02, 0.02), H + rng.uniform(0.0, 0.12)), 0.05, 0.05, m.bark, roll=rng.uniform(0, 3))
-    # Vidjene: vannrette ris som går foran og bak stakene i tur og orden.
-    for row in range(14):
-        z = 0.08 + row * (H - 0.12) / 13
-        phase = row % 2
+    wattle = layer("wattle")
+    # Platen: litt kortere enn stykket, så stakene i endene tar skjøten.
+    block("wattle", (L - 0.02, 0.07, H - 0.1), wattle, at=(0, 0, 0.06 + (H - 0.1) / 2), bevel=0.02)
+    # Stakene: én i hver ende og én i midten, ujevne på toppen.
+    for x in (-L / 2, 0.0, L / 2):
+        top = H + rng.uniform(0.04, 0.16)
+        beam("stake", (x, 0, -0.25), (x + rng.uniform(-0.015, 0.015), rng.uniform(-0.015, 0.015), top), 0.075, 0.075, m.bark, roll=rng.uniform(0, 3))
+    # Vidjene som binder toppen, flettet foran og bak stakene.
+    for k, z in enumerate((H - 0.06, H - 0.02)):
         pts = []
-        for i in range(len(stakes) * 2 + 1):
-            x = -L / 2 - 0.05 + (L + 0.1) * i / (len(stakes) * 2)
-            k = (x + L / 2) / (L / 5)
-            y = 0.035 * math.cos(math.pi * (k + phase) * 0.5 * 2 / 1)
-            pts.append(Vector((x, y, z + rng.uniform(-0.01, 0.01))))
+        for i in range(9):
+            x = -L / 2 + L * i / 8
+            y = 0.045 * math.cos(math.pi * (i / 2 + k))
+            pts.append(Vector((x, y, z + rng.uniform(-0.012, 0.012))))
         for a, b in zip(pts, pts[1:]):
-            beam("withy", a, b, 0.022, 0.022, m.withy)
+            beam("withy", a, b, 0.035, 0.035, m.withy)
     return m
 
 

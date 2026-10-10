@@ -443,6 +443,37 @@ pub fn grass(b: &mut Builder) {
         return;
     }
     let step = 1.25;
+    // Ikke inni hus, skur, murer eller gjerder: rutene på en halv meter som
+    // en kollider i kroppshøyde dekker, blir uten gress.
+    const CELL: f32 = 0.5;
+    const SIDE: usize = (300.0 / CELL) as usize;
+    let mut covered = vec![false; SIDE * SIDE];
+    for c in &b.colliders {
+        let (center, half, yaw) = match c {
+            Shape::Cuboid { center, size, yaw } if size.y > 0.3 => (*center, Vec2::new(size.x, size.z) * 0.5 + 0.15, *yaw),
+            Shape::Cylinder { center, radius, .. } => (*center, Vec2::splat(*radius + 0.15), 0.0),
+            _ => continue,
+        };
+        if (center.y - b.ground(center.x, center.z)).abs() > 12.0 {
+            continue;
+        }
+        let (sn, cs) = yaw.sin_cos();
+        let reach = half.length();
+        let cell = |v: f32| ((v + 150.0) / CELL).floor() as i64;
+        for iz in cell(center.z - reach).max(0)..=cell(center.z + reach).min(SIDE as i64 - 1) {
+            for ix in cell(center.x - reach).max(0)..=cell(center.x + reach).min(SIDE as i64 - 1) {
+                let d = Vec2::new((ix as f32 + 0.5) * CELL - 150.0 - center.x, (iz as f32 + 0.5) * CELL - 150.0 - center.z);
+                let l = Vec2::new(d.x * cs - d.y * sn, d.x * sn + d.y * cs).abs();
+                if l.x < half.x && l.y < half.y {
+                    covered[iz as usize * SIDE + ix as usize] = true;
+                }
+            }
+        }
+    }
+    let inside = |x: f32, z: f32| {
+        let (ix, iz) = (((x + 150.0) / CELL).floor(), ((z + 150.0) / CELL).floor());
+        ix >= 0.0 && iz >= 0.0 && (ix as usize) < SIDE && (iz as usize) < SIDE && covered[iz as usize * SIDE + ix as usize]
+    };
     let mut n = 0;
     let mut z = -150.0;
     while z < 150.0 {
@@ -453,6 +484,9 @@ pub fn grass(b: &mut Builder) {
             let d = (px * px + pz * pz).sqrt();
             let keep = if d < 90.0 { 1.0 } else { (1.0 - (d - 90.0) / 70.0).max(0.12) };
             if !b.rng.chance(keep) {
+                continue;
+            }
+            if inside(px, pz) {
                 continue;
             }
             // Gresset gror der bakken er gress (ikke på stein, jord eller berg).
