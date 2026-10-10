@@ -11,13 +11,9 @@ Sist ble det groteskt, og det hadde tre årsaker:
 
 AAA-spill i denne stilen gjør det annerledes, og det gjør vi også:
 
-1. **Hodet modelleres som en stilisert skulptur:** tydelige flater, kraftig nese, tydelig panne og kinnben, og store, lesbare former. Det modelleres etter tegningen fra Gemini, ikke på en realistisk grunnmodell. Hodet får rundt 2 000–3 000 trekanter og et rent uv-kart med god plass til ansiktet.
-2. **Ansiktet males i uv-kartet, ikke projiseres fra fotoer:**
-   - Hudflisa gir grunnfargen.
-   - Fargesonene males inn i Blender etter faste regler: varmere kinn, nese og ører, mørkere øyehuler, litt kaldere hake og kjeve hos menn, og lepper og bryn i figurens farger.
-   - Til slutt projiseres bare midten av ansiktet fra tegningen forfra, mykt blandet inn, så hver figur blir lik seg selv.
-   - Det blir ingen sømmer, for sidene og bakhodet er malt, ikke projisert.
-3. **Øynene er egne kuler** med malt iris (fra øyearket under), en blank hinne og mørke øyelokk som skygger. Det er dette som gjør at figurene ser levende ut.
+1. **Hodet rekonstrueres fra forbildet med `tools/reconstruct`** (se `docs/rekonstruksjon.md`): dybden leses fra hver av de fire visningene med en åpen dybdemodell, visningene smeltes til én form, og forbildet projiseres tilbake på den samme formen og bakes til én tekstur på 2048². Siden formen kommer fra bildet, havner det innmalte lyset og detaljene der de skal. Hodet med hår, skjegg og hals får rundt 7 000 trekanter og et normalkart fra den høye modellen.
+2. **Forbildet må stemme med seg selv:** samme figur, samme målestokk og vannrett kamera i alle rutene, grå bakgrunn, og ingen hjelpelinjer. Ingen visning ser ovenfra, så toppen av hodet blir det svakeste stedet.
+3. **Øynene** er de malte øynene fra forbildet, eller egne øyekuler med iris fra `assets/textures/people/tiles/eyes.jpeg` om de ikke holder nært.
 4. **Håret og skjegget er skulpterte lokker**, som i WoW: 10–40 store, glatte lokker per figur som gir silhuetten. Hver lokk får hårflisa langs seg, mørk ved roten og lys i tuppen, med malte høylys. Ytterst legger vi noen få halvgjennomsiktige lokker, så kanten blir myk. Ingen tusenvis av tuster.
 5. **Klærne og kroppen** følger samme tanke: få, tydelige former, folder og sømmer malt inn i flisene, og bare det som synes i silhuetten som geometri (belter, kanter, kapper og redskap).
 

@@ -1,0 +1,166 @@
+{
+ "_om": "Ett oppslag per forbilde. views: retning -> [rad, kolonne]; utelatt = standardoppsettet for layout. opt: avvik (neck: ren elliptisk hals bak skjegget, målt i piksler i rutene; back_cut: andel av høyden der halskuttet sett bakfra begynner). Avvikene fra ref/README.md står i 'merk'. Kroppsarkene (body3) er ikke prøvd ennå.",
+ "apothecary_head": {
+  "ref": "assets/textures/people/ref/apothecary_head.jpeg",
+  "layout": "head2x2",
+  "merk": "to vannrette hjelpelinjer (må maskes før segmenteringen)"
+ },
+ "apothecary_body": {
+  "ref": "assets/textures/people/ref/apothecary_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009,
+  "merk": "en ekstra hånd svever til venstre (segmenteringen beholder bare største bit)"
+ },
+ "boy_head": {
+  "ref": "assets/textures/people/ref/boy_head.jpeg",
+  "layout": "head2x2"
+ },
+ "boy_body": {
+  "ref": "assets/textures/people/ref/boy_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "clerk_head": {
+  "ref": "assets/textures/people/ref/clerk_head.jpeg",
+  "layout": "head2x2",
+  "merk": "fjærpenna bak øret mangler på kroppsarket"
+ },
+ "clerk_body": {
+  "ref": "assets/textures/people/ref/clerk_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "farmer_head": {
+  "ref": "assets/textures/people/ref/farmer_head.jpeg",
+  "layout": "head2x2"
+ },
+ "farmer_body": {
+  "ref": "assets/textures/people/ref/farmer_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "fishwife_head": {
+  "ref": "assets/textures/people/ref/fishwife_head.jpeg",
+  "layout": "head2x2",
+  "merk": "myser forfra; øynene skal være åpne i spillet"
+ },
+ "fishwife_body": {
+  "ref": "assets/textures/people/ref/fishwife_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "gorvek_head": {
+  "ref": "assets/textures/people/ref/gorvek_head.jpeg",
+  "layout": "head2x2"
+ },
+ "gorvek_body": {
+  "ref": "assets/textures/people/ref/gorvek_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "guard_head": {
+  "ref": "assets/textures/people/ref/guard_head.jpeg",
+  "layout": "head2x2"
+ },
+ "guard_body": {
+  "ref": "assets/textures/people/ref/guard_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009,
+  "merk": "spydet mangler forfra"
+ },
+ "innkeeper_head": {
+  "ref": "assets/textures/people/ref/innkeeper_head.jpeg",
+  "layout": "head2x2"
+ },
+ "innkeeper_body": {
+  "ref": "assets/textures/people/ref/innkeeper_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "maid_head": {
+  "ref": "assets/textures/people/ref/maid_head.jpeg",
+  "layout": "head2x2"
+ },
+ "maid_body": {
+  "ref": "assets/textures/people/ref/maid_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "merchant_head": {
+  "ref": "assets/textures/people/ref/merchant_head.jpeg",
+  "layout": "head2x2"
+ },
+ "merchant_body": {
+  "ref": "assets/textures/people/ref/merchant_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "pilgrim_head": {
+  "ref": "assets/textures/people/ref/pilgrim_head.jpeg",
+  "layout": "head2x2",
+  "views": {
+   "front": [
+    0,
+    0
+   ],
+   "back": [
+    0,
+    1
+   ],
+   "face_left": [
+    1,
+    0
+   ],
+   "face_right": [
+    1,
+    1
+   ]
+  },
+  "merk": "oppe til høyre er bakfra, nede til venstre ser han mot venstre, nede til høyre mot høyre"
+ },
+ "pilgrim_body": {
+  "ref": "assets/textures/people/ref/pilgrim_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "smith_head": {
+  "ref": "assets/textures/people/ref/smith_head.jpeg",
+  "layout": "head2x2",
+  "opt": {
+   "back_cut": 0.83,
+   "neck": {
+    "plane": [
+     [
+      380,
+      825
+     ],
+     [
+      560,
+      953
+     ]
+    ],
+    "plane_up": 22,
+    "top_v": 800,
+    "front_v": 905,
+    "half_x": 165,
+    "half_z": 150,
+    "z0": -10,
+    "beard_z": 60
+   }
+  }
+ },
+ "smith_body": {
+  "ref": "assets/textures/people/ref/smith_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ },
+ "washerwoman_head": {
+  "ref": "assets/textures/people/ref/washerwoman_head.jpeg",
+  "layout": "head2x2"
+ },
+ "washerwoman_body": {
+  "ref": "assets/textures/people/ref/washerwoman_body.jpeg",
+  "layout": "body3",
+  "scale": 0.0009
+ }
+}

@@ -30,7 +30,7 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 - **Detaljene males i teksturen.** Stein, planker og takstein males inn i stedet for å være egne flater. Formene som synes i silhuetten beholdes som geometri: bjelker, takskjegg, piper, karmer og trapper.
 - **Budsjett:** et vanlig hus får 3 000–10 000 trekanter, og et hus på torget med interiør høyst 25 000. I dag har Vertshuset 220 000.
 - **Innredning:** bare de fire husene på torget har innredning, som i dag.
-- **Figurene** blir malte i samme stil, med forenklede og litt overdrevne former. Fotoansiktene fjernes. Hodet blir en stilisert skulptur med ansiktet malt i uv-kartet (ikke projiserte fotoer), egne øyekuler med malt iris, og hår og skjegg som 10–40 store, glatte lokker med malt hårflis fra rot til tupp, ikke tusenvis av tuster. Se `docs/prompter-folk.md`.
+- **Figurene** blir malte i samme stil, med forenklede og litt overdrevne former. Fotoansiktene fjernes. Formen og teksturen rekonstrueres fra eierens forbildeark med `tools/reconstruct` (se `docs/rekonstruksjon.md`): dybden leses fra hver visning, visningene smeltes til én form, og forbildet projiseres tilbake på den samme formen, så det stemmer uten sømmer. Hår og skjegg blir de skulpterte lokkene fra forbildet, ikke tusenvis av tuster. Se `docs/prompter-folk.md`.
 - **Kjelleren og monstrene** bygges om etter byen, i samme stil.
 
 ## Teksturene

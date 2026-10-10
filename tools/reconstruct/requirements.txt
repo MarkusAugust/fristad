@@ -1,0 +1,9 @@
+onnxruntime>=1.20
+opencv-python-headless>=4.10
+numpy>=2.0
+scipy>=1.14
+scikit-image>=0.24
+Pillow>=10
+bpy==5.2.*  # Blender som Python-modul (Python 3.13)
+# Vektene: Depth Anything V2 ViT-B (ONNX) lastes ned automatisk fra
+# https://github.com/fabio-sim/Depth-Anything-ONNX/releases til target/reconstruct/
