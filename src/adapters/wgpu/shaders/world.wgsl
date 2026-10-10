@@ -256,7 +256,9 @@ struct Tex {
 fn sample_plane(layer: i32, uv: vec2<f32>, gx: vec2<f32>, gy: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
     let a = textureSampleGrad(tex_albedo, tex_sampler, uv, layer, gx, gy).rgb;
     let nrh = textureSampleGrad(tex_nrh, tex_sampler, uv, layer, gx, gy);
-    let tn = vec3<f32>(nrh.xy * 2.0 - 1.0, 0.0);
+    // Normalkartene fra de malte bildene tas med halv styrke: formene er
+    // malt inn i fargene, og fullt relieff ga et plastaktig preg.
+    let tn = vec3<f32>((nrh.xy * 2.0 - 1.0) * 0.5, 0.0);
     let tz = sqrt(max(0.0, 1.0 - dot(tn.xy, tn.xy)));
     var o: Tex;
     o.albedo = a;
@@ -512,13 +514,17 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     // Sola eller månen.
     let l = g.sun_dir.xyz;
     let ndl = max(dot(n, l), 0.0);
-    var wrap = ndl;
+    // Malt stil: lyset går mykt men tydelig over fra lys til skygge (en
+    // rampe i stedet for ren cosinus), så formene leses som i et maleri.
+    var wrap = mix(ndl, smoothstep(0.0, 0.45, dot(n, l) + 0.08), 0.65);
     if (s.kind == 1u) {
         wrap = max((dot(n, l) + 0.4) / 1.4, 0.0);
     }
     let sh = sun_shadow(i.world, n_geo);
     let sun = g.sun_color.rgb * g.sun_dir.w * sh;
-    var color = sun * (diffuse_albedo * wrap + ggx(n, v, l, s.rough, f0) * PI * ndl);
+    // Glansen dempes: malte flater er matte, bare metall og glass skinner.
+    let spec_k = mix(0.2, 1.0, s.metal);
+    var color = sun * (diffuse_albedo * wrap + ggx(n, v, l, s.rough, f0) * PI * ndl * spec_k);
     if (s.kind == 1u) {
         // Lys gjennom bladet.
         // Dempet der løvet er tett og skygget (okklusjonen), så tynne
@@ -531,7 +537,8 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     let ao = s.ao * s.cavity;
     // Himmellyset er sterkere og mindre blått enn himmelfargen rett opp:
     // det kommer fra hele hvelvingen, mest fra horisonten.
-    let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.6) * 1.25;
+    // Skyggene får himmelens kjølige blåfarge, mot den varme sola.
+    let sky_amb = mix(g.sky_top.rgb, g.sky_horizon.rgb, 0.45) * vec3<f32>(0.9, 1.0, 1.25) * 1.05;
     var hemi = mix(g.ground_bounce.rgb, sky_amb, n.y * 0.5 + 0.5);
     if (s.kind == 1u) {
         // Løv og barnåler: normalene peker ut fra kronen, og i toppen rett
@@ -547,7 +554,7 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     let fres = f0 + (max(vec3<f32>(gloss), f0) - f0) * pow(1.0 - max(dot(n, v), 0.0), 5.0);
     let r_blur = normalize(mix(r, n, s.rough * s.rough));
     let env = mix(sky_gradient(r_blur), hemi, s.rough * 0.7) * 0.8;
-    color += env * fres * ao * mix(0.6, 1.0, sh);
+    color += env * fres * ao * mix(0.6, 1.0, sh) * spec_k;
 
     // Lyktene og lysene i vinduene.
     let count = i32(g.params.y);

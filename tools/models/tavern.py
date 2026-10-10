@@ -114,14 +114,14 @@ def outside(p, rng):
             window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
 
     # Taket og gavlene.
-    ridge = kit.gable_roof(p, X0 - T / 2, X1 + T / 2, UY0 - T / 2, UY1 + T / 2, E + 0.28, PITCH, overhang=0.65, gable_over=0.45)
+    ridge = kit.gable_roof(p, X0 - T / 2, X1 + T / 2, UY0 - T / 2, UY1 + T / 2, E + 0.28, PITCH)
     for x, out in ((X0, -1), (X1, 1)):
         kit.gable_wall(p, x, UY0 - T / 2, UY1 + T / 2, E, ridge, PITCH, out, rng)
 
     # Pipene: peisen på venstre gavl (utvendig), og grua gjennom taket bak.
-    kit.chimney(p, X0 - T / 2 - 0.45, 0.5, -0.2, ridge + 1.2, w=1.0, smoke=0.9)
+    kit.chimney(p, X0 - T / 2 - 0.6, 0.5, -0.2, ridge + 1.0, w=1.4, smoke=0.9, lean=-3.0)
     roof_at = lambda y: E + (UY1 + T / 2 + 0.65 - abs(y)) * math.tan(math.radians(PITCH)) - 0.9
-    kit.chimney(p, 4.85, 3.4, roof_at(3.4) - 0.6, roof_at(3.4) + 1.8, w=0.8, smoke=0.7)
+    kit.chimney(p, 4.85, 3.4, roof_at(3.4) - 0.6, roof_at(3.4) + 2.0, w=1.0, smoke=0.7, lean=5.0)
 
     # Skiltet: smijernsarm og et bord med et ølkrus.
     ax, az = -3.4, C0 - 0.25

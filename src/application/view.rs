@@ -32,15 +32,15 @@ impl Session {
         let az = -68.0 * (1.0 - t) + 42.0 * t;
         let sun_dir = dir(az, el.max(3.0));
 
-        let day_sun = Vec3::new(1.0, 0.92, 0.80);
+        let day_sun = Vec3::new(1.0, 0.88, 0.68);
         let dusk_sun = Vec3::new(1.0, 0.48, 0.22);
         let moon = Vec3::new(0.55, 0.66, 1.0);
         let sun_color = lerp3(day_sun, moon).lerp(dusk_sun, dusk * 0.85);
-        let sun_intensity = (3.0 * (1.0 - t) + 0.38 * t) * (1.0 - overcast * 0.8);
+        let sun_intensity = (3.4 * (1.0 - t) + 0.38 * t) * (1.0 - overcast * 0.8);
 
         let grey = |c: Vec3| c.lerp(Vec3::splat(c.dot(Vec3::new(0.3, 0.59, 0.11))), overcast * 0.6) * (1.0 - overcast * 0.25);
-        let sky_top = grey(lerp3(Vec3::new(0.24, 0.36, 0.6), Vec3::new(0.008, 0.014, 0.04)).lerp(Vec3::new(0.18, 0.2, 0.42), dusk * 0.6));
-        let sky_horizon = grey(lerp3(Vec3::new(0.7, 0.74, 0.78), Vec3::new(0.016, 0.028, 0.06)).lerp(Vec3::new(1.0, 0.5, 0.28), dusk * 0.7));
+        let sky_top = grey(lerp3(Vec3::new(0.16, 0.34, 0.72), Vec3::new(0.008, 0.014, 0.04)).lerp(Vec3::new(0.18, 0.2, 0.42), dusk * 0.6));
+        let sky_horizon = grey(lerp3(Vec3::new(0.6, 0.74, 0.88), Vec3::new(0.016, 0.028, 0.06)).lerp(Vec3::new(1.0, 0.5, 0.28), dusk * 0.7));
         let ground = lerp3(Vec3::new(0.28, 0.26, 0.22), Vec3::new(0.012, 0.013, 0.018)) * (1.0 - overcast * 0.3);
         let snow_bounce = Vec3::new(0.5, 0.52, 0.58) * w.snow_cover * (1.0 - t * 0.95);
 
@@ -106,9 +106,9 @@ impl Session {
             sky_top: sky_top * (1.0 - c * 0.9),
             sky_horizon: sky_horizon * (1.0 - c * 0.9),
             ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.8),
-            fog_color: grey(lerp3(Vec3::new(0.6, 0.7, 0.82), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
+            fog_color: grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
             // Høydetåka tetner nedover. I kjelleren er det ingen tåke.
-            fog_density: (0.0013 + dusk * 0.0012) * self.fog_mul * (1.0 - c),
+            fog_density: (0.0006 + dusk * 0.0012) * self.fog_mul * (1.0 - c),
             fog_falloff: 0.03,
             exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 1.5),
             bloom: 0.06 + t * 0.06,

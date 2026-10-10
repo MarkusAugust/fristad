@@ -239,7 +239,7 @@ def at_wall(frame, s, t, z):
 # --- Bindingsverk -------------------------------------------------------------
 
 
-def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0.26, collide_it=True):
+def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0.34, collide_it=True):
     """En bindingsverksvegg fra p0 til p1 mellom z0 og z1: pussplate med
     åpninger, og bjelker utenpå mot `out` (+1 eller −1 langs veggens
     normal): svill, stavler ved endene og åpningene, losholt og skråbånd.
@@ -247,11 +247,13 @@ def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0
     frame, L = wall_frame(p0, p1)
     holes = [(s - w / 2, s + w / 2, za, zb) for s, za, zb, w in openings]
     slab_grid(name, frame, L, z0, z1, thick, holes, p.plaster)
-    face = out * (thick / 2 + 0.03)
+    face = out * (thick / 2 + 0.04)
     k = rng.randrange(4)
+    # Litt skjevt, som håndhogd tømmer i et gammelt hus.
+    j = lambda a: rng.uniform(-a, a)
     # Svill og stavlægje.
-    stick("sill", at_wall(frame, -0.05, face, z0 + beam / 2), at_wall(frame, L + 0.05, face, z0 + beam / 2), 0.16, beam, p.timber, ("timber", k), seed=rng.random() * 99)
-    stick("plate", at_wall(frame, -0.05, face, z1 - beam / 2), at_wall(frame, L + 0.05, face, z1 - beam / 2), 0.16, beam, p.timber, ("timber", (k + 1) % 4), seed=rng.random() * 99)
+    stick("sill", at_wall(frame, -0.08, face, z0 + beam / 2 + j(0.03)), at_wall(frame, L + 0.08, face, z0 + beam / 2 + j(0.03)), 0.2, beam, p.timber, ("timber", k), seed=rng.random() * 99)
+    stick("plate", at_wall(frame, -0.08, face, z1 - beam / 2 + j(0.04)), at_wall(frame, L + 0.08, face, z1 - beam / 2 + j(0.04)), 0.2, beam, p.timber, ("timber", (k + 1) % 4), seed=rng.random() * 99)
     # Stavlene: ved endene, rundt åpningene og ellers med 1,4 m imellom.
     posts = {beam / 2, L - beam / 2}
     for s, za, zb, w in openings:
@@ -273,7 +275,7 @@ def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0
     for s in posts:
         if in_opening(s, (z0 + z1) / 2):
             continue
-        stick("post", at_wall(frame, s, face, z0 + beam), at_wall(frame, s, face, z1 - beam), 0.15, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
+        stick("post", at_wall(frame, s + j(0.04), face, z0 + beam), at_wall(frame, s + j(0.07), face, z1 - beam), 0.19, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
     # Losholt i brysthøyde mellom stavlene, og skråbånd i felt uten åpning.
     mid = z0 + (z1 - z0) * 0.48
     for a, b in zip(posts, posts[1:]):
@@ -281,10 +283,10 @@ def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0
             continue
         sa, sb = a + beam / 2, b - beam / 2
         if not any(in_opening((sa + sb) / 2, z) for z in (mid, z0 + 0.4, z1 - 0.4)):
-            stick("rail", at_wall(frame, sa, face, mid), at_wall(frame, sb, face, mid), 0.14, beam * 0.85, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
+            stick("rail", at_wall(frame, sa, face, mid + j(0.06)), at_wall(frame, sb, face, mid + j(0.06)), 0.17, beam * 0.85, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
             if rng.random() < 0.45:
                 lo, hi = (sa, sb) if rng.random() < 0.5 else (sb, sa)
-                stick("brace", at_wall(frame, lo, face, z0 + beam), at_wall(frame, hi, face, mid - beam * 0.4), 0.14, beam * 0.8, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
+                stick("brace", at_wall(frame, lo, face, z0 + beam), at_wall(frame, hi, face, mid - beam * 0.4), 0.17, beam * 0.8, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
     if collide_it:
         wall_colliders(frame, L, z0, z1, thick, holes)
     return frame, L
@@ -387,7 +389,7 @@ def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False):
 # --- Tak, gavler, piper -------------------------------------------------------
 
 
-def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.6, gable_over=0.5, thick=0.38, sag=0.12, name="roof"):
+def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, thick=0.42, sag=0.32, kick=0.35, name="roof"):
     """Saltak med mønet langs x, fra veggene y0..y1 og x0..x1: to tykke
     takflater med avrundet takskjegg som henger litt i midten, og en
     mønerull. Gir høyden på mønet."""
@@ -408,18 +410,24 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.6, gable_over=0.5, t
             u = i / n
             x = xa + (xb - xa) * u
             dip = sag * math.sin(math.pi * u)
-            for j, d in enumerate((0.0, slope)):
+            # Tre rader nedover: mønet (som svaier litt), et knekkpunkt, og
+            # takfoten som bretter seg ut (`kick`) og svaier mest i midten.
+            rows = ((0.0, 0.6, 0.0), (slope * 0.78, 0.9, 0.0), (slope, 1.0, kick))
+            for j, (d, sg, up) in enumerate(rows):
                 yy = yc + side * d * cp
-                zz = ridge - d * sp - dip * (d / slope)
+                zz = ridge - d * sp - dip * sg + up
                 g[(i, j, 0)] = bm.verts.new((x, yy, zz))
                 g[(i, j, 1)] = bm.verts.new((x, yy - side * thick * sp, zz - thick * cp))
+        last = len(rows) - 1
         for i in range(n):
-            for k in (0, 1):
-                bm.faces.new([g[(i, 0, k)], g[(i + 1, 0, k)], g[(i + 1, 1, k)], g[(i, 1, k)]])
-            for j in (0, 1):
+            for j in range(last):
+                for k in (0, 1):
+                    bm.faces.new([g[(i, j, k)], g[(i + 1, j, k)], g[(i + 1, j + 1, k)], g[(i, j + 1, k)]])
+            for j in (0, last):
                 bm.faces.new([g[(i, j, 0)], g[(i + 1, j, 0)], g[(i + 1, j, 1)], g[(i, j, 1)]])
         for i in (0, n):
-            bm.faces.new([g[(i, 0, 0)], g[(i, 1, 0)], g[(i, 1, 1)], g[(i, 0, 1)]])
+            for j in range(last):
+                bm.faces.new([g[(i, j, 0)], g[(i, j + 1, 0)], g[(i, j + 1, 1)], g[(i, j, 1)]])
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         # Uv: u langs mønet, v nedover takflaten (halmen og sponet renner ned).
         for f in bm.faces:
@@ -429,7 +437,7 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.6, gable_over=0.5, t
         ob = _object(f"{name}_{side}", bm, p.roof)
         _bevel(ob, 0.08, 2)
     # Mønerull.
-    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.24, depth=xb - xa + 0.1, location=((xa + xb) / 2, yc, ridge + 0.02), rotation=(0, math.pi / 2, 0))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.3, depth=xb - xa + 0.1, location=((xa + xb) / 2, yc, ridge - sag * 0.3 + 0.02), rotation=(0, math.pi / 2, 0))
     rl = bpy.context.active_object
     rl.name = "ridge_roll"
     rl.data.materials.append(p.roof)
@@ -478,13 +486,32 @@ def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3):
         stick("barge", a, b, 0.08, 0.28, p.trim, ("trim", DARK_BEAM), bevel=0.02)
 
 
-def chimney(p, x, y, z0, z1, w=0.9, smoke=0.8):
-    """Steinpipe som smalner litt, med krage. Røyken registreres."""
-    town.SMOKE.append(((x, y, z1 + 0.2), smoke))
-    box("chimney", (x - w / 2, y - w / 2, z0), (x + w / 2, y + w / 2, z1 - 0.6), p.stone, bevel=0.04)
-    box("chimney_top", (x - w / 2 + 0.06, y - w / 2 + 0.06, z1 - 0.6), (x + w / 2 - 0.06, y + w / 2 - 0.06, z1), p.stone, bevel=0.04)
-    box("chimney_cap", (x - w / 2 - 0.05, y - w / 2 - 0.05, z1), (x + w / 2 + 0.05, y + w / 2 + 0.05, z1 + 0.14), p.stone, bevel=0.04)
-    box("chimney_hole", (x - w / 2 + 0.2, y - w / 2 + 0.2, z1 + 0.1), (x + w / 2 - 0.2, y + w / 2 - 0.2, z1 + 0.16), p.soot, bevel=0)
+def chimney(p, x, y, z0, z1, w=1.1, smoke=0.8, lean=4.0):
+    """Klumpete steinpipe som smalner av oppover og lener seg litt, med en
+    tykk krage. Røyken registreres øverst."""
+    h = z1 - z0
+    tilt = math.radians(lean)
+    top = (x + math.sin(tilt) * h, y, z1)
+    town.SMOKE.append(((top[0], top[1], z1 + 0.25), smoke))
+    bm = bmesh.new()
+    rows = []
+    for k, (z, ww) in enumerate(((z0, w), (z0 + h * 0.6, w * 0.88), (z1, w * 0.8))):
+        t = (z - z0) / h
+        cx = x + math.sin(tilt) * h * t * t
+        rows.append([bm.verts.new((cx + sx * ww / 2, y + sy * ww / 2, z)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+    for a_, b_ in zip(rows, rows[1:]):
+        for i in range(4):
+            j = (i + 1) % 4
+            bm.faces.new((a_[i], a_[j], b_[j], b_[i]))
+    bm.faces.new(rows[0][::-1])
+    bm.faces.new(rows[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _object("chimney", bm, p.stone)
+    _bevel(ob, 0.06)
+    town.uv_box(ob)
+    cw = w * 0.8
+    box("chimney_cap", (top[0] - cw / 2 - 0.12, y - cw / 2 - 0.12, z1), (top[0] + cw / 2 + 0.12, y + cw / 2 + 0.12, z1 + 0.22), p.stone, bevel=0.06)
+    box("chimney_hole", (top[0] - cw / 2 + 0.15, y - cw / 2 + 0.15, z1 + 0.18), (top[0] + cw / 2 - 0.15, y + cw / 2 - 0.15, z1 + 0.25), p.soot, bevel=0)
 
 
 # --- Inne ---------------------------------------------------------------------

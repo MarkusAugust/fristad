@@ -111,20 +111,17 @@ fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
     hdr += textureSampleLevel(tex1, lin, i.uv, 0.0).rgb * bloom;
     hdr *= exposure;
     var c = aces(hdr);
-    // Fargegradering mot et dempet, filmatisk uttrykk: mindre metning
-    // (særlig i grønt), en S-kurve for kontrast, varme lys og kalde skygger,
-    // og svarte som løftes litt mot oliven.
+    // Fargegradering for den malte stilen: mettede farger, en mild
+    // S-kurve, varme lys og litt kjøligere skygger.
     var lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
-    let green = max(c.g - max(c.r, c.b), 0.0);
-    c = mix(vec3<f32>(lum), c, 0.8 - green * 0.6);
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.3);
+    c = max(mix(vec3<f32>(lum), c, 1.22), vec3<f32>(0.0));
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.2);
     lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
-    c = mix(c, c * vec3<f32>(0.9, 0.96, 1.08), smoothstep(0.45, 0.0, lum) * 0.6);
-    c = mix(c, c * vec3<f32>(1.06, 1.0, 0.88), smoothstep(0.4, 1.0, lum) * 0.55);
-    c = c * 0.97 + vec3<f32>(0.012, 0.011, 0.006);
+    c = mix(c, c * vec3<f32>(0.94, 0.98, 1.08), smoothstep(0.4, 0.0, lum) * 0.5);
+    c = mix(c, c * vec3<f32>(1.05, 1.0, 0.9), smoothstep(0.45, 1.0, lum) * 0.5);
     // Vignett.
     let v = i.uv * 2.0 - 1.0;
-    c *= 1.0 - dot(v, v) * 0.12;
+    c *= 1.0 - dot(v, v) * 0.06;
     // Rødt flash langs kantene når spilleren er truffet.
     let hurt = post.params.w;
     if (hurt > 0.0) {
