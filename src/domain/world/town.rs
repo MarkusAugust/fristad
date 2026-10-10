@@ -18,7 +18,7 @@ use std::sync::OnceLock;
 
 /// Torget: et skjevt firkantet åpent rom (x, z), hjørnene i rekkefølge
 /// nordvest, sørvest, sørøst, nordøst.
-pub const SQUARE: [Vec2; 4] = [Vec2::new(-12.5, -10.0), Vec2::new(-11.5, 10.0), Vec2::new(12.5, 10.5), Vec2::new(12.0, -10.5)];
+pub const SQUARE: [Vec2; 4] = [Vec2::new(-12.0, -9.0), Vec2::new(-12.8, 10.0), Vec2::new(11.5, 11.8), Vec2::new(13.0, -10.6)];
 /// Halv bredde på Storgata.
 pub const MAIN: f32 = 3.2;
 /// Krypten på kirkegården: midten av gravkapellet, med døra mot øst (mot
@@ -195,7 +195,7 @@ impl Plan {
     /// ikke oppå noe annet.
     fn fits(&self, r: &Rect) -> bool {
         for p in r.samples() {
-            if terrain::town_edge(p.x, p.y) > -3.0 || square_dist(p) < 0.4 {
+            if square_dist(p) < 0.4 {
                 return false;
             }
             if streets().iter().any(|st| street_dist(st, p).0 < st.half + 0.25) {
@@ -205,7 +205,11 @@ impl Plan {
                 return false;
             }
         }
-        !self.taken.iter().any(|t| t.overlaps(r))
+        let f = full(r);
+        if f.samples().iter().any(|p| terrain::town_edge(p.x, p.y) > -1.0) {
+            return false;
+        }
+        !self.taken.iter().any(|t| full(t).overlaps(&f))
     }
 }
 
@@ -224,13 +228,21 @@ const HOUSES: [&str; 6] = ["house_a", "house_b", "house_c", "house_d", "house_e"
 
 /// Husets mål: midten av grunnflaten (lokal x, z) og halve mål.
 fn footprint(b: &Builder, model: &str, fallback: Vec2) -> (Vec2, Vec2, f32) {
-    // Takskjegget får stikke ut over naboen og gata: grunnflaten regnes
-    // uten de ytterste 0,7 m.
-    const EAVES: f32 = 0.7;
     match b.bounds(model) {
         Some((lo, hi)) => (Vec2::new((lo.x + hi.x) * 0.5, (lo.z + hi.z) * 0.5), (Vec2::new(hi.x - lo.x, hi.z - lo.z) * 0.5 - Vec2::splat(EAVES)).max(Vec2::splat(1.0)), hi.z - EAVES),
         None => (Vec2::ZERO, fallback * 0.5, fallback.y * 0.5),
     }
+}
+
+/// Takskjegget: grunnflaten (veggene) er så mye mindre enn hele modellen.
+/// Veggene holder avstand til gata og torget; hele huset med taket og litt
+/// luft holder avstand til nabohusene og muren.
+const EAVES: f32 = 0.7;
+const AIR: f32 = 0.3;
+
+/// Hele huset med takskjegg og luft, rundt grunnflaten `r`.
+fn full(r: &Rect) -> Rect {
+    Rect { h: r.h + Vec2::splat(EAVES + AIR), ..*r }
 }
 
 /// Rektangelet til et hus med origo i `base` og yaw.
@@ -298,59 +310,64 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         log::info!("{model} ved ({:.1}, {:.1}), yaw {:.2}", base.x, base.y, yaw);
         doors.push((m - out * 1.6, yaw));
     }
-    // Så husene langs torget og gata, satt for hånd: (modell, x, z,
-    // retning døra vender). Takskjeggene møtes, så fasadene står tett.
+    // Så rekkene langs torget og gata: på hvert sted prøves husmodellene i
+    // tilfeldig rekkefølge, hver litt dreid for seg (ingen rette vinkler),
+    // og den første som får plass med luft rundt blir stående.
     let mut rng = Rng(0x0f12_57ad);
-    let n = Vec2::new(0.0, -1.0);
-    let (e, w) = (Vec2::new(1.0, 0.0), Vec2::new(-1.0, 0.0));
-    let s_ = Vec2::new(0.0, 1.0);
-    let row: [(&'static str, f32, f32, Vec2); 12] = [
-        // Sørsida av torget, vendt mot nord.
-        ("house_b", -8.2, 15.0, n),
-        ("house_e", 8.6, 15.2, n),
-        // Storgata sør for torget.
-        ("house_f", -8.4, 24.0, e),
-        ("house_d", 7.8, 23.6, w),
-        // Storgata nord for torget, vest for gata (øst er øvingsplassen).
-        ("house_a", -7.8, -23.5, e),
-        // Hjørnene av torget.
-        ("house_c", -17.8, 13.0, e),
-        ("house_d", 18.6, 11.8, w),
-        ("house_a", -18.2, -12.6, e),
-        ("house_f", 18.4, -12.2, w),
-        // Ut mot muren bak vertshuset og smia.
-        ("house_e", -25.0, 0.0, e),
-        ("house_b", 25.0, 0.5, w),
-        ("house_c", 8.4, 30.0, n),
-    ];
     let mut placed = 0;
-    for (model, x, z, dir) in row {
-        let (mid, half_m, _) = footprint(b, model, Vec2::new(7.0, 8.0));
-        let base = Vec2::new(x, z);
-        let yaw = facing(dir) + rng.range(-0.04, 0.04);
-        let r = rect_at(base, yaw, mid, half_m);
-        if !plan.fits(&r) {
-            log::warn!("{model} ved ({x:.1}, {z:.1}) står i veien for noe");
+    for (pts, half, only) in rows() {
+        let len = length(&pts);
+        for side in [1.0f32, -1.0] {
+            let mut s = rng.range(0.0, 1.0);
+            while s < len {
+                let mut order = HOUSES.to_vec();
+                for i in (1..order.len()).rev() {
+                    order.swap(i, (rng.next() * (i + 1) as f32) as usize % (i + 1));
+                }
+                let mut done = None;
+                'try_: for model in order {
+                    let (mid, half_m, front) = footprint(b, model, Vec2::new(7.0, 8.0));
+                    let (p, t) = along(&pts, (s + half_m.x + EAVES).min(len));
+                    let n = Vec2::new(-t.y, t.x) * side;
+                    if only.is_some_and(|o| n.dot(o) < 0.0) {
+                        break;
+                    }
+                    for back in [0.4f32, 1.0, 1.8] {
+                        let base = p + n * (half + back + front);
+                        let yaw = facing(-n) + rng.range(-0.18, 0.18);
+                        let r = rect_at(base, yaw, mid, half_m);
+                        if plan.fits(&r) {
+                            plan.taken.push(r);
+                            building(b, model, base, yaw);
+                            done = Some((half_m.x + EAVES) * 2.0 + AIR);
+                            break 'try_;
+                        }
+                    }
+                }
+                match done {
+                    Some(w) => {
+                        placed += 1;
+                        s += w + rng.range(0.2, 1.2);
+                    }
+                    None => s += 0.6,
+                }
+            }
         }
-        plan.taken.push(r);
-        building(b, model, base, yaw);
-        placed += 1;
     }
-    let _ = s_;
     // Bakgårdene: hus bak rekkene, ut mot muren, så byen er tett sett
     // ovenfra og fra gata. Du kommer ikke dit (avsperringen står foran).
     let mut back = 0;
-    for _ in 0..3000 {
+    for _ in 0..8000 {
         let a = rng.range(0.0, TAU);
         let r = rng.range(8.0, terrain::wall_radius(a) - 3.0);
         let p = Vec2::new(a.cos(), a.sin()) * r;
         let (d, t) = street_dist(&streets()[0], p);
-        if d < MAIN + 7.0 || square_dist(p) < 6.5 {
+        if d < MAIN + 2.0 || square_dist(p) < 2.0 {
             continue;
         }
         let n = Vec2::new(-t.y, t.x);
         let toward = if n.dot(Vec2::new(main_x(p.y), p.y) - p) >= 0.0 { n } else { -n };
-        let yaw = facing(toward) + if rng.chance(0.3) { FRAC_PI_2 } else { 0.0 } + rng.range(-0.1, 0.1);
+        let yaw = facing(toward) + if rng.chance(0.3) { FRAC_PI_2 } else { 0.0 } + rng.range(-0.3, 0.3);
         let model = rng.pick(&HOUSES);
         let (mid, half_m, _) = footprint(b, model, Vec2::new(7.0, 8.0));
         let rr = rect_at(p, yaw, mid, half_m + Vec2::splat(0.05));

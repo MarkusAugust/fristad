@@ -31,14 +31,16 @@ fn smooth(t: f32) -> f32 {
 pub const YARD_FLAT: (f32, f32, f32, f32) = (-17.0, -50.0, 12.0, 10.0);
 
 /// Hvor langt ut fra bymuren et punkt er, i meter (negativt innenfor).
-/// Muren følger et litt ujevnt, rundt omriss rundt torget.
+/// Muren følger et ujevnt, organisk omriss rundt torget.
 pub fn town_edge(x: f32, z: f32) -> f32 {
     (x * x + z * z).sqrt() - wall_radius(z.atan2(x))
 }
 
 /// Murens avstand fra torget i retningen `a` (radianer fra +x mot +z).
 pub fn wall_radius(a: f32) -> f32 {
-    32.0 + 1.4 * (2.0 * a + 0.7).sin() + 0.9 * (3.0 * a + 1.9).sin()
+    // Ujevnt og eggeformet, slik muren ble lagt rundt det som var bygd:
+    // lengst ut mot sørøst, inntrykt i nordvest, med knekker.
+    38.0 + 3.6 * (a + 0.4).sin() + 2.4 * (2.0 * a + 0.7).sin() + 1.5 * (3.0 * a + 1.9).sin() + 0.9 * (5.0 * a + 0.3).sin()
 }
 
 /// Terrenget uten planeringene: rullende åser som vokser utover.
