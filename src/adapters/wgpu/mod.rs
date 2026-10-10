@@ -12,7 +12,7 @@ use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
 use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
-use crate::domain::scene::{Frustum, GRID, MAX_LIGHTS, MAX_SMOKE, PALETTE};
+use crate::domain::scene::{Frustum, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE};
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
@@ -105,14 +105,17 @@ struct Globals {
     /// den slutter.
     misc: [f32; 4],
     sky: [f32; 4],
-    tex_scale: [[f32; 4]; 12],
+    tex_scale: [[f32; 4]; 16],
     palette: [[f32; 4]; PALETTE],
     lights: [GpuLight; MAX_LIGHTS],
     smoke: [[f32; 4]; MAX_SMOKE],
-    /// Kjellerens rutenett: hjørnet (x, z), gulvhøyden og cellestørrelsen
-    /// (0 utenfor kjelleren), og cellene, fire per u32.
-    grid_info: [f32; 4],
-    grid: [[u32; 4]; GRID * GRID / 16],
+    /// Rommene i kryptnivået (lyset stoppes av murene): antallet (x, 0
+    /// oppe i byen), boksene (x0, z0, x1, z1), gulvet og taket (to rom per
+    /// vec4), og rommene hvert lys lyser i (to u32 per lys, to lys per vec4).
+    room_info: [f32; 4],
+    room_box: [[f32; 4]; MAX_ROOMS],
+    room_y: [[f32; 4]; MAX_ROOMS / 2],
+    light_rooms: [[u32; 4]; MAX_LIGHTS / 2],
 }
 
 #[repr(C)]
@@ -947,7 +950,7 @@ impl Renderer {
         let (w, h) = (t.width as f32, t.height as f32);
         let view_proj = f.proj * f.view;
         // Nede i kjelleren når ikke sola ned: ingen skygge, og sollyset er av.
-        let shadows = f.grid.is_none() && f.band.1 >= 0.0;
+        let shadows = f.rooms.is_none() && f.band.1 >= 0.0;
         let sun_vp = self.cascade(f, 0.1, SHADOW_FAR);
         // Småting kaster skygge bare nær.
         let sun_cull = Cull { frustum: Frustum::from_view_proj(sun_vp), eye: f.camera, fine_within: if self.reduced { 18.0 } else { 40.0 }, band: f.band };
@@ -1052,17 +1055,26 @@ impl Renderer {
         for (i, c) in f.palette.iter().enumerate() {
             palette[i] = v4(*c, 1.0);
         }
-        let mut tex_scale = [[1.0f32; 4]; 12];
+        let mut tex_scale = [[1.0f32; 4]; 16];
         for (i, s) in self.materials.scales.iter().enumerate().take(LAYERS as usize) {
             tex_scale[i / 4][i % 4] = *s;
         }
         let wx = &f.weather;
-        let mut grid = [[0u32; 4]; GRID * GRID / 16];
-        let mut grid_info = [0.0f32; 4];
-        if let Some(g) = &f.grid {
-            grid_info = [g.origin.x, g.origin.y, g.floor_y, g.cell];
-            for (i, b) in g.bits.iter().take(GRID * GRID).enumerate() {
-                grid[i / 16][(i / 4) % 4] |= (*b as u32) << ((i % 4) * 8);
+        let mut room_info = [0.0f32; 4];
+        let mut room_box = [[0.0f32; 4]; MAX_ROOMS];
+        let mut room_y = [[0.0f32; 4]; MAX_ROOMS / 2];
+        let mut light_rooms = [[u32::MAX; 4]; MAX_LIGHTS / 2];
+        if let Some(r) = &f.rooms {
+            let n = r.boxes.len().min(MAX_ROOMS);
+            room_info[0] = n as f32;
+            for (i, (lo, hi, y0, y1)) in r.boxes.iter().take(n).enumerate() {
+                room_box[i] = [lo.x, lo.y, hi.x, hi.y];
+                room_y[i / 2][(i % 2) * 2] = *y0;
+                room_y[i / 2][(i % 2) * 2 + 1] = *y1;
+            }
+            for (i, m) in r.masks.iter().take(MAX_LIGHTS).enumerate() {
+                light_rooms[i / 2][(i % 2) * 2] = *m as u32;
+                light_rooms[i / 2][(i % 2) * 2 + 1] = (*m >> 32) as u32;
             }
         }
         let globals = Globals {
@@ -1085,8 +1097,10 @@ impl Renderer {
             palette,
             lights,
             smoke,
-            grid_info,
-            grid,
+            room_info,
+            room_box,
+            room_y,
+            light_rooms,
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 

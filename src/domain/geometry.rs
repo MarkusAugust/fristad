@@ -109,15 +109,34 @@ pub enum Layer {
     Pebbles = 44,
     /// Pipene: små, flate murstein og skifer (malt).
     Chimney = 45,
+    /// Gravkjelleren: mur av tilhogd kalkstein (malt).
+    CryptStone = 46,
+    /// Gravkjelleren: slitte gulvheller (malt).
+    CryptFloor = 47,
+    /// Gravkjelleren: hvelvet i taket, små steiner (malt).
+    CryptVault = 48,
+    /// Gravheller i gulvet med innhogde kors (malt).
+    GraveSlab = 49,
+    /// Beinhuset: hodeskaller og knokler stablet i veggen (malt).
+    Ossuary = 50,
+    /// Kalkmaleri på murene i kapellene (malt).
+    CryptPlaster = 51,
+    /// Rasmasse og grus (malt).
+    Rubble = 52,
+    /// Jernbeslått mørk eik nede i krypten: dører, gitter, kister (malt).
+    BronzeDoor = 53,
+    /// Fristil-korrupsjonen: lysende sømmer i stein (malt, gløder med `.magic`).
+    GlitchSeam = 54,
 }
-/// Høyst 48: `tex_scale` i `Globals` har plass til 12 × 4.
-pub const LAYERS: u32 = 46;
+/// Høyst 64: `tex_scale` i `Globals` har plass til 16 × 4.
+pub const LAYERS: u32 = 55;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
         Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
         Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather, Layer::CryptWall, Layer::Straw, Layer::Floor, Layer::Soot,
         Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle, Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin, Layer::WallStone, Layer::Flagstone, Layer::Pebbles, Layer::Chimney,
+        Layer::CryptStone, Layer::CryptFloor, Layer::CryptVault, Layer::GraveSlab, Layer::Ossuary, Layer::CryptPlaster, Layer::Rubble, Layer::BronzeDoor, Layer::GlitchSeam,
     ];
     /// Navnet i `assets/external/manifest.json`.
     pub fn name(self) -> &'static str {
@@ -168,12 +187,21 @@ impl Layer {
             Layer::Flagstone => "flagstone",
             Layer::Pebbles => "pebbles",
             Layer::Chimney => "chimney",
+            Layer::CryptStone => "crypt_wall",
+            Layer::CryptFloor => "crypt_floor",
+            Layer::CryptVault => "crypt_vault",
+            Layer::GraveSlab => "grave_slab",
+            Layer::Ossuary => "ossuary",
+            Layer::CryptPlaster => "crypt_plaster",
+            Layer::Rubble => "rubble",
+            Layer::BronzeDoor => "bronze_door",
+            Layer::GlitchSeam => "glitch_seam",
         }
     }
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

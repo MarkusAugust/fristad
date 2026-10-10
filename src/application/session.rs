@@ -10,7 +10,7 @@ use crate::domain::npcs::Npcs;
 use crate::domain::scene::{Light, Weather};
 use crate::domain::tokens::Tokens;
 use crate::domain::weather::{Daylight, WeatherKind};
-use crate::domain::world::dungeon::{self, Dungeon};
+use crate::domain::world::crypt::{self, Crypt, HintKind, TrapKind};
 use crate::domain::world::town;
 use crate::domain::world::{Target, Use, World};
 use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, MapMark, MapView, Mark, Prompt, RecipeView, SaveData, Sound, WareView};
@@ -69,6 +69,16 @@ impl Stance {
     }
 }
 
+/// En pil fra en felle: hvor den er, farten, alderen, og om den bare
+/// skal skremme (første gang treffer den gulvet foran deg).
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Dart {
+    pub pos: Vec3,
+    pub vel: Vec3,
+    pub age: f32,
+    pub harmless: bool,
+}
+
 /// Noe du kan bruke, med kollideren strålen treffer.
 struct TargetState {
     target: Target,
@@ -108,19 +118,19 @@ pub struct Session {
     spawn_yaw: f32,
     crypt_exit: (Vec3, f32),
     /// Portalen ved sørporten: dit den tar deg (føttene, retningen og
-    /// etasjen) når den er åpen, hvor lenge den har vært åpen (s), om
-    /// siktemålet står ute nå, og inngangen til hver etasje du har nådd.
+    /// nivået) når den er åpen, hvor lenge den har vært åpen (s), om
+    /// siktemålet står ute nå, og inngangen til hvert nivå du har nådd.
     portal: Option<(Vec3, f32, usize)>,
     pub(super) portal_t: f32,
     portal_shown: bool,
     /// Kolliderne til ringen (flyttes inn når den står der).
     portal_solids: Vec<ColliderId>,
     entries: Vec<Option<(Vec3, f32)>>,
-    /// Kartet: cellene du har sett i hver etasje, etasjen kartet sist ble
+    /// Kartet: rommene du har sett i hvert nivå, nivået kartet sist ble
     /// sendt for (`None` oppe), om det må sendes på nytt, og hvor du sto da
     /// posisjonen sist ble sendt.
     seen: Vec<Vec<bool>>,
-    map_floor: Option<usize>,
+    map_level: Option<usize>,
     map_dirty: bool,
     last_where: (f32, f32, f32),
     /// Sekunder siden du sist reiste gjennom virvelen (synsfeltet strekkes).
@@ -130,20 +140,15 @@ pub struct Session {
     /// lydbildet som sist ble sendt.
     sound_spots: [Vec2; 3],
     last_ambience: Ambience,
-    /// Der du sist sto trygt i kjelleren (til fall i kløftene).
+    /// Der du sist sto trygt i krypten (til fall utfor kanten).
     safe: Vec3,
     /// Meter gått siden forrige skritt, og den raskeste fallfarten siden
     /// du sist sto (til landingen).
     stride: f32,
     fall: f32,
-    /// Det som lager lyd i løkke der det står: ild (ildsteder og fakler),
-    /// rennende vann og lava.
+    /// Det som lager lyd i løkke der det står: ild (ildsteder og fakler).
     fires: Vec<Vec3>,
-    waters: Vec<Vec3>,
-    lavas: Vec<Vec3>,
-    /// Kløftene (vind fra dypet).
-    chasms: Vec<Vec3>,
-    /// Sekunder til neste fjerne lyd i kjelleren (rotter, kjetting, dører,
+    /// Sekunder til neste fjerne lyd i krypten (rotter, kjetting, dører,
     /// noe som knurrer i et rom ved siden av), og terningen til dem.
     distant_t: f32,
     sound_seed: u32,
@@ -157,13 +162,40 @@ pub struct Session {
     ambience_t: f32,
     pub(super) npcs: Npcs,
     bubbles_shown: bool,
-    pub(super) dungeon: Dungeon,
+    pub(super) crypt: Crypt,
     pub(super) mobs: Mobs,
+    /// Spakene: hvor langt de er trukket (0..1), −1 før de er rørt.
+    pub(super) levers: Vec<f32>,
+    /// De falske veggene: hvor langt de har sunket (0..1), −1 når de står.
+    pub(super) secrets: Vec<f32>,
+    /// Fallemmene: hvor langt lemmen har falt opp (0..1), −1 når den er
+    /// lukket, og kolliderne til lemmene som holder deg til de faller.
+    pub(super) trapdoors: Vec<f32>,
+    trap_lids: Vec<Option<ColliderId>>,
+    /// Hvilestedene du har tent, og det siste (der du våkner når du dør).
+    pub(super) rests_lit: Vec<bool>,
+    last_rest: Option<usize>,
+    /// Lappene du har lest, og den varige styrken du har tatt (lagres).
+    lore_read: Vec<bool>,
+    bonus_taken: BTreeSet<String>,
+    /// Fellene: hvor mange ganger hver har gått av, og hvor lenge til den
+    /// er klar igjen; pilene i lufta.
+    traps: Vec<(u32, f32)>,
+    pub(super) darts: Vec<Dart>,
+    /// Bossene du har slått, per nivå (de kommer ikke igjen).
+    slain: BTreeSet<usize>,
+    /// Det du bar da du døde: ligger der til du henter det.
+    bags: Vec<(Vec3, BTreeMap<String, u32>)>,
+    /// Trappa ned virker først når du har gått bort fra den (så du ikke
+    /// går rett ned igjen når du kommer opp).
+    down_armed: bool,
+    /// Sekunder til neste lyd fra en hemmelighet («sound»-hintene).
+    hint_t: f32,
     hp: f32,
     max_hp: f32,
     coins: u32,
     keys: u32,
-    /// Portene i kjelleren: 0 lukket, 1 oppe, og om de er låst opp.
+    /// Portene i krypten: 0 lukket, 1 oppe, og om de er låst opp.
     pub(super) gates: Vec<(f32, bool)>,
     /// Hvor langt hver brønn er kommet i å heise opp vann (sekunder), eller
     /// negativ når ingen bruker den.
@@ -244,14 +276,14 @@ impl Session {
             eye_h: EYE,
             spawn: world.spawn,
             spawn_yaw: world.spawn_yaw,
-            crypt_exit: world.crypt,
+            crypt_exit: world.crypt_exit,
             portal: None,
             portal_t: 0.0,
             portal_shown: true,
             portal_solids: town::PORTAL_SOLIDS.iter().map(|(_, size)| physics.add_movable(*size * 0.5, Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)))).collect(),
-            entries: vec![None; world.dungeon.floors.len()],
-            seen: vec![vec![false; dungeon::N * dungeon::N]; world.dungeon.floors.len()],
-            map_floor: None,
+            entries: vec![None; world.crypt.levels.len()],
+            seen: world.crypt.levels.iter().map(|l| vec![false; l.rooms.len()]).collect(),
+            map_level: None,
             map_dirty: false,
             last_where: (0.0, 0.0, 0.0),
             warp_t: 10.0,
@@ -266,27 +298,43 @@ impl Session {
             stride: 0.0,
             fall: 0.0,
             fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
-            waters: Self::places(world, &["dng_hall_sewer", "dng_cistern"]),
-            lavas: Self::places(world, &["dng_hall_lava", "dng_chasm"]),
-            chasms: Self::places(world, &["dng_chasm"]),
             distant_t: 6.0,
             sound_seed: 0x9e37_79b9,
             indoor: false,
             npc_steps: vec![],
-            shortcuts: vec![-1.0; world.dungeon.shortcuts.len()],
+            shortcuts: vec![-1.0; world.crypt.shortcuts.len()],
             ambience_t: 0.0,
             npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
             bubbles_shown: false,
-            mobs: Mobs::new(&world.dungeon, rigs),
-            dungeon: world.dungeon.clone(),
+            mobs: Mobs::new(&world.crypt, rigs),
+            crypt: world.crypt.clone(),
+            levers: vec![-1.0; world.crypt.levers.len()],
+            secrets: vec![-1.0; world.crypt.secrets.len()],
+            trapdoors: vec![-1.0; world.crypt.trapdoors.len()],
+            trap_lids: world
+                .crypt
+                .trapdoors
+                .iter()
+                .map(|t| t.lid.then(|| physics.add_movable(Vec3::new(t.size.x * 0.5, 0.05, t.size.y * 0.5), crate::domain::world::at(t.pos - Vec3::Y * 0.05, t.yaw))))
+                .collect(),
+            rests_lit: vec![false; world.crypt.rests.len()],
+            last_rest: None,
+            lore_read: vec![false; world.crypt.lores.len()],
+            bonus_taken: BTreeSet::new(),
+            traps: vec![(0, 0.0); world.crypt.traps.len()],
+            darts: vec![],
+            slain: BTreeSet::new(),
+            bags: vec![],
+            down_armed: true,
+            hint_t: 5.0,
             hp: 100.0,
             max_hp: 100.0,
             coins: 0,
             keys: 0,
-            gates: vec![(0.0, false); world.dungeon.gates.len()],
+            gates: vec![(0.0, false); world.crypt.gates.len()],
             wells: vec![-1.0; world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count()],
-            chests: vec![false; world.dungeon.chests.len()],
-            chest_open: vec![0.0; world.dungeon.chests.len()],
+            chests: vec![false; world.crypt.chests.len()],
+            chest_open: vec![0.0; world.crypt.chests.len()],
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),
             found: BTreeSet::new(),
@@ -308,11 +356,6 @@ impl Session {
         }
     }
 
-    /// Hvor modellene med disse navnene står.
-    fn places(world: &World, names: &[&str]) -> Vec<Vec3> {
-        world.placements.iter().filter(|p| names.contains(&p.model)).flat_map(|p| p.transforms.iter().map(|t| Vec3::from(t.translation))).collect()
-    }
-
     /// En lyd fra et sted i verden, sett fra øyet: x til høyre, y opp, −z
     /// rett fram (slik nettleserens lytter står).
     pub(super) fn sound_at(&self, name: &str, at: Vec3, gain: f32) -> Event {
@@ -329,16 +372,7 @@ impl Session {
 
     /// Hva du går på: navnet på skrittlyden.
     fn surface(&self, feet: Vec3) -> &'static str {
-        if self.in_cellar() {
-            // Plankebrua over kløfta, vann i kloakkgangene, ellers stein.
-            if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 0.5) {
-                if self.waters.iter().any(|w| (w.y - self.dungeon.floors[f].y).abs() < 3.0 && w.with_y(0.0).distance(feet.with_y(0.0)) < 2.2) && self.dungeon.floors[f].theme == 2 {
-                    return "step_water";
-                }
-            }
-            if self.lavas.iter().any(|c| c.distance(feet) < 3.0) && self.dungeon.walkable(feet, 0.0) && !self.dungeon.walkable(feet + Vec3::X * 1.2, 0.0) {
-                return "step_wood";
-            }
+        if self.in_crypt() {
             return "step_rock";
         }
         let ground = crate::domain::world::terrain::height(feet.x, feet.z);
@@ -430,8 +464,8 @@ impl Session {
         self.pos + Vec3::Y * (self.eye_h + (self.bob * 9.0).sin() * 0.025)
     }
 
-    pub(super) fn in_cellar(&self) -> bool {
-        self.pos.y < dungeon::DEPTH + 6.0
+    pub(super) fn in_crypt(&self) -> bool {
+        self.pos.y < crypt::TOP
     }
 
     /// Siktet for et mål, slik det er nå.
@@ -458,11 +492,46 @@ impl Session {
             }
             Use::Shortcut(n) => {
                 if self.shortcuts.get(n).is_some_and(|o| *o >= 0.0) {
-                    p("Snarveien", "", "", "Døra står åpen: veien tilbake til startrommet.")
+                    p("Snarveien", "", "", "Døra står åpen: en kortere vei gjennom nivået.")
                 } else if self.shortcut_inside(n) {
-                    p("Døra med slå", "Skyv slåen", "", "En snarvei tilbake til startrommet i etasjen.")
+                    p("Eikedør med slå", "Skyv slåen", "", "En snarvei tilbake mot hvilestedet.")
                 } else {
                     p("Låst dør", "", "", "Boltet fra den andre siden. Kanskje du finner veien rundt.")
+                }
+            }
+            Use::Lever(n) => {
+                if self.levers.get(n).is_some_and(|l| *l >= 0.0) {
+                    p("Spaken", "", "", "Trukket. Noe et sted har åpnet seg.")
+                } else {
+                    p("Spak", "Trekk", "", "En rusten spak i muren. Den henger sammen med noe et sted.")
+                }
+            }
+            Use::Secret(n) => {
+                if self.secrets.get(n).is_some_and(|s| *s >= 0.0) {
+                    p("Åpning i muren", "", "", "Muren ga etter.")
+                } else {
+                    p("Sprukken mur", "Skyv", "", "Steinene sitter løst her, og det trekker kaldt gjennom fugene. Slå, eller skyv.")
+                }
+            }
+            Use::Ladder(_) => p("Stige", "Klatre opp", "", "Opp gjennom lemmen i taket."),
+            Use::Rest(n) => {
+                if self.rests_lit.get(n).copied().unwrap_or(false) {
+                    p("Hvilestedet", "Hvil", "", "Fullt liv og full utholdenhet. Fiendene kommer tilbake. Dør du, våkner du her.")
+                } else {
+                    p("Alteret med lysestaken", "Tenn og hvil", "", "Tenn lysene og hvil: fullt liv og full utholdenhet, og her våkner du om du dør.")
+                }
+            }
+            Use::Lore(n) => {
+                let title = self.crypt.lores.get(n).map(|l| l.title.as_str()).unwrap_or("En lapp");
+                p(title, "Les", "", if self.lore_read.get(n).copied().unwrap_or(false) { "Du har lest den." } else { "Noe er skrevet her." })
+            }
+            Use::Bonus(n) => {
+                let taken = self.crypt.bonuses.get(n).is_some_and(|b| self.bonus_taken.contains(&b.key));
+                let life = self.crypt.bonuses.get(n).is_some_and(|b| b.kind == crypt::BonusKind::Life);
+                if taken {
+                    p("Tomt relikvieskrin", "", "", "Du har tatt det som var her.")
+                } else {
+                    p("Relikvie", "Ta", "", if life { "Varig styrke: +10 liv." } else { "Varig styrke: +10 utholdenhet." })
                 }
             }
             Use::Chest(n) => {
@@ -473,18 +542,27 @@ impl Session {
                 }
             }
             Use::Gate(n) => {
+                let key = self.crypt.gates.get(n).is_some_and(|g| g.key);
                 if self.gates[n].1 {
-                    p("Porten er oppe", "", "", "Trappa ned til neste etasje er bak porten.")
+                    p("Gitteret er oppe", "", "", "Veien videre er åpen.")
+                } else if !key {
+                    p("Jerngitter", "", "", "Gitteret sitter fast. En spak et sted heiser det.")
                 } else if self.keys > 0 {
-                    p("Rusten port", "Lås opp", "", "Du har en nøkkel. Trappa ned til neste etasje er bak porten.")
+                    p("Rusten port", "Lås opp", "", "Du har en nøkkel.")
                 } else {
-                    p("Rusten port", "Lås opp", "", "Låst. En sterkere fiende i denne etasjen bærer nøkkelen.")
+                    p("Rusten port", "Lås opp", "", "Låst. En sterkere fiende i nivået bærer nøkkelen.")
                 }
             }
-            Use::Descend => p("Krypten under borgen", "Gå ned", "", "Ned i kjelleren, der de korrupte komponentene holder til."),
-            Use::Ascend => p("Døra opp til overflaten", "Gå opp", "", "Opp til krypten og byen. Det du bærer legges i lageret."),
+            Use::Descend => p("Krypten under kirka", "Gå ned", "", "Ned i krypten, der de korrupte komponentene holder til."),
+            Use::Ascend(k) => {
+                if k == 0 {
+                    p("Trappa opp", "Gå opp", "", "Opp til krypten og byen. Det du bærer legges i lageret.")
+                } else {
+                    p("Trappa opp", "Gå opp", "", &format!("Opp til nivå {}.", self.crypt.levels.get(k - 1).map(|l| l.n).unwrap_or(k as u32)))
+                }
+            }
             Use::Portal => match self.portal {
-                Some((_, _, f)) => p("Portalen", "Gå gjennom", "", &format!("Virvelen tar deg tilbake til kjelleren, etasje {}.", f + 1)),
+                Some((_, _, f)) => p("Portalen", "Gå gjennom", "", &format!("Virvelen tar deg tilbake til krypten, nivå {}.", f + 1)),
                 None => p("Portalen", "", "", "Lukket."),
             },
             Use::Well(n) => {
@@ -601,10 +679,6 @@ impl Session {
                     if self.weather.wet > 0.6 && matches!(surface, "step_gravel" | "step_dirt") {
                         events.push(Event::Sound(Sound { name: "step_water".into(), at: None, gain: gain * 0.5 * self.weather.wet }));
                     }
-                    // Tauet og plankene knirker på brua over kløfta.
-                    if self.in_cellar() && surface == "step_wood" {
-                        events.push(Event::Sound(Sound { name: "rope".into(), at: None, gain: gain * 0.8 }));
-                    }
                     if let Some(a) = self.gear.armor {
                         let layer = if a.id.contains("mail") { "gear_mail" } else { "gear_leather" };
                         events.push(Event::Sound(Sound { name: layer.into(), at: None, gain }));
@@ -612,8 +686,8 @@ impl Session {
                 }
             }
         }
-        // Under nederste etasje i kjelleren er det ingenting.
-        let abyss = self.dungeon.floors.last().map(|f| f.y).unwrap_or(dungeon::DEPTH) - 12.0;
+        // Under det nederste nivået i krypten er det ingenting.
+        let abyss = self.crypt.levels.last().map(|l| l.min_y).unwrap_or(crypt::TOP) - 30.0;
         if self.pos.y < abyss {
             self.respawn();
         }
@@ -621,56 +695,56 @@ impl Session {
             self.bob += dt * speed / 4.2;
         }
 
-        // Kløftene i kjelleren: står du trygt på gulvet, huskes stedet; har
-        // du falt mer enn tre meter under gulvet, løftes du opp dit igjen,
-        // med vondt.
+        // Fall utfor kanten i krypten: står du trygt på gulvet, huskes
+        // stedet; har du falt mer enn tre meter under det laveste gulvet i
+        // nivået, løftes du opp dit igjen, med vondt. (Fallemmer og sjakter
+        // ender på et gulv, så de er ikke fall.)
         {
             let (half, radius) = self.stance.capsule();
             let feet = self.pos - Vec3::Y * (half + radius + 0.05);
-            if self.in_cellar() {
-                // (Vindeltrappa ned i tårncella er ikke et fall.)
-                let stair = |f: usize| self.dungeon.floors[f].exit == Some(self.dungeon.floors[f].cell_of(feet));
-                if let Some(f) = self.dungeon.floor_of(feet + Vec3::Y * 3.5).filter(|f| !stair(*f)) {
-                    let floor_y = self.dungeon.floors[f].y;
-                    if self.grounded && (feet.y - self.dungeon.height_at(feet)).abs() < 0.4 && self.dungeon.walkable(feet, 0.0) {
+            if self.in_crypt() {
+                if let Some(k) = self.crypt.level_at(feet + Vec3::Y * 0.5) {
+                    let lowest = self.crypt.levels[k].min_y;
+                    if self.grounded && self.crypt.floor_under(feet + Vec3::Y * 0.3).is_some_and(|f| (feet.y - f).abs() < 0.4) {
                         self.safe = feet;
-                    } else if feet.y < floor_y - 3.0 && self.safe != Vec3::ZERO {
+                    } else if feet.y < lowest - 3.0 && self.safe != Vec3::ZERO {
                         self.hp -= 30.0;
                         let back = self.safe;
                         self.teleport(back, self.yaw);
                         events.push(Event::Fade);
                         events.push(sfx("land"));
                         events.push(sfx("hurt"));
-                        events.push(Event::Toast("Du falt i kløfta, og kom deg opp igjen med skrubbsår og en vond rygg.".into()));
+                        events.push(Event::Toast("Du falt utfor kanten, og kom deg opp igjen med skrubbsår og en vond rygg.".into()));
                     }
                 }
             }
         }
-        // Hva sikter vi på? Fiendene i kjelleren går foran.
+        self.update_crypt(dt, &mut events);
+        // Hva sikter vi på? Fiendene i krypten går foran.
         let eye = self.eye();
         let dir = self.forward();
-        let in_cellar = self.in_cellar();
-        self.update_portal(dt, in_cellar, physics);
-        self.update_map(in_cellar, &mut events);
+        let in_crypt = self.in_crypt();
+        self.update_portal(dt, in_crypt, physics);
+        self.update_map(in_crypt, &mut events);
         let hit = physics.cast_ray(eye, dir, 3.5);
-        let aimed_mob = if in_cellar { self.mobs.aimed(eye, dir, 2.6) } else { None };
+        let aimed_mob = if in_crypt { self.mobs.aimed(eye, dir, 2.6) } else { None };
         self.aimed_mob = aimed_mob;
         self.aim = if aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()) };
-        self.combat.set_block(input.block && in_cellar && !self.paused);
+        self.combat.set_block(input.block && in_crypt && !self.paused);
 
         for a in actions {
             match a {
-                Action::Attack if in_cellar && self.aim.is_none() => self.combat.press_attack(),
+                Action::Attack if in_crypt && self.aim.is_none() => self.combat.press_attack(),
                 Action::AttackRelease => self.combat.release_attack(),
                 Action::Dodge => {
-                    if in_cellar && self.grounded && wish.length_squared() > 0.0 && !self.paused && self.combat.dodge(wish) {
+                    if in_crypt && self.grounded && wish.length_squared() > 0.0 && !self.paused && self.combat.dodge(wish) {
                         events.push(sfx("dodge"));
                     }
                 }
                 Action::Daylight => {
                     self.daylight = if self.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
                     // Kirkeklokka ringer inn skumringen og morgenen.
-                    if !in_cellar {
+                    if !in_crypt {
                         let church = self.sound_spots[2];
                         events.push(self.sound_at("bell", Vec3::new(church.x, self.eye().y + 12.0, church.y), 2.5));
                     }
@@ -685,7 +759,7 @@ impl Session {
                 }
                 Action::Use | Action::Attack => match self.aim {
                     Some(i) => self.use_target(i, &mut events),
-                    None if in_cellar => {
+                    None if in_crypt => {
                         // F uten noe å bruke: et hugg.
                         self.combat.press_attack();
                         self.combat.release_attack();
@@ -722,12 +796,12 @@ impl Session {
         let step = dt / 2.8;
         self.night = if self.night < goal { (self.night + step).min(goal) } else { (self.night - step).max(goal) };
 
-        if self.update_weather(dt) && !in_cellar {
+        if self.update_weather(dt) && !in_crypt {
             events.push(Event::Sound(Sound { name: "thunder".into(), at: None, gain: if self.indoor { 0.6 } else { 1.0 } }));
         }
         // Oppe i dagslyset er det du bar trygt i lageret, uansett hvordan du
         // kom deg opp (døra i trappa, H eller «Tilbake til sørporten»).
-        if !self.carried.is_empty() && !self.in_cellar() {
+        if !self.carried.is_empty() && !self.in_crypt() {
             self.bank(&mut events);
         }
         self.update_gates(physics, dt);
@@ -746,7 +820,7 @@ impl Session {
             let mut stride = if d < 1.0 { stride + d } else { 0.0 };
             if stride > 0.8 {
                 stride = 0.0;
-                if p.distance(feet) < 16.0 && !in_cellar {
+                if p.distance(feet) < 16.0 && !in_crypt {
                     let surface = self.surface(p + Vec3::Y * 0.05);
                     events.push(self.sound_at(surface, p, 0.45));
                 }
@@ -769,16 +843,16 @@ impl Session {
                 .collect();
             events.push(Event::Speech(bubbles));
         }
-        self.cellar_t += ((if in_cellar { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
-        self.fight(dt, feet, in_cellar, &mut events);
+        self.cellar_t += ((if in_crypt { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
+        self.fight(dt, feet, in_crypt, &mut events);
         // Merkene: helsestolper over fiender som er truffet, og skadetall.
         let marks = self.marks(dt);
         if !marks.is_empty() || self.marks_shown {
             self.marks_shown = !marks.is_empty();
             events.push(Event::Marks(marks));
         }
-        let boss = if in_cellar { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
-        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_cellar, self.keys, boss);
+        let boss = if in_crypt { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
+        let hud = (self.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, self.coins, in_crypt, self.keys, boss);
         if self.last_hud != Some(hud) {
             if self.last_hud.as_ref().map(|h| h.2) != Some(self.coins) {
                 self.inv_dirty = true;
@@ -790,13 +864,13 @@ impl Session {
             self.inv_dirty = false;
             events.push(Event::Inventory(self.inventory_view()));
         }
-        self.ambience(dt, feet, in_cellar, physics, &mut events);
+        self.ambience(dt, feet, in_crypt, physics, &mut events);
         events
     }
 
     /// F på mål nummer `i`.
     fn use_target(&mut self, i: usize, events: &mut Vec<Event>) {
-        // Kister, porter og snarveier endrer merkene på kartet.
+        // Kister, porter, spaker og snarveier endrer merkene på kartet.
         self.map_dirty = true;
         match self.targets[i].target.what {
             Use::Sleep => {
@@ -827,17 +901,19 @@ impl Session {
                     return;
                 }
                 self.chests[n] = true;
-                let floor = self.dungeon.chests.get(n).map(|c| c.2).unwrap_or(0);
-                let list = craft::LOOT[floor.min(craft::LOOT.len() - 1)];
+                let chest = self.crypt.chests.get(n).cloned();
+                let level = chest.as_ref().map(|c| c.level).unwrap_or(0);
+                let list = craft::LOOT[craft::theme_of(level)];
                 self.loot_seed ^= self.loot_seed << 13;
                 self.loot_seed ^= self.loot_seed >> 7;
                 self.loot_seed ^= self.loot_seed << 17;
-                let pick = list[(self.loot_seed >> 33) as usize % list.len()];
-                *self.carried.entry(pick.to_string()).or_insert(0) += 1;
+                // Den sjeldne komponenten i kista, eller en fra temaets liste.
+                let pick = chest.and_then(|c| c.loot).unwrap_or_else(|| list[(self.loot_seed >> 33) as usize % list.len()].to_string());
+                *self.carried.entry(pick.clone()).or_insert(0) += 1;
                 self.inv_dirty = true;
                 events.push(self.sound_at("chest", self.target_pos(i), 1.0));
                 events.push(sfx("loot"));
-                events.push(Event::Loot(Some(pick.to_string())));
+                events.push(Event::Loot(Some(pick)));
             }
             Use::Shortcut(n) => {
                 if self.shortcuts.get(n).is_some_and(|o| *o >= 0.0) {
@@ -845,12 +921,12 @@ impl Session {
                 }
                 if self.shortcut_inside(n) {
                     self.shortcuts[n] = 0.0;
-                    if let Some(sc) = self.dungeon.shortcuts.get(n).copied() {
-                        self.dungeon.floors[sc.floor].open(sc.edge);
+                    if let Some(sw) = self.crypt.shortcuts.get(n).map(|s| s.switch) {
+                        self.open_switch(sw);
                     }
                     events.push(self.sound_at("bolt", self.target_pos(i), 1.0));
                     events.push(self.sound_at("door", self.target_pos(i), 0.9));
-                    events.push(Event::Toast("Du skyver slåen fra. Snarveien tilbake til startrommet er åpen.".into()));
+                    events.push(Event::Toast("Du skyver slåen fra. Snarveien er åpen.".into()));
                 } else {
                     events.push(self.sound_at("locked", self.target_pos(i), 0.8));
                     events.push(Event::Toast("Døra er boltet fra den andre siden.".into()));
@@ -860,16 +936,102 @@ impl Session {
                 if self.gates[n].1 {
                     return;
                 }
-                if self.keys > 0 {
+                let key = self.crypt.gates.get(n).is_some_and(|g| g.key);
+                if !key {
+                    events.push(self.sound_at("locked", self.target_pos(i), 1.0));
+                    events.push(Event::Toast("Gitteret sitter fast. En spak et sted heiser det.".into()));
+                } else if self.keys > 0 {
                     self.keys -= 1;
-                    self.gates[n].1 = true;
+                    if let Some(sw) = self.crypt.gates.get(n).map(|g| g.switch) {
+                        self.open_switch(sw);
+                    }
                     events.push(sfx("key"));
                     events.push(self.sound_at("gate", self.target_pos(i), 1.0));
-                    events.push(Event::Toast("Nøkkelen passer. Porten sveives opp; trappa ned ligger bak.".into()));
+                    events.push(Event::Toast("Nøkkelen passer. Porten sveives opp.".into()));
                 } else {
                     events.push(self.sound_at("locked", self.target_pos(i), 1.0));
-                    events.push(Event::Toast("Porten er låst. Elitefienden i rommet bærer nøkkelen.".into()));
+                    events.push(Event::Toast("Porten er låst. Elitefienden i nivået bærer nøkkelen.".into()));
                 }
+            }
+            Use::Lever(n) => {
+                if self.levers.get(n).is_none_or(|l| *l >= 0.0) {
+                    return;
+                }
+                self.levers[n] = 0.0;
+                let opens = self.crypt.levers[n].opens.clone();
+                events.push(self.sound_at("gate", self.target_pos(i), 1.0));
+                for sw in opens {
+                    self.open_switch(sw);
+                    // Gitteret som går opp, høres der det står.
+                    if let Some(g) = self.crypt.gates.iter().find(|g| g.switch == sw) {
+                        events.push(self.sound_at("gate", g.pos + Vec3::Y * 1.5, 1.2));
+                    }
+                }
+                events.push(Event::Toast("Spaken går ned med et tungt klonk. Et sted heises et gitter.".into()));
+            }
+            Use::Secret(n) => {
+                if self.secrets.get(n).is_none_or(|s| *s >= 0.0) {
+                    return;
+                }
+                if let Some(sw) = self.crypt.secrets.get(n).map(|s| s.switch) {
+                    self.open_switch(sw);
+                }
+                events.push(self.sound_at("crack", self.target_pos(i), 1.2));
+                events.push(self.sound_at("door_close", self.target_pos(i), 0.8));
+                events.push(Event::Toast("Steinene gir etter og synker i gulvet. Det er et rom bak muren!".into()));
+            }
+            Use::Ladder(n) => {
+                let Some(l) = self.crypt.ladders.get(n).cloned() else { return };
+                // Lemmen øverst går opp når du klatrer gjennom den.
+                for t in 0..self.crypt.trapdoors.len() {
+                    if self.crypt.trapdoors[t].pos.distance(l.top) < 2.5 && self.trapdoors[t] < 0.0 {
+                        let sw = self.crypt.trapdoors[t].switch;
+                        self.open_switch(sw);
+                    }
+                }
+                self.teleport(l.top, l.yaw + std::f32::consts::PI);
+                events.push(Event::Fade);
+                events.push(sfx("rope"));
+            }
+            Use::Rest(n) => {
+                let first = !self.rests_lit[n];
+                self.rests_lit[n] = true;
+                self.last_rest = Some(n);
+                self.hp = self.max_hp;
+                self.combat.stamina = self.combat.max_stamina;
+                self.mobs.reset(&self.crypt);
+                if self.slain.contains(&self.mobs.level) {
+                    self.mobs.remove_bosses();
+                }
+                events.push(Event::Fade);
+                events.push(sfx("heal"));
+                events.push(Event::Toast(if first { "Du tenner lysene på alteret og hviler. Dør du, våkner du her. Fiendene i nivået er kommet tilbake." } else { "Du hviler ved alteret. Fiendene i nivået er kommet tilbake." }.into()));
+            }
+            Use::Lore(n) => {
+                let Some(l) = self.crypt.lores.get(n).cloned() else { return };
+                self.lore_read[n] = true;
+                events.push(sfx("page"));
+                events.push(Event::Toast(if l.text.is_empty() { l.title } else { format!("{}: «{}»", l.title, l.text) }));
+            }
+            Use::Bonus(n) => {
+                let Some(b) = self.crypt.bonuses.get(n).cloned() else { return };
+                if !self.bonus_taken.insert(b.key) {
+                    return;
+                }
+                match b.kind {
+                    crypt::BonusKind::Life => {
+                        self.max_hp += 10.0;
+                        self.hp = (self.hp + 10.0).min(self.max_hp);
+                        events.push(Event::Toast("Varig styrke: +10 liv.".into()));
+                    }
+                    crypt::BonusKind::Stamina => {
+                        self.combat.max_stamina += 10.0;
+                        self.combat.stamina = self.combat.max_stamina;
+                        events.push(Event::Toast("Varig styrke: +10 utholdenhet.".into()));
+                    }
+                }
+                self.inv_dirty = true;
+                events.push(sfx("heal"));
             }
             Use::Well(n) => {
                 if let Some(w) = self.wells.get_mut(n) {
@@ -881,27 +1043,45 @@ impl Session {
                 }
             }
             Use::Descend => {
-                let to = self.dungeon.start;
+                let Some((to, yaw)) = self.crypt.start() else {
+                    events.push(Event::Toast("Døra er stengt. Krypten er ikke ferdig ennå.".into()));
+                    return;
+                };
                 if let Some(e) = self.entries.first_mut() {
-                    e.get_or_insert((to, 0.0));
+                    e.get_or_insert((to, yaw));
                 }
-                self.teleport(to, 0.0);
+                self.teleport(to, yaw);
+                self.enter_level(0);
                 events.push(Event::Fade);
                 events.push(sfx("crypt_door"));
-                events.push(Event::Toast("Ned i kjelleren under borgen. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.".into()));
+                let name = self.crypt.levels[0].name.clone();
+                events.push(Event::Toast(format!("Nivå 1: {name}. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.")));
             }
             Use::Portal => {
-                let Some((to, yaw, floor)) = self.portal.take() else { return };
+                let Some((to, yaw, level)) = self.portal.take() else { return };
                 self.warp(events);
                 self.teleport(to, yaw);
-                events.push(Event::Toast(format!("Gjennom virvelen og ned i etasje {}. Portalen lukker seg bak deg.", floor + 1)));
+                self.enter_level(level);
+                events.push(Event::Toast(format!("Gjennom virvelen og ned i nivå {}. Portalen lukker seg bak deg.", level + 1)));
             }
-            Use::Ascend => {
-                let (to, yaw) = self.crypt_exit;
-                self.teleport(to, yaw);
+            Use::Ascend(k) => {
                 events.push(Event::Fade);
                 events.push(sfx("door"));
-                self.bank(events);
+                if k == 0 {
+                    let (to, yaw) = self.crypt_exit;
+                    self.teleport(to, yaw);
+                    self.bank(events);
+                } else {
+                    // Opp til trappa ned i nivået over, et par skritt fra den.
+                    let up = self.crypt.levels[k - 1].clone();
+                    let (p, yaw) = up.down.unwrap_or(up.start);
+                    let front = Vec3::new(yaw.sin(), 0.0, yaw.cos());
+                    let to = self.crypt.snap(p + front * 2.2, 3.0).unwrap_or(p);
+                    self.teleport(to, yaw);
+                    self.down_armed = false;
+                    self.enter_level(k - 1);
+                    events.push(Event::Toast(format!("Nivå {}: {}", up.n, up.name)));
+                }
             }
         }
     }
@@ -910,11 +1090,11 @@ impl Session {
     /// til sørporten, og portalen der våkner og husker hvor du var. Oppe i
     /// byen bare tilbake til porten.
     pub(super) fn go_home(&mut self, events: &mut Vec<Event>) {
-        if self.in_cellar() && self.hp > 0.0 {
+        if self.in_crypt() && self.hp > 0.0 {
             let (half, radius) = self.stance.capsule();
             let feet = self.pos - Vec3::Y * (half + radius + 0.05);
-            let floor = self.dungeon.floor_of(feet).unwrap_or(0);
-            self.portal = Some((feet, self.yaw, floor));
+            let level = self.crypt.level_at(feet).unwrap_or(0);
+            self.portal = Some((feet, self.yaw, level));
             self.portal_t = 0.0;
             self.warp(events);
             self.respawn();
@@ -963,24 +1143,24 @@ impl Session {
         self.portal_pose().map(|p| p.transform_point3(Vec3::Y * town::PORTAL_CENTER))
     }
 
-    /// Hvor portalen tar deg nå (føttene, retningen og etasjen).
+    /// Hvor portalen tar deg nå (føttene, retningen og nivået).
     pub fn portal_destination(&self) -> Option<(Vec3, f32, usize)> {
         self.portal
     }
 
-    /// Klokkene til portalen og virvelen, inngangene til etasjene, og
+    /// Klokkene til portalen og virvelen, inngangene til nivåene, og
     /// siktemålet i ringen (bare ute når portalen er åpen).
-    fn update_portal(&mut self, dt: f32, in_cellar: bool, physics: &mut dyn Physics) {
+    fn update_portal(&mut self, dt: f32, in_crypt: bool, physics: &mut dyn Physics) {
         self.warp_t += dt;
         if self.portal.is_some() {
             self.portal_t += dt;
         }
-        if in_cellar && self.grounded && self.hp > 0.0 {
+        if in_crypt && self.grounded && self.hp > 0.0 {
             let (half, radius) = self.stance.capsule();
             let feet = self.pos - Vec3::Y * (half + radius + 0.05);
-            if let Some(f) = self.dungeon.floor_of(feet) {
-                if self.entries.get(f).is_some_and(|e| e.is_none()) && self.dungeon.walkable(feet, 0.3) {
-                    self.entries[f] = Some((feet, self.yaw));
+            if let Some(k) = self.crypt.level_at(feet) {
+                if self.entries.get(k).is_some_and(|e| e.is_none()) && self.crypt.walkable(feet) {
+                    self.entries[k] = Some((feet, self.yaw));
                 }
             }
         }
@@ -997,51 +1177,30 @@ impl Session {
         }
     }
 
-    /// Kartet: avdekk det du ser (hele rommet du står i, og gangene et par
-    /// celler rundt deg), send kartet når det endrer seg, og hvor du står
-    /// hvert bilde.
-    fn update_map(&mut self, in_cellar: bool, events: &mut Vec<Event>) {
+    /// Kartet: et rom avdekkes når du går inn i det. Kartet sendes når det
+    /// endrer seg, og hvor du står hvert bilde.
+    fn update_map(&mut self, in_crypt: bool, events: &mut Vec<Event>) {
         let (half, radius) = self.stance.capsule();
         let feet = self.pos - Vec3::Y * (half + radius + 0.05);
-        let floor = if in_cellar { self.dungeon.floor_of(feet) } else { None };
-        let Some(k) = floor else {
-            if self.map_floor.is_some() {
-                self.map_floor = None;
+        let level = if in_crypt { self.crypt.level_at(feet) } else { None };
+        let Some(k) = level else {
+            if self.map_level.is_some() {
+                self.map_level = None;
                 events.push(Event::Map(None));
             }
             return;
         };
-        let n = dungeon::N as i32;
-        let f = &self.dungeon.floors[k];
-        let me = f.cell_of(feet);
-        let unit = f.unit_at(me);
-        let seen = &mut self.seen[k];
         let mut fresh = false;
-        for iz in (me.1 - 3).max(0)..(me.1 + 4).min(n) {
-            for ix in (me.0 - 3).max(0)..(me.0 + 4).min(n) {
-                let i = (iz * n + ix) as usize;
-                if seen[i] || f.cell(ix, iz) == dungeon::Cell::Rock {
-                    continue;
-                }
-                let near = ((ix - me.0) as f32).hypot((iz - me.1) as f32) <= 2.3;
-                if near || (unit >= 0 && f.unit_at((ix, iz)) == unit) {
-                    seen[i] = true;
+        if let Some((l, r)) = self.crypt.room_at(feet + Vec3::Y * 0.3) {
+            if let Some(seen) = self.seen.get_mut(l).and_then(|s| s.get_mut(r)) {
+                if !*seen {
+                    *seen = true;
                     fresh = true;
                 }
             }
         }
-        // Store rom kan gå utenfor ruta rundt deg: hele rommet avdekkes.
-        if unit >= 0 && fresh {
-            for iz in 0..n {
-                for ix in 0..n {
-                    if f.unit_at((ix, iz)) == unit {
-                        seen[(iz * n + ix) as usize] = true;
-                    }
-                }
-            }
-        }
-        if fresh || self.map_floor != Some(k) || self.map_dirty {
-            self.map_floor = Some(k);
+        if fresh || self.map_level != Some(k) || self.map_dirty {
+            self.map_level = Some(k);
             self.map_dirty = false;
             events.push(Event::Map(Some(self.map_view(k))));
         }
@@ -1052,68 +1211,48 @@ impl Session {
         }
     }
 
-    /// Kartet over etasje `k` slik du kjenner det.
+    /// Kartet over nivå `k` slik du kjenner det: rommene du har sett, og
+    /// merkene i dem.
     fn map_view(&self, k: usize) -> MapView {
-        let n = dungeon::N as i32;
-        let f = &self.dungeon.floors[k];
+        let level = &self.crypt.levels[k];
         let seen = &self.seen[k];
-        let mut cells = vec![0u8; (n * n) as usize];
-        for iz in 0..n {
-            for ix in 0..n {
-                if f.cell(ix, iz) == dungeon::Cell::Rock {
-                    continue;
-                }
-                let mut c = 1;
-                if f.passable((ix, iz), (ix + 1, iz)) {
-                    c |= 2;
-                }
-                if f.passable((ix, iz), (ix, iz + 1)) {
-                    c |= 4;
-                }
-                cells[(iz * n + ix) as usize] = c;
-            }
-        }
-        let known = |p: Vec3| {
-            let c = f.cell_of(p);
-            (0..n).contains(&c.0) && (0..n).contains(&c.1) && seen[(c.1 * n + c.0) as usize]
-        };
+        let rooms = level.rooms.iter().zip(seen).filter(|(_, s)| **s).map(|(r, _)| r.poly.iter().map(|p| [p.x, p.y]).collect()).collect();
+        let known = |p: Vec3| self.crypt.room_at(p + Vec3::Y * 0.3).is_some_and(|(l, r)| l == k && seen.get(r).copied().unwrap_or(false));
         let mut marks = vec![];
-        // Trappa ned står i en celle uten gulv: den synes når en nabo er sett.
-        if let Some(e) = f.exit {
-            let c = f.center(e.0, e.1);
-            if [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dz)| (0..n).contains(&(e.0 + dx)) && (0..n).contains(&(e.1 + dz)) && seen[((e.1 + dz) * n + e.0 + dx) as usize]) {
-                marks.push(MapMark { kind: "exit".into(), x: c.x, z: c.z });
-            }
-        }
         let mut mark = |kind: &str, p: Vec3| {
             if known(p) {
                 marks.push(MapMark { kind: kind.into(), x: p.x, z: p.z });
             }
         };
-        for (g, (p, _)) in self.dungeon.gates.iter().enumerate() {
-            if self.dungeon.floor_of(*p) == Some(k) {
-                mark(if self.gates.get(g).is_some_and(|s| s.1) { "gate_open" } else { "gate" }, *p);
+        if let Some((p, _)) = level.down {
+            mark("exit", p);
+        }
+        if let Some((p, _)) = level.up {
+            mark("ascend", p);
+        }
+        for (g, gate) in self.crypt.gates.iter().enumerate().filter(|(_, g)| g.level == k) {
+            mark(if self.gates.get(g).is_some_and(|s| s.1) { "gate_open" } else { "gate" }, gate.pos);
+        }
+        for (c, chest) in self.crypt.chests.iter().enumerate().filter(|(_, c)| c.level == k) {
+            if !self.chests.get(c).copied().unwrap_or(true) {
+                mark("chest", chest.pos);
             }
         }
-        for (c, (p, _, fl)) in self.dungeon.chests.iter().enumerate() {
-            if *fl == k && !self.chests.get(c).copied().unwrap_or(true) {
-                mark("chest", *p);
-            }
-        }
-        for s in self.dungeon.shortcuts.iter().filter(|s| s.floor == k) {
+        for s in self.crypt.shortcuts.iter().filter(|s| s.level == k) {
             mark("shortcut", s.pos);
         }
-        if k == 0 {
-            if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Ascend) {
-                mark("ascend", t.target.pose.transform_point3(Vec3::ZERO));
+        for (i, l) in self.crypt.levers.iter().enumerate().filter(|(_, l)| l.level == k) {
+            mark(if self.levers.get(i).is_some_and(|v| *v >= 0.0) { "lever_pulled" } else { "lever" }, l.pos);
+        }
+        for (i, r) in self.crypt.rests.iter().enumerate().filter(|(_, r)| r.level == k) {
+            mark(if self.rests_lit.get(i).copied().unwrap_or(false) { "rest_lit" } else { "rest" }, r.pos);
+        }
+        if !self.slain.contains(&k) {
+            for b in self.crypt.spawns.iter().filter(|s| s.level == k && s.boss) {
+                mark("boss", b.pos);
             }
         }
-        if let (Some(b), false) = (self.dungeon.boss, self.won) {
-            if self.dungeon.floor_of(b) == Some(k) {
-                mark("boss", b);
-            }
-        }
-        MapView { floor: k, name: dungeon::EPOCHS.get(k).copied().unwrap_or("").into(), origin: [f.origin.0, f.origin.1], cell: dungeon::CELL, n: dungeon::N, cells, seen: seen.clone(), marks }
+        MapView { level: level.n, name: level.name.clone(), rooms, marks }
     }
 
     /// Den åpne portalen: runene, virvelen (to lag som dreier hver sin vei
@@ -1160,7 +1299,7 @@ impl Session {
         let x = ((self.portal_t - PORTAL_RISE) / 1.6).clamp(0.0, 1.0);
         let t = self.time;
         let front = self.portal_pose()?.transform_vector3(Vec3::Z);
-        Some(Light { pos: c + front * 0.6, radius: 11.0, color: Vec3::new(0.55, 0.45, 1.0), intensity: 2.4 * x * (0.85 + 0.15 * (t * 4.7).sin() * (t * 1.9).cos()), always: true, flicker: 0.0 })
+        Some(Light { pos: c + front * 0.6, radius: 11.0, color: Vec3::new(0.55, 0.45, 1.0), intensity: 2.4 * x * (0.85 + 0.15 * (t * 4.7).sin() * (t * 1.9).cos()), always: true, flicker: 0.0, room: None })
     }
 
     /// Rett dit, uten fysikk på veien: føttene og retningen.
@@ -1184,10 +1323,37 @@ impl Session {
         for n in 0..self.shortcuts.len() {
             if self.shortcuts[n] >= 0.0 && self.shortcuts[n] < 1.0 {
                 self.shortcuts[n] = (self.shortcuts[n] + dt / 1.2).min(1.0);
+                let w = self.crypt.shortcuts[n].width;
                 if let (Some(pose), Some(t)) = (self.shortcut_pose(n), self.targets.iter().find(|t| t.target.what == Use::Shortcut(n))) {
-                    use crate::domain::world::dungeon::{SHORTCUT_H, SHORTCUT_W};
-                    physics.set_pose(t.collider, pose * Affine3A::from_translation(Vec3::new(SHORTCUT_W * 0.5, SHORTCUT_H * 0.5, 0.0)));
+                    physics.set_pose(t.collider, pose * Affine3A::from_translation(Vec3::new(w * 0.5, crypt::SHORTCUT_H * 0.5, 0.0)));
                 }
+            }
+        }
+        for l in self.levers.iter_mut() {
+            if *l >= 0.0 && *l < 1.0 {
+                *l = (*l + dt / 0.5).min(1.0);
+            }
+        }
+        // De falske veggene synker i gulvet, og kollideren følger.
+        for n in 0..self.secrets.len() {
+            if self.secrets[n] >= 0.0 && self.secrets[n] < 1.0 {
+                self.secrets[n] = (self.secrets[n] + dt / 2.0).min(1.0);
+                let sink = self.secrets[n];
+                if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Secret(n)) {
+                    let h = self.crypt.secrets[n].height;
+                    physics.set_pose(t.collider, t.target.pose * Affine3A::from_translation(t.target.center - Vec3::Y * (h + 0.1) * sink));
+                }
+            }
+        }
+        // Lemmene faller opp, og det du sto på, er borte.
+        for n in 0..self.trapdoors.len() {
+            if self.trapdoors[n] >= 0.0 && self.trapdoors[n] < 1.0 {
+                if self.trapdoors[n] == 0.0 {
+                    if let Some(id) = self.trap_lids[n] {
+                        physics.set_pose(id, Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0)));
+                    }
+                }
+                self.trapdoors[n] = (self.trapdoors[n] + dt / 0.35).min(1.0);
             }
         }
         for t in &self.targets {
@@ -1223,11 +1389,11 @@ impl Session {
 
     /// Fiendene: de biter, og du plukker tokens. Under hitstop står alt
     /// stille et øyeblikk.
-    fn fight(&mut self, dt: f32, feet: Vec3, in_cellar: bool, events: &mut Vec<Event>) {
+    fn fight(&mut self, dt: f32, feet: Vec3, in_crypt: bool, events: &mut Vec<Event>) {
         let sim_dt = if self.combat.hitstop > 0.0 { 0.0 } else { dt };
         let eye = self.eye();
         let fwd = self.forward();
-        let outcome = self.mobs.update(sim_dt, feet, in_cellar, &self.dungeon);
+        let outcome = self.mobs.update(sim_dt, feet, in_crypt, &self.crypt);
         self.coins += outcome.tokens;
         if outcome.tokens > 0 {
             events.push(sfx("pickup"));
@@ -1235,7 +1401,7 @@ impl Session {
         if outcome.keys > 0 {
             self.keys += outcome.keys;
             events.push(sfx("key"));
-            events.push(Event::Toast("En rusten nøkkel. Porten i utgangsrommet kan låses opp.".into()));
+            events.push(Event::Toast("En rusten nøkkel. En låst port i nivået kan åpnes.".into()));
         }
         for (name, at) in &outcome.sounds {
             // Tassingen høres bare når de er nær.
@@ -1274,7 +1440,7 @@ impl Session {
         // Våre hugg. Treffet høres der fienden står, med materialet den er
         // laget av (tabellen er tre, Rammeverket jern).
         let mut struck: Option<Vec3> = None;
-        for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.dungeon) {
+        for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.crypt) {
             match e {
                 CombatEvent::Hit { mob, damage, killed, pos } => {
                     self.popup_seq = self.popup_seq.wrapping_add(1);
@@ -1303,14 +1469,14 @@ impl Session {
 
     /// Lydbildet: hvor nær du er torget, smia, kirka og dyrene, sendt fire
     /// ganger i sekundet når det har endret seg.
-    fn ambience(&mut self, dt: f32, feet: Vec3, in_cellar: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
+    fn ambience(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
         self.ambience_t -= dt;
         if self.ambience_t > 0.0 {
             return;
         }
         self.ambience_t = 0.25;
-        // Fjerne lyder i kjelleren: noe beveger seg i rommene ved siden av.
-        if in_cellar {
+        // Fjerne lyder i krypten: noe beveger seg i rommene ved siden av.
+        if in_crypt {
             self.distant_t -= 0.25;
             if self.distant_t <= 0.0 {
                 let mut roll = || {
@@ -1331,7 +1497,7 @@ impl Session {
         let eye = self.eye();
         let roof = physics.cast_ray(eye, Vec3::Y, 12.0).is_some();
         let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].iter().filter(|d| physics.cast_ray(eye, **d, 9.0).is_some()).count();
-        self.indoor = !in_cellar && roof && walls >= 3;
+        self.indoor = !in_crypt && roof && walls >= 3;
         let close = |list: &[Vec3], r: f32| list.iter().map(|q| (1.0 - q.distance(eye) / r).clamp(0.0, 1.0)).fold(0.0, f32::max).powi(2);
         let p = Vec2::new(feet.x, feet.z);
         let near = |at: Vec2, r: f32| (1.0 - p.distance(at) / r).clamp(0.0, 1.0).powi(2);
@@ -1343,17 +1509,17 @@ impl Session {
             church: near(church, 140.0),
             meadow,
             fire: close(&self.fires, 7.0),
-            water: if in_cellar { close(&self.waters, 9.0) } else { 0.0 },
-            lava: if in_cellar { close(&self.lavas, 10.0) } else { 0.0 },
-            chasm: if in_cellar { close(&self.chasms, 14.0) } else { 0.0 },
-            portal: match (in_cellar, self.portal.is_some(), self.portal_center()) {
+            water: 0.0,
+            lava: 0.0,
+            chasm: 0.0,
+            portal: match (in_crypt, self.portal.is_some(), self.portal_center()) {
                 (false, true, Some(c)) => close(&[c], 16.0),
                 _ => 0.0,
             },
-            rain: if in_cellar { 0.0 } else { self.weather.rain },
-            wind: if in_cellar { 0.0 } else { self.weather.wind },
+            rain: if in_crypt { 0.0 } else { self.weather.rain },
+            wind: if in_crypt { 0.0 } else { self.weather.wind },
             night: self.daylight == Daylight::Night,
-            cellar: in_cellar,
+            cellar: in_crypt,
             indoor: self.indoor,
         };
         let last = self.last_ambience;
@@ -1366,43 +1532,61 @@ impl Session {
         }
     }
 
-    /// Død: opp til krypten, det du bar er borte, en firedel av tokenene
-    /// blir igjen nede. Fiendene kommer igjen, men portene du har låst opp,
-    /// står fortsatt oppe.
+    /// Død: du våkner ved det siste hvilestedet du tente, og det du bar
+    /// blir liggende der du døde. Har du ikke tent noe, våkner du ved
+    /// krypten i byen, og portalen tar deg til inngangen til det dypeste
+    /// nivået du har nådd. En firedel av tokenene blir igjen nede. Fiendene
+    /// kommer igjen, men portene du har åpnet, står fortsatt oppe.
     fn die(&mut self, events: &mut Vec<Event>) {
         let lost = self.coins / 4;
         self.coins -= lost;
-        self.mobs.reset(&self.dungeon);
         self.combat.reset();
         self.popups.clear();
         self.keys = 0;
         self.hp = self.max_hp;
-        // Portgitrene du har låst opp, står oppe: veien ned er din.
+        let (half, radius) = self.stance.capsule();
+        let feet = self.pos - Vec3::Y * (half + radius + 0.05);
         if !self.carried.is_empty() {
             let n: u32 = self.carried.values().sum();
-            self.carried.clear();
+            let bag = std::mem::take(&mut self.carried);
+            let at = self.crypt.snap(feet, 3.0).unwrap_or(feet);
+            if self.in_crypt() {
+                self.bags.push((at, bag));
+                events.push(Event::Toast(format!("{n} komponenter ligger igjen der du døde.")));
+            } else {
+                events.push(Event::Toast(format!("{n} komponenter ble borte.")));
+            }
             self.inv_dirty = true;
-            events.push(Event::Toast(format!("{n} komponenter ble igjen i kjelleren.")));
         }
         self.read_docs.clear();
-        // Portalen ved sørporten tar deg til inngangen til den dypeste
-        // etasjen du har nådd.
+        events.push(Event::Fade);
+        events.push(sfx("death"));
+        if let Some(r) = self.last_rest.and_then(|r| self.crypt.rests.get(r).cloned()) {
+            let front = Vec3::new(r.yaw.sin(), 0.0, r.yaw.cos());
+            let to = self.crypt.snap(r.pos + front * 1.3, 3.0).unwrap_or(r.pos + front * 1.3);
+            self.teleport(to, r.yaw + std::f32::consts::PI);
+            self.enter_level(r.level);
+            events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk, og våkner ved hvilestedet. {lost} tokens ble igjen.")));
+            return;
+        }
+        self.mobs.reset(&self.crypt);
+        // Portalen ved sørporten tar deg til inngangen til det dypeste
+        // nivået du har nådd.
         let deepest = self.entries.iter().enumerate().rev().find_map(|(f, e)| e.map(|(p, y)| (p, y, f)));
         if let Some((p, y, f)) = deepest {
             self.portal = Some((p, y, f));
             self.portal_t = 0.0;
-            events.push(Event::Toast(format!("Portalen ved sørporten har våknet: den tar deg til inngangen til etasje {}.", f + 1)));
+            events.push(Event::Toast(format!("Portalen ved sørporten har våknet: den tar deg til inngangen til nivå {}.", f + 1)));
         }
         let (to, yaw) = self.crypt_exit;
         self.teleport(to, yaw);
-        events.push(Event::Fade);
-        events.push(sfx("death"));
         events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
     }
 
     fn killed(&mut self, mob: usize, pos: Vec3, events: &mut Vec<Event>) {
         let (kind, elite) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite)).unwrap_or((MobKind::Button, false));
         if kind.boss() {
+            self.slain.insert(self.mobs.level);
             for c in craft::BOSS_LOOT {
                 *self.carried.entry(c.to_string()).or_insert(0) += 1;
             }
@@ -1411,8 +1595,7 @@ impl Session {
             self.map_dirty = true;
             events.push(Event::Toast("Rammeverket er beseiret! Skatten i alkoven er din, og en dialog og en tabs ligger igjen i buret.".into()));
         } else if elite {
-            let floor = self.dungeon.floor_of(pos).unwrap_or(0).min(craft::ELITE_LOOT.len() - 1);
-            let c = craft::ELITE_LOOT[floor];
+            let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
             *self.carried.entry(c.to_string()).or_insert(0) += 1;
             self.inv_dirty = true;
             events.push(self.sound_at("key", pos - Vec3::Y * 0.8, 1.0));
@@ -1604,12 +1787,14 @@ impl Session {
             max_stamina: self.combat.max_stamina,
             coins: self.coins,
             found: self.found.iter().cloned().collect(),
+            bonuses: self.bonus_taken.iter().cloned().collect(),
         }
     }
 
     pub fn load(&mut self, d: SaveData) {
         self.inventory = d.stash.into_iter().collect();
         self.found = d.found.into_iter().collect();
+        self.bonus_taken = d.bonuses.into_iter().collect();
         self.discover();
         if let Some(w) = craft::weapon(&d.weapon) {
             self.gear.weapon = w;
@@ -1748,15 +1933,39 @@ impl Session {
         self.mobs.keys.iter().filter(|k| !k.taken).map(|k| k.pos).collect()
     }
 
-    /// Felle eliten i en etasje med ett slag, til testene.
+    /// Felle eliten i nivået du er i med ett slag, til testene.
     #[cfg(test)]
-    pub fn fell_elite(&mut self, floor: usize, events: &mut Vec<Event>) {
-        let i = self.mobs.mobs.iter().position(|m| m.alive() && m.elite && self.dungeon.floor_of(m.pos) == Some(floor)).expect("eliten");
+    pub fn fell_elite(&mut self, events: &mut Vec<Event>) -> bool {
+        let Some(i) = self.mobs.mobs.iter().position(|m| m.alive() && m.elite) else { return false };
         let from = self.mobs.mobs[i].pos + Vec3::X;
         let pos = self.mobs.mobs[i].pos;
-        if self.mobs.strike(i, 1.0e6, from, &self.dungeon).killed {
+        if self.mobs.strike(i, 1.0e6, from, &self.crypt).killed {
             self.killed(i, pos, events);
         }
+        true
+    }
+
+    /// Ingen fiender i nivået, til testene som går gjennom med fysikken.
+    #[cfg(test)]
+    pub fn clear_mobs(&mut self) {
+        self.mobs.mobs.clear();
+    }
+
+    /// Nivået fiendene er satt ut i, til testene.
+    #[cfg(test)]
+    pub fn mob_level(&self) -> usize {
+        self.mobs.level
+    }
+
+    /// Krypten slik økta ser den (med bryterne som er åpnet), til testene.
+    #[cfg(test)]
+    pub fn crypt_now(&self) -> &Crypt {
+        &self.crypt
+    }
+
+    #[cfg(test)]
+    pub fn max_hp_now(&self) -> f32 {
+        self.max_hp
     }
 
     /// Dø, til testene.
@@ -1806,33 +2015,264 @@ impl Session {
         flash
     }
 
-    /// Portgitrene der de står nå (til bildet).
+    /// Portgitrene der de står nå (til bildet), skalert til bredden.
     pub(super) fn gate_poses(&self) -> Vec<Affine3A> {
         self.targets
             .iter()
             .filter_map(|t| match t.target.what {
-                Use::Gate(n) => Some(t.target.pose * Affine3A::from_translation(Vec3::Y * gate_lift(self.gates[n].0))),
+                Use::Gate(n) => {
+                    let w = self.crypt.gates.get(n).map(|g| g.width).unwrap_or(crypt::GATE_W);
+                    Some(t.target.pose * Affine3A::from_translation(Vec3::Y * gate_lift(self.gates[n].0)) * Affine3A::from_scale(Vec3::new(w / crypt::GATE_W, 1.0, 1.0)))
+                }
                 _ => None,
             })
             .collect()
     }
 
-    /// Om du står på gangsida av snarveidøra (der slåen sitter).
+    /// Om du står på sida av snarveidøra der slåen sitter.
     fn shortcut_inside(&self, n: usize) -> bool {
-        let Some(sc) = self.dungeon.shortcuts.get(n) else { return false };
-        let into_room = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
-        (self.pos - sc.pos).with_y(0.0).dot(into_room) < 0.0
+        let Some(sc) = self.crypt.shortcuts.get(n) else { return false };
+        (self.pos - sc.pos).with_y(0.0).dot(sc.latch) > 0.0
     }
 
-    /// Snarveidøra dreid om hengslet, ut mot gangen, etter hvor langt den
+    /// Snarveidøra dreid om hengslet, bort fra slåen, etter hvor langt den
     /// er åpnet.
     fn shortcut_pose(&self, n: usize) -> Option<Affine3A> {
-        use crate::domain::world::dungeon::SHORTCUT_HINGE;
-        let sc = self.dungeon.shortcuts.get(n)?;
+        let sc = self.crypt.shortcuts.get(n)?;
         let open = self.shortcuts.get(n).copied().unwrap_or(-1.0).max(0.0);
         let ease = 1.0 - (1.0 - open).powi(3);
-        let frame = Affine3A::from_rotation_translation(Quat::from_rotation_y(sc.yaw), sc.pos);
-        Some(frame * Affine3A::from_translation(SHORTCUT_HINGE) * Affine3A::from_rotation_y(ease * 1.75))
+        let front = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
+        let away = if sc.latch.dot(front) > 0.0 { 1.0 } else { -1.0 };
+        let frame = crate::domain::world::at(sc.pos, sc.yaw);
+        Some(frame * Affine3A::from_translation(Vec3::new(-sc.width * 0.5, 0.0, 0.0)) * Affine3A::from_rotation_y(away * ease * 1.75))
+    }
+
+    /// Armene på spakene: oppe til de trekkes, så ned.
+    pub(super) fn lever_poses(&self) -> Vec<Affine3A> {
+        self.crypt
+            .levers
+            .iter()
+            .enumerate()
+            .map(|(i, l)| {
+                let t = self.levers.get(i).copied().unwrap_or(-1.0).max(0.0);
+                let ease = t * t * (3.0 - 2.0 * t);
+                crate::domain::world::at(l.pos, l.yaw) * Affine3A::from_translation(crypt::LEVER_PIVOT) * Affine3A::from_rotation_x(-0.6 + 1.2 * ease)
+            })
+            .collect()
+    }
+
+    /// De falske veggene, sunket så langt de er kommet.
+    pub(super) fn secret_poses(&self) -> Vec<Affine3A> {
+        self.crypt
+            .secrets
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                let t = self.secrets.get(i).copied().unwrap_or(-1.0).max(0.0);
+                let shake = if t > 0.0 && t < 1.0 { (self.time * 40.0).sin() * 0.01 } else { 0.0 };
+                crate::domain::world::at(s.pos, s.yaw) * Affine3A::from_translation(Vec3::new(shake, -(s.height + 0.1) * t * t, 0.0))
+            })
+            .collect()
+    }
+
+    /// Lemmene: lukket, eller falt ned om hengslet.
+    pub(super) fn trapdoor_poses(&self) -> Vec<Affine3A> {
+        self.crypt
+            .trapdoors
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| t.lid)
+            .map(|(i, t)| {
+                let x = self.trapdoors.get(i).copied().unwrap_or(-1.0).max(0.0);
+                crate::domain::world::at(t.pos, t.yaw) * Affine3A::from_translation(Vec3::new(0.0, 0.0, -t.size.y * 0.5)) * Affine3A::from_rotation_x(x * 1.5)
+            })
+            .collect()
+    }
+
+    /// Pilene i lufta, med spissen i farten.
+    pub(super) fn dart_poses(&self) -> Vec<Affine3A> {
+        self.darts.iter().map(|d| Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Z, d.vel.normalize_or(Vec3::Z)), d.pos)).collect()
+    }
+
+    /// Lysene på hvilestedene du har tent.
+    pub(super) fn rest_lights(&self) -> Vec<Light> {
+        self.crypt
+            .rests
+            .iter()
+            .zip(&self.rests_lit)
+            .filter(|(_, lit)| **lit)
+            .map(|(r, _)| {
+                let room = self.crypt.room_at(r.pos + Vec3::Y * 0.3).map(|(l, k)| (l as u16, k as u16));
+                Light { pos: crate::domain::world::at(r.pos, r.yaw).transform_point3(crypt::REST_FLAME + Vec3::Y * 0.3), radius: 9.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.2, always: true, flicker: 0.15, room }
+            })
+            .collect()
+    }
+
+    /// Åpne en bryter (port, dør, falsk vegg, lem) med det den styrer.
+    fn open_switch(&mut self, sw: usize) {
+        if let Some(o) = self.crypt.open.get_mut(sw) {
+            *o = true;
+        }
+        for (g, gate) in self.crypt.gates.iter().enumerate() {
+            if gate.switch == sw {
+                self.gates[g].1 = true;
+            }
+        }
+        for (i, s) in self.crypt.shortcuts.iter().enumerate() {
+            if s.switch == sw && self.shortcuts[i] < 0.0 {
+                self.shortcuts[i] = 0.0;
+            }
+        }
+        for (i, s) in self.crypt.secrets.iter().enumerate() {
+            if s.switch == sw && self.secrets[i] < 0.0 {
+                self.secrets[i] = 0.0;
+            }
+        }
+        for (i, t) in self.crypt.trapdoors.iter().enumerate() {
+            if t.switch == sw && self.trapdoors[i] < 0.0 {
+                self.trapdoors[i] = 0.0;
+            }
+        }
+        self.map_dirty = true;
+    }
+
+    /// Fiendene i nivået du kommer til (bossene du har slått, er borte).
+    fn enter_level(&mut self, k: usize) {
+        if self.mobs.level != k || self.mobs.mobs.is_empty() {
+            self.mobs.enter(&self.crypt, k);
+        }
+        if self.slain.contains(&k) {
+            self.mobs.remove_bosses();
+        }
+    }
+
+    /// Til et annet nivå (trappa ned): startstedet der, med fade.
+    pub fn go_to_level(&mut self, k: usize) -> bool {
+        let Some(l) = self.crypt.levels.get(k) else { return false };
+        let (to, yaw) = l.start;
+        if let Some(e) = self.entries.get_mut(k) {
+            e.get_or_insert((to, yaw));
+        }
+        self.teleport(to, yaw);
+        self.enter_level(k);
+        true
+    }
+
+    /// Det som skjer av seg selv nede: trappa ned, trykkplatene og pilene,
+    /// fallemmene du tråkker på, og sekken du mistet da du døde.
+    fn update_crypt(&mut self, dt: f32, events: &mut Vec<Event>) {
+        if !self.in_crypt() {
+            return;
+        }
+        let (half, radius) = self.stance.capsule();
+        let feet = self.pos - Vec3::Y * (half + radius + 0.05);
+        let Some(k) = self.crypt.level_at(feet) else { return };
+        if k != self.mobs.level {
+            self.enter_level(k);
+        }
+        let flat = |a: Vec3, b: Vec3| a.with_y(0.0).distance(b.with_y(0.0));
+        // Trappa ned: toner over til neste nivå.
+        if let Some((p, _)) = self.crypt.levels[k].down {
+            let near = flat(feet, p) < 1.2 && (feet.y - p.y).abs() < 2.5;
+            if near && self.down_armed {
+                self.down_armed = false;
+                if k + 1 < self.crypt.levels.len() {
+                    self.go_to_level(k + 1);
+                    let l = &self.crypt.levels[k + 1];
+                    events.push(Event::Fade);
+                    events.push(sfx("crypt_door"));
+                    events.push(Event::Toast(format!("Nivå {}: {}", l.n, l.name)));
+                    return;
+                }
+                events.push(sfx("locked"));
+                events.push(Event::Toast("Trappa ned er rast sammen. Dypere har ingen kommet ennå.".into()));
+            } else if !near && flat(feet, p) > 2.0 {
+                self.down_armed = true;
+            }
+        }
+        // Fallemmene: står du på lemmen, faller den opp under deg.
+        for i in 0..self.crypt.trapdoors.len() {
+            let t = &self.crypt.trapdoors[i];
+            if t.level != k || !t.lid || self.trapdoors[i] >= 0.0 {
+                continue;
+            }
+            let local = Quat::from_rotation_y(-t.yaw) * (feet - t.pos);
+            if local.x.abs() < t.size.x * 0.5 - 0.1 && local.z.abs() < t.size.y * 0.5 - 0.1 && local.y.abs() < 0.5 {
+                let (sw, at) = (t.switch, t.pos);
+                self.open_switch(sw);
+                events.push(self.sound_at("crack", at, 1.2));
+                events.push(self.sound_at("door_close", at, 1.0));
+            }
+        }
+        // Trykkplatene: pilene skyter ut av muren. Første gang treffer de
+        // gulvet foran deg.
+        for i in 0..self.crypt.traps.len() {
+            self.traps[i].1 -= dt;
+            let t = self.crypt.traps[i].clone();
+            if t.level != k || t.kind != TrapKind::Arrows || self.traps[i].1 > 0.0 {
+                continue;
+            }
+            let d = feet - t.pos;
+            if d.x.abs() < t.size.x * 0.5 && d.z.abs() < t.size.y * 0.5 && d.y.abs() < 0.6 {
+                let first = self.traps[i].0 == 0;
+                self.traps[i] = (self.traps[i].0 + 1, 3.0);
+                let side = Vec3::new(-t.dir.z, 0.0, t.dir.x);
+                for (j, off) in [-0.45f32, 0.0, 0.45].iter().enumerate() {
+                    let from = feet - t.dir * 6.0 + side * *off + Vec3::Y * (1.0 + 0.15 * j as f32);
+                    let aim = if first { feet - t.dir * 1.6 + side * *off } else { feet + side * *off * 0.3 + Vec3::Y * 1.0 };
+                    let vel = (aim - from).normalize_or(t.dir) * 16.0;
+                    self.darts.push(Dart { pos: from, vel, age: 0.0, harmless: first });
+                }
+                events.push(self.sound_at("click", t.pos, 1.0));
+                events.push(self.sound_at("swing", feet - t.dir * 5.0 + Vec3::Y, 1.2));
+                if first {
+                    events.push(Event::Toast("Klikk! Pilene smeller i gulvet foran deg. Se opp for trykkplatene.".into()));
+                }
+            }
+        }
+        // Pilene flyr til de treffer deg, gulvet eller en mur.
+        let chest = feet + Vec3::Y * 1.0;
+        let mut hurt = 0.0;
+        for d in &mut self.darts {
+            d.pos += d.vel * dt;
+            d.age += dt;
+            if !d.harmless && d.pos.distance(chest) < 0.6 {
+                hurt += 12.0;
+                d.age = 9.0;
+            } else if self.crypt.floor_under(d.pos).is_some_and(|f| d.pos.y < f + 0.05) {
+                d.age = 9.0;
+            }
+        }
+        self.darts.retain(|d| d.age < 1.2);
+        if hurt > 0.0 {
+            let (taken, _) = self.combat.incoming(feet - Vec3::Y, hurt, self.eye(), self.forward());
+            self.hp -= taken;
+            events.push(sfx("hurt"));
+            if self.hp <= 0.0 {
+                self.die(events);
+                return;
+            }
+        }
+        // Sekken du mistet: gå bort til den.
+        if let Some(i) = self.bags.iter().position(|(p, _)| flat(*p, feet) < 1.2 && (p.y - feet.y).abs() < 2.0) {
+            let (_, bag) = self.bags.remove(i);
+            let n: u32 = bag.values().sum();
+            for (c, v) in bag {
+                *self.carried.entry(c).or_insert(0) += v;
+            }
+            self.inv_dirty = true;
+            events.push(sfx("bag"));
+            events.push(Event::Toast(format!("Du fant igjen det du mistet: {n} komponenter.")));
+        }
+        // Lyden bak muren: en hemmelighet i nærheten.
+        self.hint_t -= dt;
+        if self.hint_t <= 0.0 {
+            self.hint_t = 9.0;
+            if let Some(h) = self.crypt.hints.iter().find(|h| h.level == k && h.kind == HintKind::Sound && h.pos.distance(feet) < 12.0) {
+                let at = h.pos + Vec3::Y * 1.2;
+                events.push(self.sound_at("rats", at, 0.8));
+            }
+        }
     }
 
     pub(super) fn shortcut_poses(&self) -> Vec<Affine3A> {
@@ -1850,7 +2290,7 @@ impl Session {
                     // Ease-out med litt overskyting (lokket slår mot stoppen).
                     let k = 1.0 + 2.2 * (x - 1.0).powi(3) + 1.2 * (x - 1.0).powi(2);
                     let angle = 1.85 * k.clamp(0.0, 1.08);
-                    Some(t.target.pose * Affine3A::from_translation(dungeon::CHEST_HINGE) * Affine3A::from_rotation_x(-angle))
+                    Some(t.target.pose * Affine3A::from_translation(crypt::CHEST_HINGE) * Affine3A::from_rotation_x(-angle))
                 }
                 _ => None,
             })
@@ -1915,5 +2355,5 @@ fn well_height(t: f32) -> f32 {
 
 /// Rykkete heving, som en sveiv.
 fn gate_lift(t: f32) -> f32 {
-    t * dungeon::GATE_LIFT + (t * 24.0).sin() * 0.02 * (1.0 - t)
+    t * crypt::GATE_LIFT + (t * 24.0).sin() * 0.02 * (1.0 - t)
 }

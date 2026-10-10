@@ -1,5 +1,5 @@
-//! Verden: kjøpstaden Fristad rundt 1350, borgen på haugen, landskapet
-//! rundt og kjelleren under. Alt bygges her fra modellene som finnes
+//! Verden: kjøpstaden Fristad rundt 1350, landskapet rundt og krypten
+//! under. Alt bygges her fra modellene som finnes
 //! (`ModelInfo`), uten å vite hvor de kommer fra.
 //!
 //! Koordinater: X øst, Y opp, Z sør. Torget ligger rundt origo, sørporten i
@@ -12,7 +12,7 @@ use crate::domain::scene::Light;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::collections::HashMap;
 
-pub mod dungeon;
+pub mod crypt;
 pub mod nature;
 pub mod terrain;
 pub mod town;
@@ -39,19 +39,32 @@ pub enum Shape {
 pub enum Use {
     /// Snakk med innbygger nummer n (E åpner butikken eller verkstedet).
     Talk(usize),
-    /// Åpne kiste nummer n i kjelleren (`Dungeon.chests`).
+    /// Åpne kiste nummer n i krypten (`Crypt.chests`).
     Chest(usize),
-    /// Lås opp port nummer n i kjelleren (`Dungeon.gates`).
+    /// Port nummer n i krypten (`Crypt.gates`): spaken eller nøkkelen
+    /// åpner den.
     Gate(usize),
-    /// En snarveidør med slå på gangsida.
+    /// En snarveidør med slå på den ene sida (`Crypt.shortcuts`).
     Shortcut(usize),
-    /// Døra i krypten under borgen: ned i kjelleren.
+    /// Spak nummer n: trekkes, og åpner portene sine.
+    Lever(usize),
+    /// Falsk vegg nummer n: F eller et slag åpner den.
+    Secret(usize),
+    /// Stige nummer n: opp til toppen.
+    Ladder(usize),
+    /// Hvilested nummer n: tenn lyset og hvil.
+    Rest(usize),
+    /// Lapp eller bok nummer n: les.
+    Lore(usize),
+    /// Varig styrke nummer n: ta den.
+    Bonus(usize),
+    /// Døra i krypten på kirkegården: ned til nivå 1.
     Descend,
-    /// Døra øverst i trappa i startrommet: opp til krypten.
-    Ascend,
+    /// Døra opp i nivå n (fra 0): til nivået over, eller til krypten i byen.
+    Ascend(usize),
     /// Brønn nummer n i byen: heis opp vann og drikk.
     Well(usize),
-    /// Portalen ved sørporten: tilbake dit du var i kjelleren (åpen bare
+    /// Portalen ved sørporten: tilbake dit du var i krypten (åpen bare
     /// når du har gått hjem med H, eller har dødd nede).
     Portal,
     /// Senga i spillerens hus: sov, få tilbake liv og utholdenhet, og våkn
@@ -105,10 +118,10 @@ pub struct World {
     pub spawn_yaw: f32,
     /// Det `Builder::audit` fant: modeller som svever eller synker.
     pub audit: Vec<String>,
-    pub dungeon: dungeon::Dungeon,
+    pub crypt: crypt::Crypt,
     pub npcs: Vec<NpcSpec>,
-    /// Hvor du står når du kommer opp fra kjelleren (føttene, retningen).
-    pub crypt: (Vec3, f32),
+    /// Hvor du står når du kommer opp fra krypten (føttene, retningen).
+    pub crypt_exit: (Vec3, f32),
 }
 
 pub struct Builder {
@@ -159,7 +172,7 @@ impl Builder {
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.0 });
+        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.0, room: None });
     }
 
     /// En pipe som ryker (toppen av pipa, tykkelse 0..1).
@@ -169,17 +182,17 @@ impl Builder {
 
     /// En lykt med et talglys: tennes i skumringen og blafrer svakt.
     pub fn lamp_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.12 });
+        self.lights.push(Light { pos, radius, color, intensity, always: false, flicker: 0.12, room: None });
     }
 
     /// Et lys som brenner hele døgnet (ild), med et lite flakk.
     pub fn fire_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker: 0.18 });
+        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker: 0.18, room: None });
     }
 
     /// Et lys som brenner hele døgnet og flakker så mye du vil.
     pub fn flicker_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32, flicker: f32) {
-        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker });
+        self.lights.push(Light { pos, radius, color, intensity, always: true, flicker, room: None });
     }
 
     /// Noe du kan bruke med F.
@@ -244,7 +257,7 @@ impl Builder {
         self.place_look(model, t, tint, None)
     }
 
-    /// Sett ut en modell med et annet utseende (`Look`: kjelleretasjene).
+    /// Sett ut en modell med et annet utseende (`Look`).
     pub fn place_look(&mut self, model: &'static str, t: Affine3A, tint: Vec3, look: Option<Look>) -> bool {
         if !self.has_model(model) {
             if !self.missing.contains(&model) {
@@ -327,7 +340,7 @@ impl Builder {
                 // som ekte trær, og murverket har fundament under bakken; de
                 // sjekkes bare for sveving, og bakken letes etter opp til en
                 // meter over foten (ellers vinner et gulv lenger nede, som
-                // kjelleren under krypten).
+                // nivåene i krypten).
                 let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
                 let reach = if rooted { 1.0 } else { 0.0 };
                 let gaps = corners.map(|(x, z)| {
@@ -351,8 +364,8 @@ pub const IRON: Mat = Mat::tex(Layer::Metal, 0xffffff);
 pub const STONE: Mat = Mat::tex(Layer::Stone, 0xffffff);
 pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 
-/// Bygg verden. `seed` gir kjelleren (samme frø, samme kjeller).
-pub fn build(models: &[ModelInfo], seed: u64) -> World {
+/// Bygg verden. Krypten er fast; `seed` brukes ikke til noe der lenger.
+pub fn build(models: &[ModelInfo], _seed: u64) -> World {
     let mut b = Builder::new(models);
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget,
@@ -363,8 +376,8 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
     nature::grass(&mut b);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
-    // Kjelleren under borgen. Et nytt frø gir nye etasjer.
-    let dungeon = dungeon::build(&mut b, seed, town.crypt_anchor);
+    // Krypten: de faste nivåene under kirkegården.
+    let crypt = crypt::build(&mut b, town.crypt_anchor);
     for (model, n) in crate::domain::mobs::Mobs::reserve() {
         b.reserve(model, n);
     }
@@ -377,7 +390,7 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
     for (model, n) in crate::domain::herd::Herd::reserve() {
         b.reserve(model, n);
     }
-    for (model, n) in dungeon::reserve(&dungeon) {
+    for (model, n) in crypt::reserve(&crypt) {
         b.reserve(model, n);
     }
     // Galleriveggen i spillerens hus: én komponent per ramme.
@@ -404,11 +417,11 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
         smoke: b.smoke,
         placements: b.placements,
         targets: b.targets,
-        dungeon,
+        crypt,
         npcs: b.npcs,
         spawn: town.spawn,
         spawn_yaw: town.spawn_yaw,
-        crypt: town.crypt_exit,
+        crypt_exit: town.crypt_exit,
         audit,
     }
 }

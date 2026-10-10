@@ -168,53 +168,23 @@ models! {
     "stave_church" => "town/stave_church.glb",
     "stave_church_interior" => "town/stave_church_interior.glb",
     "gravestone" => "town/gravestone.glb",
-    // Borgruinen, krypten, døra opp fra kjelleren og portgitteret fra
+    // Borgruinen, krypten, døra opp fra krypten og portgitteret fra
     // tools/models/castle.py.
     "castle_ruin" => "town/castle_ruin.glb",
     "crypt" => "town/crypt.glb",
     "crypt_stair" => "town/crypt_stair.glb",
     "portcullis" => "town/portcullis.glb",
-    // Kjelleren fra tools/models/dungeon.py: gangene, rommene, den tilmurte
-    // døra og vindeltrappa (origo i hjørnet av fotavtrykket, trappa i midten
-    // av tårncella; domain/world/dungeon.rs setter dem sammen).
-    "dng_hall_i" => "dungeon/dng_hall_i.glb",
-    "dng_hall_i2" => "dungeon/dng_hall_i2.glb",
-    "dng_hall_i3" => "dungeon/dng_hall_i3.glb",
-    "dng_hall_sewer" => "dungeon/dng_hall_sewer.glb",
-    "dng_hall_crypt" => "dungeon/dng_hall_crypt.glb",
-    "dng_hall_lava" => "dungeon/dng_hall_lava.glb",
-    "dng_hall_l" => "dungeon/dng_hall_l.glb",
-    "dng_hall_t" => "dungeon/dng_hall_t.glb",
-    "dng_hall_x" => "dungeon/dng_hall_x.glb",
-    "dng_hall_end" => "dungeon/dng_hall_end.glb",
-    "dng_seal" => "dungeon/dng_seal.glb",
-    "dng_shortcut" => "dungeon/dng_shortcut.glb",
-    "dng_shortcut_leaf" => "dungeon/dng_shortcut_leaf.glb",
-    "dng_spiral" => "dungeon/dng_spiral.glb",
-    "dng_start" => "dungeon/dng_start.glb",
-    "dng_gate" => "dungeon/dng_gate.glb",
-    "dng_landing" => "dungeon/dng_landing.glb",
-    "dng_hall" => "dungeon/dng_hall.glb",
-    "dng_long" => "dungeon/dng_long.glb",
-    "dng_cistern" => "dungeon/dng_cistern.glb",
-    "dng_gallery" => "dungeon/dng_gallery.glb",
-    "dng_chasm" => "dungeon/dng_chasm.glb",
-    "dng_chapel" => "dungeon/dng_chapel.glb",
-    "dng_treasury" => "dungeon/dng_treasury.glb",
-    "dng_arena" => "dungeon/dng_arena.glb",
-    // Pynten per etasje (dungeon::theme).
-    "dngp_shelf" => "dungeon/dngp_shelf.glb",
-    "dngp_sacks" => "dungeon/dngp_sacks.glb",
-    "dngp_banner" => "dungeon/dngp_banner.glb",
-    "dngp_moss" => "dungeon/dngp_moss.glb",
-    "dngp_puddle" => "dungeon/dngp_puddle.glb",
-    "dngp_roots" => "dungeon/dngp_roots.glb",
-    "dngp_skulls" => "dungeon/dngp_skulls.glb",
-    "dngp_bonepile" => "dungeon/dngp_bonepile.glb",
-    "dngp_lava" => "dungeon/dngp_lava.glb",
-    "dngp_embers" => "dungeon/dngp_embers.glb",
     // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
     "npc" => "npc/npc.glb",
+}
+
+// Kryptmodellene (`CRYPT_FILES`, `CRYPT_MODELS`): bitene og byggesettet i
+// `assets/models/crypt/`, funnet av build.rs.
+include!(concat!(env!("OUT_DIR"), "/crypt_models.rs"));
+
+/// Alle modellfilene: tabellen over og kryptmodellene.
+pub fn model_files() -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    MODEL_FILES.iter().chain(CRYPT_FILES.iter())
 }
 
 /// Modellene som er med, lest ved behov.
@@ -224,11 +194,11 @@ pub struct Embedded;
 #[cfg(not(target_arch = "wasm32"))]
 impl ModelSource for Embedded {
     fn names(&self) -> Vec<String> {
-        MODELS.iter().map(|(n, _)| n.to_string()).collect()
+        MODELS.iter().chain(CRYPT_MODELS.iter()).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let (_, bytes) = MODELS.iter().find(|(n, _)| *n == name)?;
+        let (_, bytes) = MODELS.iter().chain(CRYPT_MODELS.iter()).find(|(n, _)| *n == name)?;
         load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
@@ -238,11 +208,11 @@ pub struct Files(pub std::collections::HashMap<String, Vec<u8>>);
 
 impl ModelSource for Files {
     fn names(&self) -> Vec<String> {
-        MODEL_FILES.iter().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
+        model_files().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let (_, path) = MODEL_FILES.iter().find(|(n, _)| *n == name)?;
+        let (_, path) = model_files().find(|(n, _)| *n == name)?;
         let bytes = self.0.get(*path)?;
         load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
@@ -430,6 +400,11 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if layer.is_some() && mat.name().is_some_and(|n| n.ends_with(".paint")) {
                 mmat = mmat.flags(flag::PAINT);
             }
+            // «layer_<lag>.magic»: teksturlaget gløder hele døgnet der bildet
+            // er mettet (de lysende sømmene i `glitch_seam`), og blafrer.
+            if layer.is_some() && mat.name().is_some_and(|n| n.contains(".magic")) {
+                mmat = mmat.flags(flag::GLOW_ALWAYS);
+            }
             // «glow» lyser om natta, som lampene ellers i byen; «glass»
             // speiler som vinduene.
             if named("glow") {
@@ -451,8 +426,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if named("water") {
                 mmat.kind = kind::WATER;
             }
-            // Kjelleren ligger under bakken: verken regn eller snø.
-            if name.starts_with("dng_") {
+            // Kjelleren ligger under bakken: verken regn eller snø (de gamle
+            // `dng_`-modellene, kryptnivåene `crypt_NN_…` og byggesettet `kit_`).
+            let crypt_level = name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
+            if name.starts_with("dng_") || name.starts_with("kit_") || crypt_level {
                 mmat = mmat.flags(flag::NO_WEATHER);
             }
             // «fire» brenner hele døgnet (fakler, ildsteder).

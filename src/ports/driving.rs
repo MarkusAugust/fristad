@@ -194,28 +194,20 @@ pub enum Event {
     OpenDoc(String),
 }
 
-/// Kartet over en etasje: rutenettet med åpningene mellom cellene, hva du
-/// har sett (fog of war), og merkene du har oppdaget.
+/// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog
+/// of war), og merkene i dem.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapView {
-    /// Etasjen (fra 0) og navnet på epoken.
-    pub floor: usize,
+    /// Nivået (1–10) og navnet.
+    pub level: u32,
     pub name: String,
-    /// Hjørnet av celle (0, 0) i verden (x, z), cellens side og antall
-    /// celler langs hver kant.
-    pub origin: [f32; 2],
-    pub cell: f32,
-    pub n: usize,
-    /// Per celle (rad for rad langs z): 0 er fjell; ellers 1 for gulv, + 2
-    /// om du kan gå østover (+x), + 4 om du kan gå sørover (+z).
-    pub cells: Vec<u8>,
-    /// Per celle: om du har sett den.
-    pub seen: Vec<bool>,
+    pub rooms: Vec<Vec<[f32; 2]>>,
     pub marks: Vec<MapMark>,
 }
 
-/// Et merke på kartet: «exit» (trappa ned), «gate» og «gate_open», «chest»,
-/// «ascend» (døra opp), «boss», «shortcut».
+/// Et merke på kartet: «exit» (trappa ned), «ascend» (trappa opp), «gate»
+/// og «gate_open», «chest», «shortcut», «lever» og «lever_pulled», «rest» og
+/// «rest_lit», «boss».
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapMark {
     pub kind: String,
@@ -334,6 +326,9 @@ pub struct SaveData {
     /// Hver komponent du noen gang har fått i byen (galleriveggen). Mangler
     /// i gamle lagringer, og da er det bare lageret som teller.
     pub found: Vec<String>,
+    /// Den varige styrken du har tatt i krypten («nivå:nummer»), så den
+    /// bare kan tas én gang.
+    pub bonuses: Vec<String>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

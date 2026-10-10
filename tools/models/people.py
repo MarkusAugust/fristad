@@ -28,7 +28,7 @@ import bmesh  # noqa: E402
 from common import armature, bake_textured, clear  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from mathutils.bvhtree import BVHTree  # noqa: E402
-from npc import clips  # noqa: E402
+import folk_motion  # noqa: E402
 
 OUT = "assets/models/npc"
 TEX = os.path.abspath("assets/textures")
@@ -1834,6 +1834,10 @@ MODELS = {"smith": smith, "innkeeper": innkeeper, "apothecary": apothecary, "cle
 
 
 # Hvor tett teksturen er per del (1 er som flatene tilsier).
+# Stilen i folk_motion.py og hva høyre hånd holder («hang», «heavy», «long», «front»).
+MOTION = {"smith": ("smith", "hang"), "innkeeper": ("innkeeper", "hang"), "gorvek": ("gorvek", "hang"), "woman": ("innkeeper", "heavy"),
+          "apothecary": ("old", "front"), "clerk": ("default", "front"), "farmer": ("default", "long"), "boy": ("boy", None),
+          "guard": ("guard", "long"), "merchant": ("old", "hang"), "pilgrim": ("old", "long")}
 DENSITY = {"hair": 0.0, "beard": 0.0, "fur": 0.5, "wraps": 0.5, "hood": 0.7, "mail": 0.6, "tool": 0.5, "strap": 0.5, "pouch": 0.5, "shoe": 0.5, "boots": 0.6, "skirt": 0.6, "hose": 0.6, "trousers": 0.6}
 
 
@@ -1890,5 +1894,8 @@ if __name__ == "__main__":
     # Ansiktet får mest plass i teksturen; hårlokker, skjegg og pels minst.
     face_density(bpy.data.objects.get("body"), j)
     rig = armature(f"{name}_rig", game_bones(j))
-    clips(rig)
+    # Bevegelsene (folk_motion.py): stilen og hva høyre hånd holder.
+    style, kind = MOTION[name]
+    tools = [o for o in bpy.data.objects if o.type == "MESH" and (o.name.startswith("tool") or o.name.startswith("mug"))]
+    folk_motion.clips(rig, style, {"R": kind} if kind else {}, body=bpy.data.objects.get("body"), tools={"R": tools} if kind else None)
     bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "glow", "fire", "mesh"), armature=rig, rigid={"tool": "hand.R", "mug": "hand.R", "apron": "spine", "skirt": "hips", "bodice_strap": "chest", "pouch": "hips", "cord_end": "hips", "buckle": "hips", "strap_chest": "chest", "hat": "head"}, skin={"blend": 0.05}, density=DENSITY, jpeg_quality=92)

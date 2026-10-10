@@ -6,7 +6,8 @@
 //! Valg: --out FIL, --size BxH, --night, --eye x,y,z (y med + foran er
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
-//! (gå ned i krypten først), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
+//! (ned i krypten først: startstedet i nivå 1), --level N (startstedet i
+//! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
 //! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N.
 
@@ -43,7 +44,9 @@ fn main() {
         let to = t.transform_point3(Vec3::new(0.0, v[2], 0.0)) - eye;
         (eye, (-to.x).atan2(-to.z) + yaw.to_radians())
     });
-    let chest = prepared.world.dungeon.chests.first().copied();
+    let chest = prepared.world.crypt.chests.first().map(|c| (c.pos, c.yaw));
+    let level: Option<usize> = arg("--level").map(|s| s.parse::<usize>().expect("--level N").max(1) - 1);
+    let level_origin = level.and_then(|k| prepared.world.crypt.levels.get(k)).map(|l| l.origin);
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
     let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
     let format = wgpu::TextureFormat::Rgba8UnormSrgb;
@@ -56,13 +59,16 @@ fn main() {
     if let Some(w) = arg("--weather") {
         app.session.set_weather(WeatherKind::from_name(&w).unwrap_or_default(), true);
     }
-    if flag("--descend") {
+    if flag("--descend") || level.is_some() {
         app.session.use_first(|u| *u == Use::Descend);
+    }
+    if let Some(k) = level {
+        assert!(app.session.go_to_level(k), "nivå {} finnes ikke", k + 1);
     }
     // --chest: åpne den første kista i kjelleren og se på den forfra (--time
     // styrer hvor langt lokket har kommet).
     if flag("--chest") {
-        if let Some((p, yaw, _)) = chest {
+        if let Some((p, yaw)) = chest {
             let front = Vec3::new(yaw.sin(), 0.0, yaw.cos());
             let eye = p + front * 1.8 + Vec3::Y * 1.5;
             app.command(Command::Place { eye, yaw: (front.x).atan2(front.z), pitch: -0.45 });
@@ -110,6 +116,10 @@ fn main() {
         let parts: Vec<&str> = s.split(',').collect();
         let (x, z): (f32, f32) = (parts[0].parse().unwrap(), parts[2].parse().unwrap());
         let y: f32 = parts[1].trim_start_matches('+').parse().unwrap();
+        // I et kryptnivå (--level) er koordinatene i nivåets eget rom.
+        if let Some(o) = level_origin {
+            return Vec3::new(x, y, z) + o;
+        }
         let y = if parts[1].starts_with('+') { y + fristad::domain::world::terrain::height(x, z) } else { y };
         Vec3::new(x, y, z)
     });

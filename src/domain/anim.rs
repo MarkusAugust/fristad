@@ -137,6 +137,41 @@ impl Rig {
     pub fn joint_transform(&self, pose: &Pose, joint: usize) -> Mat4 {
         self.root * self.globals(pose)[joint]
     }
+
+    /// Farten (m/s, i meshens rom) en gangsyklus er laget for: klippet går
+    /// på stedet, så foten som står flat, glir bakover med akkurat den
+    /// farten figuren skal flyttes med. Ankelen regnes som flat når den er
+    /// nær sitt laveste; medianen av farten der, over begge føttene.
+    pub fn stride_speed(&self, clip: usize, feet: &[&str]) -> Option<f32> {
+        let c = self.clips.get(clip)?;
+        if c.duration <= 0.0 {
+            return None;
+        }
+        let joints: Vec<usize> = feet.iter().filter_map(|f| self.joint(f)).collect();
+        if joints.is_empty() {
+            return None;
+        }
+        let n = ((c.duration * 60.0).round() as usize).max(8);
+        let dt = c.duration / n as f32;
+        let tracks: Vec<Vec<Vec3>> = joints
+            .iter()
+            .map(|&j| (0..=n).map(|k| self.joint_transform(&self.sample(clip, k as f32 * dt, true), j).w_axis.truncate()).collect())
+            .collect();
+        let mut speeds = vec![];
+        for t in &tracks {
+            let low = t.iter().map(|p| p.y).fold(f32::MAX, f32::min);
+            for w in t.windows(2) {
+                if w[0].y < low + 0.004 && w[1].y < low + 0.004 {
+                    speeds.push((w[1] - w[0]).with_y(0.0).length() / dt);
+                }
+            }
+        }
+        if speeds.is_empty() {
+            return None;
+        }
+        speeds.sort_by(f32::total_cmp);
+        Some(speeds[speeds.len() / 2])
+    }
 }
 
 impl Pose {
@@ -276,6 +311,20 @@ mod tests {
         let half = r.sample(0, 0.5, false);
         let p = r.skin(&half)[1].transform_point3(Vec3::new(0.0, 2.0, 0.0));
         assert!((p.x + std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-3, "{p}");
+    }
+
+    #[test]
+    fn farten_i_gangen_leses_av_foten_som_star() {
+        // Én «fot» som står på bakken og glir 1,2 m bakover på ett sekund,
+        // og så løftes og føres fram igjen på et halvt.
+        let foot = Joint { name: "foot.L".into(), parent: None, translation: Vec3::ZERO, rotation: Quat::IDENTITY, scale: Vec3::ONE, inverse_bind: Mat4::IDENTITY };
+        let times = vec![0.0, 1.0, 1.25, 1.5];
+        let keys = vec![Vec3::new(0.6, 0.0, 0.0), Vec3::new(-0.6, 0.0, 0.0), Vec3::new(0.0, 0.1, 0.0), Vec3::new(0.6, 0.0, 0.0)];
+        let clip = Clip { name: "walk".into(), duration: 1.5, channels: vec![Channel { joint: 0, times, keys: Keys::Translation(keys), step: false }] };
+        let r = Rig { joints: vec![foot], clips: vec![clip], root: Mat4::from_scale(Vec3::splat(0.5)) };
+        let v = r.stride_speed(0, &["foot.L", "foot.R"]).unwrap();
+        // I meshens rom (halv størrelse): 0,6 m/s.
+        assert!((v - 0.6).abs() < 0.02, "{v}");
     }
 
     #[test]
