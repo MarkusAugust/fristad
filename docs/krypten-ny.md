@@ -128,6 +128,35 @@ Dette er utkast. De tegnede planene kommer i `docs/krypten/` før noe bygges.
 - **Veien:** en spiral nedover mot rotunden.
 - **Bossen:** Rammeverket.
 
+## De tegnede planene
+
+Alle ti står i `docs/krypten/nivaa_01.png` … `nivaa_10.png`. Dataene ligger i `tools/crypt/levels/level_NN.py`, og verktøyet `tools/crypt/plan.py` tegner dem og sjekker dem (`python3 tools/crypt/plan.py`). Det samme tallet leses av byggeskriptet i Blender senere.
+
+| Nivå | Navn | Rom | Min | Slutt |
+|---|---|---|---|---|
+| 1 | Gravkjelleren under kirka | 13 | 11 | spaken åpner gitteret |
+| 2 | Gravkongens hall | 16 | 17 | Modalen |
+| 3 | Kloakken | 14 | 15 | eliten (Select) |
+| 4 | Den store cisternen | 15 | 17 | Tabellen |
+| 5 | Gruva | 15 | 14 | eliten (Progress-formannen) |
+| 6 | Krystallgrotta | 16 | 17 | Dropdownen |
+| 7 | Den sunkne borgen | 13 | 14 | eliten (Kortkapteinen) |
+| 8 | Ridderhallen | 14 | 17 | Navbaren |
+| 9 | Overgangen | 13 | 14 | eliten (Tvillingvokteren) |
+| 10 | Kjernen | 12 | 18 | Rammeverket |
+
+Minuttene er et anslag fra planen (gange, sidegrener, kamp, feller og bosser); til sammen rundt 2,5 timer.
+
+**Fiendene per tema** (nye slag; de eldre kommer igjen sterkere):
+
+| Tema | Nye slag |
+|---|---|
+| Gravkjelleren | Button, Tooltip, Avatar (hodeskaller som ruller), Breadcrumb (beinkjede som kryper), Accordion (kister i bakhold) |
+| Kloakken og cisternen | Input, Select, Toast, Pagination |
+| Gruva og grotta | Spinner, Progress, Slider, Chip-svermer |
+| Borgen | Card (skjoldbærer), Tabs (vakt); Breadcrumb kommer igjen som bueskytter |
+| Kjernen | Grid, Skeleton loader, Popover |
+
 ## Teknisk
 
 - **Nivåformatet:**
