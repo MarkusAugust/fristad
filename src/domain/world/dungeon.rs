@@ -602,19 +602,19 @@ fn theme(k: usize) -> Theme {
     match k % FLOORS {
         // 2026: forretningslogikken. Tørr bruddsteinsmur, hvelv av hogd
         // stein, fakler, arkiv og sekker.
-        0 => Theme { look: look([Layer::Stone, Layer::Brick, Layer::Concrete, Layer::Concrete], [1.0, 1.0, 1.0], [1.0, 0.62, 0.26]), light: None, gain: 1.0, wall: &["dngp_shelf", "dngp_sacks"], floor: &[], ceiling: &[], density: 0.45 },
+        0 => Theme { look: look([Layer::Stone, Layer::Ashlar, Layer::Stone, Layer::Stone], [1.0, 1.0, 1.0], [1.0, 0.62, 0.26]), light: None, gain: 1.0, wall: &["dngp_shelf", "dngp_sacks"], floor: &[], ceiling: &[], density: 0.45 },
         // 2019: klassekomponentene. Ordnet kvadermur i kaldt grått, skifer
         // på gulvet, blå flammer, bannere og arkivhyller.
-        1 => Theme { look: look([Layer::Brick, Layer::Brick, Layer::Slate, Layer::Slate], [0.62, 0.68, 0.8], [0.5, 0.72, 1.0]), light: Some(Vec3::new(0.5, 0.68, 1.0)), gain: 1.1, wall: &["dngp_banner", "dngp_shelf", "dngp_banner"], floor: &[], ceiling: &[], density: 0.6 },
+        1 => Theme { look: look([Layer::Ashlar, Layer::Ashlar, Layer::Slate, Layer::Slate], [0.62, 0.68, 0.8], [0.5, 0.72, 1.0]), light: Some(Vec3::new(0.5, 0.68, 1.0)), gain: 1.1, wall: &["dngp_banner", "dngp_shelf", "dngp_banner"], floor: &[], ceiling: &[], density: 0.6 },
         // 2014: jQuery-kloakken. Fuktig kryptmur med mose, søle på gulvet,
         // gulgrønne lykter, pytter og røtter gjennom hvelvet.
-        2 => Theme { look: look([Layer::CryptWall, Layer::CryptWall, Layer::Stone, Layer::Gravel], [0.8, 0.86, 0.74], [0.75, 1.0, 0.45]), light: Some(Vec3::new(0.62, 0.85, 0.4)), gain: 0.55, wall: &["dngp_moss"], floor: &["dngp_puddle", "dngp_puddle"], ceiling: &["dngp_roots"], density: 0.7 },
+        2 => Theme { look: look([Layer::Stone, Layer::Stone, Layer::Stone, Layer::Mud], [0.8, 0.86, 0.74], [0.75, 1.0, 0.45]), light: Some(Vec3::new(0.62, 0.85, 0.4)), gain: 0.55, wall: &["dngp_moss"], floor: &["dngp_puddle", "dngp_puddle"], ceiling: &["dngp_roots"], density: 0.7 },
         // 2009: tabellayout-katakombene. Hogd berg, beinhyller i rutenett og
         // knokkelhauger, bleke stearinlys.
         3 => Theme { look: look([Layer::Rock, Layer::Rock, Layer::Stone, Layer::Stone], [0.62, 0.6, 0.58], [1.0, 0.86, 0.62]), light: Some(Vec3::new(1.0, 0.78, 0.5)), gain: 0.5, wall: &["dngp_skulls"], floor: &["dngp_bonepile"], ceiling: &[], density: 0.75 },
         // 1999: blink-dypet. Sotet mur og svart berg, rødglødende sprekker
         // og slagg.
-        _ => Theme { look: look([Layer::Soot, Layer::Rock, Layer::Soot, Layer::Rock], [0.5, 0.42, 0.4], [1.0, 0.38, 0.1]), light: Some(Vec3::new(1.0, 0.24, 0.06)), gain: 0.75, wall: &["dngp_embers"], floor: &["dngp_lava", "dngp_lava", "dngp_embers"], ceiling: &[], density: 0.65 },
+        _ => Theme { look: look([Layer::Rock, Layer::Rock, Layer::Rock, Layer::Rock], [0.5, 0.42, 0.4], [1.0, 0.38, 0.1]), light: Some(Vec3::new(1.0, 0.24, 0.06)), gain: 0.75, wall: &["dngp_embers"], floor: &["dngp_lava", "dngp_lava", "dngp_embers"], ceiling: &[], density: 0.65 },
     }
 }
 

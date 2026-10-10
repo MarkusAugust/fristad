@@ -27,99 +27,118 @@ pub struct Vertex {
 }
 
 /// Lagene i de bakte teksturene. Må stemme med `bake.wgsl` og `TEX_SCALE`.
+/// Alle er malte bilder fra eieren (`assets/textures/painted/`). Terrenget
+/// i `world.wgsl` bruker numrene til brostein (0), søle (11), skogbunn
+/// (14), berg (15), eng (9) og jord (17), og jern (8) er metall.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Layer {
+    /// Brostein på torget og i gatene (malt).
     Cobble = 0,
+    /// Kalkpuss (malt).
     Plaster = 1,
+    /// Loddrett tjærebredd panel (malt).
     Cladding = 2,
+    /// Skifertak (malt).
     Slate = 3,
+    /// Takstein av tegl (malt).
     Tiles = 4,
+    /// Bruddstein i murene (malt).
     Stone = 5,
-    Brick = 6,
-    Oak = 7,
-    Metal = 8,
-    Grass = 9,
-    Bark = 10,
-    Gravel = 11,
-    Concrete = 12,
-    /// Høvlet, lyst bygningsvirke (bindingsverk, trelast).
+    /// Hogd stein (malt).
+    Ashlar = 6,
+    /// Planker: gulv, bord, kasser, skilt (malt).
+    Planks = 7,
+    /// Smijern (malt).
+    Iron = 8,
+    /// Eng (malt).
+    Meadow = 9,
+    /// Pels (malt).
+    Fur = 10,
+    /// Jordvei med hjulspor og søle (malt).
+    Mud = 11,
+    /// Brynje (malt).
+    Chainmail = 12,
+    /// Bjelker og bygningsvirke (malt).
     Timber = 13,
-    /// OSB-/sponplater.
-    Plywood = 14,
-    /// Fjellsider: lagdelt berg i stor skala (30 m per flis).
+    /// Skogbunn med strå og løv (malt).
+    ForestFloor = 14,
+    /// Granittberg (malt).
     Rock = 15,
-    /// Snø på toppene.
-    Snow = 16,
-    /// Tråkket jord uten hjulspor (gårdsplasser).
+    /// Filt (malt).
+    Felt = 16,
+    /// Tråkket jord uten hjulspor på gårdsplassene (malt).
     Earth = 17,
-    /// Halmtak.
+    /// Halmtak (malt).
     Thatch = 18,
-    /// Laftet tømmer (liggende stokker med mose i fugene).
+    /// Laftet tømmer (malt).
     Logs = 19,
-    /// Torvtak.
+    /// Torvtak (malt).
     Sod = 20,
-    /// Ullstoff (klær).
+    /// Ullstoff (malt).
     Wool = 21,
-    /// Linstoff (skjorter, hodeplagg, forklær).
+    /// Linstoff (malt).
     Linen = 22,
-    /// Lær (belter, sko, bokbind).
+    /// Lær (malt).
     Leather = 23,
-    /// Fuktig kryptmur med mose og salt.
-    CryptWall = 24,
-    /// Løs halm på gulvet.
-    Straw = 25,
-    /// Plankegulv innendørs.
-    Floor = 26,
-    /// Sotet mur i smia.
-    Soot = 27,
+    /// Vattert kjortel (malt).
+    Gambeson = 24,
+    /// Halm på gulvet (malt).
+    StrawFloor = 25,
     /// Kalket hvit puss (malt).
-    PlasterWhite = 28,
+    PlasterWhite = 26,
     /// Rødokker kalkpuss (malt).
-    PlasterRed = 29,
+    PlasterRed = 27,
     /// Forvitret puss med flettverk under (malt).
-    PlasterOld = 30,
+    PlasterOld = 28,
     /// Liggende kledning (malt).
-    Weatherboard = 31,
+    Weatherboard = 29,
     /// Grå, værbitt liggende kledning (malt).
-    WeatherboardGrey = 32,
+    WeatherboardGrey = 30,
     /// Flettverk av hassel (malt).
-    Wattle = 33,
+    Wattle = 31,
     /// Takspon (malt).
-    Shingles = 34,
+    Shingles = 32,
     /// Tjærebredd skjellspon på stavkirka (malt).
-    ShinglesTar = 35,
+    ShinglesTar = 33,
     /// Trim-arket: vannrette striper med list, bjelke, karm, jernbånd og tau (malt). Uv-ene legges på stripene i Blender.
-    Trim = 36,
+    Trim = 34,
     /// Jernbeslått eikedør (malt, ikke flisbar).
-    Door = 37,
+    Door = 35,
     /// Mørk eikedør (malt, ikke flisbar).
-    DoorB = 38,
+    DoorB = 36,
     /// Grå, værbitte bjelker (malt).
-    TimberGrey = 39,
+    TimberGrey = 37,
     /// Stavkirkas tjærebredde, loddrette veggplanker (malt).
-    ChurchBoards = 40,
-    /// Forvitret borgmur med mose (malt).
-    Ruin = 41,
+    ChurchBoards = 38,
+    /// Forvitret mur med mose (malt).
+    Ruin = 39,
     /// Bymuren: grove, tilhogde blokker (malt).
-    WallStone = 42,
+    WallStone = 40,
     /// Steinheller på gulvet (malt).
-    Flagstone = 43,
+    Flagstone = 41,
     /// Grus på gangveier (malt).
-    Pebbles = 44,
+    Gravel = 42,
     /// Pipene: små, flate murstein og skifer (malt).
-    Chimney = 45,
+    Chimney = 43,
+    /// Snødekket i været (malt). Legges ovenfra i `weather` i `world.wgsl`.
+    Snow = 44,
+    /// Høvlet eik: bordplater, benker, krakker og hyller (malt).
+    OakPlaned = 45,
 }
 /// Høyst 48: `tex_scale` i `Globals` har plass til 12 × 4.
 pub const LAYERS: u32 = 46;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
-        Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
-        Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather, Layer::CryptWall, Layer::Straw, Layer::Floor, Layer::Soot,
-        Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle, Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin, Layer::WallStone, Layer::Flagstone, Layer::Pebbles, Layer::Chimney,
+        Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Ashlar, Layer::Planks,
+        Layer::Iron, Layer::Meadow, Layer::Fur, Layer::Mud, Layer::Chainmail, Layer::Timber, Layer::ForestFloor, Layer::Rock,
+        Layer::Felt, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather,
+        Layer::Gambeson, Layer::StrawFloor, Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle,
+        Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin,
+        Layer::WallStone, Layer::Flagstone, Layer::Gravel, Layer::Chimney, Layer::Snow, Layer::OakPlaned,
     ];
-    /// Navnet i `assets/external/manifest.json`.
+    /// Navnet i `assets/external/manifest.json` (mappa i `assets/textures/`).
     pub fn name(self) -> &'static str {
         match self {
             Layer::Cobble => "cobble",
@@ -128,17 +147,17 @@ impl Layer {
             Layer::Slate => "slate",
             Layer::Tiles => "tiles",
             Layer::Stone => "stone",
-            Layer::Brick => "brick",
-            Layer::Oak => "oak",
-            Layer::Metal => "metal",
-            Layer::Grass => "grass",
-            Layer::Bark => "bark",
-            Layer::Gravel => "gravel",
-            Layer::Concrete => "concrete",
+            Layer::Ashlar => "ashlar",
+            Layer::Planks => "planks",
+            Layer::Iron => "iron",
+            Layer::Meadow => "meadow",
+            Layer::Fur => "fur",
+            Layer::Mud => "mud",
+            Layer::Chainmail => "chainmail",
             Layer::Timber => "timber",
-            Layer::Plywood => "plywood",
+            Layer::ForestFloor => "forest_floor",
             Layer::Rock => "rock",
-            Layer::Snow => "snow",
+            Layer::Felt => "felt",
             Layer::Earth => "earth",
             Layer::Thatch => "thatch",
             Layer::Logs => "logs",
@@ -146,10 +165,8 @@ impl Layer {
             Layer::Wool => "wool",
             Layer::Linen => "linen",
             Layer::Leather => "leather",
-            Layer::CryptWall => "cryptwall",
-            Layer::Straw => "straw",
-            Layer::Floor => "floor",
-            Layer::Soot => "soot",
+            Layer::Gambeson => "gambeson",
+            Layer::StrawFloor => "straw_floor",
             Layer::PlasterWhite => "plaster_white",
             Layer::PlasterRed => "plaster_red",
             Layer::PlasterOld => "plaster_old",
@@ -159,21 +176,23 @@ impl Layer {
             Layer::Shingles => "shingles",
             Layer::ShinglesTar => "shingles_tar",
             Layer::Trim => "trim",
-            Layer::Door => "door_oak",
-            Layer::DoorB => "door_dark",
+            Layer::Door => "door",
+            Layer::DoorB => "door_b",
             Layer::TimberGrey => "timber_grey",
             Layer::ChurchBoards => "church_boards",
             Layer::Ruin => "ruin",
             Layer::WallStone => "wall_stone",
             Layer::Flagstone => "flagstone",
-            Layer::Pebbles => "pebbles",
+            Layer::Gravel => "gravel",
             Layer::Chimney => "chimney",
+            Layer::Snow => "snow",
+            Layer::OakPlaned => "oak_planed",
         }
     }
 }
 
-/// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0];
+/// Meter per teksturflis for hvert lag (når bildet ikke sier det).
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

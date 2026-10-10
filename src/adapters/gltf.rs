@@ -23,64 +23,9 @@ macro_rules! models {
 }
 
 models! {
-    // Dyrene fra tools/models/animals.py: kroppen har origo i bakken under
-    // midten, beina i hofteleddet (domain/herd.rs poserer dem).
-    "sheep_body" => "animals/sheep_body.glb",
-    "sheep_leg" => "animals/sheep_leg.glb",
-    "cow_body" => "animals/cow_body.glb",
-    "cow_leg_front" => "animals/cow_leg_front.glb",
-    "cow_leg_hind" => "animals/cow_leg_hind.glb",
-    // Trærne og buskene fra tools/models/trees.py: stammen med bakt bark,
-    // og bladverket som kort (to modeller med samme origo).
-    // Gresstustene fra tools/models/grass.py (kort med eierens strå).
-    "grass_a" => "trees/grass_a.glb",
-    "grass_b" => "trees/grass_b.glb",
-    "grass_c" => "trees/grass_c.glb",
-    "grass_d" => "trees/grass_d.glb",
-    "flowers_a" => "trees/flowers_a.glb",
-    "flowers_b" => "trees/flowers_b.glb",
-    "flowers_c" => "trees/flowers_c.glb",
-    "flowers_d" => "trees/flowers_d.glb",
-    "oak1_trunk" => "trees/oak1_trunk.glb",
-    "oak1_leaves" => "trees/oak1_leaves.glb",
-    "oak2_trunk" => "trees/oak2_trunk.glb",
-    "oak2_leaves" => "trees/oak2_leaves.glb",
-    "birch1_trunk" => "trees/birch1_trunk.glb",
-    "birch1_leaves" => "trees/birch1_leaves.glb",
-    "spruce1_trunk" => "trees/spruce1_trunk.glb",
-    "spruce1_needles" => "trees/spruce1_needles.glb",
-    "spruce2_trunk" => "trees/spruce2_trunk.glb",
-    "spruce2_needles" => "trees/spruce2_needles.glb",
-    "bush1_trunk" => "trees/bush1_trunk.glb",
-    "bush1_leaves" => "trees/bush1_leaves.glb",
-    "bush2_trunk" => "trees/bush2_trunk.glb",
-    "bush2_leaves" => "trees/bush2_leaves.glb",
-    // Pynten i kjelleren (tools/models/gorvek.py og house.py).
-    "gorvek_chest" => "gorvek/chest.glb",
-    "gorvek_keg" => "gorvek/keg.glb",
-    "gorvek_torch" => "gorvek/torch.glb",
-    "gorvek_skull" => "gorvek/skull.glb",
-    "door_lamp" => "house/door_lamp.glb",
-    // Fiendene og lootet i kjelleren fra tools/models/mobs.py.
-    "mutant_button" => "mobs/mutant_button.glb",
-    "mutant_tooltip" => "mobs/mutant_tooltip.glb",
-    "mutant_input" => "mobs/mutant_input.glb",
-    "mutant_modal" => "mobs/mutant_modal.glb",
-    "mutant_table" => "mobs/mutant_table.glb",
-    "framework" => "mobs/framework.glb",
-    "token" => "mobs/token.glb",
-    "bolt" => "mobs/bolt.glb",
-    "key" => "mobs/key.glb",
-    // Spillerens armer fra tools/models/arms.py, i kamerarommet (origo i
-    // øyet, −Z fram), og våpnene og skjoldene i armenes rom.
-    "arms" => "arms/arms.glb",
-    "sword" => "arms/sword.glb",
-    "axe" => "arms/axe.glb",
-    "dagger" => "arms/dagger.glb",
-    "shield_round" => "arms/shield_round.glb",
-    "shield_tower" => "arms/shield_tower.glb",
-    // Husene i kjøpstaden fra tools/models/town.py: teksturlag i meter-uv
-    // og bakt okklusjon i hjørnefargen; døra mot +Z, origo midt på grunnflaten.
+    // Husene fra tools/models/houses.py (byggesettet i kit.py): teksturlag i
+    // meter-uv og bakt okklusjon i hjørnefargen; døra mot +Z, origo midt på
+    // grunnflaten. Småbyggene på gårdene fra yard.py.
     "house_a" => "town/house_a.glb",
     "house_b" => "town/house_b.glb",
     "house_c" => "town/house_c.glb",
@@ -107,11 +52,12 @@ models! {
     "haystack" => "town/haystack.glb",
     "garden" => "town/garden.glb",
     "coop" => "town/coop.glb",
-    // Bymuren fra tools/models/walls.py: segment, hjørnetårn og porthus.
+    // Bymuren fra tools/models/fortress.py: segment, hjørnetårn og porthus.
     "town_wall" => "town/town_wall.glb",
     "wall_tower" => "town/wall_tower.glb",
     "gatehouse" => "town/gatehouse.glb",
-    // Torget fra tools/models/props.py.
+    // Gatelivet fra tools/models/streetlife.py: torget, brønnene, veiskiltet,
+    // kista og lokket som åpnes (origo i hengslet).
     "market_cross" => "town/market_cross.glb",
     "market_stall" => "town/market_stall.glb",
     "market_stall_b" => "town/market_stall_b.glb",
@@ -121,39 +67,18 @@ models! {
     "lantern_post" => "town/lantern_post.glb",
     "training_dummy" => "town/training_dummy.glb",
     "weapon_rack" => "town/weapon_rack.glb",
-    // Gatelivet og landskapet fra tools/models/street.py.
     "well" => "town/well.glb",
-    "npc_smith" => "npc/npc_smith.glb",
-    "npc_innkeeper" => "npc/npc_innkeeper.glb",
-    "npc_apothecary" => "npc/npc_apothecary.glb",
-    "npc_clerk" => "npc/npc_clerk.glb",
-    "npc_gorvek" => "npc/npc_gorvek.glb",
-    "npc_woman" => "npc/npc_woman.glb",
-    // Portalen ved sørporten (tools/models/portal.py).
-    "portal_ring" => "town/portal_ring.glb",
-    "portal_runes" => "town/portal_runes.glb",
-    "portal_swirl" => "town/portal_swirl.glb",
-    "portal_shard" => "town/portal_shard.glb",
-    "npc_farmer" => "npc/npc_farmer.glb",
-    "npc_boy" => "npc/npc_boy.glb",
-    "npc_guard" => "npc/npc_guard.glb",
-    "npc_merchant" => "npc/npc_merchant.glb",
-    "npc_pilgrim" => "npc/npc_pilgrim.glb",
     "well_winch" => "town/well_winch.glb",
     "well_rope" => "town/well_rope.glb",
     "well_bucket" => "town/well_bucket.glb",
-    "wattle_fence" => "town/wattle_fence.glb",
     "woodpile" => "town/woodpile.glb",
-    "stone_wall" => "town/stone_wall.glb",
-    "boulder_a" => "town/boulder_a.glb",
-    "boulder_b" => "town/boulder_b.glb",
-    "boulder_c" => "town/boulder_c.glb",
-    // Veiskiltet til krypten.
     "signpost" => "town/signpost.glb",
-    // Kista i kjelleren og lokket som åpnes (origo i hengslet).
     "chest" => "town/chest.glb",
     "chest_lid" => "town/chest_lid.glb",
-    // Bygningene på torget fra tools/models/buildings.py.
+    // Flettverksgjerdet fra tools/models/street.py.
+    "wattle_fence" => "town/wattle_fence.glb",
+    // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
+    // krypten (sacred.py).
     "forge" => "town/forge.glb",
     "forge_interior" => "town/forge_interior.glb",
     "tavern" => "town/tavern.glb",
@@ -167,54 +92,7 @@ models! {
     "scriptorium_interior" => "town/scriptorium_interior.glb",
     "stave_church" => "town/stave_church.glb",
     "stave_church_interior" => "town/stave_church_interior.glb",
-    "gravestone" => "town/gravestone.glb",
-    // Borgruinen, krypten, døra opp fra kjelleren og portgitteret fra
-    // tools/models/castle.py.
-    "castle_ruin" => "town/castle_ruin.glb",
     "crypt" => "town/crypt.glb",
-    "crypt_stair" => "town/crypt_stair.glb",
-    "portcullis" => "town/portcullis.glb",
-    // Kjelleren fra tools/models/dungeon.py: gangene, rommene, den tilmurte
-    // døra og vindeltrappa (origo i hjørnet av fotavtrykket, trappa i midten
-    // av tårncella; domain/world/dungeon.rs setter dem sammen).
-    "dng_hall_i" => "dungeon/dng_hall_i.glb",
-    "dng_hall_i2" => "dungeon/dng_hall_i2.glb",
-    "dng_hall_i3" => "dungeon/dng_hall_i3.glb",
-    "dng_hall_sewer" => "dungeon/dng_hall_sewer.glb",
-    "dng_hall_crypt" => "dungeon/dng_hall_crypt.glb",
-    "dng_hall_lava" => "dungeon/dng_hall_lava.glb",
-    "dng_hall_l" => "dungeon/dng_hall_l.glb",
-    "dng_hall_t" => "dungeon/dng_hall_t.glb",
-    "dng_hall_x" => "dungeon/dng_hall_x.glb",
-    "dng_hall_end" => "dungeon/dng_hall_end.glb",
-    "dng_seal" => "dungeon/dng_seal.glb",
-    "dng_shortcut" => "dungeon/dng_shortcut.glb",
-    "dng_shortcut_leaf" => "dungeon/dng_shortcut_leaf.glb",
-    "dng_spiral" => "dungeon/dng_spiral.glb",
-    "dng_start" => "dungeon/dng_start.glb",
-    "dng_gate" => "dungeon/dng_gate.glb",
-    "dng_landing" => "dungeon/dng_landing.glb",
-    "dng_hall" => "dungeon/dng_hall.glb",
-    "dng_long" => "dungeon/dng_long.glb",
-    "dng_cistern" => "dungeon/dng_cistern.glb",
-    "dng_gallery" => "dungeon/dng_gallery.glb",
-    "dng_chasm" => "dungeon/dng_chasm.glb",
-    "dng_chapel" => "dungeon/dng_chapel.glb",
-    "dng_treasury" => "dungeon/dng_treasury.glb",
-    "dng_arena" => "dungeon/dng_arena.glb",
-    // Pynten per etasje (dungeon::theme).
-    "dngp_shelf" => "dungeon/dngp_shelf.glb",
-    "dngp_sacks" => "dungeon/dngp_sacks.glb",
-    "dngp_banner" => "dungeon/dngp_banner.glb",
-    "dngp_moss" => "dungeon/dngp_moss.glb",
-    "dngp_puddle" => "dungeon/dngp_puddle.glb",
-    "dngp_roots" => "dungeon/dngp_roots.glb",
-    "dngp_skulls" => "dungeon/dngp_skulls.glb",
-    "dngp_bonepile" => "dungeon/dngp_bonepile.glb",
-    "dngp_lava" => "dungeon/dngp_lava.glb",
-    "dngp_embers" => "dungeon/dngp_embers.glb",
-    // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
-    "npc" => "npc/npc.glb",
 }
 
 /// Modellene som er med, lest ved behov.

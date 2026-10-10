@@ -92,7 +92,7 @@ def outside(p, rng):
     for x in (sx0 + 0.1, sx1 - 0.1):
         stick("sign_chain", (x, py, 2.68), (x, py, 2.42), 0.02, 0.02, p.iron)
     sz = 2.15
-    box("sign_board", (sx0, py - 0.04, sz - 0.27), (sx1, py + 0.04, sz + 0.27), layer("floor", (0.55, 0.4, 0.32)), bevel=0.03)
+    box("sign_board", (sx0, py - 0.04, sz - 0.27), (sx1, py + 0.04, sz + 0.27), layer("planks", (0.55, 0.4, 0.32)), bevel=0.03)
     stick("sign_rim", (sx0 - 0.03, py - 0.05, sz + 0.27), (sx1 + 0.03, py - 0.05, sz + 0.27), 0.05, 0.05, p.trim, ("trim", ROPE))
     stick("sign_rim", (sx0 - 0.03, py - 0.05, sz - 0.27), (sx1 + 0.03, py - 0.05, sz - 0.27), 0.05, 0.05, p.trim, ("trim", ROPE))
     # Malte gule bokstaver (smijernet ble for mørkt mot bordet).

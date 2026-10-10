@@ -321,7 +321,7 @@ def shelf(p, cx, cy, z, w, h, yaw, rng, rows=5, depth=0.36, fill=True):
     """Bokhylle med fronten mot lokal −y, dreid `yaw` og satt i (cx, cy, z):
     rygg, sider, hyllebord, krone og bøker."""
     before = len(PIECES)
-    wood = layer("floor", (0.72, 0.56, 0.46))
+    wood = layer("oak_planed", (0.8, 0.66, 0.56))
     box("shelf_back", (-w / 2, depth / 2 - 0.04, 0), (w / 2, depth / 2, h), wood, bevel=0)
     for sx in (-1, 1):
         box("shelf_side", (sx * w / 2 - 0.04, -depth / 2, 0), (sx * w / 2 + 0.04, depth / 2, h), wood, bevel=0.01)
@@ -356,7 +356,7 @@ def lectern_desk(p, cx, cy, z, yaw, rng, lit=True):
         pg = box("page", (0.0 if sx > 0 else -0.22, -0.15, 0.025), (0.22 if sx > 0 else 0.0, 0.15, 0.045), page, bevel=0.005)
         pg.rotation_euler = (-0.32, sx * -0.05, 0)
         pg.location = (0, 0, 1.0)
-    lathe("inkhorn", [(0.0, 0.0), (0.035, 0.0), (0.04, 0.09), (0.0, 0.09)], 6, (0.36, 0.26, 1.08), layer("metal", (0.4, 0.35, 0.3)))
+    lathe("inkhorn", [(0.0, 0.0), (0.035, 0.0), (0.04, 0.09), (0.0, 0.09)], 6, (0.36, 0.26, 1.08), layer("iron", (0.4, 0.35, 0.3)))
     stick("quill", (0.36, 0.26, 1.12), (0.32, 0.18, 1.36), 0.01, 0.03, page, bevel=0)
     # Krakken.
     lathe("stool", [(0.0, 0.44), (0.2, 0.44), (0.2, 0.5), (0.0, 0.5)], 8, (0, -0.7, 0), wood)
@@ -554,7 +554,7 @@ def scriptorium_outside(p, rng):
         stick("bell_beam", (bx - 0.55, byy + py * 0.88, bz + 1.35), (bx + 0.55, byy + py * 0.88, bz + 1.35), 0.12, 0.16, p.timber, ("timber", 2))
         stick("bell_brace", (bx - 0.42, byy + py * 0.95, bz + 0.1), (bx + 0.42, byy + py * 0.95, bz + 0.9), 0.08, 0.1, p.timber, ("timber", 3))
     stick("bell_yoke", (bx - 0.5, byy, bz + 1.3), (bx + 0.5, byy, bz + 1.3), 0.12, 0.14, p.timber, ("timber", 0))
-    lathe("bell", [(0.0, 0.0), (0.26, 0.0), (0.22, 0.08), (0.15, 0.4), (0.09, 0.52), (0.0, 0.54)], 10, (bx, byy, bz + 0.68), layer("metal", (0.75, 0.55, 0.3), 0.4))
+    lathe("bell", [(0.0, 0.0), (0.26, 0.0), (0.22, 0.08), (0.15, 0.4), (0.09, 0.52), (0.0, 0.54)], 10, (bx, byy, bz + 0.68), layer("iron", (0.75, 0.55, 0.3), 0.4))
     lathe("bell_roof", [(0.9, 0.0), (0.0, 0.95)], 4, (bx, byy, bz + 1.45), p.roof, a0=math.pi / 4)
     lathe("finial", [(0.05, 0.0), (0.03, 0.5), (0.0, 0.6)], 5, (bx, byy, bz + 2.35), p.iron)
     # Skiltet: en åpen bok på en smijernsarm ved døra.
@@ -852,7 +852,7 @@ def church_outside(p, rng):
     for inner, outer in ((((-0.6, -0.6), (0.6, -0.6)), ((-sk, -sk), (sk, -sk))), (((-0.6, 0.6), (0.6, 0.6)), ((-sk, sk), (sk, sk))), (((-0.6, -0.6), (-0.6, 0.6)), ((-sk, -sk), (-sk, sk))), (((0.6, -0.6), (0.6, 0.6)), ((sk, -sk), (sk, sk)))):
         skirt("turret_skirt", inner, outer, tz + 1.75, tz + 1.3, 0.1, shingle, n=2, sag=0.04, kick=0.08)
     box("belfry", (-0.48, -0.48, tz + 1.7), (0.48, 0.48, tz + 2.6), boards, bevel=0.02)
-    dark = layer("soot", (0.35, 0.3, 0.28))
+    dark = layer("stone", (0.35, 0.3, 0.28))
     for k in range(4):
         a = k * math.pi / 2
         c, s = math.cos(a), math.sin(a)
@@ -979,8 +979,8 @@ def church_inside(p, rng):
     by = C_ND / 2 - 0.25
     stick("rood_beam", (-C_NW / 2, by, 3.15), (C_NW / 2, by, 3.15), 0.22, 0.26, tar, ("timber", 2))
     cz = 3.28
-    gilt = layer("metal", (0.95, 0.72, 0.32), 0.35)
-    rood = layer("floor", (0.9, 0.7, 0.5))
+    gilt = layer("iron", (0.95, 0.72, 0.32), 0.35)
+    rood = layer("planks", (0.9, 0.7, 0.5))
     stick("cross_v", (0, by, cz), (0, by, cz + 1.7), 0.14, 0.1, rood, ("timber", 0))
     stick("cross_h", (-0.62, by, cz + 1.2), (0.62, by, cz + 1.2), 0.14, 0.1, rood, ("timber", 0))
     for e in ((0, by, cz + 1.7), (-0.62, by, cz + 1.2), (0.62, by, cz + 1.2)):
@@ -1078,7 +1078,7 @@ def crypt_model(rng):
         # En smal, mørk glugg midt på langsida.
         out = side
         sx = side * (W / 2 + 0.005)
-        box("slit", (sx - 0.04, yc - 0.13, 1.0), (sx + 0.04, yc + 0.13, 1.7), layer("soot", (0.18, 0.16, 0.15)), bevel=0)
+        box("slit", (sx - 0.04, yc - 0.13, 1.0), (sx + 0.04, yc + 0.13, 1.7), layer("stone", (0.18, 0.16, 0.15)), bevel=0)
         sfr = ((sx, yc - 1), (0, 1)) if side > 0 else ((sx, yc + 1), (0, -1))
         voussoirs(sfr, 1.0, 1.7, 0.13, 1, 0.0, stone, n=3, depth=0.16, proud=0.07, bevel=0.015)
         stick("slit_sill", (sx + out * 0.05, yc - 0.25, 0.96), (sx + out * 0.05, yc + 0.25, 0.96), 0.14, 0.1, stone, bevel=0.02)
@@ -1109,7 +1109,7 @@ def crypt_model(rng):
             a = at_wall(front, s + sx * (door_w / 2 + w / 2 - 0.02), -T / 2 - 0.05, z)
             box("jamb_stone", (a.x - w / 2, a.y - 0.08, z), (a.x + w / 2, a.y + 0.08, z + 0.38), stone, bevel=0.03)
     leaf = arched_leaf("door_leaf", door_w + 0.02, door_h + 0.01, 0.1, p.door_dark)
-    iron = layer("metal", (0.55, 0.52, 0.5), 0.45)
+    iron = layer("iron", (0.55, 0.52, 0.5), 0.45)
     parts = [leaf]
     for z in (0.35, 1.05, 1.75):
         parts.append(stick("door_band", (0.02, -0.07, z), (door_w - 0.0, -0.07, z), 0.03, 0.09, iron, bevel=0))
@@ -1204,8 +1204,8 @@ def two_part(name, outside_fn, inside_fn, paint):
 
 
 def scriptorium_paint():
-    p = kit.Paint(plaster="brick", timber="timber", roof="slate", plinth="wall_stone")
-    p.plaster = layer("brick", (1.0, 0.95, 0.88))
+    p = kit.Paint(plaster="ashlar", timber="timber", roof="slate", plinth="wall_stone")
+    p.plaster = layer("ashlar", (1.0, 0.95, 0.88))
     p.roof = layer("slate", (0.92, 0.95, 1.0))
     return p
 

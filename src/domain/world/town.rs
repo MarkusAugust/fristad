@@ -31,7 +31,7 @@ const YARD: (Vec2, Vec2) = (Vec2::new(9.0, -24.5), Vec2::new(4.0, 3.0));
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
-pub const FOUNDED: [&str; 9] = ["town_wall", "wall_tower", "gatehouse", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c", "signpost"];
+pub const FOUNDED: [&str; 5] = ["town_wall", "wall_tower", "gatehouse", "crypt", "signpost"];
 
 /// Det byen forteller resten av verden.
 pub struct Town {
@@ -1019,45 +1019,41 @@ const INNKEEPER: &[&str] = &[
     "Det kommer rare ting opp fra dypet om natta. Buttons med tenner.",
 ];
 
-/// Stavkirka på kirkegården nordvest i byen, med steingjerde og gravsteiner.
+/// Stavkirka på kirkegården nordvest i byen, med flettverksgjerde rundt.
+/// Gravene kommer med de nye modellene.
 fn church(b: &mut Builder) {
     // Stavkirka med portalen mot øst, mot veien.
     building(b, "stave_church", CHURCH, FRAC_PI_2);
-    // Kirkegården: lav steinmur rundt, med åpning mot veien i øst.
+    // Kirkegården: flettverksgjerde rundt, med åpning mot veien i øst.
     let (cx, cz, hx, hz) = terrain::YARD_FLAT;
     let (w, e, n, so) = (cx - hx + 1.0, cx + hx - 1.0, cz - hz + 1.0, cz + hz - 1.0);
-    let wall = |b: &mut Builder, a: Vec2, c: Vec2| super::nature::stone_wall(b, Vec3::new(a.x, 0.0, a.y), Vec3::new(c.x, 0.0, c.y), 0.0);
-    // Sørøsthjørnet skrås av, så muren går klar av porthuset ved
+    // Sørøsthjørnet skrås av, så gjerdet går klar av porthuset ved
     // nordporten (14 m bredt og 3 m ut fra bymuren).
     let (g, _) = gate(false);
     let cut = Vec2::new((g.x - 9.0).min(e - 3.0), so);
     let turn = Vec2::new(e, (g.y - 6.5).min(so));
-    wall(b, Vec2::new(w, n), Vec2::new(e, n));
-    wall(b, Vec2::new(w, so), cut);
-    wall(b, cut, turn);
-    wall(b, Vec2::new(w, n), Vec2::new(w, so));
-    wall(b, Vec2::new(e, n), Vec2::new(e, cz - 3.0));
-    wall(b, Vec2::new(e, cz + 3.0), turn);
-    // Gravene i ujevne rader over hele kirkegården, utenom kirka, krypten
-    // og stien fra åpningen i muren til kirkedøra.
-    let mut rng = Rng(0x0c4e_7e12);
-    for row in 0..8 {
-        for k in 0..8 {
-            if rng.chance(0.25) {
-                continue;
-            }
-            let p = Vec2::new(-27.0 + row as f32 * 2.4 + rng.range(-0.3, 0.3), -58.0 + k as f32 * 2.2 + rng.range(-0.3, 0.3));
-            let in_church = (p.x - CHURCH.x).abs() < 8.5 && (p.y - CHURCH.y).abs() < 6.0;
-            let at_crypt = p.distance(CRYPT) < 5.5 || (p.x > CRYPT.x - 2.0 && (p.y - CRYPT.y).abs() < 4.0);
-            let on_path = (p.y - CHURCH.y).abs() < 2.0 && p.x > CHURCH.x;
-            if in_church || at_crypt || on_path || p.x > e - 1.5 || p.y > so - 1.5 {
-                continue;
-            }
-            let g = b.on_ground(Vec3::new(p.x, 0.0, p.y));
-            let yaw = FRAC_PI_2 + rng.range(-0.15, 0.15);
-            if b.place("gravestone", at(g, yaw)) {
-                b.solid_box(g + Vec3::Y * 0.45, Vec3::new(0.6, 0.9, 0.2), yaw);
-            }
+    fence(b, Vec2::new(w, n), Vec2::new(e, n));
+    fence(b, Vec2::new(w, so), cut);
+    fence(b, cut, turn);
+    fence(b, Vec2::new(w, n), Vec2::new(w, so));
+    fence(b, Vec2::new(e, n), Vec2::new(e, cz - 3.0));
+    fence(b, Vec2::new(e, cz + 3.0), turn);
+}
+
+/// Et rett flettverksgjerde fra `a` til `c`: modellene er 2 m lange (lokal
+/// x langs gjerdet) og strekkes litt så de møtes.
+fn fence(b: &mut Builder, a: Vec2, c: Vec2) {
+    let n = (a.distance(c) / 2.0).ceil().max(1.0) as usize;
+    for k in 0..n {
+        let (p0, p1) = (a.lerp(c, k as f32 / n as f32), a.lerp(c, (k + 1) as f32 / n as f32));
+        let q = (p0 + p1) * 0.5;
+        let along = p1 - p0;
+        let fy = (-along.y).atan2(along.x);
+        // Stavene går 25 cm ned i bakken.
+        let base = Vec3::new(q.x, highest(b, q, 0.7), q.y);
+        let t = at(base, fy) * Affine3A::from_scale(Vec3::new((along.length() + 0.08) / 2.0, 1.0, 1.0));
+        if b.place("wattle_fence", t) {
+            b.solid_box(base + Vec3::Y * 0.5, Vec3::new(along.length(), 1.0, 0.15), fy);
         }
     }
 }
@@ -1416,10 +1412,6 @@ pub const PORTAL_SOLIDS: [(Vec3, Vec3); 4] = [
 ];
 
 fn portal(b: &mut Builder, spawn: Vec3) {
-    if !b.has_model(PORTAL_RING) {
-        log::warn!("Modellen {PORTAL_RING} mangler, ingen portal");
-        return;
-    }
     let _ = spawn;
     let at = PORTAL_AT;
     let base = b.on_ground(Vec3::new(at.x, 0.0, at.y));
@@ -1427,11 +1419,15 @@ fn portal(b: &mut Builder, spawn: Vec3) {
     let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(FRAC_PI_2), base);
     log::debug!("Portalen står ved {:.1}, {:.1}", base.x, base.z);
     b.target(Use::Portal, pose, Vec3::new(0.0, PORTAL_CENTER, 0.0), Vec3::new(PORTAL_RADIUS * 0.85, PORTAL_RADIUS * 0.85, 0.12));
-    b.reserve(PORTAL_RING, 1);
-    let [runes, swirl, shard] = PORTAL_PARTS;
-    b.reserve(runes, 1);
-    b.reserve(swirl, 2);
-    b.reserve(shard, PORTAL_SHARDS);
+    // Ringen og virvelen er slettet til de nye modellene kommer; da står
+    // portalen der usynlig, men virker.
+    if b.has_model(PORTAL_RING) {
+        b.reserve(PORTAL_RING, 1);
+        let [runes, swirl, shard] = PORTAL_PARTS;
+        b.reserve(runes, 1);
+        b.reserve(swirl, 2);
+        b.reserve(shard, PORTAL_SHARDS);
+    }
 }
 
 /// Splintene som svever rundt den åpne portalen.

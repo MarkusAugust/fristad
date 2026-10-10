@@ -24,6 +24,8 @@ Bestemt med eieren 10. oktober 2026: alle de gamle teksturene og modellene skal 
 
 ## Det som slettes
 
+**Gjort 10. oktober (grenen `rydd/gamle`):** alle de gamle modellene og teksturene er slettet (se CLAUDE.md, «Rydding»), og lagene er byttet til de malte (`oak`→`planks`/`timber`, `metal`→`iron`, `grass`→`meadow`, `plywood`→`forest_floor`, `straw`→`straw_floor`, `pebbles`→`gravel`, søla heter `mud`, `brick`→`ashlar`, `door_oak`/`door_dark`→`door`/`door_b`; nye `fur`, `chainmail`, `felt`, `gambeson`, `snow` og `oak_planed` til bordplatene). `npc.py` og `people.py` står til de nye figurene er ferdige (`folk.py` bruker `people`); `town.py` står fordi byggesettet bruker hjelperne der. Mangler til de nye modellene kommer: innbyggerne og byfolket, fiendene og bossen, armene og våpnene, dyrene, trærne, gresset og blomstene, gravene, portalringen og kjelleren.
+
 **Modellene:**
 - `castle_ruin`, `crypt_stair` og `portcullis` fra `castle.py`. Kjellerens dør og gitter lages på nytt i kryptens byggesett.
 - `assets/models/dungeon/` og `tools/models/dungeon.py`. Dette erstattes av `tools/crypt/`.

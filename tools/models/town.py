@@ -74,10 +74,10 @@ class M:
     def __init__(self, plaster_tint=(0.42, 0.4, 0.37), timber_tint=(1.0, 1.0, 1.0), roof="tiles"):
         self.stone = layer("stone", (0.5, 0.48, 0.45), 0.5)
         self.plaster = layer("plaster", plaster_tint, 0.5)
-        self.timber = layer("oak", timber_tint, 0.5)
+        self.timber = layer("timber", timber_tint, 0.5)
         self.boards = layer("cladding", (0.6, 0.57, 0.53), 0.5)
         self.roof = layer(roof, (0.62, 0.62, 0.6) if roof == "slate" else (1.0, 1.0, 1.0), 0.5)
-        self.iron = layer("metal", (0.55, 0.5, 0.48), 0.5)
+        self.iron = layer("iron", (0.55, 0.5, 0.48), 0.5)
         self.glass = plain("glass", (0.05, 0.06, 0.06), 0.05)
 
 

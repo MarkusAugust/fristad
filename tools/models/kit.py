@@ -34,10 +34,10 @@ FLAT = {
     "plaster": 0xF0D9A4, "plaster_white": 0xF2EBD8, "plaster_red": 0xC9654A, "plaster_old": 0xE6D2A2,
     "timber": 0x5C3A22, "timber_grey": 0x857F74, "thatch": 0xE2AE48, "shingles": 0xA9673A, "shingles_tar": 0x3E2C22,
     "slate": 0x55647C, "tiles": 0xC2563A, "stone": 0x9C9080, "wall_stone": 0x8E8A84, "ruin": 0x8A8676,
-    "brick": 0xD4B67C, "floor": 0xA4683A, "trim": 0x6E4628, "metal": 0x3C3C44, "door_oak": 0x8C5630,
-    "door_dark": 0x4C3222, "weatherboard": 0x9C6C40, "weatherboard_grey": 0x9A948A, "cladding": 0x4C3628,
-    "logs": 0x9C6434, "wattle": 0x8C7048, "straw": 0xD8B262, "flagstone": 0xA29686, "linen": 0xE0D4B8,
-    "wool": 0xE8E0D0, "leather": 0x7C4C30, "soot": 0x403A36, "cobble": 0x9A9080, "sod": 0x6E8A3A, "chimney": 0x9A5440,
+    "ashlar": 0xD4B67C, "planks": 0xA4683A, "oak_planed": 0xB07848, "trim": 0x6E4628, "iron": 0x3C3C44, "door": 0x8C5630,
+    "door_b": 0x4C3222, "weatherboard": 0x9C6C40, "weatherboard_grey": 0x9A948A, "cladding": 0x4C3628,
+    "logs": 0x9C6434, "wattle": 0x8C7048, "straw_floor": 0xD8B262, "flagstone": 0xA29686, "linen": 0xE0D4B8,
+    "wool": 0xE8E0D0, "leather": 0x7C4C30, "cobble": 0x9A9080, "sod": 0x6E8A3A, "chimney": 0x9A5440,
 }
 
 
@@ -69,15 +69,17 @@ class Paint:
         self.timber = layer(timber)
         self.roof = layer(roof)
         self.stone = layer(plinth)
-        self.floor = layer("floor")
+        self.floor = layer("planks")
+        # Høvlet eik til bordplater og møbler.
+        self.oak = layer("oak_planed")
         self.trim = layer("trim")
-        self.iron = layer("metal", rough=0.45)
-        self.door = layer("door_oak")
-        self.door_dark = layer("door_dark")
+        self.iron = layer("iron", rough=0.45)
+        self.door = layer("door")
+        self.door_dark = layer("door_b")
         self.boards = layer("weatherboard")
         self.cladding = layer("cladding")
         self.flag = layer("flagstone")
-        self.straw = layer("straw")
+        self.straw = layer("straw_floor")
         self.wall_stone = layer("wall_stone")
         self.glass = plain("glass", (0.05, 0.06, 0.06), 0.05)
         self.fire = plain("fire_hearth", (1.0, 0.55, 0.2), 0.5)
@@ -600,7 +602,7 @@ def stairs(p, x0, x1, a, b, z0, z1, n, along="y", rails=(), mat=None):
 def table(p, x, y, z, w, d, h=0.78, yaw=0.0, collide_it=True):
     """Bord med plate av planker og fire ben."""
     c = Vector((x, y, z))
-    top = box("table_top", (-w / 2, -d / 2, h - 0.07), (w / 2, d / 2, h), p.floor, bevel=0.02)
+    top = box("table_top", (-w / 2, -d / 2, h - 0.07), (w / 2, d / 2, h), p.oak, bevel=0.02)
     legs = []
     for sx in (-1, 1):
         for sy in (-1, 1):
@@ -612,7 +614,7 @@ def table(p, x, y, z, w, d, h=0.78, yaw=0.0, collide_it=True):
 
 
 def bench(p, x, y, z, w, yaw=0.0, collide_it=True):
-    top = box("bench_top", (-w / 2, -0.17, 0.4), (w / 2, 0.17, 0.46), p.floor, bevel=0.015)
+    top = box("bench_top", (-w / 2, -0.17, 0.4), (w / 2, 0.17, 0.46), p.oak, bevel=0.015)
     legs = [box("bench_leg", (sx * (w / 2 - 0.15) - 0.05, -0.14, 0), (sx * (w / 2 - 0.15) + 0.05, 0.14, 0.4), p.timber, bevel=0.01) for sx in (-1, 1)]
     for ob in [top] + legs:
         _place(ob, Vector((x, y, z)), yaw)
@@ -621,7 +623,7 @@ def bench(p, x, y, z, w, yaw=0.0, collide_it=True):
 
 
 def stool(p, x, y, z):
-    box("stool_top", (x - 0.18, y - 0.18, z + 0.42), (x + 0.18, y + 0.18, z + 0.48), p.floor, bevel=0.015)
+    box("stool_top", (x - 0.18, y - 0.18, z + 0.42), (x + 0.18, y + 0.18, z + 0.48), p.oak, bevel=0.015)
     for sx in (-1, 1):
         for sy in (-1, 1):
             stick("stool_leg", (x + sx * 0.12, y + sy * 0.12, z), (x + sx * 0.1, y + sy * 0.1, z + 0.43), 0.045, 0.045, p.timber, ("timber", 0))
