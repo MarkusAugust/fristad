@@ -37,7 +37,7 @@ FLAT = {
     "brick": 0xD4B67C, "floor": 0xA4683A, "trim": 0x6E4628, "metal": 0x3C3C44, "door_oak": 0x8C5630,
     "door_dark": 0x4C3222, "weatherboard": 0x9C6C40, "weatherboard_grey": 0x9A948A, "cladding": 0x4C3628,
     "logs": 0x9C6434, "wattle": 0x8C7048, "straw": 0xD8B262, "flagstone": 0xA29686, "linen": 0xE0D4B8,
-    "wool": 0xE8E0D0, "leather": 0x7C4C30, "soot": 0x403A36, "cobble": 0x9A9080, "sod": 0x6E8A3A,
+    "wool": 0xE8E0D0, "leather": 0x7C4C30, "soot": 0x403A36, "cobble": 0x9A9080, "sod": 0x6E8A3A, "chimney": 0x9A5440,
 }
 
 
@@ -543,7 +543,7 @@ def chimney(p, x, y, z0, z1, w=1.1, smoke=0.8, lean=4.0):
     bm.faces.new(rows[0][::-1])
     bm.faces.new(rows[-1])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    ob = _object("chimney", bm, p.stone)
+    ob = _object("chimney", bm, layer("chimney"))
     _bevel(ob, 0.06)
     town.uv_box(ob)
     cw = w * 0.8

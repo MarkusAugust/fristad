@@ -107,15 +107,17 @@ pub enum Layer {
     Flagstone = 43,
     /// Grus på gangveier (malt).
     Pebbles = 44,
+    /// Pipene: små, flate murstein og skifer (malt).
+    Chimney = 45,
 }
 /// Høyst 48: `tex_scale` i `Globals` har plass til 12 × 4.
-pub const LAYERS: u32 = 45;
+pub const LAYERS: u32 = 46;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
         Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Brick,
         Layer::Oak, Layer::Metal, Layer::Grass, Layer::Bark, Layer::Gravel, Layer::Concrete, Layer::Timber, Layer::Plywood, Layer::Rock, Layer::Snow, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather, Layer::CryptWall, Layer::Straw, Layer::Floor, Layer::Soot,
-        Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle, Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin, Layer::WallStone, Layer::Flagstone, Layer::Pebbles,
+        Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle, Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin, Layer::WallStone, Layer::Flagstone, Layer::Pebbles, Layer::Chimney,
     ];
     /// Navnet i `assets/external/manifest.json`.
     pub fn name(self) -> &'static str {
@@ -165,12 +167,13 @@ impl Layer {
             Layer::WallStone => "wall_stone",
             Layer::Flagstone => "flagstone",
             Layer::Pebbles => "pebbles",
+            Layer::Chimney => "chimney",
         }
     }
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 1.2, 2.0, 2.0, 1.2, 2.4, 30.0, 6.0, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {
