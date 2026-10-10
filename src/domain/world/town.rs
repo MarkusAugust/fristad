@@ -1038,14 +1038,21 @@ fn church(b: &mut Builder) {
     wall(b, Vec2::new(w, n), Vec2::new(w, so));
     wall(b, Vec2::new(e, n), Vec2::new(e, cz - 3.0));
     wall(b, Vec2::new(e, cz + 3.0), turn);
-    // Gravene i ujevne rader mellom kirka og krypten.
+    // Gravene i ujevne rader over hele kirkegården, utenom kirka, krypten
+    // og stien fra åpningen i muren til kirkedøra.
     let mut rng = Rng(0x0c4e_7e12);
-    for row in 0..4 {
-        for k in 0..5 {
-            if rng.chance(0.2) {
+    for row in 0..8 {
+        for k in 0..8 {
+            if rng.chance(0.25) {
                 continue;
             }
-            let p = Vec2::new(-15.5 + row as f32 * 2.4 + rng.range(-0.3, 0.3), -58.0 + k as f32 * 2.2 + rng.range(-0.3, 0.3));
+            let p = Vec2::new(-27.0 + row as f32 * 2.4 + rng.range(-0.3, 0.3), -58.0 + k as f32 * 2.2 + rng.range(-0.3, 0.3));
+            let in_church = (p.x - CHURCH.x).abs() < 8.5 && (p.y - CHURCH.y).abs() < 6.0;
+            let at_crypt = p.distance(CRYPT) < 5.5 || (p.x > CRYPT.x - 2.0 && (p.y - CRYPT.y).abs() < 4.0);
+            let on_path = (p.y - CHURCH.y).abs() < 2.0 && p.x > CHURCH.x;
+            if in_church || at_crypt || on_path || p.x > e - 1.5 || p.y > so - 1.5 {
+                continue;
+            }
             let g = b.on_ground(Vec3::new(p.x, 0.0, p.y));
             let yaw = FRAC_PI_2 + rng.range(-0.15, 0.15);
             if b.place("gravestone", at(g, yaw)) {
