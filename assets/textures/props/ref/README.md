@@ -11,3 +11,7 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `apothecary` | krukkehylle, morter, skålvekt, urtebunter, skrivepult, bokstabel, rullestativ, lesepult med lenkebok og lysestake |
 | `textiles` | ryer, lappeteppe, saueskinn, stripet veggteppe, billedvev med hjort, duk og tre faner (rød med kors, blå med løve, grønn med tre). Fanene og veggteppene henger nesten rett forfra og kan skjæres ut som bilder. |
 | `workshop` | ambolt på stubbe, esse med blåsebelg, tangstativ, kjølekar, slipestein, høvelbenk, verktøybrett, jernstenger og hesteskorekke |
+| `dng_grav` | sarkofag med ridder, knust kiste med bein, hodeskallehaug, lysklynge, kandelaber, urne, gravnisje med lik, offerkiste og veltet gravstein |
+| `dng_kloakk` | rist over sluk, utløpsrør, sluseluke med hjul, halvsunket tønne, slimet søppel, plankegang, rusten kjetting, mosegrodd søyle i vann og rotterede |
+| `dng_gruve` | malmvogn, rett og buet skinne, tømmerstiver, vinsj, gruvelykt, malmhaug, hakke og spade, krystallklynge (stalagmittene mangler) |
+| `dng_mekanikk` | spak, gitter, eikedør med slå, fallem, stige, trykkplate, pilhull, pendel og hvilestedet (alter med lysestake) |
