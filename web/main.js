@@ -497,10 +497,10 @@ let mapData = null;
 let mapWhere = null;
 let bigMapOpen = false;
 function setMap(m) {
-  mapData = m && { ...m, cells: Array.from(m.cells, (c) => parseInt(c, 16)), seen: Array.from(m.seen, (s) => s === "1") };
+  mapData = m;
   $("minimap").hidden = !mapData;
   if (!mapData) toggleBigMap(false);
-  else $("map-name").textContent = `Etasje ${m.floor + 1} · ${m.name.replace(/^\d+: /, "")}`;
+  else $("map-name").textContent = `Nivå ${m.level} · ${m.name}`;
   drawMaps();
 }
 function toggleBigMap(on = !bigMapOpen) {
@@ -508,7 +508,8 @@ function toggleBigMap(on = !bigMapOpen) {
   $("bigmap").hidden = !bigMapOpen;
   drawMaps();
 }
-const MAP_COLORS = { floor: "#6b5a44", wall: "#e8d9b8", player: "#ffd75e", exit: "#4cc3ff", gate: "#c9a24a", gate_open: "#7d6a3c", chest: "#e8b84a", ascend: "#9be08a", boss: "#e0483a", shortcut: "#b08a5a" };
+const MAP_COLORS = { floor: "#6b5a44", wall: "#e8d9b8", player: "#ffd75e", exit: "#4cc3ff", gate: "#c9a24a", gate_open: "#7d6a3c", chest: "#e8b84a", ascend: "#9be08a", boss: "#e0483a", shortcut: "#b08a5a", lever: "#d9d0c0", lever_pulled: "#8a8070", rest: "#f0c060", rest_lit: "#ffe08a" };
+// Kartet er rommene du har sett (omrisset ovenfra, x og z i meter).
 function drawMap(canvas, rotate, metres) {
   const dpr = window.devicePixelRatio || 1;
   const css = canvas.getBoundingClientRect();
@@ -520,10 +521,12 @@ function drawMap(canvas, rotate, metres) {
   ctx.clearRect(0, 0, w, w);
   const m = mapData;
   if (!m) return;
-  const n = m.n;
-  const cs = m.cell;
-  const [ox, oz] = m.origin;
-  const me = mapWhere ?? { x: ox + (n * cs) / 2, z: oz + (n * cs) / 2, yaw: 0 };
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const poly of m.rooms) for (const [x, z] of poly) {
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+  }
+  if (x0 === Infinity) { x0 = -10; x1 = 10; z0 = -10; z1 = 10; }
+  const me = mapWhere ?? { x: (x0 + x1) / 2, z: (z0 + z1) / 2, yaw: 0 };
   // Verden (x, z) til skjermen: dreid så fram er opp, eller nord opp med
   // hele det oppdagede kartet.
   let a, b, c, d, e, f;
@@ -534,18 +537,11 @@ function drawMap(canvas, rotate, metres) {
     e = w / 2 - (a * me.x + c * me.z);
     f = w / 2 - (b * me.x + d * me.z);
   } else {
-    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (let i = 0; i < n * n; i++) {
-      if (!m.seen[i] || !m.cells[i]) continue;
-      const ix = i % n, iz = Math.floor(i / n);
-      x0 = Math.min(x0, ix); x1 = Math.max(x1, ix + 1); z0 = Math.min(z0, iz); z1 = Math.max(z1, iz + 1);
-    }
-    if (x0 === Infinity) { x0 = 0; x1 = n; z0 = 0; z1 = n; }
-    const span = Math.max(x1 - x0, z1 - z0, 8) * cs * 1.1;
+    const span = Math.max(x1 - x0, z1 - z0, 20) * 1.1;
     const s = w / span;
     a = s; b = 0; c = 0; d = s;
-    e = w / 2 - s * (ox + ((x0 + x1) / 2) * cs);
-    f = w / 2 - s * (oz + ((z0 + z1) / 2) * cs);
+    e = w / 2 - s * ((x0 + x1) / 2);
+    f = w / 2 - s * ((z0 + z1) / 2);
   }
   const at = (x, z) => [a * x + c * z + e, b * x + d * z + f];
   ctx.save();
@@ -556,29 +552,23 @@ function drawMap(canvas, rotate, metres) {
   }
   ctx.setTransform(a, b, c, d, e, f);
   ctx.fillStyle = MAP_COLORS.floor;
-  for (let i = 0; i < n * n; i++) {
-    if (!m.seen[i] || !m.cells[i]) continue;
-    const ix = i % n, iz = Math.floor(i / n);
-    ctx.fillRect(ox + ix * cs - 0.02, oz + iz * cs - 0.02, cs + 0.04, cs + 0.04);
-  }
-  // Murene: kantene der du ikke kan gå videre.
   ctx.strokeStyle = MAP_COLORS.wall;
-  ctx.lineWidth = rotate ? 0.45 : Math.max(0.3, 1.6 / Math.abs(a));
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  for (let i = 0; i < n * n; i++) {
-    const v = m.cells[i];
-    if (!m.seen[i] || !v) continue;
-    const ix = i % n, iz = Math.floor(i / n);
-    const x = ox + ix * cs, z = oz + iz * cs;
-    const west = ix > 0 ? m.cells[i - 1] : 0;
-    const north = iz > 0 ? m.cells[i - n] : 0;
-    if (!(v & 2)) { ctx.moveTo(x + cs, z); ctx.lineTo(x + cs, z + cs); }
-    if (!(v & 4)) { ctx.moveTo(x, z + cs); ctx.lineTo(x + cs, z + cs); }
-    if (!(west & 2)) { ctx.moveTo(x, z); ctx.lineTo(x, z + cs); }
-    if (!(north & 4)) { ctx.moveTo(x, z); ctx.lineTo(x + cs, z); }
+  ctx.lineWidth = rotate ? 0.3 : Math.max(0.2, 1.4 / Math.abs(a));
+  ctx.lineJoin = "round";
+  for (const poly of m.rooms) {
+    if (poly.length < 3) continue;
+    ctx.beginPath();
+    poly.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.closePath();
+    ctx.fill();
   }
-  ctx.stroke();
+  for (const poly of m.rooms) {
+    if (poly.length < 3) continue;
+    ctx.beginPath();
+    poly.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.closePath();
+    ctx.stroke();
+  }
   // Merkene og deg selv står rett opp, med fast størrelse.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const r = Math.max(4, w / (rotate ? 36 : 70));

@@ -35,65 +35,59 @@ struct Globals {
     // x skydekke, y nordlys, z lyn, w feilsøkingsvisning.
     sky: vec4<f32>,
     // Meter per flis for teksturlagene, 4 per vec4.
-    tex_scale: array<vec4<f32>, 12>,
+    tex_scale: array<vec4<f32>, 16>,
     palette: array<vec4<f32>, 64>,
     lights: array<Light, 48>,
     // Pipene som ryker: toppen (xyz) og tykkelsen (w), opptil 32.
     smoke: array<vec4<f32>, 32>,
-    // Kjellerens rutenett (40 × 40): hjørnet i x og z, gulvhøyden og
-    // cellestørrelsen (0 utenfor kjelleren); én byte per celle, fire per
-    // u32: bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z.
-    grid_info: vec4<f32>,
-    grid: array<vec4<u32>, 100>,
+    // Rommene i kryptnivået (lyset stoppes av murene): x antallet (0 oppe
+    // i byen); boksene (x0, z0, x1, z1); gulvet og taket, to rom per vec4;
+    // og rommene hvert lys lyser i, to u32 per lys og to lys per vec4.
+    room_info: vec4<f32>,
+    room_box: array<vec4<f32>, 64>,
+    room_y: array<vec4<f32>, 32>,
+    light_rooms: array<vec4<u32>, 24>,
 }
 
-fn grid_cell(ix: i32, iz: i32) -> u32 {
-    if (ix < 0 || iz < 0 || ix >= 40 || iz >= 40) {
-        return 0u;
+// Rommet et punkt er i: det minste rommet med en boks som rommer det, eller
+// −1 (inne i muren, eller oppe i byen).
+fn room_of(p: vec3<f32>) -> i32 {
+    let n = i32(g.room_info.x);
+    var best = -1;
+    var area = 1.0e9;
+    for (var i = 0; i < n; i++) {
+        let b = g.room_box[i];
+        let yy = g.room_y[i / 2];
+        let y = select(yy.xy, yy.zw, (i % 2) == 1);
+        if (p.x >= b.x && p.x <= b.z && p.z >= b.y && p.z <= b.w && p.y >= y.x - 0.3 && p.y <= y.y + 0.3) {
+            let a = (b.z - b.x) * (b.w - b.y);
+            if (a < area) {
+                area = a;
+                best = i;
+            }
+        }
     }
-    let i = u32(iz * 40 + ix);
-    let word = g.grid[i / 16u][(i / 4u) % 4u];
-    return (word >> ((i % 4u) * 8u)) & 255u;
+    return best;
 }
 
-// Om lyset i `light` når punktet `p` uten å gå gjennom en mur i kjelleren:
-// går cellene langs linja mellom dem (flatt) og sjekker hver kant.
-fn grid_lit(p: vec3<f32>, light: vec3<f32>) -> f32 {
-    let cell = g.grid_info.w;
-    if (cell <= 0.0) {
-        return 1.0;
+// Om lys nummer `k` lyser i rommet: i sitt eget og i rom med åpen
+// forbindelse. Utenfor alle rom lyser bare lyktene med alle bitene satt
+// (lykta du bærer). Oppe i byen lyser alt.
+fn light_reaches(k: i32, room: i32) -> bool {
+    if (g.room_info.x <= 0.0) {
+        return true;
     }
-    let a = (p.xz - g.grid_info.xy) / cell;
-    let b = (light.xz - g.grid_info.xy) / cell;
-    var c = vec2<i32>(floor(a));
-    let end = vec2<i32>(floor(b));
-    let d = b - a;
-    let stepv = vec2<i32>(select(-1, 1, d.x >= 0.0), select(-1, 1, d.y >= 0.0));
-    let inv = vec2<f32>(1.0 / max(abs(d.x), 1e-5), 1.0 / max(abs(d.y), 1e-5));
-    let fr = a - floor(a);
-    var t = vec2<f32>(select(fr.x, 1.0 - fr.x, d.x >= 0.0) * inv.x, select(fr.y, 1.0 - fr.y, d.y >= 0.0) * inv.y);
-    for (var k = 0; k < 8; k++) {
-        if (c.x == end.x && c.y == end.y) {
-            return 1.0;
-        }
-        if (t.x < t.y) {
-            // Over kanten i x: fri vei står i cella med lavest x.
-            let lo = select(c.x - 1, c.x, stepv.x > 0);
-            if ((grid_cell(lo, c.y) & 2u) == 0u) {
-                return 0.0;
-            }
-            c.x += stepv.x;
-            t.x += inv.x;
-        } else {
-            let lo = select(c.y - 1, c.y, stepv.y > 0);
-            if ((grid_cell(c.x, lo) & 4u) == 0u) {
-                return 0.0;
-            }
-            c.y += stepv.y;
-            t.y += inv.y;
-        }
+    let v = g.light_rooms[k / 2];
+    let odd = (k % 2) == 1;
+    let lo = select(v.x, v.z, odd);
+    let hi = select(v.y, v.w, odd);
+    if (room < 0) {
+        return lo == 0xffffffffu && hi == 0xffffffffu;
     }
-    return 1.0;
+    if (room < 32) {
+        return ((lo >> u32(room)) & 1u) == 1u;
+    }
+    return ((hi >> u32(room - 32)) & 1u) == 1u;
 }
 
 @group(0) @binding(0) var<uniform> g: Globals;

@@ -22,7 +22,7 @@ origo, så byen (`town.rs`) og kjelleren ikke må endres:
 - `woodpile`: vedstabel mellom to staker med tak og hoggestabbe.
 - `signpost`: veiskiltet til krypten (pila peker langs lokal +X).
 - `chest`, `chest_lid`: kista i kjelleren; lokket har origo i hengslet
-  (`dungeon::CHEST_HINGE`, bakre øvre kant).
+  (`crypt::CHEST_HINGE`, bakre øvre kant).
 
 Akser som i town.py: X til høyre, −Y fram, Z opp, origo midt på
 grunnflaten. Ingen kollidere her: byen setter dem selv."""

@@ -54,7 +54,7 @@ await page.evaluate(() => window.fristad.engine.descend());
 await page.waitForSelector("#minimap:not([hidden])", { timeout: 180000 });
 await page.waitForTimeout(8000);
 check(await page.isVisible("#minimap"), "minikartet står i hjørnet nede i kjelleren");
-check((await page.textContent("#map-name")).startsWith("Etasje 1"), `navnet på etasjen: ${await page.textContent("#map-name")}`);
+check((await page.textContent("#map-name")).startsWith("Nivå 1"), `navnet på nivået: ${await page.textContent("#map-name")}`);
 const lit = await page.evaluate(() => {
   const c = document.getElementById("minimap-canvas");
   const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;

@@ -7,8 +7,8 @@ pub const PALETTE: usize = 64;
 pub const MAX_LIGHTS: usize = 48;
 /// Pipene som ryker i hvert bilde (de nærmeste kameraet).
 pub const MAX_SMOKE: usize = 32;
-/// Rutenettet i kjelleren som rendereren får (celler per side).
-pub const GRID: usize = 40;
+/// Rommene i kryptnivået som rendereren får (lyset stoppes av murene).
+pub const MAX_ROOMS: usize = 64;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct Weather {
@@ -36,6 +36,8 @@ pub struct Light {
     pub always: bool,
     /// Flakker: 0 rolig, 1 slukker i rykk (lysrør som er i ferd med å ryke).
     pub flicker: f32,
+    /// Rommet i krypten lyset står i (nivå, rom), om noe.
+    pub room: Option<(u16, u16)>,
 }
 
 /// En modellinstans som flytter seg (dyrene): tegnes sammen med de faste
@@ -90,22 +92,23 @@ pub struct Frame {
     pub hurt: f32,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 okklusjon, 4 ruhet, 5 skygge.
     pub debug: u32,
-    /// Etasjen i kjelleren du er i, så lyset ikke går gjennom veggene:
-    /// hjørnet av celle (0, 0) i x og z, gulvhøyden, cellestørrelsen og én
-    /// byte per celle (bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z).
-    pub grid: Option<CellGrid>,
-    /// Høydene (y fra, til) som kan synes: byen ser ikke kjelleren under
-    /// seg, og en etasje i kjelleren ser ikke byen eller de andre etasjene.
+    /// Rommene i kryptnivået du er i, så lyset ikke går gjennom murene
+    /// (`None` oppe i byen).
+    pub rooms: Option<RoomLight>,
+    /// Høydene (y fra, til) som kan synes: byen ser ikke krypten under
+    /// seg, og et nivå i krypten ser ikke byen eller de andre nivåene.
     /// Det som ligger helt utenfor tegnes ikke, heller ikke i skyggene.
     pub band: (f32, f32),
 }
 
-#[derive(Clone, Debug)]
-pub struct CellGrid {
-    pub origin: Vec2,
-    pub floor_y: f32,
-    pub cell: f32,
-    pub bits: Vec<u8>,
+/// Rommene til lyset: hvert rom som en boks (hjørnene i x og z, gulvet og
+/// taket), og per lys i `Frame.lights` rommene det lyser i (én bit per rom).
+/// Et punkt hører til den minste boksen det er inne i; utenfor alle lyser
+/// bare lysene med alle bitene satt (lykta du bærer).
+#[derive(Clone, Debug, Default)]
+pub struct RoomLight {
+    pub boxes: Vec<(Vec2, Vec2, f32, f32)>,
+    pub masks: Vec<u64>,
 }
 
 /// Synsfeltet som seks plan, til å hoppe over biter som er utenfor.

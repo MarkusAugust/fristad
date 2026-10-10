@@ -556,16 +556,17 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     let env = mix(sky_gradient(r_blur), hemi, s.rough * 0.7) * 0.8;
     color += env * fres * ao * mix(0.6, 1.0, sh) * spec_k;
 
-    // Lyktene og lysene i vinduene.
+    // Lyktene og lysene i vinduene. I krypten lyser et lys bare i sitt rom
+    // og i rom med åpen forbindelse (punktet flyttes litt ut fra flaten, så
+    // muren hører til rommet den vender mot).
     let count = i32(g.params.y);
+    let room = room_of(i.world + n_geo * 0.35);
     for (var k = 0; k < count; k++) {
         let li = g.lights[k];
         let d = li.pos_radius.xyz - i.world;
         let dist = length(d);
         let rad = li.pos_radius.w;
-        // I kjelleren stopper murene lyset (punktet flyttes litt ut fra
-        // flaten, så muren ikke skygger for seg selv).
-        if (dist < rad && grid_lit(i.world + n_geo * 0.35, li.pos_radius.xyz) > 0.5) {
+        if (dist < rad && light_reaches(k, room)) {
             let ld = d / dist;
             let win = pow(clamp(1.0 - pow(dist / rad, 4.0), 0.0, 1.0), 2.0);
             let att = win / (dist * dist + 0.5);
@@ -729,6 +730,18 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         }
         if (kind == 8u) {
             s.metal = 0.6;
+        }
+        // Lysende sømmer (`layer_glitch_seam.magic`): det mettede i bildet
+        // gløder hele døgnet, og blokker på 25 cm blafrer og blinker digitalt.
+        if (glow == 3u) {
+            let hi = max(t.albedo.r, max(t.albedo.g, t.albedo.b));
+            let lo = min(t.albedo.r, min(t.albedo.g, t.albedo.b));
+            let seam = smoothstep(0.1, 0.32, hi - lo);
+            let time = g.camera.w;
+            let block = hash31(floor(i.world * 4.0) + vec3<f32>(floor(time * 7.0), 0.0, 0.0));
+            let blink = select(1.0, 0.15, block > 0.94);
+            let pulse = 0.75 + 0.25 * sin(time * 2.7 + dot(i.world, vec3<f32>(1.3, 0.7, 1.1)));
+            s.emissive = t.albedo * tint * seam * 3.0 * pulse * blink;
         }
     } else if (kind == K_TERRAIN) {
         // Okklusjonsbyten bærer andelen tråkket jord på bakken.

@@ -4,7 +4,7 @@
 //! kaller inn hit. Alt går gjennom den drivende porten (`Play`), og
 //! hendelsene går tilbake som JSON fra `frame()`.
 
-use crate::adapters::gltf::{Files, MODEL_FILES};
+use crate::adapters::gltf::{model_files, Files};
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
 use crate::application::{prepare, App};
@@ -53,7 +53,7 @@ pub fn asset_paths(manifest_json: &str) -> Vec<String> {
 /// av bygget), så nettleseren kan hente dem til `start` i samme rekkefølge.
 #[wasm_bindgen]
 pub fn model_paths() -> Vec<String> {
-    MODEL_FILES.iter().map(|(_, p)| p.to_string()).collect()
+    model_files().map(|(_, p)| p.to_string()).collect()
 }
 
 #[wasm_bindgen]
@@ -103,9 +103,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Warp => json!({"type": "warp"}),
         Event::Map(None) => json!({"type": "map", "map": null}),
         Event::Map(Some(m)) => json!({"type": "map", "map": {
-            "floor": m.floor, "name": m.name, "origin": m.origin, "cell": m.cell, "n": m.n,
-            "cells": m.cells.iter().map(|c| char::from_digit(*c as u32, 16).unwrap_or('0')).collect::<String>(),
-            "seen": m.seen.iter().map(|s| if *s { '1' } else { '0' }).collect::<String>(),
+            "level": m.level, "name": m.name, "rooms": m.rooms,
             "marks": m.marks.iter().map(|k| json!({"kind": k.kind, "x": k.x, "z": k.z})).collect::<Vec<_>>(),
         }}),
         Event::OpenDoc(c) => json!({"type": "open_doc", "component": c}),
@@ -171,7 +169,7 @@ impl Engine {
     /// Lageret og utstyret som JSON, til localStorage.
     pub fn save_state(&self) -> String {
         let d = self.app.save();
-        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found}).to_string()
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses}).to_string()
     }
 
     pub fn load_state(&mut self, json: &str) {
@@ -188,6 +186,7 @@ impl Engine {
             coins: v["coins"].as_u64().unwrap_or(0) as u32,
             // Gamle lagringer har ikke galleriet: da teller lageret alene.
             found: v["found"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
+            bonuses: v["bonuses"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
         };
         self.app.command(Command::Load(d));
     }

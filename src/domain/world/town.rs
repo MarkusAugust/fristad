@@ -1674,8 +1674,7 @@ pub fn town_dist(x: f32, z: f32) -> f32 {
     terrain::town_edge(x, z).min(yard).min(farm)
 }
 
-/// Stigen opp fra startrommet i kjelleren ligger i dungeon.rs; her er bare
-/// hvor torget er, til testene.
+/// Hvor torget er, til testene.
 pub fn square_center() -> Vec3 {
     terrain::at(Vec3::ZERO)
 }
