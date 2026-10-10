@@ -437,17 +437,21 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, t
         bm = bmesh.new()
         uvl = bm.loops.layers.uv.verify()
         g = {}
+        bm_pts = {}
         for i in range(n + 1):
             u = i / n
             x = xa + (xb - xa) * u
             dip = sag * math.sin(math.pi * u)
             # Tre rader nedover: mønet (som svaier litt), et knekkpunkt, og
             # takfoten som bretter seg ut (`kick`) og svaier mest i midten.
-            rows = ((0.0, 0.6, 0.0), (slope * 0.78, 0.9, 0.0), (slope, 1.0, kick))
+            # Knekken ligger rett over veggen, så svaien bare tar takskjegget
+            # (ellers stikker stavlægjen opp gjennom taket).
+            rows = ((0.0, 0.5, 0.0), (half / cp, 0.0, 0.0), (slope, 1.0, kick))
             for j, (d, sg, up) in enumerate(rows):
                 yy = yc + side * d * cp
                 zz = ridge - d * sp - dip * sg + up
                 g[(i, j, 0)] = bm.verts.new((x, yy, zz))
+                bm_pts[(i, j)] = (yy, zz - 0.12)
                 g[(i, j, 1)] = bm.verts.new((x, yy - side * thick * sp, zz - thick * cp))
         last = len(rows) - 1
         for i in range(n):
@@ -467,6 +471,13 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, t
                 lp[uvl].uv = (c.x, -abs(c.y - yc) / cp)
         ob = _object(f"{name}_{side}", bm, p.roof)
         _bevel(ob, 0.08, 2)
+        # Vindskiene langs gavlkantene, oppå takflaten og etter knekken.
+        for i in (0, n):
+            x = xa + (xb - xa) * i / n - (0.06 if i == 0 else -0.06)
+            for j in range(last):
+                a_ = bm_pts[(i, j)]
+                b_ = bm_pts[(i, j + 1)]
+                stick("barge", (x, a_[0], a_[1] + 0.02), (x, b_[0], b_[1] + 0.02), 0.1, 0.36, p.trim, ("trim", DARK_BEAM), bevel=0.02)
     # Mønerull.
     bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.3, depth=xb - xa + 0.1, location=((xa + xb) / 2, yc, ridge - sag * 0.3 + 0.02), rotation=(0, math.pi / 2, 0))
     rl = bpy.context.active_object
@@ -510,11 +521,6 @@ def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3):
     zc = z0 + (ridge_z - z0) * 0.42
     w = half - (zc - z0) / tan
     stick("collar", (face, yc - w + 0.1, zc), (face, yc + w - 0.1, zc), 0.15, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 9)
-    # Vindskiene langs takkanten.
-    for sgn in (-1, 1):
-        a = (face + out * 0.02, yc + sgn * (half + 0.62), z0 - 0.62 * tan + 0.05)
-        b = (face + out * 0.02, yc, ridge_z + 0.12)
-        stick("barge", a, b, 0.08, 0.28, p.trim, ("trim", DARK_BEAM), bevel=0.02)
 
 
 def chimney(p, x, y, z0, z1, w=1.1, smoke=0.8, lean=4.0):
