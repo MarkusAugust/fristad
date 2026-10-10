@@ -93,6 +93,7 @@ impl Session {
         instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.shortcut_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::SHORTCUT_LEAF, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.chest_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::CHEST_LID, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.gallery_poses().into_iter().map(|(transform, tint)| ModelInstance { model: crate::domain::world::GALLERY_PIECE, transform, skin: None, flash: 0.0, tint: Some(tint) }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),

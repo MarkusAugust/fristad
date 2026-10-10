@@ -108,6 +108,7 @@ fn json(e: &Event) -> serde_json::Value {
             "seen": m.seen.iter().map(|s| if *s { '1' } else { '0' }).collect::<String>(),
             "marks": m.marks.iter().map(|k| json!({"kind": k.kind, "x": k.x, "z": k.z})).collect::<Vec<_>>(),
         }}),
+        Event::OpenDoc(c) => json!({"type": "open_doc", "component": c}),
         Event::Where { x, z, yaw } => json!({"type": "where", "x": x, "z": z, "yaw": yaw}),
         Event::Hud { hp, stamina, tokens, cellar, keys, boss } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))}),
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
@@ -170,7 +171,7 @@ impl Engine {
     /// Lageret og utstyret som JSON, til localStorage.
     pub fn save_state(&self) -> String {
         let d = self.app.save();
-        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins}).to_string()
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found}).to_string()
     }
 
     pub fn load_state(&mut self, json: &str) {
@@ -185,6 +186,8 @@ impl Engine {
             max_hp: v["max_hp"].as_f64().unwrap_or(100.0) as f32,
             max_stamina: v["max_stamina"].as_f64().unwrap_or(100.0) as f32,
             coins: v["coins"].as_u64().unwrap_or(0) as u32,
+            // Gamle lagringer har ikke galleriet: da teller lageret alene.
+            found: v["found"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
         };
         self.app.command(Command::Load(d));
     }

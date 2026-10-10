@@ -189,6 +189,9 @@ pub enum Event {
     Map(Option<MapView>),
     /// Hvor du står og hvilken vei du ser i kjelleren (til minikartet).
     Where { x: f32, z: f32, yaw: f32 },
+    /// Åpne dokumentasjonen for en komponent i panelet til høyre (F på en
+    /// fylt ramme på galleriveggen).
+    OpenDoc(String),
 }
 
 /// Kartet over en etasje: rutenettet med åpningene mellom cellene, hva du
@@ -328,6 +331,9 @@ pub struct SaveData {
     pub max_hp: f32,
     pub max_stamina: f32,
     pub coins: u32,
+    /// Hver komponent du noen gang har fått i byen (galleriveggen). Mangler
+    /// i gamle lagringer, og da er det bare lageret som teller.
+    pub found: Vec<String>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

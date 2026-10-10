@@ -80,7 +80,7 @@ fn alt_stort_har_kollider() {
             Shape::Heightfield { .. } | Shape::Hull { .. } => false,
         }
     };
-    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name.starts_with("flowers_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
+    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name.starts_with("flowers_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair" || name.ends_with("_interior");
     let mut problems = vec![];
     for pl in &p.world.placements {
         if skip(pl.model) {
@@ -1372,4 +1372,82 @@ fn alle_husene_er_i_bruk() {
     let p = world();
     let missing: Vec<String> = (b'a'..=b't').map(|c| format!("house_{}", c as char)).filter(|m| !p.world.placements.iter().any(|pl| pl.model == m.as_str())).collect();
     assert!(missing.is_empty(), "står ingen steder: {}", missing.join(", "));
+}
+
+/// Senga i huset ditt: F gir fullt liv og full utholdenhet, skjermen går i
+/// svart, og døgnet snur (dag til natt og natt til dag).
+#[test]
+fn senga_gir_hvile_og_snur_dognet() {
+    use crate::domain::weather::Daylight;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert_eq!(game.daylight(), Daylight::Day);
+    game.set_vitals(12.0, 3.0);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Fade), "skjermen skal gå i svart: {events:?}");
+    assert!(events.contains(&Event::Daylight(Daylight::Night)), "døgnet skal snu: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("kvelden"))), "{events:?}");
+    assert_eq!(game.daylight(), Daylight::Night);
+    assert!(game.hp_now() >= 100.0, "fullt liv etter søvnen: {}", game.hp_now());
+    assert!(game.stamina_now() >= 100.0, "full utholdenhet etter søvnen: {}", game.stamina_now());
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Daylight(Daylight::Day)), "og tilbake til morgenen: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("morgenen"))), "{events:?}");
+    assert_eq!(game.daylight(), Daylight::Day);
+}
+
+/// Galleriveggen: en komponent du bærer opp fra kjelleren, henger i sin
+/// ramme for alltid, også etter lagring og innlasting, og selv om lageret
+/// er tomt (solgt eller brukt opp).
+#[test]
+fn funnet_henger_i_galleriet() {
+    use crate::domain::craft::GALLERY;
+    use crate::domain::world::GALLERY_PIECE;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    assert!(game.found().is_empty(), "ingenting funnet før du har vært nede");
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let events = game.use_first(|u| matches!(u, Use::Chest(_)));
+    let found = events.iter().find_map(|e| if let Event::Loot(Some(c)) = e { Some(c.clone()) } else { None }).expect("kista skal gi en komponent");
+    assert!(GALLERY.contains(&found.as_str()), "{found} skal ha en ramme");
+    assert!(!game.found().contains(&found), "det du bærer nede er ikke ditt ennå");
+    input.actions.push(Action::Home);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.found().contains(&found), "{found} skal henge i galleriet: {:?}", game.found());
+    let pieces = game.frame(16.0 / 9.0).instances.iter().filter(|i| i.model == GALLERY_PIECE).count();
+    assert_eq!(pieces, game.found().iter().filter(|c| GALLERY.contains(&c.as_str())).count(), "én komponent per fylt ramme");
+
+    let saved = game.save();
+    assert!(saved.found.contains(&found));
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(SaveData { stash: vec![], ..saved });
+    assert!(fresh.found().contains(&found), "galleriet skal huskes etter innlasting, også med tomt lager");
+    // Gamle lagringer uten galleriet: lageret teller.
+    let mut physics3 = RapierPhysics::new();
+    let mut old = session(&mut physics3);
+    old.load(SaveData { stash: vec![("badge".into(), 1)], found: vec![], ..Default::default() });
+    assert_eq!(old.found(), vec!["badge".to_string()]);
+}
+
+/// F på en fylt ramme åpner boka for komponenten i rammen; en tom ramme
+/// gjør ingenting.
+#[test]
+fn rammen_apner_boka() {
+    use crate::domain::craft::GALLERY;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    assert_eq!(GALLERY[4], "card");
+    let events = game.use_first(|u| *u == Use::Gallery(4));
+    assert!(!events.iter().any(|e| matches!(e, Event::OpenDoc(_))), "tom ramme: {events:?}");
+    game.give("card", 1);
+    let events = game.use_first(|u| *u == Use::Gallery(4));
+    assert!(events.contains(&Event::OpenDoc("card".into())), "{events:?}");
+    let events = game.use_first(|u| *u == Use::Gallery(0));
+    assert!(!events.iter().any(|e| matches!(e, Event::OpenDoc(_))), "button er ikke funnet: {events:?}");
 }

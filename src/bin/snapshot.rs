@@ -7,7 +7,7 @@
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
 //! (gå ned i krypten først), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
-//! --at MODELL X,Y,Z YAW (kamera i modellens rom), --debug albedo|normal|ao|rough|shadow,
+//! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N.
 
 use fristad::adapters::gltf::Embedded;
@@ -77,6 +77,12 @@ fn main() {
             app.tick(1.0 / 30.0);
         }
         app.command(Command::Respawn);
+    }
+    // --gallery: alle komponentene er funnet, så galleriveggen er full.
+    if flag("--gallery") {
+        for c in fristad::domain::craft::GALLERY {
+            app.session.give(c, 1);
+        }
     }
     // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
     if flag("--well") {

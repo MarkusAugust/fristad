@@ -411,6 +411,10 @@ function handle(e) {
     case "loot":
       openLoot(e.component);
       break;
+    case "open_doc":
+      // F på en fylt ramme på galleriveggen: boka i panelet til høyre.
+      readDoc(e.component);
+      break;
     case "ambience":
       lastAmbience = e;
       if (playing) {

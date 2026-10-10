@@ -16,7 +16,7 @@ use crate::domain::world::{Target, Use, World};
 use crate::ports::driving::{Action, Ambience, Bubble, Event, Input, InventoryView, MapMark, MapView, Mark, Prompt, RecipeView, SaveData, Sound, WareView};
 use crate::ports::{ColliderId, Physics};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// En lyd i hodet: dine egne skritt, hugg og stønn.
 fn sfx(name: &str) -> Event {
@@ -174,6 +174,9 @@ pub struct Session {
     /// Komponentene: trygt lagret i byen, og det du bærer på turen.
     inventory: BTreeMap<String, u32>,
     carried: BTreeMap<String, u32>,
+    /// Hver komponent du noen gang har fått i byen (galleriveggen i
+    /// huset ditt). Det du selger eller bruker opp, blir hengende.
+    found: BTreeSet<String>,
     gear: Gear,
     /// Komponentene du har lest om i boka denne turen (liv tilbake én gang per).
     read_docs: HashSet<String>,
@@ -286,6 +289,7 @@ impl Session {
             chest_open: vec![0.0; world.dungeon.chests.len()],
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),
+            found: BTreeSet::new(),
             gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
             read_docs: HashSet::new(),
             inv_dirty: true,
@@ -434,9 +438,12 @@ impl Session {
     fn prompt_for(&self, i: usize) -> Prompt {
         let p = |label: &str, verb: &str, trade: &str, info: &str| Prompt { label: label.into(), verb: verb.into(), trade: trade.into(), info: info.into() };
         match self.targets[i].target.what {
-            // Fylles ut av logikken for spillerens hus.
             Use::Sleep => p("Senga di", "Sov", "", "Sov til døgnet snur, og våkn med fullt liv og full utholdenhet."),
-            Use::Gallery(_) => p("Tom ramme", "", "", "Her henger komponenten når du har funnet den."),
+            Use::Gallery(n) => match craft::GALLERY.get(n) {
+                Some(c) if self.found.contains(*c) => p(&craft::title(c), "Les", "", "Du har funnet den. Les om den i boka."),
+                Some(c) => p("Tom ramme", "", "", &format!("Her henger {} når du har funnet den. {}", craft::title(c), craft::source(c).describe())),
+                None => p("Tom ramme", "", "", ""),
+            },
             Use::Talk(n) => {
                 let name = self.npcs.npcs.get(n).map(|c| c.name).unwrap_or("Innbygger");
                 let (trade, info) = match name {
@@ -792,7 +799,23 @@ impl Session {
         // Kister, porter og snarveier endrer merkene på kartet.
         self.map_dirty = true;
         match self.targets[i].target.what {
-            Use::Sleep | Use::Gallery(_) => {}
+            Use::Sleep => {
+                // Skjermen går i svart, og du våkner når døgnet har snudd.
+                self.hp = self.max_hp;
+                self.combat.stamina = self.combat.max_stamina;
+                let d = if self.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
+                self.set_daylight(d, true);
+                events.push(Event::Fade);
+                events.push(Event::Daylight(d));
+                let church = self.sound_spots[2];
+                events.push(self.sound_at("bell", Vec3::new(church.x, self.eye().y + 12.0, church.y), 2.5));
+                events.push(Event::Toast(if d == Daylight::Night { "Du sov til kvelden." } else { "Du sov til morgenen." }.into()));
+            }
+            Use::Gallery(n) => {
+                if let Some(c) = craft::GALLERY.get(n).filter(|c| self.found.contains(**c)) {
+                    events.push(Event::OpenDoc(c.to_string()));
+                }
+            }
             Use::Talk(n) => {
                 if self.npcs.talk(n).is_some() {
                     let at = self.npcs.npcs.get(n).map(|p| p.pos + Vec3::Y * 1.6).unwrap_or(self.eye());
@@ -1411,6 +1434,7 @@ impl Session {
         for (k, v) in std::mem::take(&mut self.carried) {
             *self.inventory.entry(k).or_insert(0) += v;
         }
+        self.discover();
         self.inv_dirty = true;
         events.push(Event::Toast(format!("{n} komponenter er trygt i lageret.")));
     }
@@ -1533,6 +1557,7 @@ impl Session {
         match w.what {
             craft::WareKind::Component(c) => {
                 *self.inventory.entry(c.to_string()).or_insert(0) += 1;
+                self.discover();
             }
             craft::WareKind::Heal(h) => self.hp = (self.hp + h).min(self.max_hp),
             craft::WareKind::MaxHp(h) => {
@@ -1578,11 +1603,14 @@ impl Session {
             max_hp: self.max_hp,
             max_stamina: self.combat.max_stamina,
             coins: self.coins,
+            found: self.found.iter().cloned().collect(),
         }
     }
 
     pub fn load(&mut self, d: SaveData) {
         self.inventory = d.stash.into_iter().collect();
+        self.found = d.found.into_iter().collect();
+        self.discover();
         if let Some(w) = craft::weapon(&d.weapon) {
             self.gear.weapon = w;
         }
@@ -1607,7 +1635,22 @@ impl Session {
     /// Til testene: legg komponenter i lageret.
     pub fn give(&mut self, component: &str, n: u32) {
         *self.inventory.entry(component.to_string()).or_insert(0) += n;
+        self.discover();
         self.inv_dirty = true;
+    }
+
+    /// Det som ligger i lageret er funnet, for alltid.
+    fn discover(&mut self) {
+        for (c, n) in &self.inventory {
+            if *n > 0 && !self.found.contains(c) {
+                self.found.insert(c.clone());
+            }
+        }
+    }
+
+    /// Komponentene du har funnet (galleriveggen).
+    pub fn found(&self) -> Vec<String> {
+        self.found.iter().cloned().collect()
     }
 
     pub fn gear(&self) -> Gear {
@@ -1680,6 +1723,18 @@ impl Session {
     #[cfg(test)]
     pub fn hp_now(&self) -> f32 {
         self.hp
+    }
+
+    #[cfg(test)]
+    pub fn stamina_now(&self) -> f32 {
+        self.combat.stamina
+    }
+
+    /// Til testene: sett liv og utholdenhet.
+    #[cfg(test)]
+    pub fn set_vitals(&mut self, hp: f32, stamina: f32) {
+        self.hp = hp;
+        self.combat.stamina = stamina;
     }
 
     #[cfg(test)]
@@ -1796,6 +1851,21 @@ impl Session {
                     let k = 1.0 + 2.2 * (x - 1.0).powi(3) + 1.2 * (x - 1.0).powi(2);
                     let angle = 1.85 * k.clamp(0.0, 1.08);
                     Some(t.target.pose * Affine3A::from_translation(dungeon::CHEST_HINGE) * Affine3A::from_rotation_x(-angle))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Komponentene på galleriveggen: én i hver ramme du har fylt, i
+    /// rammens pose og med sin egen farge.
+    pub(super) fn gallery_poses(&self) -> Vec<(Affine3A, Vec3)> {
+        self.targets
+            .iter()
+            .filter_map(|t| match t.target.what {
+                Use::Gallery(n) => {
+                    let c = craft::GALLERY.get(n)?;
+                    self.found.contains(*c).then(|| (t.target.pose, Vec3::from(craft::GALLERY_TINTS[n])))
                 }
                 _ => None,
             })

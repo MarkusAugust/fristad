@@ -708,7 +708,14 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         }
         // Stor, svak variasjon så flisene ikke repeterer synlig.
         let variation = 0.86 + 0.28 * fbm2(i.world.xz * 0.11 + i.world.y * 0.07);
-        s.albedo = t.albedo * tint * variation;
+        // Lakk på et teksturlag i en modell (`layer_<lag>.paint`): fargen
+        // ligger pakket i instansen, som for de bakte modellene.
+        var lacquer = vec3<f32>(1.0);
+        if ((flags & F_UVMAP) != 0u && (flags & F_PAINT) != 0u) {
+            let p = u32(i.extra.y);
+            lacquer = vec3<f32>(f32((p >> 16u) & 255u), f32((p >> 8u) & 255u), f32(p & 255u)) / 255.0;
+        }
+        s.albedo = t.albedo * tint * variation * lacquer;
         s.n = t.n;
         s.rough = clamp(t.rough * i.color.a * 2.0, 0.02, 1.0);
         height = t.height;

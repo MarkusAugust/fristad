@@ -422,6 +422,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             if named("paint") {
                 mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
             }
+            // «layer_<lag>.paint»: teksturlaget med lakkfargen fra instansen.
+            if layer.is_some() && mat.name().is_some_and(|n| n.ends_with(".paint")) {
+                mmat = mmat.flags(flag::PAINT);
+            }
             // «glow» lyser om natta, som lampene ellers i byen; «glass»
             // speiler som vinduene.
             if named("glow") {
