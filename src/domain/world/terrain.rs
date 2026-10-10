@@ -40,7 +40,7 @@ pub fn town_edge(x: f32, z: f32) -> f32 {
 pub fn wall_radius(a: f32) -> f32 {
     // Ujevnt og eggeformet, slik muren ble lagt rundt det som var bygd:
     // lengst ut mot sørøst, inntrykt i nordvest, med knekker.
-    38.0 + 3.6 * (a + 0.4).sin() + 2.4 * (2.0 * a + 0.7).sin() + 1.5 * (3.0 * a + 1.9).sin() + 0.9 * (5.0 * a + 0.3).sin()
+    44.0 + 3.6 * (a + 0.4).sin() + 2.4 * (2.0 * a + 0.7).sin() + 1.5 * (3.0 * a + 1.9).sin() + 0.9 * (5.0 * a + 0.3).sin()
 }
 
 /// Terrenget uten planeringene: rullende åser som vokser utover.

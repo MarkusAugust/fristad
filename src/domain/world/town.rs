@@ -224,7 +224,10 @@ const SPECIALS: [(&str, usize, f32, Vec2); 4] = [
 ];
 
 /// Husmodellene som står i rekkene.
-const HOUSES: [&str; 20] = ["house_a", "house_b", "house_c", "house_d", "house_e", "house_f", "house_g", "house_h", "house_i", "house_j", "house_k", "house_l", "house_m", "house_n", "house_o", "house_p", "house_q", "house_r", "house_s", "house_t"];
+/// Byhusene: bindingsverk og stein (houses.py).
+const HOUSES: [&str; 15] = ["house_a", "house_b", "house_d", "house_f", "house_g", "house_h", "house_i", "house_k", "house_l", "house_m", "house_n", "house_p", "house_r", "house_s", "house_t"];
+/// Laftede og bordkledde hus: våningshusene på bondegårdene utenfor muren.
+const FARMHOUSES: [&str; 5] = ["house_c", "house_o", "house_j", "house_e", "house_q"];
 
 /// Småbyggene i bakgårdene (tools/models/yard.py), med radius de trenger.
 const SMALL: [(&str, f32); 6] = [("shed_a", 2.2), ("shed_b", 2.2), ("privy", 1.0), ("haystack", 1.7), ("garden", 2.6), ("coop", 1.5)];
@@ -323,10 +326,12 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         for side in [1.0f32, -1.0] {
             let mut s = rng.range(0.0, 1.0);
             while s < len {
+                // De som ikke står noe sted ennå først, så alle husene er med.
                 let mut order = HOUSES.to_vec();
                 for i in (1..order.len()).rev() {
                     order.swap(i, (rng.next() * (i + 1) as f32) as usize % (i + 1));
                 }
+                order.sort_by_key(|m| b.placements.iter().any(|pl| pl.model == *m));
                 let mut done = None;
                 'try_: for model in order {
                     let (mid, half_m, front) = footprint(b, model, Vec2::new(7.0, 8.0));
@@ -371,7 +376,8 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         let n = Vec2::new(-t.y, t.x);
         let toward = if n.dot(Vec2::new(main_x(p.y), p.y) - p) >= 0.0 { n } else { -n };
         let yaw = facing(toward) + if rng.chance(0.3) { FRAC_PI_2 } else { 0.0 } + rng.range(-0.3, 0.3);
-        let model = rng.pick(&HOUSES);
+        let unused: Vec<&'static str> = HOUSES.iter().copied().filter(|m| !b.placements.iter().any(|pl| pl.model == *m)).collect();
+        let model = if unused.is_empty() { rng.pick(&HOUSES) } else { unused[(rng.next() * unused.len() as f32) as usize % unused.len()] };
         let (mid, half_m, _) = footprint(b, model, Vec2::new(7.0, 8.0));
         let rr = rect_at(p, yaw, mid, half_m + Vec2::splat(0.05));
         if plan.fits(&rr) {
@@ -480,6 +486,114 @@ fn enclose(b: &mut Builder, plan: &Plan, specials: &[Rect], rng: &mut Rng) {
     log::info!("Avsperring: {walls} m usynlig vegg, {fences} gjerder og vedstabler");
 }
 
+/// Bondegårdene utenfor muren: midten av tunet. Flate steder på åsene,
+/// unna veiene, kirkegården og beitene, med god avstand imellom.
+pub fn farms() -> &'static [Vec2] {
+    static FARMS: OnceLock<Vec<Vec2>> = OnceLock::new();
+    FARMS.get_or_init(|| {
+        let mut out: Vec<Vec2> = vec![];
+        let herds = crate::domain::herd::HERDS;
+        for k in 0..240 {
+            if out.len() >= FARMHOUSES.len() {
+                break;
+            }
+            let a = k as f32 * 2.399 + 0.7;
+            let r = 62.0 + (k as f32 * 0.37).sin().abs() * 45.0;
+            let p = Vec2::new(a.cos(), a.sin()) * r;
+            let flat = (0..8).map(|i| {
+                let q = p + Vec2::new((i as f32 * 0.785).cos(), (i as f32 * 0.785).sin()) * 8.0;
+                terrain::height(q.x, q.y)
+            });
+            let (lo, hi) = flat.fold((f32::MAX, f32::MIN), |(lo, hi), h| (lo.min(h), hi.max(h)));
+            let clear = path_dist(p.x, p.y) > 16.0
+                && terrain::town_edge(p.x, p.y) > 18.0
+                && herds.iter().all(|(_, c, rad, _)| c.distance(p) > rad + 12.0)
+                && out.iter().all(|q| q.distance(p) > 40.0)
+                && {
+                    let (cx, cz, hx, hz) = terrain::YARD_FLAT;
+                    ((p.x - cx).abs() - hx).max((p.y - cz).abs() - hz) > 18.0
+                };
+            if clear && hi - lo < 2.2 {
+                out.push(p);
+            }
+        }
+        out
+    })
+}
+
+/// Det høyeste punktet på bakken innenfor `r` fra `p` (i en skråning står
+/// ting der, og sokkelen eller stolpene tar resten).
+fn highest(b: &Builder, p: Vec2, r: f32) -> f32 {
+    [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (0.0, 0.0)].iter().map(|(sx, sz)| b.ground(p.x + sx * r, p.y + sz * r)).fold(f32::MIN, f32::max)
+}
+
+/// Tunet på en gård: radius på jorda rundt husene.
+const FARM_R: f32 = 13.0;
+
+/// Gårdene: våningshuset midt på tunet, skur, vedskjul, høystakk,
+/// hønsehus, kjøkkenhage og utedo rundt, og et gjerde av flettverk med
+/// åpning mot veien. Alt dreid hver for seg og med luft imellom.
+fn farmsteads(b: &mut Builder) {
+    let mut rng = Rng(0x0fa7_4d11);
+    for (i, c) in farms().iter().enumerate() {
+        let model = FARMHOUSES[i % FARMHOUSES.len()];
+        // Mot byen, litt skjevt.
+        let yaw = facing(-*c) + rng.range(-0.5, 0.5);
+        let mut taken: Vec<Rect> = vec![];
+        let put = |b: &mut Builder, model: &'static str, p: Vec2, yaw: f32, taken: &mut Vec<Rect>| -> bool {
+            let (mid, half, _) = footprint(b, model, Vec2::splat(3.0));
+            let r = rect_at(p, yaw, mid, half);
+            if taken.iter().any(|t| full(t).overlaps(&full(&r))) {
+                return false;
+            }
+            // På det høyeste punktet under foten (sokkelen tar resten).
+            let (ax, az) = r.axes();
+            let top = [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (0.0, 0.0)].iter().map(|(sx, sz)| {
+                let q = r.c + ax * r.h.x * sx * 0.5 + az * r.h.y * sz * 0.5;
+                b.ground(q.x, q.y)
+            });
+            let y = top.fold(f32::MIN, f32::max).max(highest(b, p, 0.7)) - 0.1;
+            taken.push(r);
+            let t = at(Vec3::new(p.x, y, p.y), yaw);
+            if b.place(model, t) {
+                place_colliders(b, model, t, yaw);
+            }
+            true
+        };
+        put(b, model, *c, yaw, &mut taken);
+        let mut extras = vec!["haystack", "shed_b", "coop", "garden", "privy", "shed_a", "haystack"];
+        extras.truncate(4 + i % 3);
+        for m in extras {
+            for _ in 0..40 {
+                let a = rng.range(0.0, TAU);
+                let p = *c + Vec2::new(a.cos(), a.sin()) * rng.range(6.0, FARM_R - 3.0);
+                if put(b, m, p, rng.range(0.0, TAU), &mut taken) {
+                    break;
+                }
+            }
+        }
+        // Gjerdet rundt tunet, med åpning mot byen.
+        // Gjerdene er 2 m lange: så mange som går rundt tunet.
+        let n = ((FARM_R + 0.5) * TAU / 2.0).ceil() as usize;
+        let gap = facing(-*c);
+        for k in 0..n {
+            let a = k as f32 / n as f32 * TAU;
+            let d = Vec2::new(a.sin(), a.cos());
+            if d.dot(-c.normalize()) > 0.93 {
+                continue;
+            }
+            let q = *c + d * (FARM_R + 0.5) * (1.0 + 0.06 * (a * 3.0 + i as f32).sin());
+            let base = Vec3::new(q.x, highest(b, q, 0.7) - 0.05, q.y);
+            let fy = facing(d) + FRAC_PI_2;
+            if b.place("wattle_fence", at(base, fy)) {
+                b.solid_box(base + Vec3::Y * 0.5, Vec3::new(2.0, 1.0, 0.15), fy);
+            }
+            let _ = gap;
+        }
+        log::info!("Gård {i} ved ({:.0}, {:.0}) med {model}", c.x, c.y);
+    }
+}
+
 /// Brønnvinda: vinda (med sveiv) dreier om x i høyden `WELL_AXLE`, tauet
 /// (1 m langt, skaleres) henger fra forkanten av valsen (`WELL_ROPE_Z`) ned
 /// til bøyla på bøtta. Bøtta henger i `WELL_REST` når ingen bruker brønnen
@@ -516,6 +630,7 @@ fn street_life(b: &mut Builder, plan: &mut Plan, _rng: &mut Rng) {
 
 pub fn build(b: &mut Builder) -> Town {
     let doors = houses(b);
+    farmsteads(b);
     wall(b);
     square(b, &doors);
     church(b);
@@ -610,6 +725,13 @@ fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
     if !b.place(model, t) {
         return;
     }
+    place_colliders(b, model, t, yaw);
+}
+
+/// Det et hus har med seg: innsidemodellen, kjelleren, lysene, røyken og
+/// kolliderne (fra `<navn>_inside.json`, ellers en boks rundt modellen).
+fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) {
+    let base = Vec3::from(t.translation);
     if let Some((_, interior)) = INTERIORS.iter().find(|(m, _)| *m == model) {
         b.place(interior, t);
     }
@@ -1317,13 +1439,15 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
         }
     }
     let roads = soft(0.0, (lanes + off).min(road) + (n1 - 0.5) * 1.6, 1.8);
-    // Gårdsplassene er tråkket jord (eget lag uten hjulspor).
-    let yards = inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85;
+    // Gårdsplassene er tråkket jord (eget lag uten hjulspor), i byen og på
+    // tunene på bondegårdene.
+    let farm = farms().iter().map(|c| c.distance(p) - FARM_R).fold(f32::MAX, f32::min);
+    let yards = (inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85).max(soft(0.0, farm + (n1 - 0.5) * 3.0, 3.0) * 0.9);
     let dirt = roads.max(yards);
     let earth = (yards / (roads + yards).max(1e-4)).clamp(0.0, 1.0);
     // Berg der det er bratt.
     let slope = 1.0 - terrain::normal(x, z).y;
-    let rock = soft(0.0, 0.08 - slope + (n1 - 0.5) * 0.05, 0.05);
+    let rock = soft(0.0, 0.3 - slope + (n1 - 0.5) * 0.05, 0.05);
     let forest = 0.0f32;
     // Fordel: brostein over jord over berg over skogbunn, gress resten.
     let cobble = cobble.clamp(0.0, 1.0);
@@ -1379,7 +1503,8 @@ fn paths(x: f32, z: f32) -> Vec<(f32, f32, f32)> {
 pub fn town_dist(x: f32, z: f32) -> f32 {
     let (cx, cz, hx, hz) = terrain::YARD_FLAT;
     let yard = ((x - cx).abs() - hx).max((z - cz).abs() - hz);
-    terrain::town_edge(x, z).min(yard)
+    let farm = farms().iter().map(|c| c.distance(Vec2::new(x, z)) - FARM_R - 1.0).fold(f32::MAX, f32::min);
+    terrain::town_edge(x, z).min(yard).min(farm)
 }
 
 /// Stigen opp fra startrommet i kjelleren ligger i dungeon.rs; her er bare

@@ -1364,3 +1364,12 @@ fn fiendene_ser_mot_deg() {
     }
     assert_eq!(flip, 2);
 }
+
+/// Alle de tjue husmodellene står et sted: de femten byhusene i byen, og
+/// de laftede og bordkledde som våningshus på bondegårdene utenfor muren.
+#[test]
+fn alle_husene_er_i_bruk() {
+    let p = world();
+    let missing: Vec<String> = (b'a'..=b't').map(|c| format!("house_{}", c as char)).filter(|m| !p.world.placements.iter().any(|pl| pl.model == m.as_str())).collect();
+    assert!(missing.is_empty(), "står ingen steder: {}", missing.join(", "));
+}
