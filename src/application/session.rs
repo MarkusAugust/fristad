@@ -434,6 +434,9 @@ impl Session {
     fn prompt_for(&self, i: usize) -> Prompt {
         let p = |label: &str, verb: &str, trade: &str, info: &str| Prompt { label: label.into(), verb: verb.into(), trade: trade.into(), info: info.into() };
         match self.targets[i].target.what {
+            // Fylles ut av logikken for spillerens hus.
+            Use::Sleep => p("Senga di", "Sov", "", "Sov til døgnet snur, og våkn med fullt liv og full utholdenhet."),
+            Use::Gallery(_) => p("Tom ramme", "", "", "Her henger komponenten når du har funnet den."),
             Use::Talk(n) => {
                 let name = self.npcs.npcs.get(n).map(|c| c.name).unwrap_or("Innbygger");
                 let (trade, info) = match name {
@@ -789,6 +792,7 @@ impl Session {
         // Kister, porter og snarveier endrer merkene på kartet.
         self.map_dirty = true;
         match self.targets[i].target.what {
+            Use::Sleep | Use::Gallery(_) => {}
             Use::Talk(n) => {
                 if self.npcs.talk(n).is_some() {
                     let at = self.npcs.npcs.get(n).map(|p| p.pos + Vec3::Y * 1.6).unwrap_or(self.eye());

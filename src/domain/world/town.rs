@@ -216,7 +216,8 @@ impl Plan {
 /// Bygningene på torget: modell, kant av torget (0 vest, 1 sør, 2 øst,
 /// 3 nord, mot klokka fra nordvest), hvor langs kanten (0..1), og grunnflaten
 /// som settes av om modellen mangler.
-const SPECIALS: [(&str, usize, f32, Vec2); 4] = [
+const SPECIALS: [(&str, usize, f32, Vec2); 5] = [
+    ("home", 1, 0.24, Vec2::new(8.0, 7.0)),
     ("apothecary", 3, 0.24, Vec2::new(8.0, 7.0)),
     ("tavern", 0, 0.5, Vec2::new(12.0, 9.0)),
     ("forge", 2, 0.5, Vec2::new(9.0, 8.0)),
@@ -668,14 +669,22 @@ struct Inside {
     /// Kjellergulvet: midten (y er overkanten) og halve mål (x, z).
     #[serde(default)]
     cellar_floor: Option<([f32; 3], [f32; 2])>,
+    /// Spillerens hus: midten av senga (det du sikter på) og halve mål.
+    #[serde(default)]
+    bed: Option<([f32; 3], [f32; 3])>,
+    /// Spillerens hus: rammene på galleriveggen, midten og yaw (rammen
+    /// vender ut mot lokal +Z dreid med yaw), i `craft::GALLERY`-rekkefølge.
+    #[serde(default)]
+    gallery: Vec<([f32; 3], f32)>,
 }
 
 /// Husene med en egen innsidemodell, som bare tegnes når du er nær
 /// (rendereren kjenner dem på navnet `…_interior`).
-const INTERIORS: [(&str, &str); 1] = [("tavern", "tavern_interior")];
+const INTERIORS: [(&str, &str); 2] = [("tavern", "tavern_interior"), ("home", "home_interior")];
 
-const INSIDE: [(&str, &str); 31] = [
+const INSIDE: [(&str, &str); 32] = [
     ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
+    ("home", include_str!("../../../assets/models/town/home_inside.json")),
     ("house_a", include_str!("../../../assets/models/town/house_a_inside.json")),
     ("house_b", include_str!("../../../assets/models/town/house_b_inside.json")),
     ("house_c", include_str!("../../../assets/models/town/house_c_inside.json")),
@@ -738,6 +747,15 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
     let inside = inside(model);
     if let Some((c, h)) = inside.and_then(|i| i.cellar) {
         b.hole(t.transform_point3(Vec3::from(c)), Vec2::from(h), yaw);
+    }
+    if let Some(inside) = inside {
+        if let Some((c, h)) = inside.bed {
+            b.target(Use::Sleep, t, Vec3::from(c), Vec3::from(h));
+        }
+        for (i, (c, y)) in inside.gallery.iter().enumerate().take(crate::domain::craft::GALLERY.len()) {
+            let pose = t * Affine3A::from_rotation_translation(Quat::from_rotation_y(*y), Vec3::from(*c));
+            b.target(Use::Gallery(i), pose, Vec3::new(0.0, 0.0, 0.03), Vec3::new(0.3, 0.3, 0.05));
+        }
     }
     if let Some((c, h)) = inside.and_then(|i| i.cellar_floor) {
         let c = t.transform_point3(Vec3::from(c));
@@ -1044,13 +1062,13 @@ fn crypt(b: &mut Builder) -> (Vec3, f32) {
 /// Innbyggerne foran bygningene sine på torget, og Gorvek på øvingsplassen.
 fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     let at_door = |i: usize| doors.get(i).copied().unwrap_or((Vec2::ZERO, 0.0));
-    // Rekkefølgen i SPECIALS: apotek, vertshus, smie, skriptorium.
+    // Rekkefølgen i SPECIALS: hjemmet, apotek, vertshus, smie, skriptorium.
     // Figuren: en egen modell (fra tools/models/people.py) om den finnes.
     let cast: [(&'static str, &'static str, (Vec2, f32), Vec3, &'static [&'static str]); 5] = [
-        ("Buttonsmeden", "npc_smith", at_door(2), Vec3::new(0.22, 0.1, 0.05), SMITH),
-        ("Skriptoriet", "npc_clerk", at_door(3), Vec3::new(0.06, 0.12, 0.42), CLERK),
-        ("Apotekeren", "npc_apothecary", at_door(0), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
-        ("Vertinnen", "npc_innkeeper", at_door(1), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
+        ("Buttonsmeden", "npc_smith", at_door(3), Vec3::new(0.22, 0.1, 0.05), SMITH),
+        ("Skriptoriet", "npc_clerk", at_door(4), Vec3::new(0.06, 0.12, 0.42), CLERK),
+        ("Apotekeren", "npc_apothecary", at_door(1), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
+        ("Vertinnen", "npc_innkeeper", at_door(2), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
         ("Gorvek", "npc_gorvek", (YARD.0 + Vec2::new(-4.0, 0.0), -FRAC_PI_2), Vec3::new(0.3, 0.1, 0.04), GORVEK),
     ];
     for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {

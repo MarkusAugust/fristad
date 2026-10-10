@@ -143,6 +143,11 @@ pub const LOOT: [&[&str]; 5] = [
     &["fieldset", "file-upload", "search", "dialog", "tabs"],
 ];
 
+/// Galleriveggen i spillerens hus: hver unike komponent som finnes i
+/// spillet har sin ramme, i denne rekkefølgen (fra de letteste oppe til
+/// venstre til Rammeverkets nederst til høyre).
+pub const GALLERY: [&str; 15] = ["button", "tag", "badge", "divider", "card", "alert", "progress", "label", "help-text", "tooltip", "fieldset", "file-upload", "search", "dialog", "tabs"];
+
 /// Det Rammeverket legger igjen i buret når det er beseiret.
 pub const BOSS_LOOT: [&str; 2] = ["dialog", "tabs"];
 

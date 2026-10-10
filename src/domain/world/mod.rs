@@ -54,6 +54,13 @@ pub enum Use {
     /// Portalen ved sørporten: tilbake dit du var i kjelleren (åpen bare
     /// når du har gått hjem med H, eller har dødd nede).
     Portal,
+    /// Senga i spillerens hus: sov, få tilbake liv og utholdenhet, og våkn
+    /// når døgnet har snudd (dag til natt eller natt til dag).
+    Sleep,
+    /// Ramme nummer n på galleriveggen i spillerens hus
+    /// (`craft::GALLERY[n]`): komponenten henger der når du har funnet den,
+    /// og F åpner dokumentasjonen.
+    Gallery(usize),
 }
 
 /// Noe du kan sikte på og bruke: en boks (sentrum og halve mål) med pose.
