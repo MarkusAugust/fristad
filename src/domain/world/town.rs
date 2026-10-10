@@ -224,7 +224,10 @@ const SPECIALS: [(&str, usize, f32, Vec2); 4] = [
 ];
 
 /// Husmodellene som står i rekkene.
-const HOUSES: [&str; 6] = ["house_a", "house_b", "house_c", "house_d", "house_e", "house_f"];
+const HOUSES: [&str; 20] = ["house_a", "house_b", "house_c", "house_d", "house_e", "house_f", "house_g", "house_h", "house_i", "house_j", "house_k", "house_l", "house_m", "house_n", "house_o", "house_p", "house_q", "house_r", "house_s", "house_t"];
+
+/// Småbyggene i bakgårdene (tools/models/yard.py), med radius de trenger.
+const SMALL: [(&str, f32); 6] = [("shed_a", 2.2), ("shed_b", 2.2), ("privy", 1.0), ("haystack", 1.7), ("garden", 2.6), ("coop", 1.5)];
 
 /// Husets mål: midten av grunnflaten (lokal x, z) og halve mål.
 fn footprint(b: &Builder, model: &str, fallback: Vec2) -> (Vec2, Vec2, f32) {
@@ -378,6 +381,27 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         }
     }
     log::info!("Byen: {placed} hus i rekkene, {back} i bakgårdene");
+    // Småbyggene: skur, vedskjul, utedo, høystakker, kjøkkenhager og
+    // hønsehus i hullene mellom husene, dreid hver for seg.
+    let mut small = 0;
+    for _ in 0..6000 {
+        let a = rng.range(0.0, TAU);
+        let r = rng.range(6.0, terrain::wall_radius(a) - 2.0);
+        let p = Vec2::new(a.cos(), a.sin()) * r;
+        if street_dist(&streets()[0], p).0 < MAIN + 3.0 || square_dist(p) < 3.0 {
+            continue;
+        }
+        let (model, _) = SMALL[(rng.next() * SMALL.len() as f32) as usize % SMALL.len()];
+        let (mid, half_m, _) = footprint(b, model, Vec2::splat(2.0));
+        let yaw = rng.range(0.0, TAU);
+        let rr = rect_at(p, yaw, mid, half_m);
+        if plan.fits(&rr) {
+            plan.taken.push(rr);
+            building(b, model, p, yaw);
+            small += 1;
+        }
+    }
+    log::info!("Byen: {small} småbygg i bakgårdene");
     enclose(b, &plan, &specials, &mut rng);
     street_life(b, &mut plan, &mut rng);
     doors
@@ -535,7 +559,7 @@ struct Inside {
 /// (rendereren kjenner dem på navnet `…_interior`).
 const INTERIORS: [(&str, &str); 1] = [("tavern", "tavern_interior")];
 
-const INSIDE: [(&str, &str); 11] = [
+const INSIDE: [(&str, &str); 31] = [
     ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
     ("house_a", include_str!("../../../assets/models/town/house_a_inside.json")),
     ("house_b", include_str!("../../../assets/models/town/house_b_inside.json")),
@@ -547,6 +571,26 @@ const INSIDE: [(&str, &str); 11] = [
     ("tavern", include_str!("../../../assets/models/town/tavern_inside.json")),
     ("scriptorium", include_str!("../../../assets/models/town/scriptorium_inside.json")),
     ("stave_church", include_str!("../../../assets/models/town/stave_church_inside.json")),
+    ("house_g", include_str!("../../../assets/models/town/house_g_inside.json")),
+    ("house_h", include_str!("../../../assets/models/town/house_h_inside.json")),
+    ("house_i", include_str!("../../../assets/models/town/house_i_inside.json")),
+    ("house_j", include_str!("../../../assets/models/town/house_j_inside.json")),
+    ("house_k", include_str!("../../../assets/models/town/house_k_inside.json")),
+    ("house_l", include_str!("../../../assets/models/town/house_l_inside.json")),
+    ("house_m", include_str!("../../../assets/models/town/house_m_inside.json")),
+    ("house_n", include_str!("../../../assets/models/town/house_n_inside.json")),
+    ("house_o", include_str!("../../../assets/models/town/house_o_inside.json")),
+    ("house_p", include_str!("../../../assets/models/town/house_p_inside.json")),
+    ("house_q", include_str!("../../../assets/models/town/house_q_inside.json")),
+    ("house_r", include_str!("../../../assets/models/town/house_r_inside.json")),
+    ("house_s", include_str!("../../../assets/models/town/house_s_inside.json")),
+    ("house_t", include_str!("../../../assets/models/town/house_t_inside.json")),
+    ("shed_a", include_str!("../../../assets/models/town/shed_a_inside.json")),
+    ("shed_b", include_str!("../../../assets/models/town/shed_b_inside.json")),
+    ("privy", include_str!("../../../assets/models/town/privy_inside.json")),
+    ("haystack", include_str!("../../../assets/models/town/haystack_inside.json")),
+    ("garden", include_str!("../../../assets/models/town/garden_inside.json")),
+    ("coop", include_str!("../../../assets/models/town/coop_inside.json")),
 ];
 
 fn inside(model: &str) -> Option<&'static Inside> {

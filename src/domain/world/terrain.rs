@@ -49,7 +49,9 @@ fn natural(x: f32, z: f32) -> f32 {
     let near = (noise(x * 0.025 + 3.0, z * 0.025) - 0.5) * 2.0;
     // Åsene: store, myke bølger fra muren og ut.
     let far = smooth((r - 45.0) / 80.0);
-    let hills = ((noise(x * 0.012 + 11.0, z * 0.012 + 5.0) - 0.5) * 22.0 + (noise(x * 0.03 + 4.0, z * 0.03 + 9.0) - 0.5) * 5.0) * far;
+    // Åsene går bare opp fra byens nivå: dalene ligger aldri dypere enn
+    // rundt en meter, så kjelleren (fra −16 m) aldri stikker opp.
+    let hills = (noise(x * 0.012 + 11.0, z * 0.012 + 5.0) * 16.0 + noise(x * 0.03 + 4.0, z * 0.03 + 9.0) * 4.0 - 2.0) * far;
     near + hills
 }
 
