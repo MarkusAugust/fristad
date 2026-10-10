@@ -130,7 +130,7 @@ Dette er utkast. De tegnede planene kommer i `docs/krypten/` før noe bygges.
 
 ## De tegnede planene
 
-Alle ti står i `docs/krypten/nivaa_01.png` … `nivaa_10.png`. Dataene ligger i `tools/crypt/levels/level_NN.py`, og verktøyet `tools/crypt/plan.py` tegner dem og sjekker dem (`python3 tools/crypt/plan.py`). Det samme tallet leses av byggeskriptet i Blender senere.
+Alle ti står i `docs/krypten/nivaa_01.png` … `nivaa_10.png`. Dataene ligger i `tools/crypt/levels/level_NN.py`, og verktøyet `tools/crypt/plan.py` tegner dem og sjekker dem (`python3 tools/crypt/plan.py`). Byggeskriptet i Blender leser de samme dataene senere.
 
 | Nivå | Navn | Rom | Min | Slutt |
 |---|---|---|---|---|
