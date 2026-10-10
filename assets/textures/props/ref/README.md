@@ -15,3 +15,5 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `dng_kloakk` | rist over sluk, utløpsrør, sluseluke med hjul, halvsunket tønne, slimet søppel, plankegang, rusten kjetting, mosegrodd søyle i vann og rotterede |
 | `dng_gruve` | malmvogn, rett og buet skinne, tømmerstiver, vinsj, gruvelykt, malmhaug, hakke og spade, krystallklynge (stalagmittene mangler) |
 | `dng_mekanikk` | spak, gitter, eikedør med slå, fallem, stige, trykkplate, pilhull, pendel og hvilestedet (alter med lysestake) |
+| `dng_borg` | riddarstatue, fillete fane, rustning på stativ, glødepanne, spydstativ, knust trone med glitch, brønn, falt lysekrone og gargoyle |
+| `dng_kjerne` | søyle som blir plast, svevende pikselkuber, sprukken statue med lys, plaststein, plastkasse, pikselsøyle, dør som går i oppløsning, krystaller og en dam med kuber |
