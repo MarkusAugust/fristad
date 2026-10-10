@@ -896,7 +896,7 @@ fn wall(b: &mut Builder) {
             // To tårn på sidene og murblokken over portrommet.
             for sx in [-1.0f32, 1.0] {
                 let side = at(base, yaw).transform_point3(Vec3::new(sx * 4.6, 5.0, 0.0));
-                b.solid_box(side, Vec3::new(4.0, 10.0, 5.0), yaw);
+                b.solid_box(side, Vec3::new(4.0, 10.0, 5.4), yaw);
             }
             b.solid_box(at(base, yaw).transform_point3(Vec3::new(0.0, 6.4, 0.0)), Vec3::new(5.6, 6.6, 4.4), yaw);
         }
