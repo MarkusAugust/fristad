@@ -1,11 +1,10 @@
-//! Kjøpstaden Fristad rundt 1350, lagt ut slik middelalderbyer vokste:
-//! Storgata slynger seg fra sørporten gjennom et skjevt torg til
-//! nordporten, Tverrgata bukter seg ut fra torget mot øst og vest, og
-//! smale smau fører til kirka og ned mot muren. Husene står i tette rekker
-//! langs gatene med gavlen eller langsida mot gata, hver litt skjevt, med
-//! ulik avstand til gata og et smau her og der. Bymuren følger et ujevnt
-//! omriss (`terrain::wall_radius`) med tårn og porthus. Nord for byen står
-//! borgruinen på haugen, og under den ligger krypten.
+//! Kjøpstaden Fristad rundt 1350, liten og samlet (docs/ny-by.md): ett
+//! torg midt i byen avgrenset av husfasader, med Vertshuset, Smia, Apoteket
+//! og Skriptoriet langs kantene, og Storgata fra sørporten over torget til
+//! nordporten. Husene står i tette rekker langs gata og rundt torget, og
+//! det tomme bak dem er sperret av med usynlige vegger, markert med gjerder
+//! og vedstabler. Utenfor nordporten ligger kirkegården med stavkirka og
+//! krypten, og utenfor muren går veiene ut mellom åsene.
 //!
 //! Alt som synes er modeller; byen bestemmer bare hvor de står. Husmodellene
 //! har døra mot sin lokale +Z og origo midt på grunnflaten i bakkehøyde, så
@@ -19,19 +18,20 @@ use std::sync::OnceLock;
 
 /// Torget: et skjevt firkantet åpent rom (x, z), hjørnene i rekkefølge
 /// nordvest, sørvest, sørøst, nordøst.
-pub const SQUARE: [Vec2; 4] = [Vec2::new(-13.0, -11.0), Vec2::new(-11.0, 12.5), Vec2::new(16.5, 8.5), Vec2::new(12.0, -13.5)];
-/// Halv bredde på Storgata, Tverrgata og smauene.
+pub const SQUARE: [Vec2; 4] = [Vec2::new(-12.5, -10.0), Vec2::new(-11.5, 10.0), Vec2::new(12.5, 10.5), Vec2::new(12.0, -10.5)];
+/// Halv bredde på Storgata.
 pub const MAIN: f32 = 3.2;
-pub const CROSS: f32 = 2.6;
-pub const LANE: f32 = 1.5;
-/// Krypten i borgruinen: midten av inngangen.
-pub const CRYPT: Vec2 = Vec2::new(0.0, -138.0);
-/// Åkrene utenfor muren (midte, radier).
-pub const FIELDS: [(f32, f32, f32, f32); 3] = [(-95.0, 40.0, 30.0, 20.0), (90.0, 30.0, 26.0, 34.0), (70.0, -70.0, 24.0, 18.0)];
+/// Krypten på kirkegården: midten av gravkapellet, med døra mot øst (mot
+/// veien).
+pub const CRYPT: Vec2 = Vec2::new(-9.0, -52.0);
+/// Stavkirka på kirkegården, med portalen mot øst.
+const CHURCH: Vec2 = Vec2::new(-22.0, -47.0);
+/// Gorveks øvingsplass innenfor nordporten, øst for gata: midten og halve mål.
+const YARD: (Vec2, Vec2) = (Vec2::new(9.0, -24.5), Vec2::new(4.0, 3.0));
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
-pub const FOUNDED: [&str; 10] = ["town_wall", "wall_tower", "gatehouse", "castle_ruin", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c", "signpost"];
+pub const FOUNDED: [&str; 9] = ["town_wall", "wall_tower", "gatehouse", "crypt", "stone_wall", "boulder_a", "boulder_b", "boulder_c", "signpost"];
 
 /// Det byen forteller resten av verden.
 pub struct Town {
@@ -55,7 +55,7 @@ pub struct Street {
 
 /// Storgata: midtlinja som x for en z, en svak S fra sør til nord.
 pub fn main_x(z: f32) -> f32 {
-    6.0 * (z * 0.042 + 0.5).sin() + 1.6 * (z * 0.12 + 2.0).sin()
+    1.4 * (z * 0.05 + 0.5).sin() + 0.6 * (z * 0.13 + 2.0).sin()
 }
 
 /// Gatene i byen, regnet ut én gang.
@@ -65,17 +65,7 @@ pub fn streets() -> &'static [Street] {
         let curve = |a: f32, b: f32, n: usize, f: &dyn Fn(f32) -> Vec2| (0..=n).map(|i| f(a + (b - a) * i as f32 / n as f32)).collect::<Vec<_>>();
         vec![
             // Storgata, fra utenfor sørporten til utenfor nordporten.
-            Street { pts: curve(68.0, -66.0, 67, &|z| Vec2::new(main_x(z), z)), half: MAIN, cobbled: true },
-            // Tverrgata vestover fra torget, buktende og litt nedover mot sør.
-            Street { pts: curve(-11.0, -62.0, 26, &|x| Vec2::new(x, 3.0 + 3.5 * (x * 0.06 + 1.0).sin() - (x + 11.0) * 0.08)), half: CROSS, cobbled: false },
-            // Tverrgata østover, stigende mot nord.
-            Street { pts: curve(13.0, 62.0, 25, &|x| Vec2::new(x, -3.0 + 4.0 * (x * 0.07 + 2.5).sin() - (x - 13.0) * 0.1)), half: CROSS, cobbled: false },
-            // Smauet fra torget sørøstover ned mot muren.
-            Street { pts: curve(0.0, 1.0, 12, &|t| Vec2::new(15.0 + 22.0 * t, 9.5 + 26.0 * t - 6.0 * (t * PI).sin())), half: LANE, cobbled: false },
-            // Kirkesmauet fra Storgata vestover til kirkegården.
-            Street { pts: curve(0.0, 1.0, 10, &|t| Vec2::new(main_x(-27.0) * (1.0 - t) - 19.0 * t, -27.0 + 4.0 * (t * PI).sin() + 3.0 * t)), half: LANE, cobbled: false },
-            // Smauet nordvest fra Tverrgata langs innsida av muren.
-            Street { pts: curve(0.0, 1.0, 12, &|t| Vec2::new(-28.0 - 8.0 * t, 1.5 + 26.0 * t + 4.0 * (t * PI).sin())), half: LANE, cobbled: false },
+            Street { pts: curve(48.0, -46.0, 47, &|z| Vec2::new(main_x(z), z)), half: MAIN, cobbled: true },
         ]
     })
 }
@@ -223,10 +213,10 @@ impl Plan {
 /// 3 nord, mot klokka fra nordvest), hvor langs kanten (0..1), og grunnflaten
 /// som settes av om modellen mangler.
 const SPECIALS: [(&str, usize, f32, Vec2); 4] = [
-    ("apothecary", 0, 0.22, Vec2::new(8.0, 7.0)),
-    ("tavern", 1, 0.28, Vec2::new(12.0, 9.0)),
-    ("forge", 2, 0.22, Vec2::new(9.0, 8.0)),
-    ("scriptorium", 3, 0.18, Vec2::new(10.0, 8.0)),
+    ("apothecary", 3, 0.24, Vec2::new(8.0, 7.0)),
+    ("tavern", 0, 0.5, Vec2::new(12.0, 9.0)),
+    ("forge", 2, 0.5, Vec2::new(9.0, 8.0)),
+    ("scriptorium", 3, 0.76, Vec2::new(10.0, 8.0)),
 ];
 
 /// Husmodellene som står i rekkene.
@@ -234,8 +224,11 @@ const HOUSES: [&str; 6] = ["house_a", "house_b", "house_c", "house_d", "house_e"
 
 /// Husets mål: midten av grunnflaten (lokal x, z) og halve mål.
 fn footprint(b: &Builder, model: &str, fallback: Vec2) -> (Vec2, Vec2, f32) {
+    // Takskjegget får stikke ut over naboen og gata: grunnflaten regnes
+    // uten de ytterste 0,7 m.
+    const EAVES: f32 = 0.7;
     match b.bounds(model) {
-        Some((lo, hi)) => (Vec2::new((lo.x + hi.x) * 0.5, (lo.z + hi.z) * 0.5), Vec2::new((hi.x - lo.x) * 0.5, (hi.z - lo.z) * 0.5), hi.z),
+        Some((lo, hi)) => (Vec2::new((lo.x + hi.x) * 0.5, (lo.z + hi.z) * 0.5), (Vec2::new(hi.x - lo.x, hi.z - lo.z) * 0.5 - Vec2::splat(EAVES)).max(Vec2::splat(1.0)), hi.z - EAVES),
         None => (Vec2::ZERO, fallback * 0.5, fallback.y * 0.5),
     }
 }
@@ -247,18 +240,50 @@ fn rect_at(base: Vec2, yaw: f32, mid: Vec2, half: Vec2) -> Rect {
     Rect { c: base + ax * mid.x + az * mid.y, ..r }
 }
 
+/// En rekke langs en linje: punktene, halv bredde på gata eller torget
+/// foran, og bare utover fra torget (`only`).
+type Row = (Vec<Vec2>, f32, Option<Vec2>);
+
+/// Rekkene husene står i: langs kantene av torget og på begge sider av
+/// Storgata.
+fn rows() -> Vec<Row> {
+    let mut rows: Vec<Row> = (0..4).map(|i| (vec![SQUARE[i], SQUARE[(i + 1) % 4]], 0.4, Some(square_out(i)))).collect();
+    rows.push((streets()[0].pts.clone(), MAIN, None));
+    rows
+}
+
+/// Et punkt `s` meter langs en linje, og retningen der.
+fn along(pts: &[Vec2], s: f32) -> (Vec2, Vec2) {
+    let mut acc = 0.0;
+    for w in pts.windows(2) {
+        let len = w[0].distance(w[1]);
+        if s <= acc + len {
+            let t = ((s - acc) / len.max(1e-4)).clamp(0.0, 1.0);
+            return (w[0].lerp(w[1], t), (w[1] - w[0]).normalize_or_zero());
+        }
+        acc += len;
+    }
+    let n = pts.len();
+    (pts[n - 1], (pts[n - 1] - pts[n - 2]).normalize_or_zero())
+}
+
+fn length(pts: &[Vec2]) -> f32 {
+    pts.windows(2).map(|w| w[0].distance(w[1])).sum()
+}
+
 /// Setter ut husene. Gir stedet foran døra til hver bygning på torget,
 /// og hvilken vei den vender.
 fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
     let mut plan = Plan { taken: vec![], free: vec![] };
-    // Portene, kirkegården og øvingsplassen holdes fri.
+    // Portene og øvingsplassen holdes fri.
     for south in [true, false] {
-        plan.free.push((gate(south).0, 9.0));
+        plan.free.push((gate(south).0, 6.0));
     }
-    plan.free.push((Vec2::new(-29.0, -29.0), 12.5));
-    plan.free.push((Vec2::new(32.0, -26.0), 10.0));
+    let (yc, yh) = YARD;
+    plan.free.push((yc, yh.length()));
     // Bygningene på torget først, med døra mot torget.
     let mut doors = vec![];
+    let mut specials = vec![];
     for (model, edge, t, size) in SPECIALS {
         let (a, bb) = (SQUARE[edge], SQUARE[(edge + 1) % 4]);
         let out = square_out(edge);
@@ -268,97 +293,150 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
         let base = m + out * (front + 0.8);
         let r = rect_at(base, yaw, mid, half);
         plan.taken.push(r);
+        specials.push(r);
         building(b, model, base, yaw);
         log::info!("{model} ved ({:.1}, {:.1}), yaw {:.2}", base.x, base.y, yaw);
         doors.push((m - out * 1.6, yaw));
     }
-    // Så rekkene: langs kantene av torget (bare utover) og langs gatene på
-    // begge sider.
+    // Så husene langs torget og gata, satt for hånd: (modell, x, z,
+    // retning døra vender). Takskjeggene møtes, så fasadene står tett.
     let mut rng = Rng(0x0f12_57ad);
-    let mut rows: Vec<(Vec<Vec2>, f32, Option<Vec2>)> = (0..4).map(|i| (vec![SQUARE[i], SQUARE[(i + 1) % 4]], 0.4, Some(square_out(i)))).collect();
-    for st in streets() {
-        rows.push((st.pts.clone(), st.half, None));
-    }
+    let n = Vec2::new(0.0, -1.0);
+    let (e, w) = (Vec2::new(1.0, 0.0), Vec2::new(-1.0, 0.0));
+    let s_ = Vec2::new(0.0, 1.0);
+    let row: [(&'static str, f32, f32, Vec2); 12] = [
+        // Sørsida av torget, vendt mot nord.
+        ("house_b", -8.2, 15.0, n),
+        ("house_e", 8.6, 15.2, n),
+        // Storgata sør for torget.
+        ("house_f", -8.4, 24.0, e),
+        ("house_d", 7.8, 23.6, w),
+        // Storgata nord for torget, vest for gata (øst er øvingsplassen).
+        ("house_a", -7.8, -23.5, e),
+        // Hjørnene av torget.
+        ("house_c", -17.8, 13.0, e),
+        ("house_d", 18.6, 11.8, w),
+        ("house_a", -18.2, -12.6, e),
+        ("house_f", 18.4, -12.2, w),
+        // Ut mot muren bak vertshuset og smia.
+        ("house_e", -25.0, 0.0, e),
+        ("house_b", 25.0, 0.5, w),
+        ("house_c", 8.4, 30.0, n),
+    ];
     let mut placed = 0;
-    for (pts, half, only) in rows {
-        // Lengde langs linja, til å gå med jevne steg.
-        let mut acc = vec![0.0];
-        for w in pts.windows(2) {
-            acc.push(acc.last().unwrap() + w[0].distance(w[1]));
+    for (model, x, z, dir) in row {
+        let (mid, half_m, _) = footprint(b, model, Vec2::new(7.0, 8.0));
+        let base = Vec2::new(x, z);
+        let yaw = facing(dir) + rng.range(-0.04, 0.04);
+        let r = rect_at(base, yaw, mid, half_m);
+        if !plan.fits(&r) {
+            log::warn!("{model} ved ({x:.1}, {z:.1}) står i veien for noe");
         }
-        let len = *acc.last().unwrap();
-        let point = |s: f32| {
-            let i = acc.partition_point(|&a| a <= s).clamp(1, pts.len() - 1);
-            let t = ((s - acc[i - 1]) / (acc[i] - acc[i - 1]).max(1e-4)).clamp(0.0, 1.0);
-            (pts[i - 1].lerp(pts[i], t), (pts[i] - pts[i - 1]).normalize_or_zero())
-        };
-        for side in [1.0f32, -1.0] {
-            let mut s = rng.range(0.0, 3.0);
-            while s < len {
-                let model = rng.pick(&HOUSES);
-                let (mid, half_m, front) = footprint(b, model, Vec2::new(7.0, 8.0));
-                let (p, t) = point((s + half_m.x).min(len));
-                let n = Vec2::new(-t.y, t.x) * side;
-                if let Some(o) = only {
-                    if n.dot(o) < 0.0 {
-                        break;
-                    }
-                }
-                let setback = half + rng.range(0.25, 1.4);
-                let base = p + n * (setback + front);
-                let yaw = facing(-n) + rng.range(-0.07, 0.07);
-                let r = rect_at(base, yaw, mid, half_m + Vec2::splat(0.05));
-                if plan.fits(&r) {
-                    plan.taken.push(r);
-                    building(b, model, base, yaw);
-                    placed += 1;
-                    // Tett i rekka, men et smau her og der.
-                    s += half_m.x * 2.0 + if rng.chance(0.22) { rng.range(1.6, 3.0) } else { rng.range(0.05, 0.5) };
-                } else {
-                    s += 0.8;
-                }
-            }
-        }
+        plan.taken.push(r);
+        building(b, model, base, yaw);
+        placed += 1;
     }
-    // Til slutt bakgårdene: hus og uthus der det er plass mellom rekkene,
-    // vendt mot nærmeste gate, så kvartalene blir tette som i en ekte by.
+    let _ = s_;
+    // Bakgårdene: hus bak rekkene, ut mot muren, så byen er tett sett
+    // ovenfra og fra gata. Du kommer ikke dit (avsperringen står foran).
     let mut back = 0;
-    for _ in 0..900 {
+    for _ in 0..3000 {
         let a = rng.range(0.0, TAU);
-        let r = rng.range(10.0, terrain::wall_radius(a) - 6.0);
+        let r = rng.range(8.0, terrain::wall_radius(a) - 3.0);
         let p = Vec2::new(a.cos(), a.sin()) * r;
-        let (mut best, mut dir, mut near) = (f32::MAX, Vec2::Y, p);
-        for st in streets() {
-            let (d, t) = street_dist(st, p);
-            if d < best {
-                best = d;
-                dir = t;
-                // Punktet på gata: rett inn mot midtlinja.
-                let n = Vec2::new(-t.y, t.x);
-                let side = n.dot(p - st.pts[0]).signum();
-                near = p - n * side * d;
-            }
-        }
-        if best > 26.0 {
+        let (d, t) = street_dist(&streets()[0], p);
+        if d < MAIN + 7.0 || square_dist(p) < 6.5 {
             continue;
         }
-        // Vendt med gavlen eller langsida mot gata, litt skjevt.
-        let n = Vec2::new(-dir.y, dir.x);
-        let toward = if n.dot(near - p) >= 0.0 { n } else { -n };
-        let turn = if rng.chance(0.3) { PI * 0.5 } else { 0.0 };
-        let yaw = facing(toward) + turn + rng.range(-0.1, 0.1);
+        let n = Vec2::new(-t.y, t.x);
+        let toward = if n.dot(Vec2::new(main_x(p.y), p.y) - p) >= 0.0 { n } else { -n };
+        let yaw = facing(toward) + if rng.chance(0.3) { FRAC_PI_2 } else { 0.0 } + rng.range(-0.1, 0.1);
         let model = rng.pick(&HOUSES);
         let (mid, half_m, _) = footprint(b, model, Vec2::new(7.0, 8.0));
-        let r = rect_at(p, yaw, mid, half_m + Vec2::splat(0.05));
-        if plan.fits(&r) {
-            plan.taken.push(r);
+        let rr = rect_at(p, yaw, mid, half_m + Vec2::splat(0.05));
+        if plan.fits(&rr) {
+            plan.taken.push(rr);
             building(b, model, p, yaw);
             back += 1;
         }
     }
     log::info!("Byen: {placed} hus i rekkene, {back} i bakgårdene");
+    enclose(b, &plan, &specials, &mut rng);
     street_life(b, &mut plan, &mut rng);
     doors
+}
+
+/// Det tomme i byen sperres av: en usynlig vegg langs hver husrekke, litt
+/// bak fasadene, så du holder deg på torget og i gata, og gjerder og
+/// vedstabler der det er glipe mellom husene, så sperringen synes. Ved
+/// bygningene på torget (som du går inn i) og der gata munner ut, står det
+/// ingen vegg.
+fn enclose(b: &mut Builder, plan: &Plan, specials: &[Rect], rng: &mut Rng) {
+    let (mut walls, mut fences) = (0, 0);
+    let inside_any = |p: Vec2, rects: &[Rect], grow: f32| {
+        rects.iter().any(|r| {
+            let (ax, az) = r.axes();
+            let d = p - r.c;
+            d.dot(ax).abs() <= r.h.x + grow && d.dot(az).abs() <= r.h.y + grow
+        })
+    };
+    for (pts, half, only) in rows() {
+        let len = length(&pts);
+        for side in [1.0f32, -1.0] {
+            let step = 1.0;
+            let mut s = 0.0;
+            while s < len {
+                let (p, t) = along(&pts, s + step * 0.5);
+                let n = Vec2::new(-t.y, t.x) * side;
+                s += step;
+                if only.is_some_and(|o| n.dot(o) < 0.0) {
+                    break;
+                }
+                let line = p + n * (half + 1.1);
+                let free = terrain::town_edge(line.x, line.y) > -1.2
+                    || square_dist(line) < 0.6
+                    || street_dist(&streets()[0], line).0 < MAIN + 0.4
+                    || inside_any(line, specials, 0.3)
+                    || plan.free.iter().any(|(c, r)| c.distance(line) < *r * 0.6);
+                if free {
+                    continue;
+                }
+                let yaw = facing(n);
+                // Den usynlige veggen: en meter lang, høy nok til at ingen
+                // hopper over.
+                b.solid_box(b.on_ground(Vec3::new(line.x, 1.5, line.y)), Vec3::new(step + 0.1, 3.0, 0.3), yaw);
+                walls += 1;
+                // Gjerdet der det ikke står et hus (hver andre meter, gjerdet
+                // er to meter langt).
+                let fence = p + n * (half + 0.9);
+                if (s as i32) % 2 == 0 && !inside_any(fence, &plan.taken, 0.6) && !inside_any(fence + t * 1.0, &plan.taken, 0.6) && !inside_any(fence - t * 1.0, &plan.taken, 0.6) {
+                    let base = b.on_ground(Vec3::new(fence.x, 0.0, fence.y));
+                    let model = match rng.next() {
+                        x if x < 0.75 => "wattle_fence",
+                        x if x < 0.9 => "woodpile",
+                        _ => "crate",
+                    };
+                    b.place(model, at(base, yaw + rng.range(-0.04, 0.04)));
+                    fences += 1;
+                }
+            }
+        }
+    }
+    // Øvingsplassen: gjerde på de tre sidene som ikke vender mot gata.
+    let (yc, yh) = YARD;
+    for (a, bb) in [(Vec2::new(-1.0, -1.0), Vec2::new(1.0, -1.0)), (Vec2::new(1.0, -1.0), Vec2::new(1.0, 1.0)), (Vec2::new(1.0, 1.0), Vec2::new(-1.0, 1.0))] {
+        let (p0, p1) = (yc + a * yh, yc + bb * yh);
+        let n = (p0.distance(p1) / 2.0).round().max(1.0) as usize;
+        let yaw = facing(Vec2::new(-(p1 - p0).y, (p1 - p0).x));
+        for k in 0..n {
+            let c = p0.lerp(p1, (k as f32 + 0.5) / n as f32);
+            let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
+            b.place("wattle_fence", at(base, yaw));
+            b.solid_box(base + Vec3::Y * 1.5, Vec3::new(2.1, 3.0, 0.3), yaw);
+            fences += 1;
+        }
+    }
+    log::info!("Avsperring: {walls} m usynlig vegg, {fences} gjerder og vedstabler");
 }
 
 /// Brønnvinda: vinda (med sveiv) dreier om x i høyden `WELL_AXLE`, tauet
@@ -372,119 +450,27 @@ pub const WELL_REST: f32 = 1.05;
 pub const WELL_DEPTH: f32 = -0.25;
 pub const WELL_DRUM: f32 = 0.08;
 
-/// Gatelivet i hullene mellom husene: en brønn i hver bydel, flettverksgjerder
-/// rundt gårdsplasser og vedstabler inntil husveggene, vendt mot nærmeste
-/// gate. Plassen settes av i planen så ingenting havner oppå noe annet.
-fn street_life(b: &mut Builder, plan: &mut Plan, rng: &mut Rng) {
-    // Lyktestolper langs tverrgatene og smauene, annenhver side, omtrent
-    // hver 18. meter (Storgata og torget har sine fra før).
-    let mut lamps = 0;
-    for st in &streets()[1..] {
-        let mut acc = 0.0;
-        let mut side = 1.0f32;
-        let mut next = 6.0;
-        for w in st.pts.windows(2) {
-            let (a, bb) = (w[0], w[1]);
-            let seg = a.distance(bb);
-            while next < acc + seg {
-                let t = (next - acc) / seg;
-                let dir = (bb - a).normalize_or_zero();
-                let n = Vec2::new(-dir.y, dir.x) * side;
-                for off in [0.7f32, 1.2] {
-                    let c = a.lerp(bb, t) + n * (st.half + off);
-                    let rect = Rect { c, h: Vec2::splat(0.35), yaw: 0.0 };
-                    if plan.fits(&rect) && terrain::town_edge(c.x, c.y) < -2.0 {
-                        plan.taken.push(rect);
-                        let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
-                        if b.place("lantern_post", at(base, rng.range(0.0, TAU))) {
-                            b.solid(Shape::Cylinder { center: base + Vec3::Y * 1.4, radius: 0.15, half_height: 1.4 });
-                            b.lamp_light(base + Vec3::Y * 2.68, Vec3::new(1.0, 0.68, 0.38), 2.2, 10.0);
-                            lamps += 1;
-                        }
-                        break;
-                    }
-                }
-                side = -side;
-                next += 18.0;
+/// Brønnene: én på torget og én ved veien utenfor nordporten.
+fn street_life(b: &mut Builder, plan: &mut Plan, _rng: &mut Rng) {
+    let spots = [(Vec2::new(5.5, 4.0), 0.3), (Vec2::new(5.0, -40.0), FRAC_PI_2)];
+    for (i, (p, yaw)) in spots.into_iter().enumerate() {
+        plan.taken.push(Rect { c: p, h: Vec2::splat(1.5), yaw });
+        // I en skråning står brønnen på det høyeste punktet under foten.
+        let top = [(-0.6f32, -0.6f32), (0.6, -0.6), (-0.6, 0.6), (0.6, 0.6)].iter().map(|(dx, dz)| b.ground(p.x + dx, p.y + dz)).fold(f32::MIN, f32::max);
+        let base = Vec3::new(p.x, top, p.y);
+        if b.place("well", at(base, yaw)) {
+            b.solid(Shape::Cylinder { center: base + Vec3::Y * 0.45, radius: 1.0, half_height: 0.5 });
+            for sx in [-0.75f32, 0.75] {
+                b.solid(Shape::Cylinder { center: at(base, yaw).transform_point3(Vec3::new(sx, 1.1, 0.0)), radius: 0.12, half_height: 1.1 });
             }
-            acc += seg;
+            // Vinda, tauet og bøtta flyttes av økta når du heiser.
+            for model in WELL_PARTS {
+                b.reserve(model, 1);
+            }
+            b.target(Use::Well(i), at(base, yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(1.1, 0.5, 1.1));
         }
+        log::info!("Brønn ved ({:.1}, {:.1}), yaw {:.2}", p.x, p.y, yaw);
     }
-    log::info!("Gatelys: {lamps} lyktestolper langs gatene");
-    let mut wells: Vec<Vec2> = vec![];
-    let (mut fences, mut piles) = (0, 0);
-    for _ in 0..1500 {
-        let a = rng.range(0.0, TAU);
-        let r = rng.range(8.0, terrain::wall_radius(a) - 5.0);
-        let p = Vec2::new(a.cos(), a.sin()) * r;
-        // Nærmeste gate, og retningen mot den (fram for det som settes ut).
-        let (mut best, mut toward) = (f32::MAX, Vec2::Y);
-        for st in streets() {
-            let (d, t) = street_dist(st, p);
-            if d < best {
-                best = d;
-                let n = Vec2::new(-t.y, t.x);
-                let probe = p + n * 0.1;
-                toward = if street_dist(st, probe).0 < d { n } else { -n };
-            }
-        }
-        let yaw = facing(toward) + rng.range(-0.08, 0.08);
-        // Brønnene: én i hver kvart av byen, nær en gate.
-        if wells.len() < 4 && best < 9.0 && wells.iter().all(|w| w.distance(p) > 30.0) {
-            let rect = Rect { c: p, h: Vec2::splat(1.5), yaw };
-            if plan.fits(&rect) {
-                plan.taken.push(rect);
-                let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
-                if b.place("well", at(base, yaw)) {
-                    b.solid(Shape::Cylinder { center: base + Vec3::Y * 0.45, radius: 1.0, half_height: 0.5 });
-                    for sx in [-0.75f32, 0.75] {
-                        b.solid(Shape::Cylinder { center: at(base, yaw).transform_point3(Vec3::new(sx, 1.1, 0.0)), radius: 0.12, half_height: 1.1 });
-                    }
-                    // Vinda, tauet og bøtta flyttes av økta når du heiser.
-                    for model in WELL_PARTS {
-                        b.reserve(model, 1);
-                    }
-                    b.target(Use::Well(wells.len()), at(base, yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(1.1, 0.5, 1.1));
-                }
-                log::info!("Brønn ved ({:.1}, {:.1}), yaw {:.2}", p.x, p.y, yaw);
-                wells.push(p);
-                continue;
-            }
-        }
-        // Vedstabler: langs gata, inntil et hus (noe tatt like bak).
-        if piles < 14 && best < 8.0 {
-            let rect = Rect { c: p, h: Vec2::new(1.4, 0.6), yaw };
-            let behind = Rect { c: p - toward * 1.2, h: Vec2::new(0.8, 0.4), yaw };
-            if plan.fits(&rect) && !plan.fits(&behind) {
-                plan.taken.push(rect);
-                let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
-                if b.place("woodpile", at(base, yaw)) {
-                    b.solid_box(at(base, yaw).transform_point3(Vec3::new(0.0, 0.7, 0.0)), Vec3::new(2.0, 1.4, 0.6), yaw);
-                }
-                piles += 1;
-                continue;
-            }
-        }
-        // Gjerder: tre-fem stykker i rekke langs gata, rundt en gårdsplass.
-        if fences < 16 && best > 5.0 && best < 16.0 {
-            let n = 3 + (rng.next() * 2.99) as usize;
-            let along = Vec2::new(yaw.cos(), -yaw.sin());
-            let len = n as f32 * 2.0;
-            let rect = Rect { c: p, h: Vec2::new(len * 0.5 + 0.2, 0.3), yaw };
-            if plan.fits(&rect) {
-                plan.taken.push(rect);
-                for k in 0..n {
-                    let c = p + along * ((k as f32 + 0.5) * 2.0 - len * 0.5);
-                    let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
-                    if b.place("wattle_fence", at(base, yaw + rng.range(-0.03, 0.03))) {
-                        b.solid_box(base + Vec3::Y * 0.5, Vec3::new(2.0, 1.0, 0.15), yaw);
-                    }
-                }
-                fences += 1;
-            }
-        }
-    }
-    log::info!("Gatelivet: {} brønner, {fences} gjerder, {piles} vedstabler", wells.len());
 }
 
 pub fn build(b: &mut Builder) -> Town {
@@ -493,7 +479,7 @@ pub fn build(b: &mut Builder) -> Town {
     square(b, &doors);
     church(b);
     yard(b);
-    let crypt_exit = castle(b);
+    let crypt_exit = crypt(b);
     signposts(b);
     people(b, &doors);
     let (g, out) = gate(true);
@@ -627,6 +613,10 @@ fn wall(b: &mut Builder) {
         }
         carry = d - (t - seg_len);
     }
+    // Lukk ringen: det siste stykket tilbake til start.
+    if pts.last().unwrap().distance(pts[0]) > 0.5 {
+        pts.push(pts[0]);
+    }
     let gates = [gate(true), gate(false)];
     // Ved portene kappes murbitene der de går inn i porttårnene (porthuset
     // er 13 m bredt), så muren går helt inn til tårnene uten glipe.
@@ -716,12 +706,14 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
         }
         None
     };
-    let c = settle(Vec2::new(-5.5, -4.0), 1.2, &mut placed).unwrap_or(center);
+    // Portalen (som står der når du trenger den) holdes fri.
+    placed.push((PORTAL_AT, 1.6));
+    let c = settle(Vec2::new(-6.5, -5.5), 1.2, &mut placed).unwrap_or(center);
     let cross = b.on_ground(Vec3::new(c.x, 0.0, c.y));
     if b.place("market_cross", at(cross, 0.3)) {
         b.solid(Shape::Cylinder { center: cross + Vec3::Y * 1.5, radius: 0.9, half_height: 1.5 });
     }
-    let stalls = [(-9.0, 6.5, 0.25), (-5.0, 8.0, 0.1), (9.0, 5.5, -0.2), (10.0, -6.5, PI - 0.15), (6.5, -9.0, PI + 0.1)];
+    let stalls = [(-5.5, 8.5, 0.1), (8.5, 7.0, -0.2), (8.5, -6.0, PI - 0.15)];
     for (k, (x, z, yaw)) in stalls.into_iter().enumerate() {
         let Some(p) = settle(Vec2::new(x, z), 1.5, &mut placed) else { continue };
         let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
@@ -730,7 +722,7 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
             b.solid_box(base + Vec3::Y * 0.5, Vec3::new(2.6, 1.0, 1.4), yaw);
         }
     }
-    let props = [("cart", -7.0, -9.0, 1.2), ("barrel", -7.6, 9.0, 0.0), ("barrel", -6.9, 9.6, 1.0), ("crate", 10.6, 7.2, 0.3), ("crate", 11.2, 6.4, 1.1), ("barrel", 11.6, -8.4, 2.0)];
+    let props = [("barrel", -10.5, 8.8, 0.0), ("barrel", 10.6, 9.4, 1.0), ("crate", 10.0, 9.8, 0.3), ("crate", 10.8, -8.8, 1.1), ("barrel", -10.6, -8.0, 2.0)];
     for (model, x, z, yaw) in props {
         let Some(p) = settle(Vec2::new(x, z), if model == "cart" { 1.5 } else { 0.5 }, &mut placed) else { continue };
         let base = b.on_ground(Vec3::new(p.x, 0.0, p.y));
@@ -743,8 +735,7 @@ fn square(b: &mut Builder, doors: &[(Vec2, f32)]) {
     }
     // Lykter i hjørnene av torget og langs Storgata, som lyser om natta.
     let mut spots: Vec<Vec2> = SQUARE.iter().map(|c| *c * 0.86).collect();
-    for (k, z) in [-44.0f32, -30.0, 24.0, 38.0].into_iter().enumerate() {
-        let side = if k % 2 == 0 { 1.0 } else { -1.0 };
+    for (z, side) in [(-24.0f32, 1.0f32), (20.0, -1.0), (27.0, -1.0)] {
         spots.push(Vec2::new(main_x(z) + side * (MAIN + 0.5), z));
     }
     for p in spots {
@@ -785,19 +776,27 @@ const INNKEEPER: &[&str] = &[
 
 /// Stavkirka på kirkegården nordvest i byen, med steingjerde og gravsteiner.
 fn church(b: &mut Builder) {
-    let c = Vec2::new(-30.0, -30.0);
-    // Portalen mot øst, mot byen; boksen rundt modellens mål er kollideren.
-    building(b, "stave_church", c, FRAC_PI_2);
-    // Gravene i to ujevne rader sør for kirka, med haugen mot øst.
+    // Stavkirka med portalen mot øst, mot veien.
+    building(b, "stave_church", CHURCH, FRAC_PI_2);
+    // Kirkegården: lav steinmur rundt, med åpning mot veien i øst.
+    let (cx, cz, hx, hz) = terrain::YARD_FLAT;
+    let (w, e, n, so) = (cx - hx + 1.0, cx + hx - 1.0, cz - hz + 1.0, cz + hz - 1.0);
+    let wall = |b: &mut Builder, a: Vec2, c: Vec2| super::nature::stone_wall(b, Vec3::new(a.x, 0.0, a.y), Vec3::new(c.x, 0.0, c.y), 0.0);
+    wall(b, Vec2::new(w, n), Vec2::new(e, n));
+    wall(b, Vec2::new(w, so), Vec2::new(e, so));
+    wall(b, Vec2::new(w, n), Vec2::new(w, so));
+    wall(b, Vec2::new(e, n), Vec2::new(e, cz - 3.0));
+    wall(b, Vec2::new(e, cz + 3.0), Vec2::new(e, so));
+    // Gravene i ujevne rader mellom kirka og krypten.
     let mut rng = Rng(0x0c4e_7e12);
-    for row in 0..2 {
-        for k in 0..6 {
-            if rng.chance(0.15) {
+    for row in 0..4 {
+        for k in 0..5 {
+            if rng.chance(0.2) {
                 continue;
             }
-            let p = Vec2::new(-36.0 + k as f32 * 1.9 + rng.range(-0.3, 0.3), -22.6 + row as f32 * 2.6 + rng.range(-0.3, 0.3));
+            let p = Vec2::new(-15.5 + row as f32 * 2.4 + rng.range(-0.3, 0.3), -58.0 + k as f32 * 2.2 + rng.range(-0.3, 0.3));
             let g = b.on_ground(Vec3::new(p.x, 0.0, p.y));
-            let yaw = FRAC_PI_2 + rng.range(-0.12, 0.12);
+            let yaw = FRAC_PI_2 + rng.range(-0.15, 0.15);
             if b.place("gravestone", at(g, yaw)) {
                 b.solid_box(g + Vec3::Y * 0.45, Vec3::new(0.6, 0.9, 0.2), yaw);
             }
@@ -807,15 +806,16 @@ fn church(b: &mut Builder) {
 
 /// Gorveks øvingsplass nordøst i byen: treningsdukker og et våpenstativ.
 fn yard(b: &mut Builder) {
-    for (x, z, yaw) in [(28.0, -30.0, 0.4), (33.0, -32.0, -0.3), (37.0, -28.0, 0.1)] {
-        let base = b.on_ground(Vec3::new(x, 0.0, z));
+    let (c, _) = YARD;
+    for (x, z, yaw) in [(-2.0, -2.0, 0.4), (1.5, -3.0, -0.3), (3.0, 1.0, 0.1)] {
+        let base = b.on_ground(Vec3::new(c.x + x, 0.0, c.y + z));
         if b.place("training_dummy", at(base, yaw)) {
             b.solid(Shape::Cylinder { center: base + Vec3::Y * 0.9, radius: 0.35, half_height: 0.9 });
         }
     }
-    let rack = b.on_ground(Vec3::new(32.0, 0.0, -24.0));
-    if b.place("weapon_rack", at(rack, 0.0)) {
-        b.solid_box(rack + Vec3::Y * 0.8, Vec3::new(2.0, 1.6, 0.6), 0.0);
+    let rack = b.on_ground(Vec3::new(c.x + 4.0, 0.0, c.y + 3.5));
+    if b.place("weapon_rack", at(rack, -FRAC_PI_2)) {
+        b.solid_box(rack + Vec3::Y * 0.8, Vec3::new(0.6, 1.6, 2.0), 0.0);
     }
 }
 
@@ -824,13 +824,11 @@ fn yard(b: &mut Builder) {
 /// veien.
 fn signposts(b: &mut Builder) {
     let (north, _) = gate(false);
-    let path = |t: f32| Vec2::new(north.x * (1.0 - t) + CRYPT.x * t + (t * PI).sin() * 6.0, north.y + (CRYPT.y - north.y) * t);
     let street = |z: f32| Vec2::new(main_x(z), z);
     // (der skiltet står, punktet det peker mot)
     let signs = [
-        (street(-11.5) - Vec2::new(MAIN + 1.0, 0.0), street(-30.0)),
-        (street(north.y + 6.0) + Vec2::new(MAIN - 0.5, 0.0), north),
-        (path(0.25) + Vec2::new(2.6, 0.0), path(0.45)),
+        (Vec2::new(-3.2, -8.0), north),
+        (street(north.y - 6.0) + Vec2::new(MAIN + 0.6, 0.0), CRYPT),
     ];
     for (at, to) in signs {
         let d = to - at;
@@ -843,39 +841,21 @@ fn signposts(b: &mut Builder) {
     }
 }
 
-/// Borgruinen på haugen, og krypten med døra ned. Gir stedet du kommer
-/// opp til fra kjelleren.
-fn castle(b: &mut Builder) -> (Vec3, f32) {
-    let (hx, hz, _, _) = terrain::HILL;
-    let keep = b.on_ground(Vec3::new(hx, 0.0, hz));
-    if b.place("castle_ruin", at(keep, 0.0)) {
-        // Murene i ruinen: fire løp rundt borggården, med åpning i sør.
-        for (c, size) in [(Vec3::new(0.0, 4.0, -20.0), Vec3::new(40.0, 8.0, 2.4)), (Vec3::new(-20.0, 4.0, 0.0), Vec3::new(2.4, 8.0, 40.0)), (Vec3::new(20.0, 4.0, 0.0), Vec3::new(2.4, 8.0, 40.0)), (Vec3::new(-12.5, 4.0, 20.0), Vec3::new(15.0, 8.0, 2.4)), (Vec3::new(12.5, 4.0, 20.0), Vec3::new(15.0, 8.0, 2.4))] {
-            b.solid_box(keep + c, size, 0.0);
-        }
-        // Hjørnetårnene, porttårnene, hovedtårnet i nordvest og den raste
-        // brønnen midt i borggården.
-        for (x, z) in [(-20.0, -20.0), (20.0, -20.0), (-20.0, 20.0), (20.0, 20.0)] {
-            b.solid(Shape::Cylinder { center: keep + Vec3::new(x, 4.0, z), radius: 3.3, half_height: 5.0 });
-        }
-        for x in [-6.6f32, 6.6] {
-            b.solid_box(keep + Vec3::new(x, 3.5, 20.0), Vec3::new(3.4, 7.0, 3.4), 0.0);
-        }
-        for (c, size) in [(Vec3::new(-11.0, 6.0, -14.5), Vec3::new(7.0, 12.0, 1.4)), (Vec3::new(-14.5, 6.0, -11.0), Vec3::new(1.4, 12.0, 7.0)), (Vec3::new(-7.5, 3.6, -11.0), Vec3::new(1.4, 7.2, 7.0))] {
-            b.solid_box(keep + c, size, 0.0);
-        }
-        b.solid(Shape::Cylinder { center: keep + Vec3::Y * 0.5, radius: 1.6, half_height: 0.8 });
-    }
-    // Krypten: et lite gravkapell med døra mot sør, og trappa ned bak døra.
+/// Krypten på kirkegården: et lite gravkapell med døra mot øst, og trappa
+/// ned bak døra. Gir stedet du kommer opp til fra kjelleren.
+fn crypt(b: &mut Builder) -> (Vec3, f32) {
+    let yaw = FRAC_PI_2;
     let crypt = b.on_ground(Vec3::new(CRYPT.x, 0.0, CRYPT.y));
-    if b.place("crypt", at(crypt, 0.0)) {
-        b.solid_box(crypt + Vec3::new(0.0, 2.5, -2.0), Vec3::new(6.0, 5.0, 6.0), 0.0);
+    let t = at(crypt, yaw);
+    if b.place("crypt", t) {
+        b.solid_box(t.transform_point3(Vec3::new(0.0, 2.5, -2.0)), Vec3::new(6.0, 5.0, 6.0), yaw);
     }
-    // Døra: det du sikter på. Står i forkant av kapellet, vendt mot sør.
-    b.target(Use::Descend, at(crypt, 0.0), Vec3::new(0.0, 1.2, 1.05), Vec3::new(0.75, 1.2, 0.2));
-    b.fire_light(crypt + Vec3::new(1.3, 2.4, 1.6), Vec3::new(1.0, 0.6, 0.3), 2.0, 8.0);
-    b.fire_light(crypt + Vec3::new(-1.3, 2.4, 1.6), Vec3::new(1.0, 0.6, 0.3), 2.0, 8.0);
-    (crypt + Vec3::new(0.0, 0.0, 3.2), PI)
+    // Døra: det du sikter på, i forkant av kapellet.
+    b.target(Use::Descend, t, Vec3::new(0.0, 1.2, 1.05), Vec3::new(0.75, 1.2, 0.2));
+    b.fire_light(t.transform_point3(Vec3::new(1.3, 2.4, 1.6)), Vec3::new(1.0, 0.6, 0.3), 2.0, 8.0);
+    b.fire_light(t.transform_point3(Vec3::new(-1.3, 2.4, 1.6)), Vec3::new(1.0, 0.6, 0.3), 2.0, 8.0);
+    // Ut av døra, vendt bort fra den (mot øst).
+    (t.transform_point3(Vec3::new(0.0, 0.0, 3.2)), -FRAC_PI_2)
 }
 
 /// Innbyggerne foran bygningene sine på torget, og Gorvek på øvingsplassen.
@@ -888,7 +868,7 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
         ("Skriptoriet", "npc_clerk", at_door(3), Vec3::new(0.06, 0.12, 0.42), CLERK),
         ("Apotekeren", "npc_apothecary", at_door(0), Vec3::new(0.06, 0.28, 0.1), APOTHECARY),
         ("Vertinnen", "npc_innkeeper", at_door(1), Vec3::new(0.45, 0.12, 0.1), INNKEEPER),
-        ("Gorvek", "npc_gorvek", (Vec2::new(31.0, -18.5), 0.15), Vec3::new(0.3, 0.1, 0.04), GORVEK),
+        ("Gorvek", "npc_gorvek", (YARD.0 + Vec2::new(-4.0, 0.0), -FRAC_PI_2), Vec3::new(0.3, 0.1, 0.04), GORVEK),
     ];
     for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
         let pos = b.on_ground(Vec3::new(p.x, 0.0, p.y));
@@ -903,7 +883,7 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
         // 4,5 m ut fra dørene), og for Gorvek mellom dukkene.
         let side = Vec2::new(yaw.cos(), -yaw.sin());
         let pts: Vec<Vec2> = if name == "Gorvek" {
-            vec![p, Vec2::new(31.0, -23.5), Vec2::new(34.5, -25.5), Vec2::new(30.0, -26.0)]
+            vec![p, YARD.0 + Vec2::new(-0.5, -0.5), YARD.0 + Vec2::new(2.5, -2.0), YARD.0 + Vec2::new(0.5, 2.5)]
         } else {
             vec![p, p + side * 2.4, p, p - side * 2.4]
         };
@@ -1121,9 +1101,14 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
         if !ok || route.len() < 2 {
             continue;
         }
-        // Starter midt på ruta, ute i gata (ikke i veien ved en brønn).
+        // Starter midt på ruta, ute i gata (ikke i veien ved en brønn), og
+        // ikke der en annen allerede står.
         let half = route.len() / 2;
         route.rotate_left(half);
+        let taken: Vec<Vec3> = b.npcs.iter().map(|n| n.pos).collect();
+        if let Some(k) = (0..route.len()).find(|&k| taken.iter().all(|q| q.distance(route[k].0) > 1.5)) {
+            route.rotate_left(k);
+        }
         let (pos, _) = route[0];
         // Hver har sin figur (kvinnene på torget deler kona med skaut og
         // bøtte); den felles `npc` bare om modellen mangler.
@@ -1156,6 +1141,8 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
 /// muren og husene, med forsiden mot gata, og virvelen åpner seg. Økta
 /// setter ringen, runene, virvlene og splintene (`Session::portal_poses`)
 /// og flytter kolliderne inn (`PORTAL_SOLIDS`).
+/// Der portalen står: på torget, vest for Storgata.
+const PORTAL_AT: Vec2 = Vec2::new(-7.5, 5.0);
 pub const PORTAL_RING: &str = "portal_ring";
 pub const PORTAL_PARTS: [&str; 3] = ["portal_runes", "portal_swirl", "portal_shard"];
 /// Midten av ringen over plattformen, og ringens indre radius.
@@ -1175,7 +1162,8 @@ fn portal(b: &mut Builder, spawn: Vec3) {
         log::warn!("Modellen {PORTAL_RING} mangler, ingen portal");
         return;
     }
-    let at = Vec2::new(spawn.x - 11.8, spawn.z - 0.3);
+    let _ = spawn;
+    let at = PORTAL_AT;
     let base = b.on_ground(Vec3::new(at.x, 0.0, at.y));
     // Forsiden (+z i modellen) mot gata i øst.
     let pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(FRAC_PI_2), base);
@@ -1272,27 +1260,17 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let yards = inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85;
     let dirt = roads.max(yards);
     let earth = (yards / (roads + yards).max(1e-4)).clamp(0.0, 1.0);
-    // Berg der det er bratt, og litt i toppen av borghaugen.
+    // Berg der det er bratt.
     let slope = 1.0 - terrain::normal(x, z).y;
-    let (hx, hz, hr, _) = terrain::HILL;
-    let hill = (((x - hx).powi(2) + (z - hz).powi(2)).sqrt() / hr).clamp(0.0, 1.0);
-    // Borghaugen er gress opp lia (berg bare i flekker i borggården).
-    let on_hill = 1.0 - ((hill - 0.95) / 0.05).clamp(0.0, 1.0);
-    let rock = (soft(0.0, 0.06 - slope + (n1 - 0.5) * 0.05, 0.05) * (1.0 - on_hill)).max(soft(0.0, hill - 0.45 + (n2 - 0.5) * 0.3, 0.1) * 0.4 * (1.0 - soft(0.0, hill - 0.25, 0.1)));
-    // Skogbunn der granskogen står tett, langt ute.
-    let far = (x * x + z * z).sqrt();
-    let forest = soft(0.0, 115.0 - far + (n2 - 0.5) * 40.0, 20.0) * (1.0 - inside);
+    let rock = soft(0.0, 0.08 - slope + (n1 - 0.5) * 0.05, 0.05);
+    let forest = 0.0f32;
     // Fordel: brostein over jord over berg over skogbunn, gress resten.
     let cobble = cobble.clamp(0.0, 1.0);
     let dirt = (dirt * (1.0 - cobble)).clamp(0.0, 1.0);
     let rock = (rock * (1.0 - cobble - dirt)).clamp(0.0, 1.0);
     let forest = (forest * (1.0 - cobble - dirt - rock)).clamp(0.0, 1.0);
     // Tørt gress på ryggene og i åkrene.
-    let mut dry = (terrain::noise(x * 0.05 + 2.0, z * 0.05) * 1.3 - 0.35).clamp(0.0, 1.0) * 0.6;
-    for (cx, cz, rx, rz) in FIELDS {
-        let e = ((x - cx) / rx).powi(2) + ((z - cz) / rz).powi(2);
-        dry = dry.max(soft(1.0, e, 0.25));
-    }
+    let dry = (terrain::noise(x * 0.05 + 2.0, z * 0.05) * 1.3 - 0.35).clamp(0.0, 1.0) * 0.6;
     // Søle i kantene av jordveiene og i gatene i byen.
     let wet = (dirt * (1.0 - dirt) * 4.0 * soft(0.0, 0.55 - n2, 0.2)).clamp(0.0, 1.0);
     Ground { cobble, dirt, rock, forest, dry, wet, road: coords, earth }
@@ -1318,33 +1296,29 @@ fn paths(x: f32, z: f32) -> Vec<(f32, f32, f32)> {
         let stretch = (1.0 + slope * slope).sqrt();
         ((x - c) / stretch, (z - z0) * stretch)
     };
-    if z > south.y - 2.0 {
-        let cx = |z: f32| {
-            let n = terrain::noise(z * 0.03, 9.0);
-            let k = ((z - south.y) / 60.0).clamp(0.0, 1.0);
-            south.x * (1.0 - k) + (n - 0.5) * 30.0 * k
+    // Sørover fra sørporten og nordover fra nordporten forbi kirkegården,
+    // svingende ut mellom åsene.
+    for (from, sign) in [(south, 1.0f32), (north, -1.0)] {
+        if (z - from.y) * sign < -2.0 {
+            continue;
+        }
+        let cx = move |z: f32| {
+            let k = (((z - from.y) * sign) / 50.0).clamp(0.0, 1.0);
+            let n = terrain::noise(z * 0.02, if sign > 0.0 { 9.0 } else { 3.0 });
+            from.x * (1.0 - k) + (n - 0.5) * 40.0 * k
         };
-        let (u, v) = along(&cx, south.y, z);
-        out.push(((x - cx(z)).abs(), u, v));
-    }
-    if z < north.y + 2.0 && z > CRYPT.y - 4.0 {
-        // Svinger litt mens den klatrer, og ender ved krypten.
-        let cx = |z: f32| {
-            let t = ((north.y - z) / (north.y - CRYPT.y)).clamp(0.0, 1.0);
-            north.x * (1.0 - t) + CRYPT.x * t + (t * PI).sin() * 6.0
-        };
-        let (u, v) = along(&cx, north.y, z);
-        out.push(((x - cx(z)).abs(), u, -v));
+        let (u, v) = along(&cx, from.y, z);
+        out.push(((x - cx(z)).abs(), u, v * sign));
     }
     out
 }
 
-/// Avstand fra et punkt til det bygde: byen innenfor muren, og borghaugen.
+/// Avstand fra et punkt til det bygde: byen innenfor muren, og kirkegården.
 /// Der holder enga, trærne og dyrene seg unna.
 pub fn town_dist(x: f32, z: f32) -> f32 {
-    let (hx, hz, _, _) = terrain::HILL;
-    let castle = ((x - hx).powi(2) + (z - hz).powi(2)).sqrt() - terrain::KEEP_FLAT - 2.0;
-    terrain::town_edge(x, z).min(castle)
+    let (cx, cz, hx, hz) = terrain::YARD_FLAT;
+    let yard = ((x - cx).abs() - hx).max((z - cz).abs() - hz);
+    terrain::town_edge(x, z).min(yard)
 }
 
 /// Stigen opp fra startrommet i kjelleren ligger i dungeon.rs; her er bare

@@ -1,5 +1,5 @@
-//! Terrenget: kjøpstaden ligger planert innenfor bymuren, borgen står på en
-//! haug i nord, og utenfor bølger enga mot åsene. Alt som bygges spør
+//! Terrenget: kjøpstaden ligger planert innenfor bymuren, kirkegården
+//! utenfor nordporten er planert, og utenfor ruller åsene. Alt som bygges spør
 //! `height` om hvor bakken er.
 
 use glam::Vec3;
@@ -27,57 +27,44 @@ fn smooth(t: f32) -> f32 {
     t * t * (3.0 - 2.0 * t)
 }
 
-/// Borghaugen: midten, radius og høyde. Lav og bred, så lia opp er slak
-/// (aldri brattere enn 18°, så den blir gress og ikke berg), og foten
-/// slutter utenfor muren.
-pub const HILL: (f32, f32, f32, f32) = (0.0, -132.0, 72.0, 7.0);
-/// Borggården på toppen er planert innenfor denne radien: hele ruinen med
-/// hjørnetårnene (36 m ut) står på flat mark.
-pub const KEEP_FLAT: f32 = 39.0;
+/// Kirkegården utenfor nordporten er planert: midten (x, z) og halve mål.
+pub const YARD_FLAT: (f32, f32, f32, f32) = (-17.0, -50.0, 12.0, 10.0);
 
 /// Hvor langt ut fra bymuren et punkt er, i meter (negativt innenfor).
-/// Muren følger et ujevnt, eggeformet omriss rundt torget, slik den ble
-/// lagt der byen hadde vokst, ikke en tegnet firkant.
+/// Muren følger et litt ujevnt, rundt omriss rundt torget.
 pub fn town_edge(x: f32, z: f32) -> f32 {
     (x * x + z * z).sqrt() - wall_radius(z.atan2(x))
 }
 
 /// Murens avstand fra torget i retningen `a` (radianer fra +x mot +z).
 pub fn wall_radius(a: f32) -> f32 {
-    56.0 + 3.0 * (2.0 * a + 0.7).sin() + 2.2 * (3.0 * a + 1.9).sin() + 1.3 * (5.0 * a + 0.4).sin()
+    32.0 + 1.4 * (2.0 * a + 0.7).sin() + 0.9 * (3.0 * a + 1.9).sin()
 }
 
-/// Terrenget uten planeringene.
+/// Terrenget uten planeringene: rullende åser som vokser utover.
 fn natural(x: f32, z: f32) -> f32 {
-    // En svak helling opp mot nord, og bølger på 40–90 meter.
-    let slope = -z * 0.018 + x * 0.004;
-    let waves = (noise(x * 0.025 + 3.0, z * 0.025) - 0.5) * 2.4 + (noise(x * 0.06, z * 0.06 + 7.0) - 0.5) * 0.8;
-    // Lenger ute ruller landskapet mer.
-    let far = ((x * x + z * z).sqrt() - 70.0).max(0.0) / 90.0;
-    let rolling = (noise(x * 0.011 + 11.0, z * 0.011 + 5.0) - 0.5) * 10.0 * far.min(1.0);
-    slope + waves + rolling
+    let r = (x * x + z * z).sqrt();
+    let near = (noise(x * 0.025 + 3.0, z * 0.025) - 0.5) * 2.0;
+    // Åsene: store, myke bølger fra muren og ut.
+    let far = smooth((r - 45.0) / 80.0);
+    let hills = ((noise(x * 0.012 + 11.0, z * 0.012 + 5.0) - 0.5) * 22.0 + (noise(x * 0.03 + 4.0, z * 0.03 + 9.0) - 0.5) * 5.0) * far;
+    near + hills
 }
 
 /// Bakkehøyden i meter.
 pub fn height(x: f32, z: f32) -> f32 {
     let raw = natural(x, z);
     // Byen er planert innenfor muren, med en jevn overgang utenfor.
-    let t = smooth((town_edge(x, z) + 2.0) / 16.0);
+    let t = smooth((town_edge(x, z) + 2.0) / 22.0);
     let mut h = raw * t;
-    // Borghaugen, med flat topp der borgen står.
-    let (hx, hz, hr, hh) = HILL;
-    let d = ((x - hx).powi(2) + (z - hz).powi(2)).sqrt();
-    let top = hh + natural(hx, hz);
-    if d < hr {
-        let k = smooth(1.0 - (d - KEEP_FLAT).max(0.0) / (hr - KEEP_FLAT));
-        // Skråningen er litt ujevn, som en naturlig haug.
-        let lumps = (noise(x * 0.08, z * 0.08 + 2.0) - 0.5) * 1.6 * (1.0 - smooth(1.0 - (d - KEEP_FLAT).max(0.0) / 8.0));
-        h = h * (1.0 - k) + top * k + lumps * k;
-    }
-    // Veien opp til borgen er skåret inn i haugen.
+    // Kirkegården: planert til høyden ved nordporten.
+    let (cx, cz, hx, hz) = YARD_FLAT;
+    let dx = ((x - cx).abs() - hx).max(0.0);
+    let dz = ((z - cz).abs() - hz).max(0.0);
+    let k = smooth(1.0 - (dx * dx + dz * dz).sqrt() / 12.0);
+    h = h * (1.0 - k) + 0.0 * k;
     h
 }
-
 pub fn at(p: Vec3) -> Vec3 {
     Vec3::new(p.x, height(p.x, p.z), p.z)
 }

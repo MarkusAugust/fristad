@@ -403,9 +403,8 @@ pub fn landscape(b: &mut Builder) {
     }
 }
 
-/// Høyden i landskapet utenfor terrenget: bakken glir over i åser fra
-/// 200 m og fjell fra 280 m, med rygger og tinder fra ridged noise som
-/// stiger utover, så horisonten er en sammenhengende fjellrekke.
+/// Høyden i landskapet utenfor terrenget: bakken glir over i rullende
+/// åser fra 200 m, som blir høyere og mykere utover mot horisonten.
 pub fn landscape_height(x: f32, z: f32) -> f32 {
     let r = (x * x + z * z).sqrt();
     let base = terrain::height(x, z);
@@ -414,14 +413,9 @@ pub fn landscape_height(x: f32, z: f32) -> f32 {
         t * t * (3.0 - 2.0 * t)
     };
     let hills = smooth((r - 200.0) / 70.0) * (terrain::noise(x * 0.012 + 20.0, z * 0.012 + 20.0) * 28.0 + terrain::noise(x * 0.03 + 40.0, z * 0.03) * 8.0);
-    // Ridged noise: toppene blir skarpe rygger.
-    let ridge = |fx: f32, fz: f32, s: f32| 1.0 - (terrain::noise(fx * s, fz * s) * 2.0 - 1.0).abs();
-    let ridges = ridge(x + 300.0, z, 0.0055) * 0.6 + ridge(x, z + 700.0, 0.012) * 0.28 + ridge(x + 900.0, z + 100.0, 0.03) * 0.12;
-    // Store massiv per retning, så noen tinder rager over de andre.
-    let massif = 0.55 + terrain::noise((x + 1000.0) * 0.0025, (z + 1000.0) * 0.0025) * 0.9;
-    let rise = smooth((r - 280.0) / 150.0) * (120.0 + (r - 280.0).max(0.0) * 0.35);
-    let mountains = rise * ridges.powf(1.4) * massif;
-    base + hills + mountains
+    // Lenger ut: bare høyere, myke åser, ingen fjell.
+    let far = smooth((r - 260.0) / 200.0) * (terrain::noise(x * 0.005 + 70.0, z * 0.005 + 30.0) * 60.0);
+    base + hills + far
 }
 
 /// Usynlige vegger rundt kanten av terrenget (±200 m), så ingen faller
@@ -431,9 +425,10 @@ pub fn world_edge(b: &mut Builder) {
     let radius = 199.0;
     for i in 0..n {
         let a = (i as f32 + 0.5) / n as f32 * std::f32::consts::TAU;
-        // Fra 5 m under bakken og opp: kjelleren under kan gå ut under kanten.
-        let c = Vec3::new(a.sin() * radius, 37.5, a.cos() * radius);
-        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 85.0, 2.0), yaw: a });
+        // Fra 30 m under null (dalene mellom åsene) og opp. Kjelleren holder
+        // seg innenfor ±185 m, så den går ikke inn i veggen.
+        let c = Vec3::new(a.sin() * radius, 27.5, a.cos() * radius);
+        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 115.0, 2.0), yaw: a });
     }
 }
 

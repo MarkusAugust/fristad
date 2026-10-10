@@ -349,7 +349,6 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
     let ground_at = ground(&mut b);
     let town = town::build(&mut b);
     cut_ground(&mut b, ground_at);
-    nature::meadow(&mut b);
     nature::grass(&mut b);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
