@@ -17,3 +17,5 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `dng_mekanikk` | spak, gitter, eikedør med slå, fallem, stige, trykkplate, pilhull, pendel og hvilestedet (alter med lysestake) |
 | `dng_borg` | riddarstatue, fillete fane, rustning på stativ, glødepanne, spydstativ, knust trone med glitch, brønn, falt lysekrone og gargoyle |
 | `dng_kjerne` | søyle som blir plast, svevende pikselkuber, sprukken statue med lys, plaststein, plastkasse, pikselsøyle, dør som går i oppløsning, krystaller og en dam med kuber |
+| `clutter_dungeon` | knust tønne, bein og hjelm, råtten sekk med mynter, brukket spyd og skjold, falt hylle med knuste krukker, rasmasse med hakke, lenker og jern, veltet kandelaber og skjelett mot veggen |
+| `clutter_market` | kålkasse, tønne med saltfisk, tøyruller, pølsestativ, eggkurv, oster, melsekk, skobenk og hønsebur |
