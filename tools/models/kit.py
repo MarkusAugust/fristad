@@ -14,6 +14,7 @@ bjelker per meter i bildet), lister og karmer en stripe i trim-arket
 (`trim`, åtte striper), og dørene hele bildet."""
 
 import math
+import os
 import random
 import sys
 
@@ -25,6 +26,36 @@ from mathutils import Euler, Matrix, Vector  # noqa: E402
 from town import collide, daylight, ensure_uv, layer, plain  # noqa: E402
 
 PIECES = town.PIECES
+
+# FRISTAD_STYLE=flat: ingen bildeteksturer, bare flate, malte farger per
+# materiale (prøven «farger rett på modellene»). Formen og okklusjonen i
+# hjørnefargen gjør resten.
+FLAT = {
+    "plaster": 0xF0D9A4, "plaster_white": 0xF2EBD8, "plaster_red": 0xC9654A, "plaster_old": 0xE6D2A2,
+    "timber": 0x5C3A22, "timber_grey": 0x857F74, "thatch": 0xE2AE48, "shingles": 0xA9673A, "shingles_tar": 0x3E2C22,
+    "slate": 0x55647C, "tiles": 0xC2563A, "stone": 0x9C9080, "wall_stone": 0x8E8A84, "ruin": 0x8A8676,
+    "brick": 0xD4B67C, "floor": 0xA4683A, "trim": 0x6E4628, "metal": 0x3C3C44, "door_oak": 0x8C5630,
+    "door_dark": 0x4C3222, "weatherboard": 0x9C6C40, "weatherboard_grey": 0x9A948A, "cladding": 0x4C3628,
+    "logs": 0x9C6434, "wattle": 0x8C7048, "straw": 0xD8B262, "flagstone": 0xA29686, "linen": 0xE0D4B8,
+    "wool": 0xE8E0D0, "leather": 0x7C4C30, "soot": 0x403A36, "cobble": 0x9A9080, "sod": 0x6E8A3A,
+}
+
+
+def _lin(c):
+    return ((c / 255.0 + 0.055) / 1.055) ** 2.4 if c > 10 else c / 255.0 / 12.92
+
+
+if os.environ.get("FRISTAD_STYLE") == "flat":
+    _layer = town.layer
+
+    def _flat(name, tint=(1.0, 1.0, 1.0), rough=0.5):
+        h = FLAT.get(name, 0xB0A090)
+        rgb = tuple(_lin((h >> sh) & 255) * t for sh, t in zip((16, 8, 0), tint))
+        key = f"flat_{name}_{'_'.join(f'{v:.3f}' for v in rgb)}"
+        return plain(key, rgb, 0.8)
+
+    town.layer = _flat
+    layer = _flat
 
 # Stripene i trim-arket, ovenfra.
 CARVED, DARK_BEAM, MOULDING, SILL, BRICKS, IRON_BAND, ROUGH_PLANK, ROPE = range(8)

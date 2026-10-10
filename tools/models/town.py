@@ -747,6 +747,15 @@ def finish(path, ao_samples=160, max_edge=0.6):
     # flater (som ga synlige trekanter) løftes til fullt lys.
     t = np.clip((ao - 0.3) / 0.55, 0.0, 1.0)
     col[:, 0] = col[:, 1] = col[:, 2] = 0.45 + 0.55 * t * t * (3.0 - 2.0 * t)
+    if os.environ.get("FRISTAD_GRADIENT", "1") == "1" and "/town/" in path:
+        # Malt stil: mørkere nede ved bakken (skitt og skygge), lysere oppe.
+        zs = np.empty(len(ob.data.vertices) * 3, dtype=np.float32)
+        ob.data.vertices.foreach_get("co", zs)
+        z = zs.reshape(-1, 3)[:, 2]
+        g = 0.68 + 0.32 * np.clip((z + 0.2) / 3.2, 0.0, 1.0)
+        col[:, 0] *= g
+        col[:, 1] *= g
+        col[:, 2] *= g
     attr.data.foreach_set("color", col.ravel())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
