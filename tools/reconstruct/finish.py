@@ -8,7 +8,7 @@ from . import job as J
 from .texture import b2w, w2b
 
 # ---------------------------------------------------------------- render (Blender)
-def build_material(ob):
+def build_material(ob, stem="head"):
     import bpy
     mat = ob.data.materials[0]
     nt = mat.node_tree
@@ -19,9 +19,9 @@ def build_material(ob):
     bsdf.inputs["Roughness"].default_value = 0.8
     bsdf.inputs["Specular IOR Level"].default_value = 0.15  # malt stil: lyset er i teksturen, nesten ingen glans
     al = nt.nodes.new("ShaderNodeTexImage")
-    al.image = bpy.data.images.load(J.p("head_albedo.png"))
+    al.image = bpy.data.images.load(J.p(f"{stem}_albedo.png"))
     nm = nt.nodes.new("ShaderNodeTexImage")
-    nm.image = bpy.data.images.load(J.p("head_normal.png"))
+    nm.image = bpy.data.images.load(J.p(f"{stem}_normal.png"))
     nm.image.colorspace_settings.name = "Non-Color"
     nmap = nt.nodes.new("ShaderNodeNormalMap")
     nmap.inputs["Strength"].default_value = 0.8
@@ -31,14 +31,20 @@ def build_material(ob):
     nt.links.new(bsdf.outputs[0], out.inputs[0])
 
 
-def render(res=512, samples=32, tag="ark", glb=None):
+def render(res=512, samples=32, tag="ark", glb=None, assembled=False):
     import bpy
     import cv2
     from mathutils import Vector
-    bpy.ops.wm.open_mainfile(filepath=J.p("head.blend"))
+    if assembled:  # hel figur fra assemble.py: kropp, hode og redskap med én tekstur
+        bpy.ops.wm.open_mainfile(filepath=J.p("assembled.blend"))
+        ob = bpy.data.objects["body"]
+        build_material(ob, "full")
+        tag = tag + "_hel"
+    else:
+        bpy.ops.wm.open_mainfile(filepath=J.p("head.blend"))
+        ob = bpy.data.objects["head"]
+        build_material(ob)
     sc = bpy.context.scene
-    ob = bpy.data.objects["head"]
-    build_material(ob)
     fr = json.load(open(J.p("frame.json")))["frame"]
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
@@ -72,7 +78,12 @@ def render(res=512, samples=32, tag="ark", glb=None):
         bpy.ops.render.render(write_still=True)
 
     os.makedirs(J.SHOTS, exist_ok=True)
+    sc.render.resolution_x = int(round(res * J.TW / J.TH / 2)) * 2
+    sc.render.resolution_y = res
+    shown = [k for k, v in J.VIEWS.items() if not v.get("geo_only")]
     for k, v in J.VIEWS.items():
+        if v.get("geo_only"):
+            continue
         o = fr[k]
         # midten av flisa i verden -> Blender
         a = (J.TW / 2 - o["c"]) / o["sy"]
@@ -96,22 +107,28 @@ def render(res=512, samples=32, tag="ark", glb=None):
         im = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype(np.float32)
         a = im[:, :, 3:4] / 255
         return (im[:, :, :3] * a + 130 * (1 - a)).astype(np.uint8)
-    tiles_out = [flat(J.p(f"r_{k}.png")) for k in J.VIEWS]
+    tiles_out = [flat(J.p(f"r_{k}.png")) for k in shown]
     # ovenfra og skrått bakfra: toppen av håret og nakken
     for name, yaw_d, pitch_d in (("r_top", 25, 60), ("r_backlow", 150, -5)):
         yaw, pitch = np.radians(yaw_d), np.radians(pitch_d)
         dirw = np.array([np.sin(yaw) * np.cos(pitch), np.sin(pitch), np.cos(yaw) * np.cos(pitch)])
         shoot(tuple(w2b(dirw) / J.SCALE), (0, 0, 1), max(J.TW, J.TH) / fr["front"]["sy"] * J.SCALE, tuple(ctr),
               J.p(name + ".png"))
-    ref = cv2.imread(J.REF)
-    ref = cv2.resize(ref, (2 * res, 2 * res), interpolation=cv2.INTER_AREA)
-    sheet = np.vstack([np.hstack(tiles_out[:2]), np.hstack(tiles_out[2:])])
-    full = np.hstack([ref, sheet])
+    if len(shown) == 4:
+        ref = cv2.imread(J.REF)
+        ref = cv2.resize(ref, (2 * res, 2 * res), interpolation=cv2.INTER_AREA)
+        sheet = np.vstack([np.hstack(tiles_out[:2]), np.hstack(tiles_out[2:])])
+        full = np.hstack([ref, sheet])
+    else:  # forbildet (samme ruter) over modellen
+        h, w = tiles_out[0].shape[:2]
+        refs = [cv2.resize(cv2.imread(J.p(f"{k}_rgb.png")), (w, h), interpolation=cv2.INTER_AREA) for k in shown]
+        full = np.vstack([np.hstack(refs), np.hstack(tiles_out)])
     cv2.imwrite(os.path.join(J.SHOTS, f"{tag}.png"), full)
     mid = np.hstack([flat(J.p("r_mid.png")), flat(J.p("r_mid2.png")), flat(J.p("r_top.png")), flat(J.p("r_backlow.png"))])
     cv2.imwrite(os.path.join(J.SHOTS, f"{tag}_mellom.png"), mid)
-    turnaround(cam, cam_d, key, ctr, shoot)
-    export(ob, glb or os.path.join(J.SHOTS, J.NAME + ".glb"))
+    if not assembled:  # den hele figuren eksporteres rigget av rig.py
+        turnaround(cam, cam_d, key, ctr, shoot)
+        export(ob, glb or os.path.join(J.SHOTS, J.NAME + ".glb"))
 
 
 def turnaround(cam, cam_d, key, ctr, shoot, n=24, res=256):

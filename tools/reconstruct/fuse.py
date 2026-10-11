@@ -116,6 +116,26 @@ def calibrate(fr):
         A[:, 1 + i] = 1
         rows.append(A); rhs.append(y0)
     A = np.concatenate(rows); y = np.concatenate(rhs)
+    if J.OPT.get("scale_per_view"):  # egen skala per visning (hele figurer: relieffet varierer mellom visningene)
+        A2 = np.zeros((len(y), 2 * len(keys)))
+        off = 0
+        for i, k in enumerate(keys):
+            n = len(data[k][0])
+            A2[off:off + n, 2 * i] = data[k][0]; A2[off:off + n, 2 * i + 1] = 1
+            off += n
+        w = np.ones(len(y))
+        for _ in range(8):
+            sol2 = np.linalg.lstsq(A2 * w[:, None], y * w, rcond=None)[0]
+            r = y - A2 @ sol2
+            s_ = np.median(np.abs(r)) * 1.5 + 1e-3
+            w = 1 / np.maximum(1, np.abs(r) / s_)
+        cal, off = {}, 0
+        for i, k in enumerate(keys):
+            n = len(data[k][0])
+            cal[k] = (float(sol2[2 * i]), float(sol2[2 * i + 1]))
+            print(k, "a=%.2f b=%.1f  avvik median %.1f px" % (cal[k][0], cal[k][1], np.median(np.abs(r[off:off + n]))))
+            off += n
+        return cal
     w = np.ones(len(y))
     for _ in range(8):
         sol = np.linalg.lstsq(A * w[:, None], y * w, rcond=None)[0]
@@ -140,9 +160,24 @@ def fuse(vox=3.0):
     cal = calibrate(fr)
     json.dump(dict(frame=fr, cal=cal), open(J.p("frame.json"), "w"), indent=1)
     H = fr["front"]["bot"] - fr["front"]["top"]
-    xs = np.arange(-0.33 * J.TW, 0.33 * J.TW, vox)
+    # rutenettet dekker silhuettene (med marg): bredden fra forfra/bakfra, dybden fra profilene
+    def span(keys, sign):
+        lo, hi = [], []
+        for k in keys:
+            if k not in J.VIEWS:
+                continue
+            m, _ = load_view(k)
+            cols = np.nonzero((m > 0.5).any(0))[0]
+            a0, a1 = (cols.min() - fr[k]["c"]) / fr[k]["sy"], (cols.max() - fr[k]["c"]) / fr[k]["sy"]
+            if sign(k) < 0:
+                a0, a1 = -a1, -a0
+            lo.append(a0); hi.append(a1)
+        return min(lo) - 24, max(hi) + 24
+    xr = span(("front", "back"), lambda k: 1 if k == "front" else -1)
+    zr = span(("right", "left"), lambda k: 1 if k == "right" else -1)
+    xs = np.arange(xr[0], xr[1], vox)
     ys = np.arange(-H - 10, 10, vox)
-    zs = np.arange(-0.37 * J.TW, 0.37 * J.TW, vox)
+    zs = np.arange(zr[0], zr[1], vox)
     X, Y, Z = np.meshgrid(xs, ys, zs, indexing="ij")
     F = np.full(X.shape, 1e3, np.float32)
     for k, v in J.VIEWS.items():
@@ -154,9 +189,9 @@ def fuse(vox=3.0):
         a, b = cal[k]
         depth = a * d + b
         # nær silhuettkanten er dybden upålitelig (der tar silhuetten over): slakk som toner inn over R px
-        R = 28.0
+        R = J.OPT.get("edge_slack", 28.0)  # tynne lemmer trenger liten slakk, ellers blir de kantete bokser
         dist = ndi.distance_transform_edt(mb)
-        depth = depth + np.maximum(0, R - dist) * 1.5
+        depth = depth + np.maximum(0, R - dist) * J.OPT.get("edge_gain", 1.5)
         if k == "back" and "back_cut" in J.OPT:  # halskuttet sett bakfra er ikke en flate på hodet
             depth[int(fr[k]["top"] + J.OPT["back_cut"] * (fr[k]["bot"] - fr[k]["top"])):] += 1e3
         depth = np.where(mb, depth, -1e3)
@@ -168,10 +203,12 @@ def fuse(vox=3.0):
         s_dep = surf - t  # positiv bak flaten
         F = np.minimum(F, np.minimum(s_sil, s_dep))
         print(k, "ferdig")
+    if J.OPT.get("elliptic"):
+        F = np.minimum(F, elliptic(X, Y, Z, fr, J.OPT.get("elliptic_p", 2.5)) + J.OPT.get("elliptic_tol", 4.0))
     if "neck" in J.OPT:
         F = clean_neck(F, X, Y, Z, fr, J.OPT["neck"])
     # toppen: ingen visning ser ovenfra, så kantene der dybdeflatene skjærer hverandre glattes til en kuppel
-    if J.OPT.get("dome", 0.14):
+    if J.OPT.get("dome", 0.14) > 0:
         wtop = np.clip((Y + J.OPT.get("dome", 0.14) * H) / 40.0, 0, 1)
         F = F * (1 - wtop) + ndi.gaussian_filter(F, 3.0) * wtop
     F = ndi.gaussian_filter(F, 0.8)
@@ -182,6 +219,49 @@ def fuse(vox=3.0):
     print("trekanter", len(faces))
     np.savez(J.p("mesh.npz"), v=verts.astype(np.float32), f=faces.astype(np.int32))
     np.savez(J.p("grid.npz"), x0=xs[0], y0=ys[0], z0=zs[0], vox=vox)
+
+
+def run_bounds(mb):
+    """For hver piksel i masken: venstre og høyre kant (kolonne) av biten i raden den ligger i."""
+    W = mb.shape[1]
+    idx = np.broadcast_to(np.arange(W), mb.shape)
+    left = np.maximum.accumulate(np.where(~mb, idx, -1), axis=1) + 1
+    ridx = np.where(~mb[:, ::-1], idx, -1)
+    right = (W - 1 - np.maximum.accumulate(ridx, axis=1))[:, ::-1] - 1
+    return left.astype(np.float32), right.astype(np.float32)
+
+
+def elliptic(X, Y, Z, fr, pw=2.5):
+    """Tverrsnitt som superellipse: bredden fra biten i raden forfra, dybden fra biten i raden i profilen.
+    Dybdemodellen gir lite relieff på en hel figur, så uten dette blir armer og bein firkantede bokser."""
+    from scipy import ndimage as ndi
+    out = np.full(X.shape, 1e3, np.float32)
+    pairs = [("front", "right")]
+    for fk, pk in pairs:
+        if fk not in J.VIEWS or pk not in J.VIEWS:
+            continue
+        import cv2
+        mf = cv2.imread(J.p(f"{fk}_mask.png"), 0) > 127
+        mp = cv2.imread(J.p(f"{pk}_mask.png"), 0) > 127
+        lf, rf = run_bounds(mf)
+        lp, rp = run_bounds(mp)
+        uf, vf = to_img(fk, fr, X.ravel(), Y.ravel(), Z.ravel())
+        up, vp = to_img(pk, fr, X.ravel(), Y.ravel(), Z.ravel())
+        def near(img, u, v):
+            ui = np.clip(np.round(u).astype(int), 0, img.shape[1] - 1)
+            vi = np.clip(np.round(v).astype(int), 0, img.shape[0] - 1)
+            return img[vi, ui]
+        inside = near(mf, uf, vf) & near(mp, up, vp)
+        of, op = fr[fk], fr[pk]
+        xa = (near(lf, uf, vf) - of["c"]) / of["sy"]; xb = (near(rf, uf, vf) + 1 - of["c"]) / of["sy"]
+        za = (near(lp, up, vp) - op["c"]) / op["sy"]; zb = (near(rp, up, vp) + 1 - op["c"]) / op["sy"]
+        xc, rx = (xa + xb) / 2, np.maximum((xb - xa) / 2, 1)
+        zc, rz = (za + zb) / 2, np.maximum((zb - za) / 2, 1)
+        e = (np.abs(X.ravel() - xc) / rx) ** pw + (np.abs(Z.ravel() - zc) / rz) ** pw
+        val = (1 - e ** (1 / pw)) * np.minimum(rx, rz)
+        val = np.where(inside, val, 1e3)  # utenfor tar silhuettene seg av det
+        out = np.minimum(out, val.reshape(X.shape).astype(np.float32))
+    return out
 
 
 def clean_neck(F, X, Y, Z, fr, o_):

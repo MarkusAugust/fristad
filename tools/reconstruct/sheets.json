@@ -152,7 +152,22 @@
  "smith_body": {
   "ref": "assets/textures/people/ref/smith_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "drop_mirrored_tool": true
+  },
+  "tris": 14000
  },
  "washerwoman_head": {
   "ref": "assets/textures/people/ref/washerwoman_head.jpeg",

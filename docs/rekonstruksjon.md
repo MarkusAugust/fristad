@@ -47,3 +47,36 @@ Mellomfilene havner i `target/reconstruct/<navn>/`, og arkene i `shots/reconstru
 ## Slik vurderer du resultatet
 
 Se på **mellomvinkelen**: 45° mellom forfra og profilen, litt ovenfra (`<navn>_mellom.png`). Ingen av forbildene viser den vinkelen, så den viser om formen og projeksjonen virkelig stemmer, eller om det bare ser riktig ut fra kameraene forbildet ble tatt fra. Se også etter sømmer der to visninger møtes (rundt øret og kinnet), strekk på toppen av hodet, og at silhuetten følger forbildet i arket.
+
+## Hele figurer (`body3`) og montering
+
+- **Arket:** `body3` deler kroppsarket ved mellomrommene mellom figurene (`gap_split`). Bare én profil finnes, så
+  den andre siden er profilen speilet. Den brukes til formen og til teksturen på den siden (`mirror_texture`).
+- **Dybden:** høye ruter får kvadratiske vinduer med overlapp (`depth.py`), og hver visning får sin egen dybdeskala
+  (`scale_per_view`).
+- **Formen:** dybdemodellen gir for lite relieff på en hel figur, så tverrsnittene får en superellipse som prior
+  (`elliptic`): bredden fra biten i raden forfra og dybden fra biten i raden i profilen. Slakken ved silhuettkanten
+  er liten (`edge_slack`).
+- **`assemble.py`:**
+  - Hodet fra hodearket settes på etter silhuetten. Skalaen finnes ved å passe bredden av skallen forfra og fra
+    siden.
+  - Kroppen kuttes ved halsen.
+  - Redskapet finnes på farge og form og skilles ut.
+  - Spøkelset fra den speilede profilen fjernes, og hullene lukkes.
+  - Alt bakes til én tekstur på 2048², der hodet får mer plass.
+- **`rig.py`:**
+  - De 18 beina legges ut fra silhuettene, og vektene er automatiske, med armene og hendene ryddet.
+  - Klippene kommer fra `folk_motion.clips`, og redskapet henger stivt på `hand.R`.
+  - Eksporten er en glb med skinn og animasjoner, slanket med `slim.py`.
+
+```
+python3.13 -m tools.reconstruct smith_head
+python3.13 -m tools.reconstruct smith_body                         # seg, depth, fuse, bake, project, render
+python3.13 -m tools.reconstruct smith_body --steps assemble,render_full,rig --head smith_head \
+    --rig-out assets/models/npc/npc_smith.glb
+```
+
+**Begrensninger på hele figurer:**
+- Venstre side har ingen egen profil og bygger på den speilede.
+- Hender som ligger inntil kroppen smelter sammen med den, så skinnet strekkes litt når armene svinger.
+- Leddene legges etter faste høydeandeler (`rig.FRAC`) og bør sjekkes for figurer med andre proporsjoner.

@@ -7,8 +7,6 @@ import numpy as np
 from . import job as J
 from .fuse import sample, to_img
 
-J.SCALE = 0.00028  # meter per verdenspiksel (hodet med skjegg og hals blir ~26 cm)
-J.TEX = 2048
 
 
 def w2b(v):
@@ -163,6 +161,8 @@ def project():
     wl_acc = np.zeros(len(P)); wh_acc = np.zeros(len(P))
     best = np.zeros(len(P))
     for k, v in J.VIEWS.items():
+        if v.get("geo_only") and not J.OPT.get("mirror_texture"):
+            continue
         rgb = cv2.imread(J.p(f"{k}_rgb.png"))[:, :, ::-1].astype(np.float32) / 255
         lin = rgb ** 2.2
         low = cv2.GaussianBlur(lin, (0, 0), 5)
