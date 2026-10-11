@@ -29,14 +29,14 @@ const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
 // Grafikknivået: enkel (de svakeste maskinene og WebGL2: uten
-// kantutjevning, solskygge og glød, høyst 900p), standard (SMAA, én piksel
-// per CSS-piksel, høyst 1080p) eller avansert (lengre sikt, alle lys, SMAA,
+// kantutjevning, solskygge og glød, høyst 900p), standard (SMAA, opptil 1,5
+// piksler per CSS-piksel, høyst 1080p) eller avansert (lengre sikt, alle lys, SMAA,
 // opptil 1,5 piksler per CSS-piksel og 1440p). Valget huskes, og
 // grafikken byttes aldri av seg selv.
 const QUALITIES = ["enkel", "standard", "avansert"];
 const QUALITY_INFO = {
   enkel: { cap: 900, dense: 1, note: "uten MSAA, solskygge og glød; for svake maskiner og WebGL2." },
-  standard: { cap: 1080, dense: 1, note: "kantutjevning med SMAA, kortere sikt. Laget for en vanlig maskin." },
+  standard: { cap: 1080, dense: 1.5, note: "kantutjevning med SMAA, kortere sikt. Laget for en vanlig maskin." },
   avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, høyere oppløsning, kantutjevning med SMAA." },
 };
 let quality = null;
@@ -70,8 +70,8 @@ function renderHeight() {
   const dpr = window.devicePixelRatio || 1;
   const ph = Math.max(1, Math.round(canvas.clientHeight * dpr));
   if (resolution === "auto") {
-    // Standard tegner aldri tettere enn én piksel per CSS-piksel, avansert
-    // opptil 1,5 på skjermer med høy pikseltetthet; og aldri over trinnet.
+    // Standard og avansert tegner opptil 1,5 piksler per CSS-piksel på
+    // skjermer med høy pikseltetthet, og aldri over trinnet (1080p og 1440p).
     const info = QUALITY_INFO[quality ?? "standard"];
     const dense = Math.round(canvas.clientHeight * Math.min(dpr, info.dense));
     const cap = Math.min(dense, info.cap);

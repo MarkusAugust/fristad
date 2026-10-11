@@ -29,3 +29,15 @@ Runde 4 (SMAA):
 | Avansert med MSAA | 53–59 ms, 18–22 fps | 127–141 ms, 11–13 fps |
 
 Hovedpasset: 172k–266k trekanter og 61–79 kall (standard), 211k–311k og 65–86 (avansert).
+
+## 11. oktober: MacBook Pro M3 (dpr 2)
+
+| Kjøring | Chrome (Edge), 1395×720 / 2231×1152 | Safari, 1630×900 / 2087×1152 |
+|---|---|---|
+| Standard, SMAA | 5,5–6,4 ms, 120 fps | 9,6–9,9 ms, 60 fps |
+| Standard med MSAA 4× | 15 ms, 112 fps | 31 ms, 57 fps |
+| Enkel | 6 ms, 120 fps | 6–7,6 ms, 60 fps |
+| Avansert, SMAA | 8,1–8,5 ms, 120 fps | 12,7–13,4 ms, 60 fps |
+| Avansert med MSAA 8× | 34–38 ms, 42–47 fps | 54–62 ms, 30–34 fps |
+
+Standard tegnet bare 720p på Retina-skjermen (én piksel per CSS-piksel). Med god plass ble grensen hevet til 1,5 piksler per CSS-piksel, fortsatt høyst 1080p.
