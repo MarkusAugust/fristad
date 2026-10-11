@@ -200,6 +200,16 @@ def assemble(head="smith_head", tex=2048):
         o_ = fb[kk]
         reg[: int(o_["top"] + 0.42 * (o_["bot"] - o_["top"]))] = False  # under brystet (ikke pels, spenner)
         masks[kk] = hammer_mask(rgb, mm, column=(kk == "front" and tkw["handle"]), region=reg, **tkw)
+    if J.OPT.get("tool_box"):  # redskapet i profilen: boksen fra sheets.json minus huden
+        boxes = J.OPT["tool_box"]
+        boxes = [boxes] if isinstance(boxes[0], int) else boxes
+        rgb = cv2.imread(J.p("right_rgb.png"))
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV).astype(np.float32)
+        skin = (hsv[..., 0] * 2 > 2) & (hsv[..., 0] * 2 < 28) & (hsv[..., 1] > 45) & (hsv[..., 1] < 170) & (hsv[..., 2] > 140)
+        bx = np.zeros_like(masks["right"])
+        for x0, y0, x1, y1 in boxes:
+            bx[y0:y1, x0:x1] = True
+        masks["right"] = ndi.binary_dilation(bx & ~ndi.binary_dilation(skin, iterations=3), iterations=4) & _mask(body_work, "right")
     co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
     W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)  # Blender -> verden
     inside = np.ones(len(W), bool)
@@ -210,7 +220,7 @@ def assemble(head="smith_head", tex=2048):
     # bare ved figurens høyre hånd (forfra til venstre i bildet, x < 0) og under brystet
     H = fb["front"]["bot"] - fb["front"]["top"]
     inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
-    if J.OPT.get("drop_mirrored_tool"):
+    if J.OPT.get("drop_mirrored_tool") and "tool_side" in J.OPT and not J.OPT.get("drop_pole"):
         # den speilede profilen gir et «spøkelse» av redskapet i den andre hånda: fjern det som ligger i
         # redskapsmasken fra siden på figurens venstre side, utenfor neven
         hand = []
@@ -218,6 +228,14 @@ def assemble(head="smith_head", tex=2048):
         preg = np.ones_like(_mask(body_work, "right"))
         preg[: int(fb["right"]["top"] + 0.42 * (fb["right"]["bot"] - fb["right"]["top"]))] = False
         hammer_mask(rgb, _mask(body_work, "right"), hand=hand, kind=tkw["kind"], region=preg)
+        if J.OPT.get("tool_box"):  # neven: hudpikselen nærmest midten av boksen
+            b0 = J.OPT["tool_box"]; b0 = b0[0] if not isinstance(b0[0], int) else b0
+            hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+            sk = (hsv[..., 0] * 2 > 2) & (hsv[..., 0] * 2 < 28) & (hsv[..., 1] > 45) & (hsv[..., 1] < 170) & (hsv[..., 2] > 140) & _mask(body_work, "right")
+            sy_, sx_ = np.nonzero(ndi.binary_opening(sk, iterations=2))
+            cx, cy = (b0[0] + b0[2]) / 2, (b0[1] + b0[3]) / 2
+            i = int(np.argmin(np.hypot(sx_ - cx, sy_ - cy)))
+            hand = [np.array([sx_[i], sy_[i]], float)]
         u, vv = to_img("right", fb, W[:, 0], W[:, 1], W[:, 2])
         ui = np.clip(np.round(u).astype(int), 0, masks["right"].shape[1] - 1)
         vi = np.clip(np.round(vv).astype(int), 0, masks["right"].shape[0] - 1)
@@ -236,7 +254,12 @@ def assemble(head="smith_head", tex=2048):
             & (W[:, 1] < -0.45 * H) & (np.hypot(W[:, 2] - fist_z, W[:, 1] - (fist_y - 30)) > 42)
         # venstre neve har ingen egen dybde fra siden (profilen viser høyre side): alt i hånda utenfor nevens
         # dybde er rester av høyre arm og skaftet
-        lefthand = (sg * W[:, 0] > 0.66 * (sg * W[:, 0]).max()) & (W[:, 1] < fist_y + 70) & (W[:, 1] > fist_y - 140)
+        ylo = fist_y - 140
+        if J.OPT.get("tool_box"):  # hele boksens høyde (øksebladet henger langt under neven)
+            bb = J.OPT["tool_box"]; bb = [bb] if isinstance(bb[0], int) else bb
+            ylo = min(ylo, min(-(b[3] - fb["right"]["top"]) / fb["right"]["sy"] for b in bb))
+        ylo = fist_y - 140  # boksens høyde tok med låret (hull); redskapet fjernes nå fra den speilede profilen
+        lefthand = (sg * W[:, 0] > 0.66 * (sg * W[:, 0]).max()) & (W[:, 1] < fist_y + 70) & (W[:, 1] > ylo)
         ghost |= lefthand & (np.abs(W[:, 2] - fist_z) > 48)
         gs = set(np.nonzero(ghost)[0].tolist())
         bm = bmesh.new(); bm.from_mesh(body.data)
@@ -268,6 +291,8 @@ def assemble(head="smith_head", tex=2048):
         ui = np.clip(np.round(u).astype(int), 0, mm.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mm.shape[0] - 1)
         inside &= mm[vi, ui]
     inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
+    if "tool_side" not in J.OPT or J.OPT.get("drop_pole"):  # ingen redskap å skille ut (staver er tatt ut)
+        inside[:] = False
     sel = set(np.nonzero(inside)[0].tolist())
     bm = bmesh.new(); bm.from_mesh(body.data)
     bm.verts.ensure_lookup_table()

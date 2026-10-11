@@ -102,7 +102,7 @@ def to_game(p, base):
 
 def build(out=None, style=None, grip=None):
     style = style or J.OPT.get("style", "smith")
-    grip = grip or J.OPT.get("grip", "hang")
+    grip = grip if grip is not None else J.OPT.get("grip", "hang")
     side = J.OPT.get("tool_side", "R")
     import bpy
     sys.path.insert(0, os.path.join(J.ROOT, "tools/models"))

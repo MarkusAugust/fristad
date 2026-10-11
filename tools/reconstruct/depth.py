@@ -68,4 +68,12 @@ def depth():
         print(k, "disp", float(v.min()), float(v.max()))
     for k, v in J.VIEWS.items():
         if v.get("mirror_of"):
-            np.save(J.p(f"{k}_disp.npy"), np.load(J.p(f"{v['mirror_of']}_disp.npy"))[:, ::-1].copy())
+            d = np.load(J.p(f"{v['mirror_of']}_disp.npy")).copy()
+            tp = J.p("tool_src.npy")
+            if J.OPT.get("tool_box") and os.path.exists(tp):
+                # redskapet tas ut av dybden også: hver rad interpoleres over redskapet fra kroppen rundt
+                t = np.load(tp)
+                for y in np.nonzero(t.any(1))[0]:
+                    xs = np.arange(d.shape[1]); ok = ~t[y]
+                    d[y, t[y]] = np.interp(xs[t[y]], xs[ok], d[y, ok])
+            np.save(J.p(f"{k}_disp.npy"), d[:, ::-1].copy())

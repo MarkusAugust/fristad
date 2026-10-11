@@ -27,7 +27,25 @@
   "ref": "assets/textures/people/ref/apothecary_body.jpeg",
   "layout": "body3",
   "scale": 0.0009,
-  "merk": "en ekstra hånd svever til venstre (segmenteringen beholder bare største bit)"
+  "merk": "en ekstra hånd svever til venstre (segmenteringen beholder bare største bit)",
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "old",
+   "grip": "",
+   "skirt": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "boy_head": {
   "ref": "assets/textures/people/ref/boy_head.jpeg",
@@ -55,7 +73,24 @@
  "boy_body": {
   "ref": "assets/textures/people/ref/boy_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "boy",
+   "grip": "",
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "clerk_head": {
   "ref": "assets/textures/people/ref/clerk_head.jpeg",
@@ -83,7 +118,25 @@
  "clerk_body": {
   "ref": "assets/textures/people/ref/clerk_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "default",
+   "grip": "",
+   "skirt": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "farmer_head": {
   "ref": "assets/textures/people/ref/farmer_head.jpeg",
@@ -111,7 +164,26 @@
  "farmer_body": {
   "ref": "assets/textures/people/ref/farmer_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "default",
+   "grip": "long",
+   "tool_side": "R",
+   "drop_pole": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "fishwife_head": {
   "ref": "assets/textures/people/ref/fishwife_head.jpeg",
@@ -135,7 +207,25 @@
  "fishwife_body": {
   "ref": "assets/textures/people/ref/fishwife_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "innkeeper",
+   "grip": "",
+   "skirt": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "gorvek_head": {
   "ref": "assets/textures/people/ref/gorvek_head.jpeg",
@@ -180,7 +270,17 @@
    "style": "gorvek",
    "tool_side": "R",
    "tool_kind": "iron",
-   "model_tool": false
+   "model_tool": false,
+   "tool_box": [
+    [
+     95,
+     930,
+     690,
+     1452
+    ]
+   ],
+   "tool_strip": "color",
+   "depth_margin": 20
   },
   "tris": 14000
  },
@@ -211,7 +311,26 @@
   "ref": "assets/textures/people/ref/guard_body.jpeg",
   "layout": "body3",
   "scale": 0.0009,
-  "merk": "spydet mangler forfra"
+  "merk": "spydet mangler forfra",
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "guard",
+   "grip": "long",
+   "tool_side": "R",
+   "drop_pole": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "innkeeper_head": {
   "ref": "assets/textures/people/ref/innkeeper_head.jpeg",
@@ -240,7 +359,8 @@
    "same_scale": true,
    "elliptic": true,
    "elliptic_p": 2.2,
-   "elliptic_tol": 4
+   "elliptic_tol": 4,
+   "edge_fade": 30
   }
  },
  "innkeeper_body": {
@@ -266,7 +386,22 @@
    "tool_handle": false,
    "model_tool": false,
    "skirt": true,
-   "hips_iron": true
+   "hips_iron": true,
+   "tool_box": [
+    [
+     365,
+     1150,
+     580,
+     1312
+    ],
+    [
+     365,
+     1075,
+     520,
+     1150
+    ]
+   ],
+   "depth_margin": 30
   },
   "tris": 14000
  },
@@ -296,7 +431,25 @@
  "maid_body": {
   "ref": "assets/textures/people/ref/maid_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "innkeeper",
+   "grip": "",
+   "skirt": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "merchant_head": {
   "ref": "assets/textures/people/ref/merchant_head.jpeg",
@@ -324,7 +477,25 @@
  "merchant_body": {
   "ref": "assets/textures/people/ref/merchant_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "old",
+   "grip": "hang",
+   "tool_side": "L",
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "pilgrim_head": {
   "ref": "assets/textures/people/ref/pilgrim_head.jpeg",
@@ -352,7 +523,26 @@
  "pilgrim_body": {
   "ref": "assets/textures/people/ref/pilgrim_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "old",
+   "grip": "long",
+   "tool_side": "R",
+   "drop_pole": true,
+   "model_tool": false
+  },
+  "tris": 14000
  },
  "smith_head": {
   "ref": "assets/textures/people/ref/smith_head.jpeg",
@@ -398,7 +588,16 @@
    "elliptic_p": 2.5,
    "elliptic_tol": 4,
    "drop_mirrored_tool": true,
-   "style": "smith"
+   "style": "smith",
+   "tool_side": "R",
+   "tool_box": [
+    [
+     440,
+     1140,
+     670,
+     1310
+    ]
+   ]
   },
   "tris": 14000
  },
@@ -428,6 +627,25 @@
  "washerwoman_body": {
   "ref": "assets/textures/people/ref/washerwoman_body.jpeg",
   "layout": "body3",
-  "scale": 0.0009
+  "scale": 0.0009,
+  "opt": {
+   "floor_line": true,
+   "open_holes": true,
+   "min_hole": 400,
+   "dome": 0,
+   "scale_per_view": true,
+   "mirror_texture": true,
+   "edge_slack": 8,
+   "edge_gain": 1.0,
+   "elliptic": true,
+   "elliptic_p": 2.5,
+   "elliptic_tol": 4,
+   "style": "innkeeper",
+   "grip": "heavy",
+   "tool_side": "R",
+   "skirt": true,
+   "model_tool": false
+  },
+  "tris": 14000
  }
 }

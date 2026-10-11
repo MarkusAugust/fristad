@@ -168,7 +168,7 @@ def project():
         low = cv2.GaussianBlur(lin, (0, 0), 5)
         high = lin - low
         m = cv2.imread(J.p(f"{k}_mask.png"), 0) > 127
-        edge = np.clip(ndi.distance_transform_edt(m) / 10.0, 0, 1).astype(np.float32)
+        edge = np.clip(ndi.distance_transform_edt(m) / float(J.OPT.get("edge_fade", 10.0)), 0, 1).astype(np.float32)
         cam = np.array(v["cam"], float)
         # dybdebuffer fra den høye modellen
         u, vv = to_img(k, fr, HV[:, 0], HV[:, 1], HV[:, 2])

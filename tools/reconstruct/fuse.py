@@ -244,8 +244,15 @@ def fuse(vox=3.0):
         cam = np.array(v["cam"], float)
         t = X * cam[0] + Y * cam[1] + Z * cam[2]  # hvor langt fram mot kameraet punktet er
         surf = sample(depth, u, vv, fill=-1e3).reshape(X.shape)
-        s_dep = surf - t  # positiv bak flaten
-        F = np.minimum(F, np.minimum(s_sil, s_dep))
+        s_dep = surf + J.OPT.get("depth_margin", 0.0) - t  # positiv bak flaten (margin: tynne ting foran
+        # kroppen, som et økseblad, får dybdemodellen ofte lagt på kroppen bak; silhuettene og ellipsen tar resten)
+        sv = np.minimum(s_sil, s_dep)
+        if v.get("mirror_of"):
+            # den speilede profilen er en antakelse om den andre siden: den får bare skjære i sin egen halvdel,
+            # ellers skjærer den bort det den ene hånda holder (redskapet er tatt ut av den)
+            own = (X * cam[0] + Z * cam[2]) > -12
+            sv = np.where(own, sv, 1e3)
+        F = np.minimum(F, sv)
         print(k, "ferdig")
     if J.OPT.get("elliptic"):
         F = np.minimum(F, elliptic(X, Y, Z, fr, J.OPT.get("elliptic_p", 2.5)) + J.OPT.get("elliptic_tol", 4.0))
