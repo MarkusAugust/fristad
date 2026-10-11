@@ -19,3 +19,5 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `dng_kjerne` | søyle som blir plast, svevende pikselkuber, sprukken statue med lys, plaststein, plastkasse, pikselsøyle, dør som går i oppløsning, krystaller og en dam med kuber |
 | `clutter_dungeon` | knust tønne, bein og hjelm, råtten sekk med mynter, brukket spyd og skjold, falt hylle med knuste krukker, rasmasse med hakke, lenker og jern, veltet kandelaber og skjelett mot veggen |
 | `clutter_market` | kålkasse, tønne med saltfisk, tøyruller, pølsestativ, eggkurv, oster, melsekk, skobenk og hønsebur |
+| `animals_ref` | ku, sau, hest, gris, geit og hund (forbilder for dyrene) |
+| `clutter_town` | knust kasse, kornsekker, tau og bøtte, knust hjul, krukker, ved og øks, trillebår, hestesko og spann, filler og kost |
