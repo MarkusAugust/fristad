@@ -48,8 +48,14 @@ def seg():
         if J.OPT.get("drop_pole"):
             # lange staver (høygaffel, spyd, pilegrimsstav) er tynne og loddrette: tas ut av silhuetten, ellers
             # blir toppen av staven «issen» i innrettingen
-            thin = fg & ~ndi.binary_opening(fg, structure=np.ones((1, 23)))
-            fg &= ~thin
+            thin = fg & ~ndi.binary_opening(fg, structure=np.ones((1, 41)))
+            # bare lange, loddrette biter er staver (resten, som halsen og fingrene, settes tilbake)
+            lab, n = ndi.label(thin)
+            pole = np.zeros_like(thin)
+            for i, sl in enumerate(ndi.find_objects(lab)):
+                if sl is not None and (sl[0].stop - sl[0].start) > 140:
+                    pole |= lab == i + 1
+            fg &= ~ndi.binary_dilation(pole, iterations=2)
             lab, n = ndi.label(fg)
             sizes = ndi.sum(fg, lab, range(1, n + 1))
             fg = lab == (1 + int(np.argmax(sizes)))
@@ -64,6 +70,12 @@ def seg():
                     fg |= h
         else:
             fg = ndi.binary_fill_holes(fg)
+        for x0, y0, x1, y1 in J.OPT.get("erase", {}).get(k, []):  # rester av redskap, satt for hånd per ark
+            fg[y0:y1, x0:x1] = False
+        lab, n = ndi.label(fg)  # bare figuren (rester av staver o.l. faller bort)
+        if n > 1:
+            sizes = ndi.sum(fg, lab, range(1, n + 1))
+            fg = lab == (1 + int(np.argmax(sizes)))
         m = (fg * 255).astype(np.uint8)
         m = cv2.GaussianBlur(m, (5, 5), 0)
         cv2.imwrite(J.p(f"{k}_rgb.png"), t[:, :, ::-1])

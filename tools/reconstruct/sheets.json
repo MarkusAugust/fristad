@@ -181,7 +181,39 @@
    "grip": "long",
    "tool_side": "R",
    "drop_pole": true,
-   "model_tool": false
+   "model_tool": false,
+   "erase": {
+    "front": [
+     [
+      600,
+      380,
+      780,
+      820
+     ]
+    ],
+    "back": [
+     [
+      40,
+      380,
+      240,
+      820
+     ]
+    ],
+    "right": [
+     [
+      470,
+      60,
+      640,
+      318
+     ],
+     [
+      505,
+      1640,
+      570,
+      1815
+     ]
+    ]
+   }
   },
   "tris": 14000
  },
@@ -280,7 +312,8 @@
     ]
    ],
    "tool_strip": "color",
-   "depth_margin": 20
+   "depth_margin": 60,
+   "flake_frac": 0.04
   },
   "tris": 14000
  },
@@ -401,7 +434,8 @@
      1150
     ]
    ],
-   "depth_margin": 30
+   "depth_margin": 30,
+   "flake_frac": 0.04
   },
   "tris": 14000
  },
@@ -518,7 +552,13 @@
     1
    ]
   },
-  "merk": "oppe til høyre er bakfra, nede til venstre ser han mot venstre, nede til høyre mot høyre Sjekk retningen: nede til venstre ser mot høyre i bildet."
+  "merk": "oppe til høyre er bakfra, nede til venstre ser han mot venstre, nede til høyre mot høyre Sjekk retningen: nede til venstre ser mot høyre i bildet.",
+  "opt": {
+   "cal_rows": [
+    0.35,
+    0.85
+   ]
+  }
  },
  "pilgrim_body": {
   "ref": "assets/textures/people/ref/pilgrim_body.jpeg",

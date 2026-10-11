@@ -148,7 +148,8 @@ def calibrate(fr):
             dm.append(np.percentile(row, 98) if len(row) > 4 else np.nan)
         dm = np.array(dm)
         t = target[k]
-        ok = np.isfinite(dm) & np.isfinite(t) & (ys > 0.04 * H) & (ys < 0.85 * H)
+        lo_, hi_ = J.OPT.get("cal_rows", (0.04, 0.85))  # hattebremmer o.l. øverst forstyrrer kalibreringen
+        ok = np.isfinite(dm) & np.isfinite(t) & (ys > lo_ * H) & (ys < hi_ * H)
         data[k] = (dm[ok], t[ok])
     # felles skala a for alle visningene (samme modell, samme scene), egen forskyvning b per visning
     keys = list(J.VIEWS)
@@ -186,6 +187,9 @@ def calibrate(fr):
         r = y - A @ sol
         s = np.median(np.abs(r)) * 1.5 + 1e-3
         w = 1 / np.maximum(1, np.abs(r) / s)
+    if sol[0] <= 0:  # dybden kan ikke være speilvendt: bruk egen skala per visning
+        J.OPT["scale_per_view"] = True
+        return calibrate(fr)
     cal = {}
     off = 0
     for i, k in enumerate(keys):
@@ -244,7 +248,15 @@ def fuse(vox=3.0):
         cam = np.array(v["cam"], float)
         t = X * cam[0] + Y * cam[1] + Z * cam[2]  # hvor langt fram mot kameraet punktet er
         surf = sample(depth, u, vv, fill=-1e3).reshape(X.shape)
-        s_dep = surf + J.OPT.get("depth_margin", 0.0) - t  # positiv bak flaten (margin: tynne ting foran
+        margin = J.OPT.get("depth_margin", 0.0)
+        if margin and J.OPT.get("tool_box") and not v.get("mirror_of"):
+            # bare rundt redskapet: på redskapssiden, utenfor kroppen, i høyden til boksen i profilen
+            bb = J.OPT["tool_box"]; bb = [bb] if isinstance(bb[0], int) else bb
+            o_ = fr["right"]
+            ytop = max(-(b[1] - o_["top"]) / o_["sy"] for b in bb); ybot = min(-(b[3] - o_["top"]) / o_["sy"] for b in bb)
+            sg = 1 if J.OPT.get("tool_side", "R") == "R" else -1
+            margin = np.where((Y <= ytop) & (Y >= ybot) & (sg * X < -0.5 * np.abs(X).max()), margin, 0.0)
+        s_dep = surf + margin - t  # positiv bak flaten (margin: tynne ting foran
         # kroppen, som et økseblad, får dybdemodellen ofte lagt på kroppen bak; silhuettene og ellipsen tar resten)
         sv = np.minimum(s_sil, s_dep)
         if v.get("mirror_of"):

@@ -210,6 +210,8 @@ def assemble(head="smith_head", tex=2048):
         for x0, y0, x1, y1 in boxes:
             bx[y0:y1, x0:x1] = True
         masks["right"] = ndi.binary_dilation(bx & ~ndi.binary_dilation(skin, iterations=3), iterations=4) & _mask(body_work, "right")
+        if J.OPT.get("tool_strip") == "color" and os.path.exists(J.p("tool_src.npy")):
+            masks["right"] = np.load(J.p("tool_src.npy")) & masks["right"]  # bare selve redskapet, ikke låret i boksen
     co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
     W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)  # Blender -> verden
     inside = np.ones(len(W), bool)
@@ -275,7 +277,7 @@ def assemble(head="smith_head", tex=2048):
             ui = np.clip(np.round(u).astype(int), 0, mm.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mm.shape[0] - 1)
             inside &= mm[vi, ui]
         inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
-    _drop_flakes(body)
+    _drop_flakes(body, J.OPT.get("flake_frac", 0.02))
     # lukk hullene etter kuttene (halsen, venstre neve), så ingen ser inn i figuren ovenfra
     bm = bmesh.new(); bm.from_mesh(body.data)
     edges = [e for e in bm.edges if e.is_boundary]
@@ -312,6 +314,7 @@ def assemble(head="smith_head", tex=2048):
         bpy.ops.object.mode_set(mode="OBJECT")
         tool = [o for o in bpy.context.selected_objects if o != body][0]
         tool.name = "tool_hammer_src"
+        _drop_flakes(tool, 0.2)  # bare de store bitene av redskapet (ikke skår av låret)
 
     # hullet der redskapet satt i kroppen lukkes (ellers svarte rifter ved neven)
     bm = bmesh.new(); bm.from_mesh(body.data)

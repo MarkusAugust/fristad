@@ -60,15 +60,24 @@ def setup(ref, layout="head2x2", name=None, views=None, scale=None, tris=None, o
         CROPS, TW = gap_split(im, lay["grid"][1])
     T = TH
     VIEWS = {}
+    OPT = dict(opt or {})
     names = {"front": "front", "face_right": "right", "face_left": "left", "back": "back"}
     for facing, rc in vmap.items():
         VIEWS[names[facing]] = dict(rc=tuple(rc), **FACING[facing])
-    for facing, src in lay.get("mirror", {}).items():
+    mirror = dict(lay.get("mirror", {}))
+    if ("face_left" in vmap) != ("face_right" in vmap):
+        # bare én profil i arket: den andre siden er den speilet, både for formen og teksturen (ellers blir siden
+        # malt med visningen forfra på skrå, og det ser ut som et ekstra ansikt)
+        OPT.setdefault("mirror_texture", True)
+    if "face_left" not in vmap and "face_right" in vmap:
+        mirror.setdefault("face_left", "face_right")
+    if "face_right" not in vmap and "face_left" in vmap:
+        mirror.setdefault("face_right", "face_left")
+    for facing, src in mirror.items():
         if facing not in vmap:  # en speilet visning brukes bare til formen, aldri til teksturen
             VIEWS[names[facing]] = dict(rc=tuple(vmap[src]), mirror_of=names[src], geo_only=True, **FACING[facing])
     SCALE = scale or SCALE
     TRIS = tris or TRIS
-    OPT = opt or {}
 
 
 def gap_split(im, n):
