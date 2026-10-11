@@ -55,7 +55,7 @@ pub struct Look {
 
 impl Look {
     /// Lagene modulsettet er bygd med, som rollene byttes ut fra.
-    pub const ROLES: [Layer; 4] = [Layer::Stone, Layer::Brick, Layer::Concrete, Layer::Tiles];
+    pub const ROLES: [Layer; 4] = [Layer::Stone, Layer::Ashlar, Layer::Flagstone, Layer::Tiles];
 }
 
 /// Et fotoskannet materiale som erstatter et bakt teksturlag.

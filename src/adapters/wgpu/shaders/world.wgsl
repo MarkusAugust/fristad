@@ -162,7 +162,7 @@ fn look(o: ptr<function, VsOut>, v: VsIn, inst: Instance) {
     switch v.mat.x {
         case 5u: { role = 0u; }
         case 6u: { role = 1u; }
-        case 12u: { role = 2u; }
+        case 41u: { role = 2u; }
         case 4u: { role = 3u; }
         default: {}
     }
@@ -592,7 +592,10 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
 
 // Vær: regnvåte flater blir mørkere og blankere, og det samler seg vann i
 // pyttene i brosteinen. Snø legger seg på det som vender opp.
-fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u32) -> Surf {
+// Snølaget (`Layer::Snow`), lagt ovenfra.
+const L_SNOW: i32 = 44;
+
+fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u32, dp1: vec3<f32>, dp2: vec3<f32>) -> Surf {
     var s = s_in;
     if ((flags & F_NO_WEATHER) != 0u || s.kind == 2u) {
         return s;
@@ -630,9 +633,12 @@ fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u
         let edge = fbm2(world.xz * 2.0 + world.y) * 0.5;
         let cover = smoothstep(0.35 + edge * 0.5, 0.75 + edge * 0.3, n_up * (0.6 + height * 0.6)) * snow;
         let sparkle = pow(fbm2(world.xz * 40.0 + world.y * 20.0), 6.0) * 2.0;
-        s.albedo = mix(s.albedo, vec3<f32>(0.9, 0.93, 0.97) * (0.9 + sparkle), cover);
-        s.rough = mix(s.rough, 0.75, cover);
-        s.n = normalize(mix(s.n, vec3<f32>(0.0, 1.0, 0.0), cover * 0.6));
+        // Eierens malte snø, lagt ovenfra som bakken.
+        let scale = g.tex_scale[L_SNOW / 4][L_SNOW % 4];
+        let flake = sample_plane(L_SNOW, vec2<f32>(world.x, -world.z) / scale, vec2<f32>(dp1.x, -dp1.z) / scale, vec2<f32>(dp2.x, -dp2.z) / scale, vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, -1.0), vec3<f32>(0.0, 1.0, 0.0));
+        s.albedo = mix(s.albedo, flake.albedo * (0.95 + sparkle * 0.5), cover);
+        s.rough = mix(s.rough, flake.rough, cover);
+        s.n = normalize(mix(s.n, flake.n, cover * 0.8));
         s.metal *= 1.0 - cover;
     }
     return s;
@@ -853,7 +859,7 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
         s.emissive += tint * vec3<f32>(1.0, 0.78, 0.5) * (0.2 + night * 9.0 * g.params.w);
     }
 
-    s = weather(s, i.world, n_geo, height, flags);
+    s = weather(s, i.world, n_geo, height, flags, dp1, dp2);
     let dbg = i32(g.sky.w);
     if (dbg > 0) {
         switch dbg {

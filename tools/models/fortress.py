@@ -54,9 +54,9 @@ class Mats:
         self.timber = layer("timber")
         self.trim = layer("trim")
         self.boards = layer("weatherboard", (0.9, 0.86, 0.8))
-        self.door = layer("door_oak")
-        self.door_dark = layer("door_dark")
-        self.iron = layer("metal", (0.6, 0.58, 0.56), 0.45)
+        self.door = layer("door")
+        self.door_dark = layer("door_b")
+        self.iron = layer("iron", (0.6, 0.58, 0.56), 0.45)
         self.soot = layer("stone", (0.12, 0.11, 0.1))
 
 

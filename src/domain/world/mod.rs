@@ -5,7 +5,7 @@
 //! Koordinater: X øst, Y opp, Z sør. Torget ligger rundt origo, sørporten i
 //! sør og borgen på haugen i nord.
 
-use crate::domain::geometry::{Chunk, Layer, Mat, Mesh};
+use crate::domain::geometry::{Chunk, Mesh};
 use crate::domain::model::{Look, ModelInfo, Placement};
 use crate::domain::rng::Rng;
 use crate::domain::scene::Light;
@@ -323,12 +323,12 @@ impl Builder {
                 // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
                 let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
                 let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
-                // Trestammer står i skråninger og går ned i bakken på oversida,
-                // som ekte trær, og murverket har fundament under bakken; de
+                // Murverket har fundament under bakken og kan gå ned i den
+                // på oversida i skråninger; det
                 // sjekkes bare for sveving, og bakken letes etter opp til en
                 // meter over foten (ellers vinner et gulv lenger nede, som
                 // kjelleren under krypten).
-                let rooted = pl.model.ends_with("_trunk") || town::FOUNDED.iter().any(|m| *m == pl.model);
+                let rooted = town::FOUNDED.iter().any(|m| *m == pl.model);
                 let reach = if rooted { 1.0 } else { 0.0 };
                 let gaps = corners.map(|(x, z)| {
                     let w = t.transform_point3(Vec3::new(x, info.min.y, z));
@@ -347,9 +347,6 @@ impl Builder {
     }
 }
 
-pub const IRON: Mat = Mat::tex(Layer::Metal, 0xffffff);
-pub const STONE: Mat = Mat::tex(Layer::Stone, 0xffffff);
-pub const OAK: Mat = Mat::tex(Layer::Oak, 0xffffff);
 
 /// Bygg verden. `seed` gir kjelleren (samme frø, samme kjeller).
 pub fn build(models: &[ModelInfo], seed: u64) -> World {
@@ -360,7 +357,6 @@ pub fn build(models: &[ModelInfo], seed: u64) -> World {
     let ground_at = ground(&mut b);
     let town = town::build(&mut b);
     cut_ground(&mut b, ground_at);
-    nature::grass(&mut b);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
     // Kjelleren under borgen. Et nytt frø gir nye etasjer.

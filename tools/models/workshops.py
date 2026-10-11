@@ -329,9 +329,9 @@ def forge_outside(p, rng):
     collide((bx, by, 0.5), (0.7, 1.2, 1.0))
     # Ambolten på en kubbe.
     ax, ay = -1.2, -1.15
-    revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("bark"), n=8, at=(ax, ay, FZ - 0.02))
+    revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("timber"), n=8, at=(ax, ay, FZ - 0.02))
     revolve("stump_top", [(0.29, 0.0), (0.0, 0.0)], p.floor, n=8, at=(ax, ay, FZ + 0.485))
-    dark = layer("metal", (0.45, 0.43, 0.42), 0.4)
+    dark = layer("iron", (0.45, 0.43, 0.42), 0.4)
     box("anvil_foot", (ax - 0.2, ay - 0.15, FZ + 0.48), (ax + 0.2, ay + 0.15, FZ + 0.6), dark, bevel=0.025)
     box("anvil_waist", (ax - 0.1, ay - 0.08, FZ + 0.6), (ax + 0.1, ay + 0.08, FZ + 0.74), dark, bevel=0.02)
     box("anvil_face", (ax - 0.3, ay - 0.1, FZ + 0.74), (ax + 0.24, ay + 0.1, FZ + 0.88), dark, bevel=0.025)
@@ -428,7 +428,7 @@ def forge_yard(p, rng):
     collide((wx, (wy0 + wy1) / 2, 0.7), (1.0, wy1 - wy0 + 0.4, 1.4))
     # Hoggestabben med øksa.
     cx, cy = 1.6, YARD1 - 1.4
-    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("bark"), n=8, at=(cx, cy, -0.02))
+    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("timber"), n=8, at=(cx, cy, -0.02))
     stick("axe_handle", (cx + 0.05, cy, 0.56), (cx + 0.5, cy - 0.3, 0.95), 0.045, 0.045, p.timber, ("timber", 0), bevel=0)
     box("axe_head", (cx - 0.08, cy - 0.04, 0.5), (cx + 0.1, cy + 0.04, 0.68), p.iron, bevel=0.01)
     for k in range(4):
@@ -461,8 +461,8 @@ def forge_yard(p, rng):
 def forge_inside(p, rng):
     """Innsida av Smia: verktøyveggen, arbeidsbenken, våpenstativet, det
     som ligger rundt essa og ambolten, og lykta."""
-    dark = layer("metal", (0.45, 0.43, 0.42), 0.4)
-    bright = layer("metal", (1.0, 0.97, 0.92), 0.4)
+    dark = layer("iron", (0.45, 0.43, 0.42), 0.4)
+    bright = layer("iron", (1.0, 0.97, 0.92), 0.4)
     ax, ay = -1.2, -1.15
     # Hammer og tang på ambolten, og et glødende emne.
     stick("hammer_handle", (ax - 0.05, ay - 0.04, FZ + 0.92), (ax - 0.45, ay - 0.3, FZ + 0.92), 0.035, 0.035, p.timber, ("timber", 0), bevel=0)
@@ -713,7 +713,7 @@ def hatch_front(p, rng, hatch):
         else:
             jar(x, y, top, rng.uniform(0.05, 0.07), rng.uniform(0.13, 0.2), [clay, white, blue][k % 3], n=6)
     # Skålvekta midt på bordet.
-    brass = layer("metal", (0.95, 0.75, 0.4), 0.35)
+    brass = layer("iron", (0.95, 0.75, 0.4), 0.35)
     stick("scale_post", (AHATCH, fy - 0.35, top), (AHATCH, fy - 0.35, top + 0.35), 0.025, 0.025, brass, bevel=0)
     stick("scale_beam", (AHATCH - 0.16, fy - 0.35, top + 0.35), (AHATCH + 0.16, fy - 0.35, top + 0.35), 0.02, 0.02, brass, bevel=0)
     for sx in (-1, 1):
@@ -800,7 +800,7 @@ def sales_room(p, rng):
         stick("counter_post", (cx1 + 0.03, y, AF0), (cx1 + 0.03, y, AF0 + 0.9), 0.08, 0.08, p.timber, ("timber", k % 4), bevel=0.02)
     collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, AF0 + 0.53), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.16, 1.06))
     top = AF0 + 1.06
-    brass = layer("metal", (0.95, 0.75, 0.4), 0.35)
+    brass = layer("iron", (0.95, 0.75, 0.4), 0.35)
     stick("scale_post", (-0.95, -1.9, top), (-0.95, -1.9, top + 0.42), 0.03, 0.03, brass, bevel=0)
     stick("scale_beam", (-0.95, -2.12, top + 0.42), (-0.95, -1.68, top + 0.42), 0.02, 0.02, brass, bevel=0)
     for sy in (-1, 1):
@@ -845,7 +845,7 @@ def laboratory(p, rng):
     forlaget, arbeidsbenk med kolber, bord med mortere og bøker, og
     bokhylla på vestveggen."""
     copper = layer("plaster_white", (0.95, 0.5, 0.28), 0.3)
-    brick = layer("brick", (0.9, 0.62, 0.48))
+    brick = layer("ashlar", (0.9, 0.62, 0.48))
     glass = plain("glass_flask", (0.1, 0.16, 0.12), 0.08)
     green_glass = plain("glass_green", (0.08, 0.2, 0.1), 0.1)
     brown_glass = plain("glass_brown", (0.2, 0.1, 0.05), 0.1)
@@ -903,7 +903,7 @@ def laboratory(p, rng):
     table(p, tx, ty, AF0, 1.4, 0.75)
     stone = layer("stone", (0.9, 0.88, 0.82))
     for k, (dx, dy, r) in enumerate(((-0.45, -0.15, 0.12), (-0.1, 0.18, 0.09), (0.45, -0.1, 0.07))):
-        revolve("mortar", [(r * 0.65, 0.0), (r, r * 0.35), (r * 1.05, r * 1.0), (r * 0.8, r * 1.0), (r * 0.55, r * 0.5), (0.0, r * 0.5)], stone if k != 1 else layer("metal", (0.95, 0.75, 0.4), 0.35), n=8, at=(tx + dx, ty + dy, AF0 + 0.78))
+        revolve("mortar", [(r * 0.65, 0.0), (r, r * 0.35), (r * 1.05, r * 1.0), (r * 0.8, r * 1.0), (r * 0.55, r * 0.5), (0.0, r * 0.5)], stone if k != 1 else layer("iron", (0.95, 0.75, 0.4), 0.35), n=8, at=(tx + dx, ty + dy, AF0 + 0.78))
         stick("pestle", (tx + dx, ty + dy, AF0 + 0.78 + r * 0.6), (tx + dx + 0.05, ty + dy + 0.04, AF0 + 0.78 + r * 2.6), 0.035, 0.035, p.floor, bevel=0.01)
     box("lab_book", (tx + 0.05, ty - 0.35, AF0 + 0.78), (tx + 0.42, ty - 0.08, AF0 + 0.82), layer("linen", (0.95, 0.9, 0.78)), bevel=0.01)
     candle(p, tx + 0.6, ty + 0.25, AF0 + 0.78, light_it=True)

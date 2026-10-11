@@ -51,13 +51,13 @@ class Mats:
         self.grey = layer("timber_grey")
         self.boards = layer("weatherboard")
         self.trim = layer("trim")
-        self.iron = layer("metal", rough=0.45)
+        self.iron = layer("iron", rough=0.45)
         self.stone = layer("wall_stone")
         self.flag = layer("flagstone")
         self.logs = layer("logs")
         self.thatch = layer("thatch")
-        self.straw = layer("straw")
-        self.door = layer("door_oak")
+        self.straw = layer("straw_floor")
+        self.door = layer("door")
         self.shingles = layer("shingles")
         self.linen = layer("linen")
         self.ends = layer("weatherboard", (1.0, 0.86, 0.66))
@@ -859,7 +859,7 @@ def chest_body():
         for a, b in zip(pts, pts[1:]):
             stick("handle", tuple(a), tuple(b), 0.022, 0.022, m.iron, bevel=0)
     box("lock_plate", (-0.08, -D / 2 - 0.02, H - 0.2), (0.08, -D / 2 + 0.005, H - 0.02), m.iron, bevel=0.012)
-    box("keyhole", (-0.012, -D / 2 - 0.026, H - 0.15), (0.012, -D / 2 - 0.018, H - 0.09), layer("metal", (0.08, 0.08, 0.08)), bevel=0.003)
+    box("keyhole", (-0.012, -D / 2 - 0.026, H - 0.15), (0.012, -D / 2 - 0.018, H - 0.09), layer("iron", (0.08, 0.08, 0.08)), bevel=0.003)
     for sx in (-1, 1):
         for sy in (-1, 1):
             box("chest_foot", (sx * (W / 2 - 0.02) - 0.06, sy * (D / 2 - 0.02) - 0.06, 0.0), (sx * (W / 2 - 0.02) + 0.06, sy * (D / 2 - 0.02) + 0.06, 0.04), m.iron, bevel=0.008)

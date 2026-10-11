@@ -28,7 +28,7 @@ def walls(p, kind, name, p0, p1, z0, z1, out, openings, rng):
         return half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, collide_it=False)
     frame, L = kit.wall_frame(p0, p1)
     holes = [(s - w / 2, s + w / 2, za, zb) for s, za, zb, w in openings]
-    mat = {"boards": p.boards, "cladding": p.cladding, "logs": layer("logs"), "stone": layer("brick")}[kind]
+    mat = {"boards": p.boards, "cladding": p.cladding, "logs": layer("logs"), "stone": layer("ashlar")}[kind]
     kit.slab_grid(name, frame, L, z0, z1, T + (0.12 if kind in ("logs", "stone") else 0.0), holes, mat)
     # Hjørnestolper (bord) eller laftehoder (laft) og en list øverst.
     face = out * (T / 2 + 0.05)
