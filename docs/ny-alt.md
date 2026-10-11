@@ -4,6 +4,8 @@ Bestemt med eieren 10. oktober 2026: alle de gamle teksturene og modellene skal 
 
 ## Status
 
+11. oktober: `rydd/gamle` og `wip/krypten` er slått sammen i `merge/alt-nytt` (se CLAUDE.md, «Status»). Tabellen under sier hva som er nytt, hva som er slettet og venter, og hva som gjenstår.
+
 | Område | Status | Hvor |
 |---|---|---|
 | Husene, Vertshuset, spillerens hus, småbyggene | ny stil | `kit.py`, `houses.py`, `tavern.py`, `home.py`, `yard.py` |
@@ -11,16 +13,16 @@ Bestemt med eieren 10. oktober 2026: alle de gamle teksturene og modellene skal 
 | Bymuren, tårnene, porthusene | ny stil | `fortress.py` |
 | Gatelivet (brønner, boder, kors, kjerre, lykter, skilt, kister, dukker) | ny stil | `streetlife.py` |
 | Flettverksgjerdet | ny stil | `street.py` (`wattle_fence`) |
-| Krypten, gravkjelleren | under arbeid | `tools/crypt/` |
+| Krypten, gravkjelleren (nivå 1) | ny stil, motoren og nivå 1 ferdig | `tools/crypt/`, `src/domain/world/crypt/` |
 | Krypten, tema 2–5 | planlagt | `docs/krypten-ny.md` |
-| Menneskene | under arbeid, pilot med tre figurer | `docs/prompter-folk.md` |
+| Menneskene | tretten figurer fra forbildearkene, finpuss pågår | `tools/reconstruct/`, `sheet2model/`, `docs/prompter-folk.md` |
 | Inventaret i husene | delvis (kit-møbler), resten etter arkene | `docs/prompter-3.md` |
-| Våpen, skjold, rustninger, armene | gammel stil | `arms.py`, `fp_arms.py` |
-| Fiendene og bossene | gammel stil | `mobs.py`, egen runde |
-| Dyrene | gammel stil | `animals.py` |
-| Trær, busker, gress, blomster | gammel stil | `trees.py`, `grass.py` |
-| Steiner, steingjerder, gravsteiner | gammel stil | `street.py`, `castle.py` |
-| Portalen | gammel stil | `portal.py` |
+| Våpen, skjold, rustninger, armene | slettet, usynlige til de nye kommer | – |
+| Fiendene og bossene | slettet, usynlige til de nye kommer | egen runde |
+| Dyrene | slettet | – |
+| Trær, busker, gress, blomster | slettet, enga er bare terrenget | – |
+| Steiner, steingjerder, gravsteiner | slettet | – |
+| Portalen | slettet, virker uten synlig ring | – |
 
 ## Det som slettes
 
