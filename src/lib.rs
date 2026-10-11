@@ -11,13 +11,15 @@
 //!   drivende porten (`App`).
 //! - `adapters`: wgpu, Rapier, glTF, nettleseren og vinduet.
 //!
-//! `architecture.rs` er en test som leser kildefilene og feiler om et lag
-//! bruker noe det ikke skal.
+//! Kjernen, portene og applikasjonen er egne pakker (`crates/`), så
+//! kompilatoren hindrer dem i å bruke det de ikke skal; `architecture.rs`
+//! sjekker avhengighetene mellom pakkene. Her er adapterne og vertene.
+
+pub use fristad_app::application;
+pub use fristad_domain::domain;
+pub use fristad_ports::ports;
 
 pub mod adapters;
-pub mod application;
-pub mod domain;
-pub mod ports;
 
 #[cfg(test)]
 mod architecture;

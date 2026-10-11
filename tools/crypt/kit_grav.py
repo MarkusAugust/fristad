@@ -1639,7 +1639,7 @@ MECHANISMS = {}
 
 def mechanisms():
     """Modellene motoren setter ut etter merkene (navnene i
-    `src/domain/world/crypt/mod.rs`)."""
+    `crates/fristad-domain/src/domain/world/crypt/mod.rs`)."""
     rest, flame, _ = kit_rest()
     rest.faces += flame.faces
     base, handle = kit_lever()

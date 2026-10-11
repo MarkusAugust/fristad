@@ -23,7 +23,7 @@ pub fn prepare(models: &dyn ModelSource, seed: u64) -> Prepared {
             ModelInfo { name: m.name.clone(), min, max }
         })
         .collect();
-    let world = world::build(&infos, seed);
+    let world = world::build(&infos, seed, models.world_data());
     log::info!("Verden: {} hjørner, {} modeller tilgjengelig", world.mesh.vertices.len(), infos.len());
     let models: Vec<Model> = loaded.into_iter().filter(|m| world.placements.iter().any(|p| p.model == m.name)).collect();
     Prepared { world, models }

@@ -23,8 +23,6 @@ use glam::{Affine3A, Vec2, Vec3};
 use level::{AmbushDef, Dir, LevelFile};
 use nav::{Nav, Poly};
 
-// `LEVEL_FILES`: nivåene som finnes (laget av build.rs).
-include!(concat!(env!("OUT_DIR"), "/crypt_levels.rs"));
 
 /// Hvor langt under byen hvert nivå ligger: origo i y = −40·n.
 pub const LEVEL_DROP: f32 = 40.0;
@@ -447,19 +445,9 @@ impl Crypt {
 }
 
 /// Bygger nivåene som finnes under krypten i byen (`anchor`: der du går
-/// ned).
-pub fn build(b: &mut Builder, anchor: Vec2) -> Crypt {
+/// ned), fra nivåfilene adapterne har lest (`world::Data.levels`).
+pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Crypt {
     let mut c = Crypt::default();
-    let mut files: Vec<(u32, LevelFile)> = vec![];
-    for (n, json) in LEVEL_FILES {
-        match serde_json::from_str::<LevelFile>(json) {
-            Ok(f) => files.push((*n, f)),
-            Err(e) => {
-                log::warn!("Kryptnivå {n}: {e}");
-                break;
-            }
-        }
-    }
     for (k, (n, f)) in files.into_iter().enumerate() {
         build_level(b, &mut c, k, n, f, anchor);
     }

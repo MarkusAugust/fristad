@@ -19,6 +19,5 @@ pub mod model;
 pub mod npcs;
 pub mod rng;
 pub mod scene;
-pub mod tokens;
 pub mod weather;
 pub mod world;

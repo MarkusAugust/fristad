@@ -113,4 +113,6 @@ pub trait ModelSource {
     fn load(&self, name: &str) -> Option<Model>;
     /// Navnene på modellene som finnes.
     fn names(&self) -> Vec<String>;
+    /// Det husene har med seg og kryptnivåene, ferdig lest.
+    fn world_data(&self) -> crate::domain::world::Data;
 }

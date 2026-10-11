@@ -142,6 +142,8 @@ pub struct Builder {
     pub missing: Vec<&'static str>,
     /// Kjellere under husene (`hole`): bakken tas bort der.
     pub holes: Vec<(Vec3, Vec2, f32)>,
+    /// Det husene har med seg (kollidere, lys, kjeller …), per modell.
+    pub insides: HashMap<String, town::Inside>,
 }
 
 impl Builder {
@@ -160,6 +162,7 @@ impl Builder {
             npcs: vec![],
             missing: vec![],
             holes: vec![],
+            insides: HashMap::new(),
         }
     }
 
@@ -360,9 +363,19 @@ impl Builder {
 }
 
 
+/// Data fra Blender som ikke er modeller: det husene har med seg
+/// (`<navn>_inside.json`) og kryptnivåene (`crypt_NN.json`). Adapterne leser
+/// filene; kjernen får dem ferdig tolket.
+#[derive(Default)]
+pub struct Data {
+    pub insides: Vec<(String, town::Inside)>,
+    pub levels: Vec<(u32, crypt::level::LevelFile)>,
+}
+
 /// Bygg verden. Krypten er fast; `seed` brukes ikke til noe der lenger.
-pub fn build(models: &[ModelInfo], _seed: u64) -> World {
+pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
     let mut b = Builder::new(models);
+    b.insides = data.insides.into_iter().collect();
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget,
     // jordveier og gress.
@@ -372,7 +385,7 @@ pub fn build(models: &[ModelInfo], _seed: u64) -> World {
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
     // Krypten: de faste nivåene under kirkegården.
-    let crypt = crypt::build(&mut b, town.crypt_anchor);
+    let crypt = crypt::build(&mut b, town.crypt_anchor, data.levels);
     for (model, n) in crate::domain::mobs::Mobs::reserve() {
         b.reserve(model, n);
     }

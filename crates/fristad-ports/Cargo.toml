@@ -1,0 +1,10 @@
+[package]
+name = "fristad-ports"
+version = "0.1.0"
+edition = "2021"
+description = "Portene i Fristad: grensesnittene mellom kjernen og adapterne."
+license = "MIT"
+
+[dependencies]
+fristad-domain = { path = "../fristad-domain" }
+glam = { version = "0.30", features = ["bytemuck"] }

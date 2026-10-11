@@ -773,86 +773,45 @@ pub fn build(b: &mut Builder) -> Town {
     Town { spawn, spawn_yaw: facing(out), crypt_anchor: CRYPT, crypt_exit }
 }
 
-/// Husene man kan gå inn i: kollidere (midte, mål, yaw) og lys (posisjon,
-/// farge, styrke, radius) i modellens rom, fra `tools/models/buildings.py`
-/// (`<navn>_inside.json`).
-#[derive(serde::Deserialize, Default)]
-struct Inside {
-    boxes: Vec<([f32; 3], [f32; 3], f32)>,
-    lights: Vec<([f32; 3], [f32; 3], f32, f32)>,
+/// Det et hus har med seg: kollidere (midte, mål, yaw) og lys (posisjon,
+/// farge, styrke, radius) i modellens rom, fra Blender (`<navn>_inside.json`,
+/// lest av adapterne og gitt kjernen i `world::Data`).
+#[derive(serde::Deserialize, Default, Clone, Debug)]
+pub struct Inside {
+    pub boxes: Vec<([f32; 3], [f32; 3], f32)>,
+    pub lights: Vec<([f32; 3], [f32; 3], f32, f32)>,
     /// Ramper over trinnene (punktene i et konvekst skall).
     #[serde(default)]
-    hulls: Vec<Vec<[f32; 3]>>,
+    pub hulls: Vec<Vec<[f32; 3]>>,
     /// Lykter som tennes om natta (vegglykta ved døra).
     #[serde(default)]
-    lamps: Vec<([f32; 3], [f32; 3], f32, f32)>,
+    pub lamps: Vec<([f32; 3], [f32; 3], f32, f32)>,
     /// Pipene: toppen og hvor tykk røyken er.
     #[serde(default)]
-    smoke: Vec<([f32; 3], f32)>,
+    pub smoke: Vec<([f32; 3], f32)>,
     /// Småting ute som hører til huset (modell, sted i husets rom, yaw):
     /// settes på bakken av byen, så de ikke svever der tomta skrår.
     #[serde(default)]
-    props: Vec<(String, [f32; 3], f32)>,
+    pub props: Vec<(String, [f32; 3], f32)>,
     /// Kjelleren under huset: midten og halve mål (x, z) i modellens rom.
     /// Bakken tas bort der (`Builder::hole`).
     #[serde(default)]
-    cellar: Option<([f32; 3], [f32; 2])>,
+    pub cellar: Option<([f32; 3], [f32; 2])>,
     /// Kjellergulvet: midten (y er overkanten) og halve mål (x, z).
     #[serde(default)]
-    cellar_floor: Option<([f32; 3], [f32; 2])>,
+    pub cellar_floor: Option<([f32; 3], [f32; 2])>,
     /// Spillerens hus: midten av senga (det du sikter på) og halve mål.
     #[serde(default)]
-    bed: Option<([f32; 3], [f32; 3])>,
+    pub bed: Option<([f32; 3], [f32; 3])>,
     /// Spillerens hus: rammene på galleriveggen, midten og yaw (rammen
     /// vender ut mot lokal +Z dreid med yaw), i `craft::GALLERY`-rekkefølge.
     #[serde(default)]
-    gallery: Vec<([f32; 3], f32)>,
+    pub gallery: Vec<([f32; 3], f32)>,
 }
 
 /// Husene med en egen innsidemodell, som bare tegnes når du er nær
 /// (rendereren kjenner dem på navnet `…_interior`).
 const INTERIORS: [(&str, &str); 6] = [("tavern", "tavern_interior"), ("home", "home_interior"), ("forge", "forge_interior"), ("apothecary", "apothecary_interior"), ("scriptorium", "scriptorium_interior"), ("stave_church", "stave_church_interior")];
-
-const INSIDE: [(&str, &str); 32] = [
-    ("apothecary", include_str!("../../../assets/models/town/apothecary_inside.json")),
-    ("home", include_str!("../../../assets/models/town/home_inside.json")),
-    ("house_a", include_str!("../../../assets/models/town/house_a_inside.json")),
-    ("house_b", include_str!("../../../assets/models/town/house_b_inside.json")),
-    ("house_c", include_str!("../../../assets/models/town/house_c_inside.json")),
-    ("house_d", include_str!("../../../assets/models/town/house_d_inside.json")),
-    ("house_e", include_str!("../../../assets/models/town/house_e_inside.json")),
-    ("house_f", include_str!("../../../assets/models/town/house_f_inside.json")),
-    ("forge", include_str!("../../../assets/models/town/forge_inside.json")),
-    ("tavern", include_str!("../../../assets/models/town/tavern_inside.json")),
-    ("scriptorium", include_str!("../../../assets/models/town/scriptorium_inside.json")),
-    ("stave_church", include_str!("../../../assets/models/town/stave_church_inside.json")),
-    ("house_g", include_str!("../../../assets/models/town/house_g_inside.json")),
-    ("house_h", include_str!("../../../assets/models/town/house_h_inside.json")),
-    ("house_i", include_str!("../../../assets/models/town/house_i_inside.json")),
-    ("house_j", include_str!("../../../assets/models/town/house_j_inside.json")),
-    ("house_k", include_str!("../../../assets/models/town/house_k_inside.json")),
-    ("house_l", include_str!("../../../assets/models/town/house_l_inside.json")),
-    ("house_m", include_str!("../../../assets/models/town/house_m_inside.json")),
-    ("house_n", include_str!("../../../assets/models/town/house_n_inside.json")),
-    ("house_o", include_str!("../../../assets/models/town/house_o_inside.json")),
-    ("house_p", include_str!("../../../assets/models/town/house_p_inside.json")),
-    ("house_q", include_str!("../../../assets/models/town/house_q_inside.json")),
-    ("house_r", include_str!("../../../assets/models/town/house_r_inside.json")),
-    ("house_s", include_str!("../../../assets/models/town/house_s_inside.json")),
-    ("house_t", include_str!("../../../assets/models/town/house_t_inside.json")),
-    ("shed_a", include_str!("../../../assets/models/town/shed_a_inside.json")),
-    ("shed_b", include_str!("../../../assets/models/town/shed_b_inside.json")),
-    ("privy", include_str!("../../../assets/models/town/privy_inside.json")),
-    ("haystack", include_str!("../../../assets/models/town/haystack_inside.json")),
-    ("garden", include_str!("../../../assets/models/town/garden_inside.json")),
-    ("coop", include_str!("../../../assets/models/town/coop_inside.json")),
-];
-
-fn inside(model: &str) -> Option<&'static Inside> {
-    static PARSED: OnceLock<Vec<(&'static str, Inside)>> = OnceLock::new();
-    let all = PARSED.get_or_init(|| INSIDE.iter().map(|(n, json)| (*n, serde_json::from_str(json).unwrap_or_default())).collect());
-    all.iter().find(|(n, _)| *n == model).map(|(_, i)| i)
-}
 
 /// Et hus: modellen på tomta, og kollidere så ingen går gjennom veggene.
 /// Hus man kan gå inn i har egne kollidere for vegger med døråpning og
@@ -876,11 +835,11 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
         // Innsida står på husets gulv, ikke på bakken.
         b.place_mounted(interior, t);
     }
-    let inside = inside(model);
-    if let Some((c, h)) = inside.and_then(|i| i.cellar) {
+    let inside = b.insides.get(model).cloned();
+    if let Some((c, h)) = inside.as_ref().and_then(|i| i.cellar) {
         b.hole(t.transform_point3(Vec3::from(c)), Vec2::from(h), yaw);
     }
-    if let Some(inside) = inside {
+    if let Some(inside) = &inside {
         if let Some((c, h)) = inside.bed {
             b.target(Use::Sleep, t, Vec3::from(c), Vec3::from(h));
         }
@@ -889,11 +848,11 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
             b.target(Use::Gallery(i), pose, Vec3::new(0.0, 0.0, 0.03), Vec3::new(0.3, 0.3, 0.05));
         }
     }
-    if let Some((c, h)) = inside.and_then(|i| i.cellar_floor) {
+    if let Some((c, h)) = inside.as_ref().and_then(|i| i.cellar_floor) {
         let c = t.transform_point3(Vec3::from(c));
         b.floor(c, Vec2::from(h), yaw, c.y);
     }
-    if let Some(inside) = inside {
+    if let Some(inside) = &inside {
         for (p, color, intensity, radius) in &inside.lamps {
             b.lamp_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
         }

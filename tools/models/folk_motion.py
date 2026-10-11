@@ -46,7 +46,7 @@ Hvordan det regnes ut:
   kapsler rundt lårene, leggene og hoftene i hvert bilde, og armen føres
   ut fra kroppen så mye som trengs (glattet over tid).
 
-Spillet (src/domain/npcs.rs) leser farten i gangen fra klippet selv (den
+Spillet (crates/fristad-domain/src/domain/npcs.rs) leser farten i gangen fra klippet selv (den
 foten som står flat glir med farten), og stopper med `stop`/`stop_r`
 som begynner ved hælnedslaget på venstre/høyre fot og bremser jevnt over
 `DUTY` av en gangsyklus, og starter med `start`, som akselererer jevnt

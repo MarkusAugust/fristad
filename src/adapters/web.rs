@@ -126,8 +126,14 @@ impl Engine {
         self.backend.clone()
     }
 
+    /// Versjonen av Fristil som komponentene i spillet hører til
+    /// (`assets/tokens.json`, fra `tools/export-tokens.ts`).
     pub fn fristil_version(&self) -> String {
-        self.app.status().fristil
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            fristil: String,
+        }
+        serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.fristil).unwrap_or_default()
     }
 
     pub fn weather(&self) -> String {

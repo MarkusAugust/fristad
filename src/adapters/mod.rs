@@ -7,6 +7,7 @@
 //! `src/bin/snapshot.rs` (skjermbilder), som alle snakker med
 //! `ports::driving::Play`.
 
+pub mod data;
 pub mod gltf;
 pub mod layers;
 pub mod rapier;

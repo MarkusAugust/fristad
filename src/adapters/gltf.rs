@@ -135,6 +135,9 @@ pub struct Embedded;
 
 #[cfg(not(target_arch = "wasm32"))]
 impl ModelSource for Embedded {
+    fn world_data(&self) -> crate::domain::world::Data {
+        super::data::world_data()
+    }
     fn names(&self) -> Vec<String> {
         MODELS.iter().chain(CRYPT_MODELS.iter()).map(|(n, _)| n.to_string()).collect()
     }
@@ -149,6 +152,9 @@ impl ModelSource for Embedded {
 pub struct Files(pub std::collections::HashMap<String, Vec<u8>>);
 
 impl ModelSource for Files {
+    fn world_data(&self) -> crate::domain::world::Data {
+        super::data::world_data()
+    }
     fn names(&self) -> Vec<String> {
         model_files().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
     }

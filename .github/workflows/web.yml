@@ -9,6 +9,8 @@ on:
     branches: [master, "claude/**"]
     paths:
       - "src/**"
+      - "crates/**"
+      - "build.rs"
       - "web/**"
       - "tools/**"
       - "assets/**"
@@ -41,6 +43,10 @@ jobs:
         with:
           path: assets/external
           key: external-assets-${{ hashFiles('tools/fetch-assets.ts', 'assets/textures/**') }}
+      # Testene (arkitekturen, verden, krypten, fysikken, lydene) før noe
+      # publiseres; feiler de, stopper bygget her.
+      - name: Tester
+        run: cargo test --release --workspace
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
       # Claude når ikke Poly Haven fra skymiljøet sitt, men når GitHub.

@@ -75,6 +75,6 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     }
 
     fn status(&self) -> Status {
-        Status { fristil: self.session.fristil_version().to_string(), weather: self.session.weather_kind(), daylight: self.session.daylight(), triangles: self.renderer.triangles(), gpu_times: self.renderer.gpu_times() }
+        Status { weather: self.session.weather_kind(), daylight: self.session.daylight(), triangles: self.renderer.triangles(), gpu_times: self.renderer.gpu_times() }
     }
 }

@@ -8,7 +8,6 @@ use crate::domain::herd::Herd;
 use crate::domain::mobs::{Kind as MobKind, Mobs};
 use crate::domain::npcs::Npcs;
 use crate::domain::scene::{Light, Weather};
-use crate::domain::tokens::Tokens;
 use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::crypt::{self, Crypt, HintKind, TrapKind};
 use crate::domain::world::town;
@@ -86,7 +85,6 @@ struct TargetState {
 }
 
 pub struct Session {
-    pub(super) tokens: Tokens,
     pub(super) lights: Vec<Light>,
     /// Pipene som ryker (toppen, tykkelsen).
     pub(super) smoke: Vec<(Vec3, f32)>,
@@ -249,7 +247,6 @@ impl Session {
         let feet = crate::domain::world::terrain::at(world.spawn);
         let (half, radius) = Stance::Stand.capsule();
         Self {
-            tokens: Tokens::load(),
             lights: world.lights.clone(),
             smoke: world.smoke.clone(),
             targets,
@@ -393,10 +390,6 @@ impl Session {
             }
         }
         name
-    }
-
-    pub fn fristil_version(&self) -> &str {
-        &self.tokens.version
     }
 
     pub fn weather_kind(&self) -> WeatherKind {
@@ -1893,48 +1886,48 @@ impl Session {
 
     /// De levende fiendene (føttene, slaget, om den er elite), til
     /// gjennomspillingen i testene.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn living(&self) -> Vec<(Vec3, MobKind, bool)> {
         self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| (m.pos, m.kind, m.elite)).collect()
     }
 
     /// Fullt liv igjen, til gjennomspillingen i testene (som teller hvor
     /// ofte boten ville ha dødd).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn heal(&mut self) {
         self.hp = self.max_hp;
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn hp_now(&self) -> f32 {
         self.hp
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn stamina_now(&self) -> f32 {
         self.combat.stamina
     }
 
     /// Til testene: sett liv og utholdenhet.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn set_vitals(&mut self, hp: f32, stamina: f32) {
         self.hp = hp;
         self.combat.stamina = stamina;
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn keys(&self) -> u32 {
         self.keys
     }
 
     /// Nøklene som ligger på gulvet etter en elite, til gjennomspillingen.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn loose_keys(&self) -> Vec<Vec3> {
         self.mobs.keys.iter().filter(|k| !k.taken).map(|k| k.pos).collect()
     }
 
     /// Felle eliten i nivået du er i med ett slag, til testene.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn fell_elite(&mut self, events: &mut Vec<Event>) -> bool {
         let Some(i) = self.mobs.mobs.iter().position(|m| m.alive() && m.elite) else { return false };
         let from = self.mobs.mobs[i].pos + Vec3::X;
@@ -1946,30 +1939,30 @@ impl Session {
     }
 
     /// Ingen fiender i nivået, til testene som går gjennom med fysikken.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn clear_mobs(&mut self) {
         self.mobs.mobs.clear();
     }
 
     /// Nivået fiendene er satt ut i, til testene.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn mob_level(&self) -> usize {
         self.mobs.level
     }
 
     /// Krypten slik økta ser den (med bryterne som er åpnet), til testene.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn crypt_now(&self) -> &Crypt {
         &self.crypt
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn max_hp_now(&self) -> f32 {
         self.max_hp
     }
 
     /// Dø, til testene.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn die_now(&mut self) -> Vec<Event> {
         let mut events = vec![];
         self.die(&mut events);
@@ -1977,13 +1970,13 @@ impl Session {
     }
 
     /// Hvor langt portgitteret er heist (0–1) og om det er låst opp.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn gate(&self, n: usize) -> (f32, bool) {
         self.gates[n]
     }
 
     /// Bruk akkurat dette målet, som om du siktet på det (til testene).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn use_exact(&mut self, what: Use) -> Vec<Event> {
         let mut events = vec![];
         if let Some(i) = self.targets.iter().position(|t| t.target.what == what) {
@@ -1993,14 +1986,14 @@ impl Session {
     }
 
     /// Føttene (til testene).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn feet(&self) -> Vec3 {
         let (half, radius) = self.stance.capsule();
         self.pos - Vec3::Y * (half + radius + 0.05)
     }
 
     /// Om spak nummer n er trukket (til testene).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn lever_pulled(&self, n: usize) -> bool {
         self.levers.get(n).is_some_and(|l| *l >= 0.0)
     }

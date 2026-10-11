@@ -129,7 +129,6 @@ pub trait Play {
 /// Det verten kan spørre om.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Status {
-    pub fristil: String,
     pub weather: WeatherKind,
     pub daylight: Daylight,
     pub triangles: u32,

@@ -9,6 +9,9 @@
 //!   `CRYPT_MODELS` (bygd inn utenom nettleseren) for alle `.glb` i
 //!   `assets/models/crypt/`, til glTF-adapteren. Bitene og byggesettet trenger
 //!   derfor ingen linje i `models!`.
+//! - `inside_files.rs`: `INSIDE_FILES`, alle `<navn>_inside.json` i
+//!   `assets/models/town/` (det husene har med seg fra Blender), til
+//!   `adapters/data.rs`.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -54,4 +57,25 @@ fn main() {
     }
     models.push_str("];\n");
     std::fs::write(out.join("crypt_models.rs"), models).unwrap();
+
+    let town = root.join("assets/models/town");
+    println!("cargo:rerun-if-changed={}", town.display());
+    let mut insides: Vec<(String, PathBuf)> = vec![];
+    if let Ok(dir) = std::fs::read_dir(&town) {
+        for e in dir.flatten() {
+            let p = e.path();
+            let name = p.file_name().unwrap().to_string_lossy().to_string();
+            if let Some(stem) = name.strip_suffix("_inside.json") {
+                println!("cargo:rerun-if-changed={}", p.display());
+                insides.push((stem.to_string(), p));
+            }
+        }
+    }
+    insides.sort();
+    let mut text = String::from("/// Det husene har med seg: navnet og json-fila.\nconst INSIDE_FILES: &[(&str, &str)] = &[\n");
+    for (n, p) in &insides {
+        writeln!(text, "    ({n:?}, include_str!({:?})),", p.display().to_string()).unwrap();
+    }
+    text.push_str("];\n");
+    std::fs::write(out.join("inside_files.rs"), text).unwrap();
 }

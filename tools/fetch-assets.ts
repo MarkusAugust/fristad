@@ -11,7 +11,7 @@
 //
 // Kjøres i GitHub Actions (nettversjonen, og grenen external-assets som
 // `sh tools/pull-assets.sh` henter til skymiljøet). Lagnavnene er de i
-// `Layer::name` i src/domain/geometry.rs.
+// `Layer::name` i crates/fristad-domain/src/domain/geometry.rs.
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

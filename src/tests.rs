@@ -606,7 +606,7 @@ fn lydene_finnes() {
     let credits = std::fs::read_to_string(format!("{root}/assets/sounds/CREDITS.md")).expect("CREDITS.md");
     let js = std::fs::read_to_string(format!("{root}/web/sounds.js")).expect("sounds.js");
     let mut used = std::collections::BTreeSet::new();
-    for path in ["src/application/session.rs", "src/domain/mobs.rs", "src/domain/combat.rs"] {
+    for path in ["crates/fristad-app/src/application/session.rs", "crates/fristad-domain/src/domain/mobs.rs", "crates/fristad-domain/src/domain/combat.rs"] {
         let src = std::fs::read_to_string(format!("{root}/{path}")).expect("kilden");
         // Lydnavnene er strenger med små bokstaver og understrek i kall
         // til sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene.

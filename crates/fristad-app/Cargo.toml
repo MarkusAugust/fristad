@@ -1,0 +1,15 @@
+[package]
+name = "fristad-app"
+version = "0.1.0"
+edition = "2021"
+description = "Applikasjonen i Fristad: bruker kjernen gjennom portene og implementerer den drivende porten."
+license = "MIT"
+
+[features]
+testing = ["fristad-domain/testing"]
+
+[dependencies]
+fristad-domain = { path = "../fristad-domain" }
+fristad-ports = { path = "../fristad-ports" }
+glam = { version = "0.30", features = ["bytemuck"] }
+log = "0.4"

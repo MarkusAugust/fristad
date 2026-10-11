@@ -434,7 +434,7 @@ impl Mobs {
 
     /// Alle har sett deg og ingen sover (til testene som ser om de finner
     /// fram).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn wake_all(&mut self) {
         for m in &mut self.mobs {
             m.aware = true;
@@ -443,7 +443,7 @@ impl Mobs {
     }
 
     /// Om fienden ligger i bakhold og sover ennå (til testene).
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn dormant(&self, i: usize) -> bool {
         self.mobs[i].dormant
     }
