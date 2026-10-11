@@ -76,6 +76,7 @@ main .wrap { display: grid; gap: 18px; padding-block: 20px 60px; }
 .check { font-size: 14px; }
 .check.pass::before { content: "✓ "; color: var(--ok); font-weight: 700; }
 .check.fail::before { content: "✗ "; color: var(--bad); font-weight: 700; }
+.fresh { font-size: 14px; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--ground); }
 .prior { font-size: 14px; padding: 8px 10px; background: var(--ground); border-radius: 4px; }
 .prior b { text-transform: capitalize; }
 .choose { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: auto; }
@@ -131,7 +132,7 @@ dialog::backdrop { background: rgb(0 0 0 / .75); }
 <script>
 const LABEL = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikker" };
 const FILTERS = [
-  ["open", "Ikke vurdert"], ["all", "Alle"], ["modell", "Modeller"], ["tekstur", "Teksturer"],
+  ["fresh", "Nytt bilde"], ["open", "Ikke vurdert"], ["all", "Alle"], ["modell", "Modeller"], ["tekstur", "Teksturer"],
   ["underkjent", "Underkjent"], ["usikker", "Usikker"], ["godkjent", "Godkjent"],
 ];
 let items = [];
@@ -149,12 +150,13 @@ function matches(it, f) {
   const v = verdictOf(it);
   if (f === "all") return true;
   if (f === "open") return !v;
+  if (f === "fresh") return !!it.fresh;
   if (f === "modell" || f === "tekstur") return it.kind === f;
   return v === f;
 }
 function counts() {
-  const c = { all: items.length, open: 0, modell: 0, tekstur: 0, godkjent: 0, underkjent: 0, usikker: 0 };
-  for (const it of items) { const v = verdictOf(it); c[it.kind]++; if (v) c[v]++; else c.open++; }
+  const c = { all: items.length, fresh: 0, open: 0, modell: 0, tekstur: 0, godkjent: 0, underkjent: 0, usikker: 0 };
+  for (const it of items) { const v = verdictOf(it); c[it.kind]++; if (it.fresh) c.fresh++; if (v) c[v]++; else c.open++; }
   return c;
 }
 function renderBar() {
@@ -193,6 +195,7 @@ function card(it) {
   for (const f of it.facts.filter(Boolean)) { const li = document.createElement("li"); li.textContent = f; ul.append(li); }
   p.append(ul);
   if (it.check) { const c = document.createElement("div"); c.className = "check " + (it.check.startsWith("består") ? "pass" : "fail"); c.textContent = it.check; p.append(c); }
+  if (it.fresh) { const f = document.createElement("div"); f.className = "fresh"; f.textContent = it.fresh; p.append(f); }
   if (it.prior) {
     const pr = document.createElement("div"); pr.className = "prior";
     const b = document.createElement("b"); b.textContent = it.prior.verdict;
@@ -311,6 +314,7 @@ async function start() {
   } catch (e) {
     note("Fant ikke listen over teksturer og modeller."); return;
   }
+  filter = items.some(it => it.fresh) ? "fresh" : (items.some(it => !verdictOf(it)) ? "open" : "all");
   renderBar(); renderList();
   db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
   if (!db) {

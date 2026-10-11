@@ -43,6 +43,9 @@ jobs:
         with:
           path: assets/external
           key: external-assets-${{ hashFiles('tools/fetch-assets.ts', 'assets/textures/**') }}
+      # Teksturlagene før testene: `alle_lagene_har_bilde` krever dem.
+      - name: Teksturlagene
+        run: bun tools/fetch-assets.ts
       # Testene (arkitekturen, verden, krypten, fysikken, lydene) før noe
       # publiseres; feiler de, stopper bygget her.
       - name: Tester

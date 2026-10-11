@@ -62,6 +62,14 @@ VIEW = {
 }
 SHOT = (800, 560)
 
+# Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
+# fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
+# Siden merker dem «Nytt bilde», med grunnen.
+RESHOT = {
+    "layers": {"door", "door_b", "ashlar", "planks", "iron", "oak_planed", "straw_floor"},
+    "why": "Forrige bilde var feil: dørene, hogd stein, planker, jern og høvlet eik manglet teksturen sin og ble hvite eller murstein. Se om dommen din står.",
+}
+
 
 def rank(models):
     pos = {n: i for i, n in enumerate(ORDER)}
@@ -128,6 +136,7 @@ def page(out):
             "facts": [f"{m['triangles']:,} trekanter".replace(",", " "), where, " × ".join(f"{v:.1f}" for v in m["size"]) + " m",
                       ("teksturlag: " + ", ".join(m["layers"])) if m["layers"] else "bakt tekstur"],
             "check": None, "game": os.path.exists(shot), "prior": prior.get("models", {}).get(n),
+            "fresh": RESHOT["why"] if RESHOT["layers"] & set(m["layers"]) else None,
         })
 
     # Teksturene: laget 2 × 2 (eller den malte kilden om laget mangler).

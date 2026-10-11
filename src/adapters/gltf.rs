@@ -148,6 +148,25 @@ impl ModelSource for Embedded {
     }
 }
 
+/// Teksturlagene en glb-fil bruker (`extras.fristad.layer` på materialene),
+/// uten å lese geometrien.
+pub fn layers_of(bytes: &[u8]) -> Result<Vec<String>, String> {
+    let doc = gltf::Gltf::from_slice(bytes).map_err(|e| format!("ugyldig glTF: {e}"))?;
+    let mut out = vec![];
+    for mat in doc.materials() {
+        if let Some(l) = extras::<RawRole>(mat.extras())?.layer {
+            out.push(l);
+        }
+    }
+    Ok(out)
+}
+
+/// Alle teksturlagene modellene i spillet bruker.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn used_layers() -> std::collections::BTreeSet<String> {
+    MODELS.iter().chain(CRYPT_MODELS.iter()).flat_map(|(_, b)| layers_of(b).unwrap_or_default()).collect()
+}
+
 /// Modellfilene etter stien i `MODEL_FILES`, hentet utenfra.
 pub struct Files(pub std::collections::HashMap<String, Vec<u8>>);
 

@@ -55,7 +55,15 @@ fn main() {
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
     let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
     let format = wgpu::TextureFormat::Rgba8UnormSrgb;
-    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &fristad::adapters::layers::from_dir(std::path::Path::new(&arg("--assets").unwrap_or_else(|| "assets/external".into()))), width, height);
+    // Teksturlagene; mangler et lag en modell bruker, stopper bildet her i
+    // stedet for å vise det prosedyriske laget (`bun tools/fetch-assets.ts`).
+    let layers = fristad::adapters::layers::from_dir(std::path::Path::new(&arg("--assets").unwrap_or_else(|| "assets/external".into())));
+    let missing = fristad::adapters::layers::missing(&layers, &fristad::adapters::gltf::used_layers());
+    if !missing.is_empty() {
+        eprintln!("Teksturlag uten bilde: {} (kjør `bun tools/fetch-assets.ts`)", missing.join(", "));
+        std::process::exit(1);
+    }
+    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, width, height);
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
 
     if flag("--night") || arg("--theme").as_deref() == Some("dark") {

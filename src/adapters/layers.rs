@@ -68,6 +68,13 @@ pub fn from_files(manifest_json: &str, files: &HashMap<String, Vec<u8>>) -> Vec<
     out
 }
 
+/// Lagene i `used` som ikke har et bilde i `have`. Et lag uten bilde ville
+/// falt stille tilbake til det prosedyriske fra `bake.wgsl` (hvite dører og
+/// murstein i stedet for hogd stein, 11. okt.), så det er en feil.
+pub fn missing<'a>(have: &[(Layer, LayerImages)], used: impl IntoIterator<Item = &'a String>) -> Vec<String> {
+    used.into_iter().filter(|u| !have.iter().any(|(l, _)| l.name() == u.as_str())).cloned().collect()
+}
+
 /// Lagene i en katalog (`assets/external`), om den finnes.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn from_dir(dir: &std::path::Path) -> Vec<(Layer, LayerImages)> {

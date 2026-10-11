@@ -1823,6 +1823,17 @@ fn modellene_har_roller() {
     assert!(bad.is_empty(), "modeller som ikke kan lastes (se loggen): {bad:?}");
 }
 
+/// Hvert teksturlag en modell bruker, har et bilde i `assets/external`
+/// (`bun tools/fetch-assets.ts`). Et lag uten bilde faller ellers stille
+/// tilbake til det prosedyriske laget (hvite dører, 11. okt.).
+#[test]
+fn alle_lagene_har_bilde() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/external");
+    let have = crate::adapters::layers::from_dir(&dir);
+    let missing = crate::adapters::layers::missing(&have, &crate::adapters::gltf::used_layers());
+    assert!(missing.is_empty(), "teksturlag uten bilde: {missing:?} (kjør `bun tools/fetch-assets.ts`)");
+}
+
 /// En modell byen eller systemene bruker, finnes, eller den står i
 /// `model::PLANNED` (fiendene, figurene, våpnene …). Og en modell som står
 /// der, men nå finnes, skal strykes fra lista.
