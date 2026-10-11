@@ -8,7 +8,7 @@
 //!    forrige, så det blir verken uskarpt eller får spøkelser.
 //! 3. Glød og tonemapping til skjermen.
 
-use crate::domain::geometry::{Chunk, Layer, Mesh, Vertex, LAYERS};
+use crate::domain::geometry::{flag, kind, Chunk, Layer, Mesh, Vertex, LAYERS};
 use crate::domain::model::LayerImages;
 use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
@@ -223,6 +223,8 @@ impl Cull {
 struct GpuModel {
     name: String,
     mesh: GpuMesh,
+    /// Har alfakort (gress, blad): tegnes med `cutout`-pipelinen.
+    cutout: bool,
     near: std::ops::Range<u32>,
     far: std::ops::Range<u32>,
     textures: wgpu::BindGroup,
@@ -324,6 +326,8 @@ const REDUCED_FOG: f32 = 0.005;
 struct ScenePipes {
     samples: u32,
     world: wgpu::RenderPipeline,
+    /// Modellene med alfakort (gress, blad): alpha to coverage og `discard`.
+    cutout: wgpu::RenderPipeline,
     sky: wgpu::RenderPipeline,
     particles: wgpu::RenderPipeline,
 }
@@ -344,18 +348,24 @@ impl SceneSources {
         let ms = |a2c: bool| wgpu::MultisampleState { count: samples, mask: !0, alpha_to_coverage_enabled: a2c && samples > 1 };
         let target = |blend: Option<wgpu::BlendState>| [Some(wgpu::ColorTargetState { format: HDR, blend, write_mask: wgpu::ColorWrites::ALL })];
         let buffers = [VERTEX_LAYOUT, InstanceData::LAYOUT];
-        let world = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("world"),
-            layout: Some(&self.world_layout),
-            vertex: wgpu::VertexState { module: &self.world, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &buffers },
-            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
-            depth_stencil: depth(true, wgpu::CompareFunction::Less),
-            // Alfakortene skriver dekningen i alfa, som blir til MSAA-prøver.
-            multisample: ms(true),
-            fragment: Some(wgpu::FragmentState { module: &self.world, entry_point: Some("fs"), compilation_options: Default::default(), targets: &target(None) }),
-            multiview: None,
-            cache: None,
-        });
+        // Det ugjennomsiktige uten alpha to coverage og uten `discard` (begge
+        // skrur av tidlig dybdetest på Apple-GPU-er); alfakortene for seg.
+        let world_pipe = |label: &str, entry: &str, a2c: bool| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(label),
+                layout: Some(&self.world_layout),
+                vertex: wgpu::VertexState { module: &self.world, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &buffers },
+                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+                depth_stencil: depth(true, wgpu::CompareFunction::Less),
+                // Alfakortene skriver dekningen i alfa, som blir til MSAA-prøver.
+                multisample: ms(a2c),
+                fragment: Some(wgpu::FragmentState { module: &self.world, entry_point: Some(entry), compilation_options: Default::default(), targets: &target(None) }),
+                multiview: None,
+                cache: None,
+            })
+        };
+        let world = world_pipe("world", "fs", false);
+        let cutout = world_pipe("cutout", "fs_cutout", true);
         let sky = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("sky"),
             layout: Some(&self.simple_layout),
@@ -378,7 +388,7 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, world, sky, particles }
+        ScenePipes { samples, world, cutout, sky, particles }
     }
 }
 
@@ -758,6 +768,7 @@ impl Renderer {
                 log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far.indices.len() / 3);
                 Some(GpuModel {
                     name: m.name.clone(),
+                    cutout: m.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
                     far: near_count..combined.indices.len() as u32,
@@ -1162,7 +1173,7 @@ impl Renderer {
                 pass.set_bind_group(1, &self.shadow_frame_bg, &[0]);
                 pass.set_bind_group(2, &self.materials.bind_group, &[]);
                 pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0);
+                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, None);
             }
         }
 
@@ -1188,7 +1199,7 @@ impl Renderer {
             pass.set_bind_group(1, &self.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1);
+            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, Some(&self.scene.cutout));
             self.triangles.set((stats[1].world, 0, stats[1].models));
             pass.set_pipeline(&self.scene.sky);
             pass.draw(0..3, 0..1);
@@ -1252,7 +1263,9 @@ impl Renderer {
     /// de bitene som er innenfor synsfeltet, og småtingene bare nær
     /// kameraet. Naboer som begge skal tegnes slås sammen til ett kall.
     /// Returnerer hva som ble tegnet.
-    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize) -> PassStats {
+    /// Tegner bymeshen og modellene. Med `cutout` tegnes modellene med
+    /// alfakort til slutt med den pipelinen (skyggepasset har én pipeline).
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, cutout: Option<&wgpu::RenderPipeline>) -> PassStats {
         let mut calls = 0u32;
         let mut instances = 0u32;
         pass.set_vertex_buffer(1, self.instances.slice(0..INSTANCE_STRIDE));
@@ -1286,10 +1299,19 @@ impl Renderer {
         flush(&mut run, pass);
         let world = indices / 3;
         let mut models = 0;
-        for (m, draws) in self.models.iter().zip(model_draws) {
+        // Først de ugjennomsiktige, så alfakortene med sin pipeline.
+        let order = self.models.iter().zip(model_draws).filter(|(m, _)| !m.cutout).chain(self.models.iter().zip(model_draws).filter(|(m, _)| m.cutout));
+        let mut switched = false;
+        for (m, draws) in order {
             let d = &draws[region];
             if d.near.is_empty() && d.far.is_empty() {
                 continue;
+            }
+            if m.cutout && !switched {
+                if let Some(p) = cutout {
+                    pass.set_pipeline(p);
+                }
+                switched = true;
             }
             pass.set_bind_group(3, &m.textures, &[]);
             pass.set_vertex_buffer(1, m.instances.slice(..));

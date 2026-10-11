@@ -62,9 +62,12 @@ function renderHeight() {
   const dpr = window.devicePixelRatio || 1;
   const ph = Math.max(1, Math.round(canvas.clientHeight * dpr));
   if (resolution === "auto") {
-    const cap = reducedGfx ? 1080 : 1440;
-    const fit = RES_STEPS.filter((h) => h <= Math.min(ph, cap));
-    return fit.length ? fit[fit.length - 1] : Math.min(ph, 720);
+    // Standard tegner aldri tettere enn én piksel per CSS-piksel, avansert
+    // opptil 1,5 på skjermer med høy pikseltetthet; og aldri over trinnet.
+    const dense = Math.round(canvas.clientHeight * Math.min(dpr, reducedGfx ? 1 : 1.5));
+    const cap = Math.min(dense, reducedGfx ? 1080 : 1440);
+    const fit = RES_STEPS.filter((h) => h <= cap);
+    return fit.length ? fit[fit.length - 1] : Math.min(ph, cap);
   }
   // Et valgt trinn, men aldri flere piksler enn skjermen viser.
   return Math.min(resolution, ph);

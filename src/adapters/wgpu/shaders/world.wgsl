@@ -648,18 +648,34 @@ fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u
 // Alfakortene (gress, blad): med MSAA blir dekningen til prøver (alpha to
 // coverage), strammet inn så kantene er skarpe uten å flimre; uten MSAA
 // kuttes de ved halv dekning.
+// Uten MSAA kuttes de i `fs_cutout` (alfa under 0,5 forkastes der).
 fn card_alpha(a: f32) -> f32 {
     if (g.misc.y < 1.5) {
-        if (a < 0.5) {
-            discard;
-        }
-        return 1.0;
+        return select(0.0, 1.0, a >= 0.5);
     }
     return clamp((a - 0.5) * 2.0 + 0.5, 0.0, 1.0);
 }
 
+// Alt ugjennomsiktig: ingen `discard` og ingen alpha to coverage, så
+// grafikkortet kan dybdeteste før skyggeleggingen (på Apple-GPU-er skrur
+// begge deler av fjerningen av skjulte flater, og all overtegning ble
+// skyggelagt fullt).
 @fragment
 fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    return fragment(i, front);
+}
+
+// Alfakortene (gress, blad): alpha to coverage med MSAA, kutt uten.
+@fragment
+fn fs_cutout(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    let c = fragment(i, front);
+    if (g.misc.y < 1.5 && c.a < 0.5) {
+        discard;
+    }
+    return c;
+}
+
+fn fragment(i: VsOut, front: bool) -> vec4<f32> {
     let kind = i.mat.x;
     let slot = i.mat.y;
     let flags = i.mat.z;
