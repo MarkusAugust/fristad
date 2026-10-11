@@ -71,11 +71,17 @@ pub struct Bench {
     pub small_hdr: bool,
     /// Tidsmålingen på grafikkortet (måler hva den selv koster).
     pub timers: bool,
+    /// Himmelen (et fullskjermspass bak alt).
+    pub sky: bool,
+    /// Røyken, regnet og snøen (blandede firkanter, blandes per MSAA-prøve).
+    pub particles: bool,
+    /// Modellene i hovedpasset (av: bare bymeshen og terrenget).
+    pub models: bool,
 }
 
 impl Default for Bench {
     fn default() -> Self {
-        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true }
+        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true, sky: true, particles: true, models: true }
     }
 }
 
@@ -87,6 +93,10 @@ pub trait Renderer {
     fn set_bench(&mut self, _bench: Bench) {}
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
+    /// Tegnekall i hovedpasset sist bilde.
+    fn calls(&self) -> u32 {
+        0
+    }
     /// Millisekunder på grafikkortet per del av bildet, om det kan måles.
     fn gpu_times(&self) -> Vec<(&'static str, f32)> {
         vec![]

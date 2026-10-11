@@ -13,6 +13,26 @@ Eierens beslutninger (11. okt.): én økt, én maskin, ingen skyøkter; dreieark
 
 Målet: ingenting når eieren uten å ha bestått automatiske tekniske og estetiske kontroller; det billige kjøres før det dyre; feil rettes ved roten i felles kode og blir regler.
 
+## 0. Nå: hvorfor MSAA koster ~18 ms på M2 (fase 3 trekkes fram)
+
+**Hva to målinger fra eierens Mac mini M2 (Chrome, WebGPU, ~0,7–1 Mpx) har vist:**
+- Uten MSAA: torget 10 ms og 120 fps (skjermtaket). Med MSAA 4×: 45 ms og 46 fps. Enkel: 7–8 ms.
+- Flat farge med MSAA: 22 ms, mot 4 ms uten. Kostnaden er altså ikke skyggeleggingen.
+- Utelukket: HDR-formatet (`Rg11b10Ufloat` 43 mot 45 ms), tidsmålingen (samme fps uten), lagring av MSAA-målene (`Discard`), flere pass (ett hovedpass), alfakort/`discard` i byen eller modellene (ingen har alfa), skyggepasset (2 ms).
+- Delene (verden ≈ etterbehandling i hver rad) er ikke til å stole på; fps og summen er det som teller.
+
+**Hypotesene:** `snapshot --stats` viser bare ~170 000–270 000 trekanter og 61–79 kall i hovedpasset (torget, Storgata, sørporten), så ren geometri forklarer neppe 18 ms. Igjen står det som blandes eller fyller hele bildet per MSAA-prøve: røykdottene (32 piper × 24 store, blandede firkanter), himmelen (fullskjerm bak alt), og selve fyllingen av 4 prøver per piksel.
+
+**Målingsrunde 3 (`?bench`, avgjør før noe bygges om):** hver rad skriver trekanter, kall og lerretets størrelse; kjøringene er som i spillet, uten MSAA, flat, uten røyk/nedbør, uten himmel, uten modeller, flat med bare bymeshen, halv oppløsning (med og uten MSAA), enkel og avansert. `engine.set_bench(json)` med bryterne i `ports::Bench` (`sky`, `particles`, `models` nye), `benchScale` i `fit()`.
+
+**Rettelsen etter hva runden viser:**
+- *Røyken eller himmelen:* røyken tegnes i et eget pass uten MSAA (halv oppløsning, satt sammen før tonemappingen), himmelen bare der dybden er tom.
+- *Geometribundet:* trekantene ned til budsjettet. Først det som ikke synes: innsidemodellene som tegnes inntil 22 m selv om du står ute (bare når du er inne eller i døråpningen), fjerne nett for alt over `fine_within`, og culling av modellinstanser bak hus (grov okklusjon per rute fra bymeshen). Så Vertshuset og de tyngste husene ned mot rammene i `ny-stil.md` (≤10 000 ute, ≤25 000 med innside) i fase 4. Budsjettet i CI (`snapshot --stats`, fase 3) holder det der.
+- *Fyllbundet, eller fortsatt for dyrt etter at trekantene er nede:* standard bytter MSAA ut med et kantfilter (SMAA 1×, eierens valg 11. okt.) som eget pass før tonemappingen (`post.wgsl`), rundt 1–2 ms. Avansert beholder MSAA. Kontroll: skjermbilder av gjerder, tau og takkanter med og uten filteret.
+- Uansett: standardnivået skal gi ≥ 60 fps på M2 og jobb-PC, bekreftet med eierens `?bench`, før fase 2 fortsetter.
+
+**Verifisering:** eierens `?bench` før og etter hver rettelse (Mac og jobb-PC), loggført i `docs/kvalitet/ytelse.md`; `cargo test`, `node tools/wgsl-check.mjs`, skjermbilder av torget og krypten med og uten rettelsen.
+
 ## 1. Prinsipper (gjelder alt under)
 1. **Kontroll før kostnad.** Rekkefølgen er alltid: spesifikasjon → billige kontroller (numpy, sekunder) → Blender/eksport (minutter) → estetisk vurdering → eieren. Ingen Cycles-render i løypene; godkjenningsark lages med numpy-rastereren og ett `snapshot`.
 2. **Ingen overstyring.** En kontroll som feiler stopper løypa. Er terskelen feil, endres den i kode med begrunnelse, og alt godkjent kjøres på nytt.

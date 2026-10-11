@@ -237,8 +237,35 @@ impl Engine {
 
     /// Bryterne til målingen (`?bench`): MSAA-prøver (0 er nivåets),
     /// alpha to coverage, solskygge og flat farge.
-    pub fn set_bench(&mut self, msaa: u32, a2c: bool, shadow: bool, flat: bool, small_hdr: bool, timers: bool) {
-        self.app.command(Command::SetBench(Bench { msaa, a2c, shadow, flat, small_hdr, timers }));
+    /// Bryterne til målingen som et json-objekt; det som mangler, står som
+    /// i vanlig spill (`ports::Bench::default()`).
+    pub fn set_bench(&mut self, json: &str) {
+        #[derive(serde::Deserialize)]
+        #[serde(default)]
+        struct B {
+            msaa: u32,
+            a2c: bool,
+            shadow: bool,
+            flat: bool,
+            small_hdr: bool,
+            timers: bool,
+            sky: bool,
+            particles: bool,
+            models: bool,
+        }
+        impl Default for B {
+            fn default() -> Self {
+                let d = Bench::default();
+                B { msaa: d.msaa, a2c: d.a2c, shadow: d.shadow, flat: d.flat, small_hdr: d.small_hdr, timers: d.timers, sky: d.sky, particles: d.particles, models: d.models }
+            }
+        }
+        let b: B = serde_json::from_str(json).unwrap_or_default();
+        self.app.command(Command::SetBench(Bench { msaa: b.msaa, a2c: b.a2c, shadow: b.shadow, flat: b.flat, small_hdr: b.small_hdr, timers: b.timers, sky: b.sky, particles: b.particles, models: b.models }));
+    }
+
+    /// Tegnekall i hovedpasset sist bilde.
+    pub fn calls(&self) -> u32 {
+        self.app.status().calls
     }
 
     /// Trekanter tegnet sist bilde.

@@ -1252,18 +1252,20 @@ impl Renderer {
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
             stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, &self.scene.world, &self.scene.cutout);
             self.triangles.set((stats[1].world, 0, stats[1].models));
-            pass.set_pipeline(&self.scene.sky);
-            pass.draw(0..3, 0..1);
+            if self.bench.sky {
+                pass.set_pipeline(&self.scene.sky);
+                pass.draw(0..3, 0..1);
+            }
             pass.set_pipeline(&self.scene.particles);
-            if !f.smoke.is_empty() {
+            if !f.smoke.is_empty() && self.bench.particles {
                 pass.set_bind_group(1, &self.frame_bg, &[(2 * PASS_STRIDE) as u32]);
                 pass.draw(0..4, 0..f.smoke.len() as u32 * SMOKE_PUFFS);
             }
-            if wx.rain > 0.0 {
+            if wx.rain > 0.0 && self.bench.particles {
                 pass.set_bind_group(1, &self.frame_bg, &[0]);
                 pass.draw(0..4, 0..RAIN_COUNT);
             }
-            if wx.snow > 0.0 {
+            if wx.snow > 0.0 && self.bench.particles {
                 pass.set_bind_group(1, &self.frame_bg, &[PASS_STRIDE as u32]);
                 pass.draw(0..4, 0..SNOW_COUNT);
             }
@@ -1359,7 +1361,8 @@ impl Renderer {
         let mut switched = false;
         for (m, draws) in order {
             let d = &draws[region];
-            if d.near.is_empty() && d.far.is_empty() {
+            // Målingen kan ta modellene ut av hovedpasset.
+            if (d.near.is_empty() && d.far.is_empty()) || (region == 1 && !self.bench.models) {
                 continue;
             }
             if m.cutout && !switched {
@@ -1410,6 +1413,9 @@ impl ports::Renderer for Renderer {
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();
         w + p + m
+    }
+    fn calls(&self) -> u32 {
+        self.pass_stats()[1].calls
     }
     fn gpu_times(&self) -> Vec<(&'static str, f32)> {
         self.pass_times()

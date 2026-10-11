@@ -81,8 +81,10 @@ function renderHeight() {
   // Et valgt trinn, men aldri flere piksler enn skjermen viser.
   return Math.min(resolution, ph);
 }
+// Målingen (`?bench`) kan tegne i en brøkdel av oppløsningen.
+let benchScale = 1;
 function fit() {
-  const h = Math.max(1, renderHeight());
+  const h = Math.max(1, Math.round(renderHeight() * benchScale));
   const w = Math.max(1, Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight)));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
@@ -1428,19 +1430,22 @@ const BENCH_PLACES = [
   ["Storgata", 4.7, 1.7, 28, 0],
   ["sørporten", 4.7, 1.7, 50, 0],
 ];
+// Hver kjøring: nivået, en kort forklaring og bryterne til `engine.set_bench`
+// (det som mangler, står som i vanlig spill). `scale` ganger oppløsningen.
 const BENCH_RUNS = [
-  ["standard", 0, true, true, false],
-  ["standard", 1, true, true, false],
-  ["standard", 0, true, true, true],
-  ["standard", 1, true, true, true],
-  ["standard", 0, false, true, false],
-  ["standard", 0, true, false, false],
-  ["standard", 0, true, true, false, true],
-  ["standard", 0, true, true, false, false, false],
-  ["standard", 1, true, true, false, false, false],
-  ["enkel", 0, true, true, false],
-  ["avansert", 0, true, true, false],
+  { q: "standard", what: "som i spillet" },
+  { q: "standard", what: "uten MSAA", msaa: 1 },
+  { q: "standard", what: "flat farge", flat: true },
+  { q: "standard", what: "uten røyk/nedbør", particles: false },
+  { q: "standard", what: "uten himmel", sky: false },
+  { q: "standard", what: "uten modeller", models: false },
+  { q: "standard", what: "flat, bare bymeshen", flat: true, sky: false, particles: false, models: false },
+  { q: "standard", what: "halv oppløsning", scale: 0.5 },
+  { q: "standard", what: "uten MSAA, halv oppløsning", msaa: 1, scale: 0.5 },
+  { q: "enkel", what: "som i spillet" },
+  { q: "avansert", what: "som i spillet" },
 ];
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function measure(seconds) {
   const parts = new Map();
@@ -1472,23 +1477,28 @@ async function runBench() {
     `Fristad ${engine.fristil_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
     `${navigator.userAgent}`,
     `Lerret ${canvas.width}×${canvas.height} · vindu ${innerWidth}×${innerHeight} · dpr ${devicePixelRatio}`,
-    "sted · nivå · msaa · a2c · skygge · flat · hdr · tidsmåling → GPU ms (delene) · fps",
+    "sted · nivå · kjøring → GPU ms (delene) · fps · trekanter og kall i hovedpasset · lerret",
   ];
-  const label = (run) => `${run[0]} · ${run[1] || "nivå"} · ${run[2] ? "a2c" : "-"} · ${run[3] ? "skygge" : "-"} · ${run[4] ? "flat" : "-"} · ${run[5] ? "hdr11" : "hdr16"} · ${run[6] === false ? "uten tid" : "tid"}`;
   toast?.show?.("Måler grafikken … (rundt ett minutt)");
   for (const [name, x, y, z, yaw] of BENCH_PLACES) {
     for (const run of BENCH_RUNS) {
-      if (name !== "torget" && run !== BENCH_RUNS[0] && run[0] === "standard") continue;
-      setQuality(run[0], false, false);
-      engine.set_bench(run[1], run[2], run[3], run[4], !!run[5], run[6] !== false);
+      if (name !== "torget" && run !== BENCH_RUNS[0] && run.q === "standard") continue;
+      setQuality(run.q, false, false);
+      const { q, what, scale, ...flags } = run;
+      engine.set_bench(JSON.stringify(flags));
+      benchScale = scale ?? 1;
+      fit();
       engine.place(x, y, z, yaw, 0);
       await sleep(600);
       const m = await measure(2);
       const partText = m.avg.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");
-      lines.push(`${name} · ${label(run)} → ${m.total > 0 ? `${m.total.toFixed(1)} ms (${partText})` : "GPU-tid ikke tilgjengelig"} · ${m.fps.toFixed(0)} fps`);
+      const tris = `${Math.round(engine.triangles() / 1000)}k △ · ${engine.calls()} kall`;
+      lines.push(`${name} · ${q} · ${what} → ${m.total > 0 ? `${m.total.toFixed(1)} ms (${partText})` : "GPU-tid ikke tilgjengelig"} · ${m.fps.toFixed(0)} fps · ${tris} · ${canvas.width}×${canvas.height}`);
     }
   }
-  engine.set_bench(0, true, true, false, false, true);
+  engine.set_bench("{}");
+  benchScale = 1;
+  fit();
   setQuality(before ?? "standard", false, false);
   benchRunning = false;
   showBench(lines.join("\n"));
