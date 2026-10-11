@@ -24,3 +24,7 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `tree_ref` | eik, bjørk, gran, furu, rogn og dødt tre (forbilder for trærne) |
 | `bush_ref` | hassel, einer, nype, bjørnebær, bregne og siv |
 | `items1`–`items4` | fire ark med småting i 3 × 3 (flasker, lykt, støvler, krus, kikkert, kiste, bøker, urter, hjelm og sverd, edelstener, gryte, mugge, speil, nøkler …): forbilder for inventar, kister og butikkvarer |
+| `animals2` | esel, gås, villsvin, hjort, grevling og rev |
+| `furniture2` | kiste, hylle, skap, benk, bord, bukkebord, krakk, stol og vaskestativ (annen utgave) |
+| `items5` | ni ark-ting til krypten: hodeskalle med dolk, tau og mynter, hanske, kart, krukke, filler, nøkkel, pose, lue |
+| `dungeon_clutter2` | hjul, kart og kjele, sekk, hjelm og brynje, høygaffel i halm, kiste med verktøy, benk, spade og bøtte |
