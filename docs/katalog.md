@@ -5,7 +5,7 @@ Laget av `python3 -m tools.qa catalog` fra dataene (se `tools/qa/catalog.py`); r
 ## Oversikt
 
 - **Teksturer:** 82, 66 består teksturkontrollen (P-T), 27 har bare et malt bilde og er ikke tatt i bruk som lag.
-- **Modeller:** 127 i spillet: 0 godkjent, 33 underkjent, 94 ikke vurdert. 1 står ikke noe sted.
+- **Modeller:** 127 i spillet: 40 godkjent, 79 underkjent, 8 ikke vurdert. 1 står ikke noe sted.
 - **Ventes:** 32 modeller systemene venter på (fiender, figurer, våpen, dyr …).
 - **Forbilder:** 111 bilder, 34 brukt av et oppsett i sheet2model.
 
@@ -54,123 +54,123 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_ashlar.jpg) | `ashlar` (flis) | Hogde sandsteinsblokker i forband, beige og grå, lyse fuger. | `house_d`, `house_k`, `house_s`, `scriptorium` | ok | ikke vurdert |
-| ![](katalog/t_chimney.jpg) | `chimney` (flis) | Murt pipe av rød og grå tegl. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 19 til | ok | ikke vurdert |
-| ![](katalog/t_church_boards.jpg) | `church_boards` (flis) | Tjærebredde, mørke stående bord (stavkirka). | `stave_church` | ok | ikke vurdert |
-| ![](katalog/t_cladding.jpg) | `cladding` (flis) | Stående brune bord med fuger (kledning). | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 24 til | ok | ikke vurdert |
-| ![](katalog/t_cobble.jpg) | `cobble` (flis) | Brostein, avrundede steiner i varme og grå farger. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_door.jpg) | `door` (ark) | Én dør: brune stående bord med smijernshengsler og ring. | `house_b`, `house_c`, `house_d`, `house_f`, `house_g`, `house_k` og 10 til | ok | ikke vurdert |
-| ![](katalog/t_door_b.jpg) | `door_b` (ark) | Én dør, variant: rødbrune bord med hengsler og ring. | `house_a`, `house_e`, `house_h`, `house_i`, `house_j`, `house_m` og 38 til | ok | ikke vurdert |
-| ![](katalog/t_flagstone.jpg) | `flagstone` (flis) | Store kantete heller i varme og grå toner. | `town_wall`, `wall_tower`, `gatehouse`, `market_cross`, `lantern_post`, `portal_ring` og 3 til | ok | ikke vurdert |
-| ![](katalog/t_iron.jpg) | `iron` (flis) | Blåsvart smijern med naglehoder. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 61 til | feil: lys 0.57 | ikke vurdert |
-| ![](katalog/t_iron_worked.jpg) | `iron_worked` (flis) (bare malt, ikke lag) | Hamret mørkt jern med bulker. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_logs.jpg) | `logs` (flis) | Liggende tømmerstokker med mose i fugene (laft). | `house_c`, `house_o`, `shed_b`, `woodpile`, `forge`, `tavern_interior` og 2 til | ok | ikke vurdert |
-| ![](katalog/t_oak_planed.jpg) | `oak_planed` (flis) | Høvlede lyse eikebord (gulv og møbler). | `forge`, `tavern`, `tavern_interior`, `home`, `home_interior`, `apothecary_interior` og 1 til | feil: skarphet 1.34 | ikke vurdert |
-| ![](katalog/t_planks.jpg) | `planks` (flis) | Liggende rødbrune bord med spikre. | `coop`, `picket_fence`, `forge`, `forge_interior`, `tavern_interior`, `home` og 5 til | ok | ikke vurdert |
-| ![](katalog/t_plaster.jpg) | `plaster` (flis) | Varm, lys kalkpuss. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 38 til | ok | ikke vurdert |
-| ![](katalog/t_plaster_old.jpg) | `plaster_old` (flis) | Lys puss med avskallinger. | `house_f`, `house_l`, `house_t`, `forge`, `crypt_01_ai`, `crypt_01_an` og 3 til | feil: megapiksler 1.79, skarphet 1.34 | ikke vurdert |
-| ![](katalog/t_plaster_red.jpg) | `plaster_red` (flis) | Rød puss med avskallinger. | `house_d`, `house_k`, `house_p`, `forge`, `tavern_interior`, `home` og 3 til | feil: megapiksler 1.54 | ikke vurdert |
-| ![](katalog/t_plaster_white.jpg) | `plaster_white` (flis) | Hvit puss. | `house_b`, `house_g`, `house_i`, `house_m`, `house_r`, `tavern_interior` og 12 til | feil: megapiksler 1.79, skarphet 1.27 | ikke vurdert |
-| ![](katalog/t_pottery.jpg) | `pottery` (flis) (bare malt, ikke lag) | Oransje brent leire med glasurflekker (krukker). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_rope.jpg) | `rope` (flis) (bare malt, ikke lag) | Snodd tau, liggende rader. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_ruin.jpg) | `ruin` (flis) | Gammel, mosegrodd steinmur. | `portal_ring`, `portal_shard`, `crypt` | ok | ikke vurdert |
-| ![](katalog/t_shingles.jpg) | `shingles` (flis) | Spon, rødbrune og grå trespon (tak). | `house_e`, `house_g`, `house_j`, `house_q`, `house_t`, `shed_a` og 7 til | ok | ikke vurdert |
-| ![](katalog/t_shingles_tar.jpg) | `shingles_tar` (flis) | Tjærebredt, rundet spon i skjell (stavkirketaket). | `house_m`, `stave_church` | feil: megapiksler 1.00, skjøt 1.31 | ikke vurdert |
-| ![](katalog/t_signs.jpg) | `signs` (ark) (bare malt, ikke lag) | Fire hengeskilt: ambolt, ølkrus, morter, bok og fjær. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_slate.jpg) | `slate` (flis) | Skifer, blågrå med enkelte røde og grønne. | `house_b`, `house_k`, `house_p`, `apothecary`, `scriptorium`, `crypt` | ok | ikke vurdert |
-| ![](katalog/t_stone.jpg) | `stone` (flis) | Grå kvadersteinsmur med runde steiner og mose. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 28 til | feil: skjøt 1.04 | ikke vurdert |
-| ![](katalog/t_straw.jpg) | `straw` (flis) (bare malt, ikke lag) | Løs halm, lys. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_straw_floor.jpg) | `straw_floor` (flis) | Halm strødd på et mørkt gulv. | `market_stall_b`, `tavern_interior`, `home_interior`, `apothecary_interior` | ok | ikke vurdert |
-| ![](katalog/t_thatch.jpg) | `thatch` (flis) | Halmtak i lag. | `house_a`, `house_f`, `house_h`, `house_l`, `house_o`, `house_r` og 8 til | feil: megapiksler 1.05, skjøt 1.50 | ikke vurdert |
-| ![](katalog/t_tiles.jpg) | `tiles` (flis) | Røde munk-og-nonne-takstein. | `house_d`, `house_i`, `house_n`, `house_s`, `forge` | ok | ikke vurdert |
-| ![](katalog/t_timber.jpg) | `timber` (flis) | Mørkbrunt tømmer, liggende bjelker. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_h` og 35 til | ok | ikke vurdert |
-| ![](katalog/t_timber_grey.jpg) | `timber_grey` (flis) | Gråvær, sprukket tømmer. | `house_f`, `house_g`, `house_n`, `house_p`, `house_t`, `shed_a` og 14 til | ok | ikke vurdert |
-| ![](katalog/t_trim.jpg) | `trim` (ark) | Trim-ark: utskåret list, profiler, tegl, nagleband, tau. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 31 til | ok | ikke vurdert |
-| ![](katalog/t_wall_stone.jpg) | `wall_stone` (flis) | Kløyvd naturstein i blå, grå og rustrøde toner. | `town_wall`, `wall_tower`, `gatehouse`, `market_cross`, `lantern_post`, `signpost` og 9 til | ok | ikke vurdert |
-| ![](katalog/t_wattle.jpg) | `wattle` (flis) | Flettverk av kvister mellom stolper. | `garden`, `wattle_fence`, `rail_fence`, `forge`, `apothecary_interior` | ok | ikke vurdert |
-| ![](katalog/t_weatherboard.jpg) | `weatherboard` (flis) | Liggende kledningsbord, brune og grå. | `house_e`, `house_m`, `shed_a`, `shed_b`, `coop`, `wall_tower` og 12 til | ok | ikke vurdert |
-| ![](katalog/t_weatherboard_grey.jpg) | `weatherboard_grey` (flis) | Liggende gråværede kledningsbord. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_wicker.jpg) | `wicker` (flis) (bare malt, ikke lag) | Flettet kurv. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_windows.jpg) | `windows` (ark) (bare malt, ikke lag) | Fire vinduer: blyglass med karm, med skodder, rundbuet i stein, gjenspikret. | ingen modell | ok | ikke vurdert |
+| ![](katalog/t_ashlar.jpg) | `ashlar` (flis) | Hogde sandsteinsblokker i forband, beige og grå, lyse fuger. | `house_d`, `house_k`, `house_s`, `scriptorium` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_chimney.jpg) | `chimney` (flis) | Murt pipe av rød og grå tegl. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 19 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_church_boards.jpg) | `church_boards` (flis) | Tjærebredde, mørke stående bord (stavkirka). | `stave_church` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_cladding.jpg) | `cladding` (flis) | Stående brune bord med fuger (kledning). | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 24 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_cobble.jpg) | `cobble` (flis) | Brostein, avrundede steiner i varme og grå farger. | ingen modell | ok | **underkjent** (2026-10-11): dårlig horisontal skjøt |
+| ![](katalog/t_door.jpg) | `door` (ark) | Én dør: brune stående bord med smijernshengsler og ring. | `house_b`, `house_c`, `house_d`, `house_f`, `house_g`, `house_k` og 10 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_door_b.jpg) | `door_b` (ark) | Én dør, variant: rødbrune bord med hengsler og ring. | `house_a`, `house_e`, `house_h`, `house_i`, `house_j`, `house_m` og 38 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_flagstone.jpg) | `flagstone` (flis) | Store kantete heller i varme og grå toner. | `town_wall`, `wall_tower`, `gatehouse`, `market_cross`, `lantern_post`, `portal_ring` og 3 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_iron.jpg) | `iron` (flis) | Blåsvart smijern med naglehoder. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 61 til | feil: lys 0.57 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_iron_worked.jpg) | `iron_worked` (flis) (bare malt, ikke lag) | Hamret mørkt jern med bulker. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_logs.jpg) | `logs` (flis) | Liggende tømmerstokker med mose i fugene (laft). | `house_c`, `house_o`, `shed_b`, `woodpile`, `forge`, `tavern_interior` og 2 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_oak_planed.jpg) | `oak_planed` (flis) | Høvlede lyse eikebord (gulv og møbler). | `forge`, `tavern`, `tavern_interior`, `home`, `home_interior`, `apothecary_interior` og 1 til | feil: skarphet 1.34 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_planks.jpg) | `planks` (flis) | Liggende rødbrune bord med spikre. | `coop`, `picket_fence`, `forge`, `forge_interior`, `tavern_interior`, `home` og 5 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_plaster.jpg) | `plaster` (flis) | Varm, lys kalkpuss. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 38 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_plaster_old.jpg) | `plaster_old` (flis) | Lys puss med avskallinger. | `house_f`, `house_l`, `house_t`, `forge`, `crypt_01_ai`, `crypt_01_an` og 3 til | feil: megapiksler 1.79, skarphet 1.34 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_plaster_red.jpg) | `plaster_red` (flis) | Rød puss med avskallinger. | `house_d`, `house_k`, `house_p`, `forge`, `tavern_interior`, `home` og 3 til | feil: megapiksler 1.54 | **underkjent** (2026-10-11): flekke blir gjentagende så det er støyende på avstand. for mange små flekker mener jeg |
+| ![](katalog/t_plaster_white.jpg) | `plaster_white` (flis) | Hvit puss. | `house_b`, `house_g`, `house_i`, `house_m`, `house_r`, `tavern_interior` og 12 til | feil: megapiksler 1.79, skarphet 1.27 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_pottery.jpg) | `pottery` (flis) (bare malt, ikke lag) | Oransje brent leire med glasurflekker (krukker). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_rope.jpg) | `rope` (flis) (bare malt, ikke lag) | Snodd tau, liggende rader. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_ruin.jpg) | `ruin` (flis) | Gammel, mosegrodd steinmur. | `portal_ring`, `portal_shard`, `crypt` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_shingles.jpg) | `shingles` (flis) | Spon, rødbrune og grå trespon (tak). | `house_e`, `house_g`, `house_j`, `house_q`, `house_t`, `shed_a` og 7 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_shingles_tar.jpg) | `shingles_tar` (flis) | Tjærebredt, rundet spon i skjell (stavkirketaket). | `house_m`, `stave_church` | feil: megapiksler 1.00, skjøt 1.31 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_signs.jpg) | `signs` (ark) (bare malt, ikke lag) | Fire hengeskilt: ambolt, ølkrus, morter, bok og fjær. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_slate.jpg) | `slate` (flis) | Skifer, blågrå med enkelte røde og grønne. | `house_b`, `house_k`, `house_p`, `apothecary`, `scriptorium`, `crypt` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_stone.jpg) | `stone` (flis) | Grå kvadersteinsmur med runde steiner og mose. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 28 til | feil: skjøt 1.04 | **underkjent** (2026-10-11): skjøten er for dårlig |
+| ![](katalog/t_straw.jpg) | `straw` (flis) (bare malt, ikke lag) | Løs halm, lys. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_straw_floor.jpg) | `straw_floor` (flis) | Halm strødd på et mørkt gulv. | `market_stall_b`, `tavern_interior`, `home_interior`, `apothecary_interior` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_thatch.jpg) | `thatch` (flis) | Halmtak i lag. | `house_a`, `house_f`, `house_h`, `house_l`, `house_o`, `house_r` og 8 til | feil: megapiksler 1.05, skjøt 1.50 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_tiles.jpg) | `tiles` (flis) | Røde munk-og-nonne-takstein. | `house_d`, `house_i`, `house_n`, `house_s`, `forge` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_timber.jpg) | `timber` (flis) | Mørkbrunt tømmer, liggende bjelker. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_h` og 35 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_timber_grey.jpg) | `timber_grey` (flis) | Gråvær, sprukket tømmer. | `house_f`, `house_g`, `house_n`, `house_p`, `house_t`, `shed_a` og 14 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_trim.jpg) | `trim` (ark) | Trim-ark: utskåret list, profiler, tegl, nagleband, tau. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 31 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_wall_stone.jpg) | `wall_stone` (flis) | Kløyvd naturstein i blå, grå og rustrøde toner. | `town_wall`, `wall_tower`, `gatehouse`, `market_cross`, `lantern_post`, `signpost` og 9 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_wattle.jpg) | `wattle` (flis) | Flettverk av kvister mellom stolper. | `garden`, `wattle_fence`, `rail_fence`, `forge`, `apothecary_interior` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_weatherboard.jpg) | `weatherboard` (flis) | Liggende kledningsbord, brune og grå. | `house_e`, `house_m`, `shed_a`, `shed_b`, `coop`, `wall_tower` og 12 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_weatherboard_grey.jpg) | `weatherboard_grey` (flis) | Liggende gråværede kledningsbord. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_wicker.jpg) | `wicker` (flis) (bare malt, ikke lag) | Flettet kurv. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_windows.jpg) | `windows` (ark) (bare malt, ikke lag) | Fire vinduer: blyglass med karm, med skodder, rundbuet i stein, gjenspikret. | ingen modell | ok | **godkjent** (2026-10-11):  |
 
 ### Naturen
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_bark_birch.jpg) | `bark_birch` (flis) (bare malt, ikke lag) | Hvit bjørkebark med svarte streker. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_bark_oak.jpg) | `bark_oak` (flis) (bare malt, ikke lag) | Grov, mørk eikebark med mose i sprekkene. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_bark_spruce.jpg) | `bark_spruce` (flis) (bare malt, ikke lag) | Rødbrun granbark i flak med harpiksdråper. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_cow_fur.jpg) | `cow_fur` (flis) (bare malt, ikke lag) | Rødbrun og hvit kuskinn i flekker. | ingen modell | feil: lys 0.18 | ikke vurdert |
-| ![](katalog/t_earth.jpg) | `earth` (flis) | Brun, tråkket jord med småstein og fotspor. | `garden` | ok | ikke vurdert |
-| ![](katalog/t_forest_floor.jpg) | `forest_floor` (flis) | Barnåler, kongler og mose (skogbunn). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_gravel.jpg) | `gravel` (flis) | Grus og småstein på gul jord. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_meadow.jpg) | `meadow` (flis) | Gress med hvite, gule og lilla blomster (eng). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_mud.jpg) | `mud` (flis) | Søle med hjulspor og gress i kantene (veiene). | ingen modell | feil: megapiksler 0.88, skjøt 2.26 | ikke vurdert |
-| ![](katalog/t_rock.jpg) | `rock` (flis) | Grått berg med lav. | `forge`, `forge_interior` | ok | ikke vurdert |
-| ![](katalog/t_sheep_wool.jpg) | `sheep_wool` (flis) (bare malt, ikke lag) | Krøllet saueull. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_snow.jpg) | `snow` (flis) | Snø i myke driver. | ingen modell | feil: skjøt 1.21, skarphet 1.22 | ikke vurdert |
-| ![](katalog/t_sod.jpg) | `sod` (flis) | Torv, gresstuster og jord (torvtak). | `house_c`, `garden`, `portal_ring`, `home`, `apothecary`, `apothecary_interior` og 1 til | ok | ikke vurdert |
+| ![](katalog/t_bark_birch.jpg) | `bark_birch` (flis) (bare malt, ikke lag) | Hvit bjørkebark med svarte streker. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_bark_oak.jpg) | `bark_oak` (flis) (bare malt, ikke lag) | Grov, mørk eikebark med mose i sprekkene. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_bark_spruce.jpg) | `bark_spruce` (flis) (bare malt, ikke lag) | Rødbrun granbark i flak med harpiksdråper. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_cow_fur.jpg) | `cow_fur` (flis) (bare malt, ikke lag) | Rødbrun og hvit kuskinn i flekker. | ingen modell | feil: lys 0.18 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_earth.jpg) | `earth` (flis) | Brun, tråkket jord med småstein og fotspor. | `garden` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_forest_floor.jpg) | `forest_floor` (flis) | Barnåler, kongler og mose (skogbunn). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_gravel.jpg) | `gravel` (flis) | Grus og småstein på gul jord. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_meadow.jpg) | `meadow` (flis) | Gress med hvite, gule og lilla blomster (eng). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_mud.jpg) | `mud` (flis) | Søle med hjulspor og gress i kantene (veiene). | ingen modell | feil: megapiksler 0.88, skjøt 2.26 | **usikker** (2026-10-11): mange hjulspor skal det være? blir overgangen mot omkringliggende teksturer for hard? |
+| ![](katalog/t_rock.jpg) | `rock` (flis) | Grått berg med lav. | `forge`, `forge_interior` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_sheep_wool.jpg) | `sheep_wool` (flis) (bare malt, ikke lag) | Krøllet saueull. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_snow.jpg) | `snow` (flis) | Snø i myke driver. | ingen modell | feil: skjøt 1.21, skarphet 1.22 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_sod.jpg) | `sod` (flis) | Torv, gresstuster og jord (torvtak). | `house_c`, `garden`, `portal_ring`, `home`, `apothecary`, `apothecary_interior` og 1 til | ok | **godkjent** (2026-10-11):  |
 
 ### Figurer og utstyr
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_chainmail.jpg) | `chainmail` (flis) | Ringbrynje, tett flettede jernringer. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_felt.jpg) | `felt` (flis) | Brun filt. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_fur.jpg) | `fur` (flis) | Grå pels i lokker. | ingen modell | feil: skarphet 1.38 | ikke vurdert |
-| ![](katalog/t_gambeson.jpg) | `gambeson` (flis) | Kremhvit vattert kjortel i ruter. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_leather.jpg) | `leather` (flis) | Brunt lær med sømmer. | `tavern_interior`, `apothecary`, `apothecary_interior`, `scriptorium`, `scriptorium_interior`, `crypt` | feil: skarphet 1.38 | ikke vurdert |
-| ![](katalog/t_linen.jpg) | `linen` (flis) | Hvitt lin, fin vev. | `market_cross`, `market_stall`, `market_stall_b`, `cart`, `lantern_post`, `training_dummy` og 7 til | ok | ikke vurdert |
-| ![](katalog/t_parchment.jpg) | `parchment` (flis) (bare malt, ikke lag) | Lyst pergament med flekker. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_plate_steel.jpg) | `plate_steel` (flis) (bare malt, ikke lag) | Hamret stålplate. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_weave.jpg) | `weave` (flis) (bare malt, ikke lag) | Grov vev i fiskebein. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_wool.jpg) | `wool` (flis) | Grå ullvev. | `market_stall_b`, `forge`, `tavern_interior`, `home_interior`, `apothecary_interior`, `stave_church_interior` | feil: skjøt 1.67 | ikke vurdert |
+| ![](katalog/t_chainmail.jpg) | `chainmail` (flis) | Ringbrynje, tett flettede jernringer. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_felt.jpg) | `felt` (flis) | Brun filt. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_fur.jpg) | `fur` (flis) | Grå pels i lokker. | ingen modell | feil: skarphet 1.38 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_gambeson.jpg) | `gambeson` (flis) | Kremhvit vattert kjortel i ruter. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_leather.jpg) | `leather` (flis) | Brunt lær med sømmer. | `tavern_interior`, `apothecary`, `apothecary_interior`, `scriptorium`, `scriptorium_interior`, `crypt` | feil: skarphet 1.38 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_linen.jpg) | `linen` (flis) | Hvitt lin, fin vev. | `market_cross`, `market_stall`, `market_stall_b`, `cart`, `lantern_post`, `training_dummy` og 7 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_parchment.jpg) | `parchment` (flis) (bare malt, ikke lag) | Lyst pergament med flekker. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_plate_steel.jpg) | `plate_steel` (flis) (bare malt, ikke lag) | Hamret stålplate. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_weave.jpg) | `weave` (flis) (bare malt, ikke lag) | Grov vev i fiskebein. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_wool.jpg) | `wool` (flis) | Grå ullvev. | `market_stall_b`, `forge`, `tavern_interior`, `home_interior`, `apothecary_interior`, `stave_church_interior` | feil: skjøt 1.67 | **godkjent** (2026-10-11):  |
 
 ### Krypten: gravkjelleren
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_bronze_door.jpg) | `bronze_door` (flis) | Mørke eikeplanker med jernbånd og nagler (kryptdører). | `kit_bonus`, `kit_shortcut_leaf`, `kit_trapdoor`, `kit_up` | ok | ikke vurdert |
-| ![](katalog/t_crypt_floor.jpg) | `crypt_floor` (flis) | Uregelmessige grå steinheller (kryptgulv). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 21 til | ok | ikke vurdert |
+| ![](katalog/t_bronze_door.jpg) | `bronze_door` (flis) | Mørke eikeplanker med jernbånd og nagler (kryptdører). | `kit_bonus`, `kit_shortcut_leaf`, `kit_trapdoor`, `kit_up` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_crypt_floor.jpg) | `crypt_floor` (flis) | Uregelmessige grå steinheller (kryptgulv). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 21 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_crypt_plaster.jpg) | `crypt_plaster` (flis) | Hvit puss med stjerner og prikker og murhull. Underkjent som «barnerom». | ingen modell | ok | **underkjent** (2026-10-11): Stjernetapetet får krypten til å se ut som et barnerom; laget bruker plaster_old til ny kryptpuss kommer. |
-| ![](katalog/t_crypt_vault.jpg) | `crypt_vault` (flis) | Mørk, smal tegl i hvelv (kryptens tak). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 22 til | ok | ikke vurdert |
-| ![](katalog/t_crypt_wall.jpg) | `crypt_wall` (flis) | Lyse kvadersteiner i forband (kryptens vegger). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 30 til | feil: lys 0.27 | ikke vurdert |
-| ![](katalog/t_glitch_seam.jpg) | `glitch_seam` (flis) | Mørk stein med lysende cyan og rosa sprekker og pikselblokker (de korrupte sømmene). | `crypt_01_aa` | feil: skarphet 1.34 | ikke vurdert |
-| ![](katalog/t_grave_slab.jpg) | `grave_slab` (flis) | Gravheller med kors og skjold i et steingulv. | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ad`, `crypt_01_ai`, `crypt_01_aj`, `crypt_01_ak` og 13 til | ok | ikke vurdert |
-| ![](katalog/t_ossuary.jpg) | `ossuary` (flis) | Hodeskaller og knokler stablet (beinhuset). | `crypt_01_ai`, `crypt_01_aj`, `crypt_01_ak`, `crypt_01_aq`, `crypt_01_ar`, `crypt_01_av` og 3 til | ok | ikke vurdert |
-| ![](katalog/t_rubble.jpg) | `rubble` (flis) | Steinur, løse steiner og grus. | `crypt_01_ac`, `crypt_01_al` | ok | ikke vurdert |
+| ![](katalog/t_crypt_vault.jpg) | `crypt_vault` (flis) | Mørk, smal tegl i hvelv (kryptens tak). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 22 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_crypt_wall.jpg) | `crypt_wall` (flis) | Lyse kvadersteiner i forband (kryptens vegger). | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ac`, `crypt_01_ad`, `crypt_01_ae`, `crypt_01_af` og 30 til | feil: lys 0.27 | **underkjent** (2026-10-11): skjøten er dårlig |
+| ![](katalog/t_glitch_seam.jpg) | `glitch_seam` (flis) | Mørk stein med lysende cyan og rosa sprekker og pikselblokker (de korrupte sømmene). | `crypt_01_aa` | feil: skarphet 1.34 | **godkjent** (2026-10-11):  |
+| ![](katalog/t_grave_slab.jpg) | `grave_slab` (flis) | Gravheller med kors og skjold i et steingulv. | `crypt_01_aa`, `crypt_01_ab`, `crypt_01_ad`, `crypt_01_ai`, `crypt_01_aj`, `crypt_01_ak` og 13 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_ossuary.jpg) | `ossuary` (flis) | Hodeskaller og knokler stablet (beinhuset). | `crypt_01_ai`, `crypt_01_aj`, `crypt_01_ak`, `crypt_01_aq`, `crypt_01_ar`, `crypt_01_av` og 3 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_rubble.jpg) | `rubble` (flis) | Steinur, løse steiner og grus. | `crypt_01_ac`, `crypt_01_al` | ok | **godkjent** (2026-10-11):  |
 
 ### Krypten: kloakken
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_sewer_brick.jpg) | `sewer_brick` (flis) (bare malt, ikke lag) | Mørk, fuktig tegl (kloakken). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_sewer_floor.jpg) | `sewer_floor` (flis) (bare malt, ikke lag) | Våte steinheller med pytter og mose (kloakken). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_water_murky.jpg) | `water_murky` (flis) (bare malt, ikke lag) | Grumsete grønt vann med ringer. | ingen modell | ok | ikke vurdert |
+| ![](katalog/t_sewer_brick.jpg) | `sewer_brick` (flis) (bare malt, ikke lag) | Mørk, fuktig tegl (kloakken). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_sewer_floor.jpg) | `sewer_floor` (flis) (bare malt, ikke lag) | Våte steinheller med pytter og mose (kloakken). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_water_murky.jpg) | `water_murky` (flis) (bare malt, ikke lag) | Grumsete grønt vann med ringer. | ingen modell | ok | **godkjent** (2026-10-11):  |
 
 ### Krypten: gruva
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_cave_rock.jpg) | `cave_rock` (flis) (bare malt, ikke lag) | Lagdelt blågrå berg, skrått sjiktet (huler). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_crystal.jpg) | `crystal` (flis) (bare malt, ikke lag) | Blå krystaller i klaser. | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_mine_rock.jpg) | `mine_rock` (flis) (bare malt, ikke lag) | Mørk, kantet berg (gruva). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_mine_timber.jpg) | `mine_timber` (flis) (bare malt, ikke lag) | Grå, slitte bjelker (gruvas avstivning). | ingen modell | ok | ikke vurdert |
+| ![](katalog/t_cave_rock.jpg) | `cave_rock` (flis) (bare malt, ikke lag) | Lagdelt blågrå berg, skrått sjiktet (huler). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_crystal.jpg) | `crystal` (flis) (bare malt, ikke lag) | Blå krystaller i klaser. | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_mine_rock.jpg) | `mine_rock` (flis) (bare malt, ikke lag) | Mørk, kantet berg (gruva). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_mine_timber.jpg) | `mine_timber` (flis) (bare malt, ikke lag) | Grå, slitte bjelker (gruvas avstivning). | ingen modell | ok | **godkjent** (2026-10-11):  |
 
 ### Krypten: borgen
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_keep_ashlar.jpg) | `keep_ashlar` (flis) (bare malt, ikke lag) | Mørk kvaderstein (borgen). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_keep_floor.jpg) | `keep_floor` (flis) (bare malt, ikke lag) | Rutete gulv av grå og røde steinfliser på skrå (borgen). | ingen modell | ok | ikke vurdert |
+| ![](katalog/t_keep_ashlar.jpg) | `keep_ashlar` (flis) (bare malt, ikke lag) | Mørk kvaderstein (borgen). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_keep_floor.jpg) | `keep_floor` (flis) (bare malt, ikke lag) | Rutete gulv av grå og røde steinfliser på skrå (borgen). | ingen modell | ok | **godkjent** (2026-10-11):  |
 
 ### Krypten: den korrupte kjernen
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_core_plastic.jpg) | `core_plastic` (flis) (bare malt, ikke lag) | Grå plastaktige plater med bolter og flekker (den korrupte kjernen). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_core_stone.jpg) | `core_stone` (flis) (bare malt, ikke lag) | Mørk stein med lysende cyan og fiolette fuger (den korrupte kjernen). | ingen modell | ok | ikke vurdert |
-| ![](katalog/t_rust.jpg) | `rust` (flis) (bare malt, ikke lag) | Grått metall med rustflekker. | ingen modell | ok | ikke vurdert |
+| ![](katalog/t_core_plastic.jpg) | `core_plastic` (flis) (bare malt, ikke lag) | Grå plastaktige plater med bolter og flekker (den korrupte kjernen). | ingen modell | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_core_stone.jpg) | `core_stone` (flis) (bare malt, ikke lag) | Mørk stein med lysende cyan og fiolette fuger (den korrupte kjernen). | ingen modell | ok | **underkjent** (2026-10-11): vertikal skjøt ser ikke bra ut, dette må det tenker nytt om |
+| ![](katalog/t_rust.jpg) | `rust` (flis) (bare malt, ikke lag) | Grått metall med rustflekker. | ingen modell | ok | **godkjent** (2026-10-11):  |
 
 ## Modeller
 
@@ -206,107 +206,107 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 | ![](katalog/m_crypt_01_az.jpg) | `crypt_01_az` (crypt/crypt_01_az.glb) | Bit av kryptnivå 1  Gravkjelleren under kirka (16 × 16 m). | 1× | 801 | 4.7 × 8.9 × 11.1 | crypt_floor  crypt_vault  crypt_wall  door_b  iron | **underkjent** (2026-10-11): Kryptnivå 1 er langt under kvalitetskravet: hull i murene  harde overganger  teksturer som ikke passer sammen. |
 | ![](katalog/m_crypt_01_ba.jpg) | `crypt_01_ba` (crypt/crypt_01_ba.glb) | Bit av kryptnivå 1  Gravkjelleren under kirka (16 × 16 m). | 1× | 477 | 3.8 × 11.7 × 7.4 | crypt_floor  crypt_vault  crypt_wall  door_b  iron … | **underkjent** (2026-10-11): Kryptnivå 1 er langt under kvalitetskravet: hull i murene  harde overganger  teksturer som ikke passer sammen. |
 | ![](katalog/m_crypt_01_bb.jpg) | `crypt_01_bb` (crypt/crypt_01_bb.glb) | Bit av kryptnivå 1  Gravkjelleren under kirka (16 × 16 m). | 1× | 633 | 3.4 × 11.7 × 7.5 | crypt_floor  crypt_vault  crypt_wall  door_b  iron … | **underkjent** (2026-10-11): Kryptnivå 1 er langt under kvalitetskravet: hull i murene  harde overganger  teksturer som ikke passer sammen. |
-| ![](katalog/m_kit_arrow.jpg) | `kit_arrow` (crypt/kit_arrow.glb) | Pil fra pilfella. | posert av spillet | 28 | 0.1 × 0.1 × 0.7 | door_b  iron  plaster_white | ikke vurdert |
-| ![](katalog/m_kit_bonus.jpg) | `kit_bonus` (crypt/kit_bonus.glb) | Relikvieskrin (varig styrke). | 1× | 108 | 0.6 × 1.1 × 0.6 | bronze_door  crypt_wall  iron | ikke vurdert |
-| ![](katalog/m_kit_crack.jpg) | `kit_crack` (crypt/kit_crack.glb) | Sprekk i muren (hint om en hemmelighet). | 1× | 54 | 1.2 × 1.3 × 0.0 | crypt_wall | ikke vurdert |
-| ![](katalog/m_kit_down.jpg) | `kit_down` (crypt/kit_down.glb) | Trappa ned til neste nivå  med blått lys. | 1× | 450 | 3.5 × 6.7 × 4.5 | crypt_wall  grave_slab | ikke vurdert |
-| ![](katalog/m_kit_gate.jpg) | `kit_gate` (crypt/kit_gate.glb) | Portgitteret. | posert av spillet | 156 | 2.8 × 3.0 × 0.1 | iron | ikke vurdert |
-| ![](katalog/m_kit_ladder.jpg) | `kit_ladder` (crypt/kit_ladder.glb) | Stige. | 1× | 48 | 0.6 × 1.0 × 0.1 | door_b | ikke vurdert |
-| ![](katalog/m_kit_lever.jpg) | `kit_lever` (crypt/kit_lever.glb) | Spakens feste i muren. | 1× | 30 | 0.7 × 0.6 × 0.5 | crypt_wall  grave_slab  iron | ikke vurdert |
-| ![](katalog/m_kit_lever_arm.jpg) | `kit_lever_arm` (crypt/kit_lever_arm.glb) | Spakens arm. | posert av spillet | 42 | 0.1 × 1.0 × 0.1 | door_b  iron | ikke vurdert |
-| ![](katalog/m_kit_lore.jpg) | `kit_lore` (crypt/kit_lore.glb) | Lapp eller bok (lore). | 1× | 72 | 0.6 × 1.2 × 0.4 | crypt_wall  door_b  plaster_white | ikke vurdert |
-| ![](katalog/m_kit_plate.jpg) | `kit_plate` (crypt/kit_plate.glb) | Trykkplate. | 1× | 10 | 1.0 × 0.2 × 1.0 | grave_slab | ikke vurdert |
-| ![](katalog/m_kit_rest.jpg) | `kit_rest` (crypt/kit_rest.glb) | Hvilestedet: alter med lysestake. | 1× | 1 520 | 0.6 × 1.7 × 0.6 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_kit_sarcophagus.jpg) | `kit_sarcophagus` (crypt/kit_sarcophagus.glb) | Sarkofag. | 13× | 196 | 0.9 × 1.1 × 2.0 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_kit_secret_wall.jpg) | `kit_secret_wall` (crypt/kit_secret_wall.glb) | Falsk vegg. | posert av spillet | 36 | 2.0 × 2.6 × 0.4 | crypt_wall | ikke vurdert |
-| ![](katalog/m_kit_shortcut.jpg) | `kit_shortcut` (crypt/kit_shortcut.glb) | Snarveidørens karm. | 1× | 170 | 2.2 × 2.6 × 0.7 | crypt_wall  grave_slab | ikke vurdert |
-| ![](katalog/m_kit_shortcut_leaf.jpg) | `kit_shortcut_leaf` (crypt/kit_shortcut_leaf.glb) | Snarveidørens blad. | posert av spillet | 122 | 1.6 × 2.3 × 0.3 | bronze_door  door_b  iron | ikke vurdert |
-| ![](katalog/m_kit_trapdoor.jpg) | `kit_trapdoor` (crypt/kit_trapdoor.glb) | Fallem. | posert av spillet | 34 | 1.2 × 0.1 × 1.2 | bronze_door  iron | ikke vurdert |
-| ![](katalog/m_kit_up.jpg) | `kit_up` (crypt/kit_up.glb) | Døra opp til nivået over. | 1× | 358 | 3.2 × 3.5 × 1.2 | bronze_door  crypt_wall  door_b  grave_slab  iron | ikke vurdert |
+| ![](katalog/m_kit_arrow.jpg) | `kit_arrow` (crypt/kit_arrow.glb) | Pil fra pilfella. | posert av spillet | 28 | 0.1 × 0.1 × 0.7 | door_b  iron  plaster_white | **godkjent** (2026-10-11):  |
+| ![](katalog/m_kit_bonus.jpg) | `kit_bonus` (crypt/kit_bonus.glb) | Relikvieskrin (varig styrke). | 1× | 108 | 0.6 × 1.1 × 0.6 | bronze_door  crypt_wall  iron | **underkjent** (2026-10-11): ser ut som et minihus? hva er dette? |
+| ![](katalog/m_kit_crack.jpg) | `kit_crack` (crypt/kit_crack.glb) | Sprekk i muren (hint om en hemmelighet). | 1× | 54 | 1.2 × 1.3 × 0.0 | crypt_wall | **godkjent** (2026-10-11):  |
+| ![](katalog/m_kit_down.jpg) | `kit_down` (crypt/kit_down.glb) | Trappa ned til neste nivå  med blått lys. | 1× | 450 | 3.5 × 6.7 × 4.5 | crypt_wall  grave_slab | **usikker** (2026-10-11): ikke imponert  men kasnkje godt nok for nå |
+| ![](katalog/m_kit_gate.jpg) | `kit_gate` (crypt/kit_gate.glb) | Portgitteret. | posert av spillet | 156 | 2.8 × 3.0 × 0.1 | iron | **godkjent** (2026-10-11):  |
+| ![](katalog/m_kit_ladder.jpg) | `kit_ladder` (crypt/kit_ladder.glb) | Stige. | 1× | 48 | 0.6 × 1.0 × 0.1 | door_b | **underkjent** (2026-10-11): ser ingen stige i bildet |
+| ![](katalog/m_kit_lever.jpg) | `kit_lever` (crypt/kit_lever.glb) | Spakens feste i muren. | 1× | 30 | 0.7 × 0.6 × 0.5 | crypt_wall  grave_slab  iron | **underkjent** (2026-10-11): må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt |
+| ![](katalog/m_kit_lever_arm.jpg) | `kit_lever_arm` (crypt/kit_lever_arm.glb) | Spakens arm. | posert av spillet | 42 | 0.1 × 1.0 × 0.1 | door_b  iron | **godkjent** (2026-10-11):  |
+| ![](katalog/m_kit_lore.jpg) | `kit_lore` (crypt/kit_lore.glb) | Lapp eller bok (lore). | 1× | 72 | 0.6 × 1.2 × 0.4 | crypt_wall  door_b  plaster_white | **underkjent** (2026-10-11): en slik pedestal skal ikke være av stein  men bygget av treverk som passer til dette |
+| ![](katalog/m_kit_plate.jpg) | `kit_plate` (crypt/kit_plate.glb) | Trykkplate. | 1× | 10 | 1.0 × 0.2 × 1.0 | grave_slab | **godkjent** (2026-10-11):  |
+| ![](katalog/m_kit_rest.jpg) | `kit_rest` (crypt/kit_rest.glb) | Hvilestedet: alter med lysestake. | 1× | 1 520 | 0.6 × 1.7 × 0.6 | bakt tekstur | **usikker** (2026-10-11): ikke noe brennende lys her? er det i alle fall en lyskilde spilleren kan se lyset fra? alt for hard overgang mellom teksturer som møter hverandre i 90 grader mellom veggene og gulvet i dette bildet |
+| ![](katalog/m_kit_sarcophagus.jpg) | `kit_sarcophagus` (crypt/kit_sarcophagus.glb) | Sarkofag. | 13× | 196 | 0.9 × 1.1 × 2.0 | bakt tekstur | **underkjent** (2026-10-11): ligner overhodet ikke på en sakrofag |
+| ![](katalog/m_kit_secret_wall.jpg) | `kit_secret_wall` (crypt/kit_secret_wall.glb) | Falsk vegg. | posert av spillet | 36 | 2.0 × 2.6 × 0.4 | crypt_wall | **underkjent** (2026-10-11): det ser ut som at det er brudte flater her  ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut? |
+| ![](katalog/m_kit_shortcut.jpg) | `kit_shortcut` (crypt/kit_shortcut.glb) | Snarveidørens karm. | 1× | 170 | 2.2 × 2.6 × 0.7 | crypt_wall  grave_slab | **underkjent** (2026-10-11): mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette. |
+| ![](katalog/m_kit_shortcut_leaf.jpg) | `kit_shortcut_leaf` (crypt/kit_shortcut_leaf.glb) | Snarveidørens blad. | posert av spillet | 122 | 1.6 × 2.3 × 0.3 | bronze_door  door_b  iron | **underkjent** (2026-10-11): spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her. |
+| ![](katalog/m_kit_trapdoor.jpg) | `kit_trapdoor` (crypt/kit_trapdoor.glb) | Fallem. | posert av spillet | 34 | 1.2 × 0.1 × 1.2 | bronze_door  iron | **underkjent** (2026-10-11): flater klipper inn i hverandre her. forsår ikke hvorfor. hvorfor er det ingen tekstur her? håndtaket trenger en jernring eller noe så man ser at det kan åpnes |
+| ![](katalog/m_kit_up.jpg) | `kit_up` (crypt/kit_up.glb) | Døra opp til nivået over. | 1× | 358 | 3.2 × 3.5 × 1.2 | bronze_door  crypt_wall  door_b  grave_slab  iron | **underkjent** (2026-10-11): her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg  og det må være en passende trim rundt dørens karm og bue |
 
 ### town
 
 | Bilde | Navn (fil) | Hva | Står ute | Trekanter | Mål (m) | Teksturlag | Eierens dom |
 |---|---|---|---|---|---|---|---|
-| ![](katalog/m_house_a.jpg) | `house_a` (town/house_a.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 384 | 8.2 × 13.9 × 10.8 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_b.jpg) | `house_b` (town/house_b.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 172 | 10.8 × 12.1 × 9.6 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_c.jpg) | `house_c` (town/house_c.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 384 | 8.8 × 7.5 × 9.1 | chimney  cladding  door  iron  logs … | ikke vurdert |
-| ![](katalog/m_house_d.jpg) | `house_d` (town/house_d.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 844 | 8.2 × 18.1 × 11.8 | ashlar  chimney  cladding  door  iron … | ikke vurdert |
-| ![](katalog/m_house_e.jpg) | `house_e` (town/house_e.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 680 | 11.4 × 11.2 × 9.0 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_f.jpg) | `house_f` (town/house_f.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 476 | 9.1 × 13.8 × 11.0 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_g.jpg) | `house_g` (town/house_g.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 072 | 7.5 × 14.3 × 10.4 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_h.jpg) | `house_h` (town/house_h.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 448 | 10.0 × 8.6 × 8.6 | chimney  door_b  iron  plaster  stone … | ikke vurdert |
-| ![](katalog/m_house_i.jpg) | `house_i` (town/house_i.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 352 | 9.4 × 12.8 × 10.8 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_j.jpg) | `house_j` (town/house_j.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 3 248 | 7.8 × 7.7 × 8.4 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_k.jpg) | `house_k` (town/house_k.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 6 996 | 11.8 × 12.1 × 10.1 | ashlar  chimney  cladding  door  iron … | ikke vurdert |
-| ![](katalog/m_house_l.jpg) | `house_l` (town/house_l.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 364 | 8.7 × 18.9 × 12.6 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_m.jpg) | `house_m` (town/house_m.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 664 | 9.2 × 12.0 × 9.4 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_n.jpg) | `house_n` (town/house_n.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 840 | 10.6 × 12.7 × 10.0 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_o.jpg) | `house_o` (town/house_o.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 880 | 7.6 × 7.9 × 8.2 | chimney  cladding  door  iron  logs … | ikke vurdert |
-| ![](katalog/m_house_p.jpg) | `house_p` (town/house_p.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 432 | 8.4 × 14.2 × 11.3 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_q.jpg) | `house_q` (town/house_q.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 536 | 11.0 × 11.1 × 9.0 | chimney  cladding  door  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_r.jpg) | `house_r` (town/house_r.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 376 | 8.8 × 13.3 × 10.6 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_house_s.jpg) | `house_s` (town/house_s.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 8.1 × 18.8 × 12.0 | ashlar  chimney  cladding  door_b  iron … | ikke vurdert |
-| ![](katalog/m_house_t.jpg) | `house_t` (town/house_t.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 2× | 4 592 | 9.8 × 8.3 × 8.6 | chimney  cladding  door_b  iron  plaster … | ikke vurdert |
-| ![](katalog/m_shed_a.jpg) | `shed_a` (town/shed_a.glb) | Uthus. | 7× | 384 | 3.9 × 3.0 × 3.3 | door_b  shingles  stone  timber_grey  trim … | ikke vurdert |
-| ![](katalog/m_shed_b.jpg) | `shed_b` (town/shed_b.glb) | Uthus  variant. | 7× | 4 144 | 4.3 × 2.7 × 2.7 | logs  shingles  timber_grey  weatherboard | ikke vurdert |
-| ![](katalog/m_privy.jpg) | `privy` (town/privy.glb) | Utedo. | 9× | 256 | 1.7 × 2.5 × 1.7 | cladding  door  shingles  trim | ikke vurdert |
-| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 422 | 3.4 × 3.6 × 2.9 | thatch  timber_grey | ikke vurdert |
-| ![](katalog/m_garden.jpg) | `garden` (town/garden.glb) | Kjøkkenhage med gjerde. | 6× | 1 440 | 4.1 × 1.0 × 3.1 | earth  sod  timber_grey  wattle | ikke vurdert |
-| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 300 | 2.2 × 2.3 × 2.7 | planks  shingles  timber_grey  weatherboard | ikke vurdert |
-| ![](katalog/m_town_wall.jpg) | `town_wall` (town/town_wall.glb) | Bymuren  en bit. | 46× | 1 522 | 6.2 × 8.5 × 2.5 | flagstone  stone  wall_stone | ikke vurdert |
-| ![](katalog/m_wall_tower.jpg) | `wall_tower` (town/wall_tower.glb) | Tårn i bymuren. | 10× | 4 518 | 9.4 × 20.8 × 9.4 | flagstone  iron  shingles  stone  timber … | ikke vurdert |
-| ![](katalog/m_gatehouse.jpg) | `gatehouse` (town/gatehouse.glb) | Porthuset der Storgata møter bymuren. | 2× | 9 790 | 14.9 × 19.1 × 7.1 | door_b  flagstone  iron  shingles  stone … | ikke vurdert |
-| ![](katalog/m_market_cross.jpg) | `market_cross` (town/market_cross.glb) | Torgkorset. | 1× | 982 | 2.4 × 4.5 × 2.4 | flagstone  iron  linen  timber_grey  wall_stone | ikke vurdert |
-| ![](katalog/m_market_stall.jpg) | `market_stall` (town/market_stall.glb) | Markedsbod med stripet tak. | 1× | 3 050 | 3.4 × 2.9 × 2.0 | linen  timber  timber_grey  trim  weatherboard | ikke vurdert |
-| ![](katalog/m_market_stall_b.jpg) | `market_stall_b` (town/market_stall_b.glb) | Markedsbod  variant. | 1× | 3 006 | 3.4 × 2.8 × 1.8 | linen  straw_floor  timber  timber_grey  trim … | ikke vurdert |
-| ![](katalog/m_cart.jpg) | `cart` (town/cart.glb) | Kjerre med to hjul (står ikke ute). | **ingen steder** | 0 | 3.3 × 1.3 × 1.6 | linen  timber  timber_grey  trim  weatherboard | ikke vurdert |
-| ![](katalog/m_barrel.jpg) | `barrel` (town/barrel.glb) | Tønne. | 6× | 624 | 0.8 × 0.9 × 0.8 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_crate.jpg) | `crate` (town/crate.glb) | Kasse. | 2× | 480 | 0.7 × 0.7 × 0.7 | timber  weatherboard | ikke vurdert |
-| ![](katalog/m_lantern_post.jpg) | `lantern_post` (town/lantern_post.glb) | Lyktestolpe. | 7× | 886 | 0.6 × 3.3 × 0.6 | flagstone  iron  linen  timber  wall_stone | ikke vurdert |
-| ![](katalog/m_training_dummy.jpg) | `training_dummy` (town/training_dummy.glb) | Treningsdukke (Gorveks øvingsplass). | 3× | 926 | 1.4 × 2.2 × 0.8 | iron  linen  thatch  timber  trim … | ikke vurdert |
-| ![](katalog/m_weapon_rack.jpg) | `weapon_rack` (town/weapon_rack.glb) | Våpenstativ (øvingsplassen). | 1× | 1 144 | 3.1 × 2.3 × 0.7 | iron  timber  timber_grey  weatherboard | ikke vurdert |
+| ![](katalog/m_house_a.jpg) | `house_a` (town/house_a.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 384 | 8.2 × 13.9 × 10.8 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): bindingsverket ser merkelig ut. glippe midt mellom etasjene |
+| ![](katalog/m_house_b.jpg) | `house_b` (town/house_b.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 172 | 10.8 × 12.1 × 9.6 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): bindingsverket ser merkelig ut. glippe midt mellom etasjene |
+| ![](katalog/m_house_c.jpg) | `house_c` (town/house_c.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 384 | 8.8 × 7.5 × 9.1 | chimney  cladding  door  iron  logs … | **usikker** (2026-10-11): så det svever vel ikke over bakken? |
+| ![](katalog/m_house_d.jpg) | `house_d` (town/house_d.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 844 | 8.2 × 18.1 × 11.8 | ashlar  chimney  cladding  door  iron … | **underkjent** (2026-10-11): bindingsverket ser dårlig ut |
+| ![](katalog/m_house_e.jpg) | `house_e` (town/house_e.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 680 | 11.4 × 11.2 × 9.0 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): det svever over bakken. dårlig fargepalett. alt er brunt? |
+| ![](katalog/m_house_f.jpg) | `house_f` (town/house_f.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 476 | 9.1 × 13.8 × 11.0 | chimney  cladding  door  iron  plaster … | **usikker** (2026-10-11): døren er hvit. hvorfor? |
+| ![](katalog/m_house_g.jpg) | `house_g` (town/house_g.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 072 | 7.5 × 14.3 × 10.4 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): glippe mellom etasjene |
+| ![](katalog/m_house_h.jpg) | `house_h` (town/house_h.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 448 | 10.0 × 8.6 × 8.6 | chimney  door_b  iron  plaster  stone … | **underkjent** (2026-10-11): hvit dør |
+| ![](katalog/m_house_i.jpg) | `house_i` (town/house_i.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 352 | 9.4 × 12.8 × 10.8 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene. hvit dør |
+| ![](katalog/m_house_j.jpg) | `house_j` (town/house_j.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 3 248 | 7.8 × 7.7 × 8.4 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): hvit dør |
+| ![](katalog/m_house_k.jpg) | `house_k` (town/house_k.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 6 996 | 11.8 × 12.1 × 10.1 | ashlar  chimney  cladding  door  iron … | **underkjent** (2026-10-11): hvit dør |
+| ![](katalog/m_house_l.jpg) | `house_l` (town/house_l.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 364 | 8.7 × 18.9 × 12.6 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): bindingsverket ser dårlig ut. hvorfor er det pipemurstein i første etasje? |
+| ![](katalog/m_house_m.jpg) | `house_m` (town/house_m.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 664 | 9.2 × 12.0 × 9.4 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene. hvit dør. sjekk materialvalgene |
+| ![](katalog/m_house_n.jpg) | `house_n` (town/house_n.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 840 | 10.6 × 12.7 × 10.0 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene |
+| ![](katalog/m_house_o.jpg) | `house_o` (town/house_o.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 880 | 7.6 × 7.9 × 8.2 | chimney  cladding  door  iron  logs … | **underkjent** (2026-10-11): hvit dør |
+| ![](katalog/m_house_p.jpg) | `house_p` (town/house_p.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 432 | 8.4 × 14.2 × 11.3 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene |
+| ![](katalog/m_house_q.jpg) | `house_q` (town/house_q.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 536 | 11.0 × 11.1 × 9.0 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): svever over bakken. hvit dør |
+| ![](katalog/m_house_r.jpg) | `house_r` (town/house_r.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 7 376 | 8.8 × 13.3 × 10.6 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene. |
+| ![](katalog/m_house_s.jpg) | `house_s` (town/house_s.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 8.1 × 18.8 × 12.0 | ashlar  chimney  cladding  door_b  iron … | **underkjent** (2026-10-11): mellomrom mellom etasjene. hvit dør. hvorfor er det hvite dører overalt? |
+| ![](katalog/m_house_t.jpg) | `house_t` (town/house_t.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 2× | 4 592 | 9.8 × 8.3 × 8.6 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): hvit dør |
+| ![](katalog/m_shed_a.jpg) | `shed_a` (town/shed_a.glb) | Uthus. | 7× | 384 | 3.9 × 3.0 × 3.3 | door_b  shingles  stone  timber_grey  trim … | **underkjent** (2026-10-11): døren er feil. hvit? |
+| ![](katalog/m_shed_b.jpg) | `shed_b` (town/shed_b.glb) | Uthus  variant. | 7× | 4 144 | 4.3 × 2.7 × 2.7 | logs  shingles  timber_grey  weatherboard | **underkjent** (2026-10-11): hva slags tak er det der? ser ikke passende ut |
+| ![](katalog/m_privy.jpg) | `privy` (town/privy.glb) | Utedo. | 9× | 256 | 1.7 × 2.5 × 1.7 | cladding  door  shingles  trim | **underkjent** (2026-10-11): hvit dør. merkelig feil i taket. feil materialvalg for tak. |
+| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 422 | 3.4 × 3.6 × 2.9 | thatch  timber_grey | **underkjent** (2026-10-11): det ser ut som stråtaket er brukt til dette. det passer ikke. |
+| ![](katalog/m_garden.jpg) | `garden` (town/garden.glb) | Kjøkkenhage med gjerde. | 6× | 1 440 | 4.1 × 1.0 × 3.1 | earth  sod  timber_grey  wattle | **usikker** (2026-10-11): greit kanskje  men gjerdet flyr jo |
+| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 300 | 2.2 × 2.3 × 2.7 | planks  shingles  timber_grey  weatherboard | **underkjent** (2026-10-11): det er noe galt med taket. material for brua er feil. material for taket er feil. |
+| ![](katalog/m_town_wall.jpg) | `town_wall` (town/town_wall.glb) | Bymuren  en bit. | 46× | 1 522 | 6.2 × 8.5 × 2.5 | flagstone  stone  wall_stone | **godkjent** (2026-10-11):  |
+| ![](katalog/m_wall_tower.jpg) | `wall_tower` (town/wall_tower.glb) | Tårn i bymuren. | 10× | 4 518 | 9.4 × 20.8 × 9.4 | flagstone  iron  shingles  stone  timber … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gatehouse.jpg) | `gatehouse` (town/gatehouse.glb) | Porthuset der Storgata møter bymuren. | 2× | 9 790 | 14.9 × 19.1 × 7.1 | door_b  flagstone  iron  shingles  stone … | **underkjent** (2026-10-11): hva er den platen midt i åpningen? horisontal brun strek. det må bort.. vet ikke hvorfor det er der... |
+| ![](katalog/m_market_cross.jpg) | `market_cross` (town/market_cross.glb) | Torgkorset. | 1× | 982 | 2.4 × 4.5 × 2.4 | flagstone  iron  linen  timber_grey  wall_stone | **underkjent** (2026-10-11): ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette |
+| ![](katalog/m_market_stall.jpg) | `market_stall` (town/market_stall.glb) | Markedsbod med stripet tak. | 1× | 3 050 | 3.4 × 2.9 × 2.0 | linen  timber  timber_grey  trim  weatherboard | **godkjent** (2026-10-11):  |
+| ![](katalog/m_market_stall_b.jpg) | `market_stall_b` (town/market_stall_b.glb) | Markedsbod  variant. | 1× | 3 006 | 3.4 × 2.8 × 1.8 | linen  straw_floor  timber  timber_grey  trim … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_cart.jpg) | `cart` (town/cart.glb) | Kjerre med to hjul (står ikke ute). | **ingen steder** | 0 | 3.3 × 1.3 × 1.6 | linen  timber  timber_grey  trim  weatherboard | **underkjent** (2026-10-11): hjulene klipper inn i vognen. gjenstander klipper inn i vognveggen |
+| ![](katalog/m_barrel.jpg) | `barrel` (town/barrel.glb) | Tønne. | 6× | 624 | 0.8 × 0.9 × 0.8 | bakt tekstur | **godkjent** (2026-10-11):  |
+| ![](katalog/m_crate.jpg) | `crate` (town/crate.glb) | Kasse. | 2× | 480 | 0.7 × 0.7 × 0.7 | timber  weatherboard | **godkjent** (2026-10-11):  |
+| ![](katalog/m_lantern_post.jpg) | `lantern_post` (town/lantern_post.glb) | Lyktestolpe. | 7× | 886 | 0.6 × 3.3 × 0.6 | flagstone  iron  linen  timber  wall_stone | **godkjent** (2026-10-11):  |
+| ![](katalog/m_training_dummy.jpg) | `training_dummy` (town/training_dummy.glb) | Treningsdukke (Gorveks øvingsplass). | 3× | 926 | 1.4 × 2.2 × 0.8 | iron  linen  thatch  timber  trim … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_weapon_rack.jpg) | `weapon_rack` (town/weapon_rack.glb) | Våpenstativ (øvingsplassen). | 1× | 1 144 | 3.1 × 2.3 × 0.7 | iron  timber  timber_grey  weatherboard | **usikker** (2026-10-11): godkjent  men plasseringen er ikke bra. kolliderer med gjerdene |
 | ![](katalog/m_well.jpg) | `well` (town/well.glb) | Brønnen: kar og tak. | 2× | 288 | 2.6 × 3.1 × 1.8 | bakt tekstur | **underkjent** (2026-10-11): Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark. |
-| ![](katalog/m_well_winch.jpg) | `well_winch` (town/well_winch.glb) | Brønnens vinde. | posert av spillet | 96 | 1.2 × 0.2 × 0.2 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_well_rope.jpg) | `well_rope` (town/well_rope.glb) | Brønnens tau. | posert av spillet | 28 | 0.0 × 1.0 × 0.0 | trim | ikke vurdert |
-| ![](katalog/m_well_bucket.jpg) | `well_bucket` (town/well_bucket.glb) | Brønnens bøtte. | posert av spillet | 412 | 0.4 × 0.5 × 0.4 | iron  timber  trim  weatherboard | ikke vurdert |
-| ![](katalog/m_woodpile.jpg) | `woodpile` (town/woodpile.glb) | Vedstabel. | 1× | 1 196 | 2.8 × 1.8 × 1.0 | iron  logs  timber  timber_grey  weatherboard | ikke vurdert |
-| ![](katalog/m_signpost.jpg) | `signpost` (town/signpost.glb) | Veiskilt. | 2× | 1 162 | 1.6 × 3.0 × 0.6 | iron  shingles  timber  timber_grey  wall_stone | ikke vurdert |
-| ![](katalog/m_chest.jpg) | `chest` (town/chest.glb) | Kiste (krypten og husene). | 5× | 92 | 1.1 × 0.5 × 0.6 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_chest_lid.jpg) | `chest_lid` (town/chest_lid.glb) | Lokket på kista  dreies av økta. | posert av spillet | 140 | 1.1 × 0.2 × 0.6 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_wattle_fence.jpg) | `wattle_fence` (town/wattle_fence.glb) | Flettverksgjerde. | 137× | 880 | 2.1 × 1.4 × 0.1 | timber_grey  wattle | ikke vurdert |
-| ![](katalog/m_rail_fence.jpg) | `rail_fence` (town/rail_fence.glb) | Skigard. | 104× | 748 | 2.3 × 1.5 × 0.2 | timber  timber_grey  wattle | ikke vurdert |
-| ![](katalog/m_picket_fence.jpg) | `picket_fence` (town/picket_fence.glb) | Stakittgjerde. | 24× | 660 | 2.1 × 1.4 × 0.2 | planks  timber  timber_grey | ikke vurdert |
-| ![](katalog/m_stone_fence.jpg) | `stone_fence` (town/stone_fence.glb) | Lav steinmur (kirkegården). | 48× | 768 | 2.0 × 1.3 × 0.5 | wall_stone | ikke vurdert |
-| ![](katalog/m_portal_ring.jpg) | `portal_ring` (town/portal_ring.glb) | Portalens steinring med runer. | posert av spillet | 5 900 | 4.0 × 3.4 × 2.5 | flagstone  ruin  sod  wall_stone | ikke vurdert |
-| ![](katalog/m_portal_runes.jpg) | `portal_runes` (town/portal_runes.glb) | Portalens glødende runer. | posert av spillet | 2 156 | 3.0 × 2.9 × 0.0 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_portal_swirl.jpg) | `portal_swirl` (town/portal_swirl.glb) | Portalens virvel. | posert av spillet | 7 740 | 2.2 × 2.2 × 0.1 | bakt tekstur | ikke vurdert |
-| ![](katalog/m_portal_shard.jpg) | `portal_shard` (town/portal_shard.glb) | Svevende splint rundt portalen. | posert av spillet | 18 | 0.1 × 0.3 × 0.1 | ruin | ikke vurdert |
-| ![](katalog/m_forge.jpg) | `forge` (town/forge.glb) | Smia på torget (øst): utsida. | 1× | 9 349 | 10.5 × 7.8 × 10.4 | chimney  cladding  door  door_b  flagstone … | ikke vurdert |
-| ![](katalog/m_forge_interior.jpg) | `forge_interior` (town/forge_interior.glb) | Smia: innsida med esse og ambolt. | 1× | 2 292 | 7.8 × 3.1 × 5.0 | cladding  door_b  iron  linen  planks … | ikke vurdert |
-| ![](katalog/m_tavern.jpg) | `tavern` (town/tavern.glb) | Vertshuset på torget (vest): utsida. | 1× | 12 396 | 14.9 × 14.7 × 11.9 | chimney  cladding  door  door_b  iron … | ikke vurdert |
+| ![](katalog/m_well_winch.jpg) | `well_winch` (town/well_winch.glb) | Brønnens vinde. | posert av spillet | 96 | 1.2 × 0.2 × 0.2 | bakt tekstur | **godkjent** (2026-10-11):  |
+| ![](katalog/m_well_rope.jpg) | `well_rope` (town/well_rope.glb) | Brønnens tau. | posert av spillet | 28 | 0.0 × 1.0 × 0.0 | trim | **godkjent** (2026-10-11):  |
+| ![](katalog/m_well_bucket.jpg) | `well_bucket` (town/well_bucket.glb) | Brønnens bøtte. | posert av spillet | 412 | 0.4 × 0.5 × 0.4 | iron  timber  trim  weatherboard | **godkjent** (2026-10-11):  |
+| ![](katalog/m_woodpile.jpg) | `woodpile` (town/woodpile.glb) | Vedstabel. | 1× | 1 196 | 2.8 × 1.8 × 1.0 | iron  logs  timber  timber_grey  weatherboard | **underkjent** (2026-10-11): taket har rar tekstur.finn noe som passer bedre |
+| ![](katalog/m_signpost.jpg) | `signpost` (town/signpost.glb) | Veiskilt. | 2× | 1 162 | 1.6 × 3.0 × 0.6 | iron  shingles  timber  timber_grey  wall_stone | **godkjent** (2026-10-11):  |
+| ![](katalog/m_chest.jpg) | `chest` (town/chest.glb) | Kiste (krypten og husene). | 5× | 92 | 1.1 × 0.5 × 0.6 | bakt tekstur | **underkjent** (2026-10-11): teksturen passer ikke modellen  det ser rart ut |
+| ![](katalog/m_chest_lid.jpg) | `chest_lid` (town/chest_lid.glb) | Lokket på kista  dreies av økta. | posert av spillet | 140 | 1.1 × 0.2 × 0.6 | bakt tekstur | **underkjent** (2026-10-11): mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur |
+| ![](katalog/m_wattle_fence.jpg) | `wattle_fence` (town/wattle_fence.glb) | Flettverksgjerde. | 137× | 880 | 2.1 × 1.4 × 0.1 | timber_grey  wattle | **godkjent** (2026-10-11):  |
+| ![](katalog/m_rail_fence.jpg) | `rail_fence` (town/rail_fence.glb) | Skigard. | 104× | 748 | 2.3 × 1.5 × 0.2 | timber  timber_grey  wattle | **godkjent** (2026-10-11):  |
+| ![](katalog/m_picket_fence.jpg) | `picket_fence` (town/picket_fence.glb) | Stakittgjerde. | 24× | 660 | 2.1 × 1.4 × 0.2 | planks  timber  timber_grey | **godkjent** (2026-10-11):  |
+| ![](katalog/m_stone_fence.jpg) | `stone_fence` (town/stone_fence.glb) | Lav steinmur (kirkegården). | 48× | 768 | 2.0 × 1.3 × 0.5 | wall_stone | **godkjent** (2026-10-11):  |
+| ![](katalog/m_portal_ring.jpg) | `portal_ring` (town/portal_ring.glb) | Portalens steinring med runer. | posert av spillet | 5 900 | 4.0 × 3.4 × 2.5 | flagstone  ruin  sod  wall_stone | **underkjent** (2026-10-11): det er noe rart med teksturene på sokkelen |
+| ![](katalog/m_portal_runes.jpg) | `portal_runes` (town/portal_runes.glb) | Portalens glødende runer. | posert av spillet | 2 156 | 3.0 × 2.9 × 0.0 | bakt tekstur | **godkjent** (2026-10-11):  |
+| ![](katalog/m_portal_swirl.jpg) | `portal_swirl` (town/portal_swirl.glb) | Portalens virvel. | posert av spillet | 7 740 | 2.2 × 2.2 × 0.1 | bakt tekstur | **godkjent** (2026-10-11):  |
+| ![](katalog/m_portal_shard.jpg) | `portal_shard` (town/portal_shard.glb) | Svevende splint rundt portalen. | posert av spillet | 18 | 0.1 × 0.3 × 0.1 | ruin | **underkjent** (2026-10-11): jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut |
+| ![](katalog/m_forge.jpg) | `forge` (town/forge.glb) | Smia på torget (øst): utsida. | 1× | 9 349 | 10.5 × 7.8 × 10.4 | chimney  cladding  door  door_b  flagstone … | **underkjent** (2026-10-11): det skal ikke være "plaster" på endeveggene inne  stein hele veien op. |
+| ![](katalog/m_forge_interior.jpg) | `forge_interior` (town/forge_interior.glb) | Smia: innsida med esse og ambolt. | 1× | 2 292 | 7.8 × 3.1 × 5.0 | cladding  door_b  iron  linen  planks … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_tavern.jpg) | `tavern` (town/tavern.glb) | Vertshuset på torget (vest): utsida. | 1× | 12 396 | 14.9 × 14.7 × 11.9 | chimney  cladding  door  door_b  iron … | **usikker** (2026-10-11): bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp. |
 | ![](katalog/m_tavern_interior.jpg) | `tavern_interior` (town/tavern_interior.glb) | Vertshuset: skjenkestue  kjøkken  kjeller og sovesal. | 1× | 18 942 | 11.4 × 14.9 × 9.5 | cladding  door_b  flagstone  iron  leather … | **underkjent** (2026-10-11): Tønner på rad; innredningen må plasseres med group() (fase 4). |
-| ![](katalog/m_home.jpg) | `home` (town/home.glb) | Spillerens hus på sørsida av torget: utsida. | 1× | 15 248 | 10.2 × 8.6 × 9.4 | chimney  cladding  door  iron  oak_planed … | ikke vurdert |
-| ![](katalog/m_home_interior.jpg) | `home_interior` (town/home_interior.glb) | Spillerens hus: innsida med galleriveggen og senga. | 1× | 4 963 | 7.8 × 3.3 × 6.4 | cladding  iron  linen  logs  oak_planed … | ikke vurdert |
-| ![](katalog/m_gallery_button.jpg) | `gallery_button` (town/gallery_button.glb) | Platen med Fristil-komponenten button i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_tag.jpg) | `gallery_tag` (town/gallery_tag.glb) | Platen med Fristil-komponenten tag i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_badge.jpg) | `gallery_badge` (town/gallery_badge.glb) | Platen med Fristil-komponenten badge i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_divider.jpg) | `gallery_divider` (town/gallery_divider.glb) | Platen med Fristil-komponenten divider i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_card.jpg) | `gallery_card` (town/gallery_card.glb) | Platen med Fristil-komponenten card i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_alert.jpg) | `gallery_alert` (town/gallery_alert.glb) | Platen med Fristil-komponenten alert i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_progress.jpg) | `gallery_progress` (town/gallery_progress.glb) | Platen med Fristil-komponenten progress i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_label.jpg) | `gallery_label` (town/gallery_label.glb) | Platen med Fristil-komponenten label i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_help_text.jpg) | `gallery_help_text` (town/gallery_help_text.glb) | Platen med Fristil-komponenten help-text i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_tooltip.jpg) | `gallery_tooltip` (town/gallery_tooltip.glb) | Platen med Fristil-komponenten tooltip i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_fieldset.jpg) | `gallery_fieldset` (town/gallery_fieldset.glb) | Platen med Fristil-komponenten fieldset i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_file_upload.jpg) | `gallery_file_upload` (town/gallery_file_upload.glb) | Platen med Fristil-komponenten file-upload i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_search.jpg) | `gallery_search` (town/gallery_search.glb) | Platen med Fristil-komponenten search i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_dialog.jpg) | `gallery_dialog` (town/gallery_dialog.glb) | Platen med Fristil-komponenten dialog i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_gallery_tabs.jpg) | `gallery_tabs` (town/gallery_tabs.glb) | Platen med Fristil-komponenten tabs i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | ikke vurdert |
-| ![](katalog/m_apothecary.jpg) | `apothecary` (town/apothecary.glb) | Apoteket på torget (nord): utsida. | 1× | 10 166 | 9.8 × 11.4 × 9.1 | chimney  cladding  door  iron  leather … | ikke vurdert |
-| ![](katalog/m_apothecary_interior.jpg) | `apothecary_interior` (town/apothecary_interior.glb) | Apoteket: innsida med urteloft. | 1× | 18 542 | 7.5 × 9.2 × 7.0 | chimney  cladding  door_b  iron  leather … | ikke vurdert |
-| ![](katalog/m_scriptorium.jpg) | `scriptorium` (town/scriptorium.glb) | Skriptoriet på torget (nord): utsida. | 1× | 9 538 | 11.7 × 14.9 × 9.9 | ashlar  door  iron  leather  linen … | ikke vurdert |
-| ![](katalog/m_scriptorium_interior.jpg) | `scriptorium_interior` (town/scriptorium_interior.glb) | Skriptoriet: innsida med biblioteksgalleri. | 1× | 14 800 | 9.0 × 5.8 × 6.8 | cladding  door_b  flagstone  iron  leather … | ikke vurdert |
+| ![](katalog/m_home.jpg) | `home` (town/home.glb) | Spillerens hus på sørsida av torget: utsida. | 1× | 15 248 | 10.2 × 8.6 × 9.4 | chimney  cladding  door  iron  oak_planed … | **underkjent** (2026-10-11): bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt |
+| ![](katalog/m_home_interior.jpg) | `home_interior` (town/home_interior.glb) | Spillerens hus: innsida med galleriveggen og senga. | 1× | 4 963 | 7.8 × 3.3 × 6.4 | cladding  iron  linen  logs  oak_planed … | **underkjent** (2026-10-11): plassering av gjenstander er ikke god. tønne inni veggen- hyller foran vindu. mye rart her. mangldende trim / listverk mellom 90% vinkler der teksturer møtes |
+| ![](katalog/m_gallery_button.jpg) | `gallery_button` (town/gallery_button.glb) | Platen med Fristil-komponenten button i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_tag.jpg) | `gallery_tag` (town/gallery_tag.glb) | Platen med Fristil-komponenten tag i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_badge.jpg) | `gallery_badge` (town/gallery_badge.glb) | Platen med Fristil-komponenten badge i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_divider.jpg) | `gallery_divider` (town/gallery_divider.glb) | Platen med Fristil-komponenten divider i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_card.jpg) | `gallery_card` (town/gallery_card.glb) | Platen med Fristil-komponenten card i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_alert.jpg) | `gallery_alert` (town/gallery_alert.glb) | Platen med Fristil-komponenten alert i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_progress.jpg) | `gallery_progress` (town/gallery_progress.glb) | Platen med Fristil-komponenten progress i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_label.jpg) | `gallery_label` (town/gallery_label.glb) | Platen med Fristil-komponenten label i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_help_text.jpg) | `gallery_help_text` (town/gallery_help_text.glb) | Platen med Fristil-komponenten help-text i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_tooltip.jpg) | `gallery_tooltip` (town/gallery_tooltip.glb) | Platen med Fristil-komponenten tooltip i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_fieldset.jpg) | `gallery_fieldset` (town/gallery_fieldset.glb) | Platen med Fristil-komponenten fieldset i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_file_upload.jpg) | `gallery_file_upload` (town/gallery_file_upload.glb) | Platen med Fristil-komponenten file-upload i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_search.jpg) | `gallery_search` (town/gallery_search.glb) | Platen med Fristil-komponenten search i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_dialog.jpg) | `gallery_dialog` (town/gallery_dialog.glb) | Platen med Fristil-komponenten dialog i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_gallery_tabs.jpg) | `gallery_tabs` (town/gallery_tabs.glb) | Platen med Fristil-komponenten tabs i galleriveggen. | posert av spillet | 60 | 0.5 × 0.5 × 0.0 | plaster | **godkjent** (2026-10-11):  |
+| ![](katalog/m_apothecary.jpg) | `apothecary` (town/apothecary.glb) | Apoteket på torget (nord): utsida. | 1× | 10 166 | 9.8 × 11.4 × 9.1 | chimney  cladding  door  iron  leather … | **usikker** (2026-10-11): sjekk bindingsverket |
+| ![](katalog/m_apothecary_interior.jpg) | `apothecary_interior` (town/apothecary_interior.glb) | Apoteket: innsida med urteloft. | 1× | 18 542 | 7.5 × 9.2 × 7.0 | chimney  cladding  door_b  iron  leather … | **underkjent** (2026-10-11): det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet |
+| ![](katalog/m_scriptorium.jpg) | `scriptorium` (town/scriptorium.glb) | Skriptoriet på torget (nord): utsida. | 1× | 9 538 | 11.7 × 14.9 × 9.9 | ashlar  door  iron  leather  linen … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_scriptorium_interior.jpg) | `scriptorium_interior` (town/scriptorium_interior.glb) | Skriptoriet: innsida med biblioteksgalleri. | 1× | 14 800 | 9.0 × 5.8 × 6.8 | cladding  door_b  flagstone  iron  leather … | **underkjent** (2026-10-11): tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger |
 | ![](katalog/m_stave_church.jpg) | `stave_church` (town/stave_church.glb) | Stavkirka på kirkegården: utsida. | 1× | 10 078 | 9.3 × 17.1 × 15.4 | church_boards  door_b  iron  shingles_tar  stone … | **underkjent** (2026-10-11): Kirka skal være en vanlig middelalderkirke i stein i samme stil som kryptens nedgang. |
 | ![](katalog/m_stave_church_interior.jpg) | `stave_church_interior` (town/stave_church_interior.glb) | Stavkirka: innsida. | 1× | 5 552 | 5.7 × 7.0 × 12.4 | cladding  iron  linen  planks  plaster … | **underkjent** (2026-10-11): Følger kirka: lages på nytt som steinkirke. |
 | ![](katalog/m_crypt.jpg) | `crypt` (town/crypt.glb) | Inngangen til krypten på kirkegården  med døra ned. | 1× | 6 244 | 8.2 × 7.4 × 7.3 | door_b  iron  leather  logs  ruin … | **underkjent** (2026-10-11): Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4). |

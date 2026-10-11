@@ -5,6 +5,411 @@
    "verdict": "underkjent",
    "date": "2026-10-11",
    "why": "Stjernetapetet får krypten til å se ut som et barnerom; laget bruker plaster_old til ny kryptpuss kommer."
+  },
+  "ashlar": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "bark_birch": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "bark_oak": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "bark_spruce": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "bronze_door": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "cave_rock": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "chainmail": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "chimney": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "church_boards": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "cladding": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "cobble": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "dårlig horisontal skjøt"
+  },
+  "core_plastic": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "core_stone": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "vertikal skjøt ser ikke bra ut, dette må det tenker nytt om"
+  },
+  "cow_fur": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "crypt_floor": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "crypt_vault": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "crypt_wall": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "skjøten er dårlig"
+  },
+  "crystal": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "door": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "door_b": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "earth": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "felt": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "flagstone": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "forest_floor": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "fur": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gambeson": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "glitch_seam": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "grave_slab": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gravel": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "iron": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "iron_worked": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "keep_ashlar": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "keep_floor": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "leather": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "linen": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "logs": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "meadow": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "mine_rock": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "mine_timber": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "mud": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "mange hjulspor skal det være? blir overgangen mot omkringliggende teksturer for hard?"
+  },
+  "oak_planed": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "ossuary": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "parchment": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "planks": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "plaster": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "plaster_old": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "plaster_red": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "flekke blir gjentagende så det er støyende på avstand. for mange små flekker mener jeg"
+  },
+  "plaster_white": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "plate_steel": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "pottery": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "rock": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "rope": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "rubble": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "ruin": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "rust": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "sewer_brick": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "sewer_floor": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "sheep_wool": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "shingles": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "shingles_tar": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "signs": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "slate": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "snow": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "sod": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "stone": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "skjøten er for dårlig"
+  },
+  "straw": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "straw_floor": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "thatch": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "tiles": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "timber": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "timber_grey": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "trim": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wall_stone": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "water_murky": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wattle": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "weatherboard": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "weatherboard_grey": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "weave": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wicker": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "windows": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wool": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
   }
  },
  "models": {
@@ -172,6 +577,476 @@
    "verdict": "underkjent",
    "date": "2026-10-11",
    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "apothecary": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "sjekk bindingsverket"
+  },
+  "apothecary_interior": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet"
+  },
+  "barrel": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "cart": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hjulene klipper inn i vognen. gjenstander klipper inn i vognveggen"
+  },
+  "chest": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "teksturen passer ikke modellen, det ser rart ut"
+  },
+  "chest_lid": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur"
+  },
+  "coop": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det er noe galt med taket. material for brua er feil. material for taket er feil."
+  },
+  "crate": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "forge": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op."
+  },
+  "forge_interior": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_alert": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_badge": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_button": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_card": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_dialog": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_divider": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_fieldset": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_file_upload": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_help_text": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_label": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_progress": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_search": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_tabs": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_tag": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "gallery_tooltip": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "garden": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "greit kanskje, men gjerdet flyr jo"
+  },
+  "gatehouse": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hva er den platen midt i åpningen? horisontal brun strek. det må bort.. vet ikke hvorfor det er der..."
+  },
+  "haystack": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det ser ut som stråtaket er brukt til dette. det passer ikke."
+  },
+  "home": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt"
+  },
+  "home_interior": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "plassering av gjenstander er ikke god. tønne inni veggen- hyller foran vindu. mye rart her. mangldende trim / listverk mellom 90% vinkler der teksturer møtes"
+  },
+  "house_a": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "bindingsverket ser merkelig ut. glippe midt mellom etasjene"
+  },
+  "house_b": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "bindingsverket ser merkelig ut. glippe midt mellom etasjene"
+  },
+  "house_c": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "så det svever vel ikke over bakken?"
+  },
+  "house_d": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "bindingsverket ser dårlig ut"
+  },
+  "house_e": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det svever over bakken. dårlig fargepalett. alt er brunt?"
+  },
+  "house_f": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "døren er hvit. hvorfor?"
+  },
+  "house_g": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "glippe mellom etasjene"
+  },
+  "house_h": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør"
+  },
+  "house_i": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene. hvit dør"
+  },
+  "house_j": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør"
+  },
+  "house_k": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør"
+  },
+  "house_l": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "bindingsverket ser dårlig ut. hvorfor er det pipemurstein i første etasje?"
+  },
+  "house_m": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene. hvit dør. sjekk materialvalgene"
+  },
+  "house_n": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene"
+  },
+  "house_o": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør"
+  },
+  "house_p": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene"
+  },
+  "house_q": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "svever over bakken. hvit dør"
+  },
+  "house_r": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene."
+  },
+  "house_s": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mellomrom mellom etasjene. hvit dør. hvorfor er det hvite dører overalt?"
+  },
+  "house_t": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør"
+  },
+  "kit_arrow": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "kit_bonus": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "ser ut som et minihus? hva er dette?"
+  },
+  "kit_crack": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "kit_down": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "ikke imponert, men kasnkje godt nok for nå"
+  },
+  "kit_gate": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "kit_ladder": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "ser ingen stige i bildet"
+  },
+  "kit_lever": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt"
+  },
+  "kit_lever_arm": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "kit_lore": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "en slik pedestal skal ikke være av stein, men bygget av treverk som passer til dette"
+  },
+  "kit_plate": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "kit_rest": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "ikke noe brennende lys her? er det i alle fall en lyskilde spilleren kan se lyset fra? alt for hard overgang mellom teksturer som møter hverandre i 90 grader mellom veggene og gulvet i dette bildet"
+  },
+  "kit_sarcophagus": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "ligner overhodet ikke på en sakrofag"
+  },
+  "kit_secret_wall": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?"
+  },
+  "kit_shortcut": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette."
+  },
+  "kit_shortcut_leaf": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her."
+  },
+  "kit_trapdoor": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "flater klipper inn i hverandre her. forsår ikke hvorfor. hvorfor er det ingen tekstur her? håndtaket trenger en jernring eller noe så man ser at det kan åpnes"
+  },
+  "kit_up": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue"
+  },
+  "lantern_post": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "market_cross": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette"
+  },
+  "market_stall": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "market_stall_b": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "picket_fence": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "portal_ring": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "det er noe rart med teksturene på sokkelen"
+  },
+  "portal_runes": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "portal_shard": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut"
+  },
+  "portal_swirl": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "privy": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hvit dør. merkelig feil i taket. feil materialvalg for tak."
+  },
+  "rail_fence": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "scriptorium": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "scriptorium_interior": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger"
+  },
+  "shed_a": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "døren er feil. hvit?"
+  },
+  "shed_b": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "hva slags tak er det der? ser ikke passende ut"
+  },
+  "signpost": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "stone_fence": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "tavern": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp."
+  },
+  "town_wall": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "training_dummy": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wall_tower": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "wattle_fence": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "weapon_rack": {
+   "verdict": "usikker",
+   "date": "2026-10-11",
+   "why": "godkjent, men plasseringen er ikke bra. kolliderer med gjerdene"
+  },
+  "well_bucket": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "well_rope": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "well_winch": {
+   "verdict": "godkjent",
+   "date": "2026-10-11",
+   "why": ""
+  },
+  "woodpile": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "taket har rar tekstur.finn noe som passer bedre"
   }
  }
 }

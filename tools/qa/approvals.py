@@ -13,8 +13,9 @@ lagt 2 × 2 så skjøtene synes. Rekkefølgen er hvor mye tingen synes
 samlingen `dom` (dokument `t_<lag>` eller `m_<modell>`: `verdict`, `why`,
 `at`).
 
-`apply` leser svarene (en json-liste med `{id, data}` slik de hentes fra
-siden) og skriver dem inn i `assets/catalog/approvals.json`. Eieren
+`apply` leser svarene (en mappe med ett json-dokument per ting, `<id>.json`,
+slik ArtifactData lagrer samlingen med `out_dir`, eller en json-liste med
+`{id, data}`) og skriver dem inn i `assets/catalog/approvals.json`. Eieren
 bestemmer; dette fører bare inn.
 """
 import json
@@ -176,10 +177,17 @@ def page(out):
 
 
 def apply(path):
-    """Svarene fra siden inn i approvals.json. `path` er en json-liste med
-    `{id, data: {verdict, why, at}}`."""
-    with open(path) as f:
-        rows = json.load(f)
+    """Svarene fra siden inn i approvals.json. `path` er en mappe med
+    `<id>.json` (`{verdict, why, at}`) eller en json-liste med `{id, data}`."""
+    if os.path.isdir(path):
+        rows = []
+        for name in sorted(os.listdir(path)):
+            if name.endswith(".json"):
+                with open(os.path.join(path, name)) as f:
+                    rows.append({"id": name[:-5], "data": json.load(f)})
+    else:
+        with open(path) as f:
+            rows = json.load(f)
     p = os.path.join(DATA, "approvals.json")
     with open(p) as f:
         ap = json.load(f)

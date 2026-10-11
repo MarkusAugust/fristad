@@ -14,3 +14,20 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
   - Perspektiv kan ikke skilles fra mønstre som er grovere på én side med vilje (`core_stone`) med enkle mål. Regel: perspektiv vurderes med øyet i den estetiske kontrollen; P-T har ingen perspektivsjekk.
   - Arkene (dører, list, skilt, vinduer) er ikke fliser. Regel: slaget står i `assets/catalog/textures.json`, og P-T sjekker arkene bare for størrelse og skarphet.
 - **Kildebildet for kryptpussen var fortsatt stjernetapetet** som eieren underkjente, under samme navn som laget. Regel: katalogen (`docs/katalog.md`) viser kilden, laget og eierens dom side om side.
+
+## Eierens dom over alt som finnes (11. oktober, godkjenningssiden)
+
+209 ting vurdert: av teksturene 75 godkjent, 6 underkjent, 1 usikker; av modellene 40 godkjent, 79 underkjent (28 er bitene i kryptnivå 1), 8 usikker. Grunnene, samlet etter årsak, og regelen hver blir:
+
+- **Bildene var feil for alle modeller med dører, hogd stein og planker.** Hvite dører og «pipemurstein» kom av at de lokale teksturlagene manglet `door`, `door_b`, `ashlar`, `planks`, `iron`, `oak_planed` og `straw_floor`, og et lag uten bilde falt stille tilbake til et prosedyrisk lag. Regel: et lag en modell bruker må ha et bilde, ellers feiler `cargo test` og `snapshot` (`alle_lagene_har_bilde`). Modellene vises eieren på nytt.
+- **Glippe mellom etasjene** (hus a, b, g, i, m, n, p, r, s): utkragingen la 0,3 m tom luft mellom etasjene. Regel: felles etasjeskille i `kit` med bjelkelag og svill, som Vertshuset.
+- **Bindingsverket ser feil ut, særlig rundt vinduene** (Vertshuset, Apoteket, gjestehuset, hus a, b, d, l): felt med vindu manglet losholt over og under, stolpene overlappet karmene, og skråbåndene var tilfeldige. Regel: bindingsverket bygges etter ekte konstruksjon (stolpe ved hver vindusside, losholt som brystning og overligger, skråbånd symmetrisk ved hjørnene), med kontroll.
+- **Hus som svever** (c, e, q, hagen): sokkelen gikk bare 0,25 m ned, og høyden ble målt halvveis ut. Regel: grunnmur ned til terrenget i hvert hjørne, og bakkekontrollen over hele fotavtrykket.
+- **Harde overganger uten lister** (alle innsidene unntatt smia, kryptens vegg mot gulv, rundt dører og buer i krypten): to ulike lag møtes i 90° uten noe imellom. Regel: profilerte lister (ikke kvadratiske) med egne teksturer der to lag møtes, og omramming rundt dører; en dør tar aldri med seg vegg (`kit_up`). Gjelder alle bygninger.
+- **Innredning plassert dårlig** (tønne i veggen, hyller foran vindu, bord for nær veggen, for nakent): Regel: `group()` med ankre, fri sone foran vinduer og dører, og kontroll på overlapp med vegger.
+- **Feil materiale** (stråtak på høystakken, uthustak med strukket tekstur, puss på smias endevegger innvendig, stein på lesepulten i krypten, kista uten beslag): Regel: uv per flate på tak, og hvert slag ting har sitt materiale i byggesettet.
+- **Ting som går inn i hverandre** (kjerrehjul, snarveidøras slå, fallemmen, våpenstativet i gjerdet): Regel: kontroll på inntrengning mellom deler (P5) og mellom plasserte ting.
+- **Uleselige ting** (torgkorset, sarkofagen, bonusen, stigen som ikke synes): Regel: silhuetten må kunne kjennes igjen; vurdereren og godkjenningsbildet viser tingen tydelig.
+- **Porthuset hadde en tverrbjelke midt i portrommet.** Regel: ingenting tvers over en åpning man skal gå gjennom.
+- **Skjøter som synes** (`stone`, `cobble`, `crypt_wall`, `core_stone`) og **gjentatte små flekker som blir støy på avstand** (`plaster_red`): Regel: teksturkontrollen skal være enig med eieren (`kontrollen_er_enig_med_eieren`), og den får en måling av gjentakelse på avstand.
+- **Spillerens hus:** en vandrer har ikke eget hjem. Regel: det heter Gjestehuset.
