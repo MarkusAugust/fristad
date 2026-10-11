@@ -23,3 +23,4 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `clutter_town` | knust kasse, kornsekker, tau og bøtte, knust hjul, krukker, ved og øks, trillebår, hestesko og spann, filler og kost |
 | `tree_ref` | eik, bjørk, gran, furu, rogn og dødt tre (forbilder for trærne) |
 | `bush_ref` | hassel, einer, nype, bjørnebær, bregne og siv |
+| `items1`–`items4` | fire ark med småting i 3 × 3 (flasker, lykt, støvler, krus, kikkert, kiste, bøker, urter, hjelm og sverd, edelstener, gryte, mugge, speil, nøkler …): forbilder for inventar, kister og butikkvarer |
