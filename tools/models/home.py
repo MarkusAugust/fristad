@@ -4,8 +4,10 @@
 
 Gir utsida (`home.glb`), innsida (`home_interior.glb`, tegnes bare nær) og
 `home_inside.json` med kolliderne, lysene, røyken, senga og rammene på
-galleriveggen, og modellen `gallery_piece` som henger i en ramme når
-komponenten er funnet (lakken farges per komponent).
+galleriveggen, og modellene `gallery_<komponent>` som henger i rammen når
+komponenten er funnet: en plate med bildet av selve Fristil-komponenten
+(`assets/textures/components/<komponent>.jpg`, fra `tools/gallery/`) og en
+tynn gullkant.
 
 Huset: lavt og koselig bindingsverk med hvit puss og halmtak, blomsterkasser
 under vinduene, en benk ved døra og et skilt med «Ditt hjem» i forgylte
@@ -16,8 +18,10 @@ galleriveggen (vestveggen) med 15 rammer i tre rader.
 Akser som i town.py: X til høyre, −Y fram (mot torget), Z opp. Rammene og
 senga må stå der `home_inside.json` sier (det skrives herfra)."""
 
+import glob
 import json
 import math
+import os
 import random
 import sys
 
@@ -63,7 +67,7 @@ def outside(p, rng):
     rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), F0, E, -1, right, rng)
     for frame, opens, out in ((fr, front[1:], -1), (bk, back, 1), (rt, right, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
     door(p, fr, DOOR_X - X0, F0, 1.15, 2.2, -1, open_in=True)
     # Blomsterkasser under vinduene foran: planker med jord og blomster.
     flowers = [layer("plaster_red", (1.0, 0.75, 0.75)), layer("plaster", (1.0, 0.95, 0.4)), layer("plaster_white", (0.85, 0.8, 1.0))]
@@ -213,20 +217,62 @@ def inside(p, rng):
     return gallery
 
 
-def gallery_piece():
-    """Komponenten i rammen: en emaljert plate med en opphøyd «knapp» og en
-    liten stein, lakken farget per komponent, og en tynn gullkant."""
-    enamel = bpy.data.materials.new("layer_plaster_white.paint")
-    enamel.use_nodes = True
-    enamel.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.35
+# Bildene av komponentene, fra tools/gallery/render.mjs og pack.py.
+COMPONENTS = f"{__file__.rsplit('/', 3)[0]}/assets/textures/components"
+# Platen fyller åpningen i rammen (FRAME minus listene på 0,07).
+PLATE = FRAME - 0.07
+
+
+def component_material(name):
+    """Bildet av komponenten som bakt albedo (motoren leser det som
+    `kind::MODEL` med uv 0..1 over forsida)."""
+    m = bpy.data.materials.new(f"component_{name}")
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.4
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(os.path.abspath(f"{COMPONENTS}/{name}.jpg"))
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    return m
+
+
+def gallery_piece(name):
+    """Komponenten i rammen: en plate med bildet av Fristil-komponenten på
+    forsida og en tynn gullkant. Bygd med forsida mot −Y i Blender (motorens
+    +Z), sentrert i origo; økta setter den i rammens pose."""
+    s = PLATE
+    plate = box("plate", (-s / 2, -0.03, -s / 2), (s / 2, -0.005, s / 2), component_material(name), bevel=0)
+    # Forsida får bildet over hele flaten (u mot +X, v oppover); sidene og
+    # baksida peker på et hjørne i den lyse polstringen rundt komponenten.
+    me = plate.data
+    uv = me.uv_layers["UVMap"].data
+    for poly in me.polygons:
+        front = poly.normal.y < -0.5
+        for li in poly.loop_indices:
+            x, _, z = me.vertices[me.loops[li].vertex_index].co
+            uv[li].uv = ((x + s / 2) / s, (z + s / 2) / s) if front else (0.02, 0.02)
     gold = layer("plaster", (1.0, 0.82, 0.35), 0.35)
-    s = 0.5
-    # Bygd med forsida mot −Y i Blender (motorens +Z), sentrert i origo.
-    box("plate", (-s / 2, -0.02, -s / 2), (s / 2, 0.0, s / 2), enamel, bevel=0.012)
-    box("button", (-0.15, -0.06, -0.08), (0.15, -0.02, 0.08), enamel, bevel=0.03)
-    box("gem", (-0.035, -0.08, 0.13), (0.035, -0.02, 0.2), gold, bevel=0.02)
     for a, b in (((-s / 2, -s / 2), (s / 2, -s / 2)), ((-s / 2, s / 2), (s / 2, s / 2)), ((-s / 2, -s / 2), (-s / 2, s / 2)), ((s / 2, -s / 2), (s / 2, s / 2))):
-        stick("rim", (a[0], -0.025, a[1]), (b[0], -0.025, b[1]), 0.025, 0.025, gold, bevel=0)
+        stick("rim", (a[0], -0.03, a[1]), (b[0], -0.03, b[1]), 0.02, 0.02, gold, bevel=0)
+
+
+def gallery_pieces():
+    """Én modell per komponent det finnes bilde av: `gallery_<komponent>.glb`
+    (bindestrek blir understrek i navnet)."""
+    gradient = os.environ.get("FRISTAD_GRADIENT")
+    os.environ["FRISTAD_GRADIENT"] = "0"  # platen er liten; ingen mørk fot
+    for path in sorted(glob.glob(f"{COMPONENTS}/*.jpg")):
+        name = os.path.basename(path)[:-4]
+        clear()
+        town.PIECES.clear()
+        town.LIT = False
+        gallery_piece(name)
+        town.finish(f"{OUT}/gallery_{name.replace('-', '_')}.glb", ao_samples=32, max_edge=100.0)
+    if gradient is None:
+        del os.environ["FRISTAD_GRADIENT"]
+    else:
+        os.environ["FRISTAD_GRADIENT"] = gradient
 
 
 def build():
@@ -252,14 +298,12 @@ def build():
     data["bed"] = [[bx, round(F0 + 0.3, 3), round(-by + 0.0, 3)], [0.55, 0.35, 1.05]]
     data["gallery"] = gallery
     json.dump(data, open(path, "w"))
-    # Platen i rammen.
-    clear()
-    town.PIECES.clear()
-    town.LIT = False
-    gallery_piece()
-    town.finish(f"{OUT}/gallery_piece.glb", max_edge=100.0)
-    town.write_inside(f"{OUT}/gallery_piece.glb")
+    gallery_pieces()
 
 
 if __name__ == "__main__":
-    build()
+    # `python3 tools/models/home.py pieces` lager bare platene i rammene.
+    if sys.argv[1:] == ["pieces"]:
+        gallery_pieces()
+    else:
+        build()

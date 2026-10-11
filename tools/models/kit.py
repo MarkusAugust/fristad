@@ -348,17 +348,70 @@ def _wall_box(frame, sa, sb, za, zb, thick):
 # --- Vinduer og dører ---------------------------------------------------------
 
 
-def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=True):
-    """Vindu: karm av profilert list fra trim-arket, steinbrett, blyglass i
-    rutemønster (glasset gløder om natta) og skodder slått opp."""
-    face = out * (thick / 2 + 0.06)
-    t = 0.12
-    for a, b in (((s - w / 2 - t, zc + h / 2 + t / 2), (s + w / 2 + t, zc + h / 2 + t / 2)),):
-        stick("win_head", at_wall(frame, a[0], face, a[1]), at_wall(frame, b[0], face, b[1]), 0.14, t + 0.04, p.trim, ("trim", MOULDING), bevel=0.0)
-    stick("win_sill", at_wall(frame, s - w / 2 - t - 0.05, face + out * 0.04, zc - h / 2 - 0.06), at_wall(frame, s + w / 2 + t + 0.05, face + out * 0.04, zc - h / 2 - 0.06), 0.22, 0.1, p.trim, ("trim", SILL), bevel=0.0)
+# Vinduskarmene (eieren, 11. oktober), felles for alle vinduer i byggesettet:
+# karm av bjelker rundt åpningen (sider og overligger), vannbrett nederst
+# med helling utover, og sprosser der ruta er delt, i husets trevirke som
+# dørkarmene.
+FRAME_W = 0.09  # karmen: bredde langs veggen
+FRAME_OUT = 0.05  # så langt karmen står ut fra veggen
+FRAME_IN = 0.03  # og så langt den går inn i veggen
+SILL_TILT = math.radians(9)  # vannbrettets helling utover
+
+
+def window_frame(p, frame, s, zc, w, h, out, thick, sill=True):
+    """Karmen rundt en åpning på sida `out`: to sidekarmer, overligger og
+    vannbrett (med helling utover) eller en flat sålbenk (`sill=False`,
+    innsida)."""
+    t = FRAME_W
+    face = out * (thick / 2 + (FRAME_OUT - FRAME_IN) / 2)
+    depth = FRAME_OUT + FRAME_IN
     for sx in (-1, 1):
         x = s + sx * (w / 2 + t / 2)
-        stick("win_jamb", at_wall(frame, x, face, zc - h / 2), at_wall(frame, x, face, zc + h / 2), 0.13, t, p.trim, ("trim", MOULDING), bevel=0.0)
+        stick("win_jamb", at_wall(frame, x, face, zc - h / 2), at_wall(frame, x, face, zc + h / 2 + t), depth, t, p.trim, ("trim", DARK_BEAM), bevel=0.0)
+    stick("win_head", at_wall(frame, s - w / 2 - t, face, zc + h / 2 + t / 2), at_wall(frame, s + w / 2 + t, face, zc + h / 2 + t / 2), depth, t, p.trim, ("trim", DARK_BEAM), bevel=0.0)
+    (px, py), (dx, dy) = frame
+    yaw = math.atan2(dy, dx)
+    if sill:
+        # Vannbrettet: et bord som stikker lenger ut og heller utover, så
+        # regnet renner av.
+        sw = w / 2 + t + 0.04
+        board = box("win_sill", (-sw, -0.02 - FRAME_IN, -0.04), (sw, FRAME_OUT + 0.07, 0.0), p.trim, bevel=0.0)
+        c = at_wall(frame, s, out * thick / 2, zc - h / 2)
+        # Lokal +y peker ut av veggen; dreid om x så ytterkanten går ned.
+        rot = Matrix.Rotation(yaw + (0 if out > 0 else math.pi), 4, "Z") @ Matrix.Rotation(-SILL_TILT, 4, "X")
+        board.matrix_world = Matrix.Translation(c) @ rot @ board.matrix_world
+    else:
+        stick("win_sill", at_wall(frame, s - w / 2 - t, face, zc - h / 2 - 0.02), at_wall(frame, s + w / 2 + t, face, zc - h / 2 - 0.02), depth, 0.04, p.trim, ("trim", DARK_BEAM), bevel=0.0)
+
+
+def mullions(p, frame, s, zc, w, h, out, bar=0.05):
+    """Sprossene i ruta: kryss i store ruter, to loddrette i brede og lave,
+    én i middels brede; små ruter er hele."""
+    uprights = []
+    if w >= 0.75 and h >= 0.8:
+        uprights, cross = [s], True
+    elif w >= 1.1:
+        uprights, cross = [s - w / 6, s + w / 6], False
+    elif w >= 0.6:
+        uprights, cross = [s], False
+    else:
+        cross = False
+    for x in uprights:
+        stick("mullion", at_wall(frame, x, out * 0.02, zc - h / 2), at_wall(frame, x, out * 0.02, zc + h / 2), bar, bar, p.trim, ("trim", DARK_BEAM), bevel=0.0)
+    if cross:
+        stick("transom", at_wall(frame, s - w / 2, out * 0.02, zc + h * 0.1), at_wall(frame, s + w / 2, out * 0.02, zc + h * 0.1), bar, bar, p.trim, ("trim", DARK_BEAM), bevel=0.0)
+
+
+def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=True, inside=False):
+    """Vindu: karm av bjelker med vannbrett (`window_frame`), sprosser der
+    ruta er delt (`mullions`), blyglass (gløder om natta) og skodder slått
+    opp. `inside` gir karm på innsida også (hus med interiør)."""
+    window_frame(p, frame, s, zc, w, h, out, thick)
+    mullions(p, frame, s, zc, w, h, out)
+    if inside:
+        window_frame(p, frame, s, zc, w, h, -out, thick, sill=False)
+    t = FRAME_W
+    face = out * (thick / 2 + 0.04)
     # Glasset litt innfelt, og blysprosser på skrå (rutemønster).
     g = at_wall(frame, s, out * 0.02, zc)
     (px, py), (dx, dy) = frame
@@ -561,24 +614,88 @@ def planks(p, name, lo, hi, mat=None):
     return box(name, lo, hi, mat or p.floor, bevel=0.01)
 
 
-def stairs(p, x0, x1, a, b, z0, z1, n, along="y", rails=(), mat=None):
+# Trappereglene (eieren, 11. oktober), felles for alle trapper i byggesettet.
+# Spilleren er en kapsel på 1,8 m som ikke skal måtte gå på kne.
+RISE_MAX = 0.20  # trinnhøyde
+TREAD_MIN = 0.26  # inntrinn
+HEADROOM = 2.1  # fri høyde fra hvert trinn opp til det som henger over
+LANDING = 1.0  # fritt gulv foran nederste og øverste trinn
+WALL_PAD = 0.05  # veggkolliderne er så mye tykkere enn pussen (`_wall_box`)
+STAIR_MARGIN = 0.35  # kapselens radius: så mye må trapphullet gå forbi trinnet
+
+
+def stair_steps(z0, z1):
+    """Færreste trinn som holder trinnhøyden under `RISE_MAX`."""
+    return max(1, math.ceil((z1 - z0) / RISE_MAX - 1e-6))
+
+
+def stair_run(z0, z1, n=None):
+    """Lengden trappa trenger (n trinn à `TREAD_MIN`)."""
+    return (n or stair_steps(z0, z1)) * TREAD_MIN
+
+
+def stair_well(a, b, z0, z1, n, under):
+    """Hvor trapphullet må begynne (langs retningen, fra foten `a` mot toppen
+    `b`) når `under` er undersida av bjelkelaget over trappa: fra og med det
+    første trinnet som ikke har `HEADROOM` under bjelkelaget, pluss
+    kapselens radius. Hullet går så videre til toppen."""
+    rise, tread = (z1 - z0) / n, abs(b - a) / n
+    d = 1 if b > a else -1
+    for k in range(n):
+        if under - (z0 + (k + 1) * rise) < HEADROOM:
+            return a + d * max(0.0, k * tread - STAIR_MARGIN)
+    return b
+
+
+def stairs(p, x0, x1, a, b, z0, z1, n=None, along="y", rails=(), mat=None, room=None, under=None, well=None):
     """En rett trapp mellom x0 og x1 (på tvers) fra `a` (nederst) til `b`
-    (øverst) langs `along`, fra z0 til z1, med n trinn. Kollideren er en
-    rampe over trinnene."""
+    (øverst) langs `along`, fra z0 til z1, med n trinn (ellers så få som
+    reglene tillater). Kollideren er en rampe over trinnene.
+
+    Reglene sjekkes og feiler høyt (flytt heller trappa i huset):
+    - trinnhøyde ≤ `RISE_MAX`, inntrinn ≥ `TREAD_MIN`;
+    - `room` = (gulvet ved foten, gulvet ved toppen): hvor langt det er
+      fritt langs retningen før en vegg eller noe annet, forbi foten og
+      forbi toppen (minst `LANDING`);
+    - `under` = undersida av bjelkelaget over, og `well` = (fra, til)
+      trapphullet langs retningen: hvert trinn som ikke ligger helt i
+      hullet (med kapselens radius) har minst `HEADROOM` opp til `under`.
+      `stair_well` regner ut hvor hullet må begynne."""
     mat = mat or p.floor
+    n = n or stair_steps(z0, z1)
     step = (b - a) / n
     rise = (z1 - z0) / n
+    where = f"trappa {along}={min(a, b):.2f}..{max(a, b):.2f}, z={z0:.2f}..{z1:.2f}, {n} trinn"
+    assert rise <= RISE_MAX + 1e-6, f"{where}: trinnhøyden {rise:.3f} m er over {RISE_MAX} m; bruk minst {stair_steps(z0, z1)} trinn"
+    assert abs(step) >= TREAD_MIN - 1e-6, f"{where}: inntrinnet {abs(step):.3f} m er under {TREAD_MIN} m; trappa må være minst {stair_run(z0, z1, n):.2f} m lang"
+    d = 1 if b > a else -1
+    if room is not None:
+        lo_free, hi_free = (room[0] - a) * -d, (room[1] - b) * d
+        assert lo_free >= LANDING - 1e-6, f"{where}: bare {lo_free:.2f} m fritt gulv foran nederste trinn (minst {LANDING} m)"
+        assert hi_free >= LANDING - 1e-6, f"{where}: bare {hi_free:.2f} m fritt gulv foran øverste trinn (minst {LANDING} m)"
+    if under is not None:
+        w0, w1 = (min(well), max(well)) if well else (None, None)
+        for k in range(n):
+            s0, s1 = a + k * step, a + (k + 1) * step
+            # Kapselens radius til hver side, men ikke forbi foten eller
+            # toppen (der står du på gulvet, lavere enn på trinnet).
+            lo, hi = max(min(s0, s1) - STAIR_MARGIN, min(a, b)), min(max(s0, s1) + STAIR_MARGIN, max(a, b))
+            in_well = well is not None and w0 <= lo and hi <= w1
+            head = under - (z0 + (k + 1) * rise)
+            assert in_well or head >= HEADROOM - 1e-6, f"{where}: trinn {k + 1} har bare {head:.2f} m hoderom under bjelkelaget ({under:.2f}); trapphullet må begynne ved {stair_well(a, b, z0, z1, n, under):.2f} (nå {well})"
     for k in range(n):
         s0, s1 = a + k * step, a + (k + 1) * step
         z = z0 + (k + 1) * rise
         lo = (min(x0, x1), min(s0, s1), z - 0.07) if along == "y" else (min(s0, s1), min(x0, x1), z - 0.07)
         hi = (max(x0, x1), max(s0, s1), z) if along == "y" else (max(s0, s1), max(x0, x1), z)
         box("step", lo, hi, mat, bevel=0.01)
+    # Vangene ligger under trinnesene og ender under gulvet oppe, så de
+    # ikke stikker opp gjennom det.
     for xx in (x0, x1):
         if along == "y":
-            stick("stringer", (xx, a - step * 0.3, z0), (xx, b, z1 - 0.05), 0.07, 0.28, p.timber, ("timber", 1))
+            stick("stringer", (xx, a - step * 0.3, z0 + rise * 0.7 - 0.17), (xx, b, z1 - 0.17), 0.07, 0.28, p.timber, ("timber", 1))
         else:
-            stick("stringer", (a - step * 0.3, xx, z0), (b, xx, z1 - 0.05), 0.07, 0.28, p.timber, ("timber", 1))
+            stick("stringer", (a - step * 0.3, xx, z0 + rise * 0.7 - 0.17), (b, xx, z1 - 0.17), 0.07, 0.28, p.timber, ("timber", 1))
     for xx in rails:
         if along == "y":
             stick("handrail", (xx, a, z0 + 0.95), (xx, b, z1 + 0.95), 0.06, 0.07, p.timber, ("timber", 2))
@@ -597,6 +714,34 @@ def stairs(p, x0, x1, a, b, z0, z1, n, along="y", rails=(), mat=None):
         town.HULLS.append([(x, a - pad, z0 - 0.3) for x in (lo_x, hi_x)] + [(x, a - pad, z0) for x in (lo_x, hi_x)] + [(x, b, z1 + 0.02) for x in (lo_x, hi_x)] + [(x, b, z0 - 0.3) for x in (lo_x, hi_x)])
     else:
         town.HULLS.append([(a - pad, y, z0 - 0.3) for y in (lo_x, hi_x)] + [(a - pad, y, z0) for y in (lo_x, hi_x)] + [(b, y, z1 + 0.02) for y in (lo_x, hi_x)] + [(b, y, z0 - 0.3) for y in (lo_x, hi_x)])
+
+
+def floor_frame(p, name, lo, hi, well, z0, z1, collide_it=True):
+    """Et etasjeskille fra (x, y) `lo` til `hi` mellom z0 og z1 som rammer
+    rundt trapphullet `well` = (x0, y0, x1, y1): fire plater som møtes
+    kant i kant, så ingen flater deler plan. Kolliderne følger platene."""
+    wx0, wy0, wx1, wy1 = well
+    pieces = [((lo[0], lo[1]), (wx0, hi[1])), ((wx1, lo[1]), (hi[0], hi[1])), ((wx0, lo[1]), (wx1, wy0)), ((wx0, wy1), (wx1, hi[1]))]
+    for (ax, ay), (bx, by) in pieces:
+        if bx - ax < 1e-3 or by - ay < 1e-3:
+            continue
+        planks(p, name, (ax, ay, z0), (bx, by, z1))
+        if collide_it:
+            collide(((ax + bx) / 2, (ay + by) / 2, (z0 + z1) / 2), (bx - ax, by - ay, z1 - z0))
+
+
+def well_rail(p, segments, z, h=0.95, collide_it=True):
+    """Gelenderet rundt trapphullet oppe: stolper og håndlist langs hvert
+    (a, b)-stykke i gulvhøyde `z`, med kollider."""
+    for (ax, ay), (bx, by) in segments:
+        stick("srail", (ax, ay, z + h), (bx, by, z + h), 0.06, 0.07, p.timber, ("timber", 2))
+        L = math.hypot(bx - ax, by - ay)
+        for k in range(max(2, round(L / 1.2) + 1)):
+            t = k / max(1, round(L / 1.2))
+            px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+            stick("srail_post", (px, py, z), (px, py, z + h + 0.05), 0.09, 0.09, p.timber, ("timber", 0))
+        if collide_it:
+            collide(((ax + bx) / 2, (ay + by) / 2, z + (h + 0.05) / 2), (abs(bx - ax) + 0.12, abs(by - ay) + 0.12, h + 0.05))
 
 
 def table(p, x, y, z, w, d, h=0.78, yaw=0.0, collide_it=True):

@@ -76,10 +76,6 @@ pub enum Use {
     Gallery(usize),
 }
 
-/// Komponenten som henger i en ramme på galleriveggen (farget per
-/// komponent), posert av økta i rammens pose.
-pub const GALLERY_PIECE: &str = "gallery_piece";
-
 /// Noe du kan sikte på og bruke: en boks (sentrum og halve mål) med pose.
 #[derive(Clone, Copy, Debug)]
 pub struct Target {
@@ -392,9 +388,12 @@ pub fn build(models: &[ModelInfo], _seed: u64) -> World {
     for (model, n) in crypt::reserve(&crypt) {
         b.reserve(model, n);
     }
-    // Galleriveggen i spillerens hus: én komponent per ramme.
+    // Galleriveggen i spillerens hus: én modell per ramme (bildet av
+    // komponenten), satt ut av økta når komponenten er funnet.
     if b.targets.iter().any(|t| matches!(t.what, Use::Gallery(_))) {
-        b.reserve(GALLERY_PIECE, crate::domain::craft::GALLERY.len());
+        for model in crate::domain::craft::GALLERY_MODELS {
+            b.reserve(model, 1);
+        }
     }
 
     let audit = b.audit();

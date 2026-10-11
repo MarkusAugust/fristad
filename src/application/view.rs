@@ -122,7 +122,7 @@ impl Session {
         instances.extend(posed(crypt::KIT_SECRET, self.secret_poses()));
         instances.extend(posed(crypt::KIT_TRAPDOOR, self.trapdoor_poses()));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
-        instances.extend(self.gallery_poses().into_iter().map(|(transform, tint)| ModelInstance { model: crate::domain::world::GALLERY_PIECE, transform, skin: None, flash: 0.0, tint: Some(tint) }));
+        instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),

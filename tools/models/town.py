@@ -116,6 +116,17 @@ def lamp(c, color=(1.0, 0.68, 0.38), intensity=1.6, radius=8.0):
     LAMPS.append((tuple(c), tuple(color), intensity, radius))
 
 
+# Småting ute (tønner, kasser, vedstabler) som hører til huset, men står på
+# bakken, ikke på modellens z = 0: `finish` skriver dem som «props», og byen
+# setter hver av dem på terrenget med `Builder::place` (så `audit` gjelder).
+# (modellnavn i `models!`, (x, y) i husets akser, yaw om z)
+PROPS = []
+
+
+def prop(name, x, y, yaw=0.0):
+    PROPS.append((name, (x, y), yaw))
+
+
 def wall_lantern(m, x, y_face, z, normal_y):
     """Ei vegglykt ved døra: smijernsarm med stag, og en lykt med hornruter
     og et talglys som henger i en krok. `z` er høyden på armen."""
@@ -768,7 +779,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
 def write_inside(path):
     """Skriv kolliderne, lysene, lyktene og pipene til `<navn>_inside.json`
     i motorens akser, og tøm registrene."""
-    if COLLIDERS or LIGHTS or HULLS or LAMPS or SMOKE:
+    if COLLIDERS or LIGHTS or HULLS or LAMPS or SMOKE or PROPS:
         import json
         # Blender (x, y, z) er (x, z, −y) i motoren; yaw om z blir yaw om y.
         eng = lambda v: [round(v[0], 3), round(v[2], 3), round(-v[1], 3)]
@@ -779,11 +790,13 @@ def write_inside(path):
             "hulls": [[eng(p) for p in pts] for pts in HULLS],
             "lamps": [[eng(c), list(col), i, r] for c, col, i, r in LAMPS],
             "smoke": [[eng(c), s] for c, s in SMOKE],
+            "props": [[name, eng((x, y, 0.0)), round(yaw, 4)] for name, (x, y), yaw in PROPS],
         }
         with open(path.replace(".glb", "_inside.json"), "w") as f:
             json.dump(data, f)
-        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper")
+        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper, {len(PROPS)} småting ute")
     COLLIDERS.clear()
+    PROPS.clear()
     LAMPS.clear()
     SMOKE.clear()
     RELIEF.clear()

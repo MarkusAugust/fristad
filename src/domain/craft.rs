@@ -156,25 +156,26 @@ pub const LOOT: [&[&str]; 5] = [
 /// venstre til Rammeverkets nederst til høyre).
 pub const GALLERY: [&str; 15] = ["button", "tag", "badge", "divider", "card", "alert", "progress", "label", "help-text", "tooltip", "fieldset", "file-upload", "search", "dialog", "tabs"];
 
-/// Fargen på komponenten i hver ramme (lineær RGB, `ModelInstance.tint`),
-/// i samme rekkefølge som `GALLERY`: en egen farge per komponent, som
-/// glassperler i en kirkerute.
-pub const GALLERY_TINTS: [[f32; 3]; 15] = [
-    [0.62, 0.08, 0.05],
-    [0.75, 0.38, 0.04],
-    [0.80, 0.62, 0.06],
-    [0.30, 0.30, 0.32],
-    [0.20, 0.45, 0.10],
-    [0.70, 0.12, 0.30],
-    [0.05, 0.42, 0.36],
-    [0.40, 0.22, 0.08],
-    [0.30, 0.55, 0.55],
-    [0.55, 0.45, 0.70],
-    [0.06, 0.16, 0.50],
-    [0.42, 0.06, 0.48],
-    [0.12, 0.30, 0.62],
-    [0.78, 0.66, 0.42],
-    [0.85, 0.20, 0.08],
+/// Modellen som henger i hver ramme, i samme rekkefølge som `GALLERY`: en
+/// plate med bildet av selve Fristil-komponenten i standardvarianten
+/// (`assets/textures/components/<komponent>.jpg`, rendret av
+/// `tools/gallery/render.mjs`, bakt inn av `tools/models/home.py`).
+pub const GALLERY_MODELS: [&str; 15] = [
+    "gallery_button",
+    "gallery_tag",
+    "gallery_badge",
+    "gallery_divider",
+    "gallery_card",
+    "gallery_alert",
+    "gallery_progress",
+    "gallery_label",
+    "gallery_help_text",
+    "gallery_tooltip",
+    "gallery_fieldset",
+    "gallery_file_upload",
+    "gallery_search",
+    "gallery_dialog",
+    "gallery_tabs",
 ];
 
 /// Navnet på en komponent slik Fristil skriver tittelen («help-text» blir

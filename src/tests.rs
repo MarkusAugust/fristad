@@ -744,8 +744,7 @@ fn senga_gir_hvile_og_snur_dognet() {
 /// er tomt (solgt eller brukt opp).
 #[test]
 fn funnet_henger_i_galleriet() {
-    use crate::domain::craft::GALLERY;
-    use crate::domain::world::GALLERY_PIECE;
+    use crate::domain::craft::{GALLERY, GALLERY_MODELS};
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
     let mut input = Input::default();
@@ -760,8 +759,12 @@ fn funnet_henger_i_galleriet() {
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     assert!(game.found().contains(&found), "{found} skal henge i galleriet: {:?}", game.found());
-    let pieces = game.frame(16.0 / 9.0).instances.iter().filter(|i| i.model == GALLERY_PIECE).count();
-    assert_eq!(pieces, game.found().iter().filter(|c| GALLERY.contains(&c.as_str())).count(), "én komponent per fylt ramme");
+    let frame = game.frame(16.0 / 9.0);
+    let pieces: Vec<&str> = frame.instances.iter().map(|i| i.model).filter(|m| GALLERY_MODELS.contains(m)).collect();
+    assert_eq!(pieces.len(), game.found().iter().filter(|c| GALLERY.contains(&c.as_str())).count(), "én komponent per fylt ramme");
+    // Rammen viser bildet av akkurat den komponenten, ikke en annen.
+    let n = GALLERY.iter().position(|c| *c == found).unwrap();
+    assert!(pieces.contains(&GALLERY_MODELS[n]), "{found} skal henge som {}: {pieces:?}", GALLERY_MODELS[n]);
 
     let saved = game.save();
     assert!(saved.found.contains(&found));
@@ -1635,4 +1638,166 @@ fn maal_tiden_per_bilde() {
         }
         println!("{name}: update {:.2} ms, frame {:.2} ms per bilde", upd / n as f64 * 1e3, frm / n as f64 * 1e3);
     }
+}
+
+/// Skriver hvor rammene på galleriveggen står (til `snapshot --gallery`):
+/// `cargo test --release galleriveggen_star -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn galleriveggen_star() {
+    let p = world();
+    for t in p.world.targets.iter().filter(|t| matches!(t.what, Use::Gallery(_))) {
+        let (_, rot, pos) = t.pose.to_scale_rotation_translation();
+        let front = rot * Vec3::Z;
+        println!("{:?}: {:.2} {:.2} {:.2}  front {:.2} {:.2}", t.what, pos.x, pos.y, pos.z, front.x, front.z);
+    }
+}
+
+/// Trappereglene i byggesettet (`kit.stairs`): du går stående (ikke huk)
+/// opp og ned alle tre trappene uten å bli stoppet eller presset ned, og
+/// det er minst en meter fritt gulv foran nederste trinn.
+#[test]
+fn trappene_har_hoderom() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    // Modell, foten (0,5 m foran nederste trinn) og toppen (Blenders
+    // akser), gulvet nede og høyden oppe, og retningen bort fra trappa
+    // ved foten.
+    let stairs = [("tavern", (5.15, -3.55), (-0.3, -3.55), 0.6, 3.7, (1.0, 0.0)), ("apothecary", (3.1, -2.65), (3.1, 1.9), 0.7, 3.3, (0.0, -1.0)), ("scriptorium", (-2.43, -2.85), (-2.43, 2.0), 0.36, 3.1, (0.0, -1.0))];
+    let mut problems = vec![];
+    for (model, foot, top, floor, up, away) in stairs {
+        let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
+            problems.push(format!("{model} mangler"));
+            continue;
+        };
+        let t = pl.transforms[0];
+        let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+        let base = t.transform_point3(Vec3::ZERO).y;
+        let (a, b) = (world(foot), world(top));
+        // Opp og ned, stående.
+        for (from, to, z_from, z_to, way) in [(a, b, floor, up, "opp"), (b, a, up, floor, "ned")] {
+            let mut pos = from + Vec3::Y * (z_from + half + radius + 0.05);
+            let dir = (to - from).with_y(0.0).normalize();
+            let (mut stuck, mut top_feet) = (0, f32::MIN);
+            for _ in 0..600 {
+                if (to - pos).with_y(0.0).dot(dir) < 0.05 {
+                    break;
+                }
+                let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+                pos += moved;
+                top_feet = top_feet.max(pos.y - half - radius - base);
+                stuck = if moved.with_y(0.0).length() < 0.01 { stuck + 1 } else { 0 };
+                if stuck > 20 {
+                    break;
+                }
+            }
+            let left = (pos - to).with_y(0.0).length();
+            let feet = pos.y - half - radius - base;
+            if stuck > 20 && left > 0.6 {
+                problems.push(format!("{model} {way}: stoppet med føttene {feet:.2} m over bakken, {left:.1} m fra målet (for lavt under taket?)"));
+            } else if left > 0.6 || (way == "opp" && feet < up) || (way == "ned" && feet > z_to + 0.3) {
+                problems.push(format!("{model} {way}: endte {left:.1} m fra målet med føttene {feet:.2} m over bakken"));
+            }
+            if way == "ned" && top_feet > up + 0.5 {
+                problems.push(format!("{model} {way}: ble løftet til {top_feet:.2} m"));
+            }
+        }
+        // Fritt gulv foran nederste trinn: stråler bort fra trappa i kne-,
+        // hofte- og hodehøyde treffer ingenting innen en meter.
+        let dir = t.transform_vector3(Vec3::new(away.0, 0.0, -away.1)).normalize();
+        for h in [0.4, 1.0, 1.6] {
+            let origin = world(foot) - dir * 0.5 + Vec3::Y * (floor + h);
+            // Veggkolliderne er 5 cm tykkere enn pussen (`kit.WALL_PAD`).
+            if let Some(hit) = physics.cast_ray(origin, dir, 0.98) {
+                problems.push(format!("{model}: noe står {:.2} m foran nederste trinn i {h} m høyde", hit.distance));
+            }
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Gorveks øvingsplass har en åpning mot gata: man går med Rapier fra
+/// Storgata inn til midten av plassen uten å stoppe mot noe.
+#[test]
+fn man_kan_ga_til_gorvek() {
+    use crate::domain::world::town::{main_x, YARD};
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    let (yc, _) = YARD;
+    let from = Vec3::new(main_x(yc.y), 0.0, yc.y);
+    let to = Vec3::new(yc.x, 0.0, yc.y);
+    let ground = |q: Vec3| Vec3::new(q.x, crate::domain::world::terrain::height(q.x, q.z), q.z);
+    let (a, b) = (ground(from), ground(to));
+    let mut pos = a + Vec3::Y * (half + radius + 0.1);
+    let dir = (b - a).with_y(0.0).normalize();
+    for _ in 0..((b - a).length() / 0.05) as usize * 2 {
+        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+            break;
+        }
+        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+        pos += moved;
+    }
+    let left = (pos - b).with_y(0.0).length();
+    assert!(left <= 0.6, "stoppet {left:.1} m fra midten av Gorveks plass, ved ({:.1}, {:.1})", pos.x, pos.z);
+    assert!(p.world.targets.iter().any(|t| matches!(t.what, Use::Talk(_)) && t.pose.translation.distance(b.into()) < 6.0), "ingen å snakke med på plassen");
+}
+
+/// Sperringene i byen er synlige: hver gjerdekollider (`FENCE_SOLID_H` høy,
+/// satt av `town::fence`) er dekket av en modellinstans (gjerde eller
+/// steinmur) langs hele lengden, prøvd hver 0,5 m med 0,3 m slingring.
+#[test]
+fn sperringene_er_synlige() {
+    use crate::domain::world::town::FENCE_SOLID_H;
+    let p = world();
+    let bounds: std::collections::HashMap<&str, (Vec3, Vec3)> = p
+        .models
+        .iter()
+        .map(|m| {
+            let (mut lo, mut hi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+            for v in &m.mesh.vertices {
+                lo = lo.min(Vec3::from(v.pos));
+                hi = hi.max(Vec3::from(v.pos));
+            }
+            (m.name.as_str(), (lo, hi))
+        })
+        .collect();
+    let covered = |q: Vec3| {
+        p.world.placements.iter().any(|pl| {
+            let Some((lo, hi)) = bounds.get(pl.model) else { return false };
+            pl.transforms.iter().any(|t| {
+                if t.translation.distance(q.into()) > 16.0 {
+                    return false;
+                }
+                let l = t.inverse().transform_point3(q);
+                (l.x > lo.x - 0.3 && l.x < hi.x + 0.3) && (l.z > lo.z - 0.3 && l.z < hi.z + 0.3) && (l.y > lo.y - 0.5 && l.y < hi.y + 0.5)
+            })
+        })
+    };
+    let (mut fences, mut problems) = (0, vec![]);
+    for c in &p.world.colliders {
+        let Shape::Cuboid { center, size, yaw } = c else { continue };
+        if size.y != FENCE_SOLID_H || center.y < -5.0 {
+            continue;
+        }
+        fences += 1;
+        let along = Vec3::new(yaw.cos(), 0.0, -yaw.sin());
+        let n = (size.x / 0.5).ceil().max(1.0) as i32;
+        for k in 0..=n {
+            let q = *center + along * (size.x * (k as f32 / n as f32 - 0.5));
+            if !covered(q) {
+                problems.push(format!("usynlig sperring ved ({:.1}, {:.1})", q.x, q.z));
+                break;
+            }
+        }
+    }
+    assert!(fences > 20, "fant bare {fences} gjerdekollidere");
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }

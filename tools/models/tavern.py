@@ -47,16 +47,26 @@ CELLAR = -2.2  # kjellergulvet
 X0, X1 = -W / 2 + T / 2, W / 2 - T / 2
 Y0, Y1 = -D / 2 + T / 2, D / 2 - T / 2
 UY0, UY1 = Y0 - JETTY, Y1 + JETTY
+JETTY_T = 0.06  # gulvbordene over utkragingen ligger oppå bjelkeendene
 
 DOOR_X = -1.6
-# Kjellertrappa: mellom x 1,0 og 2,0, fra y 1,6 (oppe) ned til −1,6.
-CX0, CX1, CY_TOP, CY_BOT = 1.0, 2.0, 1.6, -1.6
-# Trappa opp: langs fasaden innenfor, fra x 5,2 (nederst) til 0,9
-# (øverst), der du går av mot vest. Trapphullet oppe er HX0..HX1.
-SX0, SX1, SY0, SY1 = 0.9, 5.2, -4.1, -3.0
-HX0, HX1 = 0.75, 4.0
 KITCHEN_X = 0.4  # kjøkkenveggen (vest)
 KITCHEN_Y = -1.6  # kjøkkenveggen (sør)
+IX1, IY1 = X1 - T / 2, Y1 - T / 2  # innsida av veggene
+# Trappene følger reglene i kit.py (trinnhøyde, inntrinn, hoderom, fritt
+# gulv), så lengden regnes ut av høyden, ikke omvendt.
+# Kjellertrappa: mellom x 1,0 og 2,0 i kjøkkenet, fra CY_TOP (oppe) og ned.
+CX0, CX1, CY_TOP = 1.0, 2.0, 2.2
+CY_BOT = CY_TOP - kit.stair_run(CELLAR, F0)
+# Trappa opp: langs fasaden innenfor, fra SX1 (nederst, en meter fra
+# østveggen) til SX0 (øverst), der du går av mot vest.
+SX1 = IX1 - kit.LANDING - kit.WALL_PAD
+SX0 = SX1 - kit.stair_run(F0, F1)
+SY0, SY1 = -4.1, -3.0
+# Bjelkelaget over trappa (undersida av bjelkene) og trapphullet oppe:
+# fra der hoderommet krever det (`stair_well`) til toppen.
+UNDER = C0 - 0.24
+HX0, HX1 = SX0, kit.stair_well(SX1, SX0, F0, F1, kit.stair_steps(F0, F1), UNDER)
 
 
 def outside(p, rng):
@@ -83,15 +93,17 @@ def outside(p, rng):
     rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), *gf, -1, right_open, rng)
     for frame, opens, out in ((fr, front_open[1:], -1), (bk, back_open, 1), (lf, left_open, 1), (rt, right_open, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
     door(p, fr, DOOR_X - X0, F0, 1.3, 2.35, -1)
 
     # Bjelkelaget mellom etasjene: bjelkeender som stikker ut under
     # utkragingen foran og bak, og et bord langs kanten.
-    for y0, y1 in ((UY0 - 0.05, Y0 + 0.2), (Y1 - 0.2, UY1 + 0.05)):
+    # Endene slutter inne i veggen og toppen ligger under gulvbordene oppe
+    # (JETTY_T), så ingen flater deler plan med gulvet inne.
+    for y0, y1 in ((UY0 - 0.05, Y0 + T / 2 - 0.05), (Y1 - T / 2 + 0.05, UY1 + 0.05)):
         x = X0 + 0.3
         while x < X1:
-            stick("joist_end", (x, y0, (C0 + F1) / 2), (x, y1, (C0 + F1) / 2), 0.2, F1 - C0, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.0)
+            stick("joist_end", (x, y0, (C0 + F1 - JETTY_T) / 2), (x, y1, (C0 + F1 - JETTY_T) / 2), 0.2, F1 - JETTY_T - C0, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.0)
             x += 0.75
         yy = y0 if y0 < 0 else y1
         stick("jetty_board", (X0 - 0.1, yy, (C0 + F1) / 2 + 0.05), (X1 + 0.1, yy, (C0 + F1) / 2 + 0.05), 0.08, 0.3, p.trim, ("trim", CARVED))
@@ -111,7 +123,7 @@ def outside(p, rng):
     urt, _ = half_timbered(p, "upper_right", (X1, UY0), (X1, UY1), *uf, -1, uright, rng)
     for frame, opens, out in ((ufr, ufront, -1), (ubk, uback, 1), (ulf, uleft, 1), (urt, uright, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
 
     # Taket og gavlene.
     ridge = kit.gable_roof(p, X0 - T / 2, X1 + T / 2, UY0 - T / 2, UY1 + T / 2, E + 0.28, PITCH)
@@ -139,9 +151,9 @@ def outside(p, rng):
     # Lykta ved døra, benk og tønner foran.
     town.wall_lantern(p, DOOR_X + 1.05, Y0 - T / 2, F0 + 2.35, -1)
     bench(p, -4.8, Y0 - T / 2 - 0.85, 0.0, 2.2)
-    for k, (x, y) in enumerate(((0.6, Y0 - 1.0), (1.2, Y0 - 0.9), (0.85, Y0 - 1.5))):
-        barrel(p, x, y, 0.0, yaw=k)
-        collide((x, y, 0.45), (0.65, 0.65, 0.9))
+    # Tønnene foran står på bakken i byen (`town.prop`), ikke på z = 0.
+    for k, (x, y) in enumerate(((0.6, Y0 - 1.0), (1.4, Y0 - 0.9), (1.0, Y0 - 1.6))):
+        town.prop("barrel", x, y, k * 0.8)
 
 
 def ground_floor(p, rng):
@@ -149,15 +161,12 @@ def ground_floor(p, rng):
     inner = (X0 + T / 2, Y0 + T / 2, X1 - T / 2, Y1 - T / 2)
     ix0, iy0, ix1, iy1 = inner
     # Gulvet med hullet for kjellertrappa, og kolliderne rundt.
-    hx0, hx1, hy0, hy1 = CX0 - 0.05, CX1 + 0.05, CY_BOT + 0.3, CY_TOP
-    for lo, hi in (((ix0, iy0), (hx0, iy1)), ((hx1, iy0), (ix1, iy1)), ((hx0, iy0), (hx1, hy0)), ((hx0, hy1), (hx1, iy1))):
-        planks(p, "floor0", (lo[0], lo[1], F0 - 0.1), (hi[0], hi[1], F0))
-        collide(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, F0 - 0.15), (hi[0] - lo[0], hi[1] - lo[1], 0.3))
+    hx0, hx1, hy1 = CX0 - 0.05, CX1 + 0.05, CY_TOP
+    hy0 = kit.stair_well(CY_BOT, CY_TOP, CELLAR, F0, kit.stair_steps(CELLAR, F0), F0 - 0.1)
+    kit.floor_frame(p, "floor0", (ix0, iy0), (ix1, iy1), (hx0, hy0, hx1, hy1), F0 - 0.1, F0)
     # Taket: bjelker og bordene under gulvet oppe (med trapphullet).
     oy1 = SY1 + 0.1
-    for lo, hi in (((ix0, iy0), (HX0, iy1)), ((HX1, iy0), (ix1, iy1)), ((HX0, oy1), (HX1, iy1))):
-        planks(p, "floor1", (lo[0], lo[1], C0), (hi[0], hi[1], F1))
-        collide(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, F1 - 0.12), (hi[0] - lo[0], hi[1] - lo[1], 0.25))
+    kit.floor_frame(p, "floor1", (ix0, iy0), (ix1, iy1), (HX0, iy0, HX1, oy1), C0, F1)
     x = ix0 + 0.4
     while x < ix1:
         y_lo = oy1 if HX0 < x < HX1 else iy0
@@ -281,10 +290,10 @@ def ground_floor(p, rng):
     collide(((hx0 + hx1) / 2, hy0 - 0.04, F0 + 0.5), (hx1 - hx0, 0.12, 1.0))
     # Lemmen står slått opp mot rekkverket på østsida.
     box("trapdoor", (hx1 + 0.1, hy1 - 1.2, F0), (hx1 + 0.17, hy1, F0 + 1.0), p.door_dark, bevel=0.01)
-    stairs(p, CX0, CX1, CY_BOT, CY_TOP, CELLAR, F0, 11, along="y")
+    stairs(p, CX0, CX1, CY_BOT, CY_TOP, CELLAR, F0, along="y", room=(-3.8, iy1 - 0.35), under=F0 - 0.1, well=(hy0, hy1))
 
     # Trappa opp langs fasaden, med rekkverk mot rommet.
-    stairs(p, SY0, SY1, SX1, SX0, F0, F1, 13, along="x", rails=(SY1,))
+    stairs(p, SY0, SY1, SX1, SX0, F0, F1, along="x", rails=(SY1,), room=(ix1, -1.9), under=UNDER, well=(HX0, HX1))
     # Lys: lykter på stolpene.
     light((-2.6, -1.0, C0 - 0.8), (1.0, 0.68, 0.38), 1.2, 6.0)
 
@@ -301,7 +310,7 @@ def cellar(p, rng):
         collide(tuple((a + b) / 2 for a, b in zip(lo, hi)), tuple(b - a for a, b in zip(lo, hi)))
     # Taket under bakken: bord og bjelker, med åpning over trappa.
     top = -0.08
-    ox0, ox1, oy0, oy1 = CX0 - 0.1, CX1 + 0.1, CY_BOT - 0.1, CY_TOP + 0.2
+    ox0, ox1, oy0, oy1 = CX0 - 0.1, CX1 + 0.1, CY_BOT - kit.STAIR_MARGIN - 0.05, CY_TOP + 0.2
     for lo, hi in (((cx0, cy0), (ox0, cy1)), ((ox1, cy0), (cx1, cy1)), ((ox0, cy0), (ox1, oy0)), ((ox0, oy1), (ox1, cy1))):
         planks(p, "cellar_ceiling", (lo[0], lo[1], top), (hi[0], hi[1], top + 0.06))
     x = cx0 + 0.5
@@ -346,7 +355,7 @@ def upper_floor(p, rng):
     iy0, iy1 = UY0 + T / 2, UY1 - T / 2
     # Gulvet foran over utkragingen (bjelkelaget innenfor er fra første etasje).
     for y0, y1 in ((iy0, Y0 + T / 2), (Y1 - T / 2, iy1)):
-        planks(p, "floor_jetty", (ix0, y0, F1 - 0.12), (ix1, y1, F1))
+        planks(p, "floor_jetty", (ix0, y0, F1 - JETTY_T), (ix1, y1, F1))
         collide(((ix0 + ix1) / 2, (y0 + y1) / 2, F1 - 0.12), (ix1 - ix0, y1 - y0, 0.25))
     # Sperrene og hanebjelkene inne.
     tan = math.tan(math.radians(PITCH))
@@ -362,13 +371,7 @@ def upper_floor(p, rng):
         x += 1.6
     # Rekkverket rundt trapphullet.
     oy1 = SY1 + 0.1
-    for a, b in (((HX0 + 0.6, oy1), (HX1, oy1)), ((HX1, Y0 + T / 2), (HX1, oy1))):
-        stick("srail", (a[0], a[1], F1 + 0.95), (b[0], b[1], F1 + 0.95), 0.07, 0.08, p.timber, ("timber", 2))
-        for t in (0.0, 0.5, 1.0):
-            px, py = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
-            stick("srail_post", (px, py, F1), (px, py, F1 + 1.0), 0.09, 0.09, p.timber, ("timber", 0))
-    collide(((HX0 + 0.6 + HX1) / 2, oy1, F1 + 0.5), (HX1 - HX0 - 0.6, 0.12, 1.0))
-    collide((HX1, (Y0 + oy1) / 2, F1 + 0.5), (0.12, oy1 - Y0, 1.0))
+    kit.well_rail(p, (((HX0 + 0.6, oy1 + 0.06), (HX1 + 0.06, oy1 + 0.06)), ((HX1 + 0.06, Y0 + T / 2), (HX1 + 0.06, oy1 + 0.06))), F1)
     # Pipa fra grua går gjennom rommet.
     box("chimney_inside", (4.45, 3.0, F1), (5.25, 3.8, ridge - 2.0), p.stone, bevel=0.04)
     collide((4.85, 3.4, F1 + 1.5), (0.8, 0.8, 3.0))

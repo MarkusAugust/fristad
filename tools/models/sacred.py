@@ -449,9 +449,11 @@ S_H = 6.0  # murkronen og himlingen
 S_PITCH = 48.0
 S_IX, S_IY = S_W / 2 - S_T, S_D / 2 - S_T
 # Galleriet langs bakmuren og trappa opp i vestenden (langs y).
-G_X0, G_X1, G_Y0 = -2.9, 2.9, 1.0
 G_Z = S_F + 2.84
-ST_X0, ST_X1, ST_Y0 = -2.9, -1.95, -2.6
+# Trappa opp til galleriet følger reglene i kit.py: foten en meter fra
+# sørmuren, og galleriets forkant der trappa ender.
+ST_X0, ST_X1, ST_Y0 = -2.9, -1.95, -S_IY + kit.LANDING + kit.WALL_PAD
+G_X0, G_X1, G_Y0 = -2.9, 2.9, ST_Y0 + kit.stair_run(S_F, G_Z)
 
 
 def scriptorium_outside(p, rng):
@@ -652,7 +654,7 @@ def library_gallery(p, rng):
                 stick("gallery_brace", (x, G_Y0 + 0.1, gz - 1.0), (x + sx * 0.6, G_Y0 + 0.1, gz - 0.38), 0.12, 0.12, p.timber, ("timber", 3))
         collide((x, G_Y0 + 0.1, S_F + 1.4), (0.3, 0.3, 2.8))
     # Trappa opp langs y i vestenden, med rekkverk mot rommet.
-    kit.stairs(p, ST_X0, ST_X1, ST_Y0, G_Y0, S_F, gz, 13, along="y", rails=(ST_X1,))
+    kit.stairs(p, ST_X0, ST_X1, ST_Y0, G_Y0, S_F, gz, along="y", rails=(ST_X1,), room=(-iy, iy))
     stick("stair_post", (ST_X1, ST_Y0 - 0.05, S_F), (ST_X1, ST_Y0 - 0.05, S_F + 1.2), 0.12, 0.12, p.timber, ("timber", 0))
     collide((ST_X1 + 0.04, (ST_Y0 + G_Y0) / 2 + 0.3, S_F + 2.0), (0.1, G_Y0 - ST_Y0 - 0.8, 1.6))
     # Rekkverket: foran fra trappa, på østenden og langs vestenden.

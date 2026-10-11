@@ -89,8 +89,18 @@ models! {
     "signpost" => "town/signpost.glb",
     "chest" => "town/chest.glb",
     "chest_lid" => "town/chest_lid.glb",
-    // Flettverksgjerdet fra tools/models/street.py.
+    // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
+    // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",
+    "rail_fence" => "town/rail_fence.glb",
+    "picket_fence" => "town/picket_fence.glb",
+    "stone_fence" => "town/stone_fence.glb",
+    // Portalen fra tools/models/portal.py: ringen, runene som gløder, de to
+    // virvelskivene og splintene (posert av økta).
+    "portal_ring" => "town/portal_ring.glb",
+    "portal_runes" => "town/portal_runes.glb",
+    "portal_swirl" => "town/portal_swirl.glb",
+    "portal_shard" => "town/portal_shard.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",
@@ -99,7 +109,22 @@ models! {
     "tavern_interior" => "town/tavern_interior.glb",
     "home" => "town/home.glb",
     "home_interior" => "town/home_interior.glb",
-    "gallery_piece" => "town/gallery_piece.glb",
+    // Galleriveggen: platene med bildet av hver komponent (home.py).
+    "gallery_button" => "town/gallery_button.glb",
+    "gallery_tag" => "town/gallery_tag.glb",
+    "gallery_badge" => "town/gallery_badge.glb",
+    "gallery_divider" => "town/gallery_divider.glb",
+    "gallery_card" => "town/gallery_card.glb",
+    "gallery_alert" => "town/gallery_alert.glb",
+    "gallery_progress" => "town/gallery_progress.glb",
+    "gallery_label" => "town/gallery_label.glb",
+    "gallery_help_text" => "town/gallery_help_text.glb",
+    "gallery_tooltip" => "town/gallery_tooltip.glb",
+    "gallery_fieldset" => "town/gallery_fieldset.glb",
+    "gallery_file_upload" => "town/gallery_file_upload.glb",
+    "gallery_search" => "town/gallery_search.glb",
+    "gallery_dialog" => "town/gallery_dialog.glb",
+    "gallery_tabs" => "town/gallery_tabs.glb",
     "apothecary" => "town/apothecary.glb",
     "apothecary_interior" => "town/apothecary_interior.glb",
     "scriptorium" => "town/scriptorium.glb",

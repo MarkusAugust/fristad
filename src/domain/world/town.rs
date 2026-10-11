@@ -27,7 +27,7 @@ pub const CRYPT: Vec2 = Vec2::new(-9.0, -52.0);
 /// Stavkirka på kirkegården, med portalen mot øst.
 const CHURCH: Vec2 = Vec2::new(-22.0, -47.0);
 /// Gorveks øvingsplass innenfor nordporten, øst for gata: midten og halve mål.
-const YARD: (Vec2, Vec2) = (Vec2::new(9.0, -24.5), Vec2::new(4.0, 3.0));
+pub const YARD: (Vec2, Vec2) = (Vec2::new(9.0, -24.5), Vec2::new(4.0, 3.0));
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
 /// skråninger.
@@ -436,25 +436,30 @@ fn houses(b: &mut Builder) -> Vec<(Vec2, f32)> {
     doors
 }
 
-/// Det tomme i byen sperres av: en usynlig vegg langs hver husrekke, litt
-/// bak fasadene, så du holder deg på torget og i gata, og gjerder og
-/// vedstabler der det er glipe mellom husene, så sperringen synes. Ved
-/// bygningene på torget (som du går inn i) og der gata munner ut, står det
-/// ingen vegg.
-fn enclose(b: &mut Builder, plan: &Plan, specials: &[Rect], rng: &mut Rng) {
-    let (mut walls, mut fences) = (0, 0);
-    let inside_any = |p: Vec2, rects: &[Rect], grow: f32| {
-        rects.iter().any(|r| {
-            let (ax, az) = r.axes();
-            let d = p - r.c;
-            d.dot(ax).abs() <= r.h.x + grow && d.dot(az).abs() <= r.h.y + grow
-        })
-    };
+/// Det tomme i byen sperres av med gjerder: langs hver husrekke, litt bak
+/// fasadene, står det et tett flettverksgjerde fra husvegg til husvegg
+/// (`fence`), med kollideren akkurat der gjerdet står, så ingenting sperrer
+/// som ikke synes. Der et hus står på linja eller like bak den, er huset
+/// selv sperringen, og et kort gjerde går fra linja inn til husveggen, så
+/// ingen smetter rundt hjørnet. Ved bygningene på torget (som du går inn
+/// i), der gata munner ut og foran Gorveks plass står det ingenting.
+fn enclose(b: &mut Builder, plan: &Plan, specials: &[Rect], _rng: &mut Rng) {
+    let inside_any = |p: Vec2, rects: &[Rect], grow: f32| rects.iter().any(|r| r.dist(p) <= grow);
+    // Avstanden fra et punkt til nærmeste hus langs `n`, om et hus står
+    // innen `reach`.
+    let house_ahead = |p: Vec2, n: Vec2, reach: f32| (0..=(reach / 0.1) as usize).map(|k| k as f32 * 0.1).find(|d| inside_any(p + n * *d, &plan.taken, 0.0));
+    let (yc, yh) = YARD;
+    let mut runs: Vec<(Vec<Vec2>, Option<Vec2>, Option<Vec2>)> = vec![];
     for (pts, half, only) in rows() {
         let len = length(&pts);
         for side in [1.0f32, -1.0] {
-            let step = 1.0;
+            let step = 0.5;
             let mut s = 0.0;
+            // Gjerdet som bygges: punktene langs linja og tverrgjerdet inn
+            // til huset ved starten; og veggen bak forrige rute, om et hus
+            // sto der.
+            let mut run: Option<(Vec<Vec2>, Option<Vec2>)> = None;
+            let mut prev_wall: Option<Vec2> = None;
             while s < len {
                 let (p, t) = along(&pts, s + step * 0.5);
                 let n = Vec2::new(-t.y, t.x) * side;
@@ -467,48 +472,136 @@ fn enclose(b: &mut Builder, plan: &Plan, specials: &[Rect], rng: &mut Rng) {
                     || square_dist(line) < 0.6
                     || street_dist(&streets()[0], line).0 < MAIN + 0.4
                     || inside_any(line, specials, 0.3)
-                    || plan.free.iter().any(|(c, r)| c.distance(line) < *r * 0.6);
+                    || plan.free.iter().any(|(c, r)| c.distance(line) < *r * 0.6)
+                    // Gorveks plass har sitt eget gjerde, med åpning mot gata.
+                    || (line.x > 0.0 && line.x < yc.x && (line.y - yc.y).abs() < yh.y + 0.3);
                 if free {
+                    if let Some((pts, start)) = run.take() {
+                        runs.push((pts, start, None));
+                    }
+                    prev_wall = None;
                     continue;
                 }
-                let yaw = facing(n);
-                // Den usynlige veggen: en meter lang, høy nok til at ingen
-                // hopper over.
-                b.solid_box(b.on_ground(Vec3::new(line.x, 1.5, line.y)), Vec3::new(step + 0.1, 3.0, 0.3), yaw);
-                walls += 1;
-                // Gjerdet der det ikke står et hus (hver andre meter, gjerdet
-                // er to meter langt).
-                let fence = p + n * (half + 0.9);
-                // Ikke foran en husvegg (døra står der): da er huset selv
-                // sperringen.
-                if (s as i32) % 2 == 0 && !inside_any(fence, &plan.taken, 0.6) && !inside_any(fence + n * 2.2, &plan.taken, 0.3) && !inside_any(fence + t * 1.0, &plan.taken, 0.6) && !inside_any(fence - t * 1.0, &plan.taken, 0.6) {
-                    let base = b.on_ground(Vec3::new(fence.x, 0.0, fence.y));
-                    let model = match rng.next() {
-                        x if x < 0.75 => "wattle_fence",
-                        x if x < 0.9 => "woodpile",
-                        _ => "crate",
-                    };
-                    b.place(model, at(base, yaw + rng.range(-0.04, 0.04)));
-                    fences += 1;
+                let (a, c) = (line - t * step * 0.5, line + t * step * 0.5);
+                // Huset selv er sperringen der det står på linja eller like
+                // bak; står det et stykke bak, går et tverrgjerde fra enden
+                // av gjerdet inn til veggen, så ingen smetter rundt hjørnet.
+                if let Some(d) = house_ahead(line, n, 2.6) {
+                    let wall = (d > 0.3).then(|| line + n * d);
+                    if let Some((pts, start)) = run.take() {
+                        let last = *pts.last().unwrap();
+                        let end = wall.and_then(|_| house_ahead(last, n, 2.6).map(|dd| last + n * dd)).filter(|w| w.distance(last) > 0.3);
+                        runs.push((pts, start, end));
+                    }
+                    prev_wall = wall;
+                    continue;
                 }
+                match &mut run {
+                    Some((pts, _)) if pts.last().is_some_and(|l| l.distance(a) < 0.3) => pts.push(c),
+                    _ => {
+                        if let Some((pts, start)) = run.take() {
+                            runs.push((pts, start, None));
+                        }
+                        let start = prev_wall.and_then(|_| house_ahead(a, n, 2.6).map(|dd| a + n * dd)).filter(|w| w.distance(a) > 0.3);
+                        run = Some((vec![a, c], start));
+                    }
+                }
+                prev_wall = None;
+            }
+            if let Some((pts, start)) = run.take() {
+                runs.push((pts, start, None));
             }
         }
     }
-    // Øvingsplassen: gjerde på de tre sidene som ikke vender mot gata.
-    let (yc, yh) = YARD;
-    for (a, bb) in [(Vec2::new(-1.0, -1.0), Vec2::new(1.0, -1.0)), (Vec2::new(1.0, -1.0), Vec2::new(1.0, 1.0)), (Vec2::new(1.0, 1.0), Vec2::new(-1.0, 1.0))] {
-        let (p0, p1) = (yc + a * yh, yc + bb * yh);
-        let n = (p0.distance(p1) / 2.0).round().max(1.0) as usize;
-        let yaw = facing(Vec2::new(-(p1 - p0).y, (p1 - p0).x));
+    let (mut fences, mut meters) = (0, 0.0);
+    for (pts, start, end) in runs {
+        if pts.len() < 2 {
+            continue;
+        }
+        let total = length(&pts);
+        if total < 0.7 {
+            // Smalere enn deg: ingen kommer gjennom.
+            continue;
+        }
+        // Modulene stokkes langs linja så de når fram.
+        let kind = fence_kind(pts[0]);
+        let n = (total / FENCE_LEN).ceil().max(1.0) as usize;
         for k in 0..n {
-            let c = p0.lerp(p1, (k as f32 + 0.5) / n as f32);
-            let base = b.on_ground(Vec3::new(c.x, 0.0, c.y));
-            b.place("wattle_fence", at(base, yaw));
-            b.solid_box(base + Vec3::Y * 1.5, Vec3::new(2.1, 3.0, 0.3), yaw);
-            fences += 1;
+            let (p0, _) = along(&pts, total * k as f32 / n as f32);
+            let (p1, _) = along(&pts, total * (k + 1) as f32 / n as f32);
+            fences += fence(b, kind, p0, p1);
+        }
+        meters += total;
+        for (q, wall) in [(pts[0], start), (pts[pts.len() - 1], end)] {
+            if let Some(w) = wall {
+                fences += fence(b, kind, q, w);
+                meters += q.distance(w);
+            }
         }
     }
-    log::info!("Avsperring: {walls} m usynlig vegg, {fences} gjerder og vedstabler");
+    // Øvingsplassen: skigard rundt, med en åpning på 3 m midt på sida mot
+    // gata, så du kommer inn til Gorvek. Vestsida følger gatelinja.
+    let xw = |z: f32| main_x(z) + MAIN + 1.1;
+    let (zn, zs) = (yc.y - yh.y, yc.y + yh.y);
+    let (xe, gap) = (yc.x + yh.x, YARD_GAP / 2.0);
+    for (a, c) in [
+        (Vec2::new(xw(zn), zn), Vec2::new(xe, zn)),
+        (Vec2::new(xe, zn), Vec2::new(xe, zs)),
+        (Vec2::new(xe, zs), Vec2::new(xw(zs), zs)),
+        (Vec2::new(xw(zs), zs), Vec2::new(xw(yc.y + gap), yc.y + gap)),
+        (Vec2::new(xw(yc.y - gap), yc.y - gap), Vec2::new(xw(zn), zn)),
+    ] {
+        let total = a.distance(c);
+        let n = (total / FENCE_LEN).ceil().max(1.0) as usize;
+        for k in 0..n {
+            fences += fence(b, "rail_fence", a.lerp(c, k as f32 / n as f32), a.lerp(c, (k + 1) as f32 / n as f32));
+        }
+        meters += total;
+    }
+    log::info!("Avsperring: {fences} gjerder, {meters:.0} m");
+}
+
+/// Åpningen i gjerdet rundt Gorveks plass, mot gata.
+pub const YARD_GAP: f32 = 3.0;
+/// Gjerdemodulen er 2 m lang.
+const FENCE_LEN: f32 = 2.0;
+/// Gjerdevariantene (`tools/models/street.py`) og hvor tykke de er:
+/// flettverk, skigard, stakitt og lav steinmur.
+pub const FENCES: [(&str, f32); 4] = [("wattle_fence", 0.16), ("rail_fence", 0.3), ("picket_fence", 0.14), ("stone_fence", 0.44)];
+/// Høyden på kollideren til et sperregjerde. Den står akkurat der gjerdet
+/// står (like lang, så tykk som varianten), og slik kjenner testen
+/// `sperringene_er_synlige` den igjen.
+pub const FENCE_SOLID_H: f32 = 1.1;
+
+/// Én gjerdemodul fra `a` til `c` (høyst litt over 2 m): flettverket
+/// stokkes så det når fram, står på det høyeste punktet under seg (stavene
+/// går 25 cm ned), og kollideren er like lang og like høy som gjerdet.
+/// Gir 1 om den ble satt ut.
+fn fence(b: &mut Builder, model: &'static str, a: Vec2, c: Vec2) -> usize {
+    let along = c - a;
+    if along.length() < 0.2 {
+        return 0;
+    }
+    let q = (a + c) * 0.5;
+    let fy = (-along.y).atan2(along.x);
+    let base = Vec3::new(q.x, highest(b, q, 0.7), q.y);
+    let t = at(base, fy) * Affine3A::from_scale(Vec3::new((along.length() + 0.08) / 2.0, 1.0, 1.0));
+    if b.place(model, t) {
+        let thick = FENCES.iter().find(|(m, _)| *m == model).map_or(0.16, |(_, t)| *t);
+        b.solid_box(base + Vec3::Y * FENCE_SOLID_H * 0.5, Vec3::new(along.length() + 0.08, FENCE_SOLID_H, thick), fy);
+        1
+    } else {
+        0
+    }
+}
+
+/// Gjerdevarianten for en sperrelinje i byen: stakitt og steinmur om
+/// hverandre, og et flettverk innimellom, valgt etter hvor linja starter
+/// (fast, ikke tilfeldig per modul).
+fn fence_kind(p: Vec2) -> &'static str {
+    const TOWN: [&str; 5] = ["picket_fence", "stone_fence", "picket_fence", "stone_fence", "wattle_fence"];
+    let k = ((p.x * 0.37 + p.y * 0.91).abs() * 0.5).floor() as usize;
+    TOWN[k % TOWN.len()]
 }
 
 /// Bondegårdene utenfor muren: midten av tunet. Flate steder på åsene,
@@ -620,11 +713,8 @@ fn farmsteads(b: &mut Builder) {
             }
             let along = p1 - p0;
             let fy = (-along.y).atan2(along.x);
-            let base = Vec3::new(q.x, highest(b, q, 0.7) - 0.05, q.y);
-            let t = at(base, fy) * Affine3A::from_scale(Vec3::new((along.length() + 0.08) / 2.0, 1.0, 1.0));
-            if b.place("wattle_fence", t) {
-                b.solid_box(base + Vec3::Y * 0.5, Vec3::new(along.length(), 1.0, 0.15), fy);
-            }
+            let _ = fy;
+            fence(b, if i % 2 == 0 { "wattle_fence" } else { "rail_fence" }, p0, p1);
         }
         log::info!("Gård {i} ved ({:.0}, {:.0}) med {model}, sti fra ({:.0}, {:.0}) til ({:.0}, {:.0})", c.x, c.y, lane[0].x, lane[0].y, lane[12].x, lane[12].y);
     }
@@ -699,6 +789,10 @@ struct Inside {
     /// Pipene: toppen og hvor tykk røyken er.
     #[serde(default)]
     smoke: Vec<([f32; 3], f32)>,
+    /// Småting ute som hører til huset (modell, sted i husets rom, yaw):
+    /// settes på bakken av byen, så de ikke svever der tomta skrår.
+    #[serde(default)]
+    props: Vec<(String, [f32; 3], f32)>,
     /// Kjelleren under huset: midten og halve mål (x, z) i modellens rom.
     /// Bakken tas bort der (`Builder::hole`).
     #[serde(default)]
@@ -806,6 +900,9 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
         for (p, strength) in &inside.smoke {
             b.smoke(t.transform_point3(Vec3::from(*p)), *strength);
         }
+        for (name, p, y) in &inside.props {
+            house_prop(b, name, t.transform_point3(Vec3::from(*p)), yaw + y);
+        }
     }
     if let Some(inside) = inside.filter(|i| !i.boxes.is_empty()) {
         for (c, size, y) in &inside.boxes {
@@ -824,6 +921,27 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
         let mid = (lo + hi) * 0.5;
         let c = at(base, yaw).transform_point3(Vec3::new(mid.x, size.y * 0.5, mid.z));
         b.solid_box(c, size, yaw);
+    }
+}
+
+/// De frittstående småtingene et hus kan ha med seg ute (`props` i
+/// `<navn>_inside.json`, fra `town.prop` i Blender).
+const HOUSE_PROPS: [&str; 3] = ["barrel", "crate", "woodpile"];
+
+/// En småting ute ved et hus: på bakken der den står (ikke på husets
+/// z = 0), med husets rotasjon, og med kollider; `Builder::audit` måler
+/// den som alt annet.
+fn house_prop(b: &mut Builder, name: &str, at_house: Vec3, yaw: f32) {
+    let Some(model) = HOUSE_PROPS.iter().copied().find(|m| *m == name) else {
+        log::warn!("småting «{name}» ved et hus er ikke blant HOUSE_PROPS");
+        return;
+    };
+    let base = b.on_ground(Vec3::new(at_house.x, 0.0, at_house.z));
+    if b.place(model, at(base, yaw)) {
+        if let Some((lo, hi)) = b.bounds(model) {
+            let size = hi - lo;
+            b.solid_box(base + Vec3::Y * size.y * 0.5, size, yaw);
+        }
     }
 }
 
@@ -1024,7 +1142,7 @@ const INNKEEPER: &[&str] = &[
 fn church(b: &mut Builder) {
     // Stavkirka med portalen mot øst, mot veien.
     building(b, "stave_church", CHURCH, FRAC_PI_2);
-    // Kirkegården: flettverksgjerde rundt, med åpning mot veien i øst.
+    // Kirkegården: lav steinmur rundt, med åpning mot veien i øst.
     let (cx, cz, hx, hz) = terrain::YARD_FLAT;
     let (w, e, n, so) = (cx - hx + 1.0, cx + hx - 1.0, cz - hz + 1.0, cz + hz - 1.0);
     // Sørøsthjørnet skrås av, så gjerdet går klar av porthuset ved
@@ -1032,29 +1150,20 @@ fn church(b: &mut Builder) {
     let (g, _) = gate(false);
     let cut = Vec2::new((g.x - 9.0).min(e - 3.0), so);
     let turn = Vec2::new(e, (g.y - 6.5).min(so));
-    fence(b, Vec2::new(w, n), Vec2::new(e, n));
-    fence(b, Vec2::new(w, so), cut);
-    fence(b, cut, turn);
-    fence(b, Vec2::new(w, n), Vec2::new(w, so));
-    fence(b, Vec2::new(e, n), Vec2::new(e, cz - 3.0));
-    fence(b, Vec2::new(e, cz + 3.0), turn);
+    fence_run(b, "stone_fence", Vec2::new(w, n), Vec2::new(e, n));
+    fence_run(b, "stone_fence", Vec2::new(w, so), cut);
+    fence_run(b, "stone_fence", cut, turn);
+    fence_run(b, "stone_fence", Vec2::new(w, n), Vec2::new(w, so));
+    fence_run(b, "stone_fence", Vec2::new(e, n), Vec2::new(e, cz - 3.0));
+    fence_run(b, "stone_fence", Vec2::new(e, cz + 3.0), turn);
 }
 
-/// Et rett flettverksgjerde fra `a` til `c`: modellene er 2 m lange (lokal
-/// x langs gjerdet) og strekkes litt så de møtes.
-fn fence(b: &mut Builder, a: Vec2, c: Vec2) {
-    let n = (a.distance(c) / 2.0).ceil().max(1.0) as usize;
+/// Et rett gjerde fra `a` til `c` av moduler som stokkes så de møtes
+/// (steinmuren rundt kirkegården).
+fn fence_run(b: &mut Builder, model: &'static str, a: Vec2, c: Vec2) {
+    let n = (a.distance(c) / FENCE_LEN).ceil().max(1.0) as usize;
     for k in 0..n {
-        let (p0, p1) = (a.lerp(c, k as f32 / n as f32), a.lerp(c, (k + 1) as f32 / n as f32));
-        let q = (p0 + p1) * 0.5;
-        let along = p1 - p0;
-        let fy = (-along.y).atan2(along.x);
-        // Stavene går 25 cm ned i bakken.
-        let base = Vec3::new(q.x, highest(b, q, 0.7), q.y);
-        let t = at(base, fy) * Affine3A::from_scale(Vec3::new((along.length() + 0.08) / 2.0, 1.0, 1.0));
-        if b.place("wattle_fence", t) {
-            b.solid_box(base + Vec3::Y * 0.5, Vec3::new(along.length(), 1.0, 0.15), fy);
-        }
+        fence(b, model, a.lerp(c, k as f32 / n as f32), a.lerp(c, (k + 1) as f32 / n as f32));
     }
 }
 

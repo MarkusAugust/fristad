@@ -263,8 +263,8 @@ def forge_outside(p, rng):
     for name, (frame, L), holes in (("wall_left", left, win_l), ("wall_right", right, win_r), ("wall_back", back, door_b)):
         kit.slab_grid(name, frame, L, -0.2, FE, FT, holes, p.wall_stone, bevel=0.03)
         kit.wall_colliders(frame, L, -0.2, FE, FT, holes)
-    window(p, left[0], 1.0 - FY0, 1.7, 1.0, 1.0, 1, thick=FT, rng=rng)
-    window(p, right[0], -1.7 - FY0, 1.7, 1.0, 1.0, -1, thick=FT, rng=rng)
+    window(p, left[0], 1.0 - FY0, 1.7, 1.0, 1.0, 1, thick=FT, rng=rng, inside=True)
+    window(p, right[0], -1.7 - FY0, 1.7, 1.0, 1.0, -1, thick=FT, rng=rng, inside=True)
     door(p, back[0], BACK_DOOR - FIX0, FZ, 1.1, 2.15, 1, thick=FT)
     # Murkronen: en svill av tømmer oppå murene, under takfoten.
     for a, b in (((-FW / 2 + FT / 2, FY0 - 0.05), (-FW / 2 + FT / 2, FY1 + 0.05)), ((FW / 2 - FT / 2, FY0 - 0.05), (FW / 2 - FT / 2, FY1 + 0.05)), ((-FW / 2, FY1 - FT / 2), (FW / 2, FY1 - FT / 2))):
@@ -284,7 +284,7 @@ def forge_outside(p, rng):
     fy = FY0 + 0.15
     opens = [((OPEN0 + OPEN1) / 2 - FIX0, FZ, OPEN_TOP, OPEN1 - OPEN0), (-3.45 - FIX0, 1.25, 2.15, 0.7)]
     fr, _ = half_timbered(p, "wall_front", (FIX0, fy), (FIX1, fy), FZ, FE, -1, opens, rng)
-    window(p, fr, -3.45 - FIX0, 1.7, 0.7, 0.9, -1, rng=rng)
+    window(p, fr, -3.45 - FIX0, 1.7, 0.7, 0.9, -1, rng=rng, inside=True)
     # Overliggeren over åpningen: en tykk, litt skjev bjelke på to stolper
     # med knekter.
     stick("lintel", (OPEN0 - 0.35, FY0 - 0.08, OPEN_TOP + 0.17), (OPEN1 + 0.35, FY0 - 0.08, OPEN_TOP + 0.22), 0.36, 0.38, p.timber, ("timber", 2), bevel=0.05)
@@ -440,14 +440,9 @@ def forge_yard(p, rng):
     wx, wy0, wy1 = FENCE_X - 0.55, FY1 + 0.7, YARD1 - 0.5
     # Stabelen: kubbene ligger langs gjerdet, så laftelaget viser sidene
     # av dem; noen løse kubber på toppen og foran.
-    logs = layer("logs", (1.0, 0.92, 0.85))
-    box("woodpile", (wx - 0.38, wy0, 0.0), (wx + 0.38, wy1, 1.15), logs, bevel=0.05)
-    for k in range(4):
-        y = wy0 + 0.4 + k * (wy1 - wy0 - 0.8) / 3
-        stick("firewood", (wx - 0.3, y, 1.24), (wx + 0.25, y + rng.uniform(-0.15, 0.15), 1.26), 0.18, 0.18, logs, ("timber", k % 4), bevel=0.05)
-    for k in range(3):
-        y = wy0 + 0.6 + k * 0.7
-        stick("firewood", (wx - 0.75, y, 0.09), (wx - 0.42, y + 0.45, 0.09), 0.17, 0.17, logs, ("timber", k % 4), bevel=0.05)
+    # Selve stabelen er den frittstående modellen `woodpile`, satt på
+    # bakken av byen (`town.prop`), så den ikke svever der tomta skrår.
+    town.prop("woodpile", wx, (wy0 + wy1) / 2, math.pi / 2)
     for yy in (wy0 - 0.15, wy1 + 0.15):
         stick("shed_post", (wx - 0.45, yy, -0.1), (wx - 0.45, yy, 1.55), 0.12, 0.12, p.timber, ("timber", 1), bevel=0.02)
         stick("shed_post", (wx + 0.45, yy, -0.1), (wx + 0.45, yy, 1.8), 0.12, 0.12, p.timber, ("timber", 3), bevel=0.02)
@@ -600,13 +595,19 @@ APITCH = 50.0
 AX0, AX1 = -AW / 2 + AT / 2, AW / 2 - AT / 2
 AY0, AY1 = -AD / 2 + AT / 2, AD / 2 - AT / 2
 AUY0 = AY0 - AJ
+AJETTY_T = 0.06  # gulvbordene over utkragingen ligger oppå bjelkeendene
 AIX0, AIX1, AIY0, AIY1 = AX0 + AT / 2, AX1 - AT / 2, AY0 + AT / 2, AY1 - AT / 2
 ADOOR = 1.9
 AHATCH = -1.85
 # Trappa opp langs østveggen: fra y −2,3 (nederst) til 1,6 (oppe), og
 # trapphullet i bjelkelaget.
-SX0, SX1, SY0, SY1 = 2.55, 3.65, -2.3, 1.6
-HX0, HX1, HY0, HY1 = 2.42, AIX1, -2.45, SY1
+# Trappa langs østveggen, etter reglene i kit.py (en meter fritt gulv
+# ved foten, trapphullet fra der hoderommet krever det).
+SX0, SX1, SY0 = 2.55, 3.65, AIY0 + kit.LANDING + kit.WALL_PAD
+SY1 = SY0 + kit.stair_run(AF0, AF1)
+AUNDER = AC0 - 0.24  # undersida av bjelkene over trappa
+HX0, HX1, HY1 = 2.42, AIX1, SY1
+HY0 = kit.stair_well(SY0, SY1, AF0, AF1, kit.stair_steps(AF0, AF1), AUNDER)
 # Skilleveggen mot laboratoriet, med døra.
 PY = 0.4
 PDOOR = 0.7
@@ -635,7 +636,7 @@ def apothecary_outside(p, rng):
     rt, _ = half_timbered(p, "wall_right", (AX1, AY0), (AX1, AY1), AF0, AC0, -1, right, rng)
     for frame, opens, out in ((bk, back, 1), (lf, left, 1), (rt, right, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
     door(p, fr, ADOOR - AX0, AF0, 1.15, 2.2, -1)
     hatch_front(p, rng, hatch)
 
@@ -643,7 +644,7 @@ def apothecary_outside(p, rng):
     zc = (AC0 + AF1) / 2
     x = AX0 + 0.3
     while x < AX1:
-        stick("joist_end", (x, AUY0 - 0.05, zc), (x, AY0 + 0.2, zc), 0.2, AF1 - AC0 + 0.04, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.0)
+        stick("joist_end", (x, AUY0 - 0.05, (AC0 + AF1 - AJETTY_T) / 2), (x, AY0 + AT / 2 - 0.05, (AC0 + AF1 - AJETTY_T) / 2), 0.2, AF1 - AJETTY_T - AC0, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.0)
         x += 0.7
     stick("jetty_board", (AX0 - 0.1, AUY0 - 0.05, zc + 0.05), (AX1 + 0.1, AUY0 - 0.05, zc + 0.05), 0.08, 0.3, p.trim, ("trim", CARVED))
     for x in (AX0, AX1):
@@ -660,7 +661,7 @@ def apothecary_outside(p, rng):
     urt, _ = half_timbered(p, "upper_right", (AX1, AUY0), (AX1, AY1), AF1, AE, -1, [(0.4 - AUY0, uw[0], uw[1] + 0.3, 0.8)], rng)
     for frame, opens, out in ((ufr, ufront, -1), (ubk, uback, 1), (ulf, [(0.0 - AUY0, uw[0], uw[1] + 0.3, 0.8)], 1), (urt, [(0.4 - AUY0, uw[0], uw[1] + 0.3, 0.8)], -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
 
     # Taket og gavlene, med et lite lukevindu øverst i gavlene.
     ridge = kit.gable_roof(p, AX0 - AT / 2, AX1 + AT / 2, AUY0 - AT / 2, AY1 + AT / 2, AE + 0.28, APITCH, overhang=0.75)
@@ -668,7 +669,7 @@ def apothecary_outside(p, rng):
     for x, out in ((AX0, -1), (AX1, 1)):
         kit.gable_wall(p, x, AUY0 - AT / 2, AY1 + AT / 2, AE, ridge, APITCH, out, rng)
         gf = kit.wall_frame((x, AUY0), (x, AY1))[0]
-        window(p, gf, yc - AUY0, AE + 1.3, 0.6, 0.7, -out, shutters=False, rng=rng)
+        window(p, gf, yc - AUY0, AE + 1.3, 0.6, 0.7, -out, shutters=False, rng=rng, inside=True)
     # Pipa fra destillerovnen, gjennom bakre takflate.
     tan = math.tan(math.radians(APITCH))
     half = (AY1 + AT / 2 - (AUY0 - AT / 2)) / 2
@@ -757,9 +758,7 @@ def apothecary_ground(p, rng):
     planks(p, "floor0", (AIX0, AIY0, AF0 - 0.08), (AIX1, AIY1, AF0 + 0.025))
     collide((0, 0, AF0 - 0.2), (AIX1 - AIX0, AIY1 - AIY0, 0.4))
     # Bjelkelaget og bordene under gulvet oppe, med trapphullet.
-    for lo, hi in (((AIX0, AIY0), (HX0, AIY1)), ((HX0, HY1), (AIX1, AIY1)), ((HX0, AIY0), (AIX1, HY0))):
-        planks(p, "floor1", (lo[0], lo[1], AC0), (hi[0], hi[1], AF1))
-        collide(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, AF1 - 0.12), (hi[0] - lo[0], hi[1] - lo[1], 0.25))
+    kit.floor_frame(p, "floor1", (AIX0, AIY0), (AIX1, AIY1), (HX0, HY0, HX1, HY1), AC0, AF1)
     x = AIX0 + 0.45
     while x < AIX1 - 0.1:
         if HX0 - 0.1 < x:
@@ -771,7 +770,7 @@ def apothecary_ground(p, rng):
     for yy in (HY0, HY1):
         stick("trimmer", (HX0 - 0.1, yy, AC0 - 0.12), (AIX1, yy, AC0 - 0.12), 0.2, 0.24, p.timber, ("timber", 2))
     stick("trimmer", (HX0 - 0.05, AIY0, AC0 - 0.12), (HX0 - 0.05, AIY1, AC0 - 0.12), 0.2, 0.24, p.timber, ("timber", 1))
-    stairs(p, SX0, SX1, SY0, SY1, AF0, AF1, 14, along="y", rails=(SX0 - 0.03,))
+    stairs(p, SX0, SX1, SY0, SY1, AF0, AF1, along="y", rails=(SX0 - 0.03,), room=(AIY0, AIY1), under=AUNDER, well=(HY0, HY1))
 
     # Skilleveggen mot laboratoriet, med døråpning og karm.
     pw = 0.16
@@ -874,7 +873,8 @@ def laboratory(p, rng):
     forlaget, arbeidsbenk med kolber, bord med mortere og bøker, og
     bokhylla på vestveggen."""
     copper = layer("plaster_white", (0.95, 0.5, 0.28), 0.3)
-    brick = layer("brick", (0.9, 0.62, 0.48))
+    # Teglen i ovnen: laget «chimney» (det finnes ikke noe «brick»-lag).
+    brick = layer("chimney", (0.9, 0.62, 0.48))
     glass = plain("glass_flask", (0.1, 0.16, 0.12), 0.08)
     green_glass = plain("glass_green", (0.08, 0.2, 0.1), 0.1)
     brown_glass = plain("glass_brown", (0.2, 0.1, 0.05), 0.1)
@@ -957,7 +957,7 @@ def apothecary_upper(p, rng):
     """Urteloftet: gulvet over utkragingen, sperrene, rekkverket rundt
     trapphullet, tørkestativ, kurver, sekker, seng og urter."""
     uy0 = AUY0 + AT / 2
-    planks(p, "floor_jetty", (AIX0, uy0, AF1 - 0.12), (AIX1, AIY0, AF1))
+    planks(p, "floor_jetty", (AIX0, uy0, AF1 - AJETTY_T), (AIX1, AIY0, AF1))
     collide(((AIX0 + AIX1) / 2, (uy0 + AIY0) / 2, AF1 - 0.12), (AIX1 - AIX0, AIY0 - uy0, 0.25))
     # Sperrene og hanebjelkene.
     tan = math.tan(math.radians(APITCH))
@@ -975,13 +975,7 @@ def apothecary_upper(p, rng):
         collars.append(x)
         x += 1.5
     # Rekkverket rundt trapphullet.
-    for a, b in (((HX0, HY0), (HX0, HY1)), ((HX0, HY0), (AIX1, HY0))):
-        stick("srail", (a[0], a[1], AF1 + 0.95), (b[0], b[1], AF1 + 0.95), 0.07, 0.08, p.timber, ("timber", 2))
-        for t in (0.0, 0.5, 1.0):
-            px, py = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
-            stick("srail_post", (px, py, AF1), (px, py, AF1 + 1.0), 0.09, 0.09, p.timber, ("timber", 0))
-    collide((HX0 - 0.02, (HY0 + HY1) / 2, AF1 + 0.5), (0.12, HY1 - HY0, 1.0))
-    collide(((HX0 + AIX1) / 2, HY0 - 0.02, AF1 + 0.5), (AIX1 - HX0, 0.12, 1.0))
+    kit.well_rail(p, (((HX0 - 0.06, HY0 - 0.06), (HX0 - 0.06, HY1)), ((HX0 - 0.06, HY0 - 0.06), (AIX1, HY0 - 0.06))), AF1)
     # Pipa fra ovnen går gjennom loftet.
     box("chimney_inside", (OVX - 0.4, OVY - 0.35, AF1), (OVX + 0.45, AIY1, ridge_in - 1.0), p.stone, bevel=0.04)
     collide((OVX + 0.02, (OVY - 0.35 + AIY1) / 2, AF1 + 1.5), (0.85, AIY1 - OVY + 0.35, 3.0))

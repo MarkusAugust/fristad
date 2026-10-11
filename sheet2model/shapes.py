@@ -122,6 +122,30 @@ def half_cylinder(r, hz, y0, n=16, h=None):
     return v, f
 
 
+def shell(v, f, drop, t):
+    """Et skall av et lukket nett med normalene ut: flatene der `drop(midtpunkt, normal)` er sann fjernes
+    (åpningen), og resten får tykkelsen `t` innover (bmesh solidify), med kanten rundt åpningen lukket."""
+    import bpy  # noqa: F401
+    import bmesh
+    bm = bmesh.new()
+    vs = [bm.verts.new(tuple(map(float, q))) for q in v]
+    for tri in f:
+        try:
+            bm.faces.new([vs[i] for i in tri])
+        except ValueError:
+            pass
+    bm.normal_update()
+    gone = [fc for fc in bm.faces if drop(fc.calc_center_median(), fc.normal)]
+    bmesh.ops.delete(bm, geom=gone, context="FACES")
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=float(t))
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.verts.ensure_lookup_table()
+    v2 = np.array([vv.co[:] for vv in bm.verts], np.float32)
+    f2 = np.array([[l.vert.index for l in fc.loops] for fc in bm.faces], np.int32)
+    bm.free()
+    return v2, f2
+
+
 def fix_orientation(v, f, centre=None):
     """Snu trekanter som vender inn mot midten (dreiekroppene og boksen er konvekse nok til det)."""
     c = v.mean(0) if centre is None else np.asarray(centre, np.float32)
@@ -163,9 +187,14 @@ def build(job, prior, names=None):
                       (0, 3, 4), (1, 5, 2)], np.int32)  # gavlene (−x, +x)
         return [("body", v, f)]
     if kind == "chest":
+        # Kassa er hul: vegger og bunn med tykkelse `opt.wall` (meter, 3 cm), åpen topp; lokket er et skall.
+        # Innsiden ser ingen rute, så den får flisen (`tiles: "auto"`, plank).
         names = names or ["body", "lid"]
+        t = float(job.opt.get("wall", 0.03)) / job.scale
         bv, bf = box_mesh(p["hx"], p["hy"], p["hz"], bevel)
+        bv, bf = shell(bv, bf, lambda c, n: n[1] > 0.9, t)
         lv, lf = half_cylinder(p["hx"], p["hz"], p["hy"], n=16, h=max(p.get("lid", 0.8), 0.05) * p["hx"])
+        lv, lf = shell(lv, lf, lambda c, n: n[1] < -0.9, t)
         return [(names[0], bv, bf), (names[1], lv, lf)]
     if kind == "cylinder":
         v, f = lathe([(p["r"], -p["hy"]), (p["r"], p["hy"])], n)

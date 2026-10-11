@@ -2321,14 +2321,15 @@ impl Session {
     }
 
     /// Komponentene på galleriveggen: én i hver ramme du har fylt, i
-    /// rammens pose og med sin egen farge.
-    pub(super) fn gallery_poses(&self) -> Vec<(Affine3A, Vec3)> {
+    /// rammens pose, med modellen som viser akkurat den komponenten
+    /// (`craft::GALLERY_MODELS`).
+    pub(super) fn gallery_poses(&self) -> Vec<(&'static str, Affine3A)> {
         self.targets
             .iter()
             .filter_map(|t| match t.target.what {
                 Use::Gallery(n) => {
                     let c = craft::GALLERY.get(n)?;
-                    self.found.contains(*c).then(|| (t.target.pose, Vec3::from(craft::GALLERY_TINTS[n])))
+                    self.found.contains(*c).then(|| (craft::GALLERY_MODELS[n], t.target.pose))
                 }
                 _ => None,
             })
