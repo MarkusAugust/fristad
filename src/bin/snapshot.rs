@@ -19,6 +19,7 @@ use fristad::application::{prepare, App};
 use fristad::domain::weather::{Daylight, WeatherKind};
 use fristad::domain::world::Use;
 use fristad::ports::driving::{Command, Play};
+use fristad::ports::Quality;
 use fristad::ports::Renderer as _;
 use glam::Vec3;
 
@@ -178,7 +179,7 @@ fn main() {
     // Noen bilder, så animasjonene og lysene har satt seg.
     let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(4);
     // Standard grafikk er det spillet starter med; --advanced slår på avansert.
-    app.command(Command::SetReduced(!flag("--advanced")));
+    app.command(Command::SetQuality(if flag("--advanced") { Quality::Advanced } else if flag("--simple") { Quality::Simple } else { Quality::Standard }));
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);

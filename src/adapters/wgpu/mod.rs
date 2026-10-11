@@ -9,6 +9,7 @@
 //! 3. Glød og tonemapping til skjermen.
 
 use crate::domain::geometry::{flag, kind, Chunk, Layer, Mesh, Vertex, LAYERS};
+use crate::ports::{Bench, Quality};
 use crate::domain::model::LayerImages;
 use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
@@ -116,6 +117,9 @@ struct Globals {
     room_box: [[f32; 4]; MAX_ROOMS],
     room_y: [[f32; 4]; MAX_ROOMS / 2],
     light_rooms: [[u32; 4]; MAX_LIGHTS / 2],
+    /// x grafikknivået (0 enkel, 1 standard, 2 avansert), y flat farge
+    /// (målingen `?bench`).
+    quality: [f32; 4],
 }
 
 #[repr(C)]
@@ -325,6 +329,7 @@ const REDUCED_FOG: f32 = 0.005;
 /// Pipelinene som tegner inn i MSAA-bildet, laget for et antall prøver.
 struct ScenePipes {
     samples: u32,
+    a2c: bool,
     world: wgpu::RenderPipeline,
     /// Modellene med alfakort (gress, blad): alpha to coverage og `discard`.
     cutout: wgpu::RenderPipeline,
@@ -343,7 +348,7 @@ struct SceneSources {
 }
 
 impl SceneSources {
-    fn pipes(&self, device: &wgpu::Device, samples: u32) -> ScenePipes {
+    fn pipes(&self, device: &wgpu::Device, samples: u32, a2c: bool) -> ScenePipes {
         let depth = |write: bool, compare: wgpu::CompareFunction| Some(wgpu::DepthStencilState { format: DEPTH, depth_write_enabled: write, depth_compare: compare, stencil: Default::default(), bias: Default::default() });
         let ms = |a2c: bool| wgpu::MultisampleState { count: samples, mask: !0, alpha_to_coverage_enabled: a2c && samples > 1 };
         let target = |blend: Option<wgpu::BlendState>| [Some(wgpu::ColorTargetState { format: HDR, blend, write_mask: wgpu::ColorWrites::ALL })];
@@ -365,7 +370,7 @@ impl SceneSources {
             })
         };
         let world = world_pipe("world", "fs", false);
-        let cutout = world_pipe("cutout", "fs_cutout", true);
+        let cutout = world_pipe("cutout", "fs_cutout", a2c);
         let sky = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("sky"),
             layout: Some(&self.simple_layout),
@@ -388,7 +393,7 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, world, cutout, sky, particles }
+        ScenePipes { samples, a2c, world, cutout, sky, particles }
     }
 }
 
@@ -406,7 +411,12 @@ pub struct Renderer {
     shadow_frame_bg: wgpu::BindGroup,
     post_layout: wgpu::BindGroupLayout,
     materials: Materials,
+    /// Skyggen fra det ugjennomsiktige: bare dybde, uten fragmentshader.
     shadow_pipe: wgpu::RenderPipeline,
+    /// Skyggen fra alfakortene: `fs_shadow` forkaster det gjennomsiktige.
+    shadow_cutout: wgpu::RenderPipeline,
+    /// Bymeshen har alfakort (blad, gress) og må tegnes med utskjæring.
+    world_cutout: bool,
     sources: SceneSources,
     scene: ScenePipes,
     down_pipe: wgpu::RenderPipeline,
@@ -425,6 +435,10 @@ pub struct Renderer {
     /// færre lys, småting bare nær og MSAA 4×. Avansert ser lenger og bruker
     /// MSAA 8× der kortet kan.
     reduced: bool,
+    /// Grafikknivået spilleren har valgt.
+    quality: Quality,
+    /// Bryterne til målingen (`?bench`).
+    bench: Bench,
     /// Flest MSAA-prøver kortet kan i standard og avansert grafikk.
     samples: (u32, u32),
     /// Trekanter tegnet i hovedpasset sist bilde: verden, props, modeller.
@@ -619,28 +633,34 @@ impl Renderer {
         });
 
         let buffers = [VERTEX_LAYOUT, InstanceData::LAYOUT];
-        let shadow_pipe = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("shadow"),
-            layout: Some(&world_layout),
-            vertex: wgpu::VertexState { module: &world_mod, entry_point: Some("vs_shadow"), compilation_options: Default::default(), buffers: &buffers },
-            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: DEPTH,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: Default::default(),
-                bias: wgpu::DepthBiasState { constant: 2, slope_scale: 2.5, clamp: 0.0 },
-            }),
-            multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState { module: &world_mod, entry_point: Some("fs_shadow"), compilation_options: Default::default(), targets: &[] }),
-            multiview: None,
-            cache: None,
-        });
+        // Det ugjennomsiktige skrives bare som dybde (ingen fragmentshader,
+        // så kortet kan forkaste tidlig); alfakortene forkaster i `fs_shadow`.
+        let shadow_with = |label: &str, fragment: Option<wgpu::FragmentState>| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(label),
+                layout: Some(&world_layout),
+                vertex: wgpu::VertexState { module: &world_mod, entry_point: Some("vs_shadow"), compilation_options: Default::default(), buffers: &buffers },
+                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: DEPTH,
+                    depth_write_enabled: true,
+                    depth_compare: wgpu::CompareFunction::Less,
+                    stencil: Default::default(),
+                    bias: wgpu::DepthBiasState { constant: 2, slope_scale: 2.5, clamp: 0.0 },
+                }),
+                multisample: Default::default(),
+                fragment,
+                multiview: None,
+                cache: None,
+            })
+        };
+        let shadow_pipe = shadow_with("shadow", None);
+        let shadow_cutout = shadow_with("shadow cutout", Some(wgpu::FragmentState { module: &world_mod, entry_point: Some("fs_shadow"), compilation_options: Default::default(), targets: &[] }));
         let samples = (max_samples(adapter, &device, &[4]), max_samples(adapter, &device, &[8, 4]));
         log::info!("MSAA: {}× i standard grafikk, {}× i avansert", samples.0, samples.1);
         let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, world_layout, simple_layout };
-        // Spillet starter i standard grafikk; verten bytter med `set_reduced`.
-        let scene_pipes = sources.pipes(&device, samples.0);
+        // Spillet starter i standard grafikk; verten bytter med `set_quality`.
+        let scene_pipes = sources.pipes(&device, samples.0, true);
 
         let post_pipe = |entry: &str, format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -815,6 +835,8 @@ impl Renderer {
             post_layout,
             materials,
             shadow_pipe,
+            shadow_cutout,
+            world_cutout: scene.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
             sources,
             scene: scene_pipes,
             down_pipe,
@@ -829,6 +851,8 @@ impl Renderer {
             targets,
             current: None,
             reduced: true,
+            quality: Quality::Standard,
+            bench: Bench::default(),
             samples,
             triangles: std::cell::Cell::new((0, 0, 0)),
             pass_stats: Default::default(),
@@ -912,13 +936,39 @@ impl Renderer {
         self.pass_stats.get()
     }
 
-    /// Standard (`true`) eller avansert grafikk. Bytter antall MSAA-prøver
-    /// om kortet kan flere i avansert.
-    pub fn set_reduced(&mut self, reduced: bool) {
-        self.reduced = reduced;
-        let samples = if reduced { self.samples.0 } else { self.samples.1 };
-        if samples != self.scene.samples {
-            self.scene = self.sources.pipes(&self.device, samples);
+    /// Grafikknivået. Bytter antall MSAA-prøver om nivået (eller målingen)
+    /// vil ha et annet.
+    pub fn set_quality(&mut self, quality: Quality) {
+        self.quality = quality;
+        self.reduced = quality != Quality::Advanced;
+        self.apply();
+    }
+
+    /// Bryterne til målingen (`?bench`).
+    pub fn set_bench(&mut self, bench: Bench) {
+        self.bench = bench;
+        self.apply();
+    }
+
+    /// MSAA-prøvene nivået og målingen vil ha: 1, eller det kortet kan i
+    /// standard (4×) og avansert (8×).
+    fn wanted_samples(&self) -> u32 {
+        match self.bench.msaa {
+            1 => 1,
+            4 => self.samples.0,
+            8 => self.samples.1,
+            _ => match self.quality {
+                Quality::Simple => 1,
+                Quality::Standard => self.samples.0,
+                Quality::Advanced => self.samples.1,
+            },
+        }
+    }
+
+    fn apply(&mut self) {
+        let samples = self.wanted_samples();
+        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c {
+            self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c);
             self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, self.targets.width, self.targets.height);
         }
     }
@@ -961,7 +1011,7 @@ impl Renderer {
         let (w, h) = (t.width as f32, t.height as f32);
         let view_proj = f.proj * f.view;
         // Nede i kjelleren når ikke sola ned: ingen skygge, og sollyset er av.
-        let shadows = f.rooms.is_none() && f.band.1 >= 0.0;
+        let shadows = f.rooms.is_none() && f.band.1 >= 0.0 && self.quality != Quality::Simple && self.bench.shadow;
         let sun_vp = self.cascade(f, 0.1, SHADOW_FAR);
         // Småting kaster skygge bare nær.
         let sun_cull = Cull { frustum: Frustum::from_view_proj(sun_vp), eye: f.camera, fine_within: if self.reduced { 18.0 } else { 40.0 }, band: f.band };
@@ -1099,7 +1149,7 @@ impl Renderer {
             sky_horizon: v4(f.sky_horizon, if self.reduced && f.fog_density > 0.0 { (f.fog_density * 3.0).max(REDUCED_FOG) } else { f.fog_density }),
             ground_bounce: v4(f.ground_bounce, f.fog_falloff),
             fog_color: v4(f.fog_color, f.windows_lit),
-            params: [f.exposure, f.lights.len().min(if self.reduced { 8 } else { MAX_LIGHTS }) as f32, 1.0 / SHADOW_RES as f32, f.street_lights],
+            params: [f.exposure, f.lights.len().min(match self.quality { Quality::Simple => 4, Quality::Standard => 8, Quality::Advanced => MAX_LIGHTS }) as f32, 1.0 / SHADOW_RES as f32, f.street_lights],
             weather: [wx.wet, wx.snow_cover, wx.rain, wx.snow],
             screen: [w, h, 1.0 / w, 1.0 / h],
             misc: [wx.wind, self.scene.samples as f32, SHADOW_FADE, SHADOW_FAR],
@@ -1112,6 +1162,7 @@ impl Renderer {
             room_box,
             room_y,
             light_rooms,
+            quality: [self.quality as u8 as f32, if self.bench.flat { 1.0 } else { 0.0 }, 0.0, 0.0],
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 
@@ -1168,12 +1219,11 @@ impl Renderer {
                 occlusion_query_set: None,
             });
             if shadows {
-                pass.set_pipeline(&self.shadow_pipe);
                 pass.set_bind_group(0, &self.globals_bg, &[]);
                 pass.set_bind_group(1, &self.shadow_frame_bg, &[0]);
                 pass.set_bind_group(2, &self.materials.bind_group, &[]);
                 pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, None);
+                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout);
             }
         }
 
@@ -1194,12 +1244,11 @@ impl Renderer {
                 timestamp_writes: ts(1, true, true),
                 occlusion_query_set: None,
             });
-            pass.set_pipeline(&self.scene.world);
             pass.set_bind_group(0, &self.globals_bg, &[]);
             pass.set_bind_group(1, &self.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, Some(&self.scene.cutout));
+            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, &self.scene.world, &self.scene.cutout);
             self.triangles.set((stats[1].world, 0, stats[1].models));
             pass.set_pipeline(&self.scene.sky);
             pass.draw(0..3, 0..1);
@@ -1237,17 +1286,19 @@ impl Renderer {
             pass.draw(0..3, 0..1);
         };
         let clear = wgpu::LoadOp::Clear(wgpu::Color::BLACK);
-        for i in 0..BLOOM_LEVELS {
+        // Enkel grafikk: ingen glød (tonemappingen får styrke 0).
+        let bloom = self.quality != Quality::Simple;
+        for i in (0..BLOOM_LEVELS).filter(|_| bloom) {
             let (bg, sw, sh) = if i == 0 { (&t.down0_bg, t.width, t.height) } else { (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2) };
             post(&bg.1, [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }], sw, sh);
             fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear, if i == 0 { ts(2, true, false) } else { None });
         }
-        for (k, i) in (1..BLOOM_LEVELS).rev().enumerate() {
+        for (k, i) in (1..BLOOM_LEVELS).rev().enumerate().filter(|_| bloom) {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
             fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load, None);
         }
-        post(&t.tonemap_bg.1, [f.exposure, f.bloom, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
-        fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, false, true));
+        post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
+        fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom, true));
 
         if let Some(tm) = &mut self.timer {
             tm.resolve(&mut enc);
@@ -1263,9 +1314,10 @@ impl Renderer {
     /// de bitene som er innenfor synsfeltet, og småtingene bare nær
     /// kameraet. Naboer som begge skal tegnes slås sammen til ett kall.
     /// Returnerer hva som ble tegnet.
-    /// Tegner bymeshen og modellene. Med `cutout` tegnes modellene med
-    /// alfakort til slutt med den pipelinen (skyggepasset har én pipeline).
-    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, cutout: Option<&wgpu::RenderPipeline>) -> PassStats {
+    /// Tegner bymeshen og modellene: det ugjennomsiktige med `opaque` først,
+    /// så alfakortene med `cutout` (også bymeshen, om den har alfakort).
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, opaque: &wgpu::RenderPipeline, cutout: &wgpu::RenderPipeline) -> PassStats {
+        pass.set_pipeline(if self.world_cutout { cutout } else { opaque });
         let mut calls = 0u32;
         let mut instances = 0u32;
         pass.set_vertex_buffer(1, self.instances.slice(0..INSTANCE_STRIDE));
@@ -1301,6 +1353,7 @@ impl Renderer {
         let mut models = 0;
         // Først de ugjennomsiktige, så alfakortene med sin pipeline.
         let order = self.models.iter().zip(model_draws).filter(|(m, _)| !m.cutout).chain(self.models.iter().zip(model_draws).filter(|(m, _)| m.cutout));
+        pass.set_pipeline(opaque);
         let mut switched = false;
         for (m, draws) in order {
             let d = &draws[region];
@@ -1308,9 +1361,7 @@ impl Renderer {
                 continue;
             }
             if m.cutout && !switched {
-                if let Some(p) = cutout {
-                    pass.set_pipeline(p);
-                }
+                pass.set_pipeline(cutout);
                 switched = true;
             }
             pass.set_bind_group(3, &m.textures, &[]);
@@ -1348,8 +1399,11 @@ impl ports::Renderer for Renderer {
     fn resize(&mut self, width: u32, height: u32) {
         Renderer::resize(self, width, height);
     }
-    fn set_reduced(&mut self, reduced: bool) {
-        Renderer::set_reduced(self, reduced);
+    fn set_quality(&mut self, quality: Quality) {
+        Renderer::set_quality(self, quality);
+    }
+    fn set_bench(&mut self, bench: Bench) {
+        Renderer::set_bench(self, bench);
     }
     fn triangles(&self) -> u32 {
         let (w, p, m) = self.triangles.get();

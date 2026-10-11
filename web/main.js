@@ -28,13 +28,21 @@ const enterBtn = $("enter");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
-// Grafikken: standard (MSAA 4×, én piksel per CSS-piksel, laget for
-// jobb-PC-er) eller avansert (lengre sikt, MSAA 8× der kortet kan, og
-// høyere oppløsning på skjermer med høy pikseltetthet). Valget huskes, og
+// Grafikknivået: enkel (de svakeste maskinene og WebGL2: uten MSAA,
+// solskygge og glød, høyst 900p), standard (MSAA 4×, én piksel per
+// CSS-piksel, høyst 1080p) eller avansert (lengre sikt, MSAA 8× der kortet
+// kan, opptil 1,5 piksler per CSS-piksel og 1440p). Valget huskes, og
 // grafikken byttes aldri av seg selv.
-let reducedGfx = true;
+const QUALITIES = ["enkel", "standard", "avansert"];
+const QUALITY_INFO = {
+  enkel: { cap: 900, dense: 1, note: "uten MSAA, solskygge og glød; for svake maskiner og WebGL2." },
+  standard: { cap: 1080, dense: 1, note: "MSAA 4×, kortere sikt. Laget for en vanlig maskin." },
+  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, MSAA 8× der kortet kan." },
+};
+let quality = null;
 try {
-  reducedGfx = localStorage.getItem("fristad.graphics") !== "avansert";
+  const q = localStorage.getItem("fristad.graphics");
+  if (QUALITIES.includes(q)) quality = q;
 } catch {
   /* ingen lagring */
 }
@@ -64,8 +72,9 @@ function renderHeight() {
   if (resolution === "auto") {
     // Standard tegner aldri tettere enn én piksel per CSS-piksel, avansert
     // opptil 1,5 på skjermer med høy pikseltetthet; og aldri over trinnet.
-    const dense = Math.round(canvas.clientHeight * Math.min(dpr, reducedGfx ? 1 : 1.5));
-    const cap = Math.min(dense, reducedGfx ? 1080 : 1440);
+    const info = QUALITY_INFO[quality ?? "standard"];
+    const dense = Math.round(canvas.clientHeight * Math.min(dpr, info.dense));
+    const cap = Math.min(dense, info.cap);
     const fit = RES_STEPS.filter((h) => h <= cap);
     return fit.length ? fit[fit.length - 1] : Math.min(ph, cap);
   }
@@ -124,8 +133,9 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics };
-  setGraphics(reducedGfx, false, false);
+  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
+  // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
+  setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -141,6 +151,7 @@ async function boot() {
     $("touch-note").hidden = false;
   }
   checkGpu();
+  if (new URLSearchParams(location.search).has("bench")) runBench();
 }
 
 // Tegner nettleseren uten grafikkortet (maskinvareakselerasjon slått av,
@@ -181,9 +192,9 @@ async function checkGpu() {
   const short = name.match(/swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic render driver|basic render driver/i)?.[0];
   $("gpu-name").textContent = short ? `tegnes med ${short}` : "tegnes med programvare";
   $("gpu-warning").hidden = false;
-  $("gpu-reduced").hidden = reducedGfx;
+  $("gpu-reduced").hidden = quality === "enkel";
   $("gpu-reduced").addEventListener("click", () => {
-    setGraphics(true);
+    setQuality("enkel");
     $("gpu-reduced").hidden = true;
   });
 }
@@ -306,36 +317,36 @@ let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
 // Byttes grafikken: motoren, oppløsningen og knappene.
-function setGraphics(reduced, chosen = true, announce = true) {
-  reducedGfx = reduced;
+function setQuality(name, chosen = true, announce = true) {
+  quality = name;
   if (chosen) {
     try {
-      localStorage.setItem("fristad.graphics", reduced ? "standard" : "avansert");
+      localStorage.setItem("fristad.graphics", name);
     } catch {
       /* ingen lagring */
     }
   }
-  if (engine) {
-    engine.set_reduced(reduced);
-  }
+  if (engine) engine.set_quality(name);
   slowSeconds = 0;
   fit();
-  const name = reduced ? "standard" : "avansert";
   $("graphics").textContent = `Grafikk: ${name}`;
-  $("graphics").setAttribute("aria-pressed", String(reduced));
   $("graphics-label").textContent = name;
-  if (announce) toast?.show?.(reduced ? "Standard grafikk. G bytter til avansert." : "Avansert grafikk: lengre sikt og skarpere kanter. G bytter tilbake til standard.");
+  if (announce) toast?.show?.(`Grafikk: ${name} – ${QUALITY_INFO[name].note} G bytter nivå.`);
 }
-// Går det tregt over tid i avansert grafikk, foreslås standard én gang.
-// Ingenting byttes uten at spilleren ber om det.
+// Til nettlesertestene og eldre lenker: standard (`true`) eller avansert.
+function setGraphics(reduced, chosen = true, announce = true) {
+  setQuality(reduced ? "standard" : "avansert", chosen, announce);
+}
+// Går det tregt over tid, foreslås et lavere nivå én gang. Ingenting
+// byttes uten at spilleren ber om det.
 let slowSeconds = 0;
 let suggested = false;
 function adapt(fps) {
-  if (!playing || reducedGfx || suggested) return;
+  if (!playing || quality === "enkel" || suggested || benchRunning) return;
   slowSeconds = fps < 25 ? slowSeconds + 1 : 0;
   if (slowSeconds >= 8) {
     suggested = true;
-    toast?.show?.("Spillet går tregt. Trykk G for standard grafikk.");
+    toast?.show?.("Spillet går tregt. Velg et lavere grafikknivå i Innstillinger (O) eller med G.");
   }
 }
 function loop(now) {
@@ -345,6 +356,7 @@ function loop(now) {
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
   frames++;
+  benchFrames++;
   if (now - perfAt > 1000) {
     const fps = Math.round((frames * 1000) / (now - perfAt));
     adapt(fps);
@@ -832,12 +844,11 @@ function openSettings() {
     <div class="fs-dialog__body">
       <fieldset class="fs-fieldset">
         <legend class="fs-legend">Grafikk</legend>
-        ${radio("gfx", "standard", "Standard", "MSAA 4×, kortere sikt. Laget for jobb-PC-er.", reducedGfx)}
-        ${radio("gfx", "avansert", "Avansert", "lengre sikt, MSAA 8× der kortet kan.", !reducedGfx)}
+        ${QUALITIES.map((q) => radio("gfx", q, q[0].toUpperCase() + q.slice(1), QUALITY_INFO[q].note, quality === q)).join("")}
       </fieldset>
       <fieldset class="fs-fieldset">
         <legend class="fs-legend">Oppløsning</legend>
-        ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${reducedGfx ? "1080p" : "1440p"}.`, resolution === "auto")}
+        ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${QUALITY_INFO[quality ?? "standard"].cap}p.`, resolution === "auto")}
         ${steps}
       </fieldset>
       <p class="fs-help-text">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
@@ -849,7 +860,7 @@ function openSettings() {
   settingsOpen = dlg;
   dlg.addEventListener("change", (ev) => {
     const t = ev.target;
-    if (t.name === "gfx") setGraphics(t.value === "standard");
+    if (t.name === "gfx") setQuality(t.value);
     if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
     dlg.querySelector(".fs-help-text:last-of-type").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
     click();
@@ -1244,7 +1255,7 @@ function bindInput() {
       return;
     }
     if (e.code === "KeyG" && !e.repeat && (playing || !gateEl.hidden)) {
-      setGraphics(!reducedGfx);
+      setQuality(QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]);
       return;
     }
     if (e.code === "KeyO" && !e.repeat && (playing || !gateEl.hidden || settingsOpen)) {
@@ -1270,7 +1281,7 @@ function bindInput() {
 
   $("close").addEventListener("click", () => closePanel(true));
   $("overlay-close").addEventListener("click", () => closeOverlay(true, true));
-  $("graphics").addEventListener("click", () => setGraphics(!reducedGfx));
+  $("graphics").addEventListener("click", () => setQuality(QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]));
   $("settings").addEventListener("click", () => openSettings());
 }
 
@@ -1403,3 +1414,111 @@ boot().catch((e) => {
   status.textContent =
     "Fristad trenger WebGPU eller WebGL2, og fikk ikke startet her. Prøv en oppdatert Chrome, Edge, Safari eller Firefox.";
 });
+
+
+// Målingen (`?bench` i adressen, eller `fristad.bench()` i konsollen): går
+// gjennom faste steder og grafikkvalg, måler tiden på grafikkortet per del
+// og bildene per sekund, og viser alt som én tekst eieren kan kopiere.
+// Bryterne (MSAA, alpha to coverage, solskygge, flat farge) skiller hva som
+// koster: flat farge måler bare rasterisering og overtegning.
+let benchFrames = 0;
+let benchRunning = false;
+const BENCH_PLACES = [
+  ["torget", 2, 1.7, 9, 0],
+  ["Storgata", 4.7, 1.7, 28, 0],
+  ["sørporten", 4.7, 1.7, 50, 0],
+];
+const BENCH_RUNS = [
+  ["standard", 0, true, true, false],
+  ["standard", 1, true, true, false],
+  ["standard", 0, true, true, true],
+  ["standard", 1, true, true, true],
+  ["standard", 0, false, true, false],
+  ["standard", 0, true, false, false],
+  ["enkel", 0, true, true, false],
+  ["avansert", 0, true, true, false],
+];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function measure(seconds) {
+  const parts = new Map();
+  let samples = 0;
+  benchFrames = 0;
+  const t0 = performance.now();
+  while (performance.now() - t0 < seconds * 1000) {
+    await sleep(100);
+    const text = engine.gpu_times ? engine.gpu_times() : "";
+    if (!text) continue;
+    samples++;
+    for (const p of text.split(" · ")) {
+      const k = p.slice(0, p.lastIndexOf(" "));
+      parts.set(k, (parts.get(k) ?? 0) + parseFloat(p.split(" ").pop()));
+    }
+  }
+  const fps = (benchFrames * 1000) / (performance.now() - t0);
+  const avg = [...parts].map(([k, v]) => [k, v / Math.max(samples, 1)]);
+  const total = avg.reduce((a, [, v]) => a + v, 0);
+  return { fps, total, avg };
+}
+async function runBench() {
+  if (benchRunning || !engine) return;
+  benchRunning = true;
+  const before = quality;
+  gateEl.hidden = true;
+  engine.set_paused(false);
+  const lines = [
+    `Fristad ${engine.fristil_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
+    `${navigator.userAgent}`,
+    `Lerret ${canvas.width}×${canvas.height} · vindu ${innerWidth}×${innerHeight} · dpr ${devicePixelRatio}`,
+    "sted · nivå · msaa · a2c · skygge · flat → GPU ms (delene) · fps",
+  ];
+  const label = (run) => `${run[0]} · ${run[1] || "nivå"} · ${run[2] ? "a2c" : "-"} · ${run[3] ? "skygge" : "-"} · ${run[4] ? "flat" : "-"}`;
+  toast?.show?.("Måler grafikken … (rundt ett minutt)");
+  for (const [name, x, y, z, yaw] of BENCH_PLACES) {
+    for (const run of BENCH_RUNS) {
+      if (name !== "torget" && run !== BENCH_RUNS[0] && run[0] === "standard") continue;
+      setQuality(run[0], false, false);
+      engine.set_bench(run[1], run[2], run[3], run[4]);
+      engine.place(x, y, z, yaw, 0);
+      await sleep(600);
+      const m = await measure(2);
+      const partText = m.avg.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");
+      lines.push(`${name} · ${label(run)} → ${m.total > 0 ? `${m.total.toFixed(1)} ms (${partText})` : "GPU-tid ikke tilgjengelig"} · ${m.fps.toFixed(0)} fps`);
+    }
+  }
+  engine.set_bench(0, true, true, false);
+  setQuality(before ?? "standard", false, false);
+  benchRunning = false;
+  showBench(lines.join("\n"));
+}
+function showBench(text) {
+  console.info(text);
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog";
+  dlg.setAttribute("aria-labelledby", "bench-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="bench-title">Målingen</h2>
+    <div class="fs-dialog__body">
+      <p class="fs-help-text">Kopier teksten og send den til Claude.</p>
+      <textarea class="fs-textarea" rows="16" readonly style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk</button>
+      <button class="fs-button" data-variant="primary" type="button" data-act="copy">Kopier</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  dlg.querySelector("textarea").value = text;
+  dlg.querySelector('[data-act="copy"]').addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast?.show?.("Kopiert.");
+    } catch {
+      dlg.querySelector("textarea").select();
+    }
+  });
+  dlg.querySelector('[data-act="close"]').addEventListener("click", () => {
+    dlg.close();
+    dlg.remove();
+    gateEl.hidden = false;
+  });
+  dlg.showModal();
+}

@@ -253,7 +253,11 @@ struct Tex {
     height: f32,
 }
 
-fn sample_plane(layer: i32, uv: vec2<f32>, gx: vec2<f32>, gy: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
+fn sample_plane(layer: i32, uv: vec2<f32>, gx_in: vec2<f32>, gy_in: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
+    // Enkel grafikk leser ett mipnivå ned: halv teksturtetthet.
+    let lod = select(1.0, 2.0, g.quality.x < 0.5);
+    let gx = gx_in * lod;
+    let gy = gy_in * lod;
     let a = textureSampleGrad(tex_albedo, tex_sampler, uv, layer, gx, gy).rgb;
     let nrh = textureSampleGrad(tex_nrh, tex_sampler, uv, layer, gx, gy);
     // Normalkartene fra de malte bildene tas med halv styrke: formene er
@@ -365,7 +369,11 @@ fn terrain(w_raw: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32
     // over trekantene; i overgangene forskyves de med støy i to skalaer,
     // så kantene mellom brostein, jord og gress blir ujevne og flekkete i
     // stedet for å følge rutene.
-    let warp = vec4<f32>(
+    // Enkel grafikk: ingen støy i overgangene og bare laget med størst vekt.
+    let simple = g.quality.x < 0.5;
+    var warp = vec4<f32>(0.0);
+    if (!simple) {
+    warp = vec4<f32>(
         fbm2(world.xz * 0.55 + vec2<f32>(3.1, 7.7)),
         fbm2(world.xz * 0.45 + vec2<f32>(9.2, 1.3)),
         fbm2(world.xz * 0.35 + vec2<f32>(5.5, 4.4)),
@@ -376,6 +384,7 @@ fn terrain(w_raw: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32
         fbm2(world.xz * 1.7 + vec2<f32>(4.4, 9.9)),
         fbm2(world.xz * 1.5 + vec2<f32>(8.8, 5.5)),
     ) * 0.4 - vec4<f32>(0.7);
+    }
     let band = clamp(w_raw * (vec4<f32>(1.0) - w_raw) * 4.0, vec4<f32>(0.0), vec4<f32>(1.0));
     var w_in = clamp(w_raw + warp * band * 0.9, vec4<f32>(0.0), vec4<f32>(1.0));
     let total_w = w_in.x + w_in.y + w_in.z + w_in.w;
@@ -386,6 +395,17 @@ fn terrain(w_raw: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32
     // Lagene: brostein 0, søle 11, berg 15, skogbunn 14, gress 9, tråkket jord 17.
     var layers = array<i32, 6>(0, 11, 15, 14, 9, 17);
     var weights = array<f32, 6>(w_in.x, w_in.y * (1.0 - earth), w_in.z, w_in.w, grass_w, w_in.y * earth);
+    if (simple) {
+        var top = 0;
+        for (var k = 1; k < 6; k++) {
+            if (weights[k] > weights[top]) {
+                top = k;
+            }
+        }
+        for (var k = 0; k < 6; k++) {
+            weights[k] = select(0.0, 1.0, k == top);
+        }
+    }
     var samples: array<Tex, 6>;
     var best = -1.0;
     for (var k = 0; k < 6; k++) {
@@ -647,8 +667,7 @@ fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u
 
 // Alfakortene (gress, blad): med MSAA blir dekningen til prøver (alpha to
 // coverage), strammet inn så kantene er skarpe uten å flimre; uten MSAA
-// kuttes de ved halv dekning.
-// Uten MSAA kuttes de i `fs_cutout` (alfa under 0,5 forkastes der).
+// kuttes de ved halv dekning i `fs_cutout`.
 fn card_alpha(a: f32) -> f32 {
     if (g.misc.y < 1.5) {
         return select(0.0, 1.0, a >= 0.5);
@@ -662,6 +681,10 @@ fn card_alpha(a: f32) -> f32 {
 // skyggelagt fullt).
 @fragment
 fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    // Målingen (`?bench`, flat): bare rasterisering og overtegning.
+    if (g.quality.y > 0.5) {
+        return vec4<f32>(0.5, 0.5, 0.5, 1.0);
+    }
     return fragment(i, front);
 }
 

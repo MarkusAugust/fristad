@@ -47,6 +47,9 @@ struct Globals {
     room_box: array<vec4<f32>, 64>,
     room_y: array<vec4<f32>, 32>,
     light_rooms: array<vec4<u32>, 24>,
+    // x grafikknivået (0 enkel, 1 standard, 2 avansert), y flat farge
+    // (målingen `?bench`).
+    quality: vec4<f32>,
 }
 
 // Rommet et punkt er i: det minste rommet med en boks som rommer det, eller

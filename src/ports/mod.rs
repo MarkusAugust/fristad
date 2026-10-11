@@ -29,12 +29,57 @@ pub struct StaticScene<'a> {
     pub models: &'a [Model],
 }
 
+/// Grafikknivået spilleren har valgt. Byttes aldri av seg selv.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Quality {
+    /// For de svakeste maskinene (og det WebGL2 får): uten MSAA, uten
+    /// solskygge og glød, ett lag på bakken, fire lys og halv teksturtetthet.
+    Simple,
+    /// For en vanlig maskin: MSAA 4×, kortere sikt, åtte lys.
+    #[default]
+    Standard,
+    /// For en god maskin: lengre sikt, alle lys og MSAA 8× der kortet kan.
+    Advanced,
+}
+
+impl Quality {
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "enkel" => Some(Quality::Simple),
+            "standard" => Some(Quality::Standard),
+            "avansert" => Some(Quality::Advanced),
+            _ => None,
+        }
+    }
+}
+
+/// Brytere til målingen i nettleseren (`?bench`): slå av deler av bildet
+/// én om gangen, så tiden per del kan skilles fra hverandre.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Bench {
+    /// MSAA-prøver i stedet for nivåets (0: nivåets).
+    pub msaa: u32,
+    /// Alpha to coverage på alfakortene.
+    pub a2c: bool,
+    /// Solskyggen.
+    pub shadow: bool,
+    /// Flat farge i stedet for skyggeleggingen (måler rasterisering og
+    /// overtegning alene).
+    pub flat: bool,
+}
+
+impl Default for Bench {
+    fn default() -> Self {
+        Bench { msaa: 0, a2c: true, shadow: true, flat: false }
+    }
+}
+
 pub trait Renderer {
     fn render(&mut self, frame: &Frame);
     fn resize(&mut self, width: u32, height: u32);
-    /// Standard grafikk (`true`, for jobb-PC-er) eller avansert (lengre
-    /// sikt, flere lys og MSAA 8× der kortet kan).
-    fn set_reduced(&mut self, reduced: bool);
+    fn set_quality(&mut self, quality: Quality);
+    /// Bryterne til målingen; `Bench::default()` er vanlig spill.
+    fn set_bench(&mut self, _bench: Bench) {}
     /// Trekanter tegnet i hovedpasset sist bilde.
     fn triangles(&self) -> u32;
     /// Millisekunder på grafikkortet per del av bildet, om det kan måles.

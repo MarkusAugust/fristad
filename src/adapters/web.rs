@@ -10,6 +10,7 @@ use crate::adapters::wgpu::Renderer;
 use crate::application::{prepare, App};
 use crate::domain::weather::{Daylight, WeatherKind};
 use crate::ports::driving::{Command, Event, Play, SaveData};
+use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -221,9 +222,17 @@ impl Engine {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
     }
 
-    /// Standard grafikk (`true`) eller avansert.
-    pub fn set_reduced(&mut self, reduced: bool) {
-        self.app.command(Command::SetReduced(reduced));
+    /// Grafikknivået: «enkel», «standard» eller «avansert».
+    pub fn set_quality(&mut self, name: &str) {
+        if let Some(q) = Quality::from_name(name) {
+            self.app.command(Command::SetQuality(q));
+        }
+    }
+
+    /// Bryterne til målingen (`?bench`): MSAA-prøver (0 er nivåets),
+    /// alpha to coverage, solskygge og flat farge.
+    pub fn set_bench(&mut self, msaa: u32, a2c: bool, shadow: bool, flat: bool) {
+        self.app.command(Command::SetBench(Bench { msaa, a2c, shadow, flat }));
     }
 
     /// Trekanter tegnet sist bilde.

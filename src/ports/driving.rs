@@ -108,7 +108,8 @@ pub enum Command {
     Descend,
     /// Flytt kameraet (øyet), til skjermbilder og tester.
     Place { eye: Vec3, yaw: f32, pitch: f32 },
-    SetReduced(bool),
+    SetQuality(super::Quality),
+    SetBench(super::Bench),
 }
 
 /// Spillet sett utenfra.
