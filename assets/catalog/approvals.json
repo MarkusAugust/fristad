@@ -1,0 +1,177 @@
+{
+ "_om": "Eierens dom over hver ting: godkjent eller underkjent, med dato og hvorfor. Bare eieren setter denne; verktøyene leser den. Det som ikke står her, er ikke vurdert.",
+ "textures": {
+  "crypt_plaster": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Stjernetapetet får krypten til å se ut som et barnerom; laget bruker plaster_old til ny kryptpuss kommer."
+  }
+ },
+ "models": {
+  "well": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark."
+  },
+  "crypt": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4)."
+  },
+  "stave_church": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kirka skal være en vanlig middelalderkirke i stein i samme stil som kryptens nedgang."
+  },
+  "stave_church_interior": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Følger kirka: lages på nytt som steinkirke."
+  },
+  "tavern_interior": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Tønner på rad; innredningen må plasseres med group() (fase 4)."
+  },
+  "crypt_01_aa": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ab": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ac": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ad": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ae": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_af": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ag": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ah": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ai": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_aj": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ak": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_al": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_am": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_an": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ao": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ap": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_aq": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ar": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_as": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_at": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_au": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_av": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_aw": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ax": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ay": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_az": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_ba": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  },
+  "crypt_01_bb": {
+   "verdict": "underkjent",
+   "date": "2026-10-11",
+   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+  }
+ }
+}

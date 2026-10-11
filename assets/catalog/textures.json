@@ -1,0 +1,415 @@
+{
+ "_om": "Det som ikke kan regnes ut om hvert teksturlag: slaget (tile: flis som legges i ett, sheet: et ark med motiver), temaet og hva det viser. Eierens dom står i approvals.json.",
+ "textures": {
+  "ashlar": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Hogde sandsteinsblokker i forband, beige og grå, lyse fuger."
+  },
+  "bark_birch": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Hvit bjørkebark med svarte streker."
+  },
+  "bark_oak": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Grov, mørk eikebark med mose i sprekkene."
+  },
+  "bark_spruce": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Rødbrun granbark i flak med harpiksdråper."
+  },
+  "bronze_door": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Mørke eikeplanker med jernbånd og nagler (kryptdører)."
+  },
+  "cave_rock": {
+   "kind": "tile",
+   "theme": "gruve",
+   "shows": "Lagdelt blågrå berg, skrått sjiktet (huler)."
+  },
+  "chainmail": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Ringbrynje, tett flettede jernringer."
+  },
+  "chimney": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Murt pipe av rød og grå tegl."
+  },
+  "church_boards": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Tjærebredde, mørke stående bord (stavkirka)."
+  },
+  "cladding": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Stående brune bord med fuger (kledning)."
+  },
+  "cobble": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Brostein, avrundede steiner i varme og grå farger."
+  },
+  "core_plastic": {
+   "kind": "tile",
+   "theme": "kjerne",
+   "shows": "Grå plastaktige plater med bolter og flekker (den korrupte kjernen)."
+  },
+  "core_stone": {
+   "kind": "tile",
+   "theme": "kjerne",
+   "shows": "Mørk stein med lysende cyan og fiolette fuger (den korrupte kjernen)."
+  },
+  "cow_fur": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Rødbrun og hvit kuskinn i flekker."
+  },
+  "crypt_floor": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Uregelmessige grå steinheller (kryptgulv)."
+  },
+  "crypt_plaster": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Hvit puss med stjerner og prikker og murhull. Underkjent som «barnerom»."
+  },
+  "crypt_vault": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Mørk, smal tegl i hvelv (kryptens tak)."
+  },
+  "crypt_wall": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Lyse kvadersteiner i forband (kryptens vegger)."
+  },
+  "crystal": {
+   "kind": "tile",
+   "theme": "gruve",
+   "shows": "Blå krystaller i klaser."
+  },
+  "door": {
+   "kind": "sheet",
+   "theme": "by",
+   "shows": "Én dør: brune stående bord med smijernshengsler og ring."
+  },
+  "door_b": {
+   "kind": "sheet",
+   "theme": "by",
+   "shows": "Én dør, variant: rødbrune bord med hengsler og ring."
+  },
+  "earth": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Brun, tråkket jord med småstein og fotspor."
+  },
+  "felt": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Brun filt."
+  },
+  "flagstone": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Store kantete heller i varme og grå toner."
+  },
+  "forest_floor": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Barnåler, kongler og mose (skogbunn)."
+  },
+  "fur": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Grå pels i lokker."
+  },
+  "gambeson": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Kremhvit vattert kjortel i ruter."
+  },
+  "glitch_seam": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Mørk stein med lysende cyan og rosa sprekker og pikselblokker (de korrupte sømmene)."
+  },
+  "grave_slab": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Gravheller med kors og skjold i et steingulv."
+  },
+  "gravel": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Grus og småstein på gul jord."
+  },
+  "iron": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Blåsvart smijern med naglehoder."
+  },
+  "iron_worked": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Hamret mørkt jern med bulker."
+  },
+  "keep_ashlar": {
+   "kind": "tile",
+   "theme": "borg",
+   "shows": "Mørk kvaderstein (borgen)."
+  },
+  "keep_floor": {
+   "kind": "tile",
+   "theme": "borg",
+   "shows": "Rutete gulv av grå og røde steinfliser på skrå (borgen)."
+  },
+  "leather": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Brunt lær med sømmer."
+  },
+  "linen": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Hvitt lin, fin vev."
+  },
+  "logs": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Liggende tømmerstokker med mose i fugene (laft)."
+  },
+  "meadow": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Gress med hvite, gule og lilla blomster (eng)."
+  },
+  "mine_rock": {
+   "kind": "tile",
+   "theme": "gruve",
+   "shows": "Mørk, kantet berg (gruva)."
+  },
+  "mine_timber": {
+   "kind": "tile",
+   "theme": "gruve",
+   "shows": "Grå, slitte bjelker (gruvas avstivning)."
+  },
+  "mud": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Søle med hjulspor og gress i kantene (veiene)."
+  },
+  "oak_planed": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Høvlede lyse eikebord (gulv og møbler)."
+  },
+  "ossuary": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Hodeskaller og knokler stablet (beinhuset)."
+  },
+  "parchment": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Lyst pergament med flekker."
+  },
+  "planks": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Liggende rødbrune bord med spikre."
+  },
+  "plaster": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Varm, lys kalkpuss."
+  },
+  "plaster_old": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Lys puss med avskallinger."
+  },
+  "plaster_red": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Rød puss med avskallinger."
+  },
+  "plaster_white": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Hvit puss."
+  },
+  "plate_steel": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Hamret stålplate."
+  },
+  "pottery": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Oransje brent leire med glasurflekker (krukker)."
+  },
+  "rock": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Grått berg med lav."
+  },
+  "rope": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Snodd tau, liggende rader."
+  },
+  "rubble": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Steinur, løse steiner og grus."
+  },
+  "ruin": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Gammel, mosegrodd steinmur."
+  },
+  "rust": {
+   "kind": "tile",
+   "theme": "kjerne",
+   "shows": "Grått metall med rustflekker."
+  },
+  "sewer_brick": {
+   "kind": "tile",
+   "theme": "kloakk",
+   "shows": "Mørk, fuktig tegl (kloakken)."
+  },
+  "sewer_floor": {
+   "kind": "tile",
+   "theme": "kloakk",
+   "shows": "Våte steinheller med pytter og mose (kloakken)."
+  },
+  "sheep_wool": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Krøllet saueull."
+  },
+  "shingles": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Spon, rødbrune og grå trespon (tak)."
+  },
+  "shingles_tar": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Tjærebredt, rundet spon i skjell (stavkirketaket)."
+  },
+  "signs": {
+   "kind": "sheet",
+   "theme": "by",
+   "shows": "Fire hengeskilt: ambolt, ølkrus, morter, bok og fjær."
+  },
+  "slate": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Skifer, blågrå med enkelte røde og grønne."
+  },
+  "snow": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Snø i myke driver."
+  },
+  "sod": {
+   "kind": "tile",
+   "theme": "natur",
+   "shows": "Torv, gresstuster og jord (torvtak)."
+  },
+  "stone": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Grå kvadersteinsmur med runde steiner og mose."
+  },
+  "straw": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Løs halm, lys."
+  },
+  "straw_floor": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Halm strødd på et mørkt gulv."
+  },
+  "thatch": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Halmtak i lag."
+  },
+  "tiles": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Røde munk-og-nonne-takstein."
+  },
+  "timber": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Mørkbrunt tømmer, liggende bjelker."
+  },
+  "timber_grey": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Gråvær, sprukket tømmer."
+  },
+  "trim": {
+   "kind": "sheet",
+   "theme": "by",
+   "shows": "Trim-ark: utskåret list, profiler, tegl, nagleband, tau."
+  },
+  "wall_stone": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Kløyvd naturstein i blå, grå og rustrøde toner."
+  },
+  "water_murky": {
+   "kind": "tile",
+   "theme": "kloakk",
+   "shows": "Grumsete grønt vann med ringer."
+  },
+  "wattle": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Flettverk av kvister mellom stolper."
+  },
+  "weatherboard": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Liggende kledningsbord, brune og grå."
+  },
+  "weatherboard_grey": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Liggende gråværede kledningsbord."
+  },
+  "weave": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Grov vev i fiskebein."
+  },
+  "wicker": {
+   "kind": "tile",
+   "theme": "by",
+   "shows": "Flettet kurv."
+  },
+  "windows": {
+   "kind": "sheet",
+   "theme": "by",
+   "shows": "Fire vinduer: blyglass med karm, med skodder, rundbuet i stein, gjenspikret."
+  },
+  "wool": {
+   "kind": "tile",
+   "theme": "figur",
+   "shows": "Grå ullvev."
+  }
+ }
+}

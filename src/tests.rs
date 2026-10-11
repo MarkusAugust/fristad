@@ -1845,3 +1845,40 @@ fn blenderskriptene_henger_sammen() {
     let out = std::process::Command::new("python3").arg(format!("{root}/tools/models/check_scripts.py")).output().expect("python3");
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
 }
+
+/// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:
+/// hver modell spillet har, står i `assets/catalog/models.json` med hva den
+/// er, hvert teksturlag og hvert malt bilde i `textures.json`, og eierens dom
+/// i `approvals.json` gjelder noe som finnes.
+#[test]
+fn katalogen_dekker_alt() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let read = |f: &str| -> serde_json::Value { serde_json::from_str(&std::fs::read_to_string(format!("{root}/assets/catalog/{f}")).expect(f)).expect(f) };
+    let models = read("models.json");
+    let textures = read("textures.json");
+    let approvals = read("approvals.json");
+    let m = models["models"].as_object().expect("models");
+    let t = textures["textures"].as_object().expect("textures");
+    let mut bad = vec![];
+    for (name, _) in crate::adapters::gltf::model_files() {
+        if !m.contains_key(*name) {
+            bad.push(format!("modellen {name} mangler i models.json"));
+        }
+    }
+    let dirs = |d: &str, file: &str| -> Vec<String> {
+        std::fs::read_dir(format!("{root}/{d}")).expect(d).flatten().filter(|e| e.path().join(file).exists()).map(|e| e.file_name().to_string_lossy().into_owned()).collect()
+    };
+    for name in dirs("assets/textures/painted", "albedo.png").into_iter().chain(dirs("assets/textures", "albedo.jpg")) {
+        if !t.contains_key(&name) {
+            bad.push(format!("teksturen {name} mangler i textures.json"));
+        }
+    }
+    for (kind, list) in [("models", m), ("textures", t)] {
+        for name in approvals[kind].as_object().expect("approvals").keys() {
+            if !list.contains_key(name) {
+                bad.push(format!("approvals.json dømmer {kind}/{name}, som ikke finnes"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "katalogen er ikke komplett:\n{}", bad.join("\n"));
+}
