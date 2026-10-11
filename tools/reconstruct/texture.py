@@ -186,11 +186,15 @@ def project():
         ndc = np.clip(Nh @ cam, 0, 1)
         e = sample(edge, u, vv, fill=0)
         base = vis * e
-        wl = base * ndc ** 2
+        wl = base * ndc ** (8 if J.OPT.get("detail") == "winner" else 2)
         wh = base * ndc ** 8
         cl = np.stack([sample(low[:, :, c], u, vv) for c in range(3)], -1)
         ch = np.stack([sample(high[:, :, c], u, vv) for c in range(3)], -1)
         lo_acc += wl[:, None] * cl; wl_acc += wl
+        if J.OPT.get("detail") == "winner":
+            # detaljene bare fra visningen som ser flaten best (myk overgang over et smalt bånd), så linjene
+            # (øyne, bryn) aldri tegnes to ganger der visningene ikke stemmer helt
+            wh = base * ndc ** 40
         hi_acc += wh[:, None] * ch; wh_acc += wh
         print(k, "synlig andel %.2f" % (vis > 0.5).mean())
     col = lo_acc / np.maximum(wl_acc, 1e-6)[:, None] + hi_acc / np.maximum(wh_acc, 1e-6)[:, None]

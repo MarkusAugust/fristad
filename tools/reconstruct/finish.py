@@ -164,3 +164,44 @@ def export(ob, path):
                               export_jpeg_quality=90, export_cameras=False, export_lights=False)
     subprocess.run([sys.executable, os.path.join(J.ROOT, "tools/models/slim.py"), path], check=False)
     print("glb", path, len(ob.data.polygons), "trekanter")
+
+
+def closeup(side="R", res=768, samples=48, out=None):
+    """Nærbilde av hånda (og redskapet) fra 3/4 forfra, i godt lys: grepet om skaftet."""
+    import bpy
+    import cv2
+    from mathutils import Vector
+    from .rig import joints
+    bpy.ops.wm.open_mainfile(filepath=J.p("assembled.blend"))
+    for o in bpy.data.objects:
+        if o.type == "MESH":
+            if not o.data.materials:
+                o.data.materials.append(bpy.data.materials.new("m"))
+            o.data.materials[0] = bpy.data.objects["body"].data.materials[0]
+    build_material(bpy.data.objects["body"], "full")
+    fr = json.load(open(J.p("frame.json")))["frame"]
+    Jw = joints(fr)
+    hand = w2b((np.asarray(Jw[f"wrist.{side}"], float) + np.asarray(Jw[f"finger.{side}"], float)) / 2)
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.samples = samples
+    sc.cycles.use_denoising = False
+    sc.render.resolution_x = sc.render.resolution_y = res
+    sc.view_settings.view_transform = "Standard"
+    w = bpy.data.worlds.new("w"); sc.world = w; w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs[0].default_value = (0.5, 0.5, 0.5, 1)
+    w.node_tree.nodes["Background"].inputs[1].default_value = 1.0
+    cam_d = bpy.data.cameras.new("cam"); cam_d.lens = 85
+    cam = bpy.data.objects.new("cam", cam_d); sc.collection.objects.link(cam); sc.camera = cam
+    sx = -1 if side == "R" else 1  # figurens høyre er -x
+    d = Vector((sx * 0.45, -0.85, 0.2)).normalized()  # 3/4 forfra (Blender: -Y er fram), litt ovenfra
+    c = Vector(tuple(hand))
+    cam.location = c + d * 1.1
+    cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    key_d = bpy.data.lights.new("key", "AREA"); key_d.size = 0.8; key_d.energy = 6
+    key = bpy.data.objects.new("key", key_d); sc.collection.objects.link(key)
+    key.location = c + Vector((sx * 0.3, -0.5, 0.5))
+    key.rotation_euler = (c - key.location).to_track_quat("-Z", "Y").to_euler()
+    out = out or os.path.join(J.SHOTS, f"hand_{side}.png")
+    sc.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+    print("nærbilde", out)

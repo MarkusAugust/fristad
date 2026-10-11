@@ -26,6 +26,11 @@ def frame():
     for k in J.VIEWS:
         o = out[k]
         o["sy"] = (o["bot"] - o["top"]) / (f["bot"] - f["top"])  # bildepiksler per verdenspiksel
+    if J.OPT.get("same_scale"):  # rutene er tegnet i samme målestokk; bunnen (halskuttet) er upålitelig
+        for k in J.VIEWS:
+            out[k]["sy"] = 1.0
+    if J.OPT.get("align") == "skin":
+        align_skin(out)
     # vannrett sentrum: midten av silhuetten over ørene (øverste 45 %)
     for k in J.VIEWS:
         m, _ = load_view(k)
@@ -37,6 +42,45 @@ def frame():
         else:
             o["c"] = 0.5 * (cols.min() + cols.max())
     return out
+
+
+def align_skin(out):
+    """Høyde og skala per visning fra hudlinjene: andelen hud per rad (pannen under skautet eller håret, ansiktet,
+    halsen) skal ligge likt i profilene som forfra. Bildegeneratoren tegner ikke issen og halskuttet like høyt i
+    alle rutene, så topp og bunn alene gir feil høyde på øynene (dobbelt ansikt i mellomvinkelen)."""
+    import cv2
+
+    def signal(k):
+        rgb = cv2.imread(J.p(f"{k}_rgb.png"))[:, :, ::-1]
+        m = cv2.imread(J.p(f"{k}_mask.png"), 0) > 127
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+        h, s_, v_ = hsv[..., 0] * 2, hsv[..., 1], hsv[..., 2]
+        sk = (h > 2) & (h < 28) & (s_ > 45) & (s_ < 170) & (v_ > 120) & m
+        return sk.sum(1) / np.maximum(m.sum(1), 1)
+
+    f = out["front"]
+    sf = signal("front")
+    rows = np.arange(f["top"], f["bot"])
+    for k in J.VIEWS:
+        if k in ("front", "back") or J.VIEWS[k].get("mirror_of"):
+            continue
+        sk_ = signal(k)
+        best = (-1e9, out[k]["sy"], out[k]["top"])
+        for a in np.arange(0.9, 1.1001, 0.005):
+            for b in range(-60, 61, 1):
+                vv = np.clip(np.round(out[k]["top"] + b + (rows - f["top"]) * a).astype(int), 0, len(sk_) - 1)
+                x, y = sf[rows], sk_[vv]
+                if x.std() < 1e-6 or y.std() < 1e-6:
+                    continue
+                c = np.corrcoef(x, y)[0, 1]
+                if c > best[0]:
+                    best = (c, a, out[k]["top"] + b)
+        print("innretting", k, "korr %.3f skala %.3f topp %d (var %.3f, %d)" % (best[0], best[1], best[2], out[k]["sy"], out[k]["top"]))
+        out[k]["sy"], out[k]["top"] = float(best[1]), int(best[2])
+    for k in J.VIEWS:  # speilede visninger følger kilden
+        if J.VIEWS[k].get("mirror_of"):
+            src = out[J.VIEWS[k]["mirror_of"]]
+            out[k]["sy"], out[k]["top"] = src["sy"], src["top"]
 
 
 def to_img(k, fr, X, Y, Z):

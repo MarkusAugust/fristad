@@ -40,7 +40,7 @@ def head_fit(body_work, head_work):
         wh = _widths(_mask(head_work, k), fh, k, ys)
         mb = _mask(body_work, k)
         errs = []
-        for s in np.arange(0.2, 0.7, 0.002):
+        for s in np.arange(0.2, 1.6, 0.002):
             wb = _widths(mb, fb, k, ys * s)
             errs.append((np.nanmean((wb - s * wh) ** 2), s))
         best.append(min(errs)[1])
@@ -59,14 +59,19 @@ def head_fit(body_work, head_work):
     return s, dz
 
 
-def hammer_mask(rgb, m, past=190, width=12, column=False, hand=None):
+def hammer_mask(rgb, m, past=190, width=12, column=False, hand=None, kind="iron", region=None, handle=True):
     """Redskapet i én visning: det største grå jernstykket (hammerhodet) og et bånd langs skaftet fra hodet
     gjennom hånda (nærmeste hudflekk) og litt forbi."""
     import cv2
     from scipy import ndimage as ndi
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
     h, s, v = hsv[..., 0] * 2, hsv[..., 1], hsv[..., 2]
-    iron = (s < 40) & (v > 35) & (v < 140) & m
+    if kind == "wood":  # trekrus o.l.: gulbrunt tre (kjolen og forkleet er rødere eller lysere)
+        iron = (h > 22) & (h < 45) & (s > 70) & (s < 200) & (v > 60) & (v < 215) & m
+    else:
+        iron = (s < 40) & (v > 35) & (v < 140) & m
+    if region is not None:
+        iron &= region
     lab, n = ndi.label(ndi.binary_opening(iron, iterations=2))
     if n == 0:
         return np.zeros_like(m)
@@ -74,7 +79,9 @@ def hammer_mask(rgb, m, past=190, width=12, column=False, hand=None):
     blob = lab == (1 + int(np.argmax(sizes)))
     cy, cx = ndi.center_of_mass(blob)
     skin = (h > 4) & (h < 28) & (s > 50) & (s < 160) & (v > 140) & m
-    out = ndi.binary_dilation(blob, iterations=4)
+    out = ndi.binary_dilation(blob, iterations=4 if handle else 9)
+    if not handle:
+        return out & m
     if column:  # forfra står skaftet loddrett bak neven, over hammerhodet
         ys, xs = np.nonzero(blob)
         col = np.zeros_like(m)
@@ -172,11 +179,27 @@ def assemble(head="smith_head", tex=2048):
 
     # løse flak fjernes i slutten (etter spøkelset)
     # redskapet: hjørner som ligger i redskapsmasken både forfra og fra siden
+    # hvilken hånd redskapet er i: sg = 1 for høyre (x < 0), -1 for venstre
+    tool_side = J.OPT.get("tool_side", "R")
+    sg = 1 if tool_side == "R" else -1
+    tkw = dict(kind=J.OPT.get("tool_kind", "iron"), handle=J.OPT.get("tool_handle", True))
     masks = {}
     for kk in ("front", "right"):
         rgb = cv2.imread(J.p(f"{kk}_rgb.png"))[:, :, ::-1]
         mm = _mask(body_work, kk)
-        masks[kk] = hammer_mask(rgb, mm, column=(kk == "front"))
+        reg = None
+        if kk == "front":  # figurens høyre er til venstre i bildet forfra
+            reg = np.zeros_like(mm)
+            c = int(fb["front"]["c"])
+            if sg > 0:
+                reg[:, :c] = True
+            else:
+                reg[:, c:] = True
+        if reg is None:
+            reg = np.ones_like(mm)
+        o_ = fb[kk]
+        reg[: int(o_["top"] + 0.42 * (o_["bot"] - o_["top"]))] = False  # under brystet (ikke pels, spenner)
+        masks[kk] = hammer_mask(rgb, mm, column=(kk == "front" and tkw["handle"]), region=reg, **tkw)
     co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
     W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)  # Blender -> verden
     inside = np.ones(len(W), bool)
@@ -186,13 +209,15 @@ def assemble(head="smith_head", tex=2048):
         inside &= mm[vi, ui]
     # bare ved figurens høyre hånd (forfra til venstre i bildet, x < 0) og under brystet
     H = fb["front"]["bot"] - fb["front"]["top"]
-    inside &= (W[:, 0] < -0.25 * (W[:, 0].max() - W[:, 0].min()) / 2) & (W[:, 1] < -0.45 * H)
+    inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
     if J.OPT.get("drop_mirrored_tool"):
         # den speilede profilen gir et «spøkelse» av redskapet i den andre hånda: fjern det som ligger i
         # redskapsmasken fra siden på figurens venstre side, utenfor neven
         hand = []
         rgb = cv2.imread(J.p("right_rgb.png"))[:, :, ::-1]
-        hammer_mask(rgb, _mask(body_work, "right"), hand=hand)
+        preg = np.ones_like(_mask(body_work, "right"))
+        preg[: int(fb["right"]["top"] + 0.42 * (fb["right"]["bot"] - fb["right"]["top"]))] = False
+        hammer_mask(rgb, _mask(body_work, "right"), hand=hand, kind=tkw["kind"], region=preg)
         u, vv = to_img("right", fb, W[:, 0], W[:, 1], W[:, 2])
         ui = np.clip(np.round(u).astype(int), 0, masks["right"].shape[1] - 1)
         vi = np.clip(np.round(vv).astype(int), 0, masks["right"].shape[0] - 1)
@@ -206,11 +231,12 @@ def assemble(head="smith_head", tex=2048):
         uf = np.clip(np.round(uf).astype(int), 0, mf.shape[1] - 1); vf = np.clip(np.round(vf).astype(int), 0, mf.shape[0] - 1)
         c0 = int(round(fb["front"]["c"]))
         torso = (lf[vf, uf] <= c0) & (rf[vf, uf] >= c0) & mf[vf, uf]
-        ghost = masks["right"][vi, ui] & (~torso | (W[:, 0] > 0.66 * W[:, 0].max())) & (W[:, 0] > 0) \
+        ghost = masks["right"][vi, ui] & (~torso | ((sg * W[:, 0] > 0.66 * (sg * W[:, 0]).max()) & (W[:, 1] > -0.7 * H))) \
+            & (sg * W[:, 0] > 0.55 * (sg * W[:, 0]).max()) & (W[:, 1] < fist_y + 10) \
             & (W[:, 1] < -0.45 * H) & (np.hypot(W[:, 2] - fist_z, W[:, 1] - (fist_y - 30)) > 42)
         # venstre neve har ingen egen dybde fra siden (profilen viser høyre side): alt i hånda utenfor nevens
         # dybde er rester av høyre arm og skaftet
-        lefthand = (W[:, 0] > 0.66 * W[:, 0].max()) & (W[:, 1] < fist_y + 70) & (W[:, 1] > fist_y - 140)
+        lefthand = (sg * W[:, 0] > 0.66 * (sg * W[:, 0]).max()) & (W[:, 1] < fist_y + 70) & (W[:, 1] > fist_y - 140)
         ghost |= lefthand & (np.abs(W[:, 2] - fist_z) > 48)
         gs = set(np.nonzero(ghost)[0].tolist())
         bm = bmesh.new(); bm.from_mesh(body.data)
@@ -225,7 +251,7 @@ def assemble(head="smith_head", tex=2048):
             u, vv = to_img(kk, fb, W[:, 0], W[:, 1], W[:, 2])
             ui = np.clip(np.round(u).astype(int), 0, mm.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mm.shape[0] - 1)
             inside &= mm[vi, ui]
-        inside &= (W[:, 0] < -0.25 * (W[:, 0].max() - W[:, 0].min()) / 2) & (W[:, 1] < -0.45 * H)
+        inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
     _drop_flakes(body)
     # lukk hullene etter kuttene (halsen, venstre neve), så ingen ser inn i figuren ovenfra
     bm = bmesh.new(); bm.from_mesh(body.data)
@@ -241,7 +267,7 @@ def assemble(head="smith_head", tex=2048):
         u, vv = to_img(kk, fb, W[:, 0], W[:, 1], W[:, 2])
         ui = np.clip(np.round(u).astype(int), 0, mm.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mm.shape[0] - 1)
         inside &= mm[vi, ui]
-    inside &= (W[:, 0] < -0.25 * (W[:, 0].max() - W[:, 0].min()) / 2) & (W[:, 1] < -0.45 * H)
+    inside &= (sg * W[:, 0] < -0.25 * np.ptp(W[:, 0]) / 2) & (W[:, 1] < -0.45 * H)
     sel = set(np.nonzero(inside)[0].tolist())
     bm = bmesh.new(); bm.from_mesh(body.data)
     bm.verts.ensure_lookup_table()
@@ -262,8 +288,23 @@ def assemble(head="smith_head", tex=2048):
         tool = [o for o in bpy.context.selected_objects if o != body][0]
         tool.name = "tool_hammer_src"
 
+    # hullet der redskapet satt i kroppen lukkes (ellers svarte rifter ved neven)
+    bm = bmesh.new(); bm.from_mesh(body.data)
+    res = bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+    bmesh.ops.triangulate(bm, faces=res["faces"])
+    bm.to_mesh(body.data); bm.free()
+    print("hull etter redskapet lukket:", len(res["faces"]), "flater")
+    if J.OPT.get("hips_iron"):
+        mark_hips_iron(body, fb, body_work, sg)
+    if tool and J.OPT.get("model_tool", "hammer") == "hammer":
+        tool = model_tool(tool, fb)
+    if J.OPT.get("split_arms", False):  # ga rifter i underarmene (kropp_6); av som standard
+        split_arms(body, fb, body_work)
+    # nevene skilt ut ga takkete sømmer ved håndleddet (kropp_6); av som standard
+    hands = split_hands(body, fb, body_work) if J.OPT.get("split_hands", False) else []
+
     # én tekstur: kopier delene, slå dem sammen, ny uv (hodet får mer plass), bak farge og normal fra kildene
-    srcs = [o for o in (body, hd, tool) if o]
+    srcs = [o for o in (body, hd, tool) if o] + hands
     copies = []
     for o in srcs:
         c = o.copy(); c.data = o.data.copy(); bpy.context.scene.collection.objects.link(c); copies.append(c)
@@ -312,8 +353,29 @@ def assemble(head="smith_head", tex=2048):
     texn.image = normal
     bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT", margin=8)
     normal.filepath_raw = J.p("full_normal.png"); normal.file_format = "PNG"; normal.save()
+    # lokkene på nevene (der de satt fast i forkleet) får hudfargen fra midten av neven, ikke forkleet bak
+    if "cap" in out.data.attributes:
+        import bmesh as bm2
+        b = bm2.new(); b.from_mesh(out.data)
+        uv = b.loops.layers.uv.active
+        cap = b.faces.layers.int.get("cap"); pl = b.faces.layers.int.get("part")
+        base = 3 if tool else 2
+        for k in range(len(hands)):
+            own = [f for f in b.faces if f[pl] == base + k]
+            skin = [f for f in own if not f[cap]]
+            if not skin:
+                continue
+            f0 = max(skin, key=lambda f: f.calc_area())
+            c = sum((l[uv].uv for l in f0.loops), type(f0.loops[0][uv].uv)((0, 0))) / len(f0.loops)
+            for f in own:
+                if f[cap]:
+                    for l in f.loops:
+                        l[uv].uv = c
+        b.to_mesh(out.data); b.free()
+    names = [o.name for o in srcs]
     for o in srcs:
         bpy.data.objects.remove(o)
+    hands = [type("H", (), {"name": n}) for n in names if n.startswith("hand_")]
     # verktøyet skilles ut igjen som egen bit (samme tekstur), så det kan henge stivt på hånda
     if tool:
         parts = [out.data.attributes["part"].data[i].value for i in range(len(out.data.polygons))]
@@ -326,8 +388,243 @@ def assemble(head="smith_head", tex=2048):
         bpy.ops.object.mode_set(mode="OBJECT")
         t = [o for o in bpy.context.selected_objects if o != out][0]
         t.name = "tool_hammer"
+    # hendene skilles ut igjen (samme tekstur): stive på hand.L/hand.R i riggen
+    base = 3 if tool else 2
+    for k, h in enumerate(hands):
+        parts = [out.data.attributes["part"].data[i].value for i in range(len(out.data.polygons))]
+        _select_faces(out, [v == base + k for v in parts])
+        for o in bpy.context.scene.objects:
+            o.select_set(o == out)
+        bpy.context.view_layer.objects.active = out
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.separate(type="SELECTED")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        t = [o for o in bpy.context.selected_objects if o != out][0]
+        t.name = h.name.replace("_src", "")
     print("trekanter", sum(len(o.data.polygons) for o in bpy.context.scene.objects if o.type == "MESH"))
     bpy.ops.wm.save_as_mainfile(filepath=J.p("assembled.blend"))
+
+
+def model_tool(tool, fb):
+    """Bytt den rekonstruerte hammeren (flat, fra to tynne silhuetter) med en enkel modell med volum: et rundt
+    skaft og et jernhode med fas, lagt langs hovedaksen til det rekonstruerte redskapet. Fargene er malte
+    (jern og tre) med litt støy, og bakes inn i den felles teksturen."""
+    import bpy
+    import bmesh
+    from mathutils import Matrix, Vector
+    from .rig import joints
+    P = np.array([v.co[:] for v in tool.data.vertices])
+    c = P.mean(0)
+    _, _, vt = np.linalg.svd(P - c, full_matrices=False)
+    a = vt[0]
+    t = (P - c) @ a
+    Jw = joints(fb)
+    from .texture import w2b
+    wrist = w2b(np.asarray(Jw["finger.R"], float) * 0.5 + np.asarray(Jw["wrist.R"], float) * 0.5)
+    e0, e1 = c + a * t.min(), c + a * t.max()
+    head_end, tail_end = (e0, e1) if np.linalg.norm(e0 - wrist) > np.linalg.norm(e1 - wrist) else (e1, e0)
+    ax = (tail_end - head_end); L = np.linalg.norm(ax); ax /= L
+    # hodets lange akse: andre hovedretning blant punktene nær hodeenden
+    near = P[np.abs((P - head_end) @ ax) < 0.35 * L]
+    _, _, v2 = np.linalg.svd(near - near.mean(0), full_matrices=False)
+    hx = v2[0] - ax * (v2[0] @ ax); hx /= np.linalg.norm(hx) + 1e-9
+    hy = np.cross(ax, hx)
+    hl = float(np.clip(np.ptp((near - near.mean(0)) @ hx), 0.08, 0.13))
+    hc = head_end + ax * 0.028
+    L = float(np.clip(L, 0.28, 0.42))
+    bm = bmesh.new()
+    # jernhodet
+    m = Matrix(((hx[0], hy[0], ax[0], hc[0]), (hx[1], hy[1], ax[1], hc[1]), (hx[2], hy[2], ax[2], hc[2]), (0, 0, 0, 1)))
+    r = bmesh.ops.create_cube(bm, size=1.0)
+    for v in r["verts"]:
+        v.co = Vector((v.co.x * hl, v.co.y * 0.045, v.co.z * 0.05))
+    bmesh.ops.bevel(bm, geom=list(set(e for v in r["verts"] for e in v.link_edges)), offset=0.006, segments=2,
+                    affect="EDGES")
+    head_faces = set(bm.faces)
+    bmesh.ops.transform(bm, matrix=m, verts=list(bm.verts))
+    # skaftet
+    for f in bm.faces:
+        f.material_index = 0
+    L = L - 0.03  # skaftet begynner i hodet, stikker ikke ut på toppen
+    r2 = bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.017, radius2=0.014, depth=L)
+    for f in bm.faces:
+        if f not in head_faces:
+            f.material_index = 1
+    m2 = Matrix(((hx[0], hy[0], ax[0], 0), (hx[1], hy[1], ax[1], 0), (hx[2], hy[2], ax[2], 0), (0, 0, 0, 1)))
+    mid = head_end + ax * (0.03 + L / 2)
+    for v in r2["verts"]:
+        v.co = m2 @ v.co + Vector(mid)
+    me = bpy.data.meshes.new("hammer")
+    bm.to_mesh(me)
+    ob = bpy.data.objects.new("tool_hammer_src", me)
+    bpy.context.scene.collection.objects.link(ob)
+    for name, col in (("iron", (0.10, 0.105, 0.115)), ("wood", (0.28, 0.15, 0.07))):
+        mat = bpy.data.materials.new(name); mat.use_nodes = True
+        nt = mat.node_tree; bsdf = nt.nodes["Principled BSDF"]
+        noise = nt.nodes.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value = 60.0
+        mix = nt.nodes.new("ShaderNodeMixRGB"); mix.blend_type = "MULTIPLY"; mix.inputs[0].default_value = 0.35
+        mix.inputs[1].default_value = (*col, 1)
+        nt.links.new(noise.outputs["Color"], mix.inputs[2]); nt.links.new(mix.outputs[0], bsdf.inputs["Base Color"])
+        me.materials.append(mat)
+    bpy.data.objects.remove(tool)
+    print("hammeren modellert: skaft %.2f m, hode %.2f m" % (L, hl))
+    return ob
+
+
+def split_arms(body, fb, work):
+    """Armene er smeltet sammen med kroppen der de ligger inntil (i profilen ser ingen mellomrommet). Forfra er
+    de atskilt fra armhula og ned: hjørner i armbiten forfra merkes («arm» = 1 venstre, 2 høyre), flatene som
+    binder armen til kroppen under armhula fjernes, og hullene lukkes. Riggen gir armhjørnene bare armvekter."""
+    import bmesh
+    from .fuse import run_bounds, to_img
+    mf = _mask(work, "front")
+    o = fb["front"]
+    c0 = int(round(o["c"]))
+    # armhula: øverste rad der armene står atskilt fra kroppen forfra
+    rows = [v for v in range(int(o["top"] + 0.22 * (o["bot"] - o["top"])), o["bot"]) if len(np.nonzero(np.diff(np.r_[0, mf[v].astype(int), 0]) == 1)[0]) >= 3]
+    pit = rows[0] if rows else o["top"]
+    lf, rf = run_bounds(mf)
+    from .rig import joints
+    Jw = joints(fb)
+    low = int(o["top"] - min(Jw["wrist.L"][1], Jw["wrist.R"][1]) * o["sy"]) + 10  # under håndleddet: nevene er egne deler
+    co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
+    W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)
+    u, vv = to_img("front", fb, W[:, 0], W[:, 1], W[:, 2])
+    ui = np.clip(np.round(u).astype(int), 0, mf.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mf.shape[0] - 1)
+    inmask = mf[vi, ui]
+    torso_run = (lf[vi, ui] <= c0) & (rf[vi, ui] >= c0)
+    arm = inmask & ~torso_run & (vi > pit + 6) & (vi < low) & near_arm(W, Jw)
+    side = np.where(W[:, 0] > 0, 1, 2) * arm
+    # flater som binder armen til kroppen (blandet) under armhula fjernes
+    bm = bmesh.new(); bm.from_mesh(body.data)
+    dead = []
+    for f in bm.faces:
+        ks = [side[v.index] for v in f.verts]
+        if len(set(ks)) > 1 and min(vi[v.index] for v in f.verts) > pit + 6 and max(vi[v.index] for v in f.verts) < low:
+            dead.append(f)
+    bmesh.ops.delete(bm, geom=dead, context="FACES")
+    res = bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+    bmesh.ops.triangulate(bm, faces=res["faces"])
+    bm.to_mesh(body.data); bm.free()
+    co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
+    W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)
+    u, vv = to_img("front", fb, W[:, 0], W[:, 1], W[:, 2])
+    ui = np.clip(np.round(u).astype(int), 0, mf.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, mf.shape[0] - 1)
+    arm = mf[vi, ui] & ~((lf[vi, ui] <= c0) & (rf[vi, ui] >= c0)) & (vi > pit + 6) & (vi < low)
+    arm &= near_arm(W, Jw)
+    side = (np.where(W[:, 0] > 0, 1, 2) * arm).astype(int)
+    a = body.data.attributes.get("arm") or body.data.attributes.new("arm", "INT", "POINT")
+    a.data.foreach_set("value", side.tolist())
+    print("armene skilt fra kroppen: %d bindeflater fjernet, %d armhjørner, armhula ved rad %d" % (len(dead), int(arm.sum()), pit))
+
+
+def mark_hips_iron(body, fb, work, sg):
+    """Jern som henger på hofta (nøkler) på siden uten redskap: merkes «hipsrigid», så riggen henger det stivt
+    på hoftene i stedet for å strekke det mellom lårene."""
+    import cv2
+    from scipy import ndimage as ndi
+    from .fuse import to_img
+    rgb = cv2.imread(J.p("front_rgb.png"))[:, :, ::-1]
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+    iron = (hsv[..., 1] < 45) & (hsv[..., 2] > 30) & (hsv[..., 2] < 150) & _mask(work, "front")
+    c = int(fb["front"]["c"])
+    reg = np.zeros_like(iron)
+    if sg > 0:
+        reg[:, c:] = True
+    else:
+        reg[:, :c] = True
+    o = fb["front"]; H = o["bot"] - o["top"]
+    reg[: int(o["top"] + 0.38 * H)] = False
+    reg[int(o["top"] + 0.62 * H):] = False
+    iron = ndi.binary_dilation(ndi.binary_opening(iron & reg, iterations=1), iterations=6)
+    co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
+    W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)
+    u, vv = to_img("front", fb, W[:, 0], W[:, 1], W[:, 2])
+    ui = np.clip(np.round(u).astype(int), 0, iron.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, iron.shape[0] - 1)
+    zfront = W[:, 2] > np.percentile(W[:, 2], 55)
+    m = iron[vi, ui] & zfront
+    a = body.data.attributes.get("hipsrigid") or body.data.attributes.new("hipsrigid", "INT", "POINT")
+    a.data.foreach_set("value", m.astype(int).tolist())
+    print("jern på hofta:", int(m.sum()), "hjørner stive på hoftene")
+
+
+def near_arm(W, Jw, r=0.065):
+    """Hjørner som ligger nær armbeina (skulder–albue–håndledd–fingre) i 3D, ikke bare i bildet forfra."""
+    out = np.zeros(len(W), bool)
+    for s in ("L", "R"):
+        pts = [Jw[f"shoulder.{s}"], Jw[f"elbow.{s}"], Jw[f"wrist.{s}"]]
+        for a, b in zip(pts[:-1], pts[1:]):
+            a = np.asarray(a, float); b = np.asarray(b, float); ab = b - a
+            t = np.clip(((W - a) @ ab) / (ab @ ab), 0, 1)
+            out |= np.linalg.norm(W - (a + t[:, None] * ab), axis=1) < r / J.SCALE
+    return out
+
+
+def split_hands(body, fb, work):
+    """Skill nevene fra kroppen (de er smeltet inn i forkleet i rekonstruksjonen): hjørner nær hånda som er hud
+    forfra eller bakfra blir egne deler, og hullene lukkes, så hånda kan følge hand.* stivt uten å strekke forkleet."""
+    import bpy
+    import bmesh
+    import cv2
+    from .fuse import to_img
+    from .rig import joints
+    Jw = joints(fb)
+    co = np.array([v.co[:] for v in body.data.vertices]) / J.SCALE
+    W = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)
+    skin = np.zeros(len(W), bool)
+    for k in ("front", "back"):
+        rgb = cv2.imread(J.p(f"{k}_rgb.png"))[:, :, ::-1]
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+        h, s_, v_ = hsv[..., 0] * 2, hsv[..., 1], hsv[..., 2]
+        sk = (h > 4) & (h < 26) & (s_ > 50) & (s_ < 150) & (v_ > 150)  # forkleet er like rødbrunt, men mørkere
+        u, vv = to_img(k, fb, W[:, 0], W[:, 1], W[:, 2])
+        ui = np.clip(np.round(u).astype(int), 0, sk.shape[1] - 1); vi = np.clip(np.round(vv).astype(int), 0, sk.shape[0] - 1)
+        skin |= sk[vi, ui]
+    out = []
+    for side in ("R", "L"):
+        a = np.asarray(Jw[f"wrist.{side}"], float); b = np.asarray(Jw[f"finger.{side}"], float)
+        b = a + (b - a) * 1.25
+        ab = b - a
+        t = np.clip(((W - a) @ ab) / (ab @ ab), 0, 1)
+        d = np.linalg.norm(W - (a + t[:, None] * ab), axis=1)
+        r = 0.065 / J.SCALE
+        sel = (d < r) & skin & (t > 0.0)
+        print("hånd", side, "nær", int((d < r).sum()), "hud", int(sel.sum()))
+        if sel.sum() < 30:
+            continue
+        idx = set(np.nonzero(sel)[0].tolist())
+        bm = bmesh.new(); bm.from_mesh(body.data)
+        flags = [sum(v.index in idx for v in f.verts) * 3 >= 2 * len(f.verts) for f in bm.faces]
+        bm.free()
+        _select_faces(body, flags)
+        for o in bpy.context.scene.objects:
+            o.select_set(o == body)
+        bpy.context.view_layer.objects.active = body
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.separate(type="SELECTED")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        hand = [o for o in bpy.context.selected_objects if o != body][0]
+        hand.name = f"hand_{side}_src"
+        _drop_flakes(hand, 0.2)
+        for ob in (hand,):
+            bm = bmesh.new(); bm.from_mesh(ob.data)
+            cap = bm.faces.layers.int.get("cap") or bm.faces.layers.int.new("cap")
+            res = bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+            tri = bmesh.ops.triangulate(bm, faces=res["faces"])
+            for f in set(res["faces"]) | set(tri["faces"]):
+                if f.is_valid:
+                    f[cap] = 1
+            bm.to_mesh(ob.data); bm.free()
+        print("hånd", side, len(hand.data.polygons), "flater")
+        if len(hand.data.polygons) < 8:  # ingenting igjen av neven (redskapet eller spøkelset tok den)
+            bpy.data.objects.remove(hand)
+            continue
+        out.append(hand)
+    bm = bmesh.new(); bm.from_mesh(body.data)
+    res = bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+    bmesh.ops.triangulate(bm, faces=res["faces"])
+    bm.to_mesh(body.data); bm.free()
+    return out
 
 
 def _drop_flakes(ob, keep_frac=0.02):

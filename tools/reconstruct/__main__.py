@@ -33,7 +33,8 @@ def main(argv=None):
                project=texture.project, render=lambda: finish.render(glb=a.out),
                rig=lambda: rig.build(out=a.rig_out),
                assemble=lambda: assemble.assemble(head=a.head),
-               render_full=lambda: finish.render(res=768, assembled=True))
+               render_full=lambda: finish.render(res=768, assembled=True),
+               closeup=lambda: finish.closeup(J.OPT.get("tool_side", "R")))
     for s in a.steps.split(","):
         print("==", s, flush=True)
         run[s]()

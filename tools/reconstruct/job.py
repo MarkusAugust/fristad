@@ -76,7 +76,7 @@ def gap_split(im, n):
     f = im.astype(np.float32)
     bg = np.median(np.concatenate([f[:8].reshape(-1, 3), f[:, :8].reshape(-1, 3), f[:, -8:].reshape(-1, 3)]), 0)
     fg = (np.linalg.norm(f - bg, axis=2) > 20) | ((f.max(2) - f.min(2)) > 20)
-    col = fg[: int(im.shape[0] * 0.93)].sum(0) > 3  # uten gulvlinja nederst
+    col = fg[: int(im.shape[0] * 0.86)].sum(0) > 3  # uten gulvlinja nederst (den står ulikt høyt i arkene)
     runs, x = [], 0
     while x < len(col):
         if col[x]:
@@ -90,7 +90,16 @@ def gap_split(im, n):
         gaps = [runs[i + 1][0] - runs[i][1] for i in range(len(runs) - 1)]
         i = int(np.argmin(gaps))
         runs[i:i + 2] = [(runs[i][0], runs[i + 1][1])]
-    cuts = [0] + [(runs[i][1] + runs[i + 1][0]) // 2 for i in range(n - 1)] + [im.shape[1]]
+    if len(runs) == n:
+        cuts = [0] + [(runs[i][1] + runs[i + 1][0]) // 2 for i in range(n - 1)] + [im.shape[1]]
+    else:  # figurene (eller et redskap) overlapper i kolonnene: kutt der det er minst forgrunn nær tredjedelene
+        cnt = fg[: int(im.shape[0] * 0.86)].sum(0).astype(float)
+        W = im.shape[1]
+        cuts = [0]
+        for i in range(1, n):
+            a, b = int(W * (i / n - 0.12)), int(W * (i / n + 0.12))
+            cuts.append(a + int(np.argmin(np.convolve(cnt[a:b], np.ones(9) / 9, "same"))))
+        cuts.append(W)
     crops = [(cuts[i], cuts[i + 1]) for i in range(n)]
     tw = max(b - a for a, b in crops) + 40
     tw += tw % 2
