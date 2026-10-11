@@ -31,3 +31,12 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Porthuset hadde en tverrbjelke midt i portrommet.** Regel: ingenting tvers over en åpning man skal gå gjennom.
 - **Skjøter som synes** (`stone`, `cobble`, `crypt_wall`, `core_stone`) og **gjentatte små flekker som blir støy på avstand** (`plaster_red`): Regel: teksturkontrollen skal være enig med eieren (`kontrollen_er_enig_med_eieren`), og den får en måling av gjentakelse på avstand.
 - **Spillerens hus:** en vandrer har ikke eget hjem. Regel: det heter Gjestehuset.
+
+## Eierens tid (11. oktober, kveld)
+
+- **Eieren ble bedt om å se på nye bilder der ingenting av det eieren påpekte var rettet** (bare teksturene i bildene var nye). Regel: eieren får bare se en ting igjen når hvert punkt eieren skrev om den er rettet og sjekket på før- og etterbilder; kortet viser punktene, «rettet slik» og før/etter side om side, og det som ikke er endret, vises ikke.
+- **Godkjenningssiden arvet forrige grunn**: feltet var fylt med teksten fra forrige runde, og en ny dom ble lagret med den gamle grunnen (hus h, j og k ble «godkjent: hvit dør»). Regel: hver runde har sitt eget felt (`round` i lagringen, `ROUND` i `tools/qa/approvals.py`); forrige dom står bare som «Forrige dom», og `approvals apply` fører en endret dom med uendret grunn inn med tom grunn og den gamle som `before`.
+- **«Nytt bilde» tok med ting eieren hadde godkjent.** Regel: bare det som ikke er godkjent, vises igjen.
+- **Tastene på siden traff kortet over det eieren så på.** Regel: tastene virker bare på kortet som er merket.
+- **Planen ble lagt fram i sin helhet for hver lille endring**, så eieren ikke kunne se hva som var nytt. Regel: eieren får bare endringen; hele planen står i `docs/plan.md`.
+- **Runde 2 sa i tillegg:** etasjeskillet og bindingsverket må løses samlet for alle husene; vinduskarmene er for spinkle til det kraftige bindingsverket (Vertshuset); noe stikker opp gjennom taket på uthusene og hus c, og takteksturen er feil; tønnene i veggene og trappa for nær veggen er ikke rettet (Vertshuset, Gjestehuset); Smia skal ha stein helt opp i endeveggene under mønet; kryptdøra har merkelige beslag; stigen og bonusen kan ikke kjennes igjen.

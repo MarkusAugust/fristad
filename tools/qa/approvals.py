@@ -62,6 +62,11 @@ VIEW = {
 }
 SHOT = (800, 560)
 
+# Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
+# «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
+# Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.).
+ROUND = 3
+
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
 # Siden merker dem «Nytt bilde», med grunnen.
@@ -136,7 +141,7 @@ def page(out):
             "facts": [f"{m['triangles']:,} trekanter".replace(",", " "), where, " × ".join(f"{v:.1f}" for v in m["size"]) + " m",
                       ("teksturlag: " + ", ".join(m["layers"])) if m["layers"] else "bakt tekstur"],
             "check": None, "game": os.path.exists(shot), "prior": prior.get("models", {}).get(n),
-            "fresh": RESHOT["why"] if RESHOT["layers"] & set(m["layers"]) else None,
+            "fresh": RESHOT["why"] if RESHOT["layers"] & set(m["layers"]) and (prior.get("models", {}).get(n) or {}).get("verdict") != "godkjent" else None,
         })
 
     # Teksturene: laget 2 × 2 (eller den malte kilden om laget mangler).
@@ -179,7 +184,7 @@ def page(out):
     order += [x for x in items if x["kind"] == "tekstur" and ts[x["id"]] >= len(models)]
     assert len(order) == len(items)
     with open(os.path.join(out, "data.json"), "w") as f:
-        json.dump({"items": order}, f, ensure_ascii=False)
+        json.dump({"round": ROUND, "items": order}, f, ensure_ascii=False)
     shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
     shutil.rmtree(raw)
     return order
@@ -208,7 +213,17 @@ def apply(path):
         kind, name = row["id"].split("_", 1)
         group = {"t": "textures", "m": "models"}[kind]
         entry = {"verdict": d["verdict"], "date": d.get("at", "")[:10], "why": d.get("why", "").strip()}
-        if ap.setdefault(group, {}).get(name) != entry:
+        old = ap.setdefault(group, {}).get(name)
+        # Ny dom: den forrige tas vare på. Og har grunnen ikke endret seg med
+        # dommen, ble den arvet fra forrige runde (feltet var fylt ut, 11.
+        # okt.), så den hører til den gamle dommen, ikke den nye.
+        if old and old["verdict"] != entry["verdict"]:
+            if old.get("why", "") == entry["why"]:
+                entry["why"] = ""
+            entry["before"] = {k: old[k] for k in ("verdict", "date", "why")}
+        elif old and old.get("before"):
+            entry["before"] = old["before"]
+        if old != entry:
             ap[group][name] = entry
             n += 1
     with open(p, "w") as f:

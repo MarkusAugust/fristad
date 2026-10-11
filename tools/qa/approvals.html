@@ -115,7 +115,7 @@ dialog::backdrop { background: rgb(0 0 0 / .75); }
     </div>
     <div class="progress" aria-hidden="true"><span class="p-ok" id="p-ok"></span><span class="p-bad" id="p-bad"></span><span class="p-unsure" id="p-unsure"></span></div>
     <div class="filters" id="filters" role="group" aria-label="Vis"></div>
-    <div class="hint"><kbd>J</kbd> <kbd>K</kbd> neste og forrige, <kbd>1</kbd> godkjent, <kbd>2</kbd> underkjent, <kbd>3</kbd> usikker, <kbd>H</kbd> skriv hvorfor.</div>
+    <div class="hint"><kbd>J</kbd> <kbd>K</kbd> merker neste og forrige kort, og på det merkede: <kbd>1</kbd> godkjent, <kbd>2</kbd> underkjent, <kbd>3</kbd> usikker, <kbd>H</kbd> skriv hvorfor.</div>
   </div>
 </header>
 
@@ -137,13 +137,16 @@ const FILTERS = [
 ];
 let items = [];
 const answers = new Map();   // id -> {verdict, why, at} fra lagringen
-let db = null, readOnly = false, filter = "open", shown = [];
+let db = null, readOnly = false, filter = "open", shown = [], ROUND = 1;
+// En dom i lagringen gjelder bare i runden den ble gitt i; fra en tidligere
+// runde står den som «Forrige dom», og feltet starter tomt.
+const current = a => !!a && (a.round || 1) === ROUND;
 const queue = new Map();      // id -> siste skriving (én om gangen per dokument)
 const timers = new Map();
 
 function verdictOf(it) {
   const a = answers.get(it.id);
-  if (a && a.verdict) return a.verdict;
+  if (current(a) && a.verdict) return a.verdict;
   return it.prior ? it.prior.verdict : "";
 }
 function matches(it, f) {
@@ -199,7 +202,7 @@ function card(it) {
   if (it.prior) {
     const pr = document.createElement("div"); pr.className = "prior";
     const b = document.createElement("b"); b.textContent = it.prior.verdict;
-    pr.append("Din dom ", it.prior.date, ": ", b, ". ", it.prior.why || "");
+    pr.append("Forrige dom ", it.prior.date, ": ", b, ". ", it.prior.why || "");
     p.append(pr);
   }
   const ch = document.createElement("div"); ch.className = "choose"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "Dom");
@@ -222,7 +225,8 @@ function card(it) {
   return el;
 }
 function paint(el, it) {
-  const a = answers.get(it.id) || {};
+  const raw = answers.get(it.id);
+  const a = current(raw) ? raw : {};
   const v = verdictOf(it);
   if (v) el.dataset.verdict = v; else delete el.dataset.verdict;
   for (const b of el.querySelectorAll(".choose button")) {
@@ -230,7 +234,7 @@ function paint(el, it) {
     b.disabled = readOnly || !db;
   }
   const ta = el.querySelector("textarea");
-  if (document.activeElement !== ta && a.why !== undefined && ta.value !== a.why) ta.value = a.why;
+  if (document.activeElement !== ta && ta.value !== (a.why || "")) ta.value = a.why || "";
   ta.disabled = readOnly || !db;
 }
 function renderList() {
@@ -242,13 +246,16 @@ function renderList() {
     list.replaceChildren(e); return;
   }
   list.replaceChildren(...shown.map(card));
+  cur = -1;
   list.style.display = "grid"; list.style.gap = "18px";
 }
 
 async function save(it, change) {
   if (!db || readOnly) return;
-  const cur = answers.get(it.id) || {};
-  const next = { verdict: cur.verdict || "", why: cur.why || "", ...change, at: new Date().toISOString() };
+  const raw = answers.get(it.id);
+  const cur = current(raw) ? raw : {};
+  const before = current(raw) ? (raw.before || null) : (raw ? { verdict: raw.verdict || "", why: raw.why || "", at: raw.at || "" } : null);
+  const next = { verdict: cur.verdict || "", why: cur.why || "", ...change, at: new Date().toISOString(), round: ROUND, before };
   if (next.verdict === (cur.verdict || "") && next.why === (cur.why || "")) return;
   answers.set(it.id, next);
   const el = document.getElementById(it.id);
@@ -275,33 +282,31 @@ function choose(it, v) {
 }
 function note(text) { const n = document.getElementById("notice"); n.textContent = text; n.hidden = false; }
 
-// Tastene: j/k flytter, 1–3 velger, h går til feltet.
+// Tastene: j/k merker neste og forrige kort, 1–3 og h virker bare på det
+// merkede kortet (aldri på et kort som bare er nær toppen).
 let cur = -1;
-function focusCard(i) {
+function mark(i, scroll) {
   const cards = [...document.querySelectorAll(".item")];
   if (!cards.length) return;
   cur = Math.max(0, Math.min(cards.length - 1, i));
   cards.forEach((c, k) => c.classList.toggle("current", k === cur));
-  cards[cur].scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  if (scroll) cards[cur].scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
-function nearest() {
-  const cards = [...document.querySelectorAll(".item")];
-  const top = document.querySelector("header.bar").getBoundingClientRect().bottom;
-  const i = cards.findIndex(c => c.getBoundingClientRect().bottom > top + 40);
-  return i < 0 ? 0 : i;
-}
+document.addEventListener("focusin", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark([...document.querySelectorAll(".item")].indexOf(c), false); });
+document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark([...document.querySelectorAll(".item")].indexOf(c), false); });
 document.addEventListener("keydown", e => {
   if (e.target.closest && e.target.closest("textarea, input")) { if (e.key === "Escape") e.target.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (k === "j") { focusCard((cur < 0 ? nearest() - 1 : cur) + 1); e.preventDefault(); }
-  else if (k === "k") { focusCard((cur < 0 ? nearest() : cur) - 1); e.preventDefault(); }
+  if (k === "j") { mark(cur + 1, true); e.preventDefault(); }
+  else if (k === "k") { mark(cur < 0 ? 0 : cur - 1, true); e.preventDefault(); }
+  else if (cur < 0) return;
   else if (["1", "2", "3"].includes(k)) {
-    const i = cur < 0 ? nearest() : cur; const el = document.querySelectorAll(".item")[i];
+    const el = document.querySelectorAll(".item")[cur];
     const it = el && items.find(x => x.id === el.id);
     if (it) { choose(it, ["godkjent", "underkjent", "usikker"][+k - 1]); e.preventDefault(); }
   } else if (k === "h") {
-    const el = document.querySelectorAll(".item")[cur < 0 ? nearest() : cur];
+    const el = document.querySelectorAll(".item")[cur];
     if (el) { el.querySelector("textarea").focus(); e.preventDefault(); }
   }
 });
@@ -310,7 +315,8 @@ document.getElementById("zoom").addEventListener("click", e => e.currentTarget.c
 async function start() {
   try {
     const r = await fetch("data.json");
-    items = (await r.json()).items;
+    const data = await r.json();
+    items = data.items; ROUND = data.round || 1;
   } catch (e) {
     note("Fant ikke listen over teksturer og modeller."); return;
   }
