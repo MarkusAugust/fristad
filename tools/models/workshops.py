@@ -31,6 +31,7 @@ Apoteket:
   kurver, sekker og apotekerens seng."""
 
 import math
+import os
 import random
 import sys
 
@@ -211,6 +212,29 @@ FW = 9.0
 FY0, FY1 = -3.6, 2.4  # forkant og bakkant av huset
 FT = 0.55
 FZ = 0.12  # gulvet (steinheller)
+# Den malte ambolten (sheet2model fra assets/textures/props/prop2/anvil.jpeg).
+ANVIL = "assets/models/props/anvil.glb"
+
+
+def import_glb(path, at, yaw=0.0):
+    """Ta inn en ferdig glb (y opp, fronten mot +z) og sett den med foten i
+    `at` (Blender-akser), dreid `yaw` om z. Teksturen følger med i eksporten."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=path)
+    new = [o for o in bpy.data.objects if o not in before]
+    meshes = []
+    for o in new:  # løs fra eventuelle tomme noder, med verdensmatrisen beholdt
+        if o.type == "MESH":
+            mw = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_world = Matrix.Translation(at) @ Matrix.Rotation(yaw, 4, "Z") @ mw
+            town.ensure_uv(o.data)
+            town.PIECES.append(o)
+            meshes.append(o)
+    for o in new:
+        if o.type != "MESH":
+            bpy.data.objects.remove(o)
+    return meshes
 FE = 3.45  # takfoten
 FPITCH = 42.0
 FIX0, FIX1 = -FW / 2 + FT, FW / 2 - FT  # innsida av gavlmurene
@@ -327,16 +351,21 @@ def forge_outside(p, rng):
         stick("bellows_leg", (bx, by + sy * 0.4, FZ), (bx, by + sy * 0.4, 0.62), 0.1, 0.1, p.timber, ("timber", 0), bevel=0.02)
     stick("bellows_pole", (bx, by + 0.5, 1.02), (bx, by + 0.5, FE - 0.1), 0.06, 0.06, p.timber, ("timber", 2), bevel=0.0)
     collide((bx, by, 0.5), (0.7, 1.2, 1.0))
-    # Ambolten på en kubbe.
+    # Ambolten på en kubbe: den malte modellen fra eierens ark (sheet2model,
+    # `sheet2model/examples/fristad/anvil.json`) når den finnes, ellers
+    # byggesettets.
     ax, ay = -1.2, -1.15
-    revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("timber"), n=8, at=(ax, ay, FZ - 0.02))
-    revolve("stump_top", [(0.29, 0.0), (0.0, 0.0)], p.floor, n=8, at=(ax, ay, FZ + 0.485))
     dark = layer("iron", (0.45, 0.43, 0.42), 0.4)
-    box("anvil_foot", (ax - 0.2, ay - 0.15, FZ + 0.48), (ax + 0.2, ay + 0.15, FZ + 0.6), dark, bevel=0.025)
-    box("anvil_waist", (ax - 0.1, ay - 0.08, FZ + 0.6), (ax + 0.1, ay + 0.08, FZ + 0.74), dark, bevel=0.02)
-    box("anvil_face", (ax - 0.3, ay - 0.1, FZ + 0.74), (ax + 0.24, ay + 0.1, FZ + 0.88), dark, bevel=0.025)
-    horn = revolve("anvil_horn", [(0.075, 0.0), (0.04, 0.17), (0.0, 0.3)], dark, n=6, at=(0, 0, 0))
-    turned(horn, (0, 0, 0), Matrix.Translation((ax + 0.22, ay, FZ + 0.82)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
+    if os.path.exists(ANVIL):
+        import_glb(ANVIL, (ax, ay, FZ))
+    else:
+        revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("bark"), n=8, at=(ax, ay, FZ - 0.02))
+        revolve("stump_top", [(0.29, 0.0), (0.0, 0.0)], p.floor, n=8, at=(ax, ay, FZ + 0.485))
+        box("anvil_foot", (ax - 0.2, ay - 0.15, FZ + 0.48), (ax + 0.2, ay + 0.15, FZ + 0.6), dark, bevel=0.025)
+        box("anvil_waist", (ax - 0.1, ay - 0.08, FZ + 0.6), (ax + 0.1, ay + 0.08, FZ + 0.74), dark, bevel=0.02)
+        box("anvil_face", (ax - 0.3, ay - 0.1, FZ + 0.74), (ax + 0.24, ay + 0.1, FZ + 0.88), dark, bevel=0.025)
+        horn = revolve("anvil_horn", [(0.075, 0.0), (0.04, 0.17), (0.0, 0.3)], dark, n=6, at=(0, 0, 0))
+        turned(horn, (0, 0, 0), Matrix.Translation((ax + 0.22, ay, FZ + 0.82)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
     collide((ax, ay, FZ + 0.45), (0.75, 0.7, 0.9))
     # Kjølekaret langs gavlmuren: et trau av planker med vann.
     qx, qy0, qy1 = FIX0 + 0.38, -2.9, -1.6
@@ -428,7 +457,7 @@ def forge_yard(p, rng):
     collide((wx, (wy0 + wy1) / 2, 0.7), (1.0, wy1 - wy0 + 0.4, 1.4))
     # Hoggestabben med øksa.
     cx, cy = 1.6, YARD1 - 1.4
-    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("timber"), n=8, at=(cx, cy, -0.02))
+    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("bark"), n=8, at=(cx, cy, -0.02))
     stick("axe_handle", (cx + 0.05, cy, 0.56), (cx + 0.5, cy - 0.3, 0.95), 0.045, 0.045, p.timber, ("timber", 0), bevel=0)
     box("axe_head", (cx - 0.08, cy - 0.04, 0.5), (cx + 0.1, cy + 0.04, 0.68), p.iron, bevel=0.01)
     for k in range(4):
@@ -845,7 +874,7 @@ def laboratory(p, rng):
     forlaget, arbeidsbenk med kolber, bord med mortere og bøker, og
     bokhylla på vestveggen."""
     copper = layer("plaster_white", (0.95, 0.5, 0.28), 0.3)
-    brick = layer("ashlar", (0.9, 0.62, 0.48))
+    brick = layer("brick", (0.9, 0.62, 0.48))
     glass = plain("glass_flask", (0.1, 0.16, 0.12), 0.08)
     green_glass = plain("glass_green", (0.08, 0.2, 0.1), 0.1)
     brown_glass = plain("glass_brown", (0.2, 0.1, 0.05), 0.1)

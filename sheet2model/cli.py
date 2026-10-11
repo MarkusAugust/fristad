@@ -19,6 +19,7 @@ from . import config
 
 HEAD_STEPS = ["seg", "depth", "fuse", "mesh", "texture", "finish", "report"]
 BODY_STEPS = ["seg", "depth", "fuse", "mesh", "assemble", "finish", "rig", "report"]
+PARTS_STEPS = ["parts", "finish", "report"]
 
 
 def run_steps(job, steps, head=None, target=None, rig_out=None, glb=None):
@@ -29,7 +30,13 @@ def run_steps(job, steps, head=None, target=None, rig_out=None, glb=None):
         if s == "seg":
             sheet.seg(job)
         elif s == "depth":
-            depth.depth(job)
+            if job.prop and job.opt.get("prior_only", True):
+                print("   (geometrien er prioren: ingen dybde)")
+            else:
+                depth.depth(job)
+        elif s == "parts":
+            from . import parts
+            parts.build(job, target)
         elif s == "fuse":
             fuse.fuse(job)
         elif s == "look":
@@ -71,6 +78,9 @@ def build(job, steps=None, head=None, target=None, rig_out=None, glb=None, fix=T
     """Hele løpet med rettelsene: bygg, mål, og prøv `report.FIXES` etter tur til rapporten er OK (eller feil med
     `feil.png`)."""
     from . import report
+    if job.parts:  # sammensatt gjenstand: delene bygges i parts.py, uten rettelsene
+        steps = steps or PARTS_STEPS
+        fix = False
     steps = steps or (BODY_STEPS if head is not None else HEAD_STEPS)
     run_steps(job, steps, head, target, rig_out, glb)
     if "report" not in steps:

@@ -128,8 +128,33 @@ def decimate(v, f, tris):
     return v2.astype(float), f2
 
 
+def build_prior(job):
+    """Gjenstander: nettet fra prioren (shapes.py), uv-kart, og tette punkter til z-bufferen."""
+    import json
+    from . import shapes
+    t0 = time.time()
+    frame = json.load(open(job.p("frame.json")))
+    names = (job.opt.get("split") or {}).get("names")
+    pieces = shapes.build(job, frame["prior"], names)
+    V, F, part, n0 = [], [], [], 0
+    for i, (name, v, f) in enumerate(pieces):
+        V.append(v); F.append(f + n0); part.append(np.full(len(f), i, np.int32)); n0 += len(v)
+    v, f, part = np.concatenate(V), np.concatenate(F), np.concatenate(part)
+    v, f, uv = shapes.smart_uv(v, f)
+    np.savez(job.p("lo.npz"), v=v.astype(np.float32), f=f.astype(np.int32), uv=uv.astype(np.float32), part=part,
+             names=np.array([pc[0] for pc in pieces]))
+    job.limits["components_max"] = max(job.limits.get("components_max", 1), len(pieces))
+    hi, hn = shapes.surface_samples(v, f, step=2.0)
+    np.save(job.p("hi.npy"), hi); np.save(job.p("hi_n.npy"), hn)
+    print("parametrisk nett: %d trekanter i %d deler (%s), %d punkter til z-bufferen" % (len(f), len(pieces), ", ".join(pc[0] for pc in pieces), len(hi)))
+    job.time("mesh", time.time() - t0)
+    return v, f, uv
+
+
 def build(job, tris=None):
     """Fra `mesh.npz` (marching cubes) til `lo.npz` med uv og `hi.npy`."""
+    if job.prop and job.opt.get("prior_only", True):
+        return build_prior(job)
     t0 = time.time()
     d = np.load(job.p("mesh.npz"))
     v, f = d["v"].astype(float), d["f"]

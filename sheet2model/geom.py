@@ -25,8 +25,8 @@ def basis(view, o):
     if yaw:
         R = rot((0, 1, 0), yaw)
         cam, right, up = R @ cam, R @ right, R @ up
-    if pitch:
-        R = rot(right, pitch)
+    if pitch:  # positiv vipp: kameraet står over gjenstanden og ser ned (right × cam peker opp)
+        R = rot(right, -pitch)
         cam, up = R @ cam, R @ up
     if roll:
         R = rot(cam, roll)

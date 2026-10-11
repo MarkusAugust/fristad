@@ -1,0 +1,11 @@
+{
+ "ref": "assets/textures/props/prop2/sarcophagus.jpeg",
+ "layout": "prop2",
+ "tris": 3000,
+ "tex": 2048,
+ "target": "fristad",
+ "root": "../../..",
+ "opt": {"prior": "box", "view_pitch": 20.0, "tiles": "auto", "edge_fade": 6.0, "height": 0.95},
+ "limits": {"sharpness_min": 40.0},
+ "merk": "sarkofagen med ridderen på lokket; langsida mot +x"
+}

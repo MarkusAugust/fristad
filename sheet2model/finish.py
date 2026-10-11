@@ -4,6 +4,7 @@ Renderen er en enkel punktsplatting av tekslene i numpy (ortografisk, flatt lys)
 til presentasjon, og tar et sekund per bilde. glb-eksporten går gjennom bpy (sekunder), og målet (`targets/`)
 får slanke fila etterpå.
 """
+import json
 import os
 import time
 
@@ -184,8 +185,37 @@ def finish(job, glb=None, gif=False, target=None):
         out = sheets(job, Cloud.load(job), fr)
     if gif:
         turnaround(job, Cloud.load(job))
-    v = geom.w2b(lo["v"], job.scale)
     glb = glb or job.shot(job.name + ".glb")
+    if job.prop:  # gjenstander: dreid mot spillets front, i meter, på bakken, og delt om et plan når oppslaget sier det
+        from . import split as sp
+        vw, info = sp.place(job, lo["v"])
+        spec = job.opt.get("split")
+        if spec:
+            spec = dict(spec, _factor=info.get("scale_factor", 1.0), _shift=info.get("ground_shift", 0.0))
+            prior = json.load(open(job.p("frame.json"))).get("prior")
+            if prior and "params" not in prior:  # sammensatt: hoveddelens prior
+                prior = next(iter(prior.values()))
+            parts, sinfo = sp.split(job, vw, lo["f"], lo["uv"], spec, prior, part=lo["part"] if "part" in lo else None)
+            info["split"] = sinfo
+            base = os.path.dirname(glb)
+            for name, v, f, uv in parts:
+                export_glb(job, os.path.join(base, name + ".glb"), [(name, geom.w2b(v, job.scale), f, uv)], target=target)
+        else:
+            export_glb(job, glb, [(job.name, geom.w2b(vw, job.scale), lo["f"], lo["uv"])], target=target)
+        import glob
+        for path in glob.glob(job.p("own_*.npz")):  # delene som er egne modeller: samme dreining og skala, egen origo
+            d = np.load(path)
+            name = os.path.basename(path)[4:-4]
+            vo, _ = sp.place(job, np.concatenate([d["v"], d["origin"][None]]), ground=False)
+            vo = vo[:-1] - vo[-1]
+            org = sp.place(job, d["origin"][None], ground=False)[0][0] * job.scale
+            org[1] += info.get("ground_shift_m", 0.0)
+            export_glb(job, os.path.join(os.path.dirname(glb), name + ".glb"), [(name, geom.w2b(vo, job.scale), d["f"], d["uv"])], target=target)
+            info.setdefault("own", {})[name] = dict(origin_m=[round(float(x), 3) for x in org], tris=int(len(d["f"])))
+        json.dump(info, open(job.p("place.json"), "w"), indent=1)
+        print("plassering:", json.dumps(info))
+        return out
+    v = geom.w2b(lo["v"], job.scale)
     export_glb(job, glb, [(job.name, v, lo["f"], lo["uv"])], target=target)
     return out
 

@@ -722,3 +722,9 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* Innstillingene: radioknappene på rad med forklaringen bak. */
+.settings-dialog { width: min(560px, 92vw); }
+.settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
+.settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
+.settings-dialog .fs-help-text { display: inline; }

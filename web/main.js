@@ -43,17 +43,50 @@ let docs = {};
 let panelOpen = false;
 let current = { component: "" };
 
-// I standard grafikk tegnes det aldri tettere enn én piksel per CSS-piksel;
-// avansert går opp til 1,5 på skjermer med høy pikseltetthet.
+// Oppløsningen tegnes i faste trinn (høyden i piksler; bredden følger
+// vinduet), så et stort vindu på en svak maskin ikke gir en oppløsning
+// den ikke kan håndtere. «Automatisk» tar det største trinnet som får
+// plass på skjermen, men aldri over 1080p i standard grafikk og 1440p i
+// avansert. Valget huskes som `fristad.resolution` (høyden eller «auto»).
+const RES_STEPS = [720, 900, 1080, 1152, 1440, 1620, 1800, 2160];
+const RES_NAMES = { 720: "720p", 900: "900p", 1080: "1080p (FHD)", 1152: "QWXGA", 1440: "1440p (QHD)", 1620: "1620p (3K)", 1800: "1800p (QHD+)", 2160: "2160p (4K)" };
+let resolution = "auto";
+try {
+  const r = localStorage.getItem("fristad.resolution");
+  if (r && (r === "auto" || RES_STEPS.includes(Number(r)))) resolution = r === "auto" ? r : Number(r);
+} catch {
+  /* ingen lagring */
+}
+// Høyden i piksler som tegnes for vinduet slik det er nå.
+function renderHeight() {
+  const dpr = window.devicePixelRatio || 1;
+  const ph = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  if (resolution === "auto") {
+    const cap = reducedGfx ? 1080 : 1440;
+    const fit = RES_STEPS.filter((h) => h <= Math.min(ph, cap));
+    return fit.length ? fit[fit.length - 1] : Math.min(ph, 720);
+  }
+  // Et valgt trinn, men aldri flere piksler enn skjermen viser.
+  return Math.min(resolution, ph);
+}
 function fit() {
-  const scale = Math.min(window.devicePixelRatio || 1, reducedGfx ? 1 : 1.5);
-  const w = Math.max(1, Math.round(canvas.clientWidth * scale));
-  const h = Math.max(1, Math.round(canvas.clientHeight * scale));
+  const h = Math.max(1, renderHeight());
+  const w = Math.max(1, Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight)));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
   }
   engine?.resize(w, h);
+}
+function setResolution(r, announce = true) {
+  resolution = r;
+  try {
+    localStorage.setItem("fristad.resolution", String(r));
+  } catch {
+    /* ingen lagring */
+  }
+  fit();
+  if (announce) toast?.show?.(r === "auto" ? "Oppløsning: automatisk." : `Oppløsning: ${canvas.width} × ${canvas.height}.`);
 }
 
 async function boot() {
@@ -319,7 +352,9 @@ function loop(now) {
     const parts = engine.gpu_times ? engine.gpu_times() : "";
     // (Programvaregrafikk kan gi bare nuller; da vises ingenting.)
     const gpuMs = parts ? parts.split(" · ").reduce((sum, p) => sum + parseFloat(p.split(" ").pop()), 0) : 0;
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
+    // Delene står rett i telleren (musa er fanget, så ingen kan holde den over).
+    const partText = parts ? parts.replace(/skygge/i, "sk").replace(/verden/i, "v").replace(/etterbehandling/i, "e").replace(/ ms/g, "") : "";
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms (${partText})` : ""}`;
     $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${gpuMs > 0 ? `. GPU-tid (ms): ${parts}` : ""}`;
     frames = 0;
     perfAt = now;
@@ -764,6 +799,73 @@ function closeInventory(resume) {
   if (resume) enter();
 }
 
+// Innstillingene (O, eller knappen på startkortet): grafikk og oppløsning
+// som Fristil-radioknapper i en dialog. Ingenting byttes uten at
+// spilleren velger det.
+let settingsOpen = null;
+function openSettings() {
+  if (settingsOpen) return;
+  const wasPlaying = playing;
+  playing = false;
+  dragging = false;
+  engine?.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const dpr = window.devicePixelRatio || 1;
+  const ph = Math.round(canvas.clientHeight * dpr);
+  const radio = (name, value, label, note, checked, disabled = false) => `<label class="fs-radio-row">
+      <input class="fs-radio" type="radio" name="${name}" value="${value}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
+      <span>${label}${note ? ` <span class="fs-help-text">${note}</span>` : ""}</span>
+    </label>`;
+  const steps = RES_STEPS.map((h) => {
+    const w = Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight));
+    const px = ((w * h) / 1e6).toFixed(1);
+    return radio("res", h, `${w} × ${h} (${RES_NAMES[h]})`, `${px} Mpx${h > ph ? ", større enn skjermen" : ""}`, resolution === h, h > ph);
+  }).join("");
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog";
+  dlg.setAttribute("aria-labelledby", "settings-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="settings-title">Innstillinger</h2>
+    <div class="fs-dialog__body">
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Grafikk</legend>
+        ${radio("gfx", "standard", "Standard", "MSAA 4×, kortere sikt. Laget for jobb-PC-er.", reducedGfx)}
+        ${radio("gfx", "avansert", "Avansert", "lengre sikt, MSAA 8× der kortet kan.", !reducedGfx)}
+      </fieldset>
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Oppløsning</legend>
+        ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${reducedGfx ? "1080p" : "1440p"}.`, resolution === "auto")}
+        ${steps}
+      </fieldset>
+      <p class="fs-help-text">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (O)</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  settingsOpen = dlg;
+  dlg.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (t.name === "gfx") setGraphics(t.value === "standard");
+    if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
+    dlg.querySelector(".fs-help-text:last-of-type").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
+    click();
+  });
+  const close = () => {
+    settingsOpen.close();
+    settingsOpen.remove();
+    settingsOpen = null;
+    if (wasPlaying) enter();
+    else if (!gateEl.hidden) enterBtn.focus();
+  };
+  dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close();
+  });
+  dlg.showModal();
+}
+
 // Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
 // spillet på pause mens den står.
 let overlayOpen = false;
@@ -1142,6 +1244,13 @@ function bindInput() {
       setGraphics(!reducedGfx);
       return;
     }
+    if (e.code === "KeyO" && !e.repeat && (playing || !gateEl.hidden || settingsOpen)) {
+      e.preventDefault();
+      if (settingsOpen) settingsOpen.querySelector('[data-act="close"]').click();
+      else openSettings();
+      return;
+    }
+    if (settingsOpen) return;
     if (!playing) return;
     if (e.code === "Escape" && !locked()) {
       pause();
@@ -1159,6 +1268,7 @@ function bindInput() {
   $("close").addEventListener("click", () => closePanel(true));
   $("overlay-close").addEventListener("click", () => closeOverlay(true, true));
   $("graphics").addEventListener("click", () => setGraphics(!reducedGfx));
+  $("settings").addEventListener("click", () => openSettings());
 }
 
 // Tastekartet nederst står hele tida, så det alltid går an å se hva tastene gjør.

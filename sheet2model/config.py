@@ -67,7 +67,8 @@ class View:
 
 class Job:
     def __init__(self, ref, layout="head2x2", name=None, views=None, scale=None, tris=None, opt=None, root=None,
-                 work=None, shots=None, target=None, head=None, limits=None, tex=2048, extra=None, grid=None):
+                 work=None, shots=None, target=None, head=None, limits=None, tex=None, extra=None, grid=None,
+                 parts=None):
         self.ref = os.path.abspath(ref)
         self.name = name or os.path.splitext(os.path.basename(ref))[0]
         self.root = os.path.abspath(root or os.getcwd())
@@ -77,7 +78,8 @@ class Job:
         self.layout = layout
         self.scale = scale or (0.00028 if layout.startswith("head") else 0.0015 if layout.startswith("prop") else 0.0009)
         self.tris = tris or (7000 if layout.startswith("head") else 3000 if layout.startswith("prop") else 14000)
-        self.tex = tex
+        self.tex = tex or (1024 if layout.startswith("prop") else 2048)
+        self.parts = list(parts or [])  # gjenstander i flere deler (parts.py): hver med prior og boks i arket
         self.target = target
         self.head = head  # navnet på hodearket som settes på kroppen
         self.opt = json.loads(json.dumps(DEFAULT_OPT))
@@ -229,7 +231,8 @@ def load_sheet(path_or_name, sheets_dir=None, root=None, **kw):
     ref = cfg["ref"] if os.path.isabs(cfg["ref"]) else os.path.join(root, cfg["ref"])
     args = dict(layout=cfg.get("layout", "head2x2"), name=name, views=cfg.get("views"), scale=cfg.get("scale"),
                 tris=cfg.get("tris"), opt=cfg.get("opt"), root=root, target=cfg.get("target"), head=cfg.get("head"),
-                limits=cfg.get("limits"), extra=cfg.get("extra"), grid=cfg.get("grid"))
+                limits=cfg.get("limits"), extra=cfg.get("extra"), grid=cfg.get("grid"), tex=cfg.get("tex"),
+                parts=cfg.get("parts"))
     args.update({k: v for k, v in kw.items() if v is not None})
     return Job(ref, **args)
 

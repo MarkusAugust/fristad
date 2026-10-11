@@ -1,0 +1,11 @@
+{
+ "ref": "assets/textures/props/prop2/gate.jpeg",
+ "layout": "prop2",
+ "tris": 3000,
+ "tex": 1024,
+ "target": "fristad",
+ "root": "../../..",
+ "opt": {"prior": "box", "view_pitch": 20.0, "tiles": "auto", "edge_fade": 6.0, "height": 3.0, "yaw_range": 45.0, "open_holes": true, "min_hole": 200, "game_yaw": 90},
+ "limits": {"sharpness_min": 40.0},
+ "merk": "portgitteret (kit_gate), tegnet nesten rett forfra (yaw ca. 10°): yaw_range 45; hullene i gitteret står åpne"
+}

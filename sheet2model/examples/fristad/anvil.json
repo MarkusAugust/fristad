@@ -1,0 +1,231 @@
+{
+ "ref": "assets/textures/props/prop2/anvil.jpeg",
+ "layout": "prop2",
+ "tris": 3000,
+ "tex": 1024,
+ "target": "fristad",
+ "root": "../../..",
+ "limits": {
+  "sharpness_min": 40.0,
+  "iou_min": 0.4
+ },
+ "opt": {
+  "view_pitch": 20.0,
+  "tiles": "auto",
+  "edge_fade": 6.0,
+  "game_yaw": 180,
+  "pitch_range": 8.0,
+  "yaw_range": 10.0
+ },
+ "parts": [
+  {
+   "name": "stump",
+   "prior": "cylinder",
+   "box": {
+    "qfl": [
+     200,
+     560,
+     880,
+     1640
+    ],
+    "qbr": [
+     200,
+     560,
+     900,
+     1640
+    ]
+   },
+   "opt": {
+    "size": {
+     "r": 0.22,
+     "hy": 0.3,
+     "bulge": 0.0
+    }
+   }
+  },
+  {
+   "name": "foot",
+   "prior": "box",
+   "lock": "axis",
+   "on": "stump",
+   "box": {
+    "qfl": [
+     250,
+     430,
+     760,
+     610
+    ],
+    "qbr": [
+     250,
+     430,
+     800,
+     610
+    ]
+   },
+   "erase": {
+    "qfl": [
+     [
+      200,
+      555,
+      330,
+      610
+     ],
+     [
+      700,
+      555,
+      900,
+      610
+     ]
+    ],
+    "qbr": [
+     [
+      200,
+      555,
+      330,
+      610
+     ],
+     [
+      760,
+      555,
+      960,
+      610
+     ]
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.16,
+     "hy": 0.03,
+     "hz": 0.12
+    }
+   }
+  },
+  {
+   "name": "waist",
+   "prior": "box",
+   "lock": "axis",
+   "on": "foot",
+   "box": {
+    "qfl": [
+     250,
+     430,
+     760,
+     610
+    ],
+    "qbr": [
+     250,
+     430,
+     800,
+     610
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.09,
+     "hy": 0.04,
+     "hz": 0.07
+    }
+   }
+  },
+  {
+   "name": "face",
+   "prior": "box",
+   "lock": "axis",
+   "on": "waist",
+   "box": {
+    "qfl": [
+     300,
+     120,
+     900,
+     440
+    ],
+    "qbr": [
+     130,
+     160,
+     760,
+     440
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.22,
+     "hy": 0.07,
+     "hz": 0.08
+    }
+   }
+  },
+  {
+   "name": "horn",
+   "prior": "cone_x",
+   "at": [
+    -0.34,
+    null,
+    0.0
+   ],
+   "y_of": "face",
+   "offset": [
+    0.0,
+    -0.01,
+    0.0
+   ],
+   "box": {
+    "qfl": [
+     90,
+     280,
+     330,
+     460
+    ],
+    "qbr": [
+     720,
+     160,
+     960,
+     330
+    ]
+   },
+   "opt": {
+    "size": {
+     "r0": 0.06,
+     "r1": 0.018,
+     "hx": 0.12
+    }
+   }
+  },
+  {
+   "name": "heel",
+   "prior": "box",
+   "at": [
+    0.26,
+    null,
+    0.0
+   ],
+   "y_of": "face",
+   "offset": [
+    0.0,
+    -0.03,
+    0.0
+   ],
+   "box": {
+    "qfl": [
+     700,
+     120,
+     900,
+     440
+    ],
+    "qbr": [
+     130,
+     160,
+     400,
+     440
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.04,
+     "hy": 0.04,
+     "hz": 0.07
+    }
+   }
+  }
+ ],
+ "merk": "ambolten i deler: kubben (sylinder, hoveddel: vippen fra ellipsen) med fot, midje og topp stablet oppå, horn (kjegle) og hæl på endene; toppen 0,88 over gulvet som i Smia"
+}

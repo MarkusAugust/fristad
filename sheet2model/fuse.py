@@ -50,6 +50,10 @@ def make_grid(job, fr, vox=None, margin=32):
             o = fr[k]
             R = max(R, (o["u1"] - o["u0"]) / 2 / o["sy"] * 1.2, (o["bot"] - o["top"]) / 2 / o["sy"] * 1.2)
         R += margin
+        vmax = float(job.opt.get("max_voxels", 14e6))
+        if (2 * R / vox) ** 3 > vmax:  # store ark (1024 × 2048 per rute): grovere voksel, ellers tar fuse minutter
+            vox = float(np.ceil((2 * R) / vmax ** (1 / 3) * 2) / 2)
+            print("rutenettet er stort: voksel %.1f px" % vox)
         xs = np.arange(-R, R, vox)
         return Grid(xs, xs.copy(), xs.copy(), vox)
     H = fr["front"]["bot"] - fr["front"]["top"]
@@ -298,8 +302,12 @@ def build_field(job, fr, cal, grid, sil, prior=None):
     F = np.full(grid.shape, 1e3, np.float32)
     if prior is not None:
         F = np.minimum(F, prior + float(job.opt.get("prior_tol", 3.0)))
+    carve = float(job.opt.get("prior_carve", 12.0)) if prior is not None else None
     for k, view in job.views.items():
-        sv = np.minimum(sil[k], depth_field(job, k, fr, cal, grid))
+        dv = depth_field(job, k, fr, cal, grid)
+        if carve is not None:  # gjenstander: dybden gir bare relieff (høyst `prior_carve` px inn i prioren)
+            dv = np.maximum(dv, prior - carve)
+        sv = np.minimum(sil[k], dv)
         if view.mirror_of:
             # den speilede profilen er en antakelse om den andre siden: den får bare skjære i sin egen halvdel,
             # ellers skjærer den bort det den ene hånda holder (redskapet er tatt ut av den)
@@ -382,6 +390,15 @@ def fuse(job, fr=None):
         from . import props
         report["prior"], prior, fr = props.fit(job, fr, grid)
         sil = silhouette_fields(job, fr, grid)
+        if job.opt.get("prior_only", True):
+            # geometrien er prioren (shapes.py bygger nettet): feltet brukes bare til IoU og feilbildet
+            F = prior
+            report["iou"] = align.fused_iou(job, fr, grid, F > 0)
+            np.save(job.p("field.npy"), F)
+            np.savez(job.p("grid.npz"), x0=grid.xs[0], y0=grid.ys[0], z0=grid.zs[0], vox=grid.vox)
+            json.dump(dict(frame=fr, cal={}, **report), open(job.p("frame.json"), "w"), indent=1)
+            job.time("fuse", time.time() - t0)
+            return fr, {}, report
     else:
         a = job.opt.get("align")
         if a and (a.get("rounds", 0) or 0) > 0:

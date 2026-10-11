@@ -1,0 +1,11 @@
+{
+ "ref": "assets/textures/props/prop2/cauldron.jpeg",
+ "layout": "prop2",
+ "tris": 2500,
+ "tex": 1024,
+ "target": "fristad",
+ "root": "../../..",
+ "opt": {"prior": "barrel", "bulge_range": 0.3, "view_pitch": 20.0, "tiles": "auto", "edge_fade": 6.0, "height": 0.7},
+ "limits": {"sharpness_min": 40.0},
+ "merk": "gryta: tønneprior med stor bul i stedet for revolve (ikke laget); sleiva og beina går med i silhuetten"
+}

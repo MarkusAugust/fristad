@@ -135,6 +135,8 @@ def view_samples(job, k, o, P, N, hiP, lowpass=5.0, exclude=None):
     e = geom.sample(edge, u, v, fill=0)
     if job.prop:  # gjenstander: bare flater som vender mot kameraet får farge; resten fra speiling eller flis
         e = e * (np.clip((N @ cam - 0.3) / 0.15, 0, 1)).astype(np.float32)
+        if view.mirror_of:  # speilbildet fyller bare det ingen ekte rute ser (ellers står beslagene dobbelt)
+            e = e * np.float32(job.opt.get("mirror_weight", 0.02))
     col = np.stack([geom.sample(lin[:, :, c], u, v) for c in range(3)], -1)
     cl = np.stack([geom.sample(low[:, :, c], u, v) for c in range(3)], -1)
     return dict(vis=vis, edge=e, ndc=ndc, col=col, low=cl, base=vis * e)
@@ -372,9 +374,15 @@ def build(job):
     texels = rasterize(v, f, uv, job.tex)
     np.savez(job.p("texels.npz"), pos=texels.pos, nrm=texels.nrm, cov=texels.cov, ids=texels.ids)
     rep = project(job, texels, [Source(job)])
-    hi = np.load(job.p("hi.npy"))
-    hn = np.load(job.p("hi_n.npy"))
-    normal_map(job, texels, (v, f, uv), hi, hn)
+    if job.prop and job.opt.get("prior_only", True):
+        # geometrien er prioren: normalkartet ville bare gjenta flatenes normaler (og tangentrammen på smale
+        # endeflater ga svarte trekanter), så det er flatt
+        import cv2
+        cv2.imwrite(job.p("normal.png"), np.full((job.tex, job.tex, 3), (255, 128, 128), np.uint8))
+    else:
+        hi = np.load(job.p("hi.npy"))
+        hn = np.load(job.p("hi_n.npy"))
+        normal_map(job, texels, (v, f, uv), hi, hn)
     rep["face_texels_cm"] = face_density(job, texels, v, f, uv)
     json.dump(rep, open(job.p("texture.json"), "w"), indent=1)
     return rep

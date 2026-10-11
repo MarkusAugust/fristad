@@ -1604,3 +1604,35 @@ fn lyset_folger_rommene() {
 }
 
 
+
+/// Måler tiden per `update` og `frame` i byen og i krypten (feilsøking av
+/// bildefrekvensen). `cargo test --release maal_tiden -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn maal_tiden_per_bilde() {
+    let mut physics = RapierPhysics::new();
+    let mut s = session(&mut physics);
+    let mut input = Input::default();
+    for (name, descend) in [("byen", false), ("krypten", true)] {
+        if descend {
+            s.use_first(|u| *u == Use::Descend);
+            for _ in 0..60 {
+                s.update(&mut input, 1.0 / 60.0, &mut physics);
+            }
+        }
+        let mut upd = 0.0f64;
+        let mut frm = 0.0f64;
+        let n = 120;
+        for _ in 0..n {
+            let t = std::time::Instant::now();
+            s.update(&mut input, 1.0 / 60.0, &mut physics);
+            upd += t.elapsed().as_secs_f64();
+            let t = std::time::Instant::now();
+            let f = s.frame(16.0 / 9.0);
+            frm += t.elapsed().as_secs_f64();
+            s.settle();
+            std::hint::black_box(f.instances.len());
+        }
+        println!("{name}: update {:.2} ms, frame {:.2} ms per bilde", upd / n as f64 * 1e3, frm / n as f64 * 1e3);
+    }
+}

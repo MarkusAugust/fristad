@@ -74,6 +74,11 @@ def segment(job, k, t, log):
         thin = fg & ~ndi.binary_opening(fg, structure=np.ones((9, 1)))
         fg &= ~thin
     fg = ndi.binary_opening(fg, iterations=2)
+    box = (opt.get("part_box") or {}).get(k)
+    if box:  # én del av en sammensatt gjenstand: bare det som ligger i boksen (x0, y0, x1, y1 i ruta)
+        x0, y0, x1, y1 = box
+        keep = np.zeros_like(fg); keep[y0:y1, x0:x1] = True
+        fg &= keep
     fg = largest(fg)
     if opt.get("drop_pole"):
         # lange staver (høygaffel, spyd, pilegrimsstav) er tynne og loddrette: tas ut av silhuetten, ellers

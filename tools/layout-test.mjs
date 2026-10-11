@@ -12,7 +12,10 @@ const [dir = "dist", out = ""] = process.argv.slice(2);
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
 const server = createServer(async (req, res) => {
   const p = join(dir, decodeURIComponent(req.url.split("?")[0]).replace(/\/$/, "/index.html"));
-  try { res.writeHead(200, { "content-type": types[extname(p)] ?? "application/octet-stream" }); res.end(await readFile(p)); } catch { res.writeHead(404); res.end(); }
+  // Les fila først: feiler lesingen etter writeHead, krasjer serveren.
+  let body;
+  try { body = await readFile(p); } catch { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { "content-type": types[extname(p)] ?? "application/octet-stream" }); res.end(body);
 });
 await new Promise((r) => server.listen(0, r));
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });

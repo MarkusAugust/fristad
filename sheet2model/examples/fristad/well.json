@@ -1,0 +1,186 @@
+{
+ "ref": "assets/textures/props/prop2/well.jpeg",
+ "layout": "prop2",
+ "tris": 4000,
+ "tex": 2048,
+ "target": "fristad",
+ "root": "../../..",
+ "limits": {
+  "sharpness_min": 40.0,
+  "iou_min": 0.4
+ },
+ "opt": {
+  "view_pitch": 20.0,
+  "tiles": "auto",
+  "edge_fade": 6.0,
+  "yaw_range": 20.0,
+  "ring_inner": 0.68
+ },
+ "parts": [
+  {
+   "name": "curb",
+   "prior": "ring",
+   "box": {
+    "qfl": [
+     50,
+     990,
+     1010,
+     1720
+    ],
+    "qbr": [
+     40,
+     990,
+     1010,
+     1720
+    ]
+   },
+   "erase": {
+    "qbr": [
+     [
+      560,
+      1640,
+      720,
+      1730
+     ]
+    ]
+   },
+   "opt": {
+    "size": {
+     "r": 0.9,
+     "hy": 0.58
+    }
+   }
+  },
+  {
+   "name": "roof",
+   "prior": "gable",
+   "box": {
+    "qfl": [
+     30,
+     250,
+     1010,
+     790
+    ],
+    "qbr": [
+     30,
+     240,
+     1010,
+     790
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 1.3,
+     "hy": 0.33,
+     "hz": 0.8
+    }
+   },
+   "lock": "axis"
+  },
+  {
+   "name": "post_px",
+   "prior": "box",
+   "to_ground": true,
+   "box": {
+    "qfl": [
+     690,
+     540,
+     810,
+     1230
+    ],
+    "qbr": [
+     560,
+     560,
+     690,
+     1720
+    ]
+   },
+   "erase": {
+    "qbr": [
+     [
+      480,
+      940,
+      585,
+      1110
+     ]
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.1,
+     "hy": 1.0,
+     "hz": 0.1
+    }
+   },
+   "at": [
+    0.75,
+    null,
+    0.0
+   ],
+   "under": "roof"
+  },
+  {
+   "name": "post_nx",
+   "prior": "box",
+   "to_ground": true,
+   "box": {
+    "qfl": [
+     100,
+     540,
+     215,
+     1260
+    ],
+    "qbr": [
+     830,
+     540,
+     950,
+     1160
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.1,
+     "hy": 1.0,
+     "hz": 0.1
+    }
+   },
+   "at": [
+    -0.75,
+    null,
+    0.0
+   ],
+   "under": "roof"
+  },
+  {
+   "name": "drum",
+   "prior": "cylinder_x",
+   "own": "well_winch",
+   "box": {
+    "qfl": [
+     180,
+     790,
+     700,
+     990
+    ],
+    "qbr": [
+     680,
+     800,
+     860,
+     970
+    ]
+   },
+   "opt": {
+    "size": {
+     "r": 0.08,
+     "hx": 0.62
+    }
+   },
+   "at": [
+    0.0,
+    null,
+    0.0
+   ]
+  }
+ ],
+ "merk": "brønnen: kummen (ring R 0,9) er hoveddelen (vippen og målestokken fra ellipsen), saltaket på aksen over, stolper ±0,75 til bakken, vinda egen modell well_winch"
+}
