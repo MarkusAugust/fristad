@@ -13,5 +13,6 @@ Fra eieren etter `docs/prompter-gjenstander.md`: 3/4 forfra til venstre og 3/4 b
 | `gate` | gitteret (portcullis) | flat gitter (box, tynn) |
 | `sarcophagus` | sarkofagen med ridder på lokket | box |
 | `cauldron` | gryta med sleiv | revolve |
+| `altar` | alteret med rød duk, to lysestaker og relikvieskrin (2528 × 1696, ikke kvadratisk) | box + lysestaker egne deler |
 
 Merk: gitteret er tegnet nesten rett forfra og bakfra, ikke 3/4. Tønna er den samme som i `furniture_b`-piloten, nå i to visninger.
