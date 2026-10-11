@@ -66,11 +66,16 @@ pub struct Bench {
     /// Flat farge i stedet for skyggeleggingen (måler rasterisering og
     /// overtegning alene).
     pub flat: bool,
+    /// HDR-bildet i 4 byte per prøve (`Rg11b10Ufloat`) i stedet for 8, der
+    /// kortet kan (måler om MSAA-målet sprenger flisminnet).
+    pub small_hdr: bool,
+    /// Tidsmålingen på grafikkortet (måler hva den selv koster).
+    pub timers: bool,
 }
 
 impl Default for Bench {
     fn default() -> Self {
-        Bench { msaa: 0, a2c: true, shadow: true, flat: false }
+        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true }
     }
 }
 

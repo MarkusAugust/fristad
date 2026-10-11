@@ -330,6 +330,7 @@ const REDUCED_FOG: f32 = 0.005;
 struct ScenePipes {
     samples: u32,
     a2c: bool,
+    hdr: wgpu::TextureFormat,
     world: wgpu::RenderPipeline,
     /// Modellene med alfakort (gress, blad): alpha to coverage og `discard`.
     cutout: wgpu::RenderPipeline,
@@ -348,10 +349,10 @@ struct SceneSources {
 }
 
 impl SceneSources {
-    fn pipes(&self, device: &wgpu::Device, samples: u32, a2c: bool) -> ScenePipes {
+    fn pipes(&self, device: &wgpu::Device, samples: u32, a2c: bool, hdr: wgpu::TextureFormat) -> ScenePipes {
         let depth = |write: bool, compare: wgpu::CompareFunction| Some(wgpu::DepthStencilState { format: DEPTH, depth_write_enabled: write, depth_compare: compare, stencil: Default::default(), bias: Default::default() });
         let ms = |a2c: bool| wgpu::MultisampleState { count: samples, mask: !0, alpha_to_coverage_enabled: a2c && samples > 1 };
-        let target = |blend: Option<wgpu::BlendState>| [Some(wgpu::ColorTargetState { format: HDR, blend, write_mask: wgpu::ColorWrites::ALL })];
+        let target = |blend: Option<wgpu::BlendState>| [Some(wgpu::ColorTargetState { format: hdr, blend, write_mask: wgpu::ColorWrites::ALL })];
         let buffers = [VERTEX_LAYOUT, InstanceData::LAYOUT];
         // Det ugjennomsiktige uten alpha to coverage og uten `discard` (begge
         // skrur av tidlig dybdetest på Apple-GPU-er); alfakortene for seg.
@@ -393,7 +394,7 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, a2c, world, cutout, sky, particles }
+        ScenePipes { samples, a2c, hdr, world, cutout, sky, particles }
     }
 }
 
@@ -660,7 +661,7 @@ impl Renderer {
         log::info!("MSAA: {}× i standard grafikk, {}× i avansert", samples.0, samples.1);
         let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, world_layout, simple_layout };
         // Spillet starter i standard grafikk; verten bytter med `set_quality`.
-        let scene_pipes = sources.pipes(&device, samples.0, true);
+        let scene_pipes = sources.pipes(&device, samples.0, true, HDR);
 
         let post_pipe = |entry: &str, format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -819,7 +820,7 @@ impl Renderer {
             gpu_models.iter().map(|m| m.reserve).sum::<usize>()
         );
 
-        let targets = Self::make_targets(&device, &post_layout, &linear, samples.0, width, height);
+        let targets = Self::make_targets(&device, &post_layout, &linear, samples.0, HDR, width, height);
         let chunks = scene.chunks.to_vec();
         let timer = timer::GpuTimer::new(&device, &queue);
         Self {
@@ -860,7 +861,7 @@ impl Renderer {
         }
     }
 
-    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, width: u32, height: u32) -> Targets {
+    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, width: u32, height: u32) -> Targets {
         let width = width.max(1);
         let height = height.max(1);
         let tex = |label: &str, w: u32, h: u32, format, samples: u32| {
@@ -881,9 +882,9 @@ impl Renderer {
                 })
                 .create_view(&Default::default())
         };
-        let color = (samples > 1).then(|| tex("color msaa", width, height, HDR, samples));
+        let color = (samples > 1).then(|| tex("color msaa", width, height, format, samples));
         let depth = tex("depth", width, height, DEPTH, samples);
-        let hdr = tex("hdr", width, height, HDR, 1);
+        let hdr = tex("hdr", width, height, format, 1);
         let mut bloom = vec![];
         let (mut w, mut h) = (width, height);
         for i in 0..BLOOM_LEVELS {
@@ -922,13 +923,13 @@ impl Renderer {
         if width == self.targets.width && height == self.targets.height {
             return;
         }
-        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, width, height);
+        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, width, height);
     }
 
     /// Millisekunder på grafikkortet per del av bildet (tomt om kortet
     /// ikke kan måle det).
     pub fn pass_times(&self) -> Vec<(&'static str, f32)> {
-        self.timer.as_ref().map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect()).unwrap_or_default()
+        self.timer.as_ref().filter(|_| self.bench.timers).map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect()).unwrap_or_default()
     }
 
     /// Hva hvert pass tegnet sist bilde, navngitt etter `PASSES`.
@@ -967,9 +968,10 @@ impl Renderer {
 
     fn apply(&mut self) {
         let samples = self.wanted_samples();
-        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c {
-            self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c);
-            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, self.targets.width, self.targets.height);
+        let hdr = if self.bench.small_hdr && self.device.features().contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE) { wgpu::TextureFormat::Rg11b10Ufloat } else { HDR };
+        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr {
+            self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c, hdr);
+            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, self.targets.width, self.targets.height);
         }
     }
 
@@ -1201,7 +1203,7 @@ impl Renderer {
             let _ = self.device.poll(wgpu::PollType::Poll);
             tm.collect();
         }
-        let ts = |k: usize, begin: bool, end: bool| self.timer.as_ref().and_then(|tm| tm.writes(k, begin, end));
+        let ts = |k: usize, begin: bool, end: bool| self.timer.as_ref().filter(|_| self.bench.timers).and_then(|tm| tm.writes(k, begin, end));
         let mut stats = [PassStats::default(); 2];
         let mut enc = self.device.create_command_encoder(&Default::default());
 

@@ -40,7 +40,6 @@ impl Input {
                 }
             }
             "KeyC" => self.crouch = down,
-            "KeyX" if down => self.actions.push(Action::Crawl),
             "KeyE" if down => self.actions.push(Action::Trade),
             "KeyF" if down => self.actions.push(Action::Use),
             "KeyT" if down => self.actions.push(Action::Daylight),
@@ -73,8 +72,6 @@ pub enum Action {
     Use,
     /// E: handle med innbyggeren du sikter på (butikk eller verksted).
     Trade,
-    /// X: kryp av og på.
-    Crawl,
     /// T: dag eller natt.
     Daylight,
     /// V: neste vær.

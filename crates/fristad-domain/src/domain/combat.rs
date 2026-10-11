@@ -453,7 +453,7 @@ impl Combat {
                 } else if !hit && ct >= SWING_HIT[n] {
                     let mut dmg = LIGHT_DAMAGE[n] * self.gear.weapon.damage;
                     if self.riposte {
-                        dmg *= if self.gear.weapon.id == "divider_blade" { 3.0 } else { 2.0 };
+                        dmg *= self.gear.weapon.riposte;
                         self.riposte = false;
                     }
                     self.phase = Phase::Swing { n, hit: true };
@@ -501,7 +501,7 @@ impl Combat {
                 } else if !hit && ct >= HEAVY_HIT {
                     let mut dmg = HEAVY_DAMAGE * self.gear.weapon.damage * (1.0 + (charge / 1.2).clamp(0.0, 1.0) * 0.4);
                     if self.riposte {
-                        dmg *= if self.gear.weapon.id == "divider_blade" { 3.0 } else { 2.0 };
+                        dmg *= self.gear.weapon.riposte;
                         self.riposte = false;
                     }
                     self.phase = Phase::Heavy { charging: false, hit: true, charge };

@@ -44,6 +44,8 @@ pub struct Weapon {
     pub rarity: Rarity,
     /// Spesialtrekket, slik det vises.
     pub special: &'static str,
+    /// Ganger på skaden i hugget rett etter en parade.
+    pub riposte: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,6 +58,8 @@ pub struct Shield {
     /// Sekunder etter at blokken startet der et bitt blir parade.
     pub parry_window: f32,
     pub rarity: Rarity,
+    /// Lyden når det tar imot et bitt (tre eller jern).
+    pub sound: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -65,6 +69,8 @@ pub struct Armor {
     /// Ganger på skaden du tar.
     pub taken: f32,
     pub rarity: Rarity,
+    /// Lyden som rasler i takt med skrittene.
+    pub sound: &'static str,
 }
 
 /// Det du har på deg.
@@ -77,26 +83,26 @@ pub struct Gear {
     pub lantern: f32,
 }
 
-pub const RUSTY_SWORD: Weapon = Weapon { id: "rusty_sword", name: "Rustent sverd", model: "sword", kind: WeaponKind::Sword, damage: 0.8, speed: 1.0, reach: 2.2, rarity: Rarity::Common, special: "ingen" };
-pub const OLD_SHIELD: Shield = Shield { id: "old_shield", name: "Gammelt rundskjold", model: "shield_round", block: 0.25, parry_window: 0.22, rarity: Rarity::Common };
+pub const RUSTY_SWORD: Weapon = Weapon { id: "rusty_sword", name: "Rustent sverd", model: "sword", kind: WeaponKind::Sword, damage: 0.8, speed: 1.0, reach: 2.2, rarity: Rarity::Common, special: "ingen", riposte: 2.0 };
+pub const OLD_SHIELD: Shield = Shield { id: "old_shield", name: "Gammelt rundskjold", model: "shield_round", block: 0.25, parry_window: 0.22, rarity: Rarity::Common, sound: "block" };
 
 pub const WEAPONS: &[Weapon] = &[
     RUSTY_SWORD,
-    Weapon { id: "component_sword", name: "Komponentsverd", model: "sword", kind: WeaponKind::Sword, damage: 1.0, speed: 1.0, reach: 2.3, rarity: Rarity::Common, special: "kombo på tre" },
-    Weapon { id: "card_axe", name: "Kortøks", model: "axe", kind: WeaponKind::Axe, damage: 1.45, speed: 0.8, reach: 2.0, rarity: Rarity::Rare, special: "går gjennom blokk" },
-    Weapon { id: "tag_dagger", name: "Taggdolk", model: "dagger", kind: WeaponKind::Dagger, damage: 0.7, speed: 1.5, reach: 1.6, rarity: Rarity::Rare, special: "dobbelt bakfra" },
-    Weapon { id: "divider_blade", name: "Dividerklinge", model: "sword", kind: WeaponKind::Sword, damage: 1.35, speed: 1.1, reach: 2.5, rarity: Rarity::Epic, special: "parade gir trippel" },
+    Weapon { id: "component_sword", name: "Komponentsverd", model: "sword", kind: WeaponKind::Sword, damage: 1.0, speed: 1.0, reach: 2.3, rarity: Rarity::Common, special: "kombo på tre", riposte: 2.0 },
+    Weapon { id: "card_axe", name: "Kortøks", model: "axe", kind: WeaponKind::Axe, damage: 1.45, speed: 0.8, reach: 2.0, rarity: Rarity::Rare, special: "går gjennom blokk", riposte: 2.0 },
+    Weapon { id: "tag_dagger", name: "Taggdolk", model: "dagger", kind: WeaponKind::Dagger, damage: 0.7, speed: 1.5, reach: 1.6, rarity: Rarity::Rare, special: "dobbelt bakfra", riposte: 2.0 },
+    Weapon { id: "divider_blade", name: "Dividerklinge", model: "sword", kind: WeaponKind::Sword, damage: 1.35, speed: 1.1, reach: 2.5, rarity: Rarity::Epic, special: "parade gir trippel", riposte: 3.0 },
 ];
 
 pub const SHIELDS: &[Shield] = &[
     OLD_SHIELD,
-    Shield { id: "card_shield", name: "Kortskjold", model: "shield_round", block: 0.12, parry_window: 0.3, rarity: Rarity::Common },
-    Shield { id: "fieldset_tower", name: "Fieldset-tårnskjold", model: "shield_tower", block: 0.05, parry_window: 0.36, rarity: Rarity::Epic },
+    Shield { id: "card_shield", name: "Kortskjold", model: "shield_round", block: 0.12, parry_window: 0.3, rarity: Rarity::Common, sound: "block" },
+    Shield { id: "fieldset_tower", name: "Fieldset-tårnskjold", model: "shield_tower", block: 0.05, parry_window: 0.36, rarity: Rarity::Epic, sound: "block_metal" },
 ];
 
 pub const ARMORS: &[Armor] = &[
-    Armor { id: "badge_jerkin", name: "Badgevams", taken: 0.85, rarity: Rarity::Common },
-    Armor { id: "fieldset_mail", name: "Fieldset-brynje", taken: 0.65, rarity: Rarity::Epic },
+    Armor { id: "badge_jerkin", name: "Badgevams", taken: 0.85, rarity: Rarity::Common, sound: "gear_leather" },
+    Armor { id: "fieldset_mail", name: "Fieldset-brynje", taken: 0.65, rarity: Rarity::Epic, sound: "gear_mail" },
 ];
 
 /// Hva en oppskrift gir.

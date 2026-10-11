@@ -180,6 +180,10 @@ fn main() {
     let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(4);
     // Standard grafikk er det spillet starter med; --advanced slår på avansert.
     app.command(Command::SetQuality(if flag("--advanced") { Quality::Advanced } else if flag("--simple") { Quality::Simple } else { Quality::Standard }));
+    // HDR-bildet i 4 byte per prøve (målingen i nettleseren har samme bryter).
+    if flag("--small-hdr") {
+        app.command(Command::SetBench(fristad::ports::Bench { small_hdr: true, ..Default::default() }));
+    }
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);

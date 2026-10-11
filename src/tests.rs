@@ -606,11 +606,22 @@ fn lydene_finnes() {
     let credits = std::fs::read_to_string(format!("{root}/assets/sounds/CREDITS.md")).expect("CREDITS.md");
     let js = std::fs::read_to_string(format!("{root}/web/sounds.js")).expect("sounds.js");
     let mut used = std::collections::BTreeSet::new();
-    for path in ["crates/fristad-app/src/application/session.rs", "crates/fristad-domain/src/domain/mobs.rs", "crates/fristad-domain/src/domain/combat.rs"] {
-        let src = std::fs::read_to_string(format!("{root}/{path}")).expect("kilden");
-        // Lydnavnene er strenger med små bokstaver og understrek i kall
-        // til sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene.
-        for marker in ["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_", "cues.push(\"", "sounds.push((if", "let name = ["] {
+    // Lydnavnene er strenger med små bokstaver og understrek i kall til
+    // sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene (i hele
+    // applikasjonen, fiendene og kampen), lydene reglene sier fra om
+    // (`Note`), og lydene utstyret har (`sound: "…"`).
+    const CALLS: &[&str] = &["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_", "cues.push(\"", "sounds.push((if", "let name = [", "Note::Sfx(\"", "Note::At(\""];
+    let mut sources: Vec<(String, &[&str])> = vec![];
+    for e in std::fs::read_dir(format!("{root}/crates/fristad-app/src/application")).expect("applikasjonen").flatten() {
+        sources.push((e.path().to_string_lossy().into_owned(), CALLS));
+    }
+    for f in ["mobs.rs", "combat.rs", "hero.rs", "world/crypt/run.rs", "world/mechanisms.rs"] {
+        sources.push((format!("{root}/crates/fristad-domain/src/domain/{f}"), CALLS));
+    }
+    sources.push((format!("{root}/crates/fristad-domain/src/domain/craft.rs"), &["sound: \""]));
+    for (path, markers) in &sources {
+        let src = std::fs::read_to_string(path).expect("kilden");
+        for marker in markers.iter().copied() {
             let mut rest = src.as_str();
             while let Some(i) = rest.find(marker) {
                 rest = &rest[i + marker.len()..];

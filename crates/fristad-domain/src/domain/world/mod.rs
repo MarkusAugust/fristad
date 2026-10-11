@@ -13,7 +13,9 @@ use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::collections::HashMap;
 
 pub mod crypt;
+pub mod mechanisms;
 pub mod nature;
+pub mod portal;
 pub mod terrain;
 pub mod town;
 

@@ -237,8 +237,8 @@ impl Engine {
 
     /// Bryterne til målingen (`?bench`): MSAA-prøver (0 er nivåets),
     /// alpha to coverage, solskygge og flat farge.
-    pub fn set_bench(&mut self, msaa: u32, a2c: bool, shadow: bool, flat: bool) {
-        self.app.command(Command::SetBench(Bench { msaa, a2c, shadow, flat }));
+    pub fn set_bench(&mut self, msaa: u32, a2c: bool, shadow: bool, flat: bool, small_hdr: bool, timers: bool) {
+        self.app.command(Command::SetBench(Bench { msaa, a2c, shadow, flat, small_hdr, timers }));
     }
 
     /// Trekanter tegnet sist bilde.

@@ -1435,6 +1435,9 @@ const BENCH_RUNS = [
   ["standard", 1, true, true, true],
   ["standard", 0, false, true, false],
   ["standard", 0, true, false, false],
+  ["standard", 0, true, true, false, true],
+  ["standard", 0, true, true, false, false, false],
+  ["standard", 1, true, true, false, false, false],
   ["enkel", 0, true, true, false],
   ["avansert", 0, true, true, false],
 ];
@@ -1469,15 +1472,15 @@ async function runBench() {
     `Fristad ${engine.fristil_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
     `${navigator.userAgent}`,
     `Lerret ${canvas.width}×${canvas.height} · vindu ${innerWidth}×${innerHeight} · dpr ${devicePixelRatio}`,
-    "sted · nivå · msaa · a2c · skygge · flat → GPU ms (delene) · fps",
+    "sted · nivå · msaa · a2c · skygge · flat · hdr · tidsmåling → GPU ms (delene) · fps",
   ];
-  const label = (run) => `${run[0]} · ${run[1] || "nivå"} · ${run[2] ? "a2c" : "-"} · ${run[3] ? "skygge" : "-"} · ${run[4] ? "flat" : "-"}`;
+  const label = (run) => `${run[0]} · ${run[1] || "nivå"} · ${run[2] ? "a2c" : "-"} · ${run[3] ? "skygge" : "-"} · ${run[4] ? "flat" : "-"} · ${run[5] ? "hdr11" : "hdr16"} · ${run[6] === false ? "uten tid" : "tid"}`;
   toast?.show?.("Måler grafikken … (rundt ett minutt)");
   for (const [name, x, y, z, yaw] of BENCH_PLACES) {
     for (const run of BENCH_RUNS) {
       if (name !== "torget" && run !== BENCH_RUNS[0] && run[0] === "standard") continue;
       setQuality(run[0], false, false);
-      engine.set_bench(run[1], run[2], run[3], run[4]);
+      engine.set_bench(run[1], run[2], run[3], run[4], !!run[5], run[6] !== false);
       engine.place(x, y, z, yaw, 0);
       await sleep(600);
       const m = await measure(2);
@@ -1485,7 +1488,7 @@ async function runBench() {
       lines.push(`${name} · ${label(run)} → ${m.total > 0 ? `${m.total.toFixed(1)} ms (${partText})` : "GPU-tid ikke tilgjengelig"} · ${m.fps.toFixed(0)} fps`);
     }
   }
-  engine.set_bench(0, true, true, false);
+  engine.set_bench(0, true, true, false, false, true);
   setQuality(before ?? "standard", false, false);
   benchRunning = false;
   showBench(lines.join("\n"));

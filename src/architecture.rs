@@ -141,3 +141,36 @@ fn kjernen_bruker_ikke_filer_miljo_eller_klokke() {
     }
     assert!(bad.is_empty(), "Kjernen, portene og applikasjonen skal ikke lese filer, miljø eller klokke:\n{}", bad.join("\n"));
 }
+
+/// Største lengde (linjer) på en fil i kjernen, portene og applikasjonen.
+const MAX_LINES: usize = 800;
+
+/// Filene som var lengre da grensen kom (11. oktober), med lengden da som
+/// tak. De kan bare krympe; når en er under grensen, skal den strykes her.
+const TOO_LONG: &[(&str, usize)] = &[
+    ("fristad-domain/src/domain/world/town.rs", 1744),
+    ("fristad-domain/src/domain/mobs.rs", 1121),
+    ("fristad-domain/src/domain/world/crypt/mod.rs", 873),
+    ("fristad-domain/src/domain/geometry.rs", 827),
+];
+
+#[test]
+fn filene_er_ikke_for_lange() {
+    let mut bad = vec![];
+    for (krate, _) in RULES {
+        let mut all = vec![];
+        files(&root().join("crates").join(krate).join("src"), &mut all);
+        for path in all {
+            let lines = std::fs::read_to_string(&path).unwrap().lines().count();
+            let rel = path.strip_prefix(root().join("crates")).unwrap().to_string_lossy().replace('\\', "/");
+            match TOO_LONG.iter().find(|(f, _)| *f == rel) {
+                Some((_, cap)) if lines > *cap => bad.push(format!("{rel}: {lines} linjer, mer enn taket {cap}")),
+                Some(_) if lines <= MAX_LINES => bad.push(format!("{rel}: {lines} linjer, under grensen; stryk den fra TOO_LONG")),
+                Some(_) => {}
+                None if lines > MAX_LINES => bad.push(format!("{rel}: {lines} linjer, mer enn {MAX_LINES}; del den etter oppgave")),
+                None => {}
+            }
+        }
+    }
+    assert!(bad.is_empty(), "{}", bad.join("\n"));
+}

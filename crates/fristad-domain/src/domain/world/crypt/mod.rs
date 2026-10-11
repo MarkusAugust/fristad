@@ -16,7 +16,9 @@
 //! til å finne rommet du står i.
 
 pub mod level;
+pub mod map;
 pub mod nav;
+pub mod run;
 
 use super::{Builder, Shape, Use};
 use glam::{Affine3A, Vec2, Vec3};
