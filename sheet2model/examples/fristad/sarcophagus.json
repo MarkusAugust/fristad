@@ -5,7 +5,138 @@
  "tex": 2048,
  "target": "fristad",
  "root": "../../..",
- "opt": {"prior": "box", "view_pitch": 20.0, "tiles": "auto", "edge_fade": 6.0, "height": 0.95},
- "limits": {"sharpness_min": 40.0},
- "merk": "sarkofagen med ridderen på lokket; langsida mot +x"
+ "limits": {
+  "sharpness_min": 40.0,
+  "iou_min": 0.4
+ },
+ "opt": {
+  "view_pitch": 20.0,
+  "tiles": {
+   "down": "assets/textures/painted/crypt_wall/albedo.png",
+   "cm": 200
+  },
+  "edge_fade": 6.0,
+  "game_yaw": 90,
+  "yaw_range": 15.0,
+  "pitch_range": 4.0
+ },
+ "parts": [
+  {
+   "name": "body",
+   "prior": "box",
+   "box": {
+    "qfl": [
+     60,
+     760,
+     1010,
+     1440
+    ],
+    "qbr": [
+     40,
+     760,
+     960,
+     1440
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 0.9,
+     "hy": 0.3,
+     "hz": 0.38
+    }
+   }
+  },
+  {
+   "name": "plinth",
+   "prior": "box",
+   "at": [
+    0.0,
+    -0.38,
+    0.0
+   ],
+   "box": {
+    "qfl": [
+     60,
+     1060,
+     1010,
+     1460
+    ],
+    "qbr": [
+     40,
+     1060,
+     960,
+     1460
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 1.0,
+     "hy": 0.08,
+     "hz": 0.45
+    }
+   }
+  },
+  {
+   "name": "lid",
+   "prior": "box",
+   "at": [
+    0.0,
+    0.36,
+    0.0
+   ],
+   "box": {
+    "qfl": [
+     60,
+     700,
+     1010,
+     1060
+    ],
+    "qbr": [
+     40,
+     700,
+     960,
+     1060
+    ]
+   },
+   "opt": {
+    "size": {
+     "hx": 1.0,
+     "hy": 0.06,
+     "hz": 0.45
+    }
+   }
+  },
+  {
+   "name": "effigy",
+   "prior": "cone_x",
+   "at": [
+    0.0,
+    0.46,
+    0.0
+   ],
+   "box": {
+    "qfl": [
+     120,
+     540,
+     980,
+     980
+    ],
+    "qbr": [
+     100,
+     540,
+     940,
+     980
+    ]
+   },
+   "opt": {
+    "size": {
+     "r0": 0.21,
+     "r1": 0.14,
+     "hx": 0.8
+    },
+    "segments": 16
+   }
+  }
+ ],
+ "merk": "sarkofagen (kit_sarcophagus): sokkel 2,0 × 0,9 × 0,16, kiste 1,8 × 0,76 × 0,6, lokk 2,0 × 0,9 × 0,12, ridderen på lokket som avsmalnende, liggende kjegle (hodet mot −x) sunket 0,17 ned i lokket; 1,1 m høy. Langsida langs x i arket, game_yaw 90 gir langsida langs z som byggesettets L"
 }

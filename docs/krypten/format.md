@@ -71,6 +71,7 @@ Koordinater er i meter: x mot øst, y opp og z mot sør, som i spillet og i plan
   | `trap` | felle | `label` (`arrows`, `spikes`, `rocks`, `pendulum`, `gas`, `flood`), `id`, `dir`, `size` |
   | `hint` | hint om en hemmelighet (trekk, lyd, sprekk) | `label` (`draft`, `sound`, `crack`), `for` (id-en det gjelder) |
   | `lift` | heis eller vinsj | `id`, `top`, `bottom` |
+  | `prop` | pynt som egen modell fra byggesettet (sarkofagen `kit_sarcophagus`); kolliderne står i `colliders` | `label` (modellen), `yaw` |
   | `water` | vannstand som kan endres | `id`, `levels` (høyder) |
 
 ## Felles regler

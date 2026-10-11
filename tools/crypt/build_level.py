@@ -43,6 +43,7 @@ DOCS = os.path.join(ROOT, "docs", "krypten")
 
 INSET = 0.4  # navigasjonsnettet holder seg så langt fra murene
 SPRING = 2.2  # høyden på gangmurene (vederlaget), over gulvet
+STAIR_IN = 0.1  # trapper og ramper inntil en mur går så langt inn i murblokka (aldri tangent)
 WALL_T = 0.4  # tykkelsen på murkolliderne
 CHUNK = 16.0  # bitene
 
@@ -276,6 +277,12 @@ class Level:
     def hull(self, pts):
         self.colliders.append({"hull": [[rnd(c) for c in p] for p in pts]})
 
+    def prop(self, model, x, y, z, yaw=0.0):
+        """Pynt fra byggesettet som egen modell (sarkofagen fra arket, med bakt
+        tekstur): motoren setter den ut etter merket `prop`. Kolliderne og
+        nav-hindringen legges der den kalles fra, som før."""
+        self.marks.append({"kind": "prop", "label": model, "pos": [rnd(x), rnd(y), rnd(z)], "yaw": rnd(yaw, 4)})
+
     def wall_box(self, a, b, y0, y1, out):
         """Murkollider langs (a → b) i planen, bak flaten (mot `out`)."""
         L = math.dist(a, b)
@@ -481,7 +488,9 @@ class Level:
                     self.floor_collider(rect, y0)
                 else:
                     steps = max(2, round(abs(y1 - y0) / 0.2))
-                    K.steps(mb, p0, d, lat, h.w, s0, s1, y0, y1, steps, mat="dressed")
+                    # Trinnene går STAIR_IN inn i murene på begge sider (aldri tangent: da
+                    # blir det glipper med lys gjennom mellom trinn og mur).
+                    K.steps(mb, p0, d, lat, h.w + 2 * STAIR_IN, s0, s1, y0, y1, steps, mat="dressed")
                     # Rampa under trinnene.
                     pts = []
                     for s, y in ((s0, y0), (s1, y1)):
@@ -507,9 +516,29 @@ class Level:
                 nrm = (dz, -dx)
             surf = Plane(pa, (dx, dz), nrm)
             L = seg.length
-            us = sorted(set([0.0, L] + [L * q / max(1, math.ceil(L / 0.5)) for q in range(math.ceil(L / 0.5) + 1)]))
+            us = set([0.0, L] + [L * q / max(1, math.ceil(L / 0.5)) for q in range(math.ceil(L / 0.5) + 1)])
+            # Muren går opp til vederlaget til hvelvet, som er trappet i skiver på 1 m der
+            # gulvet stiger (ikke til gulvet + SPRING, som er en rampe: mellom rampa og det
+            # trappete vederlaget sto det kiler av himmel over hvert trinn). Prøv tett ved
+            # skivegrensene, så toppen følger trinnene.
+            for i, (p0, p1, d, Ls) in enumerate(h.segs):
+                m = max(1, math.ceil(Ls - 1e-6))
+                for q in range(m + 1):
+                    px, pz = p0[0] + d[0] * Ls * q / m, p0[1] + d[1] * Ls * q / m
+                    u = (px - pa[0]) * dx + (pz - pa[1]) * dz
+                    for uu in (u - 1e-3, u + 1e-3):
+                        if 0.0 < uu < L:
+                            us.add(uu)
+                if i < n - 1:  # buen i lunetten i hjørnefaget: prøver hver 10 cm
+                    uc = (p1[0] - pa[0]) * dx + (p1[1] - pa[1]) * dz
+                    for kq in range(-int(a / 0.1) - 1, int(a / 0.1) + 2):
+                        uu = uc + 0.1 * kq
+                        if 0.0 < uu < L:
+                            us.add(uu)
+            us = sorted(us)
             fl = [self.hall_floor(h, surf.point(u, 0.0, 0.3)) for u in us]
-            outline = Polygon([(u, f - 0.3) for u, f in zip(us, fl)] + [(u, f + SPRING) for u, f in reversed(list(zip(us, fl)))])
+            tops = [self.hall_spring(h, surf.point(u, 0.0, 0.3)) + 0.03 for u in us]
+            outline = Polygon([(u, f - 0.3) for u, f in zip(us, fl)] + [(u, t) for u, t in reversed(list(zip(us, tops)))])
             grid_face(mb, surf, outline, "wall")
             lo = min(fl) - 0.5
             hi = max(fl) + SPRING + a + 0.4
@@ -521,7 +550,9 @@ class Level:
             cw = p0[1] if axis == "x" else p0[0]
             s_lo, s_hi = (0.0, L)
             m = max(1, math.ceil(L - 1e-6))
-            prev = None
+            # Krysshvelvet i hjørnet før strekket står på gulvet ved starten; er første
+            # skive høyere (trappa begynner i den), må trinnet imellom også lukkes.
+            prev = h.floor_s(i, 1e-4) + SPRING if i > 0 else None
             for q in range(m):
                 s0, s1 = s_lo + L * q / m, s_lo + L * (q + 1) / m
                 S = max(h.floor_s(i, s0 + 1e-4), h.floor_s(i, s1 - 1e-4)) + SPRING
@@ -535,6 +566,9 @@ class Level:
             if i < n - 1:
                 cx, cz = p1
                 S = h.floor_s(i, L) + SPRING
+                if prev is not None and abs(prev - S) > 1e-3:  # siste skive mot krysshvelvet i hjørnet
+                    g_end = (p0[0] + d[0] * L, p0[1] + d[1] * L)
+                    self.vault_step(axis, g_end[0] if axis == "x" else g_end[1], cw, prev, S, a)
                 K.groin_bay(mb, cx - a, cx + a, cz - a, cz + a, S, a, mat="vault")
                 K.groin_ribs(mb, cx - a, cx + a, cz - a, cz + a, S, a)
         # Muren i enden der åpningen er smalere enn gangen (døra, den
@@ -604,6 +638,43 @@ class Level:
 
     def hall_floor(self, h, p):
         return h.floor_at(p[0], p[2])
+
+    def hall_spring(self, h, p):
+        """Vederlaget til hvelvet over punktet p i gangen: tønnehvelvet ligger i skiver
+        på 1 m med høyden etter det høyeste gulvet i skiva (som i `hall`), og
+        krysshvelvene i hjørnene etter gulvet ved enden av strekket. Murene går
+        opp hit, så det aldri står luft mellom mur og hvelv."""
+        px, pz = p[0], p[2]
+        best = None
+        for i, (p0, p1, d, L) in enumerate(h.segs):
+            s = (px - p0[0]) * d[0] + (pz - p0[1]) * d[1]
+            sc = min(max(s, 0.0), L)
+            dist = math.hypot(px - (p0[0] + d[0] * sc), pz - (p0[1] + d[1] * sc))
+            if best is None or dist < best[0] - 1e-6:
+                best = (dist, i, s, L)
+        _, i, s, L = best
+        a = h.w / 2
+        n = len(h.segs)
+        # I krysshvelvets fag i et hjørne (±a om knekkpunktet) er de lukkede sidene
+        # lunetter: muren går helt opp til buen, S + a·sqrt(1 − t²), ellers står det
+        # en halvsirkel av luft mellom vederlaget og hvelvet.
+        bay = None
+        if s >= L - a - 1e-6 and i < n - 1:
+            bay = (h.segs[i][1], h.floor_s(i, L - 1e-4) + SPRING)
+        elif s <= a + 1e-6 and i > 0:
+            bay = (h.segs[i][0], h.floor_s(i, 1e-4) + SPRING)
+        if bay is not None:
+            (cx, cz), S = bay
+            t = (pz - cz) / a if abs(abs(px - cx) - a) < abs(abs(pz - cz) - a) else (px - cx) / a
+            return S + a * math.sqrt(max(0.0, 1 - min(1.0, t * t) ** 1))
+        if s <= 1e-6:
+            return h.floor_s(i, 1e-4) + SPRING
+        if s >= L - 1e-6:
+            return h.floor_s(i, L - 1e-4) + SPRING
+        m = max(1, math.ceil(L - 1e-6))
+        q = min(m - 1, int(s * m / L))
+        s0, s1 = L * q / m, L * (q + 1) / m
+        return max(h.floor_s(i, s0 + 1e-4), h.floor_s(i, s1 - 1e-4)) + SPRING
 
     # -- Beinhuset: rund sal med galleri og trapp langs muren --
 
@@ -765,7 +836,7 @@ class Level:
                     self.light((p[0], g.y + 2.45, p[2]), CANDLE, 4.5, "gravgang", True, 1.0)
         # Sidegraven: en sarkofag, kald.
         s = rm["sidegrav"]
-        K.sarcophagus(mb, -9.5, 22.3, s.y, math.pi / 2, L=2.0, W=0.9)
+        self.prop("kit_sarcophagus", -9.5, s.y, 22.3, math.pi / 2)
         s.obstacles.append(sbox(-10.6, 21.8, -8.4, 22.8))
         self.box((-9.5, s.y + 0.5, 22.3), (2.2, 1.0, 1.0))
         s.obstacles.append(sbox(-12.6, 20.6, -11.4, 21.8))
@@ -810,7 +881,7 @@ class Level:
         # Den glemte graven: sarkofager og stearinlys.
         d = rm["dypgrav"]
         for xx in (-29.0, -26.5):
-            K.sarcophagus(mb, xx, 23.5, d.y, 0.0, L=2.0, W=0.9)
+            self.prop("kit_sarcophagus", xx, d.y, 23.5, 0.0)
             d.obstacles.append(sbox(xx - 0.55, 22.4, xx + 0.55, 24.6))
             self.box((xx, d.y + 0.5, 23.5), (1.0, 1.0, 2.2))
         K.candlestick(mb, -31.6, 26.8, d.y, arms=2)
@@ -838,7 +909,7 @@ class Level:
             for xc in (-3.4, 3.4):
                 if xc < 0 and 69 <= zc <= 75:
                     continue
-                K.sarcophagus(mb, xc, zc, so.y, 0.0, L=2.2, W=0.95)
+                self.prop("kit_sarcophagus", xc, so.y, zc, 0.0)
                 so.obstacles.append(sbox(xc - 0.6, zc - 1.25, xc + 0.6, zc + 1.25))
                 self.box((xc, so.y + 0.5, zc), (1.1, 1.0, 2.4))
         for zc in (61, 73, 85):
@@ -1244,6 +1315,13 @@ def main():
     print(f"nivå {n}: {tris} trekanter i {len(pieces)} biter, {len(data['colliders'])} kollidere, {len(data['nav']['polys'])} polygoner, {len(L.lights)} lys")
     for name, m in sorted(pieces.items()):
         print(f"  {name}: {m.tris()}")
+    if "--no-check" not in args:
+        # Tetthetssjekken: et nivå som slipper himmelen inn, eksporteres ikke.
+        import leak_check
+        leaks = leak_check.check(L.mb, data["nav"], data["rooms"], data["marks"], n, os.path.join(ROOT, "shots", "krypten", f"leaks_{n:02d}.txt"))
+        if leaks:
+            print(f"nivå {n} LEKKER ({len(leaks)} hull): rett årsaken i build_level.py/kit_grav.py (--no-check hopper over)")
+            sys.exit(1)
     if export:
         only = [a for a in args[1:] if a.startswith("crypt_")]
         for name, m in sorted(pieces.items()):

@@ -3,7 +3,7 @@
 
 Detaljene (stein, fuger, knokler, planker) ligger i de malte teksturlagene
 (`crypt_wall`, `crypt_floor`, `crypt_vault`, `grave_slab`, `ossuary`,
-`crypt_plaster`, `rubble`, `bronze_door`, `glitch_seam`). Bare silhuetten er
+`plaster_old` som kalkpuss, `rubble`, `bronze_door`, `glitch_seam`). Bare silhuetten er
 geometri: murene med døråpninger og nisjer, hvelvene med ribber, søylene,
 trinnene, sarkofagene, alteret, lysestakene og faklene.
 
@@ -114,7 +114,7 @@ MATS = {
     "vault": ("crypt_vault", (1.0, 1.0, 1.0), 0.5),
     "rib": ("crypt_wall", (0.8, 0.79, 0.8), 0.5),
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
-    "fresco": ("crypt_plaster", (0.95, 0.94, 0.92), 0.55),
+    "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
     "rubble": ("rubble", (1.0, 1.0, 1.0), 0.55),
     "oak": ("bronze_door", (1.0, 1.0, 1.0), 0.5),
     "wood": ("door_b", (1.0, 1.0, 1.0), 0.55),
@@ -1710,8 +1710,13 @@ def main():
         export_model(m, out, ao=True, samples=32)
         return
     only = [a for a in args if not a.startswith("-")]
+    # kit_rest og kit_sarcophagus er bygd fra eierens ark med sheet2model
+    # (docs/wip/gjenstander.md); de skrives bare over når de nevnes uttrykkelig.
+    from_sheets = {"kit_rest"}
     for name, m in mechanisms().items():
         if only and name not in only:
+            continue
+        if not only and name in from_sheets:
             continue
         export_model(m, os.path.join(OUT, f"{name}.glb"), ao=True)
 

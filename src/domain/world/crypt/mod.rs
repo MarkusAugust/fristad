@@ -77,6 +77,8 @@ pub const KIT_BONUS: &str = "kit_bonus";
 pub const KIT_CRACK: &str = "kit_crack";
 pub const KIT_UP: &str = "kit_up";
 pub const KIT_DOWN: &str = "kit_down";
+/// Pynten merket `prop` kan sette ut (modellnavnet i `label`).
+pub const PROPS: &[&str] = &["kit_sarcophagus"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
@@ -849,6 +851,16 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     b.place_mounted(KIT_CRACK, pose);
                 }
                 c.hints.push(Hint { kind, pos, level: k });
+            }
+            "prop" => {
+                // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.
+                let label = m.label.clone().unwrap_or_default();
+                match PROPS.iter().find(|p| **p == label) {
+                    Some(name) => {
+                        b.place(name, pose);
+                    }
+                    None => log::warn!("Kryptnivå {n}: ukjent pynt «{label}» (kjente: {PROPS:?})"),
+                }
             }
             "lift" | "water" => {
                 log::info!("Kryptnivå {n}: {} ({:?}) gjør ingenting ennå", m.kind, m.id);
