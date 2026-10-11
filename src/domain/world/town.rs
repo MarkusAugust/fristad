@@ -1127,7 +1127,7 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
         let pos = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         log::info!("Innbygger {name} ved ({:.1}, {:.1}, {:.1})", pos.x, pos.y, pos.z);
-        let model = if b.has_model(own) {
+        let model = if figure_approved(own) && b.has_model(own) {
             b.reserve(own, 1);
             own
         } else {
@@ -1142,9 +1142,27 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
             vec![p, p + side * 2.4, p, p - side * 2.4]
         };
         let route = pts.iter().map(|q| (b.on_ground(Vec3::new(q.x, 0.0, q.y)), 3.0)).collect();
-        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines, route });
-        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
+        let height = npc_height(b, model);
+        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines, route, height });
+        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, height * 0.5, 0.0), Vec3::new(0.3, height * 0.5, 0.3));
     }
+}
+
+/// Figurene eieren har godkjent for spillet. De tretten fra `tools/reconstruct`
+/// (11. oktober) er tatt ut igjen: for små (1,2–1,6 m), hodene for store,
+/// hetter og hatter smeltet inn i skallen. De kommer tilbake én og én fra
+/// `sheet2model` med felles kropp, og legges til her når eieren har sett dem.
+const APPROVED_FIGURES: &[&str] = &[];
+
+fn figure_approved(model: &str) -> bool {
+    APPROVED_FIGURES.contains(&model)
+}
+
+/// Høyden på en figur: modellens mål, eller 1,8 m om modellen mangler
+/// (figurene står med føttene i origo).
+fn npc_height(b: &Builder, model: &str) -> f32 {
+    let h = b.model_height(model);
+    if h > 0.5 { h } else { 1.8 }
 }
 
 /// Folk i byen som går ærender: til brønnene, over torget, til portene og
@@ -1382,16 +1400,17 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
         } else {
             own
         };
-        let model = if own != crate::domain::npcs::NPC_MODEL && b.has_model(own) {
+        let model = if own != crate::domain::npcs::NPC_MODEL && figure_approved(own) && b.has_model(own) {
             b.reserve(own, 1);
             own
         } else {
             crate::domain::npcs::NPC_MODEL
         };
         log::debug!("{name} ({model}) starter ved {:.1}, {:.1}", pos.x, pos.z);
-        b.npcs.push(NpcSpec { name, model, pos, yaw: 0.0, tint, lines, route });
+        let height = npc_height(b, model);
+        b.npcs.push(NpcSpec { name, model, pos, yaw: 0.0, tint, lines, route, height });
         let i = b.npcs.len() - 1;
-        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3));
+        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, height * 0.5, 0.0), Vec3::new(0.3, height * 0.5, 0.3));
     }
     log::info!("Byen: {} innbyggere går ærender", b.npcs.len() - base);
 }

@@ -102,6 +102,9 @@ pub struct NpcSpec {
     /// Punktene innbyggeren går mellom (føttene på bakken) og hvor lenge
     /// hen blir stående ved hvert (0: går rett forbi, langs gata).
     pub route: Vec<(Vec3, f32)>,
+    /// Hvor høy figuren er (fra modellen; 1,8 m om den mangler), så
+    /// snakkebobla og siktemålet står rett over hodet.
+    pub height: f32,
 }
 
 pub struct World {

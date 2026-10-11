@@ -304,7 +304,7 @@ impl Session {
             npc_steps: vec![],
             shortcuts: vec![-1.0; world.crypt.shortcuts.len()],
             ambience_t: 0.0,
-            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone())).collect()),
+            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone(), n.height)).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.crypt, rigs),
             crypt: world.crypt.clone(),
