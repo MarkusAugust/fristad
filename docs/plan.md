@@ -31,9 +31,9 @@ Målet: ingenting når eieren uten å ha bestått automatiske tekniske og esteti
 - *Røyken eller himmelen:* røyken tegnes i et eget pass uten MSAA (halv oppløsning, satt sammen før tonemappingen), himmelen bare der dybden er tom.
 - *Geometribundet:* trekantene ned til budsjettet. Først det som ikke synes: innsidemodellene som tegnes inntil 22 m selv om du står ute (bare når du er inne eller i døråpningen), fjerne nett for alt over `fine_within`, og culling av modellinstanser bak hus (grov okklusjon per rute fra bymeshen). Så Vertshuset og de tyngste husene ned mot rammene i `ny-stil.md` (≤10 000 ute, ≤25 000 med innside) i fase 4. Budsjettet i CI (`snapshot --stats`, fase 3) holder det der.
 - *Fyllbundet, eller fortsatt for dyrt etter at trekantene er nede:* standard bytter MSAA ut med et kantfilter (SMAA 1×, eierens valg 11. okt.) som eget pass før tonemappingen (`post.wgsl`), rundt 1–2 ms. Avansert beholder MSAA. Kontroll: skjermbilder av gjerder, tau og takkanter med og uten filteret.
-- Uansett: standardnivået skal gi ≥ 60 fps på M2 og jobb-PC, bekreftet med eierens `?bench`, før fase 2 fortsetter.
+- Uansett: standardnivået skal gi ≥ 60 fps på referansemaskinen (eierens Mac mini M2; eieren har ingen jobb-PC), bekreftet med eierens `?bench`, før fase 2 fortsetter.
 
-**Verifisering:** eierens `?bench` før og etter hver rettelse (Mac og jobb-PC), loggført i `docs/kvalitet/ytelse.md`; `cargo test`, `node tools/wgsl-check.mjs`, skjermbilder av torget og krypten med og uten rettelsen.
+**Verifisering:** eierens `?bench` før og etter hver rettelse (M2, Chrome og Safari), loggført i `docs/kvalitet/ytelse.md`; `cargo test`, `node tools/wgsl-check.mjs`, skjermbilder av torget og krypten med og uten rettelsen.
 
 ## 0b. Mens eieren er borte: resten av fase 1 (navnestyring og døde modellnavn)
 
@@ -108,7 +108,7 @@ Hver prompt følger et fast format med mål og referansesilhuett der det finnes,
 - **Måling i nettleseren `?bench`:** går gjennom faste posisjoner, skriver GPU-ms per del (skygge, verden, etterbehandling), fps, oppløsning, dpr, MSAA, nettleser/GPU i en kopierbar tekst, med brytere (`msaa`, `a2c`, `shadow`, `flat` fragmentshader) som skiller rasterisering, skygging, MSAA og skyggepass.
 - **Grafikknivåer** enkel / standard / avansert (enkel = WebGL2: uten MSAA, 900p, ingen solskygge, ett lag bakke, 4 lys, ingen glød, halv teksturtetthet), oppløsning i trinn (finnes).
 - **Rettelser i rekkefølgen tallene peker:** delt skyggepass (ugjennomsiktig uten fragmentshader), terrenget (støy bakt til flis, høyst 3 lag, triplanar bare på berg), `textureSample` der gradientene er uniforme, lys per rute, himmel uten støy per piksel, sortering forfra og bakover, culling på terreng/krypt, skyggekart 2048².
-- **Budsjett som kontroll:** `snapshot --stats` i CI på de åtte posisjonene; feiler over 500k trekanter / 300 kall eller over grunnlinjen + 10 %. Eierens bench-tall fra Mac og jobb-PC er fasiten for fps (mål: standard ≥ 60 fps på vanlig maskin, avansert ≥ 60 på god), loggført i `docs/kvalitet/ytelse.md` per bygg.
+- **Budsjett som kontroll:** `snapshot --stats` i CI på de åtte posisjonene; feiler over 500k trekanter / 300 kall eller over grunnlinjen + 10 %. Eierens bench-tall fra M2 (Chrome og Safari) er fasiten for fps (mål: standard og avansert ≥ 60 fps der; nådd 11. okt. med SMAA), loggført i `docs/kvalitet/ytelse.md` per bygg.
 
 ## 8. Filmene (three.js i nettlaget)
 **Felles motor** `web/film/`: three.js (fast versjon), malte lag som teksturerte plan i 3D med ekte perspektiv i én sammenhengende kamerabane gjennom scenene (overgangene går gjennom noe i bildet: port, vindu, sprekk, glitch-hull), tåke og blafrende lys, partikler (støv, glør, snø, gnister), små 2D-deformasjoner i figurlag (pust, svai), glitch-effekter på de korrupte komponentene, tekst i middelalderskrift (fri gotisk/unsial skrift) tonet inn per scene, egen syntetisert musikk + lydbilde per scene (som `music.js`/`ambience.js`), musa dreier kameraet noen grader, Esc/mellomrom/knapp hopper over. Fyller 16:9 og 16:10. Manuset og banen er data (`web/film/opening.json`, `ending.json`).
@@ -125,7 +125,7 @@ Hver prompt følger et fast format med mål og referansesilhuett der det finnes,
 ## 9. Rekkefølgen
 | Fase | Innhold | Eieren ser / gjør |
 |---|---|---|
-| 0 (½–1 dag) | `?bench`, grafikknivå «enkel» | bench-tekst fra Mac og jobb-PC |
+| 0 (½–1 dag) | `?bench`, grafikknivå «enkel» | bench-tekst fra M2 i Chrome og Safari |
 | 1 (2–3 dager) | Arkitektur og rydding (del 2): crates, `session.rs` delt, sletting, `tools/lib`, tester i CI | samme spill, mindre kode; arkitekturtest i CI |
 | 2 (4–5 dager) | `tools/qa`: rasterer, rammeverk, P0–P7, P-T, byggesettsportene, skrekk- og gullsett, `promote`/`.qa.json`/Rust-test; stilguide, rubrikker og vurdereren | P0/P-T-svar på eksisterende ark og teksturer; **nye prompter (del 6) og filmmanusene** leveres i starten av fasen, så eieren lager dreieark mens portene bygges; animatikkene når manus er godkjent |
 | 3 (2–3 dager) | Ytelsesrettelsene (del 7) i den rekkefølgen bench viser; budsjett i CI | bench nr. 2 og 3 |

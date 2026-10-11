@@ -1,4 +1,4 @@
-# Ny stil: malt by, skarpt bilde, 60 fps på jobb-PC
+# Ny stil: malt by, skarpt bilde, 60 fps på referansemaskinen
 
 Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og realisme».
 
@@ -6,7 +6,7 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 
 - **Utseende:** stilisert og håndmalt, uten konturer (i retning World of Warcraft og Valheim). Varm, mettet by og en kald, grønnlig og korrupt kjeller der Fristil-komponentene gløder.
 - **Bildekvalitet:** klare teksturer i høy oppløsning, rundt 1 teksel per millimeter nær. Ingen uskarphet, spøkelser, utsmøring, støy, korn, taggete kanter eller flimmer.
-- **Ytelse:** stabilt 60 fps i 1080p på en jobb-PC med integrert grafikk (Intel Iris Xe) i standard grafikk. Nedlastingen spiller ingen rolle.
+- **Ytelse:** stabilt 60 fps i 1080p i standard grafikk på referansemaskinen, eierens Mac mini M2 i Chrome og Safari (eieren har ingen jobb-PC å måle på; 11. oktober). Svakere maskiner har enkel grafikk, og budsjettet for trekanter og kall holdes i CI. Målingene står i `docs/kvalitet/ytelse.md`. Nedlastingen spiller ingen rolle.
 
 ## Renderer, standard grafikk
 
