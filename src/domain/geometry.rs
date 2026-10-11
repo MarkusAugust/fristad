@@ -125,9 +125,27 @@ pub enum Layer {
     Snow = 44,
     /// Høvlet eik: bordplater, benker, krakker og hyller (malt).
     OakPlaned = 45,
+    /// Gravkjelleren: mur av tilhogd kalkstein (malt).
+    CryptStone = 46,
+    /// Gravkjelleren: slitte gulvheller (malt).
+    CryptFloor = 47,
+    /// Gravkjelleren: hvelvet i taket, små steiner (malt).
+    CryptVault = 48,
+    /// Gravheller i gulvet med innhogde kors (malt).
+    GraveSlab = 49,
+    /// Beinhuset: hodeskaller og knokler stablet i veggen (malt).
+    Ossuary = 50,
+    /// Kalkmaleri på murene i kapellene (malt).
+    CryptPlaster = 51,
+    /// Rasmasse og grus (malt).
+    Rubble = 52,
+    /// Jernbeslått mørk eik nede i krypten: dører, gitter, kister (malt).
+    BronzeDoor = 53,
+    /// Fristil-korrupsjonen: lysende sømmer i stein (malt, gløder med `.magic`).
+    GlitchSeam = 54,
 }
-/// Høyst 48: `tex_scale` i `Globals` har plass til 12 × 4.
-pub const LAYERS: u32 = 46;
+/// Høyst 64: `tex_scale` i `Globals` har plass til 16 × 4.
+pub const LAYERS: u32 = 55;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
@@ -137,6 +155,7 @@ impl Layer {
         Layer::Gambeson, Layer::StrawFloor, Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle,
         Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin,
         Layer::WallStone, Layer::Flagstone, Layer::Gravel, Layer::Chimney, Layer::Snow, Layer::OakPlaned,
+        Layer::CryptStone, Layer::CryptFloor, Layer::CryptVault, Layer::GraveSlab, Layer::Ossuary, Layer::CryptPlaster, Layer::Rubble, Layer::BronzeDoor, Layer::GlitchSeam,
     ];
     /// Navnet i `assets/external/manifest.json` (mappa i `assets/textures/`).
     pub fn name(self) -> &'static str {
@@ -187,12 +206,21 @@ impl Layer {
             Layer::Chimney => "chimney",
             Layer::Snow => "snow",
             Layer::OakPlaned => "oak_planed",
+            Layer::CryptStone => "crypt_wall",
+            Layer::CryptFloor => "crypt_floor",
+            Layer::CryptVault => "crypt_vault",
+            Layer::GraveSlab => "grave_slab",
+            Layer::Ossuary => "ossuary",
+            Layer::CryptPlaster => "crypt_plaster",
+            Layer::Rubble => "rubble",
+            Layer::BronzeDoor => "bronze_door",
+            Layer::GlitchSeam => "glitch_seam",
         }
     }
 }
 
-/// Meter per teksturflis for hvert lag (når bildet ikke sier det).
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0];
+/// Meter per teksturflis for hvert lag.
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

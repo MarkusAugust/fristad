@@ -385,7 +385,7 @@ impl Combat {
 
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
-    pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::world::dungeon::Dungeon) -> Vec<CombatEvent> {
+    pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt) -> Vec<CombatEvent> {
         let mut out: Vec<CombatEvent> = self.cues.drain(..).map(CombatEvent::Sound).collect();
         self.hitstop = (self.hitstop - dt).max(0.0);
         // Fjæra på kameraet.
@@ -457,7 +457,7 @@ impl Combat {
                         self.riposte = false;
                     }
                     self.phase = Phase::Swing { n, hit: true };
-                    self.strike(dmg, false, eye, forward, feet, mobs, dungeon, &mut out);
+                    self.strike(dmg, false, eye, forward, feet, mobs, crypt, &mut out);
                 } else if self.t >= SWING_LEN[n] {
                     self.since_swing = 0.0;
                     self.enter(Phase::Idle);
@@ -505,7 +505,7 @@ impl Combat {
                         self.riposte = false;
                     }
                     self.phase = Phase::Heavy { charging: false, hit: true, charge };
-                    self.strike(dmg, true, eye, forward, feet, mobs, dungeon, &mut out);
+                    self.strike(dmg, true, eye, forward, feet, mobs, crypt, &mut out);
                 } else if self.t >= HEAVY_LEN {
                     self.since_swing = 0.0;
                     self.next_swing = 0;
@@ -533,7 +533,7 @@ impl Combat {
             p.age += sim_dt;
             p.vel.y -= 14.0 * sim_dt;
             p.pos += p.vel * sim_dt;
-            let floor = dungeon.height_at(p.pos);
+            let floor = crypt.height_at(p.pos);
             if p.pos.y < floor + 0.02 {
                 p.pos.y = floor + 0.02;
                 p.vel.y = -p.vel.y * 0.35;
@@ -547,7 +547,7 @@ impl Combat {
 
     /// Sverdet treffer alle fiender innen rekkevidde i kjeglen foran.
     #[allow(clippy::too_many_arguments)]
-    fn strike(&mut self, damage: f32, heavy: bool, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, dungeon: &crate::domain::world::dungeon::Dungeon, out: &mut Vec<CombatEvent>) {
+    fn strike(&mut self, damage: f32, heavy: bool, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt, out: &mut Vec<CombatEvent>) {
         let fwd = forward.with_y(0.0).normalize_or_zero();
         let mut any = false;
         let n = mobs.mobs.len();
@@ -574,7 +574,7 @@ impl Combat {
                     damage *= 2.0;
                 }
             }
-            let strike = mobs.strike(i, damage, feet, dungeon);
+            let strike = mobs.strike(i, damage, feet, crypt);
             let killed = strike.killed;
             let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
             self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });

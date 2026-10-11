@@ -1,9 +1,9 @@
 //! Bildet: det rendereren får per bilde fra økta. Sola, himmelen, tåka og
-//! lysene følger døgnet, været og om du er nede i kjelleren.
+//! lysene følger døgnet, været og om du er nede i krypten.
 
 use super::session::Session;
-use crate::domain::scene::{Frame, Light, ModelInstance, MAX_SMOKE, PALETTE};
-use crate::domain::world::dungeon::PORTCULLIS;
+use crate::domain::scene::{Frame, Light, ModelInstance, RoomLight, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE};
+use crate::domain::world::crypt::{self, PORTCULLIS};
 use glam::{Mat4, Vec3, Vec4};
 
 impl Session {
@@ -15,7 +15,7 @@ impl Session {
         let (ky, kp) = self.combat.view_kick(self.time);
         let (vyaw, vpitch) = (self.yaw + ky, (self.pitch + kp).clamp(-1.5, 1.5));
         let view_dir = Vec3::new(-vyaw.sin() * vpitch.cos(), vpitch.sin(), -vyaw.cos() * vpitch.cos());
-        let in_cellar = self.in_cellar();
+        let in_crypt = self.in_crypt();
         let t = self.night;
         let dusk = (t * std::f32::consts::PI).sin();
         let lerp3 = |a: Vec3, b: Vec3| a.lerp(b, t);
@@ -64,20 +64,44 @@ impl Session {
             })
             .filter(|l| l.intensity > 0.01)
             .collect();
-        // Nede i kjelleren bærer du et lys, så du ser våpenet og det som
-        // kommer mot deg.
-        if in_cellar {
-            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear().lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear().lantern, always: true, flicker: 0.0 });
+        // Nede i krypten bærer du et lys, så du ser våpenet og det som
+        // kommer mot deg; det lyser overalt (ikke noe rom).
+        if in_crypt {
+            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear().lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear().lantern, always: true, flicker: 0.0, room: None });
+            lights.extend(self.rest_lights());
         }
         lights.extend(self.portal_light());
+        // Rommene i nivået du er i, og rommene hvert lys lyser i. Lysene som
+        // ikke lyser der du står, kommer bakerst.
+        let level = if in_crypt { self.crypt.level_at(eye_now - Vec3::Y * 1.6) } else { None };
+        let here = level.and_then(|_| self.crypt.room_at(eye_now - Vec3::Y * 1.4)).map(|(_, r)| r);
+        let mask = |l: &Light| -> u64 {
+            match (l.room, level) {
+                (None, _) => u64::MAX,
+                (Some((lv, r)), Some(k)) if lv as usize == k => self.crypt.light_mask(k, r as usize),
+                _ => 0,
+            }
+        };
+        let rank = |l: &Light| {
+            let d = l.pos.distance_squared(eye_now);
+            match here {
+                Some(r) if r < 64 && mask(l) & (1u64 << r) == 0 => d + 900.0,
+                _ => d,
+            }
+        };
         // Rendereren tar de første 48: de nærmeste først.
-        lights.sort_by(|a, b| a.pos.distance_squared(eye_now).total_cmp(&b.pos.distance_squared(eye_now)));
-        // Nede i kjelleren: lite himmellys, mer tåke, øynene vant til mørket.
+        lights.sort_by(|a, b| rank(a).total_cmp(&rank(b)));
+        lights.truncate(MAX_LIGHTS);
+        let rooms = level.map(|k| RoomLight {
+            boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y, r.y + r.h)).collect(),
+            masks: lights.iter().map(mask).collect(),
+        });
+        // Nede i krypten: lite himmellys, mer tåke, øynene vant til mørket.
         let c = self.cellar_t;
 
         // Røyken fra de nærmeste pipene; tykkere om kvelden, når det fyres
-        // til mat og varme. Nede i kjelleren ser du ingen piper.
-        let mut smoke: Vec<Vec4> = if in_cellar {
+        // til mat og varme. Nede i krypten ser du ingen piper.
+        let mut smoke: Vec<Vec4> = if in_crypt {
             vec![]
         } else {
             self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect()
@@ -91,10 +115,15 @@ impl Session {
         instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.portal_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
-        instances.extend(self.shortcut_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::SHORTCUT_LEAF, transform, skin: None, flash: 0.0, tint: None }));
-        instances.extend(self.chest_poses().into_iter().map(|transform| ModelInstance { model: crate::domain::world::dungeon::CHEST_LID, transform, skin: None, flash: 0.0, tint: None }));
+        let posed = |model: &'static str, list: Vec<glam::Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None });
+        instances.extend(posed(crypt::KIT_SHORTCUT_LEAF, self.shortcut_poses()));
+        instances.extend(posed(crypt::CHEST_LID, self.chest_poses()));
+        instances.extend(posed(crypt::KIT_LEVER_ARM, self.lever_poses()));
+        instances.extend(posed(crypt::KIT_SECRET, self.secret_poses()));
+        instances.extend(posed(crypt::KIT_TRAPDOOR, self.trapdoor_poses()));
+        instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(transform, tint)| ModelInstance { model: crate::domain::world::GALLERY_PIECE, transform, skin: None, flash: 0.0, tint: Some(tint) }));
-        instances.extend(self.combat.instances(eye, vyaw, vpitch, in_cellar, &mut skins));
+        instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
             proj: Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0),
@@ -124,27 +153,25 @@ impl Session {
             skins,
             hurt: self.combat.hurt,
             debug: self.debug,
-            grid: if in_cellar { self.dungeon.grid_at(self.pos - Vec3::Y * 1.6) } else { None },
-            band: self.band(in_cellar),
+            rooms,
+            band: self.band(in_crypt),
         }
     }
 
-    /// Høydene som kan synes (`Frame.band`). Oppe: alt over taket i
-    /// kjellerens øverste etasje. Nede: etasjen du står i, med vindeltrappa
-    /// fra etasjen over (den går ned hit) og det som rager opp fra etasjen
-    /// under (rotunden), men ikke rommene der.
-    pub(super) fn band(&self, in_cellar: bool) -> (f32, f32) {
-        use crate::domain::world::dungeon::DEPTH;
-        if !in_cellar {
-            return (DEPTH + 9.0, f32::INFINITY);
+    /// Høydene som kan synes (`Frame.band`). Oppe: alt over krypten.
+    /// Nede: nivået du står i, fra det laveste gulvet til det høyeste
+    /// taket.
+    pub(super) fn band(&self, in_crypt: bool) -> (f32, f32) {
+        if !in_crypt {
+            return (crypt::TOP, f32::INFINITY);
         }
         let feet = self.pos - Vec3::Y * 1.6;
-        match self.dungeon.floor_of(feet) {
-            Some(i) => {
-                let y = self.dungeon.floors[i].y;
-                (y - 3.0, y + 8.0)
+        match self.crypt.level_at(feet) {
+            Some(k) => {
+                let l = &self.crypt.levels[k];
+                (l.min_y - 9.0, l.max_y + 2.0)
             }
-            // Mellom etasjene (i vindeltrappa): begge.
+            // Utenfor nivåene (faller): rundt deg.
             None => (feet.y - 14.0, feet.y + 10.0),
         }
     }

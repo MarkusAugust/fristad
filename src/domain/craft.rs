@@ -134,7 +134,15 @@ pub const RECIPES: &[Recipe] = &[
     Recipe { id: "fieldset_mail", name: "Fieldset-brynje", needs: &[("fieldset", 2), ("badge", 3), ("tag", 3)], requires: &["fieldset", "file-upload", "search"], result: Result::Armor("fieldset_mail"), rarity: Rarity::Epic },
 ];
 
-/// Komponentene kistene i hver etasje kan gi, fra lette til tunge.
+/// Temaene i krypten, to nivåer hvert (nivå 1–2, 3–4 …).
+pub const THEMES: [&str; 5] = ["Gravkjelleren", "Kloakken", "Gruva", "Borgen under jorda", "Den korrupte kjernen"];
+
+/// Temaet nivå `level` (fra 0) hører til: indeksen i `LOOT` og `THEMES`.
+pub fn theme_of(level: usize) -> usize {
+    (level / 2).min(THEMES.len() - 1)
+}
+
+/// Komponentene kistene i hvert tema kan gi, fra lette til tunge.
 pub const LOOT: [&[&str]; 5] = [
     &["button", "divider", "badge", "tag", "tag"],
     &["card", "alert", "progress", "badge", "button"],
@@ -185,7 +193,7 @@ pub fn title(component: &str) -> String {
 /// Det Rammeverket legger igjen i buret når det er beseiret.
 pub const BOSS_LOOT: [&str; 2] = ["dialog", "tabs"];
 
-/// Det elitefienden alltid bærer, per etasje.
+/// Det elitefienden alltid bærer, per tema.
 pub const ELITE_LOOT: [&str; 5] = ["divider", "card", "label", "fieldset", "file-upload"];
 
 pub fn weapon(id: &str) -> Option<Weapon> {
@@ -253,8 +261,8 @@ pub const GORVEK_WARES: &[Ware] = &[
     Ware { id: "train_stamina", name: "Pust (+20 maks utholdenhet)", price: 30, what: WareKind::MaxStamina(20.0) },
 ];
 
-/// Hvor en komponent finnes: i kistene (etasjene, fra 1), hos eliten
-/// (etasjene), hos Rammeverket, og prisen hos Buttonsmeden om han selger
+/// Hvor en komponent finnes: i kistene (temaene, fra 1), hos eliten
+/// (temaene), hos Rammeverket, og prisen hos Buttonsmeden om han selger
 /// den.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Source {
@@ -281,14 +289,15 @@ impl Source {
 
     /// Hvor den finnes, som en setning.
     pub fn describe(&self) -> String {
+        let name = |f: &usize| THEMES.get(f.wrapping_sub(1)).copied().unwrap_or("krypten").to_string();
         let floors = |v: &[usize]| match v {
-            [a] => format!("etasje {a}"),
-            [rest @ .., last] => format!("etasje {} og {last}", rest.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(", ")),
+            [a] => name(a),
+            [rest @ .., last] => format!("{} og {}", rest.iter().map(name).collect::<Vec<_>>().join(", "), name(last)),
             [] => String::new(),
         };
         let mut parts = vec![];
         if !self.chests.is_empty() {
-            parts.push(format!("kister i {}", floors(&self.chests)));
+            parts.push(format!("kistene i {}", floors(&self.chests)));
         }
         if !self.elite.is_empty() {
             parts.push(format!("eliten i {}", floors(&self.elite)));

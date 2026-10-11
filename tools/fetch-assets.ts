@@ -93,6 +93,16 @@ const TEXTURES: Record<string, string[]> = {
   snow: [],
   // Høvlet eik til møblene.
   oak_planed: [],
+  // Gravkjelleren (krypten, tema 1) og Fristil-korrupsjonen.
+  crypt_wall: [],
+  crypt_floor: [],
+  crypt_vault: [],
+  grave_slab: [],
+  ossuary: [],
+  crypt_plaster: [],
+  rubble: [],
+  bronze_door: [],
+  glitch_seam: [],
 };
 
 const force = process.argv.includes("--force");
