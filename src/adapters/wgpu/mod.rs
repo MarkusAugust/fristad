@@ -664,7 +664,7 @@ impl Renderer {
         let shadow_pipe = shadow_with("shadow", None);
         let shadow_cutout = shadow_with("shadow cutout", Some(wgpu::FragmentState { module: &world_mod, entry_point: Some("fs_shadow"), compilation_options: Default::default(), targets: &[] }));
         let samples = (max_samples(adapter, &device, &[4]), max_samples(adapter, &device, &[8, 4]));
-        log::info!("MSAA: {}× i standard grafikk, {}× i avansert", samples.0, samples.1);
+        log::info!("MSAA i målingen: {}× og {}×", samples.0, samples.1);
         let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, world_layout, simple_layout };
         // Spillet starter i standard grafikk; verten bytter med `set_quality`.
         let scene_pipes = sources.pipes(&device, 1, true, HDR);
@@ -962,8 +962,9 @@ impl Renderer {
         self.apply();
     }
 
-    /// MSAA-prøvene nivået og målingen vil ha: 1 i enkel og standard
-    /// (standard glatter kantene med SMAA), det kortet kan i avansert (8×).
+    /// MSAA-prøvene: 1 på alle nivåer (standard og avansert glatter kantene
+    /// med SMAA; MSAA kostet 20–110 ms per bilde på eierens M2). Målingen
+    /// kan be om 4× eller 8×.
     fn wanted_samples(&self) -> u32 {
         match self.bench.msaa {
             1 => 1,
@@ -972,7 +973,7 @@ impl Renderer {
             _ => match self.quality {
                 Quality::Simple => 1,
                 Quality::Standard => 1,
-                Quality::Advanced => self.samples.1,
+                Quality::Advanced => 1,
             },
         }
     }

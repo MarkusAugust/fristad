@@ -12,7 +12,7 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 
 | Del | Valg |
 |---|---|
-| Kantglatting | MSAA 4×. TAA, bevegelsesvektorer og skarping fjernes. Gress og blad bruker alpha-to-coverage, så de ikke flimrer. |
+| Kantglatting | SMAA 1× etter tonemappingen (11. oktober; MSAA 4× kostet 20–110 ms per bilde på en M2 i både Chrome og Safari, SMAA under 1 ms). TAA, bevegelsesvektorer og skarping fjernes. Gress og blad bruker alpha-to-coverage, så de ikke flimrer. |
 | Lys | Én dynamisk sol, enkelt himmellys (ovenfra og nedenfra) og lykter om natta. Formene får lys fra normalkartene i teksturene. |
 | Skygger | Én skarp kaskade ut til rundt 40 m, som toner bort. Lenger ut gir bakt okklusjon dybden: mørke hjørner, takskjegg og smau, uavhengig av hvor sola står. |
 | Effekter som beholdes | Dag og natt med glødende lykter og vinduer, regn, snø og vær, avstandståke og røyk fra pipene, vind i trær og gress. |
@@ -22,7 +22,7 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 
 **Avansert grafikk** (velges av spilleren, aldri av seg selv) slår på:
 - lengre sikt
-- MSAA 8× og høyere oppløsning
+- høyere oppløsning og alle lysene (SMAA som standard)
 - SSAO uten støy
 
 ## Modellene

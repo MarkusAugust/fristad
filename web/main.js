@@ -28,16 +28,16 @@ const enterBtn = $("enter");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
-// Grafikknivået: enkel (de svakeste maskinene og WebGL2: uten MSAA,
-// solskygge og glød, høyst 900p), standard (MSAA 4×, én piksel per
-// CSS-piksel, høyst 1080p) eller avansert (lengre sikt, MSAA 8× der kortet
-// kan, opptil 1,5 piksler per CSS-piksel og 1440p). Valget huskes, og
+// Grafikknivået: enkel (de svakeste maskinene og WebGL2: uten
+// kantutjevning, solskygge og glød, høyst 900p), standard (SMAA, én piksel
+// per CSS-piksel, høyst 1080p) eller avansert (lengre sikt, alle lys, SMAA,
+// opptil 1,5 piksler per CSS-piksel og 1440p). Valget huskes, og
 // grafikken byttes aldri av seg selv.
 const QUALITIES = ["enkel", "standard", "avansert"];
 const QUALITY_INFO = {
   enkel: { cap: 900, dense: 1, note: "uten MSAA, solskygge og glød; for svake maskiner og WebGL2." },
   standard: { cap: 1080, dense: 1, note: "kantutjevning med SMAA, kortere sikt. Laget for en vanlig maskin." },
-  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, MSAA 8× der kortet kan." },
+  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, høyere oppløsning, kantutjevning med SMAA." },
 };
 let quality = null;
 try {
@@ -1439,8 +1439,8 @@ const BENCH_RUNS = [
   { q: "standard", what: "flat farge", flat: true },
   { q: "standard", what: "halv oppløsning", scale: 0.5 },
   { q: "enkel", what: "som i spillet" },
-  { q: "avansert", what: "som i spillet (MSAA)" },
-  { q: "avansert", what: "SMAA i stedet for MSAA", msaa: 1 },
+  { q: "avansert", what: "som i spillet (SMAA)" },
+  { q: "avansert", what: "MSAA 8× i stedet for SMAA", msaa: 8 },
 ];
 
 
