@@ -25,7 +25,7 @@ Målet: ingenting når eieren uten å ha bestått automatiske tekniske og esteti
 
 **Målingsrunde 3 (`?bench`, avgjør før noe bygges om):** hver rad skriver trekanter, kall og lerretets størrelse; kjøringene er som i spillet, uten MSAA, flat, uten røyk/nedbør, uten himmel, uten modeller, flat med bare bymeshen, halv oppløsning (med og uten MSAA), enkel og avansert. `engine.set_bench(json)` med bryterne i `ports::Bench` (`sky`, `particles`, `models` nye), `benchScale` i `fit()`.
 
-**Runde 3 (eierens M2, 11. okt.) avgjorde det:** uten modeller (26k △, 23 kall) 47 ms, uten røyk 41, uten himmel 45, flat med bare bymeshen 24 ms mot 4 uten MSAA, halv oppløsning omtrent halv kostnad. MSAA i seg selv koster ~20 ms per bilde i Chrome på M2, uavhengig av innholdet; uten MSAA er hele bildet 9 ms. **Beslutning:** standard bytter MSAA ut med SMAA 1× (eierens valg); avansert beholder MSAA.
+**Runde 3 (eierens M2, 11. okt.) avgjorde det:** uten modeller (26k △, 23 kall) 47 ms, uten røyk 41, uten himmel 45, flat med bare bymeshen 24 ms mot 4 uten MSAA, halv oppløsning omtrent halv kostnad. MSAA i seg selv koster ~20 ms per bilde i Chrome på M2, uavhengig av innholdet; uten MSAA er hele bildet 9 ms. **Beslutning:** standard bytter MSAA ut med SMAA 1× (eierens valg); avansert beholder MSAA. Safari på samme maskin: MSAA 81 ms mot 14,5 uten, avansert 12 fps, så det er WebGPU på M2, ikke Chrome. SMAA er laget (`adapters/wgpu/smaa.rs`); `?bench` måler SMAA mot MSAA i begge nivåer.
 
 **Rettelsen etter hva runden viser:**
 - *Røyken eller himmelen:* røyken tegnes i et eget pass uten MSAA (halv oppløsning, satt sammen før tonemappingen), himmelen bare der dybden er tom.

@@ -19,6 +19,7 @@ use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
 use wgpu::util::DeviceExt;
 
+mod smaa;
 pub mod texture;
 mod timer;
 
@@ -315,6 +316,8 @@ struct Targets {
     down_bg: Vec<(wgpu::BindGroup, wgpu::Buffer)>,
     up_bg: Vec<(wgpu::BindGroup, wgpu::Buffer)>,
     tonemap_bg: (wgpu::BindGroup, wgpu::Buffer),
+    /// Kantutjevningen etter tonemappingen (standard grafikk, uten MSAA).
+    smaa: Option<smaa::Targets>,
 }
 
 /// Standard grafikk: hvor langt unna modellene tegnes (m), og hvor tett
@@ -423,6 +426,9 @@ pub struct Renderer {
     down_pipe: wgpu::RenderPipeline,
     up_pipe: wgpu::RenderPipeline,
     tonemap_pipe: wgpu::RenderPipeline,
+    /// Tonemappingen inn i mellombildet til SMAA.
+    tonemap_ldr: wgpu::RenderPipeline,
+    smaa: smaa::Smaa,
     linear: wgpu::Sampler,
     world: GpuMesh,
     chunks: Vec<Chunk>,
@@ -661,7 +667,7 @@ impl Renderer {
         log::info!("MSAA: {}× i standard grafikk, {}× i avansert", samples.0, samples.1);
         let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, world_layout, simple_layout };
         // Spillet starter i standard grafikk; verten bytter med `set_quality`.
-        let scene_pipes = sources.pipes(&device, samples.0, true, HDR);
+        let scene_pipes = sources.pipes(&device, 1, true, HDR);
 
         let post_pipe = |entry: &str, format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -688,6 +694,8 @@ impl Renderer {
         let down_pipe = post_pipe("fs_down", HDR, None);
         let up_pipe = post_pipe("fs_up", HDR, Some(additive));
         let tonemap_pipe = post_pipe("fs_tonemap", output, None);
+        let tonemap_ldr = post_pipe("fs_tonemap", smaa::LDR, None);
+        let smaa = smaa::Smaa::new(&device, &queue, output);
 
         let linear = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("linear"),
@@ -820,7 +828,7 @@ impl Renderer {
             gpu_models.iter().map(|m| m.reserve).sum::<usize>()
         );
 
-        let targets = Self::make_targets(&device, &post_layout, &linear, samples.0, HDR, width, height);
+        let targets = Self::make_targets(&device, &post_layout, &linear, 1, HDR, Some(&smaa), width, height);
         let chunks = scene.chunks.to_vec();
         let timer = timer::GpuTimer::new(&device, &queue);
         Self {
@@ -843,6 +851,8 @@ impl Renderer {
             down_pipe,
             up_pipe,
             tonemap_pipe,
+            tonemap_ldr,
+            smaa,
             linear,
             world: world_mesh,
             chunks,
@@ -861,7 +871,7 @@ impl Renderer {
         }
     }
 
-    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, width: u32, height: u32) -> Targets {
+    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, smaa: Option<&smaa::Smaa>, width: u32, height: u32) -> Targets {
         let width = width.max(1);
         let height = height.max(1);
         let tex = |label: &str, w: u32, h: u32, format, samples: u32| {
@@ -915,7 +925,8 @@ impl Renderer {
         let down_bg = (1..BLOOM_LEVELS).map(|i| bind(&bloom[i - 1].0, &bloom[i - 1].0)).collect();
         let up_bg = (1..BLOOM_LEVELS).rev().map(|i| bind(&bloom[i].0, &bloom[i].0)).collect();
         let tonemap_bg = bind(&hdr, &bloom[0].0);
-        Targets { width, height, color, depth, hdr, bloom, down0_bg, down_bg, up_bg, tonemap_bg }
+        let smaa = smaa.map(|s| s.targets(device, width, height));
+        Targets { width, height, color, depth, hdr, bloom, down0_bg, down_bg, up_bg, tonemap_bg, smaa }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -923,7 +934,7 @@ impl Renderer {
         if width == self.targets.width && height == self.targets.height {
             return;
         }
-        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, width, height);
+        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, self.smaa_on(self.scene.samples).then_some(&self.smaa), width, height);
     }
 
     /// Millisekunder på grafikkortet per del av bildet (tomt om kortet
@@ -951,8 +962,8 @@ impl Renderer {
         self.apply();
     }
 
-    /// MSAA-prøvene nivået og målingen vil ha: 1, eller det kortet kan i
-    /// standard (4×) og avansert (8×).
+    /// MSAA-prøvene nivået og målingen vil ha: 1 i enkel og standard
+    /// (standard glatter kantene med SMAA), det kortet kan i avansert (8×).
     fn wanted_samples(&self) -> u32 {
         match self.bench.msaa {
             1 => 1,
@@ -960,7 +971,7 @@ impl Renderer {
             8 => self.samples.1,
             _ => match self.quality {
                 Quality::Simple => 1,
-                Quality::Standard => self.samples.0,
+                Quality::Standard => 1,
                 Quality::Advanced => self.samples.1,
             },
         }
@@ -969,10 +980,17 @@ impl Renderer {
     fn apply(&mut self) {
         let samples = self.wanted_samples();
         let hdr = if self.bench.small_hdr && self.device.features().contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE) { wgpu::TextureFormat::Rg11b10Ufloat } else { HDR };
-        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr {
+        let smaa = self.smaa_on(samples);
+        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr || smaa != self.targets.smaa.is_some() {
             self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c, hdr);
-            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, self.targets.width, self.targets.height);
+            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, smaa.then_some(&self.smaa), self.targets.width, self.targets.height);
         }
+    }
+
+    /// SMAA når bildet tegnes uten MSAA, unntatt i enkel grafikk (målingen
+    /// kan slå den av).
+    fn smaa_on(&self, samples: u32) -> bool {
+        self.quality != Quality::Simple && samples == 1 && self.bench.smaa
     }
 
     /// Ortografisk projeksjon fra sola som dekker kamerafrustumet mellom
@@ -1301,8 +1319,19 @@ impl Renderer {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
             fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load, None);
         }
-        post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
-        fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom, true));
+        match &t.smaa {
+            // Med SMAA skriver tonemappingen gamma-kodet til mellombildet,
+            // og kantutjevningen skriver til skjermen.
+            Some(st) => {
+                post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, 1.0, f.hurt], t.width, t.height);
+                fullscreen(&mut enc, "tonemap", &st.ldr, &self.tonemap_ldr, &t.tonemap_bg.0, clear, ts(2, !bloom, false));
+                self.smaa.run(&mut enc, st, out, ts(2, false, true));
+            }
+            None => {
+                post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
+                fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom, true));
+            }
+        }
 
         if let Some(tm) = &mut self.timer {
             tm.resolve(&mut enc);

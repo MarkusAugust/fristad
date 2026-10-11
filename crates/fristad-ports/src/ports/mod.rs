@@ -77,11 +77,13 @@ pub struct Bench {
     pub particles: bool,
     /// Modellene i hovedpasset (av: bare bymeshen og terrenget).
     pub models: bool,
+    /// Kantutjevningen SMAA i standard grafikk (når bildet er uten MSAA).
+    pub smaa: bool,
 }
 
 impl Default for Bench {
     fn default() -> Self {
-        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true, sky: true, particles: true, models: true }
+        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true, sky: true, particles: true, models: true, smaa: true }
     }
 }
 

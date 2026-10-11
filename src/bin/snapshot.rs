@@ -181,8 +181,10 @@ fn main() {
     // Standard grafikk er det spillet starter med; --advanced slår på avansert.
     app.command(Command::SetQuality(if flag("--advanced") { Quality::Advanced } else if flag("--simple") { Quality::Simple } else { Quality::Standard }));
     // HDR-bildet i 4 byte per prøve (målingen i nettleseren har samme bryter).
-    if flag("--small-hdr") {
-        app.command(Command::SetBench(fristad::ports::Bench { small_hdr: true, ..Default::default() }));
+    // HDR i 4 byte per prøve, eller standard uten kantutjevning (SMAA av),
+    // som bryterne i målingen.
+    if flag("--small-hdr") || flag("--no-smaa") {
+        app.command(Command::SetBench(fristad::ports::Bench { small_hdr: flag("--small-hdr"), smaa: !flag("--no-smaa"), ..Default::default() }));
     }
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));

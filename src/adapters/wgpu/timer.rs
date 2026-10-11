@@ -47,6 +47,9 @@ impl GpuTimer {
 
     /// Tidsstemplene til et pass: begynnelsen og/eller slutten av delen.
     pub fn writes(&self, section: usize, begin: bool, end: bool) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
+        if !begin && !end {
+            return None;
+        }
         Some(wgpu::RenderPassTimestampWrites {
             query_set: &self.set,
             beginning_of_pass_write_index: begin.then_some(section as u32 * 2),

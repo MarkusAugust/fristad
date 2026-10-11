@@ -14,6 +14,7 @@ const modules = {
   particles: ["noise", "common", "particles"],
   post: ["noise", "common", "shadow", "post"],
   bake: ["noise", "bake"],
+  smaa: ["smaa"],
 };
 
 const browser = await chromium.launch({

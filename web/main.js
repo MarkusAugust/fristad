@@ -36,7 +36,7 @@ let canvas = $("world");
 const QUALITIES = ["enkel", "standard", "avansert"];
 const QUALITY_INFO = {
   enkel: { cap: 900, dense: 1, note: "uten MSAA, solskygge og glød; for svake maskiner og WebGL2." },
-  standard: { cap: 1080, dense: 1, note: "MSAA 4×, kortere sikt. Laget for en vanlig maskin." },
+  standard: { cap: 1080, dense: 1, note: "kantutjevning med SMAA, kortere sikt. Laget for en vanlig maskin." },
   avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, MSAA 8× der kortet kan." },
 };
 let quality = null;
@@ -1433,18 +1433,16 @@ const BENCH_PLACES = [
 // Hver kjøring: nivået, en kort forklaring og bryterne til `engine.set_bench`
 // (det som mangler, står som i vanlig spill). `scale` ganger oppløsningen.
 const BENCH_RUNS = [
-  { q: "standard", what: "som i spillet" },
-  { q: "standard", what: "uten MSAA", msaa: 1 },
+  { q: "standard", what: "som i spillet (SMAA)" },
+  { q: "standard", what: "uten kantutjevning", smaa: false },
+  { q: "standard", what: "MSAA 4× i stedet for SMAA", msaa: 4 },
   { q: "standard", what: "flat farge", flat: true },
-  { q: "standard", what: "uten røyk/nedbør", particles: false },
-  { q: "standard", what: "uten himmel", sky: false },
-  { q: "standard", what: "uten modeller", models: false },
-  { q: "standard", what: "flat, bare bymeshen", flat: true, sky: false, particles: false, models: false },
   { q: "standard", what: "halv oppløsning", scale: 0.5 },
-  { q: "standard", what: "uten MSAA, halv oppløsning", msaa: 1, scale: 0.5 },
   { q: "enkel", what: "som i spillet" },
-  { q: "avansert", what: "som i spillet" },
+  { q: "avansert", what: "som i spillet (MSAA)" },
+  { q: "avansert", what: "SMAA i stedet for MSAA", msaa: 1 },
 ];
+
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function measure(seconds) {

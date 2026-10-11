@@ -252,15 +252,16 @@ impl Engine {
             sky: bool,
             particles: bool,
             models: bool,
+            smaa: bool,
         }
         impl Default for B {
             fn default() -> Self {
                 let d = Bench::default();
-                B { msaa: d.msaa, a2c: d.a2c, shadow: d.shadow, flat: d.flat, small_hdr: d.small_hdr, timers: d.timers, sky: d.sky, particles: d.particles, models: d.models }
+                B { msaa: d.msaa, a2c: d.a2c, shadow: d.shadow, flat: d.flat, small_hdr: d.small_hdr, timers: d.timers, sky: d.sky, particles: d.particles, models: d.models, smaa: d.smaa }
             }
         }
         let b: B = serde_json::from_str(json).unwrap_or_default();
-        self.app.command(Command::SetBench(Bench { msaa: b.msaa, a2c: b.a2c, shadow: b.shadow, flat: b.flat, small_hdr: b.small_hdr, timers: b.timers, sky: b.sky, particles: b.particles, models: b.models }));
+        self.app.command(Command::SetBench(Bench { msaa: b.msaa, a2c: b.a2c, shadow: b.shadow, flat: b.flat, small_hdr: b.small_hdr, timers: b.timers, sky: b.sky, particles: b.particles, models: b.models, smaa: b.smaa }));
     }
 
     /// Tegnekall i hovedpasset sist bilde.
