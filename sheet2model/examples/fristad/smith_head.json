@@ -1,0 +1,29 @@
+{
+ "ref": "assets/textures/people/ref/smith_head.jpeg",
+ "layout": "head2x2",
+ "opt": {
+  "back_cut": 0.83,
+  "neck": {
+   "plane": [
+    [
+     380,
+     825
+    ],
+    [
+     560,
+     953
+    ]
+   ],
+   "plane_up": 22,
+   "top_v": 800,
+   "front_v": 905,
+   "half_x": 165,
+   "half_z": 150,
+   "z0": -10,
+   "beard_z": 60
+  }
+ },
+ "merk": "Oppe til høyre ser mot høyre, nede til venstre mot venstre (unntaket).",
+ "target": "fristad",
+ "root": "../../.."
+}

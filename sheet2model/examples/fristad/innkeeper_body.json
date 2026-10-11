@@ -1,0 +1,46 @@
+{
+ "ref": "assets/textures/people/ref/innkeeper_body.jpeg",
+ "layout": "body3",
+ "scale": 0.0009,
+ "opt": {
+  "floor_line": true,
+  "open_holes": true,
+  "min_hole": 400,
+  "dome": 0,
+  "scale_per_view": true,
+  "mirror_texture": true,
+  "edge_slack": 8,
+  "edge_gain": 1.0,
+  "elliptic": true,
+  "elliptic_p": 2.5,
+  "elliptic_tol": 4,
+  "drop_mirrored_tool": true,
+  "style": "innkeeper",
+  "tool_side": "L",
+  "tool_kind": "wood",
+  "tool_handle": false,
+  "model_tool": false,
+  "skirt": true,
+  "hips_iron": true,
+  "tool_box": [
+   [
+    365,
+    1150,
+    580,
+    1312
+   ],
+   [
+    365,
+    1075,
+    520,
+    1150
+   ]
+  ],
+  "depth_margin": 30,
+  "flake_frac": 0.04
+ },
+ "tris": 14000,
+ "target": "fristad",
+ "root": "../../..",
+ "head": "innkeeper_head"
+}

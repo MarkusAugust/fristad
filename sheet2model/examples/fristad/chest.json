@@ -1,0 +1,25 @@
+{
+ "ref": "assets/textures/props/ref/furniture_b.jpeg",
+ "layout": "prop1",
+ "grid": [
+  3,
+  3
+ ],
+ "views": {
+  "q_front_left": [
+   0,
+   0
+  ]
+ },
+ "scale": 0.0012,
+ "tris": 3000,
+ "target": "fristad",
+ "root": "../../..",
+ "opt": {
+  "prior": "chest",
+  "view_pitch": 20.0,
+  "tiles": "auto",
+  "edge_fade": 6.0
+ },
+ "merk": "furniture_b.jpeg, rute 1: 3/4 forfra venstre, litt ovenfra"
+}

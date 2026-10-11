@@ -1,0 +1,32 @@
+{
+ "ref": "assets/textures/people/ref/pilgrim_head.jpeg",
+ "layout": "head2x2",
+ "views": {
+  "front": [
+   0,
+   0
+  ],
+  "back": [
+   0,
+   1
+  ],
+  "face_left": [
+   1,
+   0
+  ],
+  "face_right": [
+   1,
+   1
+  ]
+ },
+ "merk": "oppe til høyre er bakfra, nede til venstre ser han mot venstre, nede til høyre mot høyre Sjekk retningen: nede til venstre ser mot høyre i bildet.",
+ "opt": {
+  "cal_rows": [
+   0.35,
+   0.85
+  ],
+  "dome": 0
+ },
+ "target": "fristad",
+ "root": "../../.."
+}

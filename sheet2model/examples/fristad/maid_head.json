@@ -1,0 +1,25 @@
+{
+ "ref": "assets/textures/people/ref/maid_head.jpeg",
+ "layout": "head2x2",
+ "views": {
+  "front": [
+   0,
+   0
+  ],
+  "face_left": [
+   0,
+   1
+  ],
+  "face_right": [
+   1,
+   0
+  ],
+  "back": [
+   1,
+   1
+  ]
+ },
+ "merk": "Oppe til høyre ser mot venstre, nede til venstre mot høyre.",
+ "target": "fristad",
+ "root": "../../.."
+}

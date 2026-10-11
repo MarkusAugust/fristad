@@ -1,0 +1,33 @@
+{
+ "ref": "assets/textures/people/ref/innkeeper_head.jpeg",
+ "layout": "head2x2",
+ "views": {
+  "front": [
+   0,
+   0
+  ],
+  "face_left": [
+   0,
+   1
+  ],
+  "face_right": [
+   1,
+   0
+  ],
+  "back": [
+   1,
+   1
+  ]
+ },
+ "merk": "Oppe til høyre ser mot venstre, nede til venstre mot høyre (motsatt av smeden). Oppe til høyre ser mot venstre, nede til venstre mot høyre.",
+ "opt": {
+  "scale_per_view": true,
+  "same_scale": true,
+  "elliptic": true,
+  "elliptic_p": 2.2,
+  "elliptic_tol": 4,
+  "edge_fade": 30
+ },
+ "target": "fristad",
+ "root": "../../.."
+}

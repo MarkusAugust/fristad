@@ -80,3 +80,21 @@ python3.13 -m tools.reconstruct smith_body --steps assemble,render_full,rig --he
 - Venstre side har ingen egen profil og bygger på den speilede.
 - Hender som ligger inntil kroppen smelter sammen med den, så skinnet strekkes litt når armene svinger.
 - Leddene legges etter faste høydeandeler (`rig.FRAC`) og bør sjekkes for figurer med andre proporsjoner.
+
+## Den nye pakken: `sheet2model/` (11. oktober 2026)
+
+`sheet2model/` i rota av repoet er den frittstående etterfølgeren etter planen i `docs/rekonstruksjon-plan.md`:
+samme metode, men med innretting per visning med frihetsgrader (`align.py`), tekstur i numpy uten Cycles
+(`texture.py`), `rapport.json` med terskler og automatiske rettelser (`report.py`), dybde bufret per bilde, og alt
+Fristad-spesifikt i `sheet2model/targets/fristad.py`. Les `sheet2model/README.md` (hele prosessen) og
+`sheet2model/PROMPTS.md` (hvordan arkene bestilles). Oppslagene fra `sheets.json` ligger i
+`sheet2model/examples/fristad/`.
+
+    python3.13 -m sheet2model smith_head
+    python3.13 -m sheet2model smith_body --rig-out assets/models/npc/npc_smith.glb
+    python3.13 -m pytest sheet2model/tests
+
+`tools/reconstruct` beholdes til den nye er like god på alle 13 figurene. Det som gjenstår før den slettes:
+(1) bygge alle 13 på nytt med `sheet2model` og sammenligne rapportene og mellomvinklene, (2) nærbildet av hånda
+(`closeup`) og turnaround-GIF-en finnes bare i den gamle, (3) `split_arms`/`split_hands` (av som standard i den
+gamle) er ikke tatt med, (4) malen (steg 4 i planen) er bare påbegynt (`sheet2model/template.py`).
