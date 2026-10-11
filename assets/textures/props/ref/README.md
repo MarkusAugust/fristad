@@ -21,3 +21,5 @@ Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 t
 | `clutter_market` | kålkasse, tønne med saltfisk, tøyruller, pølsestativ, eggkurv, oster, melsekk, skobenk og hønsebur |
 | `animals_ref` | ku, sau, hest, gris, geit og hund (forbilder for dyrene) |
 | `clutter_town` | knust kasse, kornsekker, tau og bøtte, knust hjul, krukker, ved og øks, trillebår, hestesko og spann, filler og kost |
+| `tree_ref` | eik, bjørk, gran, furu, rogn og dødt tre (forbilder for trærne) |
+| `bush_ref` | hassel, einer, nype, bjørnebær, bregne og siv |
