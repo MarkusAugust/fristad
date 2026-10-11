@@ -9,7 +9,8 @@
 //! (ned i krypten først: startstedet i nivå 1), --level N (startstedet i
 //! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
 //! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
-//! --dump-layer N.
+//! --dump-layer N, --shots FIL (mange bilder i én kjøring: én linje per bilde,
+//! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at).
 
 use fristad::adapters::gltf::Embedded;
 use fristad::adapters::native::seed;
@@ -35,15 +36,18 @@ fn main() {
     let prepared = prepare(&Embedded, seed());
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
-    let model_at = args.iter().position(|a| a == "--at").map(|i| {
-        let model = args[i + 1].clone();
-        let v: Vec<f32> = args[i + 2].split(',').map(|x| x.parse().unwrap()).collect();
-        let yaw: f32 = args.get(i + 3).and_then(|y| y.parse().ok()).unwrap_or(0.0);
-        let t = prepared.world.placements.iter().find(|pl| pl.model == model).map(|pl| pl.transforms[0]).expect("modellen finnes ikke i byen");
+    let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();
+    let at = |model: &str, v: &str, yaw: f32| {
+        let v: Vec<f32> = v.split(',').map(|x| x.parse().unwrap()).collect();
+        let t = first.iter().find(|(m, _)| m == model).map(|(_, t)| *t)?;
         let eye = t.transform_point3(Vec3::new(v[0], v[2], -v[1]));
         // Retningen mot modellens midte, dreid `yaw` grader.
         let to = t.transform_point3(Vec3::new(0.0, v[2], 0.0)) - eye;
-        (eye, (-to.x).atan2(-to.z) + yaw.to_radians())
+        Some((eye, (-to.x).atan2(-to.z) + yaw.to_radians()))
+    };
+    let model_at = args.iter().position(|a| a == "--at").map(|i| {
+        let yaw: f32 = args.get(i + 3).and_then(|y| y.parse().ok()).unwrap_or(0.0);
+        at(&args[i + 1], &args[i + 2], yaw).expect("modellen finnes ikke i byen")
     });
     let chest = prepared.world.crypt.chests.first().map(|c| (c.pos, c.yaw));
     let level: Option<usize> = arg("--level").map(|s| s.parse::<usize>().expect("--level N").max(1) - 1);
@@ -186,22 +190,31 @@ fn main() {
     if flag("--small-hdr") || flag("--no-smaa") {
         app.command(Command::SetBench(fristad::ports::Bench { small_hdr: flag("--small-hdr"), smaa: !flag("--no-smaa"), ..Default::default() }));
     }
+    // --shots: ett bilde per linje, med samme spill og renderer.
+    if let Some(list) = arg("--shots") {
+        for line in std::fs::read_to_string(&list).expect("kan ikke lese --shots").lines().filter(|l| !l.trim().is_empty()) {
+            let f: Vec<&str> = line.split_whitespace().collect();
+            let Some((eye, yaw)) = at(f[1], f[2], f[3].parse().unwrap()) else {
+                eprintln!("{}: står ikke ute", f[1]);
+                continue;
+            };
+            let pitch: f32 = f.get(4).map(|p| p.parse().unwrap()).unwrap_or(4.0);
+            app.command(Command::Place { eye, yaw, pitch: pitch.to_radians() });
+            for _ in 0..frames.max(1) {
+                app.renderer.set_target(target.create_view(&Default::default()));
+                app.draw(width as f32 / height as f32);
+            }
+            write_png(f[0], width, height, &grab(&device, &queue, &target, width, height));
+            println!("{}", f[0]);
+        }
+        return;
+    }
     for _ in 0..frames.max(1) {
         app.renderer.set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);
     }
 
-    let row = (width * 4).div_ceil(256) * 256;
-    let buf = device.create_buffer(&wgpu::BufferDescriptor { label: Some("readback"), size: (row * height) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
-    let mut enc = device.create_command_encoder(&Default::default());
-    enc.copy_texture_to_buffer(
-        wgpu::TexelCopyTextureInfo { texture: &target, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-        wgpu::TexelCopyBufferInfo { buffer: &buf, layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(row), rows_per_image: Some(height) } },
-        wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-    );
-    queue.submit([enc.finish()]);
-    buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
-    device.poll(wgpu::PollType::Wait).expect("poll");
+    let pixels = grab(&device, &queue, &target, width, height);
     log::info!("Rendret {frames} bilder på {:.0} ms, {} trekanter i hovedpasset", start.elapsed().as_secs_f32() * 1000.0, app.renderer.triangles());
     let times = app.renderer.pass_times();
     if !times.is_empty() {
@@ -224,14 +237,30 @@ fn main() {
         println!("STATS {} {} {} {} {}", total.world + total.models, st[1].world + st[1].models, total.calls, st[1].calls, st[1].instances);
     }
 
+    write_png(&out, width, height, &pixels);
+    println!("{out}");
+}
+
+/// Leser bildet tilbake fra kortet (RGBA, rad for rad).
+fn grab(device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::Texture, width: u32, height: u32) -> Vec<u8> {
+    let row = (width * 4).div_ceil(256) * 256;
+    let buf = device.create_buffer(&wgpu::BufferDescriptor { label: Some("readback"), size: (row * height) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
+    let mut enc = device.create_command_encoder(&Default::default());
+    enc.copy_texture_to_buffer(
+        wgpu::TexelCopyTextureInfo { texture: target, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+        wgpu::TexelCopyBufferInfo { buffer: &buf, layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(row), rows_per_image: Some(height) } },
+        wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+    );
+    queue.submit([enc.finish()]);
+    buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
+    device.poll(wgpu::PollType::Wait).expect("poll");
     let data = buf.slice(..).get_mapped_range();
     let mut pixels = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
         let at = (y * row) as usize;
         pixels.extend_from_slice(&data[at..at + (width * 4) as usize]);
     }
-    write_png(&out, width, height, &pixels);
-    println!("{out}");
+    pixels
 }
 
 fn write_png(path: &str, width: u32, height: u32, rgba: &[u8]) {

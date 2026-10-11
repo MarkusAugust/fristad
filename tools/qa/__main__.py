@@ -4,7 +4,10 @@ from . import texture
 
 
 def main(argv):
-    """python3 -m tools.qa texture [lag …] | catalog"""
+    """python3 -m tools.qa texture [lag …] | catalog | approvals page UT | approvals apply SVAR"""
+    if argv[:1] == ["approvals"]:
+        from . import approvals
+        return approvals.main(argv[1:])
     if argv[:1] == ["catalog"]:
         from . import catalog
         m, t, r = catalog.build()

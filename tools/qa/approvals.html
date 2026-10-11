@@ -1,0 +1,332 @@
+<title>Dommen over Fristad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: en smal verktøylinje øverst (framdrift og filter), så én rad per ting: bildet stort til venstre, dommen til høyre. */
+:root {
+  --ground: #e6e8ea;      /* kalkstein */
+  --sheet: #f6f7f8;
+  --ink: #1d2126;          /* jern */
+  --muted: #5d646d;
+  --line: #c9cdd2;
+  --accent: #a8641a;       /* halm og fakkel */
+  --ok: #2c7347;
+  --bad: #b03a2c;
+  --unsure: #5a5f96;
+  --photo: #22252a;
+  --display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #15181c; --sheet: #1d2126; --ink: #e7e9ec; --muted: #9aa2ac; --line: #343a42;
+    --accent: #e09a45; --ok: #5fb57f; --bad: #e0705f; --unsure: #9a9fe0; --photo: #0f1114; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #15181c; --sheet: #1d2126; --ink: #e7e9ec; --muted: #9aa2ac; --line: #343a42;
+  --accent: #e09a45; --ok: #5fb57f; --bad: #e0705f; --unsure: #9a9fe0; --photo: #0f1114; color-scheme: dark;
+}
+body { background: var(--ground); color: var(--ink); font: 16px/1.5 var(--body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; }
+header.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--ground); border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: grid; gap: 10px; padding-block: 14px 12px; }
+.title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+h1 { font: 400 clamp(26px, 4vw, 34px)/1.1 var(--display); margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.count { font: 600 14px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--line); }
+.progress span { display: block; height: 100%; transition: width .3s; }
+.p-ok { background: var(--ok); } .p-bad { background: var(--bad); } .p-unsure { background: var(--unsure); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: 600 13px/1 var(--body); padding: 7px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--sheet); color: var(--ink);
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.chip .n { font-family: var(--mono); font-weight: 400; margin-left: 4px; opacity: .75; }
+.hint { font-size: 13px; color: var(--muted); }
+kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--sheet); }
+.notice { margin: 16px 0 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--sheet); font-size: 14px; }
+
+main .wrap { display: grid; gap: 18px; padding-block: 20px 60px; }
+.intro { max-width: 68ch; color: var(--muted); margin: 0; }
+.item {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  scroll-margin-top: 170px;
+}
+.item.current { outline: 2px solid var(--accent); outline-offset: -2px; }
+.item[data-verdict="godkjent"] { border-left: 5px solid var(--ok); }
+.item[data-verdict="underkjent"] { border-left: 5px solid var(--bad); }
+.item[data-verdict="usikker"] { border-left: 5px solid var(--unsure); }
+.photo { background: var(--photo); display: flex; align-items: center; justify-content: center; min-height: 220px; cursor: zoom-in; border: 0; padding: 0; }
+.photo img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 560; object-fit: contain; }
+.photo.tex img { aspect-ratio: 1; max-height: 420px; width: auto; }
+.panel { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eyebrow { font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.name { font: 600 19px/1.2 var(--mono); margin: 0; overflow-wrap: anywhere; }
+.about { margin: 0; }
+.facts { margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.facts li { font-variant-numeric: tabular-nums; }
+.check { font-size: 14px; }
+.check.pass::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+.check.fail::before { content: "✗ "; color: var(--bad); font-weight: 700; }
+.prior { font-size: 14px; padding: 8px 10px; background: var(--ground); border-radius: 4px; }
+.prior b { text-transform: capitalize; }
+.choose { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: auto; }
+.choose button {
+  font: 600 15px/1 var(--body); padding: 11px 6px; border-radius: 5px; cursor: pointer;
+  background: transparent; color: var(--ink); border: 1.5px solid var(--line);
+}
+.choose button:hover { border-color: var(--ink); }
+.choose button:focus-visible, .chip:focus-visible, .photo:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choose button[aria-pressed="true"][data-v="godkjent"] { background: var(--ok); border-color: var(--ok); color: var(--sheet); }
+.choose button[aria-pressed="true"][data-v="underkjent"] { background: var(--bad); border-color: var(--bad); color: var(--sheet); }
+.choose button[aria-pressed="true"][data-v="usikker"] { background: var(--unsure); border-color: var(--unsure); color: var(--sheet); }
+.choose button:disabled { cursor: not-allowed; opacity: .5; }
+textarea {
+  width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; font: 15px/1.4 var(--body);
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--ground); color: var(--ink);
+}
+.saved { font-size: 12px; color: var(--muted); min-height: 1em; }
+.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+dialog { padding: 0; border: 0; background: var(--photo); max-width: min(96vw, 1400px); }
+dialog img { display: block; max-width: 100%; max-height: 90vh; }
+dialog::backdrop { background: rgb(0 0 0 / .75); }
+@media (max-width: 760px) {
+  .item { grid-template-columns: minmax(0, 1fr); }
+  .item { scroll-margin-top: 220px; }
+  .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="title">
+      <h1>Dommen over Fristad</h1>
+      <span class="count" id="count">laster …</span>
+    </div>
+    <div class="progress" aria-hidden="true"><span class="p-ok" id="p-ok"></span><span class="p-bad" id="p-bad"></span><span class="p-unsure" id="p-unsure"></span></div>
+    <div class="filters" id="filters" role="group" aria-label="Vis"></div>
+    <div class="hint"><kbd>J</kbd> <kbd>K</kbd> neste og forrige, <kbd>1</kbd> godkjent, <kbd>2</kbd> underkjent, <kbd>3</kbd> usikker, <kbd>H</kbd> skriv hvorfor.</div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <p class="intro">Hver tekstur og modell i spillet, med det viktigste i byen først. Modellene er fotografert i spillet; skissen i hjørnet er modellen alene, så du ser hvilken som menes. Teksturene er lagt 2 × 2, så du ser om skjøtene synes. Velg en dom og skriv gjerne hvorfor; svaret lagres med en gang. Det du underkjenner, lages på nytt, og grunnen blir en regel.</p>
+    <p class="notice" id="notice" hidden></p>
+    <div id="list"></div>
+  </div>
+</main>
+
+<dialog id="zoom"><img id="zoom-img" alt=""></dialog>
+
+<script>
+const LABEL = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikker" };
+const FILTERS = [
+  ["open", "Ikke vurdert"], ["all", "Alle"], ["modell", "Modeller"], ["tekstur", "Teksturer"],
+  ["underkjent", "Underkjent"], ["usikker", "Usikker"], ["godkjent", "Godkjent"],
+];
+let items = [];
+const answers = new Map();   // id -> {verdict, why, at} fra lagringen
+let db = null, readOnly = false, filter = "open", shown = [];
+const queue = new Map();      // id -> siste skriving (én om gangen per dokument)
+const timers = new Map();
+
+function verdictOf(it) {
+  const a = answers.get(it.id);
+  if (a && a.verdict) return a.verdict;
+  return it.prior ? it.prior.verdict : "";
+}
+function matches(it, f) {
+  const v = verdictOf(it);
+  if (f === "all") return true;
+  if (f === "open") return !v;
+  if (f === "modell" || f === "tekstur") return it.kind === f;
+  return v === f;
+}
+function counts() {
+  const c = { all: items.length, open: 0, modell: 0, tekstur: 0, godkjent: 0, underkjent: 0, usikker: 0 };
+  for (const it of items) { const v = verdictOf(it); c[it.kind]++; if (v) c[v]++; else c.open++; }
+  return c;
+}
+function renderBar() {
+  const c = counts();
+  const done = items.length - c.open;
+  document.getElementById("count").textContent = `${done} av ${items.length} vurdert`;
+  for (const [k, id] of [["godkjent", "p-ok"], ["underkjent", "p-bad"], ["usikker", "p-unsure"]])
+    document.getElementById(id).style.width = (items.length ? 100 * c[k] / items.length : 0) + "%";
+  const box = document.getElementById("filters");
+  box.replaceChildren(...FILTERS.map(([k, label]) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(k === filter));
+    b.append(label); const n = document.createElement("span"); n.className = "n"; n.textContent = c[k]; b.append(n);
+    b.onclick = () => { filter = k; renderBar(); renderList(); window.scrollTo({ top: 0 }); };
+    return b;
+  }));
+}
+
+function card(it) {
+  const el = document.createElement("article");
+  el.className = "item"; el.id = it.id; el.tabIndex = -1;
+  const ph = document.createElement("button");
+  ph.type = "button"; ph.className = "photo" + (it.kind === "tekstur" ? " tex" : "");
+  ph.setAttribute("aria-label", "Vis større: " + it.name);
+  const img = document.createElement("img");
+  img.loading = "lazy"; img.decoding = "async"; img.src = `img/${it.id}.jpg`; img.alt = it.about || it.name;
+  ph.append(img);
+  ph.onclick = () => { const z = document.getElementById("zoom"); document.getElementById("zoom-img").src = img.src; z.showModal(); };
+  const p = document.createElement("div"); p.className = "panel";
+  const eb = document.createElement("div"); eb.className = "eyebrow";
+  eb.textContent = it.kind === "modell" ? (it.game ? "Modell · fra spillet" : "Modell · skisse") : (it.game ? "Tekstur" : "Tekstur · bare malt");
+  const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
+  p.append(eb, h);
+  if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }
+  const ul = document.createElement("ul"); ul.className = "facts";
+  for (const f of it.facts.filter(Boolean)) { const li = document.createElement("li"); li.textContent = f; ul.append(li); }
+  p.append(ul);
+  if (it.check) { const c = document.createElement("div"); c.className = "check " + (it.check.startsWith("består") ? "pass" : "fail"); c.textContent = it.check; p.append(c); }
+  if (it.prior) {
+    const pr = document.createElement("div"); pr.className = "prior";
+    const b = document.createElement("b"); b.textContent = it.prior.verdict;
+    pr.append("Din dom ", it.prior.date, ": ", b, ". ", it.prior.why || "");
+    p.append(pr);
+  }
+  const ch = document.createElement("div"); ch.className = "choose"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "Dom");
+  for (const v of ["godkjent", "underkjent", "usikker"]) {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.v = v; b.textContent = LABEL[v];
+    b.onclick = () => choose(it, v);
+    ch.append(b);
+  }
+  const ta = document.createElement("textarea");
+  ta.id = "why_" + it.id; ta.placeholder = "Hvorfor? (det som er galt, eller det som er bra)"; ta.setAttribute("aria-label", "Hvorfor, " + it.name);
+  ta.addEventListener("input", () => {
+    clearTimeout(timers.get(it.id));
+    timers.set(it.id, setTimeout(() => save(it, { why: ta.value }), 900));
+  });
+  ta.addEventListener("blur", () => { clearTimeout(timers.get(it.id)); save(it, { why: ta.value }); });
+  const s = document.createElement("div"); s.className = "saved"; s.setAttribute("aria-live", "polite");
+  p.append(ch, ta, s);
+  el.append(ph, p);
+  paint(el, it);
+  return el;
+}
+function paint(el, it) {
+  const a = answers.get(it.id) || {};
+  const v = verdictOf(it);
+  if (v) el.dataset.verdict = v; else delete el.dataset.verdict;
+  for (const b of el.querySelectorAll(".choose button")) {
+    b.setAttribute("aria-pressed", String(a.verdict ? a.verdict === b.dataset.v : false));
+    b.disabled = readOnly || !db;
+  }
+  const ta = el.querySelector("textarea");
+  if (document.activeElement !== ta && a.why !== undefined && ta.value !== a.why) ta.value = a.why;
+  ta.disabled = readOnly || !db;
+}
+function renderList() {
+  shown = items.filter(it => matches(it, filter));
+  const list = document.getElementById("list");
+  if (!shown.length) {
+    const e = document.createElement("p"); e.className = "empty";
+    e.textContent = filter === "open" ? "Alt er vurdert. Takk!" : "Ingenting her.";
+    list.replaceChildren(e); return;
+  }
+  list.replaceChildren(...shown.map(card));
+  list.style.display = "grid"; list.style.gap = "18px";
+}
+
+async function save(it, change) {
+  if (!db || readOnly) return;
+  const cur = answers.get(it.id) || {};
+  const next = { verdict: cur.verdict || "", why: cur.why || "", ...change, at: new Date().toISOString() };
+  if (next.verdict === (cur.verdict || "") && next.why === (cur.why || "")) return;
+  answers.set(it.id, next);
+  const el = document.getElementById(it.id);
+  const status = el && el.querySelector(".saved");
+  if (status) status.textContent = "Lagrer …";
+  const prev = queue.get(it.id) || Promise.resolve();
+  const run = prev.then(() => db.collection("dom").doc(it.id).set(next)).then(
+    () => { if (status) status.textContent = "Lagret"; },
+    e => {
+      if (e && (e.code === "invalid_argument" || e.code === "not_granted" || e.code === "revoked")) {
+        readOnly = true; note("Du kan se dommene her, men ikke endre dem i denne visningen.");
+        document.querySelectorAll(".item").forEach(x => { const i = items.find(y => y.id === x.id); if (i) paint(x, i); });
+      }
+      if (status) status.textContent = "Ble ikke lagret. Prøv igjen.";
+    });
+  queue.set(it.id, run);
+  if (el) paint(el, it);
+  renderBar();
+}
+function choose(it, v) {
+  const el = document.getElementById(it.id);
+  const why = el ? el.querySelector("textarea").value : "";
+  save(it, { verdict: v, why });
+}
+function note(text) { const n = document.getElementById("notice"); n.textContent = text; n.hidden = false; }
+
+// Tastene: j/k flytter, 1–3 velger, h går til feltet.
+let cur = -1;
+function focusCard(i) {
+  const cards = [...document.querySelectorAll(".item")];
+  if (!cards.length) return;
+  cur = Math.max(0, Math.min(cards.length - 1, i));
+  cards.forEach((c, k) => c.classList.toggle("current", k === cur));
+  cards[cur].scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+function nearest() {
+  const cards = [...document.querySelectorAll(".item")];
+  const top = document.querySelector("header.bar").getBoundingClientRect().bottom;
+  const i = cards.findIndex(c => c.getBoundingClientRect().bottom > top + 40);
+  return i < 0 ? 0 : i;
+}
+document.addEventListener("keydown", e => {
+  if (e.target.closest && e.target.closest("textarea, input")) { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "j") { focusCard((cur < 0 ? nearest() - 1 : cur) + 1); e.preventDefault(); }
+  else if (k === "k") { focusCard((cur < 0 ? nearest() : cur) - 1); e.preventDefault(); }
+  else if (["1", "2", "3"].includes(k)) {
+    const i = cur < 0 ? nearest() : cur; const el = document.querySelectorAll(".item")[i];
+    const it = el && items.find(x => x.id === el.id);
+    if (it) { choose(it, ["godkjent", "underkjent", "usikker"][+k - 1]); e.preventDefault(); }
+  } else if (k === "h") {
+    const el = document.querySelectorAll(".item")[cur < 0 ? nearest() : cur];
+    if (el) { el.querySelector("textarea").focus(); e.preventDefault(); }
+  }
+});
+document.getElementById("zoom").addEventListener("click", e => e.currentTarget.close());
+
+async function start() {
+  try {
+    const r = await fetch("data.json");
+    items = (await r.json()).items;
+  } catch (e) {
+    note("Fant ikke listen over teksturer og modeller."); return;
+  }
+  renderBar(); renderList();
+  db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
+  if (!db) {
+    note("Svarene kan ikke lagres i denne visningen. Åpne siden i Claude for å gi dommer.");
+    return;
+  }
+  document.querySelectorAll(".item").forEach(x => { const i = items.find(y => y.id === x.id); if (i) paint(x, i); });
+  db.collection("dom").onSnapshot(snap => {
+    for (const ch of snap.docChanges()) {
+      if (ch.type === "removed") answers.delete(ch.doc.id);
+      else answers.set(ch.doc.id, ch.doc.data());
+      const el = document.getElementById(ch.doc.id); const it = items.find(y => y.id === ch.doc.id);
+      if (el && it) paint(el, it);
+    }
+    renderBar();
+  }, e => note("Fikk ikke hentet de lagrede dommene (" + e.code + ")."));
+}
+start();
+</script>
