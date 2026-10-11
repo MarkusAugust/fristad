@@ -1368,16 +1368,23 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
             route.rotate_left(k);
         }
         let (pos, _) = route[0];
-        // Hver har sin figur (kvinnene på torget deler kona med skaut og
-        // bøtte); den felles `npc` bare om modellen mangler.
+        // Hver har sin figur (fra tools/reconstruct); kvinnene faller tilbake
+        // på kona med skaut og bøtte, og den felles `npc` bare om modellen mangler.
         let own = match name {
-            "Tjenestejenta" | "Fiskerkona" | "Vaskekona" => "npc_woman",
+            "Tjenestejenta" => "npc_maid",
+            "Fiskerkona" => "npc_fishwife",
+            "Vaskekona" => "npc_washerwoman",
             "Bonden" => "npc_farmer",
             "Gutten" => "npc_boy",
             "Vaktmannen" => "npc_guard",
             "Kremmeren" => "npc_merchant",
             "Pilegrimen" => "npc_pilgrim",
             _ => crate::domain::npcs::NPC_MODEL,
+        };
+        let own = if own.starts_with("npc_") && own != "npc_woman" && !b.has_model(own) && matches!(name, "Tjenestejenta" | "Fiskerkona" | "Vaskekona") {
+            "npc_woman"
+        } else {
+            own
         };
         let model = if own != crate::domain::npcs::NPC_MODEL && b.has_model(own) {
             b.reserve(own, 1);
@@ -1674,8 +1681,7 @@ pub fn town_dist(x: f32, z: f32) -> f32 {
     terrain::town_edge(x, z).min(yard).min(farm)
 }
 
-/// Stigen opp fra startrommet i kjelleren ligger i dungeon.rs; her er bare
-/// hvor torget er, til testene.
+/// Hvor torget er, til testene.
 pub fn square_center() -> Vec3 {
     terrain::at(Vec3::ZERO)
 }

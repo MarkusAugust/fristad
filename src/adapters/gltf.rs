@@ -129,6 +129,8 @@ models! {
     "npc_clerk" => "npc/npc_clerk.glb",
     "npc_gorvek" => "npc/npc_gorvek.glb",
     "npc_woman" => "npc/npc_woman.glb",
+    "npc_maid" => "npc/npc_maid.glb",
+    "npc_washerwoman" => "npc/npc_washerwoman.glb",
     // Portalen ved sørporten (tools/models/portal.py).
     "portal_ring" => "town/portal_ring.glb",
     "portal_runes" => "town/portal_runes.glb",
