@@ -87,3 +87,16 @@ Steg 1–3 gjør dagens løype trygg og rask. Steg 4 er det som løfter kvalitet
 
 - Forbilder som mangler en visning (ovenfra) gir fortsatt gjettede flater der, men nå fylt med flisene i stedet for strekk. Et forbilde ovenfra per figur (én ekstra Gemini-rute) ville løst det helt.
 - Ansiktsuttrykk og mimikk krever formmål i ansiktet på malen. Det er mulig senere, siden malen har kjent topologi.
+
+## Gjenstandene (bestemt 11. oktober)
+
+Byggesett pluss fliser gir ikke AAA-følelsen: hver gjenstand trenger sin egen malte tekstur med lys, slitasje og lyse kanter. Arkene fra eieren har nettopp den malingen, så `sheet2model` brukes også på gjenstandene:
+
+- **Oppsettene `prop1` (én 3/4-visning) og `prop2` (3/4 forfra og 3/4 bakfra).** Formen kommer fra en prior (primitiv eller byggesettsmodell: tønne, kiste, krukke, benk, bord), passes til silhuetten med samme innretting som figurene, og malingen projiseres på de synlige flatene. Baksiden fylles ved speiling (gjenstandene er nesten alltid symmetriske), undersiden med den matchende flisen, og blandingen er den samme som for figurene.
+- **Småting** (`items1`–`5`, skrot) bygges fra ett ark med `prop1`: de sees i forbifarten.
+- **Heltegjenstander** (kista, tønna, brønnen, ambolten, hvilestedet, spaken, gitteret, alteret, bossarenaenes møbler) får to visninger med `prop2`; malen for arket står i `sheet2model/PROMPTS.md`.
+- **Først fem** som pilot: kista, tønna, brønnen, ambolten og hvilestedet. Eieren ser dem i spillet før resten.
+- **Våpen og skjold** er tegnet rett forfra: flat form med tykkelse, og arket males rett på. Sjeldenhetene gir fire utgaver.
+- **Dyrene** trenger eget ark per dyr (side, forfra, bakfra) for å bygges med `body3`.
+- Det som ikke løses av tekstur: plasseringen må fortelle en historie (grupper, lent, brukt), og silhuettene holdes litt tykkere og rundere enn virkeligheten.
+
