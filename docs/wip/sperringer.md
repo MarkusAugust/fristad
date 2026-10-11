@@ -29,3 +29,14 @@ Fire feil fra eieren, gren `claude/detaljnivaa` (HEAD 8bc4d83), sikkerhetskopi p
 - Hele `cargo test --release`: alt grønt unntatt `alt_er_ekte_modeller_med_teksturer`, som feiler på
   `apothecary_interior` (288 hjørner uten albedo) – den modellen er endret av den andre hjelperen (`workshops.py`),
   ikke av denne jobben.
+- 15:25 Dekkhellene på steinmuren i `wall_stone` (så de ikke så ut som planker). Etter slankingen: Sørporten 609 k / 145,
+  Storgata 637 k / 135, Torget 590 k / 141, Vertshuset 475 k / 115. Hele `cargo test --release`: 47 grønne, 4 ignorert.
+  `cargo build --release --bins` grønn. Ikke committet på `claude/detaljnivaa`; alt ligger på `wip/sperringer`.
+
+## Gjenstår / merknader
+
+- Lyktestolpen på Storgata står midt i åpningen til Gorveks plass (ikke i veien, åpningen er 3 m, men den kunne flyttes).
+- CLAUDE.md-avsnittene «Byen» (enclose/gjerdene, kirkegårdens steinmur) og «Ned og opp» (portalen er tilbake) bør
+  oppdateres av den som slår sammen.
+- Kista: innsiden får plankeflisen fra `tiles: "auto"` (ingen rute ser den), tonet mørk; vil man ha lær, settes
+  `opt.tiles` i `chest.json`.

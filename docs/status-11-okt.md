@@ -87,3 +87,29 @@ Hvert punkt har et **godkjenningspunkt (G)** der eieren ser bilder før noe tas 
 2. Er rekkefølgen A → B → C → D riktig, eller skal figurene (D) foran byggesettet (C)?
 3. Egne skyøkter for D, E og F: greit at jeg lager oppstartsskriptet og kjører dem slik?
 4. Er det noe på TODO-lista som skal strykes?
+
+## 5. Revidert plan etter to runder med kritikk (11. oktober kveld)
+
+Rammer fra eieren: én økt, én maskin, ingen flere skyøkter; Claude gjør alt selv i den rekkefølgen som gir mest mening; eieren godkjenner i bilder.
+
+Det kritikken endret:
+- **Måling i spillet** (`?bench`) før alt annet: GPU-ms per del, oppløsning, MSAA og brytere (`msaa`, `a2c`, `shadow`, `flat`) så årsaken til 223 ms kan skilles med én kopierbar tekst, uten rundturer. Per-sample shading fra alpha-to-coverage er hovedmistanken; flat fragmentshader mot full skiller skygging fra rasterisering.
+- **Terrenget rettes uansett** (målet er jobb-PC): støyen bakt til flis, høyst 3 lag, søle bare ved vei, triplanar bare på berg, himmel uten støy per piksel, lys per rute, ruter tegnet forfra og bakover med bakken sist, culling bare på terrenget og kryptbitene (byggesettet lar vi være til tallene krever det).
+- **Skyggepasset deles** som hovedpasset (ugjennomsiktig uten fragmentshader).
+- **«Enkel» først**, og enkel = det WebGL2 får: ingen MSAA, 900p, ingen solskygge, ett lag bakke, 4 lys, ingen glød, 512²-lag (øverste mip hoppes over).
+- **Teksturkravet avklares:** standard beholder 1024² per 2 m (0,5 teksel/mm), 1 m fliser der det sees nært; BC7 senere. Skrives inn i ny-stil.md.
+- **#39 projeksjon før #43 krypten**, og krypten starter med **ett rom, kapellet** (8 × 6 × 3,4 m, sokkel/gesims/pilaster, bakt AO, lys med varm kjerne og kald utfylling, tre innredningsgrupper) til godkjenning i tre faste bilder før resten av nivå 1.
+- **Innredning som minimal `group()`** (anker: vegg, hjørne, peis, bord; overlapp-, dørsone- og gangsonesjekk som feiler eksporten; en test som nekter håndkoordinater utenfor `group()`), først på tønnerekka ved peisen. Ingen «historie»-motor.
+- **Figurer og monstre på samme grunnkropp**, bygd for hånd i Blender-skript (6–8k, hode 1/6,5, hals, hender med tre fingre, fast papirdukke-uv, 18 bein, parametre for høyde/bredde/kjønn/alder), tekstur ved planar projeksjon forfra/bakfra fra arket med innretting etter hodeboks og høyde; hodeplagg, hår og redskap som byggesett. Monsteret (Button Wight) først fordi det er ferdig på én dag og beviser metoden; figurene går gjennom samme dør samme dag (oppstillingsark med 13 målhøyder, gang-GIF, Buttonsmeden grovt projisert). Dybdefusjon beholdes bare til gjenstander.
+- **`sheet_check.py`** avgjør hvilke av de 21 arkene som kan gjenbrukes (forfra/bakfra, rett, armene fri, hode/høyde 1/5,5–1/8, oppløsning, redskap i én hånd); de som stryker lages på nytt mot malens silhuett som referansebilde.
+- **Regresjonsark per push** i Actions (de åtte posisjonene + tre i krypten + dreieark, pikseldiff mot godkjent grunnlinje) og **godkjenningsark i fast format** (figur: forfra/side/bak + gang; gjenstand: 3/4 forfra, 3/4 bakfra, nær; rom: inngang, fokus, hjørne). `Builder.missing` feiler testene for godkjente modeller. `SaveData` får versjon.
+- Strykes/slås sammen: #21 og #34 lukkes; #23 + #24 → grunnkroppen; #36 blir en strengere test + planering under gårdene; #37 én time; #41 splittes (skadetall og drikker nå, 3D-våpen etter armene, vanskelighetsgrad etter nivå 2); #42 sist; #10 i første ledige hull.
+
+### Dagsplan
+| Dag | Gjøres | Eieren ser |
+|---|---|---|
+| 1 | `?bench` med bryterne; grafikknivået enkel; skyggepasset delt; død kode om tid | bench-tekst fra fire kjøringer (msaa 1/4 × full/flat) på Mac og jobb-PC; enkel spillbar |
+| 2 | terrenget (støyflis, 3 lag), `textureSample` der det er uniformt, lys per rute, himmel, sortering, culling på terreng/krypt, skyggekart 2048²; teksturkravet i ny-stil.md | bench nr. 2 (mål: standard < 16 ms på Macen) og de åtte faste bildene før/etter som ett ark |
+| 3 | #39 projeksjon per del med strekk-sjekk (brønn, ambolt, hvilested på nytt); `group()` og tønnerekka; kit_grav-moduler, AO, lysoppskrift; kapellet; godkjenningsark; missing → feil | kapellet, de tre gjenstandene og tønnerekka i godkjenningsark: tre ja/nei |
+| 4 | grunnkroppen; `sheet_check` på 21 ark; Button Wight med `mob_motion`; oppstillingsark, gang-GIF, Buttonsmeden grovt; silhuett + prompt for ark som strøk; `tools/regress.sh` i Actions | første fiende i kapellet i bevegelse; oppstillingsarket; Buttonsmeden som retning; lista over ark som må lages på nytt |
+| 5 | resten av nivå 1 med modulene og `group()`, fiender etter spawns; Modalen (klump); Buttonsmeden ferdig til godkjenning; `SaveData`-versjon; status for uke 2 | nivå 1 med fiender, Modalen, Buttonsmeden i bevegelse, bench nr. 3 |
