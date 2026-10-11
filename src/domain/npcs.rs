@@ -8,7 +8,6 @@ use crate::domain::anim::{Animator, Rig};
 use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec3};
 
-pub const NPC_MODEL: &str = "npc";
 pub const MAX_NPCS: usize = 16;
 /// Så lenge en replikk står.
 const LINE_SECS: f32 = 5.5;
@@ -23,7 +22,7 @@ pub struct Npc {
     pub yaw: f32,
     pub tint: Vec3,
     pub lines: &'static [&'static str],
-    /// Modellen (en egen figur, eller den felles `NPC_MODEL`) og skjelettet
+    /// Modellen (figuren til innbyggeren) og skjelettet
     /// med klippene i `Npcs.rigs`.
     pub model: &'static str,
     /// Høyden på figuren (snakkebobla står rett over hodet).
@@ -99,10 +98,6 @@ impl Npcs {
             npcs.push(Npc { name, pos, yaw, tint, lines, model, height, rig, next_line: 0, anim, speaking: None, waved: false, route, leg: 0, wait: 2.0 + i as f32 * 1.3, walking: false });
         }
         Self { npcs, rigs }
-    }
-
-    pub fn reserve() -> Vec<(&'static str, usize)> {
-        vec![(NPC_MODEL, MAX_NPCS)]
     }
 
     /// F på en innbygger: neste replikk. Gir det som ble sagt.

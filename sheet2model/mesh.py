@@ -2,7 +2,7 @@
 
 Desimeringen og Smart UV gjøres i Blender som Python-modul (bpy) fordi det tar sekunder og er robust; alt som er
 tungt (teksturen) gjøres i numpy. Resultatet er `lo.npz` (hjørner, flater, uv per flatehjørne) og `hi.npy`
-(hjørnene i den høye modellen, til z-bufferen). Et `template`-mål kan hoppe over dette steget helt: malen har
+(hjørnene i den høye modellen, til z-bufferen). Et mål med fast mal (planlagt) kan hoppe over dette steget helt: malen har
 allerede uv-kart.
 """
 import time

@@ -89,7 +89,7 @@ pub struct Target {
 #[derive(Clone, Debug)]
 pub struct NpcSpec {
     pub name: &'static str,
-    /// Figuren: en egen modell (f.eks. `npc_smith`) eller `npcs::NPC_MODEL`.
+    /// Figuren (f.eks. `npc_smith`); usynlig om modellen ikke finnes.
     pub model: &'static str,
     pub pos: Vec3,
     pub yaw: f32,
@@ -377,9 +377,6 @@ pub fn build(models: &[ModelInfo], _seed: u64) -> World {
         b.reserve(model, n);
     }
     for (model, n) in crate::domain::combat::Combat::reserve() {
-        b.reserve(model, n);
-    }
-    for (model, n) in crate::domain::npcs::Npcs::reserve() {
         b.reserve(model, n);
     }
     for (model, n) in crate::domain::herd::Herd::reserve() {

@@ -1,7 +1,6 @@
 """Regresjonstest: smeden, Vertinnen og Pilegrimen (hodene) bygges fra bufrede dybdekart, uten nettverk, og
-tallene i rapporten sjekkes mot tersklene. Bufferen fylles fra `target/reconstruct/<navn>/` (tools/reconstruct)
-eller `target/sheet2model/cache/depth/` når den finnes; mangler begge, hoppes testen over (ellers ville den
-lastet ned 390 MB og regnet dybde i et minutt per ark).
+tallene i rapporten sjekkes mot tersklene. Dybden leses fra `target/sheet2model/cache/depth/`; mangler den,
+hoppes testen over (ellers ville den lastet ned 390 MB og regnet dybde i et minutt per ark).
 
     python3.13 -m pytest sheet2model/tests            # alle tre (ca. 2–3 minutter per figur)
     SHEET2MODEL_TEST_ONLY=smith_head python3.13 -m pytest sheet2model/tests
@@ -38,9 +37,6 @@ def _job(name):
 def _cached(job):
     from sheet2model import depth, sheet
     sheet.seg(job)
-    old = os.path.join(ROOT, "target/reconstruct", job.name)
-    if os.path.isdir(old):
-        depth.seed_cache(job, old)
     return all(os.path.exists(depth.cache_path(job, k)) for k in job.real_views())
 
 

@@ -1236,12 +1236,7 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
         let pos = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         log::info!("Innbygger {name} ved ({:.1}, {:.1}, {:.1})", pos.x, pos.y, pos.z);
-        let model = if figure_approved(own) && b.has_model(own) {
-            b.reserve(own, 1);
-            own
-        } else {
-            crate::domain::npcs::NPC_MODEL
-        };
+        let model = figure(b, own);
         // Ruta: fram og tilbake langs fasaden foran døra (torget holdes fritt
         // 4,5 m ut fra dørene), og for Gorvek mellom dukkene.
         let side = Vec2::new(yaw.cos(), -yaw.sin());
@@ -1257,14 +1252,14 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     }
 }
 
-/// Figurene eieren har godkjent for spillet. De tretten fra `tools/reconstruct`
-/// (11. oktober) er tatt ut igjen: for små (1,2–1,6 m), hodene for store,
-/// hetter og hatter smeltet inn i skallen. De kommer tilbake én og én fra
-/// `sheet2model` med felles kropp, og legges til her når eieren har sett dem.
-const APPROVED_FIGURES: &[&str] = &[];
-
-fn figure_approved(model: &str) -> bool {
-    APPROVED_FIGURES.contains(&model)
+/// Figuren til en innbygger: sin egen modell, satt av én plass til. Finnes
+/// den ikke (den er ikke laget, eller ikke godkjent ennå), er innbyggeren
+/// usynlig, men siktemålet og samtalen virker.
+fn figure(b: &mut Builder, model: &'static str) -> &'static str {
+    if b.has_model(model) {
+        b.reserve(model, 1);
+    }
+    model
 }
 
 /// Høyden på en figur: modellens mål, eller 1,8 m om modellen mangler
@@ -1448,18 +1443,19 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
     if usable.len() < 3 {
         return;
     }
-    let folk: [(&'static str, Vec3, &'static [&'static str]); 8] = [
-        ("Bonden", Vec3::new(0.35, 0.28, 0.12), TOWNSFOLK),
-        ("Tjenestejenta", Vec3::new(0.5, 0.12, 0.12), TOWNSFOLK),
-        ("Vaktmannen", Vec3::new(0.12, 0.14, 0.3), GUARD),
-        ("Kremmeren", Vec3::new(0.4, 0.3, 0.05), TOWNSFOLK),
-        ("Fiskerkona", Vec3::new(0.15, 0.3, 0.32), TOWNSFOLK),
-        ("Gutten", Vec3::new(0.45, 0.42, 0.2), TOWNSFOLK),
-        ("Pilegrimen", Vec3::new(0.25, 0.22, 0.2), PILGRIM),
-        ("Vaskekona", Vec3::new(0.55, 0.5, 0.42), TOWNSFOLK),
+    // Navn, figur, farge og replikker.
+    let folk: [(&'static str, &'static str, Vec3, &'static [&'static str]); 8] = [
+        ("Bonden", "npc_farmer", Vec3::new(0.35, 0.28, 0.12), TOWNSFOLK),
+        ("Tjenestejenta", "npc_maid", Vec3::new(0.5, 0.12, 0.12), TOWNSFOLK),
+        ("Vaktmannen", "npc_guard", Vec3::new(0.12, 0.14, 0.3), GUARD),
+        ("Kremmeren", "npc_merchant", Vec3::new(0.4, 0.3, 0.05), TOWNSFOLK),
+        ("Fiskerkona", "npc_fishwife", Vec3::new(0.15, 0.3, 0.32), TOWNSFOLK),
+        ("Gutten", "npc_boy", Vec3::new(0.45, 0.42, 0.2), TOWNSFOLK),
+        ("Pilegrimen", "npc_pilgrim", Vec3::new(0.25, 0.22, 0.2), PILGRIM),
+        ("Vaskekona", "npc_washerwoman", Vec3::new(0.55, 0.5, 0.42), TOWNSFOLK),
     ];
     let base = b.npcs.len();
-    for (k, (name, tint, lines)) in folk.into_iter().enumerate() {
+    for (k, (name, own, tint, lines)) in folk.into_iter().enumerate() {
         // Tre ærender hver, fordelt over byen.
         let pick: Vec<usize> = (0..3).map(|j| usable[(k * 5 + j * 7 + j * k) % usable.len()]).collect();
         let mut route: Vec<(Vec3, f32)> = vec![];
@@ -1491,30 +1487,7 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
             route.rotate_left(k);
         }
         let (pos, _) = route[0];
-        // Hver har sin figur (fra tools/reconstruct); kvinnene faller tilbake
-        // på kona med skaut og bøtte, og den felles `npc` bare om modellen mangler.
-        let own = match name {
-            "Tjenestejenta" => "npc_maid",
-            "Fiskerkona" => "npc_fishwife",
-            "Vaskekona" => "npc_washerwoman",
-            "Bonden" => "npc_farmer",
-            "Gutten" => "npc_boy",
-            "Vaktmannen" => "npc_guard",
-            "Kremmeren" => "npc_merchant",
-            "Pilegrimen" => "npc_pilgrim",
-            _ => crate::domain::npcs::NPC_MODEL,
-        };
-        let own = if own.starts_with("npc_") && own != "npc_woman" && !b.has_model(own) && matches!(name, "Tjenestejenta" | "Fiskerkona" | "Vaskekona") {
-            "npc_woman"
-        } else {
-            own
-        };
-        let model = if own != crate::domain::npcs::NPC_MODEL && figure_approved(own) && b.has_model(own) {
-            b.reserve(own, 1);
-            own
-        } else {
-            crate::domain::npcs::NPC_MODEL
-        };
+        let model = figure(b, own);
         log::debug!("{name} ({model}) starter ved {:.1}, {:.1}", pos.x, pos.z);
         let height = npc_height(b, model);
         b.npcs.push(NpcSpec { name, model, pos, yaw: 0.0, tint, lines, route, height });

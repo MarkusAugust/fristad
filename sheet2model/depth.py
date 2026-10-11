@@ -2,7 +2,7 @@
 
 Bufferen ligger i `<root>/target/sheet2model/cache/depth/<sha>.npy`, der sha er av selve ruta (rgb-png) og
 modellnavnet. Bygges figuren om med samme ark, koster dybden ingenting, og testene kjører uten nettverk og uten
-onnxruntime når bufferen er fylt (`seed_cache`).
+onnxruntime når bufferen er fylt.
 """
 import os
 import shutil
@@ -24,7 +24,7 @@ def ensure_weights(job):
     """Vektene (ca. 390 MB) lastes ned én gang fra GitHub-releases."""
     p = weights_path(job)
     if not os.path.exists(p):
-        alt = os.environ.get("SHEET2MODEL_ONNX")  # alt nedlastet et annet sted (f.eks. av tools/reconstruct)
+        alt = os.environ.get("SHEET2MODEL_ONNX")  # alt nedlastet et annet sted
         if alt and os.path.exists(alt):
             os.makedirs(os.path.dirname(p), exist_ok=True)
             os.symlink(os.path.abspath(alt), p)
@@ -121,24 +121,3 @@ def depth(job):
             np.save(job.p(f"{k}_disp.npy"), d[:, ::-1].copy())
     print("dybde: %d av %d fra bufferen" % (hits, len(job.real_views())))
     job.time("depth", time.time() - t0)
-
-
-def seed_cache(job, old_work):
-    """Fyll bufferen fra en arbeidsmappe til tools/reconstruct (samme ruter gir samme sha), så testene kjører
-    uten modellen."""
-    import cv2
-    n = 0
-    for k in job.real_views():
-        src = os.path.join(old_work, f"{k}_disp.npy")
-        if not os.path.exists(src):
-            continue
-        a = cv2.imread(os.path.join(old_work, f"{k}_rgb.png"))
-        b = cv2.imread(job.p(f"{k}_rgb.png"))
-        if a is None or b is None or a.shape != b.shape or np.abs(a.astype(int) - b).max() > 0:
-            continue
-        cp = cache_path(job, k)
-        os.makedirs(os.path.dirname(cp), exist_ok=True)
-        if not os.path.exists(cp):
-            shutil.copy(src, cp)
-        n += 1
-    return n
