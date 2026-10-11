@@ -25,6 +25,8 @@ Målet: ingenting når eieren uten å ha bestått automatiske tekniske og esteti
 
 **Målingsrunde 3 (`?bench`, avgjør før noe bygges om):** hver rad skriver trekanter, kall og lerretets størrelse; kjøringene er som i spillet, uten MSAA, flat, uten røyk/nedbør, uten himmel, uten modeller, flat med bare bymeshen, halv oppløsning (med og uten MSAA), enkel og avansert. `engine.set_bench(json)` med bryterne i `ports::Bench` (`sky`, `particles`, `models` nye), `benchScale` i `fit()`.
 
+**Runde 3 (eierens M2, 11. okt.) avgjorde det:** uten modeller (26k △, 23 kall) 47 ms, uten røyk 41, uten himmel 45, flat med bare bymeshen 24 ms mot 4 uten MSAA, halv oppløsning omtrent halv kostnad. MSAA i seg selv koster ~20 ms per bilde i Chrome på M2, uavhengig av innholdet; uten MSAA er hele bildet 9 ms. **Beslutning:** standard bytter MSAA ut med SMAA 1× (eierens valg); avansert beholder MSAA.
+
 **Rettelsen etter hva runden viser:**
 - *Røyken eller himmelen:* røyken tegnes i et eget pass uten MSAA (halv oppløsning, satt sammen før tonemappingen), himmelen bare der dybden er tom.
 - *Geometribundet:* trekantene ned til budsjettet. Først det som ikke synes: innsidemodellene som tegnes inntil 22 m selv om du står ute (bare når du er inne eller i døråpningen), fjerne nett for alt over `fine_within`, og culling av modellinstanser bak hus (grov okklusjon per rute fra bymeshen). Så Vertshuset og de tyngste husene ned mot rammene i `ny-stil.md` (≤10 000 ute, ≤25 000 med innside) i fase 4. Budsjettet i CI (`snapshot --stats`, fase 3) holder det der.
@@ -32,6 +34,24 @@ Målet: ingenting når eieren uten å ha bestått automatiske tekniske og esteti
 - Uansett: standardnivået skal gi ≥ 60 fps på M2 og jobb-PC, bekreftet med eierens `?bench`, før fase 2 fortsetter.
 
 **Verifisering:** eierens `?bench` før og etter hver rettelse (Mac og jobb-PC), loggført i `docs/kvalitet/ytelse.md`; `cargo test`, `node tools/wgsl-check.mjs`, skjermbilder av torget og krypten med og uten rettelsen.
+
+## 0b. Mens eieren er borte: resten av fase 1 (navnestyring og døde modellnavn)
+
+**Hvorfor:** `gltf.rs::load()` velger lys, glass, vann, magi, alfa, lakk og teksturlag ut fra materialnavnet (`starts_with`, `.paint`, `.magic`, 15 regler, :322–452), og modellnavnet styrer vær (`kit_`, `crypt_NN`) og fjernnett (`_leaves`, `_trunk`). En skrivefeil i Blender gir stille feil. I tillegg peker 30 modellnavn i Rust på modeller som ikke finnes (fiender, `token`/`key`/`bolt`, `arms`, våpen og skjold, dyrene, de 13 figurene), og bare `place` melder det; `reserve` og `figure()` er stille.
+
+**A. Rollene som data i glb-filene**
+- `tools/models/roles.py` (ny): én tabell fra materialnavn til rolle (`kind`, `flags`, `layer`), den samme logikken som `gltf.rs` har i dag, og fra modellnavn til modellroller (`no_weather`, `far: cards|cell`).
+- `tools/models/slim.py`: `tag(path)` skriver `materials[i].extras.fristad = {kind, flags, layer}` og `extras.fristad` på roten (modellrollene), alltid, før den tidlige returen for kvantiserte filer. Feiler eksporten på et materialnavn tabellen ikke kjenner (ingen stille `kind::PLAIN`).
+- Én gang: `python3 tools/models/slim.py --tag assets/models` over alle 128 glb-filene (ren json-omskriving, uten Blender; rundt 26 MB i git).
+- `src/adapters/gltf.rs`: leser rollene fra `extras.fristad` og har ingen navneregler igjen; mangler rollene, er det en feil som nevner fila. Det som ikke er navnestyring (`metallic`, `alphaMode`), står.
+- Test `modellene_har_roller` i `src/tests.rs`: hvert materiale i hver modell har roller, og ingen kode i adapterne sammenligner materialnavn (tekstsjekk i `architecture.rs` på `named(`/`starts_with("glow"` …).
+
+**B. Modeller som ventes, eksplisitt**
+- `crates/fristad-domain/src/domain/model.rs`: `PLANNED`: navnene systemene venter på, med hvorfor (fiendene, plukkene, armene, våpen og skjold, dyrene, figurene).
+- `Builder::reserve` og `town::figure` melder manglende modeller inn i `Builder.missing` som `place` gjør, og loggen skiller «venter» (i `PLANNED`) fra «ukjent».
+- Test `alle_modellnavn_finnes_eller_ventes`: et navn som er i bruk, finnes eller står i `PLANNED`; et navn i `PLANNED` som finnes nå, må strykes. `assets/models/props/anvil.glb` (underkjent, i ingen tabell) slettes.
+
+**Verifisering:** `cargo test` (nye tester grønne, bevisst feil: et materiale uten roller og et ukjent modellnavn slår ut), skjermbilder av torget om dagen og natta, krypten og portalen før og etter (pikseldiff ≈ 0), `node tools/wgsl-check.mjs`, push samlet med neste målingsrunde.
 
 ## 1. Prinsipper (gjelder alt under)
 1. **Kontroll før kostnad.** Rekkefølgen er alltid: spesifikasjon → billige kontroller (numpy, sekunder) → Blender/eksport (minutter) → estetisk vurdering → eieren. Ingen Cycles-render i løypene; godkjenningsark lages med numpy-rastereren og ett `snapshot`.

@@ -1215,9 +1215,9 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
 /// den ikke (den er ikke laget, eller ikke godkjent ennå), er innbyggeren
 /// usynlig, men siktemålet og samtalen virker.
 fn figure(b: &mut Builder, model: &'static str) -> &'static str {
-    if b.has_model(model) {
-        b.reserve(model, 1);
-    }
+    // Mangler figuren, meldes det (`Builder.missing`), og innbyggeren er
+    // usynlig, men samtalen virker.
+    b.reserve(model, 1);
     model
 }
 

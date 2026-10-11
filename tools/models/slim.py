@@ -7,11 +7,21 @@
 Motoren pakker ut normalene selv (`packed_normals` i src/adapters/gltf.rs).
 Filer som allerede er slanket, hoppes over.
 
+Først får hver fil rollene sine (`tag`, `roles.py`): `extras.fristad` på hvert
+materiale og på roten, som motoren leser i stedet for å gjette ut fra navnene.
+Det gjøres alltid, også for filer som er slanket fra før.
+
     python3 tools/models/slim.py assets/models/**/*.glb
+    python3 tools/models/slim.py --tag assets/models     # bare rollene, hele mappa
 """
+import glob
 import json
+import os
 import struct
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import roles  # noqa: E402
 
 F32, U16, U8, I8 = 5126, 5123, 5121, 5120
 SIZE = {5120: 1, 5121: 1, 5122: 2, 5123: 2, 5125: 4, 5126: 4}
@@ -58,7 +68,29 @@ def elements(j, bin_, a):
     return out
 
 
+def tag(path):
+    """Skriver rollene inn i fila. Gir om noe ble endret."""
+    j, bin_ = read(path)
+    model = os.path.splitext(os.path.basename(path))[0]
+    changed = False
+    for m in j.get("materials", []):
+        role = roles.material(m.get("name", ""), model)
+        extras = m.setdefault("extras", {})
+        if extras.get("fristad") != role:
+            extras["fristad"] = role
+            changed = True
+    root = roles.model(model)
+    extras = j.setdefault("extras", {})
+    if extras.get("fristad") != root:
+        extras["fristad"] = root
+        changed = True
+    if changed:
+        write(path, j, bin_)
+    return changed
+
+
 def slim(path):
+    tag(path)
     j, bin_ = read(path)
     if "KHR_mesh_quantization" in j.get("extensionsUsed", []):
         return None
@@ -132,6 +164,13 @@ def slim(path):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--tag"]:
+        n = 0
+        for d in sys.argv[2:]:
+            for p in sorted(glob.glob(os.path.join(d, "**", "*.glb"), recursive=True)):
+                n += tag(p)
+        print(f"Roller skrevet i {n} filer")
+        sys.exit(0)
     total = [0, 0]
     for p in sys.argv[1:]:
         r = slim(p)

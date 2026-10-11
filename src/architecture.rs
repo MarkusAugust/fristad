@@ -174,3 +174,12 @@ fn filene_er_ikke_for_lange() {
     }
     assert!(bad.is_empty(), "{}", bad.join("\n"));
 }
+
+/// Glb-lasteren gjetter ikke ut fra navn: rollene til materialene og
+/// modellene står som data i fila (`extras.fristad`, `tools/models/roles.py`).
+#[test]
+fn lasteren_leser_rollene_og_gjetter_ikke() {
+    let text = code(&root().join("src/adapters/gltf.rs"));
+    let bad: Vec<_> = text.lines().enumerate().filter(|(_, l)| ["starts_with(\"", "ends_with(\"", "strip_prefix(\"", "contains(\""].iter().any(|m| l.contains(m))).map(|(n, l)| format!("{}: {}", n + 1, l.trim())).collect();
+    assert!(bad.is_empty(), "gltf.rs sammenligner navn; legg regelen i tools/models/roles.py i stedet:\n{}", bad.join("\n"));
+}

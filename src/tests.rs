@@ -1812,3 +1812,36 @@ fn sperringene_er_synlige() {
     assert!(fences > 20, "fant bare {fences} gjerdekollidere");
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
+
+/// Hver modell har rollene sine som data (`extras.fristad`, skrevet av
+/// `tools/models/slim.py`), og lastes uten feil: et materiale uten roller,
+/// med et ukjent slag eller et teksturlag som ikke finnes, stopper lastingen.
+#[test]
+fn modellene_har_roller() {
+    use crate::ports::ModelSource;
+    let bad: Vec<String> = Embedded.names().into_iter().filter(|n| Embedded.load(n).is_none()).collect();
+    assert!(bad.is_empty(), "modeller som ikke kan lastes (se loggen): {bad:?}");
+}
+
+/// En modell byen eller systemene bruker, finnes, eller den står i
+/// `model::PLANNED` (fiendene, figurene, våpnene …). Og en modell som står
+/// der, men nå finnes, skal strykes fra lista.
+#[test]
+fn alle_modellnavn_finnes_eller_ventes() {
+    use crate::domain::model::PLANNED;
+    let missing = &world().world.missing;
+    let unknown: Vec<_> = missing.iter().filter(|m| !PLANNED.iter().any(|(p, _)| p == *m)).collect();
+    assert!(unknown.is_empty(), "modeller som brukes, men verken finnes eller ventes: {unknown:?}");
+    let done: Vec<_> = PLANNED.iter().map(|(p, _)| *p).filter(|p| !missing.contains(p)).collect();
+    assert!(done.is_empty(), "modeller i PLANNED som finnes nå (eller ikke brukes lenger), stryk dem: {done:?}");
+}
+
+/// Blender-skriptene henger sammen (`tools/models/check_scripts.py`): hver
+/// fil kompilerer, og hvert `town.X`, `kit.X` … finnes i modulen. Ellers
+/// viser feilen seg først ved neste eksport.
+#[test]
+fn blenderskriptene_henger_sammen() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let out = std::process::Command::new("python3").arg(format!("{root}/tools/models/check_scripts.py")).output().expect("python3");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
+}

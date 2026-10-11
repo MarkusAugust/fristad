@@ -318,11 +318,13 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
             // Okklusjonen Blender har bakt i hjørnefargen (rød kanal, lineær).
             let ao: Vec<f32> = reader.read_colors(0).map(|c| c.into_rgba_f32().map(|c| c[0]).collect()).unwrap_or_default();
-            // «layer_<lag>»: et flisbart teksturlag lagt på etter uv i meter.
-            let layer = mat.name().and_then(|n| n.strip_prefix("layer_")).map(|n| n.split('.').next().unwrap_or(n)).and_then(|n| Layer::ALL.iter().copied().find(|l| l.name() == n));
-            if mat.name().is_some_and(|n| n.starts_with("layer_")) && layer.is_none() {
-                log::warn!("Modell {name}: ukjent teksturlag i materialet {:?}", mat.name());
-            }
+            // Rollen materialet har fått ved eksporten (`tools/models/roles.py`):
+            // slaget, teksturlaget etter uv i meter, og flaggene.
+            let role = Role::of(&mat).map_err(|e| format!("materialet {:?}: {e}", mat.name()))?;
+            let layer = match &role.layer {
+                Some(n) => Some(Layer::ALL.iter().copied().find(|l| l.name() == n).ok_or_else(|| format!("materialet {:?}: ukjent teksturlag {n}", mat.name()))?),
+                None => None,
+            };
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             // Normalene kan være pakket som 8 bit med fortegn
             // (KHR_mesh_quantization, `tools/models/slim.py`); leseren i
@@ -338,65 +340,15 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let tint = pbr.base_color_factor();
             // Fargefaktoren er lineær; hjørnefargen er sRGB.
             let mut mmat = Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
-            // «paint» får fargen fra instansen; metall merkes med flagg.
-            // Blender legger på .001 når navnet finnes fra før, så prefikset holder.
-            let named = |n: &str| mat.name().map(|m| m.starts_with(n)).unwrap_or(false);
-            if named("paint") {
-                mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
-            }
-            // «layer_<lag>.paint»: teksturlaget med lakkfargen fra instansen.
-            if layer.is_some() && mat.name().is_some_and(|n| n.ends_with(".paint")) {
-                mmat = mmat.flags(flag::PAINT);
-            }
-            // «layer_<lag>.magic»: teksturlaget gløder hele døgnet der bildet
-            // er mettet (de lysende sømmene i `glitch_seam`), og blafrer.
-            if layer.is_some() && mat.name().is_some_and(|n| n.contains(".magic")) {
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // «glow» lyser om natta, som lampene ellers i byen; «glass»
-            // speiler som vinduene.
-            if named("glow") {
-                mmat.kind = kind::LAMP;
-            }
-            if named("glass") {
-                mmat.kind = kind::GLASS;
-            }
-            // «glass_day» er innsiden av en vindusrute: dagslyset skinner gjennom.
-            if named("glass_day") {
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // «glass_lit» er utsida av en rute i et hus man kan gå inn i:
-            // lyset inne skinner ut om natta.
-            if named("glass_lit") {
-                mmat = mmat.flags(flag::GLOW_LAMP);
-            }
-            // «water» er vann (i krypten).
-            if named("water") {
-                mmat.kind = kind::WATER;
-            }
-            // Krypten ligger under bakken: verken regn eller snø
-            // (kryptnivåene `crypt_NN_…` og byggesettet `kit_`).
-            let crypt_level = name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
-            if name.starts_with("kit_") || crypt_level {
-                mmat = mmat.flags(flag::NO_WEATHER);
-            }
-            // «fire» brenner hele døgnet (fakler, ildsteder).
-            if named("fire") {
-                mmat.kind = kind::LAMP;
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // «magic» gløder i sin egen farge hele døgnet (portalen).
-            if named("magic") {
-                mmat.kind = kind::MAGIC;
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // Bladkort og nålekvister: alfatestes og svaier i vinden.
-            if named("leaf") || named("needle") || named("grass") {
-                mmat = mmat.flags(flag::ALPHA | flag::WIND | flag::NO_WEATHER);
+            mmat.kind = role.kind;
+            mmat = mmat.flags(role.flags);
+            // Lakken får fargen fra instansen i stedet for materialets.
+            if role.flags & flag::PAINT != 0 && layer.is_none() {
+                mmat = mmat.tint(Vec3::ONE);
             }
             // Gresstrå: mørkere mot rota (høyden i primitivet).
             let (y_lo, y_hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| (lo.min(p[1]), hi.max(p[1])));
-            let grass = named("grass");
+            let grass = role.grass;
             if metallic >= 0.5 && layer.is_none() {
                 mmat = mmat.flags(flag::METAL);
             }
@@ -444,18 +396,99 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     }
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
-    // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
-    // detaljnivået er hvert tredje kort, forstørret.
-    let far_mesh = (name.ends_with("_leaves") || name.ends_with("_needles")).then(|| mesh.thinned_cards(3, 1.7));
-    let far_cell = if far_mesh.is_some() {
-        0.0005
-    } else if name.ends_with("_trunk") {
-        // Stammene: grovt på avstand, kvistene forsvinner i bladverket.
-        0.6
-    } else {
-        0.0
-    };
+    // Hvordan modellen forenkles på avstand (rollen på roten): bladverk som
+    // kort tåler ikke å slås sammen, så det grove detaljnivået er hvert
+    // tredje kort, forstørret; stammene får et grovt nett.
+    let far = Far::of(&doc).map_err(|e| format!("roten: {e}"))?;
+    let far_mesh = far.cards.then(|| mesh.thinned_cards(3, 1.7));
+    let far_cell = if far.cards { 0.0005 } else { far.cell };
     Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig })
+}
+
+/// Rollen et materiale har fått ved eksporten (`extras.fristad`, skrevet av
+/// `tools/models/slim.py` med reglene i `tools/models/roles.py`). Motoren
+/// gjetter aldri ut fra navnet.
+struct Role {
+    kind: u8,
+    layer: Option<String>,
+    flags: u8,
+    /// Gresstrå: okklusjonen byttes mot høyden i primitivet.
+    grass: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct RawRole {
+    kind: String,
+    layer: Option<String>,
+    flags: Vec<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct Extras<T> {
+    fristad: T,
+}
+
+/// Rollene i `extras` på et glTF-objekt.
+fn extras<T: serde::de::DeserializeOwned>(raw: &gltf::json::Extras) -> Result<T, String> {
+    let raw = raw.as_ref().ok_or("mangler rollene (kjør tools/models/slim.py --tag)")?;
+    serde_json::from_str::<Extras<T>>(raw.get()).map(|e| e.fristad).map_err(|e| format!("rollene kan ikke leses: {e}"))
+}
+
+impl Role {
+    fn of(mat: &gltf::Material) -> Result<Self, String> {
+        // Primitiver uten materiale får standardmaterialet, som er vanlig.
+        if mat.index().is_none() {
+            return Ok(Role { kind: kind::PLAIN, layer: None, flags: 0, grass: false });
+        }
+        let r: RawRole = extras(mat.extras())?;
+        let kind = match r.kind.as_str() {
+            "plain" => kind::PLAIN,
+            "lamp" => kind::LAMP,
+            "glass" => kind::GLASS,
+            "water" => kind::WATER,
+            "magic" => kind::MAGIC,
+            k => return Err(format!("ukjent slag {k}")),
+        };
+        let mut flags = 0;
+        let mut grass = false;
+        for f in &r.flags {
+            flags |= match f.as_str() {
+                "paint" => flag::PAINT,
+                "glow_always" => flag::GLOW_ALWAYS,
+                "glow_lamp" => flag::GLOW_LAMP,
+                "no_weather" => flag::NO_WEATHER,
+                "alpha" => flag::ALPHA,
+                "wind" => flag::WIND,
+                "grass" => {
+                    grass = true;
+                    0
+                }
+                f => return Err(format!("ukjent flagg {f}")),
+            };
+        }
+        Ok(Role { kind, layer: r.layer, flags, grass })
+    }
+}
+
+/// Hvordan hele modellen forenkles på avstand (`extras.fristad` på roten).
+#[derive(Default, serde::Deserialize)]
+#[serde(default)]
+struct Far {
+    #[serde(rename = "far", deserialize_with = "cards")]
+    cards: bool,
+    #[serde(rename = "far_cell")]
+    cell: f32,
+}
+
+fn cards<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    let s: String = serde::Deserialize::deserialize(d)?;
+    Ok(s == "cards")
+}
+
+impl Far {
+    fn of(doc: &gltf::Gltf) -> Result<Self, String> {
+        extras(&doc.as_json().extras)
+    }
 }
 
 /// Fire ledd og vekter per hjørne, kvantisert til byte med summen 255.

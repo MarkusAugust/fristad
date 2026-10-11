@@ -359,7 +359,7 @@ def forge_outside(p, rng):
     if os.path.exists(ANVIL):
         import_glb(ANVIL, (ax, ay, FZ))
     else:
-        revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("bark"), n=8, at=(ax, ay, FZ - 0.02))
+        revolve("stump", [(0.3, 0.0), (0.34, 0.05), (0.31, 0.5), (0.0, 0.5)], layer("logs"), n=8, at=(ax, ay, FZ - 0.02))
         revolve("stump_top", [(0.29, 0.0), (0.0, 0.0)], p.floor, n=8, at=(ax, ay, FZ + 0.485))
         box("anvil_foot", (ax - 0.2, ay - 0.15, FZ + 0.48), (ax + 0.2, ay + 0.15, FZ + 0.6), dark, bevel=0.025)
         box("anvil_waist", (ax - 0.1, ay - 0.08, FZ + 0.6), (ax + 0.1, ay + 0.08, FZ + 0.74), dark, bevel=0.02)
@@ -452,7 +452,7 @@ def forge_yard(p, rng):
     collide((wx, (wy0 + wy1) / 2, 0.7), (1.0, wy1 - wy0 + 0.4, 1.4))
     # Hoggestabben med øksa.
     cx, cy = 1.6, YARD1 - 1.4
-    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("bark"), n=8, at=(cx, cy, -0.02))
+    revolve("chop_block", [(0.3, 0.0), (0.33, 0.05), (0.3, 0.55), (0.0, 0.56)], layer("logs"), n=8, at=(cx, cy, -0.02))
     stick("axe_handle", (cx + 0.05, cy, 0.56), (cx + 0.5, cy - 0.3, 0.95), 0.045, 0.045, p.timber, ("timber", 0), bevel=0)
     box("axe_head", (cx - 0.08, cy - 0.04, 0.5), (cx + 0.1, cy + 0.04, 0.68), p.iron, bevel=0.01)
     for k in range(4):

@@ -77,3 +77,42 @@ pub struct ModelInfo {
     pub min: glam::Vec3,
     pub max: glam::Vec3,
 }
+
+/// Modellene systemene venter på: koden for dem står og virker, men
+/// modellen er ikke laget (eller er underkjent og slettet) ennå. En modell
+/// som brukes, finnes eller står her; en som står her og finnes, skal
+/// strykes (testen `alle_modellnavn_finnes_eller_ventes`).
+pub const PLANNED: &[(&str, &str)] = &[
+    ("mutant_button", "fiende (fase 5)"),
+    ("mutant_tooltip", "fiende (fase 5)"),
+    ("mutant_input", "fiende (fase 5)"),
+    ("mutant_modal", "fiende (fase 5)"),
+    ("mutant_table", "fiende (fase 5)"),
+    ("framework", "sluttbossen Rammeverket (fase 5)"),
+    ("token", "tokenene fiendene mister (fase 7)"),
+    ("key", "nøkkelen eliten mister (fase 7)"),
+    ("bolt", "spyttet fra inputen (fase 5)"),
+    ("arms", "armene i førsteperson (fase 7)"),
+    ("sword", "våpen (fase 7)"),
+    ("axe", "våpen (fase 7)"),
+    ("dagger", "våpen (fase 7)"),
+    ("shield_round", "skjold (fase 7)"),
+    ("shield_tower", "skjold (fase 7)"),
+    ("sheep_body", "sau (fase 7)"),
+    ("sheep_leg", "sau (fase 7)"),
+    ("cow_body", "ku (fase 7)"),
+    ("cow_leg_front", "ku (fase 7)"),
+    ("cow_leg_hind", "ku (fase 7)"),
+    ("npc_smith", "figur (fase 5)"),
+    ("npc_clerk", "figur (fase 5)"),
+    ("npc_apothecary", "figur (fase 5)"),
+    ("npc_innkeeper", "figur (fase 5)"),
+    ("npc_gorvek", "figur (fase 5)"),
+    ("npc_farmer", "figur (fase 5)"),
+    ("npc_maid", "figur (fase 5)"),
+    ("npc_guard", "figur (fase 5)"),
+    ("npc_merchant", "figur (fase 5)"),
+    ("npc_fishwife", "figur (fase 5)"),
+    ("npc_boy", "figur (fase 5)"),
+    ("npc_washerwoman", "figur (fase 5)"),
+];

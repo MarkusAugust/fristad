@@ -36,7 +36,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-gltf = { version = "1", default-features = false, features = ["utils", "import", "names"] }
+gltf = { version = "1", default-features = false, features = ["utils", "import", "names", "extras"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.4"

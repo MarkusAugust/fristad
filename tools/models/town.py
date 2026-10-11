@@ -104,6 +104,14 @@ def light(c, color=(1.0, 0.6, 0.3), intensity=1.0, radius=5.0):
 # som «lamps».
 LAMPS = []
 
+# Hus man kan gå inn i: lyset inne skinner ut gjennom rutene om natta
+# (`daylight`, satt i `buildings.py`).
+LIT = False
+
+# Pipene som ryker: toppen og tykkelsen (0..1); `finish` skriver dem som
+# «smoke».
+SMOKE = []
+
 
 def lamp(c, color=(1.0, 0.68, 0.38), intensity=1.6, radius=8.0):
     LAMPS.append((tuple(c), tuple(color), intensity, radius))
@@ -395,6 +403,5 @@ def write_inside(path):
     PROPS.clear()
     LAMPS.clear()
     SMOKE.clear()
-    RELIEF.clear()
     LIGHTS.clear()
     HULLS.clear()

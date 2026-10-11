@@ -123,6 +123,8 @@ pub struct World {
     pub npcs: Vec<NpcSpec>,
     /// Hvor du står når du kommer opp fra krypten (føttene, retningen).
     pub crypt_exit: (Vec3, f32),
+    /// Modellene byen og systemene ville bruke, men som ikke finnes.
+    pub missing: Vec<&'static str>,
 }
 
 pub struct Builder {
@@ -300,7 +302,9 @@ impl Builder {
     /// bilde (dyr, figurer, porter).
     pub fn reserve(&mut self, model: &'static str, n: usize) {
         if !self.has_model(model) {
-            log::warn!("Modellen {model} mangler, ingen plass satt av");
+            if !self.missing.contains(&model) {
+                self.missing.push(model);
+            }
             return;
         }
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
@@ -412,8 +416,14 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
     for line in &audit {
         log::warn!("{line}");
     }
-    if !b.missing.is_empty() {
-        log::warn!("Modeller byen ville bruke, men som mangler: {}", b.missing.join(", "));
+    // Modellene som mangler: de som ventes (`model::PLANNED`) og de ingen
+    // venter på (en skrivefeil, eller en modell som er slettet).
+    let (waiting, unknown): (Vec<&str>, Vec<&str>) = b.missing.iter().partition(|m| crate::domain::model::PLANNED.iter().any(|(p, _)| p == *m));
+    if !waiting.is_empty() {
+        log::info!("Modeller som ventes ({}): {}", waiting.len(), waiting.join(", "));
+    }
+    if !unknown.is_empty() {
+        log::warn!("Modeller som mangler og ikke ventes: {}", unknown.join(", "));
     }
 
     // Biter på 24 m, med småting (under 18 cm) sist i hver bit.
@@ -433,6 +443,7 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         spawn_yaw: town.spawn_yaw,
         crypt_exit: town.crypt_exit,
         audit,
+        missing: b.missing,
     }
 }
 
