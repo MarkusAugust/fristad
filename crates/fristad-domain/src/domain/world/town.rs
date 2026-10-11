@@ -666,10 +666,10 @@ fn farmsteads(b: &mut Builder) {
             if taken.iter().any(|t| full(t).overlaps(&full(&r))) {
                 return false;
             }
-            // På det høyeste punktet under foten (sokkelen tar resten).
+            // På det høyeste punktet under hele foten (grunnmuren tar resten).
             let (ax, az) = r.axes();
-            let top = [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (0.0, 0.0)].iter().map(|(sx, sz)| {
-                let q = r.c + ax * r.h.x * sx * 0.5 + az * r.h.y * sz * 0.5;
+            let top = [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (0.0, 0.0), (0.0, 1.0), (0.0, -1.0), (1.0, 0.0), (-1.0, 0.0)].iter().map(|(sx, sz)| {
+                let q = r.c + ax * r.h.x * sx + az * r.h.y * sz;
                 b.ground(q.x, q.y)
             });
             let y = top.fold(f32::MIN, f32::max).max(highest(b, p, 0.7)) - 0.03;

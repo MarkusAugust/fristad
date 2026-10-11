@@ -20,12 +20,19 @@ from town import layer  # noqa: E402
 
 OUT = "assets/models/town"
 T = 0.3
+# Grunnmuren går så langt ned under gulvet, så huset aldri svever der
+# bakken heller (eieren: «grunnmuren svever over bakken»). Huset settes på
+# det høyeste hjørnet, og muren tar resten.
+FOUND = 1.6
+# Bjelkelaget mellom etasjene: like høyt som gliperommet det fyller.
+JOISTS = 0.24
 
 
-def walls(p, kind, name, p0, p1, z0, z1, out, openings, rng):
-    """En vegg av riktig slag: bindingsverk, bord, laft eller stein."""
+def walls(p, kind, name, p0, p1, z0, z1, out, openings, rng, own=(True, True)):
+    """En vegg av riktig slag: bindingsverk, bord, laft eller stein. `own`:
+    om bindingsverket eier hjørnene (front og bak gjør det)."""
     if kind == "timber":
-        return half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, collide_it=False)
+        return half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, collide_it=False, own=own)
     frame, L = kit.wall_frame(p0, p1)
     holes = [(s - w / 2, s + w / 2, za, zb) for s, za, zb, w in openings]
     mat = {"boards": p.boards, "cladding": p.cladding, "logs": layer("logs"), "stone": layer("ashlar")}[kind]
@@ -60,9 +67,9 @@ def house(spec):
     x0, x1 = -w / 2 + T / 2, w / 2 - T / 2
     y0, y1 = -d / 2 + T / 2, d / 2 - T / 2
     # Sokkelen.
-    box("plinth", (-w / 2 - 0.12, -d / 2 - 0.12, -0.25), (w / 2 + 0.12, d / 2 + 0.12, f0), p.stone, bevel=0.06)
+    box("plinth", (-w / 2 - 0.12, -d / 2 - 0.12, -FOUND), (w / 2 + 0.12, d / 2 + 0.12, f0), p.stone, bevel=0.06)
     dx = spec.get("door_x", 0.0)
-    box("step", (dx - 0.7, -d / 2 - 0.6, -0.2), (dx + 0.7, -d / 2 + 0.05, f0 - 0.15), p.stone, bevel=0.05)
+    box("step", (dx - 0.7, -d / 2 - 0.6, -FOUND), (dx + 0.7, -d / 2 + 0.05, f0 - 0.15), p.stone, bevel=0.05)
     z = f0
     yy0, yy1 = y0, y1
     for k in range(floors):
@@ -76,25 +83,22 @@ def house(spec):
         fr, _ = walls(p, kind, f"front{k}", (x0, yy0), (x1, yy0), z, z1, -1, front, rng)
         bk, _ = walls(p, kind, f"back{k}", (x0, yy1), (x1, yy1), z, z1, 1, [(0.0 - x0, wz0, wz1, 0.9)], rng)
         side = [(0.0 - yy0, wz0, wz1, 0.8)] if d > 7 else []
-        lf, _ = walls(p, kind, f"left{k}", (x0, yy0), (x0, yy1), z, z1, 1, side, rng)
-        rt, _ = walls(p, kind, f"right{k}", (x1, yy0), (x1, yy1), z, z1, -1, side, rng)
+        lf, _ = walls(p, kind, f"left{k}", (x0, yy0), (x0, yy1), z, z1, 1, side, rng, own=(False, False))
+        rt, _ = walls(p, kind, f"right{k}", (x1, yy0), (x1, yy1), z, z1, -1, side, rng, own=(False, False))
         th = T + (0.12 if kind in ("logs", "stone") else 0.0)
         for frame, opens, out in ((fr, front, -1), (bk, [(0.0 - x0, wz0, wz1, 0.9)], 1), (lf, side, 1), (rt, side, -1)):
             for s, za, zb, ww in opens:
                 if za > z + 0.3:
-                    window(p, frame, s, (za + zb) / 2, ww, zb - za, out, thick=th, rng=rng, shutters=rng.random() < 0.7, lit=False)
+                    window(p, frame, s, (za + zb) / 2, ww, zb - za, out, thick=th, rng=rng, shutters=rng.random() < 0.7, lit=False, in_frame=kind == "timber")
         if k == 0:
-            door(p, fr, dx - x0, z, 1.1, 2.15, -1, thick=th, open_in=False, dark=rng.random() < 0.5)
+            door(p, fr, dx - x0, z, 1.1, 2.15, -1, thick=th, open_in=False, dark=rng.random() < 0.5, in_frame=kind == "timber")
         z = z1
-        # Utkraging: neste etasje stikker ut foran og bak, med bjelkeender.
+        # Utkraging: neste etasje stikker ut foran og bak og står på
+        # bjelkelaget (eieren: «glippe mellom etasjene»).
         if k < floors - 1 and jetty > 0:
-            for ya, yb in ((yy0 - jetty - 0.05, yy0 + 0.2), (yy1 - 0.2, yy1 + jetty + 0.05)):
-                x = x0 + 0.3
-                while x < x1:
-                    stick("joist_end", (x, ya, z - 0.15), (x, yb, z - 0.15), 0.22, 0.3, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.0)
-                    x += 0.8
+            kit.storey_band(p, x0, x1, yy0, yy1, jetty, z, JOISTS, T, rng)
             yy0, yy1 = yy0 - jetty, yy1 + jetty
-            z += 0.3
+            z += JOISTS
     # Taket og gavlene.
     pitch = spec.get("pitch", 52)
     ridge = kit.gable_roof(p, x0 - T / 2, x1 + T / 2, yy0 - T / 2, yy1 + T / 2, z + 0.28, pitch)

@@ -272,57 +272,145 @@ def at_wall(frame, s, t, z):
 # --- Bindingsverk -------------------------------------------------------------
 
 
-def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=0.34, collide_it=True):
+# Bindingsverket (eieren, 11. oktober: «ser du ikke at det ikke henger
+# sammen?»). Bygd som et ekte bindingsverk: svill nederst og stavlægje
+# øverst gjennom hele veggen, hjørnestolper, en stolpe tett inntil hver side
+# av hver åpning (stolpen *er* karmen), brystningsrigel rett under og
+# overrigel rett over hvert vindu, og de samme rigelhøydene gjennom hele
+# veggen, så linjene går rundt huset. Skråbånd bare i hjørnefeltene,
+# speilvendt. Alle deler står i samme plan og møtes kant i kant uten å
+# overlappe (ingen tilfeldig skjevhet). Skråbåndene står 1 cm bak, så
+# endene deres skjules av rigler og stolper.
+BEAM = 0.26  # bredden på bjelkene sett forfra
+DEPTH = 0.16  # hvor tykke de er inn i veggen
+SINK = 0.04  # hvor langt de går inn i pussen
+MAX_BAY = 1.3  # lengste felt mellom to stolper
+
+
+def wall_member(name, frame, sa, za, sb, zb, width, t0, t1, mat, strip=None, seed=0.0):
+    """En bjelke i veggens plan fra (sa, za) til (sb, zb) (langs veggen og
+    opp), `width` bred i planet og fra t0 til t1 på tvers av veggen. Dreid
+    med en ekte basis, så bredden alltid ligger i veggens plan (også for
+    stolper i vegger langs y)."""
+    a = at_wall(frame, sa, (t0 + t1) / 2, za)
+    b = at_wall(frame, sb, (t0 + t1) / 2, zb)
+    ob = stick(name, a, b, abs(t1 - t0), width, mat, strip, seed=seed, bevel=0.02)
+    (px, py), (dx, dy) = frame
+    x = (b - a).normalized()
+    y = Vector((-dy, dx, 0.0))
+    z = x.cross(y)
+    m = Matrix((x, y, z)).transposed().to_4x4()
+    m.translation = (a + b) / 2
+    ob.matrix_world = m
+    return ob
+
+
+def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=BEAM, collide_it=True, own=(True, True), rails=None):
     """En bindingsverksvegg fra p0 til p1 mellom z0 og z1: pussplate med
-    åpninger, og bjelker utenpå mot `out` (+1 eller −1 langs veggens
-    normal): svill, stavler ved endene og åpningene, losholt og skråbånd.
-    `openings` er (s midt, z0, z1, bredde)."""
+    åpninger, og bindingsverket utenpå mot `out` (+1 eller −1 langs
+    veggens normal). `openings` er (s midt, z0, z1, bredde); åpninger fra
+    gulvet er dører. `own` sier om veggen eier hjørnet i hver ende (da går
+    svill, stavlægje og hjørnestolpe helt ut til hjørnet; ellers slutter de
+    mot naboveggens hjørnestolpe). `rails` er (brystning, overkant) for
+    riglene; ellers fra det første vinduet."""
     frame, L = wall_frame(p0, p1)
     holes = [(s - w / 2, s + w / 2, za, zb) for s, za, zb, w in openings]
     slab_grid(name, frame, L, z0, z1, thick, holes, p.plaster)
-    face = out * (thick / 2 + 0.04)
+    t0 = out * (thick / 2 - SINK)
+    t1 = out * (thick / 2 - SINK + DEPTH)
+    tb = out * (thick / 2 - SINK + DEPTH - 0.01)  # skråbåndene, 1 cm bak
+    e = thick / 2 - SINK + DEPTH  # ytterkanten av naboveggens bjelker
+    S0 = -e if own[0] else -(thick / 2 - SINK)
+    S1 = L + e if own[1] else L + (thick / 2 - SINK)
     k = rng.randrange(4)
-    # Litt skjevt, som håndhogd tømmer i et gammelt hus.
-    j = lambda a: rng.uniform(-a, a)
-    # Svill og stavlægje.
-    stick("sill", at_wall(frame, -0.08, face, z0 + beam / 2 + j(0.03)), at_wall(frame, L + 0.08, face, z0 + beam / 2 + j(0.03)), 0.2, beam, p.timber, ("timber", k), seed=rng.random() * 99)
-    stick("plate", at_wall(frame, -0.08, face, z1 - beam / 2 + j(0.04)), at_wall(frame, L + 0.08, face, z1 - beam / 2 + j(0.04)), 0.2, beam, p.timber, ("timber", (k + 1) % 4), seed=rng.random() * 99)
-    # Stavlene: ved endene, rundt åpningene og ellers med 1,4 m imellom.
-    posts = {beam / 2, L - beam / 2}
+    member = lambda n, sa, za, sb, zb, w=beam, t=(t0, t1): wall_member(n, frame, sa, za, sb, zb, w, t[0], t[1], p.timber, ("timber", rng.randrange(4)), rng.random() * 99)
+    # Svill og stavlægje gjennom hele veggen.
+    wall_member("sill", frame, S0, z0 + beam / 2, S1, z0 + beam / 2, beam, t0, t1, p.timber, ("timber", k), rng.random() * 99)
+    wall_member("plate", frame, S0, z1 - beam / 2, S1, z1 - beam / 2, beam, t0, t1, p.timber, ("timber", (k + 1) % 4), rng.random() * 99)
+    za_, zb_ = z0 + beam, z1 - beam  # mellom svill og stavlægje
+    # Stolpene som intervaller langs veggen: hjørnene, og tett inntil hver
+    # side av hver åpning.
+    corner = beam + 0.04
+    posts = [(S0, S0 + (corner if own[0] else beam - DEPTH)), (S1 - (corner if own[1] else beam - DEPTH), S1)]
     for s, za, zb, w in openings:
-        posts.add(s - w / 2 - beam / 2)
-        posts.add(s + w / 2 + beam / 2)
-    xs = sorted(posts)
-    filled = []
-    for a, b in zip(xs, xs[1:]):
-        filled.append(a)
-        n = int((b - a) / 1.9)
+        posts += [(s - w / 2 - beam, s - w / 2), (s + w / 2, s + w / 2 + beam)]
+    posts.sort()
+    merged = []
+    for a, b in posts:
+        if merged and a <= merged[-1][1] + 0.25:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+        else:
+            merged.append((a, b))
+    # Lange felt deles med stolper så ingen felt er bredere enn MAX_BAY.
+    full = []
+    for (a, b), (c, _) in zip(merged, merged[1:] + [(None, None)]):
+        full.append((a, b))
+        if c is None:
+            continue
+        gap = c - b
+        n = int(gap / (MAX_BAY + beam))
         for i in range(1, n + 1):
-            filled.append(a + (b - a) * i / (n + 1))
-    filled.append(xs[-1])
-    posts = sorted(set(round(x, 3) for x in filled))
+            m = b + gap * i / (n + 1)
+            full.append((m - beam / 2, m + beam / 2))
+    for a, b in full:
+        member("post", (a + b) / 2, za_, (a + b) / 2, zb_, w=b - a)
+    # Rigelhøydene: brystning og overkant fra vinduene (eller deler av høyden).
+    windows = [o for o in openings if o[1] > z0 + 0.3]
+    if rails is None:
+        rails = (windows[0][1], windows[0][2]) if windows else (z0 + (z1 - z0) * 0.32, z0 + (z1 - z0) * 0.72)
+    ra, rb = rails
 
-    def in_opening(s, z):
-        return any(abs(s - so) < w / 2 + 0.02 and za - 0.02 < z < zb + 0.02 for so, za, zb, w in openings)
+    def rail(sa, sb, top):
+        """En rigel mellom stolpene med overkanten i `top`, om den får plass."""
+        if top - beam >= za_ - 1e-3 and top <= zb_ + 1e-3:
+            member("rail", sa, top - beam / 2, sb, top - beam / 2)
 
-    for s in posts:
-        if in_opening(s, (z0 + z1) / 2):
+    bays = [(b, c) for (_, b), (c, _) in zip(full, full[1:])]
+    for i, (sa, sb) in enumerate(bays):
+        if sb - sa < 0.15:
             continue
-        stick("post", at_wall(frame, s + j(0.04), face, z0 + beam), at_wall(frame, s + j(0.07), face, z1 - beam), 0.19, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
-    # Losholt i brysthøyde mellom stavlene, og skråbånd i felt uten åpning.
-    mid = z0 + (z1 - z0) * 0.48
-    for a, b in zip(posts, posts[1:]):
-        if b - a < 0.5:
+        mid = (sa + sb) / 2
+        hit = [o for o in openings if abs(o[0] - mid) < o[3] / 2 + 0.01]
+        if hit:
+            s, za, zb, w = hit[0]
+            if za > z0 + 0.3:
+                rail(sa, sb, za)  # brystningsrigel rett under vinduet
+            rail(sa, sb, zb + beam)  # overrigel rett over åpningen
             continue
-        sa, sb = a + beam / 2, b - beam / 2
-        if not any(in_opening((sa + sb) / 2, z) for z in (mid, z0 + 0.4, z1 - 0.4)):
-            stick("rail", at_wall(frame, sa, face, mid + j(0.06)), at_wall(frame, sb, face, mid + j(0.06)), 0.17, beam * 0.85, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
-            if rng.random() < 0.45:
-                lo, hi = (sa, sb) if rng.random() < 0.5 else (sb, sa)
-                stick("brace", at_wall(frame, lo, face, z0 + beam), at_wall(frame, hi, face, mid - beam * 0.4), 0.17, beam * 0.8, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 99)
+        # Hjørnefeltene får et skråbånd fra den indre stolpens fot opp mot
+        # hjørnestolpen, speilvendt i de to endene; de andre feltene riglene.
+        if (i == 0 or i == len(bays) - 1) and sb - sa > 0.6:
+            lo, hi = (sb, sa) if i == 0 else (sa, sb)
+            member("brace", lo, za_, hi, zb_, w=beam * 0.8, t=(t0, tb))
+            continue
+        rail(sa, sb, ra)
+        rail(sa, sb, rb + beam)
     if collide_it:
         wall_colliders(frame, L, z0, z1, thick, holes)
     return frame, L
+
+
+def storey_band(p, x0, x1, y0, y1, jetty, z, h, thick, rng):
+    """Bjelkelaget mellom to etasjer når den øverste kraget ut `jetty` foran
+    og bak (eieren: «glippe mellom etasjene»): et bord langs den nedre
+    veggens forside og bakside som tetter rommet mellom stavlægjen og den
+    øvre svillen, bjelkeender hver 0,6 m som bærer utkragingen, og en
+    gjennomgående bjelke i hver ende som dekker siden. Fra z til z + h.
+    x0..x1 og y0..y1 er midtlinjene til de nedre veggene."""
+    e = thick / 2 - SINK + DEPTH
+    zc = z + h / 2
+    # Endene: hele dybden, fra den øvre forsida til den øvre baksida.
+    for x in (x0 - e + 0.1, x1 + e - 0.1):
+        stick("joist_side", (x, y0 - jetty - e, zc), (x, y1 + jetty + e, zc), 0.2, h, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.02)
+    # Bordene foran og bak, mellom endene, i den nedre veggens bjelkeplan.
+    for y, sgn in ((y0, -1), (y1, 1)):
+        yb = y + sgn * (thick / 2 - SINK + DEPTH / 2)
+        stick("joist_band", (x0 - e + 0.2, yb, zc), (x1 + e - 0.2, yb, zc), DEPTH, h, p.timber, ("timber", rng.randrange(4)), seed=y, bevel=0.0)
+        # Bjelkeendene, fra innsida av veggen ut til den øvre forsida.
+        x = x0 + 0.4
+        while x < x1 - 0.3:
+            stick("joist_end", (x, y - sgn * thick / 2, zc), (x, y + sgn * (jetty + e), zc), 0.2, h, p.timber, ("timber", rng.randrange(4)), seed=x, bevel=0.02)
+            x += 0.6
 
 
 def wall_colliders(frame, L, z0, z1, thick, holes):
@@ -402,11 +490,22 @@ def mullions(p, frame, s, zc, w, h, out, bar=0.05):
         stick("transom", at_wall(frame, s - w / 2, out * 0.02, zc + h * 0.1), at_wall(frame, s + w / 2, out * 0.02, zc + h * 0.1), bar, bar, p.trim, ("trim", DARK_BEAM), bevel=0.0)
 
 
-def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=True, inside=False):
+def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=True, inside=False, in_frame=False):
     """Vindu: karm av bjelker med vannbrett (`window_frame`), sprosser der
     ruta er delt (`mullions`), blyglass (gløder om natta) og skodder slått
-    opp. `inside` gir karm på innsida også (hus med interiør)."""
-    window_frame(p, frame, s, zc, w, h, out, thick)
+    opp. `inside` gir karm på innsida også (hus med interiør). `in_frame`:
+    vinduet sitter i et bindingsverk, der stolpene og riglene er karmen
+    (eieren: tynne karmer passer ikke til kraftig bindingsverk), så det får
+    bare et vannbrett som stikker ut forbi bjelkene."""
+    e = thick / 2 - SINK + DEPTH
+    if in_frame:
+        board = box("win_sill", (-w / 2, -FRAME_IN - 0.02, -0.02), (w / 2, e - thick / 2 + 0.07, 0.03), p.trim, bevel=0.0)
+        (px, py), (dx, dy) = frame
+        c = at_wall(frame, s, out * thick / 2, zc - h / 2)
+        rot = Matrix.Rotation(math.atan2(dy, dx) + (0 if out > 0 else math.pi), 4, "Z") @ Matrix.Rotation(-SILL_TILT, 4, "X")
+        board.matrix_world = Matrix.Translation(c) @ rot @ board.matrix_world
+    else:
+        window_frame(p, frame, s, zc, w, h, out, thick)
     mullions(p, frame, s, zc, w, h, out)
     if inside:
         window_frame(p, frame, s, zc, w, h, -out, thick, sill=False)
@@ -427,7 +526,8 @@ def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=T
         sw = w / 2 + 0.04
         for sx in (-1, 1):
             tilt = math.radians(r.uniform(8, 18))
-            hinge = at_wall(frame, s + sx * (w / 2 + t), face + out * 0.03, zc)
+            # I bindingsverk henger skodda på stolpen ved siden av vinduet.
+            hinge = at_wall(frame, s + sx * (w / 2 + BEAM), out * (e + 0.03), zc) if in_frame else at_wall(frame, s + sx * (w / 2 + t), face + out * 0.03, zc)
             ob = box("shutter", (0, -0.03, -h / 2 - 0.03), (sw, 0.03, h / 2 + 0.03), p.cladding, bevel=0.0)
             hinges = [box("shutter_hinge", (0.02, -0.045, zz - 0.03), (sw * 0.85, 0.045, zz + 0.03), p.iron, bevel=0.0) for zz in (h * 0.25,)]
             # Lokal x peker bort fra vinduet langs veggen, dreid litt ut.
@@ -436,12 +536,13 @@ def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=T
                 o.matrix_world = Matrix.Translation(hinge) @ Matrix.Rotation(ang, 4, "Z") @ o.matrix_world
 
 
-def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False):
+def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False, in_frame=False):
     """Dør: karm av mørke bjelker og et overstykke med utskåret list, og
     døra (hele det malte dørbildet) slått inn i huset."""
     face = out * (thick / 2 + 0.06)
     t = 0.18
-    for sx in (-1, 1):
+    # I bindingsverk er stolpene ved døra karmen; ellers egne dørstolper.
+    for sx in () if in_frame else (-1, 1):
         x = s + sx * (w / 2 + t / 2)
         stick("door_post", at_wall(frame, x, face, z0), at_wall(frame, x, face, z0 + h + t), 0.2, t, p.trim, ("trim", DARK_BEAM), bevel=0.03)
     stick("door_head", at_wall(frame, s - w / 2 - t - 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), at_wall(frame, s + w / 2 + t + 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), 0.24, t + 0.08, p.trim, ("trim", CARVED), bevel=0.03)
@@ -564,18 +665,27 @@ def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3):
             c = lp.vert.co
             lp[uvl].uv = (c.y, c.z)
     _object("gable", bm, p.plaster)
-    face = x + out * (thick / 2 + 0.03)
+    # Bindingsverket i gavlen, i samme plan og tykkelse som veggene under:
+    # en hanebjelke og stolper fra stavlægjen opp til hanebjelken og videre
+    # opp under taket, som møtes kant i kant.
+    frame, L = wall_frame((x, y0), (x, y1))
+    sg = -out  # veggens normal peker mot −x
+    t0, t1 = sg * (thick / 2 - SINK), sg * (thick / 2 - SINK + DEPTH)
     tan = math.tan(math.radians(pitch))
-    beam = 0.24
-    # Stavler i gavlen og en hanebjelke.
-    for frac in (-0.55, 0.0, 0.55):
-        yy = yc + frac * half
-        top = ridge_z - 0.25 - abs(yy - yc) * tan
-        if top - z0 > 0.6:
-            stick("gable_post", (face, yy, z0 + 0.05), (face, yy, top - 0.1), 0.15, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 9)
-    zc = z0 + (ridge_z - z0) * 0.42
-    w = half - (zc - z0) / tan
-    stick("collar", (face, yc - w + 0.1, zc), (face, yc + w - 0.1, zc), 0.15, beam, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 9)
+    apex = ridge_z - 0.25
+    beam = BEAM * 0.9
+    m = lambda n, sa, za, sb, zb, w=beam: wall_member(n, frame, sa, za, sb, zb, w, t0, t1, p.timber, ("timber", rng.randrange(4)), rng.random() * 9)
+    # Pussens øvre kant (taket ligger over den): bjelkene går helt opp dit.
+    under = lambda s_: z0 + min(s_, L - s_) * tan
+    zc = z0 + (apex - z0) * 0.45
+    wc = (zc + beam / 2 - z0) / tan  # der hanebjelken møter takkanten
+    m("gable_collar", wc, zc, L - wc, zc)
+    for s_ in (L / 2, L / 2 - (L / 2 - wc) * 0.6, L / 2 + (L / 2 - wc) * 0.6):
+        if under(s_) - z0 < 0.6:
+            continue
+        m("gable_post", s_, z0, s_, zc - beam / 2)
+        if under(s_) > zc + beam:
+            m("gable_post", s_, zc + beam / 2, s_, under(s_))
 
 
 def chimney(p, x, y, z0, z1, w=1.1, smoke=0.8, lean=4.0):

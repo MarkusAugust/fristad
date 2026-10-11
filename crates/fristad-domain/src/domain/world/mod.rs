@@ -349,15 +349,33 @@ impl Builder {
                 // sjekkes bare for sveving, og bakken letes etter opp til en
                 // meter over foten (ellers vinner et gulv lenger nede, som
                 // nivåene i krypten).
-                let rooted = town::FOUNDED.iter().any(|m| *m == pl.model);
+                // Grunnmuren er data: en modell som går mer enn 30 cm under
+                // origo, har fundament (husene, muren, krypten).
+                let rooted = info.min.y < -0.3 || town::FOUNDED.iter().any(|m| *m == pl.model);
                 let reach = if rooted { 1.0 } else { 0.0 };
+                // Med fundament må grunnmuren nå bakken under hvert hjørne av
+                // hele fotavtrykket (eieren: «grunnmuren svever over bakken»).
+                if info.min.y < -0.3 {
+                    let full = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
+                    for (x, z) in full {
+                        let w = t.transform_point3(Vec3::new(x, info.min.y, z));
+                        let ground = self.stand_height(w.x, w.z, t.translation.y + 1.0);
+                        if w.y > ground + 0.02 {
+                            out.push(format!("{} ved ({:.1}, {:.1}): grunnmuren slutter {:.0} cm over bakken i et hjørne", pl.model, t.translation.x, t.translation.z, (w.y - ground) * 100.0));
+                        }
+                    }
+                }
+                // Med grunnmur måles fra bakkelinja (origo), ikke fra bunnen av muren.
+                let base = if info.min.y < -0.3 { 0.0 } else { info.min.y };
                 let gaps = corners.map(|(x, z)| {
-                    let w = t.transform_point3(Vec3::new(x, info.min.y, z));
+                    let w = t.transform_point3(Vec3::new(x, base, z));
                     w.y - self.stand_height(w.x, w.z, w.y + reach)
                 });
                 let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
                 let at = t.translation;
-                if lowest > 0.08 {
+                // Med grunnmur gjelder hjørnekontrollen over i stedet: huset
+                // står på det høyeste punktet, og muren tar resten.
+                if lowest > 0.08 && info.min.y >= -0.3 {
                     out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", pl.model, at.x, at.z, lowest * 100.0));
                 } else if lowest < -0.3 && !rooted {
                     out.push(format!("{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken", pl.model, at.x, at.z, -lowest * 100.0));
