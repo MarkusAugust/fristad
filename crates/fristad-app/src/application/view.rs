@@ -2,9 +2,9 @@
 //! lysene følger døgnet, været og om du er nede i krypten.
 
 use super::session::Session;
+use crate::domain::craft;
 use crate::domain::scene::{Frame, Light, ModelInstance, RoomLight, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE};
 use crate::domain::world::crypt::{self, PORTCULLIS};
-use crate::domain::craft;
 use crate::domain::world::Use;
 use glam::{Affine3A, Mat4, Quat, Vec3, Vec4};
 
@@ -69,7 +69,15 @@ impl Session {
         // Nede i krypten bærer du et lys, så du ser våpenet og det som
         // kommer mot deg; det lyser overalt (ikke noe rom).
         if in_crypt {
-            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear().lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear().lantern, always: true, flicker: 0.0, room: None });
+            lights.push(Light {
+                pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2,
+                radius: 6.0 * self.gear().lantern.sqrt(),
+                color: Vec3::new(1.0, 0.8, 0.6),
+                intensity: 0.8 * self.gear().lantern,
+                always: true,
+                flicker: 0.0,
+                room: None,
+            });
             lights.extend(self.rest_lights());
         }
         lights.extend(self.portal_pose().and_then(|p| self.portal.light(p, self.time)));
@@ -94,20 +102,13 @@ impl Session {
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| rank(a).total_cmp(&rank(b)));
         lights.truncate(MAX_LIGHTS);
-        let rooms = level.map(|k| RoomLight {
-            boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y, r.y + r.h)).collect(),
-            masks: lights.iter().map(mask).collect(),
-        });
+        let rooms = level.map(|k| RoomLight { boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y, r.y + r.h)).collect(), masks: lights.iter().map(mask).collect() });
         // Nede i krypten: lite himmellys, mer tåke, øynene vant til mørket.
         let c = self.cellar_t;
 
         // Røyken fra de nærmeste pipene; tykkere om kvelden, når det fyres
         // til mat og varme. Nede i krypten ser du ingen piper.
-        let mut smoke: Vec<Vec4> = if in_crypt {
-            vec![]
-        } else {
-            self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect()
-        };
+        let mut smoke: Vec<Vec4> = if in_crypt { vec![] } else { self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect() };
         smoke.sort_by(|a, b| a.truncate().distance_squared(eye_now).total_cmp(&b.truncate().distance_squared(eye_now)));
         smoke.truncate(MAX_SMOKE);
         let eye = self.eye();
@@ -115,14 +116,20 @@ impl Session {
         instances.extend(self.npcs.instances(&mut skins));
         instances.extend(self.mobs.instances(self.time, &mut skins));
         instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
-        instances.extend(self.portal_pose().map(|p| self.portal.poses(p, self.time)).unwrap_or_default().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.portal_pose().map(|p| self.portal.poses(p, self.time)).unwrap_or_default().into_iter().map(|(model, transform)| ModelInstance {
+            model,
+            transform,
+            skin: None,
+            flash: 0.0,
+            tint: None,
+        }));
         instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
         let posed = |model: &'static str, list: Vec<glam::Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None });
-        instances.extend(posed(crypt::KIT_SHORTCUT_LEAF, self.mech.shortcut_poses(&self.crypt)));
+        instances.extend(posed(crypt::KIT_SHORTCUT_LEAF, self.mech.shortcut_poses(self.live_crypt())));
         instances.extend(posed(crypt::CHEST_LID, self.chest_poses()));
-        instances.extend(posed(crypt::KIT_LEVER_ARM, self.mech.lever_poses(&self.crypt)));
-        instances.extend(posed(crypt::KIT_SECRET, self.mech.secret_poses(&self.crypt, self.time)));
-        instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(&self.crypt)));
+        instances.extend(posed(crypt::KIT_LEVER_ARM, self.mech.lever_poses(self.live_crypt())));
+        instances.extend(posed(crypt::KIT_SECRET, self.mech.secret_poses(self.live_crypt(), self.time)));
+        instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(self.live_crypt())));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
@@ -195,12 +202,28 @@ impl Session {
         self.portal.fov()
     }
 
+    /// Krypten slik den står: mens du redigerer, med merkene der
+    /// redigeringen har flyttet dem, så spakene, portene og lemmene følger.
+    fn live_crypt(&self) -> &crate::domain::world::crypt::Crypt {
+        self.edit.as_ref().map(|e| e.built_crypt()).unwrap_or(&self.crypt)
+    }
+
+    /// Det du kan bruke og hvor det står. Mens du redigerer, står det der
+    /// redigeringen har satt det, så vinda og bøtta følger brønnen du drar
+    /// (eieren 12. oktober), og lokket kista.
+    fn target_poses(&self) -> Vec<(Use, Affine3A)> {
+        match &self.edit {
+            Some(e) => e.scene().targets.iter().map(|t| (t.what, t.pose)).collect(),
+            None => self.targets.iter().map(|t| (t.target.what, t.target.pose)).collect(),
+        }
+    }
+
     /// Portgitrene der de står nå, skalert til bredden.
     fn gate_poses(&self) -> Vec<Affine3A> {
-        self.targets
-            .iter()
-            .filter_map(|t| match t.target.what {
-                Use::Gate(n) => Some(self.mech.gate_pose(&self.crypt, n, t.target.pose)),
+        self.target_poses()
+            .into_iter()
+            .filter_map(|(what, pose)| match what {
+                Use::Gate(n) => Some(self.mech.gate_pose(self.live_crypt(), n, pose)),
                 _ => None,
             })
             .collect()
@@ -208,10 +231,10 @@ impl Session {
 
     /// Lokkene på kistene, dreid opp så langt de er åpnet.
     fn chest_poses(&self) -> Vec<Affine3A> {
-        self.targets
-            .iter()
-            .filter_map(|t| match t.target.what {
-                Use::Chest(n) => Some(self.mech.chest_lid(n, t.target.pose)),
+        self.target_poses()
+            .into_iter()
+            .filter_map(|(what, pose)| match what {
+                Use::Chest(n) => Some(self.mech.chest_lid(n, pose)),
                 _ => None,
             })
             .collect()
@@ -219,10 +242,10 @@ impl Session {
 
     /// Brønnvindene, tauene og bøttene der de er nå.
     fn well_poses(&self) -> Vec<(&'static str, Affine3A)> {
-        self.targets
-            .iter()
-            .filter_map(|t| match t.target.what {
-                Use::Well(n) => Some(self.mech.well_parts(n, t.target.pose)),
+        self.target_poses()
+            .into_iter()
+            .filter_map(|(what, pose)| match what {
+                Use::Well(n) => Some(self.mech.well_parts(n, pose)),
                 _ => None,
             })
             .flatten()
@@ -233,12 +256,12 @@ impl Session {
     /// rammens pose, med modellen som viser akkurat den komponenten
     /// (`craft::GALLERY_MODELS`).
     fn gallery_poses(&self) -> Vec<(&'static str, Affine3A)> {
-        self.targets
-            .iter()
-            .filter_map(|t| match t.target.what {
+        self.target_poses()
+            .into_iter()
+            .filter_map(|(what, pose)| match what {
                 Use::Gallery(n) => {
                     let c = craft::GALLERY.get(n)?;
-                    self.hero.found.contains(*c).then(|| (craft::GALLERY_MODELS[n], t.target.pose))
+                    self.hero.found.contains(*c).then(|| (craft::GALLERY_MODELS[n], pose))
                 }
                 _ => None,
             })
@@ -252,7 +275,7 @@ impl Session {
 
     /// Flammene på hvilestedene du har tent.
     pub(super) fn rest_flame_poses(&self) -> Vec<Affine3A> {
-        self.crypt.rests.iter().zip(&self.run.rests_lit).filter(|(_, lit)| **lit).map(|(r, _)| crate::domain::world::at(r.pos, r.yaw)).collect()
+        self.live_crypt().rests.iter().zip(&self.run.rests_lit).filter(|(_, lit)| **lit).map(|(r, _)| crate::domain::world::at(r.pos, r.yaw)).collect()
     }
 
     /// Lysene på hvilestedene du har tent.
@@ -264,7 +287,15 @@ impl Session {
             .filter(|(_, lit)| **lit)
             .map(|(r, _)| {
                 let room = self.crypt.room_at(r.pos + Vec3::Y * 0.3).map(|(l, k)| (l as u16, k as u16));
-                Light { pos: crate::domain::world::at(r.pos, r.yaw).transform_point3(crypt::REST_FLAME + Vec3::Y * 0.3), radius: 9.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.2, always: true, flicker: 0.15, room }
+                Light {
+                    pos: crate::domain::world::at(r.pos, r.yaw).transform_point3(crypt::REST_FLAME + Vec3::Y * 0.3),
+                    radius: 9.0,
+                    color: Vec3::new(1.0, 0.7, 0.4),
+                    intensity: 2.2,
+                    always: true,
+                    flicker: 0.15,
+                    room,
+                }
             })
             .collect()
     }

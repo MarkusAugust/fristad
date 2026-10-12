@@ -485,6 +485,11 @@ impl Editor {
         &self.under
     }
 
+    /// Det nærmeste strålen treffer, uten å endre valget.
+    pub fn hit(&self, origin: Vec3, dir: Vec3) -> Option<Ref> {
+        self.hits(origin, dir).into_iter().next()
+    }
+
     /// Alt strålen treffer, nærmest først. Står du inni noe (et hus), er
     /// det tingene inne som treffes, ikke huset rundt deg.
     fn hits(&self, origin: Vec3, dir: Vec3) -> Vec<Ref> {
@@ -568,12 +573,16 @@ impl Editor {
         self.commit(changes);
     }
 
-    /// Drei det valgte `yaw` radianer om sitt eget origo.
+    /// Drei det valgte `yaw` radianer om midten av det valgte: én ting om
+    /// sitt eget origo, flere (et gjerde i biter) samlet, som én ting
+    /// (eieren 12. oktober).
     pub fn rotate(&mut self, yaw: f32) {
-        let turn = |t: Affine3A| {
-            let p = Vec3::from(t.translation);
-            Affine3A::from_translation(p) * Affine3A::from_rotation_y(yaw) * Affine3A::from_translation(-p) * t
-        };
+        let at: Vec<Vec3> = self.selection.iter().filter_map(|r| self.pose_of(r)).map(|t| Vec3::from(t.translation)).collect();
+        if at.is_empty() {
+            return;
+        }
+        let p = at.iter().sum::<Vec3>() / at.len() as f32;
+        let turn = |t: Affine3A| Affine3A::from_translation(p) * Affine3A::from_rotation_y(yaw) * Affine3A::from_translation(-p) * t;
         let changes = self.selection.iter().filter_map(|r| self.pose_change(r, turn)).collect();
         self.commit(changes);
     }

@@ -1,7 +1,7 @@
 // Redigeringen i nettleseren (`?edit`, docs/redigering.md steg 4), med den
 // ferdige nettsiden (grenen web-dist, `sh tools/pull-dist.sh`) i Chromium
 // uten skjerm: panelet og katalogen kommer, et klikk velger tønna på torget,
-// piltasten flytter den, Ctrl+Z angrer, P bygger spillet på nytt og P igjen
+// piltasten flytter den, Ctrl+Z angrer, musa drar den og Alt+dra heiser den, P bygger spillet på nytt og P igjen
 // går tilbake i redigeringen; nede i krypten redigerer P nivået du står i.
 // Skriver konsollen, det som feiler, og bilder.
 //   PLAYWRIGHT_DIR=/opt/node-tools/node_modules/playwright node tools/edit-test.mjs dist-web [webgl|webgpu] UT_PREFIKS
@@ -88,6 +88,31 @@ await page.keyboard.press("KeyZ");
 await page.keyboard.press("KeyZ");
 await page.keyboard.up("Control");
 check(await until(() => document.querySelector("#ed-state").textContent === "Grønt"), `angret: ${await text("#ed-state")}`);
+
+// Musa: dra tønna selv (den følger pekeren), Alt+dra heiser den, og hvert
+// drag angres for seg.
+const view0 = await page.evaluate(() => window.fristad.engine.view());
+await page.mouse.click(box.x, box.y);
+await until(() => document.querySelector("#ed-selected").textContent.includes("barrel"));
+await page.mouse.move(box.x, box.y);
+await page.mouse.down();
+await page.mouse.move(box.x + 60, box.y, { steps: 6 });
+await page.mouse.up();
+check(await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent)), `dratt med musa: ${await text("#ed-state")}`);
+await shot("dratt");
+await page.keyboard.down("Alt");
+await page.mouse.move(box.x + 60, box.y);
+await page.mouse.down();
+await page.mouse.move(box.x + 60, box.y - 40, { steps: 6 });
+await page.mouse.up();
+await page.keyboard.up("Alt");
+check(await until(() => /brudd/.test(document.querySelector("#ed-state").textContent)), `Alt+dra heiste (svever): ${await text("#ed-state")}`);
+await page.keyboard.down("Control");
+await page.keyboard.press("KeyZ");
+await page.keyboard.press("KeyZ");
+await page.keyboard.up("Control");
+check(await until(() => document.querySelector("#ed-state").textContent === "Grønt"), `angret dragene: ${await text("#ed-state")}`);
+check((await page.evaluate(() => window.fristad.engine.view()))[0] === view0[0], "kameraet sto stille mens du dro");
 
 // P: spill (byen bygges på nytt), og P igjen: tilbake i redigeringen, med
 // endringen i dataene (den er ikke lagret, så den står som endret).

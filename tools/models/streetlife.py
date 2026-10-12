@@ -891,14 +891,62 @@ def signpost():
 # --- Kista --------------------------------------------------------------------
 
 CHEST_W, CHEST_D, CHEST_H = 1.0, 0.56, 0.46
+CHEST_STAPLE = 0.075  # krampa under kanten, gjennom haspen
+
+
+def check_hollow(name, rays, need):
+    """Strålene (fra, retning) går minst `need` m før de treffer noe: kista
+    er hul (eierens dom i runde 8: «kisten er ikke lenger hul»)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    for o, d in rays:
+        hit, loc, *_ = bpy.context.scene.ray_cast(dg, Vector(o), Vector(d))
+        if hit and (loc - Vector(o)).length < need:
+            raise SystemExit(f"{name}: er ikke hul, strålen fra {o} traff etter {(loc - Vector(o)).length:.2f} m")
+
+
+def padlock(m, x, y, z):
+    """Hengelås med bøyle gjennom krampa: `y` er forsida av kassa, `z`
+    høyden på krampa. Krampa står ut av låsplata som en liten U, den runde
+    bøylen går gjennom øyet, og låsen henger under med nøkkelhull foran
+    (som den gamle kista eieren likte bedre, runde 8)."""
+    yc = y - 0.034
+    for a, b in (((y, -0.016), (y - 0.044, -0.016)), ((y - 0.044, -0.016), (y - 0.044, 0.016)), ((y - 0.044, 0.016), (y, 0.016))):
+        stick("staple", (x, a[0], z + a[1]), (x, b[0], z + b[1]), 0.009, 0.009, m.dark_iron, bevel=0.002)
+    # Bøylen: en rund ring gjennom øyet; den nedre halvdelen står i låsen.
+    r = 0.03
+    zc = z - r + 0.002
+    tube = [(r + math.cos(math.tau * k / 8) * 0.0065, math.sin(math.tau * k / 8) * 0.0065) for k in range(8)]
+    shackle = lathe("shackle", tube, m.iron, n=20, closed=True)
+    move([shackle], (x, yc, zc), roll=math.pi / 2)
+    # Låsekroppen: rund nede, rett oppe, med avrundede kanter.
+    w, h, t = 0.048, 0.095, 0.03
+    prof = [(-w, 0.0), (w, 0.0)] + [(math.cos(-math.pi * k / 16) * w, -h + w + math.sin(-math.pi * k / 16) * w) for k in range(17)]
+    body = slab("lock_body", prof, t, m.iron)
+    kit._bevel(body, 0.007)
+    move([body], (x, yc - t / 2, zc + 0.004), roll=math.pi / 2)
+    dark = layer("iron", (0.03, 0.03, 0.03))
+    hole = [(math.cos(math.tau * k / 10) * 0.008, math.sin(math.tau * k / 10) * 0.008) for k in range(10)]
+    kh = slab("keyhole", hole, 0.003, dark)
+    move([kh], (x, yc - t / 2 - 0.002, zc - 0.035), roll=math.pi / 2)
+    kt = slab("keyhole", [(-0.004, 0.0), (0.004, 0.0), (0.008, -0.022), (-0.008, -0.022)], 0.003, dark)
+    move([kt], (x, yc - t / 2 - 0.002, zc - 0.038), roll=math.pi / 2)
 
 
 def chest_body():
     m = Mats()
     W, D, H = CHEST_W, CHEST_D, CHEST_H
-    # Kassa av planker: timber-laget, tre bord i høyden.
-    body = box("chest_box", (-W / 2, -D / 2, 0.04), (W / 2, D / 2, H), m.timber, bevel=0.02)
-    scale_uv(body, 1.0, 0.75 / (H - 0.04))
+    T = 0.045
+    # Kassa av planker, hul: bunn og fire vegger (eierens dom i runde 8).
+    floor = box("chest_floor", (-W / 2 + T, -D / 2 + T, 0.04), (W / 2 - T, D / 2 - T, 0.09), m.timber, bevel=0.005)
+    walls = [
+        box("chest_wall", (-W / 2, -D / 2, 0.04), (W / 2, -D / 2 + T, H), m.timber, bevel=0.012),
+        box("chest_wall", (-W / 2, D / 2 - T, 0.04), (W / 2, D / 2, H), m.timber, bevel=0.012),
+        box("chest_wall", (-W / 2, -D / 2 + T, 0.04), (-W / 2 + T, D / 2 - T, H), m.timber, bevel=0.012),
+        box("chest_wall", (W / 2 - T, -D / 2 + T, 0.04), (W / 2, D / 2 - T, H), m.timber, bevel=0.012),
+    ]
+    for w in walls:
+        scale_uv(w, 1.0, 0.75 / (H - 0.04))
     box("chest_plinth", (-W / 2 - 0.02, -D / 2 - 0.02, 0.0), (W / 2 + 0.02, D / 2 + 0.02, 0.07), m.dark, bevel=0.015)
     # Jernvinkler på hjørnene og bånd over kassa: smale smijernsbånd med
     # nagler fra trim-arket (stripen `IRON_BAND`, som tønnebåndene), ikke
@@ -912,17 +960,19 @@ def chest_body():
     for bx in (-0.3, 0.3):
         for sy in (-1, 1):
             stick("chest_band", (bx, sy * (D / 2 + 0.011), 0.05), (bx, sy * (D / 2 + 0.011), H), 0.06, 0.02, m.trim, iron, bevel=0.004)
-    # Håndtak på endene og låsplata foran.
+    # Håndtak på endene, låsplata foran og hengelåsen i krampa (som den
+    # gamle kista eieren likte bedre).
     for sx in (-1, 1):
         box("handle_plate", (sx * W / 2 - 0.012, -0.08, H * 0.55), (sx * W / 2 + 0.012, 0.08, H * 0.72), m.dark_iron, bevel=0.005)
         pts = [Vector((sx * (W / 2 + 0.01), math.cos(math.pi * k / 6) * 0.08, H * 0.6 - math.sin(math.pi * k / 6) * 0.07)) for k in range(7)]
         for a, b in zip(pts, pts[1:]):
             stick("handle", tuple(a), tuple(b), 0.022, 0.022, m.dark_iron, bevel=0)
-    box("lock_plate", (-0.08, -D / 2 - 0.02, H - 0.2), (0.08, -D / 2 + 0.005, H - 0.02), m.dark_iron, bevel=0.012)
-    box("keyhole", (-0.012, -D / 2 - 0.026, H - 0.15), (0.012, -D / 2 - 0.018, H - 0.09), layer("iron", (0.08, 0.08, 0.08)), bevel=0.003)
+    box("lock_plate", (-0.06, -D / 2 - 0.008, H - 0.16), (0.06, -D / 2 + 0.005, H - 0.01), m.dark_iron, bevel=0.006)
+    padlock(m, 0.0, -D / 2 - 0.008, H - CHEST_STAPLE)
     for sx in (-1, 1):
         for sy in (-1, 1):
             box("chest_foot", (sx * (W / 2 - 0.02) - 0.06, sy * (D / 2 - 0.02) - 0.06, 0.0), (sx * (W / 2 - 0.02) + 0.06, sy * (D / 2 - 0.02) + 0.06, 0.04), m.dark_iron, bevel=0.008)
+    check_hollow("chest", [((x, y, H + 0.5), (0, 0, -1)) for x in (-0.3, 0.0, 0.3) for y in (-0.12, 0.12)], H + 0.5 - 0.1)
 
 
 def chest_lid():
@@ -997,9 +1047,14 @@ def chest_lid():
         shell("lid_band", bx - 0.03, bx + 0.03, 0.0, 0.012, m.trim, strip=("trim", IRON_BAND))
     # Jernkant langs forkanten og haspen ned over låsplata.
     stick("lid_lip", (-W / 2 - 0.01, -D + 0.002, 0.01), (W / 2 + 0.01, -D + 0.002, 0.01), 0.035, 0.04, m.trim, ("trim", IRON_BAND), bevel=0.005)
-    box("hasp", (-0.04, -D - 0.03, -0.12), (0.04, -D - 0.012, 0.02), m.dark_iron, bevel=0.008)
+    # Haspen med et spor krampa går gjennom.
+    zs = -CHEST_STAPLE
+    for a, b in (((-0.04, zs + 0.03), (0.04, 0.02)), ((-0.04, -0.125), (0.04, zs - 0.03)), ((-0.04, zs - 0.03), (-0.016, zs + 0.03)), ((0.016, zs - 0.03), (0.04, zs + 0.03))):
+        box("hasp", (a[0], -D - 0.03, a[1]), (b[0], -D - 0.014, b[1]), m.dark_iron, bevel=0.004)
     for bx in (-0.3, 0.3):
         stick("hinge", (bx - 0.06, 0.012, 0.0), (bx + 0.06, 0.012, 0.0), 0.03, 0.03, m.dark_iron, bevel=0)
+    # Lokket er et skall: strålen opp under det går gjennom hulrommet.
+    check_hollow("chest_lid", [((x, -R, -0.3), (0, 0, 1)) for x in (-0.3, 0.0, 0.3)], 0.3 + H - 0.05)
 
 
 MODELS = {

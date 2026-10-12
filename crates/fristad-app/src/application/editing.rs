@@ -8,7 +8,7 @@ use super::session::Session;
 use crate::domain::edit::Editor;
 use crate::domain::scene::ModelInstance;
 use crate::domain::world::terrain;
-use crate::ports::driving::{EditCommand, EditView, Event, Input};
+use crate::ports::driving::{EditCommand, EditView, Event, Grab, Input};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3, Vec4};
 use std::collections::HashMap;
 
@@ -27,17 +27,31 @@ const DRAFT: Vec3 = Vec3::new(3.0, 3.0, 3.0);
 const AXES: [(Vec3, Vec3); 3] = [(Vec3::X, Vec3::new(4.0, 0.4, 0.3)), (Vec3::Y, Vec3::new(0.4, 4.0, 0.4)), (Vec3::Z, Vec3::new(0.4, 0.8, 4.0))];
 const RING: Vec3 = Vec3::new(3.5, 2.8, 0.6);
 
+/// Så langt (brøkdel av skjermhøyden) musa må gå før et trykk på en ting
+/// blir et drag, så et klikk ikke flytter noe.
+const SLACK: f32 = 0.006;
+
 /// Det du drar i.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Handle {
     Axis(usize),
     Ring,
+    /// Tingen selv, langs bakken (planet der det valgte står).
+    Ground,
+    /// Opp og ned med Alt, uansett hvor du drar.
+    Lift,
+    /// Drei med Ctrl eller Cmd: bortover i bildet dreier.
+    Turn,
 }
 
 /// Musa og linjeverktøyet i redigeringen.
 #[derive(Default)]
 pub struct EditUi {
     pub(super) drag: Option<(Handle, (f32, f32))>,
+    /// Der knappen ble trykket, til musa har gått `SLACK` (da er det et drag).
+    pub(super) pressed: Option<(f32, f32)>,
+    /// Trykket på noe som alt var valgt: velges når knappen slippes uten drag.
+    pub(super) click: Option<(f32, f32)>,
     pub(super) draft: Vec<Vec3>,
 }
 
@@ -139,18 +153,60 @@ impl Session {
                 self.pending.push(Event::Edit(None));
                 return true;
             }
-            EditCommand::Press { at, add } => match self.handle_at(at) {
-                Some(h) => {
-                    self.edit_ui.drag = Some((h, at));
-                    self.editor_mut().begin_group();
-                    true
+            EditCommand::Press { at, add, grab } => {
+                let handle = match grab {
+                    Grab::Lift => Some(Handle::Lift),
+                    Grab::Turn => Some(Handle::Turn),
+                    // Pilene går gjennom tingen: står pekeren på det
+                    // valgte, er det tingen du tar, ikke pila.
+                    Grab::Move => self.handle_at(at).filter(|h| {
+                        let (o, d) = self.screen_ray(at);
+                        let e = self.edit.as_ref().expect("i redigeringen");
+                        *h == Handle::Ring || !e.hit(o, d).is_some_and(|r| e.selection.contains(&r))
+                    }),
+                };
+                match handle {
+                    // Med Alt eller Ctrl gjelder draget det valgte; er
+                    // ingenting valgt, velges det under pekeren først.
+                    Some(h) => {
+                        if self.editor_mut().selection.is_empty() {
+                            self.pick_at(Some(at), add);
+                        }
+                        self.edit_ui.drag = Some((h, at));
+                        self.edit_ui.pressed = (h == Handle::Lift || h == Handle::Turn).then_some(at);
+                        self.editor_mut().begin_group();
+                        true
+                    }
+                    // Trykk på en ting: den velges (er den alt valgt, blir
+                    // valget som det er, så flere kan dras sammen), og den
+                    // dras langs bakken når musa går.
+                    None => {
+                        let (o, d) = self.screen_ray(at);
+                        let e = self.editor_mut();
+                        let first = e.hit(o, d);
+                        let keep = !add && first.as_ref().is_some_and(|r| e.selection.contains(r));
+                        // Er den alt valgt, venter valget til knappen slippes
+                        // uten drag (klikk igjen gir det neste under pekeren).
+                        self.edit_ui.click = keep.then_some(at);
+                        let changed = keep || self.pick_at(Some(at), add);
+                        if !add && first.is_some() && !self.editor_mut().selection.is_empty() {
+                            self.edit_ui.drag = Some((Handle::Ground, at));
+                            self.edit_ui.pressed = Some(at);
+                            self.editor_mut().begin_group();
+                        }
+                        changed
+                    }
                 }
-                None => self.pick_at(Some(at), add),
-            },
+            }
             EditCommand::Drag { to } => self.drag_to(to),
             EditCommand::Release => {
+                let click = self.edit_ui.click.take().filter(|_| self.edit_ui.pressed.is_some());
                 self.edit_ui.drag = None;
+                self.edit_ui.pressed = None;
                 self.editor_mut().end_group();
+                if let Some(at) = click {
+                    self.pick_at(Some(at), false);
+                }
                 true
             }
             EditCommand::Pick { add, at } => self.pick_at(at, add),
@@ -319,8 +375,39 @@ impl Session {
         let (Some((handle, from)), Some((p, _))) = (self.edit_ui.drag, self.pivot()) else {
             return false;
         };
+        // Et trykk blir først et drag når musa har gått et stykke.
+        if let Some(at) = self.edit_ui.pressed {
+            if (self.screen(to) - self.screen(at)).length() < SLACK {
+                return false;
+            }
+            self.edit_ui.pressed = None;
+        }
         self.edit_ui.drag = Some((handle, to));
+        let on_plane = |at: (f32, f32)| {
+            let (o, d) = self.screen_ray(at);
+            (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
+        };
         match handle {
+            Handle::Ground => {
+                let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
+                    return false;
+                };
+                self.editor_mut().translate(Vec3::new(b.x - a.x, 0.0, b.z - a.z));
+            }
+            Handle::Lift => {
+                let (Some(a), Some(b)) = (self.on_screen(p), self.on_screen(p + Vec3::Y)) else {
+                    return false;
+                };
+                let s = b - a;
+                let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
+                self.editor_mut().translate(Vec3::Y * moved);
+            }
+            Handle::Turn => {
+                // En bildebredde bortover er en hel runde; mot høyre dreier
+                // med klokka sett ovenfra.
+                let turn = -(to.0 - from.0) * std::f32::consts::TAU;
+                self.editor_mut().rotate(turn);
+            }
             Handle::Axis(k) => {
                 let axis = AXES[k].0;
                 let (Some(a), Some(b)) = (self.on_screen(p), self.on_screen(p + axis)) else {
@@ -332,10 +419,6 @@ impl Session {
             }
             Handle::Ring => {
                 // Vinkelen rundt midten i planet der det valgte står.
-                let on_plane = |at: (f32, f32)| {
-                    let (o, d) = self.screen_ray(at);
-                    (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
-                };
                 let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
                     return false;
                 };

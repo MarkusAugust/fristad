@@ -294,7 +294,7 @@ fn handtakene_drar() {
     // Ta tak midt på z-pila (den går på tvers av bildet her) og dra den.
     let grab = s.to_screen(p + Vec3::Z * len * 0.6).unwrap();
     let tip = s.to_screen(p + Vec3::Z * len).unwrap();
-    assert!(s.edit_command(EditCommand::Press { at: grab, add: false }));
+    assert!(s.edit_command(EditCommand::Press { at: grab, add: false, grab: Default::default() }));
     let step = (tip.0 - grab.0, tip.1 - grab.1);
     for k in 1..=4 {
         assert!(s.edit_command(EditCommand::Drag { to: (grab.0 + step.0 * k as f32, grab.1 + step.1 * k as f32) }));
@@ -311,7 +311,7 @@ fn handtakene_drar() {
     let (p, len) = s.handles().unwrap();
     let on_ring = |s: &crate::application::Session, a: f32| s.to_screen(p + glam::Quat::from_rotation_y(a) * Vec3::X * len * 0.8).unwrap();
     let (a, b) = (on_ring(&s, 1.2), on_ring(&s, 1.6));
-    assert!(s.edit_command(EditCommand::Press { at: a, add: false }));
+    assert!(s.edit_command(EditCommand::Press { at: a, add: false, grab: Default::default() }));
     s.edit_command(EditCommand::Drag { to: b });
     s.edit_command(EditCommand::Release);
     let yaw = crate::domain::world::layout::Pose::of(s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap()).yaw() - d.layout.items[barrel].at.unwrap().yaw();
@@ -487,4 +487,103 @@ fn krypten_redigeres_der_du_star() {
         p.world.targets.iter().any(|t| matches!(t.what, crate::domain::world::Use::Chest(_)) && (Vec3::from(t.pose.translation).with_y(0.0) - moved.with_y(0.0)).length() < 1.0),
         "kista kan åpnes der"
     );
+}
+
+/// Musa uten håndtakene (eieren 12. oktober): trykk på tønna og dra, så
+/// følger den pekeren langs bakken; med Alt heises den, med Ctrl dreies den.
+/// Et klikk uten å dra flytter ingenting, og hvert drag angres for seg.
+#[test]
+fn musa_drar_heiser_og_dreier() {
+    use crate::domain::world::layout::{Pose, Ref};
+    use crate::ports::driving::{EditCommand, Grab};
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let at = d.layout.items[barrel].at.unwrap().pos;
+    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    s.frame(1.6);
+    assert!(s.edit_command(EditCommand::Enter));
+    let pose = |s: &crate::application::Session| s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap();
+    let centre = s.to_screen(at + Vec3::Y * 0.4).unwrap();
+    let drag = |s: &mut crate::application::Session, grab: Grab, by: (f32, f32)| {
+        assert!(s.edit_command(EditCommand::Press { at: centre, add: false, grab }));
+        for k in 1..=5 {
+            s.edit_command(EditCommand::Drag { to: (centre.0 + by.0 * k as f32 / 5.0, centre.1 + by.1 * k as f32 / 5.0) });
+        }
+        s.edit_command(EditCommand::Release);
+    };
+    // Et klikk velger og flytter ingenting.
+    drag(&mut s, Grab::Move, (0.0, 0.0));
+    assert_eq!(s.editor().unwrap().selection, vec![Ref::Town(barrel)]);
+    assert!(!s.editor().unwrap().can_undo(), "klikket flyttet noe");
+    // Dra mot høyre i bildet (du ser mot øst): tønna går sørover langs bakken.
+    drag(&mut s, Grab::Move, (0.1, 0.0));
+    let moved = Vec3::from(pose(&s).translation) - at;
+    assert!(moved.z > 0.5 && moved.y.abs() < 1e-3, "flyttet {moved}");
+    let under = s.to_screen(Vec3::from(pose(&s).translation) + Vec3::Y * 0.4).unwrap();
+    assert!((under.0 - centre.0 - 0.1).abs() < 0.02, "tønna fulgte pekeren: {under:?}");
+    assert!(s.edit_command(EditCommand::Undo));
+    // Alt: opp når musa går opp.
+    drag(&mut s, Grab::Lift, (0.0, -0.05));
+    let lifted = Vec3::from(pose(&s).translation) - at;
+    assert!(lifted.y > 0.2 && lifted.x.abs() < 1e-3 && lifted.z.abs() < 1e-3, "heist {lifted}");
+    assert!(s.edit_command(EditCommand::Undo));
+    // Ctrl: en kvart bildebredde mot venstre er en kvart runde.
+    drag(&mut s, Grab::Turn, (-0.25, 0.0));
+    let yaw = Pose::of(pose(&s)).yaw() - d.layout.items[barrel].at.unwrap().yaw();
+    assert!((yaw - std::f32::consts::FRAC_PI_2).abs() < 0.05, "dreid {yaw}");
+    assert!((Vec3::from(pose(&s).translation) - at).length() < 1e-3, "dreid om seg selv");
+    assert!(s.edit_command(EditCommand::Undo));
+    assert!(!s.editor().unwrap().can_undo());
+}
+
+/// Flere valgt (et gjerde i biter) dreies samlet om midten, som én ting:
+/// avstandene mellom bitene står, og midten står der den sto.
+#[test]
+fn flere_valgt_dreies_samlet() {
+    use crate::domain::world::layout::Ref;
+    use glam::Vec3;
+    let mut e = editor();
+    let fences: Vec<usize> = (0..e.layout.items.len()).filter(|i| e.layout.items[*i].model.as_deref() == Some("rail_fence")).take(3).collect();
+    let at = |e: &crate::domain::edit::Editor, i: usize| Vec3::from(e.pose_of(&Ref::Town(i)).unwrap().translation);
+    let before: Vec<Vec3> = fences.iter().map(|i| at(&e, *i)).collect();
+    let mid = before.iter().sum::<Vec3>() / before.len() as f32;
+    e.selection = fences.iter().map(|i| Ref::Town(*i)).collect();
+    e.rotate(std::f32::consts::FRAC_PI_2);
+    for (k, i) in fences.iter().enumerate() {
+        let want = mid + glam::Quat::from_rotation_y(std::f32::consts::FRAC_PI_2) * (before[k] - mid);
+        assert!((at(&e, *i) - want).length() < 1e-3, "bit {k}: {} skulle stå {want}", at(&e, *i));
+    }
+}
+
+/// Vinda, tauet og bøtta følger brønnen du flytter i redigeringen (eieren i
+/// runde 8: «stangen og bøtta fulgte ikke med»).
+#[test]
+fn bevegelige_deler_folger_med_i_redigeringen() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::EditCommand;
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let well = d.layout.items.iter().position(|it| it.model.as_deref() == Some("well")).unwrap();
+    let at = d.layout.items[well].at.unwrap().pos;
+    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    assert!(s.edit_command(EditCommand::Enter));
+    let parts = |s: &crate::application::Session| -> Vec<Vec3> {
+        s.frame(1.6).instances.iter().filter(|i| crate::domain::world::town::WELL_PARTS.contains(&i.model)).map(|i| Vec3::from(i.transform.translation)).filter(|p| p.distance(at) < 6.0).collect()
+    };
+    let before = parts(&s);
+    assert_eq!(before.len(), 3, "vinda, tauet og bøtta ved brønnen");
+    let c = s.to_screen(at + Vec3::Y * 0.5).unwrap();
+    assert!(s.edit_command(EditCommand::Pick { add: false, at: Some(c) }));
+    assert_eq!(s.editor().unwrap().selection, vec![Ref::Town(well)]);
+    assert!(s.edit_command(EditCommand::Move(Vec3::new(2.0, 0.0, 0.0))));
+    let after: Vec<Vec3> =
+        s.frame(1.6).instances.iter().filter(|i| crate::domain::world::town::WELL_PARTS.contains(&i.model)).map(|i| Vec3::from(i.transform.translation)).filter(|p| p.distance(at) < 8.0).collect();
+    for p in &before {
+        assert!(after.iter().any(|q| (*q - (*p + Vec3::X * 2.0)).length() < 1e-3), "{p} fulgte ikke med: {after:?}");
+    }
 }

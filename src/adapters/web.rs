@@ -10,7 +10,7 @@ use crate::adapters::wgpu::Renderer;
 use crate::application::{prepare, prepare_for_edit, prepare_with, App};
 use crate::domain::edit::LineKind;
 use crate::domain::weather::{Daylight, WeatherKind};
-use crate::ports::driving::{Command, EditCommand, Event, Play, SaveData};
+use crate::ports::driving::{Command, EditCommand, Event, Grab, Play, SaveData};
 use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
@@ -125,6 +125,10 @@ enum EditJson {
         y: f32,
         #[serde(default)]
         add: bool,
+        #[serde(default)]
+        lift: bool,
+        #[serde(default)]
+        turn: bool,
     },
     Drag {
         x: f32,
@@ -178,7 +182,17 @@ impl EditJson {
         Some(match self {
             EditJson::Enter => EditCommand::Enter,
             EditJson::Leave => EditCommand::Leave,
-            EditJson::Press { x, y, add } => EditCommand::Press { at: (x, y), add },
+            EditJson::Press { x, y, add, lift, turn } => EditCommand::Press {
+                at: (x, y),
+                add,
+                grab: if turn {
+                    Grab::Turn
+                } else if lift {
+                    Grab::Lift
+                } else {
+                    Grab::Move
+                },
+            },
             EditJson::Drag { x, y } => EditCommand::Drag { to: (x, y) },
             EditJson::Release => EditCommand::Release,
             EditJson::Pick { add, x, y } => EditCommand::Pick { add, at: at(x, y) },
@@ -499,24 +513,76 @@ impl Engine {
     /// (kolliderne, lysene og alt), og spill der du står. Lageret og det du
     /// bærer følger med. Gir om det gikk.
     pub fn play(&mut self) -> bool {
-        let Some(rb) = &self.rebuild else {
-            return false;
-        };
         let Some(editor) = self.app.session.editor() else {
             return false;
         };
         let (layout, contents) = editor.data();
+        let (layout, contents, crypt) = (layout.clone(), contents.clone(), editor.crypt_data().clone());
+        self.rebuild_with(layout, contents, crypt)
+    }
+
+    /// Fortsett redigeringen fra lagrede filer (`{"files": [{path, text}]}`,
+    /// samme form som `save_files`): utkastet i nettleseren eller grenen
+    /// `redigering`, så det du lagret sist er med når du kommer tilbake.
+    /// Filene som mangler, står som de er. Gir om det gikk.
+    pub fn open_files(&mut self, json: &str) -> bool {
+        #[derive(serde::Deserialize)]
+        struct File {
+            path: String,
+            text: String,
+        }
+        #[derive(serde::Deserialize)]
+        struct Files {
+            files: Vec<File>,
+        }
+        let Some(editor) = self.app.session.editor() else {
+            return false;
+        };
+        let Ok(files) = serde_json::from_str::<Files>(json) else {
+            log::warn!("open_files: ikke filer");
+            return false;
+        };
+        let (layout, contents) = editor.data();
+        let (mut layout, mut contents, mut crypt) = (layout.clone(), contents.clone(), editor.crypt_data().clone());
+        for f in files.files {
+            let ok = if f.path == "assets/layout/town.json" {
+                serde_json::from_str(&f.text).map(|l| layout = l).is_ok()
+            } else if let Some(house) = f.path.strip_prefix("assets/layout/inside/").and_then(|p| p.strip_suffix(".json")) {
+                serde_json::from_str(&f.text).map(|c| _ = contents.insert(house.to_string(), c)).is_ok()
+            } else if let Some(n) = f.path.strip_prefix("assets/layout/crypt_").and_then(|p| p.strip_suffix(".json")).and_then(|n| n.parse::<u32>().ok()) {
+                serde_json::from_str(&f.text).map(|c| _ = crypt.insert(n, c)).is_ok()
+            } else {
+                true
+            };
+            if !ok {
+                log::warn!("open_files: {} kan ikke leses", f.path);
+                return false;
+            }
+        }
+        self.rebuild_with(layout, contents, crypt) && self.app.command(Command::Edit(EditCommand::Enter))
+    }
+
+    /// Bygg spillet på nytt fra byen, husene og kryptnivåene, der du står.
+    fn rebuild_with(
+        &mut self,
+        layout: crate::domain::world::layout::Layout,
+        contents: std::collections::HashMap<String, Vec<crate::domain::world::layout::Item>>,
+        crypt: std::collections::BTreeMap<u32, crate::domain::world::crypt::level::CryptContents>,
+    ) -> bool {
+        let Some(rb) = &self.rebuild else {
+            return false;
+        };
         let mut data = crate::adapters::data::world_data();
         let file = (
             data.layout.clone().unwrap_or_default(),
             data.contents.iter().cloned().collect(),
             data.levels.iter().map(|(n, f)| (*n, crate::domain::world::crypt::level::CryptContents { marks: f.marks.clone(), lights: f.lights.clone() })).collect(),
         );
-        data.layout = Some(layout.clone());
-        data.contents = contents.clone().into_iter().collect();
+        data.layout = Some(layout);
+        data.contents = contents.into_iter().collect();
         // Merkene og lysene i kryptnivåene, som redigert.
         for (n, f) in data.levels.iter_mut() {
-            if let Some(c) = editor.crypt_data().get(n) {
+            if let Some(c) = crypt.get(n) {
                 f.marks = c.marks.clone();
                 f.lights = c.lights.clone();
             }

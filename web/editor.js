@@ -3,11 +3,19 @@
 // reglene, angrer); her er panelet med katalogen, det valgte og reglene, og
 // tastene og musa.
 //
-// Musa er fri i redigeringen: venstre klikk velger det under pekeren eller
-// tar tak i et håndtak (pilene og ringen rundt det valgte) og drar, høyre
-// knapp holdt nede ser rundt. WASD, mellomrom og C flyr.
+// Musa er fri i redigeringen: venstre klikk velger det under pekeren, og
+// dra flytter det langs bakken; med Alt holdt inne heiser draget det valgte
+// opp og ned, med Ctrl (Cmd på Mac) dreier det (flere valgt dreies samlet).
+// Pilene og ringen rundt det valgte virker fortsatt. Høyre knapp holdt nede
+// ser rundt. WASD, mellomrom og C flyr.
+//
+// Det du gjør, huskes som et utkast i nettleseren (`fristad.edit-draft`),
+// og Lagre legger det på grenen `redigering`, én commit per økt. Neste gang
+// fortsetter du fra utkastet, eller fra det du lagret sist.
 
-import { commit, setToken, token, SAVE_BRANCH } from "./github.js";
+import { branchFiles, commit, setToken, token, SAVE_BRANCH } from "./github.js";
+
+const DRAFT = "fristad.edit-draft";
 
 const STEP = 0.1;
 const TURN = (15 * Math.PI) / 180;
@@ -41,8 +49,9 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       <button id="ed-undo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
       <button id="ed-redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+Z">Gjør om</button>
       <button id="ed-play" class="fs-button" data-variant="primary" type="button" title="P">Spill (P)</button>
-      <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagre som én commit på grenen redigering (Ctrl+S)">Lagre</button>
+      <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagre på grenen redigering (Ctrl+S)">Lagre</button>
     </div>
+    <p id="ed-saved" class="fs-help-text" role="status"></p>
     <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Valgt</h3>
       <p id="ed-selected" class="fs-paragraph" data-size="small">Ingenting. Klikk på noe i bildet.</p>
@@ -78,6 +87,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     </section>
     <section class="editor-section editor-keys">
       <p class="fs-paragraph" data-size="small">
+        <strong>Musa:</strong> dra en ting for å flytte den langs bakken, <kbd>Alt</kbd>+dra heiser opp og ned, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+dra dreier (flere valgt dreies samlet), <kbd>Shift</kbd>+klikk velger flere.
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
         Piltastene flytter det valgte langs bakken, <kbd>PgUp</kbd>/<kbd>PgDn</kbd> opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
         <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
@@ -138,15 +148,16 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     return engine.edit(JSON.stringify(cmd));
   }
 
-  // Lagre: én commit på grenen `redigering` (web/github.js). Første gang
-  // limer du inn en nøkkel; den huskes bare i denne nettleseren.
+  // Lagre: filene på grenen `redigering` (web/github.js), én commit per
+  // økt. Første gang limer du inn en nøkkel; den huskes bare i denne
+  // nettleseren, og så lagrer Lagre og Ctrl+S med en gang, uten spørsmål.
   const dialog = document.createElement("dialog");
   dialog.className = "fs-dialog editor-save";
   dialog.innerHTML = `
     <h2 class="fs-dialog__title fs-heading" data-size="s">Lagre endringene</h2>
     <div class="fs-dialog__body">
-      <p class="fs-paragraph" data-size="small">Endringene blir én commit på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet. Claude kjører testene og slår dem inn i spillet.</p>
-      <label class="fs-label" for="ed-msg">Hva du har endret</label>
+      <p class="fs-paragraph" data-size="small">Endringene legges på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet, én commit for hele økta (lagrer du igjen, oppdateres den). Neste gang du redigerer, fortsetter du derfra. Claude kjører testene og slår dem inn i spillet.</p>
+      <label class="fs-label" for="ed-msg">Hva du har endret (kan stå tomt)</label>
       <input id="ed-msg" class="fs-input" type="text">
       <div id="ed-token-row">
         <label class="fs-label" for="ed-token">GitHub-nøkkel</label>
@@ -162,6 +173,38 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     </div>`;
   document.body.append(dialog);
   const d$ = (sel) => dialog.querySelector(sel);
+  const hhmm = (t = Date.now()) => new Date(t).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+  const setSaved = (text) => ($("ed-saved").textContent = text);
+  let message = "";
+  let saving = false;
+  let lastSaved = "";
+
+  // Lagre det som er redigert. Gir om det gikk.
+  async function save() {
+    if (saving) return false;
+    const out = JSON.parse(engine.save_files());
+    if (out.error) {
+      setSaved(out.error);
+      return false;
+    }
+    saving = true;
+    setSaved("Lagrer …");
+    try {
+      const r = await commit(out.files, message || `Redigering ${new Date().toLocaleString("nb-NO")}`);
+      lastSaved = JSON.stringify(out.files);
+      storeDraft();
+      const text = r.unchanged ? "Ingenting nytt å lagre." : `Lagret kl. ${hhmm()} på grenen ${SAVE_BRANCH}.`;
+      setSaved(text);
+      toast?.show?.(text);
+      return true;
+    } catch (e) {
+      setSaved(e.message);
+      toast?.show?.(e.message);
+      return false;
+    } finally {
+      saving = false;
+    }
+  }
 
   function openSave() {
     if (!view?.dirty) return;
@@ -169,9 +212,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       toast?.show?.(`${view.breaches.length} regler er brutt. Rett dem før du lagrer.`);
       return;
     }
-    d$("#ed-token-row").hidden = !!token();
-    d$("[data-act=forget]").hidden = !token();
-    d$("#ed-msg").value = d$("#ed-msg").value || "Redigering i byen";
+    if (token()) {
+      save();
+      return;
+    }
+    d$("#ed-token-row").hidden = false;
+    d$("[data-act=forget]").hidden = true;
+    d$("#ed-msg").value = message;
     d$("#ed-save-status").textContent = "";
     dialog.showModal();
   }
@@ -189,27 +236,89 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       d$("#ed-save-status").textContent = "Lim inn nøkkelen først.";
       return;
     }
-    const out = JSON.parse(engine.save_files());
-    if (out.error) {
-      d$("#ed-save-status").textContent = out.error;
-      return;
-    }
+    message = d$("#ed-msg").value.trim();
     const btn = d$("[data-act=save]");
     btn.disabled = true;
     d$("#ed-save-status").textContent = "Lagrer …";
-    try {
-      const r = await commit(out.files, d$("#ed-msg").value.trim() || "Redigering i byen");
-      d$("#ed-token").value = "";
-      d$("#ed-token-row").hidden = true;
-      d$("#ed-save-status").textContent = r.unchanged ? "Ingenting nytt å lagre." : `Lagret som ${r.sha.slice(0, 7)} på grenen ${SAVE_BRANCH}.`;
-      toast?.show?.(r.unchanged ? "Ingenting nytt å lagre." : `Lagret (${r.sha.slice(0, 7)} på ${SAVE_BRANCH}).`);
-    } catch (e) {
-      d$("#ed-save-status").textContent = e.message;
-    } finally {
-      btn.disabled = false;
-    }
+    const ok = await save();
+    btn.disabled = false;
+    d$("#ed-token").value = "";
+    if (ok) dialog.close();
+    else d$("#ed-save-status").textContent = $("ed-saved").textContent;
   });
   $("ed-save").addEventListener("click", openSave);
+
+  // Utkastet: det som er redigert, i nettleseren, så ingenting går tapt om
+  // fanen lukkes før du lagrer. Det hører til byen slik den var da du begynte
+  // (`base`); er spillet bygd på nytt siden, legges det bort.
+  let shipped = "";
+  let draftTimer = 0;
+  const hash = (text) => {
+    let h = 5381;
+    for (let i = 0; i < text.length; i++) h = (h * 33 + text.charCodeAt(i)) | 0;
+    return String(h >>> 0);
+  };
+  function readDraft() {
+    try {
+      return JSON.parse(localStorage.getItem(DRAFT) || "null");
+    } catch {
+      return null;
+    }
+  }
+  function storeDraft() {
+    try {
+      if (!view?.dirty) {
+        localStorage.removeItem(DRAFT);
+        return;
+      }
+      const out = JSON.parse(engine.save_files());
+      if (!out.files) return;
+      const files = JSON.stringify(out.files);
+      localStorage.setItem(DRAFT, JSON.stringify({ at: Date.now(), base: shipped, saved: files === lastSaved, files: out.files }));
+    } catch {
+      /* uten lagring i nettleseren er det ikke noe utkast */
+    }
+  }
+  function draftLater() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(storeDraft, 1500);
+  }
+
+  // Første gang du går inn i redigeringen: fortsett fra utkastet, ellers fra
+  // det du lagret sist på grenen.
+  let restored = false;
+  async function restore() {
+    restored = true;
+    const now = JSON.parse(engine.save_files());
+    if (!now.files) return;
+    const cur = new Map(now.files.map((f) => [f.path, f.text]));
+    shipped = hash(now.files.map((f) => f.text).join("\n"));
+    let files = [];
+    let why = "";
+    const draft = readDraft();
+    if (draft && draft.base === shipped) {
+      files = draft.files ?? [];
+      why = draft.saved ? "Fortsetter der du slapp." : `Fortsetter med utkastet fra kl. ${hhmm(draft.at)}, som ikke er lagret ennå.`;
+      if (draft.saved) lastSaved = JSON.stringify(draft.files);
+    } else {
+      if (draft) toast?.show?.("Utkastet var fra en eldre utgave av byen og er lagt bort.");
+      try {
+        files = await branchFiles([...cur.keys()]);
+        why = `Fortsetter fra det du lagret sist (grenen ${SAVE_BRANCH}).`;
+      } catch (e) {
+        setSaved(`Fikk ikke hentet det du lagret: ${e.message}`);
+      }
+    }
+    const changed = files.filter((f) => cur.has(f.path) && cur.get(f.path) !== f.text);
+    if (!changed.length) return;
+    toast?.show?.("Henter det du gjorde sist …");
+    setTimeout(() => {
+      if (engine.open_files(JSON.stringify({ files: changed }))) {
+        toast?.show?.(why);
+        setSaved(why);
+      } else toast?.show?.("Kunne ikke åpne det du gjorde sist.");
+    }, 30);
+  }
 
   $("ed-undo").addEventListener("click", () => send({ cmd: "undo" }));
   $("ed-redo").addEventListener("click", () => send({ cmd: "redo" }));
@@ -226,7 +335,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     $("ed-undo").disabled = !v.can_undo;
     $("ed-redo").disabled = !v.can_redo;
     $("ed-save").disabled = !v.dirty;
-    $("ed-save").title = v.clean ? "Lagre som én commit på grenen redigering (Ctrl+S)" : "Rett reglene som er brutt før du lagrer";
+    $("ed-save").title = v.clean ? "Lagre på grenen redigering (Ctrl+S)" : "Rett reglene som er brutt før du lagrer";
+    draftLater();
     const sel = v.selected;
     $("ed-selected").textContent = sel.length ? sel.map((s) => s.label).join(", ") : "Ingenting. Klikk på noe i bildet.";
     // Det som lå under pekeren: klikk igjen eller Tab for det neste.
@@ -252,6 +362,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     if (document.pointerLockElement) document.exitPointerLock?.();
     renderCatalog();
     onEdit?.(true);
+    if (!restored) restore();
     return true;
   }
 
@@ -291,11 +402,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     if (!active) return false;
     if (!onCanvas(e)) return true;
     e.preventDefault();
-    if (e.button === 2) {
+    // Ctrl+klikk på Mac kommer som høyre knapp: det er dreiingen.
+    const turn = e.ctrlKey || e.metaKey;
+    if (e.button === 2 && !turn) {
       looking = true;
       return true;
     }
-    if (e.button !== 0) return true;
+    if (e.button !== 0 && e.button !== 2) return true;
     const p = at(e);
     if (lining) {
       send({ cmd: "line_point", ...p });
@@ -307,23 +420,32 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       return true;
     }
     pressed = true;
-    send({ cmd: "press", ...p, add: e.shiftKey });
+    send({ cmd: "press", ...p, add: e.shiftKey, lift: e.altKey && !turn, turn });
+    canvas.style.cursor = turn ? "ew-resize" : e.altKey ? "ns-resize" : "grabbing";
     return true;
+  }
+
+  // Pekeren sier hva et drag vil gjøre: Alt heiser, Ctrl eller Cmd dreier.
+  function hint(e) {
+    if (!active || pressed) return;
+    canvas.style.cursor = e.ctrlKey || e.metaKey ? "ew-resize" : e.altKey ? "ns-resize" : "";
   }
 
   function mouseMove(e) {
     if (!active) return false;
     if (looking) engine.look(e.movementX, e.movementY);
     else if (pressed) send({ cmd: "drag", ...at(e) });
+    else hint(e);
     return true;
   }
 
   function mouseUp(e) {
     if (!active) return false;
-    if (e.button === 2) looking = false;
-    if (e.button === 0 && pressed) {
+    if (e.button === 2 && looking) looking = false;
+    else if (pressed) {
       pressed = false;
       send({ cmd: "release" });
+      hint(e);
     }
     return true;
   }
@@ -353,6 +475,16 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     const ctrl = e.ctrlKey || e.metaKey;
     const move = (x, y, z) => send({ cmd: "move", x, y, z });
     switch (e.code) {
+      case "AltLeft":
+      case "AltRight":
+      case "ControlLeft":
+      case "ControlRight":
+      case "MetaLeft":
+      case "MetaRight":
+        // Alt flytter ellers fokus til menylinja i noen nettlesere.
+        if (e.code.startsWith("Alt")) e.preventDefault();
+        hint(e);
+        return true;
       case "ArrowUp":
       case "ArrowDown":
       case "ArrowLeft":
@@ -456,6 +588,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         return false;
     }
   }
+
+  document.addEventListener("keyup", (e) => hint(e));
 
   return {
     get active() {

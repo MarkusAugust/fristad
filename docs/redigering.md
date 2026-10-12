@@ -13,7 +13,9 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
 - **Katalogen:** et Fristil-panel med alle modellene, bilde og eierens dom (godkjent, underkjent, usikker), med filter. Underkjente ting kan plasseres for å prøve, men Lagre nekter dem til de er godkjent.
 - **Plassere:** velg en ting i katalogen. Den følger siktekorset og legger seg på flaten under: bakke, gulv, bord, eller mot en vegg. Klikk setter den fra deg.
 - **Velge og flytte:** klikk på noe som står for å velge det. Shift-klikk velger flere. Det valgte kan:
-  - dras med håndtak (piler i tre farger langs aksene, og en ring for dreiing),
+  - dras med musa (eieren 12. oktober): trykk på tingen og dra, så følger den pekeren langs bakken; hold Alt og dra for å heise den opp og ned, og Ctrl (Cmd på Mac) for å dreie den. Med Alt og Ctrl gjelder draget det valgte uansett hvor i bildet du drar. Pekeren viser hva draget gjør. Hvert drag angres for seg,
+  - dras med håndtak (piler i tre farger langs aksene, og en ring for dreiing); står pekeren på tingen, er det tingen du tar, ikke pila som går gjennom den,
+  - flere valgt (et gjerde i biter) dreies samlet om midten, som én ting,
   - finjusteres med tastene: piltastene flytter langs bakken, PageUp og PageDown flytter opp og ned, Q og E dreier. Små steg holder du Alt for.
   - kopieres (Ctrl+D) og slettes (Delete).
 - **Linje:** klikk punkter på bakken. Langs linja blir det gjerde, usynlig vegg (3 m høy som standard, høyden kan endres) eller en rad av den valgte tingen, og den følger terrenget.
@@ -40,7 +42,9 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
 ## Lagring
 
 - Første gang limer du inn en GitHub-nøkkel som bare gjelder fristad-repoet. Den huskes bare i din nettleser.
-- Lagre skriver datafilene som én commit på grenen `redigering`. Den grenen bygges ikke, så det koster ingen Actions-minutter.
+- Lagre (Ctrl+S) skriver datafilene på grenen `redigering`, uten spørsmål når nøkkelen er limt inn én gang. Alle lagringene i én økt (én fane) blir én commit: lagrer du igjen, erstattes den. Den grenen bygges ikke, så det koster ingen Actions-minutter.
+- Det du gjør, huskes som et utkast i nettleseren mens du jobber, så ingenting går tapt om fanen lukkes. Neste gang du går inn i redigeringen, fortsetter du fra utkastet, eller fra det som ligger på grenen `redigering` (`engine.open_files`). Et utkast fra en eldre utgave av byen legges bort.
+- Når Claude har slått grenen inn i spillet, slettes `redigering`, så neste lagring begynner på den nye byen.
 - Jeg kjører kontrollene og slår endringene inn i `claude/detaljnivaa` samlet, og da bygges forhåndsvisningen én gang.
 - Dataene er tekst i repoet, én fil per område:
   - `assets/layout/town.json`: byen, med husene, gatelivet, naturen, de usynlige veggene og innbyggerne,

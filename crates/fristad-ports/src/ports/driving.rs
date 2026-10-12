@@ -106,11 +106,27 @@ pub enum Command {
     /// nettlesertestene).
     Descend,
     /// Flytt kameraet (øyet), til skjermbilder og tester.
-    Place { eye: Vec3, yaw: f32, pitch: f32 },
+    Place {
+        eye: Vec3,
+        yaw: f32,
+        pitch: f32,
+    },
     SetQuality(super::Quality),
     SetBench(super::Bench),
     /// Redigeringsmodusen (`docs/redigering.md`; bare med `?edit`).
     Edit(EditCommand),
+}
+
+/// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Grab {
+    /// Håndtakene, ellers dra tingen under pekeren langs bakken.
+    #[default]
+    Move,
+    /// Opp og ned (Alt).
+    Lift,
+    /// Drei om midten av det valgte (Ctrl eller Cmd).
+    Turn,
 }
 
 /// Det eieren gjør i redigeringen. Med musa: `at` er pekeren på skjermen
@@ -121,15 +137,25 @@ pub enum EditCommand {
     Enter,
     Leave,
     /// Venstre knapp ned: tar tak i et håndtak (pilene og ringen rundt det
-    /// valgte), ellers velges det under pekeren; `add` (Shift) legger til
-    /// eller tar bort.
-    Press { at: (f32, f32), add: bool },
+    /// valgte), ellers velges det under pekeren og kan dras langs bakken;
+    /// `add` (Shift) legger til eller tar bort. `grab` er tasten som holdes
+    /// (Alt heiser, Ctrl eller Cmd dreier det valgte, uansett hvor du drar).
+    Press {
+        at: (f32, f32),
+        add: bool,
+        grab: Grab,
+    },
     /// Musa flyttet med knappen nede: håndtaket drar det valgte.
-    Drag { to: (f32, f32) },
+    Drag {
+        to: (f32, f32),
+    },
     /// Knappen opp: draget angres som én handling.
     Release,
     /// Velg det under pekeren eller midt i bildet.
-    Pick { add: bool, at: Option<(f32, f32)> },
+    Pick {
+        add: bool,
+        at: Option<(f32, f32)>,
+    },
     /// Tab: det neste under pekeren fra siste klikk.
     Cycle,
     /// Flytt det valgte så mange meter (piltastene, PageUp og PageDown).
@@ -137,7 +163,10 @@ pub enum EditCommand {
     /// Drei det valgte (Q og E), radianer.
     Rotate(f32),
     /// Sett en ting rett dit.
-    SetPose { r: Ref, pose: Affine3A },
+    SetPose {
+        r: Ref,
+        pose: Affine3A,
+    },
     /// Sett det valgte ned på det som er under.
     Drop,
     /// Kopier det valgte (Ctrl+D).
@@ -145,14 +174,22 @@ pub enum EditCommand {
     /// Slett det valgte (Delete).
     Delete,
     /// Sett ut en ny ting under pekeren (eller midt i bildet), vendt mot deg.
-    Place { model: String, at: Option<(f32, f32)> },
+    Place {
+        model: String,
+        at: Option<(f32, f32)>,
+    },
     /// Linjeverktøyet: et punkt på bakken under pekeren, ferdig (gjerde, rad
     /// eller usynlig vegg gjennom punktene), eller avbryt.
-    LinePoint { at: (f32, f32) },
+    LinePoint {
+        at: (f32, f32),
+    },
     LineFinish(LineKind),
     LineCancel,
     /// En linje gjennom punktene på bakken.
-    Line { points: Vec<Vec3>, kind: LineKind },
+    Line {
+        points: Vec<Vec3>,
+        kind: LineKind,
+    },
     /// Ny høyde på de valgte usynlige veggene.
     WallHeight(f32),
     Undo,
@@ -235,7 +272,14 @@ pub enum Event {
     Warp,
     /// Liv, utholdenhet, tokens, nøkler, om du er nede i kjelleren, og
     /// bossen om den har sett deg, når noe av det endrer seg.
-    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32, boss: Option<(String, u32)> },
+    Hud {
+        hp: u32,
+        stamina: u32,
+        tokens: u32,
+        cellar: bool,
+        keys: u32,
+        boss: Option<(String, u32)>,
+    },
     /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
     Sound(Sound),
     /// Merkene på skjermen dette bildet (tom liste når de er borte).
@@ -245,16 +289,25 @@ pub enum Event {
     /// Lageret og utstyret, når noe endrer seg (og en gang ved start).
     Inventory(InventoryView),
     /// E på en innbygger med butikk: varene.
-    Shop { npc: String, wares: Vec<WareView> },
+    Shop {
+        npc: String,
+        wares: Vec<WareView>,
+    },
     /// E i skriptoriet: oppskriftene som skjema.
-    Workshop { recipes: Vec<RecipeView> },
+    Workshop {
+        recipes: Vec<RecipeView>,
+    },
     /// Lydbildet der du står, når det endrer seg merkbart.
     Ambience(Ambience),
     /// Kartet over etasjen du er i (minikartet og det store kartet), når
     /// du har oppdaget mer eller bytter etasje; `None` oppe i byen.
     Map(Option<MapView>),
     /// Hvor du står og hvilken vei du ser i kjelleren (til minikartet).
-    Where { x: f32, z: f32, yaw: f32 },
+    Where {
+        x: f32,
+        z: f32,
+        yaw: f32,
+    },
     /// Åpne dokumentasjonen for en komponent i panelet til høyre (F på en
     /// fylt ramme på galleriveggen).
     OpenDoc(String),
