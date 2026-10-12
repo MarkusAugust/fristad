@@ -275,8 +275,8 @@ def new_page(spec_path, studio, out):
         at = ", ".join(sorted({houses.get(x, x) for x in hs}))
         items.append({
             "id": f"m_{n}", "kind": "modell", "name": n, "about": about.get(n, ""),
-            "facts": [f"{tris:,} trekanter".replace(",", " "), f"står {len(hs)} steder: {at}" if hs else "står ingen steder"],
-            "check": None, "game": False, "studio": not old, "prior": prior.get(n) if old else None,
+            "facts": [f"{tris:,} trekanter".replace(",", " "), (f"står ett sted: {at}" if len(hs) == 1 else f"står {len(hs)} steder: {at}") if hs else "står ingen steder"],
+            "check": None, "game": False, "studio": True, "prior": prior.get(n) if old else None,
             "fresh": reshot.get("why") if old else None,
         })
         if old:
