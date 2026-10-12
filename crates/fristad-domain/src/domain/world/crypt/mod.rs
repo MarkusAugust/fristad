@@ -352,85 +352,35 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
     c.open = vec![false; c.switches.len()];
     // Det du kan bruke.
     for (i, ch) in c.chests.iter().enumerate() {
-        b.target(
-            Use::Chest(i),
-            super::at(ch.pos, ch.yaw),
-            Vec3::new(0.0, 0.3, 0.0),
-            Vec3::new(0.48, 0.33, 0.33),
-        );
+        b.target(Use::Chest(i), super::at(ch.pos, ch.yaw), Vec3::new(0.0, 0.3, 0.0), Vec3::new(0.48, 0.33, 0.33));
     }
     for (i, g) in c.gates.iter().enumerate() {
-        b.target(
-            Use::Gate(i),
-            super::at(g.pos, g.yaw),
-            Vec3::new(0.0, GATE_H * 0.5, 0.0),
-            Vec3::new(g.width * 0.5, GATE_H * 0.5, 0.12),
-        );
+        b.target(Use::Gate(i), super::at(g.pos, g.yaw), Vec3::new(0.0, GATE_H * 0.5, 0.0), Vec3::new(g.width * 0.5, GATE_H * 0.5, 0.12));
     }
     for (i, s) in c.shortcuts.iter().enumerate() {
-        b.target(
-            Use::Shortcut(i),
-            super::at(s.pos, s.yaw),
-            Vec3::new(0.0, SHORTCUT_H * 0.5, 0.0),
-            Vec3::new(s.width * 0.5, SHORTCUT_H * 0.5, 0.08),
-        );
+        b.target(Use::Shortcut(i), super::at(s.pos, s.yaw), Vec3::new(0.0, SHORTCUT_H * 0.5, 0.0), Vec3::new(s.width * 0.5, SHORTCUT_H * 0.5, 0.08));
     }
     for (i, s) in c.secrets.iter().enumerate() {
-        b.target(
-            Use::Secret(i),
-            super::at(s.pos, s.yaw),
-            Vec3::new(0.0, s.height * 0.5, 0.0),
-            Vec3::new(s.width * 0.5, s.height * 0.5, 0.25),
-        );
+        b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, 0.0), Vec3::new(s.width * 0.5, s.height * 0.5, 0.25));
     }
     for (i, l) in c.levers.iter().enumerate() {
-        b.target(
-            Use::Lever(i),
-            super::at(l.pos, l.yaw),
-            Vec3::new(0.0, 0.85, 0.05),
-            Vec3::new(0.3, 0.45, 0.2),
-        );
+        b.target(Use::Lever(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.85, 0.05), Vec3::new(0.3, 0.45, 0.2));
     }
     for (i, r) in c.rests.iter().enumerate() {
-        b.target(
-            Use::Rest(i),
-            super::at(r.pos, r.yaw),
-            Vec3::new(0.0, 0.6, 0.0),
-            Vec3::new(0.8, 0.6, 0.5),
-        );
+        b.target(Use::Rest(i), super::at(r.pos, r.yaw), Vec3::new(0.0, 0.6, 0.0), Vec3::new(0.8, 0.6, 0.5));
     }
     for (i, l) in c.ladders.iter().enumerate() {
-        b.target(
-            Use::Ladder(i),
-            super::at(l.pos, l.yaw),
-            Vec3::new(0.0, 1.1, 0.0),
-            Vec3::new(0.45, 1.0, 0.12),
-        );
+        b.target(Use::Ladder(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 1.1, 0.0), Vec3::new(0.45, 1.0, 0.12));
     }
     for (i, l) in c.lores.iter().enumerate() {
-        b.target(
-            Use::Lore(i),
-            super::at(l.pos, l.yaw),
-            Vec3::new(0.0, 0.5, 0.0),
-            Vec3::new(0.3, 0.5, 0.3),
-        );
+        b.target(Use::Lore(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
     }
     for (i, l) in c.bonuses.iter().enumerate() {
-        b.target(
-            Use::Bonus(i),
-            super::at(l.pos, l.yaw),
-            Vec3::new(0.0, 0.5, 0.0),
-            Vec3::new(0.3, 0.5, 0.3),
-        );
+        b.target(Use::Bonus(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
     }
     for (k, l) in c.levels.iter().enumerate() {
         if let Some((p, yaw)) = l.up {
-            b.target(
-                Use::Ascend(k),
-                super::at(p, yaw),
-                Vec3::new(0.0, 1.2, 0.0),
-                Vec3::new(0.75, 1.2, 0.2),
-            );
+            b.target(Use::Ascend(k), super::at(p, yaw), Vec3::new(0.0, 1.2, 0.0), Vec3::new(0.75, 1.2, 0.2));
         }
     }
     log::info!(
@@ -461,21 +411,14 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
 
 /// Den første modellen i lista som finnes (`missing` får den første).
 fn first(b: &Builder, names: &[&'static str]) -> &'static str {
-    names
-        .iter()
-        .copied()
-        .find(|n| b.has_model(n))
-        .unwrap_or(names[0])
+    names.iter().copied().find(|n| b.has_model(n)).unwrap_or(names[0])
 }
 
 fn intern(c: &mut Crypt, level: usize, id: &str) -> usize {
     match c.switch(level, id) {
         Some(i) => i,
         None => {
-            c.switches.push(Switch {
-                level,
-                id: id.to_string(),
-            });
+            c.switches.push(Switch { level, id: id.to_string() });
             c.switches.len() - 1
         }
     }
@@ -497,11 +440,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     }
     if lo.x <= hi.x {
         for (axis, (l, h)) in [(0, (lo.x, hi.x)), (1, (lo.y, hi.y))] {
-            let o = if axis == 0 {
-                &mut origin.x
-            } else {
-                &mut origin.z
-            };
+            let o = if axis == 0 { &mut origin.x } else { &mut origin.z };
             if *o + h > REACH {
                 *o -= *o + h - REACH;
             }
@@ -515,54 +454,18 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     // Rommene.
     let mut rooms = vec![];
     for r in &f.rooms {
-        let poly: Vec<Vec2> = r
-            .poly
-            .iter()
-            .map(|p| Vec2::new(p[0] + origin.x, p[1] + origin.z))
-            .collect();
+        let poly: Vec<Vec2> = r.poly.iter().map(|p| Vec2::new(p[0] + origin.x, p[1] + origin.z)).collect();
         let min = poly.iter().fold(Vec2::splat(f32::MAX), |m, p| m.min(*p));
         let max = poly.iter().fold(Vec2::splat(f32::MIN), |m, p| m.max(*p));
-        let area = (0..poly.len())
-            .map(|i| poly[i].perp_dot(poly[(i + 1) % poly.len()]))
-            .sum::<f32>()
-            .abs()
-            * 0.5;
-        rooms.push(Room {
-            id: r.id.clone(),
-            name: r.name.clone(),
-            poly,
-            y: r.y + origin.y,
-            h: r.h,
-            secret: r.secret,
-            min,
-            max,
-            area,
-        });
+        let area = (0..poly.len()).map(|i| poly[i].perp_dot(poly[(i + 1) % poly.len()])).sum::<f32>().abs() * 0.5;
+        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area });
     }
     let room_ix = |id: &str| rooms.iter().position(|r| r.id == id);
 
     // Navigasjonsnettet, med rom og brytere per polygon.
     let verts: Vec<Vec3> = f.nav.verts.iter().map(|p| w(*p)).collect();
-    let poly_rooms: Vec<Option<usize>> = (0..f.nav.polys.len())
-        .map(|i| {
-            f.nav
-                .poly_room
-                .get(i)
-                .cloned()
-                .flatten()
-                .and_then(|r| room_ix(&r))
-        })
-        .collect();
-    let poly_gates: Vec<Option<usize>> = (0..f.nav.polys.len())
-        .map(|i| {
-            f.nav
-                .poly_gate
-                .get(i)
-                .cloned()
-                .flatten()
-                .map(|g| intern(c, k, &g))
-        })
-        .collect();
+    let poly_rooms: Vec<Option<usize>> = (0..f.nav.polys.len()).map(|i| f.nav.poly_room.get(i).cloned().flatten().and_then(|r| room_ix(&r))).collect();
+    let poly_gates: Vec<Option<usize>> = (0..f.nav.polys.len()).map(|i| f.nav.poly_gate.get(i).cloned().flatten().map(|g| intern(c, k, &g))).collect();
     let nav = Nav::new(&verts, &f.nav.polys, &poly_rooms, &poly_gates);
 
     // Forbindelsene mellom rommene, og rom som overlapper.
@@ -584,10 +487,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     for i in 0..rooms.len() {
         for j in i + 1..rooms.len() {
             let (a, bb) = (&rooms[i], &rooms[j]);
-            let xz = a.min.x < bb.max.x - 0.5
-                && bb.min.x < a.max.x - 0.5
-                && a.min.y < bb.max.y - 0.5
-                && bb.min.y < a.max.y - 0.5;
+            let xz = a.min.x < bb.max.x - 0.5 && bb.min.x < a.max.x - 0.5 && a.min.y < bb.max.y - 0.5 && bb.min.y < a.max.y - 0.5;
             let y = a.y < bb.y + bb.h - 0.2 && bb.y < a.y + a.h - 0.2;
             if xz && y {
                 overlaps.push((i, j));
@@ -607,34 +507,19 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         }
         if let Some(h) = &col.hull {
             if h.len() >= 4 {
-                b.solid(Shape::Hull {
-                    points: h.iter().map(|p| w(*p)).collect(),
-                });
+                b.solid(Shape::Hull { points: h.iter().map(|p| w(*p)).collect() });
             }
         }
     }
     // Gulvene til rutinen mot svevende modeller: rommene og de flate
     // polygonene i nettet (galleriene).
     for r in &rooms {
-        b.floor(
-            Vec3::new((r.min.x + r.max.x) * 0.5, r.y, (r.min.y + r.max.y) * 0.5),
-            (r.max - r.min) * 0.5,
-            0.0,
-            r.y,
-        );
+        b.floor(Vec3::new((r.min.x + r.max.x) * 0.5, r.y, (r.min.y + r.max.y) * 0.5), (r.max - r.min) * 0.5, 0.0, r.y);
     }
     for p in &nav.polys {
-        let (ylo, yhi) = p
-            .pts
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(a, z), v| (a.min(v.y), z.max(v.y)));
+        let (ylo, yhi) = p.pts.iter().fold((f32::MAX, f32::MIN), |(a, z), v| (a.min(v.y), z.max(v.y)));
         if yhi - ylo < 0.05 {
-            b.floor(
-                Vec3::new((p.min.x + p.max.x) * 0.5, yhi, (p.min.y + p.max.y) * 0.5),
-                (p.max - p.min) * 0.5 + Vec2::splat(0.6),
-                0.0,
-                yhi,
-            );
+            b.floor(Vec3::new((p.min.x + p.max.x) * 0.5, yhi, (p.min.y + p.max.y) * 0.5), (p.max - p.min) * 0.5 + Vec2::splat(0.6), 0.0, yhi);
         }
     }
 
@@ -645,13 +530,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         let pos = w(l.pos);
         let color = Vec3::from(l.color);
         let intensity = l.intensity.unwrap_or(2.0);
-        b.flicker_light(
-            pos,
-            color,
-            intensity,
-            l.range,
-            if l.flicker { 0.2 } else { 0.0 },
-        );
+        b.flicker_light(pos, color, intensity, l.range, if l.flicker { 0.2 } else { 0.0 });
     }
     b.origin = None;
     let level_room = |p: Vec3, id: &Option<String>| -> Option<usize> {
@@ -659,12 +538,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             return Some(r);
         }
         let q = Vec2::new(p.x, p.z);
-        rooms
-            .iter()
-            .enumerate()
-            .filter(|(_, r)| p.y >= r.y - 1.0 && p.y <= r.y + r.h + 0.5 && r.contains(q))
-            .min_by(|a, bb| a.1.area.total_cmp(&bb.1.area))
-            .map(|(i, _)| i)
+        rooms.iter().enumerate().filter(|(_, r)| p.y >= r.y - 1.0 && p.y <= r.y + r.h + 0.5 && r.contains(q)).min_by(|a, bb| a.1.area.total_cmp(&bb.1.area)).map(|(i, _)| i)
     };
     for (i, l) in f.lights.iter().enumerate() {
         let room = level_room(w(l.pos), &l.room);
@@ -688,32 +562,10 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     }
 
     // Merkene.
-    let mut level = Level {
-        n,
-        name: f.name.clone(),
-        theme: f.theme.clone(),
-        origin,
-        rooms: vec![],
-        nav,
-        start: (origin, 0.0),
-        up: None,
-        down: None,
-        min_y,
-        max_y,
-        links,
-        overlaps,
-    };
+    let mut level = Level { n, name: f.name.clone(), theme: f.theme.clone(), origin, rooms: vec![], nav, start: (origin, 0.0), up: None, down: None, min_y, max_y, links, overlaps };
     let mut bonus_n = 0;
     // Portene eliten bærer nøkkelen til.
-    let keyed: Vec<usize> = f
-        .marks
-        .iter()
-        .filter(|m| m.kind == "elite")
-        .flat_map(|m| m.opens.clone())
-        .collect::<Vec<_>>()
-        .iter()
-        .map(|g| intern(c, k, g))
-        .collect();
+    let keyed: Vec<usize> = f.marks.iter().filter(|m| m.kind == "elite").flat_map(|m| m.opens.clone()).collect::<Vec<_>>().iter().map(|g| intern(c, k, g)).collect();
     for (i, m) in f.marks.iter().enumerate() {
         b.origin = Some(crate::domain::world::layout::Ref::Crypt { level: n, i });
         let Some(pos) = m.pos.map(w) else {
@@ -731,21 +583,12 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
                     let mut ramp = vec![];
                     for x in [-1.1f32, 1.1] {
-                        ramp.extend([
-                            p(x, 0.0, 0.0),
-                            p(x, 0.0, -0.95),
-                            p(x, 0.45, -0.95),
-                            p(x, 0.02, 0.0),
-                        ]);
+                        ramp.extend([p(x, 0.0, 0.0), p(x, 0.0, -0.95), p(x, 0.45, -0.95), p(x, 0.02, 0.0)]);
                     }
                     b.solid(Shape::Hull { points: ramp });
                     for k in 0..3 {
                         let h = 0.16 * (k + 1) as f32;
-                        b.solid_box(
-                            p(0.0, h * 0.5, -0.15 - 0.3 * k as f32),
-                            Vec3::new(2.2, h, 0.3),
-                            m.yaw,
-                        );
+                        b.solid_box(p(0.0, h * 0.5, -0.15 - 0.3 * k as f32), Vec3::new(2.2, h, 0.3), m.yaw);
                     }
                     b.solid_box(p(0.0, 1.9, -0.95), Vec3::new(3.2, 3.8, 0.3), m.yaw);
                 }
@@ -761,12 +604,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     // Trinnene ned som en rampe, og bunnen.
                     let mut ramp = vec![];
                     for x in [-1.2f32, 1.2] {
-                        ramp.extend([
-                            p(x, 0.0, 0.0),
-                            p(x, -2.4, -3.2),
-                            p(x, -2.9, -3.2),
-                            p(x, -0.5, 0.0),
-                        ]);
+                        ramp.extend([p(x, 0.0, 0.0), p(x, -2.4, -3.2), p(x, -2.9, -3.2), p(x, -0.5, 0.0)]);
                     }
                     b.solid(Shape::Hull { points: ramp });
                     b.solid_box(p(0.0, -2.65, -3.5), Vec3::new(2.4, 0.5, 1.0), m.yaw);
@@ -776,17 +614,11 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             "rest" => {
                 if b.place(KIT_REST, pose) {
                     // Alteret (uten trinnene rundt): kjernen av modellens mål.
-                    let (lo, hi) = b
-                        .bounds(KIT_REST)
-                        .unwrap_or((Vec3::new(-0.7, 0.0, -0.4), Vec3::new(0.7, 1.0, 0.4)));
+                    let (lo, hi) = b.bounds(KIT_REST).unwrap_or((Vec3::new(-0.7, 0.0, -0.4), Vec3::new(0.7, 1.0, 0.4)));
                     let size = Vec3::new((hi.x - lo.x) * 0.62, 1.0, (hi.z - lo.z) * 0.5);
                     b.solid_box(pose.transform_point3(Vec3::new(0.0, 0.5, 0.0)), size, m.yaw);
                 }
-                c.rests.push(Rest {
-                    pos,
-                    yaw: m.yaw,
-                    level: k,
-                });
+                c.rests.push(Rest { pos, yaw: m.yaw, level: k });
             }
             "mob" | "elite" | "boss" => {
                 let ambush = m.ambush.as_ref().and_then(|a| match a {
@@ -795,13 +627,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     AmbushDef::Radius(r) => Some(Ambush::Near(*r)),
                     AmbushDef::Room(id) => room_ix(id).map(Ambush::Room),
                 });
-                let label = m.label.clone().unwrap_or_else(|| {
-                    if m.kind == "boss" {
-                        "rammeverket".into()
-                    } else {
-                        "button".into()
-                    }
-                });
+                let label = m.label.clone().unwrap_or_else(|| if m.kind == "boss" { "rammeverket".into() } else { "button".into() });
                 c.spawns.push(Spawn {
                     label,
                     pos,
@@ -818,75 +644,34 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if b.place(first(b, &["kit_chest", CHEST]), pose) {
                     b.solid_box(pos + Vec3::Y * 0.3, Vec3::new(0.9, 0.6, 0.6), m.yaw);
                 }
-                let loot = if m.kind == "rare" {
-                    m.label.as_ref().map(|l| l.to_lowercase())
-                } else {
-                    m.loot.clone()
-                };
-                c.chests.push(Chest {
-                    pos,
-                    yaw: m.yaw,
-                    level: k,
-                    loot,
-                });
+                let loot = if m.kind == "rare" { m.label.as_ref().map(|l| l.to_lowercase()) } else { m.loot.clone() };
+                c.chests.push(Chest { pos, yaw: m.yaw, level: k, loot });
             }
             "lore" => {
                 if b.place(KIT_LORE, pose) {
                     b.solid_box(pos + Vec3::Y * 0.5, Vec3::new(0.5, 1.0, 0.4), m.yaw);
                 }
-                c.lores.push(Lore {
-                    pos,
-                    yaw: m.yaw,
-                    title: m.label.clone().unwrap_or_else(|| "En lapp".into()),
-                    text: m.text.clone().unwrap_or_default(),
-                    level: k,
-                });
+                c.lores.push(Lore { pos, yaw: m.yaw, title: m.label.clone().unwrap_or_else(|| "En lapp".into()), text: m.text.clone().unwrap_or_default(), level: k });
             }
             "bonus" => {
                 if b.place(KIT_BONUS, pose) {
                     b.solid_box(pos + Vec3::Y * 0.55, Vec3::new(0.5, 1.1, 0.5), m.yaw);
                 }
                 let label = m.label.clone().unwrap_or_default().to_lowercase();
-                let kind = if label.contains("uthold") || label.contains("stamina") {
-                    BonusKind::Stamina
-                } else {
-                    BonusKind::Life
-                };
-                c.bonuses.push(Bonus {
-                    pos,
-                    yaw: m.yaw,
-                    kind,
-                    level: k,
-                    key: format!("{n}:{bonus_n}"),
-                });
+                let kind = if label.contains("uthold") || label.contains("stamina") { BonusKind::Stamina } else { BonusKind::Life };
+                c.bonuses.push(Bonus { pos, yaw: m.yaw, kind, level: k, key: format!("{n}:{bonus_n}") });
                 bonus_n += 1;
             }
             "lever" => {
                 if b.place(KIT_LEVER, pose) {
-                    b.solid_box(
-                        pose.transform_point3(Vec3::new(0.0, 0.3, -0.1)),
-                        Vec3::new(0.4, 0.6, 0.2),
-                        m.yaw,
-                    );
+                    b.solid_box(pose.transform_point3(Vec3::new(0.0, 0.3, -0.1)), Vec3::new(0.4, 0.6, 0.2), m.yaw);
                 }
                 let opens = m.opens.iter().map(|o| intern(c, k, o)).collect();
-                c.levers.push(Lever {
-                    pos,
-                    yaw: m.yaw,
-                    level: k,
-                    opens,
-                });
+                c.levers.push(Lever { pos, yaw: m.yaw, level: k, opens });
             }
             "gate" => {
                 let s = id(c, "gate");
-                c.gates.push(Gate {
-                    pos,
-                    yaw: m.yaw,
-                    width: m.width.unwrap_or(GATE_W),
-                    level: k,
-                    switch: s,
-                    key: keyed.contains(&s),
-                });
+                c.gates.push(Gate { pos, yaw: m.yaw, width: m.width.unwrap_or(GATE_W), level: k, switch: s, key: keyed.contains(&s) });
             }
             "shortcut" => {
                 let s = id(c, "shortcut");
@@ -907,79 +692,33 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if b.place_mounted(KIT_SHORTCUT, pose) {
                     // Buen over døra og vangene (muren rundt er nivåets).
                     let w = m.width.unwrap_or(1.6);
-                    b.solid_box(
-                        pose.transform_point3(Vec3::new(0.0, SHORTCUT_H + 0.2, 0.0)),
-                        Vec3::new(w + 0.6, 0.4, 0.5),
-                        m.yaw,
-                    );
+                    b.solid_box(pose.transform_point3(Vec3::new(0.0, SHORTCUT_H + 0.2, 0.0)), Vec3::new(w + 0.6, 0.4, 0.5), m.yaw);
                     for sx in [-1.0f32, 1.0] {
-                        b.solid_box(
-                            pose.transform_point3(Vec3::new(
-                                sx * (w * 0.5 + 0.15),
-                                SHORTCUT_H * 0.5,
-                                0.0,
-                            )),
-                            Vec3::new(0.3, SHORTCUT_H, 0.5),
-                            m.yaw,
-                        );
+                        b.solid_box(pose.transform_point3(Vec3::new(sx * (w * 0.5 + 0.15), SHORTCUT_H * 0.5, 0.0)), Vec3::new(0.3, SHORTCUT_H, 0.5), m.yaw);
                     }
                 }
-                c.shortcuts.push(Shortcut {
-                    pos,
-                    yaw: m.yaw,
-                    width: m.width.unwrap_or(1.6),
-                    level: k,
-                    switch: s,
-                    latch,
-                });
+                c.shortcuts.push(Shortcut { pos, yaw: m.yaw, width: m.width.unwrap_or(1.6), level: k, switch: s, latch });
             }
             "secret_wall" => {
                 let s = id(c, "secret");
-                c.secrets.push(Secret {
-                    pos,
-                    yaw: m.yaw,
-                    width: m.width.unwrap_or(2.0),
-                    height: m.height.unwrap_or(2.6),
-                    level: k,
-                    switch: s,
-                });
+                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s });
             }
             "trapdoor" => {
                 let s = id(c, "trapdoor");
                 let (sw, sd) = m.size.map(|s| s.wd()).unwrap_or((1.6, 1.6));
-                let lid = !matches!(
-                    m.label.as_deref(),
-                    Some("shaft") | Some("sjakt") | Some("hole")
-                );
+                let lid = !matches!(m.label.as_deref(), Some("shaft") | Some("sjakt") | Some("hole"));
                 let bolted = matches!(m.label.as_deref(), Some("bolted") | Some("boltet"));
-                c.trapdoors.push(Trapdoor {
-                    pos,
-                    yaw: m.yaw,
-                    size: Vec2::new(sw, sd),
-                    level: k,
-                    switch: s,
-                    to: m.to.as_deref().and_then(room_ix),
-                    lid,
-                    bolted,
-                });
+                c.trapdoors.push(Trapdoor { pos, yaw: m.yaw, size: Vec2::new(sw, sd), level: k, switch: s, to: m.to.as_deref().and_then(room_ix), lid, bolted });
             }
             "ladder" => {
                 let top = m.top.map(w).unwrap_or(pos + Vec3::Y * 3.0);
                 if let Some((lo, hi)) = b.bounds(KIT_LADDER) {
                     let s = ((top.y - pos.y) / (hi.y - lo.y).max(0.1)).max(0.2);
-                    b.place_mounted(
-                        KIT_LADDER,
-                        pose * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)),
-                    );
+                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
                 } else {
                     b.place_mounted(KIT_LADDER, pose);
                 }
-                c.ladders.push(Ladder {
-                    pos,
-                    yaw: m.yaw,
-                    top,
-                    level: k,
-                });
+                c.ladders.push(Ladder { pos, yaw: m.yaw, top, level: k });
             }
             "trap" => {
                 let kind = match m.label.as_deref().unwrap_or("arrows") {
@@ -999,13 +738,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 }
                 .normalize_or(Vec3::X);
                 b.place(KIT_PLATE, pose);
-                c.traps.push(Trap {
-                    kind,
-                    pos,
-                    size: Vec2::new(sw, sd),
-                    dir,
-                    level: k,
-                });
+                c.traps.push(Trap { kind, pos, size: Vec2::new(sw, sd), dir, level: k });
             }
             "hint" => {
                 let kind = match m.label.as_deref().unwrap_or("crack") {
@@ -1016,11 +749,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if kind == HintKind::Crack {
                     b.place_mounted(KIT_CRACK, pose);
                 }
-                c.hints.push(Hint {
-                    kind,
-                    pos,
-                    level: k,
-                });
+                c.hints.push(Hint { kind, pos, level: k });
             }
             "prop" => {
                 // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.
@@ -1034,23 +763,14 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "lift" | "water" => {
                 log::info!("Kryptnivå {n}: {} ({:?}) gjør ingenting ennå", m.kind, m.id);
-                c.pending.push(Pending {
-                    kind: m.kind.clone(),
-                    id: m.id.clone(),
-                    pos,
-                    level: k,
-                });
+                c.pending.push(Pending { kind: m.kind.clone(), id: m.id.clone(), pos, level: k });
             }
             other => log::warn!("Kryptnivå {n}: ukjent merke «{other}»"),
         }
     }
     b.origin = None;
     // Trekket ved en hemmelighet får lysene nær den til å blafre.
-    for h in c
-        .hints
-        .iter()
-        .filter(|h| h.level == k && h.kind == HintKind::Draft)
-    {
+    for h in c.hints.iter().filter(|h| h.level == k && h.kind == HintKind::Draft) {
         for l in b.lights[light_start..].iter_mut() {
             if l.pos.distance(h.pos) < 4.0 {
                 l.flicker = l.flicker.max(0.35);
@@ -1058,14 +778,6 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         }
     }
     level.rooms = rooms;
-    log::info!(
-        "Kryptnivå {n} ({}): {} rom, {} polygoner, origo ({:.0}, {:.0}, {:.0})",
-        level.name,
-        level.rooms.len(),
-        level.nav.polys.len(),
-        origin.x,
-        origin.y,
-        origin.z
-    );
+    log::info!("Kryptnivå {n} ({}): {} rom, {} polygoner, origo ({:.0}, {:.0}, {:.0})", level.name, level.rooms.len(), level.nav.polys.len(), origin.x, origin.y, origin.z);
     c.levels.push(level);
 }

@@ -9,11 +9,11 @@
 //! 3. Glød og tonemapping til skjermen.
 
 use crate::domain::geometry::{flag, kind, Chunk, Layer, Mesh, Vertex, LAYERS};
+use crate::ports::{Bench, Quality};
 use crate::domain::model::LayerImages;
+use crate::ports;
 pub use crate::domain::scene::{Frame, Weather};
 use crate::domain::scene::{Frustum, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE};
-use crate::ports;
-use crate::ports::{Bench, Quality};
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
@@ -40,15 +40,7 @@ struct GpuVertex {
 impl GpuVertex {
     fn from(v: &Vertex) -> Self {
         let q = |x: f32| (x.clamp(-1.0, 1.0) * 127.0).round() as i8;
-        Self {
-            pos: v.pos,
-            normal: [q(v.normal[0]), q(v.normal[1]), q(v.normal[2]), 0],
-            uv: v.uv,
-            color: v.color,
-            mat: v.mat,
-            joints: v.joints,
-            weights: v.weights,
-        }
+        Self { pos: v.pos, normal: [q(v.normal[0]), q(v.normal[1]), q(v.normal[2]), 0], uv: v.uv, color: v.color, mat: v.mat, joints: v.joints, weights: v.weights }
     }
 }
 
@@ -150,18 +142,10 @@ pub struct InstanceData {
 
 impl InstanceData {
     pub fn new(t: &Affine3A, extra: [f32; 4]) -> Self {
-        Self {
-            model: Mat4::from(*t).to_cols_array_2d(),
-            extra,
-            extra2: [0.0; 4],
-        }
+        Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [0.0; 4] }
     }
     pub fn skinned(t: &Affine3A, extra: [f32; 4], base: u32) -> Self {
-        Self {
-            model: Mat4::from(*t).to_cols_array_2d(),
-            extra,
-            extra2: [base as f32 + 1.0, 0.0, 0.0, 0.0],
-        }
+        Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [base as f32 + 1.0, 0.0, 0.0, 0.0] }
     }
     const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: INSTANCE_STRIDE,
@@ -183,10 +167,7 @@ impl GpuMesh {
         let (v, i32s): (Vec<GpuVertex>, Vec<u32>) = if mesh.indices.is_empty() {
             (vec![GpuVertex::zeroed()], vec![0u32; 3])
         } else {
-            (
-                mesh.vertices.iter().map(GpuVertex::from).collect(),
-                mesh.indices.clone(),
-            )
+            (mesh.vertices.iter().map(GpuVertex::from).collect(), mesh.indices.clone())
         };
         let (format, i): (wgpu::IndexFormat, Vec<u8>) = if v.len() <= u16::MAX as usize {
             // Et jevnt antall, så bufferet er delelig på fire.
@@ -194,30 +175,17 @@ impl GpuMesh {
             if short.len() % 2 == 1 {
                 short.push(0);
             }
-            (
-                wgpu::IndexFormat::Uint16,
-                bytemuck::cast_slice(&short).to_vec(),
-            )
+            (wgpu::IndexFormat::Uint16, bytemuck::cast_slice(&short).to_vec())
         } else {
-            (
-                wgpu::IndexFormat::Uint32,
-                bytemuck::cast_slice(&i32s).to_vec(),
-            )
+            (wgpu::IndexFormat::Uint32, bytemuck::cast_slice(&i32s).to_vec())
         };
         Self {
-            vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(label),
-                contents: bytemuck::cast_slice(&v),
-                usage: wgpu::BufferUsages::VERTEX,
-            }),
-            indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(label),
-                contents: &i,
-                usage: wgpu::BufferUsages::INDEX,
-            }),
+            vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: bytemuck::cast_slice(&v), usage: wgpu::BufferUsages::VERTEX }),
+            indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor { label: Some(label), contents: &i, usage: wgpu::BufferUsages::INDEX }),
             format,
         }
     }
+
 
     fn bind(&self, pass: &mut wgpu::RenderPass) {
         pass.set_vertex_buffer(0, self.vertices.slice(..));
@@ -335,11 +303,7 @@ const REGIONS: u32 = 2;
 fn world_aabb(t: &Affine3A, lo: Vec3, hi: Vec3) -> (Vec3, Vec3) {
     let (mut wlo, mut whi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
     for k in 0..8 {
-        let c = Vec3::new(
-            if k & 1 == 0 { lo.x } else { hi.x },
-            if k & 2 == 0 { lo.y } else { hi.y },
-            if k & 4 == 0 { lo.z } else { hi.z },
-        );
+        let c = Vec3::new(if k & 1 == 0 { lo.x } else { hi.x }, if k & 2 == 0 { lo.y } else { hi.y }, if k & 4 == 0 { lo.z } else { hi.z });
         let w = t.transform_point3(c);
         wlo = wlo.min(w);
         whi = whi.max(w);
@@ -402,34 +366,10 @@ struct SceneSources {
 }
 
 impl SceneSources {
-    fn pipes(
-        &self,
-        device: &wgpu::Device,
-        samples: u32,
-        a2c: bool,
-        hdr: wgpu::TextureFormat,
-    ) -> ScenePipes {
-        let depth = |write: bool, compare: wgpu::CompareFunction| {
-            Some(wgpu::DepthStencilState {
-                format: DEPTH,
-                depth_write_enabled: write,
-                depth_compare: compare,
-                stencil: Default::default(),
-                bias: Default::default(),
-            })
-        };
-        let ms = |a2c: bool| wgpu::MultisampleState {
-            count: samples,
-            mask: !0,
-            alpha_to_coverage_enabled: a2c && samples > 1,
-        };
-        let target = |blend: Option<wgpu::BlendState>| {
-            [Some(wgpu::ColorTargetState {
-                format: hdr,
-                blend,
-                write_mask: wgpu::ColorWrites::ALL,
-            })]
-        };
+    fn pipes(&self, device: &wgpu::Device, samples: u32, a2c: bool, hdr: wgpu::TextureFormat) -> ScenePipes {
+        let depth = |write: bool, compare: wgpu::CompareFunction| Some(wgpu::DepthStencilState { format: DEPTH, depth_write_enabled: write, depth_compare: compare, stencil: Default::default(), bias: Default::default() });
+        let ms = |a2c: bool| wgpu::MultisampleState { count: samples, mask: !0, alpha_to_coverage_enabled: a2c && samples > 1 };
+        let target = |blend: Option<wgpu::BlendState>| [Some(wgpu::ColorTargetState { format: hdr, blend, write_mask: wgpu::ColorWrites::ALL })];
         let buffers = [VERTEX_LAYOUT, InstanceData::LAYOUT];
         // Det ugjennomsiktige uten alpha to coverage og uten `discard` (begge
         // skrur av tidlig dybdetest på Apple-GPU-er); alfakortene for seg.
@@ -437,25 +377,12 @@ impl SceneSources {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(label),
                 layout: Some(&self.world_layout),
-                vertex: wgpu::VertexState {
-                    module: &self.world,
-                    entry_point: Some("vs"),
-                    compilation_options: Default::default(),
-                    buffers: &buffers,
-                },
-                primitive: wgpu::PrimitiveState {
-                    cull_mode: None,
-                    ..Default::default()
-                },
+                vertex: wgpu::VertexState { module: &self.world, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &buffers },
+                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
                 depth_stencil: depth(true, wgpu::CompareFunction::Less),
                 // Alfakortene skriver dekningen i alfa, som blir til MSAA-prøver.
                 multisample: ms(a2c),
-                fragment: Some(wgpu::FragmentState {
-                    module: &self.world,
-                    entry_point: Some(entry),
-                    compilation_options: Default::default(),
-                    targets: &target(None),
-                }),
+                fragment: Some(wgpu::FragmentState { module: &self.world, entry_point: Some(entry), compilation_options: Default::default(), targets: &target(None) }),
                 multiview: None,
                 cache: None,
             })
@@ -465,89 +392,38 @@ impl SceneSources {
         let sky = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("sky"),
             layout: Some(&self.simple_layout),
-            vertex: wgpu::VertexState {
-                module: &self.sky,
-                entry_point: Some("vs"),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
+            vertex: wgpu::VertexState { module: &self.sky, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
             primitive: Default::default(),
             depth_stencil: depth(false, wgpu::CompareFunction::LessEqual),
             multisample: ms(false),
-            fragment: Some(wgpu::FragmentState {
-                module: &self.sky,
-                entry_point: Some("fs"),
-                compilation_options: Default::default(),
-                targets: &target(None),
-            }),
+            fragment: Some(wgpu::FragmentState { module: &self.sky, entry_point: Some("fs"), compilation_options: Default::default(), targets: &target(None) }),
             multiview: None,
             cache: None,
         });
         let particles = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("particles"),
             layout: Some(&self.simple_layout),
-            vertex: wgpu::VertexState {
-                module: &self.particles,
-                entry_point: Some("vs"),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleStrip,
-                cull_mode: None,
-                ..Default::default()
-            },
+            vertex: wgpu::VertexState { module: &self.particles, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
+            primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::TriangleStrip, cull_mode: None, ..Default::default() },
             depth_stencil: depth(false, wgpu::CompareFunction::Less),
             multisample: ms(false),
-            fragment: Some(wgpu::FragmentState {
-                module: &self.particles,
-                entry_point: Some("fs"),
-                compilation_options: Default::default(),
-                targets: &target(Some(wgpu::BlendState::ALPHA_BLENDING)),
-            }),
+            fragment: Some(wgpu::FragmentState { module: &self.particles, entry_point: Some("fs"), compilation_options: Default::default(), targets: &target(Some(wgpu::BlendState::ALPHA_BLENDING)) }),
             multiview: None,
             cache: None,
         });
-        let line_buffers = [wgpu::VertexBufferLayout {
-            array_stride: 24,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3],
-        }];
+        let line_buffers = [wgpu::VertexBufferLayout { array_stride: 24, step_mode: wgpu::VertexStepMode::Vertex, attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3] }];
         let lines = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("lines"),
             layout: Some(&self.simple_layout),
-            vertex: wgpu::VertexState {
-                module: &self.lines,
-                entry_point: Some("vs"),
-                compilation_options: Default::default(),
-                buffers: &line_buffers,
-            },
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::LineList,
-                cull_mode: None,
-                ..Default::default()
-            },
+            vertex: wgpu::VertexState { module: &self.lines, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &line_buffers },
+            primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::LineList, cull_mode: None, ..Default::default() },
             depth_stencil: depth(false, wgpu::CompareFunction::Always),
             multisample: ms(false),
-            fragment: Some(wgpu::FragmentState {
-                module: &self.lines,
-                entry_point: Some("fs"),
-                compilation_options: Default::default(),
-                targets: &target(None),
-            }),
+            fragment: Some(wgpu::FragmentState { module: &self.lines, entry_point: Some("fs"), compilation_options: Default::default(), targets: &target(None) }),
             multiview: None,
             cache: None,
         });
-        ScenePipes {
-            samples,
-            a2c,
-            hdr,
-            world,
-            cutout,
-            sky,
-            particles,
-            lines,
-        }
+        ScenePipes { samples, a2c, hdr, world, cutout, sky, particles, lines }
     }
 }
 
@@ -633,22 +509,13 @@ fn tex_entry(binding: u32, sample_type: wgpu::TextureSampleType) -> wgpu::BindGr
     wgpu::BindGroupLayoutEntry {
         binding,
         visibility: wgpu::ShaderStages::FRAGMENT,
-        ty: wgpu::BindingType::Texture {
-            sample_type,
-            view_dimension: wgpu::TextureViewDimension::D2,
-            multisampled: false,
-        },
+        ty: wgpu::BindingType::Texture { sample_type, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
         count: None,
     }
 }
 
 fn sampler_entry(binding: u32, ty: wgpu::SamplerBindingType) -> wgpu::BindGroupLayoutEntry {
-    wgpu::BindGroupLayoutEntry {
-        binding,
-        visibility: wgpu::ShaderStages::FRAGMENT,
-        ty: wgpu::BindingType::Sampler(ty),
-        count: None,
-    }
+    wgpu::BindGroupLayoutEntry { binding, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Sampler(ty), count: None }
 }
 
 const FILTER: wgpu::TextureSampleType = wgpu::TextureSampleType::Float { filterable: true };
@@ -658,18 +525,9 @@ const FILTER: wgpu::TextureSampleType = wgpu::TextureSampleType::Float { filtera
 fn max_samples(adapter: &wgpu::Adapter, device: &wgpu::Device, wanted: &[u32]) -> u32 {
     let ok = |n: u32| {
         // Annet enn 4 krever at kortets egne formategenskaper er slått på.
-        (n == 4
-            || device
-                .features()
-                .contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES))
-            && adapter
-                .get_texture_format_features(HDR)
-                .flags
-                .sample_count_supported(n)
-            && adapter
-                .get_texture_format_features(DEPTH)
-                .flags
-                .sample_count_supported(n)
+        (n == 4 || device.features().contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES))
+            && adapter.get_texture_format_features(HDR).flags.sample_count_supported(n)
+            && adapter.get_texture_format_features(DEPTH).flags.sample_count_supported(n)
     };
     wanted.iter().copied().find(|n| ok(*n)).unwrap_or(1)
 }
@@ -698,11 +556,7 @@ impl Renderer {
         // Leddpaletten for skinnede modeller, skrevet per bilde.
         let skins = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("skins"),
-            size: wgpu::Extent3d {
-                width: SKIN_W,
-                height: SKIN_ROWS,
-                depth_or_array_layers: 1,
-            },
+            size: wgpu::Extent3d { width: SKIN_W, height: SKIN_ROWS, depth_or_array_layers: 1 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -718,11 +572,7 @@ impl Renderer {
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
+                    ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: false }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
                     count: None,
                 },
             ],
@@ -731,14 +581,8 @@ impl Renderer {
             label: Some("globals"),
             layout: &globals_layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: globals.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&skins_view),
-                },
+                wgpu::BindGroupEntry { binding: 0, resource: globals.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&skins_view) },
             ],
         });
 
@@ -754,17 +598,12 @@ impl Renderer {
             device
                 .create_texture(&wgpu::TextureDescriptor {
                     label: Some(label),
-                    size: wgpu::Extent3d {
-                        width: size,
-                        height: size,
-                        depth_or_array_layers: 1,
-                    },
+                    size: wgpu::Extent3d { width: size, height: size, depth_or_array_layers: 1 },
                     mip_level_count: 1,
                     sample_count: 1,
                     dimension: wgpu::TextureDimension::D2,
                     format: DEPTH,
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                        | wgpu::TextureUsages::TEXTURE_BINDING,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
                     view_formats: &[],
                 })
                 .create_view(&Default::default())
@@ -781,32 +620,18 @@ impl Renderer {
         });
         let frame_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("frame"),
-            entries: &[
-                tex_entry(0, wgpu::TextureSampleType::Depth),
-                sampler_entry(1, wgpu::SamplerBindingType::Comparison),
-                uniform_entry(2, true),
-            ],
+            entries: &[tex_entry(0, wgpu::TextureSampleType::Depth), sampler_entry(1, wgpu::SamplerBindingType::Comparison), uniform_entry(2, true)],
         });
         let frame_bg_with = |shadow: &wgpu::TextureView| {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("frame"),
                 layout: &frame_layout,
                 entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(shadow),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&shadow_sampler),
-                    },
+                    wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(shadow) },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&shadow_sampler) },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                            buffer: &pass_buf,
-                            offset: 0,
-                            size: wgpu::BufferSize::new(16),
-                        }),
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding { buffer: &pass_buf, offset: 0, size: wgpu::BufferSize::new(16) }),
                     },
                 ],
             })
@@ -815,56 +640,21 @@ impl Renderer {
         let shadow_frame_bg = frame_bg_with(&depth_tex("dummy shadow", 1));
         let post_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("post"),
-            entries: &[
-                tex_entry(0, FILTER),
-                tex_entry(1, FILTER),
-                sampler_entry(2, wgpu::SamplerBindingType::Filtering),
-                uniform_entry(3, false),
-            ],
+            entries: &[tex_entry(0, FILTER), tex_entry(1, FILTER), sampler_entry(2, wgpu::SamplerBindingType::Filtering), uniform_entry(3, false)],
         });
 
         let noise = include_str!("shaders/noise.wgsl");
         let common = include_str!("shaders/common.wgsl");
         let shadow_src = include_str!("shaders/shadow.wgsl");
-        let world_mod = shader(
-            &device,
-            "world",
-            &[
-                noise,
-                common,
-                shadow_src,
-                include_str!("shaders/world.wgsl"),
-            ],
-        );
-        let sky_mod = shader(
-            &device,
-            "sky",
-            &[noise, common, include_str!("shaders/sky.wgsl")],
-        );
-        let particle_mod = shader(
-            &device,
-            "particles",
-            &[noise, common, include_str!("shaders/particles.wgsl")],
-        );
-        let line_mod = shader(
-            &device,
-            "lines",
-            &[noise, common, include_str!("shaders/lines.wgsl")],
-        );
-        let post_mod = shader(
-            &device,
-            "post",
-            &[common, include_str!("shaders/post.wgsl")],
-        );
+        let world_mod = shader(&device, "world", &[noise, common, shadow_src, include_str!("shaders/world.wgsl")]);
+        let sky_mod = shader(&device, "sky", &[noise, common, include_str!("shaders/sky.wgsl")]);
+        let particle_mod = shader(&device, "particles", &[noise, common, include_str!("shaders/particles.wgsl")]);
+        let line_mod = shader(&device, "lines", &[noise, common, include_str!("shaders/lines.wgsl")]);
+        let post_mod = shader(&device, "post", &[common, include_str!("shaders/post.wgsl")]);
 
         let world_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("world"),
-            bind_group_layouts: &[
-                &globals_layout,
-                &frame_layout,
-                &materials.layout,
-                &materials.model_layout,
-            ],
+            bind_group_layouts: &[&globals_layout, &frame_layout, &materials.layout, &materials.model_layout],
             push_constant_ranges: &[],
         });
         let simple_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -885,26 +675,14 @@ impl Renderer {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(label),
                 layout: Some(&world_layout),
-                vertex: wgpu::VertexState {
-                    module: &world_mod,
-                    entry_point: Some("vs_shadow"),
-                    compilation_options: Default::default(),
-                    buffers: &buffers,
-                },
-                primitive: wgpu::PrimitiveState {
-                    cull_mode: None,
-                    ..Default::default()
-                },
+                vertex: wgpu::VertexState { module: &world_mod, entry_point: Some("vs_shadow"), compilation_options: Default::default(), buffers: &buffers },
+                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
                 depth_stencil: Some(wgpu::DepthStencilState {
                     format: DEPTH,
                     depth_write_enabled: true,
                     depth_compare: wgpu::CompareFunction::Less,
                     stencil: Default::default(),
-                    bias: wgpu::DepthBiasState {
-                        constant: 2,
-                        slope_scale: 2.5,
-                        clamp: 0.0,
-                    },
+                    bias: wgpu::DepthBiasState { constant: 2, slope_scale: 2.5, clamp: 0.0 },
                 }),
                 multisample: Default::default(),
                 fragment,
@@ -913,65 +691,33 @@ impl Renderer {
             })
         };
         let shadow_pipe = shadow_with("shadow", None);
-        let shadow_cutout = shadow_with(
-            "shadow cutout",
-            Some(wgpu::FragmentState {
-                module: &world_mod,
-                entry_point: Some("fs_shadow"),
-                compilation_options: Default::default(),
-                targets: &[],
-            }),
-        );
-        let samples = (
-            max_samples(adapter, &device, &[4]),
-            max_samples(adapter, &device, &[8, 4]),
-        );
+        let shadow_cutout = shadow_with("shadow cutout", Some(wgpu::FragmentState { module: &world_mod, entry_point: Some("fs_shadow"), compilation_options: Default::default(), targets: &[] }));
+        let samples = (max_samples(adapter, &device, &[4]), max_samples(adapter, &device, &[8, 4]));
         log::info!("MSAA i målingen: {}× og {}×", samples.0, samples.1);
-        let sources = SceneSources {
-            world: world_mod,
-            sky: sky_mod,
-            particles: particle_mod,
-            lines: line_mod,
-            world_layout,
-            simple_layout,
-        };
+        let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, lines: line_mod, world_layout, simple_layout };
         // Spillet starter i standard grafikk; verten bytter med `set_quality`.
         let scene_pipes = sources.pipes(&device, 1, true, HDR);
 
-        let post_pipe =
-            |entry: &str, format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>| {
-                device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                    label: Some(entry),
-                    layout: Some(&post_pipe_layout),
-                    vertex: wgpu::VertexState {
-                        module: &post_mod,
-                        entry_point: Some("vs"),
-                        compilation_options: Default::default(),
-                        buffers: &[],
-                    },
-                    primitive: Default::default(),
-                    depth_stencil: None,
-                    multisample: Default::default(),
-                    fragment: Some(wgpu::FragmentState {
-                        module: &post_mod,
-                        entry_point: Some(entry),
-                        compilation_options: Default::default(),
-                        targets: &[Some(wgpu::ColorTargetState {
-                            format,
-                            blend,
-                            write_mask: wgpu::ColorWrites::ALL,
-                        })],
-                    }),
-                    multiview: None,
-                    cache: None,
-                })
-            };
+        let post_pipe = |entry: &str, format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(entry),
+                layout: Some(&post_pipe_layout),
+                vertex: wgpu::VertexState { module: &post_mod, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
+                primitive: Default::default(),
+                depth_stencil: None,
+                multisample: Default::default(),
+                fragment: Some(wgpu::FragmentState {
+                    module: &post_mod,
+                    entry_point: Some(entry),
+                    compilation_options: Default::default(),
+                    targets: &[Some(wgpu::ColorTargetState { format, blend, write_mask: wgpu::ColorWrites::ALL })],
+                }),
+                multiview: None,
+                cache: None,
+            })
+        };
         let additive = wgpu::BlendState {
-            color: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::One,
-                dst_factor: wgpu::BlendFactor::One,
-                operation: wgpu::BlendOperation::Add,
-            },
+            color: wgpu::BlendComponent { src_factor: wgpu::BlendFactor::One, dst_factor: wgpu::BlendFactor::One, operation: wgpu::BlendOperation::Add },
             alpha: wgpu::BlendComponent::REPLACE,
         };
         let down_pipe = post_pipe("fs_down", HDR, None);
@@ -1028,23 +774,12 @@ impl Renderer {
                             // Utseendet: lagene for de fire rollene (5 bit hver, bit 20
                             // slår det på), tonen, og flammefargen i extra2.y.
                             Some(l) => {
-                                let roles = l
-                                    .layers
-                                    .iter()
-                                    .enumerate()
-                                    .fold(1u32 << 20, |acc, (k, layer)| {
-                                        acc | (*layer as u32 & 31) << (5 * k)
-                                    });
-                                let mut inst = InstanceData::new(
-                                    t,
-                                    [0.0, packed(tint), roles as f32, packed(&l.tint)],
-                                );
+                                let roles = l.layers.iter().enumerate().fold(1u32 << 20, |acc, (k, layer)| acc | (*layer as u32 & 31) << (5 * k));
+                                let mut inst = InstanceData::new(t, [0.0, packed(tint), roles as f32, packed(&l.tint)]);
                                 inst.extra2[1] = packed(&l.flame);
                                 inst
                             }
-                            None => {
-                                InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic])
-                            }
+                            None => InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]),
                         };
                         (inst, wlo, whi)
                     })
@@ -1069,11 +804,7 @@ impl Renderer {
                             c.hi = c.hi.max(p.2);
                             c.range.end = k as u32 + 1;
                         }
-                        _ => cells.push(InstanceCell {
-                            lo: p.1,
-                            hi: p.2,
-                            range: k as u32..k as u32 + 1,
-                        }),
+                        _ => cells.push(InstanceCell { lo: p.1, hi: p.2, range: k as u32..k as u32 + 1 }),
                     }
                     last = Some(id);
                 }
@@ -1084,10 +815,7 @@ impl Renderer {
                 }
                 let originals: Vec<InstanceData> = placements.iter().map(|p| p.0).collect();
                 let mut data: Vec<InstanceData> = placements.iter().map(|p| p.0).collect();
-                data.resize(
-                    placements.len() + pl.reserve * REGIONS as usize,
-                    InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]),
-                );
+                data.resize(placements.len() + pl.reserve * REGIONS as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
                 if data.is_empty() {
                     data.push(InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
                 }
@@ -1096,33 +824,16 @@ impl Renderer {
                 // Figurene får også et grovt nivå (leddene og vektene følger med
                 // fra hjørnet som blir stående), så de ikke tegnes med full
                 // detalj langt unna og i skyggene.
-                let far = m.far_mesh.clone().unwrap_or_else(|| {
-                    m.mesh.clustered(if m.far_cell > 0.0 {
-                        m.far_cell
-                    } else {
-                        size / 70.0
-                    })
-                });
+                let far = m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
                 let mut combined = m.mesh.clone();
                 let base = combined.vertices.len() as u32;
                 combined.vertices.extend_from_slice(&far.vertices);
-                combined
-                    .indices
-                    .extend(far.indices.iter().map(|i| i + base));
+                combined.indices.extend(far.indices.iter().map(|i| i + base));
                 let near_count = m.mesh.indices.len() as u32;
-                log::info!(
-                    "Modell {}: {} trekanter nær, {} fjern",
-                    m.name,
-                    near_count / 3,
-                    far.indices.len() / 3
-                );
+                log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far.indices.len() / 3);
                 Some(GpuModel {
                     name: m.name.clone(),
-                    cutout: m
-                        .mesh
-                        .vertices
-                        .iter()
-                        .any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
+                    cutout: m.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
                     far: near_count..combined.indices.len() as u32,
@@ -1157,16 +868,7 @@ impl Renderer {
             gpu_models.iter().map(|m| m.reserve).sum::<usize>()
         );
 
-        let targets = Self::make_targets(
-            &device,
-            &post_layout,
-            &linear,
-            1,
-            HDR,
-            Some(&smaa),
-            width,
-            height,
-        );
+        let targets = Self::make_targets(&device, &post_layout, &linear, 1, HDR, Some(&smaa), width, height);
         let chunks = scene.chunks.to_vec();
         let timer = timer::GpuTimer::new(&device, &queue);
         Self {
@@ -1183,11 +885,7 @@ impl Renderer {
             materials,
             shadow_pipe,
             shadow_cutout,
-            world_cutout: scene
-                .mesh
-                .vertices
-                .iter()
-                .any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
+            world_cutout: scene.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
             sources,
             scene: scene_pipes,
             down_pipe,
@@ -1214,16 +912,7 @@ impl Renderer {
         }
     }
 
-    fn make_targets(
-        device: &wgpu::Device,
-        post_layout: &wgpu::BindGroupLayout,
-        linear: &wgpu::Sampler,
-        samples: u32,
-        format: wgpu::TextureFormat,
-        smaa: Option<&smaa::Smaa>,
-        width: u32,
-        height: u32,
-    ) -> Targets {
+    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, smaa: Option<&smaa::Smaa>, width: u32, height: u32) -> Targets {
         let width = width.max(1);
         let height = height.max(1);
         let tex = |label: &str, w: u32, h: u32, format, samples: u32| {
@@ -1234,11 +923,7 @@ impl Renderer {
             device
                 .create_texture(&wgpu::TextureDescriptor {
                     label: Some(label),
-                    size: wgpu::Extent3d {
-                        width: w,
-                        height: h,
-                        depth_or_array_layers: 1,
-                    },
+                    size: wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 },
                     mip_level_count: 1,
                     sample_count: samples,
                     dimension: wgpu::TextureDimension::D2,
@@ -1269,49 +954,20 @@ impl Renderer {
                 label: Some("post"),
                 layout: post_layout,
                 entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(t0),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(t1),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::Sampler(linear),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: buf.as_entire_binding(),
-                    },
+                    wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(t0) },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(t1) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(linear) },
+                    wgpu::BindGroupEntry { binding: 3, resource: buf.as_entire_binding() },
                 ],
             });
             (bg, buf)
         };
         let down0_bg = bind(&hdr, &hdr);
-        let down_bg = (1..BLOOM_LEVELS)
-            .map(|i| bind(&bloom[i - 1].0, &bloom[i - 1].0))
-            .collect();
-        let up_bg = (1..BLOOM_LEVELS)
-            .rev()
-            .map(|i| bind(&bloom[i].0, &bloom[i].0))
-            .collect();
+        let down_bg = (1..BLOOM_LEVELS).map(|i| bind(&bloom[i - 1].0, &bloom[i - 1].0)).collect();
+        let up_bg = (1..BLOOM_LEVELS).rev().map(|i| bind(&bloom[i].0, &bloom[i].0)).collect();
         let tonemap_bg = bind(&hdr, &bloom[0].0);
         let smaa = smaa.map(|s| s.targets(device, width, height));
-        Targets {
-            width,
-            height,
-            color,
-            depth,
-            hdr,
-            bloom,
-            down0_bg,
-            down_bg,
-            up_bg,
-            tonemap_bg,
-            smaa,
-        }
+        Targets { width, height, color, depth, hdr, bloom, down0_bg, down_bg, up_bg, tonemap_bg, smaa }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -1319,26 +975,13 @@ impl Renderer {
         if width == self.targets.width && height == self.targets.height {
             return;
         }
-        self.targets = Self::make_targets(
-            &self.device,
-            &self.post_layout,
-            &self.linear,
-            self.scene.samples,
-            self.scene.hdr,
-            self.smaa_on(self.scene.samples).then_some(&self.smaa),
-            width,
-            height,
-        );
+        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, self.smaa_on(self.scene.samples).then_some(&self.smaa), width, height);
     }
 
     /// Millisekunder på grafikkortet per del av bildet (tomt om kortet
     /// ikke kan måle det).
     pub fn pass_times(&self) -> Vec<(&'static str, f32)> {
-        self.timer
-            .as_ref()
-            .filter(|_| self.bench.timers)
-            .map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect())
-            .unwrap_or_default()
+        self.timer.as_ref().filter(|_| self.bench.timers).map(|tm| timer::SECTIONS.iter().copied().zip(tm.ms).collect()).unwrap_or_default()
     }
 
     /// Hva hvert pass tegnet sist bilde, navngitt etter `PASSES`.
@@ -1378,35 +1021,11 @@ impl Renderer {
 
     fn apply(&mut self) {
         let samples = self.wanted_samples();
-        let hdr = if self.bench.small_hdr
-            && self
-                .device
-                .features()
-                .contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE)
-        {
-            wgpu::TextureFormat::Rg11b10Ufloat
-        } else {
-            HDR
-        };
+        let hdr = if self.bench.small_hdr && self.device.features().contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE) { wgpu::TextureFormat::Rg11b10Ufloat } else { HDR };
         let smaa = self.smaa_on(samples);
-        if samples != self.scene.samples
-            || self.bench.a2c != self.scene.a2c
-            || hdr != self.scene.hdr
-            || smaa != self.targets.smaa.is_some()
-        {
-            self.scene = self
-                .sources
-                .pipes(&self.device, samples, self.bench.a2c, hdr);
-            self.targets = Self::make_targets(
-                &self.device,
-                &self.post_layout,
-                &self.linear,
-                samples,
-                hdr,
-                smaa.then_some(&self.smaa),
-                self.targets.width,
-                self.targets.height,
-            );
+        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr || smaa != self.targets.smaa.is_some() {
+            self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c, hdr);
+            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, smaa.then_some(&self.smaa), self.targets.width, self.targets.height);
         }
     }
 
@@ -1437,30 +1056,15 @@ impl Renderer {
             }
         }
         let center = corners.iter().fold(Vec3::ZERO, |a, c| a + *c) / 8.0;
-        let radius = corners
-            .iter()
-            .map(|c| c.distance(center))
-            .fold(0.0, f32::max)
-            * 1.05;
-        let up = if f.sun_dir.y.abs() > 0.99 {
-            Vec3::Z
-        } else {
-            Vec3::Y
-        };
+        let radius = corners.iter().map(|c| c.distance(center)).fold(0.0, f32::max) * 1.05;
+        let up = if f.sun_dir.y.abs() > 0.99 { Vec3::Z } else { Vec3::Y };
         let view = Mat4::look_at_rh(f.sun_dir * 400.0, Vec3::ZERO, up);
         let texel = 2.0 * radius / SHADOW_RES as f32;
         let mut c = view.transform_point3(center);
         c.x = (c.x / texel).round() * texel;
         c.y = (c.y / texel).round() * texel;
         // z i lysrommet er negativt fremover. Ta med alt mellom lyset og sonen.
-        let proj = Mat4::orthographic_rh(
-            c.x - radius,
-            c.x + radius,
-            c.y - radius,
-            c.y + radius,
-            -c.z - radius - 200.0,
-            -c.z + radius,
-        );
+        let proj = Mat4::orthographic_rh(c.x - radius, c.x + radius, c.y - radius, c.y + radius, -c.z - radius - 200.0, -c.z + radius);
         proj * view
     }
 
@@ -1468,17 +1072,9 @@ impl Renderer {
     /// verken bildet eller skyggen ser dem) og vis de som ikke lenger er
     /// skjult, med dataene de ble lastet opp med.
     fn apply_hidden(&self, f: &Frame) {
-        let away = InstanceData::new(
-            &Affine3A::from_translation(Vec3::new(0.0, -1.0e6, 0.0)),
-            [0.0; 4],
-        );
+        let away = InstanceData::new(&Affine3A::from_translation(Vec3::new(0.0, -1.0e6, 0.0)), [0.0; 4]);
         for m in &self.models {
-            let mut want: Vec<u32> = f
-                .hidden
-                .iter()
-                .filter(|(name, _)| *name == m.name)
-                .filter_map(|(_, n)| m.slot_of.get(*n).copied())
-                .collect();
+            let mut want: Vec<u32> = f.hidden.iter().filter(|(name, _)| *name == m.name).filter_map(|(_, n)| m.slot_of.get(*n).copied()).collect();
             let mut now = m.hidden.borrow_mut();
             if want.is_empty() && now.is_empty() {
                 continue;
@@ -1486,18 +1082,10 @@ impl Renderer {
             want.sort_unstable();
             want.dedup();
             for slot in now.iter().filter(|s| !want.contains(s)) {
-                self.queue.write_buffer(
-                    &m.instances,
-                    *slot as u64 * INSTANCE_STRIDE,
-                    bytemuck::bytes_of(&m.originals[*slot as usize]),
-                );
+                self.queue.write_buffer(&m.instances, *slot as u64 * INSTANCE_STRIDE, bytemuck::bytes_of(&m.originals[*slot as usize]));
             }
             for slot in want.iter().filter(|s| !now.contains(s)) {
-                self.queue.write_buffer(
-                    &m.instances,
-                    *slot as u64 * INSTANCE_STRIDE,
-                    bytemuck::bytes_of(&away),
-                );
+                self.queue.write_buffer(&m.instances, *slot as u64 * INSTANCE_STRIDE, bytemuck::bytes_of(&away));
             }
             *now = want;
         }
@@ -1508,32 +1096,12 @@ impl Renderer {
         if f.lines.is_empty() {
             return 0;
         }
-        let data: Vec<[f32; 6]> = f
-            .lines
-            .iter()
-            .flat_map(|(a, b, c)| {
-                [
-                    [a.x, a.y, a.z, c.x, c.y, c.z],
-                    [b.x, b.y, b.z, c.x, c.y, c.z],
-                ]
-            })
-            .collect();
+        let data: Vec<[f32; 6]> = f.lines.iter().flat_map(|(a, b, c)| [[a.x, a.y, a.z, c.x, c.y, c.z], [b.x, b.y, b.z, c.x, c.y, c.z]]).collect();
         let bytes = bytemuck::cast_slice::<[f32; 6], u8>(&data);
         let mut buf = self.line_buf.borrow_mut();
-        if buf
-            .as_ref()
-            .is_none_or(|(_, cap)| *cap < bytes.len() as u64)
-        {
+        if buf.as_ref().is_none_or(|(_, cap)| *cap < bytes.len() as u64) {
             let cap = (bytes.len() as u64).next_power_of_two().max(4096);
-            *buf = Some((
-                self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("lines"),
-                    size: cap,
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }),
-                cap,
-            ));
+            *buf = Some((self.device.create_buffer(&wgpu::BufferDescriptor { label: Some("lines"), size: cap, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false }), cap));
         }
         let (b, _) = buf.as_ref().expect("bufferet");
         self.queue.write_buffer(b, 0, bytes);
@@ -1547,34 +1115,16 @@ impl Renderer {
         let (w, h) = (t.width as f32, t.height as f32);
         let view_proj = f.proj * f.view;
         // Nede i kjelleren når ikke sola ned: ingen skygge, og sollyset er av.
-        let shadows = f.rooms.is_none()
-            && f.band.1 >= 0.0
-            && self.quality != Quality::Simple
-            && self.bench.shadow;
+        let shadows = f.rooms.is_none() && f.band.1 >= 0.0 && self.quality != Quality::Simple && self.bench.shadow;
         let sun_vp = self.cascade(f, 0.1, SHADOW_FAR);
         // Småting kaster skygge bare nær.
-        let sun_cull = Cull {
-            frustum: Frustum::from_view_proj(sun_vp),
-            eye: f.camera,
-            fine_within: if self.reduced { 18.0 } else { 40.0 },
-            band: f.band,
-        };
-        let cam_cull = Cull {
-            frustum: Frustum::from_view_proj(view_proj),
-            eye: f.camera,
-            fine_within: if self.reduced { 35.0 } else { 70.0 },
-            band: f.band,
-        };
+        let sun_cull = Cull { frustum: Frustum::from_view_proj(sun_vp), eye: f.camera, fine_within: if self.reduced { 18.0 } else { 40.0 }, band: f.band };
+        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if self.reduced { 35.0 } else { 70.0 }, band: f.band };
         // Standard grafikk: grovere detalj tidligere og småting bare nær.
-        let model_near = if self.reduced {
-            MODEL_NEAR * 0.5
-        } else {
-            MODEL_NEAR
-        };
+        let model_near = if self.reduced { MODEL_NEAR * 0.5 } else { MODEL_NEAR };
         // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
         let culls = [sun_cull, cam_cull];
-        let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> =
-            Vec::with_capacity(self.models.len());
+        let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
         for m in &self.models {
             // De bevegelige instansene (figurene, fiendene, dyrene) legges
             // til de faste, innenfor plassen byen satte av.
@@ -1592,11 +1142,7 @@ impl Renderer {
                         let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
                         extra[1] = (c(t.x) << 16 | c(t.y) << 8 | c(t.z)) as f32;
                     }
-                    let inst = match i
-                        .skin
-                        .map(|(base, _)| base)
-                        .filter(|base| m.skinned && (*base as usize) < SKIN_MAX)
-                    {
+                    let inst = match i.skin.map(|(base, _)| base).filter(|base| m.skinned && (*base as usize) < SKIN_MAX) {
                         Some(base) => InstanceData::skinned(&i.transform, extra, base),
                         None => InstanceData::new(&i.transform, extra),
                     };
@@ -1618,10 +1164,7 @@ impl Renderer {
                     }
                     // Møblene kaster solskygge bare nær deg (i Smia, som
                     // er åpen mot torget, synes den).
-                    if m.indoor
-                        && r == 0
-                        && cam_cull.eye.clamp(lo, hi).distance(cam_cull.eye) > INDOOR_SHADOW
-                    {
+                    if m.indoor && r == 0 && cam_cull.eye.clamp(lo, hi).distance(cam_cull.eye) > INDOOR_SHADOW {
                         return None;
                     }
                     if self.reduced && m.small && d > if r == 1 { 32.0 } else { 12.0 } {
@@ -1658,33 +1201,20 @@ impl Renderer {
                         None => {}
                     }
                 }
-                dynamic.resize(
-                    r * m.reserve,
-                    InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]),
-                );
+                dynamic.resize(r * m.reserve, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
                 ModelDraw::push(&mut d.near, base..base + near.len() as u32);
-                ModelDraw::push(
-                    &mut d.far,
-                    base + near.len() as u32..base + (near.len() + far.len()) as u32,
-                );
+                ModelDraw::push(&mut d.far, base + near.len() as u32..base + (near.len() + far.len()) as u32);
                 dynamic.extend(near);
                 dynamic.extend(far);
             }
             if !dynamic.is_empty() {
-                self.queue.write_buffer(
-                    &m.instances,
-                    m.statics as u64 * INSTANCE_STRIDE,
-                    bytemuck::cast_slice(&dynamic),
-                );
+                self.queue.write_buffer(&m.instances, m.statics as u64 * INSTANCE_STRIDE, bytemuck::cast_slice(&dynamic));
             }
             model_draws.push(draws);
         }
         let mut lights = [GpuLight::zeroed(); MAX_LIGHTS];
         for (i, l) in f.lights.iter().take(MAX_LIGHTS).enumerate() {
-            lights[i] = GpuLight {
-                pos_radius: [l.pos.x, l.pos.y, l.pos.z, l.radius],
-                color_intensity: [l.color.x, l.color.y, l.color.z, l.intensity],
-            };
+            lights[i] = GpuLight { pos_radius: [l.pos.x, l.pos.y, l.pos.z, l.radius], color_intensity: [l.color.x, l.color.y, l.color.z, l.intensity] };
         }
         let mut smoke = [[0.0f32; 4]; MAX_SMOKE];
         for (i, s) in f.smoke.iter().take(MAX_SMOKE).enumerate() {
@@ -1696,13 +1226,7 @@ impl Renderer {
             palette[i] = v4(*c, 1.0);
         }
         let mut tex_scale = [[1.0f32; 4]; 16];
-        for (i, s) in self
-            .materials
-            .scales
-            .iter()
-            .enumerate()
-            .take(LAYERS as usize)
-        {
+        for (i, s) in self.materials.scales.iter().enumerate().take(LAYERS as usize) {
             tex_scale[i / 4][i % 4] = *s;
         }
         let wx = &f.weather;
@@ -1731,26 +1255,10 @@ impl Renderer {
             sun_dir: v4(f.sun_dir, if shadows { f.sun_intensity } else { 0.0 }),
             sun_color: v4(f.sun_color, f.night),
             sky_top: v4(f.sky_top, 0.0),
-            sky_horizon: v4(
-                f.sky_horizon,
-                if self.reduced && f.fog_density > 0.0 {
-                    (f.fog_density * 3.0).max(REDUCED_FOG)
-                } else {
-                    f.fog_density
-                },
-            ),
+            sky_horizon: v4(f.sky_horizon, if self.reduced && f.fog_density > 0.0 { (f.fog_density * 3.0).max(REDUCED_FOG) } else { f.fog_density }),
             ground_bounce: v4(f.ground_bounce, f.fog_falloff),
             fog_color: v4(f.fog_color, f.windows_lit),
-            params: [
-                f.exposure,
-                f.lights.len().min(match self.quality {
-                    Quality::Simple => 4,
-                    Quality::Standard => 8,
-                    Quality::Advanced => MAX_LIGHTS,
-                }) as f32,
-                1.0 / SHADOW_RES as f32,
-                f.street_lights,
-            ],
+            params: [f.exposure, f.lights.len().min(match self.quality { Quality::Simple => 4, Quality::Standard => 8, Quality::Advanced => MAX_LIGHTS }) as f32, 1.0 / SHADOW_RES as f32, f.street_lights],
             weather: [wx.wet, wx.snow_cover, wx.rain, wx.snow],
             screen: [w, h, 1.0 / w, 1.0 / h],
             misc: [wx.wind, self.scene.samples as f32, SHADOW_FADE, SHADOW_FAR],
@@ -1763,26 +1271,13 @@ impl Renderer {
             room_box,
             room_y,
             light_rooms,
-            quality: [
-                self.quality as u8 as f32,
-                if self.bench.flat { 1.0 } else { 0.0 },
-                0.0,
-                0.0,
-            ],
+            quality: [self.quality as u8 as f32, if self.bench.flat { 1.0 } else { 0.0 }, 0.0, 0.0],
         };
-        self.queue
-            .write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
+        self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 
         // Per pass for partiklene: regn, snø og røyk.
         let mut pass_data = vec![0u8; PASS_STRIDE as usize * 3];
-        for (i, v) in [
-            [0.0, wx.rain, 0.0, 0.0],
-            [1.0, wx.snow, 0.0, 0.0],
-            [2.0, 1.0, 0.0, 0.0f32],
-        ]
-        .iter()
-        .enumerate()
-        {
+        for (i, v) in [[0.0, wx.rain, 0.0, 0.0], [1.0, wx.snow, 0.0, 0.0], [2.0, 1.0, 0.0, 0.0f32]].iter().enumerate() {
             let at = i * PASS_STRIDE as usize;
             pass_data[at..at + 16].copy_from_slice(bytemuck::cast_slice(v));
         }
@@ -1790,8 +1285,7 @@ impl Renderer {
 
         // Den faste verdenen har én instans uten transform.
         let inst = [InstanceData::new(&Affine3A::IDENTITY, [0.0; 4])];
-        self.queue
-            .write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
+        self.queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(&inst));
 
         // Leddpaletten: matrisene kolonne for kolonne, fire texels hver.
         if !f.skins.is_empty() {
@@ -1805,23 +1299,10 @@ impl Renderer {
                 data[i * 16..i * 16 + 16].copy_from_slice(&m.to_cols_array());
             }
             self.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &self.skins,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
+                wgpu::TexelCopyTextureInfo { texture: &self.skins, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
                 bytemuck::cast_slice(&data),
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(SKIN_W * 16),
-                    rows_per_image: Some(rows),
-                },
-                wgpu::Extent3d {
-                    width: SKIN_W,
-                    height: rows,
-                    depth_or_array_layers: 1,
-                },
+                wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(SKIN_W * 16), rows_per_image: Some(rows) },
+                wgpu::Extent3d { width: SKIN_W, height: rows, depth_or_array_layers: 1 },
             );
         }
 
@@ -1829,12 +1310,7 @@ impl Renderer {
             let _ = self.device.poll(wgpu::PollType::Poll);
             tm.collect();
         }
-        let ts = |k: usize, begin: bool, end: bool| {
-            self.timer
-                .as_ref()
-                .filter(|_| self.bench.timers)
-                .and_then(|tm| tm.writes(k, begin, end))
-        };
+        let ts = |k: usize, begin: bool, end: bool| self.timer.as_ref().filter(|_| self.bench.timers).and_then(|tm| tm.writes(k, begin, end));
         let mut stats = [PassStats::default(); 2];
         let mut enc = self.device.create_command_encoder(&Default::default());
 
@@ -1845,10 +1321,7 @@ impl Renderer {
                 color_attachments: &[],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &self.shadow_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: wgpu::StoreOp::Store,
-                    }),
+                    depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }),
                     stencil_ops: None,
                 }),
                 timestamp_writes: ts(0, true, true),
@@ -1859,14 +1332,7 @@ impl Renderer {
                 pass.set_bind_group(1, &self.shadow_frame_bg, &[0]);
                 pass.set_bind_group(2, &self.materials.bind_group, &[]);
                 pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-                stats[0] = self.draw_all(
-                    &mut pass,
-                    &sun_cull,
-                    &model_draws,
-                    0,
-                    &self.shadow_pipe,
-                    &self.shadow_cutout,
-                );
+                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout);
             }
         }
 
@@ -1878,20 +1344,10 @@ impl Renderer {
             };
             let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("main"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store,
-                    },
-                })],
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment { view, resolve_target, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store } })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &t.depth,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: wgpu::StoreOp::Discard,
-                    }),
+                    depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Discard }),
                     stencil_ops: None,
                 }),
                 timestamp_writes: ts(1, true, true),
@@ -1901,14 +1357,7 @@ impl Renderer {
             pass.set_bind_group(1, &self.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            stats[1] = self.draw_all(
-                &mut pass,
-                &cam_cull,
-                &model_draws,
-                1,
-                &self.scene.world,
-                &self.scene.cutout,
-            );
+            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, &self.scene.world, &self.scene.cutout);
             self.triangles.set((stats[1].world, 0, stats[1].models));
             if self.bench.sky {
                 pass.set_pipeline(&self.scene.sky);
@@ -1939,118 +1388,45 @@ impl Renderer {
 
         // 3. Glød og tonemapping til skjermen.
         let post = |buf: &wgpu::Buffer, params: [f32; 4], sw: u32, sh: u32| {
-            let u = PostUniform {
-                params,
-                texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32],
-            };
+            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32] };
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
-        let fullscreen =
-            |enc: &mut wgpu::CommandEncoder,
-             label: &str,
-             target: &wgpu::TextureView,
-             pipe: &wgpu::RenderPipeline,
-             bg: &wgpu::BindGroup,
-             load: wgpu::LoadOp<wgpu::Color>,
-             timestamps: Option<wgpu::RenderPassTimestampWrites>| {
-                let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some(label),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: target,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load,
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: timestamps,
-                    occlusion_query_set: None,
-                });
-                pass.set_pipeline(pipe);
-                pass.set_bind_group(0, &self.globals_bg, &[]);
-                pass.set_bind_group(1, bg, &[]);
-                pass.draw(0..3, 0..1);
-            };
+        let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>, timestamps: Option<wgpu::RenderPassTimestampWrites>| {
+            let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some(label),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: target, resolve_target: None, ops: wgpu::Operations { load, store: wgpu::StoreOp::Store } })],
+                depth_stencil_attachment: None,
+                timestamp_writes: timestamps,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(pipe);
+            pass.set_bind_group(0, &self.globals_bg, &[]);
+            pass.set_bind_group(1, bg, &[]);
+            pass.draw(0..3, 0..1);
+        };
         let clear = wgpu::LoadOp::Clear(wgpu::Color::BLACK);
         // Enkel grafikk: ingen glød (tonemappingen får styrke 0).
         let bloom = self.quality != Quality::Simple;
         for i in (0..BLOOM_LEVELS).filter(|_| bloom) {
-            let (bg, sw, sh) = if i == 0 {
-                (&t.down0_bg, t.width, t.height)
-            } else {
-                (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2)
-            };
-            post(
-                &bg.1,
-                [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }],
-                sw,
-                sh,
-            );
-            fullscreen(
-                &mut enc,
-                "bloom down",
-                &t.bloom[i].0,
-                &self.down_pipe,
-                &bg.0,
-                clear,
-                if i == 0 { ts(2, true, false) } else { None },
-            );
+            let (bg, sw, sh) = if i == 0 { (&t.down0_bg, t.width, t.height) } else { (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2) };
+            post(&bg.1, [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }], sw, sh);
+            fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear, if i == 0 { ts(2, true, false) } else { None });
         }
         for (k, i) in (1..BLOOM_LEVELS).rev().enumerate().filter(|_| bloom) {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
-            fullscreen(
-                &mut enc,
-                "bloom up",
-                &t.bloom[i - 1].0,
-                &self.up_pipe,
-                &t.up_bg[k].0,
-                wgpu::LoadOp::Load,
-                None,
-            );
+            fullscreen(&mut enc, "bloom up", &t.bloom[i - 1].0, &self.up_pipe, &t.up_bg[k].0, wgpu::LoadOp::Load, None);
         }
         match &t.smaa {
             // Med SMAA skriver tonemappingen gamma-kodet til mellombildet,
             // og kantutjevningen skriver til skjermen.
             Some(st) => {
-                post(
-                    &t.tonemap_bg.1,
-                    [f.exposure, if bloom { f.bloom } else { 0.0 }, 1.0, f.hurt],
-                    t.width,
-                    t.height,
-                );
-                fullscreen(
-                    &mut enc,
-                    "tonemap",
-                    &st.ldr,
-                    &self.tonemap_ldr,
-                    &t.tonemap_bg.0,
-                    clear,
-                    ts(2, !bloom, false),
-                );
+                post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, 1.0, f.hurt], t.width, t.height);
+                fullscreen(&mut enc, "tonemap", &st.ldr, &self.tonemap_ldr, &t.tonemap_bg.0, clear, ts(2, !bloom, false));
                 self.smaa.run(&mut enc, st, out, ts(2, false, true));
             }
             None => {
-                post(
-                    &t.tonemap_bg.1,
-                    [
-                        f.exposure,
-                        if bloom { f.bloom } else { 0.0 },
-                        if self.encode_srgb { 1.0 } else { 0.0 },
-                        f.hurt,
-                    ],
-                    t.width,
-                    t.height,
-                );
-                fullscreen(
-                    &mut enc,
-                    "tonemap",
-                    out,
-                    &self.tonemap_pipe,
-                    &t.tonemap_bg.0,
-                    clear,
-                    ts(2, !bloom, true),
-                );
+                post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
+                fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom, true));
             }
         }
 
@@ -2070,15 +1446,7 @@ impl Renderer {
     /// Returnerer hva som ble tegnet.
     /// Tegner bymeshen og modellene: det ugjennomsiktige med `opaque` først,
     /// så alfakortene med `cutout` (også bymeshen, om den har alfakort).
-    fn draw_all(
-        &self,
-        pass: &mut wgpu::RenderPass,
-        cull: &Cull,
-        model_draws: &[[ModelDraw; REGIONS as usize]],
-        region: usize,
-        opaque: &wgpu::RenderPipeline,
-        cutout: &wgpu::RenderPipeline,
-    ) -> PassStats {
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, opaque: &wgpu::RenderPipeline, cutout: &wgpu::RenderPipeline) -> PassStats {
         pass.set_pipeline(if self.world_cutout { cutout } else { opaque });
         let mut calls = 0u32;
         let mut instances = 0u32;
@@ -2101,11 +1469,7 @@ impl Renderer {
                 continue;
             }
             let fine = cull.fine_within > 0.0 && c.distance(cull.eye) < cull.fine_within;
-            let range = if fine {
-                c.coarse.start..c.fine.end
-            } else {
-                c.coarse.clone()
-            };
+            let range = if fine { c.coarse.start..c.fine.end } else { c.coarse.clone() };
             match &mut run {
                 Some(r) if r.end == range.start => r.end = range.end,
                 _ => {
@@ -2118,17 +1482,7 @@ impl Renderer {
         let world = indices / 3;
         let mut models = 0;
         // Først de ugjennomsiktige, så alfakortene med sin pipeline.
-        let order = self
-            .models
-            .iter()
-            .zip(model_draws)
-            .filter(|(m, _)| !m.cutout)
-            .chain(
-                self.models
-                    .iter()
-                    .zip(model_draws)
-                    .filter(|(m, _)| m.cutout),
-            );
+        let order = self.models.iter().zip(model_draws).filter(|(m, _)| !m.cutout).chain(self.models.iter().zip(model_draws).filter(|(m, _)| m.cutout));
         pass.set_pipeline(opaque);
         let mut switched = false;
         for (m, draws) in order {
@@ -2157,12 +1511,7 @@ impl Renderer {
                 instances += r.len() as u32;
             }
         }
-        PassStats {
-            world,
-            models,
-            calls,
-            instances,
-        }
+        PassStats { world, models, calls, instances }
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -2203,11 +1552,7 @@ impl Renderer {
     /// Leser ut et bakt teksturlag (albedo eller normal/ruhet/høyde) som
     /// RGBA8, til feilsøking.
     pub fn dump_layer(&self, layer: u32, nrh: bool) -> (u32, Vec<u8>) {
-        let tex = if nrh {
-            &self.materials.nrh_tex
-        } else {
-            &self.materials.albedo_tex
-        };
+        let tex = if nrh { &self.materials.nrh_tex } else { &self.materials.albedo_tex };
         let size = tex.width();
         let buf = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("dump"),
@@ -2217,29 +1562,9 @@ impl Renderer {
         });
         let mut enc = self.device.create_command_encoder(&Default::default());
         enc.copy_texture_to_buffer(
-            wgpu::TexelCopyTextureInfo {
-                texture: tex,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: 0,
-                    y: 0,
-                    z: layer,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyBufferInfo {
-                buffer: &buf,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(size * 4),
-                    rows_per_image: Some(size),
-                },
-            },
-            wgpu::Extent3d {
-                width: size,
-                height: size,
-                depth_or_array_layers: 1,
-            },
+            wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: layer }, aspect: wgpu::TextureAspect::All },
+            wgpu::TexelCopyBufferInfo { buffer: &buf, layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(size * 4), rows_per_image: Some(size) } },
+            wgpu::Extent3d { width: size, height: size, depth_or_array_layers: 1 },
         );
         self.queue.submit([enc.finish()]);
         buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});

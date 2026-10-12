@@ -17,22 +17,12 @@ impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
         let mut session = Session::new(&prepared.world, &mut physics, &rigs(&prepared.models));
         session.edit_data = prepared.edit;
-        Self {
-            session,
-            input: Input::default(),
-            renderer,
-            physics,
-        }
+        Self { session, input: Input::default(), renderer, physics }
     }
 
     /// Det rendereren trenger for å lages, fra det monteringen ga.
     pub fn scene(prepared: &Prepared) -> StaticScene<'_> {
-        StaticScene {
-            mesh: &prepared.world.mesh,
-            chunks: &prepared.world.chunks,
-            placements: &prepared.world.placements,
-            models: &prepared.models,
-        }
+        StaticScene { mesh: &prepared.world.mesh, chunks: &prepared.world.chunks, placements: &prepared.world.placements, models: &prepared.models }
     }
 }
 
@@ -71,9 +61,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
             }
             Command::Respawn => self.session.go_home_now(),
             Command::Descend => {
-                let events = self
-                    .session
-                    .use_first(|u| *u == crate::domain::world::Use::Descend);
+                let events = self.session.use_first(|u| *u == crate::domain::world::Use::Descend);
                 self.session.queue(events);
             }
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
@@ -92,12 +80,6 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     }
 
     fn status(&self) -> Status {
-        Status {
-            weather: self.session.weather_kind(),
-            daylight: self.session.daylight(),
-            triangles: self.renderer.triangles(),
-            calls: self.renderer.calls(),
-            gpu_times: self.renderer.gpu_times(),
-        }
+        Status { weather: self.session.weather_kind(), daylight: self.session.daylight(), triangles: self.renderer.triangles(), calls: self.renderer.calls(), gpu_times: self.renderer.gpu_times() }
     }
 }

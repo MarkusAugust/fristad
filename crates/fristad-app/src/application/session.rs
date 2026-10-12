@@ -107,31 +107,19 @@ pub struct Session {
 
 impl Session {
     /// `rigs` er skjelettene til de skinnede modellene (navn, rigg).
-    pub fn new(
-        world: &World,
-        physics: &mut dyn Physics,
-        rigs: &[(String, crate::domain::anim::Rig)],
-    ) -> Self {
+    pub fn new(world: &World, physics: &mut dyn Physics, rigs: &[(String, crate::domain::anim::Rig)]) -> Self {
         for c in &world.colliders {
             physics.add(c);
         }
         let mut targets = vec![];
         let mut by_collider = HashMap::new();
         for (i, t) in world.targets.iter().enumerate() {
-            let collider =
-                physics.add_movable(t.half, t.pose * Affine3A::from_translation(t.center));
+            let collider = physics.add_movable(t.half, t.pose * Affine3A::from_translation(t.center));
             by_collider.insert(collider, i);
-            targets.push(TargetState {
-                target: *t,
-                collider,
-            });
+            targets.push(TargetState { target: *t, collider });
         }
         let rig_of = |n: &str| rigs.iter().find(|(m, _)| m == n).map(|(_, r)| r.clone());
-        let wells = world
-            .targets
-            .iter()
-            .filter(|t| matches!(t.what, Use::Well(_)))
-            .count();
+        let wells = world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count();
         Self {
             lights: world.lights.clone(),
             smoke: world.smoke.clone(),
@@ -150,32 +138,11 @@ impl Session {
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt_exit,
             portal: Portal::new(world.crypt.levels.len()),
-            portal_solids: town::PORTAL_SOLIDS
-                .iter()
-                .map(|(_, size)| physics.add_movable(*size * 0.5, away()))
-                .collect(),
+            portal_solids: town::PORTAL_SOLIDS.iter().map(|(_, size)| physics.add_movable(*size * 0.5, away())).collect(),
             map: Map::new(&world.crypt),
             herd: Herd::new(),
             sound: Soundscape::new(world),
-            npcs: Npcs::new(
-                rig_of,
-                world
-                    .npcs
-                    .iter()
-                    .map(|n| {
-                        (
-                            n.name,
-                            n.model,
-                            n.pos,
-                            n.yaw,
-                            n.tint,
-                            n.lines,
-                            n.route.clone(),
-                            n.height,
-                        )
-                    })
-                    .collect(),
-            ),
+            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone(), n.height)).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.crypt, rigs),
             mech: Mechanisms::new(&world.crypt, wells),
@@ -183,14 +150,7 @@ impl Session {
                 .crypt
                 .trapdoors
                 .iter()
-                .map(|t| {
-                    t.lid.then(|| {
-                        physics.add_movable(
-                            Vec3::new(t.size.x * 0.5, 0.05, t.size.y * 0.5),
-                            crate::domain::world::at(t.pos - Vec3::Y * 0.05, t.yaw),
-                        )
-                    })
-                })
+                .map(|t| t.lid.then(|| physics.add_movable(Vec3::new(t.size.x * 0.5, 0.05, t.size.y * 0.5), crate::domain::world::at(t.pos - Vec3::Y * 0.05, t.yaw))))
                 .collect(),
             run: Run::new(&world.crypt),
             crypt: world.crypt.clone(),
@@ -271,11 +231,7 @@ impl Session {
     }
 
     pub(super) fn forward(&self) -> Vec3 {
-        Vec3::new(
-            -self.yaw.sin() * self.pitch.cos(),
-            self.pitch.sin(),
-            -self.yaw.cos() * self.pitch.cos(),
-        )
+        Vec3::new(-self.yaw.sin() * self.pitch.cos(), self.pitch.sin(), -self.yaw.cos() * self.pitch.cos())
     }
 
     /// Hvor innbyggerne står nå (til testene).
@@ -333,18 +289,9 @@ impl Session {
         self.update_portal(dt, in_crypt, physics);
         self.update_map(in_crypt, &mut events);
         let hit = physics.cast_ray(eye, dir, 3.5);
-        self.aimed_mob = if in_crypt {
-            self.mobs.aimed(eye, dir, 2.6)
-        } else {
-            None
-        };
-        self.aim = if self.aimed_mob.is_some() {
-            None
-        } else {
-            hit.and_then(|h| self.by_collider.get(&h.collider).copied())
-        };
-        self.combat
-            .set_block(input.block && in_crypt && !self.paused);
+        self.aimed_mob = if in_crypt { self.mobs.aimed(eye, dir, 2.6) } else { None };
+        self.aim = if self.aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()) };
+        self.combat.set_block(input.block && in_crypt && !self.paused);
 
         for a in actions {
             self.act(a, wish, in_crypt, &mut events);
@@ -363,11 +310,7 @@ impl Session {
 
         // Dag og natt glir over i hverandre, og været mot målet.
         if self.sky.tick(dt, self.time) && !in_crypt {
-            events.push(Event::Sound(Sound {
-                name: "thunder".into(),
-                at: None,
-                gain: if self.sound.indoor { 0.6 } else { 1.0 },
-            }));
+            events.push(Event::Sound(Sound { name: "thunder".into(), at: None, gain: if self.sound.indoor { 0.6 } else { 1.0 } }));
         }
         // Oppe i dagslyset er det du bar trygt i lageret, uansett hvordan du
         // kom deg opp (døra i trappa, H eller «Tilbake til sørporten»).
@@ -387,48 +330,27 @@ impl Session {
 
     /// Gåing, stilling, hopp og skritt, og fall utfor kanten i krypten. Gir
     /// retningen du vil gå (til unnamanøveren).
-    fn walk(
-        &mut self,
-        input: &Input,
-        dt: f32,
-        physics: &mut dyn Physics,
-        events: &mut Vec<Event>,
-    ) -> Vec3 {
+    fn walk(&mut self, input: &Input, dt: f32, physics: &mut dyn Physics, events: &mut Vec<Event>) -> Vec3 {
         let mut wish = Vec3::ZERO;
         if !self.paused {
             let fwd = Vec3::new(-self.yaw.sin(), 0.0, -self.yaw.cos());
             let right = Vec3::new(-fwd.z, 0.0, fwd.x);
-            for (on, d) in [
-                (input.forward, fwd),
-                (input.back, -fwd),
-                (input.right, right),
-                (input.left, -right),
-            ] {
+            for (on, d) in [(input.forward, fwd), (input.back, -fwd), (input.right, right), (input.left, -right)] {
                 if on {
                     wish += d;
                 }
             }
         }
         // C holdes for huk.
-        self.body.set_stance(
-            if input.crouch && !self.paused {
-                Stance::Crouch
-            } else {
-                Stance::Stand
-            },
-            dt,
-        );
+        self.body.set_stance(if input.crouch && !self.paused { Stance::Crouch } else { Stance::Stand }, dt);
         let speed = self.body.stance.speed(input.sprint);
         // Hugg og blokk bremser, unnamanøveren kaster deg til sida.
-        let horizontal = wish.normalize_or_zero() * speed * self.combat.move_factor()
-            + self.combat.dodge_velocity();
+        let horizontal = wish.normalize_or_zero() * speed * self.combat.move_factor() + self.combat.dodge_velocity();
         let jumped = self.body.vertical(dt, input.jump && !self.paused);
         let desired = (horizontal + Vec3::Y * self.body.vel_y) * dt;
         let (half, radius) = self.body.capsule();
         let (moved, grounded) = physics.move_capsule(self.body.pos, half, radius, desired, dt);
-        let steps = self
-            .body
-            .moved(moved, grounded, jumped, !self.paused, input.sprint);
+        let steps = self.body.moved(moved, grounded, jumped, !self.paused, input.sprint);
         // Skrittene etter underlaget, med rustningen som rasler i takt; hopp
         // og landing (hardere jo lenger fallet).
         let feet = self.body.feet();
@@ -436,49 +358,23 @@ impl Session {
             events.push(sfx("jump"));
         }
         if let Some(hard) = steps.landed {
-            events.push(Event::Sound(Sound {
-                name: "land".into(),
-                at: None,
-                gain: 0.5 + hard * 0.7,
-            }));
-            events.push(Event::Sound(Sound {
-                name: self.surface(feet).into(),
-                at: None,
-                gain: 0.9,
-            }));
+            events.push(Event::Sound(Sound { name: "land".into(), at: None, gain: 0.5 + hard * 0.7 }));
+            events.push(Event::Sound(Sound { name: self.surface(feet).into(), at: None, gain: 0.9 }));
         }
         if let Some(gain) = steps.step {
             let surface = self.surface(feet);
-            events.push(Event::Sound(Sound {
-                name: surface.into(),
-                at: None,
-                gain,
-            }));
+            events.push(Event::Sound(Sound { name: surface.into(), at: None, gain }));
             // Søle i regnvær.
             let wet = self.sky.weather.wet;
             if wet > 0.6 && matches!(surface, "step_gravel" | "step_dirt") {
-                events.push(Event::Sound(Sound {
-                    name: "step_water".into(),
-                    at: None,
-                    gain: gain * 0.5 * wet,
-                }));
+                events.push(Event::Sound(Sound { name: "step_water".into(), at: None, gain: gain * 0.5 * wet }));
             }
             if let Some(a) = self.hero.gear.armor {
-                events.push(Event::Sound(Sound {
-                    name: a.sound.into(),
-                    at: None,
-                    gain,
-                }));
+                events.push(Event::Sound(Sound { name: a.sound.into(), at: None, gain }));
             }
         }
         // Under det nederste nivået i krypten er det ingenting.
-        let abyss = self
-            .crypt
-            .levels
-            .last()
-            .map(|l| l.min_y)
-            .unwrap_or(crypt::TOP)
-            - 30.0;
+        let abyss = self.crypt.levels.last().map(|l| l.min_y).unwrap_or(crypt::TOP) - 30.0;
         if self.body.pos.y < abyss {
             self.respawn();
         }
@@ -491,15 +387,7 @@ impl Session {
             if let Some(back) = self.run.rescue(&self.crypt, feet, self.body.grounded) {
                 self.hero.hp -= 30.0;
                 self.teleport(back, self.yaw);
-                events.extend([
-                    Event::Fade,
-                    sfx("land"),
-                    sfx("hurt"),
-                    Event::Toast(
-                        "Du falt utfor kanten, og kom deg opp igjen med skrubbsår og en vond rygg."
-                            .into(),
-                    ),
-                ]);
+                events.extend([Event::Fade, sfx("land"), sfx("hurt"), Event::Toast("Du falt utfor kanten, og kom deg opp igjen med skrubbsår og en vond rygg.".into())]);
             }
         }
         wish
@@ -511,12 +399,7 @@ impl Session {
             Action::Attack if in_crypt && self.aim.is_none() => self.combat.press_attack(),
             Action::AttackRelease => self.combat.release_attack(),
             Action::Dodge => {
-                if in_crypt
-                    && self.body.grounded
-                    && wish.length_squared() > 0.0
-                    && !self.paused
-                    && self.combat.dodge(wish)
-                {
+                if in_crypt && self.body.grounded && wish.length_squared() > 0.0 && !self.paused && self.combat.dodge(wish) {
                     events.push(sfx("dodge"));
                 }
             }
@@ -553,23 +436,13 @@ impl Session {
 
     /// Innbyggerne: de går, snakker (boblene som står sendes hvert bilde,
     /// og én tom når de er borte), og siktemålet følger dem.
-    fn update_people(
-        &mut self,
-        dt: f32,
-        feet: Vec3,
-        in_crypt: bool,
-        physics: &mut dyn Physics,
-        events: &mut Vec<Event>,
-    ) {
+    fn update_people(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
         let speeches = self.npcs.update(dt, feet);
         self.npc_steps(feet, in_crypt, events);
         for t in &self.targets {
             if let Use::Talk(n) = t.target.what {
                 if let Some(npc) = self.npcs.npcs.get(n) {
-                    physics.set_pose(
-                        t.collider,
-                        Affine3A::from_translation(npc.pos + t.target.center),
-                    );
+                    physics.set_pose(t.collider, Affine3A::from_translation(npc.pos + t.target.center));
                 }
             }
         }
@@ -577,15 +450,7 @@ impl Session {
             self.bubbles_shown = !speeches.is_empty();
             let bubbles = speeches
                 .iter()
-                .filter_map(|s| {
-                    self.project(s.pos).map(|(x, y)| Bubble {
-                        id: s.npc as u32,
-                        x,
-                        y,
-                        name: s.name.into(),
-                        text: s.text.clone(),
-                    })
-                })
+                .filter_map(|s| self.project(s.pos).map(|(x, y)| Bubble { id: s.npc as u32, x, y, name: s.name.into(), text: s.text.clone() }))
                 .collect();
             events.push(Event::Speech(bubbles));
         }
@@ -598,32 +463,16 @@ impl Session {
         if in_crypt && self.body.grounded && self.hero.hp > 0.0 {
             let feet = self.body.feet();
             if let Some(k) = self.crypt.level_at(feet) {
-                if self.portal.entries.get(k).is_some_and(|e| e.is_none())
-                    && self.crypt.walkable(feet)
-                {
+                if self.portal.entries.get(k).is_some_and(|e| e.is_none()) && self.crypt.walkable(feet) {
                     self.portal.enter(k, feet, self.yaw);
                 }
             }
         }
         if let Some(show) = self.portal.shown_changed() {
             if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Portal) {
-                physics.set_pose(
-                    t.collider,
-                    if show {
-                        t.target.pose * Affine3A::from_translation(t.target.center)
-                    } else {
-                        away()
-                    },
-                );
+                physics.set_pose(t.collider, if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { away() });
                 for (id, (c, _)) in self.portal_solids.iter().zip(town::PORTAL_SOLIDS) {
-                    physics.set_pose(
-                        *id,
-                        if show {
-                            t.target.pose * Affine3A::from_translation(c)
-                        } else {
-                            away()
-                        },
-                    );
+                    physics.set_pose(*id, if show { t.target.pose * Affine3A::from_translation(c) } else { away() });
                 }
             }
         }
@@ -631,10 +480,7 @@ impl Session {
 
     /// Ringen (plattformens midte og retning), om byen har den.
     pub(super) fn portal_pose(&self) -> Option<Affine3A> {
-        self.targets
-            .iter()
-            .find(|t| t.target.what == Use::Portal)
-            .map(|t| t.target.pose)
+        self.targets.iter().find(|t| t.target.what == Use::Portal).map(|t| t.target.pose)
     }
 
     pub(super) fn portal_center(&self) -> Option<Vec3> {
@@ -644,31 +490,10 @@ impl Session {
     /// Kartet: sendt når det endrer seg, og hvor du står hvert bilde.
     fn update_map(&mut self, in_crypt: bool, events: &mut Vec<Event>) {
         let feet = self.body.feet();
-        let level = if in_crypt {
-            self.crypt.level_at(feet)
-        } else {
-            None
-        };
-        let u = self
-            .map
-            .update(&self.crypt, &self.mech, &self.run, level, feet, self.yaw);
+        let level = if in_crypt { self.crypt.level_at(feet) } else { None };
+        let u = self.map.update(&self.crypt, &self.mech, &self.run, level, feet, self.yaw);
         if let Some(m) = u.map {
-            events.push(Event::Map(m.map(|k| {
-                MapView {
-                    level: k.level,
-                    name: k.name,
-                    rooms: k.rooms,
-                    marks: k
-                        .marks
-                        .into_iter()
-                        .map(|(kind, x, z)| MapMark {
-                            kind: kind.into(),
-                            x,
-                            z,
-                        })
-                        .collect(),
-                }
-            })));
+            events.push(Event::Map(m.map(|k| MapView { level: k.level, name: k.name, rooms: k.rooms, marks: k.marks.into_iter().map(|(kind, x, z)| MapMark { kind: kind.into(), x, z }).collect() })));
         }
         if let Some((x, z, yaw)) = u.at {
             events.push(Event::Where { x, z, yaw });
@@ -681,9 +506,7 @@ impl Session {
             return;
         }
         let feet = self.body.feet();
-        let Some(k) = self.crypt.level_at(feet) else {
-            return;
-        };
+        let Some(k) = self.crypt.level_at(feet) else { return };
         if k != self.mobs.level {
             self.enter_level(k);
         }
@@ -692,19 +515,10 @@ impl Session {
                 Happening::Down(n) => {
                     self.go_to_level(n);
                     let l = &self.crypt.levels[n];
-                    events.extend([
-                        Event::Fade,
-                        sfx("crypt_door"),
-                        Event::Toast(format!("Nivå {}: {}", l.n, l.name)),
-                    ]);
+                    events.extend([Event::Fade, sfx("crypt_door"), Event::Toast(format!("Nivå {}: {}", l.n, l.name))]);
                 }
                 Happening::DownBlocked => {
-                    events.extend([
-                        sfx("locked"),
-                        Event::Toast(
-                            "Trappa ned er rast sammen. Dypere har ingen kommet ennå.".into(),
-                        ),
-                    ]);
+                    events.extend([sfx("locked"), Event::Toast("Trappa ned er rast sammen. Dypere har ingen kommet ennå.".into())]);
                 }
                 Happening::Trapdoor { switch, at } => {
                     self.open_switch(switch);
@@ -715,16 +529,11 @@ impl Session {
                     events.push(self.sound_at("click", plate, 1.0));
                     events.push(self.sound_at("swing", from, 1.2));
                     if first {
-                        events.push(Event::Toast(
-                            "Klikk! Pilene smeller i gulvet foran deg. Se opp for trykkplatene."
-                                .into(),
-                        ));
+                        events.push(Event::Toast("Klikk! Pilene smeller i gulvet foran deg. Se opp for trykkplatene.".into()));
                     }
                 }
                 Happening::Hurt(hurt) => {
-                    let (taken, _) =
-                        self.combat
-                            .incoming(feet - Vec3::Y, hurt, self.eye(), self.forward());
+                    let (taken, _) = self.combat.incoming(feet - Vec3::Y, hurt, self.eye(), self.forward());
                     self.hero.hp -= taken;
                     events.push(sfx("hurt"));
                     if self.hero.hp <= 0.0 {
@@ -737,10 +546,7 @@ impl Session {
                     for (c, v) in bag {
                         self.hero.carry(&c, v);
                     }
-                    events.extend([
-                        sfx("bag"),
-                        Event::Toast(format!("Du fant igjen det du mistet: {n} komponenter.")),
-                    ]);
+                    events.extend([sfx("bag"), Event::Toast(format!("Du fant igjen det du mistet: {n} komponenter."))]);
                 }
                 Happening::Hint(at) => events.push(self.sound_at("rats", at, 0.8)),
             }
@@ -756,21 +562,14 @@ impl Session {
         for m in moved {
             match m {
                 Moved::Shortcut(n) => {
-                    if let (Some(pose), Some(t)) = (
-                        self.mech.shortcut_collider(&self.crypt, n),
-                        target(Use::Shortcut(n)),
-                    ) {
+                    if let (Some(pose), Some(t)) = (self.mech.shortcut_collider(&self.crypt, n), target(Use::Shortcut(n))) {
                         physics.set_pose(t.collider, pose);
                     }
                 }
                 Moved::Secret(n) => {
                     if let Some(t) = target(Use::Secret(n)) {
                         let sink = self.mech.secret_sink(&self.crypt, n);
-                        physics.set_pose(
-                            t.collider,
-                            t.target.pose
-                                * Affine3A::from_translation(t.target.center - Vec3::Y * sink),
-                        );
+                        physics.set_pose(t.collider, t.target.pose * Affine3A::from_translation(t.target.center - Vec3::Y * sink));
                     }
                 }
                 Moved::Trapdoor(n) => {
@@ -780,11 +579,7 @@ impl Session {
                 }
                 Moved::Gate(n) => {
                     if let Some(t) = target(Use::Gate(n)) {
-                        physics.set_pose(
-                            t.collider,
-                            self.mech.gate_lifted(n, t.target.pose)
-                                * Affine3A::from_translation(t.target.center),
-                        );
+                        physics.set_pose(t.collider, self.mech.gate_lifted(n, t.target.pose) * Affine3A::from_translation(t.target.center));
                     }
                 }
             }
@@ -792,9 +587,7 @@ impl Session {
         for _ in 0..drank {
             self.hero.heal(25.0);
             self.combat.stamina = self.combat.max_stamina;
-            events.push(Event::Toast(
-                "Du heiser opp kaldt vann og drikker. Litt liv tilbake, og pusten er full.".into(),
-            ));
+            events.push(Event::Toast("Du heiser opp kaldt vann og drikker. Litt liv tilbake, og pusten er full.".into()));
         }
     }
 }

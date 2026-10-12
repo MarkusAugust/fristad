@@ -11,23 +11,16 @@ impl Crypt {
 
     /// Nivået et punkt er i, etter høyden.
     pub fn level_at(&self, p: Vec3) -> Option<usize> {
-        self.levels
-            .iter()
-            .position(|l| p.y >= l.min_y - 8.0 && p.y <= l.max_y + 4.0)
+        self.levels.iter().position(|l| p.y >= l.min_y - 8.0 && p.y <= l.max_y + 4.0)
     }
 
     /// Bryteren med denne id-en i nivået.
     pub fn switch(&self, level: usize, id: &str) -> Option<usize> {
-        self.switches
-            .iter()
-            .position(|s| s.level == level && s.id == id)
+        self.switches.iter().position(|s| s.level == level && s.id == id)
     }
 
     fn open_poly<'a>(&'a self) -> impl Fn(&Poly) -> bool + 'a {
-        move |p: &Poly| {
-            p.gate
-                .is_none_or(|g| self.open.get(g).copied().unwrap_or(true))
-        }
+        move |p: &Poly| p.gate.is_none_or(|g| self.open.get(g).copied().unwrap_or(true))
     }
 
     /// Polygonen under føttene (åpen eller ikke).
@@ -43,8 +36,7 @@ impl Crypt {
             return false;
         };
         let nav = &self.levels[l].nav;
-        (self.open_poly())(&nav.polys[i as usize])
-            && (nav.height_in(i, Vec2::new(p.x, p.z)) - p.y).abs() < 1.0
+        (self.open_poly())(&nav.polys[i as usize]) && (nav.height_in(i, Vec2::new(p.x, p.z)) - p.y).abs() < 1.0
     }
 
     /// Gulvhøyden under et punkt (absolutt y); punktets y utenfor nettet.
@@ -64,10 +56,7 @@ impl Crypt {
     /// Nærmeste punkt på det åpne nettet innen `reach` meter.
     pub fn snap(&self, p: Vec3, reach: f32) -> Option<Vec3> {
         let l = self.level_at(p)?;
-        self.levels[l]
-            .nav
-            .nearest(p, reach, &self.open_poly())
-            .map(|(_, c)| c)
+        self.levels[l].nav.nearest(p, reach, &self.open_poly()).map(|(_, c)| c)
     }
 
     /// Veien fra `from` til `to` gjennom åpne polygoner: hjørnene etter
@@ -82,22 +71,14 @@ impl Crypt {
 
     /// Neste hjørne på veien.
     pub fn next_step(&self, from: Vec3, to: Vec3) -> Option<Vec3> {
-        self.path(from, to)?
-            .into_iter()
-            .find(|c| c.with_y(0.0).distance(from.with_y(0.0)) > 0.05)
+        self.path(from, to)?.into_iter().find(|c| c.with_y(0.0).distance(from.with_y(0.0)) > 0.05)
     }
 
     /// Rommet et punkt står i (det minste som rommer det), i nivået.
     pub fn room_at(&self, p: Vec3) -> Option<(usize, usize)> {
         let l = self.level_at(p)?;
         let q = Vec2::new(p.x, p.z);
-        self.levels[l]
-            .rooms
-            .iter()
-            .enumerate()
-            .filter(|(_, r)| p.y >= r.y - 1.0 && p.y <= r.y + r.h && r.contains(q))
-            .min_by(|a, b| a.1.area.total_cmp(&b.1.area))
-            .map(|(i, _)| (l, i))
+        self.levels[l].rooms.iter().enumerate().filter(|(_, r)| p.y >= r.y - 1.0 && p.y <= r.y + r.h && r.contains(q)).min_by(|a, b| a.1.area.total_cmp(&b.1.area)).map(|(i, _)| (l, i))
     }
 
     /// Rommene et lys i rom `room` lyser i: sitt eget, de med åpen

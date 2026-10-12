@@ -83,117 +83,26 @@ pub struct Gear {
     pub lantern: f32,
 }
 
-pub const RUSTY_SWORD: Weapon = Weapon {
-    id: "rusty_sword",
-    name: "Rustent sverd",
-    model: "sword",
-    kind: WeaponKind::Sword,
-    damage: 0.8,
-    speed: 1.0,
-    reach: 2.2,
-    rarity: Rarity::Common,
-    special: "ingen",
-    riposte: 2.0,
-};
-pub const OLD_SHIELD: Shield = Shield {
-    id: "old_shield",
-    name: "Gammelt rundskjold",
-    model: "shield_round",
-    block: 0.25,
-    parry_window: 0.22,
-    rarity: Rarity::Common,
-    sound: "block",
-};
+pub const RUSTY_SWORD: Weapon = Weapon { id: "rusty_sword", name: "Rustent sverd", model: "sword", kind: WeaponKind::Sword, damage: 0.8, speed: 1.0, reach: 2.2, rarity: Rarity::Common, special: "ingen", riposte: 2.0 };
+pub const OLD_SHIELD: Shield = Shield { id: "old_shield", name: "Gammelt rundskjold", model: "shield_round", block: 0.25, parry_window: 0.22, rarity: Rarity::Common, sound: "block" };
 
 pub const WEAPONS: &[Weapon] = &[
     RUSTY_SWORD,
-    Weapon {
-        id: "component_sword",
-        name: "Komponentsverd",
-        model: "sword",
-        kind: WeaponKind::Sword,
-        damage: 1.0,
-        speed: 1.0,
-        reach: 2.3,
-        rarity: Rarity::Common,
-        special: "kombo på tre",
-        riposte: 2.0,
-    },
-    Weapon {
-        id: "card_axe",
-        name: "Kortøks",
-        model: "axe",
-        kind: WeaponKind::Axe,
-        damage: 1.45,
-        speed: 0.8,
-        reach: 2.0,
-        rarity: Rarity::Rare,
-        special: "går gjennom blokk",
-        riposte: 2.0,
-    },
-    Weapon {
-        id: "tag_dagger",
-        name: "Taggdolk",
-        model: "dagger",
-        kind: WeaponKind::Dagger,
-        damage: 0.7,
-        speed: 1.5,
-        reach: 1.6,
-        rarity: Rarity::Rare,
-        special: "dobbelt bakfra",
-        riposte: 2.0,
-    },
-    Weapon {
-        id: "divider_blade",
-        name: "Dividerklinge",
-        model: "sword",
-        kind: WeaponKind::Sword,
-        damage: 1.35,
-        speed: 1.1,
-        reach: 2.5,
-        rarity: Rarity::Epic,
-        special: "parade gir trippel",
-        riposte: 3.0,
-    },
+    Weapon { id: "component_sword", name: "Komponentsverd", model: "sword", kind: WeaponKind::Sword, damage: 1.0, speed: 1.0, reach: 2.3, rarity: Rarity::Common, special: "kombo på tre", riposte: 2.0 },
+    Weapon { id: "card_axe", name: "Kortøks", model: "axe", kind: WeaponKind::Axe, damage: 1.45, speed: 0.8, reach: 2.0, rarity: Rarity::Rare, special: "går gjennom blokk", riposte: 2.0 },
+    Weapon { id: "tag_dagger", name: "Taggdolk", model: "dagger", kind: WeaponKind::Dagger, damage: 0.7, speed: 1.5, reach: 1.6, rarity: Rarity::Rare, special: "dobbelt bakfra", riposte: 2.0 },
+    Weapon { id: "divider_blade", name: "Dividerklinge", model: "sword", kind: WeaponKind::Sword, damage: 1.35, speed: 1.1, reach: 2.5, rarity: Rarity::Epic, special: "parade gir trippel", riposte: 3.0 },
 ];
 
 pub const SHIELDS: &[Shield] = &[
     OLD_SHIELD,
-    Shield {
-        id: "card_shield",
-        name: "Kortskjold",
-        model: "shield_round",
-        block: 0.12,
-        parry_window: 0.3,
-        rarity: Rarity::Common,
-        sound: "block",
-    },
-    Shield {
-        id: "fieldset_tower",
-        name: "Fieldset-tårnskjold",
-        model: "shield_tower",
-        block: 0.05,
-        parry_window: 0.36,
-        rarity: Rarity::Epic,
-        sound: "block_metal",
-    },
+    Shield { id: "card_shield", name: "Kortskjold", model: "shield_round", block: 0.12, parry_window: 0.3, rarity: Rarity::Common, sound: "block" },
+    Shield { id: "fieldset_tower", name: "Fieldset-tårnskjold", model: "shield_tower", block: 0.05, parry_window: 0.36, rarity: Rarity::Epic, sound: "block_metal" },
 ];
 
 pub const ARMORS: &[Armor] = &[
-    Armor {
-        id: "badge_jerkin",
-        name: "Badgevams",
-        taken: 0.85,
-        rarity: Rarity::Common,
-        sound: "gear_leather",
-    },
-    Armor {
-        id: "fieldset_mail",
-        name: "Fieldset-brynje",
-        taken: 0.65,
-        rarity: Rarity::Epic,
-        sound: "gear_mail",
-    },
+    Armor { id: "badge_jerkin", name: "Badgevams", taken: 0.85, rarity: Rarity::Common, sound: "gear_leather" },
+    Armor { id: "fieldset_mail", name: "Fieldset-brynje", taken: 0.65, rarity: Rarity::Epic, sound: "gear_mail" },
 ];
 
 /// Hva en oppskrift gir.
@@ -220,88 +129,19 @@ pub struct Recipe {
 }
 
 pub const RECIPES: &[Recipe] = &[
-    Recipe {
-        id: "component_sword",
-        name: "Komponentsverd",
-        needs: &[("button", 2), ("divider", 1)],
-        requires: &[],
-        result: Result::Weapon("component_sword"),
-        rarity: Rarity::Common,
-    },
-    Recipe {
-        id: "card_shield",
-        name: "Kortskjold",
-        needs: &[("card", 1), ("badge", 1)],
-        requires: &[],
-        result: Result::Shield("card_shield"),
-        rarity: Rarity::Common,
-    },
-    Recipe {
-        id: "badge_jerkin",
-        name: "Badgevams",
-        needs: &[("badge", 3), ("tag", 2)],
-        requires: &[],
-        result: Result::Armor("badge_jerkin"),
-        rarity: Rarity::Common,
-    },
-    Recipe {
-        id: "card_axe",
-        name: "Kortøks",
-        needs: &[("button", 1), ("card", 2), ("badge", 1)],
-        requires: &["label"],
-        result: Result::Weapon("card_axe"),
-        rarity: Rarity::Rare,
-    },
-    Recipe {
-        id: "tag_dagger",
-        name: "Taggdolk",
-        needs: &[("tooltip", 1), ("tag", 2)],
-        requires: &["label"],
-        result: Result::Weapon("tag_dagger"),
-        rarity: Rarity::Rare,
-    },
-    Recipe {
-        id: "search_lantern",
-        name: "Søkelykt",
-        needs: &[("search", 1), ("progress", 1)],
-        requires: &["label", "help-text"],
-        result: Result::Lantern(2.2),
-        rarity: Rarity::Rare,
-    },
-    Recipe {
-        id: "divider_blade",
-        name: "Dividerklinge",
-        needs: &[("divider", 3), ("button", 2), ("alert", 1)],
-        requires: &["fieldset", "file-upload"],
-        result: Result::Weapon("divider_blade"),
-        rarity: Rarity::Epic,
-    },
-    Recipe {
-        id: "fieldset_tower",
-        name: "Fieldset-tårnskjold",
-        needs: &[("fieldset", 1), ("card", 2), ("badge", 2)],
-        requires: &["fieldset", "file-upload"],
-        result: Result::Shield("fieldset_tower"),
-        rarity: Rarity::Epic,
-    },
-    Recipe {
-        id: "fieldset_mail",
-        name: "Fieldset-brynje",
-        needs: &[("fieldset", 2), ("badge", 3), ("tag", 3)],
-        requires: &["fieldset", "file-upload", "search"],
-        result: Result::Armor("fieldset_mail"),
-        rarity: Rarity::Epic,
-    },
+    Recipe { id: "component_sword", name: "Komponentsverd", needs: &[("button", 2), ("divider", 1)], requires: &[], result: Result::Weapon("component_sword"), rarity: Rarity::Common },
+    Recipe { id: "card_shield", name: "Kortskjold", needs: &[("card", 1), ("badge", 1)], requires: &[], result: Result::Shield("card_shield"), rarity: Rarity::Common },
+    Recipe { id: "badge_jerkin", name: "Badgevams", needs: &[("badge", 3), ("tag", 2)], requires: &[], result: Result::Armor("badge_jerkin"), rarity: Rarity::Common },
+    Recipe { id: "card_axe", name: "Kortøks", needs: &[("button", 1), ("card", 2), ("badge", 1)], requires: &["label"], result: Result::Weapon("card_axe"), rarity: Rarity::Rare },
+    Recipe { id: "tag_dagger", name: "Taggdolk", needs: &[("tooltip", 1), ("tag", 2)], requires: &["label"], result: Result::Weapon("tag_dagger"), rarity: Rarity::Rare },
+    Recipe { id: "search_lantern", name: "Søkelykt", needs: &[("search", 1), ("progress", 1)], requires: &["label", "help-text"], result: Result::Lantern(2.2), rarity: Rarity::Rare },
+    Recipe { id: "divider_blade", name: "Dividerklinge", needs: &[("divider", 3), ("button", 2), ("alert", 1)], requires: &["fieldset", "file-upload"], result: Result::Weapon("divider_blade"), rarity: Rarity::Epic },
+    Recipe { id: "fieldset_tower", name: "Fieldset-tårnskjold", needs: &[("fieldset", 1), ("card", 2), ("badge", 2)], requires: &["fieldset", "file-upload"], result: Result::Shield("fieldset_tower"), rarity: Rarity::Epic },
+    Recipe { id: "fieldset_mail", name: "Fieldset-brynje", needs: &[("fieldset", 2), ("badge", 3), ("tag", 3)], requires: &["fieldset", "file-upload", "search"], result: Result::Armor("fieldset_mail"), rarity: Rarity::Epic },
 ];
 
 /// Temaene i krypten, to nivåer hvert (nivå 1–2, 3–4 …).
-pub const THEMES: [&str; 5] = [
-    "Gravkjelleren",
-    "Kloakken",
-    "Gruva",
-    "Borgen under jorda",
-    "Den korrupte kjernen",
-];
+pub const THEMES: [&str; 5] = ["Gravkjelleren", "Kloakken", "Gruva", "Borgen under jorda", "Den korrupte kjernen"];
 
 /// Temaet nivå `level` (fra 0) hører til: indeksen i `LOOT` og `THEMES`.
 pub fn theme_of(level: usize) -> usize {
@@ -320,23 +160,7 @@ pub const LOOT: [&[&str]; 5] = [
 /// Galleriveggen i spillerens hus: hver unike komponent som finnes i
 /// spillet har sin ramme, i denne rekkefølgen (fra de letteste oppe til
 /// venstre til Rammeverkets nederst til høyre).
-pub const GALLERY: [&str; 15] = [
-    "button",
-    "tag",
-    "badge",
-    "divider",
-    "card",
-    "alert",
-    "progress",
-    "label",
-    "help-text",
-    "tooltip",
-    "fieldset",
-    "file-upload",
-    "search",
-    "dialog",
-    "tabs",
-];
+pub const GALLERY: [&str; 15] = ["button", "tag", "badge", "divider", "card", "alert", "progress", "label", "help-text", "tooltip", "fieldset", "file-upload", "search", "dialog", "tabs"];
 
 /// Modellen som henger i hver ramme, i samme rekkefølge som `GALLERY`: en
 /// plate med bildet av selve Fristil-komponenten i standardvarianten
@@ -367,9 +191,7 @@ pub fn title(component: &str) -> String {
         .split('-')
         .map(|w| {
             let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_uppercase().chain(c).collect::<String>())
-                .unwrap_or_default()
+            c.next().map(|f| f.to_uppercase().chain(c).collect::<String>()).unwrap_or_default()
         })
         .collect::<Vec<_>>()
         .join(" ")
@@ -432,58 +254,18 @@ pub enum WareKind {
 }
 
 pub const SMITH_WARES: &[Ware] = &[
-    Ware {
-        id: "buy_button",
-        name: "Button",
-        price: 12,
-        what: WareKind::Component("button"),
-    },
-    Ware {
-        id: "buy_divider",
-        name: "Divider",
-        price: 14,
-        what: WareKind::Component("divider"),
-    },
-    Ware {
-        id: "buy_badge",
-        name: "Badge",
-        price: 10,
-        what: WareKind::Component("badge"),
-    },
-    Ware {
-        id: "buy_tag",
-        name: "Tag",
-        price: 8,
-        what: WareKind::Component("tag"),
-    },
+    Ware { id: "buy_button", name: "Button", price: 12, what: WareKind::Component("button") },
+    Ware { id: "buy_divider", name: "Divider", price: 14, what: WareKind::Component("divider") },
+    Ware { id: "buy_badge", name: "Badge", price: 10, what: WareKind::Component("badge") },
+    Ware { id: "buy_tag", name: "Tag", price: 8, what: WareKind::Component("tag") },
 ];
 pub const APOTHECARY_WARES: &[Ware] = &[
-    Ware {
-        id: "potion",
-        name: "Styrkedrikk (+40 liv)",
-        price: 10,
-        what: WareKind::Heal(40.0),
-    },
-    Ware {
-        id: "big_potion",
-        name: "Fullt liv",
-        price: 22,
-        what: WareKind::Heal(100.0),
-    },
+    Ware { id: "potion", name: "Styrkedrikk (+40 liv)", price: 10, what: WareKind::Heal(40.0) },
+    Ware { id: "big_potion", name: "Fullt liv", price: 22, what: WareKind::Heal(100.0) },
 ];
 pub const GORVEK_WARES: &[Ware] = &[
-    Ware {
-        id: "train_hp",
-        name: "Herding (+20 maks liv)",
-        price: 30,
-        what: WareKind::MaxHp(20.0),
-    },
-    Ware {
-        id: "train_stamina",
-        name: "Pust (+20 maks utholdenhet)",
-        price: 30,
-        what: WareKind::MaxStamina(20.0),
-    },
+    Ware { id: "train_hp", name: "Herding (+20 maks liv)", price: 30, what: WareKind::MaxHp(20.0) },
+    Ware { id: "train_stamina", name: "Pust (+20 maks utholdenhet)", price: 30, what: WareKind::MaxStamina(20.0) },
 ];
 
 /// Hvor en komponent finnes: i kistene (temaene, fra 1), hos eliten
@@ -499,23 +281,10 @@ pub struct Source {
 
 pub fn source(component: &str) -> Source {
     Source {
-        chests: LOOT
-            .iter()
-            .enumerate()
-            .filter(|(_, l)| l.contains(&component))
-            .map(|(f, _)| f + 1)
-            .collect(),
-        elite: ELITE_LOOT
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| **c == component)
-            .map(|(f, _)| f + 1)
-            .collect(),
+        chests: LOOT.iter().enumerate().filter(|(_, l)| l.contains(&component)).map(|(f, _)| f + 1).collect(),
+        elite: ELITE_LOOT.iter().enumerate().filter(|(_, c)| **c == component).map(|(f, _)| f + 1).collect(),
         boss: BOSS_LOOT.contains(&component),
-        smith: SMITH_WARES
-            .iter()
-            .find(|w| matches!(w.what, WareKind::Component(c) if c == component))
-            .map(|w| w.price),
+        smith: SMITH_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
     }
 }
 
@@ -527,20 +296,10 @@ impl Source {
 
     /// Hvor den finnes, som en setning.
     pub fn describe(&self) -> String {
-        let name = |f: &usize| {
-            THEMES
-                .get(f.wrapping_sub(1))
-                .copied()
-                .unwrap_or("krypten")
-                .to_string()
-        };
+        let name = |f: &usize| THEMES.get(f.wrapping_sub(1)).copied().unwrap_or("krypten").to_string();
         let floors = |v: &[usize]| match v {
             [a] => name(a),
-            [rest @ .., last] => format!(
-                "{} og {}",
-                rest.iter().map(name).collect::<Vec<_>>().join(", "),
-                name(last)
-            ),
+            [rest @ .., last] => format!("{} og {}", rest.iter().map(name).collect::<Vec<_>>().join(", "), name(last)),
             [] => String::new(),
         };
         let mut parts = vec![];
@@ -559,19 +318,12 @@ impl Source {
             [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
         };
         match self.smith {
-            Some(price) => {
-                format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens.")
-            }
+            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens."),
             None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes."),
         }
     }
 }
 
 pub fn ware(id: &str) -> Option<Ware> {
-    SMITH_WARES
-        .iter()
-        .chain(APOTHECARY_WARES)
-        .chain(GORVEK_WARES)
-        .copied()
-        .find(|w| w.id == id)
+    SMITH_WARES.iter().chain(APOTHECARY_WARES).chain(GORVEK_WARES).copied().find(|w| w.id == id)
 }

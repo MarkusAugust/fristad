@@ -24,11 +24,7 @@ const GRAB: f32 = 0.018;
 const SELECTED: Vec3 = Vec3::new(3.0, 2.4, 0.4);
 const BREACH: Vec3 = Vec3::new(4.0, 0.3, 0.2);
 const DRAFT: Vec3 = Vec3::new(3.0, 3.0, 3.0);
-const AXES: [(Vec3, Vec3); 3] = [
-    (Vec3::X, Vec3::new(4.0, 0.4, 0.3)),
-    (Vec3::Y, Vec3::new(0.4, 4.0, 0.4)),
-    (Vec3::Z, Vec3::new(0.4, 0.8, 4.0)),
-];
+const AXES: [(Vec3, Vec3); 3] = [(Vec3::X, Vec3::new(4.0, 0.4, 0.3)), (Vec3::Y, Vec3::new(0.4, 4.0, 0.4)), (Vec3::Z, Vec3::new(0.4, 0.8, 4.0))];
 const RING: Vec3 = Vec3::new(3.5, 2.8, 0.6);
 
 /// Det du drar i.
@@ -53,29 +49,8 @@ fn pose_key(model: &str, t: &Affine3A) -> (String, [i32; 12]) {
 
 /// De tolv kantene av en boks (midte og halve mål i rommet til `t`).
 fn box_lines(t: &Affine3A, c: Vec3, h: Vec3, color: Vec3, out: &mut Vec<(Vec3, Vec3, Vec3)>) {
-    let corner = |k: usize| {
-        t.transform_point3(
-            c + h * Vec3::new(
-                if k & 1 == 0 { -1.0 } else { 1.0 },
-                if k & 2 == 0 { -1.0 } else { 1.0 },
-                if k & 4 == 0 { -1.0 } else { 1.0 },
-            ),
-        )
-    };
-    for (a, b) in [
-        (0, 1),
-        (2, 3),
-        (4, 5),
-        (6, 7),
-        (0, 2),
-        (1, 3),
-        (4, 6),
-        (5, 7),
-        (0, 4),
-        (1, 5),
-        (2, 6),
-        (3, 7),
-    ] {
+    let corner = |k: usize| t.transform_point3(c + h * Vec3::new(if k & 1 == 0 { -1.0 } else { 1.0 }, if k & 2 == 0 { -1.0 } else { 1.0 }, if k & 4 == 0 { -1.0 } else { 1.0 }));
+    for (a, b) in [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)] {
         out.push((corner(a), corner(b), color));
     }
 }
@@ -99,8 +74,7 @@ impl Session {
     /// Kameraet slik bildet tegnes (uten kameraspark i redigeringen).
     fn view_proj(&self) -> Mat4 {
         let aspect = self.aspect.get().max(0.1);
-        Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0)
-            * Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y)
+        Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0) * Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y)
     }
 
     /// Strålen gjennom et punkt på skjermen (0..1 fra øverst til venstre).
@@ -121,16 +95,12 @@ impl Session {
             return None;
         }
         let n = c.truncate() / c.w;
-        Some(Vec2::new(
-            (n.x + 1.0) * 0.5 * self.aspect.get().max(0.1),
-            (1.0 - n.y) * 0.5,
-        ))
+        Some(Vec2::new((n.x + 1.0) * 0.5 * self.aspect.get().max(0.1), (1.0 - n.y) * 0.5))
     }
 
     /// Et punkt i verden på skjermen (0..1 fra øverst til venstre).
     pub fn to_screen(&self, p: Vec3) -> Option<(f32, f32)> {
-        self.on_screen(p)
-            .map(|v| (v.x / self.aspect.get().max(0.1), v.y))
+        self.on_screen(p).map(|v| (v.x / self.aspect.get().max(0.1), v.y))
     }
 
     /// Midten av det valgte og lengden på håndtakene (til testene og
@@ -212,12 +182,7 @@ impl Session {
             EditCommand::Place { model, at } => match self.ground_at(at) {
                 Some(p) => {
                     // Vendt mot deg (modellene har forsida mot lokal +Z).
-                    self.editor_mut()
-                        .place(
-                            &model,
-                            Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p),
-                        )
-                        .is_some()
+                    self.editor_mut().place(&model, Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)).is_some()
                 }
                 None => false,
             },
@@ -236,9 +201,7 @@ impl Session {
                 self.edit_ui.draft.clear();
                 true
             }
-            EditCommand::Line { points, kind } => {
-                !self.editor_mut().line(&points, &kind).is_empty()
-            }
+            EditCommand::Line { points, kind } => !self.editor_mut().line(&points, &kind).is_empty(),
             EditCommand::WallHeight(h) => {
                 self.editor_mut().set_wall_height(h);
                 true
@@ -266,21 +229,13 @@ impl Session {
         let Some(e) = &self.edit else { return };
         let view = EditView {
             selected: e.selected(),
-            breaches: e
-                .breaches()
-                .iter()
-                .map(|b| (b.r.clone(), b.why.clone()))
-                .collect(),
+            breaches: e.breaches().iter().map(|b| (b.r.clone(), b.why.clone())).collect(),
             can_undo: e.can_undo(),
             can_redo: e.can_redo(),
             dirty: e.dirty(),
             clean: e.clean(),
             draft: self.edit_ui.draft.len(),
-            under: e
-                .under()
-                .iter()
-                .map(|r| (e.label(r), e.selection.contains(r)))
-                .collect(),
+            under: e.under().iter().map(|r| (e.label(r), e.selection.contains(r))).collect(),
         };
         self.pending.push(Event::Edit(Some(view)));
     }
@@ -323,23 +278,12 @@ impl Session {
         if sel.is_empty() {
             return None;
         }
-        let p = sel
-            .iter()
-            .map(|s| Vec3::from(s.pose.translation))
-            .sum::<Vec3>()
-            / sel.len() as f32;
+        let p = sel.iter().map(|s| Vec3::from(s.pose.translation)).sum::<Vec3>() / sel.len() as f32;
         Some((p, (p.distance(self.eye()) * 0.12).clamp(0.4, 4.0)))
     }
 
     fn ring_points(p: Vec3, len: f32) -> Vec<Vec3> {
-        (0..=32)
-            .map(|k| {
-                p + Quat::from_rotation_y(k as f32 / 32.0 * std::f32::consts::TAU)
-                    * Vec3::X
-                    * len
-                    * 0.8
-            })
-            .collect()
+        (0..=32).map(|k| p + Quat::from_rotation_y(k as f32 / 32.0 * std::f32::consts::TAU) * Vec3::X * len * 0.8).collect()
     }
 
     /// Håndtaket under pekeren, om noe.
@@ -383,17 +327,14 @@ impl Session {
                     return false;
                 };
                 let s = b - a;
-                let moved =
-                    (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
+                let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
                 self.editor_mut().translate(axis * moved);
             }
             Handle::Ring => {
                 // Vinkelen rundt midten i planet der det valgte står.
                 let on_plane = |at: (f32, f32)| {
                     let (o, d) = self.screen_ray(at);
-                    (d.y.abs() > 1e-4)
-                        .then(|| o + d * ((p.y - o.y) / d.y))
-                        .filter(|_| ((p.y - o.y) / d.y) > 0.0)
+                    (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
                 };
                 let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
                     return false;
@@ -450,14 +391,7 @@ impl Session {
         let fwd = Vec3::new(-self.yaw.sin(), 0.0, -self.yaw.cos());
         let right = Vec3::new(-fwd.z, 0.0, fwd.x);
         let mut wish = Vec3::ZERO;
-        for (on, d) in [
-            (input.forward, fwd),
-            (input.back, -fwd),
-            (input.right, right),
-            (input.left, -right),
-            (input.jump, Vec3::Y),
-            (input.crouch, -Vec3::Y),
-        ] {
+        for (on, d) in [(input.forward, fwd), (input.back, -fwd), (input.right, right), (input.left, -right), (input.jump, Vec3::Y), (input.crouch, -Vec3::Y)] {
             if on && !self.paused {
                 wish += d;
             }
@@ -489,13 +423,7 @@ impl Session {
             for (t, tint) in pl.transforms.iter().zip(&pl.tints) {
                 match base.get_mut(&pose_key(pl.model, t)).and_then(|v| v.pop()) {
                     Some(_) => {}
-                    None => shown.push(ModelInstance {
-                        model: pl.model,
-                        transform: *t,
-                        skin: None,
-                        flash: 0.0,
-                        tint: (*tint != Vec3::ONE).then_some(*tint),
-                    }),
+                    None => shown.push(ModelInstance { model: pl.model, transform: *t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint) }),
                 }
             }
         }

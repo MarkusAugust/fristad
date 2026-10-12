@@ -15,14 +15,7 @@ pub enum WeatherKind {
 }
 
 impl WeatherKind {
-    pub const ALL: [WeatherKind; 6] = [
-        Self::Clear,
-        Self::Overcast,
-        Self::Rain,
-        Self::Storm,
-        Self::Snow,
-        Self::Fog,
-    ];
+    pub const ALL: [WeatherKind; 6] = [Self::Clear, Self::Overcast, Self::Rain, Self::Storm, Self::Snow, Self::Fog];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -42,61 +35,12 @@ impl WeatherKind {
     /// Været det går mot, og hvor mye tettere tåka blir.
     pub fn target(self) -> (Weather, f32) {
         match self {
-            Self::Clear => (
-                Weather {
-                    cloud: 0.12,
-                    wind: 0.2,
-                    ..Default::default()
-                },
-                1.0,
-            ),
-            Self::Overcast => (
-                Weather {
-                    cloud: 0.85,
-                    wind: 0.45,
-                    ..Default::default()
-                },
-                1.4,
-            ),
-            Self::Rain => (
-                Weather {
-                    cloud: 0.92,
-                    rain: 0.75,
-                    wet: 1.0,
-                    wind: 0.6,
-                    ..Default::default()
-                },
-                1.8,
-            ),
-            Self::Storm => (
-                Weather {
-                    cloud: 1.0,
-                    rain: 1.0,
-                    wet: 1.0,
-                    wind: 1.3,
-                    ..Default::default()
-                },
-                2.2,
-            ),
-            Self::Snow => (
-                Weather {
-                    cloud: 0.75,
-                    snow: 0.8,
-                    snow_cover: 1.0,
-                    wind: 0.3,
-                    ..Default::default()
-                },
-                1.6,
-            ),
-            Self::Fog => (
-                Weather {
-                    cloud: 0.6,
-                    wet: 0.35,
-                    wind: 0.1,
-                    ..Default::default()
-                },
-                6.0,
-            ),
+            Self::Clear => (Weather { cloud: 0.12, wind: 0.2, ..Default::default() }, 1.0),
+            Self::Overcast => (Weather { cloud: 0.85, wind: 0.45, ..Default::default() }, 1.4),
+            Self::Rain => (Weather { cloud: 0.92, rain: 0.75, wet: 1.0, wind: 0.6, ..Default::default() }, 1.8),
+            Self::Storm => (Weather { cloud: 1.0, rain: 1.0, wet: 1.0, wind: 1.3, ..Default::default() }, 2.2),
+            Self::Snow => (Weather { cloud: 0.75, snow: 0.8, snow_cover: 1.0, wind: 0.3, ..Default::default() }, 1.6),
+            Self::Fog => (Weather { cloud: 0.6, wet: 0.35, wind: 0.1, ..Default::default() }, 6.0),
         }
     }
 }
@@ -123,17 +67,7 @@ pub struct Sky {
 
 impl Default for Sky {
     fn default() -> Self {
-        Self {
-            kind: WeatherKind::Clear,
-            daylight: Daylight::Day,
-            night: 0.0,
-            weather: Weather {
-                wind: 0.2,
-                ..Default::default()
-            },
-            fog_mul: 1.0,
-            lightning_timer: 0.0,
-        }
+        Self { kind: WeatherKind::Clear, daylight: Daylight::Day, night: 0.0, weather: Weather { wind: 0.2, ..Default::default() }, fog_mul: 1.0, lightning_timer: 0.0 }
     }
 }
 
@@ -156,11 +90,7 @@ impl Sky {
 
     /// Dag blir natt og natt blir dag.
     pub fn turn(&mut self) -> Daylight {
-        self.daylight = if self.daylight == Daylight::Day {
-            Daylight::Night
-        } else {
-            Daylight::Day
-        };
+        self.daylight = if self.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
         self.daylight
     }
 
@@ -175,17 +105,9 @@ impl Sky {
     /// Døgnet og været glir mot målet. `time` er klokka i økta (til lynet).
     /// Gir om det lynte (tordenen kommer etter).
     pub fn tick(&mut self, dt: f32, time: f32) -> bool {
-        let goal = if self.daylight == Daylight::Night {
-            1.0
-        } else {
-            0.0
-        };
+        let goal = if self.daylight == Daylight::Night { 1.0 } else { 0.0 };
         let step = dt / 2.8;
-        self.night = if self.night < goal {
-            (self.night + step).min(goal)
-        } else {
-            (self.night - step).max(goal)
-        };
+        self.night = if self.night < goal { (self.night + step).min(goal) } else { (self.night - step).max(goal) };
 
         let mut flash = false;
         let (t, fog) = self.kind.target();
@@ -197,11 +119,7 @@ impl Sky {
         ease(&mut w.wind, t.wind, 0.3);
         let wet_rate = if t.wet > w.wet { 0.25 } else { 0.05 };
         ease(&mut w.wet, t.wet, wet_rate);
-        let snow_rate = if t.snow_cover > w.snow_cover {
-            0.12
-        } else {
-            0.06
-        };
+        let snow_rate = if t.snow_cover > w.snow_cover { 0.12 } else { 0.06 };
         ease(&mut w.snow_cover, t.snow_cover, snow_rate);
         ease(&mut self.fog_mul, fog, 0.3);
         // Lyn i uvær: korte blink med tilfeldige mellomrom.

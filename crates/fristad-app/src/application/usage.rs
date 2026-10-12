@@ -20,38 +20,19 @@ impl Session {
             Use::Sleep => {
                 // Skjermen går i svart, og du våkner når døgnet har snudd.
                 self.hero.restore(&mut self.combat);
-                let d = if self.sky.daylight == Daylight::Day {
-                    Daylight::Night
-                } else {
-                    Daylight::Day
-                };
+                let d = if self.sky.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
                 self.sky.set_daylight(d, true);
                 events.extend([Event::Fade, Event::Daylight(d), self.bell()]);
-                events.push(Event::Toast(
-                    if d == Daylight::Night {
-                        "Du sov til kvelden."
-                    } else {
-                        "Du sov til morgenen."
-                    }
-                    .into(),
-                ));
+                events.push(Event::Toast(if d == Daylight::Night { "Du sov til kvelden." } else { "Du sov til morgenen." }.into()));
             }
             Use::Gallery(n) => {
-                if let Some(c) = craft::GALLERY
-                    .get(n)
-                    .filter(|c| self.hero.found.contains(**c))
-                {
+                if let Some(c) = craft::GALLERY.get(n).filter(|c| self.hero.found.contains(**c)) {
                     events.push(Event::OpenDoc(c.to_string()));
                 }
             }
             Use::Talk(n) => {
                 if self.npcs.talk(n).is_some() {
-                    let at = self
-                        .npcs
-                        .npcs
-                        .get(n)
-                        .map(|p| p.pos + Vec3::Y * 1.6)
-                        .unwrap_or(self.eye());
+                    let at = self.npcs.npcs.get(n).map(|p| p.pos + Vec3::Y * 1.6).unwrap_or(self.eye());
                     events.push(self.sound_at("talk", at, 1.0));
                 }
             }
@@ -66,9 +47,7 @@ impl Session {
                 self.loot_seed ^= self.loot_seed >> 7;
                 self.loot_seed ^= self.loot_seed << 17;
                 // Den sjeldne komponenten i kista, eller en fra temaets liste.
-                let pick = chest.and_then(|c| c.loot).unwrap_or_else(|| {
-                    list[(self.loot_seed >> 33) as usize % list.len()].to_string()
-                });
+                let pick = chest.and_then(|c| c.loot).unwrap_or_else(|| list[(self.loot_seed >> 33) as usize % list.len()].to_string());
                 self.hero.carry(&pick, 1);
                 events.push(self.sound_at("chest", self.target_pos(i), 1.0));
                 events.extend([sfx("loot"), Event::Loot(Some(pick))]);
@@ -85,9 +64,7 @@ impl Session {
                     }
                     events.push(self.sound_at("bolt", at, 1.0));
                     events.push(self.sound_at("door", at, 0.9));
-                    events.push(Event::Toast(
-                        "Du skyver slåen fra. Snarveien er åpen.".into(),
-                    ));
+                    events.push(Event::Toast("Du skyver slåen fra. Snarveien er åpen.".into()));
                 } else {
                     events.push(self.sound_at("locked", at, 0.8));
                     events.push(Event::Toast("Døra er boltet fra den andre siden.".into()));
@@ -101,9 +78,7 @@ impl Session {
                 let key = self.crypt.gates.get(n).is_some_and(|g| g.key);
                 if !key {
                     events.push(self.sound_at("locked", at, 1.0));
-                    events.push(Event::Toast(
-                        "Gitteret sitter fast. En spak et sted heiser det.".into(),
-                    ));
+                    events.push(Event::Toast("Gitteret sitter fast. En spak et sted heiser det.".into()));
                 } else if self.hero.keys > 0 {
                     self.hero.keys -= 1;
                     if let Some(sw) = self.crypt.gates.get(n).map(|g| g.switch) {
@@ -114,15 +89,11 @@ impl Session {
                     events.push(Event::Toast("Nøkkelen passer. Porten sveives opp.".into()));
                 } else {
                     events.push(self.sound_at("locked", at, 1.0));
-                    events.push(Event::Toast(
-                        "Porten er låst. Elitefienden i nivået bærer nøkkelen.".into(),
-                    ));
+                    events.push(Event::Toast("Porten er låst. Elitefienden i nivået bærer nøkkelen.".into()));
                 }
             }
             Use::Lever(n) => {
-                let Some(opens) = self.mech.pull_lever(&self.crypt, n) else {
-                    return;
-                };
+                let Some(opens) = self.mech.pull_lever(&self.crypt, n) else { return };
                 events.push(self.sound_at("gate", self.target_pos(i), 1.0));
                 for sw in opens {
                     self.open_switch(sw);
@@ -131,9 +102,7 @@ impl Session {
                         events.push(self.sound_at("gate", g.pos + Vec3::Y * 1.5, 1.2));
                     }
                 }
-                events.push(Event::Toast(
-                    "Spaken går ned med et tungt klonk. Et sted heises et gitter.".into(),
-                ));
+                events.push(Event::Toast("Spaken går ned med et tungt klonk. Et sted heises et gitter.".into()));
             }
             Use::Secret(n) => {
                 if self.mech.secrets.get(n).is_none_or(|s| *s >= 0.0) {
@@ -144,19 +113,13 @@ impl Session {
                 }
                 events.push(self.sound_at("crack", self.target_pos(i), 1.2));
                 events.push(self.sound_at("door_close", self.target_pos(i), 0.8));
-                events.push(Event::Toast(
-                    "Steinene gir etter og synker i gulvet. Det er et rom bak muren!".into(),
-                ));
+                events.push(Event::Toast("Steinene gir etter og synker i gulvet. Det er et rom bak muren!".into()));
             }
             Use::Ladder(n) => {
-                let Some(l) = self.crypt.ladders.get(n).cloned() else {
-                    return;
-                };
+                let Some(l) = self.crypt.ladders.get(n).cloned() else { return };
                 // Lemmen øverst går opp når du klatrer gjennom den.
                 for t in 0..self.crypt.trapdoors.len() {
-                    if self.crypt.trapdoors[t].pos.distance(l.top) < 2.5
-                        && self.mech.trapdoors[t] < 0.0
-                    {
+                    if self.crypt.trapdoors[t].pos.distance(l.top) < 2.5 && self.mech.trapdoors[t] < 0.0 {
                         let sw = self.crypt.trapdoors[t].switch;
                         self.open_switch(sw);
                     }
@@ -175,25 +138,14 @@ impl Session {
                 events.push(Event::Toast(if first { "Du tenner lysene på alteret og hviler. Dør du, våkner du her. Fiendene i nivået er kommet tilbake." } else { "Du hviler ved alteret. Fiendene i nivået er kommet tilbake." }.into()));
             }
             Use::Lore(n) => {
-                let Some(l) = self.crypt.lores.get(n).cloned() else {
-                    return;
-                };
+                let Some(l) = self.crypt.lores.get(n).cloned() else { return };
                 self.run.lore_read[n] = true;
                 events.push(sfx("page"));
-                events.push(Event::Toast(if l.text.is_empty() {
-                    l.title
-                } else {
-                    format!("{}: «{}»", l.title, l.text)
-                }));
+                events.push(Event::Toast(if l.text.is_empty() { l.title } else { format!("{}: «{}»", l.title, l.text) }));
             }
             Use::Bonus(n) => {
-                let Some(b) = self.crypt.bonuses.get(n).cloned() else {
-                    return;
-                };
-                if let Some(note) =
-                    self.hero
-                        .take_bonus(&b.key, b.kind == crypt::BonusKind::Life, &mut self.combat)
-                {
+                let Some(b) = self.crypt.bonuses.get(n).cloned() else { return };
+                if let Some(note) = self.hero.take_bonus(&b.key, b.kind == crypt::BonusKind::Life, &mut self.combat) {
                     self.say([note], events);
                     events.push(sfx("heal"));
                 }
@@ -205,9 +157,7 @@ impl Session {
             }
             Use::Descend => {
                 let Some((to, yaw)) = self.crypt.start() else {
-                    events.push(Event::Toast(
-                        "Døra er stengt. Krypten er ikke ferdig ennå.".into(),
-                    ));
+                    events.push(Event::Toast("Døra er stengt. Krypten er ikke ferdig ennå.".into()));
                     return;
                 };
                 self.portal.enter(0, to, yaw);
@@ -218,16 +168,11 @@ impl Session {
                 events.push(Event::Toast(format!("Nivå 1: {name}. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.")));
             }
             Use::Portal => {
-                let Some((to, yaw, level)) = self.portal.dest.take() else {
-                    return;
-                };
+                let Some((to, yaw, level)) = self.portal.dest.take() else { return };
                 self.warp(events);
                 self.teleport(to, yaw);
                 self.enter_level(level);
-                events.push(Event::Toast(format!(
-                    "Gjennom virvelen og ned i nivå {}. Portalen lukker seg bak deg.",
-                    level + 1
-                )));
+                events.push(Event::Toast(format!("Gjennom virvelen og ned i nivå {}. Portalen lukker seg bak deg.", level + 1)));
             }
             Use::Ascend(k) => {
                 events.extend([Event::Fade, sfx("door")]);
@@ -269,9 +214,7 @@ impl Session {
             let c = self.portal_center().unwrap_or(self.body.pos);
             events.push(self.sound_at("gate", c - Vec3::Y * 1.4, 1.0));
             events.push(self.sound_at("portal_open", c, 1.0));
-            events.push(Event::Toast(
-                "Virvelen tok deg hjem. Portalen ved sørporten tar deg tilbake dit du var.".into(),
-            ));
+            events.push(Event::Toast("Virvelen tok deg hjem. Portalen ved sørporten tar deg tilbake dit du var.".into()));
         } else {
             self.respawn();
             events.extend([Event::Fade, Event::Toast("Tilbake ved sørporten".into())]);
@@ -309,9 +252,7 @@ impl Session {
 
     /// Til et annet nivå (trappa ned): startstedet der.
     pub fn go_to_level(&mut self, k: usize) -> bool {
-        let Some(l) = self.crypt.levels.get(k) else {
-            return false;
-        };
+        let Some(l) = self.crypt.levels.get(k) else { return false };
         let (to, yaw) = l.start;
         self.portal.enter(k, to, yaw);
         self.teleport(to, yaw);
@@ -341,24 +282,15 @@ impl Session {
             if self.in_crypt() {
                 let at = self.crypt.snap(feet, 3.0).unwrap_or(feet);
                 self.run.bags.push((at, bag));
-                events.push(Event::Toast(format!(
-                    "{n} komponenter ligger igjen der du døde."
-                )));
+                events.push(Event::Toast(format!("{n} komponenter ligger igjen der du døde.")));
             } else {
                 events.push(Event::Toast(format!("{n} komponenter ble borte.")));
             }
         }
         events.extend([Event::Fade, sfx("death")]);
-        if let Some(r) = self
-            .run
-            .last_rest
-            .and_then(|r| self.crypt.rests.get(r).cloned())
-        {
+        if let Some(r) = self.run.last_rest.and_then(|r| self.crypt.rests.get(r).cloned()) {
             let front = Vec3::new(r.yaw.sin(), 0.0, r.yaw.cos());
-            let to = self
-                .crypt
-                .snap(r.pos + front * 1.3, 3.0)
-                .unwrap_or(r.pos + front * 1.3);
+            let to = self.crypt.snap(r.pos + front * 1.3, 3.0).unwrap_or(r.pos + front * 1.3);
             self.teleport(to, r.yaw + std::f32::consts::PI);
             self.enter_level(r.level);
             events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk, og våkner ved hvilestedet. {lost} tokens ble igjen.")));
@@ -369,27 +301,17 @@ impl Session {
         // nivået du har nådd.
         if let Some(d) = self.portal.deepest() {
             self.portal.open(d);
-            events.push(Event::Toast(format!(
-                "Portalen ved sørporten har våknet: den tar deg til inngangen til nivå {}.",
-                d.2 + 1
-            )));
+            events.push(Event::Toast(format!("Portalen ved sørporten har våknet: den tar deg til inngangen til nivå {}.", d.2 + 1)));
         }
         let (to, yaw) = self.crypt_exit;
         self.teleport(to, yaw);
-        events.push(Event::Toast(format!(
-            "Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede."
-        )));
+        events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
     }
 
     /// En fiende falt: bossen gir skatten og seieren, eliten nøkkelen og en
     /// komponent.
     pub(super) fn killed(&mut self, mob: usize, pos: Vec3, events: &mut Vec<Event>) {
-        let (kind, elite) = self
-            .mobs
-            .mobs
-            .get(mob)
-            .map(|m| (m.kind, m.elite))
-            .unwrap_or((MobKind::Button, false));
+        let (kind, elite) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite)).unwrap_or((MobKind::Button, false));
         if kind.boss() {
             self.run.slain.insert(self.mobs.level);
             for c in craft::BOSS_LOOT {
@@ -402,14 +324,9 @@ impl Session {
             let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
             self.hero.carry(c, 1);
             events.push(self.sound_at("key", pos - Vec3::Y * 0.8, 1.0));
-            events.push(Event::Toast(format!(
-                "Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen."
-            )));
+            events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen.")));
         } else if kind != MobKind::Tooltip {
-            events.push(Event::Toast(format!(
-                "{} falt fra hverandre. Plukk opp tokenene.",
-                kind.label()
-            )));
+            events.push(Event::Toast(format!("{} falt fra hverandre. Plukk opp tokenene.", kind.label())));
         }
         if self.aimed_mob == Some(mob) {
             self.aimed_mob = None;

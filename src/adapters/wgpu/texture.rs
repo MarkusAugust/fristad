@@ -38,11 +38,7 @@ fn tex2d(binding: u32, array: bool) -> wgpu::BindGroupLayoutEntry {
         visibility: wgpu::ShaderStages::FRAGMENT,
         ty: wgpu::BindingType::Texture {
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
-            view_dimension: if array {
-                wgpu::TextureViewDimension::D2Array
-            } else {
-                wgpu::TextureViewDimension::D2
-            },
+            view_dimension: if array { wgpu::TextureViewDimension::D2Array } else { wgpu::TextureViewDimension::D2 },
             multisampled: false,
         },
         count: None,
@@ -59,79 +55,36 @@ fn sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 }
 
 /// Laster et bilde opp som tekstur med mipmaps generert på GPU-en.
-pub fn upload(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    mipper: &Mipper,
-    img: &crate::domain::model::Image,
-    srgb: bool,
-    label: &str,
-) -> wgpu::TextureView {
-    let format = if srgb {
-        wgpu::TextureFormat::Rgba8UnormSrgb
-    } else {
-        wgpu::TextureFormat::Rgba8Unorm
-    };
+pub fn upload(device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, img: &crate::domain::model::Image, srgb: bool, label: &str) -> wgpu::TextureView {
+    let format = if srgb { wgpu::TextureFormat::Rgba8UnormSrgb } else { wgpu::TextureFormat::Rgba8Unorm };
     let mips = (img.width.max(img.height) as f32).log2().floor() as u32 + 1;
     let tex = device.create_texture(&wgpu::TextureDescriptor {
         label: Some(label),
-        size: wgpu::Extent3d {
-            width: img.width,
-            height: img.height,
-            depth_or_array_layers: 1,
-        },
+        size: wgpu::Extent3d { width: img.width, height: img.height, depth_or_array_layers: 1 },
         mip_level_count: mips,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING
-            | wgpu::TextureUsages::COPY_DST
-            | wgpu::TextureUsages::RENDER_ATTACHMENT,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
         view_formats: &[],
     });
     queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            texture: &tex,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
+        wgpu::TexelCopyTextureInfo { texture: &tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
         &img.rgba,
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(img.width * 4),
-            rows_per_image: Some(img.height),
-        },
-        wgpu::Extent3d {
-            width: img.width,
-            height: img.height,
-            depth_or_array_layers: 1,
-        },
+        wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(img.width * 4), rows_per_image: Some(img.height) },
+        wgpu::Extent3d { width: img.width, height: img.height, depth_or_array_layers: 1 },
     );
     mipper.generate(device, queue, &tex, &tex, format, format, 1, mips);
     tex.create_view(&Default::default())
 }
 
-fn solid(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    rgba: [u8; 4],
-    srgb: bool,
-) -> wgpu::TextureView {
-    let format = if srgb {
-        wgpu::TextureFormat::Rgba8UnormSrgb
-    } else {
-        wgpu::TextureFormat::Rgba8Unorm
-    };
+fn solid(device: &wgpu::Device, queue: &wgpu::Queue, rgba: [u8; 4], srgb: bool) -> wgpu::TextureView {
+    let format = if srgb { wgpu::TextureFormat::Rgba8UnormSrgb } else { wgpu::TextureFormat::Rgba8Unorm };
     let tex = device.create_texture_with_data(
         queue,
         &wgpu::TextureDescriptor {
             label: Some("solid"),
-            size: wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
+            size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -180,11 +133,7 @@ impl Mipper {
         };
         let _ = fb;
         let array = layers > 1;
-        let pipeline = if array {
-            &self.pipeline_array
-        } else {
-            pipeline
-        };
+        let pipeline = if array { &self.pipeline_array } else { pipeline };
         let mut enc = device.create_command_encoder(&Default::default());
         for layer in 0..layers {
             // Laget som uniform, til array-banen.
@@ -210,11 +159,7 @@ impl Mipper {
                     t.create_view(&wgpu::TextureViewDescriptor {
                         base_mip_level: level - 1,
                         mip_level_count: Some(1),
-                        dimension: Some(if array {
-                            wgpu::TextureViewDimension::D2Array
-                        } else {
-                            wgpu::TextureViewDimension::D2
-                        }),
+                        dimension: Some(if array { wgpu::TextureViewDimension::D2Array } else { wgpu::TextureViewDimension::D2 }),
                         ..Default::default()
                     })
                 };
@@ -227,22 +172,10 @@ impl Mipper {
                         label: Some("mip array"),
                         layout: &self.layout_array,
                         entries: &[
-                            wgpu::BindGroupEntry {
-                                binding: 0,
-                                resource: layer_buf.as_entire_binding(),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 3,
-                                resource: wgpu::BindingResource::Sampler(&self.sampler),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 4,
-                                resource: wgpu::BindingResource::TextureView(&src_a),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 5,
-                                resource: wgpu::BindingResource::TextureView(&src_b),
-                            },
+                            wgpu::BindGroupEntry { binding: 0, resource: layer_buf.as_entire_binding() },
+                            wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.sampler) },
+                            wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&src_a) },
+                            wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::TextureView(&src_b) },
                         ],
                     })
                 } else {
@@ -250,41 +183,23 @@ impl Mipper {
                         label: Some("mip"),
                         layout: &self.layout,
                         entries: &[
-                            wgpu::BindGroupEntry {
-                                binding: 0,
-                                resource: self.uniform.as_entire_binding(),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 1,
-                                resource: wgpu::BindingResource::TextureView(&src_a),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 2,
-                                resource: wgpu::BindingResource::TextureView(&src_b),
-                            },
-                            wgpu::BindGroupEntry {
-                                binding: 3,
-                                resource: wgpu::BindingResource::Sampler(&self.sampler),
-                            },
+                            wgpu::BindGroupEntry { binding: 0, resource: self.uniform.as_entire_binding() },
+                            wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&src_a) },
+                            wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&src_b) },
+                            wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.sampler) },
                         ],
                     })
                 };
                 let mut attachments = vec![Some(wgpu::RenderPassColorAttachment {
                     view: &dst_a,
                     resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
                 })];
                 if pair {
                     attachments.push(Some(wgpu::RenderPassColorAttachment {
                         view: &dst_b,
                         resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                            store: wgpu::StoreOp::Store,
-                        },
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
                     }));
                 }
                 let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -304,16 +219,8 @@ impl Mipper {
 }
 
 impl Materials {
-    pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        external: &[(Layer, LayerImages)],
-    ) -> (Self, Mipper) {
-        let src = format!(
-            "{}\n{}",
-            include_str!("shaders/noise.wgsl"),
-            include_str!("shaders/bake.wgsl")
-        );
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, external: &[(Layer, LayerImages)]) -> (Self, Mipper) {
+        let src = format!("{}\n{}", include_str!("shaders/noise.wgsl"), include_str!("shaders/bake.wgsl"));
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("bake"),
             source: wgpu::ShaderSource::Wgsl(src.into()),
@@ -324,11 +231,7 @@ impl Materials {
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
+                    ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None },
                     count: None,
                 },
                 tex2d(1, false),
@@ -344,32 +247,16 @@ impl Materials {
         let make = |entry: &str, formats: &[wgpu::TextureFormat]| {
             let targets: Vec<Option<wgpu::ColorTargetState>> = formats
                 .iter()
-                .map(|f| {
-                    Some(wgpu::ColorTargetState {
-                        format: *f,
-                        blend: None,
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })
-                })
+                .map(|f| Some(wgpu::ColorTargetState { format: *f, blend: None, write_mask: wgpu::ColorWrites::ALL }))
                 .collect();
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(entry),
                 layout: Some(&pipe_layout),
-                vertex: wgpu::VertexState {
-                    module: &module,
-                    entry_point: Some("vs"),
-                    compilation_options: Default::default(),
-                    buffers: &[],
-                },
+                vertex: wgpu::VertexState { module: &module, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
                 primitive: Default::default(),
                 depth_stencil: None,
                 multisample: Default::default(),
-                fragment: Some(wgpu::FragmentState {
-                    module: &module,
-                    entry_point: Some(entry),
-                    compilation_options: Default::default(),
-                    targets: &targets,
-                }),
+                fragment: Some(wgpu::FragmentState { module: &module, entry_point: Some(entry), compilation_options: Default::default(), targets: &targets }),
                 multiview: None,
                 cache: None,
             })
@@ -385,58 +272,17 @@ impl Materials {
         let array_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("mip array"),
             entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 4,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 5,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
+                wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None }, count: None },
+                wgpu::BindGroupLayoutEntry { binding: 3, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering), count: None },
+                wgpu::BindGroupLayoutEntry { binding: 4, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2Array, multisampled: false }, count: None },
+                wgpu::BindGroupLayoutEntry { binding: 5, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2Array, multisampled: false }, count: None },
             ],
         });
-        let array_pipe_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("mip array"),
-            bind_group_layouts: &[&array_layout],
-            push_constant_ranges: &[],
-        });
+        let array_pipe_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: Some("mip array"), bind_group_layouts: &[&array_layout], push_constant_ranges: &[] });
         let mip_array = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("fs_mip_array"),
             layout: Some(&array_pipe_layout),
-            vertex: wgpu::VertexState {
-                module: &module,
-                entry_point: Some("vs"),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
+            vertex: wgpu::VertexState { module: &module, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
             primitive: Default::default(),
             depth_stencil: None,
             multisample: Default::default(),
@@ -445,16 +291,8 @@ impl Materials {
                 entry_point: Some("fs_mip_array"),
                 compilation_options: Default::default(),
                 targets: &[
-                    Some(wgpu::ColorTargetState {
-                        format: srgb,
-                        blend: None,
-                        write_mask: wgpu::ColorWrites::ALL,
-                    }),
-                    Some(wgpu::ColorTargetState {
-                        format: lin,
-                        blend: None,
-                        write_mask: wgpu::ColorWrites::ALL,
-                    }),
+                    Some(wgpu::ColorTargetState { format: srgb, blend: None, write_mask: wgpu::ColorWrites::ALL }),
+                    Some(wgpu::ColorTargetState { format: lin, blend: None, write_mask: wgpu::ColorWrites::ALL }),
                 ],
             }),
             multiview: None,
@@ -475,34 +313,18 @@ impl Materials {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let mipper = Mipper {
-            layout: bake_layout.clone(),
-            layout_array: array_layout,
-            pipeline_srgb: mip_srgb,
-            pipeline_pair: mip_pair,
-            pipeline_lin: mip_lin,
-            pipeline_array: mip_array,
-            sampler: sampler.clone(),
-            uniform: uniform.clone(),
-        };
+        let mipper = Mipper { layout: bake_layout.clone(), layout_array: array_layout, pipeline_srgb: mip_srgb, pipeline_pair: mip_pair, pipeline_lin: mip_lin, pipeline_array: mip_array, sampler: sampler.clone(), uniform: uniform.clone() };
 
         let mips = (SIZE as f32).log2() as u32 + 1;
         let array = |label: &str, format| {
             device.create_texture(&wgpu::TextureDescriptor {
                 label: Some(label),
-                size: wgpu::Extent3d {
-                    width: SIZE,
-                    height: SIZE,
-                    depth_or_array_layers: LAYERS,
-                },
+                size: wgpu::Extent3d { width: SIZE, height: SIZE, depth_or_array_layers: LAYERS },
                 mip_level_count: mips,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING
-                    | wgpu::TextureUsages::RENDER_ATTACHMENT
-                    | wgpu::TextureUsages::COPY_SRC
-                    | wgpu::TextureUsages::COPY_DST,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             })
         };
@@ -512,14 +334,7 @@ impl Materials {
 
         // Bak hvert lag.
         for layer in 0..LAYERS {
-            let u = BakeUniform {
-                params: [
-                    layer as f32,
-                    TEX_SCALE[layer as usize],
-                    1.0 / SIZE as f32,
-                    0.0,
-                ],
-            };
+            let u = BakeUniform { params: [layer as f32, TEX_SCALE[layer as usize], 1.0 / SIZE as f32, 0.0] };
             let buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("bake"),
                 contents: bytemuck::bytes_of(&u),
@@ -529,22 +344,10 @@ impl Materials {
                 label: Some("bake"),
                 layout: &bake_layout,
                 entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: buf.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(&dummy),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&dummy),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
+                    wgpu::BindGroupEntry { binding: 0, resource: buf.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&dummy) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&dummy) },
+                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&sampler) },
                 ],
             });
             let view = |t: &wgpu::Texture| {
@@ -561,23 +364,12 @@ impl Materials {
             let vb = view(&nrh);
             let mut enc = device.create_command_encoder(&Default::default());
             {
-                let clear = wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                };
+                let clear = wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store };
                 let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("bake"),
                     color_attachments: &[
-                        Some(wgpu::RenderPassColorAttachment {
-                            view: &va,
-                            resolve_target: None,
-                            ops: clear,
-                        }),
-                        Some(wgpu::RenderPassColorAttachment {
-                            view: &vb,
-                            resolve_target: None,
-                            ops: clear,
-                        }),
+                        Some(wgpu::RenderPassColorAttachment { view: &va, resolve_target: None, ops: clear }),
+                        Some(wgpu::RenderPassColorAttachment { view: &vb, resolve_target: None, ops: clear }),
                     ],
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
@@ -597,35 +389,14 @@ impl Materials {
             let (a, n) = pack_external(imgs, false);
             for (tex, data) in [(&albedo, &a), (&nrh, &n)] {
                 queue.write_texture(
-                    wgpu::TexelCopyTextureInfo {
-                        texture: tex,
-                        mip_level: 0,
-                        origin: wgpu::Origin3d {
-                            x: 0,
-                            y: 0,
-                            z: *layer as u32,
-                        },
-                        aspect: wgpu::TextureAspect::All,
-                    },
+                    wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: *layer as u32 }, aspect: wgpu::TextureAspect::All },
                     data,
-                    wgpu::TexelCopyBufferLayout {
-                        offset: 0,
-                        bytes_per_row: Some(SIZE * 4),
-                        rows_per_image: Some(SIZE),
-                    },
-                    wgpu::Extent3d {
-                        width: SIZE,
-                        height: SIZE,
-                        depth_or_array_layers: 1,
-                    },
+                    wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(SIZE * 4), rows_per_image: Some(SIZE) },
+                    wgpu::Extent3d { width: SIZE, height: SIZE, depth_or_array_layers: 1 },
                 );
             }
             scales[*layer as usize] = imgs.size_m.max(0.1);
-            log::info!(
-                "Lag {} bruker fotoskannet materiale ({} m per flis)",
-                layer.name(),
-                imgs.size_m
-            );
+            log::info!("Lag {} bruker fotoskannet materiale ({} m per flis)", layer.name(), imgs.size_m);
         }
         mipper.generate(device, queue, &albedo, &nrh, srgb, lin, LAYERS, mips);
 
@@ -633,11 +404,7 @@ impl Materials {
         let leaf_mips = (LEAF_SIZE as f32).log2() as u32 + 1;
         let leaf = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("leaf"),
-            size: wgpu::Extent3d {
-                width: LEAF_SIZE,
-                height: LEAF_SIZE,
-                depth_or_array_layers: 1,
-            },
+            size: wgpu::Extent3d { width: LEAF_SIZE, height: LEAF_SIZE, depth_or_array_layers: 1 },
             mip_level_count: leaf_mips,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -650,29 +417,13 @@ impl Materials {
                 label: Some("leaf"),
                 layout: &bake_layout,
                 entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: uniform.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(&dummy),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&dummy),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
+                    wgpu::BindGroupEntry { binding: 0, resource: uniform.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&dummy) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&dummy) },
+                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&sampler) },
                 ],
             });
-            let v = leaf.create_view(&wgpu::TextureViewDescriptor {
-                base_mip_level: 0,
-                mip_level_count: Some(1),
-                ..Default::default()
-            });
+            let v = leaf.create_view(&wgpu::TextureViewDescriptor { base_mip_level: 0, mip_level_count: Some(1), ..Default::default() });
             let mut enc = device.create_command_encoder(&Default::default());
             {
                 let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -680,10 +431,7 @@ impl Materials {
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: &v,
                         resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                            store: wgpu::StoreOp::Store,
-                        },
+                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT), store: wgpu::StoreOp::Store },
                     })],
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
@@ -719,55 +467,23 @@ impl Materials {
 
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("materials"),
-            entries: &[
-                tex2d(0, true),
-                tex2d(1, true),
-                sampler_entry(2),
-                tex2d(4, false),
-                sampler_entry(5),
-            ],
+            entries: &[tex2d(0, true), tex2d(1, true), sampler_entry(2), tex2d(4, false), sampler_entry(5)],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("materials"),
             layout: &layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(
-                        &albedo.create_view(&Default::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(
-                        &nrh.create_view(&Default::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&repeat),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(
-                        &leaf.create_view(&Default::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: wgpu::BindingResource::Sampler(&clamp),
-                },
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&albedo.create_view(&Default::default())) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&nrh.create_view(&Default::default())) },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&repeat) },
+                wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&leaf.create_view(&Default::default())) },
+                wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&clamp) },
             ],
         });
 
         let model_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("model"),
-            entries: &[
-                tex2d(0, false),
-                tex2d(1, false),
-                tex2d(2, false),
-                tex2d(3, false),
-            ],
+            entries: &[tex2d(0, false), tex2d(1, false), tex2d(2, false), tex2d(3, false)],
         });
         let white = solid(device, queue, [255, 255, 255, 255], true);
         let flat = solid(device, queue, [128, 128, 255, 255], false);
@@ -777,53 +493,22 @@ impl Materials {
             label: Some("model dummy"),
             layout: &model_layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&white),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&flat),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&mr),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(&black),
-                },
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&white) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&flat) },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&mr) },
+                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&black) },
             ],
         });
 
-        (
-            Self {
-                scales,
-                albedo_tex: albedo,
-                nrh_tex: nrh,
-                layout,
-                bind_group,
-                model_layout,
-                dummy_model,
-                repeat,
-            },
-            mipper,
-        )
+        (Self { scales, albedo_tex: albedo, nrh_tex: nrh, layout, bind_group, model_layout, dummy_model, repeat }, mipper)
     }
 
     /// Bindingen for en modell med egne teksturer.
-    pub fn model_bind_group(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        mipper: &Mipper,
-        m: &crate::domain::model::Model,
-    ) -> wgpu::BindGroup {
-        let tex =
-            |img: &Option<crate::domain::model::Image>, srgb: bool, fallback: [u8; 4]| match img {
-                Some(i) => upload(device, queue, mipper, i, srgb, &m.name),
-                None => solid(device, queue, fallback, srgb),
-            };
+    pub fn model_bind_group(&self, device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, m: &crate::domain::model::Model) -> wgpu::BindGroup {
+        let tex = |img: &Option<crate::domain::model::Image>, srgb: bool, fallback: [u8; 4]| match img {
+            Some(i) => upload(device, queue, mipper, i, srgb, &m.name),
+            None => solid(device, queue, fallback, srgb),
+        };
         let albedo = tex(&m.albedo, true, [255, 255, 255, 255]);
         let normal = tex(&m.normal, false, [128, 128, 255, 255]);
         let mr = tex(&m.metal_rough, false, [255, 255, 255, 255]);
@@ -832,22 +517,10 @@ impl Materials {
             label: Some(&m.name),
             layout: &self.model_layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&albedo),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&normal),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&mr),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(&emissive),
-                },
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&albedo) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&normal) },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&mr) },
+                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&emissive) },
             ],
         })
     }
@@ -875,20 +548,9 @@ fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let mut gain = 1.0f32;
     if normalize {
         let d = diffuse.as_raw();
-        let occl = |i: usize| {
-            ao.as_ref()
-                .map(|m| 0.35 + 0.65 * m.as_raw()[i * 4] as f32 / 255.0)
-                .unwrap_or(1.0)
-        };
+        let occl = |i: usize| ao.as_ref().map(|m| 0.35 + 0.65 * m.as_raw()[i * 4] as f32 / 255.0).unwrap_or(1.0);
         let n = d.len() / 4;
-        let mean = (0..n)
-            .map(|i| {
-                (d[i * 4] as f32 * 0.3 + d[i * 4 + 1] as f32 * 0.59 + d[i * 4 + 2] as f32 * 0.11)
-                    / 255.0
-                    * occl(i)
-            })
-            .sum::<f32>()
-            / n as f32;
+        let mean = (0..n).map(|i| (d[i * 4] as f32 * 0.3 + d[i * 4 + 1] as f32 * 0.59 + d[i * 4 + 2] as f32 * 0.11) / 255.0 * occl(i)).sum::<f32>() / n as f32;
         gain = (0.92 / mean.max(0.05)).clamp(0.5, 4.0);
     }
     let n = (SIZE * SIZE) as usize;
@@ -896,20 +558,14 @@ fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let mut nrh = Vec::with_capacity(n * 4);
     for i in 0..n {
         let d = diffuse.as_raw();
-        let occl = ao
-            .as_ref()
-            .map(|m| m.as_raw()[i * 4] as f32 / 255.0)
-            .unwrap_or(1.0);
+        let occl = ao.as_ref().map(|m| m.as_raw()[i * 4] as f32 / 255.0).unwrap_or(1.0);
         // AO i sRGB-rom er en grov tilnærming, men bra nok for skygger i fugene.
         let k = (0.35 + 0.65 * occl) * gain;
         let c = |v: u8| (v as f32 * k).min(255.0) as u8;
         a.extend_from_slice(&[c(d[i * 4]), c(d[i * 4 + 1]), c(d[i * 4 + 2]), 255]);
         // Poly Haven-normalene er i OpenGL-konvensjon, som de bakte lagene
         // (prøvd med en syntetisk kule: lyset faller riktig uten snuing).
-        let (nx, ny) = normal
-            .as_ref()
-            .map(|m| (m.as_raw()[i * 4], m.as_raw()[i * 4 + 1]))
-            .unwrap_or((128, 128));
+        let (nx, ny) = normal.as_ref().map(|m| (m.as_raw()[i * 4], m.as_raw()[i * 4 + 1])).unwrap_or((128, 128));
         let r = rough.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(200);
         let h = height.as_ref().map(|m| m.as_raw()[i * 4]).unwrap_or(128);
         nrh.extend_from_slice(&[nx, ny, r, h]);

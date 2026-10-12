@@ -85,18 +85,7 @@ pub struct Bench {
 
 impl Default for Bench {
     fn default() -> Self {
-        Bench {
-            msaa: 0,
-            a2c: true,
-            shadow: true,
-            flat: false,
-            small_hdr: false,
-            timers: true,
-            sky: true,
-            particles: true,
-            models: true,
-            smaa: true,
-        }
+        Bench { msaa: 0, a2c: true, shadow: true, flat: false, small_hdr: false, timers: true, sky: true, particles: true, models: true, smaa: true }
     }
 }
 
@@ -135,14 +124,7 @@ pub trait Physics {
     /// Flytt en kapsel (halv høyde `half`, radius `radius`) med `delta`,
     /// med kollisjon og trappesteg. Gir faktisk flytting og om den står på
     /// bakken.
-    fn move_capsule(
-        &mut self,
-        pos: Vec3,
-        half: f32,
-        radius: f32,
-        delta: Vec3,
-        dt: f32,
-    ) -> (Vec3, bool);
+    fn move_capsule(&mut self, pos: Vec3, half: f32, radius: f32, delta: Vec3, dt: f32) -> (Vec3, bool);
     fn cast_ray(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit>;
 }
 

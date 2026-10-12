@@ -15,12 +15,7 @@ fn main() {
     let models: Vec<_> = model_files()
         .map(|(name, file)| {
             let placed = p.world.placements.iter().find(|q| q.model == *name);
-            let tris = p
-                .models
-                .iter()
-                .find(|m| m.name == *name)
-                .map(|m| m.mesh.indices.len() / 3)
-                .unwrap_or(0);
+            let tris = p.models.iter().find(|m| m.name == *name).map(|m| m.mesh.indices.len() / 3).unwrap_or(0);
             json!({
                 "name": name,
                 "file": file,

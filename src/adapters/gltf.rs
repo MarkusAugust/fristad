@@ -139,21 +139,12 @@ impl ModelSource for Embedded {
         super::data::world_data()
     }
     fn names(&self) -> Vec<String> {
-        MODELS
-            .iter()
-            .chain(CRYPT_MODELS.iter())
-            .map(|(n, _)| n.to_string())
-            .collect()
+        MODELS.iter().chain(CRYPT_MODELS.iter()).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let (_, bytes) = MODELS
-            .iter()
-            .chain(CRYPT_MODELS.iter())
-            .find(|(n, _)| *n == name)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0)
-            .map_err(|e| log::warn!("Modell {name}: {e}"))
-            .ok()
+        let (_, bytes) = MODELS.iter().chain(CRYPT_MODELS.iter()).find(|(n, _)| *n == name)?;
+        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 
@@ -173,11 +164,7 @@ pub fn layers_of(bytes: &[u8]) -> Result<Vec<String>, String> {
 /// Alle teksturlagene modellene i spillet bruker.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn used_layers() -> std::collections::BTreeSet<String> {
-    MODELS
-        .iter()
-        .chain(CRYPT_MODELS.iter())
-        .flat_map(|(_, b)| layers_of(b).unwrap_or_default())
-        .collect()
+    MODELS.iter().chain(CRYPT_MODELS.iter()).flat_map(|(_, b)| layers_of(b).unwrap_or_default()).collect()
 }
 
 /// Modellfilene etter stien i `MODEL_FILES`, hentet utenfra.
@@ -188,28 +175,19 @@ impl ModelSource for Files {
         super::data::world_data()
     }
     fn names(&self) -> Vec<String> {
-        model_files()
-            .filter(|(_, p)| self.0.contains_key(*p))
-            .map(|(n, _)| n.to_string())
-            .collect()
+        model_files().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
         let (_, path) = model_files().find(|(n, _)| *n == name)?;
         let bytes = self.0.get(*path)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0)
-            .map_err(|e| log::warn!("Modell {name}: {e}"))
-            .ok()
+        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 
 fn decode(bytes: &[u8]) -> Option<Image> {
     let img = image::load_from_memory(bytes).ok()?.into_rgba8();
-    Some(Image {
-        width: img.width(),
-        height: img.height(),
-        rgba: img.into_raw(),
-    })
+    Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
 }
 
 /// Leser en glTF-fil med tilhørende filer fra minnet (første fil er
@@ -220,11 +198,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     let get = |n: &str| -> Result<&[u8], String> {
         // Stier i glTF kan være URL-kodet.
         let plain = n.replace("%20", " ");
-        files
-            .iter()
-            .find(|(f, _)| *f == n || *f == plain || f.rsplit('/').next() == Some(n))
-            .map(|(_, b)| *b)
-            .ok_or_else(|| format!("mangler {n}"))
+        files.iter().find(|(f, _)| *f == n || *f == plain || f.rsplit('/').next() == Some(n)).map(|(_, b)| *b).ok_or_else(|| format!("mangler {n}"))
     };
     let doc = gltf::Gltf::from_slice(get(files[0].0)?).map_err(|e| format!("ugyldig glTF: {e}"))?;
     let mut buffers: Vec<Vec<u8>> = vec![];
@@ -254,12 +228,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             node_parent[c.index()] = Some(n.index());
         }
     }
-    let node_local = |i: usize| {
-        doc.nodes()
-            .nth(i)
-            .map(|n| Mat4::from_cols_array_2d(&n.transform().matrix()))
-            .unwrap_or(Mat4::IDENTITY)
-    };
+    let node_local = |i: usize| doc.nodes().nth(i).map(|n| Mat4::from_cols_array_2d(&n.transform().matrix())).unwrap_or(Mat4::IDENTITY);
     let mut rig: Option<Rig> = None;
     if let Some(skin) = doc.skins().next() {
         let joint_nodes: Vec<gltf::Node> = skin.joints().collect();
@@ -268,10 +237,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             joint_of.insert(j.index(), k);
         }
         let reader = skin.reader(|b| Some(&buffers[b.index()]));
-        let ibms: Vec<Mat4> = reader
-            .read_inverse_bind_matrices()
-            .map(|it| it.map(|m| Mat4::from_cols_array_2d(&m)).collect())
-            .unwrap_or_default();
+        let ibms: Vec<Mat4> = reader.read_inverse_bind_matrices().map(|it| it.map(|m| Mat4::from_cols_array_2d(&m)).collect()).unwrap_or_default();
         let mut joints = vec![];
         for (k, j) in joint_nodes.iter().enumerate() {
             let mut local = Mat4::from_cols_array_2d(&j.transform().matrix());
@@ -286,20 +252,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 p = node_parent[pi];
             }
             if parent.is_some_and(|pj| pj >= k) {
-                return Err(format!(
-                    "leddet {k} ({}) kommer før forelderen sin",
-                    j.name().unwrap_or("")
-                ));
+                return Err(format!("leddet {k} ({}) kommer før forelderen sin", j.name().unwrap_or("")));
             }
             let (s, r, t) = local.to_scale_rotation_translation();
-            joints.push(Joint {
-                name: j.name().unwrap_or("").to_string(),
-                parent,
-                translation: t,
-                rotation: r,
-                scale: s,
-                inverse_bind: ibms.get(k).copied().unwrap_or(Mat4::IDENTITY),
-            });
+            joints.push(Joint { name: j.name().unwrap_or("").to_string(), parent, translation: t, rotation: r, scale: s, inverse_bind: ibms.get(k).copied().unwrap_or(Mat4::IDENTITY) });
         }
         // Klippene: én kanal per ledd og egenskap. Kubiske splines har
         // tre verdier per nøkkel (tangent inn, verdi, tangent ut).
@@ -315,29 +271,15 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let mut channels = vec![];
             let mut duration: f32 = 0.0;
             for ch in a.channels() {
-                let Some(&joint) = joint_of.get(&ch.target().node().index()) else {
-                    continue;
-                };
+                let Some(&joint) = joint_of.get(&ch.target().node().index()) else { continue };
                 let r = ch.reader(|b| Some(&buffers[b.index()]));
                 let times: Vec<f32> = r.read_inputs().map(|i| i.collect()).unwrap_or_default();
-                let Some(outputs) = r.read_outputs() else {
-                    continue;
-                };
-                let cubic =
-                    ch.sampler().interpolation() == gltf::animation::Interpolation::CubicSpline;
+                let Some(outputs) = r.read_outputs() else { continue };
+                let cubic = ch.sampler().interpolation() == gltf::animation::Interpolation::CubicSpline;
                 let keys = match outputs {
-                    gltf::animation::util::ReadOutputs::Translations(v) => {
-                        Keys::Translation(middle(v.map(Vec3::from).collect(), cubic))
-                    }
-                    gltf::animation::util::ReadOutputs::Rotations(v) => Keys::Rotation(middle(
-                        v.into_f32()
-                            .map(|q| Quat::from_array(q).normalize())
-                            .collect(),
-                        cubic,
-                    )),
-                    gltf::animation::util::ReadOutputs::Scales(v) => {
-                        Keys::Scale(middle(v.map(Vec3::from).collect(), cubic))
-                    }
+                    gltf::animation::util::ReadOutputs::Translations(v) => Keys::Translation(middle(v.map(Vec3::from).collect(), cubic)),
+                    gltf::animation::util::ReadOutputs::Rotations(v) => Keys::Rotation(middle(v.into_f32().map(|q| Quat::from_array(q).normalize()).collect(), cubic)),
+                    gltf::animation::util::ReadOutputs::Scales(v) => Keys::Scale(middle(v.map(Vec3::from).collect(), cubic)),
                     gltf::animation::util::ReadOutputs::MorphTargetWeights(_) => continue,
                 };
                 let n = match &keys {
@@ -348,33 +290,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                     continue;
                 }
                 duration = duration.max(times.last().copied().unwrap_or(0.0));
-                channels.push(Channel {
-                    joint,
-                    times,
-                    keys,
-                    step: ch.sampler().interpolation() == gltf::animation::Interpolation::Step,
-                });
+                channels.push(Channel { joint, times, keys, step: ch.sampler().interpolation() == gltf::animation::Interpolation::Step });
             }
-            clips.push(Clip {
-                name: a.name().unwrap_or("").to_string(),
-                duration,
-                channels,
-            });
+            clips.push(Clip { name: a.name().unwrap_or("").to_string(), duration, channels });
         }
-        log::info!(
-            "Modell {name}: {} ledd, klipp: {}",
-            joints.len(),
-            clips
-                .iter()
-                .map(|c| format!("{} ({:.2} s)", c.name, c.duration))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-        rig = Some(Rig {
-            joints,
-            clips,
-            root: Mat4::IDENTITY,
-        });
+        log::info!("Modell {name}: {} ledd, klipp: {}", joints.len(), clips.iter().map(|c| format!("{} ({:.2} s)", c.name, c.duration)).collect::<Vec<_>>().join(", "));
+        rig = Some(Rig { joints, clips, root: Mat4::IDENTITY });
     }
 
     let mut mesh = Mesh::default();
@@ -384,10 +305,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     let mut emissive = None;
     let mut roughness = 0.6;
     let mut metallic = 0.0;
-    let scene = doc
-        .default_scene()
-        .or_else(|| doc.scenes().next())
-        .ok_or("ingen scene")?;
+    let scene = doc.default_scene().or_else(|| doc.scenes().next()).ok_or("ingen scene")?;
     let mut stack: Vec<(gltf::Node, Mat4)> = scene.nodes().map(|n| (n, Mat4::IDENTITY)).collect();
     while let Some((node, parent)) = stack.pop() {
         let local = Mat4::from_cols_array_2d(&node.transform().matrix());
@@ -408,57 +326,30 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 emissive = image(mat.emissive_texture().map(|t| t.texture()));
             }
             let reader = prim.reader(|b| Some(&buffers[b.index()]));
-            let Some(positions) = reader.read_positions() else {
-                continue;
-            };
+            let Some(positions) = reader.read_positions() else { continue };
             let pos: Vec<[f32; 3]> = positions.collect();
             // Skinnede hjørner ligger i skjelettets rom: nodens transform
             // gjelder ikke, leddmatrisene gjør alt.
-            let joints: Vec<[u16; 4]> = reader
-                .read_joints(0)
-                .map(|j| j.into_u16().collect())
-                .unwrap_or_default();
-            let weights: Vec<[f32; 4]> = reader
-                .read_weights(0)
-                .map(|w| w.into_f32().collect())
-                .unwrap_or_default();
+            let joints: Vec<[u16; 4]> = reader.read_joints(0).map(|j| j.into_u16().collect()).unwrap_or_default();
+            let weights: Vec<[f32; 4]> = reader.read_weights(0).map(|w| w.into_f32().collect()).unwrap_or_default();
             let skinned = rig.is_some() && joints.len() == pos.len() && weights.len() == pos.len();
             let world = if skinned { Mat4::IDENTITY } else { world };
-            let uv: Vec<[f32; 2]> = reader
-                .read_tex_coords(0)
-                .map(|t| t.into_f32().collect())
-                .unwrap_or_default();
+            let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
             // Okklusjonen Blender har bakt i hjørnefargen (rød kanal, lineær).
-            let ao: Vec<f32> = reader
-                .read_colors(0)
-                .map(|c| c.into_rgba_f32().map(|c| c[0]).collect())
-                .unwrap_or_default();
+            let ao: Vec<f32> = reader.read_colors(0).map(|c| c.into_rgba_f32().map(|c| c[0]).collect()).unwrap_or_default();
             // Rollen materialet har fått ved eksporten (`tools/models/roles.py`):
             // slaget, teksturlaget etter uv i meter, og flaggene.
             let role = Role::of(&mat).map_err(|e| format!("materialet {:?}: {e}", mat.name()))?;
             let layer = match &role.layer {
-                Some(n) => Some(
-                    Layer::ALL
-                        .iter()
-                        .copied()
-                        .find(|l| l.name() == n)
-                        .ok_or_else(|| {
-                            format!("materialet {:?}: ukjent teksturlag {n}", mat.name())
-                        })?,
-                ),
+                Some(n) => Some(Layer::ALL.iter().copied().find(|l| l.name() == n).ok_or_else(|| format!("materialet {:?}: ukjent teksturlag {n}", mat.name()))?),
                 None => None,
             };
-            let idx: Vec<u32> = reader
-                .read_indices()
-                .map(|i| i.into_u32().collect())
-                .unwrap_or_else(|| (0..pos.len() as u32).collect());
+            let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             // Normalene kan være pakket som 8 bit med fortegn
             // (KHR_mesh_quantization, `tools/models/slim.py`); leseren i
             // gltf-kassa tar bare flyttall, så de pakkes ut her.
             let norms: Vec<[f32; 3]> = match prim.get(&gltf::Semantic::Normals) {
-                Some(a) if a.data_type() == gltf::accessor::DataType::I8 => {
-                    packed_normals(&a, &buffers).unwrap_or_else(|| flat_normals(&pos, &idx))
-                }
+                Some(a) if a.data_type() == gltf::accessor::DataType::I8 => packed_normals(&a, &buffers).unwrap_or_else(|| flat_normals(&pos, &idx)),
                 _ => match reader.read_normals() {
                     Some(n) => n.collect(),
                     None => flat_normals(&pos, &idx),
@@ -467,8 +358,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let base = mesh.vertices.len() as u32;
             let tint = pbr.base_color_factor();
             // Fargefaktoren er lineær; hjørnefargen er sRGB.
-            let mut mmat =
-                Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
+            let mut mmat = Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
             mmat.kind = role.kind;
             mmat = mmat.flags(role.flags);
             // Lakken får fargen fra instansen i stedet for materialets.
@@ -476,9 +366,7 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 mmat = mmat.tint(Vec3::ONE);
             }
             // Gresstrå: mørkere mot rota (høyden i primitivet).
-            let (y_lo, y_hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| {
-                (lo.min(p[1]), hi.max(p[1]))
-            });
+            let (y_lo, y_hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| (lo.min(p[1]), hi.max(p[1])));
             let grass = role.grass;
             if metallic >= 0.5 && layer.is_none() {
                 mmat = mmat.flags(flag::METAL);
@@ -492,30 +380,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
                 };
             for (i, p) in pos.iter().enumerate() {
                 let wp = world.transform_point3(Vec3::from(*p));
-                let wn = nmat
-                    .transform_vector3(Vec3::from(norms[i]))
-                    .normalize_or_zero();
+                let wn = nmat.transform_vector3(Vec3::from(norms[i])).normalize_or_zero();
                 let t = uv.get(i).copied().unwrap_or([0.0, 0.0]);
-                let occl = if grass {
-                    0.45 + 0.55 * ((p[1] - y_lo) / (y_hi - y_lo).max(1e-3))
-                } else {
-                    ao.get(i).copied().unwrap_or(1.0)
-                };
+                let occl = if grass { 0.45 + 0.55 * ((p[1] - y_lo) / (y_hi - y_lo).max(1e-3)) } else { ao.get(i).copied().unwrap_or(1.0) };
                 let v = match layer {
-                    Some(l) => Mat {
-                        kind: l as u8,
-                        flags: flags | flag::UVMAP,
-                        ..mmat
-                    },
-                    None => Mat {
-                        kind: if mmat.kind == kind::PLAIN {
-                            kind::MODEL
-                        } else {
-                            mmat.kind
-                        },
-                        flags,
-                        ..mmat
-                    },
+                    Some(l) => Mat { kind: l as u8, flags: flags | flag::UVMAP, ..mmat },
+                    None => Mat { kind: if mmat.kind == kind::PLAIN { kind::MODEL } else { mmat.kind }, flags, ..mmat },
                 };
                 let vi = mesh.vert(wp, wn, Vec2::from(t), &v, occl);
                 if skinned {
@@ -537,49 +407,21 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
         mesh.transform(&Affine3A::from_rotation_y(yaw.to_radians()));
     }
     let (lo, hi) = mesh.bounds();
-    let s = if height > 0.0 {
-        height / (hi.y - lo.y).max(1e-3)
-    } else {
-        1.0
-    };
-    let center = if height < 0.0 {
-        Vec3::ZERO
-    } else {
-        Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5)
-    };
+    let s = if height > 0.0 { height / (hi.y - lo.y).max(1e-3) } else { 1.0 };
+    let center = if height < 0.0 { Vec3::ZERO } else { Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5) };
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
     if let Some(r) = &mut rig {
-        r.root =
-            Mat4::from(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center))
-                * Mat4::from_rotation_y(yaw.to_radians());
+        r.root = Mat4::from(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)) * Mat4::from_rotation_y(yaw.to_radians());
     }
     let (lo, hi) = mesh.bounds();
-    log::info!(
-        "Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m",
-        mesh.indices.len() / 3,
-        hi.x - lo.x,
-        hi.y - lo.y,
-        hi.z - lo.z
-    );
+    log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
     // Hvordan modellen forenkles på avstand (rollen på roten): bladverk som
     // kort tåler ikke å slås sammen, så det grove detaljnivået er hvert
     // tredje kort, forstørret; stammene får et grovt nett.
     let far = Far::of(&doc).map_err(|e| format!("roten: {e}"))?;
     let far_mesh = far.cards.then(|| mesh.thinned_cards(3, 1.7));
     let far_cell = if far.cards { 0.0005 } else { far.cell };
-    Ok(Model {
-        name: name.to_string(),
-        mesh,
-        albedo,
-        normal,
-        metal_rough,
-        emissive,
-        roughness,
-        metallic,
-        far_cell,
-        far_mesh,
-        rig,
-    })
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig })
 }
 
 /// Rollen et materiale har fått ved eksporten (`extras.fristad`, skrevet av
@@ -607,24 +449,15 @@ struct Extras<T> {
 
 /// Rollene i `extras` på et glTF-objekt.
 fn extras<T: serde::de::DeserializeOwned>(raw: &gltf::json::Extras) -> Result<T, String> {
-    let raw = raw
-        .as_ref()
-        .ok_or("mangler rollene (kjør tools/models/slim.py --tag)")?;
-    serde_json::from_str::<Extras<T>>(raw.get())
-        .map(|e| e.fristad)
-        .map_err(|e| format!("rollene kan ikke leses: {e}"))
+    let raw = raw.as_ref().ok_or("mangler rollene (kjør tools/models/slim.py --tag)")?;
+    serde_json::from_str::<Extras<T>>(raw.get()).map(|e| e.fristad).map_err(|e| format!("rollene kan ikke leses: {e}"))
 }
 
 impl Role {
     fn of(mat: &gltf::Material) -> Result<Self, String> {
         // Primitiver uten materiale får standardmaterialet, som er vanlig.
         if mat.index().is_none() {
-            return Ok(Role {
-                kind: kind::PLAIN,
-                layer: None,
-                flags: 0,
-                grass: false,
-            });
+            return Ok(Role { kind: kind::PLAIN, layer: None, flags: 0, grass: false });
         }
         let r: RawRole = extras(mat.extras())?;
         let kind = match r.kind.as_str() {
@@ -652,12 +485,7 @@ impl Role {
                 f => return Err(format!("ukjent flagg {f}")),
             };
         }
-        Ok(Role {
-            kind,
-            layer: r.layer,
-            flags,
-            grass,
-        })
+        Ok(Role { kind, layer: r.layer, flags, grass })
     }
 }
 
@@ -712,11 +540,7 @@ fn packed_normals(a: &gltf::Accessor, buffers: &[Vec<u8>]) -> Option<Vec<[f32; 3
             let o = start + i * stride;
             let b = data.get(o..o + 3)?;
             let f = |v: u8| (v as i8 as f32 / 127.0).max(-1.0);
-            Some(
-                Vec3::new(f(b[0]), f(b[1]), f(b[2]))
-                    .normalize_or_zero()
-                    .to_array(),
-            )
+            Some(Vec3::new(f(b[0]), f(b[1]), f(b[2])).normalize_or_zero().to_array())
         })
         .collect()
 }
@@ -727,11 +551,7 @@ fn flat_normals(pos: &[[f32; 3]], idx: &[u32]) -> Vec<[f32; 3]> {
         if t.len() < 3 {
             break;
         }
-        let (a, b, c) = (
-            Vec3::from(pos[t[0] as usize]),
-            Vec3::from(pos[t[1] as usize]),
-            Vec3::from(pos[t[2] as usize]),
-        );
+        let (a, b, c) = (Vec3::from(pos[t[0] as usize]), Vec3::from(pos[t[1] as usize]), Vec3::from(pos[t[2] as usize]));
         let fnorm = (b - a).cross(c - a);
         for &i in t {
             n[i as usize] += fnorm;

@@ -50,16 +50,9 @@ const HITSTOP: f32 = 0.08;
 pub enum Phase {
     Idle,
     /// Lett hugg nummer `n` (0..3); `hit` når treffet er gjort.
-    Swing {
-        n: usize,
-        hit: bool,
-    },
+    Swing { n: usize, hit: bool },
     /// Tungt hugg: lades mens knappen holdes, hugger når den slippes.
-    Heavy {
-        charging: bool,
-        hit: bool,
-        charge: f32,
-    },
+    Heavy { charging: bool, hit: bool, charge: f32 },
     Block,
     Parry,
     Dodge,
@@ -70,12 +63,7 @@ pub enum Phase {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CombatEvent {
     /// Et hugg traff fiende `mob` med `damage`; `killed` om den døde.
-    Hit {
-        mob: usize,
-        damage: f32,
-        killed: bool,
-        pos: Vec3,
-    },
+    Hit { mob: usize, damage: f32, killed: bool, pos: Vec3 },
     /// Et hugg traff ingenting.
     Miss,
     Sound(&'static str),
@@ -143,24 +131,12 @@ impl Combat {
             .as_ref()
             .map(|r| {
                 let find = |n: &str| r.clip(n).unwrap_or(0);
-                Clips {
-                    idle: find("idle"),
-                    swing: [find("swing1"), find("swing2"), find("swing3")],
-                    heavy: find("heavy"),
-                    block: find("block"),
-                    parry: find("parry"),
-                    hurt: find("hurt"),
-                }
+                Clips { idle: find("idle"), swing: [find("swing1"), find("swing2"), find("swing3")], heavy: find("heavy"), block: find("block"), parry: find("parry"), hurt: find("hurt") }
             })
             .unwrap_or_default();
         let anim = rig.as_ref().map(|_| Animator::new(clips.idle, true));
         Self {
-            gear: Gear {
-                weapon: RUSTY_SWORD,
-                shield: OLD_SHIELD,
-                armor: None,
-                lantern: 1.0,
-            },
+            gear: Gear { weapon: RUSTY_SWORD, shield: OLD_SHIELD, armor: None, lantern: 1.0 },
             max_stamina: STAMINA_MAX,
             stamina: STAMINA_MAX,
             regen_delay: 0.0,
@@ -279,9 +255,7 @@ impl Combat {
 
     /// Unnamanøver i retningen `dir` (vannrett), om det er utholdenhet til det.
     pub fn dodge(&mut self, dir: Vec3) -> bool {
-        if !matches!(self.phase, Phase::Idle | Phase::Block | Phase::Swing { .. })
-            || self.stamina < COST_DODGE
-        {
+        if !matches!(self.phase, Phase::Idle | Phase::Block | Phase::Swing { .. }) || self.stamina < COST_DODGE {
             return false;
         }
         self.stamina -= COST_DODGE;
@@ -336,11 +310,7 @@ impl Combat {
         self.stamina -= COST_HEAVY;
         self.regen_delay = REGEN_DELAY;
         self.queued = false;
-        self.enter(Phase::Heavy {
-            charging: true,
-            hit: false,
-            charge: 0.0,
-        });
+        self.enter(Phase::Heavy { charging: true, hit: false, charge: 0.0 });
         self.cues.push("charge");
         let clip = self.clips.heavy;
         log::debug!("Tungt hugg lades (klipp {clip})");
@@ -408,25 +378,14 @@ impl Combat {
     /// Kameradreiningen fra spark og skjelv nå: (yaw, pitch) i radianer.
     pub fn view_kick(&self, time: f32) -> (f32, f32) {
         let s = self.shake * self.shake;
-        let yaw =
-            self.kick.x * 0.06 + ((time * 47.0).sin() + (time * 31.0).cos() * 0.5) * 0.012 * s;
-        let pitch =
-            self.kick.y * 0.05 + ((time * 53.0).cos() + (time * 29.0).sin() * 0.5) * 0.01 * s;
+        let yaw = self.kick.x * 0.06 + ((time * 47.0).sin() + (time * 31.0).cos() * 0.5) * 0.012 * s;
+        let pitch = self.kick.y * 0.05 + ((time * 53.0).cos() + (time * 29.0).sin() * 0.5) * 0.01 * s;
         (yaw, pitch)
     }
 
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
-    pub fn update(
-        &mut self,
-        dt: f32,
-        sim_dt: f32,
-        eye: Vec3,
-        forward: Vec3,
-        feet: Vec3,
-        mobs: &mut Mobs,
-        crypt: &crate::domain::world::crypt::Crypt,
-    ) -> Vec<CombatEvent> {
+    pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt) -> Vec<CombatEvent> {
         let mut out: Vec<CombatEvent> = self.cues.drain(..).map(CombatEvent::Sound).collect();
         self.hitstop = (self.hitstop - dt).max(0.0);
         // Fjæra på kameraet.
@@ -437,12 +396,7 @@ impl Combat {
         self.shake = (self.shake - dt * 4.0).max(0.0);
         self.hurt = (self.hurt - dt * 1.8).max(0.0);
         self.regen_delay = (self.regen_delay - dt).max(0.0);
-        if self.regen_delay <= 0.0
-            && !matches!(
-                self.phase,
-                Phase::Block | Phase::Heavy { charging: true, .. }
-            )
-        {
+        if self.regen_delay <= 0.0 && !matches!(self.phase, Phase::Block | Phase::Heavy { charging: true, .. }) {
             self.stamina = (self.stamina + REGEN * dt).min(self.max_stamina);
         }
         self.since_swing += sim_dt;
@@ -451,11 +405,7 @@ impl Combat {
             self.hold_t += dt;
         }
         // Fasetida går i våpenets tempo under hugg.
-        let tempo = if matches!(self.phase, Phase::Swing { .. } | Phase::Heavy { .. }) {
-            self.gear.weapon.speed
-        } else {
-            1.0
-        };
+        let tempo = if matches!(self.phase, Phase::Swing { .. } | Phase::Heavy { .. }) { self.gear.weapon.speed } else { 1.0 };
         self.t += sim_dt * tempo;
         if let (Some(r), Some(a)) = (&self.rig, &mut self.anim) {
             a.update(sim_dt, r);
@@ -497,12 +447,7 @@ impl Combat {
             Phase::Swing { n, hit } => {
                 let ct = clip_time(self);
                 // Holdes knappen fra starten av, lades et tungt hugg i stedet.
-                if !hit
-                    && self.held
-                    && self.hold_t >= HOLD_FOR_HEAVY
-                    && ct < SWING_HIT[n]
-                    && self.stamina >= COST_HEAVY
-                {
+                if !hit && self.held && self.hold_t >= HOLD_FOR_HEAVY && ct < SWING_HIT[n] && self.stamina >= COST_HEAVY {
                     self.stamina += COST_LIGHT;
                     self.start_heavy();
                 } else if !hit && ct >= SWING_HIT[n] {
@@ -522,21 +467,13 @@ impl Combat {
                         let idle = self.clips.idle;
                         self.play(idle, true, 0.15);
                     }
-                } else if hit
-                    && self.queued
-                    && self.t >= SWING_LEN[n] * 0.7
-                    && self.stamina >= COST_LIGHT
-                {
+                } else if hit && self.queued && self.t >= SWING_LEN[n] * 0.7 && self.stamina >= COST_LIGHT {
                     // Neste hugg i komboen får begynne litt før dette er ferdig.
                     self.since_swing = 0.0;
                     self.start_swing();
                 }
             }
-            Phase::Heavy {
-                charging,
-                hit,
-                charge,
-            } => {
+            Phase::Heavy { charging, hit, charge } => {
                 let ct = clip_time(self);
                 if charging {
                     // Holdes ved toppen av ladningen til knappen slippes
@@ -546,11 +483,7 @@ impl Combat {
                         out.push(CombatEvent::Sound("charged"));
                     }
                     let charge = charge + dt;
-                    self.phase = Phase::Heavy {
-                        charging: true,
-                        hit: false,
-                        charge,
-                    };
+                    self.phase = Phase::Heavy { charging: true, hit: false, charge };
                     if ct >= HEAVY_HOLD {
                         log::debug!("Tungt hugg holdes ved {ct:.2} s, ladning {charge:.2}");
                         if let Some(a) = &mut self.anim {
@@ -559,29 +492,19 @@ impl Combat {
                         }
                         self.t = HEAVY_HOLD;
                         if !self.held || charge >= 1.2 {
-                            self.phase = Phase::Heavy {
-                                charging: false,
-                                hit: false,
-                                charge,
-                            };
+                            self.phase = Phase::Heavy { charging: false, hit: false, charge };
                             if let Some(a) = &mut self.anim {
                                 a.speed = 1.0;
                             }
                         }
                     }
                 } else if !hit && ct >= HEAVY_HIT {
-                    let mut dmg = HEAVY_DAMAGE
-                        * self.gear.weapon.damage
-                        * (1.0 + (charge / 1.2).clamp(0.0, 1.0) * 0.4);
+                    let mut dmg = HEAVY_DAMAGE * self.gear.weapon.damage * (1.0 + (charge / 1.2).clamp(0.0, 1.0) * 0.4);
                     if self.riposte {
                         dmg *= self.gear.weapon.riposte;
                         self.riposte = false;
                     }
-                    self.phase = Phase::Heavy {
-                        charging: false,
-                        hit: true,
-                        charge,
-                    };
+                    self.phase = Phase::Heavy { charging: false, hit: true, charge };
                     self.strike(dmg, true, eye, forward, feet, mobs, crypt, &mut out);
                 } else if self.t >= HEAVY_LEN {
                     self.since_swing = 0.0;
@@ -624,17 +547,7 @@ impl Combat {
 
     /// Sverdet treffer alle fiender innen rekkevidde i kjeglen foran.
     #[allow(clippy::too_many_arguments)]
-    fn strike(
-        &mut self,
-        damage: f32,
-        heavy: bool,
-        eye: Vec3,
-        forward: Vec3,
-        feet: Vec3,
-        mobs: &mut Mobs,
-        crypt: &crate::domain::world::crypt::Crypt,
-        out: &mut Vec<CombatEvent>,
-    ) {
+    fn strike(&mut self, damage: f32, heavy: bool, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt, out: &mut Vec<CombatEvent>) {
         let fwd = forward.with_y(0.0).normalize_or_zero();
         let mut any = false;
         let n = mobs.mobs.len();
@@ -664,32 +577,9 @@ impl Combat {
             let strike = mobs.strike(i, damage, feet, crypt);
             let killed = strike.killed;
             let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
-            self.spawn_debris(
-                body,
-                fwd,
-                if strike.armored {
-                    3
-                } else if heavy {
-                    14
-                } else {
-                    8
-                },
-            );
-            out.push(CombatEvent::Hit {
-                mob: i,
-                damage,
-                killed,
-                pos: body,
-            });
-            out.push(CombatEvent::Sound(if killed {
-                "kill"
-            } else if strike.armored {
-                "clang"
-            } else if heavy {
-                "hit_heavy"
-            } else {
-                "hit"
-            }));
+            self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
+            out.push(CombatEvent::Hit { mob: i, damage, killed, pos: body });
+            out.push(CombatEvent::Sound(if killed { "kill" } else if strike.armored { "clang" } else if heavy { "hit_heavy" } else { "hit" }));
             if strike.staggered {
                 out.push(CombatEvent::Sound("stagger"));
             }
@@ -699,11 +589,7 @@ impl Combat {
             self.shake = (self.shake + 0.35).min(1.0);
         } else {
             out.push(CombatEvent::Miss);
-            out.push(CombatEvent::Sound(if heavy {
-                "swing_heavy"
-            } else {
-                "swing"
-            }));
+            out.push(CombatEvent::Sound(if heavy { "swing_heavy" } else { "swing" }));
         }
         let _ = eye;
     }
@@ -716,31 +602,17 @@ impl Combat {
             let a = self.rnd() * std::f32::consts::TAU;
             let up = 2.0 + self.rnd() * 3.5;
             let spread = 1.0 + self.rnd() * 2.5;
-            let vel =
-                Vec3::new(a.cos() * spread, up, a.sin() * spread) + fwd * (1.5 + self.rnd() * 2.0);
+            let vel = Vec3::new(a.cos() * spread, up, a.sin() * spread) + fwd * (1.5 + self.rnd() * 2.0);
             let spin = Vec3::new(self.rnd() - 0.5, self.rnd() - 0.5, self.rnd() - 0.5) * 20.0;
             let size = 0.6 + self.rnd() * 0.8;
             let jitter = Vec3::new(self.rnd() - 0.5, self.rnd() - 0.5, self.rnd() - 0.5) * 0.3;
-            self.debris.push(Debris {
-                pos: at + jitter,
-                vel,
-                spin,
-                age: 0.0,
-                size,
-            });
+            self.debris.push(Debris { pos: at + jitter, vel, spin, age: 0.0, size });
         }
     }
 
     /// Instansene: armene i øyet med kameraets dreining (bare nede i
     /// kjelleren), og rusket. Leddmatrisene legges i `skins`.
-    pub fn instances(
-        &self,
-        eye: Vec3,
-        yaw: f32,
-        pitch: f32,
-        show_arms: bool,
-        skins: &mut Vec<Mat4>,
-    ) -> Vec<ModelInstance> {
+    pub fn instances(&self, eye: Vec3, yaw: f32, pitch: f32, show_arms: bool, skins: &mut Vec<Mat4>) -> Vec<ModelInstance> {
         let mut out = vec![];
         if show_arms {
             let look = Quat::from_rotation_y(yaw) * Quat::from_rotation_x(pitch);
@@ -751,72 +623,27 @@ impl Combat {
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance {
-                        model: ARMS_MODEL,
-                        transform: arms_t,
-                        skin: Some((base, mats.len() as u32)),
-                        flash: 0.0,
-                        tint: None,
-                    });
+                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
                     // Våpenet og skjoldet er modellert i armenes rom og følger
                     // hendenes skinnmatriser.
-                    for (joint, model) in [
-                        ("hand.R", self.gear.weapon.model),
-                        ("hand.L", self.gear.shield.model),
-                    ] {
+                    for (joint, model) in [("hand.R", self.gear.weapon.model), ("hand.L", self.gear.shield.model)] {
                         if let Some(j) = rig.joint(joint) {
                             let t = arms_t * Affine3A::from_mat4(mats[j]);
-                            out.push(ModelInstance {
-                                model,
-                                transform: t,
-                                skin: None,
-                                flash: 0.0,
-                                tint: None,
-                            });
+                            out.push(ModelInstance { model, transform: t, skin: None, flash: 0.0, tint: None });
                         }
                     }
                 }
                 _ => {
-                    out.push(ModelInstance {
-                        model: ARMS_MODEL,
-                        transform: arms_t,
-                        skin: None,
-                        flash: 0.0,
-                        tint: None,
-                    });
-                    out.push(ModelInstance {
-                        model: self.gear.weapon.model,
-                        transform: arms_t,
-                        skin: None,
-                        flash: 0.0,
-                        tint: None,
-                    });
-                    out.push(ModelInstance {
-                        model: self.gear.shield.model,
-                        transform: arms_t,
-                        skin: None,
-                        flash: 0.0,
-                        tint: None,
-                    });
+                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.gear.weapon.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.gear.shield.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
                 }
             }
         }
         for p in &self.debris {
             let fade = (1.6 - p.age).clamp(0.0, 1.0).min(1.0);
-            let rot = Quat::from_euler(
-                glam::EulerRot::XYZ,
-                p.spin.x * p.age,
-                p.spin.y * p.age,
-                p.spin.z * p.age,
-            );
-            out.push(ModelInstance {
-                model: DEBRIS_MODEL,
-                transform: Affine3A::from_rotation_translation(rot, p.pos)
-                    * Affine3A::from_scale(Vec3::splat(p.size * fade)),
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            });
+            let rot = Quat::from_euler(glam::EulerRot::XYZ, p.spin.x * p.age, p.spin.y * p.age, p.spin.z * p.age);
+            out.push(ModelInstance { model: DEBRIS_MODEL, transform: Affine3A::from_rotation_translation(rot, p.pos) * Affine3A::from_scale(Vec3::splat(p.size * fade)), skin: None, flash: 0.0, tint: None });
         }
         out
     }
@@ -838,56 +665,14 @@ pub fn debris_model() -> Model {
         let c2 = [a + n, a - n, b - n, b + n];
         m.quad(&Affine3A::IDENTITY, c2, mat, [1.0; 4]);
     };
-    seg(
-        &mut m,
-        Vec3::new(-0.02, 0.045, 0.0),
-        Vec3::new(0.0, 0.03, 0.0),
-        &blue,
-    );
-    seg(
-        &mut m,
-        Vec3::new(0.0, 0.03, 0.0),
-        Vec3::new(0.0, 0.01, 0.0),
-        &blue,
-    );
-    seg(
-        &mut m,
-        Vec3::new(0.0, 0.01, 0.0),
-        Vec3::new(0.02, 0.0, 0.0),
-        &pale,
-    );
-    seg(
-        &mut m,
-        Vec3::new(0.02, 0.0, 0.0),
-        Vec3::new(0.0, -0.01, 0.0),
-        &pale,
-    );
-    seg(
-        &mut m,
-        Vec3::new(0.0, -0.01, 0.0),
-        Vec3::new(0.0, -0.03, 0.0),
-        &blue,
-    );
-    seg(
-        &mut m,
-        Vec3::new(0.0, -0.03, 0.0),
-        Vec3::new(-0.02, -0.045, 0.0),
-        &blue,
-    );
+    seg(&mut m, Vec3::new(-0.02, 0.045, 0.0), Vec3::new(0.0, 0.03, 0.0), &blue);
+    seg(&mut m, Vec3::new(0.0, 0.03, 0.0), Vec3::new(0.0, 0.01, 0.0), &blue);
+    seg(&mut m, Vec3::new(0.0, 0.01, 0.0), Vec3::new(0.02, 0.0, 0.0), &pale);
+    seg(&mut m, Vec3::new(0.02, 0.0, 0.0), Vec3::new(0.0, -0.01, 0.0), &pale);
+    seg(&mut m, Vec3::new(0.0, -0.01, 0.0), Vec3::new(0.0, -0.03, 0.0), &blue);
+    seg(&mut m, Vec3::new(0.0, -0.03, 0.0), Vec3::new(-0.02, -0.045, 0.0), &blue);
     for v in &mut m.vertices {
         v.mat[0] = kind::MODEL;
     }
-    Model {
-        name: DEBRIS_MODEL.into(),
-        mesh: m,
-        albedo: None,
-        normal: None,
-        metal_rough: None,
-        emissive: None,
-        roughness: 0.5,
-        metallic: 0.0,
-        far_cell: 0.2,
-        far_mesh: None,
-        rig: None,
-    }
+    Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None }
 }

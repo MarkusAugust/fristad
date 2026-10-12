@@ -29,11 +29,7 @@ pub struct Sources {
 
 /// Bygg bare byen (uten bakke, landskap og krypt) fra dataene, til reglene
 /// og til å finne tingene: rask nok til å gjøres etter hver endring.
-pub fn town_scene(
-    src: &Sources,
-    layout: &Layout,
-    contents: &HashMap<String, Vec<Item>>,
-) -> Builder {
+pub fn town_scene(src: &Sources, layout: &Layout, contents: &HashMap<String, Vec<Item>>) -> Builder {
     let mut b = Builder::new(&src.models);
     b.insides = src.insides.iter().cloned().collect();
     b.contents = contents.clone();
@@ -43,12 +39,7 @@ pub fn town_scene(
 
 /// Bygg byen og krypten fra dataene i redigeringen (merkene og lysene i
 /// `crypt` går foran dem i nivåfilene).
-pub fn scene(
-    src: &Sources,
-    layout: &Layout,
-    contents: &HashMap<String, Vec<Item>>,
-    crypt: &BTreeMap<u32, CryptContents>,
-) -> (Builder, Crypt) {
+pub fn scene(src: &Sources, layout: &Layout, contents: &HashMap<String, Vec<Item>>, crypt: &BTreeMap<u32, CryptContents>) -> (Builder, Crypt) {
     let mut b = Builder::new(&src.models);
     b.insides = src.insides.iter().cloned().collect();
     b.contents = contents.clone();

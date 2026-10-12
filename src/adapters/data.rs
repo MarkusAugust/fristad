@@ -46,8 +46,7 @@ pub fn world_data() -> Data {
                 // Merkene og lysene fra `assets/layout/crypt_NN.json` (det
                 // redigeringen endrer) går foran dem i nivåfila.
                 if let Some((_, text)) = CRYPT_CONTENT_FILES.iter().find(|(k, _)| k == n) {
-                    let c: CryptContents = serde_json::from_str(text)
-                        .unwrap_or_else(|e| panic!("assets/layout/crypt_{n:02}.json: {e}"));
+                    let c: CryptContents = serde_json::from_str(text).unwrap_or_else(|e| panic!("assets/layout/crypt_{n:02}.json: {e}"));
                     f.marks = c.marks;
                     f.lights = c.lights;
                 }
@@ -60,27 +59,9 @@ pub fn world_data() -> Data {
         }
     }
     // Kan ikke byen leses, stopper spillet: den er hele byen.
-    let layout = LAYOUT_FILE.map(|json| {
-        serde_json::from_str::<Layout>(json)
-            .unwrap_or_else(|e| panic!("assets/layout/town.json: {e}"))
-    });
-    let contents = CONTENT_FILES
-        .iter()
-        .map(|(n, json)| {
-            (
-                n.to_string(),
-                serde_json::from_str::<Vec<Item>>(json)
-                    .unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")),
-            )
-        })
-        .collect();
-    Data {
-        insides,
-        levels,
-        layout,
-        contents,
-        approved: Some(approved()),
-    }
+    let layout = LAYOUT_FILE.map(|json| serde_json::from_str::<Layout>(json).unwrap_or_else(|e| panic!("assets/layout/town.json: {e}")));
+    let contents = CONTENT_FILES.iter().map(|(n, json)| (n.to_string(), serde_json::from_str::<Vec<Item>>(json).unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")))).collect();
+    Data { insides, levels, layout, contents, approved: Some(approved()) }
 }
 
 /// Dommen fra godkjenningssiden (`assets/catalog/approvals.json`).
@@ -90,15 +71,7 @@ pub const APPROVALS: &str = include_str!("../../assets/catalog/approvals.json");
 /// fra godkjenningssiden).
 pub fn approved() -> std::collections::HashSet<String> {
     let json: serde_json::Value = serde_json::from_str(APPROVALS).expect("approvals.json");
-    json["models"]
-        .as_object()
-        .map(|m| {
-            m.iter()
-                .filter(|(_, v)| v["verdict"] == "godkjent")
-                .map(|(k, _)| k.clone())
-                .collect()
-        })
-        .unwrap_or_default()
+    json["models"].as_object().map(|m| m.iter().filter(|(_, v)| v["verdict"] == "godkjent").map(|(k, _)| k.clone()).collect()).unwrap_or_default()
 }
 
 /// Tallene rundet til 0,01 mm (heltall uten desimaler), og skala 1 utelatt.
@@ -107,11 +80,7 @@ fn round(v: &mut serde_json::Value) {
     match v {
         Value::Number(n) if n.is_f64() => {
             let r = (n.as_f64().unwrap_or(0.0) * 1e5).round() / 1e5;
-            *v = if r == r.trunc() && r.abs() < 1e9 {
-                Value::from(r as i64)
-            } else {
-                Value::from(r)
-            };
+            *v = if r == r.trunc() && r.abs() < 1e9 { Value::from(r as i64) } else { Value::from(r) };
         }
         Value::Array(a) => a.iter_mut().for_each(round),
         Value::Object(o) => {
@@ -151,21 +120,9 @@ pub fn crypt_json(c: &CryptContents) -> String {
         round(&mut v);
         format!("    {v}")
     };
-    let marks: Vec<String> = c
-        .marks
-        .iter()
-        .map(|m| line(serde_json::to_value(m).unwrap_or_default()))
-        .collect();
-    let lights: Vec<String> = c
-        .lights
-        .iter()
-        .map(|l| line(serde_json::to_value(l).unwrap_or_default()))
-        .collect();
-    format!(
-        "{{\n  \"marks\": [\n{}\n  ],\n  \"lights\": [\n{}\n  ]\n}}\n",
-        marks.join(",\n"),
-        lights.join(",\n")
-    )
+    let marks: Vec<String> = c.marks.iter().map(|m| line(serde_json::to_value(m).unwrap_or_default())).collect();
+    let lights: Vec<String> = c.lights.iter().map(|l| line(serde_json::to_value(l).unwrap_or_default())).collect();
+    format!("{{\n  \"marks\": [\n{}\n  ],\n  \"lights\": [\n{}\n  ]\n}}\n", marks.join(",\n"), lights.join(",\n"))
 }
 
 /// Husenes innholdsfiler slik de står i repoet (hus, tekst).
@@ -175,25 +132,12 @@ pub fn content_files() -> &'static [(&'static str, &'static str)] {
 
 /// Filene redigeringen lagrer (sti i repoet, tekst): byen og innholdet i
 /// hvert hus, sortert etter sti.
-pub fn layout_files(
-    layout: &Layout,
-    contents: &std::collections::HashMap<String, Vec<Item>>,
-    crypt: &std::collections::BTreeMap<u32, CryptContents>,
-) -> Vec<(String, String)> {
+pub fn layout_files(layout: &Layout, contents: &std::collections::HashMap<String, Vec<Item>>, crypt: &std::collections::BTreeMap<u32, CryptContents>) -> Vec<(String, String)> {
     let mut out = vec![("assets/layout/town.json".to_string(), layout_json(layout))];
     let mut houses: Vec<_> = contents.iter().collect();
     houses.sort_by(|a, b| a.0.cmp(b.0));
-    out.extend(houses.into_iter().map(|(h, items)| {
-        (
-            format!("assets/layout/inside/{h}.json"),
-            contents_json(items),
-        )
-    }));
-    out.extend(
-        crypt
-            .iter()
-            .map(|(n, c)| (format!("assets/layout/crypt_{n:02}.json"), crypt_json(c))),
-    );
+    out.extend(houses.into_iter().map(|(h, items)| (format!("assets/layout/inside/{h}.json"), contents_json(items))));
+    out.extend(crypt.iter().map(|(n, c)| (format!("assets/layout/crypt_{n:02}.json"), crypt_json(c))));
     out
 }
 
@@ -229,33 +173,15 @@ pub fn layout_file() -> Option<&'static str> {
 }
 
 /// Kategoriene i katalogen i redigeringen, i den rekkefølgen de vises.
-pub const CATEGORIES: [&str; 6] = [
-    "Hus",
-    "Gjenstander",
-    "Møbler",
-    "Gjerder",
-    "Mur og porter",
-    "Krypten",
-];
+pub const CATEGORIES: [&str; 6] = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Krypten"];
 
 /// Kategorien til en modell i katalogen (`path` er stien under
 /// `assets/models/`, `buildings` modellene som står som hus i byen), eller
 /// `None` for det som ikke kan settes ut alene: delene spillet beveger
 /// (lokket, vinda, portalen, spaken), platene i galleriet, innsidene av
 /// husene og bitene av kryptnivåene.
-pub fn category(
-    name: &str,
-    path: &str,
-    buildings: &std::collections::HashSet<String>,
-) -> Option<&'static str> {
-    let moving = [
-        "chest_lid",
-        "well_winch",
-        "well_rope",
-        "well_bucket",
-        "kit_lever_arm",
-        "kit_shortcut_leaf",
-    ];
+pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<String>) -> Option<&'static str> {
+    let moving = ["chest_lid", "well_winch", "well_rope", "well_bucket", "kit_lever_arm", "kit_shortcut_leaf"];
     if name.ends_with("_interior")
         || name.starts_with("gallery_")
         || name.starts_with("portal_")
@@ -282,16 +208,7 @@ pub fn category(
 
 /// Modellene som står som hus i byen (`building` i `assets/layout/town.json`).
 pub fn buildings() -> std::collections::HashSet<String> {
-    world_data()
-        .layout
-        .map(|l| {
-            l.items
-                .into_iter()
-                .filter(|it| it.building)
-                .filter_map(|it| it.model)
-                .collect()
-        })
-        .unwrap_or_default()
+    world_data().layout.map(|l| l.items.into_iter().filter(|it| it.building).filter_map(|it| it.model).collect()).unwrap_or_default()
 }
 
 /// Lagringen til filene i en mappe (repoet): `cargo run --bin layout`, og
@@ -301,12 +218,7 @@ pub struct FileStore(pub std::path::PathBuf);
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::ports::LayoutStore for FileStore {
-    fn save(
-        &mut self,
-        layout: &Layout,
-        contents: &[(String, Vec<Item>)],
-        crypt: &[(u32, CryptContents)],
-    ) -> Result<(), String> {
+    fn save(&mut self, layout: &Layout, contents: &[(String, Vec<Item>)], crypt: &[(u32, CryptContents)]) -> Result<(), String> {
         let map: std::collections::HashMap<String, Vec<Item>> = contents.iter().cloned().collect();
         for (path, text) in layout_files(layout, &map, &crypt.iter().cloned().collect()) {
             std::fs::write(self.0.join(&path), text).map_err(|e| format!("{path}: {e}"))?;

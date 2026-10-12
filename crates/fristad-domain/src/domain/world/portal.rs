@@ -26,13 +26,7 @@ pub struct Portal {
 
 impl Portal {
     pub fn new(levels: usize) -> Self {
-        Self {
-            dest: None,
-            t: 0.0,
-            warp_t: 10.0,
-            entries: vec![None; levels],
-            shown: true,
-        }
+        Self { dest: None, t: 0.0, warp_t: 10.0, entries: vec![None; levels], shown: true }
     }
 
     pub fn open(&mut self, dest: (Vec3, f32, usize)) {
@@ -56,11 +50,7 @@ impl Portal {
 
     /// Inngangen til det dypeste nivået du har nådd.
     pub fn deepest(&self) -> Option<(Vec3, f32, usize)> {
-        self.entries
-            .iter()
-            .enumerate()
-            .rev()
-            .find_map(|(f, e)| e.map(|(p, y)| (p, y, f)))
+        self.entries.iter().enumerate().rev().find_map(|(f, e)| e.map(|(p, y)| (p, y, f)))
     }
 
     /// Om portalen skal stå ute nå, når det har endret seg siden sist.
@@ -99,11 +89,7 @@ impl Portal {
         let [runes, swirl, shard] = town::PORTAL_PARTS;
         let r = (self.t / PORTAL_RISE).clamp(0.0, 1.0);
         let rise = 1.0 - (1.0 - r).powi(3);
-        let shake = if r < 1.0 {
-            (self.t * 47.0).sin() * 0.02 * (1.0 - r)
-        } else {
-            0.0
-        };
+        let shake = if r < 1.0 { (self.t * 47.0).sin() * 0.02 * (1.0 - r) } else { 0.0 };
         let ring = pose * Affine3A::from_translation(Vec3::new(shake, -3.4 * (1.0 - rise), 0.0));
         let mut out = vec![(town::PORTAL_RING, ring)];
         let x = self.opening();
@@ -115,36 +101,15 @@ impl Portal {
         let center = pose * Affine3A::from_translation(Vec3::Y * town::PORTAL_CENTER);
         out.push((runes, pose));
         let s1 = grow * (1.0 + 0.035 * (t * 3.1).sin());
-        out.push((
-            swirl,
-            center * Affine3A::from_rotation_z(-t * 1.7) * Affine3A::from_scale(Vec3::splat(s1)),
-        ));
+        out.push((swirl, center * Affine3A::from_rotation_z(-t * 1.7) * Affine3A::from_scale(Vec3::splat(s1))));
         let s2 = grow * 0.8 * (1.0 + 0.05 * (t * 2.3 + 1.0).sin());
-        out.push((
-            swirl,
-            center
-                * Affine3A::from_translation(Vec3::Z * -0.06)
-                * Affine3A::from_rotation_z(t * 1.1 + 1.0)
-                * Affine3A::from_scale(Vec3::splat(s2)),
-        ));
+        out.push((swirl, center * Affine3A::from_translation(Vec3::Z * -0.06) * Affine3A::from_rotation_z(t * 1.1 + 1.0) * Affine3A::from_scale(Vec3::splat(s2))));
         for k in 0..town::PORTAL_SHARDS {
             let a = t * 0.55 + k as f32 * std::f32::consts::TAU / town::PORTAL_SHARDS as f32;
             let wobble = (t * 1.3 + k as f32 * 2.1).sin();
-            let at = Vec3::new(
-                a.cos() * (2.05 + 0.1 * wobble),
-                1.95 + a.sin() * 1.6,
-                0.25 + 0.2 * (t * 0.9 + k as f32).sin(),
-            );
-            let spin =
-                Quat::from_rotation_y(t * 2.0 + k as f32) * Quat::from_rotation_x(0.5 * wobble);
-            out.push((
-                shard,
-                pose * Affine3A::from_scale_rotation_translation(
-                    Vec3::splat(grow * (0.8 + 0.25 * (k % 3) as f32)),
-                    spin,
-                    at,
-                ),
-            ));
+            let at = Vec3::new(a.cos() * (2.05 + 0.1 * wobble), 1.95 + a.sin() * 1.6, 0.25 + 0.2 * (t * 0.9 + k as f32).sin());
+            let spin = Quat::from_rotation_y(t * 2.0 + k as f32) * Quat::from_rotation_x(0.5 * wobble);
+            out.push((shard, pose * Affine3A::from_scale_rotation_translation(Vec3::splat(grow * (0.8 + 0.25 * (k % 3) as f32)), spin, at)));
         }
         out
     }
@@ -194,8 +159,6 @@ mod tests {
         assert_eq!(p.poses(Affine3A::IDENTITY, 0.0).len(), 1, "bare ringen");
         p.tick(PORTAL_RISE + 2.0);
         assert!(p.poses(Affine3A::IDENTITY, 0.0).len() > 3);
-        assert!(p
-            .light(Affine3A::IDENTITY, 0.0)
-            .is_some_and(|l| l.intensity > 1.0));
+        assert!(p.light(Affine3A::IDENTITY, 0.0).is_some_and(|l| l.intensity > 1.0));
     }
 }

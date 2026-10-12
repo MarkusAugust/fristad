@@ -16,8 +16,8 @@
 //! og brøler fram tooltips når det mister liv.
 
 use crate::domain::anim::{Animator, Rig};
-use crate::domain::scene::ModelInstance;
 use crate::domain::world::crypt::{Ambush, Crypt};
+use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec3};
 
 pub const TOKEN_MODEL: &str = "token";
@@ -82,14 +82,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 6] = [
-        Kind::Button,
-        Kind::Tooltip,
-        Kind::Input,
-        Kind::Modal,
-        Kind::Table,
-        Kind::Framework,
-    ];
+    pub const ALL: [Kind; 6] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Modal, Kind::Table, Kind::Framework];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -121,102 +114,12 @@ impl Kind {
         let bite = (15.0 / FPS, 30.0 / FPS);
         let slam = (28.0 / FPS, 44.0 / FPS);
         match self {
-            Kind::Button => Stats {
-                hp: MOB_HP,
-                speed: 2.1,
-                damage: 12.0,
-                range: 1.7,
-                reach: 2.3,
-                scale: 1.0,
-                sight: 26.0,
-                cooldown: 0.9,
-                attack_hit: bite.0,
-                attack_len: bite.1,
-                bolt: None,
-                armor: 1.0,
-                poise: 0.0,
-                tokens: 3,
-            },
-            Kind::Tooltip => Stats {
-                hp: 38.0,
-                speed: 3.6,
-                damage: 6.0,
-                range: 1.3,
-                reach: 1.7,
-                scale: 0.55,
-                sight: 30.0,
-                cooldown: 0.7,
-                attack_hit: bite.0,
-                attack_len: bite.1,
-                bolt: None,
-                armor: 1.0,
-                poise: 0.0,
-                tokens: 1,
-            },
-            Kind::Input => Stats {
-                hp: 80.0,
-                speed: 1.9,
-                damage: 10.0,
-                range: 1.8,
-                reach: 2.2,
-                scale: 1.15,
-                sight: 34.0,
-                cooldown: 1.6,
-                attack_hit: bite.0,
-                attack_len: bite.1,
-                bolt: Some((3.5, 14.0, 14.0)),
-                armor: 1.0,
-                poise: 0.0,
-                tokens: 3,
-            },
-            Kind::Modal => Stats {
-                hp: 320.0,
-                speed: 1.3,
-                damage: 30.0,
-                range: 2.2,
-                reach: 3.0,
-                scale: 1.5,
-                sight: 24.0,
-                cooldown: 1.8,
-                attack_hit: slam.0,
-                attack_len: slam.1,
-                bolt: None,
-                armor: 0.3,
-                poise: 40.0,
-                tokens: 6,
-            },
-            Kind::Table => Stats {
-                hp: 420.0,
-                speed: 2.4,
-                damage: 22.0,
-                range: 2.2,
-                reach: 3.0,
-                scale: 1.4,
-                sight: 30.0,
-                cooldown: 1.1,
-                attack_hit: bite.0,
-                attack_len: bite.1,
-                bolt: None,
-                armor: 1.0,
-                poise: 30.0,
-                tokens: 10,
-            },
-            Kind::Framework => Stats {
-                hp: 1400.0,
-                speed: 1.6,
-                damage: 34.0,
-                range: 3.0,
-                reach: 4.0,
-                scale: 2.3,
-                sight: 40.0,
-                cooldown: 1.2,
-                attack_hit: bite.0,
-                attack_len: bite.1,
-                bolt: None,
-                armor: 1.0,
-                poise: 55.0,
-                tokens: 40,
-            },
+            Kind::Button => Stats { hp: MOB_HP, speed: 2.1, damage: 12.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 26.0, cooldown: 0.9, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 3 },
+            Kind::Tooltip => Stats { hp: 38.0, speed: 3.6, damage: 6.0, range: 1.3, reach: 1.7, scale: 0.55, sight: 30.0, cooldown: 0.7, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
+            Kind::Input => Stats { hp: 80.0, speed: 1.9, damage: 10.0, range: 1.8, reach: 2.2, scale: 1.15, sight: 34.0, cooldown: 1.6, attack_hit: bite.0, attack_len: bite.1, bolt: Some((3.5, 14.0, 14.0)), armor: 1.0, poise: 0.0, tokens: 3 },
+            Kind::Modal => Stats { hp: 320.0, speed: 1.3, damage: 30.0, range: 2.2, reach: 3.0, scale: 1.5, sight: 24.0, cooldown: 1.8, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.3, poise: 40.0, tokens: 6 },
+            Kind::Table => Stats { hp: 420.0, speed: 2.4, damage: 22.0, range: 2.2, reach: 3.0, scale: 1.4, sight: 30.0, cooldown: 1.1, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 30.0, tokens: 10 },
+            Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         }
     }
 
@@ -274,10 +177,7 @@ pub enum State {
     Idle,
     Walk,
     /// Varsler og slår; `landed` når slaget har landet (eller bommet).
-    Attack {
-        blow: Blow,
-        landed: bool,
-    },
+    Attack { blow: Blow, landed: bool },
     Hit,
     /// Har nettopp fått øye på deg (klippet `alert`), og snur seg mot deg.
     Alert,
@@ -432,10 +332,7 @@ impl Mobs {
         let mut all_rigs = vec![];
         let mut clips = vec![];
         for k in Kind::ALL {
-            let rig = rigs
-                .iter()
-                .find(|(n, _)| n == k.model())
-                .map(|(_, r)| r.clone());
+            let rig = rigs.iter().find(|(n, _)| n == k.model()).map(|(_, r)| r.clone());
             let c = rig
                 .as_ref()
                 .map(|r| {
@@ -459,11 +356,7 @@ impl Mobs {
                         stagger: r.clip("stagger"),
                         die2: r.clip("die2"),
                         look: joint("neck").zip(joint("head")),
-                        up: r
-                            .root
-                            .inverse()
-                            .transform_vector3(Vec3::Y)
-                            .normalize_or_zero(),
+                        up: r.root.inverse().transform_vector3(Vec3::Y).normalize_or_zero(),
                     }
                 })
                 .unwrap_or_default();
@@ -473,16 +366,7 @@ impl Mobs {
             all_rigs.push(rig);
             clips.push(c);
         }
-        let mut m = Self {
-            mobs: vec![],
-            level: 0,
-            tokens: vec![],
-            keys: vec![],
-            bolts: vec![],
-            seed: 0x9e37_79b9_7f4a_7c15,
-            rigs: all_rigs,
-            clips,
-        };
+        let mut m = Self { mobs: vec![], level: 0, tokens: vec![], keys: vec![], bolts: vec![], seed: 0x9e37_79b9_7f4a_7c15, rigs: all_rigs, clips };
         m.enter(crypt, 0);
         m
     }
@@ -499,16 +383,7 @@ impl Mobs {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn spawn_at(
-        &mut self,
-        kind: Kind,
-        p: Vec3,
-        yaw: Option<f32>,
-        elite: bool,
-        patrol: Vec<Vec3>,
-        ambush: Option<Ambush>,
-        level: usize,
-    ) {
+    fn spawn_at(&mut self, kind: Kind, p: Vec3, yaw: Option<f32>, elite: bool, patrol: Vec<Vec3>, ambush: Option<Ambush>, level: usize) {
         if self.mobs.len() >= MAX_MOBS {
             return;
         }
@@ -516,45 +391,13 @@ impl Mobs {
         let yaw = yaw.unwrap_or(self.rnd() * std::f32::consts::TAU);
         let repath = self.rnd() * 0.5;
         let clips = self.clips[kind as usize];
-        let mut anim = self.rigs[kind as usize]
-            .as_ref()
-            .map(|_| Animator::new(clips.idle, true));
+        let mut anim = self.rigs[kind as usize].as_ref().map(|_| Animator::new(clips.idle, true));
         if let Some(a) = &mut anim {
             a.time = phase;
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob {
-            kind,
-            pos: p,
-            yaw,
-            hp,
-            max_hp: hp,
-            elite,
-            state: State::Idle,
-            hit: 9.0,
-            aware: false,
-            t: 0.0,
-            stun: 0.0,
-            cooldown: 0.5,
-            phase,
-            anim,
-            path: vec![],
-            goal: p,
-            repath,
-            home: p,
-            patrol,
-            patrol_i: 0,
-            ambush,
-            dormant,
-            level,
-            roars: 0,
-            stride: 0.0,
-            knock: Vec3::ZERO,
-            look: 0.0,
-            turn: 0.0,
-            last_yaw: yaw,
-        });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -577,27 +420,9 @@ impl Mobs {
             for k in 0..s.n {
                 // En flokk står i en ring rundt merket.
                 let a = k as f32 * std::f32::consts::TAU / s.n as f32;
-                let q = s.pos
-                    + Vec3::new(a.cos(), 0.0, a.sin())
-                        * if s.n > 1 {
-                            0.6 + 0.15 * s.n as f32
-                        } else {
-                            0.0
-                        };
-                let q = if crypt.walkable(q) {
-                    Vec3::new(q.x, crypt.height_at(q), q.z)
-                } else {
-                    s.pos
-                };
-                self.spawn_at(
-                    kind,
-                    q,
-                    Some(s.yaw),
-                    elite,
-                    s.patrol.clone(),
-                    s.ambush.clone(),
-                    level,
-                );
+                let q = s.pos + Vec3::new(a.cos(), 0.0, a.sin()) * if s.n > 1 { 0.6 + 0.15 * s.n as f32 } else { 0.0 };
+                let q = if crypt.walkable(q) { Vec3::new(q.x, crypt.height_at(q), q.z) } else { s.pos };
+                self.spawn_at(kind, q, Some(s.yaw), elite, s.patrol.clone(), s.ambush.clone(), level);
             }
         }
     }
@@ -625,8 +450,7 @@ impl Mobs {
 
     /// Hvor mange instanser hver modell trenger plass til.
     pub fn reserve() -> Vec<(&'static str, usize)> {
-        let mut v: Vec<(&'static str, usize)> =
-            Kind::ALL.iter().map(|k| (k.model(), MAX_MOBS)).collect();
+        let mut v: Vec<(&'static str, usize)> = Kind::ALL.iter().map(|k| (k.model(), MAX_MOBS)).collect();
         v.push((TOKEN_MODEL, MAX_TOKENS));
         v.push((KEY_MODEL, MAX_KEYS));
         v.push((BOLT_MODEL, MAX_BOLTS));
@@ -639,10 +463,7 @@ impl Mobs {
 
     /// Bossen, om den lever og har sett deg: (navn, liv 0..1).
     pub fn boss(&self) -> Option<(&'static str, f32)> {
-        self.mobs
-            .iter()
-            .find(|m| m.kind.boss() && m.alive() && m.aware)
-            .map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
+        self.mobs.iter().find(|m| m.kind.boss() && m.alive() && m.aware).map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
     }
 
     /// Fienden strålen fra øyet treffer innen `max` meter, om noen.
@@ -661,11 +482,7 @@ impl Mobs {
             let (a11, a12, a22) = (d1.dot(d1), -d1.dot(d2), d2.dot(d2));
             let (b1, b2) = (-d1.dot(r), d2.dot(r));
             let det = a11 * a22 - a12 * a12;
-            let u = if det.abs() > 1e-6 {
-                (a11 * b2 - a12 * b1) / det
-            } else {
-                0.0
-            };
+            let u = if det.abs() > 1e-6 { (a11 * b2 - a12 * b1) / det } else { 0.0 };
             let u = u.clamp(0.0, 1.0);
             let t = (d1.dot(a + d2 * u - eye)).max(0.0);
             if t > max + BODY_R * s {
@@ -688,9 +505,7 @@ impl Mobs {
     /// Et slag mot fiende `i` fra `from`: skade, rykk bakover, og tokens
     /// om den dør.
     pub fn strike(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt) -> Strike {
-        let Some(m) = self.mobs.get_mut(i) else {
-            return Strike::default();
-        };
+        let Some(m) = self.mobs.get_mut(i) else { return Strike::default() };
         if !m.alive() {
             return Strike::default();
         }
@@ -721,21 +536,13 @@ impl Mobs {
             let base = m.pos;
             let elite = m.elite;
             let n = if elite { 8 } else { stats.tokens };
-            let die = if self.rnd() < 0.5 {
-                clips.die2.unwrap_or(clips.die)
-            } else {
-                clips.die
-            };
+            let die = if self.rnd() < 0.5 { clips.die2.unwrap_or(clips.die) } else { clips.die };
             self.play(i, die, false, 0.08);
             if elite && self.keys.len() < MAX_KEYS {
                 // Der det går an å komme til: på nettet, ikke inni en mur.
                 let p = base + Vec3::new(0.0, 0.0, 0.3);
                 let p = if crypt.walkable(p) { p } else { base };
-                self.keys.push(Token {
-                    pos: p,
-                    age: 0.0,
-                    taken: false,
-                });
+                self.keys.push(Token { pos: p, age: 0.0, taken: false });
             }
             for k in 0..n {
                 if self.tokens.len() >= MAX_TOKENS {
@@ -745,25 +552,13 @@ impl Mobs {
                 let r = 0.5 + (k / 6) as f32 * 0.4;
                 let p = base + Vec3::new(a.cos() * r, 0.0, a.sin() * r);
                 let p = if crypt.walkable(p) { p } else { base };
-                self.tokens.push(Token {
-                    pos: p,
-                    age: 0.0,
-                    taken: false,
-                });
+                self.tokens.push(Token { pos: p, age: 0.0, taken: false });
             }
-            return Strike {
-                killed: true,
-                armored,
-                staggered: false,
-            };
+            return Strike { killed: true, armored, staggered: false };
         }
         // De tunge lar seg ikke avbryte av lette slag.
         if damage < stats.poise {
-            return Strike {
-                killed: false,
-                armored,
-                staggered: false,
-            };
+            return Strike { killed: false, armored, staggered: false };
         }
         m.state = State::Hit;
         m.t = 0.0;
@@ -779,18 +574,12 @@ impl Mobs {
         };
         let looping = stats.poise > 0.0 && clips.stagger.is_some();
         self.play(i, clip, looping, 0.05);
-        Strike {
-            killed: false,
-            armored,
-            staggered: stats.poise > 0.0,
-        }
+        Strike { killed: false, armored, staggered: stats.poise > 0.0 }
     }
 
     /// Lamslått i `secs` sekunder (etter en parade): står og rister.
     pub fn stagger(&mut self, i: usize, secs: f32) {
-        let Some(m) = self.mobs.get_mut(i) else {
-            return;
-        };
+        let Some(m) = self.mobs.get_mut(i) else { return };
         if !m.alive() {
             return;
         }
@@ -824,16 +613,8 @@ impl Mobs {
         let n = self.mobs.len();
         let mut summons: Vec<Vec3> = vec![];
         let mut bolts: Vec<Bolt> = vec![];
-        let player_level = if in_crypt {
-            crypt.level_at(player)
-        } else {
-            None
-        };
-        let player_room = if in_crypt {
-            crypt.room_at(player)
-        } else {
-            None
-        };
+        let player_level = if in_crypt { crypt.level_at(player) } else { None };
+        let player_room = if in_crypt { crypt.room_at(player) } else { None };
         for i in 0..n {
             let kind = self.mobs[i].kind;
             let stats = kind.stats();
@@ -878,9 +659,7 @@ impl Mobs {
                 // Hodet dreies mot deg når den har sett deg (opptil ~55°).
                 // Oppe i byen (i testene) står den stille og ser likevel etter deg.
                 let want = if m.aware && (same_floor || !in_crypt) && dist > 0.3 {
-                    let rel = (to_player.x.atan2(to_player.z) - m.yaw + std::f32::consts::PI)
-                        .rem_euclid(std::f32::consts::TAU)
-                        - std::f32::consts::PI;
+                    let rel = (to_player.x.atan2(to_player.z) - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                     rel.clamp(-0.95, 0.95)
                 } else {
                     0.0
@@ -888,9 +667,7 @@ impl Mobs {
                 m.look += (want - m.look) * (dt * 6.0).min(1.0);
                 // Hvor fort kroppen snur seg, glattet.
                 if dt > 0.0 {
-                    let dy = (m.yaw - m.last_yaw + std::f32::consts::PI)
-                        .rem_euclid(std::f32::consts::TAU)
-                        - std::f32::consts::PI;
+                    let dy = (m.yaw - m.last_yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                     m.turn += (dy / dt - m.turn) * (dt * 5.0).min(1.0);
                 }
                 m.last_yaw = m.yaw;
@@ -910,9 +687,7 @@ impl Mobs {
                     // Snur seg mot deg mens den varsler.
                     if dist > 0.01 {
                         let want = to_player.x.atan2(to_player.z);
-                        let diff = (want - m.yaw + std::f32::consts::PI)
-                            .rem_euclid(std::f32::consts::TAU)
-                            - std::f32::consts::PI;
+                        let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                         m.yaw += diff * (dt * 5.0).min(1.0);
                     }
                     if finished(m, ALERT_LEN) {
@@ -925,11 +700,7 @@ impl Mobs {
                 }
                 State::Hit => {
                     // Svimmel (løkke) til lamslåingen er over; ellers klippet ut.
-                    let over = if m.stun > 0.0 {
-                        m.t >= m.stun
-                    } else {
-                        finished(m, HIT_LEN)
-                    };
+                    let over = if m.stun > 0.0 { m.t >= m.stun } else { finished(m, HIT_LEN) };
                     if over {
                         m.state = State::Idle;
                         if let Some(a) = m.anim.as_mut() {
@@ -945,9 +716,7 @@ impl Mobs {
                     if !landed {
                         if dist > 0.01 && blow != Blow::Roar {
                             let want = to_player.x.atan2(to_player.z);
-                            let diff = (want - m.yaw + std::f32::consts::PI)
-                                .rem_euclid(std::f32::consts::TAU)
-                                - std::f32::consts::PI;
+                            let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                             m.yaw += diff * (dt * 4.0).min(1.0);
                         }
                         if clip_time(m) >= hit_at {
@@ -955,28 +724,15 @@ impl Mobs {
                             match blow {
                                 Blow::Melee => {
                                     let reach = stats.reach * if m.elite { 1.3 } else { 1.0 };
-                                    if dist <= reach
-                                        && facing.dot(to_player.normalize_or_zero()) > 0.3
-                                    {
-                                        out.bites.push((
-                                            i,
-                                            stats.damage * if m.elite { 1.8 } else { 1.0 },
-                                            m.pos,
-                                        ));
+                                    if dist <= reach && facing.dot(to_player.normalize_or_zero()) > 0.3 {
+                                        out.bites.push((i, stats.damage * if m.elite { 1.8 } else { 1.0 }, m.pos));
                                     }
                                 }
                                 Blow::Spit => {
                                     if let Some((_, _, dmg)) = stats.bolt {
                                         let from = m.pos + Vec3::Y * 1.3 * s + facing * 0.6 * s;
-                                        let aim =
-                                            (player + Vec3::Y * 0.9 - from).normalize_or_zero();
-                                        bolts.push(Bolt {
-                                            owner: i,
-                                            pos: from,
-                                            vel: aim * BOLT_SPEED,
-                                            age: 0.0,
-                                            damage: dmg,
-                                        });
+                                        let aim = (player + Vec3::Y * 0.9 - from).normalize_or_zero();
+                                        bolts.push(Bolt { owner: i, pos: from, vel: aim * BOLT_SPEED, age: 0.0, damage: dmg });
                                         out.sounds.push(("spit", m.pos));
                                     }
                                 }
@@ -993,8 +749,7 @@ impl Mobs {
                                     out.sounds.push(("crack", m.pos));
                                     for k in 0..3 {
                                         let a = k as f32 * 2.1 + r * 6.0;
-                                        summons
-                                            .push(m.pos + Vec3::new(a.cos(), 0.0, a.sin()) * 2.2);
+                                        summons.push(m.pos + Vec3::new(a.cos(), 0.0, a.sin()) * 2.2);
                                     }
                                 }
                             }
@@ -1040,12 +795,7 @@ impl Mobs {
             }
             // Ser den deg? Når den har sett deg, jager den deg til du er langt
             // unna; ellers må sikten være fri (eller du står helt inntil).
-            let sees = same_floor
-                && if m.aware {
-                    dist <= stats.sight * 1.6
-                } else {
-                    dist <= stats.sight && (dist < 3.0 || Self::line_of_sight(crypt, m.pos, player))
-                };
+            let sees = same_floor && if m.aware { dist <= stats.sight * 1.6 } else { dist <= stats.sight && (dist < 3.0 || Self::line_of_sight(crypt, m.pos, player)) };
             if !sees {
                 if !in_crypt {
                     // Oppe i byen står de stille (og ser fortsatt etter deg).
@@ -1054,11 +804,7 @@ impl Mobs {
                 }
                 m.aware = false;
                 // Går ruta si, eller tilbake dit den sto vakt.
-                let goal = if m.patrol.is_empty() {
-                    m.home
-                } else {
-                    m.patrol[m.patrol_i % m.patrol.len()]
-                };
+                let goal = if m.patrol.is_empty() { m.home } else { m.patrol[m.patrol_i % m.patrol.len()] };
                 if goal.with_y(0.0).distance(m.pos.with_y(0.0)) < 0.6 {
                     if !m.patrol.is_empty() {
                         m.patrol_i = (m.patrol_i + 1) % m.patrol.len();
@@ -1070,17 +816,7 @@ impl Mobs {
                     set_state(m, State::Idle, &clips);
                     continue;
                 }
-                walk(
-                    m,
-                    goal,
-                    stats.speed * 0.55,
-                    dt,
-                    crypt,
-                    push,
-                    &stats,
-                    &clips,
-                    &mut out,
-                );
+                walk(m, goal, stats.speed * 0.55, dt, crypt, push, &stats, &clips, &mut out);
                 continue;
             }
             if !m.aware {
@@ -1098,21 +834,14 @@ impl Mobs {
                 }
             }
             m.aware = true;
-            let windup = if kind.boss() || m.elite {
-                "windup_big"
-            } else {
-                "windup"
-            };
+            let windup = if kind.boss() || m.elite { "windup_big" } else { "windup" };
             // Bossen brøler ved 2/3 og 1/3 liv og kaller på tooltips.
             if kind.boss() {
                 let frac = m.hp / m.max_hp;
                 let due = (m.roars == 0 && frac < 0.67) || (m.roars == 1 && frac < 0.34);
                 if due {
                     m.roars += 1;
-                    m.state = State::Attack {
-                        blow: Blow::Roar,
-                        landed: false,
-                    };
+                    m.state = State::Attack { blow: Blow::Roar, landed: false };
                     m.t = 0.0;
                     if let Some(a) = m.anim.as_mut() {
                         a.play(clips.roar.unwrap_or(clips.attack), false, 0.1);
@@ -1124,42 +853,20 @@ impl Mobs {
             // Rekkevidden måles til kroppen, og bare på samme gulv.
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
             if dist <= stats.range && level_ok && m.cooldown <= 0.0 {
-                let blow = if kind.boss() && clips.slam.is_some() && r < 0.35 {
-                    Blow::Slam
-                } else {
-                    Blow::Melee
-                };
-                m.state = State::Attack {
-                    blow,
-                    landed: false,
-                };
+                let blow = if kind.boss() && clips.slam.is_some() && r < 0.35 { Blow::Slam } else { Blow::Melee };
+                m.state = State::Attack { blow, landed: false };
                 m.t = 0.0;
                 if let Some(a) = m.anim.as_mut() {
-                    a.play(
-                        if blow == Blow::Slam {
-                            clips.slam.unwrap_or(clips.attack)
-                        } else {
-                            clips.attack
-                        },
-                        false,
-                        0.08,
-                    );
+                    a.play(if blow == Blow::Slam { clips.slam.unwrap_or(clips.attack) } else { clips.attack }, false, 0.08);
                 }
                 out.sounds.push((windup, m.pos));
                 continue;
             }
             // Skyter på avstand når sikten er fri.
             if let Some((near, far, _)) = stats.bolt {
-                if dist >= near
-                    && dist <= far
-                    && m.cooldown <= 0.0
-                    && Self::line_of_sight(crypt, m.pos, player)
-                {
+                if dist >= near && dist <= far && m.cooldown <= 0.0 && Self::line_of_sight(crypt, m.pos, player) {
                     m.yaw = to_player.x.atan2(to_player.z);
-                    m.state = State::Attack {
-                        blow: Blow::Spit,
-                        landed: false,
-                    };
+                    m.state = State::Attack { blow: Blow::Spit, landed: false };
                     m.t = 0.0;
                     if let Some(a) = m.anim.as_mut() {
                         a.play(clips.attack, false, 0.08);
@@ -1174,17 +881,7 @@ impl Mobs {
                 set_state(m, State::Idle, &clips);
                 continue;
             }
-            walk(
-                m,
-                player,
-                stats.speed,
-                dt,
-                crypt,
-                push,
-                &stats,
-                &clips,
-                &mut out,
-            );
+            walk(m, player, stats.speed, dt, crypt, push, &stats, &clips, &mut out);
         }
         for p in summons {
             let p = if crypt.walkable(p) { p } else { continue };
@@ -1215,22 +912,14 @@ impl Mobs {
         self.bolts.retain(|b| b.age < BOLT_LIFE);
         for t in &mut self.tokens {
             t.age += dt;
-            if !t.taken
-                && in_crypt
-                && (t.pos - player).with_y(0.0).length() < 1.0
-                && (t.pos.y - player.y).abs() < 2.0
-            {
+            if !t.taken && in_crypt && (t.pos - player).with_y(0.0).length() < 1.0 && (t.pos.y - player.y).abs() < 2.0 {
                 t.taken = true;
                 out.tokens += 1;
             }
         }
         for k in &mut self.keys {
             k.age += dt;
-            if !k.taken
-                && in_crypt
-                && (k.pos - player).with_y(0.0).length() < 1.5
-                && (k.pos.y - player.y).abs() < 2.0
-            {
+            if !k.taken && in_crypt && (k.pos - player).with_y(0.0).length() < 1.5 && (k.pos.y - player.y).abs() < 2.0 {
                 k.taken = true;
                 out.keys += 1;
             }
@@ -1249,12 +938,7 @@ impl Mobs {
         let c = &self.clips[m.kind as usize];
         let (neck, head) = c.look?;
         let mut pose = a.pose(rig);
-        turn_joints(
-            rig,
-            &mut pose,
-            &[(neck, 0.35 * m.look), (head, 0.65 * m.look)],
-            c.up,
-        );
+        turn_joints(rig, &mut pose, &[(neck, 0.35 * m.look), (head, 0.65 * m.look)], c.up);
         // Beinet peker langs sin lokale y (fra Blender).
         let d = rig.joint_transform(&pose, head).transform_vector3(Vec3::Y);
         let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2);
@@ -1279,12 +963,7 @@ impl Mobs {
                     // Hodet ser mot deg: nakken og hodet dreies om opp-aksen.
                     if let Some((neck, head)) = clips.look {
                         if m.look.abs() > 1e-3 {
-                            turn_joints(
-                                rig,
-                                &mut pose,
-                                &[(neck, 0.35 * m.look), (head, 0.65 * m.look)],
-                                clips.up,
-                            );
+                            turn_joints(rig, &mut pose, &[(neck, 0.35 * m.look), (head, 0.65 * m.look)], clips.up);
                         }
                     }
                     let mats = rig.skin(&pose);
@@ -1293,49 +972,23 @@ impl Mobs {
                     // Lener seg inn i svingen (toppen mot sida den svinger mot).
                     let lean = (-m.turn * 0.06).clamp(-0.18, 0.18);
                     // Modellens front er +X; yaw regner front som (sin, 0, cos).
-                    let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2)
-                        * Quat::from_rotation_x(lean);
-                    let t = Affine3A::from_rotation_translation(rot, m.pos)
-                        * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
-                    out.push(ModelInstance {
-                        model,
-                        transform: t,
-                        skin: Some((base, mats.len() as u32)),
-                        flash,
-                        tint: None,
-                    });
+                    let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(lean);
+                    let t = Affine3A::from_rotation_translation(rot, m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
+                    out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None });
                 }
                 _ => {
                     let bob = (m.phase * 2.3).sin() * 0.05;
                     let tilt = (m.phase * 1.7).cos() * 0.06;
-                    let t = Affine3A::from_rotation_translation(
-                        Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2)
-                            * Quat::from_rotation_z(tilt - flinch * 0.3),
-                        m.pos + Vec3::Y * bob,
-                    ) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.15)));
-                    out.push(ModelInstance {
-                        model,
-                        transform: t,
-                        skin: None,
-                        flash,
-                        tint: None,
-                    });
+                    let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_z(tilt - flinch * 0.3), m.pos + Vec3::Y * bob) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.15)));
+                    out.push(ModelInstance { model, transform: t, skin: None, flash, tint: None });
                 }
             }
         }
         for b in &self.bolts {
             let yaw = b.vel.x.atan2(b.vel.z);
             let pitch = (b.vel.y / b.vel.length().max(1e-4)).asin();
-            let rot = Quat::from_rotation_y(yaw - std::f32::consts::FRAC_PI_2)
-                * Quat::from_rotation_z(pitch)
-                * Quat::from_rotation_x(time * 12.0);
-            out.push(ModelInstance {
-                model: BOLT_MODEL,
-                transform: Affine3A::from_rotation_translation(rot, b.pos),
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            });
+            let rot = Quat::from_rotation_y(yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_z(pitch) * Quat::from_rotation_x(time * 12.0);
+            out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(rot, b.pos), skin: None, flash: 0.0, tint: None });
         }
         for t in &self.tokens {
             if t.taken {
@@ -1344,14 +997,7 @@ impl Mobs {
             let spin = Quat::from_rotation_y(time * 2.0 + t.age);
             let pop = (t.age * 4.0).min(1.0);
             let hover = 0.1 + (time * 3.0 + t.age).sin() * 0.05;
-            out.push(ModelInstance {
-                model: TOKEN_MODEL,
-                transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover)
-                    * Affine3A::from_scale(Vec3::splat(pop)),
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            });
+            out.push(ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None });
         }
         for k in &self.keys {
             if k.taken {
@@ -1360,14 +1006,7 @@ impl Mobs {
             let spin = Quat::from_rotation_y(time * 1.5 + k.age) * Quat::from_rotation_x(0.4);
             let pop = (k.age * 4.0).min(1.0);
             let hover = 0.25 + (time * 2.5 + k.age).sin() * 0.06;
-            out.push(ModelInstance {
-                model: KEY_MODEL,
-                transform: Affine3A::from_rotation_translation(spin, k.pos + Vec3::Y * hover)
-                    * Affine3A::from_scale(Vec3::splat(pop)),
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            });
+            out.push(ModelInstance { model: KEY_MODEL, transform: Affine3A::from_rotation_translation(spin, k.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None });
         }
         out
     }
@@ -1378,15 +1017,7 @@ fn set_state(m: &mut Mob, want: State, clips: &Clips) {
     if m.state != want {
         m.state = want;
         if let Some(a) = m.anim.as_mut() {
-            a.play(
-                if want == State::Walk {
-                    clips.walk
-                } else {
-                    clips.idle
-                },
-                true,
-                0.2,
-            );
+            a.play(if want == State::Walk { clips.walk } else { clips.idle }, true, 0.2);
         }
     }
 }
@@ -1397,17 +1028,7 @@ fn set_state(m: &mut Mob, want: State, clips: &Clips) {
 /// aksene og skrått til sidene; det som går av nettet, tas ikke. Står den
 /// utenfor nettet (dyttet ut), går den inn igjen.
 #[allow(clippy::too_many_arguments)]
-fn walk(
-    m: &mut Mob,
-    goal: Vec3,
-    speed: f32,
-    dt: f32,
-    crypt: &Crypt,
-    push: Vec3,
-    stats: &Stats,
-    clips: &Clips,
-    out: &mut Outcome,
-) {
+fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, push: Vec3, stats: &Stats, clips: &Clips, out: &mut Outcome) {
     m.repath -= dt;
     if m.repath <= 0.0 || m.path.is_empty() || m.goal.distance(goal) > 1.0 {
         m.path = crypt.path(m.pos, goal).unwrap_or_default();
@@ -1419,11 +1040,7 @@ fn walk(
     }
     let from = m.pos;
     let on = crypt.walkable(from);
-    let next = if on {
-        m.path.first().copied().unwrap_or(goal)
-    } else {
-        crypt.snap(from, 3.0).unwrap_or(goal)
-    };
+    let next = if on { m.path.first().copied().unwrap_or(goal) } else { crypt.snap(from, 3.0).unwrap_or(goal) };
     let dir = (next - from).with_y(0.0).normalize_or_zero();
     // Står en annen rett i veien (de går mot hverandre), går den til siden
     // i stedet for å bli stående og dytte.
@@ -1435,21 +1052,10 @@ fn walk(
     }
     let step = dir * speed * dt + push * dt * if on { 1.0 } else { 0.0 };
     let turn = |a: f32| Quat::from_rotation_y(a) * step;
-    let tries = [
-        step,
-        Vec3::new(step.x, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, step.z),
-        turn(0.9),
-        turn(-0.9),
-        turn(1.6),
-        turn(-1.6),
-    ];
+    let tries = [step, Vec3::new(step.x, 0.0, 0.0), Vec3::new(0.0, 0.0, step.z), turn(0.9), turn(-0.9), turn(1.6), turn(-1.6)];
     if !on {
         m.pos = from + step;
-    } else if let Some(t) = tries
-        .into_iter()
-        .find(|t| t.length_squared() > 1e-10 && crypt.walkable(from + *t))
-    {
+    } else if let Some(t) = tries.into_iter().find(|t| t.length_squared() > 1e-10 && crypt.walkable(from + *t)) {
         m.pos = from + t;
     }
     m.pos.y = crypt.height_at(m.pos + Vec3::Y * 0.3);
@@ -1459,22 +1065,11 @@ fn walk(
         m.stride += (m.pos - from).with_y(0.0).length();
         if m.stride > 1.4 * s {
             m.stride = 0.0;
-            out.sounds.push((
-                if m.kind.boss() {
-                    "boss_step"
-                } else {
-                    "mob_step"
-                },
-                m.pos,
-            ));
+            out.sounds.push((if m.kind.boss() { "boss_step" } else { "mob_step" }, m.pos));
         }
     }
     let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);
-    let want_state = if moved > 0.3 {
-        State::Walk
-    } else {
-        State::Idle
-    };
+    let want_state = if moved > 0.3 { State::Walk } else { State::Idle };
     set_state(m, want_state, clips);
     if let Some(a) = m.anim.as_mut() {
         if want_state == State::Walk {
@@ -1485,8 +1080,7 @@ fn walk(
     }
     if dir.length_squared() > 0.0 {
         let want = dir.x.atan2(dir.z);
-        let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
-            - std::f32::consts::PI;
+        let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
         m.yaw += diff * (dt * 6.0).min(1.0);
     }
 }
@@ -1517,13 +1111,8 @@ mod tests {
 fn turn_joints(rig: &Rig, pose: &mut crate::domain::anim::Pose, joints: &[(usize, f32)], up: Vec3) {
     let globals = rig.globals(pose);
     for &(j, angle) in joints {
-        let Some(joint) = rig.joints.get(j) else {
-            continue;
-        };
-        let parent = joint
-            .parent
-            .map(|p| globals[p].to_scale_rotation_translation().1)
-            .unwrap_or(Quat::IDENTITY);
+        let Some(joint) = rig.joints.get(j) else { continue };
+        let parent = joint.parent.map(|p| globals[p].to_scale_rotation_translation().1).unwrap_or(Quat::IDENTITY);
         let q = Quat::from_axis_angle(up, angle);
         if let Some(slot) = pose.0.get_mut(j) {
             slot.1 = (parent.inverse() * q * parent * slot.1).normalize();

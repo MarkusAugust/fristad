@@ -25,12 +25,7 @@ impl Session {
 
     /// Den nærmeste levende fienden (føttene).
     pub fn nearest_mob(&self, from: Vec3) -> Option<Vec3> {
-        self.mobs
-            .mobs
-            .iter()
-            .filter(|m| m.alive())
-            .map(|m| m.pos)
-            .min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
+        self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| m.pos).min_by(|a, b| a.distance(from).total_cmp(&b.distance(from)))
     }
 }
 
@@ -39,12 +34,7 @@ impl Session {
     /// De levende fiendene (føttene, slaget, om den er elite), til
     /// gjennomspillingen.
     pub fn living(&self) -> Vec<(Vec3, MobKind, bool)> {
-        self.mobs
-            .mobs
-            .iter()
-            .filter(|m| m.alive())
-            .map(|m| (m.pos, m.kind, m.elite))
-            .collect()
+        self.mobs.mobs.iter().filter(|m| m.alive()).map(|m| (m.pos, m.kind, m.elite)).collect()
     }
 
     /// Fullt liv igjen, til gjennomspillingen (som teller hvor ofte boten
@@ -72,25 +62,14 @@ impl Session {
 
     /// Nøklene som ligger på gulvet etter en elite.
     pub fn loose_keys(&self) -> Vec<Vec3> {
-        self.mobs
-            .keys
-            .iter()
-            .filter(|k| !k.taken)
-            .map(|k| k.pos)
-            .collect()
+        self.mobs.keys.iter().filter(|k| !k.taken).map(|k| k.pos).collect()
     }
 
     /// Felle eliten i nivået du er i med ett slag.
     pub fn fell_elite(&mut self, events: &mut Vec<Event>) -> bool {
-        let Some(i) = self.mobs.mobs.iter().position(|m| m.alive() && m.elite) else {
-            return false;
-        };
+        let Some(i) = self.mobs.mobs.iter().position(|m| m.alive() && m.elite) else { return false };
         let pos = self.mobs.mobs[i].pos;
-        if self
-            .mobs
-            .strike(i, 1.0e6, pos + Vec3::X, &self.crypt)
-            .killed
-        {
+        if self.mobs.strike(i, 1.0e6, pos + Vec3::X, &self.crypt).killed {
             self.killed(i, pos, events);
         }
         true

@@ -15,18 +15,10 @@ const SPREAD: f32 = 8.0;
 const OVERSAMPLE: usize = 8;
 
 fn main() {
-    let path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| "/usr/share/fonts/opentype/inter/Inter-Medium.otf".into());
+    let path = std::env::args().nth(1).unwrap_or_else(|| "/usr/share/fonts/opentype/inter/Inter-Medium.otf".into());
     let data = std::fs::read(&path).expect("fant ikke skriftfila");
-    let font = fontdue::Font::from_bytes(
-        data,
-        fontdue::FontSettings {
-            scale: EM * OVERSAMPLE as f32,
-            ..Default::default()
-        },
-    )
-    .expect("ugyldig skrift");
+    let font = fontdue::Font::from_bytes(data, fontdue::FontSettings { scale: EM * OVERSAMPLE as f32, ..Default::default() })
+        .expect("ugyldig skrift");
 
     let mut chars: Vec<char> = (32u8..127).map(|c| c as char).collect();
     chars.extend("ÆØÅæøåÉéÜüÖöÄä«»–—…·×€©".chars());
@@ -46,15 +38,7 @@ fn main() {
     for &ch in &chars {
         let (m, bitmap) = font.rasterize(ch, big);
         if m.width == 0 || m.height == 0 {
-            glyphs.push(Glyph {
-                ch,
-                w: 0,
-                h: 0,
-                xoff: 0.0,
-                yoff: 0.0,
-                adv: m.advance_width / OVERSAMPLE as f32,
-                sdf: vec![],
-            });
+            glyphs.push(Glyph { ch, w: 0, h: 0, xoff: 0.0, yoff: 0.0, adv: m.advance_width / OVERSAMPLE as f32, sdf: vec![] });
             continue;
         }
         // Dekning med luft rundt, så avstanden kan vokse ut forbi kanten.
@@ -70,15 +54,7 @@ fn main() {
         let d_in = edt(&inside, bw, bh, true);
         // Signert avstand i store piksler, positiv inne i glyfen.
         // Inne: avstand til nærmeste piksel utenfor. Ute: til nærmeste inne.
-        let signed: Vec<f32> = (0..bw * bh)
-            .map(|i| {
-                if inside[i] {
-                    d_out[i].sqrt()
-                } else {
-                    -d_in[i].sqrt()
-                }
-            })
-            .collect();
+        let signed: Vec<f32> = (0..bw * bh).map(|i| if inside[i] { d_out[i].sqrt() } else { -d_in[i].sqrt() }).collect();
         // Ned til målestokken i atlaset ved å ta snittet av hver blokk.
         let w = bw / OVERSAMPLE;
         let h = bh / OVERSAMPLE;
@@ -157,17 +133,10 @@ fn main() {
 
     std::fs::create_dir_all("assets/font").unwrap();
     let file = std::fs::File::create("assets/font/inter.png").unwrap();
-    let mut enc = png::Encoder::new(
-        std::io::BufWriter::new(file),
-        atlas_w as u32,
-        atlas_h as u32,
-    );
+    let mut enc = png::Encoder::new(std::io::BufWriter::new(file), atlas_w as u32, atlas_h as u32);
     enc.set_color(png::ColorType::Grayscale);
     enc.set_depth(png::BitDepth::Eight);
-    enc.write_header()
-        .unwrap()
-        .write_image_data(&pixels)
-        .unwrap();
+    enc.write_header().unwrap().write_image_data(&pixels).unwrap();
 
     let json = serde_json::json!({
         "font": std::path::Path::new(&path).file_name().unwrap().to_string_lossy(),
@@ -179,18 +148,8 @@ fn main() {
         "glyphs": meta,
         "kern": kern,
     });
-    std::fs::write(
-        "assets/font/inter.json",
-        serde_json::to_string(&json).unwrap(),
-    )
-    .unwrap();
-    println!(
-        "{} tegn i {}×{} atlas, {} kerningpar",
-        glyphs.len(),
-        atlas_w,
-        atlas_h,
-        json["kern"].as_object().unwrap().len()
-    );
+    std::fs::write("assets/font/inter.json", serde_json::to_string(&json).unwrap()).unwrap();
+    println!("{} tegn i {}×{} atlas, {} kerningpar", glyphs.len(), atlas_w, atlas_h, json["kern"].as_object().unwrap().len());
 }
 
 fn round(v: f32) -> f32 {

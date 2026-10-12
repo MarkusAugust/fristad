@@ -2,11 +2,9 @@
 //! lysene følger døgnet, været og om du er nede i krypten.
 
 use super::session::Session;
-use crate::domain::craft;
-use crate::domain::scene::{
-    Frame, Light, ModelInstance, RoomLight, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE,
-};
+use crate::domain::scene::{Frame, Light, ModelInstance, RoomLight, MAX_LIGHTS, MAX_ROOMS, MAX_SMOKE, PALETTE};
 use crate::domain::world::crypt::{self, PORTCULLIS};
+use crate::domain::craft;
 use crate::domain::world::Use;
 use glam::{Affine3A, Mat4, Quat, Vec3, Vec4};
 
@@ -18,11 +16,7 @@ impl Session {
         // ikke retningen du går).
         let (ky, kp) = self.combat.view_kick(self.time);
         let (vyaw, vpitch) = (self.yaw + ky, (self.pitch + kp).clamp(-1.5, 1.5));
-        let view_dir = Vec3::new(
-            -vyaw.sin() * vpitch.cos(),
-            vpitch.sin(),
-            -vyaw.cos() * vpitch.cos(),
-        );
+        let view_dir = Vec3::new(-vyaw.sin() * vpitch.cos(), vpitch.sin(), -vyaw.cos() * vpitch.cos());
         let in_crypt = self.in_crypt();
         let t = self.sky.night;
         let dusk = (t * std::f32::consts::PI).sin();
@@ -46,30 +40,14 @@ impl Session {
         let sun_color = lerp3(day_sun, moon).lerp(dusk_sun, dusk * 0.85);
         let sun_intensity = (3.4 * (1.0 - t) + 0.38 * t) * (1.0 - overcast * 0.8);
 
-        let grey = |c: Vec3| {
-            c.lerp(
-                Vec3::splat(c.dot(Vec3::new(0.3, 0.59, 0.11))),
-                overcast * 0.6,
-            ) * (1.0 - overcast * 0.25)
-        };
-        let sky_top = grey(
-            lerp3(Vec3::new(0.16, 0.34, 0.72), Vec3::new(0.008, 0.014, 0.04))
-                .lerp(Vec3::new(0.18, 0.2, 0.42), dusk * 0.6),
-        );
-        let sky_horizon = grey(
-            lerp3(Vec3::new(0.6, 0.74, 0.88), Vec3::new(0.016, 0.028, 0.06))
-                .lerp(Vec3::new(1.0, 0.5, 0.28), dusk * 0.7),
-        );
-        let ground = lerp3(Vec3::new(0.28, 0.26, 0.22), Vec3::new(0.012, 0.013, 0.018))
-            * (1.0 - overcast * 0.3);
+        let grey = |c: Vec3| c.lerp(Vec3::splat(c.dot(Vec3::new(0.3, 0.59, 0.11))), overcast * 0.6) * (1.0 - overcast * 0.25);
+        let sky_top = grey(lerp3(Vec3::new(0.16, 0.34, 0.72), Vec3::new(0.008, 0.014, 0.04)).lerp(Vec3::new(0.18, 0.2, 0.42), dusk * 0.6));
+        let sky_horizon = grey(lerp3(Vec3::new(0.6, 0.74, 0.88), Vec3::new(0.016, 0.028, 0.06)).lerp(Vec3::new(1.0, 0.5, 0.28), dusk * 0.7));
+        let ground = lerp3(Vec3::new(0.28, 0.26, 0.22), Vec3::new(0.012, 0.013, 0.018)) * (1.0 - overcast * 0.3);
         let snow_bounce = Vec3::new(0.5, 0.52, 0.58) * w.snow_cover * (1.0 - t * 0.95);
 
         // Lyktene tennes i skumringen og når det er mørkt av skyer.
-        let lamp = ((t - 0.35) / 0.5)
-            .clamp(0.0, 1.0)
-            .max(overcast * 0.5 * (1.0 - t))
-            * 0.6
-            + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
+        let lamp = ((t - 0.35) / 0.5).clamp(0.0, 1.0).max(overcast * 0.5 * (1.0 - t)) * 0.6 + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
         let eye_now = self.eye();
         let mut lights: Vec<Light> = self
             .lights
@@ -80,60 +58,29 @@ impl Session {
                 let mut k = 1.0;
                 if l.flicker > 0.0 {
                     let t = self.time * 9.0 + i as f32 * 1.7;
-                    let soft = 1.0
-                        - l.flicker
-                            * 0.5
-                            * (0.5 + 0.5 * (t.sin() * (t * 0.37).cos() + (t * 2.3).sin() * 0.5));
-                    let blackout = if l.flicker > 0.4
-                        && ((t * 0.31).sin() * (t * 0.173 + i as f32).cos()) > 0.72
-                    {
-                        0.1
-                    } else {
-                        1.0
-                    };
+                    let soft = 1.0 - l.flicker * 0.5 * (0.5 + 0.5 * (t.sin() * (t * 0.37).cos() + (t * 2.3).sin() * 0.5));
+                    let blackout = if l.flicker > 0.4 && ((t * 0.31).sin() * (t * 0.173 + i as f32).cos()) > 0.72 { 0.1 } else { 1.0 };
                     k = soft * blackout;
                 }
-                Light {
-                    intensity: l.intensity * k * if l.always { 1.0 } else { lamp },
-                    ..*l
-                }
+                Light { intensity: l.intensity * k * if l.always { 1.0 } else { lamp }, ..*l }
             })
             .filter(|l| l.intensity > 0.01)
             .collect();
         // Nede i krypten bærer du et lys, så du ser våpenet og det som
         // kommer mot deg; det lyser overalt (ikke noe rom).
         if in_crypt {
-            lights.push(Light {
-                pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2,
-                radius: 6.0 * self.gear().lantern.sqrt(),
-                color: Vec3::new(1.0, 0.8, 0.6),
-                intensity: 0.8 * self.gear().lantern,
-                always: true,
-                flicker: 0.0,
-                room: None,
-            });
+            lights.push(Light { pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2, radius: 6.0 * self.gear().lantern.sqrt(), color: Vec3::new(1.0, 0.8, 0.6), intensity: 0.8 * self.gear().lantern, always: true, flicker: 0.0, room: None });
             lights.extend(self.rest_lights());
         }
-        lights.extend(
-            self.portal_pose()
-                .and_then(|p| self.portal.light(p, self.time)),
-        );
+        lights.extend(self.portal_pose().and_then(|p| self.portal.light(p, self.time)));
         // Rommene i nivået du er i, og rommene hvert lys lyser i. Lysene som
         // ikke lyser der du står, kommer bakerst.
-        let level = if in_crypt {
-            self.crypt.level_at(eye_now - Vec3::Y * 1.6)
-        } else {
-            None
-        };
-        let here = level
-            .and_then(|_| self.crypt.room_at(eye_now - Vec3::Y * 1.4))
-            .map(|(_, r)| r);
+        let level = if in_crypt { self.crypt.level_at(eye_now - Vec3::Y * 1.6) } else { None };
+        let here = level.and_then(|_| self.crypt.room_at(eye_now - Vec3::Y * 1.4)).map(|(_, r)| r);
         let mask = |l: &Light| -> u64 {
             match (l.room, level) {
                 (None, _) => u64::MAX,
-                (Some((lv, r)), Some(k)) if lv as usize == k => {
-                    self.crypt.light_mask(k, r as usize)
-                }
+                (Some((lv, r)), Some(k)) if lv as usize == k => self.crypt.light_mask(k, r as usize),
                 _ => 0,
             }
         };
@@ -148,12 +95,7 @@ impl Session {
         lights.sort_by(|a, b| rank(a).total_cmp(&rank(b)));
         lights.truncate(MAX_LIGHTS);
         let rooms = level.map(|k| RoomLight {
-            boxes: self.crypt.levels[k]
-                .rooms
-                .iter()
-                .take(MAX_ROOMS)
-                .map(|r| (r.min, r.max, r.y, r.y + r.h))
-                .collect(),
+            boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y, r.y + r.h)).collect(),
             masks: lights.iter().map(mask).collect(),
         });
         // Nede i krypten: lite himmellys, mer tåke, øynene vant til mørket.
@@ -164,96 +106,26 @@ impl Session {
         let mut smoke: Vec<Vec4> = if in_crypt {
             vec![]
         } else {
-            self.smoke
-                .iter()
-                .map(|(p, s)| p.extend(s * (0.75 + 0.25 * t)))
-                .collect()
+            self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect()
         };
-        smoke.sort_by(|a, b| {
-            a.truncate()
-                .distance_squared(eye_now)
-                .total_cmp(&b.truncate().distance_squared(eye_now))
-        });
+        smoke.sort_by(|a, b| a.truncate().distance_squared(eye_now).total_cmp(&b.truncate().distance_squared(eye_now)));
         smoke.truncate(MAX_SMOKE);
         let eye = self.eye();
         let mut instances = self.herd.instances(self.time);
         instances.extend(self.npcs.instances(&mut skins));
         instances.extend(self.mobs.instances(self.time, &mut skins));
-        instances.extend(
-            self.well_poses()
-                .into_iter()
-                .map(|(model, transform)| ModelInstance {
-                    model,
-                    transform,
-                    skin: None,
-                    flash: 0.0,
-                    tint: None,
-                }),
-        );
-        instances.extend(
-            self.portal_pose()
-                .map(|p| self.portal.poses(p, self.time))
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(model, transform)| ModelInstance {
-                    model,
-                    transform,
-                    skin: None,
-                    flash: 0.0,
-                    tint: None,
-                }),
-        );
-        instances.extend(
-            self.gate_poses()
-                .into_iter()
-                .map(|transform| ModelInstance {
-                    model: PORTCULLIS,
-                    transform,
-                    skin: None,
-                    flash: 0.0,
-                    tint: None,
-                }),
-        );
-        let posed = |model: &'static str, list: Vec<glam::Affine3A>| {
-            list.into_iter().map(move |transform| ModelInstance {
-                model,
-                transform,
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            })
-        };
-        instances.extend(posed(
-            crypt::KIT_SHORTCUT_LEAF,
-            self.mech.shortcut_poses(&self.crypt),
-        ));
+        instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.portal_pose().map(|p| self.portal.poses(p, self.time)).unwrap_or_default().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
+        let posed = |model: &'static str, list: Vec<glam::Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None });
+        instances.extend(posed(crypt::KIT_SHORTCUT_LEAF, self.mech.shortcut_poses(&self.crypt)));
         instances.extend(posed(crypt::CHEST_LID, self.chest_poses()));
-        instances.extend(posed(
-            crypt::KIT_LEVER_ARM,
-            self.mech.lever_poses(&self.crypt),
-        ));
-        instances.extend(posed(
-            crypt::KIT_SECRET,
-            self.mech.secret_poses(&self.crypt, self.time),
-        ));
-        instances.extend(posed(
-            crypt::KIT_TRAPDOOR,
-            self.mech.trapdoor_poses(&self.crypt),
-        ));
+        instances.extend(posed(crypt::KIT_LEVER_ARM, self.mech.lever_poses(&self.crypt)));
+        instances.extend(posed(crypt::KIT_SECRET, self.mech.secret_poses(&self.crypt, self.time)));
+        instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(&self.crypt)));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
-        instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| {
-            ModelInstance {
-                model,
-                transform,
-                skin: None,
-                flash: 0.0,
-                tint: None,
-            }
-        }));
-        instances.extend(
-            self.combat
-                .instances(eye, vyaw, vpitch, in_crypt, &mut skins),
-        );
+        instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         let (hidden, edited) = self.edit_instances();
         instances.extend(edited);
         Frame {
@@ -268,10 +140,7 @@ impl Session {
             sky_top: sky_top * (1.0 - c * 0.9),
             sky_horizon: sky_horizon * (1.0 - c * 0.9),
             ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.8),
-            fog_color: grey(lerp3(
-                Vec3::new(0.62, 0.74, 0.88),
-                Vec3::new(0.012, 0.02, 0.04),
-            )) * (1.0 - c * 0.95),
+            fog_color: grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
             // Høydetåka tetner nedover. I kjelleren er det ingen tåke.
             fog_density: (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c),
             fog_falloff: 0.03,
@@ -368,10 +237,7 @@ impl Session {
             .filter_map(|t| match t.target.what {
                 Use::Gallery(n) => {
                     let c = craft::GALLERY.get(n)?;
-                    self.hero
-                        .found
-                        .contains(*c)
-                        .then(|| (craft::GALLERY_MODELS[n], t.target.pose))
+                    self.hero.found.contains(*c).then(|| (craft::GALLERY_MODELS[n], t.target.pose))
                 }
                 _ => None,
             })
@@ -380,16 +246,7 @@ impl Session {
 
     /// Pilene i lufta, med spissen i farten.
     fn dart_poses(&self) -> Vec<Affine3A> {
-        self.run
-            .darts
-            .iter()
-            .map(|d| {
-                Affine3A::from_rotation_translation(
-                    Quat::from_rotation_arc(Vec3::Z, d.vel.normalize_or(Vec3::Z)),
-                    d.pos,
-                )
-            })
-            .collect()
+        self.run.darts.iter().map(|d| Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Z, d.vel.normalize_or(Vec3::Z)), d.pos)).collect()
     }
 
     /// Lysene på hvilestedene du har tent.
@@ -400,20 +257,8 @@ impl Session {
             .zip(&self.run.rests_lit)
             .filter(|(_, lit)| **lit)
             .map(|(r, _)| {
-                let room = self
-                    .crypt
-                    .room_at(r.pos + Vec3::Y * 0.3)
-                    .map(|(l, k)| (l as u16, k as u16));
-                Light {
-                    pos: crate::domain::world::at(r.pos, r.yaw)
-                        .transform_point3(crypt::REST_FLAME + Vec3::Y * 0.3),
-                    radius: 9.0,
-                    color: Vec3::new(1.0, 0.7, 0.4),
-                    intensity: 2.2,
-                    always: true,
-                    flicker: 0.15,
-                    room,
-                }
+                let room = self.crypt.room_at(r.pos + Vec3::Y * 0.3).map(|(l, k)| (l as u16, k as u16));
+                Light { pos: crate::domain::world::at(r.pos, r.yaw).transform_point3(crypt::REST_FLAME + Vec3::Y * 0.3), radius: 9.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.2, always: true, flicker: 0.15, room }
             })
             .collect()
     }

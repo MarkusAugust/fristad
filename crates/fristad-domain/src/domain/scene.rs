@@ -128,14 +128,7 @@ pub struct Frustum {
 impl Frustum {
     pub fn from_view_proj(m: Mat4) -> Self {
         let r = |i: usize| m.row(i);
-        let planes = [
-            r(3) + r(0),
-            r(3) - r(0),
-            r(3) + r(1),
-            r(3) - r(1),
-            r(2),
-            r(3) - r(2),
-        ];
+        let planes = [r(3) + r(0), r(3) - r(0), r(3) + r(1), r(3) - r(1), r(2), r(3) - r(2)];
         Self { planes }
     }
 

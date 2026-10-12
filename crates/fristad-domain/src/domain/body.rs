@@ -86,17 +86,7 @@ pub struct Body {
 impl Body {
     /// Stående med føttene i `feet`.
     pub fn new(feet: Vec3) -> Self {
-        let mut b = Self {
-            pos: Vec3::ZERO,
-            vel_y: 0.0,
-            grounded: false,
-            stance: Stance::Stand,
-            eye_h: EYE,
-            bob: 0.0,
-            jumped: false,
-            stride: 0.0,
-            fall: 0.0,
-        };
+        let mut b = Self { pos: Vec3::ZERO, vel_y: 0.0, grounded: false, stance: Stance::Stand, eye_h: EYE, bob: 0.0, jumped: false, stride: 0.0, fall: 0.0 };
         b.pos = feet + Vec3::Y * (b.reach() + 0.05);
         b
     }
@@ -158,21 +148,11 @@ impl Body {
     }
 
     /// Fysikken har flyttet kapselen: hva skjedde (hopp, landing, skritt)?
-    pub fn moved(
-        &mut self,
-        moved: Vec3,
-        grounded: bool,
-        jumped: bool,
-        walking: bool,
-        sprint: bool,
-    ) -> Steps {
+    pub fn moved(&mut self, moved: Vec3, grounded: bool, jumped: bool, walking: bool, sprint: bool) -> Steps {
         self.pos += moved;
         let was = self.grounded;
         self.grounded = grounded;
-        let mut out = Steps {
-            jumped,
-            ..Default::default()
-        };
+        let mut out = Steps { jumped, ..Default::default() };
         if jumped {
             self.fall = 0.0;
         }
@@ -230,13 +210,7 @@ mod tests {
         b.moved(Vec3::ZERO, false, false, false, false);
         let s = b.moved(Vec3::ZERO, true, false, false, false);
         assert!(s.landed.is_some_and(|h| h > 0.5));
-        let steps = (0..100)
-            .filter(|_| {
-                b.moved(Vec3::X * 0.05, true, false, true, false)
-                    .step
-                    .is_some()
-            })
-            .count();
+        let steps = (0..100).filter(|_| b.moved(Vec3::X * 0.05, true, false, true, false).step.is_some()).count();
         assert_eq!(steps, 5, "fem meter med skritt på 0,85 m");
     }
 }

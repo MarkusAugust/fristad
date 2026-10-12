@@ -18,19 +18,14 @@ pub struct RapierPhysics {
 }
 
 fn iso(center: Vec3, yaw: f32) -> Isometry<Real> {
-    Isometry::new(
-        vector![center.x, center.y, center.z],
-        vector![0.0, yaw, 0.0],
-    )
+    Isometry::new(vector![center.x, center.y, center.z], vector![0.0, yaw, 0.0])
 }
 
 fn to_iso(t: &Affine3A) -> Isometry<Real> {
     let (_, rot, tr) = t.to_scale_rotation_translation();
     Isometry::from_parts(
         Translation::new(tr.x, tr.y, tr.z),
-        rapier3d::na::UnitQuaternion::from_quaternion(rapier3d::na::Quaternion::new(
-            rot.w, rot.x, rot.y, rot.z,
-        )),
+        rapier3d::na::UnitQuaternion::from_quaternion(rapier3d::na::Quaternion::new(rot.w, rot.x, rot.y, rot.z)),
     )
 }
 
@@ -53,15 +48,7 @@ impl RapierPhysics {
             max_slope_climb_angle: 50f32.to_radians(),
             ..Default::default()
         };
-        Self {
-            colliders: ColliderSet::new(),
-            bodies: RigidBodySet::new(),
-            query: QueryPipeline::new(),
-            controller,
-            handles: HashMap::new(),
-            next: 1,
-            dirty: true,
-        }
+        Self { colliders: ColliderSet::new(), bodies: RigidBodySet::new(), query: QueryPipeline::new(), controller, handles: HashMap::new(), next: 1, dirty: true }
     }
 
     fn insert(&mut self, c: Collider) -> ColliderId {
@@ -84,49 +71,20 @@ impl RapierPhysics {
 impl Physics for RapierPhysics {
     fn add(&mut self, shape: &Shape) -> ColliderId {
         let c = match shape {
-            Shape::Cuboid { center, size, yaw } => {
-                ColliderBuilder::cuboid(size.x * 0.5, size.y * 0.5, size.z * 0.5)
-                    .position(iso(*center, *yaw))
-                    .build()
-            }
-            Shape::Cylinder {
-                center,
-                radius,
-                half_height,
-            } => ColliderBuilder::cylinder(*half_height, *radius)
-                .position(iso(*center, 0.0))
-                .build(),
-            Shape::Heightfield {
-                center,
-                size,
-                cols,
-                rows,
-                ref heights,
-                ref holes,
-            } => {
+            Shape::Cuboid { center, size, yaw } => ColliderBuilder::cuboid(size.x * 0.5, size.y * 0.5, size.z * 0.5).position(iso(*center, *yaw)).build(),
+            Shape::Cylinder { center, radius, half_height } => ColliderBuilder::cylinder(*half_height, *radius).position(iso(*center, 0.0)).build(),
+            Shape::Heightfield { center, size, cols, rows, ref heights, ref holes } => {
                 // Rapier: rader langs X? Nei: matrisen er (nrows × ncols) der
                 // rad i er langs Z og kolonne j langs X, skalert til `size`.
                 let m = rapier3d::na::DMatrix::from_fn(*rows, *cols, |i, j| heights[i * cols + j]);
-                let mut hf =
-                    rapier3d::parry::shape::HeightField::new(m, vector![size.x, size.y, size.z]);
+                let mut hf = rapier3d::parry::shape::HeightField::new(m, vector![size.x, size.y, size.z]);
                 // Kjellerne under husene: rutene fjernes.
                 for &(i, j) in holes {
-                    hf.set_cell_status(
-                        i,
-                        j,
-                        rapier3d::parry::shape::HeightFieldCellStatus::CELL_REMOVED,
-                    );
+                    hf.set_cell_status(i, j, rapier3d::parry::shape::HeightFieldCellStatus::CELL_REMOVED);
                 }
-                ColliderBuilder::new(rapier3d::geometry::SharedShape::new(hf))
-                    .position(iso(*center, 0.0))
-                    .build()
+                ColliderBuilder::new(rapier3d::geometry::SharedShape::new(hf)).position(iso(*center, 0.0)).build()
             }
-            Shape::Capsule { a, b, radius } => ColliderBuilder::new(SharedShape::capsule(
-                point![a.x, a.y, a.z],
-                point![b.x, b.y, b.z],
-                *radius,
-            ))
-            .build(),
+            Shape::Capsule { a, b, radius } => ColliderBuilder::new(SharedShape::capsule(point![a.x, a.y, a.z], point![b.x, b.y, b.z], *radius)).build(),
             Shape::Hull { points } => {
                 let pts: Vec<_> = points.iter().map(|p| point![p.x, p.y, p.z]).collect();
                 match SharedShape::convex_hull(&pts) {
@@ -139,11 +97,7 @@ impl Physics for RapierPhysics {
     }
 
     fn add_movable(&mut self, half: Vec3, pose: Affine3A) -> ColliderId {
-        self.insert(
-            ColliderBuilder::cuboid(half.x, half.y, half.z)
-                .position(to_iso(&pose))
-                .build(),
-        )
+        self.insert(ColliderBuilder::cuboid(half.x, half.y, half.z).position(to_iso(&pose)).build())
     }
 
     fn set_pose(&mut self, id: ColliderId, pose: Affine3A) {
@@ -155,55 +109,18 @@ impl Physics for RapierPhysics {
         }
     }
 
-    fn move_capsule(
-        &mut self,
-        pos: Vec3,
-        half: f32,
-        radius: f32,
-        delta: Vec3,
-        dt: f32,
-    ) -> (Vec3, bool) {
+    fn move_capsule(&mut self, pos: Vec3, half: f32, radius: f32, delta: Vec3, dt: f32) -> (Vec3, bool) {
         self.refresh();
         let shape = Capsule::new_y(half, radius);
         let p = Isometry::translation(pos.x, pos.y, pos.z);
-        let mv = self.controller.move_shape(
-            dt,
-            &self.bodies,
-            &self.colliders,
-            &self.query,
-            &shape,
-            &p,
-            vector![delta.x, delta.y, delta.z],
-            QueryFilter::default(),
-            |_| {},
-        );
-        (
-            Vec3::new(mv.translation.x, mv.translation.y, mv.translation.z),
-            mv.grounded,
-        )
+        let mv = self.controller.move_shape(dt, &self.bodies, &self.colliders, &self.query, &shape, &p, vector![delta.x, delta.y, delta.z], QueryFilter::default(), |_| {});
+        (Vec3::new(mv.translation.x, mv.translation.y, mv.translation.z), mv.grounded)
     }
 
     fn cast_ray(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit> {
-        let ray = Ray::new(
-            point![origin.x, origin.y, origin.z],
-            vector![dir.x, dir.y, dir.z],
-        );
-        let (h, t) = self.query.cast_ray(
-            &self.bodies,
-            &self.colliders,
-            &ray,
-            max,
-            true,
-            QueryFilter::default(),
-        )?;
-        let id = self
-            .handles
-            .iter()
-            .find(|(_, v)| **v == h)
-            .map(|(k, _)| ColliderId(*k))?;
-        Some(Hit {
-            collider: id,
-            distance: t,
-        })
+        let ray = Ray::new(point![origin.x, origin.y, origin.z], vector![dir.x, dir.y, dir.z]);
+        let (h, t) = self.query.cast_ray(&self.bodies, &self.colliders, &ray, max, true, QueryFilter::default())?;
+        let id = self.handles.iter().find(|(_, v)| **v == h).map(|(k, _)| ColliderId(*k))?;
+        Some(Hit { collider: id, distance: t })
     }
 }

@@ -72,37 +72,18 @@ pub struct Speech {
 
 impl Npcs {
     /// `rig_of` gir skjelettet til en modell; hver innbygger har sin.
-    pub fn new(
-        rig_of: impl Fn(&str) -> Option<Rig>,
-        cast: Vec<(
-            &'static str,
-            &'static str,
-            Vec3,
-            f32,
-            Vec3,
-            &'static [&'static str],
-            Vec<(Vec3, f32)>,
-            f32,
-        )>,
-    ) -> Self {
+    pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [&'static str], Vec<(Vec3, f32)>, f32)>) -> Self {
         let mut rigs: Vec<(Rig, Clips)> = vec![];
         let mut by_model: Vec<(&'static str, Option<usize>)> = vec![];
         let mut npcs = vec![];
-        for (i, (name, model, pos, yaw, tint, lines, route, height)) in
-            cast.into_iter().enumerate().take(MAX_NPCS)
-        {
+        for (i, (name, model, pos, yaw, tint, lines, route, height)) in cast.into_iter().enumerate().take(MAX_NPCS) {
             let rig = match by_model.iter().find(|(m, _)| *m == model) {
                 Some((_, r)) => *r,
                 None => {
                     let r = rig_of(model).map(|r| {
                         let find = |n: &str| r.clip(n).unwrap_or(0);
                         let idle = find("idle");
-                        let c = Clips {
-                            idle,
-                            talk: find("talk"),
-                            wave: find("wave"),
-                            walk: r.clip("walk").unwrap_or(idle),
-                        };
+                        let c = Clips { idle, talk: find("talk"), wave: find("wave"), walk: r.clip("walk").unwrap_or(idle) };
                         rigs.push((r, c));
                         rigs.len() - 1
                     });
@@ -114,24 +95,7 @@ impl Npcs {
             if let Some(a) = &mut anim {
                 a.time = i as f32 * 0.9;
             }
-            npcs.push(Npc {
-                name,
-                pos,
-                yaw,
-                tint,
-                lines,
-                model,
-                height,
-                rig,
-                next_line: 0,
-                anim,
-                speaking: None,
-                waved: false,
-                route,
-                leg: 0,
-                wait: 2.0 + i as f32 * 1.3,
-                walking: false,
-            });
+            npcs.push(Npc { name, pos, yaw, tint, lines, model, height, rig, next_line: 0, anim, speaking: None, waved: false, route, leg: 0, wait: 2.0 + i as f32 * 1.3, walking: false });
         }
         Self { npcs, rigs }
     }
@@ -149,12 +113,7 @@ impl Npcs {
         if let Some(a) = &mut n.anim {
             a.play(clips.talk, true, 0.15);
         }
-        Some(Speech {
-            npc: i,
-            name: n.name,
-            pos: n.pos + Vec3::Y * (n.height + 0.1),
-            text: n.lines[line].to_string(),
-        })
+        Some(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height + 0.1), text: n.lines[line].to_string() })
     }
 
     /// Ett steg: snur seg mot deg når du er nær, vinker første gang, og
@@ -211,9 +170,7 @@ impl Npcs {
                     } else {
                         n.pos += to_goal * (step / flat.length());
                         let want = flat.x.atan2(flat.z);
-                        let diff = (want - n.yaw + std::f32::consts::PI)
-                            .rem_euclid(std::f32::consts::TAU)
-                            - std::f32::consts::PI;
+                        let diff = (want - n.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                         n.yaw += diff * (dt * TURN).min(1.0);
                     }
                 }
@@ -221,8 +178,7 @@ impl Npcs {
             if dist < TALK_RANGE {
                 // Snur seg mot deg, mykt.
                 let want = to.x.atan2(to.z);
-                let diff = (want - n.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
-                    - std::f32::consts::PI;
+                let diff = (want - n.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
                 n.yaw += diff * (dt * 3.0).min(1.0);
                 if !n.waved {
                     n.waved = true;
@@ -239,12 +195,7 @@ impl Npcs {
                         a.play(clips.idle, true, 0.3);
                     }
                 } else {
-                    out.push(Speech {
-                        npc: i,
-                        name: n.name,
-                        pos: n.pos + Vec3::Y * (n.height + 0.1),
-                        text: n.lines[*line].to_string(),
-                    });
+                    out.push(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height + 0.1), text: n.lines[*line].to_string() });
                 }
             }
         }
@@ -261,21 +212,9 @@ impl Npcs {
                     let mats = rig.skin(&a.pose(rig));
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance {
-                        model: n.model,
-                        transform: t,
-                        skin: Some((base, mats.len() as u32)),
-                        flash: 0.0,
-                        tint: Some(n.tint),
-                    });
+                    out.push(ModelInstance { model: n.model, transform: t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: Some(n.tint) });
                 }
-                _ => out.push(ModelInstance {
-                    model: n.model,
-                    transform: t,
-                    skin: None,
-                    flash: 0.0,
-                    tint: Some(n.tint),
-                }),
+                _ => out.push(ModelInstance { model: n.model, transform: t, skin: None, flash: 0.0, tint: Some(n.tint) }),
             }
         }
         out

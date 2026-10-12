@@ -12,20 +12,6 @@ use fristad::ports::LayoutStore;
 fn main() {
     let data = world_data();
     let layout = data.layout.expect("assets/layout/town.json finnes ikke");
-    let crypt: Vec<(u32, CryptContents)> = data
-        .levels
-        .into_iter()
-        .map(|(n, f)| {
-            (
-                n,
-                CryptContents {
-                    marks: f.marks,
-                    lights: f.lights,
-                },
-            )
-        })
-        .collect();
-    FileStore(env!("CARGO_MANIFEST_DIR").into())
-        .save(&layout, &data.contents, &crypt)
-        .expect("kunne ikke skrive");
+    let crypt: Vec<(u32, CryptContents)> = data.levels.into_iter().map(|(n, f)| (n, CryptContents { marks: f.marks, lights: f.lights })).collect();
+    FileStore(env!("CARGO_MANIFEST_DIR").into()).save(&layout, &data.contents, &crypt).expect("kunne ikke skrive");
 }

@@ -48,8 +48,7 @@ pub fn landscape(b: &mut Builder) {
             } else {
                 &grass
             };
-            b.mesh
-                .quad_n([p[3], p[2], p[1], p[0]], [n[3], n[2], n[1], n[0]], mat, 1.0);
+            b.mesh.quad_n([p[3], p[2], p[1], p[0]], [n[3], n[2], n[1], n[0]], mat, 1.0);
         }
     }
 }
@@ -63,12 +62,9 @@ pub fn landscape_height(x: f32, z: f32) -> f32 {
         let t = t.clamp(0.0, 1.0);
         t * t * (3.0 - 2.0 * t)
     };
-    let hills = smooth((r - 200.0) / 70.0)
-        * (terrain::noise(x * 0.012 + 20.0, z * 0.012 + 20.0) * 28.0
-            + terrain::noise(x * 0.03 + 40.0, z * 0.03) * 8.0);
+    let hills = smooth((r - 200.0) / 70.0) * (terrain::noise(x * 0.012 + 20.0, z * 0.012 + 20.0) * 28.0 + terrain::noise(x * 0.03 + 40.0, z * 0.03) * 8.0);
     // Lenger ut: bare høyere, myke åser, ingen fjell.
-    let far =
-        smooth((r - 260.0) / 200.0) * (terrain::noise(x * 0.005 + 70.0, z * 0.005 + 30.0) * 60.0);
+    let far = smooth((r - 260.0) / 200.0) * (terrain::noise(x * 0.005 + 70.0, z * 0.005 + 30.0) * 60.0);
     base + hills + far
 }
 
@@ -82,14 +78,6 @@ pub fn world_edge(b: &mut Builder) {
         // Fra 30 m under null (dalene mellom åsene) og opp. Kjelleren holder
         // seg innenfor ±185 m, så den går ikke inn i veggen.
         let c = Vec3::new(a.sin() * radius, 27.5, a.cos() * radius);
-        b.solid(Shape::Cuboid {
-            center: c,
-            size: Vec3::new(
-                2.0 * std::f32::consts::PI * radius / n as f32 + 2.0,
-                115.0,
-                2.0,
-            ),
-            yaw: a,
-        });
+        b.solid(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 115.0, 2.0), yaw: a });
     }
 }

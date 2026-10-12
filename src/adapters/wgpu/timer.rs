@@ -35,23 +35,9 @@ impl GpuTimer {
         }
         let bytes = QUERIES as u64 * 8;
         Some(Self {
-            set: device.create_query_set(&wgpu::QuerySetDescriptor {
-                label: Some("tider"),
-                ty: wgpu::QueryType::Timestamp,
-                count: QUERIES,
-            }),
-            resolve: device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("tider"),
-                size: bytes,
-                usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
-                mapped_at_creation: false,
-            }),
-            readback: device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("tider lest"),
-                size: bytes,
-                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            }),
+            set: device.create_query_set(&wgpu::QuerySetDescriptor { label: Some("tider"), ty: wgpu::QueryType::Timestamp, count: QUERIES }),
+            resolve: device.create_buffer(&wgpu::BufferDescriptor { label: Some("tider"), size: bytes, usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC, mapped_at_creation: false }),
+            readback: device.create_buffer(&wgpu::BufferDescriptor { label: Some("tider lest"), size: bytes, usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false }),
             state: Arc::new(AtomicU8::new(IDLE)),
             copying: false,
             period: queue.get_timestamp_period(),
@@ -60,12 +46,7 @@ impl GpuTimer {
     }
 
     /// Tidsstemplene til et pass: begynnelsen og/eller slutten av delen.
-    pub fn writes(
-        &self,
-        section: usize,
-        begin: bool,
-        end: bool,
-    ) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
+    pub fn writes(&self, section: usize, begin: bool, end: bool) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
         if !begin && !end {
             return None;
         }
@@ -88,11 +69,7 @@ impl GpuTimer {
                 let (a, b) = (ticks[k * 2], ticks[k * 2 + 1]);
                 if b > a {
                     let now = (b - a) as f32 * self.period / 1.0e6;
-                    *ms = if *ms == 0.0 {
-                        now
-                    } else {
-                        *ms * 0.9 + now * 0.1
-                    };
+                    *ms = if *ms == 0.0 { now } else { *ms * 0.9 + now * 0.1 };
                 }
             }
         }
@@ -117,10 +94,8 @@ impl GpuTimer {
         self.copying = false;
         self.state.store(PENDING, Ordering::Release);
         let state = self.state.clone();
-        self.readback
-            .slice(..)
-            .map_async(wgpu::MapMode::Read, move |r| {
-                state.store(if r.is_ok() { READY } else { IDLE }, Ordering::Release);
-            });
+        self.readback.slice(..).map_async(wgpu::MapMode::Read, move |r| {
+            state.store(if r.is_ok() { READY } else { IDLE }, Ordering::Release);
+        });
     }
 }

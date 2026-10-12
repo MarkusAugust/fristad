@@ -55,11 +55,7 @@ impl Input {
     /// 2 er høyre (blokk mens den holdes).
     pub fn mouse(&mut self, button: u32, down: bool) {
         match button {
-            0 => self.actions.push(if down {
-                Action::Attack
-            } else {
-                Action::AttackRelease
-            }),
+            0 => self.actions.push(if down { Action::Attack } else { Action::AttackRelease }),
             2 => self.block = down,
             _ => {}
         }
@@ -68,10 +64,7 @@ impl Input {
     /// Slipp alle taster, for eksempel når vinduet mister fokus.
     pub fn release_all(&mut self) {
         let actions = std::mem::take(&mut self.actions);
-        *self = Input {
-            actions,
-            ..Default::default()
-        };
+        *self = Input { actions, ..Default::default() };
     }
 }
 
@@ -113,11 +106,7 @@ pub enum Command {
     /// nettlesertestene).
     Descend,
     /// Flytt kameraet (øyet), til skjermbilder og tester.
-    Place {
-        eye: Vec3,
-        yaw: f32,
-        pitch: f32,
-    },
+    Place { eye: Vec3, yaw: f32, pitch: f32 },
     SetQuality(super::Quality),
     SetBench(super::Bench),
     /// Redigeringsmodusen (`docs/redigering.md`; bare med `?edit`).
@@ -134,21 +123,13 @@ pub enum EditCommand {
     /// Venstre knapp ned: tar tak i et håndtak (pilene og ringen rundt det
     /// valgte), ellers velges det under pekeren; `add` (Shift) legger til
     /// eller tar bort.
-    Press {
-        at: (f32, f32),
-        add: bool,
-    },
+    Press { at: (f32, f32), add: bool },
     /// Musa flyttet med knappen nede: håndtaket drar det valgte.
-    Drag {
-        to: (f32, f32),
-    },
+    Drag { to: (f32, f32) },
     /// Knappen opp: draget angres som én handling.
     Release,
     /// Velg det under pekeren eller midt i bildet.
-    Pick {
-        add: bool,
-        at: Option<(f32, f32)>,
-    },
+    Pick { add: bool, at: Option<(f32, f32)> },
     /// Tab: det neste under pekeren fra siste klikk.
     Cycle,
     /// Flytt det valgte så mange meter (piltastene, PageUp og PageDown).
@@ -156,10 +137,7 @@ pub enum EditCommand {
     /// Drei det valgte (Q og E), radianer.
     Rotate(f32),
     /// Sett en ting rett dit.
-    SetPose {
-        r: Ref,
-        pose: Affine3A,
-    },
+    SetPose { r: Ref, pose: Affine3A },
     /// Sett det valgte ned på det som er under.
     Drop,
     /// Kopier det valgte (Ctrl+D).
@@ -167,22 +145,14 @@ pub enum EditCommand {
     /// Slett det valgte (Delete).
     Delete,
     /// Sett ut en ny ting under pekeren (eller midt i bildet), vendt mot deg.
-    Place {
-        model: String,
-        at: Option<(f32, f32)>,
-    },
+    Place { model: String, at: Option<(f32, f32)> },
     /// Linjeverktøyet: et punkt på bakken under pekeren, ferdig (gjerde, rad
     /// eller usynlig vegg gjennom punktene), eller avbryt.
-    LinePoint {
-        at: (f32, f32),
-    },
+    LinePoint { at: (f32, f32) },
     LineFinish(LineKind),
     LineCancel,
     /// En linje gjennom punktene på bakken.
-    Line {
-        points: Vec<Vec3>,
-        kind: LineKind,
-    },
+    Line { points: Vec<Vec3>, kind: LineKind },
     /// Ny høyde på de valgte usynlige veggene.
     WallHeight(f32),
     Undo,
@@ -265,14 +235,7 @@ pub enum Event {
     Warp,
     /// Liv, utholdenhet, tokens, nøkler, om du er nede i kjelleren, og
     /// bossen om den har sett deg, når noe av det endrer seg.
-    Hud {
-        hp: u32,
-        stamina: u32,
-        tokens: u32,
-        cellar: bool,
-        keys: u32,
-        boss: Option<(String, u32)>,
-    },
+    Hud { hp: u32, stamina: u32, tokens: u32, cellar: bool, keys: u32, boss: Option<(String, u32)> },
     /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
     Sound(Sound),
     /// Merkene på skjermen dette bildet (tom liste når de er borte).
@@ -282,25 +245,16 @@ pub enum Event {
     /// Lageret og utstyret, når noe endrer seg (og en gang ved start).
     Inventory(InventoryView),
     /// E på en innbygger med butikk: varene.
-    Shop {
-        npc: String,
-        wares: Vec<WareView>,
-    },
+    Shop { npc: String, wares: Vec<WareView> },
     /// E i skriptoriet: oppskriftene som skjema.
-    Workshop {
-        recipes: Vec<RecipeView>,
-    },
+    Workshop { recipes: Vec<RecipeView> },
     /// Lydbildet der du står, når det endrer seg merkbart.
     Ambience(Ambience),
     /// Kartet over etasjen du er i (minikartet og det store kartet), når
     /// du har oppdaget mer eller bytter etasje; `None` oppe i byen.
     Map(Option<MapView>),
     /// Hvor du står og hvilken vei du ser i kjelleren (til minikartet).
-    Where {
-        x: f32,
-        z: f32,
-        yaw: f32,
-    },
+    Where { x: f32, z: f32, yaw: f32 },
     /// Åpne dokumentasjonen for en komponent i panelet til høyre (F på en
     /// fylt ramme på galleriveggen).
     OpenDoc(String),
@@ -341,11 +295,7 @@ pub struct Sound {
 
 impl Sound {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.into(),
-            at: None,
-            gain: 1.0,
-        }
+        Self { name: name.into(), at: None, gain: 1.0 }
     }
 }
 

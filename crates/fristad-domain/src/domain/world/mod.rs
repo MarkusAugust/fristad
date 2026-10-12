@@ -26,23 +26,12 @@ pub enum Shape {
     /// Boks med sentrum, hele mål og rotasjon om Y.
     Cuboid { center: Vec3, size: Vec3, yaw: f32 },
     /// Stående sylinder med sentrum, radius og halv høyde.
-    Cylinder {
-        center: Vec3,
-        radius: f32,
-        half_height: f32,
-    },
+    Cylinder { center: Vec3, radius: f32, half_height: f32 },
     /// Terrenget: et rutenett av høyder, `cols` langs X og `rows` langs Z,
     /// sentrert i `center` og `size` meter stort.
     /// `holes` er rutene (rad langs Z, kolonne langs X) som er fjernet, så
     /// man kan gå ned i en kjeller under et hus.
-    Heightfield {
-        center: Vec3,
-        size: Vec3,
-        cols: usize,
-        rows: usize,
-        heights: Vec<f32>,
-        holes: Vec<(usize, usize)>,
-    },
+    Heightfield { center: Vec3, size: Vec3, cols: usize, rows: usize, heights: Vec<f32>, holes: Vec<(usize, usize)> },
     /// Kapsel mellom to punkter (trestammer og greiner).
     Capsule { a: Vec3, b: Vec3, radius: f32 },
     /// Konveks omhylling av punktene (trappetrinn, fjell).
@@ -56,15 +45,9 @@ impl Shape {
         match self {
             Shape::Cuboid { center, size, yaw } => {
                 let d = Quat::from_rotation_y(-*yaw) * (q - *center);
-                d.x.abs() <= size.x * 0.5 + tol
-                    && d.y.abs() <= size.y * 0.5 + tol
-                    && d.z.abs() <= size.z * 0.5 + tol
+                d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
             }
-            Shape::Cylinder {
-                center,
-                radius,
-                half_height,
-            } => {
+            Shape::Cylinder { center, radius, half_height } => {
                 let d = q - *center;
                 (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
             }
@@ -238,15 +221,7 @@ impl Builder {
     }
 
     pub fn light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.push_light(Light {
-            pos,
-            radius,
-            color,
-            intensity,
-            always: false,
-            flicker: 0.0,
-            room: None,
-        });
+        self.push_light(Light { pos, radius, color, intensity, always: false, flicker: 0.0, room: None });
     }
 
     /// En pipe som ryker (toppen av pipa, tykkelse 0..1).
@@ -256,58 +231,22 @@ impl Builder {
 
     /// En lykt med et talglys: tennes i skumringen og blafrer svakt.
     pub fn lamp_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.push_light(Light {
-            pos,
-            radius,
-            color,
-            intensity,
-            always: false,
-            flicker: 0.12,
-            room: None,
-        });
+        self.push_light(Light { pos, radius, color, intensity, always: false, flicker: 0.12, room: None });
     }
 
     /// Et lys som brenner hele døgnet (ild), med et lite flakk.
     pub fn fire_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32) {
-        self.push_light(Light {
-            pos,
-            radius,
-            color,
-            intensity,
-            always: true,
-            flicker: 0.18,
-            room: None,
-        });
+        self.push_light(Light { pos, radius, color, intensity, always: true, flicker: 0.18, room: None });
     }
 
     /// Et lys som brenner hele døgnet og flakker så mye du vil.
-    pub fn flicker_light(
-        &mut self,
-        pos: Vec3,
-        color: Vec3,
-        intensity: f32,
-        radius: f32,
-        flicker: f32,
-    ) {
-        self.push_light(Light {
-            pos,
-            radius,
-            color,
-            intensity,
-            always: true,
-            flicker,
-            room: None,
-        });
+    pub fn flicker_light(&mut self, pos: Vec3, color: Vec3, intensity: f32, radius: f32, flicker: f32) {
+        self.push_light(Light { pos, radius, color, intensity, always: true, flicker, room: None });
     }
 
     /// Noe du kan bruke med F.
     pub fn target(&mut self, what: Use, pose: Affine3A, center: Vec3, half: Vec3) {
-        self.targets.push(Target {
-            what,
-            pose,
-            center,
-            half,
-        });
+        self.targets.push(Target { what, pose, center, half });
     }
 
     /// Et gulv over terrenget: `audit` måler mot det i stedet for bakken
@@ -321,13 +260,7 @@ impl Builder {
     /// terrenget som ligger nærmest under `y`.
     pub fn stand_height(&self, x: f32, z: f32, y: f32) -> f32 {
         let mut best = terrain::height(x, z);
-        let score = |top: f32| {
-            if top <= y + 0.3 {
-                y - top
-            } else {
-                1e6 + top - y
-            }
-        };
+        let score = |top: f32| if top <= y + 0.3 { y - top } else { 1e6 + top - y };
         for (c, half, yaw, top) in &self.floors {
             let (s, co) = yaw.sin_cos();
             let (dx, dz) = (x - c.x, z - c.z);
@@ -359,10 +292,7 @@ impl Builder {
     }
 
     pub fn model_height(&self, name: &str) -> f32 {
-        self.models
-            .get(name)
-            .map(|m| m.max.y - m.min.y)
-            .unwrap_or(0.0)
+        self.models.get(name).map(|m| m.max.y - m.min.y).unwrap_or(0.0)
     }
 
     /// Sett ut en modell. Mangler den, meldes det (`missing`), og ingenting
@@ -378,13 +308,7 @@ impl Builder {
     }
 
     /// Sett ut en modell med et annet utseende (`Look`).
-    pub fn place_look(
-        &mut self,
-        model: &'static str,
-        t: Affine3A,
-        tint: Vec3,
-        look: Option<Look>,
-    ) -> bool {
+    pub fn place_look(&mut self, model: &'static str, t: Affine3A, tint: Vec3, look: Option<Look>) -> bool {
         if !self.has_model(model) {
             if !self.missing.contains(&model) {
                 self.missing.push(model);
@@ -397,14 +321,7 @@ impl Builder {
             p.looks.push(look);
             p.transforms.len() - 1
         } else {
-            self.placements.push(Placement {
-                model,
-                transforms: vec![t],
-                tints: vec![tint],
-                looks: vec![look],
-                reserve: 0,
-                indoor: false,
-            });
+            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], looks: vec![look], reserve: 0, indoor: false });
             0
         };
         if let Some(r) = &self.origin {
@@ -420,12 +337,7 @@ impl Builder {
     }
 
     /// Som `place_mounted`, med et annet utseende.
-    pub fn place_mounted_look(
-        &mut self,
-        model: &'static str,
-        t: Affine3A,
-        look: Option<Look>,
-    ) -> bool {
+    pub fn place_mounted_look(&mut self, model: &'static str, t: Affine3A, look: Option<Look>) -> bool {
         if !self.place_look(model, t, Vec3::ONE, look) {
             return false;
         }
@@ -447,14 +359,7 @@ impl Builder {
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.reserve += n;
         } else {
-            self.placements.push(Placement {
-                model,
-                transforms: vec![],
-                tints: vec![],
-                looks: vec![],
-                reserve: n,
-                indoor: false,
-            });
+            self.placements.push(Placement { model, transforms: vec![], tints: vec![], looks: vec![], reserve: n, indoor: false });
         }
     }
 
@@ -471,20 +376,14 @@ impl Builder {
     /// Noe som står på bakken og vippes etter hellingen (dyr, kjerrer).
     pub fn on_slope(&self, p: Vec3, yaw: f32) -> Affine3A {
         let n = terrain::normal(p.x, p.z);
-        Affine3A::from_rotation_translation(
-            Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(yaw),
-            self.on_ground(p),
-        )
+        Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(yaw), self.on_ground(p))
     }
 
     /// Rutinen mot svevende modeller: hver instans sjekkes mot bakken (eller
     /// det registrerte gulvet). Svever det laveste hjørnet mer enn 8 cm over,
     /// eller står et hjørne mer enn 30 cm under, meldes det.
     pub fn audit(&self) -> Vec<String> {
-        self.ground_findings()
-            .into_iter()
-            .map(|(_, _, why)| why)
-            .collect()
+        self.ground_findings().into_iter().map(|(_, _, why)| why).collect()
     }
 
     /// Som `audit`, med hvilken instans (modell, nummer) hvert funn gjelder,
@@ -492,9 +391,7 @@ impl Builder {
     pub fn ground_findings(&self) -> Vec<(&'static str, usize, String)> {
         let mut out = vec![];
         for pl in &self.placements {
-            let Some(info) = self.models.get(pl.model) else {
-                continue;
-            };
+            let Some(info) = self.models.get(pl.model) else { continue };
             for (n, t) in pl.transforms.iter().enumerate() {
                 if self.mounted.contains(&(pl.model, n)) {
                     continue;
@@ -511,10 +408,7 @@ impl Builder {
     fn ground_gap(&self, model: &str, info: &ModelInfo, t: &Affine3A) -> Vec<String> {
         let mut out = vec![];
         // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
-        let (hx, hz) = (
-            (info.max.x - info.min.x).min(1.2) * 0.5,
-            (info.max.z - info.min.z).min(1.2) * 0.5,
-        );
+        let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
         let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
         // Murverket har fundament under bakken og kan gå ned i den
         // på oversida i skråninger; det
@@ -528,12 +422,7 @@ impl Builder {
         // Med fundament må grunnmuren nå bakken under hvert hjørne av
         // hele fotavtrykket (eieren: «grunnmuren svever over bakken»).
         if info.min.y < -0.3 {
-            let full = [
-                (info.min.x, info.min.z),
-                (info.max.x, info.min.z),
-                (info.min.x, info.max.z),
-                (info.max.x, info.max.z),
-            ];
+            let full = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
             for (x, z) in full {
                 let w = t.transform_point3(Vec3::new(x, info.min.y, z));
                 let ground = self.stand_height(w.x, w.z, t.translation.y + 1.0);
@@ -553,21 +442,9 @@ impl Builder {
         // Med grunnmur gjelder hjørnekontrollen over i stedet: huset
         // står på det høyeste punktet, og muren tar resten.
         if lowest > 0.08 && info.min.y >= -0.3 {
-            out.push(format!(
-                "{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken",
-                model,
-                at.x,
-                at.z,
-                lowest * 100.0
-            ));
+            out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", model, at.x, at.z, lowest * 100.0));
         } else if lowest < -0.3 && !rooted {
-            out.push(format!(
-                "{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken",
-                model,
-                at.x,
-                at.z,
-                -lowest * 100.0
-            ));
+            out.push(format!("{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken", model, at.x, at.z, -lowest * 100.0));
         }
         out
     }
@@ -631,31 +508,17 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
     }
     // Modellene som mangler: de som ventes (`model::PLANNED`) og de ingen
     // venter på (en skrivefeil, eller en modell som er slettet).
-    let (waiting, unknown): (Vec<&str>, Vec<&str>) = b
-        .missing
-        .iter()
-        .partition(|m| crate::domain::model::PLANNED.iter().any(|(p, _)| p == *m));
+    let (waiting, unknown): (Vec<&str>, Vec<&str>) = b.missing.iter().partition(|m| crate::domain::model::PLANNED.iter().any(|(p, _)| p == *m));
     if !waiting.is_empty() {
-        log::info!(
-            "Modeller som ventes ({}): {}",
-            waiting.len(),
-            waiting.join(", ")
-        );
+        log::info!("Modeller som ventes ({}): {}", waiting.len(), waiting.join(", "));
     }
     if !unknown.is_empty() {
-        log::warn!(
-            "Modeller som mangler og ikke ventes: {}",
-            unknown.join(", ")
-        );
+        log::warn!("Modeller som mangler og ikke ventes: {}", unknown.join(", "));
     }
 
     // Biter på 24 m, med småting (under 18 cm) sist i hver bit.
     let (mesh, chunks) = b.mesh.chunked(24.0, 0.18);
-    log::info!(
-        "Verden: {} biter, {} modeller i bruk",
-        chunks.len(),
-        b.placements.len()
-    );
+    log::info!("Verden: {} biter, {} modeller i bruk", chunks.len(), b.placements.len());
     World {
         mesh,
         chunks,
@@ -674,6 +537,7 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         origins: b.origins,
     }
 }
+
 
 pub fn srgb_to_linear(c: u32) -> Vec3 {
     let f = |v: u32| {
@@ -721,30 +585,16 @@ fn ground(b: &mut Builder) -> usize {
     let first = b.mesh.indices.len();
     for iz in 0..n {
         for ix in 0..n {
-            let (a, c, d, e) = (
-                at(ix, iz),
-                at(ix + 1, iz),
-                at(ix + 1, iz + 1),
-                at(ix, iz + 1),
-            );
+            let (a, c, d, e) = (at(ix, iz), at(ix + 1, iz), at(ix + 1, iz + 1), at(ix, iz + 1));
             // Diagonalen følger bakken: den korteste av de to.
-            if (heights[iz * (n + 1) + ix] - heights[(iz + 1) * (n + 1) + ix + 1]).abs()
-                < (heights[iz * (n + 1) + ix + 1] - heights[(iz + 1) * (n + 1) + ix]).abs()
-            {
+            if (heights[iz * (n + 1) + ix] - heights[(iz + 1) * (n + 1) + ix + 1]).abs() < (heights[iz * (n + 1) + ix + 1] - heights[(iz + 1) * (n + 1) + ix]).abs() {
                 b.mesh.indices.extend_from_slice(&[a, e, d, a, d, c]);
             } else {
                 b.mesh.indices.extend_from_slice(&[a, e, c, c, e, d]);
             }
         }
     }
-    b.solid(Shape::Heightfield {
-        center: Vec3::ZERO,
-        size: Vec3::new(2.0 * half, 1.0, 2.0 * half),
-        cols: n + 1,
-        rows: n + 1,
-        heights,
-        holes: vec![],
-    });
+    b.solid(Shape::Heightfield { center: Vec3::ZERO, size: Vec3::new(2.0 * half, 1.0, 2.0 * half), cols: n + 1, rows: n + 1, heights, holes: vec![] });
     first
 }
 
@@ -773,12 +623,7 @@ fn cut_ground(b: &mut Builder, first: usize) {
             for ix in lo(c.x)..=hi(c.x) {
                 let x0 = -half + ix as f32 * cell;
                 let z0 = -half + iz as f32 * cell;
-                let corners = [
-                    Vec2::new(x0, z0),
-                    Vec2::new(x0 + cell, z0),
-                    Vec2::new(x0, z0 + cell),
-                    Vec2::new(x0 + cell, z0 + cell),
-                ];
+                let corners = [Vec2::new(x0, z0), Vec2::new(x0 + cell, z0), Vec2::new(x0, z0 + cell), Vec2::new(x0 + cell, z0 + cell)];
                 if corners.iter().all(|p| inside(*p)) && !removed.contains(&(iz, ix)) {
                     removed.push((iz, ix));
                 }

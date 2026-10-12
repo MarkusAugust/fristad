@@ -62,12 +62,7 @@ fn lerp3(a: Vec3, b: Vec3, t: f32) -> Vec3 {
 
 impl Rig {
     pub fn rest(&self) -> Pose {
-        Pose(
-            self.joints
-                .iter()
-                .map(|j| (j.translation, j.rotation, j.scale))
-                .collect(),
-        )
+        Pose(self.joints.iter().map(|j| (j.translation, j.rotation, j.scale)).collect())
     }
 
     pub fn clip(&self, name: &str) -> Option<usize> {
@@ -82,9 +77,7 @@ impl Rig {
     /// klippet står i hvileposen.
     pub fn sample(&self, clip: usize, t: f32, looping: bool) -> Pose {
         let mut pose = self.rest();
-        let Some(c) = self.clips.get(clip) else {
-            return pose;
-        };
+        let Some(c) = self.clips.get(clip) else { return pose };
         let t = if c.duration <= 0.0 {
             0.0
         } else if looping {
@@ -93,9 +86,7 @@ impl Rig {
             t.clamp(0.0, c.duration)
         };
         for ch in &c.channels {
-            let Some(slot) = pose.0.get_mut(ch.joint) else {
-                continue;
-            };
+            let Some(slot) = pose.0.get_mut(ch.joint) else { continue };
             let n = ch.times.len();
             if n == 0 {
                 continue;
@@ -108,14 +99,7 @@ impl Rig {
             } else {
                 let i = ch.times.partition_point(|x| *x <= t) - 1;
                 let span = ch.times[i + 1] - ch.times[i];
-                (
-                    i,
-                    if span > 1e-6 && !ch.step {
-                        (t - ch.times[i]) / span
-                    } else {
-                        0.0
-                    },
-                )
+                (i, if span > 1e-6 && !ch.step { (t - ch.times[i]) / span } else { 0.0 })
             };
             let j = (i + 1).min(n - 1);
             match &ch.keys {
@@ -131,11 +115,7 @@ impl Rig {
     pub fn globals(&self, pose: &Pose) -> Vec<Mat4> {
         let mut out = Vec::with_capacity(self.joints.len());
         for (i, j) in self.joints.iter().enumerate() {
-            let (t, r, s) = pose
-                .0
-                .get(i)
-                .copied()
-                .unwrap_or((j.translation, j.rotation, j.scale));
+            let (t, r, s) = pose.0.get(i).copied().unwrap_or((j.translation, j.rotation, j.scale));
             let local = Mat4::from_scale_rotation_translation(s, r, t);
             let m = match j.parent {
                 Some(p) => out[p] * local,
@@ -150,11 +130,7 @@ impl Rig {
     /// i samme rom som meshen ligger i (med `root`).
     pub fn skin(&self, pose: &Pose) -> Vec<Mat4> {
         let inv_root = self.root.inverse();
-        self.globals(pose)
-            .iter()
-            .zip(&self.joints)
-            .map(|(g, j)| self.root * *g * j.inverse_bind * inv_root)
-            .collect()
+        self.globals(pose).iter().zip(&self.joints).map(|(g, j)| self.root * *g * j.inverse_bind * inv_root).collect()
     }
 
     /// Hvor et ledd står i meshens rom (til å henge et våpen i hånda).
@@ -195,16 +171,7 @@ pub struct Animator {
 
 impl Animator {
     pub fn new(clip: usize, looping: bool) -> Self {
-        Self {
-            clip,
-            time: 0.0,
-            speed: 1.0,
-            looping,
-            prev: None,
-            fade: 0.0,
-            fade_len: 0.0,
-            finished: false,
-        }
+        Self { clip, time: 0.0, speed: 1.0, looping, prev: None, fade: 0.0, fade_len: 0.0, finished: false }
     }
 
     /// Bytt klipp med overtoning på `fade` sekunder. Samme løkke som alt
@@ -279,40 +246,14 @@ mod tests {
     fn rig() -> Rig {
         // To ledd: rota i origo, barnet 1 m opp. Hvileposen er identitet,
         // så inverse bind er motsatt av den globale hvileposen.
-        let root = Joint {
-            name: "root".into(),
-            parent: None,
-            translation: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
-            inverse_bind: Mat4::IDENTITY,
-        };
-        let child = Joint {
-            name: "arm".into(),
-            parent: Some(0),
-            translation: Vec3::Y,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
-            inverse_bind: Mat4::from_translation(-Vec3::Y),
-        };
+        let root = Joint { name: "root".into(), parent: None, translation: Vec3::ZERO, rotation: Quat::IDENTITY, scale: Vec3::ONE, inverse_bind: Mat4::IDENTITY };
+        let child = Joint { name: "arm".into(), parent: Some(0), translation: Vec3::Y, rotation: Quat::IDENTITY, scale: Vec3::ONE, inverse_bind: Mat4::from_translation(-Vec3::Y) };
         let clip = Clip {
             name: "bend".into(),
             duration: 1.0,
-            channels: vec![Channel {
-                joint: 1,
-                times: vec![0.0, 1.0],
-                keys: Keys::Rotation(vec![
-                    Quat::IDENTITY,
-                    Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
-                ]),
-                step: false,
-            }],
+            channels: vec![Channel { joint: 1, times: vec![0.0, 1.0], keys: Keys::Rotation(vec![Quat::IDENTITY, Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)]), step: false }],
         };
-        Rig {
-            joints: vec![root, child],
-            clips: vec![clip],
-            root: Mat4::IDENTITY,
-        }
+        Rig { joints: vec![root, child], clips: vec![clip], root: Mat4::IDENTITY }
     }
 
     #[test]
