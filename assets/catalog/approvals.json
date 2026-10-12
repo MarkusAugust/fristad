@@ -688,13 +688,13 @@
    "why": ""
   },
   "forge": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "Hvorfor fikk jeg bilder av en kasse her også? Søylene ser bra ut",
+   "why": "",
    "before": {
-    "verdict": "underkjent",
+    "verdict": "usikker",
     "date": "2026-10-12",
-    "why": "ser du at det er for tett med søyler i front. de søylene som har gaffel-deling øverst er bra, men så står det fire ekstra innimellom. ta dem bort."
+    "why": "Hvorfor fikk jeg bilder av en kasse her også? Søylene ser bra ut"
    },
    "history": [
     "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op.",
@@ -1494,9 +1494,14 @@
    "why": ""
   },
   "barrel_rack": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "Rad to svever",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "Rad to svever"
+   },
    "history": [
     "tønner kan ikke hvilke på en enkelt planke, og de står i minst to høyder, forskudd slik at tønnen over hviler mellom de to under",
     "Rad to svever"
@@ -1967,9 +1972,14 @@
    ]
   },
   "tavern_counter": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "Alt står på en rad. Det ser underlig ut",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "Alt står på en rad. Det ser underlig ut"
+   },
    "history": [
     "mer variasjon i det som ligger oppå",
     "Alt står på en rad. Det ser underlig ut"
