@@ -248,7 +248,7 @@ fn inside_breaches(b: &Builder, layout: &Layout, out: &mut Vec<Breach>) {
         .iter()
         .enumerate()
         .filter_map(|(k, o)| o.as_ref().map(|r| (k, r)))
-        .filter(|(_, r)| item_of(r).is_some_and(|(m, _)| m))
+        .filter(|(_, r)| item_of(r).is_some())
         .collect();
     for (model, n, r) in &b.origins {
         if is_room(model)
