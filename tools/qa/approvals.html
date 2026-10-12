@@ -215,7 +215,7 @@ function card(it) {
   }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
-  eb.textContent = it.kind === "modell" ? (it.game ? "Modell · fra spillet" : "Modell · skisse") : (it.game ? "Tekstur" : "Tekstur · bare malt");
+  eb.textContent = it.kind === "modell" ? (it.studio ? "Modell · studiobilde, ny" : it.game ? "Modell · fra spillet" : "Modell · skisse") : (it.game ? "Tekstur" : "Tekstur · bare malt");
   const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
   p.append(eb, h);
   if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }

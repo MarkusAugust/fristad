@@ -3,6 +3,7 @@
     python3 -m tools.qa approvals page UT      # bilder og data til siden i mappa UT
     python3 -m tools.qa approvals apply SVAR   # svarene fra siden inn i approvals.json
     python3 -m tools.qa approvals round SPEC STUDIO UT  # en runde med bare det som er endret
+    python3 -m tools.qa approvals new SPEC STUDIO UT    # en runde med nye modeller
 
 `page` bygger på katalogen (`docs/katalog/katalog.json`, så `catalog` først):
 hver modell som står ute fotograferes i spillet med `snapshot --shots`, i
@@ -65,8 +66,8 @@ SHOT = (800, 560)
 
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
-# Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken).
-ROUND = 4
+# Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.).
+ROUND = 5
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
@@ -231,6 +232,60 @@ def round_page(spec_path, studio, out):
     return items
 
 
+def new_page(spec_path, studio, out):
+    """En runde med nye modeller (`assets/catalog/rounds/N.json` med
+    `new`: navnene): hvert kort viser studiobildene fra `tools/qa/studio.py`
+    (`<modell>_<vinkel>.png` i mappa `studio`) side om side, hva den er,
+    trekantene og husene den står i (`assets/layout/inside/`)."""
+    import struct
+    with open(spec_path) as f:
+        spec = json.load(f)
+    with open(os.path.join(DATA, "models.json")) as f:
+        about = json.load(f)["models"]
+    where = {}
+    inside = os.path.join(ROOT, "assets", "layout", "inside")
+    for fn in sorted(os.listdir(inside)):
+        with open(os.path.join(inside, fn)) as f:
+            for it in json.load(f):
+                where.setdefault(it.get("model"), []).append(fn[:-5])
+    houses = {"tavern": "Vertshuset", "home": "spillerens hus", "forge": "Smia", "apothecary": "Apoteket", "scriptorium": "Skriptoriet", "stave_church": "stavkirka"}
+    img = os.path.join(out, "img")
+    os.makedirs(img, exist_ok=True)
+    with open(os.path.join(DATA, "approvals.json")) as f:
+        prior = json.load(f).get("models", {})
+    reshot = spec.get("reshot", {})
+    items = []
+    for n in spec["new"] + reshot.get("names", []):
+        views = sorted(f for f in os.listdir(studio) if f.startswith(f"{n}_") and f.endswith(".png") and f[len(n) + 1:-4].isalpha())
+        if not views:
+            raise SystemExit(f"mangler studiobilder av {n}")
+        ims = [Image.open(os.path.join(studio, v)).convert("RGB") for v in views]
+        w, h = ims[0].size
+        sheet = Image.new("RGB", (w * len(ims), h))
+        for k, im in enumerate(ims):
+            sheet.paste(im, (k * w, 0))
+        sheet.thumbnail((1200, 1200), Image.LANCZOS)
+        sheet.save(os.path.join(img, f"m_{n}.jpg"), quality=86)
+        old = n in reshot.get("names", [])
+        b = open(os.path.join(ROOT, "assets", "models", "town" if old else "furniture", f"{n}.glb"), "rb").read()
+        doc = json.loads(b[20:20 + struct.unpack("<I", b[12:16])[0]])
+        tris = sum(doc["accessors"][q["indices"]]["count"] // 3 for m in doc["meshes"] for q in m["primitives"])
+        hs = where.get(n, [])
+        at = ", ".join(sorted({houses.get(x, x) for x in hs}))
+        items.append({
+            "id": f"m_{n}", "kind": "modell", "name": n, "about": about.get(n, ""),
+            "facts": [f"{tris:,} trekanter".replace(",", " "), f"står {len(hs)} steder: {at}" if hs else "står ingen steder"],
+            "check": None, "game": False, "studio": not old, "prior": prior.get(n) if old else None,
+            "fresh": reshot.get("why") if old else None,
+        })
+        if old:
+            items[-1]["facts"] = items[-1]["facts"][:1]
+    with open(os.path.join(out, "data.json"), "w") as f:
+        json.dump({"round": spec["round"], "items": items}, f, ensure_ascii=False)
+    shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
+    return items
+
+
 def apply(path):
     """Svarene fra siden inn i approvals.json. `path` er en mappe med
     `<id>.json` (`{verdict, why, at}`) eller en json-liste med `{id, data}`."""
@@ -289,6 +344,10 @@ def main(argv):
     if argv[:1] == ["round"] and len(argv) == 4:
         items = round_page(argv[1], argv[2], argv[3])
         print(f"{argv[3]}: {len(items)} ting i runden")
+        return 0
+    if argv[:1] == ["new"] and len(argv) == 4:
+        items = new_page(argv[1], argv[2], argv[3])
+        print(f"{argv[3]}: {len(items)} nye ting i runden")
         return 0
     if argv[:1] == ["apply"] and len(argv) == 2:
         print(f"{apply(argv[1])} dommer ført inn i assets/catalog/approvals.json")

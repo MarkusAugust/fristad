@@ -47,3 +47,9 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Hønsebrua var vridd på skrå** fordi en bjelke dreid fra x-aksen uten fast retning fikk bredden i en tilfeldig retning. Regel: skrå bjelker får en fast basis (bredden vannrett på tvers), som `kit.wall_member`.
 - **Høystakken så bra ut fra noen vinkler, men ikke alle:** flate fasetter og en søm der vinkelen går rundt. Regel: runde former merkes med `town.smooth` (ellers gjør `finish` alt flatt), og uv rundt en form regnes per flate uten hopp.
 - **Bildene fra byen var ubrukelige til å sjekke en modell** (kameraet havnet i nabohus). Regel: før- og etterbilder tas med `tools/qa/studio.py` (modellen alene med de ekte teksturlagene, i faste vinkler), og en runde bygges med `approvals round`.
+
+## Runde 5 (12. oktober)
+
+- **Studiobildene i runde 3 og 4 viste teksturlagene uten fargetonen.** glTF-importen i Blender legger grunnfargen i en MIX-node sammen med hjørnefargen, og `studio.py` leste den ukoblede standardverdien (hvit). Pussen, sokkelen og bordkledningen ble dømt på for lyse bilder. Regel: `studio.py` henter tonen fra MIX-noden, og et nytt verktøy prøves på et kjent tilfelle (et rødt forheng som skal bli rødt) før eieren får bildene. De 23 modellene vises på nytt i runde 5.
+- **Et møbel fikk samme navn som en modell i byen** (`weapon_rack` i Smia og på øvingsplassen), og den ene skjulte den andre. Regel: `moblene_er_egne_modeller` krever at alle modellnavn er unike.
+- **Uten solskygge mistet tønna i Smia skyggen sin på muren** (Smia er åpen mot torget). Regel: møblene kaster solskygge innen `INDOOR_SHADOW` (10 m) fra kameraet, og før- og etterbilder inne i alle husene sjekkes etter hver endring i rendereren.

@@ -45,7 +45,13 @@ def dress(mat):
     bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if bsdf is None:
         return
-    tint = tuple(bsdf.inputs["Base Color"].default_value)
+    # Med hjørnefarge (okklusjonen) legger glTF-importen grunnfargen i en
+    # MIX-node foran BSDF-en; tonen er fargen som ikke er koblet der.
+    base = bsdf.inputs["Base Color"]
+    tint = tuple(base.default_value)
+    if base.is_linked:
+        src = base.links[0].from_node
+        tint = next((tuple(i.default_value) for i in src.inputs if i.type == "RGBA" and not i.is_linked), (1.0, 1.0, 1.0, 1.0))
     uv = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")
     s = 1.0 / size_of(layer)
