@@ -68,6 +68,8 @@ main .wrap { display: grid; gap: 18px; padding-block: 20px 60px; }
 .photo img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 560; object-fit: contain; }
 .photo.tex img { aspect-ratio: 1; max-height: 420px; width: auto; }
 .pairs { background: var(--photo); display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-content: start; }
+.pairs .shot.wide { grid-column: 1 / -1; }
+.shot.wide img { aspect-ratio: 1608 / 560; }
 .shot { position: relative; border: 0; padding: 0; background: none; cursor: zoom-in; }
 .shot img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 560; object-fit: cover; }
 .tag { position: absolute; left: 6px; top: 6px; font: 600 12px/1 var(--body); padding: 4px 7px; border-radius: 3px; background: rgb(0 0 0 / .6); color: #fff; }
@@ -196,6 +198,15 @@ function card(it) {
     // Før og etter side om side, én rad per vinkel.
     ph = document.createElement("div"); ph.className = "pairs";
     for (const pair of it.pairs) {
+      // Ett bilde med før og etter side om side (fra runde 6): over hele
+      // bredden, med merkene i selve bildet.
+      if (pair.length === 1) {
+        const b = document.createElement("button"); b.type = "button"; b.className = "shot wide";
+        b.setAttribute("aria-label", "Før og etter, vis større: " + it.name);
+        const im = document.createElement("img"); im.loading = "lazy"; im.decoding = "async"; im.src = pair[0]; im.alt = "Før og etter: " + it.name;
+        b.append(im); b.onclick = () => zoom(pair[0]); ph.append(b);
+        continue;
+      }
       pair.forEach((src, k) => {
         const b = document.createElement("button"); b.type = "button"; b.className = "shot";
         b.setAttribute("aria-label", (k ? "Etter" : "Før") + ", vis større: " + it.name);

@@ -27,7 +27,7 @@ import shutil
 import subprocess
 import sys
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from .catalog import DATA, IMG
 from .gate import ROOT
@@ -210,16 +210,33 @@ def round_page(spec_path, studio, out):
     for n, it in spec["items"].items():
         p = prior.get("models", {}).get(n) or {}
         views = sorted({f[len(f"before_{n}_"):-4] for f in os.listdir(studio) if f.startswith(f"before_{n}_") and f.endswith(".png")})
+        # Før og etter fra samme vinkel i ett bilde side om side, med «Før»
+        # og «Etter» skrevet på (halvparten så mange filer: siden har plass
+        # til 512).
         pairs = []
         for v in views:
-            pair = []
+            ims = []
             for side in ("before", "after"):
                 src = os.path.join(studio, f"{side}_{n}_{v}.png")
                 if not os.path.exists(src):
                     raise SystemExit(f"mangler {src}")
-                Image.open(src).convert("RGB").save(os.path.join(img, f"m_{n}_{v}_{side}.jpg"), quality=86)
-                pair.append(f"img/m_{n}_{v}_{side}.jpg")
-            pairs.append(pair)
+                ims.append(Image.open(src).convert("RGB"))
+            w, h = ims[0].size
+            sheet = Image.new("RGB", (w * 2 + 8, h), (24, 26, 30))
+            draw = ImageDraw.Draw(sheet)
+            # (Standardskriften har ikke «ø».)
+            try:
+                font = ImageFont.truetype("DejaVuSans-Bold.ttf", max(18, h // 22))
+            except OSError:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", max(18, h // 22))
+            for k, (im, label) in enumerate(zip(ims, ("Før", "Etter"))):
+                sheet.paste(im, (k * (w + 8), 0))
+                x, y = k * (w + 8) + 12, 10
+                box = draw.textbbox((x, y), label, font=font)
+                draw.rectangle((box[0] - 6, box[1] - 4, box[2] + 6, box[3] + 4), fill=(24, 26, 30) if k == 0 else (40, 110, 70))
+                draw.text((x, y), label, fill=(255, 255, 255), font=font)
+            sheet.save(os.path.join(img, f"m_{n}_{v}.jpg"), quality=86)
+            pairs.append([f"img/m_{n}_{v}.jpg"])
         items.append({
             "id": f"m_{n}", "kind": "modell", "name": n, "about": about.get(n, ""), "facts": [],
             "check": None, "game": True, "prior": {k: p[k] for k in ("verdict", "date", "why") if k in p} or None,
