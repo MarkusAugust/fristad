@@ -254,7 +254,7 @@ struct GpuModel {
     /// Innsiden av et hus (`…_interior`): tegnes bare innen `INTERIOR_FAR`.
     interior: bool,
     /// Møblene inne i husene (`Placement.indoor`): tegnes bare innen
-    /// `INTERIOR_FAR` og kaster ikke solskygge.
+    /// `INTERIOR_FAR` og kaster solskygge bare innen `INDOOR_SHADOW`.
     indoor: bool,
 }
 
@@ -330,6 +330,8 @@ const REDUCED_FAR: f32 = 160.0;
 /// Innsiden av husene (modellene `…_interior`) tegnes bare så nær, så de
 /// ikke koster noe ute i byen. Ytterveggene skjuler den til du er ved døra.
 const INTERIOR_FAR: f32 = 22.0;
+/// Møblene (`Placement.indoor`) kaster solskygge bare så nær kameraet.
+const INDOOR_SHADOW: f32 = 10.0;
 const REDUCED_FOG: f32 = 0.005;
 
 /// Pipelinene som tegner inn i MSAA-bildet, laget for et antall prøver.
@@ -1073,7 +1075,7 @@ impl Renderer {
             let mut draws: [ModelDraw; REGIONS as usize] = Default::default();
             let mut dynamic: Vec<InstanceData> = Vec::with_capacity(m.reserve * REGIONS as usize);
             for (r, cull) in culls.iter().enumerate() {
-                if r == 0 && (!shadows || m.indoor) {
+                if r == 0 && !shadows {
                     continue;
                 }
                 // Hvor langt unna noe i boksen er, og om det tegnes nær,
@@ -1081,6 +1083,11 @@ impl Renderer {
                 let lod = |lo: Vec3, hi: Vec3| -> Option<bool> {
                     let d = cull.eye.clamp(lo, hi).distance(cull.eye);
                     if m.interior && d > INTERIOR_FAR {
+                        return None;
+                    }
+                    // Møblene kaster solskygge bare nær deg (i Smia, som
+                    // er åpen mot torget, synes den).
+                    if m.indoor && r == 0 && cam_cull.eye.clamp(lo, hi).distance(cam_cull.eye) > INDOOR_SHADOW {
                         return None;
                     }
                     if self.reduced && m.small && d > if r == 1 { 32.0 } else { 12.0 } {
