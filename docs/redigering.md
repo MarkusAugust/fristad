@@ -85,4 +85,16 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
   - **Reglene** (`edit/rules.rs`), de samme som testene: svever eller står nede (`Builder::ground_findings`, som `audit` bruker), alt stort har kollider (`lacks_collider`, som `alt_stort_har_kollider` bruker), står inni noe (biter som skjøtes, gjerdene og muren, er unntatt), husene holder avstand til hverandre, muren, gatene og torget (`EAVES`, `AIR`, `Rect`, hentet tilbake fra den gamle plasseringskoden), og godkjent (`approvals.json`, bare for det som er endret). Dagens by bryter ingen regler (`dagens_by_folger_reglene`).
   - **Portene:** `Command::Edit(EditCommand)`, `Event::Edit(EditView)`, `Frame.hidden` (det som er flyttet skjules der det sto og tegnes der det står nå) og lagringsporten `LayoutStore`.
   - **Økta:** i redigeringen flyr du gjennom alt. `prepare_for_edit` laster alle modellene med plass til å flytte dem (`EDIT_RESERVE`), og `prepare_with` bygger spillet på nytt fra de redigerte dataene (P).
-  - **Gjenstår til steg 4:** rendereren skjuler `Frame.hidden`, nettlaget med katalogen, håndtakene og tastene, og ombyggingen med P i nettleseren.
+- **Steg 4 (12. oktober):** redigeringen i nettleseren, med `?edit` i adressen.
+  - **Nettlaget** (`web/editor.js`): et Fristil-panel til venstre med tilstanden (grønt eller antall brudd), Angre, Gjør om, Spill (P) og Lagre (kommer i steg 5), det valgte, reglene som brytes, og katalogen. Katalogen har bilde, navn og eierens dom for hver modell, med søk og filter på dom og gruppe. Bildene lages med `tools/qa/thumbs.py` til `assets/catalog/thumbs/` og kopieres til `dist/catalog/`.
+  - **Musa er fri:** venstre klikk velger det under pekeren (Shift legger til), eller tar tak i et håndtak og drar. Håndtakene er pilene i rødt, grønt og blått langs aksene og den gule ringen for dreiing, og et drag angres som én handling. Høyre knapp holdt nede ser rundt.
+  - **Tastene:**
+    - WASD, mellomrom og C flyr, og Shift går fort.
+    - Piltastene flytter langs bakken etter hvor du ser, og PageUp og PageDown flytter opp og ned (Alt gir små steg, Shift store).
+    - Q og E dreier, og G setter det valgte ned på det som er under.
+    - Ctrl+D kopierer, Delete sletter, og Ctrl+Z eller Ctrl+Shift+Z angrer og gjør om.
+    - L starter linjeverktøyet: klikk punkter, så gir Enter en rad av modellen valgt i katalogen og V en usynlig vegg.
+    - P spiller.
+  - **Bildet:** rendereren skjuler de faste instansene i `Frame.hidden` (plassen i bufferet byttes, `slot_of`) og tegner linjene i `Frame.lines` uten dybdetest. Det valgte vises med gule bokser, det som bryter en regel med røde, og håndtakene og linjeutkastet tegnes også.
+  - **P:** spillet bygges på nytt fra de redigerte dataene på samme grafikkort (`Engine::play`, `prepare_with`), så kolliderne, lysene og alt stemmer, og du spiller der du sto. P igjen går tilbake i redigeringen. Det som er endret siden fila, må fortsatt være godkjent (`EditData.baseline`).
+  - **Testene:** `handtakene_drar` (pila flytter bare langs aksen, draget angres i ett steg, ringen dreier) og `bildet_viser_det_flyttede`. `snapshot --edit [--edit-move X,Y,Z]` viser det valgte og flyttede, og `tools/edit-test.mjs` går gjennom redigeringen i nettleseren.

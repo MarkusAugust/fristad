@@ -71,6 +71,9 @@ pub struct Editor {
     original: HashMap<String, usize>,
     scene: Builder,
     breaches: Vec<Breach>,
+    /// En gruppe endringer som angres som én (dra med håndtak): `Some(false)`
+    /// før første endring, `Some(true)` når den er i gang.
+    group: Option<bool>,
 }
 
 /// En nøkkel for innholdet i en ting, til å telle like ting.
@@ -81,10 +84,24 @@ fn key(list: &str, t: &Thing) -> String {
 impl Editor {
     pub fn new(src: Sources, layout: Layout, contents: HashMap<String, Vec<Item>>, approved: Option<HashSet<String>>) -> Self {
         let scene = town_scene(&src, &layout, &contents);
-        let mut e = Self { src, layout, contents, approved, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![] };
+        let mut e = Self { src, layout, contents, approved, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None };
         e.original = e.census();
         e.refresh();
         e
+    }
+
+    /// Sammenlign med andre data enn dem redigeringen begynte med (dataene i
+    /// fila, når spillet er bygget på nytt fra redigeringen med P): det som
+    /// er endret siden da, må fortsatt være godkjent.
+    pub fn set_baseline(&mut self, layout: Layout, contents: HashMap<String, Vec<Item>>) {
+        let base = Editor { layout, contents, ..Self::empty(self.src.clone()) };
+        self.original = base.census();
+        self.refresh();
+    }
+
+    fn empty(src: Sources) -> Self {
+        let scene = Builder::new(&[]);
+        Self { src, layout: Layout::default(), contents: HashMap::new(), approved: None, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None }
     }
 
     /// Hvor mange av hver ting (etter innhold) dataene har.
@@ -96,6 +113,15 @@ impl Editor {
             }
         }
         out
+    }
+
+    /// Begynn en gruppe endringer som angres som én (dra med et håndtak).
+    pub fn begin_group(&mut self) {
+        self.group = Some(false);
+    }
+
+    pub fn end_group(&mut self) {
+        self.group = None;
     }
 
     fn list_of(r: &Ref) -> String {
@@ -205,7 +231,13 @@ impl Editor {
         for c in &changes {
             self.apply(c);
         }
-        self.undo.push(changes);
+        match (self.group, self.undo.last_mut()) {
+            (Some(true), Some(last)) => last.extend(changes),
+            _ => self.undo.push(changes),
+        }
+        if self.group.is_some() {
+            self.group = Some(true);
+        }
         self.redo.clear();
         self.refresh();
     }
@@ -287,6 +319,13 @@ impl Editor {
             }
             Thing::Npc(_) => Some((Vec3::new(0.0, 0.9, 0.0), Vec3::new(0.3, 0.9, 0.3))),
         }
+    }
+
+    /// Boksen til en ting i verden: posen, og midten og halve mål i tingens
+    /// rom.
+    pub fn box_of(&self, r: &Ref) -> Option<(Affine3A, Vec3, Vec3)> {
+        let (c, h) = self.local_box(r)?;
+        Some((self.pose_of(r)?, c, h))
     }
 
     /// Det valgte, med boksene, til nettlaget.

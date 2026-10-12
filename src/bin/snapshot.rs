@@ -7,7 +7,7 @@
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
 //! (ned i krypten først: startstedet i nivå 1), --level N (startstedet i
-//! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --frames N,
+//! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --edit [--edit-move X,Y,Z] (redigeringen, det midt i bildet valgt og flyttet), --frames N,
 //! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N, --shots FIL (mange bilder i én kjøring: én linje per bilde,
 //! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at).
@@ -16,7 +16,7 @@ use fristad::adapters::gltf::Embedded;
 use fristad::adapters::native::seed;
 use fristad::adapters::rapier::RapierPhysics;
 use fristad::adapters::wgpu::Renderer;
-use fristad::application::{prepare, App};
+use fristad::application::{prepare, prepare_for_edit, App};
 use fristad::domain::weather::{Daylight, WeatherKind};
 use fristad::domain::world::Use;
 use fristad::ports::driving::{Command, Play};
@@ -33,7 +33,7 @@ fn main() {
     let out = arg("--out").unwrap_or_else(|| "snapshot.png".into());
     let (width, height) = arg("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))).unwrap_or((1280u32, 720u32));
 
-    let prepared = prepare(&Embedded, seed());
+    let prepared = if flag("--edit") { prepare_for_edit(&Embedded, seed()) } else { prepare(&Embedded, seed()) };
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
     let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();
@@ -142,6 +142,25 @@ fn main() {
     if let Some(eye) = eye {
         app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
     }
+    // --edit: i redigeringen, med det midt i bildet valgt; --edit-move X,Y,Z
+    // flytter det (det flyttede og markeringene synes i bildet).
+    if flag("--edit") {
+        use fristad::ports::driving::EditCommand;
+        app.command(Command::Edit(EditCommand::Enter));
+        app.command(Command::Edit(EditCommand::Pick { add: false, at: None }));
+        if let Some(m) = arg("--edit-move") {
+            let v: Vec<f32> = m.split(',').map(|x| x.parse().unwrap()).collect();
+            app.command(Command::Edit(EditCommand::Move(Vec3::new(v[0], v[1], v[2]))));
+        }
+        if let Some(e) = app.session.editor() {
+            for s in e.selected() {
+                log::info!("valgt: {} ({:?})", s.label, s.r);
+            }
+            for b in e.breaches() {
+                log::info!("brudd: {:?} {}", b.r, b.why);
+            }
+        }
+    }
 
     // Kjør spillet litt, så animasjoner og fiender står der de skal.
     let time: f32 = arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5);
@@ -164,6 +183,25 @@ fn main() {
     }
     if let Some(eye) = eye {
         app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
+    }
+    // --edit: i redigeringen, med det midt i bildet valgt; --edit-move X,Y,Z
+    // flytter det (det flyttede og markeringene synes i bildet).
+    if flag("--edit") {
+        use fristad::ports::driving::EditCommand;
+        app.command(Command::Edit(EditCommand::Enter));
+        app.command(Command::Edit(EditCommand::Pick { add: false, at: None }));
+        if let Some(m) = arg("--edit-move") {
+            let v: Vec<f32> = m.split(',').map(|x| x.parse().unwrap()).collect();
+            app.command(Command::Edit(EditCommand::Move(Vec3::new(v[0], v[1], v[2]))));
+        }
+        if let Some(e) = app.session.editor() {
+            for s in e.selected() {
+                log::info!("valgt: {} ({:?})", s.label, s.r);
+            }
+            for b in e.breaches() {
+                log::info!("brudd: {:?} {}", b.r, b.why);
+            }
+        }
     }
 
     if let Some(l) = arg("--dump-layer") {

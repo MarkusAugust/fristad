@@ -7,9 +7,10 @@
 use crate::adapters::gltf::{model_files, Files};
 use crate::adapters::rapier::RapierPhysics;
 use crate::adapters::wgpu::Renderer;
-use crate::application::{prepare, App};
+use crate::application::{prepare, prepare_for_edit, prepare_with, App};
+use crate::domain::edit::LineKind;
 use crate::domain::weather::{Daylight, WeatherKind};
-use crate::ports::driving::{Command, Event, Play, SaveData};
+use crate::ports::driving::{Command, EditCommand, Event, Play, SaveData};
 use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
@@ -26,6 +27,18 @@ pub struct Engine {
     config: wgpu::SurfaceConfiguration,
     device: wgpu::Device,
     backend: String,
+    /// Med `?edit`: det som trengs for å bygge spillet på nytt fra
+    /// redigeringen (P) på samme grafikkort.
+    rebuild: Option<Rebuild>,
+}
+
+struct Rebuild {
+    files: Files,
+    queue: wgpu::Queue,
+    adapter: wgpu::Adapter,
+    format: wgpu::TextureFormat,
+    layers: Vec<(crate::domain::geometry::Layer, crate::domain::model::LayerImages)>,
+    seed: u64,
 }
 
 async fn connect(canvas: &web_sys::HtmlCanvasElement, webgpu: bool) -> Result<(wgpu::Surface<'static>, wgpu::Adapter, wgpu::Device, wgpu::Queue), String> {
@@ -58,7 +71,7 @@ pub fn model_paths() -> Vec<String> {
 }
 
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array) -> Result<Engine, JsValue> {
+pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array, edit: bool) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -76,8 +89,9 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
     surface.configure(&device, &config);
     // Ny kjeller for hver økt i nettleseren.
     let seed = (js_sys::Date::now() as u64) ^ 0x5eed;
-    let files = model_paths().into_iter().zip(models.iter()).filter(|(_, b)| !b.is_undefined()).map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec())).collect();
-    let prepared = prepare(&Files(files), seed);
+    let files = Files(model_paths().into_iter().zip(models.iter()).filter(|(_, b)| !b.is_undefined()).map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec())).collect());
+    // Med `?edit` (bare for eieren): alle modellene, med plass til å flytte dem.
+    let prepared = if edit { prepare_for_edit(&files, seed) } else { prepare(&files, seed) };
     let layers = match manifest_json {
         Some(m) => {
             let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();
@@ -85,9 +99,65 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
         }
         None => vec![],
     };
-    let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, config.width, config.height);
+    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, config.width, config.height);
     let app = App::new(prepared, renderer, RapierPhysics::new());
-    Ok(Engine { app, surface, config, device, backend })
+    let rebuild = edit.then(|| Rebuild { files, queue, adapter, format, layers, seed });
+    Ok(Engine { app, surface, config, device, backend, rebuild })
+}
+
+/// En kommando fra redigeringen i nettlaget, som json med `cmd`. `x` og `y`
+/// er pekeren (0..1 fra øverst til venstre).
+#[derive(serde::Deserialize)]
+#[serde(tag = "cmd", rename_all = "snake_case")]
+enum EditJson {
+    Enter,
+    Leave,
+    Press { x: f32, y: f32, #[serde(default)] add: bool },
+    Drag { x: f32, y: f32 },
+    Release,
+    Pick { #[serde(default)] add: bool, x: Option<f32>, y: Option<f32> },
+    Move { x: f32, y: f32, z: f32 },
+    Rotate { a: f32 },
+    Drop,
+    Copy,
+    Delete,
+    Place { model: String, x: Option<f32>, y: Option<f32> },
+    LinePoint { x: f32, y: f32 },
+    /// `kind`: "row" (en rad av `model`) eller "wall" (usynlig vegg, `height`).
+    LineFinish { kind: String, model: Option<String>, height: Option<f32> },
+    LineCancel,
+    WallHeight { h: f32 },
+    Undo,
+    Redo,
+}
+
+impl EditJson {
+    fn command(self) -> Option<EditCommand> {
+        let at = |x: Option<f32>, y: Option<f32>| x.zip(y);
+        Some(match self {
+            EditJson::Enter => EditCommand::Enter,
+            EditJson::Leave => EditCommand::Leave,
+            EditJson::Press { x, y, add } => EditCommand::Press { at: (x, y), add },
+            EditJson::Drag { x, y } => EditCommand::Drag { to: (x, y) },
+            EditJson::Release => EditCommand::Release,
+            EditJson::Pick { add, x, y } => EditCommand::Pick { add, at: at(x, y) },
+            EditJson::Move { x, y, z } => EditCommand::Move(glam::Vec3::new(x, y, z)),
+            EditJson::Rotate { a } => EditCommand::Rotate(a),
+            EditJson::Drop => EditCommand::Drop,
+            EditJson::Copy => EditCommand::Copy,
+            EditJson::Delete => EditCommand::Delete,
+            EditJson::Place { model, x, y } => EditCommand::Place { model, at: at(x, y) },
+            EditJson::LinePoint { x, y } => EditCommand::LinePoint { at: (x, y) },
+            EditJson::LineFinish { kind, model, height } => EditCommand::LineFinish(match kind.as_str() {
+                "wall" => LineKind::Wall { height: height.unwrap_or(3.0) },
+                _ => LineKind::Row { model: model?, spacing: 0.0 },
+            }),
+            EditJson::LineCancel => EditCommand::LineCancel,
+            EditJson::WallHeight { h } => EditCommand::WallHeight(h),
+            EditJson::Undo => EditCommand::Undo,
+            EditJson::Redo => EditCommand::Redo,
+        })
+    }
 }
 
 fn json(e: &Event) -> serde_json::Value {
@@ -120,7 +190,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Edit(Some(v)) => json!({"type": "edit", "edit": {
             "selected": v.selected.iter().map(|s| json!({"ref": s.r, "label": s.label, "pose": s.pose.to_cols_array(), "center": s.center.to_array(), "half": s.half.to_array()})).collect::<Vec<_>>(),
             "breaches": v.breaches.iter().map(|(r, why)| json!({"ref": r, "why": why})).collect::<Vec<_>>(),
-            "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean,
+            "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean, "draft": v.draft,
         }}),
     }
 }
@@ -295,6 +365,67 @@ impl Engine {
         self.config.height = h;
         self.surface.configure(&self.device, &self.config);
         self.app.resize(w, h);
+    }
+
+    /// Redigeringen (`?edit`): en kommando som json (`EditJson`). Gir om den
+    /// gjorde noe.
+    pub fn edit(&mut self, json: &str) -> bool {
+        match serde_json::from_str::<EditJson>(json).ok().and_then(EditJson::command) {
+            Some(c) => self.app.command(Command::Edit(c)),
+            None => {
+                log::warn!("Ukjent redigeringskommando: {json}");
+                false
+            }
+        }
+    }
+
+    /// Øyet og retningen: [x, y, z, yaw, pitch] (radianer).
+    pub fn view(&self) -> Vec<f32> {
+        let (e, yaw, pitch) = self.app.session.view_pose();
+        vec![e.x, e.y, e.z, yaw, pitch]
+    }
+
+    /// Kan redigere (startet med `?edit`).
+    pub fn can_edit(&self) -> bool {
+        self.rebuild.is_some()
+    }
+
+    /// Alle modellene til katalogen: navn, gruppe (mappa), eierens dom og
+    /// hvorfor, som json-liste.
+    pub fn catalog(&self) -> String {
+        let approvals: serde_json::Value = serde_json::from_str(crate::adapters::data::APPROVALS).unwrap_or_default();
+        let list: Vec<serde_json::Value> = model_files()
+            .filter(|(n, _)| !(n.starts_with("crypt_") && n[6..].starts_with(|c: char| c.is_ascii_digit())))
+            .map(|(name, path)| {
+                let a = &approvals["models"][name];
+                serde_json::json!({"name": name, "group": path.split('/').next().unwrap_or(""), "verdict": a["verdict"], "why": a["why"]})
+            })
+            .collect();
+        serde_json::Value::Array(list).to_string()
+    }
+
+    /// P i redigeringen: bygg spillet på nytt fra det som er redigert
+    /// (kolliderne, lysene og alt), og spill der du står. Lageret og det du
+    /// bærer følger med. Gir om det gikk.
+    pub fn play(&mut self) -> bool {
+        let Some(rb) = &self.rebuild else { return false };
+        let Some(editor) = self.app.session.editor() else { return false };
+        let (layout, contents) = editor.data();
+        let mut data = crate::adapters::data::world_data();
+        let file = (data.layout.clone().unwrap_or_default(), data.contents.iter().cloned().collect());
+        data.layout = Some(layout.clone());
+        data.contents = contents.clone().into_iter().collect();
+        let (eye, yaw, pitch) = self.app.session.view_pose();
+        let save = self.app.save();
+        let mut prepared = prepare_with(&rb.files, rb.seed, data, true);
+        if let Some(d) = prepared.edit.as_mut() {
+            d.baseline = Some(file);
+        }
+        let renderer = Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
+        self.app = App::new(prepared, renderer, RapierPhysics::new());
+        self.app.command(Command::Load(save));
+        self.app.command(Command::Place { eye, yaw, pitch });
+        true
     }
 
     /// Ett bilde. Returnerer hendelsene som JSON-liste.

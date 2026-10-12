@@ -9,6 +9,7 @@ En vinkel er `navn:yaw:pitch:avstand:høyde` (grader rundt modellen fra
 forsida, grader ned, avstand i ganger modellens største mål, sikte i
 brøkdel av høyden over bakken), f.eks. `front:0:8:1.1:0.45`. Uten vinkler:
 forfra, hjørnet, siden og ovenfra. Skriver UT_PREFIKS_<navn>.png.
+`FRISTAD_STUDIO_SIZE=320x224` gir mindre bilder (katalogen i redigeringen).
 """
 import json
 import math
@@ -105,7 +106,7 @@ def main(path, prefix, views):
     s.render.engine = "CYCLES"
     s.cycles.samples = 12
     s.cycles.device = "CPU"
-    s.render.resolution_x, s.render.resolution_y = 800, 560
+    s.render.resolution_x, s.render.resolution_y = [int(v) for v in os.environ.get("FRISTAD_STUDIO_SIZE", "800x560").split("x")]
     world = bpy.data.worlds.new("w")
     s.world = world
     world.use_nodes = True

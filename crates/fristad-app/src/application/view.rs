@@ -155,6 +155,7 @@ impl Session {
             smoke,
             instances,
             hidden,
+            lines: self.edit_lines(),
             skins,
             hurt: self.combat.hurt,
             debug: self.debug,

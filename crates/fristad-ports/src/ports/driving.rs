@@ -113,20 +113,28 @@ pub enum Command {
     Edit(EditCommand),
 }
 
-/// Det eieren gjør i redigeringen. Klikk og ny ting gjelder det
-/// siktekorset peker på.
+/// Det eieren gjør i redigeringen. Med musa: `at` er pekeren på skjermen
+/// (0..1 fra øverst til venstre); uten (`None`) gjelder det midten.
 #[derive(Clone, Debug, PartialEq)]
 pub enum EditCommand {
     /// Inn i redigeringen (fly fritt, gjennom alt) og ut igjen.
     Enter,
     Leave,
-    /// Velg det siktekorset peker på; `add` (Shift) legger til eller tar bort.
-    Pick { add: bool },
+    /// Venstre knapp ned: tar tak i et håndtak (pilene og ringen rundt det
+    /// valgte), ellers velges det under pekeren; `add` (Shift) legger til
+    /// eller tar bort.
+    Press { at: (f32, f32), add: bool },
+    /// Musa flyttet med knappen nede: håndtaket drar det valgte.
+    Drag { to: (f32, f32) },
+    /// Knappen opp: draget angres som én handling.
+    Release,
+    /// Velg det under pekeren eller midt i bildet.
+    Pick { add: bool, at: Option<(f32, f32)> },
     /// Flytt det valgte så mange meter (piltastene, PageUp og PageDown).
     Move(Vec3),
     /// Drei det valgte (Q og E), radianer.
     Rotate(f32),
-    /// Sett en ting rett dit (håndtakene).
+    /// Sett en ting rett dit.
     SetPose { r: Ref, pose: Affine3A },
     /// Sett det valgte ned på det som er under.
     Drop,
@@ -134,9 +142,14 @@ pub enum EditCommand {
     Copy,
     /// Slett det valgte (Delete).
     Delete,
-    /// Sett ut en ny ting der siktekorset peker, vendt mot deg.
-    Place { model: String },
-    /// En linje gjennom punktene på bakken: gjerde, rad eller usynlig vegg.
+    /// Sett ut en ny ting under pekeren (eller midt i bildet), vendt mot deg.
+    Place { model: String, at: Option<(f32, f32)> },
+    /// Linjeverktøyet: et punkt på bakken under pekeren, ferdig (gjerde, rad
+    /// eller usynlig vegg gjennom punktene), eller avbryt.
+    LinePoint { at: (f32, f32) },
+    LineFinish(LineKind),
+    LineCancel,
+    /// En linje gjennom punktene på bakken.
     Line { points: Vec<Vec3>, kind: LineKind },
     /// Ny høyde på de valgte usynlige veggene.
     WallHeight(f32),
@@ -155,6 +168,8 @@ pub struct EditView {
     pub dirty: bool,
     /// Ingen regler brutt: Lagre er lov.
     pub clean: bool,
+    /// Punktene i linjeverktøyet så langt.
+    pub draft: usize,
 }
 
 /// Spillet sett utenfra.

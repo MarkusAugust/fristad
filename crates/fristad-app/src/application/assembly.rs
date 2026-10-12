@@ -32,6 +32,9 @@ pub struct EditData {
     /// De faste instansene fra byen (modell, nummer, pose), så det som er
     /// flyttet kan skjules der det sto.
     pub base: Vec<(&'static str, usize, Affine3A, Ref)>,
+    /// Dataene i fila, når spillet er bygget på nytt fra redigeringen (P):
+    /// det som er endret siden, må fortsatt være godkjent.
+    pub baseline: Option<(Layout, HashMap<String, Vec<Item>>)>,
 }
 
 /// Hvor mange instanser av hver modell redigeringen kan vise på nye steder.
@@ -74,7 +77,7 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool)
                 None => world.placements.push(Placement { model: name, transforms: vec![], tints: vec![], looks: vec![], reserve: EDIT_RESERVE, indoor: false }),
             }
         }
-        EditData { sources, layout, contents, approved, base }
+        EditData { sources, layout, contents, approved, base, baseline: None }
     });
     let models: Vec<Model> = loaded.into_iter().filter(|m| world.placements.iter().any(|p| p.model == m.name)).collect();
     Prepared { world, models, infos, edit }

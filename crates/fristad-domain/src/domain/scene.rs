@@ -89,6 +89,9 @@ pub struct Frame {
     /// det redigeringen har flyttet eller slettet (det flyttede tegnes i
     /// `instances` på det nye stedet).
     pub hidden: Vec<(&'static str, usize)>,
+    /// Linjer over bildet (fra, til, farge), uten dybdetest: det valgte,
+    /// regelbruddene og håndtakene i redigeringen.
+    pub lines: Vec<(Vec3, Vec3, Vec3)>,
     /// Leddmatrisene (hjørne i meshen → posert) for de skinnede
     /// instansene, som `ModelInstance.skin` peker inn i.
     pub skins: Vec<Mat4>,

@@ -6,6 +6,7 @@ import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
 import { createSounds } from "./sounds.js";
+import { createEditor } from "./editor.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
@@ -47,6 +48,10 @@ try {
   /* ingen lagring */
 }
 let engine = null;
+// Redigeringsmodusen (`?edit`, bare for eieren; web/editor.js).
+const EDIT = new URLSearchParams(location.search).has("edit");
+let editor = null;
+let editorStarted = false;
 let docs = {};
 let panelOpen = false;
 let current = { component: "" };
@@ -124,20 +129,33 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
   window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
   setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
+  if (EDIT && engine.can_edit()) {
+    editor = createEditor({
+      engine,
+      canvas,
+      toast,
+      // P: spillet er bygget på nytt; grafikknivået settes igjen, og musa fanges.
+      onPlay: () => {
+        setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
+        lock();
+      },
+    });
+    window.fristad.editor = editor;
+  }
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -462,6 +480,9 @@ function handle(e) {
       break;
     case "loot":
       openLoot(e.component);
+      break;
+    case "edit":
+      editor?.update(e.edit);
       break;
     case "open_doc":
       // F på en fylt ramme på galleriveggen: boka i panelet til høyre.
@@ -1117,7 +1138,12 @@ function enter(relock = true) {
   engine.set_paused(false);
   canvas.focus();
   fadeHelp();
-  if (relock) lock();
+  // Med `?edit` begynner du i redigeringen, med fri mus.
+  if (editor && !editorStarted) {
+    editorStarted = true;
+    if (editor.begin()) return;
+  }
+  if (relock && !editor?.active) lock();
 }
 
 function quit() {
@@ -1161,12 +1187,12 @@ function bindInput() {
   // Avslutt: tilbake til startskjermen, med spilleren ved sørporten igjen.
   $("quit").addEventListener("click", quit);
   canvas.addEventListener("click", () => {
-    if (playing && !locked()) lock();
+    if (playing && !locked() && !editor?.active) lock();
   });
 
   document.addEventListener("pointerlockchange", () => {
     // Slippes låsen mens du spiller (Esc), er det pause.
-    if (!locked() && playing && !panelOpen) pause();
+    if (!locked() && playing && !panelOpen && !editor?.active) pause();
   });
   // Ga ikke nettleseren oss musa, går det an å spille uten: dra for å se,
   // klikk for å hugge.
@@ -1182,6 +1208,7 @@ function bindInput() {
   let dragDist = 0;
   const inGame = (t) => t === canvas || (t instanceof Element && !t.closest("dialog, #overlay, #panel, #gate, button, a, input"));
   document.addEventListener("mousedown", (e) => {
+    if (playing && editor?.mouseDown(e)) return;
     if (!playing || !inGame(e.target)) return;
     if (locked()) {
       e.preventDefault();
@@ -1195,6 +1222,7 @@ function bindInput() {
     }
   });
   window.addEventListener("mouseup", (e) => {
+    if (editor?.mouseUp(e)) return;
     const wasDrag = dragging;
     dragging = false;
     if (!playing) return;
@@ -1212,6 +1240,7 @@ function bindInput() {
   });
   document.addEventListener("mousemove", (e) => {
     if (!playing) return;
+    if (editor?.mouseMove(e)) return;
     if (dragging) dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     if (locked() || dragging) engine.look(e.movementX, e.movementY);
   });
@@ -1222,6 +1251,8 @@ function bindInput() {
     // uten å be om pekerlås (Esc gir ingen brukerhandling å låse på, og et
     // avslått forsøk åpnet pausemenyen). Klikk i bildet låser igjen; neste
     // Esc åpner menyen.
+    // Redigeringen tar sine taster først (og P for å gå inn i den igjen).
+    if (editor && playing && !panelOpen && !invOpen && !overlayOpen && !settingsOpen && editor.key(e)) return;
     if (panelOpen && e.code === "Escape") {
       // Er dialogen i demoen åpen, er det den Esc lukker.
       if ($("demo").shadowRoot?.querySelector("dialog:modal")) return;

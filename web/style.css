@@ -728,3 +728,98 @@ code {
 .settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
 .settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
 .settings-dialog .fs-help-text { display: inline; }
+
+/* Redigeringen (`?edit`, web/editor.js): panelet til venstre, og HUD-en
+   for spillet er borte mens du redigerer. */
+body.editing #vitals,
+body.editing .bottom,
+body.editing #minimap,
+body.editing #aim,
+body.editing #bubbles,
+body.editing #marks {
+  display: none !important;
+}
+
+.editor {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: min(24rem, 100vw);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--fs-spacing-4, 1rem);
+  background: var(--fs-color-neutral-canvas, #fff);
+  color: var(--fs-color-neutral-text, #222);
+  border-right: 1px solid var(--fs-color-neutral-border, #ccc);
+  display: flex;
+  flex-direction: column;
+  gap: var(--fs-spacing-3, 0.75rem);
+}
+
+.editor-head,
+.editor-actions,
+.editor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.editor-head {
+  justify-content: space-between;
+}
+
+.editor-filters > * {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+.editor-section > * + * {
+  margin-top: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-breaches {
+  margin: 0;
+  padding-left: 1.1rem;
+  max-height: 10rem;
+  overflow-y: auto;
+  color: var(--fs-color-danger-text, #a40000);
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: stretch;
+  padding: 0.25rem;
+  border: 1px solid var(--fs-color-neutral-border, #ccc);
+  border-radius: var(--fs-radius-2, 6px);
+  background: var(--fs-color-neutral-surface, #f6f6f6);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.editor-item.is-active {
+  outline: 2px solid var(--fs-color-accent-border, #c07000);
+}
+
+.editor-item img {
+  width: 100%;
+  aspect-ratio: 320 / 224;
+  object-fit: cover;
+  border-radius: var(--fs-radius-1, 4px);
+  background: var(--fs-color-neutral-border, #ddd);
+}
+
+.editor-item-name {
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}

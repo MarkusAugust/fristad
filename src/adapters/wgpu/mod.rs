@@ -256,6 +256,12 @@ struct GpuModel {
     /// Møblene inne i husene (`Placement.indoor`): tegnes bare innen
     /// `INTERIOR_FAR` og kaster solskygge bare innen `INDOOR_SHADOW`.
     indoor: bool,
+    /// Hvor hver fast instans (nummeret i `Placement`) ligger i bufferet, og
+    /// dataene den ble lastet opp med, så redigeringen kan skjule den
+    /// (`Frame.hidden`) og vise den igjen; og de som er skjult nå.
+    slot_of: Vec<u32>,
+    originals: Vec<InstanceData>,
+    hidden: std::cell::RefCell<Vec<u32>>,
 }
 
 /// De faste instansene i en rute på `CELL_M` meter: boksen rundt dem og
@@ -344,6 +350,8 @@ struct ScenePipes {
     cutout: wgpu::RenderPipeline,
     sky: wgpu::RenderPipeline,
     particles: wgpu::RenderPipeline,
+    /// Linjene redigeringen tegner (`Frame.lines`), uten dybdetest.
+    lines: wgpu::RenderPipeline,
 }
 
 /// Shaderne og layoutene `ScenePipes` lages av, så de kan lages på nytt når
@@ -352,6 +360,7 @@ struct SceneSources {
     world: wgpu::ShaderModule,
     sky: wgpu::ShaderModule,
     particles: wgpu::ShaderModule,
+    lines: wgpu::ShaderModule,
     world_layout: wgpu::PipelineLayout,
     simple_layout: wgpu::PipelineLayout,
 }
@@ -402,7 +411,19 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, a2c, hdr, world, cutout, sky, particles }
+        let line_buffers = [wgpu::VertexBufferLayout { array_stride: 24, step_mode: wgpu::VertexStepMode::Vertex, attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3] }];
+        let lines = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("lines"),
+            layout: Some(&self.simple_layout),
+            vertex: wgpu::VertexState { module: &self.lines, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &line_buffers },
+            primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::LineList, cull_mode: None, ..Default::default() },
+            depth_stencil: depth(false, wgpu::CompareFunction::Always),
+            multisample: ms(false),
+            fragment: Some(wgpu::FragmentState { module: &self.lines, entry_point: Some("fs"), compilation_options: Default::default(), targets: &target(None) }),
+            multiview: None,
+            cache: None,
+        });
+        ScenePipes { samples, a2c, hdr, world, cutout, sky, particles, lines }
     }
 }
 
@@ -459,6 +480,8 @@ pub struct Renderer {
     pass_stats: std::cell::Cell<[PassStats; 2]>,
     /// Tiden på grafikkortet per del, når kortet kan måle den.
     timer: Option<timer::GpuTimer>,
+    /// Hjørnene til linjene redigeringen tegner (vokser ved behov).
+    line_buf: std::cell::RefCell<Option<(wgpu::Buffer, u64)>>,
 }
 
 fn shader(device: &wgpu::Device, name: &str, parts: &[&str]) -> wgpu::ShaderModule {
@@ -626,6 +649,7 @@ impl Renderer {
         let world_mod = shader(&device, "world", &[noise, common, shadow_src, include_str!("shaders/world.wgsl")]);
         let sky_mod = shader(&device, "sky", &[noise, common, include_str!("shaders/sky.wgsl")]);
         let particle_mod = shader(&device, "particles", &[noise, common, include_str!("shaders/particles.wgsl")]);
+        let line_mod = shader(&device, "lines", &[noise, common, include_str!("shaders/lines.wgsl")]);
         let post_mod = shader(&device, "post", &[common, include_str!("shaders/post.wgsl")]);
 
         let world_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -670,7 +694,7 @@ impl Renderer {
         let shadow_cutout = shadow_with("shadow cutout", Some(wgpu::FragmentState { module: &world_mod, entry_point: Some("fs_shadow"), compilation_options: Default::default(), targets: &[] }));
         let samples = (max_samples(adapter, &device, &[4]), max_samples(adapter, &device, &[8, 4]));
         log::info!("MSAA i målingen: {}× og {}×", samples.0, samples.1);
-        let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, world_layout, simple_layout };
+        let sources = SceneSources { world: world_mod, sky: sky_mod, particles: particle_mod, lines: line_mod, world_layout, simple_layout };
         // Spillet starter i standard grafikk; verten bytter med `set_quality`.
         let scene_pipes = sources.pipes(&device, 1, true, HDR);
 
@@ -739,7 +763,7 @@ impl Renderer {
                     let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
                     (c(tint.x) << 16 | c(tint.y) << 8 | c(tint.z)) as f32
                 };
-                let placements: Vec<(InstanceData, Vec3, Vec3)> = pl
+                let placements: Vec<(InstanceData, Vec3, Vec3, u32)> = pl
                     .transforms
                     .iter()
                     .zip(pl.tints.iter().chain(std::iter::repeat(&Vec3::ONE)))
@@ -759,10 +783,12 @@ impl Renderer {
                         };
                         (inst, wlo, whi)
                     })
+                    .enumerate()
+                    .map(|(n, (inst, wlo, whi))| (inst, wlo, whi, n as u32))
                     .collect();
                 // De faste instansene sorteres i ruter (rad for rad) og lastes
                 // opp én gang; bak dem står plassen til de bevegelige.
-                let key = |(_, lo, hi): &(InstanceData, Vec3, Vec3)| {
+                let key = |(_, lo, hi, _): &(InstanceData, Vec3, Vec3, u32)| {
                     let c = (*lo + *hi) * 0.5 / CELL_M;
                     (c.z.floor() as i32, c.x.floor() as i32)
                 };
@@ -783,6 +809,11 @@ impl Renderer {
                     last = Some(id);
                 }
                 let statics = placements.len() as u32;
+                let mut slot_of = vec![0u32; placements.len()];
+                for (slot, p) in placements.iter().enumerate() {
+                    slot_of[p.3 as usize] = slot as u32;
+                }
+                let originals: Vec<InstanceData> = placements.iter().map(|p| p.0).collect();
                 let mut data: Vec<InstanceData> = placements.iter().map(|p| p.0).collect();
                 data.resize(placements.len() + pl.reserve * REGIONS as usize, InstanceData::new(&Affine3A::IDENTITY, [0.0; 4]));
                 if data.is_empty() {
@@ -821,6 +852,9 @@ impl Renderer {
                     small: !skinned && size < 1.3,
                     interior: m.name.ends_with("_interior") || pl.indoor,
                     indoor: pl.indoor,
+                    slot_of,
+                    originals,
+                    hidden: Default::default(),
                 })
             })
             .collect();
@@ -870,6 +904,7 @@ impl Renderer {
             reduced: true,
             quality: Quality::Standard,
             bench: Bench::default(),
+            line_buf: Default::default(),
             samples,
             triangles: std::cell::Cell::new((0, 0, 0)),
             pass_stats: Default::default(),
@@ -1033,7 +1068,49 @@ impl Renderer {
         proj * view
     }
 
+    /// Skjul de faste instansene i `Frame.hidden` (flyttet langt ned, så
+    /// verken bildet eller skyggen ser dem) og vis de som ikke lenger er
+    /// skjult, med dataene de ble lastet opp med.
+    fn apply_hidden(&self, f: &Frame) {
+        let away = InstanceData::new(&Affine3A::from_translation(Vec3::new(0.0, -1.0e6, 0.0)), [0.0; 4]);
+        for m in &self.models {
+            let mut want: Vec<u32> = f.hidden.iter().filter(|(name, _)| *name == m.name).filter_map(|(_, n)| m.slot_of.get(*n).copied()).collect();
+            let mut now = m.hidden.borrow_mut();
+            if want.is_empty() && now.is_empty() {
+                continue;
+            }
+            want.sort_unstable();
+            want.dedup();
+            for slot in now.iter().filter(|s| !want.contains(s)) {
+                self.queue.write_buffer(&m.instances, *slot as u64 * INSTANCE_STRIDE, bytemuck::bytes_of(&m.originals[*slot as usize]));
+            }
+            for slot in want.iter().filter(|s| !now.contains(s)) {
+                self.queue.write_buffer(&m.instances, *slot as u64 * INSTANCE_STRIDE, bytemuck::bytes_of(&away));
+            }
+            *now = want;
+        }
+    }
+
+    /// Linjene til redigeringen i bufferet; gir hvor mange hjørner.
+    fn upload_lines(&self, f: &Frame) -> u32 {
+        if f.lines.is_empty() {
+            return 0;
+        }
+        let data: Vec<[f32; 6]> = f.lines.iter().flat_map(|(a, b, c)| [[a.x, a.y, a.z, c.x, c.y, c.z], [b.x, b.y, b.z, c.x, c.y, c.z]]).collect();
+        let bytes = bytemuck::cast_slice::<[f32; 6], u8>(&data);
+        let mut buf = self.line_buf.borrow_mut();
+        if buf.as_ref().is_none_or(|(_, cap)| *cap < bytes.len() as u64) {
+            let cap = (bytes.len() as u64).next_power_of_two().max(4096);
+            *buf = Some((self.device.create_buffer(&wgpu::BufferDescriptor { label: Some("lines"), size: cap, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false }), cap));
+        }
+        let (b, _) = buf.as_ref().expect("bufferet");
+        self.queue.write_buffer(b, 0, bytes);
+        data.len() as u32
+    }
+
     pub fn render(&mut self, out: &wgpu::TextureView, f: &Frame) {
+        self.apply_hidden(f);
+        let line_count = self.upload_lines(f);
         let t = &self.targets;
         let (w, h) = (t.width as f32, t.height as f32);
         let view_proj = f.proj * f.view;
@@ -1298,6 +1375,14 @@ impl Renderer {
             if wx.snow > 0.0 && self.bench.particles {
                 pass.set_bind_group(1, &self.frame_bg, &[PASS_STRIDE as u32]);
                 pass.draw(0..4, 0..SNOW_COUNT);
+            }
+            if line_count > 0 {
+                if let Some((b, _)) = self.line_buf.borrow().as_ref() {
+                    pass.set_bind_group(1, &self.frame_bg, &[0]);
+                    pass.set_pipeline(&self.scene.lines);
+                    pass.set_vertex_buffer(0, b.slice(..));
+                    pass.draw(0..line_count, 0..1);
+                }
             }
         }
 

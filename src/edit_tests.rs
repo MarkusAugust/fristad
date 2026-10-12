@@ -263,3 +263,49 @@ fn ombygging_etter_redigering() {
     let info = p.infos.iter().find(|i| i.name == "barrel").unwrap();
     assert!(rules::lacks_collider(&p.world.colliders, info.min, info.max, t).is_none(), "tønna har kollider der den står nå");
 }
+
+/// Dra i x-pila: det valgte flyttes bare langs x, og hele draget angres som
+/// én handling. Dra i ringen: det dreies.
+#[test]
+fn handtakene_drar() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::EditCommand;
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let at = d.layout.items[barrel].at.unwrap().pos;
+    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    s.frame(1.6);
+    assert!(s.edit_command(EditCommand::Enter));
+    let centre = s.to_screen(at + Vec3::Y * 0.4).unwrap();
+    assert!(s.edit_command(EditCommand::Pick { add: false, at: Some(centre) }));
+    assert_eq!(s.editor().unwrap().selection, vec![Ref::Town(barrel)]);
+    let (p, len) = s.handles().unwrap();
+    // Ta tak midt på z-pila (den går på tvers av bildet her) og dra den.
+    let grab = s.to_screen(p + Vec3::Z * len * 0.6).unwrap();
+    let tip = s.to_screen(p + Vec3::Z * len).unwrap();
+    assert!(s.edit_command(EditCommand::Press { at: grab, add: false }));
+    let step = (tip.0 - grab.0, tip.1 - grab.1);
+    for k in 1..=4 {
+        assert!(s.edit_command(EditCommand::Drag { to: (grab.0 + step.0 * k as f32, grab.1 + step.1 * k as f32) }));
+    }
+    assert!(s.edit_command(EditCommand::Release));
+    let now = s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap().translation;
+    let moved = Vec3::from(now) - at;
+    assert!(moved.z > 0.5 && moved.x.abs() < 1e-3 && moved.y.abs() < 1e-3, "flyttet {moved}");
+    assert!(s.edit_command(EditCommand::Undo));
+    assert!(!s.editor().unwrap().can_undo(), "draget var én handling");
+    assert!((Vec3::from(s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap().translation) - at).length() < 1e-4);
+    // Ringen: ta tak på ringen og dra et stykke rundt.
+    s.edit_command(EditCommand::Pick { add: false, at: Some(centre) });
+    let (p, len) = s.handles().unwrap();
+    let on_ring = |s: &crate::application::Session, a: f32| s.to_screen(p + glam::Quat::from_rotation_y(a) * Vec3::X * len * 0.8).unwrap();
+    let (a, b) = (on_ring(&s, 1.2), on_ring(&s, 1.6));
+    assert!(s.edit_command(EditCommand::Press { at: a, add: false }));
+    s.edit_command(EditCommand::Drag { to: b });
+    s.edit_command(EditCommand::Release);
+    let yaw = crate::domain::world::layout::Pose::of(s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap()).yaw() - d.layout.items[barrel].at.unwrap().yaw();
+    assert!((yaw - 0.4).abs() < 0.05, "dreid {yaw}");
+}

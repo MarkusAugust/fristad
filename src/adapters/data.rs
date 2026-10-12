@@ -47,10 +47,13 @@ pub fn world_data() -> Data {
     Data { insides, levels, layout, contents, approved: Some(approved()) }
 }
 
+/// Dommen fra godkjenningssiden (`assets/catalog/approvals.json`).
+pub const APPROVALS: &str = include_str!("../../assets/catalog/approvals.json");
+
 /// Modellene eieren har godkjent (`assets/catalog/approvals.json`, dommen
 /// fra godkjenningssiden).
 pub fn approved() -> std::collections::HashSet<String> {
-    let json: serde_json::Value = serde_json::from_str(include_str!("../../assets/catalog/approvals.json")).expect("approvals.json");
+    let json: serde_json::Value = serde_json::from_str(APPROVALS).expect("approvals.json");
     json["models"].as_object().map(|m| m.iter().filter(|(_, v)| v["verdict"] == "godkjent").map(|(k, _)| k.clone()).collect()).unwrap_or_default()
 }
 

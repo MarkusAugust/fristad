@@ -102,6 +102,7 @@ pub struct Session {
     /// begynner fra (bare med `prepare_for_edit`).
     pub(super) edit: Option<crate::domain::edit::Editor>,
     pub edit_data: Option<super::assembly::EditData>,
+    pub(super) edit_ui: super::editing::EditUi,
 }
 
 impl Session {
@@ -164,6 +165,7 @@ impl Session {
             debug: 0,
             edit: None,
             edit_data: None,
+            edit_ui: Default::default(),
         }
     }
 
