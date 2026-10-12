@@ -1,0 +1,14 @@
+{
+ "_om": "Runde 12: Skriptoriet utenfra.",
+ "round": 12,
+ "fix": {
+  "parapet": "Gavlene følger nå takflaten som på kirka og kryptinngangen: dekkhellene ligger rundt 22 cm over taket hele veien, og knelesteinen slutter ved takfoten. Mønet er hogd stein (ikke mønerull), og korset står på dekkhella. De samme reglene som stopper eksporten ellers (dekkhella 0–30 cm over taket, korset står på noe, ingenting stikker opp over mønet) gjelder nå også her, og den gamle gavlfunksjonen som laget feilen er slettet."
+ },
+ "items": {
+  "scriptorium": {
+   "fix": [
+    "parapet"
+   ]
+  }
+ }
+}

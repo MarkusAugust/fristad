@@ -311,18 +311,6 @@ def buttress(name, base, out, along, w, prof, mat, bevel=0.03):
     return ob
 
 
-def parapet(p, frame, L, z0, zk, apex, thick, mat, coping):
-    """Gavl av stein som står opp over taket: rett opp i hjørnene (`zk`),
-    skrå opp til mønet (`apex`), med dekkheller langs skråkantene. `z0` er
-    murkronen: gavlen begynner der og overlapper ikke muren, ellers ligger
-    to flater i samme plan og gir svarte striper (runde 8)."""
-    prism("gable_stone", frame, [(0.0, z0), (L, z0), (L, zk), (L / 2, apex), (0.0, zk)], -thick / 2, thick / 2, mat)
-    for s0, s1 in ((-0.12, L / 2 + 0.05), (L + 0.12, L / 2 - 0.05)):
-        stick("coping", at_wall(frame, s0, 0, zk + 0.06), at_wall(frame, s1, 0, apex + 0.06), thick + 0.16, 0.2, coping, bevel=0.04)
-    for s in (0.0, L):
-        box("kneeler", tuple(at_wall(frame, s, 0, 0) + Vector((-(thick + 0.2) / 2, -(thick + 0.2) / 2, zk - 0.35))), tuple(at_wall(frame, s, 0, 0) + Vector(((thick + 0.2) / 2, (thick + 0.2) / 2, zk + 0.1))), coping, bevel=0.04)
-
-
 def roof_parapet(p, frame, L, z0, ridge, pitch, thick, mat, coping, up=0.08):
     """Gavl av stein som følger takflaten (eieren i runde 8: vannbordene
     stoppet høyere opp enn taket): gavllinja ligger `up` over takets
@@ -660,11 +648,14 @@ def scriptorium_outside(p, rng):
         stick("cornice", (side * (S_W / 2 + 0.06), -S_D / 2 - 0.05, S_H - 0.12), (side * (S_W / 2 + 0.06), S_D / 2 + 0.05, S_H - 0.12), 0.3, 0.26, stone, bevel=0.05)
     # Taket: skifer med mønet fra fronten til bakmuren, inne mellom gavlene.
     z_eave = S_H + 0.45
-    ridge = ridge_roof(p, -S_D / 2 + 0.15, S_D / 2 - 0.15, S_W / 2, z_eave, S_PITCH, barges=False, overhang=0.55, gable_over=0.0, thick=0.42, sag=0.28, kick=0.3)
+    # Gavlene følger taket og mønet er stein, som på kirka og
+    # kryptinngangen (eieren i runde 11: vannbordene stoppet over taket).
+    ridge = ridge_roof(p, -S_D / 2 + 0.15, S_D / 2 - 0.15, S_W / 2, z_eave, S_PITCH, barges=False, ridge_stone=stone, fill=False, overhang=0.55, gable_over=0.0, thick=0.42, sag=0.12, kick=0.3)
     rise = ridge - z_eave
+    gables = []
     for y in (fy, by):
         fr, Lg = wall_frame((-S_W / 2 - 0.05, y), (S_W / 2 + 0.05, y))
-        parapet(p, fr, Lg, S_H, z_eave + 0.45, ridge + 0.35, S_T, cut, stone)
+        gables.append((fr, Lg, roof_parapet(p, fr, Lg, S_H, ridge, S_PITCH, S_T, cut, stone)))
     # Rundvinduet i frontgavlen: blyglass i en krans av buestein.
     oz = S_H + rise * 0.42
     oy = -S_D / 2 - 0.02
@@ -678,7 +669,8 @@ def scriptorium_outside(p, rng):
     stick("oculus_lead", (-0.42, oy - 0.01, oz), (0.42, oy - 0.01, oz), 0.03, 0.03, p.iron, bevel=0)
     stick("oculus_lead", (0, oy - 0.01, oz - 0.42), (0, oy - 0.01, oz + 0.42), 0.03, 0.03, p.iron, bevel=0)
     # Kors av stein på bakgavlen.
-    stone_cross((0, by, ridge + 0.4), stone, 1.0)
+    fr_b, Lg_b, top_b = gables[1]
+    stone_cross((0, by, top_b(Lg_b / 2) - 0.04), stone, 1.0)
     # Klokkestolen på mønet foran: fire stolper, kryssbånd, et lite
     # pyramidetak og klokka.
     bx, byy = 0.0, -S_D / 2 + 1.6
@@ -711,6 +703,11 @@ def scriptorium_outside(p, rng):
     # Kolliderne: sokkelen og taket.
     collide((0, 0, (S_F - 0.25) / 2 + 0.005), (S_W + 0.36, S_D + 0.36, S_F + 0.25))
     collide((0, 0, S_H + 0.1), (S_W, S_D, 0.2))
+    for fr, Lg, top in gables:
+        check_parapet("scriptorium", fr, Lg, S_T, top)
+    check_crosses("scriptorium")
+    # Klokkestolen står på mønet foran; mønet bak den skal være stein.
+    check_ridge("scriptorium", byy + 0.8, by - S_T)
 
 
 def scriptorium_inside(p, rng):

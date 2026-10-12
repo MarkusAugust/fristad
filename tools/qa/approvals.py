@@ -67,7 +67,7 @@ SHOT = (800, 560)
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
 # Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.; 6: møblene rettet; 7: tønnestativet og disken; 8: runde 7 rettet).
-ROUND = 11
+ROUND = 12
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).

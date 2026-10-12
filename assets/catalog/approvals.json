@@ -447,9 +447,14 @@
    ]
   },
   "crypt": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "taket er bedre, men jeg kan fortsatt se noe av teksturen til taket over den bjelken du har lagt på langs langs mønet",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "taket er bedre, men jeg kan fortsatt se noe av teksturen til taket over den bjelken du har lagt på langs langs mønet"
+   },
    "history": [
     "Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4).",
     "merkelig jernbeslag på døren",
@@ -1300,13 +1305,13 @@
    ]
   },
   "kit_secret_wall": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "mursteiner sprekker ikke slik på tvers av flere",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-12",
-    "why": "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her"
+    "why": "mursteiner sprekker ikke slik på tvers av flere"
    },
    "history": [
     "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?",
@@ -1458,18 +1463,26 @@
    "why": ""
   },
   "scriptorium": {
-   "verdict": "godkjent",
-   "date": "2026-10-12",
-   "why": ""
-  },
-  "scriptorium_interior": {
    "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "jeg synes heller trappen skulle gått langs veggen og de tingene som står mellom trappen og veggen kan stå et annet sted",
+   "why": "vannbord stopper lengre opp en taket",
    "before": {
-    "verdict": "usikker",
+    "verdict": "godkjent",
     "date": "2026-10-12",
-    "why": "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen"
+    "why": ""
+   },
+   "history": [
+    "vannbord stopper lengre opp en taket"
+   ]
+  },
+  "scriptorium_interior": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "jeg synes heller trappen skulle gått langs veggen og de tingene som står mellom trappen og veggen kan stå et annet sted"
    },
    "history": [
     "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger",

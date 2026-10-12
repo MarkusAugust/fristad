@@ -108,3 +108,7 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Det som ligger under, må ikke stikke opp.** En kile under mønet fulgte ikke svaien og stakk opp gjennom mønesteinen. Regelen `check_ridge` skyter stråler ned langs mønet, og det første de treffer skal være mønesteinen.
 - **En sprekk i kvadermur går i fugene.** Den går trinnvis, opp og bortover, aldri tvers gjennom steinene. Fugene er målt i murbildet (`WALL_BEDS`, `WALL_HEADS`), og bildet står opp ned i meter, fordi glTF har v nedover.
 - **En trapp står langs en vegg.** Det som står mellom trappa og veggen, flyttes. Vinduer som trappa eller galleriet ville stå foran, mures igjen eller flyttes, og utsida vises på nytt.
+
+## Runde 11 – dommen (12. oktober)
+
+- **Rett feilen overalt der den kan oppstå.** Vannbordene ble rettet på kirka og kryptinngangen, men ikke på Skriptoriet, som brukte den samme gamle funksjonen. Når en feil rettes ved roten, slettes den gamle funksjonen (`parapet`). Da må alle som brukte den, gå over til den nye (`roof_parapet`) med reglene.
