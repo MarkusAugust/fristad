@@ -210,6 +210,7 @@
   "writing_desk_1": "Møbel: Skrivepult med krakk, bøker, blekkhorn og tent lys (Skriptoriet).",
   "writing_desk_2": "Møbel: Skrivepult med krakk, bøker, blekkhorn og tent lys (Skriptoriet).",
   "writing_desk_gallery": "Møbel: Skrivepult under det høye vinduet på galleriet (Skriptoriet).",
-  "writing_desk_unlit": "Møbel: Skrivepult med krakk og bøker (Skriptoriet)."
+  "writing_desk_unlit": "Møbel: Skrivepult med krakk og bøker (Skriptoriet).",
+  "mutant_button": "Button Wight (trash, gravkjelleren): steinplata med SUBMIT forfra og knust stein med glitch-sprekker bak, linsa øverst, beinarmer og korte beinbein, brente lys oppå (tools/models/monsters.py, arket i assets/textures/monsters/ref/)."
  }
 }

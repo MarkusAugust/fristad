@@ -1037,7 +1037,8 @@ fn fiendene_patruljerer_og_ligger_i_bakhold() {
         let mut visited: Vec<Vec<f32>> = mobs.mobs.iter().map(|_| vec![f32::MAX; 8]).collect();
         let route = |m: &crate::domain::mobs::Mob| spawns.iter().find(|s| !s.patrol.is_empty() && s.pos.distance(m.pos) < 3.0).map(|s| s.patrol.clone());
         let routes: Vec<Option<Vec<Vec3>>> = mobs.mobs.iter().map(route).collect();
-        for _ in 0..(30 * 60) {
+        // To minutter: Button Wight tasser på korte bein (1,4 m/s).
+        for _ in 0..(30 * 120) {
             mobs.update(1.0 / 30.0, far, true, &c);
             for (i, m) in mobs.mobs.iter().enumerate() {
                 if let Some(r) = &routes[i] {

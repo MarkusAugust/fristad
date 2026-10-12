@@ -75,6 +75,8 @@ models! {
     "signpost" => "town/signpost.glb",
     "chest" => "town/chest.glb",
     "chest_lid" => "town/chest_lid.glb",
+    // Fiendene i krypten fra tools/models/monsters.py (etter eierens ark).
+    "mutant_button" => "mobs/mutant_button.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",
