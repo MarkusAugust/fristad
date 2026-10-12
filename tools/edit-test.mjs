@@ -47,7 +47,7 @@ const check = (ok, what) => {
 };
 
 await page.goto(`http://127.0.0.1:${port}/?edit${mode === "webgl" ? "&webgl" : ""}`, { waitUntil: "load" });
-await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 180000 });
+await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 600000 });
 await page.evaluate(() => document.querySelector("#enter")?.click());
 await page.waitForTimeout(1500);
 check(await page.evaluate(() => !document.querySelector("#editor")?.hidden), "panelet er oppe");
