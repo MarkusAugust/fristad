@@ -67,7 +67,7 @@ SHOT = (800, 560)
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
 # Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.; 6: møblene rettet; 7: tønnestativet og disken; 8: runde 7 rettet).
-ROUND = 12
+ROUND = 13
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
@@ -275,7 +275,7 @@ def new_page(spec_path, studio, out):
     reshot = spec.get("reshot", {})
     items = []
     for n in spec["new"] + reshot.get("names", []):
-        order = {"corner": 0, "front": 1, "back": 2}
+        order = {"corner": 0, "front": 1, "side": 2, "back": 3, "game": 4}
         views = sorted((f for f in os.listdir(studio) if f.startswith(f"{n}_") and f.endswith(".png") and f[len(n) + 1:-4] in order), key=lambda f: order[f[len(n) + 1:-4]])
         if not views:
             raise SystemExit(f"mangler studiobilder av {n}")
@@ -284,10 +284,19 @@ def new_page(spec_path, studio, out):
         sheet = Image.new("RGB", (w * len(ims), h))
         for k, im in enumerate(ims):
             sheet.paste(im, (k * w, 0))
-        sheet.thumbnail((1200, 1200), Image.LANCZOS)
+        # Forbildet (monstrene: arket fra eieren) står over, i samme bredde.
+        ref = os.path.join(studio, f"{n}_sheet.png")
+        if os.path.exists(ref):
+            top = Image.open(ref).convert("RGB")
+            top = top.resize((sheet.width, round(top.height * sheet.width / top.width)), Image.LANCZOS)
+            both = Image.new("RGB", (sheet.width, top.height + sheet.height))
+            both.paste(top, (0, 0))
+            both.paste(sheet, (0, top.height))
+            sheet = both
+        sheet.thumbnail((1600, 1600), Image.LANCZOS)
         sheet.save(os.path.join(img, f"m_{n}.jpg"), quality=86)
         old = n in reshot.get("names", [])
-        b = open(os.path.join(ROOT, "assets", "models", "town" if old else "furniture", f"{n}.glb"), "rb").read()
+        b = open(next(os.path.join(d, f"{n}.glb") for d in (os.path.join(ROOT, "assets", "models", g) for g in ("town", "furniture", "mobs", "crypt")) if os.path.exists(os.path.join(d, f"{n}.glb"))), "rb").read()
         doc = json.loads(b[20:20 + struct.unpack("<I", b[12:16])[0]])
         tris = sum(doc["accessors"][q["indices"]]["count"] // 3 for m in doc["meshes"] for q in m["primitives"])
         hs = where.get(n, [])
