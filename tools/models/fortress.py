@@ -547,10 +547,9 @@ def gatehouse():
     # Buestein rundt åpningen foran og bak, med sluttstein.
     for y, frame in ((-D / 2, ((-r - 1.0, -D / 2), (1.0, 0.0))), (D / 2, ((r + 1.0, D / 2), (-1.0, 0.0)))):
         voussoirs(frame, r + 1.0, zs, r, -1, 0.0, p.cap, n=11, depth=0.5, proud=0.12, bevel=0.03)
-    # Bindbjelker under hvelvet i portrommet.
-    for k in range(4):
-        y = -D / 2 + 0.9 + (D - 1.8) * k / 3
-        stick("vault_beam", (-r, y, zs - 0.12), (r, y, zs - 0.12), 0.24, 0.3, p.timber, ("timber", k % 4), seed=k)
+    # Ingen bjelker tvers over portrommet: ingenting går over en åpning man
+    # skal gå gjennom (eieren: «fjern den brune horisontale saken midt i
+    # porten»).
     # Bjelkeender gjennom muren foran, med skråstøtter, og en smal bordgang
     # (hurdis) på dem med brystning av bord.
     zb_ = 7.45

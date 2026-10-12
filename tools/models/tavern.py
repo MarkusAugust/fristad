@@ -88,13 +88,13 @@ def outside(p, rng):
     back_open = [(-3.4 - X0, fw[0], fw[1], 1.0), (2.4 - X0, fw[0], fw[1], 1.0)]
     bk, _ = half_timbered(p, "wall_back", (X0, Y1), (X1, Y1), *gf, 1, back_open, rng)
     left_open = [(-2.7 - Y0, fw[0], fw[1], 1.0), (3.0 - Y0, fw[0], fw[1], 1.0)]
-    lf, _ = half_timbered(p, "wall_left", (X0, Y0), (X0, Y1), *gf, 1, left_open, rng)
+    lf, _ = half_timbered(p, "wall_left", (X0, Y0), (X0, Y1), *gf, 1, left_open, rng, own=(False, False))
     right_open = [(2.6 - Y0, fw[0], fw[1], 1.0), (-1.0 - Y0, fw[0], fw[1], 1.0)]
-    rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), *gf, -1, right_open, rng)
+    rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), *gf, -1, right_open, rng, own=(False, False))
     for frame, opens, out in ((fr, front_open[1:], -1), (bk, back_open, 1), (lf, left_open, 1), (rt, right_open, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
-    door(p, fr, DOOR_X - X0, F0, 1.3, 2.35, -1)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True, in_frame=True)
+    door(p, fr, DOOR_X - X0, F0, 1.3, 2.35, -1, in_frame=True)
 
     # Bjelkelaget mellom etasjene: bjelkeender som stikker ut under
     # utkragingen foran og bak, og et bord langs kanten.
@@ -118,12 +118,12 @@ def outside(p, rng):
     uback = [(x - X0, uw[0], uw[1], 0.85) for x in (-3.6, 0.2, 3.0)]
     ubk, _ = half_timbered(p, "upper_back", (X0, UY1), (X1, UY1), *uf, 1, uback, rng)
     uleft = [(0.0 - UY0, uw[0], uw[1], 0.85)]
-    ulf, _ = half_timbered(p, "upper_left", (X0, UY0), (X0, UY1), *uf, 1, uleft, rng)
+    ulf, _ = half_timbered(p, "upper_left", (X0, UY0), (X0, UY1), *uf, 1, uleft, rng, own=(False, False))
     uright = [(0.0 - UY0, uw[0], uw[1], 0.85)]
-    urt, _ = half_timbered(p, "upper_right", (X1, UY0), (X1, UY1), *uf, -1, uright, rng)
+    urt, _ = half_timbered(p, "upper_right", (X1, UY0), (X1, UY1), *uf, -1, uright, rng, own=(False, False))
     for frame, opens, out in ((ufr, ufront, -1), (ubk, uback, 1), (ulf, uleft, 1), (urt, uright, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True, in_frame=True)
 
     # Taket og gavlene.
     ridge = kit.gable_roof(p, X0 - T / 2, X1 + T / 2, UY0 - T / 2, UY1 + T / 2, E + 0.28, PITCH)

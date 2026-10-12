@@ -536,7 +536,7 @@ def window(p, frame, s, zc, w, h, out, thick=0.3, shutters=True, rng=None, lit=T
                 o.matrix_world = Matrix.Translation(hinge) @ Matrix.Rotation(ang, 4, "Z") @ o.matrix_world
 
 
-def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False, in_frame=False):
+def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False, in_frame=False, head=True):
     """Dør: karm av mørke bjelker og et overstykke med utskåret list, og
     døra (hele det malte dørbildet) slått inn i huset."""
     face = out * (thick / 2 + 0.06)
@@ -544,8 +544,10 @@ def door(p, frame, s, z0, w, h, out, thick=0.3, open_in=True, dark=False, in_fra
     # I bindingsverk er stolpene ved døra karmen; ellers egne dørstolper.
     for sx in () if in_frame else (-1, 1):
         x = s + sx * (w / 2 + t / 2)
-        stick("door_post", at_wall(frame, x, face, z0), at_wall(frame, x, face, z0 + h + t), 0.2, t, p.trim, ("trim", DARK_BEAM), bevel=0.03)
-    stick("door_head", at_wall(frame, s - w / 2 - t - 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), at_wall(frame, s + w / 2 + t + 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), 0.24, t + 0.08, p.trim, ("trim", CARVED), bevel=0.03)
+        stick("door_post", at_wall(frame, x, face, z0), at_wall(frame, x, face, z0 + h + (t if head else 0.06)), 0.2, t, p.trim, ("trim", DARK_BEAM), bevel=0.03)
+    # Det utskårne overstykket; uthusene har ikke plass til det under taket.
+    if head:
+        stick("door_head", at_wall(frame, s - w / 2 - t - 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), at_wall(frame, s + w / 2 + t + 0.1, face + out * 0.02, z0 + h + t / 2 + 0.04), 0.24, t + 0.08, p.trim, ("trim", CARVED), bevel=0.03)
     (px, py), (dx, dy) = frame
     yaw = math.atan2(dy, dx)
     leaf_t = 0.07
@@ -627,13 +629,15 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, t
                 lp[uvl].uv = (c.x, -abs(c.y - yc) / cp)
         ob = _object(f"{name}_{side}", bm, p.roof)
         _bevel(ob, 0.08, 2)
-        # Vindskiene langs gavlkantene, oppå takflaten og etter knekken.
+        # Vindskiene langs gavlkantene, utenpå takenden og med overkanten
+        # rett under takflaten, så de dekker takets kant uten å stikke opp
+        # (eieren: «brune kanter stikker opp fra taket»).
         for i in (0, n):
             x = xa + (xb - xa) * i / n - (0.06 if i == 0 else -0.06)
             for j in range(last):
                 a_ = bm_pts[(i, j)]
                 b_ = bm_pts[(i, j + 1)]
-                stick("barge", (x, a_[0], a_[1] + 0.02), (x, b_[0], b_[1] + 0.02), 0.1, 0.36, p.trim, ("trim", DARK_BEAM), bevel=0.02)
+                stick("barge", (x, a_[0], a_[1] - 0.09), (x, b_[0], b_[1] - 0.09), 0.1, 0.36, p.trim, ("trim", DARK_BEAM), bevel=0.02)
     # Mønerull.
     bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.3, depth=xb - xa + 0.1, location=((xa + xb) / 2, yc, ridge - sag * 0.3 + 0.02), rotation=(0, math.pi / 2, 0))
     rl = bpy.context.active_object
@@ -644,7 +648,7 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, t
     return ridge
 
 
-def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3):
+def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3, mat=None, timber=True):
     """Gavltrekanten over veggen i x: puss med bjelker (stavler og en
     hanebjelke) mot `out` (±1 langs x)."""
     yc = (y0 + y1) / 2
@@ -664,7 +668,10 @@ def gable_wall(p, x, y0, y1, z0, ridge_z, pitch, out, rng, thick=0.3):
         for lp in f.loops:
             c = lp.vert.co
             lp[uvl].uv = (c.y, c.z)
-    _object("gable", bm, p.plaster)
+    _object("gable", bm, mat or p.plaster)
+    # En murt gavl (smia) har ingen bjelker: steinen går helt opp under taket.
+    if not timber:
+        return
     # Bindingsverket i gavlen, i samme plan og tykkelse som veggene under:
     # en hanebjelke og stolper fra stavlægjen opp til hanebjelken og videre
     # opp under taket, som møtes kant i kant.

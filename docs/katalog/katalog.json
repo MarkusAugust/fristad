@@ -5,11 +5,11 @@
    "instances": 1,
    "name": "house_a",
    "reserve": 0,
-   "triangles": 7384,
+   "triangles": 8796,
    "layers": [
     "chimney",
     "cladding",
-    "door_b",
+    "door",
     "iron",
     "plaster",
     "stone",
@@ -19,7 +19,7 @@
    ],
    "size": [
     8.25,
-    13.87,
+    15.16,
     10.81
    ]
   },
@@ -28,7 +28,7 @@
    "instances": 1,
    "name": "house_b",
    "reserve": 0,
-   "triangles": 7172,
+   "triangles": 8716,
    "layers": [
     "chimney",
     "cladding",
@@ -43,7 +43,7 @@
    ],
    "size": [
     10.83,
-    12.14,
+    13.43,
     9.6
    ]
   },
@@ -52,7 +52,7 @@
    "instances": 1,
    "name": "house_c",
    "reserve": 0,
-   "triangles": 5384,
+   "triangles": 5552,
    "layers": [
     "chimney",
     "cladding",
@@ -67,7 +67,7 @@
    ],
    "size": [
     8.8,
-    7.47,
+    8.82,
     9.14
    ]
   },
@@ -76,7 +76,7 @@
    "instances": 1,
    "name": "house_d",
    "reserve": 0,
-   "triangles": 8844,
+   "triangles": 10624,
    "layers": [
     "ashlar",
     "chimney",
@@ -92,7 +92,7 @@
    ],
    "size": [
     8.25,
-    18.05,
+    19.28,
     11.81
    ]
   },
@@ -101,7 +101,7 @@
    "instances": 1,
    "name": "house_e",
    "reserve": 0,
-   "triangles": 4680,
+   "triangles": 4848,
    "layers": [
     "chimney",
     "cladding",
@@ -116,7 +116,7 @@
    ],
    "size": [
     11.43,
-    11.21,
+    12.56,
     8.99
    ]
   },
@@ -125,7 +125,7 @@
    "instances": 1,
    "name": "house_f",
    "reserve": 0,
-   "triangles": 7476,
+   "triangles": 9020,
    "layers": [
     "chimney",
     "cladding",
@@ -140,7 +140,7 @@
    ],
    "size": [
     9.05,
-    13.79,
+    15.08,
     11.01
    ]
   },
@@ -149,7 +149,7 @@
    "instances": 1,
    "name": "house_g",
    "reserve": 0,
-   "triangles": 7072,
+   "triangles": 8300,
    "layers": [
     "chimney",
     "cladding",
@@ -164,7 +164,7 @@
    ],
    "size": [
     7.46,
-    14.29,
+    15.58,
     10.42
    ]
   },
@@ -173,10 +173,11 @@
    "instances": 1,
    "name": "house_h",
    "reserve": 0,
-   "triangles": 4448,
+   "triangles": 5108,
    "layers": [
     "chimney",
-    "door_b",
+    "cladding",
+    "door",
     "iron",
     "plaster",
     "stone",
@@ -186,7 +187,7 @@
    ],
    "size": [
     10.04,
-    8.63,
+    9.98,
     8.61
    ]
   },
@@ -195,7 +196,7 @@
    "instances": 1,
    "name": "house_i",
    "reserve": 0,
-   "triangles": 7352,
+   "triangles": 9020,
    "layers": [
     "chimney",
     "cladding",
@@ -210,7 +211,7 @@
    ],
    "size": [
     9.43,
-    12.85,
+    14.14,
     10.8
    ]
   },
@@ -219,7 +220,7 @@
    "instances": 1,
    "name": "house_j",
    "reserve": 0,
-   "triangles": 3248,
+   "triangles": 3416,
    "layers": [
     "chimney",
     "cladding",
@@ -233,7 +234,7 @@
    ],
    "size": [
     7.82,
-    7.74,
+    9.09,
     8.38
    ]
   },
@@ -242,7 +243,7 @@
    "instances": 1,
    "name": "house_k",
    "reserve": 0,
-   "triangles": 6996,
+   "triangles": 8432,
    "layers": [
     "ashlar",
     "chimney",
@@ -258,7 +259,7 @@
    ],
    "size": [
     11.83,
-    12.12,
+    13.41,
     10.09
    ]
   },
@@ -267,7 +268,7 @@
    "instances": 1,
    "name": "house_l",
    "reserve": 0,
-   "triangles": 10364,
+   "triangles": 12304,
    "layers": [
     "chimney",
     "cladding",
@@ -282,7 +283,7 @@
    ],
    "size": [
     8.65,
-    18.94,
+    20.17,
     12.62
    ]
   },
@@ -291,7 +292,7 @@
    "instances": 1,
    "name": "house_m",
    "reserve": 0,
-   "triangles": 5664,
+   "triangles": 6588,
    "layers": [
     "chimney",
     "cladding",
@@ -307,7 +308,7 @@
    ],
    "size": [
     9.23,
-    12.02,
+    13.31,
     9.4
    ]
   },
@@ -316,11 +317,11 @@
    "instances": 1,
    "name": "house_n",
    "reserve": 0,
-   "triangles": 7840,
+   "triangles": 9508,
    "layers": [
     "chimney",
     "cladding",
-    "door_b",
+    "door",
     "iron",
     "plaster",
     "stone",
@@ -330,7 +331,7 @@
    ],
    "size": [
     10.64,
-    12.72,
+    14.01,
     10.01
    ]
   },
@@ -339,7 +340,7 @@
    "instances": 1,
    "name": "house_o",
    "reserve": 0,
-   "triangles": 4880,
+   "triangles": 5048,
    "layers": [
     "chimney",
     "cladding",
@@ -354,7 +355,7 @@
    ],
    "size": [
     7.63,
-    7.86,
+    9.21,
     8.19
    ]
   },
@@ -363,11 +364,11 @@
    "instances": 1,
    "name": "house_p",
    "reserve": 0,
-   "triangles": 7432,
+   "triangles": 8844,
    "layers": [
     "chimney",
     "cladding",
-    "door",
+    "door_b",
     "iron",
     "plaster",
     "plaster_red",
@@ -378,7 +379,7 @@
    ],
    "size": [
     8.45,
-    14.23,
+    15.52,
     11.31
    ]
   },
@@ -387,7 +388,7 @@
    "instances": 1,
    "name": "house_q",
    "reserve": 0,
-   "triangles": 4536,
+   "triangles": 4704,
    "layers": [
     "chimney",
     "cladding",
@@ -401,7 +402,7 @@
    ],
    "size": [
     11.02,
-    11.08,
+    12.43,
     8.99
    ]
   },
@@ -410,7 +411,7 @@
    "instances": 1,
    "name": "house_r",
    "reserve": 0,
-   "triangles": 7376,
+   "triangles": 8436,
    "layers": [
     "chimney",
     "cladding",
@@ -425,7 +426,7 @@
    ],
    "size": [
     8.84,
-    13.3,
+    14.59,
     10.61
    ]
   },
@@ -434,7 +435,7 @@
    "instances": 1,
    "name": "house_s",
    "reserve": 0,
-   "triangles": 9020,
+   "triangles": 10608,
    "layers": [
     "ashlar",
     "chimney",
@@ -449,7 +450,7 @@
    ],
    "size": [
     8.06,
-    18.77,
+    20.0,
     12.02
    ]
   },
@@ -458,7 +459,7 @@
    "instances": 2,
    "name": "house_t",
    "reserve": 0,
-   "triangles": 4592,
+   "triangles": 4892,
    "layers": [
     "chimney",
     "cladding",
@@ -473,7 +474,7 @@
    ],
    "size": [
     9.83,
-    8.34,
+    9.69,
     8.6
    ]
   },
@@ -482,18 +483,18 @@
    "instances": 7,
    "name": "shed_a",
    "reserve": 0,
-   "triangles": 384,
+   "triangles": 372,
    "layers": [
     "door_b",
-    "shingles",
     "stone",
     "timber_grey",
     "trim",
-    "weatherboard"
+    "weatherboard",
+    "weatherboard_grey"
    ],
    "size": [
     3.9,
-    3.04,
+    3.74,
     3.3
    ]
   },
@@ -502,16 +503,17 @@
    "instances": 7,
    "name": "shed_b",
    "reserve": 0,
-   "triangles": 4144,
+   "triangles": 4188,
    "layers": [
     "logs",
-    "shingles",
+    "stone",
     "timber_grey",
-    "weatherboard"
+    "weatherboard",
+    "weatherboard_grey"
    ],
    "size": [
     4.3,
-    2.69,
+    3.59,
     2.7
    ]
   },
@@ -520,17 +522,18 @@
    "instances": 9,
    "name": "privy",
    "reserve": 0,
-   "triangles": 256,
+   "triangles": 288,
    "layers": [
     "cladding",
     "door",
-    "shingles",
-    "trim"
+    "stone",
+    "trim",
+    "weatherboard_grey"
    ],
    "size": [
     1.7,
-    2.51,
-    1.74
+    3.41,
+    1.7
    ]
   },
   {
@@ -538,15 +541,15 @@
    "instances": 7,
    "name": "haystack",
    "reserve": 0,
-   "triangles": 422,
+   "triangles": 446,
    "layers": [
-    "thatch",
+    "straw_floor",
     "timber_grey"
    ],
    "size": [
-    3.39,
-    3.6,
-    2.92
+    3.38,
+    4.1,
+    2.96
    ]
   },
   {
@@ -563,7 +566,7 @@
    ],
    "size": [
     4.08,
-    1.0,
+    1.6,
     3.08
    ]
   },
@@ -572,17 +575,17 @@
    "instances": 8,
    "name": "coop",
    "reserve": 0,
-   "triangles": 300,
+   "triangles": 316,
    "layers": [
     "planks",
-    "shingles",
     "timber_grey",
-    "weatherboard"
+    "weatherboard",
+    "weatherboard_grey"
    ],
    "size": [
     2.2,
-    2.33,
-    2.67
+    2.74,
+    2.68
    ]
   },
   {
@@ -628,7 +631,7 @@
    "instances": 2,
    "name": "gatehouse",
    "reserve": 0,
-   "triangles": 9790,
+   "triangles": 9678,
    "layers": [
     "door_b",
     "flagstone",
@@ -1061,7 +1064,7 @@
    "instances": 1,
    "name": "forge",
    "reserve": 0,
-   "triangles": 9349,
+   "triangles": 9187,
    "layers": [
     "chimney",
     "cladding",
@@ -1119,7 +1122,7 @@
    "instances": 1,
    "name": "tavern",
    "reserve": 0,
-   "triangles": 12396,
+   "triangles": 13400,
    "layers": [
     "chimney",
     "cladding",
@@ -1177,7 +1180,7 @@
    "instances": 1,
    "name": "home",
    "reserve": 0,
-   "triangles": 15248,
+   "triangles": 15692,
    "layers": [
     "chimney",
     "cladding",
@@ -1459,7 +1462,7 @@
    "instances": 1,
    "name": "apothecary",
    "reserve": 0,
-   "triangles": 10166,
+   "triangles": 10226,
    "layers": [
     "chimney",
     "cladding",
@@ -1488,7 +1491,7 @@
    "instances": 1,
    "name": "apothecary_interior",
    "reserve": 0,
-   "triangles": 18542,
+   "triangles": 18778,
    "layers": [
     "chimney",
     "cladding",
@@ -2625,6 +2628,7 @@
     "house_e",
     "house_f",
     "house_g",
+    "house_h",
     "house_i",
     "house_j",
     "house_k",
@@ -2877,15 +2881,17 @@
    "ok": true,
    "failed": [],
    "users": [
+    "house_a",
     "house_b",
     "house_c",
     "house_d",
     "house_f",
     "house_g",
+    "house_h",
     "house_k",
     "house_l",
+    "house_n",
     "house_o",
-    "house_p",
     "house_q",
     "privy",
     "forge",
@@ -2907,13 +2913,11 @@
    "ok": true,
    "failed": [],
    "users": [
-    "house_a",
     "house_e",
-    "house_h",
     "house_i",
     "house_j",
     "house_m",
-    "house_n",
+    "house_p",
     "house_r",
     "house_s",
     "house_t",
@@ -3741,10 +3745,6 @@
     "house_j",
     "house_q",
     "house_t",
-    "shed_a",
-    "shed_b",
-    "privy",
-    "coop",
     "wall_tower",
     "gatehouse",
     "signpost",
@@ -3875,6 +3875,8 @@
     "house_s",
     "house_t",
     "shed_a",
+    "shed_b",
+    "privy",
     "town_wall",
     "wall_tower",
     "gatehouse",
@@ -3915,6 +3917,7 @@
    "ok": true,
    "failed": [],
    "users": [
+    "haystack",
     "market_stall_b",
     "tavern_interior",
     "home_interior",
@@ -3942,7 +3945,6 @@
     "house_l",
     "house_o",
     "house_r",
-    "haystack",
     "training_dummy",
     "tavern",
     "tavern_interior",
@@ -4215,7 +4217,12 @@
    "layer": true,
    "ok": true,
    "failed": [],
-   "users": []
+   "users": [
+    "shed_a",
+    "shed_b",
+    "privy",
+    "coop"
+   ]
   },
   {
    "name": "weave",

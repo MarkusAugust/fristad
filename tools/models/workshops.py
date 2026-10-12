@@ -284,7 +284,7 @@ def forge_outside(p, rng):
     fy = FY0 + 0.15
     opens = [((OPEN0 + OPEN1) / 2 - FIX0, FZ, OPEN_TOP, OPEN1 - OPEN0), (-3.45 - FIX0, 1.25, 2.15, 0.7)]
     fr, _ = half_timbered(p, "wall_front", (FIX0, fy), (FIX1, fy), FZ, FE, -1, opens, rng)
-    window(p, fr, -3.45 - FIX0, 1.7, 0.7, 0.9, -1, rng=rng, inside=True)
+    window(p, fr, -3.45 - FIX0, 1.7, 0.7, 0.9, -1, rng=rng, inside=True, in_frame=True)
     # Overliggeren over åpningen: en tykk, litt skjev bjelke på to stolper
     # med knekter.
     stick("lintel", (OPEN0 - 0.35, FY0 - 0.08, OPEN_TOP + 0.17), (OPEN1 + 0.35, FY0 - 0.08, OPEN_TOP + 0.22), 0.36, 0.38, p.timber, ("timber", 2), bevel=0.05)
@@ -308,10 +308,11 @@ def forge_outside(p, rng):
     box("back_step", (BACK_DOOR - 0.65, FY1 - 0.02, -0.15), (BACK_DOOR + 0.65, FY1 + 0.45, FZ - 0.03), p.stone, bevel=0.04)
     ramp_to(BACK_DOOR - 0.6, BACK_DOOR + 0.6, FY1 + 0.75, FY1 - FT - 0.1, 0.0, FZ)
 
-    # Taket: tegl, med mønet langs fasaden, og gavlene i bindingsverk.
+    # Taket: tegl, med mønet langs fasaden, og gavlene murt av samme stein
+    # som veggene helt opp under mønet (eieren: «stein hele veien opp»).
     ridge = kit.gable_roof(p, -FW / 2, FW / 2, FY0, FY1, FE + 0.28, FPITCH, overhang=0.85, gable_over=0.55, sag=0.28)
-    for x, out in ((-FW / 2 + 0.15, -1), (FW / 2 - 0.15, 1)):
-        kit.gable_wall(p, x, FY0, FY1, FE, ridge, FPITCH, out, rng)
+    for x, out in ((-FW / 2 + FT / 2, -1), (FW / 2 - FT / 2, 1)):
+        kit.gable_wall(p, x, FY0, FY1, FE, ridge, FPITCH, out, rng, thick=FT, mat=p.wall_stone, timber=False)
     # Bindbjelkene på tvers inne (synes gjennom åpningen).
     for x in (-3.45, 0.4, 3.2):
         stick("tie_beam", (x, FY0 + 0.2, FE - 0.05), (x, FIY1 + 0.25, FE - 0.05), 0.24, 0.26, p.timber, ("timber", rng.randrange(4)), seed=x)
@@ -631,13 +632,13 @@ def apothecary_outside(p, rng):
     back = [(-2.6 - AX0, fw[0], fw[1], 0.9), (0.0 - AX0, fw[0], fw[1], 0.9)]
     bk, _ = half_timbered(p, "wall_back", (AX0, AY1), (AX1, AY1), AF0, AC0, 1, back, rng)
     left = [(-1.6 - AY0, fw[0], fw[1], 0.9), (2.1 - AY0, fw[0], fw[1], 0.9)]
-    lf, _ = half_timbered(p, "wall_left", (AX0, AY0), (AX0, AY1), AF0, AC0, 1, left, rng)
+    lf, _ = half_timbered(p, "wall_left", (AX0, AY0), (AX0, AY1), AF0, AC0, 1, left, rng, own=(False, False))
     right = [(-0.2 - AY0, fw[0] + 0.25, fw[1], 0.7)]
-    rt, _ = half_timbered(p, "wall_right", (AX1, AY0), (AX1, AY1), AF0, AC0, -1, right, rng)
+    rt, _ = half_timbered(p, "wall_right", (AX1, AY0), (AX1, AY1), AF0, AC0, -1, right, rng, own=(False, False))
     for frame, opens, out in ((bk, back, 1), (lf, left, 1), (rt, right, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
-    door(p, fr, ADOOR - AX0, AF0, 1.15, 2.2, -1)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True, in_frame=True)
+    door(p, fr, ADOOR - AX0, AF0, 1.15, 2.2, -1, in_frame=True)
     hatch_front(p, rng, hatch)
 
     # Bjelkelaget: bjelkeender under utkragingen foran, og et bord langs.
@@ -657,11 +658,11 @@ def apothecary_outside(p, rng):
     ufr, _ = half_timbered(p, "upper_front", (AX0, AUY0), (AX1, AUY0), AF1, AE, -1, ufront, rng)
     uback = [(-1.0 - AX0, uw[0], uw[1], 0.8)]
     ubk, _ = half_timbered(p, "upper_back", (AX0, AY1), (AX1, AY1), AF1, AE, 1, uback, rng)
-    ulf, _ = half_timbered(p, "upper_left", (AX0, AUY0), (AX0, AY1), AF1, AE, 1, [(0.0 - AUY0, uw[0], uw[1] + 0.3, 0.8)], rng)
-    urt, _ = half_timbered(p, "upper_right", (AX1, AUY0), (AX1, AY1), AF1, AE, -1, [(0.4 - AUY0, uw[0], uw[1] + 0.3, 0.8)], rng)
+    ulf, _ = half_timbered(p, "upper_left", (AX0, AUY0), (AX0, AY1), AF1, AE, 1, [(0.0 - AUY0, uw[0], uw[1] + 0.3, 0.8)], rng, own=(False, False))
+    urt, _ = half_timbered(p, "upper_right", (AX1, AUY0), (AX1, AY1), AF1, AE, -1, [(0.4 - AUY0, uw[0], uw[1] + 0.3, 0.8)], rng, own=(False, False))
     for frame, opens, out in ((ufr, ufront, -1), (ubk, uback, 1), (ulf, [(0.0 - AUY0, uw[0], uw[1] + 0.3, 0.8)], 1), (urt, [(0.4 - AUY0, uw[0], uw[1] + 0.3, 0.8)], -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True, in_frame=True)
 
     # Taket og gavlene, med et lite lukevindu øverst i gavlene.
     ridge = kit.gable_roof(p, AX0 - AT / 2, AX1 + AT / 2, AUY0 - AT / 2, AY1 + AT / 2, AE + 0.28, APITCH, overhang=0.75)

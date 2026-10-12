@@ -62,13 +62,13 @@ def outside(p, rng):
     fr, _ = half_timbered(p, "wall_front", (X0, Y0), (X1, Y0), F0, E, -1, front, rng)
     back = [(1.0 - X0, fw[0], fw[1], 0.9)]
     bk, _ = half_timbered(p, "wall_back", (X0, Y1), (X1, Y1), F0, E, 1, back, rng)
-    lf, _ = half_timbered(p, "wall_left", (X0, Y0), (X0, Y1), F0, E, 1, [], rng)
+    lf, _ = half_timbered(p, "wall_left", (X0, Y0), (X0, Y1), F0, E, 1, [], rng, own=(False, False))
     right = [(-1.2 - Y0, fw[0], fw[1], 0.9)]
-    rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), F0, E, -1, right, rng)
+    rt, _ = half_timbered(p, "wall_right", (X1, Y0), (X1, Y1), F0, E, -1, right, rng, own=(False, False))
     for frame, opens, out in ((fr, front[1:], -1), (bk, back, 1), (rt, right, -1)):
         for s, za, zb, w in opens:
-            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True)
-    door(p, fr, DOOR_X - X0, F0, 1.15, 2.2, -1, open_in=True)
+            window(p, frame, s, (za + zb) / 2, w, zb - za, out, rng=rng, inside=True, in_frame=True)
+    door(p, fr, DOOR_X - X0, F0, 1.15, 2.2, -1, open_in=True, in_frame=True)
     # Blomsterkasser under vinduene foran: planker med jord og blomster.
     flowers = [layer("plaster_red", (1.0, 0.75, 0.75)), layer("plaster", (1.0, 0.95, 0.4)), layer("plaster_white", (0.85, 0.8, 1.0))]
     green = layer("sod", (0.7, 1.0, 0.6))
