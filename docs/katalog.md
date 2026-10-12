@@ -5,7 +5,7 @@ Laget av `python3 -m tools.qa catalog` fra dataene (se `tools/qa/catalog.py`); r
 ## Oversikt
 
 - **Teksturer:** 82, 66 består teksturkontrollen (P-T), 27 har bare et malt bilde og er ikke tatt i bruk som lag.
-- **Modeller:** 127 i spillet: 69 godkjent, 53 underkjent, 5 ikke vurdert. 1 står ikke noe sted.
+- **Modeller:** 127 i spillet: 71 godkjent, 51 underkjent, 5 ikke vurdert. 1 står ikke noe sted.
 - **Ventes:** 32 modeller systemene venter på (fiender, figurer, våpen, dyr …).
 - **Forbilder:** 111 bilder, 34 brukt av et oppsett i sheet2model.
 
@@ -251,9 +251,9 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 | ![](katalog/m_shed_a.jpg) | `shed_a` (town/shed_a.glb) | Uthus. | 7× | 372 | 3.9 × 3.7 × 3.3 | door_b  stone  timber_grey  trim  weatherboard … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_shed_b.jpg) | `shed_b` (town/shed_b.glb) | Uthus  variant. | 7× | 4 188 | 4.3 × 3.6 × 2.7 | logs  stone  timber_grey  weatherboard  weatherboard_grey | **godkjent** (2026-10-12):  |
 | ![](katalog/m_privy.jpg) | `privy` (town/privy.glb) | Utedo. | 9× | 288 | 1.7 × 3.4 × 1.7 | cladding  door  stone  trim  weatherboard_grey | **godkjent** (2026-10-12):  |
-| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 446 | 3.4 × 4.1 × 3.0 | straw_floor  timber_grey | **underkjent** (2026-10-12): ser bra ut fra noen vinkler men ikke alle |
+| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 446 | 3.4 × 4.1 × 3.0 | straw_floor  timber_grey | **godkjent** (2026-10-12):  |
 | ![](katalog/m_garden.jpg) | `garden` (town/garden.glb) | Kjøkkenhage med gjerde. | 6× | 1 440 | 4.1 × 1.6 × 3.1 | earth  sod  timber_grey  wattle | **godkjent** (2026-10-12):  |
-| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 316 | 2.2 × 2.7 × 2.7 | planks  timber_grey  weatherboard  weatherboard_grey | **underkjent** (2026-10-12): planken opp  eller trappen hvis du kan kalle det det  ser rar ut. er den dreid på skrå? de fire bena står utenfor hjørnene  de må flyttes inn under kassen  slik at de står under hjørnene litt innenfor kanten |
+| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 316 | 2.2 × 2.7 × 2.6 | planks  timber_grey  weatherboard  weatherboard_grey | **godkjent** (2026-10-12):  |
 | ![](katalog/m_town_wall.jpg) | `town_wall` (town/town_wall.glb) | Bymuren  en bit. | 46× | 1 522 | 6.2 × 8.5 × 2.5 | flagstone  stone  wall_stone | **godkjent** (2026-10-11):  |
 | ![](katalog/m_wall_tower.jpg) | `wall_tower` (town/wall_tower.glb) | Tårn i bymuren. | 10× | 4 518 | 9.4 × 20.8 × 9.4 | flagstone  iron  shingles  stone  timber … | **godkjent** (2026-10-11):  |
 | ![](katalog/m_gatehouse.jpg) | `gatehouse` (town/gatehouse.glb) | Porthuset der Storgata møter bymuren. | 2× | 9 678 | 14.9 × 19.1 × 7.1 | door_b  flagstone  iron  shingles  stone … | **godkjent** (2026-10-12):  |

@@ -40,3 +40,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Tastene på siden traff kortet over det eieren så på.** Regel: tastene virker bare på kortet som er merket.
 - **Planen ble lagt fram i sin helhet for hver lille endring**, så eieren ikke kunne se hva som var nytt. Regel: eieren får bare endringen; hele planen står i `docs/plan.md`.
 - **Runde 2 sa i tillegg:** etasjeskillet og bindingsverket må løses samlet for alle husene; vinduskarmene er for spinkle til det kraftige bindingsverket (Vertshuset); noe stikker opp gjennom taket på uthusene og hus c, og takteksturen er feil; tønnene i veggene og trappa for nær veggen er ikke rettet (Vertshuset, Gjestehuset); Smia skal ha stein helt opp i endeveggene under mønet; kryptdøra har merkelige beslag; stigen og bonusen kan ikke kjennes igjen.
+
+## Runde 3 og 4 (12. oktober)
+
+- **Husene og uthusene er godkjent** etter at feilene ble rettet i felles kode: bindingsverket som ekte konstruksjon (`kit.half_timbered`), bjelkelaget mellom etasjene (`kit.storey_band`), grunnmur ned i bakken med bakkekontroll over hele fotavtrykket, vindskiene under takflaten, pulttak med vegger som følger fallet (`yard.lean_roof`, `slope_wall`).
+- **Hønsebrua var vridd på skrå** fordi en bjelke dreid fra x-aksen uten fast retning fikk bredden i en tilfeldig retning. Regel: skrå bjelker får en fast basis (bredden vannrett på tvers), som `kit.wall_member`.
+- **Høystakken så bra ut fra noen vinkler, men ikke alle:** flate fasetter og en søm der vinkelen går rundt. Regel: runde former merkes med `town.smooth` (ellers gjør `finish` alt flatt), og uv rundt en form regnes per flate uten hopp.
+- **Bildene fra byen var ubrukelige til å sjekke en modell** (kameraet havnet i nabohus). Regel: før- og etterbilder tas med `tools/qa/studio.py` (modellen alene med de ekte teksturlagene, i faste vinkler), og en runde bygges med `approvals round`.
