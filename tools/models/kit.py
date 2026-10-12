@@ -934,8 +934,9 @@ def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0):
             f = bm.faces.new((a, b, c, d))
             for lp, (uu, vv) in zip(f.loops, ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))):
                 lp[uvl].uv = (uu * 2 * math.pi * r / n, vv * h / rings)
-    for row, z in ((verts[0], 0), (verts[-1], h)):
-        f = bm.faces.new(row if z > 0 else row[::-1])
+    # (Ikke `z` her: den er høyden tønna skal stå i.)
+    for row, top in ((verts[0], False), (verts[-1], True)):
+        f = bm.faces.new(row if top else row[::-1])
         for lp in f.loops:
             lp[uvl].uv = (lp.vert.co.x, lp.vert.co.y)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -950,8 +951,9 @@ def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0):
         hoops.append(hp)
     for o in [ob] + hoops:
         if lying:
-            o.location = o.location + Vector((0, 0, -h / 2))
-            o.matrix_world = Matrix.Translation((x, y, z + r)) @ Matrix.Rotation(yaw, 4, "Z") @ Matrix.Rotation(math.pi / 2, 4, "Y") @ o.matrix_world
+            # Midt på lengden før den legges ned (`location` her ville
+            # ikke nådd `matrix_world` før neste oppdatering).
+            o.matrix_world = Matrix.Translation((x, y, z + r)) @ Matrix.Rotation(yaw, 4, "Z") @ Matrix.Rotation(math.pi / 2, 4, "Y") @ Matrix.Translation((0, 0, -h / 2)) @ o.matrix_world
         else:
             o.matrix_world = Matrix.Translation((x, y, z)) @ Matrix.Rotation(yaw, 4, "Z") @ o.matrix_world
     return ob
