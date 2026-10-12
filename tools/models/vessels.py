@@ -1,12 +1,13 @@
 """Kar til hyllene og bordene: krukke, kanne, mugge, bolle, flaske, krus,
 tinnfat og små tønner. Hvert kar dreies fra en profil, og størrelsen, bredden,
 fargen og formen varierer med `rng` (eieren, runde 5: «mer variasjon i form
-og størrelse på det som står på hylla»). `row` fyller en hylle eller en
-bordflate med en blanding.
+og størrelse på det som står på hylla»). `row` fyller en hylle med en
+blanding, `spread` setter kar i klynger på et bord eller en disk.
 
     import vessels
     vessels.row(p, rng, x0, x1, y, z, depth, max_h)            # langs x
     vessels.row(p, rng, y0, y1, x, z, depth, max_h, along="y")  # langs y
+    vessels.spread(p, rng, x0, y0, x1, y1, z, max_h)               # bordflate
 """
 import math
 import sys
@@ -116,16 +117,54 @@ def plate(x, y, z, r, mat, n=3):
         lathe("plate", [(r * 0.7, 0.0), (r, 0.015), (r * 0.95, 0.02), (0.0, 0.012)], mat, n=14, at=(x, y, z + k * 0.018))
 
 
+def _materials(rng):
+    return {
+        "clay": clays(rng),
+        "glass": [plain("glass_green", (0.08, 0.2, 0.1), 0.1), plain("glass_brown", (0.2, 0.1, 0.05), 0.1)],
+        "wood": [layer("oak_planed", (0.85, 0.7, 0.55)), layer("oak_planed", (0.6, 0.45, 0.35))],
+        "pewter": layer("iron", (0.85, 0.85, 0.82), 0.35),
+        "cloth": layer("linen", (0.9, 0.85, 0.72)),
+    }
+
+
+def footprint(k, r):
+    """Hvor langt karet når ut fra midten (med hanken), så de ikke går i
+    hverandre."""
+    return {"bowl": r * 1.1, "plate": min(r * 1.4, 0.13), "mug": min(r, 0.05) * 1.6, "bottle": min(r, 0.055), "keg": min(r, 0.1),
+            "jug": r * 0.85 * 1.5, "pitcher": r * 0.75 * 1.55}.get(k, r)
+
+
+def one(p, rng, m, k, x, y, z, r, h, max_h):
+    """Ett kar av slaget `k` med midten i (x, y) og bunnen i z."""
+    clay, glass, wood, pewter = m["clay"], m["glass"], m["wood"], m["pewter"]
+    if k == "crock":
+        crock(x, y, z, r, h * 0.8, rng.choice(clay))
+    elif k == "crock_lid":
+        crock(x, y, z, r, h * 0.7, rng.choice(clay), lid=m["cloth"])
+    elif k == "jar":
+        jar(x, y, z, r, h, rng.choice(clay))
+    elif k == "jug":
+        jug(x, y, z, r * 0.85, h, rng.choice(clay))
+    elif k == "pitcher":
+        pitcher(x, y, z, r * 0.75, min(max_h, h * 1.2), rng.choice(clay + [pewter]))
+    elif k == "bowl":
+        bowl(x, y, z, r * 1.1, min(0.09, h * 0.4), rng.choice(clay + wood))
+    elif k == "mug":
+        mug(x, y, z, min(r, 0.05), min(0.13, h * 0.6), rng.choice(wood + [pewter]))
+    elif k == "bottle":
+        bottle(x, y, z, min(r, 0.055), h, rng.choice(glass))
+    elif k == "plate":
+        plate(x, y, z, min(r * 1.4, 0.13), pewter, n=rng.randint(2, 4))
+    elif k == "keg":
+        kit.barrel(p, x, y, z, r=min(r, 0.1), h=min(max_h, 0.24))
+
+
 def row(p, rng, a0, a1, c, z, depth, max_h, along="x", kinds=None, gap=(0.03, 0.09)):
-    """Fyll en hylle eller bordflate fra a0 til a1 (langs `along`, på tvers
-    i c) med en blanding av kar i ulike former og størrelser. `kinds` velger
-    hvilke (standard: alt av leire og tre), `gap` mellomrommet (tettere på
-    en full hylle)."""
-    clay = clays(rng)
-    glass = [plain("glass_green", (0.08, 0.2, 0.1), 0.1), plain("glass_brown", (0.2, 0.1, 0.05), 0.1)]
-    wood = [layer("oak_planed", (0.85, 0.7, 0.55)), layer("oak_planed", (0.6, 0.45, 0.35))]
-    pewter = layer("iron", (0.85, 0.85, 0.82), 0.35)
-    cloth = layer("linen", (0.9, 0.85, 0.72))
+    """Fyll en hylle fra a0 til a1 (langs `along`, på tvers i c) med en
+    blanding av kar i ulike former og størrelser. `kinds` velger hvilke
+    (standard: alt av leire og tre), `gap` mellomrommet (tettere på en full
+    hylle). På et bord eller en disk: `spread`."""
+    m = _materials(rng)
     kinds = kinds or ["crock", "jar", "jug", "pitcher", "bowl", "mug", "crock_lid", "keg"]
     u = a0 + 0.03
     last = None
@@ -139,27 +178,47 @@ def row(p, rng, a0, a1, c, z, depth, max_h, along="x", kinds=None, gap=(0.03, 0.
             break
         cu = u + r
         x, y = (cu, c) if along == "x" else (c, cu)
-        if k == "crock":
-            crock(x, y, z, r, h * 0.8, rng.choice(clay))
-        elif k == "crock_lid":
-            crock(x, y, z, r, h * 0.7, rng.choice(clay), lid=cloth)
-        elif k == "jar":
-            jar(x, y, z, r, h, rng.choice(clay))
-        elif k == "jug":
-            jug(x, y, z, r * 0.85, h, rng.choice(clay))
-        elif k == "pitcher":
-            pitcher(x, y, z, r * 0.75, min(max_h, h * 1.2), rng.choice(clay + [pewter]))
-        elif k == "bowl":
-            bowl(x, y, z, r * 1.1, min(0.09, h * 0.4), rng.choice(clay + wood))
-        elif k == "mug":
-            mug(x, y, z, min(r, 0.05), min(0.13, h * 0.6), rng.choice(wood + [pewter]))
-        elif k == "bottle":
-            bottle(x, y, z, min(r, 0.055), h, rng.choice(glass))
-        elif k == "plate":
-            plate(x, y, z, min(r * 1.4, 0.13), pewter, n=rng.randint(2, 4))
-        elif k == "keg":
-            ob = kit.barrel(p, x, y, z, r=min(r, 0.1), h=min(max_h, 0.24))
+        one(p, rng, m, k, x, y, z, r, h, max_h)
         u = cu + r + rng.uniform(*gap)
+
+
+# Det som hører sammen på et bord: en kanne med krus, fat og bolle, flasker
+# med en mugge.
+SETS = [["pitcher", "mug", "mug", "mug"], ["plate", "bowl", "mug"], ["bottle", "bottle", "jug"], ["jug", "mug", "mug"], ["bowl", "bowl", "plate"]]
+
+
+def spread(p, rng, x0, y0, x1, y1, z, max_h, sets=None, groups=3, margin=0.04):
+    """Sett kar på en bordflate eller disk (x0..x1, y0..y1) slik folk
+    setter fra seg ting: i `groups` tette klynger av det som hører sammen
+    (`SETS`: en kanne med krus rundt, fat med en bolle, flasker), spredt
+    langs flata med tomme flekker mellom, foran og bak om hverandre (eieren,
+    runde 6: «alt står på en rad»). Ingen kar går i et annet eller over
+    kanten."""
+    m = _materials(rng)
+    sets = sets or SETS
+    placed = []
+    along_x = x1 - x0 >= y1 - y0
+    length, width = (x1 - x0, y1 - y0) if along_x else (y1 - y0, x1 - x0)
+    order = rng.sample(sets, len(sets))
+    for g in range(groups):
+        t = (g + 0.5 + rng.uniform(-0.25, 0.25)) / groups
+        cl, cw = length * t, width * rng.uniform(0.35, 0.65)
+        for k in order[g % len(order)]:
+            for _try in range(60):
+                r = rng.uniform(0.05, 0.11)
+                h = min(max_h, rng.uniform(0.12, 0.3))
+                fp = footprint(k, r)
+                # Tett: et krus står en håndsbredd fra kanna.
+                u, w = rng.gauss(cl, 0.1), rng.gauss(cw, width * 0.2)
+                x, y = (x0 + u, y0 + w) if along_x else (x0 + w, y0 + u)
+                if not (x0 + margin + fp <= x <= x1 - margin - fp and y0 + margin + fp <= y <= y1 - margin - fp):
+                    continue
+                if any(math.hypot(x - qx, y - qy) < fp + qf + 0.01 for qx, qy, qf in placed):
+                    continue
+                placed.append((x, y, fp))
+                one(p, rng, m, k, x, y, z, r, h, max_h)
+                break
+    return placed
 
 
 def sack(x, y, z, w, h, mat, yaw=0.0, seed=0, slump=0.0):

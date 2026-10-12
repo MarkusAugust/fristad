@@ -67,7 +67,7 @@ SHOT = (800, 560)
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
 # Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.; 6: møblene rettet).
-ROUND = 6
+ROUND = 7
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
@@ -209,7 +209,9 @@ def round_page(spec_path, studio, out):
     items = []
     for n, it in spec["items"].items():
         p = prior.get("models", {}).get(n) or {}
-        views = sorted({f[len(f"before_{n}_"):-4] for f in os.listdir(studio) if f.startswith(f"before_{n}_") and f.endswith(".png")})
+        # Vinkelnavnet har ingen understrek: `before_forge_crate_back` er
+        # kassa, ikke Smia sett bakfra (runde 6).
+        views = sorted({f[len(f"before_{n}_"):-4] for f in os.listdir(studio) if f.startswith(f"before_{n}_") and f.endswith(".png") and "_" not in f[len(f"before_{n}_"):-4]})
         # Før og etter fra samme vinkel i ett bilde side om side, med «Før»
         # og «Etter» skrevet på (halvparten så mange filer: siden har plass
         # til 512).

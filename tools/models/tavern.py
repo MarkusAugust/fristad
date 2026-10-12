@@ -222,7 +222,7 @@ def ground_floor(p, rng):
         stick("counter_trim", (cx0 - 0.02, cy0, F0 + 0.95), (cx0 - 0.02, cy1, F0 + 0.95), 0.05, 0.1, p.trim, ("trim", IRON_BAND))
         collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, F0 + 0.55), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.2, 1.1))
         # Krus, mugger, kanner, boller og tinnfat i ulike størrelser.
-        vessels.row(p, random.Random(11), cy0 + 0.05, cy1 - 0.05, cx0 + 0.1, F0 + 1.08, 0.26, 0.3, along="y", kinds=["mug", "jug", "pitcher", "bowl", "plate", "mug"])
+        vessels.spread(p, random.Random(11), cx0 - 0.1, cy0 - 0.08, cx1 + 0.03, cy1 + 0.08, F0 + 1.08, 0.3, groups=4)
     with piece("jug_shelf", (KITCHEN_X - 0.26, (cy0 + cy1) / 2, F0)):
         for z in (F0 + 1.35, F0 + 1.95):
             box("shelf", (KITCHEN_X - 0.42, cy0, z), (KITCHEN_X - 0.1, cy1, z + 0.05), p.floor, bevel=0.01)
@@ -336,22 +336,10 @@ def cellar(p, rng):
         collide((px, 0.0, (z0 + top) / 2), (0.3, 0.3, top - z0))
     # Tønnelager langs bakveggen og venstre vegg, på bukker.
     with piece("barrel_rack", (-2.1, cy1 - 0.45, z0)):
-        # To lag på bukker: nederst seks tønner på to svillestokker med
-        # kiler, oppå fem som ligger i sporet mellom to under (eieren:
-        # «tønner kan ikke hvile på en enkelt planke»).
-        y0 = cy1 - 0.45
-        for yy in (y0 - 0.28, y0 + 0.28):
-            stick("rack_rail", (-4.95, yy, z0 + 0.06), (0.75, yy, z0 + 0.06), 0.12, 0.12, p.timber, ("timber", 0))
-        for x in [-4.6 + k * 1.0 for k in range(6)]:
-            for xx in (x - 0.36, x + 0.36):
-                for yy in (y0 - 0.28, y0 + 0.28):
-                    box("rack_wedge", (xx - 0.05, yy - 0.06, z0 + 0.12), (xx + 0.05, yy + 0.06, z0 + 0.2), p.timber, bevel=0.01)
-        for k in range(6):
-            barrel(p, -4.6 + k * 1.0, y0, z0 + 0.12 - 0.36 + 0.36, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
-        for k in range(5):
-            # I sporet: senteret 0,36·√3 over senterlinja under.
-            barrel(p, -4.1 + k * 1.0, y0, z0 + 0.12 + 0.36 * 1.732, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
-        collide((-2.1, cy1 - 0.45, z0 + 0.75), (6.2, 0.9, 1.5))
+        # To lag på sviller: nederst seks tønner tett i tett med kiler,
+        # oppå fem som hviler i sporet mellom to under (eieren: «tønner kan
+        # ikke hvile på en enkelt planke», «rad to svever»).
+        collide(*kit.barrel_stack(p, -2.1, cy1 - 0.45, z0, 6, r=0.36, h=0.85))
     for k in range(4):
         y = -2.6 + k * 1.0
         with piece("barrel_tall", (cx0 + 0.45, y, z0), k):

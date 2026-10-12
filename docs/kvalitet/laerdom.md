@@ -62,3 +62,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Skrå bøker ble dreid om origo** og havnet under gulvet. Regel: noe som lener seg, dreies om sitt eget hjørne.
 - **Det som står høyt, ble fotografert fra gulvet** (hjelmhylla, krukkehylla), og flammene lyste ikke i studioet. Regel: `studio.py` sikter på tingen og lar `fire…`/`glow…` lyse.
 - **Gjentakelse ser kunstig ut** (eieren om hyllene, disken og verktøyveggen). Regel: hyller og bord fylles fra `tools/models/vessels.py` (`row`) med blandede former og størrelser, og verktøy og ting i rekker er forskjellige.
+
+## Runde 7 (12. oktober)
+
+- **Rad to i tønnestativet svevde 8 cm.** Høyden var regnet som om tønnene under lå tett (r·√3), men de lå en meter fra hverandre. Regel: det som hviler på noe, får høyden regnet fra kontakten med det det hviler på, med de samme målene som plasserer det (`kit.barrel_stack`), ikke fra et tall skrevet for hånd.
+- **Kar på en disk i én rad ser oppstilt ut.** Regel: hyller fylles med `vessels.row`, bord og disker med `vessels.spread` (tette grupper av det som hører sammen, spredt over hele flata).
+- **Smia-kortet fikk bildene av kassa i Smia**, fordi verktøyet plukket bildene på navnet (`before_forge_*` traff `before_forge_crate_*`). Regel: vinkelnavn har ingen understrek, og `round_page` tar bare dem.
+- **Disken ble vist forfra, fra enden**, der det som står oppå ikke synes. Regel: det som ligger oppå en flate, vises også ovenfra (`top`).

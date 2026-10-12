@@ -981,6 +981,38 @@ def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0, open_top=0.0):
     return ob
 
 
+def barrel_stack(p, x, y, z, n, r=0.36, h=0.85):
+    """Liggende tønner i to lag på to sviller langs x, midt i (x, y): n
+    tønner nederst, tett i tett med en kile på hver side, og n − 1 oppå som
+    hviler i sporet mellom to under. Høyden på det øverste laget regnes fra
+    kontakten mellom tønnene (eieren, runde 6: «rad to svever»: høyden var
+    regnet som om tønnene under sto tett, men de sto en meter fra
+    hverandre). Gir målene (midte, størrelse) til kollideren."""
+    rail = 0.12
+    pitch = 2 * r + 0.04
+    # Tønnene er tikantede: flatene står cos(18°) av radien ut, og de
+    # hviler på flatene.
+    re = r * math.cos(math.pi / 10)
+    lift = math.sqrt((2 * re) ** 2 - (pitch / 2) ** 2)
+    x0 = x - pitch * (n - 1) / 2
+    for yy in (y - 0.28, y + 0.28):
+        stick("rack_rail", (x0 - r - 0.15, yy, z + rail / 2), (x0 + pitch * (n - 1) + r + 0.15, yy, z + rail / 2), rail, rail, p.timber, ("timber", 0))
+    # Kilene der tønna møter svilla, 0,2 m ut fra bunnen, så høye som
+    # tønna står over svilla der.
+    d = 0.2
+    wh = r - math.sqrt(r * r - d * d)
+    for k in range(n):
+        cx = x0 + k * pitch
+        for xx in (cx - d, cx + d):
+            for yy in (y - 0.28, y + 0.28):
+                box("rack_wedge", (xx - 0.035, yy - 0.06, z + rail), (xx + 0.035, yy + 0.06, z + rail + wh), p.timber, bevel=0.008)
+        barrel(p, cx, y, z + rail, r=r, h=h, lying=True, yaw=math.pi / 2)
+    for k in range(n - 1):
+        barrel(p, x0 + (k + 0.5) * pitch, y, z + rail + lift, r=r, h=h, lying=True, yaw=math.pi / 2)
+    top = z + rail + lift + 2 * r
+    return (x, y, (z + top) / 2), (pitch * (n - 1) + 2 * r + 0.3, h + 0.05, top - z)
+
+
 def _place(ob, c, yaw):
     # `stick` setter location og rotasjon; matrix_world er ikke oppdatert
     # før view_layer.update (ellers ble bena liggende flatt midt under bordet).
