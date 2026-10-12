@@ -111,7 +111,7 @@ MATS = {
     "wall_dark": ("crypt_wall", (0.62, 0.62, 0.68), 0.55),
     # Revnene i sprekken: nesten svart over muren, så de synes på avstand
     # (eieren i runde 8; med `wall_dark` var de like lyse som muren).
-    "crack": ("crypt_wall", (0.06, 0.055, 0.055), 0.7),
+    "crack": ("crypt_wall", (0.16, 0.15, 0.15), 0.7),
     # Mørtelen bak fugene i en karm: ensfarget og mørk, så fugene ikke ser
     # ut som hull (eieren i runde 8: «kanten rundt ser hullete ut»).
     "mortar": ("plaster_old", (0.26, 0.25, 0.24), 0.75),
@@ -1595,43 +1595,58 @@ def kit_bonus():
 
 
 def crack_web(m, d, seed, scale=1.0, x0=0.0, half=0.45, top=1.9):
-    """Sprekken som avslører en hemmelighet (eieren i runde 8: «veldig
-    vanskelig å se noen sprekk»): mørke revner 3–5 cm brede som greiner seg
-    opp fra gulvet, med lyse, avslåtte kanter langs den ene sida, så de
-    synes på 3 m, en løs stein som står ut, og smuldret stein ved foten.
-    Flaten er z = `d` (fronten mot +z), origo nede på midten; revnene
-    holder seg innenfor |x| ≤ `half` og under `top`."""
+    """Sprekken som avslører en hemmelighet: én sort strek per revne, jevn
+    og mørk over muren, som smalner av mot spissen og greiner seg opp fra
+    gulvet, en løs stein som står ut og litt smuldret stein ved foten.
+    Ingen lyse kanter (eieren i runde 9: to typer streker så ut som en hard
+    strektegning; i runde 8 synes den ikke med lys tekstur). Flaten er
+    z = `d` (fronten mot +z), origo nede på midten; revnene holder seg
+    innenfor |x| ≤ `half` og under `top`."""
     import random
 
     rng = random.Random(seed)
 
     def crack(p, ang, n, width):
         x, y = p
+        pts = [(x, y)]
         for _ in range(n):
-            a = ang + rng.uniform(-0.55, 0.55)
-            L = rng.uniform(0.12, 0.24) * scale
+            a = ang + rng.uniform(-0.4, 0.4)
+            L = rng.uniform(0.12, 0.22) * scale
             x2, y2 = x + math.cos(a) * L, y + math.sin(a) * L
             if abs(x2) > half - 0.05 or not 0.02 < y2 < top:
                 break
-            nx, ny = -math.sin(a), math.cos(a)
-            w0, w1 = width, width * 0.8
-            m.quad((x - nx * w0, y - ny * w0, d + 0.004), (x2 - nx * w1, y2 - ny * w1, d + 0.004), (x2 + nx * w1, y2 + ny * w1, d + 0.004), (x + nx * w0, y + ny * w0, d + 0.004), "crack", facing=(0, 0, 1))
-            e0, e1 = w0 + 0.014, w1 + 0.012
-            m.quad((x + nx * w0, y + ny * w0, d + 0.006), (x2 + nx * w1, y2 + ny * w1, d + 0.006), (x2 + nx * e1, y2 + ny * e1, d + 0.006), (x + nx * e0, y + ny * e0, d + 0.006), "dressed", facing=(0, 0, 1))
+            pts.append((x2, y2))
             x, y = x2, y2
-            width *= 0.86
-        return x, y
+        # Bredden går jevnt fra `width` til en spiss, og hjørnene deles
+        # mellom bitene, så streken er sammenhengende.
+        k = len(pts) - 1
+        if k < 1:
+            return pts
+        side = []
+        for i, (px, py) in enumerate(pts):
+            ax, ay = pts[max(i - 1, 0)]
+            bx, by = pts[min(i + 1, k)]
+            tx, ty = bx - ax, by - ay
+            ln = math.hypot(tx, ty) or 1.0
+            w_ = width * (1.0 - i / k) + 0.002
+            side.append(((px - ty / ln * w_, py + tx / ln * w_), (px + ty / ln * w_, py - tx / ln * w_)))
+        for i in range(k):
+            (l0, r0), (l1, r1) = side[i], side[i + 1]
+            m.quad((*r0, d + 0.004), (*r1, d + 0.004), (*l1, d + 0.004), (*l0, d + 0.004), "crack", facing=(0, 0, 1))
+        return pts
 
-    tip = crack((x0, 0.05), math.pi / 2 + rng.uniform(-0.1, 0.1), 9, 0.024 * scale)
-    crack((x0 + 0.02, 0.75 * scale), math.pi / 2 + 0.7, 5, 0.017 * scale)
-    crack((x0 - 0.02, 0.55 * scale), -0.35, 5, 0.016 * scale)
-    crack((tip[0], tip[1] - 0.2), math.pi - 0.3, 4, 0.014 * scale)
+    # Hovedrevnen, og greinene ut fra punkter på den (så ingen strek står løs).
+    main = crack((x0, 0.05), math.pi / 2 + rng.uniform(-0.1, 0.1), 10, 0.016 * scale)
+    n_ = len(main)
+    for at, ang, n, wd in ((0.35, math.pi / 2 + 0.7, 5, 0.01), (0.55, 0.4, 4, 0.009), (0.8, math.pi - 0.4, 4, 0.008)):
+        if n_ > 2:
+            crack(main[min(int(at * (n_ - 1)), n_ - 2)], ang, n, wd * scale)
     # Den løse steinen, som står ut av muren.
     box(m, (x0 - 0.36, 0.48, d), (x0 - 0.1, 0.66, d + 0.05), "wall", faces=("+z", "+x", "-x", "+y", "-y"))
-    # Smuldret stein og støv ved foten.
-    for k in range(7):
-        sx, sz, sy = rng.uniform(0.05, 0.12), rng.uniform(0.04, 0.09), rng.uniform(0.025, 0.06)
-        cx, cz = x0 + rng.uniform(-0.35, 0.35), d + rng.uniform(0.06, 0.32)
+    # Litt smuldret stein ved foten.
+    for k in range(4):
+        sx, sz, sy = rng.uniform(0.04, 0.09), rng.uniform(0.03, 0.07), rng.uniform(0.02, 0.045)
+        cx, cz = x0 + rng.uniform(-0.25, 0.25), d + rng.uniform(0.05, 0.25)
         box(m, (cx - sx / 2, 0.0, cz - sz / 2), (cx + sx / 2, sy, cz + sz / 2), "wall", faces=("+y", "+x", "-x", "+z", "-z"))
 
 

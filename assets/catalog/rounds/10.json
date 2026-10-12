@@ -1,0 +1,37 @@
+{
+ "_om": "Runde 10: det som ikke ble godkjent i runde 9.",
+ "round": 10,
+ "fix": {
+  "ridge": "Mønet henger ikke lenger i en bue: svaien er 12 cm som på kirka (godkjent), ikke 32 cm, så mønesteinen ligger nesten rett mellom gavlene.",
+  "crack": "Én type strek: ingen lyse kanter lenger. Hver revne er én sammenhengende, mørk (ikke svart) strek som smalner av mot spissen, greinene går ut fra hovedrevnen, og det er færre smuldrete steiner. Samme sprekk på hintet og på den falske veggen.",
+  "stair": "Trappa er flyttet 55 cm bort fra sørveggen: 1,6 m fritt gulv foran nederste trinn (var 1,05 m), og fortsatt 1,5 m til vestveggen. For å få plass er galleriet senket 34 cm (2,5 m over gulvet), så trappa har to trinn færre; det er fortsatt 2,1 m under bjelkene. Pultene under sidevinduene og pulten foran står 30 cm lenger inn fra veggen, så de ikke dekker vinduene (regelen fra runde 8).",
+  "well": "Bildene er fra redigeringen i nettleseren (den ferdige nettsiden): brønnen er valgt, og så flyttet 2 m. Vinda, taket, tauet og bøtta flytter seg med, og ingenting blir stående igjen. «Før» og «Etter» er før og etter flyttingen."
+ },
+ "items": {
+  "crypt": {
+   "fix": [
+    "ridge"
+   ]
+  },
+  "kit_crack": {
+   "fix": [
+    "crack"
+   ]
+  },
+  "kit_secret_wall": {
+   "fix": [
+    "crack"
+   ]
+  },
+  "scriptorium_interior": {
+   "fix": [
+    "stair"
+   ]
+  },
+  "well": {
+   "fix": [
+    "well"
+   ]
+  }
+ }
+}

@@ -561,10 +561,13 @@ S_H = 6.0  # murkronen og himlingen
 S_PITCH = 48.0
 S_IX, S_IY = S_W / 2 - S_T, S_D / 2 - S_T
 # Galleriet langs bakmuren og trappa opp i vestenden (langs y).
-G_Z = S_F + 2.84
+G_Z = S_F + 2.5  # galleriet: lavere enn før (2,84), så trappa blir kortere og foten får plass (runde 9)
 # Trappa opp til galleriet følger reglene i kit.py: foten en meter fra
 # sørmuren, og galleriets forkant der trappa ender.
-ST_X0, ST_X1, ST_Y0 = -2.9, -1.95, -S_IY + kit.LANDING + kit.WALL_PAD
+# Foten av trappa står 1,6 m fra sørveggen (eieren i runde 9: «trappa er
+# for nær veggen» med 1,05 m).
+ST_FOOT = 1.6
+ST_X0, ST_X1, ST_Y0 = -2.9, -1.95, -S_IY + ST_FOOT + kit.WALL_PAD
 G_X0, G_X1, G_Y0 = -2.9, 2.9, ST_Y0 + kit.stair_run(S_F, G_Z)
 
 
@@ -715,11 +718,13 @@ def scriptorium_inside(p, rng):
         for y in (-1.9, 1.9):
             if side < 0 and y > 0:
                 continue  # der går trappa
-            with piece(f"writing_desk_{k}", (side * (ix - 0.5), y, S_F), -side * math.pi / 2):
-                lectern_desk(p, side * (ix - 0.5), y, S_F, -side * math.pi / 2, rng)
+            # 40 cm luft til vinduet over (town.check_piece).
+            dx = ix - 0.85
+            with piece(f"writing_desk_{k}", (side * dx, y, S_F), -side * math.pi / 2):
+                lectern_desk(p, side * dx, y, S_F, -side * math.pi / 2, rng)
             k += 1
-    with piece("writing_desk_unlit", (3.0, -iy + 0.55, S_F), math.pi):
-        lectern_desk(p, 3.0, -iy + 0.55, S_F, math.pi, rng, lit=False)
+    with piece("writing_desk_unlit", (3.0, -iy + 0.85, S_F), math.pi):
+        lectern_desk(p, 3.0, -iy + 0.85, S_F, math.pi, rng, lit=False)
     # Lesepulten midt i salen med en stor bok i kjetting.
     lx, ly = 0.6, -0.2
     book = piece("chained_book", (lx, ly, S_F))
@@ -1220,7 +1225,8 @@ def crypt_model(rng):
     # Taket: tunge steinheller med mønet fra døra og bakover, som har
     # sunket i midten; gavler av stein med dekkheller, og kors foran.
     z_eave = H + 0.35
-    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, ridge_stone=stone, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.32, kick=0.16)
+    # Svaien som på kirka (12 cm): med 32 cm hang mønesteinen i en bue (runde 9).
+    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, ridge_stone=stone, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.12, kick=0.16)
     gables = []
     for y in (fy, by):
         fr, Lg = wall_frame((-W / 2 - 0.05, y), (W / 2 + 0.05, y))

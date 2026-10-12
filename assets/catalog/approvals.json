@@ -434,7 +434,7 @@
   "well": {
    "verdict": "usikker",
    "date": "2026-10-12",
-   "why": "når jeg prøvde å flytte på brønnen i editoren fulgte ikke stangen og bøtta med, det er et problem",
+   "why": "ser ikke noe bilde her",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -442,23 +442,30 @@
    },
    "history": [
     "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark.",
-    "når jeg prøvde å flytte på brønnen i editoren fulgte ikke stangen og bøtta med, det er et problem"
+    "når jeg prøvde å flytte på brønnen i editoren fulgte ikke stangen og bøtta med, det er et problem",
+    "ser ikke noe bilde her"
    ]
   },
   "crypt": {
    "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket",
+   "why": "toppen av taket ser ikke bra ut.",
    "history": [
     "Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4).",
     "merkelig jernbeslag på døren",
-    "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket"
+    "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket",
+    "toppen av taket ser ikke bra ut."
    ]
   },
   "stave_church": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket"
+   },
    "history": [
     "Kirka skal være en vanlig middelalderkirke i stein i samme stil som kryptens nedgang.",
     "det ser it som en stavkirke",
@@ -480,13 +487,13 @@
    ]
   },
   "tavern_interior": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen",
+   "why": "",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "det er tønner i veggene.ingen pynt på veggene. trappen er for nær veggen"
+    "verdict": "usikker",
+    "date": "2026-10-12",
+    "why": "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen"
    },
    "history": [
     "Tønner på rad; innredningen må plasseres med group() (fase 4).",
@@ -679,22 +686,27 @@
    ]
   },
   "chest": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "kisten er ikke lenger hul. låsen så faktisk litt bedre ut før.",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "kisten er ikke lenger hul. låsen så faktisk litt bedre ut før."
+   },
    "history": [
     "teksturen passer ikke modellen, det ser rart ut",
     "kisten er ikke lenger hul. låsen så faktisk litt bedre ut før."
    ]
   },
   "chest_lid": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "er lokket hult? kan ikke se undersiden",
+   "why": "",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur"
+    "verdict": "usikker",
+    "date": "2026-10-12",
+    "why": "er lokket hult? kan ikke se undersiden"
    },
    "history": [
     "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur",
@@ -1184,9 +1196,17 @@
    ]
   },
   "kit_crack": {
-   "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": ""
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "den forrige så faktisk litt bedre ut? men det er for ujevnt, to forskjellige typer streker her",
+   "before": {
+    "verdict": "godkjent",
+    "date": "2026-10-11",
+    "why": ""
+   },
+   "history": [
+    "den forrige så faktisk litt bedre ut? men det er for ujevnt, to forskjellige typer streker her"
+   ]
   },
   "kit_down": {
    "verdict": "usikker",
@@ -1265,32 +1285,43 @@
    ]
   },
   "kit_sarcophagus": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "de firkantende klossene på hver hkære ser ikke så bra ut.",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "de firkantende klossene på hver hkære ser ikke så bra ut."
+   },
    "history": [
     "ligner overhodet ikke på en sakrofag",
     "de firkantende klossene på hver hkære ser ikke så bra ut."
    ]
   },
   "kit_secret_wall": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her",
+   "why": "det ser ikke bra ut. hard strektegning",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?"
+    "verdict": "usikker",
+    "date": "2026-10-12",
+    "why": "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her"
    },
    "history": [
     "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?",
-    "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her"
+    "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her",
+    "det ser ikke bra ut. hard strektegning"
    ]
   },
   "kit_shortcut": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "venstre kant ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger.",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "venstre kant ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
+   },
    "history": [
     "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette.",
     "venstre kant ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
@@ -1323,9 +1354,14 @@
    ]
   },
   "kit_up": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "kant ne rundt ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger.",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "kant ne rundt ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
+   },
    "history": [
     "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue",
     "kant ne rundt ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
@@ -1425,18 +1461,19 @@
    "why": ""
   },
   "scriptorium_interior": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen",
+   "why": "tappen er for nært veggen",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger"
+    "verdict": "usikker",
+    "date": "2026-10-12",
+    "why": "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen"
    },
    "history": [
     "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger",
     "jeg klarer ikke å se om du har flyttet trappen så det er mulig å gå opp",
-    "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen"
+    "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen",
+    "tappen er for nært veggen"
    ]
   },
   "shed_a": {

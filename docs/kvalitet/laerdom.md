@@ -94,3 +94,11 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
   - Hver kilestein får én hel stein fra bildet langs seg (`stone_uv`, `STONE_PX`).
   - Bak fugene ligger mørtel.
 - **Vis det eieren spør om.** Trappene ble vist uten vinkel fra foten. Kortene skal ha vinkler som svarer på punktene, og målene skal stå i teksten.
+
+## Runde 9 – dommen (12. oktober)
+
+- **Én type strek.** En mørk revne med en lys kant ved siden av ble en hard strektegning. En sprekk er én sammenhengende strek som smalner av, og greinene går ut fra den (`crack_web`).
+- **Svaien må passe til mønet.** 32 cm svai med en stiv mønestein ga en hengende bue. Mønesteinen tåler høyst 12 cm, som på kirka.
+- **Plass ved foten.** 1,05 m foran nederste trinn var for lite når hjørnet ved foten er møblert. Skriptoriet har 1,6 m.
+- **Regler gjelder også det som er godkjent.** Pultene i Skriptoriet dekket vinduene, men ble ikke fanget før huset ble eksportert på nytt. Etter en ny regel skal alle husene eksporteres på nytt.
+- **En kodefeil får også et bilde.** Når eieren skal vurdere en kodefeil (brønnen i redigeringen), tas bildet fra nettleseren med den ferdige nettsiden.

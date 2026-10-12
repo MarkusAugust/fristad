@@ -373,7 +373,7 @@ fn man_kan_ga_opp_trappene() {
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, foten av trappa og målet oppe (Blenders akser), gulvet nede
     // og høyden oppe over bakken.
-    let stairs = [("tavern", (5.3, -3.55), (0.2, -3.55), 0.6, 3.6), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.9)];
+    let stairs = [("tavern", (5.3, -3.55), (0.2, -3.55), 0.6, 3.6), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.8)];
     let mut problems = vec![];
     for (model, from, to, floor, up) in stairs {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -1663,7 +1663,7 @@ fn trappene_har_hoderom() {
     // Modell, foten (0,5 m foran nederste trinn) og toppen (Blenders
     // akser), gulvet nede og høyden oppe, og retningen bort fra trappa
     // ved foten.
-    let stairs = [("tavern", (5.15, -3.55), (-0.3, -3.55), 0.6, 3.7, (1.0, 0.0)), ("apothecary", (3.1, -2.65), (3.1, 1.9), 0.7, 3.3, (0.0, -1.0)), ("scriptorium", (-2.43, -2.85), (-2.43, 2.0), 0.36, 3.1, (0.0, -1.0))];
+    let stairs = [("tavern", (5.15, -3.55), (-0.3, -3.55), 0.6, 3.7, (1.0, 0.0)), ("apothecary", (3.1, -2.65), (3.1, 1.9), 0.7, 3.3, (0.0, -1.0)), ("scriptorium", (-2.43, -2.85), (-2.43, 2.0), 0.36, 2.8, (0.0, -1.0))];
     let mut problems = vec![];
     for (model, foot, top, floor, up, away) in stairs {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
