@@ -293,18 +293,18 @@ def ground_floor(p, rng):
     # Pynt på veggene (eierens dom i runde 7: «ingen pynt på veggene»): en
     # tallerkenhylle med tinnfat på bakveggen mellom vinduet og kjøkkenet,
     # og et vevd veggteppe på stang mellom vinduet og peisen i vest.
-    pewter = layer("iron", (0.78, 0.78, 0.74), 0.4)
+    pewter = layer("plaster_white", (0.66, 0.68, 0.7), 0.35)
     with piece("plate_rail", (-1.35, iy1 - 0.08, F0)):
         z = F0 + 1.85
-        box("rail_shelf", (-2.5, iy1 - 0.16, z), (-0.2, iy1, z + 0.035), p.floor, bevel=0.008)
-        stick("rail_lip", (-2.5, iy1 - 0.15, z + 0.06), (-0.2, iy1 - 0.15, z + 0.06), 0.025, 0.035, p.timber, ("timber", 2), bevel=0.006)
+        box("rail_shelf", (-2.5, iy1 - 0.32, z), (-0.2, iy1, z + 0.035), p.floor, bevel=0.008)
+        stick("rail_lip", (-2.5, iy1 - 0.31, z + 0.06), (-0.2, iy1 - 0.31, z + 0.06), 0.025, 0.035, p.timber, ("timber", 2), bevel=0.006)
         for sx in (-2.35, -0.35):
-            stick("rail_bracket", (sx, iy1 - 0.01, z - 0.25), (sx, iy1 - 0.14, z - 0.01), 0.04, 0.04, p.timber, ("timber", 3), bevel=0.008)
-        for k in range(6):
-            r = 0.15 if k % 2 == 0 else 0.12
-            ob = vessels.lathe("pewter_plate", [(0.0, 0.0), (r * 0.6, 0.0), (r, 0.018), (r, 0.024), (r * 0.62, 0.008), (0.0, 0.008)], pewter, n=14)
-            ob.rotation_euler = (math.radians(-74), 0.0, 0.0)
-            ob.location = (-2.25 + k * 0.38, iy1 - 0.1, z + 0.035 + r * 0.96)
+            stick("rail_bracket", (sx, iy1 - 0.01, z - 0.3), (sx, iy1 - 0.28, z - 0.01), 0.04, 0.04, p.timber, ("timber", 3), bevel=0.008)
+        # Tre stabler med tinnfat og to krus imellom.
+        for k, x in enumerate((-2.2, -1.35, -0.5)):
+            vessels.plate(x, iy1 - 0.16, z + 0.035, 0.13 if k != 1 else 0.11, pewter, n=4 - k % 2)
+        for x in (-1.78, -0.92):
+            vessels.mug(x, iy1 - 0.16, z + 0.035, 0.045, 0.11, pewter)
     with piece("tavern_tapestry", (ix0 + 0.05, -1.45, F0)):
         wool = layer("wool", (0.62, 0.16, 0.12))
         gold = layer("wool", (0.95, 0.75, 0.3))
