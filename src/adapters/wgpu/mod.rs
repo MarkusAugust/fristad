@@ -253,6 +253,9 @@ struct GpuModel {
     small: bool,
     /// Innsiden av et hus (`…_interior`): tegnes bare innen `INTERIOR_FAR`.
     interior: bool,
+    /// Møblene inne i husene (`Placement.indoor`): tegnes bare innen
+    /// `INTERIOR_FAR` og kaster ikke solskygge.
+    indoor: bool,
 }
 
 /// De faste instansene i en rute på `CELL_M` meter: boksen rundt dem og
@@ -814,7 +817,8 @@ impl Renderer {
                     extra: [0.0, packed(&Vec3::ONE), m.roughness, m.metallic],
                     skinned,
                     small: !skinned && size < 1.3,
-                    interior: m.name.ends_with("_interior"),
+                    interior: m.name.ends_with("_interior") || pl.indoor,
+                    indoor: pl.indoor,
                 })
             })
             .collect();
@@ -1069,7 +1073,7 @@ impl Renderer {
             let mut draws: [ModelDraw; REGIONS as usize] = Default::default();
             let mut dynamic: Vec<InstanceData> = Vec::with_capacity(m.reserve * REGIONS as usize);
             for (r, cull) in culls.iter().enumerate() {
-                if r == 0 && !shadows {
+                if r == 0 && (!shadows || m.indoor) {
                     continue;
                 }
                 // Hvor langt unna noe i boksen er, og om det tegnes nær,

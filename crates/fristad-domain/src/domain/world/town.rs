@@ -255,6 +255,9 @@ pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
     if let Some(items) = b.contents.get(model).cloned() {
         for item in &items {
             layout::apply_item(b, item, t);
+            if let Some(p) = item.model.as_deref().and_then(|m| b.placements.iter_mut().find(|p| p.model == m)) {
+                p.indoor = true;
+            }
         }
     }
 }

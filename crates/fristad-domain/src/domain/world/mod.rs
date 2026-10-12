@@ -285,7 +285,7 @@ impl Builder {
             p.tints.push(tint);
             p.looks.push(look);
         } else {
-            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], looks: vec![look], reserve: 0 });
+            self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], looks: vec![look], reserve: 0, indoor: false });
         }
         true
     }
@@ -319,7 +319,7 @@ impl Builder {
         if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.reserve += n;
         } else {
-            self.placements.push(Placement { model, transforms: vec![], tints: vec![], looks: vec![], reserve: n });
+            self.placements.push(Placement { model, transforms: vec![], tints: vec![], looks: vec![], reserve: n, indoor: false });
         }
     }
 

@@ -40,6 +40,9 @@ pub struct Placement {
     pub looks: Vec<Option<Look>>,
     /// Plass til instanser spillet poserer per bilde (`Frame.instances`).
     pub reserve: usize,
+    /// Står inne i et hus (møblene): tegnes bare nær og kaster ikke
+    /// solskygge (huset skygger for dem).
+    pub indoor: bool,
 }
 
 /// Et annet utseende på samme modell: kjellerens modulsett bygges med fire
