@@ -1,0 +1,10 @@
+[
+  {"at":{"pos":[0.0,0.45,-6.8],"rot":[0,0.0,0,1.0]},"model":"altar","mounted":true},
+  {"at":{"pos":[1.6,0.28,3.0],"rot":[0,0.0,0,1.0]},"model":"baptismal_font","mounted":true},
+  {"at":{"pos":[-2.61,0.28,-0.15],"rot":[0,0.0,0,1.0]},"model":"church_wall_bench","mounted":true},
+  {"at":{"pos":[2.61,0.28,-0.15],"rot":[0,0.0,0,1.0]},"model":"church_wall_bench","mounted":true},
+  {"at":{"pos":[-1.4,0.28,1.1],"rot":[0,0.0,0,1.0]},"model":"candle_stand_low","mounted":true},
+  {"at":{"pos":[1.4,0.28,-1.1],"rot":[0,0.0,0,1.0]},"model":"candle_stand_low","mounted":true},
+  {"at":{"pos":[-1.0,0.28,-3.69],"rot":[0,0.0,0,1.0]},"model":"candle_stand_low","mounted":true},
+  {"at":{"pos":[1.0,0.28,-3.69],"rot":[0,0.0,0,1.0]},"model":"candle_stand_low","mounted":true}
+]

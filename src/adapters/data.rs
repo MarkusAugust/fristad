@@ -4,13 +4,16 @@
 //! kryptnivåene (`crypt_NN.json`); `build.rs` finner filene. Filene er små og
 //! bygges inn i binæren, også i nettleseren.
 
-use crate::domain::world::{crypt::level::LevelFile, layout::Layout, town::Inside, Data};
+use crate::domain::world::{crypt::level::LevelFile, layout::{Item, Layout}, town::Inside, Data};
 
 // `LEVEL_FILES`: nivåene som finnes (laget av build.rs).
 include!(concat!(env!("OUT_DIR"), "/crypt_levels.rs"));
 
 // `INSIDE_FILES`: alle `<navn>_inside.json` i `assets/models/town/` (build.rs).
 include!(concat!(env!("OUT_DIR"), "/inside_files.rs"));
+
+// `CONTENT_FILES`: det som står inne i husene (build.rs).
+include!(concat!(env!("OUT_DIR"), "/content_files.rs"));
 
 // `LAYOUT_FILE`: byen som data, `assets/layout/town.json` (build.rs).
 include!(concat!(env!("OUT_DIR"), "/layout_file.rs"));
@@ -40,7 +43,8 @@ pub fn world_data() -> Data {
     }
     // Kan ikke byen leses, stopper spillet: den er hele byen.
     let layout = LAYOUT_FILE.map(|json| serde_json::from_str::<Layout>(json).unwrap_or_else(|e| panic!("assets/layout/town.json: {e}")));
-    Data { insides, levels, layout }
+    let contents = CONTENT_FILES.iter().map(|(n, json)| (n.to_string(), serde_json::from_str::<Vec<Item>>(json).unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")))).collect();
+    Data { insides, levels, layout, contents }
 }
 
 /// Byen som tekst, slik `assets/layout/town.json` skal se ut: én ting og én

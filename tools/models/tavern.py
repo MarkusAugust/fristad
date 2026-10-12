@@ -31,7 +31,7 @@ import kit  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, IRON_BAND, ROPE, barrel, bench, box, candle, door, fire, half_timbered, planks, stairs, stick, stool, table, window  # noqa: E402
-from town import collide, layer, light, plain  # noqa: E402
+from town import collide, layer, light, piece, plain  # noqa: E402
 
 OUT = "assets/models/town"
 
@@ -209,41 +209,48 @@ def ground_floor(p, rng):
     collide((hx + 0.45, 0.5, F0 + 1.0), (0.9, 2.2, 2.0))
     # Jerngryte på krok, og ved ved siden av.
     barrel(p, hx + 0.45, 0.5, F0 + 0.75, r=0.2, h=0.3).data.materials[0] = p.iron
-    for k in range(4):
-        stick("firewood", (hx + 0.2, 1.75 + 0.12 * (k % 2), F0 + 0.08 + 0.13 * (k // 2)), (hx + 0.9, 1.75 + 0.12 * (k % 2), F0 + 0.08 + 0.13 * (k // 2)), 0.11, 0.11, layer("logs"), bevel=0.02)
+    with piece("firewood_small", (hx + 0.55, 1.81, F0)):
+        for k in range(4):
+            stick("firewood", (hx + 0.2, 1.75 + 0.12 * (k % 2), F0 + 0.08 + 0.13 * (k // 2)), (hx + 0.9, 1.75 + 0.12 * (k % 2), F0 + 0.08 + 0.13 * (k // 2)), 0.11, 0.11, layer("logs"), bevel=0.02)
 
     # Disken langs kjøkkenveggen, med hyller og tønner bak.
     cx0, cx1, cy0, cy1 = -1.05, -0.5, -0.8, 2.6
-    box("counter", (cx0, cy0, F0), (cx1, cy1, F0 + 1.0), p.cladding, bevel=0.03)
-    box("counter_top", (cx0 - 0.12, cy0 - 0.1, F0 + 1.0), (cx1 + 0.05, cy1 + 0.1, F0 + 1.08), p.floor, bevel=0.02)
-    stick("counter_trim", (cx0 - 0.02, cy0, F0 + 0.95), (cx0 - 0.02, cy1, F0 + 0.95), 0.05, 0.1, p.trim, ("trim", IRON_BAND))
-    collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, F0 + 0.55), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.2, 1.1))
-    for z in (F0 + 1.35, F0 + 1.95):
-        box("shelf", (KITCHEN_X - 0.42, cy0, z), (KITCHEN_X - 0.1, cy1, z + 0.05), p.floor, bevel=0.01)
-        for k in range(9):
-            y = cy0 + 0.25 + k * (cy1 - cy0 - 0.5) / 8
-            if k % 3 == 2:
-                barrel(p, KITCHEN_X - 0.26, y, z + 0.05, r=0.1, h=0.22)
-            else:
-                box("jug", (KITCHEN_X - 0.33, y - 0.07, z + 0.05), (KITCHEN_X - 0.19, y + 0.07, z + 0.27), layer("plaster_red"), bevel=0.03)
+    with piece("tavern_counter", ((cx0 + cx1) / 2, (cy0 + cy1) / 2, F0)):
+        box("counter", (cx0, cy0, F0), (cx1, cy1, F0 + 1.0), p.cladding, bevel=0.03)
+        box("counter_top", (cx0 - 0.12, cy0 - 0.1, F0 + 1.0), (cx1 + 0.05, cy1 + 0.1, F0 + 1.08), p.floor, bevel=0.02)
+        stick("counter_trim", (cx0 - 0.02, cy0, F0 + 0.95), (cx0 - 0.02, cy1, F0 + 0.95), 0.05, 0.1, p.trim, ("trim", IRON_BAND))
+        collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, F0 + 0.55), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.2, 1.1))
+        for k in range(5):
+            x = cx0 + 0.1
+            y = cy0 + 0.35 + k * 0.6
+            box("mug", (x - 0.05, y - 0.05, F0 + 1.08), (x + 0.05, y + 0.05, F0 + 1.22), p.door_dark, bevel=0.015)
+    with piece("jug_shelf", (KITCHEN_X - 0.26, (cy0 + cy1) / 2, F0)):
+        for z in (F0 + 1.35, F0 + 1.95):
+            box("shelf", (KITCHEN_X - 0.42, cy0, z), (KITCHEN_X - 0.1, cy1, z + 0.05), p.floor, bevel=0.01)
+            for k in range(9):
+                y = cy0 + 0.25 + k * (cy1 - cy0 - 0.5) / 8
+                if k % 3 == 2:
+                    barrel(p, KITCHEN_X - 0.26, y, z + 0.05, r=0.1, h=0.22)
+                else:
+                    box("jug", (KITCHEN_X - 0.33, y - 0.07, z + 0.05), (KITCHEN_X - 0.19, y + 0.07, z + 0.27), layer("plaster_red"), bevel=0.03)
     for k, y in enumerate((-0.3, 0.6)):
-        barrel(p, KITCHEN_X - 0.4, y, F0 + 0.0, r=0.3, h=0.7, lying=True, yaw=0)
-    for k in range(5):
-        x = cx0 + 0.1
-        y = cy0 + 0.35 + k * 0.6
-        box("mug", (x - 0.05, y - 0.05, F0 + 1.08), (x + 0.05, y + 0.05, F0 + 1.22), p.door_dark, bevel=0.015)
+        with piece("barrel_lying", (KITCHEN_X - 0.4, y, F0)):
+            barrel(p, KITCHEN_X - 0.4, y, F0 + 0.0, r=0.3, h=0.7, lying=True, yaw=0)
 
     # Bordene i skjenkestua, med benker og krakker, og lys på bordene.
     for (x, y, yaw, w) in ((-4.0, -2.8, 0.0, 2.2), (-4.0, 2.6, 0.0, 2.2), (-1.9, 0.3, math.pi / 2, 1.8)):
-        table(p, x, y, F0, w, 0.9, yaw=yaw)
+        with piece(f"table_{round(w * 10)}", (x, y, F0), yaw):
+            table(p, x, y, F0, w, 0.9, yaw=yaw)
+            candle(p, x, y, F0 + 0.78, light_it=True)
         c, s_ = math.cos(yaw), math.sin(yaw)
         for side in (-1, 1):
             bx, by = x - s_ * side * 0.75, y + c * side * 0.75
-            bench(p, bx, by, F0, w - 0.2, yaw=yaw)
-        candle(p, x, y, F0 + 0.78, light_it=True)
+            with piece(f"bench_{round((w - 0.2) * 10)}", (bx, by, F0), yaw):
+                bench(p, bx, by, F0, w - 0.2, yaw=yaw)
     for x, y in ((-5.0, -0.9), (-1.5, 2.9)):
-        stool(p, x, y, F0)
-        collide((x, y, F0 + 0.25), (0.4, 0.4, 0.5))
+        with piece("stool", (x, y, F0)):
+            stool(p, x, y, F0)
+            collide((x, y, F0 + 0.25), (0.4, 0.4, 0.5))
 
     # Kjøkkenet: grua i hjørnet bak til høyre, med hette og pipe.
     gx0, gy0 = 4.0, 3.0
@@ -257,27 +264,34 @@ def ground_floor(p, rng):
     pot.data.materials[0] = p.iron
     stick("pot_chain", ((gx0 + ix1) / 2, (gy0 + iy1) / 2 - 0.1, F0 + 1.4), ((gx0 + ix1) / 2, (gy0 + iy1) / 2 - 0.1, F0 + 2.0), 0.02, 0.02, p.iron)
     # Arbeidsbordet med brød, og en krakk.
-    table(p, 3.6, 0.9, F0, 1.8, 0.85)
-    for k in range(4):
-        x = 3.0 + k * 0.38
-        box("bread", (x - 0.14, 0.75, F0 + 0.78), (x + 0.14, 1.0, F0 + 0.9), layer("thatch", (0.9, 0.62, 0.35)), bevel=0.05)
-    box("dough_board", (3.9, 1.05, F0 + 0.78), (4.4, 1.25, F0 + 0.81), p.floor, bevel=0.005)
-    stool(p, 3.6, 1.7, F0)
+    with piece("kitchen_table", (3.6, 0.9, F0)):
+        table(p, 3.6, 0.9, F0, 1.8, 0.85)
+        for k in range(4):
+            x = 3.0 + k * 0.38
+            box("bread", (x - 0.14, 0.75, F0 + 0.78), (x + 0.14, 1.0, F0 + 0.9), layer("thatch", (0.9, 0.62, 0.35)), bevel=0.05)
+        box("dough_board", (3.9, 1.05, F0 + 0.78), (4.4, 1.25, F0 + 0.81), p.floor, bevel=0.005)
+    with piece("stool", (3.6, 1.7, F0)):
+        stool(p, 3.6, 1.7, F0)
+        collide((3.6, 1.7, F0 + 0.25), (0.4, 0.4, 0.5))
     # Spekeskinker og pølser fra bjelkene.
     for k, x in enumerate((2.8, 3.3, 3.8, 4.3)):
         y = -0.6 + (k % 2) * 0.3
-        stick("ham_rope", (x, y, C0 - 0.24), (x, y, C0 - 0.6), 0.015, 0.015, p.trim, ("trim", ROPE))
-        ham = barrel(p, x, y, C0 - 1.15, r=0.13, h=0.55)
-        ham.data.materials[0] = layer("leather", (0.75, 0.42, 0.3))
+        with piece("ham_hanging", (x, y, C0 - 1.15)):
+            stick("ham_rope", (x, y, C0 - 0.24), (x, y, C0 - 0.6), 0.015, 0.015, p.trim, ("trim", ROPE))
+            ham = barrel(p, x, y, C0 - 1.15, r=0.13, h=0.55)
+            ham.data.materials[0] = layer("leather", (0.75, 0.42, 0.3))
+            collide((x, y, C0 - 0.9), (0.3, 0.3, 0.6))
     # Hyller med krukker på bakveggen, og sekker i hjørnet.
-    for z in (F0 + 1.4, F0 + 2.0):
-        box("kshelf", (1.0, iy1 - 0.35, z), (3.6, iy1, z + 0.05), p.floor, bevel=0.01)
-        for k in range(6):
-            x = 1.2 + k * 0.42
-            box("crock", (x - 0.1, iy1 - 0.28, z + 0.05), (x + 0.1, iy1 - 0.08, z + 0.3), layer("plaster_white", (0.85, 0.8, 0.7)), bevel=0.04)
-    for k, (x, y) in enumerate(((5.3, -0.9), (5.3, -0.25), (4.75, -1.0))):
-        box("sack", (x - 0.25, y - 0.22, F0), (x + 0.25, y + 0.22, F0 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
-    collide((5.1, -0.6, F0 + 0.3), (0.9, 1.0, 0.6))
+    with piece("crock_shelf", (2.3, iy1 - 0.175, F0)):
+        for z in (F0 + 1.4, F0 + 2.0):
+            box("kshelf", (1.0, iy1 - 0.35, z), (3.6, iy1, z + 0.05), p.floor, bevel=0.01)
+            for k in range(6):
+                x = 1.2 + k * 0.42
+                box("crock", (x - 0.1, iy1 - 0.28, z + 0.05), (x + 0.1, iy1 - 0.08, z + 0.3), layer("plaster_white", (0.85, 0.8, 0.7)), bevel=0.04)
+    with piece("sacks", (5.1, -0.6, F0)):
+        for k, (x, y) in enumerate(((5.3, -0.9), (5.3, -0.25), (4.75, -1.0))):
+            box("sack", (x - 0.25, y - 0.22, F0), (x + 0.25, y + 0.22, F0 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
+        collide((5.1, -0.6, F0 + 0.3), (0.9, 1.0, 0.6))
 
     # Lemmen og rekkverket rundt kjellertrappa.
     rail = p.timber
@@ -323,30 +337,35 @@ def cellar(p, rng):
         stick("cellar_post", (px, 0.0, z0), (px, 0.0, top - 0.24), 0.26, 0.26, p.timber, ("timber", 1))
         collide((px, 0.0, (z0 + top) / 2), (0.3, 0.3, top - z0))
     # Tønnelager langs bakveggen og venstre vegg, på bukker.
-    for k in range(6):
-        x = -4.6 + k * 1.0
-        stick("rack", (x - 0.45, cy1 - 0.45, z0 + 0.2), (x + 0.45, cy1 - 0.45, z0 + 0.2), 0.12, 0.12, p.timber, ("timber", 0))
-        barrel(p, x, cy1 - 0.45, z0 + 0.24, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
-    collide((-2.1, cy1 - 0.45, z0 + 0.5), (6.2, 0.9, 1.0))
+    with piece("barrel_rack", (-2.1, cy1 - 0.45, z0)):
+        for k in range(6):
+            x = -4.6 + k * 1.0
+            stick("rack", (x - 0.45, cy1 - 0.45, z0 + 0.2), (x + 0.45, cy1 - 0.45, z0 + 0.2), 0.12, 0.12, p.timber, ("timber", 0))
+            barrel(p, x, cy1 - 0.45, z0 + 0.24, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
+        collide((-2.1, cy1 - 0.45, z0 + 0.5), (6.2, 0.9, 1.0))
     for k in range(4):
         y = -2.6 + k * 1.0
-        barrel(p, cx0 + 0.45, y, z0, r=0.34, h=0.9, yaw=k)
-    collide((cx0 + 0.45, -1.1, z0 + 0.45), (0.8, 4.0, 0.9))
+        with piece("barrel_tall", (cx0 + 0.45, y, z0), k):
+            barrel(p, cx0 + 0.45, y, z0, r=0.34, h=0.9, yaw=k)
+            collide((cx0 + 0.45, y, z0 + 0.45), (0.7, 0.7, 0.9), k)
     # Hyller med krukker på høyre vegg.
-    for z in (z0 + 0.5, z0 + 1.1, z0 + 1.7):
-        box("cshelf", (cx1 - 0.45, -2.5, z), (cx1, 0.0, z + 0.05), p.floor, bevel=0.01)
-        for k in range(5):
-            y = -2.25 + k * 0.5
-            box("ccrock", (cx1 - 0.35, y - 0.12, z + 0.05), (cx1 - 0.12, y + 0.12, z + 0.38), layer("plaster_red", (0.8, 0.7, 0.6)), bevel=0.05)
-    collide((cx1 - 0.22, -1.25, z0 + 1.0), (0.45, 2.5, 2.0))
+    with piece("cellar_shelf", (cx1 - 0.22, -1.25, z0)):
+        for z in (z0 + 0.5, z0 + 1.1, z0 + 1.7):
+            box("cshelf", (cx1 - 0.45, -2.5, z), (cx1, 0.0, z + 0.05), p.floor, bevel=0.01)
+            for k in range(5):
+                y = -2.25 + k * 0.5
+                box("ccrock", (cx1 - 0.35, y - 0.12, z + 0.05), (cx1 - 0.12, y + 0.12, z + 0.38), layer("plaster_red", (0.8, 0.7, 0.6)), bevel=0.05)
+        collide((cx1 - 0.22, -1.25, z0 + 1.0), (0.45, 2.5, 2.0))
     # Sekker og kasser foran.
     for k, (x, y) in enumerate(((-3.6, -3.2), (-2.9, -3.3), (3.0, -3.2))):
-        box("crate", (x - 0.35, y - 0.3, z0), (x + 0.35, y + 0.3, z0 + 0.6), p.cladding, bevel=0.03)
-        collide((x, y, z0 + 0.3), (0.7, 0.6, 0.6))
+        with piece("cellar_crate", (x, y, z0)):
+            box("crate", (x - 0.35, y - 0.3, z0), (x + 0.35, y + 0.3, z0 + 0.6), p.cladding, bevel=0.03)
+            collide((x, y, z0 + 0.3), (0.7, 0.6, 0.6))
     # Lyktene.
     for x, y in ((-2.8, 0.25), (3.6, 0.25)):
-        box("cellar_lantern", (x - 0.1, y - 0.1, top - 0.85), (x + 0.1, y + 0.1, top - 0.55), plain("glow_horn", (0.3, 0.19, 0.08), 0.5), bevel=0.02)
-        light((x, y, top - 0.75), (1.0, 0.62, 0.32), 1.4, 7.0)
+        with piece("hanging_lantern", (x, y, top - 0.85)):
+            box("cellar_lantern", (x - 0.1, y - 0.1, top - 0.85), (x + 0.1, y + 0.1, top - 0.55), plain("glow_horn", (0.3, 0.19, 0.08), 0.5), bevel=0.02)
+            light((x, y, top - 0.75), (1.0, 0.62, 0.32), 1.4, 7.0)
 
 
 def upper_floor(p, rng):
@@ -380,21 +399,27 @@ def upper_floor(p, rng):
     beds = [(-4.6, iy1 - 1.1, 0), (-2.4, iy1 - 1.1, 0), (-0.2, iy1 - 1.1, 0), (2.0, iy1 - 1.1, 0), (-4.6, iy0 + 1.1, 1), (-2.4, iy0 + 1.1, 1), ]
     for k, (x, y, front) in enumerate(beds):
         s = 1 if front else -1
+        bed = piece(f"bed_{k % 4}", (x, y, F1), 0.0 if front else math.pi)
+        bed.__enter__()
         box("bed_frame", (x - 0.5, y - 1.0, F1), (x + 0.5, y + 1.0, F1 + 0.35), p.timber, bevel=0.03)
         box("bed_straw", (x - 0.43, y - 0.93, F1 + 0.35), (x + 0.43, y + 0.93, F1 + 0.48), p.straw, bevel=0.04)
         box("bed_blanket", (x - 0.45, min(y + s * 0.95, y - s * 0.3), F1 + 0.44), (x + 0.45, max(y + s * 0.95, y - s * 0.3), F1 + 0.55), wool[k % 4], bevel=0.04)
         box("bed_pillow", (x - 0.32, min(y - s * 0.95, y - s * 0.6), F1 + 0.46), (x + 0.32, max(y - s * 0.95, y - s * 0.6), F1 + 0.6), layer("linen"), bevel=0.06)
         collide((x, y, F1 + 0.3), (1.0, 2.0, 0.6))
+        bed.__exit__(None, None, None)
         # Kista ved fotenden.
         cy = y + s * 1.3
-        box("chest", (x - 0.4, cy - 0.25, F1), (x + 0.4, cy + 0.25, F1 + 0.45), p.cladding, bevel=0.03)
-        box("chest_band", (x - 0.42, cy - 0.27, F1 + 0.3), (x + 0.42, cy + 0.27, F1 + 0.36), p.iron, bevel=0.01)
-        collide((x, cy, F1 + 0.23), (0.8, 0.5, 0.45))
+        with piece("bed_chest", (x, cy, F1)):
+            box("chest", (x - 0.4, cy - 0.25, F1), (x + 0.4, cy + 0.25, F1 + 0.45), p.cladding, bevel=0.03)
+            box("chest_band", (x - 0.42, cy - 0.27, F1 + 0.3), (x + 0.42, cy + 0.27, F1 + 0.36), p.iron, bevel=0.01)
+            collide((x, cy, F1 + 0.23), (0.8, 0.5, 0.45))
     # Vaskefatet på et stativ, og lys.
-    table(p, 4.6, 1.2, F1, 0.6, 0.5, h=0.85)
-    barrel(p, 4.6, 1.2, F1 + 0.85, r=0.22, h=0.12).data.materials[0] = layer("plaster_white", (0.8, 0.85, 0.9))
+    with piece("wash_stand", (4.6, 1.2, F1)):
+        table(p, 4.6, 1.2, F1, 0.6, 0.5, h=0.85)
+        barrel(p, 4.6, 1.2, F1 + 0.85, r=0.22, h=0.12).data.materials[0] = layer("plaster_white", (0.8, 0.85, 0.9))
     for x, y in ((-3.5, 0.0), (1.0, 0.0)):
-        candle(p, x, y, F1 + 0.01, light_it=False)
+        with piece("candle", (x, y, F1 + 0.01)):
+            candle(p, x, y, F1 + 0.01, light_it=False)
     light((-2.0, 0.0, F1 + 2.0), (1.0, 0.68, 0.4), 1.3, 7.0)
     light((2.4, 0.0, F1 + 2.0), (1.0, 0.68, 0.4), 1.1, 6.0)
 
@@ -428,6 +453,9 @@ def build():
     data["cellar"] = [[0.0, 0.0, 0.0], [5.2, 3.6]]
     data["cellar_floor"] = [[0.0, CELLAR, 0.0], [5.3, 3.8]]
     json.dump(data, open(path, "w"))
+    # Møblene: stedene i `assets/layout/inside/tavern.json`, og hvert møbel
+    # som egen modell.
+    town.write_contents("tavern")
 
 
 if __name__ == "__main__":

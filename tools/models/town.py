@@ -128,6 +128,104 @@ def prop(name, x, y, yaw=0.0):
     PROPS.append((name, (x, y), yaw))
 
 
+# --- Møblene som egne modeller ----------------------------------------------
+#
+# `with piece("bench", (x, y, z), yaw):` rundt koden som lager et møbel: det
+# som lages i blokka (deler, kollidere, lys), tas ut av huset. Første gang et
+# navn brukes, blir det modellen `assets/models/furniture/<navn>.glb` (med
+# kolliderne og lysene i `<navn>_inside.json`, i møbelets eget rom, origo på
+# gulvet midt under), og hver gang skrives stedet til
+# `assets/layout/inside/<hus>.json` (`write_contents`). Samme navn må gi samme
+# møbel; et møbel med en annen farge får et eget navn.
+
+FURNITURE = "assets/models/furniture"
+PLACED = []      # (navn, (x, y, z), yaw, targets) i husets akser
+_PIECE_DEFS = {}  # navn -> (blend-fil, trekanter, kollidere, lys, hull)
+
+
+class piece:
+    def __init__(self, name, at, yaw=0.0, targets=()):
+        self.name, self.at, self.yaw, self.targets = name, tuple(at), yaw, list(targets)
+
+    def __enter__(self):
+        self.before = set(bpy.data.objects)
+        self.n = (len(COLLIDERS), len(LIGHTS), len(HULLS))
+        return self
+
+    def __exit__(self, *exc):
+        if exc[0]:
+            return False
+        bpy.context.view_layer.update()  # deler med location/rotation satt
+        made = [o for o in bpy.data.objects if o not in self.before]
+        cols, lights, hulls = COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
+        del COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
+        for o in made:
+            if o in PIECES:
+                PIECES.remove(o)
+        # Til møbelets eget rom: flytt og drei tilbake.
+        c, s = math.cos(-self.yaw), math.sin(-self.yaw)
+        ox, oy, oz = self.at
+        local = lambda v: ((v[0] - ox) * c - (v[1] - oy) * s, (v[0] - ox) * s + (v[1] - oy) * c, v[2] - oz)
+        tris = sum(len(p.vertices) - 2 for o in made if o.type == "MESH" for p in o.data.polygons)
+        if self.name not in _PIECE_DEFS:
+            os.makedirs("target/pieces", exist_ok=True)
+            blend = f"target/pieces/{self.name}.blend"
+            to = Matrix.Rotation(-self.yaw, 4, "Z") @ Matrix.Translation((-ox, -oy, -oz))
+            for o in made:
+                if o.parent is None:
+                    o.matrix_world = to @ o.matrix_world
+            bpy.data.libraries.write(blend, set(made), fake_user=True)
+            _PIECE_DEFS[self.name] = (blend, tris, [(local(cc), sz, y - self.yaw) for cc, sz, y in cols], [(local(cc), col, i, r) for cc, col, i, r in lights], [[local(q) for q in pts] for pts in hulls])
+        elif _PIECE_DEFS[self.name][1] != tris:
+            raise RuntimeError(f"møbelet «{self.name}» har {tris} trekanter her, men {_PIECE_DEFS[self.name][1]} første gang: gi det et eget navn")
+        for o in made:
+            bpy.data.objects.remove(o, do_unlink=True)
+        PLACED.append((self.name, self.at, self.yaw, self.targets))
+        return False
+
+
+def write_contents(house):
+    """Skriv stedene til møblene i `house` til `assets/layout/inside/<hus>.json`
+    (motorens akser, husets rom), om fila ikke finnes: etter første gang er
+    fila sannheten, og redigeringsmodusen endrer den. Så eksporteres møblene
+    som er nye (`FRISTAD_PIECES=alle` eksporterer alle på nytt)."""
+    import json
+    path = f"assets/layout/inside/{house}.json"
+    if not os.path.exists(path) or os.environ.get("FRISTAD_CONTENTS") == "skriv":
+        items = []
+        for name, (x, y, z), yaw, targets in PLACED:
+            h = yaw / 2
+            items.append({"at": {"pos": [round(x, 5), round(z, 5), round(-y, 5)], "rot": [0, round(math.sin(h), 5), 0, round(math.cos(h), 5)]}, "model": name, "mounted": True, **({"targets": targets} if targets else {})})
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("[\n" + ",\n".join("  " + json.dumps(i, separators=(",", ":"), ensure_ascii=False) for i in items) + "\n]\n")
+        print(f"{path}: {len(items)} møbler")
+    else:
+        print(f"{path} finnes og skrives ikke over")
+    PLACED.clear()
+    export_pieces()
+
+
+def export_pieces():
+    """Hvert møbel i sin egen glb, med kolliderne og lysene sine."""
+    defs = dict(_PIECE_DEFS)
+    _PIECE_DEFS.clear()
+    for name, (blend, _, cols, lights, hulls) in defs.items():
+        out = f"{FURNITURE}/{name}.glb"
+        if os.path.exists(out) and os.environ.get("FRISTAD_PIECES") != "alle":
+            continue
+        clear()
+        PIECES.clear()
+        with bpy.data.libraries.load(blend) as (src, dst):
+            dst.objects = list(src.objects)
+        for o in dst.objects:
+            bpy.context.scene.collection.objects.link(o)
+        COLLIDERS.extend(cols)
+        LIGHTS.extend(lights)
+        HULLS.extend(hulls)
+        finish(out, max_edge=100.0)
+
+
 def wall_lantern(m, x, y_face, z, normal_y):
     """Ei vegglykt ved døra: smijernsarm med stag, og en lykt med hornruter
     og et talglys som henger i en krok. `z` er høyden på armen."""
@@ -375,7 +473,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
     # flater (som ga synlige trekanter) løftes til fullt lys.
     t = np.clip((ao - 0.3) / 0.55, 0.0, 1.0)
     col[:, 0] = col[:, 1] = col[:, 2] = 0.45 + 0.55 * t * t * (3.0 - 2.0 * t)
-    if os.environ.get("FRISTAD_GRADIENT", "1") == "1" and "/town/" in path:
+    if os.environ.get("FRISTAD_GRADIENT", "1") == "1" and ("/town/" in path or "/furniture/" in path):
         # Malt stil: mørkere nede ved bakken (skitt og skygge), lysere oppe.
         zs = np.empty(len(ob.data.vertices) * 3, dtype=np.float32)
         ob.data.vertices.foreach_get("co", zs)

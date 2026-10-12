@@ -187,48 +187,56 @@ pub fn intern(s: &str) -> &'static str {
 /// Bygg byen fra dataene. Gir det byen forteller resten av verden.
 pub fn apply(b: &mut Builder, layout: &Layout) -> town::Town {
     for item in &layout.items {
-        let t = item.at.map(|p| p.affine()).unwrap_or(Affine3A::IDENTITY);
-        let y0 = item.at.map(|p| p.yaw()).unwrap_or(0.0);
-        if let Some(m) = &item.model {
-            let m = intern(m);
-            if item.building {
-                town::building_at(b, m, t);
-            } else if item.mounted {
-                b.place_mounted_look(m, t, None::<Look>);
-            } else {
-                b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE));
-            }
-        }
-        let p = |v: &Vec3| t.transform_point3(*v);
-        for s in &item.solids {
-            b.solid(match s {
-                SolidDef::Cuboid { center, size, yaw } => Shape::Cuboid { center: p(center), size: *size, yaw: yaw + y0 },
-                SolidDef::Cylinder { center, radius, half_height } => Shape::Cylinder { center: p(center), radius: *radius, half_height: *half_height },
-                SolidDef::Capsule { a, b: e, radius } => Shape::Capsule { a: p(a), b: p(e), radius: *radius },
-                SolidDef::Hull { points } => Shape::Hull { points: points.iter().map(p).collect() },
-            });
-        }
-        for d in &item.targets {
-            b.target(d.what.to_use(), t * d.pose.affine(), d.center, d.half);
-        }
-        for l in &item.lights {
-            b.push_light(Light { pos: p(&l.pos), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker, room: None });
-        }
-        for (top, s) in &item.smoke {
-            b.smoke(p(top), *s);
-        }
-        for (c, half, yaw, top) in &item.floors {
-            b.floor(p(c), *half, yaw + y0, top + t.translation.y);
-        }
-        for (c, half, yaw) in &item.holes {
-            b.hole(p(c), *half, yaw + y0);
-        }
-        for (m, n) in &item.reserve {
-            b.reserve(intern(m), *n);
-        }
+        apply_item(b, item, Affine3A::IDENTITY);
     }
     for n in &layout.npcs {
         town::settle(b, NpcSpec { name: intern(&n.name), model: intern(&n.model), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::lines(&n.lines), route: n.route.clone(), height: 0.0 });
     }
     town::Town { spawn: layout.spawn.0, spawn_yaw: layout.spawn.1, crypt_anchor: layout.crypt_anchor, crypt_exit: layout.crypt_exit }
+}
+
+/// Sett ut én ting, i rommet til `parent` (verden, eller huset den står i).
+/// En modell med `<navn>_inside.json` tar med seg kolliderne og lysene sine
+/// (`town::carry`); et hus også innsida og det som står inne.
+pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
+    let t = parent * item.at.map(|p| p.affine()).unwrap_or(Affine3A::IDENTITY);
+    let y0 = Pose::of(t).yaw();
+    if let Some(m) = &item.model {
+        let m = intern(m);
+        if item.building {
+            town::building_at(b, m, t);
+        } else {
+            let placed = if item.mounted { b.place_mounted_look(m, t, None::<Look>) } else { b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE)) };
+            if placed {
+                town::carry(b, m, t);
+            }
+        }
+    }
+    let p = |v: &Vec3| t.transform_point3(*v);
+    for s in &item.solids {
+        b.solid(match s {
+            SolidDef::Cuboid { center, size, yaw } => Shape::Cuboid { center: p(center), size: *size, yaw: yaw + y0 },
+            SolidDef::Cylinder { center, radius, half_height } => Shape::Cylinder { center: p(center), radius: *radius, half_height: *half_height },
+            SolidDef::Capsule { a, b: e, radius } => Shape::Capsule { a: p(a), b: p(e), radius: *radius },
+            SolidDef::Hull { points } => Shape::Hull { points: points.iter().map(p).collect() },
+        });
+    }
+    for d in &item.targets {
+        b.target(d.what.to_use(), t * d.pose.affine(), d.center, d.half);
+    }
+    for l in &item.lights {
+        b.push_light(Light { pos: p(&l.pos), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker, room: None });
+    }
+    for (top, s) in &item.smoke {
+        b.smoke(p(top), *s);
+    }
+    for (c, half, yaw, top) in &item.floors {
+        b.floor(p(c), *half, yaw + y0, top + t.translation.y);
+    }
+    for (c, half, yaw) in &item.holes {
+        b.hole(p(c), *half, yaw + y0);
+    }
+    for (m, n) in &item.reserve {
+        b.reserve(intern(m), *n);
+    }
 }

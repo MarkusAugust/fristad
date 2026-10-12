@@ -150,6 +150,8 @@ pub struct Builder {
     pub holes: Vec<(Vec3, Vec2, f32)>,
     /// Det husene har med seg (kollidere, lys, kjeller …), per modell.
     pub insides: HashMap<String, town::Inside>,
+    /// Det som står inne i husene (`Data.contents`), per hus.
+    pub contents: HashMap<String, Vec<layout::Item>>,
 }
 
 impl Builder {
@@ -169,6 +171,7 @@ impl Builder {
             missing: vec![],
             holes: vec![],
             insides: HashMap::new(),
+            contents: HashMap::new(),
         }
     }
 
@@ -402,12 +405,16 @@ pub struct Data {
     pub levels: Vec<(u32, crypt::level::LevelFile)>,
     /// Byen som data (`assets/layout/town.json`).
     pub layout: Option<layout::Layout>,
+    /// Det som står inne i husene, per hus, i husets rom
+    /// (`assets/layout/inside/<hus>.json`).
+    pub contents: Vec<(String, Vec<layout::Item>)>,
 }
 
 /// Bygg verden. Krypten er fast; `seed` brukes ikke til noe der lenger.
 pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
     let mut b = Builder::new(models);
     b.insides = data.insides.into_iter().collect();
+    b.contents = data.contents.into_iter().collect();
 
     // Bakken: et rutenett som følger terrenget, med brostein på torget,
     // jordveier og gress.

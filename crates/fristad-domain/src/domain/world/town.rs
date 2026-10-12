@@ -251,6 +251,36 @@ pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
     if b.place(model, t) {
         place_colliders(b, model, t, layout::Pose::of(t).yaw());
     }
+    // Det som står inne, i husets rom: følger huset.
+    if let Some(items) = b.contents.get(model).cloned() {
+        for item in &items {
+            layout::apply_item(b, item, t);
+        }
+    }
+}
+
+/// Kolliderne, rampene, lysene, lyktene og røyken en modell har med seg
+/// (`<navn>_inside.json`), satt ut med posen `t`. Gir om den hadde kollidere.
+pub fn carry(b: &mut Builder, model: &str, t: Affine3A) -> bool {
+    let Some(inside) = b.insides.get(model).cloned() else { return false };
+    let yaw = layout::Pose::of(t).yaw();
+    let w = |p: &[f32; 3]| t.transform_point3(Vec3::from(*p));
+    for (p, color, intensity, radius) in &inside.lamps {
+        b.lamp_light(w(p), Vec3::from(*color), *intensity, *radius);
+    }
+    for (p, strength) in &inside.smoke {
+        b.smoke(w(p), *strength);
+    }
+    for (c, size, y) in &inside.boxes {
+        b.solid_box(w(c), Vec3::from(*size), yaw + y);
+    }
+    for pts in &inside.hulls {
+        b.solid(Shape::Hull { points: pts.iter().map(w).collect() });
+    }
+    for (p, color, intensity, radius) in &inside.lights {
+        b.fire_light(w(p), Vec3::from(*color), *intensity, *radius);
+    }
+    !inside.boxes.is_empty()
 }
 
 /// Det et hus har med seg: innsidemodellen, kjelleren, lysene, røyken og
@@ -279,26 +309,11 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
         b.floor(c, Vec2::from(h), yaw, c.y);
     }
     if let Some(inside) = &inside {
-        for (p, color, intensity, radius) in &inside.lamps {
-            b.lamp_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
-        }
-        for (p, strength) in &inside.smoke {
-            b.smoke(t.transform_point3(Vec3::from(*p)), *strength);
-        }
         for (name, p, y) in &inside.props {
             house_prop(b, name, t.transform_point3(Vec3::from(*p)), yaw + y);
         }
     }
-    if let Some(inside) = inside.filter(|i| !i.boxes.is_empty()) {
-        for (c, size, y) in &inside.boxes {
-            b.solid_box(t.transform_point3(Vec3::from(*c)), Vec3::from(*size), yaw + y);
-        }
-        for pts in &inside.hulls {
-            b.solid(Shape::Hull { points: pts.iter().map(|p| t.transform_point3(Vec3::from(*p))).collect() });
-        }
-        for (p, color, intensity, radius) in &inside.lights {
-            b.fire_light(t.transform_point3(Vec3::from(*p)), Vec3::from(*color), *intensity, *radius);
-        }
+    if carry(b, model, t) {
         return;
     }
     if let Some((lo, hi)) = b.bounds(model) {

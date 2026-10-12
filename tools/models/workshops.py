@@ -43,7 +43,7 @@ import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, DARK_BEAM, IRON_BAND, MOULDING, ROPE, barrel, box, candle, door, fire, half_timbered, planks, stairs, stick, stool, table, window  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
-from town import collide, layer, light, plain  # noqa: E402
+from town import collide, layer, light, piece, plain  # noqa: E402
 
 OUT = "assets/models/town"
 
@@ -499,88 +499,97 @@ def forge_inside(p, rng):
     for k in range(3):
         stick("poker", (HX + 0.3 + k * 0.12, HY - 0.15, 0.98), (HX + 0.75 + k * 0.1, HY - 0.95, 1.12), 0.025, 0.025, dark, bevel=0)
     # Kullbøtta foran essa.
-    revolve("coal_pail", [(0.18, 0.0), (0.22, 0.32), (0.0, 0.32)], p.boards, n=8, at=(HX + 1.2, HY - 0.75, FZ))
-    revolve("coal_pail_top", [(0.19, 0.0), (0.12, 0.06), (0.0, 0.08)], layer("rock", (0.16, 0.15, 0.15)), n=8, at=(HX + 1.2, HY - 0.75, FZ + 0.32))
-    collide((HX + 1.2, HY - 0.75, FZ + 0.2), (0.45, 0.45, 0.4))
+    with piece("coal_pail", (HX + 1.2, HY - 0.75, FZ)):
+        revolve("coal_pail", [(0.18, 0.0), (0.22, 0.32), (0.0, 0.32)], p.boards, n=8, at=(HX + 1.2, HY - 0.75, FZ))
+        revolve("coal_pail_top", [(0.19, 0.0), (0.12, 0.06), (0.0, 0.08)], layer("rock", (0.16, 0.15, 0.15)), n=8, at=(HX + 1.2, HY - 0.75, FZ + 0.32))
+        collide((HX + 1.2, HY - 0.75, FZ + 0.2), (0.45, 0.45, 0.4))
 
     # Verktøyveggen på bakmuren: en list med tenger, hammere og filer, og
     # hestesko på spiker.
     wy = FIY1
-    stick("tool_rail", (-1.0, wy - 0.05, 1.95), (1.6, wy - 0.05, 1.95), 0.08, 0.1, p.timber, ("timber", 2), bevel=0.02)
-    stick("tool_rail", (-1.0, wy - 0.05, 1.25), (1.6, wy - 0.05, 1.25), 0.08, 0.1, p.timber, ("timber", 1), bevel=0.02)
-    x = -0.85
-    k = 0
-    while x < 1.45:
-        kind = k % 4
-        if kind == 0:  # tang
-            for s in (-1, 1):
-                stick("tongs", (x, wy - 0.12, 1.92), (x + s * 0.05, wy - 0.12, 1.32), 0.02, 0.02, dark, bevel=0)
-        elif kind == 1:  # hammer
-            stick("tool", (x, wy - 0.12, 1.92), (x, wy - 0.12, 1.42), 0.035, 0.035, p.timber, ("timber", 0), bevel=0)
-            box("tool_head", (x - 0.08, wy - 0.16, 1.38), (x + 0.08, wy - 0.08, 1.46), dark, bevel=0.01)
-        elif kind == 2:  # fil og meisel
-            stick("file", (x, wy - 0.11, 1.9), (x, wy - 0.11, 1.5), 0.03, 0.012, bright, bevel=0)
-        else:  # sag
-            box("saw", (x - 0.03, wy - 0.12, 1.4), (x + 0.03, wy - 0.1, 1.9), bright, bevel=0)
-        x += 0.22
-        k += 1
-    for k in range(7):
-        hx_ = -0.9 + k * 0.36
-        z = 1.05 - (k % 2) * 0.12
-        horse = revolve("horseshoe", [(0.07, -0.01), (0.07, 0.01), (0.0, 0.01)], bright, n=6, at=(0, 0, 0))
-        turned(horse, (0, 0, 0), Matrix.Translation((hx_, wy - 0.03, z)) @ Matrix.Rotation(math.pi / 2, 4, "X"))
+    with piece("tool_wall", (0.3, wy, FZ)):
+        stick("tool_rail", (-1.0, wy - 0.05, 1.95), (1.6, wy - 0.05, 1.95), 0.08, 0.1, p.timber, ("timber", 2), bevel=0.02)
+        stick("tool_rail", (-1.0, wy - 0.05, 1.25), (1.6, wy - 0.05, 1.25), 0.08, 0.1, p.timber, ("timber", 1), bevel=0.02)
+        x = -0.85
+        k = 0
+        while x < 1.45:
+            kind = k % 4
+            if kind == 0:  # tang
+                for s in (-1, 1):
+                    stick("tongs", (x, wy - 0.12, 1.92), (x + s * 0.05, wy - 0.12, 1.32), 0.02, 0.02, dark, bevel=0)
+            elif kind == 1:  # hammer
+                stick("tool", (x, wy - 0.12, 1.92), (x, wy - 0.12, 1.42), 0.035, 0.035, p.timber, ("timber", 0), bevel=0)
+                box("tool_head", (x - 0.08, wy - 0.16, 1.38), (x + 0.08, wy - 0.08, 1.46), dark, bevel=0.01)
+            elif kind == 2:  # fil og meisel
+                stick("file", (x, wy - 0.11, 1.9), (x, wy - 0.11, 1.5), 0.03, 0.012, bright, bevel=0)
+            else:  # sag
+                box("saw", (x - 0.03, wy - 0.12, 1.4), (x + 0.03, wy - 0.1, 1.9), bright, bevel=0)
+            x += 0.22
+            k += 1
+        for k in range(7):
+            hx_ = -0.9 + k * 0.36
+            z = 1.05 - (k % 2) * 0.12
+            horse = revolve("horseshoe", [(0.07, -0.01), (0.07, 0.01), (0.0, 0.01)], bright, n=6, at=(0, 0, 0))
+            turned(horse, (0, 0, 0), Matrix.Translation((hx_, wy - 0.03, z)) @ Matrix.Rotation(math.pi / 2, 4, "X"))
     # Jernstenger lent mot muren.
-    for k in range(5):
-        stick("iron_bar", (1.7 + k * 0.07, wy - 0.25, FZ), (1.75 + k * 0.07, wy - 0.06, 1.5), 0.035, 0.035, dark, bevel=0)
+    with piece("iron_bars_leaning", (1.84, wy - 0.15, FZ)):
+        for k in range(5):
+            stick("iron_bar", (1.7 + k * 0.07, wy - 0.25, FZ), (1.75 + k * 0.07, wy - 0.06, 1.5), 0.035, 0.035, dark, bevel=0)
 
     # Arbeidsbenken langs høyre gavlmur, med skrustikke og en klinge.
     bx0, bx1, by0, by1 = FIX1 - 0.75, FIX1, -1.2, 0.8
-    box("bench_top", (bx0, by0, 0.88), (bx1, by1, 0.98), p.floor, bevel=0.02)
-    for xx in (bx0 + 0.08, bx1 - 0.12):
-        for yy in (by0 + 0.1, by1 - 0.1):
-            stick("bench_leg", (xx, yy, FZ), (xx, yy, 0.88), 0.1, 0.1, p.timber, ("timber", 1), bevel=0.02)
-    box("bench_shelf", (bx0 + 0.04, by0 + 0.05, 0.3), (bx1 - 0.04, by1 - 0.05, 0.35), p.floor, bevel=0.01)
-    box("vise", (bx0 + 0.02, by0 + 0.2, 0.98), (bx0 + 0.24, by0 + 0.45, 1.18), dark, bevel=0.02)
-    stick("vise_bar", (bx0 - 0.04, by0 + 0.12, 1.1), (bx0 - 0.04, by0 + 0.53, 1.1), 0.03, 0.03, dark, bevel=0)
-    stick("blade", (bx0 + 0.3, -0.3, 0.995), (bx0 + 0.35, 0.5, 0.995), 0.06, 0.01, bright, bevel=0)
-    box("ingot", (bx0 + 0.3, by1 - 0.35, 0.98), (bx0 + 0.55, by1 - 0.15, 1.03), dark, bevel=0.01)
-    for k in range(3):
-        box("sack", (bx0 + 0.1, by0 + 0.2 + k * 0.5, 0.35), (bx1 - 0.1, by0 + 0.6 + k * 0.5, 0.6), layer("linen", (0.75, 0.68, 0.55)), bevel=0.08)
-    collide(((bx0 + bx1) / 2, (by0 + by1) / 2, 0.5), (bx1 - bx0, by1 - by0, 1.0))
+    with piece("forge_workbench", ((bx0 + bx1) / 2, (by0 + by1) / 2, FZ)):
+        box("bench_top", (bx0, by0, 0.88), (bx1, by1, 0.98), p.floor, bevel=0.02)
+        for xx in (bx0 + 0.08, bx1 - 0.12):
+            for yy in (by0 + 0.1, by1 - 0.1):
+                stick("bench_leg", (xx, yy, FZ), (xx, yy, 0.88), 0.1, 0.1, p.timber, ("timber", 1), bevel=0.02)
+        box("bench_shelf", (bx0 + 0.04, by0 + 0.05, 0.3), (bx1 - 0.04, by1 - 0.05, 0.35), p.floor, bevel=0.01)
+        box("vise", (bx0 + 0.02, by0 + 0.2, 0.98), (bx0 + 0.24, by0 + 0.45, 1.18), dark, bevel=0.02)
+        stick("vise_bar", (bx0 - 0.04, by0 + 0.12, 1.1), (bx0 - 0.04, by0 + 0.53, 1.1), 0.03, 0.03, dark, bevel=0)
+        stick("blade", (bx0 + 0.3, -0.3, 0.995), (bx0 + 0.35, 0.5, 0.995), 0.06, 0.01, bright, bevel=0)
+        box("ingot", (bx0 + 0.3, by1 - 0.35, 0.98), (bx0 + 0.55, by1 - 0.15, 1.03), dark, bevel=0.01)
+        for k in range(3):
+            box("sack", (bx0 + 0.1, by0 + 0.2 + k * 0.5, 0.35), (bx1 - 0.1, by0 + 0.6 + k * 0.5, 0.6), layer("linen", (0.75, 0.68, 0.55)), bevel=0.08)
+        collide(((bx0 + bx1) / 2, (by0 + by1) / 2, 0.5), (bx1 - bx0, by1 - by0, 1.0))
     # Hylle over benken med hjelmer og skjoldbuler.
-    box("wall_shelf", (FIX1 - 0.32, by0, 1.75), (FIX1, by1, 1.8), p.floor, bevel=0.01)
-    for k in range(3):
-        y = by0 + 0.35 + k * 0.62
-        revolve("helmet", [(0.15, 0.0), (0.15, 0.12), (0.11, 0.22), (0.0, 0.26)], bright if k != 1 else dark, n=8, at=(FIX1 - 0.17, y, 1.8))
-        box("helmet_nasal", (FIX1 - 0.34, y - 0.015, 1.83), (FIX1 - 0.3, y + 0.015, 1.98), bright, bevel=0)
+    with piece("helmet_shelf", (FIX1 - 0.16, (by0 + by1) / 2, FZ)):
+        box("wall_shelf", (FIX1 - 0.32, by0, 1.75), (FIX1, by1, 1.8), p.floor, bevel=0.01)
+        for k in range(3):
+            y = by0 + 0.35 + k * 0.62
+            revolve("helmet", [(0.15, 0.0), (0.15, 0.12), (0.11, 0.22), (0.0, 0.26)], bright if k != 1 else dark, n=8, at=(FIX1 - 0.17, y, 1.8))
+            box("helmet_nasal", (FIX1 - 0.34, y - 0.015, 1.83), (FIX1 - 0.3, y + 0.015, 1.98), bright, bevel=0)
 
     # Våpenstativet foran til høyre: sverd og økser til salgs.
     rx, ry0, ry1 = FIX1 - 0.4, -3.1, -1.8
-    for yy in (ry0, ry1):
-        stick("rack_post", (rx, yy, FZ), (rx, yy, 1.35), 0.09, 0.09, p.timber, ("timber", 2), bevel=0.02)
-    stick("rack_rail", (rx, ry0 - 0.05, 1.2), (rx, ry1 + 0.05, 1.2), 0.08, 0.1, p.timber, ("timber", 3), bevel=0.02)
-    stick("rack_foot", (rx, ry0 - 0.05, FZ + 0.12), (rx, ry1 + 0.05, FZ + 0.12), 0.25, 0.08, p.timber, ("timber", 1), bevel=0.02)
-    for k in range(4):
-        y = ry0 + 0.2 + k * 0.28
-        if k % 2 == 0:
-            stick("sword_blade", (rx, y, FZ + 0.18), (rx, y, 1.05), 0.012, 0.06, bright, bevel=0)
-            box("sword_guard", (rx - 0.02, y - 0.12, 1.05), (rx + 0.02, y + 0.12, 1.09), dark, bevel=0)
-            stick("sword_grip", (rx, y, 1.09), (rx, y, 1.3), 0.035, 0.035, p.door_dark, bevel=0)
-            box("sword_pommel", (rx - 0.035, y - 0.035, 1.3), (rx + 0.035, y + 0.035, 1.36), dark, bevel=0.01)
-        else:
-            stick("axe_haft", (rx, y, FZ + 0.18), (rx, y, 1.4), 0.04, 0.04, p.timber, ("timber", 0), bevel=0)
-            box("axe_head", (rx - 0.02, y - 0.02, 1.2), (rx + 0.02, y + 0.2, 1.38), bright, bevel=0.005)
-    collide((rx, (ry0 + ry1) / 2, 0.7), (0.4, ry1 - ry0 + 0.2, 1.4))
+    with piece("forge_weapon_rack", (rx, (ry0 + ry1) / 2, FZ)):
+        for yy in (ry0, ry1):
+            stick("rack_post", (rx, yy, FZ), (rx, yy, 1.35), 0.09, 0.09, p.timber, ("timber", 2), bevel=0.02)
+        stick("rack_rail", (rx, ry0 - 0.05, 1.2), (rx, ry1 + 0.05, 1.2), 0.08, 0.1, p.timber, ("timber", 3), bevel=0.02)
+        stick("rack_foot", (rx, ry0 - 0.05, FZ + 0.12), (rx, ry1 + 0.05, FZ + 0.12), 0.25, 0.08, p.timber, ("timber", 1), bevel=0.02)
+        for k in range(4):
+            y = ry0 + 0.2 + k * 0.28
+            if k % 2 == 0:
+                stick("sword_blade", (rx, y, FZ + 0.18), (rx, y, 1.05), 0.012, 0.06, bright, bevel=0)
+                box("sword_guard", (rx - 0.02, y - 0.12, 1.05), (rx + 0.02, y + 0.12, 1.09), dark, bevel=0)
+                stick("sword_grip", (rx, y, 1.09), (rx, y, 1.3), 0.035, 0.035, p.door_dark, bevel=0)
+                box("sword_pommel", (rx - 0.035, y - 0.035, 1.3), (rx + 0.035, y + 0.035, 1.36), dark, bevel=0.01)
+            else:
+                stick("axe_haft", (rx, y, FZ + 0.18), (rx, y, 1.4), 0.04, 0.04, p.timber, ("timber", 0), bevel=0)
+                box("axe_head", (rx - 0.02, y - 0.02, 1.2), (rx + 0.02, y + 0.2, 1.38), bright, bevel=0.005)
+        collide((rx, (ry0 + ry1) / 2, 0.7), (0.4, ry1 - ry0 + 0.2, 1.4))
     # Tønne med jernstenger og ei kasse i hjørnet foran til venstre.
-    barrel(p, FIX0 + 0.4, -0.95, FZ, r=0.3, h=0.8)
-    for k in range(4):
-        stick("iron_bar", (FIX0 + 0.33 + k * 0.05, -0.95, FZ + 0.4), (FIX0 + 0.31 + k * 0.05, -0.9, FZ + 1.4), 0.03, 0.03, dark, bevel=0)
-    collide((FIX0 + 0.4, -0.95, FZ + 0.4), (0.65, 0.65, 0.8))
-    box("crate", (FIX0 + 0.1, 0.0, FZ), (FIX0 + 0.7, 0.55, FZ + 0.55), p.boards, bevel=0.03)
-    collide((FIX0 + 0.4, 0.27, FZ + 0.27), (0.6, 0.55, 0.55))
+    with piece("barrel_bars", (FIX0 + 0.4, -0.95, FZ)):
+        barrel(p, FIX0 + 0.4, -0.95, FZ, r=0.3, h=0.8)
+        for k in range(4):
+            stick("iron_bar", (FIX0 + 0.33 + k * 0.05, -0.95, FZ + 0.4), (FIX0 + 0.31 + k * 0.05, -0.9, FZ + 1.4), 0.03, 0.03, dark, bevel=0)
+        collide((FIX0 + 0.4, -0.95, FZ + 0.4), (0.65, 0.65, 0.8))
+    with piece("forge_crate", (FIX0 + 0.4, 0.275, FZ)):
+        box("crate", (FIX0 + 0.1, 0.0, FZ), (FIX0 + 0.7, 0.55, FZ + 0.55), p.boards, bevel=0.03)
+        collide((FIX0 + 0.4, 0.27, FZ + 0.27), (0.6, 0.55, 0.55))
     # Lykta i bindbjelken midt i rommet, og lys over arbeidsbenken.
-    lantern(p, 0.4, -0.6, FE - 0.18, 2.35)
-    light((0.4, -0.6, 2.3), (1.0, 0.66, 0.36), 1.3, 6.5)
+    with piece("chain_lantern_forge", (0.4, -0.6, 2.15)):
+        lantern(p, 0.4, -0.6, FE - 0.18, 2.35)
+        light((0.4, -0.6, 2.3), (1.0, 0.66, 0.36), 1.3, 6.5)
     light((FIX1 - 0.6, -0.2, 2.0), (1.0, 0.7, 0.42), 0.8, 4.0)
 
 
@@ -802,54 +811,58 @@ def sales_room(p, rng):
     brown_glass = plain("glass_brown", (0.2, 0.1, 0.05), 0.1)
     pots = [clay, white, blue, ochre]
     # Reolen langs vestveggen, fra fasaden til skilleveggen.
-    zs, yi = shelf_unit(p, AIY0 + 0.05, PY - 0.12, AIX0, 0.36, AF0, 2.35, 5, along="y", out=1)
-    for r, z in enumerate(zs):
-        u = AIY0 + 0.2
-        # Ikke foran salgsluka (den sitter i fasaden, ikke på vestveggen).
-        while u < PY - 0.3:
-            x = AIX0 + 0.2
-            if r > 0 and rng.random() < 0.2:
-                books(u, u + 0.35, x, z, 0.22, rng, along="y")
-                u += 0.42
-                continue
-            if rng.random() < 0.35:
-                rr = rng.uniform(0.04, 0.055)
-                bottle(x, u + rr, z, rr, rng.uniform(0.17, 0.3), rng.choice((green_glass, brown_glass)))
-            else:
-                rr = rng.uniform(0.05, 0.08)
-                jar(x, u + rr, z, rr, min(rng.uniform(0.12, 0.28), 0.36), rng.choice(pots), n=6)
-            u += rr * 2 + rng.uniform(0.03, 0.07)
+    with piece("apothecary_shelf", (AIX0 + 0.18, (AIY0 + PY - 0.07) / 2, AF0)):
+        zs, yi = shelf_unit(p, AIY0 + 0.05, PY - 0.12, AIX0, 0.36, AF0, 2.35, 5, along="y", out=1)
+        for r, z in enumerate(zs):
+            u = AIY0 + 0.2
+            # Ikke foran salgsluka (den sitter i fasaden, ikke på vestveggen).
+            while u < PY - 0.3:
+                x = AIX0 + 0.2
+                if r > 0 and rng.random() < 0.2:
+                    books(u, u + 0.35, x, z, 0.22, rng, along="y")
+                    u += 0.42
+                    continue
+                if rng.random() < 0.35:
+                    rr = rng.uniform(0.04, 0.055)
+                    bottle(x, u + rr, z, rr, rng.uniform(0.17, 0.3), rng.choice((green_glass, brown_glass)))
+                else:
+                    rr = rng.uniform(0.05, 0.08)
+                    jar(x, u + rr, z, rr, min(rng.uniform(0.12, 0.28), 0.36), rng.choice(pots), n=6)
+                u += rr * 2 + rng.uniform(0.03, 0.07)
     # Disken på tvers foran reolen, med vekt, morter, bok og pengeskrin.
     cx0, cx1, cy0, cy1 = -1.2, -0.62, -2.45, -0.3
-    box("counter", (cx0, cy0, AF0), (cx1, cy1, AF0 + 0.98), p.cladding, bevel=0.03)
-    box("counter_top", (cx0 - 0.05, cy0 - 0.08, AF0 + 0.98), (cx1 + 0.1, cy1 + 0.08, AF0 + 1.06), p.floor, bevel=0.02)
-    stick("counter_trim", (cx1 + 0.02, cy0, AF0 + 0.9), (cx1 + 0.02, cy1, AF0 + 0.9), 0.05, 0.1, p.trim, ("trim", IRON_BAND), bevel=0)
-    for k in range(4):
-        y = cy0 + 0.2 + k * (cy1 - cy0 - 0.4) / 3
-        stick("counter_post", (cx1 + 0.03, y, AF0), (cx1 + 0.03, y, AF0 + 0.9), 0.08, 0.08, p.timber, ("timber", k % 4), bevel=0.02)
-    collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, AF0 + 0.53), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.16, 1.06))
-    top = AF0 + 1.06
-    brass = layer("iron", (0.95, 0.75, 0.4), 0.35)
-    stick("scale_post", (-0.95, -1.9, top), (-0.95, -1.9, top + 0.42), 0.03, 0.03, brass, bevel=0)
-    stick("scale_beam", (-0.95, -2.12, top + 0.42), (-0.95, -1.68, top + 0.42), 0.02, 0.02, brass, bevel=0)
-    for sy in (-1, 1):
-        stick("scale_string", (-0.95, -1.9 + sy * 0.2, top + 0.42), (-0.95, -1.9 + sy * 0.2, top + 0.16), 0.006, 0.006, brass, bevel=0)
-        revolve("scale_pan", [(0.08, 0.0), (0.0, -0.035)], brass, n=7, at=(-0.95, -1.9 + sy * 0.2, top + 0.16))
-    stone = layer("stone", (0.9, 0.88, 0.82))
-    revolve("mortar", [(0.08, 0.0), (0.12, 0.04), (0.13, 0.13), (0.1, 0.13), (0.07, 0.06), (0.0, 0.06)], stone, n=8, at=(-0.9, -1.4, top))
-    stick("pestle", (-0.9, -1.4, top + 0.08), (-0.84, -1.35, top + 0.28), 0.04, 0.04, p.floor, bevel=0.01)
-    box("book_open", (-1.1, -1.0, top), (-0.7, -0.7, top + 0.04), layer("linen", (0.95, 0.9, 0.78)), bevel=0.01)
-    box("book_cover", (-1.12, -1.02, top), (-0.68, -0.68, top + 0.015), layer("leather", (0.6, 0.3, 0.2)), bevel=0)
-    box("cash_box", (-1.1, -0.6, top), (-0.8, -0.38, top + 0.14), p.door_dark, bevel=0.02)
-    box("cash_band", (-1.11, -0.61, top + 0.08), (-0.79, -0.37, top + 0.1), brass, bevel=0)
-    candle(p, -0.8, -2.25, top, light_it=True)
+    with piece("apothecary_counter", ((cx0 + cx1) / 2, (cy0 + cy1) / 2, AF0)):
+        box("counter", (cx0, cy0, AF0), (cx1, cy1, AF0 + 0.98), p.cladding, bevel=0.03)
+        box("counter_top", (cx0 - 0.05, cy0 - 0.08, AF0 + 0.98), (cx1 + 0.1, cy1 + 0.08, AF0 + 1.06), p.floor, bevel=0.02)
+        stick("counter_trim", (cx1 + 0.02, cy0, AF0 + 0.9), (cx1 + 0.02, cy1, AF0 + 0.9), 0.05, 0.1, p.trim, ("trim", IRON_BAND), bevel=0)
+        for k in range(4):
+            y = cy0 + 0.2 + k * (cy1 - cy0 - 0.4) / 3
+            stick("counter_post", (cx1 + 0.03, y, AF0), (cx1 + 0.03, y, AF0 + 0.9), 0.08, 0.08, p.timber, ("timber", k % 4), bevel=0.02)
+        collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, AF0 + 0.53), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.16, 1.06))
+        top = AF0 + 1.06
+        brass = layer("iron", (0.95, 0.75, 0.4), 0.35)
+        stick("scale_post", (-0.95, -1.9, top), (-0.95, -1.9, top + 0.42), 0.03, 0.03, brass, bevel=0)
+        stick("scale_beam", (-0.95, -2.12, top + 0.42), (-0.95, -1.68, top + 0.42), 0.02, 0.02, brass, bevel=0)
+        for sy in (-1, 1):
+            stick("scale_string", (-0.95, -1.9 + sy * 0.2, top + 0.42), (-0.95, -1.9 + sy * 0.2, top + 0.16), 0.006, 0.006, brass, bevel=0)
+            revolve("scale_pan", [(0.08, 0.0), (0.0, -0.035)], brass, n=7, at=(-0.95, -1.9 + sy * 0.2, top + 0.16))
+        stone = layer("stone", (0.9, 0.88, 0.82))
+        revolve("mortar", [(0.08, 0.0), (0.12, 0.04), (0.13, 0.13), (0.1, 0.13), (0.07, 0.06), (0.0, 0.06)], stone, n=8, at=(-0.9, -1.4, top))
+        stick("pestle", (-0.9, -1.4, top + 0.08), (-0.84, -1.35, top + 0.28), 0.04, 0.04, p.floor, bevel=0.01)
+        box("book_open", (-1.1, -1.0, top), (-0.7, -0.7, top + 0.04), layer("linen", (0.95, 0.9, 0.78)), bevel=0.01)
+        box("book_cover", (-1.12, -1.02, top), (-0.68, -0.68, top + 0.015), layer("leather", (0.6, 0.3, 0.2)), bevel=0)
+        box("cash_box", (-1.1, -0.6, top), (-0.8, -0.38, top + 0.14), p.door_dark, bevel=0.02)
+        box("cash_band", (-1.11, -0.61, top + 0.08), (-0.79, -0.37, top + 0.1), brass, bevel=0)
+        candle(p, -0.8, -2.25, top, light_it=True)
     # Kunder kan sitte på en krakk ved døra, og sekker med tørkede urter.
-    stool(p, 0.8, -2.6, AF0)
-    collide((0.8, -2.6, AF0 + 0.25), (0.4, 0.4, 0.5))
-    for k, (x, y) in enumerate(((-2.95, AIY0 + 0.3), (-2.45, AIY0 + 0.32))):
-        box("sack", (x - 0.24, y - 0.2, AF0), (x + 0.24, y + 0.2, AF0 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
-        revolve("sack_top", [(0.16, 0.0), (0.08, 0.1), (0.0, 0.1)], layer("sod", (0.75, 0.9, 0.5)), n=6, at=(x, y, AF0 + 0.6))
-    collide((-2.7, AIY0 + 0.31, AF0 + 0.3), (1.0, 0.5, 0.6))
+    with piece("stool", (0.8, -2.6, AF0)):
+        stool(p, 0.8, -2.6, AF0)
+        collide((0.8, -2.6, AF0 + 0.25), (0.4, 0.4, 0.5))
+    with piece("herb_sacks", (-2.7, AIY0 + 0.31, AF0)):
+        for k, (x, y) in enumerate(((-2.95, AIY0 + 0.3), (-2.45, AIY0 + 0.32))):
+            box("sack", (x - 0.24, y - 0.2, AF0), (x + 0.24, y + 0.2, AF0 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
+            revolve("sack_top", [(0.16, 0.0), (0.08, 0.1), (0.0, 0.1)], layer("sod", (0.75, 0.9, 0.5)), n=6, at=(x, y, AF0 + 0.6))
+        collide((-2.7, AIY0 + 0.31, AF0 + 0.3), (1.0, 0.5, 0.6))
     # Urtebunter fra bjelkene over salgsrommet.
     herbmats = [layer("sod", (0.8, 0.95, 0.55)), layer("thatch", (0.75, 0.8, 0.45)), layer("sod", (0.95, 0.75, 0.55)), layer("thatch", (0.9, 0.6, 0.5))]
     x = AIX0 + 0.45
@@ -861,12 +874,13 @@ def sales_room(p, rng):
                 j += 1
         x += 0.85
     # Stige-hylle over døra innenfor fasaden med glass.
-    box("door_shelf", (AIX0 + 0.5, AIY0, AF0 + 2.35), (-0.2, AIY0 + 0.25, AF0 + 2.4), p.floor, bevel=0.01)
-    for k in range(9):
-        x = AIX0 + 0.62 + k * 0.38
-        if abs(x - AHATCH) < 0.95:
-            continue
-        jar(x, AIY0 + 0.13, AF0 + 2.4, 0.06, 0.18, pots[k % 4], n=6)
+    with piece("door_shelf_jars", ((AIX0 + 0.3) / 2, AIY0 + 0.125, AF0 + 2.35)):
+        box("door_shelf", (AIX0 + 0.5, AIY0, AF0 + 2.35), (-0.2, AIY0 + 0.25, AF0 + 2.4), p.floor, bevel=0.01)
+        for k in range(9):
+            x = AIX0 + 0.62 + k * 0.38
+            if abs(x - AHATCH) < 0.95:
+                continue
+            jar(x, AIY0 + 0.13, AF0 + 2.4, 0.06, 0.18, pots[k % 4], n=6)
 
 
 def laboratory(p, rng):
@@ -898,55 +912,60 @@ def laboratory(p, rng):
     stick("still_pipe", (OVX - 0.08, OVY - 0.05, AF0 + 1.72), (OVX - 1.15, OVY - 0.05, AF0 + 1.25), 0.04, 0.04, copper, bevel=0)
     # Benken langs bakveggen.
     bx0, bx1, by0, by1 = -1.55, OVX - 0.62, AIY1 - 0.7, AIY1
-    box("bench_top", (bx0, by0, AF0 + 0.85), (bx1, by1, AF0 + 0.93), p.floor, bevel=0.02)
-    for xx in (bx0 + 0.08, bx1 - 0.08):
-        for yy in (by0 + 0.08, by1 - 0.08):
-            stick("bench_leg", (xx, yy, AF0), (xx, yy, AF0 + 0.85), 0.08, 0.08, p.timber, ("timber", 1), bevel=0.02)
-    box("bench_shelf", (bx0 + 0.04, by0 + 0.04, AF0 + 0.25), (bx1 - 0.04, by1 - 0.04, AF0 + 0.29), p.floor, bevel=0.01)
-    collide(((bx0 + bx1) / 2, (by0 + by1) / 2, AF0 + 0.47), (bx1 - bx0, by1 - by0, 0.94))
-    z = AF0 + 0.93
-    flask(OVX - 1.2, OVY - 0.05, z, 0.11, glass, n=8)
-    flask(-0.9, AIY1 - 0.35, z, 0.08, green_glass)
-    flask(-0.5, AIY1 - 0.25, z, 0.07, glass)
-    for k in range(5):
-        bottle(-1.4 + k * 0.12, AIY1 - 0.55, z, 0.04, 0.16 + 0.02 * (k % 3), [green_glass, brown_glass, glass][k % 3])
-    # Et lite stativ med reagensglass, og en spiritusbrenner.
-    box("rack", (-0.25, AIY1 - 0.6, z), (0.15, AIY1 - 0.48, z + 0.1), p.floor, bevel=0.01)
-    for k in range(4):
-        stick("tube", (-0.2 + k * 0.1, AIY1 - 0.54, z + 0.02), (-0.2 + k * 0.1, AIY1 - 0.54, z + 0.22), 0.03, 0.03, glass, bevel=0)
-    for k in range(3):
-        box("bench_crock", (0.3 + k * 0.22, AIY1 - 0.2, z), (0.45 + k * 0.22, AIY1 - 0.05, z + 0.2), layer("plaster_red", (0.85, 0.55, 0.42)), bevel=0.04)
+    with piece("lab_bench", ((bx0 + bx1) / 2, (by0 + by1) / 2, AF0)):
+        box("bench_top", (bx0, by0, AF0 + 0.85), (bx1, by1, AF0 + 0.93), p.floor, bevel=0.02)
+        for xx in (bx0 + 0.08, bx1 - 0.08):
+            for yy in (by0 + 0.08, by1 - 0.08):
+                stick("bench_leg", (xx, yy, AF0), (xx, yy, AF0 + 0.85), 0.08, 0.08, p.timber, ("timber", 1), bevel=0.02)
+        box("bench_shelf", (bx0 + 0.04, by0 + 0.04, AF0 + 0.25), (bx1 - 0.04, by1 - 0.04, AF0 + 0.29), p.floor, bevel=0.01)
+        collide(((bx0 + bx1) / 2, (by0 + by1) / 2, AF0 + 0.47), (bx1 - bx0, by1 - by0, 0.94))
+        z = AF0 + 0.93
+        flask(OVX - 1.2, OVY - 0.05, z, 0.11, glass, n=8)
+        flask(-0.9, AIY1 - 0.35, z, 0.08, green_glass)
+        flask(-0.5, AIY1 - 0.25, z, 0.07, glass)
+        for k in range(5):
+            bottle(-1.4 + k * 0.12, AIY1 - 0.55, z, 0.04, 0.16 + 0.02 * (k % 3), [green_glass, brown_glass, glass][k % 3])
+        # Et lite stativ med reagensglass, og en spiritusbrenner.
+        box("rack", (-0.25, AIY1 - 0.6, z), (0.15, AIY1 - 0.48, z + 0.1), p.floor, bevel=0.01)
+        for k in range(4):
+            stick("tube", (-0.2 + k * 0.1, AIY1 - 0.54, z + 0.02), (-0.2 + k * 0.1, AIY1 - 0.54, z + 0.22), 0.03, 0.03, glass, bevel=0)
+        for k in range(3):
+            box("bench_crock", (0.3 + k * 0.22, AIY1 - 0.2, z), (0.45 + k * 0.22, AIY1 - 0.05, z + 0.2), layer("plaster_red", (0.85, 0.55, 0.42)), bevel=0.04)
     # Hylle over benken med flere flasker.
-    box("lab_shelf", (bx0, AIY1 - 0.28, AF0 + 1.75), (bx1, AIY1, AF0 + 1.8), p.floor, bevel=0.01)
-    for k in range(9):
-        x = bx0 + 0.15 + k * 0.32
-        if x > bx1 - 0.1:
-            break
-        if k % 2:
-            bottle(x, AIY1 - 0.14, AF0 + 1.8, 0.05, 0.22, [green_glass, brown_glass][k % 4 // 2])
-        else:
-            jar(x, AIY1 - 0.14, AF0 + 1.8, 0.07, 0.18, layer("plaster_white", (0.9, 0.88, 0.8)), n=6)
+    with piece("lab_shelf", ((bx0 + bx1) / 2, AIY1 - 0.14, AF0 + 1.75)):
+        box("lab_shelf", (bx0, AIY1 - 0.28, AF0 + 1.75), (bx1, AIY1, AF0 + 1.8), p.floor, bevel=0.01)
+        for k in range(9):
+            x = bx0 + 0.15 + k * 0.32
+            if x > bx1 - 0.1:
+                break
+            if k % 2:
+                bottle(x, AIY1 - 0.14, AF0 + 1.8, 0.05, 0.22, [green_glass, brown_glass][k % 4 // 2])
+            else:
+                jar(x, AIY1 - 0.14, AF0 + 1.8, 0.07, 0.18, layer("plaster_white", (0.9, 0.88, 0.8)), n=6)
 
     # Bordet midt i rommet med mortere, en bok, et lys og en hodeskalle-
     # lignende krukke.
     tx, ty = -1.0, 1.55
-    table(p, tx, ty, AF0, 1.4, 0.75)
-    stone = layer("stone", (0.9, 0.88, 0.82))
-    for k, (dx, dy, r) in enumerate(((-0.45, -0.15, 0.12), (-0.1, 0.18, 0.09), (0.45, -0.1, 0.07))):
-        revolve("mortar", [(r * 0.65, 0.0), (r, r * 0.35), (r * 1.05, r * 1.0), (r * 0.8, r * 1.0), (r * 0.55, r * 0.5), (0.0, r * 0.5)], stone if k != 1 else layer("iron", (0.95, 0.75, 0.4), 0.35), n=8, at=(tx + dx, ty + dy, AF0 + 0.78))
-        stick("pestle", (tx + dx, ty + dy, AF0 + 0.78 + r * 0.6), (tx + dx + 0.05, ty + dy + 0.04, AF0 + 0.78 + r * 2.6), 0.035, 0.035, p.floor, bevel=0.01)
-    box("lab_book", (tx + 0.05, ty - 0.35, AF0 + 0.78), (tx + 0.42, ty - 0.08, AF0 + 0.82), layer("linen", (0.95, 0.9, 0.78)), bevel=0.01)
-    candle(p, tx + 0.6, ty + 0.25, AF0 + 0.78, light_it=True)
-    for k in range(5):
-        a = rng.uniform(0, 6.28)
-        box("herb_leaf", (tx - 0.2 + math.cos(a) * 0.15, ty + 0.1 + math.sin(a) * 0.1, AF0 + 0.78), (tx - 0.12 + math.cos(a) * 0.15, ty + 0.15 + math.sin(a) * 0.1, AF0 + 0.79), layer("sod", (0.8, 0.95, 0.55)), bevel=0)
-    stool(p, tx - 0.2, ty - 0.75, AF0)
-    collide((tx - 0.2, ty - 0.75, AF0 + 0.25), (0.4, 0.4, 0.5))
+    with piece("lab_table", (tx, ty, AF0)):
+        table(p, tx, ty, AF0, 1.4, 0.75)
+        stone = layer("stone", (0.9, 0.88, 0.82))
+        for k, (dx, dy, r) in enumerate(((-0.45, -0.15, 0.12), (-0.1, 0.18, 0.09), (0.45, -0.1, 0.07))):
+            revolve("mortar", [(r * 0.65, 0.0), (r, r * 0.35), (r * 1.05, r * 1.0), (r * 0.8, r * 1.0), (r * 0.55, r * 0.5), (0.0, r * 0.5)], stone if k != 1 else layer("iron", (0.95, 0.75, 0.4), 0.35), n=8, at=(tx + dx, ty + dy, AF0 + 0.78))
+            stick("pestle", (tx + dx, ty + dy, AF0 + 0.78 + r * 0.6), (tx + dx + 0.05, ty + dy + 0.04, AF0 + 0.78 + r * 2.6), 0.035, 0.035, p.floor, bevel=0.01)
+        box("lab_book", (tx + 0.05, ty - 0.35, AF0 + 0.78), (tx + 0.42, ty - 0.08, AF0 + 0.82), layer("linen", (0.95, 0.9, 0.78)), bevel=0.01)
+        candle(p, tx + 0.6, ty + 0.25, AF0 + 0.78, light_it=True)
+        for k in range(5):
+            a = rng.uniform(0, 6.28)
+            box("herb_leaf", (tx - 0.2 + math.cos(a) * 0.15, ty + 0.1 + math.sin(a) * 0.1, AF0 + 0.78), (tx - 0.12 + math.cos(a) * 0.15, ty + 0.15 + math.sin(a) * 0.1, AF0 + 0.79), layer("sod", (0.8, 0.95, 0.55)), bevel=0)
+    with piece("stool", (tx - 0.2, ty - 0.75, AF0)):
+        stool(p, tx - 0.2, ty - 0.75, AF0)
+        collide((tx - 0.2, ty - 0.75, AF0 + 0.25), (0.4, 0.4, 0.5))
 
     # Bokhylla på vestveggen i laboratoriet.
-    zs, yi = shelf_unit(p, PY + 0.15, AIY1 - 0.05, AIX0, 0.34, AF0, 2.3, 5, along="y", out=1)
-    for z in zs:
-        books(PY + 0.25, AIY1 - 0.2, AIX0 + 0.18, z, 0.24, rng, along="y")
+    with piece("bookcase_lab", (AIX0 + 0.17, (PY + AIY1 + 0.1) / 2, AF0)):
+        zs, yi = shelf_unit(p, PY + 0.15, AIY1 - 0.05, AIX0, 0.34, AF0, 2.3, 5, along="y", out=1)
+        for z in zs:
+            books(PY + 0.25, AIY1 - 0.2, AIX0 + 0.18, z, 0.24, rng, along="y")
     # Urtebunter fra bjelkene her også.
     herbmats = [layer("sod", (0.8, 0.95, 0.55)), layer("thatch", (0.75, 0.8, 0.45))]
     for k, (x, y) in enumerate(((-2.0, 1.0), (-1.15, 1.2), (-0.3, 0.9), (0.55, 1.9), (-2.75, 2.5), (-0.3, 2.3))):
@@ -986,6 +1005,8 @@ def apothecary_upper(p, rng):
     herbmats = [layer("sod", (0.8, 0.95, 0.55)), layer("thatch", (0.75, 0.8, 0.45)), layer("sod", (0.95, 0.75, 0.55)), layer("thatch", (0.9, 0.6, 0.5))]
     for y0, y1 in ((uy0, uy0 + 0.75), (AIY1 - 0.75, AIY1)):
         x0, x1 = AIX0, HX0 - 0.15 if y0 < 0 else OVX - 0.5
+        dry = piece("drying_bed_front" if y0 < 0 else "drying_bed_back", ((x0 + x1) / 2, (y0 + y1) / 2, AF1))
+        dry.__enter__()
         box("drying_bed", (x0 + 0.05, y0, AF1 + 0.4), (x1, y1, AF1 + 0.5), p.boards, bevel=0.02)
         for xx in (x0 + 0.15, (x0 + x1) / 2, x1 - 0.1):
             for yy in (y0 + 0.08, y1 - 0.08):
@@ -998,9 +1019,12 @@ def apothecary_upper(p, rng):
             xx += 0.45
             k += 1
         collide(((x0 + x1) / 2, (y0 + y1) / 2, AF1 + 0.6), (x1 - x0, y1 - y0, 1.2))
+        dry.__exit__(None, None, None)
     # Tørkestativ midt på loftet: rammer med stenger og bunter.
     for k, x in enumerate((-1.8, 0.4)):
         y0r, y1r = yc - 1.1, yc + 1.1
+        rack = piece(f"drying_rack_{k}", (x, yc, AF1))
+        rack.__enter__()
         for yy in (y0r, y1r):
             stick("rack_post", (x, yy, AF1), (x, yy, AF1 + 1.8), 0.09, 0.09, p.timber, ("timber", k), bevel=0.02)
             stick("rack_foot", (x - 0.35, yy, AF1 + 0.05), (x + 0.35, yy, AF1 + 0.05), 0.09, 0.1, p.timber, ("timber", 2), bevel=0.02)
@@ -1013,6 +1037,7 @@ def apothecary_upper(p, rng):
                 yy += 0.3
                 j += 1
         collide((x, yc, AF1 + 0.9), (0.3, 2.3, 1.8))
+        rack.__exit__(None, None, None)
     # Urter fra hanebjelkene.
     for x in collars:
         for t in (-0.6, 0.0, 0.6):
@@ -1023,20 +1048,23 @@ def apothecary_upper(p, rng):
     bx, by = AIX0 + 0.55, yc + 0.0
     wool = layer("wool", (0.45, 0.55, 0.7))
     # Senga i plassen mellom tørkebedene ved gavlen.
-    box("bed_frame", (bx - 0.45, by - 1.0, AF1), (bx + 0.45, by + 1.0, AF1 + 0.32), p.timber, bevel=0.03)
-    box("bed_straw", (bx - 0.4, by - 0.95, AF1 + 0.32), (bx + 0.4, by + 0.95, AF1 + 0.44), p.straw, bevel=0.04)
-    box("bed_blanket", (bx - 0.42, by - 0.95, AF1 + 0.4), (bx + 0.42, by + 0.35, AF1 + 0.5), wool, bevel=0.04)
-    box("bed_pillow", (bx - 0.3, by + 0.5, AF1 + 0.42), (bx + 0.3, by + 0.9, AF1 + 0.56), layer("linen"), bevel=0.06)
-    collide((bx, by, AF1 + 0.3), (0.9, 2.0, 0.6))
+    with piece("bed_apothecary", (bx, by, AF1)):
+        box("bed_frame", (bx - 0.45, by - 1.0, AF1), (bx + 0.45, by + 1.0, AF1 + 0.32), p.timber, bevel=0.03)
+        box("bed_straw", (bx - 0.4, by - 0.95, AF1 + 0.32), (bx + 0.4, by + 0.95, AF1 + 0.44), p.straw, bevel=0.04)
+        box("bed_blanket", (bx - 0.42, by - 0.95, AF1 + 0.4), (bx + 0.42, by + 0.35, AF1 + 0.5), wool, bevel=0.04)
+        box("bed_pillow", (bx - 0.3, by + 0.5, AF1 + 0.42), (bx + 0.3, by + 0.9, AF1 + 0.56), layer("linen"), bevel=0.06)
+        collide((bx, by, AF1 + 0.3), (0.9, 2.0, 0.6))
     # Kurver og sekker ved trapphullet.
     basket = layer("wattle", (1.0, 0.9, 0.75))
     for k, (x, y) in enumerate(((1.2, uy0 + 1.25), (1.75, uy0 + 1.1), (0.9, 2.0))):
-        revolve("basket", [(0.17, 0.0), (0.24, 0.3), (0.0, 0.3)], basket, n=8, at=(x, y, AF1))
-        revolve("basket_herbs", [(0.22, 0.0), (0.12, 0.08), (0.0, 0.1)], herbmats[k % 4], n=7, at=(x, y, AF1 + 0.3))
-        collide((x, y, AF1 + 0.2), (0.5, 0.5, 0.4))
-    for k, (x, y) in enumerate(((-1.5, AIY1 - 1.1), (-1.0, AIY1 - 1.05))):
-        box("sack", (x - 0.24, y - 0.2, AF1), (x + 0.24, y + 0.2, AF1 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
-    collide((-1.25, AIY1 - 1.07, AF1 + 0.3), (1.0, 0.45, 0.6))
+        with piece(f"herb_basket_{k}", (x, y, AF1)):
+            revolve("basket", [(0.17, 0.0), (0.24, 0.3), (0.0, 0.3)], basket, n=8, at=(x, y, AF1))
+            revolve("basket_herbs", [(0.22, 0.0), (0.12, 0.08), (0.0, 0.1)], herbmats[k % 4], n=7, at=(x, y, AF1 + 0.3))
+            collide((x, y, AF1 + 0.2), (0.5, 0.5, 0.4))
+    with piece("sacks_two", (-1.25, AIY1 - 1.07, AF1)):
+        for k, (x, y) in enumerate(((-1.5, AIY1 - 1.1), (-1.0, AIY1 - 1.05))):
+            box("sack", (x - 0.24, y - 0.2, AF1), (x + 0.24, y + 0.2, AF1 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
+        collide((-1.25, AIY1 - 1.07, AF1 + 0.3), (1.0, 0.45, 0.6))
     light((-1.5, yc, AF1 + 1.9), (1.0, 0.7, 0.42), 1.0, 6.0)
     light((1.6, yc, AF1 + 1.9), (1.0, 0.7, 0.42), 0.8, 5.0)
 
@@ -1064,6 +1092,9 @@ def build_one(name, outside, insides, paint):
     town.finish(f"{OUT}/{name}_interior.glb", max_edge=100.0)
     town.write_inside = real_write
     real_write(f"{OUT}/{name}.glb")
+    # Møblene: stedene i `assets/layout/inside/<navn>.json`, og hvert møbel
+    # som egen modell.
+    town.write_contents(name)
 
 
 def build():

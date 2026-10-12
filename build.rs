@@ -35,8 +35,13 @@ fn main() {
     levels.push_str("];\n");
     std::fs::write(out.join("crypt_levels.rs"), levels).unwrap();
 
+    // Kryptmodellene og møblene (`assets/models/furniture/`, skilt ut av
+    // husene) tas inn uten linje i `models!`.
+    let furniture = root.join("assets/models/furniture");
+    println!("cargo:rerun-if-changed={}", furniture.display());
     let mut glbs: Vec<(String, PathBuf)> = vec![];
-    if let Ok(dir) = std::fs::read_dir(&real) {
+    for d in [&real, &furniture] {
+        let Ok(dir) = std::fs::read_dir(d) else { continue };
         for e in dir.flatten() {
             let p = e.path();
             if p.extension().is_some_and(|x| x == "glb") {
@@ -46,7 +51,8 @@ fn main() {
         }
     }
     glbs.sort();
-    let rel = |p: &Path| format!("crypt/{}", p.file_name().unwrap().to_string_lossy());
+    let models_dir = root.join("assets/models");
+    let rel = |p: &Path| p.strip_prefix(&models_dir).unwrap().to_string_lossy().to_string();
     let mut models = String::from("/// Kryptmodellene: navn og fila under `assets/models/`.\npub const CRYPT_FILES: &[(&str, &str)] = &[\n");
     for (n, p) in &glbs {
         writeln!(models, "    ({n:?}, {:?}),", rel(p)).unwrap();
@@ -61,7 +67,8 @@ fn main() {
     let town = root.join("assets/models/town");
     println!("cargo:rerun-if-changed={}", town.display());
     let mut insides: Vec<(String, PathBuf)> = vec![];
-    if let Ok(dir) = std::fs::read_dir(&town) {
+    for d in [&town, &furniture] {
+        let Ok(dir) = std::fs::read_dir(d) else { continue };
         for e in dir.flatten() {
             let p = e.path();
             let name = p.file_name().unwrap().to_string_lossy().to_string();
@@ -78,6 +85,27 @@ fn main() {
     }
     text.push_str("];\n");
     std::fs::write(out.join("inside_files.rs"), text).unwrap();
+
+    // Det som står inne i husene, i husets rom (`assets/layout/inside/`).
+    let inside = root.join("assets/layout/inside");
+    println!("cargo:rerun-if-changed={}", inside.display());
+    let mut contents: Vec<(String, PathBuf)> = vec![];
+    if let Ok(dir) = std::fs::read_dir(&inside) {
+        for e in dir.flatten() {
+            let p = e.path();
+            if p.extension().is_some_and(|x| x == "json") {
+                println!("cargo:rerun-if-changed={}", p.display());
+                contents.push((p.file_stem().unwrap().to_string_lossy().to_string(), p));
+            }
+        }
+    }
+    contents.sort();
+    let mut text = String::from("/// Det som står inne i husene: huset og json-fila.\nconst CONTENT_FILES: &[(&str, &str)] = &[\n");
+    for (n, p) in &contents {
+        writeln!(text, "    ({n:?}, include_str!({:?})),", p.display().to_string()).unwrap();
+    }
+    text.push_str("];\n");
+    std::fs::write(out.join("content_files.rs"), text).unwrap();
 
     // Byen som data (`assets/layout/town.json`), om den er skrevet ut.
     let layout = root.join("assets/layout/town.json");

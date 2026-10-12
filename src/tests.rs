@@ -1913,3 +1913,34 @@ fn byen_er_data() {
     assert_eq!(w.npcs.len(), layout.npcs.len());
     assert!(w.targets.iter().any(|t| t.what == Use::Portal) && w.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count() == 2);
 }
+
+/// Møblene er egne modeller (`docs/redigering.md`, steg 2): det som står
+/// inne i husene (`assets/layout/inside/<hus>.json`) er modeller som finnes,
+/// i `assets/models/furniture/`, og ingen har samme navn som en annen modell
+/// (da ville den ene skjule den andre). Senga i spillerens hus har med seg
+/// det du sikter på for å sove.
+#[test]
+fn moblene_er_egne_modeller() {
+    use crate::adapters::gltf::model_files;
+    let data = crate::adapters::data::world_data();
+    let mut bad = vec![];
+    let mut seen = std::collections::HashMap::new();
+    for (name, path) in model_files() {
+        if let Some(other) = seen.insert(*name, *path) {
+            bad.push(format!("{name} er både {other} og {path}"));
+        }
+    }
+    for (house, items) in &data.contents {
+        for m in items.iter().filter_map(|i| i.model.as_deref()) {
+            match model_files().find(|(n, _)| *n == m) {
+                Some((_, path)) if path.starts_with("furniture/") => {}
+                Some((_, path)) => bad.push(format!("{m} i {house} er {path}, ikke et møbel")),
+                None => bad.push(format!("{m} i {house} finnes ikke")),
+            }
+        }
+    }
+    assert!(data.contents.len() >= 6, "husene med innside mangler møbler");
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+    let w = &world().world;
+    assert_eq!(w.targets.iter().filter(|t| t.what == Use::Sleep).count(), 1, "senga har med seg siktemålet");
+}

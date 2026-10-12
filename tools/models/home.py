@@ -31,7 +31,7 @@ import kit  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, MOULDING, ROPE, barrel, bench, box, candle, door, fire, half_timbered, planks, stick, stool, table, window  # noqa: E402
-from town import collide, layer, light  # noqa: E402
+from town import collide, layer, light, piece  # noqa: E402
 
 OUT = "assets/models/town"
 
@@ -148,8 +148,9 @@ def inside(p, rng):
         x += 1.1
     # Fillerya foran peisen.
     wool = [layer("wool", c) for c in ((0.8, 0.35, 0.28), (0.35, 0.5, 0.75), (0.85, 0.7, 0.35))]
-    for k in range(5):
-        box("rug", (-2.0, -0.6 + k * 0.32, F0), (0.6, -0.28 + k * 0.32, F0 + 0.02), wool[k % 3], bevel=0.01)
+    with piece("rug_rag", (-0.7, 0.04, F0)):
+        for k in range(5):
+            box("rug", (-2.0, -0.6 + k * 0.32, F0), (0.6, -0.28 + k * 0.32, F0 + 0.02), wool[k % 3], bevel=0.01)
     # Peisen på bakveggen, med ild, og ved ved siden av.
     hx, hy = -0.8, IY1
     box("hearth_base", (hx - 1.1, hy - 0.8, F0), (hx + 1.1, hy, F0 + 0.3), p.stone, bevel=0.05)
@@ -161,15 +162,21 @@ def inside(p, rng):
     box("hood", (hx - 0.9, hy - 0.7, F0 + 1.75), (hx + 0.9, hy, E), p.stone, bevel=0.04)
     fire(p, hx, hy - 0.4, F0 + 0.3, size=0.8, intensity=3.0, radius=9.0)
     collide((hx, hy - 0.4, F0 + 0.9), (2.3, 0.85, 1.8))
-    for k in range(5):
-        stick("firewood", (hx + 1.4, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), (hx + 2.0, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), 0.12, 0.12, layer("logs"), bevel=0.03)
+    with piece("firewood_stack", (hx + 1.7, hy - 0.27, F0)):
+        for k in range(5):
+            stick("firewood", (hx + 1.4, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), (hx + 2.0, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), 0.12, 0.12, layer("logs"), bevel=0.03)
     # Krukker og lys på hylla over peisen.
-    for k, xx in enumerate((hx - 1.0, hx - 0.6, hx + 0.6, hx + 1.0)):
-        box("crock", (xx - 0.08, hy - 0.98, F0 + 1.86), (xx + 0.08, hy - 0.84, F0 + 2.1), layer("plaster_red" if k % 2 else "plaster_white"), bevel=0.04)
-    candle(p, hx, hy - 0.92, F0 + 1.86)
+    with piece("mantel_crocks", (hx, hy - 0.91, F0 + 1.86)):
+        for k, xx in enumerate((hx - 1.0, hx - 0.6, hx + 0.6, hx + 1.0)):
+            box("crock", (xx - 0.08, hy - 0.98, F0 + 1.86), (xx + 0.08, hy - 0.84, F0 + 2.1), layer("plaster_red" if k % 2 else "plaster_white"), bevel=0.04)
+        candle(p, hx, hy - 0.92, F0 + 1.86)
 
     # Senga: rammen, halmmadrass, lappeteppe, pute og en kiste ved fotenden.
     bx, by = BED
+    # Det du sikter på for å sove (`Use::Sleep`), i sengas rom.
+    sleep = [{"what": "sleep", "pose": {"pos": [0, 0, 0], "rot": [0, 0, 0, 1]}, "center": [0, 0.3, 0], "half": [0.55, 0.35, 1.05]}]
+    bed = piece("bed_home", (bx, by, F0), targets=sleep)
+    bed.__enter__()
     box("bed_frame", (bx - 0.55, by - 1.05, F0), (bx + 0.55, by + 1.05, F0 + 0.38), p.timber, bevel=0.04)
     box("bed_head", (bx - 0.6, by + 0.95, F0), (bx + 0.6, by + 1.1, F0 + 1.05), p.timber, bevel=0.04)
     box("bed_straw", (bx - 0.48, by - 0.98, F0 + 0.38), (bx + 0.48, by + 0.95, F0 + 0.52), p.straw, bevel=0.05)
@@ -177,27 +184,33 @@ def inside(p, rng):
         box("quilt", (bx - 0.5, by - 1.0 + k * 0.38, F0 + 0.48), (bx + 0.5, by - 0.62 + k * 0.38, F0 + 0.6), wool[k % 3], bevel=0.04)
     box("pillow", (bx - 0.36, by + 0.5, F0 + 0.5), (bx + 0.36, by + 0.9, F0 + 0.68), layer("linen"), bevel=0.07)
     collide((bx, by + 0.05, F0 + 0.3), (1.1, 1.9, 0.6))
+    bed.__exit__(None, None, None)
     # Kista ved siden av senga (ikke foran, der du sikter på senga).
     cx, cy = bx - 1.05, by + 0.55
-    box("chest", (cx - 0.28, cy - 0.45, F0), (cx + 0.28, cy + 0.45, F0 + 0.5), p.cladding, bevel=0.03)
-    box("chest_band", (cx - 0.3, cy - 0.47, F0 + 0.34), (cx + 0.3, cy + 0.47, F0 + 0.4), p.iron, bevel=0.01)
-    collide((cx, cy, F0 + 0.25), (0.56, 0.9, 0.5))
+    with piece("chest_home", (cx, cy, F0)):
+        box("chest", (cx - 0.28, cy - 0.45, F0), (cx + 0.28, cy + 0.45, F0 + 0.5), p.cladding, bevel=0.03)
+        box("chest_band", (cx - 0.3, cy - 0.47, F0 + 0.34), (cx + 0.3, cy + 0.47, F0 + 0.4), p.iron, bevel=0.01)
+        collide((cx, cy, F0 + 0.25), (0.56, 0.9, 0.5))
 
     # Bordet med krakker foran vinduet, og lys.
-    table(p, 2.6, -1.6, F0, 1.4, 0.8)
+    with piece("home_table", (2.6, -1.6, F0)):
+        table(p, 2.6, -1.6, F0, 1.4, 0.8)
+        candle(p, 2.6, -1.6, F0 + 0.78)
+        box("bread", (2.85, -1.75, F0 + 0.78), (3.1, -1.55, F0 + 0.88), layer("thatch", (0.9, 0.62, 0.35)), bevel=0.05)
     for xx, yy in ((1.75, -1.6), (3.3, -1.3)):
-        stool(p, xx, yy, F0)
-        collide((xx, yy, F0 + 0.25), (0.4, 0.4, 0.5))
-    candle(p, 2.6, -1.6, F0 + 0.78)
-    box("bread", (2.85, -1.75, F0 + 0.78), (3.1, -1.55, F0 + 0.88), layer("thatch", (0.9, 0.62, 0.35)), bevel=0.05)
-    barrel(p, IX1 - 0.4, -0.2, F0, r=0.3, h=0.8)
-    collide((IX1 - 0.4, -0.2, F0 + 0.4), (0.6, 0.6, 0.8))
+        with piece("stool", (xx, yy, F0)):
+            stool(p, xx, yy, F0)
+            collide((xx, yy, F0 + 0.25), (0.4, 0.4, 0.5))
+    with piece("barrel_home", (IX1 - 0.4, -0.2, F0)):
+        barrel(p, IX1 - 0.4, -0.2, F0, r=0.3, h=0.8)
+        collide((IX1 - 0.4, -0.2, F0 + 0.4), (0.6, 0.6, 0.8))
     # Hylla på østveggen.
-    for z in (F0 + 1.4, F0 + 1.9):
-        box("shelf", (IX1 - 0.3, -0.9, z), (IX1, 0.5, z + 0.04), p.floor, bevel=0.01)
-        for k in range(4):
-            yy = -0.7 + k * 0.38
-            box("jar", (IX1 - 0.24, yy - 0.08, z + 0.04), (IX1 - 0.08, yy + 0.08, z + 0.26), layer("plaster_red" if (k + int(z)) % 2 else "plaster"), bevel=0.04)
+    with piece("jar_shelf", (IX1 - 0.15, -0.2, F0)):
+        for z in (F0 + 1.4, F0 + 1.9):
+            box("shelf", (IX1 - 0.3, -0.9, z), (IX1, 0.5, z + 0.04), p.floor, bevel=0.01)
+            for k in range(4):
+                yy = -0.7 + k * 0.38
+                box("jar", (IX1 - 0.24, yy - 0.08, z + 0.04), (IX1 - 0.08, yy + 0.08, z + 0.26), layer("plaster_red" if (k + int(z)) % 2 else "plaster"), bevel=0.04)
 
     # Galleriveggen: en list over og under, og 15 rammer med mørk bakplate.
     stick("gallery_rail", (GAL_X + 0.03, IY0 + 0.2, F0 + GAL_ROWS[0] + 0.5), (GAL_X + 0.03, IY1 - 0.2, F0 + GAL_ROWS[0] + 0.5), 0.08, 0.12, p.trim, ("trim", MOULDING))
@@ -294,10 +307,10 @@ def build():
     real_write(f"{OUT}/home.glb")
     path = f"{OUT}/home_inside.json"
     data = json.load(open(path))
-    bx, by = BED
-    data["bed"] = [[bx, round(F0 + 0.3, 3), round(-by + 0.0, 3)], [0.55, 0.35, 1.05]]
     data["gallery"] = gallery
     json.dump(data, open(path, "w"))
+    # Senga (med det du sikter på for å sove) og de andre møblene.
+    town.write_contents("home")
     gallery_pieces()
 
 

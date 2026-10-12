@@ -41,7 +41,7 @@ import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, at_wall, box, slab_grid, stick, wall_colliders, wall_frame  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
-from town import collide, layer, light, plain  # noqa: E402
+from town import collide, layer, light, piece, plain  # noqa: E402
 
 OUT = "assets/models/town"
 PIECES = town.PIECES
@@ -397,6 +397,7 @@ def chandelier(p, x, y, z_top, drop, r=0.5, n=6, intensity=1.6, radius=8.0):
         a = k * 2 * math.pi / 3
         stick("chain", (x, y, z + 0.5), (x + math.cos(a) * r, y + math.sin(a) * r, z), 0.015, 0.015, p.iron, bevel=0)
     ring("crown", (x, y, z), r, 0.03, p.iron)
+    collide((x, y, z + 0.15), (2 * r + 0.1, 2 * r + 0.1, 0.4))
     for k in range(n):
         a = k * 2 * math.pi / n + 0.3
         cx, cy = x + math.cos(a) * r, y + math.sin(a) * r
@@ -593,19 +594,25 @@ def scriptorium_inside(p, rng):
         for side in (-1, 1):
             stick("corbel", (side * ix, y, S_H - 0.95), (side * (ix - 0.45), y, S_H - 0.6), 0.22, 0.24, p.timber, ("timber", 2))
     # Bokhyller: under galleriet langs bakmuren, og mellom vinduene.
-    shelf(p, -0.5, iy - 0.2, S_F, 1.7, 2.3, 0.0, rng)
-    shelf(p, 1.9, iy - 0.2, S_F, 1.7, 2.3, 0.0, rng)
-    for side in (-1, 1):
-        shelf(p, side * (ix - 0.2), 0.0, S_F, 1.7, 2.4, -side * math.pi / 2, rng)
+    # (Hver hylle og pult har sine egne bøker, så hver er sin modell.)
+    for name, (x, y, h, yaw) in (("bookshelf_a", (-0.5, iy - 0.2, 2.3, 0.0)), ("bookshelf_b", (1.9, iy - 0.2, 2.3, 0.0)), ("bookshelf_w", (-(ix - 0.2), 0.0, 2.4, math.pi / 2)), ("bookshelf_e", (ix - 0.2, 0.0, 2.4, -math.pi / 2))):
+        with piece(name, (x, y, S_F), yaw):
+            shelf(p, x, y, S_F, 1.7, h, yaw, rng)
     # Skrivepultene under sidevinduene, og to foran.
+    k = 0
     for side in (-1, 1):
         for y in (-1.9, 1.9):
             if side < 0 and y > 0:
                 continue  # der går trappa
-            lectern_desk(p, side * (ix - 0.5), y, S_F, -side * math.pi / 2, rng)
-    lectern_desk(p, 3.0, -iy + 0.55, S_F, math.pi, rng, lit=False)
+            with piece(f"writing_desk_{k}", (side * (ix - 0.5), y, S_F), -side * math.pi / 2):
+                lectern_desk(p, side * (ix - 0.5), y, S_F, -side * math.pi / 2, rng)
+            k += 1
+    with piece("writing_desk_unlit", (3.0, -iy + 0.55, S_F), math.pi):
+        lectern_desk(p, 3.0, -iy + 0.55, S_F, math.pi, rng, lit=False)
     # Lesepulten midt i salen med en stor bok i kjetting.
     lx, ly = 0.6, -0.2
+    book = piece("chained_book", (lx, ly, S_F))
+    book.__enter__()
     stick("lectern_post", (lx, ly, S_F), (lx, ly, S_F + 1.05), 0.16, 0.16, p.timber, ("timber", 0))
     for k in range(4):
         a = k * math.pi / 2 + math.pi / 4
@@ -622,13 +629,18 @@ def scriptorium_inside(p, rng):
     for k in range(7):
         stick("chain", (lx + 0.3, ly - 0.1 + k * 0.02, S_F + 1.05 - k * 0.12), (lx + 0.32, ly - 0.08 + k * 0.02, S_F + 0.93 - k * 0.12), 0.025, 0.025, p.iron, bevel=0)
     collide((lx, ly, S_F + 0.6), (0.85, 0.75, 1.2))
+    book.__exit__(None, None, None)
     # Høye lysestaker ved døra, og kista med skjemaene.
     for x in (-1.5, 1.5):
-        candle_stand(p, x, -iy + 0.45, S_F)
-    chest(p, -ix + 0.75, -iy + 0.5, S_F, 1.1, 0.6, 0.55)
+        with piece("candle_stand", (x, -iy + 0.45, S_F)):
+            candle_stand(p, x, -iy + 0.45, S_F)
+    with piece("chest_forms", (-ix + 0.75, -iy + 0.5, S_F)):
+        chest(p, -ix + 0.75, -iy + 0.5, S_F, 1.1, 0.6, 0.55)
     # Lysekronene.
-    chandelier(p, 0.0, -1.7, S_H - 0.6, 1.6)
-    chandelier(p, 1.2, 0.8, S_H - 0.6, 1.3, r=0.4, n=5, intensity=1.2)
+    with piece("chandelier_large", (0.0, -1.7, S_H - 2.2)):
+        chandelier(p, 0.0, -1.7, S_H - 0.6, 1.6)
+    with piece("chandelier_small", (1.2, 0.8, S_H - 1.9)):
+        chandelier(p, 1.2, 0.8, S_H - 0.6, 1.3, r=0.4, n=5, intensity=1.2)
     library_gallery(p, rng)
 
 
@@ -662,17 +674,20 @@ def library_gallery(p, rng):
     rail(p, (G_X1, G_Y0 + 0.06), (G_X1, iy), gz, posts=3)
     rail(p, (G_X0, G_Y0 + 0.9), (G_X0, iy), gz, posts=3)
     # Bokhyllene langs bakmuren på hver side av vinduet.
-    for x in (-1.85, 1.85):
-        shelf(p, x, iy - 0.2, gz, 1.6, 2.2, 0.0, rng)
+    for k, x in enumerate((-1.85, 1.85)):
+        with piece(f"bookshelf_gallery_{k}", (x, iy - 0.2, gz)):
+            shelf(p, x, iy - 0.2, gz, 1.6, 2.2, 0.0, rng)
     # Lesepulten foran vinduet, og kista med skriftruller ved østenden.
-    lectern_desk(p, 0.0, iy - 0.85, gz, 0.0, rng)
+    with piece("writing_desk_gallery", (0.0, iy - 0.85, gz)):
+        lectern_desk(p, 0.0, iy - 0.85, gz, 0.0, rng)
     cx, cy = 2.25, G_Y0 + 0.75
-    chest(p, cx, cy, gz, 0.9, 0.55, 0.45)
-    vellum = layer("linen", (0.95, 0.88, 0.68))
-    for k in range(7):
-        ob = lathe("scroll", [(0.0, -0.22), (0.035, -0.22), (0.035, 0.22), (0.0, 0.22)], 6, (0, 0, 0), vellum)
-        ob.rotation_euler = (math.pi / 2, 0, rng.uniform(-0.4, 0.4))
-        ob.location = (cx - 0.3 + (k % 4) * 0.2, cy - 0.08 + (k // 4) * 0.16, gz + 0.5 + (k // 4) * 0.06)
+    with piece("scroll_chest", (cx, cy, gz)):
+        chest(p, cx, cy, gz, 0.9, 0.55, 0.45)
+        vellum = layer("linen", (0.95, 0.88, 0.68))
+        for k in range(7):
+            ob = lathe("scroll", [(0.0, -0.22), (0.035, -0.22), (0.035, 0.22), (0.0, 0.22)], 6, (0, 0, 0), vellum)
+            ob.rotation_euler = (math.pi / 2, 0, rng.uniform(-0.4, 0.4))
+            ob.location = (cx - 0.3 + (k % 4) * 0.2, cy - 0.08 + (k // 4) * 0.16, gz + 0.5 + (k // 4) * 0.06)
     light((0.0, iy - 1.2, gz + 2.0), (1.0, 0.72, 0.42), 1.0, 6.0)
 
 
@@ -1011,6 +1026,8 @@ def church_inside(p, rng):
     az = C_Z + 0.2
     ax, ay = 0.0, C_AY - 0.3
     stone = p.stone
+    altar = piece("altar", (ax, ay, az))
+    altar.__enter__()
     box("altar", (ax - 0.7, ay - 0.42, az), (ax + 0.7, ay + 0.42, az + 0.98), stone, bevel=0.04)
     box("altar_cloth", (ax - 0.74, ay - 0.46, az + 0.98), (ax + 0.74, ay + 0.46, az + 1.02), linen, bevel=0.01)
     red = layer("wool", (0.62, 0.14, 0.1))
@@ -1026,24 +1043,30 @@ def church_inside(p, rng):
     stick("altar_cross_v", (ax, ay + 0.2, az + 1.02), (ax, ay + 0.2, az + 1.7), 0.05, 0.05, gilt, bevel=0)
     stick("altar_cross_h", (ax - 0.18, ay + 0.2, az + 1.5), (ax + 0.18, ay + 0.2, az + 1.5), 0.05, 0.05, gilt, bevel=0)
     collide((ax, ay, az + 0.5), (1.5, 0.95, 1.0))
+    altar.__exit__(None, None, None)
     # Døpefonten av kleberstein ved døra.
     fx, fy_ = 1.6, -C_D / 2 + 1.3
     soap = layer("stone", (0.75, 0.78, 0.72))
-    lathe("font", [(0.0, 0.0), (0.32, 0.0), (0.24, 0.12), (0.17, 0.5), (0.38, 0.72), (0.42, 0.92), (0.35, 0.92), (0.3, 0.78), (0.0, 0.74)], 12, (fx, fy_, fz), soap)
-    lathe("font_water", [(0.0, 0.84), (0.31, 0.84), (0.0, 0.845)], 10, (fx, fy_, fz), p.glass)
-    collide((fx, fy_, fz + 0.45), (0.85, 0.85, 0.9))
+    with piece("baptismal_font", (fx, fy_, fz)):
+        lathe("font", [(0.0, 0.0), (0.32, 0.0), (0.24, 0.12), (0.17, 0.5), (0.38, 0.72), (0.42, 0.92), (0.35, 0.92), (0.3, 0.78), (0.0, 0.74)], 12, (fx, fy_, fz), soap)
+        lathe("font_water", [(0.0, 0.84), (0.31, 0.84), (0.0, 0.845)], 10, (fx, fy_, fz), p.glass)
+        collide((fx, fy_, fz + 0.45), (0.85, 0.85, 0.9))
     # Benkene langs veggene i sideskipet.
     for sx in (-1, 1):
         x = sx * (ix - 0.23)
         y0, y1 = -iy + 0.7, iy - 0.4
+        wb = piece("church_wall_bench", (x, (y0 + y1) / 2, fz))
+        wb.__enter__()
         box("wall_bench", (x - 0.22, y0, fz + 0.42), (x + 0.22, y1, fz + 0.48), wood, bevel=0.015)
         for k in range(5):
             y = y0 + 0.2 + k * (y1 - y0 - 0.4) / 4
             box("bench_leg", (x - 0.2, y - 0.04, fz), (x + 0.2, y + 0.04, fz + 0.42), tar, bevel=0.01)
         collide((x, (y0 + y1) / 2, fz + 0.24), (0.44, y1 - y0, 0.48))
+        wb.__exit__(None, None, None)
     # Lysestaker ved stavene og ved korbuen.
     for x, y in ((-C_NW / 2 + 0.5, -C_ND / 6), (C_NW / 2 - 0.5, C_ND / 6), (-1.0, iy - 0.45), (1.0, iy - 0.45)):
-        candle_stand(p, x, y, fz, h=1.3)
+        with piece("candle_stand_low", (x, y, fz)):
+            candle_stand(p, x, y, fz, h=1.3)
 
 
 def church(rng):
@@ -1203,6 +1226,7 @@ def two_part(name, outside_fn, inside_fn, paint):
     town.finish(f"{OUT}/{name}_interior.glb", max_edge=100.0)
     town.write_inside = real_write
     real_write(f"{OUT}/{name}.glb")
+    town.write_contents(name)
 
 
 def scriptorium_paint():
