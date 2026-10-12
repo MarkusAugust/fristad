@@ -140,6 +140,40 @@ def prop(name, x, y, yaw=0.0):
 
 FURNITURE = "assets/models/furniture"
 PLACED = []      # (navn, (x, y, z), yaw, targets) i husets akser
+# Veggene (fra `kit.slab_grid`): (ramme, lengde, z0, z1, tykkelse, hull).
+# Hvert møbel sjekkes mot dem (`check_piece`).
+WALLS = []
+_WALL_MARK = 0
+
+
+def check_points(name, pts, gap=0.4):
+    """Punktene (verden) går ikke inn i en vegg og står ikke innen `gap`
+    foran et vindu (se `check_piece`)."""
+    _check(name, pts, gap)
+
+
+def check_piece(name, made):
+    """Et møbel går ikke inn i en vegg (mer enn 3 cm) og dekker ikke et
+    vindu (står ikke innen 40 cm foran en åpning som ikke går fra gulvet);
+    ellers stopper eksporten (eierens dom i runde 7: tønner i veggene,
+    hyller over vinduet)."""
+    _check(name, [o.matrix_world @ v.co for o in made if o.type == "MESH" for v in o.data.vertices], 0.4)
+
+
+def _check(name, pts, gap):
+    for (px, py), (dx, dy), L, z0, z1, thick, holes in WALLS:
+        nx, ny = -dy, dx
+        for p in pts:
+            s = (p.x - px) * dx + (p.y - py) * dy
+            t = (p.x - px) * nx + (p.y - py) * ny
+            if not (0.02 < s < L - 0.02 and z0 + 0.02 < p.z < z1 - 0.02):
+                continue
+            hole = next((h for h in holes if h[0] - 0.02 < s < h[1] + 0.02 and h[2] - 0.02 < p.z < h[3] + 0.02), None)
+            if hole is None:
+                if abs(t) < thick / 2 - 0.03:
+                    raise SystemExit(f"møbelet «{name}» går {thick / 2 - abs(t):.2f} m inn i veggen ved ({p.x:.2f}, {p.y:.2f}, {p.z:.2f})")
+            elif hole[2] > z0 + 0.3 and abs(t) < thick / 2 + gap and hole[0] + 0.03 < s < hole[1] - 0.03 and hole[2] + 0.03 < p.z < hole[3] - 0.03:
+                raise SystemExit(f"møbelet «{name}» dekker vinduet ved ({p.x:.2f}, {p.y:.2f}, {p.z:.2f})")
 _PIECE_DEFS = {}  # navn -> (blend-fil, trekanter, kollidere, lys, hull)
 
 
@@ -157,6 +191,7 @@ class piece:
             return False
         bpy.context.view_layer.update()  # deler med location/rotation satt
         made = [o for o in bpy.data.objects if o not in self.before]
+        check_piece(self.name, made)
         cols, lights, hulls = COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
         del COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
         for o in made:
@@ -511,6 +546,14 @@ def write_inside(path):
             json.dump(data, f)
         print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper, {len(PROPS)} småting ute")
     COLLIDERS.clear()
+    # Veggene fra utsida gjelder for møblene i innsida som lages etterpå;
+    # etter en innside, eller en ny utside, gjelder de ikke lenger.
+    global _WALL_MARK
+    if path.endswith("_interior.glb"):
+        WALLS.clear()
+    else:
+        del WALLS[:_WALL_MARK]
+    _WALL_MARK = len(WALLS)
     PROPS.clear()
     LAMPS.clear()
     SMOKE.clear()

@@ -63,6 +63,8 @@ pub const CHEST_HINGE: Vec3 = Vec3::new(0.0, 0.46, -0.28);
 ///   `kit_up` (døra opp med tre trinn; døra står 0,9 m inn), `kit_down`
 ///   (trappa ned med brystvern; origo i åpningen der du går inn).
 pub const KIT_REST: &str = "kit_rest";
+/// Flammen i skåla på toppen av hvilestedet, vist når det er tent.
+pub const KIT_REST_FLAME: &str = "kit_rest_flame";
 pub const KIT_LEVER: &str = "kit_lever";
 pub const KIT_LEVER_ARM: &str = "kit_lever_arm";
 pub const KIT_SHORTCUT: &str = "kit_shortcut";
@@ -396,7 +398,7 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
 }
 
 /// Plass til det økta poserer: portgitrene, kistelokkene, dørene, spakene,
-/// de falske veggene, lemmene og pilene.
+/// de falske veggene, lemmene, pilene og flammene på hvilestedene.
 pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
     vec![
         (PORTCULLIS, c.gates.len()),
@@ -406,6 +408,7 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_SECRET, c.secrets.len()),
         (KIT_TRAPDOOR, c.trapdoors.iter().filter(|t| t.lid).count()),
         (KIT_ARROW, if c.traps.is_empty() { 0 } else { 16 }),
+        (KIT_REST_FLAME, c.rests.len()),
     ]
 }
 

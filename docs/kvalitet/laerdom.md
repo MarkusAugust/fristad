@@ -69,3 +69,13 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Kar på en disk i én rad ser oppstilt ut.** Regel: hyller fylles med `vessels.row`, bord og disker med `vessels.spread` (tette grupper av det som hører sammen, spredt over hele flata).
 - **Smia-kortet fikk bildene av kassa i Smia**, fordi verktøyet plukket bildene på navnet (`before_forge_*` traff `before_forge_crate_*`). Regel: vinkelnavn har ingen understrek, og `round_page` tar bare dem.
 - **Disken ble vist forfra, fra enden**, der det som står oppå ikke synes. Regel: det som ligger oppå en flate, vises også ovenfra (`top`).
+
+## Runde 8 (12. oktober)
+
+- **Byggesettet i krypten brukte dørbilder som tre** (`oak` = `bronze_door`, `wood` = `door_b`): lemmen ble svart, stigen fikk hengsler og nøkkelhull malt på trinnene, kister og fakler i nivået likeså. Regel: tre er planker (`planks`) og bjelker (`timber`); lag som er ett helt bilde av en ting (`WHOLE_IMAGES`) brukes bare på et dørblad med uv 0–1, og eksporten stopper ellers (`check_whole_images`).
+- **Projiserte gjenstander fra ark** (kista, brønnen) ble bokser med et bilde av tingen på, og teksturen passet ikke formen. Regel: gjenstander bygges av ekte geometri med teksturlagene, som resten av byen.
+- **Steingavler som overlapper murkronen** gir to flater i samme plan og svarte striper (krypten, kirka, Skriptoriet). Regel: `parapet` begynner på murkronen.
+- **Tønner i veggene og hyller over vinduet** (Vertshuset, spillerens hus), og trappa over to vinduer. Regel: hver vegg fra `kit.slab_grid` registreres, og hvert møbel og hver trapp sjekkes mot veggene og vinduene (`town.check_piece`, `check_points`); eksporten stopper om noe går inn i en vegg eller står foran et vindu.
+- **Lasten i vogna og hjulet mot kassa.** Regel: det som ligger i noe, sjekkes mot det (`check_clear`, `check_apart` i `streetlife.py`).
+- **En ting i et gjerde ble ikke funnet** av reglene i redigeringen, fordi gjerder og murdeler var unntatt. Regel: en ting kan ikke stå inni noens kollider, heller ikke et gjerdes.
+- **`cargo fmt` skrev om 67 filer.** Regel: kjør det aldri på hele repoet (CLAUDE.md).

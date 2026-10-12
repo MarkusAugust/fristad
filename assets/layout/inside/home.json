@@ -7,6 +7,6 @@
   {"at":{"pos":[2.6,0.45,1.6],"rot":[0,0,0,1]},"model":"home_table","mounted":true},
   {"at":{"pos":[1.75,0.45,1.6],"rot":[0,0,0,1]},"model":"stool","mounted":true},
   {"at":{"pos":[3.3,0.45,1.3],"rot":[0,0,0,1]},"model":"stool","mounted":true},
-  {"at":{"pos":[3.5,0.45,0.2],"rot":[0,0,0,1]},"model":"barrel_home","mounted":true},
-  {"at":{"pos":[3.75,0.45,0.2],"rot":[0,0,0,1]},"model":"jar_shelf","mounted":true}
+  {"at":{"pos":[3.35,0.45,-0.25],"rot":[0,0,0,1]},"model":"barrel_home","mounted":true},
+  {"at":{"pos":[3.75,0.45,-0.25],"rot":[0,0,0,1]},"model":"jar_shelf","mounted":true}
 ]

@@ -116,8 +116,16 @@ MATS = {
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
     "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
     "rubble": ("rubble", (1.0, 1.0, 1.0), 0.55),
-    "oak": ("bronze_door", (1.0, 1.0, 1.0), 0.5),
-    "wood": ("door_b", (1.0, 1.0, 1.0), 0.55),
+    # Tre: planker (lemmer, pulter, skrin) og bjelker (stiger, håndtak,
+    # slåer). Dørbildene (`bronze_door`, `door_b`) er hele bilder av en dør
+    # og brukes bare på dørblad med uv 0–1 («leaf»; eierens dom i runde 7:
+    # svart lem, hengsler malt på stigetrinnene).
+    "oak": ("planks", (0.62, 0.5, 0.42), 0.55),
+    "wood": ("timber", (0.85, 0.78, 0.72), 0.55),
+    "leaf": ("bronze_door", (1.0, 1.0, 1.0), 0.5),
+    "strap": ("trim", (1.0, 1.0, 1.0), 0.45),
+    "gilt": ("plaster_white", (0.95, 0.68, 0.26), 0.35),
+    "leather": ("leather", (0.62, 0.36, 0.24), 0.6),
     "iron": ("iron", (0.45, 0.43, 0.42), 0.45),
     "wax": ("plaster_white", (1.0, 0.93, 0.78), 0.4),
     "glitch": ("glitch_seam", (1.0, 1.0, 1.0), 0.4),
@@ -144,7 +152,7 @@ def material_name(key):
     if spec is None:
         return key
     layer = spec[0]
-    base = {"wall": "", "floor": "", "slab": "", "vault": "", "bones": "", "fresco": "", "rubble": "", "oak": "", "wood": "", "iron": ""}
+    base = {"wall": "", "floor": "", "slab": "", "vault": "", "bones": "", "fresco": "", "rubble": "", "oak": "", "wood": "", "iron": "", "leather": ""}
     if key == "glitch":
         return "layer_glitch_seam.magic"
     if key in base:
@@ -1151,6 +1159,98 @@ class _Offset:
         return self.s.uv(u, v)
 
 
+# --- Bjelker, jernbånd og karmer --------------------------------------------------
+
+
+def beam(mb, a, b, w, h, mat, up=(0.0, 1.0, 0.0), strip=None):
+    """En firkantet bjelke fra a til b (w bred, h høy, «høyden» langs `up`).
+    Uv: u langs bjelken i meter; v på tvers i meter, eller en stripe av et
+    ark: ("timber", k) rad k av fire, ("trim", k) stripe k av åtte (jernbånd
+    med nagler er `IRON_BAND`)."""
+    d = norm(sub(b, a))
+    upv = norm(sub(up, mul(d, dot(up, d))))
+    if dot(upv, upv) < 1e-9:
+        upv = norm(cross(d, (1.0, 0.0, 0.0)))
+    side = norm(cross(upv, d))
+    L = math.dist(a, b)
+    corners = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
+    P = lambda p0, cx, cy: add(add(p0, mul(side, cx)), mul(upv, cy))
+
+    def v_of(t, span):
+        if strip is None:
+            return t * span
+        kind, k = strip
+        if kind == "timber":
+            return k * 0.25 + 0.02 + t * 0.21
+        v0, v1 = 1 - (k + 1) / 8, 1 - k / 8
+        return v0 + 0.006 + t * (v1 - v0 - 0.012)
+
+    def u_of(x, span):
+        return x * 0.125 / span if strip and strip[0] == "trim" else x
+
+    for i in range(4):
+        (ax, ay), (bx, by) = corners[i], corners[(i + 1) % 4]
+        span = w if i % 2 == 0 else h
+        pts = [P(a, ax, ay), P(a, bx, by), P(b, bx, by), P(b, ax, ay)]
+        uvs = [(u_of(0, span), v_of(0, span)), (u_of(0, span), v_of(1, span)), (u_of(L, span), v_of(1, span)), (u_of(L, span), v_of(0, span))]
+        mid = add(mul(side, (ax + bx) / 2), mul(upv, (ay + by) / 2))
+        mb.poly(pts, uvs, mat, facing=mid)
+    for p0, f in ((a, mul(d, -1)), (b, d)):
+        pts = [P(p0, cx, cy) for cx, cy in corners]
+        mb.poly(pts, [(c[0] + w / 2, c[1] + h / 2) for c in corners], mat, facing=f)
+
+
+IRON_BAND = 5
+
+
+def strap(mb, a, b, w, t, up):
+    """Et smijernsbånd med nagler (trim-arket) fra a til b, `t` tykt ut
+    langs `up`."""
+    beam(mb, a, b, w, t, "strap", up=up, strip=("trim", IRON_BAND))
+
+
+def arch_trim(mb, surf, w, spring, v0=0.0, band=0.3, proud=0.1, n=9, mat="slab"):
+    """Karmen rundt en rundbuet åpning i en mur (`surf`, u = 0 midt i
+    åpningen): vangestein annenhver bred og smal opp til buen, og
+    buestein med sluttstein, hver for seg med en fuge imellom og `proud`
+    ut fra muren (eierens dom i runde 7: en trim langs kanten, så overgangen
+    mellom dør og vegg blir pen)."""
+    r = w / 2
+    g = 0.012
+    z = v0
+    k = 0
+    while z < v0 + spring - 0.05:
+        h = min(0.42 if k % 2 == 0 else 0.3, v0 + spring - z)
+        bw = band if k % 2 == 0 else band * 0.7
+        for sx in (-1, 1):
+            u0, u1 = sorted((sx * r, sx * (r + bw)))
+            pts = [(u0, z + g), (u1, z + g), (u1, z + h - g), (u0, z + h - g)]
+            _trim_block(mb, surf, pts, proud, mat)
+        z += h
+        k += 1
+    zs = v0 + spring
+    for i in range(n):
+        a0 = math.pi * i / n + 0.01
+        a1 = math.pi * (i + 1) / n - 0.01
+        ro = r + band + (0.06 if i == n // 2 else 0.0)
+        pts = [(r * math.cos(a0), zs + r * math.sin(a0)), (ro * math.cos(a0), zs + ro * math.sin(a0)), (ro * math.cos(a1), zs + ro * math.sin(a1)), (r * math.cos(a1), zs + r * math.sin(a1))]
+        _trim_block(mb, surf, pts, proud, mat)
+
+
+def _trim_block(mb, surf, pts, proud, mat):
+    """En stein i karmen: forsiden `proud` ut fra muren, og kantene."""
+    front = [surf.point(u, v, proud) for u, v in pts]
+    mb.poly(front, [surf.uv(u, v) for u, v in pts], mat, facing=surf.normal(0.0))
+    cu = sum(u for u, _ in pts) / len(pts)
+    cv = sum(v for _, v in pts) / len(pts)
+    for i in range(len(pts)):
+        a, b = pts[i], pts[(i + 1) % len(pts)]
+        L = math.dist(a, b)
+        quad = [surf.point(*a, 0.0), surf.point(*b, 0.0), surf.point(*b, proud), surf.point(*a, proud)]
+        mid = surf.point((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, proud / 2)
+        mb.poly(quad, [(0, 0), (L, 0), (L, proud), (0, proud)], mat, facing=sub(mid, surf.point(cu, cv, proud / 2)))
+
+
 # --- Mekanismene (egne modeller) --------------------------------------------------
 
 
@@ -1184,16 +1284,23 @@ def kit_rest():
 
 
 def kit_lever():
-    """Spaken: en fot av hogd stein med jernbeslag og et spor, og håndtaket
-    for seg (dreies om x i origo)."""
+    """Spaken: en sokkel av hogd stein med en helle på toppen, to jernkinn
+    med akselen mellom seg (dreiepunktet `LEVER_PIVOT`, 0,56 m oppe), og
+    håndtaket for seg: et nav på akselen, en jernstang og et grep av tre
+    (dreies om x i origo, eierens dom i runde 7: «modellen ser rar ut»)."""
     base, handle = MB(), MB()
-    box(base, (-0.3, 0, -0.22), (0.3, 0.42, 0.22), "dressed", faces=("+x", "-x", "+z", "-z"))
-    box(base, (-0.34, 0.42, -0.26), (0.34, 0.5, 0.26), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
-    box(base, (-0.18, 0.5, -0.12), (0.18, 0.56, 0.12), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
-    # Håndtaket: en jernstang med knott, fra dreieaksen og opp.
-    box(handle, (-0.05, -0.05, -0.05), (0.05, 0.05, 0.05), "iron")
-    band(handle, [(0, 0, 0), (0, 0.85, 0)], 0.05, 0.05, mat="iron", down=lambda p: (0, 0, 1))
-    cylinder(handle, (0, 0), 0.06, 0.8, 0.98, "wood", n=6, caps=(True, True))
+    box(base, (-0.32, 0, -0.26), (0.32, 0.1, 0.26), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
+    box(base, (-0.24, 0.1, -0.19), (0.24, 0.42, 0.19), "dressed", faces=("+x", "-x", "+z", "-z"))
+    box(base, (-0.27, 0.42, -0.22), (0.27, 0.47, 0.22), "slab", faces=("+y", "-y", "+x", "-x", "+z", "-z"))
+    box(base, (-0.15, 0.47, -0.1), (0.15, 0.49, 0.1), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
+    for x0, x1 in ((-0.11, -0.065), (0.065, 0.11)):
+        box(base, (x0, 0.49, -0.07), (x1, 0.64, 0.07), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
+    beam(base, (-0.13, 0.56, 0.0), (0.13, 0.56, 0.0), 0.035, 0.035, "iron")
+    # Håndtaket (origo i dreiepunktet): navet går rundt akselen mellom kinnene.
+    beam(handle, (-0.055, 0.0, 0.0), (0.055, 0.0, 0.0), 0.075, 0.075, "iron")
+    beam(handle, (0.0, 0.035, 0.0), (0.0, 0.66, 0.0), 0.04, 0.04, "iron", up=(0.0, 0.0, 1.0))
+    beam(handle, (0.0, 0.62, 0.0), (0.0, 0.9, 0.0), 0.065, 0.065, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 1))
+    beam(handle, (0.0, 0.9, 0.0), (0.0, 0.93, 0.0), 0.08, 0.08, "iron", up=(0.0, 0.0, 1.0))
     return base, handle
 
 
@@ -1215,45 +1322,52 @@ def kit_gate(w=2.8, h=3.0):
     return m
 
 
-def kit_shortcut(w=1.6, spring=1.5):
-    """Snarveidøra: et rundbuet blad av jernbeslått eik (hengslet i origo,
-    bladet går mot +x, toppen 2,3 m), og slåen (en bjelke i jernkramper på
-    slåsida). Høyden må stemme med `SHORTCUT_H` i motoren."""
-    leaf, bar = MB(), MB()
-    t = 0.12
+def shortcut_leaf(w=1.6, spring=1.5, t=0.12):
+    """Et rundbuet dørblad (hengslet i origo, bladet går mot +x): hele
+    dørbildet over bladet foran og bak (uv 0–1), kantene av planker."""
+    leaf = MB()
     prof = arch_profile(w / 2, w - 0.04, 0.0, spring, n=10)
-    front = Plane((0.0, t / 2), (1.0, 0.0), (0.0, 1.0))
-    back = Plane((0.0, -t / 2), (1.0, 0.0), (0.0, -1.0))
-    poly = Polygon(prof)
-    grid_face(leaf, front, poly, "oak", cell=1.0)
-    grid_face(leaf, back, poly, "oak", cell=1.0)
+    H = spring + (w - 0.04) / 2
+    for z, f in ((t / 2, 1.0), (-t / 2, -1.0)):
+        pts = [(u, v, z) for u, v in prof]
+        uvs = [((u / w) if f > 0 else 1 - u / w, v / H) for u, v in prof]
+        leaf.poly(pts, uvs, "leaf", facing=(0, 0, f))
     for i in range(len(prof)):
         a, b = prof[i], prof[(i + 1) % len(prof)]
         mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         L = math.dist(a, b)
         leaf.poly([(a[0], a[1], -t / 2), (b[0], b[1], -t / 2), (b[0], b[1], t / 2), (a[0], a[1], t / 2)], [(0, 0), (L, 0), (L, t), (0, t)], "oak",
                   facing=(mid[0] - w / 2, mid[1] - 1.0, 0))
-    # Jernbånd over bladet på begge sider, krampene og slåen på slåsida (+z).
-    for y in (0.35, 1.25):
-        for z0, z1, f in ((t / 2, t / 2 + 0.015, "+z"), (-t / 2 - 0.015, -t / 2, "-z")):
-            box(leaf, (0.04, y - 0.04, z0), (w - 0.06, y + 0.04, z1), "iron", faces=("+y", "-y", f))
-    for x in (0.22, w - 0.22):
-        box(leaf, (x - 0.06, 0.93, t / 2), (x + 0.06, 1.17, t / 2 + 0.12), "iron", faces=("+y", "-y", "+x", "-x", "+z"))
-    box(leaf, (0.1, 1.0, t / 2 + 0.02), (w - 0.1, 1.1, t / 2 + 0.11), "wood", faces=("+y", "-y", "+x", "-x", "+z"))
-    box(bar, (-w / 2 - 0.25, -0.07, -0.06), (w / 2 + 0.25, 0.07, 0.06), "wood")
+    return leaf
+
+
+def kit_shortcut(w=1.6, spring=1.5):
+    """Snarveidøra: et rundbuet blad med dørbildet (hengslet i origo, bladet
+    går mot +x, toppen 2,3 m), og slåen på slåsida (+z): en bjelke som
+    ligger fritt i to U-kramper av jern, med luft rundt, så ingenting går
+    inn i hverandre (eierens dom i runde 7). Høyden må stemme med
+    `SHORTCUT_H` i motoren."""
+    t = 0.12
+    leaf = shortcut_leaf(w, spring, t)
+    bar = MB()
+    f = t / 2
+    for x in (0.24, w - 0.24):
+        box(leaf, (x - 0.035, 0.965, f), (x + 0.035, 0.995, f + 0.14), "iron", faces=("+y", "-y", "+x", "-x", "+z"))
+        box(leaf, (x - 0.035, 1.105, f), (x + 0.035, 1.135, f + 0.14), "iron", faces=("+y", "-y", "+x", "-x", "+z"))
+        box(leaf, (x - 0.035, 0.965, f + 0.115), (x + 0.035, 1.135, f + 0.14), "iron", faces=("+y", "-y", "+x", "-x", "+z"))
+    beam(leaf, (0.1, 1.05, f + 0.065), (w - 0.1, 1.05, f + 0.065), 0.09, 0.1, "wood", strip=("timber", 2))
+    beam(bar, (-w / 2 - 0.25, 0.0, 0.0), (w / 2 + 0.25, 0.0, 0.0), 0.12, 0.14, "wood", strip=("timber", 2))
     return leaf, bar
 
 
 def kit_shortcut_frame(w=1.6, spring=1.5, depth=0.5):
-    """Karmen rundt snarveidøra: rundbuen av hogd stein på begge sider av
-    muråpningen og lysningen gjennom muren (origo midt nederst i åpningen,
-    muren går langs x)."""
+    """Karmen rundt snarveidøra: vangestein og buestein som står ut av muren
+    på begge sider (`arch_trim`), lysningen gjennom muren og terskelen
+    (origo midt nederst i åpningen, muren går langs x)."""
     m = MB()
     prof = arch_profile(0.0, w, 0.0, spring, n=10)
-    for z, n in ((depth / 2, (0.0, 1.0)), (-depth / 2, (0.0, -1.0))):
-        surf = Plane((0.0, z), (1.0, 0.0) if n[1] > 0 else (-1.0, 0.0), n)
-        pr = prof if n[1] > 0 else [(-u, v) for u, v in reversed(prof)]
-        portal(m, surf, pr, mat="dressed", band=0.3, depth=0.08)
+    arch_trim(m, Plane((0.0, depth / 2), (1.0, 0.0), (0.0, 1.0)), w, spring)
+    arch_trim(m, Plane((0.0, -depth / 2), (-1.0, 0.0), (0.0, -1.0)), w, spring)
     # Lysningen gjennom muren.
     for i in range(len(prof) - 1):
         a, b = prof[i], prof[i + 1]
@@ -1267,31 +1381,44 @@ def kit_shortcut_frame(w=1.6, spring=1.5, depth=0.5):
 
 
 def kit_false_wall(w=2.0, h=2.6, t=0.4):
-    """Den falske veggen: en murbit som kan falle, med fronten mot +z. Delt i
-    tre blokker som står litt skjevt (sprekkene er hintet)."""
+    """Den falske veggen: én hel murbit med fronten mot +z, med murens
+    tekstur i meter som muren rundt (ingen skjeve blokker eller brutte
+    flater; hintet er sprekken `kit_crack`, eierens dom i runde 7)."""
     m = MB()
-    parts = [(-w / 2, -w / 2 + 0.9, 0.0, h, 0.0, 0.0), (-w / 2 + 0.9, w / 2, 0.0, 1.45, 0.012, 0.0), (-w / 2 + 0.9, w / 2, 1.45, h, -0.01, 0.006)]
-    for x0, x1, y0, y1, dz, dy in parts:
-        box(m, (x0 + 0.004, y0 + dy, -t / 2 + dz), (x1 - 0.004, y1 + dy, t / 2 + dz), "wall", faces=("+z", "-z", "+x", "-x", "+y", "-y"))
+    box(m, (-w / 2, 0.0, -t / 2), (w / 2, h, t / 2), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
     return m
 
 
 def kit_trapdoor(w=1.2, d=1.2, t=0.08):
-    """Fallemmen: planker med jernbånd og en ring, hengslet langs kanten mot −z."""
+    """Fallemmen: planker (2 cm over gulvet, så den ikke ligger i samme plan
+    som gulvet), to hengselbånd av smijern fra hengslet, og en jernring på
+    en plate foran, så du ser at den kan åpnes (eierens dom i runde 7).
+    Hengslet langs kanten mot −z."""
     m = MB()
-    box(m, (-w / 2, -t, 0.0), (w / 2, 0.0, d), "oak")
-    cylinder(m, (0.0, d - 0.25), 0.07, 0.0, 0.025, "iron", n=8, caps=(True, False), smooth=False)
+    top = 0.02
+    box(m, (-w / 2, top - t, 0.0), (w / 2, top, d), "oak")
+    for x in (-0.35, 0.35):
+        strap(m, (x, top + 0.006, 0.02), (x, top + 0.006, d - 0.12), 0.07, 0.012, (0.0, 1.0, 0.0))
+    cz = d - 0.24
+    box(m, (-0.07, top, cz - 0.05), (0.07, top + 0.012, cz + 0.05), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
+    # Ringen ligger flatt foran plata.
+    r = 0.075
+    c = (0.0, top + 0.024, cz + 0.07)
+    pts = [(c[0] + r * math.cos(a), c[1], c[2] + r * math.sin(a)) for a in [2 * math.pi * k / 10 for k in range(11)]]
+    for a, b in zip(pts, pts[1:]):
+        beam(m, a, b, 0.022, 0.022, "iron")
     return m
 
 
 def kit_ladder(w=0.5, t=0.065):
-    """Stigen: en bit på 1 m (stables), to vanger og fire trinn."""
+    """Stigen: en bit på 1 m (stables og skaleres), to vanger og fire trinn
+    av bjelker (timber-laget, ikke dørbildet)."""
     m = MB()
     for x in (-w / 2, w / 2):
-        box(m, (x - t / 2, 0.0, -t / 2), (x + t / 2, 1.0, t / 2), "wood", faces=("+x", "-x", "+z", "-z"))
+        beam(m, (x, 0.0, 0.0), (x, 1.0, 0.0), t, t, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if x < 0 else 3))
     for k in range(4):
         y = 0.125 + 0.25 * k
-        box(m, (-w / 2, y - 0.025, -0.025), (w / 2, y + 0.025, 0.025), "wood", faces=("+y", "-y", "+z", "-z"))
+        beam(m, (-w / 2 + t / 2, y, 0.0), (w / 2 - t / 2, y, 0.0), 0.045, 0.045, "wood", strip=("timber", 1 + k % 2))
     return m
 
 
@@ -1330,51 +1457,88 @@ def kit_arrow(L=0.62):
 
 
 def kit_lore():
-    """Lappen eller boka: en lesepult av stein med en åpen bok og et
-    stearinlys (origo på gulvet, leseren står på +z)."""
+    """Lappen eller boka: en lesepult av tre (kryssføtter, stolpe, knekter
+    og en skrå pultplate med list), med en åpen bok i skinnperm og et lys
+    på en jernarm (origo på gulvet, leseren står på +z; eierens dom i
+    runde 7: av treverk, ikke stein)."""
     m = MB()
-    box(m, (-0.22, 0.0, -0.18), (0.22, 0.08, 0.18), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
-    box(m, (-0.12, 0.08, -0.1), (0.12, 0.82, 0.1), "dressed", faces=("+x", "-x", "+z", "-z"))
-    # Pulten heller mot leseren.
-    y0, y1, z0, z1 = 0.82, 0.98, -0.2, 0.2
-    top = [(-0.32, y1, z0), (0.32, y1, z0), (0.32, y0, z1), (-0.32, y0, z1)]
-    m.quad(*top, "dressed", facing=(0, 1, 0.4))
-    bot = [(-0.32, y1 - 0.06, z0), (0.32, y1 - 0.06, z0), (0.32, y0 - 0.06, z1), (-0.32, y0 - 0.06, z1)]
-    m.quad(*bot, "dressed", facing=(0, -1, -0.4))
-    for i in range(4):
-        a, b = top[i], top[(i + 1) % 4]
-        c, d = bot[(i + 1) % 4], bot[i]
-        m.quad(a, b, c, d, "dressed", facing=sub(lerp(a, b, 0.5), (0, y0, 0)))
-    # Den åpne boka: to sider som buer litt, og skinnpermen under.
-    n = (0.0, 1.0, 0.4)
-    lift = lambda p, h: (p[0], p[1] + h, p[2] + h * 0.0)
+    beam(m, (-0.3, 0.04, 0.0), (0.3, 0.04, 0.0), 0.08, 0.08, "wood", strip=("timber", 1))
+    for z0, z1 in ((-0.25, -0.04), (0.04, 0.25)):
+        beam(m, (0.0, 0.04, z0), (0.0, 0.04, z1), 0.08, 0.08, "wood", strip=("timber", 1))
+    # Pulten heller mot leseren: bak høyt, foran lavt.
+    yb, yf, zb, zf, th = 1.02, 0.86, -0.2, 0.2, 0.04
+    beam(m, (0.0, 0.08, 0.0), (0.0, (yb + yf) / 2 - th, 0.0), 0.1, 0.1, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 2))
     for sx in (-1, 1):
-        a = (0.0, y1 * 0.5 + y0 * 0.5 + 0.03, 0.0)
-        pts = [(0.0, 0.93, -0.12), (sx * 0.24, 0.95, -0.13), (sx * 0.24, 0.87, 0.12), (0.0, 0.85, 0.11)]
-        pts = [lift(p, 0.035) for p in pts]
-        if sx < 0:
-            pts = pts[::-1]
-        m.quad(*pts, "wax", facing=n)
-        box(m, (min(0, sx * 0.25), 0.86, -0.13), (max(0, sx * 0.25), 0.9, 0.13), "wood", faces=("+x", "-x", "+z", "-z"))
-    candle(m, 0.27, -0.12, 0.98, h=0.12)
+        beam(m, (sx * 0.04, 0.72, 0.0), (sx * 0.22, (yb + yf) / 2 - th - 0.005, 0.0), 0.05, 0.05, "wood", strip=("timber", 3))
+    ez = norm((0.0, yf - yb, zf - zb))
+    n = norm(cross((1.0, 0.0, 0.0), ez))
+    if n[1] < 0:
+        n = mul(n, -1)
+    c = (0.0, (yb + yf) / 2, 0.0)
+    half = math.dist((yb, zb), (yf, zf)) / 2
+    at = lambda u, s_, h: add(add(add(c, (u, 0.0, 0.0)), mul(ez, s_)), mul(n, h))
+
+    def slab_(u0, u1, s0, s1, h0, h1, mat):
+        corners = [(u0, s0), (u1, s0), (u1, s1), (u0, s1)]
+        top = [at(u, s_, h1) for u, s_ in corners]
+        bot = [at(u, s_, h0) for u, s_ in corners]
+        m.poly(top, [(u, s_) for u, s_ in corners], mat, facing=n)
+        m.poly(bot, [(u, s_) for u, s_ in corners], mat, facing=mul(n, -1))
+        for i in range(4):
+            a, b = corners[i], corners[(i + 1) % 4]
+            L = math.dist(a, b)
+            quad = [at(*a, h0), at(*b, h0), at(*b, h1), at(*a, h1)]
+            mid = at((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (h0 + h1) / 2)
+            m.poly(quad, [(0, 0), (L, 0), (L, h1 - h0), (0, h1 - h0)], mat, facing=sub(mid, at((u0 + u1) / 2, (s0 + s1) / 2, (h0 + h1) / 2)))
+
+    slab_(-0.3, 0.3, -half, half, -th, 0.0, "oak")
+    slab_(-0.3, 0.3, half - 0.03, half, 0.0, 0.045, "wood")
+    # Boka: skinnpermen og to sideblokker med ark.
+    slab_(-0.24, 0.24, -0.16, 0.14, 0.0, 0.012, "leather")
+    slab_(-0.225, -0.008, -0.145, 0.125, 0.012, 0.034, "wax")
+    slab_(0.008, 0.225, -0.145, 0.125, 0.012, 0.034, "wax")
+    # Lyset på en jernarm ut fra pulten bak til høyre.
+    y = yb - 0.02
+    beam(m, (0.28, y, -0.12), (0.42, y, -0.12), 0.025, 0.025, "iron")
+    cylinder(m, (0.44, -0.12), 0.05, y - 0.01, y + 0.01, "iron", n=8, caps=(True, True), smooth=False)
+    candle(m, 0.44, -0.12, y + 0.01, h=0.12)
     return m
 
 
 def kit_bonus():
-    """Den varige styrken: et lite relikvieskrin på en sokkel, med en
-    gyllen glød i lokket (origo på gulvet, front mot +z)."""
+    """Den varige styrken: et relikvieskrin, en liten kiste av eik formet
+    som et hus med forgylt saltak, forgylte hjørner og føtter, et kors på
+    mønet og glødende steiner foran, på en sokkel av hogd stein (origo på
+    gulvet, front mot +z; eierens dom i runde 7: «ser ikke ut som et skrin»)."""
     m = MB()
-    cylinder(m, (0.0, 0.0), 0.28, 0.0, 0.12, "dressed", n=8, caps=(True, False), smooth=False)
-    cylinder(m, (0.0, 0.0), 0.16, 0.12, 0.72, "dressed", n=8, caps=(False, False), smooth=False)
-    cylinder(m, (0.0, 0.0), 0.26, 0.72, 0.8, "dressed", n=8, caps=(True, True), smooth=False)
-    box(m, (-0.2, 0.8, -0.13), (0.2, 1.02, 0.13), "oak")
-    # Saltaket på skrinet og glødende steiner i fronten.
-    for sz in (-1, 1):
-        m.quad((-0.22, 1.02, sz * 0.15), (0.22, 1.02, sz * 0.15), (0.22, 1.14, 0.0), (-0.22, 1.14, 0.0), "iron", facing=(0, 1, sz))
+    box(m, (-0.3, 0.0, -0.3), (0.3, 0.1, 0.3), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
+    cylinder(m, (0.0, 0.0), 0.16, 0.1, 0.7, "dressed", n=8, caps=(False, False), smooth=False)
+    box(m, (-0.3, 0.7, -0.22), (0.3, 0.78, 0.22), "slab", faces=("+y", "-y", "+x", "-x", "+z", "-z"))
+    W, D, y0, y1 = 0.24, 0.13, 0.8, 1.0
     for sx in (-1, 1):
-        m.tri((sx * 0.22, 1.02, -0.15), (sx * 0.22, 1.02, 0.15), (sx * 0.22, 1.14, 0.0), "iron", facing=(sx, 0, 0))
-    for x in (-0.1, 0.0, 0.1):
-        box(m, (x - 0.03, 0.88, 0.13), (x + 0.03, 0.94, 0.15), "magic_bonus", faces=("+z", "+y", "+x", "-x"))
+        for sz in (-1, 1):
+            box(m, (sx * (W - 0.03) - 0.025, 0.78, sz * (D - 0.03) - 0.025), (sx * (W - 0.03) + 0.025, y0, sz * (D - 0.03) + 0.025), "gilt", faces=("+x", "-x", "+z", "-z"))
+            box(m, (sx * W - 0.012, y0, sz * D - 0.012), (sx * W + 0.012, y1, sz * D + 0.012), "gilt", faces=("+x", "-x", "+z", "-z", "+y"))
+    box(m, (-W, y0, -D), (W, y1, D), "oak", faces=("+x", "-x", "+z", "-z", "-y"))
+    # Saltaket: forgylte takflater med mønet langs x, og gavler av eik.
+    o, yr = 0.02, y1 + 0.2
+    for sz in (-1, 1):
+        m.quad((-W - o, y1, sz * (D + o)), (W + o, y1, sz * (D + o)), (W + o, yr, 0.0), (-W - o, yr, 0.0), "gilt", facing=(0, 1, sz))
+        m.quad((-W - o, y1 - 0.012, sz * (D + o)), (W + o, y1 - 0.012, sz * (D + o)), (W + o, y1, sz * (D + o)), (-W - o, y1, sz * (D + o)), "gilt", facing=(0, 0, sz))
+    for sx in (-1, 1):
+        m.tri((sx * W, y1, -D), (sx * W, y1, D), (sx * W, yr - 0.01, 0.0), "oak", facing=(sx, 0, 0))
+        x = sx * (W + o)
+        m.quad((x, y1 - 0.012, -D - o), (x, y1 - 0.012, D + o), (x, y1, D + o), (x, y1, -D - o), "gilt", facing=(sx, 0, 0))
+        cylinder(m, (sx * (W + 0.01), 0.0), 0.022, yr - 0.01, yr + 0.05, "gilt", n=6, caps=(True, False), smooth=False)
+    beam(m, (0.0, yr - 0.01, 0.0), (0.0, yr + 0.12, 0.0), 0.022, 0.022, "gilt", up=(0.0, 0.0, 1.0))
+    for x0, x1 in ((-0.05, -0.011), (0.011, 0.05)):
+        beam(m, (x0, yr + 0.08, 0.0), (x1, yr + 0.08, 0.0), 0.022, 0.022, "gilt")
+    # De glødende steinene foran.
+    for x in (-0.13, 0.0, 0.13):
+        box(m, (x - 0.017, 0.885, D), (x + 0.017, 0.919, D + 0.016), "magic_bonus", faces=("+z", "+y", "-y", "+x", "-x"))
+    # Et forgylt bånd rundt midten av skrinet, steinene sitter i det.
+    for z0, z1, f in ((D, D + 0.008, "+z"), (-D - 0.008, -D, "-z")):
+        box(m, (-W, 0.87, z0), (W, 0.935, z1), "gilt", faces=(f, "+y", "-y"))
     return m
 
 
@@ -1406,10 +1570,71 @@ def kit_crack(w=0.9, h=1.6, seed=5):
     return m
 
 
+def kit_sarcophagus(L=2.0, W=0.9, H=0.75):
+    """Sarkofagen (pynt, merket `prop`): en kiste av hogd stein på en sokkel,
+    med blinde rundbuer på langsidene, en kant øverst og et valmet lokk med
+    hjørneører og et kors i relieff på hver takside (origo midt under på gulvet, lengden langs
+    z; eierens dom i runde 7: «ligner overhodet ikke på en sarkofag»)."""
+    m = MB()
+    box(m, (-W / 2 - 0.06, 0.0, -L / 2 - 0.06), (W / 2 + 0.06, 0.12, L / 2 + 0.06), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
+    for sz in (-1, 1):
+        surf = Plane((-W / 2 * sz, sz * L / 2), (sz * 1.0, 0.0), (0.0, sz * 1.0))
+        wall(m, surf, W, 0.12, H, [], mat="wall")
+    for sx in (-1, 1):
+        surf = Plane((sx * W / 2, -sx * L / 2), (0.0, sx * 1.0), (sx * 1.0, 0.0))
+        arches = [arch_profile(L * (k + 0.5) / 3, 0.42, 0.22, 0.2, n=8) for k in range(3)]
+        wall(m, surf, L, 0.12, H - 0.04, [Polygon(a) for a in arches], mat="wall")
+        for a in arches:
+            recess(m, surf, a, 0.08, "dressed", "wall_dark")
+    box(m, (-W / 2 - 0.03, H - 0.06, -L / 2 - 0.03), (W / 2 + 0.03, H, L / 2 + 0.03), "dressed", faces=("+x", "-x", "+z", "-z", "-y"))
+    # Lokket: en helle med overheng og et valmet tak over (mønet langs z),
+    # med hjørneører, som på gamle steinsarkofager, og et kors i relieff
+    # på hver takside.
+    o = 0.07
+    box(m, (-W / 2 - o, H, -L / 2 - o), (W / 2 + o, H + 0.09, L / 2 + o), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
+    yb, yr, hw, hl, rl = H + 0.09, H + 0.36, W / 2 + o - 0.02, L / 2 + o - 0.02, L / 2 - 0.25
+    for sx in (-1, 1):
+        m.poly([(sx * hw, yb, -hl), (sx * hw, yb, hl), (0.0, yr, rl), (0.0, yr, -rl)], [(-hl, 0), (hl, 0), (rl, hw * 1.2), (-rl, hw * 1.2)], "slab", facing=(sx, 0.8, 0))
+    for sz in (-1, 1):
+        m.poly([(-hw, yb, sz * hl), (hw, yb, sz * hl), (0.0, yr, sz * rl)], [(-hw, 0), (hw, 0), (0, 0.4)], "slab", facing=(0, 0.6, sz))
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            box(m, (sx * hw - 0.09, yb, sz * hl - 0.09), (sx * hw + 0.02, yb + 0.16, sz * hl + 0.02), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
+    # Korset på hver takside: en stav langs mønet og en tverrstav ned i
+    # taket, litt ut fra flaten.
+    k = (yr - yb) / hw
+    for sx in (-1, 1):
+        lift = lambda t: (sx * t, yr - k * t + 0.035, 0.0)
+        a, b = lift(0.12), lift(0.12)
+        beam(m, (a[0], a[1], -0.6), (b[0], b[1], 0.55), 0.08, 0.035, "dressed", up=(sx * k, 1.0, 0.0))
+        p0, p1 = lift(0.04), lift(0.3)
+        beam(m, (p0[0], p0[1], -0.3), (p1[0], p1[1], -0.3), 0.08, 0.035, "dressed", up=(sx * k, 1.0, 0.0))
+    return m
+
+
+def kit_rest_flame():
+    """Flammen på hvilestedet (eierens ark, `kit_rest`): et lite bål av
+    tunger i skåla på toppen av stanga, 1,72 m oppe. Motoren viser den når
+    hvilestedet er tent (`REST_FLAME`)."""
+    m = MB()
+    y = 1.72
+    for k, (ox, oz, h) in enumerate(((0.0, 0.0, 0.26), (0.035, 0.02, 0.17), (-0.03, 0.025, 0.15), (0.0, -0.035, 0.18), (0.025, -0.02, 0.12))):
+        f = 0.05 if k == 0 else 0.035
+        tip = (ox * 1.4, y + h, oz * 1.4)
+        base = [(ox + f * math.cos(a), y + 0.02, oz + f * math.sin(a)) for a in (0.3, 2.4, 4.5)]
+        cc = (ox, y, oz)
+        for i in range(3):
+            m.tri(base[i], base[(i + 1) % 3], tip, "fire_torch", facing=sub(lerp(base[i], base[(i + 1) % 3], 0.5), cc))
+            m.tri(base[i], base[(i + 1) % 3], cc, "fire_torch", facing=add(sub(lerp(base[i], base[(i + 1) % 3], 0.5), cc), (0, -0.05, 0)))
+    return m
+
+
 def kit_up(w=1.6, spring=1.6):
-    """Døra opp: en lukket rundbuet eikedør i en buekarm av hogd stein, med
-    tre trinn foran (origo midt foran nederste trinn på gulvet; døra står
-    0,9 m inn og 0,45 m opp, fronten mot +z)."""
+    """Døra opp: en lukket rundbuet dør (dørbildet) inntil muren, med en
+    karm av vangestein og buestein rundt (`arch_trim`), en terskel og tre
+    trinn foran (origo midt foran nederste trinn på gulvet; murflata i
+    z = −1, døra 0,45 m opp, fronten mot +z). Ingen mur i modellen: muren
+    er nivåets, så teksturen ikke krasjer (eierens dom i runde 7)."""
     m = MB()
     rise, run = 0.15, 0.3
     for k in range(3):
@@ -1419,13 +1644,11 @@ def kit_up(w=1.6, spring=1.6):
     m.faces = [([(p[0], p[1], -0.9 - p[2]) for p in pts], uvs, mat, sm) for pts, uvs, mat, sm in m.faces]
     m.faces = [(pts[::-1], uvs[::-1], mat, sm) for pts, uvs, mat, sm in m.faces]
     y0 = 3 * rise
-    leaf, _ = kit_shortcut(w=w - 0.04, spring=spring)
-    m.extend(leaf, at=(-w / 2 + 0.02, y0, -0.9), keep_uv=True)
-    frame = kit_shortcut_frame(w=w, spring=spring, depth=0.3)
-    m.extend(frame, at=(0.0, y0, -0.95), keep_uv=True)
-    # Muren rundt karmen.
-    surf = Plane((-1.6, -0.8), (1.0, 0.0), (0.0, 1.0))
-    wall(m, surf, 3.2, y0, 3.4, [Polygon([(u + 1.6, v) for u, v in arch_profile(0.0, w, y0, spring)])], mat="wall")
+    box(m, (-w / 2 - 0.3, 0.0, -1.0), (w / 2 + 0.3, y0, -0.9), "dressed", faces=("+y", "+x", "-x"))
+    leaf = shortcut_leaf(w=w - 0.04, spring=spring, t=0.1)
+    m.extend(leaf, at=(-w / 2 + 0.02, y0, -0.95), keep_uv=True)
+    arch_trim(m, Plane((0.0, -1.0), (1.0, 0.0), (0.0, 1.0)), w, spring, v0=y0, band=0.3, proud=0.12)
+    box(m, (-w / 2 - 0.05, y0 - 0.01, -1.0), (w / 2 + 0.05, y0 + 0.02, -0.85), "slab", faces=("+y", "+z", "+x", "-x"))
     return m
 
 
@@ -1625,7 +1848,21 @@ def clear():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
+# Teksturlag som er ett helt bilde av en ting (en dør), ikke en flis: de
+# kan bare legges med uv i 0..1 over et blad, ellers gjentas dørbildet i
+# meter (hengsler og nøkkelhull malt på stigetrinn).
+WHOLE_IMAGES = {"door", "door_b", "bronze_door"}
+
+
+def check_whole_images(mb, name):
+    for pts, uvs, mat, _ in mb.faces:
+        spec = MATS.get(mat)
+        if spec and spec[0] in WHOLE_IMAGES and any(not (-0.01 <= c <= 1.01) for uv in uvs for c in uv):
+            raise SystemExit(f"{name}: {mat} ({spec[0]}) er et helt bilde og må ha uv i 0..1, ikke {uvs[:2]} …")
+
+
 def export_model(mb, path, ao=True, samples=64):
+    check_whole_images(mb, os.path.basename(path))
     clear()
     ob = to_object(mb, os.path.basename(path).replace(".glb", ""))
     sharpen(ob)
@@ -1661,6 +1898,8 @@ def mechanisms():
         "kit_crack": kit_crack(),
         "kit_up": kit_up(),
         "kit_down": kit_down(),
+        "kit_sarcophagus": kit_sarcophagus(),
+        "kit_rest_flame": kit_rest_flame(),
     }
 
 
@@ -1710,8 +1949,8 @@ def main():
         export_model(m, out, ao=True, samples=32)
         return
     only = [a for a in args if not a.startswith("-")]
-    # kit_rest og kit_sarcophagus er bygd fra eierens ark med sheet2model
-    # (docs/wip/gjenstander.md); de skrives bare over når de nevnes uttrykkelig.
+    # kit_rest er bygd fra eierens ark med sheet2model (docs/wip/gjenstander.md);
+    # den skrives bare over når den nevnes uttrykkelig.
     from_sheets = {"kit_rest"}
     for name, m in mechanisms().items():
         if only and name not in only:

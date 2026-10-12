@@ -63,7 +63,8 @@ CY_BOT = CY_TOP - kit.stair_run(CELLAR, F0)
 # østveggen) til SX0 (øverst), der du går av mot vest.
 SX1 = IX1 - kit.LANDING - kit.WALL_PAD
 SX0 = SX1 - kit.stair_run(F0, F1)
-SY0, SY1 = -4.1, -3.0
+# 50 cm fra fasaden, så vinduene bak trappa er fri (eierens dom i runde 7).
+SY0, SY1 = -3.6, -2.5
 # Bjelkelaget over trappa (undersida av bjelkene) og trapphullet oppe:
 # fra der hoderommet krever det (`stair_well`) til toppen.
 UNDER = C0 - 0.24
@@ -227,9 +228,10 @@ def ground_floor(p, rng):
         for z in (F0 + 1.35, F0 + 1.95):
             box("shelf", (KITCHEN_X - 0.42, cy0, z), (KITCHEN_X - 0.1, cy1, z + 0.05), p.floor, bevel=0.01)
             vessels.row(p, random.Random(int(z * 100)), cy0 + 0.05, cy1 - 0.05, KITCHEN_X - 0.26, z + 0.05, 0.3, 0.52, along="y")
+    # Tønnene ligger 10 cm fra kjøkkenveggen (før gikk enden 5 cm inn i den).
     for k, y in enumerate((-0.3, 0.6)):
-        with piece("barrel_lying", (KITCHEN_X - 0.4, y, F0)):
-            barrel(p, KITCHEN_X - 0.4, y, F0 + 0.0, r=0.3, h=0.7, lying=True, yaw=0)
+        with piece("barrel_lying", (KITCHEN_X - 0.55, y, F0)):
+            barrel(p, KITCHEN_X - 0.55, y, F0 + 0.0, r=0.3, h=0.7, lying=True, yaw=0)
 
     # Bordene i skjenkestua, med benker og krakker, og lys på bordene.
     for (x, y, yaw, w) in ((-4.0, -2.8, 0.0, 2.2), (-4.0, 2.6, 0.0, 2.2), (-1.9, 0.3, math.pi / 2, 1.8)):
@@ -281,11 +283,39 @@ def ground_floor(p, rng):
             ham = barrel(p, x, y, C0 - 1.15, r=0.13, h=0.55)
             ham.data.materials[0] = layer("leather", (0.75, 0.42, 0.3))
             collide((x, y, C0 - 0.9), (0.3, 0.3, 0.6))
-    # Hyller med krukker på bakveggen, og sekker i hjørnet.
-    with piece("crock_shelf", (2.3, iy1 - 0.175, F0)):
+    # Hyller med krukker på bakveggen øst for vinduet (som går fra x 1,9
+    # til 2,9), og sekker i hjørnet.
+    with piece("crock_shelf", (4.4, iy1 - 0.175, F0)):
         for z in (F0 + 1.4, F0 + 2.0):
-            box("kshelf", (1.0, iy1 - 0.35, z), (3.6, iy1, z + 0.05), p.floor, bevel=0.01)
-            vessels.row(p, random.Random(int(z * 100) + 7), 1.0, 3.6, iy1 - 0.18, z + 0.05, 0.32, 0.5)
+            box("kshelf", (3.1, iy1 - 0.35, z), (5.5, iy1, z + 0.05), p.floor, bevel=0.01)
+            vessels.row(p, random.Random(int(z * 100) + 7), 3.1, 5.5, iy1 - 0.18, z + 0.05, 0.32, 0.5)
+    # Pynt på veggene (eierens dom i runde 7: «ingen pynt på veggene»): en
+    # tallerkenhylle med tinnfat på bakveggen mellom vinduet og kjøkkenet,
+    # og et vevd veggteppe på stang mellom vinduet og peisen i vest.
+    pewter = layer("iron", (0.78, 0.78, 0.74), 0.4)
+    with piece("plate_rail", (-1.35, iy1 - 0.08, F0)):
+        z = F0 + 1.85
+        box("rail_shelf", (-2.5, iy1 - 0.16, z), (-0.2, iy1, z + 0.035), p.floor, bevel=0.008)
+        stick("rail_lip", (-2.5, iy1 - 0.15, z + 0.06), (-0.2, iy1 - 0.15, z + 0.06), 0.025, 0.035, p.timber, ("timber", 2), bevel=0.006)
+        for sx in (-2.35, -0.35):
+            stick("rail_bracket", (sx, iy1 - 0.01, z - 0.25), (sx, iy1 - 0.14, z - 0.01), 0.04, 0.04, p.timber, ("timber", 3), bevel=0.008)
+        for k in range(6):
+            r = 0.15 if k % 2 == 0 else 0.12
+            ob = vessels.lathe("pewter_plate", [(0.0, 0.0), (r * 0.6, 0.0), (r, 0.018), (r, 0.024), (r * 0.62, 0.008), (0.0, 0.008)], pewter, n=14)
+            ob.rotation_euler = (math.radians(-74), 0.0, 0.0)
+            ob.location = (-2.25 + k * 0.38, iy1 - 0.1, z + 0.035 + r * 0.96)
+    with piece("tavern_tapestry", (ix0 + 0.05, -1.45, F0)):
+        wool = layer("wool", (0.62, 0.16, 0.12))
+        gold = layer("wool", (0.95, 0.75, 0.3))
+        y0, y1, za, zb = -1.95, -0.95, F0 + 1.0, F0 + 2.15
+        box("tapestry", (ix0 + 0.02, y0, za), (ix0 + 0.05, y1, zb), wool, bevel=0.0)
+        for zz in (za + 0.1, zb - 0.12):
+            box("tapestry_band", (ix0 + 0.045, y0 + 0.04, zz), (ix0 + 0.06, y1 - 0.04, zz + 0.05), gold, bevel=0.0)
+        box("tapestry_cross", (ix0 + 0.045, (y0 + y1) / 2 - 0.04, za + 0.3), (ix0 + 0.06, (y0 + y1) / 2 + 0.04, zb - 0.3), gold, bevel=0.0)
+        box("tapestry_cross", (ix0 + 0.045, (y0 + y1) / 2 - 0.22, za + 0.75), (ix0 + 0.06, (y0 + y1) / 2 + 0.22, za + 0.83), gold, bevel=0.0)
+        stick("tapestry_pole", (ix0 + 0.08, y0 - 0.12, zb + 0.04), (ix0 + 0.08, y1 + 0.12, zb + 0.04), 0.04, 0.04, p.timber, ("timber", 1), bevel=0.01)
+        for yy in (y0 - 0.06, y1 + 0.06):
+            stick("tapestry_hook", (ix0 + 0.0, yy, zb + 0.04), (ix0 + 0.1, yy, zb + 0.04), 0.025, 0.025, p.iron, bevel=0)
     with piece("sacks", (5.1, -0.6, F0)):
         for k, (x, y, w, h, yaw, slump) in enumerate(((5.3, -0.9, 0.25, 0.62, 0.3, 0.0), (5.3, -0.25, 0.22, 0.52, 1.4, 0.4), (4.75, -1.0, 0.2, 0.45, 2.6, -0.3))):
             vessels.sack(x, y, F0, w, h, layer("linen", (0.85, 0.78, 0.62)), yaw=yaw, seed=k, slump=slump)

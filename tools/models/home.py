@@ -202,14 +202,15 @@ def inside(p, rng):
         with piece("stool", (xx, yy, F0)):
             stool(p, xx, yy, F0)
             collide((xx, yy, F0 + 0.25), (0.4, 0.4, 0.5))
-    with piece("barrel_home", (IX1 - 0.4, -0.2, F0)):
-        barrel(p, IX1 - 0.4, -0.2, F0, r=0.3, h=0.8)
-        collide((IX1 - 0.4, -0.2, F0 + 0.4), (0.6, 0.6, 0.8))
-    # Hylla på østveggen.
-    with piece("jar_shelf", (IX1 - 0.15, -0.2, F0)):
+    # Tønna 15 cm fra veggen (ikke inntil bindingsverket), under hylla.
+    with piece("barrel_home", (IX1 - 0.55, 0.25, F0)):
+        barrel(p, IX1 - 0.55, 0.25, F0, r=0.3, h=0.8)
+        collide((IX1 - 0.55, 0.25, F0 + 0.4), (0.6, 0.6, 0.8))
+    # Hylla på østveggen, ved siden av vinduet (som går til y = −0,75).
+    with piece("jar_shelf", (IX1 - 0.15, 0.25, F0)):
         for z in (F0 + 1.4, F0 + 1.9):
-            box("shelf", (IX1 - 0.3, -0.9, z), (IX1, 0.5, z + 0.04), p.floor, bevel=0.01)
-            vessels.row(p, random.Random(int(z * 100) + 3), -0.9, 0.5, IX1 - 0.15, z + 0.04, 0.28, 0.42, along="y")
+            box("shelf", (IX1 - 0.3, -0.45, z), (IX1, 0.95, z + 0.04), p.floor, bevel=0.01)
+            vessels.row(p, random.Random(int(z * 100) + 3), -0.45, 0.95, IX1 - 0.15, z + 0.04, 0.28, 0.42, along="y")
 
     # Galleriveggen: en list over og under, og 15 rammer med mørk bakplate.
     stick("gallery_rail", (GAL_X + 0.03, IY0 + 0.2, F0 + GAL_ROWS[0] + 0.5), (GAL_X + 0.03, IY1 - 0.2, F0 + GAL_ROWS[0] + 0.5), 0.08, 0.12, p.trim, ("trim", MOULDING))

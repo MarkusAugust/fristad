@@ -124,6 +124,7 @@ impl Session {
         instances.extend(posed(crypt::KIT_SECRET, self.mech.secret_poses(&self.crypt, self.time)));
         instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(&self.crypt)));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
+        instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         let (hidden, edited) = self.edit_instances();
@@ -247,6 +248,11 @@ impl Session {
     /// Pilene i lufta, med spissen i farten.
     fn dart_poses(&self) -> Vec<Affine3A> {
         self.run.darts.iter().map(|d| Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Z, d.vel.normalize_or(Vec3::Z)), d.pos)).collect()
+    }
+
+    /// Flammene på hvilestedene du har tent.
+    pub(super) fn rest_flame_poses(&self) -> Vec<Affine3A> {
+        self.crypt.rests.iter().zip(&self.run.rests_lit).filter(|(_, lit)| **lit).map(|(r, _)| crate::domain::world::at(r.pos, r.yaw)).collect()
     }
 
     /// Lysene på hvilestedene du har tent.

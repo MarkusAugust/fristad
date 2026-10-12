@@ -1349,9 +1349,12 @@ fn hvilestedet_vekker_deg_der_du_tente() {
     assert!(game.eye().y > 0.0, "uten tent hvilested skal du våkne i byen");
     game.use_first(|u| *u == Use::Descend);
     game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(!game.frame(1.6).instances.iter().any(|i| i.model == crate::domain::world::crypt::KIT_REST_FLAME), "flammen brenner før hvilestedet er tent");
     let events = game.use_exact(Use::Rest(0));
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("tenner"))), "lysene ble ikke tent: {events:?}");
+    // Tent: flammen synes i skåla (eierens dom i runde 7: «ikke noe brennende lys?»).
     let rest = c.rests[0].pos;
+    assert!(game.frame(1.6).instances.iter().any(|i| i.model == crate::domain::world::crypt::KIT_REST_FLAME && (glam::Vec3::from(i.transform.translation) - rest).length() < 1e-3), "ingen flamme på det tente hvilestedet");
     game.place_feet(c.levels[0].down.map(|d| d.0).unwrap_or(rest + Vec3::X * 5.0));
     game.set_vitals(10.0, 0.0);
     game.update(&mut input, 1.0 / 30.0, &mut physics);

@@ -15,7 +15,7 @@ Når du har gått hjem fra kjelleren med H, våkner den: runene gløder
 gløder fiolett hele døgnet), de to virvelskivene (`portal_swirl`: spiralarmer
 i fiolett og turkis over en mørk kjerne, origo i midten, i xz-planet med
 dybden langs y) dreies hver sin vei og pulserer om `PORTAL_CENTER`, og
-splintene (`portal_shard`: små fasetterte steiner med glødende kant, origo
+splintene (`portal_shard`: små fasetterte krystaller som gløder fiolett, origo
 i midten) svever rundt ringen. Økta setter dem (`Session::portal_poses`).
 
 Akser som i town.py: −Y fram (mot gata), Z opp, origo midt på
@@ -158,11 +158,12 @@ def platform(m):
             block(f"flag{ix}_{iy}", (w, d, 0.05), m.flag, at=(x, y, H - 0.04 + 0.025 + rng.uniform(-0.008, 0.008)), rot=(rng.uniform(-0.01, 0.01), rng.uniform(-0.01, 0.01), rng.uniform(-0.02, 0.02)), bevel=0.012)
     # Trinnet foran.
     block("step", (2.6, 0.45, 0.1), m.flag, at=(0, -D / 2 - 0.22, 0.05 - 0.04), bevel=0.02)
-    # Støttesteinene: tunge, skrå blokker på hver side av foten.
+    # Fotsteinene: to tunge, rette blokker av samme stein som ringen på hver
+    # side av foten, med en dekkhelle (ikke skjeve blokker med mose som gikk
+    # inn i buesteinene, eierens dom i runde 7).
     for sx in (-1, 1):
-        block(f"buttress{sx}", (0.55, DEPTH + 0.3, 0.9), m.stone, at=(sx * 1.05, 0, 0.45 + H - 0.08), rot=(0, sx * 0.35, 0), bevel=0.05, segments=2)
-        block(f"buttress_cap{sx}", (0.5, DEPTH + 0.36, 0.12), m.dark, at=(sx * 1.18, 0, 0.92 + H - 0.08), rot=(0, sx * 0.35, 0), bevel=0.03)
-        block(f"moss{sx}", (0.42, DEPTH + 0.2, 0.03), m.moss, at=(sx * 1.2, 0, 0.99 + H - 0.08), rot=(0, sx * 0.35, 0), bevel=0.012)
+        block(f"footing{sx}", (0.5, DEPTH + 0.24, 0.62), m.stone, at=(sx * 1.32, 0, 0.31 + H - 0.04), bevel=0.04, segments=2)
+        block(f"footing_cap{sx}", (0.58, DEPTH + 0.32, 0.1), m.dark, at=(sx * 1.32, 0, 0.67 + H - 0.04), bevel=0.03)
 
 
 def portal_ring():
@@ -259,23 +260,17 @@ def portal_swirl():
 
 
 def portal_shard():
-    """En splint: en liten fasettert stein (ruin) med en glødende kant av
-    magi langs den ene siden. Origo i midten."""
+    """En splint: en liten fasettert krystall av magi som gløder fiolett
+    (hele splinten, ikke en grå stein med en kant; eierens dom i runde 7).
+    Origo i midten."""
     clear()
     PIECES.clear()
-    m = mats()
     glow = plain("magic_shard", (0.5, 0.3, 1.0), 0.4)
     bm = bmesh.new()
     pts = [(0, 0, 0.17), (0, 0, -0.13), (0.05, 0, 0.0), (-0.045, 0.0, 0.01), (0, 0.05, -0.01), (0, -0.045, 0.02), (0.03, 0.03, 0.08), (-0.03, -0.02, -0.07)]
     vs = [bm.verts.new(p) for p in pts]
     bmesh.ops.convex_hull(bm, input=vs)
-    link("shard", bm, m.dark)
-    # Den glødende kanten: en tynn fasett langs ryggen.
-    bm = bmesh.new()
-    pts = [(0, -0.052, 0.14), (0, -0.056, -0.1), (0.02, -0.05, 0.02), (-0.02, -0.05, 0.03), (0, -0.04, 0.0)]
-    vs = [bm.verts.new(p) for p in pts]
-    bmesh.ops.convex_hull(bm, input=vs)
-    link("edge", bm, glow)
+    link("shard", bm, glow)
     finish(f"{OUT}/portal_shard.glb", ao_samples=16, max_edge=3.0)
 
 

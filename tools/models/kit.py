@@ -210,8 +210,10 @@ def slab_grid(name, frame, length, z0, z1, thick, holes, mat, bevel=0.0):
     """En vegg som plater rundt åpningene. `frame` er (start (x, y), retning
     (x, y)) for veggens midtlinje; lokalt går s langs veggen fra 0 til
     `length`, t på tvers (±thick/2) og z opp. `holes` er (s0, s1, z0, z1).
-    Uv i meter langs veggen, så pussen går sammenhengende rundt åpningene."""
+    Uv i meter langs veggen, så pussen går sammenhengende rundt åpningene.
+    Veggen registreres i `town.WALLS`, så møblene sjekkes mot den."""
     (px, py), (dx, dy) = frame
+    town.WALLS.append(((px, py), (dx, dy), length, z0, z1, thick, list(holes)))
     ss = sorted({0.0, length, *[h[0] for h in holes], *[h[1] for h in holes]})
     zs = sorted({z0, z1, *[h[2] for h in holes], *[h[3] for h in holes]})
     bm = bmesh.new()
@@ -811,6 +813,15 @@ def stairs(p, x0, x1, a, b, z0, z1, n=None, along="y", rails=(), mat=None, room=
     n = n or stair_steps(z0, z1)
     step = (b - a) / n
     rise = (z1 - z0) / n
+    # Trappa dekker ingen vinduer: forkanten av hvert trinn på begge sider
+    # holder seg 30 cm unna åpningene (eierens dom i runde 7, Vertshuset).
+    edge = []
+    for k in range(n + 1):
+        u, z = a + k * step, z0 + k * rise
+        for x in (x0, x1):
+            q = (x, u) if along == "y" else (u, x)
+            edge += [Vector((q[0], q[1], z + h)) for h in (0.0, 0.9)]
+    town.check_points(f"trappa {along}={min(a, b):.2f}..{max(a, b):.2f}", edge, gap=0.3)
     where = f"trappa {along}={min(a, b):.2f}..{max(a, b):.2f}, z={z0:.2f}..{z1:.2f}, {n} trinn"
     assert rise <= RISE_MAX + 1e-6, f"{where}: trinnhøyden {rise:.3f} m er over {RISE_MAX} m; bruk minst {stair_steps(z0, z1)} trinn"
     assert abs(step) >= TREAD_MIN - 1e-6, f"{where}: inntrinnet {abs(step):.3f} m er under {TREAD_MIN} m; trappa må være minst {stair_run(z0, z1, n):.2f} m lang"
