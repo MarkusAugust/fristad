@@ -688,16 +688,17 @@
    "why": ""
   },
   "forge": {
-   "verdict": "godkjent",
+   "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "",
+   "why": "ser du at det er for tett med søyler i front. de søylene som har gaffel-deling øverst er bra, men så står det fire ekstra innimellom. ta dem bort.",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op."
+    "verdict": "godkjent",
+    "date": "2026-10-12",
+    "why": ""
    },
    "history": [
-    "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op."
+    "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op.",
+    "ser du at det er for tett med søyler i front. de søylene som har gaffel-deling øverst er bra, men så står det fire ekstra innimellom. ta dem bort."
    ]
   },
   "forge_interior": {
@@ -1438,6 +1439,493 @@
    "why": "taket har rar tekstur.finn noe som passer bedre",
    "history": [
     "taket har rar tekstur.finn noe som passer bedre"
+   ]
+  },
+  "altar": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "forhenget ser bare ut som en rød vegg. forhenget kan bare dekke kasnkje 70-90 prosent av muren som alternet er laget av",
+   "history": [
+    "forhenget ser bare ut som en rød vegg. forhenget kan bare dekke kasnkje 70-90 prosent av muren som alternet er laget av"
+   ]
+  },
+  "apothecary_counter": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "apothecary_shelf": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "baptismal_font": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "barrel_bars": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "tønnen er ikke hul. den må gi inntrykk av å være hul et stykke ned i alle fall slik at jernstengene ikke går ned i en plate",
+   "history": [
+    "tønnen er ikke hul. den må gi inntrykk av å være hul et stykke ned i alle fall slik at jernstengene ikke går ned i en plate"
+   ]
+  },
+  "barrel_home": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "barrel_lying": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "barrel_rack": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "tønner kan ikke hvilke på en enkelt planke, og de står i minst to høyder, forskudd slik at tønnen over hviler mellom de to under",
+   "history": [
+    "tønner kan ikke hvilke på en enkelt planke, og de står i minst to høyder, forskudd slik at tønnen over hviler mellom de to under"
+   ]
+  },
+  "barrel_tall": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_0": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_2": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_3": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_apothecary": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_chest": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bed_home": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bench_16": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bench_20": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookcase_lab": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_a": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_b": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_e": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_gallery_0": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_gallery_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "bookshelf_w": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "candle": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "jeg ser IKKE at det er et lyd med en flamme...",
+   "history": [
+    "jeg ser IKKE at det er et lyd med en flamme..."
+   ]
+  },
+  "candle_stand": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "candle_stand_low": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "cellar_crate": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "cellar_shelf": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "chain_lantern_forge": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "chained_book": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "det som henger ned ser ikke bra ut. det må være antydning til skrift i boken",
+   "history": [
+    "det som henger ned ser ikke bra ut. det må være antydning til skrift i boken"
+   ]
+  },
+  "chandelier_large": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "chandelier_small": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "chest_forms": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "chest_home": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "church_wall_bench": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "coal_pail": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "ser ikke ut som en bøtte",
+   "history": [
+    "ser ikke ut som en bøtte"
+   ]
+  },
+  "crock_shelf": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "det må være variasjon i krukkene",
+   "history": [
+    "det må være variasjon i krukkene"
+   ]
+  },
+  "door_shelf_jars": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "flere krukker i forskjellige størrelser takk",
+   "history": [
+    "flere krukker i forskjellige størrelser takk"
+   ]
+  },
+  "drying_bed_back": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "drying_bed_front": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "drying_rack_0": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "drying_rack_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "firewood_small": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "firewood_stack": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "forge_crate": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "ser rart ut, vi må ha trim langs alle kantene tror jeg",
+   "history": [
+    "ser rart ut, vi må ha trim langs alle kantene tror jeg"
+   ]
+  },
+  "forge_weapon_rack": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "forge_workbench": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "ham_hanging": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "hanging_lantern": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "jeg ser bare en ochre klump her",
+   "history": [
+    "jeg ser bare en ochre klump her"
+   ]
+  },
+  "helmet_shelf": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "usikker på hva jeg ser på her, det er høyt opp.",
+   "history": [
+    "usikker på hva jeg ser på her, det er høyt opp."
+   ]
+  },
+  "herb_basket_0": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "herb_basket_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "herb_basket_2": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "herb_sacks": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "home_table": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "iron_bars_leaning": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "jar_shelf": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "vanskelkig å se, bildet er litt høyt. vil gjerne ha litt mer variasjon i krukker.",
+   "history": [
+    "vanskelkig å se, bildet er litt høyt. vil gjerne ha litt mer variasjon i krukker."
+   ]
+  },
+  "jug_shelf": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "mer vaiasjon i størrelse og form på det som står i hyllen",
+   "history": [
+    "mer vaiasjon i størrelse og form på det som står i hyllen"
+   ]
+  },
+  "kitchen_table": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "mer variasjon i det som står. bena må være hele trestykker, her ser det ut som at det er limt sammen tre deler",
+   "history": [
+    "mer variasjon i det som står. bena må være hele trestykker, her ser det ut som at det er limt sammen tre deler"
+   ]
+  },
+  "lab_bench": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "lab_shelf": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "mer variasjon i form og størrelse på det som står på hylle takk",
+   "history": [
+    "mer variasjon i form og størrelse på det som står på hylle takk"
+   ]
+  },
+  "lab_table": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bena må være hele trestykker, her ser det ut som at det er limt sammen tre deler",
+   "history": [
+    "bena må være hele trestykker, her ser det ut som at det er limt sammen tre deler"
+   ]
+  },
+  "mantel_crocks": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "mer variasjon i form og størrelse på det som står på hylle takk",
+   "history": [
+    "mer variasjon i form og størrelse på det som står på hylle takk"
+   ]
+  },
+  "rug_rag": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "sacks": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "ser ikke ut som sekker",
+   "history": [
+    "ser ikke ut som sekker"
+   ]
+  },
+  "sacks_two": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "ser ikke ut som sekker",
+   "history": [
+    "ser ikke ut som sekker"
+   ]
+  },
+  "scroll_chest": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "stool": {
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": ""
+  },
+  "table_18": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben",
+   "history": [
+    "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben"
+   ]
+  },
+  "table_22": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben",
+   "history": [
+    "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben"
+   ]
+  },
+  "tavern_counter": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "mer variasjon i det som ligger oppå",
+   "history": [
+    "mer variasjon i det som ligger oppå"
+   ]
+  },
+  "tool_wall": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "flere forskjellige verktøy, ikke flere av det samme",
+   "history": [
+    "flere forskjellige verktøy, ikke flere av det samme"
+   ]
+  },
+  "wash_stand": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben",
+   "history": [
+    "bana må være hele lenger av tre. ser ut som lego når det er tre seksjoner satt sammen pr ben"
+   ]
+  },
+  "writing_desk_0": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bordplaten er vinklet feil vei? ser rart ut",
+   "history": [
+    "bordplaten er vinklet feil vei? ser rart ut"
+   ]
+  },
+  "writing_desk_1": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bordplaten er vinklet feil vei? ser rart ut",
+   "history": [
+    "bordplaten er vinklet feil vei? ser rart ut"
+   ]
+  },
+  "writing_desk_2": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bordplaten er vinklet feil vei? ser rart ut",
+   "history": [
+    "bordplaten er vinklet feil vei? ser rart ut"
+   ]
+  },
+  "writing_desk_gallery": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bordplaten er vinklet feil vei? ser rart ut",
+   "history": [
+    "bordplaten er vinklet feil vei? ser rart ut"
+   ]
+  },
+  "writing_desk_unlit": {
+   "verdict": "underkjent",
+   "date": "2026-10-12",
+   "why": "bordplaten er vinklet feil vei? ser rart ut",
+   "history": [
+    "bordplaten er vinklet feil vei? ser rart ut"
    ]
   }
  }
