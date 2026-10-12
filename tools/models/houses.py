@@ -35,11 +35,11 @@ def walls(p, kind, name, p0, p1, z0, z1, out, openings, rng, own=(True, True)):
         return half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, collide_it=False, own=own)
     frame, L = kit.wall_frame(p0, p1)
     holes = [(s - w / 2, s + w / 2, za, zb) for s, za, zb, w in openings]
-    mat = {"boards": p.boards, "cladding": p.cladding, "logs": layer("logs"), "stone": layer("ashlar")}[kind]
+    mat = {"boards": p.boards, "cladding": p.cladding, "grey": layer("weatherboard_grey"), "logs": layer("logs"), "stone": layer("ashlar")}[kind]
     kit.slab_grid(name, frame, L, z0, z1, T + (0.12 if kind in ("logs", "stone") else 0.0), holes, mat)
     # Hjørnestolper (bord) eller laftehoder (laft) og en list øverst.
     face = out * (T / 2 + 0.05)
-    if kind in ("boards", "cladding"):
+    if kind in ("boards", "cladding", "grey"):
         for s in (0.1, L - 0.1):
             stick("corner", kit.at_wall(frame, s, face, z0), kit.at_wall(frame, s, face, z1), 0.22, 0.22, p.timber, ("timber", rng.randrange(4)), seed=rng.random() * 9)
         stick("eave_board", kit.at_wall(frame, -0.1, face, z1 - 0.12), kit.at_wall(frame, L + 0.1, face, z1 - 0.12), 0.1, 0.24, p.trim, ("trim", kit.DARK_BEAM))
@@ -107,7 +107,7 @@ def house(spec):
         if gable_kind == "timber":
             kit.gable_wall(p, x, yy0 - T / 2, yy1 + T / 2, z, ridge, pitch, out, rng)
         else:
-            gp = kit.Paint(plaster={"logs": "logs", "stone": "weatherboard", "boards": "weatherboard", "cladding": "cladding"}[gable_kind], timber=spec.get("timber", "timber"), roof=spec.get("roof", "thatch"))
+            gp = kit.Paint(plaster={"logs": "logs", "stone": "weatherboard", "boards": "weatherboard", "cladding": "cladding", "grey": "weatherboard_grey"}[gable_kind], timber=spec.get("timber", "timber"), roof=spec.get("roof", "thatch"))
             kit.gable_wall(gp, x, yy0 - T / 2, yy1 + T / 2, z, ridge, pitch, out, rng)
     # Pipa.
     cx = spec.get("chimney_x", x1 - 1.2)
@@ -124,7 +124,7 @@ HOUSES = {
     "house_c": dict(seed=3, w=7.0, d=7.2, floors=1, roof="sod", kinds=["logs"], windows=[[-1.6]], door_x=1.4, pitch=40, jetty=0),
     "house_d": dict(seed=4, w=6.4, d=8.6, floors=3, roof="tiles", plaster="plaster_red", kinds=["stone", "timber", "timber"], windows=[[1.4], [-1.4, 1.4], [-1.4, 1.4]], door_x=-1.3, pitch=56, jetty=0.3),
     # Eieren: «alt er brunt»: grå, værbitte bord og skifertak.
-    "house_e": dict(seed=5, w=9.6, d=7.0, floors=2, roof="slate", kinds=["cladding", "cladding"], windows=[[-3.0, 2.6], [-3.0, 0.0, 3.0]], door_x=0.0, pitch=48, jetty=0),
+    "house_e": dict(seed=5, w=9.6, d=7.0, floors=2, roof="slate", kinds=["grey", "grey"], windows=[[-3.0, 2.6], [-3.0, 0.0, 3.0]], door_x=0.0, pitch=48, jetty=0),
     "house_f": dict(seed=6, w=7.2, d=8.2, floors=2, roof="thatch", plaster="plaster_old", timber="timber_grey", windows=[[-1.6], [-1.6, 1.6]], door_x=1.6, pitch=54),
     # Flere varianter (eieren: rundt 20), så byen ikke gjentar seg.
     "house_g": dict(seed=7, w=5.6, d=7.4, floors=2, roof="shingles", plaster="plaster_white", timber="timber_grey", windows=[[1.2], [-1.2, 1.2]], door_x=-1.1, pitch=58, jetty=0.5),
