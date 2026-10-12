@@ -132,18 +132,50 @@ def turned(before):
     transform(PIECES[before:], Matrix.Rotation(math.pi / 2, 4, "Z"))
 
 
-def ridge_roof(p, y0, y1, half, z_eave, pitch, barges=True, **kw):
+def ridge_roof(p, y0, y1, half, z_eave, pitch, barges=True, ridge_stone=None, **kw):
     """Saltak med mønet langs y (gavlene fram og bak) fra kit.gable_roof.
     Uten `barges` tas vindskiene bort (taket ligger inne mellom gavler av
-    stein). Gir mønehøyden."""
+    stein). Med `ridge_stone` blir mønerullen en lav sadel av hogd stein som
+    følger svaien i mønet (eieren i runde 8: ikke grønt øverst). Gir
+    mønehøyden."""
     before = len(PIECES)
     ridge = kit.gable_roof(p, y0, y1, -half, half, z_eave, pitch, **kw)
-    if not barges:
-        for ob in [o for o in PIECES[before:] if o.name.startswith("barge")]:
-            PIECES.remove(ob)
-            bpy.data.objects.remove(ob, do_unlink=True)
+    drop = [o for o in PIECES[before:] if (not barges and o.name.startswith("barge")) or (ridge_stone and o.name.startswith("ridge_roll"))]
+    for ob in drop:
+        PIECES.remove(ob)
+        bpy.data.objects.remove(ob, do_unlink=True)
+    if ridge_stone:
+        ridge_saddle(y0, y1, ridge, pitch, kw.get("sag", 0.32), ridge_stone)
     turned(before)
     return ridge
+
+
+def ridge_saddle(x0, x1, ridge, pitch, sag, mat, w=0.3, h=0.1, n=12):
+    """Mønesteinen langs x (før `turned`): et omvendt V som ligger på begge
+    takflatene og henger med mønet (`sag`, som i kit.gable_roof)."""
+    t = math.tan(math.radians(pitch))
+    sec = [(-w, -w * t - 0.015), (0.0, -0.015), (w, -w * t - 0.015), (w, -w * t + h), (0.0, h / math.cos(math.radians(pitch))), (-w, -w * t + h)]
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.verify()
+    rings = []
+    for i in range(n + 1):
+        u = i / n
+        x = x0 + (x1 - x0) * u
+        z = ridge - 0.5 * sag * math.sin(math.pi * u)
+        rings.append([bm.verts.new((x, y, z + dz)) for y, dz in sec])
+    m = len(sec)
+    for i in range(n):
+        for j in range(m):
+            k = (j + 1) % m
+            bm.faces.new((rings[i][j], rings[i][k], rings[i + 1][k], rings[i + 1][j]))
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces:
+        for lp in f.loops:
+            c = lp.vert.co
+            lp[uvl].uv = (c.x, abs(c.y) + c.z * 0.3)
+    return kit._object("ridge_stone", bm, mat)
 
 
 def skirt(name, inner, outer, z_in, z_out, thick, mat, n=4, sag=0.1, kick=0.14):
@@ -289,11 +321,84 @@ def parapet(p, frame, L, z0, zk, apex, thick, mat, coping):
         box("kneeler", tuple(at_wall(frame, s, 0, 0) + Vector((-(thick + 0.2) / 2, -(thick + 0.2) / 2, zk - 0.35))), tuple(at_wall(frame, s, 0, 0) + Vector(((thick + 0.2) / 2, (thick + 0.2) / 2, zk + 0.1))), coping, bevel=0.04)
 
 
+def roof_parapet(p, frame, L, z0, ridge, pitch, thick, mat, coping, up=0.08):
+    """Gavl av stein som følger takflaten (eieren i runde 8: vannbordene
+    stoppet høyere opp enn taket): gavllinja ligger `up` over takets
+    overflate hele veien fra hjørnet til mønet, dekkhellene ligger på den
+    (overkanten rundt 22 cm over taket), og knelesteinen i hjørnet bærer
+    dekkhella i takets høyde. `ridge` og `pitch` er takets (ridge_roof).
+    Gir overkanten av dekkhella som funksjon av s, til `check_parapet`."""
+    t = math.tan(math.radians(pitch))
+    zk = ridge - L / 2 * t + up
+    apex = ridge + up
+    if zk < z0 + 0.05:
+        raise SystemExit(f"roof_parapet: gavlen begynner under murkronen ({zk:.2f} < {z0:.2f})")
+    prism("gable_stone", frame, [(0.0, z0), (L, z0), (L, zk), (L / 2, apex), (0.0, zk)], -thick / 2, thick / 2, mat)
+
+    def line(s_):
+        return apex - abs(s_ - L / 2) * t
+
+    ch, lift = 0.18, 0.05
+    for s0, s1 in ((-0.12, L / 2 + 0.05), (L + 0.12, L / 2 - 0.05)):
+        stick("coping", at_wall(frame, s0, 0, line(s0) + lift), at_wall(frame, s1, 0, line(s1) + lift), thick + 0.16, ch, coping, bevel=0.04)
+    for s_ in (0.0, L):
+        a = at_wall(frame, s_, 0, 0)
+        box("kneeler", (a.x - (thick + 0.2) / 2, a.y - (thick + 0.2) / 2, zk - 0.4), (a.x + (thick + 0.2) / 2, a.y + (thick + 0.2) / 2, line(s_) + lift - ch / 2 + 0.005), coping, bevel=0.04)
+    return lambda s_: line(s_) + lift + ch / 2
+
+
+def check_parapet(name, frame, L, thick, top, most=0.3, skip=1.0):
+    """Dekkhella ligger over taket, og høyst `most` over takflaten innenfor
+    gavlen, hele veien opp (ikke der mønestolen eller korset står midt på,
+    `skip`). Ellers stopper eksporten."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    s_ = 0.35
+    seen = 0
+    while s_ < L - 0.35:
+        if abs(s_ - L / 2) > skip:
+            best = None
+            for side in (-1, 1):
+                o = at_wall(frame, s_, side * (thick / 2 + 0.4), 80.0)
+                hit, loc, *_ = bpy.context.scene.ray_cast(dg, o, Vector((0, 0, -1)))
+                if hit and (best is None or loc.z > best):
+                    best = loc.z
+            if best is not None:
+                d = top(s_) - best
+                if d < 0.0 or d > most:
+                    raise SystemExit(f"{name}: dekkhella ligger {d:+.2f} m over taket ved s = {s_:.2f} (skal være 0..{most})")
+                seen += 1
+        s_ += 0.3
+    if seen < 4:
+        raise SystemExit(f"{name}: fant ikke taket innenfor gavlen")
+
+
 def stone_cross(c, mat, s=1.0, tilt=0.0):
     """Et kors av stein på en gavlspiss."""
     obs = [box("cross_v", (-0.09 * s, -0.09 * s, 0), (0.09 * s, 0.09 * s, 0.95 * s), mat, bevel=0.025),
            box("cross_h", (-0.32 * s, -0.09 * s, 0.52 * s), (0.32 * s, 0.09 * s, 0.7 * s), mat, bevel=0.025)]
     transform(obs, Matrix.Translation(c) @ Matrix.Rotation(tilt, 4, "Y"))
+
+
+def check_crosses(name, gap=0.04):
+    """Hvert kors står på noe (gavlspissen eller dekkhella), ikke i lufta
+    over den (runde 9: korsene svevde da gavlene ble senket)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    for ob in [o for o in PIECES if o.name.startswith("cross_v")]:
+        pts = [ob.matrix_world @ v.co for v in ob.data.vertices]
+        low = min(p_.z for p_ in pts)
+        c = sum(pts, Vector()) / len(pts)
+        # Foten kan stå på en skarp gavlspiss: den nærmeste flaten under
+        # noen del av foten teller.
+        best = None
+        for dx in (-0.05, 0.0, 0.05):
+            for dy in (-0.05, 0.0, 0.05):
+                hit, loc, *_ = bpy.context.scene.ray_cast(dg, Vector((c.x + dx, c.y + dy, low - 0.002)), Vector((0, 0, -1)))
+                if hit and (best is None or low - loc.z < best):
+                    best = low - loc.z
+        if best is None or best > gap:
+            raise SystemExit(f"{name}: korset ved ({c.x:.2f}, {c.y:.2f}) svever {best if best is not None else 99:.2f} m")
 
 
 def books(p, x0, x1, y, z, depth, rng, mats, max_h=0.3):
@@ -875,18 +980,16 @@ def church_outside(p, rng):
     box("threshold", (-door_w / 2 - 0.1, C_Y0 - 0.05, C_Z - 0.1), (door_w / 2 + 0.1, C_Y0 + C_T, C_Z + 0.01), stone, bevel=0.03)
 
     # Takene: tunge skiferheller inne mellom steingavler med dekkheller.
-    ridge = ridge_roof(p, C_Y0 + 0.1, C_Y1 - 0.1, C_W / 2, C_H + 0.3, 45.0, barges=False, overhang=0.35, gable_over=0.0, thick=0.3, sag=0.12, kick=0.14)
+    ridge = ridge_roof(p, C_Y0 + 0.1, C_Y1 - 0.1, C_W / 2, C_H + 0.3, 45.0, barges=False, ridge_stone=stone, overhang=0.35, gable_over=0.0, thick=0.3, sag=0.12, kick=0.14)
+    gables = []
     for y in (C_Y0 + C_T / 2, C_Y1 - C_T / 2):
         fr, Lg = wall_frame((-C_W / 2 - 0.05, y), (C_W / 2 + 0.05, y))
-        parapet(p, fr, Lg, C_H, C_H + 0.65, ridge + 0.3, C_T, wall, stone)
-    cr = ridge_roof(p, C_Y1 - 0.2, C_CY1 + 0.15, C_CW / 2, C_CH + 0.3, 45.0, barges=False, overhang=0.3, gable_over=0.0, thick=0.26, sag=0.06, kick=0.12)
+        gables.append((fr, Lg, roof_parapet(p, fr, Lg, C_H, ridge, 45.0, C_T, wall, stone)))
+    cr = ridge_roof(p, C_Y1 - 0.2, C_CY1 + 0.15, C_CW / 2, C_CH + 0.3, 45.0, barges=False, ridge_stone=stone, overhang=0.3, gable_over=0.0, thick=0.26, sag=0.06, kick=0.12)
     fr, Lc = wall_frame((-C_CW / 2, C_CY1), (C_CW / 2, C_CY1))
     prism("choir_gable", fr, [(0.0, C_AH), (Lc, C_AH), (Lc / 2, cr + 0.2)], -0.35, 0.35, wall)
     lathe("apse_roof", [(C_AR + 0.3, C_AH + 0.1), (0.0, C_AH + 1.5)], 10, (0, C_CY1, 0), p.roof, cap=False, arc=math.pi)
     lathe("apse_roof_under", [(0.0, C_AH + 1.3), (C_AR + 0.3, C_AH - 0.05)], 10, (0, C_CY1, 0), p.roof, cap=False, arc=math.pi)
-    for ob in PIECES:
-        if ob.name.startswith("ridge_roll"):
-            ob.data.materials[0] = moss
 
     # Klokkegavlen over vestgavlen: en mur med to rundbuer og klokkene, med
     # dekkhelle og kors på toppen.
@@ -901,9 +1004,13 @@ def church_outside(p, rng):
         lathe("bell", [(0.0, 0.0), (0.16, 0.0), (0.14, 0.05), (0.1, 0.26), (0.06, 0.33), (0.0, 0.34)], 10, (bx, fy - 0.33, bz + 0.12), bronze)
     for s0, s1 in ((-0.1, BL / 2 + 0.04), (BL + 0.1, BL / 2 - 0.04)):
         stick("coping", at_wall(bfr, s0, 0, bz + 1.12), at_wall(bfr, s1, 0, bz + 1.6), 0.74, 0.16, stone, bevel=0.03)
-    stone_cross((0, fy, bz + 1.6), stone, 0.8)
-    stone_cross((0, C_Y1 - C_T / 2, ridge + 0.4), stone, 0.9, tilt=0.04)
-    stone_cross((0, C_CY1, cr + 0.25), stone, 0.7)
+    stone_cross((0, fy, bz + 1.54), stone, 0.8)
+    fr, Lg, top = gables[1]
+    stone_cross((0, C_Y1 - C_T / 2, top(Lg / 2) - 0.04), stone, 0.9, tilt=0.04)
+    stone_cross((0, C_CY1, cr + 0.17), stone, 0.7)
+    for fr, Lg, top in gables:
+        check_parapet("stave_church", fr, Lg, C_T, top)
+    check_crosses("stave_church")
 
     # Mosen langs foten og nedfalne steiner, som ved krypten.
     for side in (-1, 1):
@@ -1113,27 +1220,20 @@ def crypt_model(rng):
     # Taket: tunge steinheller med mønet fra døra og bakover, som har
     # sunket i midten; gavler av stein med dekkheller, og kors foran.
     z_eave = H + 0.35
-    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.32, kick=0.16)
-    for ob in PIECES:
-        if ob.name.startswith("ridge_roll"):
-            ob.data.materials[0] = moss
+    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, ridge_stone=stone, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.32, kick=0.16)
+    gables = []
     for y in (fy, by):
         fr, Lg = wall_frame((-W / 2 - 0.05, y), (W / 2 + 0.05, y))
-        parapet(p, fr, Lg, H, z_eave + 0.35, ridge + 0.3, T, wall, stone)
-    stone_cross((0, fy, ridge + 0.4), stone, 0.9, tilt=0.06)
-    # Mosen: langs foten, på dekkhellene og i flekker på taket.
+        gables.append((fr, Lg, roof_parapet(p, fr, Lg, H, ridge, 42.0, T, wall, stone)))
+    fr, Lg, top = gables[0]
+    stone_cross((0, fy, top(Lg / 2) - 0.04), stone, 0.9, tilt=0.06)
+    for fr, Lg, top in gables:
+        check_parapet("crypt", fr, Lg, T, top)
+    check_crosses("crypt")
+    # Mosen: langs foten (ikke på taket: eieren i runde 8).
     for side in (-1, 1):
         box("moss", (side * (W / 2 + 0.08) - 0.1, y0 + 0.2, -0.08), (side * (W / 2 + 0.08) + 0.1, y1 - 0.2, 0.12), moss, bevel=0.06)
     box("moss", (-W / 2 + 0.1, y1 - 0.04, -0.08), (W / 2 - 0.1, y1 + 0.12, 0.14), moss, bevel=0.06)
-    tan = math.tan(math.radians(42))
-    for k in range(9):
-        side = 1 if k % 2 else -1
-        x = side * rng.uniform(0.6, W / 2 + 0.1)
-        y = rng.uniform(y0 + 0.6, y1 - 0.6)
-        z = z_eave + (W / 2 - abs(x)) * tan - 0.02 - 0.32 * 0.5 * (1 - abs(x) / (W / 2)) * math.sin(math.pi * (y - y0) / (y1 - y0))
-        w_, d_ = rng.uniform(0.35, 0.8), rng.uniform(0.4, 0.9)
-        m = box("moss", (-w_ / 2, -d_ / 2, -0.03), (w_ / 2, d_ / 2, 0.06), moss, bevel=0.03)
-        transform([m], Matrix.Translation((x, y, z)) @ Matrix.Rotation(side * math.radians(42), 4, "Y"))
     # Nedfalne steiner ved foten.
     for k in range(7):
         x = rng.choice((-1, 1)) * rng.uniform(W / 2 + 0.6, W / 2 + 1.2)

@@ -79,3 +79,18 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Lasten i vogna og hjulet mot kassa.** Regel: det som ligger i noe, sjekkes mot det (`check_clear`, `check_apart` i `streetlife.py`).
 - **En ting i et gjerde ble ikke funnet** av reglene i redigeringen, fordi gjerder og murdeler var unntatt. Regel: en ting kan ikke stå inni noens kollider, heller ikke et gjerdes.
 - **`cargo fmt` skrev om 67 filer.** Regel: kjør det aldri på hele repoet (CLAUDE.md).
+
+## Runde 8 – dommen (12. oktober)
+
+- **Hule ting skal være hule.** Kista ble bygd som en massiv boks med jern utenpå. Regel: `check_hollow` i `streetlife.py` skyter stråler ned i kassa og opp under lokket.
+- **Bevegelige deler følger tingen sin i redigeringen.** Vinda og bøtta sto igjen når brønnen ble flyttet, fordi de ble satt etter verdenen spillet startet med. Nå hentes målene fra redigeringens verden (`view.rs::target_poses`, `live_crypt`). Testen er `bevegelige_deler_folger_med_i_redigeringen`.
+- **Gavler av stein følger taket.** Dekkhellene ble satt fast over murkronen, ikke etter takflaten, og sto opptil 50 cm over taket. Regler:
+  - `roof_parapet` regner gavllinja ut fra mønet og takvinkelen.
+  - `check_parapet` måler med stråler at dekkhella ligger 0–30 cm over taket.
+  - `check_crosses` sjekker at korsene står på noe.
+- **Ikke grønt øverst.** Mose på mønet og flekker på taket så ut som feil. Mønet er hogd stein (`ridge_saddle`).
+- **En sprekk må ha mørk farge.** Revnene var tegnet med `wall_dark`, som er lys murtekstur, og forsvant. De har nå sitt eget materiale (`crack`), er 3–5 cm brede og har lyse kanter.
+- **Steinene i en bue følger buen.** Murbildet lagt flatt over karmsteinene ga vannrette skift som ble kappet av hver stein, og åpne fuger så ut som hull. Nå:
+  - Hver kilestein får én hel stein fra bildet langs seg (`stone_uv`, `STONE_PX`).
+  - Bak fugene ligger mørtel.
+- **Vis det eieren spør om.** Trappene ble vist uten vinkel fra foten. Kortene skal ha vinkler som svarer på punktene, og målene skal stå i teksten.

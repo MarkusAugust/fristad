@@ -109,6 +109,12 @@ MATS = {
     "wall": ("crypt_wall", (0.9, 0.9, 0.93), 0.5),
     "dressed": ("crypt_wall", (1.0, 0.98, 0.95), 0.45),
     "wall_dark": ("crypt_wall", (0.62, 0.62, 0.68), 0.55),
+    # Revnene i sprekken: nesten svart over muren, så de synes på avstand
+    # (eieren i runde 8; med `wall_dark` var de like lyse som muren).
+    "crack": ("crypt_wall", (0.06, 0.055, 0.055), 0.7),
+    # Mørtelen bak fugene i en karm: ensfarget og mørk, så fugene ikke ser
+    # ut som hull (eieren i runde 8: «kanten rundt ser hullete ut»).
+    "mortar": ("plaster_old", (0.26, 0.25, 0.24), 0.75),
     "floor": ("crypt_floor", (1.0, 1.0, 1.0), 0.5),
     "slab": ("grave_slab", (1.0, 1.0, 1.0), 0.45),
     "vault": ("crypt_vault", (1.0, 1.0, 1.0), 0.5),
@@ -1209,38 +1215,84 @@ def strap(mb, a, b, w, t, up):
     beam(mb, a, b, w, t, "strap", up=up, strip=("trim", IRON_BAND))
 
 
-def arch_trim(mb, surf, w, spring, v0=0.0, band=0.3, proud=0.1, n=9, mat="slab"):
+# Enkeltsteinene i kryptmurens bilde (`crypt_wall`, 1024 px på 2 m), som
+# piksler (x0, y0, x1, y1) innenfor fugene. En stein i en karm får én av dem
+# over hele forsida, med steinens lange akse langs steinen, så bildet følger
+# buen i stedet for vannrette skift som kuttes av steinens kant (eieren i
+# runde 8: «steinene legges slik at de følger buen»).
+STONE_PX = [(32, 60, 205, 174), (226, 60, 389, 174), (408, 60, 560, 174), (578, 60, 743, 174), (133, 196, 296, 312), (672, 196, 827, 312),
+            (24, 334, 204, 450), (753, 334, 910, 450), (95, 474, 246, 588), (264, 474, 397, 588), (404, 474, 583, 588), (600, 474, 790, 588),
+            (810, 474, 968, 588), (697, 610, 876, 729), (32, 750, 239, 864), (260, 750, 389, 864), (401, 750, 563, 864)]
+STONE_TEX_M = 2.0  # crypt_wall: size_m i meta.json
+STONE_TEX_PX = 1024
+
+
+def stone_uv(k, pts):
+    """Uv (i meter, som laget) som legger enkeltstein `k` over firkanten
+    `pts` (i rekkefølge rundt), med steinbildets lange akse langs den lengste
+    sida av firkanten."""
+    x0, y0, x1, y1 = STONE_PX[k % len(STONE_PX)]
+    inset = 4
+    f = STONE_TEX_M / STONE_TEX_PX
+    u0, u1, v0, v1 = (x0 + inset) * f, (x1 - inset) * f, (y0 + inset) * f, (y1 - inset) * f
+    corners = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+    if math.dist(pts[0], pts[1]) < math.dist(pts[1], pts[2]):
+        corners = [(u0, v0), (u0, v1), (u1, v1), (u1, v0)]
+    return corners
+
+
+def arch_trim(mb, surf, w, spring, v0=0.0, band=0.3, proud=0.1, n=9, mat="dressed", seed=0):
     """Karmen rundt en rundbuet åpning i en mur (`surf`, u = 0 midt i
     åpningen): vangestein annenhver bred og smal opp til buen, og
-    buestein med sluttstein, hver for seg med en fuge imellom og `proud`
-    ut fra muren (eierens dom i runde 7: en trim langs kanten, så overgangen
-    mellom dør og vegg blir pen)."""
+    kilesteiner som peker inn mot buens sentrum med sluttstein øverst, hver
+    for seg med en smal fuge og `proud` ut fra muren (eierens dom i runde 7:
+    en trim langs kanten). Hver stein viser én hel stein fra murbildet langs
+    seg (`stone_uv`), og bak fugene ligger mørtel, så kanten ikke ser
+    hullete ut (runde 8)."""
     r = w / 2
-    g = 0.012
+    g = 0.008
+    k = seed
+    # Mørtelen bak steinene: vangene og buen, litt inn fra forsida.
+    back = proud * 0.35
+    # Bare bak steinene: vangene så brede som de smale vangesteinene, og
+    # buen innenfor kilesteinene (ellers synes mørtelen som en brun kant).
+    for sx in (-1, 1):
+        u0, u1 = sorted((sx * (r + 0.005), sx * (r + band * 0.7 - 0.01)))
+        q = [(u0, v0), (u1, v0), (u1, v0 + spring), (u0, v0 + spring)]
+        mb.poly([surf.point(u, v, back) for u, v in q], [surf.uv(u, v) for u, v in q], "mortar", facing=surf.normal(0.0))
+    zs = v0 + spring
+    m_ = 24
+    for i in range(m_):
+        a0, a1 = math.pi * i / m_, math.pi * (i + 1) / m_
+        ri, ro = r + 0.005, r + band - 0.01
+        q = [(ri * math.cos(a0), zs + ri * math.sin(a0)), (ro * math.cos(a0), zs + ro * math.sin(a0)), (ro * math.cos(a1), zs + ro * math.sin(a1)), (ri * math.cos(a1), zs + ri * math.sin(a1))]
+        mb.poly([surf.point(u, v, back) for u, v in q], [surf.uv(u, v) for u, v in q], "mortar", facing=surf.normal(0.0))
     z = v0
-    k = 0
+    j = 0
     while z < v0 + spring - 0.05:
-        h = min(0.42 if k % 2 == 0 else 0.3, v0 + spring - z)
-        bw = band if k % 2 == 0 else band * 0.7
+        h = min(0.42 if j % 2 == 0 else 0.3, v0 + spring - z)
+        bw = band if j % 2 == 0 else band * 0.7
         for sx in (-1, 1):
             u0, u1 = sorted((sx * r, sx * (r + bw)))
             pts = [(u0, z + g), (u1, z + g), (u1, z + h - g), (u0, z + h - g)]
-            _trim_block(mb, surf, pts, proud, mat)
+            _trim_block(mb, surf, pts, proud, mat, stone_uv(k, pts))
+            k += 3
         z += h
-        k += 1
-    zs = v0 + spring
+        j += 1
     for i in range(n):
-        a0 = math.pi * i / n + 0.01
-        a1 = math.pi * (i + 1) / n - 0.01
+        a0 = math.pi * i / n + g / (r + band / 2)
+        a1 = math.pi * (i + 1) / n - g / (r + band / 2)
         ro = r + band + (0.06 if i == n // 2 else 0.0)
         pts = [(r * math.cos(a0), zs + r * math.sin(a0)), (ro * math.cos(a0), zs + ro * math.sin(a0)), (ro * math.cos(a1), zs + ro * math.sin(a1)), (r * math.cos(a1), zs + r * math.sin(a1))]
-        _trim_block(mb, surf, pts, proud, mat)
+        _trim_block(mb, surf, pts, proud, mat, stone_uv(k, pts))
+        k += 5
 
 
-def _trim_block(mb, surf, pts, proud, mat):
-    """En stein i karmen: forsiden `proud` ut fra muren, og kantene."""
+def _trim_block(mb, surf, pts, proud, mat, uvs=None):
+    """En stein i karmen: forsiden `proud` ut fra muren (med `uvs` på
+    forsida, ellers murens uv), og kantene."""
     front = [surf.point(u, v, proud) for u, v in pts]
-    mb.poly(front, [surf.uv(u, v) for u, v in pts], mat, facing=surf.normal(0.0))
+    mb.poly(front, uvs or [surf.uv(u, v) for u, v in pts], mat, facing=surf.normal(0.0))
     cu = sum(u for u, _ in pts) / len(pts)
     cv = sum(v for _, v in pts) / len(pts)
     for i in range(len(pts)):
@@ -1249,9 +1301,6 @@ def _trim_block(mb, surf, pts, proud, mat):
         quad = [surf.point(*a, 0.0), surf.point(*b, 0.0), surf.point(*b, proud), surf.point(*a, proud)]
         mid = surf.point((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, proud / 2)
         mb.poly(quad, [(0, 0), (L, 0), (L, proud), (0, proud)], mat, facing=sub(mid, surf.point(cu, cv, proud / 2)))
-
-
-# --- Mekanismene (egne modeller) --------------------------------------------------
 
 
 def kit_rest():
@@ -1383,9 +1432,12 @@ def kit_shortcut_frame(w=1.6, spring=1.5, depth=0.5):
 def kit_false_wall(w=2.0, h=2.6, t=0.4):
     """Den falske veggen: én hel murbit med fronten mot +z, med murens
     tekstur i meter som muren rundt (ingen skjeve blokker eller brutte
-    flater; hintet er sprekken `kit_crack`, eierens dom i runde 7)."""
+    flater, eierens dom i runde 7), og sprekken fra `crack_web` på seg."""
     m = MB()
     box(m, (-w / 2, 0.0, -t / 2), (w / 2, h, t / 2), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
+    # Sprekken står på selve veggen også, så den synes uten et eget merke
+    # (eieren i runde 8: «hvor er sprekken?»).
+    crack_web(m, t / 2, 11, x0=0.25, half=w / 2, top=h - 0.3)
     return m
 
 
@@ -1542,39 +1594,62 @@ def kit_bonus():
     return m
 
 
-def kit_crack(w=0.9, h=1.6, seed=5):
-    """Sprekk-hintet: et nett av mørke sprekker og en løs stein som stikker
-    litt ut av muren (origo på muren nede på midten, front mot +z)."""
+def crack_web(m, d, seed, scale=1.0, x0=0.0, half=0.45, top=1.9):
+    """Sprekken som avslører en hemmelighet (eieren i runde 8: «veldig
+    vanskelig å se noen sprekk»): mørke revner 3–5 cm brede som greiner seg
+    opp fra gulvet, med lyse, avslåtte kanter langs den ene sida, så de
+    synes på 3 m, en løs stein som står ut, og smuldret stein ved foten.
+    Flaten er z = `d` (fronten mot +z), origo nede på midten; revnene
+    holder seg innenfor |x| ≤ `half` og under `top`."""
     import random
 
     rng = random.Random(seed)
-    m = MB()
-    d = 0.012
 
     def crack(p, ang, n, width):
         x, y = p
         for _ in range(n):
-            a = ang + rng.uniform(-0.6, 0.6)
-            L = rng.uniform(0.08, 0.18)
+            a = ang + rng.uniform(-0.55, 0.55)
+            L = rng.uniform(0.12, 0.24) * scale
             x2, y2 = x + math.cos(a) * L, y + math.sin(a) * L
-            nx, ny = -math.sin(a) * width, math.cos(a) * width
-            m.quad((x - nx, y - ny, d), (x2 - nx * 0.7, y2 - ny * 0.7, d), (x2 + nx * 0.7, y2 + ny * 0.7, d), (x + nx, y + ny, d), "wall_dark", facing=(0, 0, 1))
+            if abs(x2) > half - 0.05 or not 0.02 < y2 < top:
+                break
+            nx, ny = -math.sin(a), math.cos(a)
+            w0, w1 = width, width * 0.8
+            m.quad((x - nx * w0, y - ny * w0, d + 0.004), (x2 - nx * w1, y2 - ny * w1, d + 0.004), (x2 + nx * w1, y2 + ny * w1, d + 0.004), (x + nx * w0, y + ny * w0, d + 0.004), "crack", facing=(0, 0, 1))
+            e0, e1 = w0 + 0.014, w1 + 0.012
+            m.quad((x + nx * w0, y + ny * w0, d + 0.006), (x2 + nx * w1, y2 + ny * w1, d + 0.006), (x2 + nx * e1, y2 + ny * e1, d + 0.006), (x + nx * e0, y + ny * e0, d + 0.006), "dressed", facing=(0, 0, 1))
             x, y = x2, y2
-            width *= 0.85
+            width *= 0.86
+        return x, y
 
-    crack((0.0, 0.15), math.pi / 2, 9, 0.018)
-    crack((0.0, 0.9), math.pi / 2 + 0.6, 5, 0.012)
-    crack((0.05, 0.6), -0.3, 4, 0.01)
-    crack((-0.05, 1.1), math.pi - 0.2, 4, 0.01)
-    box(m, (-0.32, 0.42, 0.0), (-0.08, 0.62, 0.04), "wall", faces=("+z", "+x", "-x", "+y", "-y"))
+    tip = crack((x0, 0.05), math.pi / 2 + rng.uniform(-0.1, 0.1), 9, 0.024 * scale)
+    crack((x0 + 0.02, 0.75 * scale), math.pi / 2 + 0.7, 5, 0.017 * scale)
+    crack((x0 - 0.02, 0.55 * scale), -0.35, 5, 0.016 * scale)
+    crack((tip[0], tip[1] - 0.2), math.pi - 0.3, 4, 0.014 * scale)
+    # Den løse steinen, som står ut av muren.
+    box(m, (x0 - 0.36, 0.48, d), (x0 - 0.1, 0.66, d + 0.05), "wall", faces=("+z", "+x", "-x", "+y", "-y"))
+    # Smuldret stein og støv ved foten.
+    for k in range(7):
+        sx, sz, sy = rng.uniform(0.05, 0.12), rng.uniform(0.04, 0.09), rng.uniform(0.025, 0.06)
+        cx, cz = x0 + rng.uniform(-0.35, 0.35), d + rng.uniform(0.06, 0.32)
+        box(m, (cx - sx / 2, 0.0, cz - sz / 2), (cx + sx / 2, sy, cz + sz / 2), "wall", faces=("+y", "+x", "-x", "+z", "-z"))
+
+
+def kit_crack(w=0.9, h=1.6, seed=5):
+    """Sprekk-hintet: sprekken fra `crack_web` på muren, den samme som på
+    den falske veggen (origo på muren nede på midten, front mot +z)."""
+    m = MB()
+    crack_web(m, 0.012, seed)
     return m
 
 
 def kit_sarcophagus(L=2.0, W=0.9, H=0.75):
     """Sarkofagen (pynt, merket `prop`): en kiste av hogd stein på en sokkel,
     med blinde rundbuer på langsidene, en kant øverst og et valmet lokk med
-    hjørneører og et kors i relieff på hver takside (origo midt under på gulvet, lengden langs
-    z; eierens dom i runde 7: «ligner overhodet ikke på en sarkofag»)."""
+    avfaset kant og et kors i relieff på hver takside (origo midt under på
+    gulvet, lengden langs z; eierens dom i runde 7: «ligner overhodet ikke
+    på en sarkofag»; runde 8: hjørneørene, de firkantede klossene, er
+    borte)."""
     m = MB()
     box(m, (-W / 2 - 0.06, 0.0, -L / 2 - 0.06), (W / 2 + 0.06, 0.12, L / 2 + 0.06), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
     for sz in (-1, 1):
@@ -1587,19 +1662,21 @@ def kit_sarcophagus(L=2.0, W=0.9, H=0.75):
         for a in arches:
             recess(m, surf, a, 0.08, "dressed", "wall_dark")
     box(m, (-W / 2 - 0.03, H - 0.06, -L / 2 - 0.03), (W / 2 + 0.03, H, L / 2 + 0.03), "dressed", faces=("+x", "-x", "+z", "-z", "-y"))
-    # Lokket: en helle med overheng og et valmet tak over (mønet langs z),
-    # med hjørneører, som på gamle steinsarkofager, og et kors i relieff
-    # på hver takside.
+    # Lokket: en helle med overheng og avfaset overkant, og et valmet tak
+    # over (mønet langs z) med et kors i relieff på hver takside. Ingen
+    # hjørneører (eieren i runde 8).
     o = 0.07
-    box(m, (-W / 2 - o, H, -L / 2 - o), (W / 2 + o, H + 0.09, L / 2 + o), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
-    yb, yr, hw, hl, rl = H + 0.09, H + 0.36, W / 2 + o - 0.02, L / 2 + o - 0.02, L / 2 - 0.25
+    ow, ol, ys = W / 2 + o, L / 2 + o, H + 0.05
+    box(m, (-ow, H, -ol), (ow, ys, ol), "slab", faces=("+x", "-x", "+z", "-z", "-y"))
+    yb, yr, hw, hl, rl = H + 0.09, H + 0.36, ow - 0.045, ol - 0.045, L / 2 - 0.25
+    for sx in (-1, 1):
+        m.poly([(sx * ow, ys, -ol), (sx * ow, ys, ol), (sx * hw, yb, hl), (sx * hw, yb, -hl)], [(-ol, 0), (ol, 0), (hl, 0.06), (-hl, 0.06)], "slab", facing=(sx, 1.0, 0))
+    for sz in (-1, 1):
+        m.poly([(-ow, ys, sz * ol), (ow, ys, sz * ol), (hw, yb, sz * hl), (-hw, yb, sz * hl)], [(-ow, 0), (ow, 0), (hw, 0.06), (-hw, 0.06)], "slab", facing=(0, 1.0, sz))
     for sx in (-1, 1):
         m.poly([(sx * hw, yb, -hl), (sx * hw, yb, hl), (0.0, yr, rl), (0.0, yr, -rl)], [(-hl, 0), (hl, 0), (rl, hw * 1.2), (-rl, hw * 1.2)], "slab", facing=(sx, 0.8, 0))
     for sz in (-1, 1):
         m.poly([(-hw, yb, sz * hl), (hw, yb, sz * hl), (0.0, yr, sz * rl)], [(-hw, 0), (hw, 0), (0, 0.4)], "slab", facing=(0, 0.6, sz))
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            box(m, (sx * hw - 0.09, yb, sz * hl - 0.09), (sx * hw + 0.02, yb + 0.16, sz * hl + 0.02), "dressed", faces=("+y", "+x", "-x", "+z", "-z"))
     # Korset på hver takside: en stav langs mønet og en tverrstav ned i
     # taket, litt ut fra flaten.
     k = (yr - yb) / hw
