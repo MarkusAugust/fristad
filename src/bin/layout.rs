@@ -1,13 +1,15 @@
-//! Skriver `assets/layout/town.json` på nytt i fast form (`layout_json`):
-//! én ting per linje, rundede tall. Etter at fila er endret for hånd.
+//! Skriver `assets/layout/town.json` og `assets/layout/inside/<hus>.json`
+//! på nytt i fast form (`layout_files`): én ting per linje, rundede tall.
+//! Etter at filene er endret for hånd eller skrevet av Blender.
 //!
 //!     cargo run --bin layout
 
-use fristad::adapters::data::{layout_file, layout_json};
-use fristad::domain::world::layout::Layout;
+use fristad::adapters::data::{world_data, FileStore};
+use fristad::ports::LayoutStore;
 
 fn main() {
-    let text = layout_file().expect("assets/layout/town.json finnes ikke");
-    let layout: Layout = serde_json::from_str(text).expect("assets/layout/town.json kan ikke leses");
-    std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/layout/town.json"), layout_json(&layout)).unwrap();
+    let data = world_data();
+    let layout = data.layout.expect("assets/layout/town.json finnes ikke");
+    let contents: Vec<_> = data.contents;
+    FileStore(concat!(env!("CARGO_MANIFEST_DIR")).into()).save(&layout, &contents).expect("kunne ikke skrive");
 }

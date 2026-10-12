@@ -360,3 +360,35 @@ fn klikk_igjen_gir_det_neste_under_pekeren() {
     let third = e.cycle();
     assert!(third.is_some() && third != Some(Ref::Town(fence)), "Tab går videre");
 }
+
+/// Lagringen: uten endringer er filene redigeringen lagrer nøyaktig de i
+/// repoet; etter en flytting leses de tilbake til det som ble redigert.
+#[test]
+fn lagringen_gir_filene() {
+    use crate::adapters::data::{content_files, layout_file, layout_files};
+    use crate::domain::world::layout::{Item, Layout, Ref};
+    let mut e = editor();
+    let (layout, contents) = e.data();
+    for (path, text) in layout_files(layout, contents) {
+        let repo = if path == "assets/layout/town.json" {
+            layout_file().unwrap()
+        } else {
+            let house = path.trim_start_matches("assets/layout/inside/").trim_end_matches(".json");
+            content_files().iter().find(|(h, _)| *h == house).map(|(_, t)| *t).unwrap()
+        };
+        assert_eq!(text, repo, "{path} er ikke lik fila i repoet");
+    }
+    e.selection = vec![Ref::Town(10), Ref::Inside { house: "tavern".into(), i: 2 }];
+    e.translate(glam::Vec3::new(0.25, 0.0, -0.5));
+    let (layout, contents) = e.data();
+    for (path, text) in layout_files(layout, contents) {
+        if path == "assets/layout/town.json" {
+            let back: Layout = serde_json::from_str(&text).unwrap();
+            let (a, b) = (back.items[10].at.unwrap().pos, layout.items[10].at.unwrap().pos);
+            assert!((a - b).length() < 1e-4, "{a} {b}");
+        } else if path.ends_with("/tavern.json") {
+            let back: Vec<Item> = serde_json::from_str(&text).unwrap();
+            assert!((back[2].at.unwrap().pos - contents["tavern"][2].at.unwrap().pos).length() < 1e-4);
+        }
+    }
+}

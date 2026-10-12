@@ -199,7 +199,7 @@ def write_contents(house):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             f.write("[\n" + ",\n".join("  " + json.dumps(i, separators=(",", ":"), ensure_ascii=False) for i in items) + "\n]\n")
-        print(f"{path}: {len(items)} møbler")
+        print(f"{path}: {len(items)} møbler (kjør `cargo run --bin layout` for fast form)")
     else:
         print(f"{path} finnes og skrives ikke over")
     PLACED.clear()

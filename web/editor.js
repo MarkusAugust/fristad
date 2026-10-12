@@ -7,6 +7,8 @@
 // tar tak i et håndtak (pilene og ringen rundt det valgte) og drar, høyre
 // knapp holdt nede ser rundt. WASD, mellomrom og C flyr.
 
+import { commit, setToken, token, SAVE_BRANCH } from "./github.js";
+
 const STEP = 0.1;
 const TURN = (15 * Math.PI) / 180;
 
@@ -39,7 +41,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       <button id="ed-undo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
       <button id="ed-redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+Z">Gjør om</button>
       <button id="ed-play" class="fs-button" data-variant="primary" type="button" title="P">Spill (P)</button>
-      <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagring til GitHub kommer i steg 5">Lagre</button>
+      <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagre som én commit på grenen redigering (Ctrl+S)">Lagre</button>
     </div>
     <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Valgt</h3>
@@ -136,6 +138,79 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     return engine.edit(JSON.stringify(cmd));
   }
 
+  // Lagre: én commit på grenen `redigering` (web/github.js). Første gang
+  // limer du inn en nøkkel; den huskes bare i denne nettleseren.
+  const dialog = document.createElement("dialog");
+  dialog.className = "fs-dialog editor-save";
+  dialog.innerHTML = `
+    <h2 class="fs-dialog__title fs-heading" data-size="s">Lagre endringene</h2>
+    <div class="fs-dialog__body">
+      <p class="fs-paragraph" data-size="small">Endringene blir én commit på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet. Claude kjører testene og slår dem inn i spillet.</p>
+      <label class="fs-label" for="ed-msg">Hva du har endret</label>
+      <input id="ed-msg" class="fs-input" type="text">
+      <div id="ed-token-row">
+        <label class="fs-label" for="ed-token">GitHub-nøkkel</label>
+        <input id="ed-token" class="fs-input" type="password" autocomplete="off" placeholder="github_pat_…">
+        <p class="fs-help-text">En finkornet nøkkel (github.com → Settings → Developer settings → Fine-grained tokens) med tilgang bare til fristad-repoet og «Contents: Read and write». Den huskes bare i denne nettleseren.</p>
+      </div>
+      <p id="ed-save-status" class="fs-paragraph" data-size="small" role="status"></p>
+    </div>
+    <div class="fs-dialog__footer">
+      <button type="button" class="fs-button" data-variant="ghost" data-act="forget">Glem nøkkelen</button>
+      <button type="button" class="fs-button" data-variant="secondary" data-act="close">Avbryt</button>
+      <button type="button" class="fs-button" data-variant="primary" data-act="save">Lagre</button>
+    </div>`;
+  document.body.append(dialog);
+  const d$ = (sel) => dialog.querySelector(sel);
+
+  function openSave() {
+    if (!view?.dirty) return;
+    if (!view.clean) {
+      toast?.show?.(`${view.breaches.length} regler er brutt. Rett dem før du lagrer.`);
+      return;
+    }
+    d$("#ed-token-row").hidden = !!token();
+    d$("[data-act=forget]").hidden = !token();
+    d$("#ed-msg").value = d$("#ed-msg").value || "Redigering i byen";
+    d$("#ed-save-status").textContent = "";
+    dialog.showModal();
+  }
+
+  d$("[data-act=close]").addEventListener("click", () => dialog.close());
+  d$("[data-act=forget]").addEventListener("click", () => {
+    setToken("");
+    d$("#ed-token-row").hidden = false;
+    d$("[data-act=forget]").hidden = true;
+  });
+  d$("[data-act=save]").addEventListener("click", async () => {
+    const t = d$("#ed-token").value.trim();
+    if (t) setToken(t);
+    if (!token()) {
+      d$("#ed-save-status").textContent = "Lim inn nøkkelen først.";
+      return;
+    }
+    const out = JSON.parse(engine.save_files());
+    if (out.error) {
+      d$("#ed-save-status").textContent = out.error;
+      return;
+    }
+    const btn = d$("[data-act=save]");
+    btn.disabled = true;
+    d$("#ed-save-status").textContent = "Lagrer …";
+    try {
+      const r = await commit(out.files, d$("#ed-msg").value.trim() || "Redigering i byen");
+      d$("#ed-token").value = "";
+      d$("#ed-token-row").hidden = true;
+      d$("#ed-save-status").textContent = r.unchanged ? "Ingenting nytt å lagre." : `Lagret som ${r.sha.slice(0, 7)} på grenen ${SAVE_BRANCH}.`;
+      toast?.show?.(r.unchanged ? "Ingenting nytt å lagre." : `Lagret (${r.sha.slice(0, 7)} på ${SAVE_BRANCH}).`);
+    } catch (e) {
+      d$("#ed-save-status").textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  $("ed-save").addEventListener("click", openSave);
+
   $("ed-undo").addEventListener("click", () => send({ cmd: "undo" }));
   $("ed-redo").addEventListener("click", () => send({ cmd: "redo" }));
   $("ed-play").addEventListener("click", () => play());
@@ -150,6 +225,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     st.dataset.variant = v.clean ? "success" : "danger";
     $("ed-undo").disabled = !v.can_undo;
     $("ed-redo").disabled = !v.can_redo;
+    $("ed-save").disabled = !v.dirty;
+    $("ed-save").title = v.clean ? "Lagre som én commit på grenen redigering (Ctrl+S)" : "Rett reglene som er brutt før du lagrer";
     const sel = v.selected;
     $("ed-selected").textContent = sel.length ? sel.map((s) => s.label).join(", ") : "Ingenting. Klikk på noe i bildet.";
     // Det som lå under pekeren: klikk igjen eller Tab for det neste.
@@ -316,6 +393,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         if (ctrl) {
           e.preventDefault();
           send({ cmd: e.shiftKey ? "redo" : "undo" });
+          return true;
+        }
+        return false;
+      case "KeyS":
+        if (ctrl) {
+          e.preventDefault();
+          openSave();
           return true;
         }
         return false;

@@ -1887,6 +1887,11 @@ fn byen_er_data() {
     let text = layout_file().expect("assets/layout/town.json mangler");
     let layout: Layout = serde_json::from_str(text).unwrap();
     assert_eq!(layout_json(&layout), text, "fila står ikke i fast form: cargo run --bin layout");
+    // Husenes innhold i samme faste form (redigeringen lagrer slik).
+    for (house, text) in crate::adapters::data::content_files() {
+        let items: Vec<crate::domain::world::layout::Item> = serde_json::from_str(text).unwrap();
+        assert_eq!(crate::adapters::data::contents_json(&items), *text, "assets/layout/inside/{house}.json står ikke i fast form: cargo run --bin layout");
+    }
     let w = &world().world;
     let count = |m: &str| w.placements.iter().find(|p| p.model == m).map_or(0, |p| p.transforms.len());
     assert_eq!(layout.items.iter().filter(|i| i.building).count(), 71, "husene og uthusene i fila");

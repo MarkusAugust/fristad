@@ -57,27 +57,58 @@ pub fn approved() -> std::collections::HashSet<String> {
     json["models"].as_object().map(|m| m.iter().filter(|(_, v)| v["verdict"] == "godkjent").map(|(k, _)| k.clone()).collect()).unwrap_or_default()
 }
 
+/// Tallene rundet til 0,01 mm (heltall uten desimaler), og skala 1 utelatt.
+fn round(v: &mut serde_json::Value) {
+    use serde_json::Value;
+    match v {
+        Value::Number(n) if n.is_f64() => {
+            let r = (n.as_f64().unwrap_or(0.0) * 1e5).round() / 1e5;
+            *v = if r == r.trunc() && r.abs() < 1e9 { Value::from(r as i64) } else { Value::from(r) };
+        }
+        Value::Array(a) => a.iter_mut().for_each(round),
+        Value::Object(o) => {
+            o.values_mut().for_each(round);
+            if o.get("scale") == Some(&serde_json::json!([1, 1, 1])) {
+                o.remove("scale");
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Det som står i et hus som tekst, slik `assets/layout/inside/<hus>.json`
+/// skal se ut: én ting per linje, med de samme rundede tallene som byen.
+pub fn contents_json(items: &[Item]) -> String {
+    let lines: Vec<String> = items
+        .iter()
+        .map(|it| {
+            let mut v = serde_json::to_value(it).unwrap_or_default();
+            round(&mut v);
+            format!("  {v}")
+        })
+        .collect();
+    format!("[\n{}\n]\n", lines.join(",\n"))
+}
+
+/// Husenes innholdsfiler slik de står i repoet (hus, tekst).
+pub fn content_files() -> &'static [(&'static str, &'static str)] {
+    CONTENT_FILES
+}
+
+/// Filene redigeringen lagrer (sti i repoet, tekst): byen og innholdet i
+/// hvert hus, sortert etter sti.
+pub fn layout_files(layout: &Layout, contents: &std::collections::HashMap<String, Vec<Item>>) -> Vec<(String, String)> {
+    let mut out = vec![("assets/layout/town.json".to_string(), layout_json(layout))];
+    let mut houses: Vec<_> = contents.iter().collect();
+    houses.sort_by(|a, b| a.0.cmp(b.0));
+    out.extend(houses.into_iter().map(|(h, items)| (format!("assets/layout/inside/{h}.json"), contents_json(items))));
+    out
+}
+
 /// Byen som tekst, slik `assets/layout/town.json` skal se ut: én ting og én
 /// innbygger per linje, tallene rundet til 0,01 mm, og skala 1 utelatt.
 /// Redigeringsmodusen lagrer med denne, så endringene blir små i git.
 pub fn layout_json(layout: &Layout) -> String {
-    use serde_json::Value;
-    fn round(v: &mut Value) {
-        match v {
-            Value::Number(n) if n.is_f64() => {
-                let r = (n.as_f64().unwrap_or(0.0) * 1e5).round() / 1e5;
-                *v = if r == r.trunc() && r.abs() < 1e9 { Value::from(r as i64) } else { Value::from(r) };
-            }
-            Value::Array(a) => a.iter_mut().for_each(round),
-            Value::Object(o) => {
-                o.values_mut().for_each(round);
-                if o.get("scale") == Some(&serde_json::json!([1, 1, 1])) {
-                    o.remove("scale");
-                }
-            }
-            _ => {}
-        }
-    }
     let mut v = serde_json::to_value(layout).unwrap_or_default();
     round(&mut v);
     let Some(o) = v.as_object() else { return String::new() };
@@ -135,4 +166,20 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
 /// Modellene som står som hus i byen (`building` i `assets/layout/town.json`).
 pub fn buildings() -> std::collections::HashSet<String> {
     world_data().layout.map(|l| l.items.into_iter().filter(|it| it.building).filter_map(|it| it.model).collect()).unwrap_or_default()
+}
+
+/// Lagringen til filene i en mappe (repoet): `cargo run --bin layout`, og
+/// redigeringen utenom nettleseren.
+#[cfg(not(target_arch = "wasm32"))]
+pub struct FileStore(pub std::path::PathBuf);
+
+#[cfg(not(target_arch = "wasm32"))]
+impl crate::ports::LayoutStore for FileStore {
+    fn save(&mut self, layout: &Layout, contents: &[(String, Vec<Item>)]) -> Result<(), String> {
+        let map: std::collections::HashMap<String, Vec<Item>> = contents.iter().cloned().collect();
+        for (path, text) in layout_files(layout, &map) {
+            std::fs::write(self.0.join(&path), text).map_err(|e| format!("{path}: {e}"))?;
+        }
+        Ok(())
+    }
 }

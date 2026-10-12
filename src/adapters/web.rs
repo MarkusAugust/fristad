@@ -408,6 +408,19 @@ impl Engine {
         serde_json::Value::Array(list).to_string()
     }
 
+    /// Filene redigeringen lagrer, som json `{"files": [{path, text}]}`,
+    /// eller `{"error": …}` når noe bryter en regel (det som lagres, går
+    /// alltid gjennom testene).
+    pub fn save_files(&self) -> String {
+        let Some(e) = self.app.session.editor() else { return serde_json::json!({"error": "Ikke i redigeringen."}).to_string() };
+        if !e.clean() {
+            return serde_json::json!({"error": format!("{} regler er brutt. Rett dem før du lagrer.", e.breaches().len())}).to_string();
+        }
+        let (layout, contents) = e.data();
+        let files: Vec<serde_json::Value> = crate::adapters::data::layout_files(layout, contents).into_iter().map(|(path, text)| serde_json::json!({"path": path, "text": text})).collect();
+        serde_json::json!({"files": files}).to_string()
+    }
+
     /// P i redigeringen: bygg spillet på nytt fra det som er redigert
     /// (kolliderne, lysene og alt), og spill der du står. Lageret og det du
     /// bærer følger med. Gir om det gikk.
