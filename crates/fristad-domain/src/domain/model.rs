@@ -86,7 +86,6 @@ pub struct ModelInfo {
 /// som brukes, finnes eller står her; en som står her og finnes, skal
 /// strykes (testen `alle_modellnavn_finnes_eller_ventes`).
 pub const PLANNED: &[(&str, &str)] = &[
-    ("mutant_tooltip", "fiende (fase 5)"),
     ("mutant_input", "fiende (fase 5)"),
     ("mutant_modal", "fiende (fase 5)"),
     ("mutant_table", "fiende (fase 5)"),

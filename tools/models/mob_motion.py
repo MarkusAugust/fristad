@@ -75,7 +75,12 @@ class Body:
 
     RADIUS = {"hips": 0.17, "chest": 0.2, "head": 0.12, "neck": 0.08, "jaw": 0.06, "tail1": 0.05, "tail2": 0.04, "tail3": 0.03}
 
-    def __init__(self, bones):
+    def __init__(self, bones, leg_pole=(1.0, 0.0, -0.1), arm_pole=(-1.0, 0.8, 0.0)):
+        # Hvor knærne og albuene peker (i hoftenes og brystets rom; armens
+        # y speiles per side): fram for beina og bak og ut for armene som
+        # standard, opp for edderkoppbein.
+        self.leg_pole = Vector(leg_pole)
+        self.arm_pole = Vector(arm_pole)
         self.order = [b[0] for b in bones]
         self.head = {b[0]: Vector(b[1]) for b in bones}
         self.tail = {b[0]: Vector(b[2]) for b in bones}
@@ -145,12 +150,12 @@ class Body:
             G, H = self.fk(R, root)
             for s in legs:
                 x, y, z, pitch = spec.feet[s]
-                pole = G["hips"] @ Vector((1.0, 0.0, -0.1))
+                pole = G["hips"] @ self.leg_pole
                 Gs = self.two_bone(R, G, H, f"thigh.{s}", f"shin.{s}", f"foot.{s}", Vector((x, y, z)), pole)
                 R[f"foot.{s}"] = Gs.inverted() @ eul(0, pitch, 0)
             for s in arms:
                 sy = 1 if s == "L" else -1
-                pole = G["chest"] @ Vector((-1.0, 0.8 * sy, 0.0))
+                pole = G["chest"] @ Vector((self.arm_pole.x, self.arm_pole.y * sy, self.arm_pole.z))
                 G, H = self.fk(R, root)
                 Gf = self.two_bone(R, G, H, f"upper_arm.{s}", f"forearm.{s}", f"hand.{s}", Vector(spec.hands[s]), pole)
                 R[f"hand.{s}"] = Gf.inverted() @ eul(*spec.rot.get(f"hand_world.{s}", (0, 40, 0)))
@@ -196,6 +201,9 @@ STYLES = {
     # Button Wight (monsters.py): en tung steinplate på korte beinbein som
     # tasser fort og vagger, rett i ryggen (ingen hale å svinge).
     "wight": dict(frames=8, v0=1.4, duty=0.6, lift=0.07, width=0.24, hunch=3, arm=14, sway=0.05, bob=0.025, tail=0, twitch=True, hips_yaw=5, idle=48),
+    # Tooltip Sprite: en snakkeboble på fire lange beinbein som tripper
+    # fort som en edderkopp (de fremre beina er «armene», på alle fire).
+    "sprite": dict(frames=4, v0=6.5, duty=0.5, lift=0.12, width=0.44, hunch=0, arm=0, sway=0.015, bob=0.03, tail=0, twitch=True, hips_yaw=4, idle=36, quad=True, quad_tilt=0.0, hand_x=0.34, hand_y=0.46, hand_z=0.04, leg_pole=(0.0, 0.4, 1.0), arm_pole=(0.0, 0.4, 1.0)),
     "button": dict(frames=18, v0=2.1, duty=0.56, lift=0.13, width=0.19, hunch=20, arm=34, sway=0.035, bob=0.03, tail=18, twitch=True, hips_yaw=9, idle=48),
     "tooltip": dict(frames=10, v0=6.5, duty=0.38, lift=0.2, width=0.15, hunch=30, arm=22, sway=0.02, bob=0.07, tail=26, twitch=True, hips_yaw=6, idle=36, hop=True),
     "input": dict(frames=20, v0=1.65, duty=0.62, lift=0.15, width=0.14, hunch=6, arm=10, sway=0.03, bob=0.025, tail=10, twitch=False, hips_yaw=12, idle=56, spears=True),
@@ -219,13 +227,16 @@ def base_pose(body, st, spec, crouch=0.0):
     litt ute, føttene i sporvidden."""
     h = st["hunch"]
     spec.root = Vector((0.0, 0.0, crouch))
-    hips = h * 0.35 if not st.get("quad") else 22
-    chest = h * 0.65 if not st.get("quad") else h - 10
+    # På alle fire vippes hoftene og brystet (tabellen); `quad_tilt` = 0
+    # holder kroppen rett (Tooltip Sprite på edderkoppbein).
+    tilt = st.get("quad_tilt", 1.0) if st.get("quad") else 0.0
+    hips = h * 0.35 + 22 * tilt
+    chest = h * 0.65 - 10 * tilt
     spec.rot.update({
         "hips": (0, hips, 0),
         "chest": (0, chest, 0),
         "neck": (0, -h * 0.35, 0),
-        "head": (0, -h * 0.55 - (18 if st.get("quad") else 0), 0),
+        "head": (0, -h * 0.55 - 18 * tilt, 0),
         "jaw": (0, 12, 0),
         "upper_arm.L": (14, -8, 0),
         "upper_arm.R": (-14, -8, 0),
@@ -243,7 +254,7 @@ def base_pose(body, st, spec, crouch=0.0):
         spec.feet[s] = (a.x, sy * st["width"], a.z, 0.0)
     if st.get("quad"):
         for s, sy in (("L", 1), ("R", -1)):
-            spec.hands[s] = (0.62, sy * (st["width"] + 0.08), 0.12)
+            spec.hands[s] = (st.get("hand_x", 0.62), sy * st.get("hand_y", st["width"] + 0.08), st.get("hand_z", 0.12))
     return spec
 
 
@@ -310,13 +321,13 @@ def walk(c, body, st):
                 u = (ph + off + 0.08) % 1.0
                 if u < duty:
                     k = u / duty
-                    x = 0.62 + D / 2 - D * k
-                    z = 0.12
+                    x = st.get("hand_x", 0.62) + D / 2 - D * k
+                    z = st.get("hand_z", 0.12)
                 else:
                     k = (u - duty) / (1 - duty)
-                    x = 0.62 - D / 2 + D * (0.5 - 0.5 * math.cos(math.pi * k))
-                    z = 0.12 + st["lift"] * 1.2 * math.sin(math.pi * k)
-                spec.hands[s] = (x, sy * (st["width"] + 0.08), z)
+                    x = st.get("hand_x", 0.62) - D / 2 + D * (0.5 - 0.5 * math.cos(math.pi * k))
+                    z = st.get("hand_z", 0.12) + st["lift"] * 1.2 * math.sin(math.pi * k)
+                spec.hands[s] = (x, sy * st.get("hand_y", st["width"] + 0.08), z)
         # Halen svinger med, forsinket ledd for ledd.
         for i, b in enumerate(("tail1", "tail2", "tail3")):
             add(spec, b, y=3 * math.sin(4 * math.pi * ph - i), z=st["tail"] * math.sin(2 * math.pi * ph - 0.8 * (i + 1)))
@@ -642,8 +653,8 @@ ATTACKS = {"bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack
 
 def make_clips(Clip, arm, bones, style, attack, extra=()):
     """Alle klippene for én fiende."""
-    body = Body(bones)
     st = STYLES[style]
+    body = Body(bones, st.get("leg_pole", (1.0, 0.0, -0.1)), st.get("arm_pole", (-1.0, 0.8, 0.0)))
     todo = [
         ("idle", st["idle"], lambda c: idle(c, body, st)),
         ("walk", st["frames"], lambda c: walk(c, body, st)),

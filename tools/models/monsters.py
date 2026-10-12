@@ -53,49 +53,60 @@ def rounded_rect(w, h, r, n=6):
     return pts
 
 
-def slab_from_sheet(name, mat, w, h, t, zc, r, front, back, side, img_size):
-    """En plate (bredde langs y, høyde langs z, tykkelse langs x) med
-    forsida (+X) og baksida (−X) fra rutene `front` og `back` i arket og
-    kantene fra `side` (pikselrektangler x0, y0, x1, y1). Arket forfra har
-    +Y til høyre, bakfra til venstre, og fra siden står forsida til
-    venstre."""
+def bubble(w, h, r, pw, pd, n=6):
+    """Omrisset av en snakkeboble: et avrundet rektangel med en spiss ned
+    midt på (bredde `pw`, dybde `pd`)."""
+    pts = rounded_rect(w, h, r, n)
+    k = 3 * (n + 1)  # nederst til høyre begynner her (270°)
+    tip = [(-pw / 2, -h / 2), (0.0, -h / 2 - pd), (pw / 2, -h / 2)]
+    return pts[:k] + tip + pts[k:]
+
+
+def slab_from_sheet(name, mat, profile, t, zc, front, back, side, img_size, bevel=0.025):
+    """En plate (omrisset `profile` i (y, z) rundt z = `zc`, tykkelse `t`
+    langs x) med forsida (+X) og baksida (−X) fra rutene `front` og `back`
+    i arket og kantene fra `side` (pikselrektangler x0, y0, x1, y1 rundt
+    omrissets ytre mål). Arket forfra har +Y til høyre, bakfra til venstre,
+    og fra siden står forsida til venstre."""
     W, H = img_size
     bm = bmesh.new()
     base = bm.loops.layers.uv.new("UVMap")
     src = bm.loops.layers.uv.new("src")
-    ring = rounded_rect(w, h, r)
-    zb = zc - h / 2
+    ys = [p[0] for p in profile]
+    zs = [p[1] + zc for p in profile]
+    y0, y1, zb, zt = min(ys), max(ys), min(zs), max(zs)
+    w, h = y1 - y0, zt - zb
 
     def at(rect, fu, fv):
-        x0, y0, x1, y1 = rect
-        return ((x0 + fu * (x1 - x0)) / W, 1.0 - (y1 - fv * (y1 - y0)) / H)
+        x0, py0, x1, py1 = rect
+        return ((x0 + fu * (x1 - x0)) / W, 1.0 - (py1 - fv * (py1 - py0)) / H)
 
-    fr = [bm.verts.new((t / 2, y, zc + z)) for y, z in ring]
-    bk = [bm.verts.new((-t / 2, y, zc + z)) for y, z in ring]
+    fr = [bm.verts.new((t / 2, y, zc + z)) for y, z in profile]
+    bk = [bm.verts.new((-t / 2, y, zc + z)) for y, z in profile]
     f = bm.faces.new(fr)
     for lp in f.loops:
         c = lp.vert.co
-        lp[src].uv = at(front, (c.y + w / 2) / w, (c.z - zb) / h)
+        lp[src].uv = at(front, (c.y - y0) / w, (c.z - zb) / h)
         lp[base].uv = (c.y, c.z)
     f = bm.faces.new(bk[::-1])
     for lp in f.loops:
         c = lp.vert.co
-        lp[src].uv = at(back, (w / 2 - c.y) / w, (c.z - zb) / h)
+        lp[src].uv = at(back, (y1 - c.y) / w, (c.z - zb) / h)
         lp[base].uv = (c.y, c.z)
-    n = len(ring)
+    n = len(profile)
     for i in range(n):
         j = (i + 1) % n
         f = bm.faces.new((fr[i], bk[i], bk[j], fr[j]))
-        ny = ring[i][0] + ring[j][0]
-        nz = ring[i][1] + ring[j][1]
+        dy = abs(profile[j][0] - profile[i][0])
+        dz = abs(profile[j][1] - profile[i][1])
         for lp in f.loops:
             c = lp.vert.co
             fu = (t / 2 - c.x) / t
-            if abs(ny) / w >= abs(nz) / h:
+            if dz / h >= dy / w:
                 lp[src].uv = at(side, fu, (c.z - zb) / h)
             else:
                 # Oppe og nede: et smalt bånd øverst i sideruta.
-                lp[src].uv = at(side, fu, 0.97 - 0.05 * (c.y + w / 2) / w)
+                lp[src].uv = at(side, fu, 0.97 - 0.05 * (c.y - y0) / w)
             lp[base].uv = (c.x, c.y + c.z)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)
@@ -105,7 +116,7 @@ def slab_from_sheet(name, mat, w, h, t, zc, r, front, back, side, img_size):
     me.materials.append(mat)
     bpy.context.scene.collection.objects.link(ob)
     mod = ob.modifiers.new("bevel", "BEVEL")
-    mod.width = 0.025
+    mod.width = bevel
     mod.segments = 2
     mod.limit_method = "ANGLE"
     return ob
@@ -196,7 +207,7 @@ def button_wight():
     steel = material("steel", (0.62, 0.64, 0.68), 0.35, 1.0)
     glass = material("glass_eye", (0.75, 0.82, 0.9), 0.05)
 
-    slab_from_sheet("slab", sheet, WIGHT_W, WIGHT_H, WIGHT_T, WIGHT_ZC, 0.14, WIGHT_FRONT, WIGHT_BACK, WIGHT_SIDE, (2912, 1440))
+    slab_from_sheet("slab", sheet, rounded_rect(WIGHT_W, WIGHT_H, 0.14), WIGHT_T, WIGHT_ZC, WIGHT_FRONT, WIGHT_BACK, WIGHT_SIDE, (2912, 1440))
     # Linsa øverst foran, i en stålring (den dreier seg mot deg).
     lx, lz = WIGHT_T / 2 + 0.02, 1.23
     bpy.ops.mesh.primitive_torus_add(major_radius=0.085, minor_radius=0.022, major_segments=20, minor_segments=8, location=(lx, 0, lz), rotation=(0, math.pi / 2, 0))
@@ -248,7 +259,95 @@ def build_wight(size):
     bake_textured(f"{OUT}/mutant_button.glb", size, keep=("glass",), armature=arm, rigid=WIGHT_RIGID, skin={"blend": 0.04, "radii": WIGHT_RADII})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024)}
+# --- Tooltip Sprite ---------------------------------------------------------
+#
+# Arket (`tooltip_sprite_body.jpeg`, 2752 × 1536): en snakkeboble med lysende
+# skjerm og pikseløyne, tykk grå ramme, lys og stein oppå og bak, og fire
+# lange beinbein. Figuren er 1028 px høy (268–1296) og 1,4 m i modellen
+# (spillet skalerer slaget til 0,55, `Kind::Tooltip`).
+
+SPRITE_SHEET = os.path.join(REF, "tooltip_sprite_body.jpeg")
+SPRITE_PX = 1.4 / (1296 - 268)
+SPRITE_FRONT = (205, 395, 875, 1091)
+SPRITE_BACK = (1885, 395, 2575, 1091)
+SPRITE_SIDE = (1229, 395, 1514, 1091)
+SPRITE_W = (875 - 205) * SPRITE_PX
+SPRITE_H = (915 - 395) * SPRITE_PX
+SPRITE_PD = (1091 - 915) * SPRITE_PX
+SPRITE_T = (1514 - 1229) * SPRITE_PX
+SPRITE_ZC = (1296 - (395 + 915) / 2) * SPRITE_PX
+
+# Beina: de fremre er «armene» (gangarten på alle fire setter hendene i
+# bakken), de bakre beina; knærne står opp over boblens underkant.
+SPRITE_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.2), None),
+    ("hips", (0.0, 0, 0.56), (0.0, 0, 0.7), "root"),
+    ("chest", (0.0, 0, 0.7), (0.0, 0, 1.1), "hips"),
+    ("neck", (0.05, 0, 1.0), (0.12, 0, 1.04), "chest"),
+    ("head", (SPRITE_T / 2, 0, 0.95), (SPRITE_T / 2 + 0.2, 0, 0.95), "neck"),
+    ("jaw", (SPRITE_T / 2, 0, 0.85), (SPRITE_T / 2 + 0.1, 0, 0.83), "head"),
+    ("upper_arm.L", (0.08, 0.16, 0.56), (0.24, 0.4, 0.66), "chest"),
+    ("forearm.L", (0.24, 0.4, 0.66), (0.34, 0.46, 0.04), "upper_arm.L"),
+    ("hand.L", (0.34, 0.46, 0.04), (0.4, 0.47, 0.0), "forearm.L"),
+    ("upper_arm.R", (0.08, -0.16, 0.56), (0.24, -0.4, 0.66), "chest"),
+    ("forearm.R", (0.24, -0.4, 0.66), (0.34, -0.46, 0.04), "upper_arm.R"),
+    ("hand.R", (0.34, -0.46, 0.04), (0.4, -0.47, 0.0), "forearm.R"),
+    ("thigh.L", (-0.08, 0.16, 0.56), (-0.24, 0.38, 0.66), "hips"),
+    ("shin.L", (-0.24, 0.38, 0.66), (-0.32, 0.44, 0.04), "thigh.L"),
+    ("foot.L", (-0.32, 0.44, 0.04), (-0.38, 0.45, 0.0), "shin.L"),
+    ("thigh.R", (-0.08, -0.16, 0.56), (-0.24, -0.38, 0.66), "hips"),
+    ("shin.R", (-0.24, -0.38, 0.66), (-0.32, -0.44, 0.04), "thigh.R"),
+    ("foot.R", (-0.32, -0.44, 0.04), (-0.38, -0.45, 0.0), "shin.R"),
+    ("tail1", (-0.1, 0, 0.8), (-0.12, 0, 0.9), "hips"),
+    ("tail2", (-0.12, 0, 0.9), (-0.13, 0, 1.0), "tail1"),
+    ("tail3", (-0.13, 0, 1.0), (-0.13, 0, 1.1), "tail2"),
+]
+SPRITE_RIGID = {"slab": "chest", "candle": "chest", "wax": "chest", "rubble": "chest", "under": "chest"}
+
+
+def tooltip_sprite():
+    sheet = sheet_material("sprite_sheet", SPRITE_SHEET)
+    bone = material("bone", (0.78, 0.72, 0.6), 0.65)
+    weather(bone, 0.0, 0.8, 0.3, 12.0)
+    wax = material("wax", (0.86, 0.8, 0.66), 0.55)
+    rubble = material("rubble", (0.17, 0.18, 0.17), 0.85)
+    weather(rubble, 0.6, 1.3, 0.3, 8.0)
+    slab_from_sheet("slab", sheet, bubble(SPRITE_W, SPRITE_H, 0.12, 0.26, SPRITE_PD), SPRITE_T, SPRITE_ZC, SPRITE_FRONT, SPRITE_BACK, SPRITE_SIDE, (2752, 1536), bevel=0.02)
+    top = SPRITE_ZC + SPRITE_H / 2
+    # Lysene oppå (venstre forfra, høyre bakfra), brent ned.
+    for x, y, hgt in ((0.06, -SPRITE_W / 2 + 0.13, 0.12), (-0.07, SPRITE_W / 2 - 0.12, 0.14)):
+        cylinder("candle", (x, y, top + hgt / 2 - 0.02), 0.045, hgt, wax, vertices=12)
+        tube("candle_wick", (x, y, top + hgt - 0.03), (x, y, top + hgt + 0.01), 0.005, rubble, 5)
+        ellipsoid("wax_pool", (x, y, top), (0.08, 0.09, 0.03), wax, 12, 6)
+    # Steinbiter som har grodd fast oppå og bak.
+    import random
+    rng = random.Random(5)
+    for k in range(10):
+        x = rng.uniform(-SPRITE_T / 2 - 0.05, -0.02)
+        y, z = rng.uniform(-0.3, 0.38), rng.uniform(top - 0.25, top + 0.02)
+        sz = rng.uniform(0.05, 0.09)
+        ob = ellipsoid(f"rubble{k}", (x, y, z), (sz * rng.uniform(1.0, 1.5), sz * rng.uniform(1.0, 1.6), sz * rng.uniform(0.7, 1.1)), rubble, 7, 5)
+        ob.rotation_euler = (rng.uniform(-0.4, 0.4), rng.uniform(-0.4, 0.4), rng.uniform(0, 3))
+    # Undersida: et beinfeste der beina går inn i boblen.
+    ellipsoid("under", (0.0, 0, SPRITE_ZC - SPRITE_H / 2 + 0.02), (0.18, 0.26, 0.07), bone, 12, 6)
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in SPRITE_BONES}
+    for side in ("L", "R"):
+        for upper, lower, end in ((f"upper_arm.{side}", f"forearm.{side}", f"hand.{side}"), (f"thigh.{side}", f"shin.{side}", f"foot.{side}")):
+            a, k, e, tip = B[upper][0], B[lower][0], B[end][0], B[end][1]
+            bone_limb(f"leg_{upper}", [a, k, e], (0.03, 0.024), bone)
+            ellipsoid(f"leg_{upper}_knee", k, (0.04, 0.04, 0.045), bone, 10, 6)
+            tube(f"leg_{upper}_claw", e, tip + Vector((0, 0, -0.005)), 0.016, bone, 6)
+
+
+def build_sprite(size):
+    tooltip_sprite()
+    arm = armature("mutant_tooltip_rig", SPRITE_BONES)
+    mob_motion.make_clips(Clip, arm, SPRITE_BONES, "sprite", "bite")
+    bpy.context.scene.frame_end = 64
+    bake_textured(f"{OUT}/mutant_tooltip.glb", size, keep=("glass",), armature=arm, rigid=SPRITE_RIGID, skin={"blend": 0.03, "radii": WIGHT_RADII})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
