@@ -642,7 +642,128 @@ def build_priest(size):
     bake_textured(f"{OUT}/datepicker_priest.glb", size, keep=("glass", "magic"), armature=arm, rigid=PRIEST_RIGID, skin={"blend": 0.04, "radii": PRIEST_RADII})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048)}
+# --- Modalen ----------------------------------------------------------------
+#
+# Arket (`modal_body.jpeg`, 2752 × 1536): bossen i gravkjelleren, en
+# dialogboks på armerte bein med lukkeknappen (den glødende X-en) i panna,
+# et glødende rom av piksler og gravstein i buken, skulderplater med
+# gravstein og voks, en fillete kappe, beinarmer og store hansker med
+# Confirm og Cancel, og kabler bak. Figuren er 1197 px høy (220–1417) og
+# 1,6 m i modellen (spillet skalerer slaget til 1,5, `Kind::Modal`).
+
+MODAL_SHEET = os.path.join(REF, "modal_body.jpeg")
+MODAL_PX = 1.6 / (1417 - 220)
+MODAL_VIEWS = {"front": 594, "back": 2215, "side": 1465, "ground": 1417}
+MODAL_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.2), None),
+    ("hips", (0.0, 0, 0.55), (0.0, 0, 0.7), "root"),
+    ("chest", (0.0, 0, 0.7), (0.0, 0, 1.35), "hips"),
+    ("neck", (0.0, 0, 1.35), (0.03, 0, 1.4), "chest"),
+    ("head", (0.03, 0, 1.47), (0.23, 0, 1.47), "neck"),
+    ("jaw", (0.15, 0, 1.41), (0.21, 0, 1.39), "head"),
+    ("upper_arm.L", (0.0, 0.44, 1.12), (0.03, 0.5, 0.84), "chest"),
+    ("forearm.L", (0.03, 0.5, 0.84), (0.07, 0.5, 0.62), "upper_arm.L"),
+    ("hand.L", (0.07, 0.5, 0.62), (0.09, 0.5, 0.3), "forearm.L"),
+    ("upper_arm.R", (0.0, -0.44, 1.12), (0.03, -0.5, 0.84), "chest"),
+    ("forearm.R", (0.03, -0.5, 0.84), (0.07, -0.5, 0.62), "upper_arm.R"),
+    ("hand.R", (0.07, -0.5, 0.62), (0.09, -0.5, 0.3), "forearm.R"),
+    ("thigh.L", (0.0, 0.22, 0.55), (0.02, 0.29, 0.33), "hips"),
+    ("shin.L", (0.02, 0.29, 0.33), (-0.01, 0.29, 0.1), "thigh.L"),
+    ("foot.L", (-0.01, 0.29, 0.1), (0.15, 0.29, 0.0), "shin.L"),
+    ("thigh.R", (0.0, -0.22, 0.55), (0.02, -0.29, 0.33), "hips"),
+    ("shin.R", (0.02, -0.29, 0.33), (-0.01, -0.29, 0.1), "thigh.R"),
+    ("foot.R", (-0.01, -0.29, 0.1), (0.15, -0.29, 0.0), "shin.R"),
+    ("tail1", (-0.24, 0, 1.0), (-0.26, 0, 0.8), "chest"),
+    ("tail2", (-0.26, 0, 0.8), (-0.27, 0, 0.6), "tail1"),
+    ("tail3", (-0.27, 0, 0.6), (-0.28, 0, 0.4), "tail2"),
+]
+MODAL_RIGID = {
+    "box": "chest", "screen": "chest", "pauldron": "chest", "grave": "chest", "candle": "chest", "wax": "chest", "cloak": "chest", "pixel": "chest",
+    "lid": "head", "eye": "head", "skirt": "hips", "cable": "chest",
+    "gloveL": "hand.L", "gloveR": "hand.R", "bootL": "foot.L", "bootR": "foot.R",
+}
+MODAL_RADII = {"root": -1.0, "hips": -0.1, "chest": -0.25, "neck": -1.0, "head": -1.0, "jaw": -1.0, "tail1": -0.4, "tail2": -0.4, "tail3": -0.4}
+
+
+def modal():
+    sheet = sheet_material("modal_sheet", filled_sheet(MODAL_SHEET))
+    bone = material("bone", (0.8, 0.74, 0.6), 0.65)
+    weather(bone, 0.0, 1.0, 0.25, 12.0)
+    wax = material("wax", (0.86, 0.8, 0.66), 0.55)
+    cable = material("cable", (0.12, 0.13, 0.15), 0.5)
+    orange = material("magic_close", (1.0, 0.45, 0.12), 0.3)
+    cyan = material("magic_pixel", (0.4, 0.95, 1.0), 0.3)
+    magenta = material("magic_pixel_m", (0.95, 0.3, 1.0), 0.3)
+    px = MODAL_PX
+    sheeted = []
+    # Dialogboksen: kroppen, og tittellinja med lukkeknappen som hode.
+    sheeted.append(rounded_box("box", (-0.015, 0, 0.96), (0.42, 0.6, 0.82), sheet, radius=0.04, segments=3))
+    sheeted.append(rounded_box("lid", (-0.015, 0, 1.49), (0.44, 0.62, 0.24), sheet, radius=0.035, segments=3))
+    cylinder("eye_ring", (0.21, 0.0, 1.43), 0.07, 0.03, cable, rot=(0, math.pi / 2, 0), vertices=20)
+    cylinder("eye_disc", (0.225, 0.0, 1.43), 0.055, 0.012, orange, rot=(0, math.pi / 2, 0), vertices=20)
+    for k, a in enumerate((45, -45)):
+        box(f"eye_x{k}", (0.235, 0.0, 1.43), (0.012, 0.012, 0.075), orange, rot=(math.radians(a), 0, 0))
+    # Skulderplatene, med gravstein og voks oppå.
+    for sy in (1.0, -1.0):
+        sheeted.append(rounded_box(f"pauldron_{sy:+.0f}", (0.0, sy * 0.43, 1.24), (0.38, 0.26, 0.3), sheet, radius=0.04, rot=(-sy * math.radians(14), 0, 0)))
+        g = prism(f"grave_{sy:+.0f}", sheet, [(-0.06, -0.09), (0.06, -0.09), (0.06, 0.05), (0.0, 0.1), (-0.06, 0.05)], 0.05, 0.0)
+        g.location = (-0.04, sy * 0.47, 1.47)
+        g.rotation_euler = (-sy * 0.25, 0, 0)
+        sheeted.append(g)
+        for k, (dx, dy, h) in enumerate(((0.08, 0.02, 0.09), (0.02, -0.06, 0.06))):
+            cylinder(f"candle_{sy:+.0f}{k}", (dx, sy * (0.4 + dy), 1.41 + h / 2), 0.022, h, wax, vertices=8)
+        ellipsoid(f"wax_{sy:+.0f}", (0.05, sy * 0.4, 1.4), (0.16, 0.14, 0.05), wax, 10, 6)
+        # Kappa henger bak armene, fillete nederst.
+        cl = prism(f"cloak_{sy:+.0f}", sheet, [(-0.13, 0.32), (0.13, 0.32), (0.15, -0.1), (0.1, -0.06), (0.05, -0.16), (0.0, -0.08), (-0.06, -0.14), (-0.11, -0.04), (-0.15, -0.1)], 0.03, 0.0)
+        cl.location = (-0.1, sy * 0.45, 0.82)
+        sheeted.append(cl)
+    # Armene: beinarmer og store hansker med knappene.
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in MODAL_BONES}
+    for side in ("L", "R"):
+        sy = 1.0 if side == "L" else -1.0
+        sh, el, wr, tip = B[f"upper_arm.{side}"][0], B[f"forearm.{side}"][0], B[f"hand.{side}"][0], B[f"hand.{side}"][1]
+        bone_limb(f"arm_{side}", [sh, el, wr], (0.045, 0.038), bone)
+        tube(f"arm_{side}_ulna", el + Vector((-0.03, 0, 0)), wr + Vector((-0.03, 0, 0)), 0.025, bone, 8)
+        sheeted.append(rounded_box(f"glove{side}_cuff", (wr.x + 0.02, wr.y, 0.56), (0.24, 0.26, 0.15), sheet, radius=0.03))
+        sheeted.append(rounded_box(f"glove{side}_hand", (wr.x + 0.02, wr.y, 0.38), (0.2, 0.22, 0.2), sheet, radius=0.03))
+        for k, dx in enumerate((-0.06, 0.0, 0.06)):
+            sheeted.append(rounded_box(f"glove{side}_finger{k}", (wr.x + 0.02 + dx, wr.y, 0.25), (0.05, 0.2, 0.09), sheet, radius=0.015))
+        sheeted.append(rounded_box(f"glove{side}_thumb", (wr.x + 0.12, wr.y - sy * 0.08, 0.4), (0.05, 0.06, 0.13), sheet, radius=0.015))
+        # Beina: armerte lår og legger, kneskåler og støvler.
+        hip, knee, ankle, toe = B[f"thigh.{side}"][0], B[f"shin.{side}"][0], B[f"foot.{side}"][0], B[f"foot.{side}"][1]
+        sheeted.append(tube(f"leg_thigh_{side}", hip, knee, 0.1, sheet, 14))
+        sheeted.append(tube(f"leg_shin_{side}", knee, ankle + Vector((0, 0, 0.03)), 0.09, sheet, 14))
+        sheeted.append(rounded_box(f"leg_knee_{side}", knee + Vector((0.07, 0, 0)), (0.1, 0.19, 0.14), sheet, radius=0.03))
+        sheeted.append(rounded_box(f"boot{side}", (ankle.x + 0.04, ankle.y, 0.06), (0.32, 0.22, 0.12), sheet, radius=0.03))
+    # Skjørtet av fliller under boksen, foran beina.
+    sheeted.append(loft("skirt", sheet, [(0.6, 0.2, 0.2, 0.26), (0.42, 0.2, 0.2, 0.27)], n=20, jag=0.08, seed=3))
+    # Kablene bak, hengende fra boksen.
+    import random
+    rng = random.Random(11)
+    for k in range(6):
+        y0 = rng.uniform(-0.18, 0.18)
+        top = Vector((-0.22, y0, rng.uniform(1.2, 1.45)))
+        mid = Vector((-0.25 - rng.uniform(0, 0.03), y0 + rng.uniform(-0.05, 0.05), rng.uniform(0.75, 0.95)))
+        end = Vector((-0.25, y0 + rng.uniform(-0.05, 0.05), rng.uniform(0.25, 0.5)))
+        tube(f"cable_{k}a", top, mid, 0.014, cable, 6)
+        tube(f"cable_{k}b", mid, end, 0.014, cable, 6)
+    for k in range(8):
+        y = rng.choice((-1, 1)) * rng.uniform(0.31, 0.36)
+        box(f"pixel{k}", (rng.uniform(-0.1, 0.2), y, rng.uniform(0.6, 1.6)), (0.025, 0.025, 0.025), cyan if k % 2 else magenta)
+    bpy.context.view_layer.update()
+    for ob in sheeted:
+        project_sheet(ob, (2752, 1536), MODAL_VIEWS, px)
+
+
+def build_modal(size):
+    modal()
+    arm = armature("mutant_modal_rig", MODAL_BONES)
+    mob_motion.make_clips(Clip, arm, MODAL_BONES, "dialog", "slam")
+    bpy.context.scene.frame_end = 64
+    bake_textured(f"{OUT}/mutant_modal.glb", size, keep=("glass", "magic"), armature=arm, rigid=MODAL_RIGID, skin={"blend": 0.04, "radii": MODAL_RADII})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

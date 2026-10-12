@@ -112,3 +112,11 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 ## Runde 11 – dommen (12. oktober)
 
 - **Rett feilen overalt der den kan oppstå.** Vannbordene ble rettet på kirka og kryptinngangen, men ikke på Skriptoriet, som brukte den samme gamle funksjonen. Når en feil rettes ved roten, slettes den gamle funksjonen (`parapet`). Da må alle som brukte den, gå over til den nye (`roof_parapet`) med reglene.
+
+## Monstrene fra arkene (12. oktober)
+
+- **Arket legges på fra den visningen flaten vender mot.** `project_sheet` i `tools/models/monsters.py` gir hver flate uv inn i forfra-, bakfra- eller sidebildet. Sidebildet brukes bare når flaten vender mer enn 63° til siden; ellers drar det inn det som står foran i sidebildet (armen, en mørk glipe).
+- **Bakgrunnen fylles fra innsida av figuren.** Der en flate stikker litt utenfor omrisset, tar `filled_sheet` fargen fra nærmeste piksel inni figuren, ikke fra den mørke streken rundt. Hull i masken fylles først: grå partier inni kappa ligner bakgrunnen, og ble ellers flekker.
+- **`ellipsoid` tar diametre, ikke radier.** Skulderplatene og hetta til presten ble halvparten så store.
+- **Faste deler henger på sitt bein.** Hansker, støvler, kabler og staven settes stivt på hånda, foten eller brystet (`rigid`). Ellers vektes de etter avstand og dras med av leggen ved siden av.
+- **Skrittet følger beinlengden.** Med korte bein (Modalen) må tråkket være raskere og skrittet kortere, og hvileposen kan bare senkes litt. Ellers knekker knærne sammen. Armen med stav står i hvileposen (`hold`), så staven står loddrett.

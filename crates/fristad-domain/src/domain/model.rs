@@ -87,7 +87,6 @@ pub struct ModelInfo {
 /// strykes (testen `alle_modellnavn_finnes_eller_ventes`).
 pub const PLANNED: &[(&str, &str)] = &[
     ("mutant_input", "fiende (fase 5)"),
-    ("mutant_modal", "fiende (fase 5)"),
     ("mutant_table", "fiende (fase 5)"),
     ("framework", "sluttbossen Rammeverket (fase 5)"),
     ("token", "tokenene fiendene mister (fase 7)"),
