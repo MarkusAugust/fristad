@@ -291,6 +291,16 @@ def daylight(ob, inward):
     return ob
 
 
+def smooth(ob):
+    """Merk en del som rund: `finish` gir den myke normaler (alt annet er
+    flatt)."""
+    a = ob.data.attributes.new("keep_smooth", "BOOLEAN", "FACE")
+    for v in a.data:
+        v.value = True
+    ob.data.shade_smooth()
+    return ob
+
+
 def finish(path, ao_samples=160, max_edge=0.6):
     """Slå sammen delene, del store flater så okklusjonen får hjørner å
     bo i, bak AO til hjørnefargen, og eksporter."""
@@ -320,8 +330,11 @@ def finish(path, ao_samples=160, max_edge=0.6):
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
     bm.to_mesh(ob.data)
     bm.free()
+    # Flatt overalt, unntatt deler merket med `smooth()` (runde former som
+    # høystakken), som beholder myke normaler.
+    keep = ob.data.attributes.get("keep_smooth")
     for p in ob.data.polygons:
-        p.use_smooth = False
+        p.use_smooth = bool(keep and keep.data[p.index].value)
     # Okklusjonen til hjørnefargen.
     attr = ob.data.color_attributes.new("ao", "BYTE_COLOR", "POINT")
     ob.data.color_attributes.active_color = attr

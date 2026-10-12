@@ -5,7 +5,7 @@ Laget av `python3 -m tools.qa catalog` fra dataene (se `tools/qa/catalog.py`); r
 ## Oversikt
 
 - **Teksturer:** 82, 66 består teksturkontrollen (P-T), 27 har bare et malt bilde og er ikke tatt i bruk som lag.
-- **Modeller:** 127 i spillet: 48 godkjent, 72 underkjent, 7 ikke vurdert. 1 står ikke noe sted.
+- **Modeller:** 127 i spillet: 69 godkjent, 53 underkjent, 5 ikke vurdert. 1 står ikke noe sted.
 - **Ventes:** 32 modeller systemene venter på (fiender, figurer, våpen, dyr …).
 - **Forbilder:** 111 bilder, 34 brukt av et oppsett i sheet2model.
 
@@ -54,7 +54,7 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 
 | Bilde | Lag | Viser | Brukt av | P-T | Eierens dom |
 |---|---|---|---|---|---|
-| ![](katalog/t_ashlar.jpg) | `ashlar` (flis) | Hogde sandsteinsblokker i forband, beige og grå, lyse fuger. | `house_d`, `house_k`, `house_s`, `scriptorium` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_ashlar.jpg) | `ashlar` (flis) | Hogde sandsteinsblokker i forband, beige og grå, lyse fuger. | `house_d`, `house_k`, `house_m`, `house_s`, `scriptorium` | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_chimney.jpg) | `chimney` (flis) | Murt pipe av rød og grå tegl. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 19 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_church_boards.jpg) | `church_boards` (flis) | Tjærebredde, mørke stående bord (stavkirka). | `stave_church` | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_cladding.jpg) | `cladding` (flis) | Stående brune bord med fuger (kledning). | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 25 til | ok | **godkjent** (2026-10-11):  |
@@ -74,10 +74,10 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 | ![](katalog/t_pottery.jpg) | `pottery` (flis) (bare malt, ikke lag) | Oransje brent leire med glasurflekker (krukker). | ingen modell | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_rope.jpg) | `rope` (flis) (bare malt, ikke lag) | Snodd tau, liggende rader. | ingen modell | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_ruin.jpg) | `ruin` (flis) | Gammel, mosegrodd steinmur. | `portal_ring`, `portal_shard`, `crypt` | ok | **godkjent** (2026-10-11):  |
-| ![](katalog/t_shingles.jpg) | `shingles` (flis) | Spon, rødbrune og grå trespon (tak). | `house_e`, `house_g`, `house_j`, `house_q`, `house_t`, `wall_tower` og 3 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_shingles.jpg) | `shingles` (flis) | Spon, rødbrune og grå trespon (tak). | `house_g`, `house_j`, `house_q`, `house_t`, `wall_tower`, `gatehouse` og 2 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_shingles_tar.jpg) | `shingles_tar` (flis) | Tjærebredt, rundet spon i skjell (stavkirketaket). | `house_m`, `stave_church` | feil: megapiksler 1.00, skjøt 1.31 | **godkjent** (2026-10-11):  |
 | ![](katalog/t_signs.jpg) | `signs` (ark) (bare malt, ikke lag) | Fire hengeskilt: ambolt, ølkrus, morter, bok og fjær. | ingen modell | ok | **godkjent** (2026-10-11):  |
-| ![](katalog/t_slate.jpg) | `slate` (flis) | Skifer, blågrå med enkelte røde og grønne. | `house_b`, `house_k`, `house_p`, `apothecary`, `scriptorium`, `crypt` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_slate.jpg) | `slate` (flis) | Skifer, blågrå med enkelte røde og grønne. | `house_b`, `house_e`, `house_k`, `house_p`, `apothecary`, `scriptorium` og 1 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_stone.jpg) | `stone` (flis) | Grå kvadersteinsmur med runde steiner og mose. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 30 til | feil: skjøt 1.04 | **underkjent** (2026-10-11): skjøten er for dårlig |
 | ![](katalog/t_straw.jpg) | `straw` (flis) (bare malt, ikke lag) | Løs halm, lys. | ingen modell | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_straw_floor.jpg) | `straw_floor` (flis) | Halm strødd på et mørkt gulv. | `haystack`, `market_stall_b`, `tavern_interior`, `home_interior`, `apothecary_interior` | ok | **godkjent** (2026-10-11):  |
@@ -88,8 +88,8 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 | ![](katalog/t_trim.jpg) | `trim` (ark) | Trim-ark: utskåret list, profiler, tegl, nagleband, tau. | `house_a`, `house_b`, `house_c`, `house_d`, `house_e`, `house_f` og 31 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_wall_stone.jpg) | `wall_stone` (flis) | Kløyvd naturstein i blå, grå og rustrøde toner. | `town_wall`, `wall_tower`, `gatehouse`, `market_cross`, `lantern_post`, `signpost` og 9 til | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_wattle.jpg) | `wattle` (flis) | Flettverk av kvister mellom stolper. | `garden`, `wattle_fence`, `rail_fence`, `forge`, `apothecary_interior` | ok | **godkjent** (2026-10-11):  |
-| ![](katalog/t_weatherboard.jpg) | `weatherboard` (flis) | Liggende kledningsbord, brune og grå. | `house_e`, `house_m`, `shed_a`, `shed_b`, `coop`, `wall_tower` og 12 til | ok | **godkjent** (2026-10-11):  |
-| ![](katalog/t_weatherboard_grey.jpg) | `weatherboard_grey` (flis) | Liggende gråværede kledningsbord. | `shed_a`, `shed_b`, `privy`, `coop` | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_weatherboard.jpg) | `weatherboard` (flis) | Liggende kledningsbord, brune og grå. | `shed_a`, `shed_b`, `coop`, `wall_tower`, `gatehouse`, `market_stall` og 10 til | ok | **godkjent** (2026-10-11):  |
+| ![](katalog/t_weatherboard_grey.jpg) | `weatherboard_grey` (flis) | Liggende gråværede kledningsbord. | `house_e`, `shed_a`, `shed_b`, `privy`, `coop` | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_wicker.jpg) | `wicker` (flis) (bare malt, ikke lag) | Flettet kurv. | ingen modell | ok | **godkjent** (2026-10-11):  |
 | ![](katalog/t_windows.jpg) | `windows` (ark) (bare malt, ikke lag) | Fire vinduer: blyglass med karm, med skodder, rundbuet i stein, gjenspikret. | ingen modell | ok | **godkjent** (2026-10-11):  |
 
@@ -228,35 +228,35 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 
 | Bilde | Navn (fil) | Hva | Står ute | Trekanter | Mål (m) | Teksturlag | Eierens dom |
 |---|---|---|---|---|---|---|---|
-| ![](katalog/m_house_a.jpg) | `house_a` (town/house_a.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 796 | 8.2 × 15.2 × 10.8 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): stor åpning mellom etasjene |
-| ![](katalog/m_house_b.jpg) | `house_b` (town/house_b.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 716 | 10.8 × 13.4 × 9.6 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): glippe/sprekk mellom etasjene |
-| ![](katalog/m_house_c.jpg) | `house_c` (town/house_c.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 552 | 8.8 × 8.8 × 9.1 | chimney  cladding  door  iron  logs … | **underkjent** (2026-10-11): brune kanter stikker opp fra taket |
-| ![](katalog/m_house_d.jpg) | `house_d` (town/house_d.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 624 | 8.2 × 19.3 × 11.8 | ashlar  chimney  cladding  door  iron … | **underkjent** (2026-10-11): bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen? |
-| ![](katalog/m_house_e.jpg) | `house_e` (town/house_e.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 848 | 11.4 × 12.6 × 9.0 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): det svever over bakken. dårlig fargepalett. alt er brunt? |
-| ![](katalog/m_house_f.jpg) | `house_f` (town/house_f.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 9.1 × 15.1 × 11.0 | chimney  cladding  door  iron  plaster … | **usikker** (2026-10-11): døren er hvit. hvorfor? |
-| ![](katalog/m_house_g.jpg) | `house_g` (town/house_g.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 300 | 7.5 × 15.6 × 10.4 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): glippe mellom etasjene |
+| ![](katalog/m_house_a.jpg) | `house_a` (town/house_a.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 796 | 8.2 × 15.2 × 10.8 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_b.jpg) | `house_b` (town/house_b.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 716 | 10.8 × 13.4 × 9.6 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_c.jpg) | `house_c` (town/house_c.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 552 | 8.8 × 8.8 × 9.1 | chimney  cladding  door  iron  logs … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_d.jpg) | `house_d` (town/house_d.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 624 | 8.2 × 19.3 × 11.8 | ashlar  chimney  cladding  door  iron … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_e.jpg) | `house_e` (town/house_e.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 848 | 11.4 × 12.6 × 9.0 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_f.jpg) | `house_f` (town/house_f.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 9.1 × 15.1 × 11.0 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_g.jpg) | `house_g` (town/house_g.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 300 | 7.5 × 15.6 × 10.4 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_house_h.jpg) | `house_h` (town/house_h.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 108 | 10.0 × 10.0 × 8.6 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-11):  |
-| ![](katalog/m_house_i.jpg) | `house_i` (town/house_i.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 9.4 × 14.1 × 10.8 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom/sprekk mellom etasjene. |
+| ![](katalog/m_house_i.jpg) | `house_i` (town/house_i.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 020 | 9.4 × 14.1 × 10.8 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_house_j.jpg) | `house_j` (town/house_j.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 3 416 | 7.8 × 9.1 × 8.4 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-11):  |
 | ![](katalog/m_house_k.jpg) | `house_k` (town/house_k.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 432 | 11.8 × 13.4 × 10.1 | ashlar  chimney  cladding  door  iron … | **godkjent** (2026-10-11):  |
-| ![](katalog/m_house_l.jpg) | `house_l` (town/house_l.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 12 304 | 8.7 × 20.2 × 12.6 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt  det er feil på mange av husene |
-| ![](katalog/m_house_m.jpg) | `house_m` (town/house_m.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 6 588 | 9.2 × 13.3 × 9.4 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): det ser fortsatt ut som at det er en synlig sprekk mellom etasjene? |
-| ![](katalog/m_house_n.jpg) | `house_n` (town/house_n.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 508 | 10.6 × 14.0 × 10.0 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): hvorfor er det en sånn rar kant mellom første og andre etasje? |
+| ![](katalog/m_house_l.jpg) | `house_l` (town/house_l.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 12 304 | 8.7 × 20.2 × 12.6 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_m.jpg) | `house_m` (town/house_m.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 6 588 | 9.2 × 13.3 × 9.4 | ashlar  chimney  cladding  door_b  iron … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_n.jpg) | `house_n` (town/house_n.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 9 508 | 10.6 × 14.0 × 10.0 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_house_o.jpg) | `house_o` (town/house_o.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 5 048 | 7.6 × 9.2 × 8.2 | chimney  cladding  door  iron  logs … | **godkjent** (2026-10-11):  |
-| ![](katalog/m_house_p.jpg) | `house_p` (town/house_p.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 844 | 8.4 × 15.5 × 11.3 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): mellomrom mellom etasjene fortsatt. |
-| ![](katalog/m_house_q.jpg) | `house_q` (town/house_q.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 704 | 11.0 × 12.4 × 9.0 | chimney  cladding  door  iron  plaster … | **underkjent** (2026-10-11): grunnmuren svever over bakken |
-| ![](katalog/m_house_r.jpg) | `house_r` (town/house_r.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 436 | 8.8 × 14.6 × 10.6 | chimney  cladding  door_b  iron  plaster … | **underkjent** (2026-10-11): andre etasje flyr over første etasje |
-| ![](katalog/m_house_s.jpg) | `house_s` (town/house_s.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 608 | 8.1 × 20.0 × 12.0 | ashlar  chimney  cladding  door_b  iron … | **underkjent** (2026-10-11): andre etasje flyr over første etasje |
+| ![](katalog/m_house_p.jpg) | `house_p` (town/house_p.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 844 | 8.4 × 15.5 × 11.3 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_q.jpg) | `house_q` (town/house_q.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 4 704 | 11.0 × 12.4 × 9.0 | chimney  cladding  door  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_r.jpg) | `house_r` (town/house_r.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 8 436 | 8.8 × 14.6 × 10.6 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_house_s.jpg) | `house_s` (town/house_s.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 1× | 10 608 | 8.1 × 20.0 × 12.0 | ashlar  chimney  cladding  door_b  iron … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_house_t.jpg) | `house_t` (town/house_t.glb) | Vanlig hus fra byggesettet (byen eller bondegårdene). | 2× | 4 892 | 9.8 × 9.7 × 8.6 | chimney  cladding  door_b  iron  plaster … | **godkjent** (2026-10-11):  |
-| ![](katalog/m_shed_a.jpg) | `shed_a` (town/shed_a.glb) | Uthus. | 7× | 372 | 3.9 × 3.7 × 3.3 | door_b  stone  timber_grey  trim  weatherboard … | **underkjent** (2026-10-11): noe stikker opp gjennom taket. feil tekstur på taket. |
-| ![](katalog/m_shed_b.jpg) | `shed_b` (town/shed_b.glb) | Uthus  variant. | 7× | 4 188 | 4.3 × 3.6 × 2.7 | logs  stone  timber_grey  weatherboard  weatherboard_grey | **underkjent** (2026-10-11): hva slags tak er det der? ser ikke passende ut |
-| ![](katalog/m_privy.jpg) | `privy` (town/privy.glb) | Utedo. | 9× | 288 | 1.7 × 3.4 × 1.7 | cladding  door  stone  trim  weatherboard_grey | **underkjent** (2026-10-11): noe stikker opp gjennom taket. feil tekstur på taket. |
-| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 446 | 3.4 × 4.1 × 3.0 | straw_floor  timber_grey | **underkjent** (2026-10-11): det ser ut som stråtaket er brukt til dette. det passer ikke. |
-| ![](katalog/m_garden.jpg) | `garden` (town/garden.glb) | Kjøkkenhage med gjerde. | 6× | 1 440 | 4.1 × 1.6 × 3.1 | earth  sod  timber_grey  wattle | **usikker** (2026-10-11): greit kanskje  men gjerdet flyr jo |
-| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 316 | 2.2 × 2.7 × 2.7 | planks  timber_grey  weatherboard  weatherboard_grey | **underkjent** (2026-10-11): noe stikker opp gjennom taket. feil tekstur på taket. |
+| ![](katalog/m_shed_a.jpg) | `shed_a` (town/shed_a.glb) | Uthus. | 7× | 372 | 3.9 × 3.7 × 3.3 | door_b  stone  timber_grey  trim  weatherboard … | **godkjent** (2026-10-12):  |
+| ![](katalog/m_shed_b.jpg) | `shed_b` (town/shed_b.glb) | Uthus  variant. | 7× | 4 188 | 4.3 × 3.6 × 2.7 | logs  stone  timber_grey  weatherboard  weatherboard_grey | **godkjent** (2026-10-12):  |
+| ![](katalog/m_privy.jpg) | `privy` (town/privy.glb) | Utedo. | 9× | 288 | 1.7 × 3.4 × 1.7 | cladding  door  stone  trim  weatherboard_grey | **godkjent** (2026-10-12):  |
+| ![](katalog/m_haystack.jpg) | `haystack` (town/haystack.glb) | Høystakk (bondegårdene). | 7× | 446 | 3.4 × 4.1 × 3.0 | straw_floor  timber_grey | **underkjent** (2026-10-12): ser bra ut fra noen vinkler men ikke alle |
+| ![](katalog/m_garden.jpg) | `garden` (town/garden.glb) | Kjøkkenhage med gjerde. | 6× | 1 440 | 4.1 × 1.6 × 3.1 | earth  sod  timber_grey  wattle | **godkjent** (2026-10-12):  |
+| ![](katalog/m_coop.jpg) | `coop` (town/coop.glb) | Hønsehus (bondegårdene). | 8× | 316 | 2.2 × 2.7 × 2.7 | planks  timber_grey  weatherboard  weatherboard_grey | **underkjent** (2026-10-12): planken opp  eller trappen hvis du kan kalle det det  ser rar ut. er den dreid på skrå? de fire bena står utenfor hjørnene  de må flyttes inn under kassen  slik at de står under hjørnene litt innenfor kanten |
 | ![](katalog/m_town_wall.jpg) | `town_wall` (town/town_wall.glb) | Bymuren  en bit. | 46× | 1 522 | 6.2 × 8.5 × 2.5 | flagstone  stone  wall_stone | **godkjent** (2026-10-11):  |
 | ![](katalog/m_wall_tower.jpg) | `wall_tower` (town/wall_tower.glb) | Tårn i bymuren. | 10× | 4 518 | 9.4 × 20.8 × 9.4 | flagstone  iron  shingles  stone  timber … | **godkjent** (2026-10-11):  |
-| ![](katalog/m_gatehouse.jpg) | `gatehouse` (town/gatehouse.glb) | Porthuset der Storgata møter bymuren. | 2× | 9 678 | 14.9 × 19.1 × 7.1 | door_b  flagstone  iron  shingles  stone … | **underkjent** (2026-10-11): fjern den bruke horisontale saken midt i porten |
+| ![](katalog/m_gatehouse.jpg) | `gatehouse` (town/gatehouse.glb) | Porthuset der Storgata møter bymuren. | 2× | 9 678 | 14.9 × 19.1 × 7.1 | door_b  flagstone  iron  shingles  stone … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_market_cross.jpg) | `market_cross` (town/market_cross.glb) | Torgkorset. | 1× | 982 | 2.4 × 4.5 × 2.4 | flagstone  iron  linen  timber_grey  wall_stone | **underkjent** (2026-10-11): ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette |
 | ![](katalog/m_market_stall.jpg) | `market_stall` (town/market_stall.glb) | Markedsbod med stripet tak. | 1× | 3 050 | 3.4 × 2.9 × 2.0 | linen  timber  timber_grey  trim  weatherboard | **godkjent** (2026-10-11):  |
 | ![](katalog/m_market_stall_b.jpg) | `market_stall_b` (town/market_stall_b.glb) | Markedsbod  variant. | 1× | 3 006 | 3.4 × 2.8 × 1.8 | linen  straw_floor  timber  timber_grey  trim … | **godkjent** (2026-10-11):  |
@@ -282,9 +282,9 @@ P-T: kilden stor nok, uten ramme og med jevnt lys; laget flisbart og skarpt (`to
 | ![](katalog/m_portal_runes.jpg) | `portal_runes` (town/portal_runes.glb) | Portalens glødende runer. | posert av spillet | 2 156 | 3.0 × 2.9 × 0.0 | bakt tekstur | **godkjent** (2026-10-11):  |
 | ![](katalog/m_portal_swirl.jpg) | `portal_swirl` (town/portal_swirl.glb) | Portalens virvel. | posert av spillet | 7 740 | 2.2 × 2.2 × 0.1 | bakt tekstur | **godkjent** (2026-10-11):  |
 | ![](katalog/m_portal_shard.jpg) | `portal_shard` (town/portal_shard.glb) | Svevende splint rundt portalen. | posert av spillet | 18 | 0.1 × 0.3 × 0.1 | ruin | **underkjent** (2026-10-11): jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut |
-| ![](katalog/m_forge.jpg) | `forge` (town/forge.glb) | Smia på torget (øst): utsida. | 1× | 9 187 | 10.5 × 7.8 × 10.4 | chimney  cladding  door  door_b  flagstone … | **godkjent** (2026-10-11):  |
+| ![](katalog/m_forge.jpg) | `forge` (town/forge.glb) | Smia på torget (øst): utsida. | 1× | 9 187 | 10.5 × 7.8 × 10.4 | chimney  cladding  door  door_b  flagstone … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_forge_interior.jpg) | `forge_interior` (town/forge_interior.glb) | Smia: innsida med esse og ambolt. | 1× | 2 292 | 7.8 × 3.1 × 5.0 | cladding  door_b  iron  linen  planks … | **usikker** (2026-10-11): jeg ser på modellen av huset at det er gips/plaster opp under mønet i endeveggen. det skal være stein hele feilen opp. |
-| ![](katalog/m_tavern.jpg) | `tavern` (town/tavern.glb) | Vertshuset på torget (vest): utsida. | 1× | 13 400 | 14.9 × 14.7 × 11.9 | chimney  cladding  door  door_b  iron … | **underkjent** (2026-10-11): de spinkle vinduskarmene passer ikke til det voldsomme bindingsverket i veggene |
+| ![](katalog/m_tavern.jpg) | `tavern` (town/tavern.glb) | Vertshuset på torget (vest): utsida. | 1× | 13 400 | 14.9 × 14.7 × 11.9 | chimney  cladding  door  door_b  iron … | **godkjent** (2026-10-12):  |
 | ![](katalog/m_tavern_interior.jpg) | `tavern_interior` (town/tavern_interior.glb) | Vertshuset: skjenkestue  kjøkken  kjeller og sovesal. | 1× | 18 942 | 11.4 × 14.9 × 9.5 | cladding  door_b  flagstone  iron  leather … | **underkjent** (2026-10-11): det er tønner i veggene.ingen pynt på veggene. trappen er for nær veggen |
 | ![](katalog/m_home.jpg) | `home` (town/home.glb) | Spillerens hus på sørsida av torget: utsida. | 1× | 15 692 | 10.2 × 8.6 × 9.4 | chimney  cladding  door  iron  oak_planed … | **godkjent** (2026-10-11):  |
 | ![](katalog/m_home_interior.jpg) | `home_interior` (town/home_interior.glb) | Spillerens hus: innsida med galleriveggen og senga. | 1× | 4 963 | 7.8 × 3.3 × 6.4 | cladding  iron  linen  logs  oak_planed … | **underkjent** (2026-10-11): tønne i veggen fortsatt. hyller overlapper vinduet. her har du ikke adressert problemet i det hele tatt. |

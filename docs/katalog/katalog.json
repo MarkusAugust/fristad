@@ -108,11 +108,11 @@
     "door_b",
     "iron",
     "plaster",
-    "shingles",
+    "slate",
     "stone",
     "timber",
     "trim",
-    "weatherboard"
+    "weatherboard_grey"
    ],
    "size": [
     11.43,
@@ -294,6 +294,7 @@
    "reserve": 0,
    "triangles": 6588,
    "layers": [
+    "ashlar",
     "chimney",
     "cladding",
     "door_b",
@@ -303,8 +304,7 @@
     "shingles_tar",
     "stone",
     "timber",
-    "trim",
-    "weatherboard"
+    "trim"
    ],
    "size": [
     9.23,
@@ -2468,6 +2468,7 @@
    "users": [
     "house_d",
     "house_k",
+    "house_m",
     "house_s",
     "scriptorium"
    ]
@@ -3740,7 +3741,6 @@
    "ok": true,
    "failed": [],
    "users": [
-    "house_e",
     "house_g",
     "house_j",
     "house_q",
@@ -3796,6 +3796,7 @@
    "failed": [],
    "users": [
     "house_b",
+    "house_e",
     "house_k",
     "house_p",
     "apothecary",
@@ -4186,8 +4187,6 @@
    "ok": true,
    "failed": [],
    "users": [
-    "house_e",
-    "house_m",
     "shed_a",
     "shed_b",
     "coop",
@@ -4218,6 +4217,7 @@
    "ok": true,
    "failed": [],
    "users": [
+    "house_e",
     "shed_a",
     "shed_b",
     "privy",

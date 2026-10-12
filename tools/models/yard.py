@@ -22,7 +22,7 @@ import kit  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import box, stick  # noqa: E402
-from mathutils import Vector  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 from town import collide, layer  # noqa: E402
 
 OUT = "assets/models/town"
@@ -150,10 +150,10 @@ def privy(p, rng):
 
 
 def haystack(p, rng):
-    hay = layer("straw_floor")  # løs høy, ikke stråtak (eieren)
+    hay = layer("straw_floor", rough=0.95)  # løs, matt høy, ikke stråtak (eieren)
     bm = bmesh.new()
     uvl = bm.loops.layers.uv.verify()
-    n, rings = 12, 6
+    n, rings = 28, 6
     prof = [(1.25, -0.5), (1.3, 0.0), (1.45, 0.5), (1.4, 1.2), (1.15, 1.9), (0.75, 2.5), (0.3, 2.9), (0.0, 3.05)]
     rows = []
     for k, (r, z) in enumerate(prof):
@@ -170,11 +170,22 @@ def haystack(p, rng):
                 bm.faces.new((a[i], a[j], b[j], b[i]))
     bm.faces.new(rows[0][::-1])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    # Uv rundt stakken i meter langs omkretsen, regnet per flate så den
+    # ikke hopper der vinkelen går fra +π til −π (eieren: «ser bra ut fra
+    # noen vinkler men ikke alle»).
     for f in bm.faces:
-        for lp in f.loops:
+        angs = [math.atan2(lp.vert.co.y, lp.vert.co.x) for lp in f.loops]
+        ref = angs[0]
+        for lp, ang in zip(f.loops, angs):
+            while ang - ref > math.pi:
+                ang -= 2 * math.pi
+            while ang - ref < -math.pi:
+                ang += 2 * math.pi
             c = lp.vert.co
-            lp[uvl].uv = (math.atan2(c.y, c.x) * 1.4, -c.z)
-    kit._object("haystack", bm, hay)
+            lp[uvl].uv = (ang * 1.3, -c.z)
+    stack = kit._object("haystack", bm, hay)
+    # Rund, ikke kantete: myke normaler over hele stakken.
+    town.smooth(stack)
     stick("pole", (0, 0, 2.6), (0, 0, 3.6), 0.1, 0.1, p.timber, ("timber", 0))
     # Stigen inntil.
     for sx in (-0.25, 0.25):
@@ -219,7 +230,9 @@ def coop(p, rng):
     x0, x1, y0, y1 = -w / 2, w / 2, -d / 2, d / 2
     for x in (x0, x1):
         for y in (y0, y1):
-            stick("leg", (x, y, -0.5), (x, y, 0.6), 0.1, 0.1, p.timber, ("timber", rng.randrange(4)))
+            # Rett under hjørnene, litt innenfor kanten (eieren).
+            ix, iy = x - math.copysign(0.12, x), y - math.copysign(0.12, y)
+            stick("leg", (ix, iy, -0.5), (ix, iy, 0.6), 0.1, 0.1, p.timber, ("timber", rng.randrange(4)))
     box("floor", (x0, y0, 0.6), (x1, y1, 0.68), p.floor)
     under = lean_roof(p, x0, x1, y0, y1, 0.7 + h, 0.95 + h, over=0.2)
     slope_wall("coop_wall", (x0, y0), (x1, y0), 0.68, under(y0), under(y0), 0.06, p.boards, [(w / 2 - 0.2, w / 2 + 0.2, 0.68, 1.05)])
@@ -231,7 +244,13 @@ def coop(p, rng):
     # (eieren: «material for brua er feil»).
     board = layer("weatherboard_grey", (0.6, 0.55, 0.5))
     a, b = Vector((0, y0 - 1.0, -0.05)), Vector((0, y0, 0.66))
-    stick("ramp", a, b, 0.4, 0.04, board, bevel=0)
+    # Fast retning: bredden ligger vannrett på tvers (ikke vridd på skrå).
+    ramp = stick("ramp", a, b, 0.4, 0.04, board, bevel=0)
+    X = (b - a).normalized()
+    Y = Vector((1.0, 0.0, 0.0))
+    m = Matrix((X, Y, X.cross(Y))).transposed().to_4x4()
+    m.translation = (a + b) / 2
+    ramp.matrix_world = m
     n = (b - a).normalized().cross(Vector((1, 0, 0))) * -0.035
     for k in range(1, 7):
         q = a + (b - a) * k / 7 + n

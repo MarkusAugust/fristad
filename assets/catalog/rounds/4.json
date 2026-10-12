@@ -1,0 +1,25 @@
+{
+ "_om": "Runde 4: hønsehuset og høystakken etter eierens punkter i runde 3.",
+ "round": 4,
+ "before": "4325c6d",
+ "fix": {
+  "legs": "Beina står rett under hjørnene, 12 cm innenfor kanten.",
+  "ramp": "Brua har fast retning: bordet ligger vannrett på tvers og går rett opp til luka, med tverrlister.",
+  "roof": "Taket er mørke, værbitte bord som før (godkjent på uthusene).",
+  "hay": "Høystakken er rund og jevn fra alle kanter: 28 sider i stedet for 12, myke overganger i stedet for flate fasetter, og teksturen går rundt uten hopp (sømmen synes ikke lenger fra én vinkel)."
+ },
+ "items": {
+  "coop": {
+   "fix": [
+    "legs",
+    "ramp",
+    "roof"
+   ]
+  },
+  "haystack": {
+   "fix": [
+    "hay"
+   ]
+  }
+ }
+}

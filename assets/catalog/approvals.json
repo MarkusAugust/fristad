@@ -669,11 +669,12 @@
   },
   "coop": {
    "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "date": "2026-10-12",
+   "why": "planken opp, eller trappen hvis du kan kalle det det, ser rar ut. er den dreid på skrå? de fire bena står utenfor hjørnene, de må flyttes inn under kassen, slik at de står under hjørnene litt innenfor kanten",
    "history": [
     "det er noe galt med taket. material for brua er feil. material for taket er feil.",
-    "noe stikker opp gjennom taket. feil tekstur på taket."
+    "noe stikker opp gjennom taket. feil tekstur på taket.",
+    "planken opp, eller trappen hvis du kan kalle det det, ser rar ut. er den dreid på skrå? de fire bena står utenfor hjørnene, de må flyttes inn under kassen, slik at de står under hjørnene litt innenfor kanten"
    ]
   },
   "crate": {
@@ -683,7 +684,7 @@
   },
   "forge": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-12",
    "why": "",
    "before": {
     "verdict": "underkjent",
@@ -783,17 +784,27 @@
    "why": ""
   },
   "garden": {
-   "verdict": "usikker",
-   "date": "2026-10-11",
-   "why": "greit kanskje, men gjerdet flyr jo",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-11",
+    "why": "greit kanskje, men gjerdet flyr jo"
+   },
    "history": [
     "greit kanskje, men gjerdet flyr jo"
    ]
   },
   "gatehouse": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "fjern den bruke horisontale saken midt i porten",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "fjern den bruke horisontale saken midt i porten"
+   },
    "history": [
     "hva er den platen midt i åpningen? horisontal brun strek. det må bort.. vet ikke hvorfor det er der...",
     "fjern den bruke horisontale saken midt i porten"
@@ -801,10 +812,11 @@
   },
   "haystack": {
    "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "det ser ut som stråtaket er brukt til dette. det passer ikke.",
+   "date": "2026-10-12",
+   "why": "ser bra ut fra noen vinkler men ikke alle",
    "history": [
-    "det ser ut som stråtaket er brukt til dette. det passer ikke."
+    "det ser ut som stråtaket er brukt til dette. det passer ikke.",
+    "ser bra ut fra noen vinkler men ikke alle"
    ]
   },
   "home": {
@@ -830,31 +842,41 @@
    ]
   },
   "house_a": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "stor åpning mellom etasjene",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "stor åpning mellom etasjene"
+   },
    "history": [
     "bindingsverket ser merkelig ut. glippe midt mellom etasjene",
     "stor åpning mellom etasjene"
    ]
   },
   "house_b": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "glippe/sprekk mellom etasjene",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "glippe/sprekk mellom etasjene"
+   },
    "history": [
     "bindingsverket ser merkelig ut. glippe midt mellom etasjene",
     "glippe/sprekk mellom etasjene"
    ]
   },
   "house_c": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "brune kanter stikker opp fra taket",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-11",
-    "why": "så det svever vel ikke over bakken?"
+    "why": "brune kanter stikker opp fra taket"
    },
    "history": [
     "så det svever vel ikke over bakken?",
@@ -862,34 +884,54 @@
    ]
   },
   "house_d": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?"
+   },
    "history": [
     "bindingsverket ser dårlig ut",
     "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?"
    ]
   },
   "house_e": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "det svever over bakken. dårlig fargepalett. alt er brunt?",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "det svever over bakken. dårlig fargepalett. alt er brunt?"
+   },
    "history": [
     "det svever over bakken. dårlig fargepalett. alt er brunt?"
    ]
   },
   "house_f": {
-   "verdict": "usikker",
-   "date": "2026-10-11",
-   "why": "døren er hvit. hvorfor?",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-11",
+    "why": "døren er hvit. hvorfor?"
+   },
    "history": [
     "døren er hvit. hvorfor?"
    ]
   },
   "house_g": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "glippe mellom etasjene",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "glippe mellom etasjene"
+   },
    "history": [
     "glippe mellom etasjene"
    ]
@@ -908,9 +950,14 @@
    ]
   },
   "house_i": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "mellomrom/sprekk mellom etasjene.",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "mellomrom/sprekk mellom etasjene."
+   },
    "history": [
     "mellomrom mellom etasjene. hvit dør",
     "mellomrom/sprekk mellom etasjene."
@@ -943,27 +990,42 @@
    ]
   },
   "house_l": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene"
+   },
    "history": [
     "bindingsverket ser dårlig ut. hvorfor er det pipemurstein i første etasje?",
     "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene"
    ]
   },
   "house_m": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?"
+   },
    "history": [
     "mellomrom mellom etasjene. hvit dør. sjekk materialvalgene",
     "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?"
    ]
   },
   "house_n": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "hvorfor er det en sånn rar kant mellom første og andre etasje?",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "hvorfor er det en sånn rar kant mellom første og andre etasje?"
+   },
    "history": [
     "mellomrom mellom etasjene",
     "hvorfor er det en sånn rar kant mellom første og andre etasje?"
@@ -983,36 +1045,56 @@
    ]
   },
   "house_p": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "mellomrom mellom etasjene fortsatt.",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "mellomrom mellom etasjene fortsatt."
+   },
    "history": [
     "mellomrom mellom etasjene",
     "mellomrom mellom etasjene fortsatt."
    ]
   },
   "house_q": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "grunnmuren svever over bakken",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "grunnmuren svever over bakken"
+   },
    "history": [
     "svever over bakken. hvit dør",
     "grunnmuren svever over bakken"
    ]
   },
   "house_r": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "andre etasje flyr over første etasje",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "andre etasje flyr over første etasje"
+   },
    "history": [
     "mellomrom mellom etasjene.",
     "andre etasje flyr over første etasje"
    ]
   },
   "house_s": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "andre etasje flyr over første etasje",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "andre etasje flyr over første etasje"
+   },
    "history": [
     "mellomrom mellom etasjene. hvit dør. hvorfor er det hvite dører overalt?",
     "andre etasje flyr over første etasje"
@@ -1209,9 +1291,14 @@
    "why": ""
   },
   "privy": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "noe stikker opp gjennom taket. feil tekstur på taket."
+   },
    "history": [
     "hvit dør. merkelig feil i taket. feil materialvalg for tak.",
     "noe stikker opp gjennom taket. feil tekstur på taket."
@@ -1242,18 +1329,28 @@
    ]
   },
   "shed_a": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "noe stikker opp gjennom taket. feil tekstur på taket."
+   },
    "history": [
     "døren er feil. hvit?",
     "noe stikker opp gjennom taket. feil tekstur på taket."
    ]
   },
   "shed_b": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "hva slags tak er det der? ser ikke passende ut",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "hva slags tak er det der? ser ikke passende ut"
+   },
    "history": [
     "hva slags tak er det der? ser ikke passende ut"
    ]
@@ -1269,13 +1366,13 @@
    "why": ""
   },
   "tavern": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "de spinkle vinduskarmene passer ikke til det voldsomme bindingsverket i veggene",
+   "verdict": "godkjent",
+   "date": "2026-10-12",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-11",
-    "why": "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp."
+    "why": "de spinkle vinduskarmene passer ikke til det voldsomme bindingsverket i veggene"
    },
    "history": [
     "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp.",
