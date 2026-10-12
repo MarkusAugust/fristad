@@ -309,3 +309,54 @@ fn handtakene_drar() {
     let yaw = crate::domain::world::layout::Pose::of(s.editor().unwrap().pose_of(&Ref::Town(barrel)).unwrap()).yaw() - d.layout.items[barrel].at.unwrap().yaw();
     assert!((yaw - 0.4).abs() < 0.05, "dreid {yaw}");
 }
+
+/// Katalogen i redigeringen: husene for seg, gjenstandene for seg, og
+/// delene spillet beveger og innsidene av husene er ikke med.
+#[test]
+fn katalogen_har_kategorier() {
+    use crate::adapters::data::{buildings, category};
+    let b = buildings();
+    let cat = |name: &str| {
+        let path = crate::adapters::gltf::model_files().find(|(n, _)| *n == name).map(|(_, p)| p).unwrap_or_else(|| panic!("{name} finnes ikke"));
+        category(name, path, &b)
+    };
+    for h in ["stave_church", "tavern", "house_a", "crypt", "home"] {
+        assert_eq!(cat(h), Some("Hus"), "{h}");
+    }
+    for g in ["market_cross", "well", "barrel", "cart", "signpost"] {
+        assert_eq!(cat(g), Some("Gjenstander"), "{g}");
+    }
+    assert_eq!(cat("stone_fence"), Some("Gjerder"));
+    assert_eq!(cat("town_wall"), Some("Mur og porter"));
+    assert_eq!(cat("barrel_rack"), Some("Møbler"));
+    for none in ["tavern_interior", "chest_lid", "well_rope", "gallery_button", "portal_ring"] {
+        assert_eq!(cat(none), None, "{none}");
+    }
+}
+
+/// Kirkas boks dekker steingjerdet ved siden av: første klikk gir kirka,
+/// klikk på samme sted igjen (eller Tab) gir gjerdet, og så kirka igjen.
+#[test]
+fn klikk_igjen_gir_det_neste_under_pekeren() {
+    use crate::domain::world::layout::Ref;
+    use glam::Vec3;
+    let mut e = editor();
+    let church = e.layout.items.iter().position(|it| it.model.as_deref() == Some("stave_church")).unwrap();
+    let (t, c, h) = e.box_of(&Ref::Town(church)).unwrap();
+    let inv = t.inverse();
+    // Et steingjerde med foten inni kirkas boks.
+    let fence = (0..e.layout.items.len())
+        .filter(|i| e.layout.items[*i].model.as_deref() == Some("stone_fence"))
+        .find(|i| {
+            let p = inv.transform_point3(Vec3::from(e.pose_of(&Ref::Town(*i)).unwrap().translation) + Vec3::Y * 0.3) - c;
+            p.abs().cmple(h).all()
+        })
+        .expect("et steingjerde inni kirkas boks");
+    let top = Vec3::from(e.pose_of(&Ref::Town(fence)).unwrap().translation) + Vec3::Y * 40.0;
+    let down = -Vec3::Y;
+    assert_eq!(e.pick(top, down, false), Some(Ref::Town(church)));
+    assert_eq!(e.pick(top, down, false), Some(Ref::Town(fence)), "andre klikk: gjerdet under");
+    assert!(e.under().len() >= 2);
+    let third = e.cycle();
+    assert!(third.is_some() && third != Some(Ref::Town(fence)), "Tab går videre");
+}

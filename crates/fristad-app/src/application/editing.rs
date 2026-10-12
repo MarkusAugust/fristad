@@ -152,6 +152,7 @@ impl Session {
                 true
             }
             EditCommand::Pick { add, at } => self.pick_at(at, add),
+            EditCommand::Cycle => self.editor_mut().cycle().is_some(),
             EditCommand::Move(d) => {
                 self.editor_mut().translate(d);
                 true
@@ -233,6 +234,7 @@ impl Session {
             dirty: e.dirty(),
             clean: e.clean(),
             draft: self.edit_ui.draft.len(),
+            under: e.under().iter().map(|r| (e.label(r), e.selection.contains(r))).collect(),
         };
         self.pending.push(Event::Edit(Some(view)));
     }

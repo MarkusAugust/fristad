@@ -130,6 +130,8 @@ pub enum EditCommand {
     Release,
     /// Velg det under pekeren eller midt i bildet.
     Pick { add: bool, at: Option<(f32, f32)> },
+    /// Tab: det neste under pekeren fra siste klikk.
+    Cycle,
     /// Flytt det valgte så mange meter (piltastene, PageUp og PageDown).
     Move(Vec3),
     /// Drei det valgte (Q og E), radianer.
@@ -170,6 +172,9 @@ pub struct EditView {
     pub clean: bool,
     /// Punktene i linjeverktøyet så langt.
     pub draft: usize,
+    /// Det som lå under pekeren ved siste klikk, nærmest først, og om det er
+    /// valgt.
+    pub under: Vec<(String, bool)>,
 }
 
 /// Spillet sett utenfra.

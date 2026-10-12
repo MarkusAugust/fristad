@@ -44,6 +44,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Valgt</h3>
       <p id="ed-selected" class="fs-paragraph" data-size="small">Ingenting. Klikk på noe i bildet.</p>
+      <p id="ed-under" class="fs-paragraph" data-size="small" hidden></p>
       <div id="ed-wall" hidden>
         <label class="fs-label" for="ed-wall-h">Høyde på veggen (m)</label>
         <input id="ed-wall-h" class="fs-input" type="number" min="0.5" max="20" step="0.5" value="3">
@@ -64,7 +65,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
           <option value="usikker">Usikker</option>
           <option value="none">Ikke vurdert</option>
         </select>
-        <select id="ed-group" class="fs-select" aria-label="Gruppe"><option value="">Alle grupper</option></select>
+        <select id="ed-group" class="fs-select" aria-label="Kategori"><option value="">Alle kategorier</option></select>
       </div>
       <p id="ed-placing" class="fs-paragraph" data-size="small" hidden></p>
       <div id="ed-grid" class="editor-grid"></div>
@@ -77,14 +78,24 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       <p class="fs-paragraph" data-size="small">
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
         Piltastene flytter det valgte langs bakken, <kbd>PgUp</kbd>/<kbd>PgDn</kbd> opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
-        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
+        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
       </p>
     </section>`;
   document.body.append(panel);
+  // I spillet: et lite merke om at P tar deg tilbake i redigeringen.
+  const back = document.createElement("p");
+  back.className = "editor-back fs-tag";
+  back.hidden = true;
+  back.innerHTML = "<kbd>P</kbd> tilbake til redigeringen";
+  document.body.append(back);
   const $ = (id) => panel.querySelector(`#${id}`);
 
   // Gruppene i katalogen (mappene modellene ligger i).
-  for (const g of [...new Set(catalog.map((m) => m.group))].sort()) {
+  // Kategoriene i fast rekkefølge (husene først).
+  const ORDER = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Krypten"];
+  const rank = (g) => (ORDER.indexOf(g) + 1 || 99);
+  catalog.sort((a, b) => rank(a.group) - rank(b.group) || a.name.localeCompare(b.name));
+  for (const g of [...new Set(catalog.map((m) => m.group))].sort((a, b) => rank(a) - rank(b))) {
     const o = document.createElement("option");
     o.value = g;
     o.textContent = g;
@@ -141,6 +152,10 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     $("ed-redo").disabled = !v.can_redo;
     const sel = v.selected;
     $("ed-selected").textContent = sel.length ? sel.map((s) => s.label).join(", ") : "Ingenting. Klikk på noe i bildet.";
+    // Det som lå under pekeren: klikk igjen eller Tab for det neste.
+    const under = v.under ?? [];
+    $("ed-under").hidden = under.length < 2;
+    $("ed-under").innerHTML = `Under pekeren: ${under.map((u) => (u.selected ? `<strong>${esc(u.label)}</strong>` : esc(u.label))).join(" › ")}. Klikk igjen eller <kbd>Tab</kbd> for neste.`;
     $("ed-wall").hidden = !sel.some((s) => s.label === "usynlig vegg");
     const list = $("ed-breaches");
     list.innerHTML = v.breaches.length
@@ -155,6 +170,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     if (!send({ cmd: "enter" })) return false;
     active = true;
     panel.hidden = false;
+    back.hidden = true;
     document.body.classList.add("editing");
     if (document.pointerLockElement) document.exitPointerLock?.();
     renderCatalog();
@@ -177,6 +193,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       lining = false;
       setPlacing(null);
       panel.hidden = true;
+      back.hidden = false;
       document.body.classList.remove("editing");
       onPlay?.();
     }, 30);
@@ -344,6 +361,10 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
           return true;
         }
         return false;
+      case "Tab":
+        e.preventDefault();
+        if (!e.repeat) send({ cmd: "cycle" });
+        return true;
       case "KeyP":
         if (!e.repeat) play();
         return true;

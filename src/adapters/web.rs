@@ -116,6 +116,7 @@ enum EditJson {
     Drag { x: f32, y: f32 },
     Release,
     Pick { #[serde(default)] add: bool, x: Option<f32>, y: Option<f32> },
+    Cycle,
     Move { x: f32, y: f32, z: f32 },
     Rotate { a: f32 },
     Drop,
@@ -141,6 +142,7 @@ impl EditJson {
             EditJson::Drag { x, y } => EditCommand::Drag { to: (x, y) },
             EditJson::Release => EditCommand::Release,
             EditJson::Pick { add, x, y } => EditCommand::Pick { add, at: at(x, y) },
+            EditJson::Cycle => EditCommand::Cycle,
             EditJson::Move { x, y, z } => EditCommand::Move(glam::Vec3::new(x, y, z)),
             EditJson::Rotate { a } => EditCommand::Rotate(a),
             EditJson::Drop => EditCommand::Drop,
@@ -191,6 +193,7 @@ fn json(e: &Event) -> serde_json::Value {
             "selected": v.selected.iter().map(|s| json!({"ref": s.r, "label": s.label, "pose": s.pose.to_cols_array(), "center": s.center.to_array(), "half": s.half.to_array()})).collect::<Vec<_>>(),
             "breaches": v.breaches.iter().map(|(r, why)| json!({"ref": r, "why": why})).collect::<Vec<_>>(),
             "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean, "draft": v.draft,
+            "under": v.under.iter().map(|(l, sel)| json!({"label": l, "selected": sel})).collect::<Vec<_>>(),
         }}),
     }
 }
@@ -390,15 +393,16 @@ impl Engine {
         self.rebuild.is_some()
     }
 
-    /// Alle modellene til katalogen: navn, gruppe (mappa), eierens dom og
-    /// hvorfor, som json-liste.
+    /// Alle modellene som kan settes ut, til katalogen: navn, kategori
+    /// (`data::category`), eierens dom og hvorfor, som json-liste.
     pub fn catalog(&self) -> String {
         let approvals: serde_json::Value = serde_json::from_str(crate::adapters::data::APPROVALS).unwrap_or_default();
+        let buildings = crate::adapters::data::buildings();
         let list: Vec<serde_json::Value> = model_files()
-            .filter(|(n, _)| !(n.starts_with("crypt_") && n[6..].starts_with(|c: char| c.is_ascii_digit())))
-            .map(|(name, path)| {
+            .filter_map(|(name, path)| {
+                let group = crate::adapters::data::category(name, path, &buildings)?;
                 let a = &approvals["models"][name];
-                serde_json::json!({"name": name, "group": path.split('/').next().unwrap_or(""), "verdict": a["verdict"], "why": a["why"]})
+                Some(serde_json::json!({"name": name, "group": group, "verdict": a["verdict"], "why": a["why"]}))
             })
             .collect();
         serde_json::Value::Array(list).to_string()

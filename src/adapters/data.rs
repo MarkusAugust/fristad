@@ -102,3 +102,37 @@ pub fn layout_json(layout: &Layout) -> String {
 pub fn layout_file() -> Option<&'static str> {
     LAYOUT_FILE
 }
+
+/// Kategoriene i katalogen i redigeringen, i den rekkefølgen de vises.
+pub const CATEGORIES: [&str; 6] = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Krypten"];
+
+/// Kategorien til en modell i katalogen (`path` er stien under
+/// `assets/models/`, `buildings` modellene som står som hus i byen), eller
+/// `None` for det som ikke kan settes ut alene: delene spillet beveger
+/// (lokket, vinda, portalen, spaken), platene i galleriet, innsidene av
+/// husene og bitene av kryptnivåene.
+pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<String>) -> Option<&'static str> {
+    let moving = ["chest_lid", "well_winch", "well_rope", "well_bucket", "kit_lever_arm", "kit_shortcut_leaf"];
+    if name.ends_with("_interior") || name.starts_with("gallery_") || name.starts_with("portal_") || moving.contains(&name) || (name.starts_with("crypt_") && name[6..].starts_with(|c: char| c.is_ascii_digit())) {
+        return None;
+    }
+    // Krypten på kirkegården er et bygg, men står som en vanlig ting i byen.
+    Some(if buildings.contains(name) || name == "crypt" {
+        "Hus"
+    } else if matches!(name, "town_wall" | "wall_tower" | "gatehouse") {
+        "Mur og porter"
+    } else if name.ends_with("_fence") {
+        "Gjerder"
+    } else if path.starts_with("furniture/") {
+        "Møbler"
+    } else if path.starts_with("crypt/") {
+        "Krypten"
+    } else {
+        "Gjenstander"
+    })
+}
+
+/// Modellene som står som hus i byen (`building` i `assets/layout/town.json`).
+pub fn buildings() -> std::collections::HashSet<String> {
+    world_data().layout.map(|l| l.items.into_iter().filter(|it| it.building).filter_map(|it| it.model).collect()).unwrap_or_default()
+}

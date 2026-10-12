@@ -74,6 +74,10 @@ pub struct Editor {
     /// En gruppe endringer som angres som én (dra med håndtak): `Some(false)`
     /// før første endring, `Some(true)` når den er i gang.
     group: Option<bool>,
+    /// Det siste klikket: strålen og alt den traff, nærmest først, så et nytt
+    /// klikk på samme sted (eller Tab) velger det neste under pekeren.
+    last_ray: Option<(Vec3, Vec3)>,
+    under: Vec<Ref>,
 }
 
 /// En nøkkel for innholdet i en ting, til å telle like ting.
@@ -84,7 +88,7 @@ fn key(list: &str, t: &Thing) -> String {
 impl Editor {
     pub fn new(src: Sources, layout: Layout, contents: HashMap<String, Vec<Item>>, approved: Option<HashSet<String>>) -> Self {
         let scene = town_scene(&src, &layout, &contents);
-        let mut e = Self { src, layout, contents, approved, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None };
+        let mut e = Self { src, layout, contents, approved, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None, last_ray: None, under: vec![] };
         e.original = e.census();
         e.refresh();
         e
@@ -101,7 +105,7 @@ impl Editor {
 
     fn empty(src: Sources) -> Self {
         let scene = Builder::new(&[]);
-        Self { src, layout: Layout::default(), contents: HashMap::new(), approved: None, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None }
+        Self { src, layout: Layout::default(), contents: HashMap::new(), approved: None, selection: vec![], undo: vec![], redo: vec![], original: HashMap::new(), scene, breaches: vec![], group: None, last_ray: None, under: vec![] }
     }
 
     /// Hvor mange av hver ting (etter innhold) dataene har.
@@ -348,11 +352,52 @@ impl Editor {
         }
     }
 
-    /// Klikk: tingen strålen treffer først. Står du inni noe (et hus), er
-    /// det tingene inne som treffes, ikke huset rundt deg. Med `add` legges
-    /// den til i valget (Shift), ellers blir den valget alene.
+    /// Klikk: tingen strålen treffer først, og klikker du igjen på samme sted,
+    /// den neste under pekeren (en stor boks, som kirka, skjuler ellers det
+    /// som står inni den). Med `add` legges den til i valget (Shift), ellers
+    /// blir den valget alene.
     pub fn pick(&mut self, origin: Vec3, dir: Vec3, add: bool) -> Option<Ref> {
-        let mut best: Option<(f32, Ref)> = None;
+        let hits = self.hits(origin, dir);
+        // Samme sted som sist: det neste under pekeren (kirka, så gjerdet
+        // inni boksen dens, så det bak), rundt og rundt.
+        let again = self.last_ray.is_some_and(|(o, d)| o.distance(origin) < 0.05 && d.dot(dir) > 0.9999);
+        let k = match (again, self.selection.as_slice()) {
+            (true, [cur]) if !add => hits.iter().position(|r| r == cur).map(|k| (k + 1) % hits.len()).unwrap_or(0),
+            _ => 0,
+        };
+        let hit = hits.get(k).cloned();
+        self.last_ray = Some((origin, dir));
+        self.under = hits;
+        match (&hit, add) {
+            (Some(r), true) => {
+                if let Some(k) = self.selection.iter().position(|s| s == r) {
+                    self.selection.remove(k);
+                } else {
+                    self.selection.push(r.clone());
+                }
+            }
+            (Some(r), false) => self.selection = vec![r.clone()],
+            (None, false) => self.selection.clear(),
+            (None, true) => {}
+        }
+        hit
+    }
+
+    /// Tab: det neste under pekeren fra siste klikk.
+    pub fn cycle(&mut self) -> Option<Ref> {
+        let (o, d) = self.last_ray?;
+        self.pick(o, d, false)
+    }
+
+    /// Det som lå under pekeren ved siste klikk, nærmest først.
+    pub fn under(&self) -> &[Ref] {
+        &self.under
+    }
+
+    /// Alt strålen treffer, nærmest først. Står du inni noe (et hus), er
+    /// det tingene inne som treffes, ikke huset rundt deg.
+    fn hits(&self, origin: Vec3, dir: Vec3) -> Vec<Ref> {
+        let mut hits: Vec<(f32, Ref)> = vec![];
         for r in self.refs() {
             let (Some(pose), Some((c, h))) = (self.pose_of(&r), self.local_box(&r)) else { continue };
             let inv = pose.inverse();
@@ -372,24 +417,12 @@ impl Editor {
                 t0 = t0.max(a.min(b));
                 t1 = t1.min(a.max(b));
             }
-            if t0 <= t1 && best.as_ref().is_none_or(|(bt, _)| t0 < *bt) {
-                best = Some((t0, r));
+            if t0 <= t1 {
+                hits.push((t0, r));
             }
         }
-        let hit = best.map(|(_, r)| r);
-        match (&hit, add) {
-            (Some(r), true) => {
-                if let Some(k) = self.selection.iter().position(|s| s == r) {
-                    self.selection.remove(k);
-                } else {
-                    self.selection.push(r.clone());
-                }
-            }
-            (Some(r), false) => self.selection = vec![r.clone()],
-            (None, false) => self.selection.clear(),
-            (None, true) => {}
-        }
-        hit
+        hits.sort_by(|a, b| a.0.total_cmp(&b.0));
+        hits.into_iter().map(|(_, r)| r).collect()
     }
 
     /// Endringen av én ting når posen i verden går fra `t` til `f(t)`.

@@ -823,3 +823,14 @@ body.editing #marks {
   font-size: 0.75rem;
   overflow-wrap: anywhere;
 }
+
+/* I spillet etter P: merket om at P tar deg tilbake i redigeringen. */
+.editor-back {
+  position: fixed;
+  top: var(--fs-spacing-3, 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  margin: 0;
+  pointer-events: none;
+}
