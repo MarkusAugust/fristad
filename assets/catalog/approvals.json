@@ -432,13 +432,13 @@
  },
  "models": {
   "well": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "ser ikke noe bilde her",
+   "why": "",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-11",
-    "why": "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark."
+    "verdict": "usikker",
+    "date": "2026-10-12",
+    "why": "ser ikke noe bilde her"
    },
    "history": [
     "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark.",
@@ -449,12 +449,13 @@
   "crypt": {
    "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "toppen av taket ser ikke bra ut.",
+   "why": "taket er bedre, men jeg kan fortsatt se noe av teksturen til taket over den bjelken du har lagt på langs langs mønet",
    "history": [
     "Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4).",
     "merkelig jernbeslag på døren",
     "taket er grønt øverst, det synes jeg ikke var så pent. sjekk også disse vannbordene av stein som stopper lengre opp enn taket",
-    "toppen av taket ser ikke bra ut."
+    "toppen av taket ser ikke bra ut.",
+    "taket er bedre, men jeg kan fortsatt se noe av teksturen til taket over den bjelken du har lagt på langs langs mønet"
    ]
   },
   "stave_church": {
@@ -1196,13 +1197,13 @@
    ]
   },
   "kit_crack": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "den forrige så faktisk litt bedre ut? men det er for ujevnt, to forskjellige typer streker her",
+   "why": "",
    "before": {
-    "verdict": "godkjent",
-    "date": "2026-10-11",
-    "why": ""
+    "verdict": "underkjent",
+    "date": "2026-10-12",
+    "why": "den forrige så faktisk litt bedre ut? men det er for ujevnt, to forskjellige typer streker her"
    },
    "history": [
     "den forrige så faktisk litt bedre ut? men det er for ujevnt, to forskjellige typer streker her"
@@ -1301,7 +1302,7 @@
   "kit_secret_wall": {
    "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "det ser ikke bra ut. hard strektegning",
+   "why": "mursteiner sprekker ikke slik på tvers av flere",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-12",
@@ -1310,7 +1311,8 @@
    "history": [
     "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?",
     "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her",
-    "det ser ikke bra ut. hard strektegning"
+    "det ser ikke bra ut. hard strektegning",
+    "mursteiner sprekker ikke slik på tvers av flere"
    ]
   },
   "kit_shortcut": {
@@ -1463,7 +1465,7 @@
   "scriptorium_interior": {
    "verdict": "underkjent",
    "date": "2026-10-12",
-   "why": "tappen er for nært veggen",
+   "why": "jeg synes heller trappen skulle gått langs veggen og de tingene som står mellom trappen og veggen kan stå et annet sted",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-12",
@@ -1473,7 +1475,8 @@
     "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger",
     "jeg klarer ikke å se om du har flyttet trappen så det er mulig å gå opp",
     "det er ingen vinkel her som viser bunnen av trappen og avstand til veggen",
-    "tappen er for nært veggen"
+    "tappen er for nært veggen",
+    "jeg synes heller trappen skulle gått langs veggen og de tingene som står mellom trappen og veggen kan stå et annet sted"
    ]
   },
   "shed_a": {

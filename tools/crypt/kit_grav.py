@@ -1436,8 +1436,9 @@ def kit_false_wall(w=2.0, h=2.6, t=0.4):
     m = MB()
     box(m, (-w / 2, 0.0, -t / 2), (w / 2, h, t / 2), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
     # Sprekken står på selve veggen også, så den synes uten et eget merke
-    # (eieren i runde 8: «hvor er sprekken?»).
-    crack_web(m, t / 2, 11, x0=0.25, half=w / 2, top=h - 0.3)
+    # (eieren i runde 8: «hvor er sprekken?»), og den går i fugene
+    # (runde 10).
+    mortar_crack(m, t / 2, 11, x0=0.2, half=w / 2, top=1.9)
     return m
 
 
@@ -1647,6 +1648,76 @@ def crack_web(m, d, seed, scale=1.0, x0=0.0, half=0.45, top=1.9):
     for k in range(4):
         sx, sz, sy = rng.uniform(0.04, 0.09), rng.uniform(0.03, 0.07), rng.uniform(0.02, 0.045)
         cx, cz = x0 + rng.uniform(-0.25, 0.25), d + rng.uniform(0.05, 0.25)
+        box(m, (cx - sx / 2, 0.0, cz - sz / 2), (cx + sx / 2, sy, cz + sz / 2), "wall", faces=("+y", "+x", "-x", "+z", "-z"))
+
+
+# Fugene i kryptmurens bilde (`crypt_wall`, 1024 px på 2 m): de vannrette
+# (piksel-y midt i fugen) og de loddrette i hvert skift mellom dem.
+WALL_BEDS = [48.0, 185.0, 323.0, 462.0, 599.0, 739.5, 877.5]
+WALL_HEADS = [[16, 215, 398, 570, 757, 937], [124, 309, 546, 664, 839], [13, 208, 472, 745, 925], [84, 253, 401, 593, 802, 980],
+              [139, 473, 693, 888], [18, 243, 393, 572, 786], [473]]  # mørke minimum midt i skiftet
+WALL_FLIP = True  # glTF har v nedover: bildet står opp ned i meter (målt i runde 10)
+
+
+def wall_courses(top):
+    """Skiftene i muren nedenfra og opp til `top` m: (fra, til, fugene i x
+    i meter), med bildet gjentatt hver 2. m. `WALL_FLIP`: bildet står opp ned
+    på flaten (glTF har v nedover)."""
+    f = STONE_TEX_M / STONE_TEX_PX
+    out = []
+    for tile in range(int(top / STONE_TEX_M) + 2):
+        for k in range(len(WALL_BEDS)):
+            if WALL_FLIP:
+                a = STONE_TEX_M * (tile + 1) - WALL_BEDS[-1 - k] * f
+                b = STONE_TEX_M * (tile + 1) - (WALL_BEDS[-2 - k] if k + 1 < len(WALL_BEDS) else WALL_BEDS[-1] - STONE_TEX_PX) * f
+                heads = WALL_HEADS[-2 - k] if k + 1 < len(WALL_BEDS) else WALL_HEADS[-1]
+            else:
+                a = STONE_TEX_M * tile + WALL_BEDS[k] * f
+                b = STONE_TEX_M * tile + (WALL_BEDS[k + 1] if k + 1 < len(WALL_BEDS) else WALL_BEDS[0] + STONE_TEX_PX) * f
+                heads = WALL_HEADS[k]
+            out.append((a, b, [h * f + j * STONE_TEX_M for j in (-2, -1, 0, 1) for h in heads]))
+    return sorted([c for c in out if c[0] < top], key=lambda c: c[0])
+
+
+def mortar_crack(m, d, seed, x0=0.0, half=0.9, top=2.2, width=0.015):
+    """Sprekken i en mur av kvaderstein: den går i fugene, opp en loddrett
+    fuge, langs den vannrette til nærmeste loddrette fuge i skiftet over, og
+    opp igjen, i trapp (eieren i runde 10: «mursteiner sprekker ikke slik på
+    tvers av flere»). Én mørk strek som smalner av mot toppen, og en løs
+    stein ved foten. Flaten er z = `d` (fronten mot +z)."""
+    import random
+
+    rng = random.Random(seed)
+    courses = [c for c in wall_courses(top) if c[1] > 0.0]
+    pts = []
+    x = x0
+    for a, b, heads in courses:
+        hs = [h for h in heads if -half + 0.1 < h < half - 0.1]
+        if not hs:
+            break
+        near = sorted(hs, key=lambda h: abs(h - x))
+        h = near[0] if rng.random() < 0.65 or len(near) < 2 else near[1]
+        y0 = max(a, 0.02)
+        if pts:
+            pts.append((h, y0))
+        else:
+            pts.append((h, y0))
+        pts.append((h, min(b, top)))
+        x = h
+    n = len(pts) - 1
+    for i in range(n):
+        (ax, ay), (bx, by) = pts[i], pts[i + 1]
+        w0 = width * (1.0 - 0.6 * i / max(n, 1))
+        w1 = width * (1.0 - 0.6 * (i + 1) / max(n, 1))
+        dx, dy = bx - ax, by - ay
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / ln, dx / ln
+        # Litt forbi hjørnet, så trappetrinnene henger sammen.
+        ex, ey = dx / ln * w1, dy / ln * w1
+        m.quad((ax - nx * w0 - ex, ay - ny * w0 - ey, d + 0.004), (bx - nx * w1 + ex, by - ny * w1 + ey, d + 0.004), (bx + nx * w1 + ex, by + ny * w1 + ey, d + 0.004), (ax + nx * w0 - ex, ay + ny * w0 - ey, d + 0.004), "crack", facing=(0, 0, 1))
+    for k in range(3):
+        sx, sz, sy = rng.uniform(0.04, 0.08), rng.uniform(0.03, 0.06), rng.uniform(0.02, 0.04)
+        cx, cz = (pts[0][0] if pts else x0) + rng.uniform(-0.2, 0.2), d + rng.uniform(0.05, 0.2)
         box(m, (cx - sx / 2, 0.0, cz - sz / 2), (cx + sx / 2, sy, cz + sz / 2), "wall", faces=("+y", "+x", "-x", "+z", "-z"))
 
 

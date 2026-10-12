@@ -102,3 +102,9 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Plass ved foten.** 1,05 m foran nederste trinn var for lite når hjørnet ved foten er møblert. Skriptoriet har 1,6 m.
 - **Regler gjelder også det som er godkjent.** Pultene i Skriptoriet dekket vinduene, men ble ikke fanget før huset ble eksportert på nytt. Etter en ny regel skal alle husene eksporteres på nytt.
 - **En kodefeil får også et bilde.** Når eieren skal vurdere en kodefeil (brønnen i redigeringen), tas bildet fra nettleseren med den ferdige nettsiden.
+
+## Runde 10 – dommen (12. oktober)
+
+- **Det som ligger under, må ikke stikke opp.** En kile under mønet fulgte ikke svaien og stakk opp gjennom mønesteinen. Regelen `check_ridge` skyter stråler ned langs mønet, og det første de treffer skal være mønesteinen.
+- **En sprekk i kvadermur går i fugene.** Den går trinnvis, opp og bortover, aldri tvers gjennom steinene. Fugene er målt i murbildet (`WALL_BEDS`, `WALL_HEADS`), og bildet står opp ned i meter, fordi glTF har v nedover.
+- **En trapp står langs en vegg.** Det som står mellom trappa og veggen, flyttes. Vinduer som trappa eller galleriet ville stå foran, mures igjen eller flyttes, og utsida vises på nytt.

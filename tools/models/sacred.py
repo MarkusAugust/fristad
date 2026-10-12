@@ -132,7 +132,7 @@ def turned(before):
     transform(PIECES[before:], Matrix.Rotation(math.pi / 2, 4, "Z"))
 
 
-def ridge_roof(p, y0, y1, half, z_eave, pitch, barges=True, ridge_stone=None, **kw):
+def ridge_roof(p, y0, y1, half, z_eave, pitch, barges=True, ridge_stone=None, fill=True, **kw):
     """Saltak med mønet langs y (gavlene fram og bak) fra kit.gable_roof.
     Uten `barges` tas vindskiene bort (taket ligger inne mellom gavler av
     stein). Med `ridge_stone` blir mønerullen en lav sadel av hogd stein som
@@ -140,7 +140,9 @@ def ridge_roof(p, y0, y1, half, z_eave, pitch, barges=True, ridge_stone=None, **
     mønehøyden."""
     before = len(PIECES)
     ridge = kit.gable_roof(p, y0, y1, -half, half, z_eave, pitch, **kw)
-    drop = [o for o in PIECES[before:] if (not barges and o.name.startswith("barge")) or (ridge_stone and o.name.startswith("ridge_roll"))]
+    # Uten `fill` tas kilen under mønet bort: den følger ikke svaien og
+    # stakk opp gjennom mønesteinen (eieren i runde 10).
+    drop = [o for o in PIECES[before:] if (not barges and o.name.startswith("barge")) or (ridge_stone and o.name.startswith("ridge_roll")) or (not fill and "ridge_fill" in o.name)]
     for ob in drop:
         PIECES.remove(ob)
         bpy.data.objects.remove(ob, do_unlink=True)
@@ -380,6 +382,19 @@ def stone_cross(c, mat, s=1.0, tilt=0.0):
     transform(obs, Matrix.Translation(c) @ Matrix.Rotation(tilt, 4, "Y"))
 
 
+def check_ridge(name, y0, y1, x=0.0, step=0.25):
+    """Rett ned langs mønet er det mønesteinen strålen treffer først, ikke
+    taket under (runde 10: takteksturen synes over mønesteinen)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    y = y0
+    while y <= y1:
+        hit, loc, _n, _i, ob, _m = bpy.context.scene.ray_cast(dg, Vector((x, y, 80.0)), Vector((0, 0, -1)))
+        if hit and not ob.name.startswith("ridge_stone") and not ob.name.startswith("cross"):
+            raise SystemExit(f"{name}: {ob.name} stikker opp over mønesteinen ved y = {y:.2f} (z = {loc.z:.2f})")
+        y += step
+        
+
 def check_crosses(name, gap=0.04):
     """Hvert kors står på noe (gavlspissen eller dekkhella), ikke i lufta
     over den (runde 9: korsene svevde da gavlene ble senket)."""
@@ -564,11 +579,13 @@ S_IX, S_IY = S_W / 2 - S_T, S_D / 2 - S_T
 G_Z = S_F + 2.5  # galleriet: lavere enn før (2,84), så trappa blir kortere og foten får plass (runde 9)
 # Trappa opp til galleriet følger reglene i kit.py: foten en meter fra
 # sørmuren, og galleriets forkant der trappa ender.
-# Foten av trappa står 1,6 m fra sørveggen (eieren i runde 9: «trappa er
-# for nær veggen» med 1,05 m).
+# Trappa går langs vestveggen (eieren i runde 10), og foten står 1,6 m fra
+# sørveggen (runde 9). Galleriet går helt bort til veggen, så trappa lander
+# på det; vinduet i vestveggen der trappa og galleriet står, er murt igjen.
 ST_FOOT = 1.6
-ST_X0, ST_X1, ST_Y0 = -2.9, -1.95, -S_IY + ST_FOOT + kit.WALL_PAD
-G_X0, G_X1, G_Y0 = -2.9, 2.9, ST_Y0 + kit.stair_run(S_F, G_Z)
+ST_X0 = -S_IX + kit.WALL_PAD
+ST_X1, ST_Y0 = ST_X0 + 0.95, -S_IY + ST_FOOT + kit.WALL_PAD
+G_X0, G_X1, G_Y0 = -S_IX, 2.9, ST_Y0 + kit.stair_run(S_F, G_Z)
 
 
 def scriptorium_outside(p, rng):
@@ -590,14 +607,16 @@ def scriptorium_outside(p, rng):
     slab_grid("wall_front", front, L, z0, S_H, S_T, fopen, cut)
     wall_colliders(front, L, z0, S_H, S_T, fopen)
     back, _ = wall_frame((-S_W / 2, by), (S_W / 2, by))
-    bopen = [(S_W / 2 - 0.45, S_W / 2 + 0.45, G_Z + 0.75, G_Z + 2.55)] + [(S_W / 2 + x - 0.35, S_W / 2 + x + 0.35, 1.3, 2.9) for x in (-3.7, 3.7)]
+    # De lave vinduene i bakmuren slutter under galleriet.
+    bopen = [(S_W / 2 - 0.45, S_W / 2 + 0.45, G_Z + 0.75, G_Z + 2.55)] + [(S_W / 2 + x - 0.35, S_W / 2 + x + 0.35, 1.1, G_Z - 0.45) for x in (-3.7, 3.7)]
     slab_grid("wall_back", back, L, z0, S_H, S_T, bopen, cut)
     wall_colliders(back, L, z0, S_H, S_T, bopen)
     sides = []
     for side in (-1, 1):
         x = side * (S_W / 2 - S_T / 2)
         fr, Ls = wall_frame((x, -S_D / 2 + S_T), (x, S_D / 2 - S_T))
-        sopen = [(y + S_IY - win[2] / 2 + 0.03, y + S_IY + win[2] / 2 - 0.03, win[0], win[0] + win[1]) for y in (-1.9, 1.9)]
+        # I vest bare det søndre: trappa og galleriet står foran det nordre.
+        sopen = [(y + S_IY - win[2] / 2 + 0.03, y + S_IY + win[2] / 2 - 0.03, win[0], win[0] + win[1]) for y in (-1.9, 1.9) if side > 0 or y < 0]
         slab_grid("wall_side", fr, Ls, z0, S_H, S_T, sopen, cut)
         wall_colliders(fr, Ls, z0, S_H, S_T, sopen)
         sides.append((fr, sopen, -side))
@@ -709,20 +728,17 @@ def scriptorium_inside(p, rng):
             stick("corbel", (side * ix, y, S_H - 0.95), (side * (ix - 0.45), y, S_H - 0.6), 0.22, 0.24, p.timber, ("timber", 2))
     # Bokhyller: under galleriet langs bakmuren, og mellom vinduene.
     # (Hver hylle og pult har sine egne bøker, så hver er sin modell.)
-    for name, (x, y, h, yaw) in (("bookshelf_a", (-0.5, iy - 0.2, 2.3, 0.0)), ("bookshelf_b", (1.9, iy - 0.2, 2.3, 0.0)), ("bookshelf_w", (-(ix - 0.2), 0.0, 2.4, math.pi / 2)), ("bookshelf_e", (ix - 0.2, 0.0, 2.4, -math.pi / 2))):
+    for name, (x, y, h, yaw) in (("bookshelf_a", (-0.5, iy - 0.2, 2.3, 0.0)), ("bookshelf_b", (1.9, iy - 0.2, 2.3, 0.0)), ("bookshelf_w", (-2.2, iy - 0.2, 2.3, 0.0)), ("bookshelf_e", (ix - 0.2, 0.0, 2.4, -math.pi / 2))):
         with piece(name, (x, y, S_F), yaw):
-            shelf(p, x, y, S_F, 1.7, h, yaw, rng)
+            shelf(p, x, y, S_F, 1.4 if name == "bookshelf_w" else 1.7, h, yaw, rng)
     # Skrivepultene under sidevinduene, og to foran.
-    k = 0
-    for side in (-1, 1):
-        for y in (-1.9, 1.9):
-            if side < 0 and y > 0:
-                continue  # der går trappa
-            # 40 cm luft til vinduet over (town.check_piece).
-            dx = ix - 0.85
-            with piece(f"writing_desk_{k}", (side * dx, y, S_F), -side * math.pi / 2):
-                lectern_desk(p, side * dx, y, S_F, -side * math.pi / 2, rng)
-            k += 1
+    # Pult 0 står ute i salen der trappa sto før (trappa går langs
+    # vestveggen nå); de andre under østvinduene, 40 cm fra vinduet
+    # (town.check_piece).
+    dx = ix - 0.85
+    for k, (x, y, yaw) in enumerate(((-2.3, -0.4, math.pi / 2), (dx, -1.9, -math.pi / 2), (dx, 1.9, -math.pi / 2))):
+        with piece(f"writing_desk_{k}", (x, y, S_F), yaw):
+            lectern_desk(p, x, y, S_F, yaw, rng)
     with piece("writing_desk_unlit", (3.0, -iy + 0.85, S_F), math.pi):
         lectern_desk(p, 3.0, -iy + 0.85, S_F, math.pi, rng, lit=False)
     # Lesepulten midt i salen med en stor bok i kjetting.
@@ -784,8 +800,9 @@ def scriptorium_inside(p, rng):
     for x in (-1.5, 1.5):
         with piece("candle_stand", (x, -iy + 0.45, S_F)):
             candle_stand(p, x, -iy + 0.45, S_F)
-    with piece("chest_forms", (-ix + 0.75, -iy + 0.5, S_F)):
-        chest(p, -ix + 0.75, -iy + 0.5, S_F, 1.1, 0.6, 0.55)
+    # Kista står ikke foran trappefoten.
+    with piece("chest_forms", (-2.45, -iy + 0.5, S_F)):
+        chest(p, -2.45, -iy + 0.5, S_F, 1.1, 0.6, 0.55)
     # Lysekronene.
     with piece("chandelier_large", (0.0, -1.7, S_H - 2.2)):
         chandelier(p, 0.0, -1.7, S_H - 0.6, 1.6)
@@ -806,7 +823,7 @@ def library_gallery(p, rng):
     while x < G_X1:
         stick("gallery_joist", (x, G_Y0, gz - 0.17), (x, iy, gz - 0.17), 0.14, 0.2, p.timber, ("timber", rng.randrange(4)), seed=x)
         x += 0.6
-    stick("gallery_edge", (G_X0 - 0.05, G_Y0 + 0.08, gz - 0.2), (G_X1 + 0.05, G_Y0 + 0.08, gz - 0.2), 0.24, 0.32, p.timber, ("timber", 2))
+    stick("gallery_edge", (G_X0, G_Y0 + 0.08, gz - 0.2), (G_X1 + 0.05, G_Y0 + 0.08, gz - 0.2), 0.24, 0.32, p.timber, ("timber", 2))
     stick("gallery_edge", (G_X1 - 0.08, G_Y0, gz - 0.2), (G_X1 - 0.08, iy, gz - 0.2), 0.2, 0.3, p.timber, ("timber", 1))
     for x in (-1.6, 0.65, G_X1 - 0.12):
         stick("gallery_post", (x, G_Y0 + 0.1, S_F), (x, G_Y0 + 0.1, gz - 0.36), 0.24, 0.24, p.timber, ("timber", rng.randrange(4)), seed=x)
@@ -822,7 +839,6 @@ def library_gallery(p, rng):
     # Rekkverket: foran fra trappa, på østenden og langs vestenden.
     rail(p, (ST_X1 + 0.05, G_Y0 + 0.06), (G_X1, G_Y0 + 0.06), gz, posts=5)
     rail(p, (G_X1, G_Y0 + 0.06), (G_X1, iy), gz, posts=3)
-    rail(p, (G_X0, G_Y0 + 0.9), (G_X0, iy), gz, posts=3)
     # Bokhyllene langs bakmuren på hver side av vinduet.
     for k, x in enumerate((-1.85, 1.85)):
         with piece(f"bookshelf_gallery_{k}", (x, iy - 0.2, gz)):
@@ -1226,7 +1242,7 @@ def crypt_model(rng):
     # sunket i midten; gavler av stein med dekkheller, og kors foran.
     z_eave = H + 0.35
     # Svaien som på kirka (12 cm): med 32 cm hang mønesteinen i en bue (runde 9).
-    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, ridge_stone=stone, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.12, kick=0.16)
+    ridge = ridge_roof(p, y0 + 0.12, y1 - 0.12, W / 2, z_eave, 42.0, barges=False, ridge_stone=stone, fill=False, overhang=0.4, gable_over=0.0, thick=0.32, sag=0.12, kick=0.16)
     gables = []
     for y in (fy, by):
         fr, Lg = wall_frame((-W / 2 - 0.05, y), (W / 2 + 0.05, y))
@@ -1236,6 +1252,7 @@ def crypt_model(rng):
     for fr, Lg, top in gables:
         check_parapet("crypt", fr, Lg, T, top)
     check_crosses("crypt")
+    check_ridge("crypt", fy + T, by - T)
     # Mosen: langs foten (ikke på taket: eieren i runde 8).
     for side in (-1, 1):
         box("moss", (side * (W / 2 + 0.08) - 0.1, y0 + 0.2, -0.08), (side * (W / 2 + 0.08) + 0.1, y1 - 0.2, 0.12), moss, bevel=0.06)

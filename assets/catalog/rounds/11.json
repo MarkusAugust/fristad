@@ -1,0 +1,32 @@
+{
+ "_om": "Runde 11: det som ikke ble godkjent i runde 10 (og Skriptoriet utenfra, som endret seg med trappa).",
+ "round": 11,
+ "fix": {
+  "ridge": "Det som stakk opp over mønesteinen var en kile av takstein under mønet, som ikke fulgte svaien og stakk opp midt på. Den er tatt bort. Ny regel: rett ned langs hele mønet skal det første strålen treffer være mønesteinen, ellers stopper eksporten (sjekket: regelen slo ut på den gamle).",
+  "crack": "Sprekken går nå i fugene, slik den gjør i en ekte mur: opp en loddrett fuge, langs den vannrette til nærmeste loddrette fuge i skiftet over, og opp igjen, i trapp. Fugene er målt i murbildet (mørke minimum i hvert skift), så streken ligger i fugen og ikke over steinene.",
+  "stair": "Trappa går langs vestveggen opp til galleriet, som nå går helt bort til veggen. Det som sto mellom trappa og veggen er flyttet: bokhylla til bakveggen under galleriet, pulten ut i salen der trappa sto før, og kista bort fra foten. 1,6 m fritt foran nederste trinn. For at trappa og galleriet ikke skal stå foran vinduer (regelen fra runde 7), er det nordre vinduet i vestmuren murt igjen og de to lave vinduene i bakmuren senket under galleriet; se Skriptoriet utenfra.",
+  "outside": "Utsida er endret fordi trappa flyttet: det nordre vinduet i vestmuren er murt igjen (trappa og galleriet står der nå), og de to lave vinduene i bakmuren er senket så toppen er under galleriet."
+ },
+ "items": {
+  "crypt": {
+   "fix": [
+    "ridge"
+   ]
+  },
+  "kit_secret_wall": {
+   "fix": [
+    "crack"
+   ]
+  },
+  "scriptorium_interior": {
+   "fix": [
+    "stair"
+   ]
+  },
+  "scriptorium": {
+   "fix": [
+    "outside"
+   ]
+  }
+ }
+}
