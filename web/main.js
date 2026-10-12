@@ -148,11 +148,10 @@ async function boot() {
       engine,
       canvas,
       toast,
-      // P: spillet er bygget på nytt; grafikknivået settes igjen, og musa fanges.
-      onPlay: () => {
-        setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
-        lock();
-      },
+      // P: musa fanges med en gang (mens tastetrykket teller), og når
+      // spillet er bygget på nytt, settes grafikknivået igjen.
+      onLock: () => lock(),
+      onPlay: () => setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false),
     });
     window.fristad.editor = editor;
   }
@@ -1089,8 +1088,22 @@ let playing = false;
 let dragging = false;
 
 function lock() {
-  const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
-  if (p?.catch) p.catch(() => canvas.requestPointerLock?.());
+  // Avslår nettleseren (uten brukerhandling, eller uten rå bevegelse), er
+  // det ikke en feil: et klikk i bildet låser igjen.
+  try {
+    const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
+    if (p?.catch) {
+      p.catch(() => {
+        try {
+          canvas.requestPointerLock?.()?.catch?.(() => {});
+        } catch {
+          /* ingen pekerlås */
+        }
+      });
+    }
+  } catch {
+    /* ingen pekerlås */
+  }
 }
 
 function locked() {

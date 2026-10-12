@@ -16,7 +16,7 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 }
 
-export function createEditor({ engine, canvas, toast, onPlay, onEdit }) {
+export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) {
   // Redigerer nå (`active`), modellen som skal settes ut, og linjeverktøyet.
   let active = false;
   let placing = null;
@@ -165,6 +165,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onEdit }) {
   // P: spill det du har laget (spillet bygges på nytt fra dataene).
   function play() {
     if (!active) return;
+    // Musa fanges mens tastetrykket ennå teller som en handling fra deg.
+    onLock?.();
     toast?.show?.("Bygger byen på nytt …");
     setTimeout(() => {
       if (!engine.play()) {

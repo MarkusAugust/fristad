@@ -88,15 +88,21 @@ await page.keyboard.press("KeyZ");
 await page.keyboard.up("Control");
 check(await until(() => document.querySelector("#ed-state").textContent === "Grønt"), `angret: ${await text("#ed-state")}`);
 
-// P: spill (byen bygges på nytt), og P igjen: tilbake i redigeringen.
+// P: spill (byen bygges på nytt), og P igjen: tilbake i redigeringen, med
+// endringen i dataene (den er ikke lagret, så den står som endret).
+await page.mouse.click(box.x, box.y);
+await until(() => document.querySelector("#ed-selected").textContent.includes("barrel"));
+await page.keyboard.down("Shift");
 await page.keyboard.press("ArrowLeft");
-await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent));
+await page.keyboard.up("Shift");
+check(await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent)), "flyttet før P");
 await page.keyboard.press("KeyP");
 check(await until(() => document.querySelector("#editor").hidden, null, 600000), "P: spiller");
 await page.waitForTimeout(5000);
 await shot("spill");
 await page.keyboard.press("KeyP");
 check(await until(() => !document.querySelector("#editor").hidden), "P igjen: redigerer");
+check(await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent)), `P igjen: endringen er med (${await text("#ed-state")})`);
 await shot("igjen");
 check(errors.filter((e) => !e.includes("404")).length === 0, `ingen feil i konsollen (${errors.length}, 404 for favicon telles ikke)`);
 await browser.close();
