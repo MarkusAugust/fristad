@@ -1944,3 +1944,30 @@ fn moblene_er_egne_modeller() {
     let w = &world().world;
     assert_eq!(w.targets.iter().filter(|t| t.what == Use::Sleep).count(), 1, "senga har med seg siktemålet");
 }
+
+/// Hvert møbel står i sitt eget rom med foten i origo: ingenting under
+/// gulvet, og kolliderne ligger der møbelet er. Fanger feil som tønnene som
+/// havnet 3 m over kollideren sin (`kit.barrel`, runde 5).
+#[test]
+fn moblene_star_der_kolliderne_er() {
+    use crate::adapters::gltf::model_files;
+    use crate::ports::ModelSource;
+    let data = crate::adapters::data::world_data();
+    let mut bad = vec![];
+    for (name, path) in model_files().filter(|(_, p)| p.starts_with("furniture/")) {
+        let Some(m) = Embedded.load(name) else { continue };
+        let (lo, hi) = m.mesh.bounds();
+        if lo.y < -0.05 {
+            bad.push(format!("{name} ({path}) går {:.0} cm under gulvet", -lo.y * 100.0));
+        }
+        let Some((_, inside)) = data.insides.iter().find(|(n, _)| n == name) else { continue };
+        for (c, size, _) in &inside.boxes {
+            let (c, h) = (Vec3::from(*c), Vec3::from(*size) * 0.5);
+            let far = (0..3).any(|k| c[k] + h[k] < lo[k] - 0.05 || c[k] - h[k] > hi[k] + 0.05);
+            if far {
+                bad.push(format!("{name}: kollideren ved {c:.2} ligger utenfor møbelet ({lo:.2} .. {hi:.2})"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}

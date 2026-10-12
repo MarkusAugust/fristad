@@ -348,6 +348,10 @@ def half_timbered(p, name, p0, p1, z0, z1, out, openings, rng, thick=0.3, beam=B
         if c is None:
             continue
         gap = c - b
+        # Et felt som er en åpning (verkstedet i Smia) deles ikke: ingen
+        # stolper midt i åpningen (eieren: «for tett med søyler i front»).
+        if any(s - w / 2 - 0.02 <= b and c <= s + w / 2 + 0.02 for s, _, _, w in openings):
+            continue
         n = int(gap / (MAX_BAY + beam))
         for i in range(1, n + 1):
             m = b + gap * i / (n + 1)
@@ -890,10 +894,12 @@ def table(p, x, y, z, w, d, h=0.78, yaw=0.0, collide_it=True):
     """Bord med plate av planker og fire ben."""
     c = Vector((x, y, z))
     top = box("table_top", (-w / 2, -d / 2, h - 0.07), (w / 2, d / 2, h), p.oak, bevel=0.02)
+    # Bena er hele trestykker: kornet langs benet (`stick` med en bjelke
+    # fra timber-arket), ikke en boks med arket på tvers (eieren: «lego»).
     legs = []
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            legs.append(box("table_leg", (sx * (w / 2 - 0.12) - 0.05, sy * (d / 2 - 0.1) - 0.05, 0), (sx * (w / 2 - 0.12) + 0.05, sy * (d / 2 - 0.1) + 0.05, h - 0.07), p.timber, bevel=0.012))
+    for k, (sx, sy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        lx, ly = sx * (w / 2 - 0.12), sy * (d / 2 - 0.1)
+        legs.append(stick("table_leg", (lx, ly, 0), (lx, ly, h - 0.07), 0.1, 0.1, p.timber, ("timber", k % 4), bevel=0.012))
     for ob in [top] + legs:
         _place(ob, c, yaw)
     if collide_it:
@@ -902,7 +908,7 @@ def table(p, x, y, z, w, d, h=0.78, yaw=0.0, collide_it=True):
 
 def bench(p, x, y, z, w, yaw=0.0, collide_it=True):
     top = box("bench_top", (-w / 2, -0.17, 0.4), (w / 2, 0.17, 0.46), p.oak, bevel=0.015)
-    legs = [box("bench_leg", (sx * (w / 2 - 0.15) - 0.05, -0.14, 0), (sx * (w / 2 - 0.15) + 0.05, 0.14, 0.4), p.timber, bevel=0.01) for sx in (-1, 1)]
+    legs = [stick("bench_leg", (sx * (w / 2 - 0.15), 0, 0), (sx * (w / 2 - 0.15), 0, 0.4), 0.1, 0.28, p.timber, ("timber", k), bevel=0.01) for k, sx in enumerate((-1, 1))]
     for ob in [top] + legs:
         _place(ob, Vector((x, y, z)), yaw)
     if collide_it:
@@ -916,8 +922,10 @@ def stool(p, x, y, z):
             stick("stool_leg", (x + sx * 0.12, y + sy * 0.12, z), (x + sx * 0.1, y + sy * 0.1, z + 0.43), 0.045, 0.045, p.timber, ("timber", 0))
 
 
-def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0):
-    """Tønne: åttekantet stav-kropp som buker ut, og to jernbånd."""
+def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0, open_top=0.0):
+    """Tønne: åttekantet stav-kropp som buker ut, og to jernbånd. Med
+    `open_top` > 0 er den åpen oppe og hul så langt ned (en mørk innside,
+    så det som står i den, står ned i noe)."""
     bm = bmesh.new()
     uvl = bm.loops.layers.uv.verify()
     n, rings = 10, 5
@@ -935,7 +943,21 @@ def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0):
             for lp, (uu, vv) in zip(f.loops, ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))):
                 lp[uvl].uv = (uu * 2 * math.pi * r / n, vv * h / rings)
     # (Ikke `z` her: den er høyden tønna skal stå i.)
-    for row, top in ((verts[0], False), (verts[-1], True)):
+    rims = ((verts[0], False),) if open_top > 0 else ((verts[0], False), (verts[-1], True))
+    if open_top > 0:
+        # Innsida: en vegg 3 cm innenfor kanten ned til en bunn.
+        ri = r * 0.86 - 0.03
+        inner_top = [bm.verts.new((ri * math.cos(2 * math.pi * i / n), ri * math.sin(2 * math.pi * i / n), h)) for i in range(n)]
+        inner_bot = [bm.verts.new((v.co.x, v.co.y, h - open_top)) for v in inner_top]
+        for i in range(n):
+            j = (i + 1) % n
+            for f in (bm.faces.new((verts[-1][i], verts[-1][j], inner_top[j], inner_top[i])), bm.faces.new((inner_top[i], inner_top[j], inner_bot[j], inner_bot[i]))):
+                for lp in f.loops:
+                    lp[uvl].uv = (lp.vert.co.x + lp.vert.co.z, lp.vert.co.y)
+        f = bm.faces.new(inner_bot)
+        for lp in f.loops:
+            lp[uvl].uv = (lp.vert.co.x, lp.vert.co.y)
+    for row, top in rims:
         f = bm.faces.new(row if top else row[::-1])
         for lp in f.loops:
             lp[uvl].uv = (lp.vert.co.x, lp.vert.co.y)
@@ -960,6 +982,9 @@ def barrel(p, x, y, z, r=0.32, h=0.85, lying=False, yaw=0.0):
 
 
 def _place(ob, c, yaw):
+    # `stick` setter location og rotasjon; matrix_world er ikke oppdatert
+    # før view_layer.update (ellers ble bena liggende flatt midt under bordet).
+    bpy.context.view_layer.update()
     ob.matrix_world = Matrix.Translation(c) @ Matrix.Rotation(yaw, 4, "Z") @ ob.matrix_world
 
 

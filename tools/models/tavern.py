@@ -28,6 +28,7 @@ import sys
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import kit  # noqa: E402
+import vessels  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, IRON_BAND, ROPE, barrel, bench, box, candle, door, fire, half_timbered, planks, stairs, stick, stool, table, window  # noqa: E402
@@ -220,19 +221,12 @@ def ground_floor(p, rng):
         box("counter_top", (cx0 - 0.12, cy0 - 0.1, F0 + 1.0), (cx1 + 0.05, cy1 + 0.1, F0 + 1.08), p.floor, bevel=0.02)
         stick("counter_trim", (cx0 - 0.02, cy0, F0 + 0.95), (cx0 - 0.02, cy1, F0 + 0.95), 0.05, 0.1, p.trim, ("trim", IRON_BAND))
         collide(((cx0 + cx1) / 2, (cy0 + cy1) / 2, F0 + 0.55), (cx1 - cx0 + 0.15, cy1 - cy0 + 0.2, 1.1))
-        for k in range(5):
-            x = cx0 + 0.1
-            y = cy0 + 0.35 + k * 0.6
-            box("mug", (x - 0.05, y - 0.05, F0 + 1.08), (x + 0.05, y + 0.05, F0 + 1.22), p.door_dark, bevel=0.015)
+        # Krus, mugger, kanner, boller og tinnfat i ulike størrelser.
+        vessels.row(p, random.Random(11), cy0 + 0.05, cy1 - 0.05, cx0 + 0.1, F0 + 1.08, 0.26, 0.3, along="y", kinds=["mug", "jug", "pitcher", "bowl", "plate", "mug"])
     with piece("jug_shelf", (KITCHEN_X - 0.26, (cy0 + cy1) / 2, F0)):
         for z in (F0 + 1.35, F0 + 1.95):
             box("shelf", (KITCHEN_X - 0.42, cy0, z), (KITCHEN_X - 0.1, cy1, z + 0.05), p.floor, bevel=0.01)
-            for k in range(9):
-                y = cy0 + 0.25 + k * (cy1 - cy0 - 0.5) / 8
-                if k % 3 == 2:
-                    barrel(p, KITCHEN_X - 0.26, y, z + 0.05, r=0.1, h=0.22)
-                else:
-                    box("jug", (KITCHEN_X - 0.33, y - 0.07, z + 0.05), (KITCHEN_X - 0.19, y + 0.07, z + 0.27), layer("plaster_red"), bevel=0.03)
+            vessels.row(p, random.Random(int(z * 100)), cy0 + 0.05, cy1 - 0.05, KITCHEN_X - 0.26, z + 0.05, 0.3, 0.52, along="y")
     for k, y in enumerate((-0.3, 0.6)):
         with piece("barrel_lying", (KITCHEN_X - 0.4, y, F0)):
             barrel(p, KITCHEN_X - 0.4, y, F0 + 0.0, r=0.3, h=0.7, lying=True, yaw=0)
@@ -266,9 +260,15 @@ def ground_floor(p, rng):
     # Arbeidsbordet med brød, og en krakk.
     with piece("kitchen_table", (3.6, 0.9, F0)):
         table(p, 3.6, 0.9, F0, 1.8, 0.85)
-        for k in range(4):
-            x = 3.0 + k * 0.38
-            box("bread", (x - 0.14, 0.75, F0 + 0.78), (x + 0.14, 1.0, F0 + 0.9), layer("thatch", (0.9, 0.62, 0.35)), bevel=0.05)
+        # Brød i ulike former, en bolle med deig, en mugge og deigbrettet.
+        crust = layer("thatch", (0.9, 0.62, 0.35))
+        for x, y, r, h, long in ((2.9, 0.7, 0.12, 0.09, False), (3.2, 0.95, 0.09, 0.07, False), (3.45, 0.68, 0.1, 0.08, True)):
+            loaf = vessels.lathe("bread", [(r, 0.0), (r * 1.05, h * 0.35), (r * 0.8, h * 0.85), (0.0, h)], crust, n=12, at=(0, 0, 0))
+            if long:
+                loaf.scale = (1.9, 0.8, 1.0)
+            loaf.location = (x, y, F0 + 0.78)
+        vessels.bowl(3.75, 0.62, F0 + 0.78, 0.16, 0.09, layer("oak_planed", (0.85, 0.7, 0.55)))
+        vessels.jug(2.85, 1.2, F0 + 0.78, 0.07, 0.24, layer("plaster_red", (0.85, 0.55, 0.42)))
         box("dough_board", (3.9, 1.05, F0 + 0.78), (4.4, 1.25, F0 + 0.81), p.floor, bevel=0.005)
     with piece("stool", (3.6, 1.7, F0)):
         stool(p, 3.6, 1.7, F0)
@@ -285,12 +285,10 @@ def ground_floor(p, rng):
     with piece("crock_shelf", (2.3, iy1 - 0.175, F0)):
         for z in (F0 + 1.4, F0 + 2.0):
             box("kshelf", (1.0, iy1 - 0.35, z), (3.6, iy1, z + 0.05), p.floor, bevel=0.01)
-            for k in range(6):
-                x = 1.2 + k * 0.42
-                box("crock", (x - 0.1, iy1 - 0.28, z + 0.05), (x + 0.1, iy1 - 0.08, z + 0.3), layer("plaster_white", (0.85, 0.8, 0.7)), bevel=0.04)
+            vessels.row(p, random.Random(int(z * 100) + 7), 1.0, 3.6, iy1 - 0.18, z + 0.05, 0.32, 0.5)
     with piece("sacks", (5.1, -0.6, F0)):
-        for k, (x, y) in enumerate(((5.3, -0.9), (5.3, -0.25), (4.75, -1.0))):
-            box("sack", (x - 0.25, y - 0.22, F0), (x + 0.25, y + 0.22, F0 + 0.6), layer("linen", (0.85, 0.78, 0.62)), bevel=0.12)
+        for k, (x, y, w, h, yaw, slump) in enumerate(((5.3, -0.9, 0.25, 0.62, 0.3, 0.0), (5.3, -0.25, 0.22, 0.52, 1.4, 0.4), (4.75, -1.0, 0.2, 0.45, 2.6, -0.3))):
+            vessels.sack(x, y, F0, w, h, layer("linen", (0.85, 0.78, 0.62)), yaw=yaw, seed=k, slump=slump)
         collide((5.1, -0.6, F0 + 0.3), (0.9, 1.0, 0.6))
 
     # Lemmen og rekkverket rundt kjellertrappa.
@@ -338,11 +336,22 @@ def cellar(p, rng):
         collide((px, 0.0, (z0 + top) / 2), (0.3, 0.3, top - z0))
     # Tønnelager langs bakveggen og venstre vegg, på bukker.
     with piece("barrel_rack", (-2.1, cy1 - 0.45, z0)):
+        # To lag på bukker: nederst seks tønner på to svillestokker med
+        # kiler, oppå fem som ligger i sporet mellom to under (eieren:
+        # «tønner kan ikke hvile på en enkelt planke»).
+        y0 = cy1 - 0.45
+        for yy in (y0 - 0.28, y0 + 0.28):
+            stick("rack_rail", (-4.95, yy, z0 + 0.06), (0.75, yy, z0 + 0.06), 0.12, 0.12, p.timber, ("timber", 0))
+        for x in [-4.6 + k * 1.0 for k in range(6)]:
+            for xx in (x - 0.36, x + 0.36):
+                for yy in (y0 - 0.28, y0 + 0.28):
+                    box("rack_wedge", (xx - 0.05, yy - 0.06, z0 + 0.12), (xx + 0.05, yy + 0.06, z0 + 0.2), p.timber, bevel=0.01)
         for k in range(6):
-            x = -4.6 + k * 1.0
-            stick("rack", (x - 0.45, cy1 - 0.45, z0 + 0.2), (x + 0.45, cy1 - 0.45, z0 + 0.2), 0.12, 0.12, p.timber, ("timber", 0))
-            barrel(p, x, cy1 - 0.45, z0 + 0.24, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
-        collide((-2.1, cy1 - 0.45, z0 + 0.5), (6.2, 0.9, 1.0))
+            barrel(p, -4.6 + k * 1.0, y0, z0 + 0.12 - 0.36 + 0.36, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
+        for k in range(5):
+            # I sporet: senteret 0,36·√3 over senterlinja under.
+            barrel(p, -4.1 + k * 1.0, y0, z0 + 0.12 + 0.36 * 1.732, r=0.36, h=0.85, lying=True, yaw=math.pi / 2)
+        collide((-2.1, cy1 - 0.45, z0 + 0.75), (6.2, 0.9, 1.5))
     for k in range(4):
         y = -2.6 + k * 1.0
         with piece("barrel_tall", (cx0 + 0.45, y, z0), k):
@@ -364,7 +373,7 @@ def cellar(p, rng):
     # Lyktene.
     for x, y in ((-2.8, 0.25), (3.6, 0.25)):
         with piece("hanging_lantern", (x, y, top - 0.85)):
-            box("cellar_lantern", (x - 0.1, y - 0.1, top - 0.85), (x + 0.1, y + 0.1, top - 0.55), plain("glow_horn", (0.3, 0.19, 0.08), 0.5), bevel=0.02)
+            vessels.horn_lantern(p, x, y, top - 0.85, chain_to=top - 0.12)
             light((x, y, top - 0.75), (1.0, 0.62, 0.32), 1.4, 7.0)
 
 
@@ -419,7 +428,7 @@ def upper_floor(p, rng):
         barrel(p, 4.6, 1.2, F1 + 0.85, r=0.22, h=0.12).data.materials[0] = layer("plaster_white", (0.8, 0.85, 0.9))
     for x, y in ((-3.5, 0.0), (1.0, 0.0)):
         with piece("candle", (x, y, F1 + 0.01)):
-            candle(p, x, y, F1 + 0.01, light_it=False)
+            vessels.candle_dish(p, x, y, F1 + 0.01)
     light((-2.0, 0.0, F1 + 2.0), (1.0, 0.68, 0.4), 1.3, 7.0)
     light((2.4, 0.0, F1 + 2.0), (1.0, 0.68, 0.4), 1.1, 6.0)
 

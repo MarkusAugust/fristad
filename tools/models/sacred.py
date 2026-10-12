@@ -307,7 +307,8 @@ def books(p, x0, x1, y, z, depth, rng, mats, max_h=0.3):
         bd = depth * rng.uniform(0.75, 0.95)
         ob = box("book", (x, y - bd / 2, z), (x + bw, y + bd / 2, z + bh), rng.choice(mats), bevel=0)
         if rng.random() < 0.06 and x + bw + 0.12 < x1:
-            ob.rotation_euler = (0, -0.3, 0)
+            # Lener seg om sitt eget hjørne nede, ikke om origo.
+            ob.matrix_world = Matrix.Translation((x + bw, 0, z)) @ Matrix.Rotation(-0.3, 4, "Y") @ Matrix.Translation((-(x + bw), 0, -z)) @ ob.matrix_world
         obs.append(ob)
         x += bw + 0.004
     return obs
@@ -341,8 +342,10 @@ def lectern_desk(p, cx, cy, z, yaw, rng, lit=True):
     blekkhorn, fjærpenn og lys."""
     before = len(PIECES)
     wood = p.cladding
+    # Plata skråner ned mot den som sitter (lokal −y), som sidestykkene
+    # (eieren, runde 5: «bordplaten er vinklet feil vei»).
     top = box("desk_top", (-0.45, -0.32, -0.025), (0.45, 0.32, 0.025), wood, bevel=0.01)
-    top.rotation_euler = (-0.32, 0, 0)
+    top.rotation_euler = (0.32, 0, 0)
     top.location = (0, 0, 1.0)
     for sx in (-1, 1):
         prism("desk_side", ((sx * 0.42, 0.0), (0.0, 1.0)), [(-0.3, 0.0), (0.3, 0.0), (0.3, 1.1), (-0.3, 0.9)], -0.03, 0.03, wood)
@@ -354,7 +357,7 @@ def lectern_desk(p, cx, cy, z, yaw, rng, lit=True):
     page = layer("linen", (0.95, 0.9, 0.76))
     for sx in (-1, 1):
         pg = box("page", (0.0 if sx > 0 else -0.22, -0.15, 0.025), (0.22 if sx > 0 else 0.0, 0.15, 0.045), page, bevel=0.005)
-        pg.rotation_euler = (-0.32, sx * -0.05, 0)
+        pg.rotation_euler = (0.32, sx * -0.05, 0)
         pg.location = (0, 0, 1.0)
     lathe("inkhorn", [(0.0, 0.0), (0.035, 0.0), (0.04, 0.09), (0.0, 0.09)], 6, (0.36, 0.26, 1.08), layer("iron", (0.4, 0.35, 0.3)))
     stick("quill", (0.36, 0.26, 1.12), (0.32, 0.18, 1.36), 0.01, 0.03, page, bevel=0)
@@ -626,8 +629,38 @@ def scriptorium_inside(p, rng):
     pages = box("big_pages", (-0.34, -0.24, 0.12), (0.34, 0.24, 0.15), layer("linen", (0.95, 0.9, 0.76)), bevel=0.02)
     pages.rotation_euler = (0.38, 0, 0)
     pages.location = (lx, ly, S_F + 1.12)
-    for k in range(7):
-        stick("chain", (lx + 0.3, ly - 0.1 + k * 0.02, S_F + 1.05 - k * 0.12), (lx + 0.32, ly - 0.08 + k * 0.02, S_F + 0.93 - k * 0.12), 0.025, 0.025, p.iron, bevel=0)
+    # Skrift: linjer med blekk på begge sidene og en rød forbokstav
+    # (eieren: «antydning til skrift i boken»).
+    ink = layer("leather", (0.18, 0.14, 0.12))
+    red = layer("wool", (0.7, 0.15, 0.1))
+    lines = []
+    for side in (-1, 1):
+        for k in range(9):
+            y = 0.17 - k * 0.04
+            x0, x1 = (-0.3, -0.04) if side < 0 else (0.04, 0.3)
+            if side < 0 and k < 2:
+                x0 = -0.22
+            lines.append(box("script", (x0, y - 0.006, 0.15), (x1 - (0.06 if k % 4 == 3 else 0.0), y + 0.006, 0.153), ink, bevel=0))
+    lines.append(box("initial", (-0.3, 0.115, 0.15), (-0.24, 0.185, 0.154), red, bevel=0))
+    for ob in lines:
+        ob.rotation_euler = (0.38, 0, 0)
+        ob.location = (lx, ly, S_F + 1.12)
+    # Kjedet: ekte ledd, annethvert dreid, fra permen ned til stolpen.
+    import bpy
+    a, b = Vector((lx + 0.3, ly - 0.12, S_F + 1.06)), Vector((lx + 0.08, ly, S_F + 0.55))
+    n = 9
+    for k in range(n):
+        c = a.lerp(b, (k + 0.5) / n)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.028, minor_radius=0.006, major_segments=8, minor_segments=4, location=c)
+        ln = bpy.context.active_object
+        d = (b - a).normalized()
+        ln.rotation_euler = d.to_track_quat("Z", "Y").to_euler()
+        ln.rotation_euler.rotate_axis("Z", (math.pi / 2) * (k % 2))
+        ln.scale = (1.0, 0.65, 1.0)
+        ln.data.materials.append(p.iron)
+        town.uv_box(ln)
+        PIECES.append(ln)
+    kit.box("chain_staple", (lx + 0.06, ly - 0.02, S_F + 0.5), (lx + 0.1, ly + 0.02, S_F + 0.56), p.iron, bevel=0)
     collide((lx, ly, S_F + 0.6), (0.85, 0.75, 1.2))
     book.__exit__(None, None, None)
     # Høye lysestaker ved døra, og kista med skjemaene.
@@ -1031,10 +1064,11 @@ def church_inside(p, rng):
     box("altar", (ax - 0.7, ay - 0.42, az), (ax + 0.7, ay + 0.42, az + 0.98), stone, bevel=0.04)
     box("altar_cloth", (ax - 0.74, ay - 0.46, az + 0.98), (ax + 0.74, ay + 0.46, az + 1.02), linen, bevel=0.01)
     red = layer("wool", (0.62, 0.14, 0.1))
-    box("altar_frontal", (ax - 0.68, ay - 0.47, az + 0.15), (ax + 0.68, ay - 0.44, az + 0.98), red, bevel=0.005)
+    # Forhenget dekker 80 % av bredden, så steinen synes rundt (eieren).
+    box("altar_frontal", (ax - 0.56, ay - 0.47, az + 0.2), (ax + 0.56, ay - 0.44, az + 0.98), red, bevel=0.005)
     for k in range(3):
-        x = ax - 0.45 + k * 0.45
-        box("frontal_band", (x - 0.04, ay - 0.49, az + 0.15), (x + 0.04, ay - 0.46, az + 0.98), gilt, bevel=0.005)
+        x = ax - 0.36 + k * 0.36
+        box("frontal_band", (x - 0.035, ay - 0.49, az + 0.2), (x + 0.035, ay - 0.46, az + 0.98), gilt, bevel=0.005)
     for sx in (-1, 1):
         lathe("altar_candlestick", [(0.0, 0.0), (0.1, 0.0), (0.06, 0.04), (0.02, 0.06), (0.02, 0.32), (0.07, 0.34), (0.0, 0.35)], 8, (ax + sx * 0.5, ay, az + 1.02), gilt)
         box("candle", (ax + sx * 0.5 - 0.03, ay - 0.03, az + 1.37), (ax + sx * 0.5 + 0.03, ay + 0.03, az + 1.62), layer("plaster_white", (0.95, 0.9, 0.78)), bevel=0.008)

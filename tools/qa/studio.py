@@ -69,18 +69,38 @@ def dress(mat):
     nt.links.new(mul.outputs[2], bsdf.inputs["Base Color"])
 
 
+def glow(mat):
+    """Flammer og glør (`fire…`, `glow…`) lyser som i spillet."""
+    if not mat.name.startswith(("fire", "glow", "magic")):
+        return
+    bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if bsdf is None:
+        return
+    base = bsdf.inputs["Base Color"]
+    col = base.default_value
+    if base.is_linked:
+        src = base.links[0].from_node
+        col = next((i.default_value for i in src.inputs if i.type == "RGBA" and not i.is_linked), col)
+    bsdf.inputs["Emission Color"].default_value = col
+    bsdf.inputs["Emission Strength"].default_value = 4.0
+
+
 def main(path, prefix, views):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=path)
     for m in bpy.data.materials:
         if m.use_nodes:
             dress(m)
+            glow(m)
     obs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     pts = [o.matrix_world @ Vector(c) for o in obs for c in o.bound_box]
-    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), 0.0))
+    # Det som henger eller står høyt (hyller, lykter), sees der det er:
+    # kameraet sikter på tingen, ikke på gulvet under (runde 5).
+    bottom = max(0.0, min(p.z for p in pts))
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), bottom))
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
     c = (lo + hi) / 2
-    big = max(hi.x - lo.x, hi.y - lo.y, hi.z)
+    big = max(hi.x - lo.x, hi.y - lo.y, hi.z - bottom, 0.35)
     s = bpy.context.scene
     s.render.engine = "CYCLES"
     s.cycles.samples = 12
@@ -110,7 +130,7 @@ def main(path, prefix, views):
         name, yaw, pitch, dist, aim = v.split(":")
         a, p = math.radians(float(yaw)), math.radians(float(pitch))
         r = big * float(dist)
-        target = Vector((c.x, c.y, hi.z * float(aim)))
+        target = Vector((c.x, c.y, bottom + (hi.z - bottom) * float(aim)))
         # glTF importeres med −y som forsida.
         cam.location = target + Vector((r * math.sin(a) * math.cos(p), -r * math.cos(a) * math.cos(p), r * math.sin(p)))
         cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()

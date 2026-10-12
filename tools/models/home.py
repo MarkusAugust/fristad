@@ -28,6 +28,7 @@ import sys
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
 import kit  # noqa: E402
+import vessels  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, MOULDING, ROPE, barrel, bench, box, candle, door, fire, half_timbered, planks, stick, stool, table, window  # noqa: E402
@@ -167,8 +168,8 @@ def inside(p, rng):
             stick("firewood", (hx + 1.4, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), (hx + 2.0, hy - 0.2 - 0.13 * (k % 2), F0 + 0.07 + 0.13 * (k // 2)), 0.12, 0.12, layer("logs"), bevel=0.03)
     # Krukker og lys på hylla over peisen.
     with piece("mantel_crocks", (hx, hy - 0.91, F0 + 1.86)):
-        for k, xx in enumerate((hx - 1.0, hx - 0.6, hx + 0.6, hx + 1.0)):
-            box("crock", (xx - 0.08, hy - 0.98, F0 + 1.86), (xx + 0.08, hy - 0.84, F0 + 2.1), layer("plaster_red" if k % 2 else "plaster_white"), bevel=0.04)
+        for k, (a0, a1) in enumerate(((hx - 1.25, hx - 0.15), (hx + 0.15, hx + 1.25))):
+            vessels.row(p, random.Random(31 + k), a0, a1, hy - 0.92, F0 + 1.86, 0.2, 0.28, kinds=["crock", "jar", "jug", "bowl", "crock_lid", "pitcher"])
         candle(p, hx, hy - 0.92, F0 + 1.86)
 
     # Senga: rammen, halmmadrass, lappeteppe, pute og en kiste ved fotenden.
@@ -208,9 +209,7 @@ def inside(p, rng):
     with piece("jar_shelf", (IX1 - 0.15, -0.2, F0)):
         for z in (F0 + 1.4, F0 + 1.9):
             box("shelf", (IX1 - 0.3, -0.9, z), (IX1, 0.5, z + 0.04), p.floor, bevel=0.01)
-            for k in range(4):
-                yy = -0.7 + k * 0.38
-                box("jar", (IX1 - 0.24, yy - 0.08, z + 0.04), (IX1 - 0.08, yy + 0.08, z + 0.26), layer("plaster_red" if (k + int(z)) % 2 else "plaster"), bevel=0.04)
+            vessels.row(p, random.Random(int(z * 100) + 3), -0.9, 0.5, IX1 - 0.15, z + 0.04, 0.28, 0.42, along="y")
 
     # Galleriveggen: en list over og under, og 15 rammer med mørk bakplate.
     stick("gallery_rail", (GAL_X + 0.03, IY0 + 0.2, F0 + GAL_ROWS[0] + 0.5), (GAL_X + 0.03, IY1 - 0.2, F0 + GAL_ROWS[0] + 0.5), 0.08, 0.12, p.trim, ("trim", MOULDING))

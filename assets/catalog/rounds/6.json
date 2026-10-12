@@ -1,0 +1,178 @@
+{
+ "_om": "Runde 6: det som ble underkjent i runde 5, rettet.",
+ "round": 6,
+ "fix": {
+  "legs": "Bena er hele trestykker med kornet langs benet. Før lå de flatt under bordplata (feil i den felles bordkoden), og det du så var bokser med treteksturen på tvers.",
+  "vessels": "Et felles sett med kar: krukker med og uten tøy over, krukker med hals, mugger og kanner med hank, boller, krus, flasker, tinnfat og små tønner, i ulike former, størrelser og farger.",
+  "sack": "Ny sekk: buker ut, synker sammen nederst, snørt hals med en dusk, folder i stoffet, og hver sekk står litt skjevt for seg.",
+  "altar": "Forhenget dekker 80 % av bredden og går ikke helt ned, så steinen synes rundt.",
+  "barrel_bars": "Tønna er åpen oppe og hul et godt stykke ned, og stengene står ned i den.",
+  "rack": "To lag på svillestokker med kiler: seks tønner nederst, og fem oppå som ligger i sporet mellom to under.",
+  "candle": "Talglys i en jernskål med hank, rennende talg, veke og en tydelig flamme som lyser.",
+  "book": "Kjedet er ekte ledd, annethvert dreid, fra permen ned til en krampe i stolpen; sidene har skriftlinjer og en rød forbokstav.",
+  "pail": "En ekte bøtte: staver, to jernbånd, ører og hank, og kull et stykke under kanten.",
+  "crate": "Lister langs alle de tolv kantene.",
+  "lantern": "Hornlykt med bunn, hjørnestolper og tverrbånd av jern, glødende hornruter, kjegletak, ring og kjetting opp til bjelken.",
+  "tools": "Ti forskjellige verktøy på knagger: hammer, tang, fil, sag, meisel, dor, rasp, slegge, nagletang og passer.",
+  "helmet": "Hylla har knekter, og bildet er tatt med kameraet rettet mot hylla.",
+  "view": "Bildet er tatt med kameraet rettet mot hylla, ikke mot gulvet under.",
+  "desk": "Plata skråner ned mot den som sitter, som sidestykkene (den var snudd).",
+  "forge": "De fire stolpene midt i verkstedåpningen er borte (feil i den felles bindingsverkkoden, som delte opp åpningen); stolpene med knekter står.",
+  "bread": "Brød i ulike former (runde og avlange), en bolle og en mugge ved siden av."
+ },
+ "items": {
+  "altar": {
+   "fix": [
+    "altar"
+   ]
+  },
+  "barrel_bars": {
+   "fix": [
+    "barrel_bars"
+   ]
+  },
+  "barrel_rack": {
+   "fix": [
+    "rack"
+   ]
+  },
+  "candle": {
+   "fix": [
+    "candle"
+   ]
+  },
+  "chained_book": {
+   "fix": [
+    "book"
+   ]
+  },
+  "coal_pail": {
+   "fix": [
+    "pail"
+   ]
+  },
+  "crock_shelf": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "door_shelf_jars": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "forge_crate": {
+   "fix": [
+    "crate"
+   ]
+  },
+  "hanging_lantern": {
+   "fix": [
+    "lantern"
+   ]
+  },
+  "helmet_shelf": {
+   "fix": [
+    "helmet"
+   ]
+  },
+  "jar_shelf": {
+   "fix": [
+    "view",
+    "vessels"
+   ]
+  },
+  "jug_shelf": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "kitchen_table": {
+   "fix": [
+    "bread",
+    "vessels",
+    "legs"
+   ]
+  },
+  "lab_shelf": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "lab_table": {
+   "fix": [
+    "legs"
+   ]
+  },
+  "mantel_crocks": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "sacks": {
+   "fix": [
+    "sack"
+   ]
+  },
+  "sacks_two": {
+   "fix": [
+    "sack"
+   ]
+  },
+  "table_18": {
+   "fix": [
+    "legs"
+   ]
+  },
+  "table_22": {
+   "fix": [
+    "legs"
+   ]
+  },
+  "tavern_counter": {
+   "fix": [
+    "vessels"
+   ]
+  },
+  "tool_wall": {
+   "fix": [
+    "tools"
+   ]
+  },
+  "wash_stand": {
+   "fix": [
+    "legs"
+   ]
+  },
+  "writing_desk_0": {
+   "fix": [
+    "desk"
+   ]
+  },
+  "writing_desk_1": {
+   "fix": [
+    "desk"
+   ]
+  },
+  "writing_desk_2": {
+   "fix": [
+    "desk"
+   ]
+  },
+  "writing_desk_gallery": {
+   "fix": [
+    "desk"
+   ]
+  },
+  "writing_desk_unlit": {
+   "fix": [
+    "desk"
+   ]
+  },
+  "forge": {
+   "fix": [
+    "forge"
+   ]
+  }
+ }
+}
