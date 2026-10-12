@@ -50,14 +50,31 @@ pub const PILGRIM: &[&str] = &[
 ];
 
 /// Alle replikksettene med nøkkelen byen som data bruker.
-pub const LINES: &[(&str, &[&str])] = &[("smith", SMITH), ("clerk", CLERK), ("apothecary", APOTHECARY), ("gorvek", GORVEK), ("innkeeper", INNKEEPER), ("townsfolk", TOWNSFOLK), ("guard", GUARD), ("pilgrim", PILGRIM)];
+pub const LINES: &[(&str, &[&str])] = &[
+    ("smith", SMITH),
+    ("clerk", CLERK),
+    ("apothecary", APOTHECARY),
+    ("gorvek", GORVEK),
+    ("innkeeper", INNKEEPER),
+    ("townsfolk", TOWNSFOLK),
+    ("guard", GUARD),
+    ("pilgrim", PILGRIM),
+];
 
 /// Replikkene med nøkkelen `key` (tomt om den ikke finnes).
 pub fn lines(key: &str) -> &'static [&'static str] {
-    LINES.iter().find(|(k, _)| *k == key).map(|(_, l)| *l).unwrap_or(&[])
+    LINES
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map(|(_, l)| *l)
+        .unwrap_or(&[])
 }
 
 /// Nøkkelen til et replikksett (samme liste i minnet).
 pub fn key_of(lines: &'static [&'static str]) -> &'static str {
-    LINES.iter().find(|(_, l)| *l == lines).map(|(k, _)| *k).unwrap_or("")
+    LINES
+        .iter()
+        .find(|(_, l)| *l == lines)
+        .map(|(k, _)| *k)
+        .unwrap_or("")
 }

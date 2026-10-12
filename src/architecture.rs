@@ -16,13 +16,22 @@ use std::path::{Path, PathBuf};
 const RULES: &[(&str, &[&str])] = &[
     ("fristad-domain", &["glam", "bytemuck", "serde", "log"]),
     ("fristad-ports", &["fristad-domain", "glam"]),
-    ("fristad-app", &["fristad-domain", "fristad-ports", "glam", "log"]),
+    (
+        "fristad-app",
+        &["fristad-domain", "fristad-ports", "glam", "log"],
+    ),
 ];
 
 /// Det de indre pakkene ikke får bruke fra standardbiblioteket, og ikke
 /// får gjøre når de kompileres.
 const FORBIDDEN: &[&str] = &["fs", "env", "process", "net", "thread", "time"];
-const MACROS: &[&str] = &["include_str!", "include_bytes!", "include!", "env!", "option_env!"];
+const MACROS: &[&str] = &[
+    "include_str!",
+    "include_bytes!",
+    "include!",
+    "env!",
+    "option_env!",
+];
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -37,7 +46,9 @@ fn dependencies(manifest: &Path) -> Vec<String> {
     for line in text.lines() {
         let l = line.trim();
         if l.starts_with('[') {
-            inside = l.ends_with("dependencies]") && !l.contains("dev-dependencies") && !l.contains("build-dependencies");
+            inside = l.ends_with("dependencies]")
+                && !l.contains("dev-dependencies")
+                && !l.contains("build-dependencies");
             continue;
         }
         if inside && !l.is_empty() && !l.starts_with('#') {
@@ -108,7 +119,10 @@ fn pakkene_har_bare_lovlige_avhengigheter() {
     for (krate, allowed) in RULES {
         let deps = dependencies(&root().join("crates").join(krate).join("Cargo.toml"));
         for d in &deps {
-            assert!(allowed.contains(&d.as_str()), "{krate} har avhengigheten {d}, som den ikke får ha (lov: {allowed:?})");
+            assert!(
+                allowed.contains(&d.as_str()),
+                "{krate} har avhengigheten {d}, som den ikke får ha (lov: {allowed:?})"
+            );
         }
     }
 }
@@ -125,8 +139,17 @@ fn kjernen_bruker_ikke_filer_miljo_eller_klokke() {
                 let compact: String = line.split_whitespace().collect();
                 for m in FORBIDDEN {
                     // `std::fs`, `std::{fs, …}` og `std::{…, fs}`.
-                    let direct = compact.contains(&format!("std::{m}::")) || compact.contains(&format!("std::{m};")) || compact.contains(&format!("std::{m}}}"));
-                    let grouped = compact.contains("std::{") && compact.split("std::{").skip(1).any(|g| g.split('}').next().unwrap_or("").split(',').any(|x| x == *m || x.starts_with(&format!("{m}::"))));
+                    let direct = compact.contains(&format!("std::{m}::"))
+                        || compact.contains(&format!("std::{m};"))
+                        || compact.contains(&format!("std::{m}}}"));
+                    let grouped = compact.contains("std::{")
+                        && compact.split("std::{").skip(1).any(|g| {
+                            g.split('}')
+                                .next()
+                                .unwrap_or("")
+                                .split(',')
+                                .any(|x| x == *m || x.starts_with(&format!("{m}::")))
+                        });
                     if direct || grouped {
                         bad.push(format!("{}:{}: std::{m}", path.display(), n + 1));
                     }
@@ -139,7 +162,11 @@ fn kjernen_bruker_ikke_filer_miljo_eller_klokke() {
             }
         }
     }
-    assert!(bad.is_empty(), "Kjernen, portene og applikasjonen skal ikke lese filer, miljø eller klokke:\n{}", bad.join("\n"));
+    assert!(
+        bad.is_empty(),
+        "Kjernen, portene og applikasjonen skal ikke lese filer, miljø eller klokke:\n{}",
+        bad.join("\n")
+    );
 }
 
 /// Største lengde (linjer) på en fil i kjernen, portene og applikasjonen.
@@ -149,7 +176,6 @@ const MAX_LINES: usize = 800;
 /// tak. De kan bare krympe; når en er under grensen, skal den strykes her.
 const TOO_LONG: &[(&str, usize)] = &[
     ("fristad-domain/src/domain/mobs.rs", 1121),
-    ("fristad-domain/src/domain/world/crypt/mod.rs", 873),
     ("fristad-domain/src/domain/geometry.rs", 827),
 ];
 
@@ -161,12 +187,22 @@ fn filene_er_ikke_for_lange() {
         files(&root().join("crates").join(krate).join("src"), &mut all);
         for path in all {
             let lines = std::fs::read_to_string(&path).unwrap().lines().count();
-            let rel = path.strip_prefix(root().join("crates")).unwrap().to_string_lossy().replace('\\', "/");
+            let rel = path
+                .strip_prefix(root().join("crates"))
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/");
             match TOO_LONG.iter().find(|(f, _)| *f == rel) {
-                Some((_, cap)) if lines > *cap => bad.push(format!("{rel}: {lines} linjer, mer enn taket {cap}")),
-                Some(_) if lines <= MAX_LINES => bad.push(format!("{rel}: {lines} linjer, under grensen; stryk den fra TOO_LONG")),
+                Some((_, cap)) if lines > *cap => {
+                    bad.push(format!("{rel}: {lines} linjer, mer enn taket {cap}"))
+                }
+                Some(_) if lines <= MAX_LINES => bad.push(format!(
+                    "{rel}: {lines} linjer, under grensen; stryk den fra TOO_LONG"
+                )),
                 Some(_) => {}
-                None if lines > MAX_LINES => bad.push(format!("{rel}: {lines} linjer, mer enn {MAX_LINES}; del den etter oppgave")),
+                None if lines > MAX_LINES => bad.push(format!(
+                    "{rel}: {lines} linjer, mer enn {MAX_LINES}; del den etter oppgave"
+                )),
                 None => {}
             }
         }
@@ -179,6 +215,24 @@ fn filene_er_ikke_for_lange() {
 #[test]
 fn lasteren_leser_rollene_og_gjetter_ikke() {
     let text = code(&root().join("src/adapters/gltf.rs"));
-    let bad: Vec<_> = text.lines().enumerate().filter(|(_, l)| ["starts_with(\"", "ends_with(\"", "strip_prefix(\"", "contains(\""].iter().any(|m| l.contains(m))).map(|(n, l)| format!("{}: {}", n + 1, l.trim())).collect();
-    assert!(bad.is_empty(), "gltf.rs sammenligner navn; legg regelen i tools/models/roles.py i stedet:\n{}", bad.join("\n"));
+    let bad: Vec<_> = text
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| {
+            [
+                "starts_with(\"",
+                "ends_with(\"",
+                "strip_prefix(\"",
+                "contains(\"",
+            ]
+            .iter()
+            .any(|m| l.contains(m))
+        })
+        .map(|(n, l)| format!("{}: {}", n + 1, l.trim()))
+        .collect();
+    assert!(
+        bad.is_empty(),
+        "gltf.rs sammenligner navn; legg regelen i tools/models/roles.py i stedet:\n{}",
+        bad.join("\n")
+    );
 }

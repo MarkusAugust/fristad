@@ -262,6 +262,19 @@ class Level:
             name = {GATE: "Gitteret", SECRET: "Den skjulte gangen", SHORTCUT: "Snarveien", STAIRS: "Trappa"}.get(kind, "Gangen")
             self.halls.append(Hall(hid, a, b, kind, pts, w, ra.y, rb.y, stairs, gate, name, secret))
         self.marks = lay["marks"](None)
+        # Det som står i nivået er data (`assets/layout/crypt_NN.json`, som
+        # redigeringen endrer): finnes fila, brukes merkene og lysene derfra,
+        # og nettet bygges rundt dem. `FRISTAD_MARKS=skriv` lager den på nytt
+        # fra utlegget her.
+        path = os.path.join(ROOT, "assets", "layout", f"crypt_{n:02d}.json")
+        self.layout_path = path
+        self.from_layout = os.path.exists(path) and os.environ.get("FRISTAD_MARKS") != "skriv"
+        self.layout_lights = None
+        if self.from_layout:
+            with open(path) as f:
+                saved = json.load(f)
+            self.marks = saved.get("marks", [])
+            self.layout_lights = saved.get("lights", [])
         self.mb = MB()
         self.colliders = []
         self.lights = []
@@ -281,7 +294,8 @@ class Level:
         """Pynt fra byggesettet som egen modell (sarkofagen fra arket, med bakt
         tekstur): motoren setter den ut etter merket `prop`. Kolliderne og
         nav-hindringen legges der den kalles fra, som før."""
-        self.marks.append({"kind": "prop", "label": model, "pos": [rnd(x), rnd(y), rnd(z)], "yaw": rnd(yaw, 4)})
+        if not self.from_layout:
+            self.marks.append({"kind": "prop", "label": model, "pos": [rnd(x), rnd(y), rnd(z)], "yaw": rnd(yaw, 4)})
 
     def wall_box(self, a, b, y0, y1, out):
         """Murkollider langs (a → b) i planen, bak flaten (mot `out`)."""
@@ -1295,6 +1309,15 @@ def main():
     export = "--export" in args
     L = Level(n)
     L.build()
+    if L.layout_lights is not None:
+        L.lights = L.layout_lights
+    else:
+        # Første gang: merkene og lysene blir data (fast form med
+        # `cargo run --bin layout`).
+        os.makedirs(os.path.dirname(L.layout_path), exist_ok=True)
+        with open(L.layout_path, "w") as f:
+            json.dump({"marks": L.marks, "lights": L.lights}, f, ensure_ascii=False, separators=(",", ":"))
+        print(f"{L.layout_path}: skrevet (kjør `cargo run --bin layout` for fast form)")
     pieces = chunks(L.mb, n)
     data = {
         "level": n,

@@ -4,8 +4,8 @@
 //! som spillet poserer per bilde, så beina svinger når de går. Kroppen
 //! står på bakken og vippes etter hellingen.
 
-use crate::domain::world::terrain;
 use crate::domain::scene::ModelInstance;
+use crate::domain::world::terrain;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -34,8 +34,18 @@ impl Kind {
     /// LEGS og SHEEP_LEGS i animals.py (Blender: x fram, y venstre, z opp).
     fn legs(self) -> [Vec3; 4] {
         match self {
-            Kind::Sheep => [Vec3::new(0.3, 0.46, -0.13), Vec3::new(0.3, 0.46, 0.13), Vec3::new(-0.32, 0.46, -0.13), Vec3::new(-0.32, 0.46, 0.13)],
-            Kind::Cow => [Vec3::new(0.6, 1.0, -0.24), Vec3::new(0.6, 1.0, 0.24), Vec3::new(-0.62, 1.02, -0.26), Vec3::new(-0.62, 1.02, 0.26)],
+            Kind::Sheep => [
+                Vec3::new(0.3, 0.46, -0.13),
+                Vec3::new(0.3, 0.46, 0.13),
+                Vec3::new(-0.32, 0.46, -0.13),
+                Vec3::new(-0.32, 0.46, 0.13),
+            ],
+            Kind::Cow => [
+                Vec3::new(0.6, 1.0, -0.24),
+                Vec3::new(0.6, 1.0, 0.24),
+                Vec3::new(-0.62, 1.02, -0.26),
+                Vec3::new(-0.62, 1.02, 0.26),
+            ],
         }
     }
     fn walk_speed(self) -> f32 {
@@ -127,7 +137,17 @@ impl Herd {
                 let a = rnd() * std::f32::consts::TAU;
                 let r = rnd().sqrt() * range * 0.7;
                 let pos = home + Vec2::new(a.cos(), a.sin()) * r;
-                animals.push(Animal { kind, pos, yaw: rnd() * std::f32::consts::TAU, speed: 0.0, state: State::Grazing(rnd() * 6.0), phase: rnd() * 10.0, home, range, scale: 0.9 + rnd() * 0.2 });
+                animals.push(Animal {
+                    kind,
+                    pos,
+                    yaw: rnd() * std::f32::consts::TAU,
+                    speed: 0.0,
+                    state: State::Grazing(rnd() * 6.0),
+                    phase: rnd() * 10.0,
+                    home,
+                    range,
+                    scale: 0.9 + rnd() * 0.2,
+                });
             }
         }
         Self { animals, seed }
@@ -137,7 +157,11 @@ impl Herd {
     pub fn reserve() -> Vec<(&'static str, usize)> {
         let mut out: Vec<(&'static str, usize)> = vec![];
         for (kind, _, _, count) in HERDS {
-            for (name, n) in [(kind.body(), count), (kind.leg(0), count * 2), (kind.leg(2), count * 2)] {
+            for (name, n) in [
+                (kind.body(), count),
+                (kind.leg(0), count * 2),
+                (kind.leg(2), count * 2),
+            ] {
                 if let Some(e) = out.iter_mut().find(|e| e.0 == name) {
                     e.1 += n;
                 } else {
@@ -205,7 +229,11 @@ impl Herd {
                     }
                     let want = (-dir.x).atan2(-dir.y);
                     a.yaw = turn(a.yaw, want, dt * 4.0);
-                    a.state = if t > 0.0 { State::Fleeing(t) } else { State::Grazing(2.0 + self.rnd() * 4.0) };
+                    a.state = if t > 0.0 {
+                        State::Fleeing(t)
+                    } else {
+                        State::Grazing(2.0 + self.rnd() * 4.0)
+                    };
                 }
             }
             a.speed += (target_speed - a.speed) * (dt * 5.0).min(1.0);
@@ -237,17 +265,38 @@ impl Herd {
             let g = terrain::height(a.pos.x, a.pos.y);
             let n = terrain::normal(a.pos.x, a.pos.y);
             // Kroppen gynger litt når dyret går.
-            let bob = (a.phase * 2.0).sin().abs() * 0.025 * (a.speed / a.kind.walk_speed()).min(2.0);
-            let body = Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(a.yaw), Vec3::new(a.pos.x, g + bob, a.pos.y)) * Affine3A::from_scale(Vec3::splat(a.scale));
-            out.push(ModelInstance { model: a.kind.body(), transform: body, skin: None, flash: 0.0, tint: None });
+            let bob =
+                (a.phase * 2.0).sin().abs() * 0.025 * (a.speed / a.kind.walk_speed()).min(2.0);
+            let body = Affine3A::from_rotation_translation(
+                Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(a.yaw),
+                Vec3::new(a.pos.x, g + bob, a.pos.y),
+            ) * Affine3A::from_scale(Vec3::splat(a.scale));
+            out.push(ModelInstance {
+                model: a.kind.body(),
+                transform: body,
+                skin: None,
+                flash: 0.0,
+                tint: None,
+            });
             // Beinsvingen: diagonale par i motfase, større utslag når det løper.
-            let amp = if a.speed > a.kind.walk_speed() * 1.5 { 0.55 } else { 0.35 } * (a.speed / a.kind.walk_speed()).min(1.0);
+            let amp = if a.speed > a.kind.walk_speed() * 1.5 {
+                0.55
+            } else {
+                0.35
+            } * (a.speed / a.kind.walk_speed()).min(1.0);
             let idle = (time * 0.7 + a.phase).sin() * 0.02;
             for (k, hip) in a.kind.legs().iter().enumerate() {
                 let sign = if k == 0 || k == 3 { 1.0 } else { -1.0 };
                 let swing = a.phase.sin() * amp * sign + idle;
-                let leg = body * Affine3A::from_translation(*hip) * Affine3A::from_rotation_z(swing);
-                out.push(ModelInstance { model: a.kind.leg(k), transform: leg, skin: None, flash: 0.0, tint: None });
+                let leg =
+                    body * Affine3A::from_translation(*hip) * Affine3A::from_rotation_z(swing);
+                out.push(ModelInstance {
+                    model: a.kind.leg(k),
+                    transform: leg,
+                    skin: None,
+                    flash: 0.0,
+                    tint: None,
+                });
             }
         }
         out
@@ -262,6 +311,7 @@ impl Default for Herd {
 
 /// Snu `yaw` mot `want` med høyst `step` radianer.
 fn turn(yaw: f32, want: f32, step: f32) -> f32 {
-    let diff = (want - yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+    let diff = (want - yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
+        - std::f32::consts::PI;
     yaw + diff.clamp(-step, step)
 }

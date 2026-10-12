@@ -68,7 +68,10 @@ pub fn wall_radius(a: f32) -> f32 {
     let deg = a.to_degrees().rem_euclid(360.0);
     let n = WALL_CORNERS.len();
     // Stykket strålen går gjennom: fra det siste hjørnet før `deg`.
-    let i = (0..n).rev().find(|&i| WALL_CORNERS[i].0 <= deg).unwrap_or(n - 1);
+    let i = (0..n)
+        .rev()
+        .find(|&i| WALL_CORNERS[i].0 <= deg)
+        .unwrap_or(n - 1);
     let k = wall_corners();
     let (p, q) = (k[i], k[(i + 1) % n]);
     let e = q - p;
@@ -85,7 +88,10 @@ fn natural(x: f32, z: f32) -> f32 {
     let far = smooth((r - 45.0) / 80.0);
     // Åsene går bare opp fra byens nivå: dalene ligger aldri dypere enn
     // rundt en meter, så kjelleren (fra −16 m) aldri stikker opp.
-    let hills = (noise(x * 0.012 + 11.0, z * 0.012 + 5.0) * 16.0 + noise(x * 0.03 + 4.0, z * 0.03 + 9.0) * 4.0 - 2.0) * far;
+    let hills = (noise(x * 0.012 + 11.0, z * 0.012 + 5.0) * 16.0
+        + noise(x * 0.03 + 4.0, z * 0.03 + 9.0) * 4.0
+        - 2.0)
+        * far;
     near + hills
 }
 

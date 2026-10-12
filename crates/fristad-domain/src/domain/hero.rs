@@ -39,7 +39,12 @@ impl Default for Hero {
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),
             found: BTreeSet::new(),
-            gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
+            gear: Gear {
+                weapon: craft::RUSTY_SWORD,
+                shield: craft::OLD_SHIELD,
+                armor: None,
+                lantern: 1.0,
+            },
             read_docs: HashSet::new(),
             bonus_taken: BTreeSet::new(),
             dirty: true,
@@ -130,11 +135,19 @@ impl Hero {
 
     /// Smi etter en oppskrift. Gir om det gikk, og det som skal sies.
     pub fn craft(&mut self, id: &str, combat: &mut Combat) -> (bool, Vec<Note>) {
-        let Some(r) = craft::recipe(id) else { return (false, vec![]) };
+        let Some(r) = craft::recipe(id) else {
+            return (false, vec![]);
+        };
         let missing = craft::missing(&r, &self.inventory);
         if !missing.is_empty() {
             let list: Vec<String> = missing.iter().map(|(c, n)| format!("{c} ×{n}")).collect();
-            return (false, vec![Note::Sfx("deny"), Note::toast(format!("Skjemaet avvist: mangler {}.", list.join(", ")))]);
+            return (
+                false,
+                vec![
+                    Note::Sfx("deny"),
+                    Note::toast(format!("Skjemaet avvist: mangler {}.", list.join(", "))),
+                ],
+            );
         }
         for (c, n) in r.needs {
             if let Some(v) = self.inventory.get_mut(*c) {
@@ -165,14 +178,32 @@ impl Hero {
         };
         combat.set_gear(self.gear);
         self.dirty = true;
-        (true, vec![Note::Sfx("craft"), Note::Sfx(sound), Note::toast(format!("Skjemaet er godkjent. {} er smidd: {what} er byttet.", r.name))])
+        (
+            true,
+            vec![
+                Note::Sfx("craft"),
+                Note::Sfx(sound),
+                Note::toast(format!(
+                    "Skjemaet er godkjent. {} er smidd: {what} er byttet.",
+                    r.name
+                )),
+            ],
+        )
     }
 
     /// Kjøp i en butikk, for tokens. Gir om det gikk, og det som skal sies.
     pub fn buy(&mut self, id: &str, combat: &mut Combat) -> (bool, Vec<Note>) {
-        let Some(w) = craft::ware(id) else { return (false, vec![]) };
+        let Some(w) = craft::ware(id) else {
+            return (false, vec![]);
+        };
         if self.coins < w.price {
-            return (false, vec![Note::Sfx("deny"), Note::toast(format!("Du mangler {} tokens.", w.price - self.coins))]);
+            return (
+                false,
+                vec![
+                    Note::Sfx("deny"),
+                    Note::toast(format!("Du mangler {} tokens.", w.price - self.coins)),
+                ],
+            );
         }
         self.coins -= w.price;
         match w.what {
@@ -191,7 +222,13 @@ impl Hero {
             }
         }
         self.dirty = true;
-        (true, vec![Note::Sfx("coins"), Note::toast(format!("Kjøpt: {}.", w.name))])
+        (
+            true,
+            vec![
+                Note::Sfx("coins"),
+                Note::toast(format!("Kjøpt: {}.", w.name)),
+            ],
+        )
     }
 
     /// Boka: å lese dokumentasjonen for en komponent gir liv tilbake, én
@@ -206,7 +243,10 @@ impl Hero {
         let mut notes = vec![Note::Sfx("book")];
         if self.hp > before {
             notes.push(Note::Sfx("heal"));
-            notes.push(Note::toast(format!("Du leste om {component}: +{:.0} liv.", self.hp - before)));
+            notes.push(Note::toast(format!(
+                "Du leste om {component}: +{:.0} liv.",
+                self.hp - before
+            )));
         }
         (true, notes)
     }
@@ -228,7 +268,12 @@ mod tests {
 
     #[test]
     fn doeden_tar_en_firedel_og_det_du_bar() {
-        let mut h = Hero { coins: 40, keys: 2, hp: 3.0, ..Default::default() };
+        let mut h = Hero {
+            coins: 40,
+            keys: 2,
+            hp: 3.0,
+            ..Default::default()
+        };
         h.carry("tabs", 1);
         let (lost, bag) = h.die();
         assert_eq!((lost, h.coins, h.keys, h.hp), (10, 30, 0, 100.0));
@@ -237,7 +282,10 @@ mod tests {
 
     #[test]
     fn boka_gir_liv_en_gang() {
-        let mut h = Hero { hp: 50.0, ..Default::default() };
+        let mut h = Hero {
+            hp: 50.0,
+            ..Default::default()
+        };
         assert!(h.read_doc("button").0);
         assert_eq!(h.hp, 70.0);
         assert!(!h.read_doc("button").0);

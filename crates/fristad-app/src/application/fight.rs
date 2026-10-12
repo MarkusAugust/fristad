@@ -43,17 +43,26 @@ impl Session {
         }
         if outcome.keys > 0 {
             self.hero.keys += outcome.keys;
-            events.extend([sfx("key"), Event::Toast("En rusten nøkkel. En låst port i nivået kan åpnes.".into())]);
+            events.extend([
+                sfx("key"),
+                Event::Toast("En rusten nøkkel. En låst port i nivået kan åpnes.".into()),
+            ]);
         }
         for (name, at) in &outcome.sounds {
             // Tassingen høres bare når de er nær.
             if *name == "mob_step" && at.distance(feet) > 14.0 {
                 continue;
             }
-            events.push(self.sound_at(name, *at + Vec3::Y * if *name == "mob_step" { 0.0 } else { 1.0 }, 1.0));
+            events.push(self.sound_at(
+                name,
+                *at + Vec3::Y * if *name == "mob_step" { 0.0 } else { 1.0 },
+                1.0,
+            ));
         }
         for _ in 0..outcome.roars {
-            events.push(Event::Toast("Rammeverket brøler, og tooltips kryper ut av veggene.".into()));
+            events.push(Event::Toast(
+                "Rammeverket brøler, og tooltips kryper ut av veggene.".into(),
+            ));
         }
         if outcome.quakes > 0 {
             self.combat.quake();
@@ -82,9 +91,17 @@ impl Session {
         // Våre hugg. Treffet høres der fienden står, med materialet den er
         // laget av (tabellen er tre, Rammeverket jern).
         let mut struck: Option<Vec3> = None;
-        for e in self.combat.update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.crypt) {
+        for e in self
+            .combat
+            .update(dt, sim_dt, eye, fwd, feet, &mut self.mobs, &self.crypt)
+        {
             match e {
-                CombatEvent::Hit { mob, damage, killed, pos } => {
+                CombatEvent::Hit {
+                    mob,
+                    damage,
+                    killed,
+                    pos,
+                } => {
                     self.hud.popup(pos, damage);
                     struck = Some(pos);
                     let material = match self.mobs.mobs.get(mob).map(|m| m.kind) {
@@ -101,7 +118,9 @@ impl Session {
                 }
                 CombatEvent::Miss => {}
                 CombatEvent::Sound(s) => match struck {
-                    Some(at) if s != "swing" && s != "swing_heavy" => events.push(self.sound_at(s, at, 1.0)),
+                    Some(at) if s != "swing" && s != "swing_heavy" => {
+                        events.push(self.sound_at(s, at, 1.0))
+                    }
                     _ => events.push(sfx(s)),
                 },
             }
@@ -116,15 +135,35 @@ impl Session {
             self.hud.marks_shown = !marks.is_empty();
             events.push(Event::Marks(marks));
         }
-        let boss = if in_crypt { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
+        let boss = if in_crypt {
+            self.mobs
+                .boss()
+                .map(|(n, f)| (n, (f * 100.0).ceil() as u32))
+        } else {
+            None
+        };
         let h = &self.hero;
-        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss);
+        let hud = (
+            h.hp.round().max(0.0) as u32,
+            self.combat.stamina.round().max(0.0) as u32,
+            h.coins,
+            in_crypt,
+            h.keys,
+            boss,
+        );
         if self.hud.last != Some(hud) {
             if self.hud.last.as_ref().map(|h| h.2) != Some(self.hero.coins) {
                 self.hero.dirty = true;
             }
             self.hud.last = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)) });
+            events.push(Event::Hud {
+                hp: hud.0,
+                stamina: hud.1,
+                tokens: hud.2,
+                cellar: hud.3,
+                keys: hud.4,
+                boss: hud.5.map(|(n, f)| (n.to_string(), f)),
+            });
         }
         if self.hero.dirty {
             self.hero.dirty = false;
@@ -153,7 +192,14 @@ impl Session {
                 continue;
             }
             if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65 * m.scale()) {
-                out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / m.max_hp).clamp(0.0, 1.0), text: String::new() });
+                out.push(Mark {
+                    id: i as u32,
+                    x,
+                    y,
+                    kind: "bar",
+                    value: (m.hp / m.max_hp).clamp(0.0, 1.0),
+                    text: String::new(),
+                });
             }
         }
         for p in &mut self.hud.popups {
@@ -162,7 +208,14 @@ impl Session {
         self.hud.popups.retain(|p| p.2 < 0.9);
         for (pos, dmg, age, id) in &self.hud.popups {
             if let Some((x, y)) = self.project(*pos + Vec3::Y * (0.3 + age * 0.6)) {
-                out.push(Mark { id: 100_000 + id, x, y, kind: "text", value: 1.0 - age / 0.9, text: format!("{}", dmg.round() as i32) });
+                out.push(Mark {
+                    id: 100_000 + id,
+                    x,
+                    y,
+                    kind: "text",
+                    value: 1.0 - age / 0.9,
+                    text: format!("{}", dmg.round() as i32),
+                });
             }
         }
         out

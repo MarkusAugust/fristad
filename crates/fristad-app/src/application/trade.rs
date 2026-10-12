@@ -17,14 +17,23 @@ impl Session {
 
     pub fn inventory_view(&self) -> InventoryView {
         let h = &self.hero;
-        let list = |m: &std::collections::BTreeMap<String, u32>| m.iter().filter(|(_, n)| **n > 0).map(|(k, v)| (k.clone(), *v)).collect();
+        let list = |m: &std::collections::BTreeMap<String, u32>| {
+            m.iter()
+                .filter(|(_, n)| **n > 0)
+                .map(|(k, v)| (k.clone(), *v))
+                .collect()
+        };
         InventoryView {
             stash: list(&h.inventory),
             carried: list(&h.carried),
             weapon: format!("{} ({})", h.gear.weapon.name, h.gear.weapon.rarity.name()),
             weapon_special: h.gear.weapon.special.into(),
             shield: format!("{} ({})", h.gear.shield.name, h.gear.shield.rarity.name()),
-            armor: h.gear.armor.map(|a| format!("{} ({})", a.name, a.rarity.name())).unwrap_or_else(|| "ingen".into()),
+            armor: h
+                .gear
+                .armor
+                .map(|a| format!("{} ({})", a.name, a.rarity.name()))
+                .unwrap_or_else(|| "ingen".into()),
             lantern: h.gear.lantern > 1.0,
             max_hp: h.max_hp.round() as u32,
             max_stamina: self.combat.max_stamina.round() as u32,
@@ -36,12 +45,31 @@ impl Session {
     /// Butikken eller verkstedet til innbygger `i`.
     pub(super) fn npc_panel(&self, i: usize) -> Option<Event> {
         let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
-        let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
+        let wares = |w: &[craft::Ware]| {
+            w.iter()
+                .map(|w| WareView {
+                    id: w.id.into(),
+                    name: w.name.into(),
+                    price: w.price,
+                })
+                .collect()
+        };
         match name {
-            "Buttonsmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
-            "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) }),
-            "Gorvek" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
-            "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
+            "Buttonsmeden" => Some(Event::Shop {
+                npc: name.into(),
+                wares: wares(craft::SMITH_WARES),
+            }),
+            "Apotekeren" => Some(Event::Shop {
+                npc: name.into(),
+                wares: wares(craft::APOTHECARY_WARES),
+            }),
+            "Gorvek" => Some(Event::Shop {
+                npc: name.into(),
+                wares: wares(craft::GORVEK_WARES),
+            }),
+            "Skriptoriet" => Some(Event::Workshop {
+                recipes: self.recipe_views(),
+            }),
             _ => None,
         }
     }
@@ -52,9 +80,27 @@ impl Session {
             .iter()
             .map(|r| {
                 let result = match r.result {
-                    craft::Result::Weapon(id) => craft::weapon(id).map(|w| format!("{} (skade ×{:.2}, fart ×{:.2}, rekkevidde {:.1} m, {})", w.name, w.damage, w.speed, w.reach, w.special)).unwrap_or_default(),
-                    craft::Result::Shield(id) => craft::shield(id).map(|s| format!("{} (slipper {:.0} % gjennom, paradevindu {:.2} s)", s.name, s.block * 100.0, s.parry_window)).unwrap_or_default(),
-                    craft::Result::Armor(id) => craft::armor(id).map(|a| format!("{} (tar {:.0} % skade)", a.name, a.taken * 100.0)).unwrap_or_default(),
+                    craft::Result::Weapon(id) => craft::weapon(id)
+                        .map(|w| {
+                            format!(
+                                "{} (skade ×{:.2}, fart ×{:.2}, rekkevidde {:.1} m, {})",
+                                w.name, w.damage, w.speed, w.reach, w.special
+                            )
+                        })
+                        .unwrap_or_default(),
+                    craft::Result::Shield(id) => craft::shield(id)
+                        .map(|s| {
+                            format!(
+                                "{} (slipper {:.0} % gjennom, paradevindu {:.2} s)",
+                                s.name,
+                                s.block * 100.0,
+                                s.parry_window
+                            )
+                        })
+                        .unwrap_or_default(),
+                    craft::Result::Armor(id) => craft::armor(id)
+                        .map(|a| format!("{} (tar {:.0} % skade)", a.name, a.taken * 100.0))
+                        .unwrap_or_default(),
                     craft::Result::Lantern(k) => format!("Søkelykt (bærelyset ×{k:.1})"),
                 };
                 RecipeView {
@@ -62,8 +108,16 @@ impl Session {
                     name: r.name.into(),
                     rarity: r.rarity.name().into(),
                     result,
-                    needs: r.needs.iter().map(|(c, n)| (c.to_string(), *n, have(c))).collect(),
-                    requires: r.requires.iter().map(|c| (c.to_string(), have(c) > 0)).collect(),
+                    needs: r
+                        .needs
+                        .iter()
+                        .map(|(c, n)| (c.to_string(), *n, have(c)))
+                        .collect(),
+                    requires: r
+                        .requires
+                        .iter()
+                        .map(|c| (c.to_string(), have(c) > 0))
+                        .collect(),
                     sources: r
                         .needs
                         .iter()

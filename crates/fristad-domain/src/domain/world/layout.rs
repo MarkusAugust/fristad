@@ -98,10 +98,24 @@ impl UseDef {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum SolidDef {
-    Cuboid { center: Vec3, size: Vec3, yaw: f32 },
-    Cylinder { center: Vec3, radius: f32, half_height: f32 },
-    Capsule { a: Vec3, b: Vec3, radius: f32 },
-    Hull { points: Vec<Vec3> },
+    Cuboid {
+        center: Vec3,
+        size: Vec3,
+        yaw: f32,
+    },
+    Cylinder {
+        center: Vec3,
+        radius: f32,
+        half_height: f32,
+    },
+    Capsule {
+        a: Vec3,
+        b: Vec3,
+        radius: f32,
+    },
+    Hull {
+        points: Vec<Vec3>,
+    },
 }
 
 /// En ting i byen.
@@ -171,8 +185,9 @@ pub struct Layout {
 }
 
 /// Hvilken ting i dataene: en ting i byen (nummer i `Layout.items`), et
-/// møbel i et hus (nummer i husets innhold, `assets/layout/inside/<hus>.json`)
-/// eller en innbygger. Redigeringen bruker den til å finne tingen igjen fra
+/// møbel i et hus (nummer i husets innhold, `assets/layout/inside/<hus>.json`),
+/// en innbygger, eller et merke eller lys i et kryptnivå
+/// (`assets/layout/crypt_NN.json`). Redigeringen bruker den til å finne tingen igjen fra
 /// det som er satt ut (`Builder.origins`).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -180,6 +195,8 @@ pub enum Ref {
     Town(usize),
     Inside { house: String, i: usize },
     Npc(usize),
+    Crypt { level: u32, i: usize },
+    CryptLight { level: u32, i: usize },
 }
 
 /// Navnene i dataene som `&'static str`, som resten av verden bruker: hvert
@@ -204,10 +221,27 @@ pub fn apply(b: &mut Builder, layout: &Layout) -> town::Town {
     }
     for (i, n) in layout.npcs.iter().enumerate() {
         b.origin = Some(Ref::Npc(i));
-        town::settle(b, NpcSpec { name: intern(&n.name), model: intern(&n.model), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::lines(&n.lines), route: n.route.clone(), height: 0.0 });
+        town::settle(
+            b,
+            NpcSpec {
+                name: intern(&n.name),
+                model: intern(&n.model),
+                pos: n.pos,
+                yaw: n.yaw,
+                tint: n.tint,
+                lines: cast::lines(&n.lines),
+                route: n.route.clone(),
+                height: 0.0,
+            },
+        );
     }
     b.origin = None;
-    town::Town { spawn: layout.spawn.0, spawn_yaw: layout.spawn.1, crypt_anchor: layout.crypt_anchor, crypt_exit: layout.crypt_exit }
+    town::Town {
+        spawn: layout.spawn.0,
+        spawn_yaw: layout.spawn.1,
+        crypt_anchor: layout.crypt_anchor,
+        crypt_exit: layout.crypt_exit,
+    }
 }
 
 /// Sett ut én ting, i rommet til `parent` (verden, eller huset den står i).
@@ -221,7 +255,11 @@ pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
         if item.building {
             town::building_at(b, m, t);
         } else {
-            let placed = if item.mounted { b.place_mounted_look(m, t, None::<Look>) } else { b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE)) };
+            let placed = if item.mounted {
+                b.place_mounted_look(m, t, None::<Look>)
+            } else {
+                b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE))
+            };
             if placed {
                 town::carry(b, m, t);
             }
@@ -230,17 +268,43 @@ pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
     let p = |v: &Vec3| t.transform_point3(*v);
     for s in &item.solids {
         b.solid(match s {
-            SolidDef::Cuboid { center, size, yaw } => Shape::Cuboid { center: p(center), size: *size, yaw: yaw + y0 },
-            SolidDef::Cylinder { center, radius, half_height } => Shape::Cylinder { center: p(center), radius: *radius, half_height: *half_height },
-            SolidDef::Capsule { a, b: e, radius } => Shape::Capsule { a: p(a), b: p(e), radius: *radius },
-            SolidDef::Hull { points } => Shape::Hull { points: points.iter().map(p).collect() },
+            SolidDef::Cuboid { center, size, yaw } => Shape::Cuboid {
+                center: p(center),
+                size: *size,
+                yaw: yaw + y0,
+            },
+            SolidDef::Cylinder {
+                center,
+                radius,
+                half_height,
+            } => Shape::Cylinder {
+                center: p(center),
+                radius: *radius,
+                half_height: *half_height,
+            },
+            SolidDef::Capsule { a, b: e, radius } => Shape::Capsule {
+                a: p(a),
+                b: p(e),
+                radius: *radius,
+            },
+            SolidDef::Hull { points } => Shape::Hull {
+                points: points.iter().map(p).collect(),
+            },
         });
     }
     for d in &item.targets {
         b.target(d.what.to_use(), t * d.pose.affine(), d.center, d.half);
     }
     for l in &item.lights {
-        b.push_light(Light { pos: p(&l.pos), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker, room: None });
+        b.push_light(Light {
+            pos: p(&l.pos),
+            radius: l.radius,
+            color: l.color,
+            intensity: l.intensity,
+            always: l.always,
+            flicker: l.flicker,
+            room: None,
+        });
     }
     for (top, s) in &item.smoke {
         b.smoke(p(top), *s);

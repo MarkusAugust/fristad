@@ -17,7 +17,12 @@ use std::sync::OnceLock;
 
 /// Torget: et skjevt firkantet åpent rom (x, z), hjørnene i rekkefølge
 /// nordvest, sørvest, sørøst, nordøst.
-pub const SQUARE: [Vec2; 4] = [Vec2::new(-12.0, -9.0), Vec2::new(-12.8, 10.0), Vec2::new(11.5, 11.8), Vec2::new(13.0, -10.6)];
+pub const SQUARE: [Vec2; 4] = [
+    Vec2::new(-12.0, -9.0),
+    Vec2::new(-12.8, 10.0),
+    Vec2::new(11.5, 11.8),
+    Vec2::new(13.0, -10.6),
+];
 /// Halv bredde på Storgata.
 pub const MAIN: f32 = 3.2;
 /// Krypten på kirkegården: midten av gravkapellet, med døra mot øst (mot
@@ -59,10 +64,18 @@ pub fn main_x(z: f32) -> f32 {
 pub fn streets() -> &'static [Street] {
     static STREETS: OnceLock<Vec<Street>> = OnceLock::new();
     STREETS.get_or_init(|| {
-        let curve = |a: f32, b: f32, n: usize, f: &dyn Fn(f32) -> Vec2| (0..=n).map(|i| f(a + (b - a) * i as f32 / n as f32)).collect::<Vec<_>>();
+        let curve = |a: f32, b: f32, n: usize, f: &dyn Fn(f32) -> Vec2| {
+            (0..=n)
+                .map(|i| f(a + (b - a) * i as f32 / n as f32))
+                .collect::<Vec<_>>()
+        };
         vec![
             // Storgata, fra utenfor sørporten til utenfor nordporten.
-            Street { pts: curve(48.0, -46.0, 47, &|z| Vec2::new(main_x(z), z)), half: MAIN, cobbled: true },
+            Street {
+                pts: curve(48.0, -46.0, 47, &|z| Vec2::new(main_x(z), z)),
+                half: MAIN,
+                cobbled: true,
+            },
         ]
     })
 }
@@ -134,7 +147,12 @@ pub fn gate(south: bool) -> (Vec2, Vec2) {
 pub const YARD_GAP: f32 = 3.0;
 /// Gjerdevariantene (`tools/models/street.py`) og hvor tykke de er:
 /// flettverk, skigard, stakitt og lav steinmur.
-pub const FENCES: [(&str, f32); 4] = [("wattle_fence", 0.16), ("rail_fence", 0.3), ("picket_fence", 0.14), ("stone_fence", 0.44)];
+pub const FENCES: [(&str, f32); 4] = [
+    ("wattle_fence", 0.16),
+    ("rail_fence", 0.3),
+    ("picket_fence", 0.14),
+    ("stone_fence", 0.44),
+];
 /// Høyden på kollideren til et sperregjerde. Den står akkurat der gjerdet
 /// står (like lang, så tykk som varianten), og slik kjenner testen
 /// `sperringene_er_synlige` den igjen.
@@ -161,7 +179,9 @@ pub fn farms() -> &'static [Vec2] {
             let (lo, hi) = flat.fold((f32::MAX, f32::MIN), |(lo, hi), h| (lo.min(h), hi.max(h)));
             let clear = road_dist(p.x, p.y) > 16.0
                 && terrain::town_edge(p.x, p.y) > 28.0
-                && herds.iter().all(|(_, c, rad, _)| c.distance(p) > rad + FARM_R + 12.0)
+                && herds
+                    .iter()
+                    .all(|(_, c, rad, _)| c.distance(p) > rad + FARM_R + 12.0)
                 && out.iter().all(|q| q.distance(p) > 40.0)
                 && {
                     let (cx, cz, hx, hz) = terrain::YARD_FLAT;
@@ -243,7 +263,14 @@ pub struct Inside {
 
 /// Husene med en egen innsidemodell, som bare tegnes når du er nær
 /// (rendereren kjenner dem på navnet `…_interior`).
-const INTERIORS: [(&str, &str); 6] = [("tavern", "tavern_interior"), ("home", "home_interior"), ("forge", "forge_interior"), ("apothecary", "apothecary_interior"), ("scriptorium", "scriptorium_interior"), ("stave_church", "stave_church_interior")];
+const INTERIORS: [(&str, &str); 6] = [
+    ("tavern", "tavern_interior"),
+    ("home", "home_interior"),
+    ("forge", "forge_interior"),
+    ("apothecary", "apothecary_interior"),
+    ("scriptorium", "scriptorium_interior"),
+    ("stave_church", "stave_church_interior"),
+];
 
 /// Et hus med det det har med seg (`place_colliders`), som én ting i
 /// dataene (`layout::Item::building`).
@@ -255,9 +282,16 @@ pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
     if let Some(items) = b.contents.get(model).cloned() {
         let outer = b.origin.take();
         for (i, item) in items.iter().enumerate() {
-            b.origin = Some(layout::Ref::Inside { house: model.to_string(), i });
+            b.origin = Some(layout::Ref::Inside {
+                house: model.to_string(),
+                i,
+            });
             layout::apply_item(b, item, t);
-            if let Some(p) = item.model.as_deref().and_then(|m| b.placements.iter_mut().find(|p| p.model == m)) {
+            if let Some(p) = item
+                .model
+                .as_deref()
+                .and_then(|m| b.placements.iter_mut().find(|p| p.model == m))
+            {
                 p.indoor = true;
             }
         }
@@ -268,7 +302,9 @@ pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
 /// Kolliderne, rampene, lysene, lyktene og røyken en modell har med seg
 /// (`<navn>_inside.json`), satt ut med posen `t`. Gir om den hadde kollidere.
 pub fn carry(b: &mut Builder, model: &str, t: Affine3A) -> bool {
-    let Some(inside) = b.insides.get(model).cloned() else { return false };
+    let Some(inside) = b.insides.get(model).cloned() else {
+        return false;
+    };
     let yaw = layout::Pose::of(t).yaw();
     let w = |p: &[f32; 3]| t.transform_point3(Vec3::from(*p));
     for (p, color, intensity, radius) in &inside.lamps {
@@ -281,7 +317,9 @@ pub fn carry(b: &mut Builder, model: &str, t: Affine3A) -> bool {
         b.solid_box(w(c), Vec3::from(*size), yaw + y);
     }
     for pts in &inside.hulls {
-        b.solid(Shape::Hull { points: pts.iter().map(w).collect() });
+        b.solid(Shape::Hull {
+            points: pts.iter().map(w).collect(),
+        });
     }
     for (p, color, intensity, radius) in &inside.lights {
         b.fire_light(w(p), Vec3::from(*color), *intensity, *radius);
@@ -305,9 +343,20 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
         if let Some((c, h)) = inside.bed {
             b.target(Use::Sleep, t, Vec3::from(c), Vec3::from(h));
         }
-        for (i, (c, y)) in inside.gallery.iter().enumerate().take(crate::domain::craft::GALLERY.len()) {
-            let pose = t * Affine3A::from_rotation_translation(Quat::from_rotation_y(*y), Vec3::from(*c));
-            b.target(Use::Gallery(i), pose, Vec3::new(0.0, 0.0, 0.03), Vec3::new(0.3, 0.3, 0.05));
+        for (i, (c, y)) in inside
+            .gallery
+            .iter()
+            .enumerate()
+            .take(crate::domain::craft::GALLERY.len())
+        {
+            let pose =
+                t * Affine3A::from_rotation_translation(Quat::from_rotation_y(*y), Vec3::from(*c));
+            b.target(
+                Use::Gallery(i),
+                pose,
+                Vec3::new(0.0, 0.0, 0.03),
+                Vec3::new(0.3, 0.3, 0.05),
+            );
         }
     }
     if let Some((c, h)) = inside.as_ref().and_then(|i| i.cellar_floor) {
@@ -360,7 +409,12 @@ pub fn settle(b: &mut Builder, mut npc: NpcSpec) {
     npc.height = npc_height(b, model);
     let (pos, h) = (npc.pos, npc.height);
     b.npcs.push(npc);
-    b.target(Use::Talk(b.npcs.len() - 1), Affine3A::from_translation(pos), Vec3::new(0.0, h * 0.5, 0.0), Vec3::new(0.3, h * 0.5, 0.3));
+    b.target(
+        Use::Talk(b.npcs.len() - 1),
+        Affine3A::from_translation(pos),
+        Vec3::new(0.0, h * 0.5, 0.0),
+        Vec3::new(0.3, h * 0.5, 0.3),
+    );
 }
 
 /// Figuren til en innbygger: sin egen modell, satt av én plass til. Finnes
@@ -377,7 +431,11 @@ fn figure(b: &mut Builder, model: &'static str) -> &'static str {
 /// (figurene står med føttene i origo).
 fn npc_height(b: &Builder, model: &str) -> f32 {
     let h = b.model_height(model);
-    if h > 0.5 { h } else { 1.8 }
+    if h > 0.5 {
+        h
+    } else {
+        1.8
+    }
 }
 
 /// Portalen ved sørporten (`tools/models/portal.py`): står ikke der før du
@@ -462,8 +520,12 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let roads = soft(0.0, (lanes + off).min(road) + (n1 - 0.5) * 1.6, 1.8);
     // Gårdsplassene er tråkket jord (eget lag uten hjulspor), i byen og på
     // tunene på bondegårdene.
-    let farm = farms().iter().map(|c| c.distance(p) - FARM_R).fold(f32::MAX, f32::min);
-    let yards = (inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85).max(soft(0.0, farm + (n1 - 0.5) * 3.0, 3.0) * 0.9);
+    let farm = farms()
+        .iter()
+        .map(|c| c.distance(p) - FARM_R)
+        .fold(f32::MAX, f32::min);
+    let yards = (inside * soft(0.0, (0.3 - n2) * 12.0, 3.0) * 0.85)
+        .max(soft(0.0, farm + (n1 - 0.5) * 3.0, 3.0) * 0.9);
     let dirt = roads.max(yards);
     let earth = (yards / (roads + yards).max(1e-4)).clamp(0.0, 1.0);
     // Berg der det er bratt.
@@ -479,17 +541,32 @@ pub fn ground_weights(x: f32, z: f32) -> Ground {
     let dry = (terrain::noise(x * 0.05 + 2.0, z * 0.05) * 1.3 - 0.35).clamp(0.0, 1.0) * 0.6;
     // Søle i kantene av jordveiene og i gatene i byen.
     let wet = (dirt * (1.0 - dirt) * 4.0 * soft(0.0, 0.55 - n2, 0.2)).clamp(0.0, 1.0);
-    Ground { cobble, dirt, rock, forest, dry, wet, road: coords, earth }
+    Ground {
+        cobble,
+        dirt,
+        rock,
+        forest,
+        dry,
+        wet,
+        road: coords,
+        earth,
+    }
 }
 
 /// Avstand fra et punkt til veiene og stiene utenfor muren.
 pub fn path_dist(x: f32, z: f32) -> f32 {
-    paths(x, z).into_iter().map(|(d, _, _)| d).fold(f32::MAX, f32::min)
+    paths(x, z)
+        .into_iter()
+        .map(|(d, _, _)| d)
+        .fold(f32::MAX, f32::min)
 }
 
 /// Avstand fra et punkt til de to veiene (uten stiene til gårdene).
 fn road_dist(x: f32, z: f32) -> f32 {
-    roads(x, z).into_iter().map(|(d, _, _)| d).fold(f32::MAX, f32::min)
+    roads(x, z)
+        .into_iter()
+        .map(|(d, _, _)| d)
+        .fold(f32::MAX, f32::min)
 }
 
 /// Midtlinja til veien ut av porten (sør eller nord) for en z.
@@ -522,14 +599,21 @@ pub fn farm_lanes() -> &'static [Vec<Vec2>] {
         // Nærmest veien først; de andre kan ta av fra en sti som alt går
         // ut, så to stier ikke går side om side.
         let mut order: Vec<usize> = (0..farms.len()).collect();
-        order.sort_by(|a, b| road_dist(farms[*a].x, farms[*a].y).total_cmp(&road_dist(farms[*b].x, farms[*b].y)));
+        order.sort_by(|a, b| {
+            road_dist(farms[*a].x, farms[*a].y).total_cmp(&road_dist(farms[*b].x, farms[*b].y))
+        });
         let mut lanes: Vec<Vec<Vec2>> = vec![vec![]; farms.len()];
         for i in order {
             let c = &farms[i];
             let lane = {
                 // Fri vei: unna byen, kirkegården og de andre gårdene.
                 let clear = |q: Vec2| {
-                    terrain::town_edge(q.x, q.y) > 14.0 && ((q.x - cx).abs() - hx).max((q.y - cz).abs() - hz) > 6.0 && farms.iter().enumerate().all(|(j, f)| j == i || f.distance(q) > FARM_R + 3.0)
+                    terrain::town_edge(q.x, q.y) > 14.0
+                        && ((q.x - cx).abs() - hx).max((q.y - cz).abs() - hz) > 6.0
+                        && farms
+                            .iter()
+                            .enumerate()
+                            .all(|(j, f)| j == i || f.distance(q) > FARM_R + 3.0)
                 };
                 // Buen: midten skjøvet litt til siden, bort fra byen.
                 let curve = |end: Vec2| -> Vec<Vec2> {
@@ -557,8 +641,15 @@ pub fn farm_lanes() -> &'static [Vec<Vec2>] {
                     }
                 }
                 options.sort_by(|a, b| a.distance(*c).total_cmp(&b.distance(*c)));
-                let fine = |lane: &Vec<Vec2>| lane.windows(2).all(|w| (0..4).all(|k| clear(w[0].lerp(w[1], k as f32 / 4.0))));
-                options.into_iter().map(curve).find(fine).unwrap_or_else(|| curve(*c + Vec2::X))
+                let fine = |lane: &Vec<Vec2>| {
+                    lane.windows(2)
+                        .all(|w| (0..4).all(|k| clear(w[0].lerp(w[1], k as f32 / 4.0))))
+                };
+                options
+                    .into_iter()
+                    .map(curve)
+                    .find(fine)
+                    .unwrap_or_else(|| curve(*c + Vec2::X))
             };
             lanes[i] = lane;
         }
@@ -573,11 +664,17 @@ fn paths(x: f32, z: f32) -> Vec<(f32, f32, f32)> {
     let mut out = roads(x, z);
     let p = Vec2::new(x, z);
     for lane in farm_lanes() {
-        let (lo, hi) = lane.iter().fold((Vec2::MAX, Vec2::MIN), |(lo, hi), q| (lo.min(*q), hi.max(*q)));
+        let (lo, hi) = lane.iter().fold((Vec2::MAX, Vec2::MIN), |(lo, hi), q| {
+            (lo.min(*q), hi.max(*q))
+        });
         if p.x < lo.x - 6.0 || p.y < lo.y - 6.0 || p.x > hi.x + 6.0 || p.y > hi.y + 6.0 {
             continue;
         }
-        let st = Street { pts: lane.clone(), half: 0.0, cobbled: false };
+        let st = Street {
+            pts: lane.clone(),
+            half: 0.0,
+            cobbled: false,
+        };
         let (d, across, along) = street_coords(&st, p);
         out.push((d + 0.6, across, along));
     }
@@ -616,7 +713,10 @@ fn roads(x: f32, z: f32) -> Vec<(f32, f32, f32)> {
 pub fn town_dist(x: f32, z: f32) -> f32 {
     let (cx, cz, hx, hz) = terrain::YARD_FLAT;
     let yard = ((x - cx).abs() - hx).max((z - cz).abs() - hz);
-    let farm = farms().iter().map(|c| c.distance(Vec2::new(x, z)) - FARM_R - 1.0).fold(f32::MAX, f32::min);
+    let farm = farms()
+        .iter()
+        .map(|c| c.distance(Vec2::new(x, z)) - FARM_R - 1.0)
+        .fold(f32::MAX, f32::min);
     terrain::town_edge(x, z).min(yard).min(farm)
 }
 
@@ -624,4 +724,3 @@ pub fn town_dist(x: f32, z: f32) -> f32 {
 pub fn square_center() -> Vec3 {
     terrain::at(Vec3::ZERO)
 }
-

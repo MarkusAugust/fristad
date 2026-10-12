@@ -30,11 +30,24 @@ pub(super) struct Soundscape {
 
 impl Soundscape {
     pub fn new(world: &World) -> Self {
-        let at = |name: &str| world.placements.iter().find(|p| p.model == name).and_then(|p| p.transforms.first()).map(|t| Vec2::new(t.translation.x, t.translation.z)).unwrap_or(Vec2::splat(1.0e4));
+        let at = |name: &str| {
+            world
+                .placements
+                .iter()
+                .find(|p| p.model == name)
+                .and_then(|p| p.transforms.first())
+                .map(|t| Vec2::new(t.translation.x, t.translation.z))
+                .unwrap_or(Vec2::splat(1.0e4))
+        };
         let sq = town::square_center();
         Self {
             spots: [Vec2::new(sq.x, sq.z), at("forge"), at("stave_church")],
-            fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
+            fires: world
+                .lights
+                .iter()
+                .filter(|l| l.always)
+                .map(|l| l.pos)
+                .collect(),
             last: Ambience::default(),
             t: 0.0,
             distant_t: 6.0,
@@ -58,13 +71,21 @@ impl Session {
     pub(super) fn sound_at(&self, name: &str, at: Vec3, gain: f32) -> Event {
         let d = at - self.eye();
         let (s, c) = self.yaw.sin_cos();
-        Event::Sound(Sound { name: name.into(), at: Some([d.x * c - d.z * s, d.y, d.x * s + d.z * c]), gain })
+        Event::Sound(Sound {
+            name: name.into(),
+            at: Some([d.x * c - d.z * s, d.y, d.x * s + d.z * c]),
+            gain,
+        })
     }
 
     /// Kirkeklokka, høyt over kirka.
     pub(super) fn bell(&self) -> Event {
         let church = self.sound.spots[2];
-        self.sound_at("bell", Vec3::new(church.x, self.eye().y + 12.0, church.y), 2.5)
+        self.sound_at(
+            "bell",
+            Vec3::new(church.x, self.eye().y + 12.0, church.y),
+            2.5,
+        )
     }
 
     /// Hva du går på: navnet på skrittlyden.
@@ -75,7 +96,11 @@ impl Session {
         let ground = terrain::height(feet.x, feet.z);
         if feet.y > ground + 0.3 {
             // Gulv, trapper og galleri i husene (og murkronene).
-            return if self.sound.indoor { "step_wood" } else { "step_rock" };
+            return if self.sound.indoor {
+                "step_wood"
+            } else {
+                "step_rock"
+            };
         }
         if self.sky.weather.snow_cover > 0.35 {
             return "step_snow";
@@ -83,7 +108,13 @@ impl Session {
         let g = town::ground_weights(feet.x, feet.z);
         let grass = (1.0 - g.cobble - g.dirt - g.rock - g.forest).max(0.0);
         let (mut best, mut name) = (grass, "step_grass");
-        for (w, n) in [(g.cobble, "step_rock"), (g.rock, "step_rock"), (g.dirt * (1.0 - g.earth), "step_gravel"), (g.dirt * g.earth, "step_dirt"), (g.forest, "step_dirt")] {
+        for (w, n) in [
+            (g.cobble, "step_rock"),
+            (g.rock, "step_rock"),
+            (g.dirt * (1.0 - g.earth), "step_gravel"),
+            (g.dirt * g.earth, "step_dirt"),
+            (g.forest, "step_dirt"),
+        ] {
             if w > best {
                 best = w;
                 name = n;
@@ -114,7 +145,14 @@ impl Session {
 
     /// Lydbildet: hvor nær du er torget, smia, kirka og dyrene, sendt fire
     /// ganger i sekundet når det har endret seg.
-    pub(super) fn ambience(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
+    pub(super) fn ambience(
+        &mut self,
+        dt: f32,
+        feet: Vec3,
+        in_crypt: bool,
+        physics: &mut dyn Physics,
+        events: &mut Vec<Event>,
+    ) {
         self.sound.t -= dt;
         if self.sound.t > 0.0 {
             return;
@@ -124,9 +162,22 @@ impl Session {
         if in_crypt {
             self.sound.distant_t -= 0.25;
             if self.sound.distant_t <= 0.0 {
-                let (wait, pick, angle, dist) = (self.sound.roll(), self.sound.roll(), self.sound.roll(), self.sound.roll());
+                let (wait, pick, angle, dist) = (
+                    self.sound.roll(),
+                    self.sound.roll(),
+                    self.sound.roll(),
+                    self.sound.roll(),
+                );
                 self.sound.distant_t = 8.0 + wait * 14.0;
-                let name = ["rats", "rats", "door_close", "locked", "notice", "windup", "crack"][(pick * 7.0) as usize % 7];
+                let name = [
+                    "rats",
+                    "rats",
+                    "door_close",
+                    "locked",
+                    "notice",
+                    "windup",
+                    "crack",
+                ][(pick * 7.0) as usize % 7];
                 let a = angle * std::f32::consts::TAU;
                 let at = self.eye() + Vec3::new(a.cos(), 0.0, a.sin()) * (12.0 + dist * 14.0);
                 events.push(self.sound_at(name, at, if name == "rats" { 0.9 } else { 0.35 }));
@@ -135,13 +186,25 @@ impl Session {
         // Innendørs: tak over deg og vegger på minst tre kanter.
         let eye = self.eye();
         let roof = physics.cast_ray(eye, Vec3::Y, 12.0).is_some();
-        let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].iter().filter(|d| physics.cast_ray(eye, **d, 9.0).is_some()).count();
+        let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z]
+            .iter()
+            .filter(|d| physics.cast_ray(eye, **d, 9.0).is_some())
+            .count();
         self.sound.indoor = !in_crypt && roof && walls >= 3;
-        let close = |list: &[Vec3], r: f32| list.iter().map(|q| (1.0 - q.distance(eye) / r).clamp(0.0, 1.0)).fold(0.0, f32::max).powi(2);
+        let close = |list: &[Vec3], r: f32| {
+            list.iter()
+                .map(|q| (1.0 - q.distance(eye) / r).clamp(0.0, 1.0))
+                .fold(0.0, f32::max)
+                .powi(2)
+        };
         let p = Vec2::new(feet.x, feet.z);
         let near = |at: Vec2, r: f32| (1.0 - p.distance(at) / r).clamp(0.0, 1.0).powi(2);
         let [square, forge, church] = self.sound.spots;
-        let meadow = self.herd.positions().map(|a| near(a, 45.0)).fold(0.0, f32::max);
+        let meadow = self
+            .herd
+            .positions()
+            .map(|a| near(a, 45.0))
+            .fold(0.0, f32::max);
         let a = Ambience {
             square: near(square, 55.0),
             forge: near(forge, 32.0),
@@ -162,10 +225,26 @@ impl Session {
             indoor: self.sound.indoor,
         };
         let last = self.sound.last;
-        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.portal - last.portal, a.rain - last.rain, a.wind - last.wind]
-            .iter()
-            .fold(0.0f32, |m, d| m.max(d.abs()));
-        if moved > 0.02 || a.night != last.night || a.cellar != last.cellar || a.indoor != last.indoor {
+        let moved = [
+            a.square - last.square,
+            a.forge - last.forge,
+            a.church - last.church,
+            a.meadow - last.meadow,
+            a.fire - last.fire,
+            a.water - last.water,
+            a.lava - last.lava,
+            a.chasm - last.chasm,
+            a.portal - last.portal,
+            a.rain - last.rain,
+            a.wind - last.wind,
+        ]
+        .iter()
+        .fold(0.0f32, |m, d| m.max(d.abs()));
+        if moved > 0.02
+            || a.night != last.night
+            || a.cellar != last.cellar
+            || a.indoor != last.indoor
+        {
             self.sound.last = a;
             events.push(Event::Ambience(a));
         }

@@ -40,11 +40,28 @@ pub struct Map {
 
 impl Map {
     pub fn new(crypt: &Crypt) -> Self {
-        Self { seen: crypt.levels.iter().map(|l| vec![false; l.rooms.len()]).collect(), level: None, dirty: false, last_at: (0.0, 0.0, 0.0) }
+        Self {
+            seen: crypt
+                .levels
+                .iter()
+                .map(|l| vec![false; l.rooms.len()])
+                .collect(),
+            level: None,
+            dirty: false,
+            last_at: (0.0, 0.0, 0.0),
+        }
     }
 
     /// Føttene står i `feet` (i nivå `level`, eller oppe).
-    pub fn update(&mut self, crypt: &Crypt, mech: &Mechanisms, run: &Run, level: Option<usize>, feet: Vec3, yaw: f32) -> MapUpdate {
+    pub fn update(
+        &mut self,
+        crypt: &Crypt,
+        mech: &Mechanisms,
+        run: &Run,
+        level: Option<usize>,
+        feet: Vec3,
+        yaw: f32,
+    ) -> MapUpdate {
         let mut out = MapUpdate::default();
         let Some(k) = level else {
             if self.level.take().is_some() {
@@ -77,8 +94,18 @@ impl Map {
     pub fn known(&self, crypt: &Crypt, mech: &Mechanisms, run: &Run, k: usize) -> Known {
         let level = &crypt.levels[k];
         let seen = &self.seen[k];
-        let rooms = level.rooms.iter().zip(seen).filter(|(_, s)| **s).map(|(r, _)| r.poly.iter().map(|p| [p.x, p.y]).collect()).collect();
-        let known = |p: Vec3| crypt.room_at(p + Vec3::Y * 0.3).is_some_and(|(l, r)| l == k && seen.get(r).copied().unwrap_or(false));
+        let rooms = level
+            .rooms
+            .iter()
+            .zip(seen)
+            .filter(|(_, s)| **s)
+            .map(|(r, _)| r.poly.iter().map(|p| [p.x, p.y]).collect())
+            .collect();
+        let known = |p: Vec3| {
+            crypt
+                .room_at(p + Vec3::Y * 0.3)
+                .is_some_and(|(l, r)| l == k && seen.get(r).copied().unwrap_or(false))
+        };
         let mut marks = vec![];
         let mut mark = |kind: &'static str, p: Vec3| {
             if known(p) {
@@ -92,9 +119,21 @@ impl Map {
             mark("ascend", p);
         }
         for (g, gate) in crypt.gates.iter().enumerate().filter(|(_, g)| g.level == k) {
-            mark(if mech.gate_open(g) { "gate_open" } else { "gate" }, gate.pos);
+            mark(
+                if mech.gate_open(g) {
+                    "gate_open"
+                } else {
+                    "gate"
+                },
+                gate.pos,
+            );
         }
-        for (c, chest) in crypt.chests.iter().enumerate().filter(|(_, c)| c.level == k) {
+        for (c, chest) in crypt
+            .chests
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.level == k)
+        {
             if !mech.chests.get(c).copied().unwrap_or(true) {
                 mark("chest", chest.pos);
             }
@@ -102,8 +141,20 @@ impl Map {
         for s in crypt.shortcuts.iter().filter(|s| s.level == k) {
             mark("shortcut", s.pos);
         }
-        for (i, l) in crypt.levers.iter().enumerate().filter(|(_, l)| l.level == k) {
-            mark(if mech.lever_pulled(i) { "lever_pulled" } else { "lever" }, l.pos);
+        for (i, l) in crypt
+            .levers
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| l.level == k)
+        {
+            mark(
+                if mech.lever_pulled(i) {
+                    "lever_pulled"
+                } else {
+                    "lever"
+                },
+                l.pos,
+            );
         }
         for (i, r) in crypt.rests.iter().enumerate().filter(|(_, r)| r.level == k) {
             mark(if run.rest_lit(i) { "rest_lit" } else { "rest" }, r.pos);
@@ -113,6 +164,11 @@ impl Map {
                 mark("boss", b.pos);
             }
         }
-        Known { level: level.n, name: level.name.clone(), rooms, marks }
+        Known {
+            level: level.n,
+            name: level.name.clone(),
+            rooms,
+            marks,
+        }
     }
 }

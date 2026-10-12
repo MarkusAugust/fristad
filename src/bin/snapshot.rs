@@ -27,16 +27,35 @@ use glam::Vec3;
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     let args: Vec<String> = std::env::args().collect();
-    let arg = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).cloned();
+    let arg = |name: &str| {
+        args.iter()
+            .position(|a| a == name)
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+    };
     let flag = |name: &str| args.iter().any(|a| a == name);
 
     let out = arg("--out").unwrap_or_else(|| "snapshot.png".into());
-    let (width, height) = arg("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))).unwrap_or((1280u32, 720u32));
+    let (width, height) = arg("--size")
+        .and_then(|s| {
+            s.split_once('x')
+                .map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))
+        })
+        .unwrap_or((1280u32, 720u32));
 
-    let prepared = if flag("--edit") { prepare_for_edit(&Embedded, seed()) } else { prepare(&Embedded, seed()) };
+    let prepared = if flag("--edit") {
+        prepare_for_edit(&Embedded, seed())
+    } else {
+        prepare(&Embedded, seed())
+    };
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
-    let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();
+    let first: Vec<(String, glam::Affine3A)> = prepared
+        .world
+        .placements
+        .iter()
+        .filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?)))
+        .collect();
     let at = |model: &str, v: &str, yaw: f32| {
         let v: Vec<f32> = v.split(',').map(|x| x.parse().unwrap()).collect();
         let t = first.iter().find(|(m, _)| m == model).map(|(_, t)| *t)?;
@@ -50,27 +69,50 @@ fn main() {
         at(&args[i + 1], &args[i + 2], yaw).expect("modellen finnes ikke i byen")
     });
     let chest = prepared.world.crypt.chests.first().map(|c| (c.pos, c.yaw));
-    let level: Option<usize> = arg("--level").map(|s| s.parse::<usize>().expect("--level N").max(1) - 1);
-    let level_origin = level.and_then(|k| prepared.world.crypt.levels.get(k)).map(|l| l.origin);
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
-    let (adapter, device, queue) = pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
+    let level: Option<usize> =
+        arg("--level").map(|s| s.parse::<usize>().expect("--level N").max(1) - 1);
+    let level_origin = level
+        .and_then(|k| prepared.world.crypt.levels.get(k))
+        .map(|l| l.origin);
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::PRIMARY,
+        ..Default::default()
+    });
+    let (adapter, device, queue) =
+        pollster::block_on(fristad::adapters::gpu(&instance, None)).expect("GPU");
     let format = wgpu::TextureFormat::Rgba8UnormSrgb;
     // Teksturlagene; mangler et lag en modell bruker, stopper bildet her i
     // stedet for å vise det prosedyriske laget (`bun tools/fetch-assets.ts`).
-    let layers = fristad::adapters::layers::from_dir(std::path::Path::new(&arg("--assets").unwrap_or_else(|| "assets/external".into())));
-    let missing = fristad::adapters::layers::missing(&layers, &fristad::adapters::gltf::used_layers());
+    let layers = fristad::adapters::layers::from_dir(std::path::Path::new(
+        &arg("--assets").unwrap_or_else(|| "assets/external".into()),
+    ));
+    let missing =
+        fristad::adapters::layers::missing(&layers, &fristad::adapters::gltf::used_layers());
     if !missing.is_empty() {
-        eprintln!("Teksturlag uten bilde: {} (kjør `bun tools/fetch-assets.ts`)", missing.join(", "));
+        eprintln!(
+            "Teksturlag uten bilde: {} (kjør `bun tools/fetch-assets.ts`)",
+            missing.join(", ")
+        );
         std::process::exit(1);
     }
-    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, width, height);
+    let renderer = Renderer::new(
+        device.clone(),
+        queue.clone(),
+        &adapter,
+        format,
+        &App::<Renderer, RapierPhysics>::scene(&prepared),
+        &layers,
+        width,
+        height,
+    );
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
 
     if flag("--night") || arg("--theme").as_deref() == Some("dark") {
         app.session.set_daylight(Daylight::Night, true);
     }
     if let Some(w) = arg("--weather") {
-        app.session.set_weather(WeatherKind::from_name(&w).unwrap_or_default(), true);
+        app.session
+            .set_weather(WeatherKind::from_name(&w).unwrap_or_default(), true);
     }
     if flag("--descend") || level.is_some() {
         app.session.use_first(|u| *u == Use::Descend);
@@ -84,7 +126,11 @@ fn main() {
         if let Some((p, yaw)) = chest {
             let front = Vec3::new(yaw.sin(), 0.0, yaw.cos());
             let eye = p + front * 1.8 + Vec3::Y * 1.5;
-            app.command(Command::Place { eye, yaw: (front.x).atan2(front.z), pitch: -0.45 });
+            app.command(Command::Place {
+                eye,
+                yaw: (front.x).atan2(front.z),
+                pitch: -0.45,
+            });
             app.session.use_first(|u| matches!(u, Use::Chest(0)));
         }
     }
@@ -133,24 +179,40 @@ fn main() {
         if let Some(o) = level_origin {
             return Vec3::new(x, y, z) + o;
         }
-        let y = if parts[1].starts_with('+') { y + fristad::domain::world::terrain::height(x, z) } else { y };
+        let y = if parts[1].starts_with('+') {
+            y + fristad::domain::world::terrain::height(x, z)
+        } else {
+            y
+        };
         Vec3::new(x, y, z)
     });
     let eye = eye.or(model_at.map(|(e, _)| e));
-    let yaw: f32 = model_at.map(|(_, y)| y.to_degrees()).or(arg("--yaw").map(|s| s.parse().unwrap())).unwrap_or(0.0);
+    let yaw: f32 = model_at
+        .map(|(_, y)| y.to_degrees())
+        .or(arg("--yaw").map(|s| s.parse().unwrap()))
+        .unwrap_or(0.0);
     let pitch: f32 = arg("--pitch").map(|s| s.parse().unwrap()).unwrap_or(4.0);
     if let Some(eye) = eye {
-        app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
+        app.command(Command::Place {
+            eye,
+            yaw: yaw.to_radians(),
+            pitch: pitch.to_radians(),
+        });
     }
     // --edit: i redigeringen, med det midt i bildet valgt; --edit-move X,Y,Z
     // flytter det (det flyttede og markeringene synes i bildet).
     if flag("--edit") {
         use fristad::ports::driving::EditCommand;
         app.command(Command::Edit(EditCommand::Enter));
-        app.command(Command::Edit(EditCommand::Pick { add: false, at: None }));
+        app.command(Command::Edit(EditCommand::Pick {
+            add: false,
+            at: None,
+        }));
         if let Some(m) = arg("--edit-move") {
             let v: Vec<f32> = m.split(',').map(|x| x.parse().unwrap()).collect();
-            app.command(Command::Edit(EditCommand::Move(Vec3::new(v[0], v[1], v[2]))));
+            app.command(Command::Edit(EditCommand::Move(Vec3::new(
+                v[0], v[1], v[2],
+            ))));
         }
         if let Some(e) = app.session.editor() {
             for s in e.selected() {
@@ -167,7 +229,8 @@ fn main() {
     let steps = (time * 30.0) as usize;
     // --attack S: venstre musetast trykkes S sekunder før bildet (og holdes
     // med --hold), --block holder høyre musetast de siste 0,5 sekundene.
-    let attack_at = arg("--attack").map(|s| steps.saturating_sub((s.parse::<f32>().unwrap() * 30.0) as usize));
+    let attack_at =
+        arg("--attack").map(|s| steps.saturating_sub((s.parse::<f32>().unwrap() * 30.0) as usize));
     let hold = flag("--hold");
     for step in 0..steps.max(1) {
         if attack_at == Some(step) {
@@ -182,17 +245,26 @@ fn main() {
         app.tick(1.0 / 30.0);
     }
     if let Some(eye) = eye {
-        app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
+        app.command(Command::Place {
+            eye,
+            yaw: yaw.to_radians(),
+            pitch: pitch.to_radians(),
+        });
     }
     // --edit: i redigeringen, med det midt i bildet valgt; --edit-move X,Y,Z
     // flytter det (det flyttede og markeringene synes i bildet).
     if flag("--edit") {
         use fristad::ports::driving::EditCommand;
         app.command(Command::Edit(EditCommand::Enter));
-        app.command(Command::Edit(EditCommand::Pick { add: false, at: None }));
+        app.command(Command::Edit(EditCommand::Pick {
+            add: false,
+            at: None,
+        }));
         if let Some(m) = arg("--edit-move") {
             let v: Vec<f32> = m.split(',').map(|x| x.parse().unwrap()).collect();
-            app.command(Command::Edit(EditCommand::Move(Vec3::new(v[0], v[1], v[2]))));
+            app.command(Command::Edit(EditCommand::Move(Vec3::new(
+                v[0], v[1], v[2],
+            ))));
         }
         if let Some(e) = app.session.editor() {
             for s in e.selected() {
@@ -217,7 +289,11 @@ fn main() {
 
     let target = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("snapshot"),
-        size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+        size: wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -229,58 +305,110 @@ fn main() {
     // Noen bilder, så animasjonene og lysene har satt seg.
     let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(4);
     // Standard grafikk er det spillet starter med; --advanced slår på avansert.
-    app.command(Command::SetQuality(if flag("--advanced") { Quality::Advanced } else if flag("--simple") { Quality::Simple } else { Quality::Standard }));
+    app.command(Command::SetQuality(if flag("--advanced") {
+        Quality::Advanced
+    } else if flag("--simple") {
+        Quality::Simple
+    } else {
+        Quality::Standard
+    }));
     // HDR-bildet i 4 byte per prøve (målingen i nettleseren har samme bryter).
     // HDR i 4 byte per prøve, eller standard uten kantutjevning (SMAA av),
     // som bryterne i målingen.
     if flag("--small-hdr") || flag("--no-smaa") {
-        app.command(Command::SetBench(fristad::ports::Bench { small_hdr: flag("--small-hdr"), smaa: !flag("--no-smaa"), ..Default::default() }));
+        app.command(Command::SetBench(fristad::ports::Bench {
+            small_hdr: flag("--small-hdr"),
+            smaa: !flag("--no-smaa"),
+            ..Default::default()
+        }));
     }
     // --shots: ett bilde per linje, med samme spill og renderer.
     if let Some(list) = arg("--shots") {
-        for line in std::fs::read_to_string(&list).expect("kan ikke lese --shots").lines().filter(|l| !l.trim().is_empty()) {
+        for line in std::fs::read_to_string(&list)
+            .expect("kan ikke lese --shots")
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+        {
             let f: Vec<&str> = line.split_whitespace().collect();
             let Some((eye, yaw)) = at(f[1], f[2], f[3].parse().unwrap()) else {
                 eprintln!("{}: står ikke ute", f[1]);
                 continue;
             };
             let pitch: f32 = f.get(4).map(|p| p.parse().unwrap()).unwrap_or(4.0);
-            app.command(Command::Place { eye, yaw, pitch: pitch.to_radians() });
+            app.command(Command::Place {
+                eye,
+                yaw,
+                pitch: pitch.to_radians(),
+            });
             for _ in 0..frames.max(1) {
-                app.renderer.set_target(target.create_view(&Default::default()));
+                app.renderer
+                    .set_target(target.create_view(&Default::default()));
                 app.draw(width as f32 / height as f32);
             }
-            write_png(f[0], width, height, &grab(&device, &queue, &target, width, height));
+            write_png(
+                f[0],
+                width,
+                height,
+                &grab(&device, &queue, &target, width, height),
+            );
             println!("{}", f[0]);
         }
         return;
     }
     for _ in 0..frames.max(1) {
-        app.renderer.set_target(target.create_view(&Default::default()));
+        app.renderer
+            .set_target(target.create_view(&Default::default()));
         app.draw(width as f32 / height as f32);
     }
 
     let pixels = grab(&device, &queue, &target, width, height);
-    log::info!("Rendret {frames} bilder på {:.0} ms, {} trekanter i hovedpasset", start.elapsed().as_secs_f32() * 1000.0, app.renderer.triangles());
+    log::info!(
+        "Rendret {frames} bilder på {:.0} ms, {} trekanter i hovedpasset",
+        start.elapsed().as_secs_f32() * 1000.0,
+        app.renderer.triangles()
+    );
     let times = app.renderer.pass_times();
     if !times.is_empty() {
-        log::info!("GPU-tid per del: {}", times.iter().map(|(n, ms)| format!("{n} {ms:.2} ms")).collect::<Vec<_>>().join(", "));
+        log::info!(
+            "GPU-tid per del: {}",
+            times
+                .iter()
+                .map(|(n, ms)| format!("{n} {ms:.2} ms"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
     }
 
     // Hva hvert pass tegnet i siste bilde, til før/etter-tabellene.
     if flag("--stats") {
         let st = app.renderer.pass_stats();
         let mut total = fristad::adapters::wgpu::PassStats::default();
-        println!("{:<9} {:>11} {:>11} {:>7} {:>9}", "pass", "trek. verden", "trek. modell", "kall", "instanser");
+        println!(
+            "{:<9} {:>11} {:>11} {:>7} {:>9}",
+            "pass", "trek. verden", "trek. modell", "kall", "instanser"
+        );
         for (name, p) in fristad::adapters::wgpu::PASSES.iter().zip(st) {
-            println!("{name:<9} {:>11} {:>11} {:>7} {:>9}", p.world, p.models, p.calls, p.instances);
+            println!(
+                "{name:<9} {:>11} {:>11} {:>7} {:>9}",
+                p.world, p.models, p.calls, p.instances
+            );
             total.world += p.world;
             total.models += p.models;
             total.calls += p.calls;
             total.instances += p.instances;
         }
-        println!("{:<9} {:>11} {:>11} {:>7} {:>9}", "sum", total.world, total.models, total.calls, total.instances);
-        println!("STATS {} {} {} {} {}", total.world + total.models, st[1].world + st[1].models, total.calls, st[1].calls, st[1].instances);
+        println!(
+            "{:<9} {:>11} {:>11} {:>7} {:>9}",
+            "sum", total.world, total.models, total.calls, total.instances
+        );
+        println!(
+            "STATS {} {} {} {} {}",
+            total.world + total.models,
+            st[1].world + st[1].models,
+            total.calls,
+            st[1].calls,
+            st[1].instances
+        );
     }
 
     write_png(&out, width, height, &pixels);
@@ -288,14 +416,41 @@ fn main() {
 }
 
 /// Leser bildet tilbake fra kortet (RGBA, rad for rad).
-fn grab(device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::Texture, width: u32, height: u32) -> Vec<u8> {
+fn grab(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    target: &wgpu::Texture,
+    width: u32,
+    height: u32,
+) -> Vec<u8> {
     let row = (width * 4).div_ceil(256) * 256;
-    let buf = device.create_buffer(&wgpu::BufferDescriptor { label: Some("readback"), size: (row * height) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
+    let buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("readback"),
+        size: (row * height) as u64,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
     let mut enc = device.create_command_encoder(&Default::default());
     enc.copy_texture_to_buffer(
-        wgpu::TexelCopyTextureInfo { texture: target, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-        wgpu::TexelCopyBufferInfo { buffer: &buf, layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(row), rows_per_image: Some(height) } },
-        wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+        wgpu::TexelCopyTextureInfo {
+            texture: target,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::TexelCopyBufferInfo {
+            buffer: &buf,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(row),
+                rows_per_image: Some(height),
+            },
+        },
+        wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
     );
     queue.submit([enc.finish()]);
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});

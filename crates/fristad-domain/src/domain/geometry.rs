@@ -149,13 +149,61 @@ pub const LAYERS: u32 = 55;
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
-        Layer::Cobble, Layer::Plaster, Layer::Cladding, Layer::Slate, Layer::Tiles, Layer::Stone, Layer::Ashlar, Layer::Planks,
-        Layer::Iron, Layer::Meadow, Layer::Fur, Layer::Mud, Layer::Chainmail, Layer::Timber, Layer::ForestFloor, Layer::Rock,
-        Layer::Felt, Layer::Earth, Layer::Thatch, Layer::Logs, Layer::Sod, Layer::Wool, Layer::Linen, Layer::Leather,
-        Layer::Gambeson, Layer::StrawFloor, Layer::PlasterWhite, Layer::PlasterRed, Layer::PlasterOld, Layer::Weatherboard, Layer::WeatherboardGrey, Layer::Wattle,
-        Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin,
-        Layer::WallStone, Layer::Flagstone, Layer::Gravel, Layer::Chimney, Layer::Snow, Layer::OakPlaned,
-        Layer::CryptStone, Layer::CryptFloor, Layer::CryptVault, Layer::GraveSlab, Layer::Ossuary, Layer::CryptPlaster, Layer::Rubble, Layer::BronzeDoor, Layer::GlitchSeam,
+        Layer::Cobble,
+        Layer::Plaster,
+        Layer::Cladding,
+        Layer::Slate,
+        Layer::Tiles,
+        Layer::Stone,
+        Layer::Ashlar,
+        Layer::Planks,
+        Layer::Iron,
+        Layer::Meadow,
+        Layer::Fur,
+        Layer::Mud,
+        Layer::Chainmail,
+        Layer::Timber,
+        Layer::ForestFloor,
+        Layer::Rock,
+        Layer::Felt,
+        Layer::Earth,
+        Layer::Thatch,
+        Layer::Logs,
+        Layer::Sod,
+        Layer::Wool,
+        Layer::Linen,
+        Layer::Leather,
+        Layer::Gambeson,
+        Layer::StrawFloor,
+        Layer::PlasterWhite,
+        Layer::PlasterRed,
+        Layer::PlasterOld,
+        Layer::Weatherboard,
+        Layer::WeatherboardGrey,
+        Layer::Wattle,
+        Layer::Shingles,
+        Layer::ShinglesTar,
+        Layer::Trim,
+        Layer::Door,
+        Layer::DoorB,
+        Layer::TimberGrey,
+        Layer::ChurchBoards,
+        Layer::Ruin,
+        Layer::WallStone,
+        Layer::Flagstone,
+        Layer::Gravel,
+        Layer::Chimney,
+        Layer::Snow,
+        Layer::OakPlaned,
+        Layer::CryptStone,
+        Layer::CryptFloor,
+        Layer::CryptVault,
+        Layer::GraveSlab,
+        Layer::Ossuary,
+        Layer::CryptPlaster,
+        Layer::Rubble,
+        Layer::BronzeDoor,
+        Layer::GlitchSeam,
     ];
     /// Navnet i `assets/external/manifest.json` (mappa i `assets/textures/`).
     pub fn name(self) -> &'static str {
@@ -220,7 +268,11 @@ impl Layer {
 }
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [
+    2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0,
+    2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0,
+];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {
@@ -291,13 +343,31 @@ impl Mat {
     }
     /// Teksturlag med fargetone. `0xffffff` lar teksturen stå som den er.
     pub const fn tex(layer: Layer, tint: u32) -> Self {
-        Self { srgb: Self::rgb(tint), roughness: 0.5, kind: layer as u8, slot: 0, flags: 0 }
+        Self {
+            srgb: Self::rgb(tint),
+            roughness: 0.5,
+            kind: layer as u8,
+            slot: 0,
+            flags: 0,
+        }
     }
     pub const fn plain(srgb: u32, roughness: f32) -> Self {
-        Self { srgb: Self::rgb(srgb), roughness, kind: kind::PLAIN, slot: 0, flags: 0 }
+        Self {
+            srgb: Self::rgb(srgb),
+            roughness,
+            kind: kind::PLAIN,
+            slot: 0,
+            flags: 0,
+        }
     }
     pub const fn special(kind: u8, srgb: u32, roughness: f32) -> Self {
-        Self { srgb: Self::rgb(srgb), roughness, kind, slot: 0, flags: 0 }
+        Self {
+            srgb: Self::rgb(srgb),
+            roughness,
+            kind,
+            slot: 0,
+            flags: 0,
+        }
     }
     pub const fn slot(mut self, slot: u8) -> Self {
         self.slot = slot;
@@ -320,7 +390,11 @@ impl Mat {
 /// Lineær farge til sRGB-byte.
 pub fn to_srgb8(c: Vec3) -> [u8; 3] {
     let f = |x: f32| {
-        let s = if x <= 0.0031308 { x * 12.92 } else { 1.055 * x.powf(1.0 / 2.4) - 0.055 };
+        let s = if x <= 0.0031308 {
+            x * 12.92
+        } else {
+            1.055 * x.powf(1.0 / 2.4) - 0.055
+        };
         (s.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
     };
     [f(c.x), f(c.y), f(c.z)]
@@ -364,7 +438,12 @@ impl Mesh {
             pos: p.to_array(),
             normal: n.normalize_or_zero().to_array(),
             uv: uv.to_array(),
-            color: [m.srgb[0], m.srgb[1], m.srgb[2], (m.roughness.clamp(0.0, 1.0) * 255.0) as u8],
+            color: [
+                m.srgb[0],
+                m.srgb[1],
+                m.srgb[2],
+                (m.roughness.clamp(0.0, 1.0) * 255.0) as u8,
+            ],
             mat: [m.kind, m.slot, m.flags, (ao.clamp(0.0, 1.0) * 255.0) as u8],
             joints: [0; 4],
             weights: [0; 4],
@@ -374,7 +453,18 @@ impl Mesh {
 
     /// Firkant med hjørnene mot klokka sett forfra, med uv 0..1.
     pub fn quad(&mut self, t: &Affine3A, c: [Vec3; 4], m: &Mat, ao: [f32; 4]) {
-        self.quad_uv(t, c, m, ao, [Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, 0.0)]);
+        self.quad_uv(
+            t,
+            c,
+            m,
+            ao,
+            [
+                Vec2::new(0.0, 1.0),
+                Vec2::new(1.0, 1.0),
+                Vec2::new(1.0, 0.0),
+                Vec2::new(0.0, 0.0),
+            ],
+        );
     }
 
     pub fn quad_uv(&mut self, t: &Affine3A, c: [Vec3; 4], m: &Mat, ao: [f32; 4], uv: [Vec2; 4]) {
@@ -386,19 +476,26 @@ impl Mesh {
             self.vert(p[2], n, uv[2], m, ao[2]),
             self.vert(p[3], n, uv[3], m, ao[3]),
         ];
-        self.indices.extend_from_slice(&[b[0], b[1], b[2], b[0], b[2], b[3]]);
+        self.indices
+            .extend_from_slice(&[b[0], b[1], b[2], b[0], b[2], b[3]]);
     }
 
     /// Firkant med egne normaler per hjørne, til myke flater.
     pub fn quad_n(&mut self, p: [Vec3; 4], n: [Vec3; 4], m: &Mat, ao: f32) {
-        let uv = [Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, 0.0)];
+        let uv = [
+            Vec2::new(0.0, 1.0),
+            Vec2::new(1.0, 1.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(0.0, 0.0),
+        ];
         let b = [
             self.vert(p[0], n[0], uv[0], m, ao),
             self.vert(p[1], n[1], uv[1], m, ao),
             self.vert(p[2], n[2], uv[2], m, ao),
             self.vert(p[3], n[3], uv[3], m, ao),
         ];
-        self.indices.extend_from_slice(&[b[0], b[1], b[2], b[0], b[2], b[3]]);
+        self.indices
+            .extend_from_slice(&[b[0], b[1], b[2], b[0], b[2], b[3]]);
     }
 
     pub fn tri(&mut self, t: &Affine3A, c: [Vec3; 3], m: &Mat) {
@@ -426,22 +523,72 @@ impl Mesh {
         let (x, y, z) = (h.x, h.y, h.z);
         let lo = foot_ao;
         let sides = [
-            [Vec3::new(-x, -y, z), Vec3::new(x, -y, z), Vec3::new(x, y, z), Vec3::new(-x, y, z)],
-            [Vec3::new(x, -y, -z), Vec3::new(-x, -y, -z), Vec3::new(-x, y, -z), Vec3::new(x, y, -z)],
-            [Vec3::new(x, -y, z), Vec3::new(x, -y, -z), Vec3::new(x, y, -z), Vec3::new(x, y, z)],
-            [Vec3::new(-x, -y, -z), Vec3::new(-x, -y, z), Vec3::new(-x, y, z), Vec3::new(-x, y, -z)],
+            [
+                Vec3::new(-x, -y, z),
+                Vec3::new(x, -y, z),
+                Vec3::new(x, y, z),
+                Vec3::new(-x, y, z),
+            ],
+            [
+                Vec3::new(x, -y, -z),
+                Vec3::new(-x, -y, -z),
+                Vec3::new(-x, y, -z),
+                Vec3::new(x, y, -z),
+            ],
+            [
+                Vec3::new(x, -y, z),
+                Vec3::new(x, -y, -z),
+                Vec3::new(x, y, -z),
+                Vec3::new(x, y, z),
+            ],
+            [
+                Vec3::new(-x, -y, -z),
+                Vec3::new(-x, -y, z),
+                Vec3::new(-x, y, z),
+                Vec3::new(-x, y, -z),
+            ],
         ];
         for (i, s) in sides.into_iter().enumerate() {
             self.quad(t, s, m[i], [lo, lo, 1.0, 1.0]);
         }
-        self.quad(t, [Vec3::new(-x, y, z), Vec3::new(x, y, z), Vec3::new(x, y, -z), Vec3::new(-x, y, -z)], m[4], [1.0; 4]);
-        self.quad(t, [Vec3::new(-x, -y, -z), Vec3::new(x, -y, -z), Vec3::new(x, -y, z), Vec3::new(-x, -y, z)], m[5], [lo; 4]);
+        self.quad(
+            t,
+            [
+                Vec3::new(-x, y, z),
+                Vec3::new(x, y, z),
+                Vec3::new(x, y, -z),
+                Vec3::new(-x, y, -z),
+            ],
+            m[4],
+            [1.0; 4],
+        );
+        self.quad(
+            t,
+            [
+                Vec3::new(-x, -y, -z),
+                Vec3::new(x, -y, -z),
+                Vec3::new(x, -y, z),
+                Vec3::new(-x, -y, z),
+            ],
+            m[5],
+            [lo; 4],
+        );
     }
 
     /// Saltak over en grunnflate `w` × `d` (sentrert, med mønet langs X),
     /// med takfoten i y = 0 og mønet i y = `height`. Takflatene er tykke,
     /// så takfoten og gavlkantene synes.
-    pub fn gable_roof(&mut self, t: &Affine3A, w: f32, d: f32, height: f32, overhang: f32, roof: &Mat, gable: &Mat, edge: &Mat) {
+    pub fn gable_roof(
+        &mut self,
+        t: &Affine3A,
+        w: f32,
+        d: f32,
+        height: f32,
+        overhang: f32,
+        roof: &Mat,
+        gable: &Mat,
+        edge: &Mat,
+    ) {
         let x = w * 0.5 + overhang;
         let z = d * 0.5 + overhang;
         let gx = w * 0.5;
@@ -480,18 +627,58 @@ impl Mesh {
                 }
             }
         }
-        self.tri(t, [Vec3::new(gx, 0.0, gz), Vec3::new(gx, 0.0, -gz), Vec3::new(gx, height, 0.0)], gable);
-        self.tri(t, [Vec3::new(-gx, 0.0, -gz), Vec3::new(-gx, 0.0, gz), Vec3::new(-gx, height, 0.0)], gable);
+        self.tri(
+            t,
+            [
+                Vec3::new(gx, 0.0, gz),
+                Vec3::new(gx, 0.0, -gz),
+                Vec3::new(gx, height, 0.0),
+            ],
+            gable,
+        );
+        self.tri(
+            t,
+            [
+                Vec3::new(-gx, 0.0, -gz),
+                Vec3::new(-gx, 0.0, gz),
+                Vec3::new(-gx, height, 0.0),
+            ],
+            gable,
+        );
     }
 
     /// Stående sylinder med bunnen i origo i `t`.
-    pub fn cylinder(&mut self, t: &Affine3A, r_bottom: f32, r_top: f32, h: f32, seg: u32, m: &Mat, caps: bool) {
-        self.lathe(t, &[Vec2::new(r_bottom, 0.0), Vec2::new(r_top, h)], seg, m, caps, 0.75);
+    pub fn cylinder(
+        &mut self,
+        t: &Affine3A,
+        r_bottom: f32,
+        r_top: f32,
+        h: f32,
+        seg: u32,
+        m: &Mat,
+        caps: bool,
+    ) {
+        self.lathe(
+            t,
+            &[Vec2::new(r_bottom, 0.0), Vec2::new(r_top, h)],
+            seg,
+            m,
+            caps,
+            0.75,
+        );
     }
 
     /// Dreid profil: `profile` er (radius, høyde) nedenfra og opp, rundt Y.
     /// Normalene er myke langs rundingen og harde mellom profilsegmentene.
-    pub fn lathe(&mut self, t: &Affine3A, profile: &[Vec2], seg: u32, m: &Mat, caps: bool, foot_ao: f32) {
+    pub fn lathe(
+        &mut self,
+        t: &Affine3A,
+        profile: &[Vec2],
+        seg: u32,
+        m: &Mat,
+        caps: bool,
+        foot_ao: f32,
+    ) {
         let ring = |r: f32, y: f32, i: u32| {
             let a = i as f32 / seg as f32 * std::f32::consts::TAU;
             Vec3::new(a.cos() * r, y, a.sin() * r)
@@ -510,7 +697,11 @@ impl Mesh {
                 let b1 = ring(p1.x, p1.y, i + 1);
                 let rn = |p: Vec3| {
                     let h = Vec3::new(p.x, 0.0, p.z).normalize_or_zero();
-                    if h == Vec3::ZERO { Vec3::Y } else { h * nn.x + Vec3::Y * nn.y }
+                    if h == Vec3::ZERO {
+                        Vec3::Y
+                    } else {
+                        h * nn.x + Vec3::Y * nn.y
+                    }
                 };
                 let p = [a0, a1, b1, b0].map(|v| t.transform_point3(v));
                 let tn = |n: Vec3| t.transform_vector3(n);
@@ -528,10 +719,26 @@ impl Mesh {
             let bot = profile[0];
             for i in 0..seg {
                 if top.x > 0.0 {
-                    self.tri(t, [Vec3::new(0.0, top.y, 0.0), ring(top.x, top.y, i + 1), ring(top.x, top.y, i)], m);
+                    self.tri(
+                        t,
+                        [
+                            Vec3::new(0.0, top.y, 0.0),
+                            ring(top.x, top.y, i + 1),
+                            ring(top.x, top.y, i),
+                        ],
+                        m,
+                    );
                 }
                 if bot.x > 0.0 {
-                    self.tri(t, [Vec3::new(0.0, bot.y, 0.0), ring(bot.x, bot.y, i), ring(bot.x, bot.y, i + 1)], m);
+                    self.tri(
+                        t,
+                        [
+                            Vec3::new(0.0, bot.y, 0.0),
+                            ring(bot.x, bot.y, i),
+                            ring(bot.x, bot.y, i + 1),
+                        ],
+                        m,
+                    );
                 }
             }
         }
@@ -548,7 +755,13 @@ impl Mesh {
                 let p = t.transform_point3(n * r);
                 let nn = t.transform_vector3(n / r);
                 let ao = 0.55 + 0.45 * (n.y * 0.5 + 0.5);
-                self.vert(p, nn, Vec2::new(u / std::f32::consts::TAU, v / std::f32::consts::PI), m, ao);
+                self.vert(
+                    p,
+                    nn,
+                    Vec2::new(u / std::f32::consts::TAU, v / std::f32::consts::PI),
+                    m,
+                    ao,
+                );
             }
         }
         let w = seg + 1;
@@ -556,7 +769,8 @@ impl Mesh {
             for i in 0..seg {
                 let a = base + j * w + i;
                 let b = a + w;
-                self.indices.extend_from_slice(&[a, a + 1, b, a + 1, b + 1, b]);
+                self.indices
+                    .extend_from_slice(&[a, a + 1, b, a + 1, b + 1, b]);
             }
         }
     }
@@ -571,7 +785,13 @@ impl Mesh {
                 let b = j as f32 / sides as f32 * std::f32::consts::TAU;
                 let n = c * b.cos() + Vec3::Y * b.sin();
                 let p = c * radius + n * tube;
-                self.vert(t.transform_point3(p), t.transform_vector3(n), Vec2::new(i as f32 / seg as f32, j as f32 / sides as f32), m, 1.0);
+                self.vert(
+                    t.transform_point3(p),
+                    t.transform_vector3(n),
+                    Vec2::new(i as f32 / seg as f32, j as f32 / sides as f32),
+                    m,
+                    1.0,
+                );
             }
         }
         let w = sides + 1;
@@ -579,7 +799,8 @@ impl Mesh {
             for j in 0..sides {
                 let a = base + i * w + j;
                 let b = a + w;
-                self.indices.extend_from_slice(&[a, b, a + 1, a + 1, b, b + 1]);
+                self.indices
+                    .extend_from_slice(&[a, b, a + 1, a + 1, b, b + 1]);
             }
         }
     }
@@ -587,7 +808,15 @@ impl Mesh {
     /// Profil ekstrudert langs en rett linje fra `from` til `to`. Profilen
     /// er (ut, opp) i et plan vinkelrett på linja, der «ut» peker mot
     /// `outward`. Brukes til gesimser, vindusbrett og takrenner.
-    pub fn extrude(&mut self, profile: &[Vec2], from: Vec3, to: Vec3, outward: Vec3, m: &Mat, closed_ends: bool) {
+    pub fn extrude(
+        &mut self,
+        profile: &[Vec2],
+        from: Vec3,
+        to: Vec3,
+        outward: Vec3,
+        m: &Mat,
+        closed_ends: bool,
+    ) {
         let along = (to - from).normalize_or_zero();
         let out = (outward - along * outward.dot(along)).normalize_or_zero();
         let up = along.cross(out).normalize_or_zero();
@@ -614,14 +843,22 @@ impl Mesh {
         if closed_ends && profile.len() >= 3 {
             // Vifte fra første punkt.
             for k in 1..profile.len() - 1 {
-                let (a, b, c) = (at(profile[0], from), at(profile[k], from), at(profile[k + 1], from));
+                let (a, b, c) = (
+                    at(profile[0], from),
+                    at(profile[k], from),
+                    at(profile[k + 1], from),
+                );
                 let n = (b - a).cross(c - a);
                 if n.dot(along) < 0.0 {
                     self.tri(&Affine3A::IDENTITY, [a, b, c], m);
                 } else {
                     self.tri(&Affine3A::IDENTITY, [a, c, b], m);
                 }
-                let (a, b, c) = (at(profile[0], to), at(profile[k], to), at(profile[k + 1], to));
+                let (a, b, c) = (
+                    at(profile[0], to),
+                    at(profile[k], to),
+                    at(profile[k + 1], to),
+                );
                 let n = (b - a).cross(c - a);
                 if n.dot(along) > 0.0 {
                     self.tri(&Affine3A::IDENTITY, [a, b, c], m);
@@ -639,7 +876,10 @@ impl Mesh {
         let corner_seg = ((r / 0.02) as usize).clamp(6, 16);
         // Omrisset mot klokka sett forfra.
         let mut outline = vec![];
-        for (k, (sx, sy)) in [(1.0f32, -1.0f32), (1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0)].iter().enumerate() {
+        for (k, (sx, sy)) in [(1.0f32, -1.0f32), (1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0)]
+            .iter()
+            .enumerate()
+        {
             let cx = sx * (w * 0.5 - r);
             let cy = sy * (h * 0.5 - r);
             let a0 = k as f32 * std::f32::consts::FRAC_PI_2 - std::f32::consts::FRAC_PI_2;
@@ -652,18 +892,43 @@ impl Mesh {
         let front = c + Vec3::Z * (d * 0.5);
         let back = c - Vec3::Z * (d * 0.5);
         // For- og bakside som vifter.
-        let fc = self.vert(t.transform_point3(front), t.transform_vector3(Vec3::Z), Vec2::splat(0.5), m, 1.0);
-        let bc = self.vert(t.transform_point3(back), t.transform_vector3(-Vec3::Z), Vec2::splat(0.5), m, 1.0);
+        let fc = self.vert(
+            t.transform_point3(front),
+            t.transform_vector3(Vec3::Z),
+            Vec2::splat(0.5),
+            m,
+            1.0,
+        );
+        let bc = self.vert(
+            t.transform_point3(back),
+            t.transform_vector3(-Vec3::Z),
+            Vec2::splat(0.5),
+            m,
+            1.0,
+        );
         let mut fi = vec![];
         let mut bi = vec![];
         for o in &outline {
             let uv = Vec2::new(o.x / w + 0.5, 0.5 - o.y / h);
-            fi.push(self.vert(t.transform_point3(front + Vec3::new(o.x, o.y, 0.0)), t.transform_vector3(Vec3::Z), uv, m, 1.0));
-            bi.push(self.vert(t.transform_point3(back + Vec3::new(o.x, o.y, 0.0)), t.transform_vector3(-Vec3::Z), uv, m, 1.0));
+            fi.push(self.vert(
+                t.transform_point3(front + Vec3::new(o.x, o.y, 0.0)),
+                t.transform_vector3(Vec3::Z),
+                uv,
+                m,
+                1.0,
+            ));
+            bi.push(self.vert(
+                t.transform_point3(back + Vec3::new(o.x, o.y, 0.0)),
+                t.transform_vector3(-Vec3::Z),
+                uv,
+                m,
+                1.0,
+            ));
         }
         for k in 0..n {
             let k2 = (k + 1) % n;
-            self.indices.extend_from_slice(&[fc, fi[k], fi[k2], bc, bi[k2], bi[k]]);
+            self.indices
+                .extend_from_slice(&[fc, fi[k], fi[k2], bc, bi[k2], bi[k]]);
             // Siden.
             let o0 = outline[k];
             let o1 = outline[k2];
@@ -675,10 +940,34 @@ impl Mesh {
                 back + Vec3::new(o1.x, o1.y, 0.0),
                 front + Vec3::new(o1.x, o1.y, 0.0),
             ];
-            let i0 = self.vert(t.transform_point3(p[0]), t.transform_vector3(nn), Vec2::ZERO, m, 1.0);
-            let i1 = self.vert(t.transform_point3(p[1]), t.transform_vector3(nn), Vec2::ZERO, m, 1.0);
-            let i2 = self.vert(t.transform_point3(p[2]), t.transform_vector3(nn), Vec2::ZERO, m, 1.0);
-            let i3 = self.vert(t.transform_point3(p[3]), t.transform_vector3(nn), Vec2::ZERO, m, 1.0);
+            let i0 = self.vert(
+                t.transform_point3(p[0]),
+                t.transform_vector3(nn),
+                Vec2::ZERO,
+                m,
+                1.0,
+            );
+            let i1 = self.vert(
+                t.transform_point3(p[1]),
+                t.transform_vector3(nn),
+                Vec2::ZERO,
+                m,
+                1.0,
+            );
+            let i2 = self.vert(
+                t.transform_point3(p[2]),
+                t.transform_vector3(nn),
+                Vec2::ZERO,
+                m,
+                1.0,
+            );
+            let i3 = self.vert(
+                t.transform_point3(p[3]),
+                t.transform_vector3(nn),
+                Vec2::ZERO,
+                m,
+                1.0,
+            );
             self.indices.extend_from_slice(&[i0, i2, i1, i0, i3, i2]);
         }
     }
@@ -692,7 +981,10 @@ impl Mesh {
     pub fn transform(&mut self, t: &Affine3A) {
         for v in &mut self.vertices {
             v.pos = t.transform_point3(Vec3::from(v.pos)).to_array();
-            v.normal = t.transform_vector3(Vec3::from(v.normal)).normalize_or_zero().to_array();
+            v.normal = t
+                .transform_vector3(Vec3::from(v.normal))
+                .normalize_or_zero()
+                .to_array();
         }
     }
 
@@ -705,10 +997,21 @@ impl Mesh {
         // (rad, kolonne, fin) → trekanter.
         let mut buckets: BTreeMap<(i32, i32, bool), Vec<usize>> = BTreeMap::new();
         for t in 0..self.indices.len() / 3 {
-            let (a, b, c) = (pos(self.indices[t * 3]), pos(self.indices[t * 3 + 1]), pos(self.indices[t * 3 + 2]));
+            let (a, b, c) = (
+                pos(self.indices[t * 3]),
+                pos(self.indices[t * 3 + 1]),
+                pos(self.indices[t * 3 + 2]),
+            );
             let centroid = (a + b + c) / 3.0;
-            let r = a.distance(centroid).max(b.distance(centroid)).max(c.distance(centroid));
-            let key = ((centroid.z / cell).floor() as i32, (centroid.x / cell).floor() as i32, r < fine_radius);
+            let r = a
+                .distance(centroid)
+                .max(b.distance(centroid))
+                .max(c.distance(centroid));
+            let key = (
+                (centroid.z / cell).floor() as i32,
+                (centroid.x / cell).floor() as i32,
+                r < fine_radius,
+            );
             buckets.entry(key).or_default().push(t);
         }
         let mut indices = Vec::with_capacity(self.indices.len());
@@ -729,7 +1032,12 @@ impl Mesh {
             let end = indices.len() as u32;
             if current != Some((row, col)) {
                 current = Some((row, col));
-                chunks.push(Chunk { min: lo, max: hi, coarse: start..start, fine: start..start });
+                chunks.push(Chunk {
+                    min: lo,
+                    max: hi,
+                    coarse: start..start,
+                    fine: start..start,
+                });
             }
             let c = chunks.last_mut().unwrap();
             c.min = c.min.min(lo);
@@ -741,7 +1049,13 @@ impl Mesh {
                 c.fine = end..end;
             }
         }
-        (Mesh { vertices: self.vertices.clone(), indices }, chunks)
+        (
+            Mesh {
+                vertices: self.vertices.clone(),
+                indices,
+            },
+            chunks,
+        )
     }
 
     /// Grovere bladverk til bruk på avstand: meshet er kort (fire hjørner
@@ -757,7 +1071,11 @@ impl Mesh {
             let mut ids: Vec<u32> = tri.to_vec();
             ids.sort_unstable();
             ids.dedup();
-            let center = ids.iter().map(|i| Vec3::from(self.vertices[*i as usize].pos)).sum::<Vec3>() / ids.len() as f32;
+            let center = ids
+                .iter()
+                .map(|i| Vec3::from(self.vertices[*i as usize].pos))
+                .sum::<Vec3>()
+                / ids.len() as f32;
             let base = out.vertices.len() as u32;
             for i in &ids {
                 let mut v = self.vertices[*i as usize];
@@ -787,10 +1105,19 @@ impl Mesh {
         for (i, v) in self.vertices.iter().enumerate() {
             let p = Vec3::from(v.pos);
             let n = Vec3::from(v.normal);
-            let axis = (0..3).max_by(|&a, &b| n[a].abs().total_cmp(&n[b].abs())).unwrap_or(1);
+            let axis = (0..3)
+                .max_by(|&a, &b| n[a].abs().total_cmp(&n[b].abs()))
+                .unwrap_or(1);
             let facing = axis as u8 * 2 + (n[axis] < 0.0) as u8;
             let mat = [v.mat[0], v.mat[1], v.mat[2], 0];
-            let key = ((p.x / cell).floor() as i32, (p.y / cell).floor() as i32, (p.z / cell).floor() as i32, facing, mat, v.color);
+            let key = (
+                (p.x / cell).floor() as i32,
+                (p.y / cell).floor() as i32,
+                (p.z / cell).floor() as i32,
+                facing,
+                mat,
+                v.color,
+            );
             let j = *cells.entry(key).or_insert_with(|| {
                 out.vertices.push(*v);
                 sums.push((Vec3::ZERO, Vec3::ZERO, 0));
@@ -807,7 +1134,11 @@ impl Mesh {
             v.normal = n.normalize_or_zero().to_array();
         }
         for t in self.indices.chunks(3) {
-            let (a, b, c) = (remap[t[0] as usize], remap[t[1] as usize], remap[t[2] as usize]);
+            let (a, b, c) = (
+                remap[t[0] as usize],
+                remap[t[1] as usize],
+                remap[t[2] as usize],
+            );
             if a != b && b != c && a != c {
                 out.indices.extend_from_slice(&[a, b, c]);
             }

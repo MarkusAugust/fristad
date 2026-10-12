@@ -95,13 +95,28 @@ impl Mechanisms {
                 *v = 0.0;
             }
         };
-        for (i, _) in crypt.shortcuts.iter().enumerate().filter(|(_, s)| s.switch == sw) {
+        for (i, _) in crypt
+            .shortcuts
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.switch == sw)
+        {
             start(&mut self.shortcuts[i]);
         }
-        for (i, _) in crypt.secrets.iter().enumerate().filter(|(_, s)| s.switch == sw) {
+        for (i, _) in crypt
+            .secrets
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.switch == sw)
+        {
             start(&mut self.secrets[i]);
         }
-        for (i, _) in crypt.trapdoors.iter().enumerate().filter(|(_, t)| t.switch == sw) {
+        for (i, _) in crypt
+            .trapdoors
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| t.switch == sw)
+        {
             start(&mut self.trapdoors[i]);
         }
     }
@@ -189,7 +204,9 @@ impl Mechanisms {
     /// Om du (føttene eller kroppen i `pos`) står på sida av snarveidøra
     /// der slåen sitter.
     pub fn shortcut_inside(crypt: &Crypt, n: usize, pos: Vec3) -> bool {
-        let Some(sc) = crypt.shortcuts.get(n) else { return false };
+        let Some(sc) = crypt.shortcuts.get(n) else {
+            return false;
+        };
         (pos - sc.pos).with_y(0.0).dot(sc.latch) > 0.0
     }
 
@@ -201,22 +218,33 @@ impl Mechanisms {
         let ease = 1.0 - (1.0 - open).powi(3);
         let front = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
         let away = if sc.latch.dot(front) > 0.0 { 1.0 } else { -1.0 };
-        Some(at(sc.pos, sc.yaw) * Affine3A::from_translation(Vec3::new(-sc.width * 0.5, 0.0, 0.0)) * Affine3A::from_rotation_y(away * ease * 1.75))
+        Some(
+            at(sc.pos, sc.yaw)
+                * Affine3A::from_translation(Vec3::new(-sc.width * 0.5, 0.0, 0.0))
+                * Affine3A::from_rotation_y(away * ease * 1.75),
+        )
     }
 
     /// Kollideren til snarveidøra (midt i bladet).
     pub fn shortcut_collider(&self, crypt: &Crypt, n: usize) -> Option<Affine3A> {
         let w = crypt.shortcuts.get(n)?.width;
-        Some(self.shortcut_pose(crypt, n)? * Affine3A::from_translation(Vec3::new(w * 0.5, crypt::SHORTCUT_H * 0.5, 0.0)))
+        Some(
+            self.shortcut_pose(crypt, n)?
+                * Affine3A::from_translation(Vec3::new(w * 0.5, crypt::SHORTCUT_H * 0.5, 0.0)),
+        )
     }
 
     pub fn shortcut_poses(&self, crypt: &Crypt) -> Vec<Affine3A> {
-        (0..self.shortcuts.len()).filter_map(|n| self.shortcut_pose(crypt, n)).collect()
+        (0..self.shortcuts.len())
+            .filter_map(|n| self.shortcut_pose(crypt, n))
+            .collect()
     }
 
     /// Portgitteret i målets pose, heist så langt det er kommet.
     pub fn gate_lifted(&self, n: usize, pose: Affine3A) -> Affine3A {
-        pose * Affine3A::from_translation(Vec3::Y * gate_lift(self.gates.get(n).map(|g| g.0).unwrap_or(0.0)))
+        pose * Affine3A::from_translation(
+            Vec3::Y * gate_lift(self.gates.get(n).map(|g| g.0).unwrap_or(0.0)),
+        )
     }
 
     /// Portgitteret der det står nå (til bildet), skalert til bredden.
@@ -240,7 +268,9 @@ impl Mechanisms {
             .map(|(i, l)| {
                 let t = self.levers.get(i).copied().unwrap_or(-1.0).max(0.0);
                 let ease = t * t * (3.0 - 2.0 * t);
-                at(l.pos, l.yaw) * Affine3A::from_translation(crypt::LEVER_PIVOT) * Affine3A::from_rotation_x(-0.6 + 1.2 * ease)
+                at(l.pos, l.yaw)
+                    * Affine3A::from_translation(crypt::LEVER_PIVOT)
+                    * Affine3A::from_rotation_x(-0.6 + 1.2 * ease)
             })
             .collect()
     }
@@ -254,8 +284,13 @@ impl Mechanisms {
             .enumerate()
             .map(|(i, s)| {
                 let t = self.secrets.get(i).copied().unwrap_or(-1.0).max(0.0);
-                let shake = if t > 0.0 && t < 1.0 { (time * 40.0).sin() * 0.01 } else { 0.0 };
-                at(s.pos, s.yaw) * Affine3A::from_translation(Vec3::new(shake, -(s.height + 0.1) * t * t, 0.0))
+                let shake = if t > 0.0 && t < 1.0 {
+                    (time * 40.0).sin() * 0.01
+                } else {
+                    0.0
+                };
+                at(s.pos, s.yaw)
+                    * Affine3A::from_translation(Vec3::new(shake, -(s.height + 0.1) * t * t, 0.0))
             })
             .collect()
     }
@@ -269,7 +304,9 @@ impl Mechanisms {
             .filter(|(_, t)| t.lid)
             .map(|(i, t)| {
                 let x = self.trapdoors.get(i).copied().unwrap_or(-1.0).max(0.0);
-                at(t.pos, t.yaw) * Affine3A::from_translation(Vec3::new(0.0, 0.0, -t.size.y * 0.5)) * Affine3A::from_rotation_x(x * 1.5)
+                at(t.pos, t.yaw)
+                    * Affine3A::from_translation(Vec3::new(0.0, 0.0, -t.size.y * 0.5))
+                    * Affine3A::from_rotation_x(x * 1.5)
             })
             .collect()
     }
@@ -290,9 +327,20 @@ impl Mechanisms {
         let turn = (town::WELL_REST - h) / town::WELL_DRUM;
         let top = Vec3::new(0.0, town::WELL_AXLE, town::WELL_ROPE_Z);
         [
-            (winch, pose * Affine3A::from_translation(Vec3::Y * town::WELL_AXLE) * Affine3A::from_rotation_x(turn)),
-            (rope, pose * Affine3A::from_translation(top) * Affine3A::from_scale(Vec3::new(1.0, town::WELL_AXLE - h, 1.0))),
-            (bucket, pose * Affine3A::from_translation(Vec3::new(0.0, h, town::WELL_ROPE_Z))),
+            (
+                winch,
+                pose * Affine3A::from_translation(Vec3::Y * town::WELL_AXLE)
+                    * Affine3A::from_rotation_x(turn),
+            ),
+            (
+                rope,
+                pose * Affine3A::from_translation(top)
+                    * Affine3A::from_scale(Vec3::new(1.0, town::WELL_AXLE - h, 1.0)),
+            ),
+            (
+                bucket,
+                pose * Affine3A::from_translation(Vec3::new(0.0, h, town::WELL_ROPE_Z)),
+            ),
         ]
     }
 }
@@ -324,7 +372,10 @@ mod tests {
 
     #[test]
     fn broennen_gir_vann_en_gang_og_blir_ledig() {
-        let mut m = Mechanisms { wells: vec![-1.0], ..Default::default() };
+        let mut m = Mechanisms {
+            wells: vec![-1.0],
+            ..Default::default()
+        };
         assert!(m.draw_well(0));
         assert!(!m.draw_well(0), "opptatt");
         let drank: u32 = (0..500).map(|_| m.tick(0.01).1).sum();

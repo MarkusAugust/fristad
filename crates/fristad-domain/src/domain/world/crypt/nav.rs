@@ -55,15 +55,34 @@ impl Nav {
     /// Bygg nettet av hjørner og polygoner (indekser), med rom og bryter per
     /// polygon. Hjørner som ligger oppå hverandre sveises, og kanter som går
     /// langs hverandre uten felles hjørner kobles også.
-    pub fn new(verts: &[Vec3], polys: &[Vec<u32>], rooms: &[Option<usize>], gates: &[Option<usize>]) -> Self {
+    pub fn new(
+        verts: &[Vec3],
+        polys: &[Vec<u32>],
+        rooms: &[Option<usize>],
+        gates: &[Option<usize>],
+    ) -> Self {
         // Sveis hjørnene (1 cm).
-        let key = |v: Vec3| ((v.x * 100.0).round() as i64, (v.y * 100.0).round() as i64, (v.z * 100.0).round() as i64);
+        let key = |v: Vec3| {
+            (
+                (v.x * 100.0).round() as i64,
+                (v.y * 100.0).round() as i64,
+                (v.z * 100.0).round() as i64,
+            )
+        };
         let mut weld: HashMap<(i64, i64, i64), u32> = HashMap::new();
-        let ids: Vec<u32> = verts.iter().enumerate().map(|(i, v)| *weld.entry(key(*v)).or_insert(i as u32)).collect();
+        let ids: Vec<u32> = verts
+            .iter()
+            .enumerate()
+            .map(|(i, v)| *weld.entry(key(*v)).or_insert(i as u32))
+            .collect();
         let mut out = Nav::default();
         let mut idx_polys: Vec<Vec<u32>> = vec![];
         for (k, p) in polys.iter().enumerate() {
-            let mut vi: Vec<u32> = p.iter().filter(|&&i| (i as usize) < verts.len()).map(|&i| ids[i as usize]).collect();
+            let mut vi: Vec<u32> = p
+                .iter()
+                .filter(|&&i| (i as usize) < verts.len())
+                .map(|&i| ids[i as usize])
+                .collect();
             vi.dedup();
             if vi.len() >= 2 && vi.first() == vi.last() {
                 vi.pop();
@@ -72,7 +91,9 @@ impl Nav {
                 continue;
             }
             let mut pts: Vec<Vec3> = vi.iter().map(|&i| verts[i as usize]).collect();
-            let area: f32 = (0..pts.len()).map(|i| cross(flat(pts[i]), flat(pts[(i + 1) % pts.len()]))).sum();
+            let area: f32 = (0..pts.len())
+                .map(|i| cross(flat(pts[i]), flat(pts[(i + 1) % pts.len()])))
+                .sum();
             if area.abs() < 1e-4 {
                 continue;
             }
@@ -81,9 +102,21 @@ impl Nav {
                 vi.reverse();
             }
             let center = pts.iter().copied().sum::<Vec3>() / pts.len() as f32;
-            let min = pts.iter().fold(Vec2::splat(f32::MAX), |m, p| m.min(flat(*p)));
-            let max = pts.iter().fold(Vec2::splat(f32::MIN), |m, p| m.max(flat(*p)));
-            out.polys.push(Poly { pts, room: rooms.get(k).copied().flatten(), gate: gates.get(k).copied().flatten(), center, min, max, links: vec![] });
+            let min = pts
+                .iter()
+                .fold(Vec2::splat(f32::MAX), |m, p| m.min(flat(*p)));
+            let max = pts
+                .iter()
+                .fold(Vec2::splat(f32::MIN), |m, p| m.max(flat(*p)));
+            out.polys.push(Poly {
+                pts,
+                room: rooms.get(k).copied().flatten(),
+                gate: gates.get(k).copied().flatten(),
+                center,
+                min,
+                max,
+                links: vec![],
+            });
             idx_polys.push(vi);
         }
         // Felles kanter.
@@ -91,7 +124,10 @@ impl Nav {
         for (p, vi) in idx_polys.iter().enumerate() {
             for e in 0..vi.len() {
                 let (a, b) = (vi[e], vi[(e + 1) % vi.len()]);
-                edges.entry((a.min(b), a.max(b))).or_default().push((p as u32, e));
+                edges
+                    .entry((a.min(b), a.max(b)))
+                    .or_default()
+                    .push((p as u32, e));
             }
         }
         let mut linked = vec![vec![false; 0]; out.polys.len()];
@@ -103,7 +139,10 @@ impl Nav {
                 for &(q, _) in list {
                     if p != q {
                         let n = out.polys[p as usize].pts.len();
-                        let (a, b) = (out.polys[p as usize].pts[e], out.polys[p as usize].pts[(e + 1) % n]);
+                        let (a, b) = (
+                            out.polys[p as usize].pts[e],
+                            out.polys[p as usize].pts[(e + 1) % n],
+                        );
                         out.polys[p as usize].links.push(Link { to: q, a, b });
                         linked[p as usize][e] = true;
                     }
@@ -120,7 +159,10 @@ impl Nav {
                 }
                 let n = out.polys[p].pts.len();
                 let (a, b) = (out.polys[p].pts[e], out.polys[p].pts[(e + 1) % n]);
-                let (lo, hi) = (flat(a).min(flat(b)) - Vec2::splat(0.05), flat(a).max(flat(b)) + Vec2::splat(0.05));
+                let (lo, hi) = (
+                    flat(a).min(flat(b)) - Vec2::splat(0.05),
+                    flat(a).max(flat(b)) + Vec2::splat(0.05),
+                );
                 let mut found = vec![];
                 for q in out.near(lo, hi) {
                     if q as usize == p {
@@ -161,7 +203,12 @@ impl Nav {
                 if let Some(l) = self.buckets.get(&(x, z)) {
                     for &i in l {
                         let p = &self.polys[i as usize];
-                        if p.max.x >= lo.x && p.min.x <= hi.x && p.max.y >= lo.y && p.min.y <= hi.y && !out.contains(&i) {
+                        if p.max.x >= lo.x
+                            && p.min.x <= hi.x
+                            && p.max.y >= lo.y
+                            && p.min.y <= hi.y
+                            && !out.contains(&i)
+                        {
                             out.push(i);
                         }
                     }
@@ -217,7 +264,11 @@ impl Nav {
                 continue;
             }
             let h = self.height_in(i, q);
-            let score = if h <= p.y + above { p.y - h } else { 100.0 + h - p.y };
+            let score = if h <= p.y + above {
+                p.y - h
+            } else {
+                100.0 + h - p.y
+            };
             if best.is_none_or(|(s, _)| score < s) {
                 best = Some((score, i));
             }
@@ -227,7 +278,12 @@ impl Nav {
 
     /// Nærmeste punkt på nettet innen `reach` meter (flatt), med gulvhøyden,
     /// og polygonen det er i. Høydeforskjellen teller dobbelt.
-    pub fn nearest(&self, p: Vec3, reach: f32, open: &dyn Fn(&Poly) -> bool) -> Option<(u32, Vec3)> {
+    pub fn nearest(
+        &self,
+        p: Vec3,
+        reach: f32,
+        open: &dyn Fn(&Poly) -> bool,
+    ) -> Option<(u32, Vec3)> {
         let q = flat(p);
         let mut best: Option<(f32, u32, Vec3)> = None;
         for i in self.near(q - Vec2::splat(reach), q + Vec2::splat(reach)) {
@@ -249,7 +305,11 @@ impl Nav {
                 continue;
             }
             let h = self.height_in(i, c);
-            let dy = if h <= p.y + 0.6 { p.y - h } else { (h - p.y) * 3.0 };
+            let dy = if h <= p.y + 0.6 {
+                p.y - h
+            } else {
+                (h - p.y) * 3.0
+            };
             if dy > 3.0 {
                 continue;
             }
@@ -272,7 +332,14 @@ impl Nav {
     }
 
     /// Polygonene på korteste vei og kantene imellom (indeks i `links`).
-    fn corridor(&self, a: u32, start: Vec3, b: u32, goal: Vec3, open: &dyn Fn(&Poly) -> bool) -> Option<Vec<(u32, usize)>> {
+    fn corridor(
+        &self,
+        a: u32,
+        start: Vec3,
+        b: u32,
+        goal: Vec3,
+        open: &dyn Fn(&Poly) -> bool,
+    ) -> Option<Vec<(u32, usize)>> {
         if a == b {
             return Some(vec![]);
         }
@@ -296,7 +363,8 @@ impl Nav {
                     continue;
                 }
                 let mid = (l.a + l.b) * 0.5;
-                let cost = gp + here.distance(mid) + if l.to == b { mid.distance(goal) } else { 0.0 };
+                let cost =
+                    gp + here.distance(mid) + if l.to == b { mid.distance(goal) } else { 0.0 };
                 if cost + 1e-4 < g[q] {
                     g[q] = cost;
                     at[q] = mid;
@@ -377,7 +445,9 @@ impl Nav {
             out.push(goal);
         }
         // Høyden langs veien: gulvet under hvert hjørne.
-        out.into_iter().filter(|p| !same(*p, start) || corridor.is_empty()).collect()
+        out.into_iter()
+            .filter(|p| !same(*p, start) || corridor.is_empty())
+            .collect()
     }
 
     /// Om polygonen `b` kan nås fra `a` når `open` sier hvilke som er åpne.
@@ -429,7 +499,8 @@ fn overlap(a: Vec3, b: Vec3, c: Vec3, d: Vec3) -> Option<(Vec3, Vec3)> {
     let at = |t: f32| a.lerp(b, t / len);
     // Samme høyde der de møtes.
     let other = |t: f32| {
-        let s = ((fa + dir * t - fc).dot(fd - fc) / (fd - fc).length_squared().max(1e-9)).clamp(0.0, 1.0);
+        let s = ((fa + dir * t - fc).dot(fd - fc) / (fd - fc).length_squared().max(1e-9))
+            .clamp(0.0, 1.0);
         c.lerp(d, s).y
     };
     if (at(lo).y - other(lo)).abs() > 0.3 || (at(hi).y - other(hi)).abs() > 0.3 {
@@ -448,7 +519,16 @@ mod tests {
     fn trakten_gar_rundt_hjornet() {
         // (0..2, 0..2), (2..4, 0..2), (2..4, 2..6) i (x, z).
         let v = |x: f32, z: f32| Vec3::new(x, 0.0, z);
-        let verts = vec![v(0.0, 0.0), v(2.0, 0.0), v(4.0, 0.0), v(4.0, 2.0), v(2.0, 2.0), v(0.0, 2.0), v(4.0, 6.0), v(2.0, 6.0)];
+        let verts = vec![
+            v(0.0, 0.0),
+            v(2.0, 0.0),
+            v(4.0, 0.0),
+            v(4.0, 2.0),
+            v(2.0, 2.0),
+            v(0.0, 2.0),
+            v(4.0, 6.0),
+            v(2.0, 6.0),
+        ];
         let polys = vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4], vec![4, 3, 6, 7]];
         let nav = Nav::new(&verts, &polys, &[None; 3], &[None; 3]);
         let all = |_: &Poly| true;
@@ -468,7 +548,12 @@ mod tests {
     /// En rampe: høyden følger skråningen.
     #[test]
     fn hoyden_folger_rampa() {
-        let verts = vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(2.0, 0.0, 0.0), Vec3::new(2.0, 1.0, 4.0), Vec3::new(0.0, 1.0, 4.0)];
+        let verts = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(2.0, 0.0, 0.0),
+            Vec3::new(2.0, 1.0, 4.0),
+            Vec3::new(0.0, 1.0, 4.0),
+        ];
         let nav = Nav::new(&verts, &[vec![0, 1, 2, 3]], &[None], &[None]);
         let i = nav.locate(Vec3::new(1.0, 2.0, 2.0), 0.5).expect("på rampa");
         assert!((nav.height_in(i, Vec2::new(1.0, 2.0)) - 0.5).abs() < 1e-4);

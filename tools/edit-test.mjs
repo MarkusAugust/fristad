@@ -2,7 +2,8 @@
 // ferdige nettsiden (grenen web-dist, `sh tools/pull-dist.sh`) i Chromium
 // uten skjerm: panelet og katalogen kommer, et klikk velger tønna på torget,
 // piltasten flytter den, Ctrl+Z angrer, P bygger spillet på nytt og P igjen
-// går tilbake i redigeringen. Skriver konsollen, det som feiler, og bilder.
+// går tilbake i redigeringen; nede i krypten redigerer P nivået du står i.
+// Skriver konsollen, det som feiler, og bilder.
 //   PLAYWRIGHT_DIR=/opt/node-tools/node_modules/playwright node tools/edit-test.mjs dist-web [webgl|webgpu] UT_PREFIKS
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -104,6 +105,23 @@ await page.keyboard.press("KeyP");
 check(await until(() => !document.querySelector("#editor").hidden), "P igjen: redigerer");
 check(await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent)), `P igjen: endringen er med (${await text("#ed-state")})`);
 await shot("igjen");
+
+// Krypten: P (spill), ned trappa, og P igjen redigerer nivået du står i
+// (redigeringen løfter deg ikke opp til byen).
+await page.keyboard.press("KeyP");
+check(await until(() => document.querySelector("#editor").hidden, null, 600000), "P: spiller igjen");
+await page.evaluate(() => window.fristad.engine.descend());
+check(await until(() => window.fristad.engine.view()[1] < -20, null, 300000), `ned i krypten (y ${(await page.evaluate(() => window.fristad.engine.view()[1])).toFixed(1)})`);
+await page.waitForTimeout(3000);
+await page.keyboard.press("KeyP");
+check(await until(() => !document.querySelector("#editor").hidden), "P i krypten: redigerer");
+await page.waitForTimeout(3000);
+const y = await page.evaluate(() => window.fristad.engine.view()[1]);
+check(y < -20, `redigeringen står i krypten (y ${y.toFixed(1)})`);
+await page.mouse.click(box.x, box.y);
+await page.waitForTimeout(3000);
+console.log(`klikk i krypten valgte: ${await text("#ed-selected")}`);
+await shot("krypten");
 check(errors.filter((e) => !e.includes("404")).length === 0, `ingen feil i konsollen (${errors.length}, 404 for favicon telles ikke)`);
 await browser.close();
 server.close();

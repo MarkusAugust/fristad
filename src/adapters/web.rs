@@ -37,17 +37,40 @@ struct Rebuild {
     queue: wgpu::Queue,
     adapter: wgpu::Adapter,
     format: wgpu::TextureFormat,
-    layers: Vec<(crate::domain::geometry::Layer, crate::domain::model::LayerImages)>,
+    layers: Vec<(
+        crate::domain::geometry::Layer,
+        crate::domain::model::LayerImages,
+    )>,
     seed: u64,
 }
 
-async fn connect(canvas: &web_sys::HtmlCanvasElement, webgpu: bool) -> Result<(wgpu::Surface<'static>, wgpu::Adapter, wgpu::Device, wgpu::Queue), String> {
+async fn connect(
+    canvas: &web_sys::HtmlCanvasElement,
+    webgpu: bool,
+) -> Result<
+    (
+        wgpu::Surface<'static>,
+        wgpu::Adapter,
+        wgpu::Device,
+        wgpu::Queue,
+    ),
+    String,
+> {
     let instance = if webgpu {
-        wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor { backends: wgpu::Backends::BROWSER_WEBGPU, ..Default::default() }).await
+        wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::BROWSER_WEBGPU,
+            ..Default::default()
+        })
+        .await
     } else {
-        wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::GL, ..Default::default() })
+        wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::GL,
+            ..Default::default()
+        })
     };
-    let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone())).map_err(|e| format!("Kunne ikke tegne i canvas: {e}"))?;
+    let surface = instance
+        .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
+        .map_err(|e| format!("Kunne ikke tegne i canvas: {e}"))?;
     let (adapter, device, queue) = crate::adapters::gpu(&instance, Some(&surface)).await?;
     Ok((surface, adapter, device, queue))
 }
@@ -71,11 +94,26 @@ pub fn model_paths() -> Vec<String> {
 }
 
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array, edit: bool) -> Result<Engine, JsValue> {
-    let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
+pub async fn start(
+    canvas: web_sys::HtmlCanvasElement,
+    webgpu: bool,
+    manifest_json: Option<String>,
+    names: js_sys::Array,
+    blobs: js_sys::Array,
+    models: js_sys::Array,
+    edit: bool,
+) -> Result<Engine, JsValue> {
+    let (surface, adapter, device, queue) = connect(&canvas, webgpu)
+        .await
+        .map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
-    let format = caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(caps.formats[0]);
+    let format = caps
+        .formats
+        .iter()
+        .copied()
+        .find(|f| f.is_srgb())
+        .unwrap_or(caps.formats[0]);
     let config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format,
@@ -89,20 +127,58 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
     surface.configure(&device, &config);
     // Ny kjeller for hver økt i nettleseren.
     let seed = (js_sys::Date::now() as u64) ^ 0x5eed;
-    let files = Files(model_paths().into_iter().zip(models.iter()).filter(|(_, b)| !b.is_undefined()).map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec())).collect());
+    let files = Files(
+        model_paths()
+            .into_iter()
+            .zip(models.iter())
+            .filter(|(_, b)| !b.is_undefined())
+            .map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec()))
+            .collect(),
+    );
     // Med `?edit` (bare for eieren): alle modellene, med plass til å flytte dem.
-    let prepared = if edit { prepare_for_edit(&files, seed) } else { prepare(&files, seed) };
+    let prepared = if edit {
+        prepare_for_edit(&files, seed)
+    } else {
+        prepare(&files, seed)
+    };
     let layers = match manifest_json {
         Some(m) => {
-            let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();
+            let files: std::collections::HashMap<String, Vec<u8>> = names
+                .iter()
+                .zip(blobs.iter())
+                .filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec())))
+                .collect();
             crate::adapters::layers::from_files(&m, &files)
         }
         None => vec![],
     };
-    let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, config.width, config.height);
+    let renderer = Renderer::new(
+        device.clone(),
+        queue.clone(),
+        &adapter,
+        format,
+        &App::<Renderer, RapierPhysics>::scene(&prepared),
+        &layers,
+        config.width,
+        config.height,
+    );
     let app = App::new(prepared, renderer, RapierPhysics::new());
-    let rebuild = edit.then(|| Rebuild { files, queue, adapter, format, layers, seed });
-    Ok(Engine { app, surface, config, device, backend, rebuild })
+    let rebuild = edit.then(|| Rebuild {
+        files,
+        queue,
+        adapter,
+        format,
+        layers,
+        seed,
+    });
+    Ok(Engine {
+        app,
+        surface,
+        config,
+        device,
+        backend,
+        rebuild,
+    })
 }
 
 /// En kommando fra redigeringen i nettlaget, som json med `cmd`. `x` og `y`
@@ -112,22 +188,54 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_js
 enum EditJson {
     Enter,
     Leave,
-    Press { x: f32, y: f32, #[serde(default)] add: bool },
-    Drag { x: f32, y: f32 },
+    Press {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        add: bool,
+    },
+    Drag {
+        x: f32,
+        y: f32,
+    },
     Release,
-    Pick { #[serde(default)] add: bool, x: Option<f32>, y: Option<f32> },
+    Pick {
+        #[serde(default)]
+        add: bool,
+        x: Option<f32>,
+        y: Option<f32>,
+    },
     Cycle,
-    Move { x: f32, y: f32, z: f32 },
-    Rotate { a: f32 },
+    Move {
+        x: f32,
+        y: f32,
+        z: f32,
+    },
+    Rotate {
+        a: f32,
+    },
     Drop,
     Copy,
     Delete,
-    Place { model: String, x: Option<f32>, y: Option<f32> },
-    LinePoint { x: f32, y: f32 },
+    Place {
+        model: String,
+        x: Option<f32>,
+        y: Option<f32>,
+    },
+    LinePoint {
+        x: f32,
+        y: f32,
+    },
     /// `kind`: "row" (en rad av `model`) eller "wall" (usynlig vegg, `height`).
-    LineFinish { kind: String, model: Option<String>, height: Option<f32> },
+    LineFinish {
+        kind: String,
+        model: Option<String>,
+        height: Option<f32>,
+    },
     LineCancel,
-    WallHeight { h: f32 },
+    WallHeight {
+        h: f32,
+    },
     Undo,
     Redo,
 }
@@ -148,11 +256,23 @@ impl EditJson {
             EditJson::Drop => EditCommand::Drop,
             EditJson::Copy => EditCommand::Copy,
             EditJson::Delete => EditCommand::Delete,
-            EditJson::Place { model, x, y } => EditCommand::Place { model, at: at(x, y) },
+            EditJson::Place { model, x, y } => EditCommand::Place {
+                model,
+                at: at(x, y),
+            },
             EditJson::LinePoint { x, y } => EditCommand::LinePoint { at: (x, y) },
-            EditJson::LineFinish { kind, model, height } => EditCommand::LineFinish(match kind.as_str() {
-                "wall" => LineKind::Wall { height: height.unwrap_or(3.0) },
-                _ => LineKind::Row { model: model?, spacing: 0.0 },
+            EditJson::LineFinish {
+                kind,
+                model,
+                height,
+            } => EditCommand::LineFinish(match kind.as_str() {
+                "wall" => LineKind::Wall {
+                    height: height.unwrap_or(3.0),
+                },
+                _ => LineKind::Row {
+                    model: model?,
+                    spacing: 0.0,
+                },
             }),
             EditJson::LineCancel => EditCommand::LineCancel,
             EditJson::WallHeight { h } => EditCommand::WallHeight(h),
@@ -165,12 +285,18 @@ impl EditJson {
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
-        Event::Prompt(Some(p)) => json!({"type": "prompt", "label": p.label, "verb": p.verb, "trade": p.trade, "info": p.info}),
+        Event::Prompt(Some(p)) => {
+            json!({"type": "prompt", "label": p.label, "verb": p.verb, "trade": p.trade, "info": p.info})
+        }
         Event::Prompt(None) => json!({"type": "prompt"}),
-        Event::Daylight(d) => json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }}),
+        Event::Daylight(d) => {
+            json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }})
+        }
         Event::Toast(t) => json!({"type": "toast", "text": t}),
         Event::Loot(c) => json!({"type": "loot", "component": c}),
-        Event::Ambience(a) => json!({"type": "ambience", "square": a.square, "forge": a.forge, "church": a.church, "meadow": a.meadow, "fire": a.fire, "water": a.water, "lava": a.lava, "chasm": a.chasm, "portal": a.portal, "rain": a.rain, "wind": a.wind, "night": a.night, "cellar": a.cellar, "indoor": a.indoor}),
+        Event::Ambience(a) => {
+            json!({"type": "ambience", "square": a.square, "forge": a.forge, "church": a.church, "meadow": a.meadow, "fire": a.fire, "water": a.water, "lava": a.lava, "chasm": a.chasm, "portal": a.portal, "rain": a.rain, "wind": a.wind, "night": a.night, "cellar": a.cellar, "indoor": a.indoor})
+        }
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
         Event::Warp => json!({"type": "warp"}),
@@ -181,13 +307,32 @@ fn json(e: &Event) -> serde_json::Value {
         }}),
         Event::OpenDoc(c) => json!({"type": "open_doc", "component": c}),
         Event::Where { x, z, yaw } => json!({"type": "where", "x": x, "z": z, "yaw": yaw}),
-        Event::Hud { hp, stamina, tokens, cellar, keys, boss } => json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))}),
+        Event::Hud {
+            hp,
+            stamina,
+            tokens,
+            cellar,
+            keys,
+            boss,
+        } => {
+            json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))})
+        }
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
-        Event::Inventory(v) => json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read}),
-        Event::Shop { npc, wares } => json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()}),
-        Event::Workshop { recipes } => json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok})).collect::<Vec<_>>()}),
-        Event::Speech(bubbles) => json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()}),
-        Event::Marks(marks) => json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()}),
+        Event::Inventory(v) => {
+            json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read})
+        }
+        Event::Shop { npc, wares } => {
+            json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()})
+        }
+        Event::Workshop { recipes } => {
+            json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok})).collect::<Vec<_>>()})
+        }
+        Event::Speech(bubbles) => {
+            json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()})
+        }
+        Event::Marks(marks) => {
+            json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()})
+        }
         Event::Edit(None) => json!({"type": "edit", "edit": null}),
         Event::Edit(Some(v)) => json!({"type": "edit", "edit": {
             "selected": v.selected.iter().map(|s| json!({"ref": s.r, "label": s.label, "pose": s.pose.to_cols_array(), "center": s.center.to_array(), "half": s.half.to_array()})).collect::<Vec<_>>(),
@@ -212,7 +357,9 @@ impl Engine {
         struct Raw {
             fristil: String,
         }
-        serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.fristil).unwrap_or_default()
+        serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json"))
+            .map(|r| r.fristil)
+            .unwrap_or_default()
     }
 
     pub fn weather(&self) -> String {
@@ -259,8 +406,17 @@ impl Engine {
     }
 
     pub fn load_state(&mut self, json: &str) {
-        let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return };
-        let stash = v["stash"].as_array().map(|a| a.iter().filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_u64()? as u32))).collect()).unwrap_or_default();
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else {
+            return;
+        };
+        let stash = v["stash"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_u64()? as u32)))
+                    .collect()
+            })
+            .unwrap_or_default();
         let d = SaveData {
             stash,
             weapon: v["weapon"].as_str().unwrap_or("").into(),
@@ -271,8 +427,22 @@ impl Engine {
             max_stamina: v["max_stamina"].as_f64().unwrap_or(100.0) as f32,
             coins: v["coins"].as_u64().unwrap_or(0) as u32,
             // Gamle lagringer har ikke galleriet: da teller lageret alene.
-            found: v["found"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
-            bonuses: v["bonuses"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
+            found: v["found"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|c| c.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            bonuses: v["bonuses"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|c| c.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default(),
         };
         self.app.command(Command::Load(d));
     }
@@ -282,7 +452,11 @@ impl Engine {
     }
 
     pub fn set_theme(&mut self, dark: bool) {
-        self.app.command(Command::SetDaylight(if dark { Daylight::Night } else { Daylight::Day }));
+        self.app.command(Command::SetDaylight(if dark {
+            Daylight::Night
+        } else {
+            Daylight::Day
+        }));
     }
 
     /// klart, overskyet, regn, uvær, snø eller tåke.
@@ -304,7 +478,11 @@ impl Engine {
 
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
-        self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
+        self.app.command(Command::Place {
+            eye: glam::Vec3::new(x, y, z),
+            yaw: yaw_deg.to_radians(),
+            pitch: pitch_deg.to_radians(),
+        });
     }
 
     /// Grafikknivået: «enkel», «standard» eller «avansert».
@@ -336,11 +514,33 @@ impl Engine {
         impl Default for B {
             fn default() -> Self {
                 let d = Bench::default();
-                B { msaa: d.msaa, a2c: d.a2c, shadow: d.shadow, flat: d.flat, small_hdr: d.small_hdr, timers: d.timers, sky: d.sky, particles: d.particles, models: d.models, smaa: d.smaa }
+                B {
+                    msaa: d.msaa,
+                    a2c: d.a2c,
+                    shadow: d.shadow,
+                    flat: d.flat,
+                    small_hdr: d.small_hdr,
+                    timers: d.timers,
+                    sky: d.sky,
+                    particles: d.particles,
+                    models: d.models,
+                    smaa: d.smaa,
+                }
             }
         }
         let b: B = serde_json::from_str(json).unwrap_or_default();
-        self.app.command(Command::SetBench(Bench { msaa: b.msaa, a2c: b.a2c, shadow: b.shadow, flat: b.flat, small_hdr: b.small_hdr, timers: b.timers, sky: b.sky, particles: b.particles, models: b.models, smaa: b.smaa }));
+        self.app.command(Command::SetBench(Bench {
+            msaa: b.msaa,
+            a2c: b.a2c,
+            shadow: b.shadow,
+            flat: b.flat,
+            small_hdr: b.small_hdr,
+            timers: b.timers,
+            sky: b.sky,
+            particles: b.particles,
+            models: b.models,
+            smaa: b.smaa,
+        }));
     }
 
     /// Tegnekall i hovedpasset sist bilde.
@@ -356,7 +556,13 @@ impl Engine {
     /// Millisekunder på grafikkortet per del av bildet, som «skygger 1.2 ·
     /// prepass 0.8 · …» (tomt om nettleseren ikke kan måle det).
     pub fn gpu_times(&self) -> String {
-        self.app.status().gpu_times.iter().map(|(n, ms)| format!("{n} {ms:.1}")).collect::<Vec<_>>().join(" · ")
+        self.app
+            .status()
+            .gpu_times
+            .iter()
+            .map(|(n, ms)| format!("{n} {ms:.1}"))
+            .collect::<Vec<_>>()
+            .join(" · ")
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -373,7 +579,10 @@ impl Engine {
     /// Redigeringen (`?edit`): en kommando som json (`EditJson`). Gir om den
     /// gjorde noe.
     pub fn edit(&mut self, json: &str) -> bool {
-        match serde_json::from_str::<EditJson>(json).ok().and_then(EditJson::command) {
+        match serde_json::from_str::<EditJson>(json)
+            .ok()
+            .and_then(EditJson::command)
+        {
             Some(c) => self.app.command(Command::Edit(c)),
             None => {
                 log::warn!("Ukjent redigeringskommando: {json}");
@@ -396,7 +605,8 @@ impl Engine {
     /// Alle modellene som kan settes ut, til katalogen: navn, kategori
     /// (`data::category`), eierens dom og hvorfor, som json-liste.
     pub fn catalog(&self) -> String {
-        let approvals: serde_json::Value = serde_json::from_str(crate::adapters::data::APPROVALS).unwrap_or_default();
+        let approvals: serde_json::Value =
+            serde_json::from_str(crate::adapters::data::APPROVALS).unwrap_or_default();
         let buildings = crate::adapters::data::buildings();
         let list: Vec<serde_json::Value> = model_files()
             .filter_map(|(name, path)| {
@@ -412,12 +622,18 @@ impl Engine {
     /// eller `{"error": …}` når noe bryter en regel (det som lagres, går
     /// alltid gjennom testene).
     pub fn save_files(&self) -> String {
-        let Some(e) = self.app.session.editor() else { return serde_json::json!({"error": "Ikke i redigeringen."}).to_string() };
+        let Some(e) = self.app.session.editor() else {
+            return serde_json::json!({"error": "Ikke i redigeringen."}).to_string();
+        };
         if !e.clean() {
             return serde_json::json!({"error": format!("{} regler er brutt. Rett dem før du lagrer.", e.breaches().len())}).to_string();
         }
         let (layout, contents) = e.data();
-        let files: Vec<serde_json::Value> = crate::adapters::data::layout_files(layout, contents).into_iter().map(|(path, text)| serde_json::json!({"path": path, "text": text})).collect();
+        let files: Vec<serde_json::Value> =
+            crate::adapters::data::layout_files(layout, contents, e.crypt_data())
+                .into_iter()
+                .map(|(path, text)| serde_json::json!({"path": path, "text": text}))
+                .collect();
         serde_json::json!({"files": files}).to_string()
     }
 
@@ -425,20 +641,55 @@ impl Engine {
     /// (kolliderne, lysene og alt), og spill der du står. Lageret og det du
     /// bærer følger med. Gir om det gikk.
     pub fn play(&mut self) -> bool {
-        let Some(rb) = &self.rebuild else { return false };
-        let Some(editor) = self.app.session.editor() else { return false };
+        let Some(rb) = &self.rebuild else {
+            return false;
+        };
+        let Some(editor) = self.app.session.editor() else {
+            return false;
+        };
         let (layout, contents) = editor.data();
         let mut data = crate::adapters::data::world_data();
-        let file = (data.layout.clone().unwrap_or_default(), data.contents.iter().cloned().collect());
+        let file = (
+            data.layout.clone().unwrap_or_default(),
+            data.contents.iter().cloned().collect(),
+            data.levels
+                .iter()
+                .map(|(n, f)| {
+                    (
+                        *n,
+                        crate::domain::world::crypt::level::CryptContents {
+                            marks: f.marks.clone(),
+                            lights: f.lights.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        );
         data.layout = Some(layout.clone());
         data.contents = contents.clone().into_iter().collect();
+        // Merkene og lysene i kryptnivåene, som redigert.
+        for (n, f) in data.levels.iter_mut() {
+            if let Some(c) = editor.crypt_data().get(n) {
+                f.marks = c.marks.clone();
+                f.lights = c.lights.clone();
+            }
+        }
         let (eye, yaw, pitch) = self.app.session.view_pose();
         let save = self.app.save();
         let mut prepared = prepare_with(&rb.files, rb.seed, data, true);
         if let Some(d) = prepared.edit.as_mut() {
             d.baseline = Some(file);
         }
-        let renderer = Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
+        let renderer = Renderer::new(
+            self.device.clone(),
+            rb.queue.clone(),
+            &rb.adapter,
+            rb.format,
+            &App::<Renderer, RapierPhysics>::scene(&prepared),
+            &rb.layers,
+            self.config.width,
+            self.config.height,
+        );
         self.app = App::new(prepared, renderer, RapierPhysics::new());
         self.app.command(Command::Load(save));
         self.app.command(Command::Place { eye, yaw, pitch });
@@ -452,7 +703,8 @@ impl Engine {
             Ok(frame) => {
                 let view = frame.texture.create_view(&Default::default());
                 self.app.renderer.set_target(view);
-                self.app.draw(self.config.width as f32 / self.config.height as f32);
+                self.app
+                    .draw(self.config.width as f32 / self.config.height as f32);
                 frame.present();
             }
             Err(e) => {

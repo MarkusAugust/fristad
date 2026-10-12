@@ -2,9 +2,9 @@
 //! Lesingen er raus: ukjente felt og merker hoppes over, og det som mangler
 //! får en standardverdi, så et nivå under arbeid fortsatt kan lastes.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct LevelFile {
     #[serde(default)]
     pub level: u32,
@@ -26,7 +26,7 @@ pub struct LevelFile {
     pub marks: Vec<MarkDef>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct RoomDef {
     pub id: String,
     #[serde(default)]
@@ -45,7 +45,7 @@ fn default_h() -> f32 {
     4.0
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct BoxDef {
     pub center: [f32; 3],
     pub size: [f32; 3],
@@ -53,14 +53,14 @@ pub struct BoxDef {
     pub yaw: f32,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct ColliderDef {
     #[serde(rename = "box")]
     pub cuboid: Option<BoxDef>,
     pub hull: Option<Vec<[f32; 3]>>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct NavDef {
     #[serde(default)]
     pub verts: Vec<[f32; 3]>,
@@ -72,7 +72,7 @@ pub struct NavDef {
     pub poly_gate: Vec<Option<String>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct LightDef {
     pub pos: [f32; 3],
     #[serde(default = "default_color")]
@@ -82,7 +82,9 @@ pub struct LightDef {
     #[serde(default)]
     pub flicker: bool,
     /// Styrken (ikke i formatet ennå; 2 om den mangler).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub intensity: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub room: Option<String>,
 }
 
@@ -95,7 +97,7 @@ fn default_range() -> f32 {
 }
 
 /// Et tall, eller to eller tre (mål).
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(untagged)]
 pub enum Size {
     One(f32),
@@ -115,7 +117,7 @@ impl Size {
 }
 
 /// Retningen på en felle: en vektor, eller en yaw i radianer.
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(untagged)]
 pub enum Dir {
     Yaw(f32),
@@ -125,7 +127,7 @@ pub enum Dir {
 
 /// Bakholdet: på (vekkes når du kommer innen 4 m), en radius, eller
 /// rom-id-en der du må gå inn.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum AmbushDef {
     On(bool),
@@ -133,33 +135,62 @@ pub enum AmbushDef {
     Room(String),
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct MarkDef {
     pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pos: Option<[f32; 3]>,
     #[serde(default)]
     pub yaw: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub n: Option<u32>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub patrol: Vec<[f32; 3]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ambush: Option<AmbushDef>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub opens: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub width: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub height: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<Size>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub top: Option<[f32; 3]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bottom: Option<[f32; 3]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dir: Option<Dir>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     #[serde(rename = "for")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub for_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub arena: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub loot: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub levels: Vec<f32>,
+}
+
+/// Det som står i et nivå (`assets/layout/crypt_NN.json`): merkene og
+/// lysene, som redigeringen endrer. Rommene, kolliderne og
+/// navigasjonsnettet står i nivåfila fra `tools/crypt/build_level.py`, som
+/// leser denne fila og bygger nettet rundt det som står her.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct CryptContents {
+    #[serde(default)]
+    pub marks: Vec<MarkDef>,
+    #[serde(default)]
+    pub lights: Vec<LightDef>,
 }

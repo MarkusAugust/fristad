@@ -28,7 +28,11 @@ pub enum Happening {
     /// Lemmen under deg faller (bryteren og hvor).
     Trapdoor { switch: usize, at: Vec3 },
     /// Trykkplata: pilene skyter ut av muren. Første gang som en advarsel.
-    Arrows { plate: Vec3, from: Vec3, first: bool },
+    Arrows {
+        plate: Vec3,
+        from: Vec3,
+        first: bool,
+    },
     /// Pilene traff deg.
     Hurt(f32),
     /// Du fant igjen sekken du mistet.
@@ -95,7 +99,11 @@ impl Run {
     pub fn rescue(&mut self, crypt: &Crypt, feet: Vec3, grounded: bool) -> Option<Vec3> {
         let k = crypt.level_at(feet + Vec3::Y * 0.5)?;
         let lowest = crypt.levels[k].min_y;
-        if grounded && crypt.floor_under(feet + Vec3::Y * 0.3).is_some_and(|f| (feet.y - f).abs() < 0.4) {
+        if grounded
+            && crypt
+                .floor_under(feet + Vec3::Y * 0.3)
+                .is_some_and(|f| (feet.y - f).abs() < 0.4)
+        {
             self.safe = feet;
         } else if feet.y < lowest - 3.0 && self.safe != Vec3::ZERO {
             return Some(self.safe);
@@ -104,7 +112,14 @@ impl Run {
     }
 
     /// Det som skjer av seg selv i nivå `k` når føttene står i `feet`.
-    pub fn tick(&mut self, dt: f32, crypt: &Crypt, mech: &Mechanisms, k: usize, feet: Vec3) -> Vec<Happening> {
+    pub fn tick(
+        &mut self,
+        dt: f32,
+        crypt: &Crypt,
+        mech: &Mechanisms,
+        k: usize,
+        feet: Vec3,
+    ) -> Vec<Happening> {
         let mut out = vec![];
         let flat = |a: Vec3, b: Vec3| a.with_y(0.0).distance(b.with_y(0.0));
         // Trappa ned: toner over til neste nivå.
@@ -122,12 +137,19 @@ impl Run {
         }
         // Fallemmene: står du på lemmen, faller den opp under deg.
         for (i, t) in crypt.trapdoors.iter().enumerate() {
-            if t.level != k || !t.lid || t.bolted || mech.trapdoors.get(i).is_none_or(|x| *x >= 0.0) {
+            if t.level != k || !t.lid || t.bolted || mech.trapdoors.get(i).is_none_or(|x| *x >= 0.0)
+            {
                 continue;
             }
             let local = Quat::from_rotation_y(-t.yaw) * (feet - t.pos);
-            if local.x.abs() < t.size.x * 0.5 - 0.1 && local.z.abs() < t.size.y * 0.5 - 0.1 && local.y.abs() < 0.5 {
-                out.push(Happening::Trapdoor { switch: t.switch, at: t.pos });
+            if local.x.abs() < t.size.x * 0.5 - 0.1
+                && local.z.abs() < t.size.y * 0.5 - 0.1
+                && local.y.abs() < 0.5
+            {
+                out.push(Happening::Trapdoor {
+                    switch: t.switch,
+                    at: t.pos,
+                });
             }
         }
         // Trykkplatene: pilene skyter ut av muren. Første gang treffer de
@@ -144,11 +166,24 @@ impl Run {
                 let side = Vec3::new(-t.dir.z, 0.0, t.dir.x);
                 for (j, off) in [-0.45f32, 0.0, 0.45].iter().enumerate() {
                     let from = feet - t.dir * 6.0 + side * *off + Vec3::Y * (1.0 + 0.15 * j as f32);
-                    let aim = if first { feet - t.dir * 1.6 + side * *off } else { feet + side * *off * 0.3 + Vec3::Y * 1.0 };
+                    let aim = if first {
+                        feet - t.dir * 1.6 + side * *off
+                    } else {
+                        feet + side * *off * 0.3 + Vec3::Y * 1.0
+                    };
                     let vel = (aim - from).normalize_or(t.dir) * 16.0;
-                    self.darts.push(Dart { pos: from, vel, age: 0.0, harmless: first });
+                    self.darts.push(Dart {
+                        pos: from,
+                        vel,
+                        age: 0.0,
+                        harmless: first,
+                    });
                 }
-                out.push(Happening::Arrows { plate: t.pos, from: feet - t.dir * 5.0 + Vec3::Y, first });
+                out.push(Happening::Arrows {
+                    plate: t.pos,
+                    from: feet - t.dir * 5.0 + Vec3::Y,
+                    first,
+                });
             }
         }
         // Pilene flyr til de treffer deg, gulvet eller en mur.
@@ -169,14 +204,22 @@ impl Run {
             out.push(Happening::Hurt(hurt));
         }
         // Sekken du mistet: gå bort til den.
-        if let Some(i) = self.bags.iter().position(|(p, _)| flat(*p, feet) < 1.2 && (p.y - feet.y).abs() < 2.0) {
+        if let Some(i) = self
+            .bags
+            .iter()
+            .position(|(p, _)| flat(*p, feet) < 1.2 && (p.y - feet.y).abs() < 2.0)
+        {
             out.push(Happening::Bag(self.bags.remove(i).1));
         }
         // Lyden bak muren: en hemmelighet i nærheten.
         self.hint_t -= dt;
         if self.hint_t <= 0.0 {
             self.hint_t = 9.0;
-            if let Some(h) = crypt.hints.iter().find(|h| h.level == k && h.kind == HintKind::Sound && h.pos.distance(feet) < 12.0) {
+            if let Some(h) = crypt
+                .hints
+                .iter()
+                .find(|h| h.level == k && h.kind == HintKind::Sound && h.pos.distance(feet) < 12.0)
+            {
                 out.push(Happening::Hint(h.pos + Vec3::Y * 1.2));
             }
         }

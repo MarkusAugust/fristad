@@ -33,7 +33,8 @@ impl Host {
     fn grab(&mut self, on: bool) {
         let Some(r) = &mut self.running else { return };
         if on {
-            let ok = r.window.set_cursor_grab(CursorGrabMode::Locked).is_ok() || r.window.set_cursor_grab(CursorGrabMode::Confined).is_ok();
+            let ok = r.window.set_cursor_grab(CursorGrabMode::Locked).is_ok()
+                || r.window.set_cursor_grab(CursorGrabMode::Confined).is_ok();
             if ok {
                 r.window.set_cursor_visible(false);
                 self.grabbed = true;
@@ -52,12 +53,25 @@ impl ApplicationHandler for Host {
         if self.running.is_some() {
             return;
         }
-        let window = Arc::new(el.create_window(Window::default_attributes().with_title("Fristad").with_inner_size(winit::dpi::LogicalSize::new(1280, 760))).expect("vindu"));
+        let window = Arc::new(
+            el.create_window(
+                Window::default_attributes()
+                    .with_title("Fristad")
+                    .with_inner_size(winit::dpi::LogicalSize::new(1280, 760)),
+            )
+            .expect("vindu"),
+        );
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone()).expect("surface");
-        let (adapter, device, queue) = pollster::block_on(crate::adapters::gpu(&instance, Some(&surface))).expect("GPU");
+        let (adapter, device, queue) =
+            pollster::block_on(crate::adapters::gpu(&instance, Some(&surface))).expect("GPU");
         let caps = surface.get_capabilities(&adapter);
-        let format = caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(caps.formats[0]);
+        let format = caps
+            .formats
+            .iter()
+            .copied()
+            .find(|f| f.is_srgb())
+            .unwrap_or(caps.formats[0]);
         let size = window.inner_size();
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -71,9 +85,24 @@ impl ApplicationHandler for Host {
         };
         surface.configure(&device, &config);
         let prepared = self.prepared.take().expect("verden er allerede brukt");
-        let renderer = Renderer::new(device.clone(), queue, &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &crate::adapters::layers::from_dir(std::path::Path::new("assets/external")), config.width, config.height);
+        let renderer = Renderer::new(
+            device.clone(),
+            queue,
+            &adapter,
+            format,
+            &App::<Renderer, RapierPhysics>::scene(&prepared),
+            &crate::adapters::layers::from_dir(std::path::Path::new("assets/external")),
+            config.width,
+            config.height,
+        );
         let app = App::new(prepared, renderer, RapierPhysics::new());
-        self.running = Some(Running { window, surface, config, device, app });
+        self.running = Some(Running {
+            window,
+            surface,
+            config,
+            device,
+            app,
+        });
         self.last = Instant::now();
     }
 
@@ -121,7 +150,9 @@ impl ApplicationHandler for Host {
                         self.grab(false);
                     } else if let Some(r) = &mut self.running {
                         if !event.repeat || event.state == ElementState::Released {
-                            r.app.input().key(&name, event.state == ElementState::Pressed);
+                            r.app
+                                .input()
+                                .key(&name, event.state == ElementState::Pressed);
                         }
                     }
                 }
@@ -133,7 +164,10 @@ impl ApplicationHandler for Host {
                 let Some(r) = &mut self.running else { return };
                 for e in r.app.tick(dt) {
                     match e {
-                        Event::Prompt(Some(p)) => r.window.set_title(&format!("Fristad · {} · F {} · E {}", p.label, p.verb, p.trade)),
+                        Event::Prompt(Some(p)) => r.window.set_title(&format!(
+                            "Fristad · {} · F {} · E {}",
+                            p.label, p.verb, p.trade
+                        )),
                         Event::Prompt(None) => r.window.set_title("Fristad"),
                         Event::Marks(_) | Event::Speech(_) | Event::Ambience(_) => {}
                         other => log::info!("{other:?}"),
@@ -146,7 +180,9 @@ impl ApplicationHandler for Host {
                         return;
                     }
                 };
-                r.app.renderer.set_target(frame.texture.create_view(&Default::default()));
+                r.app
+                    .renderer
+                    .set_target(frame.texture.create_view(&Default::default()));
                 r.app.draw(r.config.width as f32 / r.config.height as f32);
                 r.window.pre_present_notify();
                 frame.present();
@@ -159,13 +195,21 @@ impl ApplicationHandler for Host {
 
 /// Frøet til kjelleren: `FRISTAD_SEED`, ellers 7.
 pub fn seed() -> u64 {
-    std::env::var("FRISTAD_SEED").ok().and_then(|s| s.parse().ok()).unwrap_or(7)
+    std::env::var("FRISTAD_SEED")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(7)
 }
 
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let prepared = prepare(&Embedded, seed());
     let el = EventLoop::new().expect("event loop");
-    let mut host = Host { prepared: Some(prepared), running: None, last: Instant::now(), grabbed: false };
+    let mut host = Host {
+        prepared: Some(prepared),
+        running: None,
+        last: Instant::now(),
+        grabbed: false,
+    };
     el.run_app(&mut host).expect("kjøring");
 }
