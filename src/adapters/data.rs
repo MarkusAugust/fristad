@@ -44,7 +44,14 @@ pub fn world_data() -> Data {
     // Kan ikke byen leses, stopper spillet: den er hele byen.
     let layout = LAYOUT_FILE.map(|json| serde_json::from_str::<Layout>(json).unwrap_or_else(|e| panic!("assets/layout/town.json: {e}")));
     let contents = CONTENT_FILES.iter().map(|(n, json)| (n.to_string(), serde_json::from_str::<Vec<Item>>(json).unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")))).collect();
-    Data { insides, levels, layout, contents }
+    Data { insides, levels, layout, contents, approved: Some(approved()) }
+}
+
+/// Modellene eieren har godkjent (`assets/catalog/approvals.json`, dommen
+/// fra godkjenningssiden).
+pub fn approved() -> std::collections::HashSet<String> {
+    let json: serde_json::Value = serde_json::from_str(include_str!("../../assets/catalog/approvals.json")).expect("approvals.json");
+    json["models"].as_object().map(|m| m.iter().filter(|(_, v)| v["verdict"] == "godkjent").map(|(k, _)| k.clone()).collect()).unwrap_or_default()
 }
 
 /// Byen som tekst, slik `assets/layout/town.json` skal se ut: én ting og én

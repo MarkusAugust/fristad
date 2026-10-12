@@ -7,6 +7,8 @@
 //!   Adapter: Rapier.
 //! - `ModelSource` gir modellene ved navn. Adapter: glTF-filene fra
 //!   `tools/models/` som er bygd inn i binæren.
+//! - `LayoutStore` lagrer byen og husenes innhold fra redigeringen.
+//!   Adapter: GitHub fra nettleseren (`docs/redigering.md`, steg 5).
 //!
 //! Den drivende porten (`driving`) er det nettleseren, vinduet og
 //! skjermbildeverktøyet sender inn (`Input`, `Command`) og får tilbake
@@ -132,4 +134,11 @@ pub trait ModelSource {
     fn names(&self) -> Vec<String>;
     /// Det husene har med seg og kryptnivåene, ferdig lest.
     fn world_data(&self) -> crate::domain::world::Data;
+}
+
+/// Lagringen fra redigeringen: byen (`assets/layout/town.json`) og det som
+/// står i husene (`assets/layout/inside/<hus>.json`). Applikasjonen lagrer
+/// bare når reglene er grønne (`Editor::clean`).
+pub trait LayoutStore {
+    fn save(&mut self, layout: &crate::domain::world::layout::Layout, contents: &[(String, Vec<crate::domain::world::layout::Item>)]) -> Result<(), String>;
 }

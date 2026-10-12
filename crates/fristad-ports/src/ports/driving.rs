@@ -2,8 +2,10 @@
 //! sender inn til spillet, og det de får tilbake. `application::App`
 //! implementerer `Play`; adapterne kjenner bare denne fila.
 
+use crate::domain::edit::{LineKind, Selected};
 use crate::domain::weather::{Daylight, WeatherKind};
-use glam::Vec3;
+use crate::domain::world::layout::Ref;
+use glam::{Affine3A, Vec3};
 
 /// Tastene og musa slik de står nå, og handlingene siden sist.
 #[derive(Default)]
@@ -107,6 +109,52 @@ pub enum Command {
     Place { eye: Vec3, yaw: f32, pitch: f32 },
     SetQuality(super::Quality),
     SetBench(super::Bench),
+    /// Redigeringsmodusen (`docs/redigering.md`; bare med `?edit`).
+    Edit(EditCommand),
+}
+
+/// Det eieren gjør i redigeringen. Klikk og ny ting gjelder det
+/// siktekorset peker på.
+#[derive(Clone, Debug, PartialEq)]
+pub enum EditCommand {
+    /// Inn i redigeringen (fly fritt, gjennom alt) og ut igjen.
+    Enter,
+    Leave,
+    /// Velg det siktekorset peker på; `add` (Shift) legger til eller tar bort.
+    Pick { add: bool },
+    /// Flytt det valgte så mange meter (piltastene, PageUp og PageDown).
+    Move(Vec3),
+    /// Drei det valgte (Q og E), radianer.
+    Rotate(f32),
+    /// Sett en ting rett dit (håndtakene).
+    SetPose { r: Ref, pose: Affine3A },
+    /// Sett det valgte ned på det som er under.
+    Drop,
+    /// Kopier det valgte (Ctrl+D).
+    Copy,
+    /// Slett det valgte (Delete).
+    Delete,
+    /// Sett ut en ny ting der siktekorset peker, vendt mot deg.
+    Place { model: String },
+    /// En linje gjennom punktene på bakken: gjerde, rad eller usynlig vegg.
+    Line { points: Vec<Vec3>, kind: LineKind },
+    /// Ny høyde på de valgte usynlige veggene.
+    WallHeight(f32),
+    Undo,
+    Redo,
+}
+
+/// Redigeringen sett utenfra: det valgte, reglene som er brutt, og om noe
+/// kan angres, gjøres om, er endret og kan lagres.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EditView {
+    pub selected: Vec<Selected>,
+    pub breaches: Vec<(Ref, String)>,
+    pub can_undo: bool,
+    pub can_redo: bool,
+    pub dirty: bool,
+    /// Ingen regler brutt: Lagre er lov.
+    pub clean: bool,
 }
 
 /// Spillet sett utenfra.
@@ -190,6 +238,8 @@ pub enum Event {
     /// Åpne dokumentasjonen for en komponent i panelet til høyre (F på en
     /// fylt ramme på galleriveggen).
     OpenDoc(String),
+    /// Redigeringen etter hver endring; `None` når du går ut av den.
+    Edit(Option<EditView>),
 }
 
 /// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog

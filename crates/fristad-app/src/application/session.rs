@@ -98,6 +98,10 @@ pub struct Session {
     /// Rammeverket er beseiret (denne turen).
     pub won: bool,
     pub debug: u32,
+    /// Redigeringen (`editing.rs`), når du er i den, og dataene den
+    /// begynner fra (bare med `prepare_for_edit`).
+    pub(super) edit: Option<crate::domain::edit::Editor>,
+    pub edit_data: Option<super::assembly::EditData>,
 }
 
 impl Session {
@@ -158,6 +162,8 @@ impl Session {
             cellar_t: 0.0,
             won: false,
             debug: 0,
+            edit: None,
+            edit_data: None,
         }
     }
 
@@ -265,6 +271,12 @@ impl Session {
             self.pitch = (self.pitch - input.look.1 * SENSITIVITY).clamp(-1.5, 1.5);
         }
         input.look = (0.0, 0.0);
+        // I redigeringen flyr du, og ingenting annet skjer.
+        if self.edit.is_some() {
+            self.fly(input, dt);
+            self.sky.tick(dt, self.time);
+            return events;
+        }
         let wish = self.walk(input, dt, physics, &mut events);
         self.update_crypt(dt, &mut events);
 

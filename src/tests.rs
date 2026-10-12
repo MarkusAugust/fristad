@@ -7,11 +7,11 @@ use crate::application::{prepare, rigs, Prepared, Session};
 use crate::domain::world::{Shape, Use};
 use crate::ports::driving::{Action, Event, Input, SaveData};
 use crate::ports::Physics;
-use glam::{Affine3A, Quat, Vec2, Vec3};
+use glam::{Affine3A, Vec2, Vec3};
 use std::sync::OnceLock;
 
 /// Verden bygges én gang og deles av testene (det tar noen sekunder).
-fn world() -> &'static Prepared {
+pub(crate) fn world() -> &'static Prepared {
     static P: OnceLock<Prepared> = OnceLock::new();
     P.get_or_init(|| prepare(&Embedded, 7))
 }
@@ -61,25 +61,7 @@ fn alt_er_ekte_modeller_med_teksturer() {
 #[test]
 fn alt_stort_har_kollider() {
     let p = world();
-    let tol = 0.35;
-    let covers = |shape: &Shape, q: Vec3| -> bool {
-        match shape {
-            Shape::Cuboid { center, size, yaw } => {
-                let d = Quat::from_rotation_y(-*yaw) * (q - *center);
-                d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
-            }
-            Shape::Cylinder { center, radius, half_height } => {
-                let d = q - *center;
-                (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
-            }
-            Shape::Capsule { a, b, radius } => {
-                let ab = *b - *a;
-                let t = ((q - *a).dot(ab) / ab.length_squared().max(1e-6)).clamp(0.0, 1.0);
-                (q - (*a + ab * t)).length() <= radius + tol
-            }
-            Shape::Heightfield { .. } | Shape::Hull { .. } => false,
-        }
-    };
+    let covers = |shape: &Shape, q: Vec3| shape.covers(q, 0.35);
     // Bitene av kryptnivåene er selve rommene, med murene som kollidere.
     let level_piece = |name: &str| name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
     let skip = |name: &str| level_piece(name) || name.ends_with("_interior");

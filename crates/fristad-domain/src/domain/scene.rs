@@ -85,6 +85,10 @@ pub struct Frame {
     pub smoke: Vec<Vec4>,
     /// Modellinstansene som flytter seg (dyrene), per bilde.
     pub instances: Vec<ModelInstance>,
+    /// Faste instanser (modell, nummer) som ikke skal tegnes dette bildet:
+    /// det redigeringen har flyttet eller slettet (det flyttede tegnes i
+    /// `instances` på det nye stedet).
+    pub hidden: Vec<(&'static str, usize)>,
     /// Leddmatrisene (hjørne i meshen → posert) for de skinnede
     /// instansene, som `ModelInstance.skin` peker inn i.
     pub skins: Vec<Mat4>,

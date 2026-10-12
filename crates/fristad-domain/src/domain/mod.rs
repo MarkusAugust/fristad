@@ -11,11 +11,13 @@
 //! - `weather`: værtypene, døgnet og himmelen (`Sky`).
 //! - `body`, `hero`: spillerens kropp, og livet, lageret og utstyret.
 //! - `note`: lydene og meldingene reglene har å si.
+//! - `edit`: redigeringsmodusen (velg, flytt, angre) og reglene for byen.
 
 pub mod anim;
 pub mod body;
 pub mod combat;
 pub mod craft;
+pub mod edit;
 pub mod geometry;
 pub mod herd;
 pub mod hero;

@@ -78,6 +78,6 @@ pub fn world_edge(b: &mut Builder) {
         // Fra 30 m under null (dalene mellom åsene) og opp. Kjelleren holder
         // seg innenfor ±185 m, så den går ikke inn i veggen.
         let c = Vec3::new(a.sin() * radius, 27.5, a.cos() * radius);
-        b.colliders.push(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 115.0, 2.0), yaw: a });
+        b.solid(Shape::Cuboid { center: c, size: Vec3::new(2.0 * std::f32::consts::PI * radius / n as f32 + 2.0, 115.0, 2.0), yaw: a });
     }
 }

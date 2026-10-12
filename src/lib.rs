@@ -24,4 +24,6 @@ pub mod adapters;
 #[cfg(test)]
 mod architecture;
 #[cfg(test)]
+mod edit_tests;
+#[cfg(test)]
 mod tests;

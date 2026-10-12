@@ -1,0 +1,265 @@
+//! Testene for redigeringsmodusen (`docs/redigering.md`, steg 3): reglene
+//! over dagens by, og redigeringen i kjernen og økta.
+
+use crate::adapters::data::world_data;
+use crate::domain::edit::{rules, town_scene, Sources};
+use std::collections::{HashMap, HashSet};
+
+fn sources() -> (Sources, crate::domain::world::layout::Layout, HashMap<String, Vec<crate::domain::world::layout::Item>>) {
+    let p = crate::tests::world();
+    let d = world_data();
+    (Sources { models: p.infos.clone(), insides: d.insides }, d.layout.expect("byen"), d.contents.into_iter().collect())
+}
+
+/// Dagens by bryter ingen regler.
+#[test]
+fn dagens_by_folger_reglene() {
+    let (src, layout, contents) = sources();
+    let b = town_scene(&src, &layout, &contents);
+    let breaches = rules::check(&b, &layout, None, &HashSet::new());
+    let lines: Vec<String> = breaches.iter().map(|b| format!("{:?}: {}", b.r, b.why)).collect();
+    assert!(breaches.is_empty(), "{} brudd:\n{}", lines.len(), lines.join("\n"));
+}
+
+/// Reglene slår ut: en tønne løftet 50 cm svever, en tønne midt i en
+/// markedsbod står inni den, et hus flyttet inntil et annet står for tett,
+/// et hus midt på torget står ute på torget, og en endret ting med en modell
+/// som ikke er godkjent, er ikke godkjent.
+#[test]
+fn reglene_finner_feil() {
+    use crate::domain::world::layout::Ref;
+    let (src, layout, contents) = sources();
+    let find = |l: &crate::domain::world::layout::Layout, model: &str| l.items.iter().position(|it| it.model.as_deref() == Some(model)).unwrap();
+    let breaches = |l: &crate::domain::world::layout::Layout, approved: Option<&HashSet<String>>, touched: &HashSet<Ref>| {
+        let b = town_scene(&src, l, &contents);
+        rules::check(&b, l, approved, touched)
+    };
+    let has = |bs: &[rules::Breach], r: &Ref, word: &str| bs.iter().any(|b| &b.r == r && b.why.contains(word));
+
+    let barrel = find(&layout, "barrel");
+    let mut l = layout.clone();
+    l.items[barrel].at.as_mut().unwrap().pos.y += 0.5;
+    let bs = breaches(&l, None, &HashSet::new());
+    assert!(has(&bs, &Ref::Town(barrel), "svever"), "{bs:?}");
+
+    let stall = find(&layout, "market_stall");
+    let mut l = layout.clone();
+    let p = l.items[stall].at.unwrap().pos;
+    l.items[barrel].at.as_mut().unwrap().pos = p;
+    let bs = breaches(&l, None, &HashSet::new());
+    assert!(has(&bs, &Ref::Town(barrel), "står inni market_stall"), "{bs:?}");
+
+    let (home, house) = (find(&layout, "home"), find(&layout, "house_b"));
+    let mut l = layout.clone();
+    let p = l.items[home].at.unwrap().pos;
+    l.items[house].at.as_mut().unwrap().pos = p + glam::Vec3::new(3.0, 0.0, 0.0);
+    let bs = breaches(&l, None, &HashSet::new());
+    assert!(has(&bs, &Ref::Town(house), "for tett på home"), "{bs:?}");
+
+    let mut l = layout.clone();
+    l.items[house].at.as_mut().unwrap().pos = glam::Vec3::ZERO;
+    let bs = breaches(&l, None, &HashSet::new());
+    assert!(has(&bs, &Ref::Town(house), "ute på torget"), "{bs:?}");
+
+    let touched: HashSet<Ref> = [Ref::Town(barrel)].into();
+    let bs = breaches(&layout, Some(&HashSet::new()), &touched);
+    assert!(has(&bs, &Ref::Town(barrel), "ikke godkjent"), "{bs:?}");
+    assert!(!bs.iter().any(|b| b.r != Ref::Town(barrel)), "bare det endrede sjekkes for godkjenning: {bs:?}");
+}
+
+fn editor() -> crate::domain::edit::Editor {
+    let (src, layout, contents) = sources();
+    crate::domain::edit::Editor::new(src, layout, contents, None)
+}
+
+/// Flytt, drei, kopier, slett, linje og ny ting, og så angre alt: dataene
+/// er nøyaktig som før. Gjør om alt og angre igjen: det samme.
+#[test]
+fn redigeringen_flytter_og_angrer() {
+    use crate::domain::edit::LineKind;
+    use crate::domain::world::layout::Ref;
+    use glam::{Affine3A, Vec3};
+    let mut e = editor();
+    let (l0, c0) = (e.layout.clone(), e.contents.clone());
+    assert!(!e.dirty() && e.clean(), "{:?}", e.breaches());
+    let barrel = l0.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let chair = Ref::Inside { house: "tavern".into(), i: 0 };
+
+    e.selection = vec![Ref::Town(barrel), chair.clone()];
+    e.translate(Vec3::new(0.5, 0.0, -0.25));
+    let moved = e.pose_of(&Ref::Town(barrel)).unwrap().translation;
+    assert!((Vec3::from(moved) - l0.items[barrel].at.unwrap().pos - Vec3::new(0.5, 0.0, -0.25)).length() < 1e-4);
+    e.rotate(0.3);
+    e.duplicate();
+    assert_eq!(e.selection.len(), 2);
+    assert_eq!(e.layout.items.len(), l0.items.len() + 1);
+    assert_eq!(e.contents["tavern"].len(), c0["tavern"].len() + 1);
+    e.delete();
+    e.selection = vec![Ref::Town(3)];
+    e.delete();
+    let wall = e.line(&[Vec3::new(30.0, 0.0, 30.0), Vec3::new(34.0, 0.0, 30.0), Vec3::new(34.0, 0.0, 34.0)], &LineKind::Wall { height: 3.0 });
+    assert_eq!(wall.len(), 2);
+    e.line(&[Vec3::new(40.0, 0.0, 30.0), Vec3::new(46.0, 0.0, 30.0)], &LineKind::Row { model: "wattle_fence".into(), spacing: 0.0 });
+    e.place("barrel", Affine3A::from_translation(Vec3::new(5.0, 0.0, 6.0)));
+    assert!(e.dirty());
+    let (l1, c1) = (e.layout.clone(), e.contents.clone());
+    while e.undo() {}
+    assert!(e.layout == l0 && e.contents == c0, "angre ga ikke tilbake det samme");
+    assert!(!e.dirty());
+    while e.redo() {}
+    assert!(e.layout == l1 && e.contents == c1, "gjøre om ga ikke det samme");
+    while e.undo() {}
+    assert!(e.layout == l0 && e.contents == c0);
+}
+
+/// En ny ting inne i et hus lagres i husets rom og følger huset når det
+/// flyttes; den usynlige veggen får kollider og kan få ny høyde.
+#[test]
+fn ny_ting_i_huset_folger_huset() {
+    use crate::domain::edit::LineKind;
+    use crate::domain::world::layout::Ref;
+    use glam::{Affine3A, Vec3};
+    let mut e = editor();
+    let tavern = e.layout.items.iter().position(|it| it.model.as_deref() == Some("tavern")).unwrap();
+    let t = e.pose_of(&Ref::Town(tavern)).unwrap();
+    let inside = t.transform_point3(Vec3::new(0.0, 0.1, 0.0));
+    let r = e.place("stool", Affine3A::from_translation(inside));
+    assert!(matches!(&r, Ref::Inside { house, .. } if house == "tavern"), "{r:?}");
+    let before = Vec3::from(e.pose_of(&r).unwrap().translation);
+    e.selection = vec![Ref::Town(tavern)];
+    e.translate(Vec3::new(0.0, 0.0, 1.0));
+    let after = Vec3::from(e.pose_of(&r).unwrap().translation);
+    assert!((after - before - Vec3::new(0.0, 0.0, 1.0)).length() < 1e-4, "{before} -> {after}");
+
+    let wall = e.line(&[Vec3::new(30.0, 0.0, 30.0), Vec3::new(34.0, 0.0, 30.0)], &LineKind::Wall { height: 3.0 });
+    let n = e.scene().solid_origins.iter().filter(|o| o.as_ref() == Some(&wall[0])).count();
+    assert_eq!(n, 1, "veggen har én kollider");
+    e.set_wall_height(4.5);
+    let s = e.selected();
+    assert!((s[0].half.y - 2.25).abs() < 1e-4, "{:?}", s[0]);
+}
+
+/// Klikk utenfra på Vertshuset velger huset; klikk inne i Vertshuset mot et
+/// møbel velger møbelet, ikke huset rundt deg.
+#[test]
+fn klikk_velger_riktig_ting() {
+    use crate::domain::world::layout::Ref;
+    use glam::Vec3;
+    let mut e = editor();
+    let tavern = e.layout.items.iter().position(|it| it.model.as_deref() == Some("tavern")).unwrap();
+    let t = e.pose_of(&Ref::Town(tavern)).unwrap();
+    let c = Vec3::from(t.translation) + Vec3::Y * 2.0;
+    let eye = c + Vec3::new(30.0, 2.0, 0.0);
+    assert_eq!(e.pick(eye, (c - eye).normalize(), false), Some(Ref::Town(tavern)));
+    assert_eq!(e.selection, vec![Ref::Town(tavern)]);
+
+    let table = (0..e.contents["tavern"].len()).map(|i| Ref::Inside { house: "tavern".into(), i }).find(|r| e.label(r).starts_with("table")).unwrap();
+    let target = Vec3::from(e.pose_of(&table).unwrap().translation) + Vec3::Y * 0.5;
+    let eye = target + Vec3::new(0.0, 1.2, 0.0);
+    let hit = e.pick(eye, (target - eye).normalize(), false);
+    assert_eq!(hit, Some(table.clone()));
+    // Shift-klikk legger til og tar bort.
+    e.pick(eye, (target - eye).normalize(), true);
+    assert!(e.selection.is_empty());
+}
+
+/// Hvor lang tid én endring tar (byen bygges på nytt og reglene sjekkes).
+#[test]
+#[ignore]
+fn tid_per_endring() {
+    use crate::domain::world::layout::Ref;
+    let mut e = editor();
+    e.selection = vec![Ref::Town(100)];
+    let t = std::time::Instant::now();
+    for _ in 0..5 {
+        e.translate(glam::Vec3::X * 0.1);
+    }
+    eprintln!("én endring: {:.0} ms", t.elapsed().as_secs_f64() * 1000.0 / 5.0);
+}
+
+/// Spillet satt sammen for redigering (alle modellene, med plass til å flytte).
+fn edit_world() -> &'static crate::application::Prepared {
+    static P: std::sync::OnceLock<crate::application::Prepared> = std::sync::OnceLock::new();
+    P.get_or_init(|| crate::application::prepare_for_edit(&crate::adapters::gltf::Embedded, 7))
+}
+
+fn edit_session(physics: &mut crate::adapters::rapier::RapierPhysics) -> crate::application::Session {
+    let p = edit_world();
+    let mut s = crate::application::Session::new(&p.world, physics, &crate::application::rigs(&p.models));
+    s.edit_data = p.edit.clone();
+    s
+}
+
+/// I redigeringen flyr du gjennom veggene: rett gjennom Vertshuset, der
+/// du ellers blir stående ved veggen.
+#[test]
+fn flyging_gaar_gjennom_vegger() {
+    use crate::ports::driving::{EditCommand, Input};
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let tavern = edit_world().edit.as_ref().unwrap().layout.items.iter().find(|it| it.model.as_deref() == Some("tavern")).unwrap().at.unwrap().pos;
+    // Øst for Vertshuset, mot vest (yaw 90).
+    let start = glam::Vec3::new(tavern.x + 14.0, crate::domain::world::terrain::height(tavern.x + 14.0, tavern.z) + 1.7, tavern.z);
+    let run = |s: &mut crate::application::Session, physics: &mut crate::adapters::rapier::RapierPhysics| {
+        s.place(start, std::f32::consts::FRAC_PI_2, 0.0);
+        let mut input = Input { forward: true, ..Default::default() };
+        for _ in 0..240 {
+            s.update(&mut input, 1.0 / 60.0, physics);
+        }
+        s.eye().x
+    };
+    let walked = run(&mut s, &mut physics);
+    assert!(walked > tavern.x, "uten redigering stopper veggen deg ({walked} > {})", tavern.x);
+    assert!(s.edit_command(EditCommand::Enter));
+    let flown = run(&mut s, &mut physics);
+    assert!(flown < tavern.x - 5.0, "i redigeringen flyr du gjennom ({flown} < {})", tavern.x - 5.0);
+}
+
+/// Det som er flyttet, skjules der det sto og tegnes der det står nå.
+#[test]
+fn bildet_viser_det_flyttede() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::{EditCommand, Event};
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    assert!(s.edit_command(EditCommand::Enter));
+    let frame = s.frame(1.6);
+    assert!(frame.hidden.is_empty(), "ingenting er endret ennå: {:?}", frame.hidden);
+    let d = edit_world().edit.as_ref().unwrap();
+    let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let old = d.layout.items[barrel].at.unwrap().affine();
+    let new = glam::Affine3A::from_translation(glam::Vec3::new(1.0, 0.0, 0.5)) * old;
+    assert!(s.edit_command(EditCommand::SetPose { r: Ref::Town(barrel), pose: new }));
+    let frame = s.frame(1.6);
+    assert_eq!(frame.hidden.iter().filter(|(m, _)| *m == "barrel").count(), 1, "{:?}", frame.hidden);
+    assert!(frame.instances.iter().any(|i| i.model == "barrel" && (glam::Vec3::from(i.transform.translation) - glam::Vec3::from(new.translation)).length() < 1e-3));
+    // Nettlaget får det valgte og reglene.
+    let mut input = crate::ports::driving::Input::default();
+    let events = s.update(&mut input, 0.016, &mut physics);
+    assert!(events.iter().any(|e| matches!(e, Event::Edit(Some(v)) if v.dirty && v.can_undo)), "{events:?}");
+    assert!(s.edit_command(EditCommand::Undo));
+    assert!(s.frame(1.6).hidden.is_empty());
+}
+
+/// P: spillet bygges på nytt fra dataene i redigeringen, og tønna står der
+/// den ble flyttet, med kollider.
+#[test]
+fn ombygging_etter_redigering() {
+    use crate::domain::edit::rules;
+    use crate::domain::world::layout::Ref;
+    let mut e = editor();
+    let barrel = e.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    e.selection = vec![Ref::Town(barrel)];
+    e.translate(glam::Vec3::new(0.0, 0.0, 1.5));
+    assert!(e.clean(), "{:?}", e.breaches());
+    let new = e.pose_of(&Ref::Town(barrel)).unwrap();
+    let (layout, contents) = e.data();
+    let mut data = world_data();
+    data.layout = Some(layout.clone());
+    data.contents = contents.clone().into_iter().collect();
+    let p = crate::application::prepare_with(&crate::adapters::gltf::Embedded, 7, data, false);
+    let pl = p.world.placements.iter().find(|pl| pl.model == "barrel").unwrap();
+    let t = pl.transforms.iter().find(|t| (glam::Vec3::from(t.translation) - glam::Vec3::from(new.translation)).length() < 1e-3).expect("tønna står der den ble flyttet");
+    let info = p.infos.iter().find(|i| i.name == "barrel").unwrap();
+    assert!(rules::lacks_collider(&p.world.colliders, info.min, info.max, t).is_none(), "tønna har kollider der den står nå");
+}

@@ -38,6 +38,29 @@ pub enum Shape {
     Hull { points: Vec<Vec3> },
 }
 
+impl Shape {
+    /// Ligger punktet i kollideren, med `tol` meter slingring? Terrenget og
+    /// skallene teller ikke (de er bakke og trapper, ikke ting).
+    pub fn covers(&self, q: Vec3, tol: f32) -> bool {
+        match self {
+            Shape::Cuboid { center, size, yaw } => {
+                let d = Quat::from_rotation_y(-*yaw) * (q - *center);
+                d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
+            }
+            Shape::Cylinder { center, radius, half_height } => {
+                let d = q - *center;
+                (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
+            }
+            Shape::Capsule { a, b, radius } => {
+                let ab = *b - *a;
+                let t = ((q - *a).dot(ab) / ab.length_squared().max(1e-6)).clamp(0.0, 1.0);
+                (q - (*a + ab * t)).length() <= radius + tol
+            }
+            Shape::Heightfield { .. } | Shape::Hull { .. } => false,
+        }
+    }
+}
+
 /// Hva F gjør med noe du sikter på.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Use {
@@ -127,6 +150,8 @@ pub struct World {
     pub crypt_exit: (Vec3, f32),
     /// Modellene byen og systemene ville bruke, men som ikke finnes.
     pub missing: Vec<&'static str>,
+    /// Hvilken ting i dataene hver modellinstans kom fra (`Builder.origins`).
+    pub origins: Vec<(&'static str, usize, layout::Ref)>,
 }
 
 pub struct Builder {
@@ -152,6 +177,12 @@ pub struct Builder {
     pub insides: HashMap<String, town::Inside>,
     /// Det som står inne i husene (`Data.contents`), per hus.
     pub contents: HashMap<String, Vec<layout::Item>>,
+    /// Tingen i dataene som settes ut nå (`layout::apply`), og hvilken ting
+    /// hver modellinstans (modell, nummer) og hver kollider kom fra, så
+    /// redigeringen finner tingen igjen.
+    pub origin: Option<layout::Ref>,
+    pub origins: Vec<(&'static str, usize, layout::Ref)>,
+    pub solid_origins: Vec<Option<layout::Ref>>,
 }
 
 impl Builder {
@@ -172,6 +203,9 @@ impl Builder {
             holes: vec![],
             insides: HashMap::new(),
             contents: HashMap::new(),
+            origin: None,
+            origins: vec![],
+            solid_origins: vec![],
         }
     }
 
@@ -241,6 +275,7 @@ impl Builder {
 
     pub fn solid(&mut self, shape: Shape) {
         self.colliders.push(shape);
+        self.solid_origins.push(self.origin.clone());
     }
 
     pub fn solid_box(&mut self, center: Vec3, size: Vec3, yaw: f32) {
@@ -280,12 +315,17 @@ impl Builder {
             }
             return false;
         }
-        if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
+        let n = if let Some(p) = self.placements.iter_mut().find(|p| p.model == model) {
             p.transforms.push(t);
             p.tints.push(tint);
             p.looks.push(look);
+            p.transforms.len() - 1
         } else {
             self.placements.push(Placement { model, transforms: vec![t], tints: vec![tint], looks: vec![look], reserve: 0, indoor: false });
+            0
+        };
+        if let Some(r) = &self.origin {
+            self.origins.push((model, n, r.clone()));
         }
         true
     }
@@ -343,6 +383,12 @@ impl Builder {
     /// det registrerte gulvet). Svever det laveste hjørnet mer enn 8 cm over,
     /// eller står et hjørne mer enn 30 cm under, meldes det.
     pub fn audit(&self) -> Vec<String> {
+        self.ground_findings().into_iter().map(|(_, _, why)| why).collect()
+    }
+
+    /// Som `audit`, med hvilken instans (modell, nummer) hvert funn gjelder,
+    /// så redigeringen kan vise det på tingen (`edit::rules`).
+    pub fn ground_findings(&self) -> Vec<(&'static str, usize, String)> {
         let mut out = vec![];
         for pl in &self.placements {
             let Some(info) = self.models.get(pl.model) else { continue };
@@ -350,51 +396,59 @@ impl Builder {
                 if self.mounted.contains(&(pl.model, n)) {
                     continue;
                 }
-                // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
-                let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
-                let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
-                // Murverket har fundament under bakken og kan gå ned i den
-                // på oversida i skråninger; det
-                // sjekkes bare for sveving, og bakken letes etter opp til en
-                // meter over foten (ellers vinner et gulv lenger nede, som
-                // nivåene i krypten).
-                // Grunnmuren er data: en modell som går mer enn 30 cm under
-                // origo, har fundament (husene, muren, krypten).
-                let rooted = info.min.y < -0.3 || town::FOUNDED.iter().any(|m| *m == pl.model);
-                let reach = if rooted { 1.0 } else { 0.0 };
-                // Med fundament må grunnmuren nå bakken under hvert hjørne av
-                // hele fotavtrykket (eieren: «grunnmuren svever over bakken»).
-                if info.min.y < -0.3 {
-                    let full = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
-                    for (x, z) in full {
-                        let w = t.transform_point3(Vec3::new(x, info.min.y, z));
-                        let ground = self.stand_height(w.x, w.z, t.translation.y + 1.0);
-                        if w.y > ground + 0.02 {
-                            out.push(format!("{} ved ({:.1}, {:.1}): grunnmuren slutter {:.0} cm over bakken i et hjørne", pl.model, t.translation.x, t.translation.z, (w.y - ground) * 100.0));
-                        }
-                    }
-                }
-                // Med grunnmur måles fra bakkelinja (origo), ikke fra bunnen av muren.
-                let base = if info.min.y < -0.3 { 0.0 } else { info.min.y };
-                let gaps = corners.map(|(x, z)| {
-                    let w = t.transform_point3(Vec3::new(x, base, z));
-                    w.y - self.stand_height(w.x, w.z, w.y + reach)
-                });
-                let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
-                let at = t.translation;
-                // Med grunnmur gjelder hjørnekontrollen over i stedet: huset
-                // står på det høyeste punktet, og muren tar resten.
-                if lowest > 0.08 && info.min.y >= -0.3 {
-                    out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", pl.model, at.x, at.z, lowest * 100.0));
-                } else if lowest < -0.3 && !rooted {
-                    out.push(format!("{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken", pl.model, at.x, at.z, -lowest * 100.0));
+                for why in self.ground_gap(pl.model, info, t) {
+                    out.push((pl.model, n, why));
                 }
             }
         }
         out
     }
-}
 
+    /// Står én instans på bakken (eller gulvet)? Gir det som er galt.
+    fn ground_gap(&self, model: &str, info: &ModelInfo, t: &Affine3A) -> Vec<String> {
+        let mut out = vec![];
+        // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
+        let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
+        let corners = [(-hx, -hz), (hx, -hz), (-hx, hz), (hx, hz)];
+        // Murverket har fundament under bakken og kan gå ned i den
+        // på oversida i skråninger; det
+        // sjekkes bare for sveving, og bakken letes etter opp til en
+        // meter over foten (ellers vinner et gulv lenger nede, som
+        // nivåene i krypten).
+        // Grunnmuren er data: en modell som går mer enn 30 cm under
+        // origo, har fundament (husene, muren, krypten).
+        let rooted = info.min.y < -0.3 || town::FOUNDED.iter().any(|m| *m == model);
+        let reach = if rooted { 1.0 } else { 0.0 };
+        // Med fundament må grunnmuren nå bakken under hvert hjørne av
+        // hele fotavtrykket (eieren: «grunnmuren svever over bakken»).
+        if info.min.y < -0.3 {
+            let full = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
+            for (x, z) in full {
+                let w = t.transform_point3(Vec3::new(x, info.min.y, z));
+                let ground = self.stand_height(w.x, w.z, t.translation.y + 1.0);
+                if w.y > ground + 0.02 {
+                    out.push(format!("{} ved ({:.1}, {:.1}): grunnmuren slutter {:.0} cm over bakken i et hjørne", model, t.translation.x, t.translation.z, (w.y - ground) * 100.0));
+                }
+            }
+        }
+        // Med grunnmur måles fra bakkelinja (origo), ikke fra bunnen av muren.
+        let base = if info.min.y < -0.3 { 0.0 } else { info.min.y };
+        let gaps = corners.map(|(x, z)| {
+            let w = t.transform_point3(Vec3::new(x, base, z));
+            w.y - self.stand_height(w.x, w.z, w.y + reach)
+        });
+        let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
+        let at = t.translation;
+        // Med grunnmur gjelder hjørnekontrollen over i stedet: huset
+        // står på det høyeste punktet, og muren tar resten.
+        if lowest > 0.08 && info.min.y >= -0.3 {
+            out.push(format!("{} ved ({:.1}, {:.1}) svever {:.0} cm over bakken", model, at.x, at.z, lowest * 100.0));
+        } else if lowest < -0.3 && !rooted {
+            out.push(format!("{} ved ({:.1}, {:.1}) står {:.0} cm nede i bakken", model, at.x, at.z, -lowest * 100.0));
+        }
+        out
+    }
+}
 
 /// Data fra Blender som ikke er modeller: det husene har med seg
 /// (`<navn>_inside.json`) og kryptnivåene (`crypt_NN.json`). Adapterne leser
@@ -408,6 +462,9 @@ pub struct Data {
     /// Det som står inne i husene, per hus, i husets rom
     /// (`assets/layout/inside/<hus>.json`).
     pub contents: Vec<(String, Vec<layout::Item>)>,
+    /// Modellene eieren har godkjent (`assets/catalog/approvals.json`), til
+    /// reglene i redigeringen.
+    pub approved: Option<std::collections::HashSet<String>>,
 }
 
 /// Bygg verden. Krypten er fast; `seed` brukes ikke til noe der lenger.
@@ -477,6 +534,7 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         crypt_exit: town.crypt_exit,
         audit,
         missing: b.missing,
+        origins: b.origins,
     }
 }
 

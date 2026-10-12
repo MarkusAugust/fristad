@@ -15,7 +15,8 @@ pub struct App<R: Renderer, P: Physics> {
 
 impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
-        let session = Session::new(&prepared.world, &mut physics, &rigs(&prepared.models));
+        let mut session = Session::new(&prepared.world, &mut physics, &rigs(&prepared.models));
+        session.edit_data = prepared.edit;
         Self { session, input: Input::default(), renderer, physics }
     }
 
@@ -66,6 +67,10 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
             Command::SetQuality(q) => self.renderer.set_quality(q),
             Command::SetBench(b) => self.renderer.set_bench(b),
+            Command::Edit(e) => {
+                self.input.release_all();
+                return self.session.edit_command(e);
+            }
         }
         true
     }

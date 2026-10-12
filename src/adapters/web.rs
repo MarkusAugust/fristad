@@ -116,6 +116,12 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Workshop { recipes } => json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok})).collect::<Vec<_>>()}),
         Event::Speech(bubbles) => json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()}),
         Event::Marks(marks) => json!({"type": "marks", "marks": marks.iter().map(|m| json!({"id": m.id, "x": m.x, "y": m.y, "kind": m.kind, "value": m.value, "text": m.text})).collect::<Vec<_>>()}),
+        Event::Edit(None) => json!({"type": "edit", "edit": null}),
+        Event::Edit(Some(v)) => json!({"type": "edit", "edit": {
+            "selected": v.selected.iter().map(|s| json!({"ref": s.r, "label": s.label, "pose": s.pose.to_cols_array(), "center": s.center.to_array(), "half": s.half.to_array()})).collect::<Vec<_>>(),
+            "breaches": v.breaches.iter().map(|(r, why)| json!({"ref": r, "why": why})).collect::<Vec<_>>(),
+            "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean,
+        }}),
     }
 }
 

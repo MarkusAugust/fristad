@@ -170,6 +170,18 @@ pub struct Layout {
     pub npcs: Vec<NpcDef>,
 }
 
+/// Hvilken ting i dataene: en ting i byen (nummer i `Layout.items`), et
+/// møbel i et hus (nummer i husets innhold, `assets/layout/inside/<hus>.json`)
+/// eller en innbygger. Redigeringen bruker den til å finne tingen igjen fra
+/// det som er satt ut (`Builder.origins`).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Ref {
+    Town(usize),
+    Inside { house: String, i: usize },
+    Npc(usize),
+}
+
 /// Navnene i dataene som `&'static str`, som resten av verden bruker: hvert
 /// navn lekker én gang (det er bare så mange modeller og innbyggere).
 pub fn intern(s: &str) -> &'static str {
@@ -186,12 +198,15 @@ pub fn intern(s: &str) -> &'static str {
 
 /// Bygg byen fra dataene. Gir det byen forteller resten av verden.
 pub fn apply(b: &mut Builder, layout: &Layout) -> town::Town {
-    for item in &layout.items {
+    for (i, item) in layout.items.iter().enumerate() {
+        b.origin = Some(Ref::Town(i));
         apply_item(b, item, Affine3A::IDENTITY);
     }
-    for n in &layout.npcs {
+    for (i, n) in layout.npcs.iter().enumerate() {
+        b.origin = Some(Ref::Npc(i));
         town::settle(b, NpcSpec { name: intern(&n.name), model: intern(&n.model), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::lines(&n.lines), route: n.route.clone(), height: 0.0 });
     }
+    b.origin = None;
     town::Town { spawn: layout.spawn.0, spawn_yaw: layout.spawn.1, crypt_anchor: layout.crypt_anchor, crypt_exit: layout.crypt_exit }
 }
 

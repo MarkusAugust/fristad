@@ -6,11 +6,14 @@
 //! - `session`: økta, som koordinerer reglene i kjernen med fysikken, delt
 //!   i `usage`, `prompt`, `fight`, `audio`, `trade` og `testing`.
 //! - `view`: bildet rendereren får.
+//! - `editing`: redigeringen i økta (flyging, kommandoene, det flyttede i
+//!   bildet).
 //! - `app`: `App`, som eier økta og de drevne adapterne.
 
 pub mod app;
 pub mod assembly;
 mod audio;
+mod editing;
 mod fight;
 mod prompt;
 pub mod session;
@@ -20,5 +23,5 @@ mod usage;
 pub mod view;
 
 pub use app::App;
-pub use assembly::{prepare, rigs, Prepared};
+pub use assembly::{prepare, prepare_for_edit, prepare_with, rigs, EditData, Prepared};
 pub use session::Session;

@@ -126,6 +126,8 @@ impl Session {
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
         instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
+        let (hidden, edited) = self.edit_instances();
+        instances.extend(edited);
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
             proj: Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0),
@@ -152,6 +154,7 @@ impl Session {
             lights,
             smoke,
             instances,
+            hidden,
             skins,
             hurt: self.combat.hurt,
             debug: self.debug,
