@@ -24,6 +24,10 @@ name = "catalog"
 path = "src/bin/catalog.rs"
 
 [[bin]]
+name = "layout"
+path = "src/bin/layout.rs"
+
+[[bin]]
 name = "bake_font"
 path = "src/bin/bake_font.rs"
 

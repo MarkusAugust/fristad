@@ -10,7 +10,7 @@ license = "MIT"
 testing = []
 
 [dependencies]
-glam = { version = "0.30", features = ["bytemuck"] }
+glam = { version = "0.30", features = ["bytemuck", "serde"] }
 bytemuck = { version = "1", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 log = "0.4"

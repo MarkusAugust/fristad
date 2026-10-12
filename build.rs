@@ -78,4 +78,10 @@ fn main() {
     }
     text.push_str("];\n");
     std::fs::write(out.join("inside_files.rs"), text).unwrap();
+
+    // Byen som data (`assets/layout/town.json`), om den er skrevet ut.
+    let layout = root.join("assets/layout/town.json");
+    println!("cargo:rerun-if-changed={}", layout.display());
+    let text = if layout.exists() { format!("const LAYOUT_FILE: Option<&str> = Some(include_str!({:?}));\n", layout.display().to_string()) } else { "const LAYOUT_FILE: Option<&str> = None;\n".to_string() };
+    std::fs::write(out.join("layout_file.rs"), text).unwrap();
 }

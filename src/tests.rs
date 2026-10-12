@@ -1893,3 +1893,72 @@ fn katalogen_dekker_alt() {
     }
     assert!(bad.is_empty(), "katalogen er ikke komplett:\n{}", bad.join("\n"));
 }
+
+/// Byen som data (`assets/layout/town.json`) gir samme by som koden i
+/// `town.rs`: de samme modellene på de samme stedene, kolliderne, det du
+/// kan bruke, lysene, røyken, innbyggerne og bakken.
+#[test]
+fn byen_som_data_er_lik_byen_fra_koden() {
+    use crate::adapters::gltf::FromCode;
+    use crate::domain::world::World;
+    let code = prepare(&FromCode(&Embedded), 7);
+    let data = world();
+    assert!(data.world.layout.is_none(), "byen ble ikke bygd fra assets/layout/town.json");
+
+    // Alt som tall med et navn; vinkler som sinus og cosinus.
+    fn things(w: &World) -> Vec<(String, Vec<f32>)> {
+        let m = |t: &Affine3A| t.to_cols_array().to_vec();
+        let v = |p: Vec3| p.to_array().to_vec();
+        let mut out = vec![];
+        for p in &w.placements {
+            for (t, c) in p.transforms.iter().zip(&p.tints) {
+                out.push((format!("modell {}", p.model), [m(t), v(*c)].concat()));
+            }
+            out.push((format!("plass {} {}", p.model, p.reserve), vec![]));
+        }
+        for s in &w.colliders {
+            let (k, f) = match s {
+                Shape::Cuboid { center, size, yaw } => ("boks", [v(*center), v(*size), vec![yaw.sin(), yaw.cos()]].concat()),
+                Shape::Cylinder { center, radius, half_height } => ("sylinder", [v(*center), vec![*radius, *half_height]].concat()),
+                Shape::Capsule { a, b, radius } => ("kapsel", [v(*a), v(*b), vec![*radius]].concat()),
+                Shape::Hull { points } => ("skall", points.iter().flat_map(|p| p.to_array()).collect()),
+                Shape::Heightfield { heights, holes, .. } => ("bakke", vec![heights.len() as f32, holes.len() as f32]),
+            };
+            out.push((k.to_string(), f));
+        }
+        for t in &w.targets {
+            out.push((format!("mål {:?}", t.what), [m(&t.pose), v(t.center), v(t.half)].concat()));
+        }
+        for l in &w.lights {
+            out.push((format!("lys {} {:?}", l.always, l.room), [v(l.pos), v(l.color), vec![l.radius, l.intensity, l.flicker]].concat()));
+        }
+        for (p, s) in &w.smoke {
+            out.push(("røyk".into(), [v(*p), vec![*s]].concat()));
+        }
+        for n in &w.npcs {
+            let route: Vec<f32> = n.route.iter().flat_map(|(p, s)| [p.x, p.y, p.z, *s]).collect();
+            out.push((format!("innbygger {} {} {:?}", n.name, n.model, n.lines.first()), [v(n.pos), vec![n.yaw.sin(), n.yaw.cos(), n.height], v(n.tint), route].concat()));
+        }
+        out.push(("start".into(), [v(w.spawn), vec![w.spawn_yaw, w.crypt_exit.1], v(w.crypt_exit.0)].concat()));
+        out.push(("bakken".into(), vec![w.mesh.vertices.len() as f32, w.mesh.indices.len() as f32]));
+        let mut missing = w.missing.clone();
+        missing.sort();
+        out.push((format!("mangler {missing:?}"), vec![]));
+        out.push((format!("audit {:?}", w.audit), vec![]));
+        out
+    }
+    let close = |a: &[f32], b: &[f32]| a.len() == b.len() && a.iter().zip(b).all(|(x, y)| (x - y).abs() <= 1e-3);
+    let (a, mut b) = (things(&code.world), things(&data.world));
+    let mut bad = vec![];
+    for (k, f) in &a {
+        match b.iter().position(|(k2, f2)| k2 == k && close(f, f2)) {
+            Some(i) => {
+                b.swap_remove(i);
+            }
+            None => bad.push(format!("bare fra koden: {k} {f:?}")),
+        }
+    }
+    bad.extend(b.iter().map(|(k, f)| format!("bare fra dataene: {k} {f:?}")));
+    bad.truncate(30);
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}

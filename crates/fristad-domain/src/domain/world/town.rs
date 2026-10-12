@@ -10,7 +10,8 @@
 //! har døra mot sin lokale +Z og origo midt på grunnflaten i bakkehøyde, så
 //! `yaw` vender døra mot gata.
 
-use super::{at, terrain, Builder, NpcSpec, Shape, Use};
+use super::cast::{APOTHECARY, CLERK, GORVEK, GUARD, INNKEEPER, PILGRIM, SMITH, TOWNSFOLK};
+use super::{at, layout, terrain, Builder, NpcSpec, Shape, Use};
 use crate::domain::rng::Rng;
 use glam::{Affine3A, Quat, Vec2, Vec3};
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
@@ -674,10 +675,7 @@ fn farmsteads(b: &mut Builder) {
             });
             let y = top.fold(f32::MIN, f32::max).max(highest(b, p, 0.7)) - 0.03;
             taken.push(r);
-            let t = at(Vec3::new(p.x, y, p.y), yaw);
-            if b.place(model, t) {
-                place_colliders(b, model, t, yaw);
-            }
+            building_at(b, model, at(Vec3::new(p.x, y, p.y), yaw));
             true
         };
         put(b, model, *c, yaw, &mut taken);
@@ -756,7 +754,28 @@ fn street_life(b: &mut Builder, plan: &mut Plan, _rng: &mut Rng) {
     }
 }
 
-pub fn build(b: &mut Builder) -> Town {
+/// Byen: fra dataene (`assets/layout/town.json`) om de finnes, ellers fra
+/// koden under, som da skrives ut (`layout::Recorder`).
+pub fn build(b: &mut Builder, data: Option<&layout::Layout>) -> Town {
+    if let Some(l) = data {
+        return layout::apply(b, l);
+    }
+    b.rec = Some(layout::Recorder::default());
+    let town = generate(b);
+    if let Some(r) = b.rec.as_mut() {
+        r.layout.spawn = (town.spawn, town.spawn_yaw);
+        r.layout.crypt_exit = town.crypt_exit;
+        r.layout.crypt_anchor = town.crypt_anchor;
+    }
+    let npcs = b.npcs.clone();
+    if let Some(r) = b.rec.as_mut() {
+        r.npcs(&npcs);
+        r.paused = true;
+    }
+    town
+}
+
+fn generate(b: &mut Builder) -> Town {
     let doors = houses(b);
     farmsteads(b);
     wall(b);
@@ -765,11 +784,12 @@ pub fn build(b: &mut Builder) -> Town {
     yard(b);
     let crypt_exit = crypt(b);
     signposts(b);
-    people(b, &doors);
+    b.unrecorded(|b| people(b, &doors));
     let (g, out) = gate(true);
     let spawn = Vec3::new(main_x(g.y - 8.0), 0.0, g.y - 8.0);
+    b.loose();
     portal(b, spawn);
-    wanderers(b, &doors);
+    b.unrecorded(|b| wanderers(b, &doors));
     Town { spawn, spawn_yaw: facing(out), crypt_anchor: CRYPT, crypt_exit }
 }
 
@@ -819,12 +839,21 @@ const INTERIORS: [(&str, &str); 6] = [("tavern", "tavern_interior"), ("home", "h
 /// under er planert inne i byen, så huset står i terrenghøyden i midten;
 /// sokkelen i modellen tar resten.
 fn building(b: &mut Builder, model: &'static str, pos: Vec2, yaw: f32) {
-    let base = b.on_ground(Vec3::new(pos.x, 0.0, pos.y));
-    let t = at(base, yaw);
-    if !b.place(model, t) {
-        return;
+    building_at(b, model, at(b.on_ground(Vec3::new(pos.x, 0.0, pos.y)), yaw));
+}
+
+/// Et hus med det det har med seg (`place_colliders`), som én ting i
+/// dataene (`layout::Item::building`).
+pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
+    if let Some(r) = b.rec.as_mut().filter(|r| !r.paused) {
+        r.start(model, t, Vec3::ONE, true);
     }
-    place_colliders(b, model, t, yaw);
+    b.unrecorded(|b| {
+        if b.place(model, t) {
+            place_colliders(b, model, t, layout::Pose::of(t).yaw());
+        }
+    });
+    b.loose();
 }
 
 /// Det et hus har med seg: innsidemodellen, kjelleren, lysene, røyken og
@@ -1069,32 +1098,7 @@ fn clear_spot(b: &Builder, p: Vec2, dir: Vec2, r: f32) -> Vec2 {
     (0..33).map(|k| p + dir * (k as f32 * 0.5).ceil() * 0.5 * if k % 2 == 1 { 1.0 } else { -1.0 }).find(|q| !blocked(b, *q, r)).unwrap_or(p)
 }
 
-/// Hvem som står hvor, og hva de sier.
-const SMITH: &[&str] = &[
-    "Buttonsmeden, til tjeneste. Jeg smir det du bærer opp fra krypten.",
-    "Et sverd trenger en klinge og et grep: en divider og en button. Resten er håndlag.",
-    "Kom tilbake med komponenter, så får vi se hva stålet duger til.",
-];
-const CLERK: &[&str] = &[
-    "Skriptoriet. Ingenting smis uten et korrekt utfylt skjema.",
-    "Oppskriftene er skjemaer. Fyll ut feltene med komponentene du har vunnet, og send.",
-    "Bøkene her er dokumentasjonen. Les om det du bærer, så leges sårene.",
-];
-const APOTHECARY: &[&str] = &[
-    "Apoteket. Drikker mot det meste, tokens mot alt.",
-    "Les i bøkene når du er skadet. Kunnskap leger.",
-    "Hold deg unna lavaen nederst i dypet. Den står ikke i noen bok.",
-];
-const GORVEK: &[&str] = &[
-    "Gorvek. Jeg lærer deg trekk, om du har tokens og tålmodighet.",
-    "Blokk i det bittet kommer. Da står de lamslått, og du hugger dobbelt.",
-    "Unna med Shift. Det koster pust, men sparer blod.",
-];
-const INNKEEPER: &[&str] = &[
-    "Velkommen til Vertshuset. Øl er det nok av, nyheter også.",
-    "De sier krypten under borgen går dypere enn noen har gått.",
-    "Det kommer rare ting opp fra dypet om natta. Buttons med tenner.",
-];
+/// Hvem som står hvor, og hva de sier (`cast`).
 
 /// Stavkirka på kirkegården nordvest i byen, med flettverksgjerde rundt.
 /// Gravene kommer med de nye modellene.
@@ -1195,7 +1199,6 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
     for (i, (name, own, (p, yaw), tint, lines)) in cast.into_iter().enumerate() {
         let pos = b.on_ground(Vec3::new(p.x, 0.0, p.y));
         log::info!("Innbygger {name} ved ({:.1}, {:.1}, {:.1})", pos.x, pos.y, pos.z);
-        let model = figure(b, own);
         // Ruta: fram og tilbake langs fasaden foran døra (torget holdes fritt
         // 4,5 m ut fra dørene), og for Gorvek mellom dukkene.
         let side = Vec2::new(yaw.cos(), -yaw.sin());
@@ -1205,10 +1208,19 @@ fn people(b: &mut Builder, doors: &[(Vec2, f32)]) {
             vec![p, p + side * 2.4, p, p - side * 2.4]
         };
         let route = pts.iter().map(|q| (b.on_ground(Vec3::new(q.x, 0.0, q.y)), 3.0)).collect();
-        let height = npc_height(b, model);
-        b.npcs.push(NpcSpec { name, model, pos, yaw, tint, lines, route, height });
-        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, height * 0.5, 0.0), Vec3::new(0.3, height * 0.5, 0.3));
+        let _ = i;
+        settle(b, NpcSpec { name, model: own, pos, yaw, tint, lines, route, height: 0.0 });
     }
+}
+
+/// En innbygger i byen: figuren (`figure`), høyden fra den, og
+/// siktemålet over hodet.
+pub fn settle(b: &mut Builder, mut npc: NpcSpec) {
+    let model = figure(b, npc.model);
+    npc.height = npc_height(b, model);
+    let (pos, h) = (npc.pos, npc.height);
+    b.npcs.push(npc);
+    b.target(Use::Talk(b.npcs.len() - 1), Affine3A::from_translation(pos), Vec3::new(0.0, h * 0.5, 0.0), Vec3::new(0.3, h * 0.5, 0.3));
 }
 
 /// Figuren til en innbygger: sin egen modell, satt av én plass til. Finnes
@@ -1446,12 +1458,7 @@ fn wanderers(b: &mut Builder, doors: &[(Vec2, f32)]) {
             route.rotate_left(k);
         }
         let (pos, _) = route[0];
-        let model = figure(b, own);
-        log::debug!("{name} ({model}) starter ved {:.1}, {:.1}", pos.x, pos.z);
-        let height = npc_height(b, model);
-        b.npcs.push(NpcSpec { name, model, pos, yaw: 0.0, tint, lines, route, height });
-        let i = b.npcs.len() - 1;
-        b.target(Use::Talk(i), Affine3A::from_translation(pos), Vec3::new(0.0, height * 0.5, 0.0), Vec3::new(0.3, height * 0.5, 0.3));
+        settle(b, NpcSpec { name, model: own, pos, yaw: 0.0, tint, lines, route, height: 0.0 });
     }
     log::info!("Byen: {} innbyggere går ærender", b.npcs.len() - base);
 }
@@ -1505,21 +1512,6 @@ fn street_gap(p: Vec2) -> f32 {
     streets().iter().map(|s| street_dist(s, p).0).fold(f32::MAX, f32::min)
 }
 
-const TOWNSFOLK: &[&str] = &[
-    "God dag. Vannet i brønnen er kaldt i dag, kaldt som krypten.",
-    "Har du vært nede under borgen? Bror min gikk ned i fjor. Han snakker bare om buttons nå.",
-    "Torgdag i dag. Alt er dyrere enn i går.",
-    "Kirkeklokka ringte feil i natt. Tretten slag.",
-];
-const GUARD: &[&str] = &[
-    "Hold deg unna borghaugen etter mørkets frembrudd.",
-    "Portene stenges ikke, men jeg holder øye med hvem som går ut.",
-    "Ser du noe som kryper opp fra krypten, rop.",
-];
-const PILGRIM: &[&str] = &[
-    "Jeg har gått fra Nidaros for å se det tapte systemet. De sier det passer i alle rammeverk.",
-    "Fristil. Navnet alene gjør meg rolig.",
-];
 
 /// Hva bakken er dekket av i et punkt, som vekter mellom 0 og 1: brostein
 /// på torget og i Storgata, tråkket jord i Tverrgata, på veiene og rundt
