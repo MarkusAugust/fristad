@@ -256,7 +256,8 @@ def new_page(spec_path, studio, out):
     reshot = spec.get("reshot", {})
     items = []
     for n in spec["new"] + reshot.get("names", []):
-        views = sorted(f for f in os.listdir(studio) if f.startswith(f"{n}_") and f.endswith(".png") and f[len(n) + 1:-4].isalpha())
+        order = {"corner": 0, "front": 1, "back": 2}
+        views = sorted((f for f in os.listdir(studio) if f.startswith(f"{n}_") and f.endswith(".png") and f[len(n) + 1:-4] in order), key=lambda f: order[f[len(n) + 1:-4]])
         if not views:
             raise SystemExit(f"mangler studiobilder av {n}")
         ims = [Image.open(os.path.join(studio, v)).convert("RGB") for v in views]
