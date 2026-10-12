@@ -21,7 +21,7 @@
   {"at":{"pos":[3.3,2.45,0.3],"rot":[0,0,0,1]},"model":"ham_hanging","mounted":true},
   {"at":{"pos":[3.8,2.45,0.6],"rot":[0,0,0,1]},"model":"ham_hanging","mounted":true},
   {"at":{"pos":[4.3,2.45,0.3],"rot":[0,0,0,1]},"model":"ham_hanging","mounted":true},
-  {"at":{"pos":[4.4,0.6,-4.025],"rot":[0,0,0,1]},"model":"crock_shelf","mounted":true},
+  {"at":{"pos":[5.525,0.6,-1],"rot":[0,0,0,1]},"model":"crock_shelf","mounted":true},
   {"at":{"pos":[-1.35,0.6,-4.12],"rot":[0,0,0,1]},"model":"plate_rail","mounted":true},
   {"at":{"pos":[-5.65,0.6,1.45],"rot":[0,0,0,1]},"model":"tavern_tapestry","mounted":true},
   {"at":{"pos":[5.1,0.6,0.6],"rot":[0,0,0,1]},"model":"sacks","mounted":true},

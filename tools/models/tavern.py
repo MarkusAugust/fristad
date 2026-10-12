@@ -283,12 +283,13 @@ def ground_floor(p, rng):
             ham = barrel(p, x, y, C0 - 1.15, r=0.13, h=0.55)
             ham.data.materials[0] = layer("leather", (0.75, 0.42, 0.3))
             collide((x, y, C0 - 0.9), (0.3, 0.3, 0.6))
-    # Hyller med krukker på bakveggen øst for vinduet (som går fra x 1,9
-    # til 2,9), og sekker i hjørnet.
-    with piece("crock_shelf", (4.4, iy1 - 0.175, F0)):
+    # Hyller med krukker på østveggen i kjøkkenet, mellom vinduene (y −0,5
+    # og 2,1) og nord for sekkene; ikke på bakveggen, der vinduet og
+    # kjøkkenpeisen står.
+    with piece("crock_shelf", (ix1 - 0.175, 1.0, F0)):
         for z in (F0 + 1.4, F0 + 2.0):
-            box("kshelf", (3.1, iy1 - 0.35, z), (5.5, iy1, z + 0.05), p.floor, bevel=0.01)
-            vessels.row(p, random.Random(int(z * 100) + 7), 3.1, 5.5, iy1 - 0.18, z + 0.05, 0.32, 0.5)
+            box("kshelf", (ix1 - 0.35, 0.05, z), (ix1, 1.95, z + 0.05), p.floor, bevel=0.01)
+            vessels.row(p, random.Random(int(z * 100) + 7), 0.05, 1.95, ix1 - 0.18, z + 0.05, 0.32, 0.5, along="y")
     # Pynt på veggene (eierens dom i runde 7: «ingen pynt på veggene»): en
     # tallerkenhylle med tinnfat på bakveggen mellom vinduet og kjøkkenet,
     # og et vevd veggteppe på stang mellom vinduet og peisen i vest.

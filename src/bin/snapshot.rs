@@ -37,17 +37,23 @@ fn main() {
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
     let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();
-    let at = |model: &str, v: &str, yaw: f32| {
+    // `yaw` er grader fra retningen mot modellens midte, eller med `a`
+    // foran (`a90`) fast i modellens rom: 0 ser mot modellens +y i Blender
+    // (−z i spillet), 90 mot −x (inne i et hus, der midten er bak deg).
+    let at = |model: &str, v: &str, yaw: &str| {
         let v: Vec<f32> = v.split(',').map(|x| x.parse().unwrap()).collect();
         let t = first.iter().find(|(m, _)| m == model).map(|(_, t)| *t)?;
         let eye = t.transform_point3(Vec3::new(v[0], v[2], -v[1]));
-        // Retningen mot modellens midte, dreid `yaw` grader.
-        let to = t.transform_point3(Vec3::new(0.0, v[2], 0.0)) - eye;
-        Some((eye, (-to.x).atan2(-to.z) + yaw.to_radians()))
+        let to = match yaw.strip_prefix('a') {
+            Some(_) => t.transform_vector3(Vec3::NEG_Z),
+            None => t.transform_point3(Vec3::new(0.0, v[2], 0.0)) - eye,
+        };
+        let deg: f32 = yaw.trim_start_matches('a').parse().unwrap();
+        Some((eye, (-to.x).atan2(-to.z) + deg.to_radians()))
     };
     let model_at = args.iter().position(|a| a == "--at").map(|i| {
         let yaw: f32 = args.get(i + 3).and_then(|y| y.parse().ok()).unwrap_or(0.0);
-        at(&args[i + 1], &args[i + 2], yaw).expect("modellen finnes ikke i byen")
+        at(&args[i + 1], &args[i + 2], &yaw.to_string()).expect("modellen finnes ikke i byen")
     });
     let chest = prepared.world.crypt.chests.first().map(|c| (c.pos, c.yaw));
     let level: Option<usize> = arg("--level").map(|s| s.parse::<usize>().expect("--level N").max(1) - 1);
@@ -240,7 +246,7 @@ fn main() {
     if let Some(list) = arg("--shots") {
         for line in std::fs::read_to_string(&list).expect("kan ikke lese --shots").lines().filter(|l| !l.trim().is_empty()) {
             let f: Vec<&str> = line.split_whitespace().collect();
-            let Some((eye, yaw)) = at(f[1], f[2], f[3].parse().unwrap()) else {
+            let Some((eye, yaw)) = at(f[1], f[2], f[3]) else {
                 eprintln!("{}: står ikke ute", f[1]);
                 continue;
             };
