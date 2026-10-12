@@ -1463,13 +1463,13 @@
    "why": ""
   },
   "scriptorium": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-12",
-   "why": "vannbord stopper lengre opp en taket",
+   "why": "",
    "before": {
-    "verdict": "godkjent",
+    "verdict": "underkjent",
     "date": "2026-10-12",
-    "why": ""
+    "why": "vannbord stopper lengre opp en taket"
    },
    "history": [
     "vannbord stopper lengre opp en taket"
