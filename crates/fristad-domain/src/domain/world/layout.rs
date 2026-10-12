@@ -6,8 +6,8 @@
 //! ikke her (`building`). Innbyggerne er sted, rute og en nøkkel til
 //! replikkene (`cast`).
 //!
-//! `Recorder` skriver dette ut mens byen bygges; `apply` bygger byen fra det.
-//! Redigeringsmodusen endrer dataene, ikke koden.
+//! `apply` bygger byen fra dataene. Redigeringsmodusen endrer dataene, ikke
+//! koden.
 
 use super::{cast, town, Builder, NpcSpec, Shape, Use};
 use crate::domain::model::Look;
@@ -83,17 +83,6 @@ pub enum UseDef {
 }
 
 impl UseDef {
-    fn of(u: Use) -> Option<Self> {
-        Some(match u {
-            Use::Well(n) => Self::Well(n),
-            Use::Descend => Self::Descend,
-            Use::Portal => Self::Portal,
-            Use::Sleep => Self::Sleep,
-            Use::Gallery(n) => Self::Gallery(n),
-            _ => return None,
-        })
-    }
-
     fn to_use(self) -> Use {
         match self {
             Self::Well(n) => Use::Well(n),
@@ -193,104 +182,6 @@ pub fn intern(s: &str) -> &'static str {
     let n: &'static str = Box::leak(s.to_string().into_boxed_str());
     set.insert(n);
     n
-}
-
-/// Skriver ut det byen setter ut, ting for ting, mens den bygges.
-#[derive(Default)]
-pub struct Recorder {
-    pub layout: Layout,
-    /// Mens et hus setter ut det det har med seg (`building`), og mens
-    /// innbyggerne settes ut, skrives ingenting.
-    pub paused: bool,
-    /// Den tingen det som legges til nå, hører til.
-    open: bool,
-}
-
-impl Recorder {
-    /// Tingen det som legges til nå hører til (en løs ting uten modell om
-    /// ingen er åpen), og dens rom: den omvendte posen, yaw og høyden.
-    fn open(&mut self) -> (&mut Item, Affine3A, f32, f32) {
-        if !self.open {
-            self.layout.items.push(Item::default());
-            self.open = true;
-        }
-        let item = self.layout.items.last_mut().unwrap();
-        let (inv, yaw, y) = match item.at {
-            Some(p) => (p.affine().inverse(), p.yaw(), p.pos.y),
-            None => (Affine3A::IDENTITY, 0.0, 0.0),
-        };
-        (item, inv, yaw, y)
-    }
-
-    /// En ny ting med modell (det som legges til etterpå, hører til den).
-    pub fn start(&mut self, model: &str, t: Affine3A, tint: Vec3, building: bool) {
-        self.layout.items.push(Item { model: Some(model.to_string()), at: Some(Pose::of(t)), building, tint: (tint != Vec3::ONE).then_some(tint), ..Default::default() });
-        self.open = true;
-    }
-
-    /// Det som legges til etterpå, hører ikke til en modell.
-    pub fn loose(&mut self) {
-        self.open = false;
-    }
-
-    pub fn mounted(&mut self) {
-        if let Some(i) = self.layout.items.last_mut() {
-            i.mounted = true;
-        }
-    }
-
-    pub fn solid(&mut self, s: &Shape) {
-        let (item, inv, y0, _) = self.open();
-        let p = |v: &Vec3| inv.transform_point3(*v);
-        let def = match s {
-            Shape::Cuboid { center, size, yaw } => SolidDef::Cuboid { center: p(center), size: *size, yaw: yaw - y0 },
-            Shape::Cylinder { center, radius, half_height } => SolidDef::Cylinder { center: p(center), radius: *radius, half_height: *half_height },
-            Shape::Capsule { a, b, radius } => SolidDef::Capsule { a: p(a), b: p(b), radius: *radius },
-            Shape::Hull { points } => SolidDef::Hull { points: points.iter().map(p).collect() },
-            Shape::Heightfield { .. } => return,
-        };
-        item.solids.push(def);
-    }
-
-    pub fn target(&mut self, what: Use, pose: Affine3A, center: Vec3, half: Vec3) {
-        let Some(what) = UseDef::of(what) else { return };
-        // En løs ting (portalen) står der det første siktemålet står.
-        if !self.open {
-            self.layout.items.push(Item { at: Some(Pose::of(pose)), ..Default::default() });
-            self.open = true;
-        }
-        let (item, inv, _, _) = self.open();
-        item.targets.push(TargetDef { what, pose: Pose::of(inv * pose), center, half });
-    }
-
-    pub fn light(&mut self, l: &Light) {
-        let (item, inv, _, _) = self.open();
-        item.lights.push(LightDef { pos: inv.transform_point3(l.pos), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker });
-    }
-
-    pub fn smoke(&mut self, top: Vec3, strength: f32) {
-        let (item, inv, _, _) = self.open();
-        item.smoke.push((inv.transform_point3(top), strength));
-    }
-
-    pub fn floor(&mut self, center: Vec3, half: Vec2, yaw: f32, top: f32) {
-        let (item, inv, y0, base) = self.open();
-        item.floors.push((inv.transform_point3(center), half, yaw - y0, top - base));
-    }
-
-    pub fn hole(&mut self, center: Vec3, half: Vec2, yaw: f32) {
-        let (item, inv, y0, _) = self.open();
-        item.holes.push((inv.transform_point3(center), half, yaw - y0));
-    }
-
-    pub fn reserve(&mut self, model: &str, n: usize) {
-        self.open().0.reserve.push((model.to_string(), n));
-    }
-
-    /// Innbyggerne slik byen satte dem ut.
-    pub fn npcs(&mut self, npcs: &[NpcSpec]) {
-        self.layout.npcs = npcs.iter().map(|n| NpcDef { name: n.name.to_string(), model: n.model.to_string(), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::key_of(n.lines).to_string(), route: n.route.clone() }).collect();
-    }
 }
 
 /// Bygg byen fra dataene. Gir det byen forteller resten av verden.

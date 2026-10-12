@@ -148,23 +148,6 @@ impl ModelSource for Embedded {
     }
 }
 
-/// De samme modellene, men byen bygges av koden i `town.rs` og ikke av
-/// `assets/layout/town.json` (til `bin/layout` og testen som viser at
-/// dataene gir samme by).
-pub struct FromCode<'a>(pub &'a dyn ModelSource);
-
-impl ModelSource for FromCode<'_> {
-    fn world_data(&self) -> crate::domain::world::Data {
-        crate::domain::world::Data { layout: None, ..self.0.world_data() }
-    }
-    fn names(&self) -> Vec<String> {
-        self.0.names()
-    }
-    fn load(&self, name: &str) -> Option<Model> {
-        self.0.load(name)
-    }
-}
-
 /// Teksturlagene en glb-fil bruker (`extras.fristad.layer` på materialene),
 /// uten å lese geometrien.
 pub fn layers_of(bytes: &[u8]) -> Result<Vec<String>, String> {

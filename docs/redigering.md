@@ -74,3 +74,7 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
 4. Nettlaget: flyging, katalogen, plassering på flaten, taster, håndtak, linje, P for å spille.
 5. Lagring til GitHub.
 6. Eieren prøver i Vertshuset og på torget.
+
+## Status
+
+- **Steg 1 (12. oktober):** byen er data i `assets/layout/town.json` (`domain/world/layout.rs`: `Layout`, `Item`, `NpcDef`, `apply`). Fila ble skrevet ut fra koden i `town.rs` og prøvd mot den ting for ting (modellene, kolliderne, siktemålene, lysene, røyken, innbyggerne og bakken var like), og så ble koden som plasserte byen fjernet (`town.rs` fra 1705 til 606 linjer). Et hus er én ting (`building`) og tar med seg det som står i `<navn>_inside.json`; det skilles ut i steg 2. Innholdet i krypten er allerede data: merkene (kister, spaker, porter …) i `assets/models/crypt/crypt_NN.json`, som redigeringen skriver til i stedet for en egen fil. Stiene ut til gårdene følger ennå de faste gårdsstedene (`town::farms`), ikke husene i fila.

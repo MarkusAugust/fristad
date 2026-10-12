@@ -148,7 +148,6 @@ const MAX_LINES: usize = 800;
 /// Filene som var lengre da grensen kom (11. oktober), med lengden da som
 /// tak. De kan bare krympe; når en er under grensen, skal den strykes her.
 const TOO_LONG: &[(&str, usize)] = &[
-    ("fristad-domain/src/domain/world/town.rs", 1744),
     ("fristad-domain/src/domain/mobs.rs", 1121),
     ("fristad-domain/src/domain/world/crypt/mod.rs", 873),
     ("fristad-domain/src/domain/geometry.rs", 827),

@@ -127,8 +127,6 @@ pub struct World {
     pub crypt_exit: (Vec3, f32),
     /// Modellene byen og systemene ville bruke, men som ikke finnes.
     pub missing: Vec<&'static str>,
-    /// Byen som data, når den ble bygd av koden (`town::build`).
-    pub layout: Option<layout::Layout>,
 }
 
 pub struct Builder {
@@ -152,8 +150,6 @@ pub struct Builder {
     pub holes: Vec<(Vec3, Vec2, f32)>,
     /// Det husene har med seg (kollidere, lys, kjeller …), per modell.
     pub insides: HashMap<String, town::Inside>,
-    /// Skriver ut byen som data mens den bygges (`layout::Recorder`).
-    pub rec: Option<layout::Recorder>,
 }
 
 impl Builder {
@@ -173,39 +169,10 @@ impl Builder {
             missing: vec![],
             holes: vec![],
             insides: HashMap::new(),
-            rec: None,
         }
-    }
-
-    /// Opptakeren, om byen skrives ut og ikke er satt på pause.
-    fn rec(&mut self) -> Option<&mut layout::Recorder> {
-        self.rec.as_mut().filter(|r| !r.paused)
-    }
-
-    /// Det som legges til etterpå, hører ikke til modellen som sist ble satt ut.
-    pub fn loose(&mut self) {
-        if let Some(r) = self.rec() {
-            r.loose();
-        }
-    }
-
-    /// Ingenting skrives ut mens `f` kjører (det følger med noe annet).
-    pub fn unrecorded<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        let was = self.rec.as_ref().map(|r| r.paused);
-        if let Some(r) = self.rec.as_mut() {
-            r.paused = true;
-        }
-        let out = f(self);
-        if let (Some(r), Some(was)) = (self.rec.as_mut(), was) {
-            r.paused = was;
-        }
-        out
     }
 
     pub fn push_light(&mut self, light: Light) {
-        if let Some(r) = self.rec() {
-            r.light(&light);
-        }
         self.lights.push(light);
     }
 
@@ -213,9 +180,6 @@ impl Builder {
     /// rektangelet (midte, halve mål, yaw) fjernes, både i bildet og i
     /// kollideren, så man kan gå ned. Kjellerens murer må dekke kanten.
     pub fn hole(&mut self, center: Vec3, half: Vec2, yaw: f32) {
-        if let Some(r) = self.rec() {
-            r.hole(center, half, yaw);
-        }
         self.holes.push((center, half, yaw));
     }
 
@@ -225,9 +189,6 @@ impl Builder {
 
     /// En pipe som ryker (toppen av pipa, tykkelse 0..1).
     pub fn smoke(&mut self, top: Vec3, strength: f32) {
-        if let Some(r) = self.rec() {
-            r.smoke(top, strength);
-        }
         self.smoke.push((top, strength));
     }
 
@@ -248,9 +209,6 @@ impl Builder {
 
     /// Noe du kan bruke med F.
     pub fn target(&mut self, what: Use, pose: Affine3A, center: Vec3, half: Vec3) {
-        if let Some(r) = self.rec() {
-            r.target(what, pose, center, half);
-        }
         self.targets.push(Target { what, pose, center, half });
     }
 
@@ -258,9 +216,6 @@ impl Builder {
     /// innenfor rektangelet. `center` er midten, `half` halve målene i x og
     /// z, `top` gulvets overkant (y i verden).
     pub fn floor(&mut self, center: Vec3, half: Vec2, yaw: f32, top: f32) {
-        if let Some(r) = self.rec() {
-            r.floor(center, half, yaw, top);
-        }
         self.floors.push((center, half, yaw, top));
     }
 
@@ -282,9 +237,6 @@ impl Builder {
     }
 
     pub fn solid(&mut self, shape: Shape) {
-        if let Some(r) = self.rec() {
-            r.solid(&shape);
-        }
         self.colliders.push(shape);
     }
 
@@ -319,9 +271,6 @@ impl Builder {
 
     /// Sett ut en modell med et annet utseende (`Look`).
     pub fn place_look(&mut self, model: &'static str, t: Affine3A, tint: Vec3, look: Option<Look>) -> bool {
-        if let Some(r) = self.rec() {
-            r.start(model, t, tint, false);
-        }
         if !self.has_model(model) {
             if !self.missing.contains(&model) {
                 self.missing.push(model);
@@ -346,11 +295,7 @@ impl Builder {
 
     /// Som `place_mounted`, med et annet utseende.
     pub fn place_mounted_look(&mut self, model: &'static str, t: Affine3A, look: Option<Look>) -> bool {
-        let placed = self.place_look(model, t, Vec3::ONE, look);
-        if let Some(r) = self.rec() {
-            r.mounted();
-        }
-        if !placed {
+        if !self.place_look(model, t, Vec3::ONE, look) {
             return false;
         }
         if let Some(p) = self.placements.iter().find(|p| p.model == model) {
@@ -362,9 +307,6 @@ impl Builder {
     /// Sett av plass til `n` instanser av en modell som spillet flytter per
     /// bilde (dyr, figurer, porter).
     pub fn reserve(&mut self, model: &'static str, n: usize) {
-        if let Some(r) = self.rec() {
-            r.reserve(model, n);
-        }
         if !self.has_model(model) {
             if !self.missing.contains(&model) {
                 self.missing.push(model);
@@ -458,8 +400,7 @@ impl Builder {
 pub struct Data {
     pub insides: Vec<(String, town::Inside)>,
     pub levels: Vec<(u32, crypt::level::LevelFile)>,
-    /// Byen som data (`assets/layout/town.json`); uten den bygges den av
-    /// koden i `town` og skrives ut (`World.layout`).
+    /// Byen som data (`assets/layout/town.json`).
     pub layout: Option<layout::Layout>,
 }
 
@@ -472,7 +413,6 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
     // jordveier og gress.
     let ground_at = ground(&mut b);
     let town = town::build(&mut b, data.layout.as_ref());
-    let layout = b.rec.take().map(|r| r.layout);
     cut_ground(&mut b, ground_at);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
@@ -530,7 +470,6 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         crypt_exit: town.crypt_exit,
         audit,
         missing: b.missing,
-        layout,
     }
 }
 
