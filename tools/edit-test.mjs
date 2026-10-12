@@ -48,47 +48,57 @@ const check = (ok, what) => {
 
 await page.goto(`http://127.0.0.1:${port}/?edit${mode === "webgl" ? "&webgl" : ""}`, { waitUntil: "load" });
 await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 600000 });
+// SwiftShader tegner sakte (0–1 bilde i sekundet): hendelsene fra motoren
+// kommer med neste bilde, så testen venter på hver tilstand.
+const until = async (fn, arg, ms = 180000) => {
+  try {
+    await page.waitForFunction(fn, arg, { timeout: ms, polling: 500 });
+    return true;
+  } catch {
+    return false;
+  }
+};
+const text = (sel) => page.evaluate((s) => document.querySelector(s)?.textContent ?? "", sel);
+const shot = (name) => page.screenshot({ path: `${out}_${name}.png`, timeout: 300000 });
+
 await page.evaluate(() => document.querySelector("#enter")?.click());
-await page.waitForTimeout(1500);
-check(await page.evaluate(() => !document.querySelector("#editor")?.hidden), "panelet er oppe");
+check(await until(() => document.querySelector("#editor") && !document.querySelector("#editor").hidden), "panelet er oppe");
 const items = await page.evaluate(() => document.querySelectorAll("#ed-grid .editor-item").length);
 check(items > 100, `katalogen har ${items} modeller`);
-const imgs = await page.evaluate(() => [...document.querySelectorAll("#ed-grid img")].slice(0, 20).filter((i) => i.complete && i.naturalWidth > 0).length);
-console.log(`bilder lastet (av de 20 første): ${imgs}`);
+check(await until(() => [...document.querySelectorAll("#ed-grid img")].slice(0, 6).every((i) => i.complete && i.naturalWidth > 0)), "bildene i katalogen er lastet");
 
-// Fra torget mot tønna øst for lyktestolpen; klikk midt i bildet.
+// Fra torget mot tønna øst for lyktestolpen; klikk midt i bildet (i lerretet).
 await page.evaluate(() => window.fristad.engine.place(4.6, 1.7, 9.4, -90, -12));
-await page.waitForTimeout(500);
-await page.mouse.click(640, 360);
-await page.waitForTimeout(500);
-const selected = await page.evaluate(() => document.querySelector("#ed-selected").textContent);
-check(selected.includes("barrel"), `klikket valgte: ${selected}`);
-await page.screenshot({ path: `${out}_valgt.png` });
+const box = await page.evaluate(() => {
+  const r = document.querySelector("#world").getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+});
+await page.mouse.click(box.x, box.y);
+check(await until(() => document.querySelector("#ed-selected").textContent.includes("barrel")), `klikket valgte: ${await text("#ed-selected")}`);
+await shot("valgt");
 await page.keyboard.press("ArrowLeft");
 await page.keyboard.down("Shift");
 await page.keyboard.press("ArrowLeft");
 await page.keyboard.up("Shift");
-await page.waitForTimeout(500);
-const state = await page.evaluate(() => document.querySelector("#ed-state").textContent);
-check(/endret|brudd/.test(state), `etter flytting: ${state}`);
-await page.screenshot({ path: `${out}_flyttet.png` });
+check(await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent)), `etter flytting: ${await text("#ed-state")}`);
+await shot("flyttet");
 await page.keyboard.down("Control");
 await page.keyboard.press("KeyZ");
 await page.keyboard.press("KeyZ");
 await page.keyboard.up("Control");
-await page.waitForTimeout(500);
-check((await page.evaluate(() => document.querySelector("#ed-state").textContent)) === "Grønt", "angret");
+check(await until(() => document.querySelector("#ed-state").textContent === "Grønt"), `angret: ${await text("#ed-state")}`);
 
 // P: spill (byen bygges på nytt), og P igjen: tilbake i redigeringen.
 await page.keyboard.press("ArrowLeft");
+await until(() => /endret|brudd/.test(document.querySelector("#ed-state").textContent));
 await page.keyboard.press("KeyP");
-await page.waitForTimeout(8000);
-check(await page.evaluate(() => document.querySelector("#editor").hidden), "P: spiller");
-await page.screenshot({ path: `${out}_spill.png` });
+check(await until(() => document.querySelector("#editor").hidden, null, 600000), "P: spiller");
+await page.waitForTimeout(5000);
+await shot("spill");
 await page.keyboard.press("KeyP");
-await page.waitForTimeout(1500);
-check(await page.evaluate(() => !document.querySelector("#editor").hidden), "P igjen: redigerer");
-check(errors.length === 0, `ingen feil i konsollen (${errors.length})`);
+check(await until(() => !document.querySelector("#editor").hidden), "P igjen: redigerer");
+await shot("igjen");
+check(errors.filter((e) => !e.includes("404")).length === 0, `ingen feil i konsollen (${errors.length}, 404 for favicon telles ikke)`);
 await browser.close();
 server.close();
 console.log(fails.length ? `\n${fails.length} feil` : "\nalt ok");
