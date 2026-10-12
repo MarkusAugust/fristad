@@ -912,10 +912,11 @@ def sales_room(p, rng):
     # Stige-hylle over døra innenfor fasaden med glass.
     with piece("door_shelf_jars", ((AIX0 + 0.3) / 2, AIY0 + 0.125, AF0 + 2.35)):
         box("door_shelf", (AIX0 + 0.5, AIY0, AF0 + 2.35), (-0.2, AIY0 + 0.25, AF0 + 2.4), p.floor, bevel=0.01)
-        # Flere krukker i ulike størrelser, men ikke foran salgsluka.
-        for k, (a0, a1) in enumerate(((AIX0 + 0.5, AHATCH - 0.95), (AHATCH + 0.95, -0.2))):
+        # Flere krukker i ulike størrelser hele veien (luka når bare opp
+        # til 1,95 m, hylla står på 2,35 m).
+        for k, (a0, a1) in enumerate(((AIX0 + 0.5, -0.2),)):
             if a1 - a0 > 0.15:
-                vessels.row(p, random.Random(41 + k), a0, a1, AIY0 + 0.13, AF0 + 2.4, 0.22, 0.3, kinds=["jar", "crock", "crock_lid", "jug", "bottle", "pitcher"])
+                vessels.row(p, random.Random(41 + k), a0, a1, AIY0 + 0.13, AF0 + 2.4, 0.2, 0.3, kinds=["jar", "crock", "crock_lid", "jug", "bottle", "pitcher"], gap=(0.005, 0.03))
 
 
 def laboratory(p, rng):

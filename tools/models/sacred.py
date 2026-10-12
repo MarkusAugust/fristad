@@ -40,7 +40,7 @@ import kit  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import CARVED, at_wall, box, slab_grid, stick, wall_colliders, wall_frame  # noqa: E402
-from mathutils import Matrix, Vector  # noqa: E402
+from mathutils import Euler, Matrix, Vector  # noqa: E402
 from town import collide, layer, light, piece, plain  # noqa: E402
 
 OUT = "assets/models/town"
@@ -648,15 +648,19 @@ def scriptorium_inside(p, rng):
     # Kjedet: ekte ledd, annethvert dreid, fra permen ned til stolpen.
     import bpy
     a, b = Vector((lx + 0.3, ly - 0.12, S_F + 1.06)), Vector((lx + 0.08, ly, S_F + 0.55))
-    n = 9
+    # Leddene griper i hverandre: 4,2 cm mellom sentrene, 5,6 cm lange.
+    n = max(2, round((b - a).length / 0.042))
     for k in range(n):
         c = a.lerp(b, (k + 0.5) / n)
-        bpy.ops.mesh.primitive_torus_add(major_radius=0.028, minor_radius=0.006, major_segments=8, minor_segments=4, location=c)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.026, minor_radius=0.006, major_segments=8, minor_segments=4, location=c)
         ln = bpy.context.active_object
+        # Ringen ligger langs kjedet (lokal x langs kjedet, avlang), og
+        # annethvert ledd er dreid en kvart omdreining om kjedet.
         d = (b - a).normalized()
-        ln.rotation_euler = d.to_track_quat("Z", "Y").to_euler()
-        ln.rotation_euler.rotate_axis("Z", (math.pi / 2) * (k % 2))
-        ln.scale = (1.0, 0.65, 1.0)
+        q = d.to_track_quat("X", "Z")
+        ln.rotation_mode = "QUATERNION"
+        ln.rotation_quaternion = q @ Euler(((math.pi / 2) * (k % 2), 0, 0)).to_quaternion()
+        ln.scale = (1.0, 0.6, 1.0)
         ln.data.materials.append(p.iron)
         town.uv_box(ln)
         PIECES.append(ln)

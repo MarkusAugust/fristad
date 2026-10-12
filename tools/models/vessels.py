@@ -116,10 +116,11 @@ def plate(x, y, z, r, mat, n=3):
         lathe("plate", [(r * 0.7, 0.0), (r, 0.015), (r * 0.95, 0.02), (0.0, 0.012)], mat, n=14, at=(x, y, z + k * 0.018))
 
 
-def row(p, rng, a0, a1, c, z, depth, max_h, along="x", kinds=None):
+def row(p, rng, a0, a1, c, z, depth, max_h, along="x", kinds=None, gap=(0.03, 0.09)):
     """Fyll en hylle eller bordflate fra a0 til a1 (langs `along`, på tvers
     i c) med en blanding av kar i ulike former og størrelser. `kinds` velger
-    hvilke (standard: alt av leire og tre)."""
+    hvilke (standard: alt av leire og tre), `gap` mellomrommet (tettere på
+    en full hylle)."""
     clay = clays(rng)
     glass = [plain("glass_green", (0.08, 0.2, 0.1), 0.1), plain("glass_brown", (0.2, 0.1, 0.05), 0.1)]
     wood = [layer("oak_planed", (0.85, 0.7, 0.55)), layer("oak_planed", (0.6, 0.45, 0.35))]
@@ -158,7 +159,7 @@ def row(p, rng, a0, a1, c, z, depth, max_h, along="x", kinds=None):
             plate(x, y, z, min(r * 1.4, 0.13), pewter, n=rng.randint(2, 4))
         elif k == "keg":
             ob = kit.barrel(p, x, y, z, r=min(r, 0.1), h=min(max_h, 0.24))
-        u = cu + r + rng.uniform(0.03, 0.09)
+        u = cu + r + rng.uniform(*gap)
 
 
 def sack(x, y, z, w, h, mat, yaw=0.0, seed=0, slump=0.0):
