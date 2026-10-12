@@ -22,6 +22,7 @@ import kit  # noqa: E402
 import town  # noqa: E402
 from common import clear  # noqa: E402
 from kit import box, stick  # noqa: E402
+from mathutils import Vector  # noqa: E402
 from town import collide, layer  # noqa: E402
 
 OUT = "assets/models/town"
@@ -226,7 +227,15 @@ def coop(p, rng):
     for x in (x0, x1):
         slope_wall("coop_wall", (x, y0), (x, y1), 0.68, under(y0), under(y1), 0.06, p.boards)
     # Rampa ned med lister.
-    stick("ramp", (0, y0 - 1.0, -0.05), (0, y0, 0.66), 0.4, 0.04, p.floor, bevel=0)
+    # Hønsebrua: et grått, værbitt bord med tverrlister hønene går på
+    # (eieren: «material for brua er feil»).
+    board = layer("weatherboard_grey", (0.6, 0.55, 0.5))
+    a, b = Vector((0, y0 - 1.0, -0.05)), Vector((0, y0, 0.66))
+    stick("ramp", a, b, 0.4, 0.04, board, bevel=0)
+    n = (b - a).normalized().cross(Vector((1, 0, 0))) * -0.035
+    for k in range(1, 7):
+        q = a + (b - a) * k / 7 + n
+        stick("ramp_slat", (q.x - 0.18, q.y, q.z), (q.x + 0.18, q.y, q.z), 0.03, 0.03, p.timber, ("timber", k % 4), bevel=0)
     collide((0, 0, 1.0), (w + 0.1, d + 0.1, 2.0))
 
 

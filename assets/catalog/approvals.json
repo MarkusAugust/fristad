@@ -59,7 +59,10 @@
   "cobble": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "dårlig horisontal skjøt"
+   "why": "dårlig horisontal skjøt",
+   "history": [
+    "dårlig horisontal skjøt"
+   ]
   },
   "core_plastic": {
    "verdict": "godkjent",
@@ -69,7 +72,10 @@
   "core_stone": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "vertikal skjøt ser ikke bra ut, dette må det tenker nytt om"
+   "why": "vertikal skjøt ser ikke bra ut, dette må det tenker nytt om",
+   "history": [
+    "vertikal skjøt ser ikke bra ut, dette må det tenker nytt om"
+   ]
   },
   "cow_fur": {
    "verdict": "godkjent",
@@ -89,7 +95,10 @@
   "crypt_wall": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "skjøten er dårlig"
+   "why": "skjøten er dårlig",
+   "history": [
+    "skjøten er dårlig"
+   ]
   },
   "crystal": {
    "verdict": "godkjent",
@@ -204,7 +213,10 @@
   "mud": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "mange hjulspor skal det være? blir overgangen mot omkringliggende teksturer for hard?"
+   "why": "mange hjulspor skal det være? blir overgangen mot omkringliggende teksturer for hard?",
+   "history": [
+    "mange hjulspor skal det være? blir overgangen mot omkringliggende teksturer for hard?"
+   ]
   },
   "oak_planed": {
    "verdict": "godkjent",
@@ -239,7 +251,10 @@
   "plaster_red": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "flekke blir gjentagende så det er støyende på avstand. for mange små flekker mener jeg"
+   "why": "flekke blir gjentagende så det er støyende på avstand. for mange små flekker mener jeg",
+   "history": [
+    "flekke blir gjentagende så det er støyende på avstand. for mange små flekker mener jeg"
+   ]
   },
   "plaster_white": {
    "verdict": "godkjent",
@@ -329,7 +344,10 @@
   "stone": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "skjøten er for dårlig"
+   "why": "skjøten er for dårlig",
+   "history": [
+    "skjøten er for dårlig"
+   ]
   },
   "straw": {
    "verdict": "godkjent",
@@ -421,22 +439,38 @@
   "crypt": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "merkelig jernbeslag på døren"
+   "why": "merkelig jernbeslag på døren",
+   "history": [
+    "Kryptens dør er feil; sammensetningen må gjøres med dørmodulen (fase 4).",
+    "merkelig jernbeslag på døren"
+   ]
   },
   "stave_church": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser it som en stavkirke"
+   "why": "det ser it som en stavkirke",
+   "history": [
+    "Kirka skal være en vanlig middelalderkirke i stein i samme stil som kryptens nedgang.",
+    "det ser it som en stavkirke"
+   ]
   },
   "stave_church_interior": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser ut som en stavkirke, ikke en middelalderkirke av stein"
+   "why": "det ser ut som en stavkirke, ikke en middelalderkirke av stein",
+   "history": [
+    "Følger kirka: lages på nytt som steinkirke.",
+    "det ser ut som en stavkirke, ikke en middelalderkirke av stein"
+   ]
   },
   "tavern_interior": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det er tønner i veggene.ingen pynt på veggene. trappen er for nær veggen"
+   "why": "det er tønner i veggene.ingen pynt på veggene. trappen er for nær veggen",
+   "history": [
+    "Tønner på rad; innredningen må plasseres med group() (fase 4).",
+    "det er tønner i veggene.ingen pynt på veggene. trappen er for nær veggen"
+   ]
   },
   "crypt_01_aa": {
    "verdict": "underkjent",
@@ -586,7 +620,10 @@
     "verdict": "usikker",
     "date": "2026-10-11",
     "why": "sjekk bindingsverket"
-   }
+   },
+   "history": [
+    "sjekk bindingsverket"
+   ]
   },
   "apothecary_interior": {
    "verdict": "godkjent",
@@ -596,7 +633,10 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet"
-   }
+   },
+   "history": [
+    "det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet"
+   ]
   },
   "barrel": {
    "verdict": "godkjent",
@@ -606,22 +646,35 @@
   "cart": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "hjulene klipper inn i vognen. gjenstander klipper inn i vognveggen"
+   "why": "hjulene klipper inn i vognen. gjenstander klipper inn i vognveggen",
+   "history": [
+    "hjulene klipper inn i vognen. gjenstander klipper inn i vognveggen"
+   ]
   },
   "chest": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "teksturen passer ikke modellen, det ser rart ut"
+   "why": "teksturen passer ikke modellen, det ser rart ut",
+   "history": [
+    "teksturen passer ikke modellen, det ser rart ut"
+   ]
   },
   "chest_lid": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur"
+   "why": "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur",
+   "history": [
+    "mangler jernbeslag slik et kistelogg skal ha. dette trenger vel en egen tekstur"
+   ]
   },
   "coop": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket."
+   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "history": [
+    "det er noe galt med taket. material for brua er feil. material for taket er feil.",
+    "noe stikker opp gjennom taket. feil tekstur på taket."
+   ]
   },
   "crate": {
    "verdict": "godkjent",
@@ -636,7 +689,10 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op."
-   }
+   },
+   "history": [
+    "det skal ikke være \"plaster\" på endeveggene inne, stein hele veien op."
+   ]
   },
   "forge_interior": {
    "verdict": "usikker",
@@ -646,7 +702,10 @@
     "verdict": "godkjent",
     "date": "2026-10-11",
     "why": ""
-   }
+   },
+   "history": [
+    "jeg ser på modellen av huset at det er gips/plaster opp under mønet i endeveggen. det skal være stein hele feilen opp."
+   ]
   },
   "gallery_alert": {
    "verdict": "godkjent",
@@ -726,17 +785,27 @@
   "garden": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "greit kanskje, men gjerdet flyr jo"
+   "why": "greit kanskje, men gjerdet flyr jo",
+   "history": [
+    "greit kanskje, men gjerdet flyr jo"
+   ]
   },
   "gatehouse": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "fjern den bruke horisontale saken midt i porten"
+   "why": "fjern den bruke horisontale saken midt i porten",
+   "history": [
+    "hva er den platen midt i åpningen? horisontal brun strek. det må bort.. vet ikke hvorfor det er der...",
+    "fjern den bruke horisontale saken midt i porten"
+   ]
   },
   "haystack": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser ut som stråtaket er brukt til dette. det passer ikke."
+   "why": "det ser ut som stråtaket er brukt til dette. det passer ikke.",
+   "history": [
+    "det ser ut som stråtaket er brukt til dette. det passer ikke."
+   ]
   },
   "home": {
    "verdict": "godkjent",
@@ -746,22 +815,37 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt"
-   }
+   },
+   "history": [
+    "bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt"
+   ]
   },
   "home_interior": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "tønne i veggen fortsatt. hyller overlapper vinduet. her har du ikke adressert problemet i det hele tatt."
+   "why": "tønne i veggen fortsatt. hyller overlapper vinduet. her har du ikke adressert problemet i det hele tatt.",
+   "history": [
+    "plassering av gjenstander er ikke god. tønne inni veggen- hyller foran vindu. mye rart her. mangldende trim / listverk mellom 90% vinkler der teksturer møtes",
+    "tønne i veggen fortsatt. hyller overlapper vinduet. her har du ikke adressert problemet i det hele tatt."
+   ]
   },
   "house_a": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "stor åpning mellom etasjene"
+   "why": "stor åpning mellom etasjene",
+   "history": [
+    "bindingsverket ser merkelig ut. glippe midt mellom etasjene",
+    "stor åpning mellom etasjene"
+   ]
   },
   "house_b": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "glippe/sprekk mellom etasjene"
+   "why": "glippe/sprekk mellom etasjene",
+   "history": [
+    "bindingsverket ser merkelig ut. glippe midt mellom etasjene",
+    "glippe/sprekk mellom etasjene"
+   ]
   },
   "house_c": {
    "verdict": "underkjent",
@@ -771,27 +855,44 @@
     "verdict": "usikker",
     "date": "2026-10-11",
     "why": "så det svever vel ikke over bakken?"
-   }
+   },
+   "history": [
+    "så det svever vel ikke over bakken?",
+    "brune kanter stikker opp fra taket"
+   ]
   },
   "house_d": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?"
+   "why": "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?",
+   "history": [
+    "bindingsverket ser dårlig ut",
+    "bindingsverket ser fortsatt dårlig ut. ser du ikke at det ikke henger sammen?"
+   ]
   },
   "house_e": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det svever over bakken. dårlig fargepalett. alt er brunt?"
+   "why": "det svever over bakken. dårlig fargepalett. alt er brunt?",
+   "history": [
+    "det svever over bakken. dårlig fargepalett. alt er brunt?"
+   ]
   },
   "house_f": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "døren er hvit. hvorfor?"
+   "why": "døren er hvit. hvorfor?",
+   "history": [
+    "døren er hvit. hvorfor?"
+   ]
   },
   "house_g": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "glippe mellom etasjene"
+   "why": "glippe mellom etasjene",
+   "history": [
+    "glippe mellom etasjene"
+   ]
   },
   "house_h": {
    "verdict": "godkjent",
@@ -801,12 +902,19 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "hvit dør"
-   }
+   },
+   "history": [
+    "hvit dør"
+   ]
   },
   "house_i": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "mellomrom/sprekk mellom etasjene."
+   "why": "mellomrom/sprekk mellom etasjene.",
+   "history": [
+    "mellomrom mellom etasjene. hvit dør",
+    "mellomrom/sprekk mellom etasjene."
+   ]
   },
   "house_j": {
    "verdict": "godkjent",
@@ -816,7 +924,10 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "hvit dør"
-   }
+   },
+   "history": [
+    "hvit dør"
+   ]
   },
   "house_k": {
    "verdict": "godkjent",
@@ -826,22 +937,37 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "hvit dør"
-   }
+   },
+   "history": [
+    "hvit dør"
+   ]
   },
   "house_l": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene"
+   "why": "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene",
+   "history": [
+    "bindingsverket ser dårlig ut. hvorfor er det pipemurstein i første etasje?",
+    "bindingsverket på veggene i andre etasje ser dårlig ut. det er glipper i det. dette må du løse sentralt, det er feil på mange av husene"
+   ]
   },
   "house_m": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?"
+   "why": "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?",
+   "history": [
+    "mellomrom mellom etasjene. hvit dør. sjekk materialvalgene",
+    "det ser fortsatt ut som at det er en synlig sprekk mellom etasjene?"
+   ]
   },
   "house_n": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "hvorfor er det en sånn rar kant mellom første og andre etasje?"
+   "why": "hvorfor er det en sånn rar kant mellom første og andre etasje?",
+   "history": [
+    "mellomrom mellom etasjene",
+    "hvorfor er det en sånn rar kant mellom første og andre etasje?"
+   ]
   },
   "house_o": {
    "verdict": "godkjent",
@@ -851,27 +977,46 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "hvit dør"
-   }
+   },
+   "history": [
+    "hvit dør"
+   ]
   },
   "house_p": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "mellomrom mellom etasjene fortsatt."
+   "why": "mellomrom mellom etasjene fortsatt.",
+   "history": [
+    "mellomrom mellom etasjene",
+    "mellomrom mellom etasjene fortsatt."
+   ]
   },
   "house_q": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "grunnmuren svever over bakken"
+   "why": "grunnmuren svever over bakken",
+   "history": [
+    "svever over bakken. hvit dør",
+    "grunnmuren svever over bakken"
+   ]
   },
   "house_r": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "andre etasje flyr over første etasje"
+   "why": "andre etasje flyr over første etasje",
+   "history": [
+    "mellomrom mellom etasjene.",
+    "andre etasje flyr over første etasje"
+   ]
   },
   "house_s": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "andre etasje flyr over første etasje"
+   "why": "andre etasje flyr over første etasje",
+   "history": [
+    "mellomrom mellom etasjene. hvit dør. hvorfor er det hvite dører overalt?",
+    "andre etasje flyr over første etasje"
+   ]
   },
   "house_t": {
    "verdict": "godkjent",
@@ -881,7 +1026,10 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "hvit dør"
-   }
+   },
+   "history": [
+    "hvit dør"
+   ]
   },
   "kit_arrow": {
    "verdict": "godkjent",
@@ -891,7 +1039,11 @@
   "kit_bonus": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser ikke ut som et skrin"
+   "why": "det ser ikke ut som et skrin",
+   "history": [
+    "ser ut som et minihus? hva er dette?",
+    "det ser ikke ut som et skrin"
+   ]
   },
   "kit_crack": {
    "verdict": "godkjent",
@@ -901,7 +1053,10 @@
   "kit_down": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "ikke imponert, men kasnkje godt nok for nå"
+   "why": "ikke imponert, men kasnkje godt nok for nå",
+   "history": [
+    "ikke imponert, men kasnkje godt nok for nå"
+   ]
   },
   "kit_gate": {
    "verdict": "godkjent",
@@ -911,12 +1066,19 @@
   "kit_ladder": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "ser fortsatt  ingen stige i bildet"
+   "why": "ser fortsatt  ingen stige i bildet",
+   "history": [
+    "ser ingen stige i bildet",
+    "ser fortsatt  ingen stige i bildet"
+   ]
   },
   "kit_lever": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt"
+   "why": "må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt",
+   "history": [
+    "må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt"
+   ]
   },
   "kit_lever_arm": {
    "verdict": "godkjent",
@@ -926,7 +1088,10 @@
   "kit_lore": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "en slik pedestal skal ikke være av stein, men bygget av treverk som passer til dette"
+   "why": "en slik pedestal skal ikke være av stein, men bygget av treverk som passer til dette",
+   "history": [
+    "en slik pedestal skal ikke være av stein, men bygget av treverk som passer til dette"
+   ]
   },
   "kit_plate": {
    "verdict": "godkjent",
@@ -936,37 +1101,58 @@
   "kit_rest": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "ikke noe brennende lys her? er det i alle fall en lyskilde spilleren kan se lyset fra? alt for hard overgang mellom teksturer som møter hverandre i 90 grader mellom veggene og gulvet i dette bildet"
+   "why": "ikke noe brennende lys her? er det i alle fall en lyskilde spilleren kan se lyset fra? alt for hard overgang mellom teksturer som møter hverandre i 90 grader mellom veggene og gulvet i dette bildet",
+   "history": [
+    "ikke noe brennende lys her? er det i alle fall en lyskilde spilleren kan se lyset fra? alt for hard overgang mellom teksturer som møter hverandre i 90 grader mellom veggene og gulvet i dette bildet"
+   ]
   },
   "kit_sarcophagus": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "ligner overhodet ikke på en sakrofag"
+   "why": "ligner overhodet ikke på en sakrofag",
+   "history": [
+    "ligner overhodet ikke på en sakrofag"
+   ]
   },
   "kit_secret_wall": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?"
+   "why": "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?",
+   "history": [
+    "det ser ut som at det er brudte flater her, ser rart ut.skjønner ikke hvordan det fungere sammen med andre teksturer. vil det se stygt ut?"
+   ]
   },
   "kit_shortcut": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette."
+   "why": "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette.",
+   "history": [
+    "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette."
+   ]
   },
   "kit_shortcut_leaf": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her."
+   "why": "spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her.",
+   "history": [
+    "spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her."
+   ]
   },
   "kit_trapdoor": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "flater klipper inn i hverandre her. forsår ikke hvorfor. hvorfor er det ingen tekstur her? håndtaket trenger en jernring eller noe så man ser at det kan åpnes"
+   "why": "flater klipper inn i hverandre her. forsår ikke hvorfor. hvorfor er det ingen tekstur her? håndtaket trenger en jernring eller noe så man ser at det kan åpnes",
+   "history": [
+    "flater klipper inn i hverandre her. forsår ikke hvorfor. hvorfor er det ingen tekstur her? håndtaket trenger en jernring eller noe så man ser at det kan åpnes"
+   ]
   },
   "kit_up": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue"
+   "why": "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue",
+   "history": [
+    "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue"
+   ]
   },
   "lantern_post": {
    "verdict": "godkjent",
@@ -976,7 +1162,10 @@
   "market_cross": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette"
+   "why": "ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette",
+   "history": [
+    "ser ikke at det er et kors. det er knøvlete og merkelig materialer for dette"
+   ]
   },
   "market_stall": {
    "verdict": "godkjent",
@@ -996,7 +1185,10 @@
   "portal_ring": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "det er noe rart med teksturene på sokkelen"
+   "why": "det er noe rart med teksturene på sokkelen",
+   "history": [
+    "det er noe rart med teksturene på sokkelen"
+   ]
   },
   "portal_runes": {
    "verdict": "godkjent",
@@ -1006,7 +1198,10 @@
   "portal_shard": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut"
+   "why": "jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut",
+   "history": [
+    "jeg klarer ikke bedømme det ut i fra dette bildet. det ser rart ut"
+   ]
   },
   "portal_swirl": {
    "verdict": "godkjent",
@@ -1016,7 +1211,11 @@
   "privy": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket."
+   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "history": [
+    "hvit dør. merkelig feil i taket. feil materialvalg for tak.",
+    "noe stikker opp gjennom taket. feil tekstur på taket."
+   ]
   },
   "rail_fence": {
    "verdict": "godkjent",
@@ -1036,17 +1235,28 @@
     "verdict": "underkjent",
     "date": "2026-10-11",
     "why": "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger"
-   }
+   },
+   "history": [
+    "tappen er for nært veggen. fortsatt for nakent. jeg vil ha mer møbler og pynt på veggene. trim eller listverk i overganger der to ulike teksturer møter hverandre med 90% vinkel. Overgangene er for harde. Trim / lister kan ikke være kvadratiske og må ha en passende tekstur som passer til materialet. det gjelder alle bygninger",
+    "jeg klarer ikke å se om du har flyttet trappen så det er mulig å gå opp"
+   ]
   },
   "shed_a": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "noe stikker opp gjennom taket. feil tekstur på taket."
+   "why": "noe stikker opp gjennom taket. feil tekstur på taket.",
+   "history": [
+    "døren er feil. hvit?",
+    "noe stikker opp gjennom taket. feil tekstur på taket."
+   ]
   },
   "shed_b": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "hva slags tak er det der? ser ikke passende ut"
+   "why": "hva slags tak er det der? ser ikke passende ut",
+   "history": [
+    "hva slags tak er det der? ser ikke passende ut"
+   ]
   },
   "signpost": {
    "verdict": "godkjent",
@@ -1066,7 +1276,11 @@
     "verdict": "usikker",
     "date": "2026-10-11",
     "why": "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp."
-   }
+   },
+   "history": [
+    "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp.",
+    "de spinkle vinduskarmene passer ikke til det voldsomme bindingsverket i veggene"
+   ]
   },
   "town_wall": {
    "verdict": "godkjent",
@@ -1091,7 +1305,10 @@
   "weapon_rack": {
    "verdict": "usikker",
    "date": "2026-10-11",
-   "why": "godkjent, men plasseringen er ikke bra. kolliderer med gjerdene"
+   "why": "godkjent, men plasseringen er ikke bra. kolliderer med gjerdene",
+   "history": [
+    "godkjent, men plasseringen er ikke bra. kolliderer med gjerdene"
+   ]
   },
   "well_bucket": {
    "verdict": "godkjent",
@@ -1111,7 +1328,10 @@
   "woodpile": {
    "verdict": "underkjent",
    "date": "2026-10-11",
-   "why": "taket har rar tekstur.finn noe som passer bedre"
+   "why": "taket har rar tekstur.finn noe som passer bedre",
+   "history": [
+    "taket har rar tekstur.finn noe som passer bedre"
+   ]
   }
  }
 }

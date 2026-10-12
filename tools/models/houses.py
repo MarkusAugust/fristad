@@ -123,7 +123,8 @@ HOUSES = {
     "house_b": dict(seed=2, w=9.0, d=6.8, floors=2, roof="slate", plaster="plaster_white", windows=[[0.6, 2.8], [-2.8, 0.0, 2.8]], door_x=-2.3, pitch=50),
     "house_c": dict(seed=3, w=7.0, d=7.2, floors=1, roof="sod", kinds=["logs"], windows=[[-1.6]], door_x=1.4, pitch=40, jetty=0),
     "house_d": dict(seed=4, w=6.4, d=8.6, floors=3, roof="tiles", plaster="plaster_red", kinds=["stone", "timber", "timber"], windows=[[1.4], [-1.4, 1.4], [-1.4, 1.4]], door_x=-1.3, pitch=56, jetty=0.3),
-    "house_e": dict(seed=5, w=9.6, d=7.0, floors=2, roof="shingles", kinds=["boards", "boards"], windows=[[-3.0, 2.6], [-3.0, 0.0, 3.0]], door_x=0.0, pitch=48, jetty=0),
+    # Eieren: «alt er brunt»: grå, værbitte bord og skifertak.
+    "house_e": dict(seed=5, w=9.6, d=7.0, floors=2, roof="slate", kinds=["cladding", "cladding"], windows=[[-3.0, 2.6], [-3.0, 0.0, 3.0]], door_x=0.0, pitch=48, jetty=0),
     "house_f": dict(seed=6, w=7.2, d=8.2, floors=2, roof="thatch", plaster="plaster_old", timber="timber_grey", windows=[[-1.6], [-1.6, 1.6]], door_x=1.6, pitch=54),
     # Flere varianter (eieren: rundt 20), så byen ikke gjentar seg.
     "house_g": dict(seed=7, w=5.6, d=7.4, floors=2, roof="shingles", plaster="plaster_white", timber="timber_grey", windows=[[1.2], [-1.2, 1.2]], door_x=-1.1, pitch=58, jetty=0.5),
@@ -132,7 +133,9 @@ HOUSES = {
     "house_j": dict(seed=10, w=6.0, d=6.4, floors=1, roof="shingles", kinds=["cladding"], windows=[[1.4]], door_x=-1.2, pitch=46, jetty=0),
     "house_k": dict(seed=11, w=10.0, d=7.6, floors=2, roof="slate", plaster="plaster_red", kinds=["stone", "timber"], windows=[[-3.0, 0.4, 3.2], [-3.2, -1.0, 1.2, 3.2]], door_x=-1.5, pitch=48, jetty=0.25),
     "house_l": dict(seed=12, w=6.8, d=9.0, floors=3, roof="thatch", plaster="plaster_old", windows=[[1.5], [-1.5, 1.5], [0.0]], door_x=-1.4, pitch=57, jetty=0.4),
-    "house_m": dict(seed=13, w=7.4, d=6.8, floors=2, roof="shingles_tar", kinds=["boards", "timber"], plaster="plaster_white", windows=[[-1.8, 1.8], [-1.8, 1.8]], door_x=0.0, pitch=50, jetty=0.3),
+    # Eieren: «sjekk materialvalgene»: murt første etasje under bindingsverket
+    # (bord under bindingsverk henger ikke sammen), som hus d, k og s.
+    "house_m": dict(seed=13, w=7.4, d=6.8, floors=2, roof="shingles_tar", kinds=["stone", "timber"], plaster="plaster_white", windows=[[-1.8, 1.8], [-1.8, 1.8]], door_x=0.0, pitch=50, jetty=0.3),
     "house_n": dict(seed=14, w=8.8, d=7.2, floors=2, roof="tiles", plaster="plaster", timber="timber_grey", windows=[[-2.6, 2.6], [-2.6, 0.0, 2.6]], door_x=0.0, pitch=52),
     "house_o": dict(seed=15, w=5.8, d=6.2, floors=1, roof="thatch", kinds=["logs"], windows=[[1.3]], door_x=-1.1, pitch=48, jetty=0),
     "house_p": dict(seed=16, w=6.6, d=8.4, floors=2, roof="slate", plaster="plaster_red", timber="timber_grey", windows=[[1.4], [-1.4, 1.4]], door_x=-1.3, pitch=55, jetty=0.45),

@@ -2,6 +2,7 @@
 
     python3 -m tools.qa approvals page UT      # bilder og data til siden i mappa UT
     python3 -m tools.qa approvals apply SVAR   # svarene fra siden inn i approvals.json
+    python3 -m tools.qa approvals round SPEC STUDIO UT  # en runde med bare det som er endret
 
 `page` bygger på katalogen (`docs/katalog/katalog.json`, så `catalog` først):
 hver modell som står ute fotograferes i spillet med `snapshot --shots`, i
@@ -190,6 +191,46 @@ def page(out):
     return order
 
 
+def round_page(spec_path, studio, out):
+    """En runde med bare det som er endret (`assets/catalog/rounds/N.json`):
+    hvert kort viser eierens punkter (`history` i approvals.json), hvordan
+    hvert er rettet, og før- og etterbildene fra `tools/qa/studio.py`
+    (`before_<modell>_<vinkel>.png` og `after_...` i mappa `studio`) side om
+    side."""
+    with open(spec_path) as f:
+        spec = json.load(f)
+    with open(os.path.join(DATA, "approvals.json")) as f:
+        prior = json.load(f)
+    with open(os.path.join(DATA, "models.json")) as f:
+        about = json.load(f)["models"]
+    img = os.path.join(out, "img")
+    os.makedirs(img, exist_ok=True)
+    items = []
+    for n, it in spec["items"].items():
+        p = prior.get("models", {}).get(n) or {}
+        views = sorted({f[len(f"before_{n}_"):-4] for f in os.listdir(studio) if f.startswith(f"before_{n}_") and f.endswith(".png")})
+        pairs = []
+        for v in views:
+            pair = []
+            for side in ("before", "after"):
+                src = os.path.join(studio, f"{side}_{n}_{v}.png")
+                if not os.path.exists(src):
+                    raise SystemExit(f"mangler {src}")
+                Image.open(src).convert("RGB").save(os.path.join(img, f"m_{n}_{v}_{side}.jpg"), quality=86)
+                pair.append(f"img/m_{n}_{v}_{side}.jpg")
+            pairs.append(pair)
+        items.append({
+            "id": f"m_{n}", "kind": "modell", "name": n, "about": about.get(n, ""), "facts": [],
+            "check": None, "game": True, "prior": {k: p[k] for k in ("verdict", "date", "why") if k in p} or None,
+            "points": p.get("history") or ([p["why"]] if p.get("why") else []),
+            "fixed": [spec["fix"][k] for k in it["fix"]], "pairs": pairs,
+        })
+    with open(os.path.join(out, "data.json"), "w") as f:
+        json.dump({"round": spec.get("round", ROUND), "items": items}, f, ensure_ascii=False)
+    shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
+    return items
+
+
 def apply(path):
     """Svarene fra siden inn i approvals.json. `path` er en mappe med
     `<id>.json` (`{verdict, why, at}`) eller en json-liste med `{id, data}`."""
@@ -223,6 +264,14 @@ def apply(path):
             entry["before"] = {k: old[k] for k in ("verdict", "date", "why")}
         elif old and old.get("before"):
             entry["before"] = old["before"]
+        # Alle punktene eieren har skrevet om tingen, på tvers av rundene,
+        # så ingen grunn blir borte når dommen står eller grunnen endres.
+        seen = list((old or {}).get("history", []))
+        for w in ((old or {}).get("why", ""), d.get("why", "").strip()):
+            if w and w not in seen:
+                seen.append(w)
+        if seen:
+            entry["history"] = seen
         if old != entry:
             ap[group][name] = entry
             n += 1
@@ -236,6 +285,10 @@ def main(argv):
     if argv[:1] == ["page"] and len(argv) == 2:
         items = page(argv[1])
         print(f"{argv[1]}: {len(items)} ting")
+        return 0
+    if argv[:1] == ["round"] and len(argv) == 4:
+        items = round_page(argv[1], argv[2], argv[3])
+        print(f"{argv[3]}: {len(items)} ting i runden")
         return 0
     if argv[:1] == ["apply"] and len(argv) == 2:
         print(f"{apply(argv[1])} dommer ført inn i assets/catalog/approvals.json")

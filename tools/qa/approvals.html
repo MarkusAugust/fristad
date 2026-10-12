@@ -67,6 +67,15 @@ main .wrap { display: grid; gap: 18px; padding-block: 20px 60px; }
 .photo { background: var(--photo); display: flex; align-items: center; justify-content: center; min-height: 220px; cursor: zoom-in; border: 0; padding: 0; }
 .photo img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 560; object-fit: contain; }
 .photo.tex img { aspect-ratio: 1; max-height: 420px; width: auto; }
+.pairs { background: var(--photo); display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-content: start; }
+.shot { position: relative; border: 0; padding: 0; background: none; cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 560; object-fit: cover; }
+.tag { position: absolute; left: 6px; top: 6px; font: 600 12px/1 var(--body); padding: 4px 7px; border-radius: 3px; background: rgb(0 0 0 / .6); color: #fff; }
+.tag.after { background: var(--ok); }
+.sub { font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 6px 0 0; }
+.points, .fixed { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+.points li { font-style: italic; }
+.fixed li::marker { content: "✓  "; color: var(--ok); }
 .panel { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .eyebrow { font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
 .name { font: 600 19px/1.2 var(--mono); margin: 0; overflow-wrap: anywhere; }
@@ -181,13 +190,29 @@ function renderBar() {
 function card(it) {
   const el = document.createElement("article");
   el.className = "item"; el.id = it.id; el.tabIndex = -1;
-  const ph = document.createElement("button");
-  ph.type = "button"; ph.className = "photo" + (it.kind === "tekstur" ? " tex" : "");
-  ph.setAttribute("aria-label", "Vis større: " + it.name);
-  const img = document.createElement("img");
-  img.loading = "lazy"; img.decoding = "async"; img.src = `img/${it.id}.jpg`; img.alt = it.about || it.name;
-  ph.append(img);
-  ph.onclick = () => { const z = document.getElementById("zoom"); document.getElementById("zoom-img").src = img.src; z.showModal(); };
+  const zoom = src => { const z = document.getElementById("zoom"); document.getElementById("zoom-img").src = src; z.showModal(); };
+  let ph;
+  if (it.pairs && it.pairs.length) {
+    // Før og etter side om side, én rad per vinkel.
+    ph = document.createElement("div"); ph.className = "pairs";
+    for (const pair of it.pairs) {
+      pair.forEach((src, k) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "shot";
+        b.setAttribute("aria-label", (k ? "Etter" : "Før") + ", vis større: " + it.name);
+        const im = document.createElement("img"); im.loading = "lazy"; im.decoding = "async"; im.src = src; im.alt = (k ? "Etter: " : "Før: ") + it.name;
+        const tag = document.createElement("span"); tag.className = "tag" + (k ? " after" : ""); tag.textContent = k ? "Etter" : "Før";
+        b.append(im, tag); b.onclick = () => zoom(src); ph.append(b);
+      });
+    }
+  } else {
+    ph = document.createElement("button");
+    ph.type = "button"; ph.className = "photo" + (it.kind === "tekstur" ? " tex" : "");
+    ph.setAttribute("aria-label", "Vis større: " + it.name);
+    const img = document.createElement("img");
+    img.loading = "lazy"; img.decoding = "async"; img.src = `img/${it.id}.jpg`; img.alt = it.about || it.name;
+    ph.append(img);
+    ph.onclick = () => zoom(img.src);
+  }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
   eb.textContent = it.kind === "modell" ? (it.game ? "Modell · fra spillet" : "Modell · skisse") : (it.game ? "Tekstur" : "Tekstur · bare malt");
@@ -198,6 +223,18 @@ function card(it) {
   for (const f of it.facts.filter(Boolean)) { const li = document.createElement("li"); li.textContent = f; ul.append(li); }
   p.append(ul);
   if (it.check) { const c = document.createElement("div"); c.className = "check " + (it.check.startsWith("består") ? "pass" : "fail"); c.textContent = it.check; p.append(c); }
+  if (it.points && it.points.length) {
+    const h3 = document.createElement("h3"); h3.className = "sub"; h3.textContent = "Det du skrev";
+    const ul2 = document.createElement("ul"); ul2.className = "points";
+    for (const t of it.points) { const li = document.createElement("li"); li.textContent = t; ul2.append(li); }
+    p.append(h3, ul2);
+  }
+  if (it.fixed && it.fixed.length) {
+    const h3 = document.createElement("h3"); h3.className = "sub"; h3.textContent = "Rettet slik";
+    const ul3 = document.createElement("ul"); ul3.className = "fixed";
+    for (const t of it.fixed) { const li = document.createElement("li"); li.textContent = t; ul3.append(li); }
+    p.append(h3, ul3);
+  }
   if (it.fresh) { const f = document.createElement("div"); f.className = "fresh"; f.textContent = it.fresh; p.append(f); }
   if (it.prior) {
     const pr = document.createElement("div"); pr.className = "prior";

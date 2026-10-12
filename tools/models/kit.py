@@ -637,7 +637,32 @@ def gable_roof(p, x0, x1, y0, y1, z_eave, pitch, overhang=0.9, gable_over=0.7, t
             for j in range(last):
                 a_ = bm_pts[(i, j)]
                 b_ = bm_pts[(i, j + 1)]
+                # Ved mønet slutter de 0,35 m før toppen, så de to ikke
+                # krysser hverandre og stikker opp over mønet.
+                if j == 0:
+                    L_ = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+                    f_ = min(0.35 / max(L_, 1e-3), 0.5)
+                    a_ = (a_[0] + (b_[0] - a_[0]) * f_, a_[1] + (b_[1] - a_[1]) * f_)
                 stick("barge", (x, a_[0], a_[1] - 0.09), (x, b_[0], b_[1] - 0.09), 0.1, 0.36, p.trim, ("trim", DARK_BEAM), bevel=0.02)
+    # Kilen under mønet: tetter rommet mellom de to takflatene ved gavlene,
+    # så ingen svart åpning synes under mønet når vindskiene ikke krysser.
+    a_ = 0.3
+    t_ = math.tan(math.radians(pitch))
+    tri = [(yc, ridge + 0.12), (yc - a_, ridge - a_ * t_ - 0.12), (yc + a_, ridge - a_ * t_ - 0.12)]
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.verify()
+    ends = [[bm.verts.new((x_, y_, z_)) for y_, z_ in tri] for x_ in (xa + 0.02, xb - 0.02)]
+    bm.faces.new(ends[0][::-1])
+    bm.faces.new(ends[1])
+    for i in range(3):
+        j = (i + 1) % 3
+        bm.faces.new((ends[0][i], ends[0][j], ends[1][j], ends[1][i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces:
+        for lp in f.loops:
+            c = lp.vert.co
+            lp[uvl].uv = (c.x if abs(f.normal.x) < 0.5 else c.y, c.z)
+    _object(f"{name}_ridge_fill", bm, p.roof)
     # Mønerull.
     bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.3, depth=xb - xa + 0.1, location=((xa + xb) / 2, yc, ridge - sag * 0.3 + 0.02), rotation=(0, math.pi / 2, 0))
     rl = bpy.context.active_object
