@@ -52,6 +52,7 @@ class Mats:
         self.boards = layer("weatherboard")
         self.trim = layer("trim")
         self.iron = layer("iron", rough=0.45)
+        self.dark_iron = layer("iron", (0.34, 0.32, 0.31), rough=0.45)
         self.stone = layer("wall_stone")
         self.flag = layer("flagstone")
         self.logs = layer("logs")
@@ -60,6 +61,8 @@ class Mats:
         self.door = layer("door")
         self.shingles = layer("shingles")
         self.linen = layer("linen")
+        # Striesekker: linlaget tonet brunt som jute.
+        self.burlap = layer("linen", (0.62, 0.5, 0.34))
         self.ends = layer("weatherboard", (1.0, 0.86, 0.66))
         self.dark = layer("timber", (0.25, 0.2, 0.18))
 
@@ -292,40 +295,43 @@ def sack_at(m, at, r=0.18, h=0.45, mat=None, yaw=0.0, tilt=0.0):
 
 
 def market_cross():
+    """Torgkorset: et ringkors hogd i én grå stein på et slankt skaft, på en
+    firkantet sokkel og tre åttekantede trinn. Alt i grå hogd stein (`stone`),
+    så det leses som én steinhoggers arbeid og ikke som murt (eierens dom i
+    runde 7: «ser ikke at det er et kors», knøvlete og rare materialer)."""
     m = Mats()
-    # Tre åttekantede trinn med avfaset kant: hellene på toppen, mur på sidene.
+    # Grå hogd stein (`stone`); på korset og skaftet er uv-en 4 ganger
+    # større, så én stein dekker det meste av delen (hogd i ett).
+    grey = layer("stone", (0.95, 0.95, 0.97))
+    worn = layer("stone", (0.82, 0.82, 0.84))
+    # Tre åttekantede trinn med avfaset kant.
     for (r, z0, z1) in ((1.3, -0.2, 0.2), (1.0, 0.2, 0.42), (0.74, 0.42, 0.64)):
-        lathe("step", [(r, z0), (r, z1 - 0.05), (r - 0.05, z1), (0.0, z1)], m.stone, n=8, phase=math.pi / 8, top=m.flag)
-    # Sokkelen: en firkantet kloss med skrå topp og en list nede.
-    box("plinth_foot", (-0.46, -0.46, 0.64), (0.46, 0.46, 0.78), m.flag, bevel=0.04)
-    box("plinth", (-0.38, -0.38, 0.78), (0.38, 0.38, 1.22), m.stone, bevel=0.03)
-    lathe("plinth_top", [(0.54, 1.22), (0.54, 1.27), (0.24, 1.42), (0.0, 1.42)], m.flag, n=4, phase=math.pi / 4)
-    # Skaftet smalner av oppover, med en krage.
-    lathe("shaft", [(0.2, 1.38), (0.15, 3.6), (0.0, 3.6)], m.stone, n=8, phase=math.pi / 8)
-    ring("collar", 0.2, 0.1, 0.12, m.flag, n=8, at=(0, 0, 3.0))
-    # Ringkorset: armer som vider seg ut i endene, og ringen rundt krysset.
-    zc = 3.88
-    box("cross_v", (-0.13, -0.12, 3.5), (0.13, 0.12, 4.12), m.stone, bevel=0.03)
-    box("cross_h", (-0.5, -0.1, zc - 0.12), (0.5, 0.1, zc + 0.12), m.stone, bevel=0.03)
+        lathe("step", [(r, z0), (r, z1 - 0.05), (r - 0.05, z1), (0.0, z1)], worn, n=8, phase=math.pi / 8, su=0.5, sv=0.5)
+    # Sokkelen: en firkantet kloss med skrå topp.
+    i1 = len(PIECES)
+    box("plinth", (-0.38, -0.38, 0.64), (0.38, 0.38, 1.22), grey, bevel=0.03)
+    lathe("plinth_top", [(0.54, 1.22), (0.54, 1.27), (0.24, 1.42), (0.0, 1.42)], grey, n=4, phase=math.pi / 4)
+    # Skaftet smalner av oppover.
+    lathe("shaft", [(0.17, 1.38), (0.12, 3.25), (0.0, 3.25)], grey, n=8, phase=math.pi / 8)
+    # Ringkorset: et latinsk kors (1,2 m bredt, 1,5 m høyt) med armer som
+    # vider seg ut i endene, og en ring rundt krysset.
+    zc = 3.95
+    t = 0.16
+    box("cross_v", (-0.11, -t / 2, 3.2), (0.11, t / 2, 4.6), grey, bevel=0.025)
+    # (Armene litt tynnere enn stammen, så flatene ikke ligger i samme plan.)
+    box("cross_h", (-0.6, -t / 2 + 0.01, zc - 0.1), (0.6, t / 2 - 0.01, zc + 0.1), grey, bevel=0.025)
     for sx in (-1, 1):
-        box("cross_end", (sx * 0.5 - 0.07, -0.14, zc - 0.19), (sx * 0.5 + 0.07, 0.14, zc + 0.19), m.stone, bevel=0.04)
-    box("cross_top", (-0.19, -0.14, 4.12), (0.19, 0.14, 4.3), m.stone, bevel=0.04)
-    hoop = ring("cross_ring", 0.3, 0.09, 0.14, m.flag, n=16)
+        x0, x1 = sorted((sx * 0.5, sx * 0.66))
+        box("cross_end", (x0, -t / 2 - 0.005, zc - 0.16), (x1, t / 2 + 0.005, zc + 0.16), grey, bevel=0.025)
+    box("cross_top", (-0.16, -t / 2 - 0.01, 4.5), (0.16, t / 2 + 0.01, 4.66), grey, bevel=0.025)
+    hoop = ring("cross_ring", 0.34, 0.07, t - 0.05, grey, n=20)
     move([hoop], (0, 0, zc), roll=math.pi / 2)
-    # Oppslagstavla på skaftet, med lapper og to jernbånd.
-    i = len(PIECES)
-    box("notice_board", (-0.3, -0.05, -0.35), (0.3, 0.0, 0.35), m.grey, bevel=0.015)
-    for z in (-0.22, 0.22):
-        box("notice_strap", (-0.33, -0.065, z - 0.03), (0.33, -0.04, z + 0.03), m.iron, bevel=0.006)
-    paper = layer("linen", (1.0, 1.0, 0.95))
-    for x, z, w, h, a in ((-0.12, 0.03, 0.2, 0.26, 0.05), (0.13, -0.05, 0.18, 0.2, -0.08), (0.06, 0.2, 0.14, 0.1, 0.1)):
-        ob = box("notice", (-w / 2, -0.06, -h / 2), (w / 2, -0.05, h / 2), paper, bevel=0.0)
-        move([ob], (x, 0, z), pitch=a)
-    move(since(i), (0, -0.17, 2.05))
+    for ob in since(i1):
+        scale_uv(ob, 0.25)
     # Jernringen til å binde dyr, foran på sokkelen.
-    tie = ring("tie_ring", 0.09, 0.025, 0.025, m.iron, n=10)
+    tie = ring("tie_ring", 0.09, 0.025, 0.025, m.dark_iron, n=10)
     move([tie], (0, -0.4, 0.93), roll=math.pi / 2)
-    box("tie_plate", (-0.06, -0.4, 0.98), (0.06, -0.38, 1.08), m.iron, bevel=0.01)
+    box("tie_plate", (-0.06, -0.4, 0.98), (0.06, -0.38, 1.08), m.dark_iron, bevel=0.01)
 
 
 def stall_frame(m, rng):
@@ -494,16 +500,62 @@ def cart():
         stick("cart_shaft", (L / 2 - 0.3, sy * 0.35, z0 + 0.08), (L / 2 + 1.12, sy * 0.24, z0 - 0.02), 0.09, 0.09, m.timber, ("timber", 0), bevel=0.02)
     stick("cart_bar", (L / 2 + 0.95, -0.3, z0), (L / 2 + 0.95, 0.3, z0), 0.07, 0.07, m.timber, ("timber", 3), bevel=0.015)
     stick("cart_prop", (L / 2 + 0.75, 0.0, z0 - 0.02), (L / 2 + 0.85, 0.0, 0.0), 0.07, 0.07, m.timber, ("timber", 2), bevel=0.015)
-    # Akselen og hjulene.
-    stick("axle", (0, -W / 2 - 0.22, 0.55), (0, W / 2 + 0.22, 0.55), 0.1, 0.1, m.timber, ("timber", 1), bevel=0.02)
+    # Akselen og hjulene, godt utenfor stakene og sidebrettene.
+    wy = W / 2 + 0.2
+    stick("axle", (0, -wy - 0.12, 0.55), (0, wy + 0.12, 0.55), 0.1, 0.1, m.timber, ("timber", 1), bevel=0.02)
+    wheels = []
     for sy in (-1, 1):
         stick("axle_block", (-0.25, sy * 0.35, 0.6), (0.25, sy * 0.35, 0.6), 0.12, 0.12, m.timber, ("timber", 2), bevel=0.02)
-        wheel(m, sy * (W / 2 + 0.13))
-    # Lasten: ei tønne på siden, en kasse og to sekker.
-    barrel_at(m, (-0.55, 0.1, z0 + 0.2), r=0.24, h=0.62, n=10, lying=True, yaw=0.2)
-    crate_at(m, (0.25, 0.18, z0 + 0.2), s=0.42, yaw=0.25)
-    sack_at(m, (0.55, -0.25, z0 + 0.2), r=0.17, h=0.45, yaw=0.3, tilt=0.15)
-    sack_at(m, (0.05, -0.28, z0 + 0.2), r=0.16, h=0.4, yaw=1.2, tilt=-0.2)
+        i = len(PIECES)
+        wheel(m, sy * wy)
+        wheels.append(since(i))
+    body = [o for o in PIECES if o.name.startswith(("cart_side", "cart_stake", "cart_rail", "cart_floor", "cart_back"))]
+    # Lasten ligger på bunnen innenfor sidebrettene, uten å gå inn i
+    # hverandre: ei tønne på langs, en kasse og to sekker.
+    cargo = [
+        barrel_at(m, (-0.58, 0.12, z0 + 0.2), r=0.24, h=0.62, n=10, lying=True),
+        crate_at(m, (0.3, 0.2, z0 + 0.2), s=0.42, yaw=0.12),
+        sack_at(m, (0.62, -0.27, z0 + 0.2), r=0.16, h=0.42, mat=m.burlap, yaw=0.3),
+        sack_at(m, (0.05, -0.28, z0 + 0.2), r=0.15, h=0.38, mat=m.burlap, yaw=1.2),
+    ]
+    inner = ((-L / 2 + 0.03, -W / 2 + 0.035, z0 + 0.2), (L / 2, W / 2 - 0.035, z0 + 2))
+    check_clear("cart", cargo, inner, gap=0.01)
+    for w in wheels:
+        check_apart("cart: hjulet og kassa", w, body, gap=0.05)
+
+
+def bbox(obs):
+    """Verdens boks rundt delene (min, maks)."""
+    bpy.context.view_layer.update()
+    pts = [o.matrix_world @ v.co for o in obs for v in o.data.vertices]
+    return (Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts))), Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts))))
+
+
+def check_clear(name, groups, inner, gap=0.0):
+    """Lasten ligger innenfor `inner` (min, maks) og går ikke inn i
+    hverandre (bokser med `gap` imellom); ellers stopper eksporten
+    (eierens dom i runde 7: lasten klippet inn i vognveggen)."""
+    boxes = [bbox(g) for g in groups]
+    lo, hi = Vector(inner[0]), Vector(inner[1])
+    for k, (a, b) in enumerate(boxes):
+        if any(a[i] < lo[i] - 1e-4 or b[i] > hi[i] + 1e-4 for i in range(3)):
+            raise SystemExit(f"{name}: last {k} går ut av kassa: {tuple(a)} {tuple(b)}")
+    for k in range(len(boxes)):
+        for j in range(k + 1, len(boxes)):
+            (a0, a1), (b0, b1) = boxes[k], boxes[j]
+            if all(a0[i] < b1[i] + gap and b0[i] < a1[i] + gap for i in range(3)):
+                raise SystemExit(f"{name}: last {k} og {j} går inn i hverandre")
+
+
+def check_apart(name, a, b, gap):
+    """Ingen hjørne i `a` nærmere enn `gap` til boksen rundt hver del i `b`
+    (hjulet og kassa)."""
+    bpy.context.view_layer.update()
+    for o in b:
+        lo, hi = bbox([o])
+        for p in (ob.matrix_world @ v.co for ob in a for v in ob.data.vertices):
+            if all(lo[i] - gap < p[i] < hi[i] + gap for i in range(3)):
+                raise SystemExit(f"{name}: {o.name} er nærmere enn {gap} m")
 
 
 def barrel():
@@ -769,10 +821,12 @@ def woodpile():
     m = Mats()
     rng = random.Random(73)
     L, D, H = 1.8, 0.5, 1.2
-    # Stakene i endene, og en kjerne bak kubbeendene.
+    # Stakene i endene (de bakre høyere, så taket faller fram), og en
+    # kjerne bak kubbeendene.
+    top = {-1: H + 0.18, 1: H + 0.3}
     for sx in (-1, 1):
         for sy in (-1, 1):
-            stick("pile_stake", (sx * (L / 2 + 0.06), sy * 0.2, -0.2), (sx * (L / 2 + 0.06) + rng.uniform(-0.02, 0.02), sy * 0.2, H + 0.18), 0.1, 0.1, m.timber, ("timber", rng.randrange(4)), bevel=0.02)
+            stick("pile_stake", (sx * (L / 2 + 0.06), sy * 0.2, -0.2), (sx * (L / 2 + 0.06) + rng.uniform(-0.02, 0.02), sy * 0.2, top[sy]), 0.1, 0.1, m.timber, ("timber", rng.randrange(4)), bevel=0.02)
     core = box("pile_core", (-L / 2, -D / 2 + 0.06, 0.0), (L / 2, D / 2 - 0.04, H), m.logs, bevel=0.02)
     swap_uv(core)
     # Kubbeendene foran: sekskantede stubber i forskutte rader.
@@ -787,9 +841,14 @@ def woodpile():
             x += 0.2
         z += 0.185
         row += 1
-    # Taket: bord på skrå over stabelen.
-    roof = box("pile_roof", (-L / 2 - 0.25, -D / 2 - 0.3, -0.04), (L / 2 + 0.25, D / 2 + 0.2, 0.04), m.boards, bevel=0.02)
-    move([roof], (0, 0, H + 0.24), roll=-0.2)
+    # Taket: en ås langs toppen av stakene foran og bak, og et sponlagt
+    # takfall over dem som stikker ut foran og i endene.
+    for sy in (-1, 1):
+        stick("pile_purlin", (-L / 2 - 0.2, sy * 0.2, top[sy] + 0.05), (L / 2 + 0.2, sy * 0.2, top[sy] + 0.05), 0.1, 0.1, m.timber, ("timber", 2 + sy), bevel=0.02)
+    slope = (top[1] - top[-1]) / 0.4
+    z_at = lambda y: top[-1] + 0.1 + (y + 0.2) * slope + 0.07
+    y_back, y_front = D / 2 + 0.2, -D / 2 - 0.3
+    sag_roof("pile_roof", -L / 2 - 0.3, L / 2 + 0.3, y_back, y_front, z_at(y_back), z_at(y_front), m.shingles, thick=0.07, sag=0.02, n=4)
     # Hoggestabben med øksa.
     lathe("chop_block", [(0.24, 0.0), (0.26, 0.05), (0.24, 0.48), (0.0, 0.48)], m.logs, n=8, at=(L / 2 + 0.52, -0.2, 0), top=m.ends)
     stick("axe_haft", (L / 2 + 0.5, -0.2, 0.46), (L / 2 + 0.66, -0.35, 1.08), 0.045, 0.045, m.grey, bevel=0.0)
@@ -840,29 +899,30 @@ def chest_body():
     # Kassa av planker: timber-laget, tre bord i høyden.
     body = box("chest_box", (-W / 2, -D / 2, 0.04), (W / 2, D / 2, H), m.timber, bevel=0.02)
     scale_uv(body, 1.0, 0.75 / (H - 0.04))
-    box("chest_plinth", (-W / 2 - 0.02, -D / 2 - 0.02, 0.0), (W / 2 + 0.02, D / 2 + 0.02, 0.07), m.grey, bevel=0.015)
-    # Jernvinkler på hjørnene, bånd rundt kassa og store nagler.
+    box("chest_plinth", (-W / 2 - 0.02, -D / 2 - 0.02, 0.0), (W / 2 + 0.02, D / 2 + 0.02, 0.07), m.dark, bevel=0.015)
+    # Jernvinkler på hjørnene og bånd over kassa: smale smijernsbånd med
+    # nagler fra trim-arket (stripen `IRON_BAND`, som tønnebåndene), ikke
+    # brede plater med jernflisa på (eierens dom i runde 7).
+    iron = ("trim", IRON_BAND)
     for sx in (-1, 1):
         for sy in (-1, 1):
             x, y = sx * W / 2, sy * D / 2
-            box("chest_corner_a", (min(x, x - sx * 0.12) - 0.01, y - 0.014, 0.02), (max(x, x - sx * 0.12) + 0.01, y + 0.014, H + 0.005), m.iron, bevel=0.006)
-            box("chest_corner_b", (x - 0.014, min(y, y - sy * 0.12) - 0.01, 0.02), (x + 0.014, max(y, y - sy * 0.12) + 0.01, H + 0.005), m.iron, bevel=0.006)
+            stick("chest_corner_a", (x - sx * 0.035, y + sy * 0.011, 0.05), (x - sx * 0.035, y + sy * 0.011, H + 0.004), 0.07, 0.02, m.trim, iron, bevel=0.004, roll=0.0)
+            stick("chest_corner_b", (x + sx * 0.011, y - sy * 0.035, 0.05), (x + sx * 0.011, y - sy * 0.035, H + 0.004), 0.02, 0.07, m.trim, iron, bevel=0.004)
     for bx in (-0.3, 0.3):
         for sy in (-1, 1):
-            box("chest_band", (bx - 0.035, sy * D / 2 - 0.012, 0.04), (bx + 0.035, sy * D / 2 + 0.012, H), m.iron, bevel=0.005)
-            for bz in (0.13, 0.26, 0.39):
-                box("chest_rivet", (bx - 0.016, sy * (D / 2 + 0.012) - 0.01, bz - 0.016), (bx + 0.016, sy * (D / 2 + 0.012) + 0.01, bz + 0.016), m.iron, bevel=0.0)
+            stick("chest_band", (bx, sy * (D / 2 + 0.011), 0.05), (bx, sy * (D / 2 + 0.011), H), 0.06, 0.02, m.trim, iron, bevel=0.004)
     # Håndtak på endene og låsplata foran.
     for sx in (-1, 1):
-        box("handle_plate", (sx * W / 2 - 0.012, -0.08, H * 0.55), (sx * W / 2 + 0.012, 0.08, H * 0.72), m.iron, bevel=0.005)
+        box("handle_plate", (sx * W / 2 - 0.012, -0.08, H * 0.55), (sx * W / 2 + 0.012, 0.08, H * 0.72), m.dark_iron, bevel=0.005)
         pts = [Vector((sx * (W / 2 + 0.01), math.cos(math.pi * k / 6) * 0.08, H * 0.6 - math.sin(math.pi * k / 6) * 0.07)) for k in range(7)]
         for a, b in zip(pts, pts[1:]):
-            stick("handle", tuple(a), tuple(b), 0.022, 0.022, m.iron, bevel=0)
-    box("lock_plate", (-0.08, -D / 2 - 0.02, H - 0.2), (0.08, -D / 2 + 0.005, H - 0.02), m.iron, bevel=0.012)
+            stick("handle", tuple(a), tuple(b), 0.022, 0.022, m.dark_iron, bevel=0)
+    box("lock_plate", (-0.08, -D / 2 - 0.02, H - 0.2), (0.08, -D / 2 + 0.005, H - 0.02), m.dark_iron, bevel=0.012)
     box("keyhole", (-0.012, -D / 2 - 0.026, H - 0.15), (0.012, -D / 2 - 0.018, H - 0.09), layer("iron", (0.08, 0.08, 0.08)), bevel=0.003)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            box("chest_foot", (sx * (W / 2 - 0.02) - 0.06, sy * (D / 2 - 0.02) - 0.06, 0.0), (sx * (W / 2 - 0.02) + 0.06, sy * (D / 2 - 0.02) + 0.06, 0.04), m.iron, bevel=0.008)
+            box("chest_foot", (sx * (W / 2 - 0.02) - 0.06, sy * (D / 2 - 0.02) - 0.06, 0.0), (sx * (W / 2 - 0.02) + 0.06, sy * (D / 2 - 0.02) + 0.06, 0.04), m.dark_iron, bevel=0.008)
 
 
 def chest_lid():
@@ -880,6 +940,8 @@ def chest_lid():
         return (-R + math.cos(a) * (R + grow), math.sin(a) * (H + grow))
 
     def shell(name, xa, xb, grow0, grow1, mat, sv=1.0, strip=None):
+        """Buen fra hengslet til forkanten. Med `strip` = ("trim", k) får
+        utsida stripe k av trim-arket på tvers (jernbåndene)."""
         bm = bmesh.new()
         uvl = bm.loops.layers.uv.verify()
         rows = []
@@ -898,7 +960,12 @@ def chest_lid():
                 for lp in f.loops:
                     c = lp.vert.co
                     kk = k if lp.vert in a else k + 1
-                    lp[uvl].uv = (c.x, cum[kk] * sv) if uvs != "side" else (c.y, c.z)
+                    if strip and uvs == "out":
+                        v0, v1 = 1 - (strip[1] + 1) / 8, 1 - strip[1] / 8
+                        t = (c.x - xa) / (xb - xa)
+                        lp[uvl].uv = (cum[kk] * 0.125 / abs(xb - xa), v0 + 0.006 + t * (v1 - v0 - 0.012))
+                    else:
+                        lp[uvl].uv = (c.x, cum[kk] * sv) if uvs != "side" else (c.y, c.z)
         for row in (rows[0], rows[-1]):
             f = bm.faces.new(row)
             for lp in f.loops:
@@ -927,15 +994,12 @@ def chest_lid():
                 lp[uvl].uv = (c.y, c.z * 2.5)
         kit._object("lid_end", bm, m.timber)
     for bx in (-0.3, 0.3):
-        shell("lid_band", bx - 0.035, bx + 0.035, 0.0, 0.012, m.iron)
-        for k in range(1, 8, 2):
-            y, z = arc(k / 8, 0.018)
-            box("lid_rivet", (bx - 0.016, y - 0.016, z - 0.016), (bx + 0.016, y + 0.016, z + 0.016), m.iron, bevel=0.0)
+        shell("lid_band", bx - 0.03, bx + 0.03, 0.0, 0.012, m.trim, strip=("trim", IRON_BAND))
     # Jernkant langs forkanten og haspen ned over låsplata.
-    box("lid_lip", (-W / 2 - 0.01, -D - 0.015, -0.01), (W / 2 + 0.01, -D + 0.02, 0.03), m.iron, bevel=0.006)
-    box("hasp", (-0.04, -D - 0.03, -0.12), (0.04, -D - 0.012, 0.02), m.iron, bevel=0.008)
+    stick("lid_lip", (-W / 2 - 0.01, -D + 0.002, 0.01), (W / 2 + 0.01, -D + 0.002, 0.01), 0.035, 0.04, m.trim, ("trim", IRON_BAND), bevel=0.005)
+    box("hasp", (-0.04, -D - 0.03, -0.12), (0.04, -D - 0.012, 0.02), m.dark_iron, bevel=0.008)
     for bx in (-0.3, 0.3):
-        stick("hinge", (bx - 0.06, 0.012, 0.0), (bx + 0.06, 0.012, 0.0), 0.03, 0.03, m.iron, bevel=0)
+        stick("hinge", (bx - 0.06, 0.012, 0.0), (bx + 0.06, 0.012, 0.0), 0.03, 0.03, m.dark_iron, bevel=0)
 
 
 MODELS = {

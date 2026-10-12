@@ -1,10 +1,10 @@
-"""Skriptoriet, stavkirka og krypten i den malte stilen (docs/ny-stil.md),
+"""Skriptoriet, kirka og krypten i den malte stilen (docs/ny-stil.md),
 bygd med byggesettet (kit.py). Kjør:
 
     python3 tools/models/sacred.py [scriptorium stave_church crypt]
 
 Gir utsida og innsida (`<navn>_interior.glb`, tegnes bare nær) til
-Skriptoriet og stavkirka, med `<navn>_inside.json` (kolliderne, lysene og
+Skriptoriet og kirka, med `<navn>_inside.json` (kolliderne, lysene og
 lykta for begge), og krypten (`crypt.glb`, uten innside: døra er stengt, og
 byen setter kollideren, siktemålet og fakkellyset i `town::crypt`).
 
@@ -15,12 +15,13 @@ bjelketak, skrivepulter under vinduene, bokhyller, lesepult med lenkebok,
 lysestaker og lysekroner, og biblioteksgalleriet langs bakmuren med trapp
 opp i vestenden.
 
-Stavkirka, i lag som Borgund: steinfundament, svalgang med buer mellom
-stolpene, sideskip, høyt midtskip med bratt tak og drakehoder, takrytter
-med spir, kor og apsis. Alle takene er tjærede skjellspon som henger litt.
-Døra står slått inn. Inne: staver med andreaskors og knær, himling over
-sideskipet, triumfbjelke med krusifiks, alter i koret, døpefont og
-veggbenker.
+Kirka (modellen heter fortsatt `stave_church`): en romansk steinkirke i
+samme stil som kryptinngangen, med skip, smalere kor og apsis østover,
+hjørnesteiner, støttepilarer, rundbuevinduer, skifertak inne mellom
+steingavler med dekkheller, klokkegavl over vestgavlen og kors på gavlene.
+Døra i vestportalen står slått inn. Inne: kalkpuss på murene, flatt
+bjelketak, korbue med triumfbjelke og krusifiks, halvkuppel over apsiden,
+alter, døpefont, veggbenker, lysestaker og lysekrone.
 
 Krypten: et lite, lavt gravkapell av forvitret stein med mose, bratt
 steinhelletak som har sunket, gavl med kors, jernbeslått dør (stengt) i en
@@ -278,7 +279,9 @@ def buttress(name, base, out, along, w, prof, mat, bevel=0.03):
 
 def parapet(p, frame, L, z0, zk, apex, thick, mat, coping):
     """Gavl av stein som står opp over taket: rett opp i hjørnene (`zk`),
-    skrå opp til mønet (`apex`), med dekkheller langs skråkantene."""
+    skrå opp til mønet (`apex`), med dekkheller langs skråkantene. `z0` er
+    murkronen: gavlen begynner der og overlapper ikke muren, ellers ligger
+    to flater i samme plan og gir svarte striper (runde 8)."""
     prism("gable_stone", frame, [(0.0, z0), (L, z0), (L, zk), (L / 2, apex), (0.0, zk)], -thick / 2, thick / 2, mat)
     for s0, s1 in ((-0.12, L / 2 + 0.05), (L + 0.12, L / 2 - 0.05)):
         stick("coping", at_wall(frame, s0, 0, zk + 0.06), at_wall(frame, s1, 0, apex + 0.06), thick + 0.16, 0.2, coping, bevel=0.04)
@@ -534,7 +537,7 @@ def scriptorium_outside(p, rng):
     rise = ridge - z_eave
     for y in (fy, by):
         fr, Lg = wall_frame((-S_W / 2 - 0.05, y), (S_W / 2 + 0.05, y))
-        parapet(p, fr, Lg, S_H - 0.2, z_eave + 0.45, ridge + 0.35, S_T, cut, stone)
+        parapet(p, fr, Lg, S_H, z_eave + 0.45, ridge + 0.35, S_T, cut, stone)
     # Rundvinduet i frontgavlen: blyglass i en krans av buestein.
     oz = S_H + rise * 0.42
     oy = -S_D / 2 - 0.02
@@ -735,376 +738,296 @@ def scriptorium(rng):
     return p
 
 
-# --- Stavkirka ---------------------------------------------------------------
+# --- Kirka --------------------------------------------------------------------
 
-C_W, C_D = 6.0, 8.6  # sideskipet
-C_NW, C_ND = 3.8, 6.6  # midtskipet
-C_GW, C_GD = C_W + 2.6, C_D + 2.6  # svalgangen
+# Steinkirka (eierens dom i runde 7: en vanlig middelalderkirke av stein i
+# samme stil som kryptinngangen, ikke stavkirke). Skipet, koret og apsiden
+# østover (+Y), døra i vest (−Y).
+C_W, C_Y0, C_Y1 = 6.8, -4.6, 3.6  # skipet: bredde ute, vestgavl og østgavl
+C_T = 0.7  # murene
+C_H = 5.2  # murkronen på skipet
 C_Z = 0.25  # gulvet
-C_T = 0.16
-C_CY0, C_CL, C_CW = C_D / 2, 2.8, 3.4  # koret: fra bakveggen, lengde, bredde
-C_AY = C_D / 2 + 2.8  # apsiden: midten
-C_AR = 1.3
+C_CW, C_CY1, C_CH = 4.6, 6.2, 4.2  # koret: bredde ute, østenden, murkronen
+C_AR, C_AH = 2.3, 3.8  # apsiden: radius ute (som korets halve bredde), murkronen
+C_ARCH = 2.6  # korbuen: bredde
+C_ARCH_H = 3.4  # korbuen: høyde over gulvet
+WIN = (2.45, 1.5, 0.7)  # vinduene i skipet: underkant, høyde, bredde
+
+
+def church_paint():
+    p = kit.Paint(plaster="ruin", timber="timber", roof="slate", plinth="ruin")
+    p.plaster = layer("ruin", (0.92, 0.95, 0.9))
+    p.stone = layer("wall_stone", (0.85, 0.88, 0.82))
+    p.roof = layer("slate", (0.75, 0.82, 0.78))
+    return p
+
+
+def quoins(corners, z_top, rng, stone):
+    """Hjørnesteinene: annenhver lang og kort, litt ujevne, på hvert hjørne
+    (x, y, retning ut i x, retning ut i y)."""
+    for cx, cy, ox, oy in corners:
+        z = -0.1
+        k = 0
+        while z < z_top - 0.3:
+            h = rng.uniform(0.34, 0.46)
+            lx, ly = (0.55, 0.32) if k % 2 == 0 else (0.32, 0.55)
+            ex = 0.04 + rng.uniform(0, 0.03)
+            xa, xb = sorted((cx - ox * lx, cx + ox * ex))
+            ya, yb = sorted((cy - oy * ly, cy + oy * ex))
+            box("quoin", (xa, ya, z), (xb, yb, z + h - 0.03), stone, bevel=0.035)
+            z += h
+            k += 1
+
+
+def nave_frames():
+    """Murene i skipet: (ramme, lengde, åpninger, ut) for vestgavlen, østgavlen
+    med korbuen og de to langmurene med vinduene."""
+    fy, ey = C_Y0 + C_T / 2, C_Y1 - C_T / 2
+    out = []
+    front, L = wall_frame((-C_W / 2, fy), (C_W / 2, fy))
+    out.append((front, L, [(L / 2 - 0.65, L / 2 + 0.65, C_Z, C_Z + 2.9)], -1))
+    east, L = wall_frame((-C_W / 2, ey), (C_W / 2, ey))
+    out.append((east, L, [(L / 2 - C_ARCH / 2, L / 2 + C_ARCH / 2, C_Z, C_Z + C_ARCH_H)], 1))
+    for side in (-1, 1):
+        x = side * (C_W / 2 - C_T / 2)
+        fr, Ls = wall_frame((x, C_Y0 + C_T), (x, C_Y1 - C_T))
+        holes = [(s - WIN[2] / 2, s + WIN[2] / 2, WIN[0], WIN[0] + WIN[1]) for s in (Ls * 0.2, Ls * 0.5, Ls * 0.8)]
+        out.append((fr, Ls, holes, -side))
+    return out
+
+
+def choir_frames():
+    """Langmurene i koret, med ett vindu hver."""
+    out = []
+    for side in (-1, 1):
+        x = side * (C_CW / 2 - C_T / 2)
+        fr, L = wall_frame((x, C_Y1), (x, C_CY1))
+        out.append((fr, L, [(L / 2 - 0.3, L / 2 + 0.3, 2.0, 3.2)], -side))
+    return out
 
 
 def church_outside(p, rng):
-    tar = p.timber
-    boards = p.plaster
-    shingle = p.roof
-    stone = p.stone
-    # Steinfundamentet under kirka og under koret.
-    box("plinth", (-(C_W + 2.9) / 2, -(C_D + 2.9) / 2, -0.25), ((C_W + 2.9) / 2, (C_D + 2.9) / 2, C_Z), stone, bevel=0.06)
-    box("plinth", (-C_CW / 2 - 0.35, C_D / 2, -0.25), (C_CW / 2 + 0.35, C_AY + C_AR + 0.35, C_Z), stone, bevel=0.06)
-    collide((0, 0, (C_Z - 0.25) / 2), (C_W + 2.9, C_D + 2.9, C_Z + 0.25))
-    collide((0, (C_D / 2 + C_AY + C_AR + 0.35) / 2, (C_Z - 0.25) / 2), (C_CW + 0.7, C_AY + C_AR + 0.35 - C_D / 2, C_Z + 0.25))
-    box("step", (-0.95, -C_GD / 2 - 0.85, -0.25), (0.95, -(C_D + 2.9) / 2 + 0.05, C_Z - 0.12), stone, bevel=0.04)
-    town.ramp(-0.9, 0.9, -C_GD / 2 - 1.1, -(C_D + 2.9) / 2 + 0.05, 0.0, C_Z)
+    wall, stone = p.plaster, p.stone
+    moss = layer("sod", (0.62, 0.82, 0.42))
+    # Grunnmuren under gulvet (kollideren er gulvet), og trinnene opp til døra.
+    box("plinth", (-C_W / 2 - 0.12, C_Y0 - 0.12, -0.3), (C_W / 2 + 0.12, C_Y1 + 0.05, C_Z), stone, bevel=0.05)
+    box("plinth", (-C_CW / 2 - 0.12, C_Y1, -0.3), (C_CW / 2 + 0.12, C_CY1, C_Z), stone, bevel=0.05)
+    collide((0, (C_Y0 + C_Y1) / 2, (C_Z - 0.3) / 2), (C_W, C_Y1 - C_Y0, C_Z + 0.3))
+    collide((0, (C_Y1 + C_CY1 + C_AR) / 2, (C_Z - 0.3) / 2), (C_CW, C_CY1 + C_AR - C_Y1, C_Z + 0.3))
+    box("step", (-1.2, C_Y0 - 0.75, -0.3), (1.2, C_Y0 + 0.02, C_Z - 0.12), stone, bevel=0.05)
+    box("step", (-1.0, C_Y0 - 0.4, -0.2), (1.0, C_Y0 + 0.02, C_Z), stone, bevel=0.05)
+    town.ramp(-1.0, 1.0, C_Y0 - 0.95, C_Y0 + 0.4, 0.0, C_Z)
 
-    # Svalgangen: lav plankevegg, stolper med buer imellom, og pulttak.
-    gx, gy = C_GW / 2, C_GD / 2
-    top = 2.05
-    sides = [((-gx, -gy), (gx, -gy), [(-0.9, 0.9)]), ((-gx, gy), (gx, gy), [(-1.85, 1.85)]), ((-gx, -gy), (-gx, gy), []), ((gx, -gy), (gx, gy), [])]
-    for a, b, gaps in sides:
-        fr, L = wall_frame(a, b)
-        along_x = abs(a[1] - b[1]) < 1e-6
-        c0 = a[0] if along_x else a[1]
-        holes = [(g0 - c0, g1 - c0, C_Z, 1.15) for g0, g1 in gaps]
-        slab_grid("gallery_wall", fr, L, C_Z, 1.15, 0.08, holes, boards)
-        # Kolliderne: bitene mellom åpningene (åpningene går helt opp).
-        cuts = [0.0] + [v for h in holes for v in (h[0], h[1])] + [L]
-        for s0, s1 in zip(cuts[::2], cuts[1::2]):
-            c = at_wall(fr, (s0 + s1) / 2, 0, (C_Z + 1.15) / 2)
-            collide(tuple(c), (s1 - s0, 0.12, 1.15 - C_Z), math.atan2(fr[1][1], fr[1][0]))
-        stick("gallery_rail", at_wall(fr, -0.05, 0, 1.15), at_wall(fr, L + 0.05, 0, 1.15), 0.16, 0.08, p.trim, ("trim", CARVED))
-        # Stolpene, med en ved hver kant av åpningene.
-        n = max(2, round(L / 1.1))
-        posts = [L * k / n for k in range(n + 1)]
-        for g0, g1 in gaps:
-            posts = [s for s in posts if not (g0 - c0 - 0.3 < s < g1 - c0 + 0.3)] + [g0 - c0 - 0.07, g1 - c0 + 0.07]
-        posts = sorted(posts)
-        for s in posts:
-            stick("gallery_post", at_wall(fr, s, 0, C_Z), at_wall(fr, s, 0, top), 0.14, 0.14, tar, ("timber", rng.randrange(4)), seed=s)
-        for s0, s1 in zip(posts, posts[1:]):
-            if any(g0 - c0 - 0.2 < (s0 + s1) / 2 < g1 - c0 + 0.2 for g0, g1 in gaps):
-                continue  # inngangen, og bak der koret går gjennom
-            m = (s0 + s1) / 2
-            rx = (s1 - s0) / 2 - 0.07
-            zs = top - 0.5
-            pts = [(s0 + 0.07, top - 0.02), (s1 - 0.07, top - 0.02)] + [(m + rx * math.cos(a_), zs + 0.36 * math.sin(a_)) for a_ in lin(0.0, math.pi, 7)]
-            prism("arcade", fr, pts, -0.03, 0.03, boards)
-        # Stavlægja oppå stolpene (bak: to biter på hver side av koret).
-        spans = [(0.0, L)] if not (along_x and a[1] > 0) else [(0.0, gaps[0][0] - c0), (gaps[0][1] - c0, L)]
-        for s0, s1 in spans:
-            stick("gallery_plate", at_wall(fr, s0 - 0.08, 0, top + 0.06), at_wall(fr, s1 + 0.08, 0, top + 0.06), 0.16, 0.16, tar, ("timber", rng.randrange(4)), seed=s0)
-    # Takene over svalgangen: fire sider som møtes i gradene, bak delt av koret.
-    ox, oy = gx + 0.35, gy + 0.35
-    hw, hd = C_W / 2, C_D / 2
-    zi, zo = 3.05, 1.95
-    skirt("gallery_roof", ((-hw, -hd), (hw, -hd)), ((-ox, -oy), (ox, -oy)), zi, zo, 0.14, shingle)
-    skirt("gallery_roof", ((-hw, -hd), (-hw, hd)), ((-ox, -oy), (-ox, oy)), zi, zo, 0.14, shingle)
-    skirt("gallery_roof", ((hw, -hd), (hw, hd)), ((ox, -oy), (ox, oy)), zi, zo, 0.14, shingle)
-    cg = C_CW / 2 + 0.12
-    skirt("gallery_roof", ((-hw, hd), (-cg, hd)), ((-ox, oy), (-cg, oy)), zi, zo, 0.14, shingle, n=3)
-    skirt("gallery_roof", ((cg, hd), (hw, hd)), ((cg, oy), (ox, oy)), zi, zo, 0.14, shingle, n=3)
-    # Et lite gavltak over inngangen i svalgangen.
-    ridge_roof(p, -gy - 0.6, -gy + 0.9, 1.05, 2.2, 52.0, overhang=0.3, gable_over=0.2, thick=0.2, sag=0.08, kick=0.15)
-    fr, L = wall_frame((-1.05, -gy - 0.45), (1.05, -gy - 0.45))
-    prism("porch_gable", fr, [(0.0, 2.15), (L, 2.15), (L / 2, 2.15 + 1.05 * math.tan(math.radians(52)) - 0.1)], -0.04, 0.04, boards)
-    for sx in (-1, 1):
-        stick("porch_post", (sx * 0.95, -gy - 0.45, C_Z - 0.15), (sx * 0.95, -gy - 0.45, 2.2), 0.16, 0.16, tar, ("timber", 2))
-        collide((sx * 0.95, -gy - 0.45, 1.1), (0.2, 0.2, 2.2))
+    # Murene i skipet og koret, med vinduene i rundbuer.
+    for fr, L, holes, out in nave_frames():
+        slab_grid("nave_wall", fr, L, -0.3, C_H, C_T, holes, wall)
+        wall_colliders(fr, L, C_Z, C_H, C_T, holes)
+        for s0, s1, za, zb in holes:
+            if zb - za < 2.0:
+                arch_window(p, fr, (s0 + s1) / 2, za, s1 - s0, zb - za, C_T, out, wall, stone)
+    for fr, L, holes, out in choir_frames():
+        slab_grid("choir_wall", fr, L, -0.3, C_CH, C_T, holes, wall)
+        wall_colliders(fr, L, C_Z, C_CH, C_T, holes)
+        for s0, s1, za, zb in holes:
+            arch_window(p, fr, (s0 + s1) / 2, za, s1 - s0, zb - za, C_T, out, wall, stone)
+    # Korbuen gjennom østgavlen (sett innenfra står den i innsida).
+    east = nave_frames()[1]
+    arch_fill(east[0], east[1] / 2, C_Z, C_ARCH, C_ARCH_H, C_T, wall)
+    # Apsiden: en halv sylinder av mur bak koret, med kollidere langs buen.
+    ri = C_AR - C_T
+    lathe("apse", [(C_AR, -0.3), (C_AR, C_AH)], 10, (0, C_CY1, 0), wall, cap=False, arc=math.pi)
+    lathe("apse_in", [(ri, C_AH), (ri, -0.3)], 10, (0, C_CY1, 0), wall, cap=False, arc=math.pi)
+    lathe("apse_top", [(ri, C_AH), (C_AR, C_AH)], 10, (0, C_CY1, 0), wall, cap=False, arc=math.pi)
+    for k in range(6):
+        a = math.pi * (k + 0.5) / 6
+        rm = (C_AR + ri) / 2
+        collide((rm * math.cos(a), C_CY1 + rm * math.sin(a), (C_Z + C_AH) / 2), (C_T, 2 * rm * math.sin(math.pi / 12) + 0.1, C_AH - C_Z), a)
+    # Et lite rundbuevindu i apsiden mot øst.
+    ay = C_CY1 + C_AR
+    box("apse_window", (-0.18, ay - 0.04, 2.1), (0.18, ay + 0.03, 2.9), layer("stone", (0.16, 0.14, 0.13)), bevel=0)
+    afr = ((0.6, ay + 0.02), (-1, 0))
+    voussoirs(afr, 0.6, 2.9, 0.18, -1, 0.0, stone, n=3, depth=0.16, proud=0.06, bevel=0.015)
 
-    # Sideskipet: plankevegger med portalen foran og korbuen bak.
-    door_w, door_h = 1.1, 2.6
-    walls = []
-    fy, by = -C_D / 2 + C_T / 2, C_D / 2 - C_T / 2
-    for y, holes in ((fy, [(C_W / 2 - door_w / 2, C_W / 2 + door_w / 2, C_Z, C_Z + door_h)]), (by, [(C_W / 2 - 1.1, C_W / 2 + 1.1, C_Z, C_Z + 2.8)])):
-        fr, L = wall_frame((-C_W / 2, y), (C_W / 2, y))
-        slab_grid("aisle_wall", fr, L, C_Z, 3.6, C_T, holes, boards)
-        wall_colliders(fr, L, C_Z, 3.6, C_T, holes)
-        walls.append(fr)
+    # Hjørnesteiner og støttepilarer (som på kryptinngangen).
+    quoins([(sx * C_W / 2, y, sx, sy) for sx in (-1, 1) for y, sy in ((C_Y0, -1), (C_Y1, 1))], C_H, rng, stone)
+    quoins([(sx * C_CW / 2, C_Y1, sx, -1) for sx in (-1, 1)], C_CH, rng, stone)
+    prof = [(0.0, -0.3), (0.75, -0.3), (0.75, 1.4), (0.5, 1.9), (0.5, 3.4), (0.0, C_H - 0.4)]
     for side in (-1, 1):
-        fr, L = wall_frame((side * (C_W / 2 - C_T / 2), -C_D / 2 + C_T), (side * (C_W / 2 - C_T / 2), C_D / 2 - C_T))
-        slab_grid("aisle_wall", fr, L, C_Z, 3.6, C_T, [], boards)
-        wall_colliders(fr, L, C_Z, 3.6, C_T, [])
-    arch_fill(walls[0], C_W / 2, C_Z, door_w, door_h, C_T, boards)
-    # Svill og stavlægje rundt sideskipet, og hjørnestavene.
-    for z in (C_Z + 0.12, 3.5):
-        for a, b in (((-C_W / 2, -C_D / 2), (C_W / 2, -C_D / 2)), ((-C_W / 2, C_D / 2), (C_W / 2, C_D / 2)), ((-C_W / 2, -C_D / 2), (-C_W / 2, C_D / 2)), ((C_W / 2, -C_D / 2), (C_W / 2, C_D / 2))):
-            fr, L = wall_frame(a, b)
-            if z < 1 and a[1] == b[1] and a[1] < 0:
-                for s0, s1 in ((-0.1, C_W / 2 - door_w / 2 - 0.15), (C_W / 2 + door_w / 2 + 0.15, L + 0.1)):
-                    stick("aisle_sill", at_wall(fr, s0, 0, z) + _out(a, b) * 0.1, at_wall(fr, s1, 0, z) + _out(a, b) * 0.1, 0.12, 0.24, tar, ("timber", 1))
-            else:
-                stick("aisle_plate" if z > 1 else "aisle_sill", at_wall(fr, -0.1, 0, z) + _out(a, b) * 0.1, at_wall(fr, L + 0.1, 0, z) + _out(a, b) * 0.1, 0.12, 0.24, tar, ("timber", 1))
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            lathe("corner_stave", [(0.2, C_Z), (0.18, C_Z + 0.3), (0.18, 3.55), (0.24, 3.7), (0.0, 3.72)], 8, (sx * C_W / 2, sy * C_D / 2, 0), tar)
+        for y in (C_Y0 + (C_Y1 - C_Y0) * 0.35, C_Y0 + (C_Y1 - C_Y0) * 0.65):
+            buttress("buttress", (side * C_W / 2, y, 0), (side, 0, 0), (0, 1, 0), 0.6, prof, wall)
+            box("moss", (side * (C_W / 2 + 0.5) - 0.08, y - 0.28, 1.87), (side * (C_W / 2 + 0.5) + 0.12, y + 0.28, 1.97), moss, bevel=0.04)
 
-    # Portalen: søyler med utskjæring og en buet karm rundt døra.
-    py = -C_D / 2 - 0.06
-    for sx in (-1, 1):
-        lathe("portal_column", [(0.13, C_Z), (0.1, C_Z + 0.25), (0.1, C_Z + door_h - door_w / 2), (0.15, C_Z + door_h - door_w / 2 + 0.15), (0.0, C_Z + door_h - door_w / 2 + 0.16)], 8, (sx * (door_w / 2 + 0.12), py - 0.04, 0), tar)
-        stick("portal_carving", (sx * (door_w / 2 + 0.38), py - 0.02, C_Z + 0.1), (sx * (door_w / 2 + 0.38), py - 0.02, C_Z + door_h - 0.2), 0.26, 0.06, p.trim, ("trim", CARVED), bevel=0.01)
-    voussoirs(walls[0], C_W / 2, C_Z + door_h - door_w / 2, door_w / 2 + 0.05, -1, C_T, tar, n=7, depth=0.3, proud=0.08, bevel=0.015)
-    leaf = arched_leaf("door_leaf", door_w, door_h - 0.02, 0.07, p.door_dark)
-    straps = [stick("door_strap", (0.05, -0.05, z), (door_w * 0.85, -0.05, z), 0.03, 0.06, p.iron, bevel=0) for z in (0.6, 1.5, 2.1)]
-    transform([leaf] + straps, Matrix.Translation((-door_w / 2, fy + C_T / 2 - 0.04, C_Z)) @ Matrix.Rotation(math.radians(100), 4, "Z"))
+    # Vestportalen: rundbue med buestein og vangestein, og døra slått inn.
+    front = nave_frames()[0]
+    door_w, door_h = 1.3, 2.9
+    s = front[1] / 2
+    zs = C_Z + door_h - door_w / 2
+    arch_fill(front[0], s, C_Z, door_w, door_h, C_T, wall)
+    voussoirs(front[0], s, zs, door_w / 2, -1, C_T, stone, n=9, depth=0.32, proud=0.1)
+    for k, z in enumerate(lin(C_Z, zs - 0.4, 4)):
+        for sx in (-1, 1):
+            w = 0.36 if k % 2 == 0 else 0.24
+            a = at_wall(front[0], s + sx * (door_w / 2 + w / 2 - 0.02), -C_T / 2 - 0.05, z)
+            box("jamb_stone", (a.x - w / 2, a.y - 0.08, z), (a.x + w / 2, a.y + 0.08, z + 0.38), stone, bevel=0.03)
+    leaf = arched_leaf("door_leaf", door_w, door_h - 0.02, 0.09, p.door_dark)
+    fy = C_Y0 + C_T / 2
+    transform([leaf], Matrix.Translation((-door_w / 2, fy + C_T / 2 - 0.06, C_Z)) @ Matrix.Rotation(math.radians(100), 4, "Z"))
+    box("threshold", (-door_w / 2 - 0.1, C_Y0 - 0.05, C_Z - 0.1), (door_w / 2 + 0.1, C_Y0 + C_T, C_Z + 0.01), stone, bevel=0.03)
 
-    # Taket over sideskipet: fra midtskipets vegger ned over plankeveggene.
-    ax, ay = C_W / 2 + 0.45, C_D / 2 + 0.45
-    nx, ny = C_NW / 2 + 0.02, C_ND / 2 + 0.02
-    zi, zo = 4.75, 3.42
-    skirt("aisle_roof", ((-nx, -ny), (nx, -ny)), ((-ax, -ay), (ax, -ay)), zi, zo, 0.16, shingle)
-    skirt("aisle_roof", ((-nx, ny), (nx, ny)), ((-ax, ay), (ax, ay)), zi, zo, 0.16, shingle)
-    skirt("aisle_roof", ((-nx, -ny), (-nx, ny)), ((-ax, -ay), (-ax, ay)), zi, zo, 0.16, shingle)
-    skirt("aisle_roof", ((nx, -ny), (nx, ny)), ((ax, -ay), (ax, ay)), zi, zo, 0.16, shingle)
+    # Takene: tunge skiferheller inne mellom steingavler med dekkheller.
+    ridge = ridge_roof(p, C_Y0 + 0.1, C_Y1 - 0.1, C_W / 2, C_H + 0.3, 45.0, barges=False, overhang=0.35, gable_over=0.0, thick=0.3, sag=0.12, kick=0.14)
+    for y in (C_Y0 + C_T / 2, C_Y1 - C_T / 2):
+        fr, Lg = wall_frame((-C_W / 2 - 0.05, y), (C_W / 2 + 0.05, y))
+        parapet(p, fr, Lg, C_H, C_H + 0.65, ridge + 0.3, C_T, wall, stone)
+    cr = ridge_roof(p, C_Y1 - 0.2, C_CY1 + 0.15, C_CW / 2, C_CH + 0.3, 45.0, barges=False, overhang=0.3, gable_over=0.0, thick=0.26, sag=0.06, kick=0.12)
+    fr, Lc = wall_frame((-C_CW / 2, C_CY1), (C_CW / 2, C_CY1))
+    prism("choir_gable", fr, [(0.0, C_AH), (Lc, C_AH), (Lc / 2, cr + 0.2)], -0.35, 0.35, wall)
+    lathe("apse_roof", [(C_AR + 0.3, C_AH + 0.1), (0.0, C_AH + 1.5)], 10, (0, C_CY1, 0), p.roof, cap=False, arc=math.pi)
+    lathe("apse_roof_under", [(0.0, C_AH + 1.3), (C_AR + 0.3, C_AH - 0.05)], 10, (0, C_CY1, 0), p.roof, cap=False, arc=math.pi)
+    for ob in PIECES:
+        if ob.name.startswith("ridge_roll"):
+            ob.data.materials[0] = moss
 
-    # Midtskipet: høye plankevegger med glugger, bratt tak og gavler.
-    nave = []
-    for y in (-C_ND / 2 + 0.075, C_ND / 2 - 0.075):
-        fr, L = wall_frame((-C_NW / 2, y), (C_NW / 2, y))
-        slab_grid("nave_wall", fr, L, 3.5, 7.25, 0.15, [], boards)
+    # Klokkegavlen over vestgavlen: en mur med to rundbuer og klokkene, med
+    # dekkhelle og kors på toppen.
+    bz = ridge + 0.15
+    bfr, BL = wall_frame((-0.9, fy), (0.9, fy))
+    prism("bellcote", bfr, [(0.0, bz - 0.8), (BL, bz - 0.8), (BL, bz + 1.1), (BL / 2, bz + 1.55), (0.0, bz + 1.1)], -0.3, 0.3, wall)
+    dark = layer("stone", (0.16, 0.14, 0.13))
+    bronze = layer("iron", (0.75, 0.55, 0.3), 0.4)
+    for bx in (-0.42, 0.42):
+        box("bell_hole", (bx - 0.2, fy - 0.31, bz), (bx + 0.2, fy + 0.31, bz + 0.6), dark, bevel=0)
+        voussoirs(bfr, BL / 2 + bx, bz + 0.6, 0.2, -1, 0.6, stone, n=3, depth=0.14, proud=0.04, bevel=0.01)
+        lathe("bell", [(0.0, 0.0), (0.16, 0.0), (0.14, 0.05), (0.1, 0.26), (0.06, 0.33), (0.0, 0.34)], 10, (bx, fy - 0.33, bz + 0.12), bronze)
+    for s0, s1 in ((-0.1, BL / 2 + 0.04), (BL + 0.1, BL / 2 - 0.04)):
+        stick("coping", at_wall(bfr, s0, 0, bz + 1.12), at_wall(bfr, s1, 0, bz + 1.6), 0.74, 0.16, stone, bevel=0.03)
+    stone_cross((0, fy, bz + 1.6), stone, 0.8)
+    stone_cross((0, C_Y1 - C_T / 2, ridge + 0.4), stone, 0.9, tilt=0.04)
+    stone_cross((0, C_CY1, cr + 0.25), stone, 0.7)
+
+    # Mosen langs foten og nedfalne steiner, som ved krypten.
     for side in (-1, 1):
-        fr, L = wall_frame((side * (C_NW / 2 - 0.075), -C_ND / 2 + 0.15), (side * (C_NW / 2 - 0.075), C_ND / 2 - 0.15))
-        holes = [(y + C_ND / 2 - 0.15 - 0.2, y + C_ND / 2 - 0.15 + 0.2, 5.85, 6.25) for y in (-C_ND / 4, C_ND / 4)]
-        slab_grid("nave_wall", fr, L, 3.5, 7.25, 0.15, holes, boards)
-        nave.append((fr, holes, side))
-    for fr, holes, side in nave:
-        for s0, s1, z0, z1 in holes:
-            pane = town.block("glugg", (0.02, s1 - s0, z1 - z0), p.glass, at=tuple(at_wall(fr, (s0 + s1) / 2, 0, (z0 + z1) / 2)), bevel=0)
-            town.daylight(pane, (-side, 0, 0))
-            # Karmen: fire korte bjelker rundt gluggen.
-            for a_, b_ in (((s0 - 0.08, z0 - 0.04), (s1 + 0.08, z0 - 0.04)), ((s0 - 0.08, z1 + 0.04), (s1 + 0.08, z1 + 0.04)), ((s0 - 0.04, z0), (s0 - 0.04, z1)), ((s1 + 0.04, z0), (s1 + 0.04, z1))):
-                stick("glugg_frame", at_wall(fr, a_[0], side * 0.1, a_[1]), at_wall(fr, b_[0], side * 0.1, b_[1]), 0.08, 0.08, tar, ("timber", 0), bevel=0.015)
-    for z in (3.65, 7.12):
-        for a, b in (((-C_NW / 2, -C_ND / 2), (C_NW / 2, -C_ND / 2)), ((-C_NW / 2, C_ND / 2), (C_NW / 2, C_ND / 2)), ((-C_NW / 2, -C_ND / 2), (-C_NW / 2, C_ND / 2)), ((C_NW / 2, -C_ND / 2), (C_NW / 2, C_ND / 2))):
-            fr, L = wall_frame(a, b)
-            stick("nave_plate", at_wall(fr, -0.1, 0, z) + _out(a, b) * 0.09, at_wall(fr, L + 0.1, 0, z) + _out(a, b) * 0.09, 0.1, 0.22, tar, ("timber", 2))
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            lathe("nave_stave", [(0.18, 3.5), (0.18, 7.2), (0.24, 7.35), (0.0, 7.37)], 8, (sx * C_NW / 2, sy * C_ND / 2, 0), tar)
-    z_eave = 7.5
-    ridge = ridge_roof(p, -C_ND / 2, C_ND / 2, C_NW / 2 + 0.08, z_eave, 60.0, overhang=0.45, gable_over=0.4, thick=0.3, sag=0.22, kick=0.28)
-    for y in (-C_ND / 2, C_ND / 2):
-        fr, L = wall_frame((-C_NW / 2 - 0.08, y), (C_NW / 2 + 0.08, y))
-        prism("nave_gable", fr, [(0.0, 7.2), (L, 7.2), (L / 2, ridge - 0.3)], -0.08, 0.08, boards)
-        # Bord på kant langs gavlen, og et kors på gavlspissen.
-        stick("gable_board", at_wall(fr, L / 2, 0, 7.25), at_wall(fr, L / 2, 0, ridge - 0.35), 0.18, 0.06, tar, ("timber", 3))
-    for sy in (-1, 1):
-        dragon(p, sy * (C_ND / 2 + 0.45), ridge + 0.05, sy, tar)
-        stick("cross_v", (0, sy * (C_ND / 2 + 0.2), ridge - 0.1), (0, sy * (C_ND / 2 + 0.2), ridge + 1.0), 0.1, 0.1, tar, ("timber", 1))
-        stick("cross_h", (-0.3, sy * (C_ND / 2 + 0.2), ridge + 0.7), (0.3, sy * (C_ND / 2 + 0.2), ridge + 0.7), 0.1, 0.1, tar, ("timber", 2))
-
-    # Takrytteren midt på mønet: et lite tårn, et skjørt, klokkestua med
-    # åpninger og et høyt spir.
-    tz = ridge - 0.7
-    box("turret", (-0.6, -0.6, tz), (0.6, 0.6, tz + 1.5), boards, bevel=0.02)
-    for a, b in (((-0.6, -0.6), (0.6, -0.6)), ((0.6, -0.6), (0.6, 0.6)), ((0.6, 0.6), (-0.6, 0.6)), ((-0.6, 0.6), (-0.6, -0.6))):
-        stick("turret_plate", (a[0] * 1.08, a[1] * 1.08, tz + 1.45), (b[0] * 1.08, b[1] * 1.08, tz + 1.45), 0.1, 0.12, tar, ("timber", 0))
-    sk = 1.0
-    for inner, outer in ((((-0.6, -0.6), (0.6, -0.6)), ((-sk, -sk), (sk, -sk))), (((-0.6, 0.6), (0.6, 0.6)), ((-sk, sk), (sk, sk))), (((-0.6, -0.6), (-0.6, 0.6)), ((-sk, -sk), (-sk, sk))), (((0.6, -0.6), (0.6, 0.6)), ((sk, -sk), (sk, sk)))):
-        skirt("turret_skirt", inner, outer, tz + 1.75, tz + 1.3, 0.1, shingle, n=2, sag=0.04, kick=0.08)
-    box("belfry", (-0.48, -0.48, tz + 1.7), (0.48, 0.48, tz + 2.6), boards, bevel=0.02)
-    dark = layer("stone", (0.35, 0.3, 0.28))
-    for k in range(4):
-        a = k * math.pi / 2
-        c, s = math.cos(a), math.sin(a)
-        for off in (-0.2, 0.2):
-            px, py_ = c * 0.49 - s * off, s * 0.49 + c * off
-            b = box("belfry_hole", (-0.06, -0.015, -0.22), (0.06, 0.015, 0.22), dark, bevel=0)
-            b.rotation_euler = (0, 0, a + math.pi / 2)
-            b.location = (px, py_, tz + 2.15)
-    for inner, outer in ((((-0.48, -0.48), (0.48, -0.48)), ((-0.75, -0.75), (0.75, -0.75))), (((-0.48, 0.48), (0.48, 0.48)), ((-0.75, 0.75), (0.75, 0.75))), (((-0.48, -0.48), (-0.48, 0.48)), ((-0.75, -0.75), (-0.75, 0.75))), (((0.48, -0.48), (0.48, 0.48)), ((0.75, -0.75), (0.75, 0.75)))):
-        skirt("belfry_skirt", inner, outer, tz + 2.75, tz + 2.45, 0.08, shingle, n=2, sag=0.03, kick=0.06)
-    lathe("spire", [(0.5, 0.0), (0.0, 3.4)], 8, (0, 0, tz + 2.6), shingle, a0=math.pi / 8)
-    lathe("spire_top", [(0.05, 0.0), (0.04, 0.7), (0.0, 0.8)], 5, (0, 0, tz + 5.85), p.iron)
-    stick("spire_cross", (-0.22, 0, tz + 6.4), (0.22, 0, tz + 6.4), 0.04, 0.04, p.iron, bevel=0)
-
-    # Koret: plankevegger, eget tak og gavl, og apsiden bak.
-    cy1 = C_CY0 + C_CL
-    for side in (-1, 1):
-        fr, L = wall_frame((side * (C_CW / 2 - C_T / 2), C_CY0), (side * (C_CW / 2 - C_T / 2), cy1))
-        slab_grid("choir_wall", fr, L, C_Z, 3.4, C_T, [], boards)
-        wall_colliders(fr, L, C_Z, 3.4, C_T, [])
-    fr, L = wall_frame((-C_CW / 2, cy1 - C_T / 2), (C_CW / 2, cy1 - C_T / 2))
-    holes = [(L / 2 - 1.0, L / 2 + 1.0, C_Z, C_Z + 2.4)]
-    slab_grid("choir_wall", fr, L, C_Z, 3.4, C_T, holes, boards)
-    for side in (-1, 1):
-        stick("choir_plate", (side * (C_CW / 2 + 0.06), C_CY0 - 0.1, 3.3), (side * (C_CW / 2 + 0.06), cy1 + 0.1, 3.3), 0.12, 0.22, tar, ("timber", 1))
-        lathe("choir_stave", [(0.17, C_Z), (0.17, 3.35), (0.22, 3.48), (0.0, 3.5)], 8, (side * C_CW / 2, cy1, 0), tar)
-    cr = ridge_roof(p, C_CY0 - 0.5, cy1, C_CW / 2 + 0.06, 3.65, 55.0, overhang=0.35, gable_over=0.3, thick=0.22, sag=0.12, kick=0.2)
-    fr, L = wall_frame((-C_CW / 2 - 0.06, cy1), (C_CW / 2 + 0.06, cy1))
-    prism("choir_gable", fr, [(0.0, 3.35), (L, 3.35), (L / 2, cr - 0.25)], -0.08, 0.08, boards)
-    small_dragon(p, 0, cy1 + 0.6, cr - 0.05, 0, 1, tar)
-    # Apsiden: en halv sylinder bak koret, med kjegletak og et lite tårn.
-    lathe("apse", [(C_AR, C_Z), (C_AR, 3.0)], 8, (0, C_AY, 0), boards, cap=False, a0=0.0, arc=math.pi)
-    lathe("apse_in", [(C_AR - 0.12, 3.0), (C_AR - 0.12, C_Z)], 8, (0, C_AY, 0), boards, cap=False, a0=0.0, arc=math.pi)
-    lathe("apse_roof", [(C_AR + 0.35, 2.85), (0.0, 4.5)], 8, (0, C_AY, 0), shingle, cap=False, a0=0.0, arc=math.pi)
-    lathe("apse_roof_under", [(0.0, 4.35), (C_AR + 0.35, 2.75)], 8, (0, C_AY, 0), shingle, cap=False, a0=0.0, arc=math.pi)
-    lathe("apse_tower", [(0.3, 0.0), (0.3, 0.9), (0.0, 2.0)], 6, (0, C_AY + 0.25, 4.1), shingle)
-    stick("apse_plate", (-C_AR - 0.05, C_AY, 2.95), (C_AR + 0.05, C_AY, 2.95), 0.1, 0.1, tar, ("timber", 0))
-    collide((0, C_AY + 0.6, 1.6), (2.6, 1.2, 2.8))
+        box("moss", (side * (C_W / 2 + 0.08) - 0.1, C_Y0 + 0.2, -0.08), (side * (C_W / 2 + 0.08) + 0.1, C_Y1 - 0.2, 0.12), moss, bevel=0.06)
+    for k in range(5):
+        x = rng.choice((-1, 1)) * rng.uniform(C_W / 2 + 0.7, C_W / 2 + 1.2)
+        y = rng.uniform(C_Y0 + 0.4, C_Y1)
+        sz = rng.uniform(0.16, 0.3)
+        b = box("rubble", (-sz, -sz * 0.8, -sz * 0.5), (sz, sz * 0.8, sz * 0.5), stone, bevel=0.05)
+        b.rotation_euler = (rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), rng.uniform(0, 3))
+        b.location = (x, y, sz * 0.2)
 
 
-def _out(a, b):
-    """Normalen ut fra en side av et rektangel rundt origo."""
-    fr, _ = wall_frame(a, b)
-    n = Vector((-fr[1][1], fr[1][0], 0))
-    mid = Vector(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 0))
-    return n if n.dot(mid) > 0 else -n
-
-
-def dragon(p, y, z, out, mat):
-    """Et drakehode på mønet: buet hals ut og opp, hode med gapende kjeft,
-    horn og en krøllet tunge."""
-    pts = [Vector((0, y - out * 0.3, z))]
-    for k in range(1, 6):
-        t = k / 5
-        pts.append(Vector((0, y + out * 1.1 * t, z + 0.75 * math.sin(t * math.pi * 0.75))))
-    for k, (a, b) in enumerate(zip(pts, pts[1:])):
-        stick("dragon_neck", a, b, 0.2 - k * 0.02, 0.26 - k * 0.025, mat, ("timber", 1), bevel=0.03)
-    head = pts[-1]
-    ob = box("dragon_head", (-0.1, 0.0, -0.1), (0.1, 0.5, 0.12), mat, bevel=0.04)
-    ob2 = box("dragon_jaw", (-0.08, 0.05, -0.08), (0.08, 0.45, 0.0), mat, bevel=0.03)
-    horns = [stick("dragon_horn", (s * 0.06, 0.08, 0.1), (s * 0.12, -0.25, 0.45), 0.05, 0.05, mat, bevel=0.01) for s in (-1, 1)]
-    comb = [stick("dragon_comb", (0, 0.05 + k * 0.12, 0.12), (0, -0.05 + k * 0.12, 0.3), 0.03, 0.08, mat, bevel=0.01) for k in range(3)]
-    M = Matrix.Translation(head) @ Matrix.Rotation(0 if out > 0 else math.pi, 4, "Z")
-    transform([ob] + horns + comb, M @ Matrix.Rotation(-0.25, 4, "X"))
-    transform([ob2], M @ Matrix.Rotation(0.35, 4, "X"))
-
-
-def small_dragon(p, x, y, z, sx, sy, mat):
-    """Et lite drakehode på hjørnet av et lavt tak, vendt ut på skrå."""
-    d = Vector((sx, sy, 0)).normalized() if (sx or sy) else Vector((0, 1, 0))
-    a = Vector((x, y, z))
-    b = a + d * 0.45 + Vector((0, 0, 0.3))
-    c = b + d * 0.3 + Vector((0, 0, 0.15))
-    stick("dragon_neck", a, b, 0.14, 0.16, mat, ("timber", 1), bevel=0.02)
-    stick("dragon_head", b, c, 0.12, 0.18, mat, ("timber", 2), bevel=0.03)
-    stick("dragon_horn", b + Vector((0, 0, 0.05)), b - d * 0.15 + Vector((0, 0, 0.32)), 0.04, 0.04, mat, bevel=0.01)
+def lining(fr, L, holes, out, z0, z1, mat, name="lining"):
+    """Kalkpussen på innsida av en mur: en tynn plate 2 cm inn fra
+    murflata, med de samme hullene og rundbuer over dem."""
+    (px, py), (dx, dy) = fr
+    # Ut av huset er out · (−dy, dx); innover er motsatt.
+    nx, ny = dy * out, -dx * out
+    off = C_T / 2 + 0.02
+    lf = ((px + nx * off, py + ny * off), (dx, dy))
+    slab_grid(name, lf, L, z0, z1, 0.04, holes, mat)
+    for s0, s1, za, zb in holes:
+        arch_fill(lf, (s0 + s1) / 2, za, s1 - s0, zb - za, 0.04, mat)
 
 
 def church_inside(p, rng):
     tar = p.timber
-    boards = p.plaster
     wood = p.cladding
-    ix, iy = C_W / 2 - C_T, C_D / 2 - C_T
+    plaster = layer("plaster_white", (0.97, 0.95, 0.9))
+    flag = p.flag
+    ix = C_W / 2 - C_T
+    y0, y1 = C_Y0 + C_T, C_Y1 - C_T
     fz = C_Z + 0.03
-    box("floor", (-ix, -iy, C_Z - 0.04), (ix, iy, fz), p.floor, bevel=0)
-    # Stavene rundt midtskipet, fra gulvet til toppen av midtskipet.
-    staves = [(sx * C_NW / 2, y) for sx in (-1, 1) for y in (-C_ND / 2, -C_ND / 6, C_ND / 6, C_ND / 2)]
-    for x, y in staves:
-        lathe("stave", [(0.0, fz + 0.24), (0.27, fz + 0.24), (0.27, fz), (0.2, fz), (0.17, fz + 0.36), (0.16, 7.2)], 10, (x, y, 0), tar, cap=False)
-        collide((x, y, 2.0), (0.38, 0.38, 3.6))
-    # Bindbjelker, andreaskors og buede knær mellom stavene.
-    gz = 3.55
-    for sx in (-1, 1):
-        x = sx * (C_NW / 2 - 0.02)
-        stick("girt", (x, -C_ND / 2, gz), (x, C_ND / 2, gz), 0.18, 0.24, tar, ("timber", 1))
-        xi = sx * (C_NW / 2 - 0.16)
-        for y0, y1 in ((-C_ND / 2, -C_ND / 6), (-C_ND / 6, C_ND / 6), (C_ND / 6, C_ND / 2)):
-            stick("andrew", (xi, y0 + 0.15, gz + 0.15), (xi, y1 - 0.15, 5.4), 0.12, 0.14, tar, ("timber", rng.randrange(4)))
-            stick("andrew", (xi, y1 - 0.15, gz + 0.15), (xi, y0 + 0.15, 5.4), 0.12, 0.14, tar, ("timber", rng.randrange(4)))
-            stick("girt_upper", (xi, y0, 5.5), (xi, y1, 5.5), 0.14, 0.18, tar, ("timber", 2))
-            mid, r = (y0 + y1) / 2, (y1 - y0) / 2 - 0.15
-            arc = [Vector((x, mid + r * math.cos(a), gz - 0.12 - 0.55 * math.sin(a))) for a in lin(0.0, math.pi, 6)]
-            for a_, b_ in zip(arc, arc[1:]):
-                stick("knee", a_, b_, 0.14, 0.12, tar, ("timber", 3), bevel=0.02)
-    for sy in (-1, 1):
-        stick("girt", (-C_NW / 2, sy * (C_ND / 2 - 0.02), gz), (C_NW / 2, sy * (C_ND / 2 - 0.02), gz), 0.18, 0.24, tar, ("timber", 1))
-    # Himlingen over sideskipet, i ring rundt midtskipet.
-    hz = 3.5
-    for sy in (-1, 1):
-        box("aisle_ceiling", (-ix, min(sy * C_ND / 2, sy * iy), hz), (ix, max(sy * C_ND / 2, sy * iy), hz + 0.05), p.floor, bevel=0)
-    for sx in (-1, 1):
-        box("aisle_ceiling", (min(sx * C_NW / 2, sx * ix), -C_ND / 2, hz), (max(sx * C_NW / 2, sx * ix), C_ND / 2, hz + 0.05), p.floor, bevel=0)
-    for k in range(7):
-        y = -iy + 0.3 + (2 * iy - 0.6) * k / 6
-        for sx in (-1, 1):
-            x1 = sx * C_NW / 2 if abs(y) < C_ND / 2 - 0.1 else 0.0
-            if x1 == 0.0 and sx > 0:
-                x1 = 0.0
-            stick("aisle_joist", (sx * ix, y, hz - 0.08), (x1, y, hz - 0.08), 0.12, 0.16, tar, ("timber", rng.randrange(4)))
-    # Bjelker på tvers høyt oppe i midtskipet.
-    for y in (-C_ND / 2 + 0.4, 0.0, C_ND / 2 - 0.4):
-        stick("tie", (-C_NW / 2, y, 7.05), (C_NW / 2, y, 7.05), 0.18, 0.22, tar, ("timber", rng.randrange(4)))
-    # Triumfbjelken med krusifikset foran korbuen.
-    by = C_ND / 2 - 0.25
-    stick("rood_beam", (-C_NW / 2, by, 3.15), (C_NW / 2, by, 3.15), 0.22, 0.26, tar, ("timber", 2))
-    cz = 3.28
+    # Gulvet av heller i skipet og koret, og et trinn opp til koret.
+    box("floor", (-ix, y0, C_Z - 0.04), (ix, y1, fz), flag, bevel=0)
+    ci = C_CW / 2 - C_T
+    box("choir_floor", (-ci, y1, C_Z - 0.04), (ci, C_CY1, C_Z + 0.2), flag, bevel=0.01)
+    lathe("apse_floor", [(0.0, C_Z + 0.2), (C_AR - C_T, C_Z + 0.2), (C_AR - C_T, C_Z - 0.04)], 10, (0, C_CY1, 0), flag, cap=False, arc=math.pi)
+    box("choir_step", (-C_ARCH / 2, y1 - 0.4, C_Z - 0.04), (C_ARCH / 2, y1 + 0.02, C_Z + 0.1), flag, bevel=0.01)
+    collide((0, (y1 + C_CY1) / 2, C_Z + 0.08), (2 * ci, C_CY1 - y1 + 0.4, 0.24))
+    # Kalkpussen på murene inne, med hullene for vinduene, døra og korbuen.
+    for fr, L, holes, out in nave_frames():
+        lining(fr, L, holes, out, C_Z, C_H, plaster)
+    for fr, L, holes, out in choir_frames():
+        lining(fr, L, holes, out, C_Z, C_CH, plaster)
+    lathe("apse_lining", [(C_AR - C_T - 0.02, C_AH), (C_AR - C_T - 0.02, C_Z)], 10, (0, C_CY1, 0), plaster, cap=False, arc=math.pi)
+    # Halvkuppelen over apsiden, pusset.
+    dome = [(math.cos(a) * (C_AR - C_T), C_AH + math.sin(a) * 1.1) for a in lin(0.0, math.pi / 2, 5)]
+    lathe("apse_dome", dome, 10, (0, C_CY1, 0), plaster, cap=False, arc=math.pi)
+    # Flatt bjelketak i skipet og koret: bjelker på tvers og bord over.
+    box("ceiling", (-ix, y0, C_H - 0.05), (ix, y1, C_H), p.floor, bevel=0)
+    for k in range(6):
+        y = y0 + 0.35 + (y1 - y0 - 0.7) * k / 5
+        stick("beam", (-ix - 0.15, y, C_H - 0.14), (ix + 0.15, y, C_H - 0.14), 0.2, 0.24, tar, ("timber", k % 4))
+    box("choir_ceiling", (-ci, y1, C_CH - 0.05), (ci, C_CY1, C_CH), p.floor, bevel=0)
+    for k in range(3):
+        y = y1 + 0.5 + k * 0.8
+        stick("choir_beam", (-ci - 0.1, y, C_CH - 0.12), (ci + 0.1, y, C_CH - 0.12), 0.16, 0.2, tar, ("timber", k % 4))
+    # Triumfbjelken med krusifikset i korbuen.
+    by = y1 + C_T / 2
+    bz = C_Z + C_ARCH_H - C_ARCH / 2 + 0.05
+    stick("rood_beam", (-C_ARCH / 2 - 0.1, by, bz), (C_ARCH / 2 + 0.1, by, bz), 0.22, 0.26, tar, ("timber", 2))
+    cz = bz + 0.13
     gilt = layer("iron", (0.95, 0.72, 0.32), 0.35)
     rood = layer("planks", (0.9, 0.7, 0.5))
-    stick("cross_v", (0, by, cz), (0, by, cz + 1.7), 0.14, 0.1, rood, ("timber", 0))
-    stick("cross_h", (-0.62, by, cz + 1.2), (0.62, by, cz + 1.2), 0.14, 0.1, rood, ("timber", 0))
-    for e in ((0, by, cz + 1.7), (-0.62, by, cz + 1.2), (0.62, by, cz + 1.2)):
-        box("cross_end", (e[0] - 0.1, e[1] - 0.07, e[2] - 0.1), (e[0] + 0.1, e[1] + 0.07, e[2] + 0.1), gilt, bevel=0.03)
+    stick("cross_v", (0, by, cz), (0, by, cz + 1.0), 0.12, 0.09, rood, ("timber", 0))
+    stick("cross_h", (-0.42, by, cz + 0.7), (0.42, by, cz + 0.7), 0.12, 0.09, rood, ("timber", 0))
+    for e in ((0, by, cz + 1.0), (-0.42, by, cz + 0.7), (0.42, by, cz + 0.7)):
+        box("cross_end", (e[0] - 0.08, e[1] - 0.06, e[2] - 0.08), (e[0] + 0.08, e[1] + 0.06, e[2] + 0.08), gilt, bevel=0.025)
     body = layer("plaster", (0.86, 0.7, 0.55))
     linen = layer("linen", (0.92, 0.88, 0.8))
-    fy = by - 0.1
-    box("figure_torso", (-0.12, fy - 0.05, cz + 0.72), (0.12, fy + 0.05, cz + 1.12), body, bevel=0.04)
-    box("figure_cloth", (-0.15, fy - 0.06, cz + 0.55), (0.15, fy + 0.06, cz + 0.76), linen, bevel=0.04)
+    fy = by - 0.08
+    box("figure_torso", (-0.08, fy - 0.04, cz + 0.42), (0.08, fy + 0.04, cz + 0.68), body, bevel=0.03)
+    box("figure_cloth", (-0.1, fy - 0.05, cz + 0.32), (0.1, fy + 0.05, cz + 0.46), linen, bevel=0.03)
     for sx in (-1, 1):
-        stick("figure_arm", (sx * 0.1, fy, cz + 1.08), (sx * 0.56, fy, cz + 1.2), 0.07, 0.07, body, bevel=0.02)
-        stick("figure_leg", (sx * 0.06, fy, cz + 0.58), (sx * 0.02, fy, cz + 0.18), 0.08, 0.08, body, bevel=0.02)
-    lathe("figure_head", [(0.0, -0.09), (0.08, -0.06), (0.085, 0.03), (0.06, 0.09), (0.0, 0.11)], 8, (0, fy, cz + 1.25), body)
-    ring("figure_halo", (0, fy + 0.04, cz + 1.3), 0.17, 0.02, gilt, segs=12).rotation_euler = (math.pi / 2, 0, 0)
-    # Koret: et trinn opp, himling, alteret med duk og forside, lys og kors.
-    cy0, cy1 = C_CY0, C_CY0 + C_CL
-    ci = C_CW / 2 - C_T
-    box("choir_floor", (-ci, cy0 - 0.05, C_Z - 0.04), (ci, cy1, C_Z + 0.2), p.floor, bevel=0.01)
-    lathe("apse_floor", [(0.0, C_Z + 0.2), (C_AR - 0.1, C_Z + 0.2), (C_AR - 0.1, C_Z - 0.04)], 8, (0, C_AY, 0), p.floor, cap=False, arc=math.pi)
-    box("choir_step", (-1.1, cy0 - 0.45, C_Z - 0.04), (1.1, cy0 - 0.05, C_Z + 0.1), p.floor, bevel=0.01)
-    collide((0, (cy0 + cy1) / 2, C_Z + 0.08), (C_CW - 0.3, C_CL, 0.24))
-    box("choir_ceiling", (-ci, cy0 - 0.1, 3.3), (ci, cy1, 3.35), p.floor, bevel=0)
-    lathe("apse_ceiling", [(0.0, 2.95), (C_AR - 0.1, 2.95), (C_AR - 0.1, 3.0), (0.0, 3.0)], 8, (0, C_AY, 0), p.floor, cap=False, arc=math.pi)
-    for k in range(4):
-        stick("choir_joist", (-ci, cy0 + 0.3 + k * 0.7, 3.22), (ci, cy0 + 0.3 + k * 0.7, 3.22), 0.12, 0.16, tar, ("timber", k % 4))
+        stick("figure_arm", (sx * 0.07, fy, cz + 0.65), (sx * 0.38, fy, cz + 0.72), 0.05, 0.05, body, bevel=0.015)
+        stick("figure_leg", (sx * 0.04, fy, cz + 0.34), (sx * 0.015, fy, cz + 0.08), 0.06, 0.06, body, bevel=0.015)
+    lathe("figure_head", [(0.0, -0.06), (0.055, -0.04), (0.06, 0.02), (0.04, 0.06), (0.0, 0.075)], 8, (0, fy, cz + 0.76), body)
+    ring("figure_halo", (0, fy + 0.03, cz + 0.8), 0.12, 0.015, gilt, segs=12).rotation_euler = (math.pi / 2, 0, 0)
+
+    # Alteret i apsiden (samme møbel som før).
     az = C_Z + 0.2
-    ax, ay = 0.0, C_AY - 0.3
+    ax, ay = 0.0, C_CY1 + 0.35
     stone = p.stone
-    altar = piece("altar", (ax, ay, az))
-    altar.__enter__()
-    box("altar", (ax - 0.7, ay - 0.42, az), (ax + 0.7, ay + 0.42, az + 0.98), stone, bevel=0.04)
-    box("altar_cloth", (ax - 0.74, ay - 0.46, az + 0.98), (ax + 0.74, ay + 0.46, az + 1.02), linen, bevel=0.01)
-    red = layer("wool", (0.62, 0.14, 0.1))
-    # Forhenget dekker 80 % av bredden, så steinen synes rundt (eieren).
-    box("altar_frontal", (ax - 0.56, ay - 0.47, az + 0.2), (ax + 0.56, ay - 0.44, az + 0.98), red, bevel=0.005)
-    for k in range(3):
-        x = ax - 0.36 + k * 0.36
-        box("frontal_band", (x - 0.035, ay - 0.49, az + 0.2), (x + 0.035, ay - 0.46, az + 0.98), gilt, bevel=0.005)
-    for sx in (-1, 1):
-        lathe("altar_candlestick", [(0.0, 0.0), (0.1, 0.0), (0.06, 0.04), (0.02, 0.06), (0.02, 0.32), (0.07, 0.34), (0.0, 0.35)], 8, (ax + sx * 0.5, ay, az + 1.02), gilt)
-        box("candle", (ax + sx * 0.5 - 0.03, ay - 0.03, az + 1.37), (ax + sx * 0.5 + 0.03, ay + 0.03, az + 1.62), layer("plaster_white", (0.95, 0.9, 0.78)), bevel=0.008)
-        box("candle_flame", (ax + sx * 0.5 - 0.014, ay - 0.014, az + 1.62), (ax + sx * 0.5 + 0.014, ay + 0.014, az + 1.68), p.fire, bevel=0.005)
-        light((ax + sx * 0.5, ay, az + 1.9), (1.0, 0.7, 0.4), 1.2, 5.0)
-    stick("altar_cross_v", (ax, ay + 0.2, az + 1.02), (ax, ay + 0.2, az + 1.7), 0.05, 0.05, gilt, bevel=0)
-    stick("altar_cross_h", (ax - 0.18, ay + 0.2, az + 1.5), (ax + 0.18, ay + 0.2, az + 1.5), 0.05, 0.05, gilt, bevel=0)
-    collide((ax, ay, az + 0.5), (1.5, 0.95, 1.0))
-    altar.__exit__(None, None, None)
+    with piece("altar", (ax, ay, az)):
+        box("altar", (ax - 0.7, ay - 0.42, az), (ax + 0.7, ay + 0.42, az + 0.98), stone, bevel=0.04)
+        box("altar_cloth", (ax - 0.74, ay - 0.46, az + 0.98), (ax + 0.74, ay + 0.46, az + 1.02), linen, bevel=0.01)
+        red = layer("wool", (0.62, 0.14, 0.1))
+        # Forhenget dekker 80 % av bredden, så steinen synes rundt (eieren).
+        box("altar_frontal", (ax - 0.56, ay - 0.47, az + 0.2), (ax + 0.56, ay - 0.44, az + 0.98), red, bevel=0.005)
+        for k in range(3):
+            x = ax - 0.36 + k * 0.36
+            box("frontal_band", (x - 0.035, ay - 0.49, az + 0.2), (x + 0.035, ay - 0.46, az + 0.98), gilt, bevel=0.005)
+        for sx in (-1, 1):
+            lathe("altar_candlestick", [(0.0, 0.0), (0.1, 0.0), (0.06, 0.04), (0.02, 0.06), (0.02, 0.32), (0.07, 0.34), (0.0, 0.35)], 8, (ax + sx * 0.5, ay, az + 1.02), gilt)
+            box("candle", (ax + sx * 0.5 - 0.03, ay - 0.03, az + 1.37), (ax + sx * 0.5 + 0.03, ay + 0.03, az + 1.62), layer("plaster_white", (0.95, 0.9, 0.78)), bevel=0.008)
+            box("candle_flame", (ax + sx * 0.5 - 0.014, ay - 0.014, az + 1.62), (ax + sx * 0.5 + 0.014, ay + 0.014, az + 1.68), p.fire, bevel=0.005)
+            light((ax + sx * 0.5, ay, az + 1.9), (1.0, 0.7, 0.4), 1.2, 5.0)
+        stick("altar_cross_v", (ax, ay + 0.2, az + 1.02), (ax, ay + 0.2, az + 1.7), 0.05, 0.05, gilt, bevel=0)
+        stick("altar_cross_h", (ax - 0.18, ay + 0.2, az + 1.5), (ax + 0.18, ay + 0.2, az + 1.5), 0.05, 0.05, gilt, bevel=0)
+        collide((ax, ay, az + 0.5), (1.5, 0.95, 1.0))
     # Døpefonten av kleberstein ved døra.
-    fx, fy_ = 1.6, -C_D / 2 + 1.3
+    fx, fy_ = 1.6, y0 + 1.1
     soap = layer("stone", (0.75, 0.78, 0.72))
     with piece("baptismal_font", (fx, fy_, fz)):
         lathe("font", [(0.0, 0.0), (0.32, 0.0), (0.24, 0.12), (0.17, 0.5), (0.38, 0.72), (0.42, 0.92), (0.35, 0.92), (0.3, 0.78), (0.0, 0.74)], 12, (fx, fy_, fz), soap)
         lathe("font_water", [(0.0, 0.84), (0.31, 0.84), (0.0, 0.845)], 10, (fx, fy_, fz), p.glass)
         collide((fx, fy_, fz + 0.45), (0.85, 0.85, 0.9))
-    # Benkene langs veggene i sideskipet.
+    # Benkene langs langmurene.
     for sx in (-1, 1):
         x = sx * (ix - 0.23)
-        y0, y1 = -iy + 0.7, iy - 0.4
-        wb = piece("church_wall_bench", (x, (y0 + y1) / 2, fz))
-        wb.__enter__()
-        box("wall_bench", (x - 0.22, y0, fz + 0.42), (x + 0.22, y1, fz + 0.48), wood, bevel=0.015)
-        for k in range(5):
-            y = y0 + 0.2 + k * (y1 - y0 - 0.4) / 4
-            box("bench_leg", (x - 0.2, y - 0.04, fz), (x + 0.2, y + 0.04, fz + 0.42), tar, bevel=0.01)
-        collide((x, (y0 + y1) / 2, fz + 0.24), (0.44, y1 - y0, 0.48))
-        wb.__exit__(None, None, None)
-    # Lysestaker ved stavene og ved korbuen.
-    for x, y in ((-C_NW / 2 + 0.5, -C_ND / 6), (C_NW / 2 - 0.5, C_ND / 6), (-1.0, iy - 0.45), (1.0, iy - 0.45)):
+        b0, b1 = y0 + 1.6, y1 - 0.6
+        with piece("church_wall_bench", (x, (b0 + b1) / 2, fz)):
+            box("wall_bench", (x - 0.22, b0, fz + 0.42), (x + 0.22, b1, fz + 0.48), wood, bevel=0.015)
+            for k in range(4):
+                y = b0 + 0.2 + k * (b1 - b0 - 0.4) / 3
+                box("bench_leg", (x - 0.2, y - 0.04, fz), (x + 0.2, y + 0.04, fz + 0.42), tar, bevel=0.01)
+            collide((x, (b0 + b1) / 2, fz + 0.24), (0.44, b1 - b0, 0.48))
+    # Lysestaker ved korbuen og i skipet, og ei lysekrone midt i skipet.
+    for x, y in ((-1.7, y1 - 0.5), (1.7, y1 - 0.5), (-1.2, (y0 + y1) / 2), (1.2, (y0 + y1) / 2)):
         with piece("candle_stand_low", (x, y, fz)):
             candle_stand(p, x, y, fz, h=1.3)
+    chandelier(p, 0.0, (y0 + y1) / 2, C_H - 0.14, 1.6, r=0.55, intensity=1.8, radius=9.0)
 
 
 def church(rng):
@@ -1171,22 +1094,11 @@ def crypt_model(rng):
             w = 0.34 if k % 2 == 0 else 0.22
             a = at_wall(front, s + sx * (door_w / 2 + w / 2 - 0.02), -T / 2 - 0.05, z)
             box("jamb_stone", (a.x - w / 2, a.y - 0.08, z), (a.x + w / 2, a.y + 0.08, z + 0.38), stone, bevel=0.03)
+    # Døra er hele det malte dørbildet med jernbåndene, hengslene og ringen
+    # malt på; ingen jern oppå som geometri, som ble doble beslag på skeive
+    # (eierens dom i runde 7: «merkelig jernbeslag på døren»).
     leaf = arched_leaf("door_leaf", door_w + 0.02, door_h + 0.01, 0.1, p.door_dark)
-    iron = layer("iron", (0.55, 0.52, 0.5), 0.45)
     parts = [leaf]
-    for z in (0.35, 1.05, 1.75):
-        parts.append(stick("door_band", (0.02, -0.07, z), (door_w - 0.0, -0.07, z), 0.03, 0.09, iron, bevel=0))
-        # Hengslene: bøyde ender mot hengselsida.
-        parts.append(stick("door_hinge", (-0.04, -0.07, z), (0.18, -0.07, z + 0.12), 0.03, 0.07, iron, bevel=0))
-    parts.append(stick("door_band", (door_w / 2, -0.07, 0.1), (door_w / 2, -0.07, door_h - 0.1), 0.03, 0.09, iron, bevel=0))
-    for k in range(6):
-        for z in (0.35, 1.05, 1.75):
-            x = 0.15 + k * (door_w - 0.3) / 5
-            parts.append(box("door_stud", (x - 0.025, -0.11, z - 0.025), (x + 0.025, -0.06, z + 0.025), iron, bevel=0.01))
-    r = ring("door_ring", (door_w - 0.3, -0.12, 1.25), 0.1, 0.018, iron, segs=8)
-    r.rotation_euler = (math.pi / 2, 0, 0)
-    parts.append(r)
-    parts.append(box("door_lock", (door_w - 0.38, -0.1, 1.33), (door_w - 0.22, -0.06, 1.5), iron, bevel=0.01))
     transform(parts, Matrix.Translation((-door_w / 2 - 0.01, y0 + 0.17, dz)))
     box("threshold", (-door_w / 2 - 0.1, y0 - 0.05, dz - 0.15), (door_w / 2 + 0.1, y0 + 0.3, dz + 0.01), stone, bevel=0.03)
     # Trinnene ned foran døra.
@@ -1207,7 +1119,7 @@ def crypt_model(rng):
             ob.data.materials[0] = moss
     for y in (fy, by):
         fr, Lg = wall_frame((-W / 2 - 0.05, y), (W / 2 + 0.05, y))
-        parapet(p, fr, Lg, H - 0.2, z_eave + 0.35, ridge + 0.3, T, wall, stone)
+        parapet(p, fr, Lg, H, z_eave + 0.35, ridge + 0.3, T, wall, stone)
     stone_cross((0, fy, ridge + 0.4), stone, 0.9, tilt=0.06)
     # Mosen: langs foten, på dekkhellene og i flekker på taket.
     for side in (-1, 1):
@@ -1271,12 +1183,6 @@ def scriptorium_paint():
     p = kit.Paint(plaster="ashlar", timber="timber", roof="slate", plinth="wall_stone")
     p.plaster = layer("ashlar", (1.0, 0.95, 0.88))
     p.roof = layer("slate", (0.92, 0.95, 1.0))
-    return p
-
-
-def church_paint():
-    p = kit.Paint(plaster="church_boards", timber="timber", roof="shingles_tar", plinth="wall_stone")
-    p.timber = layer("timber", (0.78, 0.7, 0.62))
     return p
 
 
