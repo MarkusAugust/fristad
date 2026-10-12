@@ -78,6 +78,7 @@ models! {
     // Fiendene i krypten fra tools/models/monsters.py (etter eierens ark).
     "mutant_button" => "mobs/mutant_button.glb",
     "mutant_tooltip" => "mobs/mutant_tooltip.glb",
+    "datepicker_priest" => "mobs/datepicker_priest.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

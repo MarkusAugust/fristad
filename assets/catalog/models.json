@@ -212,6 +212,7 @@
   "writing_desk_gallery": "Møbel: Skrivepult under det høye vinduet på galleriet (Skriptoriet).",
   "writing_desk_unlit": "Møbel: Skrivepult med krakk og bøker (Skriptoriet).",
   "mutant_button": "Button Wight (trash, gravkjelleren): steinplata med SUBMIT forfra og knust stein med glitch-sprekker bak, linsa øverst, beinarmer og korte beinbein, brente lys oppå (tools/models/monsters.py, arket i assets/textures/monsters/ref/).",
+  "datepicker_priest": "Datepicker Priest (elite, gravkjelleren): mager prest i kalenderkappe med vindushode og pileøyne, kalenderen på brystet og en lysende nøkkel, krumstav med urskive, kiste og gravstein på ryggen; formen modellert og arket lagt på fra den visningen hver flate vender mot (tools/models/monsters.py).",
   "mutant_tooltip": "Tooltip Sprite (trash, gravkjelleren): snakkeboblen med lysende skjerm og pikseløyne forfra og stein og glitch bak (arket som bilde), lys oppå, fire lange beinbein som en edderkopp (tools/models/monsters.py)."
  }
 }

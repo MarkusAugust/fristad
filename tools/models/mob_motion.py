@@ -143,6 +143,11 @@ class Body:
     def solve(self, spec, ik_legs=True, slack=0.0):
         """Lokale dreininger (armaturrommet) for alle bein, og roten."""
         R = {b: eul(*spec.rot.get(b, (0, 0, 0))) for b in self.order}
+        # Armen som holder en stav står i hvileposen (staven loddrett),
+        # utenom slaget og døden (`hold`, satt av make_clips).
+        for side in getattr(self, "hold", None) or ():
+            for b in (f"upper_arm.{side}", f"forearm.{side}", f"hand.{side}"):
+                R[b] = eul(0, 0, 0)
         root = Vector(spec.root)
         legs = [s for s in ("L", "R") if spec.feet.get(s) is not None and ik_legs]
         arms = [s for s in ("L", "R") if spec.hands.get(s) is not None]
@@ -204,6 +209,7 @@ STYLES = {
     # Tooltip Sprite: en snakkeboble på fire lange beinbein som tripper
     # fort som en edderkopp (de fremre beina er «armene», på alle fire).
     "sprite": dict(frames=4, v0=6.5, duty=0.5, lift=0.12, width=0.44, hunch=0, arm=0, sway=0.015, bob=0.03, tail=0, twitch=True, hips_yaw=4, idle=36, quad=True, quad_tilt=0.0, hand_x=0.34, hand_y=0.46, hand_z=0.04, leg_pole=(0.0, 0.4, 1.0), arm_pole=(0.0, 0.4, 1.0)),
+    "priest": dict(frames=24, v0=1.2, duty=0.62, lift=0.09, width=0.22, hold="L", hunch=3, arm=8, sway=0.03, bob=0.02, tail=0, twitch=True, hips_yaw=4, idle=60),
     "button": dict(frames=18, v0=2.1, duty=0.56, lift=0.13, width=0.19, hunch=20, arm=34, sway=0.035, bob=0.03, tail=18, twitch=True, hips_yaw=9, idle=48),
     "tooltip": dict(frames=10, v0=6.5, duty=0.38, lift=0.2, width=0.15, hunch=30, arm=22, sway=0.02, bob=0.07, tail=26, twitch=True, hips_yaw=6, idle=36, hop=True),
     "input": dict(frames=20, v0=1.65, duty=0.62, lift=0.15, width=0.14, hunch=6, arm=10, sway=0.03, bob=0.025, tail=10, twitch=False, hips_yaw=12, idle=56, spears=True),
@@ -672,6 +678,7 @@ def make_clips(Clip, arm, bones, style, attack, extra=()):
         elif name == "roar":
             todo.append(("roar", 36, lambda c: roar(c, body, st)))
     for name, length, fn in todo:
+        body.hold = None if name in ("attack", "slam", "die", "die2") else st.get("hold")
         c = Clip(arm, name, length, FPS)
         fn(c)
         c.finish()
