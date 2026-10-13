@@ -508,9 +508,17 @@
    ]
   },
   "crypt_01_aa": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_ab": {
    "verdict": "underkjent",
@@ -1215,9 +1223,14 @@
    ]
   },
   "kit_down": {
-   "verdict": "usikker",
-   "date": "2026-10-11",
-   "why": "ikke imponert, men kasnkje godt nok for nå",
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-11",
+    "why": "ikke imponert, men kasnkje godt nok for nå"
+   },
    "history": [
     "ikke imponert, men kasnkje godt nok for nå"
    ]
@@ -2239,9 +2252,14 @@
    ]
   },
   "datepicker_priest": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "Holder han våpenet? Svinger han det skikkelig ved angrep?",
+   "why": "",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "Holder han våpenet? Svinger han det skikkelig ved angrep?"
+   },
    "history": [
     "Holder han våpenet? Svinger han det skikkelig ved angrep?"
    ]
@@ -2277,6 +2295,21 @@
    "why": ""
   },
   "mutant_tooltip": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "accordion_coffin": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "avatar_skull": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "breadcrumb_crawler": {
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": ""
