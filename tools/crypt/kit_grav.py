@@ -1703,11 +1703,12 @@ def crack_web(m, d, seed, scale=1.0, x0=0.0, half=0.45, top=1.9):
         box(m, (cx - sx / 2, 0.0, cz - sz / 2), (cx + sx / 2, sy, cz + sz / 2), "wall", faces=("+y", "+x", "-x", "+z", "-z"))
 
 
-# Fugene i kryptmurens bilde (`crypt_wall`, 1024 px på 2 m): de vannrette
-# (piksel-y midt i fugen) og de loddrette i hvert skift mellom dem.
-WALL_BEDS = [48.0, 185.0, 323.0, 462.0, 599.0, 739.5, 877.5]
-WALL_HEADS = [[16, 215, 398, 570, 757, 937], [124, 309, 546, 664, 839], [13, 208, 472, 745, 925], [84, 253, 401, 593, 802, 980],
-              [139, 473, 693, 888], [18, 243, 393, 572, 786], [473]]  # mørke minimum midt i skiftet
+# Fugene i kryptmurens bilde (`crypt_wall`, 1024 px på 2 m, åtte skift; målt
+# på det avledede bildet 13. oktober): de vannrette (piksel-y midt i fugen) og
+# de loddrette i hvert skift mellom dem (mørke minimum midt i skiftet).
+WALL_BEDS = [127.0, 254.0, 383.0, 511.0, 639.0, 767.0, 896.0, 1022.0]
+WALL_HEADS = [[130, 266, 489, 684, 886, 1007], [55, 190, 408, 611, 746, 964], [143, 331, 514, 699, 871], [42, 246, 406, 598, 802, 961],
+              [73, 141, 355, 460, 628, 696, 911], [191, 331, 533, 747, 886], [63, 246, 408, 618, 801, 963], [53, 246, 406, 609, 802, 962]]
 WALL_FLIP = True  # glTF har v nedover: bildet står opp ned i meter (målt i runde 10)
 
 

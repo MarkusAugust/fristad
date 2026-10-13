@@ -16,3 +16,8 @@ Avvik: Button Wight har teksten «SUBMIT» på brystet og Datepicker Priest «DE
 | `table_body/_head` | Tabellen | boss | kloakken |
 
 Avvik: Tabellens kroppsark viser den i to lag (oppe og nede) – bruk øverste rad; profilen er krummet som en S, så formen leses best fra forfra/bakfra pluss segmentene. Input Leech ligger lavt (kroppen er bredere enn høy), så `scale` i oppslaget må settes etter lengden.
+| `avatar_skull_body` | Avatar Skull | trash | Gravkongens hall (nivå 2) |
+| `breadcrumb_crawler_body` | Breadcrumb Crawler | trash | Gravkongens hall (nivå 2) |
+| `accordion_coffin_body` | Accordion Coffin | trash | Gravkongens hall (nivå 2) |
+
+Avvik: Breadcrumb Crawler har fire visninger (forfra, siden med fire ledd, ovenfra lengst til høyre) i stedet for bakfra; bakfra må leses fra forfra-visningen. Accordion Coffin står på en tegnet bakkelinje.
