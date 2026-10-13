@@ -19,12 +19,32 @@
    "text": [
     "Siden du godkjente armene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
    ]
+  },
+  "f91e00aced2d": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
+   ]
   }
  },
  "arms_leather": {
   "57c2bf4bde03": {
    "text": [
     "Siden du godkjente lærarmene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
+   ]
+  },
+  "ca31eaeebc0b": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
    ]
   }
  },
@@ -399,6 +419,18 @@
     "verdict": "usikker",
     "why": ""
    }
+  }
+ },
+ "arms_mail": {
+  "46df5051c6e8": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
+   ]
   }
  }
 }

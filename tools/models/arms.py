@@ -35,7 +35,7 @@ OUT = "assets/models/arms"
 REF = os.path.join(ROOT, "assets", "textures", "weapons_ref")
 FPS = 24
 # Sekundene i klippene der treffet lander (speiles i domain/combat.rs).
-SWING_HIT = (5 / FPS, 5 / FPS, 7 / FPS)
+SWING_HIT = (6 / FPS, 6 / FPS, 7 / FPS)
 HEAVY_HOLD = 10 / FPS
 HEAVY_HIT = 13 / FPS
 
@@ -441,81 +441,185 @@ def clips(rig):
     # nøkkelbilde sier hvor grepet skal være og hvilken vei klinga peker i
     # kamerarommet (x høyre, y fram, z opp); overarmen dreies så grepet når
     # dit, og hånda så klinga peker dit med flatsida mot kameraet. Treffet er
-    # i bilde 5, 5 og 7 (`SWING_HIT`), og klinga krysser midten av bildet
+    # i bilde 6, 6 og 7 (`SWING_HIT`), og klinga krysser midten av bildet
     # der fienden står.
     B0 = -Vector(WEAPON.col[0][:3]).normalized()  # klinga i hvile
     N0 = Vector(WEAPON.col[2][:3]).normalized()  # flatsida i hvile
 
     E0 = Vector(WEAPON.col[1][:3]).normalized()  # eggen (knokene) i hvile
 
-    def aim(c, f, grip, blade, root=(0, 0, 0), lead=None):
-        # Klinga dreies dit den skal peke, og rulles om sin egen akse så
-        # underarmen kan gå naturlig fra skulderen til hånda (håndleddet
-        # bøyes minst); at flatsida vender mot øyet teller litt.
-        d = Vector(blade).normalized()
-        rb0 = B0.rotation_difference(d)
-        eye = -(Vector(grip) + d * 0.4).normalized()
-        best = None
-        for i in range(72):
-            q = Quaternion(d, 2 * math.pi * i / 72) @ rb0
-            bend = ik(None, f, "R", grip, q, (0.35, -0.2, -1.0))
-            flat = math.degrees(math.asin(min(1.0, abs((q @ N0).dot(eye)))))
-            score = bend + 0.05 * (90 - flat)
-            # Eggen går først (eieren i runde 18).
-            if lead is not None:
-                score += 80.0 * max(0.0, EDGE_LEADS + 0.1 - (q @ E0).dot(lead))
-            if best is None or score < best[0]:
-                best = (score, q)
-        ik(c, f, "R", grip, best[1], (0.35, -0.2, -1.0))
-        c.loc("root", f, root)
+    # Huggene (eieren 13. oktober: «sverdet snurrer merkelig», «ingen
+    # merkbar forskjell på vanlig slag og hardt slag»). Hvert hugg er en glatt
+    # bane gjennom nøkkelbildene (grepet, klingas retning og kroppen), og
+    # hvert bilde regnes ut for seg: spillet glir bare mellom nabobilder, så
+    # klinga kan ikke vri seg mellom to nøkkelbilder. Rullen om klinga velges
+    # med en sterk straff for å vri seg fra bildet før (`ROLL_KEEP`), så den
+    # aldri snurrer, og eggen går først gjennom treffet. Fasene: opptrekk,
+    # hugget (raskt), gjennomføringen og tilbake til hvile.
+    def catmull(points, t):
+        # Glatt kurve gjennom punktene (t fra 0 til len−1).
+        n = len(points)
+        k = min(int(t), n - 2)
+        u = t - k
+        p0, p1, p2, p3 = (Vector(points[max(k - 1, 0)]), Vector(points[k]), Vector(points[k + 1]), Vector(points[min(k + 2, n - 1)]))
+        return 0.5 * ((2 * p1) + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u ** 3)
 
-    def swing(name, length, keys):
+    def track(keys, f):
+        # Verdien i bilde f langs kurven gjennom (bilde, verdi)-parene.
+        frames = [k for k, _ in keys]
+        if f <= frames[0]:
+            return Vector(keys[0][1])
+        if f >= frames[-1]:
+            return Vector(keys[-1][1])
+        k = max(i for i, fr in enumerate(frames) if fr <= f)
+        t = k + (f - frames[k]) / (frames[k + 1] - frames[k])
+        return catmull([v for _, v in keys], t)
+
+    def stroke(name, length, plane, keys, strike, shield_drop=1.0):
+        """`keys`: (bilde, grep, vinkel, kropp), fra hvile til hvile.
+        Klinga går i ett plan gjennom hvileretningen og `plane` (vinkelen i
+        grader fra hvile mot `plane`, negativ på den andre sida): hugget går
+        fram og tilbake langs samme bue, så sløyfa klinga tegner omslutter
+        ingenting og klinga trenger ikke vris om sin egen akse på veien
+        (en sløyfe som omslutter en flate krever like mye vridning, og det
+        var snurringen eieren så 13. oktober). `strike`: bildene der eggen
+        skal gå først (fra, til)."""
+        side = Vector(plane).normalized()
+        side = (side - B0 * side.dot(B0)).normalized()
+        along = lambda a: B0 * math.cos(math.radians(a)) + side * math.sin(math.radians(a))
+
+        def reach(f, g, a):
+            # Grepet flyttes inntil `GRIP_SLACK` dit håndleddet bøyes minst
+            # (med eggen først i treffet), så nøklene sier hva hugget skal
+            # gjøre og ikke må treffe armens rekkevidde på centimeteren.
+            d = along(a)
+            lead = -(B0 * -math.sin(math.radians(a)) + side * math.cos(math.radians(a)))
+            rb = B0.rotation_difference(d)
+            steps = (-GRIP_SLACK, 0.0, GRIP_SLACK)
+            best = None
+            for dx in steps:
+                for dy in steps:
+                    for dz in steps:
+                        p = Vector(g) + Vector((dx, dy, dz))
+                        for i in range(0, 72, 2):
+                            q = Quaternion(d, 2 * math.pi * i / 72) @ rb
+                            if strike[0] <= f <= strike[1] and (q @ E0).dot(lead) < EDGE_LEADS + 0.06:
+                                continue
+                            v = ik(None, f, "R", p, q, (0.35, -0.2, -1.0)) + 100.0 * (abs(dx) + abs(dy) + abs(dz))
+                            if best is None or v < best[0]:
+                                best = (v, p)
+            return tuple(best[1]) if best else g
+
+        keys = [(f, reach(f, g, a), tuple(along(a)), r) for f, g, a, r in keys]
         c = Clip(rig, name, length, FPS)
         c.rest_all(0)
-        # Hvor klinga er på vei i hvert nøkkelbilde: fra spissen i det
-        # forrige til spissen i det neste.
-        tip = [Vector(g) + Vector(bl).normalized() * 0.6 for _, g, bl, _ in keys]
-        for i, (f, grip, blade, root) in enumerate(keys):
-            # Spissens fart på tvers av klinga (langs klinga skjærer ingenting).
-            d = Vector(blade).normalized()
-            lead = tip[min(i + 1, len(keys) - 1)] - tip[max(i - 1, 0)]
-            lead = (lead - d * lead.dot(d)).normalized()
-            # Etter treffet (siste nøkkelbilde) faller klinga ut, og håndleddet
-            # går foran.
-            aim(c, f, grip, blade, root, lead if i < len(keys) - 1 else None)
+        rest = (0, tuple(RIGHT.translation), tuple(B0), (0, 0, 0))
+        keys = [rest] + list(keys) + [(length, rest[1], rest[2], rest[3])]
+        grips = [(f, g) for f, g, _, _ in keys]
+        blades = [(f, Vector(b).normalized()) for f, _, b, _ in keys]
+        roots = [(f, r) for f, _, _, r in keys]
+        tip = lambda f: track(roots, f) + track(grips, f) + track(blades, f).normalized() * 0.6
+        # Vridningen av klinga velges for hele hugget samlet (Viterbi over
+        # 72 vridninger per bilde): håndleddet holdes innenfor grensen, eggen
+        # går først i treffet, og klinga dreies jevnt i forkant i stedet for
+        # å snurre når den grådige løsningen låser seg (eieren 13. oktober).
+        frames = []
+        for f in range(length + 1):
+            grip = track(grips, f)
+            d = track(blades, f).normalized()
+            lead = tip(min(f + 1, length)) - tip(max(f - 1, 0))  # som `edge_leads` måler
+            lead = lead - d * lead.dot(d)
+            rb0 = B0.rotation_difference(d)
+            eye = -(grip + d * 0.4).normalized()
+            cands = []
+            for i in range(72):
+                q = Quaternion(d, 2 * math.pi * i / 72) @ rb0
+                bend = ik(None, f, "R", grip, q, (0.35, -0.2, -1.0))
+                flat = math.degrees(math.asin(min(1.0, abs((q @ N0).dot(eye)))))
+                cost = bend + 60.0 * max(0.0, bend - WRIST_BEND + 4) + 0.05 * (90 - flat)
+                if strike[0] <= f <= strike[1] and lead.length > 1e-4:
+                    cost += 1500.0 * max(0.0, EDGE_LEADS + 0.06 - (q @ E0).dot(lead.normalized()))
+                if f in (0, length) and i:
+                    cost += 1e6  # hugget begynner og ender i hvileposen
+                cands.append((cost, q, (q @ E0).normalized()))
+            frames.append((grip, cands, d))
+        acc = [c for c, _, _ in frames[0][1]]
+        back = []
+        for k in range(1, len(frames)):
+            prevs, (_, cur, d) = frames[k - 1][1], frames[k]
+            # Eggen i forrige bilde lagt over i planet rundt den nye aksen.
+            moved = [(pe - d * pe.dot(d)).normalized() for _, _, pe in prevs]
+            row, nxt = [], []
+            for cost, q, e in cur:
+                best = None
+                for a, pe in enumerate(moved):
+                    turn = math.degrees(math.acos(max(-1.0, min(1.0, pe.dot(e)))))
+                    v = acc[a] + ROLL_KEEP * turn + 200.0 * max(0.0, turn - SPIN_MAX + 4)
+                    if best is None or v < best[0]:
+                        best = (v, a)
+                nxt.append(best[0] + cost)
+                row.append(best[1])
+            acc = nxt
+            back.append(row)
+        pick = [min(range(72), key=lambda a: acc[a])]
+        for row in reversed(back):
+            pick.append(row[pick[-1]])
+        pick.reverse()
+        for f, (grip, cands, _) in enumerate(frames):
+            q = cands[pick[f]][1]
+            ik(c, f, "R", grip, q, (0.35, -0.2, -1.0))
+            c.loc("root", f, tuple(track(roots, f)))
             # Skjoldet trekkes ned og ut mens klinga går over (motbevegelsen
-            # i kroppen), så klinga aldri går gjennom det.
-            ik(c, f, "L", LEFT.translation + Vector((-0.14, -0.12, -0.14)), Quaternion(), (-0.35, -0.2, -1.0))
-        for b in ("upper_arm.R", "forearm.R", "hand.R", "upper_arm.L", "forearm.L", "hand.L"):
-            c.rot(b, length)
-        c.loc("root", length, (0, 0, 0))
+            # i kroppen), mykt inn og ut, så klinga aldri går gjennom det.
+            w = max(0.0, math.sin(math.pi * f / length)) ** 0.5 * shield_drop
+            ik(c, f, "L", LEFT.translation + Vector((-0.14, -0.12, -0.14)) * w, Quaternion(), (-0.35, -0.2, -1.0))
         c.finish()
 
-    # Alle nøkkelbildene står innenfor synsfeltet (72°) og innenfor armens
-    # rekkevidde (`ik` stopper ellers): grepet rundt 40 cm fram.
-    swing("swing1", 12, [
-        (3, (0.36, 0.36, -0.06), (0.6, 0.3, 0.75), (0.03, -0.02, 0.02)),
-        (5, (0.15, 0.33, -0.09), (-0.95, 0.3, 0.08), (-0.02, 0.06, 0.0)),
-        (6, (0.1, 0.32, -0.12), (-0.75, 0.62, -0.05), (-0.03, 0.05, 0.0)),
-        (8, (0.1, 0.34, -0.14), (-0.4, 0.86, -0.2), (-0.03, 0.04, -0.01)),
-    ])
-    swing("swing2", 12, [
-        (3, (0.06, 0.33, -0.03), (-0.4, 0.25, 0.88), (-0.03, -0.02, 0.02)),
-        (5, (0.13, 0.32, -0.12), (0.95, 0.25, 0.1), (0.03, 0.06, 0.0)),
-        (8, (0.31, 0.32, -0.16), (0.75, 0.6, -0.2), (0.04, 0.04, -0.01)),
-    ])
-    swing("swing3", 16, [
-        (4, (0.2, 0.34, 0.06), (0.05, 0.15, 0.98), (0, -0.03, 0.03)),
-        (7, (0.11, 0.38, -0.06), (0.05, 0.65, 0.75), (0, 0.08, -0.03)),
-        (10, (0.13, 0.35, -0.17), (-0.05, 0.95, -0.3), (0, 0.05, -0.04)),
-    ])
-    # Tungt hugg: lang opptrekk over skulderen (holdes til bilde 10), og et
-    # hugg ned som drar kroppen med.
-    swing("heavy", 24, [
-        (10, (0.28, 0.36, 0.02), (0.7, 0.35, 0.6), (0.02, -0.04, 0.02)),
-        (13, (0.11, 0.38, -0.06), (0.05, 0.65, 0.75), (-0.02, 0.1, -0.05)),
-        (17, (0.13, 0.35, -0.17), (-0.05, 0.95, -0.3), (-0.01, 0.07, -0.06)),
-    ])
+    # Grepet holdes innenfor armens rekkevidde (`ik` stopper ellers), og
+    # klinga krysser midten av bildet i treffet (SWING_HIT).
+    # Hugg fra høyre: over høyre skulder og skrått ned mot venstre, med
+    # klinga mot fienden i treffet (vinkelen −90: rett fram).
+    stroke("swing1", 13, (0.5, -0.85, 0.0), [
+        (2, (0.36, 0.28, -0.02), 50, (0.02, -0.02, 0.01)),
+        (4, (0.34, 0.3, 0.02), 65, (0.02, -0.01, 0.01)),
+        (5, (0.28, 0.38, -0.04), 10, (0.0, 0.03, 0.0)),
+        (6, (0.18, 0.42, -0.1), -62, (-0.02, 0.06, 0.0)),
+        (8, (0.1, 0.4, -0.16), -75, (-0.03, 0.04, -0.01)),
+        (10, (0.14, 0.38, -0.22), -40, (-0.01, 0.02, 0.0)),
+    ], strike=(5, 7))
+    # Tilbakehugg fra venstre: over venstre skulder og skrått ned mot høyre.
+    stroke("swing2", 13, (-0.5, -0.85, 0.0), [
+        (2, (0.08, 0.28, -0.02), 50, (-0.02, -0.02, 0.01)),
+        (4, (0.08, 0.3, 0.02), 65, (-0.02, -0.01, 0.01)),
+        (5, (0.12, 0.38, -0.04), 10, (0.0, 0.03, 0.0)),
+        (6, (0.2, 0.42, -0.1), -62, (0.02, 0.06, 0.0)),
+        (8, (0.3, 0.4, -0.16), -75, (0.03, 0.04, -0.01)),
+        (10, (0.3, 0.38, -0.22), -40, (0.01, 0.02, 0.0)),
+    ], strike=(5, 7))
+    # Hugg ovenfra: klinga løftes bakover over hodet og kommer rett ned.
+    stroke("swing3", 16, (0.0, -1.0, 0.0), [
+        (3, (0.22, 0.3, 0.04), 55, (0, -0.03, 0.03)),
+        (4, (0.22, 0.3, 0.06), 65, (0, -0.03, 0.03)),
+        (5, (0.21, 0.35, 0.02), 20, (0, 0.0, 0.01)),
+        (6, (0.2, 0.4, -0.06), -20, (0, 0.05, -0.01)),
+        (7, (0.18, 0.42, -0.1), -62, (0, 0.08, -0.03)),
+        (10, (0.17, 0.4, -0.18), -75, (0, 0.05, -0.04)),
+        (13, (0.2, 0.4, -0.22), -35, (0, 0.02, -0.01)),
+    ], strike=(5, 8))
+    # Tungt hugg: klinga løftes høyt og legges bakover over høyre skulder,
+    # holdes mens det lades (bilde 10, HEAVY_HOLD), så et hugg rett ned der
+    # hele kroppen kaster seg fram, og en lang gjennomføring nede.
+    stroke("heavy", 24, (0.35, -0.94, 0.0), [
+        (4, (0.3, 0.3, 0.0), 50, (0.02, -0.03, 0.02)),
+        (8, (0.32, 0.25, 0.1), 76, (0.03, -0.06, 0.04)),
+        (10, (0.32, 0.25, 0.11), 80, (0.03, -0.07, 0.045)),
+        (11, (0.3, 0.3, 0.08), 45, (0.02, -0.03, 0.03)),
+        (12, (0.24, 0.4, 0.0), 0, (0.0, 0.05, -0.02)),
+        (13, (0.18, 0.42, -0.1), -62, (-0.04, 0.17, -0.09)),
+        (15, (0.12, 0.42, -0.16), -78, (-0.05, 0.16, -0.1)),
+        (18, (0.1, 0.4, -0.2), -78, (-0.03, 0.07, -0.06)),
+        (21, (0.16, 0.4, -0.22), -35, (-0.01, 0.02, -0.02)),
+    ], strike=(11, 13), shield_drop=1.15)
     # Blokk: skjoldet løftes foran brystet og dreies rett fram (ikke inn
     # forbi rett fram), holdes på siste bilde.
     pole_l = (-0.35, -0.2, -1.0)
@@ -1259,8 +1363,11 @@ def wrist_bend(rig):
     return max(v[0] for v in out.values()), max(v[1] for v in out.values())
 
 
-HITS = {"swing1": 5, "swing2": 5, "swing3": 7, "heavy": 13}
+HITS = {"swing1": 6, "swing2": 6, "swing3": 7, "heavy": 13}
 EDGE_LEADS = 0.5
+# Straffen per grad klinga vris fra bildet før (huggene, `stroke`).
+ROLL_KEEP = 6.0
+GRIP_SLACK = 0.06  # så langt `stroke` kan flytte grepet i en nøkkel (m)
 
 
 def edge_leads(rig):
@@ -1280,6 +1387,59 @@ def edge_leads(rig):
         if cos < worst[0]:
             worst = (cos, clip)
     return worst
+
+
+SPIN_MAX = 20.0  # største vridning av klinga om sin egen akse per bilde (grader)
+HEAVY_ARC = 150.0  # det tunge hugget feier minst så mange grader fra ladningen
+HEAVY_LUNGE = 2.0  # og kroppen kaster seg så mange ganger lenger fram
+
+
+def blade_spin(rig):
+    """Hvor mye klinga vris om sin egen akse fra ett bilde til det neste i
+    huggene (eieren 13. oktober: «sverdet snurrer merkelig»). Stopper
+    eksporten over `SPIN_MAX`. Gir (grader, klipp, bilde)."""
+    worst = (0.0, "", 0)
+    last = {}
+    for clip, f, P in poses(rig, ("swing1", "swing2", "swing3", "heavy")):
+        M = P["hand.R"].to_3x3() @ WEAPON.to_3x3()
+        axis, edge = (M @ Vector((-1, 0, 0))).normalized(), (M @ Vector((0, 1, 0))).normalized()
+        if clip in last and last[clip][0] == f - 1:
+            pa, pe = last[clip][1], last[clip][2]
+            # Vridningen: eggen før, lagt over i den nye aksen, mot eggen nå.
+            pe = (pe - axis * pe.dot(axis)).normalized()
+            spin = math.degrees(pe.angle(edge - axis * edge.dot(axis))) if pe.length > 0 else 0.0
+            if spin > worst[0]:
+                worst = (spin, clip, f)
+        last[clip] = (f, axis, edge)
+    if worst[0] > SPIN_MAX:
+        raise SystemExit(f"klinga vris {worst[0]:.0f}° på ett bilde i {worst[1]} bilde {worst[2]} (høyst {SPIN_MAX:.0f})")
+    return worst
+
+
+def heavy_distinct(rig):
+    """Det tunge hugget skal kjennes (eieren 13. oktober: «ingen merkbar
+    forskjell på vanlig slag og hardt slag»): klinga feier minst
+    `HEAVY_ARC` grader langs veien fra ladningen (bilde 10) til
+    gjennomføringen (18), hele hugget feier lenger enn hvert av de vanlige,
+    og kroppen kaster seg minst `HEAVY_LUNGE` ganger så langt fram. Gir
+    (bue, feid, mest feid i et vanlig hugg, utfall)."""
+    blades, lunge = {}, {}
+    for clip, f, P in poses(rig, ("swing1", "swing2", "swing3", "heavy")):
+        blades.setdefault(clip, {})[f] = ((P["hand.R"] @ WEAPON).to_3x3() @ Vector((-1, 0, 0))).normalized()
+        lunge[clip] = max(lunge.get(clip, 0.0), P["root"].translation.length)
+
+    def along(d, a=None, b=None):
+        fs = [f for f in sorted(d) if (a is None or f >= a) and (b is None or f <= b)]
+        return math.degrees(sum(d[x].angle(d[y]) for x, y in zip(fs, fs[1:])))
+
+    light = ("swing1", "swing2", "swing3")
+    arc = along(blades["heavy"], 10, 18)
+    swept = along(blades["heavy"])
+    most = max(along(blades[c]) for c in light)
+    ratio = lunge["heavy"] / max(1e-6, max(lunge[c] for c in light))
+    if arc < HEAVY_ARC or swept <= most or ratio < HEAVY_LUNGE:
+        raise SystemExit(f"det tunge hugget skiller seg for lite ut: bue {arc:.0f}° (minst {HEAVY_ARC:.0f}), feid {swept:.0f}° mot {most:.0f}° i de vanlige, utfallet {ratio:.1f}× (minst {HEAVY_LUNGE})")
+    return arc, swept, most, ratio
 
 
 def shield_check(rig):
@@ -1332,6 +1492,10 @@ if __name__ == "__main__":
             print(f"skjoldet: {rest:.0f}° ut i hvile, minst {worst:.0f}° i blokken")
             bend, tw = wrist_bend(rig)
             print(f"håndleddet: høyst {bend:.0f}° bøyd og {tw:.0f}° vridd")
+            spin, sc, sf = blade_spin(rig)
+            print(f"klinga vris høyst {spin:.0f}° per bilde ({sc} bilde {sf})")
+            arc, swept, most, ratio = heavy_distinct(rig)
+            print(f"det tunge hugget: bue {arc:.0f}° fra ladningen, feier {swept:.0f}° (de vanlige høyst {most:.0f}°), utfallet {ratio:.1f}×")
             cos, clip = edge_leads(rig)
             print(f"eggen går først i treffet: cos minst {cos:.2f} ({clip})")
             if cos < EDGE_LEADS:

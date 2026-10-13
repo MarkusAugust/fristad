@@ -23,8 +23,8 @@ const MAX_DEBRIS: usize = 96;
 
 /// Sekundene i klippene der treffet lander (`SWING_HIT`, `HEAVY_HOLD`,
 /// `HEAVY_HIT` i tools/models/arms.py).
-const SWING_HIT: [f32; 3] = [5.0 / 24.0, 5.0 / 24.0, 7.0 / 24.0];
-const SWING_LEN: [f32; 3] = [12.0 / 24.0, 12.0 / 24.0, 16.0 / 24.0];
+const SWING_HIT: [f32; 3] = [6.0 / 24.0, 6.0 / 24.0, 7.0 / 24.0];
+const SWING_LEN: [f32; 3] = [13.0 / 24.0, 13.0 / 24.0, 16.0 / 24.0];
 const HEAVY_HOLD: f32 = 10.0 / 24.0;
 const HEAVY_HIT: f32 = 13.0 / 24.0;
 const HEAVY_LEN: f32 = 1.0;
@@ -121,6 +121,9 @@ pub struct Combat {
     kick: Vec2,
     kick_vel: Vec2,
     shake: f32,
+    /// Det tunge hugget lades: kameraet løftes og skjelver mer jo lenger
+    /// det holdes (0–1), så du kjenner det før det slippes.
+    lift: f32,
     pub hurt: f32,
     rig: Option<Rig>,
     clips: Clips,
@@ -160,6 +163,7 @@ impl Combat {
             kick: Vec2::ZERO,
             kick_vel: Vec2::ZERO,
             shake: 0.0,
+            lift: 0.0,
             hurt: 0.0,
             rig,
             clips,
@@ -304,6 +308,8 @@ impl Combat {
         self.regen_delay = REGEN_DELAY;
         self.queued = false;
         self.enter(Phase::Swing { n, hit: false });
+        // Kameraet følger klinga litt: fra høyre, fra venstre, ovenfra.
+        self.kick_vel += [Vec2::new(0.9, -0.3), Vec2::new(-0.9, -0.3), Vec2::new(0.0, -0.8)][n];
         let clip = self.clips.swing[n];
         self.play(clip, false, 0.06);
         if let Some(a) = &mut self.anim {
@@ -385,6 +391,10 @@ impl Combat {
         let s = self.shake * self.shake;
         let yaw = self.kick.x * 0.06 + ((time * 47.0).sin() + (time * 31.0).cos() * 0.5) * 0.012 * s;
         let pitch = self.kick.y * 0.05 + ((time * 53.0).cos() + (time * 29.0).sin() * 0.5) * 0.01 * s;
+        // Ladningen: hodet løftes litt og dirrer av anstrengelse.
+        let strain = self.lift * self.lift;
+        let yaw = yaw + (time * 67.0).sin() * 0.0035 * strain;
+        let pitch = pitch + self.lift * 0.045 + (time * 59.0).cos() * 0.003 * strain;
         (yaw, pitch)
     }
 
@@ -399,6 +409,8 @@ impl Combat {
         self.kick_vel += (-self.kick * k - self.kick_vel * d) * dt;
         self.kick += self.kick_vel * dt;
         self.shake = (self.shake - dt * 4.0).max(0.0);
+        let lift = if let Phase::Heavy { charging: true, charge, .. } = self.phase { (0.35 + charge / 1.2 * 0.65).min(1.0) } else { 0.0 };
+        self.lift += (lift - self.lift) * (dt * if lift > self.lift { 6.0 } else { 14.0 }).min(1.0);
         self.hurt = (self.hurt - dt * 1.8).max(0.0);
         self.regen_delay = (self.regen_delay - dt).max(0.0);
         if self.regen_delay <= 0.0 && !matches!(self.phase, Phase::Block | Phase::Heavy { charging: true, .. }) {
@@ -498,6 +510,8 @@ impl Combat {
                         self.t = HEAVY_HOLD;
                         if !self.held || charge >= 1.2 {
                             self.phase = Phase::Heavy { charging: false, hit: false, charge };
+                            // Hugget slippes: hele kroppen kaster seg fram og ned.
+                            self.kick_vel += Vec2::new(1.5, -12.0);
                             if let Some(a) = &mut self.anim {
                                 a.speed = 1.0;
                             }
@@ -590,8 +604,12 @@ impl Combat {
             }
         }
         if any {
-            self.hitstop = HITSTOP;
-            self.shake = (self.shake + 0.35).min(1.0);
+            // Det tunge hugget stopper lenger og rister mer når det treffer.
+            self.hitstop = if heavy { HITSTOP * 2.2 } else { HITSTOP };
+            self.shake = (self.shake + if heavy { 1.0 } else { 0.35 }).min(1.0);
+            if heavy {
+                self.kick_vel += Vec2::new(0.0, -1.6);
+            }
         } else {
             out.push(CombatEvent::Miss);
             out.push(CombatEvent::Sound(if heavy { "swing_heavy" } else { "swing" }));
@@ -689,4 +707,39 @@ pub fn debris_model() -> Model {
         v.mat[0] = kind::MODEL;
     }
     Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::world::crypt::Crypt;
+
+    /// Eieren 13. oktober: «ingen merkbar forskjell på vanlig slag og hardt
+    /// slag». Ladningen løfter kameraet, og når hugget slippes, kaster
+    /// kameraet seg ned forbi der det sto.
+    #[test]
+    fn det_tunge_hugget_kjennes_i_kameraet() {
+        let crypt = Crypt::default();
+        let mut mobs = Mobs::new(&crypt, &[]);
+        let mut c = Combat::new(None);
+        let step = |c: &mut Combat, mobs: &mut Mobs, secs: f32| {
+            for _ in 0..(secs * 60.0) as usize {
+                c.update(1.0 / 60.0, 1.0 / 60.0, Vec3::Y, -Vec3::Z, Vec3::ZERO, mobs, &crypt);
+            }
+        };
+        c.press_attack();
+        step(&mut c, &mut mobs, 0.1);
+        let light = c.view_kick(0.0).1;
+        step(&mut c, &mut mobs, 0.9);
+        assert!(matches!(c.phase, Phase::Heavy { charging: true, .. }), "holdt knapp lader et tungt hugg");
+        let charged = c.view_kick(0.0).1;
+        assert!(charged > 0.03 && charged > light + 0.03, "ladningen løfter blikket: {charged:.3} mot {light:.3}");
+        c.release_attack();
+        let mut lowest = f32::MAX;
+        for _ in 0..30 {
+            step(&mut c, &mut mobs, 1.0 / 60.0);
+            lowest = lowest.min(c.view_kick(0.0).1);
+        }
+        assert!(lowest < -0.025, "hugget kaster blikket ned: {lowest:.3}");
+    }
 }
