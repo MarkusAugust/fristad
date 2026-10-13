@@ -61,17 +61,59 @@ UPPER_BAND = {"arms": (285, 340), "arms_leather": (300, 340), "arms_mail": (215,
 GRIP_D = (0.028, 0.036)
 
 
-def img_y(y, gy):
+# Underarmen over radene i arket, per sett: (brøkdel fra håndleddet til
+# albuen, rad fra grepet). Uten egen liste strekkes den jevnt. Brynja: hanskens
+# mansjett tar bare det nærmeste stykket ved håndleddet, og brynjeradene resten
+# (eieren i runde 18: «Er dette chainmail?»; `mail_coverage`).
+FOREARM_ROWS = {"arms_mail": ((0.0, WRIST_IMG), (0.12, 222), (0.97, 322), (1.0, SLEEVE_IMG))}
+# Bånd som legges i sann målestokk og speiles fram og tilbake i stedet for å
+# strekkes (brynjeringene ble lange bølger strukket fire ganger): (fra t, til t,
+# første rad, siste rad).
+FOREARM_TILE = {"arms_mail": (0.12, 0.97, 225, 320)}
+MAIL_COVER = 0.7
+
+
+def forearm_row(kind, t):
+    pts = FOREARM_ROWS.get(kind, ((0.0, WRIST_IMG), (1.0, SLEEVE_IMG)))
+    t = min(1.0, max(0.0, t))
+    tile = FOREARM_TILE.get(kind)
+    if tile and tile[0] <= t <= tile[1]:
+        span = tile[3] - tile[2]
+        d = (t - tile[0]) * FOREARM / GRIP_PX % (2 * span)
+        return tile[2] + (d if d <= span else 2 * span - d)
+    for (t0, r0), (t1, r1) in zip(pts, pts[1:]):
+        if t <= t1:
+            return r0 + (r1 - r0) * (t - t0) / max(1e-9, t1 - t0)
+    return pts[-1][1]
+
+
+def img_y(y, gy, kind=None):
     """Raden i arket for y i håndas rom: hånda i sann målestokk, og
     underarmen strukket fra håndleddet til nederst i arket (arket viser bare
-    en del av underarmen)."""
+    en del av underarmen), etter `FOREARM_ROWS`."""
     if y >= WRIST_Y:
         return gy - y / GRIP_PX
-    t = min(1.0, (WRIST_Y - y) / FOREARM)
-    return gy + WRIST_IMG + t * (SLEEVE_IMG - WRIST_IMG)
+    return gy + forearm_row(kind, (WRIST_Y - y) / FOREARM)
 
 
-def project_hand(ob, gy, dx, mirror, row=None):
+def mail_coverage(kind):
+    """Hvor stor del av underarmens lengde som ligger på brynjeradene i arket
+    (lav metning midt i armen ovenfra)."""
+    import numpy as np
+    from PIL import Image
+
+    gy, dx = GRIP_ROWS[kind]
+    hsv = np.asarray(Image.open(GRIP_SHEET).convert("HSV")).astype(float)
+    col = COL_TOP + dx
+
+    def chain(r):
+        return hsv[int(round(gy + r)), col - 30:col + 30, 1].mean() < 50
+
+    ts = [i / 100 for i in range(101)]
+    return sum(chain(forearm_row(kind, t)) for t in ts) / len(ts)
+
+
+def project_hand(ob, gy, dx, mirror, row=None, kind=None):
     """Uv-laget «src» for en del av armen bygd i håndas rom: ovenfra (håndbaken,
     +z), nedenfra (håndflaten, −z) eller fra tommelsida, etter hvilken vei
     flaten vender. Lillefingersida har ingen egen visning i arket og får
@@ -81,7 +123,7 @@ def project_hand(ob, gy, dx, mirror, row=None):
     me = ob.data
     src = me.uv_layers.get("src") or me.uv_layers.new(name="src")
     s = -1.0 if mirror else 1.0
-    row = row or (lambda y: img_y(y, gy))
+    row = row or (lambda y: img_y(y, gy, kind))
     for poly in me.polygons:
         n = poly.normal
         thumb = n.x * s < 0 and abs(n.x) > abs(n.z) * 1.25
@@ -214,7 +256,7 @@ def arm_mesh(kind, mat, mirror):
         r += 4 if r < 60 else 8
     for i in range(1, 21):
         t = i / 20
-        r = int(round(WRIST_IMG + t * (SLEEVE_IMG - WRIST_IMG)))
+        r = int(round(forearm_row(kind, t)))
         r = max(k for k in sil if k <= r)
         rings.append(ring(r, WRIST_Y - t * FOREARM, 2.0))
     return rings_object("arm", mat, rings, caps=("fan", "flat")), rings[-1]
@@ -319,7 +361,7 @@ def build_arms(kind):
         mirror = side == "L"
         ob, last = arm_mesh(kind, mat, mirror)
         ob.name = f"arm_{side}"
-        project_hand(ob, gy, dx, mirror)
+        project_hand(ob, gy, dx, mirror, kind=kind)
         ob.data.transform(M)
         ob.data.update()
         # Fra albuen til 15 cm forbi skulderen: enden er alltid utenfor bildet.
@@ -404,7 +446,9 @@ def clips(rig):
     B0 = -Vector(WEAPON.col[0][:3]).normalized()  # klinga i hvile
     N0 = Vector(WEAPON.col[2][:3]).normalized()  # flatsida i hvile
 
-    def aim(c, f, grip, blade, root=(0, 0, 0)):
+    E0 = Vector(WEAPON.col[1][:3]).normalized()  # eggen (knokene) i hvile
+
+    def aim(c, f, grip, blade, root=(0, 0, 0), lead=None):
         # Klinga dreies dit den skal peke, og rulles om sin egen akse så
         # underarmen kan gå naturlig fra skulderen til hånda (håndleddet
         # bøyes minst); at flatsida vender mot øyet teller litt.
@@ -417,6 +461,9 @@ def clips(rig):
             bend = ik(None, f, "R", grip, q, (0.35, -0.2, -1.0))
             flat = math.degrees(math.asin(min(1.0, abs((q @ N0).dot(eye)))))
             score = bend + 0.05 * (90 - flat)
+            # Eggen går først (eieren i runde 18).
+            if lead is not None:
+                score += 80.0 * max(0.0, EDGE_LEADS + 0.1 - (q @ E0).dot(lead))
             if best is None or score < best[0]:
                 best = (score, q)
         ik(c, f, "R", grip, best[1], (0.35, -0.2, -1.0))
@@ -425,8 +472,17 @@ def clips(rig):
     def swing(name, length, keys):
         c = Clip(rig, name, length, FPS)
         c.rest_all(0)
-        for f, grip, blade, root in keys:
-            aim(c, f, grip, blade, root)
+        # Hvor klinga er på vei i hvert nøkkelbilde: fra spissen i det
+        # forrige til spissen i det neste.
+        tip = [Vector(g) + Vector(bl).normalized() * 0.6 for _, g, bl, _ in keys]
+        for i, (f, grip, blade, root) in enumerate(keys):
+            # Spissens fart på tvers av klinga (langs klinga skjærer ingenting).
+            d = Vector(blade).normalized()
+            lead = tip[min(i + 1, len(keys) - 1)] - tip[max(i - 1, 0)]
+            lead = (lead - d * lead.dot(d)).normalized()
+            # Etter treffet (siste nøkkelbilde) faller klinga ut, og håndleddet
+            # går foran.
+            aim(c, f, grip, blade, root, lead if i < len(keys) - 1 else None)
             # Skjoldet trekkes ned og ut mens klinga går over (motbevegelsen
             # i kroppen), så klinga aldri går gjennom det.
             ik(c, f, "L", LEFT.translation + Vector((-0.14, -0.12, -0.14)), Quaternion(), (-0.35, -0.2, -1.0))
@@ -719,7 +775,9 @@ def weapon_parts(name, mask, metal, px, gy, length):
         rings = []
         k = k_grip if kind == "grip" else 1.0
         for r in sample:
-            cy = (cm[r] - mid[gr]) * px * k
+            # Midtlinja følger bildet (bare tykkelsen skaleres), så skaftet
+            # går gjennom øksehodet der arket viser det.
+            cy = (cm[r] - mid[gr]) * px
             if kind == "ball":
                 R = (r1 - r0) / 2 * px
                 t = (r - (r0 + r1) / 2) * px
@@ -882,7 +940,7 @@ def build_weapon(name):
                 if kind == "head":
                     pxx = cx + co.y / px
                 else:
-                    off = (co.y - (cm[r] - mid[int(gy)]) * px * k) / (px * k)
+                    off = (co.y - (cm[r] - mid[int(gy)]) * px) / (px * k)
                     if kind == "blade" and abs((hi[r] - mid[r]) - (mid[r] - lo[r])) > 8:
                         # Klinga får arket fra den hele sida speilet over
                         # aksen der eggen er malt med hakk (den andre sida
@@ -894,18 +952,47 @@ def build_weapon(name):
     print(f"{name}: grepet {grip_d * 100:.1f} cm, {sum(len(o.data.polygons) for o in obs)} flater")
     if not GRIP_D[0] <= grip_d <= GRIP_D[1]:
         raise SystemExit(f"{name}: grepet er {grip_d * 100:.1f} cm (hånda holder {GRIP_D[0] * 100:.1f}–{GRIP_D[1] * 100:.1f})")
-    # Øksa: bladet skal vende fram (som knokene, +y i håndas rom).
+    # Øksa: eggen skal vende fram mot fienden (som knokene, +y i håndas
+    # rom). Eggen er den lengste sida av hodet målt fra skaftets egen
+    # midtlinje der hodet sitter, ikke fra grepet (skaftet er bøyd; runde
+    # 18 målte fra grepet og snudde eggen bakover).
     if name == "axe":
-        upper = mask[: int(h * 0.3)]
-        ys, xs = np.nonzero(upper)
-        if xs.mean() < cx:
+        r0, r1 = next(p[3][:2] for p in parts if p[0] == "head")
+        haft = next(p[3] for p in parts if p[0] == "grip")
+        ys, xs = np.nonzero(mask[r0:r1] & metal[r0:r1])
+        hc = haft[ys + r0]
+        right, left = float(np.max(xs - hc)), float(np.max(hc - xs))
+        sign = 1.0 if right >= left else -1.0
+        if sign < 0:
             for ob in obs:
                 ob.data.transform(Matrix.Scale(-1, 4, (0, 1, 0)))
                 ob.data.flip_normals()
+        # Eggen og skaftet der eggen er lengst ut, i håndas rom.
+        k = int(np.argmax(sign * (xs - hc)))
+        row = ys[k] + r0
+        attach = Vector((-(gy - row) * px, (hc[k] - cx) * px * sign, 0.0))
+        edge = Vector((-(gy - row) * px, (xs[k] - cx) * px * sign, 0.0))
+        ang = edge_forward(attach, edge)
+        print(f"{name}: eggen {ang:.0f}° fra retningen mot fienden i hvile")
+        if ang > EDGE_FORWARD:
+            raise SystemExit(f"{name}: eggen peker {ang:.0f}° bort fra fienden (høyst {EDGE_FORWARD:.0f})")
     for ob in obs:
         ob.data.transform(WEAPON)
         ob.data.update()
     return obs
+
+
+EDGE_FORWARD = 40.0
+TARGET = Vector((0.0, 2.0, 0.0))  # fienden: midt i bildet 2 m fram
+
+
+def edge_forward(attach, edge, M=None):
+    """Vinkelen mellom retningen fra skaftet ut til eggen og retningen mot
+    fienden midt i bildet, i kamerarommet (hånda i hvile, eller `M`).
+    Eieren i runde 18: eggen må peke mot monsteret som skal slås."""
+    M = M or WEAPON
+    a, e = M @ attach, M @ edge
+    return math.degrees((e - a).angle(TARGET - a))
 
 
 # --- Skjoldene ----------------------------------------------------------------
@@ -1154,17 +1241,27 @@ def wrist_bend(rig):
     return max(v[0] for v in out.values()), max(v[1] for v in out.values())
 
 
-def face_visible():
-    """Hvor mange grader øksebladets flate står fra synslinja i hvile (0 er
-    rett mot kameraet). Eieren i runde 17: bladet skal synes fra siden, med
-    eggen fram."""
-    n = Vector(WEAPON.col[2][:3]).normalized()
-    head = WEAPON @ Vector((-0.55, 0, 0))
-    v = (-head).normalized()
-    return math.degrees(math.acos(abs(n.dot(v))))
+HITS = {"swing1": 5, "swing2": 5, "swing3": 7, "heavy": 13}
+EDGE_LEADS = 0.5
 
 
-FACE_MAX = 60.0
+def edge_leads(rig):
+    """I treffet går eggen først: retningen eggen vender (knokene, +y i
+    våpenrommet) mot retningen klinga beveger seg, som cos. Gir det minste
+    (cos, klipp). Eieren i runde 18: eggen må peke mot monsteret som skal slås."""
+    worst = (2.0, "")
+    for clip, hit in HITS.items():
+        tips, edge = {}, None
+        for c, f, P in poses(rig, (clip,)):
+            if f in (hit - 1, hit + 1):
+                tips[f] = P["hand.R"] @ (WEAPON @ Vector((-0.6, 0, 0)))
+            if f == hit:
+                edge = (P["hand.R"].to_3x3() @ Vector(WEAPON.col[1][:3])).normalized()
+        v = (tips[hit + 1] - tips[hit - 1]).normalized()
+        cos = edge.dot(v)
+        if cos < worst[0]:
+            worst = (cos, clip)
+    return worst
 
 
 def shield_check(rig):
@@ -1197,6 +1294,11 @@ if __name__ == "__main__":
     for name in which:
         clear()
         if name in kinds:
+            if name == "arms_mail":
+                cover = mail_coverage(name)
+                print(f"brynja: {cover * 100:.0f} % av underarmen")
+                if cover < MAIL_COVER:
+                    raise SystemExit(f"brynja dekker {cover * 100:.0f} % av underarmen (minst {MAIL_COVER * 100:.0f})")
             rigid = build_arms(name)
             rig = build_rig_and_clips()
             for w in WEAPONS:
@@ -1212,10 +1314,10 @@ if __name__ == "__main__":
             print(f"skjoldet: {rest:.0f}° ut i hvile, minst {worst:.0f}° i blokken")
             bend, tw = wrist_bend(rig)
             print(f"håndleddet: høyst {bend:.0f}° bøyd og {tw:.0f}° vridd")
-            face = face_visible()
-            print(f"øksebladet: {face:.0f}° fra synslinja i hvile")
-            if face > FACE_MAX:
-                raise SystemExit(f"øksebladet står {face:.0f}° fra synslinja (høyst {FACE_MAX:.0f}): det synes bare fra kanten")
+            cos, clip = edge_leads(rig)
+            print(f"eggen går først i treffet: cos minst {cos:.2f} ({clip})")
+            if cos < EDGE_LEADS:
+                raise SystemExit(f"eggen går ikke først i treffet i {clip} (cos {cos:.2f}, minst {EDGE_LEADS})")
             if os.environ.get("FRISTAD_CHECK_ONLY"):
                 continue
             bake_textured(f"{OUT}/{name}.glb", 1024, keep=("glass", "magic"), armature=rig, rigid=rigid, skin={"blend": 0.03, "radii": {"root": -1.0}})

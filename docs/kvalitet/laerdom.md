@@ -156,3 +156,9 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Håndleddet bøyes lite og vris aldri.** IK-en valgte albuen bare etter retningen den skulle bøyes, og hånda ble dreid fritt, så håndleddet ble knekt 60–90° og blandingsvektene strakk armen som gummi i skjoldblokken. Nå velges albuen der håndleddet bøyes minst. Underarmen tar hele vridningen, og `aim` velger rullen om klinga som gir minst bøy. `wrist_bend` stopper eksporten over 35° bøy eller 15° vridning, i alle klipp og for begge hender.
 - **Et punkt uten dom føres inn likevel.** «Øksa holdes feil vei» kom uten dom og ble hoppet over av `approvals apply`. Nå føres punktet inn, og dommen står.
 - **Bladet skal synes.** Øksebladet sto med kanten mot kameraet. `face_visible` måler flaten mot synslinja i hvile (høyst 60°).
+
+## Øksa og brynja – dommen (runde 18, 13. oktober)
+
+- **Eggen måles fra skaftet der hodet sitter.** Skaftet er bøyd. Målt fra midtlinja ved grepet så nakken ut som den lengste sida av hodet, så eggen ble snudd bakover. Midtlinja til skaftet ble i tillegg skalert sammen med tykkelsen, så skaftet gikk skjevt gjennom hodet. Nå måles sidene fra skaftets egen midtlinje i radene der hodet sitter, og bare tykkelsen skaleres. `edge_forward` måler på modellen at eggen peker mot fienden midt i bildet i hvile (høyst 40°).
+- **Eggen går først i hugget.** Rullen om klinga velges slik at knokene og eggen vender i retningen spissen beveger seg på tvers av klinga, uten å bryte håndleddsregelen. Det gjelder ikke etter treffet. `edge_leads` krever cos ≥ 0,5 i hvert treff.
+- **Det synlige av armen skal vise rustningen.** Underarmen i `arms_mail` ble strukket jevnt over radene i arket, så hanskens mansjett dekket det meste og brynja bare litt nederst. `FOREARM_ROWS` legger nå hver del av underarmen på sine rader, og `mail_coverage` krever at brynja dekker minst 70 % av underarmen.

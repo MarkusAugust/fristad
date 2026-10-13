@@ -2315,13 +2315,13 @@
    "why": ""
   },
   "arms": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-13",
-    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    },
    "history": [
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
@@ -2329,13 +2329,13 @@
    ]
   },
   "arms_leather": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-13",
-    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    },
    "history": [
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
@@ -2343,26 +2343,33 @@
    ]
   },
   "arms_mail": {
-   "verdict": "underkjent",
+   "verdict": "usikker",
    "date": "2026-10-13",
-   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "why": "Er dette chainmail?",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-13",
-    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    },
    "history": [
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
-    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+    "Er dette chainmail?"
    ]
   },
   "axe": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-13",
-   "why": "øksa holdes feil vei",
+   "why": "Eggen må peke mot monsteret som skal slås",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "øksa holdes feil vei"
+   },
    "history": [
     "hånden holder det rart?",
-    "øksa holdes feil vei"
+    "øksa holdes feil vei",
+    "Eggen må peke mot monsteret som skal slås"
    ]
   },
   "dagger": {
