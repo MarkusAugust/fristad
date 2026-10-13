@@ -1106,7 +1106,77 @@ def build_table(size):
     bake_textured(f"{OUT}/mutant_table.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.04, "radii": {"root": -1.0}})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048)}
+# --- Toast Frog --------------------------------------------------------------
+#
+# Arket (`toast_frog_body.jpeg`, 2048 × 2048): en tykk frosk som er et
+# toast-varsel, med en grønn «success»-stripe nedover ryggen, en rund
+# lukkeknapp som øye på hver side av hodet, lange svømmeføtter og bred munn.
+# 455 px høy (792–1247) og 0,55 m.
+
+FROG_SHEET = os.path.join(REF, "toast_frog_body.jpeg")
+FROG_PX = 0.55 / (1247 - 792)
+FROG_VIEWS = {"front": 372, "back": 1683, "side": 1040, "ground": 1247}
+FROG_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.1), None),
+    ("hips", (-0.12, 0, 0.22), (0.0, 0, 0.26), "root"),
+    ("chest", (0.0, 0, 0.26), (0.15, 0, 0.3), "hips"),
+    ("neck", (0.15, 0, 0.3), (0.2, 0, 0.36), "chest"),
+    ("head", (0.2, 0, 0.4), (0.38, 0, 0.4), "neck"),
+    ("jaw", (0.2, 0, 0.29), (0.37, 0, 0.27), "head"),
+    ("upper_arm.L", (0.14, 0.17, 0.24), (0.19, 0.25, 0.12), "chest"),
+    ("forearm.L", (0.19, 0.25, 0.12), (0.22, 0.28, 0.03), "upper_arm.L"),
+    ("hand.L", (0.22, 0.28, 0.03), (0.3, 0.31, 0.0), "forearm.L"),
+    ("upper_arm.R", (0.14, -0.17, 0.24), (0.19, -0.25, 0.12), "chest"),
+    ("forearm.R", (0.19, -0.25, 0.12), (0.22, -0.28, 0.03), "upper_arm.R"),
+    ("hand.R", (0.22, -0.28, 0.03), (0.3, -0.31, 0.0), "forearm.R"),
+    ("thigh.L", (-0.12, 0.19, 0.2), (0.0, 0.33, 0.2), "hips"),
+    ("shin.L", (0.0, 0.33, 0.2), (-0.15, 0.36, 0.05), "thigh.L"),
+    ("foot.L", (-0.15, 0.36, 0.05), (0.03, 0.42, 0.0), "shin.L"),
+    ("thigh.R", (-0.12, -0.19, 0.2), (0.0, -0.33, 0.2), "hips"),
+    ("shin.R", (0.0, -0.33, 0.2), (-0.15, -0.36, 0.05), "thigh.R"),
+    ("foot.R", (-0.15, -0.36, 0.05), (0.03, -0.42, 0.0), "shin.R"),
+    ("tail1", (-0.24, 0, 0.26), (-0.29, 0, 0.24), "hips"),
+    ("tail2", (-0.29, 0, 0.24), (-0.32, 0, 0.22), "tail1"),
+    ("tail3", (-0.32, 0, 0.22), (-0.34, 0, 0.2), "tail2"),
+]
+FROG_RIGID = {"eye": "head"}
+
+
+def toast_frog():
+    sheet = sheet_material("frog_sheet", filled_sheet(FROG_SHEET))
+    parts = []
+    parts.append(ellipsoid("body", (-0.03, 0, 0.27), (0.62, 0.54, 0.42), sheet, 24, 14))
+    parts.append(ellipsoid("head_dome", (0.17, 0, 0.36), (0.38, 0.46, 0.27), sheet, 24, 12))
+    parts.append(ellipsoid("head_lip", (0.25, 0, 0.3), (0.28, 0.42, 0.1), sheet, 20, 8))
+    for sy in (1.0, -1.0):
+        parts.append(ellipsoid(f"eye_{sy:+.0f}", (0.17, sy * 0.17, 0.5), (0.15, 0.15, 0.15), sheet, 16, 10))
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in FROG_BONES}
+    for side in ("L", "R"):
+        sy = 1.0 if side == "L" else -1.0
+        sh, el, wr, tip = B[f"upper_arm.{side}"][0], B[f"forearm.{side}"][0], B[f"hand.{side}"][0], B[f"hand.{side}"][1]
+        parts.append(tube(f"arm_{side}_a", sh, el, 0.045, sheet, 10))
+        parts.append(tube(f"arm_{side}_b", el, wr, 0.035, sheet, 10))
+        parts.append(ellipsoid(f"hand_{side}", wr + Vector((0.04, sy * 0.01, -0.015)), (0.12, 0.11, 0.025), sheet, 10, 5))
+        hip, knee, ankle, toe = B[f"thigh.{side}"][0], B[f"shin.{side}"][0], B[f"foot.{side}"][0], B[f"foot.{side}"][1]
+        parts.append(tube(f"leg_{side}_a", hip, knee, 0.07, sheet, 12))
+        parts.append(ellipsoid(f"leg_{side}_k", knee, (0.12, 0.12, 0.12), sheet, 10, 6))
+        parts.append(tube(f"leg_{side}_b", knee, ankle, 0.045, sheet, 10))
+        parts.append(tube(f"leg_{side}_c", ankle, toe + Vector((0, 0, 0.01)), 0.03, sheet, 8))
+        parts.append(ellipsoid(f"foot_{side}", toe + Vector((0.03, sy * 0.02, 0.0)), (0.16, 0.13, 0.025), sheet, 10, 5))
+    bpy.context.view_layer.update()
+    for ob in parts:
+        project_sheet(ob, (2048, 2048), FROG_VIEWS, FROG_PX)
+
+
+def build_frog(size):
+    toast_frog()
+    arm = armature("mutant_toast_rig", FROG_BONES)
+    mob_motion.make_clips(Clip, arm, FROG_BONES, "frog", "spit")
+    bpy.context.scene.frame_end = 64
+    bake_textured(f"{OUT}/mutant_toast.glb", size, keep=("glass", "magic"), armature=arm, rigid=FROG_RIGID, skin={"blend": 0.04, "radii": {"root": -1.0, "jaw": -1.0, "neck": -1.0}})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048), "mutant_toast": (build_frog, 1024)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
