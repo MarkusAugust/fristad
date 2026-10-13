@@ -319,6 +319,9 @@ def apply(path):
     """Svarene fra siden inn i approvals.json. `path` er en mappe med
     `<id>.json` (`{verdict, why, at}`) eller en json-liste med `{id, data}`."""
     if os.path.isdir(path):
+        # ArtifactData med `out_dir` legger svarene i `<out_dir>/dom/`.
+        if os.path.isdir(os.path.join(path, "dom")):
+            path = os.path.join(path, "dom")
         rows = []
         for name in sorted(os.listdir(path)):
             if name.endswith(".json"):
@@ -327,6 +330,8 @@ def apply(path):
     else:
         with open(path) as f:
             rows = json.load(f)
+    if not rows:
+        raise SystemExit(f"ingen svar i {path}")
     p = os.path.join(DATA, "approvals.json")
     with open(p) as f:
         ap = json.load(f)
