@@ -98,6 +98,8 @@ pub struct Room {
     pub min: Vec2,
     pub max: Vec2,
     area: f32,
+    /// Så langt under gulvet rommet når i lyset (sjakta til trappa ned).
+    pub sink: f32,
 }
 
 impl Room {
@@ -461,7 +463,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         let min = poly.iter().fold(Vec2::splat(f32::MAX), |m, p| m.min(*p));
         let max = poly.iter().fold(Vec2::splat(f32::MIN), |m, p| m.max(*p));
         let area = (0..poly.len()).map(|i| poly[i].perp_dot(poly[(i + 1) % poly.len()])).sum::<f32>().abs() * 0.5;
-        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area });
+        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area, sink: 0.0 });
     }
     let room_ix = |id: &str| rooms.iter().position(|r| r.id == id);
 
@@ -604,6 +606,10 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     b.solid_box(p(-1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
                     b.solid_box(p(1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
                     b.solid_box(p(0.0, 0.5, -3.95), Vec3::new(3.1, 1.0, 0.4), m.yaw);
+                    // Portalmuren på begge sider av åpningen.
+                    for x in [-1.58f32, 1.58] {
+                        b.solid_box(p(x, 2.05, -0.25), Vec3::new(0.75, 4.1, 0.5), m.yaw);
+                    }
                     // Trinnene ned som en rampe, og bunnen.
                     let mut ramp = vec![];
                     for x in [-1.2f32, 1.2] {
@@ -778,6 +784,13 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             if l.pos.distance(h.pos) < 4.0 {
                 l.flicker = l.flicker.max(0.35);
             }
+        }
+    }
+    // Trappa ned står i en sjakt under gulvet: rommet lyser den (ellers er
+    // trinnene utenfor alle rom, og bare lykta du bærer lyser dem).
+    if let Some((p, _)) = level.down {
+        if let Some(r) = rooms.iter_mut().find(|r| r.contains(Vec2::new(p.x, p.z)) && (p.y - r.y).abs() < 0.5) {
+            r.sink = 3.2;
         }
     }
     level.rooms = rooms;

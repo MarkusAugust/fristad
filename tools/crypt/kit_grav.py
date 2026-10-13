@@ -1875,10 +1875,14 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     m = MB()
     run = depth / steps
     rise = 2.4 / steps
+    # Massive trinn ned til bunnen av sjakta (tynne plater med to sider lot
+    # deg se rett gjennom mellom trinnene; eieren om nivå 1: «hull»).
     for k in range(steps):
         z0, z1 = -k * run - run, -k * run
         y = -(k + 1) * rise
-        box(m, (-w / 2, y - 0.2, z0), (w / 2, y, z1), "dressed", faces=("+y", "+z"))
+        box(m, (-w / 2, -2.8, z0), (w / 2, y, z1), "dressed", faces=("+y", "+z", "-z"))
+    # Terskelen foran øverste trinn fyller kanten av hullet i gulvet.
+    box(m, (-w / 2, -2.8, 0.0), (w / 2, -0.003, 0.35), "dressed", faces=("+y", "-z"))
     # Sidene i trappesjakta og bakveggen.
     for sx in (-1, 1):
         surf = Plane((sx * w / 2, 0.0), (0.0, -1.0), (-sx, 0.0))
@@ -1891,14 +1895,29 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     t = 0.3
     path = [(-w / 2 - t / 2, 0.0), (-w / 2 - t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, 0.0)]
     parapet(m, path, 0.0, h=0.95, t=t)
-    # Buen over nedgangen.
-    for sx in (-1, 1):
-        pillar(m, sx * (w / 2 + 0.15), 0.0, 0.0, 2.2, size=0.42)
-    arch = arch_profile(0.0, w + 0.3, 2.2, 0.0, n=12)
-    surf = Plane((0.0, 0.0), (1.0, 0.0), (0.0, 1.0))
-    portal(m, surf, arch[1:-1], mat="dressed", band=0.3, depth=0.2)
-    surf_b = Plane((0.0, -0.2), (-1.0, 0.0), (0.0, -1.0))
-    portal(m, surf_b, [(-u, v) for u, v in reversed(arch[1:-1])], mat="dressed", band=0.3, depth=0.0)
+    # Portalen over nedgangen: en kort mur med rundbuet åpning så bred som
+    # trappa, med vangestein og kilestein på begge sider (som døra opp og
+    # snarveien; eieren var ikke imponert av søylene med buen oppå).
+    T, side, spring = 0.5, 0.75, 2.2
+    hw = w / 2 + side
+    top = spring + w / 2 + 0.75
+    hole = Polygon(arch_profile(0.0, w, -0.05, spring + 0.05, n=16))
+    face = Polygon([(-hw, -0.05), (hw, -0.05), (hw, top), (-hw, top)]).difference(hole)
+    front = Plane((0.0, 0.0), (1.0, 0.0), (0.0, 1.0))
+    back_s = Plane((0.0, -T), (-1.0, 0.0), (0.0, -1.0))
+    grid_face(m, front, face, "wall")
+    grid_face(m, back_s, Polygon([(-u, v) for u, v in face.exterior.coords]).difference(Polygon([(-u, v) for u, v in hole.exterior.coords])), "wall")
+    # Lysningen i åpningen (vangene og buens underside) mellom forsida og baksida.
+    prof = arch_profile(0.0, w, -0.05, spring + 0.05, n=16)
+    for (ua, va), (ub, vb) in zip(prof, prof[1:]):
+        mid = ((ua + ub) / 2, (va + vb) / 2)
+        n_in = (-mid[0], 0.0, 0.0) if va <= spring + 0.01 and vb <= spring + 0.01 else (-mid[0], spring - mid[1], 0.0)
+        m.quad((ua, va, 0.0), (ub, vb, 0.0), (ub, vb, -T), (ua, va, -T), "dressed", facing=n_in)
+    # Toppen og endene av muren.
+    box(m, (-hw, -0.05, -T), (hw, top, 0.0), "wall", faces=("+y", "+x", "-x"))
+    box(m, (-hw - 0.06, top, -T - 0.06), (hw + 0.06, top + 0.14, 0.06), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
+    arch_trim(m, front, w, spring, v0=0.0, band=0.3, proud=0.1, seed=3)
+    arch_trim(m, back_s, w, spring, v0=0.0, band=0.3, proud=0.1, seed=5)
     return m
 
 

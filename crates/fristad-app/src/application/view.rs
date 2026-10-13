@@ -102,7 +102,7 @@ impl Session {
         // Rendereren tar de første 48: de nærmeste først.
         lights.sort_by(|a, b| rank(a).total_cmp(&rank(b)));
         lights.truncate(MAX_LIGHTS);
-        let rooms = level.map(|k| RoomLight { boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y, r.y + r.h)).collect(), masks: lights.iter().map(mask).collect() });
+        let rooms = level.map(|k| RoomLight { boxes: self.crypt.levels[k].rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y - r.sink, r.y + r.h)).collect(), masks: lights.iter().map(mask).collect() });
         // Nede i krypten: lite himmellys, mer tåke, øynene vant til mørket.
         let c = self.cellar_t;
 
