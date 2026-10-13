@@ -251,6 +251,8 @@ pub enum WareKind {
     /// Varig: mer liv, mer utholdenhet.
     MaxHp(f32),
     MaxStamina(f32),
+    /// Olje til lykta: fyller den.
+    Oil,
 }
 
 pub const SMITH_WARES: &[Ware] = &[
@@ -262,6 +264,7 @@ pub const SMITH_WARES: &[Ware] = &[
 pub const APOTHECARY_WARES: &[Ware] = &[
     Ware { id: "potion", name: "Styrkedrikk (+40 liv)", price: 10, what: WareKind::Heal(40.0) },
     Ware { id: "big_potion", name: "Fullt liv", price: 22, what: WareKind::Heal(100.0) },
+    Ware { id: "lamp_oil", name: "Lampeolje (fyller lykta)", price: 6, what: WareKind::Oil },
 ];
 pub const GORVEK_WARES: &[Ware] = &[
     Ware { id: "train_hp", name: "Herding (+20 maks liv)", price: 30, what: WareKind::MaxHp(20.0) },

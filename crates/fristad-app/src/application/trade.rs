@@ -115,6 +115,7 @@ impl Session {
             coins: h.coins,
             found: h.found.iter().cloned().collect(),
             bonuses: h.bonus_taken.iter().cloned().collect(),
+            oil: Some(h.lamp.oil),
         }
     }
 
@@ -132,6 +133,7 @@ impl Session {
         }
         h.gear.armor = d.armor.as_deref().and_then(craft::armor);
         h.gear.lantern = if d.lantern > 0.0 { d.lantern } else { 1.0 };
+        h.lamp.oil = d.oil.unwrap_or(crate::domain::lantern::FULL).clamp(0.0, crate::domain::lantern::FULL);
         if d.max_hp >= 100.0 {
             h.max_hp = d.max_hp;
             h.hp = h.max_hp;

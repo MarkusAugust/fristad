@@ -15,7 +15,7 @@ pub(super) struct Hud {
     popups: Vec<(Vec3, f32, f32, u32)>,
     seq: u32,
     marks_shown: bool,
-    last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>)>,
+    last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>, u32)>,
 }
 
 impl Hud {
@@ -108,6 +108,35 @@ impl Session {
         }
     }
 
+    /// Tokens som spretter ut `ahead` meter foran deg (til skjermbildene).
+    pub fn drop_tokens(&mut self, ahead: f32, n: u32) {
+        let f = self.forward().with_y(0.0).normalize_or_zero();
+        let at = self.body.sole() + f * ahead;
+        self.mobs.drop_tokens(at, n);
+    }
+
+    /// Oljen i lykta som brøk (0 er sluknet); til skjermbildene.
+    pub fn set_oil(&mut self, fraction: f32) {
+        self.hero.lamp.oil = fraction.clamp(0.0, 1.0) * crate::domain::lantern::FULL;
+    }
+
+    /// Lykta brenner nede i krypten, og sier fra når oljen er lav og når
+    /// den slukner.
+    pub(super) fn burn_lamp(&mut self, dt: f32, in_crypt: bool, events: &mut Vec<Event>) {
+        if !in_crypt {
+            return;
+        }
+        let before = self.hero.lamp.fraction();
+        self.hero.lamp.burn(dt);
+        let after = self.hero.lamp.fraction();
+        if before >= crate::domain::lantern::LOW && after < crate::domain::lantern::LOW {
+            events.push(Event::Toast("Lykta begynner å gå tom for olje. Hvil ved et alter, eller kjøp olje hos Apotekeren.".into()));
+        }
+        if before > 0.0 && after <= 0.0 {
+            events.push(Event::Toast("Lykta har sluknet. Mørket lukker seg rundt deg.".into()));
+        }
+    }
+
     /// Merkene over fiendene, stolpene nederst og lageret, sendt når de
     /// har endret seg.
     pub(super) fn update_hud(&mut self, dt: f32, in_crypt: bool, events: &mut Vec<Event>) {
@@ -118,13 +147,13 @@ impl Session {
         }
         let boss = if in_crypt { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
         let h = &self.hero;
-        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss);
+        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss, (h.lamp.fraction() * 100.0).ceil() as u32);
         if self.hud.last != Some(hud) {
             if self.hud.last.as_ref().map(|h| h.2) != Some(self.hero.coins) {
                 self.hero.dirty = true;
             }
             self.hud.last = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)) });
+            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)), light: hud.6 });
         }
         if self.hero.dirty {
             self.hero.dirty = false;

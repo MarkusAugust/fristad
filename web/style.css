@@ -248,6 +248,14 @@ code {
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
 }
+/* Nede i krypten er lyset den tredje stolpen: smalere stolper og
+   mellomrom, så alle tre får plass innenfor kantene. */
+.bars:has(#light-bar:not([hidden])) {
+  --bars-gap: clamp(8px, 4vw, 3rem);
+}
+.bars:has(#light-bar:not([hidden])) .bar {
+  width: min(240px, calc((100vw - 32px - 2 * var(--bars-gap)) / 3));
+}
 .bar-head {
   display: flex;
   justify-content: space-between;
@@ -833,4 +841,12 @@ body.editing #marks {
   z-index: 60;
   margin: 0;
   pointer-events: none;
+}
+
+/* Mørket rundt deg nede i krypten: kanten av bildet lukker seg når lykta
+   går tom for olje (`--dark` 0..1, satt fra HUD-en). */
+.dark {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at 50% 55%, transparent calc(62% - var(--dark, 0) * 40%), rgb(0 0 0 / calc(var(--dark, 0) * 0.85)) 100%);
+  transition: background 1.2s ease;
 }

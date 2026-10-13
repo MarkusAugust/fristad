@@ -25,10 +25,11 @@ for (const [w, h] of [[2560, 1440], [1920, 1080], [1366, 768], [1280, 720], [102
   const page = await browser.newPage({ viewport: { width: w, height: h } });
   await page.route("**/*.wasm", (r) => r.abort());
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
-  await page.evaluate(() => { document.getElementById("hud").hidden = false; document.getElementById("gate").hidden = true; });
+  await page.evaluate(() => { document.getElementById("hud").hidden = false; document.getElementById("gate").hidden = true; document.getElementById("light-bar").hidden = false; });
   await page.waitForTimeout(200);
   const box = (s) => page.locator(s).boundingBox();
-  const bars = [await box("#bars .bar:nth-child(1)"), await box("#bars .bar:nth-child(2)")];
+  // Liv, energi og lys (lys bare nede i krypten, men den må få plass).
+  const bars = [await box("#bars .bar:nth-child(1)"), await box("#bars .bar:nth-child(2)"), await box("#bars .bar:nth-child(3)")];
   const help = await page.$$eval("#help > span", (els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }));
   const perf = await box("#perf");
   const hits = [];

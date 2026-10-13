@@ -323,6 +323,7 @@ impl Session {
         self.update_people(dt, feet, in_crypt, physics, &mut events);
         self.cellar_t += ((if in_crypt { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
         self.fight(dt, feet, in_crypt, &mut events);
+        self.burn_lamp(dt, in_crypt, &mut events);
         self.update_hud(dt, in_crypt, &mut events);
         self.ambience(dt, feet, in_crypt, physics, &mut events);
         events

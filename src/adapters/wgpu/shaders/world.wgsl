@@ -887,9 +887,18 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         s.emissive = tint * vec3<f32>(1.0, 0.8, 0.55) * lit;
     } else if (kind == K_MAGIC) {
         // Portalen: lyser i sin egen farge, uten ildens varme filter.
+        // Tokenene (`magic_paint`) i fargen fra instansen.
+        var glowc = tint;
+        var strength = 2.4;
+        if ((flags & F_PAINT) != 0u) {
+            // Svakere, så fargen ikke blekes til hvitt i tonemappingen.
+            let p = u32(i.extra.y);
+            glowc = tint * vec3<f32>(f32((p >> 16u) & 255u), f32((p >> 8u) & 255u), f32(p & 255u)) / 255.0;
+            strength = 0.9;
+        }
         s.rough = 0.3;
-        s.albedo = tint * 0.3;
-        s.emissive = tint * 2.4;
+        s.albedo = glowc * 0.3;
+        s.emissive = glowc * strength;
     } else if (kind == K_SKELETON) {
         // Skimmeret i .fs-skeleton: et lyst bånd som glir over.
         let band = fract((i.world.x + i.world.y * 0.5 - g.camera.w * 1.2) / 6.0);

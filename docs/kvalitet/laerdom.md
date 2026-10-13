@@ -177,3 +177,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **En søyle bærer noe.** Søylene i Søylegangen sluttet ved vederlaget, 2 m under tønnehvelvet. Nå står gjordbuene over søyleradene, og kapitélet går opp til buen (`pillar_top`).
 - **En dolk er spiss.** Spissen var en halvsirkel. Klinga smalner nå jevnt til et punkt, og `tip_check` stopper en klinge som 2 cm fra spissen er bredere enn halvparten av sin største bredde.
 - **Store ting dømmes i 3D.** Eieren kunne ikke dømme 16 m store kryptbiter fra to små bilder. Dommen har nå «Se i 3D» (`tools/qa/viewer.js`): modellen med teksturlagene, før og etter, og for kryptbitene hele nivået rundt. Man kan rotere, zoome og dobbeltklikke seg inn i rommene.
+
+## Lyset, tokenene og huggene – eieren (runde 21, 13. oktober)
+
+- **Lys har bare betydning i mørke.** Krypten hadde et blått grunnlys fra «himmelen» og kalde fyllys uten kilde, og øyet ble skrudd opp 2,5 ganger, så alt var synlig uten lykt. Nå er grunnlyset nesten borte, de kalde lysene er et svakt skjær, og spilleren bærer lykta i beltet med olje som brenner ned. Uten olje ser du bare faklene og lysene.
+- **Lyset fra beltet blender ikke det du holder.** Et lys midt mellom hendene gjorde skjoldet hvitt. Lykta står foran deg ved hofta, og et svakt lys når opp på hendene.
+- **En modell som ventes, er usynlig.** Tokenene ble sluppet og plukket opp, men modellen `token` sto i `PLANNED`, så ingen så dem. Når spillet bruker noe synlig, lages modellen før det vises eieren.
+- **Et Python-skript heter ikke som en modul i standardbiblioteket.** `token.py` krasjet Blender (`token` er Pythons egen); skriptet heter `design_token.py`.

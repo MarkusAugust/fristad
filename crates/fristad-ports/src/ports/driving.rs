@@ -279,6 +279,8 @@ pub enum Event {
         cellar: bool,
         keys: u32,
         boss: Option<(String, u32)>,
+        /// Oljen i lykta, 0–100.
+        light: u32,
     },
     /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
     Sound(Sound),
@@ -450,6 +452,8 @@ pub struct SaveData {
     /// Den varige styrken du har tatt i krypten («nivå:nummer»), så den
     /// bare kan tas én gang.
     pub bonuses: Vec<String>,
+    /// Oljen i lykta (sekunder); mangler i gamle lagringer (full lykt).
+    pub oil: Option<f32>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

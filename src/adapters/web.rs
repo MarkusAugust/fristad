@@ -241,8 +241,8 @@ fn json(e: &Event) -> serde_json::Value {
         }}),
         Event::OpenDoc(c) => json!({"type": "open_doc", "component": c}),
         Event::Where { x, z, yaw } => json!({"type": "where", "x": x, "z": z, "yaw": yaw}),
-        Event::Hud { hp, stamina, tokens, cellar, keys, boss } => {
-            json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))})
+        Event::Hud { hp, stamina, tokens, cellar, keys, boss, light } => {
+            json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "light": light, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))})
         }
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
         Event::Inventory(v) => {
@@ -327,7 +327,7 @@ impl Engine {
     /// Lageret og utstyret som JSON, til localStorage.
     pub fn save_state(&self) -> String {
         let d = self.app.save();
-        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses}).to_string()
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses, "oil": d.oil}).to_string()
     }
 
     pub fn load_state(&mut self, json: &str) {
@@ -347,6 +347,7 @@ impl Engine {
             // Gamle lagringer har ikke galleriet: da teller lageret alene.
             found: v["found"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
             bonuses: v["bonuses"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
+            oil: v["oil"].as_f64().map(|o| o as f32),
         };
         self.app.command(Command::Load(d));
     }

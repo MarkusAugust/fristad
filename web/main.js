@@ -447,6 +447,11 @@ function handle(e) {
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
       setBars(e.hp, e.stamina);
+      // Lykta: stolpen nede i krypten, og mørket som lukker seg når oljen går tom.
+      $("light-bar").hidden = !e.cellar;
+      $("light").value = e.light;
+      $("light-text").textContent = `${e.light} %`;
+      document.documentElement.style.setProperty("--dark", e.cellar ? String(Math.max(0, 1 - e.light / 25)) : "0");
       $("tokens").textContent = `${e.tokens} tokens`;
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;

@@ -22,7 +22,7 @@ use glam::{Affine3A, Mat4, Quat, Vec3};
 
 pub use crate::domain::mob_kind::{Kind, Stats};
 
-pub const TOKEN_MODEL: &str = "token";
+pub use crate::domain::drops::{Token, TOKEN_COLORS, TOKEN_MODEL};
 pub const KEY_MODEL: &str = "key";
 pub const BOLT_MODEL: &str = "bolt";
 pub const MAX_MOBS: usize = 72;
@@ -161,12 +161,6 @@ impl Mob {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Token {
-    pub pos: Vec3,
-    pub age: f32,
-    pub taken: bool,
-}
 
 /// En markør som flyr: hvem som spyttet den, hvor den er og hvor den skal.
 #[derive(Clone, Debug)]
@@ -401,6 +395,21 @@ impl Mobs {
         }
     }
 
+    /// `n` tokens spretter ut fra brystet til en som dør ved `base`, og
+    /// faller rundt den.
+    pub fn drop_tokens(&mut self, base: Vec3, n: u32) {
+        for k in 0..n {
+            if self.tokens.len() >= MAX_TOKENS {
+                break;
+            }
+            let a = k as f32 * 2.1 + self.rnd() * 0.8;
+            let out = 1.2 + self.rnd() * 1.4;
+            let vel = Vec3::new(a.cos() * out, 2.6 + self.rnd() * 1.6, a.sin() * out);
+            let color = (self.rnd() * TOKEN_COLORS.len() as f32) as u8 % TOKEN_COLORS.len() as u8;
+            self.tokens.push(Token { pos: base + Vec3::Y * 0.9, age: 0.0, taken: false, vel, color });
+        }
+    }
+
     /// Et slag mot fiende `i` fra `from`: skade, rykk bakover, og tokens
     /// om den dør.
     pub fn strike(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt) -> Strike {
@@ -441,18 +450,9 @@ impl Mobs {
                 // Der det går an å komme til: på nettet, ikke inni en mur.
                 let p = base + Vec3::new(0.0, 0.0, 0.3);
                 let p = if crypt.walkable(p) { p } else { base };
-                self.keys.push(Token { pos: p, age: 0.0, taken: false });
+                self.keys.push(Token { pos: p, age: 0.0, taken: false, vel: Vec3::ZERO, color: 0 });
             }
-            for k in 0..n {
-                if self.tokens.len() >= MAX_TOKENS {
-                    break;
-                }
-                let a = k as f32 * 2.1 + self.rnd() * 0.8;
-                let r = 0.5 + (k / 6) as f32 * 0.4;
-                let p = base + Vec3::new(a.cos() * r, 0.0, a.sin() * r);
-                let p = if crypt.walkable(p) { p } else { base };
-                self.tokens.push(Token { pos: p, age: 0.0, taken: false });
-            }
+            self.drop_tokens(base, n);
             return Strike { killed: true, armored, staggered: false };
         }
         // De tunge lar seg ikke avbryte av lette slag.
@@ -810,9 +810,7 @@ impl Mobs {
         }
         self.bolts.retain(|b| b.age < BOLT_LIFE);
         for t in &mut self.tokens {
-            t.age += dt;
-            if !t.taken && in_crypt && (t.pos - player).with_y(0.0).length() < 1.0 && (t.pos.y - player.y).abs() < 2.0 {
-                t.taken = true;
+            if crate::domain::drops::update_token(t, dt, chest, in_crypt, crypt) {
                 out.tokens += 1;
             }
         }
@@ -893,10 +891,7 @@ impl Mobs {
             if t.taken {
                 continue;
             }
-            let spin = Quat::from_rotation_y(time * 2.0 + t.age);
-            let pop = (t.age * 4.0).min(1.0);
-            let hover = 0.1 + (time * 3.0 + t.age).sin() * 0.05;
-            out.push(ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None });
+            out.push(crate::domain::drops::token_instance(t, time));
         }
         for k in &self.keys {
             if k.taken {

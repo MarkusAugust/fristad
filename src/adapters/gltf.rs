@@ -109,6 +109,7 @@ models! {
     "portal_runes" => "town/portal_runes.glb",
     "portal_swirl" => "town/portal_swirl.glb",
     "portal_shard" => "town/portal_shard.glb",
+    "token" => "props/token.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",

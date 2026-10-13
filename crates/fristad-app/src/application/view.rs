@@ -66,14 +66,30 @@ impl Session {
             })
             .filter(|l| l.intensity > 0.01)
             .collect();
-        // Nede i krypten bærer du et lys, så du ser våpenet og det som
-        // kommer mot deg; det lyser overalt (ikke noe rom).
+        // Nede i krypten bærer du lykta i beltet: den lyser foran deg fra
+        // hofta, og dempes og blafrer når oljen går tom (`lantern.rs`). Uten
+        // olje er det bare en glo, og mørket er nesten helt (eieren 13. okt.).
         if in_crypt {
+            let (reach, strength) = self.hero.lamp.glow(self.time);
+            let flat = Vec3::new(view_dir.x, 0.0, view_dir.z).normalize_or_zero();
+            let right = flat.cross(Vec3::Y);
             lights.push(Light {
-                pos: eye_now + view_dir * 0.4 + Vec3::Y * 0.2,
-                radius: 6.0 * self.gear().lantern.sqrt(),
-                color: Vec3::new(1.0, 0.8, 0.6),
-                intensity: 0.8 * self.gear().lantern,
+                // Litt foran deg, så lyset faller på gulvet og veggene og
+                // ikke blender skjoldet og hånda.
+                pos: eye_now - Vec3::Y * 1.0 + flat * 0.9 + right * 0.3,
+                radius: 11.0 * self.gear().lantern.sqrt() * reach,
+                color: Vec3::new(1.0, 0.7, 0.4),
+                intensity: 2.4 * self.gear().lantern * strength,
+                always: true,
+                flicker: 0.0,
+                room: None,
+            });
+            // Og det samme lyset nær hofta, svakt, opp på hendene og skjoldet.
+            lights.push(Light {
+                pos: eye_now - Vec3::Y * 0.85 + flat * 0.2 + right * 0.25,
+                radius: 1.8 * reach.max(0.5),
+                color: Vec3::new(1.0, 0.7, 0.4),
+                intensity: 0.35 * strength,
                 always: true,
                 flicker: 0.0,
                 room: None,
@@ -145,14 +161,16 @@ impl Session {
             sun_color,
             sun_intensity: sun_intensity * (1.0 - c * 0.85),
             night: t,
-            sky_top: sky_top * (1.0 - c * 0.9),
-            sky_horizon: sky_horizon * (1.0 - c * 0.9),
-            ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.8),
+            // Under jorda er det nesten ikke noe lys utenom faklene, lysene
+            // og lykta: de skal ha betydning (eieren 13. oktober).
+            sky_top: sky_top * (1.0 - c * 0.999),
+            sky_horizon: sky_horizon * (1.0 - c * 0.999),
+            ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.999),
             fog_color: grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
             // Høydetåka tetner nedover. I kjelleren er det ingen tåke.
             fog_density: (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c),
             fog_falloff: 0.03,
-            exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 1.5),
+            exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 0.5),
             bloom: 0.06 + t * 0.06,
             windows_lit: 0.55,
             street_lights: 1.0,

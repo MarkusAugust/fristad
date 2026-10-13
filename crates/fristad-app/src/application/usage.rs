@@ -130,12 +130,13 @@ impl Session {
             Use::Rest(n) => {
                 let first = self.run.rest(n);
                 self.hero.restore(&mut self.combat);
+                self.hero.lamp.fill();
                 self.mobs.reset(&self.crypt);
                 if self.run.slain.contains(&self.mobs.level) {
                     self.mobs.remove_bosses();
                 }
                 events.extend([Event::Fade, sfx("heal")]);
-                events.push(Event::Toast(if first { "Du tenner lysene på alteret og hviler. Dør du, våkner du her. Fiendene i nivået er kommet tilbake." } else { "Du hviler ved alteret. Fiendene i nivået er kommet tilbake." }.into()));
+                events.push(Event::Toast(if first { "Du tenner lysene på alteret, fyller lykta og hviler. Dør du, våkner du her. Fiendene i nivået er kommet tilbake." } else { "Du hviler ved alteret og fyller lykta. Fiendene i nivået er kommet tilbake." }.into()));
             }
             Use::Lore(n) => {
                 let Some(l) = self.crypt.lores.get(n).cloned() else { return };

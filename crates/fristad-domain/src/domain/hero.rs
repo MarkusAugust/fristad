@@ -25,6 +25,8 @@ pub struct Hero {
     pub read_docs: HashSet<String>,
     /// Den varige styrken du har tatt (relikviene i krypten).
     pub bonus_taken: BTreeSet<String>,
+    /// Lykta i beltet: oljen som brenner nede i krypten.
+    pub lamp: crate::domain::lantern::Lantern,
     /// Lageret, utstyret eller tokenene har endret seg (sendes på nytt).
     pub dirty: bool,
 }
@@ -42,6 +44,7 @@ impl Default for Hero {
             gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
             read_docs: HashSet::new(),
             bonus_taken: BTreeSet::new(),
+            lamp: Default::default(),
             dirty: true,
         }
     }
@@ -189,6 +192,7 @@ impl Hero {
                 combat.max_stamina += st;
                 combat.stamina = combat.max_stamina;
             }
+            craft::WareKind::Oil => self.lamp.fill(),
         }
         self.dirty = true;
         (true, vec![Note::Sfx("coins"), Note::toast(format!("Kjøpt: {}.", w.name))])

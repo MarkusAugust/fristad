@@ -9,7 +9,8 @@ på roten, og gjetter ikke ut fra navnene. Navnereglene står bare her:
 - `glow…`: lyser om natta (`lamp`). `fire…`: brenner hele døgnet.
 - `glass…`: speiler; `glass_day` slipper dagslyset inn, `glass_lit` lyser ut
   om natta.
-- `water…`: vann. `magic…`: gløder i sin egen farge hele døgnet.
+- `water…`: vann. `magic…`: gløder i sin egen farge hele døgnet;
+  `magic_paint…` i fargen fra instansen.
 - `leaf…`, `needle…`, `grass…`: alfakort som svaier; gresset mørkere mot rota.
 - Modeller som heter `kit_…` eller `crypt_NN…` står under bakken (ingen vær),
   `…_leaves`/`…_needles` får glisne kort på avstand, `…_trunk` et grovt nett.
@@ -62,6 +63,9 @@ def material(name, model):
     if named("magic"):
         kind = "magic"
         flags.append("glow_always")
+        # `magic_paint…`: gløder i fargen fra instansen (tokenene).
+        if named("magic_paint"):
+            flags.append("paint")
     if named("leaf") or named("needle") or named("grass"):
         flags += ["alpha", "wind", "no_weather"]
     if named("grass"):

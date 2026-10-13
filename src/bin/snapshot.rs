@@ -170,6 +170,14 @@ fn main() {
         }
     }
 
+    // --oil BRØK: så mye olje i lykta (0 er sluknet).
+    if let Some(o) = arg("--oil") {
+        app.session.set_oil(o.parse().unwrap());
+    }
+    // --drop N: N tokens spretter ut 3 m foran deg.
+    if let Some(n) = arg("--drop") {
+        app.session.drop_tokens(3.0, n.parse().unwrap());
+    }
     // Kjør spillet litt, så animasjoner og fiender står der de skal.
     let time: f32 = arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5);
     let steps = (time * 30.0) as usize;
