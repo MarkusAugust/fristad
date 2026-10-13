@@ -110,13 +110,18 @@
    "seen": "ed72a6876c2a"
   },
   "crypt_wall": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "skjøten er dårlig",
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "6b5585cc3010",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "skjøten er dårlig"
+   },
    "history": [
     "skjøten er dårlig"
-   ],
-   "seen": "ebc809d7808e"
+   ]
   },
   "crystal": {
    "verdict": "godkjent",
@@ -609,171 +614,405 @@
    "seen": "06c85c8c252a"
   },
   "crypt_01_ab": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "19fb4baeea1c"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Er det huller i hjørnet rundt de greiene i hvert hjørne?",
+   "seen": "a903d22c9bec",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Er det huller i hjørnet rundt de greiene i hvert hjørne?"
+   ]
   },
   "crypt_01_ac": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "df544fe4d1dc"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Usikker på om det er tett eller om man kan se ut sprekker",
+   "seen": "fd82741478bd",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Usikker på om det er tett eller om man kan se ut sprekker"
+   ]
   },
   "crypt_01_ad": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "dcc77b94b434"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Usikker på om det er tett eller om man kan se ut sprekker",
+   "seen": "ca47cd7b9683",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Usikker på om det er tett eller om man kan se ut sprekker"
+   ]
   },
   "crypt_01_ae": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "ef84ad152705"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Usikker på om det er tett eller om man kan se ut sprekker",
+   "seen": "d66078297c38",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Usikker på om det er tett eller om man kan se ut sprekker"
+   ]
   },
   "crypt_01_af": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "ba7d459551d8"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "07f6058df40b",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ag": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "1afc564d3dad"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "59551ef0bd68",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ah": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "8e13954c2a3d"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "665ac3ee5243",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ai": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "346da9647498"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "2ef94ceb07e9",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_aj": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "09c0be49a5d8"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "6931d3875c20",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ak": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "af44bc9efcd1"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker   Tror det er huller",
+   "seen": "6368cd18d682",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker   Tror det er huller"
+   ]
   },
   "crypt_01_al": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "5caabfbea169"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker . Stopper søyler midt i luften?",
+   "seen": "b1659a708bf3",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker . Stopper søyler midt i luften?"
+   ]
   },
   "crypt_01_am": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "cc097e4fd2fd"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "0d482d93ade0",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_an": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "bab47e169cf1"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "79c6cceae3ba",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ao": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "fbc85c3586ae"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "c798e0770b1d",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ap": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "dbe51f7c1fd6"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "0b01b91de6fc",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_aq": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "9cd00a5322cd"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "0454c770eb5a",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_ar": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "8b2b728a78a2"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "050387838fd4",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_as": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "1dc83081cebb"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "6a2b06d62cc5",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_at": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "de133a5bcc89"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "0bff34a7202d",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_au": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "b27a030272ed"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "bc6cede247fb",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_av": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "26725559817c"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "08ef16f4da43",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_aw": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "833145a8364d"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "098b200110a8",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_ax": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "563544db73f0"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "08ee2be16043",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_ay": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "7cfc9c31a0d7"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "493f7a9c41fd",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   ]
   },
   "crypt_01_az": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "8c99a4affda9"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "e8740ed07ac6",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_ba": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "0ac49735e401"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "102714c15190",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "crypt_01_bb": {
-   "verdict": "underkjent",
-   "date": "2026-10-11",
-   "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
-   "seen": "16271535032e"
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker",
+   "seen": "8c9b59718a9e",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-11",
+    "why": "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen."
+   },
+   "history": [
+    "Kryptnivå 1 er langt under kvalitetskravet: hull i murene, harde overganger, teksturer som ikke passer sammen.",
+    "Det er umulig å vurdere så store deler på så små bilder. Jeg må kunne zoome og rotere ellers kan jeg ikke være sikker"
+   ]
   },
   "apothecary": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "sjekk bindingsverket",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "5ee746ac5951",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-11",
@@ -781,13 +1020,13 @@
    },
    "history": [
     "sjekk bindingsverket"
-   ],
-   "seen": "2a2330ca14fd"
+   ]
   },
   "apothecary_interior": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "1ee3346a1588",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -795,8 +1034,7 @@
    },
    "history": [
     "det er for harde kunstige skiller mellom flater. 90 % graders vinkler med ulike teksturer blir ikke pent. det bør feks være lister eller annet"
-   ],
-   "seen": "24fbc637cd60"
+   ]
   },
   "barrel": {
    "verdict": "godkjent",
@@ -1036,8 +1274,9 @@
   },
   "home": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "093765baab6e",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1045,8 +1284,7 @@
    },
    "history": [
     "bindingsverket ser dårlig ut. En vandrer har ikke et eget hjem ...  man kan kalle det gjestehus eller noe sånt"
-   ],
-   "seen": "239e331278d5"
+   ]
   },
   "home_interior": {
    "verdict": "godkjent",
@@ -1167,8 +1405,9 @@
   },
   "house_h": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "hvit dør",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "de65fd4200b2",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1176,8 +1415,7 @@
    },
    "history": [
     "hvit dør"
-   ],
-   "seen": "139acf4133be"
+   ]
   },
   "house_i": {
    "verdict": "godkjent",
@@ -1196,8 +1434,9 @@
   },
   "house_j": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "hvit dør",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "bccb52a41c55",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1205,13 +1444,13 @@
    },
    "history": [
     "hvit dør"
-   ],
-   "seen": "48720851b624"
+   ]
   },
   "house_k": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
-   "why": "hvit dør",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "2feca5d62da1",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1219,8 +1458,7 @@
    },
    "history": [
     "hvit dør"
-   ],
-   "seen": "0f490c571623"
+   ]
   },
   "house_l": {
    "verdict": "godkjent",
@@ -1269,8 +1507,9 @@
   },
   "house_o": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-13",
    "why": "",
+   "seen": "5ec6ee1d5edb",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1278,8 +1517,7 @@
    },
    "history": [
     "hvit dør"
-   ],
-   "seen": "3e52c6632a1d"
+   ]
   },
   "house_p": {
    "verdict": "godkjent",
@@ -1343,8 +1581,9 @@
   },
   "house_t": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-13",
    "why": "",
+   "seen": "2ebd7a743fd9",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-11",
@@ -1352,8 +1591,7 @@
    },
    "history": [
     "hvit dør"
-   ],
-   "seen": "4f594f0e7e53"
+   ]
   },
   "kit_arrow": {
    "verdict": "godkjent",
@@ -1440,10 +1678,15 @@
    "seen": "7522413c06b6"
   },
   "kit_lever_arm": {
-   "verdict": "godkjent",
-   "date": "2026-10-11",
+   "verdict": "usikker",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "8cc5cda948fe"
+   "seen": "33334e47a952",
+   "before": {
+    "verdict": "godkjent",
+    "date": "2026-10-11",
+    "why": ""
+   }
   },
   "kit_lore": {
    "verdict": "godkjent",
@@ -1496,8 +1739,9 @@
   },
   "kit_secret_wall": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
+   "seen": "c814accec68e",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-12",
@@ -1508,8 +1752,7 @@
     "sprekken som skal være hintet, hvor er den? veldig vanskelig å se noen sprekk her",
     "det ser ikke bra ut. hard strektegning",
     "mursteiner sprekker ikke slik på tvers av flere"
-   ],
-   "seen": "2cbf6ffbc0ae"
+   ]
   },
   "kit_shortcut": {
    "verdict": "godkjent",
@@ -1949,15 +2192,15 @@
   },
   "bench_16": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "e3fa8b2f595b"
+   "seen": "e6612734a104"
   },
   "bench_20": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "b01eed5acc75"
+   "seen": "618aea8db9ae"
   },
   "bookcase_lab": {
    "verdict": "godkjent",
@@ -1979,9 +2222,9 @@
   },
   "bookshelf_e": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "cd9f69b307ed"
+   "seen": "360de4a359d6"
   },
   "bookshelf_gallery_0": {
    "verdict": "godkjent",
@@ -1991,15 +2234,15 @@
   },
   "bookshelf_gallery_1": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "7716646f9620"
+   "seen": "7c077ddca323"
   },
   "bookshelf_w": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "62ccd088f04b"
+   "seen": "928da315d675"
   },
   "candle": {
    "verdict": "godkjent",
@@ -2105,8 +2348,9 @@
   },
   "crock_shelf": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
+   "seen": "a0319b418722",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-12",
@@ -2114,8 +2358,7 @@
    },
    "history": [
     "det må være variasjon i krukkene"
-   ],
-   "seen": "eeb5f4e8a6a1"
+   ]
   },
   "door_shelf_jars": {
    "verdict": "godkjent",
@@ -2253,9 +2496,9 @@
   },
   "home_table": {
    "verdict": "godkjent",
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "why": "",
-   "seen": "21237b5f430e"
+   "seen": "c50815a32da1"
   },
   "iron_bars_leaning": {
    "verdict": "godkjent",
@@ -2677,28 +2920,34 @@
    "seen": "db9d38cd87f0"
   },
   "dagger": {
+   "verdict": "underkjent",
+   "date": "2026-10-13",
+   "why": "Spissen er for rund",
+   "seen": "2ccc53cd57b0",
+   "before": {
+    "verdict": "godkjent",
+    "date": "2026-10-13",
+    "why": ""
+   },
+   "history": [
+    "hånden holder det rart?",
+    "Spissen er for rund"
+   ]
+  },
+  "shield_round": {
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
+   "seen": "f83c91e60c39",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-13",
-    "why": "hånden holder det rart?"
+    "why": "bilde to, hånden ser ut som at den er bøyd som gummi"
    },
-   "history": [
-    "hånden holder det rart?"
-   ],
-   "seen": "15ef1fc10fb0"
-  },
-  "shield_round": {
-   "verdict": "underkjent",
-   "date": "2026-10-13",
-   "why": "bilde to, hånden ser ut som at den er bøyd som gummi",
    "history": [
     "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
     "bilde to, hånden ser ut som at den er bøyd som gummi"
-   ],
-   "seen": "f83c91e60c39"
+   ]
   },
   "shield_tower": {
    "verdict": "godkjent",
@@ -2718,6 +2967,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
+   "seen": "e83b62769426",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-13",
@@ -2725,8 +2975,25 @@
    },
    "history": [
     "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?"
-   ],
-   "seen": "786eec0f2938"
+   ]
+  },
+  "kit_rest_flame": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "94b7723c9a0a"
+  },
+  "plate_rail": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "0f7d3ab8059e"
+  },
+  "tavern_tapestry": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": "",
+   "seen": "61002af48c67"
   }
  }
 }
