@@ -117,7 +117,10 @@ MATS = {
     "mortar": ("plaster_old", (0.26, 0.25, 0.24), 0.75),
     "floor": ("crypt_floor", (1.0, 1.0, 1.0), 0.5),
     "slab": ("grave_slab", (1.0, 1.0, 1.0), 0.45),
-    "vault": ("crypt_vault", (1.0, 1.0, 1.0), 0.5),
+    # Hvelvet mures av den samme steinen som veggene, litt mørkere (eieren
+    # om nivå 1: «teksturer som ikke passer sammen»; crypt_vault var små,
+    # mørke bruddsteiner over store lyse kvadre).
+    "vault": ("crypt_wall", (0.72, 0.72, 0.76), 0.5),
     "rib": ("crypt_wall", (0.8, 0.79, 0.8), 0.5),
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
     "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
@@ -461,6 +464,47 @@ def wall(mb, surf, length, bottom, top, openings=(), mat="wall", cell=1.0, top_f
     grid_face(mb, surf, outline, mat, cell=cell, origin=(0.0, math.floor(bottom)))
 
 
+def plinth(mb, surf, spans, h=0.34, proud=0.07, bevel=0.035, mat="dressed"):
+    """Sokkelen langs veggfoten: et skift av hogd stein som står `proud` ut
+    fra muren, med skrådd overkant. `spans` er (u0, u1, gulvhøyde) langs
+    muren, mellom åpningene (eieren om nivå 1: «harde overganger»)."""
+    n = surf.normal()
+    up = (0.0, 1.0, 0.0)
+    ud = (surf.ud[0], 0.0, surf.ud[1]) if hasattr(surf, "ud") else None
+    P = surf.point
+    for u0, u1, y in spans:
+        if u1 - u0 < 0.05:
+            continue
+        yb, yt = y - 0.03, y + h
+        yc = yt - bevel
+        mb.quad(P(u0, yb, proud), P(u1, yb, proud), P(u1, yc, proud), P(u0, yc, proud), mat, facing=n)
+        mb.quad(P(u0, yc, proud), P(u1, yc, proud), P(u1, yt, proud - bevel), P(u0, yt, proud - bevel), mat, facing=(n[0] + up[0], n[1] + up[1], n[2] + up[2]))
+        mb.quad(P(u0, yt, proud - bevel), P(u1, yt, proud - bevel), P(u1, yt, 0.0), P(u0, yt, 0.0), mat, facing=up)
+        if ud is None:
+            continue
+        for u, sg in ((u0, -1.0), (u1, 1.0)):
+            pts = [P(u, yb, 0.0), P(u, yb, proud), P(u, yc, proud), P(u, yt, proud - bevel), P(u, yt, 0.0)]
+            mb.poly(pts, [auto_uv(q, newell(pts)) for q in pts], mat, facing=(ud[0] * sg, 0.0, ud[2] * sg))
+
+
+def free_spans(length, openings, floor, h):
+    """Strekkene langs en mur (0..length) som ingen åpning skjærer ned i
+    under høyden `floor + h`."""
+    cuts = []
+    for o in openings:
+        x0, y0, x1, _ = o.bounds
+        if y0 < floor + h + 0.05:
+            cuts.append((x0, x1))
+    spans, at = [], 0.0
+    for a, b in sorted(cuts):
+        if a > at:
+            spans.append((at, min(a, length), floor))
+        at = max(at, b)
+    if at < length:
+        spans.append((at, length, floor))
+    return spans
+
+
 def portal(mb, surf, profile, mat="dressed", band=0.32, depth=0.14, rect=False):
     """Døråpningen med rundbue: et bånd av buestein rundt åpningen på
     romsida, `depth` ut fra muren, med lysning inn mot åpningen."""
@@ -633,6 +677,14 @@ def groin_ribs(mb, x0, x1, z0, z1, S, R, n=12, width=0.24, depth=0.17):
     for sx, sz in ((1, 1), (1, -1)):
         path = [(cx + a * t * sx, S + R * math.sqrt(max(0.0, 1 - t * t)), cz + b * t * sz) for t in ts]
         band(mb, path, width, depth)
+    # Ribbene står på en konsoll i hvert hjørne (ellers ender de i en spiss
+    # mot muren; eieren om nivå 1: «harde overganger»).
+    for sx in (1, -1):
+        for sz in (1, -1):
+            k = 0.7071
+            c = (cx + a * sx - sx * k * 0.2, S - 0.3, cz + b * sz - sz * k * 0.2)
+            obox(mb, c, (0.5, 1.0, 0.5), math.pi / 4, "dressed", faces=("+y", "-y", "+x", "-x", "+z", "-z"))
+            obox(mb, (c[0] + sx * k * 0.05, S - 0.52, c[2] + sz * k * 0.05), (0.32, 0.22, 0.32), math.pi / 4, "dressed", faces=("-y", "+x", "-x", "+z", "-z"))
 
 
 def barrel(mb, axis, c0, length, cw, S, R, a, mat="vault", n=12, step=1.0, lo=None):

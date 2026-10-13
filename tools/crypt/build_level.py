@@ -432,6 +432,9 @@ class Level:
                 K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 16 for k in range(17)])
             else:
                 K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r))
+            # Sokkelen langs foten (litt ulik høyde nord–sør og øst–vest, så
+            # toppene ikke ligger i samme plan i hjørnene).
+            K.plinth(mb, surf, K.free_spans(length, openings, r.y, 0.34), h=0.34 + (0.004 if side in ("n", "s") else 0.0))
             # Kolliderne: murbitene mellom åpningene, og over dem.
             cuts = sorted(lintels)
             at = -WALL_T
@@ -468,7 +471,7 @@ class Level:
         r.ceil = top
 
     def wall_mat(self, r):
-        return {"kapell": "fresco", "alter": "fresco", "kistekjeller": "wall_dark", "dypgrav": "wall_dark", "sjaktbunn": "wall_dark", "stigebunn": "wall_dark"}.get(r.id, "wall")
+        return {"kistekjeller": "wall_dark", "dypgrav": "wall_dark", "sjaktbunn": "wall_dark", "stigebunn": "wall_dark"}.get(r.id, "wall")
 
     def floor_collider(self, poly, y):
         """Gulvet som bokser (rektangler) eller konvekse omhyllinger."""
@@ -555,6 +558,14 @@ class Level:
             tops = [self.hall_spring(h, surf.point(u, 0.0, 0.3)) + 0.03 for u in us]
             outline = Polygon([(u, f - 0.3) for u, f in zip(us, fl)] + [(u, t) for u, t in reversed(list(zip(us, tops)))])
             grid_face(mb, surf, outline, "wall")
+            # Sokkelen der gulvet er flatt (i trappene går trinnene inn i muren).
+            runs, start = [], 0
+            for q in range(1, len(us) + 1):
+                if q == len(us) or abs(fl[q] - fl[start]) > 1e-3:
+                    if q - 1 > start:
+                        runs.append((us[start], us[q - 1], fl[start]))
+                    start = q
+            K.plinth(mb, surf, runs, h=0.34 + (0.004 if abs(dx) > 0.5 else 0.0))
             lo = min(fl) - 0.5
             hi = max(fl) + SPRING + a + 0.4
             self.wall_box(pa, pb, lo, hi, (-nrm[0], -nrm[1]))
