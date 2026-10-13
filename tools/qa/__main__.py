@@ -4,7 +4,7 @@ from . import texture
 
 
 def main(argv):
-    """python3 -m tools.qa texture [lag …] | catalog | approvals page UT | approvals apply SVAR"""
+    """python3 -m tools.qa texture [lag …] | catalog | approvals review UT | approvals apply SVAR"""
     if argv[:1] == ["approvals"]:
         from . import approvals
         return approvals.main(argv[1:])

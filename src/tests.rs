@@ -1843,6 +1843,16 @@ fn blenderskriptene_henger_sammen() {
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
 }
 
+/// Dommen mister ingenting (eieren 13. okt.): hver dom gjelder versjonen
+/// eieren så, hver ting i katalogen har en fil, og alt som venter på eieren
+/// får plass på siden (`tools/qa/review.py`, `audit`).
+#[test]
+fn dommen_mister_ingenting() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let out = std::process::Command::new("python3").args(["-m", "tools.qa", "approvals", "audit"]).current_dir(root).output().expect("python3");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
+}
+
 /// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:
 /// hver modell spillet har, står i `assets/catalog/models.json` med hva den
 /// er, hvert teksturlag og hvert malt bilde i `textures.json`, og eierens dom

@@ -1,0 +1,41 @@
+{
+ "shield_round": {
+  "f83c91e60c39": {
+   "text": [
+    "Armen var bøyd som gummi i blokken fordi håndleddet ble knekt nesten 40° og vektene ved håndleddet strakk huden. Nå går underarmen rett inn i neven i blokken (håndleddsregelen gjelder også venstre hånd), skjoldet holdes litt lenger fram, og det vender fortsatt rett fram, dreid ut mot venstre."
+   ],
+   "images": [
+    "assets/catalog/review/shield_round_block.jpg",
+    "assets/catalog/review/shield_round_game.jpg"
+   ]
+  }
+ },
+ "arms": {
+  "28a2644d32ab": {
+   "text": [
+    "Siden du godkjente armene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
+   ]
+  }
+ },
+ "arms_leather": {
+  "57c2bf4bde03": {
+   "text": [
+    "Siden du godkjente lærarmene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
+   ]
+  }
+ },
+ "sword": {
+  "e83b62769426": {
+   "text": [
+    "Siden du godkjente sverdet i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ]
+  }
+ },
+ "dagger": {
+  "2ccc53cd57b0": {
+   "text": [
+    "Siden du godkjente dolken i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ]
+  }
+ }
+}

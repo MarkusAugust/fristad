@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: en smal verktøylinje øverst (framdrift og filter), så én rad per ting: bildet stort til venstre, dommen til høyre. */
+/* Layout: en smal verktøylinje øverst (fanene per kategori), så det som venter på eieren som store kort, og under det, sammenfoldet, det som ligger hos meg og det som er godkjent. */
 :root {
   --ground: #e6e8ea;      /* kalkstein */
   --sheet: #f6f7f8;
@@ -110,10 +110,23 @@ textarea {
 dialog { padding: 0; border: 0; background: var(--photo); max-width: min(96vw, 1400px); }
 dialog img { display: block; max-width: 100%; max-height: 90vh; }
 dialog::backdrop { background: rgb(0 0 0 / .75); }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip.done { opacity: .6; }
+h2.section { font: 400 22px/1.2 var(--display); margin: 8px 0 0; }
+details.pile { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; }
+details.pile > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+details.pile ul { list-style: none; margin: 0; padding: 0 16px 12px; display: grid; gap: 6px; }
+details.pile li { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 6px; }
+details.pile li .nm { font-family: var(--mono); overflow-wrap: anywhere; }
+details.pile li .v { color: var(--muted); }
+details.pile li .v b { color: var(--ink); text-transform: capitalize; }
+.photo.sheet img { aspect-ratio: auto; object-fit: contain; }
 @media (max-width: 760px) {
   .item { grid-template-columns: minmax(0, 1fr); }
   .item { scroll-margin-top: 220px; }
   .hint { display: none; }
+  details.pile li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
 </style>
@@ -124,15 +137,14 @@ dialog::backdrop { background: rgb(0 0 0 / .75); }
       <h1>Dommen over Fristad</h1>
       <span class="count" id="count">laster …</span>
     </div>
-    <div class="progress" aria-hidden="true"><span class="p-ok" id="p-ok"></span><span class="p-bad" id="p-bad"></span><span class="p-unsure" id="p-unsure"></span></div>
-    <div class="filters" id="filters" role="group" aria-label="Vis"></div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Kategori"></div>
     <div class="hint"><kbd>J</kbd> <kbd>K</kbd> merker neste og forrige kort, og på det merkede: <kbd>1</kbd> godkjent, <kbd>2</kbd> underkjent, <kbd>3</kbd> usikker, <kbd>H</kbd> skriv hvorfor.</div>
   </div>
 </header>
 
 <main>
   <div class="wrap">
-    <p class="intro">Hver tekstur og modell i spillet, med det viktigste i byen først. Modellene er fotografert i spillet; skissen i hjørnet er modellen alene, så du ser hvilken som menes. Teksturene er lagt 2 × 2, så du ser om skjøtene synes. Velg en dom og skriv gjerne hvorfor; svaret lagres med en gang. Det du underkjenner, lages på nytt, og grunnen blir en regel.</p>
+    <p class="intro">Alt spillet er laget av, i faner. Øverst i hver fane står det som venter på deg: det du ikke har vurdert, og det som er endret siden du så det (med før og etter). Et kort blir stående til du har svart, uansett hvor mye annet jeg legger til. Det du har underkjent og som ikke er rettet ennå, ligger hos meg, og det godkjente står nederst.</p>
     <p class="notice" id="notice" hidden></p>
     <div id="list"></div>
   </div>
@@ -142,129 +154,76 @@ dialog::backdrop { background: rgb(0 0 0 / .75); }
 
 <script>
 const LABEL = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikker" };
-const FILTERS = [
-  ["fresh", "Nytt bilde"], ["open", "Ikke vurdert"], ["all", "Alle"], ["modell", "Modeller"], ["tekstur", "Teksturer"],
-  ["underkjent", "Underkjent"], ["usikker", "Usikker"], ["godkjent", "Godkjent"],
-];
-let items = [];
-const answers = new Map();   // id -> {verdict, why, at} fra lagringen
-let db = null, readOnly = false, filter = "open", shown = [], ROUND = 1;
-// En dom i lagringen gjelder bare i runden den ble gitt i; fra en tidligere
-// runde står den som «Forrige dom», og feltet starter tomt.
-const current = a => !!a && (a.round || 1) === ROUND;
-const queue = new Map();      // id -> siste skriving (én om gangen per dokument)
-const timers = new Map();
+let items = [], cats = [], tab = null;
+const answers = new Map();   // id -> {verdict, why, at, version} fra lagringen
+let db = null, readOnly = false;
+const queue = new Map(), timers = new Map();
 
-function verdictOf(it) {
-  const a = answers.get(it.id);
-  if (current(a) && a.verdict) return a.verdict;
-  return it.prior ? it.prior.verdict : "";
-}
-function matches(it, f) {
-  const v = verdictOf(it);
-  if (f === "all") return true;
-  if (f === "open") return !v;
-  if (f === "fresh") return !!it.fresh;
-  if (f === "modell" || f === "tekstur") return it.kind === f;
-  return v === f;
-}
-function counts() {
-  const c = { all: items.length, fresh: 0, open: 0, modell: 0, tekstur: 0, godkjent: 0, underkjent: 0, usikker: 0 };
-  for (const it of items) { const v = verdictOf(it); c[it.kind]++; if (it.fresh) c.fresh++; if (v) c[v]++; else c.open++; }
-  return c;
-}
+// Et svar gjelder versjonen kortet viser; et svar på en eldre versjon er
+// «Forrige dom».
+const answerOf = it => { const a = answers.get(it.id); return a && a.version === it.version ? a : null; };
+const waiting = it => it.state === "venter";
+const open = it => waiting(it) && !(answerOf(it) || {}).verdict;
+
 function renderBar() {
-  const c = counts();
-  const done = items.length - c.open;
-  document.getElementById("count").textContent = `${done} av ${items.length} vurdert`;
-  for (const [k, id] of [["godkjent", "p-ok"], ["underkjent", "p-bad"], ["usikker", "p-unsure"]])
-    document.getElementById(id).style.width = (items.length ? 100 * c[k] / items.length : 0) + "%";
-  const box = document.getElementById("filters");
-  box.replaceChildren(...FILTERS.map(([k, label]) => {
+  const all = items.filter(waiting), left = all.filter(open).length;
+  document.getElementById("count").textContent = all.length ? `${all.length - left} av ${all.length} som venter er vurdert` : "Ingenting venter på deg";
+  document.getElementById("tabs").replaceChildren(...cats.map(([k, label]) => {
+    const n = items.filter(it => it.cat === k && open(it)).length;
     const b = document.createElement("button");
-    b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(k === filter));
-    b.append(label); const n = document.createElement("span"); n.className = "n"; n.textContent = c[k]; b.append(n);
-    b.onclick = () => { filter = k; renderBar(); renderList(); window.scrollTo({ top: 0 }); };
+    b.className = "chip" + (n ? "" : " done"); b.type = "button"; b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(k === tab)); b.setAttribute("aria-pressed", String(k === tab));
+    b.append(label); const s = document.createElement("span"); s.className = "n"; s.textContent = n; b.append(s);
+    b.onclick = () => { tab = k; save_tab(); renderBar(); renderList(); window.scrollTo({ top: 0 }); };
     return b;
   }));
 }
+function save_tab() { try { localStorage.setItem("dommen.tab", tab); } catch (e) {} }
 
 function card(it) {
   const el = document.createElement("article");
   el.className = "item"; el.id = it.id; el.tabIndex = -1;
-  const zoom = src => { const z = document.getElementById("zoom"); document.getElementById("zoom-img").src = src; z.showModal(); };
-  let ph;
-  if (it.pairs && it.pairs.length) {
-    // Før og etter side om side, én rad per vinkel.
-    ph = document.createElement("div"); ph.className = "pairs";
-    for (const pair of it.pairs) {
-      // Ett bilde med før og etter side om side (fra runde 6): over hele
-      // bredden, med merkene i selve bildet.
-      if (pair.length === 1) {
-        const b = document.createElement("button"); b.type = "button"; b.className = "shot wide";
-        b.setAttribute("aria-label", "Før og etter, vis større: " + it.name);
-        const im = document.createElement("img"); im.loading = "lazy"; im.decoding = "async"; im.src = pair[0]; im.alt = "Før og etter: " + it.name;
-        b.append(im); b.onclick = () => zoom(pair[0]); ph.append(b);
-        continue;
-      }
-      pair.forEach((src, k) => {
-        const b = document.createElement("button"); b.type = "button"; b.className = "shot";
-        b.setAttribute("aria-label", (k ? "Etter" : "Før") + ", vis større: " + it.name);
-        const im = document.createElement("img"); im.loading = "lazy"; im.decoding = "async"; im.src = src; im.alt = (k ? "Etter: " : "Før: ") + it.name;
-        const tag = document.createElement("span"); tag.className = "tag" + (k ? " after" : ""); tag.textContent = k ? "Etter" : "Før";
-        b.append(im, tag); b.onclick = () => zoom(src); ph.append(b);
-      });
-    }
-  } else {
-    ph = document.createElement("button");
-    ph.type = "button"; ph.className = "photo" + (it.kind === "tekstur" ? " tex" : "");
-    ph.setAttribute("aria-label", "Vis større: " + it.name);
+  const ph = document.createElement("button");
+  ph.type = "button"; ph.className = "photo sheet";
+  ph.setAttribute("aria-label", "Vis større: " + it.name);
+  if (it.img) {
     const img = document.createElement("img");
-    img.loading = "lazy"; img.decoding = "async"; img.src = `img/${it.id}.jpg`; img.alt = it.about || it.name;
+    img.loading = "lazy"; img.decoding = "async"; img.src = it.img; img.alt = (it.prior ? "Før og etter: " : "") + it.name;
     ph.append(img);
-    ph.onclick = () => zoom(img.src);
+    ph.onclick = () => { document.getElementById("zoom-img").src = img.src; document.getElementById("zoom").showModal(); };
   }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
-  eb.textContent = it.kind === "modell" ? (it.studio ? (it.fresh ? "Modell · studiobilde" : "Modell · studiobilde, ny") : it.game ? "Modell · fra spillet" : "Modell · skisse") : (it.game ? "Tekstur" : "Tekstur · bare malt");
+  eb.textContent = (it.kind === "modell" ? "Modell" : "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
   const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
   p.append(eb, h);
   if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }
-  const ul = document.createElement("ul"); ul.className = "facts";
-  for (const f of it.facts.filter(Boolean)) { const li = document.createElement("li"); li.textContent = f; ul.append(li); }
-  p.append(ul);
-  if (it.check) { const c = document.createElement("div"); c.className = "check " + (it.check.startsWith("består") ? "pass" : "fail"); c.textContent = it.check; p.append(c); }
   if (it.points && it.points.length) {
     const h3 = document.createElement("h3"); h3.className = "sub"; h3.textContent = "Det du skrev";
-    const ul2 = document.createElement("ul"); ul2.className = "points";
-    for (const t of it.points) { const li = document.createElement("li"); li.textContent = t; ul2.append(li); }
-    p.append(h3, ul2);
+    const ul = document.createElement("ul"); ul.className = "points";
+    for (const t of it.points) { const li = document.createElement("li"); li.textContent = t; ul.append(li); }
+    p.append(h3, ul);
   }
   if (it.fixed && it.fixed.length) {
     const h3 = document.createElement("h3"); h3.className = "sub"; h3.textContent = "Rettet slik";
-    const ul3 = document.createElement("ul"); ul3.className = "fixed";
-    for (const t of it.fixed) { const li = document.createElement("li"); li.textContent = t; ul3.append(li); }
-    p.append(h3, ul3);
+    const ul = document.createElement("ul"); ul.className = "fixed";
+    for (const t of it.fixed) { const li = document.createElement("li"); li.textContent = t; ul.append(li); }
+    p.append(h3, ul);
   }
-  if (it.fresh) { const f = document.createElement("div"); f.className = "fresh"; f.textContent = it.fresh; p.append(f); }
   if (it.prior) {
     const pr = document.createElement("div"); pr.className = "prior";
     const b = document.createElement("b"); b.textContent = it.prior.verdict;
-    pr.append("Forrige dom ", it.prior.date, ": ", b, ". ", it.prior.why || "");
+    pr.append("Forrige dom ", it.prior.date || "", ": ", b, ". ", it.prior.why || "");
     p.append(pr);
   }
   const ch = document.createElement("div"); ch.className = "choose"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "Dom");
   for (const v of ["godkjent", "underkjent", "usikker"]) {
     const b = document.createElement("button"); b.type = "button"; b.dataset.v = v; b.textContent = LABEL[v];
-    b.onclick = () => choose(it, v);
-    ch.append(b);
+    b.onclick = () => choose(it, v); ch.append(b);
   }
   const ta = document.createElement("textarea");
   ta.id = "why_" + it.id; ta.placeholder = "Hvorfor? (det som er galt, eller det som er bra)"; ta.setAttribute("aria-label", "Hvorfor, " + it.name);
-  ta.addEventListener("input", () => {
-    clearTimeout(timers.get(it.id));
-    timers.set(it.id, setTimeout(() => save(it, { why: ta.value }), 900));
-  });
+  ta.addEventListener("input", () => { clearTimeout(timers.get(it.id)); timers.set(it.id, setTimeout(() => save(it, { why: ta.value }), 900)); });
   ta.addEventListener("blur", () => { clearTimeout(timers.get(it.id)); save(it, { why: ta.value }); });
   const s = document.createElement("div"); s.className = "saved"; s.setAttribute("aria-live", "polite");
   p.append(ch, ta, s);
@@ -273,10 +232,8 @@ function card(it) {
   return el;
 }
 function paint(el, it) {
-  const raw = answers.get(it.id);
-  const a = current(raw) ? raw : {};
-  const v = verdictOf(it);
-  if (v) el.dataset.verdict = v; else delete el.dataset.verdict;
+  const a = answerOf(it) || {};
+  if (a.verdict) el.dataset.verdict = a.verdict; else delete el.dataset.verdict;
   for (const b of el.querySelectorAll(".choose button")) {
     b.setAttribute("aria-pressed", String(a.verdict ? a.verdict === b.dataset.v : false));
     b.disabled = readOnly || !db;
@@ -285,26 +242,42 @@ function paint(el, it) {
   if (document.activeElement !== ta && ta.value !== (a.why || "")) ta.value = a.why || "";
   ta.disabled = readOnly || !db;
 }
-function renderList() {
-  shown = items.filter(it => matches(it, filter));
-  const list = document.getElementById("list");
-  if (!shown.length) {
-    const e = document.createElement("p"); e.className = "empty";
-    e.textContent = filter === "open" ? "Alt er vurdert. Takk!" : "Ingenting her.";
-    list.replaceChildren(e); return;
+function pile(title, list, line) {
+  const d = document.createElement("details"); d.className = "pile";
+  const s = document.createElement("summary"); s.textContent = `${title} (${list.length})`; d.append(s);
+  const ul = document.createElement("ul");
+  for (const it of list) {
+    const li = document.createElement("li");
+    const n = document.createElement("span"); n.className = "nm"; n.textContent = it.name;
+    const v = document.createElement("span"); v.className = "v"; line(v, it);
+    li.append(n, v); ul.append(li);
   }
-  list.replaceChildren(...shown.map(card));
-  cur = -1;
+  d.append(ul); return d;
+}
+function renderList() {
+  const mine = items.filter(it => it.cat === tab);
+  const wait = mine.filter(waiting), held = mine.filter(it => it.state === "hos_meg"), done = mine.filter(it => it.state === "godkjent");
+  const list = document.getElementById("list");
+  const out = [];
+  const h = document.createElement("h2"); h.className = "section"; h.textContent = `Venter på deg (${wait.length})`; out.push(h);
+  if (!wait.length) { const e = document.createElement("p"); e.className = "empty"; e.textContent = "Ingenting venter på deg her."; out.push(e); }
+  out.push(...wait.map(card));
+  if (held.length) out.push(pile("Hos meg: underkjent eller usikker, ikke rettet ennå", held, (v, it) => {
+    const b = document.createElement("b"); b.textContent = it.prior.verdict; v.append(b, " ", it.prior.date || "", ": ", it.prior.why || "");
+  }));
+  if (done.length) out.push(pile("Godkjent", done, (v, it) => { v.append("godkjent ", (it.prior && it.prior.date) || ""); }));
+  list.replaceChildren(...out);
   list.style.display = "grid"; list.style.gap = "18px";
+  cur = -1;
 }
 
 async function save(it, change) {
   if (!db || readOnly) return;
   const raw = answers.get(it.id);
-  const cur = current(raw) ? raw : {};
-  const before = current(raw) ? (raw.before || null) : (raw ? { verdict: raw.verdict || "", why: raw.why || "", at: raw.at || "" } : null);
-  const next = { verdict: cur.verdict || "", why: cur.why || "", ...change, at: new Date().toISOString(), round: ROUND, before };
-  if (next.verdict === (cur.verdict || "") && next.why === (cur.why || "")) return;
+  const mine = answerOf(it) || {};
+  const before = mine.version ? (raw.before || null) : (raw ? { verdict: raw.verdict || "", why: raw.why || "", at: raw.at || "" } : null);
+  const next = { verdict: mine.verdict || "", why: mine.why || "", ...change, at: new Date().toISOString(), version: it.version, before };
+  if (next.verdict === (mine.verdict || "") && next.why === (mine.why || "")) return;
   answers.set(it.id, next);
   const el = document.getElementById(it.id);
   const status = el && el.querySelector(".saved");
@@ -325,8 +298,7 @@ async function save(it, change) {
 }
 function choose(it, v) {
   const el = document.getElementById(it.id);
-  const why = el ? el.querySelector("textarea").value : "";
-  save(it, { verdict: v, why });
+  save(it, { verdict: v, why: el ? el.querySelector("textarea").value : "" });
 }
 function note(text) { const n = document.getElementById("notice"); n.textContent = text; n.hidden = false; }
 
@@ -364,22 +336,21 @@ async function start() {
   try {
     const r = await fetch("data.json");
     const data = await r.json();
-    items = data.items; ROUND = data.round || 1;
+    items = data.items; cats = data.categories;
   } catch (e) {
     note("Fant ikke listen over teksturer og modeller."); return;
   }
-  filter = items.some(it => it.fresh) ? "fresh" : (items.some(it => !verdictOf(it)) ? "open" : "all");
+  let saved = null;
+  try { saved = localStorage.getItem("dommen.tab"); } catch (e) {}
+  const withWork = cats.find(([k]) => items.some(it => it.cat === k && open(it)));
+  tab = (withWork && withWork[0]) || (cats.some(([k]) => k === saved) ? saved : cats[0][0]);
   renderBar(); renderList();
   db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
-  if (!db) {
-    note("Svarene kan ikke lagres i denne visningen. Åpne siden i Claude for å gi dommer.");
-    return;
-  }
+  if (!db) { note("Svarene kan ikke lagres i denne visningen. Åpne siden i Claude for å gi dommer."); return; }
   document.querySelectorAll(".item").forEach(x => { const i = items.find(y => y.id === x.id); if (i) paint(x, i); });
   db.collection("dom").onSnapshot(snap => {
     for (const ch of snap.docChanges()) {
-      if (ch.type === "removed") answers.delete(ch.doc.id);
-      else answers.set(ch.doc.id, ch.doc.data());
+      if (ch.type === "removed") answers.delete(ch.doc.id); else answers.set(ch.doc.id, ch.doc.data());
       const el = document.getElementById(ch.doc.id); const it = items.find(y => y.id === ch.doc.id);
       if (el && it) paint(el, it);
     }
