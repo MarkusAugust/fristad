@@ -1,7 +1,5 @@
 import sys
 
-from . import texture
-
 
 def main(argv):
     """python3 -m tools.qa texture [lag …] | catalog | approvals review UT | approvals apply SVAR"""
@@ -16,6 +14,7 @@ def main(argv):
     if not argv or argv[0] != "texture":
         print(main.__doc__)
         return 2
+    from . import texture
     items = argv[1:] or texture.names()
     bad = 0
     for name in items:

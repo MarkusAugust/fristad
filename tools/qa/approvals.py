@@ -20,7 +20,7 @@ import json
 import os
 import sys
 
-from .catalog import DATA
+from .gate import DATA
 
 VERDICTS = ("godkjent", "underkjent", "usikker")
 

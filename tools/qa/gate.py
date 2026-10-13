@@ -4,6 +4,8 @@ import json
 import os
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+# Det som ikke kan regnes ut om tekstur og modell, og eierens dom.
+DATA = os.path.join(ROOT, "assets", "catalog")
 OUT = os.path.join(ROOT, "target", "qa")
 
 

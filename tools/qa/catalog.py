@@ -23,13 +23,12 @@ import numpy as np
 from PIL import Image
 
 from . import texture as ptex
-from .gate import OUT, ROOT
+from .gate import DATA, OUT, ROOT
 from .glb import Mesh
 from .raster import render
 
 DOC = os.path.join(ROOT, "docs", "katalog.md")
 IMG = os.path.join(ROOT, "docs", "katalog")
-DATA = os.path.join(ROOT, "assets", "catalog")
 REFS = ["monsters", "people", "props", "weapons_ref"]
 THEMES = {"by": "Byen", "natur": "Naturen", "figur": "Figurer og utstyr", "krypt": "Krypten: gravkjelleren", "kloakk": "Krypten: kloakken", "gruve": "Krypten: gruva", "borg": "Krypten: borgen", "kjerne": "Krypten: den korrupte kjernen"}
 

@@ -15,7 +15,8 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const server = http.createServer((req, res) => {
   const p = path.join(dir, decodeURIComponent(req.url.split("?")[0]).replace(/^\/$/, "/index.html"));
   if (!fs.existsSync(p)) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { "content-type": types[path.extname(p)] || "application/octet-stream" });
+  // Som artefaktene: ingen data:- eller blob:-adresser å laste fra.
+  res.writeHead(200, { "content-type": types[path.extname(p)] || "application/octet-stream", "content-security-policy": "default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://cdn.jsdelivr.net" });
   fs.createReadStream(p).pipe(res);
 }).listen(0);
 const port = server.address().port;

@@ -30,10 +30,22 @@ import shutil
 import subprocess
 import tempfile
 
-from PIL import Image, ImageDraw, ImageFont
+from .gate import DATA, ROOT
 
-from .catalog import DATA
-from .gate import ROOT
+
+class _Lazy:
+    """Pillow lastes først når et bilde lages: `audit` (testen
+    `dommen_mister_ingenting`) kjører uten den, som i Actions."""
+
+    def __init__(self, name):
+        self._name = name
+
+    def __getattr__(self, attr):
+        import importlib
+        return getattr(importlib.import_module(self._name), attr)
+
+
+Image, ImageDraw, ImageFont = _Lazy("PIL.Image"), _Lazy("PIL.ImageDraw"), _Lazy("PIL.ImageFont")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(ROOT, "target", "qa", "review")
@@ -95,9 +107,26 @@ def glb_to_json(src, dst):
     n = struct.unpack("<I", b[12:16])[0]
     j = json.loads(b[20:20 + n])
     rest = b[20 + n:]
+    binary = b""
     if len(rest) >= 8:
         m = struct.unpack("<I", rest[:4])[0]
-        j["buffers"][0]["uri"] = "data:application/octet-stream;base64," + base64.b64encode(rest[8:8 + m]).decode()
+        binary = rest[8:8 + m]
+        # Siden får ikke laste data:- eller blob:-adresser (artefaktenes
+        # CSP): bufferen står som base64 i et eget felt (`viewer.js` setter
+        # sammen en glb i minnet), og bildene blir egne filer ved siden av.
+        j["fristadBin"] = base64.b64encode(binary).decode()
+    base = os.path.splitext(os.path.basename(dst))[0]
+    for k, im in enumerate(j.get("images", [])):
+        if "bufferView" not in im:
+            continue
+        bv = j["bufferViews"][im["bufferView"]]
+        data = binary[bv.get("byteOffset", 0):bv.get("byteOffset", 0) + bv["byteLength"]]
+        ext = ".png" if im.get("mimeType") == "image/png" else ".jpg"
+        with open(os.path.join(os.path.dirname(dst), f"{base}_{k}{ext}"), "wb") as f:
+            f.write(data)
+        del im["bufferView"]
+        im.pop("mimeType", None)
+        im["uri"] = f"{base}_{k}{ext}"
     with open(dst, "w") as f:
         json.dump(j, f, separators=(",", ":"))
 

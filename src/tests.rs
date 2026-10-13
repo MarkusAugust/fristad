@@ -1866,7 +1866,7 @@ fn blenderskriptene_henger_sammen() {
 fn dommen_mister_ingenting() {
     let root = env!("CARGO_MANIFEST_DIR");
     let out = std::process::Command::new("python3").args(["-m", "tools.qa", "approvals", "audit"]).current_dir(root).output().expect("python3");
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
+    assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
 }
 
 /// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:

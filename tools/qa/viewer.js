@@ -90,8 +90,34 @@ function dress(st, root, layers, sides) {
   });
 }
 
+// Modellen er glTF i JSON med bufferen som base64 i `fristadBin` (siden
+// får ikke laste data:- eller blob:-adresser): settes sammen til en glb i
+// minnet, og bildene hentes som filer ved siden av.
+async function fetchModel(url) {
+  const j = await (await fetch(url)).json();
+  const raw = atob(j.fristadBin || "");
+  delete j.fristadBin;
+  const bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  if (j.buffers && j.buffers[0]) delete j.buffers[0].uri;
+  let text = new TextEncoder().encode(JSON.stringify(j));
+  const pad = (n) => (4 - (n % 4)) % 4;
+  const jl = text.length + pad(text.length), bl = bin.length + pad(bin.length);
+  const out = new Uint8Array(12 + 8 + jl + (bin.length ? 8 + bl : 0));
+  const dv = new DataView(out.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, out.length, true);
+  dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true);
+  out.set(text, 20); out.fill(0x20, 20 + text.length, 20 + jl);
+  if (bin.length) {
+    dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true);
+    out.set(bin, 28 + jl);
+  }
+  return out.buffer;
+}
+
 async function load(st, url, layers, sides) {
-  const g = await st.loader.loadAsync(url);
+  const data = await fetchModel(url);
+  const g = await st.loader.parseAsync(data, url.slice(0, url.lastIndexOf("/") + 1));
   dress(st, g.scene, layers, sides);
   return g.scene;
 }

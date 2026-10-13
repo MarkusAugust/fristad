@@ -339,7 +339,7 @@ async function view3d(it) {
   try {
     const v = await import("./viewer.js");
     await v.show(it, pageData, ui);
-  } catch (e) { ui.status.textContent = "Kunne ikke vise modellen (" + e.message + ")."; }
+  } catch (e) { ui.status.textContent = "Kunne ikke vise modellen (" + String(e.message).slice(0, 160) + ")."; }
 }
 document.getElementById("view-close").addEventListener("click", () => document.getElementById("view").close());
 function note(text) { const n = document.getElementById("notice"); n.textContent = text; n.hidden = false; }
