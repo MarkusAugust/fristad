@@ -990,12 +990,10 @@ mod tests {
 
     #[test]
     fn slagene_etter_navnet() {
-        assert_eq!(Kind::from_label("knapp i bakhold"), Kind::Button);
-        assert_eq!(Kind::from_label("tooltip"), Kind::Tooltip);
-        assert_eq!(Kind::from_label("Input"), Kind::Input);
-        assert_eq!(Kind::from_label("modalen"), Kind::Modal);
-        assert_eq!(Kind::from_label("tabell"), Kind::Table);
-        assert_eq!(Kind::from_label("Rammeverket"), Kind::Framework);
+        let names = [("knapp i bakhold", Kind::Button), ("tooltip", Kind::Tooltip), ("Input", Kind::Input), ("modalen", Kind::Modal), ("tabell", Kind::Table), ("Rammeverket", Kind::Framework)];
+        for (l, k) in names.into_iter().chain([("Avatar Skull", Kind::Avatar), ("breadcrumb", Kind::Breadcrumb), ("trekkspillkiste i bakhold", Kind::Accordion)]) {
+            assert_eq!(Kind::from_label(l), k, "{l}");
+        }
         for k in Kind::ALL {
             let s = k.stats();
             assert!(s.attack_hit < s.attack_len, "{k:?}");

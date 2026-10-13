@@ -417,6 +417,9 @@ def project_sheet(ob, img_size, views, px, only=None):
             view = "front" if (n.x > 0 if ax > 0.05 else (mw @ poly.center).x > 0) else "back"
         else:
             view = "side"
+        # Uten bakfra i arket (Breadcrumb Crawler) leses baksida fra sida.
+        if view not in views:
+            view = "side"
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
             if view == "front":
@@ -424,7 +427,8 @@ def project_sheet(ob, img_size, views, px, only=None):
             elif view == "back":
                 X = views["back"] - p.y / px
             else:
-                X = views["side"] + p.x / px
+                # `side_dir` −1: sidebildet ser mot venstre (Avatar Skull).
+                X = views["side"] + views.get("side_dir", 1) * p.x / px
             Y = views["ground"] - p.z / px
             src.data[li].uv = (X / W, 1.0 - Y / H)
 
@@ -1374,7 +1378,390 @@ def build_brood(size):
     bake_textured(f"{OUT}/mutant_select.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.04, "radii": {"root": -1.0, "jaw": -1.0}})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048), "mutant_toast": (build_frog, 1024), "mutant_select": (build_brood, 2048)}
+# --- Nivå 2: Gravkongens hall ------------------------------------------------
+#
+# Tre vanlige fiender (trash) fra eierens ark 13. oktober (2048 × 2048):
+# Avatar Skull ruller, Breadcrumb Crawler kryper i en kjede, og Accordion
+# Coffin ligger som en kiste og folder seg ut.
+
+
+def ring_x(name, mat, R, r, depth, x, zc, n=40):
+    """En ring (sirkulær skive med hull) i (y, z) rundt (x, 0, zc), tykk
+    `depth` langs x: rammen rundt et profilbilde."""
+    bm = bmesh.new()
+    loops = []
+    for rad in (R, r):
+        for sx in (1, -1):
+            loops.append([bm.verts.new((x + sx * depth / 2, rad * math.cos(2 * math.pi * i / n), zc + rad * math.sin(2 * math.pi * i / n))) for i in range(n)])
+    of, ob_, inf, inb = loops
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((of[i], of[j], inf[j], inf[i]))  # forsida
+        bm.faces.new((ob_[j], ob_[i], inb[i], inb[j]))  # baksida
+        bm.faces.new((of[j], of[i], ob_[i], ob_[j]))  # utsida
+        bm.faces.new((inf[i], inf[j], inb[j], inb[i]))  # innsida
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    me.materials.append(mat)
+    bpy.context.scene.collection.objects.link(ob)
+    me.uv_layers.new(name="UVMap")
+    return ob
+
+
+def candle_on(name, x, y, z, h, wax, flame, wick, r=0.022):
+    """Et lys som står på (x, y, z): stamme, voks rundt foten, veke og flamme."""
+    cylinder(f"{name}", (x, y, z + h / 2), r, h, wax, vertices=10)
+    ellipsoid(f"{name}_wax", (x, y, z + 0.005), (r * 3.2, r * 3.2, 0.02), wax, 10, 5)
+    tube(f"{name}_wick", (x, y, z + h - 0.005), (x, y, z + h + 0.012), 0.003, wick, 4)
+    ellipsoid(f"{name}_flame", (x, y, z + h + 0.03), (0.022, 0.022, 0.045), flame, 8, 6)
+
+
+def grave_slab(name, mat, x, yc, z0, w, h, t, rot=(0, 0, 0)):
+    """En liten gravstein med rund topp, stående på (x, yc, z0)."""
+    pts = [(yc - w / 2, z0), (yc + w / 2, z0)]
+    for i in range(9):
+        a = math.pi * i / 8
+        pts.append((yc + w / 2 * math.cos(a), z0 + h - w / 2 + w / 2 * math.sin(a)))
+    return prism(name, mat, pts, t, x, rot)
+
+
+def crypt_props():
+    wax = material("wax", (0.86, 0.82, 0.72), 0.55)
+    flame = material("magic_flame", (0.75, 0.9, 1.0), 0.3)
+    wick = material("wick", (0.08, 0.08, 0.09), 0.8)
+    stone = material("grave_stone", (0.42, 0.44, 0.48), 0.8)
+    weather(stone, 0.4, 1.2, 0.3, 10.0)
+    bone = material("bone", (0.8, 0.75, 0.64), 0.65)
+    weather(bone, 0.0, 0.8, 0.3, 12.0)
+    return wax, flame, wick, stone, bone
+
+
+def crypt_bone(name, a, b, mat, r=0.014):
+    """Et knokkelbein: skaft med to knoker i hver ende."""
+    a, b = Vector(a), Vector(b)
+    tube(name, a, b, r, mat, 8)
+    side = (b - a).cross(Vector((0, 0, 1)))
+    side = side.normalized() * r * 0.9 if side.length > 1e-6 else Vector((0, r * 0.9, 0))
+    for k, p in enumerate((a, b)):
+        for s in (1, -1):
+            ellipsoid(f"{name}_knob{k}{s:+d}", p + side * s, (r * 2.6, r * 2.6, r * 2.6), mat, 8, 5)
+
+
+# Avatar Skull: en rund profilramme (ring av hvit plast med skiferkant) der
+# bildet inni har råtnet til en hodeskalle med ett cyan øye; bak ligger
+# graven med gravstein, bein og lys. Arket: forfra (ringen 87–678 px), fra
+# siden mot venstre (1025) og bakfra (1628); 662 px høy (708–1370), 0,7 m.
+SKULL_SHEET = os.path.join(REF, "avatar_skull_body.jpeg")
+SKULL_PX = 0.7 / 662
+SKULL_VIEWS = {"front": 382, "back": 1628, "side": 1025, "side_dir": -1, "ground": 1370}
+SKULL_R = 290 * SKULL_PX  # rammen ytterst
+SKULL_W = 182 * SKULL_PX  # vinduet (bildet) innenfor skiferkanten
+SKULL_T = 233 * SKULL_PX  # tykkelsen
+SKULL_ZC = (1370 - 995) * SKULL_PX
+SKULL_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.1), None),
+    ("hips", (0, 0, SKULL_ZC), (0, 0, SKULL_ZC + 0.1), "root"),
+    ("chest", (0, 0, SKULL_ZC), (0, 0, SKULL_ZC + 0.16), "hips"),
+    ("neck", (0, 0, SKULL_ZC), (0.06, 0, SKULL_ZC), "hips"),
+    ("head", (0.06, 0, SKULL_ZC + 0.02), (0.26, 0, SKULL_ZC + 0.02), "neck"),
+    ("jaw", (0.08, 0, SKULL_ZC - 0.08), (0.22, 0, SKULL_ZC - 0.12), "head"),
+    ("thigh.L", (0, 0.095, 0.17), (0, 0.095, 0.085), "hips"),
+    ("shin.L", (0, 0.095, 0.085), (0, 0.1, 0.035), "thigh.L"),
+    ("foot.L", (0, 0.1, 0.035), (0.08, 0.1, 0.02), "shin.L"),
+    ("thigh.R", (0, -0.095, 0.17), (0, -0.095, 0.085), "hips"),
+    ("shin.R", (0, -0.095, 0.085), (0, -0.1, 0.035), "thigh.R"),
+    ("foot.R", (0, -0.1, 0.035), (0.08, -0.1, 0.02), "shin.R"),
+]
+# Rammen ruller (brystet); bildet, hodeskallen og graven bak står oppreist
+# (hodet), som et profilbilde som alltid vender riktig vei.
+SKULL_RIGID = {"frame": "chest", "window": "head", "skull": "head", "back": "head", "jaw": "jaw"}
+
+
+def avatar_skull():
+    sheet = sheet_material("skull_sheet", filled_sheet(SKULL_SHEET))
+    eye = material("magic_eye", (0.45, 0.95, 1.0), 0.3)
+    wax, flame, wick, stone, bone = crypt_props()
+    zc = SKULL_ZC
+    parts = [ring_x("frame_ring", sheet, SKULL_R, SKULL_W, SKULL_T, 0.0, zc, 48)]
+    parts.append(cylinder("window_disc", (0, 0, zc), SKULL_W + 0.004, SKULL_T * 0.7, sheet, rot=(0, math.pi / 2, 0), vertices=40))
+    # Hodeskallen stikker fram av bildet: skallen og tannraden under.
+    parts.append(ellipsoid("skull_cranium", (0.12, 0, zc + 0.035), (0.27, 0.33, 0.28), sheet, 20, 12))
+    parts.append(ellipsoid("jaw_teeth", (0.12, 0, zc - 0.115), (0.2, 0.25, 0.13), sheet, 16, 8))
+    ellipsoid("skull_eye", (0.235, 0.075, zc + 0.04), (0.04, 0.06, 0.06), eye, 10, 6)
+    # Graven bak: jordhaug, gravstein, bein og lys.
+    x0 = -SKULL_T * 0.35
+    parts.append(ellipsoid("back_mound", (x0 - 0.03, 0, zc - 0.07), (0.12, 0.3, 0.13), sheet, 14, 8))
+    grave_slab("back_grave", stone, x0 - 0.05, 0.055, zc - 0.1, 0.13, 0.32, 0.05, rot=(0, -0.15, 0))
+    crypt_bone("back_bone0", (x0 - 0.07, -0.12, zc - 0.05), (x0 - 0.08, 0.04, zc - 0.11), bone)
+    crypt_bone("back_bone1", (x0 - 0.08, -0.02, zc - 0.13), (x0 - 0.06, 0.13, zc - 0.07), bone)
+    for k, (y, z, h) in enumerate(((-0.1, zc - 0.05, 0.11), (-0.04, zc + 0.02, 0.08), (0.14, zc - 0.07, 0.07))):
+        candle_on(f"back_candle{k}", x0 - 0.07, y, z, h, wax, flame, wick)
+    # De korte beinbeina.
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in SKULL_BONES}
+    for side in ("L", "R"):
+        sy = 1.0 if side == "L" else -1.0
+        hip, knee, ankle, toe = B[f"thigh.{side}"][0], B[f"shin.{side}"][0], B[f"foot.{side}"][0], B[f"foot.{side}"][1]
+        tube(f"leg_{side}_a", hip, knee, 0.036, bone, 10)
+        ellipsoid(f"leg_{side}_k", knee, (0.075, 0.075, 0.07), bone, 10, 6)
+        tube(f"leg_{side}_b", knee, ankle, 0.032, bone, 10)
+        ellipsoid(f"leg_{side}_foot", (toe.x - 0.015, toe.y + sy * 0.005, 0.03), (0.15, 0.085, 0.06), bone, 12, 6)
+    bpy.context.view_layer.update()
+    for ob in parts:
+        project_sheet(ob, (2048, 2048), SKULL_VIEWS, SKULL_PX)
+
+
+def skull_clips(arm):
+    """Avatar Skull ruller: rammen dreier rundt bildet, som står oppreist, og
+    beina trekkes inn. Den hopper opp og biter, vingler når den treffes, og
+    faller på ryggen eller framover når den dør."""
+    zc = SKULL_ZC
+    drop = SKULL_ZC - SKULL_R  # så rammen står på gulvet når beina er inne
+
+    def pose(c, f, roll=0.0, legs=1.0, root=(0, 0, 0), tilt=0.0, lean=0.0, jaw=0.0, wobble=0.0, fall=0.0, wheel=None):
+        c.loc("root", f, root)
+        c.rot("root", f, y=fall)
+        if wheel is None:
+            c.rot("hips", f, x=wobble, y=lean)
+            c.rot("chest", f, y=roll)
+        else:
+            # Som et hjul: snudd på tvers av fartsretningen (akselen langs
+            # fartens sideretning), og rammen dreier om sin egen akse.
+            c.rot("hips", f, x=lean, z=90.0)
+            c.rot("chest", f, x=wheel)
+        c.rot("neck", f)
+        c.rot("head", f, y=tilt)
+        c.rot("jaw", f, y=jaw)
+        for s in ("L", "R"):
+            c.scale(f"thigh.{s}", f, max(0.02, legs))
+            c.rot(f"thigh.{s}", f)
+            c.rot(f"shin.{s}", f)
+            c.rot(f"foot.{s}", f)
+
+    def clip(name, length, fn):
+        c = Clip(arm, name, length, mob_motion.FPS)
+        for f in range(0, length + 1):
+            fn(c, f, f / length)
+        c.finish()
+
+    clip("idle", 48, lambda c, f, t: pose(c, f, roll=4 * math.sin(2 * math.pi * t), root=(0, 0, 0.012 * abs(math.sin(2 * math.pi * t))), tilt=-5 * math.sin(2 * math.pi * t), jaw=4 if 30 <= f <= 33 else 0.0))
+    # Gangen: den snur seg på tvers og ruller som et hjul; én omdreining er
+    # 2πR fram (1,9 m), på 18 bilder.
+    clip("walk", 18, lambda c, f, t: pose(c, f, wheel=360.0 * t, legs=0.0, root=(0, 0, -drop + 0.004 * math.sin(4 * math.pi * t)), lean=2.0 * math.sin(2 * math.pi * t)))
+
+    def attack(c, f, t):
+        # Krøker seg (0–6), hopper opp og fram (6–15, treffet i 15) med
+        # kjeven åpen, biter, og lander tilbake (15–30).
+        if f <= 6:
+            u = smooth01(f / 6)
+            pose(c, f, roll=-12 * u, legs=1.0 - 0.35 * u, root=(-0.03 * u, 0, -0.05 * u), tilt=-10 * u, jaw=8 * u)
+        elif f <= 15:
+            u = (f - 6) / 9
+            pose(c, f, roll=-12 + 40 * u, legs=0.65 + 0.35 * u, root=(0.32 * u, 0, 0.3 * math.sin(math.pi * u * 0.8)), tilt=-10 + 30 * u, jaw=8 + 26 * u * (1 - u) * 4 * 0.5)
+        else:
+            u = smooth01((f - 15) / 15)
+            pose(c, f, roll=28 * (1 - u), root=(0.32 * (1 - u), 0, 0.3 * math.sin(math.pi * 0.8) * (1 - u) ** 2), tilt=20 * (1 - u), jaw=2 * (1 - u))
+    clip("attack", 30, attack)
+    clip("alert", 22, lambda c, f, t: pose(c, f, roll=-8 * math.sin(math.pi * t), root=(0, 0, 0.16 * math.sin(math.pi * min(1, 1.4 * t)) * (1 if t < 0.72 else 0)), tilt=-12 * math.sin(math.pi * t), jaw=10 * math.sin(math.pi * t)))
+    for name, side in (("hit", 1.0), ("hit2", -1.0)):
+        clip(name, 14, lambda c, f, t, side=side: pose(c, f, roll=-14 * math.exp(-4 * t), root=(-0.1 * math.exp(-4 * t), 0, 0), wobble=side * 16 * math.exp(-4 * t) * math.cos(10 * t), tilt=-8 * math.exp(-5 * t)))
+    # Svimmel: vingler som en mynt som snurrer ut.
+    clip("stagger", 30, lambda c, f, t: pose(c, f, wobble=14 * math.sin(4 * math.pi * t) * math.sin(math.pi * t), roll=6 * math.sin(2 * math.pi * t), tilt=10 * math.sin(math.pi * t)))
+    # Døden: tipper bakover på ryggen (eller framover på bildet); rammen
+    # ligger flatt på gulvet, med hjørnet i origo løftet så den ikke synker.
+    for name, sgn in (("die", -1.0), ("die2", 1.0)):
+        clip(name, 36, lambda c, f, t, sgn=sgn: pose(c, f, legs=1.0 - min(1, 2 * t), fall=sgn * 90 * smooth01(min(1, t * 1.6)) ** 2, root=(0, 0, SKULL_T / 2 * smooth01(min(1, t * 1.6)) - 0.03 * math.sin(math.pi * min(1, t * 1.6))), jaw=18 * min(1, 2 * t)))
+
+
+def smooth01(u):
+    u = min(1.0, max(0.0, u))
+    return u * u * (3 - 2 * u)
+
+
+def build_skull(size):
+    avatar_skull()
+    arm = armature("avatar_skull_rig", SKULL_BONES)
+    skull_clips(arm)
+    bpy.context.scene.frame_end = 48
+    rigid = dict(SKULL_RIGID)
+    for s in ("L", "R"):
+        rigid[f"leg_{s}_a"] = f"thigh.{s}"
+        rigid[f"leg_{s}_k"] = f"shin.{s}"
+        rigid[f"leg_{s}_b"] = f"shin.{s}"
+        rigid[f"leg_{s}_foot"] = f"foot.{s}"
+    bake_textured(f"{OUT}/avatar_skull.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.03, "radii": {"root": -1.0}})
+
+
+# Accordion Coffin: en kiste av grå plast med hengsel og lokk øverst, tre
+# folder av et trekkspillpanel under, ett linseøye i glipa under lokket, og
+# fire korte beinbein. Gravstein, bein og lys har grodd fast oppå. Arket:
+# forfra (348), fra siden mot høyre (1044), bakfra (1705); kista er 873 px
+# høy til lokket (551–1424) og 1,0 m.
+COFFIN_SHEET = os.path.join(REF, "accordion_coffin_body.jpeg")
+COFFIN_PX = 1.0 / 873
+COFFIN_VIEWS = {"front": 348, "back": 1705, "side": 1044, "ground": 1424}
+COFFIN_TOP = (1424 - 561) * COFFIN_PX
+COFFIN_SH = (1424 - 781) * COFFIN_PX  # skuldra, der kista er bredest
+COFFIN_BOT = (1424 - 1310) * COFFIN_PX
+COFFIN_D = 512 * COFFIN_PX
+COFFIN_LIP = COFFIN_SH - 0.02  # glipa under lokket
+COFFIN_LEGS = [(0, 0.18), (1, -0.18)]  # (par, x)
+COFFIN_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.1), None),
+    ("hips", (0, 0, COFFIN_BOT), (0, 0, 0.3), "root"),
+    ("chest", (0, 0, 0.3), (0, 0, 0.52), "hips"),
+    ("neck", (0, 0, 0.52), (0, 0, COFFIN_LIP), "chest"),
+    ("head", (-COFFIN_D / 2, 0, COFFIN_LIP), (COFFIN_D / 2, 0, COFFIN_LIP), "neck"),
+    ("jaw", (-COFFIN_D / 2, 0, COFFIN_LIP + 0.01), (COFFIN_D / 2, 0, COFFIN_LIP + 0.01), "head"),
+    ("tail1", (-COFFIN_D / 2, 0, 0.2), (-COFFIN_D / 2 - 0.04, 0, 0.18), "hips"),
+    ("tail2", (-COFFIN_D / 2 - 0.04, 0, 0.18), (-COFFIN_D / 2 - 0.08, 0, 0.16), "tail1"),
+    ("tail3", (-COFFIN_D / 2 - 0.08, 0, 0.16), (-COFFIN_D / 2 - 0.12, 0, 0.14), "tail2"),
+]
+for _k, _x in COFFIN_LEGS:
+    for _sy, _s in ((1.0, "L"), (-1.0, "R")):
+        COFFIN_BONES.append((f"leg{_k:02d}.{_s}", (_x, _sy * 0.15, COFFIN_BOT + 0.03), (_x + 0.02, _sy * 0.24, 0.0), "hips"))
+
+
+def accordion_coffin():
+    sheet = sheet_material("coffin_sheet", filled_sheet(COFFIN_SHEET))
+    eye = material("magic_lens", (0.45, 0.95, 1.0), 0.3)
+    wax, flame, wick, stone, bone = crypt_props()
+    hw_top, hw_sh, hw_bot = 125 * COFFIN_PX, 234 * COFFIN_PX, 118 * COFFIN_PX
+    parts = []
+    # Kista under lokket: fra foten til skuldra, med trekkspillfoldene på
+    # sidene (arket viser dem fra siden).
+    lower = [(-hw_bot, COFFIN_BOT), (hw_bot, COFFIN_BOT), (hw_sh, COFFIN_SH - 0.03), (hw_sh - 0.02, COFFIN_LIP - 0.015), (-hw_sh + 0.02, COFFIN_LIP - 0.015), (-hw_sh, COFFIN_SH - 0.03)]
+    parts.append(prism("body_lower", sheet, lower, COFFIN_D, 0.0))
+    # Foldene: tre lister rundt kista som stikker litt ut (belgen).
+    for k, z in enumerate((0.3, 0.44, 0.58)):
+        f = (z - COFFIN_BOT) / (COFFIN_SH - COFFIN_BOT)
+        hw = hw_bot + (hw_sh - hw_bot) * f
+        parts.append(rounded_box(f"body_pleat{k}", (0, 0, z), (COFFIN_D + 0.03, 2 * hw + 0.03, 0.035), sheet, radius=0.012))
+    # Lokket: fra glipa til toppen, hengslet bak.
+    lid = [(-hw_sh, COFFIN_LIP + 0.01), (hw_sh, COFFIN_LIP + 0.01), (hw_sh, COFFIN_SH), (hw_top, COFFIN_TOP), (-hw_top, COFFIN_TOP), (-hw_sh, COFFIN_SH)]
+    parts.append(prism("lid_slab", sheet, lid, COFFIN_D + 0.02, 0.0))
+    # Det mørke inni glipa og linseøyet som kikker ut.
+    box("body_mouth", (0.0, 0, COFFIN_LIP - 0.005), (COFFIN_D - 0.03, 2 * hw_sh - 0.06, 0.03), material("mouth_dark", (0.02, 0.02, 0.03), 0.9))
+    ellipsoid("neck_eye", (COFFIN_D / 2 - 0.01, -0.02, COFFIN_LIP - 0.035), (0.05, 0.1, 0.07), eye, 12, 8)
+    # Oppå lokket: gravstein, kryssede bein og et lys med voks som renner.
+    grave_slab("lid_grave", stone, -0.06, -0.08, COFFIN_TOP - 0.01, 0.15, 0.24, 0.05, rot=(0.12, 0, 0))
+    crypt_bone("lid_bone0", (0.05, -0.17, COFFIN_TOP + 0.02), (-0.08, 0.16, COFFIN_TOP + 0.03), bone)
+    candle_on("lid_candle", 0.04, 0.1, COFFIN_TOP - 0.005, 0.1, wax, flame, wick, r=0.026)
+    ellipsoid("lid_wax", (0.06, 0.08, COFFIN_TOP + 0.005), (0.2, 0.16, 0.035), wax, 12, 6)
+    # Beina: fire korte beinbein under kista.
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in COFFIN_BONES}
+    for k, _ in COFFIN_LEGS:
+        for side in ("L", "R"):
+            n = f"leg{k:02d}.{side}"
+            a, ft = B[n]
+            kn = a + (ft - a) * 0.5 + Vector((0, 0, 0.01))
+            tube(f"{n}_a", a, kn, 0.04, bone, 10)
+            ellipsoid(f"{n}_k", kn, (0.09, 0.09, 0.08), bone, 10, 6)
+            tube(f"{n}_b", kn, ft + Vector((0, 0, 0.03)), 0.034, bone, 10)
+            ellipsoid(f"{n}_foot", ft + Vector((0.01, 0, 0.025)), (0.1, 0.08, 0.05), bone, 10, 6)
+    bpy.context.view_layer.update()
+    for ob in parts:
+        project_sheet(ob, (2048, 2048), COFFIN_VIEWS, COFFIN_PX)
+
+
+def build_coffin(size):
+    accordion_coffin()
+    arm = armature("accordion_coffin_rig", COFFIN_BONES)
+    legs = [(k, s) for k, _ in COFFIN_LEGS for s in ("L", "R")]
+    table_clips(arm, legs)
+    bpy.context.scene.frame_end = 40
+    rigid = {"body": "chest", "lid": "jaw", "neck": "neck"}
+    for k, side in legs:
+        rigid[f"leg{k:02d}.{side}_"] = f"leg{k:02d}.{side}"
+    bake_textured(f"{OUT}/accordion_coffin.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.03, "radii": {"root": -1.0}})
+
+
+# Breadcrumb Crawler: en kjede av fire kuler av hvit plast med skiferbuk og
+# en lysende søm, bundet sammen av ryggvirvler, ett par beinbein per kule.
+# Hodet (størst, foran) har linsa; oppå de andre står lys, en gravstein og
+# bein. Arket: forfra (323), fra siden mot høyre (kjeden 682–1449 px) og
+# ovenfra; ingen visning bakfra. 767 px lang og 1,1 m.
+CRUMB_SHEET = os.path.join(REF, "breadcrumb_crawler_body.jpeg")
+CRUMB_PX = 1.1 / 767
+CRUMB_VIEWS = {"front": 323, "side": 1065, "ground": 1334}
+# Kulene: (navn, x, z, radius, bein den henger på), fra hodet bakover.
+CRUMB_BALLS = [(n, (X - 1065) * CRUMB_PX, (1334 - Y) * CRUMB_PX, r * CRUMB_PX, b) for n, X, Y, r, b in (
+    ("head", 1326, 1081, 123, "head"), ("chest", 1085, 1071, 97, "chest"), ("hips", 886, 1112, 72, "hips"), ("tail", 735, 1209, 53, "tail2"))]
+CRUMB_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.1), None),
+    ("hips", (-0.3, 0, 0.32), (-0.12, 0, 0.36), "root"),
+    ("chest", (-0.12, 0, 0.36), (0.12, 0, 0.37), "hips"),
+    ("neck", (0.12, 0, 0.37), (0.24, 0, 0.37), "chest"),
+    ("head", (0.24, 0, 0.37), (0.55, 0, 0.37), "neck"),
+    ("jaw", (0.42, 0, 0.27), (0.52, 0, 0.26), "head"),
+    ("tail1", (-0.3, 0, 0.32), (-0.4, 0, 0.25), "hips"),
+    ("tail2", (-0.4, 0, 0.25), (-0.5, 0, 0.18), "tail1"),
+    ("tail3", (-0.5, 0, 0.18), (-0.56, 0, 0.16), "tail2"),
+]
+for _k, (_n, _x, _z, _r, _b) in enumerate(CRUMB_BALLS):
+    for _sy, _s in ((1.0, "L"), (-1.0, "R")):
+        CRUMB_BONES.append((f"leg{_k:02d}.{_s}", (_x, _sy * _r * 0.6, _z - _r * 0.4), (_x + 0.02, _sy * (_r + 0.14), _z + 0.04), _b))
+
+
+def breadcrumb_crawler():
+    sheet = sheet_material("crumb_sheet", filled_sheet(CRUMB_SHEET))
+    wax, flame, wick, stone, bone = crypt_props()
+    lens = material("glass_lens", (0.5, 0.68, 0.82), 0.1)
+    balls = []
+    for n, x, z, r, _ in CRUMB_BALLS:
+        balls.append((n, ellipsoid(f"ball_{n}", (x, 0, z), (2 * r, 2 * r * 0.96, 2 * r), sheet, 24, 14)))
+    # Linsa foran på hodet.
+    hx, hz, hr = CRUMB_BALLS[0][1], CRUMB_BALLS[0][2], CRUMB_BALLS[0][3]
+    cylinder("head_lens_rim", (hx + hr * 0.86, 0, hz + 0.01), hr * 0.5, 0.05, stone, rot=(0, math.pi / 2, 0), vertices=24)
+    ellipsoid("head_lens", (hx + hr * 0.9, 0, hz + 0.01), (0.07, hr * 0.8, hr * 0.8), lens, 16, 10)
+    # Ryggvirvlene mellom kulene.
+    for (na, xa, za, ra, _), (nb, xb, zb, rb, _) in zip(CRUMB_BALLS, CRUMB_BALLS[1:]):
+        a, b = Vector((xa - ra * 0.8, 0, za - 0.01)), Vector((xb + rb * 0.8, 0, zb - 0.01))
+        tube(f"link_{nb}", a, b, 0.024, bone, 8)
+        ellipsoid(f"link_{nb}_v", (a + b) / 2, (0.06, 0.065, 0.065), bone, 10, 6)
+    # Oppå: lys på hodet og på den tredje, gravsteinen og et bein på den
+    # andre, et lite lys på halen (som i arket fra siden).
+    top = {n: z + r for n, x, z, r, _ in CRUMB_BALLS}
+    xs = {n: x for n, x, z, r, _ in CRUMB_BALLS}
+    candle_on("ball_head_candle0", xs["head"] - 0.07, 0.02, top["head"] - 0.03, 0.12, wax, flame, wick, r=0.026)
+    candle_on("ball_head_candle1", xs["head"] - 0.0, -0.06, top["head"] - 0.035, 0.06, wax, flame, wick, r=0.016)
+    grave_slab("ball_chest_grave", stone, xs["chest"] - 0.01, -0.02, top["chest"] - 0.04, 0.1, 0.2, 0.045, rot=(0, 0.15, 0))
+    crypt_bone("ball_chest_bone", (xs["chest"] + 0.04, 0.03, top["chest"] - 0.01), (xs["chest"] + 0.07, 0.06, top["chest"] + 0.1), bone, r=0.011)
+    candle_on("ball_hips_candle0", xs["hips"] + 0.0, 0.0, top["hips"] - 0.02, 0.12, wax, flame, wick, r=0.022)
+    candle_on("ball_hips_candle1", xs["hips"] - 0.04, -0.03, top["hips"] - 0.03, 0.06, wax, flame, wick, r=0.016)
+    candle_on("ball_tail_candle", xs["tail"], 0.0, top["tail"] - 0.02, 0.06, wax, flame, wick, r=0.018)
+    # Beina: ett par per kule, ut og opp til kneet og ned til en spiss.
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in CRUMB_BONES}
+    for k, (n, x, z, r, _) in enumerate(CRUMB_BALLS):
+        for sy, side in ((1.0, "L"), (-1.0, "R")):
+            ln = f"leg{k:02d}.{side}"
+            a, kn = B[ln]
+            ft = Vector((x + 0.05, sy * (r + 0.26), 0.0))
+            tube(f"{ln}_a", a, kn, 0.016, bone, 8)
+            ellipsoid(f"{ln}_k", kn, (0.04, 0.04, 0.04), bone, 8, 6)
+            tube(f"{ln}_b", kn, ft + Vector((0, 0, 0.012)), 0.013, bone, 8)
+    bpy.context.view_layer.update()
+    for n, ob in balls:
+        # Kulene bak hodet sees bare fra sida i arket.
+        project_sheet(ob, (2048, 2048), CRUMB_VIEWS, CRUMB_PX, only=None if n == "head" else ("side",))
+
+
+def build_crumb(size):
+    breadcrumb_crawler()
+    arm = armature("breadcrumb_crawler_rig", CRUMB_BONES)
+    legs = [(k, s) for k in range(len(CRUMB_BALLS)) for s in ("L", "R")]
+    table_clips(arm, legs)
+    bpy.context.scene.frame_end = 40
+    rigid = {f"ball_{n}": b for n, x, z, r, b in CRUMB_BALLS}
+    rigid.update({"head_lens": "head", "link_chest": "neck", "link_hips": "hips", "link_tail": "tail1"})
+    for k, side in legs:
+        rigid[f"leg{k:02d}.{side}_"] = f"leg{k:02d}.{side}"
+    bake_textured(f"{OUT}/breadcrumb_crawler.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.03, "radii": {"root": -1.0}})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048), "mutant_toast": (build_frog, 1024), "mutant_select": (build_brood, 2048), "avatar_skull": (build_skull, 1024), "accordion_coffin": (build_coffin, 1024), "breadcrumb_crawler": (build_crumb, 1024)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

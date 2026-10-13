@@ -17,6 +17,12 @@ pub enum Kind {
     Priest,
     Table,
     Framework,
+    /// Gravkongens hall (nivå 2): ruller som et hjul og hopper opp og biter.
+    Avatar,
+    /// Gravkongens hall: en kjede av kuler som kryper etter deg.
+    Breadcrumb,
+    /// Gravkongens hall: ligger som en kiste og folder seg ut i bakhold.
+    Accordion,
 }
 
 /// Tallene bak et slag.
@@ -44,7 +50,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 9] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework];
+    pub const ALL: [Kind; 12] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -57,6 +63,9 @@ impl Kind {
             Kind::Priest => "datepicker_priest",
             Kind::Table => "mutant_table",
             Kind::Framework => "framework",
+            Kind::Avatar => "avatar_skull",
+            Kind::Breadcrumb => "breadcrumb_crawler",
+            Kind::Accordion => "accordion_coffin",
         }
     }
 
@@ -71,6 +80,9 @@ impl Kind {
             Kind::Priest => "Datepicker-presten",
             Kind::Table => "Korrupt tabell",
             Kind::Framework => "Rammeverket",
+            Kind::Avatar => "Korrupt avatar",
+            Kind::Breadcrumb => "Korrupt breadcrumb",
+            Kind::Accordion => "Korrupt accordion",
         }
     }
 
@@ -84,6 +96,9 @@ impl Kind {
             Kind::Toast => (0.55, 0.36, 0.0),
             Kind::Priest => (2.05, 0.45, 0.0),
             Kind::Select => (1.55, 0.6, 0.0),
+            Kind::Avatar => (0.72, 0.34, 0.0),
+            Kind::Breadcrumb => (0.55, 0.3, 0.55),
+            Kind::Accordion => (1.2, 0.36, 0.0),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -104,6 +119,10 @@ impl Kind {
             Kind::Modal => Stats { hp: 320.0, speed: 1.3, damage: 30.0, range: 2.2, reach: 3.0, scale: 1.5, sight: 24.0, cooldown: 1.8, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.3, poise: 40.0, tokens: 6 },
             Kind::Priest => Stats { hp: 160.0, speed: 1.2, damage: 22.0, range: 2.0, reach: 2.7, scale: 0.8, sight: 28.0, cooldown: 1.5, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.6, poise: 25.0, tokens: 6 },
             Kind::Table => Stats { hp: 420.0, speed: 2.4, damage: 22.0, range: 2.2, reach: 3.0, scale: 1.4, sight: 30.0, cooldown: 1.1, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 30.0, tokens: 10 },
+            // Rullingen er 2πR (1,9 m) på 18 bilder: 2,6 m/s.
+            Kind::Avatar => Stats { hp: 40.0, speed: 2.6, damage: 9.0, range: 1.3, reach: 1.8, scale: 1.0, sight: 28.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
+            Kind::Breadcrumb => Stats { hp: 55.0, speed: 1.9, damage: 8.0, range: 1.5, reach: 2.0, scale: 1.0, sight: 30.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
+            Kind::Accordion => Stats { hp: 90.0, speed: 1.3, damage: 14.0, range: 1.6, reach: 2.2, scale: 1.0, sight: 18.0, cooldown: 1.4, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.8, poise: 10.0, tokens: 3 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         }
     }
@@ -123,6 +142,12 @@ impl Kind {
             Kind::Modal
         } else if has(&["select", "brood"]) {
             Kind::Select
+        } else if has(&["avatar"]) {
+            Kind::Avatar
+        } else if has(&["breadcrumb", "brødsmule", "smule"]) {
+            Kind::Breadcrumb
+        } else if has(&["accordion", "trekkspill", "coffin"]) {
+            Kind::Accordion
         } else if has(&["toast", "frosk"]) {
             Kind::Toast
         } else if has(&["input"]) {
