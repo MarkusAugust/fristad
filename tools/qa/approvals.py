@@ -67,7 +67,7 @@ SHOT = (800, 560)
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
 # Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.; 6: møblene rettet; 7: tønnestativet og disken; 8: runde 7 rettet).
-ROUND = 17
+ROUND = 18
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
@@ -338,10 +338,18 @@ def apply(path):
     n = 0
     for row in rows:
         d = row["data"]
-        if d.get("verdict") not in VERDICTS:
-            continue
         kind, name = row["id"].split("_", 1)
         group = {"t": "textures", "m": "models"}[kind]
+        if d.get("verdict") not in VERDICTS:
+            # Et punkt uten dom (runde 17: «øksa holdes feil vei»): dommen
+            # står, men punktet føres inn så det rettes og vises i neste runde.
+            old = ap.setdefault(group, {}).get(name)
+            why = d.get("why", "").strip()
+            if old and why and why not in old.get("history", []):
+                old["history"] = list(old.get("history", [])) + [why]
+                old["why"] = why
+                n += 1
+            continue
         entry = {"verdict": d["verdict"], "date": d.get("at", "")[:10], "why": d.get("why", "").strip()}
         old = ap.setdefault(group, {}).get(name)
         # Ny dom: den forrige tas vare på. Og har grunnen ikke endret seg med

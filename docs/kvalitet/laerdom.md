@@ -149,3 +149,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Grepet passer hånda.** Arkene tegner grepet 5 cm tykt, mens hånda er laget rundt 3 cm. Grepet skaleres til 3,2 cm der hånda holder, og `GRIP_D` stopper et våpen med grep utenfor 2,8–3,6 cm.
 - **Skjoldet vender dit man holder det, ikke dit underarmen peker.** Flaten sto vinkelrett på venstre underarm, som pekte inn mot midten. Retningen er nå fast: rett fram, dreid 10° ut mot venstre (`SHIELD_OUT`). `shield_check` stopper hvile utenfor 0–20° og en blokk som dreier skjoldet inn forbi rett fram.
 - **Klinga går heller ikke gjennom skjoldet.** `blade_clearance` måler nå også mot skjoldene. Skjoldet trekkes ned og ut mens klinga går over.
+
+## Armene – dommen (runde 17, 13. oktober)
+
+- **Grepet ligger skrått i neven.** Våpnene sto vinkelrett på fingrenes retning, så klinga sto rett opp fra en vannrett underarm, og håndleddet så knekt ut. I en ekte knyttneve går skaftet på skrå over håndflaten. Våpnene står nå i `WEAPON` (`GRIP_TILT` 20°), og underarmen stiger fram mot hånda (`grip_frame`).
+- **Håndleddet bøyes lite og vris aldri.** IK-en valgte albuen bare etter retningen den skulle bøyes, og hånda ble dreid fritt, så håndleddet ble knekt 60–90° og blandingsvektene strakk armen som gummi i skjoldblokken. Nå velges albuen der håndleddet bøyes minst. Underarmen tar hele vridningen, og `aim` velger rullen om klinga som gir minst bøy. `wrist_bend` stopper eksporten over 35° bøy eller 15° vridning, i alle klipp og for begge hender.
+- **Et punkt uten dom føres inn likevel.** «Øksa holdes feil vei» kom uten dom og ble hoppet over av `approvals apply`. Nå føres punktet inn, og dommen står.
+- **Bladet skal synes.** Øksebladet sto med kanten mot kameraet. `face_visible` måler flaten mot synslinja i hvile (høyst 60°).

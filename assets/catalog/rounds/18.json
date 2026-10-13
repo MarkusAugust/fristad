@@ -1,0 +1,16 @@
+{
+ "_om": "Runde 18: armene, øksa og rundskjoldet rettet etter dommen i runde 17. Sverdet, dolken og tårnskjoldet er godkjent og vises ikke. Før er runde 17, etter er nå, fra samme vinkel.",
+ "round": 18,
+ "fix": {
+  "handledd": "Ja, håndleddet var knekt. Grepet sto vinkelrett i neven, underarmen lå vannrett inn fra høyre og klinga sto rett opp, og i huggene ble hånda dreid fritt, så håndleddet ble bøyd 60–90°. Nå ligger grepet 20° på skrå over håndflaten som i en ekte knyttneve, og underarmen stiger rett fram mot hånda. I huggene velges albuen der håndleddet bøyes minst, og underarmen tar hele vridningen, så hånda aldri vris i håndleddet. En ny regel måler håndleddet i hvert bilde av alle bevegelsene, for begge hender, og stopper over 35° bøy eller 15° vridning. Nå er det høyst 31° bøy og ingen vridning.",
+  "oks": "Eggen peker fram som før, men bladet sto med kanten mot deg, så det så ut som øksa ble holdt feil. Med det skrå grepet og den nye hvileposen ser du bladet fra siden, med eggen fram. En ny regel krever at bladflaten står høyst 60° fra synslinja i hvile (nå 53°).",
+  "gummi": "Armen var bøyd som gummi i blokken fordi håndleddet ble knekt nesten 40° og vektene ved håndleddet strakk huden. Nå går underarmen rett inn i neven i blokken (håndleddsregelen gjelder også venstre hånd), skjoldet holdes litt lenger fram, og det vender fortsatt rett fram, dreid ut mot venstre."
+ },
+ "items": {
+  "arms": {"fix": ["handledd"]},
+  "arms_leather": {"fix": ["handledd"]},
+  "arms_mail": {"fix": ["handledd"]},
+  "axe": {"fix": ["oks", "handledd"]},
+  "shield_round": {"fix": ["gummi"]}
+ }
+}

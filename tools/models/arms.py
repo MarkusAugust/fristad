@@ -253,10 +253,24 @@ def frame(origin, x, y_hint):
     return M
 
 
-# Høyre hånd nede til høyre: klinga skrått opp, fram og inn mot midten, og
-# håndbaken opp og ut, så spilleren ser knokene og tommelen over grepet
-# (eieren i runde 16: hånda holdt rart, med fingertuppene mot kameraet).
-RIGHT = frame((0.28, 0.46, -0.26), (0.3, -0.35, -0.88), (0.1, 1.0, -0.33))
+def grip_frame(origin, forearm, blade):
+    """Hånda med underarmen (og fingrene) langs `forearm` og grepet så klinga
+    står så nær `blade` som går vinkelrett på underarmen (før det skrå
+    grepet, `GRIP_TILT`)."""
+    y = Vector(forearm).normalized()
+    b = Vector(blade)
+    return frame(origin, -(b - y * b.dot(y)), y)
+
+
+# Høyre hånd nede til høyre: underarmen stiger fram mot hånda, tommelen over
+# grepet og klinga opp (eieren i runde 16: fingertuppene mot kameraet; i
+# runde 17: underarmen vannrett og klinga rett opp så ut som et knekt
+# håndledd).
+RIGHT = grip_frame((0.27, 0.46, -0.25), (-0.28, 0.9, 0.34), (-0.2, 0.3, 0.93))
+# Grepet ligger på skrå over håndflaten, som i en ekte knyttneve: klinga
+# heller fram mot knokene. Våpnene står i dette rommet (`WEAPON`).
+GRIP_TILT = 20.0
+WEAPON = RIGHT @ Matrix.Rotation(math.radians(-GRIP_TILT), 4, "Z")
 # Venstre hånd: skjoldets håndtak står loddrett i neven (tommelen opp),
 # underarmen peker rett fram, og knokene mot skjoldet.
 LEFT = frame((-0.3, 0.48, -0.36), (0.0, -0.05, 1.0), (0.08, 1.0, 0.1))
@@ -264,7 +278,7 @@ SHOULDER = {"R": Vector((0.2, -0.1, -0.3)), "L": Vector((-0.2, -0.1, -0.3))}
 # Skjoldet vender rett fram, dreid 10° ut mot venstre (eieren i runde 16).
 SHIELD_OUT = 10.0
 # Grepet på skjoldet i blokken: foran brystet, litt til venstre.
-BLOCK_GRIP = Vector((-0.12, 0.42, -0.14))
+BLOCK_GRIP = Vector((-0.12, 0.46, -0.15))
 
 
 def at(M, p):
@@ -324,29 +338,47 @@ def build_arms(kind):
 
 def ik(c, f, side, grip, rb, pole):
     """Hånda i `side` dreid `rb` (fra hvileposen, i kamerarommet) med grepet i
-    `grip`: albuen med to-ledds IK mot `pole`, og dreiningene lagt på
-    overarmen, underarmen og hånda (barnets dreining er foreldrenes ganger
-    sin egen)."""
+    `grip` (`c` None: bare bøyen i håndleddet, uten nøkkelbilder). Albuen ligger på sirkelen skulderen og håndleddet gir; den
+    velges der håndleddet bøyes minst (nær `pole`, albuen ned og ut).
+    Underarmen tar hele vridningen fra hånda, så hånda bare bøyes litt i
+    håndleddet og aldri vris (eieren i runde 17: håndleddet så knekt ut, og
+    skjoldhånda var bøyd som gummi; `wrist_bend` måler det)."""
     M = RIGHT if side == "R" else LEFT
     S = SHOULDER[side]
     G0, W0, E0 = M.translation.copy(), at(M, (0, WRIST_Y, 0)), at(M, (0, ELBOW_Y, 0))
+    y0 = (W0 - E0).normalized()
     w = Vector(grip) - rb @ (G0 - W0)
     a, b = (E0 - S).length, (W0 - E0).length
     dv = w - S
     # Et mål armen ikke når, trekker hånda mot kameraet i stedet (runde 17:
     # opptrekket i det tunge hugget havnet foran øyet).
     if dv.length > a + b + 0.01:
+        if c is None:
+            return 1e9
         raise SystemExit(f"{c.name} bilde {f}: grepet {tuple(round(v, 2) for v in grip)} er {100 * (dv.length - a - b):.0f} cm utenfor rekkevidden til {side}")
     dist = min(max(dv.length, abs(a - b) + 0.01), a + b - 0.005)
     u = dv.normalized()
+    w = S + u * dist
     pole = Vector(pole)
-    pole = (pole - u * pole.dot(u)).normalized()
+    p = (pole - u * pole.dot(u)).normalized()
+    q = u.cross(p)
     cos_a = (a * a + dist * dist - b * b) / (2 * a * dist)
     al = math.acos(max(-1.0, min(1.0, cos_a)))
-    e = S + (u * math.cos(al) + pole * math.sin(al)) * a
-    w = S + u * dist
+    hand = rb @ y0
+    best = None
+    for i in range(72):
+        t = 2 * math.pi * i / 72
+        e = S + (u * math.cos(al) + (p * math.cos(t) + q * math.sin(t)) * math.sin(al)) * a
+        bend = math.degrees((w - e).angle(hand))
+        # Albuen helst mot `pole`: straff som vokser når den dreies bort.
+        score = bend + 25.0 * (1.0 - math.cos(t))
+        if best is None or score < best[0]:
+            best = (score, e, bend)
+    if c is None:
+        return best[2]
+    e = best[1]
     ru = (E0 - S).rotation_difference(e - S)
-    rf = (ru @ (W0 - E0)).rotation_difference(w - e) @ ru
+    rf = hand.rotation_difference(w - e) @ rb
     c.rotq(f"upper_arm.{side}", f, ru)
     c.rotq(f"forearm.{side}", f, ru.inverted() @ rf)
     c.rotq(f"hand.{side}", f, rf.inverted() @ rb)
@@ -369,25 +401,25 @@ def clips(rig):
     # dit, og hånda så klinga peker dit med flatsida mot kameraet. Treffet er
     # i bilde 5, 5 og 7 (`SWING_HIT`), og klinga krysser midten av bildet
     # der fienden står.
-    B0 = -Vector(RIGHT.col[0][:3]).normalized()  # klinga i hvile
-    N0 = Vector(RIGHT.col[2][:3]).normalized()  # flatsida i hvile
+    B0 = -Vector(WEAPON.col[0][:3]).normalized()  # klinga i hvile
+    N0 = Vector(WEAPON.col[2][:3]).normalized()  # flatsida i hvile
 
     def aim(c, f, grip, blade, root=(0, 0, 0)):
+        # Klinga dreies dit den skal peke, og rulles om sin egen akse så
+        # underarmen kan gå naturlig fra skulderen til hånda (håndleddet
+        # bøyes minst); at flatsida vender mot øyet teller litt.
         d = Vector(blade).normalized()
-        rb = B0.rotation_difference(d)
-        # Rull klinga om sin egen akse så flatsida vender mot øyet.
-        n = rb @ N0
-        v = -(Vector(grip) + d * 0.4).normalized()
-        v = v - d * v.dot(d)
-        if v.length > 1e-6:
-            v.normalize()
-            n = n - d * n.dot(d)
-            n.normalize()
-            ang = math.atan2(d.dot(n.cross(v)), n.dot(v))
-            if abs(ang) > math.pi / 2:
-                ang -= math.copysign(math.pi, ang)  # begge flatene er like
-            rb = Quaternion(d, ang) @ rb
-        ik(c, f, "R", grip, rb, (0.35, -0.2, -1.0))
+        rb0 = B0.rotation_difference(d)
+        eye = -(Vector(grip) + d * 0.4).normalized()
+        best = None
+        for i in range(72):
+            q = Quaternion(d, 2 * math.pi * i / 72) @ rb0
+            bend = ik(None, f, "R", grip, q, (0.35, -0.2, -1.0))
+            flat = math.degrees(math.asin(min(1.0, abs((q @ N0).dot(eye)))))
+            score = bend + 0.05 * (90 - flat)
+            if best is None or score < best[0]:
+                best = (score, q)
+        ik(c, f, "R", grip, best[1], (0.35, -0.2, -1.0))
         c.loc("root", f, root)
 
     def swing(name, length, keys):
@@ -418,14 +450,14 @@ def clips(rig):
     ])
     swing("swing3", 16, [
         (4, (0.2, 0.34, 0.06), (0.05, 0.15, 0.98), (0, -0.03, 0.03)),
-        (7, (0.11, 0.38, -0.06), (0.0, 0.75, 0.65), (0, 0.08, -0.03)),
+        (7, (0.11, 0.38, -0.06), (0.05, 0.65, 0.75), (0, 0.08, -0.03)),
         (10, (0.13, 0.35, -0.17), (-0.05, 0.95, -0.3), (0, 0.05, -0.04)),
     ])
     # Tungt hugg: lang opptrekk over skulderen (holdes til bilde 10), og et
     # hugg ned som drar kroppen med.
     swing("heavy", 24, [
         (10, (0.28, 0.36, 0.02), (0.7, 0.35, 0.6), (0.02, -0.04, 0.02)),
-        (13, (0.11, 0.38, -0.06), (0.0, 0.75, 0.65), (-0.02, 0.1, -0.05)),
+        (13, (0.11, 0.38, -0.06), (0.05, 0.65, 0.75), (-0.02, 0.1, -0.05)),
         (17, (0.13, 0.35, -0.17), (-0.05, 0.95, -0.3), (-0.01, 0.07, -0.06)),
     ])
     # Blokk: skjoldet løftes foran brystet og dreies rett fram (ikke inn
@@ -441,7 +473,7 @@ def clips(rig):
     c = Clip(rig, "parry", 12, FPS)
     c.rest_all(0)
     ik(c, 0, "L", BLOCK_GRIP, face, pole_l)
-    ik(c, 4, "L", BLOCK_GRIP + Vector((0.02, 0.06, 0.02)), face, pole_l)
+    ik(c, 4, "L", BLOCK_GRIP + Vector((0.02, 0.03, 0.02)), face, pole_l)
     c.loc("root", 4, (-0.02, 0.04, 0.0))
     ik(c, 12, "L", BLOCK_GRIP, face, pole_l)
     c.loc("root", 12, (0, 0, 0))
@@ -871,7 +903,7 @@ def build_weapon(name):
                 ob.data.transform(Matrix.Scale(-1, 4, (0, 1, 0)))
                 ob.data.flip_normals()
     for ob in obs:
-        ob.data.transform(RIGHT)
+        ob.data.transform(WEAPON)
         ob.data.update()
     return obs
 
@@ -1039,7 +1071,7 @@ def blade_clearance(rig, weapon="sword"):
     centre = g + fw * (0.03 / 2 + HANDLE)
     for clip, f, P in poses(rig, ("swing1", "swing2", "swing3", "heavy")):
         H = P["hand.R"]
-        pts = [H @ (RIGHT @ Vector((-(a0 + (a1 - a0) * i / 30), 0, 0))) for i in range(31)]
+        pts = [H @ (WEAPON @ Vector((-(a0 + (a1 - a0) * i / 30), 0, 0))) for i in range(31)]
         caps = []
         for side in ("R", "L"):
             fb = rig.pose.bones[f"forearm.{side}"]
@@ -1094,6 +1126,47 @@ def arms_leave_frame(rig):
     return worst
 
 
+WRIST_BEND = 35.0  # største bøy i håndleddet (grader)
+WRIST_TWIST = 15.0  # største vridning mellom underarmen og hånda
+
+
+def wrist_bend(rig):
+    """Største bøy og vridning i håndleddet i hvert klipp, for begge hender:
+    vinkelen mellom underarmen og hånda, og vridningen om underarmen. Et
+    ekte håndledd bøyes lite og vris ikke (det gjør underarmen). Stopper
+    eksporten over `WRIST_BEND` og `WRIST_TWIST` (eieren i runde 17)."""
+    out = {}
+    for clip, f, P in poses(rig, ALL_CLIPS):
+        for side, M in (("R", RIGHT), ("L", LEFT)):
+            y0 = (at(M, (0, WRIST_Y, 0)) - at(M, (0, ELBOW_Y, 0))).normalized()
+            qf = P[f"forearm.{side}"].to_quaternion()
+            qh = P[f"hand.{side}"].to_quaternion()
+            rel = qf.inverted() @ qh
+            bend = math.degrees((rel @ y0).angle(y0))
+            tw = abs(math.degrees(2 * math.atan2(Vector(rel[1:]).dot(y0), rel[0])))
+            tw = min(tw, 360 - tw)
+            k = (clip, side)
+            o = out.get(k, (0.0, 0.0, 0))
+            out[k] = (max(o[0], bend), max(o[1], tw), f if bend > o[0] else o[2])
+    for (clip, side), (bend, tw, f) in sorted(out.items()):
+        if bend > WRIST_BEND or tw > WRIST_TWIST:
+            raise SystemExit(f"håndleddet {side} i {clip} bilde {f}: bøyd {bend:.0f}° (høyst {WRIST_BEND:.0f}), vridd {tw:.0f}° (høyst {WRIST_TWIST:.0f})")
+    return max(v[0] for v in out.values()), max(v[1] for v in out.values())
+
+
+def face_visible():
+    """Hvor mange grader øksebladets flate står fra synslinja i hvile (0 er
+    rett mot kameraet). Eieren i runde 17: bladet skal synes fra siden, med
+    eggen fram."""
+    n = Vector(WEAPON.col[2][:3]).normalized()
+    head = WEAPON @ Vector((-0.55, 0, 0))
+    v = (-head).normalized()
+    return math.degrees(math.acos(abs(n.dot(v))))
+
+
+FACE_MAX = 60.0
+
+
 def shield_check(rig):
     """Skjoldet i hvile vender 0–20° ut mot venstre fra rett fram, og blokken
     og paraden dreier det aldri inn forbi rett fram (eieren i runde 16)."""
@@ -1137,6 +1210,12 @@ if __name__ == "__main__":
                 raise SystemExit(f"armen ender inne i bildet ({where})")
             rest, worst = shield_check(rig)
             print(f"skjoldet: {rest:.0f}° ut i hvile, minst {worst:.0f}° i blokken")
+            bend, tw = wrist_bend(rig)
+            print(f"håndleddet: høyst {bend:.0f}° bøyd og {tw:.0f}° vridd")
+            face = face_visible()
+            print(f"øksebladet: {face:.0f}° fra synslinja i hvile")
+            if face > FACE_MAX:
+                raise SystemExit(f"øksebladet står {face:.0f}° fra synslinja (høyst {FACE_MAX:.0f}): det synes bare fra kanten")
             if os.environ.get("FRISTAD_CHECK_ONLY"):
                 continue
             bake_textured(f"{OUT}/{name}.glb", 1024, keep=("glass", "magic"), armature=rig, rigid=rigid, skin={"blend": 0.03, "radii": {"root": -1.0}})

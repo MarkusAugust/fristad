@@ -2315,41 +2315,65 @@
    "why": ""
   },
   "arms": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-13",
-   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   },
    "history": [
-    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    ]
   },
   "arms_leather": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-13",
-   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   },
    "history": [
-    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    ]
   },
   "arms_mail": {
-   "verdict": "usikker",
+   "verdict": "underkjent",
    "date": "2026-10-13",
-   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   },
    "history": [
-    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    ]
   },
   "axe": {
    "verdict": "usikker",
    "date": "2026-10-13",
-   "why": "hånden holder det rart?",
+   "why": "øksa holdes feil vei",
    "history": [
-    "hånden holder det rart?"
+    "hånden holder det rart?",
+    "øksa holdes feil vei"
    ]
   },
   "dagger": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "hånden holder det rart?",
+   "why": "",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-13",
+    "why": "hånden holder det rart?"
+   },
    "history": [
     "hånden holder det rart?"
    ]
@@ -2357,23 +2381,34 @@
   "shield_round": {
    "verdict": "underkjent",
    "date": "2026-10-13",
-   "why": "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
+   "why": "bilde to, hånden ser ut som at den er bøyd som gummi",
    "history": [
-    "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre"
+    "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
+    "bilde to, hånden ser ut som at den er bøyd som gummi"
    ]
   },
   "shield_tower": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-13",
+    "why": "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre"
+   },
    "history": [
     "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre"
    ]
   },
   "sword": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?",
+   "why": "",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-13",
+    "why": "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?"
+   },
    "history": [
     "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?"
    ]

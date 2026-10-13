@@ -33,7 +33,7 @@ def main(path, out):
         disp = Matrix.Identity(4)
     else:
         # Håndas rom: klinga langs −x, bredden langs y, flatsida langs z.
-        to_local = arms.RIGHT.inverted()
+        to_local = arms.WEAPON.inverted()
         # Klinga opp (−x → +z), bredden vannrett (y → x), flatsida mot kameraet (z → −y).
         disp = Matrix(((0, 1, 0, 0), (0, 0, -1, 0), (-1, 0, 0, 0), (0, 0, 0, 1)))
         views = {"front": (0, -1, 0), "corner": (0.7, -0.7, 0.15), "side": (1, 0, 0)}
