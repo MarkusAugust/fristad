@@ -738,6 +738,14 @@ class Level:
                     K.ossuary_shelves(mb, Cyl(c, R, a0=u0 / R, inward=True), u1 - u0, r.y, top, [lv], step=u1 - u0)
             for lv in (gy + 1.4, gy + 2.6):
                 K.ossuary_shelves(mb, Cyl(c, R, a0=u0 / R, inward=True), u1 - u0, gy, top, [lv], step=u1 - u0)
+        # Sokkelen langs foten, utenom åpningene og trappa (i korte stykker
+        # langs buen).
+        for k in range(segs):
+            u0, u1 = circ * k / segs, circ * (k + 1) / segs
+            am = ((u0 + u1) / 2 / R) % (2 * math.pi)
+            if any(u0 < cu1 and u1 > cu0 for cu0, cu1, _ in cuts) or am >= a0 or am <= a1 - 2 * math.pi:
+                continue
+            K.plinth(mb, Cyl(c, R, a0=u0 / R, inward=True), [(0.0, u1 - u0, r.y)], h=0.34)
         # Murkolliderne rundt (utenom åpningene).
         for k in range(segs):
             u0, u1 = circ * k / segs, circ * (k + 1) / segs

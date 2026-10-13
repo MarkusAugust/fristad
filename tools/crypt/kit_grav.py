@@ -468,13 +468,13 @@ def plinth(mb, surf, spans, h=0.34, proud=0.07, bevel=0.035, mat="dressed"):
     """Sokkelen langs veggfoten: et skift av hogd stein som står `proud` ut
     fra muren, med skrådd overkant. `spans` er (u0, u1, gulvhøyde) langs
     muren, mellom åpningene (eieren om nivå 1: «harde overganger»)."""
-    n = surf.normal()
     up = (0.0, 1.0, 0.0)
     ud = (surf.ud[0], 0.0, surf.ud[1]) if hasattr(surf, "ud") else None
     P = surf.point
     for u0, u1, y in spans:
         if u1 - u0 < 0.05:
             continue
+        n = surf.normal((u0 + u1) / 2)
         yb, yt = y - 0.03, y + h
         yc = yt - bevel
         mb.quad(P(u0, yb, proud), P(u1, yb, proud), P(u1, yc, proud), P(u0, yc, proud), mat, facing=n)
