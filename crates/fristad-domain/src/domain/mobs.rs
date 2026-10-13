@@ -39,10 +39,6 @@ const ALERT_LEN: f32 = 22.0 / 24.0;
 /// Liket ligger så lenge etter dødsklippet.
 const CORPSE: f32 = 4.0;
 pub const MOB_HP: f32 = 100.0;
-/// Kroppen (til sikting) i modellens målestokk: en stående kapsel fra
-/// beina til over hodet.
-const BODY_TOP: f32 = 1.45;
-const BODY_R: f32 = 0.5;
 const BOLT_SPEED: f32 = 11.0;
 const BOLT_LIFE: f32 = 2.2;
 /// Bossens slag i bakken rammer alle innen denne avstanden.
@@ -377,8 +373,9 @@ impl Mobs {
             if !m.alive() {
                 continue;
             }
-            let s = m.scale();
-            let (a, b) = (m.pos + Vec3::Y * 0.2 * s, m.pos + Vec3::Y * BODY_TOP * s);
+            let (s, (top, rad, half)) = (m.scale(), m.kind.body());
+            let fwd = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos()) * half * s;
+            let (a, b) = if half > 0.0 { (m.pos + Vec3::Y * top * 0.5 * s - fwd, m.pos + Vec3::Y * top * 0.5 * s + fwd) } else { (m.pos + Vec3::Y * 0.2 * s, m.pos + Vec3::Y * top * s) };
             // Nærmeste avstand mellom strålen (eye + dir·t, t ≥ 0) og segmentet a–b.
             let (d1, d2, r) = (dir, b - a, eye - a);
             let (a11, a12, a22) = (d1.dot(d1), -d1.dot(d2), d2.dot(d2));
@@ -387,11 +384,11 @@ impl Mobs {
             let u = if det.abs() > 1e-6 { (a11 * b2 - a12 * b1) / det } else { 0.0 };
             let u = u.clamp(0.0, 1.0);
             let t = (d1.dot(a + d2 * u - eye)).max(0.0);
-            if t > max + BODY_R * s {
+            if t > max + rad * s {
                 continue;
             }
             let miss = (eye + d1 * t - (a + d2 * u)).length();
-            if miss < BODY_R * s && best.map_or(true, |(_, bt)| t < bt) {
+            if miss < rad * s && best.map_or(true, |(_, bt)| t < bt) {
                 best = Some((i, t));
             }
         }

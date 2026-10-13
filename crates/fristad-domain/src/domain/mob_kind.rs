@@ -74,6 +74,20 @@ impl Kind {
         }
     }
 
+    /// Kroppen å sikte på, i modellens målestokk: (toppen, radius, halv
+    /// lengde). Uten lengde er det en stående kapsel fra beina til toppen;
+    /// med lengde ligger den langs ryggen i halve høyden (de lange).
+    pub fn body(self) -> (f32, f32, f32) {
+        match self {
+            Kind::Input => (0.5, 0.32, 0.3),
+            Kind::Table => (0.5, 0.36, 1.3),
+            Kind::Toast => (0.55, 0.36, 0.0),
+            Kind::Priest => (2.05, 0.45, 0.0),
+            Kind::Select => (1.55, 0.6, 0.0),
+            _ => (1.45, 0.5, 0.0),
+        }
+    }
+
     pub fn boss(self) -> bool {
         self == Kind::Framework
     }
