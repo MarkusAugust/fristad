@@ -80,6 +80,7 @@ models! {
     "mutant_tooltip" => "mobs/mutant_tooltip.glb",
     "datepicker_priest" => "mobs/datepicker_priest.glb",
     "mutant_modal" => "mobs/mutant_modal.glb",
+    "mutant_input" => "mobs/mutant_input.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

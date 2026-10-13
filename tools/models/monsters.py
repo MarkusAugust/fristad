@@ -770,7 +770,138 @@ def build_modal(size):
     bake_textured(f"{OUT}/mutant_modal.glb", size, keep=("glass", "magic"), armature=arm, rigid=MODAL_RIGID, skin={"blend": 0.04, "radii": MODAL_RADII})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048)}
+# --- Input Leech --------------------------------------------------------------
+#
+# Arket (`input_leech_body.jpeg`, 2048 × 2048): en lav snegl i kloakken, et
+# avrundet tekstfelt på magen med markøren som ett loddrett øye foran,
+# mose og murstein grodd fast, sugekopper under. 400 px høy (828–1228) og
+# 0,5 m i modellen (spillet skalerer slaget til 1,15, `Kind::Input`). Den
+# har ingen bein, så klippene er bølging langs ryggen (`leech_clips`).
+
+LEECH_SHEET = os.path.join(REF, "input_leech_body.jpeg")
+LEECH_PX = 0.5 / (1228 - 828)
+LEECH_VIEWS = {"front": 335, "back": 1704, "side": 1035, "ground": 1228}
+# Snitt langs kroppen: (x, halv bredde, bunn, topp), fra halen til hodet.
+LEECH_SECTIONS = [(-0.43, 0.12, 0.05, 0.1), (-0.36, 0.22, 0.04, 0.2), (-0.24, 0.27, 0.035, 0.255), (-0.04, 0.28, 0.035, 0.27),
+                  (0.1, 0.29, 0.035, 0.33), (0.2, 0.295, 0.035, 0.44), (0.3, 0.295, 0.035, 0.49), (0.38, 0.29, 0.04, 0.49), (0.42, 0.26, 0.06, 0.46)]
+LEECH_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.1), None),
+    ("hips", (0.0, 0, 0.13), (0.14, 0, 0.15), "root"),
+    ("chest", (0.14, 0, 0.15), (0.26, 0, 0.2), "hips"),
+    ("neck", (0.26, 0, 0.2), (0.3, 0, 0.27), "chest"),
+    ("head", (0.3, 0, 0.3), (0.44, 0, 0.3), "neck"),
+    ("jaw", (0.36, 0, 0.12), (0.44, 0, 0.1), "head"),
+    ("tail1", (0.0, 0, 0.13), (-0.14, 0, 0.13), "hips"),
+    ("tail2", (-0.14, 0, 0.13), (-0.28, 0, 0.12), "tail1"),
+    ("tail3", (-0.28, 0, 0.12), (-0.43, 0, 0.08), "tail2"),
+]
+LEECH_RIGID = {}  # øyet følger flata det sitter i (stivt på hodet løsnet det i utfallet)
+LEECH_RADII = {"root": -1.0, "jaw": -1.0}
+
+
+def loft_x(name, mat, sections, n=28):
+    """En kropp loftet langs x: snittene (x, halv bredde, bunn, topp) er
+    avrundede rektangler i (y, z), med lokk i begge ender."""
+    bm = bmesh.new()
+    rings = []
+    for x, hw, zb, zt in sections:
+        h = zt - zb
+        r = min(0.45 * h, 0.9 * hw, 0.14)
+        pts = rounded_rect(2 * hw, h, r, n=max(2, n // 8))
+        rings.append([bm.verts.new((x, y, (zb + zt) / 2 + z)) for y, z in pts])
+    for a, b in zip(rings, rings[1:]):
+        m = len(a)
+        for i in range(m):
+            j = (i + 1) % m
+            bm.faces.new((a[i], a[j], b[j], b[i]))
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    me.materials.append(mat)
+    bpy.context.scene.collection.objects.link(ob)
+    me.uv_layers.new(name="UVMap")
+    mod = ob.modifiers.new("sub", "SUBSURF")
+    mod.levels = 1
+    mod.render_levels = 1
+    return ob
+
+
+def input_leech():
+    sheet = sheet_material("leech_sheet", filled_sheet(LEECH_SHEET))
+    cup = material("leech_cup", (0.42, 0.47, 0.5), 0.5)
+    cyan = material("magic_caret", (0.45, 0.95, 1.0), 0.3)
+    body = loft_x("body", sheet, LEECH_SECTIONS)
+    # Markøren: ett loddrett, lysende øye i skjermen foran.
+    box("eye_caret", (0.433, 0.0, 0.28), (0.02, 0.035, 0.15), cyan)
+    # Sugekoppene under, seks på hver side.
+    for k in range(6):
+        x = -0.32 + 0.13 * k
+        for sy in (1.0, -1.0):
+            cylinder(f"cup_{k}{sy:+.0f}", (x, sy * 0.19, 0.02), 0.035, 0.04, cup, vertices=10)
+    bpy.context.view_layer.update()
+    project_sheet(body, (2048, 2048), LEECH_VIEWS, LEECH_PX)
+
+
+def leech_clips(arm):
+    """Klippene til en snegl uten bein: bølging langs ryggen i gangen,
+    utfall med hodet, rykk, svimmelhet og død."""
+    chain = ["tail3", "tail2", "tail1", "hips", "chest", "neck", "head"]
+
+    def pose(c, f, wave=0.0, amp=0.0, pitch=None, root=(0, 0, 0), roll=0.0, jaw=0.0):
+        for i, b in enumerate(chain):
+            z = amp * math.sin(wave - 0.9 * i) * (1.0 if b != "head" else -0.4)
+            y = (pitch or {}).get(b, 0.0)
+            c.rot(b, f, x=roll if b == "hips" else 0.0, y=y, z=z)
+        c.rot("jaw", f, y=-jaw)
+        c.loc("root", f, root)
+        c.rot("root", f)
+
+    def clip(name, length, fn, step=1):
+        c = Clip(arm, name, length, mob_motion.FPS)
+        for f in range(0, length + 1, step):
+            fn(c, f, f / length)
+        c.finish()
+
+    # Gangen: en bølge bakover langs kroppen, og et lite dytt fram.
+    clip("walk", 16, lambda c, f, t: pose(c, f, 2 * math.pi * t, 9.0, root=(0.01 * math.sin(4 * math.pi * t), 0, 0.006 * abs(math.sin(2 * math.pi * t)))))
+    clip("idle", 48, lambda c, f, t: pose(c, f, 2 * math.pi * t, 3.0, {"neck": -4 * math.sin(2 * math.pi * t), "head": 3 * math.sin(4 * math.pi * t)}), 2)
+
+    def attack(c, f, t):
+        # Trekker seg sammen og reiser hodet, så utfall fram (treff i bilde 15), og tilbake.
+        k = f
+        if k <= 10:
+            u = k / 10
+            pose(c, f, 0, 0, {"chest": -10 * u, "neck": -22 * u, "head": -8 * u}, root=(-0.06 * u, 0, 0), jaw=4 * u)
+        elif k <= 15:
+            u = (k - 10) / 5
+            pose(c, f, 0, 0, {"chest": -10 + 22 * u, "neck": -22 + 40 * u, "head": -8 + 18 * u}, root=(-0.06 + 0.26 * u, 0, 0), jaw=4 + 20 * u)
+        else:
+            u = (k - 15) / 15
+            e = 1 - (1 - u) ** 2
+            pose(c, f, 0, 0, {"chest": 12 * (1 - e), "neck": 18 * (1 - e), "head": 10 * (1 - e)}, root=(0.2 * (1 - e), 0, 0), jaw=24 * (1 - e))
+    clip("attack", 30, attack)
+    clip("alert", 22, lambda c, f, t: pose(c, f, 0, 0, {"neck": -28 * math.sin(math.pi * min(1, t * 1.6)), "head": 10 * math.sin(math.pi * min(1, t * 1.6))}, jaw=8 * math.sin(math.pi * t)))
+    for name, side in (("hit", 1.0), ("hit2", -1.0)):
+        clip(name, 14, lambda c, f, t, side=side: pose(c, f, 1.0, side * 16 * math.exp(-4 * t) * math.cos(10 * t), {"neck": -10 * math.exp(-5 * t)}, root=(-0.06 * math.exp(-4 * t), 0, 0)))
+    clip("stagger", 30, lambda c, f, t: pose(c, f, 2 * math.pi * 2 * t, 12.0 * math.sin(math.pi * t), {"neck": 14 * math.sin(math.pi * t), "head": 10}, roll=8 * math.sin(4 * math.pi * t)))
+    # Døden: velter over på sida, eller synker sammen og flater ut.
+    clip("die", 36, lambda c, f, t: pose(c, f, 0, 0, {"neck": 20 * min(1, t * 2)}, root=(0, 0, -0.02 * min(1, t * 2)), roll=85 * min(1, t * 1.8) ** 2, jaw=18 * min(1, t * 2)))
+    clip("die2", 36, lambda c, f, t: pose(c, f, 0, 6 * (1 - t), {"chest": 8 * min(1, t * 2), "neck": 35 * min(1, t * 2), "head": 20 * min(1, t * 2), "tail2": -10 * min(1, t * 2)}, root=(0.05 * min(1, t * 2), 0, -0.03 * min(1, t * 2)), jaw=10))
+
+
+def build_leech(size):
+    input_leech()
+    arm = armature("mutant_input_rig", LEECH_BONES)
+    leech_clips(arm)
+    bpy.context.scene.frame_end = 48
+    bake_textured(f"{OUT}/mutant_input.glb", size, keep=("glass", "magic"), armature=arm, rigid=LEECH_RIGID, skin={"blend": 0.08, "radii": LEECH_RADII})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
