@@ -199,7 +199,7 @@ def bone_hand(name, wrist, down, out, mat, k=1.0):
 
 def button_wight():
     sheet = sheet_material("wight_sheet", WIGHT_SHEET)
-    bone = material("bone", (0.82, 0.76, 0.62), 0.65)
+    bone = material("bone", (0.86, 0.77, 0.58), 0.65)
     weather(bone, 0.6, 1.5, 0.25, 12.0)
     wax = material("wax", (0.86, 0.8, 0.66), 0.55)
     rubble = material("rubble", (0.16, 0.16, 0.17), 0.85)
@@ -219,11 +219,16 @@ def button_wight():
     top = WIGHT_ZC + WIGHT_H / 2
     # Lysene er brent ned og har rent over kanten (voksen foran er malt i
     # arket, så her er bare stumpene og pølene oppå).
-    for x, y, hgt, lean in ((0.08, -WIGHT_W / 2 + 0.14, 0.13, 0.12), (-0.08, WIGHT_W / 2 - 0.14, 0.16, -0.1)):
-        c = cylinder("candle", (x, y, top + hgt / 2 - 0.02), 0.055, hgt, wax, rot=(lean, 0, 0), vertices=12)
+    for x, y, hgt, lean in ((0.08, -WIGHT_W / 2 + 0.14, 0.09, 0.08), (-0.08, WIGHT_W / 2 - 0.14, 0.11, -0.06)):
+        c = cylinder("candle", (x, y, top + hgt / 2 - 0.02), 0.06, hgt, wax, rot=(lean, 0, 0), vertices=12)
         tube("candle_wick", (x, y - lean * hgt, top + hgt - 0.03), (x + 0.005, y - lean * hgt, top + hgt + 0.01), 0.006, rubble, 5)
-        ellipsoid("wax_pool", (x, y, top), (0.1, 0.11, 0.035), wax, 12, 6)
-        ellipsoid("wax_lump", (x + 0.03, y + 0.03, top + 0.03), (0.06, 0.05, 0.05), wax, 10, 6)
+        ellipsoid("wax_pool", (x, y, top), (0.16, 0.18, 0.06), wax, 12, 6)
+        ellipsoid("wax_lump", (x + 0.03, y + 0.03, top + 0.03), (0.1, 0.09, 0.08), wax, 10, 6)
+        # Voksen renner over kanten foran og bak.
+        for k, (dx, dz, ln) in enumerate(((WIGHT_T / 2, -0.06, 0.16), (-WIGHT_T / 2, -0.05, 0.12))):
+            sx = 1.0 if dx > 0 else -1.0
+            ellipsoid(f"wax_drip{k}", (dx + sx * 0.008, y + 0.01, top - ln / 2), (0.03, 0.06, ln), wax, 10, 6)
+            ellipsoid(f"wax_drop{k}", (dx + sx * 0.012, y + 0.01, top - ln + 0.01), (0.035, 0.05, 0.05), wax, 8, 5)
     # Grus og steinbiter oppå bak, uregelmessige.
     import random
     rng = random.Random(3)
@@ -237,12 +242,13 @@ def button_wight():
         sy = 1.0 if side == "L" else -1.0
         sh, el, wr, tip = B[f"upper_arm.{side}"][0], B[f"forearm.{side}"][0], B[f"hand.{side}"][0], B[f"hand.{side}"][1]
         ellipsoid(f"shoulder_{side}", sh + Vector((0, -sy * 0.01, 0)), (0.075, 0.06, 0.075), bone, 12, 8)
-        bone_limb(f"arm_{side}", [sh, el, wr], (0.042, 0.034), bone)
-        tube(f"arm_{side}_ulna", el + Vector((0.02, 0, 0)), wr + Vector((0.02, 0, 0)), 0.022, bone, 8)
+        # Kraftige, knudrete armbein som på arket.
+        bone_limb(f"arm_{side}", [sh, el, wr], (0.058, 0.046), bone)
+        tube(f"arm_{side}_ulna", el + Vector((0.03, 0, 0)), wr + Vector((0.03, 0, 0)), 0.03, bone, 8)
         bone_hand(f"hand_{side}", wr, tip - wr, (0, sy, 0), bone, 1.5)
         hip, knee, ankle, toe = B[f"thigh.{side}"][0], B[f"shin.{side}"][0], B[f"foot.{side}"][0], B[f"foot.{side}"][1]
         # Klumpete beinbein som på arket: tjukke skaft, store knoker.
-        bone_limb(f"leg_{side}", [hip, knee, ankle], (0.06, 0.052), bone)
+        bone_limb(f"leg_{side}", [hip, knee, ankle], (0.078, 0.068), bone)
         ellipsoid(f"knee_cap_{side}", knee + Vector((0.04, 0, 0.0)), (0.05, 0.07, 0.06), bone, 12, 8)
         # Foten: en kraftig hæl og tre tær fram.
         ellipsoid(f"heel_{side}", ankle + Vector((-0.01, 0, -0.03)), (0.075, 0.07, 0.05), bone, 12, 8)
@@ -527,7 +533,7 @@ def datepicker_priest():
     weather(bone, 0.0, 1.2, 0.25, 12.0)
     steel = material("steel", (0.55, 0.58, 0.62), 0.4, 1.0)
     weather(steel, 0.0, 2.0, 0.3, 10.0)
-    wood = material("staff_wood", (0.3, 0.24, 0.18), 0.7)
+    wood = material("staff_wood", (0.16, 0.11, 0.08), 0.7)
     weather(wood, 0.0, 1.0, 0.3, 16.0)
     bronze = material("clock_bronze", (0.52, 0.42, 0.3), 0.45, 1.0)
     wax = material("wax", (0.86, 0.8, 0.66), 0.55)
@@ -581,7 +587,8 @@ def datepicker_priest():
         bone_limb(f"leg_{side}", [hip, knee, ankle], (0.05, 0.035), bone)
         ellipsoid(f"heel_{side}", ankle + Vector((-0.01, 0, -0.04)), (0.12, 0.1, 0.08), bone, 10, 6)
         for k, dy in enumerate((-0.035, 0.0, 0.035)):
-            tube(f"toe_{side}{k}", ankle + Vector((0.03, dy, -0.05)), Vector((toe.x + 0.07, ankle.y + dy * 1.2, 0.02)), 0.016, bone, 6)
+            tube(f"toe_{side}{k}", ankle + Vector((0.03, dy, -0.05)), Vector((toe.x - 0.02, ankle.y + dy * 1.2, 0.03)), 0.02, bone, 6)
+            ellipsoid(f"toe_{side}{k}_tip", Vector((toe.x - 0.02, ankle.y + dy * 1.2, 0.03)), (0.04, 0.035, 0.03), bone, 8, 5)
         rounded_box(f"sandal_{side}", (ankle.x + 0.07, ankle.y, 0.012), (0.3, 0.12, 0.024), steel, radius=0.008)
         rounded_box(f"sandal_strap_{side}", (ankle.x + 0.05, ankle.y, 0.05), (0.06, 0.13, 0.03), steel, radius=0.008)
     # Krumstaven i venstre hånd med urskiva øverst.
