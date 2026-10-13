@@ -14,6 +14,10 @@ use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3};
 
 pub const ARMS_MODEL: &str = "arms";
+/// Armene etter rustningen (samme rigg og klipp, `tools/models/arms.py`):
+/// linerme uten rustning, lærarmbeskytter med Badgevams, brynje med
+/// Fieldset-brynja.
+pub const ARMS_MODELS: [&str; 3] = [ARMS_MODEL, "arms_leather", "arms_mail"];
 pub const DEBRIS_MODEL: &str = "debris";
 const MAX_DEBRIS: usize = 96;
 
@@ -168,7 +172,8 @@ impl Combat {
     /// Hvor mange instanser hver modell trenger plass til: armene, rusket,
     /// og hvert våpen og skjold (ett av hvert kan være i hendene).
     pub fn reserve() -> Vec<(&'static str, usize)> {
-        let mut v = vec![(ARMS_MODEL, 1), (DEBRIS_MODEL, MAX_DEBRIS)];
+        let mut v: Vec<(&'static str, usize)> = ARMS_MODELS.iter().map(|m| (*m, 1)).collect();
+        v.push((DEBRIS_MODEL, MAX_DEBRIS));
         for w in crate::domain::craft::WEAPONS {
             if !v.iter().any(|(m, _)| *m == w.model) {
                 v.push((w.model, 1));
@@ -610,6 +615,15 @@ impl Combat {
         }
     }
 
+    /// Armene som passer rustningen du har på.
+    pub fn arms_model(&self) -> &'static str {
+        match self.gear.armor.map(|a| a.id) {
+            Some("badge_jerkin") => ARMS_MODELS[1],
+            Some("fieldset_mail") => ARMS_MODELS[2],
+            _ => ARMS_MODELS[0],
+        }
+    }
+
     /// Instansene: armene i øyet med kameraets dreining (bare nede i
     /// kjelleren), og rusket. Leddmatrisene legges i `skins`.
     pub fn instances(&self, eye: Vec3, yaw: f32, pitch: f32, show_arms: bool, skins: &mut Vec<Mat4>) -> Vec<ModelInstance> {
@@ -623,7 +637,7 @@ impl Combat {
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
                     // Våpenet og skjoldet er modellert i armenes rom og følger
                     // hendenes skinnmatriser.
                     for (joint, model) in [("hand.R", self.gear.weapon.model), ("hand.L", self.gear.shield.model)] {
@@ -634,7 +648,7 @@ impl Combat {
                     }
                 }
                 _ => {
-                    out.push(ModelInstance { model: ARMS_MODEL, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: None, flash: 0.0, tint: None });
                     out.push(ModelInstance { model: self.gear.weapon.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
                     out.push(ModelInstance { model: self.gear.shield.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
                 }

@@ -20,27 +20,11 @@ import bmesh  # noqa: E402
 from common import Clip, armature, bake_textured, box, clear, cylinder, ellipsoid, material, rounded_box, tube, weather  # noqa: E402
 from mathutils import Vector  # noqa: E402
 import mob_motion  # noqa: E402
+from sheetproj import filled_sheet, sheet_material  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REF = os.path.join(ROOT, "assets", "textures", "monsters", "ref")
 OUT = "assets/models/mobs"
-
-
-def sheet_material(name, path, rough=0.8):
-    """Et materiale som viser forbildet etter uv-laget «src»."""
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    nt = m.node_tree
-    bsdf = nt.nodes["Principled BSDF"]
-    bsdf.inputs["Roughness"].default_value = rough
-    tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = bpy.data.images.load(path)
-    tex.interpolation = "Cubic"
-    uvn = nt.nodes.new("ShaderNodeUVMap")
-    uvn.uv_map = "src"
-    nt.links.new(uvn.outputs[0], tex.inputs[0])
-    nt.links.new(tex.outputs[0], bsdf.inputs["Base Color"])
-    return m
 
 
 def rounded_rect(w, h, r, n=6):
@@ -367,34 +351,6 @@ PRIEST_PX = 2.1 / (1479 - 180)
 # Midtlinja i hver visning (px) og bakken (rad); sidebildet viser −Y-sida
 # med fronten mot høyre.
 PRIEST_VIEWS = {"front": 463, "back": 2317, "side": 1360, "ground": 1479}
-
-
-def filled_sheet(path):
-    """Arket med bakgrunnen fylt med fargen til nærmeste piksel av figuren,
-    så en flate som stikker litt utenfor omrisset ikke blir grå."""
-    import numpy as np
-    from PIL import Image
-    from scipy import ndimage
-    out = os.path.join(ROOT, "target", "monsters", os.path.basename(path).rsplit(".", 1)[0] + "_fill.png")
-    if os.path.exists(out) and os.path.getmtime(out) > os.path.getmtime(path):
-        return out
-    im = np.asarray(Image.open(path).convert("RGB")).astype(np.int32)
-    bg = im[4, 4]
-    fg = np.abs(im - bg).sum(2) > 36
-    fg = ndimage.binary_opening(fg, iterations=2)
-    # Grå partier inni figuren ligner bakgrunnen; de er figur så lenge de
-    # er omsluttet av den.
-    fg = ndimage.binary_fill_holes(ndimage.binary_closing(fg, iterations=4))
-    # Fyllet tar fargen fra innsida av figuren, ikke fra den mørke streken
-    # rundt (da blir kanten svarte stråler).
-    inner = ndimage.binary_erosion(fg, iterations=4) & (im.sum(2) > 3 * 70)
-    _, (iy, ix) = ndimage.distance_transform_edt(~inner, return_indices=True)
-    keep = ndimage.binary_erosion(fg, iterations=6)
-    iy = np.where(keep, np.arange(im.shape[0])[:, None], iy)
-    ix = np.where(keep, np.arange(im.shape[1])[None, :], ix)
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    Image.fromarray(im[iy, ix].astype(np.uint8)).save(out)
-    return out
 
 
 def project_sheet(ob, img_size, views, px, only=None):

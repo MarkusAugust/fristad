@@ -132,3 +132,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 
 - **Et våpen holdes og svinges.** Fingrene pekte rett fram ved siden av skaftet, og angrepet var slaget i bakken, så staven ble slengt flatt med nevene. En hånd med våpen har fingre lagt rundt skaftet (stivt på samme bein som våpenet), og et monster med våpen har et eget angrep der våpenet bærer slaget (`attack_staff`).
 - **Våpenet går aldri gjennom kroppen.** `staff_clearance` i `tools/models/monsters.py` måler staven mot kapsler rundt kroppen i hvert bilde av angrepet og stopper eksporten om den går inn. Før regelen gikk skaftet 5 cm inn i kappa i treffet.
+
+## Armene og våpnene (13. oktober)
+
+- **Hugg sees fra kameraet.** En klinge som peker rett fram eller bakover over skulderen blir forkortet til nesten ingenting. Et vannrett hugg legger klinga på tvers av bildet, og opptrekket holder den synlig ut til siden. Hvert nøkkelbilde sier hvor grepet er og hvor klinga peker (`aim`), og grepet holdes innenfor synsfeltet (72°).
+- **Del-objekter må ha plassen sin i hjørnene før de flyttes.** `tube` og `ellipsoid` lager objekter med egen plassering; ble bare hjørnene flyttet, ble tommelen hengende igjen og fløy løs i huggene.
+- **Lyst metall på grått ark trenger egen maske.** Klingas lyse side ligner bakgrunnen. Dolken bygges av delene langs aksen (konvekst skall for klinga og knappen, rad for rad for grepet med ringer), symmetrisk om aksen.
+- **Tynne kropper får ikke omregnede normaler.** På en klinge noen millimeter tykk snudde omregningen normalene innover, og okklusjonen bakte albedoen svart.

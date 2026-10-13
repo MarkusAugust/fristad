@@ -84,6 +84,16 @@ models! {
     "mutant_table" => "mobs/mutant_table.glb",
     "mutant_toast" => "mobs/mutant_toast.glb",
     "mutant_select" => "mobs/mutant_select.glb",
+    // Armene i førsteperson og våpnene og skjoldene de holder
+    // (tools/models/arms.py), i kamerarommet.
+    "arms" => "arms/arms.glb",
+    "arms_leather" => "arms/arms_leather.glb",
+    "arms_mail" => "arms/arms_mail.glb",
+    "sword" => "arms/sword.glb",
+    "axe" => "arms/axe.glb",
+    "dagger" => "arms/dagger.glb",
+    "shield_round" => "arms/shield_round.glb",
+    "shield_tower" => "arms/shield_tower.glb",
     "avatar_skull" => "mobs/avatar_skull.glb",
     "breadcrumb_crawler" => "mobs/breadcrumb_crawler.glb",
     "accordion_coffin" => "mobs/accordion_coffin.glb",

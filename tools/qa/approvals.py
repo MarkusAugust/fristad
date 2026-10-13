@@ -67,7 +67,7 @@ SHOT = (800, 560)
 # Runden eieren dømmer i. En dom fra en tidligere runde vises bare som
 # «Forrige dom»; feltet og knappene starter tomme, så ingenting arves.
 # Økes for hver ny runde (1: alt, 11. okt.; 2: nye bilder, 11. okt.; 3: husene, 12. okt.; 4: hønsehuset og høystakken; 5: møblene, 12. okt.; 6: møblene rettet; 7: tønnestativet og disken; 8: runde 7 rettet).
-ROUND = 15
+ROUND = 16
 
 # Nye bilder som eieren bør se på igjen: modellene med disse lagene ble
 # fotografert uten lagenes bilder (hvite dører, «murstein», 11. okt.).
@@ -296,7 +296,7 @@ def new_page(spec_path, studio, out):
         sheet.thumbnail((1600, 1600), Image.LANCZOS)
         sheet.save(os.path.join(img, f"m_{n}.jpg"), quality=86)
         old = n in reshot.get("names", [])
-        b = open(next(os.path.join(d, f"{n}.glb") for d in (os.path.join(ROOT, "assets", "models", g) for g in ("town", "furniture", "mobs", "crypt")) if os.path.exists(os.path.join(d, f"{n}.glb"))), "rb").read()
+        b = open(next(os.path.join(d, f"{n}.glb") for d in (os.path.join(ROOT, "assets", "models", g) for g in ("town", "furniture", "mobs", "crypt", "arms")) if os.path.exists(os.path.join(d, f"{n}.glb"))), "rb").read()
         doc = json.loads(b[20:20 + struct.unpack("<I", b[12:16])[0]])
         tris = sum(doc["accessors"][q["indices"]]["count"] // 3 for m in doc["meshes"] for q in m["primitives"])
         hs = where.get(n, [])

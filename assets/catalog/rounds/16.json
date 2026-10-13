@@ -1,0 +1,5 @@
+{
+ "_om": "Runde 16: armene i førsteperson, våpnene og skjoldene, laget etter arkene dine. Øverst på hvert kort står arket. Armene vises fra kameraet: i hvile, midt i hugg 1 (klinga vannrett over midten), i blokken og spent i det tunge hugget, og det siste bildet er fra spillet i krypten. Armsettet følger rustningen: linerme uten rustning, lærarmbeskyttere med Badgevams, brynje med Fieldset-brynja. Våpnene og skjoldene vises forfra, på skrå og fra siden (skjoldene også bakfra, slik du ser dem), og det siste bildet viser hvordan de holdes. Klinga går aldri gjennom armene, skjoldhånda eller kameraet: eksporten måler det i hvert bilde av huggene. Dolken mangler knappen nederst på grepet; den kommer om du vil ha den.",
+ "round": 16,
+ "new": ["arms", "arms_leather", "arms_mail", "sword", "axe", "dagger", "shield_round", "shield_tower"]
+}
