@@ -2343,13 +2343,13 @@
    ]
   },
   "arms_mail": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "Er dette chainmail?",
+   "why": "",
    "before": {
-    "verdict": "underkjent",
+    "verdict": "usikker",
     "date": "2026-10-13",
-    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
+    "why": "Er dette chainmail?"
    },
    "history": [
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
@@ -2358,13 +2358,13 @@
    ]
   },
   "axe": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-13",
-   "why": "Eggen må peke mot monsteret som skal slås",
+   "why": "",
    "before": {
-    "verdict": "usikker",
+    "verdict": "underkjent",
     "date": "2026-10-13",
-    "why": "øksa holdes feil vei"
+    "why": "Eggen må peke mot monsteret som skal slås"
    },
    "history": [
     "hånden holder det rart?",
