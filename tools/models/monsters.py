@@ -698,7 +698,8 @@ def modal():
     weather(bone, 0.0, 1.0, 0.25, 12.0)
     wax = material("wax", (0.86, 0.8, 0.66), 0.55)
     cable = material("cable", (0.12, 0.13, 0.15), 0.5)
-    orange = material("magic_close", (1.0, 0.45, 0.12), 0.3)
+    orange = material("magic_close", (1.0, 0.78, 0.3), 0.3)
+    ember = material("magic_close_bg", (0.55, 0.1, 0.04), 0.4)
     cyan = material("magic_pixel", (0.4, 0.95, 1.0), 0.3)
     magenta = material("magic_pixel_m", (0.95, 0.3, 1.0), 0.3)
     px = MODAL_PX
@@ -707,9 +708,9 @@ def modal():
     sheeted.append(rounded_box("box", (-0.015, 0, 0.96), (0.42, 0.6, 0.82), sheet, radius=0.04, segments=3))
     sheeted.append(rounded_box("lid", (-0.015, 0, 1.49), (0.44, 0.62, 0.24), sheet, radius=0.035, segments=3))
     cylinder("eye_ring", (0.21, 0.0, 1.43), 0.07, 0.03, cable, rot=(0, math.pi / 2, 0), vertices=20)
-    cylinder("eye_disc", (0.225, 0.0, 1.43), 0.055, 0.012, orange, rot=(0, math.pi / 2, 0), vertices=20)
+    cylinder("eye_disc", (0.225, 0.0, 1.43), 0.055, 0.012, ember, rot=(0, math.pi / 2, 0), vertices=20)
     for k, a in enumerate((45, -45)):
-        box(f"eye_x{k}", (0.235, 0.0, 1.43), (0.012, 0.012, 0.075), orange, rot=(math.radians(a), 0, 0))
+        box(f"eye_x{k}", (0.236, 0.0, 1.43), (0.014, 0.016, 0.08), orange, rot=(math.radians(a), 0, 0))
     # Skulderplatene, med gravstein og voks oppå.
     for sy in (1.0, -1.0):
         sheeted.append(rounded_box(f"pauldron_{sy:+.0f}", (0.0, sy * 0.43, 1.24), (0.38, 0.26, 0.3), sheet, radius=0.04, rot=(-sy * math.radians(14), 0, 0)))
