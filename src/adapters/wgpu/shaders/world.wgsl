@@ -920,6 +920,7 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
             case 3: { return vec4<f32>(vec3<f32>(s.ao * s.cavity), alpha); }
             case 4: { return vec4<f32>(vec3<f32>(s.rough), alpha); }
             case 5: { return vec4<f32>(vec3<f32>(sun_shadow(i.world, n_geo)), alpha); }
+            case 7: { return vec4<f32>(0.0, 0.0, 0.0, alpha); }
             default: { return vec4<f32>(s.emissive, alpha); }
         }
     }

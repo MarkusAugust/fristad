@@ -683,7 +683,12 @@ PARTS = {
     "dagger": [("blade", 0.01, 0.462), ("disc", 0.455, 0.565), ("grip", 0.555, 0.875), ("ball", 0.86, 0.995)],
 }
 # Klinger der omrisset ikke kan brukes: (halv bredde px, spissens del av klinga).
-BLADE_SHAPE = {"dagger": (127, 0.3)}
+# Spissen smalner jevnt og svakt buet til et punkt, som på arket (eieren 13.
+# oktober: «spissen er for rund»).
+BLADE_SHAPE = {"dagger": (127, 0.45)}
+# Spissen er spiss: 2 cm fra spissen er klinga høyst så stor del av sin
+# største bredde (en rund spiss er nesten full bredde der, `tip_check`).
+TIP_AT, TIP_MAX = 0.02, 0.5
 RIDGE = {"sword": 0.005, "dagger": 0.004, "axe": 0.011}
 
 
@@ -750,11 +755,11 @@ def weapon_parts(name, mask, metal, px, gy, length):
             hv[r0:r1 + 1] = np.maximum.accumulate(hv[r0:r1 + 1])
             if name in BLADE_SHAPE:
                 # Omrisset er et skall der (dolken): klinga er parallell med
-                # målt bredde og en rund spiss.
+                # målt bredde og smalner til en spiss.
                 half_px, tip = BLADE_SHAPE[name]
                 for r in range(r0, r1 + 1):
                     t = (r - r0) / max(1, (r1 - r0) * tip)
-                    hv[r] = half_px * (math.sqrt(max(0.0, 1 - (1 - t) ** 2)) if t < 1 else 1.0)
+                    hv[r] = half_px * ((1 - (1 - t) ** 1.6) if t < 1 else 1.0)
         elif kind == "grip":
             # Skaftet og grepet etter treet alene: der øksebladet sitter,
             # er bredden bladets, så den fylles inn fra treet over og under.
@@ -796,8 +801,21 @@ def weapon_parts(name, mask, metal, px, gy, length):
                 rings.append(superellipse_x(X(r), cy, hw, 0.0, max(0.006, 0.4 * hw), 16, 2.5))
             else:
                 rings.append(superellipse_x(X(r), cy, hw, 0.0, hw, 16))
+        if kind == "blade":
+            tip_check(name, [(X(r), max(float(hv[r]) * px, 0.0008)) for r in range(r0, r1 + 1)])
         parts.append((kind, rings, k, cm))
     return parts, 2 * grip_half * k_grip, mid
+
+
+def tip_check(name, profile):
+    """Stopper en klinge med rund spiss: halv bredde `TIP_AT` bak spissen
+    mot den største. `profile` er [(x, halv bredde)] fra spissen."""
+    x0 = profile[0][0]
+    widest = max(h for _, h in profile)
+    near = min(profile, key=lambda p: abs(abs(p[0] - x0) - TIP_AT))[1]
+    print(f"{name}: spissen {near / widest * 100:.0f} % av bredden {TIP_AT * 100:.0f} cm inn")
+    if near / widest > TIP_MAX:
+        raise SystemExit(f"{name}: spissen er rund ({near / widest * 100:.0f} % av bredden {TIP_AT * 100:.0f} cm inn, høyst {TIP_MAX * 100:.0f})")
 
 
 def blade_axis(lo, hi, r0, r1):

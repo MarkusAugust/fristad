@@ -46,6 +46,359 @@
    "images": [
     "assets/catalog/review/dagger.jpg"
    ]
+  },
+  "5577fc5e7947": {
+   "text": [
+    "Spissen er for rund → klinga er parallell den første halvdelen og smalner så jevnt, svakt buet, til et spisst punkt, som på arket.",
+    "Ny kontroll ved eksporten (tip_check): 2 cm fra spissen er klinga høyst halvparten så bred som der den er bredest. Dolken er nå 35 %, før 67 %."
+   ],
+   "images": [
+    "assets/catalog/review/dagger.jpg"
+   ]
+  }
+ },
+ "crypt_01_ab": {
+  "695a04e32028": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/crypt_corner.jpg"
+   ]
+  }
+ },
+ "crypt_01_ac": {
+  "46eebe288c9a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ad": {
+  "f6e8bcce24d9": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ae": {
+  "724a32931aad": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_af": {
+  "857df977968f": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ag": {
+  "9fbec62b777a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ah": {
+  "ee6e73733aa2": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ai": {
+  "b8efdeaa91ae": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aj": {
+  "408bdce5800e": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ak": {
+  "abddf435f251": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_al": {
+  "77496444a2b3": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/crypt_pillars.jpg"
+   ]
+  }
+ },
+ "crypt_01_am": {
+  "d50d6089ef62": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_an": {
+  "130743195d97": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ao": {
+  "0d3eef70271b": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ap": {
+  "e17e822e8179": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aq": {
+  "823ec78f9c66": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ar": {
+  "631b9af79e0a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_as": {
+  "424c95388afd": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_at": {
+  "fd8f2013a583": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_au": {
+  "9de5600fa73f": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_av": {
+  "a6c76dae8c23": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aw": {
+  "59710189a16a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ax": {
+  "1e5824a8a031": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ay": {
+  "044ce64e59df": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_az": {
+  "73803fe39bc3": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ba": {
+  "78ec34cad30c": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_bb": {
+  "297d939efdcc": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "kit_lever_arm": {
+  "33334e47a952": {
+   "text": [
+    "Nå kan du se spakarmen i 3D: «Se i 3D», dra for å rotere og rull for å zoome."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": ""
+   }
   }
  }
 }

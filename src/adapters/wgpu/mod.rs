@@ -19,6 +19,7 @@ use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
 use wgpu::util::DeviceExt;
 
+pub mod lod;
 mod smaa;
 pub mod texture;
 mod timer;
@@ -824,19 +825,26 @@ impl Renderer {
                 // Figurene får også et grovt nivå (leddene og vektene følger med
                 // fra hjørnet som blir stående), så de ikke tegnes med full
                 // detalj langt unna og i skyggene.
-                let far = m.far_mesh.clone().unwrap_or_else(|| m.mesh.clustered(if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
+                // Lette modeller tegnes helt også fjernt (`lod::far_detail`).
+                let far = m.far_mesh.clone().or_else(|| lod::far_detail(&m.mesh, if m.far_cell > 0.0 { m.far_cell } else { size / 70.0 }));
                 let mut combined = m.mesh.clone();
                 let base = combined.vertices.len() as u32;
-                combined.vertices.extend_from_slice(&far.vertices);
-                combined.indices.extend(far.indices.iter().map(|i| i + base));
                 let near_count = m.mesh.indices.len() as u32;
-                log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far.indices.len() / 3);
+                let far_range = match &far {
+                    Some(far) => {
+                        combined.vertices.extend_from_slice(&far.vertices);
+                        combined.indices.extend(far.indices.iter().map(|i| i + base));
+                        near_count..combined.indices.len() as u32
+                    }
+                    None => 0..near_count,
+                };
+                log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far_range.len() / 3);
                 Some(GpuModel {
                     name: m.name.clone(),
                     cutout: m.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
                     mesh: GpuMesh::new(&device, &combined, &m.name),
                     near: 0..near_count,
-                    far: near_count..combined.indices.len() as u32,
+                    far: far_range,
                     textures: materials.model_bind_group(&device, &queue, &mipper, m),
                     instances: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: Some(&m.name),

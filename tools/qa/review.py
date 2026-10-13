@@ -75,6 +75,79 @@ def locate(name, kind):
     return None
 
 
+def glb_layers(path):
+    """Teksturlagene materialene i en glb bruker (`extras.fristad.layer`)."""
+    import struct
+    with open(path, "rb") as f:
+        b = f.read()
+    n = struct.unpack("<I", b[12:16])[0]
+    j = json.loads(b[20:20 + n])
+    return {((m.get("extras") or {}).get("fristad") or {}).get("layer") for m in j.get("materials", [])} - {None}
+
+
+LEVEL_PIECE = __import__("re").compile(r"^(crypt_\d\d)_[a-z]{2}$")
+
+
+def models_3d(out, items):
+    """3D-visningen (`viewer.js`): modellen til hvert kort som venter, den
+    eieren så sist (`glb/før/`), alle bitene i et kryptnivå der en bit venter
+    (så biten kan ses inne i nivået), og teksturlagene de bruker (`tex/`)."""
+    root = os.path.join(out, "glb")
+    if os.path.isdir(root):
+        shutil.rmtree(root)
+    texdir = os.path.join(out, "tex")
+    if os.path.isdir(texdir):
+        shutil.rmtree(texdir)
+    os.makedirs(os.path.join(root, "før"), exist_ok=True)
+    os.makedirs(texdir, exist_ok=True)
+    used, levels = set(), {}
+    for it in items:
+        if it["state"] != "venter" or it["kind"] != "modell" or not it.get("path"):
+            continue
+        src = os.path.join(ROOT, it["path"])
+        m = LEVEL_PIECE.match(it["name"])
+        if m:
+            lv = m.group(1)
+            if lv not in levels:
+                pieces = sorted(glob.glob(os.path.join(os.path.dirname(src), f"{lv}_??.glb")))
+                os.makedirs(os.path.join(root, lv), exist_ok=True)
+                levels[lv] = []
+                for pc in pieces:
+                    shutil.copy(pc, os.path.join(root, lv, os.path.basename(pc)))
+                    levels[lv].append(f"glb/{lv}/{os.path.basename(pc)}")
+                    used |= glb_layers(pc)
+            it["glb"], it["level"] = f"glb/{lv}/{it['name']}.glb", lv
+        else:
+            shutil.copy(src, os.path.join(root, f"{it['id']}.glb"))
+            it["glb"] = f"glb/{it['id']}.glb"
+            used |= glb_layers(src)
+        seen = (it.get("seen") or "")
+        if seen and seen != it["version"]:
+            old = subprocess.run(["git", "cat-file", "blob", seen], cwd=ROOT, capture_output=True).stdout
+            if old[:4] == b"glTF":
+                dst = os.path.join(root, "før", f"{it['id']}.glb")
+                with open(dst, "wb") as f:
+                    f.write(old)
+                it["glb_before"] = f"glb/før/{it['id']}.glb"
+                used |= glb_layers(dst)
+    layers = {}
+    for name in sorted(used):
+        src = os.path.join(ROOT, "assets", "textures", name, "albedo.jpg")
+        if not os.path.exists(src):
+            continue
+        im = Image.open(src).convert("RGB")
+        im.thumbnail((1024, 1024))
+        im.save(os.path.join(texdir, f"{name}.jpg"), quality=86)
+        size = 2.0
+        try:
+            with open(os.path.join(ROOT, "assets", "textures", name, "meta.json")) as f:
+                size = float(json.load(f).get("size_m", 2.0))
+        except (OSError, ValueError):
+            pass
+        layers[name] = {"url": f"tex/{name}.jpg", "size": size}
+    return layers, levels
+
+
 def version(path):
     """Versjonen av fila slik den ligger nå (git-blob, 12 tegn)."""
     return git("hash-object", path)[:12]
@@ -286,8 +359,11 @@ def build(out, render=True):
         before = after = None
         if st == "venter" and render and e and e.get("seen"):
             before, after = shots(kind, name, path, e["seen"]), shots(kind, name, path, cur)
-            # Bygd på nytt, men ser ut som det eieren så: dommen står.
-            if same_look(before, after):
+            # Bygd på nytt, men ser ut som det eieren så: dommen står. Ikke
+            # når jeg har rettet noe i denne versjonen (`fixes.json`):
+            # studiobildene utenfra så ikke at dolkspissen eller hullene i
+            # kryptbitene var rettet (13. oktober).
+            if not (fixes.get(name) or {}).get(cur) and same_look(before, after):
                 e["seen"] = cur
                 st = state(e, cur, fix)
                 carried += st != "venter"
@@ -297,6 +373,7 @@ def build(out, render=True):
             "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
             "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
             "fixed": (fix or {}).get("text", []),
+            "path": path, "seen": (e or {}).get("seen"),
         }
         if st == "venter" and render:
             if fix and fix.get("images"):
@@ -317,9 +394,14 @@ def build(out, render=True):
             item["img"] = f"img/{id_}.jpg" if os.path.exists(os.path.join(img, f"{id_}.jpg")) else None
         items.append(item)
     save("approvals.json", ap)
+    layers, levels = models_3d(out, items) if render else ({}, {})
+    for it in items:
+        it.pop("path", None)
+        it.pop("seen", None)
     with open(os.path.join(out, "data.json"), "w") as f:
-        json.dump({"categories": CATEGORIES, "items": items}, f, ensure_ascii=False)
+        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels}, f, ensure_ascii=False)
     shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
+    shutil.copy(os.path.join(HERE, "viewer.js"), os.path.join(out, "viewer.js"))
     return items, carried
 
 
@@ -364,6 +446,11 @@ def audit():
             if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
     fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    # «Rettet slik» er punkter (siden viser én linje per punkt).
+    for n, vs in fixes.items():
+        for v, fx in vs.items():
+            if not isinstance(fx.get("text", []), list):
+                errors.append(f"«rettet slik» for {n} ({v}) må være en liste med punkter")
     waiting = sum(1 for _, k, n, p in things() if state(ap.get("models" if k == "modell" else "textures", {}).get(n), version(p), fix_for(fixes, n)) == "venter")
     if waiting > MAX_WAITING:
         errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")

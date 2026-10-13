@@ -1809,6 +1809,22 @@ fn modellene_har_roller() {
     assert!(bad.is_empty(), "modeller som ikke kan lastes (se loggen): {bad:?}");
 }
 
+/// Murverket i krypten tegnes helt også langt unna: det grove detaljnivået
+/// slår sammen hjørner og åpnet sprekker med himmel i skjøtene (eieren 13.
+/// oktober). Kryptbitene er lette nok til at de aldri får et (`lod::far_detail`,
+/// `LOD_MIN_TRIS`); `snapshot --leak-scan` finner det som synes gjennom.
+#[test]
+fn kryptmurene_forenkles_ikke_pa_avstand() {
+    let p = world();
+    let heavy: Vec<String> = p
+        .models
+        .iter()
+        .filter(|m| m.name.starts_with("crypt_") && m.far_mesh.is_none() && crate::adapters::wgpu::lod::far_detail(&m.mesh, 0.2).is_some())
+        .map(|m| format!("{} ({} trekanter)", m.name, m.mesh.indices.len() / 3))
+        .collect();
+    assert!(heavy.is_empty(), "kryptbiter som ville fått sprekker på avstand: {heavy:?}");
+}
+
 /// Hvert teksturlag en modell bruker, har et bilde i `assets/external`
 /// (`bun tools/fetch-assets.ts`). Et lag uten bilde faller ellers stille
 /// tilbake til det prosedyriske laget (hvite dører, 11. okt.).

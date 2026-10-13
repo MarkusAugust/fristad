@@ -127,6 +127,8 @@ fn main() {
             "ao" => 3,
             "rough" => 4,
             "shadow" => 5,
+            // Alt tegnet svart og himmelen magenta: det som er magenta, er hull (`--leak-scan`).
+            "void" => 7,
             _ => d.parse().unwrap_or(0),
         };
     }
@@ -241,6 +243,37 @@ fn main() {
     // som bryterne i målingen.
     if flag("--small-hdr") || flag("--no-smaa") {
         app.command(Command::SetBench(fristad::ports::Bench { small_hdr: flag("--small-hdr"), smaa: !flag("--no-smaa"), ..Default::default() }));
+    }
+    // --leak-scan PUNKTER: fra hvert punkt (x y z i nivåets rom, én linje
+    // hver) i 8 retninger rundt og 3 opp og ned, med `--debug void`: skriver
+    // hvert bilde der himmelen synes gjennom noe, med antall piksler.
+    if let Some(list) = arg("--leak-scan") {
+        let o = level_origin.unwrap_or(Vec3::ZERO);
+        let mut found = 0;
+        for (n, line) in std::fs::read_to_string(&list).expect("kan ikke lese --leak-scan").lines().filter(|l| !l.trim().is_empty()).enumerate() {
+            let v: Vec<f32> = line.split_whitespace().map(|x| x.parse().unwrap()).collect();
+            let eye = Vec3::new(v[0], v[1], v[2]) + o;
+            for k in 0..8 {
+                for pitch in [-50.0f32, 0.0, 50.0] {
+                    let yaw = k as f32 * 45.0;
+                    app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
+                    for _ in 0..2 {
+                        app.renderer.set_target(target.create_view(&Default::default()));
+                        app.draw(width as f32 / height as f32);
+                    }
+                    let px = grab(&device, &queue, &target, width, height);
+                    let hits = px.chunks(4).filter(|c| c[0] > 150 && c[2] > 150 && c[1] < 90).count();
+                    if hits > 0 {
+                        found += 1;
+                        let path = format!("{}_{n}_{k}_{}.png", out.trim_end_matches(".png"), pitch as i32);
+                        write_png(&path, width, height, &px);
+                        println!("HULL {hits} {} {} {} {yaw} {pitch} {path}", v[0], v[1], v[2]);
+                    }
+                }
+            }
+        }
+        println!("LEAKSCAN {found}");
+        return;
     }
     // --shots: ett bilde per linje, med samme spill og renderer.
     if let Some(list) = arg("--shots") {

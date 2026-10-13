@@ -45,6 +45,11 @@ INSET = 0.4  # navigasjonsnettet holder seg så langt fra murene
 SPRING = 2.2  # høyden på gangmurene (vederlaget), over gulvet
 STAIR_IN = 0.1  # trapper og ramper inntil en mur går så langt inn i murblokka (aldri tangent)
 WALL_T = 0.4  # tykkelsen på murkolliderne
+# Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
+# over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
+# med rette biter, sto under hvelvkanten der, med kiler av himmel på begge
+# sider av konsollene i hjørnene (eieren 13. oktober; `snapshot --leak-scan`).
+VAULT_LAP = 0.35
 CHUNK = 16.0  # bitene
 
 WARM = (1.0, 0.55, 0.24)
@@ -114,6 +119,18 @@ class Hall:
             L = math.dist(pts[i], pts[i + 1])
             d = ((x1 - x0) / L, (z1 - z0) / L)
             self.segs.append((pts[i], pts[i + 1], d, L))
+        # Trappa begynner og slutter utenfor hjørnefagene (en halv bredde fra
+        # knekkpunktet): i snarveien begynte den midt i faget, under gulvet
+        # der, og gjennom spalten mellom det øverste trinnet og hjørnegulvet
+        # så man ut under gangen (`snapshot --leak-scan`, 13. oktober).
+        if self.stairs is not None:
+            si, sa, sb = self.stairs
+            L = self.segs[si][3]
+            sa = max(sa, w / 2) if si > 0 else sa
+            sb = min(sb, L - w / 2) if si < len(self.segs) - 1 else sb
+            if sb - sa < 1.0:
+                raise SystemExit(f"{hid}: trappa får ikke plass mellom hjørnefagene ({sa:.2f}–{sb:.2f} m)")
+            self.stairs = (si, sa, sb)
         # Fotavtrykket: strekkene, med hjørnefeltet tatt med i det første.
         rects = []
         for i, (p0, p1, d, L) in enumerate(self.segs):
@@ -245,6 +262,31 @@ LAYOUTS = {1: dict(extra=EXTRA_ROOMS_1, halls=HALLS_1, marks=marks_1)}
 # --- Nivået ---------------------------------------------------------------------
 
 
+RIB_DEPTH = 0.16  # gjordbuene (`K.barrel_rib`) står så langt ned fra hvelvet
+
+
+def vault_under(r, x, z):
+    """Høyden på undersida av gjordbuen i tønnehvelvet over (x, z) i rommet."""
+    axis, cw, a, R, S = r.vault
+    t = ((z if axis == "x" else x) - cw) / a
+    return S + R * math.sqrt(max(0.0, 1 - t * t)) - RIB_DEPTH
+
+
+def pillar_top(r, x, z, size):
+    """Toppen av en søyle under tønnehvelvet: kapitélet når gjordbuen over
+    den på den høyeste kanten og går inn i hvelvet på den laveste (eieren 13.
+    oktober: «stopper søyler midt i luften?»; de stoppet ved vederlaget, 2 m
+    under hvelvet). Stopper bygget om søylen ikke bærer noe."""
+    axis, cw = r.vault[0], r.vault[1]
+    half = (size + 0.36) / 2
+    off = abs((z if axis == "x" else x) - cw)
+    inner = max(0.0, off - half)
+    y = vault_under(r, cw + inner if axis == "z" else x, cw + inner if axis == "x" else z) - 0.02
+    if y - vault_under(r, x, z) > 0.6:
+        raise SystemExit(f"søylen i ({x}, {z}) i {r.id} står for skrått under hvelvet")
+    return y
+
+
 class Level:
     def __init__(self, n):
         self.n = n
@@ -347,6 +389,8 @@ class Level:
         rm["nedgang"].holes.append(sbox(20.4, 96.8, 24.2, 99.2))
         rm["sjaktbunn"].flat = Point(-36.0, 42.0).buffer(0.85, 16)
         rm["stigebunn"].flat = sbox(-12.6, 20.6, -11.4, 21.8)
+        # Søylegangen: gjordbuene står over søyleradene, og søylene bærer dem.
+        rm["soylegang"].ribs = list(range(57, 86, 4))
 
     def attach_doors(self):
         """Åpningene i rommene der gangene går inn."""
@@ -426,10 +470,10 @@ class Level:
             elif end_wall:
                 cw = a
                 fn = lambda u, cw=cw, a=a, R=R, top=top: top + R * math.sqrt(max(0.0, 1 - ((u - cw) / a) ** 2))
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 16 for k in range(17)])
+                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
             elif square:
                 fn = lambda u, length=length, R=R, top=top: top + R * math.sqrt(max(0.0, 1 - ((u - length / 2) / (length / 2)) ** 2))
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 16 for k in range(17)])
+                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
             else:
                 K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r))
             # Sokkelen langs foten (litt ulik høyde nord–sør og øst–vest, så
@@ -466,8 +510,10 @@ class Level:
             cx = (r.x0 + r.x1) / 2
             K.barrel(mb, "z", r.z0, span_z, cx, top, R, a, mat="vault", step=1.0)
             nb = max(1, round(span_z / 4))
-            for k in range(1, nb):
-                K.barrel_rib(mb, "z", r.z0 + span_z * k / nb, cx, top, R, a)
+            for zr in getattr(r, "ribs", None) or [r.z0 + span_z * k / nb for k in range(1, nb)]:
+                K.barrel_rib(mb, "z", zr, cx, top, R, a)
+        if not flat and not square:
+            r.vault = ("x" if along_x else "z", (r.z0 + r.z1) / 2 if along_x else (r.x0 + r.x1) / 2, a, R, top)
         r.ceil = top
 
     def wall_mat(self, r):
@@ -554,8 +600,12 @@ class Level:
                         if 0.0 < uu < L:
                             us.add(uu)
             us = sorted(us)
-            fl = [self.hall_floor(h, surf.point(u, 0.0, 0.3)) for u in us]
-            tops = [self.hall_spring(h, surf.point(u, 0.0, 0.3)) + 0.03 for u in us]
+            # Foten følger det laveste gulvet innen 1,2 m langs muren: i svingene
+            # ligger trinnet ved siden av lavere enn gulvet i prøvepunktet, og
+            # det sto et hull under murfoten i det ytre hjørnet (snarveien,
+            # `snapshot --leak-scan`, 13. oktober).
+            fl = [min(self.hall_floor(h, surf.point(min(L, max(0.0, u + 0.3 * k)), 0.0, 0.3)) for k in range(-4, 5)) for u in us]
+            tops = [self.hall_spring(h, surf.point(u, 0.0, 0.3)) + VAULT_LAP for u in us]
             outline = Polygon([(u, f - 0.3) for u, f in zip(us, fl)] + [(u, t) for u, t in reversed(list(zip(us, tops)))])
             grid_face(mb, surf, outline, "wall")
             # Sokkelen der gulvet er flatt (i trappene går trinnene inn i muren).
@@ -723,7 +773,7 @@ class Level:
             openings.append(Polygon(prof))
             K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
             cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof)))
-        K.wall(mb, cyl, circ, r.y - 0.05, top, openings, mat="bones", cell=1.0)
+        K.wall(mb, cyl, circ, r.y - 0.05, top, openings, mat="bones", cell=1.0, extra=VAULT_LAP)
         # Hyllene med hodeskaller, i to rader under galleriet og over det.
         shelf_cyl = Cyl(c, R, a0=0.0, inward=True)
         segs = 72
@@ -936,7 +986,7 @@ class Level:
         so = rm["soylegang"]
         for zc in range(57, 86, 4):
             for xc in (-2.6, 2.6):
-                K.pillar(mb, xc, zc, so.y, so.y + so.h, size=0.7)
+                K.pillar(mb, xc, zc, so.y, pillar_top(so, xc, zc, 0.7), size=0.7)
                 so.obstacles.append(sbox(xc - 0.55, zc - 0.55, xc + 0.55, zc + 0.55))
                 self.box((xc, so.y + so.h / 2, zc), (1.0, so.h, 1.0))
         for zc in (59, 63, 67, 77, 81):

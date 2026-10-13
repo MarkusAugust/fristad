@@ -56,6 +56,16 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     let far = g.inv_view_proj * vec4<f32>(i.ndc, 1.0, 1.0);
     let near = g.inv_view_proj * vec4<f32>(i.ndc, 0.0, 1.0);
     let dir = normalize(far.xyz / far.w - near.xyz / near.w);
+    // `--debug void`: himmelen magenta, så hull i krypten kan telles.
+    if (i32(g.sky.w) == 7) {
+        return vec4<f32>(4.0, 0.0, 4.0, 1.0);
+    }
+    // Nede i krypten (rommene er med) er det jord rundt, ingen himmel: en
+    // sprekk i muren blir en mørk strek, aldri en lys kile (eieren 13.
+    // oktober). Sprekkene finnes likevel med `--debug void` over.
+    if (g.room_info.x > 0.0) {
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
     let night = g.sun_color.w;
     let cover_amount = g.sky.x;
 

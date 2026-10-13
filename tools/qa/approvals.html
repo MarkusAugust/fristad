@@ -2,6 +2,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
 /* Layout: en smal verktøylinje øverst (fanene per kategori), så det som venter på eieren som store kort, og under det, sammenfoldet, det som ligger hos meg og det som er godkjent. */
 :root {
@@ -110,6 +111,17 @@ textarea {
 dialog { padding: 0; border: 0; background: var(--photo); max-width: min(96vw, 1400px); }
 dialog img { display: block; max-width: 100%; max-height: 90vh; }
 dialog::backdrop { background: rgb(0 0 0 / .75); }
+.view3d [hidden] { display: none !important; }
+.view3d { width: min(96vw, 1400px); max-width: none; color: #e7e9ec; }
+.view3d canvas { display: block; width: 100%; height: min(78vh, 900px); touch-action: none; cursor: grab; }
+.view3d .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 14px; font-size: 14px; }
+.view3d .tools .nm { font-family: var(--mono); font-weight: 600; }
+.view3d .tools .help { color: #9aa2ac; flex: 1 1 18rem; }
+.view3d .tools label { display: inline-flex; align-items: center; gap: 6px; }
+.view3d .tools select, .view3d .tools button { font: inherit; padding: 4px 10px; border-radius: 5px; border: 1px solid #343a42; background: #1d2126; color: inherit; }
+.view3d .tools button:focus-visible, .view3d .tools select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn3d { font: 600 14px/1 var(--body); padding: 8px 12px; border-radius: 5px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; justify-self: start; }
+.btn3d:hover { background: var(--accent); color: var(--sheet); }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.done { opacity: .6; }
@@ -151,6 +163,18 @@ details.pile li .v b { color: var(--ink); text-transform: capitalize; }
 </main>
 
 <dialog id="zoom"><img id="zoom-img" alt=""></dialog>
+<dialog id="view" class="view3d" aria-label="3D-visning">
+  <canvas id="view-canvas"></canvas>
+  <div class="tools">
+    <span class="nm" id="view-name"></span>
+    <select id="view-which" aria-label="Versjon"><option value="etter">Etter (nå)</option><option value="før">Før (det du så)</option></select>
+    <label><input type="checkbox" id="view-whole" checked> Hele nivået rundt</label>
+    <label><input type="checkbox" id="view-both"> Vis baksidene</label>
+    <span id="view-status" aria-live="polite"></span>
+    <span class="help">Dra for å rotere, rull for å zoome (mot musa), høyre knapp eller to fingre for å flytte. Dobbeltklikk på en flate for å gå dit og rotere rundt den.</span>
+    <button type="button" id="view-close">Lukk</button>
+  </div>
+</dialog>
 
 <script>
 const LABEL = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikker" };
@@ -226,6 +250,12 @@ function card(it) {
   ta.addEventListener("input", () => { clearTimeout(timers.get(it.id)); timers.set(it.id, setTimeout(() => save(it, { why: ta.value }), 900)); });
   ta.addEventListener("blur", () => { clearTimeout(timers.get(it.id)); save(it, { why: ta.value }); });
   const s = document.createElement("div"); s.className = "saved"; s.setAttribute("aria-live", "polite");
+  if (it.glb) {
+    const b3 = document.createElement("button"); b3.type = "button"; b3.className = "btn3d";
+    b3.textContent = it.level ? "Se i 3D (gå rundt inne i nivået)" : "Se i 3D (roter og zoom)";
+    b3.onclick = () => view3d(it);
+    p.append(b3);
+  }
   p.append(ch, ta, s);
   el.append(ph, p);
   paint(el, it);
@@ -300,6 +330,18 @@ function choose(it, v) {
   const el = document.getElementById(it.id);
   save(it, { verdict: v, why: el ? el.querySelector("textarea").value : "" });
 }
+let pageData = null;
+async function view3d(it) {
+  const dlg = document.getElementById("view");
+  document.getElementById("view-name").textContent = it.name;
+  dlg.showModal();
+  const ui = { canvas: document.getElementById("view-canvas"), which: document.getElementById("view-which"), whole: document.getElementById("view-whole"), both: document.getElementById("view-both"), status: document.getElementById("view-status") };
+  try {
+    const v = await import("./viewer.js");
+    await v.show(it, pageData, ui);
+  } catch (e) { ui.status.textContent = "Kunne ikke vise modellen (" + e.message + ")."; }
+}
+document.getElementById("view-close").addEventListener("click", () => document.getElementById("view").close());
 function note(text) { const n = document.getElementById("notice"); n.textContent = text; n.hidden = false; }
 
 // Tastene: j/k merker neste og forrige kort, 1–3 og h virker bare på det
@@ -316,6 +358,7 @@ document.addEventListener("focusin", e => { const c = e.target.closest && e.targ
 document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark([...document.querySelectorAll(".item")].indexOf(c), false); });
 document.addEventListener("keydown", e => {
   if (e.target.closest && e.target.closest("textarea, input")) { if (e.key === "Escape") e.target.blur(); return; }
+  if (document.querySelector("dialog[open]")) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === "j") { mark(cur + 1, true); e.preventDefault(); }
@@ -336,7 +379,7 @@ async function start() {
   try {
     const r = await fetch("data.json");
     const data = await r.json();
-    items = data.items; cats = data.categories;
+    items = data.items; cats = data.categories; pageData = data;
   } catch (e) {
     note("Fant ikke listen over teksturer og modeller."); return;
   }
