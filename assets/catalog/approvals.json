@@ -2237,6 +2237,49 @@
    "history": [
     "bordplaten er vinklet feil vei? ser rart ut"
    ]
+  },
+  "datepicker_priest": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "Holder han våpenet? Svinger han det skikkelig ved angrep?",
+   "history": [
+    "Holder han våpenet? Svinger han det skikkelig ved angrep?"
+   ]
+  },
+  "mutant_button": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_input": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_modal": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_select": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_table": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_toast": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
+  },
+  "mutant_tooltip": {
+   "verdict": "godkjent",
+   "date": "2026-10-13",
+   "why": ""
   }
  }
 }

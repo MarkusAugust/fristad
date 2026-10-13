@@ -179,9 +179,9 @@ def bone_limb(name, pts, radii, mat):
         ellipsoid(f"{name}_k{i}", pts[i], (r, r, r * 1.1), mat, 12, 8)
 
 
-def bone_hand(name, wrist, down, out, mat, k=1.0):
+def bone_hand(name, wrist, down, out, mat, k=1.0, curl=0.0):
     """Hånd av bein: et håndbein og tre krumme fingre og en tommel (`k`
-    skalerer)."""
+    skalerer; `curl` 0–1 bøyer det ytterste leddet inn mot håndflata)."""
     wrist, down, out = Vector(wrist), Vector(down).normalized(), Vector(out).normalized()
     palm = wrist + down * 0.07 * k
     ellipsoid(f"{name}_palm", wrist + down * 0.035 * k, (0.035 * k, 0.03 * k, 0.045 * k), mat, 10, 6)
@@ -189,7 +189,7 @@ def bone_hand(name, wrist, down, out, mat, k=1.0):
     for i, s in enumerate((-1.0, 0.0, 1.0)):
         a = palm + fwd * (s * 0.025 * k)
         b = a + (down * 0.06 + out * 0.01) * k
-        c = b + (down * 0.045 - out * 0.015) * k
+        c = b + (down * 0.045 * (1 - curl) - out * (0.015 + 0.04 * curl)) * k
         tube(f"{name}_f{i}a", a, b, 0.011 * k, mat, 6)
         tube(f"{name}_f{i}b", b, c, 0.009 * k, mat, 6)
         ellipsoid(f"{name}_f{i}k", b, (0.013 * k,) * 3, mat, 6, 4)
@@ -495,7 +495,7 @@ PRIEST_BONES = [
     ("jaw", (0.2, 0, 1.8), (0.28, 0, 1.78), "head"),
     ("upper_arm.L", (0.0, 0.33, 1.58), (0.04, 0.38, 1.33), "chest"),
     ("forearm.L", (0.04, 0.38, 1.33), (0.27, 0.52, 1.24), "upper_arm.L"),
-    ("hand.L", (0.27, 0.52, 1.24), (0.34, 0.58, 1.22), "forearm.L"),
+    ("hand.L", (0.27, 0.52, 1.24), (0.35, 0.59, 1.23), "forearm.L"),
     ("upper_arm.R", (0.0, -0.33, 1.58), (-0.07, -0.42, 1.32), "chest"),
     ("forearm.R", (-0.07, -0.42, 1.32), (-0.02, -0.46, 1.05), "upper_arm.R"),
     ("hand.R", (-0.02, -0.46, 1.05), (0.0, -0.47, 0.86), "forearm.R"),
@@ -581,7 +581,9 @@ def datepicker_priest():
         sheeted.append(sleeve)
         bone_limb(f"arm_{side}", [el, wr], (0.03,), bone)
         bracer = tube(f"bracer_{side}", el + (wr - el) * 0.12, el + (wr - el) * 0.85, 0.06, steel, 12)
-        bone_hand(f"hand_{side}", wr, tip - wr, (0, sy, 0), bone, 1.6)
+        if side == "R":
+            # Høyre hånd med krumme fingre, så den kan legges på skaftet i svingen.
+            bone_hand(f"hand_{side}", wr, tip - wr, (0, sy, 0), bone, 1.6, curl=0.7)
         # Beina under kappa: knokete leggbein og sandaler.
         hip, knee, ankle, toe = B[f"thigh.{side}"][0], B[f"shin.{side}"][0], B[f"foot.{side}"][0], B[f"foot.{side}"][1]
         bone_limb(f"leg_{side}", [hip, knee, ankle], (0.05, 0.035), bone)
@@ -596,6 +598,22 @@ def datepicker_priest():
     tube("staff_shaft", (hx, hy, 0.03), (hx, hy, 1.8), 0.022, wood, 10)
     for k, z in enumerate((0.03, 1.36, 1.64, 1.78)):
         ellipsoid(f"staff_knob{k}", (hx, hy, z), (0.06, 0.06, 0.05), bronze, 10, 6)
+    # Grepet: venstre hånd lukket rundt skaftet (eieren: «Holder han
+    # våpenet?»). Håndbeinet ligger inntil skaftet, tre fingre går rundt det
+    # med knokene ytterst, og tommelen ligger over. Alt henger på `hand.L`
+    # med staven («staff» i PRIEST_RIGID).
+    wr_l = B["hand.L"][0]
+    palm = Vector((wr_l.x * 0.35 + hx * 0.65, wr_l.y * 0.35 + hy * 0.65, 1.225))
+    ellipsoid("staff_grip_palm", palm, (0.07, 0.06, 0.1), bone, 10, 6)
+    # Håndroten fra håndleddet inn til håndbeinet, så det ikke står en glipe.
+    tube("staff_grip_wrist", wr_l - (palm - wr_l).normalized() * 0.03, palm, 0.03, bone, 8)
+    for k, z in enumerate((1.17, 1.21, 1.25)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.036, minor_radius=0.013, major_segments=14, minor_segments=6, location=(hx, hy, z))
+        f = bpy.context.active_object
+        f.name = f"staff_grip_finger{k}"
+        f.data.materials.append(bone)
+        ellipsoid(f"staff_grip_knuckle{k}", (hx + 0.03, hy + 0.025, z), (0.032, 0.032, 0.03), bone, 8, 5)
+    tube("staff_grip_thumb", (wr_l.x + 0.03, wr_l.y + 0.03, 1.27), (hx - 0.01, hy - 0.02, 1.295), 0.014, bone, 6)
     cz, cr = 1.97, 0.19
     bpy.ops.mesh.primitive_torus_add(major_radius=cr, minor_radius=0.022, major_segments=32, minor_segments=8, location=(hx, hy, cz), rotation=(0, math.pi / 2, 0))
     rim = bpy.context.active_object
@@ -641,10 +659,60 @@ def datepicker_priest():
         project_sheet(ob, (2752, 1536), PRIEST_VIEWS, px)
 
 
+def staff_clearance(arm, clip, staff, body, grip=0.18):
+    """Minste avstand fra staven til kroppen gjennom et klipp (eieren:
+    ingenting går gjennom noe). `staff` er (bein, a, b): stavens ender i
+    hvileposen, som henger stivt på beinet; `body` er (bein, radius,
+    forlengelse ned) for kapslene rundt kroppen. Punktene nærmere enn
+    `grip` fra hånda (der hånda holder) telles ikke. Gir (avstand, bilde,
+    bein) for det verste bildet; under 0 går staven gjennom."""
+    from mathutils.geometry import intersect_point_line
+    act = bpy.data.actions[clip]
+    ad = arm.animation_data
+    tracks = [(t, t.mute) for t in ad.nla_tracks]
+    for t, _ in tracks:
+        t.mute = True
+    ad.action = act
+    sc = bpy.context.scene
+    bone, a, b = staff
+    rest = arm.data.bones[bone].matrix_local
+    hand = arm.data.bones[bone].tail_local
+    worst = (1e9, 0, "")
+    for f in range(int(act.frame_range[0]), int(act.frame_range[1]) + 1):
+        sc.frame_set(f)
+        M = arm.pose.bones[bone].matrix @ rest.inverted()
+        pa, pb = M @ Vector(a), M @ Vector(b)
+        ph = M @ hand
+        for k in range(41):
+            p = pa.lerp(pb, k / 40)
+            if (p - ph).length < grip:
+                continue
+            for name, r, down in body:
+                pbn = arm.pose.bones[name]
+                h, t = pbn.head - (pbn.tail - pbn.head).normalized() * down, pbn.tail
+                q, u = intersect_point_line(p, h, t)
+                q = h if u < 0 else t if u > 1 else q
+                d = (p - q).length - r
+                if d < worst[0]:
+                    worst = (d, f, f"{name} ved {k / 40:.2f} av staven")
+    ad.action = None
+    for t, m in tracks:
+        t.mute = m
+    return worst
+
+
 def build_priest(size):
     datepicker_priest()
     arm = armature("datepicker_priest_rig", PRIEST_BONES)
-    mob_motion.make_clips(Clip, arm, PRIEST_BONES, "priest", "slam")
+    mob_motion.make_clips(Clip, arm, PRIEST_BONES, "priest", "staff")
+    # Staven skal aldri gå gjennom kroppen i slaget (regelen stopper eksporten).
+    d, f, name = staff_clearance(arm, "attack", ("hand.L", (0.36, 0.6, 0.03), (0.36, 0.6, 2.2)),
+                                 [("chest", 0.24, 0.0), ("hips", 0.3, 0.45), ("neck", 0.1, 0.0), ("head", 0.16, 0.0), ("upper_arm.R", 0.07, 0.0)])
+    print(f"staven: minst {d * 100:.0f} cm fra kroppen (bilde {f}, {name})")
+    if d < 0.0:
+        raise SystemExit(f"staven går {-d * 100:.0f} cm inn i {name} i bilde {f} av slaget")
+    if os.environ.get("FRISTAD_CHECK_ONLY"):
+        return
     bpy.context.scene.frame_end = 64
     bake_textured(f"{OUT}/datepicker_priest.glb", size, keep=("glass", "magic"), armature=arm, rigid=PRIEST_RIGID, skin={"blend": 0.04, "radii": PRIEST_RADII})
 

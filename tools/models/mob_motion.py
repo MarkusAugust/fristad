@@ -209,7 +209,7 @@ STYLES = {
     # Tooltip Sprite: en snakkeboble på fire lange beinbein som tripper
     # fort som en edderkopp (de fremre beina er «armene», på alle fire).
     "sprite": dict(frames=4, v0=6.5, duty=0.5, lift=0.12, width=0.44, hunch=0, arm=0, sway=0.015, bob=0.03, tail=0, twitch=True, hips_yaw=4, idle=36, quad=True, quad_tilt=0.0, hand_x=0.34, hand_y=0.46, hand_z=0.04, leg_pole=(0.0, 0.4, 1.0), arm_pole=(0.0, 0.4, 1.0)),
-    "priest": dict(frames=24, v0=1.2, duty=0.62, lift=0.09, width=0.22, hold="L", hunch=3, arm=8, sway=0.03, bob=0.02, tail=0, twitch=True, hips_yaw=4, idle=60),
+    "priest": dict(frames=24, v0=1.2, duty=0.62, lift=0.09, width=0.22, hold="L", staff_at=(0.09, 0.08, -0.01), hunch=3, arm=8, sway=0.03, bob=0.02, tail=0, twitch=True, hips_yaw=4, idle=60),
     "dialog": dict(frames=16, v0=0.87, duty=0.6, lift=0.07, width=0.29, hunch=4, arm=12, sway=0.05, bob=0.02, tail=4, twitch=False, hips_yaw=5, idle=60, idle_crouch=-0.008),
     "frog": dict(frames=10, v0=2.2, duty=0.4, lift=0.14, width=0.36, hunch=0, arm=0, sway=0.01, bob=0.05, tail=0, twitch=False, hips_yaw=3, idle=48, hop=True, quad=True, quad_tilt=0.0, hand_x=0.3, hand_y=0.31, hand_z=0.0, leg_pole=(1.0, 0.3, 0.2), arm_pole=(-0.3, 0.6, 0.6)),
     "button": dict(frames=18, v0=2.1, duty=0.56, lift=0.13, width=0.19, hunch=20, arm=34, sway=0.035, bob=0.03, tail=18, twitch=True, hips_yaw=9, idle=48),
@@ -656,7 +656,60 @@ def roar(c, body, st):
         body.key(c, f, spec)
 
 
-ATTACKS = {"bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44)}
+def attack_staff(c, body, st):
+    """Slaget med staven (presten; eieren: «Svinger han det skikkelig ved
+    angrep?»): begge hender på skaftet, staven trekkes opp over hodet med
+    urskiva bak skulderen (varselet), så en bue over og ned foran ham med
+    treffet i bilde 28, som `attack_slam`. Staven henger stivt på venstre
+    hånd, så retningen er venstre hånds dreining i verden (`hand_world.L`:
+    0° loddrett, +90° vannrett fram); høyre hånd griper 30 cm lenger ned."""
+    T = 44
+    crouch = -0.02
+    wrist = body.wrist_rest("L")
+    rest = (wrist.x, wrist.y, wrist.z)
+    grip = curve([(0, rest), (16, (0.04, 0.2, 1.74)), (26, (0.02, 0.2, 1.76)), (27, (0.58, 0.2, 1.46)), (28, (0.74, 0.03, 1.02)),
+                  (36, (0.72, 0.03, 1.04)), (44, rest)])
+    tilt = curve([(0, 0.0), (16, -48.0), (26, -52.0), (27, 90.0), (28, 125.0), (36, 120.0), (44, 0.0)])
+    # Slaget går på skrå mot høyre, så skaftenden bak hånda går ut og opp
+    # til venstre for kroppen i stedet for gjennom den.
+    yaw = curve([(0, 0.0), (16, 8.0), (26, 8.0), (28, -25.0), (36, -25.0), (44, 0.0)])
+    both = curve([(0, 0.0), (10, 1.0), (36, 1.0), (44, 0.0)])
+    spine = curve([(0, 0.0), (16, -16.0), (26, -18.0), (28, 30.0), (36, 26.0), (44, 0.0)])
+    twist = curve([(0, 0.0), (16, 14.0), (26, 16.0), (28, -10.0), (36, -8.0), (44, 0.0)])
+    root_x = curve([(0, 0.0), (16, -0.08), (26, -0.08), (28, 0.14), (36, 0.12), (44, 0.0)])
+    sink = curve([(0, 0.0), (16, 0.02), (28, -0.1), (36, -0.08), (44, 0.0)])
+    step = curve([(0, 0.0), (22, 0.0), (28, 0.3), (38, 0.3), (44, 0.0)])
+    lift = curve([(0, 0.0), (22, 0.0), (25, 0.1), (28, 0.0), (38, 0.0), (41, 0.06), (44, 0.0)])
+    head = curve([(0, 0.0), (16, -14.0), (28, 18.0), (44, 0.0)])
+    r_rest = body.wrist_rest("R")
+    for f in range(T + 1):
+        spec = base_pose(body, st, Spec(), crouch)
+        tremble = 2.0 * math.sin(f * 2.9) if 16 <= f <= 26 else 0
+        quake = 3 * math.sin((f - 28) * 4.0) * max(0.0, 1 - (f - 28) / 8) if f >= 28 else 0
+        spec.root = Vector((root_x(f), 0.0, crouch + sink(f)))
+        xl, yl, zl, _ = spec.feet["L"]
+        spec.feet["L"] = (xl + step(f), yl, zl + lift(f), 0)
+        add(spec, "hips", y=spine(f) * 0.35, z=twist(f) * 0.4)
+        add(spec, "chest", y=spine(f) * 0.65, x=tremble + quake, z=twist(f) * 0.6)
+        add(spec, "head", y=head(f), z=quake * 2)
+        phi, psi = tilt(f) + tremble, yaw(f)
+        g = Vector(grip(f))
+        spec.hands["L"] = (g.x, g.y, g.z)
+        spec.rot["hand_world.L"] = (0, phi, psi)
+        # Høyre hånd 30 cm lenger ned langs skaftet, og tilbake til sida.
+        # Skaftet står `st["staff_at"]` fra venstre håndledd (dreid med hånda).
+        q = eul(0, phi, psi)
+        d = q @ Vector((0.0, 0.0, 1.0))
+        shaft = g + q @ Vector(st.get("staff_at", (0.0, 0.0, 0.0)))
+        on = shaft - d * 0.3 + Vector((0.0, -0.08, 0.0))
+        k = both(f)
+        rr = r_rest.lerp(on, k)
+        spec.hands["R"] = (rr.x, rr.y, rr.z)
+        spec.rot["hand_world.R"] = (0, phi * k, psi * k)
+        body.key(c, f, spec)
+
+
+ATTACKS = {"bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
 
 
 def make_clips(Clip, arm, bones, style, attack, extra=()):

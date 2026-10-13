@@ -127,3 +127,8 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Det som ligger under gulvet, må høre til et rom.** Lyset følger rommene (`room_of`), og utenfor alle rom lyser bare lykta du bærer. Sjakta til trappa ned lå under gulvet og ble utbrent i lykteskinnet. Rommet når nå ned i sjakta (`Room.sink`).
 - **To flater i samme plan blinker.** Det gjaldt terskelen 3 mm under gulvet, enden av brystvernet mot portalmuren, og innsida av brystvernet mot lysningen i buen. En flate skal enten stå inne i den andre eller minst 1 cm unna.
 - **Samme stein overalt i et rom.** Hvelvet, veggene og kapellet mures av den samme steinen (`crypt_wall`). En annen stein brukes bare der den betyr noe (gravheller, beinmuren).
+
+## Datepicker-presten – dommen (13. oktober)
+
+- **Et våpen holdes og svinges.** Fingrene pekte rett fram ved siden av skaftet, og angrepet var slaget i bakken, så staven ble slengt flatt med nevene. En hånd med våpen har fingre lagt rundt skaftet (stivt på samme bein som våpenet), og et monster med våpen har et eget angrep der våpenet bærer slaget (`attack_staff`).
+- **Våpenet går aldri gjennom kroppen.** `staff_clearance` i `tools/models/monsters.py` måler staven mot kapsler rundt kroppen i hvert bilde av angrepet og stopper eksporten om den går inn. Før regelen gikk skaftet 5 cm inn i kappa i treffet.
