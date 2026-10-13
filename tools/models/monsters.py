@@ -1176,7 +1176,136 @@ def build_frog(size):
     bake_textured(f"{OUT}/mutant_toast.glb", size, keep=("glass", "magic"), armature=arm, rigid=FROG_RIGID, skin={"blend": 0.04, "radii": {"root": -1.0, "jaw": -1.0, "neck": -1.0}})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048), "mutant_toast": (build_frog, 1024)}
+# --- Select Broodmother -------------------------------------------------------
+#
+# Arket (`select_broodmother_body.jpeg`, 2912 × 1440): eliten i kloakken, en
+# tønne av en nedtrekksliste med vinkelhodet og linseøyet øverst foran, en
+# lysende nøkkel i det valgte feltet, skulderplater med pigger, armer med et
+# nøkkelspyd, et trekkspill av valg med små hodeskaller under og åtte
+# leddede bein. 1103 px høy (167–1270) og 1,6 m (eliten skaleres 1,3).
+
+BROOD_SHEET = os.path.join(REF, "select_broodmother_body.jpeg")
+BROOD_PX = 1.6 / (1270 - 167)
+BROOD_VIEWS = {"front": 512, "back": 2423, "side": 1499, "ground": 1270}
+BROOD_LEGS = [(-1, 35), (-1, 70), (-1, 110), (-1, 145), (1, 35), (1, 70), (1, 110), (1, 145)]  # (side, vinkel fra fronten)
+
+
+def brood_leg_names():
+    out = []
+    for k in range(4):
+        out += [(k, "L"), (k, "R")]
+    return out
+
+
+def brood_leg_geom(k, side):
+    sy = 1.0 if side == "L" else -1.0
+    ang = math.radians([35, 70, 110, 145][k])
+    d = Vector((math.cos(ang), sy * math.sin(ang), 0.0))
+    hip = Vector((0.0, 0.0, 0.72)) + d * 0.3
+    knee = Vector((0.0, 0.0, 1.0)) + d * 0.72
+    foot = Vector((0.0, 0.0, 0.0)) + d * 1.0
+    return hip, knee, foot
+
+
+BROOD_BONES = [
+    ("root", (0, 0, 0), (0, 0, 0.2), None),
+    ("hips", (0.0, 0, 0.72), (0.0, 0, 0.9), "root"),
+    ("chest", (0.0, 0, 0.9), (0.0, 0, 1.35), "hips"),
+    ("neck", (0.2, 0, 1.25), (0.32, 0, 1.3), "chest"),
+    ("head", (0.32, 0, 1.33), (0.5, 0, 1.33), "neck"),
+    ("jaw", (0.36, 0, 1.22), (0.48, 0, 1.2), "head"),
+    ("upper_arm.L", (0.0, 0.42, 1.25), (0.08, 0.52, 0.98), "chest"),
+    ("forearm.L", (0.08, 0.52, 0.98), (0.22, 0.5, 0.82), "upper_arm.L"),
+    ("hand.L", (0.22, 0.5, 0.82), (0.28, 0.5, 0.74), "forearm.L"),
+    ("upper_arm.R", (0.0, -0.42, 1.25), (0.08, -0.52, 0.98), "chest"),
+    ("forearm.R", (0.08, -0.52, 0.98), (0.22, -0.5, 0.82), "upper_arm.R"),
+    ("hand.R", (0.22, -0.5, 0.82), (0.28, -0.5, 0.74), "forearm.R"),
+    ("tail1", (0.0, 0, 0.72), (0.0, 0, 0.6), "hips"),
+    ("tail2", (0.0, 0, 0.6), (0.0, 0, 0.48), "tail1"),
+    ("tail3", (0.0, 0, 0.48), (0.0, 0, 0.36), "tail2"),
+]
+for _k, _s in brood_leg_names():
+    _h, _kn, _f = brood_leg_geom(_k, _s)
+    BROOD_BONES.append((f"leg{_k:02d}.{_s}", tuple(_h), tuple(_kn), "hips"))
+
+
+def broodmother():
+    sheet = sheet_material("brood_sheet", filled_sheet(BROOD_SHEET))
+    iron = material("rust_iron", (0.36, 0.22, 0.14), 0.6, 1.0)
+    weather(iron, 0.0, 1.8, 0.35, 12.0)
+    cyan = material("magic_lens", (0.45, 0.95, 1.0), 0.3)
+    keyglow = material("magic_key", (0.45, 0.95, 1.0), 0.3)
+    parts = []
+    # Tønna: en sylinder på tvers (aksen langs y), med nedtrekkslista foran.
+    body = cylinder("body_drum", (0.0, 0, 1.08), 0.45, 0.66, sheet, rot=(math.pi / 2, 0, 0), vertices=28)
+    parts.append(body)
+    parts.append(rounded_box("body_panel", (0.36, 0, 1.0), (0.14, 0.6, 0.52), sheet, radius=0.03))
+    parts.append(rounded_box("head_chevron", (0.36, 0, 1.36), (0.2, 0.34, 0.22), sheet, radius=0.04))
+    ellipsoid("eye_lens", (0.46, 0, 1.36), (0.05, 0.11, 0.08), cyan, 14, 8)
+    # Nøkkelen i det valgte feltet.
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.05, minor_radius=0.012, major_segments=16, minor_segments=6, location=(0.44, -0.12, 0.98), rotation=(0, math.pi / 2, 0))
+    ring = bpy.context.active_object
+    ring.name = "key_ring"
+    ring.data.materials.append(keyglow)
+    tube("key_shaft", (0.44, -0.07, 0.98), (0.44, 0.16, 0.98), 0.012, keyglow, 6)
+    for k, dy in enumerate((0.1, 0.15)):
+        tube(f"key_bit{k}", (0.44, dy, 0.98), (0.44, dy, 0.93), 0.012, keyglow, 6)
+    # Skulderplatene med pigger.
+    for sy in (1.0, -1.0):
+        parts.append(ellipsoid(f"pauldron_{sy:+.0f}", (0.0, sy * 0.4, 1.3), (0.36, 0.26, 0.24), sheet, 16, 10))
+        for k, (dx, dz) in enumerate(((0.08, 0.1), (-0.08, 0.1), (0.0, 0.14))):
+            bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.025, radius2=0.0, depth=0.1, location=(dx, sy * 0.48, 1.3 + dz))
+            sp = bpy.context.active_object
+            sp.name = f"pauldron_spike{sy:+.0f}{k}"
+            sp.rotation_euler = (-sy * 0.6, 0, 0)
+            sp.data.materials.append(iron)
+    # Armene: pansrede rør og en stor hanske, nøkkelspydet i venstre.
+    B = {b[0]: (Vector(b[1]), Vector(b[2])) for b in BROOD_BONES}
+    for side in ("L", "R"):
+        sh, el, wr = B[f"upper_arm.{side}"][0], B[f"forearm.{side}"][0], B[f"hand.{side}"][0]
+        parts.append(tube(f"arm_{side}_a", sh, el, 0.07, sheet, 10))
+        parts.append(tube(f"arm_{side}_b", el, wr, 0.08, sheet, 10))
+        parts.append(ellipsoid(f"glove_{side}", wr + Vector((0.03, 0, -0.03)), (0.14, 0.12, 0.14), sheet, 10, 6))
+    tube("spear_shaft", (0.28, 0.5, 0.25), (0.28, 0.5, 1.75), 0.018, iron, 8)
+    for k, z in enumerate((1.55, 1.62, 1.69)):
+        box(f"spear_tooth{k}", (0.28, 0.54, z), (0.02, 0.06, 0.025), iron)
+    bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.035, radius2=0.0, depth=0.14, location=(0.28, 0.5, 1.82))
+    tip = bpy.context.active_object
+    tip.name = "spear_tip"
+    tip.data.materials.append(iron)
+    # Trekkspillet av valg under tønna.
+    for k in range(7):
+        z = 0.7 - k * 0.055
+        r = 0.2 if k % 2 == 0 else 0.17
+        parts.append(cylinder(f"accordion{k}", (0.0, 0, z), r, 0.05, sheet, vertices=20))
+    # Beina: åtte leddede bein ut fra undersida av tønna.
+    for k, side in brood_leg_names():
+        hip, knee, foot = brood_leg_geom(k, side)
+        parts.append(tube(f"leg{k:02d}.{side}_a", hip, knee, 0.05, sheet, 8))
+        parts.append(ellipsoid(f"leg{k:02d}.{side}_k", knee, (0.11, 0.11, 0.11), sheet, 8, 6))
+        parts.append(tube(f"leg{k:02d}.{side}_b", knee, foot + Vector((0, 0, 0.05)), 0.04, sheet, 8))
+        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.04, radius2=0.0, depth=0.1, location=foot + Vector((0, 0, 0.05)), rotation=(math.pi, 0, 0))
+        c = bpy.context.active_object
+        c.name = f"leg{k:02d}.{side}_tip"
+        c.data.materials.append(iron)
+    bpy.context.view_layer.update()
+    for ob in parts:
+        project_sheet(ob, (2912, 1440), BROOD_VIEWS, BROOD_PX)
+
+
+def build_brood(size):
+    broodmother()
+    arm = armature("mutant_select_rig", BROOD_BONES)
+    legs = brood_leg_names()
+    table_clips(arm, legs)
+    bpy.context.scene.frame_end = 40
+    rigid = {"body": "chest", "head": "head", "eye": "head", "key": "chest", "pauldron": "chest", "spear": "hand.L", "accordion": "tail2"}
+    for k, side in legs:
+        rigid[f"leg{k:02d}.{side}_"] = f"leg{k:02d}.{side}"
+    bake_textured(f"{OUT}/mutant_select.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.04, "radii": {"root": -1.0, "jaw": -1.0}})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048), "mutant_toast": (build_frog, 1024), "mutant_select": (build_brood, 2048)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

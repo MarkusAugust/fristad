@@ -83,6 +83,7 @@ models! {
     "mutant_input" => "mobs/mutant_input.glb",
     "mutant_table" => "mobs/mutant_table.glb",
     "mutant_toast" => "mobs/mutant_toast.glb",
+    "mutant_select" => "mobs/mutant_select.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",
