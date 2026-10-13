@@ -85,6 +85,23 @@ def glb_layers(path):
     return {((m.get("extras") or {}).get("fristad") or {}).get("layer") for m in j.get("materials", [])} - {None}
 
 
+def glb_to_json(src, dst):
+    """glb som glTF i JSON med dataene innebygd (artefaktene tar ikke imot
+    `.glb`; three.js leser begge)."""
+    import base64
+    import struct
+    with open(src, "rb") as f:
+        b = f.read()
+    n = struct.unpack("<I", b[12:16])[0]
+    j = json.loads(b[20:20 + n])
+    rest = b[20 + n:]
+    if len(rest) >= 8:
+        m = struct.unpack("<I", rest[:4])[0]
+        j["buffers"][0]["uri"] = "data:application/octet-stream;base64," + base64.b64encode(rest[8:8 + m]).decode()
+    with open(dst, "w") as f:
+        json.dump(j, f, separators=(",", ":"))
+
+
 LEVEL_PIECE = __import__("re").compile(r"^(crypt_\d\d)_[a-z]{2}$")
 
 
@@ -113,23 +130,26 @@ def models_3d(out, items):
                 os.makedirs(os.path.join(root, lv), exist_ok=True)
                 levels[lv] = []
                 for pc in pieces:
-                    shutil.copy(pc, os.path.join(root, lv, os.path.basename(pc)))
-                    levels[lv].append(f"glb/{lv}/{os.path.basename(pc)}")
+                    nm = os.path.basename(pc)[:-4] + ".json"
+                    glb_to_json(pc, os.path.join(root, lv, nm))
+                    levels[lv].append(f"glb/{lv}/{nm}")
                     used |= glb_layers(pc)
-            it["glb"], it["level"] = f"glb/{lv}/{it['name']}.glb", lv
+            it["glb"], it["level"] = f"glb/{lv}/{it['name']}.json", lv
         else:
-            shutil.copy(src, os.path.join(root, f"{it['id']}.glb"))
-            it["glb"] = f"glb/{it['id']}.glb"
+            glb_to_json(src, os.path.join(root, f"{it['id']}.json"))
+            it["glb"] = f"glb/{it['id']}.json"
             used |= glb_layers(src)
         seen = (it.get("seen") or "")
         if seen and seen != it["version"]:
             old = subprocess.run(["git", "cat-file", "blob", seen], cwd=ROOT, capture_output=True).stdout
             if old[:4] == b"glTF":
-                dst = os.path.join(root, "før", f"{it['id']}.glb")
-                with open(dst, "wb") as f:
+                tmp = os.path.join(WORK, "før.glb")
+                os.makedirs(WORK, exist_ok=True)
+                with open(tmp, "wb") as f:
                     f.write(old)
-                it["glb_before"] = f"glb/før/{it['id']}.glb"
-                used |= glb_layers(dst)
+                glb_to_json(tmp, os.path.join(root, "før", f"{it['id']}.json"))
+                it["glb_before"] = f"glb/før/{it['id']}.json"
+                used |= glb_layers(tmp)
     layers = {}
     for name in sorted(used):
         src = os.path.join(ROOT, "assets", "textures", name, "albedo.jpg")

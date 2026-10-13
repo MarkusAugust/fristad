@@ -131,7 +131,7 @@ export async function show(it, data, ui) {
   if (crypt && data.levels && data.levels[it.level]) {
     level = new THREE.Group();
     level.name = "nivået";
-    const urls = data.levels[it.level].filter(u => !u.endsWith("/" + it.name + ".glb"));
+    const urls = data.levels[it.level].filter(u => u !== it.glb);
     const parts = await Promise.all(urls.map(u => load(st, u, layers, sides)));
     for (const p of parts) level.add(p);
     level.visible = ui.whole.checked;
