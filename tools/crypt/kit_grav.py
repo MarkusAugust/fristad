@@ -1882,7 +1882,7 @@ def kit_down(w=2.4, depth=3.2, steps=10):
         y = -(k + 1) * rise
         box(m, (-w / 2, -2.8, z0), (w / 2, y, z1), "dressed", faces=("+y", "+z", "-z"))
     # Terskelen foran øverste trinn fyller kanten av hullet i gulvet.
-    box(m, (-w / 2, -2.8, 0.0), (w / 2, -0.003, 0.35), "dressed", faces=("+y", "-z"))
+    box(m, (-w / 2, -2.8, 0.0), (w / 2, -0.015, 0.35), "dressed", faces=("+y", "-z"))
     # Sidene i trappesjakta og bakveggen.
     for sx in (-1, 1):
         surf = Plane((sx * w / 2, 0.0), (0.0, -1.0), (-sx, 0.0))
@@ -1893,7 +1893,10 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     m.quad((-w / 2, -2.75, -depth - 0.6), (w / 2, -2.75, -depth - 0.6), (w / 2, -2.75, -depth + 0.4), (-w / 2, -2.75, -depth + 0.4), "magic_down", facing=(0, 1, 0))
     # Brystvernet rundt hullet, åpent mot +z.
     t = 0.3
-    path = [(-w / 2 - t / 2, 0.0), (-w / 2 - t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, 0.0)]
+    # Det begynner bak portalmuren (T = 0,5 m, forsida 12 cm foran origo),
+    # så innsida ikke ligger i samme plan som lysningen i buen.
+    z_p = 0.12 - 0.5 + 0.03  # enden står 3 cm inne i muren, ikke i samme plan
+    path = [(-w / 2 - t / 2, z_p), (-w / 2 - t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, -depth - 0.6 - t / 2), (w / 2 + t / 2, z_p)]
     parapet(m, path, 0.0, h=0.95, t=t)
     # Portalen over nedgangen: en kort mur med rundbuet åpning så bred som
     # trappa, med vangestein og kilestein på begge sider (som døra opp og
@@ -1903,8 +1906,11 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     top = spring + w / 2 + 0.75
     hole = Polygon(arch_profile(0.0, w, -0.05, spring + 0.05, n=16))
     face = Polygon([(-hw, -0.05), (hw, -0.05), (hw, top), (-hw, top)]).difference(hole)
-    front = Plane((0.0, 0.0), (1.0, 0.0), (0.0, 1.0))
-    back_s = Plane((0.0, -T), (-1.0, 0.0), (0.0, -1.0))
+    # Muren står 12 cm foran brystvernet (og dekkhella), så endene ikke ligger i
+    # samme plan som murflata.
+    z0 = 0.12
+    front = Plane((0.0, z0), (1.0, 0.0), (0.0, 1.0))
+    back_s = Plane((0.0, z0 - T), (-1.0, 0.0), (0.0, -1.0))
     grid_face(m, front, face, "wall")
     grid_face(m, back_s, Polygon([(-u, v) for u, v in face.exterior.coords]).difference(Polygon([(-u, v) for u, v in hole.exterior.coords])), "wall")
     # Lysningen i åpningen (vangene og buens underside) mellom forsida og baksida.
@@ -1912,12 +1918,13 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     for (ua, va), (ub, vb) in zip(prof, prof[1:]):
         mid = ((ua + ub) / 2, (va + vb) / 2)
         n_in = (-mid[0], 0.0, 0.0) if va <= spring + 0.01 and vb <= spring + 0.01 else (-mid[0], spring - mid[1], 0.0)
-        m.quad((ua, va, 0.0), (ub, vb, 0.0), (ub, vb, -T), (ua, va, -T), "dressed", facing=n_in)
+        m.quad((ua, va, z0), (ub, vb, z0), (ub, vb, z0 - T), (ua, va, z0 - T), "dressed", facing=n_in)
     # Toppen og endene av muren.
-    box(m, (-hw, -0.05, -T), (hw, top, 0.0), "wall", faces=("+y", "+x", "-x"))
-    box(m, (-hw - 0.06, top, -T - 0.06), (hw + 0.06, top + 0.14, 0.06), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
+    box(m, (-hw, -0.05, z0 - T), (hw, top, z0), "wall", faces=("+y", "+x", "-x"))
+    box(m, (-hw - 0.06, top, z0 - T - 0.06), (hw + 0.06, top + 0.14, z0 + 0.06), "slab", faces=("+y", "+x", "-x", "+z", "-z", "-y"))
     arch_trim(m, front, w, spring, v0=0.0, band=0.3, proud=0.1, seed=3)
-    arch_trim(m, back_s, w, spring, v0=0.0, band=0.3, proud=0.1, seed=5)
+    # Smalere bak: vangene ville stått i samme plan som utsida av brystvernet.
+    arch_trim(m, back_s, w, spring, v0=0.0, band=0.26, proud=0.1, seed=5)
     return m
 
 

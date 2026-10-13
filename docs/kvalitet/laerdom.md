@@ -120,3 +120,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **`ellipsoid` tar diametre, ikke radier.** Skulderplatene og hetta til presten ble halvparten så store.
 - **Faste deler henger på sitt bein.** Hansker, støvler, kabler og staven settes stivt på hånda, foten eller brystet (`rigid`). Ellers vektes de etter avstand og dras med av leggen ved siden av.
 - **Skrittet følger beinlengden.** Med korte bein (Modalen) må tråkket være raskere og skrittet kortere, og hvileposen kan bare senkes litt. Ellers knekker knærne sammen. Armen med stav står i hvileposen (`hold`), så staven står loddrett.
+
+## Kryptnivå 1 – dommen (13. oktober)
+
+- **Et hull er det du kan se gjennom.** Trinnene i trappa ned var tynne plater med to sider, så bakgrunnen synes mellom dem som grå striper. Tetthetssjekken fant det ikke, fordi den skyter fra gulvet i rommene og ikke fra innsida av en modell. Trinn er massive ned til bunnen.
+- **Det som ligger under gulvet, må høre til et rom.** Lyset følger rommene (`room_of`), og utenfor alle rom lyser bare lykta du bærer. Sjakta til trappa ned lå under gulvet og ble utbrent i lykteskinnet. Rommet når nå ned i sjakta (`Room.sink`).
+- **To flater i samme plan blinker.** Det gjaldt terskelen 3 mm under gulvet, enden av brystvernet mot portalmuren, og innsida av brystvernet mot lysningen i buen. En flate skal enten stå inne i den andre eller minst 1 cm unna.
+- **Samme stein overalt i et rom.** Hvelvet, veggene og kapellet mures av den samme steinen (`crypt_wall`). En annen stein brukes bare der den betyr noe (gravheller, beinmuren).
