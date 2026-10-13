@@ -901,7 +901,212 @@ def build_leech(size):
     bake_textured(f"{OUT}/mutant_input.glb", size, keep=("glass", "magic"), armature=arm, rigid=LEECH_RIGID, skin={"blend": 0.08, "radii": LEECH_RADII})
 
 
-BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024)}
+# --- Tabellen ----------------------------------------------------------------
+#
+# Arket (`table_body.jpeg`, 2048 × 2048): bossen i kloakken, en tusenbein av
+# tabellrader. Arket viser den stående: til venstre buken med radene og
+# ansiktet, i midten fra siden (krummet som en S), til høyre ryggen med
+# murstein og slim. I spillet kryper den langs bakken, så radene (venstre
+# stripe) ligger på ryggen der du ser dem, og hodet er reist med ansiktet
+# fram. Stripa er 260 px bred (0,45 m) og 1700 px lang (2,9 m); spillet
+# skalerer slaget til 1,4 (`Kind::Table`).
+
+TABLE_SHEET = os.path.join(REF, "table_body.jpeg")
+TABLE_PX = 0.45 / 260
+TABLE_TOP_X, TABLE_BELLY_X, TABLE_MID_Y = 360, 1712, 1000
+TABLE_Z = 0.36  # midt i kroppen over bakken
+TABLE_ROWS = [400 + 97.2 * k for k in range(15)]  # radene i stripa (px), fra hodet bakover
+TABLE_SPINE = [("hips", -0.1, 0.4), ("chest", 0.4, 0.9), ("neck", 0.9, 1.15), ("head", 1.15, 1.55)]
+TABLE_TAIL = [("tail1", -0.1, -0.5), ("tail2", -0.5, -0.9), ("tail3", -0.9, -1.35)]
+
+
+def strip_x(Y):
+    """Lengden i stripa (rad i px) til x i modellen (hodet mot +x)."""
+    return (TABLE_MID_Y - Y) * TABLE_PX
+
+
+def table_uv(ob, img_size):
+    """Uv-laget «src» i stripas rom: oppover (+z) radene, nedover ryggen fra
+    høyre stripe, sidene og endene fra kanten av radene."""
+    W, H = img_size
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    src = me.uv_layers.get("src") or me.uv_layers.new(name="src")
+    px = TABLE_PX
+    for poly in me.polygons:
+        n = poly.normal
+        for li in poly.loop_indices:
+            p = me.vertices[me.loops[li].vertex_index].co
+            Y = TABLE_MID_Y - p.x / px
+            if n.z >= max(abs(n.x), abs(n.y)) * 0.8:
+                X = TABLE_TOP_X + p.y / px
+            elif -n.z >= max(abs(n.x), abs(n.y)) * 0.8:
+                X = TABLE_BELLY_X - p.y / px
+            elif abs(n.y) >= abs(n.x):
+                # Sida: kanten av rada, med høyden som en smal stripe innover.
+                X = TABLE_TOP_X + math.copysign(118 - (p.z - TABLE_Z) / px * 0.4, n.y)
+            else:
+                X = TABLE_TOP_X + p.y / px
+                Y = Y + math.copysign(40, -n.x) + (p.z - TABLE_Z) / px * 0.3
+            src.data[li].uv = (X / W, 1.0 - Y / H)
+
+
+def table_bones():
+    bones = [("root", (0, 0, 0), (0, 0, 0.2), None)]
+    for name, a, b in TABLE_SPINE:
+        parent = {"hips": "root", "chest": "hips", "neck": "chest", "head": "neck"}[name]
+        bones.append((name, (a, 0, TABLE_Z), (b, 0, TABLE_Z + (0.15 if name == "head" else 0.0)), parent))
+    bones.append(("jaw", (1.3, 0, TABLE_Z + 0.05), (1.45, 0, TABLE_Z), "head"))
+    for i, (name, a, b) in enumerate(TABLE_TAIL):
+        bones.append((name, (a, 0, TABLE_Z), (b, 0, TABLE_Z - 0.02 * i), "hips" if i == 0 else TABLE_TAIL[i - 1][0]))
+    for k, x in enumerate(table_leg_xs()):
+        for sy, side in ((1.0, "L"), (-1.0, "R")):
+            bones.append((f"leg{k:02d}.{side}", (x, sy * 0.22, TABLE_Z), (x, sy * 0.5, TABLE_Z + 0.04), spine_at(x)))
+    return bones
+
+
+def table_leg_xs():
+    return [strip_x((TABLE_ROWS[k] + TABLE_ROWS[k + 1]) / 2) for k in range(len(TABLE_ROWS) - 1)]
+
+
+def spine_at(x):
+    for name, a, b in TABLE_SPINE + TABLE_TAIL:
+        if min(a, b) <= x <= max(a, b):
+            return name
+    return "tail3" if x < 0 else "chest"
+
+
+def table_monster():
+    sheet = sheet_material("table_sheet", filled_sheet(TABLE_SHEET))
+    leg = material("leg_plastic", (0.5, 0.56, 0.62), 0.45)
+    weather(leg, 0.0, 0.5, 0.2, 10.0)
+    claw = material("leg_tip", (0.2, 0.22, 0.26), 0.5)
+    cable = material("cable", (0.1, 0.11, 0.13), 0.5)
+    cyan = material("magic_core", (0.45, 0.95, 1.0), 0.3)
+    horn = material("horn", (0.15, 0.16, 0.19), 0.5)
+    parts = []
+    # Radene: én kloss per rad, med en smal fuge imellom.
+    for k in range(len(TABLE_ROWS) - 1):
+        x0, x1 = strip_x(TABLE_ROWS[k + 1]) + 0.006, strip_x(TABLE_ROWS[k]) - 0.006
+        b = rounded_box(f"row{k:02d}", ((x0 + x1) / 2, 0, TABLE_Z), (x1 - x0, 0.45, 0.17), sheet, radius=0.02)
+        parts.append((b, spine_at((x0 + x1) / 2)))
+    # Brystet med kjernen som lyser, og hodet (tegnet flatt, så reist).
+    xc0, xc1 = strip_x(400), strip_x(300)
+    chest = rounded_box("row_chest", ((xc0 + xc1) / 2, 0, TABLE_Z), (xc1 - xc0, 0.3, 0.15), sheet, radius=0.03)
+    parts.append((chest, "neck"))
+    xh0, xh1 = strip_x(300), strip_x(140)
+    head = rounded_box("head_block", ((xh0 + xh1) / 2, 0, TABLE_Z), (xh1 - xh0, 0.52, 0.2), sheet, radius=0.03)
+    parts.append((head, "head"))
+    for ob, _ in parts:
+        apply_mods(ob)
+        table_uv(ob, (2048, 2048))
+    # Hodet vippes 60° fram om bakkanten, så ansiktet (oversida i arket)
+    # ser fram og litt opp.
+    pivot = Vector((xh0, 0, TABLE_Z + 0.1))
+    from mathutils import Matrix
+    R = Matrix.Translation(pivot) @ Matrix.Rotation(math.radians(60), 4, "Y") @ Matrix.Translation(-pivot)
+    head.data.transform(R)
+    for sy in (1.0, -1.0):
+        hb = (R @ Vector((xh1 - 0.02, sy * 0.2, TABLE_Z + 0.1))).to_3d()
+        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.035, radius2=0.0, depth=0.16, location=hb)
+        h = bpy.context.active_object
+        h.name = f"head_horn{sy:+.0f}"
+        h.rotation_euler = (sy * -0.35, math.radians(60), 0)
+        h.data.materials.append(horn)
+    core = ellipsoid("core_glow", ((xc0 + xc1) / 2 + 0.02, 0, TABLE_Z + 0.08), (0.09, 0.09, 0.05), cyan, 10, 6)
+    # Beina: ett par per rad, ut og opp til kneet, ned til en spiss klo.
+    for k, x in enumerate(table_leg_xs()):
+        for sy, side in ((1.0, "L"), (-1.0, "R")):
+            a = Vector((x, sy * 0.2, TABLE_Z))
+            kn = Vector((x + 0.02, sy * 0.5, TABLE_Z + 0.04))
+            ft = Vector((x + 0.06, sy * 0.74, 0.02))
+            tube(f"leg{k:02d}.{side}_a", a, kn, 0.03, leg, 8)
+            ellipsoid(f"leg{k:02d}.{side}_k", kn, (0.07, 0.07, 0.07), leg, 8, 6)
+            tube(f"leg{k:02d}.{side}_b", kn, kn + (ft - kn) * 0.75, 0.026, leg, 8)
+            tube(f"leg{k:02d}.{side}_c", kn + (ft - kn) * 0.75, ft, 0.018, claw, 6)
+    # Kablene som henger etter halen.
+    for k, dy in enumerate((-0.1, -0.03, 0.05, 0.12)):
+        x = strip_x(TABLE_ROWS[-1])
+        tube(f"cable_{k}a", (x + 0.05, dy, TABLE_Z - 0.04), (x - 0.25, dy * 1.3, 0.12), 0.012, cable, 6)
+        tube(f"cable_{k}b", (x - 0.25, dy * 1.3, 0.12), (x - 0.45, dy * 1.6, 0.02), 0.012, cable, 6)
+    return [(ob.name, bone) for ob, bone in parts]
+
+
+def apply_mods(ob):
+    bpy.context.view_layer.objects.active = ob
+    for m in list(ob.modifiers):
+        bpy.ops.object.modifier_apply(modifier=m.name)
+    # Lokasjonen inn i hjørnene, så uv-en regnes i modellens rom.
+    ob.data.transform(ob.matrix_world)
+    ob.matrix_world = ob.matrix_world.__class__.Identity(4)
+
+
+def table_clips(arm, legs):
+    """Gangen: en bølge sideveis langs ryggen og beina i takt bakover,
+    to og to i motfase; utfall med hodet ned, rykk, død på ryggen."""
+    spine = ["head", "neck", "chest", "hips", "tail1", "tail2", "tail3"]
+
+    def pose(c, f, wave=0.0, amp=0.0, legamp=0.0, pitch=None, root=(0, 0, 0), roll=0.0, curl=0.0, jaw=0.0):
+        for i, b in enumerate(spine):
+            c.rot(b, f, y=(pitch or {}).get(b, 0.0), z=amp * math.sin(wave + 0.8 * i))
+        for k, side in legs:
+            sy = 1.0 if side == "L" else -1.0
+            ph = wave + 0.7 * k + (0.0 if side == "L" else math.pi)
+            swing = legamp * math.sin(ph)
+            lift = max(0.0, legamp * 0.8 * math.cos(ph))
+            c.rot(f"leg{k:02d}.{side}", f, x=sy * (lift + curl), z=swing)
+        c.rot("jaw", f, y=-jaw)
+        c.rot("root", f, x=roll)
+        c.loc("root", f, root)
+
+    def clip(name, length, fn, step=1):
+        c = Clip(arm, name, length, mob_motion.FPS)
+        for f in range(0, length + 1, step):
+            fn(c, f, f / length)
+        c.finish()
+
+    clip("walk", 16, lambda c, f, t: pose(c, f, 2 * math.pi * t, 5.0, 22.0, root=(0, 0, 0.01 * abs(math.sin(4 * math.pi * t)))))
+
+    def idle(c, f, t):
+        jerk = 6.0 if 20 <= f <= 23 else 0.0  # rykker digitalt
+        pose(c, f, 2 * math.pi * t, 1.5, 4.0, {"head": -4 * math.sin(2 * math.pi * t) - jerk, "neck": jerk})
+    clip("idle", 40, idle)
+
+    def attack(c, f, t):
+        if f <= 10:
+            u = f / 10
+            pose(c, f, 0, 0, 0, {"chest": -14 * u, "neck": -18 * u, "head": -10 * u}, root=(-0.08 * u, 0, 0), jaw=6 * u)
+        elif f <= 15:
+            u = (f - 10) / 5
+            pose(c, f, 0, 0, 0, {"chest": -14 + 26 * u, "neck": -18 + 40 * u, "head": -10 + 30 * u}, root=(-0.08 + 0.3 * u, 0, 0), jaw=6 + 24 * u)
+        else:
+            e = 1 - (1 - (f - 15) / 15) ** 2
+            pose(c, f, 0, 0, 0, {"chest": 12 * (1 - e), "neck": 22 * (1 - e), "head": 20 * (1 - e)}, root=(0.22 * (1 - e), 0, 0), jaw=30 * (1 - e))
+    clip("attack", 30, attack)
+    clip("alert", 22, lambda c, f, t: pose(c, f, 0, 0, 6.0 * math.sin(math.pi * t), {"chest": -16 * math.sin(math.pi * min(1, 1.6 * t)), "neck": -14 * math.sin(math.pi * min(1, 1.6 * t))}, jaw=10 * math.sin(math.pi * t)))
+    for name, side in (("hit", 1.0), ("hit2", -1.0)):
+        clip(name, 14, lambda c, f, t, side=side: pose(c, f, 1.0, side * 10 * math.exp(-4 * t) * math.cos(10 * t), 8 * math.exp(-4 * t), {"neck": -8 * math.exp(-5 * t)}, root=(-0.08 * math.exp(-4 * t), 0, 0)))
+    clip("stagger", 30, lambda c, f, t: pose(c, f, 4 * math.pi * t, 8 * math.sin(math.pi * t), 10.0, {"head": 12 * math.sin(math.pi * t)}, roll=6 * math.sin(4 * math.pi * t)))
+    clip("die", 36, lambda c, f, t: pose(c, f, 0, 0, 0, {"head": 15 * min(1, 2 * t)}, root=(0, 0, 0.25 * math.sin(math.pi * min(1, 1.5 * t)) - 0.0), roll=170 * min(1, 1.5 * t) ** 2, curl=40 * min(1, 2 * t), jaw=20))
+    clip("die2", 36, lambda c, f, t: pose(c, f, 0, 4 * (1 - t), 0, {"chest": 6, "neck": 20 * min(1, 2 * t), "head": 25 * min(1, 2 * t)}, root=(0, 0, -0.18 * min(1, 2 * t)), curl=-25 * min(1, 2 * t), jaw=12))
+
+
+def build_table(size):
+    rigid_parts = table_monster()
+    bones = table_bones()
+    arm = armature("mutant_table_rig", bones)
+    legs = [(k, side) for k in range(len(table_leg_xs())) for side in ("L", "R")]
+    table_clips(arm, legs)
+    bpy.context.scene.frame_end = 40
+    rigid = {name: bone for name, bone in rigid_parts}
+    rigid.update({"head_horn": "head", "core": "neck", "cable": "tail3"})
+    for k, side in legs:
+        rigid[f"leg{k:02d}.{side}_"] = f"leg{k:02d}.{side}"
+    bake_textured(f"{OUT}/mutant_table.glb", size, keep=("glass", "magic"), armature=arm, rigid=rigid, skin={"blend": 0.04, "radii": {"root": -1.0}})
+
+
+BUILDERS = {"mutant_button": (build_wight, 1024), "mutant_tooltip": (build_sprite, 1024), "datepicker_priest": (build_priest, 2048), "mutant_modal": (build_modal, 2048), "mutant_input": (build_leech, 1024), "mutant_table": (build_table, 2048)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
