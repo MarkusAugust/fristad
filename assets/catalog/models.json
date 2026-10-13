@@ -222,12 +222,12 @@
   "avatar_skull": "Avatar Skull (trash, Gravkongens hall): en rund profilramme av hvit plast med skiferkant der bildet har råtnet til en hodeskalle med ett cyan øye; graven med gravstein, bein og lys bak, korte beinbein; ruller som et hjul med bildet oppreist, hopper opp og biter (tools/models/monsters.py).",
   "breadcrumb_crawler": "Breadcrumb Crawler (trash, Gravkongens hall): en kjede av fire kuler av hvit plast med skiferbuk og lysende søm, bundet sammen av ryggvirvler, ett par beinbein per kule; linsa på hodet, lys og en gravstein oppå (tools/models/monsters.py).",
   "accordion_coffin": "Accordion Coffin (trash, Gravkongens hall): en stående kiste av grå plast med trekkspillfolder, lokket som kjeve og ett linseøye i glipa under, fire korte beinbein; gravstein, kryssede bein og lys oppå; ligger stille i bakhold (tools/models/monsters.py).",
-  "arms": "Armene i førsteperson uten rustning: underarmer med opprullet linerme og knyttnever rundt grepet, etter grepsarket (tools/models/arms.py); rigget med hugg, tungt hugg, blokk, parade og treff.",
+  "arms": "Armene i førsteperson uten rustning: hånd og underarm som én kropp etter omrisset i grepsarket, med opprullet linerme, og overarmen helt til skulderen (tools/models/arms.py); rigget med hugg, tungt hugg, blokk, parade og treff.",
   "arms_leather": "Armene i førsteperson med Badgevams: lærarmbeskyttere og lærhansker, samme rigg og klipp som armene (tools/models/arms.py).",
   "arms_mail": "Armene i førsteperson med Fieldset-brynje: brynjeermer og lærhansker, samme rigg og klipp som armene (tools/models/arms.py).",
-  "sword": "Sverdet (Rustent sverd, Komponentsverd, Dividerklinge): formen blåst opp fra omrisset i arket, metallet som en kile med rygg og grepet rundt (tools/models/arms.py).",
-  "axe": "Øksa (Kortøks): bladet fram og skaftet med lærvikling, blåst opp fra arket (tools/models/arms.py).",
-  "dagger": "Dolken (Taggdolk): klinge med hulkil, rund parerstang og grep med messingringer (tools/models/arms.py).",
+  "sword": "Sverdet (Rustent sverd, Komponentsverd, Dividerklinge): lukkede deler etter arket, rett klinge med rygg, parerstang, rundt grep på 3,2 cm og knapp som skive (tools/models/arms.py).",
+  "axe": "Øksa (Kortøks): bladet fram som en kile og det bøyde skaftet med lærvikling, lukkede deler etter arket (tools/models/arms.py).",
+  "dagger": "Dolken (Taggdolk): klinge med hulkil, rund parerplate, grep med messingringer og kuleknapp (tools/models/arms.py).",
   "shield_round": "Rundskjoldet: røde og hvite virvler forfra, planker, stropper og håndtak bak, bule og kant (tools/models/arms.py).",
   "shield_tower": "Tårnskjoldet (Fieldset): røde og hvite striper forfra, planker, beslag og håndtak bak (tools/models/arms.py)."
  }

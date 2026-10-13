@@ -2313,6 +2313,70 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": ""
+  },
+  "arms": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "history": [
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   ]
+  },
+  "arms_leather": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "history": [
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   ]
+  },
+  "arms_mail": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+   "history": [
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks"
+   ]
+  },
+  "axe": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "hånden holder det rart?",
+   "history": [
+    "hånden holder det rart?"
+   ]
+  },
+  "dagger": {
+   "verdict": "usikker",
+   "date": "2026-10-13",
+   "why": "hånden holder det rart?",
+   "history": [
+    "hånden holder det rart?"
+   ]
+  },
+  "shield_round": {
+   "verdict": "underkjent",
+   "date": "2026-10-13",
+   "why": "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
+   "history": [
+    "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre"
+   ]
+  },
+  "shield_tower": {
+   "verdict": "underkjent",
+   "date": "2026-10-13",
+   "why": "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
+   "history": [
+    "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre"
+   ]
+  },
+  "sword": {
+   "verdict": "underkjent",
+   "date": "2026-10-13",
+   "why": "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?",
+   "history": [
+    "ser ikke bra ut fra alle vinkler. det er huller i det. hånden holder det rart?"
+   ]
   }
  }
 }
