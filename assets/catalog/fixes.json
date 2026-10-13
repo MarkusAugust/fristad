@@ -7,7 +7,11 @@
    "images": [
     "assets/catalog/review/shield_round_block.jpg",
     "assets/catalog/review/shield_round_game.jpg"
-   ]
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "bilde to, hånden ser ut som at den er bøyd som gummi"
+   }
   }
  },
  "arms": {
@@ -28,6 +32,9 @@
   "e83b62769426": {
    "text": [
     "Siden du godkjente sverdet i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ],
+   "images": [
+    "assets/catalog/review/sword.jpg"
    ]
   }
  },
@@ -35,6 +42,9 @@
   "2ccc53cd57b0": {
    "text": [
     "Siden du godkjente dolken i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ],
+   "images": [
+    "assets/catalog/review/dagger.jpg"
    ]
   }
  }

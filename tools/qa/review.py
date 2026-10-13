@@ -129,13 +129,25 @@ def things():
     return out
 
 
-def state(entry, current):
-    """Bunken for en ting: `venter`, `hos_meg` eller `godkjent`."""
+def state(entry, current, fix=None):
+    """Bunken for en ting: `venter`, `hos_meg` eller `godkjent`. En retting
+    (`fix`, fra `fixes.json`) som svarer på dommen som står, gjør at tingen
+    venter selv om modellen ser lik ut: det som ble rettet, kan ligge i en
+    annen modell (rundskjoldet: hånda i blokken er armene)."""
     if not entry or entry.get("verdict") not in ("godkjent", "underkjent", "usikker"):
         return "venter"
     if entry.get("seen") != current:
         return "venter"
+    ans = (fix or {}).get("answers")
+    if ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
+        return "venter"
     return "godkjent" if entry["verdict"] == "godkjent" else "hos_meg"
+
+
+def fix_for(fixes, name):
+    """Den siste rettingen av tingen (`fixes.json`: navn → versjon → retting)."""
+    v = fixes.get(name) or {}
+    return list(v.values())[-1] if v else None
 
 
 def migrate(answers_dir):
@@ -269,16 +281,16 @@ def build(out, render=True):
         group = "models" if kind == "modell" else "textures"
         e = ap.get(group, {}).get(name)
         cur = version(path)
-        st = state(e, cur)
+        fix = fix_for(fixes, name)
+        st = state(e, cur, fix)
         before = after = None
         if st == "venter" and render and e and e.get("seen"):
             before, after = shots(kind, name, path, e["seen"]), shots(kind, name, path, cur)
             # Bygd på nytt, men ser ut som det eieren så: dommen står.
             if same_look(before, after):
                 e["seen"] = cur
-                st = state(e, cur)
-                carried += 1
-        fix = (fixes.get(name) or {}).get(cur)
+                st = state(e, cur, fix)
+                carried += st != "venter"
         item = {
             "id": id_, "kind": kind, "cat": category(name, kind, path), "name": name, "version": cur, "state": st,
             "about": about.get(name, "") if kind == "modell" else (tex.get(name) or {}).get("shows", ""),
@@ -317,11 +329,12 @@ def check(out):
     with open(os.path.join(out, "data.json")) as f:
         data = json.load(f)
     ap = load("approvals.json")
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
     seen = {it["id"]: it for it in data["items"]}
     errors = []
     for id_, kind, name, path in things():
         group = "models" if kind == "modell" else "textures"
-        st = state(ap.get(group, {}).get(name), version(path))
+        st = state(ap.get(group, {}).get(name), version(path), fix_for(fixes, name))
         it = seen.get(id_)
         if not it:
             errors.append(f"{name} mangler på siden")
@@ -350,7 +363,8 @@ def audit():
         for n, e in ap.get(group, {}).items():
             if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
-    waiting = sum(1 for _, k, n, p in things() if state(ap.get("models" if k == "modell" else "textures", {}).get(n), version(p)) == "venter")
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    waiting = sum(1 for _, k, n, p in things() if state(ap.get("models" if k == "modell" else "textures", {}).get(n), version(p), fix_for(fixes, n)) == "venter")
     if waiting > MAX_WAITING:
         errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")
     return errors

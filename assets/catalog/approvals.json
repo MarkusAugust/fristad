@@ -904,91 +904,91 @@
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "8ce7aebb7770"
+   "seen": "a0c715ac5484"
   },
   "gallery_badge": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "6394f39a1bc5"
+   "seen": "5fa65511968c"
   },
   "gallery_button": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "415cff13b90a"
+   "seen": "6deea6615556"
   },
   "gallery_card": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "4713603b88f9"
+   "seen": "24c6f7390ce7"
   },
   "gallery_dialog": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "242866151e5e"
+   "seen": "c7aa90b58688"
   },
   "gallery_divider": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "29746058c0dd"
+   "seen": "038ceeb8f613"
   },
   "gallery_fieldset": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "e51c19a43a8b"
+   "seen": "c48312d2bf57"
   },
   "gallery_file_upload": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "baf07b2d3d7e"
+   "seen": "d01cba4d2947"
   },
   "gallery_help_text": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "9c13d7801b5a"
+   "seen": "a729627243cc"
   },
   "gallery_label": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "182a9b1edb0a"
+   "seen": "b31acf4ef694"
   },
   "gallery_progress": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "800c08502d79"
+   "seen": "c27487d7a271"
   },
   "gallery_search": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "61ff2847e4b8"
+   "seen": "4028d7d33355"
   },
   "gallery_tabs": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "14f319346984"
+   "seen": "0a9839b860a1"
   },
   "gallery_tag": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "67414b6a1697"
+   "seen": "af582b345adf"
   },
   "gallery_tooltip": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "492bcc596028"
+   "seen": "7025d368ab68"
   },
   "garden": {
    "verdict": "godkjent",
@@ -1754,7 +1754,7 @@
     "bindigsverket ser rart ut rundt vinduene. sjekk hvordan bindingsverkhus faktisk ser ut og rett opp.",
     "de spinkle vinduskarmene passer ikke til det voldsomme bindingsverket i veggene"
    ],
-   "seen": "6c6b9097555c"
+   "seen": "0added57c8f6"
   },
   "town_wall": {
    "verdict": "godkjent",
@@ -1969,13 +1969,13 @@
    "verdict": "godkjent",
    "date": "2026-10-12",
    "why": "",
-   "seen": "243a688242fb"
+   "seen": "e5bfcd40aa52"
   },
   "bookshelf_b": {
    "verdict": "godkjent",
    "date": "2026-10-12",
    "why": "",
-   "seen": "461303355c3e"
+   "seen": "3e74fa661de4"
   },
   "bookshelf_e": {
    "verdict": "godkjent",
@@ -1987,7 +1987,7 @@
    "verdict": "godkjent",
    "date": "2026-10-12",
    "why": "",
-   "seen": "d20422235120"
+   "seen": "3b76104af720"
   },
   "bookshelf_gallery_1": {
    "verdict": "godkjent",
@@ -2275,7 +2275,7 @@
    "history": [
     "vanskelkig å se, bildet er litt høyt. vil gjerne ha litt mer variasjon i krukker."
    ],
-   "seen": "6bbf1125436b"
+   "seen": "2b4145482f17"
   },
   "jug_shelf": {
    "verdict": "godkjent",
@@ -2627,7 +2627,7 @@
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
     "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    ],
-   "seen": "87d450f917dc"
+   "seen": "28a2644d32ab"
   },
   "arms_leather": {
    "verdict": "godkjent",
@@ -2642,7 +2642,7 @@
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
     "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
    ],
-   "seen": "9c8a7bad6ce0"
+   "seen": "57c2bf4bde03"
   },
   "arms_mail": {
    "verdict": "godkjent",
@@ -2698,7 +2698,7 @@
     "hånden holder det i en merkelig vinkel. man holder ikke skjold slik. skjoldet er vinklet inn mot midten, det bør være mer rett fra og kankje vinlet litt ut mot venstre",
     "bilde to, hånden ser ut som at den er bøyd som gummi"
    ],
-   "seen": "0d2f3729da25"
+   "seen": "f83c91e60c39"
   },
   "shield_tower": {
    "verdict": "godkjent",
