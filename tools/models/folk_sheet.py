@@ -26,6 +26,8 @@ REF = os.path.join(ROOT, "assets", "textures", "people", "ref")
 HAND = 0.105
 ANKLE = 0.05
 HIP = 0.5
+REACH = 0.46  # fra skulderen til fingertuppene, høyst (del av høyden)
+ARM_OUT = 0.11  # en bit som ligger lenger ut fra midten enn dette (del av høyden), kan være en arm
 KNEE = 0.28
 STEP = 6  # rader mellom tverrsnittene (px)
 
@@ -75,7 +77,13 @@ def measure(name, height):
     path = os.path.join(REF, f"{name}_body.jpeg")
     fg = mask(path)
     F, S, B = views(fg)
-    top, ground = F[2], F[3]
+    ground = F[3]
+    # Toppen av hodet over kroppens midtlinje (en høygaffel eller et spyd
+    # kan stikke høyere enn hodet).
+    lower = fg[ground - (ground - F[2]) // 2: ground - (ground - F[2]) // 10, F[0]:F[1]]
+    cols = lower.sum(0)
+    cx0 = F[0] + int((cols * np.arange(len(cols))).sum() / max(1, cols.sum()))
+    top = next(y for y in range(F[2], ground) if fg[y, cx0 - 12: cx0 + 12].any())
     H = ground - top
     px = height / H
 
@@ -96,20 +104,38 @@ def measure(name, height):
     head_rows = range(top + int(0.03 * H), top + int(0.09 * H))
     cxF = float(np.median([sum(central(front(y), (F[0] + F[1]) // 2)) / 2 for y in head_rows]))
     cxB = float(np.median([sum(central(back(y), (B[0] + B[1]) // 2)) / 2 for y in head_rows]))
-    head_w = float(np.median([np.diff(central(front(y), cxF))[0] for y in head_rows]))
+    # Hodebredden der ansiktet er (en hattebrem eller hjelm er bredere).
+    face = [np.diff(central(front(y), cxF))[0] for y in range(top + int(0.04 * H), top + int(0.13 * H)) if front(y)]
+    head_w = float(np.percentile(face, 20))
 
     # Skuldrene: der figuren forfra blir mye bredere enn hodet.
-    shoulder = next(y for y in range(top + int(0.1 * H), top + int(0.35 * H)) if np.diff(central(front(y), cxF))[0] > 1.7 * head_w)
+    widths = [(y, np.diff(central(front(y), cxF))[0]) for y in range(top + int(0.13 * H), top + int(0.35 * H)) if front(y)]
+    wide = {y for y, w in widths if w > 1.7 * head_w}
+    span = int(0.04 * H)
+    # Skuldrene er brede over et stykke; en brem er bare noen få rader.
+    shoulder = next((y for y, w in widths if all(z in wide for z in range(y, y + span) if z in dict(widths))), None)
+    if shoulder is None:
+        # Store hoder (gutten) eller hette: der bredden vokser mest.
+        shoulder = max(zip(widths, widths[6:]), key=lambda p: p[1][1] - p[0][1])[1][0]
 
     # Armene står fri av kroppen nedenfor albuen: bitene utenfor den midtre.
     arms = {"R": {}, "L": {}}  # forfra: R til venstre i bildet, L til høyre
     for y in range(shoulder, ground - int(0.2 * H)):
         rs = front(y)
-        c = central(rs, cxF)
+        # Kroppen (og beina under den) står innenfor; en arm henger utenfor.
+        inner = [r for r in rs if abs((r[0] + r[1]) / 2 - cxF) < ARM_OUT * H]
+        if not inner:
+            continue
+        c = (min(r[0] for r in inner), max(r[1] for r in inner))
         for side_name, pick in (("R", [r for r in rs if r[1] <= c[0]]), ("L", [r for r in rs if r[0] >= c[1]])):
             if pick:
                 a, b = min(r[0] for r in pick), max(r[1] for r in pick)
                 arms[side_name][y] = (a, b)
+    arms_raw = {k: dict(v) for k, v in arms.items()}
+
+    def is_arm(r, y):
+        return any(y in arms_raw[k] and r[0] < arms_raw[k][y][1] and r[1] > arms_raw[k][y][0] for k in ("R", "L"))
+
     sep, hand_end = {}, {}
     for s in ("R", "L"):
         ys = sorted(arms[s])
@@ -123,6 +149,9 @@ def measure(name, height):
             else:
                 best, cur = max(best, cur, key=len), [b]
         best = max(best, cur, key=len)
+        # Fingertuppene når ikke lenger enn `REACH` under skulderen (et
+        # sverd ved hofta eller et skaft i hånda fortsetter ellers armen).
+        best = [y for y in best if y <= shoulder + int(REACH * H)]
         sep[s], hand_end[s] = best[0], best[-1]
         arms[s] = {y: arms[s][y] for y in best}
     wrist = {s: hand_end[s] - int(HAND * H) for s in arms}
@@ -131,9 +160,9 @@ def measure(name, height):
     # Skrittet: der kroppen deler seg i to bein som står delt helt ned.
     crotch = None
     for y in range(shoulder + int(0.25 * H), ground - int(0.08 * H)):
-        rs = [r for r in front(y) if r not in arms["R"].values() and r not in arms["L"].values()]
-        legs = [r for r in rs if (r[1] - r[0]) > 0.03 * H and abs((r[0] + r[1]) / 2 - cxF) < 0.25 * H]
-        if len(legs) == 2 and all(len([r for r in front(z) if (r[1] - r[0]) > 0.02 * H and abs((r[0] + r[1]) / 2 - cxF) < 0.25 * H]) >= 2 for z in range(y, ground - int(0.08 * H), 8)):
+        rs = [r for r in front(y) if not is_arm(r, y)]
+        legs = [r for r in rs if (r[1] - r[0]) > 0.03 * H and abs((r[0] + r[1]) / 2 - cxF) < 0.15 * H]
+        if len(legs) == 2 and all(len([r for r in front(z) if (r[1] - r[0]) > 0.02 * H and abs((r[0] + r[1]) / 2 - cxF) < 0.15 * H and not is_arm(r, z)]) >= 2 for z in range(y, ground - int(0.08 * H), 8)):
             crotch = y
             break
     skirt = crotch is None or crotch > ground - int(0.2 * H)
@@ -195,7 +224,11 @@ def measure(name, height):
     end = ground if skirt else crotch + int(0.02 * H)
     parts["body"] = [(y, *m) for y in range(top, end, STEP) if (m := body_at(y))]
     if skirt:
-        parts["body"].append((ground - 1, *body_at(ground - 1)))
+        # Nederste rad med kropp (sålen under skjørtet kan mangle forfra).
+        for y in range(ground - 1, ground - int(0.05 * H), -1):
+            if (m := body_at(y)):
+                parts["body"].append((y, *m))
+                break
     # Skulderlinja skrår fra nakken ut til skuldrene (ellers en flat
     # hylle med hjørner over armene).
     rows = parts["body"]
@@ -254,7 +287,7 @@ def measure(name, height):
     for s in ("R", "L"):
         rows = []
         for y in range(crotch - int(0.03 * H), ground, STEP):
-            rs = [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.25 * H]
+            rs = [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.15 * H and not is_arm(r, y)]
             rs = [r for r in rs if (r[1] - r[0]) > 0.02 * H]
             if skirt:
                 if y < ground - int(0.12 * H):
