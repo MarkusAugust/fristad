@@ -150,6 +150,7 @@ def figure(name):
             ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]))
             project_head(ob, m, fit, ("front", "back"), "src")
             project_head(ob, m, fit, ("side",), "src_side")
+            face_forward(ob)
             continue
         # Armen står et annet sted på sidebildet enn i modellen (den henger
         # foran eller bak kroppen), så sidene tar fargen forfra og bakfra.
@@ -171,6 +172,27 @@ def both_views(ob, project, arm=False):
         d.uv = uv
     for d, uv in zip(me.uv_layers["src"].data, front):
         d.uv = uv
+
+
+def face_forward(ob, share=0.1):
+    """Forreste del av hodet (foran midten av hvert tverrsnitt) viser
+    ansiktet forfra også der flaten vender til siden: profilens nese og øye
+    ligger ellers ved siden av ansiktet forfra, og på skrå ser man to
+    ansikter (eieren 14. oktober). Profilen får bakhodet, øret og håret."""
+    me = ob.data
+    mw = ob.matrix_world
+    by_z = {}
+    for v in me.vertices:
+        p = mw @ v.co
+        by_z.setdefault(round(p.z, 3), []).append(p.x)
+    span = {z: (min(xs), max(xs)) for z, xs in by_z.items()}
+    front, side = me.uv_layers["src"], me.uv_layers["src_side"]
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            p = mw @ me.vertices[me.loops[li].vertex_index].co
+            lo, hi = span[round(p.z, 3)]
+            if p.x > lo + (hi - lo) * (0.5 - share):
+                side.data[li].uv = front.data[li].uv
 
 
 def project_head(ob, m, fit, views=None, layer="src"):

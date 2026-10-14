@@ -87,14 +87,23 @@ def measure(name, height):
     H = ground - top
     px = height / H
 
+    # Over skuldrene er det ingen armer å skille fra kroppen, så hullene
+    # fylles der (en grå jernhatt ligner bakgrunnen og får ellers hull).
+    head_end = top + int(0.17 * H)
+    fgh = fg.copy()
+    fgh[top - 4: head_end] = ndimage.binary_fill_holes(ndimage.binary_closing(fg[top - 4: head_end], iterations=6))
+
+    def row(y):
+        return fgh[y] if y < head_end else fg[y]
+
     def front(y):
-        return runs(fg[y], F[0], F[1])
+        return runs(row(y), F[0], F[1])
 
     def side(y):
-        return runs(fg[y], S[0], S[1])
+        return runs(row(y), S[0], S[1])
 
     def back(y):
-        return runs(fg[y], B[0], B[1])
+        return runs(row(y), B[0], B[1])
 
     def central(rs, c):
         # Biten som rommer midtlinja (eller er nærmest den).
@@ -236,6 +245,14 @@ def measure(name, height):
             if (m := body_at(y)):
                 parts["body"].append((y, *m))
                 break
+    # Hodet glattes med median over noen rader: hårtupper, en hjelmknapp
+    # eller en flekk i masken skal ikke vri tverrsnittene.
+    rows = parts["body"]
+    head = [i for i, r in enumerate(rows) if r[0] < shoulder]
+    cols = list(zip(*rows)) if rows else []
+    for i in head:
+        win = [j for j in head if abs(j - i) <= 3]
+        rows[i] = (rows[i][0], *[float(np.median([rows[j][k] for j in win])) for k in range(1, 5)])
     # Skulderlinja skrår fra nakken ut til skuldrene (ellers en flat
     # hylle med hjørner over armene).
     rows = parts["body"]
