@@ -32,16 +32,28 @@ KNEE = 0.28
 KNEE_AT = 0.52  # kneet: så langt fra ankelen mot hofta
 ELBOW = 0.56  # albuen på en rett arm: så langt fra skulderen mot håndleddet
 STEP = 6  # rader mellom tverrsnittene (px)
+ARM_WIDE = 1.6  # en rad gjennom armen er høyst så mange ganger så bred som armen vanligvis
+SHAFT = 0.026  # under hånda er en stripe smalere enn dette (del av høyden) et skaft
+SHAFT_LONG = 0.04  # når den er lengre enn dette
+THING = SHAFT  # det arket viser utenfor delene, bredere enn et skaft, er en ting figuren bærer (skaftene blir egne gjenstander)
+THING_BACK = 0.015  # bak på kroppen (fletta) er en ting minst så bred
+THING_TALL = 0.03  # og høyere enn dette
+CARRIED = 0.7  # det figuren bærer på ryggen er høyst så bredt som kroppen forfra
 CHIN = 0.1  # haka ligger minst så langt under hodetoppen (del av høyden)
+HEAD_UPPER = 0.7  # hodet passes mot så stor del ovenfra av veien fra issen til halsen
+BRIM = 0.02  # en brem er minst så høy (del av høyden)
+SLOPE_BRIM = 4.0  # og vokser høyst så mange piksler per rad
 SLOPE = 1.5  # hodet: bredden endrer seg høyst så mange piksler per rad
+HOLE_BG = 15  # et hull i figuren som skiller seg mer enn dette fra bakgrunnen (sum over rgb), er tøy
+SHELF = 0.015  # kanten fra siden springer mer enn dette (del av høyden) fra én rad til neste: en hylle
 BELLY = 0.035  # kroppen fra siden: så mye (del av høyden) ut over linja fra brystet til hofta
-UNDER = 0.45  # så mye av armens bredde kroppen går inn under armen
 
 
 def mask(path):
     """Figuren på arket. Bakgrunnen er en svak gradient, så den måles per
-    rad fra kantene; bakkestreken (tynn og vannrett) tas bort; bare små hull
-    fylles, så mellomrommet mellom armen og kroppen blir stående."""
+    rad fra kantene; bakkestreken (tynn og vannrett) tas bort; små hull og
+    hull som ikke har bakgrunnens farge fylles, så mellomrommet mellom armen
+    og kroppen blir stående."""
     im = np.asarray(Image.open(path).convert("RGB")).astype(float)
     edge = np.concatenate([im[:, :30], im[:, -30:]], 1)
     bg = np.median(edge, 1)[:, None, :]
@@ -52,7 +64,12 @@ def mask(path):
     lab, k = ndimage.label(holes)
     if k:
         sizes = ndimage.sum(holes, lab, range(1, k + 1))
-        fg |= np.isin(lab, [i + 1 for i in range(k) if sizes[i] < 1500])
+        # Et stort hull er bakgrunn (mellom armen og kroppen) bare om det har
+        # bakgrunnens farge: lyst tøy nær den (vaskekonas skjørt) ga hull
+        # i folder midt i figuren, og kroppen fikk en glipe tvers over.
+        d = np.abs(im - bg).sum(2)
+        bgish = ndimage.median(d, lab, range(1, k + 1))
+        fg |= np.isin(lab, [i + 1 for i in range(k) if sizes[i] < 1500 or bgish[i] > HOLE_BG])
     return fg
 
 
@@ -156,17 +173,38 @@ def measure(name, height):
         ys = sorted(free[s])
         if not ys:
             raise SystemExit(f"{name}: fant ikke armen {s} fri av kroppen")
-        # Den lengste sammenhengende strekningen er armen.
-        best, cur = [], [ys[0]]
+        # Fingertuppene når ikke lenger enn `REACH` under skulderen (et
+        # sverd ved hofta eller et skaft i hånda fortsetter ellers armen).
+        ys = [y for y in ys if y <= shoulder + int(REACH * H)]
+        if not ys:
+            raise SystemExit(f"{name}: fant ikke armen {s} fri av kroppen innen rekkevidden")
+        strips, cur = [], [ys[0]]
         for a, b in zip(ys, ys[1:]):
             if b - a <= 3:
                 cur.append(b)
             else:
-                best, cur = max(best, cur, key=len), [b]
-        best = max(best, cur, key=len)
-        # Fingertuppene når ikke lenger enn `REACH` under skulderen (et
-        # sverd ved hofta eller et skaft i hånda fortsetter ellers armen).
-        best = [y for y in best if y <= shoulder + int(REACH * H)]
+                strips.append(cur)
+                cur = [b]
+        strips.append(cur)
+        # Den lengste strekningen er armen, og strekningene over den hører
+        # med: en arm som holder noe inntil kroppen (kurven) står fri ved
+        # overarmen og igjen ved hånda, og med bare den nederste ble armen
+        # en rett linje fra skulderen og hull innenfor albuen (eieren
+        # 14. oktober). Mellom strekningene går armen rett.
+        main = max(strips, key=len)
+        best = [y for st in strips if st[0] <= main[0] and len(st) >= 0.02 * H for y in st]
+        best = sorted(set(best) | set(main))
+        # Et skaft i hånda (høygaffelen, spydet) fortsetter under hånda som
+        # en smal stripe; den er ikke armen (armen gikk ellers ned langs
+        # skaftet til hofta). Fingertuppene smalner bare et lite stykke.
+        tail = 0
+        for y in reversed(best):
+            a, b = free[s][y]
+            if b - a >= SHAFT * H:
+                break
+            tail += 1
+        if tail and best[-1] - best[-tail] >= SHAFT_LONG * H:
+            best = best[:-tail]
         sep[s], hand_end[s] = best[0], best[-1]
         free[s] = {y: free[s][y] for y in best}
     wrist = {s: hand_end[s] - int(HAND * H) for s in free}
@@ -197,8 +235,16 @@ def measure(name, height):
     if skirt:
         def lower(y):
             return [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.2 * H and (r[1] - r[0]) > 0.02 * H and not is_arm(r, y)]
+        def grounded(r, y):
+            # Et bein står på bakken: midt i biten er arket fylt helt ned.
+            # Bøtta vaskekona bærer ved skjørtet er også en bit for seg, men
+            # henger i lufta (skjørtet sluttet ellers ved bøtta, og kroppen
+            # fikk en glipe tvers over).
+            x = int((r[0] + r[1]) / 2)
+            return bool(fg[y: ground - int(0.01 * H), x].all())
+
         wide = float(np.median([max((r[1] - r[0] for r in lower(y)), default=0) for y in range(crotch, crotch + int(0.15 * H), 4)]))
-        hem = next((y for y in range(crotch + int(0.1 * H), ground) if len(lower(y)) >= 2 or max((r[1] - r[0] for r in lower(y)), default=0) < 0.5 * wide), ground)
+        hem = next((y for y in range(crotch + int(0.1 * H), ground) if len([r for r in lower(y) if grounded(r, y)]) >= 2 or max((r[1] - r[0] for r in lower(y)), default=0) < 0.5 * wide), ground)
     ankle = ground - int(ANKLE * H)
     # Hofteleddet og kneet etter kroppens mål: klærne skjuler skrittet, og
     # der buksebeina skilles under et forkle er ikke der beinet begynner.
@@ -229,21 +275,19 @@ def measure(name, height):
             near = [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.22 * H and (r[1] - r[0]) > 0.02 * H]
             if near:
                 a, b = min(r[0] for r in near), max(r[1] for r in near)
-        if shoulder < y:
-            # Kroppen går et stykke inn under armen (`UNDER`), så det ikke
-            # blir hull mellom dem; ved skulderen dekker den hele bredden
-            # og trekkes inn over `span` (skulderen er rund på arket).
-            ramp = min(1.0, (y - shoulder) / max(1, int(0.05 * H)))
-            for s, edge in (("R", 0), ("L", 1)):
-                if y < sep[s]:
-                    w = arm_width(s, y) * (1 - UNDER) * ramp
-                    if edge == 0:
-                        a += int(w)
-                    else:
-                        b -= int(w)
+        # Der armen ligger inntil kroppen forfra, fyller kroppen hele
+        # omrisset, og armen legges utenpå: et smalere bryst ga hull
+        # innenfor albuen der armen på arket går et annet sted enn armen i
+        # modellen (eieren 14. oktober, `folk_check`).
         sc = central(side(y), sx0)
         if sc is None:
             return None
+        if skirt and y >= crotch:
+            # Kanten av skjørtet bretter seg, og fra siden er den flere
+            # biter: alle hører med (tjenestejentas skjørt ble kappet).
+            near = [r for r in side(y) if abs((r[0] + r[1]) / 2 - sx0) < 0.2 * H]
+            if near:
+                sc = (min(r[0] for r in near), max(r[1] for r in near))
         return ((a + b) / 2 - cxF, (b - a) / 2, (sc[0] + sc[1]) / 2 - sx0, (sc[1] - sc[0]) / 2)
 
     def arm_width(s, y):
@@ -260,7 +304,8 @@ def measure(name, height):
 
     parts = {}
     # Kroppen med hodet, ned til skrittet (eller bakken under skjørtet).
-    end = hem - int(0.005 * H) if skirt else crotch + int(0.02 * H)
+    # Skjørtet går helt ned til kanten (raden over `hem`).
+    end = hem - 2 if skirt else crotch + int(0.02 * H)
     parts["body"] = [(y, *m) for y in range(top, end, STEP) if (m := body_at(y))]
     if skirt and (m := body_at(end)):
         parts["body"].append((end, *m))
@@ -272,12 +317,15 @@ def measure(name, height):
     for i in head:
         win = [j for j in head if abs(j - i) <= 3]
         rows[i] = (rows[i][0], *[float(np.median([rows[j][k] for j in win])) for k in range(1, 5)])
-    # Under brystet blir kroppen ikke brått bredere enn radene over: der
-    # hånda eller det den holder rører kroppen forfra, er raden ellers en
-    # flat skive (smedens hammer mot forkleet).
+    # Under brystet, der en hånd er, blir kroppen ikke brått bredere enn
+    # radene over: der hånda eller det den holder rører kroppen forfra, er
+    # raden ellers en flat skive (smedens hammer mot forkleet).
     rows = parts["body"]
+    # Bare der en hånd er: skjørtet som vider seg ut mot kanten ble ellers
+    # kappet (og kjøpmannens mage, lenger ned).
+    at_hand = [(wrist[s] - int(0.03 * H), hand_end[s] + int(0.03 * H)) for s in hand_end]
     for i, r in enumerate(rows):
-        if r[0] < shoulder + int(0.05 * H):
+        if r[0] < shoulder + int(0.05 * H) or not any(a <= r[0] <= b for a, b in at_hand):
             continue
         prev = rows[max(0, i - 8): i]
         if not prev:
@@ -288,23 +336,49 @@ def measure(name, height):
         if r[2] > mw * 1.08 or r[4] > md * 1.12:
             rows[i] = (r[0], mc if r[2] > mw * 1.08 else r[1], min(r[2], mw * 1.08), r[3], min(r[4], md * 1.12))
     # Fra siden henger armen foran eller bak kroppen, og hånda holder ofte
-    # noe (spydet, krukka): mellom brystet og hofta stikker kroppen ikke
-    # mer enn `BELLY` ut over linja mellom dem (vakten fikk ellers en
-    # hylle framover der hånda med spydet var).
+    # noe (spydet, krukka): mellom brystet og hofta stikker kroppen ikke mer
+    # enn `BELLY` ut over linja mellom dem der kanten springer brått ut
+    # (vakten fikk ellers en hylle framover der underarmen med spydet var).
+    # En mage buler jevnt og står (kjøpmannen).
     rows = parts["body"]
     ya, yb = shoulder + int(0.03 * H), max(hand_end.values()) + int(0.03 * H)
     ra = min(rows, key=lambda r: abs(r[0] - ya))
     rb = min(rows, key=lambda r: abs(r[0] - yb))
     slack = BELLY * H
-    for i, r in enumerate(rows):
-        if not ra[0] < r[0] < rb[0]:
-            continue
-        t = (r[0] - ra[0]) / max(1, rb[0] - ra[0])
+    # Hyllene sjekkes ned til skrittet eller skjørtekanten (spydskaftet
+    # inntil kjortelen under hånda); linja fortsetter rett under hånda.
+    end_y = hem if skirt else crotch
+    span = [i for i, r in enumerate(rows) if ra[0] < r[0] < end_y]
+
+    def limits(r):
+        t = min(1.0, (r[0] - ra[0]) / max(1, rb[0] - ra[0]))
         lo = (ra[3] - ra[4]) + ((rb[3] - rb[4]) - (ra[3] - ra[4])) * t - slack
         hi = (ra[3] + ra[4]) + ((rb[3] + rb[4]) - (ra[3] + ra[4])) * t + slack
-        e0, e1 = max(r[3] - r[4], lo), min(r[3] + r[4], hi)
-        if e1 > e0:
-            rows[i] = (r[0], r[1], r[2], (e0 + e1) / 2, (e1 - e0) / 2)
+        return lo, hi
+
+    for side_ in (1, -1):
+        edge = [rows[i][3] + side_ * rows[i][4] for i in span]
+        line = [limits(rows[i])[1 if side_ > 0 else 0] for i in span]
+        out_ = [(e - l) * side_ > 0 for e, l in zip(edge, line)]
+        j = 0
+        while j < len(span):
+            if not out_[j]:
+                j += 1
+                continue
+            k = j
+            while k + 1 < len(span) and out_[k + 1]:
+                k += 1
+            lo_, hi_ = max(0, j - 1), min(len(span) - 1, k + 1)
+            jump = max(abs(edge[q + 1] - edge[q]) for q in range(lo_, hi_)) if hi_ > lo_ else 0
+            if jump > SHELF * H:
+                for q in range(j, k + 1):
+                    i = span[q]
+                    r = rows[i]
+                    lo, hi = limits(r)
+                    e0, e1 = max(r[3] - r[4], lo), min(r[3] + r[4], hi)
+                    if e1 > e0:
+                        rows[i] = (r[0], r[1], r[2], (e0 + e1) / 2, (e1 - e0) / 2)
+            j = k + 1
     # Armene: fra skulderen (inne i kroppen) til fingertuppene.
     for s in ("R", "L"):
         rows = []
@@ -315,9 +389,16 @@ def measure(name, height):
         for y in range(shoulder, sep[s], STEP):
             t = (y - shoulder) / max(1, sep[s] - shoulder)
             rows.append((y, sh + (c0 - sh) * t - cxF, arm_width(s, y) / 2))
+        # En underarm som ligger vannrett (tjenestejenta holder krukka foran
+        # seg) gir rader like brede som hele underarmen: en flat skive ved
+        # albuen. Armen er høyst `ARM_WIDE` ganger så bred som den er
+        # vanligvis, og beholder den ytre delen (albuen).
+        usual = float(np.median([free[s][y][1] - free[s][y][0] for y in free[s]]))
         for y in range(sep[s], hand_end[s] + 1, STEP):
             if y in free[s]:
                 a, b = free[s][y]
+                if b - a > ARM_WIDE * usual and y < wrist[s]:
+                    a, b = (a, a + ARM_WIDE * usual) if s == "R" else (b - ARM_WIDE * usual, b)
                 rows.append((y, (a + b) / 2 - cxF, (b - a) / 2))
         # Hånda er høyst litt bredere enn håndleddet (det hånda holder, som
         # smedens hammer, gjør ellers tverrsnittene til flate skiver).
@@ -344,10 +425,20 @@ def measure(name, height):
             clipped.append((y, (lo + hi) / 2 - cxF, (hi - lo) / 2))
         rows = clipped
         # Armen ligger midt i kroppen sett fra siden, litt fram ved hånda.
-        parts[f"arm.{s}"] = [(y, cy, hw, body_side_center(y), hw) for y, cy, hw in rows]
+        # Midt i kroppen slik den står etter hyllene (den rå biten fra siden
+        # tok med spydet, og armen sto foran vakta).
+        def body_mid(y):
+            r = interp(parts["body"], y)
+            return r[2] if r else body_side_center(y)
+
+        parts[f"arm.{s}"] = [(y, cy, hw, body_mid(y), hw) for y, cy, hw in rows]
     # Beina: fra like over skrittet til sålen; tærne fra sida.
     for s in ("R", "L"):
         rows = []
+        # Fra siden følger beinet sin egen bit nedover (øksa som henger ved
+        # leggen eller hånda dro ellers midten fram og tilbake, og beina
+        # sto i sikksakk: eieren 14. oktober «beina er vrengt»).
+        track = sx0
         for y in range(crotch - int(0.03 * H), ground, STEP):
             rs = [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.15 * H and not is_arm(r, y)]
             rs = [r for r in rs if (r[1] - r[0]) > 0.02 * H]
@@ -362,13 +453,17 @@ def measure(name, height):
                 r = (a, m) if s == "R" else (m, b)
             else:
                 continue
-            sc = central(side(y), sx0)
+            sc = central(side(y), track)
             if sc is None:
                 continue
             sd = (sc[1] - sc[0]) / 2
+            mid = (sc[0] + sc[1]) / 2
             if y < ankle:
+                # Over ankelen er beinet høyst litt dypere enn det er bredt,
+                # midt i biten det følger.
                 sd = min(sd, (r[1] - r[0]) / 2 * 1.25)
-            rows.append((y, (r[0] + r[1]) / 2 - cxF, (r[1] - r[0]) / 2, (sc[0] + sc[1]) / 2 - sx0 if y >= ankle else body_side_center(y), sd))
+                track = mid
+            rows.append((y, (r[0] + r[1]) / 2 - cxF, (r[1] - r[0]) / 2, mid - sx0, sd))
         # Over der beina skilles (under forkleet eller kjortelen) har låret
         # samme bredde som der det først synes, ikke halve kroppen.
         split = hem + 2 if skirt else crotch
@@ -377,7 +472,46 @@ def measure(name, height):
             rows = [r if r[0] >= split else (r[0], seen[1], seen[2], r[3], min(r[4], seen[4])) for r in rows]
             if not skirt:
                 rows = [(y, seen[1], seen[2], body_side_center(y), seen[4]) for y in range(hip - int(0.03 * H), crotch, STEP)] + [r for r in rows if r[0] >= crotch]
+        # Fra siden er beinet to rette stykker som møtes i kneet (låret og
+        # leggen): midten legges på dem, og rader som skiller seg ut (hånda
+        # eller øksa ved låret) tas bort før linjene trekkes.
+        # Linjene trekkes bare gjennom radene der beinet synes (under skrittet
+        # eller skjørtet), og kneet står der linjene passer best.
+        idx = [i for i, r in enumerate(rows) if r[0] < ankle]
+        seen_idx = [i for i in idx if rows[i][0] >= (hem if skirt else crotch)]
+        if len(seen_idx) >= 4:
+            ys0 = np.array([rows[i][0] for i in seen_idx], float)
+            xs = np.array([rows[i][3] for i in seen_idx], float)
+
+            def legfit(k):
+                ys = ys0 - k
+                A = np.stack([np.ones_like(ys), np.minimum(ys, 0), np.maximum(ys, 0)], 1)
+                keep = np.ones(len(ys), bool)
+                for _ in range(4):
+                    coef = np.linalg.lstsq(A[keep], xs[keep], rcond=None)[0]
+                    res = np.abs(xs - A @ coef)
+                    keep = res <= 2.5 * max(2.0, float(np.median(res[keep])))
+                    if keep.sum() < 4:
+                        break
+                return float(np.median(res)), coef
+
+            cands = [k for k in range(knee - int(0.06 * H), knee + int(0.06 * H) + 1, STEP) if ys0.min() < k < ys0.max()] or [knee]
+            k, coef = min(((k, legfit(k)[1]) for k in cands), key=lambda kc: legfit(kc[0])[0])
+            for i in idx:
+                y = rows[i][0] - k
+                x = coef[0] + coef[1] * min(y, 0) + coef[2] * max(y, 0)
+                sd = rows[i][4]
+                if rows[i][0] < (hem if skirt else crotch):
+                    # Inne i kroppen holdes låret innenfor den (linja kom
+                    # ellers ut foran kjortelen på vakta).
+                    b = interp(parts["body"], rows[i][0])
+                    if b:
+                        sd = min(sd, b[3])
+                        x = min(max(x, b[2] - b[3] + sd), b[2] + b[3] - sd)
+                rows[i] = (*rows[i][:3], float(x), sd)
         parts[f"leg.{s}"] = rows
+    parts.update(held(parts, front, cxF, H, shoulder, min(hem, ground - int(0.2 * H))))
+    parts.update(carried(parts, side, sx0, facing, H, shoulder, min(hem, ground - int(0.2 * H))))
     m = dict(
         name=name, height=height, px=px, top=top, ground=ground, H=H, skirt=skirt, facing=facing,
         views={"front": cxF, "back": cxB, "side": sx0, "ground": ground, "side_dir": facing},
@@ -387,6 +521,129 @@ def measure(name, height):
     )
     m["y"].update(model_joints(m))
     return m
+
+
+def interp(rows, y):
+    """Tverrsnittet i høyden `y` mellom radene (som meshen binder dem
+    sammen), eller None utenfor delen."""
+    if not rows or y < rows[0][0] or y > rows[-1][0]:
+        return None
+    for a, b in zip(rows, rows[1:]):
+        if a[0] <= y <= b[0]:
+            t = (y - a[0]) / max(1, b[0] - a[0])
+            return tuple(p + (q - p) * t for p, q in zip(a[1:5], b[1:5]))
+    return rows[-1][1:5]
+
+
+def held(parts, front, cxF, H, y0, y1):
+    """Det arket viser forfra som verken kroppen, armene eller beina dekker
+    (kurven fiskerkona bærer på armen, krukka, hammeren mot forkleet), som
+    egne deler `held.R`/`held.L` ved armen den er nærmest. Uten dem var det
+    hull gjennom figuren innenfor albuen, der bildet av tingen bare lå på
+    skjørtet bak (eieren 14. oktober). Tingen er like dyp som den er bred,
+    høyst like dyp som kroppen, og står midt i kroppen sett fra siden."""
+    keys = [k for k in parts if k == "body" or k.startswith(("arm.", "leg."))]
+    found = {"R": [], "L": []}
+    for y in range(y0, y1, STEP):
+        cover = []
+        for k in keys:
+            r = interp(parts[k], y)
+            if r:
+                cover.append((cxF + r[0] - r[1] - 2, cxF + r[0] + r[1] + 2))
+        body = interp(parts["body"], y)
+        if body is None:
+            continue
+        for a, b in front(y):
+            # Det som står igjen av løpet når det dekkede er trukket fra.
+            segs = [(a, b)]
+            for c0, c1 in cover:
+                segs = [q for p0, p1 in segs for q in ((p0, min(p1, c0)), (max(p0, c1), p1)) if q[1] - q[0] > 0]
+            for p0, p1 in segs:
+                if p1 - p0 < THING * H:
+                    continue
+                c = (p0 + p1) / 2
+                arms = {s: interp(parts.get(f"arm.{s}", []), y) for s in ("R", "L")}
+                s = min((s for s in arms if arms[s]), key=lambda s: abs(cxF + arms[s][0] - c), default="R" if c < cxF else "L")
+                hw = (p1 - p0) / 2
+                found[s].append((y, c - cxF, hw, body[2], min(hw, body[3])))
+    out = {}
+    for s, rows in found.items():
+        # Bare sammenhengende biter av en viss høyde (ikke en kant av omrisset).
+        runs, cur = [], []
+        for r in rows:
+            if cur and (r[0] - cur[-1][0] > STEP or abs(r[1] - cur[-1][1]) > r[2] + cur[-1][2]):
+                runs.append(cur)
+                cur = []
+            cur.append(r)
+        if cur:
+            runs.append(cur)
+        runs = [r for r in runs if r[-1][0] - r[0][0] >= THING_TALL * H]
+        if runs:
+            best = max(runs, key=lambda r: sum(q[2] for q in r))
+            out[f"held.{s}"] = best
+    return out
+
+
+def carried(parts, side, sx0, facing, H, y0, y1):
+    """Det arket viser fra siden som ingen del dekker: sekken på ryggen til
+    gutten, kappa, kurven på hofta sett fra siden. Blir delene
+    `held.back` midt på kroppen sett forfra (høyst `CARRIED` av kroppens
+    bredde), og følger brystet; det som står foran en hånd
+    (krukka) blir `held.R`/`held.L` ved hånda, om den ikke alt bærer noe
+    som synes forfra (`held`)."""
+    keys = [k for k in parts if k == "body" or k.startswith(("arm.", "leg.", "held."))]
+    # Hånda på hver arm (de nederste radene); det som henger foran hånda
+    # (krukka tjenestejenta holder) følger hånda som ligger nærmest midten
+    # forfra, den som holder noe foran seg.
+    hands = {k[-1]: (r[-1][0] - int(0.16 * H), r[-1][0] + int(0.03 * H), r[-1][1]) for k, r in parts.items() if k.startswith("arm.") and r}
+    found = {"back": [], "front": [], **{s: [] for s in hands}}
+    for y in range(y0, y1, STEP):
+        body = interp(parts["body"], y)
+        if body is None:
+            continue
+        cover = []
+        for k in keys:
+            r = interp(parts[k], y)
+            if r:
+                cover.append((sx0 + r[2] - r[3] - 2, sx0 + r[2] + r[3] + 2))
+        for a, b in side(y):
+            segs = [(a, b)]
+            for c0, c1 in cover:
+                segs = [q for p0, p1 in segs for q in ((p0, min(p1, c0)), (max(p0, c1), p1)) if q[1] - q[0] > 0]
+            for p0, p1 in segs:
+                c = (p0 + p1) / 2
+                where = "front" if (c - sx0 - body[2]) * facing > 0 else "back"
+                # Bak på kroppen (fletta, sekken) holder ingen et skaft.
+                if p1 - p0 < (THING_BACK if where == "back" else THING) * H:
+                    continue
+                d = (p1 - p0) / 2
+                near = [s for s, (h0, h1, hx) in hands.items() if h0 <= y <= h1]
+                if where == "front" and near:
+                    s = min(near, key=lambda s: abs(hands[s][2]))
+                    found[s].append((y, hands[s][2], min(body[1] * CARRIED, d * 1.2), c - sx0, d))
+                    continue
+                if where == "front":
+                    # Foran kroppen og over hendene er det underarmen som
+                    # holder noe (vakta): en skive på brystet ble en hylle.
+                    continue
+                found[where].append((y, body[0], min(body[1] * CARRIED, d * 1.2), c - sx0, d))
+    out = {}
+    for w, rows in found.items():
+        runs, cur = [], []
+        for r in rows:
+            if cur and (r[0] - cur[-1][0] > STEP or abs(r[3] - cur[-1][3]) > r[4] + cur[-1][4]):
+                runs.append(cur)
+                cur = []
+            cur.append(r)
+        if cur:
+            runs.append(cur)
+        runs = [r for r in runs if r[-1][0] - r[0][0] >= THING_TALL * H]
+        if f"held.{w}" in parts:
+            continue
+        # De to største bitene (fletta og albuen som stikker bakover).
+        for n, run in enumerate(sorted(runs, key=lambda r: -sum(q[4] for q in r))[:2]):
+            out[f"held.{w}" + ("" if n == 0 else str(n + 1))] = run
+    return out
 
 
 def model_joints(m):
@@ -504,6 +761,7 @@ def head_fit(m):
         cx = int(view_x)
         half = int(0.16 * H)
         B = body[top - 4: neck, cx - half: cx + half].astype(np.float32)
+        upper = 4 + int(HEAD_UPPER * (neck - top))
         q = (lab[quad[2]: quad[3], quad[0]: quad[1]] == quad[4]).astype(np.uint8) * 255
         best = None
         for flip in flips:
@@ -521,8 +779,11 @@ def head_fit(m):
                         continue
                     C = np.zeros_like(B, dtype=bool)
                     C[4: 4 + R.shape[0], x0: x0 + w][: B.shape[0] - 4] = R[: B.shape[0] - 4]
-                    inter = (C & (B > 0)).sum()
-                    iou = inter / max(1, (C | (B > 0)).sum())
+                    # Bare hodet over haka: skuldrene som hodearket tar med
+                    # (tjenestejenta), dro ellers hodet 18 % for smalt.
+                    Cu, Bu = C[:upper], B[:upper] > 0
+                    inter = (Cu & Bu).sum()
+                    iou = inter / max(1, (Cu | Bu).sum())
                     if best is None or iou > best[0]:
                         # Kroppspiksel X = (cx - half + x0) + s·(hx - qx0)  →  tx = cx - half + x0 - s·qx0.
                         tx = cx - half + x0 - s * (quad[1] - 1 if flip else quad[0])
@@ -648,10 +909,37 @@ def head_rows(m, fit):
         return [min(vals[j] + k * abs(ys[i] - ys[j]) for j in range(len(vals))) for i in range(len(vals))]
 
     ys_o = [r[0] for r in out]
-    hw_e = envelope([r[2] for r in out], ys_o)
+
+    def brimmed(raw):
+        """`envelope`, men en hattebrem er hode: et bånd over `BRIM` av
+        høyden som stikker ut over det over og under (bondens stråhatt ble
+        en smal kjegle) får bratte kanter (`SLOPE_BRIM`), ikke vertikale."""
+        env = envelope(raw, ys_o)
+        wide = [raw[i] > env[i] + 0.05 * abs(env[i]) for i in range(len(raw))]
+        span = int(0.05 * m["H"])
+        i = 0
+        while i < len(raw):
+            if not wide[i]:
+                i += 1
+                continue
+            j = i
+            while j + 1 < len(raw) and wide[j + 1]:
+                j += 1
+            peak = max(raw[i: j + 1])
+            above = [raw[k] for k in range(len(raw)) if ys_o[i] - span <= ys_o[k] < ys_o[i]]
+            below = [raw[k] for k in range(len(raw)) if ys_o[j] < ys_o[k] <= ys_o[j] + span]
+            out_ = peak - 0.3 * abs(peak)
+            if ys_o[j] - ys_o[i] >= BRIM * m["H"] and above and below and min(above) < out_ and min(below) < out_:
+                soft = envelope(raw, ys_o, SLOPE_BRIM)
+                for k in range(i, j + 1):
+                    env[k] = max(env[k], soft[k])
+            i = j + 1
+        return env
+
+    hw_e = brimmed([r[2] for r in out])
     # Forkanten (pannen, nesa, haka) tas ikke med: der kappet regelen haka.
     fr_e = [r[3] for r in out]
-    bk_e = [-x for x in envelope([-r[4] for r in out], ys_o)]
+    bk_e = [-x for x in brimmed([-r[4] for r in out])]
     out = [(r[0], r[1], hw_e[i], fr_e[i], bk_e[i]) for i, r in enumerate(out)]
     # Tverrsnittet er en ellipse foran og en bak en fast akse midt i
     # skallen, så et skaut eller en flette bak ikke flytter ansiktet.

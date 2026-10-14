@@ -3001,98 +3001,112 @@
   "npc_apothecary": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "Det ble verre. han har et ansikt i bakhodet.",
-   "seen": "7d34ef0a65a6",
+   "why": "stygg strek på halsen",
+   "seen": "9b676fc623a7",
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "Det ble verre. han har et ansikt i bakhodet."
+    "Det ble verre. han har et ansikt i bakhodet.",
+    "stygg strek på halsen"
    ]
   },
   "npc_boy": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hodet er ikke bra",
-   "seen": "22b6aaf7e194",
+   "why": "hodet er deformert",
+   "seen": "456f7648d87d",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart.",
-    "hodet er ikke bra"
+    "hodet er ikke bra",
+    "hodet er deformert"
    ]
   },
   "npc_clerk": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hodet har en merkelig form.",
-   "seen": "da3a4c248692",
+   "why": "hull i kroppen på venstre side. ser du ikke det?",
+   "seen": "911d788c24da",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "hodet har en merkelig form."
+    "hodet har en merkelig form.",
+    "hull i kroppen på venstre side. ser du ikke det?"
    ]
   },
   "npc_farmer": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "to ansikt. et ekstra i bakhodet",
-   "seen": "49d0e66b20d2",
+   "why": "hodet er deformert",
+   "seen": "97f303669326",
    "history": [
     "Noe rart med skuldrene Tekstur rundt hodet er rart.",
-    "to ansikt. et ekstra i bakhodet"
+    "to ansikt. et ekstra i bakhodet",
+    "hodet er deformert"
    ]
   },
   "npc_fishwife": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hodet er ikke bra",
-   "seen": "dd38b69719f3",
+   "why": "hodet er deformert. kroppen har et hull på venstre side, innenfor venstre albue",
+   "seen": "80531ed56eed",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "hodet er ikke bra"
+    "hodet er ikke bra",
+    "hodet er deformert. kroppen har et hull på venstre side, innenfor venstre albue"
    ]
   },
   "npc_gorvek": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "han har to ansikt",
-   "seen": "e3ea2499ac28",
+   "why": "hodet er deformert. beina er vrengt.",
+   "seen": "710cb43776a6",
    "history": [
     "Tekstur rundt hodet er rart.",
-    "han har to ansikt"
+    "han har to ansikt",
+    "hodet er deformert. beina er vrengt."
    ]
   },
   "npc_guard": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "samme",
-   "seen": "c5ec9def2fc3",
+   "why": "hodet er deformert. kroppen er vrengt",
+   "seen": "565dd767ee62",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "samme"
+    "samme",
+    "hodet er deformert. kroppen er vrengt"
    ]
   },
   "npc_innkeeper": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hun har to sett ører",
-   "seen": "e965e20b70a7",
+   "why": "halsen er deformert. buler ut.",
+   "seen": "58dba2093458",
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "hun har to sett ører"
+    "hun har to sett ører",
+    "halsen er deformert. buler ut."
    ]
   },
   "npc_maid": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "mye verre.. ingen hake.",
-   "seen": "6d5e93de1efb",
+   "why": "hodet er deformert. kroppen er vrengt",
+   "seen": "6a8606d0ff13",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "mye verre.. ingen hake."
+    "mye verre.. ingen hake.",
+    "hodet er deformert. kroppen er vrengt"
    ]
   },
   "npc_merchant": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-14",
-   "why": "helt forferdelig. to ansikt.",
-   "seen": "ffcfc66ac2b9",
+   "why": "",
+   "seen": "70d1a8b8fb3b",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "helt forferdelig. to ansikt."
+   },
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "helt forferdelig. to ansikt."
@@ -3101,21 +3115,23 @@
   "npc_smith": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hodet er ikke bra. to ansikt.",
-   "seen": "1e8c6351e191",
+   "why": "skjegget er merkelig delt. hodet derformert fra siden. hoftene stikker ut av kroppen når han går",
+   "seen": "90a070d0e9b5",
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart.",
-    "hodet er ikke bra. to ansikt."
+    "hodet er ikke bra. to ansikt.",
+    "skjegget er merkelig delt. hodet derformert fra siden. hoftene stikker ut av kroppen når han går"
    ]
   },
   "npc_washerwoman": {
    "verdict": "underkjent",
    "date": "2026-10-14",
-   "why": "hodet er ikke bra. to ansikt.",
-   "seen": "67f4d319b3d0",
+   "why": "beina er helt vrengt. hodet er deformert.",
+   "seen": "4b94f364ad15",
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
-    "hodet er ikke bra. to ansikt."
+    "hodet er ikke bra. to ansikt.",
+    "beina er helt vrengt. hodet er deformert."
    ]
   },
   "token": {

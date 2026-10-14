@@ -44,8 +44,17 @@ FOLK = {
     "boy": 1.36,
     "washerwoman": 1.6,
 }
-RING = {"body": 24, "arm": 14, "leg": 16}  # hjørner rundt hvert tverrsnitt
+# Det figurene holder i hånda, som blir egne gjenstander (ikke en del av
+# kroppen): `folk_check` regner det ikke som hull ved den hånda.
+TOOLS = {
+    "gorvek": {"R": "øksa"},
+    "farmer": {"L": "høygaffelen"},
+    "guard": {"L": "spydet"},
+    "smith": {"R": "hammeren"},
+}
+RING = {"body": 24, "arm": 14, "leg": 16, "held": 14}  # hjørner rundt hvert tverrsnitt
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
+WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
 TAPER = 0.35  # hodet: så mye smalere framme ved ansiktet enn ved ørene
 SQUARE = 2.4  # superellipse: 2 er ellipse, høyere er mer kantet (klær)
 
@@ -115,14 +124,36 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
                 ey *= 1.0 - TAPER * c * c
             loop.append(bm.verts.new((cx + b * ex, cyy + a * ey, z)))
         loops.append(loop)
-    for l0, l1 in zip(loops, loops[1:]):
+    # Uv-laget er delen brettet ut som én sylinder (sømmen bak), i meter:
+    # rundt etter snittets omkrets, langs etter midtlinja. Utbrettet av
+    # Blender ga hundrevis av små øyer med svarte kanter som synes på
+    # armene (eieren 14. oktober).
+    uvl = bm.loops.layers.uv.new("UVMap")
+    mids = [sum((v.co for v in l), Vector()) / n for l in loops]
+    per = sum(sum((l[i].co - l[(i + 1) % n].co).length for i in range(n)) for l in loops) / len(loops)
+    along = [0.0]
+    for a, b in zip(mids, mids[1:]):
+        along.append(along[-1] + (b - a).length)
+
+    def u_of(i, last=False):
+        # Sømmen går bak (indeksen n/2 er bakover, −X).
+        k = (i - n // 2) % n
+        return (n if last and k == 0 else k) / n * per
+
+    for r, (l0, l1) in enumerate(zip(loops, loops[1:])):
         for i in range(n):
             j = (i + 1) % n
-            bm.faces.new((l0[i], l0[j], l1[j], l1[i]))
-    if cap_top:
-        bm.faces.new(list(reversed(loops[0])))
-    if cap_bottom:
-        bm.faces.new(loops[-1])
+            f = bm.faces.new((l0[i], l0[j], l1[j], l1[i]))
+            for lp, (ii, rr) in zip(f.loops, ((i, r), (j, r), (j, r + 1), (i, r + 1))):
+                lp[uvl].uv = (u_of(ii, last=ii == j), -along[rr])
+    for cap, ring in ((cap_top, 0), (cap_bottom, len(loops) - 1)):
+        if not cap:
+            continue
+        verts = loops[ring] if ring else list(reversed(loops[0]))
+        f = bm.faces.new(verts)
+        c = mids[ring]
+        for lp in f.loops:
+            lp[uvl].uv = (lp.vert.co.x - c.x, lp.vert.co.y - c.y)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
@@ -149,6 +180,13 @@ def figure(name):
         # profilen ligger på samme form (`folk_sheet.head_rows`).
         rows = parts.pop("body")
         head, chin = folk_sheet.head_rows(m, fit)
+        # Kroppsarket bestemmer bredden: tegner hodearket hodet smalere enn
+        # kroppsarket (tjenestejenta, 18 %), strekkes hodet og bildet av det
+        # like mye i bredden.
+        ratio = [min(rows_b, key=lambda q: abs(q[0] - r[0]))[2] / r[2] for r in head if r[0] <= chin for rows_b in [m["parts"]["body"]]]
+        k = float(sorted(ratio)[len(ratio) // 2]) if ratio else 1.0
+        fit["kx"] = k if abs(k - 1) > WIDEN else 1.0
+        head = [(r[0], r[1], r[2] * fit["kx"], *r[3:]) for r in head]
         parts["head"] = head
         m["y"]["chin"] = int(chin)
         # Kroppen begynner like over der hodet slutter, og er ikke bredere
@@ -322,9 +360,9 @@ def project_head(ob, m, fit, views=None, layer="src"):
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
             if view == "front":
-                X = v["front"] + p.y / px
+                X = v["front"] + p.y / px / fit.get("kx", 1.0)
             elif view == "back":
-                X = v["back"] - p.y / px
+                X = v["back"] - p.y / px / fit.get("kx", 1.0)
             else:
                 X = v["side"] + v.get("side_dir", 1) * p.x / px
             Y = v["ground"] - p.z / px
@@ -414,6 +452,11 @@ OWN = {
     "arm.R": ("upper_arm.R", "forearm.R", "hand.R"),
     "leg.L": ("thigh.L", "shin.L", "foot.L"),
     "leg.R": ("thigh.R", "shin.R", "foot.R"),
+    # Det figuren bærer (kurven) følger underarmen og hånda.
+    "held.L": ("forearm.L", "hand.L"),
+    "held.R": ("forearm.R", "hand.R"),
+    # Det som bare synes fra siden (sekken på ryggen) følger brystet.
+    "held.back": ("spine", "chest"),
 }
 BLEND = 0.05  # m der to bein deler et hjørne
 
@@ -470,7 +513,8 @@ def build(name, size):
     J = joints(m)
     rig = armature(f"npc_{name}_rig", bones(J))
     for part, ob in obs.items():
-        weigh(ob, rig, OWN[part])
+        # En del nummer to (`held.back2`) følger de samme beina som den første.
+        weigh(ob, rig, OWN[part.rstrip("0123456789")])
     skirt_follows_thighs(obs["body"], J)
     style, grips = folk_motion.FIGURES.get(name, ("default", {}))
     st = dict(folk_motion.STYLES.get(style, {}))
@@ -480,7 +524,11 @@ def build(name, size):
     st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
     folk_motion.clips(rig, st, grips, only=("idle", "walk", "talk", "wave"))
     # Ansiktet får tre ganger så mye plass i teksturen som flaten tilsier.
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=rig, density={"head": 3.0})
+    # Arket har lyset og skyggene malt inn, og armen ligger inntil kroppen:
+    # okklusjonen ga svarte flekker på armen (eieren 14. oktober). Øyene er
+    # delene brettet ut som sylindre (`ring_mesh`), og delene bakes hver for
+    # seg (armen ligger delvis inne i kroppen).
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=rig, density={"head": 3.0}, uv_angle=None, ao=False, apart=True)
     return m
 
 
@@ -489,6 +537,16 @@ if __name__ == "__main__":
     names = [a for a in args if a in FOLK] or list(FOLK)
     size = next((int(a) for a in args if a.isdigit()), 2048)
     os.makedirs(OUT, exist_ok=True)
+    import folk_check
+
+    failed = []
     for n in names:
         clear()
         build(n, size)
+        # Porten: figuren skal treffe arket (`folk_check`), ellers stopper
+        # byggingen (eieren 14. oktober: «treffer mer riktig med en gang»).
+        r = folk_check.check(n, os.path.join(folk_sheet.ROOT, "target", "qa", "folk"))
+        if r["fails"]:
+            failed.append(f"{n}: " + "; ".join(r["fails"]))
+    if failed:
+        raise SystemExit("figurene treffer ikke arket (se target/qa/folk/<navn>_check.jpg):\n" + "\n".join(failed))

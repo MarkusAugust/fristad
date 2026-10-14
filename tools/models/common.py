@@ -178,9 +178,12 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82):
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
-    begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
+    begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO
+    (uten AO med `ao=False`: arket har skyggene malt inn; `uv_angle=None`
+    beholder øyene modellen har i første uv-lag og bare pakker dem;
+    `apart=True` baker bitene som ikke henger sammen hver for seg),
     normalkart og ruhet/metall til teksturer, bytter til teksturerte
     materialer og eksporterer glTF. Materialer som begynner på «paint» bakes
     hvite og beholder navnet, så motoren farger dem per instans; resten
@@ -237,10 +240,18 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         first = next(l for l in ob.data.uv_layers if not l.name.startswith("src"))
         ob.data.uv_layers.active = first
         first.active_render = True
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.003)
-    bpy.ops.object.mode_set(mode="OBJECT")
+    if uv_angle is not None:
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=uv_angle, island_margin=0.003)
+        bpy.ops.object.mode_set(mode="OBJECT")
+    elif not weighted:
+        # Øyene modellen har med seg i første uv-lag (i meter), bare pakket.
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.select_all(action="SELECT")
+        bpy.ops.uv.pack_islands(rotate=True, margin=0.004)
+        bpy.ops.object.mode_set(mode="OBJECT")
     if weighted:
         # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
         # (pakkingen beholder forholdet mellom øyene).
@@ -343,6 +354,34 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         metals.append(bsdf.inputs["Metallic"].default_value)
         bsdf.inputs["Metallic"].default_value = 0.0
+    # Skjelettet står ute av spill under bakingen (hvileposen er formen
+    # teksturen hører til).
+    held_mods = [(m, m.show_render, m.show_viewport) for m in ob.modifiers if m.type == "ARMATURE"]
+    for m, _, _ in held_mods:
+        m.show_render = m.show_viewport = False
+    if apart:
+        # Bitene som ikke henger sammen (armene, kroppen, hodet) bakes langt
+        # fra hverandre: der armen ligger inne i kroppen, så Cycles den
+        # andre flaten først og bakte svart (innbyggerne, 14. oktober).
+        # Formen og normalene er de samme, bare flyttet.
+        co = np.array([v.co[:] for v in ob.data.vertices])
+        parent = np.arange(len(co))
+
+        def root(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        for e in ob.data.edges:
+            a, b = root(e.vertices[0]), root(e.vertices[1])
+            if a != b:
+                parent[a] = b
+        _, piece = np.unique([root(i) for i in range(len(co))], return_inverse=True)
+        moved = co.copy()
+        moved[:, 0] += piece * 5.0
+        ob.data.vertices.foreach_set("co", moved.ravel())
+        ob.data.update()
     albedo = bake_to("albedo", "DIFFUSE", "sRGB", pass_filter={"COLOR"})
     for mat, m in zip(ob.data.materials, metals):
         mat.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = m
@@ -360,9 +399,15 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bsdf.inputs["Emission Color"].default_value = (m, m, m, 1.0)
         bsdf.inputs["Emission Strength"].default_value = 1.0
     metal = bake_to("metal", "EMIT", "Non-Color")
+    if apart:
+        ob.data.vertices.foreach_set("co", co.ravel())
+        ob.data.update()
+    for m, r, v in held_mods:
+        m.show_render, m.show_viewport = r, v
     a = np.array(albedo.pixels[:]).reshape(size, size, 4)
     o = np.array(ao.pixels[:]).reshape(size, size, 4)
-    a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
+    if ao:
+        a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
     albedo.pixels = a.ravel().tolist()
     r = np.array(rough.pixels[:]).reshape(size, size, 4)
     mt = np.array(metal.pixels[:]).reshape(size, size, 4)

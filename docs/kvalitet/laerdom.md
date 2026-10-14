@@ -209,3 +209,15 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Bildet forfra hører hjemme på ansiktet, ikke rundt sidene.** Da bildet forfra ble trukket langt rundt hodet, sto ansiktet forfra og profilen side om side (to ansikter, to sett ører). Bildet forfra holdes på den fremre femtedelen, og overgangen til profilen er kort.
 - **En glattingsregel kan kappe det som skal stå ut.** Regelen mot hyller i hodet kappet haka (budeia «ingen hake»); forkanten glattes nå bare litt.
 
+
+## Innbyggerne – motoren skal treffe arket (14. oktober)
+
+Eieren: «hull gjennom kroppen innenfor albuen … Den må forbedres slik at du treffer mer riktig med en gang.» Rettet ved roten, og porten `folk_check` måler nå hver figur mot arket før den slippes ut.
+
+- **Mål modellen mot arket, ikke bare med øynene.** Hullene, de svarte flekkene og skivene ved albuen sto der i flere runder fordi ingen ting målte dem. `folk_check` rendrer figuren som arket og regner det som mangler, stikker ut, fargeavviket og svarte flekker; `townsfolk.py` stopper om en figur ikke består.
+- **Okklusjonen hører ikke hjemme i et malt ark.** Arket har lyset og skyggene malt inn, og der armen ligger inntil kroppen, bakte okklusjonen svarte flekker. Innbyggerne bakes uten (`ao=False`).
+- **Deler som går inn i hverandre bakes hver for seg.** Cycles så den andre flaten først der armen ligger inne i kroppen, og bakte svart. Delene flyttes fra hverandre under bakingen (`apart=True`), med skjelettet slått av (ellers svingte det de flyttede bitene).
+- **En stabel ringer brettes ut som en sylinder.** Blenders utbretting delte kroppen i hundrevis av små øyer med svarte kanter; hver del er nå én øy.
+- **Det arket viser, skal finnes i modellen.** Kurven, krukka, sekken og fletta lå bare som bilde på kroppen bak, så man så gjennom figuren. Det ingen del dekker, blir egne deler.
+- **En regel mot ett tilfelle må avgrenses til det tilfellet.** Regelen mot smedens hammer kappet skjørtet og kjøpmannens mage, regelen mot hårhyller kappet hattebremmen, og bøtta ble tatt for et bein. Reglene gjelder nå bare der hendene er, et bånd som stikker ut over og under er en brem, og bare det som står på bakken er bein.
+- **To ark kan være uenige.** Hodearket kan tegne hodet smalere enn kroppsarket, og bakfra kan armene henge der de holder noe forfra. Kroppsarket bestemmer bredden, og der bildet forfra og bakfra er uenige, telles det ikke mot modellen.
