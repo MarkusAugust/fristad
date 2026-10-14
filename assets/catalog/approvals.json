@@ -2858,50 +2858,53 @@
    "seen": "f4d5fc9e72ef"
   },
   "arms": {
-   "verdict": "godkjent",
-   "date": "2026-10-13",
-   "why": "",
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet",
+   "seen": "f91e00aced2d",
    "before": {
-    "verdict": "underkjent",
+    "verdict": "godkjent",
     "date": "2026-10-13",
-    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
-   },
-   "history": [
-    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
-    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
-   ],
-   "seen": "28a2644d32ab"
-  },
-  "arms_leather": {
-   "verdict": "godkjent",
-   "date": "2026-10-13",
-   "why": "",
-   "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-13",
-    "why": "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
-   },
-   "history": [
-    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
-    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel"
-   ],
-   "seen": "57c2bf4bde03"
-  },
-  "arms_mail": {
-   "verdict": "godkjent",
-   "date": "2026-10-13",
-   "why": "",
-   "before": {
-    "verdict": "usikker",
-    "date": "2026-10-13",
-    "why": "Er dette chainmail?"
+    "why": ""
    },
    "history": [
     "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
     "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
-    "Er dette chainmail?"
-   ],
-   "seen": "9a631eb4f03b"
+    "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet"
+   ]
+  },
+  "arms_leather": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet",
+   "seen": "ca31eaeebc0b",
+   "before": {
+    "verdict": "godkjent",
+    "date": "2026-10-13",
+    "why": ""
+   },
+   "history": [
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+    "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet"
+   ]
+  },
+  "arms_mail": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet",
+   "seen": "46df5051c6e8",
+   "before": {
+    "verdict": "godkjent",
+    "date": "2026-10-13",
+    "why": ""
+   },
+   "history": [
+    "flyr det avkappede armer inn i bildet? mulig armene må gå lengre opp til albuen feks",
+    "på de t nederste bilde ser ut som at mannen har knekt håndleddet i en unatliurlig vinkel",
+    "Er dette chainmail?",
+    "animasjonene er ikke bra. det ser ut som at albuen roterer i stedet for at svinget er drevet av skulderleddet"
+   ]
   },
   "axe": {
    "verdict": "godkjent",
@@ -2994,6 +2997,120 @@
    "date": "2026-10-13",
    "why": "",
    "seen": "61002af48c67"
+  },
+  "npc_apothecary": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "f4b9e308fd8e",
+   "history": [
+    "Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_boy": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart.",
+   "seen": "6d8415f3d93a",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart."
+   ]
+  },
+  "npc_clerk": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "95231b858df8",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_farmer": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Noe rart med skuldrene Tekstur rundt hodet er rart.",
+   "seen": "dc0da2a9304c",
+   "history": [
+    "Noe rart med skuldrene Tekstur rundt hodet er rart."
+   ]
+  },
+  "npc_fishwife": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "66713cf1458e",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_gorvek": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Tekstur rundt hodet er rart.",
+   "seen": "1b076207686e",
+   "history": [
+    "Tekstur rundt hodet er rart."
+   ]
+  },
+  "npc_guard": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "40da289cc624",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_innkeeper": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "20cc201d2337",
+   "history": [
+    "Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_maid": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "41ebfd9be83d",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_merchant": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "11d4482a8cc9",
+   "history": [
+    "Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "npc_smith": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Hull i kroppen. Tekstur rundt hodet er rart.",
+   "seen": "66817bb1a12f",
+   "history": [
+    "Hull i kroppen. Tekstur rundt hodet er rart."
+   ]
+  },
+  "npc_washerwoman": {
+   "verdict": "underkjent",
+   "date": "2026-10-14",
+   "why": "Tekstur rundt hodet er rart. Noe rart ved føttende.",
+   "seen": "a369524e6881",
+   "history": [
+    "Tekstur rundt hodet er rart. Noe rart ved føttende."
+   ]
+  },
+  "token": {
+   "verdict": "godkjent",
+   "date": "2026-10-14",
+   "why": "",
+   "seen": "b9bf4276b346"
   }
  }
 }
