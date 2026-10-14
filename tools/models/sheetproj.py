@@ -52,3 +52,62 @@ def filled_sheet(path):
     os.makedirs(os.path.dirname(out), exist_ok=True)
     Image.fromarray(im[iy, ix].astype(np.uint8)).save(out)
     return out
+
+
+def blended_sheet_material(name, path, rough=0.8, soft=(0.55, 0.75)):
+    """Som `sheet_material`, men med to uv-lag: «src» forfra eller bakfra
+    og «src_side» fra siden, blandet etter hvilken vei flaten vender
+    (|n_y| mot |n_x| i objektets rom), mykt mellom vinklene i `soft`. Da
+    ser man aldri profilen og ansiktet forfra side om side på samme hode
+    (innbyggerne i `townsfolk.py`)."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = rough
+    img = bpy.data.images.load(path)
+    texs = []
+    for uv_name in ("src", "src_side"):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.interpolation = "Cubic"
+        uvn = nt.nodes.new("ShaderNodeUVMap")
+        uvn.uv_map = uv_name
+        nt.links.new(uvn.outputs[0], tex.inputs[0])
+        texs.append(tex)
+    # Hvor mye flaten vender til siden: |n_y| / (|n_x| + |n_y|).
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    xf = nt.nodes.new("ShaderNodeVectorTransform")
+    xf.vector_type = "NORMAL"
+    xf.convert_from = "WORLD"
+    xf.convert_to = "OBJECT"
+    nt.links.new(geo.outputs["Normal"], xf.inputs[0])
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(xf.outputs[0], sep.inputs[0])
+
+    def op(kind, a, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if v is None:
+                continue
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = v
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+
+    ax, ay = op("ABSOLUTE", sep.outputs["X"]), op("ABSOLUTE", sep.outputs["Y"])
+    side = op("DIVIDE", ay, op("ADD", op("ADD", ax, ay), 1e-4))
+    ramp = nt.nodes.new("ShaderNodeMapRange")
+    ramp.interpolation_type = "SMOOTHSTEP"
+    ramp.inputs["From Min"].default_value = soft[0]
+    ramp.inputs["From Max"].default_value = soft[1]
+    nt.links.new(side, ramp.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(ramp.outputs[0], mix.inputs["Factor"])
+    nt.links.new(texs[0].outputs[0], mix.inputs["A"])
+    nt.links.new(texs[1].outputs[0], mix.inputs["B"])
+    nt.links.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
+    return m

@@ -72,14 +72,15 @@ scene.render.resolution_x = 420
 scene.render.resolution_y = 760
 
 
-def shot(yaw, file, height):
-    """Kameraet `yaw` grader rundt figuren fra forsida (+X), mot venstre."""
+def shot(yaw, file, height, center=None, scale=None):
+    """Kameraet `yaw` grader rundt figuren fra forsida (+X), mot venstre;
+    `center` og `scale` gir et nærbilde (høyden på midten og bredden)."""
     a = math.radians(yaw)
     d = Vector((math.cos(a), math.sin(a), 0.0))
-    c = Vector((0.0, 0.0, height * 0.5))
+    c = Vector((0.0, 0.0, center if center is not None else height * 0.5))
     cam.location = c + d * 6.0
     cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
-    cam_data.ortho_scale = height * 1.12
+    cam_data.ortho_scale = scale or height * 1.12
     sun.rotation_euler = (d + Vector((0.3, 0.3, 1.2))).to_track_quat("Z", "Y").to_euler()
     scene.render.filepath = file
     bpy.ops.render.render(write_still=True)
@@ -102,6 +103,16 @@ for k in range(6):
     shot(-90, f, height)
     walk.append(f)
 
+# Nærbilder av hodet forfra, skrått og fra siden (ansiktet skal være skarpt).
+pose("idle", 0)
+scene.render.resolution_x = 560
+scene.render.resolution_y = 560
+heads = []
+for k, yaw in enumerate((0, -40, -90)):
+    f = f"{tmp}/head_{k}.png"
+    shot(yaw, f, height, center=height * 0.9, scale=height * 0.22)
+    heads.append(f)
+
 from PIL import Image, ImageDraw  # noqa: E402
 
 ref = Image.open(os.path.join(ROOT, "assets", "textures", "people", "ref", f"{name}_body.jpeg")).convert("RGB")
@@ -113,13 +124,18 @@ rest = [im.resize((rw, int(im.height * rw / im.width))) for im in rest]
 wk = [Image.open(f).convert("RGB") for f in walk]
 ww = W // 6
 wk = [im.resize((ww, int(im.height * ww / im.width))) for im in wk]
-H = ref.height + rest[0].height + wk[0].height
+hd = [Image.open(f).convert("RGB") for f in heads]
+hw = W // 3
+hd = [im.resize((hw, hw)) for im in hd]
+H = ref.height + rest[0].height + wk[0].height + hw
 sheet = Image.new("RGB", (W, H), (40, 40, 40))
 sheet.paste(ref, (0, 0))
 for i, im in enumerate(rest):
     sheet.paste(im, (i * rw, ref.height))
 for i, im in enumerate(wk):
     sheet.paste(im, (i * ww, ref.height + rest[0].height))
+for i, im in enumerate(hd):
+    sheet.paste(im, (i * hw, ref.height + rest[0].height + wk[0].height))
 ImageDraw.Draw(sheet).text((8, ref.height + 4), "forfra / skrått / siden / bakfra", fill=(255, 255, 255))
 sheet.save(out, quality=85)
 print(f"skrev {out}")

@@ -336,3 +336,69 @@ if __name__ == "__main__":
     print({k: v for k, v in m.items() if k != "parts"})
     for k, rows in m["parts"].items():
         print(k, len(rows), rows[:2], rows[-2:])
+
+
+def head_fit(m):
+    """Hodearket (`<navn>_head`: forfra oppe til venstre, profilene oppe
+    til høyre og nede til venstre, bakfra nede til høyre) passet inn på
+    kroppsarket per visning: målestokken og forskyvningen der omrisset av
+    hodet dekker omrisset på kroppsarket best (IoU over hodet og halsen),
+    og for siden den profilen (eventuelt speilet) som passer. Gir
+    {visning: (fil, s, tx, ty, speil, (x0, x1)), "neck": rad}: en piksel
+    (X, Y) på kroppsarket er (tx + s·hx, ty + s·hy) på hodearket."""
+    from PIL import Image as _I
+
+    name = m["name"]
+    path = os.path.join(REF, f"{name}_head.jpeg")
+    if not os.path.exists(path):
+        return None
+    hm = mask(path)
+    lab, k = ndimage.label(hm)
+    sizes = ndimage.sum(hm, lab, range(1, k + 1))
+    quads = []
+    for i in np.argsort(-sizes)[:4]:
+        ys, xs = np.where(lab == i + 1)
+        quads.append((int(xs.min()), int(xs.max()) + 1, int(ys.min()), int(ys.max()) + 1, i + 1))
+    quads.sort(key=lambda b: (b[2] > hm.shape[0] // 2, b[0]))
+    front_q, side_qs, back_q = quads[0], [quads[1], quads[2]], quads[3]
+    body = mask(os.path.join(REF, f"{name}_body.jpeg"))
+    top, H = m["top"], m["H"]
+    neck = m["y"]["shoulder"] - int(0.02 * H)
+
+    def fit(view_x, quad, flips):
+        # Kroppsarket rundt hodet i denne visningen.
+        cx = int(view_x)
+        half = int(0.16 * H)
+        B = body[top - 4: neck, cx - half: cx + half].astype(np.float32)
+        q = (lab[quad[2]: quad[3], quad[0]: quad[1]] == quad[4]).astype(np.uint8) * 255
+        best = None
+        for flip in flips:
+            qq = q[:, ::-1] if flip else q
+            for s in np.arange(0.25, 1.4, 0.01):
+                # s: kroppspiksler per hodepiksel.
+                w, h = max(4, int(qq.shape[1] * s)), max(4, int(qq.shape[0] * s))
+                R = np.asarray(_I.fromarray(qq).resize((w, h))) > 127
+                R = R[: B.shape[0]]
+                if R.shape[0] < B.shape[0] * 0.5:
+                    continue
+                for dx in range(-24, 25, 3):
+                    x0 = (B.shape[1] - w) // 2 + dx
+                    if x0 < 0 or x0 + w > B.shape[1]:
+                        continue
+                    C = np.zeros_like(B, dtype=bool)
+                    C[4: 4 + R.shape[0], x0: x0 + w][: B.shape[0] - 4] = R[: B.shape[0] - 4]
+                    inter = (C & (B > 0)).sum()
+                    iou = inter / max(1, (C | (B > 0)).sum())
+                    if best is None or iou > best[0]:
+                        # Kroppspiksel X = (cx - half + x0) + s·(hx - qx0)  →  tx = cx - half + x0 - s·qx0.
+                        tx = cx - half + x0 - s * (quad[1] - 1 if flip else quad[0])
+                        ty = top - 4 + 4 - s * quad[2]
+                        best = (iou, float(s), float(tx), float(ty), flip, (quad[0], quad[1]))
+        return best
+
+    v = m["views"]
+    out = {"file": path, "neck": neck}
+    out["front"] = fit(v["front"], front_q, (False,))
+    out["back"] = fit(v["back"], back_q, (False,))
+    out["side"] = max((fit(v["side"], q, (False, True)) for q in side_qs), key=lambda b: b[0])
+    return out

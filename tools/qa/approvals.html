@@ -170,6 +170,7 @@ details.pile li .v b { color: var(--ink); text-transform: capitalize; }
     <select id="view-which" aria-label="Versjon"><option value="etter">Etter (nå)</option><option value="før">Før (det du så)</option></select>
     <label><input type="checkbox" id="view-whole" checked> Hele nivået rundt</label>
     <label><input type="checkbox" id="view-both"> Vis baksidene</label>
+    <select id="view-clip" aria-label="Bevegelse" hidden></select>
     <span id="view-status" aria-live="polite"></span>
     <span class="help">Dra for å rotere, rull for å zoome (mot musa), høyre knapp eller to fingre for å flytte. Dobbeltklikk på en flate for å gå dit og rotere rundt den.</span>
     <button type="button" id="view-close">Lukk</button>
@@ -335,7 +336,7 @@ async function view3d(it) {
   const dlg = document.getElementById("view");
   document.getElementById("view-name").textContent = it.name;
   dlg.showModal();
-  const ui = { canvas: document.getElementById("view-canvas"), which: document.getElementById("view-which"), whole: document.getElementById("view-whole"), both: document.getElementById("view-both"), status: document.getElementById("view-status") };
+  const ui = { canvas: document.getElementById("view-canvas"), which: document.getElementById("view-which"), whole: document.getElementById("view-whole"), both: document.getElementById("view-both"), status: document.getElementById("view-status"), clip: document.getElementById("view-clip") };
   try {
     const v = await import("./viewer.js");
     await v.show(it, pageData, ui);

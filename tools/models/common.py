@@ -119,8 +119,9 @@ def spin(name, profile, mat, steps=24):
 
 
 def export(path):
-    if ob.data.uv_layers.get("src") is not None:
-        ob.data.uv_layers.remove(ob.data.uv_layers["src"])
+    for name in ("src", "src_side"):
+        if ob.data.uv_layers.get(name) is not None:
+            ob.data.uv_layers.remove(ob.data.uv_layers[name])
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
@@ -233,7 +234,7 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     # tas ut før eksporten.
     src = ob.data.uv_layers.get("src")
     if src is not None:
-        first = next(l for l in ob.data.uv_layers if l.name != "src")
+        first = next(l for l in ob.data.uv_layers if not l.name.startswith("src"))
         ob.data.uv_layers.active = first
         first.active_render = True
     bpy.ops.object.mode_set(mode="EDIT")
@@ -407,8 +408,9 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
             tex_mat[key] = nm
     for slot in ob.material_slots:
         slot.material = tex_mat[key_of(slot.material.name)]
-    if ob.data.uv_layers.get("src") is not None:
-        ob.data.uv_layers.remove(ob.data.uv_layers["src"])
+    for name in ("src", "src_side"):
+        if ob.data.uv_layers.get(name) is not None:
+            ob.data.uv_layers.remove(ob.data.uv_layers[name])
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=jpeg_quality, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)

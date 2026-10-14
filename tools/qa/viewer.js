@@ -31,7 +31,7 @@ function setup(canvas) {
   controls.zoomToCursor = true;
   const loader = new GLTFLoader();
   const tex = new Map();
-  const st = { renderer, scene, camera, controls, loader, tex, groups: [], raf: 0, canvas, lamp };
+  const st = { renderer, scene, camera, controls, loader, tex, groups: [], raf: 0, canvas, lamp, mixer: null, clock: new THREE.Clock() };
   // Dobbeltklikk: dit du klikker, blir midten du roterer rundt (inn i et rom).
   canvas.addEventListener("dblclick", e => {
     const r = canvas.getBoundingClientRect();
@@ -54,6 +54,8 @@ function setup(canvas) {
       camera.updateProjectionMatrix();
     }
     controls.update();
+    const dt = st.clock.getDelta();
+    if (st.mixer) st.mixer.update(dt);
     renderer.render(scene, camera);
   };
   loop();
@@ -119,6 +121,7 @@ async function load(st, url, layers, sides) {
   const data = await fetchModel(url);
   const g = await st.loader.parseAsync(data, url.slice(0, url.lastIndexOf("/") + 1));
   dress(st, g.scene, layers, sides);
+  g.scene.userData.clips = g.animations || [];
   return g.scene;
 }
 
@@ -176,6 +179,26 @@ export async function show(it, data, ui) {
   ui.which.onchange = () => { after.visible = ui.which.value === "etter"; if (before) before.visible = ui.which.value === "før"; };
   ui.whole.onchange = () => { if (level) { level.visible = ui.whole.checked; mark(level.visible); } };
   ui.both.onchange = () => { for (const g of st.groups) g.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.side = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; } }); };
+  // Figurer med klipp (innbyggerne, fiendene): velg bevegelsen og se den
+  // mens du roterer; «Hvilepose» står stille.
+  st.mixer = null;
+  const clips = after.userData.clips || [];
+  if (ui.clip) {
+    ui.clip.hidden = clips.length === 0;
+    ui.clip.replaceChildren(new Option("Hvilepose", ""), ...clips.map(c => new Option(c.name, c.name)));
+    const pick = clips.find(c => c.name === "idle") ? "idle" : "";
+    ui.clip.value = pick;
+    const play = name => {
+      if (st.mixer) st.mixer.stopAllAction();
+      st.mixer = null;
+      const c = clips.find(c => c.name === name);
+      if (!c) return;
+      st.mixer = new THREE.AnimationMixer(after);
+      st.mixer.clipAction(c).play();
+    };
+    ui.clip.onchange = () => play(ui.clip.value);
+    play(pick);
+  }
   frame(st, after, crypt);
   ui.status.textContent = "";
 }

@@ -58,6 +58,7 @@ MAX_WAITING = 400
 CATEGORIES = [
     ("arms", "Armer og våpen"),
     ("mobs", "Fiender"),
+    ("people", "Innbyggerne"),
     ("crypt", "Krypten"),
     ("town", "Byen: hus og bygninger"),
     ("things", "Møbler og småting"),
@@ -221,6 +222,8 @@ def category(name, kind, path):
     folder = path.split("/")[2]
     if folder in ("arms", "mobs", "crypt"):
         return folder
+    if folder == "npcs":
+        return "people"
     if folder == "town" and name.startswith(BUILDINGS):
         return "town"
     return "things"
@@ -311,7 +314,8 @@ def shots(kind, name, path, ver):
     """Bildene av tingen i versjon `ver` (bufret i target/qa/review/shots):
     modellene i studio fra faste vinkler, teksturene lagt 2 × 2."""
     d = os.path.join(WORK, "shots", f"{name}@{ver}")
-    names = [v.split(":")[0] for v in VIEWS] if kind == "modell" else ["tile"]
+    folk = "/npcs/" in path
+    names = ["sheet"] if folk else [v.split(":")[0] for v in VIEWS] if kind == "modell" else ["tile"]
     files = [os.path.join(d, f"{v}.png") for v in names]
     if all(os.path.exists(f) for f in files):
         return files
@@ -320,7 +324,14 @@ def shots(kind, name, path, ver):
         src = os.path.join(ROOT, path) if ver == version(path) else blob_file(path, ver, tmp)
         if not src:
             return []
-        if kind == "modell":
+        if folk:
+            # Innbyggerne: arket, figuren fra fire kanter, gangen og
+            # nærbilder av hodet (`tools/models/folk_preview.py`).
+            who = name.removeprefix("npc_")
+            out = os.path.join(d, "sheet.jpg")
+            subprocess.run(["python3.13", os.path.join(ROOT, "tools", "models", "folk_preview.py"), src, who, out], cwd=ROOT, capture_output=True, check=True)
+            Image.open(out).convert("RGB").save(files[0])
+        elif kind == "modell":
             env = dict(os.environ, FRISTAD_STUDIO_SIZE="640x448")
             subprocess.run(["python3.13", STUDIO, src, os.path.join(d, "x"), *VIEWS], cwd=ROOT, env=env, capture_output=True, check=True)
             for v in names:

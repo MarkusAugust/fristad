@@ -26,7 +26,7 @@ from mathutils import Vector  # noqa: E402
 import folk_motion  # noqa: E402
 import folk_sheet  # noqa: E402
 from monsters import project_sheet  # noqa: E402
-from sheetproj import filled_sheet, sheet_material  # noqa: E402
+from sheetproj import blended_sheet_material, filled_sheet  # noqa: E402
 
 OUT = "assets/models/npcs"
 
@@ -125,18 +125,90 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
 def figure(name):
     m = folk_sheet.measure(name, FOLK[name])
     path = os.path.join(folk_sheet.REF, f"{name}_body.jpeg")
-    mat = sheet_material(f"{name}_sheet", filled_sheet(path))
+    mat = blended_sheet_material(f"{name}_sheet", filled_sheet(path))
+    fit = folk_sheet.head_fit(m)
+    parts = dict(m["parts"])
+    if fit:
+        # Hodet (over halsen) får hodearket, som er to–fire ganger så
+        # skarpt som hodet på kroppsarket; kroppen begynner litt over
+        # halsen, så de to overlapper.
+        rows = parts.pop("body")
+        neck = fit["neck"]
+        parts["head"] = [r for r in rows if r[0] <= neck + folk_sheet.STEP]
+        parts["body"] = [r for r in rows if r[0] >= neck - 3 * folk_sheet.STEP]
     obs = {}
-    for part, rows in m["parts"].items():
+    for part, rows in parts.items():
         if len(rows) < 2:
             continue
-        obs[part] = ring_mesh(part.replace(".", "_"), rows, m, mat, RING[part.split(".")[0]], 2.0 if part.startswith("arm") else SQUARE)
+        kind = "body" if part == "head" else part.split(".")[0]
+        # Hodet er rundt (en kantet skalle får ansiktet forfra og profilen
+        # på samme hjørne), uten lokk under (det står inne i kroppen).
+        obs[part] = ring_mesh(part.replace(".", "_"), rows, m, mat, RING[kind], 2.0 if part.startswith("arm") or part == "head" else SQUARE, cap_bottom=part != "head")
     bpy.context.view_layer.update()
     for part, ob in obs.items():
+        if part == "head":
+            ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]))
+            project_head(ob, m, fit, ("front", "back"), "src")
+            project_head(ob, m, fit, ("side",), "src_side")
+            continue
         # Armen står et annet sted på sidebildet enn i modellen (den henger
         # foran eller bak kroppen), så sidene tar fargen forfra og bakfra.
-        project_sheet(ob, m["size"], m["views"], m["px"], only=("front", "back") if part.startswith("arm") else None)
+        both_views(ob, lambda only: project_sheet(ob, m["size"], m["views"], m["px"], only=only), arm=part.startswith("arm"))
     return m, obs
+
+
+def both_views(ob, project, arm=False):
+    """«src» forfra/bakfra og «src_side» fra siden for hver flate; materialet
+    blander dem etter flatens retning (`blended_sheet_material`). Armen tar
+    også sidene forfra og bakfra (den står et annet sted på sidebildet)."""
+    project(("front", "back"))
+    me = ob.data
+    front = [tuple(d.uv) for d in me.uv_layers["src"].data]
+    if not arm:
+        project(("side",))
+    side = me.uv_layers.get("src_side") or me.uv_layers.new(name="src_side")
+    for d, uv in zip(side.data, [tuple(d.uv) for d in me.uv_layers["src"].data]):
+        d.uv = uv
+    for d, uv in zip(me.uv_layers["src"].data, front):
+        d.uv = uv
+
+
+def project_head(ob, m, fit, views=None, layer="src"):
+    """Uv-laget «src» for hodet fra hodearket: hver flate fra visningen den
+    vender mot, gjennom passingen i `folk_sheet.head_fit` (kroppsarkets
+    piksel → hodearkets)."""
+    from PIL import Image
+
+    W, H = Image.open(fit["file"]).size
+    v, px = m["views"], m["px"]
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    src = me.uv_layers.get(layer) or me.uv_layers.new(name=layer)
+    mw = ob.matrix_world
+    nm = mw.to_3x3().inverted().transposed()
+    for poly in me.polygons:
+        n = (nm @ poly.normal).normalized()
+        if views == ("side",):
+            view = "side"
+        elif views == ("front", "back") or abs(n.x) >= abs(n.y) * 0.5:
+            view = "front" if (n.x > 0 if abs(n.x) > 0.02 else (mw @ poly.center).x > 0) else "back"
+        else:
+            view = "side"
+        _, s, tx, ty, flip, (qx0, qx1) = fit[view]
+        for li in poly.loop_indices:
+            p = mw @ me.vertices[me.loops[li].vertex_index].co
+            if view == "front":
+                X = v["front"] + p.y / px
+            elif view == "back":
+                X = v["back"] - p.y / px
+            else:
+                X = v["side"] + v.get("side_dir", 1) * p.x / px
+            Y = v["ground"] - p.z / px
+            hx, hy = (X - tx) / s, (Y - ty) / s
+            if flip:
+                hx = 2 * (qx1 - 1) - hx
+            src.data[li].uv = (hx / W, 1.0 - hy / H)
 
 
 def joints(m):
@@ -209,6 +281,7 @@ def bones(J):
 # Hver del vektes bare mot sine egne bein, så armen som henger inntil
 # kroppen aldri drar brystet med seg (og omvendt).
 OWN = {
+    "head": ("neck", "head"),
     "body": ("hips", "spine", "chest", "neck", "head"),
     "arm.L": ("upper_arm.L", "forearm.L", "hand.L"),
     "arm.R": ("upper_arm.R", "forearm.R", "hand.R"),
@@ -274,16 +347,17 @@ def build(name, size):
     # Armene henger alt ut fra kroppen i hvileposen (som på arket);
     # stilens `arm_out` er vinkelen fra loddrett, så hvileposens trekkes fra.
     out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
-    st["arm_out"] = max(0.0, folk_motion.style_of(style)["arm_out"] - out)
+    st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
     folk_motion.clips(rig, st, grips, only=("idle", "walk", "talk", "wave"))
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=rig)
+    # Ansiktet får tre ganger så mye plass i teksturen som flaten tilsier.
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=rig, density={"head": 3.0})
     return m
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     names = [a for a in args if a in FOLK] or list(FOLK)
-    size = next((int(a) for a in args if a.isdigit()), 1024)
+    size = next((int(a) for a in args if a.isdigit()), 2048)
     os.makedirs(OUT, exist_ok=True)
     for n in names:
         clear()
