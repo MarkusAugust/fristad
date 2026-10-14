@@ -111,6 +111,17 @@ models! {
     "portal_shard" => "town/portal_shard.glb",
     "token" => "props/token.glb",
     "npc_smith" => "npcs/npc_smith.glb",
+    "npc_clerk" => "npcs/npc_clerk.glb",
+    "npc_apothecary" => "npcs/npc_apothecary.glb",
+    "npc_innkeeper" => "npcs/npc_innkeeper.glb",
+    "npc_gorvek" => "npcs/npc_gorvek.glb",
+    "npc_farmer" => "npcs/npc_farmer.glb",
+    "npc_maid" => "npcs/npc_maid.glb",
+    "npc_guard" => "npcs/npc_guard.glb",
+    "npc_merchant" => "npcs/npc_merchant.glb",
+    "npc_fishwife" => "npcs/npc_fishwife.glb",
+    "npc_boy" => "npcs/npc_boy.glb",
+    "npc_washerwoman" => "npcs/npc_washerwoman.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",

@@ -119,7 +119,7 @@ def measure(name, height):
         shoulder = max(zip(widths, widths[6:]), key=lambda p: p[1][1] - p[0][1])[1][0]
 
     # Armene står fri av kroppen nedenfor albuen: bitene utenfor den midtre.
-    arms = {"R": {}, "L": {}}  # forfra: R til venstre i bildet, L til høyre
+    free = {"R": {}, "L": {}}  # forfra: R til venstre i bildet, L til høyre
     for y in range(shoulder, ground - int(0.2 * H)):
         rs = front(y)
         # Kroppen (og beina under den) står innenfor; en arm henger utenfor.
@@ -130,15 +130,15 @@ def measure(name, height):
         for side_name, pick in (("R", [r for r in rs if r[1] <= c[0]]), ("L", [r for r in rs if r[0] >= c[1]])):
             if pick:
                 a, b = min(r[0] for r in pick), max(r[1] for r in pick)
-                arms[side_name][y] = (a, b)
-    arms_raw = {k: dict(v) for k, v in arms.items()}
+                free[side_name][y] = (a, b)
+    arms_raw = {k: dict(v) for k, v in free.items()}
 
     def is_arm(r, y):
         return any(y in arms_raw[k] and r[0] < arms_raw[k][y][1] and r[1] > arms_raw[k][y][0] for k in ("R", "L"))
 
     sep, hand_end = {}, {}
     for s in ("R", "L"):
-        ys = sorted(arms[s])
+        ys = sorted(free[s])
         if not ys:
             raise SystemExit(f"{name}: fant ikke armen {s} fri av kroppen")
         # Den lengste sammenhengende strekningen er armen.
@@ -153,9 +153,16 @@ def measure(name, height):
         # sverd ved hofta eller et skaft i hånda fortsetter ellers armen).
         best = [y for y in best if y <= shoulder + int(REACH * H)]
         sep[s], hand_end[s] = best[0], best[-1]
-        arms[s] = {y: arms[s][y] for y in best}
-    wrist = {s: hand_end[s] - int(HAND * H) for s in arms}
-    elbow = {s: shoulder + int(0.52 * (wrist[s] - shoulder)) for s in arms}
+        free[s] = {y: free[s][y] for y in best}
+    wrist = {s: hand_end[s] - int(HAND * H) for s in free}
+    elbow = {s: shoulder + int(0.52 * (wrist[s] - shoulder)) for s in free}
+    for s in free:
+        # En arm som holder noe foran seg (krus, morter) ser kort ut forfra:
+        # leddene fordeles langs det som synes, så ingen bein blir null.
+        reach = hand_end[s] - shoulder
+        if reach < 0.33 * H:
+            elbow[s] = shoulder + int(0.45 * reach)
+            wrist[s] = shoulder + int(0.75 * reach)
 
     # Skrittet: der kroppen deler seg i to bein som står delt helt ned.
     crotch = None
@@ -210,7 +217,7 @@ def measure(name, height):
     def arm_width(s, y):
         # Over der armen står fri: bredden der den først står fri, litt
         # tykkere opp mot skulderen (ermet).
-        a, b = arms[s][sep[s]]
+        a, b = free[s][sep[s]]
         w = b - a
         t = max(0.0, min(1.0, (sep[s] - y) / max(1, sep[s] - shoulder)))
         return w * (1.0 + 0.15 * t)
@@ -259,7 +266,7 @@ def measure(name, height):
     # Armene: fra skulderen (inne i kroppen) til fingertuppene.
     for s in ("R", "L"):
         rows = []
-        a, b = arms[s][sep[s]]
+        a, b = free[s][sep[s]]
         c0 = (a + b) / 2
         edge = central(front(shoulder + int(0.02 * H)), cxF)
         sh = (edge[0] + arm_width(s, shoulder) * 0.5) if s == "R" else (edge[1] - arm_width(s, shoulder) * 0.5)
@@ -267,8 +274,8 @@ def measure(name, height):
             t = (y - shoulder) / max(1, sep[s] - shoulder)
             rows.append((y, sh + (c0 - sh) * t - cxF, arm_width(s, y) / 2))
         for y in range(sep[s], hand_end[s] + 1, STEP):
-            if y in arms[s]:
-                a, b = arms[s][y]
+            if y in free[s]:
+                a, b = free[s][y]
                 rows.append((y, (a + b) / 2 - cxF, (b - a) / 2))
         # Hånda er høyst litt bredere enn håndleddet (det hånda holder, som
         # smedens hammer, gjør ellers tverrsnittene til flate skiver).
