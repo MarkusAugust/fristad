@@ -126,7 +126,11 @@ async function load(st, url, layers, sides) {
 }
 
 function frame(st, obj, inside) {
-  const box = new THREE.Box3().setFromObject(obj);
+  // Skinnede figurer: skjelettet stilles først, og boksen tas fra
+  // hjørnene slik de står (ellers rammer kameraet bare inn føttene).
+  if (st.mixer) st.mixer.update(0);
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj, true);
   const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
   const r = Math.max(size.x, size.y, size.z) || 1;
   st.controls.target.copy(c);
