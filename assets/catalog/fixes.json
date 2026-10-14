@@ -29,6 +29,17 @@
    "images": [
     "assets/catalog/review/arms_hugg.jpg"
    ]
+  },
+  "79fba50c4694": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
+   ]
   }
  },
  "arms_leather": {
@@ -45,6 +56,17 @@
    ],
    "images": [
     "assets/catalog/review/arms_hugg.jpg"
+   ]
+  },
+  "5dd0553f3e34": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
    ]
   }
  },
@@ -431,6 +453,17 @@
    "images": [
     "assets/catalog/review/arms_hugg.jpg"
    ]
+  },
+  "891397ebd81f": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
+   ]
   }
  },
  "npc_smith": {
@@ -440,6 +473,15 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "1e8c6351e191": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  },
@@ -451,6 +493,16 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "da3a4c248692": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_apothecary": {
@@ -460,6 +512,15 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "7d34ef0a65a6": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  },
@@ -471,6 +532,15 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "e965e20b70a7": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_gorvek": {
@@ -480,6 +550,14 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "e3ea2499ac28": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  },
@@ -491,6 +569,15 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "49d0e66b20d2": {
+   "text": [
+    "Skuldrene: armen stakk opp over skulderlinja på arket og fikk bakgrunnen som farge; den holder seg nå innenfor omrisset.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_maid": {
@@ -500,6 +587,16 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "6d5e93de1efb": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  },
@@ -511,6 +608,16 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "c5ec9def2fc3": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_merchant": {
@@ -520,6 +627,15 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "ffcfc66ac2b9": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  },
@@ -531,6 +647,16 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "dd38b69719f3": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_boy": {
@@ -541,6 +667,15 @@
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
    ]
+  },
+  "22b6aaf7e194": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
   }
  },
  "npc_washerwoman": {
@@ -550,6 +685,15 @@
     "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
     "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
     "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "67f4d319b3d0": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
    ]
   }
  }

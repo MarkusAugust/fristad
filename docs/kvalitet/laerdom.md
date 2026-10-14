@@ -197,3 +197,11 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Hodet på kroppsarket er for lite til et ansikt.** På kroppsarket er hodet rundt 230 piksler, og bakt i 1024 ble ansiktene uskarpe (eieren 14. oktober). Hodet har nå sin egen del med hodearket (to til fire ganger så stort), passet inn etter omrisset (`folk_sheet.head_fit`), tre ganger plass i teksturen og baking i 2048.
 - **Én visning per flate gir dobbelt ansikt på skrå.** Der flaten bytter fra bildet forfra til bildet fra siden, sto profilen og ansiktet forfra side om side. Materialet blander nå de to bildene etter flatens retning (`blended_sheet_material`, uv-lagene «src» og «src_side»), og hodet er rundt.
 - **Armene på arket står ut fra kroppen.** Hvileposen trekker armene inn mot kroppen (`arm_out` under null), så de henger langs siden i stedet for å stå ut som på et dreieark.
+
+## Innbyggerne og huggene – dommen 14. oktober
+
+- **Formen må komme fra samme bilde som teksturen.** Hodet var formet etter kroppsarket og malt med hodearket; profilen og ansiktet forfra lå da hver sitt sted, og hodet ble stripete. Hodet leses nå av hodearket selv (`head_rows`).
+- **Et omriss kan passe speilvendt.** Profilen på hodearket passet nesten like godt speilet, og fiskerkona fikk ansiktet bak på hodet; retningen kroppen ser leses av foten (tåa og hælen samlet, en tresko står på begge), og profilen speiles etter den.
+- **Skjelettet leses av formen, ikke av faste prosenter.** Ankelen, håndleddet, albuen, hofta og hodeleddet står der modellen viser dem (`model_joints`); faste kroppsmål brukes bare der klærne skjuler leddet.
+- **Det hånda holder er ikke kropp, heller ikke fra siden.** Vaktens hånd med spydet ga kroppen en hylle framover; dybden mellom brystet og hofta holdes nær linja mellom dem.
+- **Hugg drives av skulderen.** Når grepet nesten står stille mens klinga feier 140°, må underarmen svinge om albuen (eieren: «albuen roterer»). Nå går hånda en stor bue like langt fra skulderen, albuen holder vinkelen, overarmen tar med seg albuens plan, og `shoulder_drives` måler det (fra 0,4× til 1,6–3,4×).

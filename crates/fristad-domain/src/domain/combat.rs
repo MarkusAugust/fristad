@@ -24,7 +24,7 @@ const MAX_DEBRIS: usize = 96;
 /// Sekundene i klippene der treffet lander (`SWING_HIT`, `HEAVY_HOLD`,
 /// `HEAVY_HIT` i tools/models/arms.py).
 const SWING_HIT: [f32; 3] = [6.0 / 24.0, 6.0 / 24.0, 7.0 / 24.0];
-const SWING_LEN: [f32; 3] = [13.0 / 24.0, 13.0 / 24.0, 16.0 / 24.0];
+const SWING_LEN: [f32; 3] = [13.0 / 24.0, 16.0 / 24.0, 16.0 / 24.0];
 const HEAVY_HOLD: f32 = 10.0 / 24.0;
 const HEAVY_HIT: f32 = 13.0 / 24.0;
 const HEAVY_LEN: f32 = 1.0;

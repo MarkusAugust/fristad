@@ -54,7 +54,7 @@ def filled_sheet(path):
     return out
 
 
-def blended_sheet_material(name, path, rough=0.8, soft=(0.55, 0.75)):
+def blended_sheet_material(name, path, rough=0.8, soft=(0.55, 0.75), front_attr=None):
     """Som `sheet_material`, men med to uv-lag: «src» forfra eller bakfra
     og «src_side» fra siden, blandet etter hvilken vei flaten vender
     (|n_y| mot |n_x| i objektets rom), mykt mellom vinklene i `soft`. Da
@@ -104,9 +104,16 @@ def blended_sheet_material(name, path, rough=0.8, soft=(0.55, 0.75)):
     ramp.inputs["From Min"].default_value = soft[0]
     ramp.inputs["From Max"].default_value = soft[1]
     nt.links.new(side, ramp.inputs["Value"])
+    factor = ramp.outputs[0]
+    if front_attr:
+        # En vekt per hjørne (`front_attr`, 0–1) holder bildet forfra der
+        # den er 1, med myk overgang (innbyggernes ansikt, `townsfolk.py`).
+        at = nt.nodes.new("ShaderNodeAttribute")
+        at.attribute_name = front_attr
+        factor = op("MULTIPLY", factor, op("SUBTRACT", 1.0, at.outputs["Fac"]))
     mix = nt.nodes.new("ShaderNodeMix")
     mix.data_type = "RGBA"
-    nt.links.new(ramp.outputs[0], mix.inputs["Factor"])
+    nt.links.new(factor, mix.inputs["Factor"])
     nt.links.new(texs[0].outputs[0], mix.inputs["A"])
     nt.links.new(texs[1].outputs[0], mix.inputs["B"])
     nt.links.new(mix.outputs["Result"], bsdf.inputs["Base Color"])

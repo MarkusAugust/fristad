@@ -25,7 +25,6 @@ from common import Clip, armature, bake_textured, clear  # noqa: E402
 from mathutils import Vector  # noqa: E402
 import folk_motion  # noqa: E402
 import folk_sheet  # noqa: E402
-from monsters import project_sheet  # noqa: E402
 from sheetproj import blended_sheet_material, filled_sheet  # noqa: E402
 
 OUT = "assets/models/npcs"
@@ -47,6 +46,7 @@ FOLK = {
 }
 RING = {"body": 24, "arm": 14, "leg": 16}  # hjørner rundt hvert tverrsnitt
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
+TAPER = 0.35  # hodet: så mye smalere framme ved ansiktet enn ved ørene
 SQUARE = 2.4  # superellipse: 2 er ellipse, høyere er mer kantet (klær)
 
 
@@ -89,10 +89,17 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
     px, ground, facing = m["px"], m["ground"], m["facing"]
     bm = bmesh.new()
     loops = []
-    for y, cy, hw, sx, sd in thinned(smoothed(rows)):
+    # Et tverrsnitt med «split» har egen dybde foran og bak aksen
+    # (y, midte, halv bredde, akse, foran, bak).
+    split = rows and rows[0][-1] == "split"
+    if split:
+        rows = [r[:-1] for r in rows]
+    for r in thinned(smoothed(rows)):
+        y, cy, hw, sx = r[:4]
+        front, back = (r[4], r[5]) if split else (r[4], r[4])
         z = (ground - y) * px
         cx, cyy = sx * px * facing, cy * px
-        a, b = max(hw * px, 0.004), max(sd * px, 0.004)
+        a = max(hw * px, 0.004)
         loop = []
         for i in range(n):
             t = 2 * math.pi * i / n
@@ -100,6 +107,12 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
             # Superellipse: x = a·sgn(c)|c|^(2/n)
             ex = math.copysign(abs(c) ** (2 / square), c)
             ey = math.copysign(abs(s) ** (2 / square), s)
+            b = max((front if c > 0 else back) * px, 0.004)
+            if split and c > 0:
+                # Hodet smalner av mot ansiktet (håret står ut på sidene,
+                # ikke foran): ellers fikk kinnet fra profilen plassen der
+                # bildet forfra viser hår, som hengekinn.
+                ey *= 1.0 - TAPER * c * c
             loop.append(bm.verts.new((cx + b * ex, cyy + a * ey, z)))
         loops.append(loop)
     for l0, l1 in zip(loops, loops[1:]):
@@ -132,10 +145,29 @@ def figure(name):
         # Hodet (over halsen) får hodearket, som er to–fire ganger så
         # skarpt som hodet på kroppsarket; kroppen begynner litt over
         # halsen, så de to overlapper.
+        # Formen på hodet er lest av hodearket selv, så bildet forfra og
+        # profilen ligger på samme form (`folk_sheet.head_rows`).
         rows = parts.pop("body")
-        neck = fit["neck"]
-        parts["head"] = [r for r in rows if r[0] <= neck + folk_sheet.STEP]
-        parts["body"] = [r for r in rows if r[0] >= neck - 3 * folk_sheet.STEP]
+        head, chin = folk_sheet.head_rows(m, fit)
+        parts["head"] = head
+        m["y"]["chin"] = int(chin)
+        # Kroppen begynner like over der hodet slutter, og er ikke bredere
+        # enn hodet der de overlapper (den stakk ellers ut under haka).
+        end = head[-1]
+        deep = (end[4] + end[5]) / 2
+        below = end[0] + 0.04 * m["H"]
+
+        def joined(r):
+            # Over skjøten ligger kroppen inne i hodet; like under er den
+            # minst like bred som bunnen av hodet (et ringbrynjeskjørt eller
+            # håret var ellers en hylle over en smal hals).
+            if r[0] <= end[0]:
+                return (r[0], r[1], min(r[2], end[2] * 0.92), r[3], min(r[4], deep * 0.92))
+            if r[0] < below:
+                return (r[0], r[1], max(r[2], end[2] * 0.98), r[3], max(r[4], deep * 0.98))
+            return r
+
+        parts["body"] = [joined(r) for r in rows if r[0] >= end[0] - 2 * folk_sheet.STEP]
     obs = {}
     for part, rows in parts.items():
         if len(rows) < 2:
@@ -147,52 +179,121 @@ def figure(name):
     bpy.context.view_layer.update()
     for part, ob in obs.items():
         if part == "head":
-            ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]))
+            # Hodet bytter fra ansiktet forfra til profilen ved 45°: bildet
+            # forfra lenger ut på kinnet blir strukket.
+            ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]), soft=(0.42, 0.58), front_attr="src_front")
             project_head(ob, m, fit, ("front", "back"), "src")
             project_head(ob, m, fit, ("side",), "src_side")
-            face_forward(ob)
+            front_first(ob)
             continue
-        # Armen står et annet sted på sidebildet enn i modellen (den henger
-        # foran eller bak kroppen), så sidene tar fargen forfra og bakfra.
-        both_views(ob, lambda only: project_sheet(ob, m["size"], m["views"], m["px"], only=only), arm=part.startswith("arm"))
+        project_part(ob, m, part)
     return m, obs
 
 
-def both_views(ob, project, arm=False):
-    """«src» forfra/bakfra og «src_side» fra siden for hver flate; materialet
-    blander dem etter flatens retning (`blended_sheet_material`). Armen tar
-    også sidene forfra og bakfra (den står et annet sted på sidebildet)."""
-    project(("front", "back"))
-    me = ob.data
-    front = [tuple(d.uv) for d in me.uv_layers["src"].data]
-    if not arm:
-        project(("side",))
-    side = me.uv_layers.get("src_side") or me.uv_layers.new(name="src_side")
-    for d, uv in zip(side.data, [tuple(d.uv) for d in me.uv_layers["src"].data]):
-        d.uv = uv
-    for d, uv in zip(me.uv_layers["src"].data, front):
-        d.uv = uv
-
-
-def face_forward(ob, share=0.1):
-    """Forreste del av hodet (foran midten av hvert tverrsnitt) viser
-    ansiktet forfra også der flaten vender til siden: profilens nese og øye
-    ligger ellers ved siden av ansiktet forfra, og på skrå ser man to
-    ansikter (eieren 14. oktober). Profilen får bakhodet, øret og håret."""
+def front_first(ob, start=(0.45, 0.25), sideways=(0.7, 0.9)):
+    """Foran på hodet viser bildet forfra også der flaten vender litt til
+    siden: der viser bildet forfra hår og profilen kinnet, og forfra ble det
+    hengekinn (eieren møter folk ansikt til ansikt). Vekten «src_front» går
+    mykt fra 0 til 1 med hvor langt fram hjørnet står (`start`: brøk av
+    dybden fra forkanten) og hvor lite flaten vender til siden
+    (`sideways`), så det ikke blir en søm."""
     me = ob.data
     mw = ob.matrix_world
-    by_z = {}
+    nm = mw.to_3x3().inverted().transposed()
+    xs = {}
     for v in me.vertices:
         p = mw @ v.co
-        by_z.setdefault(round(p.z, 3), []).append(p.x)
-    span = {z: (min(xs), max(xs)) for z, xs in by_z.items()}
-    front, side = me.uv_layers["src"], me.uv_layers["src_side"]
+        xs.setdefault(round(p.z, 4), []).append(p.x)
+    span = {z: (min(a), max(a)) for z, a in xs.items()}
+    attr = me.color_attributes.get("src_front") or me.color_attributes.new("src_front", "FLOAT_COLOR", "CORNER")
+
+    def ramp(v, a, b):
+        t = max(0.0, min(1.0, (v - a) / (b - a)))
+        return t * t * (3 - 2 * t)
+
     for poly in me.polygons:
+        n = (nm @ poly.normal).normalized()
+        side = abs(n.y) / (abs(n.x) + abs(n.y) + 1e-6)
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
-            lo, hi = span[round(p.z, 3)]
-            if p.x > lo + (hi - lo) * (0.5 - share):
-                side.data[li].uv = front.data[li].uv
+            lo, hi = span[round(p.z, 4)]
+            depth = (hi - p.x) / max(1e-6, hi - lo)
+            w = ramp(-depth, -start[0], -start[1]) * (1 - ramp(side, *sideways)) * (1.0 if n.x > 0 else 0.0)
+            attr.data[li].color = (w, w, w, 1.0)
+
+
+INSET = 0.12  # forfra trekkes flater som vender til siden så mye inn mot midten (omrisset på arket er en mørk strek)
+INSET_HIDDEN = 0.45  # og så mye der sidebildet ikke viser flaten (armen, eller det armen dekker)
+SOLE = 0.012  # sålen tar fargen så høyt over bakken (del av høyden), ikke bakkestreken
+
+
+def project_part(ob, m, part):
+    """Uv-lagene «src» (forfra eller bakfra) og «src_side» (fra siden) for
+    en del av kroppen; materialet blander dem etter flatens retning
+    (`blended_sheet_material`).
+
+    - Forfra trekkes flater som vender til siden litt inn mot midten av
+      tverrsnittet, så de ikke får den mørke streken rundt figuren.
+    - Sidebildet brukes ikke der det viser noe annet enn flaten: armen
+      (den henger et annet sted på sidebildet) og det armen dekker på
+      sidebildet (låret og hofta bak hånda ble svarte flekker når figuren
+      gikk). Der tar sida bildet forfra, trukket godt inn.
+    - Sålen tar fargen fra skoen, ikke fra bakkestreken."""
+    W, Hs = m["size"]
+    v, px, H = m["views"], m["px"], m["H"]
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    src = me.uv_layers.get("src") or me.uv_layers.new(name="src")
+    side = me.uv_layers.get("src_side") or me.uv_layers.new(name="src_side")
+    mw = ob.matrix_world
+    nm = mw.to_3x3().inverted().transposed()
+    arm = part.startswith("arm")
+    # Midten av hvert tverrsnitt (ringene ligger i hver sin høyde).
+    rings = {}
+    for vert in me.vertices:
+        p = mw @ vert.co
+        rings.setdefault(round(p.z, 4), []).append(p)
+    mid = {z: (sum(q.x for q in ps) / len(ps), sum(q.y for q in ps) / len(ps)) for z, ps in rings.items()}
+    # Armene på sidebildet: midt i kroppen sett fra siden, fra skulderen til fingrene.
+    band = []
+    for s in ("L", "R"):
+        for y, cy, hw, sx, sd in m["parts"].get(f"arm.{s}", []):
+            band.append(((v["ground"] - y) * px, sx * px * m["facing"], hw * px * 1.1))
+    band.sort()
+
+    def covered(p):
+        if arm:
+            return True
+        near = [b for b in band if abs(b[0] - p.z) < 0.03]
+        return any(abs(p.x - bx) < r for _, bx, r in near)
+
+    def front_uv(p, n, inset):
+        cx, cy = mid[round(p.z, 4)]
+        y = cy + (p.y - cy) * (1 - inset)
+        back = n.x < -0.05 or (abs(n.x) <= 0.05 and p.x < cx)
+        X = v["back"] - y / px if back else v["front"] + y / px
+        return X
+
+    for poly in me.polygons:
+        n = (nm @ poly.normal).normalized()
+        ax, ay = abs(n.x), abs(n.y)
+        share = ay / (ax + ay + 1e-6)
+        # Hele flaten tar samme bilde (blandes hjørnene, blir flaten et
+        # smurt sagtakk).
+        hidden = covered(mw @ poly.center)
+        for li in poly.loop_indices:
+            p = mw @ me.vertices[me.loops[li].vertex_index].co
+            Y = v["ground"] - p.z / px
+            if part.startswith("leg"):
+                Y = min(Y, v["ground"] - SOLE * H)
+            X = front_uv(p, n, (INSET_HIDDEN if arm else INSET) * share)
+            src.data[li].uv = (X / W, 1.0 - Y / Hs)
+            if hidden:
+                Xs = front_uv(p, n, INSET_HIDDEN)
+            else:
+                Xs = v["side"] + v.get("side_dir", 1) * p.x / px
+            side.data[li].uv = (Xs / W, 1.0 - Y / Hs)
 
 
 def project_head(ob, m, fit, views=None, layer="src"):
@@ -245,7 +346,7 @@ def joints(m):
         return Vector((r[3] * px * m["facing"], r[1] * px, z(y)))
 
     def mid(y):
-        rows = m["parts"]["body"]
+        rows = m["parts"]["body"] + [r[:5] for r in m["parts"].get("head", [])]
         r = min(rows, key=lambda r: abs(r[0] - y))
         return Vector((r[3] * px * m["facing"], 0.0, z(y)))
 
@@ -255,7 +356,11 @@ def joints(m):
     J["spine03"] = mid(pelvis - int(0.07 * H))
     J["spine01"] = mid(Y["shoulder"] + int(0.12 * H))
     J["neck"] = mid(Y["shoulder"] - int(0.01 * H))
-    J["head"] = mid(Y["shoulder"] - int(0.07 * H))
+    # Hodeleddet under haka, lest av hodets form (profilen trekker seg inn
+    # der), så hodet dreies som én ting over halsen.
+    J["head"] = mid(Y.get("chin", Y["shoulder"] - int(0.07 * H)))
+    if J["head"].z <= J["neck"].z + 0.02:
+        J["head"] = J["neck"] + Vector((0, 0, 0.04))
     J["top"] = mid(m["top"] + int(0.01 * H))
     for s in ("L", "R"):
         J[f"shoulder.{s}"] = along(f"arm.{s}", Y["shoulder"] + int(0.02 * H))
@@ -327,6 +432,9 @@ def weigh(ob, rig, names):
             u = max(0.0, min(1.0, (p - h).dot(ab) / max(1e-9, ab.length_squared)))
             ds.append(((p - (h + ab * u)).length, n))
         ds.sort()
+        if len(ds) == 1:
+            groups[ds[0][1]].add([v.index], 1.0, "REPLACE")
+            continue
         (d1, n1), (d2, n2) = ds[0], ds[1]
         w2 = max(0.0, 1.0 - (d2 - d1) / BLEND) * 0.5
         groups[n1].add([v.index], 1.0 - w2, "REPLACE")
