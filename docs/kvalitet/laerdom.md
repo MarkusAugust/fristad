@@ -205,3 +205,7 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Skjelettet leses av formen, ikke av faste prosenter.** Ankelen, håndleddet, albuen, hofta og hodeleddet står der modellen viser dem (`model_joints`); faste kroppsmål brukes bare der klærne skjuler leddet.
 - **Det hånda holder er ikke kropp, heller ikke fra siden.** Vaktens hånd med spydet ga kroppen en hylle framover; dybden mellom brystet og hofta holdes nær linja mellom dem.
 - **Hugg drives av skulderen.** Når grepet nesten står stille mens klinga feier 140°, må underarmen svinge om albuen (eieren: «albuen roterer»). Nå går hånda en stor bue like langt fra skulderen, albuen holder vinkelen, overarmen tar med seg albuens plan, og `shoulder_drives` måler det (fra 0,4× til 1,6–3,4×).
+- **En regel som erstatter en måling må være sikrere enn målingen.** Profilen ble speilet etter en regel (halsen sitter bak midten av hodet), men skjegg og hår som henger, snudde den, og fire av innbyggerne fikk ansiktet i bakhodet. Omrisset på sidebildet velger igjen speilingen; det som var feil hos fiskerkona, var at kroppen ble lest feil vei, og det rettes ved foten.
+- **Bildet forfra hører hjemme på ansiktet, ikke rundt sidene.** Da bildet forfra ble trukket langt rundt hodet, sto ansiktet forfra og profilen side om side (to ansikter, to sett ører). Bildet forfra holdes på den fremre femtedelen, og overgangen til profilen er kort.
+- **En glattingsregel kan kappe det som skal stå ut.** Regelen mot hyller i hodet kappet haka (budeia «ingen hake»); forkanten glattes nå bare litt.
+

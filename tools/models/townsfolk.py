@@ -181,7 +181,7 @@ def figure(name):
         if part == "head":
             # Hodet bytter fra ansiktet forfra til profilen ved 45°: bildet
             # forfra lenger ut på kinnet blir strukket.
-            ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]), soft=(0.42, 0.58), front_attr="src_front")
+            ob.data.materials[0] = blended_sheet_material(f"{name}_head_sheet", filled_sheet(fit["file"]), soft=(0.45, 0.55), front_attr="src_front")
             project_head(ob, m, fit, ("front", "back"), "src")
             project_head(ob, m, fit, ("side",), "src_side")
             front_first(ob)
@@ -190,7 +190,7 @@ def figure(name):
     return m, obs
 
 
-def front_first(ob, start=(0.45, 0.25), sideways=(0.7, 0.9)):
+def front_first(ob, start=(0.22, 0.1), sideways=(0.55, 0.75)):
     """Foran på hodet viser bildet forfra også der flaten vender litt til
     siden: der viser bildet forfra hår og profilen kinnet, og forfra ble det
     hengekinn (eieren møter folk ansikt til ansikt). Vekten «src_front» går

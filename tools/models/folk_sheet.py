@@ -534,17 +534,10 @@ def head_fit(m):
     out = {"file": path, "neck": neck}
     out["front"] = fit(v["front"], front_q, (False,))
     out["back"] = fit(v["back"], back_q, (False,))
-    # Profilen må se samme vei som kroppen på sidebildet: omrisset passer
-    # nesten like godt speilvendt, og da sto ansiktet bak på hodet.
-    def faces(q):
-        rows = [(y, runs(lab[y] == q[4], q[0], q[1], least=3)) for y in range(q[2], q[3])]
-        rows = [(y, (r[0][0] + r[-1][1]) / 2) for y, r in rows if r]
-        n = len(rows)
-        head = np.mean([c for _, c in rows[int(n * 0.2): int(n * 0.6)]])
-        neck = np.mean([c for _, c in rows[int(n * 0.85):]])
-        return 1 if head > neck else -1
-
-    out["side"], q = max(((fit(v["side"], q, (faces(q) != m["facing"],)), q) for q in side_qs), key=lambda b: b[0][0])
+    # Profilen som passer omrisset best, speilet eller ikke: kroppen på
+    # sidebildet ser samme vei som hodet der (en regel med halsen bak midten
+    # av hodet tok feil når skjegget henger, og ga ansiktet i bakhodet).
+    out["side"], q = max(((fit(v["side"], q, (False, True)), q) for q in side_qs), key=lambda b: b[0][0])
     out["quads"] = {"front": front_q, "side": q, "back": back_q}
     out["mask"] = ndimage.binary_fill_holes(ndimage.binary_closing(hm, iterations=6))
     out["labels"] = lab
@@ -628,7 +621,7 @@ def head_rows(m, fit):
     # (ansiktet males uansett på fra bildet forfra).
     for i, r in enumerate(rows):
         win = rows[max(0, i - 3): i + 4]
-        wide = rows[max(0, i - 10): i + 11]
+        wide = rows[max(0, i - 6): i + 7]
         out.append((r[0], *[float(np.median([w[k] for w in (wide if k == 3 else win)])) for k in range(1, 5)]))
     # Haka: der profilen trekker seg mest inn (ikke der hodet er smalest
     # forfra: under et skaut faller håret ut). Hodeleddet står der.
@@ -656,7 +649,8 @@ def head_rows(m, fit):
 
     ys_o = [r[0] for r in out]
     hw_e = envelope([r[2] for r in out], ys_o)
-    fr_e = envelope([r[3] for r in out], ys_o)
+    # Forkanten (pannen, nesa, haka) tas ikke med: der kappet regelen haka.
+    fr_e = [r[3] for r in out]
     bk_e = [-x for x in envelope([-r[4] for r in out], ys_o)]
     out = [(r[0], r[1], hw_e[i], fr_e[i], bk_e[i]) for i, r in enumerate(out)]
     # Tverrsnittet er en ellipse foran og en bak en fast akse midt i
