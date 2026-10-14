@@ -432,5 +432,125 @@
     "assets/catalog/review/arms_hugg.jpg"
    ]
   }
+ },
+ "npc_smith": {
+  "66817bb1a12f": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_clerk": {
+  "95231b858df8": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_apothecary": {
+  "f4b9e308fd8e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_innkeeper": {
+  "20cc201d2337": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_gorvek": {
+  "1b076207686e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_farmer": {
+  "dc0da2a9304c": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_maid": {
+  "41ebfd9be83d": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_guard": {
+  "40da289cc624": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_merchant": {
+  "11d4482a8cc9": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_fishwife": {
+  "66713cf1458e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_boy": {
+  "6d8415f3d93a": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
+ },
+ "npc_washerwoman": {
+  "a369524e6881": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  }
  }
 }
