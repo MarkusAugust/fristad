@@ -187,3 +187,10 @@ Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak 
 - **Klinga snurret fordi bevegelsen gikk i sløyfe.** Når klingas retning går rundt en sløyfe (opp til høyre, ned til venstre og tilbake en annen vei), må den vris om sin egen akse like mye som sløyfa omslutter: nesten en halv omdreining per hugg. Vridningen ble valgt bilde for bilde, låste seg og tok igjen med 20–40° på ett bilde. Nå går hvert hugg fram og tilbake i ett plan gjennom hvileretningen, vridningen velges for hele hugget samlet (Viterbi), og `blade_spin` stopper eksporten over 20° per bilde.
 - **Det tunge hugget må merkes, ikke bare være tregere.** Det feier lenger enn de vanlige (`heavy_distinct`), kroppen kaster seg mer enn dobbelt så langt fram, ladningen løfter blikket og får det til å dirre, og slaget kaster blikket ned med lengre hitstop og mer risting (`det_tunge_hugget_kjennes_i_kameraet`).
 - **Ikke alle retninger kan nås med håndleddet.** Klinga kan ikke peke rett fram og vannrett midt foran deg uten at håndleddet knekker; huggene går skrått ned over midten. Trenger eggen tid til å snu før treffet, får hugget et bilde mer opptrekk (treffet på bilde 6, og `combat.rs` følger klippet).
+
+## Innbyggerne – piloten (14. oktober)
+
+- **Hull i masken er ikke alltid hull.** Mellomrommet mellom armen og kroppen er bakgrunn omsluttet av figuren; fylles alle hull, smelter armene inn i kroppen. Bare små hull fylles (`folk_sheet.mask`).
+- **Klærne skjuler skrittet.** Der buksebeina skilles under forkleet, sitter ikke hofta: med skrittet derfra ble beina halvparten så lange, og gangen gikk på huk. Hofta, kneet og ankelen står etter kroppens mål.
+- **En vinkel i stilen er fra loddrett, ikke fra hvileposen.** `arm_out` ble lagt på vinkelen armen alt hadde på arket, og armene sto ut som på en fugleskremsel.
+- **Det figuren holder er ikke kropp.** Der hammeren rører forkleet forfra, ble raden en flat skive; kroppen får ikke bli brått bredere enn radene over, og hånda høyst litt bredere enn håndleddet.

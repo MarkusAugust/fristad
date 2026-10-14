@@ -94,7 +94,6 @@ pub const PLANNED: &[(&str, &str)] = &[
     ("cow_body", "ku (fase 7)"),
     ("cow_leg_front", "ku (fase 7)"),
     ("cow_leg_hind", "ku (fase 7)"),
-    ("npc_smith", "figur (fase 5)"),
     ("npc_clerk", "figur (fase 5)"),
     ("npc_apothecary", "figur (fase 5)"),
     ("npc_innkeeper", "figur (fase 5)"),
