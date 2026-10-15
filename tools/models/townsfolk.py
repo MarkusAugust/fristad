@@ -52,10 +52,17 @@ TOOLS = {
     "guard": {"L": "spydet"},
     "smith": {"R": "hammeren"},
 }
-RING = {"body": 24, "arm": 14, "leg": 16, "held": 14}  # hjørner rundt hvert tverrsnitt
+RING = {"body": 24, "arm": 14, "leg": 16, "held": 14, "head": 36, "hair": 24}  # hjørner rundt hvert tverrsnitt
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
+NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
+CHIN_IN = 0.015  # flatene under hodet tar fargen så langt opp (andel av høyden)
+HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
+ISSE = 8  # kuppelen over hodet tar fargen så mange piksler innenfor issen på hodearket
+RELIEF_W = 0.3  # nesa og munnen er så brede (del av hodets halve bredde)
 TAPER = 0.35  # hodet: så mye smalere framme ved ansiktet enn ved ørene
+ARMLESS_FROM = 0.03  # armen males bort fra siden fra så langt under skulderen (andel av høyden)
+ARMLESS_TIP, ARMLESS_HAND, ARMLESS_RADIUS = 0.03, 0.06, 12  # og så langt under enden av armen (fingrene), innmalt med denne radiusen (px)
 SQUARE = 2.4  # superellipse: 2 er ellipse, høyere er mer kantet (klær)
 
 
@@ -103,9 +110,16 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
     split = rows and rows[0][-1] == "split"
     if split:
         rows = [r[:-1] for r in rows]
-    for r in thinned(smoothed(rows)):
+    # Hodet tynnes mindre (der ble omrisset kantete).
+    for r in thinned(smoothed(rows), THIN / 3 if split else THIN):
         y, cy, hw, sx = r[:4]
         front, back = (r[4], r[5]) if split else (r[4], r[4])
+        # Hodet: det som stikker fram av ansiktsplanet (nesa, leppene,
+        # haka) er en smal bule midt i ansiktet (`folk_sheet.rounded_head`).
+        relief = r[6] if split and len(r) > 6 else 0.0
+        # Og foran på hodet kan det være smalere enn bak (håret som henger
+        # bak kinnene).
+        front_w = r[7] if split and len(r) > 7 else hw
         z = (ground - y) * px
         cx, cyy = sx * px * facing, cy * px
         a = max(hw * px, 0.004)
@@ -122,7 +136,12 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
                 # ikke foran): ellers fikk kinnet fra profilen plassen der
                 # bildet forfra viser hår, som hengekinn.
                 ey *= 1.0 - TAPER * c * c
-            loop.append(bm.verts.new((cx + b * ex, cyy + a * ey, z)))
+            bump = relief * px * math.exp(-(ey / RELIEF_W) ** 2) * max(c, 0.0) ** 2 if relief else 0.0
+            # Foran og på sidene holder hodet ansiktets bredde; hele bredden
+            # (håret) kommer bak øret, der profilen viser håret.
+            af = min(a, max(front_w * px, 0.004))
+            lat = af + (a - af) * min(1.0, max(0.0, -c / 0.6)) if split else a
+            loop.append(bm.verts.new((cx + b * ex + bump, cyy + lat * ey, z)))
         loops.append(loop)
     # Uv-laget er delen brettet ut som én sylinder (sømmen bak), i meter:
     # rundt etter snittets omkrets, langs etter midtlinja. Utbrettet av
@@ -131,9 +150,11 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
     uvl = bm.loops.layers.uv.new("UVMap")
     mids = [sum((v.co for v in l), Vector()) / n for l in loops]
     per = sum(sum((l[i].co - l[(i + 1) % n].co).length for i in range(n)) for l in loops) / len(loops)
+    # Langs etter flaten, ikke midtlinja: en hattebrem er nesten flat, og
+    # med høyden mellom radene ble den klemt til en strek i teksturen.
     along = [0.0]
-    for a, b in zip(mids, mids[1:]):
-        along.append(along[-1] + (b - a).length)
+    for l0, l1 in zip(loops, loops[1:]):
+        along.append(along[-1] + sum((a.co - b.co).length for a, b in zip(l0, l1)) / n)
 
     def u_of(i, last=False):
         # Sømmen går bak (indeksen n/2 er bakover, −X).
@@ -146,14 +167,18 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
             f = bm.faces.new((l0[i], l0[j], l1[j], l1[i]))
             for lp, (ii, rr) in zip(f.loops, ((i, r), (j, r), (j, r + 1), (i, r + 1))):
                 lp[uvl].uv = (u_of(ii, last=ii == j), -along[rr])
-    for cap, ring in ((cap_top, 0), (cap_bottom, len(loops) - 1)):
+    # Lokkene ligger ved siden av sylinderen i uv-laget, hvert for seg (de
+    # lå oppå toppen av den og delte piksler med halsen: en prikkete mørk
+    # strek under haka, eieren 14. oktober «stygg strek på halsen»).
+    R = max((v.co - mids[k]).length for k, l in enumerate(loops) for v in l) + 0.01
+    for k, (cap, ring) in enumerate(((cap_top, 0), (cap_bottom, len(loops) - 1))):
         if not cap:
             continue
         verts = loops[ring] if ring else list(reversed(loops[0]))
         f = bm.faces.new(verts)
         c = mids[ring]
         for lp in f.loops:
-            lp[uvl].uv = (lp.vert.co.x - c.x, lp.vert.co.y - c.y)
+            lp[uvl].uv = (per + R + 0.01 + lp.vert.co.x - c.x, -(2 * k + 1) * R + lp.vert.co.y - c.y)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
@@ -167,7 +192,7 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
 
 
 def figure(name):
-    m = folk_sheet.measure(name, FOLK[name])
+    m = folk_sheet.measure(name, FOLK[name], tuple(TOOLS.get(name, {})))
     path = os.path.join(folk_sheet.REF, f"{name}_body.jpeg")
     mat = blended_sheet_material(f"{name}_sheet", filled_sheet(path))
     fit = folk_sheet.head_fit(m)
@@ -186,34 +211,73 @@ def figure(name):
         ratio = [min(rows_b, key=lambda q: abs(q[0] - r[0]))[2] / r[2] for r in head if r[0] <= chin for rows_b in [m["parts"]["body"]]]
         k = float(sorted(ratio)[len(ratio) // 2]) if ratio else 1.0
         fit["kx"] = k if abs(k - 1) > WIDEN else 1.0
-        head = [(r[0], r[1], r[2] * fit["kx"], *r[3:]) for r in head]
+        head = [(r[0], r[1], r[2] * fit["kx"], *r[3:7], r[7] * fit["kx"], *r[8:]) for r in head]
         parts["head"] = head
         m["y"]["chin"] = int(chin)
         # Kroppen begynner like over der hodet slutter, og er ikke bredere
         # enn hodet der de overlapper (den stakk ellers ut under haka).
         end = head[-1]
         deep = (end[4] + end[5]) / 2
-        below = end[0] + 0.04 * m["H"]
 
         def joined(r):
-            # Over skjøten ligger kroppen inne i hodet; like under er den
-            # minst like bred som bunnen av hodet (et ringbrynjeskjørt eller
-            # håret var ellers en hylle over en smal hals).
+            # Over skjøten ligger kroppen inne i hodet. Hodet slutter under
+            # kjeven, så halsen under er smalere (den ble ellers tvunget like
+            # bred som bunnen av hodet, og smeden fikk en skål under skjegget).
             if r[0] <= end[0]:
                 return (r[0], r[1], min(r[2], end[2] * 0.92), r[3], min(r[4], deep * 0.92))
-            if r[0] < below:
-                return (r[0], r[1], max(r[2], end[2] * 0.98), r[3], max(r[4], deep * 0.98))
-            return r
+            # Under hodet vokser kroppen (håret over skuldrene) gradvis ut
+            # fra bunnen av hodet, ikke som en hylle (fiskerkona).
+            grow = (r[0] - end[0]) * NECK_SLOPE
+            return (r[0], r[1], min(r[2], end[2] * 0.92 + grow), r[3], min(r[4], deep * 0.92 + grow))
 
         parts["body"] = [joined(r) for r in rows if r[0] >= end[0] - 2 * folk_sheet.STEP]
+        # Håret som henger ned ved siden av kjeven og halsen til skuldrene
+        # (fiskerkona) er en egen del bak midten av hodet: kroppsarket er der
+        # bredere enn hodet og halsen. Som hode ble det en flat kloss under
+        # haka, og som hals en krage.
+        hair, f = [], m["facing"]
+        for r in rows:
+            if not chin - HAIR_ABOVE * m["H"] <= r[0] <= m["y"]["shoulder"]:
+                continue
+            h = min(head, key=lambda q: abs(q[0] - r[0]))
+            inner = h[2] if r[0] <= end[0] else joined(r)[2]
+            back_, mid_ = r[3] - f * r[4], h[3]
+            if r[2] > inner * HAIR and (mid_ - back_) * f > 0:
+                hair.append((r[0], r[1], r[2], (back_ + mid_) / 2, abs(mid_ - back_) / 2))
+            elif hair:
+                break
+        if hair:
+            # Og videre ned i skuldrene (en flat underkant over skuldrene
+            # synes nedenfra).
+            last = hair[-1]
+            for r in rows:
+                if r[0] <= last[0]:
+                    continue
+                if r[0] > m["y"]["shoulder"] + HAIR_ABOVE * m["H"]:
+                    break
+                hair.append((r[0], *last[1:]))
+        if hair and hair[-1][0] - hair[0][0] >= HAIR_LONG * m["H"]:
+            # Toppen begynner inne i hodet (oppover til der hodet er bredere
+            # enn håret), så håret vokser ut av hodet der kjeven smalner, ikke
+            # som en hylle.
+            above = [r for r in rows if r[0] < hair[0][0]]
+            for r in reversed(above):
+                h = min(head, key=lambda q: abs(q[0] - r[0]))
+                back_, mid_ = r[3] - f * r[4], h[3]
+                if (mid_ - back_) * f <= 0:
+                    break
+                hair.insert(0, (r[0], r[1], min(r[2], h[2] * HAIR_IN), (back_ + mid_) / 2, abs(mid_ - back_) / 2))
+                if r[2] <= h[2]:
+                    break
+            parts["hair"] = hair
     obs = {}
     for part, rows in parts.items():
         if len(rows) < 2:
             continue
-        kind = "body" if part == "head" else part.split(".")[0]
+        kind = part.split(".")[0]
         # Hodet er rundt (en kantet skalle får ansiktet forfra og profilen
         # på samme hjørne), uten lokk under (det står inne i kroppen).
-        obs[part] = ring_mesh(part.replace(".", "_"), rows, m, mat, RING[kind], 2.0 if part.startswith("arm") or part == "head" else SQUARE, cap_bottom=part != "head")
+        obs[part] = ring_mesh(part.replace(".", "_"), rows, m, mat, RING[kind], 2.0 if part.startswith("arm") or part in ("head", "hair") else SQUARE)
     bpy.context.view_layer.update()
     for part, ob in obs.items():
         if part == "head":
@@ -224,8 +288,69 @@ def figure(name):
             project_head(ob, m, fit, ("side",), "src_side")
             front_first(ob)
             continue
+        if part == "body":
+            # Fra siden ligger armen over kroppen på arket; kroppen får et
+            # sideark der armen er malt bort (det ble en arm til, malt på
+            # kroppen bak armen, sett skrått og fra siden).
+            ob.data.materials[0] = blended_sheet_material(f"{name}_body_sheet", armless_side(filled_sheet(path), m))
         project_part(ob, m, part)
     return m, obs
+
+
+def armless_side(path, m, pad=6):
+    """Arket med armen fra siden malt bort, så kroppen ikke får et bilde av
+    armen bak den ekte armen (eieren så en arm til, skrått og fra siden).
+    Hullet er den bare armen og hånda fra siden, slik motoren fant dem
+    etter hudfargen (`bare_side`; en maske etter fargen alene tok med
+    forkleet). Ermet har kjolens farge og står. Hver rad fylles med kjolen speilet fra
+    baksida av hullet, så stoffet beholder strøkene; det som ikke har noe å
+    speile, males inn fra kantene (OpenCV)."""
+    import cv2
+    import numpy as np
+    out = path.rsplit(".", 1)[0] + "_armless.png"
+    im = cv2.imread(path)
+    sx0, H, facing = m["views"]["side"], m["H"], m["facing"]
+    top = m["y"]["shoulder"] + int(ARMLESS_FROM * H)
+    x0, x1 = int(sx0 - 0.3 * H), int(sx0 + 0.3 * H)
+    # Den bare armen der motoren fant den fra siden (`bare_side`, rad for
+    # rad): radene imellom fylles, og hånda forlenges til fingertuppene.
+    hole = np.zeros(im.shape[:2], bool)
+    found = [(y, (a + b) / 2, (b - a) / 2) for y, a, b in m.get("bare_side", [])]
+    for chain in folk_sheet.chains(sorted(found), 1, 2):
+        ys = np.array([q[0] for q in chain], float)
+        ca = np.array([q[1] - q[2] for q in chain], float)
+        cb = np.array([q[1] + q[2] for q in chain], float)
+        # Nederst er hånda så bred som den er bredest der (fingrene ble
+        # funnet som smale biter og sto igjen på skjørtet).
+        low = ys >= ys[-1] - ARMLESS_HAND * H
+        la, lb = ca[low].min(), cb[low].max()
+        for y in range(int(ys[0]), int(ys[-1] + ARMLESS_TIP * H) + 1):
+            a_, b_ = np.interp(y, ys, ca), np.interp(y, ys, cb)
+            if y >= ys[-1] - ARMLESS_HAND * H:
+                a_, b_ = min(a_, la), max(b_, lb)
+            hole[y, int(sx0 + a_) - pad: int(sx0 + b_) + pad + 1] = True
+    hole[:, :x0] = False
+    hole[:, x1:] = False
+    rest = hole.copy()
+    # Bare stoff innenfor omrisset speiles (bakgrunnen ved siden av er fylt
+    # med kantfargene).
+    inside = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
+    back = -facing  # baksida av figuren fra siden
+    for y in np.nonzero(hole.any(1))[0]:
+        xs = np.nonzero(hole[y])[0]
+        # Bitene av hullet i raden, hver speilet fra baksida.
+        for seg in np.split(xs, np.nonzero(np.diff(xs) > 1)[0] + 1):
+            a, b = seg[0], seg[-1]
+            n_ = b - a + 1
+            src = (a - 1 - np.arange(n_)) if back < 0 else (b + 1 + np.arange(n_))
+            dst = np.arange(a, b + 1) if back < 0 else np.arange(b, a - 1, -1)
+            ok = (src >= 0) & (src < im.shape[1])
+            ok[ok] &= ~hole[y, src[ok]] & inside[y, src[ok]]
+            im[y, dst[ok]] = im[y, src[ok]]
+            rest[y, dst[ok]] = False
+    im = cv2.inpaint(im, rest.astype(np.uint8) * 255, ARMLESS_RADIUS, cv2.INPAINT_TELEA)
+    cv2.imwrite(out, im)
+    return out
 
 
 def front_first(ob, start=(0.22, 0.1), sideways=(0.55, 0.75)):
@@ -260,6 +385,7 @@ def front_first(ob, start=(0.22, 0.1), sideways=(0.55, 0.75)):
             attr.data[li].color = (w, w, w, 1.0)
 
 
+FLAT = 0.75  # en flate med så stor del av normalen opp eller ned vender opp eller ned
 INSET = 0.12  # forfra trekkes flater som vender til siden så mye inn mot midten (omrisset på arket er en mørk strek)
 INSET_HIDDEN = 0.45  # og så mye der sidebildet ikke viser flaten (armen, eller det armen dekker)
 SOLE = 0.012  # sålen tar fargen så høyt over bakken (del av høyden), ikke bakkestreken
@@ -301,10 +427,10 @@ def project_part(ob, m, part):
     band.sort()
 
     def covered(p):
-        if arm:
-            return True
-        near = [b for b in band if abs(b[0] - p.z) < 0.03]
-        return any(abs(p.x - bx) < r for _, bx, r in near)
+        # Armen står fra siden der arket viser den (`folk_sheet`), og både
+        # armen og kroppen tar sidebildet: bildet forfra på flater som vender
+        # til siden ble utstrukne striper eller lapper.
+        return False
 
     def front_uv(p, n, inset):
         cx, cy = mid[round(p.z, 4)]
@@ -320,15 +446,22 @@ def project_part(ob, m, part):
         # Hele flaten tar samme bilde (blandes hjørnene, blir flaten et
         # smurt sagtakk).
         hidden = covered(mw @ poly.center)
+        # En flate som vender rett ned eller opp (under et vidt erme, et
+        # lokk) tar fargen fra kanten den henger på: med bildet i sin egen
+        # høyde fikk skriveren hudfargede tallerkener under ermene.
+        zs = [(mw @ me.vertices[me.loops[li].vertex_index].co).z for li in poly.loop_indices]
+        flat_z = (max(zs) if n.z < 0 else min(zs)) if abs(n.z) > FLAT else None
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
-            Y = v["ground"] - p.z / px
+            Y = v["ground"] - (p.z if flat_z is None else flat_z) / px
             if part.startswith("leg"):
                 Y = min(Y, v["ground"] - SOLE * H)
             X = front_uv(p, n, (INSET_HIDDEN if arm else INSET) * share)
             src.data[li].uv = (X / W, 1.0 - Y / Hs)
             if hidden:
-                Xs = front_uv(p, n, INSET_HIDDEN)
+                # Nøyaktig samme som bildet forfra: et eget, sterkere
+                # innskrudd utsnitt ga lapper på kroppen fra siden.
+                Xs = X
             else:
                 Xs = v["side"] + v.get("side_dir", 1) * p.x / px
             side.data[li].uv = (Xs / W, 1.0 - Y / Hs)
@@ -348,6 +481,7 @@ def project_head(ob, m, fit, views=None, layer="src"):
     src = me.uv_layers.get(layer) or me.uv_layers.new(name=layer)
     mw = ob.matrix_world
     nm = mw.to_3x3().inverted().transposed()
+    tops = {}
     for poly in me.polygons:
         n = (nm @ poly.normal).normalized()
         if views == ("side",):
@@ -357,6 +491,17 @@ def project_head(ob, m, fit, views=None, layer="src"):
         else:
             view = "side"
         _, s, tx, ty, flip, (qx0, qx1) = fit[view]
+        # Kuppelen over den øverste raden tar fargen innenfor issen, ikke
+        # fra fyllet over den (gutten fikk rosa flekker på toppen).
+        if view not in tops:
+            # Toppen av omrisset i hver kolonne av ruta.
+            col = {}
+            for hy_, rs in sorted(folk_sheet.quad_rows(fit, view).items()):
+                for a_, b_ in rs:
+                    for x_ in range(a_, b_):
+                        col.setdefault(x_, hy_)
+            tops[view] = (min(col.values()), col)
+        top_hy, col = tops[view]
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
             if view == "front":
@@ -366,7 +511,18 @@ def project_head(ob, m, fit, views=None, layer="src"):
             else:
                 X = v["side"] + v.get("side_dir", 1) * p.x / px
             Y = v["ground"] - p.z / px
+            if n.z < -FLAT:
+                # Under haka (og lokket under hodet) tar flaten fargen litt
+                # opp i ansiktet: der den står, viser arket streken langs
+                # kjeven, og det ble en mørk strek rundt halsen.
+                Y -= CHIN_IN * m["H"]
             hx, hy = (X - tx) / s, (Y - ty) / s
+            # Over omrisset (kuppelen over issen) tar flaten fargen like
+            # innenfor toppen av omrisset i samme kolonne: én rad strukket
+            # over kuppelen ble en stripe, en rad langt inn traff huden.
+            ct = col.get(int(round(2 * (qx1 - 1) - hx if flip else hx)))
+            if ct is not None and hy < ct + ISSE:
+                hy = ct + ISSE
             if flip:
                 hx = 2 * (qx1 - 1) - hx
             src.data[li].uv = (hx / W, 1.0 - hy / H)
@@ -447,6 +603,8 @@ def bones(J):
 # kroppen aldri drar brystet med seg (og omvendt).
 OWN = {
     "head": ("neck", "head"),
+    # Håret som henger ned følger hodet og halsen.
+    "hair": ("chest", "neck", "head"),
     "body": ("hips", "spine", "chest", "neck", "head"),
     "arm.L": ("upper_arm.L", "forearm.L", "hand.L"),
     "arm.R": ("upper_arm.R", "forearm.R", "hand.R"),

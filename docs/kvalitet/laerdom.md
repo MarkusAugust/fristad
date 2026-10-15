@@ -221,3 +221,16 @@ Eieren: «hull gjennom kroppen innenfor albuen … Den må forbedres slik at du 
 - **Det arket viser, skal finnes i modellen.** Kurven, krukka, sekken og fletta lå bare som bilde på kroppen bak, så man så gjennom figuren. Det ingen del dekker, blir egne deler.
 - **En regel mot ett tilfelle må avgrenses til det tilfellet.** Regelen mot smedens hammer kappet skjørtet og kjøpmannens mage, regelen mot hårhyller kappet hattebremmen, og bøtta ble tatt for et bein. Reglene gjelder nå bare der hendene er, et bånd som stikker ut over og under er en brem, og bare det som står på bakken er bein.
 - **To ark kan være uenige.** Hodearket kan tegne hodet smalere enn kroppsarket, og bakfra kan armene henge der de holder noe forfra. Kroppsarket bestemmer bredden, og der bildet forfra og bakfra er uenige, telles det ikke mot modellen.
+
+### Hodene og kroppen (15. oktober)
+
+Eieren: «ikke vis meg noe deformert igjen». Alle tolv består nå porten i 2048, og hver regel under rettet en feil som synes:
+
+- **Hodet leses av hodearket selv, rundt.** Haka er der profilen går brått inn (ikke munnen), issen ender i toppen av omrisset og tar fargen innenfor den, og ansiktet holder sin egen bredde foran mens håret står ut bak øret (`rounded_head`, `framed_face`).
+- **Uv-lengden måles langs flaten.** Med høyden mellom radene ble hattebremmen klemt til en strek, og lokkene lå oppå halsen i teksturen (den prikkete streken under haka).
+- **Armen står der arket viser den fra siden.** Sidearket ble projisert på en arm som sto et annet sted, så bildet av armen havnet på kjolen (en arm til, sett skrått). Den bare armen finnes nå etter hudfargen på hånda (tone og metning, ikke lysstyrke), bare for armen nærmest, og kroppen får et sideark der den er malt bort (`armless_side`).
+- **Det som henger under hånda er en ting, ikke kroppen.** Bøtta gjorde kroppen like bred som bøtta; der kanten springer ut og inn igjen, blir det imellom sin egen del (`HANGING`, `hangs`). Biter i samme rad følges hver for seg (`chains`).
+- **Regelen mot hendene gjelder bare sida der hånda rører kroppen.** Ellers kappet den skjørtet til vaskekona og fiskerkona.
+- **Under kappa er beinet like smalt som leggen** der kappa synes fra siden (apotekerens kloss); kjøpmannens vide bukser er bein.
+- **Håret som henger ned er en egen del** som vokser ut av hodet bak midten av det og går ned i skuldrene. Som del av hodet ble det en flat kloss under haka, og som del av halsen en krage.
+- **Linja for magen fra siden ender over skrittet**, ellers kappet hendene under skrittet (gutten) forsiden av kjortelen.

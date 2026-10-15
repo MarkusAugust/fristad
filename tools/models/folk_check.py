@@ -136,7 +136,7 @@ def check(name, out_dir):
     import townsfolk  # noqa: E402
 
     # Målestokken følger modellens egen høyde (fra byggingen).
-    m = folk_sheet.measure(name, townsfolk.FOLK[name])
+    m = folk_sheet.measure(name, townsfolk.FOLK[name], tuple(townsfolk.TOOLS.get(name, {})))
     path = os.path.join(ROOT, "assets", "models", "npcs", f"npc_{name}.glb")
     sheet_path = os.path.join(folk_sheet.REF, f"{name}_body.jpeg")
     sheet = np.asarray(Image.open(sheet_path).convert("RGB")).astype(float) / 255
