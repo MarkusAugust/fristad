@@ -245,3 +245,15 @@ Eieren: «ikke vis meg noe deformert igjen». Alle tolv består nå porten i 204
 - Et mål som blandes inn i et forhold (bredden på kroppsarket) må måles likt på begge ark: en flette på én side strakk ansiktet 24 %.
 - Når en regel smalner en rad, må radene under følge (kjeven ble en tallerken under haka).
 - Se på formen i leire (Workbench, én farge) før teksturen: skjegg som kloss, kant på issen og halsen som kasse synes der med en gang.
+
+## Innbyggerne fra TRELLIS.2 (15. oktober)
+
+Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de neste»). Fremgangsmåten står i CLAUDE.md; dette lærte vi på veien:
+
+- **Ikke bygg formen eller teksturen på nytt.** Teksturen som følger med glb-fila passer langt bedre enn arket projisert på formen (eieren). Sidebildet og bildet bakfra treffer ikke formen, fordi TRELLIS bare så bildet forfra og gjettet dybden; de ga ansikt i bakhodet og armen malt på kroppen.
+- **Sjekk hvor detaljen forsvinner før du retter.** Sammenlign ansiktet rett fra glb-fila med spillmodellen, flatt (emisjon). Øynene manglet allerede hos TRELLIS, mens overføringen var tro.
+- **Ansiktet fra bildet forfra, og bare ansiktet.** Det er bildet TRELLIS ble laget av, så det passer på flatene som vender fram. Masken er omrisset på bildet trukket inn: formen stikker litt utenfor (håret), og der ble bakgrunnen malt på som lyse grå flekker.
+- **Glb-fila henger ikke sammen.** Hjørnene er delt langs sømmene, og flatene er åpne. Forenkling rett på den rev den i småbiter og svarte flekker, og et skall uten tykkelse fikk hull i forkleet og håret. Gi flatene tykkelse, lag et lukket skall og bak fargen over fra den fulle formen.
+- **En tekstur som brukes gjennom et uv-lag, må lese sitt eget lag.** Pakkingen flyttet uv-ene bildet ble lest gjennom, og teksturen ble revet opp. Kilden leses gjennom «src».
+- **Et bilde laget i minnet blir ikke med i bakingen.** Masken må lagres som fil og lastes inn.
+- **Bedre innstillinger i TRELLIS gir mest.** 1536, Texture Size 4096 og Decimation 500000 ga grått hår, rynker og et ansikt der den første fila hadde svarte striper.
