@@ -67,6 +67,7 @@ RING = {"body": 24, "arm": 14, "leg": 16, "held": 14, "head": 36, "hair": 24}  #
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
+JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra issen til haka), og er minst så bred som hodet der
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
@@ -222,10 +223,33 @@ def figure(name):
         # Kroppsarket bestemmer bredden: tegner hodearket hodet smalere enn
         # kroppsarket (tjenestejenta, 18 %), strekkes hodet og bildet av det
         # like mye i bredden.
-        ratio = [min(rows_b, key=lambda q: abs(q[0] - r[0]))[2] / r[2] for r in head if r[0] <= chin for rows_b in [m["parts"]["body"]]]
+        # Bredden måles symmetrisk om midten av hodet: en flette på den ene
+        # sida (tjenestejenta) er ikke hode, og strakk ansiktet 24 %.
+        def sym(r):
+            b = min(m["parts"]["body"], key=lambda q: abs(q[0] - r[0]))
+            return b[2] - abs(b[1] - r[1])
+
+        ratio = [sym(r) / r[2] for r in head if r[0] <= chin]
         k = float(sorted(ratio)[len(ratio) // 2]) if ratio else 1.0
         fit["kx"] = k if abs(k - 1) > WIDEN else 1.0
         head = [(r[0], r[1], r[2] * fit["kx"], *r[3:7], r[7] * fit["kx"], *r[8:]) for r in head]
+        # Henger håret ved siden av kjeven (tjenestejenta), er kjeven like
+        # smal som ansiktet hele veien rundt: med hårets bredde ble kjeven en
+        # bred kloss med hår på sidene (eieren: «hodet er deformert»). Håret
+        # ved siden av blir delen «hair» under.
+        top_y = head[0][0]
+        jaw = [r[0] > top_y + JAW_FROM * (chin - top_y) and r[7] < r[2] * (1 - folk_sheet.FRAMED_MIN) for r in head]
+        if any(jaw):
+            w = np.array([max(r[7], r[2] * JAW_MIN) if j else r[2] for r, j in zip(head, jaw)])
+            w = np.minimum(w, [r[2] for r in head])
+            from scipy.ndimage import gaussian_filter1d
+            w = np.minimum(gaussian_filter1d(w, 2.0, mode="nearest"), [r[2] for r in head])
+            # Under kjeven blir hodet bare smalere (radene under haka hadde
+            # hårets bredde og ble en tallerken).
+            i0 = jaw.index(True)
+            for i in range(i0 + 1, len(w)):
+                w[i] = min(w[i], w[i - 1])
+            head = [(r[0], r[1], float(w[i]), *r[3:7], min(r[7], float(w[i])), *r[8:]) for i, r in enumerate(head)]
         parts["head"] = head
         m["y"]["chin"] = int(chin)
         # Kroppen begynner like over der hodet slutter, og er ikke bredere
@@ -691,8 +715,10 @@ def project_head(ob, m, fit, views=None, layer="src"):
             # det ble en mørk strek rundt halsen. Hvor langt følger
             # hjørnets normal jevnt (med flatens normal og en terskel
             # hoppet bildet mellom nabobitene, en trapp under haka).
-            vz = (nm @ me.vertices[me.loops[li].vertex_index].normal).normalized().z
-            Y -= CHIN_IN * m["H"] * min(1.0, max(0.0, (-vz - CHIN_FROM) / (1 - CHIN_FROM)))
+            # Bare under haka: nesa og leppene vender også ned.
+            if Y > m["y"].get("chin", 0) - CHIN_IN * m["H"]:
+                vz = (nm @ me.vertices[me.loops[li].vertex_index].normal).normalized().z
+                Y -= CHIN_IN * m["H"] * min(1.0, max(0.0, (-vz - CHIN_FROM) / (1 - CHIN_FROM)))
             hx, hy = (X - tx) / s, (Y - ty) / s
             # Over omrisset (kuppelen over issen) tar flaten fargen like
             # innenfor toppen av omrisset i samme kolonne: én rad strukket

@@ -238,3 +238,10 @@ Eieren: «ikke vis meg noe deformert igjen». Alle tolv består nå porten i 204
 - **Det verktøyet dekket, males bort i alle bilder og for alle deler.** Hammeren og øksa lå igjen malt på forkleet, låret og hånda, og øksehodet ble en bit av beinet; nå tar alle delene arket uten verktøyet, og kanten av beinet hopper ikke.
 - **Sidearket viser den sida figuren snur mot oss.** Flest hudrader valgte feil arm hos smeden, og den andre armen gikk fram som en hale.
 - **Innmaling henter farge bare fra figuren**, ellers trekkes fyllet utenfor omrisset (verktøyets farge) inn.
+
+## Hodene til innbyggerne (15. oktober)
+
+- En terskel på normalen i projeksjonen gir trapp: nabobitene får bildet fra hvert sitt sted. Forskyvninger i teksturen skal følge hjørnets normal jevnt og bare gjelde der de er ment (under haka, ikke nesa).
+- Et mål som blandes inn i et forhold (bredden på kroppsarket) må måles likt på begge ark: en flette på én side strakk ansiktet 24 %.
+- Når en regel smalner en rad, må radene under følge (kjeven ble en tallerken under haka).
+- Se på formen i leire (Workbench, én farge) før teksturen: skjegg som kloss, kant på issen og halsen som kasse synes der med en gang.
