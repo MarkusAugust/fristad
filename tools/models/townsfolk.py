@@ -70,6 +70,7 @@ NECK_WIN = 0.02  # halsens bredde er det smaleste så langt under hodet (andel a
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
 JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra issen til haka), og er minst så bred som hodet der
 SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
+TOP_BY_PLACE = 2.0  # vender flaten så mange ganger mer opp enn fram eller bak, velges bildet forfra eller bakfra etter stedet
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
@@ -639,7 +640,13 @@ def project_part(ob, m, part):
     def front_uv(p, n, inset):
         cx, cy = mid[round(p.z, 4)]
         y = cy + (p.y - cy) * (1 - inset)
-        back = rest or n.x < -0.05 or (abs(n.x) <= 0.05 and p.x < cx)
+        # Flater som vender mest opp (toppen av skuldrene) velger bildet
+        # etter hvor de står: normalen fram og bak er der tilfeldig, og
+        # kragen forfra og ryggen bakfra vekslet i sagtakk.
+        if n.z > TOP_BY_PLACE * max(abs(n.x), 1e-6):
+            back = rest or p.x < cx
+        else:
+            back = rest or n.x < -0.05 or (abs(n.x) <= 0.05 and p.x < cx)
         X = v["back"] - y / px if back else v["front"] + y / px
         return X
 
