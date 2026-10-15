@@ -42,6 +42,7 @@ HEAD_DENSITY = 3.0
 HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
 THICK = 0.012  # tykkelsen de åpne flatene får før skallet (m)
 FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
+FACE_INSET = 0.006  # masken trekkes så mye inn fra omrisset (brøk av bredden)
 FACE_FACING = (0.35, 0.7)  # normalen mot kameraet: fra ingen til full vekt
 VOXEL = 0.01  # skallet (m)
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
@@ -204,6 +205,18 @@ def face_patch(ob, name, H):
     rows, cols = np.nonzero(fg)
     W, Hh = im.shape[1], im.shape[0]
     top, bot = rows.min(), rows.max()
+    # Bare innenfor omrisset, trukket `FACE_INSET` inn og myknet: formen fra
+    # TRELLIS stikker litt utenfor (håret), og der lå bakgrunnen og ble
+    # malt på som lyse flekker.
+    from scipy import ndimage
+    k = max(1, int(FACE_INSET * W))
+    inner = ndimage.binary_erosion(ndimage.binary_fill_holes(fg), iterations=k)
+    soft = ndimage.gaussian_filter(inner.astype(float), k / 2)
+    os.makedirs("target/folk3d", exist_ok=True)
+    mpath = os.path.abspath(f"target/folk3d/{name}_face_mask.png")
+    Image.fromarray((soft * 255).astype(np.uint8)).save(mpath)
+    mask = bpy.data.images.load(mpath)
+    mask.colorspace_settings.name = "Non-Color"
     sc = (bot - top) / H  # piksler per meter
     co = np.array([v.co[:] for v in ob.data.vertices])
     lo, hi = co.min(0), co.max(0)
@@ -253,12 +266,17 @@ def face_patch(ob, name, H):
     t.image = bpy.data.images.load(os.path.abspath(path))
     t.extension = "EXTEND"
     L.new(uv.outputs[0], t.inputs[0])
+    mt = N.new("ShaderNodeTexImage")
+    mt.image = mask
+    mt.extension = "CLIP"
+    L.new(uv.outputs[0], mt.inputs[0])
     ay = N.new("ShaderNodeMath")
     ay.operation = "ABSOLUTE"
     L.new(pos.outputs["Y"], ay.inputs[0])
     w = mul(ramp(pos.outputs["Z"], FACE_FROM * H, (FACE_FROM + 0.02) * H), ramp(nrm.outputs["X"], FACE_FACING[0], FACE_FACING[1]))
     w = mul(w, ramp(lin(ay.outputs[0], -1.0, hw), 0.0, 0.25 * hw))
     w = mul(w, ramp(pos.outputs["X"], hx - 0.01, hx + 0.02))
+    w = mul(w, mt.outputs["Color"])
     mix = N.new("ShaderNodeMix")
     mix.data_type = "RGBA"
     L.new(w, mix.inputs["Factor"])
