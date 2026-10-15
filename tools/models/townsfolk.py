@@ -72,6 +72,7 @@ JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra isse
 SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
 TOP_BY_PLACE = 2.0  # vender flaten så mange ganger mer opp enn fram eller bak, velges bildet forfra eller bakfra etter stedet
 SKIRT_NEAR, SKIRT_FAR, SKIRT_LOOSE = 0.08, 0.12, 0.3  # skjørtet følger låret fullt innen så mange meter fra det, mindre til så mye lenger ut, og minst så mye
+TOOL_GREY = 18  # en piksel med så liten forskjell mellom fargekanalene er jern
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
@@ -492,9 +493,20 @@ def toolless(path, m, pad=6):
         box[max(0, ys_.min() - g): ys_.max() + g, max(0, xs_.min() - g): xs_.max() + g] = True
         fg0 = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
         like = (np.abs(px_ - tool_col).sum(2) < TOOL_COLOR) & box & fg0
+        # Jern er grått (hammerhodet fra siden sto igjen ved siden av hullet).
+        grey = (px_.max(2) - px_.min(2) < TOOL_GREY) & box & fg0
         # Bare et kort stykke fra verktøyet (forkleet til smeden har nesten
         # samme farge som skaftet, og hele forkleet ble flekkete).
-        hole |= ndimage.binary_dilation(hole, iterations=int(TOOL_GROW * H), mask=like)
+        hole |= ndimage.binary_dilation(hole, iterations=int(TOOL_GROW * H), mask=like | grey)
+        # Fra siden males hånda bort uansett (`armless_side`); med den i
+        # hullet tas fargen fra tøyet rundt, ikke fra huden (et hudfarget
+        # felt hang ellers på forkleet og svingte med i gangen).
+        side_box = box.copy()
+        side_box[:, : max(0, int(sx0 - 0.25 * H))] = False
+        side_box[:, int(sx0 + 0.25 * H):] = False
+        for y, a, b in m.get("bare_side", []):
+            y0 = int(y) - folk_sheet.STEP // 2
+            hole[max(0, y0): y0 + folk_sheet.STEP + 1, max(0, int(sx0 + a) - pad): int(sx0 + b) + pad + 1] |= side_box[max(0, y0): y0 + folk_sheet.STEP + 1, max(0, int(sx0 + a) - pad): int(sx0 + b) + pad + 1]
     hole = cv2.dilate(hole.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
     # Fargen hentes bare fra figuren: utenfor omrisset er fyllet fra kanten
     # (rundt øksa grått), og innmalingen ble grå.
