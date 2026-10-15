@@ -1,82 +1,313 @@
 {
   "title": "Fristad",
-  "note": "Åpningsfilmen, første utkast (docs/plan.md del 8): seks scener filmet i den ekte byen og krypten med motorens filmmodus. Hver scene har nøkler langs kamerabanen (at: 0–1 i scenen); pos med ground: true er høyde over bakken, med level: N er det i kryptnivåets eget rom.",
+  "note": "Åpningsfilmen (docs/plan.md del 8): seks scener av malte lag i 3D. Lagene (bg, mid, fg) ligger i film/opening/<scene>/ (tools/film/layers.py; promptene i docs/prompter-film.md). depth er meter foran kameraet; kameraet glir langs camera (at 0–1 i scenen, x/y/z i meter, yaw/pitch i radianer, zoom). Mangler et lag, hoppes det over. fade: [fra, til] toner laget inn over den delen av scenen.",
+  "placeholder": false,
   "scenes": [
     {
       "id": "gullalderen",
       "dur": 10,
-      "daylight": "day",
-      "weather": "klart",
       "music": "town",
       "heading": "Fristad",
       "text": "I de gode årene skrev de komponentene i Skriptoriet. Hver av dem gjorde én ting, og gjorde den vel.",
-      "keys": [
-        { "at": 0, "pos": [-10.1, 1.55, -10.4], "ground": true, "yaw": 6, "pitch": -6, "fov": 55 },
-        { "at": 1, "pos": [-10.0, 1.75, -12.6], "ground": true, "yaw": -4, "pitch": 4, "fov": 52 }
+      "particles": "dust",
+      "fog": [
+        "#2a1c10",
+        30,
+        90
+      ],
+      "layers": [
+        {
+          "src": "opening/gullalderen/bg.webp",
+          "depth": 40
+        },
+        {
+          "src": "opening/gullalderen/mid.webp",
+          "depth": 16,
+          "h": 0.42,
+          "x": 0.2,
+          "bottom": -0.52,
+          "breathe": 0.004
+        },
+        {
+          "src": "opening/gullalderen/fg.webp",
+          "depth": 7,
+          "h": 0.62,
+          "x": -0.36,
+          "bottom": -0.6
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": -1.2,
+          "y": 0.2,
+          "z": 1.2,
+          "yaw": 0.03
+        },
+        {
+          "at": 1,
+          "x": 0.8,
+          "y": -0.1,
+          "z": -1.2,
+          "yaw": -0.02,
+          "zoom": 1.05
+        }
       ]
     },
     {
       "id": "fallet",
       "dur": 9,
-      "daylight": "night",
-      "weather": "klart",
       "music": "none",
       "fx": "glitch",
       "text": "Så sivet forretningslogikken inn. Knappene gjorde ting ingen hadde bedt om, og skjemaene sa nei til alt.",
-      "keys": [
-        { "at": 0, "pos": [-10.1, 1.7, -12.2], "ground": true, "yaw": 28, "pitch": 2, "fov": 60 },
-        { "at": 1, "pos": [-10.1, 1.6, -12.4], "ground": true, "yaw": -34, "pitch": -8, "fov": 64 }
+      "particles": "glitch",
+      "fog": [
+        "#1a0a24",
+        25,
+        80
+      ],
+      "layers": [
+        {
+          "src": "opening/fallet/bg.webp",
+          "depth": 40,
+          "glitch": true
+        },
+        {
+          "src": "opening/fallet/mid.webp",
+          "depth": 15,
+          "h": 0.62,
+          "x": 0.08,
+          "bottom": -0.3,
+          "glitch": true,
+          "sway": 0.25
+        },
+        {
+          "src": "opening/fallet/fg.webp",
+          "depth": 7,
+          "h": 0.26,
+          "x": -0.32,
+          "bottom": -0.56
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": 0.6,
+          "y": 0,
+          "z": 0,
+          "yaw": -0.04
+        },
+        {
+          "at": 1,
+          "x": -0.8,
+          "y": -0.2,
+          "z": -1.2,
+          "yaw": 0.05,
+          "zoom": 1.12
+        }
       ]
     },
     {
       "id": "begravelsen",
       "dur": 10,
-      "daylight": "night",
-      "weather": "klart",
       "music": "cellar",
       "text": "De korrupte komponentene ble båret ned under kirka og murt inne. Klokka ringte i tre dager.",
-      "keys": [
-        { "at": 0, "pos": [9.0, 3.2, -51.5], "ground": true, "yaw": 88, "pitch": -7, "fov": 55 },
-        { "at": 1, "pos": [-2.4, 1.8, -52.0], "ground": true, "yaw": 90, "pitch": -2, "fov": 52 }
+      "particles": "mist",
+      "fog": [
+        "#0a1020",
+        30,
+        110
+      ],
+      "layers": [
+        {
+          "src": "opening/begravelsen/bg.webp",
+          "depth": 45
+        },
+        {
+          "src": "opening/begravelsen/mid.webp",
+          "depth": 44.5,
+          "fade": [
+            0.12,
+            0.5
+          ]
+        },
+        {
+          "src": "opening/begravelsen/fg.webp",
+          "depth": 7,
+          "h": 0.3,
+          "x": 0.05,
+          "bottom": -0.58
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": 2.0,
+          "y": 0.3,
+          "z": 1,
+          "yaw": -0.03
+        },
+        {
+          "at": 1,
+          "x": -1.5,
+          "y": 0,
+          "z": -1.2,
+          "yaw": 0.03
+        }
       ]
     },
     {
       "id": "krypten",
       "dur": 10,
-      "daylight": "day",
-      "weather": "klart",
       "music": "cellar",
       "text": "Men det som er murt inne, ligger ikke stille. Der nede går de ennå.",
-      "keys": [
-        { "at": 0, "pos": [0, 1.6, 5.5], "level": 1, "yaw": 180, "pitch": -3, "fov": 58 },
-        { "at": 1, "pos": [0, 1.5, 9.5], "level": 1, "yaw": 176, "pitch": -5, "fov": 54 }
+      "particles": "motes",
+      "fog": [
+        "#05070c",
+        20,
+        70
+      ],
+      "layers": [
+        {
+          "src": "opening/krypten/bg.webp",
+          "depth": 40
+        },
+        {
+          "src": "opening/krypten/mid.webp",
+          "depth": 15,
+          "h": 0.56,
+          "x": 0.0,
+          "bottom": -0.46,
+          "breathe": 0.012
+        },
+        {
+          "src": "opening/krypten/fg.webp",
+          "depth": 7,
+          "h": 0.26,
+          "x": 0.3,
+          "bottom": -0.58
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": 0,
+          "y": 0.4,
+          "z": 1.2,
+          "pitch": 0.02
+        },
+        {
+          "at": 1,
+          "x": 0.3,
+          "y": 0,
+          "z": -1.2,
+          "pitch": -0.01,
+          "zoom": 1.08
+        }
       ]
     },
     {
       "id": "fristad1350",
       "dur": 11,
-      "daylight": "day",
-      "weather": "klart",
       "music": "town",
       "heading": "Anno 1350",
       "text": "På torget hvisker de om gull og glemte bøker under kirkegården, og om dem som gikk ned og aldri kom opp igjen.",
-      "keys": [
-        { "at": 0, "pos": [0, 15, 27], "ground": true, "yaw": 0, "pitch": -26, "fov": 58 },
-        { "at": 0.6, "pos": [1, 10, 15], "ground": true, "yaw": -8, "pitch": -20, "fov": 56 },
-        { "at": 1, "pos": [2, 7, 7], "ground": true, "yaw": -16, "pitch": -14, "fov": 55 }
+      "particles": "dust",
+      "fog": [
+        "#c8d8e8",
+        60,
+        200
+      ],
+      "layers": [
+        {
+          "src": "opening/fristad1350/bg.webp",
+          "depth": 45
+        },
+        {
+          "src": "opening/fristad1350/mid.webp",
+          "depth": 15,
+          "h": 0.56,
+          "x": -0.12,
+          "bottom": -0.54,
+          "breathe": 0.005
+        },
+        {
+          "src": "opening/fristad1350/fg.webp",
+          "depth": 7,
+          "h": 0.62,
+          "x": 0.4,
+          "bottom": -0.58
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": -1.5,
+          "y": 0.6,
+          "z": 1.2,
+          "yaw": 0.02
+        },
+        {
+          "at": 1,
+          "x": 1.5,
+          "y": 0,
+          "z": -1.2,
+          "yaw": -0.02
+        }
       ]
     },
     {
       "id": "sorporten",
       "dur": 11,
-      "daylight": "day",
-      "weather": "klart",
       "music": "town",
       "text": "Og en dag kommer en fremmed gjennom sørporten.",
-      "keys": [
-        { "at": 0, "pos": [1.2, 10, 84], "ground": true, "yaw": 0, "pitch": -9, "fov": 55 },
-        { "at": 0.55, "pos": [1.25, 3.2, 58], "ground": true, "yaw": 0, "pitch": -3, "fov": 60 },
-        { "at": 1, "pos": [1.276, 1.6, 36.2], "ground": true, "yaw": 1.55, "pitch": 0, "fov": 72 }
+      "particles": "dust",
+      "fog": [
+        "#e8d8b8",
+        60,
+        200
+      ],
+      "layers": [
+        {
+          "src": "opening/sorporten/bg.webp",
+          "depth": 45
+        },
+        {
+          "src": "opening/sorporten/mid.webp",
+          "depth": 18,
+          "h": 0.24,
+          "x": -0.04,
+          "bottom": -0.44,
+          "drift": [
+            0.3,
+            0.9,
+            9
+          ]
+        },
+        {
+          "src": "opening/sorporten/fg.webp",
+          "depth": 7,
+          "h": 0.5,
+          "x": -0.4,
+          "bottom": -0.58
+        }
+      ],
+      "camera": [
+        {
+          "at": 0,
+          "x": 0,
+          "y": 1.0,
+          "z": 1.2,
+          "pitch": -0.02
+        },
+        {
+          "at": 1,
+          "x": 0,
+          "y": 0,
+          "z": -1.2,
+          "pitch": 0,
+          "zoom": 1.15
+        }
       ]
     }
   ]

@@ -1211,8 +1211,9 @@ async function begin() {
       soundsLoading = true;
       sfx.preload();
     }
-    await playFilm({ engine, music });
-    engine.respawn();
+    // Spillet gjøres klart ved sørporten bak filmen, så det tar over når
+    // den siste scenen toner ut.
+    await playFilm({ music, onLast: () => engine.respawn() });
   }
   enter();
 }

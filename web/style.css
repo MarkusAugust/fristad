@@ -864,6 +864,22 @@ body.filming #bars {
   z-index: 50;
   pointer-events: none;
 }
+.film-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.film-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #f3e6c8;
+  font-family: "Uncial Antiqua", serif;
+  font-size: 2rem;
+}
 .film-bar {
   position: absolute;
   left: 0;
