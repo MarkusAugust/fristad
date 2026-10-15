@@ -68,6 +68,7 @@ THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, t
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
 JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra issen til haka), og er minst så bred som hodet der
+SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
@@ -653,6 +654,11 @@ def project_part(ob, m, part):
                 # Litt opp fra kanten: på kanten selv viser arket streken og
                 # det under (bunnen av kjøpmannens kappe ble en flekkete skive).
                 Y -= CHIN_IN * H
+            elif flat_z is not None and part == "body":
+                # Toppen av skuldrene tar fargen litt ned i tøyet: på kanten
+                # viser arket halsen, kragen og skjegget, strukket til striper
+                # rundt halsen (apotekeren, eieren: «stygg strek på halsen»).
+                Y += SHOULDER_IN * H
             if part.startswith("leg"):
                 Y = min(Y, v["ground"] - SOLE * H)
             X = front_uv(p, n, (INSET_HIDDEN if arm else INSET) * share)
