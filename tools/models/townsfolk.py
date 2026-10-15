@@ -18,6 +18,8 @@ import math
 import os
 import sys
 
+import numpy as np
+
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
 import bmesh  # noqa: E402
@@ -65,13 +67,14 @@ RING = {"body": 24, "arm": 14, "leg": 16, "held": 14, "head": 36, "hair": 24}  #
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
+CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
 ISSE = 8  # kuppelen over hodet tar fargen så mange piksler innenfor issen på hodearket
 RELIEF_W = 0.3  # nesa og munnen er så brede (del av hodets halve bredde)
 TAPER = 0.35  # hodet: så mye smalere framme ved ansiktet enn ved ørene
 ARMLESS_FROM = 0.03  # armen males bort fra siden fra så langt under skulderen (andel av høyden)
-TOOL_GROW, TOOL_COLOR = 0.05, 70  # verktøyet vokser over piksler i sin farge (sum over rgb) så langt utenfor (andel av høyden)
+TOOL_GROW, TOOL_COLOR = 0.03, 50  # verktøyet vokser over piksler i sin farge (sum over rgb) så langt utenfor (andel av høyden)
 ARMLESS_TIP, ARMLESS_HAND, ARMLESS_RADIUS, ARMLESS_WIDE, TOOL_PAD = 0.03, 0.06, 12, 1.4, 0.015  # hullet går så langt under enden av armen (fingrene), med hele hånda i de nederste radene, innmalt med denne radiusen (px), og armen så mange ganger så bred
 SQUARE = 2.4  # superellipse: 2 er ellipse, høyere er mer kantet (klær)
 
@@ -227,26 +230,41 @@ def figure(name):
         m["y"]["chin"] = int(chin)
         # Kroppen begynner like over der hodet slutter, og er ikke bredere
         # enn hodet der de overlapper (den stakk ellers ut under haka).
-        end = head[-1]
+        # Henger skjegget under halsen (smeden), måles skjøten ved halsen og
+        # ikke ved skjeggspissen (kroppen krympet ellers til spissen).
+        end = min(head, key=lambda q: abs(q[0] - min(head[-1][0], fit["neck"] + folk_sheet.STEP)))
         deep = (end[4] + end[5]) / 2
+
+        f = m["facing"]
+        # Henger skjegget ned over skuldrene, dekker hodet nakken, og halsen
+        # vokser først ut fra skuldrene.
+        join_y = m["y"]["shoulder"] if head[-1][0] > m["y"]["shoulder"] else end[0]
+        # Hodets forkant og bakkant ved skjøten (forover er +).
+        e_ax = end[3] * f
+        e_front, e_back = e_ax + end[4] * 0.92, e_ax - end[5] * 0.92
 
         def joined(r):
             # Over skjøten ligger kroppen inne i hodet. Hodet slutter under
             # kjeven, så halsen under er smalere (den ble ellers tvunget like
             # bred som bunnen av hodet, og smeden fikk en skål under skjegget).
-            if r[0] <= end[0]:
-                return (r[0], r[1], min(r[2], end[2] * 0.92), r[3], min(r[4], deep * 0.92))
             # Under hodet vokser kroppen (håret over skuldrene) gradvis ut
             # fra bunnen av hodet, ikke som en hylle (fiskerkona).
-            grow = (r[0] - end[0]) * NECK_SLOPE
-            return (r[0], r[1], min(r[2], end[2] * 0.92 + grow), r[3], min(r[4], deep * 0.92 + grow))
+            grow = max(0.0, (r[0] - join_y) * NECK_SLOPE)
+            # Forkanten og bakkanten holdes innenfor hodets ved skjøten, ikke
+            # bare dybden: bak skjegget sto halsen ellers ut bak nakken som
+            # en kloss med flatt lokk (smeden).
+            fr_, bk_ = r[3] * f + r[4], r[3] * f - r[4]
+            fr_, bk_ = min(fr_, e_front + grow), max(bk_, e_back - grow)
+            if fr_ <= bk_:
+                fr_, bk_ = (fr_ + bk_) / 2 + 1, (fr_ + bk_) / 2 - 1
+            return (r[0], r[1], min(r[2], end[2] * 0.92 + grow), (fr_ + bk_) / 2 * f, (fr_ - bk_) / 2)
 
         parts["body"] = [joined(r) for r in rows if r[0] >= end[0] - 2 * folk_sheet.STEP]
         # Håret som henger ned ved siden av kjeven og halsen til skuldrene
         # (fiskerkona) er en egen del bak midten av hodet: kroppsarket er der
         # bredere enn hodet og halsen. Som hode ble det en flat kloss under
         # haka, og som hals en krage.
-        hair, f = [], m["facing"]
+        hair = []
         for r in rows:
             if not chin - HAIR_ABOVE * m["H"] <= r[0] <= m["y"]["shoulder"]:
                 continue
@@ -281,6 +299,24 @@ def figure(name):
                 if r[2] <= h[2]:
                     break
             parts["hair"] = hair
+        # Skjegget som henger ned under haka (smeden) er en del av hodet
+        # (`folk_sheet.head_rows` følger det til spissen). Kroppen i de
+        # radene følger brystet under skjegget (det ble en krage rundt
+        # halsen med striper av skjegget, eieren 14. oktober «skjegget er
+        # merkelig delt»).
+        tip = head[-1][0]
+        if tip > m["y"]["shoulder"]:
+            below = [r[3] + f * r[4] for r in parts["body"] if tip < r[0] <= tip + 6 * folk_sheet.STEP]
+            if below:
+                chest = float(np.median(below))
+                body_rows = parts["body"]
+                for i, r in enumerate(body_rows):
+                    if r[0] <= tip:
+                        b_ = r[3] - f * r[4]
+                        f_ = r[3] + f * r[4]
+                        f_ = min(f_, chest) if f > 0 else max(f_, chest)
+                        if (f_ - b_) * f > 0:
+                            body_rows[i] = (r[0], r[1], r[2], (b_ + f_) / 2, abs(f_ - b_) / 2)
     obs = {}
     for part, rows in parts.items():
         if len(rows) < 2:
@@ -421,9 +457,9 @@ def toolless(path, m, pad=6):
         box[max(0, ys_.min() - g): ys_.max() + g, max(0, xs_.min() - g): xs_.max() + g] = True
         fg0 = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
         like = (np.abs(px_ - tool_col).sum(2) < TOOL_COLOR) & box & fg0
-        lab, _ = ndimage.label(like | hole)
-        hit = np.unique(lab[hole])
-        hole |= np.isin(lab, hit[hit > 0]) & box
+        # Bare et kort stykke fra verktøyet (forkleet til smeden har nesten
+        # samme farge som skaftet, og hele forkleet ble flekkete).
+        hole |= ndimage.binary_dilation(hole, iterations=int(TOOL_GROW * H), mask=like)
     hole = cv2.dilate(hole.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
     # Fargen hentes bare fra figuren: utenfor omrisset er fyllet fra kanten
     # (rundt øksa grått), og innmalingen ble grå.
@@ -650,11 +686,13 @@ def project_head(ob, m, fit, views=None, layer="src"):
             else:
                 X = v["side"] + v.get("side_dir", 1) * p.x / px
             Y = v["ground"] - p.z / px
-            if n.z < -FLAT:
-                # Under haka (og lokket under hodet) tar flaten fargen litt
-                # opp i ansiktet: der den står, viser arket streken langs
-                # kjeven, og det ble en mørk strek rundt halsen.
-                Y -= CHIN_IN * m["H"]
+            # Under haka (og lokket under hodet) tar flaten fargen litt opp
+            # i ansiktet: der den står, viser arket streken langs kjeven, og
+            # det ble en mørk strek rundt halsen. Hvor langt følger
+            # hjørnets normal jevnt (med flatens normal og en terskel
+            # hoppet bildet mellom nabobitene, en trapp under haka).
+            vz = (nm @ me.vertices[me.loops[li].vertex_index].normal).normalized().z
+            Y -= CHIN_IN * m["H"] * min(1.0, max(0.0, (-vz - CHIN_FROM) / (1 - CHIN_FROM)))
             hx, hy = (X - tx) / s, (Y - ty) / s
             # Over omrisset (kuppelen over issen) tar flaten fargen like
             # innenfor toppen av omrisset i samme kolonne: én rad strukket
@@ -744,6 +782,7 @@ OWN = {
     "head": ("neck", "head"),
     # Håret som henger ned følger hodet og halsen.
     "hair": ("chest", "neck", "head"),
+    # Skjegget følger hodet.
     "body": ("hips", "spine", "chest", "neck", "head"),
     "arm.L": ("upper_arm.L", "forearm.L", "hand.L"),
     "arm.R": ("upper_arm.R", "forearm.R", "hand.R"),

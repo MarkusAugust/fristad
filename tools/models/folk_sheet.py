@@ -54,6 +54,9 @@ CARRIED = 0.7  # det figuren bærer på ryggen er høyst så bredt som kroppen f
 CHIN = 0.1  # haka ligger minst så langt under hodetoppen (del av høyden)
 HEAD_UPPER = 0.7  # hodet passes mot så stor del ovenfra av veien fra issen til halsen
 RECEDE = 0.025  # under haka trekker profilen seg så mye inn (del av høyden) mot halsen
+LIPS = 0.05  # kommer profilen fram igjen innen så langt under (del av høyden), var innskjæringen munnen
+BEARD_BELOW = 0.06  # så langt under halsen (del av høyden) leses hodearket etter skjegg
+BEARD_WIDEN = 1.1  # blir hodet bredere enn dette under halsen, er det skuldrene
 SKIN_TOL = 70  # en piksel er hud når den er så nær fargen på kinnet (sum over rgb)
 FINGER = 0.3  # rader nederst på hånda smalere enn så mye av hånda er fingertupper som peker ut
 TOOL_REACH, TOOL_DOWN, TOOL_W = 0.1, 0.3, 0.02  # verktøyet forfra: så langt til siden for hånda og så langt ned, og der det er minst så bredt teller det nedover fra siden (andel av høyden)
@@ -71,7 +74,9 @@ BRIM_HIGH = 0.45  # ligger det bredeste av hodet over så stor del av høyden ne
 UNDER_BRIM = 0.09  # og under den er utstikk kortere enn dette (del av høyden) hår, ikke hode
 EAR_FROM = 0.35  # ørene sitter under så stor del av hodets høyde fra issen
 EAR_LONG = 0.075  # og der er utstikk kortere enn dette (del av høyden) ører
+DOME_OVER = 1.08  # over issen kan profilen stikke så mye ut over kuppelen
 CROWN = 0.3  # issen er minst en kuppel så langt ned (del av hodets høyde)
+FACE_FROM = 0.1  # fremspringene tones inn over så mye av hodets høyde under issen
 FACE_RELIEF = 0.03  # fremspring i ansiktet smalere enn dette (del av høyden) er nese, lepper, hake
 BRIM = 0.02  # en brem er minst så høy (del av høyden)
 SLOPE_BRIM = 4.0  # og vokser høyst så mange piksler per rad
@@ -1371,7 +1376,9 @@ def head_rows(m, fit):
 
     top = int(max(tyF + sF * ys[0], tyS + sS * ys_s[0]))
     rows = []
-    for Y in range(top, fit["neck"] + STEP + 1, max(2, STEP // 2)):
+    # Raden leses helt ned til halsen på kroppsarket og litt til: et skjegg
+    # som henger under (smeden) hører til hodet, og haka avgjør under.
+    for Y in range(top, fit["neck"] + STEP + int(BEARD_BELOW * m["H"]) + 1, max(2, STEP // 2)):
         hyF, hyS = int(round((Y - tyF) / sF)), int(round((Y - tyS) / sS))
         if hyF not in fr or hyS not in sr:
             continue
@@ -1402,7 +1409,8 @@ def head_rows(m, fit):
     F_raw = np.array([r[3] for r in rows], float)
     Y_raw = np.array([r[0] for r in rows], float)
     face = [i for i in range(len(rows)) if Y_raw[i] >= m["top"] + CHIN * m["H"]]
-    chin = out[-1][0]
+    # Uten noe fall under haka slutter hodet ved halsen som før.
+    chin = min(out[-1][0], fit["neck"] + STEP)
     if face:
         nose = max(face[: max(1, len(face) * 2 // 3)], key=lambda i: F_raw[i])
         step = max(1.0, float(np.median(np.diff(Y_raw))))
@@ -1410,17 +1418,45 @@ def head_rows(m, fit):
         # leppene under nesa bare trekker seg litt inn.
         w = max(1, int(0.012 * m["H"] / step))
         start = nose + max(1, int(0.02 * m["H"] / step))
-        for k in range(start + w, len(rows)):
+        ahead = max(1, int(LIPS * m["H"] / step))
+        k = start + w
+        while k < len(rows):
             if F_raw[k - w] - F_raw[k] > RECEDE * m["H"]:
+                # Kommer profilen fram igjen like under, var det munnen under
+                # barten og ikke haka (smedens skjegg ble kuttet der).
+                back = next((q for q in range(k + 1, min(len(rows), k + ahead)) if F_raw[q] >= F_raw[k - w] - 0.3 * RECEDE * m["H"]), None)
+                if back is not None:
+                    k = back + w
+                    continue
                 # Den siste raden før fallet begynner.
                 j = max(q for q in range(k - w, k + 1) if F_raw[k - w] - F_raw[q] < 0.3 * RECEDE * m["H"])
                 chin = float(Y_raw[j])
                 break
+            k += 1
+    # Et skjegg som henger under halsen (smeden) smalner av nedover, mens
+    # skuldrene på hodearket blir bredere: hodet følger skjegget så langt
+    # bredden ikke vokser.
+    neck_end = fit["neck"] + STEP
+    at = [r for r in rows if r[0] <= neck_end]
+    if chin >= neck_end - STEP and at:
+        below = [r for r in rows if r[0] > neck_end]
+        if below and max(r[2] for r in below) <= at[-1][2] * BEARD_WIDEN:
+            chin = below[-1][0]
+            # Under halsen holder bakkanten seg der den var ved halsen: hodet
+            # dekker nakken ned til skuldrene, og skjegget henger foran (med
+            # bakkanten trukket fram ble halsen bak en kloss med flatt lokk).
+            i0 = max(i for i, r in enumerate(out) if r[0] <= neck_end)
+            back0 = out[i0][4]
+            for i in range(i0 + 1, len(out)):
+                y, cx, hw, fe, be = out[i]
+                out[i] = (y, cx, hw, fe, min(be, back0))
     # Hodet slutter like under haka: det som henger ned ved halsen (det
     # lange håret til fiskerkona, fletta) ble et bredt rør med huden fra
     # profilen på sidene. Halsen og håret under kommer fra kroppsarket, og
     # skjøten ligger under kjeven.
-    out = [r for r in out if r[0] <= min(fit["neck"] + STEP, chin + HEAD_BELOW * m["H"])]
+    # Et skjegg kan henge under halsen fra passingen (smeden): da gjelder
+    # haka.
+    out = [r for r in out if r[0] <= max(min(fit["neck"] + STEP, chin + HEAD_BELOW * m["H"]), chin)]
     # Ingen hylle: bredden og kantene vokser høyst `SLOPE` piksler per rad
     # opp eller ned (der håret faller ut under skautet, var hodet en
     # vannrett hylle med strukket tekstur og en sprekk).
@@ -1590,6 +1626,10 @@ def rounded_head(rows, chin, m):
     hh = max(1.0, chin - ys[0])
     i_chin = int(np.argmin(np.abs(ys - chin)))
     y_ref = ys[0] + CROWN * hh
+    # Nesa, leppene og haka sitter i ansiktet: over pannen er et fremspring
+    # en hårtust, og som bule ble den en rygg opp over issen og en spiss
+    # topp (smeden, eieren 14. oktober «hodet deformert»).
+    relief *= np.clip((ys - y_ref) / max(dy, FACE_FROM * hh), 0.0, 1.0)
     i_ref = int(np.argmin(np.abs(ys - y_ref)))
     w_ref = float(min(W[i_ref], np.median(W[i_ref: max(i_ref + 1, i_chin)])))
     c0 = (F[i_ref] + B[i_ref]) / 2
@@ -1606,8 +1646,11 @@ def rounded_head(rows, chin, m):
     for i in range(i_ref):
         d = dome(ys[i])
         W[i] = max(W[i], w_ref * d)
-        F[i] = max(F[i], c0 + f_ref * d)
-        B[i] = min(B[i], c0 - b_ref * d)
+        # Fra siden er issen også en kuppel: en hårtust foran som går rett
+        # opp, ga et loddrett ansikt til toppen og en skarp kant (smeden,
+        # eieren 14. oktober «hodet deformert fra siden»).
+        F[i] = c0 + min(F[i] - c0, f_ref * d * DOME_OVER) if F[i] - c0 > f_ref * d else c0 + f_ref * d
+        B[i] = c0 - min(c0 - B[i], b_ref * d * DOME_OVER) if c0 - B[i] > b_ref * d else c0 - b_ref * d
     # Kuppelen lukker seg nesten i et punkt (den første raden var en
     # fjerdedel av bredden, og toppen ble en flat skive).
     cap_ys = [top + rise * f for f in (0.002, 0.02, 0.06)] + list(np.arange(top + 0.12 * rise, ys[0] - 0.5, dy))
