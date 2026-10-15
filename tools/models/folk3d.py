@@ -1,0 +1,261 @@
+"""Innbyggerne fra en 3D-form (`assets/textures/people/3d/<navn>.glb`, laget
+av TRELLIS.2 fra bildet forfra av arket i A-stilling, `<navn>_apose.jpeg`).
+
+Formen og teksturen er riktige fra start (ansiktet, hendene, forkleet), så
+her er det bare å gjøre den spillklar, uten å male noe på nytt (eieren 15.
+oktober: teksturen som følger med passer hundre ganger bedre enn arket
+projisert på formen):
+
+1. reise den opp med fronten mot +X og skalere til høyden i `FOLK`;
+2. et tett, lukket skall over formen (`VOXEL`), forenklet til `TRIS`
+   trekanter (`simplify`);
+3. fargen fra den fulle formen bakt uendret over på skallet (`transfer`);
+4. finne leddene i formen (`landmarks`), rigge spillets 18 bein og lage
+   klippene fra `folk_motion`.
+
+    python3.13 tools/models/folk3d.py smith [størrelse]
+"""
+
+import math
+import os
+import sys
+
+import numpy as np
+
+sys.path.insert(0, __file__.rsplit("/", 1)[0])
+import bpy  # noqa: E402
+from mathutils import Vector  # noqa: E402
+from common import armature, bake_textured, clear  # noqa: E402
+import folk_motion  # noqa: E402
+from townsfolk import FOLK, bones  # noqa: E402
+
+SRC = "assets/textures/people/3d"
+OUT = "assets/models/npcs"
+TRIS = 16000  # trekanter etter forenklingen
+VOXEL = 0.01  # skallet (m)
+LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
+
+
+def load(name):
+    """Formen stående med føttene på bakken, fronten mot +X og høyden fra
+    `FOLK`."""
+    bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, f"{name}.glb"))
+    obs = [o for o in bpy.data.objects if o.type == "MESH"]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in obs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = obs[0]
+    if len(obs) > 1:
+        bpy.ops.object.join()
+    ob = bpy.context.view_layer.objects.active
+    from mathutils import Matrix
+    mw = ob.matrix_world.copy()
+    ob.parent = None
+    ob.matrix_world = Matrix.Identity(4)
+    # TRELLIS ser mot −Y i Blender; spillet vil ha fronten mot +X.
+    ob.data.transform(Matrix.Rotation(math.radians(90), 4, "Z") @ mw)
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    lo, hi = co.min(0), co.max(0)
+    s = FOLK[name] / (hi[2] - lo[2])
+    ob.data.transform(Matrix.Translation((0, 0, -lo[2] * s)) @ Matrix.Scale(s, 4) @ Matrix.Translation((-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, 0)))
+    for o in [o for o in bpy.data.objects if o is not ob]:
+        bpy.data.objects.remove(o)
+    ob.name = "body"
+    return ob
+
+
+def simplify(ob, tris=TRIS):
+    """Et tett, lukket skall over formen (voxel), forenklet til `tris`.
+    Formen fra TRELLIS har åpne kanter og hjørner delt langs sømmene, og
+    da river forenklingen den i småbiter; fargen hentes fra den fulle
+    formen etterpå (`transfer`)."""
+    bpy.context.view_layer.objects.active = ob
+    rm = ob.modifiers.new("remesh", "REMESH")
+    rm.mode = "VOXEL"
+    rm.voxel_size = VOXEL
+    rm.use_smooth_shade = True
+    bpy.ops.object.modifier_apply(modifier=rm.name)
+    # Løse småbiter (hårtuster, flak) kan ikke forenkles og gir tusen
+    # småøyer i teksturen; bare biter med minst `LOOSE` av flatene står.
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.faces.ensure_lookup_table()
+    seen = set()
+    drop = []
+    for f in bm.faces:
+        if f.index in seen:
+            continue
+        comp, st = [f], [f]
+        seen.add(f.index)
+        while st:
+            g = st.pop()
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h.index not in seen:
+                        seen.add(h.index)
+                        comp.append(h)
+                        st.append(h)
+        if len(comp) < LOOSE * len(bm.faces):
+            drop += comp
+    print("skall", len(bm.faces), "løse flater", len(drop))
+    bmesh.ops.delete(bm, geom=drop, context="FACES")
+    bm.to_mesh(ob.data)
+    bm.free()
+    for _ in range(4):
+        n = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+        if n <= tris * 1.05:
+            break
+        mod = ob.modifiers.new("dec", "DECIMATE")
+        mod.ratio = tris / n
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+        print("forenklet", n, "->", sum(len(p.vertices) - 2 for p in ob.data.polygons))
+    for p in ob.data.polygons:
+        p.use_smooth = True
+    return ob
+
+
+def transfer(hi, lo, name, size=2048):
+    """Fargen fra den fulle formen bakes over på den forenklede i egne uv
+    (laget «src»): forenklingen slår sammen flater over sømmene i formens
+    uv, og der ble bildet revet i svarte flekker."""
+    me = lo.data
+    while me.uv_layers:
+        me.uv_layers.remove(me.uv_layers[0])
+    me.uv_layers.new(name="src")
+    bpy.ops.object.select_all(action="DESELECT")
+    lo.select_set(True)
+    bpy.context.view_layer.objects.active = lo
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    img = bpy.data.images.new(f"src_{name}", size, size)
+    mat = bpy.data.materials.new(f"npc_{name}")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    t = nt.nodes.new("ShaderNodeTexImage")
+    t.image = img
+    nt.nodes.active = t
+    me.materials.clear()
+    me.materials.append(mat)
+    for m in hi.data.materials:
+        b = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+        b.inputs["Metallic"].default_value = 0.0
+        for l in list(b.inputs["Metallic"].links):
+            m.node_tree.links.remove(l)
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"
+    sc.cycles.samples = 1
+    sc.render.bake.use_selected_to_active = True
+    sc.render.bake.cage_extrusion = 0.03
+    sc.render.bake.max_ray_distance = 0.0
+    sc.render.bake.margin = 8
+    hi.hide_render = False
+    hi.select_set(True)
+    lo.select_set(True)
+    bpy.context.view_layer.objects.active = lo
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"})
+    sc.render.bake.use_selected_to_active = False
+    if os.environ.get("FOLK3D_DUMP"):
+        img.filepath_raw = os.environ["FOLK3D_DUMP"]
+        img.file_format = "PNG"
+        img.save()
+    bpy.data.objects.remove(hi)
+    bsdf = nt.nodes["Principled BSDF"]
+    uv = nt.nodes.new("ShaderNodeUVMap")
+    uv.uv_map = "src"
+    nt.links.new(uv.outputs[0], t.inputs[0])
+    nt.links.new(t.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = 0.9
+    bsdf.inputs["Metallic"].default_value = 0.0
+    me.uv_layers.new(name="UVMap", do_init=True)
+
+
+def landmarks(ob, H):
+    """Leddene i formen (meter; x fram, y mot venstre, z opp), lest av
+    hjørnene: armene står ut i A-stilling, så fingertuppene er det som står
+    lengst ut til sidene, og beina skilles under forkleet."""
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    x, y, z = co[:, 0], co[:, 1], co[:, 2]
+
+    def band(z0, z1):
+        return (z >= z0 * H) & (z <= z1 * H)
+
+    J = {}
+    mid = lambda m: float((x[m].min() + x[m].max()) / 2) if m.any() else 0.0  # noqa: E731
+    # Ryggraden midt i kroppen, i høyde etter vanlige proporsjoner.
+    core = np.abs(y) < 0.08 * H
+    for k, f in (("pelvis", 0.53), ("spine03", 0.60), ("spine01", 0.71), ("neck", 0.835), ("head", 0.875)):
+        J[k] = Vector((mid(core & band(f - 0.02, f + 0.02)), 0.0, f * H))
+    J["top"] = Vector((J["head"].x, 0.0, float(z.max())))
+    for s, sg in (("L", 1), ("R", -1)):
+        side = sg * y > 0
+        # Fingertuppen: det som står lengst ut, mellom hofta og brystet.
+        arm = side & band(0.3, 0.8)
+        reach = sg * y[arm]
+        far = reach >= np.percentile(reach, 99.7)
+        tip = co[arm][far].mean(0)
+        J[f"finger.{s}"] = Vector(tip)
+        # Skulderen: litt inn fra kanten av kroppen i skulderhøyde.
+        sh = side & band(0.80, 0.83)
+        both = band(0.80, 0.83)
+        w = float(np.percentile(np.abs(y[both]), 97)) if both.any() else 0.18 * H
+        J[f"shoulder.{s}"] = Vector((mid(sh), sg * 0.78 * w, 0.805 * H))
+        sv = J[f"shoulder.{s}"]
+        d = (Vector(tip) - sv)
+        L = d.length
+        J[f"wrist.{s}"] = sv + d * ((L - 0.105 * H) / L)
+        el = sv + (J[f"wrist.{s}"] - sv) * 0.5
+        J[f"elbow.{s}"] = Vector((el.x - 0.015 * H, el.y, el.z))
+        # Beina: midten av hvert bein i kne- og ankelhøyde.
+        knee = side & band(0.26, 0.30) & (sg * y < 0.2 * H)
+        ank = side & band(0.045, 0.07) & (sg * y < 0.2 * H)
+        ky = float(np.median(y[knee])) if knee.any() else sg * 0.1 * H
+        ay = float(np.median(y[ank])) if ank.any() else ky
+        J[f"knee.{s}"] = Vector((mid(knee), ky, 0.28 * H))
+        J[f"ankle.{s}"] = Vector((mid(ank) - 0.01 * H, ay, 0.055 * H))
+        J[f"hip.{s}"] = Vector((J["pelvis"].x, ky * 0.9, 0.51 * H))
+        foot = side & band(0.0, 0.04) & (np.abs(y - ay) < 0.06 * H)
+        J[f"toe.{s}"] = Vector((float(x[foot].max()) if foot.any() else J[f"ankle.{s}"].x + 0.12 * H, ay, 0.02 * H))
+    return J
+
+
+def rig(ob, name, J):
+    arm = armature(f"npc_{name}_rig", bones(J))
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    if not any(len(v.groups) for v in ob.data.vertices[:200]):
+        bpy.ops.object.parent_set(type="ARMATURE_ENVELOPE")
+    return arm
+
+
+def build(name, size=2048):
+    clear()
+    ob = load(name)
+    hi = ob.copy()
+    hi.data = ob.data.copy()
+    bpy.context.scene.collection.objects.link(hi)
+    simplify(ob)
+    transfer(hi, ob, name, size)
+    H = FOLK[name]
+    J = landmarks(ob, H)
+    arm = rig(ob, name, J)
+    style, grips = folk_motion.FIGURES.get(name, ("default", {}))
+    st = dict(folk_motion.STYLES.get(style, {}))
+    out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
+    st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
+    folk_motion.clips(arm, st, {}, only=("idle", "walk", "talk", "wave"))
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False)
+    return J
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    names = [a for a in args if a in FOLK]
+    size = next((int(a) for a in args if a.isdigit()), 2048)
+    for n in names:
+        build(n, size)
