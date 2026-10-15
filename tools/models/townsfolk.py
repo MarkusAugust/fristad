@@ -71,6 +71,7 @@ NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere pe
 JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra issen til haka), og er minst så bred som hodet der
 SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
 TOP_BY_PLACE = 2.0  # vender flaten så mange ganger mer opp enn fram eller bak, velges bildet forfra eller bakfra etter stedet
+SKIRT_NEAR, SKIRT_FAR, SKIRT_LOOSE = 0.08, 0.12, 0.3  # skjørtet følger låret fullt innen så mange meter fra det, mindre til så mye lenger ut, og minst så mye
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
@@ -879,13 +880,26 @@ def skirt_follows_thighs(ob, J):
     knee = J["knee.L"].z
     gl, gr = ob.vertex_groups.get("thigh.L") or ob.vertex_groups.new(name="thigh.L"), ob.vertex_groups.get("thigh.R") or ob.vertex_groups.new(name="thigh.R")
     mw = ob.matrix_world
+
+    def thigh_dist(p, s_):
+        a, b = J[f"hip.{s_}"], J[f"knee.{s_}"]
+        u = min(1.0, max(0.0, (a.z - p.z) / max(1e-6, a.z - b.z)))
+        c = a + (b - a) * u
+        return math.hypot(p.x - c.x, p.y - c.y)
+
     for v in ob.data.vertices:
         p = mw @ v.co
         if p.z >= hz:
             continue
         t = min(1.0, (hz - p.z) / max(0.05, hz - knee))
         side = max(-1.0, min(1.0, p.y / 0.08))
-        share = 0.75 * t
+        # Det som henger langt fra låret (et forkle foran, kanten av et vidt
+        # skjørt) følger låret mindre: dreid om hofta svingte det ut som en
+        # plate når beinet gikk fram (smeden, eieren: «hoftene stikker ut av
+        # kroppen når han går»).
+        d = min(thigh_dist(p, s_) for s_ in ("L", "R"))
+        loose = max(SKIRT_LOOSE, 1.0 - max(0.0, d - SKIRT_NEAR) / SKIRT_FAR)
+        share = 0.75 * t * loose
         for g in v.groups:
             g.weight *= 1.0 - share
         if side > -1.0:
