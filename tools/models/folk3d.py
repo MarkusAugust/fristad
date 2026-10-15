@@ -32,6 +32,10 @@ from townsfolk import FOLK, bones  # noqa: E402
 SRC = "assets/textures/people/3d"
 OUT = "assets/models/npcs"
 TRIS = 16000  # trekanter etter forenklingen
+SRC_SIZE = 4096  # fargen fra formen bakes først i denne størrelsen
+HEAD_DENSITY = 3.0
+HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
+THICK = 0.012  # tykkelsen de åpne flatene får før skallet (m)
 VOXEL = 0.01  # skallet (m)
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
 
@@ -70,6 +74,12 @@ def simplify(ob, tris=TRIS):
     da river forenklingen den i småbiter; fargen hentes fra den fulle
     formen etterpå (`transfer`)."""
     bpy.context.view_layer.objects.active = ob
+    # Åpne, tynne flater (forkleet, håret) får tykkelse først, ellers
+    # faller de mellom vokslene og skallet får hull.
+    so = ob.modifiers.new("thick", "SOLIDIFY")
+    so.thickness = THICK
+    so.offset = 0.0
+    bpy.ops.object.modifier_apply(modifier=so.name)
     rm = ob.modifiers.new("remesh", "REMESH")
     rm.mode = "VOXEL"
     rm.voxel_size = VOXEL
@@ -172,6 +182,13 @@ def transfer(hi, lo, name, size=2048):
     me.uv_layers.new(name="UVMap", do_init=True)
 
 
+def head_density(ob, H):
+    """Ansiktet er det man ser på: hodet får `HEAD_DENSITY` ganger så mye
+    plass i teksturen som resten (`bake_textured` leser «uv_density»)."""
+    a = ob.data.attributes.new("uv_density", "FLOAT", "FACE")
+    a.data.foreach_set("value", [HEAD_DENSITY if p.center.z > HEAD_FROM * H else 1.0 for p in ob.data.polygons])
+
+
 def landmarks(ob, H):
     """Leddene i formen (meter; x fram, y mot venstre, z opp), lest av
     hjørnene: armene står ut i A-stilling, så fingertuppene er det som står
@@ -240,7 +257,8 @@ def build(name, size=2048):
     hi.data = ob.data.copy()
     bpy.context.scene.collection.objects.link(hi)
     simplify(ob)
-    transfer(hi, ob, name, size)
+    transfer(hi, ob, name, SRC_SIZE)
+    head_density(ob, FOLK[name])
     H = FOLK[name]
     J = landmarks(ob, H)
     arm = rig(ob, name, J)
