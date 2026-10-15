@@ -66,6 +66,7 @@ TOOLS = {
 RING = {"body": 24, "arm": 14, "leg": 16, "held": 14, "head": 36, "hair": 24}  # hjørner rundt hvert tverrsnitt
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
+NECK_WIN = 0.02  # halsens bredde er det smaleste så langt under hodet (andel av høyden)
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
 JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra issen til haka), og er minst så bred som hodet der
 SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
@@ -268,6 +269,9 @@ def figure(name):
         e_ax = end[3] * f
         e_front, e_back = e_ax + end[4] * 0.92, e_ax - end[5] * 0.92
 
+        below_ = [r[2] for r in rows if end[0] < r[0] <= end[0] + NECK_WIN * m["H"]]
+        neck_w = min(below_) if below_ else 0.0
+
         def joined(r):
             # Over skjøten ligger kroppen inne i hodet. Hodet slutter under
             # kjeven, så halsen under er smalere (den ble ellers tvunget like
@@ -282,7 +286,11 @@ def figure(name):
             fr_, bk_ = min(fr_, e_front + grow), max(bk_, e_back - grow)
             if fr_ <= bk_:
                 fr_, bk_ = (fr_ + bk_) / 2 + 1, (fr_ + bk_) / 2 - 1
-            return (r[0], r[1], min(r[2], end[2] * 0.92 + grow), (fr_ + bk_) / 2 * f, (fr_ - bk_) / 2)
+            # Under hodet vokser halsen fra halsens egen bredde på arket, ikke
+            # fra spissen av hakeskjegget (apotekeren fikk en tynn hals og
+            # skuldre malt med halsen).
+            base = end[2] * 0.92 if r[0] <= end[0] else max(end[2] * 0.92, neck_w)
+            return (r[0], r[1], min(r[2], base + grow), (fr_ + bk_) / 2 * f, (fr_ - bk_) / 2)
 
         parts["body"] = [joined(r) for r in rows if r[0] >= end[0] - 2 * folk_sheet.STEP]
         # Håret som henger ned ved siden av kjeven og halsen til skuldrene
