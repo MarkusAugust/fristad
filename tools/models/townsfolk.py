@@ -56,7 +56,7 @@ RING = {"body": 24, "arm": 14, "leg": 16, "held": 14, "head": 36, "hair": 24}  #
 THIN = 2.5  # tverrsnitt som ligger innen så mange piksler av naboenes linje, tas bort
 WIDEN = 0.05  # er hodet fra hodearket så mye smalere eller bredere enn på kroppsarket, rettes bredden
 NECK_SLOPE = 3.0  # under hodet blir kroppen høyst så mange piksler bredere per rad
-CHIN_IN = 0.015  # flatene under hodet tar fargen så langt opp (andel av høyden)
+CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
 HAIR, HAIR_ABOVE, HAIR_LONG, HAIR_IN = 1.05, 0.04, 0.02, 0.92  # håret som henger ned: kroppsarket så mye bredere enn hodet og halsen, fra så langt over haka, minst så langt (andel av høyden), og toppen så smal som hodet
 ISSE = 8  # kuppelen over hodet tar fargen så mange piksler innenfor issen på hodearket
 RELIEF_W = 0.3  # nesa og munnen er så brede (del av hodets halve bredde)
@@ -454,6 +454,10 @@ def project_part(ob, m, part):
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
             Y = v["ground"] - (p.z if flat_z is None else flat_z) / px
+            if flat_z is not None and n.z < 0:
+                # Litt opp fra kanten: på kanten selv viser arket streken og
+                # det under (bunnen av kjøpmannens kappe ble en flekkete skive).
+                Y -= CHIN_IN * H
             if part.startswith("leg"):
                 Y = min(Y, v["ground"] - SOLE * H)
             X = front_uv(p, n, (INSET_HIDDEN if arm else INSET) * share)

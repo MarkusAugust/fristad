@@ -321,9 +321,10 @@ def measure(name, height, tools=()):
             # Ved skrittet er kroppen begge beina samlet (under et skjørt er
             # det skjørtet; der tok regelen med hendene, og skriveren fikk
             # tallerkener ved hoftene).
-            # Bare det som står på bakken (bondens knivslire henger i lufta).
+            # Bare det som står på bakken (bondens knivslire henger i lufta),
+            # og bredere enn et skaft (høygaffelen når også bakken).
             near = [r for r in front(y) if abs((r[0] + r[1]) / 2 - cxF) < 0.22 * H and (r[1] - r[0]) > 0.02 * H
-                    and (r[0] <= cxF < r[1] or fg[y: ground - int(0.01 * H), int((r[0] + r[1]) / 2)].all())]
+                    and (r[0] <= cxF < r[1] or (r[1] - r[0] > 2 * SHAFT * H and fg[y: ground - int(0.01 * H), int((r[0] + r[1]) / 2)].all()))]
             if near:
                 a, b = min(r[0] for r in near), max(r[1] for r in near)
         # Der armen ligger inntil kroppen forfra, fyller kroppen hele
@@ -417,6 +418,18 @@ def measure(name, height, tools=()):
             back = next((j for j in range(i + 1, len(idx)) if rows[idx[j]][0] - rows[b][0] <= HANGING * H
                          and (edge[idx[j - 1]] - edge[idx[j]]) * side_ > SHELF * H and (edge[idx[j]] - edge[a]) * side_ < 2 * SHELF * H), None)
             if back is None:
+                # Henger tingen helt ned til kanten av kjortelen (bondens
+                # knivslire), springer kanten aldri inn igjen: radene ut til
+                # kanten legges på kanten over.
+                tail = idx[i:]
+                if tail and rows[tail[-1]][0] - rows[b][0] <= HANGING * H and rows[tail[-1]][0] >= rows[idx[-1]][0] \
+                        and all((edge[q] - edge[a]) * side_ > SHELF * H for q in tail):
+                    for q in tail:
+                        r = rows[q]
+                        other = r[1] - side_ * r[2]
+                        rows[q] = (r[0], (edge[a] + other) / 2, abs(edge[a] - other) / 2, r[3], r[4])
+                        edge[q] = edge[a]
+                    break
                 i += 1
                 continue
             e0, e1, y0_, y1_ = edge[a], edge[idx[back]], rows[a][0], rows[idx[back]][0]
@@ -882,6 +895,13 @@ def hangs(run, arm, slack):
     return 0 <= q[0] - y <= 2 * slack and abs(q[1] - x) <= q[2] + w + slack
 
 
+def side_touches(q, arm, slack):
+    """Raden `q` (y, …, midte fra siden, halv dybde) ligger inntil armen
+    fra siden."""
+    a = interp(arm, q[0])
+    return a is not None and abs(q[3] - a[2]) <= q[4] + a[3] + slack
+
+
 def touches(q, arm, slack=6):
     """Raden `q` i en ting (y, midte, halv bredde, …) ligger inntil armen."""
     a = interp(arm, q[0])
@@ -905,11 +925,13 @@ def carried(parts, side, sx0, facing, H, y0, y1):
         body = interp(parts["body"], y)
         if body is None:
             continue
-        cover = []
+        cover, torso = [], []
         for k in keys:
             r = interp(parts[k], y)
             if r:
                 cover.append((sx0 + r[2] - r[3] - 2, sx0 + r[2] + r[3] + 2))
+                if k == "body" or k.startswith("leg."):
+                    torso.append(cover[-1])
         for a, b in side(y):
             segs = [(a, b)]
             for c0, c1 in cover:
@@ -941,6 +963,10 @@ def carried(parts, side, sx0, facing, H, y0, y1):
                     # Foran kroppen og over hendene er det underarmen som
                     # holder noe (vakta): en skive på brystet ble en hylle.
                     continue
+                if not any(abs(p0 - c1) <= 4 or abs(p1 - c0) <= 4 for c0, c1 in torso):
+                    # Bak på kroppen ligger tingen inntil kroppen, ikke bare
+                    # inntil hånda (øksehodet bak Gorveks legg svevde).
+                    continue
                 found[where].append((y, body[0], min(body[1] * CARRIED, d * 1.2), c - sx0, d))
     out = {}
     for w, rows in found.items():
@@ -949,9 +975,10 @@ def carried(parts, side, sx0, facing, H, y0, y1):
         if f"held.{w}" in parts:
             continue
         if w in ("R", "L"):
-            # Ved hånda: tingen ligger inntil hånda forfra.
+            # Ved hånda: tingen ligger inntil hånda forfra og fra siden
+            # (spydet foran vakta ble ellers en planke som svevde foran ham).
             arm = parts.get(f"arm.{w}", [])
-            runs = [r for r in runs if any(touches(q, arm, TOUCH * H) for q in r)]
+            runs = [r for r in runs if any(touches(q, arm, TOUCH * H) and side_touches(q, arm, TOUCH * H) for q in r)]
         # De to største bitene (fletta og albuen som stikker bakover).
         for n, run in enumerate(sorted(runs, key=lambda r: -sum(q[4] for q in r))[:2]):
             out[f"held.{w}" + ("" if n == 0 else str(n + 1))] = run
