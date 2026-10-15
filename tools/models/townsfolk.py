@@ -72,7 +72,6 @@ JAW_FROM, JAW_MIN = 0.55, 0.5  # kjeven begynner så langt ned i hodet (fra isse
 SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ned (andel av høyden)
 TOP_BY_PLACE = 2.0  # vender flaten så mange ganger mer opp enn fram eller bak, velges bildet forfra eller bakfra etter stedet
 SKIRT_NEAR, SKIRT_FAR, SKIRT_LOOSE = 0.08, 0.12, 0.3  # skjørtet følger låret fullt innen så mange meter fra det, mindre til så mye lenger ut, og minst så mye
-TOOL_ROW = 0.06  # fra siden fylles hullet med tøyet så langt til sidene i samme rad (andel av høyden)
 TOOL_GREY = 18  # en piksel med så liten forskjell mellom fargekanalene er jern
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
@@ -522,17 +521,29 @@ def toolless(path, m, pad=6):
     pxf = im.astype(float)
     r_, g_, b_ = pxf[..., 2], pxf[..., 1], pxf[..., 0]
     skinish = (r_ > g_ + 25) & (r_ > 120) & (g_ > b_)
-    cloth = fg & ~mask & ~skinish
-    reach = int(TOOL_ROW * H)
+    greyish = pxf.max(2) - pxf.min(2) < TOOL_GREY
+    cloth = fg & ~mask & ~skinish & ~greyish
+    if hole.any():
+        cloth &= ~(np.abs(pxf - tool_col).sum(2) < TOOL_COLOR)
+    body_rows = m["parts"]["body"]
     for y in np.nonzero(mask[:, lo:hi].any(1))[0]:
-        xs = np.nonzero(mask[y, lo:hi])[0] + lo
-        y0, y1 = max(0, y - 2), y + 3
-        a, b = max(lo, xs.min() - reach), min(hi, xs.max() + reach)
+        # Bare tøyet i kroppens eget spenn i raden (skaftet og eggen ved
+        # siden av ga lyse striper over låret til Gorvek).
+        r = min(body_rows, key=lambda q: abs(q[0] - y))
+        a, b = max(lo, int(sx0 + r[3] - r[4])), min(hi, int(sx0 + r[3] + r[4]) + 1)
+        if b <= a:
+            continue
+        xs = np.nonzero(mask[y, a:b])[0] + a
+        if not len(xs):
+            continue
+        y0, y1 = max(0, y - 3), y + 4
         src = cloth[y0:y1, a:b]
         if src.sum() < 10:
-            continue
-        col = np.median(im[y0:y1, a:b][src], 0)
-        res[y, xs] = col
+            y0, y1 = max(0, y - 25), y + 26
+            src = cloth[y0:y1, a:b]
+            if src.sum() < 10:
+                continue
+        res[y, xs] = np.median(im[y0:y1, a:b][src], 0)
     side = np.zeros_like(mask)
     side[:, lo:hi] = mask[:, lo:hi]
     blur = cv2.GaussianBlur(res, (0, 0), 3)
