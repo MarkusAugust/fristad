@@ -654,7 +654,7 @@ def project_part(ob, m, part):
         # lokk) tar fargen fra kanten den henger på: med bildet i sin egen
         # høyde fikk skriveren hudfargede tallerkener under ermene.
         zs = [(mw @ me.vertices[me.loops[li].vertex_index].co).z for li in poly.loop_indices]
-        flat_z = (max(zs) if n.z < 0 else min(zs)) if abs(n.z) > FLAT else None
+        flat_z = (max(zs) if n.z < 0 else min(zs)) if abs(n.z) > FLAT and not (part == "body" and n.z > 0) else None
         for li in poly.loop_indices:
             p = mw @ me.vertices[me.loops[li].vertex_index].co
             Y = v["ground"] - (p.z if flat_z is None else flat_z) / px
@@ -662,11 +662,14 @@ def project_part(ob, m, part):
                 # Litt opp fra kanten: på kanten selv viser arket streken og
                 # det under (bunnen av kjøpmannens kappe ble en flekkete skive).
                 Y -= CHIN_IN * H
-            elif flat_z is not None and part == "body":
+            elif part == "body":
                 # Toppen av skuldrene tar fargen litt ned i tøyet: på kanten
                 # viser arket halsen, kragen og skjegget, strukket til striper
                 # rundt halsen (apotekeren, eieren: «stygg strek på halsen»).
-                Y += SHOULDER_IN * H
+                # Hvor langt følger hjørnets normal jevnt (med en terskel på
+                # flatens normal ble det lapper rundt halsen).
+                vz = (nm @ me.vertices[me.loops[li].vertex_index].normal).normalized().z
+                Y += SHOULDER_IN * H * min(1.0, max(0.0, (vz - CHIN_FROM) / (1 - CHIN_FROM)))
             if part.startswith("leg"):
                 Y = min(Y, v["ground"] - SOLE * H)
             X = front_uv(p, n, (INSET_HIDDEN if arm else INSET) * share)
