@@ -2,14 +2,17 @@
 av TRELLIS.2 fra bildet forfra av arket i A-stilling, `<navn>_apose.jpeg`).
 
 Formen og teksturen er riktige fra start (ansiktet, hendene, forkleet), så
-her er det bare å gjøre den spillklar, uten å male noe på nytt (eieren 15.
-oktober: teksturen som følger med passer hundre ganger bedre enn arket
+her er det bare å gjøre den spillklar, uten å male kroppen på nytt (eieren
+15. oktober: teksturen som følger med passer hundre ganger bedre enn arket
 projisert på formen):
 
 1. reise den opp med fronten mot +X og skalere til høyden i `FOLK`;
 2. et tett, lukket skall over formen (`VOXEL`), forenklet til `TRIS`
    trekanter (`simplify`);
-3. fargen fra den fulle formen bakt uendret over på skallet (`transfer`);
+3. fargen fra den fulle formen bakt uendret over på skallet (`transfer`),
+   og ansiktet fra bildet forfra som TRELLIS ble laget av (`face_patch`):
+   TRELLIS mister små ting som øynene, men bildet forfra passer nøyaktig
+   på flatene som vender rett fram;
 4. finne leddene i formen (`landmarks`), rigge spillets 18 bein og lage
    klippene fra `folk_motion`.
 
@@ -21,6 +24,7 @@ import os
 import sys
 
 import numpy as np
+from PIL import Image
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
@@ -30,12 +34,15 @@ import folk_motion  # noqa: E402
 from townsfolk import FOLK, bones  # noqa: E402
 
 SRC = "assets/textures/people/3d"
+REF = "assets/textures/people/ref"
 OUT = "assets/models/npcs"
 TRIS = 16000  # trekanter etter forenklingen
 SRC_SIZE = 4096  # fargen fra formen bakes først i denne størrelsen
 HEAD_DENSITY = 3.0
 HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
 THICK = 0.012  # tykkelsen de åpne flatene får før skallet (m)
+FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
+FACE_FACING = (0.35, 0.7)  # normalen mot kameraet: fra ingen til full vekt
 VOXEL = 0.01  # skallet (m)
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
 
@@ -182,6 +189,84 @@ def transfer(hi, lo, name, size=2048):
     me.uv_layers.new(name="UVMap", do_init=True)
 
 
+def face_patch(ob, name, H):
+    """Ansiktet fra bildet TRELLIS ble laget av (`<navn>_apose_front.png`).
+    TRELLIS maler teksturen ut fra formen, og små ting som øynene blir
+    borte (smeden fikk lukkede streker). Bildet legges bare på ansiktet: på
+    hodet, på flatene som vender rett fram og innenfor bredden av ansiktet,
+    med myk overgang til fargen fra formen. Resten av figuren står urørt."""
+    path = os.path.join(REF, f"{name}_apose_front.png")
+    if not os.path.exists(path):
+        return
+    im = np.asarray(Image.open(path).convert("RGB")).astype(float)
+    bg = np.median(np.concatenate([im[:8].reshape(-1, 3), im[-8:].reshape(-1, 3)]), 0)
+    fg = np.linalg.norm(im - bg, axis=2) > 30
+    rows, cols = np.nonzero(fg)
+    W, Hh = im.shape[1], im.shape[0]
+    top, bot = rows.min(), rows.max()
+    sc = (bot - top) / H  # piksler per meter
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    lo, hi = co.min(0), co.max(0)
+    # Midten av figuren i bildet og i formen (begge midt mellom ytterkantene).
+    cu = (cols.min() + cols.max()) / 2 - (lo[1] + hi[1]) / 2 * sc
+    head = co[co[:, 2] > FACE_FROM * H]
+    hx = float(np.median(head[:, 0]))
+    hw = float(np.percentile(np.abs(head[:, 1]), 90))
+    mat = ob.data.materials[0]
+    nt = mat.node_tree
+    N, L = nt.nodes, nt.links
+    bsdf = N["Principled BSDF"]
+    base = bsdf.inputs["Base Color"].links[0].from_socket
+    geo = N.new("ShaderNodeNewGeometry")
+    pos = N.new("ShaderNodeSeparateXYZ")
+    L.new(geo.outputs["Position"], pos.inputs[0])
+    nrm = N.new("ShaderNodeSeparateXYZ")
+    L.new(geo.outputs["Normal"], nrm.inputs[0])
+
+    def lin(sock, mul, add):
+        m = N.new("ShaderNodeMath")
+        m.operation = "MULTIPLY_ADD"
+        L.new(sock, m.inputs[0])
+        m.inputs[1].default_value = mul
+        m.inputs[2].default_value = add
+        return m.outputs[0]
+
+    def ramp(sock, a, b):
+        r = N.new("ShaderNodeMapRange")
+        r.interpolation_type = "SMOOTHSTEP"
+        L.new(sock, r.inputs["Value"])
+        r.inputs["From Min"].default_value = a
+        r.inputs["From Max"].default_value = b
+        return r.outputs["Result"]
+
+    def mul(a, b):
+        m = N.new("ShaderNodeMath")
+        m.operation = "MULTIPLY"
+        L.new(a, m.inputs[0])
+        L.new(b, m.inputs[1])
+        return m.outputs[0]
+
+    uv = N.new("ShaderNodeCombineXYZ")
+    L.new(lin(pos.outputs["Y"], sc / W, cu / W), uv.inputs[0])
+    L.new(lin(pos.outputs["Z"], sc / Hh, 1 - (top + H * sc) / Hh), uv.inputs[1])
+    t = N.new("ShaderNodeTexImage")
+    t.image = bpy.data.images.load(os.path.abspath(path))
+    t.extension = "EXTEND"
+    L.new(uv.outputs[0], t.inputs[0])
+    ay = N.new("ShaderNodeMath")
+    ay.operation = "ABSOLUTE"
+    L.new(pos.outputs["Y"], ay.inputs[0])
+    w = mul(ramp(pos.outputs["Z"], FACE_FROM * H, (FACE_FROM + 0.02) * H), ramp(nrm.outputs["X"], FACE_FACING[0], FACE_FACING[1]))
+    w = mul(w, ramp(lin(ay.outputs[0], -1.0, hw), 0.0, 0.25 * hw))
+    w = mul(w, ramp(pos.outputs["X"], hx - 0.01, hx + 0.02))
+    mix = N.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    L.new(w, mix.inputs["Factor"])
+    L.new(base, mix.inputs["A"])
+    L.new(t.outputs["Color"], mix.inputs["B"])
+    L.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
+
+
 def head_density(ob, H):
     """Ansiktet er det man ser på: hodet får `HEAD_DENSITY` ganger så mye
     plass i teksturen som resten (`bake_textured` leser «uv_density»)."""
@@ -258,6 +343,7 @@ def build(name, size=2048):
     bpy.context.scene.collection.objects.link(hi)
     simplify(ob)
     transfer(hi, ob, name, SRC_SIZE)
+    face_patch(ob, name, FOLK[name])
     head_density(ob, FOLK[name])
     H = FOLK[name]
     J = landmarks(ob, H)
