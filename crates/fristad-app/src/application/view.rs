@@ -149,7 +149,9 @@ impl Session {
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
-        instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
+        if self.film.is_none() {
+            instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
+        }
         let (hidden, edited) = self.edit_instances();
         instances.extend(edited);
         Frame {
@@ -217,6 +219,9 @@ impl Session {
     /// Synsfeltet: 72°, strukket ut og tilbake når du reiser gjennom
     /// virvelen.
     pub(super) fn fov(&self) -> f32 {
+        if let Some(s) = self.film {
+            return s.fov;
+        }
         self.portal.fov()
     }
 

@@ -10,7 +10,7 @@ use crate::adapters::wgpu::Renderer;
 use crate::application::{prepare, prepare_for_edit, prepare_with, App};
 use crate::domain::edit::LineKind;
 use crate::domain::weather::{Daylight, WeatherKind};
-use crate::ports::driving::{Command, EditCommand, Event, Grab, Play, SaveData};
+use crate::ports::driving::{Command, EditCommand, Event, Grab, Play, SaveData, Shot};
 use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
@@ -380,6 +380,29 @@ impl Engine {
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
+    }
+
+    /// Filmen (`web/film/`): kameraet i øyet `x, y, z` (meter), retningen
+    /// (grader) og synsfeltet (grader). Uten armer, kamp og fysikk.
+    pub fn film(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32, fov_deg: f32) {
+        let shot = Shot { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians(), fov: fov_deg };
+        self.app.command(Command::Film(Some(shot)));
+    }
+
+    /// Høyden på bakken (meter), til filmens kamerabane.
+    pub fn ground(&self, x: f32, z: f32) -> f32 {
+        crate::domain::world::terrain::height(x, z)
+    }
+
+    /// Origo i kryptnivå `n` (1 og oppover), til filmens kamerabane, eller
+    /// tomt om nivået ikke finnes.
+    pub fn level_origin(&self, n: usize) -> Vec<f32> {
+        self.app.session.level_origin(n.saturating_sub(1)).map(|o| vec![o.x, o.y, o.z]).unwrap_or_default()
+    }
+
+    /// Filmen er slutt: spillet tar over der kameraet står.
+    pub fn film_end(&mut self) {
+        self.app.command(Command::Film(None));
     }
 
     /// Grafikknivået: «enkel», «standard» eller «avansert».

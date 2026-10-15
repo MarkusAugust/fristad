@@ -45,6 +45,7 @@ FOLK = {
     "fishwife": 1.62,
     "boy": 1.36,
     "washerwoman": 1.6,
+    "pilgrim": 1.74,
 }
 # Det figurene holder i hånda, som blir egne gjenstander (ikke en del av
 # kroppen): `folk_check` regner det ikke som hull ved den hånda.

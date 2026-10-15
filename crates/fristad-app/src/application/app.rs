@@ -67,6 +67,10 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
             Command::Place { eye, yaw, pitch } => self.session.place(eye, yaw, pitch),
             Command::SetQuality(q) => self.renderer.set_quality(q),
             Command::SetBench(b) => self.renderer.set_bench(b),
+            Command::Film(shot) => {
+                self.input.release_all();
+                self.session.film = shot;
+            }
             Command::Edit(e) => {
                 self.input.release_all();
                 return self.session.edit_command(e);

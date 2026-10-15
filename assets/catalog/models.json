@@ -205,6 +205,7 @@
   "npc_fishwife": "Fiskerkona: brun kjole, forkle, blått hodetørkle og fiskekurv.",
   "npc_boy": "Gutten: grønn kofte, strømpebukser og sekk på ryggen.",
   "npc_washerwoman": "Vaskekona: grå kjole, hvitt forkle og hodeplagg, bøtter i hendene.",
+  "npc_pilgrim": "Pilegrimen: brun hatt med kamskjell, grå kappe, stav og sandaler (fra TRELLIS.2).",
   "npc_smith": "Buttonsmeden: smeden i forkle med hammeren, rødt skjegg og rød skjorte, bygd av eierens ark (townsfolk.py).",
   "token": "Designtokenet fiendene slipper: en sekskantet brikke med jernkant og glødende flater i Fristils fyllfarger (fargen per brikke).",
   "tool_wall": "Møbel: Verktøyveggen med tenger, hammere, filer og hestesko (Smia).",

@@ -115,6 +115,19 @@ pub enum Command {
     SetBench(super::Bench),
     /// Redigeringsmodusen (`docs/redigering.md`; bare med `?edit`).
     Edit(EditCommand),
+    /// Filmen (`web/film/`): kameraet står der filmen sier, uten armer,
+    /// kamp og fysikk, mens byfolket og fiendene lever videre. `None` gir
+    /// spillet tilbake.
+    Film(Option<Shot>),
+}
+
+/// Ett bilde i filmen: øyet, retningen og synsfeltet (grader).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Shot {
+    pub eye: Vec3,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub fov: f32,
 }
 
 /// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).

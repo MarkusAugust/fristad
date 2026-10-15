@@ -122,6 +122,7 @@ models! {
     "npc_fishwife" => "npcs/npc_fishwife.glb",
     "npc_boy" => "npcs/npc_boy.glb",
     "npc_washerwoman" => "npcs/npc_washerwoman.glb",
+    "npc_pilgrim" => "npcs/npc_pilgrim.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",

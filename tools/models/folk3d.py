@@ -43,7 +43,13 @@ HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
 THICK = 0.012  # tykkelsen de åpne flatene får før skallet (m)
 FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
 FACE_INSET = 0.006  # masken trekkes så mye inn fra omrisset (brøk av bredden)
-FACE_FACING = (0.35, 0.7)  # normalen mot kameraet: fra ingen til full vekt
+FACE_FACING = (0.35, 0.7)
+FACE_DOWN = (-0.6, -0.35)
+FACE_BLUR = 0.004  # uskarpheten fargene sammenlignes med (brøk av bildet)
+FACE_AGREE = (0.15, 0.25)  # metning bildet har mer enn formen: full vekt under, ingen over  # flater som vender mer nedover enn dette, får ikke bildet  # normalen mot kameraet: fra ingen til full vekt
+OLD_KEEP = ("speed", "cycle", "tempo", "width", "toe_out", "lift", "hs", "to", "gestures", "talk", "breath")  # det som står av stilen «old»
+POSTURE = {"hunch": 0.25, "lean": 0.4, "jut": 0.3, "head": 0.5}  # stilens holdning skaleres, formen har sin egen
+TRANSFER = (0.012, 0.05)  # strålene fra skallet: hvor langt utenfor de begynner og hvor langt de går (m)
 VOXEL = 0.01  # skallet (m)
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
 
@@ -166,8 +172,8 @@ def transfer(hi, lo, name, size=2048):
     sc.render.engine = "CYCLES"
     sc.cycles.samples = 1
     sc.render.bake.use_selected_to_active = True
-    sc.render.bake.cage_extrusion = 0.03
-    sc.render.bake.max_ray_distance = 0.0
+    sc.render.bake.cage_extrusion = TRANSFER[0]
+    sc.render.bake.max_ray_distance = TRANSFER[1]
     sc.render.bake.margin = 8
     hi.hide_render = False
     hi.select_set(True)
@@ -277,12 +283,63 @@ def face_patch(ob, name, H):
     w = mul(w, ramp(lin(ay.outputs[0], -1.0, hw), 0.0, 0.25 * hw))
     w = mul(w, ramp(pos.outputs["X"], hx - 0.01, hx + 0.02))
     w = mul(w, mt.outputs["Color"])
+    # Undersiden av en hjelmbrem eller hattebrem vender nedover og ses bare
+    # på skrå forfra; der lå øyenbrynene fra bildet.
+    w = mul(w, ramp(nrm.outputs["Z"], FACE_DOWN[0], FACE_DOWN[1]))
+    # Bare der formen og bildet er enige i grove trekk: TRELLIS kan sette en
+    # hjelmbrem lavere enn bildet, og da lå øyenbrynene på bremmen. Fargene
+    # sammenlignes uskarpt (`FACE_BLUR`), så øynene TRELLIS mistet står.
+    agree = face_agreement(ob, name, im, sc, cu, top, H)
+    at = N.new("ShaderNodeAttribute")
+    at.attribute_name = "face_agree"
+    w = mul(w, at.outputs["Fac"])
     mix = N.new("ShaderNodeMix")
     mix.data_type = "RGBA"
     L.new(w, mix.inputs["Factor"])
     L.new(base, mix.inputs["A"])
     L.new(t.outputs["Color"], mix.inputs["B"])
     L.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
+
+
+def face_agreement(ob, name, im, sc, cu, top, H):
+    """Per hjørne: 0 der bildet forfra har farge og formen er grå etter
+    uskarping (`FACE_AGREE`: hvor mye mer metning bildet har), ellers 1,
+    lagret som «face_agree». Fargeavstand skilte ikke en hjelmbrem fra
+    huden: hudtonen fra TRELLIS er like langt fra arket som metallet er."""
+    from scipy import ndimage
+    me = ob.data
+    src = bpy.data.images[f"src_{name}"]
+    S = src.size[0]
+    px = np.empty(S * S * 4, np.float32)
+    src.pixels.foreach_get(px)
+    px = px.reshape(S, S, 4)[..., :3]
+    r = FACE_BLUR * S
+    sb = np.stack([ndimage.gaussian_filter(px[..., c], r) for c in range(3)], -1)
+    ib = np.stack([ndimage.gaussian_filter(im[..., c] / 255.0, FACE_BLUR * im.shape[1] * 2) for c in range(3)], -1)
+    # Begge er sRGB (bildet fra bakingen er et 8-biters bilde).
+    uvl = me.uv_layers["src"].data
+    vuv = np.zeros((len(me.vertices), 2))
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            vuv[me.loops[li].vertex_index] = uvl[li].uv
+    co = np.array([v.co[:] for v in me.vertices])
+    a = sb[np.clip((vuv[:, 1] * S).astype(int), 0, S - 1), np.clip((vuv[:, 0] * S).astype(int), 0, S - 1)]
+    W, Hh = im.shape[1], im.shape[0]
+    u = np.clip((cu + co[:, 1] * sc).astype(int), 0, W - 1)
+    v = np.clip((top + (H - co[:, 2]) * sc).astype(int), 0, Hh - 1)
+    b = ib[v, u]
+    def sat(c):
+        return c.max(1) - c.min(1)
+
+    # Bildet har farge (hud) der formen er grå (metall): da ligger noe annet
+    # fra formen foran det bildet viser.
+    d = sat(b) - sat(a)
+    face = (co[:, 2] > FACE_FROM * H) & (co[:, 0] > np.median(co[co[:, 2] > FACE_FROM * H, 0]))
+    print("metning bildet minus formen i ansiktet", np.percentile(d[face], [10, 25, 50, 75, 90, 95]).round(3))
+    f = np.clip((FACE_AGREE[1] - d) / (FACE_AGREE[1] - FACE_AGREE[0]), 0.0, 1.0)
+    at = me.attributes.new("face_agree", "FLOAT", "POINT")
+    at.data.foreach_set("value", f.astype(np.float32))
+    return f
 
 
 def head_density(ob, H):
@@ -368,6 +425,15 @@ def build(name, size=2048):
     arm = rig(ob, name, J)
     style, grips = folk_motion.FIGURES.get(name, ("default", {}))
     st = dict(folk_motion.STYLES.get(style, {}))
+    if style == "old":
+        # «old» bøyer knærne, ryggen og albuene; med kappe og formen fra
+        # TRELLIS (som står rett) så det ut som de segnet. Bare takten står.
+        st = {k: v for k, v in st.items() if k in OLD_KEEP}
+    # Formen fra TRELLIS har holdningen fra arket; stilene ble laget for
+    # figurer som sto rett, og krokryggen ble dobbel (apotekeren).
+    for k, f in POSTURE.items():
+        if k in st:
+            st[k] *= f
     out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
     st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
     folk_motion.clips(arm, st, {}, only=("idle", "walk", "talk", "wave"))

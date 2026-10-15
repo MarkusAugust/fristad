@@ -24,7 +24,7 @@ use crate::domain::world::mechanisms::{Mechanisms, Moved};
 use crate::domain::world::portal::Portal;
 use crate::domain::world::{terrain, town};
 use crate::domain::world::{Target, Use, World};
-use crate::ports::driving::{Action, Bubble, Event, Input, MapMark, MapView, Prompt, Sound};
+use crate::ports::driving::{Action, Bubble, Event, Input, MapMark, MapView, Prompt, Shot, Sound};
 use crate::ports::{ColliderId, Physics};
 use glam::{Affine3A, Vec3};
 use std::collections::HashMap;
@@ -68,6 +68,8 @@ pub struct Session {
     pub(super) aimed_mob: Option<usize>,
     pub(super) last_prompt: Option<Prompt>,
     pub paused: bool,
+    /// Filmen styrer kameraet (`Command::Film`).
+    pub film: Option<Shot>,
     pub(super) spawn: Vec3,
     pub(super) spawn_yaw: f32,
     pub(super) crypt_exit: (Vec3, f32),
@@ -134,6 +136,7 @@ impl Session {
             aimed_mob: None,
             last_prompt: None,
             paused: false,
+            film: None,
             spawn: world.spawn,
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt_exit,
@@ -234,6 +237,11 @@ impl Session {
         Vec3::new(-self.yaw.sin() * self.pitch.cos(), self.pitch.sin(), -self.yaw.cos() * self.pitch.cos())
     }
 
+    /// Origo i kryptnivå `k` (fra 0), til filmen.
+    pub fn level_origin(&self, k: usize) -> Option<Vec3> {
+        self.crypt.levels.get(k).map(|l| l.origin)
+    }
+
     /// Hvor innbyggerne står nå (til testene).
     pub fn npc_positions(&self) -> Vec<Vec3> {
         self.npcs.npcs.iter().map(|n| n.pos).collect()
@@ -277,6 +285,10 @@ impl Session {
         if self.edit.is_some() {
             self.fly(input, dt);
             self.sky.tick(dt, self.time);
+            return events;
+        }
+        if let Some(shot) = self.film {
+            self.film_tick(shot, dt);
             return events;
         }
         let wish = self.walk(input, dt, physics, &mut events);
@@ -327,6 +339,30 @@ impl Session {
         self.update_hud(dt, in_crypt, &mut events);
         self.ambience(dt, feet, in_crypt, physics, &mut events);
         events
+    }
+
+    /// Et bilde i filmen: kameraet der filmen sier, byfolket og fiendene
+    /// lever (fiendene i nivået kameraet er i, og de ser ingen), ingen kamp,
+    /// fysikk eller lyder fra spilleren.
+    fn film_tick(&mut self, shot: Shot, dt: f32) {
+        self.body.teleport(shot.eye - Vec3::Y * EYE);
+        self.yaw = shot.yaw;
+        self.pitch = shot.pitch;
+        self.sky.tick(dt, self.time);
+        let in_crypt = self.in_crypt();
+        if in_crypt {
+            if let Some(k) = self.crypt.level_at(self.body.feet()) {
+                if self.mobs.level != k || self.mobs.mobs.is_empty() {
+                    self.enter_level(k);
+                }
+            }
+        }
+        // Langt over der kameraet står: ingen ser det, og ingen kommer bort.
+        let unseen = self.body.feet() + Vec3::Y * 500.0;
+        let _ = self.mobs.update(dt, unseen, in_crypt, &self.crypt);
+        let _ = self.npcs.update(dt, unseen);
+        self.herd.update(dt, unseen);
+        self.cellar_t += ((if in_crypt { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
     }
 
     /// Gåing, stilling, hopp og skritt, og fall utfor kanten i krypten. Gir

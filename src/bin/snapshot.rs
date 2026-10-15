@@ -7,7 +7,7 @@
 //! høyde over terrenget), --yaw grader, --pitch grader, --stance huk|kryp,
 //! --weather klart|overskyet|regn|uvær|snø|tåke, --time sek, --descend
 //! (ned i krypten først: startstedet i nivå 1), --level N (startstedet i
-//! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --edit [--edit-move X,Y,Z] (redigeringen, det midt i bildet valgt og flyttet), --frames N,
+//! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --edit [--edit-move X,Y,Z] (redigeringen, det midt i bildet valgt og flyttet), --film [--fov G] (som i filmen: uten armer), --frames N,
 //! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N, --shots FIL (mange bilder i én kjøring: én linje per bilde,
 //! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at).
@@ -199,6 +199,15 @@ fn main() {
     }
     if let Some(eye) = eye {
         app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
+        // --film [--fov G]: som i filmen, uten armer, og byfolket og fiendene
+        // lever i et sekund før bildet tas.
+        if flag("--film") {
+            let fov: f32 = arg("--fov").map(|s| s.parse().unwrap()).unwrap_or(60.0);
+            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians(), fov })));
+            for _ in 0..30 {
+                app.tick(1.0 / 30.0);
+            }
+        }
     }
     // --edit: i redigeringen, med det midt i bildet valgt; --edit-move X,Y,Z
     // flytter det (det flyttede og markeringene synes i bildet).

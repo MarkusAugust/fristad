@@ -5,6 +5,7 @@
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
+import { playFilm } from "./film/film.js";
 import { createSounds } from "./sounds.js";
 import { createEditor } from "./editor.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
@@ -1195,8 +1196,29 @@ function pause() {
   }
 }
 
+// Åpningsfilmen (web/film/) spilles første gang du går inn, med klikket
+// som brukerhandling for lyden. `?nofilm` hopper over den, `?film` spiller
+// den hver gang du går inn.
+let filmShown = false;
+async function begin() {
+  const q = new URLSearchParams(location.search);
+  if (!EDIT && !q.has("nofilm") && (!filmShown || q.has("film"))) {
+    filmShown = true;
+    gateEl.hidden = true;
+    hud.hidden = true;
+    engine.set_paused(false);
+    if (!soundsLoading) {
+      soundsLoading = true;
+      sfx.preload();
+    }
+    await playFilm({ engine, music });
+    engine.respawn();
+  }
+  enter();
+}
+
 function bindInput() {
-  enterBtn.addEventListener("click", enter);
+  enterBtn.addEventListener("click", begin);
   // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til sørporten.
   $("respawn").addEventListener("click", () => {
     engine.respawn();

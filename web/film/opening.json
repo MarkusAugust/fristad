@@ -1,0 +1,83 @@
+{
+  "title": "Fristad",
+  "note": "Åpningsfilmen, første utkast (docs/plan.md del 8): seks scener filmet i den ekte byen og krypten med motorens filmmodus. Hver scene har nøkler langs kamerabanen (at: 0–1 i scenen); pos med ground: true er høyde over bakken, med level: N er det i kryptnivåets eget rom.",
+  "scenes": [
+    {
+      "id": "gullalderen",
+      "dur": 10,
+      "daylight": "day",
+      "weather": "klart",
+      "music": "town",
+      "heading": "Fristad",
+      "text": "I de gode årene skrev de komponentene i Skriptoriet. Hver av dem gjorde én ting, og gjorde den vel.",
+      "keys": [
+        { "at": 0, "pos": [-10.1, 1.55, -10.4], "ground": true, "yaw": 6, "pitch": -6, "fov": 55 },
+        { "at": 1, "pos": [-10.0, 1.75, -12.6], "ground": true, "yaw": -4, "pitch": 4, "fov": 52 }
+      ]
+    },
+    {
+      "id": "fallet",
+      "dur": 9,
+      "daylight": "night",
+      "weather": "klart",
+      "music": "none",
+      "fx": "glitch",
+      "text": "Så sivet forretningslogikken inn. Knappene gjorde ting ingen hadde bedt om, og skjemaene sa nei til alt.",
+      "keys": [
+        { "at": 0, "pos": [-10.1, 1.7, -12.2], "ground": true, "yaw": 28, "pitch": 2, "fov": 60 },
+        { "at": 1, "pos": [-10.1, 1.6, -12.4], "ground": true, "yaw": -34, "pitch": -8, "fov": 64 }
+      ]
+    },
+    {
+      "id": "begravelsen",
+      "dur": 10,
+      "daylight": "night",
+      "weather": "klart",
+      "music": "cellar",
+      "text": "De korrupte komponentene ble båret ned under kirka og murt inne. Klokka ringte i tre dager.",
+      "keys": [
+        { "at": 0, "pos": [9.0, 3.2, -51.5], "ground": true, "yaw": 88, "pitch": -7, "fov": 55 },
+        { "at": 1, "pos": [-2.4, 1.8, -52.0], "ground": true, "yaw": 90, "pitch": -2, "fov": 52 }
+      ]
+    },
+    {
+      "id": "krypten",
+      "dur": 10,
+      "daylight": "day",
+      "weather": "klart",
+      "music": "cellar",
+      "text": "Men det som er murt inne, ligger ikke stille. Der nede går de ennå.",
+      "keys": [
+        { "at": 0, "pos": [0, 1.6, 5.5], "level": 1, "yaw": 180, "pitch": -3, "fov": 58 },
+        { "at": 1, "pos": [0, 1.5, 9.5], "level": 1, "yaw": 176, "pitch": -5, "fov": 54 }
+      ]
+    },
+    {
+      "id": "fristad1350",
+      "dur": 11,
+      "daylight": "day",
+      "weather": "klart",
+      "music": "town",
+      "heading": "Anno 1350",
+      "text": "På torget hvisker de om gull og glemte bøker under kirkegården, og om dem som gikk ned og aldri kom opp igjen.",
+      "keys": [
+        { "at": 0, "pos": [0, 15, 27], "ground": true, "yaw": 0, "pitch": -26, "fov": 58 },
+        { "at": 0.6, "pos": [1, 10, 15], "ground": true, "yaw": -8, "pitch": -20, "fov": 56 },
+        { "at": 1, "pos": [2, 7, 7], "ground": true, "yaw": -16, "pitch": -14, "fov": 55 }
+      ]
+    },
+    {
+      "id": "sorporten",
+      "dur": 11,
+      "daylight": "day",
+      "weather": "klart",
+      "music": "town",
+      "text": "Og en dag kommer en fremmed gjennom sørporten.",
+      "keys": [
+        { "at": 0, "pos": [1.2, 10, 84], "ground": true, "yaw": 0, "pitch": -9, "fov": 55 },
+        { "at": 0.55, "pos": [1.25, 3.2, 58], "ground": true, "yaw": 0, "pitch": -3, "fov": 60 },
+        { "at": 1, "pos": [1.276, 1.6, 36.2], "ground": true, "yaw": 1.55, "pitch": 0, "fov": 72 }
+      ]
+    }
+  ]
+}
