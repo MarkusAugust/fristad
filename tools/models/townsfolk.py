@@ -73,6 +73,7 @@ SHOULDER_IN = 0.03  # flatene som vender opp på kroppen tar fargen så langt ne
 TOP_BY_PLACE = 2.0  # vender flaten så mange ganger mer opp enn fram eller bak, velges bildet forfra eller bakfra etter stedet
 SKIRT_NEAR, SKIRT_FAR, SKIRT_LOOSE = 0.08, 0.12, 0.3  # skjørtet følger låret fullt innen så mange meter fra det, mindre til så mye lenger ut, og minst så mye
 TOOL_COL = 0.15  # fra siden hentes tøyet så langt over eller under i samme kolonne (andel av høyden)
+TOOL_LIGHT = 140  # lysere enn dette er skaftet, ikke tøyet, når hullet fylles fra siden
 TOOL_GREY = 18  # en piksel med så liten forskjell mellom fargekanalene er jern
 CHIN_FROM = 0.2  # hjørner som vender mer ned enn dette tar fargen gradvis høyere opp
 CHIN_IN = 0.015  # flatene som vender ned (under hodet, bunnen av en kappe) tar fargen så langt opp (andel av høyden)
@@ -524,6 +525,8 @@ def toolless(path, m, pad=6):
     skinish = (r_ > g_ + 25) & (r_ > 120) & (g_ > b_)
     greyish = pxf.max(2) - pxf.min(2) < TOOL_GREY
     cloth = fg & ~mask & ~skinish & ~greyish
+    # Skaftet er lyst tre (Gorveks økseskaft ble lyse striper nedover låret).
+    cloth &= pxf.mean(2) < TOOL_LIGHT
     if hole.any():
         cloth &= ~(np.abs(pxf - tool_col).sum(2) < TOOL_COLOR)
     # Kolonne for kolonne fra nærmeste tøy under (eller over): buksa og
