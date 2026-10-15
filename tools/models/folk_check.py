@@ -44,6 +44,7 @@ BLACK = 0.002  # høyst så stor del av figuren kan være svart i modellen der a
 TOOL_THICK = 0.02  # et skaft er høyst så tykt (halve tykkelsen, del av høyden)
 SHAFT_LEN = 0.08  # og minst så langt
 SHAFT_V = 0.04  # et loddrett stykke av et skaft er minst så langt
+REST_PAD = 0.03  # radene rundt det en hengende arm holdt på arket (del av høyden)
 TOOL_NEAR = 0.1  # det som mangler innen så langt fra hånda med et verktøy (del av høyden), er verktøyet
 THIN = 0.025  # det som er tynnere enn så mye av høyden på arket, er ting figuren holder
 
@@ -136,7 +137,7 @@ def check(name, out_dir):
     import townsfolk  # noqa: E402
 
     # Målestokken følger modellens egen høyde (fra byggingen).
-    m = folk_sheet.measure(name, townsfolk.FOLK[name], tuple(townsfolk.TOOLS.get(name, {})))
+    m = folk_sheet.measure_posed(name, townsfolk.FOLK[name], tuple(townsfolk.TOOLS.get(name, {})), tuple(townsfolk.REST.get(name, {})))
     path = os.path.join(ROOT, "assets", "models", "npcs", f"npc_{name}.glb")
     sheet_path = os.path.join(folk_sheet.REF, f"{name}_body.jpeg")
     sheet = np.asarray(Image.open(sheet_path).convert("RGB")).astype(float) / 255
@@ -246,6 +247,24 @@ def check(name, out_dir):
             v_tool[f"{view}.{tool}"] = float(held_by.sum() / area)
             missing &= ~held_by
             toolmask |= held_by
+        # En arm bygd hengende etter bildet bakfra (`townsfolk.REST`): den
+        # bøyde armen og det den holder (krukka) på arket blir en egen
+        # gjenstand; det som mangler i radene der den sto, telles ikke.
+        occ = m.get("occluded") or []
+        if occ:
+            y0_ = int(min(r[0] for r in occ) - REST_PAD * H)
+            y1_ = int(max(r[0] for r in occ) + REST_PAD * H)
+            band = np.zeros_like(missing)
+            band[max(0, y0_): y1_] = True
+            lab_r, k_r = ndimage.label(missing)
+            rest_by = np.zeros_like(missing)
+            for i in range(1, k_r + 1):
+                blob = lab_r == i
+                if (blob & band).sum() > 0.5 * blob.sum():
+                    rest_by |= blob
+            report.setdefault("rest", {})[view] = float(rest_by.sum() / area)
+            missing &= ~rest_by
+            toolmask |= rest_by
         lab, k = ndimage.label(missing)
         holes = sorted(ndimage.sum(missing, lab, range(1, k + 1)), reverse=True)[:3] if k else []
         # Det som stikker ut, de største bitene.

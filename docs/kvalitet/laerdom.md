@@ -234,3 +234,7 @@ Eieren: «ikke vis meg noe deformert igjen». Alle tolv består nå porten i 204
 - **Under kappa er beinet like smalt som leggen** der kappa synes fra siden (apotekerens kloss); kjøpmannens vide bukser er bein.
 - **Håret som henger ned er en egen del** som vokser ut av hodet bak midten av det og går ned i skuldrene. Som del av hodet ble det en flat kloss under haka, og som del av halsen en krage.
 - **Linja for magen fra siden ender over skrittet**, ellers kappet hendene under skrittet (gutten) forsiden av kjortelen.
+- **En arm har én positur.** Arket kan vise armen bøyd forfra (krukka, morteren) og hengende bakfra; motoren prøvde å forene dem, og armen ble bånd og skiver. Armen bygges nå hengende etter bildet bakfra (`REST`), det den holdt blir en egen gjenstand, og brystet bak fylles med bildet bakfra.
+- **Det verktøyet dekket, males bort i alle bilder og for alle deler.** Hammeren og øksa lå igjen malt på forkleet, låret og hånda, og øksehodet ble en bit av beinet; nå tar alle delene arket uten verktøyet, og kanten av beinet hopper ikke.
+- **Sidearket viser den sida figuren snur mot oss.** Flest hudrader valgte feil arm hos smeden, og den andre armen gikk fram som en hale.
+- **Innmaling henter farge bare fra figuren**, ellers trekkes fyllet utenfor omrisset (verktøyets farge) inn.

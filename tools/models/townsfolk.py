@@ -46,6 +46,15 @@ FOLK = {
 }
 # Det figurene holder i hånda, som blir egne gjenstander (ikke en del av
 # kroppen): `folk_check` regner det ikke som hull ved den hånda.
+# Armer arket viser bøyd forfra (de holder noe foran seg) men hengende
+# bakfra: de bygges hengende etter bildet bakfra, og det de holder blir en
+# egen gjenstand (`folk_sheet.measure_posed`). To positurer i én arm ble
+# bånd og skiver (eieren 15. oktober).
+OCC_DIFF, OCC_OVER, OCC_IN, OCC_FEATHER = 90, 0.05, 0.08, 6  # det som skiller seg så mye fra bildet bakfra (sum over rgb) dekkes, høyst så langt over midten og forbi det armen dekket, og innover så langt forbi (andel av høyden), tonet over så mange piksler
+REST = {
+    "maid": {"R": "krukka"},
+    "apothecary": {"R": "morteren"},
+}
 TOOLS = {
     "gorvek": {"R": "øksa"},
     "farmer": {"L": "høygaffelen"},
@@ -62,7 +71,8 @@ ISSE = 8  # kuppelen over hodet tar fargen så mange piksler innenfor issen på 
 RELIEF_W = 0.3  # nesa og munnen er så brede (del av hodets halve bredde)
 TAPER = 0.35  # hodet: så mye smalere framme ved ansiktet enn ved ørene
 ARMLESS_FROM = 0.03  # armen males bort fra siden fra så langt under skulderen (andel av høyden)
-ARMLESS_TIP, ARMLESS_HAND, ARMLESS_RADIUS = 0.03, 0.06, 12  # og så langt under enden av armen (fingrene), innmalt med denne radiusen (px)
+TOOL_GROW, TOOL_COLOR = 0.05, 70  # verktøyet vokser over piksler i sin farge (sum over rgb) så langt utenfor (andel av høyden)
+ARMLESS_TIP, ARMLESS_HAND, ARMLESS_RADIUS, ARMLESS_WIDE, TOOL_PAD = 0.03, 0.06, 12, 1.4, 0.015  # hullet går så langt under enden av armen (fingrene), med hele hånda i de nederste radene, innmalt med denne radiusen (px), og armen så mange ganger så bred
 SQUARE = 2.4  # superellipse: 2 er ellipse, høyere er mer kantet (klær)
 
 
@@ -192,9 +202,10 @@ def ring_mesh(name, rows, m, mat, n=24, square=SQUARE, cap_top=True, cap_bottom=
 
 
 def figure(name):
-    m = folk_sheet.measure(name, FOLK[name], tuple(TOOLS.get(name, {})))
+    m = folk_sheet.measure_posed(name, FOLK[name], tuple(TOOLS.get(name, {})), tuple(REST.get(name, {})))
     path = os.path.join(folk_sheet.REF, f"{name}_body.jpeg")
-    mat = blended_sheet_material(f"{name}_sheet", filled_sheet(path))
+    sheet = toolless(filled_sheet(path), m)
+    mat = blended_sheet_material(f"{name}_sheet", sheet)
     fit = folk_sheet.head_fit(m)
     parts = dict(m["parts"])
     if fit:
@@ -292,64 +303,184 @@ def figure(name):
             # Fra siden ligger armen over kroppen på arket; kroppen får et
             # sideark der armen er malt bort (det ble en arm til, malt på
             # kroppen bak armen, sett skrått og fra siden).
-            ob.data.materials[0] = blended_sheet_material(f"{name}_body_sheet", armless_side(filled_sheet(path), m))
+            ob.data.materials[0] = blended_sheet_material(f"{name}_body_sheet", unoccluded(armless_side(sheet, m), m))
         project_part(ob, m, part)
     return m, obs
+
+
+def unoccluded(path, m, pad=8):
+    """Arket der en arm bygd etter bildet bakfra (`REST`) dekket kroppen
+    forfra (underarmen og det den holder, `occluded`), fylt med bildet
+    bakfra speilet inn (samme kjole, uten krukka): ellers lå krukka og
+    hånda malt på brystet. Speilet fra den andre halvdelen forfra ble det en
+    krukke til, for krukka står over midten."""
+    occ = m.get("occluded")
+    if not occ:
+        return path
+    import numpy as np
+    from PIL import Image
+    from scipy import ndimage
+    out = path.rsplit(".", 1)[0] + "_open.png"
+    im = np.asarray(Image.open(path).convert("RGB")).copy()
+    cx, cb, H = m["views"]["front"], m["views"]["back"], m["H"]
+    hole = np.zeros(im.shape[:2], bool)
+    for y, a, b in occ:
+        y0 = int(y) - folk_sheet.STEP // 2
+        hole[max(0, y0): y0 + folk_sheet.STEP + 1, max(0, int(cx + a) - pad): int(cx + b) + pad + 1] = True
+    xs_all = np.arange(im.shape[1])
+    src = np.clip((cb - (xs_all - cx)).astype(int), 0, im.shape[1] - 1)
+    # Hullet vokser over det som skiller seg fra bildet bakfra og henger
+    # sammen med det (krukka stikker inn over midten av brystet), i de samme
+    # radene og ikke langt over midten (fletta).
+    rows_ = [int(y) for y, a, b in occ]
+    y0, y1 = max(0, min(rows_) - folk_sheet.STEP), max(rows_) + folk_sheet.STEP
+    f = im.astype(float)
+    diff = np.abs(f - f[:, src]).sum(2) > OCC_DIFF
+    # Bare nær det armen og tingen dekket: hos apotekeren vokste det ellers
+    # over hele kjortelen, som er annerledes bakfra (reimene og veskene).
+    left = min(a for _, a, _ in occ) < 0
+    # Innover (mot midten) kan tingen stikke lenger enn det motoren fant
+    # (krukka over brystet), utover ikke.
+    lo_x = cx + min(a for _, a, _ in occ) - (OCC_OVER if left else OCC_IN) * H
+    hi_x = cx + max(b for _, _, b in occ) + (OCC_IN if left else OCC_OVER) * H
+    near = (xs_all < min(hi_x, cx + OCC_OVER * H)) & (xs_all > lo_x) if left else (xs_all > max(lo_x, cx - OCC_OVER * H)) & (xs_all < hi_x)
+    diff[:y0] = False
+    diff[y1:] = False
+    diff &= near[None, :]
+    lab, _ = ndimage.label(ndimage.binary_closing(diff | hole, iterations=2))
+    hit = np.unique(lab[hole])
+    hole |= np.isin(lab, hit[hit > 0]) & near[None, :]
+    hole = ndimage.binary_dilation(hole, iterations=3)
+    # Bildet bakfra ligger i en annen skygge: i hver rad legges forskjellen
+    # mellom bildet forfra og bakfra ved kantene av hullet på, jevnt fra
+    # den ene kanten til den andre og glattet over radene (én felles
+    # lysstyrke ga et mørkt felt over brystet).
+    fill = f[:, src].copy()
+    off = np.zeros_like(f)
+    for y in np.nonzero(hole.any(1))[0]:
+        xs = np.nonzero(hole[y])[0]
+        for seg in np.split(xs, np.nonzero(np.diff(xs) > 1)[0] + 1):
+            a, b = seg[0], seg[-1]
+            la, lb = max(0, a - 4), min(im.shape[1], b + 5)
+            dl = (f[y, la:a] - fill[y, la:a]).mean(0) if a > la else None
+            dr = (f[y, b + 1:lb] - fill[y, b + 1:lb]).mean(0) if lb > b + 1 else None
+            # Bare der forfra og bakfra viser samme stoff (ved fletta er
+            # forskjellen ikke lys, men en annen ting).
+            dl = dl if dl is not None and np.abs(dl).sum() < OCC_DIFF else None
+            dr = dr if dr is not None and np.abs(dr).sum() < OCC_DIFF else None
+            dl = dl if dl is not None else (dr if dr is not None else np.zeros(3))
+            dr = dr if dr is not None else dl
+            t = np.linspace(0, 1, b - a + 1)[:, None]
+            off[y, a:b + 1] = dl * (1 - t) + dr * t
+    for c in range(3):
+        off[..., c] = ndimage.gaussian_filter1d(off[..., c], OCC_FEATHER, axis=0)
+    im = np.where(hole[..., None], np.clip(fill + off, 0, 255), f).astype(np.uint8)
+    Image.fromarray(im).save(out)
+    return out
+
+
+def toolless(path, m, pad=6):
+    """Arket uten verktøyet i hånda (`TOOLS`; smedens hammer, Gorveks øks),
+    som blir en egen gjenstand: fra siden (`tool_side`) og forfra og bakfra
+    (`tool_front`, speilet bakfra), malt inn fra kantene (OpenCV). Alle
+    delene tar dette arket (øksa lå ellers malt på låret og hånda)."""
+    if not m.get("tool_side") and not m.get("tool_front"):
+        return path
+    import cv2
+    import numpy as np
+    out = path.rsplit(".", 1)[0] + "_toolless.png"
+    im = cv2.imread(path)
+    sx0, H = m["views"]["side"], m["H"]
+    hole = np.zeros(im.shape[:2], bool)
+
+    def span(y, a, b):
+        y0 = int(y) - folk_sheet.STEP // 2
+        hole[max(0, y0): y0 + folk_sheet.STEP + 1, max(0, int(sx0 + a) - pad): int(sx0 + b) + pad + 1] = True
+
+    for y, a, b in m.get("tool_side", []):
+        span(y, a, b)
+    # Og verktøyet forfra og bakfra (speilet), med margin: hammerhodet lå
+    # malt på forkleet, og øksa på låret bakfra.
+    cx, cb = m["views"]["front"], m["views"]["back"]
+    grow = int(TOOL_PAD * H)
+    for y, a, b in m.get("tool_front", []):
+        y0 = int(y) - folk_sheet.STEP // 2
+        rows = slice(max(0, y0 - grow), y0 + folk_sheet.STEP + 1 + grow)
+        hole[rows, max(0, int(cx + a) - grow): int(cx + b) + grow + 1] = True
+        hole[rows, max(0, int(cb - b) - grow): int(cb - a) + grow + 1] = True
+    # Det av verktøyet som ligger over låret, har verktøyets farge og henger
+    # sammen med det som stakk ut (øksehodet foran Gorveks lår).
+    from scipy import ndimage
+    if hole.any():
+        px_ = im.astype(float)
+        fg0_ = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
+        tool_col = np.median(px_[hole & fg0_], 0) if (hole & fg0_).any() else np.median(px_[hole], 0)
+        ys_, xs_ = np.nonzero(hole)
+        g = int(TOOL_GROW * H)
+        box = np.zeros_like(hole)
+        box[max(0, ys_.min() - g): ys_.max() + g, max(0, xs_.min() - g): xs_.max() + g] = True
+        fg0 = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
+        like = (np.abs(px_ - tool_col).sum(2) < TOOL_COLOR) & box & fg0
+        lab, _ = ndimage.label(like | hole)
+        hit = np.unique(lab[hole])
+        hole |= np.isin(lab, hit[hit > 0]) & box
+    hole = cv2.dilate(hole.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+    # Fargen hentes bare fra figuren: utenfor omrisset er fyllet fra kanten
+    # (rundt øksa grått), og innmalingen ble grå.
+    fg = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
+    near = ndimage.binary_dilation(hole, iterations=int(TOOL_GROW * H))
+    mask = hole | (near & ~fg)
+    cv2.imwrite(out, cv2.inpaint(im, mask.astype(np.uint8) * 255, ARMLESS_RADIUS, cv2.INPAINT_TELEA))
+    return out
 
 
 def armless_side(path, m, pad=6):
     """Arket med armen fra siden malt bort, så kroppen ikke får et bilde av
     armen bak den ekte armen (eieren så en arm til, skrått og fra siden).
-    Hullet er den bare armen og hånda fra siden, slik motoren fant dem
-    etter hudfargen (`bare_side`; en maske etter fargen alene tok med
-    forkleet). Ermet har kjolens farge og står. Hver rad fylles med kjolen speilet fra
-    baksida av hullet, så stoffet beholder strøkene; det som ikke har noe å
-    speile, males inn fra kantene (OpenCV)."""
+    Hullet er armen nærmest fra albuen til fingertuppene der motoren
+    plasserte den, med margin, og den bare huden der arket viser den
+    (`bare_side`).
+    Det males inn fra kantene (OpenCV); speilet fra baksida ble det tagget,
+    og bare huden alene lot hånda stå igjen forskjøvet."""
     import cv2
     import numpy as np
     out = path.rsplit(".", 1)[0] + "_armless.png"
     im = cv2.imread(path)
-    sx0, H, facing = m["views"]["side"], m["H"], m["facing"]
-    top = m["y"]["shoulder"] + int(ARMLESS_FROM * H)
-    x0, x1 = int(sx0 - 0.3 * H), int(sx0 + 0.3 * H)
-    # Den bare armen der motoren fant den fra siden (`bare_side`, rad for
-    # rad): radene imellom fylles, og hånda forlenges til fingertuppene.
+    sx0, H = m["views"]["side"], m["H"]
     hole = np.zeros(im.shape[:2], bool)
-    found = [(y, (a + b) / 2, (b - a) / 2) for y, a, b in m.get("bare_side", [])]
-    for chain in folk_sheet.chains(sorted(found), 1, 2):
-        ys = np.array([q[0] for q in chain], float)
-        ca = np.array([q[1] - q[2] for q in chain], float)
-        cb = np.array([q[1] + q[2] for q in chain], float)
-        # Nederst er hånda så bred som den er bredest der (fingrene ble
-        # funnet som smale biter og sto igjen på skjørtet).
-        low = ys >= ys[-1] - ARMLESS_HAND * H
-        la, lb = ca[low].min(), cb[low].max()
-        for y in range(int(ys[0]), int(ys[-1] + ARMLESS_TIP * H) + 1):
-            a_, b_ = np.interp(y, ys, ca), np.interp(y, ys, cb)
-            if y >= ys[-1] - ARMLESS_HAND * H:
-                a_, b_ = min(a_, la), max(b_, lb)
-            hole[y, int(sx0 + a_) - pad: int(sx0 + b_) + pad + 1] = True
-    hole[:, :x0] = False
-    hole[:, x1:] = False
-    rest = hole.copy()
-    # Bare stoff innenfor omrisset speiles (bakgrunnen ved siden av er fylt
-    # med kantfargene).
-    inside = folk_sheet.mask(os.path.join(folk_sheet.REF, f"{m['name']}_body.jpeg"))
-    back = -facing  # baksida av figuren fra siden
-    for y in np.nonzero(hole.any(1))[0]:
-        xs = np.nonzero(hole[y])[0]
-        # Bitene av hullet i raden, hver speilet fra baksida.
-        for seg in np.split(xs, np.nonzero(np.diff(xs) > 1)[0] + 1):
-            a, b = seg[0], seg[-1]
-            n_ = b - a + 1
-            src = (a - 1 - np.arange(n_)) if back < 0 else (b + 1 + np.arange(n_))
-            dst = np.arange(a, b + 1) if back < 0 else np.arange(b, a - 1, -1)
-            ok = (src >= 0) & (src < im.shape[1])
-            ok[ok] &= ~hole[y, src[ok]] & inside[y, src[ok]]
-            im[y, dst[ok]] = im[y, src[ok]]
-            rest[y, dst[ok]] = False
-    im = cv2.inpaint(im, rest.astype(np.uint8) * 255, ARMLESS_RADIUS, cv2.INPAINT_TELEA)
-    cv2.imwrite(out, im)
+
+    def span(y, a, b, grow=0):
+        y0 = int(y) - folk_sheet.STEP // 2
+        hole[max(0, y0): y0 + folk_sheet.STEP + 1, max(0, int(sx0 + a) - pad - grow): int(sx0 + b) + pad + grow + 1] = True
+
+    bare = m.get("bare_side", [])
+    if bare:
+        # Armen nærmest: den motoren fant hud på fra siden.
+        found = [(y, (a + b) / 2, (b - a) / 2) for y, a, b in bare]
+        for chain in folk_sheet.chains(sorted(found), 1, 2):
+            ys = np.array([q[0] for q in chain], float)
+            ca = np.array([q[1] - q[2] for q in chain], float)
+            cb = np.array([q[1] + q[2] for q in chain], float)
+            low = ys >= ys[-1] - ARMLESS_HAND * H
+            la, lb = ca[low].min(), cb[low].max()
+            for y in range(int(ys[0]), int(ys[-1] + ARMLESS_TIP * H) + 1, 2):
+                a_, b_ = np.interp(y, ys, ca), np.interp(y, ys, cb)
+                if y >= ys[-1] - ARMLESS_HAND * H:
+                    a_, b_ = min(a_, la), max(b_, lb)
+                span(y, a_, b_)
+        near = min(("R", "L"), key=lambda s: min(abs(r[3] - found[0][1]) for r in m["parts"].get(f"arm.{s}", [(0, 0, 0, 1e9, 0)])))
+        arm = m["parts"].get(f"arm.{near}", [])
+        elbow = m["y"].get(f"elbow.{near}", 0)
+        # Og armen der modellen har den, med margin (hånda står ellers igjen
+        # ved siden av den bare huden).
+        for r in arm:
+            if r[0] >= elbow:
+                w = max(r[2], r[4]) * ARMLESS_WIDE
+                span(r[0], r[3] - w, r[3] + w)
+    hole[:, : int(sx0 - 0.3 * H)] = False
+    hole[:, int(sx0 + 0.3 * H):] = False
+    hole = cv2.dilate(hole.astype(np.uint8), np.ones((5, 5), np.uint8))
+    cv2.imwrite(out, cv2.inpaint(im, hole * 255, ARMLESS_RADIUS, cv2.INPAINT_TELEA))
     return out
 
 
@@ -432,10 +563,14 @@ def project_part(ob, m, part):
         # til siden ble utstrukne striper eller lapper.
         return False
 
+    # En arm bygd etter bildet bakfra tar bare det bildet (forfra viser
+    # arket den bøyd og med krukka).
+    rest = arm and part[-1] in m.get("rest", ())
+
     def front_uv(p, n, inset):
         cx, cy = mid[round(p.z, 4)]
         y = cy + (p.y - cy) * (1 - inset)
-        back = n.x < -0.05 or (abs(n.x) <= 0.05 and p.x < cx)
+        back = rest or n.x < -0.05 or (abs(n.x) <= 0.05 and p.x < cx)
         X = v["back"] - y / px if back else v["front"] + y / px
         return X
 
@@ -445,7 +580,7 @@ def project_part(ob, m, part):
         share = ay / (ax + ay + 1e-6)
         # Hele flaten tar samme bilde (blandes hjørnene, blir flaten et
         # smurt sagtakk).
-        hidden = covered(mw @ poly.center)
+        hidden = rest or covered(mw @ poly.center)
         # En flate som vender rett ned eller opp (under et vidt erme, et
         # lokk) tar fargen fra kanten den henger på: med bildet i sin egen
         # høyde fikk skriveren hudfargede tallerkener under ermene.

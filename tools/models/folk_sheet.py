@@ -35,6 +35,7 @@ STEP = 6  # rader mellom tverrsnittene (px)
 ARM_WIDE = 1.6  # en rad gjennom armen er høyst så mange ganger så bred som armen vanligvis
 SLEEVE = 0.7  # smalner armen brått til mindre enn dette av raden over, slutter ermet og hånda begynner
 LEG_WIDE = 1.8  # er biten fra siden så mange ganger bredere enn beinet forfra, er det kappa rundt
+LEG_WIN, LEG_JUMP = 11, 0.02  # kanten av beinet forfra: medianen over så mange rader, og så langt fra den (andel av høyden) er noe som henger inntil
 SHIN_LO, SHIN_HI = 0.6, 1.25  # under skjørtet: beinet mellom så mange ganger leggen lenger ned
 TOUCH = 0.012  # en ting ligger inntil armen når den er så nær (andel av høyden; bøtta henger litt fra hånda)
 HANGING = 0.3  # det som henger under hånda er høyst så høyt (andel av høyden)
@@ -54,6 +55,9 @@ CHIN = 0.1  # haka ligger minst så langt under hodetoppen (del av høyden)
 HEAD_UPPER = 0.7  # hodet passes mot så stor del ovenfra av veien fra issen til halsen
 RECEDE = 0.025  # under haka trekker profilen seg så mye inn (del av høyden) mot halsen
 SKIN_TOL = 70  # en piksel er hud når den er så nær fargen på kinnet (sum over rgb)
+FINGER = 0.3  # rader nederst på hånda smalere enn så mye av hånda er fingertupper som peker ut
+TOOL_REACH, TOOL_DOWN, TOOL_W = 0.1, 0.3, 0.02  # verktøyet forfra: så langt til siden for hånda og så langt ned, og der det er minst så bredt teller det nedover fra siden (andel av høyden)
+TOOL_NEAR, TOOL_ABOVE, TOOL_BELOW, TOOL_GAP = 0.1, 0.03, 0.15, 0.015  # verktøyet: fra siden så langt til hver side av hånda og så langt ned, fra så langt under den; forfra fra så langt over den (andel av høyden)
 SKIN_TONE, SKIN_SAT, SKIN_DARK, SKIN_LIGHT = 0.06, 0.035, 0.6, 1.5  # hud fra siden: fargetonen (r og g av summen), metningen og lysstyrken mot hånda forfra
 SKIN_W, SKIN_OUT, SKIN_ROWS = 0.01, 0.025, 6  # armen fra siden etter hudfargen: minste bredde og avvik fra naboene (andel av høyden), rader
 SKIN_GAP = 6
@@ -124,7 +128,26 @@ def runs(row, x0, x1, least=5):
     return [(int(a + x0), int(b + x0)) for a, b in zip(s, e) if b - a >= least]
 
 
-def measure(name, height, tools=()):
+def measure_posed(name, height, tools=(), rest=()):
+    """`measure`, med armene i `rest` bygd hengende etter bildet bakfra.
+    Det armen og det den holder dekket forfra (`occluded`: rader med fra og
+    til mot midten forfra), males over på kroppen (`townsfolk.unoccluded`)."""
+    m = measure(name, height, tools)
+    if not rest:
+        return m
+    occ = []
+    for s in rest:
+        for k, rows in m["parts"].items():
+            if k == f"arm.{s}":
+                occ += [(r[0], r[1] - r[2], r[1] + r[2]) for r in rows if r[0] >= m["y"][f"elbow.{s}"]]
+            elif k.startswith(f"held.{s}"):
+                occ += [(r[0], r[1] - r[2], r[1] + r[2]) for r in rows]
+    m2 = measure(name, height, tools, rest, (min(r[0] for r in occ), max(r[0] for r in occ)) if occ else None)
+    m2["occluded"] = sorted(occ)
+    return m2
+
+
+def measure(name, height, tools=(), rest=(), occluded_rows=None):
     path = os.path.join(REF, f"{name}_body.jpeg")
     fg = mask(path)
     rgb = np.asarray(Image.open(path).convert("RGB")).astype(float)
@@ -157,6 +180,8 @@ def measure(name, height, tools=()):
 
     def back(y):
         return runs(row(y), B[0], B[1])
+
+    back_view = back  # `back` brukes til noe annet lenger ned
 
     def central(rs, c):
         # Biten som rommer midtlinja (eller er nærmest den).
@@ -194,6 +219,26 @@ def measure(name, height, tools=()):
                 a, b = min(r[0] for r in pick), max(r[1] for r in pick)
                 free[side_name][y] = (a, b)
     arms_raw = {k: dict(v) for k, v in free.items()}
+
+    def back_runs(y):
+        # Bildet bakfra speilet inn i bildet forfra (figurens høyre arm
+        # står til venstre i begge).
+        return sorted((int(cxF - (b - cxB)), int(cxF - (a - cxB))) for a, b in back_view(y))
+
+    # En arm som arket viser bøyd forfra (den holder krukka eller morteren)
+    # men hengende bakfra, bygges hengende etter bildet bakfra (`rest`):
+    # to positurer i én arm ble bånd og skiver (eieren 15. oktober).
+    for s in rest:
+        free[s] = {}
+        for y in range(shoulder, ground - int(0.2 * H)):
+            rs = back_runs(y)
+            inner = [r for r in rs if abs((r[0] + r[1]) / 2 - cxF) < ARM_OUT * H]
+            if not inner:
+                continue
+            c = (min(r[0] for r in inner), max(r[1] for r in inner))
+            pick = [r for r in rs if r[1] <= c[0]] if s == "R" else [r for r in rs if r[0] >= c[1]]
+            if pick:
+                free[s][y] = (min(r[0] for r in pick), max(r[1] for r in pick))
 
     def is_arm(r, y):
         return any(y in arms_raw[k] and r[0] < arms_raw[k][y][1] and r[1] > arms_raw[k][y][0] for k in ("R", "L"))
@@ -401,6 +446,39 @@ def measure(name, height, tools=()):
         if "L" in sides:
             e1 = min(e1, mc + mw * 1.08)
         rows[i] = (r[0], (e0 + e1) / 2, (e1 - e0) / 2, r[3], min(r[4], md * 1.12))
+    # Der en arm bygd etter bildet bakfra (`rest`) lå bøyd over kroppen
+    # forfra og fra siden (underarmen og krukka), følger kroppen linja
+    # mellom radene over og under: den ble ellers en kile fram og bredere
+    # på den sida (tjenestejenta).
+    if rest and occluded_rows:
+        rows = parts["body"]
+        oy0, oy1 = occluded_rows
+        out_ = [i for i, r in enumerate(rows) if oy0 <= r[0] <= oy1]
+        if out_:
+            ia, ib = max(0, out_[0] - 1), min(len(rows) - 1, out_[-1] + 1)
+            ra_, rb_ = rows[ia], rows[ib]
+            for i in out_:
+                r = rows[i]
+                t = (r[0] - ra_[0]) / max(1, rb_[0] - ra_[0])
+                lerp = lambda u, v: u + (v - u) * t  # noqa: E731
+                # Forfra: kanten på armens side.
+                e_out = []
+                for s_ in rest:
+                    sgn = -1 if s_ == "R" else 1
+                    e_line = lerp(ra_[1] + sgn * ra_[2], rb_[1] + sgn * rb_[2])
+                    e_out.append((sgn, e_line))
+                lo_, hi_ = r[1] - r[2], r[1] + r[2]
+                for sgn, e_line in e_out:
+                    if sgn < 0:
+                        lo_ = max(lo_, e_line)
+                    else:
+                        hi_ = min(hi_, e_line)
+                # Fra siden: forkanten.
+                f_line = lerp(ra_[3] + facing * ra_[4], rb_[3] + facing * rb_[4])
+                b_ = r[3] - facing * r[4]
+                f_ = r[3] + facing * r[4]
+                f_ = min(f_, f_line) if facing > 0 else max(f_, f_line)
+                rows[i] = (r[0], (lo_ + hi_) / 2, (hi_ - lo_) / 2, (b_ + f_) / 2, abs(f_ - b_) / 2)
     # Det som henger under hånda (vaskekonas bøtte) ligger inntil skjørtet
     # forfra, og kroppen ble så bred som bøtta. Kanten forfra springer brått
     # ut og brått inn igjen der: radene imellom legges på linja mellom
@@ -464,6 +542,17 @@ def measure(name, height, tools=()):
         hi = (ra[3] + ra[4]) + ((rb[3] + rb[4]) - (ra[3] + ra[4])) * t + slack
         return lo, hi
 
+    # Over linja (ved skuldrene) tar sidearket med fletta eller håret som
+    # henger bak: ryggen står der ikke mer enn `SHELF` bak ryggen under (det
+    # ble en hylle over ryggen på tjenestejenta, og fletta blir sin egen del).
+    rb_back = ra[3] - facing * ra[4]
+    for i, r in enumerate(rows):
+        if shoulder - int(0.06 * H) <= r[0] < ra[0]:
+            b_ = r[3] - facing * r[4]
+            f_ = r[3] + facing * r[4]
+            if (rb_back - b_) * facing > SHELF * H:
+                b_ = rb_back - facing * SHELF * H
+                rows[i] = (r[0], r[1], r[2], (b_ + f_) / 2, abs(f_ - b_) / 2)
     for side_ in (1, -1):
         edge = [rows[i][3] + side_ * rows[i][4] for i in span]
         line = [limits(rows[i])[1 if side_ > 0 else 0] for i in span]
@@ -538,12 +627,13 @@ def measure(name, height, tools=()):
                 keep[k] = out[k]
         return keep
 
-    # Sidearket viser bare armen nærmest; den med mest bar hud der. Den
-    # andre armen fant kurven og fisken og ble stripete bakfra.
-    probe = {s: skin_side(s, [(y, 0.0) for y in range(elbow[s], hand_end[s] + 1, STEP)]) for s in ("R", "L")}
-    near_arm = max(probe, key=lambda s: len(probe[s]))
-    bare.clear()
-    skins.clear()
+    # Sidearket viser bare armen nærmest (den andre armen fant kurven og
+    # fisken og ble stripete bakfra).
+    # Sidearket viser den sida figuren snur mot oss: ser den mot høyre i
+    # bildet, er det høyre arm (smedens venstre arm fant hånda med hammeren
+    # og gikk fram som en hale; flest hudrader valgte feil arm).
+    near_arm = "R" if facing > 0 else "L"
+    tool_hand = {}  # nederste rad med hud på armen fra siden: (y, midte)
 
     for s in ("R", "L"):
         rows = []
@@ -581,9 +671,10 @@ def measure(name, height, tools=()):
         # Armen holder seg innenfor omrisset forfra: toppen stakk ellers
         # opp over skulderlinja på arket og fikk bakgrunnen som farge.
         clipped = []
+        view_runs = back_runs if s in rest else front
         for y, cy, hw in rows:
             X = cxF + cy
-            run = next((r for r in front(int(y)) if r[0] <= X < r[1]), None)
+            run = next((r for r in view_runs(int(y)) if r[0] <= X < r[1]), None)
             if run is None:
                 continue
             lo, hi = max(X - hw, run[0] + 1), min(X + hw, run[1] - 1)
@@ -597,7 +688,8 @@ def measure(name, height, tools=()):
         # albuen.
         def arm_mid(y, hw):
             mid = body_mid(y)
-            if y < elbow[s]:
+            if y < elbow[s] or s in rest:
+                # (en hengende arm står ikke fram der sidearket viser krukka)
                 return mid
             b = interp(parts["body"], y)
             run = central(side(int(y)), sx0 + mid)
@@ -619,10 +711,12 @@ def measure(name, height, tools=()):
         # etter hudfargen på hånda forfra: armen sto ellers et annet sted enn
         # på arket, og bildet av armen ble malt på kjolen bak den (en arm
         # til, sett skrått og fra siden).
-        skin_at = skin_side(s, [(y, hw) for y, cy, hw in rows]) if s == near_arm else {}
+        skin_at = skin_side(s, [(y, hw) for y, cy, hw in rows]) if s == near_arm and s not in rest else {}
         if len(skin_at) >= SKIN_ROWS:
             bare_side[s] = [q for q in bare if q[0] in skin_at]
         bare.clear()
+        if skin_at:
+            tool_hand[s] = sorted(skin_at.items())[-1]
         if len(skin_at) >= SKIN_ROWS:
             ys_ = np.array([r[0] for r in rows], float)
             known = sorted(skin_at.items())
@@ -664,10 +758,23 @@ def measure(name, height, tools=()):
             r = float(np.sqrt(max(0.15, 1.0 - t * t)))
             # En hånd som holder noe (krusset til vertshusverten) er bredere
             # enn håndleddet; den gjøres ikke flat.
-            depth = HAND_DEPTH if hw <= 1.3 * wrist_w else 1.0
+            # (men en hånd med et verktøy er en neve, ikke en plate)
+            depth = HAND_DEPTH if hw <= 1.3 * wrist_w or s in tools else 1.0
             return hw * r, hw * depth * r
 
-        parts[f"arm.{s}"] = [(y, cy, *(lambda a, b: (a, float(mx), b))(*hand(y, hw))) for (y, cy, hw), mx in zip(rows, mids)]
+        arm_rows = [(y, cy, *(lambda a, b: (a, float(mx), b))(*hand(y, hw))) for (y, cy, hw), mx in zip(rows, mids)]
+        # Fingertupper som peker ut til siden (smedens åpne hånd) er ikke en
+        # hale ut av hånda: under håndleddet står hånda høyst så langt fra
+        # midten av håndleddet som den er bred, og de tynne radene nederst
+        # tas bort.
+        at_wrist = [r for r in arm_rows if abs(r[0] - wrist[s]) < 0.02 * H]
+        if at_wrist:
+            wc = float(np.median([r[1] for r in at_wrist]))
+            ww = max(r[2] for r in arm_rows if r[0] >= wrist[s] - 0.02 * H)
+            arm_rows = [(y, min(max(cy, wc - ww), wc + ww), *r) if y > wrist[s] else (y, cy, *r) for y, cy, *r in arm_rows]
+            while len(arm_rows) > 3 and arm_rows[-1][0] > wrist[s] and arm_rows[-1][2] < FINGER * ww:
+                arm_rows.pop()
+        parts[f"arm.{s}"] = arm_rows
     # Beina: fra like over skrittet til sålen; tærne fra sida.
     for s in ("R", "L"):
         rows = []
@@ -778,14 +885,77 @@ def measure(name, height, tools=()):
                         sd = min(sd, b[3])
                         x = min(max(x, b[2] - b[3] + sd), b[2] + b[3] - sd)
                 rows[i] = (*rows[i][:3], float(x), sd)
+        # Kanten av beinet forfra hopper ikke: det som henger inntil låret
+        # (øksehodet til Gorvek) ble ellers en del av beinet. En rad der
+        # kanten står mer enn `LEG_JUMP` fra medianen av naboene, legges på
+        # medianen.
+        if len(rows) > 6:
+            lo_e = np.array([r[1] - r[2] for r in rows], float)
+            hi_e = np.array([r[1] + r[2] for r in rows], float)
+            from scipy.ndimage import median_filter
+            lo_m = median_filter(lo_e, size=LEG_WIN, mode="nearest")
+            hi_m = median_filter(hi_e, size=LEG_WIN, mode="nearest")
+            lo_e = np.where(np.abs(lo_e - lo_m) > LEG_JUMP * H, lo_m, lo_e)
+            hi_e = np.where(np.abs(hi_e - hi_m) > LEG_JUMP * H, hi_m, hi_e)
+            rows = [(r[0], (a + b) / 2, (b - a) / 2, *r[3:]) for r, a, b in zip(rows, lo_e, hi_e)]
+            # Og fra siden (øksehodet foran låret).
+            if all(r[3] is not None for r in rows):
+                lo_e = np.array([r[3] - r[4] for r in rows], float)
+                hi_e = np.array([r[3] + r[4] for r in rows], float)
+                lo_m = median_filter(lo_e, size=LEG_WIN, mode="nearest")
+                hi_m = median_filter(hi_e, size=LEG_WIN, mode="nearest")
+                lo_e = np.where(np.abs(lo_e - lo_m) > LEG_JUMP * H, lo_m, lo_e)
+                hi_e = np.where(np.abs(hi_e - hi_m) > LEG_JUMP * H, hi_m, hi_e)
+                rows = [(*r[:3], (a + b) / 2, (b - a) / 2) for r, a, b in zip(rows, lo_e, hi_e)]
         parts[f"leg.{s}"] = rows
     parts.update(held(parts, front, cxF, H, shoulder, min(hem, ground - int(HELD_LOW * H))))
     parts.update(carried(parts, side, sx0, facing, H, shoulder, min(hem, ground - int(0.2 * H))))
     # Det en hånd med et verktøy holder (smedens hammer) blir en egen
     # gjenstand, ikke en del av figuren (den ble en skål i hånda).
-    for s in tools:
+    tool_side, tool_front = [], []  # verktøyet fra siden og forfra: (y, fra, til) mot midten i den visningen
+    for s in tuple(tools) + tuple(rest):
         for k in [k for k in parts if k.startswith(f"held.{s}")]:
+            if s in tools:
+                tool_side += [(r[0], r[3] - r[4], r[3] + r[4]) for r in parts[k]]
+                tool_front += [(r[0], r[1] - r[2], r[1] + r[2]) for r in parts[k]]
             parts.pop(k)
+    # Verktøyet forfra: det i omrisset under og rundt hånda med verktøyet
+    # som verken kroppen, armene eller beina dekker (øksa henger ned langs låret,
+    # og motoren fant den ikke som noe hånda bærer).
+    for s in tools:
+        arm = parts.get(f"arm.{s}")
+        if not arm:
+            continue
+        hx = cxF + arm[-1][1]
+        for y in range(int(hand_end[s] - TOOL_ABOVE * H), int(min(ground - 0.05 * H, hand_end[s] + TOOL_DOWN * H)), STEP):
+            cover = []
+            for k in [k for k in parts if k == "body" or k.startswith(("leg.", "arm."))]:
+                r = interp(parts[k], y)
+                if r:
+                    cover.append((cxF + r[0] - r[1], cxF + r[0] + r[1]))
+            for a, b in front(y):
+                segs = [(a, b)]
+                for c0, c1 in cover:
+                    segs = [q for p0, p1 in segs for q in ((p0, min(p1, c0)), (max(p0, c1), p1)) if q[1] - q[0] > 0]
+                for p0, p1 in segs:
+                    if abs((p0 + p1) / 2 - hx) < TOOL_REACH * H and p1 - p0 >= 3:
+                        tool_front.append((y, p0 - cxF, p1 - cxF))
+    # Verktøyet i hånda nærmest fra siden (smedens hammer) ligger over
+    # forkleet, så omrisset viser det ikke: en sirkel rundt hånda, fra litt
+    # over den og ned, males bort fra sidearket (`townsfolk.armless_side`);
+    # gjenstanden kommer der.
+    for s in tools:
+        arm = parts.get(f"arm.{s}")
+        if s != near_arm or not arm:
+            continue
+        # Der arket viser hånda fra siden (huden nederst på armen).
+        hy, hx = tool_hand.get(s, (arm[-1][0], arm[-1][3]))
+        # Verktøyet henger fra hånda: fra like under neven (den tar arket,
+        # og ble ellers uskarp) og `TOOL_BELOW` ned, `TOOL_NEAR` til hver side.
+        # Så langt ned som verktøyet går forfra (øksa henger til kneet).
+        low = max([r[0] for r in tool_front if r[2] - r[1] >= TOOL_W * H] + [hy + TOOL_BELOW * H])
+        for y in range(int(hy + TOOL_GAP * H), int(low), STEP):
+            tool_side.append((y, hx - TOOL_NEAR * H, hx + TOOL_NEAR * H))
     m = dict(
         name=name, height=height, px=px, top=top, ground=ground, H=H, skirt=skirt, facing=facing,
         views={"front": cxF, "back": cxB, "side": sx0, "ground": ground, "side_dir": facing},
@@ -793,6 +963,9 @@ def measure(name, height, tools=()):
         y=dict(shoulder=shoulder, crotch=crotch, hem=hem, hip=hip, knee=knee, ankle=ankle, **{f"elbow.{s}": elbow[s] for s in elbow}, **{f"wrist.{s}": wrist[s] for s in wrist}, **{f"hand_end.{s}": hand_end[s] for s in hand_end}),
         parts=parts,
         bare_side=bare_side.get(near_arm, []),
+        rest=list(rest),
+        tool_side=tool_side,
+        tool_front=tool_front,
         skin=[float(v) for v in np.mean(skins, 0)] if skins else None,
     )
     m["y"].update(model_joints(m))
@@ -963,7 +1136,7 @@ def carried(parts, side, sx0, facing, H, y0, y1):
                     # Foran kroppen og over hendene er det underarmen som
                     # holder noe (vakta): en skive på brystet ble en hylle.
                     continue
-                if not any(abs(p0 - c1) <= 4 or abs(p1 - c0) <= 4 for c0, c1 in torso):
+                if not any(abs(p0 - c1) <= TOUCH * H or abs(p1 - c0) <= TOUCH * H for c0, c1 in torso):
                     # Bak på kroppen ligger tingen inntil kroppen, ikke bare
                     # inntil hånda (øksehodet bak Gorveks legg svevde).
                     continue
