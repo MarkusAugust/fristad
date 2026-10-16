@@ -134,7 +134,9 @@ def room_envelope(rooms, lo, shape):
             d.polygon(pts, fill=1)
         mask = np.asarray(img, bool)  # (x, z)
         y0 = max(0, int((r["y"] - 0.5 - lo[1]) / VOXEL))
-        y1 = min(shape[1], int((r["y"] + r["h"] + 0.5 - lo[1]) / VOXEL) + 1)
+        # Opp til toppen av hvelvet eller kuppelen over (rommets h er vederlaget):
+        # en stråle som ender oppe i hvelvet i en stor sal etter 60 m, er ikke et hull.
+        y1 = min(shape[1], int((r["y"] + r["h"] + 4.6 - lo[1]) / VOXEL) + 1)
         inside[:, y0:y1, :] |= mask[:, None, :]
     return inside
 

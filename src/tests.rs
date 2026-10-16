@@ -804,6 +804,21 @@ fn crypt_open() -> Crypt {
     c
 }
 
+/// Gulvet under (x, z) nærmest høyden i punktet: hjørnene på veien kan stå
+/// langt fra hverandre (en lang gang med trapp), så høyden på en rett linje
+/// imellom er ikke gulvet.
+fn floor_near(c: &Crypt, p: Vec3) -> Vec3 {
+    let mut best: Option<f32> = None;
+    for off in [0.0f32, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0] {
+        if let Some(h) = c.floor_under(p + Vec3::Y * off) {
+            if best.is_none_or(|b| (h - p.y).abs() < (b - p.y).abs()) {
+                best = Some(h);
+            }
+        }
+    }
+    best.map_or(p, |h| p.with_y(h))
+}
+
 /// Punktet `d` meter langs en vei av hjørner.
 fn along(path: &[Vec3], mut d: f32) -> Vec3 {
     for w in path.windows(2) {
@@ -992,7 +1007,10 @@ fn fiendene_finner_fram_i_krypten() {
             let limit = len / speed.max(0.5) * 3.0 + 20.0;
             let (mut t, mut best, mut since) = (0.0f32, f32::MAX, 0.0f32);
             loop {
-                let player = along(&path, ahead);
+                // Hjørnene på veien er langt fra hverandre i en lang gang med
+                // trapp: høyden imellom er gulvet, ikke en rett linje.
+                let p0 = along(&path, ahead);
+                let player = floor_near(&c, p0);
                 mobs.update(1.0 / 30.0, player, true, &c);
                 t += 1.0 / 30.0;
                 let m = &mobs.mobs[0];
@@ -1256,7 +1274,9 @@ impl Bot {
             }
         }
         for _ in 0..12 {
-            if self.walk_to(game, physics, down, 1.0, "trappa ned") {
+            // Trappa ned tar deg videre alt 1,2 m fra merket: er boten i
+            // nivået under, er den kommet fram.
+            if self.walk_to(game, physics, down, 1.0, "trappa ned") || c.level_at(game.feet()) == Some(k + 1) {
                 self.note(format!("  trappa ned etter {:.0} s", self.t - t0));
                 return;
             }
@@ -1275,7 +1295,10 @@ impl Bot {
             let gate = c.gates.iter().enumerate().find(|(i, g)| g.level == k && g.key && !game.gate(*i).1);
             if let Some((i, g)) = gate {
                 let mut events = vec![];
-                game.fell_elite(&mut events);
+                if !game.fell_elite(&mut events) {
+                    // Uten fiender (den korte gjennomgangen) er eliten borte: nøkkelen i lomma.
+                    game.give_key();
+                }
                 if let Some(key) = game.loose_keys().first().copied() {
                     self.walk_to(game, physics, key, 0.4, "nøkkelen");
                 }
@@ -1285,6 +1308,22 @@ impl Bot {
                 }
                 game.use_exact(Use::Gate(i));
                 self.idle(game, physics, 3.0);
+                continue;
+            }
+            // Porten ut av arenaen er stengt så lenge bossen lever: slå den.
+            if let Some(boss) = game.boss_pos() {
+                self.note(format!("  går mot bossen ved {boss:?} etter {:.0} s", self.t - t0));
+                let t1 = self.t;
+                while let Some(at) = game.boss_pos() {
+                    if self.t - t1 > 180.0 {
+                        self.fail(format!("nivå {}: fikk ikke slått bossen på tre minutter", l.n));
+                    }
+                    if !self.brawl(game, physics) {
+                        self.walk_to(game, physics, at, 1.8, "bossen");
+                    }
+                }
+                self.note(format!("  bossen falt etter {:.0} s", self.t - t0));
+                self.idle(game, physics, 2.0);
                 continue;
             }
             self.fail(format!("nivå {}: ingen vei til trappa ned fra {feet:?}, og ingen spak eller port å åpne", l.n));

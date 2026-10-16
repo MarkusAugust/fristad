@@ -178,7 +178,7 @@ impl Session {
     fn marks(&mut self, dt: f32) -> Vec<Mark> {
         let mut out = vec![];
         for (i, m) in self.mobs.mobs.iter().enumerate() {
-            if !m.alive() || m.hit > 3.0 || m.kind.boss() {
+            if !m.alive() || m.hit > 3.0 || m.boss {
                 continue;
             }
             if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65 * m.scale()) {

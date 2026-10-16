@@ -95,14 +95,31 @@ impl Session {
             Use::Lever(n) => {
                 let Some(opens) = self.mech.pull_lever(&self.crypt, n) else { return };
                 events.push(self.sound_at("gate", self.target_pos(i), 1.0));
+                let mut waiting = false;
                 for sw in opens {
+                    // Holdes bryteren av flere spaker (broa over avgrunnen),
+                    // åpnes den først når alle er trukket.
+                    if !self.mech.levers_ready(&self.crypt, sw) {
+                        waiting = true;
+                        continue;
+                    }
                     self.open_switch(sw);
-                    // Gitteret som går opp, høres der det står.
+                    // Gitteret som går opp, og broa som senkes, høres der de står.
                     if let Some(g) = self.crypt.gates.iter().find(|g| g.switch == sw) {
                         events.push(self.sound_at("gate", g.pos + Vec3::Y * 1.5, 1.2));
                     }
+                    if let Some(w) = self.crypt.waters.iter().find(|w| w.switch == sw) {
+                        events.push(self.sound_at("gate", w.pos, 1.4));
+                        events.push(Event::Toast("Sluseratten går rundt. Et brøl gjennom rørene, og vannet begynner å synke.".into()));
+                        return;
+                    }
+                    if let Some(b) = self.crypt.bridges.iter().find(|b| b.switch == sw) {
+                        events.push(self.sound_at("gate", b.pos + Vec3::Y * b.hang, 1.4));
+                        events.push(Event::Toast("Spaken går ned. Kjettingene rasler, og broa over avgrunnen senkes med et brak.".into()));
+                        return;
+                    }
                 }
-                events.push(Event::Toast("Spaken går ned med et tungt klonk. Et sted heises et gitter.".into()));
+                events.push(Event::Toast(if waiting { "Spaken går ned med et tungt klonk. Kjettingene strammes, men noe holder dem fortsatt. En spak til et sted?" } else { "Spaken går ned med et tungt klonk. Et sted heises et gitter." }.into()));
             }
             Use::Secret(n) => {
                 if self.mech.secrets.get(n).is_none_or(|s| *s >= 0.0) {
@@ -312,8 +329,17 @@ impl Session {
     /// En fiende falt: bossen gir skatten og seieren, eliten nøkkelen og en
     /// komponent.
     pub(super) fn killed(&mut self, mob: usize, pos: Vec3, events: &mut Vec<Event>) {
-        let (kind, elite) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite)).unwrap_or((MobKind::Button, false));
-        if kind.boss() {
+        let (kind, elite, boss) = self.mobs.mobs.get(mob).map(|m| (m.kind, m.elite, m.boss)).unwrap_or((MobKind::Button, false, false));
+        if boss && !kind.boss() {
+            // Bossen i et tema (Modalen): porten ut av arenaen går opp, og
+            // den kommer ikke igjen. Den bærer det eliten i temaet bærer.
+            self.run.slain.insert(self.mobs.level);
+            let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
+            self.hero.carry(c, 1);
+            self.map.dirty = true;
+            events.push(self.sound_at("gate", pos, 1.2));
+            events.push(Event::Toast(format!("{} er beseiret! En {c} ligger igjen, og steinporten går opp.", kind.label())));
+        } else if kind.boss() {
             self.run.slain.insert(self.mobs.level);
             for c in craft::BOSS_LOOT {
                 self.hero.carry(c, 1);

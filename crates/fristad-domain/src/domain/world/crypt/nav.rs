@@ -249,7 +249,9 @@ impl Nav {
                 continue;
             }
             let h = self.height_in(i, c);
-            let dy = if h <= p.y + 0.6 { p.y - h } else { (h - p.y) * 3.0 };
+            // Litt over føttene teller som avstand (ikke som en fordel: på en
+            // trapp vant ellers trinnet tre trinn opp over det du står på).
+            let dy = if h <= p.y + 0.6 { (p.y - h).abs() } else { (h - p.y) * 3.0 };
             if dy > 3.0 {
                 continue;
             }
@@ -267,6 +269,12 @@ impl Nav {
     pub fn path(&self, from: Vec3, to: Vec3, open: &dyn Fn(&Poly) -> bool) -> Option<Vec<Vec3>> {
         let (a, start) = self.nearest(from, 1.5, open)?;
         let (b, goal) = self.nearest(to, 2.5, open)?;
+        // Står fienden på kanten av nettet (innerkanten av en vindeltrapp),
+        // flyttes startpunktet 3 cm inn i polygonen, ellers ligger det på
+        // linje med kantene, og trakten kan gi et hjørne bak den.
+        let c = self.polys[a as usize].center;
+        let d = (c - start).with_y(0.0);
+        let start = if d.length() > 1e-4 { start + d / d.length() * d.length().min(0.03) } else { start };
         let corridor = self.corridor(a, start, b, goal, open)?;
         Some(self.funnel(start, goal, &corridor))
     }

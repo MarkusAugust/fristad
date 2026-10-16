@@ -86,6 +86,10 @@ pub struct Session {
     pub(super) mech: Mechanisms,
     /// Kolliderne til fallemmene som holder deg til de faller.
     pub(super) trap_lids: Vec<Option<ColliderId>>,
+    /// Dekkene på broene over avgrunnene (flyttes når broa senkes).
+    pub(super) bridge_solids: Vec<ColliderId>,
+    /// Det som holder deg ute av vannet mens det står høyt.
+    pub(super) water_solids: Vec<ColliderId>,
     pub(super) run: Run,
     pub(super) hero: Hero,
     pub(super) loot_seed: u64,
@@ -116,7 +120,12 @@ impl Session {
         let mut targets = vec![];
         let mut by_collider = HashMap::new();
         for (i, t) in world.targets.iter().enumerate() {
-            let collider = physics.add_movable(t.half, t.pose * Affine3A::from_translation(t.center));
+            // Arenaportene står oppe fra start.
+            let lift = match t.what {
+                Use::Gate(n) if world.crypt.gates.get(n).is_some_and(|g| g.arena.is_some()) => Vec3::Y * crate::domain::world::crypt::GATE_LIFT,
+                _ => Vec3::ZERO,
+            };
+            let collider = physics.add_movable(t.half, t.pose * Affine3A::from_translation(t.center + lift));
             by_collider.insert(collider, i);
             targets.push(TargetState { target: *t, collider });
         }
@@ -155,6 +164,16 @@ impl Session {
                 .iter()
                 .map(|t| t.lid.then(|| physics.add_movable(Vec3::new(t.size.x * 0.5, 0.05, t.size.y * 0.5), crate::domain::world::at(t.pos - Vec3::Y * 0.05, t.yaw))))
                 .collect(),
+            bridge_solids: {
+                let m = Mechanisms::new(&world.crypt, 0);
+                (0..world.crypt.bridges.len())
+                    .map(|n| {
+                        let b = &world.crypt.bridges[n];
+                        physics.add_movable(Vec3::new(b.size.x * 0.5, 0.15, b.size.y * 0.5), m.bridge_collider(&world.crypt, n).unwrap_or_else(away))
+                    })
+                    .collect()
+            },
+            water_solids: world.crypt.water_blocks.iter().map(|b| physics.add_movable(b.size * 0.5, crate::domain::world::at(b.pos, b.yaw) * Affine3A::from_translation(Vec3::Y * b.size.y * 0.5))).collect(),
             run: Run::new(&world.crypt),
             crypt: world.crypt.clone(),
             hero: Hero::default(),
@@ -547,6 +566,15 @@ impl Session {
         if k != self.mobs.level {
             self.enter_level(k);
         }
+        // Bossarenaen: porten slår igjen bak deg mens bossen lever.
+        let inside = self.crypt.room_at(feet).filter(|(l, _)| *l == k).map(|(_, r)| r);
+        let boss_alive = self.mobs.mobs.iter().any(|m| m.boss && m.alive() && m.level == k);
+        for n in self.mech.arena_gates(&mut self.crypt, k, inside, boss_alive) {
+            let at = self.crypt.gates[n].pos + Vec3::Y * 1.5;
+            events.push(self.sound_at("gate", at, 1.4));
+            events.push(Event::Toast("Steinporten slår igjen bak deg!".into()));
+            self.map.dirty = true;
+        }
         for h in self.run.tick(dt, &self.crypt, &self.mech, k, feet) {
             match h {
                 Happening::Down(n) => {
@@ -612,6 +640,19 @@ impl Session {
                 Moved::Trapdoor(n) => {
                     if let Some(Some(id)) = self.trap_lids.get(n) {
                         physics.set_pose(*id, away());
+                    }
+                }
+                Moved::Bridge(n) => {
+                    if let (Some(pose), Some(id)) = (self.mech.bridge_collider(&self.crypt, n), self.bridge_solids.get(n)) {
+                        physics.set_pose(*id, pose);
+                    }
+                }
+                Moved::Water(n) => {
+                    let sw = self.crypt.waters[n].switch;
+                    for (i, b) in self.crypt.water_blocks.iter().enumerate() {
+                        if b.switch == sw {
+                            physics.set_pose(self.water_solids[i], away());
+                        }
                     }
                 }
                 Moved::Gate(n) => {

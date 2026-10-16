@@ -66,6 +66,10 @@ def load_plan(n):
     return mod.LEVEL
 
 
+def lerp3(a, b, t):
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+
+
 def rnd(v, k=3):
     return round(float(v), k)
 
@@ -79,10 +83,20 @@ class Room:
 
     def __init__(self, rid, name, shape, y, h, secret):
         self.id, self.name, self.shape, self.y, self.h, self.secret = rid, name, shape, y, h, secret
+        self.kind = shape[0]
         if shape[0] == "rect":
             _, cx, cz, w, d = shape
             self.x0, self.x1, self.z0, self.z1 = cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2
             self.poly = sbox(self.x0, self.z0, self.x1, self.z1)
+        elif shape[0] == "poly":
+            # Mangekant (sekskanten): hjørnene mot klokka sett ovenfra i (x, z),
+            # så normalen på hver kant (−dz, dx) peker inn i rommet.
+            pts = [tuple(p) for p in shape[1]]
+            if Polygon(pts).exterior.is_ccw:
+                pts = pts[::-1]
+            self.pts = pts
+            self.poly = Polygon(pts)
+            self.c = (self.poly.centroid.x, self.poly.centroid.y)
         else:
             _, cx, cz, r = shape
             self.c, self.r = (cx, cz), r
@@ -256,7 +270,198 @@ def marks_1(y):
     ]
 
 
-LAYOUTS = {1: dict(extra=EXTRA_ROOMS_1, halls=HALLS_1, marks=marks_1)}
+def _layout_1():
+    return dict(
+        extra=EXTRA_ROOMS_1, halls=HALLS_1, marks=marks_1, pre=pre_1, dress=dress_1,
+        slab=("gravgang", "soylegang", "dypgrav"),
+        wall_mats={"kistekjeller": "wall_dark", "dypgrav": "wall_dark", "sjaktbunn": "wall_dark", "stigebunn": "wall_dark"},
+        round={"beinhus": dict(
+            wall_mat="bones", shelves=True, brazier=True,
+            gallery=dict(y=BEINHUS["gallery_y"], ring_in=BEINHUS["ring_in"], stair_in=BEINHUS["stair_in"],
+                         stair_a0=BEINHUS["stair_a0"], stair_a1=BEINHUS["stair_a1"], steps=25,
+                         id="galleri", name="Galleriet", stair_id="beintrapp", stair_name="Trappa opp til galleriet"),
+            torches=[(150, 2.2, 2.0, 10.0, False), (210, 2.2, 2.0, 10.0, False), (30, 2.2, 2.0, 10.0, False), (110, 2.2, 2.0, 10.0, False),
+                     (240, 1.9, 1.6, 8.0, True), (330, 1.9, 1.6, 8.0, True), (60, 1.9, 1.6, 8.0, True), (170, 1.9, 1.6, 8.0, True)])},
+    )
+
+
+def load_layout(n):
+    """Utlegget for nivå n: nivå 1 står her, de andre i `layouts/layout_NN.py`
+    (modulen har `LAYOUT`)."""
+    if n == 1:
+        return _layout_1()
+    path = os.path.join(HERE, "layouts", f"layout_{n:02d}.py")
+    spec = importlib.util.spec_from_file_location(f"layout_{n:02d}", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.LAYOUT
+
+
+# --- Nivå 1: det som står i rommene ---------------------------------------------
+
+
+def pre_1(self):
+    """Hullene i gulvene og de flate takene, før rommene bygges."""
+    rm = self.rooms
+    rm["sidegrav"].holes.append(sbox(-12.6, 20.6, -11.4, 21.8))
+    rm["bronn"].holes.append(Point(-36.0, 42.0).buffer(0.85, 16))
+    rm["nedgang"].holes.append(sbox(20.4, 96.8, 24.2, 99.2))
+    rm["sjaktbunn"].flat = Point(-36.0, 42.0).buffer(0.85, 16)
+    rm["stigebunn"].flat = sbox(-12.6, 20.6, -11.4, 21.8)
+    # Søylegangen: gjordbuene står over søyleradene, og søylene bærer dem.
+    rm["soylegang"].ribs = list(range(57, 86, 4))
+
+
+def dress_1(self):
+    """Det som står i rommene i nivå 1."""
+    mb = self.mb
+    rm = self.rooms
+    rng = self.rng
+    # Kapellet: alteret til hvilestedet settes av motoren. Fakler ved
+    # trappa opp, kalkmalt mur.
+    k = rm["kapell"]
+    self.torch("kapell", (-4.98, 2.4, -1.0), (1.0, 0.0))
+    self.torch("kapell", (4.98, 2.4, 1.5), (-1.0, 0.0), intensity=1.6)
+    for x, z in ((-3.6, 2.8),):
+        K.candlestick(mb, x, z, k.y, arms=3)
+        k.obstacles.append(Point(x, z).buffer(0.35))
+        self.box((x, k.y + 0.7, z), (0.5, 1.4, 0.5))
+        self.light((x, k.y + 1.55, z), CANDLE, 5.0, "kapell", True, 1.2)
+    # Gravgangen: nisjer i begge murene, stearinlys i hver tredje.
+    g = rm["gravgang"]
+    for side, xw, nrm in (("w", g.x0, (1.0, 0.0)), ("e", g.x1, (-1.0, 0.0))):
+        surf = Plane((xw, g.z1), (0.0, -1.0), nrm) if side == "w" else Plane((xw, g.z0), (0.0, 1.0), nrm)
+        length = g.z1 - g.z0
+        for j, zc in enumerate(range(10, 35, 3)):
+            if abs(zc - 20) < 2.5:
+                continue
+            u = (g.z1 - zc) if side == "w" else (zc - g.z0)
+            for lvl, v0 in enumerate((g.y + 0.35, g.y + 1.25)):
+                K.niche(mb, surf, u, v0, w=1.7, h=0.5, depth=0.5, sealed=(j + lvl) % 3 == 1, rng=rng)
+            if j % 3 == 0:
+                p = surf.point(u, g.y + 2.15, 0.12)
+                K.candle(mb, p[0], p[2], g.y + 2.1)
+                box_c = surf.point(u, g.y + 2.05, 0.12)
+                K.box(mb, (box_c[0] - 0.12, g.y + 2.0, box_c[2] - 0.12), (box_c[0] + 0.12, g.y + 2.1, box_c[2] + 0.12), "dressed")
+                self.light((p[0], g.y + 2.45, p[2]), CANDLE, 4.5, "gravgang", True, 1.0)
+    # Sidegraven: en sarkofag, kald.
+    s = rm["sidegrav"]
+    self.prop("kit_sarcophagus", -9.5, s.y, 22.3, math.pi / 2)
+    s.obstacles.append(sbox(-10.6, 21.8, -8.4, 22.8))
+    self.box((-9.5, s.y + 0.5, 22.3), (2.2, 1.0, 1.0))
+    s.obstacles.append(sbox(-12.6, 20.6, -11.4, 21.8))
+    self.light((-13.8, 1.8, 18.0), COLD, 6.0, "sidegrav", True, 0.8)
+    # Krysset: fakler på søylene ved gangene.
+    x = rm["krysset"]
+    self.torch("krysset", (-5.48, x.y + 2.4, 41.0), (1.0, 0.0))
+    self.torch("krysset", (5.48, x.y + 2.4, 41.0), (-1.0, 0.0))
+    self.torch("krysset", (-2.5, x.y + 2.4, 49.48), (0.0, -1.0), intensity=1.8)
+    K.rubble(mb, 4.0, 47.8, x.y, r=0.9, h=0.4, seed=3)
+    x.obstacles.append(Point(4.0, 47.8).buffer(0.9))
+    self.box((4.0, x.y + 0.2, 47.8), (1.6, 0.4, 1.6))
+    # Pilgangen: pilhullene i nordmuren over trykkplata.
+    pg = rm["pilgang"]
+    surf = Plane((pg.x0, pg.z0), (1.0, 0.0), (0.0, 1.0))
+    K.arrow_slots(mb, surf, -19.0 - pg.x0, pg.y + 0.9)
+    self.light((-14.0, pg.y + 2.3, 45.4), COLD, 5.0, "pilgang", True, 0.7)
+    # Brønnrommet: brønnen, rasmasse, kaldt trekk.
+    b = rm["bronn"]
+    K.well(mb, -36.0, 42.0, b.y, r_in=0.85, r_out=1.3, curb=0.5, depth=b.y - (-8 + 3.2))
+    b.obstacles.append(Point(-36.0, 42.0).buffer(1.3, 16))
+    for k2 in range(8):
+        ang = 2 * math.pi * k2 / 8
+        self.box((-36.0 + 1.07 * math.cos(ang), b.y + 0.25, 42.0 + 1.07 * math.sin(ang)), (0.46, 0.5, 0.6), -ang)
+    K.rubble(mb, -40.0, 48.0, b.y, r=1.2, h=0.6, seed=7)
+    b.obstacles.append(Point(-40.0, 48.0).buffer(1.1))
+    self.box((-40.0, b.y + 0.3, 48.0), (1.8, 0.6, 1.8))
+    self.light((-31.0, b.y + 2.6, 39.0), COLD, 7.0, "bronn", True, 0.9)
+    self.torch("bronn", (-30.52, b.y + 2.3, 47.0), (-1.0, 0.0), intensity=1.2, reach=7.0)
+    # Brønnsjakta ned: muren rundt sjakta fra taket i sjaktbunnen.
+    sb = rm["sjaktbunn"]
+    sb.water = True
+    mb.quad((-37.5, sb.y + 0.02, 40.5), (-34.5, sb.y + 0.02, 40.5), (-34.5, sb.y + 0.02, 43.5), (-37.5, sb.y + 0.02, 43.5), "water", facing=(0, 1, 0))
+    self.light((-36.0, sb.y + 2.4, 41.0), COLD, 5.0, "sjaktbunn", False, 0.6)
+    for k2 in range(16):
+        ang0, ang1 = 2 * math.pi * k2 / 16, 2 * math.pi * (k2 + 1) / 16
+        pa = (-36.0 + 0.85 * math.cos(ang0), 42.0 + 0.85 * math.sin(ang0))
+        pb = (-36.0 + 0.85 * math.cos(ang1), 42.0 + 0.85 * math.sin(ang1))
+        mid = ((pa[0] + pb[0]) / 2 + 36.0, (pa[1] + pb[1]) / 2 - 42.0)
+        ln = math.hypot(*mid)
+        self.wall_box(pa, pb, sb.y + 3.2, b.y + 0.5, (mid[0] / ln, mid[1] / ln))
+    # Den glemte graven: sarkofager og stearinlys.
+    d = rm["dypgrav"]
+    for xx in (-29.0, -26.5):
+        self.prop("kit_sarcophagus", xx, d.y, 23.5, 0.0)
+        d.obstacles.append(sbox(xx - 0.55, 22.4, xx + 0.55, 24.6))
+        self.box((xx, d.y + 0.5, 23.5), (1.0, 1.0, 2.2))
+    K.candlestick(mb, -31.6, 26.8, d.y, arms=2)
+    d.obstacles.append(Point(-31.6, 26.8).buffer(0.35))
+    self.box((-31.6, d.y + 0.7, 26.8), (0.5, 1.4, 0.5))
+    self.light((-31.6, d.y + 1.5, 26.8), CANDLE, 6.0, "dypgrav", True, 1.0)
+    self.light((-24.2, d.y + 2.6, 21.0), COLD, 6.0, "dypgrav", True, 0.7)
+    K.glitch_stone(mb, Plane((d.x0, d.z1), (0.0, -1.0), (1.0, 0.0)), 3.0, d.y + 1.5)
+    # Under fallemmen: sjakta opp til sidegraven.
+    u = rm["stigebunn"]
+    for (pa, pb, out) in (((-12.6, 20.6), (-11.4, 20.6), (0, -1)), ((-11.4, 20.6), (-11.4, 21.8), (1, 0)), ((-11.4, 21.8), (-12.6, 21.8), (0, 1)), ((-12.6, 21.8), (-12.6, 20.6), (-1, 0))):
+        nrm = (-out[0], -out[1])
+        surf = Plane(pa, ((pb[0] - pa[0]) / 1.2, (pb[1] - pa[1]) / 1.2), nrm)
+        grid_face(mb, surf, sbox(0.0, u.y + 3.2, 1.2, 0.0), "wall_dark")
+        self.wall_box(pa, pb, u.y + 3.2, 0.0, out)
+    self.light((-12.0, u.y + 2.2, 24.5), COLD, 5.0, "stigebunn", False, 0.5)
+    # Søylegangen: to rader søyler, sarkofager imellom, fakler på søylene.
+    so = rm["soylegang"]
+    for zc in range(57, 86, 4):
+        for xc in (-2.6, 2.6):
+            K.pillar(mb, xc, zc, so.y, pillar_top(so, xc, zc, 0.7), size=0.7)
+            so.obstacles.append(sbox(xc - 0.55, zc - 0.55, xc + 0.55, zc + 0.55))
+            self.box((xc, so.y + so.h / 2, zc), (1.0, so.h, 1.0))
+    for zc in (59, 63, 67, 77, 81):
+        for xc in (-3.4, 3.4):
+            if xc < 0 and 69 <= zc <= 75:
+                continue
+            self.prop("kit_sarcophagus", xc, so.y, zc, 0.0)
+            so.obstacles.append(sbox(xc - 0.6, zc - 1.25, xc + 0.6, zc + 1.25))
+            self.box((xc, so.y + 0.5, zc), (1.1, 1.0, 2.4))
+    for zc in (61, 73, 85):
+        for xc, nx in ((-2.6 + 0.47, 1.0), (2.6 - 0.47, -1.0)):
+            self.torch("soylegang", (xc, so.y + 2.6, zc), (nx, 0.0), intensity=1.8, reach=8.0)
+    # Kistekjelleren: hyller med likkister langs murene.
+    kk = rm["kistekjeller"]
+    for zc in (68.6, 70.8, 73.2, 75.4):
+        for lvl in (0.0, 1.1):
+            K.box(mb, (kk.x0, kk.y + lvl + 0.42, zc - 1.0), (kk.x0 + 0.75, kk.y + lvl + 0.5, zc + 1.0), "dressed")
+            K.coffin(mb, kk.x0 + 0.38, zc, kk.y + lvl + 0.5, 0.0, L=1.8, W=0.6)
+    kk.obstacles.append(sbox(kk.x0, 67.5, kk.x0 + 0.8, 76.5))
+    self.box((kk.x0 + 0.4, kk.y + 1.0, 72.0), (0.8, 2.0, 9.0))
+    for xc in (-19.5, -14.5):
+        K.coffin(mb, xc, 76.0, kk.y, 0.2 if xc < -17 else -0.15, L=1.9, W=0.6)
+        kk.obstacles.append(sbox(xc - 0.4, 75.0, xc + 0.4, 77.0))
+        self.box((xc, kk.y + 0.25, 76.0), (0.7, 0.5, 2.0))
+    self.light((-12.5, kk.y + 2.5, 68.0), COLD, 7.0, "kistekjeller", True, 0.8)
+    # Alterkapellet: det store alteret mot sør med lysestaker, kalkmalt.
+    al = rm["alter"]
+    K.altar(mb, 0.0, 99.4, al.y, math.pi, w=2.6, d=1.1)
+    al.obstacles.append(sbox(-1.85, 98.3, 1.85, 100.5))
+    self.box((0.0, al.y + 0.55, 99.4), (2.9, 1.1, 1.3))
+    for xc in (-2.4, 2.4):
+        K.candlestick(mb, xc, 99.9, al.y, arms=3)
+        al.obstacles.append(Point(xc, 99.9).buffer(0.35))
+        self.box((xc, al.y + 0.7, 99.9), (0.5, 1.4, 0.5))
+        self.light((xc, al.y + 1.6, 99.9), CANDLE, 6.0, "alter", True, 1.4)
+    self.torch("alter", (-7.48, al.y + 2.6, 93.0), (1.0, 0.0))
+    self.torch("alter", (7.48, al.y + 2.6, 93.0), (-1.0, 0.0))
+    # Skattkammeret bak den falske veggen: lite lys.
+    self.light((2.6, rm["skatt"].y + 2.0, 108.6), (1.0, 0.8, 0.45), 5.0, "skatt", True, 1.0)
+    # Nedgangen: det blå lyset fra trappa ned og en fakkel ved døra.
+    ng = rm["nedgang"]
+    ng.obstacles.append(sbox(20.4, 96.1, 25.0, 99.9))
+    self.light((22.6, ng.y + 0.4, 98.0), BLUE, 10.0, "nedgang", False, 3.0)
+    self.torch("nedgang", (17.52, ng.y + 2.4, 95.0), (1.0, 0.0), intensity=1.6)
+    self.torch("nedgang", (25.0, ng.y + 2.4, 93.52), (0.0, 1.0), intensity=1.4)
+    # Snarveien: en fakkel midtveis.
+    self.torch("nedgang-beinhus", (20.92, -2 + 1.9, 77.0), (1.0, 0.0), intensity=1.2, reach=8.0)
+    self.torch("gravgang-krysset", (1.48, 0.0 + 1.9, 37.0), (-1.0, 0.0), intensity=1.0, reach=6.0)
+
 
 
 # --- Nivået ---------------------------------------------------------------------
@@ -291,19 +496,45 @@ class Level:
     def __init__(self, n):
         self.n = n
         self.plan = load_plan(n)
-        lay = LAYOUTS[n]
+        lay = load_layout(n)
         self.rooms = {}
+        over = lay.get("override", {})
         for r in self.plan.rooms:
-            self.rooms[r.id] = Room(r.id, r.name, r.shape, r.y, r.h, r.secret)
+            # Utlegget kan justere et rom fra planen (en sekskant dreid så en
+            # kant vender mot gangen, et tak som må høyere opp).
+            o = over.get(r.id, {})
+            self.rooms[r.id] = Room(r.id, r.name, o.get("shape", r.shape), o.get("y", r.y), o.get("h", r.h), r.secret)
         for rid, name, shape, y, h, secret in lay["extra"]:
             self.rooms[rid] = Room(rid, name, shape, y, h, secret)
+        self.lay = lay
+        self.vn = lay.get("hall_vault_n", 12)  # ledd i buen på hvelvene i gangene
+        self.flat_step = lay.get("hall_flat_step", 1.0)  # skivene i hvelvet der gangen er flat
         self.halls = []
-        for a, b, kind, pts, w, stairs, gate in lay["halls"]:
+        for entry in lay["halls"]:
+            # (a, b, slag, punkter, bredde, trapp, port[, valg]): valgene er
+            # gulvhøyden i hver ende (`ya`, `yb`) når gangen går ut fra et
+            # galleri eller en balkong, og ikke fra gulvet i rommet.
+            a, b, kind, pts, w, stairs, gate = entry[:7]
+            opts = entry[7] if len(entry) > 7 else {}
             ra, rb = self.rooms[a], self.rooms[b]
-            hid = f"{a}-{b}"
+            hid = opts.get("id", f"{a}-{b}")
             secret = ra.secret or rb.secret or kind == SECRET
-            name = {GATE: "Gitteret", SECRET: "Den skjulte gangen", SHORTCUT: "Snarveien", STAIRS: "Trappa"}.get(kind, "Gangen")
-            self.halls.append(Hall(hid, a, b, kind, pts, w, ra.y, rb.y, stairs, gate, name, secret))
+            name = opts.get("name") or {GATE: "Gitteret", SECRET: "Den skjulte gangen", SHORTCUT: "Snarveien", STAIRS: "Trappa"}.get(kind, "Gangen")
+            self.halls.append(Hall(hid, a, b, kind, pts, w, opts.get("ya", ra.y), opts.get("yb", rb.y), stairs, gate, name, secret))
+            # Under vannet: stengt for fiendene til vannet har sunket.
+            self.halls[-1].water = opts.get("water")
+            # En gang som ender i lufta inne i en sal (buene fra galleriet):
+            # `rail_b` setter et rekkverk tvers over, `open_b` lar deg falle.
+            self.halls[-1].rail_b = opts.get("rail_b", False)
+            self.halls[-1].open_b = opts.get("open_b", False)
+        # Rom i planen som står inne i et annet rom (øya og gangbroa i
+        # cisternen): de bygges av utlegget, og dørene deres hogges i
+        # vertsrommets mur.
+        for rid, host in lay.get("virtual", {}).items():
+            self.rooms[rid].virtual = True
+            self.rooms[rid].host = host
+        self.decks = []  # flater å gå på over gulvet (galleriene, balkongene, broene)
+        self.json_rooms = []  # rom i json utenom planens (galleriene, trappene)
         self.marks = lay["marks"](None)
         # Det som står i nivået er data (`assets/layout/crypt_NN.json`, som
         # redigeringen endrer): finnes fila, brukes merkene og lysene derfra,
@@ -369,11 +600,21 @@ class Level:
 
     def build(self):
         self.attach_doors()
-        self.pre()
-        for r in self.rooms.values():
+        if "pre" in self.lay:
+            self.lay["pre"](self)
+        built = [r for r in self.rooms.values() if not getattr(r, "virtual", False)]
+        for r in built:
             if r.rect:
                 self.rect_room(r)
-        self.beinhus(self.rooms["beinhus"])
+        for r in built:
+            if r.kind == "poly":
+                self.poly_room(r)
+        rounds = self.lay.get("round", {})
+        for r in built:
+            if r.kind == "circle":
+                self.round_room(r, rounds.get(r.id, {}))
+        if "features" in self.lay:
+            self.lay["features"](self)
         for h in self.halls:
             self.hall(h)
         self.dress()
@@ -381,22 +622,13 @@ class Level:
         for h in self.halls:
             self.hall_patches(h)
 
-    def pre(self):
-        """Hullene i gulvene og de flate takene, før rommene bygges."""
-        rm = self.rooms
-        rm["sidegrav"].holes.append(sbox(-12.6, 20.6, -11.4, 21.8))
-        rm["bronn"].holes.append(Point(-36.0, 42.0).buffer(0.85, 16))
-        rm["nedgang"].holes.append(sbox(20.4, 96.8, 24.2, 99.2))
-        rm["sjaktbunn"].flat = Point(-36.0, 42.0).buffer(0.85, 16)
-        rm["stigebunn"].flat = sbox(-12.6, 20.6, -11.4, 21.8)
-        # Søylegangen: gjordbuene står over søyleradene, og søylene bærer dem.
-        rm["soylegang"].ribs = list(range(57, 86, 4))
-
     def attach_doors(self):
         """Åpningene i rommene der gangene går inn."""
         for h in self.halls:
             for rid, p, q, y in ((h.a, h.pts[0], h.pts[1], h.ya), (h.b, h.pts[-1], h.pts[-2], h.yb)):
                 r = self.rooms[rid]
+                if getattr(r, "host", None):
+                    r = self.rooms[r.host]
                 if r.rect:
                     if abs(p[1] - r.z0) < 0.05:
                         side, u = "n", p[0]
@@ -407,6 +639,15 @@ class Level:
                     elif abs(p[0] - r.x1) < 0.05:
                         side, u = "e", p[1]
                     else:
+                        raise ValueError(f"gangen {h.id} treffer ikke muren i {rid} ({p})")
+                elif r.kind == "poly":
+                    side = None
+                    for k in range(len(r.pts)):
+                        e = LineString([r.pts[k], r.pts[(k + 1) % len(r.pts)]])
+                        if e.distance(Point(p)) < 0.05:
+                            side, u = ("edge", k), e.project(Point(p))
+                            break
+                    if side is None:
                         raise ValueError(f"gangen {h.id} treffer ikke muren i {rid} ({p})")
                 else:
                     side, u = "arc", math.atan2(p[1] - r.c[1], p[0] - r.c[0])
@@ -424,17 +665,20 @@ class Level:
             return K.rect_profile(0.0, w, y, 2.6)
         if kind == SHORTCUT:
             return arch_profile(0.0, w, y, 1.5, n=10)
-        return arch_profile(0.0, w, y, SPRING, n=12)
+        return arch_profile(0.0, w, y, SPRING, n=self.vn)
 
     def rect_room(self, r):
         mb = self.mb
         top = r.y + r.h
-        # Gulvet, med hullene.
+        # Gulvet, med hullene. En avgrunn (`r.floor_y` under gulvhøyden i
+        # planen) har bunnen der nede og murene helt ned dit.
+        fy = getattr(r, "floor_y", r.y)
         floor = r.poly.difference(unary_union(r.holes)) if r.holes else r.poly
-        mat = "slab" if r.id in ("gravgang", "soylegang", "dypgrav") else "floor"
-        grid_face(mb, Horizontal(r.y), floor, mat)
+        mat = "slab" if r.id in self.lay.get("slab", ()) else "floor"
+        cell = self.lay.get("cells", {}).get(r.id, 1.0)
+        grid_face(mb, Horizontal(fy), floor, getattr(r, "floor_mat", mat), cell=cell)
         for piece in K._pieces(floor):
-            self.floor_collider(piece, r.y)
+            self.floor_collider(piece, fy)
         # Murene, med åpningene, og hvelvet over.
         span_x, span_z = r.x1 - r.x0, r.z1 - r.z0
         along_x = span_x >= span_z
@@ -463,22 +707,24 @@ class Level:
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 apex = max(v for _, v in prof)
                 lintels.append((to_u(u) - w / 2, to_u(u) + w / 2, apex, y))
+            # Nisjer og annet som er hogd inn i muren (utlegget legger omrisset i `wall_holes`).
+            openings += [Polygon(prof) for prof in getattr(r, "wall_holes", {}).get(side, [])]
             # Endeveggene under et tønnehvelv går opp i buen (lunetten).
             end_wall = (not square) and ((along_x and side in ("w", "e")) or ((not along_x) and side in ("n", "s")))
             if flat:
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r))
+                K.wall(mb, surf, length, fy - 0.05, top, openings, mat=self.wall_mat(r), cell=cell)
             elif end_wall:
                 cw = a
                 fn = lambda u, cw=cw, a=a, R=R, top=top: top + R * math.sqrt(max(0.0, 1 - ((u - cw) / a) ** 2))
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
+                K.wall(mb, surf, length, fy - 0.05, top, openings, mat=self.wall_mat(r), cell=cell, top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
             elif square:
                 fn = lambda u, length=length, R=R, top=top: top + R * math.sqrt(max(0.0, 1 - ((u - length / 2) / (length / 2)) ** 2))
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r), top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
+                K.wall(mb, surf, length, fy - 0.05, top, openings, mat=self.wall_mat(r), cell=cell, top_fn=fn, top_samples=[length * k / 48 for k in range(49)], extra=VAULT_LAP)
             else:
-                K.wall(mb, surf, length, r.y - 0.05, top, openings, mat=self.wall_mat(r))
+                K.wall(mb, surf, length, fy - 0.05, top, openings, mat=self.wall_mat(r), cell=cell)
             # Sokkelen langs foten (litt ulik høyde nord–sør og øst–vest, så
             # toppene ikke ligger i samme plan i hjørnene).
-            K.plinth(mb, surf, K.free_spans(length, openings, r.y, 0.34), h=0.34 + (0.004 if side in ("n", "s") else 0.0))
+            K.plinth(mb, surf, K.free_spans(length, openings, fy, 0.34), h=0.34 + (0.004 if side in ("n", "s") else 0.0))
             # Kolliderne: murbitene mellom åpningene, og over dem.
             cuts = sorted(lintels)
             at = -WALL_T
@@ -486,14 +732,14 @@ class Level:
             for u0, u1, apex, y in cuts:
                 if u0 > at:
                     a3, b3 = p_of(at), p_of(u0)
-                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, top + R + 0.5, out)
+                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), fy - 0.5, top + R + 0.5, out)
                 a3, b3 = p_of(u0), p_of(u1)
                 self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), apex, top + R + 0.5, out)
-                if y > r.y + 0.05:
-                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, y, out)
+                if y > fy + 0.05:
+                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), fy - 0.5, y, out)
                 at = u1
             a3, b3 = p_of(at), p_of(length + WALL_T)
-            self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, top + R + 0.5, out)
+            self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), fy - 0.5, top + R + 0.5, out)
         # Hvelvet (eller et flatt tak med hull for sjakta).
         if flat:
             grid_face(mb, Horizontal(top, up=False), r.poly.difference(r.flat), "vault")
@@ -502,13 +748,13 @@ class Level:
             K.groin_ribs(mb, r.x0, r.x1, r.z0, r.z1, top, R)
         elif along_x:
             cz = (r.z0 + r.z1) / 2
-            K.barrel(mb, "x", r.x0, span_x, cz, top, R, a, mat="vault", step=1.0)
+            K.barrel(mb, "x", r.x0, span_x, cz, top, R, a, mat="vault", step=cell)
             nb = max(1, round(span_x / 4))
             for k in range(1, nb):
                 K.barrel_rib(mb, "x", r.x0 + span_x * k / nb, cz, top, R, a)
         else:
             cx = (r.x0 + r.x1) / 2
-            K.barrel(mb, "z", r.z0, span_z, cx, top, R, a, mat="vault", step=1.0)
+            K.barrel(mb, "z", r.z0, span_z, cx, top, R, a, mat="vault", step=cell)
             nb = max(1, round(span_z / 4))
             for zr in getattr(r, "ribs", None) or [r.z0 + span_z * k / nb for k in range(1, nb)]:
                 K.barrel_rib(mb, "z", zr, cx, top, R, a)
@@ -516,8 +762,365 @@ class Level:
             r.vault = ("x" if along_x else "z", (r.z0 + r.z1) / 2 if along_x else (r.x0 + r.x1) / 2, a, R, top)
         r.ceil = top
 
+    def poly_room(self, r):
+        """Et rom med mangekantet omriss (sekskanten): mur langs hver kant med
+        åpningene, sokkel, og et klosterhvelv over (en hvelvkappe fra hver
+        kant inn mot midten, som møtes i gratene), med ribber langs gratene."""
+        mb = self.mb
+        top = r.y + r.h
+        floor = r.poly.difference(unary_union(r.holes)) if r.holes else r.poly
+        grid_face(mb, Horizontal(r.y), floor, "slab" if r.id in self.lay.get("slab", ()) else "floor")
+        for piece in K._pieces(floor):
+            self.floor_collider(piece, r.y)
+        n = len(r.pts)
+        c = r.c
+        apothem = min(LineString([r.pts[k], r.pts[(k + 1) % n]]).distance(Point(c)) for k in range(n))
+        R = min(apothem * 0.6, 3.0)
+        for k in range(n):
+            pa, pb = r.pts[k], r.pts[(k + 1) % n]
+            L = math.dist(pa, pb)
+            d = ((pb[0] - pa[0]) / L, (pb[1] - pa[1]) / L)
+            nrm = (-d[1], d[0])
+            if (c[0] - pa[0]) * nrm[0] + (c[1] - pa[1]) * nrm[1] < 0:
+                nrm = (d[1], -d[0])
+            out = (-nrm[0], -nrm[1])
+            surf = Plane(pa, d, nrm)
+            openings, lintels = [], []
+            for (ds, u, w, y, kind, h) in r.doors:
+                if ds != ("edge", k):
+                    continue
+                prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
+                openings.append(Polygon(prof))
+                if kind not in (SECRET, SHORTCUT):
+                    K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
+                lintels.append((u - w / 2, u + w / 2, max(v for _, v in prof), y))
+            K.wall(mb, surf, L, r.y - 0.05, top, openings, mat=self.wall_mat(r), extra=VAULT_LAP)
+            K.plinth(mb, surf, K.free_spans(L, openings, r.y, 0.34), h=0.34 + 0.004 * (k % 2))
+            at = -WALL_T
+            p_of = lambda u: surf.point(u, 0.0)
+            for u0, u1, apex, y in sorted(lintels):
+                if u0 > at:
+                    a3, b3 = p_of(at), p_of(u0)
+                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, top + R + 0.5, out)
+                a3, b3 = p_of(u0), p_of(u1)
+                self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), apex, top + R + 0.5, out)
+                if y > r.y + 0.05:
+                    self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, y, out)
+                at = u1
+            a3, b3 = p_of(at), p_of(L + WALL_T)
+            self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), r.y - 0.5, top + R + 0.5, out)
+            # Hvelvkappen over kanten: fra muren (t = 0) inn til midten (t = 1),
+            # bratt ved muren og flat i toppen.
+            m, cols = 8, max(1, math.ceil(L / 1.0))
+            ts = [1 - math.cos(0.5 * math.pi * q / m) for q in range(m + 1)]
+            hy = lambda t: top + R * math.sqrt(max(0.0, 1 - (1 - t) ** 2))
+            P = lambda s, t: ((pa[0] + (pb[0] - pa[0]) * s) * (1 - t) + c[0] * t, hy(t), (pa[1] + (pb[1] - pa[1]) * s) * (1 - t) + c[1] * t)
+            for q in range(m):
+                for j in range(cols):
+                    s0, s1 = j / cols, (j + 1) / cols
+                    pts = [P(s0, ts[q]), P(s1, ts[q]), P(s1, ts[q + 1]), P(s0, ts[q + 1])]
+                    if q == m - 1:
+                        pts = pts[:3]
+                    uvs = [(p[0], p[2]) for p in pts]
+                    cen = lerp3(pts[0], pts[2], 0.5)
+                    mb.poly(pts, uvs, "vault", facing=(c[0] - cen[0], top - 3.0 - cen[1], c[1] - cen[2]), smooth=True)
+            # Ribba langs graten fra hjørnet pa inn til midten, på en konsoll.
+            path = [P(0.0, t) for t in ts]
+            K.band(mb, path, 0.24, 0.17, down=lambda p: (c[0] - p[0], top - 3.0 - p[1], c[1] - p[2]))
+            K.obox(mb, (pa[0] + (c[0] - pa[0]) * 0.03, top - 0.3, pa[1] + (c[1] - pa[1]) * 0.03), (0.45, 1.0, 0.45), math.atan2(c[0] - pa[0], c[1] - pa[1]), "dressed")
+        K.cylinder(mb, c, 0.5, top + R - 0.25, top + R + 0.02, "dressed", n=8, caps=(False, True), smooth=False)
+        r.ceil = top
+        r.cloister = (top, R)
+
+    def poly_vault_y(self, r, x, z):
+        """Høyden på klosterhvelvet over (x, z) i et mangekantrom: kappa over
+        kanten der punktet ligger, t = avstanden fra kanten delt på avstanden
+        fra midten til kanten."""
+        top, R = r.cloister
+        c = Point(r.c)
+        q = Point(x, z)
+        best = 1.0
+        n = len(r.pts)
+        for k in range(n):
+            e = LineString([r.pts[k], r.pts[(k + 1) % n]])
+            dc = e.distance(c)
+            if dc > 1e-6 and Polygon([r.pts[k], r.pts[(k + 1) % n], r.c]).buffer(1e-6).contains(q):
+                best = min(best, e.distance(q) / dc)
+        return top + R * math.sqrt(max(0.0, 1 - (1 - best) ** 2))
+
+    # -- Byggeklosser for salene: balkonger, trapp rundt en kjerne, broer, sjakter --
+
+    def terrace(self, r, x0, x1, z0, z1, y, front, gaps=(), mat="dressed", solid=True):
+        """En balkong langs muren i salen `r`: en murt blokk fra gulvet opp
+        til `y` over (x0..x1, z0..z1), med front (og rekkverk) mot `front`
+        ('e', 'w', 'n', 's'), unntatt der `gaps` (u0, u1 langs fronten, i
+        verdenskoordinater) slipper broene inn. Gulvet oppe blir en flate å
+        gå på i rommet `r`."""
+        mb = self.mb
+        rect = sbox(x0, z0, x1, z1)
+        grid_face(mb, Horizontal(y), rect, "floor")
+        if not solid:
+            # En hylle langs muren (gangbanen i kanalen): platen på
+            # konsoller, med rommet under (gulvet går inn under den).
+            grid_face(mb, Horizontal(y - 0.3, up=False), rect, "dressed")
+        fx = {"e": x1, "w": x0}.get(front)
+        fz = {"s": z1, "n": z0}.get(front)
+        if fx is not None:
+            sgn = 1.0 if front == "e" else -1.0
+            surf = Plane((fx, z1 if front == "e" else z0), (0.0, -sgn), (sgn, 0.0))
+            length, along = z1 - z0, (lambda u: z1 - u) if front == "e" else (lambda u: z0 + u)
+            ends = (z0, z1)
+        else:
+            sgn = 1.0 if front == "s" else -1.0
+            surf = Plane((x0 if front == "s" else x1, fz), (sgn, 0.0), (0.0, sgn))
+            length, along = x1 - x0, (lambda u: x0 + u) if front == "s" else (lambda u: x1 - u)
+            ends = (x0, x1)
+        if solid:
+            K.wall(mb, surf, length, r.y - 0.05, y, [], mat="wall", extra=0.0)
+            K.plinth(mb, surf, [(0.0, length, r.y)], h=0.34)
+        else:
+            K.wall(mb, surf, length, y - 0.3, y, [], mat="dressed", extra=0.0)
+            depth = (x1 - x0) if fx is not None else (z1 - z0)
+            for k in range(int(length // 2.5) + 1):
+                u = min(length - 0.3, 0.3 + 2.5 * k)
+                p = surf.point(u, 0.0, -depth / 2)
+                yaw = 0.0 if fx is not None else math.pi / 2
+                K.obox(mb, (p[0], y - 0.75, p[2]), (depth * 0.6 if fx is not None else 0.35, 0.6, 0.35 if fx is not None else depth * 0.6), 0.0, "dressed")
+        # Kanten av gulvet oppe og rekkverket, utenom åpningene.
+        spans, at = [], ends[0]
+        for g0, g1 in sorted(gaps):
+            if g0 > at:
+                spans.append((at, g0))
+            at = g1
+        if at < ends[1]:
+            spans.append((at, ends[1]))
+        for a, b in spans:
+            if b - a < 0.3:
+                continue
+            path = [(fx - sgn * 0.13, a), (fx - sgn * 0.13, b)] if fx is not None else [(a, fz - sgn * 0.13), (b, fz - sgn * 0.13)]
+            K.parapet(mb, path, y, h=0.95, t=0.26)
+            self.wall_box(path[0], path[1], y, y + 1.0, (0.0, 0.0))
+        if solid:
+            self.box(((x0 + x1) / 2, (r.y - 0.5 + y) / 2, (z0 + z1) / 2), (x1 - x0, y - r.y + 0.5, z1 - z0))
+            r.obstacles.append(rect)
+        else:
+            self.box(((x0 + x1) / 2, y - 0.15, (z0 + z1) / 2), (x1 - x0, 0.3, z1 - z0))
+        walk = rect.buffer(-INSET, join_style="mitre")
+        for a, b in spans:
+            if b - a < 0.3:
+                continue
+            band = sbox(fx - sgn * 0.26 - INSET, a, fx + 1, b) if fx is not None and sgn > 0 else (
+                sbox(fx - 1, a, fx + 0.26 + INSET, b) if fx is not None else (
+                    sbox(a, fz - 0.26 - INSET, b, fz + 1) if sgn > 0 else sbox(a, fz - 1, b, fz + 0.26 + INSET)))
+            walk = walk.difference(band)
+        return rect, walk
+
+    def core_stair(self, r, c, r_core, r_out, y0, y1, a0, a1, n, gaps=()):
+        """Vindeltrapp rundt en murt kjerne midt i en sal (gravkista står
+        oppå): trinnene mellom r_core og r_out fra gulvet (y0, vinkelen a0)
+        opp til y1 ved a1, og en ring (r_core..r_out) i høyden y1 rundt resten
+        av kjernen, båret ut fra den. Rekkverk på utsida, unntatt der `gaps`
+        (vinkler) slipper broene ut. Gir flaten oppe (til å slå sammen med
+        broene og balkongene) og trinnene til navigasjonen."""
+        mb = self.mb
+        P = lambda q, ang: (c[0] + q * math.cos(ang), c[1] + q * math.sin(ang))
+        ring_pts = lambda q, aa, ab, m: [P(q, aa + (ab - aa) * k / m) for k in range(m + 1)]
+        # Kjernen: muren rundt fra gulvet opp til toppen.
+        core = Cyl(c, r_core, a0=0.0, inward=False)
+        K.wall(mb, core, 2 * math.pi * r_core, y0 - 0.05, y1, [], mat="wall", extra=0.0)
+        cpts = ring_pts(r_core, 0.0, 2 * math.pi, 36)[:-1]
+        self.hull([(x, y0 - 0.2, z) for x, z in cpts] + [(x, y1, z) for x, z in cpts])
+        # Toppen: kjernen og ringen utenom trappa.
+        stair_sector = Polygon(ring_pts(r_core, a0, a1, 24) + ring_pts(r_out, a0, a1, 24)[::-1])
+        top = Polygon(ring_pts(r_out, 0.0, 2 * math.pi, 72)[:-1]).difference(stair_sector)
+        grid_face(mb, Horizontal(y1), top, "floor")
+        ring_area = top.difference(Point(c).buffer(r_core, 36))
+        grid_face(mb, Horizontal(y1 - 0.3, up=False), ring_area, "dressed")
+        g0, g1 = a1, a0 + 2 * math.pi
+        m = 24
+        outer = ring_pts(r_out, g0, g1, m)
+        for k in range(m):
+            pa, pb = outer[k], outer[k + 1]
+            mb.quad((pa[0], y1 - 0.3, pa[1]), (pb[0], y1 - 0.3, pb[1]), (pb[0], y1, pb[1]), (pa[0], y1, pa[1]), "dressed",
+                    facing=(pa[0] - c[0], 0, pa[1] - c[1]))
+            q = [pa, pb, P(r_core, g0 + (g1 - g0) * (k + 1) / m), P(r_core, g0 + (g1 - g0) * k / m)]
+            self.hull([(x, y1, z) for x, z in q] + [(x, y1 - 0.3, z) for x, z in q])
+            if k % 4 == 2:
+                aa = g0 + (g1 - g0) * (k + 0.5) / m
+                p = P(r_core + 0.45, aa)
+                K.obox(mb, (p[0], y1 - 0.9, p[1]), (0.35, 0.6, 0.9), math.pi / 2 - aa, "dressed")
+        # Enden av ringen over foten av trappa.
+        e0, e1 = P(r_core, a0), P(r_out, a0)
+        mb.quad((e0[0], y1 - 0.3, e0[1]), (e1[0], y1 - 0.3, e1[1]), (e1[0], y1, e1[1]), (e0[0], y1, e0[1]), "dressed",
+                facing=(-math.sin(a0), 0, math.cos(a0)))
+        K.parapet(mb, [e0, e1], y1, h=0.95, t=0.24)
+        self.wall_box(e0, e1, y1, y1 + 1.0, (0.0, 0.0))
+        # Trappa.
+        K.spiral_stair(mb, c, r_core, r_out, a0, a1, y0, y1, n, mat="dressed", inner_wall=False, outer_full=True)
+        sp = ring_pts(r_out, a0, a1, n)
+        K.parapet(mb, sp, y0, h=0.95, t=0.22, base_y=[y0 + (y1 - y0) * k / n for k in range(n + 1)])
+        tris = []
+        for k in range(n):
+            aa, ab = a0 + (a1 - a0) * k / n, a0 + (a1 - a0) * (k + 1) / n
+            ya, yb = y0 + (y1 - y0) * k / n, y0 + (y1 - y0) * (k + 1) / n
+            quad = [P(r_core, aa), P(r_out, aa), P(r_out, ab), P(r_core, ab)]
+            self.hull([(x, yb if j >= 2 else ya + 0.02, z) for j, (x, z) in enumerate(quad)] + [(x, y0 - 0.2, z) for x, z in quad])
+            self.wall_box(P(r_out, aa), P(r_out, ab), yb, yb + 1.0, (0.0, 0.0))
+            qi, qo = r_core + INSET, r_out - INSET
+            A, Bq, C, D = P(qi, aa), P(qo, aa), P(qo, ab), P(qi, ab)
+            tris.append([(A[0], ya, A[1]), (Bq[0], ya, Bq[1]), (C[0], yb, C[1])])
+            tris.append([(A[0], ya, A[1]), (C[0], yb, C[1]), (D[0], yb, D[1])])
+        # Rekkverket rundt ringen, utenom broene, og over trappa på kjernen.
+        spans, at = [], g0
+        for b0, b1 in sorted(gaps):
+            while b0 < g0:
+                b0, b1 = b0 + 2 * math.pi, b1 + 2 * math.pi
+            if b0 > at:
+                spans.append((at, min(b0, g1)))
+            at = max(at, b1)
+        if at < g1:
+            spans.append((at, g1))
+        for sa, sb in spans:
+            if (sb - sa) * r_out < 0.4:
+                continue
+            k = max(2, math.ceil((sb - sa) * r_out / 0.8))
+            path = ring_pts(r_out - 0.13, sa, sb, k)
+            K.parapet(mb, path, y1, h=0.95, t=0.26)
+            for q0, q1 in zip(path, path[1:]):
+                self.wall_box(q0, q1, y1, y1 + 1.0, (0.0, 0.0))
+        cp = ring_pts(r_core - 0.12, a0, a1, 16)
+        K.parapet(mb, cp, y1, h=0.95, t=0.24)
+        for q0, q1 in zip(cp, cp[1:]):
+            self.wall_box(q0, q1, y1, y1 + 1.0, (0.0, 0.0))
+        # Navigasjonen: gulvet holdes unna kjernen og trappa (rett kant ved
+        # foten, så trinnet og gulvet deler kant), toppen unna rekkverket.
+        # Ved toppen av trappa (a1) står trinnet som en mur fra gulvet: der
+        # holdes gulvet unna.
+        under = Polygon(ring_pts(r_core - INSET, a0, a1, n) + ring_pts(r_out + 0.24 + INSET, a0, a1, n)[::-1])
+        end = LineString([P(r_core - INSET, a1), P(r_out + 0.24 + INSET, a1)]).buffer(INSET, cap_style=2)
+        r.obstacles.append(Point(c).buffer(r_core, 36))
+        r.cuts = getattr(r, "cuts", []) + [under.union(end)]
+        # Oppe går du på ringen rundt kjernen (gravkista står på kjernen),
+        # fra toppen av trappa rundt til rekkverket over foten av den.
+        g1w = g1 - (0.12 + INSET) / r_core
+        top_walk = Polygon(ring_pts(r_core + 0.1, g0, g1w, 36) + ring_pts(r_out - 0.26 - INSET, g0, g1w, 36)[::-1])
+        top_walk = top_walk.union(Polygon(ring_pts(r_core + INSET, g0, g0 + 0.3, 4) + ring_pts(r_out - INSET, g0, g0 + 0.3, 4)[::-1]))
+        return top_walk, tris
+
+    def stone_bridge(self, p0, p1, w, y, rails=True, mat="dressed", clip=None):
+        """En murt bro (rett, vannrett) fra p0 til p1 i høyden y, `w` bred,
+        med rekkverk på begge sider og en flat bue under. Gir flaten å gå på."""
+        mb = self.mb
+        L = math.dist(p0, p1)
+        d = ((p1[0] - p0[0]) / L, (p1[1] - p0[1]) / L)
+        lat = (-d[1], d[0])
+        hw = w / 2
+        corner = lambda s, l: (p0[0] + d[0] * s + lat[0] * l, p0[1] + d[1] * s + lat[1] * l)
+        rect = Polygon([corner(0, -hw), corner(L, -hw), corner(L, hw), corner(0, hw)])
+        grid_face(mb, Horizontal(y), rect.difference(clip) if clip is not None else rect, "floor")
+        # Undersida og sidene: en flat bue fra endene.
+        th = 0.45
+        m = max(4, math.ceil(L / 0.6))
+        for k in range(m):
+            s0, s1 = L * k / m, L * (k + 1) / m
+            y0b = y - th - 0.35 * (1 - math.sin(math.pi * s0 / L))
+            y1b = y - th - 0.35 * (1 - math.sin(math.pi * s1 / L))
+            a, b2, c2, d2 = corner(s0, -hw), corner(s1, -hw), corner(s1, hw), corner(s0, hw)
+            mb.quad((a[0], y0b, a[1]), (d2[0], y0b, d2[1]), (c2[0], y1b, c2[1]), (b2[0], y1b, b2[1]), mat, facing=(0, -1, 0))
+            for l, A, B in ((-hw, a, b2), (hw, d2, c2)):
+                mb.quad((A[0], y0b, A[1]), (B[0], y1b, B[1]), (B[0], y, B[1]), (A[0], y, A[1]), mat, facing=(lat[0] * l, 0, lat[1] * l))
+        self.hull([(x, y, z) for x, z in list(rect.exterior.coords)[:-1]] + [(x, y - th, z) for x, z in list(rect.exterior.coords)[:-1]])
+        if rails:
+            for l in (-hw + 0.13, hw - 0.13):
+                path = [corner(0, l), corner(L, l)]
+                K.parapet(mb, path, y, h=0.95, t=0.26)
+                self.wall_box(path[0], path[1], y, y + 1.0, (0.0, 0.0))
+        return rect, Polygon([corner(-0.5, -hw + 0.26 + INSET), corner(L + 0.5, -hw + 0.26 + INSET), corner(L + 0.5, hw - 0.26 - INSET), corner(-0.5, hw - 0.26 - INSET)])
+
+    def block(self, poly, y0, y1, mat="wall", top_mat="floor", cell=1.0):
+        """En murt blokk (repos, brokar, sokkel for en øy) fra y0 opp til y1
+        over et konvekst omriss: sidene, toppen og kollideren."""
+        mb = self.mb
+        pts = list(poly.exterior.coords)[:-1]
+        grid_face(mb, Horizontal(y1), poly, top_mat, cell=cell)
+        c = poly.centroid
+        for k in range(len(pts)):
+            pa, pb = pts[k], pts[(k + 1) % len(pts)]
+            L = math.dist(pa, pb)
+            if L < 1e-3:
+                continue
+            d = ((pb[0] - pa[0]) / L, (pb[1] - pa[1]) / L)
+            nrm = (-d[1], d[0])
+            if (c.x - pa[0]) * nrm[0] + (c.y - pa[1]) * nrm[1] > 0:
+                nrm = (d[1], -d[0])
+            grid_face(mb, Plane(pa, d, nrm), sbox(0.0, y0 - 0.05, L, y1), mat, cell=cell, origin=(0.0, math.floor(y0)))
+        self.hull([(x, y1, z) for x, z in pts] + [(x, y0 - 0.3, z) for x, z in pts])
+
+    def wall_stair(self, room, p0, p1, w, y0, y1, base, open_side, rail=True):
+        """En rett trapp langs en mur inne i et rom (fra p0 til p1, midtlinja,
+        `w` bred), fra y0 til y1, murt ned til `base`, med rekkverk på den åpne
+        sida (`open_side`: +1 til venstre for retningen, −1 til høyre). Gir
+        flaten til navigasjonen (planet og polygonen)."""
+        mb = self.mb
+        L = math.dist(p0, p1)
+        d = ((p1[0] - p0[0]) / L, (p1[1] - p0[1]) / L)
+        lat = (-d[1], d[0])
+        n = max(2, round(abs(y1 - y0) / 0.2))
+        K.steps(mb, p0, d, lat, w + 2 * STAIR_IN, 0.0, L, y0, y1, n, mat="dressed")
+        # Sida mot rommet: muren fra bunnen opp til hvert trinn.
+        hw = w / 2 * open_side
+        nrm = (lat[0] * open_side, lat[1] * open_side)
+        for k in range(n):
+            sa, sb = L * k / n, L * (k + 1) / n
+            yt = y0 + (y1 - y0) * (k + 1) / n
+            qa = (p0[0] + d[0] * sa + lat[0] * hw, p0[1] + d[1] * sa + lat[1] * hw)
+            qb = (p0[0] + d[0] * sb + lat[0] * hw, p0[1] + d[1] * sb + lat[1] * hw)
+            mb.quad((qa[0], base - 0.05, qa[1]), (qb[0], base - 0.05, qb[1]), (qb[0], yt, qb[1]), (qa[0], yt, qa[1]), "wall", facing=(nrm[0], 0.0, nrm[1]))
+        # Enden nede (der trappa møter reposet står den på blokka under).
+        # Kollideren: rampa og murblokka under.
+        pts = []
+        for s, y in ((0.0, y0), (L, y1)):
+            for l in (-w / 2, w / 2):
+                x, z = p0[0] + d[0] * s + lat[0] * l, p0[1] + d[1] * s + lat[1] * l
+                pts += [(x, y + 0.02, z), (x, base - 0.3, z)]
+        self.hull(pts)
+        if rail:
+            rp = [(p0[0] + lat[0] * (hw - 0.13 * open_side), p0[1] + lat[1] * (hw - 0.13 * open_side)), (p1[0] + lat[0] * (hw - 0.13 * open_side), p1[1] + lat[1] * (hw - 0.13 * open_side))]
+            K.parapet(mb, rp, y0, h=0.95, t=0.22, base_y=[y0, y1])
+            self.hull([(rp[0][0], y0, rp[0][1]), (rp[1][0], y1, rp[1][1]), (rp[1][0], y1 + 1.0, rp[1][1]), (rp[0][0], y0 + 1.0, rp[0][1]),
+                       (rp[0][0] + lat[0] * 0.1, y0, rp[0][1] + lat[1] * 0.1), (rp[1][0] + lat[0] * 0.1, y1, rp[1][1] + lat[1] * 0.1),
+                       (rp[1][0] + lat[0] * 0.1, y1 + 1.0, rp[1][1] + lat[1] * 0.1), (rp[0][0] + lat[0] * 0.1, y0 + 1.0, rp[0][1] + lat[1] * 0.1)])
+        # Navigasjonen: planet langs trappa, innenfor rekkverket.
+        inner = w / 2 - INSET
+        ri = (w / 2 - 0.26 - INSET) if rail else inner
+        lo, hi = (-inner, ri) if open_side > 0 else (-ri, inner)
+        walk = Polygon([(p0[0] + lat[0] * lo, p0[1] + lat[1] * lo), (p1[0] + lat[0] * lo, p1[1] + lat[1] * lo),
+                        (p1[0] + lat[0] * hi, p1[1] + lat[1] * hi), (p0[0] + lat[0] * hi, p0[1] + lat[1] * hi)])
+        k = (y1 - y0) / L
+        plane = (k * d[0], k * d[1], y0 - k * (p0[0] * d[0] + p0[1] * d[1]))
+        self.patch(walk, plane, room)
+        return walk
+
+    def shaft(self, hole, y0, y1, mat="wall_dark"):
+        """Muren rundt et rektangulært hull (fallem, stige) fra taket i
+        rommet under (y0) opp til gulvet over (y1)."""
+        x0, z0, x1, z1 = hole.bounds
+        for pa, pb, out in (((x0, z0), (x1, z0), (0, -1)), ((x1, z0), (x1, z1), (1, 0)), ((x1, z1), (x0, z1), (0, 1)), ((x0, z1), (x0, z0), (-1, 0))):
+            L = math.dist(pa, pb)
+            surf = Plane(pa, ((pb[0] - pa[0]) / L, (pb[1] - pa[1]) / L), (-out[0], -out[1]))
+            grid_face(self.mb, surf, sbox(0.0, y0 - 0.05, L, y1 + 0.02), mat)
+            self.wall_box(pa, pb, y0, y1, out)
+
+    def wall_torch(self, room, wall, at, y, intensity=2.0, reach=8.0):
+        """Fakkel på muren `wall` ('n', 's', 'e', 'w') i rektangelrommet, `at`
+        langs muren (x eller z), `y` over gulvet."""
+        r = self.rooms[room]
+        x, z, n = {"n": (at, r.z0 + 0.02, (0.0, 1.0)), "s": (at, r.z1 - 0.02, (0.0, -1.0)),
+                   "w": (r.x0 + 0.02, at, (1.0, 0.0)), "e": (r.x1 - 0.02, at, (-1.0, 0.0))}[wall]
+        self.torch(room, (x, r.y + y, z), n, intensity=intensity, reach=reach)
+
     def wall_mat(self, r):
-        return {"kistekjeller": "wall_dark", "dypgrav": "wall_dark", "sjaktbunn": "wall_dark", "stigebunn": "wall_dark"}.get(r.id, "wall")
+        return self.lay.get("wall_mats", {}).get(r.id, "wall")
 
     def floor_collider(self, poly, y):
         """Gulvet som bokser (rektangler) eller konvekse omhyllinger."""
@@ -587,8 +1190,12 @@ class Level:
             # skivegrensene, så toppen følger trinnene.
             for i, (p0, p1, d, Ls) in enumerate(h.segs):
                 m = max(1, math.ceil(Ls - 1e-6))
-                for q in range(m + 1):
-                    px, pz = p0[0] + d[0] * Ls * q / m, p0[1] + d[1] * Ls * q / m
+                cuts = [None] * (m + 1) if self.flat_step == 1.0 else self.slices(h, i)
+                for q, sq in enumerate(cuts):
+                    if sq is None:
+                        px, pz = p0[0] + d[0] * Ls * q / m, p0[1] + d[1] * Ls * q / m
+                    else:
+                        px, pz = p0[0] + d[0] * sq, p0[1] + d[1] * sq
                     u = (px - pa[0]) * dx + (pz - pa[1]) * dz
                     for uu in (u - 1e-3, u + 1e-3):
                         if 0.0 < uu < L:
@@ -624,36 +1231,40 @@ class Level:
         for i, (p0, p1, d, L) in enumerate(h.segs):
             axis = "x" if abs(d[0]) > 0.5 else "z"
             cw = p0[1] if axis == "x" else p0[0]
-            s_lo, s_hi = (0.0, L)
-            m = max(1, math.ceil(L - 1e-6))
+            cuts = self.slices(h, i)
             # Krysshvelvet i hjørnet før strekket står på gulvet ved starten; er første
             # skive høyere (trappa begynner i den), må trinnet imellom også lukkes.
             prev = h.floor_s(i, 1e-4) + SPRING if i > 0 else None
-            for q in range(m):
-                s0, s1 = s_lo + L * q / m, s_lo + L * (q + 1) / m
+            for s0, s1 in zip(cuts, cuts[1:]):
                 S = max(h.floor_s(i, s0 + 1e-4), h.floor_s(i, s1 - 1e-4)) + SPRING
                 g0 = (p0[0] + d[0] * s0, p0[1] + d[1] * s0)
                 g1 = (p0[0] + d[0] * s1, p0[1] + d[1] * s1)
                 c0 = min(g0[0], g1[0]) if axis == "x" else min(g0[1], g1[1])
-                K.barrel(mb, axis, c0, abs(s1 - s0), cw, S, a, a, mat="vault", step=1.0)
+                K.barrel(mb, axis, c0, abs(s1 - s0), cw, S, a, a, mat="vault", step=max(1.0, s1 - s0), n=self.vn)
                 if prev is not None and abs(prev - S) > 1e-3:
-                    self.vault_step(axis, c0 if (d[0] + d[1]) > 0 else c0 + abs(s1 - s0), cw, prev, S, a)
+                    self.vault_step(axis, c0 if (d[0] + d[1]) > 0 else c0 + abs(s1 - s0), cw, prev, S, a, n=self.vn)
                 prev = S
             if i < n - 1:
                 cx, cz = p1
                 S = h.floor_s(i, L) + SPRING
                 if prev is not None and abs(prev - S) > 1e-3:  # siste skive mot krysshvelvet i hjørnet
                     g_end = (p0[0] + d[0] * L, p0[1] + d[1] * L)
-                    self.vault_step(axis, g_end[0] if axis == "x" else g_end[1], cw, prev, S, a)
-                K.groin_bay(mb, cx - a, cx + a, cz - a, cz + a, S, a, mat="vault")
-                K.groin_ribs(mb, cx - a, cx + a, cz - a, cz + a, S, a)
+                    self.vault_step(axis, g_end[0] if axis == "x" else g_end[1], cw, prev, S, a, n=self.vn)
+                K.groin_bay(mb, cx - a, cx + a, cz - a, cz + a, S, a, mat="vault", n=self.vn)
+                K.groin_ribs(mb, cx - a, cx + a, cz - a, cz + a, S, a, n=self.vn)
+        if h.rail_b:
+            p0, p1, d, L = h.segs[-1]
+            lat = (-d[1], d[0])
+            e = [(p0[0] + d[0] * (L - 0.13) + lat[0] * l, p0[1] + d[1] * (L - 0.13) + lat[1] * l) for l in (-a, a)]
+            K.parapet(mb, e, h.yb, h=0.95, t=0.26)
+            self.wall_box(e[0], e[1], h.yb, h.yb + 1.0, (0.0, 0.0))
         # Muren i enden der åpningen er smalere enn gangen (døra, den
         # falske veggen), sett fra gangen.
         if h.kind in (SHORTCUT, SECRET):
             p0, p1, d, L = h.segs[0]
             lat = (-d[1], d[0])
             surf = Plane((p0[0] - lat[0] * a, p0[1] - lat[1] * a), lat, d)
-            section = Polygon([(u + a, v) for u, v in arch_profile(0.0, h.w, h.ya, SPRING, n=12)])
+            section = Polygon([(u + a, v) for u, v in arch_profile(0.0, h.w, h.ya, SPRING, n=self.vn)])
             ow = 1.6 if h.kind == SHORTCUT else 2.0
             hole = Polygon([(u + a, v) for u, v in self.opening(ow, h.ya, h.kind)])
             grid_face(mb, surf, section.difference(hole), "wall")
@@ -667,11 +1278,24 @@ class Level:
         p0, p1, d, L = h.segs[0]
         ext = [h.seg_rect(0, -2 * INSET, 0.0)]
         q0, q1, d2, L2 = h.segs[-1]
-        ext.append(h.seg_rect(n - 1, L2, L2 + 2 * INSET))
+        trim = h.rail_b or h.open_b
+        if not trim:
+            ext.append(h.seg_rect(n - 1, L2, L2 + 2 * INSET))
         walk = unary_union([h.poly] + ext).buffer(-INSET, join_style="mitre")
-        for rid in (h.a, h.b):
-            if self.rooms[rid].walk is not None:
-                walk = walk.difference(self.rooms[rid].walk)
+        if h.rail_b:
+            walk = walk.difference(h.seg_rect(n - 1, L2 - 0.26 - INSET, L2 + 1.0, h.w + 1.0))
+        for rid, y in ((h.a, h.ya), (h.b, h.yb)):
+            r = self.rooms[rid]
+            if abs(y - r.y) > 0.5:
+                # Gangen går ut fra et galleri eller en balkong: det som er
+                # flaten der oppe, er rommets.
+                for d in self.decks:
+                    if d.get("of") == rid and abs(d["y"] - y) < 0.5:
+                        dw = d.get("walk") if d.get("walk") is not None else d.get("patched")
+                        if dw is not None:
+                            walk = walk.difference(dw)
+            elif r.walk is not None:
+                walk = walk.difference(r.walk)
         for i, (p0, p1, d, L) in enumerate(h.segs):
             s0_all = a if i > 0 else -2 * INSET
             s1_all = L + a if i < n - 1 else L + 2 * INSET
@@ -690,7 +1314,7 @@ class Level:
                     k = (y1 - y0) / (s1 - s0)
                     # y = y0 + k·((x − x0)·dx + (z − z0)·dz − s0)
                     plane = (k * d[0], k * d[1], y0 - k * (p0[0] * d[0] + p0[1] * d[1] + s0))
-                gate = h.gate if h.kind in (GATE, SECRET) else None
+                gate = h.gate if h.kind in (GATE, SECRET) else getattr(h, "water", None)
                 if h.kind == SHORTCUT and i == 0:
                     # Bare den første meteren ved døra stenges.
                     near = part.intersection(h.seg_rect(0, -2.0, 1.0, h.w + 1.0))
@@ -747,56 +1371,99 @@ class Level:
             return h.floor_s(i, 1e-4) + SPRING
         if s >= L - 1e-6:
             return h.floor_s(i, L - 1e-4) + SPRING
-        m = max(1, math.ceil(L - 1e-6))
-        q = min(m - 1, int(s * m / L))
-        s0, s1 = L * q / m, L * (q + 1) / m
+        if self.flat_step == 1.0:
+            m = max(1, math.ceil(L - 1e-6))
+            q = min(m - 1, int(s * m / L))
+            s0, s1 = L * q / m, L * (q + 1) / m
+        else:
+            cuts = self.slices(h, i)
+            q = max(0, min(len(cuts) - 2, next((k for k in range(len(cuts) - 1) if s < cuts[k + 1]), len(cuts) - 2)))
+            s0, s1 = cuts[q], cuts[q + 1]
         return max(h.floor_s(i, s0 + 1e-4), h.floor_s(i, s1 - 1e-4)) + SPRING
 
-    # -- Beinhuset: rund sal med galleri og trapp langs muren --
+    def slices(self, h, i):
+        """Skivene i tønnehvelvet over strekk i: 1 m der trappa går, og
+        `flat_step` der gangen er flat. Grensene langs strekket."""
+        L = h.segs[i][3]
+        if self.flat_step == 1.0:
+            m = max(1, math.ceil(L - 1e-6))
+            return [L * q / m for q in range(m + 1)]
+        parts = [(0.0, L, self.flat_step)]
+        if h.stairs and h.stairs[0] == i:
+            _, sa, sb = h.stairs
+            parts = [(0.0, sa, self.flat_step), (sa, sb, 1.0), (sb, L, self.flat_step)]
+        out = [0.0]
+        for a, b, st in parts:
+            if b - a < 1e-6:
+                continue
+            m = max(1, math.ceil((b - a) / st - 1e-6))
+            out += [a + (b - a) * q / m for q in range(1, m + 1)]
+        return out
 
-    def beinhus(self, r):
+    # -- Runde rom: kuppel, og eventuelt galleri rundt og trapp langs muren --
+
+    def round_room(self, r, spec):
+        """Et rundt rom med kuppel. `spec` (fra utlegget) gir galleriet rundt
+        (ring fra `ring_in` til muren i høyden `gallery_y`) med vindeltrappa
+        langs muren fra gulvet ved `stair_a0` opp til galleriet ved
+        `stair_a1`, murflaten (`wall_mat`), hyllene med hodeskaller
+        (`shelves`), faklene (`torches`: (grader, høyde over gulvet eller
+        galleriet, styrke, rekkevidde, på galleriet)) og fatet med glør
+        (`brazier`). Uten galleri er det bare gulv, mur og kuppel (arenaen)."""
         mb = self.mb
-        B = BEINHUS
-        c, R, gy = B["c"], B["r"], B["gallery_y"]
-        a0, a1 = B["stair_a0"], B["stair_a1"]
+        c, R = r.c, r.r
+        gal = spec.get("gallery")
         top = r.y + r.h
         # Gulvet.
-        grid_face(mb, Horizontal(r.y), r.poly, "floor")
+        grid_face(mb, Horizontal(r.y), r.poly, spec.get("floor_mat", "floor"))
         self.hull([(x, r.y, z) for x, z in list(r.poly.exterior.coords)[:-1:3]] + [(x, r.y - 0.5, z) for x, z in list(r.poly.exterior.coords)[:-1:3]])
-        # Muren med åpningene, beinhusteksturen og hyllene.
-        cyl = Cyl(c, R, a0=0.0, inward=True)
+        # Muren med åpningene (og beinhusteksturen og hyllene).
+        # Skjøten i muren (u = 0) legges bort fra dørene: en dør over skjøten
+        # ble bare halvveis hogd ut, og murkolliderne sto i den.
+        seam = 0.0
+        if any(min(abs(ang % (2 * math.pi)), 2 * math.pi - abs(ang % (2 * math.pi))) < (w / 2 + 0.5) / R for (_, ang, w, _, _, _) in r.doors):
+            seam = math.pi
+        cyl = Cyl(c, R, a0=seam, inward=True)
         circ = 2 * math.pi * R
         openings, cuts = [], []
         for (side, ang, w, y, kind, h) in r.doors:
-            u = (ang % (2 * math.pi)) * R
+            u = ((ang - seam) % (2 * math.pi)) * R
             prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
             openings.append(Polygon(prof))
-            K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
-            cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof)))
-        K.wall(mb, cyl, circ, r.y - 0.05, top, openings, mat="bones", cell=1.0, extra=VAULT_LAP)
-        # Hyllene med hodeskaller, i to rader under galleriet og over det.
-        shelf_cyl = Cyl(c, R, a0=0.0, inward=True)
+            if kind not in (SECRET, SHORTCUT):
+                K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
+            cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof), y))
+        wmat = spec.get("wall_mat", "wall")
+        K.wall(mb, cyl, circ, r.y - 0.05, top, openings, mat=wmat, cell=spec.get("wall_cell", 1.0), extra=VAULT_LAP)
         segs = 72
-        for k in range(segs):
-            u0, u1 = circ * k / segs, circ * (k + 1) / segs
-            if any(u0 < cu1 and u1 > cu0 for cu0, cu1, _ in cuts):
-                continue
-            am = ((u0 + u1) / 2 / R) % (2 * math.pi)
-            on_stair = am >= a0 or am <= a1 - 2 * math.pi
-            for lv in (r.y + 0.9, r.y + 2.0, r.y + 3.2):
-                if lv < gy - 0.4 and not on_stair:
-                    K.ossuary_shelves(mb, Cyl(c, R, a0=u0 / R, inward=True), u1 - u0, r.y, top, [lv], step=u1 - u0)
-            for lv in (gy + 1.4, gy + 2.6):
-                K.ossuary_shelves(mb, Cyl(c, R, a0=u0 / R, inward=True), u1 - u0, gy, top, [lv], step=u1 - u0)
+        a0 = a1 = None
+        if gal:
+            gy = gal["y"]
+            a0, a1 = gal["stair_a0"], gal["stair_a1"]
+            on_stair_fn = lambda am: am >= a0 or am <= a1 - 2 * math.pi
+        if spec.get("shelves"):
+            # Hyllene med hodeskaller, i to rader under galleriet og over det.
+            for k in range(segs):
+                u0, u1 = circ * k / segs, circ * (k + 1) / segs
+                if any(u0 < cu1 and u1 > cu0 for cu0, cu1, _, _ in cuts):
+                    continue
+                am = (seam + (u0 + u1) / 2 / R) % (2 * math.pi)
+                on_stair = on_stair_fn(am)
+                for lv in (r.y + 0.9, r.y + 2.0, r.y + 3.2):
+                    if lv < gy - 0.4 and not on_stair:
+                        K.ossuary_shelves(mb, Cyl(c, R, a0=seam + u0 / R, inward=True), u1 - u0, r.y, top, [lv], step=u1 - u0)
+                for lv in (gy + 1.4, gy + 2.6):
+                    K.ossuary_shelves(mb, Cyl(c, R, a0=seam + u0 / R, inward=True), u1 - u0, gy, top, [lv], step=u1 - u0)
         # Sokkelen langs foten, utenom åpningene og trappa (i korte stykker
         # langs buen).
         for k in range(segs):
             u0, u1 = circ * k / segs, circ * (k + 1) / segs
-            am = ((u0 + u1) / 2 / R) % (2 * math.pi)
-            if any(u0 < cu1 and u1 > cu0 for cu0, cu1, _ in cuts) or am >= a0 or am <= a1 - 2 * math.pi:
+            am = (seam + (u0 + u1) / 2 / R) % (2 * math.pi)
+            if any(u0 < cu1 and u1 > cu0 and cy < r.y + 0.05 for cu0, cu1, _, cy in cuts) or (gal and on_stair_fn(am)):
                 continue
-            K.plinth(mb, Cyl(c, R, a0=u0 / R, inward=True), [(0.0, u1 - u0, r.y)], h=0.34)
-        # Murkolliderne rundt (utenom åpningene).
+            K.plinth(mb, Cyl(c, R, a0=seam + u0 / R, inward=True), [(0.0, u1 - u0, r.y)], h=0.34)
+        # Murkolliderne rundt (utenom åpningene; under en åpning høyere oppe
+        # står muren fra gulvet opp til den).
         for k in range(segs):
             u0, u1 = circ * k / segs, circ * (k + 1) / segs
             pa, pb = cyl.point(u0, 0.0), cyl.point(u1, 0.0)
@@ -805,236 +1472,100 @@ class Level:
             out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
             if hit:
                 self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
+                if hit[0][3] > r.y + 0.05:
+                    # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), r.y - 0.5, hit[0][3] - 0.3, out)
             else:
                 self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), r.y - 0.5, top + 4.5, out)
         # Kuppelen.
-        hfn = K.dome(mb, c, R, top, top + 3.6, mat="vault", rings=8, seg=48)
-        K.dome_ribs(mb, c, R, hfn, count=12)
-        # Galleriet: ringen fra a1 rundt til a0, med rekkverk, og trappa.
-        ri = B["ring_in"]
-        g0, g1 = a1 - 2 * math.pi, a0  # 15° → 300°
-        steps = 48
+        hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat="vault", rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
+        K.dome_ribs(mb, c, R, hfn, count=spec.get("ribs", 12))
         ring_pts = lambda q, aa, ab, n: [(c[0] + q * math.cos(aa + (ab - aa) * k / n), c[1] + q * math.sin(aa + (ab - aa) * k / n)) for k in range(n + 1)]
-        outer = ring_pts(R, g0, g1, steps)
-        inner = ring_pts(ri, g0, g1, steps)
-        gal = Polygon(outer + inner[::-1])
-        grid_face(mb, Horizontal(gy), gal, "floor")
-        under = Horizontal(gy - 0.3, up=False)
-        grid_face(mb, under, gal, "dressed")
-        for k in range(steps):
-            q = [inner[k], inner[k + 1]]
-            mb.quad((q[0][0], gy - 0.3, q[0][1]), (q[1][0], gy - 0.3, q[1][1]), (q[1][0], gy, q[1][1]), (q[0][0], gy, q[0][1]), "dressed",
-                    facing=(c[0] - q[0][0], 0, c[1] - q[0][1]))
-            pa, pb = outer[k], outer[k + 1]
-            pc, pd = inner[k + 1], inner[k]
-            quad = [pa, pb, pc, pd]
-            self.hull([(x, gy, z) for x, z in quad] + [(x, gy - 0.3, z) for x, z in quad])
-            # Konsollene under galleriet.
-            if k % 4 == 0:
-                aa = g0 + (g1 - g0) * k / steps
-                p = (c[0] + (ri + 0.6) * math.cos(aa), c[1] + (ri + 0.6) * math.sin(aa))
-                K.obox(mb, (p[0], gy - 0.9, p[1]), (0.35, 0.6, 1.2), math.pi / 2 - aa, "dressed")
-        K.parapet(mb, inner, gy, h=0.95, t=0.26)
-        # Rekkverket over enden av galleriet, over foten av trappa.
-        end = [(c[0] + ri * math.cos(g1), c[1] + ri * math.sin(g1)), (c[0] + (R - 0.1) * math.cos(g1), c[1] + (R - 0.1) * math.sin(g1))]
-        K.parapet(mb, end, gy, h=0.95, t=0.26)
-        self.wall_box(end[0], end[1], gy, gy + 1.0, (0.0, 0.0))
-        for k in range(steps):
-            self.wall_box(inner[k], inner[k + 1], gy, gy + 1.0, (0.0, 0.0))
-        # Trappa langs muren fra gulvet (ved a0) opp til galleriet (ved a1).
-        si = B["stair_in"]
-        n = 25
-        yfn = K.spiral_stair(mb, c, si, R, a0, a1, r.y, gy, n, mat="dressed", inner_wall=True)
-        sp = ring_pts(si, a0, a1, n)
-        K.parapet(mb, sp, r.y, h=0.95, t=0.22, base_y=[r.y + (gy - r.y) * k / n for k in range(n + 1)])
-        for k in range(n):
-            aa, ab = a0 + (a1 - a0) * k / n, a0 + (a1 - a0) * (k + 1) / n
-            ya, yb = r.y + (gy - r.y) * k / n, r.y + (gy - r.y) * (k + 1) / n
-            P = lambda q, ang: (c[0] + q * math.cos(ang), c[1] + q * math.sin(ang))
-            quad = [P(si, aa), P(R, aa), P(R, ab), P(si, ab)]
-            self.hull([(x, yb if j >= 2 else ya + 0.02, z) for j, (x, z) in enumerate(quad)] + [(x, r.y - 0.2, z) for x, z in quad])
-            self.wall_box(P(si, aa), P(si, ab), r.y, yb + 1.0, (0.0, 0.0))
-            # Navigasjonen på trappa: to trekanter per trinn.
-            qi, qo = si + INSET, R - INSET
-            A, Bq, C, D = P(qi, aa), P(qo, aa), P(qo, ab), P(qi, ab)
-            self.tri_patches.append(([(A[0], ya, A[1]), (Bq[0], ya, Bq[1]), (C[0], yb, C[1])], "beintrapp"))
-            self.tri_patches.append(([(A[0], ya, A[1]), (C[0], yb, C[1]), (D[0], yb, D[1])], "beintrapp"))
-        # Navigasjonen: gulvet (uten feltet under trappa) og galleriet.
-        under_stair = Polygon(ring_pts(si - INSET, a0, a1, n) + ring_pts(R + 1, a0, a1, n)[::-1])
-        floor = Point(c).buffer(R - INSET, 72).difference(under_stair)
-        r.floor_walk = floor
-        g1w = g1 - INSET / (ri + 1.0)
-        gwalk = Polygon(ring_pts(R - INSET, g0, g1w, steps) + ring_pts(ri + INSET, g0, g1w, steps)[::-1])
-        self.patch(gwalk, (0.0, 0.0, gy), "galleri")
-        self.gallery_room = Polygon(ring_pts(R, 0.0, 2 * math.pi, 72) + ring_pts(ri - 0.05, 0.0, 2 * math.pi, 72)[::-1])
-        self.stair_room = Polygon(ring_pts(R, a0, a1, 16) + ring_pts(si, a0, a1, 16)[::-1])
-        # Lysene: fakler rundt muren og glør i et fat midt i salen.
-        for deg in (150, 210, 30, 110):
+        if gal:
+            # Galleriet: ringen fra a1 rundt til a0, med rekkverk, og trappa.
+            ri = gal["ring_in"]
+            g0, g1 = a1 - 2 * math.pi, a0
+            steps = gal.get("segs", 48)
+            outer = ring_pts(R, g0, g1, steps)
+            inner = ring_pts(ri, g0, g1, steps)
+            gpoly = Polygon(outer + inner[::-1])
+            grid_face(mb, Horizontal(gy), gpoly, "floor")
+            under = Horizontal(gy - 0.3, up=False)
+            grid_face(mb, under, gpoly, "dressed")
+            for k in range(steps):
+                q = [inner[k], inner[k + 1]]
+                mb.quad((q[0][0], gy - 0.3, q[0][1]), (q[1][0], gy - 0.3, q[1][1]), (q[1][0], gy, q[1][1]), (q[0][0], gy, q[0][1]), "dressed",
+                        facing=(c[0] - q[0][0], 0, c[1] - q[0][1]))
+                pa, pb = outer[k], outer[k + 1]
+                pc, pd = inner[k + 1], inner[k]
+                quad = [pa, pb, pc, pd]
+                self.hull([(x, gy, z) for x, z in quad] + [(x, gy - 0.3, z) for x, z in quad])
+                # Konsollene under galleriet.
+                if k % 4 == 0:
+                    aa = g0 + (g1 - g0) * k / steps
+                    p = (c[0] + (ri + 0.6) * math.cos(aa), c[1] + (ri + 0.6) * math.sin(aa))
+                    K.obox(mb, (p[0], gy - 0.9, p[1]), (0.35, 0.6, 1.2), math.pi / 2 - aa, "dressed")
+            K.parapet(mb, inner, gy, h=0.95, t=0.26)
+            # Rekkverket over enden av galleriet, over foten av trappa.
+            end = [(c[0] + ri * math.cos(g1), c[1] + ri * math.sin(g1)), (c[0] + (R - 0.1) * math.cos(g1), c[1] + (R - 0.1) * math.sin(g1))]
+            K.parapet(mb, end, gy, h=0.95, t=0.26)
+            self.wall_box(end[0], end[1], gy, gy + 1.0, (0.0, 0.0))
+            for k in range(steps):
+                self.wall_box(inner[k], inner[k + 1], gy, gy + 1.0, (0.0, 0.0))
+            # Trappa langs muren fra gulvet (ved a0) opp til galleriet (ved a1).
+            si = gal["stair_in"]
+            n = gal.get("steps", 25)
+            sid = gal.get("stair_id", r.id + "_trapp")
+            K.spiral_stair(mb, c, si, R, a0, a1, r.y, gy, n, mat="dressed", inner_wall=True)
+            sp = ring_pts(si, a0, a1, n)
+            K.parapet(mb, sp, r.y, h=0.95, t=0.22, base_y=[r.y + (gy - r.y) * k / n for k in range(n + 1)])
+            for k in range(n):
+                aa, ab = a0 + (a1 - a0) * k / n, a0 + (a1 - a0) * (k + 1) / n
+                ya, yb = r.y + (gy - r.y) * k / n, r.y + (gy - r.y) * (k + 1) / n
+                P = lambda q, ang: (c[0] + q * math.cos(ang), c[1] + q * math.sin(ang))
+                quad = [P(si, aa), P(R, aa), P(R, ab), P(si, ab)]
+                self.hull([(x, yb if j >= 2 else ya + 0.02, z) for j, (x, z) in enumerate(quad)] + [(x, r.y - 0.2, z) for x, z in quad])
+                self.wall_box(P(si, aa), P(si, ab), r.y, yb + 1.0, (0.0, 0.0))
+                # Navigasjonen på trappa: to trekanter per trinn.
+                qi, qo = si + INSET, R - INSET
+                A, Bq, C, D = P(qi, aa), P(qo, aa), P(qo, ab), P(qi, ab)
+                self.tri_patches.append(([(A[0], ya, A[1]), (Bq[0], ya, Bq[1]), (C[0], yb, C[1])], sid, gal.get("stair_gate")))
+                self.tri_patches.append(([(A[0], ya, A[1]), (C[0], yb, C[1]), (D[0], yb, D[1])], sid, gal.get("stair_gate")))
+            # Navigasjonen: gulvet (uten feltet under trappa) og galleriet.
+            under_stair = Polygon(ring_pts(si - INSET, a0, a1, n) + ring_pts(R + 1, a0, a1, n)[::-1])
+            r.floor_walk = Point(c).buffer(R - INSET, 72).difference(under_stair)
+            g1w = g1 - INSET / (ri + 1.0)
+            gwalk = Polygon(ring_pts(R - INSET, g0, g1w, steps) + ring_pts(ri + INSET, g0, g1w, steps)[::-1])
+            gid = gal.get("id", r.id + "_galleri")
+            self.patch(gwalk, (0.0, 0.0, gy), gid)
+            # Rommene i json: galleriet over salen, og trappa.
+            gring = Polygon(ring_pts(R, 0.0, 2 * math.pi, 72) + ring_pts(ri - 0.05, 0.0, 2 * math.pi, 72)[::-1])
+            sring = Polygon(ring_pts(R, a0, a1, 16) + ring_pts(si, a0, a1, 16)[::-1])
+            self.decks.append(dict(room=gid, of=r.id, name=gal.get("name", "Galleriet"), poly=gring, y=gy, top=top, ring=Point(c).buffer(R + 0.5).difference(Point(c).buffer(ri - 0.5)), obstacles=[], patched=gwalk))
+            self.json_rooms.append({"id": gid, "name": gal.get("name", "Galleriet"), "poly": [[rnd(x), rnd(z)] for x, z in list(gring.exterior.coords)[:-1]], "y": gy, "h": rnd(top - gy), "secret": False})
+            self.json_rooms.append({"id": sid, "name": gal.get("stair_name", "Trappa opp til galleriet"), "poly": [[rnd(x), rnd(z)] for x, z in list(sring.exterior.coords)[:-1]], "y": r.y, "h": rnd(top - r.y), "secret": False})
+        else:
+            r.floor_walk = Point(c).buffer(R - INSET, 72)
+        # Lysene: fakler rundt muren.
+        for deg, dy, inten, reach, on_gal in spec.get("torches", []):
             ang = math.radians(deg)
-            p = (c[0] + (R - 0.02) * math.cos(ang), r.y + 2.2, c[1] + (R - 0.02) * math.sin(ang))
-            self.torch("beinhus", p, (-math.cos(ang), -math.sin(ang)), intensity=2.0, reach=10.0)
-        for deg in (240, 330, 60, 170):
-            ang = math.radians(deg)
-            p = (c[0] + (R - 0.02) * math.cos(ang), gy + 1.9, c[1] + (R - 0.02) * math.sin(ang))
-            self.torch("beinhus", p, (-math.cos(ang), -math.sin(ang)), intensity=1.6, reach=8.0)
-        # Fatet med glør.
-        K.cylinder(mb, c, 0.55, r.y, r.y + 0.75, "iron", n=10, caps=(True, False), smooth=False)
-        K.cylinder(mb, c, 0.5, r.y + 0.75, r.y + 0.8, "fire_torch", n=10, caps=(True, False), smooth=False)
-        self.box((c[0], r.y + 0.4, c[1]), (1.1, 0.8, 1.1))
-        r.obstacles.append(Point(c).buffer(0.6))
-        self.light((c[0], r.y + 1.4, c[1]), (1.0, 0.45, 0.18), 9.0, "beinhus", True, 2.4)
-        r.ceil = gy - 0.3  # under galleriet
+            base = gal["y"] if on_gal else r.y
+            p = (c[0] + (R - 0.02) * math.cos(ang), base + dy, c[1] + (R - 0.02) * math.sin(ang))
+            self.torch(r.id, p, (-math.cos(ang), -math.sin(ang)), intensity=inten, reach=reach)
+        if spec.get("brazier"):
+            # Fatet med glør midt i salen.
+            K.cylinder(mb, c, 0.55, r.y, r.y + 0.75, "iron", n=10, caps=(True, False), smooth=False)
+            K.cylinder(mb, c, 0.5, r.y + 0.75, r.y + 0.8, "fire_torch", n=10, caps=(True, False), smooth=False)
+            self.box((c[0], r.y + 0.4, c[1]), (1.1, 0.8, 1.1))
+            r.obstacles.append(Point(c).buffer(0.6))
+            self.light((c[0], r.y + 1.4, c[1]), (1.0, 0.45, 0.18), 9.0, r.id, True, 2.4)
+        r.ceil = gal["y"] - 0.3 if gal else top  # under galleriet
 
     # -- Det som står i rommene --
 
     def dress(self):
-        mb = self.mb
-        rm = self.rooms
-        rng = self.rng
-        # Kapellet: alteret til hvilestedet settes av motoren. Fakler ved
-        # trappa opp, kalkmalt mur.
-        k = rm["kapell"]
-        self.torch("kapell", (-4.98, 2.4, -1.0), (1.0, 0.0))
-        self.torch("kapell", (4.98, 2.4, 1.5), (-1.0, 0.0), intensity=1.6)
-        for x, z in ((-3.6, 2.8),):
-            K.candlestick(mb, x, z, k.y, arms=3)
-            k.obstacles.append(Point(x, z).buffer(0.35))
-            self.box((x, k.y + 0.7, z), (0.5, 1.4, 0.5))
-            self.light((x, k.y + 1.55, z), CANDLE, 5.0, "kapell", True, 1.2)
-        # Gravgangen: nisjer i begge murene, stearinlys i hver tredje.
-        g = rm["gravgang"]
-        for side, xw, nrm in (("w", g.x0, (1.0, 0.0)), ("e", g.x1, (-1.0, 0.0))):
-            surf = Plane((xw, g.z1), (0.0, -1.0), nrm) if side == "w" else Plane((xw, g.z0), (0.0, 1.0), nrm)
-            length = g.z1 - g.z0
-            for j, zc in enumerate(range(10, 35, 3)):
-                if abs(zc - 20) < 2.5:
-                    continue
-                u = (g.z1 - zc) if side == "w" else (zc - g.z0)
-                for lvl, v0 in enumerate((g.y + 0.35, g.y + 1.25)):
-                    K.niche(mb, surf, u, v0, w=1.7, h=0.5, depth=0.5, sealed=(j + lvl) % 3 == 1, rng=rng)
-                if j % 3 == 0:
-                    p = surf.point(u, g.y + 2.15, 0.12)
-                    K.candle(mb, p[0], p[2], g.y + 2.1)
-                    box_c = surf.point(u, g.y + 2.05, 0.12)
-                    K.box(mb, (box_c[0] - 0.12, g.y + 2.0, box_c[2] - 0.12), (box_c[0] + 0.12, g.y + 2.1, box_c[2] + 0.12), "dressed")
-                    self.light((p[0], g.y + 2.45, p[2]), CANDLE, 4.5, "gravgang", True, 1.0)
-        # Sidegraven: en sarkofag, kald.
-        s = rm["sidegrav"]
-        self.prop("kit_sarcophagus", -9.5, s.y, 22.3, math.pi / 2)
-        s.obstacles.append(sbox(-10.6, 21.8, -8.4, 22.8))
-        self.box((-9.5, s.y + 0.5, 22.3), (2.2, 1.0, 1.0))
-        s.obstacles.append(sbox(-12.6, 20.6, -11.4, 21.8))
-        self.light((-13.8, 1.8, 18.0), COLD, 6.0, "sidegrav", True, 0.8)
-        # Krysset: fakler på søylene ved gangene.
-        x = rm["krysset"]
-        self.torch("krysset", (-5.48, x.y + 2.4, 41.0), (1.0, 0.0))
-        self.torch("krysset", (5.48, x.y + 2.4, 41.0), (-1.0, 0.0))
-        self.torch("krysset", (-2.5, x.y + 2.4, 49.48), (0.0, -1.0), intensity=1.8)
-        K.rubble(mb, 4.0, 47.8, x.y, r=0.9, h=0.4, seed=3)
-        x.obstacles.append(Point(4.0, 47.8).buffer(0.9))
-        self.box((4.0, x.y + 0.2, 47.8), (1.6, 0.4, 1.6))
-        # Pilgangen: pilhullene i nordmuren over trykkplata.
-        pg = rm["pilgang"]
-        surf = Plane((pg.x0, pg.z0), (1.0, 0.0), (0.0, 1.0))
-        K.arrow_slots(mb, surf, -19.0 - pg.x0, pg.y + 0.9)
-        self.light((-14.0, pg.y + 2.3, 45.4), COLD, 5.0, "pilgang", True, 0.7)
-        # Brønnrommet: brønnen, rasmasse, kaldt trekk.
-        b = rm["bronn"]
-        K.well(mb, -36.0, 42.0, b.y, r_in=0.85, r_out=1.3, curb=0.5, depth=b.y - (-8 + 3.2))
-        b.obstacles.append(Point(-36.0, 42.0).buffer(1.3, 16))
-        for k2 in range(8):
-            ang = 2 * math.pi * k2 / 8
-            self.box((-36.0 + 1.07 * math.cos(ang), b.y + 0.25, 42.0 + 1.07 * math.sin(ang)), (0.46, 0.5, 0.6), -ang)
-        K.rubble(mb, -40.0, 48.0, b.y, r=1.2, h=0.6, seed=7)
-        b.obstacles.append(Point(-40.0, 48.0).buffer(1.1))
-        self.box((-40.0, b.y + 0.3, 48.0), (1.8, 0.6, 1.8))
-        self.light((-31.0, b.y + 2.6, 39.0), COLD, 7.0, "bronn", True, 0.9)
-        self.torch("bronn", (-30.52, b.y + 2.3, 47.0), (-1.0, 0.0), intensity=1.2, reach=7.0)
-        # Brønnsjakta ned: muren rundt sjakta fra taket i sjaktbunnen.
-        sb = rm["sjaktbunn"]
-        sb.water = True
-        mb.quad((-37.5, sb.y + 0.02, 40.5), (-34.5, sb.y + 0.02, 40.5), (-34.5, sb.y + 0.02, 43.5), (-37.5, sb.y + 0.02, 43.5), "water", facing=(0, 1, 0))
-        self.light((-36.0, sb.y + 2.4, 41.0), COLD, 5.0, "sjaktbunn", False, 0.6)
-        for k2 in range(16):
-            ang0, ang1 = 2 * math.pi * k2 / 16, 2 * math.pi * (k2 + 1) / 16
-            pa = (-36.0 + 0.85 * math.cos(ang0), 42.0 + 0.85 * math.sin(ang0))
-            pb = (-36.0 + 0.85 * math.cos(ang1), 42.0 + 0.85 * math.sin(ang1))
-            mid = ((pa[0] + pb[0]) / 2 + 36.0, (pa[1] + pb[1]) / 2 - 42.0)
-            ln = math.hypot(*mid)
-            self.wall_box(pa, pb, sb.y + 3.2, b.y + 0.5, (mid[0] / ln, mid[1] / ln))
-        # Den glemte graven: sarkofager og stearinlys.
-        d = rm["dypgrav"]
-        for xx in (-29.0, -26.5):
-            self.prop("kit_sarcophagus", xx, d.y, 23.5, 0.0)
-            d.obstacles.append(sbox(xx - 0.55, 22.4, xx + 0.55, 24.6))
-            self.box((xx, d.y + 0.5, 23.5), (1.0, 1.0, 2.2))
-        K.candlestick(mb, -31.6, 26.8, d.y, arms=2)
-        d.obstacles.append(Point(-31.6, 26.8).buffer(0.35))
-        self.box((-31.6, d.y + 0.7, 26.8), (0.5, 1.4, 0.5))
-        self.light((-31.6, d.y + 1.5, 26.8), CANDLE, 6.0, "dypgrav", True, 1.0)
-        self.light((-24.2, d.y + 2.6, 21.0), COLD, 6.0, "dypgrav", True, 0.7)
-        K.glitch_stone(mb, Plane((d.x0, d.z1), (0.0, -1.0), (1.0, 0.0)), 3.0, d.y + 1.5)
-        # Under fallemmen: sjakta opp til sidegraven.
-        u = rm["stigebunn"]
-        for (pa, pb, out) in (((-12.6, 20.6), (-11.4, 20.6), (0, -1)), ((-11.4, 20.6), (-11.4, 21.8), (1, 0)), ((-11.4, 21.8), (-12.6, 21.8), (0, 1)), ((-12.6, 21.8), (-12.6, 20.6), (-1, 0))):
-            nrm = (-out[0], -out[1])
-            surf = Plane(pa, ((pb[0] - pa[0]) / 1.2, (pb[1] - pa[1]) / 1.2), nrm)
-            grid_face(mb, surf, sbox(0.0, u.y + 3.2, 1.2, 0.0), "wall_dark")
-            self.wall_box(pa, pb, u.y + 3.2, 0.0, out)
-        self.light((-12.0, u.y + 2.2, 24.5), COLD, 5.0, "stigebunn", False, 0.5)
-        # Søylegangen: to rader søyler, sarkofager imellom, fakler på søylene.
-        so = rm["soylegang"]
-        for zc in range(57, 86, 4):
-            for xc in (-2.6, 2.6):
-                K.pillar(mb, xc, zc, so.y, pillar_top(so, xc, zc, 0.7), size=0.7)
-                so.obstacles.append(sbox(xc - 0.55, zc - 0.55, xc + 0.55, zc + 0.55))
-                self.box((xc, so.y + so.h / 2, zc), (1.0, so.h, 1.0))
-        for zc in (59, 63, 67, 77, 81):
-            for xc in (-3.4, 3.4):
-                if xc < 0 and 69 <= zc <= 75:
-                    continue
-                self.prop("kit_sarcophagus", xc, so.y, zc, 0.0)
-                so.obstacles.append(sbox(xc - 0.6, zc - 1.25, xc + 0.6, zc + 1.25))
-                self.box((xc, so.y + 0.5, zc), (1.1, 1.0, 2.4))
-        for zc in (61, 73, 85):
-            for xc, nx in ((-2.6 + 0.47, 1.0), (2.6 - 0.47, -1.0)):
-                self.torch("soylegang", (xc, so.y + 2.6, zc), (nx, 0.0), intensity=1.8, reach=8.0)
-        # Kistekjelleren: hyller med likkister langs murene.
-        kk = rm["kistekjeller"]
-        for zc in (68.6, 70.8, 73.2, 75.4):
-            for lvl in (0.0, 1.1):
-                K.box(mb, (kk.x0, kk.y + lvl + 0.42, zc - 1.0), (kk.x0 + 0.75, kk.y + lvl + 0.5, zc + 1.0), "dressed")
-                K.coffin(mb, kk.x0 + 0.38, zc, kk.y + lvl + 0.5, 0.0, L=1.8, W=0.6)
-        kk.obstacles.append(sbox(kk.x0, 67.5, kk.x0 + 0.8, 76.5))
-        self.box((kk.x0 + 0.4, kk.y + 1.0, 72.0), (0.8, 2.0, 9.0))
-        for xc in (-19.5, -14.5):
-            K.coffin(mb, xc, 76.0, kk.y, 0.2 if xc < -17 else -0.15, L=1.9, W=0.6)
-            kk.obstacles.append(sbox(xc - 0.4, 75.0, xc + 0.4, 77.0))
-            self.box((xc, kk.y + 0.25, 76.0), (0.7, 0.5, 2.0))
-        self.light((-12.5, kk.y + 2.5, 68.0), COLD, 7.0, "kistekjeller", True, 0.8)
-        # Alterkapellet: det store alteret mot sør med lysestaker, kalkmalt.
-        al = rm["alter"]
-        K.altar(mb, 0.0, 99.4, al.y, math.pi, w=2.6, d=1.1)
-        al.obstacles.append(sbox(-1.85, 98.3, 1.85, 100.5))
-        self.box((0.0, al.y + 0.55, 99.4), (2.9, 1.1, 1.3))
-        for xc in (-2.4, 2.4):
-            K.candlestick(mb, xc, 99.9, al.y, arms=3)
-            al.obstacles.append(Point(xc, 99.9).buffer(0.35))
-            self.box((xc, al.y + 0.7, 99.9), (0.5, 1.4, 0.5))
-            self.light((xc, al.y + 1.6, 99.9), CANDLE, 6.0, "alter", True, 1.4)
-        self.torch("alter", (-7.48, al.y + 2.6, 93.0), (1.0, 0.0))
-        self.torch("alter", (7.48, al.y + 2.6, 93.0), (-1.0, 0.0))
-        # Skattkammeret bak den falske veggen: lite lys.
-        self.light((2.6, rm["skatt"].y + 2.0, 108.6), (1.0, 0.8, 0.45), 5.0, "skatt", True, 1.0)
-        # Nedgangen: det blå lyset fra trappa ned og en fakkel ved døra.
-        ng = rm["nedgang"]
-        ng.obstacles.append(sbox(20.4, 96.1, 25.0, 99.9))
-        self.light((22.6, ng.y + 0.4, 98.0), BLUE, 10.0, "nedgang", False, 3.0)
-        self.torch("nedgang", (17.52, ng.y + 2.4, 95.0), (1.0, 0.0), intensity=1.6)
-        self.torch("nedgang", (25.0, ng.y + 2.4, 93.52), (0.0, 1.0), intensity=1.4)
-        # Snarveien: en fakkel midtveis.
-        self.torch("nedgang-beinhus", (20.92, -2 + 1.9, 77.0), (1.0, 0.0), intensity=1.2, reach=8.0)
-        self.torch("gravgang-krysset", (1.48, 0.0 + 1.9, 37.0), (-1.0, 0.0), intensity=1.0, reach=6.0)
+        if "dress" in self.lay:
+            self.lay["dress"](self)
         # Ting motoren setter ut, holdes fri i navigasjonen.
         for m in self.marks:
             p = m.get("pos")
@@ -1052,25 +1583,38 @@ class Level:
             if r.poly.buffer(0.5).contains(Point(p[0], p[2])) and abs(p[1] - r.y) < 1.0:
                 r.obstacles.append(poly)
                 return
-        if self.rooms["beinhus"].poly.contains(Point(p[0], p[2])):
-            self.gallery_obstacles = getattr(self, "gallery_obstacles", []) + [poly]
+        for d in self.decks:
+            if d["ring"].contains(Point(p[0], p[2])) and abs(p[1] - d["y"]) < 1.0:
+                d["obstacles"].append(poly)
+                return
 
     def room_patches(self):
         for r in self.rooms.values():
-            if r.rect:
+            if getattr(r, "nowalk", False):
+                r.walk = Polygon()
+                continue
+            if getattr(r, "virtual", False) and getattr(r, "floor_walk", None) is not None:
+                walk = r.floor_walk
+            elif r.rect or (r.kind == "poly" and getattr(r, "floor_walk", None) is None):
                 walk = r.poly.buffer(-INSET, join_style="mitre")
             else:
                 walk = r.floor_walk
             if r.obstacles:
                 walk = walk.difference(unary_union([o.buffer(INSET, join_style="mitre") for o in r.obstacles]))
+            for cut in getattr(r, "cuts", []):
+                walk = walk.difference(cut)
             r.walk = walk
-            self.patch(walk, (0.0, 0.0, r.y), r.id)
-        go = getattr(self, "gallery_obstacles", [])
-        if go:
-            gy = BEINHUS["gallery_y"]
-            for k, (poly, plane, room, gate) in enumerate(self.patches):
-                if room == "galleri":
-                    self.patches[k] = (poly.difference(unary_union([o.buffer(INSET, join_style="mitre") for o in go])), plane, room, gate)
+            self.patch(walk, (0.0, 0.0, r.y), r.id, getattr(r, "gate", None))
+        # Flatene over gulvet (galleriene, balkongene, broene): det som står
+        # på dem holdes fritt.
+        for d in self.decks:
+            cut = unary_union([o.buffer(INSET, join_style="mitre") for o in d["obstacles"]]) if d["obstacles"] else None
+            if d.get("walk") is not None:
+                self.patch(d["walk"].difference(cut) if cut is not None else d["walk"], (0.0, 0.0, d["y"]), d["room"], d.get("gate"))
+            elif cut is not None:
+                for k, (poly, plane, room, gate) in enumerate(self.patches):
+                    if room == d["room"] and abs(plane[2] - d["y"]) < 1e-3 and plane[0] == 0.0 and plane[1] == 0.0:
+                        self.patches[k] = (poly.difference(cut), plane, room, gate)
 
     # -- Navigasjonsnettet --
 
@@ -1084,8 +1628,19 @@ class Level:
                 verts.append([k[0], k[1], k[2]])
             return index[k]
 
+        grid = self.lay.get("nav_grid")
         for poly, plane, room, gate in self.patches:
-            for c in convex_parts(poly):
+            pieces = [poly]
+            if grid:
+                # Delt i ruter først, så polygonene holder seg små og ikke
+                # blir lange flak fra et hjørne rundt en sirkel.
+                x0, z0, x1, z1 = poly.bounds
+                pieces = []
+                for i in range(math.floor(x0 / grid), math.ceil(x1 / grid)):
+                    for j in range(math.floor(z0 / grid), math.ceil(z1 / grid)):
+                        cell = poly.intersection(sbox(i * grid, j * grid, (i + 1) * grid, (j + 1) * grid))
+                        pieces += [q for q in K._pieces(cell) if q.area > 1e-4]
+            for c in [c for piece in pieces for c in convex_parts(piece)]:
                 pts = list(c.exterior.coords)[:-1]
                 if c.area < 0.02:
                     continue
@@ -1093,10 +1648,10 @@ class Level:
                 polys.append([v(x, y(x, z), z) for x, z in pts])
                 prooms.append(room)
                 pgates.append(gate)
-        for tri, room in self.tri_patches:
+        for tri, room, *gate in self.tri_patches:
             polys.append([v(*p) for p in tri])
             prooms.append(room)
-            pgates.append(None)
+            pgates.append(gate[0] if gate else None)
         # Biter som ikke henger sammen med resten (flisene rundt noe som står
         # inntil muren) tas bort, utenom i de hemmelige rommene.
         keep = self.reachable(verts, polys, prooms)
@@ -1104,7 +1659,19 @@ class Level:
         idx = [i for i in range(len(polys)) if keep[i] or prooms[i] in secret]
         dropped = len(polys) - len(idx)
         if dropped:
-            print(f"  {dropped} polygoner uten forbindelse tatt bort")
+            from collections import Counter
+            lost = Counter(prooms[i] for i in range(len(polys)) if not (keep[i] or prooms[i] in secret))
+            print(f"  {dropped} polygoner uten forbindelse tatt bort: {dict(lost)}")
+        # Det du må nå (trappa ned, spakene, hvilestedet) står ved nettet som
+        # henger sammen med startstedet.
+        for m in self.marks:
+            if m["kind"] not in ("down", "lever", "rest"):
+                continue
+            q = Point(m["pos"][0], m["pos"][2])
+            near = [i for i in range(len(polys)) if keep[i] and abs(min(verts[k][1] for k in polys[i]) - m["pos"][1]) < 1.2
+                    and Polygon([(verts[k][0], verts[k][2]) for k in polys[i]]).distance(q) < 2.0]
+            if not near:
+                print(f"  ADVARSEL: {m['kind']} ved {m['pos']} står ikke ved nettet som kan nås fra start")
         polys = [polys[i] for i in idx]
         prooms = [prooms[i] for i in idx]
         pgates = [pgates[i] for i in idx]
@@ -1154,16 +1721,10 @@ class Level:
         out = []
         for r in self.rooms.values():
             coords = [[rnd(x), rnd(z)] for x, z in list(r.poly.exterior.coords)[:-1]]
-            if not r.rect:
+            if r.kind == "circle":
                 coords = coords[::2]
             out.append({"id": r.id, "name": r.name, "poly": coords, "y": r.y, "h": rnd(min(r.h, r.ceil - r.y)), "secret": r.secret})
-        B = BEINHUS
-        top = self.rooms["beinhus"].y + self.rooms["beinhus"].h
-        coords = [[rnd(x), rnd(z)] for x, z in list(self.gallery_room.exterior.coords)[:-1]]
-        out.append({"id": "galleri", "name": "Galleriet", "poly": coords, "y": B["gallery_y"], "h": rnd(top - B["gallery_y"]), "secret": False})
-        coords = [[rnd(x), rnd(z)] for x, z in list(self.stair_room.exterior.coords)[:-1]]
-        ry = self.rooms["beinhus"].y
-        out.append({"id": "beintrapp", "name": "Trappa opp til galleriet", "poly": coords, "y": ry, "h": rnd(top - ry), "secret": False})
+        out += self.json_rooms
         for h in self.halls:
             # Taket over det gangbare: buen 0,4 m fra muren, over det høyeste
             # gulvet i gangen.
@@ -1370,6 +1931,57 @@ def draw(level, data, path):
     img.save(path)
 
 
+# --- Innholdsfila i fast form ---------------------------------------------------
+
+# Feltene i `MarkDef` og `LightDef` (crypt/level.rs) og hvordan serde skriver
+# dem: f32 rundet til fem desimaler, hele tall uten desimaler, nøklene
+# sortert, ett merke og ett lys per linje.
+MARK_ALWAYS = {"kind": None, "yaw": 0.0}
+MARK_FIELDS = ["kind", "pos", "yaw", "id", "label", "n", "patrol", "ambush", "opens", "width", "height", "from", "size", "to",
+               "top", "bottom", "dir", "text", "for", "arena", "loot", "levels"]
+LIGHT_FIELDS = ["pos", "color", "range", "flicker", "intensity", "room"]
+
+
+def _f32(v):
+    import struct
+    if isinstance(v, bool) or v is None or isinstance(v, str):
+        return v
+    if isinstance(v, int) and not isinstance(v, bool):
+        v = float(v)
+    if isinstance(v, float):
+        r = round(struct.unpack("f", struct.pack("f", v))[0] * 1e5) / 1e5
+        return int(r) if r == int(r) and abs(r) < 1e9 else r
+    if isinstance(v, (list, tuple)):
+        return [_f32(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _f32(x) for k, x in v.items()}
+    return v
+
+
+def fixed_form(marks, lights):
+    def mark(m):
+        out = {}
+        for k in MARK_FIELDS:
+            if k in m and m[k] is not None and m[k] != []:
+                out[k] = m[k] if k in ("n",) or isinstance(m[k], str) else _f32(m[k])
+            elif k == "yaw":
+                out[k] = 0
+        unknown = set(m) - set(MARK_FIELDS)
+        if unknown:
+            raise SystemExit(f"merket {m.get('kind')} har felt motoren ikke kjenner: {unknown}")
+        return out
+
+    def light(l):
+        out = {k: (l[k] if isinstance(l[k], (str, bool)) else _f32(l[k])) for k in LIGHT_FIELDS if k in l and l[k] is not None}
+        out.setdefault("color", [1.0, 0.62, 0.3])
+        out.setdefault("range", 8)
+        out.setdefault("flicker", False)
+        return _f32(out)
+
+    line = lambda v: "    " + json.dumps(v, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return "{\n  \"marks\": [\n" + ",\n".join(line(mark(m)) for m in marks) + "\n  ],\n  \"lights\": [\n" + ",\n".join(line(light(l)) for l in lights) + "\n  ]\n}\n"
+
+
 # --- Hovedprogrammet ------------------------------------------------------------
 
 
@@ -1382,17 +1994,17 @@ def main():
     if L.layout_lights is not None:
         L.lights = L.layout_lights
     else:
-        # Første gang: merkene og lysene blir data (fast form med
-        # `cargo run --bin layout`).
+        # Første gang: merkene og lysene blir data, i den faste formen
+        # motoren skriver (`crypt_json` i `src/adapters/data.rs`).
         os.makedirs(os.path.dirname(L.layout_path), exist_ok=True)
         with open(L.layout_path, "w") as f:
-            json.dump({"marks": L.marks, "lights": L.lights}, f, ensure_ascii=False, separators=(",", ":"))
-        print(f"{L.layout_path}: skrevet (kjør `cargo run --bin layout` for fast form)")
+            f.write(fixed_form(L.marks, L.lights))
+        print(f"{L.layout_path}: skrevet")
     pieces = chunks(L.mb, n)
     data = {
         "level": n,
         "name": L.plan.name,
-        "theme": "grav",
+        "theme": L.lay.get("theme", "grav"),
         "pieces": sorted(pieces),
         "rooms": L.rooms_json(),
         "colliders": L.colliders,

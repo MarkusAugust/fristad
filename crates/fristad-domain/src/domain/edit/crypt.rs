@@ -28,6 +28,7 @@ pub fn model_of(m: &MarkDef) -> Option<&str> {
         "gate" => cw::PORTCULLIS,
         "secret_wall" => cw::KIT_SECRET,
         "trapdoor" => cw::KIT_TRAPDOOR,
+        "bridge" => cw::KIT_BRIDGE,
         "hint" => cw::KIT_CRACK,
         "prop" => return m.label.as_deref(),
         _ => return None,

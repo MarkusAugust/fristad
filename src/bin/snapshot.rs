@@ -296,11 +296,18 @@ fn main() {
     if let Some(list) = arg("--shots") {
         for line in std::fs::read_to_string(&list).expect("kan ikke lese --shots").lines().filter(|l| !l.trim().is_empty()) {
             let f: Vec<&str> = line.split_whitespace().collect();
-            let Some((eye, yaw)) = at(f[1], f[2], f[3]) else {
-                eprintln!("{}: står ikke ute", f[1]);
-                continue;
+            // Med --level: «UT X,Y,Z YAW [PITCH]» i nivåets eget rom.
+            let (eye, yaw, pitch_at) = if let Some(o) = level_origin {
+                let v: Vec<f32> = f[1].split(',').map(|x| x.parse().unwrap()).collect();
+                (Vec3::new(v[0], v[1], v[2]) + o, f[2].parse::<f32>().unwrap().to_radians(), 3)
+            } else {
+                let Some((eye, yaw)) = at(f[1], f[2], f[3]) else {
+                    eprintln!("{}: står ikke ute", f[1]);
+                    continue;
+                };
+                (eye, yaw, 4)
             };
-            let pitch: f32 = f.get(4).map(|p| p.parse().unwrap()).unwrap_or(4.0);
+            let pitch: f32 = f.get(pitch_at).map(|p| p.parse().unwrap()).unwrap_or(4.0);
             app.command(Command::Place { eye, yaw, pitch: pitch.to_radians() });
             for _ in 0..frames.max(1) {
                 app.renderer.set_target(target.create_view(&Default::default()));

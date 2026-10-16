@@ -1051,7 +1051,7 @@ def parapet(mb, path, y, h=0.95, t=0.26, mat="dressed", cap="slab", closed=False
                     [(0, 0), (t, 0), (t, 0.08), (0, 0.08)], cap, facing=f)
 
 
-def spiral_stair(mb, c, r_in, r_out, a0, a1, y0, y1, n, mat="dressed", inner_wall=True, outer_wall=False, newel=0.0, seg_per_step=2):
+def spiral_stair(mb, c, r_in, r_out, a0, a1, y0, y1, n, mat="dressed", inner_wall=True, outer_wall=False, newel=0.0, seg_per_step=2, outer_full=False):
     """Vindeltrapp (modulen «vindeltrapp»): `n` trinn rundt `c` fra vinkelen
     a0 til a1 (radianer i xz), fra y0 til y1, mellom r_in og r_out. Med
     `newel` > 0 står trappa rundt en spindel; ellers er innsida en mur ned
@@ -1091,6 +1091,15 @@ def spiral_stair(mb, c, r_in, r_out, a0, a1, y0, y1, n, mat="dressed", inner_wal
                 pts = [P(r_out, u0, yt - 2.0), P(r_out, u1, yt - 2.0), P(r_out, u1, yt), P(r_out, u0, yt)]
                 mid = lerp(pts[0], pts[2], 0.5)
                 mb.poly(pts, [(r_out * u0, yt - 2), (r_out * u1, yt - 2), (r_out * u1, yt), (r_out * u0, yt)], "wall", facing=sub(mid, (c[0], mid[1], c[1])))
+        if outer_full:
+            # Trappa rundt en kjerne midt i salen: utsida er murt ned til gulvet.
+            for q in range(seg_per_step):
+                u0 = aa + (ab - aa) * q / seg_per_step
+                u1 = aa + (ab - aa) * (q + 1) / seg_per_step
+                ylo = min(y0, y1) - 0.05
+                pts = [P(r_out, u0, ylo), P(r_out, u1, ylo), P(r_out, u1, yt), P(r_out, u0, yt)]
+                mid = lerp(pts[0], pts[2], 0.5)
+                mb.poly(pts, [(r_out * u0, ylo), (r_out * u1, ylo), (r_out * u1, yt), (r_out * u0, yt)], mat, facing=sub(mid, (c[0], mid[1], c[1])))
     if newel > 0:
         cylinder(mb, c, newel, min(y0, y1), max(y0, y1) + 2.5, mat, n=8, caps=(False, False))
     return lambda a: y0 + (y1 - y0) * min(1.0, max(0.0, (a - a0) / (a1 - a0)))
@@ -1512,6 +1521,53 @@ def kit_trapdoor(w=1.2, d=1.2, t=0.08):
     pts = [(c[0] + r * math.cos(a), c[1], c[2] + r * math.sin(a)) for a in [2 * math.pi * k / 10 for k in range(11)]]
     for a, b in zip(pts, pts[1:]):
         beam(m, a, b, 0.022, 0.022, "iron")
+    return m
+
+
+def kit_bridge(w=3.6, L=8.0):
+    """Broa over avgrunnen (motoren: `KIT_BRIDGE`, `BRIDGE_W` × `BRIDGE_L`):
+    et dekke av eikeplanker på tvers med origo midt på oversida, to
+    langbjelker og tverrbjelker under, lave kantbjelker oppå, og jernøyer
+    i hjørnene der kjettingene er festet. Lengden langs z."""
+    m = MB()
+    box(m, (-w / 2, -0.12, -L / 2), (w / 2, 0.0, L / 2), "oak")
+    for x in (-w / 2 + 0.25, w / 2 - 0.25):
+        beam(m, (x, -0.27, -L / 2), (x, -0.27, L / 2), 0.22, 0.3, "wood", strip=("timber", 0))
+    for k in range(5):
+        z = -L / 2 + 0.3 + (L - 0.6) * k / 4
+        beam(m, (-w / 2, -0.21, z), (w / 2, -0.21, z), 0.18, 0.18, "wood", up=(0.0, 1.0, 0.0), strip=("timber", 2))
+    for x in (-w / 2 + 0.08, w / 2 - 0.08):
+        beam(m, (x, 0.07, -L / 2), (x, 0.07, L / 2), 0.16, 0.14, "wood", strip=("timber", 1))
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            x, z = sx * (w / 2 - 0.2), sz * (L / 2 - 0.35)
+            box(m, (x - 0.09, 0.14, z - 0.09), (x + 0.09, 0.2, z + 0.09), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
+            strap(m, (x, 0.145, z - sz * 0.6), (x, 0.145, z), 0.08, 0.012, (0.0, 1.0, 0.0))
+    return m
+
+
+def kit_water(n=4):
+    """Vannflaten (`KIT_WATER`): 1 × 1 m med origo midt på, delt i ruter så
+    den kan skaleres til kanalen; økta senker den når slusa dreies."""
+    m = MB()
+    for i in range(n):
+        for j in range(n):
+            x0, z0 = -0.5 + i / n, -0.5 + j / n
+            x1, z1 = x0 + 1 / n, z0 + 1 / n
+            m.quad((x0, 0.0, z0), (x1, 0.0, z0), (x1, 0.0, z1), (x0, 0.0, z1), "water", facing=(0, 1, 0), uv=[(x0, z0), (x1, z0), (x1, z1), (x0, z1)])
+    return m
+
+
+def kit_chain(length=12.0, link=0.2):
+    """Kjettingen broa henger i (`KIT_CHAIN`): ledd av smijern fra origo
+    (øyet på dekket) og 12 m opp, så den går inn i hvelvet over avgrunnen
+    uansett hvor broa henger."""
+    m = MB()
+    n = int(length / link)
+    for k in range(n):
+        y0 = k * link
+        a, b = (0.05, 0.016) if k % 2 == 0 else (0.016, 0.05)
+        box(m, (-a, y0, -b), (a, y0 + link + 0.03, b), "iron", faces=("+x", "-x", "+z", "-z"))
     return m
 
 
@@ -2142,6 +2198,9 @@ def mechanisms():
         "kit_down": kit_down(),
         "kit_sarcophagus": kit_sarcophagus(),
         "kit_rest_flame": kit_rest_flame(),
+        "kit_bridge": kit_bridge(),
+        "kit_chain": kit_chain(),
+        "kit_water": kit_water(),
     }
 
 

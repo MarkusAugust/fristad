@@ -21,6 +21,9 @@ use crate::domain::scene::ModelInstance;
 use glam::{Affine3A, Mat4, Quat, Vec3};
 
 pub use crate::domain::mob_kind::{Kind, Stats};
+#[path = "mob_walk.rs"]
+mod walk;
+use walk::walk;
 
 pub use crate::domain::drops::{Token, TOKEN_COLORS, TOKEN_MODEL};
 pub const KEY_MODEL: &str = "key";
@@ -112,6 +115,8 @@ pub struct Mob {
     pub hp: f32,
     pub max_hp: f32,
     pub elite: bool,
+    /// Bossen i nivået (merket `boss`): stolpen, brølet, de tunge skrittene.
+    pub boss: bool,
     pub state: State,
     /// Sekunder siden den ble truffet (blink).
     pub hit: f32,
@@ -289,7 +294,7 @@ impl Mobs {
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -315,13 +320,16 @@ impl Mobs {
                 let q = s.pos + Vec3::new(a.cos(), 0.0, a.sin()) * if s.n > 1 { 0.6 + 0.15 * s.n as f32 } else { 0.0 };
                 let q = if crypt.walkable(q) { Vec3::new(q.x, crypt.height_at(q), q.z) } else { s.pos };
                 self.spawn_at(kind, q, Some(s.yaw), elite, s.patrol.clone(), s.ambush.clone(), level);
+                if let Some(m) = self.mobs.last_mut() {
+                    m.boss |= s.boss;
+                }
             }
         }
     }
 
     /// Bossene i nivået er slått for godt (de kommer ikke igjen).
     pub fn remove_bosses(&mut self) {
-        self.mobs.retain(|m| !m.kind.boss());
+        self.mobs.retain(|m| !m.boss);
     }
 
     /// Alle har sett deg og ingen sover (til testene som ser om de finner
@@ -355,7 +363,7 @@ impl Mobs {
 
     /// Bossen, om den lever og har sett deg: (navn, liv 0..1).
     pub fn boss(&self) -> Option<(&'static str, f32)> {
-        self.mobs.iter().find(|m| m.kind.boss() && m.alive() && m.aware).map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
+        self.mobs.iter().find(|m| m.boss && m.alive() && m.aware).map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
     }
 
     /// Fienden strålen fra øyet treffer innen `max` meter, om noen.
@@ -733,9 +741,9 @@ impl Mobs {
                 }
             }
             m.aware = true;
-            let windup = if kind.boss() || m.elite { "windup_big" } else { "windup" };
+            let windup = if m.boss || m.elite { "windup_big" } else { "windup" };
             // Bossen brøler ved 2/3 og 1/3 liv og kaller på tooltips.
-            if kind.boss() {
+            if m.boss {
                 let frac = m.hp / m.max_hp;
                 let due = (m.roars == 0 && frac < 0.67) || (m.roars == 1 && frac < 0.34);
                 if due {
@@ -752,7 +760,7 @@ impl Mobs {
             // Rekkevidden måles til kroppen, og bare på samme gulv.
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
             if dist <= stats.range && level_ok && m.cooldown <= 0.0 {
-                let blow = if kind.boss() && clips.slam.is_some() && r < 0.35 { Blow::Slam } else { Blow::Melee };
+                let blow = if m.boss && clips.slam.is_some() && r < 0.35 { Blow::Slam } else { Blow::Melee };
                 m.state = State::Attack { blow, landed: false };
                 m.t = 0.0;
                 if let Some(a) = m.anim.as_mut() {
@@ -921,65 +929,7 @@ fn set_state(m: &mut Mob, want: State, clips: &Clips) {
 /// med frastøtningen fra de andre (`push`). Steget prøves rett fram, langs
 /// aksene og skrått til sidene; det som går av nettet, tas ikke. Står den
 /// utenfor nettet (dyttet ut), går den inn igjen.
-#[allow(clippy::too_many_arguments)]
-fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, push: Vec3, stats: &Stats, clips: &Clips, out: &mut Outcome) {
-    m.repath -= dt;
-    if m.repath <= 0.0 || m.path.is_empty() || m.goal.distance(goal) > 1.0 {
-        m.path = crypt.path(m.pos, goal).unwrap_or_default();
-        m.goal = goal;
-        m.repath = 0.5;
-    }
-    while m.path.len() > 1 && m.path[0].with_y(0.0).distance(m.pos.with_y(0.0)) < 0.3 {
-        m.path.remove(0);
-    }
-    let from = m.pos;
-    let on = crypt.walkable(from);
-    let next = if on { m.path.first().copied().unwrap_or(goal) } else { crypt.snap(from, 3.0).unwrap_or(goal) };
-    let dir = (next - from).with_y(0.0).normalize_or_zero();
-    // Står en annen rett i veien (de går mot hverandre), går den til siden
-    // i stedet for å bli stående og dytte.
-    let mut push = push;
-    if push.length_squared() > 1e-6 && push.dot(dir) < 0.0 {
-        let side = Vec3::new(-dir.z, 0.0, dir.x);
-        let away = if push.dot(side) >= 0.0 { side } else { -side };
-        push += away * push.length() * 1.5;
-    }
-    let step = dir * speed * dt + push * dt * if on { 1.0 } else { 0.0 };
-    let turn = |a: f32| Quat::from_rotation_y(a) * step;
-    let tries = [step, Vec3::new(step.x, 0.0, 0.0), Vec3::new(0.0, 0.0, step.z), turn(0.9), turn(-0.9), turn(1.6), turn(-1.6)];
-    if !on {
-        m.pos = from + step;
-    } else if let Some(t) = tries.into_iter().find(|t| t.length_squared() > 1e-10 && crypt.walkable(from + *t)) {
-        m.pos = from + t;
-    }
-    m.pos.y = crypt.height_at(m.pos + Vec3::Y * 0.3);
-    let s = m.scale();
-    // Skrittene: bossens tunge, de andres tassing (ikke tooltipene, som svever).
-    if m.kind != Kind::Tooltip {
-        m.stride += (m.pos - from).with_y(0.0).length();
-        if m.stride > 1.4 * s {
-            m.stride = 0.0;
-            out.sounds.push((if m.kind.boss() { "boss_step" } else { "mob_step" }, m.pos));
-        }
-    }
-    let moved = (m.pos - from).with_y(0.0).length() / dt.max(1e-4);
-    let want_state = if moved > 0.3 { State::Walk } else { State::Idle };
-    set_state(m, want_state, clips);
-    if let Some(a) = m.anim.as_mut() {
-        if want_state == State::Walk {
-            // Gangen er laget for slagets fart (mob_motion.py), så føttene
-            // står stille på gulvet når farten stemmer.
-            a.speed = (moved / stats.speed.max(0.1)).clamp(0.4, 1.6);
-        }
-    }
-    if dir.length_squared() > 0.0 {
-        let want = dir.x.atan2(dir.z);
-        let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
-        m.yaw += diff * (dt * 6.0).min(1.0);
-    }
-}
-
-#[cfg(test)]
+#[allow(clippy::too_many_arguments)]#[cfg(test)]
 mod tests {
     use super::*;
 

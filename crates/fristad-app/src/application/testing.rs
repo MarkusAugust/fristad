@@ -75,6 +75,16 @@ impl Session {
         true
     }
 
+    /// Bossen i nivået, om den lever (der den står).
+    pub fn boss_pos(&self) -> Option<Vec3> {
+        self.mobs.mobs.iter().find(|m| m.boss && m.alive()).map(|m| m.pos)
+    }
+
+    /// En nøkkel i lomma (boten som går uten fiender, der eliten er borte).
+    pub fn give_key(&mut self) {
+        self.hero.keys += 1;
+    }
+
     /// Ingen fiender i nivået.
     pub fn clear_mobs(&mut self) {
         self.mobs.mobs.clear();

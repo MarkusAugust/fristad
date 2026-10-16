@@ -19,6 +19,10 @@ pub enum Moved {
     Gate(usize),
     /// Lemmen har akkurat falt: det du sto på, er borte.
     Trapdoor(usize),
+    /// Broa senkes (eller har lagt seg).
+    Bridge(usize),
+    /// Vannet har sunket helt: det som holdt deg ute, er borte.
+    Water(usize),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -33,6 +37,11 @@ pub struct Mechanisms {
     pub secrets: Vec<f32>,
     /// Fallemmene: hvor langt lemmen har falt (0..1), −1 når den er lukket.
     pub trapdoors: Vec<f32>,
+    /// Broene over avgrunnene: hvor langt de er senket (0..1), −1 når de
+    /// henger oppe.
+    pub bridges: Vec<f32>,
+    /// Vannet: hvor langt det har sunket (0..1), −1 når det står høyt.
+    pub waters: Vec<f32>,
     /// Kistene som er åpnet, og hvor langt lokket er kommet (0..1).
     pub chests: Vec<bool>,
     pub chest_open: Vec<f32>,
@@ -53,11 +62,13 @@ fn run(v: &mut f32, dt: f32, secs: f32) -> bool {
 impl Mechanisms {
     pub fn new(crypt: &Crypt, wells: usize) -> Self {
         Self {
-            gates: vec![(0.0, false); crypt.gates.len()],
+            gates: crypt.gates.iter().map(|g| if g.arena.is_some() { (1.0, true) } else { (0.0, false) }).collect(),
             shortcuts: vec![-1.0; crypt.shortcuts.len()],
             levers: vec![-1.0; crypt.levers.len()],
             secrets: vec![-1.0; crypt.secrets.len()],
             trapdoors: vec![-1.0; crypt.trapdoors.len()],
+            bridges: vec![-1.0; crypt.bridges.len()],
+            waters: vec![-1.0; crypt.waters.len()],
             chests: vec![false; crypt.chests.len()],
             chest_open: vec![0.0; crypt.chests.len()],
             wells: vec![-1.0; wells],
@@ -104,6 +115,39 @@ impl Mechanisms {
         for (i, _) in crypt.trapdoors.iter().enumerate().filter(|(_, t)| t.switch == sw) {
             start(&mut self.trapdoors[i]);
         }
+        for (i, _) in crypt.bridges.iter().enumerate().filter(|(_, b)| b.switch == sw) {
+            start(&mut self.bridges[i]);
+        }
+        for (i, _) in crypt.waters.iter().enumerate().filter(|(_, w)| w.switch == sw) {
+            start(&mut self.waters[i]);
+        }
+    }
+
+    /// Om alle spakene som åpner bryteren `sw`, er trukket: en bro som
+    /// holdes av to spaker, senkes først når begge er trukket.
+    pub fn levers_ready(&self, crypt: &Crypt, sw: usize) -> bool {
+        crypt.levers.iter().enumerate().filter(|(_, l)| l.opens.contains(&sw)).all(|(i, _)| self.lever_pulled(i))
+    }
+
+    /// Arenaportene: stengt mens bossen i nivået lever og du er inne i
+    /// arenaen (porten ut: så lenge den lever), ellers oppe. Gir portene som
+    /// akkurat slo igjen.
+    pub fn arena_gates(&mut self, crypt: &mut Crypt, level: usize, inside: Option<usize>, boss_alive: bool) -> Vec<usize> {
+        let mut shut = vec![];
+        for (n, g) in crypt.gates.iter().enumerate().filter(|(_, g)| g.level == level) {
+            let Some(arena) = g.arena else { continue };
+            let closed = boss_alive && (g.exit || inside == Some(arena));
+            if self.gates[n].1 == closed {
+                self.gates[n].1 = !closed;
+                if closed {
+                    shut.push(n);
+                }
+            }
+            if let Some(o) = crypt.open.get_mut(g.switch) {
+                *o = !closed;
+            }
+        }
+        shut
     }
 
     /// Kiste `n` åpnes. Gir om den var lukket.
@@ -163,9 +207,23 @@ impl Mechanisms {
             }
             run(t, dt, 0.35);
         }
+        for (n, b) in self.bridges.iter_mut().enumerate() {
+            if run(b, dt, 2.2) {
+                moved.push(Moved::Bridge(n));
+            }
+        }
+        for (n, w) in self.waters.iter_mut().enumerate() {
+            if run(w, dt, 5.0) && *w >= 1.0 {
+                moved.push(Moved::Water(n));
+            }
+        }
         for (n, (open, unlocked)) in self.gates.iter_mut().enumerate() {
             if *unlocked && *open < 1.0 {
                 *open = (*open + dt / 1.6).min(1.0);
+                moved.push(Moved::Gate(n));
+            } else if !*unlocked && *open > 0.0 {
+                // Arenaporten slår igjen.
+                *open = (*open - dt / 0.6).max(0.0);
                 moved.push(Moved::Gate(n));
             }
         }
@@ -270,6 +328,60 @@ impl Mechanisms {
             .map(|(i, t)| {
                 let x = self.trapdoors.get(i).copied().unwrap_or(-1.0).max(0.0);
                 at(t.pos, t.yaw) * Affine3A::from_translation(Vec3::new(0.0, 0.0, -t.size.y * 0.5)) * Affine3A::from_rotation_x(x * 1.5)
+            })
+            .collect()
+    }
+
+    /// Hvor langt broa `n` henger over der den ligger når den er nede (m):
+    /// den senkes sakte og legger seg med et lite dump.
+    pub fn bridge_drop(&self, crypt: &Crypt, n: usize) -> f32 {
+        let Some(b) = crypt.bridges.get(n) else { return 0.0 };
+        let t = self.bridges.get(n).copied().unwrap_or(-1.0);
+        if t < 0.0 {
+            return b.hang;
+        }
+        let ease = t * t * (3.0 - 2.0 * t);
+        b.hang * (1.0 - ease) + if t >= 1.0 { 0.0 } else { (t * 30.0).sin() * 0.015 * (1.0 - t) }
+    }
+
+    /// Dekket på broa `n` der det henger nå (til bildet).
+    pub fn bridge_pose(&self, crypt: &Crypt, n: usize) -> Option<Affine3A> {
+        let b = crypt.bridges.get(n)?;
+        Some(at(b.pos + Vec3::Y * self.bridge_drop(crypt, n), b.yaw) * Affine3A::from_scale(Vec3::new(b.size.x / crypt::BRIDGE_W, 1.0, b.size.y / crypt::BRIDGE_L)))
+    }
+
+    /// Kollideren til dekket (midt i platen, 0,3 m tykk).
+    pub fn bridge_collider(&self, crypt: &Crypt, n: usize) -> Option<Affine3A> {
+        let b = crypt.bridges.get(n)?;
+        Some(at(b.pos + Vec3::Y * (self.bridge_drop(crypt, n) - 0.15), b.yaw))
+    }
+
+    /// Broene og kjettingene de henger i, fra øyene i hjørnene på dekket og
+    /// opp gjennom hvelvet (kjettingen er lang nok uansett hvor broa henger).
+    pub fn bridge_poses(&self, crypt: &Crypt) -> (Vec<Affine3A>, Vec<Affine3A>) {
+        let (mut decks, mut chains) = (vec![], vec![]);
+        for (n, b) in crypt.bridges.iter().enumerate() {
+            let y = b.pos.y + self.bridge_drop(crypt, n);
+            decks.extend(self.bridge_pose(crypt, n));
+            for (sx, sz) in [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
+                let corner = Vec3::new(sx * (b.size.x * 0.5 - 0.2), 0.0, sz * (b.size.y * 0.5 - 0.35));
+                let p = at(b.pos, b.yaw).transform_point3(corner);
+                chains.push(Affine3A::from_translation(Vec3::new(p.x, y + 0.17, p.z)));
+            }
+        }
+        (decks, chains)
+    }
+
+    /// Vannflatene der de står nå: synker sakte, raskest midt i.
+    pub fn water_poses(&self, crypt: &Crypt) -> Vec<Affine3A> {
+        crypt
+            .waters
+            .iter()
+            .enumerate()
+            .map(|(n, w)| {
+                let t = self.waters.get(n).copied().unwrap_or(-1.0).max(0.0);
+                let y = w.high + (w.low - w.high) * t * t * (3.0 - 2.0 * t);
+                at(Vec3::new(w.pos.x, y, w.pos.z), w.yaw) * Affine3A::from_scale(Vec3::new(w.size.x, 1.0, w.size.y))
             })
             .collect()
     }

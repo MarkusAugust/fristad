@@ -57,13 +57,14 @@ Koordinater er i meter: x mot øst, y opp og z mot sør, som i spillet og i plan
   | `rest` | hvilestedet (alteret med lysestaken) | `yaw` |
   | `mob` | fiender | `label` (slaget), `n`, `patrol` (valgfri), `ambush` (valgfri) |
   | `elite` | eliten med nøkkelen | `label`, `opens` |
-  | `boss` | bossen | `label`, `arena` (rom-id) |
+  | `boss` | bossen (hvilket slag som helst; stolpen, brølet, kommer ikke igjen når den er slått) | `label`, `arena` (rom-id) |
   | `chest` | kiste | `yaw`, `loot` (valgfri) |
   | `rare` | sjelden komponent | `label` (komponenten) |
   | `lore` | lapp eller bok | `label`, `text` |
   | `bonus` | varig styrke | `label` (`liv` eller `utholdenhet`) |
   | `lever` | spak | `id`, `yaw`, `opens` (id-er) |
-  | `gate` | gitter eller port | `id`, `yaw`, `width` |
+  | `gate` | gitter eller port | `id`, `yaw`, `width`; med `arena` (rom-id) står porten oppe og slår igjen bak deg mens bossen lever, og `label: "exit"` er porten ut (stengt så lenge bossen lever) |
+  | `bridge` | bro over en avgrunn, senkes når bryteren åpnes (alle spakene som har den i `opens`) | `id`, `yaw`, `size` (bredde, lengde), `height` (hvor høyt den henger), `top` (festene i taket) |
   | `shortcut` | dør med slå, åpnes fra én side | `id`, `yaw`, `width`, `from` (rom-id der slåen er) |
   | `secret_wall` | falsk vegg som slås ned eller åpnes | `id`, `yaw`, `width`, `height` |
   | `trapdoor` | fallem eller sjakt du faller ned i | `id`, `size`, `to` (rom-id) |
@@ -72,7 +73,8 @@ Koordinater er i meter: x mot øst, y opp og z mot sør, som i spillet og i plan
   | `hint` | hint om en hemmelighet (trekk, lyd, sprekk) | `label` (`draft`, `sound`, `crack`), `for` (id-en det gjelder) |
   | `lift` | heis eller vinsj | `id`, `top`, `bottom` |
   | `prop` | pynt som egen modell fra byggesettet (sarkofagen `kit_sarcophagus`); kolliderne står i `colliders` | `label` (modellen), `yaw` |
-  | `water` | vannstand som kan endres | `id`, `levels` (høyder) |
+  | `water` | vannflate som står høyt til bryteren `id` åpnes (sluseratten, en spak med `id` i `opens`), og så synker | `id`, `size` (bredde, dybde), `levels` (høy, lav) |
+  | `water_block` | usynlig mur som holder deg ute av vannet der en trapp eller gang går ned i det; borte når vannet har sunket | `id` (vannets), `size` (bredde, høyde, dybde), `yaw` |
 
 ## Felles regler
 

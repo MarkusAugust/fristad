@@ -146,6 +146,10 @@ impl Session {
         instances.extend(posed(crypt::KIT_LEVER_ARM, self.mech.lever_poses(self.live_crypt())));
         instances.extend(posed(crypt::KIT_SECRET, self.mech.secret_poses(self.live_crypt(), self.time)));
         instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(self.live_crypt())));
+        let (decks, chains) = self.mech.bridge_poses(self.live_crypt());
+        instances.extend(posed(crypt::KIT_BRIDGE, decks));
+        instances.extend(posed(crypt::KIT_CHAIN, chains));
+        instances.extend(posed(crypt::KIT_WATER, self.mech.water_poses(self.live_crypt())));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
         instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));

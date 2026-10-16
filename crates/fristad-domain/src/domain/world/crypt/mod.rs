@@ -20,6 +20,9 @@ pub mod map;
 pub mod nav;
 mod query;
 pub mod run;
+mod parts;
+
+pub use parts::*;
 
 use super::{Builder, Shape, Use};
 use glam::{Affine3A, Vec2, Vec3};
@@ -79,6 +82,17 @@ pub const KIT_BONUS: &str = "kit_bonus";
 pub const KIT_CRACK: &str = "kit_crack";
 pub const KIT_UP: &str = "kit_up";
 pub const KIT_DOWN: &str = "kit_down";
+/// Broa over en avgrunn (`kit_bridge`, origo midt på dekket, lengden langs
+/// z) og kjettingene den henger i (`kit_chain`, 12 m fra øyet på dekket og
+/// opp gjennom hvelvet). Broa henger `Bridge.hang` over der den
+/// ligger når den er nede, og senkes når bryteren åpnes.
+pub const KIT_BRIDGE: &str = "kit_bridge";
+pub const KIT_CHAIN: &str = "kit_chain";
+/// Vannflaten (1 × 1 m, origo midt på), skalert og senket av økta.
+pub const KIT_WATER: &str = "kit_water";
+/// Målene broa er modellert i (skaleres til merkets `size`).
+pub const BRIDGE_W: f32 = 3.6;
+pub const BRIDGE_L: f32 = 8.0;
 /// Pynten merket `prop` kan sette ut (modellnavnet i `label`).
 pub const PROPS: &[&str] = &["kit_sarcophagus"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
@@ -143,187 +157,6 @@ pub struct Level {
     pub overlaps: Vec<(usize, usize)>,
 }
 
-/// Noe som åpnes: en port, en snarveidør, en falsk vegg, en fallem.
-#[derive(Clone, Debug)]
-pub struct Switch {
-    pub level: usize,
-    pub id: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct Chest {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub level: usize,
-    /// En bestemt komponent (sjelden), ellers fra nivåets liste.
-    pub loot: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Gate {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub width: f32,
-    pub level: usize,
-    pub switch: usize,
-    /// Åpnes med nøkkelen eliten bærer (ellers med en spak).
-    pub key: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct Lever {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub level: usize,
-    pub opens: Vec<usize>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Shortcut {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub width: f32,
-    pub level: usize,
-    pub switch: usize,
-    /// Retningen (flatt) fra døra mot sida der slåen sitter.
-    pub latch: Vec3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Secret {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub width: f32,
-    pub height: f32,
-    pub level: usize,
-    pub switch: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct Trapdoor {
-    pub pos: Vec3,
-    pub yaw: f32,
-    /// Bredde og dybde.
-    pub size: Vec2,
-    pub level: usize,
-    pub switch: usize,
-    /// Rommet du havner i.
-    pub to: Option<usize>,
-    /// En lem som faller opp når du står på den (ellers et åpent hull).
-    pub lid: bool,
-    /// Boltet fra undersida: står fast når du tråkker på den, og åpnes
-    /// bare når du klatrer opp stigen under den.
-    pub bolted: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct Ladder {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub top: Vec3,
-    pub level: usize,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TrapKind {
-    Arrows,
-    Spikes,
-    Rocks,
-    Pendulum,
-    Gas,
-    Flood,
-}
-
-#[derive(Clone, Debug)]
-pub struct Trap {
-    pub kind: TrapKind,
-    /// Trykkplata (midten på gulvet) og målene.
-    pub pos: Vec3,
-    pub size: Vec2,
-    /// Retningen pilene flyr (flatt).
-    pub dir: Vec3,
-    pub level: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct Rest {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub level: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct Lore {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub title: String,
-    pub text: String,
-    pub level: usize,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BonusKind {
-    Life,
-    Stamina,
-}
-
-#[derive(Clone, Debug)]
-pub struct Bonus {
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub kind: BonusKind,
-    pub level: usize,
-    /// Navnet i lagringen (nivå og nummer), så den bare tas én gang.
-    pub key: String,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Ambush {
-    /// Vekkes når du kommer så nær.
-    Near(f32),
-    /// Vekkes når du går inn i rommet.
-    Room(usize),
-}
-
-/// Fiender som står et sted: slaget (`label`, se `mobs::Kind::from_label`),
-/// hvor mange, ruta de går, og om de ligger i bakhold.
-#[derive(Clone, Debug)]
-pub struct Spawn {
-    pub label: String,
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub n: u32,
-    pub patrol: Vec<Vec3>,
-    pub ambush: Option<Ambush>,
-    pub elite: bool,
-    pub boss: bool,
-    pub level: usize,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum HintKind {
-    Draft,
-    Sound,
-    Crack,
-}
-
-#[derive(Clone, Debug)]
-pub struct Hint {
-    pub kind: HintKind,
-    pub pos: Vec3,
-    pub level: usize,
-}
-
-/// Det som ennå ikke gjør noe (heiser, vannstand): tatt vare på, så det
-/// er klart når mekanismen kommer.
-#[derive(Clone, Debug)]
-pub struct Pending {
-    pub kind: String,
-    pub id: Option<String>,
-    pub pos: Vec3,
-    pub level: usize,
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct Crypt {
     pub levels: Vec<Level>,
@@ -337,6 +170,9 @@ pub struct Crypt {
     pub secrets: Vec<Secret>,
     pub trapdoors: Vec<Trapdoor>,
     pub ladders: Vec<Ladder>,
+    pub bridges: Vec<Bridge>,
+    pub waters: Vec<Water>,
+    pub water_blocks: Vec<WaterBlock>,
     pub traps: Vec<Trap>,
     pub rests: Vec<Rest>,
     pub lores: Vec<Lore>,
@@ -354,6 +190,10 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
         build_level(b, &mut c, k, n, f, anchor);
     }
     c.open = vec![false; c.switches.len()];
+    // Portene til bossarenaene står oppe til bossen stenger dem.
+    for g in c.gates.iter().filter(|g| g.arena.is_some()) {
+        c.open[g.switch] = true;
+    }
     // Det du kan bruke.
     for (i, ch) in c.chests.iter().enumerate() {
         b.target(Use::Chest(i), super::at(ch.pos, ch.yaw), Vec3::new(0.0, 0.3, 0.0), Vec3::new(0.48, 0.33, 0.33));
@@ -411,6 +251,9 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_TRAPDOOR, c.trapdoors.iter().filter(|t| t.lid).count()),
         (KIT_ARROW, if c.traps.is_empty() { 0 } else { 16 }),
         (KIT_REST_FLAME, c.rests.len()),
+        (KIT_BRIDGE, c.bridges.len()),
+        (KIT_CHAIN, 4 * c.bridges.len()),
+        (KIT_WATER, c.waters.len()),
     ]
 }
 
@@ -680,7 +523,9 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "gate" => {
                 let s = id(c, "gate");
-                c.gates.push(Gate { pos, yaw: m.yaw, width: m.width.unwrap_or(GATE_W), level: k, switch: s, key: keyed.contains(&s) });
+                let arena = m.arena.as_deref().and_then(room_ix);
+                let exit = m.label.as_deref() == Some("exit");
+                c.gates.push(Gate { pos, yaw: m.yaw, width: m.width.unwrap_or(GATE_W), level: k, switch: s, key: keyed.contains(&s), arena, exit });
             }
             "shortcut" => {
                 let s = id(c, "shortcut");
@@ -718,6 +563,13 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 let lid = !matches!(m.label.as_deref(), Some("shaft") | Some("sjakt") | Some("hole"));
                 let bolted = matches!(m.label.as_deref(), Some("bolted") | Some("boltet"));
                 c.trapdoors.push(Trapdoor { pos, yaw: m.yaw, size: Vec2::new(sw, sd), level: k, switch: s, to: m.to.as_deref().and_then(room_ix), lid, bolted });
+            }
+            "bridge" => {
+                let s = id(c, "bridge");
+                let (bw, bl) = m.size.map(|s| s.wd()).unwrap_or((BRIDGE_W, BRIDGE_L));
+                let hang = m.height.unwrap_or(6.0);
+                let top = m.top.map(w).map(|t| t.y).unwrap_or(pos.y + hang + 3.0);
+                c.bridges.push(Bridge { pos, yaw: m.yaw, size: Vec2::new(bw, bl), hang, top, level: k, switch: s });
             }
             "ladder" => {
                 let top = m.top.map(w).unwrap_or(pos + Vec3::Y * 3.0);
@@ -770,7 +622,28 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     None => log::warn!("Kryptnivå {n}: ukjent pynt «{label}» (kjente: {PROPS:?})"),
                 }
             }
-            "lift" | "water" => {
+            "water" => {
+                let s = id(c, "water");
+                let (sw, sd) = m.size.map(|s| s.wd()).unwrap_or((4.0, 4.0));
+                let (high, low) = match m.levels.as_slice() {
+                    [h, l, ..] => (*h + origin.y, *l + origin.y),
+                    _ => (pos.y, pos.y - 3.0),
+                };
+                c.waters.push(Water { pos, yaw: m.yaw, size: Vec2::new(sw, sd), high, low, level: k, switch: s });
+            }
+            "water_block" => {
+                let s = id(c, "water");
+                let size = match m.size {
+                    Some(level::Size::Three(v)) => Vec3::from(v),
+                    Some(other) => {
+                        let (a, b) = other.wd();
+                        Vec3::new(a, 2.5, b)
+                    }
+                    None => Vec3::new(2.0, 2.5, 0.4),
+                };
+                c.water_blocks.push(WaterBlock { pos, yaw: m.yaw, size, level: k, switch: s });
+            }
+            "lift" => {
                 log::info!("Kryptnivå {n}: {} ({:?}) gjør ingenting ennå", m.kind, m.id);
                 c.pending.push(Pending { kind: m.kind.clone(), id: m.id.clone(), pos, level: k });
             }

@@ -145,7 +145,7 @@ const MAX_LINES: usize = 800;
 
 /// Filene som var lengre da grensen kom (11. oktober), med lengden da som
 /// tak. De kan bare krympe; når en er under grensen, skal den strykes her.
-const TOO_LONG: &[(&str, usize)] = &[("fristad-domain/src/domain/mobs.rs", 1020), ("fristad-domain/src/domain/geometry.rs", 827)];
+const TOO_LONG: &[(&str, usize)] = &[("fristad-domain/src/domain/mobs.rs", 963), ("fristad-domain/src/domain/geometry.rs", 827)];
 
 #[test]
 fn filene_er_ikke_for_lange() {

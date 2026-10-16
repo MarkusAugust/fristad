@@ -62,6 +62,7 @@ Bestemt med eieren 10. oktober 2026. Krypten lages på nytt fra bunnen i den mal
    - Nivå 1 helt ferdig, med teksturer, lys, fiender, hemmeligheter og test
    - Eieren godkjenner
 4. **Nivå 2 og Modalen**, så tema for tema nedover. Hvert tema trenger teksturer fra eieren, så promptene for neste tema sendes mens det forrige bygges.
+   - Status 16. oktober: nivå 2 (Gravkongens hall, med Modalen), 3 (Kloakken) og 4 (Den store cisternen, med Tabellen) er bygd etter planene og kan gås og spilles gjennom (`kryptnivaaene_kan_gas_gjennom`, `gjennomspilling`). Kloakken og cisternen bruker ennå gravkjellerens stein; temaenes egne teksturer mangler. Loggen: `docs/wip/krypten.md`.
 
 ## Nivåene
 
