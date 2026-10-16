@@ -71,6 +71,14 @@ fn main() {
     }
     let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, width, height);
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
+    // --anchors: stedene filmen trenger (øyet der du begynner, og startstedet
+    // i hvert kryptnivå), som json, til filmens tester.
+    if flag("--anchors") {
+        let (eye, yaw) = app.session.spawn_eye();
+        let levels: Vec<String> = (0..10).filter_map(|k| app.session.level_start(k)).map(|(p, y)| format!("[{},{},{},{}]", p.x, p.y, p.z, y.to_degrees())).collect();
+        println!("{{\"spawn_eye\":[{},{},{},{}],\"levels\":[{}]}}", eye.x, eye.y, eye.z, yaw.to_degrees(), levels.join(","));
+        return;
+    }
 
     if flag("--night") || arg("--theme").as_deref() == Some("dark") {
         app.session.set_daylight(Daylight::Night, true);
@@ -199,11 +207,11 @@ fn main() {
     }
     if let Some(eye) = eye {
         app.command(Command::Place { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians() });
-        // --film [--fov G]: som i filmen, uten armer, og byfolket og fiendene
+        // --film [--fov G] [--roll G]: som i filmen, uten armer, og byfolket og fiendene
         // lever i et sekund før bildet tas.
         if flag("--film") {
             let fov: f32 = arg("--fov").map(|s| s.parse().unwrap()).unwrap_or(60.0);
-            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians(), fov })));
+            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians(), fov, roll: arg("--roll").map(|s| s.parse::<f32>().unwrap().to_radians()).unwrap_or(0.0) })));
             for _ in 0..30 {
                 app.tick(1.0 / 30.0);
             }

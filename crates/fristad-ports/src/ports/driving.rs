@@ -128,6 +128,8 @@ pub struct Shot {
     pub yaw: f32,
     pub pitch: f32,
     pub fov: f32,
+    /// Krengning (radianer, positiv mot venstre), så kameraet kan legge seg i svingene.
+    pub roll: f32,
 }
 
 /// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).

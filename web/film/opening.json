@@ -1,556 +1,1062 @@
 {
-  "title": "Fristad",
-  "note": "Åpningsfilmen (docs/plan.md del 8). Hver scene er et maleri løftet etter dybdekartet (space: near/far i meter, sky: nærhet under dette er himmel), med utklipp foran (h/x/bottom som brøk av bildet på dybden depth, relief i meter, breathe/sway/walk/drift/glitch), lys (u, v i bildet, farge, størrelse i meter, blafring), partikler, tåke, lyd (sound) og musikk. Kameraet (at 0–1 av scenen, x/y/z i meter, yaw/pitch i radianer, zoom) går i én bane; de siste 2,6 sekundene av en scene går over i den neste gjennom portal (u, v i bildet, mode iris|glitch|flash|dark, pull: hvor langt kameraet trekkes mot den). Den siste scenen venter på spillet og går gjennom porten inn i det.",
-  "placeholder": false,
-  "scenes": [
+ "title": "Fristad",
+ "note": "Åpningsfilmen: en flytur gjennom det ekte Fristad (motoren), med maleriene der historien skjedde. Rammer: world, spawn (øyet der du begynner), crypt1 (startstedet i krypten), og ankeret til hvert maleri (pos, yaw, pitch, scale; inne i maleriet er enhetene maleriets egne). Kamera: t, frame, p, look eller yaw/pitch (grader), fov, cut (banen hopper bak et slør eller et maleri). Maleriene: show [inn fra, helt inn, ut fra, borte], mask ink|glitch, lag (plate eller utklipp med height og at), lys. props: figurer i verden med path [[t, x, y, z]]. texts: t [fra, til], heading/text, x, y, w, align, size. events: musikk (cue), lydbilde (sound), dag og natt (theme). veils: svart eller lyst slør.",
+ "end": 106,
+ "paintings": [
+  {
+   "id": "gullalderen",
+   "pos": [
+    -10,
+    2.6,
+    -3.2
+   ],
+   "yaw": 0,
+   "pitch": 0,
+   "scale": 0.35,
+   "show": [
+    13,
+    17,
+    28.5,
+    31
+   ],
+   "mask": "ink",
+   "space": {
+    "near": 2.6,
+    "far": 38
+   },
+   "layers": [
     {
-      "id": "gullalderen",
-      "dur": 12,
-      "music": "town",
-      "sound": "hall",
-      "heading": "Fristad",
-      "text": "I de gode årene skrev de komponentene i Skriptoriet. Hver av dem gjorde én ting, og gjorde den vel.",
-      "particles": "dust",
-      "fog": [
-        "#2a1c10",
-        30,
-        90
-      ],
-      "space": {
-        "near": 2.6,
-        "far": 38
-      },
-      "layers": [
-        {
-          "src": "opening/gullalderen/bg.webp"
-        },
-        {
-          "src": "opening/gullalderen/mid.webp",
-          "depth": 6.0,
-          "h": 0.25,
-          "x": 0.1,
-          "bottom": -0.3,
-          "breathe": 0.006,
-          "relief": 0.5
-        },
-        {
-          "src": "opening/gullalderen/fg.webp",
-          "depth": 2.0,
-          "h": 0.6,
-          "x": -0.4,
-          "bottom": -0.62,
-          "relief": 0.35
-        }
-      ],
-      "lights": [
-        [
-          0.548,
-          0.17,
-          "#ffb050",
-          0.9
-        ],
-        [
-          0.585,
-          0.135,
-          "#ffb050",
-          0.9
-        ],
-        [
-          0.608,
-          0.13,
-          "#ffb050",
-          0.9
-        ],
-        [
-          0.643,
-          0.14,
-          "#ffb050",
-          0.9
-        ],
-        [
-          0.658,
-          0.175,
-          "#ffb050",
-          0.9
-        ],
-        [
-          0.035,
-          0.3,
-          "#ffe7a8",
-          5.0,
-          0.2
-        ],
-        [
-          0.245,
-          0.33,
-          "#ffe7a8",
-          3.5,
-          0.2
-        ]
-      ],
-      "portal": {
-        "u": 0.53,
-        "v": 0.86,
-        "mode": "glitch",
-        "pull": 0.35
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": -0.4,
-          "y": 0.35,
-          "z": 0.3,
-          "yaw": 0.05,
-          "pitch": -0.02
-        },
-        {
-          "at": 0.5,
-          "x": 0.0,
-          "y": 0.15,
-          "z": -0.3,
-          "yaw": -0.01,
-          "pitch": -0.04
-        },
-        {
-          "at": 1,
-          "x": 0.35,
-          "y": 0.0,
-          "z": -1.0,
-          "yaw": -0.04,
-          "pitch": -0.09
-        }
-      ]
+     "src": "opening/gullalderen/bg.webp"
     },
     {
-      "id": "fallet",
-      "dur": 11,
-      "music": "none",
-      "sound": "glitch",
-      "fx": "glitch",
-      "text": "Så sivet forretningslogikken inn. Knappene gjorde ting ingen hadde bedt om, og skjemaene sa nei til alt.",
-      "particles": "glitch",
-      "fog": [
-        "#1a0a24",
-        25,
-        80
-      ],
-      "space": {
-        "near": 2.6,
-        "far": 40
-      },
-      "layers": [
-        {
-          "src": "opening/fallet/bg.webp"
-        },
-        {
-          "src": "opening/fallet/mid.webp",
-          "depth": 5.5,
-          "h": 0.6,
-          "x": 0.12,
-          "bottom": -0.32,
-          "glitch": true,
-          "sway": 0.12,
-          "relief": 0.8
-        },
-        {
-          "src": "opening/fallet/fg.webp",
-          "depth": 2.2,
-          "h": 0.26,
-          "x": -0.34,
-          "bottom": -0.58,
-          "relief": 0.2
-        }
-      ],
-      "lights": [
-        [
-          0.04,
-          0.3,
-          "#ff3cc8",
-          0.9,
-          2
-        ],
-        [
-          0.95,
-          0.38,
-          "#ff3cc8",
-          0.6,
-          2
-        ],
-        [
-          0.97,
-          0.52,
-          "#3cf0ff",
-          0.6,
-          2
-        ],
-        [
-          0.25,
-          0.42,
-          "#ff3cc8",
-          0.7,
-          2
-        ],
-        [
-          0.33,
-          0.3,
-          "#3cf0ff",
-          0.6,
-          2
-        ],
-        [
-          0.7,
-          0.09,
-          "#ff3cc8",
-          0.9,
-          2
-        ]
-      ],
-      "portal": {
-        "u": 0.655,
-        "v": 0.49,
-        "mode": "dark",
-        "pull": 0.6
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": 0.25,
-          "y": 0.0,
-          "z": 0.2,
-          "yaw": -0.04,
-          "pitch": -0.03
-        },
-        {
-          "at": 1,
-          "x": -0.2,
-          "y": 0.1,
-          "z": -1.4,
-          "yaw": -0.06,
-          "pitch": 0.0,
-          "zoom": 1.04
-        }
-      ]
+     "src": "opening/gullalderen/mid.webp",
+     "breathe": 0.006,
+     "relief": 0.5,
+     "height": 1.399,
+     "at": [
+      0.995,
+      -1.679,
+      -6
+     ]
     },
     {
-      "id": "begravelsen",
-      "dur": 12,
-      "music": "cellar",
-      "sound": "night",
-      "text": "De korrupte komponentene ble båret ned under kirka og murt inne. Klokka ringte i tre dager.",
-      "particles": "mist",
-      "fog": [
-        "#0a1020",
-        40,
-        140
-      ],
-      "space": {
-        "near": 3.5,
-        "far": 70,
-        "sky": 0.05
-      },
-      "layers": [
-        {
-          "src": "opening/begravelsen/bg.webp"
-        },
-        {
-          "src": "opening/begravelsen/mid.webp",
-          "fade": [
-            0.12,
-            0.42
-          ]
-        },
-        {
-          "src": "opening/begravelsen/fg.webp",
-          "depth": 3.0,
-          "h": 0.3,
-          "x": 0.06,
-          "bottom": -0.6,
-          "relief": 0.3
-        }
-      ],
-      "lights": [
-        [
-          0.2,
-          0.565,
-          "#ffa040",
-          1.4
-        ],
-        [
-          0.685,
-          0.575,
-          "#ffa040",
-          1.4
-        ],
-        [
-          0.255,
-          0.825,
-          "#ffa040",
-          1.0
-        ]
-      ],
-      "portal": {
-        "u": 0.625,
-        "v": 0.6,
-        "mode": "dark",
-        "pull": 0.62
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": 0.7,
-          "y": 0.4,
-          "z": 0.4,
-          "yaw": -0.06,
-          "pitch": -0.03
-        },
-        {
-          "at": 0.6,
-          "x": 0.2,
-          "y": 0.3,
-          "z": 0.0,
-          "yaw": 0.0,
-          "pitch": -0.02
-        },
-        {
-          "at": 1,
-          "x": -0.2,
-          "y": 0.1,
-          "z": -1.2,
-          "yaw": 0.02,
-          "pitch": -0.03
-        }
-      ]
-    },
-    {
-      "id": "krypten",
-      "dur": 12,
-      "music": "cellar",
-      "sound": "crypt",
-      "text": "Men det som er murt inne, ligger ikke stille. Der nede går de ennå.",
-      "particles": "motes",
-      "fog": [
-        "#05070c",
-        18,
-        60
-      ],
-      "space": {
-        "near": 2.4,
-        "far": 40
-      },
-      "layers": [
-        {
-          "src": "opening/krypten/bg.webp"
-        },
-        {
-          "src": "opening/krypten/mid.webp",
-          "depth": 7.5,
-          "h": 0.42,
-          "x": 0.02,
-          "bottom": -0.34,
-          "breathe": 0.012,
-          "relief": 1.0
-        },
-        {
-          "src": "opening/krypten/fg.webp",
-          "depth": 2.2,
-          "h": 0.24,
-          "x": 0.32,
-          "bottom": -0.6,
-          "relief": 0.25
-        }
-      ],
-      "lights": [
-        [
-          0.59,
-          0.455,
-          "#ffa040",
-          1.3
-        ],
-        [
-          0.415,
-          0.42,
-          "#7fb0ff",
-          4.0,
-          0.3
-        ]
-      ],
-      "portal": {
-        "u": 0.415,
-        "v": 0.47,
-        "mode": "flash",
-        "pull": 0.7
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": 0.0,
-          "y": 0.3,
-          "z": 0.3,
-          "yaw": 0.0,
-          "pitch": 0.02
-        },
-        {
-          "at": 1,
-          "x": 0.15,
-          "y": 0.0,
-          "z": -1.3,
-          "yaw": 0.02,
-          "pitch": -0.01
-        }
-      ]
-    },
-    {
-      "id": "fristad1350",
-      "dur": 13,
-      "music": "town",
-      "sound": "market",
-      "heading": "Anno 1350",
-      "text": "På torget hvisker de om gull og glemte bøker under kirkegården, og om dem som gikk ned og aldri kom opp igjen.",
-      "particles": "dust",
-      "fog": [
-        "#c8d8e8",
-        70,
-        220
-      ],
-      "space": {
-        "near": 3.0,
-        "far": 80,
-        "sky": 0.04
-      },
-      "layers": [
-        {
-          "src": "opening/fristad1350/bg.webp"
-        },
-        {
-          "src": "opening/fristad1350/mid.webp",
-          "depth": 4.2,
-          "h": 0.5,
-          "x": -0.2,
-          "bottom": -0.58,
-          "breathe": 0.006,
-          "sway": 0.02,
-          "relief": 0.5
-        },
-        {
-          "src": "opening/fristad1350/fg.webp",
-          "depth": 2.2,
-          "h": 0.62,
-          "x": 0.44,
-          "bottom": -0.62,
-          "relief": 0.3
-        }
-      ],
-      "lights": [
-        [
-          0.79,
-          0.64,
-          "#ff8a3a",
-          1.2
-        ]
-      ],
-      "portal": {
-        "u": 0.63,
-        "v": 0.445,
-        "mode": "iris",
-        "pull": 0.6
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": -0.5,
-          "y": 0.5,
-          "z": 0.3,
-          "yaw": 0.03,
-          "pitch": -0.02
-        },
-        {
-          "at": 0.6,
-          "x": 0.2,
-          "y": 0.2,
-          "z": -0.2,
-          "yaw": -0.01,
-          "pitch": -0.02
-        },
-        {
-          "at": 1,
-          "x": 0.4,
-          "y": 0.1,
-          "z": -1.0,
-          "yaw": -0.03,
-          "pitch": 0.0
-        }
-      ]
-    },
-    {
-      "id": "sorporten",
-      "dur": 12,
-      "music": "town",
-      "sound": "road",
-      "text": "Og en dag kommer en fremmed gjennom sørporten.",
-      "particles": "dust",
-      "fog": [
-        "#e8d8b8",
-        90,
-        260
-      ],
-      "space": {
-        "near": 3.0,
-        "far": 110,
-        "sky": 0.06
-      },
-      "layers": [
-        {
-          "src": "opening/sorporten/bg.webp"
-        },
-        {
-          "src": "opening/sorporten/mid.webp",
-          "depth": 5.0,
-          "h": 0.3,
-          "x": -0.06,
-          "bottom": -0.42,
-          "walk": true,
-          "drift": [
-            0.9,
-            0.0,
-            9.0
-          ],
-          "relief": 0.2
-        },
-        {
-          "src": "opening/sorporten/fg.webp",
-          "depth": 2.0,
-          "h": 0.5,
-          "x": -0.42,
-          "bottom": -0.6,
-          "sway": 0.03,
-          "relief": 0.3
-        }
-      ],
-      "portal": {
-        "u": 0.655,
-        "v": 0.47,
-        "mode": "iris",
-        "pull": 0.7
-      },
-      "camera": [
-        {
-          "at": 0,
-          "x": -0.3,
-          "y": 0.6,
-          "z": 0.5,
-          "yaw": 0.02,
-          "pitch": -0.05
-        },
-        {
-          "at": 1,
-          "x": 0.3,
-          "y": 0.2,
-          "z": -1.5,
-          "yaw": -0.06,
-          "pitch": 0.0,
-          "zoom": 1.06
-        }
-      ]
+     "src": "opening/gullalderen/fg.webp",
+     "relief": 0.35,
+     "height": 1.119,
+     "at": [
+      -1.326,
+      -1.156,
+      -2.0
+     ]
     }
+   ],
+   "lights": [
+    [
+     0.548,
+     0.17,
+     "#ffb050",
+     0.9
+    ],
+    [
+     0.585,
+     0.135,
+     "#ffb050",
+     0.9
+    ],
+    [
+     0.608,
+     0.13,
+     "#ffb050",
+     0.9
+    ],
+    [
+     0.643,
+     0.14,
+     "#ffb050",
+     0.9
+    ],
+    [
+     0.658,
+     0.175,
+     "#ffb050",
+     0.9
+    ],
+    [
+     0.035,
+     0.3,
+     "#ffe7a8",
+     5.0,
+     0.2
+    ],
+    [
+     0.245,
+     0.33,
+     "#ffe7a8",
+     3.5,
+     0.2
+    ]
+   ]
+  },
+  {
+   "id": "fallet",
+   "pos": [
+    -10,
+    2.6,
+    -3.2
+   ],
+   "yaw": 0,
+   "pitch": 0,
+   "scale": 0.35,
+   "show": [
+    27.5,
+    30.5,
+    38.5,
+    41.5
+   ],
+   "mask": "glitch",
+   "space": {
+    "near": 2.6,
+    "far": 40
+   },
+   "layers": [
+    {
+     "src": "opening/fallet/bg.webp"
+    },
+    {
+     "src": "opening/fallet/mid.webp",
+     "glitch": true,
+     "sway": 0.12,
+     "relief": 0.8,
+     "height": 3.078,
+     "at": [
+      1.094,
+      -1.641,
+      -5.5
+     ]
+    },
+    {
+     "src": "opening/fallet/fg.webp",
+     "relief": 0.2,
+     "height": 0.533,
+     "at": [
+      -1.24,
+      -1.19,
+      -2.2
+     ]
+    }
+   ],
+   "lights": [
+    [
+     0.04,
+     0.3,
+     "#ff3cc8",
+     0.9,
+     2
+    ],
+    [
+     0.95,
+     0.38,
+     "#ff3cc8",
+     0.6,
+     2
+    ],
+    [
+     0.97,
+     0.52,
+     "#3cf0ff",
+     0.6,
+     2
+    ],
+    [
+     0.25,
+     0.42,
+     "#ff3cc8",
+     0.7,
+     2
+    ],
+    [
+     0.33,
+     0.3,
+     "#3cf0ff",
+     0.6,
+     2
+    ],
+    [
+     0.7,
+     0.09,
+     "#ff3cc8",
+     0.9,
+     2
+    ]
+   ]
+  },
+  {
+   "id": "begravelsen",
+   "pos": [
+    -6.5,
+    3.2,
+    -41.5
+   ],
+   "yaw": 15.5,
+   "pitch": -3,
+   "scale": 0.35,
+   "show": [
+    47,
+    51.5,
+    62.6,
+    63.3
+   ],
+   "mask": "ink",
+   "space": {
+    "near": 3.5,
+    "far": 70,
+    "sky": 0.05
+   },
+   "layers": [
+    {
+     "src": "opening/begravelsen/bg.webp"
+    },
+    {
+     "src": "opening/begravelsen/mid.webp",
+     "fade": [
+      55,
+      58.5
+     ]
+    },
+    {
+     "src": "opening/begravelsen/fg.webp",
+     "relief": 0.3,
+     "height": 0.839,
+     "at": [
+      0.298,
+      -1.679,
+      -3.0
+     ]
+    }
+   ],
+   "lights": [
+    [
+     0.2,
+     0.565,
+     "#ffa040",
+     1.4
+    ],
+    [
+     0.685,
+     0.575,
+     "#ffa040",
+     1.4
+    ],
+    [
+     0.255,
+     0.825,
+     "#ffa040",
+     1.0
+    ]
+   ]
+  },
+  {
+   "id": "krypten",
+   "frame": "crypt1",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "yaw": 0,
+   "pitch": 0,
+   "scale": 0.35,
+   "show": [
+    62.5,
+    63,
+    70.5,
+    73.5
+   ],
+   "mask": "ink",
+   "space": {
+    "near": 2.4,
+    "far": 40
+   },
+   "layers": [
+    {
+     "src": "opening/krypten/bg.webp"
+    },
+    {
+     "src": "opening/krypten/mid.webp",
+     "breathe": 0.012,
+     "relief": 1.0,
+     "height": 2.938,
+     "at": [
+      0.249,
+      -2.378,
+      -7.5
+     ]
+    },
+    {
+     "src": "opening/krypten/fg.webp",
+     "relief": 0.25,
+     "height": 0.492,
+     "at": [
+      1.167,
+      -1.231,
+      -2.2
+     ]
+    }
+   ],
+   "lights": [
+    [
+     0.59,
+     0.455,
+     "#ffa040",
+     1.3
+    ],
+    [
+     0.415,
+     0.42,
+     "#7fb0ff",
+     4.0,
+     0.3
+    ]
+   ]
+  },
+  {
+   "id": "fristad1350",
+   "pos": [
+    9,
+    3.5,
+    11
+   ],
+   "yaw": 43.2,
+   "pitch": -5,
+   "scale": 0.35,
+   "show": [
+    75.5,
+    75.8,
+    82.5,
+    86.5
+   ],
+   "mask": "ink",
+   "space": {
+    "near": 3.0,
+    "far": 80,
+    "sky": 0.04
+   },
+   "layers": [
+    {
+     "src": "opening/fristad1350/bg.webp"
+    },
+    {
+     "src": "opening/fristad1350/mid.webp",
+     "breathe": 0.006,
+     "sway": 0.02,
+     "relief": 0.5,
+     "height": 1.958,
+     "at": [
+      -1.393,
+      -2.272,
+      -4.2
+     ]
+    },
+    {
+     "src": "opening/fristad1350/fg.webp",
+     "relief": 0.3,
+     "height": 1.272,
+     "at": [
+      1.605,
+      -1.272,
+      -2.2
+     ]
+    }
+   ],
+   "lights": [
+    [
+     0.79,
+     0.64,
+     "#ff8a3a",
+     1.2
+    ]
+   ]
+  }
+ ],
+ "props": [
+  {
+   "src": "opening/sorporten/mid.webp",
+   "height": 1.78,
+   "walk": true,
+   "relief": 0.15,
+   "show": [
+    90,
+    93,
+    101.5,
+    103.5
+   ],
+   "path": [
+    [
+     90,
+     1.7,
+     0,
+     66
+    ],
+    [
+     106,
+     1.3,
+     0,
+     40
+    ]
+   ]
+  },
+  {
+   "src": "opening/sorporten/fg.webp",
+   "height": 1.5,
+   "sway": 0.03,
+   "relief": 0.2,
+   "show": [
+    93,
+    96,
+    104,
+    106
+   ],
+   "pos": [
+    -2.8,
+    0,
+    57
+   ]
+  }
+ ],
+ "camera": [
+  {
+   "t": 0,
+   "p": [
+    160,
+    75,
+    200
+   ],
+   "fov": 50,
+   "look": [
+    0,
+    10,
+    0
+   ]
+  },
+  {
+   "t": 6,
+   "p": [
+    95,
+    48,
+    120
+   ],
+   "fov": 52,
+   "look": [
+    0,
+    6,
+    0
+   ]
+  },
+  {
+   "t": 11,
+   "p": [
+    30,
+    24,
+    40
+   ],
+   "fov": 55,
+   "look": [
+    -8,
+    4,
+    -8
+   ]
+  },
+  {
+   "t": 15,
+   "p": [
+    -6,
+    9,
+    6
+   ],
+   "fov": 55,
+   "look": [
+    -10,
+    3,
+    -8
+   ]
+  },
+  {
+   "t": 18,
+   "p": [
+    -10,
+    3.4,
+    0.2
+   ],
+   "fov": 52,
+   "look": [
+    -10,
+    2.7,
+    -8
+   ]
+  },
+  {
+   "t": 20,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "fov": 50,
+   "frame": "gullalderen",
+   "yaw": 0,
+   "pitch": 0
+  },
+  {
+   "t": 25.5,
+   "p": [
+    0.5,
+    -0.2,
+    -1.8
+   ],
+   "fov": 50,
+   "frame": "gullalderen",
+   "yaw": -4,
+   "pitch": -5
+  },
+  {
+   "t": 29,
+   "p": [
+    0.3,
+    -0.3,
+    -2.6
+   ],
+   "fov": 48,
+   "frame": "gullalderen",
+   "yaw": -6,
+   "pitch": -9
+  },
+  {
+   "t": 34,
+   "p": [
+    -0.4,
+    0.0,
+    -1.6
+   ],
+   "fov": 52,
+   "frame": "gullalderen",
+   "yaw": 6,
+   "pitch": 0
+  },
+  {
+   "t": 38,
+   "p": [
+    -0.2,
+    0.3,
+    1.8
+   ],
+   "fov": 56,
+   "frame": "gullalderen",
+   "yaw": 2,
+   "pitch": 2
+  },
+  {
+   "t": 41,
+   "p": [
+    -8,
+    8,
+    1
+   ],
+   "look": [
+    -4,
+    4,
+    -20
+   ],
+   "fov": 60
+  },
+  {
+   "t": 44.5,
+   "p": [
+    -1.4,
+    6.5,
+    -18
+   ],
+   "look": [
+    -1.6,
+    3,
+    -36
+   ],
+   "fov": 62
+  },
+  {
+   "t": 47,
+   "p": [
+    -1.7,
+    2.8,
+    -29
+   ],
+   "look": [
+    -1.6,
+    2.6,
+    -40
+   ],
+   "fov": 64
+  },
+  {
+   "t": 49,
+   "p": [
+    -2.0,
+    2.7,
+    -38.5
+   ],
+   "look": [
+    -6,
+    2.6,
+    -47
+   ],
+   "fov": 60
+  },
+  {
+   "t": 52,
+   "p": [
+    0,
+    0.6,
+    2.5
+   ],
+   "fov": 55,
+   "frame": "begravelsen",
+   "yaw": 0,
+   "pitch": -3
+  },
+  {
+   "t": 54,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "fov": 50,
+   "frame": "begravelsen",
+   "yaw": 0,
+   "pitch": 0
+  },
+  {
+   "t": 60,
+   "p": [
+    0.6,
+    -0.1,
+    -1.4
+   ],
+   "fov": 50,
+   "frame": "begravelsen",
+   "yaw": -4,
+   "pitch": -2
+  },
+  {
+   "t": 62.8,
+   "p": [
+    1.41,
+    -0.65,
+    -5.8
+   ],
+   "fov": 46,
+   "frame": "begravelsen",
+   "yaw": -13.6,
+   "pitch": -6.2
+  },
+  {
+   "t": 63,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "fov": 50,
+   "frame": "krypten",
+   "yaw": 0,
+   "pitch": 0,
+   "cut": true
+  },
+  {
+   "t": 69,
+   "p": [
+    0.1,
+    0.05,
+    -1.6
+   ],
+   "fov": 50,
+   "frame": "krypten",
+   "yaw": 2,
+   "pitch": 0
+  },
+  {
+   "t": 72,
+   "p": [
+    0,
+    0.2,
+    1.0
+   ],
+   "fov": 55,
+   "frame": "crypt1",
+   "yaw": 0,
+   "pitch": 0
+  },
+  {
+   "t": 75.5,
+   "p": [
+    0,
+    0,
+    -9
+   ],
+   "fov": 70,
+   "frame": "crypt1",
+   "yaw": 0,
+   "pitch": 2
+  },
+  {
+   "t": 75.6,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "fov": 50,
+   "frame": "fristad1350",
+   "yaw": 0,
+   "pitch": 0,
+   "cut": true
+  },
+  {
+   "t": 81,
+   "p": [
+    -0.6,
+    0.15,
+    -1.2
+   ],
+   "fov": 50,
+   "frame": "fristad1350",
+   "yaw": 3,
+   "pitch": 0
+  },
+  {
+   "t": 85,
+   "p": [
+    2,
+    9,
+    6
+   ],
+   "fov": 58,
+   "look": [
+    -4,
+    1.5,
+    -4
+   ]
+  },
+  {
+   "t": 89,
+   "p": [
+    1.4,
+    6,
+    20
+   ],
+   "fov": 60,
+   "look": [
+    1.5,
+    3,
+    44
+   ]
+  },
+  {
+   "t": 92.5,
+   "p": [
+    1.3,
+    3.0,
+    40
+   ],
+   "fov": 62,
+   "look": [
+    1.3,
+    2.6,
+    60
+   ]
+  },
+  {
+   "t": 94.5,
+   "p": [
+    1.3,
+    2.6,
+    47
+   ],
+   "fov": 64,
+   "look": [
+    1.4,
+    2.4,
+    64
+   ]
+  },
+  {
+   "t": 98,
+   "p": [
+    -6,
+    5,
+    60
+   ],
+   "fov": 58,
+   "look": [
+    1.4,
+    1.6,
+    50
+   ]
+  },
+  {
+   "t": 102,
+   "p": [
+    1.0,
+    2.4,
+    58
+   ],
+   "fov": 55,
+   "look": [
+    1.3,
+    1.7,
+    44
+   ]
+  },
+  {
+   "t": 106,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "fov": 72,
+   "frame": "spawn",
+   "yaw": 0,
+   "pitch": 0
+  }
+ ],
+ "texts": [
+  {
+   "t": [
+    1.5,
+    10.5
+   ],
+   "heading": "Fristad",
+   "x": "7vw",
+   "y": "14vh",
+   "size": "xl"
+  },
+  {
+   "t": [
+    20.5,
+    27.5
+   ],
+   "text": "I de gode årene skrev de komponentene i Skriptoriet. Hver av dem gjorde én ting, og gjorde den vel.",
+   "x": "6vw",
+   "y": "56vh",
+   "w": "46vw"
+  },
+  {
+   "t": [
+    30,
+    37
+   ],
+   "text": "Så sivet forretningslogikken inn. Knappene gjorde ting ingen hadde bedt om, og skjemaene sa nei til alt.",
+   "x": "48vw",
+   "y": "14vh",
+   "w": "44vw",
+   "align": "right"
+  },
+  {
+   "t": [
+    42.5,
+    48
+   ],
+   "text": "Om natta bar de dem ut av byen.",
+   "x": "52vw",
+   "y": "60vh",
+   "w": "40vw",
+   "align": "right"
+  },
+  {
+   "t": [
+    54.5,
+    61
+   ],
+   "text": "De korrupte komponentene ble båret ned under kirka og murt inne. Klokka ringte i tre dager.",
+   "x": "6vw",
+   "y": "16vh",
+   "w": "46vw"
+  },
+  {
+   "t": [
+    64,
+    71
+   ],
+   "text": "Men det som er murt inne, ligger ikke stille. Der nede går de ennå.",
+   "x": "26vw",
+   "y": "62vh",
+   "w": "48vw",
+   "align": "center"
+  },
+  {
+   "t": [
+    77,
+    84
+   ],
+   "heading": "Anno 1350",
+   "x": "7vw",
+   "y": "12vh",
+   "size": "xl"
+  },
+  {
+   "t": [
+    79,
+    87
+   ],
+   "text": "På torget hvisker de om gull og glemte bøker under kirkegården, og om dem som gikk ned og aldri kom opp igjen.",
+   "x": "48vw",
+   "y": "56vh",
+   "w": "44vw",
+   "align": "right"
+  },
+  {
+   "t": [
+    96,
+    104
+   ],
+   "text": "Og en dag kommer en fremmed gjennom sørporten.",
+   "x": "7vw",
+   "y": "18vh",
+   "w": "54vw"
+  }
+ ],
+ "events": [
+  {
+   "t": 0,
+   "cue": "dawn",
+   "sound": "road"
+  },
+  {
+   "t": 18.5,
+   "cue": "scriptorium",
+   "sound": "hall"
+  },
+  {
+   "t": 28,
+   "cue": "fall",
+   "sound": "glitch"
+  },
+  {
+   "t": 35,
+   "theme": "night"
+  },
+  {
+   "t": 38.5,
+   "sound": "night"
+  },
+  {
+   "t": 41,
+   "cue": "burial"
+  },
+  {
+   "t": 62.6,
+   "cue": "crypt",
+   "sound": "crypt"
+  },
+  {
+   "t": 75.6,
+   "theme": "day",
+   "cue": "town",
+   "sound": "market"
+  },
+  {
+   "t": 91,
+   "cue": "gate",
+   "sound": "road"
+  }
+ ],
+ "veils": [
+  {
+   "t": [
+    -1,
+    0,
+    0,
+    2.5
+   ]
+  },
+  {
+   "t": [
+    61.6,
+    62.8,
+    63.3,
+    64.6
+   ]
+  },
+  {
+   "t": [
+    74.2,
+    75.3,
+    75.9,
+    77.6
+   ],
+   "color": "white"
+  }
+ ],
+ "dust": [
+  {
+   "t": 0,
+   "amount": 0.0
+  },
+  {
+   "t": 17,
+   "amount": 0.7,
+   "color": "#ffe2a8",
+   "drift": [
+    0.05,
+    0.02,
+    0
+   ]
+  },
+  {
+   "t": 28,
+   "amount": 0.6,
+   "color": "#ff3cc8",
+   "drift": [
+    0.2,
+    0.1,
+    0
+   ]
+  },
+  {
+   "t": 38,
+   "amount": 0.25,
+   "color": "#b8c8e8"
+  },
+  {
+   "t": 62.5,
+   "amount": 0.5,
+   "color": "#9fc0ff"
+  },
+  {
+   "t": 75.6,
+   "amount": 0.45,
+   "color": "#ffe2a8"
+  },
+  {
+   "t": 90,
+   "amount": 0.3,
+   "color": "#fff0c8"
+  }
+ ],
+ "fallback": {
+  "spawn_eye": [
+   1.27623,
+   1.75,
+   36.01413,
+   1.5515697
+  ],
+  "levels": [
+   [
+    -9,
+    -40,
+    -52,
+    179.99986
+   ]
   ]
+ }
 }

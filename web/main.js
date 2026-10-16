@@ -5,7 +5,8 @@
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
-import { playFilm } from "./film/film.js";
+import { createFilm } from "./film/film.js";
+import { createScore } from "./score.js";
 import { createSounds } from "./sounds.js";
 import { createEditor } from "./editor.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
@@ -112,12 +113,6 @@ function setResolution(r, announce = true) {
 
 async function boot() {
   fit();
-  if (FILM) {
-    // Knappen virker med en gang: filmen går mens spillet lastes.
-    beginBtn.addEventListener("click", startFilm, { once: true });
-    beginBtn.hidden = false;
-    beginBtn.focus();
-  }
   stage("Laster motoren …");
   await init();
   try {
@@ -131,7 +126,6 @@ async function boot() {
   // Modellene fra Blender ligger ved siden av motoren, gzip-pakket.
   const models = await loadModels();
   stage("Bygger byen og baker materialene …");
-  loadPhase = [0.9, 0.9];
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
   // `?webgl` i adressen tvinger WebGL2, til testing.
@@ -173,10 +167,13 @@ async function boot() {
 
   status.hidden = true;
   $("loading").hidden = true;
-  gameReady = true;
-  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen går
-  // over i spillet ved sørporten); uten den går du rett inn.
-  if (!FILM) {
+  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen flyr
+  // gjennom byen og ender der du begynner); uten den går du rett inn.
+  if (FILM) {
+    beginBtn.addEventListener("click", startFilm, { once: true });
+    beginBtn.hidden = false;
+    beginBtn.focus();
+  } else {
     enterBtn.hidden = false;
     enterBtn.focus();
   }
@@ -245,7 +242,6 @@ async function loadAssets() {
     return none;
   }
   const paths = asset_paths(manifest);
-  loadPhase = [0, 0.15];
   const bar = $("loading");
   bar.hidden = false;
   let done = 0;
@@ -288,7 +284,6 @@ async function loadModels() {
     sizes = {};
   }
   const total = paths.reduce((a, p) => a + (sizes[p] || 1), 0);
-  loadPhase = [0.15, 0.9];
   let got = 0;
   const bar = $("loading");
   bar.hidden = false;
@@ -389,11 +384,8 @@ function loop(now) {
   last = now;
   // Mens filmen går, tegnes ikke spillet bak den (to grafikkontekster
   // samtidig fylte minnet på svake maskiner).
-  if (filming || !engine) {
-    requestAnimationFrame(loop);
-    return;
-  }
-  if (cine) cineTick(dt);
+  // Filmen styrer kameraet før motoren tegner, så maleriene står stødig i verden.
+  if (film) film.tick(dt);
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
@@ -1219,23 +1211,11 @@ function pause() {
 }
 
 // Åpningsfilmen (web/film/, docs/plan.md del 8) spilles hver gang med ett
-// klikk («Klikk for å begynne», som også gir lyd), mens spillet lastes.
-// Den siste scenen venter med en framdriftslinje til spillet er klart, og
-// går så gjennom sørporten: spillet tegnes bak filmen, kameraet går fra
-// over veien utenfor porten ned til øyehøyde der du begynner (`cine`), og
-// spillet tar over. `?nofilm` hopper over den.
+// klikk («Klikk for å begynne», som også gir lyd) når byen er bygd: kameraet
+// flyr gjennom Fristad og historien, og ender der du begynner, ved
+// sørporten, der spillet tar over. `?nofilm` hopper over den.
 const FILM = !EDIT && !new URLSearchParams(location.search).has("nofilm");
-let filming = false;
-let gameReady = false;
-let loadPhase = [0, 0.15];
-let cine = null;
-const CINE = 7; // sekunder fra over veien til øyehøyde ved sørporten
-
-function loadProgress() {
-  if (gameReady) return 1;
-  const v = ($("loading").value || 0) / 100;
-  return loadPhase[0] + (loadPhase[1] - loadPhase[0]) * v;
-}
+let film = null;
 
 async function startFilm() {
   beginBtn.hidden = true;
@@ -1245,40 +1225,29 @@ async function startFilm() {
     soundsLoading = true;
     sfx.preload();
   }
-  filming = true;
-  try {
-    await playFilm({ music, audio: () => sfx.context(), ready: () => ({ done: gameReady, progress: loadProgress() }), onHandoff: handoff });
-  } finally {
-    filming = false;
-  }
-}
-
-// Filmen åpner seg mot spillet: kameraet går fra høyt over veien utenfor
-// sørporten, gjennom porten og ned til øyet der du begynner.
-function handoff() {
-  filming = false;
+  music.set("silence");
+  const score = createScore(() => sfx.context(), "music/");
+  await score.load().catch(() => {});
+  engine.set_theme(false);
   engine.set_paused(false);
-  const [x, y, z, yaw] = engine.spawn_eye();
-  cine = { t: 0, x, y, z, yaw };
-}
-
-function cineTick(dt) {
-  cine.t += dt;
-  const k = Math.min(cine.t / CINE, 1);
-  const e = k * k * (3 - 2 * k);
-  const yaw = (cine.yaw * Math.PI) / 180;
-  const back = 36 * (1 - e);
-  const x = cine.x + Math.sin(yaw) * back;
-  const z = cine.z + Math.cos(yaw) * back;
-  const lift = 13 * Math.pow(1 - e, 1.4);
-  const y = Math.max(engine.ground(x, z) + 1.7, cine.y) + lift;
-  engine.film(x, y, z, cine.yaw, -16 * Math.pow(1 - e, 1.2), 72);
-  if (k >= 1) {
-    engine.film_end();
-    cine = null;
-    enter(false);
-    toast?.show?.("Klikk i bildet for å se deg rundt med musa.");
+  try {
+    film = await createFilm({ engine, score, audio: () => sfx.context() });
+  } catch (e) {
+    console.warn("Filmen kunne ikke vises:", e);
+    enter();
+    return;
   }
+  const { skipped } = await film.done;
+  film = null;
+  score.stop(2.5);
+  engine.film_end();
+  // Hoppet over: rett til sørporten om dagen.
+  if (skipped) {
+    engine.set_theme(false);
+    engine.respawn();
+  }
+  enter(false);
+  toast?.show?.("Klikk i bildet for å se deg rundt med musa.");
 }
 
 function bindInput() {

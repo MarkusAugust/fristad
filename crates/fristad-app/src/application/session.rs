@@ -258,7 +258,12 @@ impl Session {
 
     /// Øyet og retningen der du begynner (ved sørporten), til filmen.
     pub fn spawn_eye(&self) -> (Vec3, f32) {
-        (terrain::at(self.spawn) + Vec3::Y * EYE, self.spawn_yaw)
+        (Body::new(terrain::at(self.spawn)).eye(), self.spawn_yaw)
+    }
+
+    /// Startstedet (føttene) og retningen i kryptnivå `k` (fra 0), til filmen.
+    pub fn level_start(&self, k: usize) -> Option<(Vec3, f32)> {
+        self.crypt.levels.get(k).map(|l| l.start)
     }
 
     /// Origo i kryptnivå `k` (fra 0), til filmen.
@@ -369,7 +374,8 @@ impl Session {
     /// lever (fiendene i nivået kameraet er i, og de ser ingen), ingen kamp,
     /// fysikk eller lyder fra spilleren.
     fn film_tick(&mut self, shot: Shot, dt: f32) {
-        self.body.teleport(shot.eye - Vec3::Y * EYE);
+        // Føttene så langt under øyet som når du står (filmen slutter der du står).
+        self.body.teleport(shot.eye - Vec3::Y * Body::new(Vec3::ZERO).eye().y);
         self.yaw = shot.yaw;
         self.pitch = shot.pitch;
         self.sky.tick(dt, self.time);

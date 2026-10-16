@@ -384,8 +384,8 @@ impl Engine {
 
     /// Filmen (`web/film/`): kameraet i øyet `x, y, z` (meter), retningen
     /// (grader) og synsfeltet (grader). Uten armer, kamp og fysikk.
-    pub fn film(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32, fov_deg: f32) {
-        let shot = Shot { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians(), fov: fov_deg };
+    pub fn film(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32, fov_deg: f32, roll_deg: f32) {
+        let shot = Shot { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians(), fov: fov_deg, roll: roll_deg.to_radians() };
         self.app.command(Command::Film(Some(shot)));
     }
 
@@ -404,6 +404,12 @@ impl Engine {
     pub fn spawn_eye(&self) -> Vec<f32> {
         let (eye, yaw) = self.app.session.spawn_eye();
         vec![eye.x, eye.y, eye.z, yaw.to_degrees()]
+    }
+
+    /// Startstedet i kryptnivå `n` (1 og oppover): føttene og retningen
+    /// (grader), til filmens kamerabane, eller tomt om nivået ikke finnes.
+    pub fn level_start(&self, n: usize) -> Vec<f32> {
+        self.app.session.level_start(n.saturating_sub(1)).map(|(p, yaw)| vec![p.x, p.y, p.z, yaw.to_degrees()]).unwrap_or_default()
     }
 
     /// Filmen er slutt: spillet tar over der kameraet står.

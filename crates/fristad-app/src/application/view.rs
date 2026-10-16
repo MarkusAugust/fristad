@@ -127,7 +127,8 @@ impl Session {
         let mut smoke: Vec<Vec4> = if in_crypt { vec![] } else { self.smoke.iter().map(|(p, s)| p.extend(s * (0.75 + 0.25 * t))).collect() };
         smoke.sort_by(|a, b| a.truncate().distance_squared(eye_now).total_cmp(&b.truncate().distance_squared(eye_now)));
         smoke.truncate(MAX_SMOKE);
-        let eye = self.eye();
+        // I filmen står kameraet akkurat der filmen sier (uten gangen og høyden til kroppen).
+        let eye = self.film.map_or(self.eye(), |s| s.eye);
         let mut instances = self.herd.instances(self.time);
         instances.extend(self.npcs.instances(&mut skins));
         instances.extend(self.mobs.instances(self.time, &mut skins));
@@ -159,7 +160,7 @@ impl Session {
         let (hidden, edited) = self.edit_instances();
         instances.extend(edited);
         Frame {
-            view: Mat4::look_to_rh(eye, view_dir, Vec3::Y),
+            view: Mat4::look_to_rh(eye, view_dir, self.film.map_or(Vec3::Y, |s| glam::Quat::from_axis_angle(view_dir.normalize(), -s.roll) * Vec3::Y)),
             proj: Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0),
             camera: eye,
             time: self.time,

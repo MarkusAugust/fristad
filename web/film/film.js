@@ -1,31 +1,32 @@
-// Filmene (docs/plan.md del 8): eierens malte bilder som rom kameraet går
-// gjennom. Hvert bilde løftes etter dybdekartet sitt (`<lag>.depth.png`,
-// Depth Anything, `tools/film/layers.py depth`): bakgrunnen blir et
-// rutenett der hvert punkt står så langt unna som maleriet sier, så
-// kameraet kan gå inn i det og se forbi tingene i forgrunnen. Utklippene
-// (figurene, ting foran) står på sin dybde med litt relieff, puster, svaier
-// og går. Kameraet går i én sammenhengende bane: hver scene går over i den
-// neste gjennom noe i bildet (døra, porten, boka, sprekken), lysene
-// blafrer, støvet henger i lufta, og lydbildet følger rommet. Den siste
-// scenen venter med en framdriftslinje til spillet er klart, og går så
-// gjennom sørporten og over i spillet (`onHandoff`).
+// Åpningsfilmen (docs/plan.md del 8; eieren 16. oktober: «spilleren skal
+// fly gjennom historien»): kameraet flyr gjennom det ekte Fristad, tegnet av
+// motoren, og historien står i verdenen som malerier der den skjedde:
+// Skriptoriet i gullalderen foran Skriptoriets dør, forfallet i samme rom,
+// begravelsen ved krypten på kirkegården, krypten nede i krypten, torget i
+// 1350 over torget. Kameraet flyr inn i maleriene, og inne i dem står hvert
+// punkt så langt unna som maleriet sier (dybdekartet fra Depth Anything,
+// `tools/film/layers.py depth`), så alt forskyves mot hverandre når kameraet
+// beveger seg. Mellom maleriene flyr det over byen, gjennom portene og ned i
+// jorda, og legger seg i svingene.
 //
-// Manuset er data (`opening.json`). Esc, mellomrom eller «Hopp over»
-// hopper over; musa dreier kameraet litt.
+// Filmen tegner maleriene, figurene, lysene, støvet og teksten oppå motoren
+// med samme kamera (gjennomsiktig lerret over spillet), og styrer motorens
+// kamera hvert bilde (`engine.film`). Dag og natt, krypten og torget byttes
+// mens et maleri eller et slør fyller bildet, så ingen ser sømmen. Manuset
+// er `opening.json`: maleriene og ankrene deres, figurene i verden,
+// kamerabanen, tekstene, slørene, musikken og lyset.
 
 // three.js 0.160.0 (MIT, web/film/THREE-LICENSE), lagt ved så filmen ikke trenger nett.
 import * as THREE from "./three.module.min.js";
 import { createSoundscape } from "./soundscape.js";
 
-const FOV = 50; // kameraets synsfelt (grader, loddrett), det samme som maleriet er løftet for
-const OVER = 1.16; // maleriet strekker seg så mye utenfor bildet, så kanten ikke synes når kameraet går
-const LOOK = 0.035; // radianer musa kan dreie kameraet
-const TRANS = 2.6; // sekunder en overgang varer (scenene overlapper så lenge)
-const TEXT_IN = 0.9; // sekunder etter overgangen før teksten kommer
+const FOV = 50; // synsfeltet maleriene er løftet for (grader, loddrett)
+const OVER = 1.16; // maleriet strekker seg så mye utenfor det kameraet ser fra ankeret
+const LOOK = 0.03; // radianer musa kan dreie kameraet
 const rad = THREE.MathUtils.degToRad;
-
-const ease = (t) => t * t * (3 - 2 * t);
+const deg = THREE.MathUtils.radToDeg;
 const clamp = (x, a = 0, b = 1) => Math.min(Math.max(x, a), b);
+const ease = (t) => t * t * (3 - 2 * t);
 
 function el(tag, cls, parent, text) {
   const e = document.createElement(tag);
@@ -50,14 +51,13 @@ function texture(img) {
   const t = new THREE.Texture(img);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
-  t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapLinearFilter;
   t.needsUpdate = true;
   return t;
 }
 
-// Dybdekartet som tall (0 langt unna, 1 nær), og alfaen til et utklipp.
-function pixels(img, w = img.width) {
+// Dybdekartet som tall (0 langt unna, 1 nær).
+function pixels(img, w = Math.min(img.width, 640)) {
   const h = Math.round((img.height * w) / img.width);
   const cv = document.createElement("canvas");
   cv.width = w;
@@ -67,66 +67,82 @@ function pixels(img, w = img.width) {
   return { w, h, data: g.getImageData(0, 0, w, h).data };
 }
 
-function sample(P, u, v, ch = 0) {
-  const x = clamp(u, 0, 1) * (P.w - 1);
-  const y = clamp(v, 0, 1) * (P.h - 1);
+function sample(P, u, v) {
+  const x = clamp(u) * (P.w - 1);
+  const y = clamp(v) * (P.h - 1);
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const x1 = Math.min(x0 + 1, P.w - 1);
   const y1 = Math.min(y0 + 1, P.h - 1);
   const fx = x - x0;
   const fy = y - y0;
-  const at = (xx, yy) => P.data[(yy * P.w + xx) * 4 + ch] / 255;
+  const at = (xx, yy) => P.data[(yy * P.w + xx) * 4] / 255;
   return (at(x0, y0) * (1 - fx) + at(x1, y0) * fx) * (1 - fy) + (at(x0, y1) * (1 - fx) + at(x1, y1) * fx) * fy;
 }
 
-// Fra dybdekartets nærhet til meter foran kameraet; himmelen står like bak
-// det fjerneste.
+// Fra dybdekartets nærhet til avstand foran ankeret; himmelen står like
+// bak det fjerneste.
 function distance(d, near, far, sky) {
   if (sky && d < sky) return far * 1.25;
   return 1 / (d * (1 / near - 1 / far) + 1 / far);
 }
 
-const MARGIN = 0.14; // rutenettet går så langt utenfor bildet (kantpikslene strekkes), så kanten ikke synes
 const TEAR = 1.7; // en rute der dybden hopper mer enn dette (forhold), rives opp
 
-// Et rutenett over maleriet, løftet etter dybden (`D`, eller flatt på
-// `flat` meter). Rutene der dybden hopper (kanten av noe foran) rives
-// opp, så det nære står fritt foran det fjerne; bak hullene står bildet
-// flatt langt unna (`backdrop`).
-function grid(tex, D, o, flat, tear) {
+// Masken som maler bildet fram og tar det bort: verdistøy i tre skalaer, så
+// maleriet kommer til syne som blekk som trekker inn i papiret, eller i
+// blokker som rykker (`glitch`), og kanten av bildet går mykt over i verden.
+const MASK = `
+  uniform float uFade, uGlitch, uTime, uEdge, uMix, uFlip;
+  float fh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float fn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(fh(i), fh(i + vec2(1, 0)), f.x), mix(fh(i + vec2(0, 1)), fh(i + vec2(1, 1)), f.x), f.y); }
+  float filmMask(vec2 q) {
+    float edge = mix(1.0, smoothstep(0.0, 0.08, min(min(q.x, 1.0 - q.x), min(q.y, 1.0 - q.y))), uEdge);
+    float n = fn(q * 6.0) * 0.6 + fn(q * 21.0) * 0.28 + fn(q * 70.0) * 0.12;
+    if (uGlitch > 0.5) n = fh(floor(q * vec2(48.0, 27.0)) + floor(uTime * 9.0) * 0.17) * 0.75 + fh(floor(q * vec2(12.0, 7.0))) * 0.25;
+    float f = uFade * 1.25 - 0.12;
+    return edge * smoothstep(n - 0.05, n + 0.05, f) * mix(uMix, 1.0 - uMix, uFlip);
+  }`;
+
+function maskShader(sh, uniforms) {
+  Object.assign(sh.uniforms, uniforms);
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\n" + MASK)
+    .replace("#include <dithering_fragment>", "#include <dithering_fragment>\n gl_FragColor.a *= filmMask(vMapUv);");
+}
+
+// Et maleri som rutenett i ankerets rom (kameraet i origo ser mot −Z),
+// løftet etter dybden og revet opp der dybden hopper.
+function plate(tex, D, o, uniforms, flat = null) {
   const aspect = tex.image.width / tex.image.height;
-  const cols = o.cols ?? 240;
+  const cols = 220;
   const rows = Math.max(2, Math.round(cols / aspect));
   const tanV = Math.tan(rad(FOV / 2)) * OVER;
   const tanH = tanV * aspect;
   const near = o.near ?? 3;
   const far = o.far ?? 60;
-  const ext = Math.round(cols * MARGIN);
-  const ey = Math.round(rows * MARGIN);
-  const W = cols + 2 * ext + 1;
-  const H = rows + 2 * ey + 1;
+  const W = cols + 1;
+  const H = rows + 1;
   const pos = new Float32Array(W * H * 3);
   const uv = new Float32Array(W * H * 2);
   const rr = new Float32Array(W * H);
   for (let j = 0; j < H; j++) {
     for (let i = 0; i < W; i++) {
-      const u = (i - ext) / cols;
-      const v = (j - ey) / rows;
-      const cu = clamp(u, 0.0005, 0.9995);
-      const cv = clamp(v, 0.0005, 0.9995);
-      const r = flat ?? (D ? distance(sample(D, cu, cv), near, far, o.sky) : far);
+      const u = i / cols;
+      const v = j / rows;
+      const r = flat ?? (D ? distance(sample(D, u, v), near, far, o.sky) : far);
       const k = j * W + i;
       rr[k] = r;
       pos[k * 3] = (u * 2 - 1) * tanH * r;
       pos[k * 3 + 1] = (1 - v * 2) * tanV * r;
       pos[k * 3 + 2] = -r;
-      uv[k * 2] = cu;
-      uv[k * 2 + 1] = 1 - cv;
+      uv[k * 2] = u;
+      uv[k * 2 + 1] = 1 - v;
     }
   }
   const idx = [];
-  const ok = (p, q, w) => !tear || Math.max(rr[p], rr[q], rr[w]) / Math.min(rr[p], rr[q], rr[w]) < TEAR;
+  const ok = (a, b, c) => flat !== null || Math.max(rr[a], rr[b], rr[c]) / Math.min(rr[a], rr[b], rr[c]) < TEAR;
   for (let j = 0; j < H - 1; j++) {
     for (let i = 0; i < W - 1; i++) {
       const a = j * W + i;
@@ -141,48 +157,44 @@ function grid(tex, D, o, flat, tear) {
   g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx);
-  return { g, tanV, tanH, near, far };
-}
-
-// Et maleri som fyller bildet, løftet etter dybden.
-function plate(tex, D, o) {
-  const { g, tanV, tanH, near, far } = grid(tex, D, o, null, true);
-  const m = new THREE.MeshBasicMaterial({ map: tex, fog: false, transparent: !!o.fade, depthWrite: !o.fade, side: THREE.DoubleSide });
+  const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: true, side: THREE.DoubleSide });
+  m.onBeforeCompile = (sh) => maskShader(sh, { ...uniforms, uFlip: { value: flat === null ? 0 : 1 } });
   const mesh = new THREE.Mesh(g, m);
-  mesh.renderOrder = o.fade ? 1 : 0;
-  mesh.userData = { ...o, tanV, tanH, near, far, D };
-  if (!o.fade) {
-    const back = new THREE.Mesh(grid(tex, null, o, far * 1.4, false).g, new THREE.MeshBasicMaterial({ map: tex, fog: false, side: THREE.DoubleSide }));
-    back.renderOrder = -1;
-    mesh.add(back);
-  }
+  mesh.userData = { tanV, tanH, near, far, sky: o.sky, D, fade: o.fade };
   return mesh;
 }
 
-// Stedet i rommet bak punktet (u, v) i maleriet (brøk av bildet fra
-// øverst til venstre), trukket `pull` meter mot kameraet.
+// Maleriet sett utenfra er et flatt bilde som henger i lufta (`FLAT`); jo
+// nærmere kameraet kommer stedet maleriet er sett fra, jo mer dybde får det
+// (`uMix`, de to toner over i hverandre mens de faller sammen sett derfra).
+const FLAT = (o) => Math.sqrt((o.near ?? 3) * (o.far ?? 60)) * 0.9;
+function deepPlate(tex, D, o, uniforms) {
+  const deep = plate(tex, D, o, uniforms);
+  const flat = plate(tex, D, o, uniforms, FLAT(o));
+  flat.renderOrder = deep.renderOrder - 1;
+  deep.add(flat);
+  return deep;
+}
+
+// Stedet bak punktet (u, v) i maleriet, i ankerets rom.
 function pointOn(mesh, u, v, pull = 0) {
   const o = mesh.userData;
   const r = (o.D ? distance(sample(o.D, u, v), o.near, o.far, o.sky) : o.far) - pull;
   return new THREE.Vector3((u * 2 - 1) * o.tanH * r, (1 - v * 2) * o.tanV * r, -r);
 }
 
-// Et utklipp (figurer, ting foran): så stor del `h` av høyden kameraet ser
-// på dybden `depth`, med midten `x` og foten `bottom` (brøk av bildet), og
-// et relieff etter dybdekartet. Det puster, svaier og går i hjørneskyggeren.
-function cutout(tex, D, o) {
+// Et utklipp med relieff etter dybdekartet: `height` høyt, foten i origo.
+// Det puster, svaier og går i hjørneskyggeren.
+function cutout(tex, D, o, uniforms) {
   const aspect = tex.image.width / tex.image.height;
-  const viewH = 2 * o.depth * Math.tan(rad(FOV / 2));
-  const hh = viewH * o.h;
+  const hh = o.height;
   const w = hh * aspect;
-  const x0 = (o.x ?? 0) * viewH * (16 / 9);
-  const y0 = (o.bottom ?? -0.5) * viewH;
-  const cols = 64;
+  const cols = 72;
   const rows = Math.max(2, Math.round(cols / aspect));
   const n = (cols + 1) * (rows + 1);
   const pos = new Float32Array(n * 3);
   const uv = new Float32Array(n * 2);
-  const relief = o.relief ?? hh * 0.18;
+  const relief = o.relief ?? hh * 0.15;
   for (let j = 0; j <= rows; j++) {
     for (let i = 0; i <= cols; i++) {
       const u = i / cols;
@@ -206,11 +218,10 @@ function cutout(tex, D, o) {
   g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx);
-  const uniforms = { uT: { value: 0 }, uSway: { value: o.sway ?? 0 }, uBreathe: { value: o.breathe ?? 0 }, uH: { value: hh }, uStep: { value: o.walk ? 1 : 0 } };
-  const m = new THREE.MeshBasicMaterial({ map: tex, fog: true, transparent: true, depthWrite: false, depthTest: false, alphaTest: 0.02, side: THREE.DoubleSide });
-  // Pust (høyden løftes litt), svai (toppen mer enn foten) og gange (et lite hopp i takt).
+  const own = { uT: { value: 0 }, uSway: { value: o.sway ?? 0 }, uBreathe: { value: o.breathe ?? 0 }, uH: { value: hh }, uStep: { value: o.walk ? 1 : 0 }, uNoEdge: { value: 0 } };
+  const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, alphaTest: 0.02, side: THREE.DoubleSide });
   m.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms);
+    Object.assign(sh.uniforms, own);
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nuniform float uT, uSway, uBreathe, uH, uStep;")
       .replace(
@@ -219,14 +230,13 @@ function cutout(tex, D, o) {
         float hf = clamp(transformed.y / uH, 0.0, 1.0);
         transformed.y *= 1.0 + sin(uT * 1.6) * uBreathe * hf;
         transformed.x += sin(uT * 0.7 + transformed.y * 0.3) * uSway * hf * hf;
-        transformed.y += uStep * abs(sin(uT * 3.6)) * uH * 0.02;
-        transformed.x += uStep * sin(uT * 3.6) * uH * 0.008 * hf;`,
+        transformed.y += uStep * abs(sin(uT * 3.4)) * uH * 0.025;
+        transformed.x += uStep * sin(uT * 3.4) * uH * 0.01 * hf;`,
       );
+    maskShader(sh, { ...uniforms, uEdge: { value: 0 }, uFlip: { value: 0 }, uMix: { value: 1 } });
   };
   const mesh = new THREE.Mesh(g, m);
-  mesh.position.set(x0, y0, -o.depth);
-  mesh.renderOrder = 10 + Math.round(100 - o.depth);
-  mesh.userData = { ...o, x0, y0, uniforms, hh };
+  mesh.userData = { ...o, own };
   return mesh;
 }
 
@@ -239,7 +249,7 @@ function softDot() {
   const g = c.getContext("2d");
   const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   r.addColorStop(0, "rgba(255,255,255,1)");
-  r.addColorStop(0.25, "rgba(255,255,255,0.55)");
+  r.addColorStop(0.25, "rgba(255,255,255,0.5)");
   r.addColorStop(1, "rgba(255,255,255,0)");
   g.fillStyle = r;
   g.fillRect(0, 0, 128, 128);
@@ -247,9 +257,8 @@ function softDot() {
   return dot;
 }
 
-// Et lys som blafrer: en glorie på stedet i maleriet.
 function glow(at, color, size) {
-  const m = new THREE.SpriteMaterial({ map: softDot(), color: new THREE.Color(color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false });
+  const m = new THREE.SpriteMaterial({ map: softDot(), color: new THREE.Color(color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false });
   const s = new THREE.Sprite(m);
   s.position.copy(at);
   s.scale.setScalar(size);
@@ -258,425 +267,353 @@ function glow(at, color, size) {
   return s;
 }
 
-// Støv i lyset, glør, flak fra glitchen eller tåke, spredt i rommet mellom
-// det nære og det fjerne, så de forskyves med kameraet som alt annet.
-function particles(kind, near, far) {
-  if (!kind) return null;
-  const n = kind === "mist" ? 90 : 700;
+// Støvet i lufta rundt kameraet: punkter i en boks som følger kameraet (de
+// som faller ut, kommer inn på andre siden), så de forskyves som alt annet.
+const DUST = 12;
+function dustField() {
+  const n = 900;
   const pos = new Float32Array(n * 3);
-  const speed = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const z = near * 0.6 + Math.random() * Math.min(far, 30);
-    pos[i * 3] = (Math.random() - 0.5) * z * 1.6;
-    pos[i * 3 + 1] = (Math.random() - 0.5) * z * 0.9;
-    pos[i * 3 + 2] = -z;
-    speed[i] = 0.3 + Math.random();
-  }
+  for (let i = 0; i < n * 3; i++) pos[i] = (Math.random() - 0.5) * DUST * 2;
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const color = { dust: 0xffe2a8, embers: 0xff8a3a, glitch: 0xff3cc8, snow: 0xffffff, mist: 0xb8c8e8, motes: 0x9fc0ff }[kind] ?? 0xffffff;
-  const size = kind === "mist" ? 4.5 : kind === "embers" ? 0.08 : 0.045;
-  const m = new THREE.PointsMaterial({ color, size, map: softDot(), transparent: true, opacity: kind === "mist" ? 0.07 : 0.8, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const m = new THREE.PointsMaterial({ color: 0xffe2a8, size: 0.04, map: softDot(), transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending });
   const p = new THREE.Points(g, m);
+  p.frustumCulled = false;
   p.renderOrder = 150;
-  p.userData = { kind, speed };
   return p;
 }
 
-function moveParticles(p, dt, t) {
-  if (!p) return;
+function moveDust(p, cam, dt, t, drift) {
   const a = p.geometry.attributes.position;
-  const { kind, speed } = p.userData;
-  for (let i = 0; i < speed.length; i++) {
-    let x = a.getX(i);
-    let y = a.getY(i);
-    const z = -a.getZ(i);
-    if (kind === "embers") y += dt * speed[i] * 0.6;
-    else if (kind === "snow") y -= dt * speed[i] * 0.8;
-    else y += Math.sin(t * 0.5 + i) * dt * 0.05 * speed[i];
-    x += dt * (kind === "mist" ? 0.35 : 0.05) * speed[i] + Math.sin(t * 0.3 + i * 1.7) * dt * 0.03;
-    if (kind === "glitch" && Math.random() < 0.02) {
-      x += (Math.random() - 0.5) * 0.4;
-      y += (Math.random() - 0.5) * 0.4;
-    }
-    const lim = z * 0.5;
-    if (y > lim) y = -lim;
-    if (y < -lim) y = lim;
-    if (x > z * 0.85) x = -z * 0.85;
-    a.setXY(i, x, y);
+  const wrap = (v, c) => c + ((((v - c + DUST) % (DUST * 2)) + DUST * 2) % (DUST * 2)) - DUST;
+  for (let i = 0; i < a.count; i++) {
+    const x = a.getX(i) + drift[0] * dt + Math.sin(t * 0.4 + i) * dt * 0.05;
+    const y = a.getY(i) + drift[1] * dt + Math.sin(t * 0.3 + i * 1.3) * dt * 0.04;
+    const z = a.getZ(i) + drift[2] * dt;
+    a.setXYZ(i, wrap(x, cam.x), wrap(y, cam.y), wrap(z, cam.z));
   }
   a.needsUpdate = true;
 }
 
-// Kameraet langs nøklene (meter og radianer fra der maleriet er tatt).
-function cameraAt(keys, u) {
+// --- Rammer og kamerabanen -------------------------------------------------------------
+
+// Et rom med origo, dreining (grader) og målestokk: verden, ankeret til et
+// maleri, startstedet i krypten, stedet du begynner.
+function frame(pos, yaw = 0, pitch = 0, scale = 1) {
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(pitch), rad(yaw), 0, "YXZ"));
+  return { pos: new THREE.Vector3(...pos), q, scale };
+}
+const toWorld = (f, p) => new THREE.Vector3(...p).multiplyScalar(f.scale).applyQuaternion(f.q).add(f.pos);
+const dirOf = (yaw, pitch) => new THREE.Vector3(-Math.sin(rad(yaw)) * Math.cos(rad(pitch)), Math.sin(rad(pitch)), -Math.cos(rad(yaw)) * Math.cos(rad(pitch)));
+
+// Catmull–Rom med tiden som parameter (farten rykker ikke mellom nøklene);
+// endene av en bit står stille.
+function hermite(keys, t, get) {
   let i = 0;
-  while (i < keys.length - 2 && u > keys[i + 1].at) i++;
+  while (i < keys.length - 2 && t > keys[i + 1].t) i++;
   const a = keys[i];
   const b = keys[Math.min(i + 1, keys.length - 1)];
-  const f = b === a ? 0 : clamp((u - a.at) / Math.max(b.at - a.at, 1e-6));
-  const s = keys.length > 2 ? f : ease(f);
-  const lerp = (k, d = 0) => (a[k] ?? d) + ((b[k] ?? d) - (a[k] ?? d)) * s;
-  return { x: lerp("x"), y: lerp("y"), z: lerp("z"), yaw: lerp("yaw"), pitch: lerp("pitch"), zoom: lerp("zoom", 1) };
+  if (a === b || t <= a.t) return get(a).clone();
+  if (t >= b.t) return get(b).clone();
+  const h = b.t - a.t;
+  const s = (t - a.t) / h;
+  const tangent = (k) => {
+    const p = keys[k - 1];
+    const n = keys[k + 1];
+    if (!p || !n) return get(keys[k]).clone().multiplyScalar(0);
+    return get(n).clone().sub(get(p)).multiplyScalar(1 / (n.t - p.t));
+  };
+  const m0 = tangent(i).multiplyScalar(h);
+  const m1 = tangent(i + 1).multiplyScalar(h);
+  const s2 = s * s;
+  const s3 = s2 * s;
+  return get(a)
+    .clone()
+    .multiplyScalar(2 * s3 - 3 * s2 + 1)
+    .add(m0.multiplyScalar(s3 - 2 * s2 + s))
+    .add(get(b).clone().multiplyScalar(-2 * s3 + 3 * s2))
+    .add(m1.multiplyScalar(s3 - s2));
 }
 
-// Overgangen: den nye scenen åpner seg i bildet av den gamle fra et punkt
-// (døra, porten, boka): som et hull som vokser (`iris`), i blokker som
-// glitcher (`glitch`), med lys rundt kanten (`flash`) eller ut av mørket (`dark`).
-const COMPOSE = {
-  uniforms: { tA: { value: null }, tB: { value: null }, uC: { value: new THREE.Vector2(0.5, 0.5) }, uR: { value: 0 }, uAspect: { value: 1 }, uMode: { value: 0 }, uTime: { value: 0 } },
-  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
-  fragmentShader: `
-    uniform sampler2D tA, tB; uniform vec2 uC; uniform float uR, uAspect, uMode, uTime; varying vec2 vUv;
-    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-    void main(){
-      vec2 d = vUv - uC; d.x *= uAspect; float dist = length(d);
-      float m; vec2 shift = vec2(0.0);
-      if (uMode < 0.5 || uMode > 1.5) {
-        m = 1.0 - smoothstep(uR * 0.72, uR, dist);
-      } else {
-        vec2 b = floor(vUv * vec2(40.0, 22.0));
-        float n = h(b + floor(uTime * 12.0));
-        m = step(dist + n * 0.45, uR * 1.2);
-        float edge = step(abs(dist + n * 0.45 - uR * 1.2), 0.08);
-        shift = vec2((h(b.yy + floor(uTime * 20.0)) - 0.5) * 0.04 * edge, 0.0);
-      }
-      vec4 A = texture2D(tA, vUv + shift);
-      vec4 B = texture2D(tB, vUv - shift);
-      vec4 col = mix(A, B, m);
-      float rim = exp(-pow((dist - uR) * 7.0, 2.0)) * (1.0 - clamp(uR / 1.6, 0.0, 1.0));
-      if (uMode > 1.5 && uMode < 2.5) col.rgb += vec3(1.0, 0.92, 0.78) * rim * 1.4;
-      if (uMode > 2.5) col.rgb *= 1.0 - rim * 0.9 - (1.0 - m) * smoothstep(0.0, 0.6, uR) * 0.5;
-      if (uMode > 0.5 && uMode < 1.5) col.rgb += vec3(1.0, 0.2, 0.8) * step(abs(dist - uR * 1.2), 0.012) * 0.22;
-      gl_FragColor = col;
-      #include <colorspace_fragment>
-    }`,
-};
-const MODES = { iris: 0, glitch: 1, flash: 2, dark: 3 };
+// --- Filmen ---------------------------------------------------------------------------
 
-// Spiller filmen. `music.set(navn)` bytter musikken og `audio()` gir
-// lydkonteksten. `ready()` sier om spillet er klart ({ done, progress }),
-// og `onHandoff(x, y)` kalles når kameraet går gjennom porten (punktet i
-// bildet): spillet tegnes da bak filmen, som åpner seg mot det.
-export async function playFilm({ music, audio, url = "film/opening.json", base = "film/", ready, onHandoff, start = 0 } = {}) {
-  let script;
-  try {
-    script = await (await fetch(url)).json();
-  } catch (e) {
-    console.warn("Fant ikke filmen:", e);
-    return;
-  }
+// Bygger filmen. `engine` er motoren (film, set_theme, level_start,
+// spawn_eye), `score.cue(navn)` bytter musikken (ellers `music.set`), og
+// `audio()` gir lydkonteksten. Gir { tick(dt), done }: tick kalles hvert
+// bilde før motoren tegner, og `done` løses når filmen er slutt (med
+// `skipped` om den ble hoppet over).
+export async function createFilm({ engine, score, music, audio, url = "film/opening.json", base = "film/", start = 0 } = {}) {
+  const script = await (await fetch(url)).json();
   const root = el("div", "film", document.body);
   const canvas = el("canvas", "film-canvas", root);
   el("div", "film-bar film-bar--top", root);
   el("div", "film-bar film-bar--bottom", root);
-  const black = el("div", "film-black", root);
-  const words = el("div", "film-words", root);
-  const heading = el("h2", "film-heading", words);
-  const line = el("p", "film-text", words);
-  const glitch = el("div", "film-glitch", root);
-  const loading = el("p", "film-loading", root, "…");
-  const progress = el("div", "film-progress", root);
-  const bar = el("div", "film-progress-fill", progress);
-  progress.hidden = true;
+  const veil = el("div", "film-veil", root);
+  const textLayer = el("div", "film-texts", root);
   const skip = el("button", "fs-button film-skip", root, "Hopp over");
   skip.dataset.variant = "ghost";
   document.body.classList.add("filming");
   const sound = createSoundscape(audio);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, premultipliedAlpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 0.05, 600);
-  const rtOpts = { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, samples: 4 };
-  let rtA = new THREE.WebGLRenderTarget(16, 16, rtOpts);
-  let rtB = new THREE.WebGLRenderTarget(16, 16, rtOpts);
-  const compose = new THREE.ShaderMaterial(COMPOSE);
-  const quadScene = new THREE.Scene();
-  quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), compose));
-  const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  let baseFov = FOV;
+  renderer.setClearColor(0x000000, 0);
+  const camera = new THREE.PerspectiveCamera(60, 16 / 9, 0.02, 3000);
   const fit = () => {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
-    // Er skjermen bredere enn maleriet, snevres synsfeltet inn, så kanten ikke synes.
-    const tanH = Math.tan(rad(FOV / 2)) * 1.79 * 1.06;
-    baseFov = Math.min(FOV, 2 * THREE.MathUtils.radToDeg(Math.atan(tanH / camera.aspect)));
     camera.updateProjectionMatrix();
-    const s = renderer.getDrawingBufferSize(new THREE.Vector2());
-    rtA.setSize(s.x, s.y);
-    rtB.setSize(s.x, s.y);
-    compose.uniforms.uAspect.value = camera.aspect;
   };
   fit();
   addEventListener("resize", fit);
 
-  // Alle scenene lastes før filmen begynner.
-  const scenes = [];
-  for (const s of script.scenes) {
-    const scene = new THREE.Scene();
-    const [fc, fnear, ffar] = s.fog ?? ["#000000", 200, 600];
-    scene.fog = new THREE.Fog(new THREE.Color(fc), fnear, ffar);
-    scene.background = new THREE.Color(s.backdrop ?? fc);
-    const plates = [];
-    const cutouts = [];
-    for (const l of s.layers) {
+  // Rammene: verden, stedene motoren vet om, og ankrene til maleriene.
+  const frames = { world: frame([0, 0, 0]) };
+  const spawn = engine?.spawn_eye?.() ?? script.fallback?.spawn_eye ?? [1.28, 1.75, 36, 0];
+  frames.spawn = frame([spawn[0], spawn[1], spawn[2]], spawn[3]);
+  for (let n = 1; n <= 4; n++) {
+    const s = engine?.level_start?.(n) ?? script.fallback?.levels?.[n - 1] ?? [];
+    if (s.length) frames[`crypt${n}`] = frame([s[0], s[1] + 1.75, s[2]], s[3]);
+  }
+  const scene = new THREE.Scene();
+  const paintings = [];
+  for (const p of script.paintings) {
+    const f0 = frames[p.frame ?? "world"];
+    const at = toWorld(f0, p.pos);
+    const q = f0.q.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(p.pitch ?? 0), rad(p.yaw ?? 0), 0, "YXZ")));
+    frames[p.id] = { pos: at, q, scale: p.scale ?? 0.35 };
+    const group = new THREE.Group();
+    group.position.copy(at);
+    group.quaternion.copy(q);
+    group.scale.setScalar(p.scale ?? 0.35);
+    const uniforms = { uFade: { value: 0 }, uGlitch: { value: p.mask === "glitch" ? 1 : 0 }, uTime: { value: 0 }, uEdge: { value: 1 }, uMix: { value: 0 } };
+    const parts = [];
+    let main = null;
+    for (const l of p.layers) {
       const [img, dimg] = await Promise.all([loadImage(base + l.src), loadImage(base + l.src.replace(".webp", ".depth.png"))]);
       if (!img) continue;
-      const D = dimg ? pixels(dimg, Math.min(dimg.width, 640)) : null;
+      const D = dimg ? pixels(dimg) : null;
       const tex = texture(img);
-      const mesh = l.h ? cutout(tex, D, l) : plate(tex, D, { ...s.space, ...l });
-      scene.add(mesh);
-      (l.h ? cutouts : plates).push(mesh);
+      if (l.height) {
+        const m = cutout(tex, D, l, uniforms);
+        m.position.set(...l.at);
+        m.rotation.y = rad(l.yaw ?? 0);
+        m.renderOrder = 10;
+        group.add(m);
+        parts.push(m);
+      } else {
+        const m = deepPlate(tex, D, { ...p.space, ...l }, uniforms);
+        m.renderOrder = l.fade ? 2 : 1;
+        group.add(m);
+        main ??= m;
+        parts.push(m);
+      }
     }
-    const main = plates[0];
-    const lights = [];
-    for (const [u, v, color, size, flicker = 1] of s.lights ?? []) {
-      const g = glow(pointOn(main, u, v, 0.3), color, size);
+    for (const [u, v, color, size, flicker = 1] of p.lights ?? []) {
+      const g = glow(pointOn(main, u, v, 0.4), color, size);
       g.userData.flicker = flicker;
-      scene.add(g);
-      lights.push(g);
+      group.add(g);
+      parts.push(g);
     }
-    const p = particles(s.particles, s.space?.near ?? 3, s.space?.far ?? 60);
-    if (p) scene.add(p);
-    const portal = s.portal ? { ...s.portal, at: pointOn(main, s.portal.u, s.portal.v, 0.5) } : null;
-    scenes.push({ ...s, scene, plates, cutouts, lights, particles: p, portal });
+    scene.add(group);
+    paintings.push({ ...p, group, uniforms, parts });
   }
-  loading.remove();
+  // Figurene i verden (den fremmede på veien, skiltet ved veikanten).
+  const props = [];
+  for (const p of script.props ?? []) {
+    const [img, dimg] = await Promise.all([loadImage(base + p.src), loadImage(base + p.src.replace(".webp", ".depth.png"))]);
+    if (!img) continue;
+    const uniforms = { uFade: { value: 0 }, uGlitch: { value: 0 }, uTime: { value: 0 }, uMix: { value: 1 } };
+    const m = cutout(texture(img), dimg ? pixels(dimg) : null, p, uniforms);
+    const f = frames[p.frame ?? "world"];
+    const path = (p.path ?? [[0, ...p.pos]]).map(([t, x, y, z]) => ({ t, p: toWorld(f, [x, y, z]) }));
+    m.renderOrder = 120;
+    scene.add(m);
+    props.push({ ...p, mesh: m, uniforms, path });
+  }
+  const dust = dustField();
+  scene.add(dust);
+
+  // Kamerabanen: nøklene i verden, gjort om fra rammene, delt i biter der
+  // banen hopper (bak et maleri eller et slør som fyller bildet).
+  const segments = [[]];
+  for (const k of script.camera) {
+    const f = frames[k.frame ?? "world"];
+    if (!f) continue;
+    const p = toWorld(f, k.p);
+    const d = k.look ? toWorld(f, k.look).sub(p).normalize() : dirOf(k.yaw ?? 0, k.pitch ?? 0).applyQuaternion(f.q).normalize();
+    if (k.cut && segments[segments.length - 1].length) segments.push([]);
+    segments[segments.length - 1].push({ t: k.t, p, d, x: new THREE.Vector3(k.fov ?? 60, k.roll ?? 0, k.bank ?? 1) });
+  }
+  const poseAt = (t) => {
+    let seg = segments[0];
+    for (const s of segments) if (t >= s[0].t) seg = s;
+    const p = hermite(seg, t, (k) => k.p);
+    const d = hermite(seg, t, (k) => k.d).normalize();
+    const x = hermite(seg, t, (k) => k.x);
+    return { p, d, fov: x.x, roll: x.y, bank: x.z };
+  };
+
+  // Tekstene: store, fritt plassert, ord for ord inn.
+  const word = (w, i) => {
+    const s = document.createElement("span");
+    s.className = "film-word";
+    s.textContent = w + " ";
+    s.style.transitionDelay = `${i * 0.08}s`;
+    return s;
+  };
+  const texts = (script.texts ?? []).map((x) => {
+    const box = el("div", `film-say film-say--${x.size ?? "l"}`, textLayer);
+    box.style.left = x.x ?? "8vw";
+    box.style.top = x.y ?? "60vh";
+    if (x.w) box.style.width = x.w;
+    box.style.textAlign = x.align ?? "left";
+    if (x.heading) el("h2", "film-say-heading", box).append(...x.heading.split(" ").map((w, i) => word(w, i)));
+    if (x.text) el("p", "film-say-text", box).append(...x.text.split(" ").map((w, i) => word(w, i + 3)));
+    return { ...x, box };
+  });
 
   let mouse = [0, 0];
   const onMove = (e) => {
     mouse = [(e.clientX / innerWidth) * 2 - 1, (e.clientY / innerHeight) * 2 - 1];
   };
   let skipped = false;
-  const onSkip = () => (skipped = true);
   const onKey = (e) => {
     if (e.code === "Escape" || e.code === "Space") {
       e.preventDefault();
       e.stopPropagation();
-      onSkip();
+      skipped = true;
     }
   };
   addEventListener("mousemove", onMove);
   addEventListener("keydown", onKey, true);
-  skip.addEventListener("click", onSkip);
+  skip.addEventListener("click", () => (skipped = true));
 
-  // Tidslinjen: scene k begynner når overgangen inn i den begynner.
-  const starts = [];
-  let acc = 0;
-  for (const s of scenes) {
-    starts.push(acc);
-    acc += s.dur - TRANS;
-  }
-  const lastIdx = scenes.length - 1;
-  const mainEnd = starts[lastIdx] + scenes[lastIdx].dur;
-
+  let finish;
+  const done = new Promise((r) => (finish = r));
+  let t = start;
+  let over = false;
+  let lastYaw = null;
+  let roll = 0;
   const look = [0, 0];
-  const v3 = new THREE.Vector3();
-  let prev = performance.now();
-  let clock = 0;
-  let offset = start; // «Hopp over» før spillet er klart: rett til ventingen i siste scene (og `start` til testene)
-  let shown = -1;
-  let handoff = null; // { t, x, y } når kameraet går gjennom porten til spillet
-  let waitFrom = null;
-  let soundKind = null;
+  const fired = new Set();
+  const env = (e, x) => (!e || x < e[0] || x > e[3] ? 0 : x < e[1] ? ease((x - e[0]) / Math.max(e[1] - e[0], 1e-3)) : x > e[2] ? 1 - ease((x - e[2]) / Math.max(e[3] - e[2], 1e-3)) : 1);
 
-  // Plasserer kameraet i scene k ved tiden `at` (sekunder i scenen); `out`
-  // er hvor langt overgangen ut av den har kommet (0–1).
-  const place = (s, at, out, t) => {
-    const u = clamp(at / s.dur, 0, 1.5);
-    const c = cameraAt(s.camera, Math.min(u, 1));
-    let pos = new THREE.Vector3(c.x, c.y, c.z);
-    let yaw = c.yaw;
-    let pitch = c.pitch;
-    // Venter den siste scenen på spillet, driver kameraet sakte videre.
-    if (u > 1) {
-      const extra = (u - 1) * s.dur;
-      pos.z -= Math.min(extra * 0.05, 1.2);
-      yaw += Math.sin(t * 0.15) * 0.01;
-    }
-    // Overgangen ut: kameraet trekkes mot porten og dreies litt mot den.
-    if (out > 0 && s.portal) {
-      const e = out * out * (3 - 2 * out);
-      const P = s.portal.at;
-      pos = pos.lerp(P, e * (s.portal.pull ?? 0.55));
-      const dir = v3.copy(P).sub(pos).normalize();
-      yaw += (Math.atan2(-dir.x, -dir.z) - yaw) * e * 0.6;
-      pitch += (Math.asin(clamp(dir.y, -1, 1)) - pitch) * e * 0.6;
-    }
-    look[0] += (mouse[0] - look[0]) * 0.03;
-    look[1] += (mouse[1] - look[1]) * 0.03;
-    camera.position.copy(pos);
-    camera.rotation.set(pitch - look[1] * LOOK, yaw - look[0] * LOOK, 0, "YXZ");
-    camera.fov = baseFov / c.zoom;
-    camera.updateProjectionMatrix();
-    // Lagene lever: pust, svai, gange, glitch; lysene blafrer.
-    for (const m of s.cutouts) {
-      const o = m.userData;
-      o.uniforms.uT.value = t + (o.depth ?? 0);
-      // Det kameraet kommer nær (på vei mot porten), toner bort.
-      m.material.opacity = clamp((pos.z - m.position.z - 1.2) / 1.6);
-      if (o.drift) {
-        const f = clamp(at / s.dur);
-        m.position.set(o.x0 + o.drift[0] * f, o.y0 + o.drift[1] * f, -o.depth - o.drift[2] * f);
-      }
-      if (o.glitch) {
-        const hit = Math.random() < 0.05 + clamp(at / s.dur) * 0.3;
-        m.position.x = o.x0 + (hit ? (Math.random() - 0.5) * 0.4 : 0);
-        m.material.color.setRGB(1, hit ? 0.6 : 1, 1);
-      }
-    }
-    for (const m of s.plates) {
-      const o = m.userData;
-      if (o.fade) m.material.opacity = ease(clamp((at / s.dur - o.fade[0]) / (o.fade[1] - o.fade[0])));
-    }
-    for (const g of s.lights) {
-      const o = g.userData;
-      const f = 0.82 + 0.18 * Math.sin(t * 9 + o.phase) * Math.sin(t * 3.7 + o.phase * 2) * o.flicker;
-      g.material.opacity = f;
-      g.scale.setScalar(o.size * (0.9 + 0.1 * f));
-    }
-  };
-
-  await new Promise((done) => {
-    const tick = (now) => {
-      const dt = Math.min((now - prev) / 1000, 0.1);
-      prev = now;
-      const st = ready?.() ?? { done: true, progress: 1 };
-      if (skipped && !st.done && onHandoff) offset = Math.max(offset, mainEnd - TRANS + 0.01 - clock);
-      // Tiden går bilde for bilde (høyst 0,1 s): står tråden stille mens
-      // byen bygges, venter filmen i stedet for å hoppe over et stykke.
-      clock += dt;
-      const t = clock + offset;
-
-      // Hopp over: rett til porten om spillet er klart, ellers en ventelinje.
-      if (skipped && !handoff) {
-        if (st.done && onHandoff) {
-          handoff = { t, x: innerWidth / 2, y: innerHeight / 2, fast: true };
-          onHandoff(handoff.x, handoff.y);
-        } else if (!onHandoff) {
-          done();
-          return;
-        }
-      }
-
-      // Hvilken scene, og hvor langt i den.
-      let k = 0;
-      while (k < lastIdx && t >= starts[k + 1] + TRANS) k++;
-      const s = scenes[k];
-      const at = t - starts[k];
-      // Den siste scenen: ferdig, venter, eller går gjennom porten.
-      if (k === lastIdx && t >= mainEnd - TRANS && !handoff) {
-        if (st.done) {
-          if (onHandoff) {
-            const P = v3.copy(s.portal?.at ?? new THREE.Vector3(0, 0, -20)).project(camera);
-            handoff = { t, x: ((P.x + 1) / 2) * innerWidth, y: ((1 - P.y) / 2) * innerHeight };
-            onHandoff(handoff.x, handoff.y);
-          } else if (t >= mainEnd) {
-            done();
-            return;
-          }
-        } else {
-          waitFrom ??= t;
-          progress.hidden = false;
-          bar.style.width = `${Math.round(clamp(st.progress) * 100)}%`;
-        }
-      }
-
-      if (k !== shown) {
-        shown = k;
-        if (s.music) music?.set?.(s.music === "none" ? "silence" : s.music);
-        heading.textContent = s.heading ?? "";
-        heading.hidden = !s.heading;
-        line.textContent = s.text ?? "";
-        root.dataset.fx = s.fx ?? "";
-      }
-      if (s.sound !== soundKind) {
-        soundKind = s.sound;
-        sound.set(s.sound);
-      }
-
-      // Overgangen til neste scene (de siste TRANS sekundene av denne).
-      const next = k < lastIdx ? scenes[k + 1] : null;
-      const out = next ? clamp((at - (s.dur - TRANS)) / TRANS) : 0;
-      // Den siste scenen dras mot porten mens spillet åpner seg.
-      const hand = handoff ? clamp((t - handoff.t) / (handoff.fast ? 1.0 : 2.2)) : 0;
-      place(s, at, next ? out : hand, t);
-      moveParticles(s.particles, dt, t);
-      if (out > 0 && next) {
-        const pa = s.portal ? v3.copy(s.portal.at).project(camera) : new THREE.Vector3();
-        compose.uniforms.uC.value.set((pa.x + 1) / 2, (pa.y + 1) / 2);
-        renderer.setRenderTarget(rtA);
-        renderer.render(s.scene, camera);
-        place(next, out * TRANS, 0, t);
-        moveParticles(next.particles, dt, t);
-        renderer.setRenderTarget(rtB);
-        renderer.render(next.scene, camera);
-        renderer.setRenderTarget(null);
-        compose.uniforms.tA.value = rtA.texture;
-        compose.uniforms.tB.value = rtB.texture;
-        compose.uniforms.uR.value = Math.pow(out, 1.6) * 1.9;
-        compose.uniforms.uMode.value = MODES[s.portal?.mode ?? "iris"] ?? 0;
-        compose.uniforms.uTime.value = t;
-        renderer.render(quadScene, quadCam);
-      } else {
-        renderer.setRenderTarget(null);
-        renderer.render(s.scene, camera);
-      }
-
-      // Svart inn i begynnelsen; teksten kommer etter overgangen og går før neste.
-      // Uten spill bak (filmen alene) toner den ut i svart til slutt.
-      black.style.opacity = String(Math.max(1 - clamp(t / 2.0), onHandoff ? 0 : clamp((t - (mainEnd - 1.6)) / 1.5)));
-      const inStart = k === 0 ? 1.2 : TRANS + TEXT_IN;
-      const ti = clamp((at - inStart) / 1.0);
-      const to = next ? clamp((s.dur - TRANS - at) / 0.8) : handoff ? 0 : 1;
-      words.style.opacity = String(Math.min(ti, to));
-      if (s.fx === "glitch") {
-        const g = clamp(at / s.dur);
-        const hit = Math.random() < 0.05 + g * 0.35;
-        glitch.style.opacity = hit ? String(0.18 + g * 0.4) : "0";
-        glitch.style.transform = hit ? `translate(${(Math.random() - 0.5) * 30 * g}px, ${(Math.random() - 0.5) * 10}px)` : "none";
-        glitch.style.clipPath = hit ? `inset(${Math.random() * 80}% 0 ${Math.random() * 15}% 0)` : "none";
-      } else {
-        glitch.style.opacity = "0";
-      }
-
-      // Gjennom porten: filmen åpner seg som et hull rundt porten, og spillet
-      // står bak (det tegnes nå).
-      if (handoff) {
-        progress.hidden = true;
-        const e = Math.pow(hand, 1.7);
-        const r = e * Math.hypot(innerWidth, innerHeight) * 1.1;
-        const mask = `radial-gradient(circle at ${handoff.x}px ${handoff.y}px, transparent ${r}px, black ${r + 120}px)`;
-        root.style.maskImage = mask;
-        root.style.webkitMaskImage = mask;
-        if (hand >= 1) {
-          done();
-          return;
-        }
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-
-  sound.stop(2.5);
-  removeEventListener("mousemove", onMove);
-  removeEventListener("keydown", onKey, true);
-  removeEventListener("resize", fit);
-  for (const sc of scenes) {
-    sc.scene.traverse((o) => {
+  const close = () => {
+    over = true;
+    sound.stop(2.5);
+    removeEventListener("mousemove", onMove);
+    removeEventListener("keydown", onKey, true);
+    removeEventListener("resize", fit);
+    scene.traverse((o) => {
       o.geometry?.dispose?.();
       if (o.material) {
         o.material.map?.dispose?.();
         o.material.dispose?.();
       }
     });
-  }
-  rtA.dispose();
-  rtB.dispose();
-  renderer.dispose();
-  renderer.forceContextLoss?.();
-  root.remove();
-  document.body.classList.remove("filming");
+    renderer.dispose();
+    renderer.forceContextLoss?.();
+    root.remove();
+    document.body.classList.remove("filming");
+  };
+
+  const tick = (dt) => {
+    if (over) return;
+    dt = Math.min(dt, 0.1);
+    t += dt;
+    if (skipped || t >= script.end) {
+      close();
+      finish({ skipped });
+      return;
+    }
+    // Hendelsene: musikk, lydbilde, dag og natt.
+    (script.events ?? []).forEach((e, i) => {
+      if (t < e.t || fired.has(i)) return;
+      fired.add(i);
+      if (e.cue) score?.cue ? score.cue(e.cue, e.fade ?? 2.5) : music?.set?.(e.music ?? "town");
+      if (e.sound !== undefined) sound.set(e.sound);
+      if (e.theme) engine?.set_theme?.(e.theme === "night");
+    });
+    // Kameraet, med musa og krengning i svingene.
+    const c = poseAt(t);
+    const yaw = Math.atan2(-c.d.x, -c.d.z);
+    const pitch = Math.asin(clamp(c.d.y, -1, 1));
+    if (lastYaw !== null) {
+      const dy = Math.atan2(Math.sin(yaw - lastYaw), Math.cos(yaw - lastYaw));
+      const want = clamp((dy / Math.max(dt, 1e-3)) * 0.3 * c.bank, -0.35, 0.35);
+      roll += (want - roll) * Math.min(dt * 2.0, 1);
+    }
+    lastYaw = yaw;
+    look[0] += (mouse[0] - look[0]) * Math.min(dt * 2, 1);
+    look[1] += (mouse[1] - look[1]) * Math.min(dt * 2, 1);
+    const fy = yaw - look[0] * LOOK;
+    const fp = pitch - look[1] * LOOK;
+    const fr = roll + rad(c.roll);
+    camera.position.copy(c.p);
+    camera.rotation.set(fp, fy, fr, "YXZ");
+    camera.fov = c.fov;
+    camera.updateProjectionMatrix();
+    engine?.film?.(c.p.x, c.p.y, c.p.z, deg(fy), deg(fp), c.fov, deg(fr));
+
+    // Maleriene kommer til syne og går; lagene puster, lysene blafrer.
+    for (const p of paintings) {
+      const f = env(p.show, t);
+      p.group.visible = f > 0.001;
+      p.uniforms.uFade.value = f;
+      p.uniforms.uTime.value = t;
+      if (!p.group.visible) continue;
+      const local = p.group.worldToLocal(camera.position.clone());
+      p.uniforms.uMix.value = 1 - THREE.MathUtils.smoothstep(local.length(), 0.6, 3.5);
+      for (const m of p.parts) {
+        const o = m.userData;
+        if (o.own) o.own.uT.value = t;
+        if (o.fade) {
+          const k = ease(clamp((t - o.fade[0]) / (o.fade[1] - o.fade[0])));
+          m.material.opacity = k;
+          for (const c of m.children) c.material.opacity = k;
+        }
+        if (o.glitch) m.material.color.setRGB(1, Math.random() < 0.08 ? 0.55 : 1, 1);
+        if (o.flicker !== undefined) {
+          const k = 0.8 + 0.2 * Math.sin(t * 9 + o.phase) * Math.sin(t * 3.7 + o.phase * 2) * o.flicker;
+          m.material.opacity = k * f;
+          m.scale.setScalar(o.size * (0.9 + 0.1 * k));
+        }
+      }
+    }
+    for (const p of props) {
+      const f = env(p.show, t);
+      p.mesh.visible = f > 0.001;
+      p.uniforms.uFade.value = f;
+      p.mesh.userData.own.uT.value = t;
+      let i = 0;
+      while (i < p.path.length - 2 && t > p.path[i + 1].t) i++;
+      const a = p.path[i];
+      const b = p.path[Math.min(i + 1, p.path.length - 1)];
+      const s = a === b ? 0 : clamp((t - a.t) / (b.t - a.t));
+      p.mesh.position.copy(a.p).lerp(b.p, s);
+      // Utklippet vender seg mot kameraet (det er malt forfra eller bakfra).
+      p.mesh.rotation.y = Math.atan2(camera.position.x - p.mesh.position.x, camera.position.z - p.mesh.position.z);
+    }
+    // Støvet: farge og mengde etter delen av filmen.
+    const dz = (script.dust ?? []).reduce((acc, d) => (t >= d.t ? d : acc), { amount: 0 });
+    dust.material.opacity += ((dz.amount ?? 0) - dust.material.opacity) * Math.min(dt * 1.5, 1);
+    if (dz.color) dust.material.color.set(dz.color);
+    moveDust(dust, camera.position, dt, t, dz.drift ?? [0.05, 0.02, 0]);
+    renderer.render(scene, camera);
+
+    // Slørene: svart i begynnelsen, svart eller lys der banen hopper.
+    let black = 0;
+    let white = 0;
+    for (const v of script.veils ?? []) {
+      const k = env(v.t, t);
+      if (v.color === "white") white = Math.max(white, k);
+      else black = Math.max(black, k);
+    }
+    veil.style.background = white > black ? `rgba(255, 246, 225, ${white})` : `rgba(0, 0, 0, ${black})`;
+    for (const x of texts) x.box.classList.toggle("is-on", t >= x.t[0] && t < x.t[1]);
+  };
+
+  return { tick, done, time: () => t, poseAt };
 }
