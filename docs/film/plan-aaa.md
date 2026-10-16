@@ -150,7 +150,14 @@ Alt dette kjøres av `tools/film/check.py` og testen `filmen_holder_malene`.
 | 9 | Resten av scenene | jeg | tre–fire økter |
 | 10 | Lyd, mix, gradering, Mac-test | jeg | en økt |
 
-## 12. Spørsmål til eieren
+## 12. Avgjort med eieren (16. oktober)
+
+- Bildene lages i Gemini (A og B via redigering), 2752 × 1536; oppskalering 2× på Hugging Face der kameraet zoomer mer enn 1,3×. Dybdekart med Depth Anything V2 på Hugging Face (eieren har abonnement).
+- Fortellerstemme ja, ikke eierens egen: ElevenLabs (norsk, eldre rolig mannsstemme), reserve Piper/MMS på Hugging Face.
+- 16:9 beholdes; innstillingslista i del 4 står til eieren sier noe annet.
+- Promptene og stemmemanuset: `docs/film/prompter-innstillinger.md`.
+
+## 13. Spørsmål som sto
 
 1. **Stemme:** leser du selv, skal vi finne en skuespiller, eller en generert stemme som plassholder? Språk: norsk (med latinen på latin).
 2. **Generatoren din:** kan den redigere et bilde («fjern personene, behold alt annet») og oppskalere til 4K? Hvis ikke, må B males ved å beskrive samme scene tom, og jeg må justere lys i etterkant (dårligere).
