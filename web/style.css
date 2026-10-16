@@ -953,6 +953,17 @@ body.filming #bars {
   background: rgba(247, 217, 139, 0.85);
   transition: width 0.4s linear;
 }
+/* Middelalderskriftene til filmen ligger ved spillet (SIL OFL, web/film/fonts/OFL.txt). */
+@font-face {
+  font-family: "UnifrakturMaguntia";
+  src: url("film/fonts/UnifrakturMaguntia-Book.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Uncial Antiqua";
+  src: url("film/fonts/UncialAntiqua-Regular.ttf") format("truetype");
+  font-display: swap;
+}
 /* Filmen som flytur (web/film/film.js): slør over alt, og tekstene store og
    fritt plassert i bildet, ord for ord inn. */
 .film-veil,
@@ -985,18 +996,6 @@ body.filming #bars {
   display: inline-block;
   white-space: pre;
   opacity: 0;
-  filter: blur(10px);
-  transform: translateY(0.35em);
-  transition: opacity 1s ease, filter 1.2s ease, transform 1.2s ease;
-}
-.film-say.is-on .film-word {
-  opacity: 1;
-  filter: none;
-  transform: none;
-}
-.film-say:not(.is-on) .film-word {
-  transition-duration: 0.7s;
-  transition-delay: 0s !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .film-word {

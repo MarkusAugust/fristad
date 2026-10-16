@@ -300,6 +300,28 @@ fn main() {
         println!("LEAKSCAN {found}");
         return;
     }
+    // --film-seq FIL: filmens bilder i ett løp (verden under filmens
+    // overlegg): «UT X Y Z YAW PITCH FOV ROLL NATT DT» per linje, grader,
+    // NATT 0 eller 1; spillet går DT sekunder mellom bildene.
+    if let Some(list) = arg("--film-seq") {
+        let mut night = None;
+        for line in std::fs::read_to_string(&list).expect("kan ikke lese --film-seq").lines().filter(|l| !l.trim().is_empty()) {
+            let f: Vec<&str> = line.split_whitespace().collect();
+            let n: Vec<f32> = f[1..].iter().map(|x| x.parse().unwrap()).collect();
+            let dark = n[7] > 0.5;
+            if night != Some(dark) {
+                app.session.set_daylight(if dark { Daylight::Night } else { Daylight::Day }, true);
+                night = Some(dark);
+            }
+            let shot = fristad::ports::driving::Shot { eye: Vec3::new(n[0], n[1], n[2]), yaw: n[3].to_radians(), pitch: n[4].to_radians(), fov: n[5], roll: n[6].to_radians() };
+            app.command(Command::Film(Some(shot)));
+            app.tick(n[8].max(1.0 / 120.0));
+            app.renderer.set_target(target.create_view(&Default::default()));
+            app.draw(width as f32 / height as f32);
+            write_png(f[0], width, height, &grab(&device, &queue, &target, width, height));
+        }
+        return;
+    }
     // --shots: ett bilde per linje, med samme spill og renderer.
     if let Some(list) = arg("--shots") {
         for line in std::fs::read_to_string(&list).expect("kan ikke lese --shots").lines().filter(|l| !l.trim().is_empty()) {

@@ -460,7 +460,7 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
     const s = document.createElement("span");
     s.className = "film-word";
     s.textContent = w + " ";
-    s.style.transitionDelay = `${i * 0.08}s`;
+    s.dataset.i = i;
     return s;
   };
   const texts = (script.texts ?? []).map((x) => {
@@ -471,7 +471,7 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
     box.style.textAlign = x.align ?? "left";
     if (x.heading) el("h2", "film-say-heading", box).append(...x.heading.split(" ").map((w, i) => word(w, i)));
     if (x.text) el("p", "film-say-text", box).append(...x.text.split(" ").map((w, i) => word(w, i + 3)));
-    return { ...x, box };
+    return { ...x, box, words: [...box.querySelectorAll(".film-word")] };
   });
 
   let mouse = [0, 0];
@@ -612,7 +612,18 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
       else black = Math.max(black, k);
     }
     veil.style.background = white > black ? `rgba(255, 246, 225, ${white})` : `rgba(0, 0, 0, ${black})`;
-    for (const x of texts) x.box.classList.toggle("is-on", t >= x.t[0] && t < x.t[1]);
+    // Ordene kommer ett og ett ut av en dis og går samlet, etter filmens klokke.
+    for (const x of texts) {
+      const on = t >= x.t[0] - 0.1 && t < x.t[1] + 1;
+      x.box.hidden = !on;
+      if (!on) continue;
+      for (const w of x.words) {
+        const a = Math.min(ease(clamp((t - x.t[0] - w.dataset.i * 0.08) / 1.1)), ease(clamp((x.t[1] - t) / 0.8)));
+        w.style.opacity = a.toFixed(3);
+        w.style.filter = a > 0.99 ? "none" : `blur(${((1 - a) * 10).toFixed(1)}px)`;
+        w.style.transform = `translateY(${((1 - a) * 0.35).toFixed(3)}em)`;
+      }
+    }
   };
 
   return { tick, done, time: () => t, poseAt };
