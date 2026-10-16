@@ -278,3 +278,8 @@ Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de
 ## 16. oktober: filmen skulle være selvstendig
 
 Eieren ba om en selvstendig, malt introfilm og om å droppe blandingen med spillet, men jeg fortsatte med å fly gjennom spillets verden og male over motoren. Det ga et stort gap mellom stilene og kostet eieren flere runder. Regler: når eieren forkaster en retning, forkastes den helt, uten flere forsøk på den. Er en bestilling uklar, still spørsmål til den er forstått (stilen, verdenen, kameraet, bildene, historien, lengden, tonen) før noe bygges. Historien er nå kanon (`docs/kanon.md`), og filmen er bygd av eierens malte lag alene (`tools/film/intro.py`).
+
+## 16. oktober: plassering før bevegelse i filmen
+
+I første versjon av den selvstendige filmen sto figurene der kamerabanen førte dem, ikke på gulvet i maleriene: munkene, kjøpmennene og Ansgar svevde, munkene sto dobbelt i Skriptoriet, og alt gikk, svaiet og fløy. Eieren: «Riktig plassering er mye viktigere enn at ting svever rundt … ikke dette sirkuset.» Regler: komponer hver scene først, sett fra et fast kamera, med foten til hver figur på gulvet i maleriet (målt fra alfaen) eller under bildekanten; kameraet holder høyden i scenen og beveger seg lite; ingen gange eller svaiing i lagene; legg aldri på figurer som alt står i maleriet. Se på hver scene med figurene før noe annet (`tools/film/intro.py`).
+

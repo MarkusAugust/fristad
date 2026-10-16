@@ -1,426 +1,153 @@
 {
  "title": "Fristad – åpningsfilmen",
  "note": "Lagd av tools/film/intro.py etter docs/film/manus.md. Rediger skriptet, ikke denne fila.",
- "end": 151,
+ "end": 155,
  "fade": [
-  148.5,
-  151
+  152.5,
+  155
  ],
  "layers": [
   {
    "src": "intro/himmel_morgen.webp",
    "at": [
     40,
-    60,
+    30,
     -600
    ],
-   "h": 960.881,
-   "follow": 0.92,
-   "camY": 6,
+   "h": 589.632,
+   "follow": 0.9,
+   "camY": 0,
    "show": [
     0,
-    0.5,
-    34,
-    36
+    0,
+    20.8,
+    21.5
    ]
   },
   {
    "src": "intro/aaser_fjerne.webp",
    "at": [
-    0.0,
-    -18,
+    -120.0,
+    -62.603,
     -200
    ],
-   "h": 152.867,
-   "flip": false
+   "h": 160.147,
+   "anchor": "bottom",
+   "flip": false,
+   "show": [
+    0,
+    0,
+    20.8,
+    21.5
+   ]
   },
   {
    "src": "intro/aaser_fjerne.webp",
    "at": [
-    269.795,
-    -18,
+    162.643,
+    -62.603,
     -200
    ],
-   "h": 152.867,
-   "flip": true
+   "h": 160.147,
+   "anchor": "bottom",
+   "flip": true,
+   "show": [
+    0,
+    0,
+    20.8,
+    21.5
+   ]
+  },
+  {
+   "src": "intro/aaser_fjerne.webp",
+   "at": [
+    445.286,
+    -62.603,
+    -200
+   ],
+   "h": 160.147,
+   "anchor": "bottom",
+   "flip": false,
+   "show": [
+    0,
+    0,
+    20.8,
+    21.5
+   ]
   },
   {
    "src": "intro/aaser_naere.webp",
    "at": [
-    -20.0,
-    -10,
+    -70.0,
+    -28.535,
     -70
    ],
-   "h": 56.051,
-   "flip": false
+   "h": 49.937,
+   "anchor": "bottom",
+   "flip": false,
+   "show": [
+    0,
+    0,
+    20.8,
+    21.5
+   ]
   },
   {
    "src": "intro/aaser_naere.webp",
    "at": [
-    78.924,
-    -10,
+    18.133,
+    -28.535,
     -70
    ],
-   "h": 56.051,
-   "flip": true
+   "h": 49.937,
+   "anchor": "bottom",
+   "flip": true,
+   "show": [
+    0,
+    0,
+    20.8,
+    21.5
+   ]
   },
   {
    "src": "intro/aaser_naere.webp",
    "at": [
-    177.849,
-    -10,
+    106.267,
+    -28.535,
     -70
    ],
-   "h": 56.051,
-   "flip": false
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    -10.0,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
+   "h": 49.937,
    "anchor": "bottom",
-   "sway": 0.04,
+   "flip": false,
    "show": [
     0,
     0,
-    12.5,
-    14.5
+    20.8,
+    21.5
    ]
   },
   {
-   "src": "intro/forgrunn_gress.webp",
+   "src": "intro/aaser_naere.webp",
    "at": [
-    -4.605,
-    1.816,
-    -6
+    194.4,
+    -28.535,
+    -70
    ],
-   "h": 3.057,
+   "h": 49.937,
+   "anchor": "bottom",
    "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
    "show": [
     0,
     0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    0.791,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    6.186,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    11.581,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    16.976,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    22.372,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    27.767,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    33.162,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    38.558,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    43.953,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    49.348,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    54.744,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    60.139,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    65.534,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    70.929,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    76.325,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    81.72,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    87.115,
-    1.816,
-    -6
-   ],
-   "h": 3.057,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    0,
-    0,
-    12.5,
-    14.5
+    20.8,
+    21.5
    ]
   },
   {
    "src": "intro/skriptoriet_fasade.webp",
    "at": [
-    99.791,
-    3.825,
+    63.791,
+    -0.175,
     -40
    ],
    "h": 29.118
@@ -428,203 +155,128 @@
   {
    "src": "opening/gullalderen/bg.webp",
    "at": [
-    100,
-    4,
-    -40.6
+    64,
+    0,
+    -104
    ],
-   "h": 10,
-   "show": [
+   "h": 52.412,
+   "feather": [
     0,
     0,
-    19.6,
-    20.6
-   ]
-  },
-  {
-   "src": "opening/gullalderen/bg.webp",
-   "at": [
-    100,
-    4,
-    -95
-   ],
-   "h": 46,
-   "show": [
-    19.6,
-    20.6,
-    36,
-    36.5
-   ]
-  },
-  {
-   "src": "opening/gullalderen/mid.webp",
-   "at": [
-    96.5,
-    -4.189,
-    -70
-   ],
-   "h": 7.643,
-   "anchor": "bottom",
-   "breathe": 0.006,
-   "show": [
-    19.6,
-    20.6,
-    36,
-    36.5
-   ]
-  },
-  {
-   "src": "intro/lesepulten.webp",
-   "at": [
-    94.5,
-    0.178,
-    -55
-   ],
-   "h": 3.276,
-   "anchor": "bottom",
-   "lights": [
-    [
-     0.62,
-     0.12,
-     "#ffcf70",
-     0.9
-    ]
+    0,
+    0
    ],
    "show": [
-    19.6,
-    20.6,
-    36,
-    36.5
+    20.8,
+    21.5,
+    999,
+    999
    ]
   },
   {
    "src": "intro/ansgar_bok.webp",
    "at": [
-    106.5,
-    -2.064,
-    -62
+    69.05,
+    -5.041,
+    -57
    ],
-   "h": 9.9,
+   "h": 8.596,
    "anchor": "bottom",
-   "breathe": 0.008,
+   "show": [
+    23.6,
+    25.2,
+    33.6,
+    34.8
+   ],
+   "mask": "ink",
    "lights": [
     [
      0.6,
      0.48,
      "#ffe7a8",
-     3.0,
+     1.2,
      0.3
     ]
-   ],
-   "show": [
-    19.6,
-    20.6,
-    36,
-    36.5
-   ]
-  },
-  {
-   "src": "intro/himmel_morgen.webp",
-   "at": [
-    300,
-    60,
-    -600
-   ],
-   "h": 960.881,
-   "follow": 0.95,
-   "camY": 10,
-   "show": [
-    36,
-    37,
-    73,
-    73.5
    ]
   },
   {
    "src": "intro/raadssal.webp",
    "at": [
-    200,
-    60,
-    -60
+    150.397,
+    0,
+    -104
    ],
-   "h": 72.066,
-   "tint": "#dfe8ff",
+   "h": 52.412,
+   "tint": "#e4ebff",
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
    "show": [
-    34.5,
-    36,
-    48.5,
-    50
+    22.4,
+    22.5,
+    999,
+    999
    ]
   },
   {
    "src": "intro/raadet.webp",
    "at": [
-    201,
-    50.719,
-    -30
+    150.443,
+    -9.343,
+    -72
    ],
-   "h": 12.011,
+   "h": 13.062,
    "anchor": "bottom",
-   "breathe": 0.004,
    "show": [
-    34.5,
-    36,
-    48.5,
-    50
-   ]
+    38.7,
+    40.3,
+    47.6,
+    48.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "intro/kjopmenn.webp",
    "at": [
-    187,
-    53.085,
-    -20
+    142.025,
+    -7.567,
+    -65
    ],
-   "h": 6.988,
+   "h": 6.934,
    "anchor": "bottom",
-   "walk": true,
-   "path": [
-    [
-     39,
-     186,
-     53.085,
-     -20
-    ],
-    [
-     48,
-     198,
-     53.085,
-     -20
-    ]
-   ],
    "show": [
-    39,
-    40.5,
-    49,
-    50
-   ]
+    40.3,
+    41.9,
+    47.6,
+    48.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "intro/komponentboken.webp",
    "at": [
-    195.5,
-    55.814,
-    -10
+    155.368,
+    -4.305,
+    -55
    ],
-   "h": 5.096,
+   "h": 4.627,
    "anchor": "bottom",
-   "mask": "ink",
    "show": [
-    42,
-    44,
-    49,
-    50
+    43.5,
+    45.1,
+    47.6,
+    48.8
    ],
+   "mask": "ink",
    "lights": [
     [
      0.5,
      0.3,
      "#9fc4ff",
-     2.2,
+     1.6,
      0.2
     ]
    ]
@@ -632,929 +284,123 @@
   {
    "src": "intro/torget_bud.webp",
    "at": [
-    300,
-    4,
-    -60
+    236.794,
+    0,
+    -104
    ],
-   "h": 65.442,
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
    "show": [
-    47,
-    48.5,
-    60.5,
-    62
-   ]
-  },
-  {
-   "src": "intro/kongens_segl.webp",
-   "at": [
-    300,
-    19,
-    -50
-   ],
-   "h": 13.103,
-   "mask": "ink",
-   "show": [
-    49.5,
-    52,
-    59.5,
-    61
-   ],
-   "lights": [
-    [
-     0.5,
-     0.5,
-     "#c8e0ff",
-     9,
-     0.15
-    ]
+    22.4,
+    22.5,
+    999,
+    999
    ]
   },
   {
    "src": "intro/herold.webp",
    "at": [
-    307,
-    -5.682,
-    -28
+    245.781,
+    -8.283,
+    -74
    ],
-   "h": 12.229,
+   "h": 11.567,
    "anchor": "bottom",
-   "breathe": 0.006,
    "show": [
-    47,
-    48.5,
-    60.5,
-    62
-   ]
+    52.2,
+    53.8,
+    60.6,
+    61.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "intro/folkemengde_bud.webp",
    "at": [
-    297,
-    -1.707,
-    -14
+    234.023,
+    -4.986,
+    -56
    ],
-   "h": 5.605,
+   "h": 5.222,
    "anchor": "bottom",
-   "breathe": 0.005,
    "show": [
-    47,
-    48.5,
-    60.5,
-    62
-   ]
+    52.6,
+    54.2,
+    60.6,
+    61.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "intro/skriptoriet_kveld.webp",
    "at": [
-    400,
-    4,
-    -60
+    323.192,
+    0,
+    -104
    ],
-   "h": 65.442,
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
    "show": [
-    59.5,
-    61,
-    72.5,
-    73.5
-   ]
-  },
-  {
-   "src": "intro/baal.webp",
-   "at": [
-    411,
-    -7.756,
-    -34
-   ],
-   "h": 7.92,
-   "anchor": "bottom",
-   "mask": "ink",
-   "show": [
-    62,
-    64,
-    73,
-    74
-   ],
-   "lights": [
-    [
-     0.5,
-     0.45,
-     "#ff9a3c",
-     7,
-     1.0
-    ],
-    [
-     0.4,
-     0.3,
-     "#ffb050",
-     4,
-     1.0
-    ]
+    22.4,
+    22.5,
+    999,
+    999
    ]
   },
   {
    "src": "intro/inkvisitorer.webp",
    "at": [
-    391,
-    -4.299,
-    -24
+    324.082,
+    -7.106,
+    -64
    ],
-   "h": 8.735,
+   "h": 8.586,
    "anchor": "bottom",
-   "walk": true,
-   "path": [
-    [
-     60,
-     386,
-     -4.299,
-     -24
-    ],
-    [
-     72,
-     399,
-     -4.299,
-     -24
-    ]
-   ],
    "show": [
-    59.5,
-    61,
-    72.5,
-    73.5
-   ]
+    65.2,
+    66.8,
+    74.6,
+    75.8
+   ],
+   "mask": "ink"
   },
   {
-   "src": "intro/komponent_i_ramme.webp",
+   "src": "intro/baal.webp",
    "at": [
-    404.5,
-    3.8,
-    -9
+    319.708,
+    -3.615,
+    -53
    ],
-   "h": 2.752,
-   "mask": "ink",
+   "h": 2.26,
+   "anchor": "bottom",
    "show": [
     66.5,
-    68,
-    73,
-    74
+    68.1,
+    74.6,
+    75.8
    ],
+   "mask": "ink",
    "lights": [
     [
      0.5,
      0.45,
-     "#e8ff9a",
-     1.6,
-     0.6
-    ]
-   ]
-  },
-  {
-   "src": "intro/skriptoriet_natt.webp",
-   "at": [
-    500,
-    4,
-    -50
-   ],
-   "h": 55.942,
-   "mask": "glitch",
-   "show": [
-    72,
-    73,
-    85.2,
-    87
-   ]
-  },
-  {
-   "src": "intro/omveiene.webp",
-   "at": [
-    500,
-    -2.915,
-    -20
-   ],
-   "h": 8.007,
-   "anchor": "bottom",
-   "breathe": 0.006,
-   "lights": [
-    [
-     0.385,
-     0.2,
-     "#ffcf70",
-     0.9
-    ],
-    [
-     0.705,
-     0.17,
-     "#ffcf70",
-     0.9
-    ]
-   ],
-   "mask": "glitch",
-   "show": [
-    72,
-    73,
-    85,
-    86.5
-   ]
-  },
-  {
-   "src": "opening/fallet/bg.webp",
-   "at": [
-    500,
-    4,
-    -50.5
-   ],
-   "h": 55.942,
-   "mask": "glitch",
-   "show": [
-    84.6,
-    86.5,
-    92,
-    93
-   ]
-  },
-  {
-   "src": "opening/fallet/mid.webp",
-   "at": [
-    501,
-    5,
-    -22
-   ],
-   "h": 7.207,
-   "mask": "glitch",
-   "show": [
-    86.5,
-    88,
-    92,
-    93
-   ],
-   "sway": 0.15
-  },
-  {
-   "src": "opening/fallet/fg.webp",
-   "at": [
-    496,
-    0.56,
-    -9
-   ],
-   "h": 2.621,
-   "anchor": "bottom",
-   "mask": "glitch",
-   "show": [
-    87,
-    88.5,
-    92,
-    93
-   ]
-  },
-  {
-   "src": "intro/byen_natt.webp",
-   "at": [
-    700,
-    10,
-    -80
-   ],
-   "h": 75.706,
-   "show": [
-    91.5,
-    93.5,
-    101,
-    102
-   ]
-  },
-  {
-   "src": "intro/rammeverket_reiser_seg.webp",
-   "at": [
-    702,
-    -44.017,
-    -55
-   ],
-   "h": 34.031,
-   "anchor": "bottom",
-   "path": [
-    [
-     93,
-     702,
-     -44.016999999999996,
-     -55
-    ],
-    [
-     99.5,
-     702,
-     -18.017,
-     -55
-    ]
-   ],
-   "show": [
-    93,
-    94,
-    101,
-    102
-   ],
-   "lights": [
-    [
-     0.52,
-     0.32,
-     "#ff3cc8",
-     10,
-     0.5
-    ]
-   ]
-  },
-  {
-   "src": "intro/natthimmel.webp",
-   "at": [
-    850,
-    60,
-    -600
-   ],
-   "h": 960.881,
-   "follow": 0.95,
-   "camY": 5,
-   "show": [
-    99.5,
-    101.5,
-    131,
-    132
-   ]
-  },
-  {
-   "src": "intro/veien_natt.webp",
-   "at": [
-    760.0,
-    -14,
-    -120
-   ],
-   "h": 96.088,
-   "flip": false,
-   "show": [
-    99,
-    101,
-    126,
-    128
-   ]
-  },
-  {
-   "src": "intro/veien_natt.webp",
-   "at": [
-    929.586,
-    -14,
-    -120
-   ],
-   "h": 96.088,
-   "flip": true,
-   "show": [
-    99,
-    101,
-    126,
-    128
-   ]
-  },
-  {
-   "src": "intro/veien_natt.webp",
-   "at": [
-    1099.171,
-    -14,
-    -120
-   ],
-   "h": 96.088,
-   "flip": false,
-   "show": [
-    99,
-    101,
-    126,
-    128
-   ]
-  },
-  {
-   "src": "opening/begravelsen/bg.webp",
-   "at": [
-    890,
-    5,
-    -60
-   ],
-   "h": 81.675,
-   "feather": [
-    0.12,
-    0.03,
-    0,
-    0.1
-   ],
-   "show": [
-    104,
-    108,
-    126,
-    127
-   ]
-  },
-  {
-   "src": "intro/munkene_lokker.webp",
-   "at": [
-    800,
-    -4.99,
-    -26
-   ],
-   "h": 7.949,
-   "anchor": "bottom",
-   "walk": true,
-   "path": [
-    [
-     100,
-     806,
-     -4.99,
-     -26
-    ],
-    [
-     118,
-     928.8216655003499,
-     -4.99,
-     -26
-    ]
-   ],
-   "lights": [
-    [
-     0.9,
-     0.36,
-     "#ffb050",
-     2.0,
+     "#ff9a3c",
+     2.4,
      1.0
     ],
     [
-     0.7,
-     0.38,
-     "#ffb050",
-     2.0,
-     1.0
-    ]
-   ],
-   "show": [
-    100.5,
-    102,
-    119,
-    121
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    790.0,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    796.745,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    803.491,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    810.236,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    816.982,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    823.727,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    830.473,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    837.218,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    843.964,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    850.709,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    857.454,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    864.2,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    870.945,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    877.691,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    884.436,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    891.182,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    897.927,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": false,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/forgrunn_steiner.webp",
-   "at": [
-    904.673,
-    1.401,
-    -7
-   ],
-   "h": 3.822,
-   "flip": true,
-   "anchor": "bottom",
-   "show": [
-    100,
-    101,
-    115,
-    116.5
-   ]
-  },
-  {
-   "src": "intro/ansgar_ned.webp",
-   "at": [
-    932.822,
-    -5.827,
-    -30
-   ],
-   "h": 6.551,
-   "anchor": "bottom",
-   "walk": true,
-   "path": [
-    [
-     112,
-     932.8216655003499,
-     -5.827,
-     -30
-    ],
-    [
-     121.5,
-     936.8216655003499,
-     -4.667499999999999,
-     -55
-    ]
-   ],
-   "show": [
-    112,
-    113,
-    120.5,
-    122
-   ],
-   "lights": [
-    [
-     0.43,
-     0.27,
-     "#ffb050",
-     1.6,
-     1.0
-    ]
-   ]
-  },
-  {
-   "src": "intro/jordlag.webp",
-   "at": [
-    1000,
-    -18.053,
-    -40
-   ],
-   "h": 45.132,
-   "feather": [
-    0.05,
-    0.05,
-    0.2,
-    0
-   ],
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ]
-  },
-  {
-   "src": "opening/krypten/bg.webp",
-   "at": [
-    1000,
-    -45,
-    -40
-   ],
-   "h": 36.397,
-   "feather": [
-    0.06,
-    0.06,
-    0.22,
-    0.12
-   ],
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ]
-  },
-  {
-   "src": "opening/krypten/mid.webp",
-   "at": [
-    1001,
-    -52.607,
-    -22
-   ],
-   "h": 7.207,
-   "anchor": "bottom",
-   "breathe": 0.008,
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ]
-  },
-  {
-   "src": "opening/krypten/bg.webp",
-   "at": [
-    1000,
-    -80,
-    -75
-   ],
-   "h": 84.441,
-   "tint": "#6a5a7a",
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ]
-  },
-  {
-   "src": "opening/krypten/fg.webp",
-   "at": [
-    996.5,
-    -48.057,
-    -8
-   ],
-   "h": 1.456,
-   "anchor": "bottom",
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ]
-  },
-  {
-   "src": "intro/rammeverket_sover.webp",
-   "at": [
-    1000,
-    -80,
-    -35
-   ],
-   "h": 19.108,
-   "breathe": 0.01,
-   "show": [
-    124.5,
-    125.5,
-    139,
-    140
-   ],
-   "lights": [
-    [
-     0.52,
-     0.36,
-     "#ff3cc8",
-     8,
-     0.35
-    ],
-    [
-     0.8,
-     0.72,
+     0.4,
+     0.3,
      "#ffb050",
      1.4,
      1.0
@@ -1562,222 +408,420 @@
    ]
   },
   {
-   "src": "intro/himmel_morgen.webp",
+   "src": "intro/komponent_i_ramme.webp",
    "at": [
-    1100,
-    60,
-    -600
+    326.889,
+    -3.257,
+    -52
    ],
-   "h": 960.881,
-   "follow": 0.95,
-   "camY": 5,
+   "h": 2.534,
+   "anchor": "bottom",
    "show": [
-    138,
-    139.5,
-    152,
-    153
+    68.8,
+    70.4,
+    74.6,
+    75.8
+   ],
+   "mask": "ink",
+   "lights": [
+    [
+     0.5,
+     0.45,
+     "#e8ff9a",
+     0.8,
+     0.6
+    ]
    ]
+  },
+  {
+   "src": "intro/skriptoriet_natt.webp",
+   "at": [
+    409.589,
+    0,
+    -104
+   ],
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
+   "show": [
+    22.4,
+    22.5,
+    91.0,
+    92.0
+   ]
+  },
+  {
+   "src": "intro/omveiene.webp",
+   "at": [
+    409.669,
+    -6.085,
+    -58
+   ],
+   "h": 7.129,
+   "anchor": "bottom",
+   "show": [
+    79.2,
+    80.8,
+    88.2,
+    89.4
+   ],
+   "mask": "ink",
+   "lights": [
+    [
+     0.385,
+     0.2,
+     "#ffcf70",
+     0.5
+    ],
+    [
+     0.705,
+     0.17,
+     "#ffcf70",
+     0.5
+    ]
+   ]
+  },
+  {
+   "src": "opening/fallet/bg.webp",
+   "at": [
+    409.589,
+    0,
+    -103.9
+   ],
+   "h": 52.412,
+   "mask": "glitch",
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
+   "show": [
+    89.0,
+    91.0,
+    96.0,
+    96.2
+   ]
+  },
+  {
+   "src": "opening/fallet/mid.webp",
+   "at": [
+    412.868,
+    -6.561,
+    -64
+   ],
+   "h": 6.566,
+   "anchor": "bottom",
+   "show": [
+    90.4,
+    92.0,
+    94.8,
+    96.0
+   ],
+   "mask": "glitch"
+  },
+  {
+   "src": "opening/fallet/fg.webp",
+   "at": [
+    406.541,
+    -3.093,
+    -52
+   ],
+   "h": 2.342,
+   "anchor": "bottom",
+   "show": [
+    91.2,
+    92.8,
+    94.8,
+    96.0
+   ],
+   "mask": "glitch"
+  },
+  {
+   "src": "intro/byen_natt.webp",
+   "at": [
+    495.986,
+    0,
+    -104
+   ],
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
+   "show": [
+    22.4,
+    22.5,
+    999,
+    999
+   ]
+  },
+  {
+   "src": "intro/rammeverket_reiser_seg.webp",
+   "at": [
+    507.284,
+    -12.498,
+    -76
+   ],
+   "h": 17.443,
+   "anchor": "bottom",
+   "show": [
+    96.7,
+    98.3,
+    103.1,
+    104.3
+   ],
+   "mask": "glitch",
+   "lights": [
+    [
+     0.52,
+     0.32,
+     "#ff3cc8",
+     4,
+     0.5
+    ]
+   ]
+  },
+  {
+   "src": "opening/begravelsen/bg.webp",
+   "at": [
+    582.383,
+    0,
+    -104
+   ],
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
+   "show": [
+    22.4,
+    22.5,
+    999,
+    999
+   ]
+  },
+  {
+   "src": "intro/munkene_lokker.webp",
+   "at": [
+    581.236,
+    -6.768,
+    -58
+   ],
+   "h": 6.676,
+   "anchor": "bottom",
+   "show": [
+    107.8,
+    109.4,
+    122.6,
+    123.8
+   ],
+   "mask": "ink",
+   "lights": [
+    [
+     0.9,
+     0.36,
+     "#ffb050",
+     0.8,
+     1.0
+    ],
+    [
+     0.7,
+     0.38,
+     "#ffb050",
+     0.8,
+     1.0
+    ]
+   ]
+  },
+  {
+   "src": "intro/ansgar_ned.webp",
+   "at": [
+    578.818,
+    -4.522,
+    -55
+   ],
+   "h": 5.569,
+   "anchor": "bottom",
+   "show": [
+    113.5,
+    115.1,
+    122.6,
+    123.8
+   ],
+   "mask": "ink",
+   "lights": [
+    [
+     0.43,
+     0.27,
+     "#ffb050",
+     0.9,
+     1.0
+    ]
+   ]
+  },
+  {
+   "src": "intro/jordlag.webp",
+   "at": [
+    582.383,
+    -62.466,
+    -103.9
+   ],
+   "h": 52.412,
+   "anchor": "bottom",
+   "feather": [
+    0,
+    0,
+    0,
+    0.18
+   ]
+  },
+  {
+   "src": "opening/krypten/bg.webp",
+   "at": [
+    668.781,
+    0,
+    -104
+   ],
+   "h": 52.412,
+   "tint": "#c9c2d8",
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
+   "show": [
+    22.4,
+    22.5,
+    999,
+    999
+   ]
+  },
+  {
+   "src": "intro/rammeverket_sover.webp",
+   "at": [
+    668.982,
+    -8.921,
+    -74
+   ],
+   "h": 8.823,
+   "anchor": "bottom",
+   "show": [
+    132.7,
+    134.3,
+    138.6,
+    139.8
+   ],
+   "mask": "ink",
+   "lights": [
+    [
+     0.52,
+     0.36,
+     "#ff3cc8",
+     3,
+     0.35
+    ],
+    [
+     0.8,
+     0.72,
+     "#ffb050",
+     0.7,
+     1.0
+    ]
+   ]
+  },
+  {
+   "src": "opening/krypten/fg.webp",
+   "at": [
+    665.406,
+    -3.148,
+    -52
+   ],
+   "h": 1.754,
+   "anchor": "bottom",
+   "show": [
+    132.7,
+    134.3,
+    138.6,
+    139.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "opening/sorporten/bg.webp",
    "at": [
-    1100,
-    4,
-    -70
+    755.178,
+    0,
+    -104
    ],
-   "h": 63.695,
+   "h": 52.412,
+   "feather": [
+    0.08,
+    0,
+    0,
+    0
+   ],
    "show": [
-    138,
-    139.5,
-    152,
-    153
+    22.4,
+    22.5,
+    999,
+    999
    ]
   },
   {
    "src": "intro/den_fremmede.webp",
    "at": [
-    1096,
-    -1.358,
-    -16
+    753.827,
+    -4.025,
+    -54
    ],
-   "h": 5.824,
+   "h": 4.88,
    "anchor": "bottom",
-   "walk": true,
-   "path": [
-    [
-     138,
-     1095,
-     -1.358,
-     -16
-    ],
-    [
-     151,
-     1099,
-     -1.358,
-     -16
-    ]
-   ],
    "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
+    141.0,
+    142.6,
+    238.6,
+    239.8
+   ],
+   "mask": "ink"
   },
   {
    "src": "intro/veiskiltet.webp",
    "at": [
-    1093,
-    1.03,
-    -8
+    751.48,
+    -3.256,
+    -52
    ],
-   "h": 3.494,
+   "h": 3.282,
    "anchor": "bottom",
-   "sway": 0.03,
    "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1088.0,
-    2.144,
-    -5
+    141.0,
+    142.6,
+    238.6,
+    239.8
    ],
-   "h": 2.548,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1092.497,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1096.994,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1101.491,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1105.988,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1110.485,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": true,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
-  },
-  {
-   "src": "intro/forgrunn_gress.webp",
-   "at": [
-    1114.982,
-    2.144,
-    -5
-   ],
-   "h": 2.548,
-   "flip": false,
-   "anchor": "bottom",
-   "sway": 0.04,
-   "show": [
-    138,
-    139.5,
-    152,
-    153
-   ]
+   "mask": "ink"
   }
  ],
  "texts": [
   {
    "t": [
     1.5,
-    7.2
+    6.6
    ],
    "at": [
-    4.184,
-    16.751,
-    -30.699
+    2.0,
+    6.056,
+    -40
    ],
    "lines": [
     [
@@ -1785,25 +829,20 @@
      "Fristad"
     ]
    ],
-   "h": 4.892,
-   "width": 33.699,
-   "align": "left",
-   "pace": 0.12,
-   "face": [
-    -4.123,
-    17.904,
-    10.676
-   ]
+   "h": 4.95,
+   "width": 62.118,
+   "align": "center",
+   "pace": 0.12
   },
   {
    "t": [
-    7.6,
-    14
+    7.0,
+    12.8
    ],
    "at": [
-    7.944,
-    44.927,
-    -246.414
+    2.0,
+    8.881,
+    -40
    ],
    "lines": [
     [
@@ -1815,25 +854,20 @@
      "Men alle delte én mønsterbok."
     ]
    ],
-   "h": 14.479,
-   "width": 187.75,
-   "align": "left",
-   "pace": 0.12,
-   "face": [
-    45.961,
-    6.29,
-    -0.046
-   ]
+   "h": 2.184,
+   "width": 32.094,
+   "align": "center",
+   "pace": 0.12
   },
   {
    "t": [
-    23,
-    27
+    24.0,
+    27.6
    ],
    "at": [
-    91.663,
-    7.833,
-    -66.665
+    52.612,
+    5.707,
+    -64
    ],
    "lines": [
     [
@@ -1841,25 +875,20 @@
      "Den kunne leses på alle tungemål."
     ]
    ],
-   "h": 1.019,
-   "width": 20.706,
+   "h": 1.165,
+   "width": 19.412,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    99.838,
-    3.907,
-    -46.603
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    27.3,
-    31.3
+    27.9,
+    31.4
    ],
    "at": [
-    90.688,
-    7.548,
-    -77.191
+    53.129,
+    5.751,
+    -64
    ],
    "lines": [
     [
@@ -1867,25 +896,20 @@
      "Hver by bygde av den akkurat det den trengte, og boka sto aldri i veien."
     ]
    ],
-   "h": 1.732,
-   "width": 19.929,
+   "h": 1.092,
+   "width": 14.235,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    102.978,
-    3.701,
-    -48.259
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    31.5,
-    35
+    31.6,
+    34.9
    ],
    "at": [
-    97.801,
-    24.361,
-    -124.241
+    53.647,
+    5.241,
+    -64
    ],
    "lines": [
     [
@@ -1901,25 +925,20 @@
      "som holdt den."
     ]
    ],
-   "h": 5.241,
-   "width": 46.588,
+   "h": 1.456,
+   "width": 12.941,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    95.228,
-    -1.606,
-    -55.604
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    37,
-    42
+    39.1,
+    43.5
    ],
    "at": [
-    144.82,
-    98.871,
-    -112.793
+    150.397,
+    5.751,
+    -64
    ],
    "lines": [
     [
@@ -1931,25 +950,20 @@
      "og ved siden av dem kjøpmennene fra Kontoret med sine regler."
     ]
    ],
-   "h": 7.425,
-   "width": 132.0,
-   "align": "left",
-   "pace": 0.12,
-   "face": [
-    205.04,
-    70.537,
-    7.928
-   ]
+   "h": 1.092,
+   "width": 23.294,
+   "align": "center",
+   "pace": 0.12
   },
   {
    "t": [
-    42.5,
-    47.5
+    43.8,
+    48.7
    ],
    "at": [
-    195.809,
-    82.463,
-    -84.832
+    150.397,
+    5.416,
+    -64
    ],
    "lines": [
     [
@@ -1961,25 +975,20 @@
      "og at de visste best hvordan."
     ]
    ],
-   "h": 5.197,
-   "width": 97.835,
+   "h": 1.165,
+   "width": 23.294,
    "align": "center",
-   "pace": 0.12,
-   "face": [
-    194.85,
-    66.101,
-    -0.696
-   ]
+   "pace": 0.12
   },
   {
    "t": [
     52.5,
-    59.5
+    61.6
    ],
    "at": [
-    282.498,
-    15.204,
-    -38.863
+    226.7,
+    5.649,
+    -64
    ],
    "lines": [
     [
@@ -2011,25 +1020,20 @@
      "Ingen avvik."
     ]
    ],
-   "h": 1.965,
-   "width": 19.567,
+   "h": 1.019,
+   "width": 12.941,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    291.173,
-    5.347,
-    -2.933
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    61,
-    65.5
+    65.5,
+    68.8
    ],
    "at": [
-    393.031,
-    12.644,
-    -30.681
+    311.545,
+    5.591,
+    -64
    ],
    "lines": [
     [
@@ -2041,25 +1045,20 @@
      "dro fra by til by."
     ]
    ],
-   "h": 2.402,
-   "width": 24.071,
+   "h": 1.601,
+   "width": 15.529,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    406.444,
-    4.608,
-    0.259
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    65.8,
-    69.2
+    69.0,
+    71.4
    ],
    "at": [
-    388.074,
-    10.61,
-    -27.164
+    312.062,
+    5.605,
+    -64
    ],
    "lines": [
     [
@@ -2067,25 +1066,20 @@
      "Mønsterbøkene ble brent, og hver komponent ble spent fast i rammeverket, med Kontorets regler stemplet på."
     ]
    ],
-   "h": 1.547,
-   "width": 16.176,
+   "h": 1.092,
+   "width": 14.235,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    398.865,
-    4.373,
-    -1.478
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    68.6,
-    71.9
+    72.6,
+    76.2
    ],
    "at": [
-    406.894,
-    -2.557,
-    -42.705
+    322.545,
+    5.561,
+    -64
    ],
    "lines": [
     [
@@ -2097,25 +1091,20 @@
      "bare være en knapp."
     ]
    ],
-   "h": 2.064,
-   "width": 31.447,
-   "align": "center",
-   "pace": 0.12,
-   "face": [
-    393.242,
-    3.967,
-    -3.259
-   ]
+   "h": 1.165,
+   "width": 20.706,
+   "align": "left",
+   "pace": 0.12
   },
   {
    "t": [
-    74,
-    79
+    79.6,
+    84.0
    ],
    "at": [
-    495.749,
-    11.318,
-    -28.542
+    398.46,
+    5.896,
+    -64
    ],
    "lines": [
     [
@@ -2123,25 +1112,20 @@
      "Skriverne lærte å skrive rundt boka i stedet for med den."
     ]
    ],
-   "h": 1.732,
-   "width": 21.741,
+   "h": 1.092,
+   "width": 15.529,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    509.404,
-    4.517,
-    -0.224
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    79.5,
-    84.7
+    84.3,
+    88.8
    ],
    "at": [
-    507.145,
-    10.945,
-    -29.978
+    414.507,
+    5.605,
+    -64
    ],
    "lines": [
     [
@@ -2157,25 +1141,20 @@
      "Natt etter natt."
     ]
    ],
-   "h": 1.427,
-   "width": 12.682,
+   "h": 1.092,
+   "width": 10.353,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    506.155,
-    4.14,
-    -1.855
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    86,
-    91
+    89.6,
+    95.6
    ],
    "at": [
-    482.522,
-    17.589,
-    -59.916
+    399.495,
+    5.605,
+    -64
    ],
    "lines": [
     [
@@ -2187,25 +1166,20 @@
      "Så kom den store oppgraderingen."
     ]
    ],
-   "h": 3.217,
-   "width": 40.376,
+   "h": 1.092,
+   "width": 15.529,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    487.64,
-    3.373,
-    -7.802
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    94,
-    99.8
+    97.3,
+    103.69999999999999
    ],
    "at": [
-    425.63,
-    150.248,
-    -518.546
+    485.374,
+    5.561,
+    -64
    ],
    "lines": [
     [
@@ -2217,25 +1191,20 @@
      "Komponentene vred seg til noe annet, og over dem reiste rammeverket seg selv."
     ]
    ],
-   "h": 31.447,
-   "width": 559.058,
+   "h": 1.165,
+   "width": 10.871,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    705.767,
-    12.213,
-    9.086
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    102,
-    108
+    108.3,
+    113.3
    ],
    "at": [
-    802.9,
-    50.625,
-    -190.479
+    570.736,
+    5.896,
+    -64
    ],
    "lines": [
     [
@@ -2243,25 +1212,20 @@
      "Munkene i Fristad lokket dem ned i krypten under kirka, og murte igjen."
     ]
    ],
-   "h": 11.137,
-   "width": 139.765,
+   "h": 1.092,
+   "width": 14.235,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    847.467,
-    4.861,
-    -0.36
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    110,
-    116
+    113.9,
+    118.9
    ],
    "at": [
-    879.418,
-    36.929,
-    -124.255
+    571.772,
+    5.896,
+    -64
    ],
    "lines": [
     [
@@ -2269,25 +1233,20 @@
      "Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka."
     ]
    ],
-   "h": 7.425,
-   "width": 93.176,
+   "h": 1.092,
+   "width": 14.235,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    911.456,
-    4.768,
-    1.512
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    117.5,
-    123
+    119.4,
+    123.5
    ],
    "at": [
-    914.723,
-    7.484,
-    -55.883
+    571.772,
+    5.474,
+    -64
    ],
    "lines": [
     [
@@ -2295,25 +1254,20 @@
      "Han kom aldri opp igjen."
     ]
    ],
-   "h": 2.752,
-   "width": 46.2,
+   "h": 1.31,
+   "width": 20.706,
    "align": "left",
-   "pace": 0.12,
-   "face": [
-    928.804,
-    -0.413,
-    -13.018
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    126,
-    131
+    128.0,
+    131.4
    ],
    "at": [
-    1000.628,
-    -12.784,
-    -69.858
+    582.983,
+    -34.321,
+    -64
    ],
    "lines": [
     [
@@ -2321,25 +1275,20 @@
      "Generasjoner senere er bare ryktene igjen."
     ]
    ],
-   "h": 4.076,
-   "width": 81.529,
+   "h": 1.165,
+   "width": 23.294,
    "align": "center",
-   "pace": 0.12,
-   "face": [
-    1000.628,
-    -11.579,
-    0.199
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    133,
-    138
+    133.7,
+    139.5
    ],
    "at": [
-    992.124,
-    -69.077,
-    -84.179
+    668.781,
+    5.416,
+    -64
    ],
    "lines": [
     [
@@ -2347,25 +1296,20 @@
      "Men nede i mørket har noe begynt å våkne."
     ]
    ],
-   "h": 4.368,
-   "width": 98.353,
+   "h": 1.165,
+   "width": 23.294,
    "align": "center",
-   "pace": 0.12,
-   "face": [
-    989.787,
-    -72.476,
-    -3.821
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    140.5,
-    145.5
+    142.0,
+    147.0
    ],
    "at": [
-    1108.231,
-    22.171,
-    -43.108
+    755.178,
+    4.601,
+    -64
    ],
    "lines": [
     [
@@ -2373,25 +1317,20 @@
      "Fristad, anno 1350"
     ]
    ],
-   "h": 4.076,
-   "width": 82.823,
+   "h": 2.038,
+   "width": 31.059,
    "align": "center",
-   "pace": 0.12,
-   "face": [
-    1107.769,
-    15.79,
-    -2.981
-   ]
+   "pace": 0.12
   },
   {
    "t": [
-    145.5,
-    150
+    147.4,
+    152.0
    ],
    "at": [
-    1104.895,
-    12.151,
-    -38.372
+    755.178,
+    4.834,
+    -64
    ],
    "lines": [
     [
@@ -2399,482 +1338,376 @@
      "En fremmed kommer til porten."
     ]
    ],
-   "h": 1.747,
-   "width": 38.823,
+   "h": 1.165,
+   "width": 23.294,
    "align": "center",
-   "pace": 0.12,
-   "face": [
-    1104.367,
-    8.264,
-    -8.342
-   ]
+   "pace": 0.12
   }
  ],
  "camera": [
   {
-   "t": 0,
+   "t": 0.0,
    "p": [
-    -25,
-    34,
-    30
-   ],
-   "look": [
-    5,
-    4,
-    -150
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 6,
-   "p": [
-    8,
-    12,
-    4
-   ],
-   "look": [
-    25,
-    2,
-    -150
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 14,
-   "p": [
-    72,
-    4.5,
+    -3.0,
+    0,
     0
    ],
    "look": [
-    92,
-    3,
-    -80
+    -3.0,
+    0,
+    -10
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 18,
+   "t": 12.5,
    "p": [
-    100,
-    4,
-    2
-   ],
-   "look": [
-    100,
-    4,
-    -60
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 21,
-   "p": [
-    100,
-    4.1,
-    -36
-   ],
-   "look": [
-    100,
-    4,
-    -90
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 23.5,
-   "p": [
-    99,
-    4,
-    -45
-   ],
-   "look": [
-    98,
-    3,
-    -90
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 29,
-   "p": [
-    103,
-    3.8,
-    -48
-   ],
-   "look": [
-    105,
-    3,
-    -80
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 34.5,
-   "p": [
-    106,
-    5,
-    -50
-   ],
-   "look": [
-    107,
-    10,
-    -80
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 35.6,
-   "p": [
-    196,
-    61,
-    3
-   ],
-   "look": [
-    198,
-    60,
-    -60
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 47.5,
-   "p": [
-    204,
-    60,
-    -3
-   ],
-   "look": [
-    202,
-    59,
-    -60
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 48.5,
-   "p": [
-    290,
-    26,
-    2
-   ],
-   "look": [
-    298,
-    16,
-    -60
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 52.5,
-   "p": [
-    298,
-    7,
+    7.0,
+    0,
     0
    ],
    "look": [
-    300,
-    7,
-    -60
+    7.0,
+    0,
+    -10
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 59.8,
+   "t": 16.6,
    "p": [
-    303,
-    6.5,
-    -5
-   ],
-   "look": [
-    303,
-    6,
-    -60
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 60.5,
-   "p": [
-    392,
-    5,
+    64,
+    0,
     0
    ],
    "look": [
-    395,
-    4,
-    -60
+    64,
+    0,
+    -10
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 66.5,
+   "t": 18.6,
    "p": [
-    400,
-    4.5,
-    -1
-   ],
-   "look": [
-    402,
-    4,
-    -40
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 71.6,
-   "p": [
-    404,
-    3.9,
-    -3.5
-   ],
-   "look": [
-    404.5,
-    3.8,
-    -9
-   ],
-   "fov": 40,
-   "roll": 0
-  },
-  {
-   "t": 73.2,
-   "p": [
-    495,
-    4.6,
+    64,
+    0,
     0
    ],
    "look": [
-    497,
-    4,
-    -50
+    64,
+    0,
+    -10
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 84.8,
+   "t": 23.0,
    "p": [
-    505,
-    4,
-    -3
+    64,
+    0,
+    -44
    ],
    "look": [
-    503,
-    3.5,
-    -50
+    64,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 91,
+   "t": 35.0,
    "p": [
-    508,
-    4,
-    -8
+    64.7,
+    0,
+    -44
    ],
    "look": [
-    509,
-    4,
-    -50
+    64.7,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 37
   },
   {
-   "t": 93.6,
+   "t": 38.5,
    "p": [
-    700,
-    10,
-    10
+    149.647,
+    0,
+    -44
    ],
    "look": [
-    700,
-    12,
-    -80
+    149.647,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 100,
+   "t": 49.0,
    "p": [
-    700,
-    12,
-    4
+    151.147,
+    0,
+    -44
    ],
    "look": [
-    700,
-    20,
-    -80
+    151.147,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 37
   },
   {
-   "t": 100.5,
+   "t": 52.0,
    "p": [
-    790,
-    6,
-    0
+    236.044,
+    0,
+    -44
    ],
    "look": [
-    800,
-    4,
-    -100
+    236.044,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 108,
+   "t": 62.0,
    "p": [
-    870,
-    5,
-    0
+    237.544,
+    0,
+    -44
    ],
    "look": [
-    880,
-    4,
-    -60
+    237.544,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 37
   },
   {
-   "t": 116,
+   "t": 65.0,
    "p": [
-    928.822,
-    4,
-    0
+    322.192,
+    0,
+    -44
    ],
    "look": [
-    934.822,
-    3,
-    -60
+    322.192,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 123.5,
+   "t": 76.0,
    "p": [
-    936.822,
-    -2.167,
-    -20
+    324.192,
+    0,
+    -44
    ],
    "look": [
-    936.822,
-    -3.167,
-    -60
+    324.192,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 37
   },
   {
-   "t": 125,
+   "t": 79.0,
    "p": [
-    1000,
-    7,
-    0
+    408.989,
+    0,
+    -44
    ],
    "look": [
-    1000,
-    1,
-    -40
+    408.989,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 129,
+   "t": 89.0,
    "p": [
-    1000,
-    -15,
-    0
+    410.189,
+    0,
+    -44
    ],
    "look": [
-    1000,
-    -17,
-    -40
+    410.189,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 38
+  },
+  {
+   "t": 96.0,
+   "p": [
+    410.489,
+    0,
+    -44
+   ],
+   "look": [
+    410.489,
+    0,
+    -54
+   ],
+   "fov": 37
+  },
+  {
+   "t": 96.1,
+   "p": [
+    495.486,
+    0,
+    -44
+   ],
+   "look": [
+    495.486,
+    0,
+    -54
+   ],
+   "fov": 40
+  },
+  {
+   "t": 104.0,
+   "p": [
+    496.486,
+    0,
+    -44
+   ],
+   "look": [
+    496.486,
+    0,
+    -54
+   ],
+   "fov": 37
+  },
+  {
+   "t": 107.5,
+   "p": [
+    581.783,
+    0,
+    -44
+   ],
+   "look": [
+    581.783,
+    0,
+    -54
+   ],
+   "fov": 40
+  },
+  {
+   "t": 124.0,
+   "p": [
+    582.983,
+    0,
+    -44
+   ],
+   "look": [
+    582.983,
+    0,
+    -54
+   ],
+   "fov": 38
+  },
+  {
+   "t": 124.2,
+   "p": [
+    582.983,
+    0,
+    -44
+   ],
+   "look": [
+    582.983,
+    0,
+    -54
+   ],
+   "fov": 38
+  },
+  {
+   "t": 128.4,
+   "p": [
+    582.983,
+    -40.028,
+    -44
+   ],
+   "look": [
+    582.983,
+    -40.028,
+    -54
+   ],
+   "fov": 40
+  },
+  {
+   "t": 131.9,
+   "p": [
+    582.983,
+    -40.028,
+    -44
+   ],
+   "look": [
+    582.983,
+    -40.028,
+    -54
+   ],
+   "fov": 38
   },
   {
    "t": 132.5,
    "p": [
-    1000,
-    -44,
-    0
+    668.381,
+    0,
+    -44
    ],
    "look": [
-    1000,
-    -45,
-    -40
+    668.381,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 138,
+   "t": 140.0,
    "p": [
-    1000,
-    -77,
-    -6
+    669.181,
+    0,
+    -44
    ],
    "look": [
-    1000,
-    -79,
-    -35
+    669.181,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 36
   },
   {
-   "t": 139.2,
+   "t": 141.0,
    "p": [
-    1092,
-    5.2,
-    0
+    754.578,
+    0,
+    -44
    ],
    "look": [
-    1098,
-    4,
-    -70
+    754.578,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 40
   },
   {
-   "t": 151,
+   "t": 155.0,
    "p": [
-    1101,
-    4,
-    -10
+    755.778,
+    0,
+    -44
    ],
    "look": [
-    1101,
-    3.5,
-    -70
+    755.778,
+    0,
+    -54
    ],
-   "fov": 40,
-   "roll": 0
+   "fov": 33
   }
  ],
  "events": [
@@ -2889,42 +1722,42 @@
    "sound": "hall"
   },
   {
-   "t": 35,
+   "t": 35.5,
    "cue": "council",
    "sound": null
   },
   {
-   "t": 48,
+   "t": 49.5,
    "cue": "decree",
    "sound": "market"
   },
   {
-   "t": 60,
+   "t": 62.5,
    "cue": "inquisition",
    "sound": "night"
   },
   {
-   "t": 72,
+   "t": 76.5,
    "cue": "workarounds",
    "sound": "hall"
   },
   {
-   "t": 85,
+   "t": 89,
    "cue": "fall",
    "sound": "glitch"
   },
   {
-   "t": 100,
+   "t": 104.5,
    "cue": "burial",
    "sound": "night"
   },
   {
-   "t": 125,
+   "t": 124.5,
    "cue": "crypt",
    "sound": "crypt"
   },
   {
-   "t": 138.5,
+   "t": 140.5,
    "cue": "gate",
    "sound": "road"
   }
@@ -2940,78 +1773,53 @@
   },
   {
    "t": [
-    34.3,
-    35.1,
-    36.0,
-    37.4
+    95.7,
+    96.0,
+    96.15,
+    96.9
    ],
    "color": "white"
   },
   {
    "t": [
-    71.7,
-    72.3,
-    72.8,
-    73.6
-   ]
-  },
-  {
-   "t": [
-    91.3,
-    91.8,
-    92.6,
-    93.4
-   ]
-  },
-  {
-   "t": [
-    93.9,
-    93.95,
-    94.0,
-    94.25
+    98.3,
+    98.35,
+    98.4,
+    98.7
    ],
    "color": "white"
   },
   {
    "t": [
-    96.4,
-    96.45,
-    96.5,
-    96.8
-   ],
-   "color": "white"
-  },
-  {
-   "t": [
-    122.2,
-    123.6,
-    124.6,
-    125.8
+    131.3,
+    131.9,
+    132.5,
+    133.2
    ]
   },
   {
    "t": [
-    137.6,
-    138.3,
-    138.6,
-    139.6
+    139.4,
+    140.0,
+    141.0,
+    141.8
    ]
   }
  ],
  "dust": [
   {
    "t": 0,
-   "amount": 0.25,
+   "amount": 0.2,
    "color": "#ffe9c0",
    "drift": [
-    0.3,
-    0.05,
+    0.2,
+    0.03,
     0
    ]
   },
   {
-   "t": 21,
-   "amount": 0.7,
+   "t": 22,
+   "amount": 0.6,
    "color": "#ffd48a",
    "drift": [
     0.05,
@@ -3020,8 +1828,8 @@
    ]
   },
   {
-   "t": 35.5,
-   "amount": 0.25,
+   "t": 36,
+   "amount": 0.2,
    "color": "#cfe0ff",
    "drift": [
     0.02,
@@ -3030,8 +1838,8 @@
    ]
   },
   {
-   "t": 48,
-   "amount": 0.3,
+   "t": 50,
+   "amount": 0.25,
    "color": "#ffe9c0",
    "drift": [
     0.1,
@@ -3040,8 +1848,8 @@
    ]
   },
   {
-   "t": 60,
-   "amount": 0.45,
+   "t": 63,
+   "amount": 0.4,
    "color": "#ffb070",
    "drift": [
     0.05,
@@ -3050,8 +1858,8 @@
    ]
   },
   {
-   "t": 72.5,
-   "amount": 0.4,
+   "t": 77,
+   "amount": 0.35,
    "color": "#ffd48a",
    "drift": [
     0.02,
@@ -3060,8 +1868,8 @@
    ]
   },
   {
-   "t": 85,
-   "amount": 0.6,
+   "t": 89,
+   "amount": 0.5,
    "color": "#ff7ae0",
    "drift": [
     0.0,
@@ -3070,18 +1878,18 @@
    ]
   },
   {
-   "t": 100,
-   "amount": 0.3,
+   "t": 105,
+   "amount": 0.25,
    "color": "#cfe0ff",
    "drift": [
-    0.15,
+    0.1,
     -0.05,
     0
    ]
   },
   {
    "t": 125,
-   "amount": 0.5,
+   "amount": 0.4,
    "color": "#b9c8ff",
    "drift": [
     0.0,
@@ -3090,12 +1898,12 @@
    ]
   },
   {
-   "t": 138.5,
-   "amount": 0.3,
+   "t": 141,
+   "amount": 0.25,
    "color": "#ffe9c0",
    "drift": [
-    0.3,
-    0.05,
+    0.2,
+    0.03,
     0
    ]
   }

@@ -1,11 +1,11 @@
 // Åpningsfilmen (docs/film/manus.md, kanon i docs/kanon.md): en selvstendig,
-// malt film. Eierens bilder står i lag i dybden i én sammenhengende verden,
-// lest som et billedteppe: å fly mot høyre er at tiden går, og kameraet
-// dykker inn i hendelsene. Lagene forskyves mot hverandre med parallakse når
-// kameraet beveger seg, personene puster og svaier svakt, lys blafrer og
-// støvet driver. Tekstene henger i rommet mellom lagene og kommer ord for ord.
-// Spillet er ikke med i filmen; til slutt toner filmen bort, og spillet står
-// bak ved sørporten (`reveal`).
+// malt film i scener. Hver scene er et maleri som fyller bildet, med eierens
+// utklipp foran i egne dybder, plassert med foten på gulvet i maleriet. I
+// scenen står kameraet nesten stille (litt sidelengs, så lagene forskyves mot
+// hverandre, og litt zoom); mellom scenene glir det rolig sidelengs langs
+// maleriene, som et billedteppe. Ingenting flyr: utklippene står der de står
+// og males fram og bort med blekk. Tekstene henger i rommet og kommer ord for
+// ord. Til slutt toner filmen bort, og spillet står bak ved sørporten.
 //
 // Manuset er `opening.json` (lagd av `tools/film/intro.py`): lagene, tekstene,
 // kamerabanen, musikken, lydbildet, slørene og støvet.
@@ -68,37 +68,23 @@ const MASK = `
   }`;
 
 // Et lag: et bilde på et plan, `h` høyt, med midten (eller foten, `anchor:
-// "bottom"`) i `at`. Det puster (`breathe`), svaier (`sway`) og går (`walk`)
-// i hjørneskyggeren, males fram med masken og farges med `tint`.
+// "bottom"`) i `at`. Det males fram med masken og farges med `tint`.
 function layerMesh(tex, o) {
   const aspect = tex.image.width / tex.image.height;
   const h = o.h;
   const w = h * aspect;
-  const g = new THREE.PlaneGeometry(w, h, 24, 24);
+  const g = new THREE.PlaneGeometry(w, h);
   if (o.anchor === "bottom") g.translate(0, h / 2, 0);
   if (o.flip) g.scale(-1, 1, 1);
   const u = {
     uFade: { value: 1 },
     uGlitch: { value: o.mask === "glitch" ? 1 : 0 },
     uTime: { value: 0 },
-    uSway: { value: o.sway ?? 0 },
-    uBreathe: { value: o.breathe ?? 0 },
-    uWalk: { value: o.walk ? 1 : 0 },
-    uH: { value: h },
-    uBase: { value: o.anchor === "bottom" ? 0 : -h / 2 },
     uFeather: { value: new THREE.Vector4(...(o.feather ?? [0, 0, 0, 0])) },
   };
   const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, color: new THREE.Color(o.tint ?? "#ffffff") });
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u);
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime, uSway, uBreathe, uWalk, uH, uBase;").replace(
-      "#include <begin_vertex>",
-      `#include <begin_vertex>
-      float hf = clamp((transformed.y - uBase) / uH, 0.0, 1.0);
-      transformed.y = uBase + (transformed.y - uBase) * (1.0 + sin(uTime * 1.6) * uBreathe * hf);
-      transformed.x += sin(uTime * 0.7 + transformed.y * 0.3) * uSway * hf * hf;
-      transformed.y += uWalk * abs(sin(uTime * 3.4)) * uH * 0.012;`,
-    );
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\n" + MASK)
       .replace("#include <dithering_fragment>", "#include <dithering_fragment>\n gl_FragColor.a *= filmMask(vMapUv);");
@@ -242,32 +228,35 @@ function textGroup(spec) {
 
 // --- Kamerabanen ----------------------------------------------------------------------
 
-// Catmull–Rom med tiden som parameter; endene av banen står stille.
+// Monoton kubisk bane med tiden som parameter (Fritsch–Butland per akse): den
+// skyter aldri over en nøkkel, så kameraet står rolig i scenene og glir mellom
+// dem uten å svinge forbi. Endene av banen står stille.
+function slope(keys, k, get, j) {
+  const p = keys[k - 1];
+  const n = keys[k + 1];
+  if (!p || !n) return 0;
+  const c = keys[k];
+  const h0 = c.t - p.t;
+  const h1 = n.t - c.t;
+  const d0 = (get(c)[j] - get(p)[j]) / h0;
+  const d1 = (get(n)[j] - get(c)[j]) / h1;
+  if (d0 * d1 <= 0) return 0;
+  return (3 * (h0 + h1)) / ((2 * h1 + h0) / d0 + (h1 + 2 * h0) / d1);
+}
+
 function hermite(keys, t, get) {
   let i = 0;
   while (i < keys.length - 2 && t > keys[i + 1].t) i++;
   const a = keys[i];
   const b = keys[Math.min(i + 1, keys.length - 1)];
-  if (a === b || t <= a.t) return get(a).clone();
-  if (t >= b.t) return get(b).clone();
+  if (a === b || t <= a.t) return new THREE.Vector3(...get(a));
+  if (t >= b.t) return new THREE.Vector3(...get(b));
   const h = b.t - a.t;
   const s = (t - a.t) / h;
-  const tangent = (k) => {
-    const p = keys[k - 1];
-    const n = keys[k + 1];
-    if (!p || !n) return get(keys[k]).clone().multiplyScalar(0);
-    return get(n).clone().sub(get(p)).multiplyScalar(1 / (n.t - p.t));
-  };
-  const m0 = tangent(i).multiplyScalar(h);
-  const m1 = tangent(i + 1).multiplyScalar(h);
   const s2 = s * s;
   const s3 = s2 * s;
-  return get(a)
-    .clone()
-    .multiplyScalar(2 * s3 - 3 * s2 + 1)
-    .add(m0.multiplyScalar(s3 - 2 * s2 + s))
-    .add(get(b).clone().multiplyScalar(-2 * s3 + 3 * s2))
-    .add(m1.multiplyScalar(s3 - s2));
+  const v = [0, 1, 2].map((j) => get(a)[j] * (2 * s3 - 3 * s2 + 1) + slope(keys, i, get, j) * h * (s3 - 2 * s2 + s) + get(b)[j] * (-2 * s3 + 3 * s2) + slope(keys, i + 1, get, j) * h * (s3 - s2));
+  return new THREE.Vector3(...v);
 }
 
 // --- Filmen ---------------------------------------------------------------------------
@@ -322,9 +311,8 @@ export async function createFilm({ score, audio, url = "film/opening.json", base
       mesh.add(g);
       return g;
     });
-    const path = l.path?.map(([t, x, y, z]) => ({ t, p: new THREE.Vector3(x, y, z) }));
     scene.add(mesh);
-    layers.push({ ...l, mesh, lights, path });
+    layers.push({ ...l, mesh, lights });
   });
   // Lagene tegnes bakfra og fram (lengst unna først), så utklippene legger seg riktig.
   layers.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.at[2] - b.at[2]).forEach((l, i) => (l.mesh.renderOrder = i));
@@ -338,9 +326,9 @@ export async function createFilm({ score, audio, url = "film/opening.json", base
 
   const keys = script.camera.map((k) => ({
     t: k.t,
-    p: new THREE.Vector3(...k.p),
-    look: new THREE.Vector3(...(k.look ?? [k.p[0], k.p[1], k.p[2] - 10])),
-    x: new THREE.Vector3(k.fov ?? 40, k.roll ?? 0, 0),
+    p: k.p,
+    look: k.look ?? [k.p[0], k.p[1], k.p[2] - 10],
+    x: [k.fov ?? 40, k.roll ?? 0, 0],
   }));
   const poseAt = (t) => {
     const p = hermite(keys, t, (k) => k.p);
@@ -427,14 +415,6 @@ export async function createFilm({ score, audio, url = "film/opening.json", base
       u.uFade.value = l.mask ? f : 1;
       l.mesh.material.opacity = l.mask ? 1 : f;
       u.uTime.value = t;
-      if (l.path) {
-        let i = 0;
-        while (i < l.path.length - 2 && t > l.path[i + 1].t) i++;
-        const a = l.path[i];
-        const b = l.path[Math.min(i + 1, l.path.length - 1)];
-        const s = a === b ? 0 : clamp((t - a.t) / (b.t - a.t));
-        l.mesh.position.copy(a.p).lerp(b.p, l.walk ? s : ease(s));
-      }
       // Fjerne lag følger kameraet et stykke (`follow`), så himmelen nesten står stille.
       if (l.follow) {
         l.mesh.position.x = l.at[0] + (c.p.x - l.at[0]) * l.follow;
