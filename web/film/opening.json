@@ -37,7 +37,7 @@
   {
    "src": "intro/aaser_fjerne.webp",
    "at": [
-    273.903,
+    269.795,
     -18,
     -200
    ],
@@ -57,7 +57,7 @@
   {
    "src": "intro/aaser_naere.webp",
    "at": [
-    80.431,
+    78.924,
     -10,
     -70
    ],
@@ -67,7 +67,7 @@
   {
    "src": "intro/aaser_naere.webp",
    "at": [
-    180.862,
+    177.849,
     -10,
     -70
    ],
@@ -81,208 +81,346 @@
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    -3.74,
+    -4.605,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    2.521,
+    0.791,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    8.781,
+    6.186,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    15.042,
+    11.581,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    21.302,
+    16.976,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    27.563,
+    22.372,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    33.823,
+    27.767,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    40.084,
+    33.162,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    46.344,
+    38.558,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    52.605,
+    43.953,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    58.865,
+    49.348,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    65.126,
+    54.744,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    71.386,
+    60.139,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    77.647,
+    65.534,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    83.907,
+    70.929,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": true,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    90.167,
+    76.325,
     1.816,
     -6
    ],
-   "h": 3.494,
+   "h": 3.057,
    "flip": false,
    "anchor": "bottom",
-   "sway": 0.04
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
+  },
+  {
+   "src": "intro/forgrunn_gress.webp",
+   "at": [
+    81.72,
+    1.816,
+    -6
+   ],
+   "h": 3.057,
+   "flip": true,
+   "anchor": "bottom",
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
+  },
+  {
+   "src": "intro/forgrunn_gress.webp",
+   "at": [
+    87.115,
+    1.816,
+    -6
+   ],
+   "h": 3.057,
+   "flip": false,
+   "anchor": "bottom",
+   "sway": 0.04,
+   "show": [
+    0,
+    0,
+    12.5,
+    14.5
+   ]
   },
   {
    "src": "intro/skriptoriet_fasade.webp",
    "at": [
-    100,
-    -3.862,
+    101.098,
+    -1.765,
     -40
    ],
    "h": 29.118
@@ -292,12 +430,27 @@
    "at": [
     100,
     4,
+    -40.6
+   ],
+   "h": 10,
+   "show": [
+    0,
+    0,
+    19.6,
+    20.6
+   ]
+  },
+  {
+   "src": "opening/gullalderen/bg.webp",
+   "at": [
+    100,
+    4,
     -95
    ],
-   "h": 58.053,
+   "h": 46,
    "show": [
-    17.5,
-    19,
+    19.6,
+    20.6,
     36,
     36.5
    ]
@@ -313,8 +466,8 @@
    "anchor": "bottom",
    "breathe": 0.006,
    "show": [
-    17.5,
-    19,
+    19.6,
+    20.6,
     36,
     36.5
    ]
@@ -337,8 +490,8 @@
     ]
    ],
    "show": [
-    17.5,
-    19,
+    19.6,
+    20.6,
     36,
     36.5
    ]
@@ -363,8 +516,8 @@
     ]
    ],
    "show": [
-    17.5,
-    19,
+    19.6,
+    20.6,
     36,
     36.5
    ]
@@ -394,7 +547,13 @@
     -60
    ],
    "h": 72.066,
-   "tint": "#dfe8ff"
+   "tint": "#dfe8ff",
+   "show": [
+    34.5,
+    36,
+    48.5,
+    50
+   ]
   },
   {
    "src": "intro/raadet.webp",
@@ -405,7 +564,13 @@
    ],
    "h": 12.011,
    "anchor": "bottom",
-   "breathe": 0.004
+   "breathe": 0.004,
+   "show": [
+    34.5,
+    36,
+    48.5,
+    50
+   ]
   },
   {
    "src": "intro/kjopmenn.webp",
@@ -471,7 +636,13 @@
     4,
     -60
    ],
-   "h": 65.442
+   "h": 65.442,
+   "show": [
+    47,
+    48.5,
+    60.5,
+    62
+   ]
   },
   {
    "src": "intro/kongens_segl.webp",
@@ -507,7 +678,13 @@
    ],
    "h": 12.229,
    "anchor": "bottom",
-   "breathe": 0.006
+   "breathe": 0.006,
+   "show": [
+    47,
+    48.5,
+    60.5,
+    62
+   ]
   },
   {
    "src": "intro/folkemengde_bud.webp",
@@ -518,7 +695,13 @@
    ],
    "h": 5.605,
    "anchor": "bottom",
-   "breathe": 0.005
+   "breathe": 0.005,
+   "show": [
+    47,
+    48.5,
+    60.5,
+    62
+   ]
   },
   {
    "src": "intro/skriptoriet_kveld.webp",
@@ -527,7 +710,13 @@
     4,
     -60
    ],
-   "h": 65.442
+   "h": 65.442,
+   "show": [
+    59.5,
+    61,
+    72.5,
+    73.5
+   ]
   },
   {
    "src": "intro/baal.webp",
@@ -585,6 +774,12 @@
      -4.299,
      -24
     ]
+   ],
+   "show": [
+    59.5,
+    61,
+    72.5,
+    73.5
    ]
   },
   {
@@ -789,27 +984,45 @@
     -120
    ],
    "h": 96.088,
-   "flip": false
+   "flip": false,
+   "show": [
+    99,
+    101,
+    126,
+    128
+   ]
   },
   {
    "src": "intro/veien_natt.webp",
    "at": [
-    932.168,
+    929.586,
     -14,
     -120
    ],
    "h": 96.088,
-   "flip": true
+   "flip": true,
+   "show": [
+    99,
+    101,
+    126,
+    128
+   ]
   },
   {
    "src": "intro/veien_natt.webp",
    "at": [
-    1104.336,
+    1099.171,
     -14,
     -120
    ],
    "h": 96.088,
-   "flip": false
+   "flip": false,
+   "show": [
+    99,
+    101,
+    126,
+    128
+   ]
   },
   {
    "src": "opening/begravelsen/bg.webp",
@@ -893,7 +1106,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    796.848,
+    796.745,
     1.401,
     -7
    ],
@@ -910,7 +1123,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    803.696,
+    803.491,
     1.401,
     -7
    ],
@@ -927,7 +1140,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    810.545,
+    810.236,
     1.401,
     -7
    ],
@@ -944,7 +1157,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    817.393,
+    816.982,
     1.401,
     -7
    ],
@@ -961,7 +1174,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    824.241,
+    823.727,
     1.401,
     -7
    ],
@@ -978,7 +1191,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    831.089,
+    830.473,
     1.401,
     -7
    ],
@@ -995,7 +1208,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    837.937,
+    837.218,
     1.401,
     -7
    ],
@@ -1012,7 +1225,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    844.785,
+    843.964,
     1.401,
     -7
    ],
@@ -1029,7 +1242,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    851.634,
+    850.709,
     1.401,
     -7
    ],
@@ -1046,7 +1259,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    858.482,
+    857.454,
     1.401,
     -7
    ],
@@ -1063,7 +1276,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    865.33,
+    864.2,
     1.401,
     -7
    ],
@@ -1080,7 +1293,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    872.178,
+    870.945,
     1.401,
     -7
    ],
@@ -1097,7 +1310,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    879.026,
+    877.691,
     1.401,
     -7
    ],
@@ -1114,7 +1327,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    885.874,
+    884.436,
     1.401,
     -7
    ],
@@ -1131,7 +1344,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    892.723,
+    891.182,
     1.401,
     -7
    ],
@@ -1148,7 +1361,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    899.571,
+    897.927,
     1.401,
     -7
    ],
@@ -1165,7 +1378,7 @@
   {
    "src": "intro/forgrunn_steiner.webp",
    "at": [
-    906.419,
+    904.673,
     1.401,
     -7
    ],
@@ -1443,7 +1656,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1092.565,
+    1092.497,
     2.144,
     -5
    ],
@@ -1461,7 +1674,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1097.131,
+    1096.994,
     2.144,
     -5
    ],
@@ -1479,7 +1692,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1101.696,
+    1101.491,
     2.144,
     -5
    ],
@@ -1497,7 +1710,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1106.262,
+    1105.988,
     2.144,
     -5
    ],
@@ -1515,7 +1728,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1110.827,
+    1110.485,
     2.144,
     -5
    ],
@@ -1533,7 +1746,7 @@
   {
    "src": "intro/forgrunn_gress.webp",
    "at": [
-    1115.393,
+    1114.982,
     2.144,
     -5
    ],

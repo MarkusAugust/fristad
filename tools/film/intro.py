@@ -43,7 +43,8 @@ def strip(src, x0, x1, y, z, h, **o):
     w = h * ASPECT
     n = math.ceil((x1 - x0) / w) + 1
     for i in range(n):
-        layer(src, x0 + i * w, y, z, h, flip=bool(i % 2), **o)
+        # Litt omlegg, så skjøten aldri blir en strek.
+        layer(src, x0 + i * w * 0.985, y, z, h, flip=bool(i % 2), **o)
 
 
 def text(t, at, lines, h, width, align="left", pace=0.12):
@@ -191,7 +192,7 @@ SKY_D = 600
 layer(I + "himmel_morgen.webp", 40, 60, -SKY_D, fill(SKY_D, 2.2), follow=0.92, camY=6, show=[0, 0.5, 34, 36])
 strip(I + "aaser_fjerne.webp", 0, 160, -18, -200, fill(200, 1.05))
 strip(I + "aaser_naere.webp", -20, 120, -10, -70, fill(70, 1.1))
-strip(I + "forgrunn_gress.webp", -10, 85, ground(4, 6, 1.0), -6, fill(6, 0.8), anchor="bottom", sway=0.04)
+strip(I + "forgrunn_gress.webp", -10, 85, ground(4, 6, 1.0), -6, fill(6, 0.7), anchor="bottom", sway=0.04, show=[0, 0, 12.5, 14.5])
 cam(0, [-25, 34, 30], [5, 4, -150])
 cam(6, [8, 12, 4], [25, 2, -150])
 cam(14, [72, 4.5, 0], [92, 3, -80])
@@ -202,12 +203,17 @@ say([7.6, 14], [55, 5, 1], 26, [["text", "Riket var fullt av byer, og hver by ha
 X = 100
 F_D = 40
 fh = fill(F_D, 1.0)
-# Vinduet står 0,23 fra toppen av bildet; kameraet går gjennom det i høyde 4.
-layer(I + "skriptoriet_fasade.webp", X, 4 - (0.5 - 0.23) * fh, -F_D, fh)
-layer(O + "gullalderen/bg.webp", X, 4, -95, fill(55, 1.45), show=[17.5, 19, 36, 36.5])
-layer(O + "gullalderen/mid.webp", X - 3.5, ground(4, 25, 0.9), -70, fill(25, 0.42), anchor="bottom", breathe=0.006, show=[17.5, 19, 36, 36.5])
-layer(O + "gullalderen/fg.webp", X - 5.5, ground(4, 10, 1.05), -55, fill(10, 0.45), anchor="bottom", lights=[[0.62, 0.12, "#ffcf70", 0.9]], show=[17.5, 19, 36, 36.5])
-layer(I + "ansgar_bok.webp", X + 6.5, ground(4, 17, 0.98), -62, fill(17, 0.8), anchor="bottom", breathe=0.008, lights=[[0.6, 0.48, "#ffe7a8", 3.0, 0.3]], show=[17.5, 19, 36, 36.5])
+# Midten av vinduet står 0,473 fra venstre og 0,302 fra toppen av det
+# beskårne bildet (`cutout.py`, 2048 × 1466); kameraet går gjennom det i høyde 4.
+fw = fh * 2048 / 1466
+layer(I + "skriptoriet_fasade.webp", X + (0.5 - 0.473) * fw, 4 - (0.5 - 0.302) * fh, -F_D, fh)
+# Gjennom vinduet, før kameraet er inne: rommet som et lite bilde rett bak
+# vinduet (det rager ikke ut forbi fasaden), som toner over i det store.
+layer(O + "gullalderen/bg.webp", X, 4, -40.6, 10, show=[0, 0, 19.6, 20.6])
+layer(O + "gullalderen/bg.webp", X, 4, -95, 46, show=[19.6, 20.6, 36, 36.5])
+layer(O + "gullalderen/mid.webp", X - 3.5, ground(4, 25, 0.9), -70, fill(25, 0.42), anchor="bottom", breathe=0.006, show=[19.6, 20.6, 36, 36.5])
+layer(O + "gullalderen/fg.webp", X - 5.5, ground(4, 10, 1.05), -55, fill(10, 0.45), anchor="bottom", lights=[[0.62, 0.12, "#ffcf70", 0.9]], show=[19.6, 20.6, 36, 36.5])
+layer(I + "ansgar_bok.webp", X + 6.5, ground(4, 17, 0.98), -62, fill(17, 0.8), anchor="bottom", breathe=0.008, lights=[[0.6, 0.48, "#ffe7a8", 3.0, 0.3]], show=[19.6, 20.6, 36, 36.5])
 cam(18, [X, 4, 2], [X, 4, -60])
 cam(21, [X, 4.1, -36], [X, 4, -90])
 cam(23.5, [X - 1, 4, -45], [X - 2, 3, -90])
@@ -220,8 +226,8 @@ say([31.5, 35], [X + 3, 3.8, -48], 12, [["text", "I Fristad var det"], ["heading
 # --- 3. Rådet (35–48): opp til den kalde salen i hovedstaden -------------------
 X, Y = 200, 60
 layer(I + "himmel_morgen.webp", 300, 60, -SKY_D, fill(SKY_D, 2.2), follow=0.95, camY=10, show=[36, 37, 73, 73.5])
-layer(I + "raadssal.webp", X, Y, -60, fill(66, 1.5), tint="#dfe8ff")
-layer(I + "raadet.webp", X + 1, ground(Y, 30, 0.85), -30, fill(30, 0.55), anchor="bottom", breathe=0.004)
+layer(I + "raadssal.webp", X, Y, -60, fill(66, 1.5), tint="#dfe8ff", show=[34.5, 36, 48.5, 50])
+layer(I + "raadet.webp", X + 1, ground(Y, 30, 0.85), -30, fill(30, 0.55), anchor="bottom", breathe=0.004, show=[34.5, 36, 48.5, 50])
 layer(I + "kjopmenn.webp", X - 13, ground(Y, 20, 0.95), -20, fill(20, 0.48), anchor="bottom", walk=True, path=[[39, X - 14, ground(Y, 20, 0.95), -20], [48, X - 2, ground(Y, 20, 0.95), -20]], show=[39, 40.5, 49, 50])
 layer(I + "komponentboken.webp", X - 4.5, ground(Y, 10, 1.15), -10, fill(10, 0.7), anchor="bottom", mask="ink", show=[42, 44, 49, 50], lights=[[0.5, 0.3, "#9fc4ff", 2.2, 0.2]])
 cam(35.6, [X - 4, Y + 1, 3], [X - 2, Y, -60])
@@ -231,10 +237,10 @@ say([42.5, 47.5], [X + 4, Y, -3], 30, [["quote", "De mente at alle byer burde ha
 
 # --- 4. Budet (48–60): ned til torget, kongens segl over byen ------------------
 X, Y = 300, 4
-layer(I + "torget_bud.webp", X, Y, -60, fill(62, 1.45))
+layer(I + "torget_bud.webp", X, Y, -60, fill(62, 1.45), show=[47, 48.5, 60.5, 62])
 layer(I + "kongens_segl.webp", X, Y + 15, -50, fill(50, 0.36), mask="ink", show=[49.5, 52, 59.5, 61], lights=[[0.5, 0.5, "#c8e0ff", 9, 0.15]])
-layer(I + "herold.webp", X + 7, ground(Y, 28, 0.95), -28, fill(28, 0.6), anchor="bottom", breathe=0.006)
-layer(I + "folkemengde_bud.webp", X - 3, ground(Y, 14, 1.12), -14, fill(14, 0.55), anchor="bottom", breathe=0.005)
+layer(I + "herold.webp", X + 7, ground(Y, 28, 0.95), -28, fill(28, 0.6), anchor="bottom", breathe=0.006, show=[47, 48.5, 60.5, 62])
+layer(I + "folkemengde_bud.webp", X - 3, ground(Y, 14, 1.12), -14, fill(14, 0.55), anchor="bottom", breathe=0.005, show=[47, 48.5, 60.5, 62])
 cam(48.5, [X - 10, Y + 22, 2], [X - 2, Y + 12, -60])
 cam(52.5, [X - 2, Y + 3, 0], [X, Y + 3, -60])
 cam(59.8, [X + 3, Y + 2.5, -5], [X + 3, Y + 2, -60])
@@ -242,9 +248,9 @@ say([52.5, 59.5], [X - 2, Y + 3, 0], 36, [["text", "Så kom kongens bud, på kan
 
 # --- 5. Inkvisisjonen (60–72) --------------------------------------------------
 X = 400
-layer(I + "skriptoriet_kveld.webp", X, Y, -60, fill(62, 1.45))
+layer(I + "skriptoriet_kveld.webp", X, Y, -60, fill(62, 1.45), show=[59.5, 61, 72.5, 73.5])
 layer(I + "baal.webp", X + 11, ground(Y, 34, 0.95), -34, fill(34, 0.32), anchor="bottom", mask="ink", show=[62, 64, 73, 74], lights=[[0.5, 0.45, "#ff9a3c", 7, 1.0], [0.4, 0.3, "#ffb050", 4, 1.0]])
-layer(I + "inkvisitorer.webp", X - 9, ground(Y, 24, 0.95), -24, fill(24, 0.5), anchor="bottom", walk=True, path=[[60, X - 14, ground(Y, 24, 0.95), -24], [72, X - 1, ground(Y, 24, 0.95), -24]])
+layer(I + "inkvisitorer.webp", X - 9, ground(Y, 24, 0.95), -24, fill(24, 0.5), anchor="bottom", walk=True, path=[[60, X - 14, ground(Y, 24, 0.95), -24], [72, X - 1, ground(Y, 24, 0.95), -24]], show=[59.5, 61, 72.5, 73.5])
 layer(I + "komponent_i_ramme.webp", X + 4.5, Y - 0.2, -9, fill(9, 0.42), mask="ink", show=[66.5, 68, 73, 74], lights=[[0.5, 0.45, "#e8ff9a", 1.6, 0.6]])
 cam(60.5, [X - 8, Y + 1, 0], [X - 5, Y, -60])
 cam(66.5, [X, Y + 0.5, -1], [X + 2, Y, -40])
@@ -281,7 +287,7 @@ say([94, 99.8], [X2, Y + 6, 10], 60, [["heading", "Alt som var bygd, brakk på �
 X = 880
 NIGHT_D = 600
 layer(I + "natthimmel.webp", 850, 60, -NIGHT_D, fill(NIGHT_D, 2.2), follow=0.95, camY=5, show=[99.5, 101.5, 131, 132])
-strip(I + "veien_natt.webp", 760, 960, -14, -120, fill(120, 1.1))
+strip(I + "veien_natt.webp", 760, 960, -14, -120, fill(120, 1.1), show=[99, 101, 126, 128])
 layer(O + "begravelsen/bg.webp", X, Y, -60, fill(60, 1.25), show=[104, 108, 126, 127])
 layer(I + "munkene_lokker.webp", 800, ground(Y, 26, 0.95), -26, fill(26, 0.42), anchor="bottom", walk=True, path=[[100, 806, ground(Y, 26, 0.95), -26], [118, 872, ground(Y, 26, 0.95), -26]], lights=[[0.9, 0.36, "#ffb050", 2.0, 1.0], [0.7, 0.38, "#ffb050", 2.0, 1.0]], show=[100.5, 102, 119, 121])
 strip(I + "forgrunn_steiner.webp", 790, 900, ground(Y, 7, 1.02), -7, fill(7, 0.75), anchor="bottom", show=[100, 101, 115, 116.5])

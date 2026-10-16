@@ -24,6 +24,15 @@ WIDTH = 2048
 # Grønnere enn rødt og blått med så mye (0..1): helt gjennomsiktig over HI,
 # helt dekkende under LO.
 LO, HI = 0.10, 0.32
+# Et utklipp som når kanten av bildet, ville endt i en rett, skarp kant i
+# verden (eieren 16. oktober: «se på hvordan du klipper ting»). Der det når
+# kanten, tones det bort over `EDGE` av bildet. Båndene som gjentas sidelengs
+# (`TILES`), og bunnen av dem, står i ett og tones ikke.
+EDGE = 0.08
+TILES = {"aaser_fjerne", "aaser_naere", "forgrunn_gress", "forgrunn_steiner", "veien_natt", "jordlag"}
+# Bilder som må beskjæres før de klippes (brøk: venstre, topp, høyre, bunn):
+# fasaden har biter av nabohusene i kantene.
+CROP = {"skriptoriet_fasade": (0.135, 0.0, 0.915, 1.0)}
 
 
 def keyed(rgb):
@@ -44,19 +53,46 @@ def green_background(rgb):
     return float(np.mean((c[..., 1] - np.maximum(c[..., 0], c[..., 2])) > 0.35)) > 0.04
 
 
+def soften(rgba, tile):
+    """Toner utklippet bort mot kantene det når."""
+    a = rgba[..., 3]
+    h, w = a.shape
+    n = max(2, int(EDGE * min(w, h)))
+    ramp = np.linspace(0.0, 1.0, n, dtype=np.float32)
+    ramp = ramp * ramp * (3 - 2 * ramp)
+    sides = {"top": a[0], "bottom": a[-1], "left": a[:, 0], "right": a[:, -1]}
+    touched = [k for k, e in sides.items() if (e > 0.5).mean() > 0.02 and not (tile and k in ("left", "right", "bottom"))]
+    for k in touched:
+        if k == "top":
+            a[:n] *= ramp[:, None]
+        elif k == "bottom":
+            a[-n:] *= ramp[::-1, None]
+        elif k == "left":
+            a[:, :n] *= ramp[None, :]
+        else:
+            a[:, -n:] *= ramp[None, ::-1]
+    return touched
+
+
 def build(src):
     im = Image.open(src).convert("RGB")
+    if src.stem in CROP:
+        l, t, r, b = CROP[src.stem]
+        im = im.crop((round(l * im.width), round(t * im.height), round(r * im.width), round(b * im.height)))
     if im.width > WIDTH:
         im = im.resize((WIDTH, round(im.height * WIDTH / im.width)), Image.LANCZOS)
     rgb = np.asarray(im)
+    soft = []
     if green_background(rgb):
-        out = Image.fromarray((keyed(rgb) * 255 + 0.5).astype(np.uint8), "RGBA")
+        rgba = keyed(rgb)
+        soft = soften(rgba, src.stem in TILES)
+        out = Image.fromarray((rgba * 255 + 0.5).astype(np.uint8), "RGBA")
         kind = "cutout"
     else:
         out = im
         kind = "plate"
     out.save(OUT / f"{src.stem}.webp", quality=88, method=6)
-    return {"w": out.width, "h": out.height, "kind": kind}
+    return {"w": out.width, "h": out.height, "kind": kind, **({"soft": soft} if soft else {})}
 
 
 def main(names):

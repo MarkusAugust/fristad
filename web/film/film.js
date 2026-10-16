@@ -282,6 +282,7 @@ export async function createFilm({ score, audio, url = "film/opening.json", base
   const canvas = el("canvas", "film-canvas", root);
   const veil = el("div", "film-veil", root);
   const skip = el("button", "fs-button film-skip", root, "Hopp over");
+  el("p", "film-rotate", root, "Snu telefonen for større bilde.");
   skip.dataset.variant = "ghost";
   document.body.classList.add("filming");
   const sound = createSoundscape(audio);
@@ -292,9 +293,14 @@ export async function createFilm({ score, audio, url = "film/opening.json", base
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 1);
   const camera = new THREE.PerspectiveCamera(40, 16 / 9, 0.1, 5000);
+  // Filmen er komponert i 16:9 (tekstene står der de skal i det bildet), så
+  // den vises alltid slik, med svarte felt på smale og høye skjermer.
   const fit = () => {
-    renderer.setSize(innerWidth, innerHeight, false);
-    camera.aspect = innerWidth / innerHeight;
+    const w = Math.min(innerWidth, (innerHeight * 16) / 9);
+    const h = (w * 9) / 16;
+    renderer.setSize(w, h, false);
+    Object.assign(canvas.style, { inset: "auto", width: `${w}px`, height: `${h}px`, left: `${(innerWidth - w) / 2}px`, top: `${(innerHeight - h) / 2}px` });
+    camera.aspect = 16 / 9;
     camera.updateProjectionMatrix();
   };
   fit();

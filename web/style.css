@@ -871,6 +871,26 @@ body.filming #bars {
   height: 100%;
   display: block;
 }
+.film {
+  background: #000;
+}
+.film-rotate {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12vh;
+  margin: 0;
+  text-align: center;
+  color: #cbbd9c;
+  font-family: "Uncial Antiqua", serif;
+  font-size: 1rem;
+}
+@media (orientation: portrait) {
+  .film-rotate {
+    display: block;
+  }
+}
 .film-loading {
   position: absolute;
   inset: 0;
