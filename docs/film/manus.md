@@ -1,5 +1,7 @@
 # Åpningsfilmen: manus
 
+Historien er kanon (`docs/kanon.md`); manuset forteller den.
+
 Eieren 16. oktober: en **selvstendig introfilm** av malte stillbilder av personer og scener, plassert i dybde i flere lag, så de beveger seg mot hverandre med parallakse når kameraet flyr. Spilleren flyr fra hendelse til hendelse gjennom én sammenhengende malt verden, med tekst som svever stort og tydelig i rommet, og en dramaturgisk oppbygning. **Spillets grafikk er ikke med i filmen.** Bare helt til slutt toner bildet over i spillet, der du står utenfor sørporten.
 
 Avklart med eieren:
@@ -50,14 +52,14 @@ Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/open
 2. *Den kunne leses på alle tungemål.*
    *Hver by bygde av den akkurat det den trengte, og boka sto aldri i veien.*
    *I Fristad var det mester Ansgar som holdt den.*
-3. *I hovedstaden satt et råd som aldri hadde holdt en fjærpenn.*
+3. *I hovedstaden satt et råd som aldri hadde holdt en fjærpenn, og ved siden av dem kjøpmennene fra Kontoret med sine regler.*
    *De mente at alle byer burde ha det likt, og at de visste best hvordan.*
-4. *Så kom kongens bud:*
-   **Alt skal skrives på hoffets tunge.**
-   **Alt skal bygges med Den kongelige komponentboken.**
-   **Ingen avvik.**
+4. *Så kom kongens bud, på kanselliets latin:*
+   **Omnia lingua Reactia.** *Alt på hoffets tunge.*
+   **Omnia una compage.** *Alt med ett rammeverk.*
+   **Nulla exceptio.** *Ingen avvik.*
 5. *Inkvisisjonen dro fra by til by.*
-   *Mønsterbøkene ble brent, og hver komponent ble spent fast i rammeverket, med rådets regler stemplet på.*
+   *Mønsterbøkene ble brent, og hver komponent ble spent fast i rammeverket, med Kontorets regler stemplet på.*
    *En knapp kunne ikke lenger bare være en knapp.*
 6. *Skriverne lærte å skrive rundt boka i stedet for med den.*
    *Omvei på omvei. Lapp på lapp. Natt etter natt.*

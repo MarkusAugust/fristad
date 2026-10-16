@@ -1,5 +1,7 @@
 # Fristad som spill – forslag
 
+> Historien og navnene i spillet står i `docs/kanon.md`, som går foran det som står her.
+
 Eieren (7. oktober 2026): «Det er ikke noe morsomt å utforske dokumentasjonen på denne måten. Komponentene virker klistret tilfeldig rundt. De må være en del av spillmekanikken: nivå 1, løse oppgaver, låse opp komponenter, hus, til slutt et skjema som låser opp temageneratoren. Vær kreativ, kom med de mest ekstreme forslagene.»
 
 Dette er forslagene, fra et samlende premiss til de mest ekstreme. Alt kan bygges i motoren vi har (installasjoner, props, flytur, panel, nettlaget), men flere av dem krever nye systemer: NPC-er, inventar, lagring av framgang, en manusmotor for oppdrag.

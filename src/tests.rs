@@ -577,6 +577,58 @@ fn skrittene_folger_underlaget() {
     assert!(heard.iter().all(|s| s != "step_grass") && heard.iter().any(|s| s == "step_rock"), "skrittene i kjelleren: {heard:?}");
 }
 
+/// Kanon (`docs/kanon.md`): ingen moderne ord i det verden sier. Replikkene
+/// (`world/cast.rs`), byen (`assets/layout/town.json`), lappene og navnene i
+/// kryptnivåene og filmens tekster sjekkes. Bøkene viser Fristils ekte
+/// dokumentasjon og er unntatt.
+#[test]
+fn kanon_ingen_moderne_ord_i_verden() {
+    const MODERN: &[&str] = &["react", "javascript", "js", "jsx", "typescript", "npm", "props", "webpack", "html", "css", "api", "frontend", "backend", "deploy"];
+    let root = env!("CARGO_MANIFEST_DIR");
+    let mut texts: Vec<(String, String)> = vec![];
+    // Strengene i kildekoden (ikke kommentarene).
+    let cast = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/cast.rs")).expect("cast.rs");
+    for line in cast.lines().filter(|l| !l.trim_start().starts_with("//")) {
+        for (k, part) in line.split('"').enumerate() {
+            if k % 2 == 1 {
+                texts.push(("cast.rs".into(), part.to_string()));
+            }
+        }
+    }
+    fn strings(v: &serde_json::Value, out: &mut Vec<String>) {
+        match v {
+            serde_json::Value::String(s) => out.push(s.clone()),
+            serde_json::Value::Array(a) => a.iter().for_each(|x| strings(x, out)),
+            serde_json::Value::Object(o) => o.values().for_each(|x| strings(x, out)),
+            _ => {}
+        }
+    }
+    let mut files = vec![format!("{root}/assets/layout/town.json"), format!("{root}/web/film/opening.json")];
+    for e in std::fs::read_dir(format!("{root}/assets/models/crypt")).expect("krypten").flatten() {
+        let p = e.path();
+        if p.extension().is_some_and(|x| x == "json") {
+            files.push(p.to_string_lossy().into_owned());
+        }
+    }
+    for f in files {
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&f).expect("fila")).expect("gyldig json");
+        let mut out = vec![];
+        // I filmen er bare tekstene verdens ord (merknaden er til oss).
+        strings(if f.ends_with("opening.json") { &v["texts"] } else { &v }, &mut out);
+        texts.extend(out.into_iter().map(|t| (f.clone(), t)));
+    }
+    let bad: Vec<String> = texts
+        .iter()
+        .filter(|(_, t)| t.contains(' '))
+        .filter_map(|(f, t)| {
+            let lower = t.to_lowercase();
+            let hit = lower.split(|c: char| !c.is_alphanumeric()).find(|w| MODERN.contains(w))?;
+            Some(format!("{f}: «{t}» ({hit})"))
+        })
+        .collect();
+    assert!(bad.is_empty(), "moderne ord i verden (docs/kanon.md):\n{}", bad.join("\n"));
+}
+
 /// Alle lydene spillet ber om finnes i lydbiblioteket (`assets/sounds`), med
 /// filer og kreditering, og de syntetiske lydene manifestet viser til finnes
 /// i `web/sounds.js`.
