@@ -113,6 +113,8 @@ function setResolution(r, announce = true) {
 async function boot() {
   fit();
   if (FILM) {
+    // Knappen virker med en gang: filmen går mens spillet lastes.
+    beginBtn.addEventListener("click", startFilm, { once: true });
     beginBtn.hidden = false;
     beginBtn.focus();
   }
@@ -1281,7 +1283,6 @@ function cineTick(dt) {
 
 function bindInput() {
   enterBtn.addEventListener("click", () => enter());
-  beginBtn.addEventListener("click", startFilm);
   // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til sørporten.
   $("respawn").addEventListener("click", () => {
     engine.respawn();

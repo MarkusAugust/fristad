@@ -474,7 +474,7 @@ export async function playFilm({ music, audio, url = "film/opening.json", base =
   const look = [0, 0];
   const v3 = new THREE.Vector3();
   let prev = performance.now();
-  const t0 = prev;
+  let clock = 0;
   let offset = start; // «Hopp over» før spillet er klart: rett til ventingen i siste scene (og `start` til testene)
   let shown = -1;
   let handoff = null; // { t, x, y } når kameraet går gjennom porten til spillet
@@ -543,8 +543,11 @@ export async function playFilm({ music, audio, url = "film/opening.json", base =
       const dt = Math.min((now - prev) / 1000, 0.1);
       prev = now;
       const st = ready?.() ?? { done: true, progress: 1 };
-      if (skipped && !st.done && onHandoff) offset = Math.max(offset, mainEnd - TRANS + 0.01 - (now - t0) / 1000);
-      const t = (now - t0) / 1000 + offset;
+      if (skipped && !st.done && onHandoff) offset = Math.max(offset, mainEnd - TRANS + 0.01 - clock);
+      // Tiden går bilde for bilde (høyst 0,1 s): står tråden stille mens
+      // byen bygges, venter filmen i stedet for å hoppe over et stykke.
+      clock += dt;
+      const t = clock + offset;
 
       // Hopp over: rett til porten om spillet er klart, ellers en ventelinje.
       if (skipped && !handoff) {
