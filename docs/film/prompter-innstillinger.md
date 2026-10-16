@@ -182,41 +182,53 @@ Hand-painted stylized fantasy illustration in the style of painted game concept 
 Les langsomt, med pauser ved hvert linjeskift; de frittstående linjene («Han kom aldri opp.») får en lang pause foran og bak. Fortelleren er en gammel mann i byen som bryter tausheten og betror seg til den som hører på. Eldre, rolig mannsstemme på bokmål; latinen uttales som kirkelatin (*Omnia lingua Reactia* → «omnia lingva re-aktsia»). ElevenLabs: velg en norsk stemme, lim inn hele teksten under i én fil, last ned som mp3 og legg den i `assets/film/voice/fortelleren.mp3`. Jeg klipper den i replikker etter tidene.
 
 ```
+[slow, low, intimate, like an old man confiding a secret]
 Spør noen i Fristad hva som ligger under kirka, og de skifter emne.
 
-Jeg skal fortelle deg det likevel.
+[pause] Jeg skal fortelle deg det likevel.
 
+[warm, unhurried]
 Før var riket fullt av byer, og ingen av dem talte likt. Men de delte én bok. En mønsterbok. Du åpnet den, tok det du trengte og lot resten ligge. Den ba ikke om noe. Den sto aldri i veien.
 
-Her holdt mester Ansgar den. Han sa at en god bok kjennes på det den lar deg slippe.
+Her holdt mester Ansgar den. [softly] Han sa at en god bok kjennes på det den lar deg slippe.
 
+[colder, measured]
 I hovedstaden satt Rådet. Menn som aldri hadde holdt en fjærpenn. Ved siden av dem Kontoret, som visste hva alt kostet. De så ut over riket og fant bare uorden. Så skrev de en bok selv. Tung som en kiste. Lenket som en fange. Kongen satte segl på den.
 
-Omnia lingua Reactia. Alt på hoffets tunge.
-Omnia una compage. Alt med ett rammeverk.
-Nulla exceptio. Ingen avvik.
+[solemn, slow, each line separate]
+Omnia lingua Reactia. [pause] Alt på hoffets tunge.
+Omnia una compage. [pause] Alt med ett rammeverk.
+Nulla exceptio. [pause] Ingen avvik.
 
-Inkvisisjonen kom i skumringen. Mønsterbøkene brant på torgene. Hver komponent ble spent fast i rammeverket. En knapp kunne ikke lenger bare være en knapp. Den måtte spørre om lov.
+[grim]
+Inkvisisjonen kom i skumringen. Mønsterbøkene brant på torgene. Hver komponent ble spent fast i rammeverket. En knapp kunne ikke lenger bare være en knapp. [dry] Den måtte spørre om lov.
 
+[tired, wry]
 Skriverne gjorde det skrivere gjør. De skrev rundt. Omvei på omvei. Lapp på lapp. Til ingen husket hva boka hadde sagt fra først av.
 
-Og boka ble tyngre.
+[pause] Og boka ble tyngre.
 
-Så kom den store oppgraderingen.
+[long pause] [quiet, ominous] Så kom den store oppgraderingen.
 
-Én natt. Alt som var bygd, brakk. Komponentene vred seg løs fra sidene og ble til noe som krøp. Og over dem reiste rammeverket seg selv, høyere enn kirketårnet, og så seg om etter mer å holde.
+[short, hard sentences]
+Én natt. Alt som var bygd, brakk. Komponentene vred seg løs fra sidene og ble til noe som krøp. [rising] Og over dem reiste rammeverket seg selv, høyere enn kirketårnet, og så seg om etter mer å holde.
 
-Ingenting spurte om lov lenger.
+[pause] Ingenting spurte om lov lenger.
 
+[hushed, reverent]
 Munkene her gikk ut med lykter og sang, og lokket skapningene ned i krypten under kirka. Én etter én. Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
 
-Han kom aldri opp.
+[long pause] [very quiet] Han kom aldri opp.
 
+[pause] [matter-of-fact, weary]
 Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
 
-Men i vinter så klokkeren lys under kryptdøra. Ingen hadde tent det.
+[pause] [lowered voice] Men i vinter så klokkeren lys under kryptdøra. [pause] Ingen hadde tent det.
 
+[pause] [gentle, open]
 Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han kommer fra.
 
-Fristad. Anno 1350.
+[long pause] [quiet, direct] Det er deg.
 ```
+
+Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust).
