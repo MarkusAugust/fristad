@@ -257,3 +257,13 @@ Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de
 - **En tekstur som brukes gjennom et uv-lag, må lese sitt eget lag.** Pakkingen flyttet uv-ene bildet ble lest gjennom, og teksturen ble revet opp. Kilden leses gjennom «src».
 - **Et bilde laget i minnet blir ikke med i bakingen.** Masken må lagres som fil og lastes inn.
 - **Bedre innstillinger i TRELLIS gir mest.** 1536, Texture Size 4096 og Decimation 500000 ga grått hår, rynker og et ansikt der den første fila hadde svarte striper.
+
+## Natta 15.–16. oktober: alle innbyggerne, filmen og gjenstandene
+
+- **Når tre ulike metoder gir samme feil, ligger feilen i det de deler.** Strålene, nærmeste punkt og Blenders baking ga alle mørke flekker på tjenestejentas arm. Det var skallet: 1 cm voxler smeltet armen sammen med skjørtet der hånda henger nær hofta. Med 5 mm og 6 mm tykkelse er armen ren.
+- **Mål i tall før du gjetter.** Prøvepunkter på armen viste at strålen traff rett sted, men at stedet var skjørt; det pekte på geometrien, ikke teksturen.
+- **En stil laget for figurer som står rett, blir dobbel på en form som allerede har holdning.** Apotekeren segnet med «old»; formen fra TRELLIS har holdningen fra arket.
+- **Et ansikt fra bildet forfra skal bare legges der formen er enig.** TRELLIS satte vaktas hjelmbrem lavere enn bildet, og øyenbrynene havnet på bremmen. Metningen skiller hud fra metall; fargeavstand gjør det ikke.
+- **Bildegeneratoren følger ikke alltid prompten** (tre vandrere i stedet for én, prosesjonen malt inn i bakgrunnen): se på hvert bilde og tilpass i `layers.py` (`FIT`, `WHOLE`) i stedet for å be om nye.
+- **Lag i full størrelse dekker hverandre.** Klipp mellomgrunnen og forgrunnen til innholdet og plasser dem som brøk av bildet; kameraet må ikke gå så langt innover at forgrunnen fyller bildet.
+- **To grafikkontekster samtidig** (spillet og filmen) fylte minnet i Chromium; spillet tegnes ikke mens filmen går.
