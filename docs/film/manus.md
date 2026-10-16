@@ -8,48 +8,74 @@ Avklart med eieren:
 - **Kameraet:** en blanding av sidelengs glid langs lagene og dykk innover i dybden, valgt etter dramaturgien.
 - **Tekstene henger i rommet** mellom lagene, store og tydelige. Kameraet flyr forbi og gjennom dem, og de står lenge nok til å leses.
 - **Lite liv i bildene:** personene puster og svaier svakt, lys blafrer, røyk og støv driver. Ellers stillbilder.
-- **Lengde og avspilling:** 1,5–2 minutter (rundt 110 s), i sanntid i nettleseren (three.js), hver gang, med «Hopp over».
+- **Lengde og avspilling:** rundt 2,5 minutter (eieren: «litt for tynn … må forlenges litt og gjøres mer spennende»), i sanntid i nettleseren (three.js), hver gang, med «Hopp over».
 - **Bildene:** de lagdelte settene fra første runde (`assets/film/opening/`) brukes der de passer. Det som mangler, lager eieren lag for lag: bakgrunn uten personer, personer og ting hver for seg på ensfarget grønn bakgrunn. De fem maleriene fra 16. oktober (personene malt inn) er bare forbilder.
-- **Historien:** kongen krevde at alt skulle lages med ett rammeverk og virke likt overalt, inkvisisjonen håndhevet det strengt, og designsystemene i landet ble tvunget inn i rammeverk og blandet med forretningslogikk. Fristad ble tvunget som alle andre. Kongens rammeverk er det samme som Rammeverket nederst i krypten (filmen antyder, spillet avslører). Spilleren er en fremmed uten fortid.
+- **Historien** (eieren 16. oktober): i utgangspunktet delte alle byene ett felles designsystem som var uavhengig av språk og rammeverk, så hvert skriptorium kunne skape akkurat det byen trengte uten å slåss mot biblioteket. Det er selve essensen i Fristil. Motparten: kongen tvinger alle til å skrive på hoffets tunge (React) i et designsystem som er så låst at skriverne ikke kan skrive slik de vil, men hele tiden må jobbe seg rundt det rigide, rammeverksbundne systemet, korrumpert av felles forretningslogikk slik et råd som aldri har arbeidet i et skriptorium mener ting skal være. Inkvisisjonen håndhever det. Fristad ble tvunget som alle andre. Kongens rammeverk er det samme som Rammeverket nederst i krypten (filmen antyder, spillet avslører). Spilleren er en fremmed uten fortid.
 - **Tonen:** alvorlig saga med glimt i øyet.
 
 ## Verden og kamerabanen
 
-Verden er et langt bånd langs x (tiden), med lagene i dybden langs z: himmel og fjerne åser lengst bak (beveger seg nesten ikke), åser og byer i midten, scenene og personene foran, og forgrunnslag (gress, gravsteiner, bjelker) helt nær kameraet, som suser forbi. Kameraet flyr mot høyre langs båndet og dykker innover (mot −z) inn i de åtte hendelsene, og ut igjen. Mellom hendelsene går det et mellomlandskap, så det aldri er et kutt.
+Verden er et langt bånd langs x (tiden), med lagene i dybden langs z: himmel og fjerne åser lengst bak (beveger seg nesten ikke), åser og byer i midten, scenene og personene foran, og forgrunnslag (gress, gravsteiner, bjelker) helt nær kameraet, som suser forbi. Kameraet flyr mot høyre langs båndet og dykker innover (mot −z) inn i hendelsene, og ut igjen. Mellom hendelsene går det et mellomlandskap, så det aldri er et kutt. Hovedstaden ligger i en egen fløy av båndet, høyt og kaldt, så kameraet stiger dit og faller tilbake til Fristad.
+
+## Historien i fire akter
+
+**Akt I: Den frie boka (0–35 s).** Riket var fullt av byer med hvert sitt skriptorium og hvert sitt tungemål, men alle delte én mønsterbok. Den kunne leses på alle tungemål, og hver by bygde av den akkurat det den trengte. I Fristad holdt mester Ansgar boka.
+
+**Akt II: Kongens bud (35–85 s).** I hovedstaden satt et råd som aldri hadde holdt en fjærpenn. De skrev sin egen bok: Den kongelige komponentboken, låst med lenker og full av rådets regler. Kongen gjorde den til lov, og alt skulle skrives på hoffets tunge, reaktisk. Inkvisisjonen dro fra by til by, brente mønsterbøkene og spente hver komponent fast i rammeverket med rådets forretningsregler stemplet på. Skriverne måtte lære seg å skrive rundt boka i stedet for med den: omvei på omvei, lapp på lapp, natt etter natt.
+
+**Akt III: Bruddet (85–125 s).** Boka vokste og ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv. Munkene i Fristad lokket dem ned i krypten under kirka med lykter og sanger og murte igjen. Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
+
+**Akt IV: Nå (125–150 s).** Generasjoner senere er bare ryktene igjen. Nede i mørket rører det seg, og rammeverket har begynt å våkne. Fristad, anno 1350: en fremmed kommer til porten, og bildet toner over i spillet.
 
 | Del | Tid (s) | Sted i båndet | Kameraet | Lys |
 |---|---|---|---|---|
-| 1. Kongeriket | 0–12 | Åsene med byene | Fra himmelen ned og sidelengs over åsene | Morgengry |
-| 2. Gullalderen | 12–26 | Skriptoriet | Inn gjennom vinduet, langs pultene | Morgensol |
-| 3. Kongens bud | 26–40 | Torget i Fristad | Ut gjennom døra, sidelengs over torget til heroldens podium | Dag |
-| 4. Inkvisisjonen | 40–54 | Foran Skriptoriet | Glir langs rekka av inkvisitorer, så nær én komponent i ramme | Ettermiddag, kald |
-| 5. Forfallet | 54–66 | Skriptoriet igjen | Inn i det samme rommet, nå i uorden og glitch | Skumring |
-| 6. Begravelsen | 66–82 | Kirkegården utenfor byen | Sidelengs langs prosesjonen mot kryptdøra | Natt, måne |
-| 7. Krypten i dag | 82–96 | Under kirkegården | Ned gjennom jordlagene, gjennom krypten, til noe som gløder dypt nede | Mørkt, fakler |
-| 8. Fristad, anno 1350 | 96–110 | Veien til sørporten | Opp av jorda til morgenen, sidelengs langs veien forbi den fremmede, inn mot porten | Morgen |
+| 1. Riket | 0–14 | Åsene med byene | Fra himmelen ned og sidelengs over åsene og byene | Morgengry |
+| 2. Mønsterboka | 14–35 | Skriptoriet i Fristad | Inn gjennom vinduet, langs pultene, nær mester Ansgar og den åpne boka | Morgensol |
+| 3. Rådet | 35–48 | Rådssalen i hovedstaden | Stiger opp og bort til et kaldt, høyt rom; glir langs rådsbordet med den lenkede boka | Kaldt lys |
+| 4. Budet | 48–60 | Torget i Fristad | Faller ned til torget; heroldens podium, kongens segl som et syn over byen | Dag |
+| 5. Inkvisisjonen | 60–72 | Foran og inne i Skriptoriet | Langs rekka av inkvisitorer, bøkene på bålet, en komponent spent fast i ramme | Kald ettermiddag |
+| 6. Omveiene | 72–85 | Skriptoriet om natta | Langsomt langs slitne skrivere med lapper og omveier i margene | Lys fra talgljos |
+| 7. Bruddet | 85–100 | Skriptoriet i forfall, så byen | Rommet glitcher og brister; ut gjennom det knuste vinduet, rammeverket reiser seg over byen | Skumring, lyn |
+| 8. Krypten forsegles | 100–125 | Kirkegården og kryptdøra | Sidelengs langs munkene som lokker de lenkede skapningene ned; Ansgar går inn sist, døra mures igjen | Natt, måne |
+| 9. Krypten i dag | 125–138 | Under kirkegården | Ned gjennom jordlagene, gjennom krypten, til det som gløder dypt nede | Mørkt, magenta |
+| 10. Fristad, anno 1350 | 138–150 | Veien til sørporten | Opp av jorda til morgenen, langs veien forbi den fremmede, inn mot porten; toner over i spillet | Morgen |
 
 ## Tekstene (ordrett)
 
-Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/opening.json`), og kommer ord for ord. Skrift: overskrifter i UnifrakturMaguntia, fortellingen i Uncial Antiqua.
+Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/opening.json`), og kommer ord for ord. Skrift: overskrifter i UnifrakturMaguntia, fortellingen i Uncial Antiqua. **Uthevet** er overskrift eller sitat.
 
-1. **Fristad** (overskrift)
-   *I de gode årene hadde hver by sitt skriptorium, og hvert skriptorium sine egne komponenter.*
-2. *Hver av dem gjorde én ting, og gjorde den vel.*
-3. *Så kom kongens bud:*
-   **Alt skal lages med ett rammeverk.**
-   **Alt skal virke likt overalt.**
-4. *Inkvisisjonen sørget for at budet ble holdt.*
-   *Det som ikke passet, ble tvunget til å passe.*
-5. *Forretningslogikken krøp inn i alt.*
-   *Knappene glemte hva de var til.*
-6. *Om natta bar munkene dem ut av byen.*
-   *Det de ikke kunne rette, begravde de.*
-7. *Men rammeverket sov ikke.*
-   *Det som begraves, blir ikke borte.*
-8. **Fristad, anno 1350** (overskrift)
-   *En fremmed kommer til porten.*
+1. **Fristad**
+   *Riket var fullt av byer, og hver by hadde sitt skriptorium og sitt eget tungemål.*
+   *Men alle delte én mønsterbok.*
+2. *Den kunne leses på alle tungemål.*
+   *Hver by bygde av den akkurat det den trengte, og boka sto aldri i veien.*
+   *I Fristad var det mester Ansgar som holdt den.*
+3. *I hovedstaden satt et råd som aldri hadde holdt en fjærpenn.*
+   *De mente at alle byer burde ha det likt, og at de visste best hvordan.*
+4. *Så kom kongens bud:*
+   **Alt skal skrives på hoffets tunge.**
+   **Alt skal bygges med Den kongelige komponentboken.**
+   **Ingen avvik.**
+5. *Inkvisisjonen dro fra by til by.*
+   *Mønsterbøkene ble brent, og hver komponent ble spent fast i rammeverket, med rådets regler stemplet på.*
+   *En knapp kunne ikke lenger bare være en knapp.*
+6. *Skriverne lærte å skrive rundt boka i stedet for med den.*
+   *Omvei på omvei. Lapp på lapp. Natt etter natt.*
+7. *Boka ble tyngre for hver regel.*
+   *Så kom den store oppgraderingen.*
+   **Alt som var bygd, brakk på én natt.**
+   *Komponentene vred seg til noe annet, og over dem reiste rammeverket seg selv.*
+8. *Munkene i Fristad lokket dem ned i krypten under kirka, og murte igjen.*
+   *Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka.*
+   *Han kom aldri opp igjen.*
+9. *Generasjoner senere er bare ryktene igjen.*
+   *Men nede i mørket har noe begynt å våkne.*
+10. **Fristad, anno 1350**
+    *En fremmed kommer til porten.*
 
 ## Bildene
+
+> **Listen under gjelder den første utgaven av historien.** Den skrives om (rådssalen, Ansgar med boka, bålet, omveiene, bruddet, munkene som lokker skapningene ned) når eieren har godkjent historien over.
 
 **Gjenbrukes** (fra `assets/film/opening/`):
 
