@@ -24,6 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -112,7 +113,8 @@ def segment(shot, extra, W, H, work):
     return out, source
 
 
-def title_png(style, text, W, work, i):
+def title_frames(style, text, typing, hold, W, work, i):
+    """Tittelen skrevet bokstav for bokstav over `typing` sekunder (blekket flyter inn fra venstre, bokstav for bokstav), så holdt i `hold` sekunder. Gir mappa med bildene."""
     font_file, size, color = STYLES[style]
     size = round(size * W / 1920)
     font = ImageFont.truetype(str(FONTS / font_file), size)
@@ -121,12 +123,36 @@ def title_png(style, text, W, work, i):
     im = Image.new("RGBA", (tw + pad * 2, size * 2 + pad), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.text((pad, pad // 2), text, font=font, fill=(10, 6, 2, 230))
-    shadow = im.filter(ImageFilter.GaussianBlur(size * 0.12))
-    d = ImageDraw.Draw(shadow)
+    full = im.filter(ImageFilter.GaussianBlur(size * 0.12))
+    d = ImageDraw.Draw(full)
     d.text((pad, pad // 2), text, font=font, fill=color + (255,))
-    p = work / f"title_{i}.png"
-    shadow.save(p)
-    return p, shadow.size
+    # Hvor hver bokstav slutter, så blekket følger bokstavene og ikke klokka alene.
+    ends = [pad + font.getlength(text[: k + 1]) for k in range(len(text))]
+    letters = [k for k, ch in enumerate(text) if not ch.isspace()]
+    folder = work / f"title_{i}"
+    folder.mkdir(exist_ok=True)
+    for f in folder.glob("*.png"):
+        f.unlink()
+    alpha = np.asarray(full.getchannel("A"), dtype=np.float32)
+    xs = np.arange(full.width, dtype=np.float32)
+    frames = int(round((typing + hold) * FPS))
+    soft = size * 0.35
+    for n in range(frames):
+        t = n / FPS
+        if t >= typing:
+            edge = full.width + soft
+        else:
+            # Bokstav nummer j er ferdig skrevet ved t = (j+1)/len * typing; innenfor bokstaven flyter blekket inn fra venstre.
+            u = t / typing * len(letters)
+            j = min(int(u), len(letters) - 1)
+            k = letters[j]
+            start = ends[k - 1] if k > 0 else pad
+            edge = start + (ends[k] - start) * (u - j)
+        mask = np.clip((edge - xs) / soft + 1.0, 0.0, 1.0)[None, :]
+        out = full.copy()
+        out.putalpha(Image.fromarray((alpha * mask).astype(np.uint8)))
+        out.save(folder / f"{n:04d}.png")
+    return folder, full.size
 
 
 def build(fast, out_path):
@@ -159,14 +185,16 @@ def build(fast, out_path):
         f.append(f"{last}[s{i}]xfade=transition={kind}:duration={d}:offset={offset:.3f}[v{i}]")
         last = f"[v{i}]"
     n = len(segs)
-    titles = [(st, tx, a, b) for shot in SHOTS for (st, tx, a, b) in shot.get("titles", [])]
-    for k, (st, tx, a, b) in enumerate(titles):
-        p, (tw, th) = title_png(st, tx, W, work, k)
-        inputs += ["-loop", "1", "-framerate", str(FPS), "-t", f"{b - a + 0.1:.3f}", "-i", str(p)]
+    titles = [tuple(t) for shot in SHOTS for t in shot.get("titles", [])]
+    for k, title in enumerate(titles):
+        st, tx, a, b = title[:4]
+        typing = title[4] if len(title) > 4 else len(tx) * 0.07
+        fade_out = 0.9
+        folder, (tw, th) = title_frames(st, tx, typing, b - a - typing + 0.1, W, work, k)
+        inputs += ["-framerate", str(FPS), "-i", str(folder / "%04d.png")]
         idx = n + k
-        fade_in, fade_out = 0.9, 0.9
         y = "(H-h)*0.88" if st == "latin" else "(H-h)*0.2" if st == "title" else "(H-h)*0.14"
-        f.append(f"[{idx}:v]format=rgba,fade=t=in:st=0:d={fade_in}:alpha=1,fade=t=out:st={b - a - fade_out:.3f}:d={fade_out}:alpha=1,setpts=PTS-STARTPTS+{a:.3f}/TB[t{k}]")
+        f.append(f"[{idx}:v]format=rgba,fade=t=out:st={b - a - fade_out:.3f}:d={fade_out}:alpha=1,setpts=PTS-STARTPTS+{a:.3f}/TB[t{k}]")
         f.append(f"{last}[t{k}]overlay=x=(W-w)/2:y={y}:eof_action=pass[u{k}]")
         last = f"[u{k}]"
     f.append(f"{last}fade=t=out:st={END - FADE_OUT:.3f}:d={FADE_OUT},trim=end={END:.3f},setpts=PTS-STARTPTS[vout]")
@@ -187,7 +215,7 @@ def build(fast, out_path):
             for (k, at) in shot.get("voice", []):
                 ln = lines[k]
                 tag = f"vo{len(mixes)}"
-                f.append(f"[{vi}:a]atrim=start={ln['start']}:end={ln['end'] + 0.25},asetpts=PTS-STARTPTS,afade=t=in:d=0.05,afade=t=out:st={ln['end'] - ln['start']:.3f}:d=0.25,adelay={int(at * 1000)}|{int(at * 1000)},volume=1.0[{tag}]")
+                f.append(f"[{vi}:a]atrim=start={ln['start']}:end={ln['end'] + 0.25},asetpts=PTS-STARTPTS,afade=t=in:d=0.05,afade=t=out:st={ln['end'] - ln['start']:.3f}:d=0.25,adelay={int(at * 1000)}|{int(at * 1000)},volume=1.9[{tag}]")
                 mixes.append(tag)
     manifest = json.loads((SOUNDS / "sounds.json").read_text())
     for shot in SHOTS:
@@ -197,7 +225,7 @@ def build(fast, out_path):
             if not files:
                 continue
             si = add_input(["-stream_loop", "-1", "-i", str(SOUNDS / files[0])])
-            gain = manifest[name].get("gain", 0.5) * 0.5
+            gain = manifest[name].get("gain", 0.5) * 0.3
             d = t1 - t0 + 1.5
             tag = f"amb{len(mixes)}"
             f.append(f"[{si}:a]atrim=end={d:.3f},asetpts=PTS-STARTPTS,afade=t=in:d=1.2,afade=t=out:st={d - 1.5:.3f}:d=1.5,volume={gain:.3f},adelay={int(max(t0 - 0.6, 0) * 1000)}|{int(max(t0 - 0.6, 0) * 1000)}[{tag}]")
@@ -208,15 +236,24 @@ def build(fast, out_path):
                 continue
             si = add_input(["-i", str(SOUNDS / files[0])])
             tag = f"sfx{len(mixes)}"
-            f.append(f"[{si}:a]volume={manifest[name].get('gain', 0.7) * 0.8:.3f},adelay={int(at * 1000)}|{int(at * 1000)}[{tag}]")
+            f.append(f"[{si}:a]volume={manifest[name].get('gain', 0.7) * 0.6:.3f},adelay={int(at * 1000)}|{int(at * 1000)}[{tag}]")
             mixes.append(tag)
     music = OUT / "music.wav"
     if music.exists():
         mi = add_input(["-i", str(music)])
-        f.append(f"[{mi}:a]volume=0.55,afade=t=out:st={END - FADE_OUT - 1:.3f}:d={FADE_OUT + 1}[mus]")
+        f.append(f"[{mi}:a]volume=0.4,afade=t=out:st={END - FADE_OUT - 1:.3f}:d={FADE_OUT + 1}[mus]")
         mixes.append("mus")
     if mixes:
-        f.append("".join(f"[{m}]" for m in mixes) + f"amix=inputs={len(mixes)}:normalize=0:dropout_transition=0,alimiter=limit=0.95,atrim=end={END:.3f}[aout]")
+        # Stemmen for seg og sengen (rom, lyder, musikk) for seg; sengen dukkes under stemmen, så fortelleren alltid ligger øverst.
+        vo = [m for m in mixes if m.startswith("vo")]
+        bed = [m for m in mixes if not m.startswith("vo")]
+        if vo and bed:
+            f.append("".join(f"[{m}]" for m in vo) + f"amix=inputs={len(vo)}:normalize=0:dropout_transition=0,asplit[voa][vob]")
+            f.append("".join(f"[{m}]" for m in bed) + f"amix=inputs={len(bed)}:normalize=0:dropout_transition=0[beda]")
+            f.append("[beda][vob]sidechaincompress=threshold=0.02:ratio=4:attack=60:release=700:makeup=1[bedd]")
+            f.append(f"[bedd][voa]amix=inputs=2:normalize=0:dropout_transition=0,alimiter=limit=0.95,atrim=end={END:.3f}[aout]")
+        else:
+            f.append("".join(f"[{m}]" for m in mixes) + f"amix=inputs={len(mixes)}:normalize=0:dropout_transition=0,alimiter=limit=0.95,atrim=end={END:.3f}[aout]")
         amap = ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k"]
     else:
         amap = []
