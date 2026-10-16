@@ -275,6 +275,6 @@ Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de
 - **Pakking etter at fargen er hentet** kan legge øyer oppå hverandre; pakk først, bak til samme øyer.
 - **Filmen:** eieren ville ha en sammenhengende bane gjennom maleriene, som planen sa (del 8), ikke scener som toner til svart. Les planen før noe bygges, og se på bevegelsen bilde for bilde.
 
-## 16. oktober: maleriene og verden må ha samme form
+## 16. oktober: filmen skulle være selvstendig
 
-Maleriene i åpningsfilmen var malt fritt, så husene, rommene og perspektivet i dem fantes ikke i byen. Kameraet kunne ikke fly fra verden og inn i dem uten at det ble to bilder oppå hverandre, og eieren så gapet straks. Regel: et maleri som skal smelte sammen med verden, males over et skjermbilde fra motoren tatt fra stedet filmen ser det fra, og projiseres tilbake etter motorens egen dybde (`tools/film/paintover.py`). Et filter på motoren (Kuwahara) gjør gapet mindre, men lukker det ikke.
+Eieren ba om en selvstendig, malt introfilm og om å droppe blandingen med spillet, men jeg fortsatte med å fly gjennom spillets verden og male over motoren. Det ga et stort gap mellom stilene og kostet eieren flere runder. Regler: når eieren forkaster en retning, forkastes den helt, uten flere forsøk på den. Er en bestilling uklar, still spørsmål til den er forstått (stilen, verdenen, kameraet, bildene, historien, lengden, tonen) før noe bygges. Historien er nå kanon (`docs/kanon.md`), og filmen er bygd av eierens malte lag alene (`tools/film/intro.py`).

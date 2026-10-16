@@ -277,6 +277,6 @@ Hand-painted stylized fantasy illustration, the same style as painted game conce
 
 Partituret i `web/score.js` (ekte instrumentprøver). Cuene følger delene: morgengry over riket (1), skriptoriet og mønsterboka (2), rådssalen, kald og stiv (3), kongens bud med pauke og trompetfanfare (4), inkvisisjonen med tromme og dyp bordun (5), omveiene, sliten og ensom (6), bruddet med uvær og glitch (7), munkenes sang og forseglingen (8), krypten (9) og porten (10). Eieren vurderer opptaket før musikken låses.
 
-## Det som går ut
+## Bygd
 
-Filmen i motoren (kamerabanen gjennom det ekte Fristad, maleriene projisert på verden, `paintover`, `Frame.paint` og Kuwahara-filteret i filmen, `engine.film`) fjernes når den nye filmen er bygd. Bare overgangen til slutt blir igjen: siste bilde toner til spillet ved sørporten (`engine.spawn_eye`).
+Bildene gjøres klare med `python3 tools/film/cutout.py`, og filmen legges ut som data med `python3 tools/film/intro.py` (skriver `web/film/opening.json`). Filmen i motoren, maleriene over motoren og penselfilteret er fjernet.

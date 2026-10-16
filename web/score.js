@@ -162,7 +162,62 @@ const GATE_MELODY = tune(`
   D5/3 F5/3 | G5/2 A5/1 G5/3 | A5/2 G5/1 F5/2 E5/1 | D5/6 |
   F5/2 G5/1 A5/3 | G5/2 F5/1 E5/3 | E5/3 C#5/3 | D5/6`);
 
+// Rådssalen: stivt og likt, samme fire akkorder på slaget, uten forslag.
+const COUNCIL_ROOTS = "D D A A D D A A";
+// Kongens bud: en fanfare på skalmeia over pauken (D og A, som en trompet kan).
+const FANFARE = tune(`
+  D5/1 D5/1 D5/1 A5/3 | -/2 A5/1 F5/1 A5/2 D6/4 | -/4 D5/1 D5/1 D5/1 A5/3 | F5/2 A5/2 D5/8 | -/8`);
+// Omveiene: fela alene, en vise som stadig må ta en omvei før den kommer hjem.
+const DETOUR = tune(`
+  D5/2 E5/2 F5/4 | E5/2 G5/2 F5/2 E5/2 | D5/2 C5/2 E5/2 D5/2 | C5/2 A4/2 C5/4 |
+  D5/2 F5/2 E5/2 G5/2 | F5/2 A5/2 G5/2 E5/2 | F5/2 D5/2 E5/2 C5/2 | D5/8`);
+
 export const CUES = {
+  council: {
+    step: 0.3,
+    gain: 0.95,
+    wet: 0.35,
+    parts: [
+      { inst: "church_organ", notes: arp(COUNCIL_ROOTS, [0, 7, 12, 7], 3, 4), vel: 0.6, pan: -0.1, lp: 1400 },
+      { inst: "contrabass", notes: tune("D2/16 A1/16 D2/16 A1/16"), vel: 0.7 },
+      { inst: "timpani", notes: beats([0.7, 0, 0, 0, 0.5, 0, 0, 0], 8, "D2"), vel: 0.55, lp: 1200 },
+      { inst: "tubular_bells", notes: tune("D4/32 A3/32"), vel: 0.35, pan: 0.4, lp: 2500 },
+    ],
+  },
+  decree: {
+    step: 0.2,
+    gain: 1.0,
+    wet: 0.4,
+    parts: [
+      { inst: "shanai", notes: FANFARE, vel: 0.95, pan: -0.15 },
+      { inst: "shanai", notes: shift(FANFARE, -12), vel: 0.5, pan: 0.25 },
+      { inst: "timpani", notes: beats([1, 0, 0, 0.6, 0, 0, 0.8, 0], 6, "D2"), vel: 0.9 },
+      { inst: "bagpipe", notes: tune("D3+A3/48"), vel: 0.55, pan: 0.1, attack: 0.2 },
+    ],
+  },
+  inquisition: {
+    step: 0.25,
+    gain: 1.1,
+    wet: 0.45,
+    parts: [
+      { inst: "contrabass", notes: tune("D2/32 C2/32"), vel: 0.85 },
+      { inst: "cello", notes: tune("D2+A2/32 C2+G2/32"), vel: 0.6, pan: -0.2, lp: 900 },
+      // Marsjen: tromma på hvert slag, ingen sving.
+      { inst: "taiko_drum", notes: beats([1, 0, 0.5, 0, 0.8, 0, 0.5, 0], 8, "C3"), vel: 0.85 },
+      { inst: "choir_aahs", notes: tune("D3/16 F3/8 E3/8 D3/16 C3/16"), vel: 0.55, pan: 0.2, legato: 1, lp: 1500 },
+      { inst: "tubular_bells", notes: tune("-/24 D3/8 -/24 D3/8"), vel: 0.6, pan: 0.35, lp: 3000 },
+    ],
+  },
+  workarounds: {
+    step: 0.32,
+    gain: 0.9,
+    wet: 0.55,
+    parts: [
+      { inst: "fiddle", notes: DETOUR, vel: 0.7, pan: -0.15, grace: 0.25 },
+      { inst: "orchestral_harp", notes: arp("D C A D F C D D", [0, 7, 12, 7], 3, 2), vel: 0.4, pan: 0.3 },
+      { inst: "cello", notes: tune("D2/64"), vel: 0.45, pan: 0.1, lp: 800 },
+    ],
+  },
   dawn: {
     step: 0.3,
     gain: 0.9,

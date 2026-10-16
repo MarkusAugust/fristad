@@ -167,7 +167,7 @@ async function boot() {
 
   status.hidden = true;
   $("loading").hidden = true;
-  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen flyr
+  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen toner
   // gjennom byen og ender der du begynner); uten den går du rett inn.
   if (FILM) {
     beginBtn.addEventListener("click", startFilm, { once: true });
@@ -382,10 +382,21 @@ function adapt(fps) {
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
-  // Mens filmen går, tegnes ikke spillet bak den (to grafikkontekster
-  // samtidig fylte minnet på svake maskiner).
-  // Filmen styrer kameraet før motoren tegner, så maleriene står stødig i verden.
-  if (film) film.tick(dt);
+  // Åpningsfilmen er sitt eget malte bilde over spillet. Mens den dekker
+  // hele skjermen, tegnes ikke spillet; når den toner bort til slutt, står
+  // du ved sørporten bak den.
+  if (film) {
+    const cover = film.tick(dt);
+    if (cover < 0.999 && !filmReveal) {
+      filmReveal = true;
+      engine.set_theme(false);
+      engine.respawn();
+    }
+    if (cover >= 0.999) {
+      requestAnimationFrame(loop);
+      return;
+    }
+  }
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
@@ -1210,12 +1221,14 @@ function pause() {
   }
 }
 
-// Åpningsfilmen (web/film/, docs/plan.md del 8) spilles hver gang med ett
-// klikk («Klikk for å begynne», som også gir lyd) når byen er bygd: kameraet
-// flyr gjennom Fristad og historien, og ender der du begynner, ved
-// sørporten, der spillet tar over. `?nofilm` hopper over den.
+// Åpningsfilmen (web/film/, docs/film/manus.md) spilles hver gang med ett
+// klikk («Klikk for å begynne», som også gir lyd) når byen er bygd: en malt
+// film om mønsterboka, kongens bud og forseglingen av krypten (kanon:
+// docs/kanon.md), som toner over i spillet ved sørporten. `?nofilm` hopper
+// over den.
 const FILM = !EDIT && !new URLSearchParams(location.search).has("nofilm");
 let film = null;
+let filmReveal = false;
 
 async function startFilm() {
   beginBtn.hidden = true;
@@ -1230,8 +1243,9 @@ async function startFilm() {
   await score.load().catch(() => {});
   engine.set_theme(false);
   engine.set_paused(false);
+  filmReveal = false;
   try {
-    film = await createFilm({ engine, score, audio: () => sfx.context() });
+    film = await createFilm({ score, audio: () => sfx.context() });
   } catch (e) {
     console.warn("Filmen kunne ikke vises:", e);
     enter();
@@ -1240,9 +1254,8 @@ async function startFilm() {
   const { skipped } = await film.done;
   film = null;
   score.stop(2.5);
-  engine.film_end();
   // Hoppet over: rett til sørporten om dagen.
-  if (skipped) {
+  if (skipped || !filmReveal) {
     engine.set_theme(false);
     engine.respawn();
   }

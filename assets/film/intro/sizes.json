@@ -1,0 +1,147 @@
+{
+ "aaser_fjerne": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "aaser_naere": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "ansgar_bok": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "ansgar_ned": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "baal": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "byen_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "folkemengde_bud": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "forgrunn_gress": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "forgrunn_steiner": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "herold": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "himmel_morgen": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "inkvisitorer": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "jordlag": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "kjopmenn": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "komponent_i_ramme": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "komponentboken": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "kongens_segl": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "munkene_lokker": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "natthimmel": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "omveiene": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "raadet": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "raadssal": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "rammeverket_reiser_seg": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "rammeverket_sover": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "skriptoriet_fasade": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "skriptoriet_kveld": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "skriptoriet_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "torget_bud": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "veien_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ }
+}

@@ -137,8 +137,6 @@ fn main() {
             "shadow" => 5,
             // Alt tegnet svart og himmelen magenta: det som er magenta, er hull (`--leak-scan`).
             "void" => 7,
-            // Avstanden fra øyet, til filmens malerier (`tools/film/depth.py`).
-            "depth" => 8,
             _ => d.parse().unwrap_or(0),
         };
     }
@@ -213,7 +211,7 @@ fn main() {
         // lever i et sekund før bildet tas.
         if flag("--film") {
             let fov: f32 = arg("--fov").map(|s| s.parse().unwrap()).unwrap_or(60.0);
-            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians(), fov, roll: arg("--roll").map(|s| s.parse::<f32>().unwrap().to_radians()).unwrap_or(0.0), paint: arg("--paint").map(|s| s.parse().unwrap()).unwrap_or(0.0) })));
+            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw: yaw.to_radians(), pitch: pitch.to_radians(), fov, roll: arg("--roll").map(|s| s.parse::<f32>().unwrap().to_radians()).unwrap_or(0.0) })));
             for _ in 0..30 {
                 app.tick(1.0 / 30.0);
             }
@@ -303,7 +301,7 @@ fn main() {
         return;
     }
     // --film-seq FIL: filmens bilder i ett løp (verden under filmens
-    // overlegg): «UT X Y Z YAW PITCH FOV ROLL NATT DT [MALT]» per linje, grader,
+    // overlegg): «UT X Y Z YAW PITCH FOV ROLL NATT DT» per linje, grader,
     // NATT 0 eller 1; spillet går DT sekunder mellom bildene.
     if let Some(list) = arg("--film-seq") {
         let mut night = None;
@@ -315,7 +313,7 @@ fn main() {
                 app.session.set_daylight(if dark { Daylight::Night } else { Daylight::Day }, true);
                 night = Some(dark);
             }
-            let shot = fristad::ports::driving::Shot { eye: Vec3::new(n[0], n[1], n[2]), yaw: n[3].to_radians(), pitch: n[4].to_radians(), fov: n[5], roll: n[6].to_radians(), paint: n.get(9).copied().unwrap_or(0.0) };
+            let shot = fristad::ports::driving::Shot { eye: Vec3::new(n[0], n[1], n[2]), yaw: n[3].to_radians(), pitch: n[4].to_radians(), fov: n[5], roll: n[6].to_radians() };
             app.command(Command::Film(Some(shot)));
             app.tick(n[8].max(1.0 / 120.0));
             app.renderer.set_target(target.create_view(&Default::default()));

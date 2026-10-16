@@ -129,8 +129,6 @@ struct Globals {
 struct PostUniform {
     params: [f32; 4],
     texel: [f32; 4],
-    /// x: hvor malt bildet er (`Frame.paint`).
-    extra: [f32; 4],
 }
 
 #[repr(C)]
@@ -1398,7 +1396,7 @@ impl Renderer {
 
         // 3. Glød og tonemapping til skjermen.
         let post = |buf: &wgpu::Buffer, params: [f32; 4], sw: u32, sh: u32| {
-            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32], extra: [f.paint, 0.0, 0.0, 0.0] };
+            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32] };
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
         let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>, timestamps: Option<wgpu::RenderPassTimestampWrites>| {
