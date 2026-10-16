@@ -293,18 +293,21 @@ X = 880
 NIGHT_D = 600
 layer(I + "natthimmel.webp", 850, 60, -NIGHT_D, fill(NIGHT_D, 2.2), follow=0.95, camY=5, show=[99.5, 101.5, 131, 132])
 strip(I + "veien_natt.webp", 760, 960, -14, -120, fill(120, 1.1), show=[99, 101, 126, 128])
-layer(O + "begravelsen/bg.webp", X, Y, -60, fill(60, 1.25), show=[104, 108, 126, 127])
-layer(I + "munkene_lokker.webp", 800, ground(Y, 26, 0.95), -26, fill(26, 0.42), anchor="bottom", walk=True, path=[[100, 806, ground(Y, 26, 0.95), -26], [118, 872, ground(Y, 26, 0.95), -26]], lights=[[0.9, 0.36, "#ffb050", 2.0, 1.0], [0.7, 0.38, "#ffb050", 2.0, 1.0]], show=[100.5, 102, 119, 121])
+BX, BH = X + 10, fill(66, 1.7)
+BW = BH * 2560 / 1429
+layer(O + "begravelsen/bg.webp", BX, Y + 1, -60, BH, feather=[0.12, 0.03, 0, 0.1], show=[104, 108, 126, 127])
+# Kryptdøra står 0,82 fra venstre og 0,6 fra toppen av kirkegårdsbildet (kirkedøra er den til venstre).
+DOOR = [BX + (0.82 - 0.5) * BW, Y + 1 + (0.5 - 0.6) * BH, -58]
+layer(I + "munkene_lokker.webp", 800, ground(Y, 26, 0.95), -26, fill(26, 0.42), anchor="bottom", walk=True, path=[[100, 806, ground(Y, 26, 0.95), -26], [118, DOOR[0] - 8, ground(Y, 26, 0.95), -26]], lights=[[0.9, 0.36, "#ffb050", 2.0, 1.0], [0.7, 0.38, "#ffb050", 2.0, 1.0]], show=[100.5, 102, 119, 121])
 strip(I + "forgrunn_steiner.webp", 790, 900, ground(Y, 7, 1.02), -7, fill(7, 0.75), anchor="bottom", show=[100, 101, 115, 116.5])
-DOOR = [X + (0.42 - 0.5) * fill(60, 1.25) * 1.79, Y + (0.5 - 0.62) * fill(60, 1.25), -58]
 layer(I + "ansgar_ned.webp", DOOR[0] - 4, ground(Y, 30, 0.9), -30, fill(30, 0.3), anchor="bottom", walk=True, path=[[112, DOOR[0] - 4, ground(Y, 30, 0.9), -30], [121.5, DOOR[0], DOOR[1] - 1.5, -55]], show=[112, 113, 120.5, 122], lights=[[0.43, 0.27, "#ffb050", 1.6, 1.0]])
 cam(100.5, [790, Y + 2, 0], [800, Y, -100])
-cam(108, [835, Y + 1, 0], [845, Y, -60])
-cam(116, [866, Y, 0], [DOOR[0], Y - 1, -60])
+cam(108, [870, Y + 1, 0], [880, Y, -60])
+cam(116, [DOOR[0] - 8, Y, 0], [DOOR[0] - 2, Y - 1, -60])
 cam(123.5, [DOOR[0], DOOR[1] + 1, -20], [DOOR[0], DOOR[1], -60])
 say([102, 108], [800, Y + 2, 0], 30, [["text", "Munkene i Fristad lokket dem ned i krypten under kirka, og murte igjen."]], dx=-0.78, dy=0.78, width=0.6)
-say([110, 116], [856, Y + 0.5, 0], 30, [["text", "Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka."]], dx=-0.78, dy=0.78, width=0.6)
-say([117.5, 123], [868, Y, -6], 30, [["heading", "Han kom aldri opp igjen."]], dx=-0.6, dy=0.78, size=0.09, width=0.85)
+say([110, 116], [0, 0, 0], 30, [["text", "Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka."]], dx=-0.78, dy=0.78, width=0.6)
+say([117.5, 123], [0, 0, 0], 30, [["heading", "Han kom aldri opp igjen."]], dx=-0.6, dy=0.78, size=0.09, width=0.85)
 
 # --- 9. Krypten i dag (125–138): ned gjennom jorda til det som sover ------------
 X = 1000
