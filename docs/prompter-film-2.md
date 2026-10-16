@@ -48,6 +48,16 @@ Grunnbilde: `assets/film/paintover/base/5_torget.jpg`
 ```
 Repaint this exact image as a hand-painted stylized fantasy illustration. Keep the camera, perspective, horizon and the position and shape of every building, wall, arch, window, stair and piece of furniture exactly as in the image; only repaint the surfaces and add details, light and people. Soft painterly brushwork, no black outlines, rich saturated colours, warm golden light against cool blue shadows, Northern European medieval town around 1350, cinematic, sharp, high detail, 16:9, no text, no watermark, no border. The scene: the market square of Fristad in 1350 on a sunny afternoon. The same stall, well, church, gate and half-timbered houses, now full of life: townsfolk in small groups whispering and pointing (a burly blacksmith in a leather apron, an innkeeper woman in a red dress, a merchant in a blue fur-trimmed coat, a maid with a braid, a wide-eyed boy), baskets of apples and bread on the stall, smoke from a chimney, pigeons, flags on the gate towers, soft clouds. Lively and warm.
 ```
+
+## Første forsøk (16. oktober): generatoren malte nye rom
+
+Bildene ble vakre, men generatoren tegnet egne rom i stedet for å male over grunnbildet: Skriptoriet fikk tre høye vinduer og pulter i rader, torget ble en gate med arkader, og selv i krypten står buen og veggene andre steder. Da kan maleriet ikke ligge på verden. En vanlig bilderedigering med tekst holder ikke formen; generatoren må **styres av formen**:
+
+- **Dybde eller linjer som styring** (ControlNet «Depth» eller «Canny», «Structure reference» eller «Image guidance → Depth/Edge» i verktøy som Krea, Leonardo, Invoke, ComfyUI eller Stable Diffusion/Flux): bruk `assets/film/paintover/control/<navn>_dybde.png` (best) eller `<navn>_linjer.png`, styrke rundt 0,7–0,9, og samme prompt.
+- **Bilde-til-bilde med lav endring** (denoise/«strength» rundt 0,45–0,6): grunnbildet inn, samme prompt.
+
+Sjekk alltid med 50 % gjennomsiktighet over grunnbildet før bildet lagres.
+
 ---
 
 Grunnbildene lages med `snapshot --film-seq` fra kamerastedene under (verdens koordinater, grader; NATT 1 er natt). Filmen setter maleriene ut på de samme stedene.
