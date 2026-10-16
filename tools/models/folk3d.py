@@ -37,10 +37,10 @@ SRC = "assets/textures/people/3d"
 REF = "assets/textures/people/ref"
 OUT = "assets/models/npcs"
 TRIS = 16000  # trekanter etter forenklingen
-SRC_SIZE = 4096  # fargen fra formen bakes først i denne størrelsen
-HEAD_DENSITY = 3.0
+SRC_SIZE = 3072  # fargen fra formen bakes først i denne størrelsen
+HEAD_DENSITY = float(os.environ.get("FOLK3D_HEAD", 3.0))
 HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
-THICK = 0.012  # tykkelsen de åpne flatene får før skallet (m)
+THICK = float(os.environ.get("FOLK3D_THICK", 0.006))  # tykkelsen de åpne flatene får før skallet (m)
 FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
 FACE_INSET = 0.006  # masken trekkes så mye inn fra omrisset (brøk av bredden)
 FACE_FACING = (0.35, 0.7)
@@ -49,8 +49,9 @@ FACE_BLUR = 0.004  # uskarpheten fargene sammenlignes med (brøk av bildet)
 FACE_AGREE = (0.15, 0.25)  # metning bildet har mer enn formen: full vekt under, ingen over  # flater som vender mer nedover enn dette, får ikke bildet  # normalen mot kameraet: fra ingen til full vekt
 OLD_KEEP = ("speed", "cycle", "tempo", "width", "toe_out", "lift", "hs", "to", "gestures", "talk", "breath")  # det som står av stilen «old»
 POSTURE = {"hunch": 0.25, "lean": 0.4, "jut": 0.3, "head": 0.5}  # stilens holdning skaleres, formen har sin egen
-TRANSFER = (0.012, 0.05)  # strålene fra skallet: hvor langt utenfor de begynner og hvor langt de går (m)
-VOXEL = 0.01  # skallet (m)
+NEAREST = (0.03, 0.05)  # strålen begynner så langt utenfor skallet og går så langt innenfor det (m)
+REMESH = "decimate"  # nettet over skallet: forenkling, eller «quadriflow» (trenger et rent, lukket skall)
+VOXEL = float(os.environ.get("FOLK3D_VOXEL", 0.005))  # skallet (m); grovere smeltet armen sammen med skjørtet
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
 
 
@@ -126,6 +127,13 @@ def simplify(ob, tris=TRIS):
     bmesh.ops.delete(bm, geom=drop, context="FACES")
     bm.to_mesh(ob.data)
     bm.free()
+    if os.environ.get("FOLK3D_REMESH", REMESH) == "quadriflow":
+        # Et jevnt firkantnett over skallet: forenklingen presset flatene i
+        # trange mellomrom (armen inntil skjørtet) gjennom hverandre, og
+        # skjørtet stakk ut gjennom armen som flekker.
+        with bpy.context.temp_override(object=ob, active_object=ob, selected_objects=[ob], selected_editable_objects=[ob]):
+            bpy.ops.object.quadriflow_remesh(target_faces=tris // 2, use_preserve_sharp=False, use_mesh_symmetry=False, smooth_normals=True)
+        print("quadriflow", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     for _ in range(4):
         n = sum(len(p.vertices) - 2 for p in ob.data.polygons)
         if n <= tris * 1.05:
@@ -137,6 +145,115 @@ def simplify(ob, tris=TRIS):
     for p in ob.data.polygons:
         p.use_smooth = True
     return ob
+
+
+def nearest_colors(hi, lo, img, size):
+    """Fargen i hvert punkt på skallet hentes fra det nærmeste punktet på den
+    fulle formen. Med stråler fra skallet (bake selected-to-active) traff
+    strålene skjørtet bak forkleet og innsida av tynne armer (svarte flekker
+    og mønstre på armene); nærmeste punkt treffer alltid rett flate."""
+    from mathutils.bvhtree import BVHTree
+    from scipy import ndimage
+
+    # Bildet fra formen (base color), i tall.
+    tex = next(n.image for m in hi.data.materials for n in m.node_tree.nodes
+               if n.type == "TEX_IMAGE" and any(l.to_socket.name == "Base Color" for l in n.outputs[0].links))
+    tw, th = tex.size
+    src = np.empty(tw * th * 4, np.float32)
+    tex.pixels.foreach_get(src)
+    src = src.reshape(th, tw, 4)
+    # Den fulle formen: hjørnene og uv per trekant.
+    hm = hi.data
+    hm.calc_loop_triangles()
+    hv = np.array([v.co[:] for v in hm.vertices], np.float64)
+    huv_layer = hm.uv_layers[0].data
+    tris = hm.loop_triangles
+    tri_v = np.array([t.vertices[:] for t in tris])
+    tri_l = np.array([t.loops[:] for t in tris])
+    luv = np.empty(len(huv_layer) * 2, np.float32)
+    huv_layer.foreach_get("uv", luv)
+    luv = luv.reshape(-1, 2)
+    poly_of = np.array([t.polygon_index for t in tris])
+    bvh = BVHTree.FromPolygons(hv.tolist(), tri_v.tolist(), all_triangles=True)
+    # Skallet: hvert punkt i teksturen innenfor en trekant (litt utenfor
+    # kanten også, så sømmene får farge), med stedet i rommet.
+    lm = lo.data
+    lm.calc_loop_triangles()
+    lv = np.array([v.co[:] for v in lm.vertices], np.float64)
+    ln = np.array([v.normal[:] for v in lm.vertices], np.float64)
+    luv_lo = np.empty(len(lm.uv_layers["src"].data) * 2, np.float32)
+    lm.uv_layers["src"].data.foreach_get("uv", luv_lo)
+    luv_lo = luv_lo.reshape(-1, 2) * size
+    pix_idx, pix_pos, pix_nrm = [], [], []
+    for t in lm.loop_triangles:
+        uv = luv_lo[list(t.loops)]
+        p = lv[list(t.vertices)]
+        nv = ln[list(t.vertices)]
+        x0, y0 = np.floor(uv.min(0) - 1).astype(int)
+        x1, y1 = np.ceil(uv.max(0) + 1).astype(int)
+        xs, ys = np.meshgrid(np.arange(max(x0, 0), min(x1, size)), np.arange(max(y0, 0), min(y1, size)))
+        c = np.stack([xs.ravel() + 0.5, ys.ravel() + 0.5], 1)
+        a, b, cc = uv
+        m = np.array([[b[0] - a[0], cc[0] - a[0]], [b[1] - a[1], cc[1] - a[1]]])
+        det = np.linalg.det(m)
+        if abs(det) < 1e-12:
+            continue
+        w = np.linalg.solve(m, (c - a).T).T
+        w = np.column_stack([1 - w.sum(1), w])
+        inside = (w > -0.02).all(1)
+        if not inside.any():
+            continue
+        w = np.clip(w[inside], 0, None)
+        w /= w.sum(1, keepdims=True)
+        pix_idx.append(ys.ravel()[inside] * size + xs.ravel()[inside])
+        pix_pos.append(w @ p)
+        pix_nrm.append(w @ nv)
+    pix_idx = np.concatenate(pix_idx)
+    pix_pos = np.concatenate(pix_pos)
+    pix_nrm = np.concatenate(pix_nrm)
+    pix_nrm /= np.maximum(np.linalg.norm(pix_nrm, axis=1, keepdims=True), 1e-9)
+    # Nærmeste punkt på den fulle formen, og uv-en der.
+    hit_tri = np.zeros(len(pix_pos), np.int64)
+    hit_loc = np.zeros((len(pix_pos), 3))
+    # Den ytterste flaten langs normalen (en stråle utenfra og inn), ellers
+    # den nærmeste: skjørtet i formen kan gå gjennom armen, og da var det
+    # nærmeste punktet ofte skjørtet inni armen.
+    from mathutils import Vector as V
+    out_d, reach = NEAREST[0], NEAREST[0] + NEAREST[1]
+    for i, (q, n) in enumerate(zip(pix_pos, pix_nrm)):
+        nn = V(n)
+        loc, _n, k, _d = bvh.ray_cast(V(q) + nn * out_d, -nn, reach)
+        if k is None:
+            loc, _n, k, _d = bvh.find_nearest(V(q))
+        if k is not None:
+            hit_tri[i] = k
+            hit_loc[i] = loc
+    A, B, C = hv[tri_v[hit_tri, 0]], hv[tri_v[hit_tri, 1]], hv[tri_v[hit_tri, 2]]
+    v0, v1, v2 = B - A, C - A, hit_loc - A
+    d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
+    d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
+    den = np.maximum(d00 * d11 - d01 * d01, 1e-18)
+    bv = (d11 * d20 - d01 * d21) / den
+    bw = (d00 * d21 - d01 * d20) / den
+    bu = 1 - bv - bw
+    uv = luv[tri_l[hit_tri, 0]] * bu[:, None] + luv[tri_l[hit_tri, 1]] * bv[:, None] + luv[tri_l[hit_tri, 2]] * bw[:, None]
+    # Bilineært i bildet fra formen.
+    fx = np.clip(uv[:, 0] * tw - 0.5, 0, tw - 1.001)
+    fy = np.clip(uv[:, 1] * th - 0.5, 0, th - 1.001)
+    ix, iy = fx.astype(int), fy.astype(int)
+    ax, ay = (fx - ix)[:, None], (fy - iy)[:, None]
+    col = (src[iy, ix] * (1 - ax) * (1 - ay) + src[iy, ix + 1] * ax * (1 - ay) + src[iy + 1, ix] * (1 - ax) * ay + src[iy + 1, ix + 1] * ax * ay)
+    out = np.zeros((size * size, 4), np.float32)
+    filled = np.zeros(size * size, bool)
+    out[pix_idx] = col
+    out[pix_idx, 3] = 1.0
+    filled[pix_idx] = True
+    # Det tomme rundt øyene får fargen fra nærmeste fylte punkt.
+    _, (iy2, ix2) = ndimage.distance_transform_edt(~filled.reshape(size, size), return_indices=True)
+    out = out.reshape(size, size, 4)[iy2, ix2]
+    img.pixels.foreach_set(out.ravel())
+    del poly_of
+    print("nærmeste punkt for", len(pix_pos), "punkter")
 
 
 def transfer(hi, lo, name, size=2048):
@@ -168,19 +285,7 @@ def transfer(hi, lo, name, size=2048):
         b.inputs["Metallic"].default_value = 0.0
         for l in list(b.inputs["Metallic"].links):
             m.node_tree.links.remove(l)
-    sc = bpy.context.scene
-    sc.render.engine = "CYCLES"
-    sc.cycles.samples = 1
-    sc.render.bake.use_selected_to_active = True
-    sc.render.bake.cage_extrusion = TRANSFER[0]
-    sc.render.bake.max_ray_distance = TRANSFER[1]
-    sc.render.bake.margin = 8
-    hi.hide_render = False
-    hi.select_set(True)
-    lo.select_set(True)
-    bpy.context.view_layer.objects.active = lo
-    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"})
-    sc.render.bake.use_selected_to_active = False
+    nearest_colors(hi, lo, img, size)
     if os.environ.get("FOLK3D_DUMP"):
         img.filepath_raw = os.environ["FOLK3D_DUMP"]
         img.file_format = "PNG"
