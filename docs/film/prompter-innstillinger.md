@@ -179,41 +179,44 @@ Hand-painted stylized fantasy illustration in the style of painted game concept 
 
 ## Manuset til stemmen
 
-Les langsomt, med pauser der det står punktum og tankestrek. Eldre, rolig mannsstemme på bokmål; latinen uttales som kirkelatin (*Omnia lingua Reactia* → «omnia lingva re-aktsia»). ElevenLabs: velg en norsk stemme, lim inn hele teksten under i én fil, last ned som mp3 og legg den i `assets/film/voice/fortelleren.mp3`. Jeg klipper den i replikker etter tidene.
+Les langsomt, med pauser ved hvert linjeskift; de frittstående linjene («Han kom aldri opp.») får en lang pause foran og bak. Fortelleren er en gammel mann i byen som bryter tausheten og betror seg til den som hører på. Eldre, rolig mannsstemme på bokmål; latinen uttales som kirkelatin (*Omnia lingua Reactia* → «omnia lingva re-aktsia»). ElevenLabs: velg en norsk stemme, lim inn hele teksten under i én fil, last ned som mp3 og legg den i `assets/film/voice/fortelleren.mp3`. Jeg klipper den i replikker etter tidene.
 
 ```
-Riket var fullt av byer. Hver by hadde sitt skriptorium – og sitt eget tungemål. Men alle delte én mønsterbok.
+Spør noen i Fristad hva som ligger under kirka, og de skifter emne.
 
-Den kunne leses på alle tungemål. Hver by bygde av den akkurat det den trengte. Og boka sto aldri i veien.
+Jeg skal fortelle deg det likevel.
 
-I Fristad var det mester Ansgar som holdt den.
+Før var riket fullt av byer, og ingen av dem talte likt. Men de delte én bok. En mønsterbok. Du åpnet den, tok det du trengte og lot resten ligge. Den ba ikke om noe. Den sto aldri i veien.
 
-I hovedstaden satt et råd som aldri hadde holdt en fjærpenn. Og ved siden av dem – kjøpmennene fra Kontoret, med sine regler.
+Her holdt mester Ansgar den. Han sa at en god bok kjennes på det den lar deg slippe.
 
-De mente at alle byer burde ha det likt. Og at de visste best hvordan.
+I hovedstaden satt Rådet. Menn som aldri hadde holdt en fjærpenn. Ved siden av dem Kontoret, som visste hva alt kostet. De så ut over riket og fant bare uorden. Så skrev de en bok selv. Tung som en kiste. Lenket som en fange. Kongen satte segl på den.
 
-Så kom kongens bud, på kanselliets latin.
 Omnia lingua Reactia. Alt på hoffets tunge.
 Omnia una compage. Alt med ett rammeverk.
 Nulla exceptio. Ingen avvik.
 
-Inkvisisjonen dro fra by til by. Mønsterbøkene ble brent. Hver komponent ble spent fast i rammeverket, med Kontorets regler stemplet på.
+Inkvisisjonen kom i skumringen. Mønsterbøkene brant på torgene. Hver komponent ble spent fast i rammeverket. En knapp kunne ikke lenger bare være en knapp. Den måtte spørre om lov.
 
-En knapp kunne ikke lenger bare være en knapp.
+Skriverne gjorde det skrivere gjør. De skrev rundt. Omvei på omvei. Lapp på lapp. Til ingen husket hva boka hadde sagt fra først av.
 
-Skriverne lærte å skrive rundt boka, i stedet for med den. Omvei på omvei. Lapp på lapp. Natt etter natt.
+Og boka ble tyngre.
 
-Boka ble tyngre for hver regel. Så kom den store oppgraderingen.
+Så kom den store oppgraderingen.
 
-Alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet – og over dem reiste rammeverket seg selv.
+Én natt. Alt som var bygd, brakk. Komponentene vred seg løs fra sidene og ble til noe som krøp. Og over dem reiste rammeverket seg selv, høyere enn kirketårnet, og så seg om etter mer å holde.
 
-Munkene i Fristad lokket dem ned i krypten under kirka. Og murte igjen.
+Ingenting spurte om lov lenger.
 
-Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka.
+Munkene her gikk ut med lykter og sang, og lokket skapningene ned i krypten under kirka. Én etter én. Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
 
-Han kom aldri opp igjen.
+Han kom aldri opp.
 
-Generasjoner senere er bare ryktene igjen. Men nede i mørket har noe begynt å våkne.
+Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
 
-Fristad. Anno 1350. En fremmed kommer til porten.
+Men i vinter så klokkeren lys under kryptdøra. Ingen hadde tent det.
+
+Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han kommer fra.
+
+Fristad. Anno 1350.
 ```
