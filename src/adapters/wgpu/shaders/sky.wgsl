@@ -60,6 +60,10 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     if (i32(g.sky.w) == 7) {
         return vec4<f32>(4.0, 0.0, 4.0, 1.0);
     }
+    // `--debug depth`: himmelen er lengst unna.
+    if (i32(g.sky.w) == 8) {
+        return vec4<f32>(1.0, 1.0, 1.0, 1.0);
+    }
     // Nede i krypten (rommene er med) er det jord rundt, ingen himmel: en
     // sprekk i muren blir en mørk strek, aldri en lys kile (eieren 13.
     // oktober). Sprekkene finnes likevel med `--debug void` over.

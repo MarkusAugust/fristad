@@ -1058,5 +1058,80 @@
     179.99986
    ]
   ]
- }
+ },
+ "paint": [
+  [
+   0,
+   0.45
+  ],
+  [
+   96,
+   0.45
+  ],
+  [
+   104,
+   0.0
+  ]
+ ],
+ "paintover": [
+  {
+   "id": "1_skriptoriet",
+   "eye": [
+    -8.6,
+    1.8,
+    -11.8
+   ],
+   "yaw": 25,
+   "pitch": 6,
+   "fov": 62
+  },
+  {
+   "id": "2_fallet",
+   "eye": [
+    -8.6,
+    1.8,
+    -11.8
+   ],
+   "yaw": 25,
+   "pitch": 6,
+   "fov": 62,
+   "night": true,
+   "mask": "glitch"
+  },
+  {
+   "id": "3_kirkegarden",
+   "eye": [
+    -2,
+    2.5,
+    -40
+   ],
+   "yaw": 49,
+   "pitch": -4,
+   "fov": 55,
+   "night": true
+  },
+  {
+   "id": "4_krypten",
+   "eye": [
+    -9,
+    -38.3,
+    -14
+   ],
+   "yaw": 180,
+   "pitch": 0,
+   "fov": 55,
+   "night": true
+  },
+  {
+   "id": "5_torget",
+   "eye": [
+    0,
+    2,
+    12
+   ],
+   "yaw": 0,
+   "pitch": -2,
+   "fov": 60
+  }
+ ]
 }

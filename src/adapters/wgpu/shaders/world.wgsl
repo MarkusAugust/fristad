@@ -930,6 +930,13 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
             case 4: { return vec4<f32>(vec3<f32>(s.rough), alpha); }
             case 5: { return vec4<f32>(vec3<f32>(sun_shadow(i.world, n_geo)), alpha); }
             case 7: { return vec4<f32>(0.0, 0.0, 0.0, alpha); }
+            // `--debug depth`: avstanden fra øyet (meter) i tre kanaler med
+            // grove trinn (16 m, 1 m og resten), så sRGB og 8 bit ikke
+            // ødelegger den. Filmen projiserer maleriene etter den.
+            case 8: {
+                let d = min(length(i.world - g.camera.xyz), 255.99);
+                return vec4<f32>(floor(d / 16.0) / 16.0, floor(fract(d / 16.0) * 16.0) / 16.0, fract(d), alpha);
+            }
             default: { return vec4<f32>(s.emissive, alpha); }
         }
     }

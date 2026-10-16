@@ -176,6 +176,75 @@ function deepPlate(tex, D, o, uniforms) {
   return deep;
 }
 
+// Et maleri malt over motorens bilde (`paintover`, docs/prompter-film-2.md):
+// rutenettet ligger der motoren målte avstanden (`.depth.png`: centimeter
+// langs kameraets akse, høy byte i rødt og lav i grønt), så maleriet ligger
+// på murene og bakken i verden og følger dem når kameraet flyr.
+const SKY_M = 900;
+// Strengere enn `TEAR`: der en ting står foran en annen, rives maleriet
+// heller enn å strekkes, så verden under (like malt) synes i rifta.
+const TEAR_EDGE = 1.2;
+function projected(tex, P, fov, uniforms) {
+  const cols = 240;
+  const rows = Math.round((cols * P.h) / P.w);
+  const tanV = Math.tan(rad(fov / 2));
+  const tanH = (tanV * P.w) / P.h;
+  const W = cols + 1;
+  const H = rows + 1;
+  const pos = new Float32Array(W * H * 3);
+  const uv = new Float32Array(W * H * 2);
+  const rr = new Float32Array(W * H);
+  const metres = (x, y) => {
+    const k = (y * P.w + x) * 4;
+    const cm = P.data[k] * 256 + P.data[k + 1];
+    return cm >= 65535 ? SKY_M : cm / 100;
+  };
+  for (let j = 0; j < H; j++) {
+    for (let i = 0; i < W; i++) {
+      const u = i / cols;
+      const v = j / rows;
+      // Nærmeste punkt i dybden (ikke blandet), så kantene ikke smøres ut.
+      const r = metres(Math.min(Math.round(u * (P.w - 1)), P.w - 1), Math.min(Math.round(v * (P.h - 1)), P.h - 1));
+      const k = j * W + i;
+      rr[k] = r;
+      pos[k * 3] = (u * 2 - 1) * tanH * r;
+      pos[k * 3 + 1] = (1 - v * 2) * tanV * r;
+      pos[k * 3 + 2] = -r;
+      uv[k * 2] = u;
+      uv[k * 2 + 1] = 1 - v;
+    }
+  }
+  const idx = [];
+  const ok = (a, b, c) => Math.max(rr[a], rr[b], rr[c]) / Math.min(rr[a], rr[b], rr[c]) < TEAR_EDGE;
+  for (let j = 0; j < H - 1; j++) {
+    for (let i = 0; i < W - 1; i++) {
+      const a = j * W + i;
+      const b = a + 1;
+      const c = a + W;
+      const d = c + 1;
+      if (ok(a, c, b)) idx.push(a, c, b);
+      if (ok(b, c, d)) idx.push(b, c, d);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: true, side: THREE.DoubleSide });
+  m.onBeforeCompile = (sh) => maskShader(sh, { ...uniforms, uFlip: { value: 0 } });
+  return new THREE.Mesh(g, m);
+}
+
+// Dybden som rå bytes (`projected`), i full oppløsning.
+function raw(img) {
+  const cv = document.createElement("canvas");
+  cv.width = img.width;
+  cv.height = img.height;
+  const g = cv.getContext("2d", { willReadFrequently: true, colorSpace: "srgb" });
+  g.drawImage(img, 0, 0);
+  return { w: img.width, h: img.height, data: g.getImageData(0, 0, img.width, img.height).data };
+}
+
 // Stedet bak punktet (u, v) i maleriet, i ankerets rom.
 function pointOn(mesh, u, v, pull = 0) {
   const o = mesh.userData;
@@ -306,6 +375,20 @@ function frame(pos, yaw = 0, pitch = 0, scale = 1) {
 const toWorld = (f, p) => new THREE.Vector3(...p).multiplyScalar(f.scale).applyQuaternion(f.q).add(f.pos);
 const dirOf = (yaw, pitch) => new THREE.Vector3(-Math.sin(rad(yaw)) * Math.cos(rad(pitch)), Math.sin(rad(pitch)), -Math.cos(rad(yaw)) * Math.cos(rad(pitch)));
 
+// Et nivå som går lineært mellom nøklene [t, verdi].
+function level(keys, t, fallback) {
+  if (!keys?.length) return fallback;
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i][0]) {
+      const [t0, a] = keys[i - 1];
+      const [t1, b] = keys[i];
+      return a + (b - a) * ((t - t0) / Math.max(t1 - t0, 1e-6));
+    }
+  }
+  return keys[keys.length - 1][1];
+}
+
 // Catmull–Rom med tiden som parameter (farten rykker ikke mellom nøklene);
 // endene av en bit står stille.
 function hermite(keys, t, get) {
@@ -418,6 +501,22 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
     }
     scene.add(group);
     paintings.push({ ...p, group, uniforms, parts });
+  }
+  // Maleriene over motoren: bare de som er malt (bildet finnes) og har en
+  // tid i filmen (`show`).
+  for (const p of (script.paintover ?? []).filter((p) => p.show)) {
+    const [img, dimg] = await Promise.all([loadImage(`${base}paintover/${p.id}.webp`), loadImage(`${base}paintover/${p.id}.depth.png`)]);
+    if (!img || !dimg) continue;
+    const uniforms = { uFade: { value: 0 }, uGlitch: { value: p.mask === "glitch" ? 1 : 0 }, uTime: { value: 0 }, uEdge: { value: 0 }, uMix: { value: 1 } };
+    const group = new THREE.Group();
+    group.position.set(...p.eye);
+    group.quaternion.setFromEuler(new THREE.Euler(rad(p.pitch ?? 0), rad(p.yaw ?? 0), 0, "YXZ"));
+    const m = projected(texture(img), raw(dimg), p.fov, uniforms);
+    m.renderOrder = 1;
+    group.add(m);
+    frames[p.id] = { pos: group.position.clone(), q: group.quaternion.clone(), scale: 1 };
+    scene.add(group);
+    paintings.push({ ...p, group, uniforms, parts: [m], projected: true });
   }
   // Figurene i verden (den fremmede på veien, skiltet ved veikanten).
   const props = [];
@@ -555,7 +654,10 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
     camera.rotation.set(fp, fy, fr, "YXZ");
     camera.fov = c.fov;
     camera.updateProjectionMatrix();
-    engine?.film?.(c.p.x, c.p.y, c.p.z, deg(fy), deg(fp), c.fov, deg(fr));
+    // Hvor malt verden er: grunnnivået fra manuset (`paint`: [t, nivå]),
+    // og helt malt når et maleri tar over, så verden blir maleriet.
+    const near = paintings.reduce((m, p) => Math.max(m, env(p.show, t)), 0);
+    engine?.film?.(c.p.x, c.p.y, c.p.z, deg(fy), deg(fp), c.fov, deg(fr), Math.max(level(script.paint, t, 0.4), near));
 
     // Maleriene kommer til syne og går; lagene puster, lysene blafrer.
     for (const p of paintings) {
@@ -565,7 +667,7 @@ export async function createFilm({ engine, score, music, audio, url = "film/open
       p.uniforms.uTime.value = t;
       if (!p.group.visible) continue;
       const local = p.group.worldToLocal(camera.position.clone());
-      p.uniforms.uMix.value = 1 - THREE.MathUtils.smoothstep(local.length(), 0.6, 3.5);
+      if (!p.projected) p.uniforms.uMix.value = 1 - THREE.MathUtils.smoothstep(local.length(), 0.6, 3.5);
       for (const m of p.parts) {
         const o = m.userData;
         if (o.own) o.own.uT.value = t;

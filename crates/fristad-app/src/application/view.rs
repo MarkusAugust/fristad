@@ -191,6 +191,7 @@ impl Session {
             lines: self.edit_lines(),
             skins,
             hurt: self.combat.hurt,
+            paint: self.film.map_or(0.0, |s| s.paint),
             debug: self.debug,
             rooms,
             band: self.band(in_crypt),

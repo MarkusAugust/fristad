@@ -130,6 +130,8 @@ pub struct Shot {
     pub fov: f32,
     /// Krengning (radianer, positiv mot venstre), så kameraet kan legge seg i svingene.
     pub roll: f32,
+    /// Hvor malt bildet er (0..1, `Frame.paint`).
+    pub paint: f32,
 }
 
 /// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).

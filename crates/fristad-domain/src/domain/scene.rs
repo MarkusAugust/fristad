@@ -97,6 +97,8 @@ pub struct Frame {
     pub skins: Vec<Mat4>,
     /// Rødt flash langs kantene (0..1) når spilleren er truffet.
     pub hurt: f32,
+    /// Malt bilde i filmen (0..1): penselstrøk over flatene og varmere farger.
+    pub paint: f32,
     /// Feilsøkingsvisning: 0 vanlig, 1 albedo, 2 normaler, 3 okklusjon, 4 ruhet, 5 skygge.
     pub debug: u32,
     /// Rommene i kryptnivået du er i, så lyset ikke går gjennom murene

@@ -383,9 +383,12 @@ impl Engine {
     }
 
     /// Filmen (`web/film/`): kameraet i øyet `x, y, z` (meter), retningen
-    /// (grader) og synsfeltet (grader). Uten armer, kamp og fysikk.
-    pub fn film(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32, fov_deg: f32, roll_deg: f32) {
-        let shot = Shot { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians(), fov: fov_deg, roll: roll_deg.to_radians() };
+    /// (grader), synsfeltet (grader), krengningen (grader) og hvor malt
+    /// bildet er (0..1). Uten armer, kamp og fysikk.
+    #[allow(clippy::too_many_arguments)]
+    pub fn film(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32, fov_deg: f32, roll_deg: f32, paint: f32) {
+        let paint = if paint.is_finite() { paint.clamp(0.0, 1.0) } else { 0.0 };
+        let shot = Shot { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians(), fov: fov_deg, roll: roll_deg.to_radians(), paint };
         self.app.command(Command::Film(Some(shot)));
     }
 
