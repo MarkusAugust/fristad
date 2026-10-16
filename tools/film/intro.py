@@ -180,6 +180,11 @@ def place_texts():
 
 I = "intro/"
 O = "opening/"
+
+
+def pick(new, old):
+    """Det nye bildet når eieren har laget det (`docs/film/prompter-nye-bilder.md`), ellers det gamle."""
+    return I + new + ".webp" if (ROOT / "assets/film/intro" / (new + ".webp")).exists() else O + old
 CAMERA = []
 
 
@@ -212,7 +217,7 @@ layer(I + "skriptoriet_fasade.webp", X + (0.5 - 0.473) * fw, 4 - (0.5 - 0.302) *
 layer(O + "gullalderen/bg.webp", X, 4, -40.6, 10, show=[0, 0, 19.6, 20.6])
 layer(O + "gullalderen/bg.webp", X, 4, -95, 46, show=[19.6, 20.6, 36, 36.5])
 layer(O + "gullalderen/mid.webp", X - 3.5, ground(4, 25, 0.9), -70, fill(25, 0.42), anchor="bottom", breathe=0.006, show=[19.6, 20.6, 36, 36.5])
-layer(O + "gullalderen/fg.webp", X - 5.5, ground(4, 10, 1.05), -55, fill(10, 0.45), anchor="bottom", lights=[[0.62, 0.12, "#ffcf70", 0.9]], show=[19.6, 20.6, 36, 36.5])
+layer(pick("lesepulten", "gullalderen/fg.webp"), X - 5.5, ground(4, 10, 1.05), -55, fill(10, 0.45), anchor="bottom", lights=[[0.62, 0.12, "#ffcf70", 0.9]], show=[19.6, 20.6, 36, 36.5])
 layer(I + "ansgar_bok.webp", X + 6.5, ground(4, 17, 0.98), -62, fill(17, 0.8), anchor="bottom", breathe=0.008, lights=[[0.6, 0.48, "#ffe7a8", 3.0, 0.3]], show=[19.6, 20.6, 36, 36.5])
 cam(18, [X, 4, 2], [X, 4, -60])
 cam(21, [X, 4.1, -36], [X, 4, -90])
@@ -322,8 +327,8 @@ say([133, 138], [X, -77, -6], 20, [["quote", "Men nede i mørket har noe begynt 
 X = 1100
 layer(I + "himmel_morgen.webp", X, 60, -SKY_D, fill(SKY_D, 2.2), follow=0.95, camY=5, show=[138, 139.5, 152, 153])
 layer(O + "sorporten/bg.webp", X, Y, -70, fill(70, 1.25), show=[138, 139.5, 152, 153])
-layer(O + "sorporten/mid.webp", X - 4, ground(Y, 16, 0.92), -16, fill(16, 0.5), anchor="bottom", walk=True, path=[[138, X - 5, ground(Y, 16, 0.92), -16], [151, X - 1, ground(Y, 16, 0.92), -16]], show=[138, 139.5, 152, 153])
-layer(O + "sorporten/fg.webp", X - 7, ground(Y, 8, 1.02), -8, fill(8, 0.6), anchor="bottom", sway=0.03, show=[138, 139.5, 152, 153])
+layer(pick("den_fremmede", "sorporten/mid.webp"), X - 4, ground(Y, 16, 0.92), -16, fill(16, 0.5), anchor="bottom", walk=True, path=[[138, X - 5, ground(Y, 16, 0.92), -16], [151, X - 1, ground(Y, 16, 0.92), -16]], show=[138, 139.5, 152, 153])
+layer(pick("veiskiltet", "sorporten/fg.webp"), X - 7, ground(Y, 8, 1.02), -8, fill(8, 0.6), anchor="bottom", sway=0.03, show=[138, 139.5, 152, 153])
 strip(I + "forgrunn_gress.webp", X - 12, X + 14, ground(Y, 5, 1.02), -5, fill(5, 0.7), anchor="bottom", sway=0.04, show=[138, 139.5, 152, 153])
 cam(139.2, [X - 8, Y + 1.2, 0], [X - 2, Y, -70])
 cam(151, [X + 1, Y, -10], [X + 1, Y - 0.5, -70])
