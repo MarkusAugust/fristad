@@ -419,8 +419,8 @@
   {
    "src": "intro/skriptoriet_fasade.webp",
    "at": [
-    101.098,
-    -1.765,
+    99.791,
+    3.825,
     -40
    ],
    "h": 29.118
@@ -473,7 +473,7 @@
    ]
   },
   {
-   "src": "opening/gullalderen/fg.webp",
+   "src": "intro/lesepulten.webp",
    "at": [
     94.5,
     0.178,
@@ -1594,7 +1594,7 @@
    ]
   },
   {
-   "src": "opening/sorporten/mid.webp",
+   "src": "intro/den_fremmede.webp",
    "at": [
     1096,
     -1.358,
@@ -1625,7 +1625,7 @@
    ]
   },
   {
-   "src": "opening/sorporten/fg.webp",
+   "src": "intro/veiskiltet.webp",
    "at": [
     1093,
     1.03,

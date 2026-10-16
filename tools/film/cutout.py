@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy import ndimage
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,9 +31,8 @@ LO, HI = 0.10, 0.32
 # (`TILES`), og bunnen av dem, står i ett og tones ikke.
 EDGE = 0.08
 TILES = {"aaser_fjerne", "aaser_naere", "forgrunn_gress", "forgrunn_steiner", "veien_natt", "jordlag"}
-# Bilder som må beskjæres før de klippes (brøk: venstre, topp, høyre, bunn):
-# fasaden har biter av nabohusene i kantene.
-CROP = {"skriptoriet_fasade": (0.135, 0.0, 0.915, 1.0)}
+# Bilder som må beskjæres før de klippes (brøk: venstre, topp, høyre, bunn).
+CROP = {}
 
 
 def keyed(rgb):
@@ -74,6 +74,38 @@ def soften(rgba, tile):
     return touched
 
 
+def islands(rgba):
+    """Tar bort løse småbiter (under 1 % av den største biten), som en
+    blomst som står for seg selv ved siden av motivet."""
+    solid = rgba[..., 3] > 0.5
+    lab, n = ndimage.label(solid)
+    if n < 2:
+        return
+    area = ndimage.sum(solid, lab, range(1, n + 1))
+    small = [i + 1 for i, a in enumerate(area) if a < area.max() * 0.01]
+    if small:
+        gone = ndimage.binary_dilation(np.isin(lab, small), iterations=3) & ~np.isin(lab, [i + 1 for i, a in enumerate(area) if a >= area.max() * 0.01])
+        rgba[..., 3][gone] = 0
+
+
+def hole(rgba):
+    """Det største gjennomsiktige hullet inne i motivet (vinduet i fasaden),
+    som brøk av bildet: midten og størrelsen, eller None."""
+    clear = rgba[..., 3] < 0.5
+    lab, n = ndimage.label(clear)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])))
+    inner = [i for i in range(1, n + 1) if i not in edge]
+    if not inner:
+        return None
+    area = ndimage.sum(clear, lab, inner)
+    k = inner[int(np.argmax(area))]
+    if area.max() < clear.size * 0.002:
+        return None
+    ys, xs = np.nonzero(lab == k)
+    h, w = clear.shape
+    return {"x": round(float(xs.mean()) / w, 4), "y": round(float(ys.mean()) / h, 4), "w": round(float(xs.max() - xs.min()) / w, 4), "h": round(float(ys.max() - ys.min()) / h, 4)}
+
+
 def build(src):
     im = Image.open(src).convert("RGB")
     if src.stem in CROP:
@@ -83,16 +115,19 @@ def build(src):
         im = im.resize((WIDTH, round(im.height * WIDTH / im.width)), Image.LANCZOS)
     rgb = np.asarray(im)
     soft = []
+    opening = None
     if green_background(rgb):
         rgba = keyed(rgb)
+        islands(rgba)
         soft = soften(rgba, src.stem in TILES)
+        opening = hole(rgba)
         out = Image.fromarray((rgba * 255 + 0.5).astype(np.uint8), "RGBA")
         kind = "cutout"
     else:
         out = im
         kind = "plate"
     out.save(OUT / f"{src.stem}.webp", quality=88, method=6)
-    return {"w": out.width, "h": out.height, "kind": kind, **({"soft": soft} if soft else {})}
+    return {"w": out.width, "h": out.height, "kind": kind, **({"soft": soft} if soft else {}), **({"hole": opening} if opening else {})}
 
 
 def main(names):

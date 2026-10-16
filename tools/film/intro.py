@@ -208,10 +208,12 @@ say([7.6, 14], [55, 5, 1], 26, [["text", "Riket var fullt av byer, og hver by ha
 X = 100
 F_D = 40
 fh = fill(F_D, 1.0)
-# Midten av vinduet står 0,473 fra venstre og 0,302 fra toppen av det
-# beskårne bildet (`cutout.py`, 2048 × 1466); kameraet går gjennom det i høyde 4.
-fw = fh * 2048 / 1466
-layer(I + "skriptoriet_fasade.webp", X + (0.5 - 0.473) * fw, 4 - (0.5 - 0.302) * fh, -F_D, fh)
+# Vinduet i fasaden finner `cutout.py` (`hole` i sizes.json); kameraet går
+# gjennom midten av det i høyde 4.
+SIZES = json.loads((ROOT / "assets/film/intro/sizes.json").read_text())
+win = SIZES["skriptoriet_fasade"]["hole"]
+fw = fh * SIZES["skriptoriet_fasade"]["w"] / SIZES["skriptoriet_fasade"]["h"]
+layer(I + "skriptoriet_fasade.webp", X + (0.5 - win["x"]) * fw, 4 - (0.5 - win["y"]) * fh, -F_D, fh)
 # Gjennom vinduet, før kameraet er inne: rommet som et lite bilde rett bak
 # vinduet (det rager ikke ut forbi fasaden), som toner over i det store.
 layer(O + "gullalderen/bg.webp", X, 4, -40.6, 10, show=[0, 0, 19.6, 20.6])
