@@ -372,6 +372,12 @@ function adapt(fps) {
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  // Mens filmen går, tegnes ikke spillet bak den (to grafikkontekster
+  // samtidig fylte minnet på svake maskiner).
+  if (filming) {
+    requestAnimationFrame(loop);
+    return;
+  }
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
@@ -1200,6 +1206,7 @@ function pause() {
 // som brukerhandling for lyden. `?nofilm` hopper over den, `?film` spiller
 // den hver gang du går inn.
 let filmShown = false;
+let filming = false;
 async function begin() {
   const q = new URLSearchParams(location.search);
   if (!EDIT && !q.has("nofilm") && (!filmShown || q.has("film"))) {
@@ -1213,7 +1220,12 @@ async function begin() {
     }
     // Spillet gjøres klart ved sørporten bak filmen, så det tar over når
     // den siste scenen toner ut.
-    await playFilm({ music, onLast: () => engine.respawn() });
+    filming = true;
+    try {
+      await playFilm({ music, onLast: () => engine.respawn() });
+    } finally {
+      filming = false;
+    }
   }
   enter();
 }

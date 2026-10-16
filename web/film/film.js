@@ -303,7 +303,16 @@ export async function playFilm({ music, url = "film/opening.json", base = "film/
   removeEventListener("mousemove", onMove);
   removeEventListener("keydown", onKey, true);
   removeEventListener("resize", fit);
+  for (const sc of scenes) {
+    for (const m of sc.layers) {
+      m.material.map?.dispose();
+      m.material.dispose();
+      m.geometry.dispose();
+    }
+    sc.particles?.geometry.dispose();
+  }
   renderer.dispose();
+  renderer.forceContextLoss?.();
   root.remove();
   document.body.classList.remove("filming");
 }
