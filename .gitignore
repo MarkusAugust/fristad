@@ -2,7 +2,7 @@ node_modules/
 target/
 dist/
 pkg/
-shots/
+/shots/
 assets/external/
 dist-web/
 __pycache__/
