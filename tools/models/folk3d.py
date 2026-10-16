@@ -29,7 +29,7 @@ from PIL import Image
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
-from common import armature, bake_textured, clear  # noqa: E402
+from common import armature, bake_textured, clear, pack_weighted  # noqa: E402
 import folk_motion  # noqa: E402
 from townsfolk import FOLK, bones  # noqa: E402
 
@@ -52,6 +52,8 @@ POSTURE = {"hunch": 0.25, "lean": 0.4, "jut": 0.3, "head": 0.5}  # stilens holdn
 NEAREST = (0.03, 0.05)  # strålen begynner så langt utenfor skallet og går så langt innenfor det (m)
 REMESH = "decimate"  # nettet over skallet: forenkling, eller «quadriflow» (trenger et rent, lukket skall)
 VOXEL = float(os.environ.get("FOLK3D_VOXEL", 0.005))  # skallet (m); grovere smeltet armen sammen med skjørtet
+WEIGHT_RADIUS = 0.05  # lag nærmere enn dette (m) får samme vekter (`layered_weights`)
+LIMB_BONES = ("arm", "hand", "shoulder")  # bein som ikke jevnes ut med kroppen
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
 
 
@@ -271,6 +273,11 @@ def transfer(hi, lo, name, size=2048):
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004)
     bpy.ops.object.mode_set(mode="OBJECT")
+    # Hodet får plass og øyene pakkes her, før fargen hentes: teksturen
+    # i spillet har de samme øyene, så bakingen til slutt er en ren kopi
+    # (pakket den på nytt, la den forkleet og kjolen oppå hverandre).
+    head_density(lo, FOLK[name])
+    pack_weighted(lo)
     img = bpy.data.images.new(f"src_{name}", size, size)
     mat = bpy.data.materials.new(f"npc_{name}")
     mat.use_nodes = True
@@ -512,7 +519,51 @@ def rig(ob, name, J):
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
     if not any(len(v.groups) for v in ob.data.vertices[:200]):
         bpy.ops.object.parent_set(type="ARMATURE_ENVELOPE")
+    layered_weights(ob, arm)
     return arm
+
+
+def layered_weights(ob, arm, radius=WEIGHT_RADIUS):
+    """Lag som ligger oppå hverandre beveger seg sammen: vektene på kroppen
+    jevnes ut i rommet (ikke langs flaten) innen `radius`. Skallet har
+    kjolen som et eget lag bak forkleet, og varmevektingen ga lagene ulike
+    bein, så kjolen gikk gjennom forkleet når beina beveget seg (fiskerkona,
+    16. oktober). Armene og hendene står utenfor, så de ikke henger fast i
+    skjørtet de ligger inntil."""
+    from mathutils.kdtree import KDTree
+
+    names = [b.name for b in arm.data.bones]
+    idx = {g.index: names.index(g.name) for g in ob.vertex_groups if g.name in names}
+    nv, nb = len(ob.data.vertices), len(names)
+    W = np.zeros((nv, nb))
+    for v in ob.data.vertices:
+        for g in v.groups:
+            if g.group in idx:
+                W[v.index, idx[g.group]] = g.weight
+    W /= np.maximum(W.sum(1, keepdims=True), 1e-9)
+    limb = np.array([any(k in n for k in LIMB_BONES) for n in names])
+    body = W[:, limb].sum(1) < 0.5
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    kd = KDTree(int(body.sum()))
+    ids = np.nonzero(body)[0]
+    for i in ids:
+        kd.insert(co[i], int(i))
+    kd.balance()
+    out = W.copy()
+    for i in ids:
+        near = kd.find_range(co[i], radius)
+        j = np.array([n[1] for n in near])
+        d = np.array([n[2] for n in near])
+        k = np.exp(-((d / (radius * 0.5)) ** 2))
+        out[i] = (W[j] * k[:, None]).sum(0) / k.sum()
+    for b, n in enumerate(names):
+        g = ob.vertex_groups.get(n) or ob.vertex_groups.new(name=n)
+        for i in ids:
+            if out[i, b] > 1e-3:
+                g.add([int(i)], float(out[i, b]), "REPLACE")
+            else:
+                g.remove([int(i)])
+    print("vekter jevnet ut på", len(ids), "av", nv, "hjørner")
 
 
 def build(name, size=2048):
@@ -524,7 +575,6 @@ def build(name, size=2048):
     simplify(ob)
     transfer(hi, ob, name, SRC_SIZE)
     face_patch(ob, name, FOLK[name])
-    head_density(ob, FOLK[name])
     H = FOLK[name]
     J = landmarks(ob, H)
     arm = rig(ob, name, J)
@@ -542,7 +592,7 @@ def build(name, size=2048):
     out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
     st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
     folk_motion.clips(arm, st, {}, only=("idle", "walk", "talk", "wave"))
-    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False)
+    bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False)
     return J
 
 

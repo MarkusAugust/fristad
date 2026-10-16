@@ -3,6 +3,12 @@ pakket til `assets/film/<film>/<scene>/<lag>.webp`.
 
     python3 tools/film/layers.py key MAPPE [film]   # eierens bilder inn
     python3 tools/film/layers.py placeholders       # plassholdere til utkastet
+    python3 tools/film/layers.py depth [film]       # dybdekart til lagene
+
+Dybden (`depth`): Depth Anything V2 (liten, ONNX på CPU; vektene lastes ned
+én gang til `target/film-depth/`) gir hvert lag et dybdekart
+(`<lag>.depth.png`, nær er lys), som filmen løfter bildet etter, så kameraet
+kan gå inn i maleriet og se det fra siden (`web/film/film.js`).
 
 Eierens bilder heter `<scene>_<lag>.png|jpg` (lag: bg, mid, fg; promptene i
 `docs/prompter-film.md`). Bakgrunnen (`bg`) er hele bildet; mellomgrunnen og
@@ -168,9 +174,59 @@ def placeholders():
     save(compose([(cutout(p("pilgrim"), which=2), 0.5, 0.92, 0.42, 0.1)]), os.path.join(film, "sorporten", "mid.webp"))
 
 
+# --- Dybden --------------------------------------------------------------------------
+
+DEPTH_URL = "https://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vits.onnx"
+DEPTH_W = 640  # bredden dybdekartet lagres i
+
+
+def depth(film="opening"):
+    import urllib.request
+
+    import cv2
+    import onnxruntime as ort
+
+    weights = os.path.join(ROOT, "target", "film-depth", "vits.onnx")
+    if not os.path.exists(weights):
+        os.makedirs(os.path.dirname(weights), exist_ok=True)
+        urllib.request.urlretrieve(DEPTH_URL, weights + ".part")
+        os.replace(weights + ".part", weights)
+    sess = ort.InferenceSession(weights, providers=["CPUExecutionProvider"])
+    name = sess.get_inputs()[0].name
+    mean = np.array([0.485, 0.456, 0.406], np.float32)
+    std = np.array([0.229, 0.224, 0.225], np.float32)
+
+    def run(rgb):
+        x = cv2.resize(rgb, (518, 518), interpolation=cv2.INTER_CUBIC).astype(np.float32) / 255
+        x = ((x - mean) / std).transpose(2, 0, 1)[None]
+        o = sess.run(None, {name: x})[0][0]
+        return cv2.resize(o, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_CUBIC)
+
+    root = os.path.join(OUT, film)
+    for scene in sorted(os.listdir(root)):
+        for f in sorted(os.listdir(os.path.join(root, scene))):
+            if not f.endswith(".webp"):
+                continue
+            img = Image.open(os.path.join(root, scene, f)).convert("RGBA")
+            img = img.resize((DEPTH_W, round(img.height * DEPTH_W / img.width)), Image.LANCZOS)
+            a = np.asarray(img).astype(np.float32) / 255
+            # Utklippene står på grått, så kanten ikke blir en vegg.
+            rgb = a[..., :3] * a[..., 3:] + 0.5 * (1 - a[..., 3:])
+            rgb = (rgb * 255).astype(np.uint8)
+            d = (run(rgb) + run(rgb[:, ::-1].copy())[:, ::-1]) / 2
+            inside = a[..., 3] > 0.5
+            lo, hi = np.percentile(d[inside] if inside.any() else d, [0.5, 99.5])
+            d = np.clip((d - lo) / max(hi - lo, 1e-6), 0, 1)
+            out = os.path.join(root, scene, f.replace(".webp", ".depth.png"))
+            Image.fromarray((d * 255).astype(np.uint8), "L").save(out, optimize=True)
+            print(os.path.relpath(out, ROOT), d.shape)
+
+
 if __name__ == "__main__":
     if sys.argv[1:2] == ["key"]:
         key(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "opening")
+    elif sys.argv[1:2] == ["depth"]:
+        depth(sys.argv[2] if len(sys.argv) > 2 else "opening")
     elif sys.argv[1:2] == ["placeholders"]:
         placeholders()
     else:

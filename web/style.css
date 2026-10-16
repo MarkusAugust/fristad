@@ -938,3 +938,18 @@ body.filming #bars {
   bottom: calc(9vh + 1rem);
   pointer-events: auto;
 }
+/* Venter den siste scenen på spillet, går en tynn linje langs bunnen. */
+.film-progress {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: calc(9vh + 1.4rem);
+  height: 2px;
+  background: rgba(243, 230, 200, 0.18);
+}
+.film-progress-fill {
+  height: 100%;
+  width: 0;
+  background: rgba(247, 217, 139, 0.85);
+  transition: width 0.4s linear;
+}

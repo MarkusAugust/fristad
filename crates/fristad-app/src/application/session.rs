@@ -256,6 +256,11 @@ impl Session {
         Vec3::new(-self.yaw.sin() * self.pitch.cos(), self.pitch.sin(), -self.yaw.cos() * self.pitch.cos())
     }
 
+    /// Øyet og retningen der du begynner (ved sørporten), til filmen.
+    pub fn spawn_eye(&self) -> (Vec3, f32) {
+        (terrain::at(self.spawn) + Vec3::Y * EYE, self.spawn_yaw)
+    }
+
     /// Origo i kryptnivå `k` (fra 0), til filmen.
     pub fn level_origin(&self, k: usize) -> Option<Vec3> {
         self.crypt.levels.get(k).map(|l| l.origin)

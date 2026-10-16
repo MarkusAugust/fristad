@@ -504,6 +504,13 @@
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Skjegget er ikke delt lenger, hodet er formen fra TRELLIS, og hoftene stikker ikke ut når han går (skallet er sluttet og forenklet i ett stykke)."
    ]
+  },
+  "22f6c4adf9a1": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_clerk": {
@@ -543,6 +550,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
    ]
+  },
+  "ef198bc71a42": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_apothecary": {
@@ -580,6 +594,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Han går og står rett; stilen «gammel» bøyde ham så han segnet."
+   ]
+  },
+  "4d204a9a4bab": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
    ]
   }
  },
@@ -651,6 +672,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
    ]
+  },
+  "fb6a14f0121f": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_farmer": {
@@ -687,6 +715,13 @@
   "99423bf1c3f8": {
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "61c062dea48d": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
    ]
   }
  },
@@ -729,6 +764,13 @@
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Armene er rene; skallet smeltet før armen sammen med skjørtet."
    ]
+  },
+  "78d24942b33e": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_guard": {
@@ -769,6 +811,13 @@
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Ansiktet legges ikke på hjelmbremmen (TRELLIS satte bremmen lavere enn bildet)."
    ]
+  },
+  "1b6587e2e740": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_merchant": {
@@ -805,6 +854,13 @@
   "c65d2d25b320": {
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "930a44c14876": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
    ]
   }
  },
@@ -846,6 +902,13 @@
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Ingen svarte flekker på forkleet (fargen hentes nå fra den ytterste flaten)."
    ]
+  },
+  "f4fa81072139": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_boy": {
@@ -883,6 +946,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Gutten er 1,36 m, lavere enn de voksne."
+   ]
+  },
+  "e0a513a124db": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
    ]
   }
  },
@@ -922,6 +992,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
    ]
+  },
+  "117ada8687f4": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
   }
  },
  "npc_pilgrim": {
@@ -929,6 +1006,13 @@
    "text": [
     "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
     "Ny i byen: går mellom nordporten og torget."
+   ]
+  },
+  "8f794022e909": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
    ]
   }
  },

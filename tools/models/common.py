@@ -178,7 +178,68 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False):
+def pack_weighted(ob):
+    """Øyene i det aktive uv-laget skaleres etter flateattributtet «uv_density»
+    og pakkes på nytt (pakkingen beholder forholdet mellom øyene); 0 stabler
+    øyene i én liten flis. Attributtet tas ut etterpå."""
+    # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
+    # (pakkingen beholder forholdet mellom øyene).
+    import bmesh
+    from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
+
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    uv = bm.loops.layers.uv.active
+    dens = bm.faces.layers.float.get("uv_density")
+    stacked = []
+    area = 0.0
+    # Hver øy flyttes til sin egen rute langt unna før pakkingen: når
+    # øyene skaleres om midten sin, vokser de inn i naboene, og
+    # pakkingen (som slår sammen øyer som overlapper, for de stablede)
+    # ville latt dem ligge oppå hverandre, så bakingen skrev ansiktet
+    # over med kroppen under klærne.
+    spread = 0
+    for island in bmesh_linked_uv_islands(bm, uv):
+        w = sum(f[dens] for f in island) / len(island)
+        loops = [l for f in island for l in f.loops]
+        if w <= 0.0:
+            stacked.append(loops)
+            continue
+        if abs(w - 1.0) > 1e-3:
+            cu = sum(l[uv].uv.x for l in loops) / len(loops)
+            cv = sum(l[uv].uv.y for l in loops) / len(loops)
+            for l in loops:
+                l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
+                l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
+        spread += 1
+        for l in loops:
+            l[uv].uv.x += 10.0 * spread
+        for f in island:
+            pts = [l[uv].uv for l in f.loops]
+            area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
+    # Tetthet 0: øyene legges oppå hverandre i én liten flis (hårlokker
+    # og skjeggtuster, som ser like ut uansett), så tusenvis av øyer ikke
+    # spiser teksturen. Flisen er en liten del av resten.
+    side = STACK * area ** 0.5
+    for loops in stacked:
+        u0 = min(l[uv].uv.x for l in loops)
+        v0 = min(l[uv].uv.y for l in loops)
+        du = max(max(l[uv].uv.x for l in loops) - u0, 1e-6)
+        dv = max(max(l[uv].uv.y for l in loops) - v0, 1e-6)
+        for l in loops:
+            l[uv].uv.x = (l[uv].uv.x - u0) / du * side
+            l[uv].uv.y = (l[uv].uv.y - v0) / dv * side
+    bm.to_mesh(ob.data)
+    bm.free()
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.select_all(action="SELECT")
+    bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    ob.data.attributes.remove(ob.data.attributes["uv_density"])
+
+
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False, pack=True):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
     begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO
     (uten AO med `ao=False`: arket har skyggene malt inn; `uv_angle=None`
@@ -240,7 +301,11 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         first = next(l for l in ob.data.uv_layers if not l.name.startswith("src"))
         ob.data.uv_layers.active = first
         first.active_render = True
-    if uv_angle is not None:
+    if not pack:
+        # Øyene står som modellen har dem (folk3d pakker før fargen hentes,
+        # så bakingen er en ren kopi; ny pakking la øyer oppå hverandre).
+        pass
+    elif uv_angle is not None:
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.select_all(action="SELECT")
         bpy.ops.uv.smart_project(angle_limit=uv_angle, island_margin=0.003)
@@ -252,61 +317,9 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bpy.ops.uv.select_all(action="SELECT")
         bpy.ops.uv.pack_islands(rotate=True, margin=0.004)
         bpy.ops.object.mode_set(mode="OBJECT")
-    if weighted:
-        # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
-        # (pakkingen beholder forholdet mellom øyene).
-        import bmesh
-        from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
-
-        bm = bmesh.new()
-        bm.from_mesh(ob.data)
-        uv = bm.loops.layers.uv.active
-        dens = bm.faces.layers.float.get("uv_density")
-        stacked = []
-        area = 0.0
-        # Hver øy flyttes til sin egen rute langt unna før pakkingen: når
-        # øyene skaleres om midten sin, vokser de inn i naboene, og
-        # pakkingen (som slår sammen øyer som overlapper, for de stablede)
-        # ville latt dem ligge oppå hverandre, så bakingen skrev ansiktet
-        # over med kroppen under klærne.
-        spread = 0
-        for island in bmesh_linked_uv_islands(bm, uv):
-            w = sum(f[dens] for f in island) / len(island)
-            loops = [l for f in island for l in f.loops]
-            if w <= 0.0:
-                stacked.append(loops)
-                continue
-            if abs(w - 1.0) > 1e-3:
-                cu = sum(l[uv].uv.x for l in loops) / len(loops)
-                cv = sum(l[uv].uv.y for l in loops) / len(loops)
-                for l in loops:
-                    l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
-                    l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
-            spread += 1
-            for l in loops:
-                l[uv].uv.x += 10.0 * spread
-            for f in island:
-                pts = [l[uv].uv for l in f.loops]
-                area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
-        # Tetthet 0: øyene legges oppå hverandre i én liten flis (hårlokker
-        # og skjeggtuster, som ser like ut uansett), så tusenvis av øyer ikke
-        # spiser teksturen. Flisen er en liten del av resten.
-        side = STACK * area ** 0.5
-        for loops in stacked:
-            u0 = min(l[uv].uv.x for l in loops)
-            v0 = min(l[uv].uv.y for l in loops)
-            du = max(max(l[uv].uv.x for l in loops) - u0, 1e-6)
-            dv = max(max(l[uv].uv.y for l in loops) - v0, 1e-6)
-            for l in loops:
-                l[uv].uv.x = (l[uv].uv.x - u0) / du * side
-                l[uv].uv.y = (l[uv].uv.y - v0) / dv * side
-        bm.to_mesh(ob.data)
-        bm.free()
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.mesh.select_all(action="SELECT")
-        bpy.ops.uv.select_all(action="SELECT")
-        bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
-        bpy.ops.object.mode_set(mode="OBJECT")
+    if weighted and pack:
+        pack_weighted(ob)
+    elif "uv_density" in ob.data.attributes:
         ob.data.attributes.remove(ob.data.attributes["uv_density"])
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
@@ -388,7 +401,9 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     bumps = [n for mat in ob.data.materials for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBump"]
     for n in bumps:
         n.mute = True
-    ao = bake_to("ao", "AO", "Non-Color")
+    # Uten AO bakes den ikke: navnet `ao` ble før overskrevet av bildet, så
+    # `ao=False` ga AO likevel, og på skallene fra TRELLIS ble den svart.
+    occl = bake_to("ao", "AO", "Non-Color") if ao else None
     for n in bumps:
         n.mute = False
     normal = bake_to("normal", "NORMAL", "Non-Color", normal_space="TANGENT")
@@ -405,8 +420,8 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     for m, r, v in held_mods:
         m.show_render, m.show_viewport = r, v
     a = np.array(albedo.pixels[:]).reshape(size, size, 4)
-    o = np.array(ao.pixels[:]).reshape(size, size, 4)
-    if ao:
+    if occl is not None:
+        o = np.array(occl.pixels[:]).reshape(size, size, 4)
         a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
     albedo.pixels = a.ravel().tolist()
     r = np.array(rough.pixels[:]).reshape(size, size, 4)

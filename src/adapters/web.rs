@@ -400,6 +400,12 @@ impl Engine {
         self.app.session.level_origin(n.saturating_sub(1)).map(|o| vec![o.x, o.y, o.z]).unwrap_or_default()
     }
 
+    /// Øyet og retningen (grader) der du begynner, til filmens siste bilde.
+    pub fn spawn_eye(&self) -> Vec<f32> {
+        let (eye, yaw) = self.app.session.spawn_eye();
+        vec![eye.x, eye.y, eye.z, yaw.to_degrees()]
+    }
+
     /// Filmen er slutt: spillet tar over der kameraet står.
     pub fn film_end(&mut self) {
         self.app.command(Command::Film(None));

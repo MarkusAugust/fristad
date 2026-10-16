@@ -267,3 +267,10 @@ Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de
 - **Bildegeneratoren følger ikke alltid prompten** (tre vandrere i stedet for én, prosesjonen malt inn i bakgrunnen): se på hvert bilde og tilpass i `layers.py` (`FIT`, `WHOLE`) i stedet for å be om nye.
 - **Lag i full størrelse dekker hverandre.** Klipp mellomgrunnen og forgrunnen til innholdet og plasser dem som brøk av bildet; kameraet må ikke gå så langt innover at forgrunnen fyller bildet.
 - **To grafikkontekster samtidig** (spillet og filmen) fylte minnet i Chromium; spillet tegnes ikke mens filmen går.
+
+## 16. oktober: innbyggerne svarte i spillet, filmen som stillbilder
+
+- **`bake_textured(ao=False)` bakte AO likevel:** navnet `ao` ble overskrevet av AO-bildet, så `if ao:` alltid var sant. På skallene fra TRELLIS ble AO-en svart over halve figuren. Rettet (`occl`), og AO bakes ikke uten at den brukes. Lærdom: se på teksturen i den ferdige glb-fila og på figuren i spillet (`snapshot`), ikke bare på forhåndsvisningen fra Blender.
+- **Figuren så riktig ut i hvile, men ikke i bevegelse:** kjolen bak forkleet fikk andre bein enn forkleet og gikk gjennom det. Lag oppå hverandre må ha samme vekter (`layered_weights`). Sjekk figurene i en pose, ikke bare i hvile.
+- **Pakking etter at fargen er hentet** kan legge øyer oppå hverandre; pakk først, bak til samme øyer.
+- **Filmen:** eieren ville ha en sammenhengende bane gjennom maleriene, som planen sa (del 8), ikke scener som toner til svart. Les planen før noe bygges, og se på bevegelsen bilde for bilde.
