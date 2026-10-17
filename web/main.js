@@ -31,21 +31,29 @@ const beginBtn = $("begin");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
-// Grafikknivået: enkel (de svakeste maskinene og WebGL2: uten
-// kantutjevning, solskygge og glød, høyst 900p), standard (SMAA, opptil 1,5
-// piksler per CSS-piksel, høyst 1080p) eller avansert (lengre sikt, alle lys, SMAA,
-// opptil 1,5 piksler per CSS-piksel og 1440p). Valget huskes, og
-// grafikken byttes aldri av seg selv.
+// Grafikken: forhåndsvalgene enkel (de svakeste maskinene og WebGL2: uten
+// kantutjevning, solskygge og glød, høyst 900p), standard (myke skygger,
+// solstråler, SMAA, opptil 1,5 piksler per CSS-piksel, høyst 1080p) og
+// avansert (lengre sikt, skygge langt unna, skygge i krokene, alle lys,
+// opptil 1440p) setter bryterne i `ports::Quality`; hver bryter kan endres
+// for seg i grafikkdialogen (`openGraphics`). Valget huskes, og grafikken
+// byttes aldri av seg selv.
 const QUALITIES = ["enkel", "standard", "avansert"];
 const QUALITY_INFO = {
-  enkel: { cap: 900, dense: 1, note: "uten MSAA, solskygge og glød; for svake maskiner og WebGL2." },
-  standard: { cap: 1080, dense: 1.5, note: "kantutjevning med SMAA, kortere sikt. Laget for en vanlig maskin." },
-  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, alle lys, høyere oppløsning, kantutjevning med SMAA." },
+  enkel: { cap: 900, dense: 1, note: "uten solskygge, glød og kantutjevning; for svake maskiner og WebGL2." },
+  standard: { cap: 1080, dense: 1.5, note: "myke skygger, solstråler og SMAA, kortere sikt. Laget for en vanlig maskin." },
+  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, skygge langt unna og i krokene, alle lys, høyere oppløsning." },
 };
 let quality = null;
+// Har spilleren endret en bryter i grafikkdialogen, står bryterne her
+// (`fristad.graphics.custom`, med `scale` for oppløsningsskalaen), og
+// forhåndsvalget over er bare utgangspunktet og taket for oppløsningen.
+let custom = null;
 try {
   const q = localStorage.getItem("fristad.graphics");
   if (QUALITIES.includes(q)) quality = q;
+  const c = JSON.parse(localStorage.getItem("fristad.graphics.custom") || "null");
+  if (quality && c && typeof c === "object") custom = c;
 } catch {
   /* ingen lagring */
 }
@@ -91,7 +99,7 @@ function renderHeight() {
 // Målingen (`?bench`) kan tegne i en brøkdel av oppløsningen.
 let benchScale = 1;
 function fit() {
-  const h = Math.max(1, Math.round(renderHeight() * benchScale));
+  const h = Math.max(1, Math.round(renderHeight() * benchScale * (custom?.scale ?? 1)));
   const w = Math.max(1, Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight)));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
@@ -377,22 +385,73 @@ function stage(text) {
 let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
-// Byttes grafikken: motoren, oppløsningen og knappene.
+// Byttes grafikken: motoren, oppløsningen og knappene. Et forhåndsvalg
+// setter alle bryterne (de egendefinerte glemmes).
 function setQuality(name, chosen = true, announce = true) {
   quality = name;
   if (chosen) {
+    custom = null;
     try {
       localStorage.setItem("fristad.graphics", name);
+      localStorage.removeItem("fristad.graphics.custom");
     } catch {
       /* ingen lagring */
     }
   }
-  if (engine) engine.set_quality(name);
+  sendGraphics();
+  if (announce) toast?.show?.(`Grafikk: ${name} – ${QUALITY_INFO[name].note} G bytter nivå.`);
+}
+// Bryterne i et forhåndsvalg, fra motoren (verdiene står i `ports::Quality`).
+const presetCache = {};
+function presetOf(name) {
+  if (!presetCache[name] && engine?.quality_preset) {
+    try {
+      presetCache[name] = { ...JSON.parse(engine.quality_preset(name)), scale: 1 };
+    } catch {
+      /* eldre motor */
+    }
+  }
+  return presetCache[name];
+}
+// Bryterne slik de står nå (forhåndsvalget eller de egendefinerte).
+function currentGraphics() {
+  return custom ?? presetOf(quality ?? "standard");
+}
+// Egendefinerte brytere fra dialogen. Svarer de til et forhåndsvalg, er
+// det det forhåndsvalget igjen.
+function setCustom(values) {
+  const same = QUALITIES.find((q) => {
+    const p = presetOf(q);
+    return p && Object.keys(p).every((k) => Number(p[k]) === Number(values[k]));
+  });
+  if (same) {
+    setQuality(same, true, false);
+    return;
+  }
+  custom = values;
+  try {
+    localStorage.setItem("fristad.graphics", quality ?? "standard");
+    localStorage.setItem("fristad.graphics.custom", JSON.stringify(values));
+  } catch {
+    /* ingen lagring */
+  }
+  sendGraphics();
+}
+function graphicsName() {
+  return custom ? "egendefinert" : (quality ?? "standard");
+}
+function sendGraphics() {
+  if (engine) {
+    if (custom) {
+      const { scale, ...switches } = custom;
+      engine.set_quality(JSON.stringify({ preset: quality ?? "standard", ...switches }));
+    } else engine.set_quality(quality ?? "standard");
+  }
   slowSeconds = 0;
   fit();
+  const name = graphicsName();
   $("graphics").textContent = `Grafikk: ${name}`;
   $("graphics-label").textContent = name;
-  if (announce) toast?.show?.(`Grafikk: ${name} – ${QUALITY_INFO[name].note} G bytter nivå.`);
 }
 // Til nettlesertestene og eldre lenker: standard (`true`) eller avansert.
 function setGraphics(reduced, chosen = true, announce = true) {
@@ -968,7 +1027,9 @@ function openSettings() {
     <div class="fs-dialog__body">
       <fieldset class="fs-fieldset">
         <legend class="fs-legend">Grafikk</legend>
-        ${QUALITIES.map((q) => radio("gfx", q, q[0].toUpperCase() + q.slice(1), QUALITY_INFO[q].note, quality === q)).join("")}
+        ${QUALITIES.map((q) => radio("gfx", q, q[0].toUpperCase() + q.slice(1), QUALITY_INFO[q].note, !custom && quality === q)).join("")}
+        ${custom ? radio("gfx", "custom", "Egendefinert", `med ${quality} som utgangspunkt.`, true) : ""}
+        <p><button class="fs-button" data-variant="secondary" type="button" data-act="graphics">Avanserte grafikkinnstillinger …</button></p>
       </fieldset>
       <fieldset class="fs-fieldset">
         <legend class="fs-legend">Oppløsning</legend>
@@ -984,15 +1045,134 @@ function openSettings() {
   settingsOpen = dlg;
   dlg.addEventListener("change", (ev) => {
     const t = ev.target;
-    if (t.name === "gfx") setQuality(t.value);
+    if (t.name === "gfx" && t.value !== "custom") setQuality(t.value);
     if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
     dlg.querySelector(".fs-help-text:last-of-type").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
-    click();
+    sfx.play("click");
   });
   const close = () => {
     settingsOpen.close();
     settingsOpen.remove();
     settingsOpen = null;
+    if (wasPlaying) enter();
+    else if (!gateEl.hidden) enterBtn.focus();
+  };
+  dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dlg.querySelector('[data-act="graphics"]').addEventListener("click", () => {
+    settingsOpen.close();
+    settingsOpen.remove();
+    settingsOpen = null;
+    openGraphics(wasPlaying);
+  });
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close();
+  });
+  dlg.showModal();
+}
+
+// De avanserte grafikkinnstillingene (knappen «Grafikk» i pausemenyen, eller
+// fra Innstillinger): hver bryter for seg, med hva den koster. Forhåndsvalgene
+// setter bryterne; endres én, står det «Egendefinert». Ingenting byttes uten
+// at spilleren velger det. Kostnadene er målt på grafikkortet
+// (docs/kvalitet/ytelse.md).
+const GRAPHICS_ROWS = [
+  { key: "scale", label: "Oppløsningsskala", note: "andelen av oppløsningen som tegnes; resten skaleres opp.", options: [[0.5, "50 %"], [0.67, "67 %"], [0.75, "75 %"], [0.85, "85 %"], [1, "100 %"]] },
+  { key: "shadow", label: "Solskygge", note: "skyggene fra sola og månen." },
+  { key: "shadow_res", label: "Skyggeoppløsning", note: "skarpere skygger med større kart.", options: [[1024, "1024"], [2048, "2048"], [4096, "4096"]] },
+  { key: "soft_shadow", label: "Myke skygger", note: "tolv faste prøver langs kanten i stedet for fire, uten støy." },
+  { key: "far_shadow", label: "Skygge langt unna", note: "en kaskade til, ut til 110 m." },
+  { key: "ao", label: "Skygge i krokene", note: "mørkere i hjørner og under ting (bare WebGPU).", webgpu: true },
+  { key: "bloom", label: "Glød", note: "lys, ild og vinduer gløder." },
+  { key: "rays", label: "Solstråler", note: "lyset står i stråler rundt sola." },
+  { key: "smaa", label: "Kantutjevning (SMAA)", note: "glatte kanter uten uskarphet." },
+  { key: "grade", label: "Malt fargegradering", note: "varm by, kald kjeller og myk overgang mot hvitt." },
+  { key: "fog", label: "Avstandståke", note: "lufta mellom deg og det som er langt unna." },
+  { key: "far", label: "Sikt", note: "hvor langt unna modellene tegnes.", options: [[120, "120 m"], [160, "160 m"], [250, "250 m"], [0, "Hele verden"]] },
+  { key: "detail", label: "Småting langt unna", note: "småting og fin detalj også på avstand." },
+  { key: "lights", label: "Lys samtidig", note: "lykter, ild og vinduer som lyser opp rundt seg.", options: [[4, "4"], [8, "8"], [16, "16"], [48, "48"]] },
+  { key: "textures", label: "Full teksturtetthet", note: "av: ett mipnivå ned, halv tetthet." },
+  { key: "ground", label: "Blandet bakke", note: "brostein, jord og gress glir ujevnt over i hverandre." },
+  { key: "particles", label: "Røyk og nedbør", note: "røyk fra pipene, regn og snø." },
+];
+let graphicsOpen = null;
+function openGraphics(resume = playing) {
+  if (graphicsOpen) return;
+  const cur = currentGraphics();
+  // Før motoren er lastet finnes ikke bryterne ennå: da de vanlige innstillingene.
+  if (!cur) {
+    openSettings();
+    return;
+  }
+  const wasPlaying = resume;
+  playing = false;
+  dragging = false;
+  engine?.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const gl = engine?.backend() === "Gl";
+  const row = (r) => {
+    const id = `gfx-${r.key}`;
+    const off = r.webgpu && gl;
+    const note = `<span class="fs-help-text">${r.note}${off ? " Ikke i WebGL2." : ""}</span>`;
+    if (r.options) {
+      return `<div class="gfx-row"><label class="fs-label" for="${id}">${r.label}</label>
+        <select class="fs-select" id="${id}" data-key="${r.key}">${r.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select>${note}</div>`;
+    }
+    return `<div class="fs-switch-row gfx-row"><input class="fs-switch" type="checkbox" role="switch" id="${id}" data-key="${r.key}" ${off ? "disabled" : ""}>
+      <label class="fs-label" for="${id}">${r.label} ${note}</label></div>`;
+  };
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog graphics-dialog";
+  dlg.setAttribute("aria-labelledby", "graphics-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="graphics-title">Grafikk</h2>
+    <div class="fs-dialog__body">
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Forhåndsvalg</legend>
+        <div class="gfx-presets">
+          ${QUALITIES.map((q) => `<label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="${q}"><span>${q[0].toUpperCase() + q.slice(1)}</span></label>`).join("")}
+          <label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="custom" disabled><span>Egendefinert</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="fs-fieldset gfx-switches">
+        <legend class="fs-legend">Brytere</legend>
+        ${GRAPHICS_ROWS.map(row).join("")}
+      </fieldset>
+      <p class="fs-help-text gfx-now"></p>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  graphicsOpen = dlg;
+  const show = () => {
+    const v = currentGraphics();
+    for (const el of dlg.querySelectorAll("[data-key]")) {
+      const k = el.dataset.key;
+      if (el.type === "checkbox") el.checked = !!v[k] && !(el.disabled && k === "ao");
+      else el.value = String(v[k]);
+    }
+    for (const el of dlg.querySelectorAll('[name="gfx-preset"]')) el.checked = el.value === (custom ? "custom" : (quality ?? "standard"));
+    dlg.querySelector(".gfx-now").textContent = `Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
+  };
+  show();
+  dlg.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (t.name === "gfx-preset") {
+      if (t.value !== "custom") setQuality(t.value, true, false);
+    } else if (t.dataset.key) {
+      const v = { ...currentGraphics() };
+      // En bryter som ikke kan brukes her (skygge i krokene i WebGL2) beholder verdien.
+      for (const el of dlg.querySelectorAll("[data-key]")) if (!el.disabled) v[el.dataset.key] = el.type === "checkbox" ? el.checked : Number(el.value);
+      setCustom(v);
+    }
+    show();
+    sfx.play("click");
+  });
+  const close = () => {
+    graphicsOpen.close();
+    graphicsOpen.remove();
+    graphicsOpen = null;
     if (wasPlaying) enter();
     else if (!gateEl.hidden) enterBtn.focus();
   };
@@ -1446,7 +1626,7 @@ function bindInput() {
       toggleBigMap();
       return;
     }
-    if (e.code === "KeyG" && !e.repeat && (playing || !gateEl.hidden)) {
+    if (e.code === "KeyG" && !e.repeat && !graphicsOpen && (playing || !gateEl.hidden)) {
       setQuality(QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]);
       return;
     }
@@ -1456,7 +1636,7 @@ function bindInput() {
       else openSettings();
       return;
     }
-    if (settingsOpen) return;
+    if (settingsOpen || graphicsOpen) return;
     if (!playing) return;
     if (e.code === "Escape" && !locked()) {
       pause();
@@ -1473,7 +1653,7 @@ function bindInput() {
 
   $("close").addEventListener("click", () => closePanel(true));
   $("overlay-close").addEventListener("click", () => closeOverlay(true, true));
-  $("graphics").addEventListener("click", () => setQuality(QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]));
+  $("graphics").addEventListener("click", () => openGraphics());
   $("settings").addEventListener("click", () => openSettings());
 }
 
@@ -1628,6 +1808,12 @@ const BENCH_RUNS = [
   { q: "standard", what: "MSAA 4× i stedet for SMAA", msaa: 4 },
   { q: "standard", what: "flat farge", flat: true },
   { q: "standard", what: "halv oppløsning", scale: 0.5 },
+  // Grafikkbryterne (`gfx`, som i grafikkdialogen) én om gangen.
+  { q: "standard", what: "uten myke skygger", gfx: { soft_shadow: 0 } },
+  { q: "standard", what: "uten solstråler", gfx: { rays: 0 } },
+  { q: "standard", what: "med skygge i krokene", gfx: { ao: 1 } },
+  { q: "standard", what: "med skygge langt unna", gfx: { far_shadow: 1 } },
+  { q: "standard", what: "uten malt gradering", gfx: { grade: 0 } },
   { q: "enkel", what: "som i spillet" },
   { q: "avansert", what: "som i spillet (SMAA)" },
   { q: "avansert", what: "MSAA 8× i stedet for SMAA", msaa: 8 },
@@ -1658,6 +1844,9 @@ async function measure(seconds) {
 async function runBench() {
   if (benchRunning || !engine) return;
   benchRunning = true;
+  // Målingen bruker forhåndsvalgene; de egendefinerte bryterne settes til side.
+  const customBefore = custom;
+  custom = null;
   const before = quality;
   gateEl.hidden = true;
   engine.set_paused(false);
@@ -1672,7 +1861,8 @@ async function runBench() {
     for (const run of BENCH_RUNS) {
       if (name !== "torget" && run !== BENCH_RUNS[0] && run.q === "standard") continue;
       setQuality(run.q, false, false);
-      const { q, what, scale, ...flags } = run;
+      const { q, what, scale, gfx, ...flags } = run;
+      if (gfx) engine.set_quality(JSON.stringify({ preset: q, ...gfx }));
       engine.set_bench(JSON.stringify(flags));
       benchScale = scale ?? 1;
       fit();
@@ -1687,6 +1877,7 @@ async function runBench() {
   engine.set_bench("{}");
   benchScale = 1;
   fit();
+  custom = customBefore;
   setQuality(before ?? "standard", false, false);
   benchRunning = false;
   showBench(lines.join("\n"));

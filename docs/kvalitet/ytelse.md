@@ -41,3 +41,53 @@ Hovedpasset: 172k–266k trekanter og 61–79 kall (standard), 211k–311k og 65
 | Avansert med MSAA 8× | 34–38 ms, 42–47 fps | 54–62 ms, 30–34 fps |
 
 Standard tegnet bare 720p på Retina-skjermen (én piksel per CSS-piksel). Med god plass ble grensen hevet til 1,5 piksler per CSS-piksel, fortsatt høyst 1080p.
+
+## 17. oktober: grafikkbryterne og løftet mot den malte stilen
+
+Grafikken er nå én bryter per ting (`ports::Quality`), og enkel, standard og avansert er forhåndsvalg som setter dem. Nytt: myke skygger (tolv faste prøver), skyggeoppløsning, skygge langt unna (kaskade to til 110 m), skygge i krokene (halv oppløsning, bare WebGPU), solstråler, den malte tonemappingen med gradering etter sted og tid, og oppløsningsskala.
+
+| Bryter | Enkel | Standard | Avansert |
+|---|---|---|---|
+| Solskygge, oppløsning | av | 4096 | 4096 |
+| Myke skygger | av | på | på |
+| Skygge langt unna | av | av | på |
+| Skygge i krokene | av | av | på (ikke WebGL2) |
+| Glød, SMAA | av | på | på |
+| Solstråler | av | på | på |
+| Malt gradering, tåke, røyk og nedbør | på | på | på |
+| Sikt, lys | 160 m, 4 | 160 m, 8 | hele verden, 48 |
+| Teksturtetthet, blandet bakke | halv, av | full, på | full, på |
+
+Enkel har nå sollys uten skygge (før var sola av når skyggen var av, så enkel var lyst bare av himmelen).
+
+**Målt i skyen** (lavapipe, programvare på delt CPU, 1280 × 720, torget mot sola, minste av tre kjøringer). Tallene er ms per bilde på CPU og sier bare hva som koster mye i forhold til hverandre; delene varierte opptil 50 % mellom like kjøringer fordi andre jobber delte maskinen.
+
+| Kjøring | skygge | verden | etterbehandling |
+|---|---|---|---|
+| Standard | 307 | 526 | 188 |
+| Uten myke skygger | 209 | 289 | 126 |
+| Skygge 2048 | 202 | 528 | 227 |
+| Skygge langt unna | 490 | 384 | 180 |
+| Skygge i krokene | 233 | 372 | 223 |
+| Uten solstråler | 364 | 607 | 109 |
+| Gammel tonemapping | 237 | 353 | 155 |
+| Enkel | 0 | 446 | 28 |
+| Avansert | 635 | 754 | 229 |
+
+Det som tydelig koster: skygge langt unna (skyggepasset tegnes to ganger, rundt +60 %), solstrålene (24 oppslag i fullt HDR-bilde per piksel; den største delen av etterbehandlingen) og skygge i krokene (to pass i halv oppløsning). Trekanter og kall er uendret i standard (samme utvalg; tabellen fra `tools/stats.sh` under). Med skygge langt unna dobles kallene i skyggepasset.
+
+**Gjenstår på referansemaskinen:** `?bench` har fått kjøringer for hver ny bryter på torget (`gfx` i `BENCH_RUNS`): uten myke skygger, uten solstråler, med skygge i krokene, med skygge langt unna og uten malt gradering. Koster solstrålene eller de myke skyggene mer enn rundt 1 ms på M2 i standard, skal de av i standard; skygge i krokene skal av i standard om den koster mer enn 1,5 ms (den er av i standard nå).
+
+`tools/stats.sh` (standard, 960 × 540), likt før og etter:
+
+```
+posisjon       trek. alle     kall  trek. hoved    kall instanser
+sorporten         1235899      171       642663      89       276
+storgata          1285787      168       625887      89       296
+torget            1197379      168       497537      77       248
+vertshuset         912045      140       210015      49        66
+borghaugen        1031775      123       677310      82       291
+utenfor           1055712      146       652930      83       272
+oversikt           965695      128       693902      81       308
+kjelleren          174945       50       174945      50        88
+```
