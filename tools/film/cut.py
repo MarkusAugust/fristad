@@ -35,7 +35,7 @@ FILM = ROOT / "assets/film"
 SOUNDS = ROOT / "assets/sounds"
 FONTS = ROOT / "web/film/fonts"
 OUT = ROOT / "target/film"
-FPS = 25
+FPS = 24  # Veo-klippene er 24 bilder/s; 25 ga et dobbelt bilde hvert sekund og hakkete panoreringer
 CUT = 0.08  # et rett klipp er en overtoning på to bilder, så kjeden er lik hele veien
 
 STYLES = {
@@ -98,7 +98,9 @@ def segment(shot, extra, W, H, work):
         cin = shot.get("clip_in", 0.0)
         avail = max(cd - cin - 0.6, 1.0)  # Veo løser ofte slutten med en overtoning: den siste 0,6 s brukes ikke
         slow = max(1.0, dur / avail)
-        vf = f"trim=start={cin}:end={cin + min(avail, dur / slow) + 0.04},setpts=(PTS-STARTPTS)*{slow:.4f},scale={W}:{H}:flags=lanczos,{vf_tail}"
+        # Et saktet klipp får mellombilder regnet ut av bevegelsen (minterpolate), ikke doblede bilder.
+        interp = f"minterpolate=fps={FPS}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1," if slow > 1.01 else ""
+        vf = f"trim=start={cin}:end={cin + min(avail, dur / slow) + 0.04},setpts=(PTS-STARTPTS)*{slow:.4f},{interp}scale={W}:{H}:flags=lanczos,{vf_tail}"
         run(["-i", str(clip), "-an", "-vf", vf, "-t", f"{dur:.3f}", "-c:v", "libx264", "-preset", "fast", "-crf", "16", str(out)])
         source = "klipp" + (f" (saktet {slow:.2f}×)" if slow > 1.01 else "")
     else:
