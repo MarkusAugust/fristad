@@ -92,7 +92,7 @@ Innspilt 16. oktober (0–16, 19–24). **Nytt 17. oktober** (Gorvek i kanon): 1
 
 ## Tekstene i bildet
 
-Skrives bokstav for bokstav i takt med stemmen (`titles` i `tools/film/timeline.py`): **Omnia lingua Reactia.** / **Omnia una compage.** / **Nulla exceptio.** (replikk 7–9), **Inkvisisjonen** (10), **Gorvek** (17b), **Han kom aldri opp.** (20) og tittelkortet **Fristad · Anno 1350** til slutt. Skrift: overskrifter i UnifrakturMaguntia, latinen i Uncial Antiqua.
+Skrives bokstav for bokstav i takt med stemmen (`titles` i `tools/film/timeline.py`): **Omnia lingua Reactia.** / **Omnia una compage.** / **Nulla exceptio.** (replikk 7–9), **Inkvisisjonen** (10), **Gorvek** (17b), **Han kom aldri opp.** (20) og tittelkortet **Velkommen til Fristad** til slutt. Skrift: overskrifter i UnifrakturMaguntia, latinen i Uncial Antiqua.
 
 ## Tekstene (ordrett, den gamle three.js-utgaven)
 

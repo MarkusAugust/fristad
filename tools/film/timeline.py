@@ -52,7 +52,7 @@ SHOTS = [
     dict(name="20_doren_mures", t=(155.67, 158.65), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.45), (0.62, 0.6, 0.42)), enter=("mix", 0.8), grade="night", amb=["loop_wind"], voice=[(21, 155.82)], titles=[("heading", "Han kom aldri opp.", 155.82, 159.25, 1.19)]),
     dict(name="21_jorda", t=(158.65, 164.17), clip="21_jorda", still="intro/jordlag.webp", move=((0.5, 0.36, 0.62), (0.5, 0.74, 0.62)), enter=("mix", 1.0), grade="crypt", amb=["loop_drips"], voice=[(22, 158.8)]),
     dict(name="22_det_som_sover", t=(164.17, 174.99), clip="22_det_som_sover", still="shots/22_det_som_sover.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.6, 0.62)), enter=("mix", 0.8), grade="crypt", amb=["loop_cave", "loop_drips"], voice=[(23, 164.32), (24, 169.7)]),
-    dict(name="23_veien", t=(174.99, 189.2), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(25, 175.14), (26, 182.36)], titles=[("title", "Fristad · Anno 1350", 184.2, 189.2, 2.0)]),
+    dict(name="23_veien", t=(174.99, 189.2), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(25, 175.14), (26, 182.36)], titles=[("title", "Velkommen til Fristad", 184.2, 189.2, 2.0)]),
 ]
 
 END = 189.2
