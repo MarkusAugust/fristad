@@ -155,6 +155,16 @@ Hand-painted stylized fantasy illustration in the style of painted game concept 
 Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. A cross-section straight down through the earth under a churchyard: at the very top a thin strip of grass with gravestones and mist against a dark sky, then dark soil with roots, stones and old bones, then at the bottom a stone vault of an underground crypt corridor seen from the side with a single torch burning, and faint magenta light glowing from a crack deeper down. Cool blue above, warm torchlight and magenta below, dark and quiet. No people.
 ```
 
+### 17a_gorvek_kommer (ny, før 17b; ingen B)
+
+Gorvek kommer til byen i regnet med øksa over skulderen, slik fortelleren sier; 17b er selve hugget. Samme Gorvek som i 17b.
+
+```
+Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. A narrow medieval town street at night in pouring rain, seen from low and slightly behind: a lone warrior walks away from the camera toward the town square, a mountain of a man far larger than any normal human, bare scarred arms, soaked wild hair and beard, fur and leather, an enormous two-handed battle axe resting over his shoulder, his head down, not looking up. Townspeople cower in doorways and behind shutters as he passes. Ahead of him, filling the end of the street and rising above the rooftops, a colossal living creature made of iron frames, chains and glowing magenta square grids, torn pages stuck in its joints, a crown of iron on its head, lit by a lightning bolt. Magenta light reflected in the wet cobblestones, cold blue storm light, warm orange from one burning stall. Ominous, mythic, like a saga illustration.
+```
+
+Veo: *Slow push-in following the warrior from behind. Rain streaks down, lightning flashes once and lights the creature at the end of the street, its grids pulse magenta, water runs between the cobblestones, the warrior walks slowly and steadily forward without looking up.*
+
 ### 17b_gorvek (ny, etter 17; ingen B)
 
 Bruk bildet fra 17 som referansebilde om generatoren tar imot det, så skapningen blir den samme.
