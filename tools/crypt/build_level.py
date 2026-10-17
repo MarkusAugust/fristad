@@ -481,7 +481,15 @@ def pillar_top(r, x, z, size):
     """Toppen av en søyle under tønnehvelvet: kapitélet når gjordbuen over
     den på den høyeste kanten og går inn i hvelvet på den laveste (eieren 13.
     oktober: «stopper søyler midt i luften?»; de stoppet ved vederlaget, 2 m
-    under hvelvet). Stopper bygget om søylen ikke bærer noe."""
+    under hvelvet). Stopper bygget om søylen ikke bærer noe. Under et
+    krysshvelv (`r.groin`, nesten kvadratiske rom) er høyden over et punkt
+    h(min(|tx|, |tz|)), og søylen går opp til det høyeste av hjørnene sine."""
+    if not hasattr(r, "vault") and hasattr(r, "groin"):
+        cx, cz, a, b, R, S = r.groin
+        half = (size + 0.36) / 2
+        h = lambda px, pz: S + R * math.sqrt(max(0.0, 1 - min(abs(px - cx) / a, abs(pz - cz) / b) ** 2))
+        corners = [h(x + dx, z + dz) for dx in (-half, half) for dz in (-half, half)]
+        return max(corners) - 0.02
     axis, cw = r.vault[0], r.vault[1]
     half = (size + 0.36) / 2
     off = abs((z if axis == "x" else x) - cw)
@@ -744,6 +752,7 @@ class Level:
         if flat:
             grid_face(mb, Horizontal(top, up=False), r.poly.difference(r.flat), self.vault_mat(r))
         elif square:
+            r.groin = ((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, span_x / 2, span_z / 2, R, top)
             K.groin_bay(mb, r.x0, r.x1, r.z0, r.z1, top, R, mat=self.vault_mat(r))
             K.groin_ribs(mb, r.x0, r.x1, r.z0, r.z1, top, R)
         elif along_x:

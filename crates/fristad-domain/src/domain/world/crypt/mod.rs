@@ -103,9 +103,10 @@ pub const KIT_WATER: &str = "kit_water";
 pub const BRIDGE_W: f32 = 3.6;
 pub const BRIDGE_L: f32 = 8.0;
 /// Pynten merket `prop` kan sette ut (modellnavnet i `label`).
-pub const PROPS: &[&str] = &["kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal", "kit_banner", "kit_armor"];
-/// Pynten som henger på muren eller i taket (ikke på gulvet): settes ut med `place_mounted`.
-pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner"];
+pub const PROPS: &[&str] = &["kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal", "kit_banner", "kit_armor", "kit_statue", "kit_rack", "kit_throne", "kit_chandelier"];
+/// Pynten som henger på muren eller i taket, eller står oppå noe (tronen på
+/// forhøyningen), ikke på gulvet: settes ut med `place_mounted`.
+pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner", "kit_chandelier", "kit_throne"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;

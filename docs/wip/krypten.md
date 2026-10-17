@@ -185,3 +185,26 @@ Utlegget `tools/crypt/layouts/layout_07.py` etter planen `levels/level_07.py`. F
 - Ingen egne teksturer for borgen (kryptens stein; berget i hvelvet over bredden og grava).
 - Lærdom: enden av en gang inn i et rundt rom skal ligge 0,4 m **innenfor** sirkelen, målt mot sentrum (`c ± (r − 0,4)`); med fortegnet feil vei står gangmuren 0,4 m utenfor tårnmuren, og det blir en 0,5 m åpen spalte ved hver dørvange (21 hull i tetthetssjekken). Hjørnene mellom to balkonger langs hver sin mur er ikke én flate av seg selv: `terrace` trekker rekkverksbåndet fra langs hele fronten, så uten `gaps` i hjørnet og en flate som syr dem sammen, henger bare den hylla en gang treffer med i nettet (33 polygoner tatt bort).
 - Lyset: faklene tredoblet og fyll-lysene doblet før push (17. oktober), likevel er borggården og vinsjrommet nesten svarte i `snapshot` (bare lykta synes); de andre rommene synes. Bør ses på sammen med lysmasken (`Crypt::light_mask`): gården er delt i hyller og gulv, og faklene ligger kanskje i et annet rom enn der kameraet står.
+
+## 17. oktober (hjelper): nivå 8, Ridderhallen
+
+Utlegget `tools/crypt/layouts/layout_08.py` etter planen `levels/level_08.py`. Andre nivå i temaet «Borgen under jorda»: **forhallen** (start, døra opp, rustninger og faner, Ridderløftet på vestmuren) → **våpenkammeret** (våpenstativer, kista, rustflekkene: den falske veggen til **smedkammeret** med Smedens bok og + utholdenhet) → **pendelgangen** (statuer i nisjer og to pendler) eller **vaktgangen** rundt dem → **søylesalen** (krysshvelv, to rader søyler, rytterstatuer, galleri langs begge langmurene med bueskyttere, hjulkroner) → **ridderkapellet** (alteret og hvilestedet) → **Det runde bord** (steinbordet, tolv statuer der tre er spaker som åpner veggen fra galleriet inn til **skattkammeret** med Avatar) → **gildehallen** (lange bord, kar, spillemannsgalleri med trapp langs østmuren, bakholdet; lemmen under karet ned i **vinkjelleren** med kjellermesterens regnskap og kjellergangen til stigen opp i forværelset) → **forværelset** (spaken heiser gitteret mot søylesalen: snarveien til kapellet) → **tronsalen** bak arenaporten (forhøyningen med tronen, søyler med lenker, Navbaren) → døra bak tronen (åpnes når bossen faller) → nedgangen til nivå 9. 49 600 trekanter i 37 biter (52 600 med mekanismene i tetthetssjekken), 542 kollidere, 2 734 nav-polygoner, 96 lys; 0 hull i tetthetssjekken (4 403 punkter, også mot de eksporterte bitene).
+
+### Nytt (felles kode)
+- **Søyler under krysshvelv**: nesten kvadratiske rom får krysshvelv, og `pillar_top` i `build_level.py` kunne bare tønnehvelv (`r.vault`). Rommet husker nå hvelvet (`r.groin`), og søylen går opp til det høyeste av hjørnene sine under det.
+- **Byggesettet `tools/crypt/kit_castle.py`**: `kit_statue` (ridder på sokkel, 2,9 m), `kit_rack` (våpenstativ), `kit_throne` og `kit_chandelier` (hjulkrone, 3,1 m fra kroken). De står i `PROPS` i `crypt/mod.rs`; uten det ble de aldri satt ut (motoren melder «ukjent pynt» bare i loggen). Hjulkrona og tronen (som står på forhøyningen, ikke på gulvet) er `MOUNTED_PROPS`.
+
+### Byttet ut og ikke gjort
+- Planens fiender: **Card → button**, **Tabs → accordion**, **bueskytterne → breadcrumb** (de skyter ikke), **Navbaren → modal** som boss (`boss` på merket, arenaporten slår igjen bak deg til den faller). Lenkene som drar deg mot bossen og søylene du kan bryte, finnes ikke.
+- Pendlene er `rocks`-trykkplater uten virkning; statuene og pendlene svinger ikke. Den tredje pendelen over døra til tronsalen er ikke satt ut.
+- Taket i de høye salene (Det runde bord, tronsalen) er mørkt over lysene, som i borggården i nivå 7.
+- Ingen egne teksturer for borgen.
+
+### Lærdom
+- **Merkene og lysene står i `assets/layout/crypt_NN.json`** når fila finnes, så en endring i `marks()` eller `L.light`/`L.prop` i utlegget når ikke spillet før nivået bygges med `FRISTAD_MARKS=skriv` (og `cargo run --bin layout` for fast form). Kolliderne og geometrien bygges alltid fra utlegget, så de kan komme ut av takt med merkene.
+- **`snapshot` har modellene bygd inn**: etter `--export` må binæren bygges på nytt før `--leak-scan`, ellers viser den de gamle bitene.
+- **Gangen inn i et rom med flatt tak**: buen i åpningen når `SPRING + bredde/2` over gulvet (3,2 m for en gang på 2 m). Var taket i rommet lavere (vinkjelleren hadde 3,0 m), sto det en spalte over gangen ut i ingenting, synlig fra hele gangen (`--leak-scan`, opptil 200 piksler). Rommet må være høyere enn buen.
+- **Benker og hvilestedet stengte kapellet**: hindringene rundt en benkerad og rundt hvilestedet lå 5 cm fra hverandre, og halve kapellet falt ut av nettet. Det samme i gildehallen, der foten av galleritrappa lå i en 0,55 m stripe mot muren med et kar i; trappa er kortere nå, og karet er flyttet.
+- **Faner over døråpninger**: kollideren under fanen (1,6–3,6 m over gulvet) stoppet boten i døra til våpenkammeret. Faner henger ikke over åpninger.
+- **Sprekken** (`hint` «crack») står 2 cm foran muren med murens `yaw`, ved siden av den falske veggen, ikke midt i rommet (ellers har den ingen kollider å stå mot).
+- `cargo test --release gjennomspilling -- --ignored` går gjennom nivå 1–8 (spakene ved statuene, gitterspaken, Navbaren og trappa ned), 51 s.
