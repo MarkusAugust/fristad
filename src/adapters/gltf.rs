@@ -236,7 +236,7 @@ pub struct Caps {
 
 /// Leser bare målene og beholder fila kodet; `pixels` pakker den ut når
 /// rendereren trenger den.
-fn decode(bytes: &[u8], cap: u32) -> Option<Image> {
+pub fn encoded(bytes: &[u8], cap: u32) -> Option<Image> {
     let (w, h) = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?.into_dimensions().ok()?;
     let (w, h) = capped(w, h, cap);
     Some(Image { width: w, height: h, rgba: vec![], encoded: bytes.to_vec() })
@@ -292,10 +292,10 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
     }
     let image = |t: Option<gltf::Texture>, cap: u32| -> Option<Image> {
         match t?.source().source() {
-            gltf::image::Source::Uri { uri, .. } => decode(get(uri).ok()?, cap),
+            gltf::image::Source::Uri { uri, .. } => encoded(get(uri).ok()?, cap),
             gltf::image::Source::View { view, .. } => {
                 let b = &buffers[view.buffer().index()];
-                decode(&b[view.offset()..view.offset() + view.length()], cap)
+                encoded(&b[view.offset()..view.offset() + view.length()], cap)
             }
         }
     };
