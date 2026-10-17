@@ -29,24 +29,72 @@ Eieren 16. oktober, etter første versjon: «munkene flyr i luften her, og kjøp
 
 **Akt II: Kongens bud (35–85 s).** I hovedstaden satt et råd som aldri hadde holdt en fjærpenn. De skrev sin egen bok: Den kongelige komponentboken, låst med lenker og full av rådets regler. Kongen gjorde den til lov, og alt skulle skrives på hoffets tunge, reaktisk. Inkvisisjonen dro fra by til by, brente mønsterbøkene og spente hver komponent fast i rammeverket med rådets forretningsregler stemplet på. Skriverne måtte lære seg å skrive rundt boka i stedet for med den: omvei på omvei, lapp på lapp, natt etter natt.
 
-**Akt III: Bruddet (85–125 s).** Boka vokste og ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv. Gorvek kom gjennom regnet med øksa og hogg der leddene satt: det kunne ikke dø, men det kunne deles. Munkene i Fristad lokket skapningene ned i krypten under kirka med lykter og sanger, Gorveks menn bar delene etter dem, og de murte igjen. Mester Ansgar gikk sist, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
+**Akt III: Bruddet (85–142 s).** Boka vokste og ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv. Gorvek kom gjennom regnet med øksa og hogg der leddene satt: det kunne ikke dø, men det kunne deles. Munkene i Fristad lokket skapningene ned i krypten under kirka med lykter og sanger, Gorveks menn bar delene etter dem, og de murte igjen. Mester Ansgar gikk sist, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
 
-**Akt IV: Nå (125–150 s).** Generasjoner senere er bare ryktene igjen. Nede i mørket rører det seg, og rammeverket har begynt å våkne. Fristad, anno 1350: en fremmed kommer til porten, og bildet toner over i spillet.
+**Akt IV: Nå (142–168 s).** Generasjoner senere er bare ryktene igjen. Nede i mørket sover hjertet, den delen Gorvek ikke fikk delt, og det som ble delt har hatt lang tid på å finne sammen. Fristad, anno 1350: en fremmed kommer til porten, og bildet toner over i spillet.
 
-| Scene | Tid (s) | Maleriet | Utklippene (foran) | Overgang inn |
-|---|---|---|---|---|
-| 1. Riket | 0–13 | Himmel og to bånd med åser | – | Svart |
-| 2. Mønsterboka | 13–35 | Skriptoriet utenfra, så gullalderen inne | Mester Ansgar med boka | Sidelengs til fasaden, inn gjennom vinduet |
-| 3. Rådet | 35–49 | Rådssalen | Rådet ved bordet, kjøpmennene, den lenkede komponentboken | Sidelengs |
-| 4. Budet | 49–62 | Torget | Herolden på podiet, folkemengden | Sidelengs |
-| 5. Inkvisisjonen | 62–76 | Skriptoriet om kvelden | Inkvisitorene, bålet, komponenten i rammen | Sidelengs |
-| 6. Omveiene | 76–89 | Skriptoriet om natta | De tre slitne skriverne | Sidelengs |
-| 7. Bruddet | 89–104 | Samme rom i forfall, så byen i uvær | Bøkene som brister, blekket; Rammeverket foran byen | Glitch på stedet, så lyn |
-| 8. Forseglingen | 104–124 | Kirkegården med kryptdøra | Munkene som lokker skapningene, Ansgar bakerst | Sidelengs |
-| 9. Krypten i dag | 124–140 | Jordlaget under kirkegården, så kryptgangen | Rammeverket som sover, hodeskallen | Ned gjennom jorda, så svart |
-| 10. Fristad, anno 1350 | 140–155 | Veien til sørporten | Den fremmede, veiskiltet | Svart; toner over i spillet |
+| Klipp | Tid (s) | Bildet | Fortelleren |
+|---|---|---|---|
+| 00 Døra | 0–8 | Kryptdøra på kirkegården, natt | 0–1 |
+| 01 Riket | 8–18 | Åsene med byene i morgenlys (Veo) | 2 |
+| 04 Skriptoriet inne | 18–26 | Gullalderen i Skriptoriet | 3 |
+| 05 Ansgar | 26–32 | Mester Ansgar med boka | 4 |
+| 06 Rådssalen | 32–43 | Rådssalen | 5 |
+| 07 Rådet | 43–50 | Rådet og Kontoret ved bordet | 6 |
+| 08 Komponentboken | 50–60 | Den lenkede boka; latinen skrives | 7–9 |
+| 11 Inkvisisjonen | 60–68 | Bålet og inkvisitorene | 10 |
+| 13 I rammen | 68–74 | Komponenten spent fast | 11 |
+| 14 Natta | 74–86 | De slitne skriverne | 12 |
+| 15 Tyngre | 86–88 | Boka igjen, tyngre | 13 |
+| 16 Bruddet | 88–95 | Rommet i forfall, glitch | 14–15 |
+| 17 Rammeverket | 95–106 | Rammeverket reiser seg over byen i uvær (Veo) | 16 |
+| 17b Gorvek | 106–120 | Gorvek hogger i leddene på torget (nytt bilde) | 17, 17b |
+| 18b Delene | 120–132 | Prosesjonen med lykter og sleder mot kryptdøra (nytt bilde) | 18 |
+| 18 Kirkegården | 132–138 | Munkene ved døra, Ansgar sist (Veo) | 19 |
+| 20 Døra mures | 138–142 | Kryptdøra | 20 |
+| 21 Jorda | 142–147 | Ned gjennom jordlagene | 21 |
+| 22 Det som sover | 147–154 | Hjertet i krypten, delene rundt (nytt bilde) | 22, 22b |
+| 23 Veien | 154–168 | Veien sørfra til porten i morgenlys | 23–24 |
 
-## Tekstene (ordrett)
+Tidene fra 17b og utover er anslag til de nye replikkene er spilt inn; `tools/film/timeline.py` er fasit.
+
+## Fortellerstemmen (ordrett)
+
+Innspilt 16. oktober (0–16, 19–24). **Nytt 17. oktober** (Gorvek i kanon): 17 og 18 spilles inn på nytt, 17b og 22b er nye.
+
+0. Spør noen i Fristad hva som ligger under kirka, og de skifter emne.
+1. Jeg skal fortelle deg det likevel.
+2. Før var riket fullt av byer, og ingen av dem talte likt. Men de delte én bok. En mønsterbok.
+3. Du åpnet den, tok det du trengte og lot resten ligge. Den ba ikke om noe. Den sto aldri i veien.
+4. Her holdt mester Ansgar den. Han sa at en god bok kjennes på det den lar deg slippe.
+5. I hovedstaden satt Rådet. Menn som aldri hadde holdt en fjærpenn. Ved siden av dem Kontoret, som visste hva alt kostet.
+6. De så ut over riket og fant bare uorden. Så skrev de en bok selv. Tung som en kiste. Lenket som en fange. Kongen satte segl på den.
+7. Omnia lingua Reactia. Alt på hoffets tunge.
+8. Omnia una compage. Alt med ett rammeverk.
+9. Nulla exceptio. Ingen avvik.
+10. Inkvisisjonen kom i skumringen. Mønsterbøkene brant på torgene. Hver komponent ble spent fast i rammeverket.
+11. En knapp kunne ikke lenger bare være en knapp. Den måtte spørre om lov.
+12. Skriverne gjorde det skrivere gjør. De skrev rundt. Omvei på omvei. Lapp på lapp. Til ingen husket hva boka hadde sagt fra først av.
+13. Og boka ble tyngre.
+14. Så kom den store oppgraderingen.
+15. Én natt. Alt som var bygd, brakk. Komponentene vred seg løs fra sidene og ble til noe som krøp.
+16. Og over dem reiste rammeverket seg selv, høyere enn kirketårnet, og så seg om etter mer å holde.
+17. **(ny)** Ingenting spurte om lov lenger. Men én hadde aldri spurt.
+17b. **(ny)** Gorvek. De sier han kom gående gjennom regnet med øksa over skulderen, og at han ikke så opp. Han hogg der leddene satt. Natta gjennom. Det kunne ikke dø. Men det kunne deles.
+18. **(ny)** Munkene her gikk ut med lykter og sang og lokket skapningene ned i krypten under kirka. Gorveks menn bar delene etter dem. Én etter én.
+19. Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
+20. Han kom aldri opp.
+21. Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
+22. Men i vinter så klokkeren lys under kryptdøra. Ingen hadde tent det.
+22b. **(ny)** Og det som ble delt, har hatt lang tid på å finne sammen.
+23. Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han kommer fra.
+24. Det er deg.
+
+## Tekstene i bildet
+
+Skrives bokstav for bokstav i takt med stemmen (`titles` i `tools/film/timeline.py`): **Omnia lingua Reactia.** / **Omnia una compage.** / **Nulla exceptio.** (replikk 7–9), **Inkvisisjonen** (10), **Gorvek** (17b), **Han kom aldri opp.** (20) og tittelkortet **Fristad · Anno 1350** til slutt. Skrift: overskrifter i UnifrakturMaguntia, latinen i Uncial Antiqua.
+
+## Tekstene (ordrett, den gamle three.js-utgaven)
 
 Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/opening.json`), og kommer ord for ord. Skrift: overskrifter i UnifrakturMaguntia, fortellingen i Uncial Antiqua. **Uthevet** er overskrift eller sitat.
 
