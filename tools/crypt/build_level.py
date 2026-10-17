@@ -742,19 +742,19 @@ class Level:
             self.wall_box((a3[0], a3[2]), (b3[0], b3[2]), fy - 0.5, top + R + 0.5, out)
         # Hvelvet (eller et flatt tak med hull for sjakta).
         if flat:
-            grid_face(mb, Horizontal(top, up=False), r.poly.difference(r.flat), "vault")
+            grid_face(mb, Horizontal(top, up=False), r.poly.difference(r.flat), self.vault_mat(r))
         elif square:
-            K.groin_bay(mb, r.x0, r.x1, r.z0, r.z1, top, R, mat="vault")
+            K.groin_bay(mb, r.x0, r.x1, r.z0, r.z1, top, R, mat=self.vault_mat(r))
             K.groin_ribs(mb, r.x0, r.x1, r.z0, r.z1, top, R)
         elif along_x:
             cz = (r.z0 + r.z1) / 2
-            K.barrel(mb, "x", r.x0, span_x, cz, top, R, a, mat="vault", step=cell)
+            K.barrel(mb, "x", r.x0, span_x, cz, top, R, a, mat=self.vault_mat(r), step=cell)
             nb = max(1, round(span_x / 4))
             for k in range(1, nb):
                 K.barrel_rib(mb, "x", r.x0 + span_x * k / nb, cz, top, R, a)
         else:
             cx = (r.x0 + r.x1) / 2
-            K.barrel(mb, "z", r.z0, span_z, cx, top, R, a, mat="vault", step=cell)
+            K.barrel(mb, "z", r.z0, span_z, cx, top, R, a, mat=self.vault_mat(r), step=cell)
             nb = max(1, round(span_z / 4))
             for zr in getattr(r, "ribs", None) or [r.z0 + span_z * k / nb for k in range(1, nb)]:
                 K.barrel_rib(mb, "z", zr, cx, top, R, a)
@@ -769,7 +769,7 @@ class Level:
         mb = self.mb
         top = r.y + r.h
         floor = r.poly.difference(unary_union(r.holes)) if r.holes else r.poly
-        grid_face(mb, Horizontal(r.y), floor, "slab" if r.id in self.lay.get("slab", ()) else "floor")
+        grid_face(mb, Horizontal(r.y), floor, getattr(r, "floor_mat", "slab" if r.id in self.lay.get("slab", ()) else "floor"))
         for piece in K._pieces(floor):
             self.floor_collider(piece, r.y)
         n = len(r.pts)
@@ -823,7 +823,7 @@ class Level:
                         pts = pts[:3]
                     uvs = [(p[0], p[2]) for p in pts]
                     cen = lerp3(pts[0], pts[2], 0.5)
-                    mb.poly(pts, uvs, "vault", facing=(c[0] - cen[0], top - 3.0 - cen[1], c[1] - cen[2]), smooth=True)
+                    mb.poly(pts, uvs, self.vault_mat(r), facing=(c[0] - cen[0], top - 3.0 - cen[1], c[1] - cen[2]), smooth=True)
             # Ribba langs graten fra hjørnet pa inn til midten, på en konsoll.
             path = [P(0.0, t) for t in ts]
             K.band(mb, path, 0.24, 0.17, down=lambda p: (c[0] - p[0], top - 3.0 - p[1], c[1] - p[2]))
@@ -1121,6 +1121,10 @@ class Level:
 
     def wall_mat(self, r):
         return self.lay.get("wall_mats", {}).get(r.id, "wall")
+
+    def vault_mat(self, r):
+        """Hvelvet (eller berget over) i rommet: `vault_mats` i utlegget, ellers murt hvelv."""
+        return self.lay.get("vault_mats", {}).get(r.id, "vault")
 
     def floor_collider(self, poly, y):
         """Gulvet som bokser (rektangler) eller konvekse omhyllinger."""
@@ -1420,9 +1424,15 @@ class Level:
         # Muren med åpningene (og beinhusteksturen og hyllene).
         # Skjøten i muren (u = 0) legges bort fra dørene: en dør over skjøten
         # ble bare halvveis hogd ut, og murkolliderne sto i den.
-        seam = 0.0
-        if any(min(abs(ang % (2 * math.pi)), 2 * math.pi - abs(ang % (2 * math.pi))) < (w / 2 + 0.5) / R for (_, ang, w, _, _, _) in r.doors):
-            seam = math.pi
+        # Skjøten legges der ingen dør er: første kandidat (0, 180°, 90°, 270°, 45° …) som
+        # ligger lenger enn en halv dørbredde + 0,5 m fra alle dørene (vindeltrappa i nivå 6
+        # har dører både ved 0 og 180°, så bare å snu skjøten holdt ikke).
+        def clear(cand):
+            return all(min(abs((ang - cand) % (2 * math.pi)), 2 * math.pi - abs((ang - cand) % (2 * math.pi))) >= (w / 2 + 0.5) / R for (_, ang, w, _, _, _) in r.doors)
+        # `round_seam_free` i utlegget (nivå 6 og videre); de eldre nivåene beholder
+        # 0 eller 180°, så bitene deres ikke må eksporteres på nytt.
+        candidates = [0.0, math.pi, math.pi / 2, 3 * math.pi / 2, math.pi / 4, 3 * math.pi / 4, 5 * math.pi / 4, 7 * math.pi / 4] if self.lay.get("round_seam_free") else [0.0, math.pi]
+        seam = next((cand for cand in candidates if clear(cand)), math.pi if not clear(0.0) else 0.0)
         cyl = Cyl(c, R, a0=seam, inward=True)
         circ = 2 * math.pi * R
         openings, cuts = [], []
@@ -1478,7 +1488,7 @@ class Level:
             else:
                 self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), r.y - 0.5, top + 4.5, out)
         # Kuppelen.
-        hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat="vault", rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
+        hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat=self.vault_mat(r), rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
         K.dome_ribs(mb, c, R, hfn, count=spec.get("ribs", 12))
         ring_pts = lambda q, aa, ab, n: [(c[0] + q * math.cos(aa + (ab - aa) * k / n), c[1] + q * math.sin(aa + (ab - aa) * k / n)) for k in range(n + 1)]
         if gal:

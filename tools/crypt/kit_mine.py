@@ -49,6 +49,45 @@ def hex_prism(m, base, tip, r, mat, taper=0.35):
         m.tri(dd, cc, tip, mat, facing=mid, uv=[(0, 0), (r, 0), (r * 0.5, L - body)])
 
 
+def cone(m, c, r, y0, y1, mat="rock", n=8, seed=0):
+    """En kjegle av berg fra ringen (radius r ved y0) til spissen ved y1:
+    stalagmitt (y1 > y0) eller dryppstein fra taket (y1 < y0). Litt ujevn."""
+    import random
+
+    rng = random.Random(seed)
+    ring = []
+    for k in range(n):
+        a = 2 * math.pi * k / n
+        rr = r * (0.8 + 0.4 * rng.random())
+        ring.append((c[0] + rr * math.cos(a), y0, c[1] + rr * math.sin(a)))
+    tip = (c[0] + (rng.random() - 0.5) * 0.3 * r, y1, c[1] + (rng.random() - 0.5) * 0.3 * r)
+    up = y1 > y0
+    for k in range(n):
+        a, b = ring[k], ring[(k + 1) % n]
+        mid = ((a[0] + b[0]) / 2 - c[0], 0.0, (a[2] + b[2]) / 2 - c[1])
+        if up:
+            m.tri(a, b, tip, mat, facing=mid, uv=[(0, 0), (r, 0), (r * 0.5, abs(y1 - y0))])
+        else:
+            m.tri(b, a, tip, mat, facing=mid, uv=[(0, 0), (r, 0), (r * 0.5, abs(y1 - y0))])
+
+
+def spire(m, base, h, r, mat="magic_crystal", lean=(0.0, 0.0), seed=0):
+    """Ett stort krystallspir (sekskantet prisme) fra `base`, `h` høyt, med
+    noen mindre krystaller rundt foten. `lean` (dx, dz) per meter høyde."""
+    import random
+
+    rng = random.Random(seed)
+    tip = (base[0] + lean[0] * h, base[1] + h, base[2] + lean[1] * h)
+    hex_prism(m, base, tip, r, mat)
+    for k in range(5):
+        a = 2 * math.pi * k / 5 + rng.random() * 0.6
+        rr = r * (0.9 + 0.6 * rng.random())
+        b = (base[0] + rr * math.cos(a), base[1], base[2] + rr * math.sin(a))
+        hh = h * (0.2 + 0.25 * rng.random())
+        t = (b[0] + 0.3 * hh * math.cos(a), b[1] + hh, b[2] + 0.3 * hh * math.sin(a))
+        hex_prism(m, b, t, r * (0.3 + 0.2 * rng.random()), mat)
+
+
 def kit_strut(w=3.5, h=2.9, post=0.28):
     """Tømmerstiver i stollen: to stolper og en overligger av grovt tømmer,
     med kiler mellom overliggeren og taket, og to skråband."""
