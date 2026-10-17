@@ -237,10 +237,17 @@ Skriverne gjorde det skrivere gjør. De skrev rundt. Omvei på omvei. Lapp på l
 [short, hard sentences]
 Én natt. Alt som var bygd, brakk. Komponentene vred seg løs fra sidene og ble til noe som krøp. [rising] Og over dem reiste rammeverket seg selv, høyere enn kirketårnet, og så seg om etter mer å holde.
 
-[pause] Ingenting spurte om lov lenger.
+[pause] Ingenting spurte om lov lenger. [pause] [lower, slower] Men én hadde aldri spurt.
+
+[long pause] [low, almost a growl, with awe] Gorvek.
+
+[slow, heavy, like telling a saga]
+De sier han kom gående gjennom regnet med øksa over skulderen, og at han ikke så opp. [pause] Han hogg der leddene satt. [pause] Natta gjennom. [pause] [quiet, hard] Det kunne ikke dø. [pause] Men det kunne deles.
 
 [hushed, reverent]
-Munkene her gikk ut med lykter og sang, og lokket skapningene ned i krypten under kirka. Én etter én. Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
+Munkene her gikk ut med lykter og sang, og lokket skapningene ned i krypten under kirka. [pause] Gorveks menn bar delene etter dem. [slow] Én etter én.
+
+Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
 
 [long pause] [very quiet] Han kom aldri opp.
 
@@ -249,10 +256,12 @@ Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
 
 [pause] [lowered voice] Men i vinter så klokkeren lys under kryptdøra. [pause] Ingen hadde tent det.
 
+[pause] [very low, slow, ominous] Og det som ble delt, [pause] har hatt lang tid på å finne sammen.
+
 [pause] [gentle, open]
 Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han kommer fra.
 
 [long pause] [quiet, direct] Det er deg.
 ```
 
-Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust).
+Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust). **17. oktober:** bare avsnittene fra «Ingenting spurte om lov lenger» til «Én etter én» og linja «Og det som ble delt …» spilles inn på nytt, med samme stemme og innstillinger; lagre dem som `assets/film/voice/gorvek.mp3` og `assets/film/voice/delt.mp3`, så klipper jeg dem inn.
