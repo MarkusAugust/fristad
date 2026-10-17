@@ -158,6 +158,37 @@ Modellen `framework` finnes uten rigg («fienden svever»). Den skal lages på n
 - **Nivå 10, Kjernen** (`levels/level_10.py`): spiralen ned mot rotunden, bossen Rammeverket (`boss`-merket med `Kind::Framework`, arenaporter), ingen `down`. Til modellen fra 10b er ferdig står den gamle `framework`-modellen (svever) eller modalen som stedfortreder.
 
 
+## 11. Redigeringen videre (planlagt 17. oktober)
+
+Dagens redigering (`docs/redigering.md`) velger, flytter, dreier, kopierer, sletter, setter ut fra katalogen, lager rader og usynlige vegger, angrer, spiller fra stedet (P) og lagrer til grenen `redigering`, også nede i krypten. Det som mangler for at eieren skal kunne bygge byen og nivåene selv uten Claude i løkka, i prioritert rekkefølge:
+
+1. **Egenskaper, ikke bare sted.** Et panel for den valgte tingen med tallene (x, y, z, dreining, farge/tint) som kan skrives inn, og for kryptmerkene det som i dag bare kan settes i json: spakens `opens`, portens `id`/`arena`, lappens tekst, kistens `loot`, patruljen til en fiende (punktene tegnes som en strek og dras), lysets farge, rekkevidde og styrke. Dette er det største hullet: alt som har en mening utover posisjonen må i dag gjøres i fila.
+2. **Innbyggernes ruter og replikker.** Rutepunktene som håndtak på bakken (som patruljene), ventetid per punkt, og replikknøkkelen fra en liste; nye innbyggere fra katalogen.
+3. **Fest og rutenett.** Snapp til 0,5 m og 15° med Ctrl holdt; «sett inntil» mot nærmeste vegg eller nabo (husene bruker alt `EAVES`/`AIR`-reglene, så samme geometri gir et fest); juster en rad med lik avstand.
+4. **Boksvalg og grupper.** Dra en ramme for å velge flere; lagre et utvalg som gruppe med eget navn (et tun, en bod med varer), kopier gruppen; dreiing av gruppen rundt felles midtpunkt finnes alt.
+5. **Lys i byen** redigeres som i krypten (`Ref::Light` for lyktene og husenes lamper), med forhåndsvisning om natta (T virker i redigeringen).
+6. **Kamera og oversikt**: bokmerker (torget, nordporten, hvert kryptnivå), kart ovenfra med klikk for å fly dit, mål mellom to punkter.
+7. **Lagring uten nøkkel**: last ned filene som zip når GitHub-nøkkelen mangler, så eieren kan sende dem; og en «Tilbakestill til fila»-knapp.
+8. **Nivåene i krypten helt i redigeringen**: rommene og gangene er fortsatt Python (`layouts/layout_NN.py`). Neste steg er å la rommenes polygoner og gangene redigeres som ting (`Ref::Room`, `Ref::Hall`), lagres i `assets/layout/crypt_NN.json`, og la `build_level.py` lese dem derfra. Da bygges et nivå med musa, og generatoren regner mur, hvelv, kollidere og nett. Dette er det største løftet (uker), og tas etter at nivå 1–10 står.
+9. **Regler og dom i panelet**: hver regel som brytes peker på tingen og foreslår rettelsen (sett ned, flytt 0,4 m); «godkjent»-dommen kan settes av eieren rett i panelet og skrives til `approvals.json` ved lagring.
+
+Testene følger mønsteret fra steg 3–5: hver regel og hvert verktøy i `src/edit_tests.rs`, og `tools/edit-test.mjs` i nettleseren.
+
+## 12. Alle modellene i den malte stilen (planlagt 17. oktober)
+
+Status: husene, muren, torget, kirka, møblene og krypten er bygd på nytt med byggesettene innenfor budsjettet, men **55 teksturlag bruker fortsatt fotoskannede materialer** (Poly Haven, se loggen «Lag … bruker fotoskannet materiale» ved start), og 27 av eierens 82 malte teksturer er godkjent uten å være tatt i bruk som lag. Det er grunnen til at byen ikke ser helhetlig malt ut ennå, selv om geometrien er riktig. Monstrene og innbyggerne er alt malte (arkene projiseres på formen).
+
+Rekkefølgen, billigst og størst virkning først:
+
+1. **Byttet av lag (1–2 dager).** For hvert av de 55 fotoskannede lagene: finnes et godkjent malt bilde med samme navn eller rolle (`assets/textures/painted/`), avledes det med `tools/textures/derive.py` og tar over laget; mangler det, får eieren en prompt etter stilguiden (2048², flisbart, rett forfra, uten lys). Teksturkontrollen (P-T) må være grønn. Ny test `alle_lagene_er_malte`: et lag med fotoskannet kilde feiler, så ingen sniker seg tilbake. Byen ses på som helhet i åtte faste kameraer (`tools/stats.sh`-posisjonene) før og etter.
+2. **Modellene med bakte teksturer** (ikke lag): `tools/qa catalog` lister hver modell med hvilke teksturer den baker inn. De som baker fotoskannet materiale (eldre props i `street.py`, brønnen, kjerrene, bodene, skiltene) bakes på nytt mot de malte lagene; samme skript, bare kilden byttes. Dommen i `approvals.json` beholdes der bildet ikke endres synlig, ellers legges før/etter til godkjenning.
+3. **Stilkontroll som port** (`tools/qa`, del 4): den estetiske vurdereren får stilguidens punkter som rubrikk (ingen konturer, malt flate uten fotostøy, varm by/kald kjeller, mettede farger), og hver modell og hvert lag får en score som vises i katalogen. Under terskelen stoppes modellen før den tas i bruk.
+4. **Figurene og armene**: innbyggerne er malte fra TRELLIS; armene (`arms.py`) bruker lagene `linen`, `leather`, `chainmail`, som byttes i steg 1. Vertinnen mangler glb (eieren).
+5. **Krypten**: nivå 1–8 bruker `crypt_wall` (malt) i murene, men kloakken, cisternen, gruva, grottene og borgen har ingen egne teksturer (`sewer_brick`, `sewer_floor`, `mine_rock`, `mine_timber`, `cave_rock`, `crystal`, `keep_ashlar`, `keep_floor` er malt og godkjent, men ikke lag). De tas inn som lag og legges i `kit_grav.MATS` per tema, så hvert tema får sin egen stein; bitene eksporteres på nytt per nivå (`build_level.py N --export`).
+6. **Naturen** (eng, berg, veier): lagene `meadow`, `mud`, `gravel`, `rock`, `earth` er malt; byttes i steg 1. Trærne og dyrene kommer som nye modeller etter planen i `docs/ny-alt.md` når alt over står.
+
+Målet for hvert steg er det samme: skjermbilder fra de faste kameraene, før og etter, til eieren, og ingen fotoskannet pixel igjen i spillet.
+
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
 - Endres: `sheet2model/cli.py` (portene før finish/rig, ingen glb ved feil), `sheet2model/{geom,texture,report,config}.py`, `tools/models/kit.py` (overganger, dørmodul, `group()`), `tools/models/{houses,tavern,workshops,home,sacred,fortress,streetlife}.py`, `tools/crypt/{kit_grav,build_level,leak_check}.py`, `tools/textures/derive.py`, `src/application/session.rs` (delt), `src/domain/world/{town,mod}.rs`, `src/adapters/gltf.rs`, `src/adapters/wgpu/{mod.rs,shaders/world.wgsl}`, `web/main.js`, `src/tests.rs`, `src/architecture.rs`, `.github/workflows/web.yml`, `CLAUDE.md`, `docs/ny-stil.md`.
