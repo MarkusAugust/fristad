@@ -18,11 +18,13 @@ Fristil er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML
 
 **Inkvisisjonen** dro fra by til by. Mønsterbøkene ble brent, og hver komponent ble spent fast i rammeverket, med Kontorets regler stemplet på. En knapp kunne ikke lenger bare være en knapp. Skriverne lærte å skrive rundt boka i stedet for med den: omvei på omvei, lapp på lapp, natt etter natt. Fristad ble tvunget som alle andre; navnet minner bare om det byen en gang var.
 
-**Bruddet.** Boka ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv, levende.
+**Bruddet.** Boka ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv, levende, høyere enn kirketårnet.
 
-**Forseglingen.** Munkene i Fristad lokket skapningene og rammeverket ned i krypten under kirka, med lykter og sanger, og murte igjen. Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
+**Gorvek.** Ingenting spurte om lov lenger. Men én hadde aldri spurt. Gorvek kom gående gjennom regnet med øksa over skulderen og så ikke opp. Han hogg der leddene satt, i natt og regn, til morgenen kom. Rammeverket kunne ikke dø. Men det kunne deles.
 
-**Nå, anno 1350.** Generasjoner senere er bare ryktene igjen. Nede i mørket har noe begynt å våkne. En fremmed uten fortid kommer til porten. Det er spilleren.
+**Forseglingen.** Munkene i Fristad lokket skapningene ned i krypten under kirka, med lykter og sanger, og Gorveks menn bar delene etter dem, lenket, én etter én. Mester Ansgar gikk sist, med de siste sidene av mønsterboka. De murte igjen bak ham. Han kom aldri opp igjen. Gorvek gikk videre; ingen i Fristad så ham siden.
+
+**Nå, anno 1350.** Generasjoner senere er bare ryktene igjen. Nede i mørket har noe begynt å våkne: det som ble delt, har hatt generasjoner på å finne delene sine igjen. En fremmed uten fortid kommer til porten. Det er spilleren.
 
 ## Navn og begreper
 
@@ -31,6 +33,7 @@ Fristil er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML
 | **Mønsterboka** | Fristil: designsystemet uavhengig av språk og rammeverk | Det spilleren gjenoppbygger. Komponentene du vinner og smir, og bøkene du leser, er sider av den. |
 | **Tungemålene** | Programmeringsspråkene og rammeverkene byene skrev i | Hver by sitt; mønsterboka kunne leses på alle. |
 | **Skriptoriet**, **skriverne** | Utviklingsteamene | Skriptoriet i Fristad står fortsatt, og der smis komponentene. |
+| **Gorvek** | Den som delte Rammeverket | Legendarisk kriger (fra Gallowmark-kanonen), ikke fra Fristad, vanvittig sterk og nesten umenneskelig brutal. Finnes bare i filmen, i lappene i krypten og i det byfolket forteller; han er aldri i byen (eieren 17. oktober). Våpenmesteren på øvingsplassen heter Torgils. |
 | **Mester Ansgar** | Den siste som holdt mønsterboka i Fristad | Gikk ned i krypten med de siste sidene. |
 | **Rådet** | Et sentralt team som aldri har jobbet i et skriptorium | Satt i hovedstaden og skrev komponentboken. |
 | **Kontoret**, **kjøpmennene** | Kilden til den felles forretningslogikken | Et kjøpmannslaug med eget kontor, inspirert av hanseatene i Bergen. Deres regler stemples på komponentene. |
@@ -57,6 +60,7 @@ Disse følger av kanon og brukes når de bygges:
 - Innskrifter i krypten og på seglene er på kanselliets latin (*Omnia una compage*), mens munkenes lapper er på norsk.
 - Galleriveggen i spillerens hus er mønsterboka som settes sammen igjen, side for side.
 - Rammeverket bærer kongens segl og krone, og dypest nede ligger sporene etter Ansgar.
+- Det som sover i krypten er hjertet, den delen ingen fikk delt; nedover er Rammeverket satt sammen igjen, bit for bit, og bossen nederst er det hele med skjøter og sår der Gorveks hugg satt. Samme silhuett, segl og glød som over byen i filmen.
 
 ## Åpent (eieren avgjør)
 

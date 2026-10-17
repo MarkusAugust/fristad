@@ -23,7 +23,7 @@ pub const MAIN: f32 = 3.2;
 /// Krypten på kirkegården: midten av gravkapellet, med døra mot øst (mot
 /// veien).
 pub const CRYPT: Vec2 = Vec2::new(-9.0, -52.0);
-/// Gorveks øvingsplass innenfor nordporten, øst for gata: midten og halve mål.
+/// Torgils' øvingsplass innenfor nordporten, øst for gata: midten og halve mål.
 pub const YARD: (Vec2, Vec2) = (Vec2::new(9.0, -24.5), Vec2::new(4.0, 3.0));
 
 /// Murverk med fundament under bakken (fot 80 cm ned), som får stå nede i
@@ -130,7 +130,7 @@ pub fn gate(south: bool) -> (Vec2, Vec2) {
     (p, p.normalize())
 }
 
-/// Åpningen i gjerdet rundt Gorveks plass, mot gata.
+/// Åpningen i gjerdet rundt Torgils' plass, mot gata.
 pub const YARD_GAP: f32 = 3.0;
 /// Gjerdevariantene (`tools/models/street.py`) og hvor tykke de er:
 /// flettverk, skigard, stakitt og lav steinmur.

@@ -20,7 +20,7 @@ pub const APOTHECARY: &[&str] = &[
 ];
 
 pub const GORVEK: &[&str] = &[
-    "Gorvek. Jeg lærer deg trekk, om du har tokens og tålmodighet.",
+    "Torgils. Jeg lærer deg trekk, om du har tokens og tålmodighet.",
     "Blokk i det bittet kommer. Da står de lamslått, og du hugger dobbelt.",
     "Unna med Shift. Det koster pust, men sparer blod.",
 ];
@@ -36,6 +36,7 @@ pub const TOWNSFOLK: &[&str] = &[
     "Har du vært nede under borgen? Bror min gikk ned i fjor. Han snakker bare om buttons nå.",
     "Torgdag i dag. Alt er dyrere enn i går.",
     "Kirkeklokka ringte feil i natt. Tretten slag.",
+    "Bestefar sa at Gorvek hogg beistet i stykker her på torget, natta gjennom i regnet. Og at ingen så ham siden.",
 ];
 
 pub const GUARD: &[&str] = &[

@@ -40,7 +40,7 @@ impl Session {
         match name {
             "Buttonsmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
             "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) }),
-            "Gorvek" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
+            "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
             "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
             _ => None,
         }

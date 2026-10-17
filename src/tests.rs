@@ -1863,7 +1863,7 @@ fn trappene_har_hoderom() {
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
-/// Gorveks øvingsplass har en åpning mot gata: man går med Rapier fra
+/// Torgils' øvingsplass har en åpning mot gata: man går med Rapier fra
 /// Storgata inn til midten av plassen uten å stoppe mot noe.
 #[test]
 fn man_kan_ga_til_gorvek() {
@@ -1889,7 +1889,7 @@ fn man_kan_ga_til_gorvek() {
         pos += moved;
     }
     let left = (pos - b).with_y(0.0).length();
-    assert!(left <= 0.6, "stoppet {left:.1} m fra midten av Gorveks plass, ved ({:.1}, {:.1})", pos.x, pos.z);
+    assert!(left <= 0.6, "stoppet {left:.1} m fra midten av Torgils' plass, ved ({:.1}, {:.1})", pos.x, pos.z);
     assert!(p.world.targets.iter().any(|t| matches!(t.what, Use::Talk(_)) && t.pose.translation.distance(b.into()) < 6.0), "ingen å snakke med på plassen");
 }
 

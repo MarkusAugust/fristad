@@ -27,7 +27,7 @@ impl Session {
                 let (trade, info) = match name {
                     "Buttonsmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
                     "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
-                    "Gorvek" => ("Handle", "Lærer deg trekk på øvingsplassen."),
+                    "Torgils" => ("Handle", "Lærer deg trekk på øvingsplassen."),
                     "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypten, og les om dem i bøkene."),
                     "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypten."),
                     _ => ("", ""),

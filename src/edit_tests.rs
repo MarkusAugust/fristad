@@ -42,7 +42,7 @@ fn reglene_finner_feil() {
     let bs = breaches(&l, None, &HashSet::new());
     assert!(has(&bs, &Ref::Town(barrel), "svever"), "{bs:?}");
 
-    // Et våpenstativ i gjerdet rundt Gorveks plass (runde 7).
+    // Et våpenstativ i gjerdet rundt Torgils' plass (runde 7).
     let rack = find(&layout, "weapon_rack");
     let fence = layout.items.iter().position(|it| it.model.as_deref() == Some("rail_fence")).unwrap();
     let mut l = layout.clone();

@@ -29,7 +29,7 @@ Eieren 16. oktober, etter første versjon: «munkene flyr i luften her, og kjøp
 
 **Akt II: Kongens bud (35–85 s).** I hovedstaden satt et råd som aldri hadde holdt en fjærpenn. De skrev sin egen bok: Den kongelige komponentboken, låst med lenker og full av rådets regler. Kongen gjorde den til lov, og alt skulle skrives på hoffets tunge, reaktisk. Inkvisisjonen dro fra by til by, brente mønsterbøkene og spente hver komponent fast i rammeverket med rådets forretningsregler stemplet på. Skriverne måtte lære seg å skrive rundt boka i stedet for med den: omvei på omvei, lapp på lapp, natt etter natt.
 
-**Akt III: Bruddet (85–125 s).** Boka vokste og ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv. Munkene i Fristad lokket dem ned i krypten under kirka med lykter og sanger og murte igjen. Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
+**Akt III: Bruddet (85–125 s).** Boka vokste og ble tyngre for hver regel. Så kom den store oppgraderingen, og alt som var bygd, brakk på én natt. Komponentene vred seg til noe annet og flyktet ut i mørket, og over dem reiste rammeverket seg selv. Gorvek kom gjennom regnet med øksa og hogg der leddene satt: det kunne ikke dø, men det kunne deles. Munkene i Fristad lokket skapningene ned i krypten under kirka med lykter og sanger, Gorveks menn bar delene etter dem, og de murte igjen. Mester Ansgar gikk sist, med de siste sidene av mønsterboka. Han kom aldri opp igjen.
 
 **Akt IV: Nå (125–150 s).** Generasjoner senere er bare ryktene igjen. Nede i mørket rører det seg, og rammeverket har begynt å våkne. Fristad, anno 1350: en fremmed kommer til porten, og bildet toner over i spillet.
 
@@ -71,11 +71,15 @@ Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/open
    *Så kom den store oppgraderingen.*
    **Alt som var bygd, brakk på én natt.**
    *Komponentene vred seg til noe annet, og over dem reiste rammeverket seg selv.*
-8. *Munkene i Fristad lokket dem ned i krypten under kirka, og murte igjen.*
+7b. *Ingenting spurte om lov lenger. Men én hadde aldri spurt.*
+   **Gorvek.** *De sier han kom gående gjennom regnet med øksa over skulderen, og at han ikke så opp.*
+   *Han hogg der leddene satt. Natta gjennom. Det kunne ikke dø. Men det kunne deles.*
+8. *Munkene her gikk ut med lykter og sang og lokket skapningene ned i krypten under kirka. Gorveks menn bar delene etter dem. Én etter én.*
    *Mester Ansgar gikk ned med dem, med de siste sidene av mønsterboka.*
    *Han kom aldri opp igjen.*
 9. *Generasjoner senere er bare ryktene igjen.*
    *Men nede i mørket har noe begynt å våkne.*
+   *Og det som ble delt, har hatt lang tid på å finne sammen.*
 10. **Fristad, anno 1350**
     *En fremmed kommer til porten.*
 
