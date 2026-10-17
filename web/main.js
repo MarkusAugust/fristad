@@ -553,7 +553,9 @@ function handle(e) {
       document.documentElement.dataset.theme = e.theme;
       break;
     case "toast":
-      toast?.show?.(e.text);
+      // Lappene i krypten er opptil rundt 400 tegn: la varselet stå lenge nok
+      // til å lese dem (rundt 15 tegn i sekundet, minst seks sekunder).
+      toast?.show?.(e.text, { duration: Math.max(6000, e.text.length * 70) });
       break;
     case "goal":
       setGoal(e);
