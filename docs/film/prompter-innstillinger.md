@@ -155,11 +155,33 @@ Hand-painted stylized fantasy illustration in the style of painted game concept 
 Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. A cross-section straight down through the earth under a churchyard: at the very top a thin strip of grass with gravestones and mist against a dark sky, then dark soil with roots, stones and old bones, then at the bottom a stone vault of an underground crypt corridor seen from the side with a single torch burning, and faint magenta light glowing from a crack deeper down. Cool blue above, warm torchlight and magenta below, dark and quiet. No people.
 ```
 
-### 22_det_som_sover (ingen B; oppskaler)
+### 17b_gorvek (ny, etter 17; ingen B)
+
+Bruk bildet fra 17 som referansebilde om generatoren tar imot det, så skapningen blir den samme.
 
 ```
-Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. Deep in a dark stone crypt, a vaulted chamber with fallen pillars and bones on the floor, a huge creature of iron frames, chains and square grids lies sleeping curled against the far wall, half buried in dust and rubble, torn pages stuck in its joints, a crown of iron tilted on its head; most of it is dark, but one grid on its chest and one eye glow faintly magenta and the light pulses on the wet stone. In the foreground a skull, a rusted sword and a burnt-down candle. Almost black, with magenta glow and a faint cold blue from a shaft above. No people.
+Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. A medieval town square at night in a thunderstorm, rain, lightning. In the foreground a single warrior, seen from slightly below, a mountain of a man, far larger and heavier than any normal human, bare scarred arms thick as tree trunks, soaked wild hair and beard, a snarling face with white burning eyes and bared teeth, almost inhuman in his fury, swinging an enormous two-handed battle axe in a full arc. Towering over him and filling the rest of the frame: the lower body and one arm of a colossal living creature made of iron frames, chains and glowing magenta square grids, torn pages stuck in its joints; the axe has just cut clean through one iron joint and the severed grid-arm is falling, sparks and magenta light spraying from the cut. Cold blue storm light against the magenta glow and the warm orange of a burning stall behind. Brutal, mythic, like a saga illustration.
 ```
+
+Veo: *Slow push-in on the warrior. Rain streaks down, lightning flickers twice, sparks and magenta light fall from the severed joint, the warrior's hair and the axe arc are frozen mid-motion, the creature's chest-grid pulses slowly. No new elements appear.*
+
+### 18b_delene (ny, før eller i stedet for 18; ingen B)
+
+```
+Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. A graveyard at night after the storm, wet gravestones, a small Romanesque stone church, and the low arched stone door of a crypt in a grassy mound, lantern-lit. A procession goes toward the crypt door: in front, monks in dark robes with lanterns held high, mouths open in song; behind them, strong men hauling on chains, dragging huge severed pieces of a creature made of iron frames and square grids, torn pages in the joints, one grid still glowing faintly magenta; last of all, at the back and much larger than the others, a huge scarred warrior with a great axe over his shoulder and his head bowed. Warm lantern light, cold blue night, faint magenta from the dragged pieces.
+```
+
+Veo: *Very slow lateral drift to the right along the procession. Lantern flames flicker, breath and mist drift in the cold air, the glowing grid pulses faintly. No one changes pose.*
+
+### 22_det_som_sover (på nytt: hjertet, ikke hele beistet; ingen B; oppskaler)
+
+Kanon (17. oktober): det som sover er hjertet, den delen Gorvek ikke fikk delt, og det har samlet de andre delene rundt seg i generasjoner. Bruk bildet fra 17 som referansebilde, så jern, rutenett, krone og glød er de samme.
+
+```
+Hand-painted stylized fantasy illustration in the style of painted game concept art: soft painterly brushwork, no black outlines, rich saturated colours, Northern Europe around 1350, cinematic composition, high detail, sharp, no text, no letters, no symbols that look like writing, no watermark, no border. Wide 16:9 image. Deep in a dark stone crypt, a vaulted chamber with fallen pillars, rubble and bones. In the middle lies the severed upper body of a colossal creature made of iron frames, chains and square iron grids, the same creature as in the reference: only the chest, one shoulder and the head remain, the cut edges of the iron frames ragged where an axe went through, a crown of iron tilted on the head, torn pages stuck in the joints. It sleeps, half buried in dust, chains cut and hanging loose. One large grid in its chest glows deep magenta and pulses, and one half-closed eye glows the same. Around it on the floor, other severed iron pieces of the same creature have crawled close and lie against it like sleeping animals, a severed grid-arm, a leg, a hand of iron bars, some joined to the body again with fresh rough iron seams. In the foreground a skull, a rusted sword and a burnt-down candle. Almost black, with magenta glow from the chest and a faint cold blue from a crack in the vault.
+```
+
+Veo: *Very slow push-in. The chest grid pulses magenta, slowly, like a heartbeat; dust drifts in the beam of cold light; one of the severed pieces on the floor twitches once and settles. Nothing else moves.*
 
 ### 23_veien
 
