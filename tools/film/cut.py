@@ -273,7 +273,7 @@ def build(fast, out_path):
     graph = work / "graph.txt"
     graph.write_text(";\n".join(f))
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    run([*inputs, "-filter_complex_script", str(graph), "-map", "[vout]", *amap, "-c:v", "libx264", "-preset", "medium", "-crf", "21" if fast else "19", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-t", f"{END:.3f}", str(out_path)], quiet=True)
+    run([*inputs, "-filter_complex_script", str(graph), "-map", "[vout]", *amap, "-c:v", "libx264", "-preset", "medium", "-crf", "21" if fast else "23", *([] if fast else ["-maxrate", "4M", "-bufsize", "8M"]), "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-t", f"{END:.3f}", str(out_path)], quiet=True)
     print(out_path)
 
 
