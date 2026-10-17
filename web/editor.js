@@ -152,6 +152,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         <p class="fs-help-text">Under pekeren, nærmest først. Klikk for å velge (<kbd>Shift</kbd> legger til), <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> blar, <kbd>Alt</kbd>+klikk i bildet tar det bakerste.</p>
         <ol id="ed-under" class="editor-under"></ol>
       </div>
+      <div class="editor-grouping">
+        <input id="ed-grp-name" class="fs-input" type="text" placeholder="Navn på gruppen" aria-label="Navn på gruppen">
+        <button id="ed-grp-make" class="fs-button" data-variant="secondary" type="button" title="Ctrl+G">Lag gruppe</button>
+        <button id="ed-grp-free" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+G" disabled>Løs opp</button>
+      </div>
+      <p id="ed-grp" class="fs-help-text" hidden></p>
+      <p id="ed-route" class="fs-help-text" hidden></p>
       <div id="ed-wall" hidden>
         <label class="fs-label" for="ed-wall-h">Høyde på veggen (m)</label>
         <input id="ed-wall-h" class="fs-input" type="number" min="0.5" max="20" step="0.5" value="3">
@@ -195,6 +202,9 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         Dra en modell fra katalogen ut i bildet for å sette den ut (<kbd>R</kbd> dreier 90°, <kbd>Ctrl</kbd> fester). <kbd>Ctrl+1</kbd>–<kbd>9</kbd> husker kameraet, <kbd>1</kbd>–<kbd>9</kbd> går dit.
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
         Piltastene flytter det valgte langs bakken, <kbd>PgUp</kbd>/<kbd>PgDn</kbd> opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
+        <kbd>Ctrl+G</kbd> lager en gruppe av det valgte (velges, flyttes, dreies og kopieres samlet), <kbd>Ctrl+Shift+G</kbd> løser den opp.
+        En valgt innbygger viser ruta: dra stolpene, klikk på streken for et nytt punkt, <kbd>Delete</kbd> sletter punktet du tok.
+        <kbd>T</kbd> bytter dag og natt, så lysene (de små korsene) synes; klikk et lys for å endre det.
         <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>R</kbd> en kvart runde, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>Shift+Tab</kbd> det forrige, <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
       </p>
     </section>`;
@@ -526,6 +536,10 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     }, 30);
   }
 
+  const makeGroup = () => send({ cmd: "group", name: $("ed-grp-name").value.trim() });
+  const freeGroup = () => send({ cmd: "ungroup" });
+  $("ed-grp-make").addEventListener("click", makeGroup);
+  $("ed-grp-free").addEventListener("click", freeGroup);
   $("ed-undo").addEventListener("click", () => send({ cmd: "undo" }));
   $("ed-redo").addEventListener("click", () => send({ cmd: "redo" }));
   $("ed-play").addEventListener("click", () => play());
@@ -595,6 +609,20 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     }
     if (typeof v.snap === "boolean") snapSent = v.snap;
     $("ed-wall").hidden = !sel.some((s) => s.label === "usynlig vegg");
+    // Gruppen: navnet når én gruppe er valgt, og knappene.
+    const grp = $("ed-grp");
+    grp.hidden = !v.group;
+    grp.textContent = v.group ? `Gruppen «${v.group}» (${sel.length} ting).` : "";
+    $("ed-grp-make").disabled = sel.length < 2;
+    $("ed-grp-free").disabled = !(v.props ?? []).some((p) => p.key === "group" && p.value) && !v.group;
+    // Ruta til en valgt innbygger.
+    const route = (v.props ?? []).filter((p) => p.key.startsWith("route.")).length;
+    const rt = $("ed-route");
+    rt.hidden = !route;
+    rt.textContent =
+      v.route_point != null
+        ? `Punkt ${v.route_point + 1} av ${route} på ruta er tatt: dra det langs bakken, Delete sletter det.`
+        : `Ruta har ${route} punkter (stolpene): dra dem, klikk på streken for et nytt punkt.`;
     const list = $("ed-breaches");
     list.innerHTML = v.breaches.length
       ? v.breaches
@@ -618,10 +646,11 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       const value = esc(p.value);
       if (p.key === "kind") return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" readonly>`;
       if (p.key === "text" || p.key === "lines") return `<textarea class="fs-input" name="${name}" rows="3" data-was="${value}">${value}</textarea>`;
-      if (p.key === "flicker") return `<input type="checkbox" name="${name}" ${p.value === "ja" ? "checked" : ""} data-was="${value}">`;
+      if ((p.key === "flicker" && (p.value === "ja" || p.value === "nei")) || p.key === "always")
+        return `<input type="checkbox" name="${name}" ${p.value === "ja" ? "checked" : ""} data-was="${value}">`;
       if (p.key === "tint" || p.key === "color")
         return `<span class="editor-color"><input type="color" data-pick="${name}" value="${/^#[0-9a-f]{6}$/i.test(p.value) ? value : "#ffffff"}" aria-label="Velg farge"><input class="fs-input" name="${name}" value="${value}" data-was="${value}" placeholder="#rrggbb"></span>`;
-      const num = ["x", "y", "z", "yaw", "range", "intensity", "width", "height", "n"].includes(p.key);
+      const num = ["x", "y", "z", "yaw", "range", "intensity", "flicker", "width", "height", "n"].includes(p.key) || p.key.startsWith("route.");
       return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" ${num ? 'inputmode="decimal"' : ""}>`;
     };
     $("ed-props").innerHTML = props.map((p) => `<label class="editor-prop"><span class="fs-label">${esc(p.label)}</span>${field(p)}</label>`).join("");
@@ -873,6 +902,11 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         send({ cmd: "rotate", a: e.code === "KeyQ" ? turn : -turn });
         return true;
       case "KeyG":
+        if (ctrl) {
+          e.preventDefault();
+          if (!e.repeat) e.shiftKey ? freeGroup() : makeGroup();
+          return true;
+        }
         if (!e.repeat) send({ cmd: "drop" });
         return true;
       case "KeyD":

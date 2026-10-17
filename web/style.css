@@ -918,6 +918,19 @@ body.editing #marks {
   cursor: pointer;
 }
 
+/* Lag gruppe og Løs opp under det valgte. */
+.editor-grouping {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.editor-grouping .fs-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
 #ed-placing[data-state="bad"] {
   color: var(--fs-color-danger-text, #a40000);
 }

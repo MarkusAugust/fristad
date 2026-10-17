@@ -23,7 +23,7 @@ fn name(t: &Thing) -> String {
             Some(l) => format!("{} ({l})", m.kind),
             None => m.kind.clone(),
         },
-        Thing::Light(_) => "lys".into(),
+        Thing::Light(_) | Thing::Lamp(_) => "lys".into(),
     }
 }
 
@@ -35,7 +35,7 @@ fn only_moved(before: &Thing, after: &Thing) -> bool {
             a == b
         }
         (Thing::Npc(mut a), Thing::Npc(b)) => {
-            (a.pos, a.yaw) = (b.pos, b.yaw);
+            (a.pos, a.yaw, a.route) = (b.pos, b.yaw, b.route.clone());
             a == b
         }
         (Thing::Mark(mut a), Thing::Mark(b)) => {
@@ -43,6 +43,10 @@ fn only_moved(before: &Thing, after: &Thing) -> bool {
             a == b
         }
         (Thing::Light(mut a), Thing::Light(b)) => {
+            a.pos = b.pos;
+            a == b
+        }
+        (Thing::Lamp(mut a), Thing::Lamp(b)) => {
             a.pos = b.pos;
             a == b
         }

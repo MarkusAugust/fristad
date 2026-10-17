@@ -6,12 +6,17 @@
 mod crypt;
 mod editor;
 pub mod ghost;
+mod group;
 mod history;
+mod lamps;
+mod lines;
+pub mod route;
 pub mod props;
 pub mod rules;
 mod select;
 
-pub use editor::{Editor, LineKind, Selected};
+pub use editor::{Editor, Selected};
+pub use lines::LineKind;
 pub use props::Prop;
 
 use crate::domain::model::ModelInfo;

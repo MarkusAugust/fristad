@@ -49,8 +49,9 @@ impl Session {
         // Lyktene tennes i skumringen og når det er mørkt av skyer.
         let lamp = ((t - 0.35) / 0.5).clamp(0.0, 1.0).max(overcast * 0.5 * (1.0 - t)) * 0.6 + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
         let eye_now = self.eye();
-        let mut lights: Vec<Light> = self
-            .lights
+        // Mens du redigerer, står lysene der redigeringen har satt dem.
+        let base = self.edit.as_ref().map(|e| &e.scene().lights).unwrap_or(&self.lights);
+        let mut lights: Vec<Light> = base
             .iter()
             .enumerate()
             .map(|(i, l)| {

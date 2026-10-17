@@ -7,8 +7,8 @@ use super::rules::{self, Breach};
 use super::{crypt, scene, Sources};
 use crate::domain::world::crypt::level::{CryptContents, LightDef, MarkDef};
 use crate::domain::world::crypt::Crypt;
-use crate::domain::world::layout::{Item, Layout, NpcDef, Pose, Ref, SolidDef};
-use crate::domain::world::{terrain, Builder, Shape};
+use crate::domain::world::layout::{Item, Layout, LightDef as ItemLightDef, NpcDef, Pose, Ref, SolidDef};
+use crate::domain::world::{Builder, Shape};
 use glam::{Affine3A, Quat, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -20,6 +20,8 @@ pub(super) enum Thing {
     Npc(NpcDef),
     Mark(MarkDef),
     Light(LightDef),
+    /// Et lys på en ting i byen eller et hus (`Ref::ItemLight`).
+    Lamp(ItemLightDef),
 }
 
 /// Én endring, som kan snus.
@@ -40,15 +42,6 @@ impl Change {
     }
 }
 
-/// Hva en linje blir: en rad av en modell (gjerdebitene etter hverandre,
-/// `spacing` meter mellom midtene, eller modellens lengde om 0), eller en
-/// usynlig vegg så høy som `height`.
-#[derive(Clone, Debug, PartialEq)]
-pub enum LineKind {
-    Row { model: String, spacing: f32 },
-    Wall { height: f32 },
-}
-
 /// Det valgte, slik det vises: tingen, navnet og boksen i verden (midte,
 /// halve mål, dreining).
 #[derive(Clone, Debug, PartialEq)]
@@ -60,11 +53,8 @@ pub struct Selected {
     pub half: Vec3,
 }
 
-/// Tykkelsen på en usynlig vegg.
-const WALL_THICK: f32 = 0.3;
-
 pub struct Editor {
-    src: Sources,
+    pub(super) src: Sources,
     pub layout: Layout,
     pub contents: HashMap<String, Vec<Item>>,
     /// Det som står i kryptnivåene (merkene og lysene), per nivå.
@@ -177,6 +167,7 @@ impl Editor {
             Ref::Npc(_) => "npcs".into(),
             Ref::Crypt { level, .. } => format!("crypt/{level}"),
             Ref::CryptLight { level, .. } => format!("light/{level}"),
+            Ref::ItemLight { item, model, .. } => format!("lamp/{item:?}/{model}"),
         }
     }
 
@@ -195,6 +186,7 @@ impl Editor {
             out.extend(c.marks.iter().enumerate().filter(|(_, m)| m.kind != "start" && m.pos.is_some()).map(|(i, _)| Ref::Crypt { level: *n, i }));
             out.extend((0..c.lights.len()).map(|i| Ref::CryptLight { level: *n, i }));
         }
+        out.extend(self.lamp_refs());
         out
     }
 
@@ -248,6 +240,7 @@ impl Editor {
             Ref::Npc(i) => self.layout.npcs.get(*i).cloned().map(Thing::Npc),
             Ref::Crypt { level, i } => self.crypt.get(level).and_then(|c| c.marks.get(*i)).cloned().map(Thing::Mark),
             Ref::CryptLight { level, i } => self.crypt.get(level).and_then(|c| c.lights.get(*i)).cloned().map(Thing::Light),
+            Ref::ItemLight { item, model, i } => self.get_lamp(item, *model, *i),
         }
     }
 
@@ -259,6 +252,7 @@ impl Editor {
                 (Ref::Npc(i), Thing::Npc(n)) => self.layout.npcs[*i] = n.clone(),
                 (Ref::Crypt { level, i }, Thing::Mark(m)) => self.crypt.get_mut(level).expect("nivået").marks[*i] = m.clone(),
                 (Ref::CryptLight { level, i }, Thing::Light(l)) => self.crypt.get_mut(level).expect("nivået").lights[*i] = l.clone(),
+                (Ref::ItemLight { item, model, i }, Thing::Lamp(l)) => self.apply_lamp(item, *model, *i, Some(l), false),
                 _ => {}
             },
             Change::Insert { r, thing } => match (r, thing) {
@@ -267,6 +261,7 @@ impl Editor {
                 (Ref::Npc(i), Thing::Npc(n)) => self.layout.npcs.insert(*i, n.clone()),
                 (Ref::Crypt { level, i }, Thing::Mark(m)) => self.crypt.entry(*level).or_default().marks.insert(*i, m.clone()),
                 (Ref::CryptLight { level, i }, Thing::Light(l)) => self.crypt.entry(*level).or_default().lights.insert(*i, l.clone()),
+                (Ref::ItemLight { item, model, i }, Thing::Lamp(l)) => self.apply_lamp(item, *model, *i, Some(l), true),
                 _ => {}
             },
             Change::Remove { r, .. } => match r {
@@ -285,6 +280,7 @@ impl Editor {
                 Ref::CryptLight { level, i } => {
                     self.crypt.get_mut(level).expect("nivået").lights.remove(*i);
                 }
+                Ref::ItemLight { item, model, i } => self.apply_lamp(item, *model, *i, None, false),
             },
         }
     }
@@ -374,6 +370,10 @@ impl Editor {
             Thing::Npc(n) => Some(Affine3A::from_rotation_translation(Quat::from_rotation_y(n.yaw), n.pos)),
             Thing::Mark(m) => Some(Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw), Vec3::from(m.pos?) + self.crypt_origin(r)?)),
             Thing::Light(l) => Some(Affine3A::from_translation(Vec3::from(l.pos) + self.crypt_origin(r)?)),
+            Thing::Lamp(l) => match r {
+                Ref::ItemLight { item, .. } => Some(Affine3A::from_translation(self.lamp_pos(item, &l)?)),
+                _ => None,
+            },
         }
     }
 
@@ -405,7 +405,7 @@ impl Editor {
                 Some((lo, hi)) => ((lo + hi) * 0.5, (hi - lo) * 0.5),
                 None => crypt::default_box(&m),
             }),
-            Thing::Light(_) => Some((Vec3::ZERO, Vec3::splat(0.15))),
+            Thing::Light(_) | Thing::Lamp(_) => Some((Vec3::ZERO, Vec3::splat(0.15))),
         }
     }
 
@@ -439,6 +439,7 @@ impl Editor {
                 _ => m.kind.clone(),
             },
             Some(Thing::Light(_)) => "lys".into(),
+            Some(Thing::Lamp(l)) => if l.always { "ild" } else { "lykt" }.into(),
             None => String::new(),
         }
     }
@@ -452,22 +453,17 @@ impl Editor {
         // Samme sted som sist: det neste under pekeren (kirka, så gjerdet
         // inni boksen dens, så det bak), rundt og rundt.
         let again = self.last_ray.is_some_and(|(o, d)| o.distance(origin) < 0.05 && d.dot(dir) > 0.9999);
-        let k = match (again, self.selection.as_slice()) {
-            (true, [cur]) if !add => hits.iter().position(|r| r == cur).map(|k| (k + 1) % hits.len()).unwrap_or(0),
+        let k = match (again, self.single()) {
+            (true, Some(cur)) if !add => hits.iter().position(|r| r == cur).map(|k| (k + 1) % hits.len()).unwrap_or(0),
             _ => 0,
         };
         let hit = hits.get(k).cloned();
         self.last_ray = Some((origin, dir));
         self.under = hits;
+        // En ting i en gruppe velges med hele gruppen.
         match (&hit, add) {
-            (Some(r), true) => {
-                if let Some(k) = self.selection.iter().position(|s| s == r) {
-                    self.selection.remove(k);
-                } else {
-                    self.selection.push(r.clone());
-                }
-            }
-            (Some(r), false) => self.selection = vec![r.clone()],
+            (Some(r), true) => self.toggle(r),
+            (Some(r), false) => self.selection = self.members(r),
             (None, false) => self.selection.clear(),
             (None, true) => {}
         }
@@ -519,6 +515,13 @@ impl Editor {
                 hits.push((t0, r));
             }
         }
+        // Et lys kommer etter tingen det står i (lyktestolpen, lysestaken).
+        let at: HashMap<Ref, f32> = hits.iter().map(|(t, r)| (r.clone(), *t)).collect();
+        for (t, r) in &mut hits {
+            if let Ref::ItemLight { item, .. } = r {
+                *t = t.max(at.get(item.as_ref()).map_or(*t, |p| p + 1e-3));
+            }
+        }
         hits.sort_by(|a, b| a.0.total_cmp(&b.0));
         hits.into_iter().map(|(_, r)| r).collect()
     }
@@ -539,10 +542,15 @@ impl Editor {
                 it.at = Some(p);
                 Thing::Item(it)
             }
+            // En innbygger tar med seg ruta si.
             Thing::Npc(mut n) => {
                 let p = Pose::of(new);
+                let d = p.pos - n.pos;
                 n.pos = p.pos;
                 n.yaw = p.yaw();
+                for (q, _) in &mut n.route {
+                    *q += d;
+                }
                 Thing::Npc(n)
             }
             // I krypten i nivåets rom; en fiende tar med seg runden sin.
@@ -563,13 +571,17 @@ impl Editor {
                 l.pos = (Vec3::from(new.translation) - self.crypt_origin(r)?).to_array();
                 Thing::Light(l)
             }
+            Thing::Lamp(l) => match r {
+                Ref::ItemLight { item, .. } => Thing::Lamp(self.lamp_moved(item, l, Vec3::from(new.translation))?),
+                _ => return None,
+            },
         };
         (after != before).then(|| Change::Set { r: r.clone(), before, after })
     }
 
     /// Flytt det valgte `delta` meter (i verden).
     pub fn translate(&mut self, delta: Vec3) {
-        let changes = self.selection.iter().filter_map(|r| self.pose_change(r, |t| Affine3A::from_translation(delta) * t)).collect();
+        let changes = self.moving().iter().filter_map(|r| self.pose_change(r, |t| Affine3A::from_translation(delta) * t)).collect();
         self.commit(changes);
     }
 
@@ -577,13 +589,14 @@ impl Editor {
     /// sitt eget origo, flere (et gjerde i biter) samlet, som én ting
     /// (eieren 12. oktober).
     pub fn rotate(&mut self, yaw: f32) {
-        let at: Vec<Vec3> = self.selection.iter().filter_map(|r| self.pose_of(r)).map(|t| Vec3::from(t.translation)).collect();
+        let moving = self.moving();
+        let at: Vec<Vec3> = moving.iter().filter_map(|r| self.pose_of(r)).map(|t| Vec3::from(t.translation)).collect();
         if at.is_empty() {
             return;
         }
         let p = at.iter().sum::<Vec3>() / at.len() as f32;
         let turn = |t: Affine3A| Affine3A::from_translation(p) * Affine3A::from_rotation_y(yaw) * Affine3A::from_translation(-p) * t;
-        let changes = self.selection.iter().filter_map(|r| self.pose_change(r, turn)).collect();
+        let changes = moving.iter().filter_map(|r| self.pose_change(r, turn)).collect();
         self.commit(changes);
     }
 
@@ -640,15 +653,26 @@ impl Editor {
         let mut changes = vec![];
         let mut new_sel = vec![];
         let mut ends: HashMap<String, usize> = HashMap::new();
+        // En kopi av en gruppe blir en ny gruppe.
+        let mut groups: HashMap<String, String> = HashMap::new();
         for r in self.selection.clone() {
-            let Some(thing) = self.get(&r) else { continue };
-            let list = Self::list_of(&r);
-            let len = *ends.entry(list).or_insert_with(|| match &r {
+            let Some(mut thing) = self.get(&r) else { continue };
+            if let Thing::Item(Item { group: Some(g), .. }) = &mut thing {
+                let taken: Vec<String> = groups.values().cloned().collect();
+                *g = groups.entry(g.clone()).or_insert_with(|| self.fresh_group(g, &taken)).clone();
+            }
+            // Lysene kopieres inn i tingens egne.
+            let list = match &r {
+                Ref::ItemLight { item, .. } => Self::list_of(&Ref::ItemLight { item: item.clone(), model: false, i: 0 }),
+                _ => Self::list_of(&r),
+            };
+            let len = *ends.entry(list.clone()).or_insert_with(|| match &r {
                 Ref::Town(_) => self.layout.items.len(),
                 Ref::Inside { house, .. } => self.contents.get(house).map(|v| v.len()).unwrap_or(0),
                 Ref::Npc(_) => self.layout.npcs.len(),
                 Ref::Crypt { level, .. } => self.crypt.get(level).map(|c| c.marks.len()).unwrap_or(0),
                 Ref::CryptLight { level, .. } => self.crypt.get(level).map(|c| c.lights.len()).unwrap_or(0),
+                Ref::ItemLight { item, .. } => self.item_of(item).map(|it| it.lights.len()).unwrap_or(0),
             });
             let at = match &r {
                 Ref::Town(_) => Ref::Town(len),
@@ -656,8 +680,10 @@ impl Editor {
                 Ref::Npc(_) => Ref::Npc(len),
                 Ref::Crypt { level, .. } => Ref::Crypt { level: *level, i: len },
                 Ref::CryptLight { level, .. } => Ref::CryptLight { level: *level, i: len },
+                // En kopi av et lys blir tingens eget.
+                Ref::ItemLight { item, .. } => Ref::ItemLight { item: item.clone(), model: false, i: len },
             };
-            *ends.get_mut(&Self::list_of(&r)).expect("lista") += 1;
+            *ends.get_mut(&list).expect("lista") += 1;
             changes.push(Change::Insert { r: at.clone(), thing });
             new_sel.push(at);
         }
@@ -667,7 +693,7 @@ impl Editor {
 
     /// Slett det valgte (Delete).
     pub fn delete(&mut self) {
-        let mut sel = self.selection.clone();
+        let mut sel = self.moving();
         // Bakfra, så numrene foran ikke flytter seg.
         sel.sort();
         sel.dedup();
@@ -716,70 +742,6 @@ impl Editor {
         self.commit(vec![Change::Insert { r: r.clone(), thing: Thing::Item(item) }]);
         self.selection = vec![r.clone()];
         Some(r)
-    }
-
-    /// En linje gjennom punktene på bakken: en rad av en modell langs hvert
-    /// stykke, eller en usynlig vegg. Følger terrenget; blir valget, og angres
-    /// som én handling.
-    pub fn line(&mut self, points: &[Vec3], kind: &LineKind) -> Vec<Ref> {
-        let mut items = vec![];
-        for w in points.windows(2) {
-            let (a, b) = (w[0], w[1]);
-            let d = glam::Vec2::new(b.x - a.x, b.z - a.z);
-            let len = d.length();
-            if len < 0.05 {
-                continue;
-            }
-            // Lokal x langs stykket.
-            let yaw = (-d.y).atan2(d.x);
-            match kind {
-                LineKind::Row { model, spacing } => {
-                    let step = if *spacing > 0.0 { *spacing } else { self.scene.bounds(model).map(|(lo, hi)| hi.x - lo.x).filter(|s| *s > 0.05).unwrap_or(1.0) };
-                    let n = (len / step).round().max(1.0) as usize;
-                    for k in 0..n {
-                        let f = (k as f32 + 0.5) / n as f32;
-                        let (x, z) = (a.x + d.x * f, a.z + d.y * f);
-                        let p = Vec3::new(x, terrain::height(x, z), z);
-                        items.push(Item { model: Some(model.clone()), at: Some(Pose { pos: p, rot: Quat::from_rotation_y(yaw), scale: Vec3::ONE }), ..Default::default() });
-                    }
-                }
-                LineKind::Wall { height } => {
-                    let (x, z) = (a.x + d.x * 0.5, a.z + d.y * 0.5);
-                    // Foten i det laveste punktet langs veggen, så den når bakken.
-                    let low = (0..=8).map(|k| terrain::height(a.x + d.x * k as f32 / 8.0, a.z + d.y * k as f32 / 8.0)).fold(f32::MAX, f32::min);
-                    let p = Vec3::new(x, low, z);
-                    let solid = SolidDef::Cuboid { center: Vec3::new(0.0, height * 0.5, 0.0), size: Vec3::new(len, *height, WALL_THICK), yaw: 0.0 };
-                    items.push(Item { model: None, at: Some(Pose { pos: p, rot: Quat::from_rotation_y(yaw), scale: Vec3::ONE }), solids: vec![solid], ..Default::default() });
-                }
-            }
-        }
-        let start = self.layout.items.len();
-        let refs: Vec<Ref> = (start..start + items.len()).map(Ref::Town).collect();
-        let changes = items.into_iter().enumerate().map(|(k, it)| Change::Insert { r: Ref::Town(start + k), thing: Thing::Item(it) }).collect();
-        self.commit(changes);
-        self.selection = refs.clone();
-        refs
-    }
-
-    /// Endre høyden på det valgte (usynlige vegger).
-    pub fn set_wall_height(&mut self, height: f32) {
-        let mut changes = vec![];
-        for r in self.selection.clone() {
-            let Some(Thing::Item(before)) = self.get(&r) else {
-                continue;
-            };
-            let mut it = before.clone();
-            for s in &mut it.solids {
-                if let SolidDef::Cuboid { center, size, .. } = s {
-                    size.y = height;
-                    center.y = height * 0.5;
-                }
-            }
-            if it != before {
-                changes.push(Change::Set { r, before: Thing::Item(before), after: Thing::Item(it) });
-            }
-        }
-        self.commit(changes);
     }
 
     /// Dataene til lagring og til å bygge spillet på nytt.

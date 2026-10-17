@@ -177,7 +177,7 @@ fn inside_breaches(b: &Builder, layout: &Layout, out: &mut Vec<Breach>) {
         let it = match r {
             Ref::Town(i) => layout.items.get(*i),
             Ref::Inside { house, i } => b.contents.get(house).and_then(|v| v.get(*i)),
-            Ref::Npc(_) | Ref::Crypt { .. } | Ref::CryptLight { .. } => None,
+            Ref::Npc(_) | Ref::Crypt { .. } | Ref::CryptLight { .. } | Ref::ItemLight { .. } => None,
         }?;
         Some((it.model.as_deref().is_some_and(|m| !joins(m)), it.building))
     };
@@ -210,6 +210,7 @@ fn name_of(b: &Builder, layout: &Layout, r: &Ref) -> String {
         Ref::Npc(i) => layout.npcs.get(*i).map(|n| n.name.clone()),
         Ref::Crypt { .. } => Some("et merke i krypten".into()),
         Ref::CryptLight { .. } => Some("et lys i krypten".into()),
+        Ref::ItemLight { .. } => Some("et lys".into()),
     };
     m.unwrap_or_else(|| "en usynlig vegg".into())
 }

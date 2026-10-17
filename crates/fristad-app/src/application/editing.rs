@@ -46,6 +46,8 @@ pub enum Handle {
     Lift,
     /// Drei med Ctrl eller Cmd: bortover i bildet dreier.
     Turn,
+    /// Et punkt på ruta til den valgte innbyggeren, langs bakken.
+    Route(usize),
 }
 
 /// Musa og linjeverktøyet i redigeringen.
@@ -70,6 +72,8 @@ pub struct EditUi {
     pub(super) standing: Vec<Ref>,
     /// Feilen fra siste egenskap, vist én gang.
     pub(super) error: Option<String>,
+    /// Punktet på ruta som er tatt (Delete sletter det).
+    pub(super) route_point: Option<usize>,
 }
 
 /// En pose som nøkkel (millimeter), til å se hva som står likt.
@@ -140,8 +144,16 @@ impl Session {
         self.pivot()
     }
 
-    fn screen(&self, at: (f32, f32)) -> Vec2 {
+    pub(super) fn screen_point(&self, at: (f32, f32)) -> Vec2 {
         Vec2::new(at.0 * self.aspect.get().max(0.1), at.1)
+    }
+
+    /// Hvor langt punktet `m` på skjermen er fra streken a–b i verden.
+    pub(super) fn screen_distance(&self, m: Vec2, a: Vec3, b: Vec3) -> Option<f32> {
+        let (a, b) = (self.on_screen(a)?, self.on_screen(b)?);
+        let ab = b - a;
+        let t = ((m - a).dot(ab) / ab.length_squared().max(1e-9)).clamp(0.0, 1.0);
+        Some((m - (a + ab * t)).length())
     }
 
     /// En kommando fra redigeringen. Gir om den gjorde noe.
@@ -173,6 +185,28 @@ impl Session {
                 self.edit_ui.carry = Vec3::ZERO;
                 self.edit_ui.carry_turn = 0.0;
                 self.edit_ui.standing.clear();
+                // Ruta til den valgte innbyggeren: en stolpe tas, et trykk
+                // på streken legger til et punkt der (og det dras).
+                // Det nye punktet og draget angres som ett steg.
+                let point = match (grab, self.route_point_at(at), self.route_npc()) {
+                    (Grab::Move, Some(k), _) => {
+                        self.editor_mut().begin_group();
+                        Some(k)
+                    }
+                    // Ikke når pekeren står på innbyggeren selv (den dras).
+                    (Grab::Move, None, Some(r)) if !self.on_selected(at) => self.route_insert_at(at).and_then(|(k, p)| {
+                        self.editor_mut().begin_group();
+                        self.editor_mut().route_insert(&r, k, p)
+                    }),
+                    _ => None,
+                };
+                self.edit_ui.route_point = point;
+                if let Some(k) = point {
+                    self.edit_ui.drag = Some((Handle::Route(k), at));
+                    self.edit_ui.pressed = Some(at);
+                    self.push_edit_view();
+                    return true;
+                }
                 let handle = match grab {
                     Grab::Lift => Some(Handle::Lift),
                     Grab::Turn => Some(Handle::Turn),
@@ -266,10 +300,22 @@ impl Session {
                 self.editor_mut().duplicate();
                 true
             }
-            EditCommand::Delete => {
-                self.editor_mut().delete();
-                true
-            }
+            // Er et punkt på ruta tatt, er det punktet som slettes.
+            EditCommand::Delete => match (self.edit_ui.route_point.take(), self.route_npc()) {
+                (Some(k), Some(r)) => self.editor_mut().route_remove(&r, k),
+                _ => {
+                    self.editor_mut().delete();
+                    true
+                }
+            },
+            EditCommand::Group(name) => match self.editor_mut().make_group(&name) {
+                Ok(_) => true,
+                Err(why) => {
+                    self.edit_ui.error = Some(why);
+                    false
+                }
+            },
+            EditCommand::Ungroup => self.editor_mut().ungroup() > 0,
             EditCommand::Place { model, at } => {
                 self.edit_ui.ghost = None;
                 match self.ghost_pose(&model, at) {
@@ -339,6 +385,12 @@ impl Session {
         done
     }
 
+    /// Pekeren står på noe som er valgt.
+    fn on_selected(&self, at: (f32, f32)) -> bool {
+        let (o, d) = self.screen_ray(at);
+        self.edit.as_ref().is_some_and(|e| e.hit(o, d).is_some_and(|r| e.selection.contains(&r)))
+    }
+
     fn editor_mut(&mut self) -> &mut Editor {
         self.edit.as_mut().expect("i redigeringen")
     }
@@ -368,6 +420,8 @@ impl Session {
             snap: self.edit_ui.snap,
             ghost: self.edit_ui.ghost.as_ref().map(|g| g.3.clone()),
             error: self.edit_ui.error.take(),
+            group: e.single_group(),
+            route_point: self.edit_ui.route_point.filter(|_| self.route_npc().is_some()),
         };
         self.pending.push(Event::Edit(Some(view)));
     }
@@ -438,13 +492,8 @@ impl Session {
     /// Håndtaket under pekeren, om noe.
     fn handle_at(&self, at: (f32, f32)) -> Option<Handle> {
         let (p, len) = self.pivot()?;
-        let m = self.screen(at);
-        let near = |a: Vec3, b: Vec3| -> Option<f32> {
-            let (a, b) = (self.on_screen(a)?, self.on_screen(b)?);
-            let ab = b - a;
-            let t = ((m - a).dot(ab) / ab.length_squared().max(1e-9)).clamp(0.0, 1.0);
-            Some((m - (a + ab * t)).length())
-        };
+        let m = self.screen_point(at);
+        let near = |a: Vec3, b: Vec3| self.screen_distance(m, a, b);
         let mut best: Option<(f32, Handle)> = None;
         for (k, (axis, _)) in AXES.iter().enumerate() {
             if let Some(d) = near(p, p + *axis * len) {
@@ -470,7 +519,7 @@ impl Session {
         };
         // Et trykk blir først et drag når musa har gått et stykke.
         if let Some(at) = self.edit_ui.pressed {
-            if (self.screen(to) - self.screen(at)).length() < SLACK {
+            if (self.screen_point(to) - self.screen_point(at)).length() < SLACK {
                 return false;
             }
             self.edit_ui.pressed = None;
@@ -481,6 +530,13 @@ impl Session {
             (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
         };
         match handle {
+            Handle::Route(k) => {
+                let (Some(r), Some(at)) = (self.route_npc(), self.ground_at(Some(to))) else {
+                    return false;
+                };
+                let at = if self.edit_ui.snap { Vec3::new(ghost::snap(at.x, ghost::GRID), at.y, ghost::snap(at.z, ghost::GRID)) } else { at };
+                self.editor_mut().route_move(&r, k, at);
+            }
             Handle::Ground => {
                 let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
                     return false;
@@ -492,7 +548,7 @@ impl Session {
                     return false;
                 };
                 let s = b - a;
-                let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
+                let moved = (self.screen_point(to) - self.screen_point(from)).dot(s) / s.length_squared().max(1e-9);
                 self.translate_snapped(p, Vec3::Y * moved);
             }
             Handle::Turn => {
@@ -507,7 +563,7 @@ impl Session {
                     return false;
                 };
                 let s = b - a;
-                let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
+                let moved = (self.screen_point(to) - self.screen_point(from)).dot(s) / s.length_squared().max(1e-9);
                 self.translate_snapped(p, axis * moved);
             }
             Handle::Ring => {
@@ -598,6 +654,7 @@ impl Session {
         for p in &self.edit_ui.draft {
             out.push((*p, *p + Vec3::Y * 1.5, DRAFT));
         }
+        self.mark_lines(&mut out);
         out
     }
 

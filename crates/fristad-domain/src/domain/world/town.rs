@@ -247,9 +247,10 @@ const INTERIORS: [(&str, &str); 6] = [("tavern", "tavern_interior"), ("home", "h
 
 /// Et hus med det det har med seg (`place_colliders`), som én ting i
 /// dataene (`layout::Item::building`).
-pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
+/// Uten `lamps` tar det ikke med seg lysene sine (de står i dataene).
+pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A, lamps: bool) {
     if b.place(model, t) {
-        place_colliders(b, model, t, layout::Pose::of(t).yaw());
+        place_colliders(b, model, t, layout::Pose::of(t).yaw(), lamps);
     }
     // Det som står inne, i husets rom: følger huset.
     if let Some(items) = b.contents.get(model).cloned() {
@@ -266,13 +267,16 @@ pub fn building_at(b: &mut Builder, model: &'static str, t: Affine3A) {
 }
 
 /// Kolliderne, rampene, lysene, lyktene og røyken en modell har med seg
-/// (`<navn>_inside.json`), satt ut med posen `t`. Gir om den hadde kollidere.
-pub fn carry(b: &mut Builder, model: &str, t: Affine3A) -> bool {
+/// (`<navn>_inside.json`), satt ut med posen `t` (lysene bare med `lamps`).
+/// Gir om den hadde kollidere.
+pub fn carry(b: &mut Builder, model: &str, t: Affine3A, lamps: bool) -> bool {
     let Some(inside) = b.insides.get(model).cloned() else { return false };
     let yaw = layout::Pose::of(t).yaw();
     let w = |p: &[f32; 3]| t.transform_point3(Vec3::from(*p));
-    for (p, color, intensity, radius) in &inside.lamps {
-        b.lamp_light(w(p), Vec3::from(*color), *intensity, *radius);
+    if lamps {
+        for l in model_lamps(&inside) {
+            b.push_light(crate::domain::scene::Light { pos: w(&l.pos.to_array()), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker, room: None });
+        }
     }
     for (p, strength) in &inside.smoke {
         b.smoke(w(p), *strength);
@@ -283,15 +287,20 @@ pub fn carry(b: &mut Builder, model: &str, t: Affine3A) -> bool {
     for pts in &inside.hulls {
         b.solid(Shape::Hull { points: pts.iter().map(w).collect() });
     }
-    for (p, color, intensity, radius) in &inside.lights {
-        b.fire_light(w(p), Vec3::from(*color), *intensity, *radius);
-    }
     !inside.boxes.is_empty()
+}
+
+/// Lysene en modell har med seg, i modellens rom: lyktene som tennes om
+/// natta (som `Builder::lamp_light`), så ilden som brenner hele døgnet (som
+/// `Builder::fire_light`).
+pub fn model_lamps(inside: &Inside) -> Vec<layout::LightDef> {
+    let lamp = |(p, c, i, r): &([f32; 3], [f32; 3], f32, f32), always: bool, flicker: f32| layout::LightDef { pos: Vec3::from(*p), radius: *r, color: Vec3::from(*c), intensity: *i, always, flicker };
+    inside.lamps.iter().map(|l| lamp(l, false, 0.12)).chain(inside.lights.iter().map(|l| lamp(l, true, 0.18))).collect()
 }
 
 /// Det et hus har med seg: innsidemodellen, kjelleren, lysene, røyken og
 /// kolliderne (fra `<navn>_inside.json`, ellers en boks rundt modellen).
-fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) {
+fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32, lamps: bool) {
     let base = Vec3::from(t.translation);
     if let Some((_, interior)) = INTERIORS.iter().find(|(m, _)| *m == model) {
         // Innsida står på husets gulv, ikke på bakken.
@@ -319,7 +328,7 @@ fn place_colliders(b: &mut Builder, model: &'static str, t: Affine3A, yaw: f32) 
             house_prop(b, name, t.transform_point3(Vec3::from(*p)), yaw + y);
         }
     }
-    if carry(b, model, t) {
+    if carry(b, model, t, lamps) {
         return;
     }
     if let Some((lo, hi)) = b.bounds(model) {

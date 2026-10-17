@@ -13,6 +13,7 @@
 pub mod app;
 pub mod assembly;
 mod audio;
+mod edit_marks;
 mod editing;
 mod fight;
 mod goals;

@@ -209,6 +209,11 @@ enum EditJson {
         key: String,
         value: String,
     },
+    Group {
+        #[serde(default)]
+        name: String,
+    },
+    Ungroup,
 }
 
 impl EditJson {
@@ -255,6 +260,8 @@ impl EditJson {
             EditJson::GhostTurn { a } => EditCommand::GhostTurn(a),
             EditJson::Snap { on } => EditCommand::Snap(on),
             EditJson::SetProp { key, value } => EditCommand::SetProp { key, value },
+            EditJson::Group { name } => EditCommand::Group(name),
+            EditJson::Ungroup => EditCommand::Ungroup,
         })
     }
 }
@@ -310,6 +317,9 @@ fn json(e: &Event) -> serde_json::Value {
             "breaches": v.breaches.iter().map(|(r, why)| json!({"ref": r, "why": why})).collect::<Vec<_>>(),
             "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean, "draft": v.draft,
             "under": v.under.iter().map(|(l, sel)| json!({"label": l, "selected": sel})).collect::<Vec<_>>(),
+            "props": v.props.iter().map(|p| json!({"key": p.key, "label": p.label, "value": p.value})).collect::<Vec<_>>(),
+            "history": v.history, "step": v.step, "snap": v.snap, "ghost": v.ghost, "error": v.error,
+            "group": v.group, "route_point": v.route_point,
         }}),
     }
 }
@@ -327,8 +337,6 @@ impl Engine {
         #[derive(serde::Deserialize)]
         struct Raw {
             fristil: String,
-            "props": v.props.iter().map(|p| json!({"key": p.key, "label": p.label, "value": p.value})).collect::<Vec<_>>(),
-            "history": v.history, "step": v.step, "snap": v.snap, "ghost": v.ghost, "error": v.error,
         }
         serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.fristil).unwrap_or_default()
     }

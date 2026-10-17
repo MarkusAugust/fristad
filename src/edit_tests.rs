@@ -771,3 +771,208 @@ fn rammen_velger_det_innenfor() {
     assert!(s.edit_command(EditCommand::SelectBox { a: (c.0 - 0.03, c.1 - 0.05), b: (c.0 + 0.03, c.1 + 0.05), add: false }));
     assert!(s.editor().unwrap().selection.contains(&Ref::Town(barrel)), "{:?}", s.editor().unwrap().selection);
 }
+
+/// Grupper (runde 2): to tønner blir gruppen «tønner»; et klikk på den ene
+/// velger begge, de flyttes, dreies og angres samlet, en kopi blir en ny
+/// gruppe («tønner 2»), og «Løs opp» gjør dem til enkeltting igjen. Feltet
+/// står i fila bare på tingene i en gruppe, og fila leses tilbake likt.
+#[test]
+fn grupper_velges_flyttes_kopieres_og_loses_opp() {
+    use crate::domain::world::layout::{Layout, Ref};
+    use glam::Vec3;
+    let mut e = editor();
+    let barrels: Vec<usize> = e.layout.items.iter().enumerate().filter(|(_, it)| it.model.as_deref() == Some("barrel")).map(|(i, _)| i).take(2).collect();
+    let (a, b) = (barrels[0], barrels[1]);
+    let start = e.layout.clone();
+    e.selection = vec![Ref::Town(a)];
+    assert!(e.make_group("tønner").is_err(), "én ting er ingen gruppe");
+    e.selection = vec![Ref::Town(a), Ref::Town(b)];
+    assert_eq!(e.make_group("tønner").unwrap(), "tønner");
+    assert_eq!(e.single_group().as_deref(), Some("tønner"));
+    // Et klikk ovenfra på den ene velger begge.
+    let pa = e.pose_of(&Ref::Town(a)).unwrap().translation;
+    e.selection.clear();
+    let hit = e.pick(Vec3::from(pa) + Vec3::Y * 0.4 + Vec3::X * 3.0, -Vec3::X, false);
+    assert_eq!(hit, Some(Ref::Town(a)));
+    assert_eq!(e.selection, vec![Ref::Town(a), Ref::Town(b)]);
+    let before: Vec<Vec3> = [a, b].iter().map(|i| e.layout.items[*i].at.unwrap().pos).collect();
+    e.translate(Vec3::new(0.0, 0.0, 0.5));
+    for (k, i) in [a, b].iter().enumerate() {
+        assert!((e.layout.items[*i].at.unwrap().pos - before[k] - Vec3::new(0.0, 0.0, 0.5)).length() < 1e-4, "begge flyttes");
+    }
+    e.rotate(0.5);
+    assert!(e.undo() && e.undo(), "dreiingen og flyttingen angres");
+    for (k, i) in [a, b].iter().enumerate() {
+        assert!((e.layout.items[*i].at.unwrap().pos - before[k]).length() < 1e-4);
+    }
+    // Kopien er en ny gruppe.
+    e.selection = e.members(&Ref::Town(a));
+    e.duplicate();
+    let copies = e.selection.clone();
+    assert_eq!(copies.len(), 2);
+    assert!(copies.iter().all(|r| e.group_of(r).as_deref() == Some("tønner 2")), "{:?}", copies.iter().map(|r| e.group_of(r)).collect::<Vec<_>>());
+    assert_eq!(e.members(&Ref::Town(a)).len(), 2, "originalen er fortsatt to");
+    // Fila: feltet står bare på gruppene, og leses tilbake likt.
+    let json = crate::adapters::data::layout_json(&e.layout);
+    assert_eq!(json.matches("\"group\":\"tønner\"").count(), 2, "{}", json.lines().filter(|l| l.contains("group")).collect::<Vec<_>>().join("\n"));
+    assert_eq!(json.matches("\"group\"").count(), 4);
+    let back: Layout = serde_json::from_str(&json).unwrap();
+    assert_eq!(crate::adapters::data::layout_json(&back), json);
+    // Løs opp: tingene blir stående og valgt, uten gruppe.
+    e.selection = e.members(&Ref::Town(a));
+    assert_eq!(e.ungroup(), 2);
+    assert!(e.group_of(&Ref::Town(a)).is_none() && e.group_of(&Ref::Town(b)).is_none());
+    e.selection.clear();
+    e.pick(Vec3::from(pa) + Vec3::Y * 0.4 + Vec3::X * 3.0, -Vec3::X, false);
+    assert_eq!(e.selection, vec![Ref::Town(a)], "uten gruppe velges bare den ene");
+    // Alt angret: dataene er som før, og fila uten grupper er lik den gamle.
+    while e.undo() {}
+    assert_eq!(e.layout, start);
+    assert!(!crate::adapters::data::layout_json(&e.layout).contains("\"group\""));
+}
+
+/// Rutene (runde 2): den valgte innbyggerens rutepunkter er stolper på
+/// bakken; en stolpe dras langs bakken (ett steg å angre), et trykk på
+/// streken legger til et punkt der, Delete sletter punktet som er tatt, og
+/// ventetiden settes i egenskapspanelet. Når innbyggeren flyttes, følger
+/// ruta med.
+#[test]
+fn rutepunktene_dras_legges_til_og_slettes() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::{EditCommand, Grab};
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    assert!(s.edit_command(EditCommand::Enter));
+    // Velg en innbygger med rute, sett ovenfra.
+    let mut chosen = None;
+    for (i, n) in d.layout.npcs.iter().enumerate().filter(|(_, n)| n.route.len() >= 3) {
+        s.place(n.pos + Vec3::new(0.0, 9.0, 7.0), 0.0, -0.85);
+        s.frame(1.6);
+        let at = s.to_screen(n.pos + Vec3::Y * 1.0).unwrap();
+        s.edit_command(EditCommand::Pick { add: false, at: Some(at) });
+        if s.editor().unwrap().selection == vec![Ref::Npc(i)] {
+            chosen = Some(i);
+            break;
+        }
+    }
+    let i = chosen.expect("en innbygger med rute kan klikkes");
+    let r = Ref::Npc(i);
+    let route = s.editor().unwrap().route(&r);
+    // Stolpe 1: ta den og dra den 1,5 m mot øst.
+    let p = route[1].0;
+    let grab = s.to_screen(p + Vec3::Y * 0.6).unwrap();
+    assert!(s.edit_command(EditCommand::Press { at: grab, add: false, grab: Grab::Move }));
+    let to_p = p + Vec3::X * 1.5;
+    let to = s.to_screen(to_p).unwrap();
+    for k in 1..=5 {
+        let f = k as f32 / 5.0;
+        s.edit_command(EditCommand::Drag { to: (grab.0 + (to.0 - grab.0) * f, grab.1 + (to.1 - grab.1) * f) });
+    }
+    s.edit_command(EditCommand::Release);
+    let moved = s.editor().unwrap().route(&r)[1].0;
+    assert!((moved - to_p).length() < 0.6, "stolpen dras langs bakken: {moved} mot {to_p}");
+    assert_eq!(s.editor().unwrap().selection, vec![r.clone()], "innbyggeren er fortsatt valgt");
+    assert!(s.edit_command(EditCommand::Undo));
+    assert!((s.editor().unwrap().route(&r)[1].0 - p).length() < 1e-4, "draget er ett steg");
+    s.edit_command(EditCommand::Pick { add: false, at: Some(s.to_screen(d.layout.npcs[i].pos + Vec3::Y).unwrap()) });
+    // Et trykk midt på streken mellom punkt 1 og 2 legger til et punkt der.
+    let (a, b) = (route[1].0, route[2].0);
+    let mid = (a + b) * 0.5;
+    let at = s.to_screen(mid + Vec3::Y * 0.1).unwrap();
+    assert!(s.edit_command(EditCommand::Press { at, add: false, grab: Grab::Move }));
+    s.edit_command(EditCommand::Release);
+    let now = s.editor().unwrap().route(&r);
+    assert_eq!(now.len(), route.len() + 1, "et nytt punkt");
+    let new = now.iter().find(|q| !route.contains(q)).expect("det nye punktet").0;
+    assert!((new - mid).length() < 0.5, "på streken: {new} mot {mid}");
+    // Delete sletter punktet som er tatt (det nye), ikke innbyggeren.
+    assert!(s.edit_command(EditCommand::Delete));
+    assert_eq!(s.editor().unwrap().route(&r), route);
+    assert_eq!(s.editor().unwrap().layout.npcs.len(), d.layout.npcs.len());
+    // Ventetiden i panelet.
+    assert!(s.editor().unwrap().props().iter().any(|p| p.key == "route.0.wait"));
+    assert!(s.edit_command(EditCommand::SetProp { key: "route.0.wait".into(), value: "7,5".into() }));
+    assert_eq!(s.editor().unwrap().route(&r)[0].1, 7.5);
+    assert!(!s.edit_command(EditCommand::SetProp { key: "route.99.wait".into(), value: "1".into() }));
+    // Innbyggeren flyttet: ruta følger.
+    assert!(s.edit_command(EditCommand::Move(Vec3::new(2.0, 0.0, 0.0))));
+    let after = s.editor().unwrap().route(&r);
+    assert!(after.iter().zip(&route).all(|(x, y)| (x.0 - y.0 - Vec3::X * 2.0).length() < 1e-4));
+    // Strekene og stolpene tegnes.
+    assert!(s.frame(1.6).lines.len() > route.len() * 3);
+}
+
+/// Lysene i byen (runde 2): lyktestolpens lys og vegglykta et hus har med
+/// seg velges og endres som lysene i krypten. Et endret lys fra modellen gir
+/// huset sin egen liste i dataene, og angret er dataene som før. Lysene
+/// står der redigeringen har satt dem, og T bytter til natt i redigeringen.
+#[test]
+fn lysene_i_byen_endres_og_angres() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::{EditCommand, Event, Input};
+    use glam::Vec3;
+    let mut e = editor();
+    let start = e.layout.clone();
+    let post = e.layout.items.iter().position(|it| it.model.as_deref() == Some("lantern_post") && !it.lights.is_empty()).unwrap();
+    let own = Ref::ItemLight { item: Box::new(Ref::Town(post)), model: false, i: 0 };
+    assert!(e.refs().contains(&own));
+    e.selection = vec![own.clone()];
+    assert_eq!(e.label(&own), "lykt");
+    e.set_prop("range", "11").unwrap();
+    e.set_prop("color", "#ff0000").unwrap();
+    e.set_prop("always", "ja").unwrap();
+    let l = &e.layout.items[post].lights[0];
+    assert_eq!((l.radius, l.color, l.always), (11.0, Vec3::new(1.0, 0.0, 0.0), true));
+    // Huset: vegglykta fra modellen.
+    let house = e.layout.items.iter().position(|it| it.building && it.model.as_deref() == Some("house_a")).unwrap();
+    let lamp = Ref::ItemLight { item: Box::new(Ref::Town(house)), model: true, i: 0 };
+    let was = Vec3::from(e.pose_of(&lamp).unwrap().translation);
+    let lights_before = e.scene().lights.len();
+    e.selection = vec![lamp.clone()];
+    e.translate(Vec3::new(0.0, 0.5, 0.0));
+    assert!(e.layout.items[house].lamps.is_some(), "huset får sin egen liste");
+    let now = Vec3::from(e.pose_of(&lamp).unwrap().translation);
+    assert!((now - was - Vec3::Y * 0.5).length() < 1e-3);
+    assert!(e.scene().lights.iter().any(|l| (l.pos - now).length() < 1e-3), "lyset står der det ble flyttet");
+    assert!(!e.scene().lights.iter().any(|l| (l.pos - was).length() < 1e-3), "og ikke der det sto");
+    assert_eq!(e.scene().lights.len(), lights_before);
+    // Huset flyttet: lyset følger, og det står fortsatt bare ett sted.
+    e.selection = vec![Ref::Town(house), lamp.clone()];
+    e.translate(Vec3::new(0.2, 0.0, 0.0));
+    let followed = Vec3::from(e.pose_of(&lamp).unwrap().translation);
+    assert!((followed - now - Vec3::X * 0.2).length() < 1e-3, "lyset følger huset én gang: {followed} fra {now}");
+    // Kopi: et eget lys på huset; slett: borte fra modellens liste.
+    e.selection = vec![lamp.clone()];
+    e.duplicate();
+    assert_eq!(e.layout.items[house].lights.len(), 1);
+    e.selection = vec![lamp.clone()];
+    e.delete();
+    assert_eq!(e.layout.items[house].lamps.as_ref().map(|v| v.len()), Some(0));
+    while e.undo() {}
+    assert_eq!(e.layout, start, "angret er dataene som før (uten egen liste)");
+    assert!(e.layout.items[house].lamps.is_none());
+
+    // I økta: T bytter til natt også i redigeringen, og bildet viser lyset
+    // der redigeringen satte det.
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let at = d.layout.items[post].at.unwrap().pos;
+    s.place(at + Vec3::new(4.0, 2.0, 0.0), std::f32::consts::FRAC_PI_2, -0.2);
+    assert!(s.edit_command(EditCommand::Enter));
+    let day = s.daylight();
+    let mut input = Input::default();
+    input.key("KeyT", true);
+    let events = s.update(&mut input, 0.016, &mut physics);
+    assert!(events.iter().any(|e| matches!(e, Event::Daylight(_))), "T virker i redigeringen");
+    assert_ne!(s.daylight(), day);
+    s.set_daylight(crate::domain::weather::Daylight::Night, true);
+    let lamp = Ref::ItemLight { item: Box::new(Ref::Town(post)), model: false, i: 0 };
+    let from = s.editor().unwrap().pose_of(&lamp).unwrap();
+    let to = glam::Affine3A::from_translation(Vec3::new(0.0, 0.0, 1.0)) * from;
+    assert!(s.edit_command(EditCommand::SetPose { r: lamp, pose: to }));
+    let frame = s.frame(1.6);
+    assert!(frame.lights.iter().any(|l| (l.pos - Vec3::from(to.translation)).length() < 1e-3), "lyset står der det ble flyttet");
+}

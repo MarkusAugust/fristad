@@ -237,6 +237,10 @@ pub enum EditCommand {
         key: String,
         value: String,
     },
+    /// Lag en gruppe av det valgte med navnet (tomt: «gruppe N»).
+    Group(String),
+    /// Løs opp gruppene i det valgte.
+    Ungroup,
 }
 
 /// Redigeringen sett utenfra: det valgte, reglene som er brutt, og om noe
@@ -266,6 +270,11 @@ pub struct EditView {
     pub ghost: Option<Vec<String>>,
     /// Feilen fra siste egenskap som ikke kunne settes.
     pub error: Option<String>,
+    /// Gruppen til det valgte, om det er én gruppe.
+    pub group: Option<String>,
+    /// Punktet på ruta til den valgte innbyggeren som er tatt (Delete
+    /// sletter det), nummerert fra 0.
+    pub route_point: Option<usize>,
 }
 
 /// Spillet sett utenfra.

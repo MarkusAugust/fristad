@@ -2,7 +2,9 @@
 //! stedet (x, y, z i verden), dreiningen i grader og fargen for alt, og for
 //! merkene i krypten det slaget bruker (spakens `opens`, portens `id`,
 //! lappens tekst, kistens innhold, fiendens slag, antall og runde), for
-//! lysene fargen, rekkevidden, styrken og om det blafrer. En endring er en
+//! lysene fargen, rekkevidden, styrken og om det blafrer (lysene i byen også
+//! om de brenner hele døgnet), gruppen til en ting og ventetiden i hvert
+//! punkt på ruta til en innbygger. En endring er en
 //! vanlig endring av dataene, så angre gjelder den også.
 
 use super::editor::{Change, Editor, Thing};
@@ -51,6 +53,10 @@ fn parse_hex(s: &str) -> Result<Vec3, String> {
 
 fn parse_num(s: &str) -> Result<f32, String> {
     s.trim().replace(',', ".").parse::<f32>().ok().filter(|v| v.is_finite()).ok_or_else(|| format!("«{s}» er ikke et tall"))
+}
+
+fn yes(s: &str) -> bool {
+    matches!(s.trim().to_lowercase().as_str(), "ja" | "true" | "1" | "j" | "yes")
 }
 
 fn opt_text(s: &str) -> Option<String> {
@@ -178,12 +184,16 @@ impl Editor {
                 if it.model.is_some() {
                     out.push(prop("tint", "farge", it.tint.map(hex).unwrap_or_default()));
                 }
+                out.push(prop("group", "gruppe", it.group.clone().unwrap_or_default()));
             }
             Thing::Npc(n) => {
                 out.push(prop("yaw", "dreining (°)", num(n.yaw.to_degrees())));
                 out.push(prop("name", "navn", n.name.clone()));
                 out.push(prop("lines", "replikker", n.lines.clone()));
                 out.push(prop("tint", "farge", hex(n.tint)));
+                for (k, (_, wait)) in n.route.iter().enumerate() {
+                    out.push(prop(&format!("route.{k}.wait"), &format!("punkt {}: står (s)", k + 1), num(*wait)));
+                }
             }
             Thing::Mark(m) => {
                 out.push(prop("yaw", "dreining (°)", num(m.yaw.to_degrees())));
@@ -195,6 +205,13 @@ impl Editor {
                         out.push(prop(k, mark_label(&m.kind, k), v));
                     }
                 }
+            }
+            Thing::Lamp(l) => {
+                out.push(prop("color", "farge", hex(l.color)));
+                out.push(prop("range", "rekkevidde (m)", num(l.radius)));
+                out.push(prop("intensity", "styrke", num(l.intensity)));
+                out.push(prop("flicker", "blafrer", num(l.flicker)));
+                out.push(prop("always", "hele døgnet", if l.always { "ja" } else { "nei" }.into()));
             }
             Thing::Light(l) => {
                 out.push(prop("color", "farge", hex(Vec3::from(l.color))));
@@ -253,15 +270,25 @@ impl Editor {
         let mut t = t.clone();
         match (&mut t, key) {
             (Thing::Item(it), "tint") => it.tint = if v.trim().is_empty() { None } else { Some(parse_hex(v)?) },
+            (Thing::Item(it), "group") => it.group = opt_text(v),
+            (Thing::Lamp(l), "color") => l.color = parse_hex(v)?,
+            (Thing::Lamp(l), "range") => l.radius = parse_num(v)?.max(0.1),
+            (Thing::Lamp(l), "intensity") => l.intensity = parse_num(v)?.max(0.0),
+            (Thing::Lamp(l), "flicker") => l.flicker = parse_num(v)?.clamp(0.0, 1.0),
+            (Thing::Lamp(l), "always") => l.always = yes(v),
             (Thing::Npc(n), "tint") => n.tint = parse_hex(v)?,
             (Thing::Npc(n), "name") => n.name = opt_text(v).ok_or("Navnet kan ikke være tomt.")?,
             (Thing::Npc(n), "lines") => n.lines = v.trim().to_string(),
+            (Thing::Npc(n), k) if k.starts_with("route.") => {
+                let p = k.split('.').nth(1).and_then(|i| i.parse::<usize>().ok()).and_then(|i| n.route.get_mut(i)).ok_or_else(|| format!("Ruta har ikke «{k}»"))?;
+                p.1 = parse_num(v)?.max(0.0);
+            }
             (Thing::Mark(m), "kind") => m.kind = opt_text(v).ok_or("Slaget kan ikke være tomt.")?,
             (Thing::Mark(m), k) => set_mark(m, k, v)?,
             (Thing::Light(l), "color") => l.color = parse_hex(v)?.to_array(),
             (Thing::Light(l), "range") => l.range = parse_num(v)?.max(0.1),
             (Thing::Light(l), "intensity") => l.intensity = Some(parse_num(v)?.max(0.0)),
-            (Thing::Light(l), "flicker") => l.flicker = matches!(v.trim().to_lowercase().as_str(), "ja" | "true" | "1" | "j" | "yes"),
+            (Thing::Light(l), "flicker") => l.flicker = yes(v),
             _ => {}
         }
         Ok(t)

@@ -138,6 +138,15 @@ pub struct Item {
     /// Plass til deler spillet beveger (brønnens vinde, portalen).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reserve: Vec<(String, usize)>,
+    /// Gruppen tingen hører til (redigeringen velger, flytter, dreier og
+    /// kopierer en gruppe samlet); uten: ingen gruppe.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Lysene modellen har med seg (`<navn>_inside.json`: vegglykta ved døra,
+    /// ildstedene, lysestakene), slik redigeringen har endret dem for akkurat
+    /// denne tingen; uten: som i modellen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lamps: Option<Vec<LightDef>>,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -172,7 +181,7 @@ pub struct Layout {
 
 /// Hvilken ting i dataene: en ting i byen (nummer i `Layout.items`), et
 /// møbel i et hus (nummer i husets innhold, `assets/layout/inside/<hus>.json`),
-/// en innbygger, eller et merke eller lys i et kryptnivå
+/// en innbygger, et lys på en av dem, eller et merke eller lys i et kryptnivå
 /// (`assets/layout/crypt_NN.json`). Redigeringen bruker den til å finne tingen igjen fra
 /// det som er satt ut (`Builder.origins`).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -183,6 +192,10 @@ pub enum Ref {
     Npc(usize),
     Crypt { level: u32, i: usize },
     CryptLight { level: u32, i: usize },
+    /// Et lys på en ting i byen eller i et hus: et av tingens egne (`lights`,
+    /// lyktestolpene) eller, med `model`, et av dem modellen har med seg
+    /// (`Item::lamps`).
+    ItemLight { item: Box<Ref>, model: bool, i: usize },
 }
 
 /// Navnene i dataene som `&'static str`, som resten av verden bruker: hvert
@@ -221,12 +234,14 @@ pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
     let y0 = Pose::of(t).yaw();
     if let Some(m) = &item.model {
         let m = intern(m);
+        // Med egne lys (`lamps`) tar ikke modellen med seg sine.
+        let lamps = item.lamps.is_none();
         if item.building {
-            town::building_at(b, m, t);
+            town::building_at(b, m, t, lamps);
         } else {
             let placed = if item.mounted { b.place_mounted_look(m, t, None::<Look>) } else { b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE)) };
             if placed {
-                town::carry(b, m, t);
+                town::carry(b, m, t, lamps);
             }
         }
     }
@@ -242,7 +257,7 @@ pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
     for d in &item.targets {
         b.target(d.what.to_use(), t * d.pose.affine(), d.center, d.half);
     }
-    for l in &item.lights {
+    for l in item.lights.iter().chain(item.lamps.iter().flatten()) {
         b.push_light(Light { pos: p(&l.pos), radius: l.radius, color: l.color, intensity: l.intensity, always: l.always, flicker: l.flicker, room: None });
     }
     for (top, s) in &item.smoke {

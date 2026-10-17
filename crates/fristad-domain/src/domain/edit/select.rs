@@ -17,14 +17,9 @@ impl Editor {
     pub fn select_under(&mut self, k: usize, add: bool) -> Option<Ref> {
         let r = self.under.get(k)?.clone();
         if add {
-            match self.selection.iter().position(|s| *s == r) {
-                Some(i) => {
-                    self.selection.remove(i);
-                }
-                None => self.selection.push(r.clone()),
-            }
+            self.toggle(&r);
         } else {
-            self.selection = vec![r.clone()];
+            self.selection = self.members(&r);
         }
         Some(r)
     }
@@ -35,9 +30,9 @@ impl Editor {
         if n == 0 {
             return None;
         }
-        let k = match self.selection.as_slice() {
-            [cur] => self.under.iter().position(|r| r == cur).map(|k| (k + n - 1) % n).unwrap_or(n - 1),
-            _ => n - 1,
+        let k = match self.single() {
+            Some(cur) => self.under.iter().position(|r| r == cur).map(|k| (k + n - 1) % n).unwrap_or(n - 1),
+            None => n - 1,
         };
         self.select_under(k, false)
     }
@@ -52,7 +47,8 @@ impl Editor {
         self.select_under(k, false)
     }
 
-    /// Velg alt med midten innenfor rammen på skjermen. `screen` gir hvor et
+    /// Velg alt med midten innenfor rammen på skjermen (med gruppene sine;
+    /// lysene på tingene velges med klikk, de følger tingen sin). `screen` gir hvor et
     /// punkt i verden står på skjermen (0..1), eller `None` bak kameraet;
     /// `near` er hvor langt unna noe kan være (meter fra øyet). Med `add`
     /// legges det til valget.
@@ -60,7 +56,7 @@ impl Editor {
         let (x0, x1) = (a.0.min(b.0), a.0.max(b.0));
         let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));
         let mut found = vec![];
-        for r in self.refs() {
+        for r in self.refs().into_iter().filter(|r| !matches!(r, Ref::ItemLight { .. })) {
             let Some((t, c, _)) = self.box_of(&r) else { continue };
             let p = t.transform_point3(c);
             if p.distance(eye) > near {
@@ -80,6 +76,7 @@ impl Editor {
                 self.selection.push(r.clone());
             }
         }
+        self.expand_groups();
         found.len()
     }
 

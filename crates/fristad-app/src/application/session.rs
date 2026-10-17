@@ -324,10 +324,15 @@ impl Session {
             self.pitch = (self.pitch - input.look.1 * SENSITIVITY).clamp(-1.5, 1.5);
         }
         input.look = (0.0, 0.0);
-        // I redigeringen flyr du, og ingenting annet skjer.
+        // I redigeringen flyr du, og ingenting annet skjer, men T og V
+        // bytter dag og natt og været, så lysene kan ses om natta.
         if self.edit.is_some() {
             self.fly(input, dt);
             self.sky.tick(dt, self.time);
+            let in_crypt = self.in_crypt();
+            for a in actions.into_iter().filter(|a| matches!(a, Action::Daylight | Action::Weather)) {
+                self.act(a, Vec3::ZERO, in_crypt, &mut events);
+            }
             return events;
         }
         if let Some(shot) = self.film {
