@@ -100,5 +100,6 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     // Lyn: hele himmelen blinker.
     c += vec3<f32>(0.8, 0.85, 1.0) * g.sky.z * (0.3 + 0.7 * smoothstep(-0.2, 0.6, dir.y));
     // Tåka over himmelen, som om den sto 600 m unna.
-    return vec4<f32>(fog(c, g.camera.xyz + dir * 600.0), 1.0);
+    // Alfa 0: himmel (masken til solstrålene i tonemappingen).
+    return vec4<f32>(fog(c, g.camera.xyz + dir * 600.0), 0.0);
 }

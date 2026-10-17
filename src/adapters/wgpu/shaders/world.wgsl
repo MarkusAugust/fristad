@@ -186,7 +186,11 @@ fn vs_shadow(v: VsIn, inst: Instance) -> ShadowOut {
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
     w += wind_offset(w, v);
     var o: ShadowOut;
-    o.clip = g.sun_vp * vec4<f32>(w, 1.0);
+    var vp = g.sun_vp;
+    if (shadow_pass.x > 0.5) {
+        vp = g.sun_vp2;
+    }
+    o.clip = vp * vec4<f32>(w, 1.0);
     o.uv = v.uv;
     o.mat = v.mat;
     return o;
@@ -254,7 +258,7 @@ struct Tex {
 }
 
 fn sample_plane(layer: i32, uv: vec2<f32>, gx_in: vec2<f32>, gy_in: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
-    // Enkel grafikk leser ett mipnivå ned: halv teksturtetthet.
+    // Uten full teksturtetthet leses ett mipnivå ned: halv tetthet.
     let lod = select(1.0, 2.0, g.quality.x < 0.5);
     let gx = gx_in * lod;
     let gy = gy_in * lod;
@@ -369,8 +373,8 @@ fn terrain(w_raw: vec4<f32>, dry: f32, wet: f32, world: vec3<f32>, dp1: vec3<f32
     // over trekantene; i overgangene forskyves de med støy i to skalaer,
     // så kantene mellom brostein, jord og gress blir ujevne og flekkete i
     // stedet for å følge rutene.
-    // Enkel grafikk: ingen støy i overgangene og bare laget med størst vekt.
-    let simple = g.quality.x < 0.5;
+    // Uten blandede lag: ingen støy i overgangene og bare laget med størst vekt.
+    let simple = g.quality.w < 0.5;
     var warp = vec4<f32>(0.0);
     if (!simple) {
     warp = vec4<f32>(
@@ -685,7 +689,9 @@ fn fs(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
     if (g.quality.y > 0.5) {
         return vec4<f32>(0.5, 0.5, 0.5, 1.0);
     }
-    return fragment(i, front);
+    // Alfa 1 der verden står, 0 der himmelen er: solstrålene i
+    // tonemappingen bruker det som maske.
+    return vec4<f32>(fragment(i, front).rgb, 1.0);
 }
 
 // Alfakortene (gress, blad): alpha to coverage med MSAA, kutt uten.
@@ -695,7 +701,8 @@ fn fs_cutout(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<
     if (g.misc.y < 1.5 && c.a < 0.5) {
         discard;
     }
-    return c;
+    // Med MSAA er alfa dekningen; uten er den 1 (masken til solstrålene).
+    return vec4<f32>(c.rgb, select(1.0, c.a, g.misc.y > 1.5));
 }
 
 fn fragment(i: VsOut, front: bool) -> vec4<f32> {

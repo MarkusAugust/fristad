@@ -31,27 +31,115 @@ pub struct StaticScene<'a> {
     pub models: &'a [Model],
 }
 
-/// Grafikknivået spilleren har valgt. Byttes aldri av seg selv.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub enum Quality {
-    /// For de svakeste maskinene (og det WebGL2 får): uten MSAA, uten
-    /// solskygge og glød, ett lag på bakken, fire lys og halv teksturtetthet.
-    Simple,
-    /// For en vanlig maskin: MSAA 4×, kortere sikt, åtte lys.
-    #[default]
-    Standard,
-    /// For en god maskin: lengre sikt, alle lys og MSAA 8× der kortet kan.
-    Advanced,
+/// Grafikkinnstillingene spilleren har valgt, bryter for bryter. Nivåene
+/// enkel, standard og avansert er bare forhåndsvalg som setter bryterne
+/// (`Quality::preset`); endrer spilleren én, er innstillingene egendefinerte.
+/// Byttes aldri av seg selv. Oppløsningen velges i verten (lerretet).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Quality {
+    /// Solskyggen.
+    pub shadow: bool,
+    /// Sidene i skyggekartet per kaskade (1024, 2048 eller 4096).
+    pub shadow_res: u32,
+    /// Myke skyggekanter: tolv faste prøver i stedet for fire.
+    pub soft_shadow: bool,
+    /// Kaskade nummer to: skygge videre ut (`SHADOW_FAR2`), grovere.
+    pub far_shadow: bool,
+    /// Gløden rundt lys, ild og vinduer.
+    pub bloom: bool,
+    /// Kantutjevningen SMAA.
+    pub smaa: bool,
+    /// Avstandståka.
+    pub fog: bool,
+    /// Hvor langt unna modellene tegnes (m); 0 er så langt verden går.
+    pub far: f32,
+    /// Småting og fin detalj også langt unna.
+    pub detail: bool,
+    /// Lys som tegnes samtidig (lykter, ild, vinduer).
+    pub lights: u32,
+    /// Full teksturtetthet (av: ett mipnivå ned).
+    pub textures: bool,
+    /// Lagene på bakken blandet med støy i overgangene (av: ett lag).
+    pub ground: bool,
+    /// Røyk, regn og snø.
+    pub particles: bool,
+    /// Solstråler gjennom lufta.
+    pub rays: bool,
+    /// Skygge i krokene (skjermrommet, halv oppløsning; bare WebGPU).
+    pub ao: bool,
+    /// Den malte tonemappingen med fargegradering etter stedet og tida
+    /// (av: den gamle ACES-kurven).
+    pub grade: bool,
 }
 
+/// Forhåndsvalgene, i rekkefølge fra det letteste.
+pub const PRESETS: [&str; 3] = ["enkel", "standard", "avansert"];
+
 impl Quality {
+    /// Et forhåndsvalg etter navnet (`PRESETS`).
     pub fn from_name(name: &str) -> Option<Self> {
+        let base = Quality {
+            shadow: true,
+            shadow_res: 4096,
+            soft_shadow: true,
+            far_shadow: false,
+            bloom: true,
+            smaa: true,
+            fog: true,
+            far: 160.0,
+            detail: false,
+            lights: 8,
+            textures: true,
+            ground: true,
+            particles: true,
+            rays: true,
+            ao: false,
+            grade: true,
+        };
         match name {
-            "enkel" => Some(Quality::Simple),
-            "standard" => Some(Quality::Standard),
-            "avansert" => Some(Quality::Advanced),
+            "enkel" => Some(Quality { shadow: false, shadow_res: 2048, soft_shadow: false, bloom: false, smaa: false, lights: 4, textures: false, ground: false, rays: false, ..base }),
+            "standard" => Some(base),
+            "avansert" => Some(Quality { far_shadow: true, far: 0.0, detail: true, lights: 48, ao: true, ..base }),
             _ => None,
         }
+    }
+
+    /// Navnet på forhåndsvalget bryterne svarer til, eller `None`
+    /// (egendefinert).
+    pub fn preset(&self) -> Option<&'static str> {
+        PRESETS.into_iter().find(|n| Quality::from_name(n).as_ref() == Some(self))
+    }
+
+    /// Sett én bryter etter navnet (som i nettlaget og `snapshot --gfx`).
+    /// Sant om navnet finnes.
+    pub fn set(&mut self, key: &str, v: f32) -> bool {
+        let on = v > 0.5;
+        match key {
+            "shadow" => self.shadow = on,
+            "shadow_res" => self.shadow_res = (v.max(256.0) as u32).next_power_of_two().min(4096),
+            "soft_shadow" => self.soft_shadow = on,
+            "far_shadow" => self.far_shadow = on,
+            "bloom" => self.bloom = on,
+            "smaa" => self.smaa = on,
+            "fog" => self.fog = on,
+            "far" => self.far = v.max(0.0),
+            "detail" => self.detail = on,
+            "lights" => self.lights = v.clamp(0.0, 64.0) as u32,
+            "textures" => self.textures = on,
+            "ground" => self.ground = on,
+            "particles" => self.particles = on,
+            "rays" => self.rays = on,
+            "ao" => self.ao = on,
+            "grade" => self.grade = on,
+            _ => return false,
+        }
+        true
+    }
+}
+
+impl Default for Quality {
+    fn default() -> Self {
+        Quality::from_name("standard").expect("standard finnes")
     }
 }
 
@@ -160,4 +248,27 @@ pub trait LayoutStore {
         contents: &[(String, Vec<crate::domain::world::layout::Item>)],
         crypt: &[(u32, crate::domain::world::crypt::level::CryptContents)],
     ) -> Result<(), String>;
+}
+
+#[cfg(test)]
+mod quality_tests {
+    use super::{Quality, PRESETS};
+
+    /// Hvert forhåndsvalg kjenner seg igjen, en endret bryter er
+    /// egendefinert, og bryternavnene i nettlaget finnes.
+    #[test]
+    fn forhandsvalgene_er_brytere() {
+        for name in PRESETS {
+            let q = Quality::from_name(name).expect("forhåndsvalget finnes");
+            assert_eq!(q.preset(), Some(name));
+        }
+        let mut q = Quality::from_name("standard").unwrap();
+        assert!(q.set("shadow", 0.0));
+        assert_eq!(q.preset(), None);
+        assert!(!q.set("finnes_ikke", 1.0));
+        for key in ["shadow", "shadow_res", "soft_shadow", "far_shadow", "bloom", "smaa", "fog", "far", "detail", "lights", "textures", "ground", "particles", "rays", "ao", "grade"] {
+            assert!(Quality::default().set(key, 1.0), "{key}");
+        }
+        assert_eq!(Quality::default().preset(), Some("standard"));
+    }
 }

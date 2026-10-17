@@ -47,9 +47,14 @@ struct Globals {
     room_box: array<vec4<f32>, 64>,
     room_y: array<vec4<f32>, 32>,
     light_rooms: array<vec4<u32>, 24>,
-    // x grafikknivået (0 enkel, 1 standard, 2 avansert), y flat farge
-    // (målingen `?bench`).
+    // x full teksturtetthet, y flat farge (målingen `?bench`), z skyggen
+    // (0 av, 1 fire prøver, 2 myk), w blandede lag på bakken.
     quality: vec4<f32>,
+    // Kaskade nummer to.
+    sun_vp2: mat4x4<f32>,
+    // xy en texel i skyggekartet (kaskadene side om side), z antall
+    // kaskader, w hvor langt kaskade to når (m).
+    shadow: vec4<f32>,
 }
 
 // Rommet et punkt er i: det minste rommet med en boks som rommer det, eller

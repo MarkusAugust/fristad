@@ -1,7 +1,9 @@
 //! Rendereren. Rekkefølgen per bilde:
 //!
 //! 1. Skygge fra sola eller månen: én kaskade ut til `SHADOW_FAR`, som toner
-//!    bort mot kanten (lenger ut gir den bakte okklusjonen i modellene dybden).
+//!    bort mot kanten (lenger ut gir den bakte okklusjonen i modellene dybden),
+//!    og om spilleren vil en kaskade til ut til `SHADOW_FAR2`, side om side i
+//!    samme kart.
 //! 2. Verden, himmelen og nedbøren i HDR med MSAA (4× i standard grafikk), med
 //!    tåka regnet i hvert punkt. Alfakort (gress, blad) bruker alpha to
 //!    coverage, så de ikke flimrer. Ingen TAA: bildet blandes aldri med
@@ -19,8 +21,9 @@ use glam::{Affine3A, Mat4, Vec3, Vec4};
 use texture::Materials;
 use wgpu::util::DeviceExt;
 
-pub mod lod;
+mod ao;
 mod models;
+pub mod lod;
 mod smaa;
 pub mod texture;
 mod timer;
@@ -69,11 +72,14 @@ const SKIN_ROWS: u32 = 16;
 const SKIN_MAX: usize = (SKIN_W / 4 * SKIN_ROWS) as usize;
 const HDR: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 const DEPTH: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-/// Skyggekartet: én kaskade, rundt 2,5 cm per texel nær.
-const SHADOW_RES: u32 = 4096;
 /// Hvor langt ut sola kaster skygge, og hvor den begynner å tone bort.
+/// Sidene i kartet per kaskade velges i innstillingene (`Quality::shadow_res`;
+/// 4096 gir rundt 2,5 cm per texel nær).
 pub const SHADOW_FAR: f32 = 40.0;
 const SHADOW_FADE: f32 = 30.0;
+/// Kaskade nummer to (`Quality::far_shadow`): grovere, ut til hit (toner
+/// bort over den siste femtedelen).
+const SHADOW_FAR2: f32 = 110.0;
 const BLOOM_LEVELS: usize = 5;
 const INSTANCE_STRIDE: u64 = 96;
 const PASS_STRIDE: u64 = 256;
@@ -120,9 +126,14 @@ struct Globals {
     room_box: [[f32; 4]; MAX_ROOMS],
     room_y: [[f32; 4]; MAX_ROOMS / 2],
     light_rooms: [[u32; 4]; MAX_LIGHTS / 2],
-    /// x grafikknivået (0 enkel, 1 standard, 2 avansert), y flat farge
-    /// (målingen `?bench`).
+    /// x full teksturtetthet, y flat farge (målingen `?bench`), z skyggen
+    /// (0 av, 1 fire prøver, 2 myk), w blandede lag på bakken.
     quality: [f32; 4],
+    /// Kaskade nummer to.
+    sun_vp2: [[f32; 4]; 4],
+    /// x, y en texel i skyggekartet (det har kaskadene side om side), z
+    /// antall kaskader, w hvor langt kaskade to når.
+    shadow: [f32; 4],
 }
 
 #[repr(C)]
@@ -130,6 +141,9 @@ struct Globals {
 struct PostUniform {
     params: [f32; 4],
     texel: [f32; 4],
+    /// Tonemappingen: xy sola på skjermen (uv), z styrken på solstrålene,
+    /// w den malte graderingen (1) eller den gamle ACES-kurven (0).
+    sun: [f32; 4],
 }
 
 #[repr(C)]
@@ -207,6 +221,15 @@ pub struct PassStats {
 
 /// Passene i `Renderer::pass_stats`.
 pub const PASSES: [&str; 2] = ["skygge", "hoved"];
+
+impl PassStats {
+    fn add(&mut self, o: &PassStats) {
+        self.world += o.world;
+        self.models += o.models;
+        self.calls += o.calls;
+        self.instances += o.instances;
+    }
+}
 
 /// Hva et pass skal ha med av verden.
 #[derive(Clone, Copy)]
@@ -329,18 +352,18 @@ struct Targets {
     tonemap_bg: (wgpu::BindGroup, wgpu::Buffer),
     /// Kantutjevningen etter tonemappingen (standard grafikk, uten MSAA).
     smaa: Option<smaa::Targets>,
+    /// Skygge i krokene (`Quality::ao`).
+    ao: Option<ao::Targets>,
 }
 
-/// Standard grafikk: hvor langt unna modellene tegnes (m), og hvor tett
-/// tåka minst er, så kanten ikke synes. Bakken og fjellene tegnes som før.
-/// Avansert grafikk ser lenger.
-const REDUCED_FAR: f32 = 160.0;
 /// Innsiden av husene (modellene `…_interior`) tegnes bare så nær, så de
 /// ikke koster noe ute i byen. Ytterveggene skjuler den til du er ved døra.
 const INTERIOR_FAR: f32 = 22.0;
 /// Møblene (`Placement.indoor`) kaster solskygge bare så nær kameraet.
 const INDOOR_SHADOW: f32 = 10.0;
-const REDUCED_FOG: f32 = 0.005;
+/// Hvor tett tåka minst er når sikten er kortet ned (`Quality::far`), så
+/// kanten ikke synes; satt for 160 m og delt på sikten.
+const REDUCED_FOG: f32 = 0.005 * 160.0;
 
 /// Pipelinene som tegner inn i MSAA-bildet, laget for et antall prøver.
 struct ScenePipes {
@@ -437,6 +460,11 @@ pub struct Renderer {
     globals_bg: wgpu::BindGroup,
     pass_buf: wgpu::Buffer,
     shadow_view: wgpu::TextureView,
+    /// Skyggekartets størrelse (kaskadene side om side) og det som trengs
+    /// for å lage det på nytt når innstillingene endres.
+    shadow_size: (u32, u32),
+    frame_layout: wgpu::BindGroupLayout,
+    shadow_sampler: wgpu::Sampler,
     /// Til verden og partiklene: skyggekartet og verdiene per pass.
     frame_bg: wgpu::BindGroup,
     /// Til skyggepasset, som ikke kan lese kartet det tegner til.
@@ -457,6 +485,10 @@ pub struct Renderer {
     /// Tonemappingen inn i mellombildet til SMAA.
     tonemap_ldr: wgpu::RenderPipeline,
     smaa: smaa::Smaa,
+    /// Skygge i krokene; `None` i WebGL2.
+    ao: Option<ao::Ao>,
+    /// Et hvitt bilde der okklusjonen ikke regnes.
+    white: wgpu::TextureView,
     linear: wgpu::Sampler,
     world: GpuMesh,
     chunks: Vec<Chunk>,
@@ -471,11 +503,7 @@ pub struct Renderer {
     skins: wgpu::Texture,
     targets: Targets,
     current: Option<wgpu::TextureView>,
-    /// Standard grafikk (spilleren kan slå på avansert): kortere sikt,
-    /// færre lys, småting bare nær og MSAA 4×. Avansert ser lenger og bruker
-    /// MSAA 8× der kortet kan.
-    reduced: bool,
-    /// Grafikknivået spilleren har valgt.
+    /// Grafikkinnstillingene spilleren har valgt.
     quality: Quality,
     /// Bryterne til målingen (`?bench`).
     bench: Bench,
@@ -596,16 +624,16 @@ impl Renderer {
         // Per pass for partiklene: regn, snø og røyk.
         let pass_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("pass"),
-            size: PASS_STRIDE * 3,
+            size: PASS_STRIDE * 4,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let depth_tex = |label: &str, size: u32| {
+        let depth_tex = |label: &str, size: u32, width: u32| {
             device
                 .create_texture(&wgpu::TextureDescriptor {
                     label: Some(label),
-                    size: wgpu::Extent3d { width: size, height: size, depth_or_array_layers: 1 },
+                    size: wgpu::Extent3d { width, height: size, depth_or_array_layers: 1 },
                     mip_level_count: 1,
                     sample_count: 1,
                     dimension: wgpu::TextureDimension::D2,
@@ -615,7 +643,9 @@ impl Renderer {
                 })
                 .create_view(&Default::default())
         };
-        let shadow_view = depth_tex("shadow", SHADOW_RES);
+        let side = device.limits().max_texture_dimension_2d.min(4096);
+        let shadow_size = (side, side);
+        let shadow_view = depth_tex("shadow", shadow_size.1, shadow_size.0);
         let shadow_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("shadow"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -629,25 +659,11 @@ impl Renderer {
             label: Some("frame"),
             entries: &[tex_entry(0, wgpu::TextureSampleType::Depth), sampler_entry(1, wgpu::SamplerBindingType::Comparison), uniform_entry(2, true)],
         });
-        let frame_bg_with = |shadow: &wgpu::TextureView| {
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("frame"),
-                layout: &frame_layout,
-                entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(shadow) },
-                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&shadow_sampler) },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding { buffer: &pass_buf, offset: 0, size: wgpu::BufferSize::new(16) }),
-                    },
-                ],
-            })
-        };
-        let frame_bg = frame_bg_with(&shadow_view);
-        let shadow_frame_bg = frame_bg_with(&depth_tex("dummy shadow", 1));
+        let frame_bg = Self::frame_bg(&device, &frame_layout, &shadow_sampler, &pass_buf, &shadow_view);
+        let shadow_frame_bg = Self::frame_bg(&device, &frame_layout, &shadow_sampler, &pass_buf, &depth_tex("dummy shadow", 1, 1));
         let post_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("post"),
-            entries: &[tex_entry(0, FILTER), tex_entry(1, FILTER), sampler_entry(2, wgpu::SamplerBindingType::Filtering), uniform_entry(3, false)],
+            entries: &[tex_entry(0, FILTER), tex_entry(1, FILTER), sampler_entry(2, wgpu::SamplerBindingType::Filtering), uniform_entry(3, false), tex_entry(4, FILTER)],
         });
 
         let noise = include_str!("shaders/noise.wgsl");
@@ -732,6 +748,25 @@ impl Renderer {
         let tonemap_pipe = post_pipe("fs_tonemap", output, None);
         let tonemap_ldr = post_pipe("fs_tonemap", smaa::LDR, None);
         let smaa = smaa::Smaa::new(&device, &queue, output);
+        // WebGL2 kan ikke lese dybden med `textureLoad`: ingen skygge i krokene der.
+        let ao = (adapter.get_info().backend != wgpu::Backend::Gl).then(|| ao::Ao::new(&device, &globals_layout, common));
+        let white = device
+            .create_texture_with_data(
+                &queue,
+                &wgpu::TextureDescriptor {
+                    label: Some("white"),
+                    size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba8Unorm,
+                    usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                    view_formats: &[],
+                },
+                wgpu::util::TextureDataOrder::LayerMajor,
+                &[255, 255, 255, 255],
+            )
+            .create_view(&Default::default());
 
         let linear = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("linear"),
@@ -771,7 +806,7 @@ impl Renderer {
             gpu_models.iter().map(|m| m.reserve).sum::<usize>()
         );
 
-        let targets = Self::make_targets(&device, &post_layout, &linear, 1, HDR, Some(&smaa), width, height);
+        let targets = Self::make_targets(&device, &post_layout, &linear, 1, HDR, Some(&smaa), None, &white, width, height);
         let chunks = scene.chunks.to_vec();
         let timer = timer::GpuTimer::new(&device, &queue);
         Self {
@@ -782,6 +817,9 @@ impl Renderer {
             globals_bg,
             pass_buf,
             shadow_view,
+            shadow_size,
+            frame_layout,
+            shadow_sampler,
             frame_bg,
             shadow_frame_bg,
             post_layout,
@@ -796,6 +834,8 @@ impl Renderer {
             tonemap_pipe,
             tonemap_ldr,
             smaa,
+            ao,
+            white,
             linear,
             world: world_mesh,
             chunks,
@@ -807,8 +847,7 @@ impl Renderer {
             skins,
             targets,
             current: None,
-            reduced: true,
-            quality: Quality::Standard,
+            quality: Quality::default(),
             bench: Bench::default(),
             line_buf: Default::default(),
             samples,
@@ -818,7 +857,31 @@ impl Renderer {
         }
     }
 
-    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, smaa: Option<&smaa::Smaa>, width: u32, height: u32) -> Targets {
+    /// Bindingene til verden: skyggekartet, sammenligningen og verdiene
+    /// per pass.
+    fn frame_bg(device: &wgpu::Device, layout: &wgpu::BindGroupLayout, sampler: &wgpu::Sampler, pass_buf: &wgpu::Buffer, shadow: &wgpu::TextureView) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("frame"),
+            layout,
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(shadow) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(sampler) },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding { buffer: pass_buf, offset: 0, size: wgpu::BufferSize::new(16) }) },
+            ],
+        })
+    }
+
+    /// Skyggekartet innstillingene vil ha: sidene per kaskade (så store som
+    /// kortet tillater) og kaskadene side om side.
+    fn wanted_shadow(&self) -> (u32, u32) {
+        let max = self.device.limits().max_texture_dimension_2d;
+        let n = if self.quality.far_shadow { 2 } else { 1 };
+        let res = if self.quality.shadow { self.quality.shadow_res.clamp(512, 4096).min(max / n) } else { 1 };
+        (res * n, res)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn make_targets(device: &wgpu::Device, post_layout: &wgpu::BindGroupLayout, linear: &wgpu::Sampler, samples: u32, format: wgpu::TextureFormat, smaa: Option<&smaa::Smaa>, ao: Option<&ao::Ao>, white: &wgpu::TextureView, width: u32, height: u32) -> Targets {
         let width = width.max(1);
         let height = height.max(1);
         let tex = |label: &str, w: u32, h: u32, format, samples: u32| {
@@ -849,7 +912,8 @@ impl Renderer {
             h = (h / 2).max(1);
             bloom.push((tex(&format!("bloom {i}"), w, h, HDR, 1), w, h));
         }
-        let bind = |t0: &wgpu::TextureView, t1: &wgpu::TextureView| {
+        let ao = ao.filter(|_| samples == 1).map(|a| a.targets(device, &depth, width, height));
+        let bind = |t0: &wgpu::TextureView, t1: &wgpu::TextureView, t4: &wgpu::TextureView| {
             let buf = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("post"),
                 size: std::mem::size_of::<PostUniform>() as u64,
@@ -864,16 +928,17 @@ impl Renderer {
                     wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(t1) },
                     wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(linear) },
                     wgpu::BindGroupEntry { binding: 3, resource: buf.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(t4) },
                 ],
             });
             (bg, buf)
         };
-        let down0_bg = bind(&hdr, &hdr);
-        let down_bg = (1..BLOOM_LEVELS).map(|i| bind(&bloom[i - 1].0, &bloom[i - 1].0)).collect();
-        let up_bg = (1..BLOOM_LEVELS).rev().map(|i| bind(&bloom[i].0, &bloom[i].0)).collect();
-        let tonemap_bg = bind(&hdr, &bloom[0].0);
+        let down0_bg = bind(&hdr, &hdr, white);
+        let down_bg = (1..BLOOM_LEVELS).map(|i| bind(&bloom[i - 1].0, &bloom[i - 1].0, white)).collect();
+        let up_bg = (1..BLOOM_LEVELS).rev().map(|i| bind(&bloom[i].0, &bloom[i].0, white)).collect();
+        let tonemap_bg = bind(&hdr, &bloom[0].0, ao.as_ref().map_or(white, |a| &a.out));
         let smaa = smaa.map(|s| s.targets(device, width, height));
-        Targets { width, height, color, depth, hdr, bloom, down0_bg, down_bg, up_bg, tonemap_bg, smaa }
+        Targets { width, height, color, depth, hdr, bloom, down0_bg, down_bg, up_bg, tonemap_bg, smaa, ao }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -881,7 +946,7 @@ impl Renderer {
         if width == self.targets.width && height == self.targets.height {
             return;
         }
-        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, self.smaa_on(self.scene.samples).then_some(&self.smaa), width, height);
+        self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, self.smaa_on(self.scene.samples).then_some(&self.smaa), self.ao_on(), &self.white, width, height);
     }
 
     /// Millisekunder på grafikkortet per del av bildet (tomt om kortet
@@ -895,11 +960,10 @@ impl Renderer {
         self.pass_stats.get()
     }
 
-    /// Grafikknivået. Bytter antall MSAA-prøver om nivået (eller målingen)
-    /// vil ha et annet.
+    /// Grafikkinnstillingene. Lager skyggekartet og målene på nytt om de
+    /// trengs i en annen størrelse eller med et annet sett pass.
     pub fn set_quality(&mut self, quality: Quality) {
         self.quality = quality;
-        self.reduced = quality != Quality::Advanced;
         self.apply();
     }
 
@@ -917,33 +981,55 @@ impl Renderer {
             1 => 1,
             4 => self.samples.0,
             8 => self.samples.1,
-            _ => match self.quality {
-                Quality::Simple => 1,
-                Quality::Standard => 1,
-                Quality::Advanced => 1,
-            },
+            _ => 1,
         }
     }
 
     fn apply(&mut self) {
+        let shadow = self.wanted_shadow();
+        if shadow != self.shadow_size {
+            self.shadow_size = shadow;
+            self.shadow_view = self
+                .device
+                .create_texture(&wgpu::TextureDescriptor {
+                    label: Some("shadow"),
+                    size: wgpu::Extent3d { width: shadow.0, height: shadow.1, depth_or_array_layers: 1 },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: DEPTH,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+                    view_formats: &[],
+                })
+                .create_view(&Default::default());
+            self.frame_bg = Self::frame_bg(&self.device, &self.frame_layout, &self.shadow_sampler, &self.pass_buf, &self.shadow_view);
+        }
         let samples = self.wanted_samples();
         let hdr = if self.bench.small_hdr && self.device.features().contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE) { wgpu::TextureFormat::Rg11b10Ufloat } else { HDR };
         let smaa = self.smaa_on(samples);
-        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr || smaa != self.targets.smaa.is_some() {
-            self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c, hdr);
-            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, smaa.then_some(&self.smaa), self.targets.width, self.targets.height);
+        let ao = self.ao_on().filter(|_| samples == 1).is_some();
+        if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr || smaa != self.targets.smaa.is_some() || ao != self.targets.ao.is_some() {
+            if samples != self.scene.samples || self.bench.a2c != self.scene.a2c || hdr != self.scene.hdr {
+                self.scene = self.sources.pipes(&self.device, samples, self.bench.a2c, hdr);
+            }
+            self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, samples, hdr, smaa.then_some(&self.smaa), self.ao_on(), &self.white, self.targets.width, self.targets.height);
         }
     }
 
     /// SMAA når bildet tegnes uten MSAA, unntatt i enkel grafikk (målingen
     /// kan slå den av).
     fn smaa_on(&self, samples: u32) -> bool {
-        self.quality != Quality::Simple && samples == 1 && self.bench.smaa
+        self.quality.smaa && samples == 1 && self.bench.smaa
+    }
+
+    /// Skygge i krokene, der kortet kan lese dybden (ikke WebGL2).
+    fn ao_on(&self) -> Option<&ao::Ao> {
+        self.ao.as_ref().filter(|_| self.quality.ao)
     }
 
     /// Ortografisk projeksjon fra sola som dekker kamerafrustumet mellom
     /// `near` og `far`, låst til hele texels så kantene ikke skimrer.
-    fn cascade(&self, f: &Frame, near: f32, far: f32) -> Mat4 {
+    fn cascade(&self, f: &Frame, near: f32, far: f32, res: u32) -> Mat4 {
         let inv = (f.proj * f.view).inverse();
         let ndc_z = |d: f32| {
             let c = f.proj * Vec4::new(0.0, 0.0, -d, 1.0);
@@ -965,7 +1051,7 @@ impl Renderer {
         let radius = corners.iter().map(|c| c.distance(center)).fold(0.0, f32::max) * 1.05;
         let up = if f.sun_dir.y.abs() > 0.99 { Vec3::Z } else { Vec3::Y };
         let view = Mat4::look_at_rh(f.sun_dir * 400.0, Vec3::ZERO, up);
-        let texel = 2.0 * radius / SHADOW_RES as f32;
+        let texel = 2.0 * radius / res.max(1) as f32;
         let mut c = view.transform_point3(center);
         c.x = (c.x / texel).round() * texel;
         c.y = (c.y / texel).round() * texel;
@@ -1021,13 +1107,21 @@ impl Renderer {
         let (w, h) = (t.width as f32, t.height as f32);
         let view_proj = f.proj * f.view;
         // Nede i kjelleren når ikke sola ned: ingen skygge, og sollyset er av.
-        let shadows = f.rooms.is_none() && f.band.1 >= 0.0 && self.quality != Quality::Simple && self.bench.shadow;
-        let sun_vp = self.cascade(f, 0.1, SHADOW_FAR);
-        // Småting kaster skygge bare nær.
-        let sun_cull = Cull { frustum: Frustum::from_view_proj(sun_vp), eye: f.camera, fine_within: if self.reduced { 18.0 } else { 40.0 }, band: f.band };
-        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if self.reduced { 35.0 } else { 70.0 }, band: f.band };
-        // Standard grafikk: grovere detalj tidligere og småting bare nær.
-        let model_near = if self.reduced { MODEL_NEAR * 0.5 } else { MODEL_NEAR };
+        let q = self.quality;
+        let reduced = !q.detail;
+        let sunlit = f.rooms.is_none() && f.band.1 >= 0.0;
+        let shadows = sunlit && q.shadow && self.bench.shadow;
+        let res = self.shadow_size.1;
+        let cascades = if shadows && q.far_shadow { 2 } else { 1 };
+        let sun_vp = self.cascade(f, 0.1, SHADOW_FAR, res);
+        let sun_vp2 = if cascades == 2 { self.cascade(f, 0.1, SHADOW_FAR2, res) } else { sun_vp };
+        // Småting kaster skygge bare nær. Med to kaskader tegnes det samme
+        // utvalget i begge (det fjerne frustumet rommer det nære).
+        let sun_cull = Cull { frustum: Frustum::from_view_proj(sun_vp2), eye: f.camera, fine_within: if reduced { 18.0 } else { 40.0 }, band: f.band };
+        let cam_cull = Cull { frustum: Frustum::from_view_proj(view_proj), eye: f.camera, fine_within: if reduced { 35.0 } else { 70.0 }, band: f.band };
+        // Kortere sikt: grovere detalj tidligere og småting bare nær.
+        let model_near = if reduced { MODEL_NEAR * 0.5 } else { MODEL_NEAR };
+        let far = if q.far > 0.0 { q.far } else { f32::INFINITY };
         // Modellinstansene: hvilke som er synlige i hver region, nær og fjern.
         let culls = [sun_cull, cam_cull];
         let mut model_draws: Vec<[ModelDraw; REGIONS as usize]> = Vec::with_capacity(self.models.len());
@@ -1073,12 +1167,12 @@ impl Renderer {
                     if m.indoor && r == 0 && cam_cull.eye.clamp(lo, hi).distance(cam_cull.eye) > INDOOR_SHADOW {
                         return None;
                     }
-                    if self.reduced && m.small && d > if r == 1 { 32.0 } else { 12.0 } {
+                    if reduced && m.small && d > if r == 1 { 32.0 } else { 12.0 } {
                         return None;
                     }
-                    // Standard grafikk ser kortere: det som er langt unna
-                    // tegnes ikke (tåka er tettere, så kanten glir bort).
-                    if self.reduced && d > REDUCED_FAR {
+                    // Kortere sikt: det som er langt unna tegnes ikke (tåka
+                    // er tettere, så kanten glir bort).
+                    if d > far {
                         return None;
                     }
                     Some(d < model_near)
@@ -1158,13 +1252,22 @@ impl Renderer {
             inv_view_proj: view_proj.inverse().to_cols_array_2d(),
             sun_vp: sun_vp.to_cols_array_2d(),
             camera: v4(f.camera, f.time),
-            sun_dir: v4(f.sun_dir, if shadows { f.sun_intensity } else { 0.0 }),
+            sun_dir: v4(f.sun_dir, if sunlit { f.sun_intensity } else { 0.0 }),
             sun_color: v4(f.sun_color, f.night),
             sky_top: v4(f.sky_top, 0.0),
-            sky_horizon: v4(f.sky_horizon, if self.reduced && f.fog_density > 0.0 { (f.fog_density * 3.0).max(REDUCED_FOG) } else { f.fog_density }),
+            sky_horizon: v4(
+                f.sky_horizon,
+                if !q.fog {
+                    0.0
+                } else if far.is_finite() && f.fog_density > 0.0 {
+                    (f.fog_density * 3.0).max(REDUCED_FOG / far)
+                } else {
+                    f.fog_density
+                },
+            ),
             ground_bounce: v4(f.ground_bounce, f.fog_falloff),
             fog_color: v4(f.fog_color, f.windows_lit),
-            params: [f.exposure, f.lights.len().min(match self.quality { Quality::Simple => 4, Quality::Standard => 8, Quality::Advanced => MAX_LIGHTS }) as f32, 1.0 / SHADOW_RES as f32, f.street_lights],
+            params: [f.exposure, f.lights.len().min(q.lights as usize).min(MAX_LIGHTS) as f32, 1.0 / res as f32, f.street_lights],
             weather: [wx.wet, wx.snow_cover, wx.rain, wx.snow],
             screen: [w, h, 1.0 / w, 1.0 / h],
             misc: [wx.wind, self.scene.samples as f32, SHADOW_FADE, SHADOW_FAR],
@@ -1177,13 +1280,27 @@ impl Renderer {
             room_box,
             room_y,
             light_rooms,
-            quality: [self.quality as u8 as f32, if self.bench.flat { 1.0 } else { 0.0 }, 0.0, 0.0],
+            quality: [
+                if q.textures { 1.0 } else { 0.0 },
+                if self.bench.flat { 1.0 } else { 0.0 },
+                if !shadows {
+                    0.0
+                } else if q.soft_shadow {
+                    2.0
+                } else {
+                    1.0
+                },
+                if q.ground { 1.0 } else { 0.0 },
+            ],
+            sun_vp2: sun_vp2.to_cols_array_2d(),
+            shadow: [1.0 / self.shadow_size.0 as f32, 1.0 / self.shadow_size.1 as f32, cascades as f32, SHADOW_FAR2],
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
 
         // Per pass for partiklene: regn, snø og røyk.
-        let mut pass_data = vec![0u8; PASS_STRIDE as usize * 3];
-        for (i, v) in [[0.0, wx.rain, 0.0, 0.0], [1.0, wx.snow, 0.0, 0.0], [2.0, 1.0, 0.0, 0.0f32]].iter().enumerate() {
+        // Den fjerde er kaskade to i skyggepasset (x = 1).
+        let mut pass_data = vec![0u8; PASS_STRIDE as usize * 4];
+        for (i, v) in [[0.0, wx.rain, 0.0, 0.0], [1.0, wx.snow, 0.0, 0.0], [2.0, 1.0, 0.0, 0.0f32], [1.0, 0.0, 0.0, 0.0]].iter().enumerate() {
             let at = i * PASS_STRIDE as usize;
             pass_data[at..at + 16].copy_from_slice(bytemuck::cast_slice(v));
         }
@@ -1235,10 +1352,16 @@ impl Renderer {
             });
             if shadows {
                 pass.set_bind_group(0, &self.globals_bg, &[]);
-                pass.set_bind_group(1, &self.shadow_frame_bg, &[0]);
                 pass.set_bind_group(2, &self.materials.bind_group, &[]);
                 pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-                stats[0] = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout);
+                for k in 0..cascades {
+                    // Hver kaskade i sin del av kartet; pass-verdien x sier
+                    // hvilken matrise vertexshaderen bruker.
+                    pass.set_viewport((k * res) as f32, 0.0, res as f32, res as f32, 0.0, 1.0);
+                    pass.set_bind_group(1, &self.shadow_frame_bg, &[if k == 0 { 0 } else { (3 * PASS_STRIDE) as u32 }]);
+                    let s = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout);
+                    stats[0].add(&s);
+                }
             }
         }
 
@@ -1253,7 +1376,8 @@ impl Renderer {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment { view, resolve_target, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store } })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &t.depth,
-                    depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Discard }),
+                    // Okklusjonen leser dybden etterpå.
+                    depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: if t.ao.is_some() { wgpu::StoreOp::Store } else { wgpu::StoreOp::Discard } }),
                     stencil_ops: None,
                 }),
                 timestamp_writes: ts(1, true, true),
@@ -1270,15 +1394,16 @@ impl Renderer {
                 pass.draw(0..3, 0..1);
             }
             pass.set_pipeline(&self.scene.particles);
-            if !f.smoke.is_empty() && self.bench.particles {
+            let particles = q.particles && self.bench.particles;
+            if !f.smoke.is_empty() && particles {
                 pass.set_bind_group(1, &self.frame_bg, &[(2 * PASS_STRIDE) as u32]);
                 pass.draw(0..4, 0..f.smoke.len() as u32 * SMOKE_PUFFS);
             }
-            if wx.rain > 0.0 && self.bench.particles {
+            if wx.rain > 0.0 && particles {
                 pass.set_bind_group(1, &self.frame_bg, &[0]);
                 pass.draw(0..4, 0..RAIN_COUNT);
             }
-            if wx.snow > 0.0 && self.bench.particles {
+            if wx.snow > 0.0 && particles {
                 pass.set_bind_group(1, &self.frame_bg, &[PASS_STRIDE as u32]);
                 pass.draw(0..4, 0..SNOW_COUNT);
             }
@@ -1293,8 +1418,21 @@ impl Renderer {
         }
 
         // 3. Glød og tonemapping til skjermen.
+        // Solstrålene: sola på skjermen, sterkest midt i bildet og borte
+        // når den er bak deg, under horisonten eller det er natt.
+        let sun_post = {
+            let c = view_proj * (f.camera + f.sun_dir * 1000.0).extend(1.0);
+            let mut out = [0.5, 0.5, 0.0, if q.grade { 1.0 } else { 0.0 }];
+            if q.rays && sunlit && c.w > 0.0 && f.sun_dir.y > 0.0 {
+                let ndc = c.truncate() / c.w;
+                let off = ndc.x.abs().max(ndc.y.abs());
+                let k = (1.0 - ((off - 0.9) / 0.6).clamp(0.0, 1.0)) * (f.sun_dir.y / 0.06).clamp(0.0, 1.0) * (1.0 - f.night).clamp(0.0, 1.0);
+                out = [ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5, k, out[3]];
+            }
+            out
+        };
         let post = |buf: &wgpu::Buffer, params: [f32; 4], sw: u32, sh: u32| {
-            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32] };
+            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32], sun: sun_post };
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
         let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>, timestamps: Option<wgpu::RenderPassTimestampWrites>| {
@@ -1312,11 +1450,20 @@ impl Renderer {
         };
         let clear = wgpu::LoadOp::Clear(wgpu::Color::BLACK);
         // Enkel grafikk: ingen glød (tonemappingen får styrke 0).
-        let bloom = self.quality != Quality::Simple;
+        let bloom = q.bloom;
+        // Skygge i krokene før gløden (tidsmålingen for etterbehandlingen
+        // begynner da her).
+        let ao_ran = match (&t.ao, &self.ao) {
+            (Some(at), Some(a)) => {
+                a.run(&mut enc, &self.globals_bg, at, ts(2, true, false));
+                true
+            }
+            _ => false,
+        };
         for i in (0..BLOOM_LEVELS).filter(|_| bloom) {
             let (bg, sw, sh) = if i == 0 { (&t.down0_bg, t.width, t.height) } else { (&t.down_bg[i - 1], t.bloom[i - 1].1, t.bloom[i - 1].2) };
             post(&bg.1, [0.0, 0.0, 0.0, if i == 0 { 1.0 } else { 0.0 }], sw, sh);
-            fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear, if i == 0 { ts(2, true, false) } else { None });
+            fullscreen(&mut enc, "bloom down", &t.bloom[i].0, &self.down_pipe, &bg.0, clear, if i == 0 { ts(2, !ao_ran, false) } else { None });
         }
         for (k, i) in (1..BLOOM_LEVELS).rev().enumerate().filter(|_| bloom) {
             post(&t.up_bg[k].1, [0.0; 4], t.bloom[i].1, t.bloom[i].2);
@@ -1327,12 +1474,12 @@ impl Renderer {
             // og kantutjevningen skriver til skjermen.
             Some(st) => {
                 post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, 1.0, f.hurt], t.width, t.height);
-                fullscreen(&mut enc, "tonemap", &st.ldr, &self.tonemap_ldr, &t.tonemap_bg.0, clear, ts(2, !bloom, false));
+                fullscreen(&mut enc, "tonemap", &st.ldr, &self.tonemap_ldr, &t.tonemap_bg.0, clear, ts(2, !bloom && !ao_ran, false));
                 self.smaa.run(&mut enc, st, out, ts(2, false, true));
             }
             None => {
                 post(&t.tonemap_bg.1, [f.exposure, if bloom { f.bloom } else { 0.0 }, if self.encode_srgb { 1.0 } else { 0.0 }, f.hurt], t.width, t.height);
-                fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom, true));
+                fullscreen(&mut enc, "tonemap", out, &self.tonemap_pipe, &t.tonemap_bg.0, clear, ts(2, !bloom && !ao_ran, true));
             }
         }
 

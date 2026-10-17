@@ -285,6 +285,32 @@ impl EditJson {
     }
 }
 
+/// Grafikken fra et navn eller et json-objekt med bryterne.
+fn quality_from(spec: &str) -> Option<Quality> {
+    if let Some(q) = Quality::from_name(spec.trim()) {
+        return Some(q);
+    }
+    let v: serde_json::Value = serde_json::from_str(spec).ok()?;
+    let o = v.as_object()?;
+    let mut q = o.get("preset").and_then(|p| p.as_str()).and_then(Quality::from_name).unwrap_or_default();
+    for (k, v) in o {
+        let n = v.as_f64().or_else(|| v.as_bool().map(|b| if b { 1.0 } else { 0.0 }));
+        if let Some(n) = n {
+            q.set(k, n as f32);
+        }
+    }
+    Some(q)
+}
+
+/// Bryterne som json, med de samme navnene som `Quality::set`.
+fn quality_json(q: &Quality) -> serde_json::Value {
+    serde_json::json!({
+        "shadow": q.shadow, "shadow_res": q.shadow_res, "soft_shadow": q.soft_shadow, "far_shadow": q.far_shadow,
+        "bloom": q.bloom, "smaa": q.smaa, "fog": q.fog, "far": q.far, "detail": q.detail, "lights": q.lights,
+        "textures": q.textures, "ground": q.ground, "particles": q.particles, "rays": q.rays, "ao": q.ao, "grade": q.grade,
+    })
+}
+
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
@@ -473,9 +499,17 @@ impl Engine {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
     }
 
-    /// Grafikknivået: «enkel», «standard» eller «avansert».
-    pub fn set_quality(&mut self, name: &str) {
-        if let Some(q) = Quality::from_name(name) {
+    /// Bryterne i et forhåndsvalg som json (nettlaget bygger
+    /// grafikkdialogen av dem, så verdiene står bare i `ports::Quality`).
+    pub fn quality_preset(&self, name: &str) -> String {
+        Quality::from_name(name).map(|q| quality_json(&q).to_string()).unwrap_or_default()
+    }
+
+    /// Grafikken: et forhåndsvalg («enkel», «standard» eller «avansert»)
+    /// eller bryterne som et json-objekt (`{"preset":"standard","shadow":0,…}`:
+    /// forhåndsvalget først, så hver bryter; se `ports::Quality::set`).
+    pub fn set_quality(&mut self, spec: &str) {
+        if let Some(q) = quality_from(spec) {
             self.app.command(Command::SetQuality(q));
         }
     }

@@ -262,7 +262,13 @@ fn main() {
     // Noen bilder, så animasjonene og lysene har satt seg.
     let frames: usize = arg("--frames").map(|s| s.parse().unwrap()).unwrap_or(4);
     // Standard grafikk er det spillet starter med; --advanced slår på avansert.
-    app.command(Command::SetQuality(if flag("--advanced") { Quality::Advanced } else if flag("--simple") { Quality::Simple } else { Quality::Standard }));
+    // --gfx bryter=verdi,… endrer enkeltbrytere i forhåndsvalget (`ports::Quality::set`).
+    let mut quality = Quality::from_name(if flag("--advanced") { "avansert" } else if flag("--simple") { "enkel" } else { "standard" }).expect("forhåndsvalget");
+    for kv in arg("--gfx").unwrap_or_default().split(',').filter(|s| !s.is_empty()) {
+        let (k, v) = kv.split_once('=').unwrap_or((kv, "1"));
+        assert!(quality.set(k, v.parse().expect("--gfx bryter=tall")), "ukjent grafikkbryter: {k}");
+    }
+    app.command(Command::SetQuality(quality));
     // HDR-bildet i 4 byte per prøve (målingen i nettleseren har samme bryter).
     // HDR i 4 byte per prøve, eller standard uten kantutjevning (SMAA av),
     // som bryterne i målingen.
