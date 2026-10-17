@@ -28,46 +28,46 @@ GRADES = {
 # Overgangen INN i innstillingen: "cut", ("mix", s), ("black", s) (ned i
 # svart og opp igjen), ("white", s) (lynet).
 SHOTS = [
-    # navn, start, slutt, kilde (klipp eller stilbilde), overgang inn, gradering, lyder, tekst
-    dict(name="00_doren", t=(0.0, 8.0), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.55), (0.62, 0.6, 0.45)), enter=("black", 2.0), grade="night", amb=["loop_owl", "loop_wind"], voice=[(0, 1.0), (1, 6.3)]),
-    dict(name="01_riket", t=(8.0, 17.6), clip="01_riket", enter=("mix", 1.2), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(2, 8.6)]),
-    dict(name="04_skriptoriet_inne", t=(17.6, 26.2), clip="04_skriptoriet_inne", still="opening/gullalderen/bg.webp", move=((0.5, 0.42, 0.95), (0.45, 0.62, 0.72)), enter=("mix", 1.0), grade="gold", amb=["quill"], voice=[(3, 18.0)]),
-    dict(name="05_ansgar", t=(26.2, 32.4), clip="05_ansgar", still="shots/05_ansgar.png", move=((0.7, 0.45, 0.8), (0.7, 0.42, 0.62)), enter=("mix", 0.8), grade="gold", voice=[(4, 26.4)]),
-    dict(name="06_raadssalen", t=(32.4, 42.6), clip="06_raadssalen", still="intro/raadssal.webp", move=((0.5, 0.5, 1.0), (0.5, 0.5, 0.7)), enter=("black", 1.2), grade="cold", amb=["loop_wind"], voice=[(5, 32.9)]),
-    dict(name="07_raadet", t=(42.6, 50.2), clip="07_raadet", still="shots/07_raadet.png", move=((0.5, 0.5, 1.0), (0.5, 0.52, 0.8)), enter=("mix", 0.8), grade="cold", voice=[(6, 43.0)]),
-    dict(name="08_komponentboken", t=(50.2, 59.6), clip="08_komponentboken", still="shots/08_komponentboken.jpeg", move=((0.5, 0.5, 1.0), (0.3, 0.58, 0.62)), enter=("mix", 0.8), grade="cold", voice=[(7, 50.4), (8, 53.4), (9, 57.9)], titles=[("latin", "Omnia lingua Reactia.", 50.4, 53.2, 1.1), ("latin", "Omnia una compage.", 53.4, 57.6, 1.65), ("latin", "Nulla exceptio.", 57.9, 60.4, 0.85)]),
-    dict(name="11_inkvisisjonen", t=(59.6, 68.0), clip="11_inkvisisjonen", still="shots/11_inkvisisjonen.png", move=((0.4, 0.55, 0.9), (0.6, 0.55, 0.8)), enter=("black", 1.0), grade="fire", amb=["loop_fire", "loop_wind"], voice=[(10, 59.9)], titles=[("heading", "Inkvisisjonen", 59.9, 64.0, 0.95)]),
-    dict(name="13_i_rammen", t=(68.0, 74.0), clip="13_i_rammen", still="shots/13_i_rammen.png", move=((0.5, 0.5, 0.9), (0.5, 0.5, 0.7)), enter=("mix", 0.8), grade="fire", amb=["loop_fire"], voice=[(11, 68.1)]),
-    dict(name="14_natta", t=(74.0, 85.6), clip="14_natta", still="shots/14_natta.png", move=((0.5, 0.5, 1.0), (0.5, 0.55, 0.78)), enter=("mix", 1.0), grade="night", amb=["quill", "loop_wind"], voice=[(12, 74.0)]),
-    dict(name="15_tyngre", t=(85.6, 88.4), clip="08_komponentboken", clip_in=5.0, still="shots/08_komponentboken.jpeg", move=((0.3, 0.58, 0.62), (0.3, 0.58, 0.56)), enter=("mix", 0.6), grade="cold", voice=[(13, 85.7)]),
-    dict(name="16_bruddet", t=(88.4, 95.0), clip="16_bruddet", still="opening/fallet/bg.webp", move=((0.5, 0.5, 1.0), (0.5, 0.5, 0.9)), enter="cut", grade="glitch", amb=["loop_cave"], voice=[(14, 88.6), (15, 91.5)], sfx=[("thunder", 88.4)]),
-    dict(name="17_rammeverket", t=(95.0, 105.6), clip="17_rammeverket", still="shots/17_rammeverket.png", move=((0.6, 0.6, 0.85), (0.6, 0.45, 0.8)), enter=("white", 0.3), grade="night", amb=["loop_storm", "loop_rain"], voice=[(16, 95.3)], sfx=[("thunder", 95.0), ("thunder", 101.5)]),
-    # Gorvek (kanon 17. oktober). Replikk 17 og 18 er de gamle til de nye er spilt inn; 17b og 22b mangler.
-    dict(name="17b_gorvek", t=(105.6, 115.6), clip="17b_gorvek", still="shots/17b_gorvek.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.45, 0.8)), enter=("mix", 0.6), grade="night", amb=["loop_storm", "loop_rain"], voice=[(17, 105.9)], sfx=[("thunder", 107.0)], titles=[("heading", "Gorvek", 108.2, 112.5, 0.6)]),
-    dict(name="18b_delene", t=(115.6, 125.6), clip="18b_delene", still="shots/18b_delene.jpeg", move=((0.4, 0.55, 1.0), (0.6, 0.55, 0.82)), enter=("mix", 1.2), grade="night", amb=["loop_owl", "loop_wind"], voice=[(18, 116.0)]),
-    dict(name="18_kirkegaarden", t=(125.6, 142.0), clip="18_kirkegaarden", still="opening/begravelsen/mid.webp", move=((0.5, 0.5, 1.0), (0.56, 0.58, 0.5)), enter=("mix", 1.4), grade="night", amb=["loop_owl", "loop_wind"], voice=[(19, 128.0)]),
-    dict(name="20_doren_mures", t=(142.0, 145.4), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.45), (0.62, 0.6, 0.42)), enter=("mix", 1.0), grade="night", amb=["loop_wind"], voice=[(20, 142.9)], titles=[("heading", "Han kom aldri opp.", 142.9, 146.0, 1.3)]),
-    dict(name="21_jorda", t=(145.4, 150.4), clip="21_jorda", still="intro/jordlag.webp", move=((0.5, 0.36, 0.62), (0.5, 0.74, 0.62)), enter=("mix", 1.2), grade="crypt", amb=["loop_drips"], voice=[(21, 145.5)]),
-    dict(name="22_det_som_sover", t=(150.4, 155.8), clip="22_det_som_sover", still="shots/22_det_som_sover.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.6, 0.62)), enter=("mix", 0.8), grade="crypt", amb=["loop_cave", "loop_drips"], voice=[(22, 150.6)]),
-    dict(name="23_veien", t=(155.8, 169.0), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(23, 156.2), (24, 162.6)], titles=[("title", "Fristad · Anno 1350", 164.0, 169.0, 2.0)]),
+    # navn, start, slutt, kilde (klipp eller stilbilde), overgang inn, gradering, lyder, tekst.
+    # Tidene følger innspillingen av fortelleren (lines.json): hvert klipp begynner like før sin første replikk.
+    dict(name="00_doren", t=(0.0, 7.8), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.55), (0.62, 0.6, 0.45)), enter=("black", 2.0), grade="night", amb=["loop_owl", "loop_wind"], voice=[(0, 0.4), (1, 6.08)]),
+    dict(name="01_riket", t=(7.8, 16.0), clip="01_riket", enter=("mix", 1.2), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(2, 8.09)]),
+    dict(name="04_skriptoriet_inne", t=(16.0, 27.4), clip="04_skriptoriet_inne", still="opening/gullalderen/bg.webp", move=((0.5, 0.42, 0.95), (0.45, 0.62, 0.72)), enter=("mix", 1.0), grade="gold", amb=["loop_fire"], voice=[(3, 16.26)]),
+    dict(name="05_ansgar", t=(27.4, 38.0), clip="05_ansgar", still="shots/05_ansgar.png", move=((0.7, 0.45, 0.8), (0.7, 0.42, 0.62)), enter=("mix", 0.8), grade="gold", voice=[(4, 27.68)]),
+    dict(name="06_raadssalen", t=(38.0, 46.0), clip="06_raadssalen", still="intro/raadssal.webp", move=((0.5, 0.5, 1.0), (0.5, 0.5, 0.7)), enter=("black", 1.2), grade="cold", amb=["loop_wind"], voice=[(5, 38.28)]),
+    dict(name="07_raadet", t=(46.0, 53.4), clip="07_raadet", still="shots/07_raadet.png", move=((0.5, 0.5, 1.0), (0.5, 0.52, 0.8)), enter=("mix", 0.8), grade="cold", voice=[(6, 46.26)]),
+    dict(name="08_komponentboken", t=(53.4, 64.2), clip="08_komponentboken", still="shots/08_komponentboken.jpeg", move=((0.5, 0.5, 1.0), (0.3, 0.58, 0.62)), enter=("mix", 0.8), grade="cold", voice=[(7, 53.73), (8, 56.94), (9, 62.07)], titles=[("latin", "Omnia lingua Reactia.", 53.73, 56.74, 1.21), ("latin", "Omnia una compage.", 56.94, 61.87, 1.97), ("latin", "Nulla exceptio.", 62.07, 65.20, 0.88)]),
+    dict(name="11_inkvisisjonen", t=(64.2, 70.8), clip="11_inkvisisjonen", still="shots/11_inkvisisjonen.png", move=((0.4, 0.55, 0.9), (0.6, 0.55, 0.8)), enter=("black", 1.0), grade="fire", amb=["loop_fire", "loop_wind"], voice=[(10, 64.51)], titles=[("heading", "Inkvisisjonen", 64.51, 68.51, 0.95)]),
+    dict(name="13_i_rammen", t=(70.8, 76.7), clip="13_i_rammen", still="shots/13_i_rammen.png", move=((0.5, 0.5, 0.9), (0.5, 0.5, 0.7)), enter=("mix", 0.8), grade="fire", amb=["loop_fire"], voice=[(11, 71.08)]),
+    dict(name="14_natta", t=(76.7, 92.0), clip="14_natta", still="shots/14_natta.png", move=((0.5, 0.5, 1.0), (0.5, 0.55, 0.78)), enter=("mix", 1.0), grade="night", amb=["loop_owl", "loop_fire"], voice=[(12, 76.96)]),
+    dict(name="15_tyngre", t=(92.0, 95.3), clip="08_komponentboken", clip_in=5.0, still="shots/08_komponentboken.jpeg", move=((0.3, 0.58, 0.62), (0.3, 0.58, 0.56)), enter=("mix", 0.8), grade="cold", voice=[(13, 92.31)]),
+    dict(name="16_bruddet", t=(95.3, 106.0), clip="16_bruddet", still="opening/fallet/bg.webp", move=((0.5, 0.5, 1.0), (0.5, 0.5, 0.9)), enter="cut", grade="glitch", amb=["loop_wind"], voice=[(14, 95.57), (15, 98.92)], sfx=[("glitch", 98.3)]),
+    dict(name="17_rammeverket", t=(106.0, 113.1), clip="17_rammeverket", still="shots/17_rammeverket.png", move=((0.6, 0.6, 0.85), (0.6, 0.45, 0.8)), enter=("white", 0.3), grade="night", amb=["loop_storm", "loop_rain"], voice=[(16, 106.29)], sfx=[("thunder", 106.0), ("thunder", 111.0)]),
+    dict(name="17b_gorvek", t=(113.1, 137.0), clip="17b_gorvek", still="shots/17b_gorvek.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.45, 0.8)), enter=("mix", 0.6), grade="night", amb=["loop_storm", "loop_rain"], voice=[(17, 113.41), (18, 120.17)], sfx=[("thunder", 122.1)], titles=[("heading", "Gorvek", 120.17, 124.67, 0.7)]),
+    dict(name="18b_delene", t=(137.0, 148.6), clip="18b_delene", still="shots/18b_delene.jpeg", move=((0.4, 0.55, 1.0), (0.6, 0.55, 0.82)), enter=("mix", 1.2), grade="night", amb=["loop_owl", "loop_wind"], voice=[(19, 137.35)]),
+    dict(name="18_kirkegaarden", t=(148.6, 155.5), clip="18_kirkegaarden", still="opening/begravelsen/mid.webp", move=((0.5, 0.5, 1.0), (0.56, 0.58, 0.5)), enter=("mix", 1.4), grade="night", amb=["loop_owl", "loop_wind"], voice=[(20, 148.93)]),
+    dict(name="20_doren_mures", t=(155.5, 158.5), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.45), (0.62, 0.6, 0.42)), enter=("mix", 1.0), grade="night", amb=["loop_wind"], voice=[(21, 155.82)], titles=[("heading", "Han kom aldri opp.", 155.82, 159.10, 1.19)]),
+    dict(name="21_jorda", t=(158.5, 164.0), clip="21_jorda", still="intro/jordlag.webp", move=((0.5, 0.36, 0.62), (0.5, 0.74, 0.62)), enter=("mix", 1.2), grade="crypt", amb=["loop_drips"], voice=[(22, 158.8)]),
+    dict(name="22_det_som_sover", t=(164.0, 174.8), clip="22_det_som_sover", still="shots/22_det_som_sover.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.6, 0.62)), enter=("mix", 0.8), grade="crypt", amb=["loop_cave", "loop_drips"], voice=[(23, 164.32), (24, 169.7)]),
+    dict(name="23_veien", t=(174.8, 189.2), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(25, 175.14), (26, 182.36)], titles=[("title", "Fristad · Anno 1350", 184.2, 189.2, 2.0)]),
 ]
 
-END = 169.0
+END = 189.2
 FADE_OUT = 2.5  # filmen toner til svart (spillet står bak)
 
 # Partituret (cuene i web/score.js) etter tidslinja.
 MUSIC = [
     (0.0, "crypt"),
-    (8.0, "dawn"),
-    (17.6, "scriptorium"),
-    (32.4, "council"),
-    (50.2, "decree"),
-    (59.6, "inquisition"),
-    (74.0, "workarounds"),
-    (88.4, "fall"),
-    (105.6, "fall"),
-    (115.6, "burial"),
-    (145.4, "crypt"),
-    (155.8, "gate"),
-    (167.0, "stop"),
+    (7.8, "dawn"),
+    (16.0, "scriptorium"),
+    (38.0, "council"),
+    (53.4, "decree"),
+    (64.2, "inquisition"),
+    (76.7, "workarounds"),
+    (92.0, "fall"),
+    (106.0, "fall"),
+    (137.0, "burial"),
+    (158.5, "crypt"),
+    (174.8, "gate"),
+    (187.2, "stop"),
 ]
