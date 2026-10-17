@@ -381,7 +381,7 @@ impl Materials {
             }
             queue.submit([enc.finish()]);
         }
-        // Fotoskannede materialer skrives over de bakte lagene.
+        // Eierens malte lag (assets/textures/<lag>/, avledet fra painted/) skrives over de bakte.
         let mut scales = TEX_SCALE;
         for (layer, imgs) in external {
             // De malte lagene har fargen sin i bildet; modellene toner dem
@@ -396,7 +396,7 @@ impl Materials {
                 );
             }
             scales[*layer as usize] = imgs.size_m.max(0.1);
-            log::info!("Lag {} bruker fotoskannet materiale ({} m per flis)", layer.name(), imgs.size_m);
+            log::info!("Lag {} bruker malt bilde ({} m per flis)", layer.name(), imgs.size_m);
         }
         mipper.generate(device, queue, &albedo, &nrh, srgb, lin, LAYERS, mips);
 
@@ -536,7 +536,7 @@ fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
     }
 }
 
-/// Pakker et fotoskannet materiale til lagformatene: albedo (med AO bakt
+/// Pakker et lagbilde (eierens malte, avledet med derive.py) til lagformatene: albedo (med AO bakt
 /// inn) og normal xy, ruhet, høyde.
 fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let diffuse = fit(&imgs.diffuse);

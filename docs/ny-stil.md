@@ -119,4 +119,4 @@ Skyggekaskadene står for rundt tre firedeler av trekantene.
 
 ## Resten av veien til malt stil
 
-Status og rekkefølgen for å få alle modellene over i den malte stilen står i `docs/plan.md`, del 12 (17. oktober): 55 teksturlag bruker fortsatt fotoskannet materiale og byttes først, så propsene med bakte teksturer, stilguiden som port i `tools/qa`, kryptens temateksturer og naturen.
+Status og rekkefølgen for å få alle modellene over i den malte stilen står i `docs/plan.md`, del 12 (17. oktober): alle teksturlagene er malte (17. oktober); det som gjenstår er propsene med bakte teksturer, stilguiden som port i `tools/qa`, kryptens temateksturer og naturen.

@@ -1981,6 +1981,44 @@ fn alle_lagene_har_bilde() {
     assert!(missing.is_empty(), "teksturlag uten bilde: {missing:?} (kjør `bun tools/fetch-assets.ts`)");
 }
 
+/// Hvert teksturlag spillet bruker, er eierens malte bilde (plan del 12):
+/// `assets/textures/<lag>/meta.json` peker på kilden i
+/// `assets/textures/painted/<lag>/`, og ingen lag i manifestet kommer fra
+/// Poly Haven (fotoskannet). Lag som venter på eierens bilde, står i
+/// `WAITING` med hvorfor; stryk dem når bildet er levert.
+#[test]
+fn alle_lagene_er_malte() {
+    const WAITING: &[&str] = &[];
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut bad = vec![];
+    for name in crate::adapters::gltf::used_layers() {
+        let name = name.as_str();
+        if WAITING.contains(&name) {
+            continue;
+        }
+        let dir = root.join("assets/textures").join(name);
+        let Ok(meta) = std::fs::read_to_string(dir.join("meta.json")) else {
+            // Lag uten bilde bakes prosedyrisk (bake.wgsl) og er ikke fotoskannet.
+            continue;
+        };
+        let meta: serde_json::Value = serde_json::from_str(&meta).expect("meta.json");
+        let src = meta["source"].as_str().unwrap_or("");
+        if src.is_empty() || !root.join("assets/textures/painted").join(name).join(src).exists() {
+            bad.push(format!("{name}: kilden «{src}» finnes ikke i assets/textures/painted/{name}/"));
+        }
+    }
+    if let Ok(text) = std::fs::read_to_string(root.join("assets/external/manifest.json")) {
+        let manifest: serde_json::Value = serde_json::from_str(&text).expect("manifest.json");
+        for (name, entry) in manifest["textures"].as_object().into_iter().flatten() {
+            let id = entry["id"].as_str().unwrap_or("");
+            if !id.starts_with("egen:") && !WAITING.contains(&name.as_str()) {
+                bad.push(format!("{name}: fotoskannet ({id}) i manifestet"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "lag som ikke er eierens malte bilde: {bad:#?}");
+}
+
 /// En modell byen eller systemene bruker, finnes, eller den står i
 /// `model::PLANNED` (fiendene, figurene, våpnene …). Og en modell som står
 /// der, men nå finnes, skal strykes fra lista.

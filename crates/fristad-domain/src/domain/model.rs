@@ -61,7 +61,7 @@ impl Look {
     pub const ROLES: [Layer; 4] = [Layer::Stone, Layer::Ashlar, Layer::Flagstone, Layer::Tiles];
 }
 
-/// Et fotoskannet materiale som erstatter et bakt teksturlag.
+/// Bildene til et teksturlag (eierens malte, avledet med `tools/textures/derive.py`), som erstatter det bakte laget.
 pub struct LayerImages {
     pub diffuse: Image,
     pub normal: Option<Image>,
