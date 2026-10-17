@@ -217,6 +217,24 @@ fn malet_og_journalen_viser_veien_og_huskes() {
     assert!(again.goal().contains("Dypeste nivå"), "{}", again.goal());
 }
 
+/// Hvilestedet lagrer: når du hviler, sendes lageret, og nettlaget lagrer
+/// spillet da (`case "inventory"` i `web/main.js`).
+#[test]
+fn hvilestedet_lagrer() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..3 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let quiet = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(!quiet.iter().any(|e| matches!(e, Event::Inventory(_))), "lageret sendes ikke uten grunn");
+    game.use_first(|u| matches!(u, Use::Rest(_)));
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(events.iter().any(|e| matches!(e, Event::Inventory(_))), "hvilen skal sende lageret, så spillet lagres");
+}
+
 /// H fra kjelleren tar deg gjennom en virvel til sørporten, og portalen der
 /// våkner: F på den tar deg tilbake akkurat dit du var, og den lukker seg.
 /// Dør du, tar den deg til inngangen til den dypeste etasjen du har nådd.

@@ -178,6 +178,8 @@ impl Session {
             }
             Use::Rest(n) => {
                 let first = self.run.rest(n);
+                // Lagres i nettleseren ved hvert hvilested (lageret sendes, og nettlaget lagrer da).
+                self.hero.dirty = true;
                 self.hero.restore(&mut self.combat);
                 self.hero.lamp.fill();
                 self.mobs.reset(&self.crypt);
