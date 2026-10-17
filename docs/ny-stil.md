@@ -116,3 +116,7 @@ Skyggekaskadene står for rundt tre firedeler av trekantene.
 
 - **Flere detaljnivåer med meshoptimizer:** husene er bygd av tusenvis av små, lukkede biter. Uten lov til å gå over sømmene kom den ikke under halvparten av trekantene, og med lov rev den hull i veggene.
 - **Klyngeforenkling i flere nivåer:** den ga bare 50–80 % per nivå. Med malte detaljer og få trekanter trengs ikke detaljnivåer for husene.
+
+## Resten av veien til malt stil
+
+Status og rekkefølgen for å få alle modellene over i den malte stilen står i `docs/plan.md`, del 12 (17. oktober): 55 teksturlag bruker fortsatt fotoskannet materiale og byttes først, så propsene med bakte teksturer, stilguiden som port i `tools/qa`, kryptens temateksturer og naturen.
