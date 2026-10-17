@@ -28,7 +28,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).parent))
-from timeline import SHOTS, GRADES, END, FADE_OUT  # noqa: E402
+from timeline import SHOTS, GRADES, END, FADE_OUT, SCORE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 FILM = ROOT / "assets/film"
@@ -238,11 +238,23 @@ def build(fast, out_path):
             tag = f"sfx{len(mixes)}"
             f.append(f"[{si}:a]volume={manifest[name].get('gain', 0.7) * 0.6:.3f},adelay={int(at * 1000)}|{int(at * 1000)}[{tag}]")
             mixes.append(tag)
-    music = OUT / "music.wav"
-    if music.exists():
-        mi = add_input(["-i", str(music)])
-        f.append(f"[{mi}:a]volume=0.4,afade=t=out:st={END - FADE_OUT - 1:.3f}:d={FADE_OUT + 1}[mus]")
-        mixes.append("mus")
+    score_dir = ROOT / "assets/music/film"
+    if score_dir.exists() and any(score_dir.glob("*.mp3")):
+        for k, (name, src, t0, t1, fi, fo) in enumerate(SCORE):
+            f_ = next(score_dir.glob(f"{name}.*"), None)
+            if f_ is None:
+                continue
+            mi = add_input(["-i", str(f_)])
+            d = t1 - t0
+            tag = f"sc{k}"
+            f.append(f"[{mi}:a]atrim=start={src:.3f}:end={src + d:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={d - fo:.3f}:d={fo},volume=0.45,adelay={int(t0 * 1000)}|{int(t0 * 1000)}[{tag}]")
+            mixes.append(tag)
+    else:
+        music = OUT / "music.wav"
+        if music.exists():
+            mi = add_input(["-i", str(music)])
+            f.append(f"[{mi}:a]volume=0.4,afade=t=out:st={END - FADE_OUT - 1:.3f}:d={FADE_OUT + 1}[mus]")
+            mixes.append("mus")
     if mixes:
         # Stemmen for seg og sengen (rom, lyder, musikk) for seg; sengen dukkes under stemmen, så fortelleren alltid ligger øverst.
         vo = [m for m in mixes if m.startswith("vo")]

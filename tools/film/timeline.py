@@ -71,3 +71,15 @@ MUSIC = [
     (174.8, "gate"),
     (187.2, "stop"),
 ]
+
+# Lydsporet fra Suno (eieren 17. oktober, `assets/music/film/NN_navn.mp3`, 2–3,5 min hver):
+# (fil, fra i sporet, fra i filmen, til i filmen, inntoning, uttoning). Bitene overlapper
+# med toningene sine, så de glir over i hverandre. Mangler mappa, brukes `target/film/music.wav`.
+SCORE = [
+    ("04_krypten", 0.0, 0.0, 9.5, 1.5, 2.0),        # døra: det stille anslaget
+    ("01_riket", 0.0, 7.8, 40.0, 2.5, 3.0),          # riket, Skriptoriet, Ansgar
+    ("02_raadet", 0.0, 37.5, 94.0, 2.5, 3.0),        # rådet, budet, Inkvisisjonen, omveiene (bygger)
+    ("03_bruddet", 110.0, 92.0, 137.5, 2.0, 1.2),    # bruddet, Rammeverket, Gorvek: slutthugget lander ved 137
+    ("04_krypten", 160.0, 137.0, 176.5, 1.5, 3.0),   # prosesjonen, døra mures, jorda, hjertet
+    ("05_veien", 177.0, 174.8, 192.0, 2.0, 2.5),     # veien til porten, sporets egen slutt
+]
