@@ -136,6 +136,28 @@ Hver prompt følger et fast format med mål og referansesilhuett der det finnes,
 
 Ingenting i fase 4–7 starter før portene i fase 2 er grønne på skrekk- og gullsettet.
 
+## 10. Etter kryptnivåene (planlagt 17. oktober mens nivå 8 ble bygd)
+
+### 10a. Krypten lastes nivå for nivå
+Problemet: med sju nivåer lastet samtidig krasjer Safari på iPhone («A problem repeatedly occurred», minne), og WebGL2-stien stopper med `unreachable` etter at verden er bygd (trolig tom hukommelse i wasm). Hvert nye nivå gjør det verre. Byen trenger ingen kryptbiter før du går ned trappa.
+
+- **Nettlaget** henter ved start bare byens modeller og nivå 1s json (nivådataene er små); kryptbitene (`crypt_NN_*.glb`) hentes først når økta sender `Event::Descend(n)`/går til nivå n, og nivået over slippes når du er ferdig med det. `tools/pack-models.sh` legger bitene per nivå i `dist/models/crypt/NN/`, og `sizes.json` får et felt per nivå, så framdriftsstolpen stemmer.
+- **Portene**: `ModelSource` får `load_level(n)`/`unload_level(n)`, og `Renderer` får `add_models`/`remove_models` for en gruppe (i dag får den `StaticScene` én gang). Kjernen (`world::Data`) har alle nivåenes rom, nav og merker fra før (de er små); bare geometrien og kolliderne lastes sent. Kolliderne står i json, så fysikken trenger ikke glb.
+- **Utenom nettleseren** (`Embedded`, `snapshot`, testene) lastes alt som i dag; `nettleseren_far_de_samme_modellene` utvides til å kreve at hvert nivås biter ligger i sin mappe.
+- **Minnet i wasm**: teksturene fra glb dekodes i dag i wasm før de lastes opp; sjekk om de kan dekodes med `createImageBitmap` i nettleseren og lastes opp rett fra bildet, så wasm-haugen ikke holder dem. Mål med `performance.memory` i `?bench` før og etter.
+- **Test**: `tools/browser-test.mjs` med `?webgl` må komme til «motoren er klar» igjen; og `engine.descend()` etterfulgt av lasting av nivå 1 i `tools/map-test.mjs`.
+
+### 10b. Rammeverket som sluttboss (nivå 10)
+Modellen `framework` finnes uten rigg («fienden svever»). Den skal lages på nytt etter filmen, så spilleren kjenner den igjen: jernrammer med stive, rette ledd, gylne/magenta rutenett (`magic_…`), kongens segl og krone på hodet, revne sider i leddene, og **skjøtene etter Gorveks hugg**: grove jernsømmer der armene og beina er satt på igjen (kanon: bossen er hjertet som har samlet delene). Rundt 4 m høy, så den får plass i rotunden.
+- Forbilde: eieren lager et ark (forfra, fra siden, bakfra) med prompt fra `docs/film/prompter-innstillinger.md` sin beskrivelse av skapningen, i samme stil som monsterarkene i `assets/textures/monsters/ref/`.
+- Bygges med `tools/models/monsters.py` (`project_sheet`), rigg med `common.armature`, klippene fra `mob_motion.py` i stilen «tramper og vagger» pluss `slam` og `roar` som alt er definert for bossen, og rykker digitalt i hvile.
+- Treffene er jern (`Outcome.sounds`), og slutten (`docs/kanon.md`, «Åpent») avgjøres av eieren før den bygges: beseires med det mønsterboka er.
+
+### 10c. Nivå 9 og 10 (oppdragene)
+- **Nivå 9, Overgangen** (`levels/level_09.py`): Sømporten, Sprekkgangen, Speilsalen som glitcher mellom stein og plast (to sett geometri som byttes med et bryter-merke og `Frame.hidden`, eller én tilstand nå og glitchen senere), brohodet, øya med hvilestedet og den hvite lyssøylen, broene over tomrommet (`bridge`-merker uten senking, eller faste `block`-broer), Plastkammeret, Arkivet, Borgfragmentet, Kuben (vridd rom: bygges som vanlig rom nå, vridningen senere), Tvillingsalen med vokteren (elite med nøkkel), nedgangen. Tomrommet er et `backdrop`-rom med gulv langt nede og nett av sømmer (`nowalk` + `Session.safe` løfter deg). Nye materialer: `plastic` (glatt, matt), `magic_seam` (lysende sømmer), begge i `kit_grav.MATS`; teksturlagene `core_plastic` og `glitch_seam` finnes alt i eierens malte teksturer. Fiender: grid → table, skeleton loader → breadcrumb, bueskytterne → tooltip.
+- **Nivå 10, Kjernen** (`levels/level_10.py`): spiralen ned mot rotunden, bossen Rammeverket (`boss`-merket med `Kind::Framework`, arenaporter), ingen `down`. Til modellen fra 10b er ferdig står den gamle `framework`-modellen (svever) eller modalen som stedfortreder.
+
+
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
 - Endres: `sheet2model/cli.py` (portene før finish/rig, ingen glb ved feil), `sheet2model/{geom,texture,report,config}.py`, `tools/models/kit.py` (overganger, dørmodul, `group()`), `tools/models/{houses,tavern,workshops,home,sacred,fortress,streetlife}.py`, `tools/crypt/{kit_grav,build_level,leak_check}.py`, `tools/textures/derive.py`, `src/application/session.rs` (delt), `src/domain/world/{town,mod}.rs`, `src/adapters/gltf.rs`, `src/adapters/wgpu/{mod.rs,shaders/world.wgsl}`, `web/main.js`, `src/tests.rs`, `src/architecture.rs`, `.github/workflows/web.yml`, `CLAUDE.md`, `docs/ny-stil.md`.
