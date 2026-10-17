@@ -313,6 +313,28 @@ impl Session {
         self.portal.dest
     }
 
+    /// Kryptnivåene (indekser) som må ha bitene sine nå: der du står og
+    /// nivåene over og under, og oppe i byen det første og det portalen tar
+    /// deg til. Nivåene hentes før du går ned (plan del 10a).
+    pub fn wanted_levels(&self) -> Vec<usize> {
+        let n = self.crypt.levels.len();
+        let mut out = vec![];
+        match self.crypt.level_at(self.body.pos).filter(|_| self.in_crypt()) {
+            Some(k) => out.extend(k.saturating_sub(1)..=(k + 1).min(n.saturating_sub(1))),
+            None => {
+                if n > 0 {
+                    out.push(0);
+                }
+                if let Some((_, _, k)) = self.portal.dest {
+                    out.push(k);
+                }
+            }
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
     pub fn update(&mut self, input: &mut Input, dt: f32, physics: &mut dyn Physics) -> Vec<Event> {
         let dt = dt.clamp(0.0, 1.0 / 20.0);
         self.time += dt;

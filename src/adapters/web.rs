@@ -70,6 +70,25 @@ pub fn model_paths() -> Vec<String> {
     model_files().map(|(_, p)| p.to_string()).collect()
 }
 
+/// Modellfilene byen trenger ved start: alle utenom bitene til
+/// kryptnivåene, som hentes når økta ber om dem (`level_paths`).
+#[wasm_bindgen]
+pub fn start_paths() -> Vec<String> {
+    model_files().filter(|(_, p)| crate::adapters::delivery::level_of(p).is_none()).map(|(_, p)| p.to_string()).collect()
+}
+
+/// Hvor modellfila ligger i nettsiden, under `models/` (uten `.gz`).
+#[wasm_bindgen]
+pub fn model_url(path: &str) -> String {
+    crate::adapters::delivery::dist_path(path)
+}
+
+/// Bitene til kryptnivå n (1 og oppover).
+#[wasm_bindgen]
+pub fn level_paths(n: u32) -> Vec<String> {
+    crate::adapters::delivery::level_files(n).map(|(_, p)| p.to_string()).collect()
+}
+
 #[wasm_bindgen]
 pub async fn start(
     canvas: web_sys::HtmlCanvasElement,
@@ -284,6 +303,7 @@ fn json(e: &Event) -> serde_json::Value {
         }
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
+        Event::FetchLevel(n) => json!({"type": "fetch_level", "level": n}),
         Event::Warp => json!({"type": "warp"}),
         Event::Map(None) => json!({"type": "map", "map": null}),
         Event::Map(Some(m)) => json!({"type": "map", "map": {
@@ -329,6 +349,21 @@ impl Engine {
     /// "BrowserWebGpu" eller "Gl".
     pub fn backend(&self) -> String {
         self.backend.clone()
+    }
+
+    /// Bitene til kryptnivå n er hentet (`fetch_level`), i samme rekkefølge
+    /// som `level_paths(n)`: modellene lastes og gis rendereren.
+    pub fn add_level(&mut self, n: u32, blobs: js_sys::Array) {
+        let models: Vec<crate::domain::model::Model> = crate::adapters::delivery::level_files(n)
+            .zip(blobs.iter())
+            .filter(|(_, b)| !b.is_undefined())
+            .filter_map(|((name, _), b)| {
+                let bytes = js_sys::Uint8Array::new(&b).to_vec();
+                crate::adapters::gltf::load_capped(name, &[("model.glb", &bytes)], -1.0, 0.0, crate::adapters::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+            })
+            .collect();
+        log::info!("Kryptnivå {n}: {} biter", models.len());
+        self.app.add_level(n, &models);
     }
 
     /// Versjonen av Fristil som komponentene i spillet hører til

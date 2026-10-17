@@ -58,13 +58,20 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool)
     let mut loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
     // Gresstusten og ruskbitene lages i kjernen, ikke i Blender.
     loaded.push(crate::domain::combat::debris_model());
-    let infos: Vec<ModelInfo> = loaded
+    let mut infos: Vec<ModelInfo> = loaded
         .iter()
         .map(|m| {
             let (min, max) = m.mesh.bounds();
             ModelInfo { name: m.name.clone(), min, max }
         })
         .collect();
+    // Modellene som kommer senere (kryptnivåene i nettleseren) settes ut
+    // som de andre; målene er ukjente til de er lastet.
+    for name in models.deferred() {
+        if !infos.iter().any(|i| i.name == name) {
+            infos.push(ModelInfo { name, min: glam::Vec3::ZERO, max: glam::Vec3::ZERO });
+        }
+    }
     let kept = edit.then(|| {
         (
             Sources { models: infos.clone(), insides: data.insides.clone(), levels: data.levels.clone() },

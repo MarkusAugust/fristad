@@ -11,13 +11,70 @@ pub struct App<R: Renderer, P: Physics> {
     pub input: Input,
     pub renderer: R,
     pub physics: P,
+    /// Bitene til hvert kryptnivå og om rendereren har dem.
+    levels: Vec<(Vec<String>, Pieces)>,
+}
+
+/// Om rendereren har bitene til et kryptnivå.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Pieces {
+    /// Lastet fra starten (utenom nettleseren): blir alltid.
+    Always,
+    /// Ikke lastet.
+    Missing,
+    /// Bedt om (`Event::FetchLevel`), ikke kommet ennå.
+    Asked,
+    /// Kom med `add_level`, og slippes når du er langt unna.
+    Loaded,
 }
 
 impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
         let mut session = Session::new(&prepared.world, &mut physics, &rigs(&prepared.models));
         session.edit_data = prepared.edit;
-        Self { session, input: Input::default(), renderer, physics }
+        let levels = prepared
+            .world
+            .crypt
+            .levels
+            .iter()
+            .map(|l| {
+                let have = l.pieces.iter().all(|p| prepared.models.iter().any(|m| &m.name == p));
+                (l.pieces.clone(), if have { Pieces::Always } else { Pieces::Missing })
+            })
+            .collect();
+        Self { session, input: Input::default(), renderer, physics, levels }
+    }
+
+    /// Bitene til kryptnivå n (1 og oppover) er hentet: rendereren får dem.
+    pub fn add_level(&mut self, n: u32, models: &[crate::domain::model::Model]) {
+        let Some(l) = self.levels.get_mut((n as usize).wrapping_sub(1)) else { return };
+        if l.1 != Pieces::Always {
+            self.renderer.add_models(models);
+            l.1 = Pieces::Loaded;
+        }
+    }
+
+    /// Hvor langt hvert nivå er kommet (til testene og målingen).
+    pub fn level_pieces(&self) -> Vec<Pieces> {
+        self.levels.iter().map(|l| l.1).collect()
+    }
+
+    /// Ber om nivåene økta trenger og slipper dem du har forlatt.
+    fn stream_levels(&mut self, events: &mut Vec<Event>) {
+        let wanted = self.session.wanted_levels();
+        for (k, (pieces, state)) in self.levels.iter_mut().enumerate() {
+            match (*state, wanted.contains(&k)) {
+                (Pieces::Missing, true) => {
+                    events.push(Event::FetchLevel(k as u32 + 1));
+                    *state = Pieces::Asked;
+                }
+                (Pieces::Loaded, false) => {
+                    self.renderer.drop_models(pieces);
+                    *state = Pieces::Missing;
+                }
+                _ => {}
+            }
+        }
     }
 
     /// Det rendereren trenger for å lages, fra det monteringen ga.
@@ -32,7 +89,9 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     }
 
     fn tick(&mut self, dt: f32) -> Vec<Event> {
-        self.session.update(&mut self.input, dt, &mut self.physics)
+        let mut events = self.session.update(&mut self.input, dt, &mut self.physics);
+        self.stream_levels(&mut events);
+        events
     }
 
     fn draw(&mut self, aspect: f32) {

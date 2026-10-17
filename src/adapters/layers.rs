@@ -56,7 +56,7 @@ pub fn from_files(manifest_json: &str, files: &HashMap<String, Vec<u8>>) -> Vec<
     let image = |p: &Option<String>| -> Option<Image> {
         let bytes = files.get(p.as_ref()?)?;
         let img = image::load_from_memory(bytes).ok()?.into_rgba8();
-        Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
+        Some(Image::rgba(img.width(), img.height(), img.into_raw()))
     };
     let mut out = vec![];
     for layer in Layer::ALL {

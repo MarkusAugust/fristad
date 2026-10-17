@@ -4,10 +4,22 @@
 use crate::domain::geometry::{Layer, Mesh};
 
 pub struct Image {
+    /// Målene bildet har når det er pakket ut (etter `encoded` er skalert ned).
     pub width: u32,
     pub height: u32,
-    /// RGBA8.
+    /// RGBA8, eller tom når bildet ennå er kodet.
     pub rgba: Vec<u8>,
+    /// Bildefila (png eller jpeg) når den pakkes ut først når rendereren
+    /// laster den opp, én om gangen, så alle modellenes teksturer aldri står
+    /// utpakket i minnet samtidig. Det er adapteren som pakker ut og skalerer
+    /// til `width` × `height`.
+    pub encoded: Vec<u8>,
+}
+
+impl Image {
+    pub fn rgba(width: u32, height: u32, rgba: Vec<u8>) -> Self {
+        Self { width, height, rgba, encoded: vec![] }
+    }
 }
 
 pub struct Model {
@@ -31,6 +43,7 @@ pub struct Model {
 }
 
 /// Hvor en modell står i byen, med alle instansene.
+#[derive(Clone)]
 pub struct Placement {
     pub model: &'static str,
     pub transforms: Vec<glam::Affine3A>,

@@ -2,7 +2,7 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
 // den drivende porten.
 
-import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
+import init, { start, asset_paths, model_paths, start_paths, level_paths, model_url } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
 import { createFilm } from "./film/player.js";
@@ -272,16 +272,65 @@ async function loadAssets() {
   return { manifest, names: got.map(([p]) => p), blobs: got.map(([, b]) => b) };
 }
 
-// Henter modellfilene (models/<sti>.gz) og pakker dem ut. Framdriften
-// regnes i byte, fra størrelsene i models/sizes.json.
+// Henter én modellfil (models/<sti>.gz, stien fra `model_url`) og pakker
+// den ut; `count` får bytene mens de kommer.
+async function fetchModel(path, count = () => {}) {
+  const r = await fetch(`models/${model_url(path)}.gz`);
+  if (!r.ok) {
+    console.warn(`Modellen ${path} mangler: HTTP ${r.status}`);
+    return undefined;
+  }
+  const counted = r.body.pipeThrough(
+    new TransformStream({
+      transform(chunk, ctl) {
+        count(chunk.byteLength);
+        ctl.enqueue(chunk);
+      },
+    }),
+  );
+  let bytes = new Uint8Array(await new Response(counted).arrayBuffer());
+  // Pakket ut allerede hvis serveren sendte den med Content-Encoding.
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    const plain = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    bytes = new Uint8Array(await new Response(plain).arrayBuffer());
+  }
+  return bytes;
+}
+
+// Bitene til et kryptnivå hentes først når økta ber om nivået
+// (`fetch_level`, plan del 10a), og gis motoren med `add_level`.
+const levelsAsked = new Set();
+async function fetchLevel(n) {
+  if (levelsAsked.has(n)) return;
+  levelsAsked.add(n);
+  const paths = level_paths(n);
+  const out = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      out[i] = await fetchModel(paths[i]).catch((e) => console.warn(`Modellen ${paths[i]}:`, e));
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  levelsAsked.delete(n);
+  engine?.add_level(n, out);
+}
+
+// Henter modellfilene byen trenger (alle utenom bitene til kryptnivåene;
+// med ?edit alle) og pakker dem ut. Framdriften regnes i byte, fra
+// størrelsene i models/sizes.json.
 async function loadModels() {
-  const paths = model_paths();
+  const all = model_paths();
+  const wanted = new Set(EDIT ? all : start_paths());
   let sizes = {};
   try {
     sizes = await (await fetch("models/sizes.json")).json();
   } catch {
     sizes = {};
   }
+  for (const level of Object.values(sizes.levels || {})) Object.assign(sizes, level);
+  const paths = all.filter((p) => wanted.has(p));
   const total = paths.reduce((a, p) => a + (sizes[p] || 1), 0);
   let got = 0;
   const bar = $("loading");
@@ -291,37 +340,20 @@ async function loadModels() {
     setStatus(`Henter byen (${(got / 1e6).toFixed(0)} av ${(total / 1e6).toFixed(0)} MB) …`);
   };
   show();
-  const out = new Array(paths.length);
+  // Samme rekkefølge som model_paths(); det som ikke hentes, er tomt.
+  const out = new Array(all.length);
   let next = 0;
+  let last = 0;
   const worker = async () => {
     while (next < paths.length) {
-      const i = next++;
-      const r = await fetch(`models/${paths[i]}.gz`);
-      if (!r.ok) {
-        console.warn(`Modellen ${paths[i]} mangler: HTTP ${r.status}`);
-        continue;
-      }
-      // Telle bytene mens de kommer.
-      let last = 0;
-      const counted = r.body.pipeThrough(
-        new TransformStream({
-          transform(chunk, ctl) {
-            got += chunk.byteLength;
-            if (got - last > 256 * 1024) {
-              last = got;
-              show();
-            }
-            ctl.enqueue(chunk);
-          },
-        }),
-      );
-      let bytes = new Uint8Array(await new Response(counted).arrayBuffer());
-      // Pakket ut allerede hvis serveren sendte den med Content-Encoding.
-      if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
-        const plain = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-        bytes = new Uint8Array(await new Response(plain).arrayBuffer());
-      }
-      out[i] = bytes;
+      const path = paths[next++];
+      out[all.indexOf(path)] = await fetchModel(path, (n) => {
+        got += n;
+        if (got - last > 256 * 1024) {
+          last = got;
+          show();
+        }
+      });
       show();
     }
   };
@@ -444,6 +476,9 @@ function handle(e) {
       break;
     case "fade":
       fade();
+      break;
+    case "fetch_level":
+      fetchLevel(e.level);
       break;
     case "warp":
       warp();

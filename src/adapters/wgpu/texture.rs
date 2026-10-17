@@ -68,9 +68,11 @@ pub fn upload(device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, img: 
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
         view_formats: &[],
     });
+    // Kodede bilder pakkes ut her, ett om gangen, og slippes med en gang.
+    let rgba = crate::adapters::gltf::pixels(img);
     queue.write_texture(
         wgpu::TexelCopyTextureInfo { texture: &tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-        &img.rgba,
+        &rgba,
         wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(img.width * 4), rows_per_image: Some(img.height) },
         wgpu::Extent3d { width: img.width, height: img.height, depth_or_array_layers: 1 },
     );
@@ -528,7 +530,7 @@ impl Materials {
 
 /// Skalerer et bilde til lagstørrelsen.
 fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
-    let src = image::RgbaImage::from_raw(img.width, img.height, img.rgba.clone()).expect("bilde");
+    let src = image::RgbaImage::from_raw(img.width, img.height, crate::adapters::gltf::pixels(img).into_owned()).expect("bilde");
     if img.width == SIZE && img.height == SIZE {
         src
     } else {

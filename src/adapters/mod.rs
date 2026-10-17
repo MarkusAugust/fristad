@@ -8,6 +8,7 @@
 //! `ports::driving::Play`.
 
 pub mod data;
+pub mod delivery;
 pub mod gltf;
 pub mod layers;
 pub mod rapier;

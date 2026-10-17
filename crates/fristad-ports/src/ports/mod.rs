@@ -105,6 +105,13 @@ pub trait Renderer {
     fn gpu_times(&self) -> Vec<(&'static str, f32)> {
         vec![]
     }
+    /// Legg til modeller som ble lastet etter at rendereren ble laget (bitene
+    /// til et kryptnivå i nettleseren). Instansene deres står allerede i
+    /// `StaticScene.placements`.
+    fn add_models(&mut self, _models: &[Model]) {}
+    /// Slipp modellene igjen (et nivå du har forlatt); instansene venter til
+    /// modellene kommer på nytt.
+    fn drop_models(&mut self, _names: &[String]) {}
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -134,6 +141,12 @@ pub trait ModelSource {
     fn names(&self) -> Vec<String>;
     /// Det husene har med seg og kryptnivåene, ferdig lest.
     fn world_data(&self) -> crate::domain::world::Data;
+    /// Modellene som finnes, men lastes senere (bitene til kryptnivåene i
+    /// nettleseren): monteringen setter dem ut, og rendereren får dem med
+    /// `Renderer::add_models` når økta ber om nivået (`Event::FetchLevel`).
+    fn deferred(&self) -> Vec<String> {
+        vec![]
+    }
 }
 
 /// Lagringen fra redigeringen: byen (`assets/layout/town.json`), det som

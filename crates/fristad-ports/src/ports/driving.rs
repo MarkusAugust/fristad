@@ -336,6 +336,9 @@ pub enum Event {
     Weather(String),
     /// Skjermen går i svart og tilbake (ned i krypten og opp igjen).
     Fade,
+    /// Hent bitene til kryptnivå n (1 og oppover): nettleseren laster dem
+    /// når økta trenger nivået, og svarer med `add_level`.
+    FetchLevel(u32),
     /// Du reiser gjennom portalen (hjem med H, eller tilbake): en virvel
     /// over skjermen.
     Warp,

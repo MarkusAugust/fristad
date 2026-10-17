@@ -542,15 +542,153 @@ fn innbyggerne_gar_og_stopper() {
 
 /// Nettleseren henter modellfilene selv (`Files`, stiene i `model_files`,
 /// også kryptmodellene): byen skal bli den samme som med modellene bygd inn.
+/// Bitene til kryptnivåene hentes først når økta ber om nivået (plan del
+/// 10a): de settes ut likevel, og `tools/pack-models.sh` legger dem i en
+/// mappe per nivå (`delivery::dist_path`), med størrelsene per nivå i sizes.json.
 #[test]
 fn nettleseren_far_de_samme_modellene() {
+    use crate::adapters::delivery::{dist_path, level_of};
     use crate::adapters::gltf::{model_files, Files};
-    let files = model_files().map(|(_, p)| (p.to_string(), std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p))).collect();
-    let web = prepare(&Files(files), 7);
+    use crate::ports::ModelSource;
+    let read = |p: &str| std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p);
+    let all = Files(model_files().map(|(_, p)| (p.to_string(), read(p))).collect());
+    let web = prepare(&all, 7);
     let native = world();
     let names = |p: &Prepared| p.models.iter().map(|m| (m.name.clone(), m.mesh.indices.len())).collect::<Vec<_>>();
     assert_eq!(names(&web), names(native));
     assert_eq!(web.world.placements.len(), native.world.placements.len());
+
+    // Ved start: alt utenom bitene. De står ute som før, men lastes ikke.
+    let start = Files(model_files().filter(|(_, p)| level_of(p).is_none()).map(|(_, p)| (p.to_string(), read(p))).collect());
+    let pieces: Vec<String> = native.world.crypt.levels.iter().flat_map(|l| l.pieces.clone()).collect();
+    assert!(!pieces.is_empty());
+    let mut deferred = start.deferred();
+    deferred.sort();
+    let mut want = pieces.clone();
+    want.sort();
+    assert_eq!(deferred, want, "bitene som venter er bitene i nivåene");
+    let lazy = prepare(&start, 7);
+    assert_eq!(lazy.world.placements.len(), native.world.placements.len(), "bitene står ute");
+    assert!(lazy.models.iter().all(|m| !pieces.contains(&m.name)));
+    assert_eq!(lazy.models.len() + pieces.len(), native.models.len());
+
+    // Pakkingen: en mappe per nivå, og størrelsene per nivå.
+    let out = std::env::temp_dir().join(format!("fristad-pack-{}", std::process::id()));
+    let status = std::process::Command::new("sh").arg("tools/pack-models.sh").arg(&out).current_dir(env!("CARGO_MANIFEST_DIR")).status().expect("sh");
+    assert!(status.success());
+    let sizes: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("models/sizes.json")).unwrap()).unwrap();
+    for (_, p) in model_files() {
+        let file = out.join(format!("models/{}.gz", dist_path(p)));
+        assert!(file.exists(), "{} mangler", file.display());
+        match level_of(p) {
+            Some(n) => {
+                assert!(dist_path(p).starts_with(&format!("crypt/{n:02}/")), "{p}");
+                assert!(sizes["levels"][n.to_string()][p].is_u64(), "{p} mangler under nivå {n} i sizes.json");
+                assert!(sizes[p].is_null(), "{p} skal bare stå under nivået");
+            }
+            None => assert!(sizes[p].is_u64(), "{p} mangler i sizes.json"),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// En renderer som bare husker modellene den har.
+#[derive(Default)]
+struct Counting {
+    models: Vec<String>,
+}
+
+impl crate::ports::Renderer for Counting {
+    fn render(&mut self, _frame: &crate::domain::scene::Frame) {}
+    fn resize(&mut self, _width: u32, _height: u32) {}
+    fn set_quality(&mut self, _quality: crate::ports::Quality) {}
+    fn triangles(&self) -> u32 {
+        0
+    }
+    fn add_models(&mut self, models: &[crate::domain::model::Model]) {
+        self.models.extend(models.iter().map(|m| m.name.clone()));
+    }
+    fn drop_models(&mut self, names: &[String]) {
+        self.models.retain(|m| !names.contains(m));
+    }
+}
+
+/// Økta ber om kryptnivåene før du går ned (`Event::FetchLevel`): det
+/// første oppe i byen, og nivåene rundt deg nede. Rendereren får bitene
+/// med `add_level` og slipper nivåer du har forlatt.
+#[test]
+fn kryptnivaaene_hentes_nivaa_for_nivaa() {
+    use crate::adapters::delivery::{level_files, level_of};
+    use crate::adapters::gltf::{model_files, Files};
+    use crate::application::app::Pieces;
+    use crate::application::App;
+    use crate::ports::driving::Play;
+    let read = |p: &str| std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p);
+    let start = Files(model_files().filter(|(_, p)| level_of(p).is_none()).map(|(_, p)| (p.to_string(), read(p))).collect());
+    let prepared = prepare(&start, 7);
+    let levels: Vec<(Vec3, Vec<String>)> = prepared.world.crypt.levels.iter().map(|l| (l.start.0, l.pieces.clone())).collect();
+    assert!(levels.len() >= 3);
+    let mut app = App::new(prepared, Counting::default(), RapierPhysics::new());
+    let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<u32> {
+        let mut out = vec![];
+        for _ in 0..3 {
+            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchLevel(n) = e { Some(n) } else { None }));
+        }
+        out
+    };
+    let load = |app: &mut App<Counting, RapierPhysics>, n: u32| {
+        let models: Vec<_> = level_files(n).filter_map(|(name, p)| crate::adapters::gltf::load(name, &[("model.glb", &read(p))], -1.0, 0.0).ok()).collect();
+        app.add_level(n, &models);
+    };
+    // Oppe i byen: bare det første nivået.
+    assert_eq!(asked(&mut app), vec![1]);
+    load(&mut app, 1);
+    assert_eq!(app.level_pieces()[0], Pieces::Loaded);
+    assert!(levels[0].1.iter().all(|p| app.renderer.models.contains(p)));
+    // Nede i nivå 2: nivået over er der, nivå 2 og 3 hentes.
+    app.session.place_feet(levels[1].0);
+    assert_eq!(asked(&mut app), vec![2, 3]);
+    load(&mut app, 2);
+    load(&mut app, 3);
+    // Opp i byen igjen: nivå 2 og 3 slippes, nivå 1 blir.
+    app.session.place_feet(crate::domain::world::town::square_center());
+    assert!(asked(&mut app).is_empty());
+    assert_eq!(app.level_pieces()[1], Pieces::Missing);
+    assert_eq!(app.level_pieces()[2], Pieces::Missing);
+    assert!(levels[1].1.iter().all(|p| !app.renderer.models.contains(p)), "nivå 2 er sluppet");
+    assert!(levels[0].1.iter().all(|p| app.renderer.models.contains(p)), "nivå 1 blir");
+
+    // Utenom nettleseren er alt lastet, og ingenting bes om eller slippes.
+    let mut native = App::new(prepare(&Embedded, 7), Counting::default(), RapierPhysics::new());
+    assert!(native.level_pieces().iter().all(|p| *p == Pieces::Always));
+    native.session.place_feet(levels[1].0);
+    assert!(asked(&mut native).is_empty());
+}
+
+/// I nettleseren får teksturene et tak (armene og våpnene 2048, resten
+/// 1024, normal- og metallkartene halvparten), og de pakkes ut først når
+/// rendereren laster dem opp (`gltf::pixels`), så de aldri står utpakket
+/// samtidig.
+#[test]
+fn teksturene_har_tak_i_nettleseren() {
+    use crate::adapters::delivery::browser_caps;
+    use crate::adapters::gltf::{load_capped, model_files, pixels};
+    for name in ["arms", "npc_smith", "tavern"] {
+        let Some((_, p)) = model_files().find(|(n, _)| *n == name) else { continue };
+        let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let caps = browser_caps(name);
+        let m = load_capped(name, &[("model.glb", &bytes)], -1.0, 0.0, caps).unwrap();
+        let full = crate::adapters::gltf::load(name, &[("model.glb", &bytes)], -1.0, 0.0).unwrap();
+        for (img, orig, cap) in [(&m.albedo, &full.albedo, caps.color), (&m.normal, &full.normal, caps.data), (&m.metal_rough, &full.metal_rough, caps.data)] {
+            let (Some(img), Some(orig)) = (img, orig) else { continue };
+            assert!(img.rgba.is_empty() && !img.encoded.is_empty(), "{name}: bildet pakkes ut senere");
+            assert!(img.width.max(img.height) <= cap.max(orig.width.max(orig.height).min(cap)), "{name}: {}×{} over {cap}", img.width, img.height);
+            assert_eq!(img.width.max(img.height), orig.width.max(orig.height).min(cap), "{name}");
+            assert_eq!(pixels(img).len(), (img.width * img.height * 4) as usize, "{name}");
+        }
+    }
+    assert_eq!(browser_caps("sword").color, 2048);
+    assert_eq!(browser_caps("crypt_01_aa").color, 1024);
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i

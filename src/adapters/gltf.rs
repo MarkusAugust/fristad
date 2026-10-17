@@ -213,17 +213,58 @@ impl ModelSource for Files {
     fn names(&self) -> Vec<String> {
         model_files().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
     }
+    /// Bitene til kryptnivåene som ikke er hentet: de kommer når økta ber
+    /// om nivået.
+    fn deferred(&self) -> Vec<String> {
+        model_files().filter(|(_, p)| !self.0.contains_key(*p) && super::delivery::level_of(p).is_some()).map(|(n, _)| n.to_string()).collect()
+    }
 
     fn load(&self, name: &str) -> Option<Model> {
         let (_, path) = model_files().find(|(n, _)| *n == name)?;
         let bytes = self.0.get(*path)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, super::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 
-fn decode(bytes: &[u8]) -> Option<Image> {
-    let img = image::load_from_memory(bytes).ok()?.into_rgba8();
-    Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
+/// Lengste side for teksturene: fargen og resten (normal, metall/ruhet,
+/// glød). 0 er som i fila.
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct Caps {
+    pub color: u32,
+    pub data: u32,
+}
+
+/// Leser bare målene og beholder fila kodet; `pixels` pakker den ut når
+/// rendereren trenger den.
+fn decode(bytes: &[u8], cap: u32) -> Option<Image> {
+    let (w, h) = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?.into_dimensions().ok()?;
+    let (w, h) = capped(w, h, cap);
+    Some(Image { width: w, height: h, rgba: vec![], encoded: bytes.to_vec() })
+}
+
+fn capped(w: u32, h: u32, cap: u32) -> (u32, u32) {
+    let side = w.max(h);
+    if cap == 0 || side <= cap {
+        (w, h)
+    } else {
+        ((w as u64 * cap as u64 / side as u64).max(1) as u32, (h as u64 * cap as u64 / side as u64).max(1) as u32)
+    }
+}
+
+/// Pikslene i RGBA8: pakker ut et kodet bilde og skalerer det til målene.
+pub fn pixels(img: &Image) -> std::borrow::Cow<'_, [u8]> {
+    if img.encoded.is_empty() {
+        return std::borrow::Cow::Borrowed(&img.rgba);
+    }
+    let Some(full) = image::load_from_memory(&img.encoded).ok().map(|i| i.into_rgba8()) else {
+        log::warn!("Et bilde i en modell kunne ikke pakkes ut");
+        return std::borrow::Cow::Owned(vec![128; (img.width * img.height * 4) as usize]);
+    };
+    if full.width() == img.width && full.height() == img.height {
+        std::borrow::Cow::Owned(full.into_raw())
+    } else {
+        std::borrow::Cow::Owned(image::imageops::resize(&full, img.width, img.height, image::imageops::FilterType::Triangle).into_raw())
+    }
 }
 
 /// Leser en glTF-fil med tilhørende filer fra minnet (første fil er
@@ -231,6 +272,11 @@ fn decode(bytes: &[u8]) -> Option<Image> {
 /// grader om Y og setter føttene i y = 0. `height` > 0 skalerer modellen
 /// til den høyden; 0 beholder modellens egne mål (meter).
 pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Result<Model, String> {
+    load_capped(name, files, height, yaw, Caps::default())
+}
+
+/// Som `load`, med et tak på teksturene.
+pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, caps: Caps) -> Result<Model, String> {
     let get = |n: &str| -> Result<&[u8], String> {
         // Stier i glTF kan være URL-kodet.
         let plain = n.replace("%20", " ");
@@ -244,12 +290,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             gltf::buffer::Source::Bin => doc.blob.clone().ok_or("glb uten blob")?,
         });
     }
-    let image = |t: Option<gltf::Texture>| -> Option<Image> {
+    let image = |t: Option<gltf::Texture>, cap: u32| -> Option<Image> {
         match t?.source().source() {
-            gltf::image::Source::Uri { uri, .. } => decode(get(uri).ok()?),
+            gltf::image::Source::Uri { uri, .. } => decode(get(uri).ok()?, cap),
             gltf::image::Source::View { view, .. } => {
                 let b = &buffers[view.buffer().index()];
-                decode(&b[view.offset()..view.offset() + view.length()])
+                decode(&b[view.offset()..view.offset() + view.length()], cap)
             }
         }
     };
@@ -356,10 +402,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             roughness = pbr.roughness_factor();
             metallic = pbr.metallic_factor();
             if albedo.is_none() {
-                albedo = image(pbr.base_color_texture().map(|t| t.texture()));
-                metal_rough = image(pbr.metallic_roughness_texture().map(|t| t.texture()));
-                normal = image(mat.normal_texture().map(|t| t.texture()));
-                emissive = image(mat.emissive_texture().map(|t| t.texture()));
+                albedo = image(pbr.base_color_texture().map(|t| t.texture()), caps.color);
+                metal_rough = image(pbr.metallic_roughness_texture().map(|t| t.texture()), caps.data);
+                normal = image(mat.normal_texture().map(|t| t.texture()), caps.data);
+                emissive = image(mat.emissive_texture().map(|t| t.texture()), caps.data);
             }
             let reader = prim.reader(|b| Some(&buffers[b.index()]));
             let Some(positions) = reader.read_positions() else { continue };

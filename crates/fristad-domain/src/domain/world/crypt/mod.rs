@@ -167,6 +167,9 @@ pub struct Level {
     pub links: Vec<(usize, usize, Option<usize>)>,
     /// Rom som overlapper (galleri over en sal): lyset går mellom dem.
     pub overlaps: Vec<(usize, usize)>,
+    /// Bitene nivået er bygd av (`crypt_NN_aa` …), som nettleseren henter
+    /// først når nivået trengs.
+    pub pieces: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -429,7 +432,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     }
 
     // Merkene.
-    let mut level = Level { n, name: f.name.clone(), theme: f.theme.clone(), origin, rooms: vec![], nav, start: (origin, 0.0), up: None, down: None, min_y, max_y, links, overlaps };
+    let mut level = Level { n, name: f.name.clone(), theme: f.theme.clone(), origin, rooms: vec![], nav, start: (origin, 0.0), up: None, down: None, min_y, max_y, links, overlaps, pieces: f.pieces.clone() };
     let mut bonus_n = 0;
     // Portene eliten bærer nøkkelen til.
     let keyed: Vec<usize> = f.marks.iter().filter(|m| m.kind == "elite").flat_map(|m| m.opens.clone()).collect::<Vec<_>>().iter().map(|g| intern(c, k, g)).collect();
