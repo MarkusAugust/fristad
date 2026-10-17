@@ -139,6 +139,10 @@ MATS = {
     "wax": ("plaster_white", (1.0, 0.93, 0.78), 0.4),
     "glitch": ("glitch_seam", (1.0, 1.0, 1.0), 0.4),
     "rock": ("rock", (0.8, 0.8, 0.82), 0.65),
+    # Falmet ull til fanene i borgen (nivå 7).
+    "cloth_red": ("wool", (0.55, 0.12, 0.1), 0.85),
+    "cloth_blue": ("wool", (0.12, 0.18, 0.45), 0.85),
+    "mud": ("mud", (1.0, 1.0, 1.0), 0.8),
     "fire_torch": None,
     "fire_candle": None,
     "fire_lamp": None,
@@ -2211,6 +2215,7 @@ def mechanisms():
         "kit_chain": kit_chain(),
         "kit_water": kit_water(),
         **__import__("kit_mine").mine(),
+        **__import__("kit_castle").castle(),
     }
 
 

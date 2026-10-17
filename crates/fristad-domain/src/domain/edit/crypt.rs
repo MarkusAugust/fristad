@@ -83,8 +83,8 @@ pub fn breaches(c: &Crypt, crypt: &BTreeMap<u32, CryptContents>) -> Vec<Breach> 
         };
         for (i, m) in contents.marks.iter().enumerate() {
             let Some(p) = m.pos else { continue };
-            // Gruvelampene henger i kroken under stivene, ikke på gulvet.
-            if !on_floor(&m.kind) || m.label.as_deref() == Some("kit_lamp") {
+            // Gruvelampene henger i kroken under stivene og fanene på muren, ikke på gulvet.
+            if !on_floor(&m.kind) || m.label.as_deref().is_some_and(|l| cw::MOUNTED_PROPS.contains(&l)) {
                 continue;
             }
             let w = Vec3::from(p) + level.origin;

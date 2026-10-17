@@ -103,7 +103,9 @@ pub const KIT_WATER: &str = "kit_water";
 pub const BRIDGE_W: f32 = 3.6;
 pub const BRIDGE_L: f32 = 8.0;
 /// Pynten merket `prop` kan sette ut (modellnavnet i `label`).
-pub const PROPS: &[&str] = &["kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal"];
+pub const PROPS: &[&str] = &["kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal", "kit_banner", "kit_armor"];
+/// Pynten som henger på muren eller i taket (ikke på gulvet): settes ut med `place_mounted`.
+pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
@@ -632,8 +634,8 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.
                 let label = m.label.clone().unwrap_or_default();
                 match PROPS.iter().find(|p| **p == label) {
-                    // Lampene henger i kroken under stivene, over gulvet.
-                    Some(name) if *name == "kit_lamp" => {
+                    // Lampene henger i kroken under stivene og fanene på muren, over gulvet.
+                    Some(name) if MOUNTED_PROPS.contains(name) => {
                         b.place_mounted(name, pose);
                     }
                     Some(name) => {
