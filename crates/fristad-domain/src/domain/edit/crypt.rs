@@ -29,6 +29,7 @@ pub fn model_of(m: &MarkDef) -> Option<&str> {
         "secret_wall" => cw::KIT_SECRET,
         "trapdoor" => cw::KIT_TRAPDOOR,
         "bridge" => cw::KIT_BRIDGE,
+        "lift" => cw::KIT_LIFT,
         "hint" => cw::KIT_CRACK,
         "prop" => return m.label.as_deref(),
         _ => return None,
@@ -82,7 +83,8 @@ pub fn breaches(c: &Crypt, crypt: &BTreeMap<u32, CryptContents>) -> Vec<Breach> 
         };
         for (i, m) in contents.marks.iter().enumerate() {
             let Some(p) = m.pos else { continue };
-            if !on_floor(&m.kind) {
+            // Gruvelampene henger i kroken under stivene, ikke på gulvet.
+            if !on_floor(&m.kind) || m.label.as_deref() == Some("kit_lamp") {
                 continue;
             }
             let w = Vec3::from(p) + level.origin;

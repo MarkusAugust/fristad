@@ -58,6 +58,25 @@ impl Session {
                 }
             }
             Use::Ladder(_) => p("Stige", "Klatre opp", "", "Opp gjennom lemmen i taket."),
+            Use::Lift(n) => {
+                let braked = self.crypt.lifts.get(n).is_some_and(|l| !self.crypt.open.get(l.switch).copied().unwrap_or(false));
+                if braked {
+                    p("Heisen", "Dra", "", "Plattformen henger i kjettinger ned i sjakta. Bremsen på vinsjen holder den.")
+                } else if self.mech.lift_moving(n) {
+                    p("Heisen", "", "", "Den kjører.")
+                } else if self.mech.lift_up(n) {
+                    p("Heisen", "Kjør ned", "", "Dra i styrestangen, så går heisen ned sjakta.")
+                } else {
+                    p("Heisen", "Kjør opp", "", "Dra i styrestangen, så heises du opp.")
+                }
+            }
+            Use::Winch(n) => {
+                if self.mech.lift_up(n) {
+                    p("Vinsjen", "", "", "Trommelen med kjettingen som holder heisen. Heisen står oppe.")
+                } else {
+                    p("Vinsjen", "Sveiv", "", "Sveiv heisen opp fra bunnen av sjakta.")
+                }
+            }
             Use::Rest(n) => {
                 if self.run.rest_lit(n) {
                     p("Hvilestedet", "Hvil", "", "Fullt liv og full utholdenhet. Fiendene kommer tilbake. Dør du, våkner du her.")

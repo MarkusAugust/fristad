@@ -149,7 +149,9 @@ impl Session {
         instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(self.live_crypt())));
         let (decks, chains) = self.mech.bridge_poses(self.live_crypt());
         instances.extend(posed(crypt::KIT_BRIDGE, decks));
-        instances.extend(posed(crypt::KIT_CHAIN, chains));
+        let (lifts, lift_chains) = self.mech.lift_poses(self.live_crypt());
+        instances.extend(posed(crypt::KIT_LIFT, lifts));
+        instances.extend(posed(crypt::KIT_CHAIN, chains.into_iter().chain(lift_chains).collect()));
         instances.extend(posed(crypt::KIT_WATER, self.mech.water_poses(self.live_crypt())));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
@@ -174,8 +176,11 @@ impl Session {
             sky_horizon: sky_horizon * (1.0 - c * 0.999),
             ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.999),
             fog_color: grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
-            // Høydetåka tetner nedover. I kjelleren er det ingen tåke.
-            fog_density: (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c),
+            // Høydetåka tetner nedover. I kjelleren er det ingen tåke: tettheten
+            // må være null der, ikke bare liten, for 200 m nede er høydeleddet
+            // flere hundre ganger (nivå 5 ble helt borte i tåka før øynene var
+            // vant til mørket).
+            fog_density: if in_crypt { 0.0 } else { (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c) },
             fog_falloff: 0.03,
             exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 0.5),
             bloom: 0.06 + t * 0.06,

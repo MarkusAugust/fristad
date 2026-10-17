@@ -118,6 +118,11 @@ impl Session {
                         events.push(Event::Toast("Spaken går ned. Kjettingene rasler, og broa over avgrunnen senkes med et brak.".into()));
                         return;
                     }
+                    if let Some(l) = self.crypt.lifts.iter().find(|l| l.switch == sw) {
+                        events.push(self.sound_at("gate", l.pos + Vec3::Y * 2.0, 1.2));
+                        events.push(Event::Toast("Bremsen slipper med et rykk, og kjettingene strammes. Heisen kan kjøres: gå om bord og dra i styrestangen.".into()));
+                        return;
+                    }
                 }
                 events.push(Event::Toast(if waiting { "Spaken går ned med et tungt klonk. Kjettingene strammes, men noe holder dem fortsatt. En spak til et sted?" } else { "Spaken går ned med et tungt klonk. Et sted heises et gitter." }.into()));
             }
@@ -131,6 +136,33 @@ impl Session {
                 events.push(self.sound_at("crack", self.target_pos(i), 1.2));
                 events.push(self.sound_at("door_close", self.target_pos(i), 0.8));
                 events.push(Event::Toast("Steinene gir etter og synker i gulvet. Det er et rom bak muren!".into()));
+            }
+            Use::Lift(n) => {
+                let at = self.target_pos(i);
+                match self.mech.ride_lift(&self.crypt, n) {
+                    Some(down) => {
+                        events.push(self.sound_at("gate", at, 1.2));
+                        events.push(Event::Toast(if down { "Styrestangen gir etter. Kjettingene knirker, og heisen synker ned i sjakta." } else { "Styrestangen gir etter. Vinsjen tar tak, og heisen heises opp." }.into()));
+                    }
+                    None if self.mech.lift_moving(n) => {}
+                    None => {
+                        events.push(sfx("locked"));
+                        events.push(Event::Toast("Styrestangen sitter fast. Bremsen på vinsjen holder heisen.".into()));
+                    }
+                }
+            }
+            Use::Winch(n) => {
+                let at = self.target_pos(i);
+                if self.mech.call_lift(&self.crypt, n) {
+                    events.push(self.sound_at("gate", at, 1.2));
+                    events.push(Event::Toast("Du sveiver. Kjettingen stram­mes, og heisen kommer opp sjakta.".into()));
+                } else if self.mech.lift_moving(n) {
+                } else if self.crypt.lifts.get(n).is_some_and(|l| !self.crypt.open.get(l.switch).copied().unwrap_or(false)) {
+                    events.push(sfx("locked"));
+                    events.push(Event::Toast("Vinsjen er bremset fast. En spak et sted løsner den.".into()));
+                } else {
+                    events.push(Event::Toast("Heisen står alt oppe.".into()));
+                }
             }
             Use::Ladder(n) => {
                 let Some(l) = self.crypt.ladders.get(n).cloned() else { return };

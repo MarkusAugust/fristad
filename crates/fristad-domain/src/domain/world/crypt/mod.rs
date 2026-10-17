@@ -88,13 +88,22 @@ pub const KIT_DOWN: &str = "kit_down";
 /// ligger når den er nede, og senkes når bryteren åpnes.
 pub const KIT_BRIDGE: &str = "kit_bridge";
 pub const KIT_CHAIN: &str = "kit_chain";
+/// Heisen (dekket, posert av økta) og heistårnet med vinsjen (står fast).
+pub const KIT_LIFT: &str = "kit_lift";
+pub const KIT_WINCH: &str = "kit_winch";
+/// Dekket på heisen (`kit_lift`), og høyden på bommen i heistårnet over
+/// gulvet oppe, der kjettingene går over trinsa (`kit_winch`).
+pub const LIFT_W: f32 = 2.8;
+pub const LIFT_HEAD: f32 = 3.45;
+/// Vinsjen står så langt fra sjaktmidten (langs −z i heistårnets rom).
+pub const LIFT_WINCH_Z: f32 = -2.6;
 /// Vannflaten (1 × 1 m, origo midt på), skalert og senket av økta.
 pub const KIT_WATER: &str = "kit_water";
 /// Målene broa er modellert i (skaleres til merkets `size`).
 pub const BRIDGE_W: f32 = 3.6;
 pub const BRIDGE_L: f32 = 8.0;
 /// Pynten merket `prop` kan sette ut (modellnavnet i `label`).
-pub const PROPS: &[&str] = &["kit_sarcophagus"];
+pub const PROPS: &[&str] = &["kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
@@ -171,6 +180,7 @@ pub struct Crypt {
     pub trapdoors: Vec<Trapdoor>,
     pub ladders: Vec<Ladder>,
     pub bridges: Vec<Bridge>,
+    pub lifts: Vec<Lift>,
     pub waters: Vec<Water>,
     pub water_blocks: Vec<WaterBlock>,
     pub traps: Vec<Trap>,
@@ -216,6 +226,11 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
     for (i, l) in c.ladders.iter().enumerate() {
         b.target(Use::Ladder(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 1.1, 0.0), Vec3::new(0.45, 1.0, 0.12));
     }
+    for (i, l) in c.lifts.iter().enumerate() {
+        // Styrestangen i hjørnet (+x, +z) på dekket (følger heisen; økta flytter kollideren), og vinsjen oppe.
+        b.target(Use::Lift(i), super::at(l.pos, l.yaw), Vec3::new(l.size.x * 0.5 - 0.3, 0.75, l.size.y * 0.5 - 0.3), Vec3::new(0.16, 0.7, 0.16));
+        b.target(Use::Winch(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.7, LIFT_WINCH_Z), Vec3::new(0.9, 0.6, 0.4));
+    }
     for (i, l) in c.lores.iter().enumerate() {
         b.target(Use::Lore(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
     }
@@ -252,7 +267,8 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_ARROW, if c.traps.is_empty() { 0 } else { 16 }),
         (KIT_REST_FLAME, c.rests.len()),
         (KIT_BRIDGE, c.bridges.len()),
-        (KIT_CHAIN, 4 * c.bridges.len()),
+        (KIT_CHAIN, 4 * c.bridges.len() + 4 * c.lifts.len()),
+        (KIT_LIFT, c.lifts.len()),
         (KIT_WATER, c.waters.len()),
     ]
 }
@@ -616,6 +632,10 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.
                 let label = m.label.clone().unwrap_or_default();
                 match PROPS.iter().find(|p| **p == label) {
+                    // Lampene henger i kroken under stivene, over gulvet.
+                    Some(name) if *name == "kit_lamp" => {
+                        b.place_mounted(name, pose);
+                    }
                     Some(name) => {
                         b.place(name, pose);
                     }
@@ -644,8 +664,17 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 c.water_blocks.push(WaterBlock { pos, yaw: m.yaw, size, level: k, switch: s });
             }
             "lift" => {
-                log::info!("Kryptnivå {n}: {} ({:?}) gjør ingenting ennå", m.kind, m.id);
-                c.pending.push(Pending { kind: m.kind.clone(), id: m.id.clone(), pos, level: k });
+                let s = id(c, "lift");
+                let (lw, ld) = m.size.map(|s| s.wd()).unwrap_or((LIFT_W, LIFT_W));
+                let drop = m.bottom.map(w).map(|b| pos.y - b.y).unwrap_or(10.0).max(0.5);
+                // Heistårnet med vinsjen står over sjakta; stolpene får kollider.
+                b.place(KIT_WINCH, pose);
+                for sx in [-1.0f32, 1.0] {
+                    b.solid_box(pose.transform_point3(Vec3::new(sx * (lw * 0.5 + 0.45), 2.0, 0.0)), Vec3::new(0.36, 4.0, 0.36), m.yaw);
+                }
+                // Trinsehjulet under bommen, midt over sjakta.
+                b.solid_box(pose.transform_point3(Vec3::new(0.0, LIFT_HEAD, 0.0)), Vec3::new(0.16, 1.0, 1.0), m.yaw);
+                c.lifts.push(Lift { pos, yaw: m.yaw, size: Vec2::new(lw, ld), drop, level: k, switch: s });
             }
             other => log::warn!("Kryptnivå {n}: ukjent merke «{other}»"),
         }

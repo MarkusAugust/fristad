@@ -88,6 +88,8 @@ pub struct Session {
     pub(super) trap_lids: Vec<Option<ColliderId>>,
     /// Dekkene på broene over avgrunnene (flyttes når broa senkes).
     pub(super) bridge_solids: Vec<ColliderId>,
+    /// Dekkene på heisene (bevegelige kollidere).
+    pub(super) lift_solids: Vec<ColliderId>,
     /// Det som holder deg ute av vannet mens det står høyt.
     pub(super) water_solids: Vec<ColliderId>,
     pub(super) run: Run,
@@ -170,6 +172,15 @@ impl Session {
                     .map(|n| {
                         let b = &world.crypt.bridges[n];
                         physics.add_movable(Vec3::new(b.size.x * 0.5, 0.15, b.size.y * 0.5), m.bridge_collider(&world.crypt, n).unwrap_or_else(away))
+                    })
+                    .collect()
+            },
+            lift_solids: {
+                let m = Mechanisms::new(&world.crypt, 0);
+                (0..world.crypt.lifts.len())
+                    .map(|n| {
+                        let l = &world.crypt.lifts[n];
+                        physics.add_movable(Vec3::new(l.size.x * 0.5, 0.15, l.size.y * 0.5), m.lift_collider(&world.crypt, n).unwrap_or_else(away))
                     })
                     .collect()
             },
@@ -633,10 +644,30 @@ impl Session {
     /// de falske veggene synker, lemmene faller, gitrene heises. Når
     /// bøtta er oppe, drikker du.
     fn update_mechanisms(&mut self, physics: &mut dyn Physics, dt: f32, events: &mut Vec<Event>) {
-        let (moved, drank) = self.mech.tick(dt);
+        let (mut moved, drank) = self.mech.tick(dt);
+        moved.extend(self.mech.tick_lifts(&self.crypt, dt));
         let target = |what: Use| self.targets.iter().find(|t| t.target.what == what);
         for m in moved {
             match m {
+                Moved::Lift(n) => {
+                    let (Some(pose), Some(id)) = (self.mech.lift_collider(&self.crypt, n), self.lift_solids.get(n)) else { continue };
+                    physics.set_pose(*id, pose);
+                    let deck = self.mech.lift_pose(&self.crypt, n).unwrap_or(pose);
+                    if let Some(t) = target(Use::Lift(n)) {
+                        physics.set_pose(t.collider, deck * Affine3A::from_translation(t.target.center));
+                    }
+                    // Står du på dekket, blir du med det (kapselen følger ikke en kollider som flyttes).
+                    let l = &self.crypt.lifts[n];
+                    let feet = self.body.feet();
+                    let local = deck.inverse().transform_point3(feet);
+                    let dy = self.mech.lift_dy.get(n).copied().unwrap_or(0.0);
+                    if local.x.abs() < l.size.x * 0.5 + 0.3 && local.z.abs() < l.size.y * 0.5 + 0.3 && local.y > -0.6 + dy.min(0.0) && local.y < 0.8 {
+                        let deck_y = deck.translation.y;
+                        self.body.pos.y += deck_y + 0.02 - feet.y;
+                        self.body.vel_y = 0.0;
+                        self.body.grounded = true;
+                    }
+                }
                 Moved::Shortcut(n) => {
                     if let (Some(pose), Some(t)) = (self.mech.shortcut_collider(&self.crypt, n), target(Use::Shortcut(n))) {
                         physics.set_pose(t.collider, pose);

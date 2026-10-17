@@ -9,6 +9,8 @@ use glam::{Affine3A, Vec3};
 
 /// Sekunder bøtta bruker før du drikker, og før brønnen er ledig igjen.
 pub const WELL_UP: f32 = 3.8;
+/// Heisen kjører så fort (m/s).
+pub const LIFT_SPEED: f32 = 2.2;
 const WELL_DONE: f32 = 4.2;
 
 /// Det som flyttet seg i et bilde, og som derfor må få kollideren sin flyttet.
@@ -23,6 +25,8 @@ pub enum Moved {
     Bridge(usize),
     /// Vannet har sunket helt: det som holdt deg ute, er borte.
     Water(usize),
+    /// Heisen kjører (dekket og det som står på det har flyttet seg).
+    Lift(usize),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -42,6 +46,11 @@ pub struct Mechanisms {
     pub bridges: Vec<f32>,
     /// Vannet: hvor langt det har sunket (0..1), −1 når det står høyt.
     pub waters: Vec<f32>,
+    /// Heisene: hvor langt ned dekket står (0 oppe, 1 nede), og hvor det er
+    /// på vei (målet; likt når den står). Bremsen er bryteren i `Crypt.open`.
+    pub lifts: Vec<(f32, f32)>,
+    /// Så langt dekket flyttet seg i siste bilde (meter, negativt nedover).
+    pub lift_dy: Vec<f32>,
     /// Kistene som er åpnet, og hvor langt lokket er kommet (0..1).
     pub chests: Vec<bool>,
     pub chest_open: Vec<f32>,
@@ -69,6 +78,8 @@ impl Mechanisms {
             trapdoors: vec![-1.0; crypt.trapdoors.len()],
             bridges: vec![-1.0; crypt.bridges.len()],
             waters: vec![-1.0; crypt.waters.len()],
+            lifts: vec![(0.0, 0.0); crypt.lifts.len()],
+            lift_dy: vec![0.0; crypt.lifts.len()],
             chests: vec![false; crypt.chests.len()],
             chest_open: vec![0.0; crypt.chests.len()],
             wells: vec![-1.0; wells],
@@ -181,6 +192,92 @@ impl Mechanisms {
 
     /// Alt som er i gang, går videre. Gir det som flyttet seg, og hvor
     /// mange bøtter som kom opp (du drikker).
+    /// Om heisen kjører nå.
+    pub fn lift_moving(&self, n: usize) -> bool {
+        self.lifts.get(n).is_some_and(|(t, goal)| (t - goal).abs() > 1e-4)
+    }
+    /// Om heisen står oppe (og i ro).
+    pub fn lift_up(&self, n: usize) -> bool {
+        self.lifts.get(n).is_some_and(|(t, goal)| *t <= 1e-4 && *goal <= 1e-4)
+    }
+
+    /// Kjør heisen fra der den står til den andre enden (styrestangen på
+    /// dekket). `None` når bremsen fortsatt står på eller den alt kjører;
+    /// ellers om den går ned.
+    pub fn ride_lift(&mut self, crypt: &Crypt, n: usize) -> Option<bool> {
+        let l = crypt.lifts.get(n)?;
+        if !crypt.open.get(l.switch).copied().unwrap_or(false) || self.lift_moving(n) {
+            return None;
+        }
+        let down = self.lifts[n].0 < 0.5;
+        self.lifts[n].1 = if down { 1.0 } else { 0.0 };
+        Some(down)
+    }
+
+    /// Hent heisen opp med vinsjen (bare når den står nede og i ro).
+    pub fn call_lift(&mut self, crypt: &Crypt, n: usize) -> bool {
+        let Some(l) = crypt.lifts.get(n) else { return false };
+        if !crypt.open.get(l.switch).copied().unwrap_or(false) || self.lift_moving(n) || self.lifts[n].0 < 0.5 {
+            return false;
+        }
+        self.lifts[n].1 = 0.0;
+        true
+    }
+
+    /// Heisene kjører mot målet sitt (`LIFT_SPEED` m/s); gir dem som flyttet seg.
+    pub fn tick_lifts(&mut self, crypt: &Crypt, dt: f32) -> Vec<Moved> {
+        let mut moved = vec![];
+        for (n, (t, goal)) in self.lifts.iter_mut().enumerate() {
+            let drop = crypt.lifts.get(n).map(|l| l.drop).unwrap_or(10.0);
+            let before = *t;
+            if (*t - *goal).abs() > 1e-4 {
+                let step = dt * LIFT_SPEED / drop;
+                *t = if *goal > *t { (*t + step).min(*goal) } else { (*t - step).max(*goal) };
+                moved.push(Moved::Lift(n));
+            }
+            self.lift_dy[n] = -(*t - before) * drop;
+        }
+        moved
+    }
+
+    /// Så langt ned dekket på heisen `n` står nå (meter under toppen).
+    pub fn lift_down(&self, crypt: &Crypt, n: usize) -> f32 {
+        let Some(l) = crypt.lifts.get(n) else { return 0.0 };
+        let t = self.lifts.get(n).map(|l| l.0).unwrap_or(0.0);
+        let ease = if self.lift_moving(n) { t } else { t.round() };
+        l.drop * ease
+    }
+
+    /// Dekket der det er nå (til bildet).
+    pub fn lift_pose(&self, crypt: &Crypt, n: usize) -> Option<Affine3A> {
+        let l = crypt.lifts.get(n)?;
+        Some(at(l.pos - Vec3::Y * self.lift_down(crypt, n), l.yaw) * Affine3A::from_scale(Vec3::new(l.size.x / crypt::LIFT_W, 1.0, l.size.y / crypt::LIFT_W)))
+    }
+
+    /// Kollideren til dekket (midt i platen, 0,3 m tykk, oversida i dekket).
+    pub fn lift_collider(&self, crypt: &Crypt, n: usize) -> Option<Affine3A> {
+        let l = crypt.lifts.get(n)?;
+        Some(at(l.pos - Vec3::Y * (self.lift_down(crypt, n) + 0.15), l.yaw))
+    }
+
+    /// Dekkene og kjettingene fra hjørnene opp til bommen i heistårnet
+    /// (kjettingen er 12 m og strekkes til avstanden).
+    pub fn lift_poses(&self, crypt: &Crypt) -> (Vec<Affine3A>, Vec<Affine3A>) {
+        let (mut decks, mut chains) = (vec![], vec![]);
+        for (n, l) in crypt.lifts.iter().enumerate() {
+            let y = l.pos.y - self.lift_down(crypt, n);
+            decks.extend(self.lift_pose(crypt, n));
+            let head = l.pos.y + crypt::LIFT_HEAD;
+            let s = ((head - y - 0.17) / 12.0).max(0.05);
+            for (sx, sz) in [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
+                let corner = Vec3::new(sx * (l.size.x * 0.5 - 0.2), 0.0, sz * (l.size.y * 0.5 - 0.2));
+                let p = at(l.pos, l.yaw).transform_point3(corner);
+                chains.push(Affine3A::from_translation(Vec3::new(p.x, y + 0.17, p.z)) * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
+            }
+        }
+        (decks, chains)
+    }
+
     pub fn tick(&mut self, dt: f32) -> (Vec<Moved>, u32) {
         let mut moved = vec![];
         for (open, opened) in self.chest_open.iter_mut().zip(&self.chests) {

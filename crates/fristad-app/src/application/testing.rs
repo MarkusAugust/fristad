@@ -131,4 +131,9 @@ impl Session {
     pub fn lever_pulled(&self, n: usize) -> bool {
         self.mech.lever_pulled(n)
     }
+    /// Heisen: om bremsen er løsnet, om den står oppe, og om den kjører.
+    pub fn lift_state(&self, n: usize) -> (bool, bool, bool) {
+        let free = self.crypt.lifts.get(n).is_some_and(|l| self.crypt.open.get(l.switch).copied().unwrap_or(false));
+        (free, self.mech.lift_up(n), self.mech.lift_moving(n))
+    }
 }

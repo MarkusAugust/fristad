@@ -138,8 +138,11 @@ MATS = {
     "iron": ("iron", (0.45, 0.43, 0.42), 0.45),
     "wax": ("plaster_white", (1.0, 0.93, 0.78), 0.4),
     "glitch": ("glitch_seam", (1.0, 1.0, 1.0), 0.4),
+    "rock": ("rock", (0.8, 0.8, 0.82), 0.65),
     "fire_torch": None,
     "fire_candle": None,
+    "fire_lamp": None,
+    "magic_crystal": None,
     "magic_down": None,
     "magic_bonus": None,
     "water": None,
@@ -148,6 +151,8 @@ MATS = {
 SPECIAL = {
     "fire_torch": ((1.0, 0.5, 0.16), 0.5),
     "fire_candle": ((1.0, 0.68, 0.32), 0.5),
+    "fire_lamp": ((1.0, 0.62, 0.22), 0.45),
+    "magic_crystal": ((0.3, 0.55, 1.0), 0.2),
     "magic_down": ((0.25, 0.45, 1.0), 0.3),
     "magic_bonus": ((1.0, 0.72, 0.25), 0.3),
     "water": ((0.02, 0.04, 0.05), 0.05),
@@ -161,7 +166,7 @@ def material_name(key):
     if spec is None:
         return key
     layer = spec[0]
-    base = {"wall": "", "floor": "", "slab": "", "vault": "", "bones": "", "fresco": "", "rubble": "", "oak": "", "wood": "", "iron": "", "leather": ""}
+    base = {"wall": "", "floor": "", "slab": "", "vault": "", "bones": "", "fresco": "", "rubble": "", "oak": "", "wood": "", "iron": "", "leather": "", "rock": ""}
     if key == "glitch":
         return "layer_glitch_seam.magic"
     if key in base:
@@ -2013,7 +2018,7 @@ def to_object(mbs, name="part"):
     import bmesh
     import bpy
 
-    if isinstance(mbs, MB):
+    if hasattr(mbs, "faces"):  # én MB (også fra en annen modul, der klassen er en annen)
         mbs = [mbs]
     keys = []
     for m in mbs:
@@ -2201,6 +2206,7 @@ def mechanisms():
         "kit_bridge": kit_bridge(),
         "kit_chain": kit_chain(),
         "kit_water": kit_water(),
+        **__import__("kit_mine").mine(),
     }
 
 

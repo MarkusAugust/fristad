@@ -125,6 +125,22 @@ pub struct Bridge {
     pub switch: usize,
 }
 
+/// Heisen i sjakta (`kit_lift` med kjettinger opp til heistårnet
+/// `kit_winch`): står oppe med bremsen på til bryteren (spaken) åpnes, og
+/// kjører så mellom toppen og bunnen når du bruker styrestangen på den.
+#[derive(Clone, Debug)]
+pub struct Lift {
+    /// Midt på dekket når heisen står oppe, og retningen.
+    pub pos: Vec3,
+    pub yaw: f32,
+    /// Bredde og dybde på dekket.
+    pub size: Vec2,
+    /// Så langt ned den går.
+    pub drop: f32,
+    pub level: usize,
+    pub switch: usize,
+}
+
 #[derive(Clone, Debug)]
 pub struct Ladder {
     pub pos: Vec3,

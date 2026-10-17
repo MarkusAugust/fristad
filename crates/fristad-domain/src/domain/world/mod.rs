@@ -79,6 +79,11 @@ pub enum Use {
     Secret(usize),
     /// Stige nummer n: opp til toppen.
     Ladder(usize),
+    /// Heis nummer n (`Crypt.lifts`): styrestangen på plattformen. Når
+    /// bremsen er løsnet (spaken), kjører den deg til den andre enden.
+    Lift(usize),
+    /// Vinsjen øverst i heissjakta: henter plattformen opp når den står nede.
+    Winch(usize),
     /// Hvilested nummer n: tenn lyset og hvil.
     Rest(usize),
     /// Lapp eller bok nummer n: les.

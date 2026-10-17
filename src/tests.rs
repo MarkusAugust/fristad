@@ -1304,6 +1304,57 @@ impl Bot {
         }
     }
 
+    /// Gå rett mot `to` uten navigasjonsnettet i `secs` sekunder (om bord
+    /// på heisen, som ikke er med i nettet).
+    fn stride(&mut self, game: &mut Session, physics: &mut RapierPhysics, to: Vec3, secs: f32) {
+        let end = self.t + secs;
+        while self.t < end {
+            self.aim(game, to.with_y(game.eye().y));
+            self.input.key("KeyW", true);
+            self.step(game, physics);
+        }
+        self.input.key("KeyW", false);
+    }
+
+    /// Heisen i nivå `k` når bremsen er løsnet: hent den opp om den står
+    /// nede, gå om bord fra den åpne sida, dra i styrestangen og vent til
+    /// den har kjørt. Gir `false` om det ikke er noen heis å ta herfra.
+    fn ride_lift(&mut self, game: &mut Session, physics: &mut RapierPhysics, c: &Crypt, k: usize) -> bool {
+        let feet = game.feet();
+        let Some((i, l)) = c.lifts.iter().enumerate().find(|(i, l)| l.level == k && game.lift_state(*i).0 && (l.pos.y - feet.y).abs() < 2.0) else { return false };
+        let pose = crate::domain::world::at(l.pos, l.yaw);
+        let board = pose.transform_point3(Vec3::new(-(l.size.x * 0.5 + 0.7), 0.0, 0.0));
+        if !self.walk_to(game, physics, board, 0.6, "heisen") {
+            return false;
+        }
+        if !game.lift_state(i).1 {
+            self.aim(game, pose.transform_point3(Vec3::new(0.0, 0.7, crate::domain::world::crypt::LIFT_WINCH_Z)));
+            game.use_exact(Use::Winch(i));
+            self.note(format!("  sveiver heisen opp etter {:.0} s", self.t));
+            let t1 = self.t;
+            while game.lift_state(i).2 && self.t - t1 < 20.0 {
+                self.step(game, physics);
+            }
+            self.walk_to(game, physics, board, 0.6, "heisen");
+        }
+        self.stride(game, physics, l.pos, 0.9);
+        self.aim(game, pose.transform_point3(Vec3::new(l.size.x * 0.5 - 0.3, 0.75, l.size.y * 0.5 - 0.3)));
+        game.use_exact(Use::Lift(i));
+        self.note(format!("  tar heisen ned fra {:?} etter {:.0} s", game.feet(), self.t));
+        let t1 = self.t;
+        self.idle(game, physics, 0.5);
+        while game.lift_state(i).2 && self.t - t1 < 20.0 {
+            self.step(game, physics);
+        }
+        self.idle(game, physics, 0.5);
+        let feet = game.feet();
+        if (feet.y - (l.pos.y - l.drop)).abs() > 1.5 {
+            self.fail(format!("heisen tok ikke boten med ned: føttene ved {feet:?}, bunnen på {:.1}", l.pos.y - l.drop));
+        }
+        self.note(format!("  nede ved {feet:?}"));
+        true
+    }
+
     /// Gjennom nivå `k`: fra der boten står til trappa ned, og trekker
     /// spakene (og henter nøkkelen) når veien er stengt.
     fn through_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
@@ -1342,6 +1393,10 @@ impl Bot {
                 game.use_exact(Use::Lever(i));
                 self.note(format!("  trakk spaken ved {:?} etter {:.0} s", lv.pos, self.t - t0));
                 self.idle(game, physics, 2.5);
+                continue;
+            }
+            // Heisen (bremsen løsnet av spaken): ned sjakta med den.
+            if self.ride_lift(game, physics, c, k) {
                 continue;
             }
             let gate = c.gates.iter().enumerate().find(|(i, g)| g.level == k && g.key && !game.gate(*i).1);
