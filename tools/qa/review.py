@@ -51,8 +51,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(ROOT, "target", "qa", "review")
 STUDIO = os.path.join(HERE, "studio.py")
 VIEWS = ["front:0:6:1.15:0.4", "corner:-35:12:1.2:0.4"]
-# Siden har plass til høyst 511 filer per versjon; ett bilde per kort.
-MAX_WAITING = 400
+# Siden har plass til høyst 511 filer per versjon; ett bilde per kort, og resten
+# (siden, data.json, viewer.js, teksturlagene i 3D) får plass i de siste 31.
+# Hevet fra 400 da kryptnivå 8–10 kom (17. oktober).
+MAX_WAITING = 480
 
 # Fanene, i rekkefølge.
 CATEGORIES = [
