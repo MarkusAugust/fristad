@@ -4,7 +4,7 @@
 //!
 //! - `assembly`: laster modellene gjennom `ModelSource` og bygger verden.
 //! - `session`: økta, som koordinerer reglene i kjernen med fysikken, delt
-//!   i `usage`, `prompt`, `fight`, `audio`, `trade` og `testing`.
+//!   i `usage`, `prompt`, `fight`, `audio`, `trade`, `goals` og `testing`.
 //! - `view`: bildet rendereren får.
 //! - `editing`: redigeringen i økta (flyging, kommandoene, det flyttede i
 //!   bildet).
@@ -15,6 +15,7 @@ pub mod assembly;
 mod audio;
 mod editing;
 mod fight;
+mod goals;
 mod prompt;
 pub mod session;
 mod testing;

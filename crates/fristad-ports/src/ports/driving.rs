@@ -277,6 +277,12 @@ pub enum Event {
     Daylight(Daylight),
     /// En kort melding.
     Toast(String),
+    /// Målet nå (én linje øverst til venstre) og journalen (J): lappene og
+    /// bøkene du har lest i krypten, tittel og tekst. Sendes når noe endres.
+    Goal {
+        text: String,
+        journal: Vec<(String, String)>,
+    },
     /// En kiste er åpnet: komponenten som lå i den (eller ingenting).
     Loot(Option<String>),
     Weather(String),
@@ -469,6 +475,11 @@ pub struct SaveData {
     pub bonuses: Vec<String>,
     /// Oljen i lykta (sekunder); mangler i gamle lagringer (full lykt).
     pub oil: Option<f32>,
+    /// Det dypeste nivået du har nådd (0 er nivå 1), så målet og portalen
+    /// husker det; mangler i gamle lagringer.
+    pub deepest: Option<u32>,
+    /// Titlene på lappene og bøkene du har lest i krypten (journalen).
+    pub lore: Vec<String>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

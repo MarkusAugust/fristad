@@ -97,6 +97,8 @@ pub struct Session {
     pub(super) loot_seed: u64,
     /// Hendelser fra kommandoer (kjøp, smiing, lesing), til neste `update`.
     pub(super) pending: Vec<Event>,
+    /// Målet og antallet leste lapper sist de ble sendt (`goals.rs`).
+    pub(super) goal_sent: Option<(String, usize)>,
     pub(super) combat: Combat,
     pub(super) hud: Hud,
     /// Bildeforholdet fra sist `frame`, til å regne skjermposisjoner.
@@ -190,6 +192,7 @@ impl Session {
             hero: Hero::default(),
             loot_seed: 0x2545_f491_4f6c_dd1d,
             pending: vec![],
+            goal_sent: None,
             combat: Combat::new(rig_of(crate::domain::combat::ARMS_MODEL)),
             hud: Hud::default(),
             aspect: std::cell::Cell::new(16.0 / 9.0),
@@ -340,6 +343,7 @@ impl Session {
         let in_crypt = self.in_crypt();
         self.update_portal(dt, in_crypt, physics);
         self.update_map(in_crypt, &mut events);
+        self.update_goal(&mut events);
         let hit = physics.cast_ray(eye, dir, 3.5);
         self.aimed_mob = if in_crypt { self.mobs.aimed(eye, dir, 2.6) } else { None };
         self.aim = if self.aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()) };

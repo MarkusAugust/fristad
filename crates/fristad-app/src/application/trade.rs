@@ -116,6 +116,8 @@ impl Session {
             found: h.found.iter().cloned().collect(),
             bonuses: h.bonus_taken.iter().cloned().collect(),
             oil: Some(h.lamp.oil),
+            deepest: self.deepest().map(|d| d as u32),
+            lore: self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| l.title.clone()).collect(),
         }
     }
 
@@ -145,6 +147,7 @@ impl Session {
         h.coins = d.coins;
         h.dirty = true;
         self.combat.set_gear(h.gear);
+        self.restore_progress(d.deepest.map(|d| d as usize), &d.lore);
     }
 
     /// Legg komponenter i lageret (testene og kommandoer).

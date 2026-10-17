@@ -34,6 +34,7 @@
       </span>
     </span>
     <div id="vitals" class="vitals" hidden>
+      <p id="goal" class="goal fs-paragraph" data-size="small" aria-live="polite" hidden></p>
       <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
       <span id="keys" class="fs-badge" data-variant="warning" hidden>0 nøkler</span>
       <div id="boss" class="boss" hidden>
@@ -60,6 +61,14 @@
         <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
         <canvas id="bigmap-canvas" width="640" height="640"></canvas>
         <p class="fs-paragraph" data-size="small"><span class="legend legend-exit">▼</span> trappa ned · <span class="legend legend-gate">▮</span> portgitter · <span class="legend legend-chest">■</span> kiste · <span class="legend legend-ascend">▲</span> døra opp · <span class="legend legend-boss">●</span> Rammeverket</p>
+      </div>
+    </section>
+    <!-- Journalen (J): målet nå og lappene og bøkene du har lest i krypten. -->
+    <section id="journal" class="bigmap" hidden aria-labelledby="journal-title">
+      <div class="bigmap-card journal-card">
+        <div class="minimap-head"><h2 id="journal-title" class="fs-heading" data-size="s">Journal</h2><span class="minimap-key"><kbd>J</kbd> lukker</span></div>
+        <p id="journal-goal" class="fs-paragraph"></p>
+        <div id="journal-lore" class="journal-lore"></div>
       </div>
     </section>
     <div id="marks" class="marks" aria-hidden="true"></div>
@@ -96,6 +105,7 @@
         <span><kbd>C</kbd> Huk</span>
         <span><kbd>I</kbd> Utstyr og lager</span>
         <span><kbd>K</kbd> Kart (i kjelleren)</span>
+        <span><kbd>J</kbd> Journal (målet og det du har lest)</span>
         <span><kbd>M</kbd> Musikk</span>
         <span><kbd>T</kbd> Dag og natt</span>
         <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>

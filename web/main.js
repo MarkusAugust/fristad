@@ -461,6 +461,9 @@ function handle(e) {
     case "toast":
       toast?.show?.(e.text);
       break;
+    case "goal":
+      setGoal(e);
+      break;
     case "weather":
       $("weather").textContent = e.weather;
       break;
@@ -604,6 +607,40 @@ function setMap(m) {
   if (!mapData) toggleBigMap(false);
   else $("map-name").textContent = `Nivå ${m.level} · ${m.name}`;
   drawMaps();
+}
+// Målet nå (én linje i panelet) og journalen (J) med det du har lest.
+// Målet endres når du går ned, slår bossen, finner noe eller leser en lapp,
+// så spillet lagres da også.
+function setGoal(g) {
+  const goal = $("goal");
+  goal.textContent = g.text;
+  goal.hidden = !g.text;
+  $("journal-goal").textContent = g.text;
+  const lore = $("journal-lore");
+  lore.replaceChildren();
+  if (!g.journal.length) {
+    const p = document.createElement("p");
+    p.textContent = "Du har ikke lest noe ennå. Lappene og bøkene i krypten havner her.";
+    lore.append(p);
+  }
+  for (const j of g.journal) {
+    const h = document.createElement("h3");
+    h.className = "fs-heading";
+    h.dataset.size = "xs";
+    h.textContent = j.title;
+    const p = document.createElement("p");
+    p.className = "fs-paragraph";
+    p.textContent = j.text;
+    lore.append(h, p);
+  }
+  try {
+    localStorage.setItem("fristad.save", engine.save_state());
+  } catch {
+    /* lagring er en bekvemmelighet */
+  }
+}
+function toggleJournal(on = $("journal").hidden) {
+  $("journal").hidden = !on;
 }
 function toggleBigMap(on = !bigMapOpen) {
   bigMapOpen = on && !!mapData;
@@ -1362,6 +1399,11 @@ function bindInput() {
         e.preventDefault();
         closeOverlay(true, true);
       }
+      return;
+    }
+    if (e.code === "KeyJ" && !e.repeat && playing) {
+      e.preventDefault();
+      toggleJournal();
       return;
     }
     if (e.code === "KeyK" && !e.repeat && playing) {

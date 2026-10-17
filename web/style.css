@@ -1028,3 +1028,17 @@ body.filming #bars {
     transform: none;
   }
 }
+
+/* Målet øverst i panelet og journalen (J). */
+.goal {
+  margin: 0;
+  font-style: italic;
+  line-height: 1.35;
+}
+.journal-card {
+  width: min(560px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.journal-lore h3 { margin: var(--fs-spacing-3) 0 var(--fs-spacing-1); }
+.journal-lore p { margin: 0; white-space: pre-line; }

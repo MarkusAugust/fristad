@@ -179,6 +179,44 @@ fn funnet_havner_i_lageret_ogsa_med_h() {
     assert!(v.stash.iter().any(|(c, n)| *c == found && *n > 0), "{found} skal være i lageret: {:?}", v.stash);
 }
 
+/// Målet på skjermen og journalen: i byen før du har vært nede sier målet
+/// at krypten er ut nordporten; nede sier det hvilket nivå du står i og hva
+/// som gjenstår; lappen du leser havner i journalen, og det dypeste nivået
+/// og lappene huskes fra en lagring.
+#[test]
+fn malet_og_journalen_viser_veien_og_huskes() {
+    fn goal(events: &[Event]) -> Option<(String, usize)> {
+        events.iter().rev().find_map(|e| if let Event::Goal { text, journal } = e { Some((text.clone(), journal.len())) } else { None })
+    }
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let (text, read) = goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).expect("målet sendes første bilde");
+    assert!(text.contains("nordporten") && text.contains("krypten"), "før du har vært nede: {text}");
+    assert_eq!(read, 0);
+    assert!(goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).is_none(), "målet sendes bare når det endres");
+    game.use_first(|u| *u == Use::Descend);
+    let (text, _) = goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).expect("målet endres nede");
+    assert!(text.starts_with("Nivå 1"), "nede: {text}");
+    // En lapp havner i journalen.
+    let lore = !game.use_first(|u| matches!(u, Use::Lore(_))).is_empty();
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    if lore {
+        let (_, read) = goal(&events).expect("journalen sendes når du har lest");
+        assert_eq!(read, 1);
+    }
+    let saved = game.save();
+    assert_eq!(saved.deepest, Some(0));
+    assert_eq!(saved.lore.len(), lore as usize);
+    // Ei ny økt fra lagringen husker nivået og lappen.
+    let mut physics2 = RapierPhysics::new();
+    let mut again = session(&mut physics2);
+    again.load(saved);
+    assert_eq!(again.deepest(), Some(0));
+    assert_eq!(again.journal().len(), lore as usize);
+    assert!(again.goal().contains("Dypeste nivå"), "{}", again.goal());
+}
+
 /// H fra kjelleren tar deg gjennom en virvel til sørporten, og portalen der
 /// våkner: F på den tar deg tilbake akkurat dit du var, og den lukker seg.
 /// Dør du, tar den deg til inngangen til den dypeste etasjen du har nådd.

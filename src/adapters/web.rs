@@ -227,6 +227,7 @@ fn json(e: &Event) -> serde_json::Value {
             json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }})
         }
         Event::Toast(t) => json!({"type": "toast", "text": t}),
+        Event::Goal { text, journal } => json!({"type": "goal", "text": text, "journal": journal.iter().map(|(t, b)| json!({"title": t, "text": b})).collect::<Vec<_>>()}),
         Event::Loot(c) => json!({"type": "loot", "component": c}),
         Event::Ambience(a) => {
             json!({"type": "ambience", "square": a.square, "forge": a.forge, "church": a.church, "meadow": a.meadow, "fire": a.fire, "water": a.water, "lava": a.lava, "chasm": a.chasm, "portal": a.portal, "rain": a.rain, "wind": a.wind, "night": a.night, "cellar": a.cellar, "indoor": a.indoor})
@@ -327,7 +328,7 @@ impl Engine {
     /// Lageret og utstyret som JSON, til localStorage.
     pub fn save_state(&self) -> String {
         let d = self.app.save();
-        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses, "oil": d.oil}).to_string()
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses, "oil": d.oil, "deepest": d.deepest, "lore": d.lore}).to_string()
     }
 
     pub fn load_state(&mut self, json: &str) {
@@ -348,6 +349,8 @@ impl Engine {
             found: v["found"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
             bonuses: v["bonuses"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
             oil: v["oil"].as_f64().map(|o| o as f32),
+            deepest: v["deepest"].as_u64().map(|d| d as u32),
+            lore: v["lore"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
         };
         self.app.command(Command::Load(d));
     }
