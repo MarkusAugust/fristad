@@ -84,7 +84,7 @@ Innspilt 16. oktober (0–16, 19–24). **Nytt 17. oktober** (Gorvek i kanon): 1
 18. **(ny)** Munkene her gikk ut med lykter og sang og lokket skapningene ned i krypten under kirka. Gorveks menn bar delene etter dem. Én etter én.
 19. Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
 20. Han kom aldri opp.
-21. Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
+21. **(ny)** Det er lenge siden. Først ble det et rykte, siden bare et eventyr.
 22. Men i vinter så klokkeren lys under kryptdøra. Ingen hadde tent det.
 22b. **(ny)** Og det som ble delt, har hatt lang tid på å finne sammen.
 23. Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han kommer fra.

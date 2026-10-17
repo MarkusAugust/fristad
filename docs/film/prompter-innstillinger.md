@@ -252,7 +252,7 @@ Ansgar gikk sist, med de siste sidene under kappen. De murte igjen bak ham.
 [long pause] [very quiet] Han kom aldri opp.
 
 [pause] [matter-of-fact, weary]
-Det er lenge siden. Byen gjorde det til rykte, og ryktet til eventyr.
+Det er lenge siden. Først ble det et rykte, siden bare et eventyr.
 
 [pause] [lowered voice] Men i vinter så klokkeren lys under kryptdøra. [pause] Ingen hadde tent det.
 
@@ -264,4 +264,4 @@ Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han komme
 [long pause] [quiet, direct] Det er deg.
 ```
 
-Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust). **17. oktober:** bare linja «Her i Fristad var det mester Ansgar …» (replikk 4), avsnittene fra «Ingenting spurte om lov lenger» til «Én etter én» og linja «Og det som ble delt …» spilles inn på nytt, med samme stemme og innstillinger; lagre dem som `assets/film/voice/ansgar.mp3`, `assets/film/voice/gorvek.mp3` og `assets/film/voice/delt.mp3`, så klipper jeg dem inn.
+Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust). **17. oktober:** bare linja «Her i Fristad var det mester Ansgar …» (replikk 4), avsnittene fra «Ingenting spurte om lov lenger» til «Én etter én» linja «Det er lenge siden. Først ble det et rykte …» (replikk 21) og linja «Og det som ble delt …» spilles inn på nytt, med samme stemme og innstillinger; lagre dem som `assets/film/voice/ansgar.mp3`, `gorvek.mp3`, `lenge.mp3` og `delt.mp3`, så klipper jeg dem inn.
