@@ -832,6 +832,110 @@ body.editing #marks {
   overflow-wrap: anywhere;
 }
 
+/* Lista under pekeren, historikken og egenskapene i redigeringen. */
+.editor-under,
+.editor-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor-history {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.editor-under-item,
+.editor-step {
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--fs-radius-1, 4px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-under-item:hover,
+.editor-step:hover {
+  background: var(--fs-color-neutral-surface, #f0f0f0);
+}
+
+.editor-under-item.is-active,
+.editor-step.is-active {
+  border-color: var(--fs-color-accent-border, #c07000);
+  font-weight: 600;
+}
+
+.editor-step.is-undone {
+  opacity: 0.55;
+}
+
+.editor-props {
+  display: grid;
+  gap: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-prop {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--fs-spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.editor-prop .fs-input {
+  min-width: 0;
+}
+
+.editor-prop input[type="checkbox"] {
+  justify-self: start;
+}
+
+.editor-color {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.editor-color input[type="color"] {
+  flex: 0 0 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.editor-snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+#ed-placing[data-state="bad"] {
+  color: var(--fs-color-danger-text, #a40000);
+}
+
+/* Rammen når Shift+dra velger. */
+.editor-box {
+  position: fixed;
+  z-index: 59;
+  border: 1px dashed #ffd24a;
+  background: rgb(255 210 74 / 0.12);
+  pointer-events: none;
+}
+
+body.editor-dragging,
+body.editor-dragging canvas {
+  cursor: copy !important;
+}
+
 /* I spillet etter P: merket om at P tar deg tilbake i redigeringen. */
 .editor-back {
   position: fixed;

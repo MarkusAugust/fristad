@@ -11,9 +11,12 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
 
 - **Flyge:** i redigeringen flyr du fritt og går gjennom alt, også usynlige vegger. Mellomrom stiger, C synker, Shift går fort.
 - **Katalogen:** et Fristil-panel med alle modellene, bilde og eierens dom (godkjent, underkjent, usikker), med filter. Underkjente ting kan plasseres for å prøve, men Lagre nekter dem til de er godkjent.
-- **Plassere:** velg en ting i katalogen. Den følger siktekorset og legger seg på flaten under: bakke, gulv, bord, eller mot en vegg. Klikk setter den fra deg.
-- **Velge og flytte:** klikk på noe som står for å velge det. Shift-klikk velger flere. Det valgte kan:
-  - dras med musa (eieren 12. oktober): trykk på tingen og dra, så følger den pekeren langs bakken; hold Alt og dra for å heise den opp og ned, og Ctrl (Cmd på Mac) for å dreie den. Med Alt og Ctrl gjelder draget det valgte uansett hvor i bildet du drar. Pekeren viser hva draget gjør. Hvert drag angres for seg,
+- **Plassere:** dra en ting fra katalogen rett ut i bildet. Et fantom av modellen følger pekeren langs flaten under (bakke, gulv, bord) med en grønn boks rundt når alt er i orden og en rød når det står inni noe, svever eller ikke er godkjent; panelet sier hvorfor. R dreier fantomet en kvart runde (Shift+R den andre veien), og slipp setter tingen ned med bunnen på flaten. Et klikk i katalogen og så klikk i bildet virker som før (Shift setter ut flere). Tingen får en kollider rundt modellen når den er stor nok til at regelen krever det, så den er grønn med en gang.
+- **Fest:** bryteren «Fest» i panelet, eller Ctrl holdt, setter det du setter ut og drar på rutenettet (0,5 m) og vinkelen (15°).
+- **Velge i dybden:** klikk på noe for å velge det. Ligger flere ting under pekeren (kirkas boks dekker gjerdet inni den), står de i en liste i panelet, nærmest først, og et klikk i lista velger (Shift legger til). Klikk igjen på samme sted eller Tab går til det neste bakover, Shift+Tab til det forrige, og Alt+klikk (uten å dra) tar det bakerste med en gang.
+- **Velge mange:** Shift-klikk velger flere, og Shift+dra i bildet trekker en ramme som velger alt med midten innenfor.
+- **Flytte:** det valgte kan:
+  - dras med musa (eieren 12. oktober): trykk på tingen og dra, så følger den pekeren langs bakken, og det som sto på noe, settes ned igjen der du slipper (i samme angresteg); hold Alt og dra for å heise den opp og ned, og Ctrl (Cmd på Mac) for å dreie den. Med Alt og Ctrl gjelder draget det valgte uansett hvor i bildet du drar. Pekeren viser hva draget gjør. Hvert drag angres for seg,
   - dras med håndtak (piler i tre farger langs aksene, og en ring for dreiing); står pekeren på tingen, er det tingen du tar, ikke pila som går gjennom den,
   - flere valgt (et gjerde i biter) dreies samlet om midten, som én ting,
   - finjusteres med tastene: piltastene flytter langs bakken, PageUp og PageDown flytter opp og ned, Q og E dreier. Små steg holder du Alt for.
@@ -25,7 +28,9 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
   - ting du bruker: kister, brønner, dører, senga, galleriveggen,
   - innbyggerne: hvor hver står, og punktene på runden deres.
 - **Hele hus** flyttes og dreies som andre ting. Det som står inne i et hus, er lagret i husets eget rom og følger med.
-- **Angre** med Ctrl+Z og gjøre om med Ctrl+Shift+Z, for alt.
+- **Egenskaper:** panelet viser egenskapene til det valgte, og du skriver inn verdiene (Enter eller gå ut av feltet setter dem): x, y og z i verden og dreiningen i grader for alt, fargen for tingene og innbyggerne (fargevelger eller #rrggbb), navnet og replikknøkkelen for innbyggerne, og for merkene i krypten det slaget bruker: spakens «åpner» (id-ene, skilt med komma), portens id, bredde og arena, lappens tittel og tekst, kistens innhold, fiendens slag, antall og runde (punktene x,y,z i nivåets rom, skilt med semikolon), snarveiens rom og hemmelige veggers mål. Lysene i krypten har farge, rekkevidde, styrke og om det blafrer. En gal verdi gir en melding og endrer ingenting. Stedet og dreiningen settes på én ting om gangen; resten på alle som er valgt.
+- **Angre** med Ctrl+Z og gjøre om med Ctrl+Shift+Z, for alt, også egenskapene. Historikken står som en liste i panelet («Flyttet barrel», «Satte ut bench», «Endret lever (…)»), og et klikk på et steg angrer eller gjør om dit.
+- **Kamera:** Ctrl+1–9 husker hvor du står og ser, 1–9 tar deg dit (i nettleseren, `fristad.edit-marks`).
 - **Spill med en gang:** én tast (P) bytter mellom redigering og vanlig spill på samme sted, så du kan gå rundt og kjenne på det.
 
 ## Reglene
@@ -42,8 +47,9 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
 ## Lagring
 
 - Første gang limer du inn en GitHub-nøkkel som bare gjelder fristad-repoet. Den huskes bare i din nettleser.
+- Uten nøkkel laster Ctrl+S ned filene som en zip med stiene som i repoet (også knappen «Last ned zip» i lagringsdialogen), så de kan legges inn for hånd eller sendes til Claude.
 - Lagre (Ctrl+S) skriver datafilene på grenen `redigering`, uten spørsmål når nøkkelen er limt inn én gang. Alle lagringene i én økt (én fane) blir én commit: lagrer du igjen, erstattes den. Den grenen bygges ikke, så det koster ingen Actions-minutter.
-- Det du gjør, huskes som et utkast i nettleseren mens du jobber, så ingenting går tapt om fanen lukkes. Neste gang du går inn i redigeringen, fortsetter du fra utkastet, eller fra det som ligger på grenen `redigering` (`engine.open_files`). Et utkast fra en eldre utgave av byen legges bort.
+- Det du gjør, huskes som et utkast i nettleseren ved hver endring og hvert 30. sekund, så ingenting går tapt om fanen lukkes. Neste gang du går inn i redigeringen, fortsetter du fra utkastet, eller fra det som ligger på grenen `redigering` (`engine.open_files`). Et utkast fra en eldre utgave av byen legges bort.
 - Når Claude har slått grenen inn i spillet, slettes `redigering`, så neste lagring begynner på den nye byen.
 - Jeg kjører kontrollene og slår endringene inn i `claude/detaljnivaa` samlet, og da bygges forhåndsvisningen én gang.
 - Dataene er tekst i repoet, én fil per område:
@@ -105,6 +111,8 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
 - **Steg 5 (12. oktober):** Lagre (Ctrl+S) gir filene fra motoren (`engine.save_files()`, `data::layout_files`: byen, hvert hus og hvert kryptnivå i fast form) og gjør dem til én commit på grenen `redigering` med GitHubs Git Data API (`web/github.js`). Nøkkelen er en finkornet personlig nøkkel med «Contents: Read and write» bare på fristad-repoet, og huskes bare i nettleseren. Lagre nekter så lenge en regel er brutt. Claude kjører kontrollene på grenen og slår den inn. Testen `lagringen_gir_filene`.
 - **Krypten (12. oktober):** det som står i kryptnivåene (merkene: kister, spaker, porter, hvilesteder, fiender, lapper …, og lysene) ligger i `assets/layout/crypt_NN.json` og går foran det i nivåfila (`data::world_data`; `build_level.py` leser fila og skriver den bare når den mangler, så navigasjonsnettet bygges etter det som er redigert). P nede i krypten redigerer nivået du står i: du flyr fritt i nivået, et klikk velger et merke (`Ref::Crypt`, lysene `Ref::CryptLight`), og det flyttes, dreies, kopieres og slettes som alt annet. En kiste, spak, lapp, bonus, trykkplate, sprekk eller en av kryptens småting fra katalogen blir et nytt merke i nivået (`edit::crypt::mark_for`); resten kan ikke stå der nede. Regelen: et merke på gulvet står inne i et rom i sitt nivå med foten på gulvet (`edit::crypt::breaches`). Testene `krypten_redigeres_og_lagres` og `krypten_redigeres_der_du_star`. Etter en lagring med flyttede merker kjører Claude `python3 tools/crypt/build_level.py N` så nettet og kartet følger.
 
+- **Raskere og enklere (17. oktober):** velge i dybden (lista under pekeren, Shift+Tab, Alt+klikk for det bakerste; `edit/select.rs`), boksvalg (Shift+dra, `Editor::select_box`), dra fra katalogen med fantom og reglene som farge (`edit/ghost.rs`: `ghost_breaches`, `EditCommand::Ghost`), fest til 0,5 m og 15° (`snap_pose`, `EditCommand::Snap`, også under drag), R dreier 90°, automatisk «sett ned» når et drag langs bakken slippes (`Editor::standing`, `settle`), kollider på nye ting (`default_solids`), egenskapspanelet (`edit/props.rs`: `Prop`, `Editor::props`, `set_prop`), historikken som liste (`edit/history.rs`: `history`, `undo_to`), zip uten nøkkel (`makeZip` i `web/editor.js`), utkast hvert 30. sekund og kamerabokmerker. Testene `dybden_velges_fra_lista_og_bakfra`, `egenskapene_settes_og_angres_fra_historikken`, `fantomet_festet_og_slippet` og `rammen_velger_det_innenfor`. Fantomet tegnes som modellen med en farget boks, ikke gjennomsiktig (det trenger et eget pass i rendereren).
+
 ## Videre
 
-Det som mangler og rekkefølgen står i `docs/plan.md`, del 11 (17. oktober): egenskapspanel for merkene og tingene, innbyggernes ruter, fest til rutenett, boksvalg og grupper, lysene i byen, kamera og kart, lagring uten nøkkel, rommene og gangene i krypten som redigerbare ting, og regler som foreslår rettelsen.
+Det som mangler og rekkefølgen står i `docs/plan.md`, del 11 (17. oktober). Gjort: egenskapspanelet, fest til rutenett, boksvalg, kamerabokmerker og lagring uten nøkkel (zip). Igjen: grupper som velges og flyttes samlet (trenger et felt i dataene), innbyggernes ruter som punkter å dra, lysene i byen, kartet, rommene og gangene i krypten som redigerbare ting, regler som foreslår rettelsen, og et gjennomsiktig fantom.

@@ -174,6 +174,41 @@ enum EditJson {
     },
     Undo,
     Redo,
+    UndoTo {
+        n: usize,
+    },
+    SelectUnder {
+        k: usize,
+        #[serde(default)]
+        add: bool,
+    },
+    CycleBack,
+    SelectBox {
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        #[serde(default)]
+        add: bool,
+    },
+    /// Fantomet under pekeren; uten `model` tas det bort.
+    Ghost {
+        model: Option<String>,
+        #[serde(default)]
+        x: f32,
+        #[serde(default)]
+        y: f32,
+    },
+    GhostTurn {
+        a: f32,
+    },
+    Snap {
+        on: bool,
+    },
+    SetProp {
+        key: String,
+        value: String,
+    },
 }
 
 impl EditJson {
@@ -212,6 +247,14 @@ impl EditJson {
             EditJson::WallHeight { h } => EditCommand::WallHeight(h),
             EditJson::Undo => EditCommand::Undo,
             EditJson::Redo => EditCommand::Redo,
+            EditJson::UndoTo { n } => EditCommand::UndoTo(n),
+            EditJson::SelectUnder { k, add } => EditCommand::SelectUnder { k, add },
+            EditJson::CycleBack => EditCommand::CycleBack,
+            EditJson::SelectBox { x0, y0, x1, y1, add } => EditCommand::SelectBox { a: (x0, y0), b: (x1, y1), add },
+            EditJson::Ghost { model, x, y } => EditCommand::Ghost(model.map(|m| (m, (x, y)))),
+            EditJson::GhostTurn { a } => EditCommand::GhostTurn(a),
+            EditJson::Snap { on } => EditCommand::Snap(on),
+            EditJson::SetProp { key, value } => EditCommand::SetProp { key, value },
         })
     }
 }
@@ -284,6 +327,8 @@ impl Engine {
         #[derive(serde::Deserialize)]
         struct Raw {
             fristil: String,
+            "props": v.props.iter().map(|p| json!({"key": p.key, "label": p.label, "value": p.value})).collect::<Vec<_>>(),
+            "history": v.history, "step": v.step, "snap": v.snap, "ghost": v.ghost, "error": v.error,
         }
         serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.fristil).unwrap_or_default()
     }

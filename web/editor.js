@@ -9,13 +9,91 @@
 // Pilene og ringen rundt det valgte virker fortsatt. Høyre knapp holdt nede
 // ser rundt. WASD, mellomrom og C flyr.
 //
-// Det du gjør, huskes som et utkast i nettleseren (`fristad.edit-draft`),
-// og Lagre legger det på grenen `redigering`, én commit per økt. Neste gang
-// fortsetter du fra utkastet, eller fra det du lagret sist.
+// Dra en modell fra katalogen ut i bildet: et fantom følger pekeren (grønn
+// boks når alt er i orden, rød når en regel brytes), R dreier det 90°, og
+// slipp setter det ned på det som er under. «Fest» (eller Ctrl holdt) setter
+// på rutenettet (0,5 m) og vinkelen (15°). Det som ligger under pekeren
+// står som en liste å klikke i (Tab og Shift+Tab blar, Alt+klikk tar det
+// bakerste), Shift+dra i bildet velger alt innenfor rammen, panelet viser
+// egenskapene til det valgte å skrive i, og historikken er en liste å
+// klikke seg tilbake i. Ctrl+1–9 husker hvor kameraet står, 1–9 går dit.
+//
+// Det du gjør, huskes som et utkast i nettleseren (`fristad.edit-draft`)
+// ved hver endring og hvert 30. sekund, og Lagre (Ctrl+S) legger det på
+// grenen `redigering`, én commit per økt; uten nøkkel lastes filene ned som
+// zip. Neste gang fortsetter du fra utkastet, eller fra det du lagret sist.
 
 import { branchFiles, commit, setToken, token, SAVE_BRANCH } from "./github.js";
 
 const DRAFT = "fristad.edit-draft";
+const MARKS = "fristad.edit-marks";
+const AUTOSAVE_MS = 30000;
+// Så langt (px) musa må gå før et trykk blir et drag (katalogen, rammen).
+const SLOP = 5;
+
+// En zip uten komprimering (bare lagret), med CRC-32 per fil: nok til å
+// laste ned filene når det ikke er noen nøkkel til GitHub.
+const CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+export function makeZip(files) {
+  const enc = new TextEncoder();
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  for (const f of files) {
+    const name = enc.encode(f.path);
+    const data = enc.encode(f.text);
+    const crc = crc32(data);
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true);
+    local.setUint16(6, 0x0800, true); // navnene er UTF-8
+    local.setUint16(10, time, true);
+    local.setUint16(12, date, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, data.length, true);
+    local.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(local.buffer), name, data);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true);
+    cd.setUint16(4, 20, true);
+    cd.setUint16(6, 20, true);
+    cd.setUint16(8, 0x0800, true);
+    cd.setUint16(12, time, true);
+    cd.setUint16(14, date, true);
+    cd.setUint32(16, crc, true);
+    cd.setUint32(20, data.length, true);
+    cd.setUint32(24, data.length, true);
+    cd.setUint16(28, name.length, true);
+    cd.setUint32(42, offset, true);
+    central.push(new Uint8Array(cd.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const size = central.reduce((n, b) => n + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, size, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/zip" });
+}
 
 const STEP = 0.1;
 const TURN = (15 * Math.PI) / 180;
@@ -34,6 +112,18 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   let looking = false;
   let pressed = false;
   let view = null;
+  // Fest til rutenett og vinkel: bryteren i panelet, eller Ctrl holdt.
+  let snapToggle = false;
+  let ctrlHeld = false;
+  let snapSent = null;
+  // Dra fra katalogen: modellen og der trykket begynte.
+  let dragModel = null;
+  let ghostShown = false;
+  let ghostFrame = 0;
+  let ghostAt = null;
+  // Shift+trykk i bildet: et klikk (legg til eller ta bort) eller en ramme.
+  let boxFrom = null;
+  let boxing = false;
   const catalog = JSON.parse(engine.catalog());
 
   const panel = document.createElement("aside");
@@ -50,16 +140,26 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       <button id="ed-redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+Z">Gjør om</button>
       <button id="ed-play" class="fs-button" data-variant="primary" type="button" title="P">Spill (P)</button>
       <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagre på grenen redigering (Ctrl+S)">Lagre</button>
+      <label class="editor-snap fs-label" title="Fest til rutenettet (0,5 m) og vinkelen (15°). Ctrl holdt gjør det samme mens du drar.">
+        <input id="ed-snap" type="checkbox"> Fest
+      </label>
     </div>
     <p id="ed-saved" class="fs-help-text" role="status"></p>
     <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Valgt</h3>
       <p id="ed-selected" class="fs-paragraph" data-size="small">Ingenting. Klikk på noe i bildet.</p>
-      <p id="ed-under" class="fs-paragraph" data-size="small" hidden></p>
+      <div id="ed-under-box" hidden>
+        <p class="fs-help-text">Under pekeren, nærmest først. Klikk for å velge (<kbd>Shift</kbd> legger til), <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> blar, <kbd>Alt</kbd>+klikk i bildet tar det bakerste.</p>
+        <ol id="ed-under" class="editor-under"></ol>
+      </div>
       <div id="ed-wall" hidden>
         <label class="fs-label" for="ed-wall-h">Høyde på veggen (m)</label>
         <input id="ed-wall-h" class="fs-input" type="number" min="0.5" max="20" step="0.5" value="3">
       </div>
+    </section>
+    <section class="editor-section" id="ed-props-box" hidden>
+      <h3 class="fs-heading" data-size="xs">Egenskaper</h3>
+      <form id="ed-props" class="editor-props" autocomplete="off"></form>
     </section>
     <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Reglene</h3>
@@ -82,18 +182,28 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       <div id="ed-grid" class="editor-grid"></div>
     </section>
     <section class="editor-section">
+      <h3 class="fs-heading" data-size="xs">Historikk</h3>
+      <ol id="ed-history" class="editor-history"></ol>
+    </section>
+    <section class="editor-section">
       <h3 class="fs-heading" data-size="xs">Linje</h3>
       <p class="fs-paragraph" data-size="small"><kbd>L</kbd> begynner: klikk punkter på bakken, <kbd>Enter</kbd> gir en rad av modellen du har valgt i katalogen (gjerde), <kbd>V</kbd> en usynlig vegg, <kbd>Esc</kbd> avbryter.</p>
     </section>
     <section class="editor-section editor-keys">
       <p class="fs-paragraph" data-size="small">
-        <strong>Musa:</strong> dra en ting for å flytte den langs bakken, <kbd>Alt</kbd>+dra heiser opp og ned, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+dra dreier (flere valgt dreies samlet), <kbd>Shift</kbd>+klikk velger flere.
+        <strong>Musa:</strong> dra en ting for å flytte den langs bakken (den settes ned igjen der du slipper), <kbd>Alt</kbd>+dra heiser opp og ned, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+dra dreier (flere valgt dreies samlet), <kbd>Shift</kbd>+klikk velger flere, <kbd>Shift</kbd>+dra velger alt innenfor rammen, <kbd>Alt</kbd>+klikk det bakerste.
+        Dra en modell fra katalogen ut i bildet for å sette den ut (<kbd>R</kbd> dreier 90°, <kbd>Ctrl</kbd> fester). <kbd>Ctrl+1</kbd>–<kbd>9</kbd> husker kameraet, <kbd>1</kbd>–<kbd>9</kbd> går dit.
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
         Piltastene flytter det valgte langs bakken, <kbd>PgUp</kbd>/<kbd>PgDn</kbd> opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
-        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
+        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>R</kbd> en kvart runde, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>Shift+Tab</kbd> det forrige, <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
       </p>
     </section>`;
   document.body.append(panel);
+  // Rammen når Shift+dra velger.
+  const box = document.createElement("div");
+  box.className = "editor-box";
+  box.hidden = true;
+  document.body.append(box);
   // I spillet: et lite merke om at P tar deg tilbake i redigeringen.
   const back = document.createElement("p");
   back.className = "editor-back fs-tag";
@@ -130,22 +240,84 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       .join("");
   }
   for (const id of ["ed-search", "ed-verdict", "ed-group"]) $(id).addEventListener("input", renderCatalog);
-  $("ed-grid").addEventListener("click", (e) => {
+  // Et klikk velger modellen å sette ut; et drag tar den rett ut i bildet.
+  $("ed-grid").addEventListener("mousedown", (e) => {
     const b = e.target.closest("[data-model]");
-    if (!b) return;
-    setPlacing(placing === b.dataset.model ? null : b.dataset.model);
+    if (!b || e.button !== 0) return;
+    e.preventDefault();
+    dragModel = { name: b.dataset.model, x: e.clientX, y: e.clientY, moved: false };
   });
 
   function setPlacing(model) {
     placing = model;
     const p = $("ed-placing");
     p.hidden = !model;
-    p.textContent = model ? `Klikk i bildet for å sette ut ${model} (Shift: flere). Esc avbryter.` : "";
+    p.textContent = model ? `Klikk i bildet for å sette ut ${model} (Shift: flere, R dreier). Esc avbryter.` : "";
+    if (!model) hideGhost();
     renderCatalog();
   }
 
   function send(cmd) {
     return engine.edit(JSON.stringify(cmd));
+  }
+
+  // Fantomet følger pekeren (høyst én gang per bilde).
+  function ghost(model, p) {
+    ghostAt = { model, ...p };
+    if (ghostFrame) return;
+    ghostFrame = requestAnimationFrame(() => {
+      ghostFrame = 0;
+      if (!ghostAt) return;
+      send({ cmd: "ghost", model: ghostAt.model, x: ghostAt.x, y: ghostAt.y });
+      ghostShown = true;
+    });
+  }
+  function hideGhost() {
+    ghostAt = null;
+    if (ghostShown) send({ cmd: "ghost" });
+    ghostShown = false;
+  }
+  const ghostModel = () => (dragModel?.moved ? dragModel.name : placing);
+
+  // Festet: bryteren, eller Ctrl holdt (motoren får det bare når det endres).
+  function sendSnap() {
+    const on = snapToggle !== ctrlHeld;
+    if (on === snapSent) return;
+    snapSent = on;
+    send({ cmd: "snap", on });
+    if (ghostAt) ghost(ghostAt.model, ghostAt);
+  }
+  $("ed-snap").addEventListener("change", (e) => {
+    snapToggle = e.target.checked;
+    sendSnap();
+  });
+
+  // Kamerabokmerkene (Ctrl+1–9 husker, 1–9 går dit), i nettleseren.
+  function readMarks() {
+    try {
+      return JSON.parse(localStorage.getItem(MARKS) || "{}");
+    } catch {
+      return {};
+    }
+  }
+  function bookmark(n, store) {
+    const marks = readMarks();
+    if (store) {
+      marks[n] = engine.view();
+      try {
+        localStorage.setItem(MARKS, JSON.stringify(marks));
+      } catch {
+        /* uten lagring huskes det ikke */
+      }
+      toast?.show?.(`Kameraet er husket på ${n}.`);
+      return;
+    }
+    const v = marks[n];
+    if (!v) {
+      toast?.show?.(`Ingenting på ${n} ennå. Ctrl+${n} husker der du står.`);
+      return;
+    }
+    engine.place(v[0], v[1], v[2], (v[3] * 180) / Math.PI, (v[4] * 180) / Math.PI);
   }
 
   // Lagre: filene på grenen `redigering` (web/github.js), én commit per
@@ -169,6 +341,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     <div class="fs-dialog__footer">
       <button type="button" class="fs-button" data-variant="ghost" data-act="forget">Glem nøkkelen</button>
       <button type="button" class="fs-button" data-variant="secondary" data-act="close">Avbryt</button>
+      <button type="button" class="fs-button" data-variant="secondary" data-act="zip">Last ned zip</button>
       <button type="button" class="fs-button" data-variant="primary" data-act="save">Lagre</button>
     </div>`;
   document.body.append(dialog);
@@ -206,7 +379,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     }
   }
 
-  function openSave() {
+  function openSave(quick = false) {
     if (!view?.dirty) return;
     if (!view.clean) {
       toast?.show?.(`${view.breaches.length} regler er brutt. Rett dem før du lagrer.`);
@@ -214,6 +387,10 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     }
     if (token()) {
       save();
+      return;
+    }
+    if (quick) {
+      download();
       return;
     }
     d$("#ed-token-row").hidden = false;
@@ -224,6 +401,9 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   }
 
   d$("[data-act=close]").addEventListener("click", () => dialog.close());
+  d$("[data-act=zip]").addEventListener("click", () => {
+    if (download()) dialog.close();
+  });
   d$("[data-act=forget]").addEventListener("click", () => {
     setToken("");
     d$("#ed-token-row").hidden = false;
@@ -246,7 +426,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     if (ok) dialog.close();
     else d$("#ed-save-status").textContent = $("ed-saved").textContent;
   });
-  $("ed-save").addEventListener("click", openSave);
+  $("ed-save").addEventListener("click", () => openSave(false));
 
   // Utkastet: det som er redigert, i nettleseren, så ingenting går tapt om
   // fanen lukkes før du lagrer. Det hører til byen slik den var da du begynte
@@ -281,7 +461,33 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   }
   function draftLater() {
     clearTimeout(draftTimer);
-    draftTimer = setTimeout(storeDraft, 1500);
+    draftTimer = setTimeout(storeDraft, 400);
+  }
+  // Og hvert 30. sekund mens du redigerer, uansett.
+  setInterval(() => {
+    if (active) storeDraft();
+  }, AUTOSAVE_MS);
+
+  // Uten nøkkel: filene lastes ned som zip (stiene som i repoet).
+  function download() {
+    const out = JSON.parse(engine.save_files());
+    if (out.error) {
+      setSaved(out.error);
+      toast?.show?.(out.error);
+      return false;
+    }
+    const url = URL.createObjectURL(makeZip(out.files));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fristad-redigering-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.zip`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    const text = `Lastet ned ${out.files.length} filer kl. ${hhmm()}. Lim inn en nøkkel under Lagre for å lagre på grenen.`;
+    setSaved(text);
+    toast?.show?.(text);
+    return true;
   }
 
   // Første gang du går inn i redigeringen: fortsett fra utkastet, ellers fra
@@ -324,6 +530,38 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   $("ed-redo").addEventListener("click", () => send({ cmd: "redo" }));
   $("ed-play").addEventListener("click", () => play());
   $("ed-wall-h").addEventListener("change", (e) => send({ cmd: "wall_height", h: Number(e.target.value) || 3 }));
+  $("ed-under").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-k]");
+    if (b) send({ cmd: "select_under", k: Number(b.dataset.k), add: e.shiftKey });
+  });
+  $("ed-history").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-n]");
+    if (b) send({ cmd: "undo_to", n: Number(b.dataset.n) });
+  });
+  // Egenskapene: Enter eller å gå ut av feltet setter verdien (ett steg å
+  // angre). Fargevelgeren skriver i tekstfeltet ved siden av.
+  function setProp(input) {
+    const key = input.name;
+    const value = input.type === "checkbox" ? (input.checked ? "ja" : "nei") : input.value;
+    if (input.dataset.was === value) return;
+    input.dataset.was = value;
+    send({ cmd: "set_prop", key, value });
+  }
+  $("ed-props").addEventListener("submit", (e) => e.preventDefault());
+  $("ed-props").addEventListener("change", (e) => {
+    const t = e.target;
+    if (t.dataset.pick) {
+      const text = $("ed-props").querySelector(`[name="${t.dataset.pick}"]`);
+      text.value = t.value;
+      setProp(text);
+    } else if (t.name) setProp(t);
+  });
+  $("ed-props").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.tagName === "INPUT") {
+      e.preventDefault();
+      setProp(e.target);
+    }
+  });
 
   // Hendelsen fra motoren etter hver endring.
   function update(v) {
@@ -339,10 +577,23 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     draftLater();
     const sel = v.selected;
     $("ed-selected").textContent = sel.length ? sel.map((s) => s.label).join(", ") : "Ingenting. Klikk på noe i bildet.";
-    // Det som lå under pekeren: klikk igjen eller Tab for det neste.
+    // Det som lå under pekeren, nærmest først: klikk for å velge.
     const under = v.under ?? [];
-    $("ed-under").hidden = under.length < 2;
-    $("ed-under").innerHTML = `Under pekeren: ${under.map((u) => (u.selected ? `<strong>${esc(u.label)}</strong>` : esc(u.label))).join(" › ")}. Klikk igjen eller <kbd>Tab</kbd> for neste.`;
+    $("ed-under-box").hidden = under.length < 2;
+    $("ed-under").innerHTML = under
+      .map((u, k) => `<li><button type="button" class="editor-under-item${u.selected ? " is-active" : ""}" data-k="${k}">${esc(u.label)}</button></li>`)
+      .join("");
+    renderProps(v.props ?? []);
+    renderHistory(v.history ?? [], v.step ?? 0);
+    if (v.error) toast?.show?.(v.error);
+    if (ghostModel()) {
+      const p = $("ed-placing");
+      p.hidden = false;
+      const g = v.ghost;
+      p.textContent = !g ? `Dra ${ghostModel()} ut i bildet.` : g.length ? `${ghostModel()}: ${g.join(", ")}.` : `${ghostModel()}: grønt. Slipp for å sette ut (R dreier).`;
+      p.dataset.state = g && g.length ? "bad" : "ok";
+    }
+    if (typeof v.snap === "boolean") snapSent = v.snap;
     $("ed-wall").hidden = !sel.some((s) => s.label === "usynlig vegg");
     const list = $("ed-breaches");
     list.innerHTML = v.breaches.length
@@ -351,6 +602,44 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
           .map((b) => `<li class="fs-paragraph" data-size="small">${esc(b.why)}</li>`)
           .join("") + (v.breaches.length > 30 ? `<li class="fs-paragraph" data-size="small">… og ${v.breaches.length - 30} til</li>` : "")
       : `<li class="fs-paragraph" data-size="small">Alt er grønt.</li>`;
+  }
+
+  // Egenskapene til det valgte: et felt per egenskap (tekst, tall, farge).
+  // Panelet tegnes bare på nytt når noe er endret, så feltet du skriver i
+  // ikke mister fokus.
+  let propsKey = "";
+  function renderProps(props) {
+    const key = JSON.stringify(props);
+    if (key === propsKey) return;
+    propsKey = key;
+    $("ed-props-box").hidden = !props.length;
+    const field = (p) => {
+      const name = esc(p.key);
+      const value = esc(p.value);
+      if (p.key === "kind") return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" readonly>`;
+      if (p.key === "text" || p.key === "lines") return `<textarea class="fs-input" name="${name}" rows="3" data-was="${value}">${value}</textarea>`;
+      if (p.key === "flicker") return `<input type="checkbox" name="${name}" ${p.value === "ja" ? "checked" : ""} data-was="${value}">`;
+      if (p.key === "tint" || p.key === "color")
+        return `<span class="editor-color"><input type="color" data-pick="${name}" value="${/^#[0-9a-f]{6}$/i.test(p.value) ? value : "#ffffff"}" aria-label="Velg farge"><input class="fs-input" name="${name}" value="${value}" data-was="${value}" placeholder="#rrggbb"></span>`;
+      const num = ["x", "y", "z", "yaw", "range", "intensity", "width", "height", "n"].includes(p.key);
+      return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" ${num ? 'inputmode="decimal"' : ""}>`;
+    };
+    $("ed-props").innerHTML = props.map((p) => `<label class="editor-prop"><span class="fs-label">${esc(p.label)}</span>${field(p)}</label>`).join("");
+    // Teksten i et tekstfelt settes når du går ut av det.
+    for (const t of $("ed-props").querySelectorAll("textarea")) t.addEventListener("blur", () => setProp(t));
+  }
+
+  // Historikken: «Start» og hvert steg; det du står på er markert, og det
+  // som kan gjøres om, er dempet. Klikk går dit.
+  function renderHistory(steps, at) {
+    const items = [`<li><button type="button" class="editor-step${at === 0 ? " is-active" : ""}" data-n="0">Start</button></li>`];
+    steps.forEach((s, k) => {
+      const n = k + 1;
+      items.push(`<li><button type="button" class="editor-step${n === at ? " is-active" : ""}${n > at ? " is-undone" : ""}" data-n="${n}">${esc(s)}</button></li>`);
+    });
+    const list = $("ed-history");
+    list.innerHTML = items.slice(-40).join("");
+    list.querySelector(".is-active")?.scrollIntoView?.({ block: "nearest" });
   }
 
   function begin() {
@@ -417,6 +706,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     if (placing) {
       send({ cmd: "place", model: placing, ...p });
       if (!e.shiftKey) setPlacing(null);
+      else ghost(placing, p);
+      return true;
+    }
+    // Shift: et klikk legger til eller tar bort, et drag er en ramme.
+    if (e.shiftKey && e.button === 0 && !turn && !e.altKey) {
+      boxFrom = { x: e.clientX, y: e.clientY, p };
+      boxing = false;
       return true;
     }
     pressed = true;
@@ -431,18 +727,66 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     canvas.style.cursor = e.ctrlKey || e.metaKey ? "ew-resize" : e.altKey ? "ns-resize" : "";
   }
 
+  function drawBox(e) {
+    const x0 = Math.min(boxFrom.x, e.clientX);
+    const y0 = Math.min(boxFrom.y, e.clientY);
+    Object.assign(box.style, { left: `${x0}px`, top: `${y0}px`, width: `${Math.abs(e.clientX - boxFrom.x)}px`, height: `${Math.abs(e.clientY - boxFrom.y)}px` });
+    box.hidden = false;
+  }
+
   function mouseMove(e) {
     if (!active) return false;
+    if (dragModel && !dragModel.moved && Math.hypot(e.clientX - dragModel.x, e.clientY - dragModel.y) > SLOP) {
+      dragModel.moved = true;
+      document.body.classList.add("editor-dragging");
+    }
     if (looking) engine.look(e.movementX, e.movementY);
-    else if (pressed) send({ cmd: "drag", ...at(e) });
-    else hint(e);
+    else if (boxFrom) {
+      if (!boxing && Math.hypot(e.clientX - boxFrom.x, e.clientY - boxFrom.y) > SLOP) boxing = true;
+      if (boxing) drawBox(e);
+    } else if (pressed) send({ cmd: "drag", ...at(e) });
+    else {
+      const model = ghostModel();
+      if (model && onCanvas(e)) ghost(model, at(e));
+      else if (model) hideGhost();
+      hint(e);
+    }
     return true;
   }
 
   function mouseUp(e) {
     if (!active) return false;
+    if (dragModel) {
+      const d = dragModel;
+      dragModel = null;
+      document.body.classList.remove("editor-dragging");
+      if (!d.moved) {
+        setPlacing(placing === d.name ? null : d.name);
+      } else if (onCanvas(e)) {
+        // Slipp: settes ned på det som er under, der fantomet sto.
+        send({ cmd: "place", model: d.name, ...at(e) });
+        hideGhost();
+        setPlacing(placing);
+      } else {
+        hideGhost();
+        setPlacing(placing);
+      }
+      return true;
+    }
     if (e.button === 2 && looking) looking = false;
-    else if (pressed) {
+    else if (boxFrom) {
+      const from = boxFrom;
+      boxFrom = null;
+      box.hidden = true;
+      if (boxing) {
+        const to = at(e);
+        send({ cmd: "select_box", x0: from.p.x, y0: from.p.y, x1: to.x, y1: to.y, add: true });
+      } else {
+        send({ cmd: "press", ...from.p, add: true, lift: false, turn: false });
+        send({ cmd: "release" });
+      }
+      boxing = false;
+    } else if (pressed) {
       pressed = false;
       send({ cmd: "release" });
       hint(e);
@@ -483,7 +827,29 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       case "MetaRight":
         // Alt flytter ellers fokus til menylinja i noen nettlesere.
         if (e.code.startsWith("Alt")) e.preventDefault();
+        else if (!ctrlHeld) {
+          ctrlHeld = true;
+          sendSnap();
+        }
         hint(e);
+        return true;
+      case "KeyR":
+        if (e.repeat || ctrl) return !ctrl;
+        // En kvart runde: fantomet før det settes ut, ellers det valgte.
+        if (ghostModel()) send({ cmd: "ghost_turn", a: e.shiftKey ? Math.PI / 2 : -Math.PI / 2 });
+        else send({ cmd: "rotate", a: e.shiftKey ? Math.PI / 2 : -Math.PI / 2 });
+        return true;
+      case "Digit1":
+      case "Digit2":
+      case "Digit3":
+      case "Digit4":
+      case "Digit5":
+      case "Digit6":
+      case "Digit7":
+      case "Digit8":
+      case "Digit9":
+        e.preventDefault();
+        if (!e.repeat) bookmark(e.code.slice(5), ctrl);
         return true;
       case "ArrowUp":
       case "ArrowDown":
@@ -531,7 +897,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       case "KeyS":
         if (ctrl) {
           e.preventDefault();
-          openSave();
+          openSave(true);
           return true;
         }
         return false;
@@ -569,8 +935,10 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         }
         return false;
       case "Escape":
-        if (lining || placing) {
+        if (lining || placing || dragModel) {
           e.preventDefault();
+          dragModel = null;
+          document.body.classList.remove("editor-dragging");
           lining = false;
           send({ cmd: "line_cancel" });
           setPlacing(null);
@@ -579,7 +947,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         return false;
       case "Tab":
         e.preventDefault();
-        if (!e.repeat) send({ cmd: "cycle" });
+        if (!e.repeat) send({ cmd: e.shiftKey ? "cycle_back" : "cycle" });
         return true;
       case "KeyP":
         if (!e.repeat) play();
@@ -589,7 +957,20 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     }
   }
 
-  document.addEventListener("keyup", (e) => hint(e));
+  document.addEventListener("keyup", (e) => {
+    if (active && ctrlHeld && !e.ctrlKey && !e.metaKey) {
+      ctrlHeld = false;
+      sendSnap();
+    }
+    hint(e);
+  });
+  // Fanen mister fokus med Ctrl nede: slipp den.
+  window.addEventListener("blur", () => {
+    if (ctrlHeld) {
+      ctrlHeld = false;
+      if (active) sendSnap();
+    }
+  });
 
   return {
     get active() {

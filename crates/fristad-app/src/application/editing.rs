@@ -5,8 +5,9 @@
 //! bygges på nytt når du trykker P.
 
 use super::session::Session;
-use crate::domain::edit::Editor;
+use crate::domain::edit::{ghost, rules, Editor};
 use crate::domain::scene::ModelInstance;
+use crate::domain::world::layout::Ref;
 use crate::domain::world::terrain;
 use crate::ports::driving::{EditCommand, EditView, Event, Grab, Input};
 use glam::{Affine3A, Mat4, Quat, Vec2, Vec3, Vec4};
@@ -26,6 +27,9 @@ const BREACH: Vec3 = Vec3::new(4.0, 0.3, 0.2);
 const DRAFT: Vec3 = Vec3::new(3.0, 3.0, 3.0);
 const AXES: [(Vec3, Vec3); 3] = [(Vec3::X, Vec3::new(4.0, 0.4, 0.3)), (Vec3::Y, Vec3::new(0.4, 4.0, 0.4)), (Vec3::Z, Vec3::new(0.4, 0.8, 4.0))];
 const RING: Vec3 = Vec3::new(3.5, 2.8, 0.6);
+/// Fantomet: grønt når alt er i orden, rødt når en regel brytes.
+const GHOST_OK: Vec3 = Vec3::new(0.4, 4.0, 0.6);
+const GHOST_BAD: Vec3 = BREACH;
 
 /// Så langt (brøkdel av skjermhøyden) musa må gå før et trykk på en ting
 /// blir et drag, så et klikk ikke flytter noe.
@@ -53,6 +57,19 @@ pub struct EditUi {
     /// Trykket på noe som alt var valgt: velges når knappen slippes uten drag.
     pub(super) click: Option<(f32, f32)>,
     pub(super) draft: Vec<Vec3>,
+    /// Fantomet: modellen, pekeren, posen og det som er galt der.
+    pub(super) ghost: Option<(String, (f32, f32), Affine3A, Vec<String>)>,
+    /// Hvor mye fantomet er dreid (R).
+    pub(super) ghost_turn: f32,
+    /// Fest til rutenett og vinkel.
+    pub(super) snap: bool,
+    /// Det draget har flyttet og dreid som ikke er festet ennå.
+    pub(super) carry: Vec3,
+    pub(super) carry_turn: f32,
+    /// Det som sto på noe da draget langs bakken begynte (settes ned igjen).
+    pub(super) standing: Vec<Ref>,
+    /// Feilen fra siste egenskap, vist én gang.
+    pub(super) error: Option<String>,
 }
 
 /// En pose som nøkkel (millimeter), til å se hva som står likt.
@@ -145,7 +162,6 @@ impl Session {
         if self.edit.is_none() {
             return false;
         }
-        let yaw = self.yaw;
         let done = match c {
             EditCommand::Enter => true,
             EditCommand::Leave => {
@@ -154,6 +170,9 @@ impl Session {
                 return true;
             }
             EditCommand::Press { at, add, grab } => {
+                self.edit_ui.carry = Vec3::ZERO;
+                self.edit_ui.carry_turn = 0.0;
+                self.edit_ui.standing.clear();
                 let handle = match grab {
                     Grab::Lift => Some(Handle::Lift),
                     Grab::Turn => Some(Handle::Turn),
@@ -192,6 +211,7 @@ impl Session {
                         if !add && first.is_some() && !self.editor_mut().selection.is_empty() {
                             self.edit_ui.drag = Some((Handle::Ground, at));
                             self.edit_ui.pressed = Some(at);
+                            self.edit_ui.standing = self.editor_mut().standing();
                             self.editor_mut().begin_group();
                         }
                         changed
@@ -201,11 +221,26 @@ impl Session {
             EditCommand::Drag { to } => self.drag_to(to),
             EditCommand::Release => {
                 let click = self.edit_ui.click.take().filter(|_| self.edit_ui.pressed.is_some());
+                // Alt+klikk uten drag: det bakerste under pekeren.
+                let deepest = match (self.edit_ui.drag, self.edit_ui.pressed) {
+                    (Some((Handle::Lift, _)), Some(at)) => Some(at),
+                    _ => None,
+                };
+                // Det som sto på noe, settes ned igjen etter et drag langs
+                // bakken (i samme angresteg som draget).
+                let standing = std::mem::take(&mut self.edit_ui.standing);
+                if matches!(self.edit_ui.drag, Some((Handle::Ground, _))) && self.edit_ui.pressed.is_none() && !standing.is_empty() {
+                    self.editor_mut().settle(&standing);
+                }
                 self.edit_ui.drag = None;
                 self.edit_ui.pressed = None;
                 self.editor_mut().end_group();
                 if let Some(at) = click {
                     self.pick_at(Some(at), false);
+                }
+                if let Some(at) = deepest {
+                    let (o, d) = self.screen_ray(at);
+                    self.editor_mut().pick_deepest(o, d);
                 }
                 true
             }
@@ -235,13 +270,48 @@ impl Session {
                 self.editor_mut().delete();
                 true
             }
-            EditCommand::Place { model, at } => match self.ground_at(at) {
-                Some(p) => {
-                    // Vendt mot deg (modellene har forsida mot lokal +Z).
-                    self.editor_mut().place(&model, Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), p)).is_some()
+            EditCommand::Place { model, at } => {
+                self.edit_ui.ghost = None;
+                match self.ghost_pose(&model, at) {
+                    Some(pose) => self.editor_mut().place(&model, pose).is_some(),
+                    None => false,
                 }
-                None => false,
+            }
+            EditCommand::Ghost(g) => {
+                self.edit_ui.ghost = g.and_then(|(model, at)| {
+                    let pose = self.ghost_pose(&model, Some(at))?;
+                    let bad = self.edit.as_ref()?.ghost_breaches(&model, &pose);
+                    Some((model, at, pose, bad))
+                });
+                true
+            }
+            EditCommand::GhostTurn(a) => {
+                self.edit_ui.ghost_turn = (self.edit_ui.ghost_turn + a).rem_euclid(std::f32::consts::TAU);
+                if let Some((model, at, _, _)) = self.edit_ui.ghost.clone() {
+                    return self.edit_command(EditCommand::Ghost(Some((model, at))));
+                }
+                true
+            }
+            EditCommand::Snap(on) => {
+                self.edit_ui.snap = on;
+                true
+            }
+            EditCommand::SetProp { key, value } => match self.editor_mut().set_prop(&key, &value) {
+                Ok(()) => true,
+                Err(why) => {
+                    self.edit_ui.error = Some(why);
+                    false
+                }
             },
+            EditCommand::UndoTo(n) => self.editor_mut().undo_to(n),
+            EditCommand::SelectUnder { k, add } => self.editor_mut().select_under(k, add).is_some(),
+            EditCommand::CycleBack => self.editor_mut().cycle_back().is_some(),
+            EditCommand::SelectBox { a, b, add } => {
+                let mut e = self.edit.take().expect("i redigeringen");
+                let n = e.select_box(self.eye(), REACH, a, b, add, |p| self.to_screen(p));
+                self.edit = Some(e);
+                n > 0
+            }
             EditCommand::LinePoint { at } => match self.ground_at(Some(at)) {
                 Some(p) => {
                     self.edit_ui.draft.push(p);
@@ -292,6 +362,12 @@ impl Session {
             clean: e.clean(),
             draft: self.edit_ui.draft.len(),
             under: e.under().iter().map(|r| (e.label(r), e.selection.contains(r))).collect(),
+            props: e.props(),
+            history: e.history().0,
+            step: e.history().1,
+            snap: self.edit_ui.snap,
+            ghost: self.edit_ui.ghost.as_ref().map(|g| g.3.clone()),
+            error: self.edit_ui.error.take(),
         };
         self.pending.push(Event::Edit(Some(view)));
     }
@@ -320,6 +396,23 @@ impl Session {
             None => (self.eye(), self.forward()),
         };
         self.ground_hit(o, d)
+    }
+
+    /// Der en ny `model` settes under pekeren: vendt mot deg (modellene har
+    /// forsida mot lokal +Z) og dreid med R, festet om festet er på, og
+    /// satt ned så bunnen av modellen står på det som er under.
+    pub fn ghost_pose(&self, model: &str, at: Option<(f32, f32)>) -> Option<Affine3A> {
+        let e = self.edit.as_ref()?;
+        let p = self.ground_at(at)?;
+        let mut pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(self.yaw + self.edit_ui.ghost_turn), p);
+        if self.edit_ui.snap {
+            pose = ghost::snap_pose(pose);
+        }
+        let o = Vec3::from(pose.translation);
+        let ground = e.surface_under(o.x, o.z, p.y + 0.3, None);
+        let foot = e.scene().bounds(model).map(|(lo, hi)| rules::world_box(lo, hi, &pose).0.y).unwrap_or(o.y);
+        pose.translation.y += ground - foot;
+        Some(pose)
     }
 
     /// Der siktekorset treffer (midt i bildet).
@@ -392,7 +485,7 @@ impl Session {
                 let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
                     return false;
                 };
-                self.editor_mut().translate(Vec3::new(b.x - a.x, 0.0, b.z - a.z));
+                self.translate_snapped(p, Vec3::new(b.x - a.x, 0.0, b.z - a.z));
             }
             Handle::Lift => {
                 let (Some(a), Some(b)) = (self.on_screen(p), self.on_screen(p + Vec3::Y)) else {
@@ -400,13 +493,13 @@ impl Session {
                 };
                 let s = b - a;
                 let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
-                self.editor_mut().translate(Vec3::Y * moved);
+                self.translate_snapped(p, Vec3::Y * moved);
             }
             Handle::Turn => {
                 // En bildebredde bortover er en hel runde; mot høyre dreier
                 // med klokka sett ovenfra.
                 let turn = -(to.0 - from.0) * std::f32::consts::TAU;
-                self.editor_mut().rotate(turn);
+                self.rotate_snapped(turn);
             }
             Handle::Axis(k) => {
                 let axis = AXES[k].0;
@@ -415,7 +508,7 @@ impl Session {
                 };
                 let s = b - a;
                 let moved = (self.screen(to) - self.screen(from)).dot(s) / s.length_squared().max(1e-9);
-                self.editor_mut().translate(axis * moved);
+                self.translate_snapped(p, axis * moved);
             }
             Handle::Ring => {
                 // Vinkelen rundt midten i planet der det valgte står.
@@ -429,10 +522,45 @@ impl Session {
                 } else if turn < -std::f32::consts::PI {
                     turn += std::f32::consts::TAU;
                 }
-                self.editor_mut().rotate(turn);
+                self.rotate_snapped(turn);
             }
         }
         true
+    }
+
+    /// Flytt det valgte `delta`; med festet på samles flyttingen til midten
+    /// `p` havner på rutenettet (bare langs aksene som flyttes).
+    fn translate_snapped(&mut self, p: Vec3, delta: Vec3) {
+        if !self.edit_ui.snap {
+            self.editor_mut().translate(delta);
+            return;
+        }
+        self.edit_ui.carry += delta;
+        let target = p + self.edit_ui.carry;
+        let mut step = Vec3::ZERO;
+        for k in 0..3 {
+            if self.edit_ui.carry[k] != 0.0 {
+                step[k] = ghost::snap(target[k], ghost::GRID) - p[k];
+            }
+        }
+        if step != Vec3::ZERO {
+            self.edit_ui.carry -= step;
+            self.editor_mut().translate(step);
+        }
+    }
+
+    /// Drei det valgte `turn`; med festet på i hele steg på 15°.
+    fn rotate_snapped(&mut self, turn: f32) {
+        if !self.edit_ui.snap {
+            self.editor_mut().rotate(turn);
+            return;
+        }
+        self.edit_ui.carry_turn += turn;
+        let n = (self.edit_ui.carry_turn / ghost::ANGLE).round();
+        if n != 0.0 {
+            self.edit_ui.carry_turn -= n * ghost::ANGLE;
+            self.editor_mut().rotate(n * ghost::ANGLE);
+        }
     }
 
     /// Markeringene: boksene rundt det valgte (gule) og det som bryter en
@@ -457,6 +585,11 @@ impl Session {
             }
             for w in Self::ring_points(p, len).windows(2) {
                 out.push((w[0], w[1], RING));
+            }
+        }
+        if let Some((model, _, pose, bad)) = &self.edit_ui.ghost {
+            if let Some((lo, hi)) = e.scene().bounds(model) {
+                box_lines(pose, (lo + hi) * 0.5, (hi - lo) * 0.5, if bad.is_empty() { GHOST_OK } else { GHOST_BAD }, &mut out);
             }
         }
         for w in self.edit_ui.draft.windows(2) {
@@ -508,6 +641,12 @@ impl Session {
                     Some(_) => {}
                     None => shown.push(ModelInstance { model: pl.model, transform: *t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint) }),
                 }
+            }
+        }
+        // Fantomet, med den grønne eller røde boksen rundt (`edit_lines`).
+        if let Some((model, _, pose, _)) = &self.edit_ui.ghost {
+            if scene.bounds(model).is_some() {
+                shown.push(ModelInstance { model: crate::domain::world::layout::intern(model), transform: *pose, skin: None, flash: 0.0, tint: None });
             }
         }
         let hidden = base.into_values().flatten().collect();

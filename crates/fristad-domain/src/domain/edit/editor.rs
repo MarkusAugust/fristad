@@ -72,10 +72,10 @@ pub struct Editor {
     /// Krypten slik den står nå, bygget fra dataene.
     pub(super) built: Crypt,
     /// Modellene eieren har godkjent (`approvals.json`); uten: ingen sjekk.
-    approved: Option<HashSet<String>>,
+    pub(super) approved: Option<HashSet<String>>,
     pub selection: Vec<Ref>,
-    undo: Vec<Vec<Change>>,
-    redo: Vec<Vec<Change>>,
+    pub(super) undo: Vec<Vec<Change>>,
+    pub(super) redo: Vec<Vec<Change>>,
     /// Dataene slik de var da redigeringen begynte, til å se hva som er endret.
     original: HashMap<String, usize>,
     scene: Builder,
@@ -85,8 +85,8 @@ pub struct Editor {
     group: Option<bool>,
     /// Det siste klikket: strålen og alt den traff, nærmest først, så et nytt
     /// klikk på samme sted (eller Tab) velger det neste under pekeren.
-    last_ray: Option<(Vec3, Vec3)>,
-    under: Vec<Ref>,
+    pub(super) last_ray: Option<(Vec3, Vec3)>,
+    pub(super) under: Vec<Ref>,
 }
 
 /// En nøkkel for innholdet i en ting, til å telle like ting.
@@ -170,7 +170,7 @@ impl Editor {
         self.group = None;
     }
 
-    fn list_of(r: &Ref) -> String {
+    pub(super) fn list_of(r: &Ref) -> String {
         match r {
             Ref::Town(_) => "town".into(),
             Ref::Inside { house, .. } => format!("inside/{house}"),
@@ -241,7 +241,7 @@ impl Editor {
         self.breaches.is_empty()
     }
 
-    fn get(&self, r: &Ref) -> Option<Thing> {
+    pub(super) fn get(&self, r: &Ref) -> Option<Thing> {
         match r {
             Ref::Town(i) => self.layout.items.get(*i).cloned().map(Thing::Item),
             Ref::Inside { house, i } => self.contents.get(house).and_then(|v| v.get(*i)).cloned().map(Thing::Item),
@@ -357,7 +357,7 @@ impl Editor {
     }
 
     /// Hvor huset med innholdet står (det første med den modellen).
-    fn house_pose(&self, house: &str) -> Affine3A {
+    pub(super) fn house_pose(&self, house: &str) -> Affine3A {
         self.layout.items.iter().find(|it| it.building && it.model.as_deref() == Some(house)).and_then(|it| it.at).map(|p| p.affine()).unwrap_or(Affine3A::IDENTITY)
     }
 
@@ -379,7 +379,7 @@ impl Editor {
 
     /// Boksen til tingen i dens eget rom (midte og halve mål): modellens
     /// mål, de usynlige veggene, eller en figur på 1,8 m.
-    fn local_box(&self, r: &Ref) -> Option<(Vec3, Vec3)> {
+    pub(super) fn local_box(&self, r: &Ref) -> Option<(Vec3, Vec3)> {
         match self.get(r)? {
             Thing::Item(it) => {
                 if let Some((lo, hi)) = it.model.as_deref().and_then(|m| self.scene.bounds(m)) {
@@ -492,7 +492,7 @@ impl Editor {
 
     /// Alt strålen treffer, nærmest først. Står du inni noe (et hus), er
     /// det tingene inne som treffes, ikke huset rundt deg.
-    fn hits(&self, origin: Vec3, dir: Vec3) -> Vec<Ref> {
+    pub(super) fn hits(&self, origin: Vec3, dir: Vec3) -> Vec<Ref> {
         let mut hits: Vec<(f32, Ref)> = vec![];
         for r in self.refs() {
             let (Some(pose), Some((c, h))) = (self.pose_of(&r), self.local_box(&r)) else {
@@ -524,7 +524,7 @@ impl Editor {
     }
 
     /// Endringen av én ting når posen i verden går fra `t` til `f(t)`.
-    fn pose_change(&self, r: &Ref, f: impl Fn(Affine3A) -> Affine3A) -> Option<Change> {
+    pub(super) fn pose_change(&self, r: &Ref, f: impl Fn(Affine3A) -> Affine3A) -> Option<Change> {
         let (before, world) = (self.get(r)?, self.pose_of(r)?);
         let new = f(world);
         let after = match before.clone() {
@@ -609,7 +609,7 @@ impl Editor {
     }
 
     /// Den laveste høyden tingen når (bunnen av boksen i verden).
-    fn foot(&self, r: &Ref) -> Option<f32> {
+    pub(super) fn foot(&self, r: &Ref) -> Option<f32> {
         let t = self.pose_of(r)?;
         let (c, h) = self.local_box(r)?;
         Some(rules::world_box(c - h, c + h, &t).0.y)
@@ -712,7 +712,7 @@ impl Editor {
             None => (Ref::Town(self.layout.items.len()), pose),
         };
         let mounted = matches!(r, Ref::Inside { .. });
-        let item = Item { model: Some(model.to_string()), at: Some(Pose::of(local)), mounted, ..Default::default() };
+        let item = Item { model: Some(model.to_string()), at: Some(Pose::of(local)), mounted, solids: self.default_solids(model), ..Default::default() };
         self.commit(vec![Change::Insert { r: r.clone(), thing: Thing::Item(item) }]);
         self.selection = vec![r.clone()];
         Some(r)

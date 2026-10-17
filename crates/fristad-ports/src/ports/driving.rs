@@ -2,7 +2,7 @@
 //! sender inn til spillet, og det de får tilbake. `application::App`
 //! implementerer `Play`; adapterne kjenner bare denne fila.
 
-use crate::domain::edit::{LineKind, Selected};
+use crate::domain::edit::{LineKind, Prop, Selected};
 use crate::domain::weather::{Daylight, WeatherKind};
 use crate::domain::world::layout::Ref;
 use glam::{Affine3A, Vec3};
@@ -209,6 +209,34 @@ pub enum EditCommand {
     WallHeight(f32),
     Undo,
     Redo,
+    /// Gå til steget `n` i historikken (0 er slik det var fra start).
+    UndoTo(usize),
+    /// Velg nummer `k` i lista over det som lå under pekeren (`add`: Shift).
+    SelectUnder {
+        k: usize,
+        add: bool,
+    },
+    /// Shift+Tab: det forrige under pekeren.
+    CycleBack,
+    /// Velg alt med midten innenfor rammen på skjermen (Shift+dra i tomt).
+    SelectBox {
+        a: (f32, f32),
+        b: (f32, f32),
+        add: bool,
+    },
+    /// Fantomkopien av en modell under pekeren før den settes ut (dra fra
+    /// katalogen), eller ingen.
+    Ghost(Option<(String, (f32, f32))>),
+    /// Drei fantomet (R: 90°), radianer.
+    GhostTurn(f32),
+    /// Fest til rutenettet (0,5 m) og vinkelen (15°): bryteren i panelet,
+    /// eller Ctrl holdt under et drag.
+    Snap(bool),
+    /// Sett en egenskap på det valgte (`Prop.key`, verdien som tekst).
+    SetProp {
+        key: String,
+        value: String,
+    },
 }
 
 /// Redigeringen sett utenfra: det valgte, reglene som er brutt, og om noe
@@ -227,6 +255,17 @@ pub struct EditView {
     /// Det som lå under pekeren ved siste klikk, nærmest først, og om det er
     /// valgt.
     pub under: Vec<(String, bool)>,
+    /// Egenskapene til det valgte (den første tingen).
+    pub props: Vec<Prop>,
+    /// Historikken (eldst først) og hvor mange steg som er gjort.
+    pub history: Vec<String>,
+    pub step: usize,
+    /// Festet til rutenett og vinkel er på.
+    pub snap: bool,
+    /// Fantomet under pekeren og det som er galt med det der (tomt er grønt).
+    pub ghost: Option<Vec<String>>,
+    /// Feilen fra siste egenskap som ikke kunne settes.
+    pub error: Option<String>,
 }
 
 /// Spillet sett utenfra.

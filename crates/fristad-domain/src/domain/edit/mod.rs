@@ -5,9 +5,14 @@
 
 mod crypt;
 mod editor;
+pub mod ghost;
+mod history;
+pub mod props;
 pub mod rules;
+mod select;
 
 pub use editor::{Editor, LineKind, Selected};
+pub use props::Prop;
 
 use crate::domain::model::ModelInfo;
 use crate::domain::world::crypt::level::{CryptContents, LevelFile};

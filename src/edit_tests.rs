@@ -521,7 +521,8 @@ fn musa_drar_heiser_og_dreier() {
     // Dra mot høyre i bildet (du ser mot øst): tønna går sørover langs bakken.
     drag(&mut s, Grab::Move, (0.1, 0.0));
     let moved = Vec3::from(pose(&s).translation) - at;
-    assert!(moved.z > 0.5 && moved.y.abs() < 1e-3, "flyttet {moved}");
+    // Satt ned igjen på bakken der den står nå (millimeter i den planerte byen).
+    assert!(moved.z > 0.5 && moved.y.abs() < 0.02, "flyttet {moved}");
     let under = s.to_screen(Vec3::from(pose(&s).translation) + Vec3::Y * 0.4).unwrap();
     assert!((under.0 - centre.0 - 0.1).abs() < 0.02, "tønna fulgte pekeren: {under:?}");
     assert!(s.edit_command(EditCommand::Undo));
@@ -586,4 +587,187 @@ fn bevegelige_deler_folger_med_i_redigeringen() {
     for p in &before {
         assert!(after.iter().any(|q| (*q - (*p + Vec3::X * 2.0)).length() < 1e-3), "{p} fulgte ikke med: {after:?}");
     }
+}
+
+/// Velge i dybden: lista over det som lå under pekeren kan klikkes i,
+/// Shift+Tab går den andre veien, og Alt+klikk gir det bakerste.
+#[test]
+fn dybden_velges_fra_lista_og_bakfra() {
+    use crate::domain::world::layout::Ref;
+    use glam::Vec3;
+    let mut e = editor();
+    let church = e.layout.items.iter().position(|it| it.model.as_deref() == Some("stave_church")).unwrap();
+    let (t, c, h) = e.box_of(&Ref::Town(church)).unwrap();
+    let inv = t.inverse();
+    let fence = (0..e.layout.items.len())
+        .filter(|i| e.layout.items[*i].model.as_deref() == Some("stone_fence"))
+        .find(|i| {
+            let p = inv.transform_point3(Vec3::from(e.pose_of(&Ref::Town(*i)).unwrap().translation) + Vec3::Y * 0.3) - c;
+            p.abs().cmple(h).all()
+        })
+        .expect("et steingjerde inni kirkas boks");
+    let top = Vec3::from(e.pose_of(&Ref::Town(fence)).unwrap().translation) + Vec3::Y * 40.0;
+    assert_eq!(e.pick(top, -Vec3::Y, false), Some(Ref::Town(church)));
+    let under = e.under().to_vec();
+    let k = under.iter().position(|r| *r == Ref::Town(fence)).expect("gjerdet står i lista");
+    assert_eq!(e.select_under(k, false), Some(Ref::Town(fence)));
+    assert_eq!(e.selection, vec![Ref::Town(fence)]);
+    // Shift i lista legger til.
+    e.select_under(0, true);
+    assert_eq!(e.selection.len(), 2);
+    // Shift+Tab fra det første går rundt til det bakerste.
+    e.select_under(0, false);
+    assert_eq!(e.cycle_back(), under.last().cloned());
+    // Alt+klikk: det bakerste med en gang.
+    assert_eq!(e.pick_deepest(top, -Vec3::Y), under.last().cloned());
+}
+
+/// Egenskapene: x og dreiningen skrives inn, fargen settes, merkene i
+/// krypten får `opens` og lysene rekkevidden, gale verdier gir en feil, og
+/// alt står i historikken og kan angres ved å klikke på et steg.
+#[test]
+fn egenskapene_settes_og_angres_fra_historikken() {
+    use crate::domain::world::layout::{Pose, Ref};
+    let mut e = editor();
+    let barrel = e.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let start = e.layout.items[barrel].clone();
+    e.selection = vec![Ref::Town(barrel)];
+    let props = e.props();
+    let x: f32 = props.iter().find(|p| p.key == "x").unwrap().value.parse().unwrap();
+    assert!(props.iter().any(|p| p.key == "tint"), "{props:?}");
+    e.set_prop("x", &format!("{}", x + 2.0)).unwrap();
+    let moved = e.pose_of(&Ref::Town(barrel)).unwrap().translation.x;
+    assert!((moved - (x + 2.0)).abs() < 0.01, "x {moved}");
+    e.set_prop("yaw", "90").unwrap();
+    let yaw = Pose::of(e.pose_of(&Ref::Town(barrel)).unwrap()).yaw().to_degrees();
+    assert!((yaw - 90.0).abs() < 0.5, "dreining {yaw}");
+    e.set_prop("tint", "#ff8000").unwrap();
+    assert_eq!(e.layout.items[barrel].tint.map(crate::domain::edit::props::hex).as_deref(), Some("#ff8000"));
+    assert!(e.set_prop("x", "mye").is_err());
+    assert!(e.set_prop("tint", "rød").is_err());
+    let (steps, at) = e.history();
+    assert_eq!(at, 3);
+    assert_eq!(steps, vec!["Flyttet barrel", "Flyttet barrel", "Endret barrel"]);
+    // Klikk på det første steget: bare flyttingen står.
+    assert!(e.undo_to(1));
+    assert_eq!(e.layout.items[barrel].tint, start.tint);
+    assert_eq!(e.history().0.len(), 3, "stegene etter står til å gjøres om");
+    assert!(e.undo_to(0));
+    assert_eq!(e.layout.items[barrel], start);
+    assert!(e.undo_to(3));
+    assert!(e.layout.items[barrel].tint.is_some());
+
+    // Spaken i nivå 1 åpner to porter; lyset når lenger.
+    let lever = e.crypt[&1].marks.iter().position(|m| m.kind == "lever").unwrap();
+    e.selection = vec![Ref::Crypt { level: 1, i: lever }];
+    assert!(e.props().iter().any(|p| p.key == "opens"));
+    e.set_prop("opens", "gitter_1, gitter_2").unwrap();
+    assert_eq!(e.crypt[&1].marks[lever].opens, vec!["gitter_1".to_string(), "gitter_2".to_string()]);
+    e.selection = vec![Ref::CryptLight { level: 1, i: 0 }];
+    e.set_prop("range", "14").unwrap();
+    e.set_prop("color", "#ffffff").unwrap();
+    e.set_prop("flicker", "nei").unwrap();
+    let l = &e.crypt[&1].lights[0];
+    assert_eq!((l.range, l.color, l.flicker), (14.0, [1.0, 1.0, 1.0], false));
+    let mob = e.crypt[&1].marks.iter().position(|m| m.kind == "mob").unwrap();
+    e.selection = vec![Ref::Crypt { level: 1, i: mob }];
+    e.set_prop("patrol", "0,0,11; 4,0,33").unwrap();
+    assert_eq!(e.crypt[&1].marks[mob].patrol, vec![[0.0, 0.0, 11.0], [4.0, 0.0, 33.0]]);
+    assert!(e.props().iter().any(|p| p.key == "label" && p.label == "slag"));
+}
+
+/// Å sette ut raskt: fantomet følger pekeren og sier fra om reglene, R
+/// dreier det, festet setter det på rutenettet og vinkelen, og slippet
+/// setter det ned på bakken. Et drag med festet på havner også på
+/// rutenettet, og et drag langs bakken setter tingen ned igjen.
+#[test]
+fn fantomet_festet_og_slippet() {
+    use crate::domain::edit::ghost::{snap, ANGLE, GRID};
+    use crate::domain::world::layout::{Pose, Ref};
+    use crate::ports::driving::{EditCommand, Event, Grab};
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let at = d.layout.items[barrel].at.unwrap().pos;
+    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    s.frame(1.6);
+    assert!(s.edit_command(EditCommand::Enter));
+    let view = |s: &mut crate::application::Session, physics: &mut crate::adapters::rapier::RapierPhysics| {
+        let mut input = crate::ports::driving::Input::default();
+        s.update(&mut input, 0.016, physics).into_iter().rev().find_map(|e| match e {
+            Event::Edit(Some(v)) => Some(v),
+            _ => None,
+        })
+    };
+    // Festet på og dreid, så et sted der fantomet er grønt.
+    s.edit_command(EditCommand::GhostTurn(std::f32::consts::FRAC_PI_2));
+    s.edit_command(EditCommand::Snap(true));
+    let mut spot = None;
+    let mut red = 0;
+    for k in 0..40 {
+        let p = at + Vec3::new((k % 5) as f32 * 1.5 - 3.0, 0.0, (k / 5) as f32 * 1.5 - 5.0);
+        let Some(sp) = s.to_screen(p) else { continue };
+        assert!(s.edit_command(EditCommand::Ghost(Some(("barrel".into(), sp)))));
+        let v = view(&mut s, &mut physics).expect("utsikten");
+        let g = v.ghost.expect("fantomet står");
+        if g.is_empty() {
+            spot = Some(sp);
+            break;
+        }
+        red += 1;
+    }
+    let spot = spot.expect("et grønt sted nær tønna");
+    // Der den gamle tønna står, er fantomet rødt (pekeren på tønna setter
+    // det oppå den, som er lov).
+    let old = d.layout.items[barrel].at.unwrap().affine();
+    let bad = s.editor().unwrap().ghost_breaches("barrel", &old);
+    assert!(bad.iter().any(|b| b.contains("inni")), "{bad:?} (prøvde {red} røde steder først)");
+    s.edit_command(EditCommand::Ghost(Some(("barrel".into(), spot))));
+    let frame = s.frame(1.6);
+    assert!(frame.instances.iter().any(|i| i.model == "barrel" && (Vec3::from(i.transform.translation) - at).length() > 0.5), "fantomet tegnes");
+    assert!(s.edit_command(EditCommand::Place { model: "barrel".into(), at: Some(spot) }));
+    let e = s.editor().unwrap();
+    // Den nye tønna er valget (i byen eller i huset den står i).
+    let new: Ref = e.selection[0].clone();
+    assert_eq!(e.label(&new), "barrel");
+    let p = Pose::of(e.pose_of(&new).unwrap());
+    assert!((p.pos.x - snap(p.pos.x, GRID)).abs() < 1e-3 && (p.pos.z - snap(p.pos.z, GRID)).abs() < 1e-3, "på rutenettet: {}", p.pos);
+    assert!((p.yaw() - snap(p.yaw(), ANGLE)).abs() < 1e-3, "på vinkelen: {}", p.yaw().to_degrees());
+    assert!(e.clean(), "satt ned uten brudd: {:?}", e.breaches());
+    assert!(s.frame(1.6).instances.iter().filter(|i| i.model == "barrel").count() >= 1);
+
+    // Dra den nye tønna med festet på: den havner på rutenettet.
+    let centre = s.to_screen(p.pos + Vec3::Y * 0.4).unwrap();
+    assert!(s.edit_command(EditCommand::Press { at: centre, add: false, grab: Grab::Move }));
+    for k in 1..=6 {
+        s.edit_command(EditCommand::Drag { to: (centre.0 + 0.013 * k as f32, centre.1) });
+    }
+    s.edit_command(EditCommand::Release);
+    let q = s.editor().unwrap().pose_of(&new).unwrap();
+    let q = Pose::of(q);
+    assert!((q.pos.z - snap(q.pos.z, GRID)).abs() < 1e-3 && (q.pos - p.pos).length() > 0.4, "draget festet: {} fra {}", q.pos, p.pos);
+    assert!(s.editor().unwrap().clean(), "satt ned etter draget: {:?}", s.editor().unwrap().breaches());
+    s.edit_command(EditCommand::Ghost(None));
+    assert!(view(&mut s, &mut physics).unwrap().ghost.is_none());
+}
+
+/// Boksvalg: en ramme rundt tønna på skjermen velger den.
+#[test]
+fn rammen_velger_det_innenfor() {
+    use crate::domain::world::layout::Ref;
+    use crate::ports::driving::EditCommand;
+    use glam::Vec3;
+    let mut physics = crate::adapters::rapier::RapierPhysics::new();
+    let mut s = edit_session(&mut physics);
+    let d = edit_world().edit.as_ref().unwrap();
+    let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
+    let at = d.layout.items[barrel].at.unwrap().pos;
+    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    s.frame(1.6);
+    assert!(s.edit_command(EditCommand::Enter));
+    let c = s.to_screen(at + Vec3::Y * 0.4).unwrap();
+    assert!(s.edit_command(EditCommand::SelectBox { a: (c.0 - 0.03, c.1 - 0.05), b: (c.0 + 0.03, c.1 + 0.05), add: false }));
+    assert!(s.editor().unwrap().selection.contains(&Ref::Town(barrel)), "{:?}", s.editor().unwrap().selection);
 }
