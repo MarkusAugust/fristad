@@ -208,3 +208,24 @@ Utlegget `tools/crypt/layouts/layout_08.py` etter planen `levels/level_08.py`. A
 - **Faner over døråpninger**: kollideren under fanen (1,6–3,6 m over gulvet) stoppet boten i døra til våpenkammeret. Faner henger ikke over åpninger.
 - **Sprekken** (`hint` «crack») står 2 cm foran muren med murens `yaw`, ved siden av den falske veggen, ikke midt i rommet (ellers har den ingen kollider å stå mot).
 - `cargo test --release gjennomspilling -- --ignored` går gjennom nivå 1–8 (spakene ved statuene, gitterspaken, Navbaren og trappa ned), 51 s.
+
+## 17. oktober (hjelper): nivå 9, Overgangen
+
+Utlegget `tools/crypt/layouts/layout_09.py` etter planen `levels/level_09.py`. Første nivå i temaet «Den korrupte kjernen», der borgen går over i Fristil: **Sømporten** (start, døra opp; vanlig stein, men de første fiolette sømmene i fugene) → **Sprekkgangen** (knappene, fragmenter som løsner fra taket) → **Speilsalen** (plastgulv, to rader søyler som speiler hverandre, sømmer i murene; rustflekkene i vestmuren er den falske veggen til **Det andre rommet** med lappen og + liv) → trappa ut på **Brohodet**, en hylle langs vestmuren i **Tomrommet** (56 × 48 m, bunnen 16 m under broene, sømmer som lyser i bunnen, løse biter av plast i lufta) → broa til **Den siste steinen** (holmen med hvilestedet under den hvite lyssøyla) → den smale broa sørover til **Borgfragmentet** (kista og fanen fra ridderhallen) og broa østover til **Østkanten** → trappa ned i **Plastkammeret** (tabellene patruljerer, kista) med **Arkivet** (den siste lesbare boka) → trappa ned i **Kuben** (bakholdet, Tabs, «Nettets stemme», og sømmen i østmuren som er spaken til **sømgitteret**) → gangen til **Tvillingsalen** (to like søyler, Tvillingvokteren med nøkkelen, tre tabeller) → **Tvillingporten** → nedgangen til nivå 10. Snarveien går fra Kuben tilbake til Østkanten (slåen på kubesida). Faller du i tomrommet, står du på bunnen og klatrer opp stigene til holmen eller Østkanten. 46 500 trekanter i 39 biter, 240 kollidere, 760 nav-polygoner, 52 lys; 0 hull i tetthetssjekken (1 938 punkter), og motorens sprekkesjekk (hvert tredje punkt fra `leak_points.py 9 6`) finner 9 enkeltpiksler (1 px), ingen åpninger.
+
+### Nytt (felles kode)
+- **Materialene `plastic` og `magic_seam`** i `kit_grav.MATS`. Det malte bildet `core_plastic` finnes, men er ikke et teksturlag (lagene er nesten fulle, 46 av 48), så plasten er `plaster_white` med en kald, lys tone og lav ruhet til laget kommer. `magic_seam` gløder fiolett hele døgnet (`magic…`); bunnen i tomrommet bruker teksturlaget `glitch_seam`.
+
+### Byttet ut og ikke gjort
+- Planens fiender: **Card → button**, **Tabs → accordion**, **Skeleton loader → breadcrumb**, **Popover → tooltip**, **Grid → table**, **Tvillingvokteren → modal** som elite med nøkkelen. Det sjeldne funnet i kuben er **Tabs** (Radio finnes ikke som komponent i spillet).
+- Speilsalen glitcher ikke mellom to tilstander, og kuben vrir seg ikke: begge er vanlige rom. Fellen «rommet vrir seg» er ikke satt ut, og de blinkende flisene i Sprekkgangen er en `rocks`-felle.
+- Tomrommet er et vertsrom med bunn (`nowalk`, som sjøen i nivå 6), ikke et tomrom uten bunn; `Session.safe` trengs ikke, siden du lander på bunnen og klatrer opp. Planens eget fallhull fra plastkammeret og stigen fra nettet opp til kuben er byttet mot stigene til holmen og Østkanten.
+- Broene er faste murte broer (`stone_bridge`) på samme høyde (−4 m); planens høydeforskjeller mellom plattformene ligger i trappene inn og ut av tomrommet.
+- Ingen egne teksturer for plasten eller kjernen ennå.
+
+### Lærdom
+- **Søyler i rektangelrom**: `L.poly_vault_y` gjelder bare mangekantrom med klosterhvelv; i rektangelrom tas toppen fra `B.pillar_top`.
+- **Tomrommet er mørkt med vilje**, men blokkene under plattformene forsvant helt i svart. Sømmene i bunnen må være brede (0,7 m) og ha lys oppover (fire fiolette lys 8 m over bunnen), ellers ser du ikke at det er en bunn.
+- **Retningen på det du bruker**: merket vender i sin +Z dreid med `yaw` (yaw 0 vender mot +z, `P/2` mot +x, `-P/2` mot −x, `P` mot −z), og `alt_du_kan_bruke_kan_siktes_pa` skyter fra 60 cm foran. En lapp ved nordmuren (lav z) skal ha yaw 0; med `P` vendte den mot muren og kunne ikke siktes på.
+- **Ingenting midt i en døråpning**: lappen i kuben sto først foran gangen inn fra plastkammeret. Se på kartet (`nav_09.png`) hvor gangene treffer muren før merkene settes langs den.
+- `cargo test --release gjennomspilling -- --ignored` går gjennom nivå 1–9 (eliten med nøkkelen, sømspaken, Tvillingporten og trappa ned), 66 s.

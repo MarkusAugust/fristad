@@ -143,6 +143,10 @@ MATS = {
     "cloth_red": ("wool", (0.55, 0.12, 0.1), 0.85),
     "cloth_blue": ("wool", (0.12, 0.18, 0.45), 0.85),
     "mud": ("mud", (1.0, 1.0, 1.0), 0.8),
+    # Plasten i den korrupte kjernen (nivå 9–10): glatt og blek. Det malte
+    # bildet `core_plastic` er ikke et teksturlag ennå (lagene er nesten
+    # fulle), så plasten er kalkpuss med en kald, lys tone og lav ruhet.
+    "plastic": ("plaster_white", (0.82, 0.83, 0.86), 0.22),
     "fire_torch": None,
     "fire_candle": None,
     "fire_lamp": None,
@@ -151,6 +155,7 @@ MATS = {
     "magic_pink": None,
     "magic_down": None,
     "magic_bonus": None,
+    "magic_seam": None,  # sømmene som lyser fiolett i muren (nivå 9–10)
     "water": None,
 }
 # Fargene til de spesielle materialene (lineær RGB).
@@ -163,6 +168,7 @@ SPECIAL = {
     "magic_pink": ((1.0, 0.45, 0.8), 0.2),
     "magic_down": ((0.25, 0.45, 1.0), 0.3),
     "magic_bonus": ((1.0, 0.72, 0.25), 0.3),
+    "magic_seam": ((0.7, 0.35, 1.0), 0.2),
     "water": ((0.02, 0.04, 0.05), 0.05),
 }
 
