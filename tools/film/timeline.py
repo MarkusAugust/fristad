@@ -42,14 +42,17 @@ SHOTS = [
     dict(name="15_tyngre", t=(85.6, 88.4), clip="08_komponentboken", clip_in=5.0, still="shots/08_komponentboken.jpeg", move=((0.3, 0.58, 0.62), (0.3, 0.58, 0.56)), enter=("mix", 0.6), grade="cold", voice=[(13, 85.7)]),
     dict(name="16_bruddet", t=(88.4, 95.0), clip="16_bruddet", still="opening/fallet/bg.webp", move=((0.5, 0.5, 1.0), (0.5, 0.5, 0.9)), enter="cut", grade="glitch", amb=["loop_cave"], voice=[(14, 88.6), (15, 91.5)], sfx=[("thunder", 88.4)]),
     dict(name="17_rammeverket", t=(95.0, 105.6), clip="17_rammeverket", still="shots/17_rammeverket.png", move=((0.6, 0.6, 0.85), (0.6, 0.45, 0.8)), enter=("white", 0.3), grade="night", amb=["loop_storm", "loop_rain"], voice=[(16, 95.3)], sfx=[("thunder", 95.0), ("thunder", 101.5)]),
-    dict(name="18_kirkegaarden", t=(105.6, 122.0), clip="18_kirkegaarden", still="opening/begravelsen/mid.webp", move=((0.5, 0.5, 1.0), (0.56, 0.58, 0.5)), enter=("black", 1.4), grade="night", amb=["loop_owl", "loop_wind"], voice=[(17, 105.7), (18, 108.2), (19, 116.0)]),
-    dict(name="20_doren_mures", t=(122.0, 125.4), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.45), (0.62, 0.6, 0.42)), enter=("mix", 1.0), grade="night", amb=["loop_wind"], voice=[(20, 122.9)], titles=[("heading", "Han kom aldri opp.", 122.9, 126.0, 1.3)]),
-    dict(name="21_jorda", t=(125.4, 130.4), clip="21_jorda", still="intro/jordlag.webp", move=((0.5, 0.36, 0.62), (0.5, 0.74, 0.62)), enter=("mix", 1.2), grade="crypt", amb=["loop_drips"], voice=[(21, 125.5)]),
-    dict(name="22_det_som_sover", t=(130.4, 135.8), clip="22_det_som_sover", still="shots/22_det_som_sover.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.6, 0.62)), enter=("mix", 0.8), grade="crypt", amb=["loop_cave", "loop_drips"], voice=[(22, 130.6)]),
-    dict(name="23_veien", t=(135.8, 149.0), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(23, 136.2), (24, 142.6)], titles=[("title", "Fristad · Anno 1350", 144.0, 149.0, 2.0)]),
+    # Gorvek (kanon 17. oktober). Replikk 17 og 18 er de gamle til de nye er spilt inn; 17b og 22b mangler.
+    dict(name="17b_gorvek", t=(105.6, 115.6), clip="17b_gorvek", still="shots/17b_gorvek.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.45, 0.8)), enter=("mix", 0.6), grade="night", amb=["loop_storm", "loop_rain"], voice=[(17, 105.9)], sfx=[("thunder", 107.0)], titles=[("heading", "Gorvek", 108.2, 112.5, 0.6)]),
+    dict(name="18b_delene", t=(115.6, 125.6), clip="18b_delene", still="shots/18b_delene.jpeg", move=((0.4, 0.55, 1.0), (0.6, 0.55, 0.82)), enter=("mix", 1.2), grade="night", amb=["loop_owl", "loop_wind"], voice=[(18, 116.0)]),
+    dict(name="18_kirkegaarden", t=(125.6, 142.0), clip="18_kirkegaarden", still="opening/begravelsen/mid.webp", move=((0.5, 0.5, 1.0), (0.56, 0.58, 0.5)), enter=("mix", 1.4), grade="night", amb=["loop_owl", "loop_wind"], voice=[(19, 128.0)]),
+    dict(name="20_doren_mures", t=(142.0, 145.4), still="opening/begravelsen/bg.webp", move=((0.62, 0.6, 0.45), (0.62, 0.6, 0.42)), enter=("mix", 1.0), grade="night", amb=["loop_wind"], voice=[(20, 142.9)], titles=[("heading", "Han kom aldri opp.", 142.9, 146.0, 1.3)]),
+    dict(name="21_jorda", t=(145.4, 150.4), clip="21_jorda", still="intro/jordlag.webp", move=((0.5, 0.36, 0.62), (0.5, 0.74, 0.62)), enter=("mix", 1.2), grade="crypt", amb=["loop_drips"], voice=[(21, 145.5)]),
+    dict(name="22_det_som_sover", t=(150.4, 155.8), clip="22_det_som_sover", still="shots/22_det_som_sover.jpeg", move=((0.5, 0.5, 1.0), (0.45, 0.6, 0.62)), enter=("mix", 0.8), grade="crypt", amb=["loop_cave", "loop_drips"], voice=[(22, 150.6)]),
+    dict(name="23_veien", t=(155.8, 169.0), clip="23_veien", still="shots/23_veien.jpeg", move=((0.45, 0.5, 1.0), (0.6, 0.5, 0.78)), enter=("black", 1.6), grade="gold", amb=["loop_birds", "loop_wind"], voice=[(23, 156.2), (24, 162.6)], titles=[("title", "Fristad · Anno 1350", 164.0, 169.0, 2.0)]),
 ]
 
-END = 149.0
+END = 169.0
 FADE_OUT = 2.5  # filmen toner til svart (spillet står bak)
 
 # Partituret (cuene i web/score.js) etter tidslinja.
@@ -62,8 +65,9 @@ MUSIC = [
     (59.6, "inquisition"),
     (74.0, "workarounds"),
     (88.4, "fall"),
-    (105.6, "burial"),
-    (125.4, "crypt"),
-    (135.8, "gate"),
-    (147.0, "stop"),
+    (105.6, "fall"),
+    (115.6, "burial"),
+    (145.4, "crypt"),
+    (155.8, "gate"),
+    (167.0, "stop"),
 ]
