@@ -5,8 +5,7 @@
 import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
-import { createFilm } from "./film/film.js";
-import { createScore } from "./score.js";
+import { createFilm } from "./film/player.js";
 import { createSounds } from "./sounds.js";
 import { createEditor } from "./editor.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
@@ -1221,10 +1220,10 @@ function pause() {
   }
 }
 
-// Åpningsfilmen (web/film/, docs/film/manus.md) spilles hver gang med ett
-// klikk («Klikk for å begynne», som også gir lyd) når byen er bygd: en malt
-// film om mønsterboka, kongens bud og forseglingen av krypten (kanon:
-// docs/kanon.md), som toner over i spillet ved sørporten. `?nofilm` hopper
+// Åpningsfilmen (den ferdige videoen film/intro.mp4, klippet av
+// tools/film/cut.py; manuset i docs/film/manus.md, kanon i docs/kanon.md)
+// spilles hver gang med ett klikk («Klikk for å begynne», som også gir lyd)
+// når byen er bygd, og toner over i spillet ved sørporten. `?nofilm` hopper
 // over den.
 const FILM = !EDIT && !new URLSearchParams(location.search).has("nofilm");
 let film = null;
@@ -1239,13 +1238,11 @@ async function startFilm() {
     sfx.preload();
   }
   music.set("silence");
-  const score = createScore(() => sfx.context(), "music/");
-  await score.load().catch(() => {});
   engine.set_theme(false);
   engine.set_paused(false);
   filmReveal = false;
   try {
-    film = await createFilm({ score, audio: () => sfx.context() });
+    film = createFilm();
   } catch (e) {
     console.warn("Filmen kunne ikke vises:", e);
     enter();
@@ -1253,7 +1250,6 @@ async function startFilm() {
   }
   const { skipped } = await film.done;
   film = null;
-  score.stop(2.5);
   // Hoppet over: rett til sørporten om dagen.
   if (skipped || !filmReveal) {
     engine.set_theme(false);

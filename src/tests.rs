@@ -603,7 +603,7 @@ fn kanon_ingen_moderne_ord_i_verden() {
             _ => {}
         }
     }
-    let mut files = vec![format!("{root}/assets/layout/town.json"), format!("{root}/web/film/opening.json")];
+    let mut files = vec![format!("{root}/assets/layout/town.json"), format!("{root}/assets/film/voice/lines.json")];
     for e in std::fs::read_dir(format!("{root}/assets/models/crypt")).expect("krypten").flatten() {
         let p = e.path();
         if p.extension().is_some_and(|x| x == "json") {
@@ -613,8 +613,7 @@ fn kanon_ingen_moderne_ord_i_verden() {
     for f in files {
         let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&f).expect("fila")).expect("gyldig json");
         let mut out = vec![];
-        // I filmen er bare tekstene verdens ord (merknaden er til oss).
-        strings(if f.ends_with("opening.json") { &v["texts"] } else { &v }, &mut out);
+        strings(&v, &mut out);
         texts.extend(out.into_iter().map(|t| (f.clone(), t)));
     }
     let bad: Vec<String> = texts

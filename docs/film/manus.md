@@ -96,7 +96,7 @@ Skrives bokstav for bokstav i takt med stemmen (`titles` i `tools/film/timeline.
 
 ## Tekstene (ordrett, den gamle three.js-utgaven)
 
-Hver tekst står i rommet på dybden oppgitt i manuset (`texts` i `web/film/opening.json`), og kommer ord for ord. Skrift: overskrifter i UnifrakturMaguntia, fortellingen i Uncial Antiqua. **Uthevet** er overskrift eller sitat.
+(Den gamle malte filmen; tekstene står her for historikken.) Skrift: overskrifter i UnifrakturMaguntia, fortellingen i Uncial Antiqua. **Uthevet** er overskrift eller sitat.
 
 1. **Fristad**
    *Riket var fullt av byer, og hver by hadde sitt skriptorium og sitt eget tungemål.*
@@ -335,4 +335,4 @@ Partituret i `web/score.js` (ekte instrumentprøver). Cuene følger delene: morg
 
 ## Bygd
 
-Bildene gjøres klare med `python3 tools/film/cutout.py`, og filmen legges ut som data med `python3 tools/film/intro.py` (skriver `web/film/opening.json`): hver scene (`Scene`) har et heltekamera, et maleri (`backdrop`) og utklipp plassert i bildet med midten, foten, høyden og dybden (`figure`). Filmen i motoren, maleriene over motoren, penselfilteret og gangen, pusten og svaiingen i lagene er fjernet.
+Bildene gjøres klare med `python3 tools/film/cutout.py`, og filmen klippes med `python3 tools/film/cut.py` etter `tools/film/timeline.py` (skriver `web/film/opening.json`): hver scene (`Scene`) har et heltekamera, et maleri (`backdrop`) og utklipp plassert i bildet med midten, foten, høyden og dybden (`figure`). Filmen i motoren, maleriene over motoren, penselfilteret og gangen, pusten og svaiingen i lagene er fjernet.
