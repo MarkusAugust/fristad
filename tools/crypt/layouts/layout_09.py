@@ -93,8 +93,9 @@ def marks(_):
         {"kind": "hint", "label": "crack", "pos": [-10.95, SPEIL, 49.6], "yaw": P / 2, "for": BAK},
         {"kind": "bonus", "pos": [-20.4, SPEIL, 48.0], "yaw": P / 2, "label": "liv"},
         {"kind": "lore", "pos": [-18.0, SPEIL, 44.9], "yaw": 0.0, "label": "Lappen i det andre rommet",
-         "text": "Rommet her er likt det store, bare mindre, som et speilbilde noen glemte å rive. "
-                 "Jeg sto lenge og ventet på at det skulle bli til noe. Det ble det ikke. Ta med deg det som er her, og gå."},
+         "text": "Rommet her er likt det store, bare mindre, som et speilbilde noen glemte å rive. Rammeverket bygger "
+                 "alt to ganger; det klarer ikke å la noe være slik det er. Jeg sto lenge og ventet på at det skulle "
+                 "bli til noe. Det ble det ikke. Ta med deg det som er her, og gå. A."},
         # Brohodet og broene.
         {"kind": "mob", "pos": [17.5, d, 62], "label": "tooltip"},
         {"kind": "mob", "pos": [28, d, 60], "label": "tooltip", "n": 2},
@@ -106,8 +107,9 @@ def marks(_):
         {"kind": "mob", "pos": [FRAG["c"][0], d, FRAG["c"][1]], "label": "breadcrumb", "n": 3},
         {"kind": "chest", "pos": [FRAG["c"][0] + 1.8, d, FRAG["c"][1] + 1.6], "yaw": P * 0.8},
         {"kind": "lore", "pos": [FRAG["c"][0] - 2.4, d, FRAG["c"][1] + 1.2], "yaw": P / 2, "label": "Fanen på borgfragmentet",
-         "text": "Fanen fra ridderhallen henger her, på en bit av muren som ikke lenger står på noe. "
-                 "Rammeverket tok borgen bit for bit og glemte å ta resten."},
+         "text": "Fanen fra ridderhallen henger her, på en bit av muren som ikke lenger står på noe. Rammeverket tar "
+                 "til seg alt som ble bygd i det, bit for bit, og glemmer å ta resten. Slik vokser det seg helt igjen: "
+                 "av det vi lot ligge. A."},
         # Østkanten.
         {"kind": "mob", "pos": [68.5, d, 66], "label": "table"},
         {"kind": "shortcut", "id": SNARVEI, "from": "kube", "pos": [88, KUBE, 76], "yaw": P / 2, "width": 1.6},
@@ -119,16 +121,18 @@ def marks(_):
         # Arkivet.
         {"kind": "mob", "pos": [112, PLAST, 35], "label": "breadcrumb", "n": 2},
         {"kind": "lore", "pos": [112, PLAST, 28.6], "yaw": 0.0, "label": "Den siste lesbare boka",
-         "text": "Dette er den siste boka i arkivet som står i Mønsterboka sitt språk. De andre er skrevet om "
-                 "til hoffets tunge og så om igjen, til ingen kunne lese dem. Mønsteret er ikke borte. "
-                 "Det er bare glemt. Den som husker en knapp, husker alle."},
+         "text": "Dette er den siste boka i arkivet som står i mønsterbokas eget mål, det som kunne leses på alle "
+                 "tungemål. De andre ble skrevet om til hoffets tunge, og så om igjen etter oppgraderingen, til ingen "
+                 "kunne lese dem. Mønsteret er ikke borte. Det er bare glemt. Den som husker hvordan en Button skal "
+                 "være, husker resten. Ansgar."},
         # Kuben: bakholdet, sømmen er spaken.
         {"kind": "mob", "pos": [95, KUBE, 76], "label": "breadcrumb i bakhold", "n": 4, "ambush": "kube"},
         {"kind": "lever", "id": "sommen_9", "pos": [101.4, KUBE, 72.0], "yaw": -P / 2, "opens": [GITTER]},
         {"kind": "rare", "pos": [101.4, KUBE, 80.0], "yaw": -P / 2, "label": "Tabs"},
         {"kind": "lore", "pos": [88.6, KUBE, 81.5], "yaw": P / 2, "label": "Nettets stemme",
-         "text": "Herfra hører du det: en stemme bak veggene som teller. Én, to, tre, og så på nytt. "
-                 "Munkene skrev at Rammeverket aldri sover, det bare venter på neste tikk."},
+         "text": "Herfra hører du det: en stemme bak veggene som teller. Én, to, tre, og så på nytt. Det er hjertet, "
+                 "den delen Gorvek aldri fikk delt. Det sover ikke. Det teller delene som kommer hjem. Jeg går ned for "
+                 "å se hvor mange de er. Ansgar."},
         {"kind": "gate", "id": GITTER, "pos": [95, KUBE, 85.0], "yaw": 0.0, "width": 2.2},
         # Tvillingsalen: vokteren med nøkkelen.
         {"kind": "mob", "pos": [58, TVILLING, 92], "label": "tooltip", "n": 2},

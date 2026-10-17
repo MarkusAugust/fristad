@@ -33,7 +33,7 @@
     {"kind":"chest","pos":[66.9,-8,80.4],"yaw":3.14159},
     {"id":"fallem_3","kind":"trapdoor","label":"bolted","pos":[35,-5,80],"size":[1.2,1.2],"to":"stigerom","yaw":0},
     {"kind":"ladder","pos":[35,-8.6,79.46],"top":[35,-5,81.25],"yaw":0},
-    {"kind":"lore","label":"Slusevokterens dagbok","pos":[49,-4,39.3],"text":"Vannet stiger hver vår, og slusa er det eneste som holder kapellet tørt. Den store selecten i silkammeret har tatt nøkkelen til porten ned. Jeg tør ikke gå dit.","yaw":0},
+    {"kind":"lore","label":"Slusevokterens dagbok","pos":[49,-4,39.3],"text":"Skriverne kastet lappene sine i sluket, natt etter natt: omvei på omvei, regel over regel, til ingen visste hva som var boka og hva som var lapper. Alt rant hit ned. Nå stiger vannet hver vår, og slusa er det eneste som holder kapellet tørt. Den store Selecten i silkammeret har tatt nøkkelen til porten ned. Den vil bare at jeg skal velge. Jeg tør ikke gå dit.","yaw":0},
     {"kind":"bonus","label":"liv","pos":[54.6,-4,42.6],"yaw":3.14159},
     {"ambush":"rottereir","kind":"mob","label":"toast i bakhold","n":4,"pos":[4,-3.4,44],"yaw":0},
     {"kind":"chest","pos":[9.5,-3.4,46],"yaw":-1.5708},

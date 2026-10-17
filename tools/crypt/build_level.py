@@ -247,7 +247,10 @@ def marks_1(y):
         {"kind": "trapdoor", "id": "bronn_1", "label": "shaft", "pos": [-36, -1, 42], "size": [1.6, 1.6], "to": "sjaktbunn"},
         {"kind": "hint", "label": "draft", "pos": [-36, -1, 42], "for": "bronn_1"},
         {"kind": "lore", "pos": [-30.5, -8, 21.2], "yaw": 0.0, "label": "Gravskriveren",
-         "text": "Den som faller ned i brønnen, er ikke den første. Gå mot øst, under sidegraven er det en stige, og lemmen er boltet herfra."},
+         "text": "Vi lokket dem ned med lykter og sang, og Gorveks menn bar delene etter dem i lenker, én etter én. "
+                 "Mester Ansgar gikk sist, med de siste sidene av mønsterboka. Bak ham murte vi igjen. Den som faller "
+                 "ned i brønnen, er ikke den første: gå mot øst, under sidegraven står en stige, og lemmen er boltet "
+                 "herfra."},
         {"kind": "bonus", "pos": [-26, -8, 26.5], "yaw": P, "label": "liv"},
         {"kind": "ladder", "pos": [-12, -8, 20.66], "yaw": 0.0, "top": [-12, 0, 22.45]},
         {"kind": "mob", "pos": [30, -3, 47], "label": "tooltip", "n": 3},

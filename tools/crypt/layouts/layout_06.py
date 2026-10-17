@@ -117,8 +117,9 @@ def marks(_):
         {"kind": "mob", "pos": [12, -4, 52], "label": "accordion i bakhold", "n": 3, "ambush": "ekko"},
         {"kind": "chest", "pos": [5.0, -4, 51.0], "yaw": -P / 2},
         {"kind": "lore", "pos": [16.5, -4, 61.6], "yaw": P, "label": "Gruvemesterens tavle",
-         "text": "Vi brøt gjennom til grottene i den tolvte uka. Krystallene lyser av seg selv, og vannet i sjøen er svart og stille. "
-                 "Tre av karene gikk ned i kløfta etter den store åra og kom ikke opp. Det som synger der nede, er ikke vind."},
+         "text": "Vi brøt gjennom til grottene i den tolvte uka. Krystallene lyser av seg selv, og vannet i sjøen er "
+                 "svart og stille. Langs stranda går et spor etter noe tungt som er slept nedover, ledd for ledd. Tre "
+                 "av karene gikk ned i kløfta etter det og kom ikke opp. Det som synger der nede, er ikke vind."},
         # Dryppsteinshallen: de tre resonanskrystallene (spakene) åpner krystallveggen når alle er slått an.
         {"kind": "mob", "pos": [86, -5, 27], "label": "accordion i bakhold", "ambush": 4.0},
         {"kind": "mob", "pos": [94, -5, 36], "label": "breadcrumb", "n": 3, "patrol": [[86, -5, 30], [100, -5, 24], [104, -5, 42], [90, -5, 48]]},
@@ -136,8 +137,9 @@ def marks(_):
         {"kind": "mob", "pos": [93, -9, 77], "label": "tooltip", "n": 3},
         # Den skjulte kilden.
         {"kind": "lore", "pos": [84.5, CAVE, 61.6], "yaw": P, "label": "Den druknede gruvearbeideren",
-         "text": "Her kom jeg opp. Luft, og lys fra krystallene. Sprekken i sørveggen fører ut i den store trappa; "
-                 "jeg hører noe folde seg ut der nede, lag på lag. Jeg går ikke ned igjen."},
+         "text": "Her kom jeg opp. Luft, og lys fra krystallene. Sprekken i sørveggen fører ut i den store trappa. Der "
+                 "nede hører jeg noe folde seg ut, lag på lag, og to stykker jern som leter etter hverandre i mørket. "
+                 "De finner hverandre. Jeg går ikke ned igjen."},
         {"kind": "bonus", "pos": [83.0, CAVE, 69.4], "yaw": P, "label": "utholdenhet"},
         # Vindeltrappa og forkammeret.
         {"kind": "mob", "pos": [77, CAVE, 93], "label": "breadcrumb", "n": 2},

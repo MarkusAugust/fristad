@@ -79,8 +79,9 @@ def marks(_):
         {"kind": "secret_wall", "id": "hemmelig_5a", "pos": [-2, -1, 26], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "draft", "pos": [-1.4, -1, 26], "for": "hemmelig_5a"},
         {"kind": "lore", "pos": [-16.6, -1, 23.0], "yaw": P / 2, "label": "Gruvefogdens regnskap",
-         "text": "Tredje uka: seks vogner malm, to mann under raset i den gamle stollen. Fogden sier stivene holder. "
-                 "Stivene holder ikke. Vi murer igjen denne stollen og går ned med heisen i stedet."},
+         "text": "Tredje uka: seks vogner malm, to mann under raset i den gamle stollen. Malmen er ikke malm. Det er "
+                 "jernledd, store som en mann, med et gyllent rutenett stemplet på: delene munkene lot bære ned. De lå "
+                 "ikke der i dag der de lå i går. Vi murer igjen stollen og går ned med heisen i stedet."},
         {"kind": "bonus", "pos": [-12.0, -1, 28.6], "yaw": P, "label": "liv"},
         # Malmhallen.
         {"kind": "mob", "pos": [18, -3, 40], "label": "button", "n": 3},

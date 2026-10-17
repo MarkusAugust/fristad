@@ -97,8 +97,9 @@ def marks(_):
         {"kind": "secret_wall", "id": "hemmelig_4a", "pos": [-5, -4, 57], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "draft", "pos": [-4.2, -4, 57], "for": "hemmelig_4a"},
         {"kind": "lore", "pos": [-17.5, -4, 59.6], "yaw": P / 2, "label": "Byggmesterens tegninger",
-         "text": "Cisternen bærer byen over seg. Førti søyler, og øya i midten for å holde hvelvet. "
-                 "Stenges ventilen, synker vannet, og den nedre gangbroa kommer fram."},
+         "text": "Cisternen bærer byen over seg: førti søyler i rekker og rader, og øya i midten for å holde hvelvet. "
+                 "Rådet ville ha alt i ruter som ikke kunne flyttes, og slik ble det bygd. Det som bodde i rutene, ble "
+                 "med ned, og det har fått bein. Stenges ventilen, synker vannet, og den nedre gangbroa kommer fram."},
         {"kind": "bonus", "pos": [-13.0, -4, 54.6], "yaw": P, "label": "liv"},
         {"kind": "gate", "id": VANN, "pos": [-2, -4, 34.6], "yaw": 0.0, "width": 2.6},
         {"kind": "chest", "pos": [-4.6, -4, 26.0], "yaw": P / 2},

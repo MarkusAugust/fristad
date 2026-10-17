@@ -103,8 +103,10 @@ def marks(_):
         {"kind": "up", "pos": [0, TOP, -4], "yaw": 0.0},
         # Forhallen: ridderløftet på muren.
         {"kind": "lore", "pos": [-5.6, TOP, -2.0], "yaw": P / 2, "label": "Ridderløftet",
-         "text": "Vi sverget å holde mønsterboka ren og porten stengt. Da Rådet skrev sine regler inn i den, holdt vi porten. "
-                 "Da den store oppgraderingen kom, holdt vi den fortsatt. Vi holder den ennå."},
+         "text": "Vi sverget kongen å holde komponentboken ren og porten stengt. Da Kontoret skrev sine regler inn i "
+                 "den, holdt vi porten. Da Inkvisisjonen brente mønsterbøkene, holdt vi porten. Da den store "
+                 "oppgraderingen kom og alt brakk, holdt vi den fortsatt. Vi holder den ennå. Ingen har sagt oss hva "
+                 "den skal holde ute."},
         # Våpenkammeret: skjoldbærerne, kista og rustflekkene som renner ut av fugene.
         {"kind": "mob", "pos": [-17, TOP, 3], "label": "button", "n": 2},
         {"kind": "chest", "pos": [-22, TOP, -4.3], "yaw": 0.0},
@@ -112,8 +114,9 @@ def marks(_):
         {"kind": "hint", "label": "crack", "pos": [-27.98, TOP, 2.75], "yaw": P / 2, "for": SMED},
         # Smedkammeret.
         {"kind": "lore", "pos": [-39.6, TOP, -1.0], "yaw": P / 2, "label": "Smedens bok",
-         "text": "Lenkene til Navbaren smidde jeg av det Rådet ga meg: ett ledd for hver regel. De skulle holde den fast ved tronen. "
-                 "Nå er det lenkene som går, og tronen som står."},
+         "text": "Lenkene til Navbaren smidde jeg av det Rådet ga meg: ett ledd for hver regel, og Kontoret sendte nye "
+                 "regler hver uke. Den skulle vise alle veien, men bare den ene. Nå er det lenkene som går, og tronen "
+                 "som står."},
         {"kind": "bonus", "pos": [-36, TOP, 4.6], "yaw": P, "label": "utholdenhet"},
         # Pendelgangen: statuene står i features; pendlene er feller.
         {"kind": "trap", "label": "pendulum", "id": "pendel_8a", "pos": [0, TOP, 15], "size": [3.0, 0.8], "dir": [0, 0, 1]},
@@ -146,8 +149,8 @@ def marks(_):
         {"kind": "hint", "label": "sound", "pos": [30, HALLY, 81.8], "for": LEM},
         # Vinkjelleren og stigen opp i forværelset.
         {"kind": "lore", "pos": [25.0, VIN, 87.8], "yaw": P / 2, "label": "Kjellermesterens regnskap",
-         "text": "Tolv fat til gildet, fire til kapellet, ett til smeden for lenkene. Ingen til vaktene: de drikker ikke lenger. "
-                 "Siste linje, med annen hånd: fatene står. Ingen kommer og henter dem."},
+         "text": "Tolv fat til inkvisitorenes gilde, fire til kapellet, ett til smeden for lenkene. Ingen til vaktene: "
+                 "de drikker ikke lenger. Siste linje, med annen hånd: fatene står. Ingen kommer og henter dem."},
         {"kind": "chest", "pos": [33, VIN, 89.0], "yaw": P},
         {"kind": "trapdoor", "id": LEM2, "label": "bolted", "pos": [4, HALLY, 83.2], "size": [1.2, 1.2], "to": "stigebunn"},
         {"kind": "ladder", "pos": [4, VIN, 82.66], "yaw": 0.0, "top": [4, HALLY, 84.45]},

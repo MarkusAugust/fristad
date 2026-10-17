@@ -131,8 +131,9 @@ def marks(_):
         {"kind": "hint", "label": "draft", "pos": [16, COURT, 74.4], "for": GRAV},
         # Borgherrens grav.
         {"kind": "lore", "pos": [12.0, -6, 91], "yaw": P / 2, "label": "Gravskriften",
-         "text": "Her hviler Hallvard, herre til borgen som sank. Han lot murene mure og broen heise da Inkvisisjonen kom, "
-                 "og berget tok imot dem alle. Den som leser dette, har kommet lenger enn kongens menn."},
+         "text": "Her hviler Hallvard, herre til borgen som sank. Han ville ikke brenne mønsterboka. Da Inkvisisjonen "
+                 "kom i de røde kappene, lot han murene mure og broen heise, og berget tok imot dem alle, inkvisitorer "
+                 "og borgfolk. Den som leser dette, har kommet lenger enn kongens menn."},
         {"kind": "bonus", "pos": [20.0, -6, 91], "yaw": -P / 2, "label": "liv"},
         # Kastellet: Kortkapteinen med nøkkelen, skjoldbærerne og bueskytterne på galleriet.
         {"kind": "elite", "pos": [56, COURT, 91], "yaw": 0.0, "label": "modal", "opens": [PORT]},
@@ -143,8 +144,9 @@ def marks(_):
         # Fangehullet og nedgangen.
         {"kind": "mob", "pos": [50, DUNGEON, 122], "label": "accordion", "n": 2},
         {"kind": "lore", "pos": [60, DUNGEON, 118.6], "yaw": 0.0, "label": "Rissene i veggen",
-         "text": "Dag 40. De sier Navbaren holder tronsalen under oss, og at ingen kommer forbi den. Jeg har hørt den gå. "
-                 "Lenkene mine er løse nå; det er ikke lenkene som holder meg her."},
+         "text": "Dag 40. De satte meg her fordi jeg skrev en Button som bare var en Button, uten Kontorets stempel. "
+                 "Nå sier de at Navbaren holder tronsalen under oss, og at ingen kommer forbi den. Jeg har hørt den "
+                 "gå. Lenkene mine er løse nå. Det er ikke lenkene som holder meg her."},
         {"kind": "down", "pos": list(DOWN), "yaw": P},
     ]
 

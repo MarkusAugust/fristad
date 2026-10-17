@@ -121,8 +121,9 @@ def marks(_):
         {"kind": "secret_wall", "id": "hemmelig_2b", "pos": [-38, -6, 74], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "sound", "pos": [-37.2, -6, 72], "for": "hemmelig_2b"},
         {"kind": "lore", "pos": [-51.5, -6, 77.0], "yaw": P / 2, "label": "Gravkongens krønike",
-         "text": "Kongen ble lagt i den sprukne kista under søylegangen, med tegnet sitt i hendene. "
-                 "Den store kista i salen er tom; den ble murt for å lure gravrøverne."},
+         "text": "Gravkongen ble lagt i den sprukne kista under søylegangen, med seglet sitt i hendene. Den store "
+                 "kista i salen er tom; den ble murt for å lure gravrøverne. Det som ligger i gravkammeret nå, kom ned "
+                 "med oss. Det lukker seg om den som går inn, og slipper ikke før det selv vil."},
         {"kind": "bonus", "pos": [-49.0, -6, 80.9], "yaw": P, "label": "liv"},
         # Østfløyen: spydgangen og gravtårnet.
         {"kind": "trap", "label": "arrows", "id": "piler_2", "pos": [27, 2.5, 50], "size": [1.2, 1.2], "dir": [0, 0, 1]},

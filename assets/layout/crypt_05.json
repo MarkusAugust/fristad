@@ -6,7 +6,7 @@
     {"kind":"mob","label":"breadcrumb","n":2,"patrol":[[0,-1,14],[0,-1,29]],"pos":[0,-1,26],"yaw":0},
     {"height":2.6,"id":"hemmelig_5a","kind":"secret_wall","pos":[-2,-1,26],"width":2,"yaw":1.5708},
     {"for":"hemmelig_5a","kind":"hint","label":"draft","pos":[-1.4,-1,26],"yaw":0},
-    {"kind":"lore","label":"Gruvefogdens regnskap","pos":[-16.6,-1,23],"text":"Tredje uka: seks vogner malm, to mann under raset i den gamle stollen. Fogden sier stivene holder. Stivene holder ikke. Vi murer igjen denne stollen og går ned med heisen i stedet.","yaw":1.5708},
+    {"kind":"lore","label":"Gruvefogdens regnskap","pos":[-16.6,-1,23],"text":"Tredje uka: seks vogner malm, to mann under raset i den gamle stollen. Malmen er ikke malm. Det er jernledd, store som en mann, med et gyllent rutenett stemplet på: delene munkene lot bære ned. De lå ikke der i dag der de lå i går. Vi murer igjen stollen og går ned med heisen i stedet.","yaw":1.5708},
     {"kind":"bonus","label":"liv","pos":[-12,-1,28.6],"yaw":3.14159},
     {"kind":"mob","label":"button","n":3,"pos":[18,-3,40],"yaw":0},
     {"kind":"mob","label":"accordion","n":2,"pos":[27,-3,42],"yaw":0},

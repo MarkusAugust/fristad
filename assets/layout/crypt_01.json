@@ -12,7 +12,7 @@
     {"kind":"chest","pos":[-40,-1,40.2],"yaw":0.7854},
     {"id":"bronn_1","kind":"trapdoor","label":"shaft","pos":[-36,-1,42],"size":[1.6,1.6],"to":"sjaktbunn","yaw":0},
     {"for":"bronn_1","kind":"hint","label":"draft","pos":[-36,-1,42],"yaw":0},
-    {"kind":"lore","label":"Gravskriveren","pos":[-30.5,-8,21.2],"text":"Den som faller ned i brønnen, er ikke den første. Gå mot øst, under sidegraven er det en stige, og lemmen er boltet herfra.","yaw":0},
+    {"kind":"lore","label":"Gravskriveren","pos":[-30.5,-8,21.2],"text":"Vi lokket dem ned med lykter og sang, og Gorveks menn bar delene etter dem i lenker, én etter én. Mester Ansgar gikk sist, med de siste sidene av mønsterboka. Bak ham murte vi igjen. Den som faller ned i brønnen, er ikke den første: gå mot øst, under sidegraven står en stige, og lemmen er boltet herfra.","yaw":0},
     {"kind":"bonus","label":"liv","pos":[-26,-8,26.5],"yaw":3.14159},
     {"kind":"ladder","pos":[-12,-8,20.66],"top":[-12,0,22.45],"yaw":0},
     {"kind":"mob","label":"tooltip","n":3,"pos":[30,-3,47],"yaw":0},

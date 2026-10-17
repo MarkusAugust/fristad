@@ -20,7 +20,7 @@
     {"dir":[1,0,0],"id":"vannstot","kind":"trap","label":"flood","pos":[-1,-4,62],"size":[1.2,1.2],"yaw":0},
     {"height":2.6,"id":"hemmelig_4a","kind":"secret_wall","pos":[-5,-4,57],"width":2,"yaw":1.5708},
     {"for":"hemmelig_4a","kind":"hint","label":"draft","pos":[-4.2,-4,57],"yaw":0},
-    {"kind":"lore","label":"Byggmesterens tegninger","pos":[-17.5,-4,59.6],"text":"Cisternen bærer byen over seg. Førti søyler, og øya i midten for å holde hvelvet. Stenges ventilen, synker vannet, og den nedre gangbroa kommer fram.","yaw":1.5708},
+    {"kind":"lore","label":"Byggmesterens tegninger","pos":[-17.5,-4,59.6],"text":"Cisternen bærer byen over seg: førti søyler i rekker og rader, og øya i midten for å holde hvelvet. Rådet ville ha alt i ruter som ikke kunne flyttes, og slik ble det bygd. Det som bodde i rutene, ble med ned, og det har fått bein. Stenges ventilen, synker vannet, og den nedre gangbroa kommer fram.","yaw":1.5708},
     {"kind":"bonus","label":"liv","pos":[-13,-4,54.6],"yaw":3.14159},
     {"id":"ventil_4","kind":"gate","pos":[-2,-4,34.6],"width":2.6,"yaw":0},
     {"kind":"chest","pos":[-4.6,-4,26],"yaw":1.5708},

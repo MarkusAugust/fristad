@@ -127,8 +127,10 @@ def marks(_):
         {"kind": "ladder", "pos": [35, -8.6, 79.46], "yaw": 0.0, "top": [35, -5, 81.25]},
         # Det druknede kapellet.
         {"kind": "lore", "pos": [49.0, -4, 39.3], "yaw": 0.0, "label": "Slusevokterens dagbok",
-         "text": "Vannet stiger hver vår, og slusa er det eneste som holder kapellet tørt. "
-                 "Den store selecten i silkammeret har tatt nøkkelen til porten ned. Jeg tør ikke gå dit."},
+         "text": "Skriverne kastet lappene sine i sluket, natt etter natt: omvei på omvei, regel over regel, til ingen "
+                 "visste hva som var boka og hva som var lapper. Alt rant hit ned. Nå stiger vannet hver vår, og slusa "
+                 "er det eneste som holder kapellet tørt. Den store Selecten i silkammeret har tatt nøkkelen til "
+                 "porten ned. Den vil bare at jeg skal velge. Jeg tør ikke gå dit."},
         {"kind": "bonus", "pos": [54.6, -4, 42.6], "yaw": P, "label": "liv"},
         # Rottereiret.
         {"kind": "mob", "pos": [4, KANAL["bottom"], 44], "label": "toast i bakhold", "n": 4, "ambush": "rottereir"},

@@ -26,7 +26,7 @@
     {"kind":"ladder","pos":[-6,-6,60.46],"top":[-6,-2,62.25],"yaw":0},
     {"height":2.6,"id":"hemmelig_2b","kind":"secret_wall","pos":[-38,-6,74],"width":2,"yaw":1.5708},
     {"for":"hemmelig_2b","kind":"hint","label":"sound","pos":[-37.2,-6,72],"yaw":0},
-    {"kind":"lore","label":"Gravkongens krønike","pos":[-51.5,-6,77],"text":"Kongen ble lagt i den sprukne kista under søylegangen, med tegnet sitt i hendene. Den store kista i salen er tom; den ble murt for å lure gravrøverne.","yaw":1.5708},
+    {"kind":"lore","label":"Gravkongens krønike","pos":[-51.5,-6,77],"text":"Gravkongen ble lagt i den sprukne kista under søylegangen, med seglet sitt i hendene. Den store kista i salen er tom; den ble murt for å lure gravrøverne. Det som ligger i gravkammeret nå, kom ned med oss. Det lukker seg om den som går inn, og slipper ikke før det selv vil.","yaw":1.5708},
     {"kind":"bonus","label":"liv","pos":[-49,-6,80.9],"yaw":3.14159},
     {"dir":[0,0,1],"id":"piler_2","kind":"trap","label":"arrows","pos":[27,2.5,50],"size":[1.2,1.2],"yaw":0},
     {"kind":"mob","label":"accordion","n":2,"pos":[50,-1,50],"yaw":0},
