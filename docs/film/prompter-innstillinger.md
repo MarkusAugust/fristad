@@ -214,7 +214,7 @@ Spør noen i Fristad hva som ligger under kirka, og de skifter emne.
 [warm, unhurried]
 Før var riket fullt av byer, og ingen av dem talte likt. Men de delte én bok. En mønsterbok. Du åpnet den, tok det du trengte og lot resten ligge. Den ba ikke om noe. Den sto aldri i veien.
 
-Her holdt mester Ansgar den. [softly] Han sa at en god bok kjennes på det den lar deg slippe.
+Her i Fristad var det mester Ansgar som tok vare på den. [softly] Han sa at en god bok kjennes på det den lar deg slippe.
 
 [colder, measured]
 I hovedstaden satt Rådet. Menn som aldri hadde holdt en fjærpenn. Ved siden av dem Kontoret, som visste hva alt kostet. De så ut over riket og fant bare uorden. Så skrev de en bok selv. Tung som en kiste. Lenket som en fange. Kongen satte segl på den.
@@ -264,4 +264,4 @@ Og på veien sørfra, i morgenlyset, går en fremmed som ikke vet hvor han komme
 [long pause] [quiet, direct] Det er deg.
 ```
 
-Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust). **17. oktober:** bare avsnittene fra «Ingenting spurte om lov lenger» til «Én etter én» og linja «Og det som ble delt …» spilles inn på nytt, med samme stemme og innstillinger; lagre dem som `assets/film/voice/gorvek.mp3` og `assets/film/voice/delt.mp3`, så klipper jeg dem inn.
+Tittelen «Fristad · Anno 1350» leses ikke; den står i gull på skjermen over det siste bildet før overtoningen til spillet. Taggene i klammer er Eleven v3 sine lydtagger (velg modellen Eleven v3, stabilitet Natural eller Robust). **17. oktober:** bare linja «Her i Fristad var det mester Ansgar …» (replikk 4), avsnittene fra «Ingenting spurte om lov lenger» til «Én etter én» og linja «Og det som ble delt …» spilles inn på nytt, med samme stemme og innstillinger; lagre dem som `assets/film/voice/ansgar.mp3`, `assets/film/voice/gorvek.mp3` og `assets/film/voice/delt.mp3`, så klipper jeg dem inn.

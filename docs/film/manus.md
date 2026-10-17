@@ -66,7 +66,7 @@ Innspilt 16. oktober (0–16, 19–24). **Nytt 17. oktober** (Gorvek i kanon): 1
 1. Jeg skal fortelle deg det likevel.
 2. Før var riket fullt av byer, og ingen av dem talte likt. Men de delte én bok. En mønsterbok.
 3. Du åpnet den, tok det du trengte og lot resten ligge. Den ba ikke om noe. Den sto aldri i veien.
-4. Her holdt mester Ansgar den. Han sa at en god bok kjennes på det den lar deg slippe.
+4. **(ny)** Her i Fristad var det mester Ansgar som tok vare på den. Han sa at en god bok kjennes på det den lar deg slippe.
 5. I hovedstaden satt Rådet. Menn som aldri hadde holdt en fjærpenn. Ved siden av dem Kontoret, som visste hva alt kostet.
 6. De så ut over riket og fant bare uorden. Så skrev de en bok selv. Tung som en kiste. Lenket som en fange. Kongen satte segl på den.
 7. Omnia lingua Reactia. Alt på hoffets tunge.
