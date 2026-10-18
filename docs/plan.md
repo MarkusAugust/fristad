@@ -191,6 +191,43 @@ Rekkefølgen, billigst og størst virkning først:
 
 Målet for hvert steg er det samme: skjermbilder fra de faste kameraene, før og etter, til eieren, og ingen fotoskannet pixel igjen i spillet.
 
+## 13. Inventaret, Skriptoriet, troféene og angrep på avstand (planlagt 18. oktober)
+
+Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet betydelig. Det som er laget 18. oktober (galleri og side om side), er grunnlaget.
+
+### 13a. Felles utstyrskort og sammenligning (brukes både i inventaret og Skriptoriet)
+- **Sjeldenhet i farge** (Fristils tokens): vanlig grå, sjelden blå, episk lilla, legendarisk gull, som kant og tag på kortet. Sjeldenheten tas ut av navnet («Gammelt rundskjold (vanlig)»).
+- **Små kort med fast bredde i rutenettet:** ikon, navn og sjeldenhet, og ingenting mer. Tallene vises først når kortet er valgt.
+- **Én sammenligningstabell** når et kort er valgt: én rad per egenskap med verdien du har, den nye verdien og forskjellen («+0,45») farget etter hva som er bra, med en liten stolpe (`fs-progress`) per verdi. Egenskaper der lavt er bra, vises slik at høyt er bra («Tåler 75 %» i stedet for «Slipper gjennom 25 %»), eller fargen følger det. Like verdier får ikke noe merke («=» bort).
+- **Én linje beskrivelse etter kanon** per ting (`craft.rs`), som fiendene har.
+- **Ikonene:** lysere bakgrunn som passer kortet, tettere utsnitt og en glorie i sjeldenhetsfargen til eierens malte ikoner kommer (`docs/prompter/ikoner-utstyr.md`).
+
+### 13b. Inventaret (I)
+- **Venstre side:** plassene for det du har på (Våpen, Skjold, Rustning, Lys) med ikon, navn og sjeldenhetsfarge. Lys viser lykta med olje og brenntid. Tomme plasser har en svak silhuett og «Finn eller smi en rustning i Skriptoriet».
+- **Plassene er filteret** (eieren): klikk på en plass, så viser rutenettet bare det slaget, og det du har på står allerede i sammenligningen. Klikk igjen eller på «Alt» for alt.
+- **Høyre side:** rutenettet og sammenligningen med «Bruk <navn>» rett under tabellen, ikke langt nede. Dobbeltklikk eller Enter tar det på, og piltastene går mellom kortene.
+- **Liv, utholdenhet og tokens** står øverst som nå; fanen «Komponenter» viser hva den teller.
+- Hele dialogen får plass i høyden uten å rulle.
+
+### 13c. Skriptoriet
+- **Ikke hele vinduets høyde** (eieren): dialogen får fast høyde (rundt 80 % av vinduet, høyst 760 px) med to kolonner. Til venstre står en kompakt liste eller et rutenett av små kort (ikon, navn, sjeldenhet og et merke for «kan smis nå», «mangler 2» eller «har du»), som ruller for seg. Til høyre står detaljene for den valgte oppskriften: stort ikon, beskrivelse, sammenligning med det du har på, og komponentene.
+- **Komponentene som en liste med ikoner** (bildet fra galleriet), med «har 2 av 3» og en stolpe. Hvor den finnes, står kort på én linje («Kister i Gruva · elite i Kloakken · Buttonsmeden 12 tokens»). Den lange teksten gjentas ikke under hver komponent; «Bare i krypten» blir ett merke.
+- **Sortering:** de du kan smi nå øverst, så de som mangler minst, og det du har nederst og dempet. Filtrene (Alt, Våpen, Skjold, Rustning, Lys) står som nå, med antall.
+- **«Smi»** står fast nederst i detaljene, er deaktivert med grunnen («Mangler Card og Badge») og gir en liten smie-animasjon og lyd når den brukes.
+- **Liv-, energi- og lysstolpene** skjules mens en dialog står, så de ikke ligger over den.
+
+### 13d. Troféene på galleriveggen (eieren: «alt for lav oppløsning, uklare»)
+- Årsak: bildene lages i 512 × 512 (`tools/gallery/pack.py`, `SIZE`), med papirstøy og uskarphet over, og nettleseren tar teksturene ned til 1024 (`delivery::browser_caps`).
+- Retting: render komponentene skarpere (`tools/gallery/render.mjs` med `deviceScaleFactor` 3), lag platene i 2048 (`SIZE = 2048`), fjern uskarpheten over skriften og la papiret bare ligge i kantene, bak dem inn på nytt (`home.py`), og gi `gallery_*` taket 2048 i `browser_caps`. Anisotropisk filtrering på teksturene, så de er skarpe også på skrå. Sjekk med `snapshot` på 1 m avstand før og etter.
+
+### 13e. Angrep på avstand (eieren: vanskelig å se at Korrupt input skyter)
+- Årsak: prosjektilet (`Bolt`, modellen `bolt`) står i `model::PLANNED` og finnes ikke, så spyttet er usynlig.
+- **Modellen `bolt`:** en glødende klump i `magic`-materiale (fiolett eller giftgrønn), lyser selv og kaster et lite lys, med en hale av partikler bak seg.
+- **Varsel før skuddet:** klippet `attack` for inputen får et tydelig trekk bakover og en glød i munnen, en lyd («spytt-lading») rundt et halvt sekund før skuddet, slik at det går an å unnvike.
+- **Treffet:** en sprut der det treffer (vegg, gulv eller deg), en lyd og en skadeindikator i kanten av bildet som viser hvor skuddet kom fra.
+- **Infopanelet om fienden** sier «Skyter på avstand» for slagene med `bolt` (inputen, Toast-frosken).
+- Test: et skudd fra en input lager en synlig instans hvert bilde til det treffer.
+
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
 - Endres: `sheet2model/cli.py` (portene før finish/rig, ingen glb ved feil), `sheet2model/{geom,texture,report,config}.py`, `tools/models/kit.py` (overganger, dørmodul, `group()`), `tools/models/{houses,tavern,workshops,home,sacred,fortress,streetlife}.py`, `tools/crypt/{kit_grav,build_level,leak_check}.py`, `tools/textures/derive.py`, `src/application/session.rs` (delt), `src/domain/world/{town,mod}.rs`, `src/adapters/gltf.rs`, `src/adapters/wgpu/{mod.rs,shaders/world.wgsl}`, `web/main.js`, `src/tests.rs`, `src/architecture.rs`, `.github/workflows/web.yml`, `CLAUDE.md`, `docs/ny-stil.md`.
