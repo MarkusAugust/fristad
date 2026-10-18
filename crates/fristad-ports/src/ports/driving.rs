@@ -325,6 +325,15 @@ pub enum Event {
     Daylight(Daylight),
     /// En kort melding.
     Toast(String),
+    /// En lapp eller bok i krypten er lest (F på `kit_lore`): tittelen og
+    /// teksten, vist som et kort midt på skjermen med spillet på pause.
+    Lore {
+        title: String,
+        text: String,
+    },
+    /// Fienden du sikter på (infopanelet til høyre), sendt når den eller
+    /// livet endrer seg; `None` når du ikke sikter på noen.
+    Foe(Option<FoeView>),
     /// Målet nå (én linje øverst til venstre) og journalen (J): lappene og
     /// bøkene du har lest i krypten, tittel og tekst. Sendes når noe endres.
     Goal {
@@ -387,6 +396,18 @@ pub enum Event {
     OpenDoc(String),
     /// Redigeringen etter hver endring; `None` når du går ut av den.
     Edit(Option<EditView>),
+}
+
+/// Fienden du sikter på: navnet, en kort tekst om hva den er (fra kanon og
+/// slaget), om den er bossen eller eliten, og livet.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FoeView {
+    pub name: String,
+    pub info: String,
+    /// «Boss», «Elite» eller tomt.
+    pub rank: String,
+    pub hp: u32,
+    pub max_hp: u32,
 }
 
 /// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog

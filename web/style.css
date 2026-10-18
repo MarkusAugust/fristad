@@ -104,33 +104,12 @@ code {
   background: var(--fs-color-neutral-canvas);
 }
 
-.keys, .help {
+.keys {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--fs-spacing-2) var(--fs-spacing-4);
   font-size: var(--fs-font-size-s);
-}
-
-.help {
-  position: absolute;
-  left: 50%;
-  bottom: var(--fs-spacing-5);
-  transform: translateX(-50%);
-  max-width: calc(100vw - 32px);
-  color: #fff;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
-  transition: opacity 1.2s;
-}
-
-.help kbd {
-  background: rgb(0 0 0 / 0.35);
-  border-color: rgb(255 255 255 / 0.4);
-  color: #fff;
-}
-
-.help.faded {
-  opacity: 0;
 }
 
 .vitals {
@@ -150,10 +129,70 @@ code {
 /* Minikartet oppe til høyre: et Fristil-panel med kartet over etasjen,
    som dreier med deg. Det store kartet (K) ligger over bildet, halvt
    gjennomsiktig, og spillet går videre under. */
-.minimap {
+/* Høyre side: minikartet, fienden du sikter på og tastene i én kolonne,
+   som slutter over stolpene nederst. Tastene krymper og ruller først. */
+.side {
   position: absolute;
   right: var(--fs-spacing-4);
   top: var(--fs-spacing-4);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--fs-spacing-3);
+  width: min(19rem, calc(100vw - 32px));
+  max-height: calc(100vh - var(--fs-spacing-4) - var(--side-bottom, 7.5rem));
+  pointer-events: none;
+}
+.side > * {
+  flex: none;
+  box-sizing: border-box;
+}
+.foe {
+  --fs-card-padding: var(--fs-spacing-3);
+  gap: var(--fs-spacing-1);
+  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
+  border-color: var(--fs-color-danger-border, var(--fs-color-neutral-border-subtle));
+}
+.foe .fs-heading { margin: 0; }
+.foe-head:has(> [hidden]:only-child) { display: none; }
+.foe-hp { display: grid; gap: var(--fs-spacing-1); margin-top: var(--fs-spacing-1); }
+.foe-hp .fs-progress { width: 100%; }
+.keys-panel {
+  flex: 0 1 auto;
+  min-height: 2.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  --fs-accordion-padding: var(--fs-spacing-2) var(--fs-spacing-3);
+  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
+  pointer-events: auto;
+  font-size: var(--fs-font-size-s);
+}
+.keys-panel summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: inherit;
+  backdrop-filter: inherit;
+}
+.keys-panel summary kbd { margin-left: auto; font-size: var(--fs-font-size-xs); }
+.keys-panel .fs-accordion__content {
+  padding: 0 var(--fs-spacing-2) var(--fs-spacing-2);
+}
+.keys-table {
+  --fs-table-cell-padding: 3px var(--fs-spacing-1);
+  font-size: var(--fs-font-size-xs);
+  line-height: 1.3;
+}
+.keys-table th { white-space: nowrap; font-weight: normal; }
+.keys-table kbd { font-size: var(--fs-font-size-xs); }
+#fight-keys tr:last-child th, #fight-keys tr:last-child td {
+  border-block-end: 2px solid var(--fs-color-neutral-border-strong);
+}
+.minimap {
   display: grid;
   gap: var(--fs-spacing-1);
   padding: var(--fs-spacing-2);
@@ -174,6 +213,7 @@ code {
   opacity: 0.8;
 }
 #minimap-canvas {
+  justify-self: center;
   width: min(200px, 34vw);
   height: min(200px, 34vw);
   border-radius: 50%;
@@ -224,11 +264,6 @@ code {
   width: max-content;
   max-width: calc(100vw - 32px);
   pointer-events: none;
-}
-.bottom .help {
-  position: static;
-  transform: none;
-  text-align: center;
 }
 .bars {
   --bars-gap: clamp(8px, 20vw, 14rem);
@@ -285,13 +320,6 @@ code {
 }
 .boss .fs-label {
   font-weight: 600;
-}
-.fight-keys {
-  display: grid;
-  gap: 2px;
-  margin-top: var(--fs-spacing-1);
-  font-size: var(--fs-font-size-xs);
-  color: var(--fs-color-neutral-text-muted, inherit);
 }
 
 /* Merkene i kampen: helsestolper over fiender og skadetall som stiger. */
@@ -775,7 +803,7 @@ code {
    for spillet er borte mens du redigerer. */
 body.editing #vitals,
 body.editing .bottom,
-body.editing #minimap,
+body.editing #side,
 body.editing #aim,
 body.editing #bubbles,
 body.editing #marks {
@@ -1193,3 +1221,23 @@ body.filming #bars {
 }
 .journal-lore h3 { margin: var(--fs-spacing-3) 0 var(--fs-spacing-1); }
 .journal-lore p { margin: 0; white-space: pre-line; }
+
+/* Lappene og bøkene i krypten: et kort midt på skjermen, og spillet står
+   stille mens du leser (openLore i main.js). */
+.lore {
+  --fs-dialog-width: min(38rem, calc(100vw - 32px));
+  cursor: pointer;
+}
+.lore .fs-dialog__title {
+  font-family: "Uncial Antiqua", serif;
+  font-weight: normal;
+}
+.lore .lore-text {
+  font-size: var(--fs-font-size-l);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.lore .fs-dialog__footer {
+  align-items: center;
+  justify-content: space-between;
+}

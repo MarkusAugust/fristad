@@ -565,6 +565,12 @@ function handle(e) {
     case "goal":
       setGoal(e);
       break;
+    case "lore":
+      openLore(e.title, e.text);
+      break;
+    case "foe":
+      setFoe(e.foe);
+      break;
     case "weather":
       $("weather").textContent = e.weather;
       break;
@@ -596,6 +602,7 @@ function handle(e) {
       // Liv og tokens vises nede i kjelleren, og oppe når du har noe.
       $("vitals").hidden = !(e.cellar || e.tokens > 0);
       $("fight-keys").hidden = !e.cellar;
+      if (!e.cellar) setFoe(null);
       break;
     case "sound":
       sfx.play(e.name, e);
@@ -906,6 +913,96 @@ function openLoot(component) {
   dlg.showModal();
   dlg.querySelector('[data-act="read"], [data-act="take"]')?.focus();
 }
+
+// Lappene og bøkene i krypten (F på en lapp): et kort midt på skjermen med
+// tittel og tekst, og spillet står stille mens du leser. F, E, Esc, mellomrom
+// eller et klikk lukker det.
+function openLore(title, text) {
+  if (lootOpen) return;
+  lootOpen = true;
+  playing = false;
+  dragging = false;
+  engine.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog lore";
+  dlg.setAttribute("aria-labelledby", "lore-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="lore-title"></h2>
+    <div class="fs-dialog__body"><p class="fs-paragraph lore-text"></p></div>
+    <div class="fs-dialog__footer">
+      <span class="fs-help-text lore-keys"><kbd>F</kbd> <kbd>E</kbd> <kbd>Esc</kbd> eller klikk lukker</span>
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Legg fra deg</button>
+    </div>`;
+  dlg.querySelector("#lore-title").textContent = title;
+  const body = dlg.querySelector(".lore-text");
+  body.textContent = text ? `«${text}»` : "";
+  body.hidden = !text;
+  document.body.appendChild(dlg);
+  let closed = false;
+  const close = (relock) => {
+    if (closed) return;
+    closed = true;
+    lootOpen = false;
+    dlg.close();
+    dlg.remove();
+    sfx.play("page");
+    enter(relock);
+    if (!relock) clickHint();
+  };
+  dlg.addEventListener("click", () => close(true));
+  dlg.addEventListener("keydown", (ev) => {
+    if (ev.repeat) return;
+    if (["KeyF", "KeyE", "Space", "Enter"].includes(ev.code)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      close(true);
+    }
+  });
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close(false);
+  });
+  dlg.showModal();
+  dlg.querySelector('[data-act="close"]').focus();
+}
+
+// Infopanelet til høyre om fienden du sikter på: navnet, om den er elite
+// eller boss, hva den er (kanon og slaget) og livet som følger skaden.
+function setFoe(f) {
+  const el = $("foe");
+  el.hidden = !f;
+  if (!f) return;
+  $("foe-name").textContent = f.name;
+  $("foe-info").textContent = f.info;
+  $("foe-rank").textContent = f.rank;
+  $("foe-rank").hidden = !f.rank;
+  $("foe-hp").max = f.max_hp;
+  $("foe-hp").value = f.hp;
+  $("foe-hp-text").textContent = `${f.hp} / ${f.max_hp}`;
+}
+
+// Tastepanelet oppe til høyre foldes sammen og ut med F1 eller et klikk på
+// overskriften, og huskes. På smale skjermer er det sammenfoldet fra start.
+function initKeysPanel() {
+  const el = $("keys-panel");
+  let open = innerWidth >= 700;
+  try {
+    const saved = localStorage.getItem("fristad.keys");
+    if (saved) open = saved === "open";
+  } catch {
+    /* ingen lagring */
+  }
+  el.open = open;
+  el.addEventListener("toggle", () => {
+    try {
+      localStorage.setItem("fristad.keys", el.open ? "open" : "closed");
+    } catch {
+      /* ingen lagring */
+    }
+  });
+}
+initKeysPanel();
 
 // Inventaret (I): utstyret du har på deg og komponentene du har, bygd med
 // Fristils dialog, faner, kort, tabell, merker og framdriftsstolper.
@@ -1621,7 +1718,13 @@ function bindInput() {
   // høyre tast blokker uansett. Trykk i HUD-en over bildet teller òg, men
   // ikke i dialogene.
   let dragDist = 0;
-  const inGame = (t) => t === canvas || (t instanceof Element && !t.closest("dialog, #overlay, #panel, #gate, button, a, input"));
+  // Uten pekerlås: står venstre tast stille i `HOLD_MS`, er det et hugg som
+  // holdes (det tunge hugget lades til tasten slippes); drar du først, er
+  // det å se deg rundt.
+  const HOLD_MS = 140;
+  let holdTimer = 0;
+  let holding = false;
+  const inGame = (t) => t === canvas || (t instanceof Element && !t.closest("dialog, #overlay, #panel, #gate, button, a, input, details"));
   document.addEventListener("mousedown", (e) => {
     if (playing && editor?.mouseDown(e)) return;
     if (!playing || !inGame(e.target)) return;
@@ -1631,6 +1734,13 @@ function bindInput() {
     } else if (e.button === 0) {
       dragging = true;
       dragDist = 0;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(() => {
+        if (dragging && dragDist < 6 && playing) {
+          holding = true;
+          engine.mouse(0, true);
+        }
+      }, HOLD_MS);
     } else {
       e.preventDefault();
       engine.mouse(e.button, true);
@@ -1640,6 +1750,12 @@ function bindInput() {
     if (editor?.mouseUp(e)) return;
     const wasDrag = dragging;
     dragging = false;
+    clearTimeout(holdTimer);
+    if (e.button === 0 && holding) {
+      holding = false;
+      engine.mouse(0, false);
+      return;
+    }
     if (!playing) return;
     if (!locked() && e.button === 0 && wasDrag && dragDist < 6 && inGame(e.target)) {
       // Et kort klikk uten pekerlås: et hugg.
@@ -1705,6 +1821,11 @@ function bindInput() {
     if (e.code === "KeyJ" && !e.repeat && playing) {
       e.preventDefault();
       toggleJournal();
+      return;
+    }
+    if (e.code === "F1" && !e.repeat) {
+      e.preventDefault();
+      $("keys-panel").open = !$("keys-panel").open;
       return;
     }
     if (e.code === "KeyK" && !e.repeat && playing) {

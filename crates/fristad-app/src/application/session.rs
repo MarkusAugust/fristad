@@ -32,6 +32,9 @@ use std::collections::HashMap;
 use super::audio::Soundscape;
 use super::fight::Hud;
 
+/// Så langt unna kan du sikte på en fiende og få infopanelet (meter).
+const FOE_SIGHT: f32 = 30.0;
+
 /// En lyd i hodet: dine egne skritt, hugg og stønn.
 pub(super) fn sfx(name: &str) -> Event {
     Event::Sound(Sound::new(name))
@@ -374,6 +377,11 @@ impl Session {
         let hit = physics.cast_ray(eye, dir, 3.5);
         self.aimed_mob = if in_crypt { self.mobs.aimed(eye, dir, 2.6) } else { None };
         self.aim = if self.aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()) };
+        // Infopanelet viser fienden du sikter på, også på avstand (til
+        // første vegg).
+        let wall = physics.cast_ray(eye, dir, FOE_SIGHT).map_or(FOE_SIGHT, |h| h.distance);
+        let foe = if in_crypt { self.aimed_mob.or_else(|| self.mobs.aimed(eye, dir, wall)) } else { None };
+        self.update_foe(foe, dt, &mut events);
         self.combat.set_block(input.block && in_crypt && !self.paused);
 
         for a in actions {

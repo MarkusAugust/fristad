@@ -1896,7 +1896,9 @@ fn kistene_lappene_og_den_varige_styrken() {
     assert!(!events.iter().any(|e| matches!(e, Event::Loot(_))), "kista ga to ganger");
     let lore = c.lores.first().expect("ingen lapp i krypten");
     let events = game.use_exact(Use::Lore(0));
-    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains(&lore.title))), "lappen ble ikke lest: {events:?}");
+    // Lappen vises som et kort midt på skjermen (`Event::Lore`), ikke som et varsel.
+    assert!(events.iter().any(|e| matches!(e, Event::Lore { title, text } if *title == lore.title && *text == lore.text)), "lappen ble ikke lest: {events:?}");
+    assert!(!events.iter().any(|e| matches!(e, Event::Toast(_))), "lappen kom som varsel i hjørnet: {events:?}");
     let before = game.max_hp_now();
     game.use_exact(Use::Bonus(0));
     let after = game.max_hp_now();

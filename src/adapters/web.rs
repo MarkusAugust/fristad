@@ -322,6 +322,9 @@ fn json(e: &Event) -> serde_json::Value {
             json!({"type": "theme", "theme": if *d == Daylight::Night { "dark" } else { "light" }})
         }
         Event::Toast(t) => json!({"type": "toast", "text": t}),
+        Event::Lore { title, text } => json!({"type": "lore", "title": title, "text": text}),
+        Event::Foe(None) => json!({"type": "foe", "foe": null}),
+        Event::Foe(Some(f)) => json!({"type": "foe", "foe": {"name": f.name, "info": f.info, "rank": f.rank, "hp": f.hp, "max_hp": f.max_hp}}),
         Event::Goal { text, journal } => json!({"type": "goal", "text": text, "journal": journal.iter().map(|(t, b)| json!({"title": t, "text": b})).collect::<Vec<_>>()}),
         Event::Loot(c) => json!({"type": "loot", "component": c}),
         Event::Ambience(a) => {

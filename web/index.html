@@ -43,19 +43,60 @@
       </div>
       <div id="gear" class="gear"></div>
       <div id="inventory" class="inventory"></div>
-      <div id="fight-keys" class="fight-keys" hidden>
-        <span><kbd>Venstre mus</kbd> eller <kbd>F</kbd> Hugg, hold for tungt</span>
-        <span><kbd>Høyre mus</kbd> Blokk (parade i det bittet kommer)</span>
-        <span><kbd>Shift</kbd> + retning Unna</span>
-      </div>
     </div>
     <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
          dreier med deg, og det store kartet (K) med nord opp. Det du ikke
          har sett, er mørkt. -->
+    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten), fienden du
+         sikter på (infopanelet) og tastene, som kan foldes sammen (F1). De
+         står i én kolonne, så de aldri legger seg over hverandre. -->
+    <div id="side" class="side">
     <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
       <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </aside>
+    <!-- Fienden du sikter på: navnet, hva den er og livet. -->
+    <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
+      <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span></p>
+      <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
+      <p id="foe-info" class="fs-paragraph" data-size="small"></p>
+      <div class="foe-hp">
+        <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
+        <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+      </div>
+    </section>
+    <details id="keys-panel" class="fs-accordion keys-panel" open>
+      <summary>Taster <kbd>F1</kbd></summary>
+      <div class="fs-accordion__content">
+        <table class="fs-table keys-table">
+          <caption class="fs-sr-only">Tastene i spillet</caption>
+          <tbody id="fight-keys" hidden>
+            <tr><th scope="row"><kbd>Venstre mus</kbd></th><td>Hugg (klikk), tungt hugg (hold)</td></tr>
+            <tr><th scope="row"><kbd>Høyre mus</kbd></th><td>Blokk, parade i det bittet kommer</td></tr>
+            <tr><th scope="row"><kbd>Shift</kbd> + retning</th><td>Unna</td></tr>
+          </tbody>
+          <tbody id="help">
+            <tr><th scope="row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></th><td>Gå</td></tr>
+            <tr><th scope="row"><kbd>Mus</kbd></th><td>Se (dra om musa ikke fanges)</td></tr>
+            <tr><th scope="row"><kbd>Shift</kbd></th><td>Løp</td></tr>
+            <tr><th scope="row"><kbd>Mellomrom</kbd></th><td>Hopp</td></tr>
+            <tr><th scope="row"><kbd>C</kbd></th><td>Huk</td></tr>
+            <tr><th scope="row"><kbd>F</kbd> / <kbd>E</kbd></th><td>Bruk / handle</td></tr>
+            <tr><th scope="row"><kbd>I</kbd></th><td>Utstyr og lager</td></tr>
+            <tr><th scope="row"><kbd>K</kbd></th><td>Kart (i krypten)</td></tr>
+            <tr><th scope="row"><kbd>J</kbd></th><td>Journal</td></tr>
+            <tr><th scope="row"><kbd>M</kbd></th><td>Musikk</td></tr>
+            <tr><th scope="row"><kbd>T</kbd></th><td>Dag og natt</td></tr>
+            <tr><th scope="row"><kbd>V</kbd></th><td>Vær: <span id="weather">klart</span></td></tr>
+            <tr><th scope="row"><kbd>H</kbd></th><td>Til sørporten</td></tr>
+            <tr><th scope="row"><kbd>G</kbd></th><td>Grafikk: <span id="graphics-label">standard</span></td></tr>
+            <tr><th scope="row"><kbd>O</kbd></th><td>Innstillinger</td></tr>
+            <tr><th scope="row"><kbd>Esc</kbd></th><td>Pause</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+    </div>
     <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
       <div class="bigmap-card">
         <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
@@ -81,8 +122,9 @@
       </div>
     </div>
     <div class="bottom">
-      <!-- Liv og energi som to Fristil-stolper over knappelinja, som i Diablo:
-           livet til venstre, energien (utholdenheten) til høyre. -->
+      <!-- Liv, energi og lys som Fristil-stolper nederst, som i Diablo:
+           livet til venstre, energien (utholdenheten) til høyre. Tastene
+           står i panelet oppe til høyre (#keys-panel). -->
       <div id="bars" class="bars">
         <div class="bar">
           <div class="bar-head"><label class="fs-label" for="hp">Liv</label><span id="hp-text" class="bar-num">100 / 100</span></div>
@@ -96,23 +138,6 @@
           <div class="bar-head"><label class="fs-label" for="light">Lys</label><span id="light-text" class="bar-num">100 %</span></div>
           <progress id="light" class="fs-progress" data-color="warning" max="100" value="100"></progress>
         </div>
-      </div>
-      <div id="help" class="help">
-        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gå</span>
-        <span><kbd>Mus</kbd> Se (dra om musa ikke fanges)</span>
-        <span><kbd>Shift</kbd> Løp</span>
-        <span><kbd>Mellomrom</kbd> Hopp</span>
-        <span><kbd>C</kbd> Huk</span>
-        <span><kbd>I</kbd> Utstyr og lager</span>
-        <span><kbd>K</kbd> Kart (i kjelleren)</span>
-        <span><kbd>J</kbd> Journal (målet og det du har lest)</span>
-        <span><kbd>M</kbd> Musikk</span>
-        <span><kbd>T</kbd> Dag og natt</span>
-        <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>
-        <span><kbd>H</kbd> Til sørporten</span>
-        <span><kbd>G</kbd> Grafikk: <span id="graphics-label">standard</span></span>
-        <span><kbd>O</kbd> Innstillinger</span>
-        <span><kbd>Esc</kbd> Pause</span>
       </div>
     </div>
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>

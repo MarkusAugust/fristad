@@ -193,7 +193,8 @@ impl Session {
                 let Some(l) = self.crypt.lores.get(n).cloned() else { return };
                 self.run.lore_read[n] = true;
                 events.push(sfx("page"));
-                events.push(Event::Toast(if l.text.is_empty() { l.title } else { format!("{}: «{}»", l.title, l.text) }));
+                // Lappen leses midt på skjermen, med spillet på pause.
+                events.push(Event::Lore { title: l.title, text: l.text });
             }
             Use::Bonus(n) => {
                 let Some(b) = self.crypt.bonuses.get(n).cloned() else { return };

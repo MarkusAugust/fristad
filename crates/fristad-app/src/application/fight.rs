@@ -5,7 +5,7 @@
 use super::session::{sfx, Session};
 use crate::domain::combat::CombatEvent;
 use crate::domain::mobs::Kind as MobKind;
-use crate::ports::driving::{Event, Mark};
+use crate::ports::driving::{Event, FoeView, Mark};
 use glam::{Mat4, Vec3};
 
 /// Det som vises over bildet, og det som sist ble sendt.
@@ -16,7 +16,16 @@ pub(super) struct Hud {
     seq: u32,
     marks_shown: bool,
     last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>, u32)>,
+    /// Fienden i infopanelet, sekundene siden du sist siktet på den, og det
+    /// som sist ble sendt.
+    foe: Option<usize>,
+    foe_t: f32,
+    foe_sent: Option<FoeView>,
 }
+
+/// Så lenge står infopanelet etter at siktet har gått av fienden (så det
+/// ikke blinker når den hopper eller du snur deg i kampen).
+const FOE_LINGER: f32 = 0.6;
 
 impl Hud {
     pub fn clear(&mut self) {
@@ -105,6 +114,29 @@ impl Session {
                     _ => events.push(sfx(s)),
                 },
             }
+        }
+    }
+
+    /// Infopanelet om fienden du sikter på (`aimed`): navnet, hva den er og
+    /// livet, sendt når noe endres, og `None` litt etter at siktet er borte
+    /// eller fienden er død.
+    pub(super) fn update_foe(&mut self, aimed: Option<usize>, dt: f32, events: &mut Vec<Event>) {
+        if aimed.is_some() {
+            self.hud.foe = aimed;
+            self.hud.foe_t = 0.0;
+        } else {
+            self.hud.foe_t += dt;
+        }
+        let view = self.hud.foe.filter(|_| self.hud.foe_t < FOE_LINGER).and_then(|i| self.mobs.mobs.get(i)).filter(|m| m.alive()).map(|m| {
+            let rank = if m.boss || m.kind.boss() { "Boss" } else if m.elite { "Elite" } else { "" };
+            FoeView { name: m.kind.label().into(), info: m.kind.info().into(), rank: rank.into(), hp: m.hp.max(0.0).ceil() as u32, max_hp: m.max_hp.ceil() as u32 }
+        });
+        if view.is_none() {
+            self.hud.foe = None;
+        }
+        if view != self.hud.foe_sent {
+            self.hud.foe_sent = view.clone();
+            events.push(Event::Foe(view));
         }
     }
 
