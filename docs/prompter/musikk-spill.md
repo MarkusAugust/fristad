@@ -154,3 +154,120 @@ Never asked, never begged...
 Gorvek of Bonereach...
 [End]
 ```
+
+### Den norske versjonen (eieren 18. oktober)
+
+Gjendiktet med rene parrim og norske navn Suno kan uttale (Beinheia for Bonereach, Askefallet, Gråkappene). Ingen hvisking: de stille delene synges tydelig.
+
+**Style:**
+> solo medieval troubadour, one male singer alone with a lute, intimate tavern storytelling, deep weathered baritone, clear diction with every word easy to understand, sung not whispered, quiet verses and powerful climax, dramatic dynamics from soft to raw shouting, a single frame drum only in the climax, rubato, dorian minor, acoustic, no choir, no backing vocals, no band, not a power ballad, sung in Norwegian
+
+**Lyrics:**
+```
+[Intro]
+[Solo lute, slow, quiet tavern murmur]
+
+[Verse 1]
+[Soft but clear, sung close to the fire]
+Skjenk meg en skål, så skal du få høre om en mann
+fra Beinheia høyt, der vinden biter alt den kan.
+Da Askefallet kom, gikk han inn i det grå,
+og ut kom han med jern i hånd, og ingen torde spørre hva han så.
+
+[Verse 2]
+[Soft, clear voice, lute picking]
+Han rir på ei hoppe som aldri har fått noe navn,
+for navn er for prester, og prester er ingen til gavn.
+Gråkappene merket ham med kroken og et sår,
+de hever hans pris hver vinter, men holder seg unna der han går.
+
+[Pre-Chorus]
+[A little stronger]
+Han drikker når han tørster, og slåss når det passer ham best,
+han sover der han segner, og bøyer seg for ingen, verken konge eller prest.
+
+[Chorus]
+[Sung, medium, steady strumming]
+Aldri spurt, aldri bedt,
+aldri knelt for kongens sverd,
+han tar livet i strupen
+og går sin egen ferd.
+Ingen gud i hans munn, ingen herre ved hans dør,
+Gorvek fra Beinheia tar sin skjebne slik en kriger gjør.
+
+[Verse 3]
+[Harder strumming, voice rising, scornful]
+Rådet satt mykt i sin silke og sitt gull,
+Kontoret skrev regler til hver side var full.
+De holdt aldri jern, og de holdt aldri en penn,
+han lo av deres lover, og han ler av dem igjen.
+
+[Verse 4]
+[Drop to quiet, slow, sad, clearly sung]
+Han holder hvert ord, selv om ordene er få,
+han løfter ingen øks mot de svake og små.
+Men noen netter ved ilden er han en mann uten havn,
+han stirrer mot det grå som tok alt, og gir det aldri navn.
+
+[Chorus]
+[Quiet and tender, clearly sung]
+Aldri spurt, aldri bedt,
+aldri knelt for kongens sverd,
+han tar livet i strupen
+og går sin egen ferd.
+Ingen gud i hans munn, ingen herre ved hans dør,
+Gorvek fra Beinheia tar sin skjebne slik en kriger gjør.
+
+[Instrumental Break]
+[Lute alone, tension building, faster]
+
+[Bridge]
+[Building, frame drum enters, faster]
+Så kom den natta da den store oppgraderingen kom,
+og alt som var bygd, brakk, og hver hall ble tom.
+Rammeverket reiste seg høyere enn tårnet stod,
+med kongens segl brennende som ild og som blod.
+Byen falt på kne og ba om lov til å leve,
+men én hadde aldri spurt, og én kunne ikke beve.
+
+[Climax]
+[Loud, raw, shouted, hard strumming and frame drum]
+Han kom gjennom regnet med øksa over nakken,
+han så aldri opp der himmelen sprakk over bakken.
+Han hogg der leddene satt, hele natta lang,
+til det grånet av dag og det siste leddet sprang.
+Det kunne ikke dø!
+[Sudden silence]
+[Low, slow, clearly sung]
+Men det kunne deles.
+
+[Chorus]
+[Loud, defiant, solo voice]
+Aldri spurt, aldri bedt,
+aldri knelt for kongens sverd,
+han tar livet i strupen
+og går sin egen ferd.
+Ingen gud i hans munn, ingen herre ved hans dør,
+Gorvek fra Beinheia tar sin skjebne slik en kriger gjør.
+
+[Breakdown]
+[Lute only, quiet, slow, clear voice]
+De bød ham gull og en plass ved kongens bord,
+han snudde seg og spyttet, og sa ikke et ord.
+Hans menn bar stykkene ned i lenker og jern,
+og mester Ansgar gikk sist, med lykta som vern.
+
+[Final Verse]
+[Soft, melancholic, slower, clearly sung]
+Han red bort på hoppa og så seg ikke tilbake,
+han tok ingen takk, ikke engang et beger å smake.
+Ingen i Fristad har sett ham siden den dag,
+men nede i krypten, når hamringen tar til, slag for slag,
+er det noe som husker hans hugg.
+
+[Outro]
+[Soft, clear, lute fading]
+Aldri spurt, aldri bedt...
+Gorvek fra Beinheia...
+[End]
+```
