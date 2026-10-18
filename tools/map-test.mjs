@@ -39,10 +39,11 @@ const check = (ok, what) => {
   console.log(`${ok ? "ok  " : "FEIL"} ${what}`);
   if (!ok) failed++;
 };
-await page.goto(`http://127.0.0.1:${port}/${mode === "webgl" ? "?webgl" : ""}`);
+await page.goto(`http://127.0.0.1:${port}/?nofilm${mode === "webgl" ? "&webgl" : ""}`);
 await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 180000 });
 await page.waitForSelector("#enter:not([hidden])", { timeout: 180000 });
-await page.click("#enter", { timeout: 120000 });
+// Klikk i siden selv: SwiftShader tegner så sakte at Playwright aldri ser knappen stå stille.
+await page.evaluate(() => document.querySelector("#enter").click());
 await page.waitForTimeout(1500);
 // Stolpene over knappelinja.
 check(await page.isVisible("#bars"), "liv og energi står over knappelinja");

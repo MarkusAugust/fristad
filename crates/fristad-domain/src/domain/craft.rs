@@ -197,7 +197,7 @@ pub fn title(component: &str) -> String {
         .join(" ")
 }
 
-/// Det Rammeverket legger igjen i buret når det er beseiret.
+/// Det Rammeverket legger igjen når det er beseiret.
 pub const BOSS_LOOT: [&str; 2] = ["dialog", "tabs"];
 
 /// Det elitefienden alltid bærer, per tema.

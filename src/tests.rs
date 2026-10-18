@@ -1249,6 +1249,9 @@ fn fiendene_finner_fram_i_krypten() {
             let len = path_len(&path);
             let mut ahead = 4.0f32.min(len);
             let speed = mobs.mobs[0].kind.stats().speed;
+            // Tatt igjen: innen 2,6 m, eller innen rekkevidden for de store (Rammeverket slår fra 3 m).
+            let caught = 2.6f32.max(mobs.mobs[0].kind.stats().range + 0.3);
+            let rise = 1.6 * mobs.mobs[0].kind.stats().scale.max(1.0);
             let limit = len / speed.max(0.5) * 3.0 + 20.0;
             let (mut t, mut best, mut since) = (0.0f32, f32::MAX, 0.0f32);
             loop {
@@ -1260,7 +1263,7 @@ fn fiendene_finner_fram_i_krypten() {
                 t += 1.0 / 30.0;
                 let m = &mobs.mobs[0];
                 let gap = m.pos.with_y(0.0).distance(player.with_y(0.0));
-                if gap < 2.6 && (m.pos.y - player.y).abs() < 1.6 {
+                if gap < caught && (m.pos.y - player.y).abs() < rise {
                     if ahead >= len {
                         break;
                     }
@@ -1548,12 +1551,44 @@ impl Bot {
         true
     }
 
+    /// Det nederste nivået har ingen trapp ned: boten går ned til bossen i
+    /// arenaen (porten står oppe til bossen stenger den bak deg), og slår den
+    /// når den slåss.
+    fn final_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
+        let c = &world().world.crypt;
+        let l = &c.levels[k];
+        let Some(boss) = c.spawns.iter().find(|s| s.level == k && s.boss) else { return };
+        let t0 = self.t;
+        self.note(format!("nivå {} ({}): starter ved {:?}, bossen venter ved {:?}", l.n, l.name, game.feet(), boss.pos));
+        if !self.walk_to(game, physics, boss.pos, 2.5, "bossen") && game.boss_pos().is_none() && game.feet().distance(boss.pos) > 4.0 {
+            self.fail(format!("nivå {}: kom ikke fram til bossen ved {:?}", l.n, boss.pos));
+        }
+        let arena = c.room_at(game.feet()).map(|(_, r)| l.rooms[r].id.clone());
+        self.note(format!("  ved bossen i {arena:?} etter {:.0} s", self.t - t0));
+        let t1 = self.t;
+        while let Some(at) = game.boss_pos() {
+            if self.t - t1 > 240.0 {
+                self.fail(format!("nivå {}: fikk ikke slått bossen på fire minutter", l.n));
+            }
+            if !self.brawl(game, physics) {
+                self.walk_to(game, physics, at, 1.8, "bossen");
+            }
+        }
+        if self.fight {
+            self.note(format!("  bossen falt etter {:.0} s", self.t - t0));
+        }
+        self.idle(game, physics, 2.0);
+    }
+
     /// Gjennom nivå `k`: fra der boten står til trappa ned, og trekker
     /// spakene (og henter nøkkelen) når veien er stengt.
     fn through_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
         let c = &world().world.crypt;
         let l = &c.levels[k];
-        let Some((down, _)) = l.down else { return };
+        let Some((down, _)) = l.down else {
+            self.final_level(game, physics, k);
+            return;
+        };
         let t0 = self.t;
         self.note(format!("nivå {} ({}): starter ved {:?}", l.n, l.name, game.feet()));
         if self.fight {

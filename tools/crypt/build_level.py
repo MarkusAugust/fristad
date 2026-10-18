@@ -514,7 +514,7 @@ class Level:
             # Utlegget kan justere et rom fra planen (en sekskant dreid så en
             # kant vender mot gangen, et tak som må høyere opp).
             o = over.get(r.id, {})
-            self.rooms[r.id] = Room(r.id, r.name, o.get("shape", r.shape), o.get("y", r.y), o.get("h", r.h), r.secret)
+            self.rooms[r.id] = Room(r.id, o.get("name", r.name), o.get("shape", r.shape), o.get("y", r.y), o.get("h", r.h), r.secret)
         for rid, name, shape, y, h, secret in lay["extra"]:
             self.rooms[rid] = Room(rid, name, shape, y, h, secret)
         self.lay = lay
@@ -1430,9 +1430,11 @@ class Level:
         c, R = r.c, r.r
         gal = spec.get("gallery")
         top = r.y + r.h
-        # Gulvet.
-        grid_face(mb, Horizontal(r.y), r.poly, spec.get("floor_mat", "floor"))
-        self.hull([(x, r.y, z) for x, z in list(r.poly.exterior.coords)[:-1:3]] + [(x, r.y - 0.5, z) for x, z in list(r.poly.exterior.coords)[:-1:3]])
+        # Gulvet. En trakt (`r.floor_y` under gulvhøyden i json, som avgrunnen
+        # i et rektangelrom) har bunnen der nede og muren helt ned dit.
+        fy = getattr(r, "floor_y", r.y)
+        grid_face(mb, Horizontal(fy), r.poly, spec.get("floor_mat", "floor"), cell=spec.get("floor_cell", 1.0))
+        self.hull([(x, fy, z) for x, z in list(r.poly.exterior.coords)[:-1:3]] + [(x, fy - 0.5, z) for x, z in list(r.poly.exterior.coords)[:-1:3]])
         # Muren med åpningene (og beinhusteksturen og hyllene).
         # Skjøten i muren (u = 0) legges bort fra dørene: en dør over skjøten
         # ble bare halvveis hogd ut, og murkolliderne sto i den.
@@ -1456,7 +1458,7 @@ class Level:
                 K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
             cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof), y))
         wmat = spec.get("wall_mat", "wall")
-        K.wall(mb, cyl, circ, r.y - 0.05, top, openings, mat=wmat, cell=spec.get("wall_cell", 1.0), extra=VAULT_LAP)
+        K.wall(mb, cyl, circ, fy - 0.05, top, openings, mat=wmat, cell=spec.get("wall_cell", 1.0), extra=VAULT_LAP)
         segs = 72
         a0 = a1 = None
         if gal:
@@ -1481,24 +1483,26 @@ class Level:
         for k in range(segs):
             u0, u1 = circ * k / segs, circ * (k + 1) / segs
             am = (seam + (u0 + u1) / 2 / R) % (2 * math.pi)
-            if any(u0 < cu1 and u1 > cu0 and cy < r.y + 0.05 for cu0, cu1, _, cy in cuts) or (gal and on_stair_fn(am)):
+            if any(u0 < cu1 and u1 > cu0 and cy < fy + 0.05 for cu0, cu1, _, cy in cuts) or (gal and on_stair_fn(am)):
                 continue
-            K.plinth(mb, Cyl(c, R, a0=seam + u0 / R, inward=True), [(0.0, u1 - u0, r.y)], h=0.34)
+            K.plinth(mb, Cyl(c, R, a0=seam + u0 / R, inward=True), [(0.0, u1 - u0, fy)], h=0.34)
         # Murkolliderne rundt (utenom åpningene; under en åpning høyere oppe
-        # står muren fra gulvet opp til den).
-        for k in range(segs):
-            u0, u1 = circ * k / segs, circ * (k + 1) / segs
+        # står muren fra gulvet opp til den), i stykker på høyst 1,5 m, så
+        # muren ved siden av en dør i et stort rom ikke står uten kollider.
+        nc = max(segs, math.ceil(circ / 1.5))
+        for k in range(nc):
+            u0, u1 = circ * k / nc, circ * (k + 1) / nc
             pa, pb = cyl.point(u0, 0.0), cyl.point(u1, 0.0)
             hit = [cu for cu in cuts if u0 < cu[1] and u1 > cu[0]]
             mid = ((pa[0] + pb[0]) / 2, (pa[2] + pb[2]) / 2)
             out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
             if hit:
                 self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
-                if hit[0][3] > r.y + 0.05:
+                if hit[0][3] > fy + 0.05:
                     # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
-                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), r.y - 0.5, hit[0][3] - 0.3, out)
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, hit[0][3] - 0.3, out)
             else:
-                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), r.y - 0.5, top + 4.5, out)
+                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, top + 4.5, out)
         # Kuppelen.
         hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat=self.vault_mat(r), rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
         K.dome_ribs(mb, c, R, hfn, count=spec.get("ribs", 12))
@@ -1884,8 +1888,8 @@ def convex(p):
 # --- Bitene ---------------------------------------------------------------------
 
 
-def chunks(mb, n):
-    """Flatene fordelt på biter på 16 × 16 m etter midtpunktet."""
+def chunks(mb, n, size=CHUNK):
+    """Flatene fordelt på biter på 16 × 16 m (eller `chunk` i utlegget) etter midtpunktet."""
     xs = [p[0] for f in mb.faces for p in f[0]]
     zs = [p[2] for f in mb.faces for p in f[0]]
     x0, z0 = min(xs), min(zs)
@@ -1893,7 +1897,7 @@ def chunks(mb, n):
     for f in mb.faces:
         cx = sum(p[0] for p in f[0]) / len(f[0])
         cz = sum(p[2] for p in f[0]) / len(f[0])
-        k = (math.floor((cx - x0) / CHUNK), math.floor((cz - z0) / CHUNK))
+        k = (math.floor((cx - x0) / size), math.floor((cz - z0) / size))
         groups.setdefault(k, MB()).faces.append(f)
     out = {}
     for i, k in enumerate(sorted(groups)):
@@ -2022,7 +2026,7 @@ def main():
         with open(L.layout_path, "w") as f:
             f.write(fixed_form(L.marks, L.lights))
         print(f"{L.layout_path}: skrevet")
-    pieces = chunks(L.mb, n)
+    pieces = chunks(L.mb, n, L.lay.get("chunk", CHUNK))
     data = {
         "level": n,
         "name": L.plan.name,

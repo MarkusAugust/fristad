@@ -107,6 +107,16 @@ impl Kind {
         self == Kind::Framework
     }
 
+    /// Slaget som står i stedet når slagets egen modell mangler: Rammeverket
+    /// har ingen modell ennå (`model::PLANNED`), så modalen står der, større
+    /// (`Stats.scale`).
+    pub fn stand_in(self) -> Option<Kind> {
+        match self {
+            Kind::Framework => Some(Kind::Modal),
+            _ => None,
+        }
+    }
+
     pub fn stats(self) -> Stats {
         let bite = (15.0 / FPS, 30.0 / FPS);
         let slam = (28.0 / FPS, 44.0 / FPS);

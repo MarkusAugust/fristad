@@ -380,7 +380,7 @@ impl Session {
             }
             self.won = true;
             self.map.dirty = true;
-            events.push(Event::Toast("Rammeverket er beseiret! Skatten i alkoven er din, og en dialog og en tabs ligger igjen i buret.".into()));
+            events.push(Event::Toast("Rammeverket er beseiret! En dialog og en tabs ligger igjen der det falt, og porten i rotunden står åpen.".into()));
         } else if elite {
             let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
             self.hero.carry(c, 1);

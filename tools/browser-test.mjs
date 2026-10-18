@@ -34,6 +34,7 @@ const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromi
 const page = await browser.newPage({ viewport: { width: vw, height: vh } });
 page.on("console", (m) => console.log(`[${m.type()}] ${m.text().slice(0, 400)}`));
 page.on("pageerror", (e) => console.log(`[pageerror] ${e.message}`));
+page.on("response", (r) => r.status() >= 400 && console.log(`[http ${r.status()}] ${r.url()}`));
 // Minnet wasm-modulen har tatt (haugen vokser og krymper aldri): fanges
 // ved instansieringen, så det kan måles også på eldre bygg.
 await page.addInitScript(() => {
@@ -50,7 +51,9 @@ await page.addInitScript(() => {
 await page.goto(`http://127.0.0.1:${port}/${mode === "webgl" ? "?webgl" : ""}`, { waitUntil: "load" });
 // Vent til motoren er klar (knappen på førstesiden), og gå inn.
 try {
-  await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 120000 });
+  const t0 = Date.now();
+  await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 400000 });
+  console.log(`[test] klar etter ${Math.round((Date.now() - t0) / 1000)} s`);
   console.log("[test] motoren er klar, backend:", await page.evaluate(() => window.fristad.engine.backend()));
   await page.evaluate(() => document.querySelector("#enter")?.click());
   await page.waitForTimeout(Number(wait));

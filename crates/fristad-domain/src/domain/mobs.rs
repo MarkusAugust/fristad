@@ -24,6 +24,8 @@ pub use crate::domain::mob_kind::{Kind, Stats};
 #[path = "mob_walk.rs"]
 mod walk;
 use walk::walk;
+#[path = "mob_rigs.rs"]
+mod mob_rigs;
 
 pub use crate::domain::drops::{Token, TOKEN_COLORS, TOKEN_MODEL};
 pub const KEY_MODEL: &str = "key";
@@ -222,48 +224,15 @@ pub struct Mobs {
     seed: u64,
     rigs: Vec<Option<Rig>>,
     clips: Vec<Clips>,
+    /// Modellen hvert slag tegnes med: sin egen, eller stedfortrederen
+    /// (`Kind::stand_in`) når den egne mangler.
+    models: Vec<&'static str>,
 }
 
 impl Mobs {
     pub fn new(crypt: &Crypt, rigs: &[(String, Rig)]) -> Self {
-        let mut all_rigs = vec![];
-        let mut clips = vec![];
-        for k in Kind::ALL {
-            let rig = rigs.iter().find(|(n, _)| n == k.model()).map(|(_, r)| r.clone());
-            let c = rig
-                .as_ref()
-                .map(|r| {
-                    let find = |n: &str| r.clip(n).unwrap_or(0);
-                    for n in ["idle", "walk", "attack", "hit", "die"] {
-                        if r.clip(n).is_none() {
-                            log::warn!("Riggen til {} mangler klippet {n}", k.model());
-                        }
-                    }
-                    let joint = |n: &str| r.joint(n);
-                    Clips {
-                        idle: find("idle"),
-                        walk: find("walk"),
-                        attack: find("attack"),
-                        hit: find("hit"),
-                        die: find("die"),
-                        slam: r.clip("slam"),
-                        roar: r.clip("roar"),
-                        alert: r.clip("alert"),
-                        hit2: r.clip("hit2"),
-                        stagger: r.clip("stagger"),
-                        die2: r.clip("die2"),
-                        look: joint("neck").zip(joint("head")),
-                        up: r.root.inverse().transform_vector3(Vec3::Y).normalize_or_zero(),
-                    }
-                })
-                .unwrap_or_default();
-            if rig.is_none() {
-                log::warn!("Modellen {} har ingen rigg; fienden svever", k.model());
-            }
-            all_rigs.push(rig);
-            clips.push(c);
-        }
-        let mut m = Self { mobs: vec![], level: 0, tokens: vec![], keys: vec![], bolts: vec![], seed: 0x9e37_79b9_7f4a_7c15, rigs: all_rigs, clips };
+        let (all_rigs, clips, models) = mob_rigs::lookup(rigs);
+        let mut m = Self { mobs: vec![], level: 0, tokens: vec![], keys: vec![], bolts: vec![], seed: 0x9e37_79b9_7f4a_7c15, rigs: all_rigs, clips, models };
         m.enter(crypt, 0);
         m
     }
@@ -760,7 +729,8 @@ impl Mobs {
             // Rekkevidden måles til kroppen, og bare på samme gulv.
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
             if dist <= stats.range && level_ok && m.cooldown <= 0.0 {
-                let blow = if m.boss && clips.slam.is_some() && r < 0.35 { Blow::Slam } else { Blow::Melee };
+                // Rammeverket slår i bakken også uten eget klipp (stedfortrederen slår med nevene).
+                let blow = if m.boss && (clips.slam.is_some() || m.kind.boss()) && r < 0.35 { Blow::Slam } else { Blow::Melee };
                 m.state = State::Attack { blow, landed: false };
                 m.t = 0.0;
                 if let Some(a) = m.anim.as_mut() {
@@ -860,7 +830,7 @@ impl Mobs {
             let flinch = (0.25 - m.hit).max(0.0) * 4.0;
             let flash = ((0.16 - m.hit) / 0.16).clamp(0.0, 1.0);
             let s = m.scale();
-            let model = m.kind.model();
+            let model = self.models[m.kind as usize];
             match (&self.rigs[m.kind as usize], &m.anim) {
                 (Some(rig), Some(a)) => {
                     let mut pose = a.pose(rig);
