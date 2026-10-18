@@ -23,8 +23,8 @@ Middelalderske instrumenter som i filmen, ingen moderne trommer eller synth, ing
 **crypt.** Style:
 > dark medieval crypt ambient, wordless monk choir humming low, cello and bass drone, distant church bell, sparse plucked psaltery notes, slowly rising tension, phrygian mode, very slow 52 bpm, cold stone reverb, ominous but restrained, no drums, no vocals with words, seamless loop
 
-**combat.** Style:
-> intense medieval battle music, driving war drums and frame drums, fast hurdy-gurdy and fiddle ostinato, shawm stabs, bagpipe drone, dorian minor, 140 bpm, aggressive, starts immediately without intro, no vocals, seamless loop
+**combat.** Style (eieren 18. oktober: mindre fele, mer bass):
+> heavy dark medieval battle music, deep low war drums and booming frame drums, driving cello and double bass ostinato, low brass and horn stabs, deep male choir grunts, bagpipe drone low, no fiddle, no violin, no high strings, dorian minor, 135 bpm, heavy bass, aggressive, starts immediately without intro, no vocals with words, seamless loop
 
 **combat_boss** (valgfritt). Style:
-> epic dark medieval boss battle, pounding war drums, low horns, pipe organ, wordless choir, fast bowed strings, hurdy-gurdy, phrygian mode, 150 bpm, menacing and huge, starts immediately, no synth, no vocals with words, seamless loop
+> epic dark medieval boss battle, massive low war drums and timpani, pipe organ pedal bass, low brass, cello and double bass ostinato, deep wordless male choir, no fiddle, no violin, no high strings, phrygian mode, 145 bpm, very heavy bass, menacing and huge, starts immediately, no synth, no vocals with words, seamless loop
