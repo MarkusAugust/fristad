@@ -134,6 +134,7 @@ async function boot() {
   stage("Bygger byen og baker materialene …");
   // Gi nettleseren ett bilde til å tegne teksten før wasm tar tråden.
   await new Promise((r) => setTimeout(r, 30));
+  watchGpuLoss();
   // `?webgl` i adressen tvinger WebGL2, til testing.
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
@@ -148,6 +149,7 @@ async function boot() {
     engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
+  if (gpuLost !== null) loseGpu(gpuLost);
   // Til feilsøking i konsollen og til testene.
   window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
@@ -306,6 +308,34 @@ async function fetchModel(path, count = () => {}) {
     bytes = new Uint8Array(await new Response(plain).arrayBuffer());
   }
   return bytes;
+}
+
+// Mister nettleseren grafikkortet (grafikkprosessen startes på nytt, eller
+// SwiftShader i Chromium uten skjerm), må motoren slutte å bruke enheten:
+// ellers kaster neste createBuffer, og motoren stopper. wgpu 25 kan ikke
+// melde det selv (lukningen den gir `device.lost` er sluppet før løftet
+// løses), så vi lytter på enheten nettleseren gir motoren.
+let gpuLost = null;
+function watchGpuLoss() {
+  const proto = globalThis.GPUAdapter?.prototype;
+  if (!proto || proto.requestDevice.fristad) return;
+  const request = proto.requestDevice;
+  const wrapped = async function (...args) {
+    const device = await request.apply(this, args);
+    device.lost.then((info) => {
+      if (info.reason === "destroyed") return;
+      loseGpu(info.message || "ukjent grunn");
+    });
+    return device;
+  };
+  wrapped.fristad = true;
+  proto.requestDevice = wrapped;
+}
+function loseGpu(message) {
+  gpuLost = message;
+  if (!engine || engine.backend() === "Gl") return;
+  engine.gpu_lost(message);
+  toast?.show?.("Grafikkortet forsvant. Last siden på nytt for å se byen igjen.");
 }
 
 // Bitene til et kryptnivå hentes først når økta ber om nivået

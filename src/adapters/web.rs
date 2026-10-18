@@ -594,7 +594,9 @@ impl Engine {
         }
         self.config.width = w;
         self.config.height = h;
-        self.surface.configure(&self.device, &self.config);
+        if !self.app.renderer.is_lost() {
+            self.surface.configure(&self.device, &self.config);
+        }
         self.app.resize(w, h);
     }
 
@@ -712,7 +714,7 @@ impl Engine {
         contents: std::collections::HashMap<String, Vec<crate::domain::world::layout::Item>>,
         crypt: std::collections::BTreeMap<u32, crate::domain::world::crypt::level::CryptContents>,
     ) -> bool {
-        let Some(rb) = &self.rebuild else {
+        let Some(rb) = self.rebuild.as_ref().filter(|_| !self.app.renderer.is_lost()) else {
             return false;
         };
         let mut data = crate::adapters::data::world_data();
@@ -744,16 +746,30 @@ impl Engine {
         true
     }
 
+    /// Nettleseren mistet grafikkortet (`device.lost` i `web/main.js`):
+    /// rendereren slutter å bruke enheten, og spillet går videre uten bilde.
+    pub fn gpu_lost(&mut self, message: &str) {
+        self.app.renderer.lose(message);
+    }
+
+    /// Om grafikkortet er borte.
+    pub fn is_gpu_lost(&self) -> bool {
+        self.app.renderer.is_lost()
+    }
+
     /// Ett bilde. Returnerer hendelsene som JSON-liste.
     pub fn frame(&mut self, dt: f32) -> String {
         let events = self.app.tick(dt);
-        match self.surface.get_current_texture() {
+        // Uten enhet går spillet videre uten bilde (`gpu_lost`).
+        let surface = if self.app.renderer.is_lost() { Err(wgpu::SurfaceError::Lost) } else { self.surface.get_current_texture() };
+        match surface {
             Ok(frame) => {
                 let view = frame.texture.create_view(&Default::default());
                 self.app.renderer.set_target(view);
                 self.app.draw(self.config.width as f32 / self.config.height as f32);
                 frame.present();
             }
+            Err(_) if self.app.renderer.is_lost() => {}
             Err(e) => {
                 log::warn!("Fikk ikke bilde fra canvas: {e}");
                 self.surface.configure(&self.device, &self.config);
