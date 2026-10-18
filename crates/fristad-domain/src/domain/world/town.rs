@@ -392,9 +392,9 @@ fn npc_height(b: &Builder, model: &str) -> f32 {
 /// Portalen ved sørporten (`tools/models/portal.py`): står ikke der før du
 /// har gått hjem fra kjelleren med H (eller dødd nede). Da stiger
 /// steinringen opp av bakken på plassen innenfor sørporten, litt bak og til
-/// venstre for stedet du kommer til (`spawn`), vendt mot deg, så du ser den
-/// når du snur deg (eieren 18. oktober), og virvelen åpner seg. Veien ut
-/// porten er fri på østsiden av den. Økta
+/// venstre for stedet du kommer til (`spawn`), inntil steingjerdet og vendt
+/// mot deg, så du ser den når du snur deg (eieren 18. oktober), og virvelen
+/// åpner seg. Porten og veien ut står fri øst for den. Økta
 /// setter ringen, runene, virvlene og splintene (`Session::portal_poses`)
 /// og flytter kolliderne inn (`PORTAL_SOLIDS`). Stedet er siktemålet
 /// `Use::Portal` i `assets/layout/town.json`.

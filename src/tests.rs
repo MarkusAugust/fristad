@@ -2486,3 +2486,34 @@ fn innbyggerne_sier_sitt_eget() {
     }
     assert!(first.len() == k, "to innbyggere sier det samme");
 }
+
+/// Lykta synes i byen (stolpen «Lys» sendes også der, så du ser hva du må
+/// fylle hos Apotekeren), men oljen brenner bare nede i krypten (eieren 18.
+/// oktober).
+#[test]
+fn lykta_brenner_bare_i_krypten() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.set_oil(0.5);
+    let mut light = None;
+    for _ in 0..(10.0 * 30.0) as usize {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Hud { light: l, cellar, .. } = e {
+                assert!(!cellar, "du står i byen");
+                light = Some(l);
+            }
+        }
+    }
+    assert_eq!(light, Some(50), "stolpen «Lys» viser oljen i byen, og den har ikke brent");
+    game.use_first(|u| *u == Use::Descend);
+    let mut down = None;
+    for _ in 0..(20.0 * 30.0) as usize {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Hud { light: l, cellar: true, .. } = e {
+                down = Some(l);
+            }
+        }
+    }
+    assert!(down.is_some_and(|l| l < 50), "nede brenner oljen: {down:?}");
+}
