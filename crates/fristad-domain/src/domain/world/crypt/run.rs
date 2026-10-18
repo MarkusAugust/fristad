@@ -89,15 +89,17 @@ impl Run {
     }
 
     /// Fall utfor kanten: står du trygt på gulvet, huskes stedet; har du
-    /// falt mer enn tre meter under det laveste gulvet i nivået, gir den
+    /// falt mer enn tre meter under det laveste gulvet i nivået, eller
+    /// står du i vann dypere enn du kan vade (`depth`, se `WADE`), gir den
     /// stedet du skal løftes opp til. (Fallemmer og sjakter ender på et
     /// gulv, så de er ikke fall.)
-    pub fn rescue(&mut self, crypt: &Crypt, feet: Vec3, grounded: bool) -> Option<Vec3> {
+    pub fn rescue(&mut self, crypt: &Crypt, feet: Vec3, grounded: bool, depth: f32) -> Option<Vec3> {
         let k = crypt.level_at(feet + Vec3::Y * 0.5)?;
         let lowest = crypt.levels[k].min_y;
-        if grounded && crypt.floor_under(feet + Vec3::Y * 0.3).is_some_and(|f| (feet.y - f).abs() < 0.4) {
+        let drowned = grounded && depth > super::WADE + 0.05;
+        if grounded && !drowned && crypt.floor_under(feet + Vec3::Y * 0.3).is_some_and(|f| (feet.y - f).abs() < 0.4) {
             self.safe = feet;
-        } else if feet.y < lowest - 3.0 && self.safe != Vec3::ZERO {
+        } else if (drowned || feet.y < lowest - 3.0) && self.safe != Vec3::ZERO {
             return Some(self.safe);
         }
         None

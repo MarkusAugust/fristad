@@ -33,6 +33,10 @@ use nav::{Nav, Poly};
 pub const LEVEL_DROP: f32 = 40.0;
 /// Under denne høyden er du i krypten.
 pub const TOP: f32 = -20.0;
+/// Så dypt du kan vade (føttene under vannflaten). Dypere vann går du ikke
+/// ut i, og faller du i det, drar du deg opp der du sist sto tørt: det er
+/// vannet som holder deg ute, ikke en usynlig mur (eieren 18. oktober).
+pub const WADE: f32 = 0.6;
 /// Minste høyde fra gulvet til taket: spilleren er 1,8 m og hopper.
 pub const HEADROOM: f32 = 2.9;
 /// Krypten holder seg innenfor verdens kant (199 m).
@@ -193,7 +197,6 @@ pub struct Crypt {
     pub bridges: Vec<Bridge>,
     pub lifts: Vec<Lift>,
     pub waters: Vec<Water>,
-    pub water_blocks: Vec<WaterBlock>,
     pub traps: Vec<Trap>,
     pub rests: Vec<Rest>,
     pub lores: Vec<Lore>,
@@ -705,18 +708,6 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     _ => (pos.y, pos.y - 3.0),
                 };
                 c.waters.push(Water { pos, yaw: m.yaw, size: Vec2::new(sw, sd), high, low, level: k, switch: s });
-            }
-            "water_block" => {
-                let s = id(c, "water");
-                let size = match m.size {
-                    Some(level::Size::Three(v)) => Vec3::from(v),
-                    Some(other) => {
-                        let (a, b) = other.wd();
-                        Vec3::new(a, 2.5, b)
-                    }
-                    None => Vec3::new(2.0, 2.5, 0.4),
-                };
-                c.water_blocks.push(WaterBlock { pos, yaw: m.yaw, size, level: k, switch: s });
             }
             "lift" => {
                 let s = id(c, "lift");

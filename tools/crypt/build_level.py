@@ -46,6 +46,8 @@ INSET = 0.4  # navigasjonsnettet holder seg så langt fra murene
 SPRING = 2.2  # høyden på gangmurene (vederlaget), over gulvet
 STAIR_IN = 0.1  # trapper og ramper inntil en mur går så langt inn i murblokka (aldri tangent)
 WALL_T = 0.4  # tykkelsen på murkolliderne
+WALL_END = 0.02  # så langt murkolliderne går forbi endene av muren de står bak
+RAIL_T = 0.26  # tykkelsen på kolliderne til rekkverkene (brystningen i `K.parapet`)
 SECRET_T = 0.3  # hvor dypt den falske veggen går inn i muren
 # Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
 # over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
@@ -585,14 +587,33 @@ class Level:
         if not self.from_layout:
             self.marks.append({"kind": "prop", "label": model, "pos": [rnd(x), rnd(y), rnd(z)], "yaw": rnd(yaw, 4)})
 
+    def outside_round(self, h, pa, pb):
+        """Stykkene av linja pa → pb som ligger utenfor de runde rommene
+        gangen `h` går inn i."""
+        seg = LineString([pa, pb])
+        for rid in (h.a, h.b):
+            room = self.rooms.get(rid)
+            if room is not None and rid in self.lay.get("round", {}) and hasattr(room, "r"):
+                seg = seg.difference(Point(room.c).buffer(room.r, 128))
+        parts = [seg] if seg.geom_type == "LineString" else list(getattr(seg, "geoms", []))
+        return [(g.coords[0], g.coords[-1]) for g in parts if g.length > 0.05]
+
     def wall_box(self, a, b, y0, y1, out):
-        """Murkollider langs (a → b) i planen, bak flaten (mot `out`)."""
+        """Murkollider langs (a → b) i planen, bak flaten (mot `out`). Den
+        går bare `WALL_END` forbi endene: med en halv murtykkelse på hver
+        side stakk den 20 cm ut i døråpningene, forbi hjørnene og foran
+        foten av trappene, der ingenting synes (eieren 18. oktober: «man
+        henger seg opp i noen usynlige vegger»; `ingen_usynlige_vegger_i_krypten`)."""
         L = math.dist(a, b)
         if L < 0.05 or y1 - y0 < 0.05:
             return
         dx, dz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
-        c = ((a[0] + b[0]) / 2 + out[0] * WALL_T / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2 + out[1] * WALL_T / 2)
-        self.box(c, (L + WALL_T, y1 - y0, WALL_T), math.atan2(-dz, dx))
+        # Uten `out` er det et rekkverk, midt på linja: like tykt som
+        # brystningen (`K.parapet`), ikke som en mur, så kapselen ikke
+        # stanger i luft ved siden av det på trappene.
+        t = RAIL_T if out == (0.0, 0.0) else WALL_T
+        c = ((a[0] + b[0]) / 2 + out[0] * t / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2 + out[1] * t / 2)
+        self.box(c, (L + 2 * WALL_END, y1 - y0, t), math.atan2(-dz, dx))
 
     def light(self, pos, color, rng_m, room, flicker=True, intensity=2.0):
         self.lights.append({"pos": [rnd(p) for p in pos], "color": list(color), "range": rng_m, "flicker": flicker, "intensity": intensity, "room": room})
@@ -1317,7 +1338,11 @@ class Level:
             K.plinth(mb, surf, runs, h=0.34 + (0.004 if abs(dx) > 0.5 else 0.0))
             lo = min(fl) - 0.5
             hi = max(fl) + SPRING + a + 0.4
-            self.wall_box(pa, pb, lo, hi, (-nrm[0], -nrm[1]))
+            # Gangen går 0,4 m inn i et rundt rom (så gulvet og hvelvet når
+            # muren), men kollideren stopper ved muren der: stumpen inne i
+            # rommet var en usynlig hindring ved siden av døra.
+            for qa, qb in self.outside_round(h, pa, pb):
+                self.wall_box(qa, qb, lo, hi, (-nrm[0], -nrm[1]))
         # Hvelvet: tønne langs hvert strekk, i skiver på 1 m der gulvet
         # stiger, og krysshvelv i hjørnene.
         for i, (p0, p1, d, L) in enumerate(h.segs):
@@ -1530,12 +1555,21 @@ class Level:
             u = ((ang - seam) % (2 * math.pi)) * R
             prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
             openings.append(Polygon(prof))
+            # En dør over skjøten (u = 0 er u = omkretsen) hogges ut på begge
+            # sider av den. Før ble bare den ene halvdelen hogd ut, og den
+            # andre sto igjen som mur med kollider (vestdøra i rotunden i
+            # kloakken, der det er dør både ved 0 og 180°).
+            for shift in (circ, -circ):
+                if min(pu + shift for pu, _ in prof) < circ and max(pu + shift for pu, _ in prof) > 0:
+                    openings.append(Polygon([(pu + shift, v) for pu, v in prof]))
+                    print(f"  {r.id}: døra ved {math.degrees(ang):.0f}° går over skjøten i muren")
             if kind == SECRET:
                 self.secret_wall(h, cyl, u, w, y, spec.get("wall_mat", "wall"), spec.get("wall_cell", 1.0), 0.34)
                 self.secret_reveal(cyl, u, w, y, spec.get("wall_mat", "wall"))
             if kind not in (SECRET, SHORTCUT):
                 K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
-            cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof), y))
+            for shift in (0.0, circ, -circ):
+                cuts.append((u + shift - w / 2 - 0.1, u + shift + w / 2 + 0.1, max(v for _, v in prof), y))
         wmat = spec.get("wall_mat", "wall")
         K.wall(mb, cyl, circ, fy - 0.05, top, openings, mat=wmat, cell=spec.get("wall_cell", 1.0), extra=VAULT_LAP)
         segs = 72
@@ -1568,20 +1602,26 @@ class Level:
         # Murkolliderne rundt (utenom åpningene; under en åpning høyere oppe
         # står muren fra gulvet opp til den), i stykker på høyst 1,5 m, så
         # muren ved siden av en dør i et stort rom ikke står uten kollider.
+        # Stykkene deles ved kantene av åpningene, så muren står helt fram til
+        # dem (før fikk hele stykket ved siden av en dør bare overliggeren, og
+        # gangmuren som stakk 0,4 m inn i sirkelen, var en usynlig stump).
         nc = max(segs, math.ceil(circ / 1.5))
+        edges = [(cu0 + 0.1, cu1 - 0.1, apex, y) for cu0, cu1, apex, y in cuts]
         for k in range(nc):
             u0, u1 = circ * k / nc, circ * (k + 1) / nc
-            pa, pb = cyl.point(u0, 0.0), cyl.point(u1, 0.0)
-            hit = [cu for cu in cuts if u0 < cu[1] and u1 > cu[0]]
-            mid = ((pa[0] + pb[0]) / 2, (pa[2] + pb[2]) / 2)
-            out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
-            if hit:
-                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
-                if hit[0][3] > fy + 0.05:
-                    # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
-                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, hit[0][3] - 0.3, out)
-            else:
-                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, top + 4.5, out)
+            marks = sorted({u0, u1} | {e for e0, e1, _, _ in edges for e in (e0, e1) if u0 < e < u1})
+            for v0, v1 in zip(marks, marks[1:]):
+                pa, pb = cyl.point(v0, 0.0), cyl.point(v1, 0.0)
+                hit = [cu for cu in edges if v0 < cu[1] - 1e-6 and v1 > cu[0] + 1e-6]
+                mid = ((pa[0] + pb[0]) / 2, (pa[2] + pb[2]) / 2)
+                out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
+                if hit:
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
+                    if hit[0][3] > fy + 0.05:
+                        # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
+                        self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, hit[0][3] - 0.3, out)
+                else:
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, top + 4.5, out)
         # Kuppelen.
         hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat=self.vault_mat(r), rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
         K.dome_ribs(mb, c, R, hfn, count=spec.get("ribs", 12))
@@ -1638,7 +1678,11 @@ class Level:
                 self.tri_patches.append(([(A[0], ya, A[1]), (C[0], yb, C[1]), (D[0], yb, D[1])], sid, gal.get("stair_gate")))
             # Navigasjonen: gulvet (uten feltet under trappa) og galleriet.
             under_stair = Polygon(ring_pts(si - INSET, a0, a1, n) + ring_pts(R + 1, a0, a1, n)[::-1])
-            r.floor_walk = Point(c).buffer(R - INSET, 72).difference(under_stair)
+            # Og rundt enden av rekkverket ved foten av trappa: ellers gikk
+            # veien over gulvet rett over enden, og fiendene (og kapselen i
+            # `kapselen_gar_mellom_noekkelstedene_i_hvert_nivaa`) sto fast der.
+            rail_end = Point(c[0] + si * math.cos(a0), c[1] + si * math.sin(a0)).buffer(INSET + WALL_T / 2, 16)
+            r.floor_walk = Point(c).buffer(R - INSET, 72).difference(under_stair).difference(rail_end)
             g1w = g1 - INSET / (ri + 1.0)
             gwalk = Polygon(ring_pts(R - INSET, g0, g1w, steps) + ring_pts(ri + INSET, g0, g1w, steps)[::-1])
             gid = gal.get("id", r.id + "_galleri")
@@ -1682,6 +1726,12 @@ class Level:
                 self.obstacle_at(p, Point(p[0], p[2]).buffer(0.35))
             elif m["kind"] == "up":
                 self.obstacle_at(p, sbox(p[0] - 1.6, p[2] - 1.2, p[0] + 1.6, p[2] + 0.05))
+            elif m["kind"] == "ladder":
+                # Foten av stigen (kollideren til siktemålet står der): veien
+                # går rundt den, ikke gjennom.
+                cy, sy = math.cos(m.get("yaw", 0.0)), math.sin(m.get("yaw", 0.0))
+                pts = [(p[0] + lx * cy + lz * sy, p[2] - lx * sy + lz * cy) for lx, lz in ((-0.45, -0.15), (0.45, -0.15), (0.45, 0.15), (-0.45, 0.15))]
+                self.obstacle_at(p, Polygon(pts))
 
     def obstacle_at(self, p, poly):
         for r in self.rooms.values():

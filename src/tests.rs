@@ -16,7 +16,7 @@ pub(crate) fn world() -> &'static Prepared {
     P.get_or_init(|| prepare(&Embedded, 7))
 }
 
-fn session(physics: &mut RapierPhysics) -> Session {
+pub(crate) fn session(physics: &mut RapierPhysics) -> Session {
     let p = world();
     Session::new(&p.world, physics, &rigs(&p.models))
 }

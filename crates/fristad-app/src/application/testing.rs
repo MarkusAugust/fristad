@@ -136,4 +136,9 @@ impl Session {
         let free = self.crypt.lifts.get(n).is_some_and(|l| self.crypt.open.get(l.switch).copied().unwrap_or(false));
         (free, self.mech.lift_up(n), self.mech.lift_moving(n))
     }
+
+    /// Åpne bryter `sw` (port, dør, falsk vegg, vann, bro) uten å gå dit.
+    pub fn open_now(&mut self, sw: usize) {
+        self.open_switch(sw);
+    }
 }

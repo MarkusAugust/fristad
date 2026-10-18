@@ -23,8 +23,6 @@ pub enum Moved {
     Trapdoor(usize),
     /// Broa senkes (eller har lagt seg).
     Bridge(usize),
-    /// Vannet har sunket helt: det som holdt deg ute, er borte.
-    Water(usize),
     /// Heisen kjører (dekket og det som står på det har flyttet seg).
     Lift(usize),
 }
@@ -309,10 +307,8 @@ impl Mechanisms {
                 moved.push(Moved::Bridge(n));
             }
         }
-        for (n, w) in self.waters.iter_mut().enumerate() {
-            if run(w, dt, 5.0) && *w >= 1.0 {
-                moved.push(Moved::Water(n));
-            }
+        for w in self.waters.iter_mut() {
+            run(w, dt, 5.0);
         }
         for (n, (open, unlocked)) in self.gates.iter_mut().enumerate() {
             if *unlocked && *open < 1.0 {
@@ -469,18 +465,44 @@ impl Mechanisms {
         (decks, chains)
     }
 
-    /// Vannflatene der de står nå: synker sakte, raskest midt i.
+    /// Høyden på vannflate `n` nå: synker sakte, raskest midt i.
+    pub fn water_level(&self, crypt: &Crypt, n: usize) -> f32 {
+        let w = &crypt.waters[n];
+        let t = self.waters.get(n).copied().unwrap_or(-1.0).max(0.0);
+        w.high + (w.low - w.high) * t * t * (3.0 - 2.0 * t)
+    }
+
+    /// Om vann `n` har sunket helt.
+    pub fn water_down(&self, n: usize) -> bool {
+        self.waters.get(n).is_some_and(|t| *t >= 1.0)
+    }
+
+    /// Vannflatene der de står nå.
     pub fn water_poses(&self, crypt: &Crypt) -> Vec<Affine3A> {
         crypt
             .waters
             .iter()
             .enumerate()
-            .map(|(n, w)| {
-                let t = self.waters.get(n).copied().unwrap_or(-1.0).max(0.0);
-                let y = w.high + (w.low - w.high) * t * t * (3.0 - 2.0 * t);
-                at(Vec3::new(w.pos.x, y, w.pos.z), w.yaw) * Affine3A::from_scale(Vec3::new(w.size.x, 1.0, w.size.y))
-            })
+            .map(|(n, w)| at(Vec3::new(w.pos.x, self.water_level(crypt, n), w.pos.z), w.yaw) * Affine3A::from_scale(Vec3::new(w.size.x, 1.0, w.size.y)))
             .collect()
+    }
+
+    /// Vannet over punktet `p` (føttene): vannet og flaten der den står nå,
+    /// om punktet er innenfor flaten og ikke under bassenget (lenger ned
+    /// enn en halv meter under der vannet står når det har sunket, som
+    /// bunnen av sluket under rotunden).
+    pub fn water_at(&self, crypt: &Crypt, p: Vec3) -> Option<(usize, f32)> {
+        crypt.waters.iter().enumerate().find_map(|(n, w)| {
+            let local = glam::Quat::from_rotation_y(-w.yaw) * (p - w.pos);
+            let inside = local.x.abs() <= w.size.x * 0.5 && local.z.abs() <= w.size.y * 0.5 && p.y > w.low - 0.5;
+            let y = self.water_level(crypt, n);
+            (inside && y > p.y).then_some((n, y))
+        })
+    }
+
+    /// Hvor dypt føttene i `p` står i vann nå (0 på tørt).
+    pub fn depth_at(&self, crypt: &Crypt, p: Vec3) -> f32 {
+        self.water_at(crypt, p).map_or(0.0, |(_, y)| y - p.y)
     }
 
     /// Lokket på kiste `n` i kistas pose: dreid opp om hengslet, med en
