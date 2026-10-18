@@ -31,7 +31,7 @@ Middelalderske instrumenter som i filmen, ingen moderne trommer eller synth, ing
 
 ## Trubaduren i Vertshuset (med tekst)
 
-Inne i Vertshuset synger en trubadur legenden om Gorvek (eieren 18. oktober). Sangen bygger på kanon (`docs/kanon.md`: Gorvek delte Rammeverket, forseglingen, Ansgar) og på Gallowmark-kanonen (github.com/MarkusAugust/gallowmark: Gorvek av Bonereach, Askefallet, hoppa uten navn, arret fra Gråkappenes krok, trosbekjennelsen). Ingen moderne ord. Fila er `assets/music/game/tavern.mp3`, og den spilles i stedet for byens spor mens du er inne i Vertshuset.
+Inne i Vertshuset synger en trubadur legenden om Gorvek (eieren 18. oktober). Sangen bygger på kanon (`docs/kanon.md`: Gorvek delte Rammeverket, forseglingen, Ansgar) og på Gallowmark-kanonen (github.com/MarkusAugust/gallowmark: Gorvek av Bonereach, sunget som Beinheia, fordi Suno ikke uttaler engelske ord på norsk, Askefallet, hoppa uten navn, arret fra Gråkappenes krok, trosbekjennelsen). Ingen moderne ord. Fila er `assets/music/game/tavern.mp3`, og den spilles i stedet for byens spor mens du er inne i Vertshuset.
 
 Slå **av** Instrumental i Suno, lim stilen inn i *Style of Music* og teksten under i *Lyrics*.
 
@@ -49,7 +49,7 @@ Slå **av** Instrumental i Suno, lim stilen inn i *Style of Music* og teksten un
 
 [Verse 1]
 Hør nå, dere som sitter ved ilden,
-om mannen fra Bonereach der vinden er hard.
+om mannen fra Beinheia der vinden er hard.
 Han gikk inn i gråmen da Askefallet kom,
 og ut kom han siden med jern i sin hand.
 
