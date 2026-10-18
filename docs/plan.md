@@ -210,6 +210,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - Hele dialogen får plass i høyden uten å rulle.
 
 ### 13c. Skriptoriet
+- **Eieren 18. oktober (revisjon):** «menyen skal ikke dekke hele skjermen i høyden, selv om det er flere gjenstander i kategorien. Da må bruker scrolle. Hvert item skal kun vise en oppsummering, og mer info hvis man trykker på det. Du skal bygge et bedre interface basert på Fristil-komponenter.» Det samme gjelder inventaret og butikkene: lista ruller inne i dialogen, hver rad er en oppsummering (ikon, navn, sjeldenhet, merke), og detaljene kommer først når raden er valgt.
 - **Ikke hele vinduets høyde** (eieren): dialogen får fast høyde (rundt 80 % av vinduet, høyst 760 px) med to kolonner. Til venstre står en kompakt liste eller et rutenett av små kort (ikon, navn, sjeldenhet og et merke for «kan smis nå», «mangler 2» eller «har du»), som ruller for seg. Til høyre står detaljene for den valgte oppskriften: stort ikon, beskrivelse, sammenligning med det du har på, og komponentene.
 - **Komponentene som en liste med ikoner** (bildet fra galleriet), med «har 2 av 3» og en stolpe. Hvor den finnes, står kort på én linje («Kister i Gruva · elite i Kloakken · Buttonsmeden 12 tokens»). Den lange teksten gjentas ikke under hver komponent; «Bare i krypten» blir ett merke.
 - **Sortering:** de du kan smi nå øverst, så de som mangler minst, og det du har nederst og dempet. Filtrene (Alt, Våpen, Skjold, Rustning, Lys) står som nå, med antall.
@@ -227,6 +228,9 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **Treffet:** en sprut der det treffer (vegg, gulv eller deg), en lyd og en skadeindikator i kanten av bildet som viser hvor skuddet kom fra.
 - **Infopanelet om fienden** sier «Skyter på avstand» for slagene med `bolt` (inputen, Toast-frosken).
 - Test: et skudd fra en input lager en synlig instans hvert bilde til det treffer.
+
+### 13f. Siktekortet midt på skjermen (eieren 18. oktober)
+- Kortet om det du sikter på (fienden, en innbygger, en ting du kan bruke) er for vanskelig å se ute ved høyre kant. Det flyttes midt på skjermen, et lite stykke over stolpene for liv og utholdenhet, som ett kort (`#target` og `#foe` på samme plass, aldri samtidig). Kolonnen til høyre har bare minikartet og tastene. `tools/layout-test.mjs` sjekker at kortet ikke dekker siktepunktet eller stolpene på åtte skjermstørrelser.
 
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
