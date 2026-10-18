@@ -264,7 +264,7 @@ Eieren synes nivåene er for kjedelige og generiske, og vil bygge dem selv i en 
 - **Reglene underveis:** redigeringen sier fra med en gang om noe ikke henger sammen (dør som ikke går noen vei, spak uten port, rom du ikke når, nivå uten trapp ned) — de samme reglene som testene. Utkast huskes i nettleseren, og nivåene lagres på grenen `redigering` som byen; jeg slår dem inn.
 - **Bitene:** jeg lager et første sett per tema (gravkjelleren, kloakken, gruva, borgen, kjernen) i Blender med murene vi har, eieren godkjenner dem på godkjenningssiden, og flere kommer når eieren savner noe.
 - **De ti nivåene begynnes helt på nytt:** de gamle står til de nye er klare, så fjernes de, og eieren bygger alle fra blankt.
-- **Rekkefølge:** etter neste prod-utgivelse og del 14. Planen i detalj (formatet for nivåene, bitene, sammenføyningen, navigasjonen, lagringen, redigeringens skjermbilde) skrives før arbeidet starter og vises eieren.
+- **Rekkefølge:** etter neste prod-utgivelse og del 14. Planen i detalj står i `docs/nivaaredigering.md` (18. oktober) og vises eieren før arbeidet starter.
 
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
