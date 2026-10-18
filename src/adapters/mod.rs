@@ -51,5 +51,13 @@ pub async fn gpu(
         })
         .await
         .map_err(|e| format!("Fikk ikke GPU-enhet: {e}"))?;
+    // Nettleseren kan miste enheten (grafikkprosessen startes på nytt, eller
+    // SwiftShader i Chromium uten skjerm); da tegnes ingenting mer, men
+    // spillet skal gå videre uten å stoppe (`timer.rs`).
+    device.set_device_lost_callback(|reason, message| {
+        if reason != ::wgpu::DeviceLostReason::Destroyed {
+            log::error!("Grafikkortet er borte ({reason:?}): {message}. Last siden på nytt.");
+        }
+    });
     Ok((adapter, device, queue))
 }

@@ -10,10 +10,15 @@ use std::sync::Arc;
 pub const SECTIONS: [&str; 3] = ["skygge", "verden", "etterbehandling"];
 const QUERIES: u32 = SECTIONS.len() as u32 * 2;
 
-/// Tilbakelesingen: ledig, venter på kartlegging, klar til å leses.
+/// Tilbakelesingen: ledig, venter på kartlegging, klar til å leses, eller
+/// kartleggingen feilet (enheten er borte). wgpu regner bufferen som
+/// kartlagt også når kartleggingen feiler, og en ny `map_async` på den
+/// stopper motoren («Buffer is already mapped»); etter en feil måles det
+/// ikke mer.
 const IDLE: u8 = 0;
 const PENDING: u8 = 1;
 const READY: u8 = 2;
+const FAILED: u8 = 3;
 
 pub struct GpuTimer {
     set: wgpu::QuerySet,
@@ -59,8 +64,16 @@ impl GpuTimer {
 
     /// Før bildet: les tidene fra et tidligere bilde om de er klare.
     pub fn collect(&mut self) {
-        if self.state.load(Ordering::Acquire) != READY {
-            return;
+        match self.state.load(Ordering::Acquire) {
+            READY => {}
+            FAILED => {
+                if self.ms != [0.0; SECTIONS.len()] {
+                    log::warn!("Tidsmålingen på grafikkortet stoppet: tilbakelesingen feilet");
+                }
+                self.ms = [0.0; SECTIONS.len()];
+                return;
+            }
+            _ => return,
         }
         {
             let data = self.readback.slice(..).get_mapped_range();
@@ -95,7 +108,71 @@ impl GpuTimer {
         self.state.store(PENDING, Ordering::Release);
         let state = self.state.clone();
         self.readback.slice(..).map_async(wgpu::MapMode::Read, move |r| {
-            state.store(if r.is_ok() { READY } else { IDLE }, Ordering::Release);
+            state.store(if r.is_ok() { READY } else { FAILED }, Ordering::Release);
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ett bilde slik rendereren tegner det: les tidene, ett pass med
+    /// tidsstempler, kopier dem ut, send inn og be om å få lese dem.
+    fn frame(device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView, tm: &mut GpuTimer) {
+        let _ = device.poll(wgpu::PollType::Poll);
+        tm.collect();
+        let mut enc = device.create_command_encoder(&Default::default());
+        drop(enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment { view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store } })],
+            depth_stencil_attachment: None,
+            timestamp_writes: tm.writes(0, true, true),
+            occlusion_query_set: None,
+        }));
+        tm.resolve(&mut enc);
+        queue.submit([enc.finish()]);
+        tm.map();
+    }
+
+    /// Mister nettleseren grafikkortet (i Chromium med SwiftShader skjedde
+    /// det i første bilde etter «Gå inn»), feiler kartleggingen av
+    /// tilbakelesingen. wgpu regner da bufferen som kartlagt, og neste
+    /// `map_async` på den stoppet hele motoren med «Buffer is already
+    /// mapped»; alt etterpå feilet med «recursive use of an object».
+    #[test]
+    fn tidsmalingen_overlever_at_grafikkortet_forsvinner() {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
+        let (_, device, queue) = pollster::block_on(crate::adapters::gpu(&instance, None)).expect("GPU");
+        let Some(mut tm) = GpuTimer::new(&device, &queue) else {
+            panic!("kortet kan ikke måle tid (TIMESTAMP_QUERY); testen trenger det");
+        };
+        // Feilene etter at enheten er borte er ventet her.
+        device.on_uncaptured_error(Box::new(|_| {}));
+        let target = device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
+            size: wgpu::Extent3d { width: 8, height: 8, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+        let view = target.create_view(&Default::default());
+        for _ in 0..4 {
+            frame(&device, &queue, &view, &mut tm);
+            let _ = device.poll(wgpu::PollType::Wait);
+        }
+        // Kartleggingen feiler mens den venter, som når nettleseren mister
+        // enheten (der avvises `mapAsync`; her ødelegges bufferen).
+        frame(&device, &queue, &view, &mut tm);
+        assert_eq!(tm.state.load(Ordering::Acquire), PENDING);
+        tm.readback.destroy();
+        for _ in 0..4 {
+            frame(&device, &queue, &view, &mut tm);
+        }
+        assert_eq!(tm.state.load(Ordering::Acquire), FAILED);
+        assert_eq!(tm.ms, [0.0; SECTIONS.len()]);
     }
 }
