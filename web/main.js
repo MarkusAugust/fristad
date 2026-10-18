@@ -1443,6 +1443,10 @@ function enter(relock = true) {
   if (relock && !editor?.active) lock();
 }
 
+// Knappene som bare hører til pausemenyen. Startkortet viser bare framdriften
+// mens siden laster (eieren 18. oktober: knappene sto der uten å virke).
+const PAUSE_ONLY = ["respawn", "quit", "graphics", "settings"];
+
 function quit() {
   playing = false;
   dragging = false;
@@ -1452,8 +1456,7 @@ function quit() {
   engine.respawn();
   if (locked()) document.exitPointerLock?.();
   enterBtn.textContent = "Gå inn i Fristad";
-  $("respawn").hidden = true;
-  $("quit").hidden = true;
+  for (const id of PAUSE_ONLY) $(id).hidden = true;
   hud.hidden = true;
   gateEl.hidden = false;
   enterBtn.focus();
@@ -1467,8 +1470,7 @@ function pause() {
   if (locked()) document.exitPointerLock?.();
   if (!panelOpen) {
     enterBtn.textContent = "Fortsett";
-    $("respawn").hidden = false;
-    $("quit").hidden = false;
+    for (const id of PAUSE_ONLY) $(id).hidden = false;
     gateEl.hidden = false;
     enterBtn.focus();
   }
