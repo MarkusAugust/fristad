@@ -691,7 +691,8 @@ fn fantomet_festet_og_slippet() {
     let d = edit_world().edit.as_ref().unwrap();
     let barrel = d.layout.items.iter().position(|it| it.model.as_deref() == Some("barrel")).unwrap();
     let at = d.layout.items[barrel].at.unwrap().pos;
-    s.place(at + Vec3::new(-6.0, 2.5, 0.0), -std::f32::consts::FRAC_PI_2, -0.3);
+    // Ikke rett over trubaduren ved ildstedet (strålen mot tønna traff ham).
+    s.place(at + Vec3::new(-6.0, 2.5, -1.5), -std::f32::consts::FRAC_PI_2, -0.3);
     s.frame(1.6);
     assert!(s.edit_command(EditCommand::Enter));
     let view = |s: &mut crate::application::Session, physics: &mut crate::adapters::rapier::RapierPhysics| {
