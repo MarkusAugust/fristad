@@ -2017,7 +2017,10 @@ function closePanel(relock) {
 
 // Eksempelet fra dokumentasjonen, levende, i en flate slik Fristil-docs
 // viser den (Preview.astro): i en shadow root med bare Fristils CSS, så
-// ingenting fra spillets stilark treffer komponentene.
+// ingenting fra spillets stilark treffer komponentene. Flatens stilark
+// (`docs-flate.css`) skriver tools/export-docs.ts rett fra Preview.astro, så
+// panelet kjenner de samme layoutene som docs (Divider bruker `flyt`); dette
+// er reserven til det er hentet.
 const FLATE = `
   :host { display: block; }
   .flate {
@@ -2036,6 +2039,10 @@ const FLATE = `
   .flate[data-fast-inni] { contain: layout; }
   .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
   .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; }
+  .flate[data-layout="flyt"] { display: block; }
+`;
+// Det panelet legger til over docs-flaten.
+const FLATE_EXTRA = `
   /* Docs-flaten gir <hr> nettleserens margin-inline: auto, og da blir
      skillelinja null bred i stabelen. I boka skal den synes. */
   .flate > .fs-divider { margin-inline: 0; }
@@ -2044,7 +2051,11 @@ const FLATE = `
 // Fristils stilark hentes som tekst: kopierte regler (cssRules) mister
 // `background: var(...)` når lengre ned i regelen setter enkeltdelene.
 const demoSheets = [new CSSStyleSheet(), new CSSStyleSheet()];
-demoSheets[1].replaceSync(FLATE);
+demoSheets[1].replaceSync(FLATE + FLATE_EXTRA);
+fetch("docs-flate.css")
+  .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+  .then((css) => demoSheets[1].replace(css + FLATE_EXTRA))
+  .catch((e) => console.warn("docs-flate.css til demoen:", e));
 fetch("fristil.css")
   .then((r) => r.text())
   .then((css) => demoSheets[0].replace(css))

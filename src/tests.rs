@@ -2471,6 +2471,27 @@ fn dommen_mister_ingenting() {
     assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
 }
 
+/// Hvert eksempel i boka har en flate å stå på (eieren 18. oktober: Divider
+/// sto i fire kolonner fordi panelet ikke kjente layouten `flyt` fra
+/// Fristil-docs): `web/docs-flate.css`, som `tools/export-docs.ts` skriver
+/// rett fra Preview.astro, har en regel for hver layout i `web/docs.json`.
+#[test]
+fn eksemplene_i_boka_har_sin_flate() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let docs: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{root}/web/docs.json")).expect("docs.json")).expect("docs.json");
+    let flate = std::fs::read_to_string(format!("{root}/web/docs-flate.css")).expect("web/docs-flate.css (bun tools/export-docs.ts)");
+    let main = std::fs::read_to_string(format!("{root}/web/main.js")).expect("main.js");
+    let mut bad = vec![];
+    for (name, d) in docs.as_object().expect("docs") {
+        let Some(layout) = d["demo"]["layout"].as_str() else { continue };
+        let rule = format!("data-layout=\"{layout}\"");
+        if !flate.contains(&rule) || !main.contains(&rule) {
+            bad.push(format!("{name}: layouten «{layout}» mangler i docs-flate.css eller reserven i main.js"));
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
 /// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:
 /// hver modell spillet har, står i `assets/catalog/models.json` med hva den
 /// er, hvert teksturlag og hvert malt bilde i `textures.json`, og eierens dom

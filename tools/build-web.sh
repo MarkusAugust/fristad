@@ -44,7 +44,7 @@ rm -rf dist
 mkdir -p dist
 "$TOOLS/wasm-bindgen" --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/fristad.wasm
-cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json dist/
+cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json web/docs-flate.css dist/
 # Åpningsfilmen: den ferdige videoen (tools/film/cut.py skriver target/film/intro.mp4;
 # i Actions bygges den i et eget steg med hurtiglager). Mangler den, starter spillet
 # uten film, så bygget stopper ikke.

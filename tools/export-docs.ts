@@ -178,4 +178,13 @@ for (const name of COMPONENTS) docs[name] = await parse(name, await source(name)
 for (const name of PAGES) docs[name] = await parse(name, await source(name, "documentation/src/content/docs"), true);
 
 writeFileSync("web/docs.json", JSON.stringify(docs, null, 2) + "\n");
+
+// Flaten eksemplene vises på, rett fra Fristil-docs (Preview.astro): de
+// samme layoutene (`rad`, `stabel`, `flyt` …), så panelet aldri mangler en
+// som docs har fått (eieren 18. oktober: Divider sto i fire kolonner fordi
+// panelet ikke kjente `flyt`).
+const preview = await read(`${DEMOS}/Preview.astro`);
+const flate = preview.match(/const stilark = \[\s*`([\s\S]*?)`/)?.[1];
+if (!flate || !flate.includes(".flate")) throw new Error("Preview.astro: fant ikke stilarket til flaten");
+writeFileSync("web/docs-flate.css", flate.replace(/^\t/gm, "").trim() + "\n");
 console.log(`Dokumentasjon for ${COMPONENTS.length} komponent(er) og ${PAGES.length} side(r) skrevet til web/docs.json`);
