@@ -118,7 +118,8 @@
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>
   </div>
 
-  <!-- Startskjerm og pause. -->
+  <!-- Startskjerm og pause. Mens siden laster, viser kortet bare framdriften;
+       Grafikk og Innstillinger hører til pausemenyen (pause() i main.js). -->
   <section id="gate" class="overlay">
     <div class="fs-card gate-card">
       <p class="eyebrow">Fristil <span id="version"></span></p>
@@ -135,8 +136,8 @@
         <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
         <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til sørporten</button>
         <button id="quit" class="fs-button" data-variant="ghost" hidden>Avslutt</button>
-        <button id="graphics" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" title="Grafikkinnstillingene: forhåndsvalg og hver bryter for seg (tasten G bytter forhåndsvalg)">Grafikk: standard</button>
-        <button id="settings" class="fs-button" data-variant="secondary" type="button" title="Grafikk og oppløsning (tasten O)">Innstillinger</button>
+        <button id="graphics" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" hidden title="Grafikkinnstillingene: forhåndsvalg og hver bryter for seg (tasten G bytter forhåndsvalg)">Grafikk: standard</button>
+        <button id="settings" class="fs-button" data-variant="secondary" type="button" hidden title="Grafikk og oppløsning (tasten O)">Innstillinger</button>
       </div>
       <div id="gpu-warning" class="fs-alert" data-color="warning" role="alert" hidden>
         <p class="fs-alert__title">Nettleseren tegner uten grafikkortet</p>
