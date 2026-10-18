@@ -2,10 +2,11 @@
 
 Vannstanden er det nye: hovedkanalen og rotunden står fulle av vann til
 sluseratten i slusekammeret er dreid (spaken åpner bryteren `vann_1`). Da synker
-vannet (`water`-merkene), det som holdt deg ute ved trappene og gangene ned i det
-forsvinner (`water_block`), og bunnen av kanalen og rotunden, stikkrenna til
-silkammeret og gangen til rottereiret åpner seg for fiendene (navigasjonen der
-er stengt av `vann_1`).
+vannet (`water`-merkene), og bunnen av kanalen og rotunden, vindeltrappa ned i
+rotunden, stikkrenna til silkammeret og gangen til rottereiret åpner seg (for
+fiendene er navigasjonen der stengt av `vann_1`). Det er vannet selv som holder
+deg ute: du vader ikke dypere enn `crypt::WADE`, og faller du i, drar du deg
+opp der du sist sto tørt (eieren 18. oktober: ingen usynlige murer).
 
 Gangbanene i kanalen er hyller på konsoller langs murene (`terrace(..., solid=False)`),
 så gangene ut fra kanalbunnen går inn under dem. Bunnen i kanalen og rotunden
@@ -82,9 +83,7 @@ ROUND = {
 def marks(_):
     kz = (KANAL["z1"] + KANAL["z0"]) / 2
     nz, sz = KANAL["z0"] + KANAL["walk"] / 2, KANAL["z1"] - KANAL["walk"] / 2
-    a1 = ROT["a1"]
     cx, cz = ROT["c"]
-    stair_top = (cx + 8.1 * math.cos(a1 - math.radians(8)), cz + 8.1 * math.sin(a1 - math.radians(8)))
     return [
         {"kind": "start", "pos": [0, 0, 1.0], "yaw": P},
         {"kind": "up", "pos": [0, 0, -2.5], "yaw": 0.0},
@@ -94,9 +93,6 @@ def marks(_):
         {"kind": "mob", "pos": [22, 0, sz], "label": "toast", "n": 3},
         {"kind": "mob", "pos": [46, 0, sz], "label": "button", "n": 2},
         {"kind": "water", "id": VANN, "pos": [38, -0.5, kz], "size": [84, 10], "levels": [-0.5, KANAL["bottom"] - 0.05]},
-        {"kind": "water_block", "id": VANN, "pos": [34, KANAL["bottom"], 30.2], "size": [2.6, 2.6, 0.3]},
-        {"kind": "water_block", "id": VANN, "pos": [4, KANAL["bottom"], 30.2], "size": [2.6, 2.6, 0.3]},
-        {"kind": "water_block", "id": VANN, "pos": [52, KANAL["bottom"], 30.2], "size": [2.2, 2.6, 0.3]},
         {"kind": "hint", "label": "draft", "pos": [52, KANAL["bottom"], 28.2], "for": "hemmelig_3b"},
         {"kind": "secret_wall", "id": "hemmelig_3b", "pos": [52, KANAL["bottom"], 29.0], "yaw": P, "width": 2.0, "height": 2.6},
         # Mosegrotta.
@@ -115,9 +111,7 @@ def marks(_):
         # Rotunden.
         {"kind": "mob", "pos": [cx - 7.9, 0, cz - 1.5], "label": "toast", "n": 3},
         {"kind": "mob", "pos": [cx + 8.0, 0, cz + 0.3], "label": "select", "patrol": [[cx, 0, cz - 8], [cx + 8, 0, cz], [cx, 0, cz + 8], [cx - 8, 0, cz]]},
-        {"kind": "water", "id": VANN, "pos": [cx, -0.5, cz], "size": [12.7, 12.7], "levels": [-0.5, ROT["bottom"] - 0.05]},
-        {"kind": "water_block", "id": VANN, "pos": [round(stair_top[0], 3), -0.9, round(stair_top[1], 3)], "yaw": round(-(a1 - math.radians(8)), 4), "size": [3.0, 2.8, 0.3]},
-        {"kind": "water_block", "id": VANN, "pos": [68.4, ROT["bottom"], 54], "yaw": P / 2, "size": [2.2, 2.6, 0.3]},
+        {"kind": "water", "id": VANN, "pos": [cx, -0.5, cz], "size": [2 * ROT["r"], 2 * ROT["r"]], "levels": [-0.5, ROT["bottom"] - 0.05]},
         {"kind": "trapdoor", "id": "sluket", "label": "shaft", "pos": [78, ROT["bottom"], 58.5], "size": [1.6, 1.6], "to": "rorbunn"},
         {"kind": "hint", "label": "draft", "pos": [78, ROT["bottom"], 58.5], "for": "sluket"},
         # Underkummen og stigen opp i utløpet.

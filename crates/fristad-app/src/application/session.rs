@@ -32,6 +32,9 @@ use std::collections::HashMap;
 use super::audio::Soundscape;
 use super::fight::Hud;
 
+/// Så langt unna kan du sikte på en fiende og få infopanelet (meter).
+const FOE_SIGHT: f32 = 30.0;
+
 /// En lyd i hodet: dine egne skritt, hugg og stønn.
 pub(super) fn sfx(name: &str) -> Event {
     Event::Sound(Sound::new(name))
@@ -90,8 +93,8 @@ pub struct Session {
     pub(super) bridge_solids: Vec<ColliderId>,
     /// Dekkene på heisene (bevegelige kollidere).
     pub(super) lift_solids: Vec<ColliderId>,
-    /// Det som holder deg ute av vannet mens det står høyt.
-    pub(super) water_solids: Vec<ColliderId>,
+    /// Hvor lenge siden du sist fikk høre at vannet er for dypt (`water.rs`).
+    pub(super) wade_told: f32,
     pub(super) run: Run,
     pub(super) hero: Hero,
     pub(super) loot_seed: u64,
@@ -186,7 +189,7 @@ impl Session {
                     })
                     .collect()
             },
-            water_solids: world.crypt.water_blocks.iter().map(|b| physics.add_movable(b.size * 0.5, crate::domain::world::at(b.pos, b.yaw) * Affine3A::from_translation(Vec3::Y * b.size.y * 0.5))).collect(),
+            wade_told: f32::MAX,
             run: Run::new(&world.crypt),
             crypt: world.crypt.clone(),
             hero: Hero::default(),
@@ -290,6 +293,11 @@ impl Session {
         self.npcs.npcs.iter().map(|n| n.pos).collect()
     }
 
+    /// Snakk med innbygger `i` som om du har nådd `depth` nivåer (til testene).
+    pub fn talk_to(&mut self, i: usize, depth: u8) -> Option<String> {
+        self.npcs.talk(i, depth).map(|s| s.text)
+    }
+
     /// Flytt spilleren (til testene).
     pub fn place_feet(&mut self, feet: Vec3) {
         self.teleport(feet, 0.0);
@@ -373,7 +381,12 @@ impl Session {
         self.update_goal(&mut events);
         let hit = physics.cast_ray(eye, dir, 3.5);
         self.aimed_mob = if in_crypt { self.mobs.aimed(eye, dir, 2.6) } else { None };
-        self.aim = if self.aimed_mob.is_some() { None } else { hit.and_then(|h| self.by_collider.get(&h.collider).copied()) };
+        self.aim = if self.aimed_mob.is_some() { None } else { hit.as_ref().and_then(|h| self.by_collider.get(&h.collider).copied()) };
+        // Infopanelet viser fienden du sikter på, også på avstand (til
+        // første vegg).
+        let wall = physics.cast_ray(eye, dir, FOE_SIGHT).map_or(FOE_SIGHT, |h| h.distance);
+        let foe = if in_crypt { self.aimed_mob.or_else(|| self.mobs.aimed(eye, dir, wall)) } else { None };
+        self.update_foe(foe, dt, &mut events);
         self.combat.set_block(input.block && in_crypt && !self.paused);
 
         for a in actions {
@@ -381,9 +394,11 @@ impl Session {
         }
 
         // Siktet: sendes når det endrer seg.
+        // En fiende får ikke sikteboblen: infopanelet til høyre viser den
+        // (`Event::Foe`, eieren 18. oktober).
         let prompt = match (self.aimed_mob, self.aim) {
-            (Some(m), _) => Some(Self::mob_prompt(self.mobs.mobs[m].kind.label())),
             (None, Some(i)) => Some(self.prompt_for(i)),
+            (None, None) if in_crypt => self.water_prompt(eye, dir, hit.map_or(4.0, |h| h.distance)),
             _ => None,
         };
         if prompt != self.last_prompt {
@@ -459,6 +474,7 @@ impl Session {
         let desired = (horizontal + Vec3::Y * self.body.vel_y) * dt;
         let (half, radius) = self.body.capsule();
         let (moved, grounded) = physics.move_capsule(self.body.pos, half, radius, desired, dt);
+        let moved = self.wade(moved, dt, events);
         let steps = self.body.moved(moved, grounded, jumped, !self.paused, input.sprint);
         // Skrittene etter underlaget, med rustningen som rasler i takt; hopp
         // og landing (hardere jo lenger fallet).
@@ -493,10 +509,15 @@ impl Session {
         // Falt utfor kanten i krypten: opp igjen der du sist sto trygt, med vondt.
         if self.in_crypt() {
             let feet = self.body.feet();
-            if let Some(back) = self.run.rescue(&self.crypt, feet, self.body.grounded) {
-                self.hero.hp -= 30.0;
+            let depth = self.flood_depth(feet);
+            if let Some(back) = self.run.rescue(&self.crypt, feet, self.body.grounded, depth) {
                 self.teleport(back, self.yaw);
-                events.extend([Event::Fade, sfx("land"), sfx("hurt"), Event::Toast("Du falt utfor kanten, og kom deg opp igjen med skrubbsår og en vond rygg.".into())]);
+                if depth > crypt::WADE {
+                    events.extend([Event::Fade, sfx("step_water"), Event::Toast("Du falt i det dype vannet, og dro deg opp igjen der det var tørt, våt og kald.".into())]);
+                } else {
+                    self.hero.hp -= 30.0;
+                    events.extend([Event::Fade, sfx("land"), sfx("hurt"), Event::Toast("Du falt utfor kanten, og kom deg opp igjen med skrubbsår og en vond rygg.".into())]);
+                }
             }
         }
         wish
@@ -718,14 +739,6 @@ impl Session {
                 Moved::Bridge(n) => {
                     if let (Some(pose), Some(id)) = (self.mech.bridge_collider(&self.crypt, n), self.bridge_solids.get(n)) {
                         physics.set_pose(*id, pose);
-                    }
-                }
-                Moved::Water(n) => {
-                    let sw = self.crypt.waters[n].switch;
-                    for (i, b) in self.crypt.water_blocks.iter().enumerate() {
-                        if b.switch == sw {
-                            physics.set_pose(self.water_solids[i], away());
-                        }
                     }
                 }
                 Moved::Gate(n) => {

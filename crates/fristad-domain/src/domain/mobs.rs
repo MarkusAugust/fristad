@@ -75,6 +75,9 @@ impl Blow {
     }
 }
 
+/// Så nær en fiende som har sett deg må være for at det er kamp (musikken).
+pub const FIGHT_NEAR: f32 = 12.0;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum State {
     Idle,
@@ -150,7 +153,7 @@ pub struct Mob {
     /// Meter gått siden forrige skritt (bossens tunge skritt).
     stride: f32,
     /// Farten et slag gir (glir bakover og bremses).
-    knock: Vec3,
+    pub(crate) knock: Vec3,
     /// Hvor mye hodet er dreid mot deg (radianer), og hvor fort kroppen
     /// snur seg (til å lene seg inn i svingen).
     pub look: f32,
@@ -244,7 +247,7 @@ impl Mobs {
         (self.seed >> 40) as f32 / (1u64 << 24) as f32
     }
 
-    fn spawn(&mut self, kind: Kind, p: Vec3, elite: bool) {
+    pub(crate) fn spawn(&mut self, kind: Kind, p: Vec3, elite: bool) {
         self.spawn_at(kind, p, None, elite, vec![], None, self.level);
     }
 
@@ -331,6 +334,18 @@ impl Mobs {
     }
 
     /// Bossen, om den lever og har sett deg: (navn, liv 0..1).
+    /// Hvor hard kampen er nå (`Event::Hud.fight`): 0 ingen, 1 en fiende,
+    /// 2 en boss, 3 Rammeverket. En fiende er i kamp med deg når den har
+    /// fått øye på deg og står innen `FIGHT_NEAR` (eller slår).
+    pub fn fight(&self, feet: Vec3) -> u8 {
+        self.mobs
+            .iter()
+            .filter(|m| m.alive() && m.aware && (m.pos.distance(feet) <= FIGHT_NEAR || matches!(m.state, State::Attack { .. })))
+            .map(|m| if m.kind == Kind::Framework { 3 } else if m.boss { 2 } else { 1 })
+            .max()
+            .unwrap_or(0)
+    }
+
     pub fn boss(&self) -> Option<(&'static str, f32)> {
         self.mobs.iter().find(|m| m.boss && m.alive() && m.aware).map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
     }
@@ -390,6 +405,12 @@ impl Mobs {
     /// Et slag mot fiende `i` fra `from`: skade, rykk bakover, og tokens
     /// om den dør.
     pub fn strike(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt) -> Strike {
+        self.strike_with(i, damage, from, crypt, false)
+    }
+
+    /// Som `strike`, og med `crush` (kølla) går slaget gjennom panseret og
+    /// teller dobbelt mot balansen.
+    pub fn strike_with(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt, crush: bool) -> Strike {
         let Some(m) = self.mobs.get_mut(i) else { return Strike::default() };
         if !m.alive() {
             return Strike::default();
@@ -398,7 +419,7 @@ impl Mobs {
         let mut damage = damage;
         let mut armored = false;
         // Panseret: modalen tar lite forfra når den ikke er midt i et slag.
-        if stats.armor < 1.0 && matches!(m.state, State::Idle | State::Walk) {
+        if !crush && stats.armor < 1.0 && matches!(m.state, State::Idle | State::Walk) {
             let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
             let to = (from - m.pos).with_y(0.0).normalize_or_zero();
             if facing.dot(to) > 0.2 {
@@ -433,7 +454,7 @@ impl Mobs {
             return Strike { killed: true, armored, staggered: false };
         }
         // De tunge lar seg ikke avbryte av lette slag.
-        if damage < stats.poise {
+        if damage * if crush { 2.0 } else { 1.0 } < stats.poise {
             return Strike { killed: false, armored, staggered: false };
         }
         m.state = State::Hit;
@@ -451,6 +472,13 @@ impl Mobs {
         let looping = stats.poise > 0.0 && clips.stagger.is_some();
         self.play(i, clip, looping, 0.05);
         Strike { killed: false, armored, staggered: stats.poise > 0.0 }
+    }
+
+    /// Et ekstra dytt bort fra `from` (det tunge hugget), mindre for de store.
+    pub fn shove(&mut self, i: usize, from: Vec3, push: f32) {
+        if let Some(m) = self.mobs.get_mut(i).filter(|m| m.alive()) {
+            m.knock += (m.pos - from).with_y(0.0).normalize_or_zero() * push / m.scale();
+        }
     }
 
     /// Lamslått i `secs` sekunder (etter en parade): står og rister.

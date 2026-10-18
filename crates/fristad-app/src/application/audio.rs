@@ -9,10 +9,17 @@ use crate::ports::driving::{Ambience, Event, Sound};
 use crate::ports::Physics;
 use glam::{Vec2, Vec3};
 
+/// Vertshuset: så nær midten du må stå inne for å være i skjenkestua, og
+/// hvor langt unna trubaduren høres utenfor.
+const TAVERN_INSIDE: f32 = 10.0;
+const TAVERN_HEARD: f32 = 22.0;
+
 /// Det lydbildet husker mellom bildene.
 pub(super) struct Soundscape {
     /// Der lydene i byen kommer fra: torget, smia og kirka (flatt).
     spots: [Vec2; 3],
+    /// Midt i Vertshuset (flatt), der trubaduren synger.
+    tavern: Vec2,
     /// Det som lager lyd i løkke der det står: ild (ildsteder og fakler).
     fires: Vec<Vec3>,
     last: Ambience,
@@ -34,6 +41,7 @@ impl Soundscape {
         let sq = town::square_center();
         Self {
             spots: [Vec2::new(sq.x, sq.z), at("forge"), at("stave_church")],
+            tavern: at("tavern"),
             fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
             last: Ambience::default(),
             t: 0.0,
@@ -151,6 +159,13 @@ impl Session {
             water: 0.0,
             lava: 0.0,
             chasm: 0.0,
+            // Inne i Vertshuset (tak og vegger, nær midten) er det trubaduren;
+            // utenfor høres han svakere jo lenger unna du står.
+            tavern: match p.distance(self.sound.tavern) {
+                _ if in_crypt => 0.0,
+                d if self.sound.indoor && d < TAVERN_INSIDE => 1.0,
+                d => 0.5 * (1.0 - d / TAVERN_HEARD).clamp(0.0, 1.0).powi(2),
+            },
             portal: match (in_crypt, self.portal.dest.is_some(), self.portal_center()) {
                 (false, true, Some(c)) => close(&[c], 16.0),
                 _ => 0.0,
@@ -162,7 +177,7 @@ impl Session {
             indoor: self.sound.indoor,
         };
         let last = self.sound.last;
-        let moved = [a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.portal - last.portal, a.rain - last.rain, a.wind - last.wind]
+        let moved = [a.tavern - last.tavern, a.square - last.square, a.forge - last.forge, a.church - last.church, a.meadow - last.meadow, a.fire - last.fire, a.water - last.water, a.lava - last.lava, a.chasm - last.chasm, a.portal - last.portal, a.rain - last.rain, a.wind - last.wind]
             .iter()
             .fold(0.0f32, |m, d| m.max(d.abs()));
         if moved > 0.02 || a.night != last.night || a.cellar != last.cellar || a.indoor != last.indoor {

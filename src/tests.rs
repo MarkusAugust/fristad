@@ -16,7 +16,7 @@ pub(crate) fn world() -> &'static Prepared {
     P.get_or_init(|| prepare(&Embedded, 7))
 }
 
-fn session(physics: &mut RapierPhysics) -> Session {
+pub(crate) fn session(physics: &mut RapierPhysics) -> Session {
     let p = world();
     Session::new(&p.world, physics, &rigs(&p.models))
 }
@@ -130,8 +130,16 @@ fn kapselen_stopper_mot_trær_og_kanten() {
 fn alt_du_kan_bruke_kan_siktes_pa() {
     let p = world();
     let mut physics = RapierPhysics::new();
+    // Midten av hver fast kollider (boks og sylinder), etter id.
+    let mut middles = std::collections::HashMap::new();
     for c in &p.world.colliders {
-        physics.add(c);
+        let id = physics.add(c);
+        match c {
+            Shape::Cuboid { center, .. } | Shape::Cylinder { center, .. } => {
+                middles.insert(id, *center);
+            }
+            _ => {}
+        }
     }
     let mut ids = std::collections::HashMap::new();
     for (i, t) in p.world.targets.iter().enumerate() {
@@ -140,8 +148,9 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
     physics.move_capsule(Vec3::new(0.0, 50.0, 0.0), 0.5, 0.3, Vec3::ZERO, 0.016);
     let mut problems = vec![];
     for (i, t) in p.world.targets.iter().enumerate() {
-        let center = t.pose.transform_point3(t.center);
-        // Innbyggerne siktes på fra alle kanter; resten forfra.
+        let frame = t.pose * Affine3A::from_translation(t.center);
+        let center = frame.transform_point3(Vec3::ZERO);
+        // Forfra (innbyggerne fra +x) må strålen treffe målet.
         let facing = match t.what {
             Use::Talk(_) => Vec3::X,
             _ => t.pose.transform_vector3(Vec3::Z).normalize_or_zero(),
@@ -150,7 +159,35 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
         let from = center + facing * (depth + 0.6);
         let hit = physics.cast_ray(from, -facing, 2.0);
         if hit.as_ref().and_then(|h| ids.get(&h.collider)) != Some(&i) {
-            problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}) kan ikke siktes på", t.what, center.x, center.y, center.z));
+            problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}) kan ikke siktes på forfra", t.what, center.x, center.y, center.z));
+            continue;
+        }
+        // Fra alle fire kanter, både vannrett og ovenfra på skrå (øyet 1,7 m
+        // over foten av målet, 1,5 m unna, mot øvre del av målet): målet kan
+        // stå inntil en mur, men tingens egen kollider skal aldri skygge for
+        // siktet (relikvieskrinet, eieren 18. oktober). Tingens egen
+        // kollider er den som har midten sin i målet.
+        let to_local = frame.inverse();
+        let inside = |q: Vec3, pad: f32| {
+            let l = to_local.transform_point3(q);
+            l.x.abs() <= t.half.x + pad && l.y.abs() <= t.half.y + pad && l.z.abs() <= t.half.z + pad
+        };
+        let foot = frame.transform_point3(-Vec3::Y * t.half.y);
+        let upper = frame.transform_point3(Vec3::Y * t.half.y * 0.85);
+        for (side_name, yaw) in [("forfra", 0.0f32), ("fra venstre", 90.0), ("bakfra", 180.0), ("fra høyre", 270.0)] {
+            let side = glam::Quat::from_rotation_y(yaw.to_radians()) * facing;
+            let reach = t.half.x.max(t.half.z) + 0.6;
+            let eye = foot + Vec3::Y * 1.7 + side * (reach + 0.9);
+            let rays = [("vannrett", center + side * reach, -side), ("ovenfra", eye, (upper - eye).normalize())];
+            for (how, from, dir) in rays {
+                if inside(from, 0.05) {
+                    continue;
+                }
+                let Some(h) = physics.cast_ray(from, dir, 4.0) else { continue };
+                if middles.get(&h.collider).is_some_and(|m| inside(*m, 0.0)) {
+                    problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}): en kollider skygger for siktet {side_name} {how}", t.what, center.x, center.y, center.z));
+                }
+            }
         }
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
@@ -380,6 +417,69 @@ fn skjemaet_smir_utstyr() {
     assert!(fresh.buy("potion"), "med tokens går kjøpet");
 }
 
+
+/// Utstyret (eieren 18. oktober: «alt skal se forskjellig ut med forskjellige
+/// stats»): hvert våpen, skjold og hver rustning har sin egen modell, som
+/// finnes, og sine egne tall; alt utenom det du starter med kan smis, og
+/// ikonet til kortet finnes. Det du har smidd, holder økta på og lagrer, og
+/// en gammel lagring uten lista får det du har på.
+#[test]
+fn utstyret_ser_forskjellig_ut_og_kan_byttes() {
+    use crate::domain::craft;
+    let root = env!("CARGO_MANIFEST_DIR");
+    let files: Vec<&str> = crate::adapters::gltf::model_files().map(|(n, _)| *n).collect();
+    let mut models = vec![];
+    let mut bad = vec![];
+    let items: Vec<(&str, &str, Vec<f32>)> = craft::WEAPONS
+        .iter()
+        .map(|w| (w.id, w.model, vec![w.damage, w.speed, w.reach, w.riposte, w.stamina]))
+        .chain(craft::SHIELDS.iter().map(|s| (s.id, s.model, vec![s.block, s.parry_window, s.stamina])))
+        .chain(craft::ARMORS.iter().map(|a| (a.id, a.arms, vec![a.taken, a.regen, a.dodge])))
+        .collect();
+    for (id, model, stats) in &items {
+        if !files.contains(model) {
+            bad.push(format!("{id}: modellen {model} finnes ikke"));
+        }
+        if models.contains(model) {
+            bad.push(format!("{id}: modellen {model} er brukt av noe annet"));
+        }
+        models.push(*model);
+        if items.iter().any(|(o, _, s)| o != id && s == stats) {
+            bad.push(format!("{id}: samme tall som noe annet"));
+        }
+        let starter = *id == craft::RUSTY_SWORD.id || *id == craft::OLD_SHIELD.id;
+        let made = craft::RECIPES.iter().any(|r| matches!(r.result, craft::Result::Weapon(x) | craft::Result::Shield(x) | craft::Result::Armor(x) if x == *id));
+        if !starter && !made {
+            bad.push(format!("{id}: ingen oppskrift"));
+        }
+        if !std::path::Path::new(&format!("{root}/assets/textures/icons/{id}.png")).exists() {
+            bad.push(format!("{id}: ikonet mangler"));
+        }
+    }
+    assert!(bad.is_empty(), "utstyret:\n{}", bad.join("\n"));
+    assert!(craft::WEAPONS.len() >= 5 && craft::SHIELDS.len() >= 5 && craft::ARMORS.len() >= 5);
+
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    for (c, n) in [("button", 3), ("divider", 1), ("tag", 3)] {
+        game.give(c, n);
+    }
+    assert!(game.craft("component_sword") && game.craft("tag_dagger"));
+    assert_eq!(game.gear().weapon.id, "tag_dagger");
+    assert!(!game.craft("tag_dagger"), "det du har, smis ikke på nytt");
+    assert!(game.equip("component_sword"), "det du har smidd, kan du ta på igjen");
+    assert!(!game.equip("tabs_axe"), "det du ikke har, kan du ikke ta på");
+    let saved = game.save();
+    assert!(saved.owned.iter().any(|o| o == "tag_dagger"));
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(saved.clone());
+    assert!(fresh.equip("tag_dagger"), "lagringen husker alt utstyret");
+    let mut old = session(&mut physics2);
+    old.load(SaveData { owned: vec![], ..saved });
+    assert_eq!(old.gear().weapon.id, "component_sword");
+    assert!(old.equip("rusty_sword") && !old.equip("tag_dagger"), "en gammel lagring har det du hadde på og det du startet med");
+}
 
 /// Husene man kan gå inn i: gå med Rapier fra gata, gjennom døråpningen og
 /// inn i rommet (opp trinnene til gulvet), uten å bli stoppet av veggene.
@@ -718,6 +818,12 @@ fn lydene_i_byen_folger_deg() {
     game.place_feet(forge + Vec3::new(0.0, 0.0, 6.0));
     let a = last(&mut game, &mut physics);
     assert!(a.forge > 0.3, "ved smia: {a:?}");
+    assert!(a.tavern < 1.0, "ved smia er du ikke i Vertshuset: {a:?}");
+    // Inne i Vertshuset synger trubaduren (musikken spiller `tavern`).
+    let tavern = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| Vec3::from(p.transforms[0].translation)).expect("Vertshuset");
+    game.place_feet(tavern + Vec3::Y * 0.3);
+    let a = last(&mut game, &mut physics);
+    assert!(a.indoor && a.tavern >= 1.0, "inne i Vertshuset: {a:?}");
     game.use_first(|u| *u == Use::Descend);
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
@@ -1847,6 +1953,88 @@ fn den_falske_veggen_apnes() {
     assert!((feet - s.pos).with_y(0.0).dot(d) > 0.8, "kom ikke inn bak veggen: føttene ved {feet:?}");
 }
 
+/// Sprekken som hinter om en falsk vegg står på selve veggen (som har sin
+/// egen sprekk), aldri på muren ved siden av, der et slag ikke gjør noe.
+#[test]
+fn sprekken_star_pa_den_falske_veggen() {
+    let p = world();
+    let c = &p.world.crypt;
+    let cracks: Vec<Vec3> = p.world.placements.iter().filter(|pl| pl.model == crypt::KIT_CRACK).flat_map(|pl| pl.transforms.iter().map(|t| t.transform_point3(Vec3::ZERO))).collect();
+    let mut bad = vec![];
+    for s in &c.secrets {
+        for q in &cracks {
+            if q.distance(s.pos) < s.width * 0.5 + 2.0 {
+                bad.push(format!("en sprekk ved ({:.1}, {:.1}, {:.1}) står {:.1} m fra den falske veggen ved ({:.1}, {:.1}, {:.1}), ikke på den", q.x, q.y, q.z, q.distance(s.pos), s.pos.x, s.pos.y, s.pos.z));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
+/// Den falske veggen ligger i flukt med muren rundt (eieren 18. oktober: den
+/// stakk ut og røpet seg): hver har nivåets egen bit med murens tekstur
+/// (`crypt_NN_secret_<id>`), forsida ligger i murens plan, og målet går
+/// ikke ut til sidene.
+#[test]
+fn den_falske_veggen_ligger_i_flukt() {
+    let p = world();
+    let c = &p.world.crypt;
+    assert!(!c.secrets.is_empty(), "ingen falske vegger i krypten");
+    let mut bad = vec![];
+    for (i, s) in c.secrets.iter().enumerate() {
+        if s.model == crypt::KIT_SECRET {
+            bad.push(format!("den falske veggen {i} i nivå {} har ikke sin egen bit (build_level.py N --secrets)", c.levels[s.level].n));
+            continue;
+        }
+        let Some(m) = p.models.iter().find(|m| m.name == s.model) else {
+            bad.push(format!("{} finnes ikke", s.model));
+            continue;
+        };
+        // Midt på flaten (over sokkelen) ligger forsida i murens plan; i et
+        // rundt rom bøyer den seg med muren ut mot kantene.
+        let (lo, hi) = m.mesh.bounds();
+        let front = m.mesh.vertices.iter().filter(|v| v.pos[0].abs() < 0.3 && (0.5..2.0).contains(&v.pos[1])).map(|v| v.pos[2]).fold(f32::MIN, f32::max);
+        if front > 0.02 || (hi.x - s.width * 0.5).abs() > 0.1 || (lo.x + s.width * 0.5).abs() > 0.1 {
+            bad.push(format!("{} går fra {lo:?} til {hi:?} (forsida midt på {front:.2} m ut): står ut fra muren eller er ikke {} m bred", s.model, s.width));
+        }
+        let t = p.world.targets.iter().find(|t| t.what == Use::Secret(i)).expect("den falske veggen har intet mål");
+        if t.half.x > s.width * 0.5 + 0.01 || t.center.z + t.half.z > 0.1 {
+            bad.push(format!("målet til {} går utenfor den falske delen", s.model));
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
+/// Den falske veggen slås inn med et hugg, ikke bare med F (eieren 18.
+/// oktober: «hvordan åpner man den?»; siktet sier «Slå, eller skyv»).
+#[test]
+fn den_falske_veggen_slas_inn() {
+    let c = &world().world.crypt;
+    let s = c.secrets.first().expect("ingen falsk vegg i krypten").clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let front = in_front(c, s.pos, s.yaw, 1.4);
+    game.place_feet(front);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let eye = game.eye();
+    let d = (s.pos + Vec3::Y * 1.2 - eye).normalize();
+    game.set_look((-d.x).atan2(-d.z), d.y.asin());
+    let mut opened = false;
+    for k in 0..60 {
+        if k == 1 {
+            input.actions.push(Action::Attack);
+        }
+        if k == 3 {
+            input.actions.push(Action::AttackRelease);
+        }
+        let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        opened |= events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("rom bak")));
+    }
+    assert!(opened, "hugget slo ikke inn den falske veggen");
+}
+
 /// Fallemmen eller sjakta: du faller ned i rommet under, og stigen der tar
 /// deg opp igjen.
 #[test]
@@ -1896,7 +2084,9 @@ fn kistene_lappene_og_den_varige_styrken() {
     assert!(!events.iter().any(|e| matches!(e, Event::Loot(_))), "kista ga to ganger");
     let lore = c.lores.first().expect("ingen lapp i krypten");
     let events = game.use_exact(Use::Lore(0));
-    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains(&lore.title))), "lappen ble ikke lest: {events:?}");
+    // Lappen vises som et kort midt på skjermen (`Event::Lore`), ikke som et varsel.
+    assert!(events.iter().any(|e| matches!(e, Event::Lore { title, text } if *title == lore.title && *text == lore.text)), "lappen ble ikke lest: {events:?}");
+    assert!(!events.iter().any(|e| matches!(e, Event::Toast(_))), "lappen kom som varsel i hjørnet: {events:?}");
     let before = game.max_hp_now();
     game.use_exact(Use::Bonus(0));
     let after = game.max_hp_now();
@@ -2281,6 +2471,27 @@ fn dommen_mister_ingenting() {
     assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
 }
 
+/// Hvert eksempel i boka har en flate å stå på (eieren 18. oktober: Divider
+/// sto i fire kolonner fordi panelet ikke kjente layouten `flyt` fra
+/// Fristil-docs): `web/docs-flate.css`, som `tools/export-docs.ts` skriver
+/// rett fra Preview.astro, har en regel for hver layout i `web/docs.json`.
+#[test]
+fn eksemplene_i_boka_har_sin_flate() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let docs: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{root}/web/docs.json")).expect("docs.json")).expect("docs.json");
+    let flate = std::fs::read_to_string(format!("{root}/web/docs-flate.css")).expect("web/docs-flate.css (bun tools/export-docs.ts)");
+    let main = std::fs::read_to_string(format!("{root}/web/main.js")).expect("main.js");
+    let mut bad = vec![];
+    for (name, d) in docs.as_object().expect("docs") {
+        let Some(layout) = d["demo"]["layout"].as_str() else { continue };
+        let rule = format!("data-layout=\"{layout}\"");
+        if !flate.contains(&rule) || !main.contains(&rule) {
+            bad.push(format!("{name}: layouten «{layout}» mangler i docs-flate.css eller reserven i main.js"));
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
 /// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:
 /// hver modell spillet har, står i `assets/catalog/models.json` med hva den
 /// er, hvert teksturlag og hvert malt bilde i `textures.json`, og eierens dom
@@ -2399,4 +2610,146 @@ fn moblene_star_der_kolliderne_er() {
         }
     }
     assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
+/// Innbyggerne havner aldri oppå hverandre (eieren 18. oktober): hver har
+/// sin egen rute og sine egne ventepunkter, og når to møtes går de rundt
+/// hverandre (`npcs::steer`, `keep_apart`). Over halvannet minutt står
+/// ingen to nærmere enn 0,8 m, og de går faktisk noe sted.
+#[test]
+fn innbyggerne_gar_ikke_oppa_hverandre() {
+    let layout: crate::domain::world::layout::Layout = serde_json::from_str(crate::adapters::data::layout_file().unwrap()).unwrap();
+    let npcs = &layout.npcs;
+    // Egne replikker og egne ruter med egne ventepunkter.
+    for (i, a) in npcs.iter().enumerate() {
+        for b in &npcs[i + 1..] {
+            assert_ne!(a.lines, b.lines, "{} og {} har de samme replikkene", a.name, b.name);
+            for (p, w) in a.route.iter().filter(|(_, w)| *w > 0.0) {
+                for (q, v) in b.route.iter().filter(|(_, v)| *v > 0.0) {
+                    assert!(p.distance(*q) > 1.4, "{} ({w} s) og {} ({v} s) venter på samme sted: {p:?} {q:?}", a.name, b.name);
+                }
+            }
+        }
+    }
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    // Langt unna alle: utenfor sørporten.
+    game.place_feet(Vec3::new(0.0, 0.5, 90.0));
+    let start = game.npc_positions();
+    let mut closest = (f32::MAX, 0, 0, 0.0);
+    let dt = 1.0 / 30.0;
+    for step in 0..(90.0 / dt) as usize {
+        game.update(&mut input, dt, &mut physics);
+        let at = game.npc_positions();
+        for i in 0..at.len() {
+            for j in i + 1..at.len() {
+                let gap = Vec2::new(at[i].x - at[j].x, at[i].z - at[j].z).length();
+                if gap < closest.0 {
+                    closest = (gap, i, j, step as f32 * dt);
+                }
+            }
+        }
+    }
+    let names: Vec<&str> = npcs.iter().map(|n| n.name.as_str()).collect();
+    assert!(closest.0 >= 0.8, "{} og {} sto {:.2} m fra hverandre etter {:.1} s", names[closest.1], names[closest.2], closest.0, closest.3);
+    let moved = game.npc_positions().iter().zip(&start).filter(|(a, b)| a.distance(**b) > 0.5).count();
+    assert!(moved >= 6, "bare {moved} innbyggere har gått noe sted på 90 s");
+}
+
+/// Hver innbygger har sine egne replikker etter rollen (eieren 18.
+/// oktober), minst fem, aldri den samme to ganger på rad, og noen som
+/// kommer først når du har vært dypere nede.
+#[test]
+fn innbyggerne_sier_sitt_eget() {
+    use crate::domain::world::cast;
+    let layout: crate::domain::world::layout::Layout = serde_json::from_str(crate::adapters::data::layout_file().unwrap()).unwrap();
+    let mut progress = 0;
+    for n in &layout.npcs {
+        let lines = cast::lines(&n.lines);
+        assert!(lines.len() >= 5, "{} har bare {} replikker", n.name, lines.len());
+        progress += lines.iter().filter(|l| l.from > 0).count();
+    }
+    assert!(progress >= 20, "bare {progress} replikker følger framgangen");
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let k = game.npc_positions().len();
+    let mut first = std::collections::HashSet::new();
+    for i in 0..k {
+        let mut last = String::new();
+        let mut said = std::collections::HashSet::new();
+        for _ in 0..12 {
+            let s = game.talk_to(i, 0).expect("innbyggeren svarer");
+            assert_ne!(s, last, "innbygger {i} sa det samme to ganger på rad");
+            said.insert(s.clone());
+            last = s;
+        }
+        assert!(said.len() >= 4, "innbygger {i} sa bare {} ulike ting", said.len());
+        first.insert(game.talk_to(i, 0).unwrap());
+        // Dypere nede: det nye kommer først.
+        let lines = cast::lines(&layout.npcs[i].lines);
+        let deep = game.talk_to(i, 10).unwrap();
+        if lines.iter().any(|l| l.from > 0) {
+            assert!(lines.iter().any(|l| l.text == deep && l.from > 0), "{}: «{deep}» er ikke noe nytt dypt nede", layout.npcs[i].name);
+        }
+    }
+    assert!(first.len() == k, "to innbyggere sier det samme");
+}
+
+/// Lykta synes i byen (stolpen «Lys» sendes også der, så du ser hva du må
+/// fylle hos Apotekeren), men oljen brenner bare nede i krypten (eieren 18.
+/// oktober).
+#[test]
+fn lykta_brenner_bare_i_krypten() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.set_oil(0.5);
+    let mut light = None;
+    for _ in 0..(10.0 * 30.0) as usize {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Hud { light: l, cellar, .. } = e {
+                assert!(!cellar, "du står i byen");
+                light = Some(l);
+            }
+        }
+    }
+    assert_eq!(light, Some(50), "stolpen «Lys» viser oljen i byen, og den har ikke brent");
+    game.use_first(|u| *u == Use::Descend);
+    let mut down = None;
+    for _ in 0..(20.0 * 30.0) as usize {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Hud { light: l, cellar: true, .. } = e {
+                down = Some(l);
+            }
+        }
+    }
+    assert!(down.is_some_and(|l| l < 50), "nede brenner oljen: {down:?}");
+}
+
+/// Eieren 18. oktober: siktet på en fiende gir infopanelet til høyre
+/// (`Event::Foe`), ikke sikteboblen midt på skjermen (`Event::Prompt`).
+#[test]
+fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 60.0, &mut physics);
+    let mob = game.nearest_mob(game.feet()).expect("ingen fiende i nivå 1");
+    let target = mob + Vec3::Y * 0.6;
+    let mut seen = false;
+    for k in 0..8 {
+        let a = k as f32 * std::f32::consts::TAU / 8.0;
+        let eye = target + Vec3::new(a.cos(), 0.0, a.sin()) * 2.0 + Vec3::Y * 0.5;
+        let d = (target - eye).normalize();
+        game.place(eye, (-d.x).atan2(-d.z), d.y.asin());
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        if events.iter().any(|e| matches!(e, Event::Foe(Some(f)) if !f.name.is_empty() && !f.info.is_empty() && f.max_hp > 0)) {
+            assert!(!events.iter().any(|e| matches!(e, Event::Prompt(Some(_)))), "fienden fikk sikteboblen: {events:?}");
+            seen = true;
+            break;
+        }
+    }
+    assert!(seen, "infopanelet kom ikke når du siktet på fienden ved {mob:?}");
 }

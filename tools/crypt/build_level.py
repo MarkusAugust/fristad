@@ -9,6 +9,7 @@ byggesettet (`kit_grav.py`), og skriver det motoren trenger
 
     python3 tools/crypt/build_level.py 1            # json, bilde og tall (uten Blender)
     python3.13 tools/crypt/build_level.py 1 --export  # og glb-bitene (Blender)
+    python3.13 tools/crypt/build_level.py 1 --secrets # bare de falske veggene (Blender)
 
 Planen sier hvilke rom som finnes, hvor de står og hvordan de henger sammen.
 Hvor gangene går (rette strekk på rutenettet), hvor trappene ligger i dem og
@@ -45,6 +46,9 @@ INSET = 0.4  # navigasjonsnettet holder seg så langt fra murene
 SPRING = 2.2  # høyden på gangmurene (vederlaget), over gulvet
 STAIR_IN = 0.1  # trapper og ramper inntil en mur går så langt inn i murblokka (aldri tangent)
 WALL_T = 0.4  # tykkelsen på murkolliderne
+WALL_END = 0.02  # så langt murkolliderne går forbi endene av muren de står bak
+RAIL_T = 0.26  # tykkelsen på kolliderne til rekkverkene (brystningen i `K.parapet`)
+SECRET_T = 0.3  # hvor dypt den falske veggen går inn i muren
 # Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
 # over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
 # med rette biter, sto under hvelvkanten der, med kiler av himmel på begge
@@ -506,6 +510,7 @@ def pillar_top(r, x, z, size):
 class Level:
     def __init__(self, n):
         self.n = n
+        self.secrets = []  # de falske veggene (`secret_wall`)
         self.plan = load_plan(n)
         lay = load_layout(n)
         self.rooms = {}
@@ -582,14 +587,33 @@ class Level:
         if not self.from_layout:
             self.marks.append({"kind": "prop", "label": model, "pos": [rnd(x), rnd(y), rnd(z)], "yaw": rnd(yaw, 4)})
 
+    def outside_round(self, h, pa, pb):
+        """Stykkene av linja pa → pb som ligger utenfor de runde rommene
+        gangen `h` går inn i."""
+        seg = LineString([pa, pb])
+        for rid in (h.a, h.b):
+            room = self.rooms.get(rid)
+            if room is not None and rid in self.lay.get("round", {}) and hasattr(room, "r"):
+                seg = seg.difference(Point(room.c).buffer(room.r, 128))
+        parts = [seg] if seg.geom_type == "LineString" else list(getattr(seg, "geoms", []))
+        return [(g.coords[0], g.coords[-1]) for g in parts if g.length > 0.05]
+
     def wall_box(self, a, b, y0, y1, out):
-        """Murkollider langs (a → b) i planen, bak flaten (mot `out`)."""
+        """Murkollider langs (a → b) i planen, bak flaten (mot `out`). Den
+        går bare `WALL_END` forbi endene: med en halv murtykkelse på hver
+        side stakk den 20 cm ut i døråpningene, forbi hjørnene og foran
+        foten av trappene, der ingenting synes (eieren 18. oktober: «man
+        henger seg opp i noen usynlige vegger»; `ingen_usynlige_vegger_i_krypten`)."""
         L = math.dist(a, b)
         if L < 0.05 or y1 - y0 < 0.05:
             return
         dx, dz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
-        c = ((a[0] + b[0]) / 2 + out[0] * WALL_T / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2 + out[1] * WALL_T / 2)
-        self.box(c, (L + WALL_T, y1 - y0, WALL_T), math.atan2(-dz, dx))
+        # Uten `out` er det et rekkverk, midt på linja: like tykt som
+        # brystningen (`K.parapet`), ikke som en mur, så kapselen ikke
+        # stanger i luft ved siden av det på trappene.
+        t = RAIL_T if out == (0.0, 0.0) else WALL_T
+        c = ((a[0] + b[0]) / 2 + out[0] * t / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2 + out[1] * t / 2)
+        self.box(c, (L + 2 * WALL_END, y1 - y0, t), math.atan2(-dz, dx))
 
     def light(self, pos, color, rng_m, room, flicker=True, intensity=2.0):
         self.lights.append({"pos": [rnd(p) for p in pos], "color": list(color), "range": rng_m, "flicker": flicker, "intensity": intensity, "room": room})
@@ -670,6 +694,75 @@ class Level:
                     w = 2.0
                 r.doors.append((side, u, w, y, kind if rid == h.a else (DOOR if kind in (SHORTCUT, SECRET) else kind), h))
 
+    def secret_wall(self, h, surf, u, w, y, mat, cell, plinth_h):
+        """Den falske veggen i åpningen (`secret_pieces`): huskes med murens
+        flate, så biten får samme tekstur og sokkel som muren rundt."""
+        self.secrets.append(dict(id=h.gate, surf=surf, u=u, w=w, y=y, mat=mat, cell=cell, plinth=plinth_h))
+
+    def secret_reveal(self, surf, u, w, y, mat, depth=0.12):
+        """Lysningen rundt den falske veggen i en rund mur: muren buer seg inn
+        i rommet ved kantene av åpningen, og gangen begynner rett bak muren
+        (ikke inne i rommet, der den ble en ramme som røpet veggen), så sidene
+        og toppen av åpningen mures `depth` inn til gangen."""
+        mb, top = self.mb, y + 2.6
+        P = surf.point
+        a, b = u - w / 2, u + w / 2
+        for uu, sg in ((a, 1.0), (b, -1.0)):
+            inward = surf.point(uu + sg * 0.01, y, 0.0)
+            o = surf.point(uu, y, 0.0)
+            mb.quad(P(uu, y - 0.05, 0.0), P(uu, top, 0.0), P(uu, top, -depth), P(uu, y - 0.05, -depth), mat, facing=(inward[0] - o[0], 0.0, inward[2] - o[2]))
+        mb.quad(P(a, top, 0.0), P(b, top, 0.0), P(b, top, -depth), P(a, top, -depth), mat, facing=(0, -1, 0))
+
+    def secret_pieces(self):
+        """Den falske veggen i hver åpning som egen modell
+        (`crypt_NN_secret_<id>`, eieren 18. oktober): forsida i flukt med
+        muren rundt, med murens egen tekstur (uv fra samme flate), sokkelen
+        videre over åpningen og sprekkene i fugene, og en kropp `SECRET_T`
+        inn i muren. Bygd i nivåets rom og flyttet til merket (`secret_wall`:
+        midt på foten, fronten mot rommet), som motoren setter den ut og
+        senker etter."""
+        out = {}
+        for rec in self.secrets:
+            mark = next((m for m in self.marks if m.get("kind") == "secret_wall" and m.get("id") == rec["id"]), None)
+            if mark is None:
+                print(f"  den falske veggen {rec['id']}: intet merke, bruker byggesettets")
+                continue
+            surf, u, w, y = rec["surf"], rec["u"], rec["w"], rec["y"]
+            hgt = mark.get("height", 2.6)
+            mb = K.MB()
+            hole = Polygon([(u + du, v) for du, v in self.opening(w, y, SECRET)])
+            K.grid_face(mb, surf, hole, rec["mat"], cell=rec["cell"], origin=(0.0, math.floor(y - 0.05)))
+            K.plinth(mb, surf, [(u - w / 2, u + w / 2, y)], h=rec["plinth"])
+            # To sprekker i fugene, brede nok til å synes fra rommet (eieren:
+            # den falske veggen skal bare synes på sprekkene).
+            seed = sum(map(ord, rec["id"]))
+            K.surface_crack(mb, surf, u - w / 2, u + w / 2, y, y + min(2.2, hgt - 0.2), seed, width=0.032)
+            K.surface_crack(mb, surf, u - w / 2, u + w / 4, y + 0.6, y + min(1.6, hgt - 0.6), seed + 7, width=0.022)
+            # Kroppen inn i muren: toppen, endene og baksida.
+            t = SECRET_T
+            P = lambda uu, v, d: surf.point(uu, v, d)
+            n = surf.normal(u)
+            a, b = u - w / 2, u + w / 2
+            mb.quad(P(a, y + hgt, 0.0), P(b, y + hgt, 0.0), P(b, y + hgt, -t), P(a, y + hgt, -t), rec["mat"], facing=(0, 1, 0))
+            for uu, sg in ((a, -1.0), (b, 1.0)):
+                du = surf.point(uu + sg * 0.01, y, 0.0)
+                o = surf.point(uu, y, 0.0)
+                mb.quad(P(uu, y, 0.0), P(uu, y + hgt, 0.0), P(uu, y + hgt, -t), P(uu, y, -t), rec["mat"], facing=(du[0] - o[0], 0.0, du[2] - o[2]))
+            mb.quad(P(a, y, -t), P(b, y, -t), P(b, y + hgt, -t), P(a, y + hgt, -t), rec["mat"], facing=(-n[0], 0.0, -n[2]))
+            # Til merkets rom.
+            pos, yaw = mark["pos"], mark.get("yaw", 0.0)
+            front = (math.sin(yaw), math.cos(yaw))
+            mid = surf.point(u, y, 0.0)
+            off = math.dist((mid[0], mid[2]), (pos[0], pos[2]))
+            if off > 0.05 or front[0] * n[0] + front[1] * n[2] < 0.99:
+                print(f"  ADVARSEL: merket til {rec['id']} står {off:.2f} m fra midten av åpningen, eller vender ikke mot rommet")
+            local = K.MB()
+            for pts, uvs, mat, smooth in mb.faces:
+                q = [K.rot_y((p[0] - pos[0], p[1] - pos[1], p[2] - pos[2]), -yaw) for p in pts]
+                local.faces.append((q, uvs, mat, smooth))
+            out[f"crypt_{self.n:02d}_secret_{rec['id']}"] = local
+        return out
+
     def opening(self, w, y, kind):
         """Omrisset av en åpning (u fra midten, v absolutt)."""
         if kind == SECRET:
@@ -714,6 +807,8 @@ class Level:
                     continue
                 prof = [(to_u(u) + du, v) for du, v in self.opening(w, y, kind)]
                 openings.append(Polygon(prof))
+                if kind == SECRET:
+                    self.secret_wall(h, surf, to_u(u), w, y, self.wall_mat(r), cell, 0.34 + (0.004 if side in ("n", "s") else 0.0))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 apex = max(v for _, v in prof)
@@ -803,6 +898,8 @@ class Level:
                     continue
                 prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
                 openings.append(Polygon(prof))
+                if kind == SECRET:
+                    self.secret_wall(h, surf, u, w, y, self.wall_mat(r), 1.0, 0.34 + 0.004 * (k % 2))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 lintels.append((u - w / 2, u + w / 2, max(v for _, v in prof), y))
@@ -1241,7 +1338,11 @@ class Level:
             K.plinth(mb, surf, runs, h=0.34 + (0.004 if abs(dx) > 0.5 else 0.0))
             lo = min(fl) - 0.5
             hi = max(fl) + SPRING + a + 0.4
-            self.wall_box(pa, pb, lo, hi, (-nrm[0], -nrm[1]))
+            # Gangen går 0,4 m inn i et rundt rom (så gulvet og hvelvet når
+            # muren), men kollideren stopper ved muren der: stumpen inne i
+            # rommet var en usynlig hindring ved siden av døra.
+            for qa, qb in self.outside_round(h, pa, pb):
+                self.wall_box(qa, qb, lo, hi, (-nrm[0], -nrm[1]))
         # Hvelvet: tønne langs hvert strekk, i skiver på 1 m der gulvet
         # stiger, og krysshvelv i hjørnene.
         for i, (p0, p1, d, L) in enumerate(h.segs):
@@ -1454,9 +1555,21 @@ class Level:
             u = ((ang - seam) % (2 * math.pi)) * R
             prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
             openings.append(Polygon(prof))
+            # En dør over skjøten (u = 0 er u = omkretsen) hogges ut på begge
+            # sider av den. Før ble bare den ene halvdelen hogd ut, og den
+            # andre sto igjen som mur med kollider (vestdøra i rotunden i
+            # kloakken, der det er dør både ved 0 og 180°).
+            for shift in (circ, -circ):
+                if min(pu + shift for pu, _ in prof) < circ and max(pu + shift for pu, _ in prof) > 0:
+                    openings.append(Polygon([(pu + shift, v) for pu, v in prof]))
+                    print(f"  {r.id}: døra ved {math.degrees(ang):.0f}° går over skjøten i muren")
+            if kind == SECRET:
+                self.secret_wall(h, cyl, u, w, y, spec.get("wall_mat", "wall"), spec.get("wall_cell", 1.0), 0.34)
+                self.secret_reveal(cyl, u, w, y, spec.get("wall_mat", "wall"))
             if kind not in (SECRET, SHORTCUT):
                 K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
-            cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof), y))
+            for shift in (0.0, circ, -circ):
+                cuts.append((u + shift - w / 2 - 0.1, u + shift + w / 2 + 0.1, max(v for _, v in prof), y))
         wmat = spec.get("wall_mat", "wall")
         K.wall(mb, cyl, circ, fy - 0.05, top, openings, mat=wmat, cell=spec.get("wall_cell", 1.0), extra=VAULT_LAP)
         segs = 72
@@ -1489,20 +1602,26 @@ class Level:
         # Murkolliderne rundt (utenom åpningene; under en åpning høyere oppe
         # står muren fra gulvet opp til den), i stykker på høyst 1,5 m, så
         # muren ved siden av en dør i et stort rom ikke står uten kollider.
+        # Stykkene deles ved kantene av åpningene, så muren står helt fram til
+        # dem (før fikk hele stykket ved siden av en dør bare overliggeren, og
+        # gangmuren som stakk 0,4 m inn i sirkelen, var en usynlig stump).
         nc = max(segs, math.ceil(circ / 1.5))
+        edges = [(cu0 + 0.1, cu1 - 0.1, apex, y) for cu0, cu1, apex, y in cuts]
         for k in range(nc):
             u0, u1 = circ * k / nc, circ * (k + 1) / nc
-            pa, pb = cyl.point(u0, 0.0), cyl.point(u1, 0.0)
-            hit = [cu for cu in cuts if u0 < cu[1] and u1 > cu[0]]
-            mid = ((pa[0] + pb[0]) / 2, (pa[2] + pb[2]) / 2)
-            out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
-            if hit:
-                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
-                if hit[0][3] > fy + 0.05:
-                    # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
-                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, hit[0][3] - 0.3, out)
-            else:
-                self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, top + 4.5, out)
+            marks = sorted({u0, u1} | {e for e0, e1, _, _ in edges for e in (e0, e1) if u0 < e < u1})
+            for v0, v1 in zip(marks, marks[1:]):
+                pa, pb = cyl.point(v0, 0.0), cyl.point(v1, 0.0)
+                hit = [cu for cu in edges if v0 < cu[1] - 1e-6 and v1 > cu[0] + 1e-6]
+                mid = ((pa[0] + pb[0]) / 2, (pa[2] + pb[2]) / 2)
+                out = ((mid[0] - c[0]) / R, (mid[1] - c[1]) / R)
+                if hit:
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), hit[0][2], top + 4.5, out)
+                    if hit[0][3] > fy + 0.05:
+                        # Under døra (gulvet i gangen og galleriet bærer deg der oppe).
+                        self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, hit[0][3] - 0.3, out)
+                else:
+                    self.wall_box((pa[0], pa[2]), (pb[0], pb[2]), fy - 0.5, top + 4.5, out)
         # Kuppelen.
         hfn = K.dome(mb, c, R, top, top + spec.get("dome_rise", 3.6), mat=self.vault_mat(r), rings=spec.get("dome_rings", 8), seg=spec.get("dome_seg", 48))
         K.dome_ribs(mb, c, R, hfn, count=spec.get("ribs", 12))
@@ -1559,7 +1678,11 @@ class Level:
                 self.tri_patches.append(([(A[0], ya, A[1]), (C[0], yb, C[1]), (D[0], yb, D[1])], sid, gal.get("stair_gate")))
             # Navigasjonen: gulvet (uten feltet under trappa) og galleriet.
             under_stair = Polygon(ring_pts(si - INSET, a0, a1, n) + ring_pts(R + 1, a0, a1, n)[::-1])
-            r.floor_walk = Point(c).buffer(R - INSET, 72).difference(under_stair)
+            # Og rundt enden av rekkverket ved foten av trappa: ellers gikk
+            # veien over gulvet rett over enden, og fiendene (og kapselen i
+            # `kapselen_gar_mellom_noekkelstedene_i_hvert_nivaa`) sto fast der.
+            rail_end = Point(c[0] + si * math.cos(a0), c[1] + si * math.sin(a0)).buffer(INSET + WALL_T / 2, 16)
+            r.floor_walk = Point(c).buffer(R - INSET, 72).difference(under_stair).difference(rail_end)
             g1w = g1 - INSET / (ri + 1.0)
             gwalk = Polygon(ring_pts(R - INSET, g0, g1w, steps) + ring_pts(ri + INSET, g0, g1w, steps)[::-1])
             gid = gal.get("id", r.id + "_galleri")
@@ -1603,6 +1726,12 @@ class Level:
                 self.obstacle_at(p, Point(p[0], p[2]).buffer(0.35))
             elif m["kind"] == "up":
                 self.obstacle_at(p, sbox(p[0] - 1.6, p[2] - 1.2, p[0] + 1.6, p[2] + 0.05))
+            elif m["kind"] == "ladder":
+                # Foten av stigen (kollideren til siktemålet står der): veien
+                # går rundt den, ikke gjennom.
+                cy, sy = math.cos(m.get("yaw", 0.0)), math.sin(m.get("yaw", 0.0))
+                pts = [(p[0] + lx * cy + lz * sy, p[2] - lx * sy + lz * cy) for lx, lz in ((-0.45, -0.15), (0.45, -0.15), (0.45, 0.15), (-0.45, 0.15))]
+                self.obstacle_at(p, Polygon(pts))
 
     def obstacle_at(self, p, poly):
         for r in self.rooms.values():
@@ -2017,6 +2146,12 @@ def main():
     export = "--export" in args
     L = Level(n)
     L.build()
+    if "--secrets" in args:
+        # Bare de falske veggene (uten å skrive nivåfila eller bitene på nytt).
+        for name, m in sorted(L.secret_pieces().items()):
+            print(f"  {name}: {m.tris()} trekanter")
+            K.export_model(m, os.path.join(OUT, f"{name}.glb"), ao=True, samples=32)
+        return
     if L.layout_lights is not None:
         L.lights = L.layout_lights
     else:
@@ -2055,13 +2190,15 @@ def main():
             sys.exit(1)
     if export:
         only = [a for a in args[1:] if a.startswith("crypt_")]
-        for name, m in sorted(pieces.items()):
+        secrets = L.secret_pieces()
+        pieces_out = {**pieces, **secrets}
+        for name, m in sorted(pieces_out.items()):
             if only and name not in only:
                 continue
             K.export_model(m, os.path.join(OUT, f"{name}.glb"), ao=True, samples=32)
         # Biter fra en eldre utgave som ikke finnes lenger.
         for fn in os.listdir(OUT):
-            if fn.startswith(f"crypt_{n:02d}_") and fn.endswith(".glb") and fn[:-4] not in pieces:
+            if fn.startswith(f"crypt_{n:02d}_") and fn.endswith(".glb") and fn[:-4] not in pieces_out:
                 os.remove(os.path.join(OUT, fn))
 
 

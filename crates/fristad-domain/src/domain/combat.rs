@@ -6,7 +6,7 @@
 //! (`game.rs`) gir inndata og fiendene, og tar imot hendelsene.
 
 use crate::domain::anim::{Animator, Rig};
-use crate::domain::craft::{Gear, WeaponKind, OLD_SHIELD, RUSTY_SWORD};
+use crate::domain::craft::{Gear, Trait, OLD_SHIELD, RUSTY_SWORD};
 use crate::domain::geometry::{kind, Mat, Mesh};
 use crate::domain::mobs::Mobs;
 use crate::domain::model::Model;
@@ -17,7 +17,7 @@ pub const ARMS_MODEL: &str = "arms";
 /// Armene etter rustningen (samme rigg og klipp, `tools/models/arms.py`):
 /// linerme uten rustning, lærarmbeskytter med Badgevams, brynje med
 /// Fieldset-brynja.
-pub const ARMS_MODELS: [&str; 3] = [ARMS_MODEL, "arms_leather", "arms_mail"];
+pub const ARMS_MODELS: [&str; 6] = [ARMS_MODEL, "arms_leather", "arms_mail", "arms_plate", "arms_leather_dark", "arms_plate_dark"];
 pub const DEBRIS_MODEL: &str = "debris";
 const MAX_DEBRIS: usize = 96;
 
@@ -37,6 +37,8 @@ const REACH: f32 = 2.3;
 const ARC: f32 = 0.55;
 const LIGHT_DAMAGE: [f32; 3] = [22.0, 25.0, 34.0];
 const HEAVY_DAMAGE: f32 = 58.0;
+/// Det tunge hugget dytter fienden så mye ekstra (m/s, delt på størrelsen).
+const HEAVY_PUSH: f32 = 3.0;
 /// Utholdenhet: det hvert trekk koster, og hvor fort den kommer igjen.
 pub const STAMINA_MAX: f32 = 100.0;
 const COST_LIGHT: f32 = 12.0;
@@ -49,6 +51,11 @@ const DODGE_LEN: f32 = 0.42;
 const DODGE_IFRAMES: f32 = 0.34;
 const DODGE_SPEED: f32 = 7.5;
 const HITSTOP: f32 = 0.08;
+/// Ladningen dreier sverdarmen om skulderen (radianer, `Combat::windup`):
+/// fram, inn mot midten, og tilbake igjen jo lenger du lader.
+const WINDUP_FORWARD: f32 = 0.66;
+const WINDUP_IN: f32 = 0.25;
+const WINDUP_BACK: f32 = 0.16;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Phase {
@@ -242,7 +249,7 @@ impl Combat {
         self.hold_t = 0.0;
         match self.phase {
             Phase::Idle | Phase::Block => {
-                if self.stamina >= COST_LIGHT {
+                if self.stamina >= COST_LIGHT * self.gear.weapon.stamina {
                     self.start_swing();
                 }
             }
@@ -264,10 +271,10 @@ impl Combat {
 
     /// Unnamanøver i retningen `dir` (vannrett), om det er utholdenhet til det.
     pub fn dodge(&mut self, dir: Vec3) -> bool {
-        if !matches!(self.phase, Phase::Idle | Phase::Block | Phase::Swing { .. }) || self.stamina < COST_DODGE {
+        if !matches!(self.phase, Phase::Idle | Phase::Block | Phase::Swing { .. }) || self.stamina < COST_DODGE * self.gear.dodge() {
             return false;
         }
-        self.stamina -= COST_DODGE;
+        self.stamina -= COST_DODGE * self.gear.dodge();
         self.regen_delay = REGEN_DELAY;
         self.dodge_dir = dir.with_y(0.0).normalize_or_zero();
         self.queued = false;
@@ -304,7 +311,7 @@ impl Combat {
         }
         let n = self.next_swing % 3;
         self.next_swing = n + 1;
-        self.stamina -= COST_LIGHT;
+        self.stamina -= COST_LIGHT * self.gear.weapon.stamina;
         self.regen_delay = REGEN_DELAY;
         self.queued = false;
         self.enter(Phase::Swing { n, hit: false });
@@ -318,7 +325,7 @@ impl Combat {
     }
 
     fn start_heavy(&mut self) {
-        self.stamina -= COST_HEAVY;
+        self.stamina -= COST_HEAVY * self.gear.weapon.stamina;
         self.regen_delay = REGEN_DELAY;
         self.queued = false;
         self.enter(Phase::Heavy { charging: true, hit: false, charge: 0.0 });
@@ -347,7 +354,7 @@ impl Combat {
                 self.shake = (self.shake + 0.25).min(1.0);
                 return (0.0, true);
             }
-            self.stamina -= COST_BLOCK;
+            self.stamina -= self.gear.shield.stamina * COST_BLOCK;
             self.regen_delay = REGEN_DELAY;
             self.shake = (self.shake + 0.3).min(1.0);
             if self.stamina <= 0.0 {
@@ -398,6 +405,27 @@ impl Combat {
         (yaw, pitch)
     }
 
+    /// Armene under ladningen av det tunge hugget: klippet holder sverdet
+    /// høyt ved siden av hodet, utenfor bildet, så overarmen dreies fram og
+    /// inn om skulderen til hånda og klinga står oppe til høyre, trekkes litt
+    /// tilbake jo lenger du lader, og dirrer. Skjoldarmen står som før. Når
+    /// hugget slippes, går den tilbake på et øyeblikk, så slaget ned går
+    /// fortere.
+    fn windup(&self, rig: &Rig, pose: &mut crate::domain::anim::Pose) {
+        let l = self.lift;
+        let Some(arm) = rig.joint("upper_arm.R") else { return };
+        if l <= 0.001 || arm >= pose.0.len() {
+            return;
+        }
+        let w = (l / 0.45).min(1.0);
+        let back = ((l - 0.45) / 0.55).clamp(0.0, 1.0);
+        let shiver = (self.t * 71.0).sin() * 0.012 * back;
+        let turn = Quat::from_rotation_y(WINDUP_IN * w + shiver) * Quat::from_rotation_x(-WINDUP_FORWARD * w + WINDUP_BACK * back + shiver * 0.7);
+        let globals = rig.globals(pose);
+        let parent = rig.joints[arm].parent.map(|p| Quat::from_mat4(&globals[p]).normalize()).unwrap_or(Quat::IDENTITY);
+        pose.0[arm].1 = (parent.inverse() * turn * parent * pose.0[arm].1).normalize();
+    }
+
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
     pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt) -> Vec<CombatEvent> {
@@ -414,7 +442,7 @@ impl Combat {
         self.hurt = (self.hurt - dt * 1.8).max(0.0);
         self.regen_delay = (self.regen_delay - dt).max(0.0);
         if self.regen_delay <= 0.0 && !matches!(self.phase, Phase::Block | Phase::Heavy { charging: true, .. }) {
-            self.stamina = (self.stamina + REGEN * dt).min(self.max_stamina);
+            self.stamina = (self.stamina + REGEN * self.gear.regen() * dt).min(self.max_stamina);
         }
         self.since_swing += sim_dt;
         self.block_t += dt;
@@ -436,7 +464,7 @@ impl Combat {
                     self.block_t = 0.0;
                     let b = self.clips.block;
                     self.play(b, false, 0.08);
-                } else if self.queued && self.stamina >= COST_LIGHT {
+                } else if self.queued && self.stamina >= COST_LIGHT * self.gear.weapon.stamina {
                     self.start_swing();
                 }
             }
@@ -464,8 +492,8 @@ impl Combat {
             Phase::Swing { n, hit } => {
                 let ct = clip_time(self);
                 // Holdes knappen fra starten av, lades et tungt hugg i stedet.
-                if !hit && self.held && self.hold_t >= HOLD_FOR_HEAVY && ct < SWING_HIT[n] && self.stamina >= COST_HEAVY {
-                    self.stamina += COST_LIGHT;
+                if !hit && self.held && self.hold_t >= HOLD_FOR_HEAVY && ct < SWING_HIT[n] && self.stamina >= COST_HEAVY * self.gear.weapon.stamina {
+                    self.stamina += COST_LIGHT * self.gear.weapon.stamina;
                     self.start_heavy();
                 } else if !hit && ct >= SWING_HIT[n] {
                     let mut dmg = LIGHT_DAMAGE[n] * self.gear.weapon.damage;
@@ -478,13 +506,13 @@ impl Combat {
                 } else if self.t >= SWING_LEN[n] {
                     self.since_swing = 0.0;
                     self.enter(Phase::Idle);
-                    if self.queued && self.stamina >= COST_LIGHT {
+                    if self.queued && self.stamina >= COST_LIGHT * self.gear.weapon.stamina {
                         self.start_swing();
                     } else {
                         let idle = self.clips.idle;
                         self.play(idle, true, 0.15);
                     }
-                } else if hit && self.queued && self.t >= SWING_LEN[n] * 0.7 && self.stamina >= COST_LIGHT {
+                } else if hit && self.queued && self.t >= SWING_LEN[n] * 0.7 && self.stamina >= COST_LIGHT * self.gear.weapon.stamina {
                     // Neste hugg i komboen får begynne litt før dette er ferdig.
                     self.since_swing = 0.0;
                     self.start_swing();
@@ -581,19 +609,22 @@ impl Combat {
             let dist = flat.length();
             // Rekkevidden måles til kroppen, ikke midten: store fiender
             // (tabellene, Rammeverket) står lenger unna når de slår.
-            if dist > reach + 0.4 * m.scale() || flat.normalize_or_zero().dot(fwd) < ARC {
+            if dist > reach + 0.4 * m.scale() || flat.normalize_or_zero().dot(fwd) < self.gear.arc(ARC) {
                 continue;
             }
             any = true;
             // Dolken gjør dobbelt bakfra: fienden vender bort fra deg.
             let mut damage = damage;
-            if self.gear.weapon.kind == WeaponKind::Dagger {
+            if self.gear.weapon.trait_ == Trait::Backstab {
                 let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
                 if facing.dot(flat.normalize_or_zero()) > 0.3 {
                     damage *= 2.0;
                 }
             }
-            let strike = mobs.strike(i, damage, feet, crypt);
+            let strike = mobs.strike_with(i, damage, feet, crypt, self.gear.weapon.trait_ == Trait::Crush);
+            if heavy {
+                mobs.shove(i, feet, HEAVY_PUSH);
+            }
             let killed = strike.killed;
             let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
             self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
@@ -635,11 +666,7 @@ impl Combat {
 
     /// Armene som passer rustningen du har på.
     pub fn arms_model(&self) -> &'static str {
-        match self.gear.armor.map(|a| a.id) {
-            Some("badge_jerkin") => ARMS_MODELS[1],
-            Some("fieldset_mail") => ARMS_MODELS[2],
-            _ => ARMS_MODELS[0],
-        }
+        self.gear.armor.map(|a| a.arms).unwrap_or(ARMS_MODEL)
     }
 
     /// Instansene: armene i øyet med kameraets dreining (bare nede i
@@ -651,7 +678,8 @@ impl Combat {
             let arms_t = Affine3A::from_rotation_translation(look, eye);
             match (&self.rig, &self.anim) {
                 (Some(rig), Some(a)) => {
-                    let pose = a.pose(rig);
+                    let mut pose = a.pose(rig);
+                    self.windup(rig, &mut pose);
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
@@ -710,36 +738,5 @@ pub fn debris_model() -> Model {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::world::crypt::Crypt;
-
-    /// Eieren 13. oktober: «ingen merkbar forskjell på vanlig slag og hardt
-    /// slag». Ladningen løfter kameraet, og når hugget slippes, kaster
-    /// kameraet seg ned forbi der det sto.
-    #[test]
-    fn det_tunge_hugget_kjennes_i_kameraet() {
-        let crypt = Crypt::default();
-        let mut mobs = Mobs::new(&crypt, &[]);
-        let mut c = Combat::new(None);
-        let step = |c: &mut Combat, mobs: &mut Mobs, secs: f32| {
-            for _ in 0..(secs * 60.0) as usize {
-                c.update(1.0 / 60.0, 1.0 / 60.0, Vec3::Y, -Vec3::Z, Vec3::ZERO, mobs, &crypt);
-            }
-        };
-        c.press_attack();
-        step(&mut c, &mut mobs, 0.1);
-        let light = c.view_kick(0.0).1;
-        step(&mut c, &mut mobs, 0.9);
-        assert!(matches!(c.phase, Phase::Heavy { charging: true, .. }), "holdt knapp lader et tungt hugg");
-        let charged = c.view_kick(0.0).1;
-        assert!(charged > 0.03 && charged > light + 0.03, "ladningen løfter blikket: {charged:.3} mot {light:.3}");
-        c.release_attack();
-        let mut lowest = f32::MAX;
-        for _ in 0..30 {
-            step(&mut c, &mut mobs, 1.0 / 60.0);
-            lowest = lowest.min(c.view_kick(0.0).1);
-        }
-        assert!(lowest < -0.025, "hugget kaster blikket ned: {lowest:.3}");
-    }
-}
+#[path = "combat_tests.rs"]
+mod tests;

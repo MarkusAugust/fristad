@@ -44,7 +44,7 @@ HEAVY_HIT = 13 / FPS
 GRIP_SHEET = os.path.join(REF, "arms_grip.jpeg")
 GRIP_PX = 0.03 / 55  # grepet er 3 cm og 55 px
 # Radene (y til midten av grepet) og kolonnene (x til grepets akse) per sett.
-GRIP_ROWS = {"arms": (140, 0), "arms_leather": (633, 1), "arms_mail": (1127, 10)}
+GRIP_ROWS = {"arms": (140, 0), "arms_leather": (633, 1), "arms_mail": (1127, 10), "arms_plate": (1619, 8)}
 COL_TOP, COL_SIDE, COL_BELOW, COL_LEFT = 460, 828, 1191, 1555
 WRIST_IMG = 159  # px fra grepet ned til håndleddet ovenfra
 SLEEVE_IMG = 345  # px fra grepet ned til nederst i arket
@@ -56,7 +56,49 @@ ELBOW_Y = WRIST_Y - FOREARM
 ARM_PAST = 0.15  # overarmen går så langt forbi skulderen
 # Overarmen får arket fra et bånd av rader under grepet (px): linermet,
 # den bare armen under lærarmbeskytteren, brynjeermet.
-UPPER_BAND = {"arms": (285, 340), "arms_leather": (300, 340), "arms_mail": (215, 275)}
+UPPER_BAND = {"arms": (285, 340), "arms_leather": (300, 340), "arms_mail": (215, 275), "arms_plate": (250, 320)}
+
+# Settene som er et annet sett malt om (utstyret 18. oktober): samme rader i
+# arket, men læret eller stålet farget (`tinted_sheet`). (grunnsett, farge)
+TINTS = {"arms_leather_dark": ("arms_leather", "leather_dark"), "arms_plate_dark": ("arms_plate", "steel_dark")}
+for _k, (_b, _) in TINTS.items():
+    GRIP_ROWS[_k] = GRIP_ROWS[_b]
+    UPPER_BAND[_k] = UPPER_BAND[_b]
+
+
+def tinted_sheet(kind):
+    """Grepsarket for settet: det utfylte arket, med radene til et malt-om
+    sett farget. «leather_dark»: læret (brunt og mørkere enn huden) blir
+    oksblodsvart med messingnagler beholdt; «steel_dark»: stålet (grått)
+    blir svertet blåsvart, læret beholdes."""
+    path = filled_sheet(GRIP_SHEET)
+    if kind not in TINTS:
+        return path
+    import numpy as np
+    from PIL import Image
+
+    base_kind, tint = TINTS[kind]
+    gy = GRIP_ROWS[base_kind][0]
+    im = Image.open(path).convert("RGB")
+    rgb = np.asarray(im).astype(float)
+    hsv = np.asarray(im.convert("HSV")).astype(float)
+    h, s, v = hsv[..., 0] * 360 / 255, hsv[..., 1] / 255, hsv[..., 2] / 255
+    rows = np.zeros(s.shape, bool)
+    rows[max(0, gy - 130):min(s.shape[0], gy + 380)] = True
+    out = rgb.copy()
+    if tint == "leather_dark":
+        sel = rows & (h > 10) & (h < 45) & (((s > 0.3) & (v < 0.62)) | ((s > 0.45) & (v < 0.8)))
+        lum = rgb[..., :].mean(2, keepdims=True)
+        dark = np.concatenate([lum * 0.62, lum * 0.32, lum * 0.3], 2)
+        out[sel] = dark[sel]
+    else:
+        sel = rows & (s < 0.18) & (v > 0.35)
+        lum = rgb.mean(2, keepdims=True)
+        dark = np.concatenate([lum * 0.42, lum * 0.46, lum * 0.58], 2)
+        out[sel] = dark[sel]
+    dst = os.path.join(ROOT, "target", "sheets", f"{kind}_grip.png")
+    Image.fromarray(np.clip(out, 0, 255).astype(np.uint8)).save(dst)
+    return dst
 # Grepet i hånda er 3,2 cm tykt (arket: 3 cm); våpnene skal passe (`grip_fits`).
 GRIP_D = (0.028, 0.036)
 
@@ -354,7 +396,7 @@ def upper_frame(side):
 
 def build_arms(kind):
     gy, dx = GRIP_ROWS[kind][0], GRIP_ROWS[kind][1]
-    mat = sheet_material(f"{kind}_sheet", filled_sheet(GRIP_SHEET))
+    mat = sheet_material(f"{kind}_sheet", tinted_sheet(kind))
     rigid = {}
     b0, b1 = UPPER_BAND[kind]
     for side, M in (("R", RIGHT), ("L", LEFT)):
@@ -661,10 +703,51 @@ WEAPONS = {
     "sword": ("weapon_sword.jpeg", 0.95, 0.16),
     "axe": ("weapon_axe.jpeg", 0.72, 0.13),
     "dagger": ("weapon_dagger.jpeg", 0.42, 0.24),
+    # Utgavene fra arkene med fire utgaver (`*_rarity.jpeg`) og køllearket
+    # (utstyret 18. oktober): hver ser forskjellig ut og bygges av samme
+    # slags deler som grunnformen (`BASE`), med sine egne brøkdeler.
+    "sword_rare": ("sword_rarity.jpeg", 0.98, 0.175),
+    "sword_legend": ("sword_rarity.jpeg", 1.0, 0.15),
+    "axe_rare": ("axe_rarity.jpeg", 0.76, 0.13),
+    "dagger_rare": ("dagger_rarity.jpeg", 0.44, 0.23),
+    "mace": ("weapon_mace.jpeg", 0.74, 0.12),
 }
+# Grunnformen hver utgave bygges som (delene, klingeformen og kontrollene).
+BASE = {"sword_rare": "sword", "sword_legend": "sword", "axe_rare": "axe", "dagger_rare": "dagger"}
+
+
+def base(name):
+    return BASE.get(name, name)
+
+
+# Utsnittet av arket (x0, y0, x1, y1 i px): én utgave innenfor rammen og
+# over navnelappen (rare nede til venstre, legendary nede til høyre), og
+# kølla til venstre for hammeren.
+CROPS = {
+    "sword_rare": (60, 1100, 980, 1906),
+    "sword_legend": (1100, 1096, 1990, 1906),
+    "axe_rare": (60, 1100, 980, 1906),
+    "dagger_rare": (60, 1100, 980, 1906),
+    "mace": (300, 40, 980, 2008),
+}
+
+
+def sheet_path(name):
+    """Arket til et våpen: hele arket, eller utsnittet i `CROPS` lagret som
+    `target/sheets/<navn>_crop.png`."""
+    src = os.path.join(REF, WEAPONS[name][0])
+    if name not in CROPS:
+        return src
+    from PIL import Image
+
+    out = os.path.join(ROOT, "target", "sheets", f"{name}_crop.png")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    Image.open(src).convert("RGB").crop(CROPS[name]).save(out)
+    return out
+
+
 # Terskelen mot bakgrunnen per ark (lyst metall på grått trenger lav terskel).
-MASK_AT = {"sword": 14, "axe": 14, "dagger": 30
-}
+MASK_AT = {"sword": 14, "axe": 14, "dagger": 30, "sword_rare": 14, "sword_legend": 14, "axe_rare": 14, "dagger_rare": 12, "mace": 14}
 
 
 def upright(name):
@@ -674,11 +757,11 @@ def upright(name):
     from PIL import Image
     from scipy import ndimage
 
-    src = os.path.join(REF, WEAPONS[name][0])
+    src = sheet_path(name)
     # Dolken: råbildet, ikke det utfylte. Der breddeprofilen fyller inn den
     # lyse sida av klinga, er bakgrunnen grå som stålet (det utfylte tar
     # konturens mørke).
-    im = Image.open(src if name == "dagger" else filled_sheet(src)).convert("RGB")
+    im = Image.open(src if base(name) == "dagger" else filled_sheet(src)).convert("RGB")
     raw = np.asarray(Image.open(src).convert("RGB")).astype(float)
     bg = np.median(np.concatenate([raw[:20].reshape(-1, 3), raw[-20:].reshape(-1, 3)]), 0)
     m = np.abs(raw - bg).max(2) > MASK_AT[name]
@@ -688,7 +771,7 @@ def upright(name):
     # Det lyse metallet ligger nær bakgrunnsgrått, men den malte konturen
     # er tydelig: den lukkes og fylles, ellers blir klinga kløyvd.
     m = lab == (np.argmax(sz) + 1)
-    m = ndimage.binary_closing(np.pad(m, 12), structure=np.ones((3, 3)), iterations=2 if name == "dagger" else 10)[12:-12, 12:-12]
+    m = ndimage.binary_closing(np.pad(m, 12), structure=np.ones((3, 3)), iterations=2 if base(name) == "dagger" else 10)[12:-12, 12:-12]
     m = ndimage.binary_fill_holes(m)
     ys, xs = np.nonzero(m)
     cov = np.cov(np.stack([xs - xs.mean(), ys - ys.mean()]))
@@ -709,7 +792,7 @@ def upright(name):
     met0 = (hsv0[..., 1] < 45) & mm
     if np.nonzero(met0)[0].mean() > np.nonzero(mm & ~met0)[0].mean():
         mm, arr = mm[::-1, ::-1], arr[::-1, ::-1]
-    if name == "dagger":
+    if base(name) == "dagger":
         # Dolken: konturen er åpen langs den lyse klinga og knappen er en
         # skive i bakgrunnens farge, så masken bygges av delene langs aksen
         # (klinga, parerstanga, grepet, knappen), hver sitt konvekse skall.
@@ -776,10 +859,16 @@ def upright(name):
 #   disc   knapp som skive: tykkelsen 40 % av bredden
 #   ball   knapp som kule
 #   head   økseblad: omrisset fra masken, kile fra skaftet ut mot eggen
+#   knob   køllehode: rundt snitt med seks flenser (`FLANGES`), bredden fra masken
 PARTS = {
     "sword": [("blade", 0.008, 0.668), ("bar", 0.664, 0.722), ("grip", 0.718, 0.895), ("disc", 0.885, 0.995)],
     "axe": [("head", 0.0, 0.40), ("grip", 0.03, 0.985)],
     "dagger": [("blade", 0.01, 0.462), ("disc", 0.455, 0.565), ("grip", 0.555, 0.875), ("ball", 0.86, 0.995)],
+    "sword_rare": [("blade", 0.008, 0.66), ("bar", 0.655, 0.70), ("grip", 0.695, 0.885), ("disc", 0.875, 0.995)],
+    "sword_legend": [("blade", 0.008, 0.645), ("bar", 0.64, 0.735), ("grip", 0.73, 0.905), ("disc", 0.895, 0.995)],
+    "axe_rare": [("head", 0.0, 0.40), ("grip", 0.03, 0.985)],
+    "dagger_rare": [("blade", 0.01, 0.51), ("disc", 0.505, 0.59), ("grip", 0.585, 0.865), ("ball", 0.86, 0.995)],
+    "mace": [("knob", 0.0, 0.345), ("grip", 0.335, 0.995)],
 }
 # Klinger der omrisset ikke kan brukes: (halv bredde px, spissens del av klinga).
 # Spissen smalner jevnt og svakt buet til et punkt, som på arket (eieren 13.
@@ -788,7 +877,8 @@ BLADE_SHAPE = {"dagger": (127, 0.45)}
 # Spissen er spiss: 2 cm fra spissen er klinga høyst så stor del av sin
 # største bredde (en rund spiss er nesten full bredde der, `tip_check`).
 TIP_AT, TIP_MAX = 0.02, 0.5
-RIDGE = {"sword": 0.005, "dagger": 0.004, "axe": 0.011}
+RIDGE = {"sword": 0.005, "dagger": 0.004, "axe": 0.011, "mace": 0.01}
+FLANGES = 6  # flensene på køllehodet
 
 
 def weapon_profile(mask):
@@ -872,9 +962,9 @@ def weapon_parts(name, mask, metal, px, gy, length):
             wm = (wlo + whi) / 2
             wm[np.isnan(wh)] = np.nan
             cm = smooth_series(wm, 61)
-        elif kind in ("bar", "disc"):
+        elif kind in ("bar", "disc", "knob"):
             hv = smooth_series(half, 9)
-        step = max(1, (r1 - r0) // {"blade": 40, "bar": 10, "grip": 24, "disc": 14, "ball": 14}[kind])
+        step = max(1, (r1 - r0) // {"blade": 40, "bar": 10, "grip": 24, "disc": 14, "ball": 14, "knob": 30}[kind])
         sample = list(range(r0, r1, step)) + [r1]
         rings = []
         k = k_grip if kind == "grip" else 1.0
@@ -892,12 +982,21 @@ def weapon_parts(name, mask, metal, px, gy, length):
             hw = max(float(hv[r]) * px * k, 0.0008)
             if kind == "blade":
                 # Ryggen tynner ut mot spissen, eggen er skarp.
-                t = RIDGE[name] * min(1.0, 0.3 + hw / 0.012)
+                t = RIDGE[base(name)] * min(1.0, 0.3 + hw / 0.012)
                 rings.append(lens(X(r), cy, hw, t))
             elif kind == "bar":
                 rings.append(superellipse_x(X(r), cy, hw, 0.0, 0.01, 16, 3.0))
             elif kind == "disc":
                 rings.append(superellipse_x(X(r), cy, hw, 0.0, max(0.006, 0.4 * hw), 16, 2.5))
+            elif kind == "knob":
+                # Flensene stikker ut til omrisset, mellom dem er hodet
+                # rundt og smalere.
+                ring = []
+                for i in range(6 * FLANGES):
+                    a = 2 * math.pi * i / (6 * FLANGES)
+                    rr = hw * (0.62 + 0.38 * abs(math.cos(a * FLANGES / 2)) ** 3)
+                    ring.append((X(r), cy + rr * math.cos(a), rr * math.sin(a)))
+                rings.append(ring)
             else:
                 rings.append(superellipse_x(X(r), cy, hw, 0.0, hw, 16))
         if kind == "blade":
@@ -1039,7 +1138,7 @@ def build_weapon(name):
     obs = []
     for i, (kind, rings, k, cm) in enumerate(parts):
         if kind == "head":
-            ob = head_mesh(f"{name}_head", mat, mask, metal, px, gy, cx, cm[:2], RIDGE[name])
+            ob = head_mesh(f"{name}_head", mat, mask, metal, px, gy, cx, cm[:2], RIDGE[base(name)])
         else:
             caps = ("fan", "fan")
             ob = rings_object(f"{name}_{kind}{i}", mat, rings, caps=caps)
@@ -1073,7 +1172,7 @@ def build_weapon(name):
     # rom). Eggen er den lengste sida av hodet målt fra skaftets egen
     # midtlinje der hodet sitter, ikke fra grepet (skaftet er bøyd; runde
     # 18 målte fra grepet og snudde eggen bakover).
-    if name == "axe":
+    if base(name) == "axe":
         r0, r1 = next(p[3][:2] for p in parts if p[0] == "head")
         haft = next(p[3] for p in parts if p[0] == "grip")
         ys, xs = np.nonzero(mask[r0:r1] & metal[r0:r1])
@@ -1118,7 +1217,66 @@ SHIELDS = {
     # navn: (forside, bakside, sentrum og radius/halv bredde og høyde i px, mål i m)
     "shield_round": ("shield_round_front.jpeg", "shield_back.jpeg"),
     "shield_tower": ("shield_tower_front.jpeg", "shield_tower_back.jpeg"),
+    "shield_heater": ("shield_heater_front.jpeg", "shield_heater_back.jpeg"),
+    # Malt om (utstyret 18. oktober): samme form, forsida i andre farger.
+    "shield_round_blue": ("shield_round_front.jpeg", "shield_back.jpeg"),
+    "shield_heater_violet": ("shield_heater_front.jpeg", "shield_heater_back.jpeg"),
 }
+# Formen hvert skjold bygges som, og fargene forsida males om i
+# (`recolored`): (fra fargetone, til fargetone, grader rundt).
+SHIELD_SHAPE = {"shield_round_blue": "shield_round", "shield_heater_violet": "shield_heater"}
+SHIELD_RECOLOR = {"shield_round_blue": (0.0, 212.0, 28.0), "shield_heater_violet": (220.0, 285.0, 40.0)}
+
+
+def recolored(path, name):
+    """Forsida med én fargetone dreid til en annen (de mettede pikslene innen
+    `grader` fra tonen), lagret som `target/sheets/<navn>_front.png`."""
+    if name not in SHIELD_RECOLOR:
+        return path
+    import numpy as np
+    from PIL import Image
+
+    src, dst, width = SHIELD_RECOLOR[name]
+    im = Image.open(path).convert("RGB")
+    hsv = np.asarray(im.convert("HSV")).astype(float)
+    h = hsv[..., 0] * 360 / 255
+    d = np.abs((h - src + 180) % 360 - 180)
+    sel = (d < width) & (hsv[..., 1] > 70)
+    hsv[..., 0] = np.where(sel, ((h + dst - src) % 360) * 255 / 360, hsv[..., 0])
+    if dst > 250:
+        # Fiolett: mørkere og litt mindre mettet, som sømmene i kjernen.
+        hsv[..., 2] = np.where(sel, hsv[..., 2] * 0.72, hsv[..., 2])
+    out = os.path.join(ROOT, "target", "sheets", f"{name}_front.png")
+    Image.fromarray(hsv.astype(np.uint8), "HSV").convert("RGB").save(out)
+    return out
+
+
+HEATER_W, HEATER_T = 0.56, 0.026  # bredden og tykkelsen på det trekantede skjoldet (m)
+HEATER_BOX = (342, 151, 1706, 1907)  # skjoldet i arket (px), forsida og baksida
+
+
+def heater_outline():
+    """Omrisset av det trekantede skjoldet fra forsida i arket, (x, z) i
+    meter med sentrum i midten av boksen, forenklet."""
+    import numpy as np
+    from PIL import Image
+    from scipy import ndimage
+    from skimage import measure
+
+    a = np.asarray(Image.open(os.path.join(REF, "shield_heater_front.jpeg")).convert("RGB")).astype(int)
+    m = np.abs(a - a[4, 4]).sum(2) > 36
+    m = ndimage.binary_fill_holes(ndimage.binary_opening(m, iterations=4))
+    lab, k = ndimage.label(m)
+    m = lab == (np.argmax(ndimage.sum(m, lab, range(1, k + 1))) + 1)
+    # Hakkene i den malte kanten glattes bort (omrisset er skjoldets).
+    m = ndimage.binary_opening(m, structure=np.ones((3, 3)), iterations=16)
+    # Symmetrisk om midten (penselstrøk på den ene sida).
+    m = m & m[:, ::-1] if abs((HEATER_BOX[0] + HEATER_BOX[2]) / 2 - a.shape[1] / 2) < 8 else m
+    c = max(measure.find_contours(np.pad(m, 1).astype(float), 0.5), key=len) - 1.0
+    c = measure.approximate_polygon(c, tolerance=8.0)[:-1]
+    k = HEATER_W / (HEATER_BOX[2] - HEATER_BOX[0])
+    cx, cy = (HEATER_BOX[0] + HEATER_BOX[2]) / 2, (HEATER_BOX[1] + HEATER_BOX[3]) / 2
+    return [((x - cx) * k, -(y - cy) * k) for y, x in c], k
 
 
 HANDLE = 0.055  # håndtaket står så langt bak skjoldet
@@ -1144,11 +1302,89 @@ def shield_angle(fw):
 
 def build_shield(name):
     front, back = SHIELDS[name]
-    fmat = sheet_material(f"{name}_front", filled_sheet(os.path.join(REF, front)), rough=0.7)
+    shape = SHIELD_SHAPE.get(name, name)
+    fmat = sheet_material(f"{name}_front", recolored(filled_sheet(os.path.join(REF, front)), name), rough=0.7)
     bmat = sheet_material(f"{name}_back", filled_sheet(os.path.join(REF, back)), rough=0.7)
     g, fw, up, rt = shield_axes()
     parts = []
-    if name == "shield_round":
+    if shape == "shield_heater":
+        T = HEATER_T
+        outline, kpx = heater_outline()
+        bm = bmesh.new()
+        # Forsida buer litt fram (2 cm i midten), baksida følger.
+        hw = max(abs(x) for x, _ in outline)
+
+        def bulge(x):
+            return 0.02 * (1.0 - (x / hw) ** 2)
+
+        # Fylt med jevne trekanter (lange smale ga striper i lyset): et
+        # rutenett av punkter inni (3 cm mellom) og omrisset som kant, forsida
+        # løftet etter buen, baksida en kopi, og kanten sydd sammen.
+        from mathutils.geometry import delaunay_2d_cdt
+
+        n0 = len(outline)
+        pts = [Vector(p) for p in outline]
+
+        def inside(px_, pz_):
+            hit = False
+            for i in range(n0):
+                (x1, z1), (x2, z2) = outline[i], outline[(i + 1) % n0]
+                if (z1 > pz_) != (z2 > pz_) and px_ < x1 + (pz_ - z1) * (x2 - x1) / (z2 - z1):
+                    hit = not hit
+            return hit
+
+        def edge_dist(px_, pz_):
+            best = 1e9
+            for i in range(n0):
+                a_, b_ = Vector(outline[i]), Vector(outline[(i + 1) % n0])
+                ab = b_ - a_
+                t = max(0.0, min(1.0, (Vector((px_, pz_)) - a_).dot(ab) / max(1e-9, ab.length_squared)))
+                best = min(best, (Vector((px_, pz_)) - (a_ + ab * t)).length)
+            return best
+
+        step = 0.03
+        for ix in range(-20, 21):
+            for iz in range(-20, 21):
+                q = (ix * step, iz * step)
+                if inside(*q) and edge_dist(*q) > 0.012:
+                    pts.append(Vector(q))
+        vco, _, tris = delaunay_2d_cdt(pts, [], [list(range(n0))], 1, 1e-6)[:3]
+        vs = [bm.verts.new((p.x, 0.0, p.y)) for p in vco]
+        for t in tris:
+            bm.faces.new([vs[i] for i in t])
+        bmesh.ops.beautify_fill(bm, faces=bm.faces[:], edges=bm.edges[:])
+        for v in bm.verts:
+            v.co.y = T / 2 + bulge(v.co.x)
+        bm.normal_update()
+        for f in bm.faces:
+            if f.normal.y < 0:
+                f.normal_flip()
+        dup = bmesh.ops.duplicate(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:])
+        for e in dup["geom"]:
+            if isinstance(e, bmesh.types.BMVert):
+                e.co.y -= T
+        bmesh.ops.reverse_faces(bm, faces=[e for e in dup["geom"] if isinstance(e, bmesh.types.BMFace)])
+        bmesh.ops.bridge_loops(bm, edges=[e for e in bm.edges if e.is_boundary])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        me = bpy.data.meshes.new("shield_board")
+        bm.to_mesh(me)
+        bm.free()
+        board = bpy.data.objects.new("shield_board", me)
+        bpy.context.scene.collection.objects.link(board)
+        me.materials.append(fmat)
+        me.materials.append(bmat)
+        me.uv_layers.new(name="UVMap")
+        parts.append(board)
+        parts.append(cylinder("shield_handle", (0, -T / 2 - HANDLE, 0), 0.016, 0.18, bmat, vertices=10))
+        for z in (-0.08, 0.08):
+            parts.append(_box(f"shield_handle_post{z:+.2f}", (0, -T / 2 - HANDLE / 2, z), (0.025, HANDLE, 0.025), bmat))
+        fx, fy = (HEATER_BOX[0] + HEATER_BOX[2]) / 2, (HEATER_BOX[1] + HEATER_BOX[3]) / 2
+
+        def uv(p, n):
+            if n.y >= 0:
+                return (fx - p.x / kpx, fy - p.z / kpx)
+            return (fx + p.x / kpx, fy - p.z / kpx)
+    elif shape == "shield_round":
         R, T = 0.33, 0.022
         fc, fr = (1023, 1022), 944
         bc, br = (1024, 1025), 917
@@ -1237,7 +1473,7 @@ def apply_mods(ob):
 
 # --- Klinga holder seg unna armene og kameraet ---------------------------------
 
-BLADE = {"sword": (0.1, 0.8), "axe": (0.45, 0.62), "dagger": (0.06, 0.32)}  # fra grepet: klingas start og spiss (m langs −x)
+BLADE = {"sword": (0.1, 0.8), "axe": (0.45, 0.62), "dagger": (0.06, 0.32), "sword_rare": (0.16, 0.81), "sword_legend": (0.2, 0.85), "axe_rare": (0.47, 0.66), "dagger_rare": (0.11, 0.34), "mace": (0.4, 0.65)}  # fra grepet: klingas start og spiss (m langs −x)
 
 
 def poses(rig, clips):
@@ -1493,7 +1729,7 @@ def build_rig_and_clips():
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    kinds = ["arms", "arms_leather", "arms_mail"]
+    kinds = ["arms", "arms_leather", "arms_mail", "arms_plate", "arms_leather_dark", "arms_plate_dark"]
     which = [a for a in args if a in kinds or a in WEAPONS or a in SHIELDS] or kinds + list(WEAPONS) + list(SHIELDS)
     os.makedirs(OUT, exist_ok=True)
     for name in which:

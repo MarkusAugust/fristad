@@ -129,7 +129,11 @@ pub(super) fn gpu_model(device: &wgpu::Device, queue: &wgpu::Queue, materials: &
 impl Renderer {
     /// Legger til modeller som kom senere. Bare modeller med instanser som
     /// venter (`waiting`) blir med; teksturene pakkes ut én om gangen.
+    /// Er enheten borte (`lose`), venter de videre.
     pub fn add_models(&mut self, models: &[Model]) {
+        if self.lost {
+            return;
+        }
         for m in models {
             let Some(k) = self.waiting.iter().position(|pl| pl.model == m.name) else { continue };
             let pl = self.waiting.swap_remove(k);
@@ -150,5 +154,60 @@ impl Renderer {
     /// Antall modeller på grafikkortet (til testene).
     pub fn model_count(&self) -> usize {
         self.models.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::geometry::{Mat, Mesh};
+
+    /// En kvadratmeter gulv.
+    fn quad() -> Mesh {
+        let mut m = Mesh::default();
+        m.quad(&Affine3A::IDENTITY, [Vec3::ZERO, Vec3::X, Vec3::new(1.0, 0.0, 1.0), Vec3::Z], &Mat::plain(0x808080, 0.8), [1.0; 4]);
+        m
+    }
+
+    /// Som i nettleseren: biten til et kryptnivå er utsatt når rendereren
+    /// lages og kommer med `add_models`. Er enheten borte før den kommer,
+    /// lages ingenting på den (Chromium kastet fra `createBuffer`, og wgpu
+    /// gjorde det til en panikk som stoppet motoren), og biten venter.
+    #[test]
+    fn kryptbitene_venter_om_grafikkortet_er_borte() {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
+        let Ok((adapter, device, queue)) = pollster::block_on(crate::adapters::gpu(&instance, None)) else {
+            eprintln!("Ingen GPU; testen hoppes over");
+            return;
+        };
+        let world = quad();
+        let piece = Model {
+            name: "crypt_01_aa".into(),
+            mesh: quad(),
+            albedo: None,
+            normal: None,
+            metal_rough: None,
+            emissive: None,
+            roughness: 0.8,
+            metallic: 0.0,
+            far_cell: 0.0,
+            far_mesh: None,
+            rig: None,
+        };
+        let pl = Placement { model: "crypt_01_aa", transforms: vec![Affine3A::from_translation(Vec3::new(0.0, -40.0, 0.0))], tints: vec![], looks: vec![], reserve: 0, indoor: false };
+        let scene = ports::StaticScene { mesh: &world, chunks: &[], placements: std::slice::from_ref(&pl), models: &[] };
+        let mut r = Renderer::new(device, queue, &adapter, wgpu::TextureFormat::Rgba8UnormSrgb, &scene, &[], 64, 64);
+        assert_eq!(r.model_count(), 0, "biten er utsatt");
+        r.add_models(std::slice::from_ref(&piece));
+        assert_eq!(r.model_count(), 1, "biten kom");
+        r.drop_models(&[piece.name.clone()]);
+        assert_eq!(r.model_count(), 0, "biten er sluppet");
+        r.lose("testen");
+        assert!(r.is_lost());
+        r.add_models(std::slice::from_ref(&piece));
+        assert_eq!(r.model_count(), 0, "ingenting lages på en tapt enhet");
+        assert_eq!(r.waiting.len(), 1, "biten venter");
+        r.resize(128, 128);
+        r.set_quality(Quality::default());
     }
 }

@@ -19,18 +19,9 @@
   <!-- Siktekors og hva du ser på. -->
   <div id="dark" class="dark" aria-hidden="true"></div>
   <div id="hud" hidden>
-    <!-- Siktekorset er utløseren i Fristils tooltip; boblen åpnes når du
-         sikter på noe du kan bruke, og forteller hva det er og hva du kan
-         gjøre. -->
-    <span id="aim" class="fs-tooltip aim">
-      <span class="crosshair" aria-describedby="prompt"></span>
-      <span id="prompt" class="fs-tooltip__bubble prompt" role="tooltip" aria-live="polite">
-        <strong id="prompt-name" class="prompt-name"></strong>
-        <span id="prompt-info" class="prompt-info"></span>
-        <span class="keys">
-          <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
-          <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
-        </span>
+    <!-- Siktepunktet midt på skjermen. Hva du sikter på, står i kortet
+         `#target` i kolonnen til høyre. -->
+    <span id="aim" class="aim" aria-hidden="true"><span class="crosshair"></span></span>
       </span>
     </span>
     <div id="vitals" class="vitals" hidden>
@@ -43,19 +34,70 @@
       </div>
       <div id="gear" class="gear"></div>
       <div id="inventory" class="inventory"></div>
-      <div id="fight-keys" class="fight-keys" hidden>
-        <span><kbd>Venstre mus</kbd> eller <kbd>F</kbd> Hugg, hold for tungt</span>
-        <span><kbd>Høyre mus</kbd> Blokk (parade i det bittet kommer)</span>
-        <span><kbd>Shift</kbd> + retning Unna</span>
-      </div>
     </div>
     <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
          dreier med deg, og det store kartet (K) med nord opp. Det du ikke
          har sett, er mørkt. -->
+    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten), det du
+         sikter på (tingen eller fienden) og tastene, som kan foldes sammen (F1). De
+         står i én kolonne, så de aldri legger seg over hverandre. -->
+    <div id="side" class="side">
     <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
       <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </aside>
+    <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
+         galleriet, senga): navnet, hva det er, og tastene. -->
+    <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
+      <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
+      <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
+      <p class="target-keys">
+        <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+        <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
+      </p>
+    </section>
+    <!-- Fienden du sikter på: navnet, hva den er og livet. -->
+    <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
+      <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span></p>
+      <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
+      <p id="foe-info" class="fs-paragraph" data-size="small"></p>
+      <div class="foe-hp">
+        <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
+        <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+      </div>
+    </section>
+    <details id="keys-panel" class="fs-accordion keys-panel" open>
+      <summary>Taster <kbd>F1</kbd></summary>
+      <div class="fs-accordion__content">
+        <table class="fs-table keys-table">
+          <caption class="fs-sr-only">Tastene i spillet</caption>
+          <tbody id="fight-keys" hidden>
+            <tr><th scope="row"><kbd>Venstre mus</kbd></th><td>Hugg (klikk), tungt hugg (hold)</td></tr>
+            <tr><th scope="row"><kbd>Høyre mus</kbd></th><td>Blokk, parade i det bittet kommer</td></tr>
+            <tr><th scope="row"><kbd>Shift</kbd> + retning</th><td>Unna</td></tr>
+          </tbody>
+          <tbody id="help">
+            <tr><th scope="row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></th><td>Gå</td></tr>
+            <tr><th scope="row"><kbd>Mus</kbd></th><td>Se (dra om musa ikke fanges)</td></tr>
+            <tr><th scope="row"><kbd>Shift</kbd></th><td>Løp</td></tr>
+            <tr><th scope="row"><kbd>Mellomrom</kbd></th><td>Hopp</td></tr>
+            <tr><th scope="row"><kbd>C</kbd></th><td>Huk</td></tr>
+            <tr><th scope="row"><kbd>F</kbd> / <kbd>E</kbd></th><td>Bruk / handle</td></tr>
+            <tr><th scope="row"><kbd>I</kbd></th><td>Utstyr og lager</td></tr>
+            <tr><th scope="row"><kbd>K</kbd></th><td>Kart (i krypten)</td></tr>
+            <tr><th scope="row"><kbd>J</kbd></th><td>Journal</td></tr>
+            <tr><th scope="row"><kbd>M</kbd></th><td>Musikk</td></tr>
+            <tr><th scope="row"><kbd>T</kbd></th><td>Dag og natt</td></tr>
+            <tr><th scope="row"><kbd>V</kbd></th><td>Vær: <span id="weather">klart</span></td></tr>
+            <tr><th scope="row"><kbd>H</kbd></th><td>Til sørporten</td></tr>
+            <tr><th scope="row"><kbd>G</kbd></th><td>Grafikk: <span id="graphics-label">standard</span></td></tr>
+            <tr><th scope="row"><kbd>O</kbd></th><td>Innstillinger</td></tr>
+            <tr><th scope="row"><kbd>Esc</kbd></th><td>Pause</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+    </div>
     <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
       <div class="bigmap-card">
         <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
@@ -81,8 +123,9 @@
       </div>
     </div>
     <div class="bottom">
-      <!-- Liv og energi som to Fristil-stolper over knappelinja, som i Diablo:
-           livet til venstre, energien (utholdenheten) til høyre. -->
+      <!-- Liv, energi og lys som Fristil-stolper nederst, som i Diablo:
+           livet til venstre, energien (utholdenheten) til høyre. Tastene
+           står i panelet oppe til høyre (#keys-panel). -->
       <div id="bars" class="bars">
         <div class="bar">
           <div class="bar-head"><label class="fs-label" for="hp">Liv</label><span id="hp-text" class="bar-num">100 / 100</span></div>
@@ -96,23 +139,6 @@
           <div class="bar-head"><label class="fs-label" for="light">Lys</label><span id="light-text" class="bar-num">100 %</span></div>
           <progress id="light" class="fs-progress" data-color="warning" max="100" value="100"></progress>
         </div>
-      </div>
-      <div id="help" class="help">
-        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gå</span>
-        <span><kbd>Mus</kbd> Se (dra om musa ikke fanges)</span>
-        <span><kbd>Shift</kbd> Løp</span>
-        <span><kbd>Mellomrom</kbd> Hopp</span>
-        <span><kbd>C</kbd> Huk</span>
-        <span><kbd>I</kbd> Utstyr og lager</span>
-        <span><kbd>K</kbd> Kart (i kjelleren)</span>
-        <span><kbd>J</kbd> Journal (målet og det du har lest)</span>
-        <span><kbd>M</kbd> Musikk</span>
-        <span><kbd>T</kbd> Dag og natt</span>
-        <span><kbd>V</kbd> Vær: <span id="weather">klart</span></span>
-        <span><kbd>H</kbd> Til sørporten</span>
-        <span><kbd>G</kbd> Grafikk: <span id="graphics-label">standard</span></span>
-        <span><kbd>O</kbd> Innstillinger</span>
-        <span><kbd>Esc</kbd> Pause</span>
       </div>
     </div>
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>
@@ -149,7 +175,7 @@
         <p><button id="gpu-reduced" class="fs-button" data-variant="secondary" type="button">Bruk enkel grafikk</button></p>
       </div>
       <p id="touch-note" class="fs-paragraph" data-size="small" hidden>Fristad styres med mus og tastatur foreløpig. På mobil kan du se, men ikke gå.</p>
-      <p class="fs-paragraph credits" data-size="small">Lydopptak fra 0 A.D. (Wildfire Games), Flare, Minetest Game og Still North Media, CC BY-SA 3.0, CC BY 3.0 og CC0. <a class="fs-link" href="sounds/CREDITS.md" target="_blank" rel="noopener">Hvem som laget hver lyd</a>. Musikken spilles med instrumentprøver fra FluidR3_GM (Frank Wen, MIT; <a class="fs-link" href="music/CREDITS.md" target="_blank" rel="noopener">kreditering</a>).</p>
+      <p class="fs-paragraph credits" data-size="small">Lydopptak fra 0 A.D. (Wildfire Games), Flare, Minetest Game og Still North Media, CC BY-SA 3.0, CC BY 3.0 og CC0. <a class="fs-link" href="sounds/CREDITS.md" target="_blank" rel="noopener">Hvem som laget hver lyd</a>. Musikken er laget for Fristad.</p>
     </div>
   </section>
 

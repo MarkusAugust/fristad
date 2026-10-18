@@ -33,6 +33,10 @@ use nav::{Nav, Poly};
 pub const LEVEL_DROP: f32 = 40.0;
 /// Under denne høyden er du i krypten.
 pub const TOP: f32 = -20.0;
+/// Så dypt du kan vade (føttene under vannflaten). Dypere vann går du ikke
+/// ut i, og faller du i det, drar du deg opp der du sist sto tørt: det er
+/// vannet som holder deg ute, ikke en usynlig mur (eieren 18. oktober).
+pub const WADE: f32 = 0.6;
 /// Minste høyde fra gulvet til taket: spilleren er 1,8 m og hopper.
 pub const HEADROOM: f32 = 2.9;
 /// Krypten holder seg innenfor verdens kant (199 m).
@@ -73,8 +77,13 @@ pub const KIT_LEVER_ARM: &str = "kit_lever_arm";
 pub const KIT_SHORTCUT: &str = "kit_shortcut";
 pub const KIT_SHORTCUT_LEAF: &str = "kit_shortcut_leaf";
 pub const KIT_SECRET: &str = "kit_secret_wall";
+/// Den falske veggen: hvor langt målet og kollideren står foran murflaten,
+/// og hvor dypt de går (flaten er i flukt med muren rundt, z = 0).
+pub const SECRET_FRONT: f32 = 0.05;
+pub const SECRET_DEPTH: f32 = 0.45;
 pub const KIT_TRAPDOOR: &str = "kit_trapdoor";
 pub const KIT_LADDER: &str = "kit_ladder";
+pub const KIT_LADDER_TOP: &str = "kit_ladder_top";
 pub const KIT_PLATE: &str = "kit_plate";
 pub const KIT_ARROW: &str = "kit_arrow";
 pub const KIT_LORE: &str = "kit_lore";
@@ -188,7 +197,6 @@ pub struct Crypt {
     pub bridges: Vec<Bridge>,
     pub lifts: Vec<Lift>,
     pub waters: Vec<Water>,
-    pub water_blocks: Vec<WaterBlock>,
     pub traps: Vec<Trap>,
     pub rests: Vec<Rest>,
     pub lores: Vec<Lore>,
@@ -221,7 +229,9 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
         b.target(Use::Shortcut(i), super::at(s.pos, s.yaw), Vec3::new(0.0, SHORTCUT_H * 0.5, 0.0), Vec3::new(s.width * 0.5, SHORTCUT_H * 0.5, 0.08));
     }
     for (i, s) in c.secrets.iter().enumerate() {
-        b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, 0.0), Vec3::new(s.width * 0.5, s.height * 0.5, 0.25));
+        // Målet og kollideren er den falske delen: fra 5 cm foran murflaten
+        // (så siktet treffer) og inn i muren, og ikke noe ved siden av.
+        b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, SECRET_FRONT - SECRET_DEPTH * 0.5), Vec3::new(s.width * 0.5, s.height * 0.5, SECRET_DEPTH * 0.5));
     }
     for (i, l) in c.levers.iter().enumerate() {
         b.target(Use::Lever(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.85, 0.05), Vec3::new(0.3, 0.45, 0.2));
@@ -237,11 +247,19 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
         b.target(Use::Lift(i), super::at(l.pos, l.yaw), Vec3::new(l.size.x * 0.5 - 0.3, 0.75, l.size.y * 0.5 - 0.3), Vec3::new(0.16, 0.7, 0.16));
         b.target(Use::Winch(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.7, LIFT_WINCH_Z), Vec3::new(0.9, 0.6, 0.4));
     }
+    // Pulten og skrinet: målet dekker hele modellen (korset på taket også),
+    // så siktet treffer det du ser fra alle kanter.
+    let whole = |b: &Builder, name: &str, fallback: (Vec3, Vec3)| {
+        let (lo, hi) = b.bounds(name).unwrap_or(fallback);
+        ((lo + hi) * 0.5, ((hi - lo) * 0.5).max(Vec3::splat(0.1)))
+    };
+    let (lore_c, lore_h) = whole(b, KIT_LORE, (Vec3::new(-0.3, 0.0, -0.3), Vec3::new(0.3, 1.0, 0.3)));
     for (i, l) in c.lores.iter().enumerate() {
-        b.target(Use::Lore(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
+        b.target(Use::Lore(i), super::at(l.pos, l.yaw), lore_c, lore_h);
     }
+    let (bonus_c, bonus_h) = whole(b, KIT_BONUS, (Vec3::new(-0.3, 0.0, -0.3), Vec3::new(0.3, 1.35, 0.3)));
     for (i, l) in c.bonuses.iter().enumerate() {
-        b.target(Use::Bonus(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
+        b.target(Use::Bonus(i), super::at(l.pos, l.yaw), bonus_c, bonus_h);
     }
     for (k, l) in c.levels.iter().enumerate() {
         if let Some((p, yaw)) = l.up {
@@ -263,12 +281,19 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
 /// Plass til det økta poserer: portgitrene, kistelokkene, dørene, spakene,
 /// de falske veggene, lemmene, pilene og flammene på hvilestedene.
 pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
-    vec![
+    // Hver falsk vegg har sin egen modell (eller byggesettets).
+    let mut secrets: Vec<(&'static str, usize)> = vec![];
+    for s in &c.secrets {
+        match secrets.iter_mut().find(|(m, _)| *m == s.model) {
+            Some((_, n)) => *n += 1,
+            None => secrets.push((s.model, 1)),
+        }
+    }
+    let mut out = vec![
         (PORTCULLIS, c.gates.len()),
         (CHEST_LID, c.chests.len()),
         (KIT_SHORTCUT_LEAF, c.shortcuts.len()),
         (KIT_LEVER_ARM, c.levers.len()),
-        (KIT_SECRET, c.secrets.len()),
         (KIT_TRAPDOOR, c.trapdoors.iter().filter(|t| t.lid).count()),
         (KIT_ARROW, if c.traps.is_empty() { 0 } else { 16 }),
         (KIT_REST_FLAME, c.rests.len()),
@@ -276,7 +301,16 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_CHAIN, 4 * c.bridges.len() + 4 * c.lifts.len()),
         (KIT_LIFT, c.lifts.len()),
         (KIT_WATER, c.waters.len()),
-    ]
+    ];
+    out.extend(secrets);
+    out
+}
+
+/// Hvor mange biter på 1 m en stige på `h` meter stables av, og hvor høy
+/// hver bit blir (nær 1 m, så trinnene står 30–37 cm fra hverandre).
+pub fn ladder_pieces(h: f32) -> (usize, f32) {
+    let n = h.round().max(1.0) as usize;
+    (n, h / n as f32)
 }
 
 /// Den første modellen i lista som finnes (`missing` får den første).
@@ -577,7 +611,15 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "secret_wall" => {
                 let s = id(c, "secret");
-                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s });
+                // Nivåets egen bit av muren (build_level.py), i flukt med muren
+                // rundt og med samme tekstur, så den bare synes på sprekkene.
+                let own = format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"));
+                let model: &'static str = if b.has_model(&own) { Box::leak(own.into_boxed_str()) } else { KIT_SECRET };
+                // Den hentes og slippes med nivået, som bitene.
+                if model != KIT_SECRET {
+                    level.pieces.push(model.to_string());
+                }
+                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model });
             }
             "trapdoor" => {
                 let s = id(c, "trapdoor");
@@ -595,12 +637,17 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "ladder" => {
                 let top = m.top.map(w).unwrap_or(pos + Vec3::Y * 3.0);
-                if let Some((lo, hi)) = b.bounds(KIT_LADDER) {
-                    let s = ((top.y - pos.y) / (hi.y - lo.y).max(0.1)).max(0.2);
-                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
-                } else {
-                    b.place_mounted(KIT_LADDER, pose);
+                // Bitene på 1 m stables og strekkes bare litt, så trinnene
+                // står like tett som på en ekte stige (før ble én bit strukket
+                // til hele høyden), og toppen med krokene henger i kanten.
+                let h = (top.y - pos.y).max(0.5);
+                let (n, s) = ladder_pieces(h);
+                for i in 0..n {
+                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_translation(Vec3::Y * (i as f32 * s)) * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
                 }
+                b.place_mounted(KIT_LADDER_TOP, pose * Affine3A::from_translation(Vec3::Y * h));
+                // Ingen går gjennom stigen: en tynn kollider langs vangene.
+                b.solid_box(pose.transform_point3(Vec3::new(0.0, h * 0.5, 0.0)), Vec3::new(0.6, h, 0.08), m.yaw);
                 c.ladders.push(Ladder { pos, yaw: m.yaw, top, level: k });
             }
             "trap" => {
@@ -629,10 +676,15 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     "sound" => HintKind::Sound,
                     _ => HintKind::Crack,
                 };
-                if kind == HintKind::Crack {
+                // Hintet til en falsk vegg står på selve veggen, der du skal
+                // slå (eieren 18. oktober); veggen har sin egen sprekk og tar
+                // den med seg når den synker, så sprekken ved siden av, på
+                // muren som aldri gir etter, settes ikke ut.
+                let wall = m.for_id.as_deref().and_then(|id| f.marks.iter().find(|o| o.kind == "secret_wall" && o.id.as_deref() == Some(id))).and_then(|o| o.pos.map(w)).filter(|_| kind == HintKind::Crack);
+                if kind == HintKind::Crack && wall.is_none() {
                     b.place_mounted(KIT_CRACK, pose);
                 }
-                c.hints.push(Hint { kind, pos, level: k });
+                c.hints.push(Hint { kind, pos: wall.unwrap_or(pos), level: k });
             }
             "prop" => {
                 // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.
@@ -656,18 +708,6 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     _ => (pos.y, pos.y - 3.0),
                 };
                 c.waters.push(Water { pos, yaw: m.yaw, size: Vec2::new(sw, sd), high, low, level: k, switch: s });
-            }
-            "water_block" => {
-                let s = id(c, "water");
-                let size = match m.size {
-                    Some(level::Size::Three(v)) => Vec3::from(v),
-                    Some(other) => {
-                        let (a, b) = other.wd();
-                        Vec3::new(a, 2.5, b)
-                    }
-                    None => Vec3::new(2.0, 2.5, 0.4),
-                };
-                c.water_blocks.push(WaterBlock { pos, yaw: m.yaw, size, level: k, switch: s });
             }
             "lift" => {
                 let s = id(c, "lift");

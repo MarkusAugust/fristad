@@ -94,6 +94,8 @@ pub enum Command {
     Craft(String),
     /// Kjøp en vare.
     Buy(String),
+    /// Ta på et våpen, skjold eller en rustning du har (fra inventaret).
+    Equip(String),
     /// Les om en komponent i boka (gir liv).
     ReadDoc(String),
     Load(SaveData),
@@ -325,6 +327,15 @@ pub enum Event {
     Daylight(Daylight),
     /// En kort melding.
     Toast(String),
+    /// En lapp eller bok i krypten er lest (F på `kit_lore`): tittelen og
+    /// teksten, vist som et kort midt på skjermen med spillet på pause.
+    Lore {
+        title: String,
+        text: String,
+    },
+    /// Fienden du sikter på (infopanelet til høyre), sendt når den eller
+    /// livet endrer seg; `None` når du ikke sikter på noen.
+    Foe(Option<FoeView>),
     /// Målet nå (én linje øverst til venstre) og journalen (J): lappene og
     /// bøkene du har lest i krypten, tittel og tekst. Sendes når noe endres.
     Goal {
@@ -353,6 +364,9 @@ pub enum Event {
         boss: Option<(String, u32)>,
         /// Oljen i lykta, 0–100.
         light: u32,
+        /// Kampen nå (`Fight`): 0 ingen, 1 en fiende, 2 en boss, 3
+        /// Rammeverket. Musikken toner inn kampsporet etter det.
+        fight: u8,
     },
     /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
     Sound(Sound),
@@ -387,6 +401,18 @@ pub enum Event {
     OpenDoc(String),
     /// Redigeringen etter hver endring; `None` når du går ut av den.
     Edit(Option<EditView>),
+}
+
+/// Fienden du sikter på: navnet, en kort tekst om hva den er (fra kanon og
+/// slaget), om den er bossen eller eliten, og livet.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FoeView {
+    pub name: String,
+    pub info: String,
+    /// «Boss», «Elite» eller tomt.
+    pub rank: String,
+    pub hp: u32,
+    pub max_hp: u32,
 }
 
 /// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog
@@ -448,6 +474,9 @@ pub struct Ambience {
     pub chasm: f32,
     /// Den åpne portalen ved sørporten summer.
     pub portal: f32,
+    /// Trubaduren i Vertshuset: 1 inne, svakere utenfor døra (musikken
+    /// spiller `tavern` i stedet for byens spor inne).
+    pub tavern: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,
@@ -482,6 +511,24 @@ pub struct InventoryView {
     pub tokens: u32,
     /// Komponentene du har lest om i boka denne turen.
     pub read: Vec<String>,
+    /// Alt utstyret du har (det du har på er merket), som kort.
+    pub gear: Vec<GearView>,
+}
+
+/// Et våpen, skjold, en rustning eller lykta som kort (inventaret og
+/// galleriet i skriptoriet). Bildet er `icons/<id>.png`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct GearView {
+    pub id: String,
+    pub name: String,
+    /// «weapon», «shield», «armor» eller «lantern».
+    pub slot: String,
+    pub rarity: String,
+    pub special: String,
+    /// (navn, verdi, tekst, høyere er bedre).
+    pub stats: Vec<(String, f32, String, bool)>,
+    pub equipped: bool,
+    pub owned: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -505,6 +552,10 @@ pub struct RecipeView {
     /// over.
     pub sources: Vec<(String, String, bool)>,
     pub ok: bool,
+    /// Tingen oppskriften gir, som kort (med om du har den).
+    pub item: GearView,
+    /// Det du har på i samme spor, til sammenligningen.
+    pub current: Option<GearView>,
 }
 
 /// Det som lagres i nettleseren mellom øktene.
@@ -531,6 +582,9 @@ pub struct SaveData {
     pub deepest: Option<u32>,
     /// Titlene på lappene og bøkene du har lest i krypten (journalen).
     pub lore: Vec<String>,
+    /// Alt utstyret du har (id-ene); mangler i gamle lagringer, og da er
+    /// det du har på og det du startet med.
+    pub owned: Vec<String>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

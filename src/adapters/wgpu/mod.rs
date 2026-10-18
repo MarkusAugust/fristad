@@ -498,6 +498,8 @@ pub struct Renderer {
     /// med `add_models` (så de kan slippes igjen).
     waiting: Vec<crate::domain::model::Placement>,
     later: Vec<crate::domain::model::Placement>,
+    /// Enheten er borte (`lose`): ingenting sendes til den mer.
+    lost: bool,
     mipper: texture::Mipper,
     /// Leddpaletten (se `SKIN_W`).
     skins: wgpu::Texture,
@@ -843,6 +845,7 @@ impl Renderer {
             models: gpu_models,
             waiting,
             later: vec![],
+            lost: false,
             mipper,
             skins,
             targets,
@@ -943,7 +946,7 @@ impl Renderer {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         let (width, height) = (width.max(1), height.max(1));
-        if width == self.targets.width && height == self.targets.height {
+        if self.lost || width == self.targets.width && height == self.targets.height {
             return;
         }
         self.targets = Self::make_targets(&self.device, &self.post_layout, &self.linear, self.scene.samples, self.scene.hdr, self.smaa_on(self.scene.samples).then_some(&self.smaa), self.ao_on(), &self.white, width, height);
@@ -986,6 +989,9 @@ impl Renderer {
     }
 
     fn apply(&mut self) {
+        if self.lost {
+            return;
+        }
         let shadow = self.wanted_shadow();
         if shadow != self.shadow_size {
             self.shadow_size = shadow;
@@ -1101,6 +1107,9 @@ impl Renderer {
     }
 
     pub fn render(&mut self, out: &wgpu::TextureView, f: &Frame) {
+        if self.lost {
+            return;
+        }
         self.apply_hidden(f);
         let line_count = self.upload_lines(f);
         let t = &self.targets;
@@ -1636,5 +1645,23 @@ impl Renderer {
     /// verten rett før `App::draw`.
     pub fn set_target(&mut self, view: wgpu::TextureView) {
         self.current = Some(view);
+    }
+
+    /// Enheten er borte (nettleseren mistet grafikkortet: `device.lost`).
+    /// Da tegnes ingenting mer, og ingenting nytt lages på den: i Chromium
+    /// kaster `createBuffer` på en tapt enhet, og wgpu gjør det til en
+    /// panikk som stopper hele motoren (først i `add_models` når et
+    /// kryptnivå kom etter tapet). Spillet går videre uten bilde.
+    pub fn lose(&mut self, why: &str) {
+        if !self.lost {
+            log::error!("Grafikkortet er borte: {}. Last siden på nytt for å tegne igjen.", why.trim_end_matches('.'));
+        }
+        self.lost = true;
+        self.current = None;
+    }
+
+    /// Om enheten er borte.
+    pub fn is_lost(&self) -> bool {
+        self.lost
     }
 }

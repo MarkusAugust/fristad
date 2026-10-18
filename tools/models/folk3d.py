@@ -41,6 +41,10 @@ SRC_SIZE = 3072  # fargen fra formen bakes først i denne størrelsen
 HEAD_DENSITY = float(os.environ.get("FOLK3D_HEAD", 3.0))
 HEAD_FROM = 0.82  # hodet og halsen, brøk av høyden
 THICK = float(os.environ.get("FOLK3D_THICK", 0.006))  # tykkelsen de åpne flatene får før skallet (m)
+# Figurer der TRELLIS har beholdt øynene og ansiktet: bildet forfra legges
+# ikke på, for der håret og brynene fra bildet ikke passer formen, ble det
+# flekker rundt øynene og streker over pannen (vertinnen, 18. oktober).
+FACE_KEEP = {"innkeeper"}
 FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
 FACE_INSET = 0.006  # masken trekkes så mye inn fra omrisset (brøk av bredden)
 FACE_FACING = (0.35, 0.7)
@@ -315,7 +319,7 @@ def face_patch(ob, name, H):
     hodet, på flatene som vender rett fram og innenfor bredden av ansiktet,
     med myk overgang til fargen fra formen. Resten av figuren står urørt."""
     path = os.path.join(REF, f"{name}_apose_front.png")
-    if not os.path.exists(path):
+    if name in FACE_KEEP or not os.path.exists(path):
         return
     im = np.asarray(Image.open(path).convert("RGB")).astype(float)
     bg = np.median(np.concatenate([im[:8].reshape(-1, 3), im[-8:].reshape(-1, 3)]), 0)

@@ -206,7 +206,8 @@ def marks(_):
         {"kind": "mob", "pos": at(38, 100, -3.6), "label": "button", "n": 2},
         {"kind": "trap", "label": "spikes", "id": "sommene_10", "pos": at(37.8, 140, -5.6), "size": [1.2, 1.2], "dir": [0, 0, 1]},
         # Det glemte forrådet: veggen som henger igjen.
-        {"kind": "secret_wall", "id": FORRAD, "pos": [HOST_R - 0.4, -3.6, 46], "yaw": P / 2, "width": 2.0, "height": 2.6},
+        # I flukt med muren og med fronten mot rommet du ser den fra (eieren 18. oktober).
+        {"kind": "secret_wall", "id": FORRAD, "pos": [HOST_R, -3.6, 46], "yaw": -P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "crack", "pos": [round(math.sqrt(HOST_R ** 2 - 2.0 ** 2) - 0.05, 3), -3.6, 48.0], "yaw": -P / 2, "for": FORRAD},
         {"kind": "rare", "pos": [51.5, -3.6, 46.0], "yaw": -P / 2, "label": "Search"},
         {"kind": "lore", "pos": [52.4, -3.6, 43.4], "yaw": -P / 2, "label": "Lappen i forrådet",

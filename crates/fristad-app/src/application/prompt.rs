@@ -54,10 +54,14 @@ impl Session {
                 if self.mech.secret_open(n) {
                     p("Åpning i muren", "", "", "Muren ga etter.")
                 } else {
-                    p("Sprukken mur", "Skyv", "", "Steinene sitter løst her, og det trekker kaldt gjennom fugene. Slå, eller skyv.")
+                    p("Sprukken mur", "Skyv", "", "Steinene sitter løst her, og det trekker kaldt gjennom fugene. Slå den inn med våpenet, eller skyv (F).")
                 }
             }
-            Use::Ladder(_) => p("Stige", "Klatre opp", "", "Opp gjennom lemmen i taket."),
+            Use::Ladder(n) => {
+                // Gjennom en lem bare der stigen ender ved en.
+                let hatch = self.crypt.ladders.get(n).is_some_and(|l| self.crypt.trapdoors.iter().any(|t| t.pos.distance(l.top) < 2.5));
+                p("Stige", "Klatre opp", "", if hatch { "Opp gjennom lemmen i taket." } else { "Opp til kanten over deg." })
+            }
             Use::Lift(n) => {
                 let braked = self.crypt.lifts.get(n).is_some_and(|l| !self.crypt.open.get(l.switch).copied().unwrap_or(false));
                 if braked {
@@ -131,9 +135,5 @@ impl Session {
                 }
             }
         }
-    }
-
-    pub(super) fn mob_prompt(label: &str) -> Prompt {
-        p(label, "Hugg", "", "Klikk for å hugge, høyreklikk for å blokke.")
     }
 }

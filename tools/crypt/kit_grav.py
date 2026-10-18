@@ -36,6 +36,7 @@ dem) har origo og front slik:
 | `kit_false_wall` | midt under muren | mot rommet den synes fra |
 | `kit_trapdoor` | i hengselet midt på kanten mot −z | ligger flatt, åpnes opp om x |
 | `kit_ladder` | midt under en bit på 1 m | trinnene mot +z (stables) |
+| `kit_ladder_top` | i kanten der du går av, på vangenes midtlinje | krokene over kanten mot −z |
 | `kit_plate` | midt under platen | flat |
 | `kit_arrow_slots` | midt på panelet, i veggflaten | mot gangen |
 """
@@ -1510,16 +1511,51 @@ def kit_shortcut_frame(w=1.6, spring=1.5, depth=0.5):
 
 
 def kit_false_wall(w=2.0, h=2.6, t=0.4):
-    """Den falske veggen: én hel murbit med fronten mot +z, med murens
-    tekstur i meter som muren rundt (ingen skjeve blokker eller brutte
-    flater, eierens dom i runde 7), og sprekken fra `crack_web` på seg."""
+    """Den falske veggen (reserven når nivået ikke har sin egen bit,
+    `secret_pieces` i build_level.py): én hel murbit med fronten i flukt med
+    muren (z = 0, mot +z) og resten inne i muren (eieren 18. oktober: den
+    stakk ut og røpet seg), med murens tekstur og sprekken i fugene på seg."""
     m = MB()
-    box(m, (-w / 2, 0.0, -t / 2), (w / 2, h, t / 2), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
-    # Sprekken står på selve veggen også, så den synes uten et eget merke
-    # (eieren i runde 8: «hvor er sprekken?»), og den går i fugene
-    # (runde 10).
-    mortar_crack(m, t / 2, 11, x0=0.2, half=w / 2, top=1.9)
+    box(m, (-w / 2, 0.0, -t), (w / 2, h, 0.0), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
+    mortar_crack(m, 0.0, 11, x0=0.2, half=w / 2, top=1.9)
     return m
+
+
+def surface_crack(m, surf, u0, u1, y0, y1, seed, d=0.0, width=0.015):
+    """Sprekken i fugene på en mur i nivået (`surf`, u langs muren, v
+    absolutt høyde) mellom u0 og u1 og fra y0 til y1: samme trapp som
+    `mortar_crack`, men i murens egen tekstur, så den følger fugene der
+    den falske veggen står (`secret_pieces` i build_level.py)."""
+    import random
+
+    rng = random.Random(seed)
+    u0t, u1t = surf.uv(u0, 0.0)[0], surf.uv(u1, 0.0)[0]
+    shift = STONE_TEX_M * math.floor(y0 / STONE_TEX_M)
+    courses = [(a + shift, b + shift, heads) for a, b, heads in wall_courses(y1 - shift + STONE_TEX_M) if b + shift > y0 + 0.05 and a + shift < y1]
+    tile = lambda h: [h + STONE_TEX_M * j for j in range(math.floor((u0t - 2) / STONE_TEX_M), math.ceil((u1t + 2) / STONE_TEX_M) + 1)]
+    pts = []
+    x = (u0t + u1t) / 2 + rng.uniform(-0.3, 0.3)
+    for a, b, heads in courses:
+        hs = sorted({hh for h in heads for hh in tile(h - STONE_TEX_M * math.floor(h / STONE_TEX_M)) if u0t + 0.25 < hh < u1t - 0.25})
+        if not hs:
+            break
+        near = sorted(hs, key=lambda h: abs(h - x))
+        h = near[0] if rng.random() < 0.65 or len(near) < 2 else near[1]
+        pts.append((h, max(a, y0 + 0.02)))
+        pts.append((h, min(b, y1)))
+        x = h
+    n = len(pts) - 1
+    P = lambda ut, v, dd: surf.point(ut - (u0t - u0), v, dd)
+    for i in range(n):
+        (ax, ay), (bx, by) = pts[i], pts[i + 1]
+        w0 = width * (1.0 - 0.6 * i / max(n, 1))
+        w1 = width * (1.0 - 0.6 * (i + 1) / max(n, 1))
+        dx, dy = bx - ax, by - ay
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / ln, dx / ln
+        ex, ey = dx / ln * w1, dy / ln * w1
+        q = [(ax - nx * w0 - ex, ay - ny * w0 - ey), (bx - nx * w1 + ex, by - ny * w1 + ey), (bx + nx * w1 + ex, by + ny * w1 + ey), (ax + nx * w0 - ex, ay + ny * w0 - ey)]
+        m.quad(*[P(qx, qy, d + 0.004) for qx, qy in q], "crack", facing=surf.normal((u0 + u1) / 2))
 
 
 def kit_trapdoor(w=1.2, d=1.2, t=0.08):
@@ -1590,15 +1626,66 @@ def kit_chain(length=12.0, link=0.2):
     return m
 
 
-def kit_ladder(w=0.5, t=0.065):
-    """Stigen: en bit på 1 m (stables og skaleres), to vanger og fire trinn
-    av bjelker (timber-laget, ikke dørbildet)."""
+def rod(mb, a, b, r, mat, n=6, row=1):
+    """En rund stang (trinn) fra a til b med `n` sider, uv fra timber-arket
+    (rad `row`: u langs stanga i meter, v rundt)."""
+    d = norm(sub(b, a))
+    up = (0.0, 1.0, 0.0) if abs(d[1]) < 0.9 else (1.0, 0.0, 0.0)
+    e1 = norm(cross(up, d))
+    e2 = cross(d, e1)
+    L = math.dist(a, b)
+    ring = [add(mul(e1, r * math.cos(2 * math.pi * k / n)), mul(e2, r * math.sin(2 * math.pi * k / n))) for k in range(n)]
+    for k in range(n):
+        p, q = ring[k], ring[(k + 1) % n]
+        v0, v1 = row * 0.25 + 0.02 + 0.21 * k / n, row * 0.25 + 0.02 + 0.21 * (k + 1) / n
+        mb.poly([add(a, p), add(a, q), add(b, q), add(b, p)], [(0.0, v0), (0.0, v1), (L, v1), (L, v0)], mat, facing=add(p, q))
+    for c, f in ((a, mul(d, -1)), (b, d)):
+        mb.poly([add(c, p) for p in ring], [(0.5 + p[0], 0.5 + p[1]) for p in ring], mat, facing=f)
+
+
+LADDER_RUNGS = 3
+
+
+def kit_ladder(w=0.48, sw=0.075, sd=0.06):
+    """Stigen (eieren 18. oktober: «ser ikke ut som en stige»; før var
+    biten på 1 m strukket til hele høyden, så fire trinn ble to meter fra
+    hverandre): en bit på 1 m som motoren stabler (`KIT_LADDER`, skalert
+    bare litt så bitene går opp i høyden). To kløyvde vanger av eik og tre
+    runde trinn som går gjennom vangene og stikker litt ut på hver side,
+    33 cm mellom trinnene som på en ekte stige. Origo midt under biten,
+    trinnene mot +z; vangene står inntil muren bak (−z)."""
     m = MB()
-    for x in (-w / 2, w / 2):
-        beam(m, (x, 0.0, 0.0), (x, 1.0, 0.0), t, t, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if x < 0 else 3))
-    for k in range(4):
-        y = 0.125 + 0.25 * k
-        beam(m, (-w / 2 + t / 2, y, 0.0), (w / 2 - t / 2, y, 0.0), 0.045, 0.045, "wood", strip=("timber", 1 + k % 2))
+    for k, x in enumerate((-w / 2, w / 2)):
+        beam(m, (x, 0.0, 0.0), (x, 1.0, 0.0), sw, sd, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if k == 0 else 3))
+    for k in range(LADDER_RUNGS):
+        y = (k + 0.5) / LADDER_RUNGS
+        rod(m, (-w / 2 - sw / 2 - 0.018, y, 0.004), (w / 2 + sw / 2 + 0.018, y, 0.004), 0.021, "wood", row=1 + k % 2)
+    return m
+
+
+def kit_ladder_top(w=0.48, sw=0.075, sd=0.06):
+    """Toppen av stigen (`KIT_LADDER_TOP`, origo i kanten der du går av,
+    på vangenes midtlinje): vangene ender i avrundede hoder litt over kanten,
+    og to kroker av smijern, naglet til vangene, er bøyd over kanten og
+    ligger på gulvet oppe (mot −z), så du ser at stigen henger fast i
+    kanten av lemmen."""
+    m = MB()
+    for k, x in enumerate((-w / 2, w / 2)):
+        # Hodet på vangen: et kort stykke med skrå topp.
+        beam(m, (x, 0.0, 0.0), (x, 0.06, 0.0), sw, sd, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if k == 0 else 3))
+        m.quad((x - sw / 2, 0.06, sd / 2), (x + sw / 2, 0.06, sd / 2), (x + sw / 2, 0.1, -sd / 2), (x - sw / 2, 0.1, -sd / 2), "wood", facing=(0, 1, 1))
+        for sx in (-1, 1):
+            m.tri((x + sx * sw / 2, 0.06, sd / 2), (x + sx * sw / 2, 0.06, -sd / 2), (x + sx * sw / 2, 0.1, -sd / 2), "wood", facing=(sx, 0, 0))
+        # Kroken: opp langs baksida av vangen, over kanten og ned på gulvet.
+        z = -sd / 2 - 0.006
+        hw, ht = 0.035, 0.012
+        beam(m, (x, -0.32, z), (x, 0.05, z), hw, ht, "iron", up=(0.0, 0.0, -1.0))
+        beam(m, (x, 0.05 - ht / 2, z + ht / 2), (x, 0.05 - ht / 2, -0.22), hw, ht, "iron", up=(0.0, 1.0, 0.0))
+        beam(m, (x, 0.05, -0.22 + ht / 2), (x, 0.0, -0.22 + ht / 2), hw, ht, "iron", up=(0.0, 0.0, -1.0))
+        # Naglene gjennom vangen.
+        for y in (-0.27, -0.12):
+            box(m, (x - 0.011, y - 0.011, -sd / 2 - 0.016), (x + 0.011, y + 0.011, -sd / 2 - 0.012), "iron", faces=("-z", "+x", "-x", "+y", "-y"))
+            box(m, (x - 0.011, y - 0.011, sd / 2), (x + 0.011, y + 0.011, sd / 2 + 0.006), "iron", faces=("+z", "+x", "-x", "+y", "-y"))
     return m
 
 
@@ -2208,6 +2295,7 @@ def mechanisms():
         "kit_secret_wall": kit_false_wall(),
         "kit_trapdoor": kit_trapdoor(),
         "kit_ladder": kit_ladder(),
+        "kit_ladder_top": kit_ladder_top(),
         "kit_plate": kit_plate(),
         "kit_arrow": kit_arrow(),
         "kit_lore": kit_lore(),

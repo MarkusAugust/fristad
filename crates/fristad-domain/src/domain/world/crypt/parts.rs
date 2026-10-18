@@ -58,12 +58,17 @@ pub struct Shortcut {
 
 #[derive(Clone, Debug)]
 pub struct Secret {
+    /// Midt på foten av den falske delen, i flukt med muren rundt; fronten
+    /// (+z) mot rommet du ser den fra.
     pub pos: Vec3,
     pub yaw: f32,
     pub width: f32,
     pub height: f32,
     pub level: usize,
     pub switch: usize,
+    /// Modellen: nivåets egen bit av muren (`crypt_NN_secret_<id>`, med
+    /// murens tekstur og sprekkene), ellers `KIT_SECRET`.
+    pub model: &'static str,
 }
 
 #[derive(Clone, Debug)]
@@ -97,16 +102,11 @@ pub struct Water {
     pub switch: usize,
 }
 
-/// Det som holder deg ute av vannet mens det står høyt (en usynlig mur
-/// der trappa eller gangen går ned i det), borte når vannet har sunket.
-#[derive(Clone, Debug)]
-pub struct WaterBlock {
-    /// Midt på bunnen, retningen og målene (bredde, høyde, dybde).
-    pub pos: Vec3,
-    pub yaw: f32,
-    pub size: Vec3,
-    pub level: usize,
-    pub switch: usize,
+impl Water {
+    /// Vann som synker når slusa dreies (ikke sjøen i grottene, som står).
+    pub fn sinks(&self) -> bool {
+        self.high - self.low > 0.1
+    }
 }
 
 /// En bro som senkes over en avgrunn når bryteren åpnes (begge spakene).

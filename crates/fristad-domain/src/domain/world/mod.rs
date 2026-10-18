@@ -61,6 +61,49 @@ impl Shape {
     }
 }
 
+/// Siktemålet skal aldri ligge inni tingens egen kollider (eieren 18.
+/// oktober: relikvieskrinet kunne bare aktiveres fra endene; kollideren gikk
+/// 10 cm over målet, så et blikk ned på skrinet traff kollideren). Hvert
+/// mål som står fast vokser så det dekker de faste kolliderne som har
+/// midten sin i målet og ikke er mye større enn det, med `TARGET_SKIN` til
+/// overs, så strålen treffer målet først fra alle kanter.
+pub const TARGET_SKIN: f32 = 0.03;
+
+pub fn wrap_own_solids(targets: &mut [Target], colliders: &[Shape]) {
+    for t in targets.iter_mut() {
+        // Det som flytter seg (innbyggerne, portene, dørene, heisen,
+        // portalen) får kolliderne sine flyttet av økta.
+        if matches!(t.what, Use::Talk(_) | Use::Gate(_) | Use::Shortcut(_) | Use::Secret(_) | Use::Lift(_) | Use::Portal) {
+            continue;
+        }
+        let frame = t.pose * Affine3A::from_translation(t.center);
+        let to_local = frame.inverse();
+        let mut half = t.half;
+        for c in colliders {
+            let corners: Vec<Vec3> = match c {
+                Shape::Cuboid { center, size, yaw } => {
+                    let r = Quat::from_rotation_y(*yaw);
+                    (0..8).map(|k| *center + r * (Vec3::new(if k & 1 == 0 { -0.5 } else { 0.5 }, if k & 2 == 0 { -0.5 } else { 0.5 }, if k & 4 == 0 { -0.5 } else { 0.5 }) * *size)).collect()
+                }
+                Shape::Cylinder { center, radius, half_height } => (0..8)
+                    .map(|k| *center + Vec3::new(if k & 1 == 0 { -radius } else { *radius }, if k & 2 == 0 { -half_height } else { *half_height }, if k & 4 == 0 { -radius } else { *radius }))
+                    .collect(),
+                _ => continue,
+            };
+            let mid = to_local.transform_point3(corners.iter().copied().sum::<Vec3>() / 8.0);
+            if mid.x.abs() > t.half.x || mid.y.abs() > t.half.y || mid.z.abs() > t.half.z {
+                continue;
+            }
+            let reach = corners.iter().fold(Vec3::ZERO, |m, p| m.max(to_local.transform_point3(*p).abs()));
+            if (reach - t.half).max_element() > 0.4 {
+                continue;
+            }
+            half = half.max(reach + Vec3::splat(TARGET_SKIN));
+        }
+        t.half = half;
+    }
+}
+
 /// Hva F gjør med noe du sikter på.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Use {
@@ -126,7 +169,8 @@ pub struct NpcSpec {
     pub pos: Vec3,
     pub yaw: f32,
     pub tint: Vec3,
-    pub lines: &'static [&'static str],
+    /// Replikkene (`cast`), hver med når den kan sies.
+    pub lines: &'static [cast::Line],
     /// Punktene innbyggeren går mellom (føttene på bakken) og hvor lenge
     /// hen blir stående ved hvert (0: går rett forbi, langs gata).
     pub route: Vec<(Vec3, f32)>,
@@ -507,6 +551,7 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         }
     }
 
+    wrap_own_solids(&mut b.targets, &b.colliders);
     let audit = b.audit();
     for line in &audit {
         log::warn!("{line}");

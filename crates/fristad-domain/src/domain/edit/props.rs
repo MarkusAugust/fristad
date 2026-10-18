@@ -106,7 +106,7 @@ fn mark_fields(kind: &str) -> &'static [&'static str] {
         "secret_wall" => &["id", "width", "height"],
         "trap" => &["id", "label"],
         "hint" => &["for", "label"],
-        "bridge" | "water" | "water_block" | "trapdoor" | "ladder" => &["id"],
+        "bridge" | "water" | "trapdoor" | "ladder" => &["id"],
         _ => &["label"],
     }
 }

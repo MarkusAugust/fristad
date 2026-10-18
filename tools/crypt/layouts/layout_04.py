@@ -9,8 +9,9 @@ den nedre gangbroa langs sørmuren (−8,5 m), som ligger under vann til ventile
 er stengt. Øya og den nedre gangbroa er rom i planen som står inne i salen
 (`virtual`): de bygges her, og dørene deres hogges i salens mur.
 
-Faller du i vannet fra galleriet (buen lengst øst har ikke rekkverk), står du
-på bunnen og går til en av stigene opp på øya.
+Faller du i vannet fra galleriet (buen lengst øst har ikke rekkverk), drar du
+deg opp igjen der du sist sto tørt (`crypt::WADE`); stigene opp på øya er for
+når vannet har sunket.
 """
 
 import math
@@ -30,6 +31,7 @@ BRO = dict(y=-4.0, w=2.5, east_z=53.0, west_z=52.0)
 # Trappa langs østmuren: reposet oppe (0 m), trappa ned mot sør, reposet nede (−4 m).
 OST = dict(x0=69.5, x1=72.0, top=(38.75, 41.25), stair=(41.25, 50.75), foot=(50.75, 54.25))
 NEDRE = dict(z0=73.0, z1=76.0, y=-8.5)
+FLOOD = -7.7  # vannflaten i salen før ventilen er stengt
 SOYLELUND = [(78, 56), (90, 56), (96, 68), (88, 82), (78, 80)]
 ARENA = (40.0, 114.0)
 HOL = sbox(15.4, 29.9, 16.6, 31.1)  # den hule søylen i nordgalleriet
@@ -85,7 +87,9 @@ def marks(_):
         {"kind": "mob", "pos": [79, 0, 25], "label": "select", "n": 2},
         {"kind": "chest", "pos": [84.6, 0, 23.4], "yaw": -P / 2},
         # Salen: vannet, broene og øya.
-        {"kind": "water", "id": VANN, "pos": [40, SAL["high"], 55], "size": [64, 42], "levels": [SAL["high"], SAL["low"]]},
+        # Vannet står 0,8 m over den nedre gangbroa, dypere enn du kan vade
+        # (`crypt::WADE`): det er vannet som stenger den, ikke en usynlig mur.
+        {"kind": "water", "id": VANN, "pos": [40, FLOOD, 55], "size": [64, 42], "levels": [FLOOD, SAL["low"]]},
         {"kind": "mob", "pos": [60, BRO["y"], BRO["east_z"]], "label": "toast", "n": 3},
         {"kind": "mob", "pos": [20, BRO["y"], BRO["west_z"]], "label": "toast", "n": 2},
         {"kind": "ladder", "pos": [ox, SAL["bottom"], oz + OYA["r"] + 0.3], "yaw": 0.0, "top": [ox, OYA["y"], oz + OYA["r"] - 1.0]},
@@ -109,9 +113,6 @@ def marks(_):
         {"kind": "mob", "pos": [-3, -4, 82], "label": "button", "n": 2},
         {"kind": "mob", "pos": [-6, -4, 85], "label": "select"},
         # Den nedre gangbroa (under vann til ventilen er stengt).
-        {"kind": "water_block", "id": VANN, "pos": [7.0, NEDRE["y"], 74.5], "yaw": P / 2, "size": [2.6, 2.8, 0.3]},
-        {"kind": "water_block", "id": VANN, "pos": [73.0, NEDRE["y"], 74.5], "yaw": P / 2, "size": [2.6, 2.8, 0.3]},
-        {"kind": "water_block", "id": VANN, "pos": [40, NEDRE["y"], 77.0], "yaw": 0.0, "size": [3.2, 2.8, 0.3]},
         {"kind": "mob", "pos": [22, NEDRE["y"], 74.5], "label": "button", "n": 3, "patrol": [[10, NEDRE["y"], 74.5], [70, NEDRE["y"], 74.5]]},
         # Søylelunden.
         {"kind": "mob", "pos": [86, -6, 70], "label": "toast i bakhold", "n": 4, "ambush": "soylelund"},

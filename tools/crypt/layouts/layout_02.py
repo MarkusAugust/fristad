@@ -55,7 +55,8 @@ HALLS = [
     ("nisjegang", "balsam", DOOR, [(-37.5, 54), (HEX[0][0], 54)], 2.5, None, None),
     ("kongesal", "spydgang", DOOR, [(14, 50), (19, 50)], 2.5, None, None, {"ya": SAL["top"]}),
     ("spydgang", "gravtarn", STAIRS, [(33, 48.5), (33, 38), (46, 38), (46, 41.4)], 2.5, (1, 2.0, 11.0), None),
-    ("gravtarn", "tarnnisje", SECRET, [(54.6, 50), (58, 50), (58, 40)], 2.0, None, "hemmelig_2c", {"ya": 6.0}),
+    # Gangen bak den falske veggen begynner bak den runde muren, ikke 0,4 m inne i rommet, så ingen ramme røper den (eieren 18. oktober); `secret_reveal` lukker buen mellom muren og gangen.
+    ("gravtarn", "tarnnisje", SECRET, [(55.01, 50), (58, 50), (58, 40)], 2.0, None, "hemmelig_2c", {"ya": 6.0}),
     ("kongesal", "bruhall", HALL, [(0, 64), (0, 72)], 4.0, None, None),
     ("bruhall", "avgrunn", HALL, [(0, 80), (0, CHASM["z0"])], 4.0, None, None, {"name": "Brokanten"}),
     ("avgrunn", "forhall", STAIRS, [(0, CHASM["z1"]), (0, 92)], 4.0, None, None),

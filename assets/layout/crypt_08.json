@@ -21,7 +21,7 @@
     {"id":"statue_8a","kind":"lever","opens":["hemmelig_8b"],"pos":[27,-2,41],"yaw":0.95055},
     {"id":"statue_8b","kind":"lever","opens":["hemmelig_8b"],"pos":[41,-2,41],"yaw":-0.95055},
     {"id":"statue_8c","kind":"lever","opens":["hemmelig_8b"],"pos":[28.34,-2,51.66],"yaw":2.35619},
-    {"height":2.6,"id":"hemmelig_8b","kind":"secret_wall","pos":[34,3,36.2],"width":2,"yaw":0},
+    {"height":2.6,"id":"hemmelig_8b","kind":"secret_wall","pos":[34,3,36],"width":2,"yaw":0},
     {"for":"hemmelig_8b","kind":"hint","label":"crack","pos":[35.5,3,36.18],"yaw":0},
     {"kind":"rare","label":"Avatar","pos":[34,3,26],"yaw":0},
     {"kind":"chest","pos":[36.8,3,25],"yaw":0},

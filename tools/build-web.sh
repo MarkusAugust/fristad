@@ -44,7 +44,7 @@ rm -rf dist
 mkdir -p dist
 "$TOOLS/wasm-bindgen" --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/fristad.wasm
-cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json dist/
+cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json web/docs-flate.css dist/
 # Åpningsfilmen: den ferdige videoen (tools/film/cut.py skriver target/film/intro.mp4;
 # i Actions bygges den i et eget steg med hurtiglager). Mangler den, starter spillet
 # uten film, så bygget stopper ikke.
@@ -53,6 +53,10 @@ mkdir -p dist/film/fonts && cp web/film/player.js dist/film/ && cp web/film/font
 # Bildene til katalogen i redigeringen (`?edit`, tools/qa/thumbs.py).
 mkdir -p dist/catalog
 cp assets/catalog/thumbs/*.jpg dist/catalog/ 2>/dev/null || true
+# Ikonene på utstyrskortene (inventaret og skriptoriet): eierens malte, ellers
+# et rendret bilde av modellen (tools/models/gear_icons.py).
+mkdir -p dist/icons
+cp assets/textures/icons/*.png dist/icons/
 # Lydene (opptak fra frie spill, se assets/sounds/CREDITS.md).
 mkdir -p dist/sounds
 cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/sounds/

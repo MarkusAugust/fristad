@@ -73,8 +73,7 @@ Koordinater er i meter: x mot øst, y opp og z mot sør, som i spillet og i plan
   | `hint` | hint om en hemmelighet (trekk, lyd, sprekk) | `label` (`draft`, `sound`, `crack`), `for` (id-en det gjelder) |
   | `lift` | heisen (`kit_lift`) med heistårnet og vinsjen (`kit_winch`) over sjakta: står oppe med bremsen på til bryteren `id` åpnes (spaken), så kjører styrestangen på dekket den til den andre enden med deg på, og vinsjen oppe henter den opp igjen; fiendene tar den ikke (ingen navigasjon gjennom sjakta) | `id`, `yaw`, `size` (bredde, dybde; 2,8 × 2,8), `bottom` (punktet nede: så langt den går) |
   | `prop` | pynt som egen modell fra byggesettet (sarkofagen `kit_sarcophagus`); kolliderne står i `colliders` | `label` (modellen), `yaw` |
-  | `water` | vannflate som står høyt til bryteren `id` åpnes (sluseratten, en spak med `id` i `opens`), og så synker | `id`, `size` (bredde, dybde), `levels` (høy, lav) |
-  | `water_block` | usynlig mur som holder deg ute av vannet der en trapp eller gang går ned i det; borte når vannet har sunket | `id` (vannets), `size` (bredde, høyde, dybde), `yaw` |
+  | `water` | vannflate som står høyt til bryteren `id` åpnes (sluseratten, en spak med `id` i `opens`), og så synker. Flaten skal dekke hele bassenget (også under galleriet og trappene). Det er vannet som holder deg ute: du vader ikke dypere enn `crypt::WADE` (0,6 m), og faller du i vann som synker, drar du deg opp der du sist sto tørt (ingen usynlige murer; `water_block` er fjernet 18. oktober) | `id`, `size` (bredde, dybde), `levels` (høy, lav) |
 
 ## Felles regler
 

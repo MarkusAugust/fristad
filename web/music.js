@@ -7,6 +7,19 @@
 // orgel som knapt høres, bruddstykker av Dies irae i koret og fjerne
 // klokker. Overgangene tones over på tre sekunder. M slår den av og på.
 // Til prøvene er lastet, er det stille.
+//
+// Egne spor fra filer (eieren 18. oktober, Suno, promptene i
+// `docs/prompter/musikk-spill.md`): `music/game/<navn>.mp3` (kopiert fra
+// `assets/music/game/` av `tools/build-web.sh`). `town` spiller i hele byen,
+// om natta dempet og mørkere gjennom et lavpassfilter; `crypt` i alle
+// nivåene (`town_night` om natta, og om dagen så lenge `town` mangler;
+// `town` om natta mørknes med et lavpass); `combat` tones inn når en fiende som har sett deg er nær
+// (`hud.fight` fra økta: 1 fiende, 2 boss, 3 Rammeverket; bossene og
+// Rammeverket bruker `combat_boss` om den finnes) og ut igjen `FIGHT_HOLD`
+// sekunder etter at kampen er over. Mangler et spor, spiller partituret som
+// før; mangler kampsporet, spiller det som spilte. Inne i Vertshuset synger
+// trubaduren (`tavern`, `ambience.tavern` fra økta: 1 inne, svakere og
+// dempet utenfor døra) i stedet for byens spor.
 
 import { arp, beats, createScore, lengthOf, midi, repeat, shift, tune } from "./score.js";
 
@@ -174,7 +187,64 @@ const CELLAR = {
 
 const CUES = Object.fromEntries([...SONGS.map((s, i) => [`town${i}`, songCue(s)]), ["cellar", CELLAR]]);
 
-export function createMusic(context) {
+// Sporene fra filer, og sporet som står i stedet når ett mangler (`null`:
+// partituret, for kampen det som spilte der du står).
+const TRACKS = { town: "town_night", town_night: "town", crypt: null, combat: null, combat_boss: "combat" };
+// Så lenge etter at kampen er over spiller kampsporet før det tones ut.
+// Kort hold etter kampen, og kampsporet tones raskt ut (eieren 18. oktober:
+// det hang igjen for lenge).
+const FIGHT_HOLD = 2;
+const COMBAT_OUT = 1.2;
+// Kampsporet tones inn over så lang tid, starter aldri de siste
+// `COMBAT_TAIL` sekundene, og fortsetter der det var om en ny kamp kommer
+// innen `COMBAT_RESUME` sekunder.
+const COMBAT_FADE = 1.5;
+const COMBAT_TAIL = 20;
+const COMBAT_RESUME = 20;
+
+/** Frasegrensene i et spor: der lydstyrken (i biter på 50 ms) stiger brått
+ * mot det som var før, minst fire sekunder fra hverandre. */
+export function phraseStarts(audio) {
+  const data = audio.getChannelData(0);
+  const hop = Math.max(1, Math.round(audio.sampleRate * 0.05));
+  const env = [];
+  for (let i = 0; i + hop <= data.length; i += hop) {
+    let e = 0;
+    for (let j = i; j < i + hop; j++) e += data[j] * data[j];
+    env.push(Math.sqrt(e / hop));
+  }
+  // Stigningen mot snittet av sekundet før.
+  const rise = env.map((e, i) => {
+    let m = 0;
+    for (let k = Math.max(0, i - 20); k < i; k++) m += env[k];
+    return e - m / Math.max(1, Math.min(20, i));
+  });
+  const order = rise.map((r, i) => [r, i]).filter(([r]) => r > 0).sort((a, b) => b[0] - a[0]);
+  const picked = [];
+  for (const [, i] of order) {
+    const t = Math.max(0, i * 0.05 - 0.05);
+    if (picked.every((p) => Math.abs(p - t) >= 4)) picked.push(t);
+    if (picked.length >= 24) break;
+  }
+  return picked.sort((a, b) => a - b);
+}
+const VOLUME = 0.55;
+// Natta i byen når bare dagsporet finnes: det dempes og mørknes.
+const NIGHT_GAIN = 0.6;
+const NIGHT_LOWPASS = 1100;
+
+// Trubaduren: hvor dempet han er utenfor Vertshuset (lavpass gjennom veggene).
+const TAVERN_OUTSIDE_LOWPASS = 900;
+
+/** Hvilket spor som skal spille: `where` er "town", "cellar" eller
+ * "silence", `fight` kampen (0–3) og `night` om det er natt. */
+export function trackFor({ where, fight = 0, night = false }) {
+  if (where === "silence") return null;
+  if (where === "cellar") return fight >= 2 ? "combat_boss" : fight === 1 ? "combat" : "crypt";
+  return night ? "town_night" : "town";
+}
+
+export function createMusic(context, base = "music/") {
   let c = null;
   let out = null;
   let score = null;
@@ -184,33 +254,217 @@ export function createMusic(context) {
   let song = -1;
   let songStart = 0;
   let timer = null;
+  let night = false;
+  // Vertshuset: 1 inne, mindre utenfor døra (`ambience.tavern`).
+  let tavern = 0;
+  let fight = 0;
+  // Den hardeste kampen siden kampen begynte (bossen holder seg til den er over).
+  let lastFight = 0;
+  let fightUntil = 0;
+  // Filsporene: navn → { el, gain, filter, ok (true, false, eller undefined mens vi ser etter) }.
+  const files = {};
+  let playing = null;
   try {
     muted = localStorage.getItem("fristad.music") === "av";
   } catch {
     /* ingen lagring */
   }
+  const now = () => performance.now() / 1000;
   const setup = () => {
     if (c) return true;
     c = context();
     if (!c) return false;
     out = c.createGain();
-    out.gain.value = muted ? 0 : 0.55;
+    out.gain.value = muted ? 0 : VOLUME;
     out.connect(c.destination);
     score = createScore(c, "music/", { cues: CUES, out });
     ready = score.load();
     return true;
+  };
+  // Lyden i byen etter døgnet (de andre sporene er uendret).
+  const tone = (name, secs) => {
+    const f = files[name];
+    if (!f?.filter) return;
+    if (name === "tavern") return;
+    const dark = name === "town" && night;
+    const hushed = name.startsWith("town") && insideTavern();
+    f.filter.frequency.setTargetAtTime(dark ? NIGHT_LOWPASS : 20000, c.currentTime, secs / 3);
+    f.level.gain.setTargetAtTime(hushed ? 0 : dark ? NIGHT_GAIN : 1, c.currentTime, secs / 3);
+  };
+  // Et filspor: lastes første gang det trengs, og spiller i løkke gjennom
+  // sitt eget filter og sin egen styrke, så det kan tones inn og ut.
+  const file = (name) => {
+    if (files[name]) return files[name];
+    const f = { el: null, gain: null, filter: null, level: null, ok: undefined };
+    files[name] = f;
+    try {
+      const el = new Audio();
+      el.loop = true;
+      el.preload = "auto";
+      el.crossOrigin = "anonymous";
+      el.addEventListener("canplaythrough", () => {
+        if (f.ok === undefined) {
+          f.ok = true;
+          apply();
+          mixTavern();
+        }
+      });
+      el.addEventListener("error", () => {
+        f.ok = false;
+        apply();
+        mixTavern();
+      });
+      el.src = `${base}game/${name}.mp3`;
+      f.el = el;
+      f.filter = c.createBiquadFilter();
+      f.filter.type = "lowpass";
+      f.filter.frequency.value = 20000;
+      f.level = c.createGain();
+      f.gain = c.createGain();
+      f.gain.gain.value = 0;
+      c.createMediaElementSource(el).connect(f.filter);
+      f.filter.connect(f.level);
+      f.level.connect(f.gain);
+      f.gain.connect(out);
+      tone(name, 0.1);
+    } catch {
+      f.ok = false;
+    }
+    return f;
+  };
+  // Kampsporene starter ikke likt hver gang (eieren 18. oktober): et
+  // tilfeldig startpunkt ved en frasegrense (der lydstyrken stiger brått,
+  // regnet ut én gang når sporet lastes), aldri det samme to ganger på rad
+  // og ikke de siste `COMBAT_TAIL` sekundene; kommer en ny kamp innen
+  // `COMBAT_RESUME` sekunder, fortsetter sporet der det var.
+  const starts = {};
+  const lastStart = {};
+  const ended = {};
+  const findStarts = (name) => {
+    if (starts[name]) return;
+    starts[name] = [];
+    fetch(`${base}game/${name}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((buf) => new OfflineAudioContext(1, 1, 8000).decodeAudioData(buf))
+      .then((audio) => (starts[name] = phraseStarts(audio)))
+      .catch(() => {});
+  };
+  const seekCombat = (name) => {
+    const el = files[name].el;
+    if (now() - (ended[name] ?? -Infinity) < COMBAT_RESUME) return;
+    const dur = Number.isFinite(el.duration) ? el.duration : 0;
+    let list = (starts[name] ?? []).filter((t) => t < dur - COMBAT_TAIL);
+    // Uten utregningen: annenhver takt i 140 slag i minuttet (3,4 s).
+    if (list.length < 2 && dur > COMBAT_TAIL + 4) list = Array.from({ length: Math.floor((dur - COMBAT_TAIL) / 3.43) }, (_, i) => i * 3.43);
+    list = list.filter((t) => t !== lastStart[name]);
+    if (!list.length) return;
+    const t = list[Math.floor(Math.random() * list.length)];
+    lastStart[name] = t;
+    try {
+      el.currentTime = t;
+    } catch {
+      /* ikke klar ennå: begynner fra start */
+    }
+  };
+  const fadeOut = (name, secs) => {
+    const f = files[name];
+    if (!f?.gain) return;
+    if (name.startsWith("combat")) ended[name] = now();
+    f.gain.gain.cancelScheduledValues(c.currentTime);
+    f.gain.gain.setTargetAtTime(0, c.currentTime, secs / 3);
+    setTimeout(() => {
+      if (playing !== name) f.el.pause();
+    }, secs * 1000 + 200);
+  };
+  const fadeIn = (name, secs) => {
+    const f = files[name];
+    if (name.startsWith("combat")) seekCombat(name);
+    f.gain.gain.cancelScheduledValues(c.currentTime);
+    f.gain.gain.setTargetAtTime(1, c.currentTime, secs / 3);
+    f.el.play().catch(() => {});
   };
   const nextSong = () => {
     song = (song + 1) % SONGS.length;
     songStart = c.currentTime;
     score.cue(`town${song}`, 3);
   };
-  // Bytter til det som skal spille nå (når prøvene er lastet).
-  const apply = () => {
-    if (mode === "town") {
+  // Partituret der filene mangler.
+  const scoreFor = (where) => {
+    if (where === "town") {
       if (song < 0 || score.current !== `town${song}`) nextSong();
-    } else if (mode === "cellar") score.cue("cellar", 3);
+    } else if (where === "cellar") score.cue("cellar", 3);
     else score.stop(3);
+  };
+  // Det som skal spille nå: sporet fra fil om det finnes, ellers det som
+  // står i stedet, og til slutt partituret.
+  const apply = () => {
+    if (!c || !mode) return;
+    const home = trackFor({ where: mode, night });
+    const want = trackFor({ where: mode, night, fight: fight > 0 || now() < fightUntil ? lastFight : 0 });
+    const combat = want !== home;
+    // Bosskampen faller tilbake på kampen, og kampen på sporet der du står.
+    const chain = [];
+    for (let k = want; k && !chain.includes(k); k = TRACKS[k]) chain.push(k);
+    if (combat && home) chain.push(home);
+    // Kampsporet lastes mens du er nede, så det er klart når det trengs,
+    // og startpunktene regnes ut.
+    if (mode === "cellar") {
+      for (const k of ["combat", "combat_boss"]) if (file(k).ok) findStarts(k);
+    }
+    let pick = null;
+    for (const k of chain) {
+      const ok = file(k).ok;
+      if (ok === undefined) return; // Ser etter fila; det som spiller, fortsetter.
+      if (ok) {
+        pick = k;
+        break;
+      }
+    }
+    // Kampen kommer fort (men ikke hardt), og alt annet tones over langsomt.
+    const secs = combat ? COMBAT_FADE : 3;
+    if (pick) {
+      if (playing !== pick) {
+        if (playing) fadeOut(playing, playing.startsWith("combat") && !combat ? COMBAT_OUT : secs);
+        playing = pick;
+        tone(pick, secs);
+        fadeIn(pick, secs);
+      }
+      if (score.current) score.stop(secs);
+      return;
+    }
+    if (playing) {
+      fadeOut(playing, playing.startsWith("combat") ? COMBAT_OUT : 3);
+      playing = null;
+    }
+    ready.then(() => {
+      if (playing) return;
+      if (insideTavern()) score.stop(2);
+      else scoreFor(mode);
+    });
+  };
+  // Trubaduren i Vertshuset: et eget spor over byens, så sterkt som du er
+  // nær (inne er det alt), dempet gjennom veggene utenfor; byens spor tones
+  // ned så lenge du er inne.
+  const insideTavern = () => mode === "town" && tavern >= 0.99 && files.tavern?.ok === true;
+  let wasInside = false;
+  const mixTavern = () => {
+    if (!c) return;
+    const want = mode === "town" ? tavern : 0;
+    if (want > 0.01) file("tavern");
+    const f = files.tavern;
+    const on = f?.ok === true && want > 0.01;
+    if (f?.gain) {
+      f.gain.gain.setTargetAtTime(on ? want : 0, c.currentTime, 0.6);
+      f.filter.frequency.setTargetAtTime(want >= 0.99 ? 20000 : TAVERN_OUTSIDE_LOWPASS, c.currentTime, 0.4);
+      if (on && f.el.paused) f.el.play().catch(() => {});
+      if (!on && !f.el.paused) setTimeout(() => (tavern > 0.01 && mode === "town") || f.el.pause(), 2500);
+    }
+    // Inne i Vertshuset tones byens spor (eller partituret) ned.
+    const inside = insideTavern();
+    if (playing) tone(playing, 2);
+    if (inside && score.current) score.stop(2);
+    if (wasInside && !inside) apply();
+    wasInside = inside;
   };
   return {
     set(where) {
@@ -218,15 +472,48 @@ export function createMusic(context) {
       if (where === mode) return;
       mode = where;
       ready.then(apply);
-      // Nytt stykke i byen når tiden er ute.
+      mixTavern();
+      // Nytt stykke i byen når tiden er ute, og kampen som tones ut.
       timer ??= setInterval(() => {
-        if (mode === "town" && score.current && c.currentTime - songStart > SONG_SECONDS) nextSong();
+        if (mode === "town" && !playing && score.current && c.currentTime - songStart > SONG_SECONDS) nextSong();
+        if (fight === 0 && lastFight > 0 && now() >= fightUntil) {
+          lastFight = 0;
+          apply();
+        }
       }, 1000);
+    },
+    /** Det økta sier (`hud`): kampen nede i krypten. */
+    hud(e) {
+      if (!c) return;
+      const f = e.cellar ? e.fight || 0 : 0;
+      if (f > 0) {
+        lastFight = Math.max(lastFight, f);
+        fightUntil = now() + FIGHT_HOLD;
+      }
+      if (f === fight) return;
+      fight = f;
+      apply();
+    },
+    /** Natt (mørkt tema): nattsporet, eller byens spor dempet og mørknet. */
+    night(dark) {
+      if (dark === night) return;
+      night = dark;
+      if (c) {
+        tone("town", 4);
+        apply();
+      }
+    },
+    /** Lydbildet fra økta (`ambience`): hvor nær Vertshuset du er. */
+    ambience(a) {
+      const t = a.cellar ? 0 : a.tavern || 0;
+      if (Math.abs(t - tavern) < 0.02 && !(t >= 0.99 && tavern < 0.99) && !(t < 0.99 && tavern >= 0.99)) return;
+      tavern = t;
+      mixTavern();
     },
     toggle() {
       if (!setup()) return;
       muted = !muted;
-      out.gain.setTargetAtTime(muted ? 0 : 0.55, c.currentTime, 0.3);
+      out.gain.setTargetAtTime(muted ? 0 : VOLUME, c.currentTime, 0.3);
       try {
         localStorage.setItem("fristad.music", muted ? "av" : "på");
       } catch {
@@ -236,6 +523,7 @@ export function createMusic(context) {
     },
     // Til testing: hvilket stykke som spiller.
     get song() {
+      if (playing) return playing;
       return mode === "town" && song >= 0 ? SONGS[song].name : null;
     },
   };

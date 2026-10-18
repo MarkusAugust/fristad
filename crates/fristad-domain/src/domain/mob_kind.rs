@@ -86,6 +86,25 @@ impl Kind {
         }
     }
 
+    /// Det infopanelet sier om slaget (kanon: de korrupte komponentene,
+    /// fanget i krypten siden forseglingen), og hva du bør passe deg for.
+    pub fn info(self) -> &'static str {
+        match self {
+            Kind::Button => "En knapp som ikke lenger bare kunne være en knapp. Kontorets regler er stemplet på den. Svak alene, farlig i flokk.",
+            Kind::Tooltip => "Liten og rask, med en boble der hodet skulle vært. Hopper fram og biter før du rekker å se den, men tåler lite.",
+            Kind::Input => "Lusker lavt med spydene fram og spytter på avstand. Gå tett på den.",
+            Kind::Toast => "Frosken fra kloakken. Dukker opp når du minst venter det, hopper og spytter.",
+            Kind::Select => "Moren i kloakken, med alle valgene sine i buken. Bærer nøkkelen og har tykt skall forfra.",
+            Kind::Modal => "Stor og tung, og stenger veien til du er ferdig med den. Slår i bakken: blokk, eller gå til siden.",
+            Kind::Priest => "Vokter alteret i gravkjelleren og teller dager i en kalender ingen andre kan lese. Bærer nøkkelen.",
+            Kind::Table => "Kryper på alle fire med radene sine, tung som en eikekiste. Tåler mye; hugg der leddene sitter.",
+            Kind::Framework => "Kongens rammeverk, levende, med seglet og krona. Gorvek delte det, og nå har det funnet delene sine igjen. Det kan ikke dø, men det kan deles.",
+            Kind::Avatar => "En hodeskalle med et ansikt fanget i seg. Ruller som et hjul, hopper opp og biter.",
+            Kind::Breadcrumb => "En kjede av kuler som kryper etter deg, ledd for ledd, og alltid vet veien tilbake.",
+            Kind::Accordion => "Ligger stille som en kiste til du kommer nær. Så folder den seg ut, og lokket er kjeven.",
+        }
+    }
+
     /// Kroppen å sikte på, i modellens målestokk: (toppen, radius, halv
     /// lengde). Uten lengde er det en stående kapsel fra beina til toppen;
     /// med lengde ligger den langs ryggen i halve høyden (de lange).
