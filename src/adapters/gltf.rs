@@ -122,6 +122,8 @@ models! {
     "portal_swirl" => "town/portal_swirl.glb",
     "portal_shard" => "town/portal_shard.glb",
     "token" => "props/token.glb",
+    // Markøren inputen og Toast spytter (tools/models/bolt.py).
+    "bolt" => "props/bolt.glb",
     "npc_smith" => "npcs/npc_smith.glb",
     "npc_clerk" => "npcs/npc_clerk.glb",
     "npc_apothecary" => "npcs/npc_apothecary.glb",

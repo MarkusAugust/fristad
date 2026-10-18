@@ -1077,6 +1077,25 @@ body:has(#panel:not([hidden])) .aimed {
   .warp.on::before { animation: none; transform: none; }
 }
 
+/* Treffet: en rød bue i kanten av bildet mot der det kom fra (`hurtArc` i
+   main.js; `--from` er vinkelen med klokka fra toppen). Kjeglen viser bare
+   en sektor på rundt 90° av den røde kanten, myk i endene, og buen toner ut. */
+.hurt-arc {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(190, 18, 18, 0.35) 78%, rgba(220, 24, 24, 0.85) 100%);
+  -webkit-mask: conic-gradient(from calc(var(--from, 0deg) - 50deg), transparent 0deg, #000 25deg, #000 75deg, transparent 100deg);
+  mask: conic-gradient(from calc(var(--from, 0deg) - 50deg), transparent 0deg, #000 25deg, #000 75deg, transparent 100deg);
+  animation: hurt-arc 0.9s ease-out forwards;
+}
+@keyframes hurt-arc {
+  0% { opacity: 1; }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
 /* Kistedialogen: Fristils dialog, litt bredere. */
 .loot {
   width: min(520px, calc(100vw - 32px));

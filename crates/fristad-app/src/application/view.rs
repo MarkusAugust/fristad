@@ -96,6 +96,12 @@ impl Session {
                 room: None,
             });
             lights.extend(self.rest_lights());
+            // Markørene i lufta og munnene som lader lyser giftgrønt rundt
+            // seg, så skuddet synes i mørket (planen del 13e).
+            for (at, k) in self.mobs.glows().into_iter().take(8) {
+                let room = self.crypt.room_at(at).map(|(l, r)| (l as u16, r as u16));
+                lights.push(Light { pos: at, radius: 2.5 + 1.5 * k, color: Vec3::new(0.45, 1.0, 0.3), intensity: 1.3 * k, always: true, flicker: 0.1, room });
+            }
         }
         lights.extend(self.portal_pose().and_then(|p| self.portal.light(p, self.time)));
         // Rommene i nivået du er i, og rommene hvert lys lyser i. Lysene som

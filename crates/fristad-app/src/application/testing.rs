@@ -90,6 +90,18 @@ impl Session {
         self.mobs.mobs.clear();
     }
 
+    /// Bare én fiende av slaget `kind` ved `at`, som har sett deg.
+    pub fn only_mob(&mut self, kind: MobKind, at: Vec3) {
+        self.mobs.mobs.clear();
+        self.mobs.bolts.clear();
+        self.mobs.spawn_aware(kind, at);
+    }
+
+    /// Markørene i lufta nå.
+    pub fn bolts_flying(&self) -> Vec<Vec3> {
+        self.mobs.bolts.iter().map(|b| b.pos).collect()
+    }
+
     /// Nivået fiendene er satt ut i.
     pub fn mob_level(&self) -> usize {
         self.mobs.level

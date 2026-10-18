@@ -102,7 +102,6 @@ pub const PLANNED: &[(&str, &str)] = &[
     ("framework", "sluttbossen Rammeverket (fase 5)"),
     ("npc_troubadour", "trubaduren på krakken i Vertshuset: TRELLIS-figuren fra eieren, bygd med `folk3d.py troubadour` (klippene sit og play, kjeven)"),
     ("key", "nøkkelen eliten mister (fase 7)"),
-    ("bolt", "spyttet fra inputen (fase 5)"),
     ("sheep_body", "sau (fase 7)"),
     ("sheep_leg", "sau (fase 7)"),
     ("cow_body", "ku (fase 7)"),

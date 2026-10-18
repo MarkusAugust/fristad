@@ -648,6 +648,11 @@ impl Combat {
         let _ = eye;
     }
 
+    /// Spruten der en markør treffer: rusket kastes tilbake dit den kom fra.
+    pub fn splash(&mut self, at: Vec3, dir: Vec3) {
+        self.spawn_debris(at, -dir * 0.6, 10);
+    }
+
     fn spawn_debris(&mut self, at: Vec3, fwd: Vec3, n: usize) {
         for _ in 0..n {
             if self.debris.len() >= MAX_DEBRIS {

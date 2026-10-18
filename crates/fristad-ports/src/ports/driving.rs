@@ -339,6 +339,12 @@ pub enum Event {
     /// Fienden du sikter på (infopanelet til høyre), sendt når den eller
     /// livet endrer seg; `None` når du ikke sikter på noen.
     Foe(Option<FoeView>),
+    /// Du ble truffet: hvor slaget eller skuddet kom fra, som vinkel i
+    /// radianer fra blikket (0 rett foran, positiv til høyre, ±π bak).
+    /// Nettlaget viser det som en rød bue i den kanten av bildet.
+    Hurt {
+        angle: f32,
+    },
     /// Målet nå (én linje øverst til venstre) og journalen (J): lappene og
     /// bøkene du har lest i krypten, tittel og tekst. Sendes når noe endres.
     Goal {
@@ -416,6 +422,8 @@ pub struct FoeView {
     pub rank: String,
     pub hp: u32,
     pub max_hp: u32,
+    /// Skyter på avstand (inputen, Toast: slagene med markører).
+    pub ranged: bool,
 }
 
 /// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog

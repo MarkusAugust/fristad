@@ -70,6 +70,11 @@ impl Session {
         if outcome.quakes > 0 {
             self.combat.quake();
         }
+        // Markørene spruter der de treffer, med et klask.
+        for (at, dir) in &outcome.impacts {
+            self.combat.splash(*at, *dir);
+            events.push(self.sound_at("spit_hit", *at, 1.0));
+        }
         // Bittene: blokk tar det meste, en parade alt (og lamslår), en
         // unnamanøver går klar.
         let mut taken_total = 0.0;
@@ -82,6 +87,9 @@ impl Session {
                 events.push(sfx(self.hero.gear.shield.sound));
             } else if taken > 0.0 {
                 events.push(sfx("hurt"));
+            }
+            if taken > 0.0 {
+                events.push(Event::Hurt { angle: hurt_angle(*from - eye, fwd) });
             }
             taken_total += taken;
         }
@@ -138,7 +146,7 @@ impl Session {
         }
         let view = self.hud.foe.filter(|_| self.hud.foe_t < FOE_LINGER).and_then(|i| self.mobs.mobs.get(i)).filter(|m| m.alive()).map(|m| {
             let rank = if m.boss || m.kind.boss() { "Boss" } else if m.elite { "Elite" } else { "" };
-            FoeView { name: m.kind.label().into(), info: m.kind.info().into(), rank: rank.into(), hp: m.hp.max(0.0).ceil() as u32, max_hp: m.max_hp.ceil() as u32 }
+            FoeView { name: m.kind.label().into(), info: m.kind.info().into(), rank: rank.into(), hp: m.hp.max(0.0).ceil() as u32, max_hp: m.max_hp.ceil() as u32, ranged: m.kind.stats().bolt.is_some() }
         });
         if view.is_none() {
             self.hud.foe = None;
@@ -154,6 +162,28 @@ impl Session {
         let f = self.forward().with_y(0.0).normalize_or_zero();
         let at = self.body.sole() + f * ahead;
         self.mobs.drop_tokens(at, n);
+    }
+
+    /// Bare én korrupt input, `ahead` meter foran deg og `side` til høyre
+    /// (der gulvet er fritt), som har sett deg og spytter straks (til
+    /// skjermbildene, `--bolt`).
+    pub fn input_ahead(&mut self, ahead: f32, side: f32) -> bool {
+        let feet = self.body.sole();
+        let f = self.forward().with_y(0.0).normalize_or_zero();
+        let right = f.cross(Vec3::Y);
+        let c = &self.crypt;
+        let spot = (0..=12).map(|k| ahead - k as f32 * 0.4).map(|d| feet + f * d + right * side).map(|q| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z)).find(|q| c.walkable(*q));
+        let Some(at) = spot else { return false };
+        self.mobs.mobs.clear();
+        self.mobs.bolts.clear();
+        let i = self.mobs.spawn_aware(MobKind::Input, at);
+        self.mobs.mobs[i].yaw = (feet - at).x.atan2((feet - at).z);
+        true
+    }
+
+    /// Hvor mange markører som er i lufta.
+    pub fn bolts_in_air(&self) -> usize {
+        self.mobs.bolts.len()
     }
 
     /// Oljen i lykta som brøk (0 er sluknet); til skjermbildene.
@@ -238,4 +268,13 @@ impl Session {
         }
         out
     }
+}
+
+/// Hvor noe kom fra (`to`, fra øyet), som vinkel fra blikket `fwd` i
+/// radianer: 0 rett foran, positiv til høyre, ±π bak (`Event::Hurt`).
+pub(super) fn hurt_angle(to: Vec3, fwd: Vec3) -> f32 {
+    let f = fwd.with_y(0.0).normalize_or(Vec3::NEG_Z);
+    let right = f.cross(Vec3::Y);
+    let d = to.with_y(0.0);
+    d.dot(right).atan2(d.dot(f))
 }

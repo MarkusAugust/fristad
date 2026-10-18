@@ -221,8 +221,21 @@ fn main() {
     if let Some(n) = arg("--drop") {
         app.session.drop_tokens(3.0, n.parse().unwrap());
     }
+    // --bolt [--bolt-side M] [--bolt-at S]: bare én korrupt input 7 m foran
+    // deg (og M til høyre), som lader og spytter; bildet tas S sekunder
+    // etter (0,95: markøren midt i lufta; under 0,6 lader den ennå). --time
+    // teller ikke.
+    if flag("--bolt") {
+        let side = arg("--bolt-side").map(|s| s.parse().unwrap()).unwrap_or(0.0);
+        assert!(app.session.input_ahead(7.0, side), "ikke fritt gulv foran deg til inputen");
+        let at: f32 = arg("--bolt-at").map(|s| s.parse().unwrap()).unwrap_or(0.95);
+        for _ in 0..(at * 60.0) as usize {
+            app.tick(1.0 / 60.0);
+        }
+        log::info!("markører i lufta: {}", app.session.bolts_in_air());
+    }
     // Kjør spillet litt, så animasjoner og fiender står der de skal.
-    let time: f32 = arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5);
+    let time: f32 = if flag("--bolt") { 0.0 } else { arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5) };
     let steps = (time * 30.0) as usize;
     // --attack S: venstre musetast trykkes S sekunder før bildet (og holdes
     // med --hold), --block holder høyre musetast de siste 0,5 sekundene.

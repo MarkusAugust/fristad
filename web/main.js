@@ -553,6 +553,20 @@ document.addEventListener("click", (ev) => {
   if (ev.target.closest?.("dialog button, .fs-button, #panel button")) sfx.play("click");
 });
 
+// Treffet: en rød bue i den kanten av bildet slaget eller skuddet kom fra
+// (`Event::Hurt`: vinkelen fra blikket, 0 foran = øverst, positiv til høyre,
+// ±π bak = nederst). Hver bue toner ut for seg (`.hurt-arc` i style.css).
+function hurtArc(angle) {
+  const arcs = document.querySelectorAll(".hurt-arc");
+  if (arcs.length >= 4) arcs[0].remove();
+  const el = document.createElement("div");
+  el.className = "hurt-arc";
+  el.setAttribute("aria-hidden", "true");
+  el.style.setProperty("--from", `${(angle * 180) / Math.PI}deg`);
+  el.addEventListener("animationend", () => el.remove());
+  document.body.appendChild(el);
+}
+
 function handle(e) {
   switch (e.type) {
     case "prompt":
@@ -577,6 +591,9 @@ function handle(e) {
       break;
     case "warp":
       warp();
+      break;
+    case "hurt":
+      hurtArc(e.angle);
       break;
     case "map":
       setMap(e.map);

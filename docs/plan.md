@@ -231,6 +231,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **Treffet:** en sprut der det treffer (vegg, gulv eller deg), en lyd og en skadeindikator i kanten av bildet som viser hvor skuddet kom fra.
 - **Infopanelet om fienden** sier «Skyter på avstand» for slagene med `bolt` (inputen, Toast-frosken).
 - Test: et skudd fra en input lager en synlig instans hvert bilde til det treffer.
+- **Gjort 18. oktober:** modellen `bolt` (`tools/models/bolt.py`, 428 trekanter), ladelyden og gløden i munnen (0,6 s før skuddet), halen og det grønne lyset, spruten og `spit_hit`, `Event::Hurt` med den røde buen, `FoeView.ranged`, testen `markoren_synes_og_treffet_sier_hvor_den_kom_fra` og `snapshot --bolt`. Igjen: et eget trekk bakover i klippet `attack` for inputen (`mob_motion.py`).
 
 ### 13f. Siktekortet midt på skjermen (eieren 18. oktober)
 - Kortet om det du sikter på (fienden, en innbygger, en ting du kan bruke) er for vanskelig å se ute ved høyre kant. Det flyttes midt på skjermen, et lite stykke over stolpene for liv og utholdenhet, som ett kort (`#target` og `#foe` på samme plass, aldri samtidig). Kolonnen til høyre har bare minikartet og tastene. `tools/layout-test.mjs` sjekker at kortet ikke dekker siktepunktet eller stolpene på åtte skjermstørrelser. **Gjort 18. oktober** (`#aimed` i `web/index.html`; under 1100 px slutter kolonnen til høyre over kortet).

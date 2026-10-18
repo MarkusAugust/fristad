@@ -26,6 +26,10 @@ mod walk;
 use walk::walk;
 #[path = "mob_rigs.rs"]
 mod mob_rigs;
+#[path = "mob_bolts.rs"]
+mod bolts;
+pub use bolts::Bolt;
+use bolts::{BOLT_INSTANCES, BOLT_SPEED};
 
 pub use crate::domain::drops::{Token, TOKEN_COLORS, TOKEN_MODEL};
 pub const KEY_MODEL: &str = "key";
@@ -33,7 +37,6 @@ pub const BOLT_MODEL: &str = "bolt";
 pub const MAX_MOBS: usize = 72;
 const MAX_TOKENS: usize = 160;
 const MAX_KEYS: usize = 8;
-const MAX_BOLTS: usize = 24;
 /// Elitefienden: større, seigere, og bærer nøkkelen til porten.
 const ELITE_SCALE: f32 = 1.3;
 const ELITE_HP: f32 = 2.6;
@@ -44,8 +47,6 @@ const ALERT_LEN: f32 = 22.0 / 24.0;
 /// Liket ligger så lenge etter dødsklippet.
 const CORPSE: f32 = 4.0;
 pub const MOB_HP: f32 = 100.0;
-const BOLT_SPEED: f32 = 11.0;
-const BOLT_LIFE: f32 = 2.2;
 /// Bossens slag i bakken rammer alle innen denne avstanden.
 const SLAM_RADIUS: f32 = 4.5;
 pub(crate) const FPS: f32 = 24.0;
@@ -172,16 +173,6 @@ impl Mob {
 }
 
 
-/// En markør som flyr: hvem som spyttet den, hvor den er og hvor den skal.
-#[derive(Clone, Debug)]
-pub struct Bolt {
-    pub owner: usize,
-    pub pos: Vec3,
-    pub vel: Vec3,
-    pub age: f32,
-    pub damage: f32,
-}
-
 /// Det du plukker opp: tokens, og nøkler til portene.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pickup {
@@ -210,6 +201,9 @@ pub struct Outcome {
     /// `windup_big`), at de får øye på deg (`notice`), spytt, slag i
     /// bakken, brøl og bossens tunge skritt (`boss_step`).
     pub sounds: Vec<(&'static str, Vec3)>,
+    /// Markører som traff noe (deg, en vegg eller gulvet): hvor, og
+    /// retningen de fløy (spruten).
+    pub impacts: Vec<(Vec3, Vec3)>,
     /// Slag i bakken (kameraet rister).
     pub quakes: u32,
     /// Brøl.
@@ -314,6 +308,16 @@ impl Mobs {
         }
     }
 
+    /// Sett ut én fiende som har sett deg og er klar til å slå (til
+    /// skjermbildene og testene).
+    pub fn spawn_aware(&mut self, kind: Kind, p: Vec3) -> usize {
+        self.spawn(kind, p, false);
+        let m = self.mobs.last_mut().expect("plass til fienden");
+        m.aware = true;
+        m.cooldown = 0.0;
+        self.mobs.len() - 1
+    }
+
     /// Om fienden ligger i bakhold og sover ennå (til testene).
     #[cfg(any(test, feature = "testing"))]
     pub fn dormant(&self, i: usize) -> bool {
@@ -325,7 +329,7 @@ impl Mobs {
         let mut v: Vec<(&'static str, usize)> = Kind::ALL.iter().map(|k| (k.model(), MAX_MOBS)).collect();
         v.push((TOKEN_MODEL, MAX_TOKENS));
         v.push((KEY_MODEL, MAX_KEYS));
-        v.push((BOLT_MODEL, MAX_BOLTS));
+        v.push((BOLT_MODEL, BOLT_INSTANCES));
         v
     }
 
@@ -634,7 +638,7 @@ impl Mobs {
                                 }
                                 Blow::Spit => {
                                     if let Some((_, _, dmg)) = stats.bolt {
-                                        let from = m.pos + Vec3::Y * 1.3 * s + facing * 0.6 * s;
+                                        let from = m.mouth();
                                         let aim = (player + Vec3::Y * 0.9 - from).normalize_or_zero();
                                         bolts.push(Bolt { owner: i, pos: from, vel: aim * BOLT_SPEED, age: 0.0, damage: dmg });
                                         out.sounds.push(("spit", m.pos));
@@ -776,7 +780,9 @@ impl Mobs {
                     if let Some(a) = m.anim.as_mut() {
                         a.play(clips.attack, false, 0.08);
                     }
-                    out.sounds.push((windup, m.pos));
+                    // Varselet: det gurgler og lades i munnen et halvt sekund
+                    // før skuddet (gløden i munnen står i `instances`).
+                    out.sounds.push(("spit_charge", m.mouth()));
                     continue;
                 }
             }
@@ -797,24 +803,8 @@ impl Mobs {
                 m.aware = true;
             }
         }
-        for b in bolts {
-            if self.bolts.len() < MAX_BOLTS {
-                self.bolts.push(b);
-            }
-        }
-        // Markørene flyr rett fram til de treffer deg eller en vegg.
+        self.fly_bolts(bolts, dt, player, crypt, &mut out);
         let chest = player + Vec3::Y * 0.9;
-        for b in &mut self.bolts {
-            b.pos += b.vel * dt;
-            b.age += dt;
-            if (b.pos - chest).length() < 0.6 {
-                out.bites.push((b.owner, b.damage, b.pos - b.vel));
-                b.age = BOLT_LIFE + 1.0;
-            } else if crypt.floor_under(b.pos).is_none_or(|f| b.pos.y - f < 0.05) {
-                b.age = BOLT_LIFE + 1.0;
-            }
-        }
-        self.bolts.retain(|b| b.age < BOLT_LIFE);
         for t in &mut self.tokens {
             if crate::domain::drops::update_token(t, dt, chest, in_crypt, crypt) {
                 out.tokens += 1;
@@ -887,12 +877,7 @@ impl Mobs {
                 }
             }
         }
-        for b in &self.bolts {
-            let yaw = b.vel.x.atan2(b.vel.z);
-            let pitch = (b.vel.y / b.vel.length().max(1e-4)).asin();
-            let rot = Quat::from_rotation_y(yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_z(pitch) * Quat::from_rotation_x(time * 12.0);
-            out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(rot, b.pos), skin: None, flash: 0.0, tint: None });
-        }
+        out.extend(self.bolt_instances(time));
         for t in &self.tokens {
             if t.taken {
                 continue;

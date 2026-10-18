@@ -2783,3 +2783,84 @@ fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
     }
     assert!(seen, "infopanelet kom ikke når du siktet på fienden ved {mob:?}");
 }
+
+/// Angrep på avstand synes (planen del 13e): inputen lader (lyd og glød i
+/// munnen) et halvt sekund før skuddet, markøren tegnes hvert bilde fra den
+/// spyttes til den treffer, og treffer den deg, sier `Event::Hurt` hvor den
+/// kom fra (her fra høyre). Infopanelet sier at den skyter på avstand.
+#[test]
+fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
+    use crate::domain::mobs::Kind;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    // Et sted 6–9 m unna med fritt gulv hele veien.
+    let clear = |a: Vec3, b: Vec3| (1..20).all(|k| c.walkable(Vec3::new(a.lerp(b, k as f32 / 20.0).x, c.height_at(a.lerp(b, k as f32 / 20.0) + Vec3::Y * 0.5), a.lerp(b, k as f32 / 20.0).z)));
+    let at = (0..32)
+        .flat_map(|k| [6.0f32, 7.5, 9.0].map(move |d| (k, d)))
+        .map(|(k, d)| {
+            let a = k as f32 * std::f32::consts::TAU / 32.0;
+            let q = feet + Vec3::new(a.cos(), 0.0, a.sin()) * d;
+            Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z)
+        })
+        .find(|q| c.walkable(*q) && (q.y - feet.y).abs() < 0.3 && clear(feet, *q))
+        .expect("ingen plass til inputen 6–9 m unna startstedet i nivå 1");
+    game.only_mob(Kind::Input, at);
+    // Snu deg så inputen står til høyre for deg.
+    let to = (at - feet).with_y(0.0).normalize();
+    let fwd = Vec3::new(to.z, 0.0, -to.x);
+    game.set_look((-fwd.x).atan2(-fwd.z), 0.0);
+    let (mut t, mut charge_at, mut spit_at, mut flying, mut hurt) = (0.0f32, None, None, 0, None);
+    let mut glow_before = false;
+    let mut foe_ranged = false;
+    let mut trail = false;
+    for _ in 0..(8 * 60) {
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        t += 1.0 / 60.0;
+        for e in &events {
+            match e {
+                Event::Sound(s) if s.name == "spit_charge" && charge_at.is_none() => charge_at = Some(t),
+                Event::Sound(s) if s.name == "spit" && spit_at.is_none() => spit_at = Some(t),
+                Event::Hurt { angle } => hurt = Some(*angle),
+                _ => {}
+            }
+        }
+        let frame = game.frame(16.0 / 9.0);
+        let drawn = frame.instances.iter().filter(|i| i.model == "bolt").count();
+        let bolts = game.bolts_flying();
+        if charge_at.is_some() && spit_at.is_none() && drawn > 0 {
+            glow_before = true;
+        }
+        if !bolts.is_empty() {
+            flying += 1;
+            assert!(drawn >= bolts.len(), "markøren i lufta ved {:?} ble ikke tegnet", bolts[0]);
+            trail |= drawn > bolts.len();
+            assert!(frame.lights.iter().any(|l| bolts.iter().any(|b| l.pos.distance(*b) < 0.01)), "markøren lyser ikke");
+        }
+        if hurt.is_some() {
+            break;
+        }
+    }
+    let (charge_at, spit_at) = (charge_at.expect("ingen ladelyd før skuddet"), spit_at.expect("inputen skjøt ikke"));
+    assert!(spit_at - charge_at >= 0.4, "varselet kom bare {:.2} s før skuddet", spit_at - charge_at);
+    assert!(glow_before, "ingen glød i munnen mens den ladet");
+    assert!(flying >= 10, "markøren var bare i lufta i {flying} bilder");
+    assert!(trail, "markøren hadde ingen hale av gnister");
+    let angle = hurt.expect("markøren traff deg ikke");
+    assert!((angle - std::f32::consts::FRAC_PI_2).abs() < 0.35, "skuddet kom fra høyre, men vinkelen var {angle:.2}");
+    // Infopanelet: sikt på den.
+    for _ in 0..30 {
+        let mob = game.nearest_mob(game.feet()).expect("inputen");
+        let d = (mob + Vec3::Y * 0.7 - game.eye()).normalize();
+        game.set_look((-d.x).atan2(-d.z), d.y.asin());
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        foe_ranged |= events.iter().any(|e| matches!(e, Event::Foe(Some(f)) if f.ranged));
+    }
+    assert!(foe_ranged, "infopanelet sa ikke at inputen skyter på avstand");
+}

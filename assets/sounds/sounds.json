@@ -405,6 +405,23 @@
   "pitch": 0.1,
   "synth": "spit"
  },
+ "spit_charge": {
+  "files": [],
+  "gain": 0.9,
+  "pitch": 0.08,
+  "synth": "spit_charge"
+ },
+ "spit_hit": {
+  "files": [
+   "hit_1.mp3",
+   "hit_2.mp3",
+   "hit_3.mp3"
+  ],
+  "gain": 0.55,
+  "pitch": 0.12,
+  "rate": 1.4,
+  "synth": "splat"
+ },
  "slam": {
   "files": [
    "slam_1.mp3",
