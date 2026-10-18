@@ -174,11 +174,15 @@ async function boot() {
 
   status.hidden = true;
   $("loading").hidden = true;
-  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen toner
-  // gjennom byen og ender der du begynner); uten den går du rett inn.
+  // Når alt er lastet, velger du: se introfilmen (som toner over i byen ved
+  // sørporten) eller gå rett til spillet (eieren 18. oktober). Verden står
+  // ikke bak kortet før du har valgt (`.gate-first`).
   if (FILM) {
     beginBtn.addEventListener("click", startFilm, { once: true });
     beginBtn.hidden = false;
+    enterBtn.textContent = "Gå rett til spillet";
+    enterBtn.dataset.variant = "secondary";
+    enterBtn.hidden = false;
     beginBtn.focus();
   } else {
     enterBtn.hidden = false;
@@ -487,6 +491,7 @@ function loop(now) {
       return;
     }
   }
+  updateLook();
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
@@ -571,12 +576,16 @@ function handle(e) {
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
       setBars(e.hp, e.stamina);
-      // Lykta: stolpen nede i krypten, og mørket som lukker seg når oljen går tom.
-      $("light-bar").hidden = !e.cellar;
+      // Lykta: stolpen står alltid (i byen ser du hva du må fylle hos
+      // Apotekeren; oljen brenner bare nede), og mørket lukker seg nede når
+      // oljen går tom.
+      $("light-bar").hidden = false;
       $("light").value = e.light;
       $("light-text").textContent = `${e.light} %`;
+      $("light-bar").title = e.cellar ? "Oljen i lykta brenner" : "Lykta brenner bare i krypten. Olje får du hos Apotekeren.";
       document.documentElement.style.setProperty("--dark", e.cellar ? String(Math.max(0, 1 - e.light / 25)) : "0");
       $("tokens").textContent = `${e.tokens} tokens`;
+      if (overlayOpen) updateShop();
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;
       $("boss").hidden = !e.boss;
@@ -1002,6 +1011,25 @@ function closeInventory(resume) {
 // Innstillingene (O, eller knappen på startkortet): grafikk og oppløsning
 // som Fristil-radioknapper i en dialog. Ingenting byttes uten at
 // spilleren velger det.
+// Innstillingene og grafikken kan alltid lukkes: med knappen, krysset i
+// hjørnet, et klikk utenfor vinduet eller Esc (eieren 18. oktober: vinduet
+// lot seg ikke lukke).
+function dismissable(dlg, close) {
+  const x = document.createElement("button");
+  x.type = "button";
+  x.className = "fs-button dialog-x";
+  x.dataset.variant = "ghost";
+  x.setAttribute("aria-label", "Lukk");
+  x.textContent = "×";
+  x.addEventListener("click", close);
+  dlg.prepend(x);
+  dlg.addEventListener("click", (ev) => {
+    if (ev.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    if (ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom) close();
+  });
+}
+
 let settingsOpen = null;
 function openSettings() {
   if (settingsOpen) return;
@@ -1053,6 +1081,7 @@ function openSettings() {
     sfx.play("click");
   });
   const close = () => {
+    if (settingsOpen !== dlg) return;
     settingsOpen.close();
     settingsOpen.remove();
     settingsOpen = null;
@@ -1060,6 +1089,7 @@ function openSettings() {
     else if (!gateEl.hidden) enterBtn.focus();
   };
   dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dismissable(dlg, close);
   dlg.querySelector('[data-act="graphics"]').addEventListener("click", () => {
     settingsOpen.close();
     settingsOpen.remove();
@@ -1172,6 +1202,7 @@ function openGraphics(resume = playing) {
     sfx.play("click");
   });
   const close = () => {
+    if (graphicsOpen !== dlg) return;
     graphicsOpen.close();
     graphicsOpen.remove();
     graphicsOpen = null;
@@ -1179,6 +1210,7 @@ function openGraphics(resume = playing) {
     else if (!gateEl.hidden) enterBtn.focus();
   };
   dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dismissable(dlg, close);
   dlg.addEventListener("cancel", (ev) => {
     ev.preventDefault();
     close();
@@ -1221,18 +1253,41 @@ function openShop(npc, wares) {
     row.className = "ware";
     const name = document.createElement("span");
     name.textContent = w.name;
+    const buy = document.createElement("div");
+    buy.className = "ware-buy";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "fs-button";
     btn.dataset.variant = "secondary";
+    btn.dataset.price = String(w.price);
     btn.textContent = `Kjøp (${w.price} tokens)`;
+    const why = document.createElement("span");
+    why.className = "fs-help-text ware-why";
+    why.id = `ware-why-${w.id}`;
+    btn.setAttribute("aria-describedby", why.id);
     btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       engine.buy(w.id);
     });
-    row.append(name, btn);
+    buy.append(btn, why);
+    row.append(name, buy);
     list.appendChild(row);
   }
   body.appendChild(list);
+  updateShop();
+}
+
+// Det du ikke har råd til, er en deaktivert Fristil-knapp med forklaring.
+// Kalles når butikken åpnes og hver gang tokenene endres (etter et kjøp).
+function updateShop() {
+  const tokens = lastHud?.tokens ?? 0;
+  for (const btn of document.querySelectorAll("#overlay-body .ware .fs-button[data-price]")) {
+    const price = Number(btn.dataset.price);
+    const short = price > tokens;
+    btn.disabled = short;
+    const why = document.getElementById(btn.getAttribute("aria-describedby"));
+    if (why) why.textContent = short ? `Har ikke råd (mangler ${price - tokens} tokens)` : "";
+  }
 }
 
 // Skjemakontoret: oppskriften er et Fristil-skjema. Feltene er
@@ -1406,6 +1461,9 @@ function clickHint() {
 let loadedSave = false;
 let soundsLoading = false;
 function enter(relock = true) {
+  gateEl.classList.remove("gate-first");
+  beginBtn.hidden = true;
+  delete enterBtn.dataset.variant;
   if (!loadedSave) {
     loadedSave = true;
     try {
@@ -1441,6 +1499,17 @@ function enter(relock = true) {
     if (editor.begin()) return;
   }
   if (relock && !editor?.active) lock();
+  setTimeout(updateLook, 400);
+}
+
+// «Klikk for å se deg rundt med musa»: står midt i bildet så lenge du spiller
+// uten fanget mus (etter filmen kan ikke nettleseren fange den uten et klikk).
+// Sa nettleseren nei (`pointerlockerror`), spilles det uten: dra for å se.
+let noLock = false;
+const lookEl = $("look");
+function updateLook() {
+  const hide = !(playing && !locked() && !noLock && !editor?.active && !panelOpen && !overlayOpen);
+  if (lookEl.hidden !== hide) lookEl.hidden = hide;
 }
 
 // Knappene som bare hører til pausemenyen. Startkortet viser bare framdriften
@@ -1487,6 +1556,7 @@ let filmReveal = false;
 
 async function startFilm() {
   beginBtn.hidden = true;
+  gateEl.classList.remove("gate-first");
   gateEl.hidden = true;
   hud.hidden = true;
   if (!soundsLoading) {
@@ -1504,15 +1574,16 @@ async function startFilm() {
     enter();
     return;
   }
-  const { skipped } = await film.done;
+  const { skipped, gesture } = await film.done;
   film = null;
   // Hoppet over: rett til sørporten om dagen.
   if (skipped || !filmReveal) {
     engine.set_theme(false);
     engine.respawn();
   }
-  enter(false);
-  toast?.show?.("Klikk i bildet for å se deg rundt med musa.");
+  // Hoppet du over med et klikk eller mellomrom, kan musa fanges med en gang;
+  // ellers står «Klikk for å se deg rundt» midt i bildet.
+  enter(!!gesture);
 }
 
 function bindInput() {
@@ -1527,14 +1598,20 @@ function bindInput() {
   canvas.addEventListener("click", () => {
     if (playing && !locked() && !editor?.active) lock();
   });
+  $("look").addEventListener("click", () => {
+    if (playing && !locked()) lock();
+  });
 
   document.addEventListener("pointerlockchange", () => {
+    updateLook();
     // Slippes låsen mens du spiller (Esc), er det pause.
     if (!locked() && playing && !panelOpen && !editor?.active) pause();
   });
   // Ga ikke nettleseren oss musa, går det an å spille uten: dra for å se,
   // klikk for å hugge.
   document.addEventListener("pointerlockerror", () => {
+    noLock = true;
+    updateLook();
     if (playing) clickHint();
   });
 
@@ -1590,6 +1667,11 @@ function bindInput() {
     // avslått forsøk åpnet pausemenyen). Klikk i bildet låser igjen; neste
     // Esc åpner menyen.
     // Redigeringen tar sine taster først (og P for å gå inn i den igjen).
+    if ((settingsOpen || graphicsOpen) && e.code === "Escape") {
+      e.preventDefault();
+      (graphicsOpen || settingsOpen).querySelector('[data-act="close"]').click();
+      return;
+    }
     if (editor && playing && !panelOpen && !invOpen && !overlayOpen && !settingsOpen && editor.key(e)) return;
     if (panelOpen && e.code === "Escape") {
       // Er dialogen i demoen åpen, er det den Esc lukker.

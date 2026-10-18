@@ -92,7 +92,7 @@
           <div class="bar-head"><label class="fs-label" for="stamina">Energi</label><span id="stamina-text" class="bar-num">100 / 100</span></div>
           <progress id="stamina" class="fs-progress" max="100" value="100"></progress>
         </div>
-        <div class="bar" id="light-bar" hidden>
+        <div class="bar" id="light-bar">
           <div class="bar-head"><label class="fs-label" for="light">Lys</label><span id="light-text" class="bar-num">100 %</span></div>
           <progress id="light" class="fs-progress" data-color="warning" max="100" value="100"></progress>
         </div>
@@ -118,9 +118,13 @@
     <span id="perf" class="perf" title="Bilder per sekund, grafikk-API og oppløsning"></span>
   </div>
 
+  <!-- Når spillet går uten fanget mus (etter filmen, eller når nettleseren ikke
+       ga oss musa), sier denne at et klikk fanger den. -->
+  <button id="look" class="fs-button look-prompt" type="button" hidden>Klikk for å se deg rundt med musa</button>
+
   <!-- Startskjerm og pause. Mens siden laster, viser kortet bare framdriften;
        Grafikk og Innstillinger hører til pausemenyen (pause() i main.js). -->
-  <section id="gate" class="overlay">
+  <section id="gate" class="overlay gate-first">
     <div class="fs-card gate-card">
       <p class="eyebrow">Fristil <span id="version"></span></p>
       <h1 class="fs-heading" data-size="xl">Fristad</h1>
@@ -132,7 +136,7 @@
       </div>
       <progress id="loading" class="fs-progress" max="100" aria-label="Laster Fristad"></progress>
       <div class="gate-actions">
-        <button id="begin" class="fs-button" hidden>Klikk for å begynne</button>
+        <button id="begin" class="fs-button" hidden>Se introfilmen</button>
         <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
         <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til sørporten</button>
         <button id="quit" class="fs-button" data-variant="ghost" hidden>Avslutt</button>

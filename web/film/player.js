@@ -4,7 +4,8 @@
 // filmen hadde: `tick(dt)` gir hvor mye av skjermen filmen dekker (1 mens
 // den går, ned mot 0 når den toner bort til slutt, så main.js kan sette
 // spilleren ved sørporten bak den), og `done` løses med `{ skipped }`.
-// Esc, mellomrom eller knappen «Hopp over» hopper over.
+// Esc, mellomrom eller knappen «Hopp over» hopper over. `gesture` sier om det
+// var et klikk eller mellomrom (en brukerhandling), så musa kan fanges med en gang.
 
 const FADE = 1.6; // sekunder fra videoens svarte slutt til spillet er framme
 
@@ -29,14 +30,16 @@ export function createFilm({ src = "film/intro.mp4" } = {}) {
   let cover = 1;
   let ending = false;
   let skipped = false;
+  let gesture = false;
   let finished = false;
   let resolveDone;
   const done = new Promise((r) => (resolveDone = r));
 
-  function finish(wasSkipped) {
+  function finish(wasSkipped, byGesture = false) {
     if (finished) return;
     finished = true;
     skipped = wasSkipped;
+    gesture = byGesture;
     if (wasSkipped) {
       cover = 0;
       cleanup();
@@ -53,17 +56,17 @@ export function createFilm({ src = "film/intro.mp4" } = {}) {
     } catch {}
     root.remove();
     document.body.classList.remove("filming");
-    resolveDone({ skipped });
+    resolveDone({ skipped, gesture });
   }
   function onKey(e) {
     if (e.key === "Escape" || e.key === " ") {
       e.preventDefault();
       e.stopPropagation();
-      finish(true);
+      finish(true, e.key === " ");
     }
   }
   document.addEventListener("keydown", onKey, true);
-  skipBtn.addEventListener("click", () => finish(true));
+  skipBtn.addEventListener("click", () => finish(true, true));
 
   video.src = src;
   video.addEventListener("canplay", () => (loading.hidden = true), { once: true });
