@@ -20,10 +20,8 @@
   <div id="dark" class="dark" aria-hidden="true"></div>
   <div id="hud" hidden>
     <!-- Siktepunktet midt på skjermen. Hva du sikter på, står i kortet
-         `#target` i kolonnen til høyre. -->
+         `#target` (eller `#foe`) midt på skjermen over stolpene. -->
     <span id="aim" class="aim" aria-hidden="true"><span class="crosshair"></span></span>
-      </span>
-    </span>
     <div id="vitals" class="vitals" hidden>
       <p id="goal" class="goal fs-paragraph" data-size="small" aria-live="polite" hidden></p>
       <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
@@ -38,34 +36,14 @@
     <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
          dreier med deg, og det store kartet (K) med nord opp. Det du ikke
          har sett, er mørkt. -->
-    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten), det du
-         sikter på (tingen eller fienden) og tastene, som kan foldes sammen (F1). De
-         står i én kolonne, så de aldri legger seg over hverandre. -->
+    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten) og tastene,
+         som kan foldes sammen (F1). De står i én kolonne, så de aldri legger
+         seg over hverandre. -->
     <div id="side" class="side">
     <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
       <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </aside>
-    <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
-         galleriet, senga): navnet, hva det er, og tastene. -->
-    <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
-      <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
-      <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
-      <p class="target-keys">
-        <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
-        <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
-      </p>
-    </section>
-    <!-- Fienden du sikter på: navnet, hva den er og livet. -->
-    <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
-      <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span></p>
-      <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
-      <p id="foe-info" class="fs-paragraph" data-size="small"></p>
-      <div class="foe-hp">
-        <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
-        <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
-      </div>
-    </section>
     <details id="keys-panel" class="fs-accordion keys-panel" open>
       <summary>Taster <kbd>F1</kbd></summary>
       <div class="fs-accordion__content">
@@ -98,6 +76,31 @@
       </div>
     </details>
     </div>
+    <!-- Det du sikter på, midt på skjermen et lite stykke over stolpene
+         (eieren 18. oktober: for vanskelig å se ute ved høyre kant): tingen
+         eller innbyggeren (#target) eller fienden (#foe), aldri begge. -->
+    <div id="aimed" class="aimed">
+      <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
+           galleriet, senga): navnet, hva det er, og tastene. -->
+      <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
+        <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
+        <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
+        <p class="target-keys">
+          <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+          <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
+        </p>
+      </section>
+      <!-- Fienden du sikter på: navnet, hva den er og livet. -->
+      <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
+        <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span><span id="foe-ranged" class="fs-tag" hidden>Skyter på avstand</span></p>
+        <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
+        <p id="foe-info" class="fs-paragraph" data-size="small"></p>
+        <div class="foe-hp">
+          <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
+          <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+        </div>
+      </section>
+    </div>
     <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
       <div class="bigmap-card">
         <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
@@ -115,11 +118,14 @@
     </section>
     <div id="marks" class="marks" aria-hidden="true"></div>
     <div id="bubbles" class="marks" aria-live="polite"></div>
-    <div id="overlay" class="overlay" hidden role="dialog" aria-labelledby="overlay-title">
-      <div class="overlay-inner">
-        <h2 id="overlay-title" class="fs-heading" data-size="m">Butikk</h2>
-        <div id="overlay-body"></div>
-        <div class="panel-actions"><button id="overlay-close" class="fs-button">Tilbake</button></div>
+    <div id="overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+      <div class="overlay-inner fs-dialog">
+        <div class="fs-dialog__header menu-head">
+          <h2 id="overlay-title" class="fs-dialog__title">Butikk</h2>
+          <p id="overlay-sub" class="fs-dialog__subtitle" hidden></p>
+        </div>
+        <div id="overlay-body" class="fs-dialog__body menu-body"></div>
+        <div class="fs-dialog__footer"><button id="overlay-close" class="fs-button" data-variant="secondary">Tilbake (E)</button></div>
       </div>
     </div>
     <div class="bottom">

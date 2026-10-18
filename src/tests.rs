@@ -390,6 +390,12 @@ fn skjemaet_sier_hvor_komponentene_finnes() {
         }
     }
     assert!(nowhere.is_empty(), "finnes ingen steder: {}", nowhere.join(", "));
+    // Kort på én linje til skjemaet, og hver ting har sin linje om seg selv.
+    assert_eq!(button.brief().lines().count(), 1);
+    assert!(button.brief().contains("Buttonsmeden"), "{}", button.brief());
+    let ids = craft::WEAPONS.iter().map(|w| w.id).chain(craft::SHIELDS.iter().map(|s| s.id)).chain(craft::ARMORS.iter().map(|a| a.id)).chain(craft::RECIPES.iter().map(|r| r.id));
+    let silent: Vec<&str> = ids.filter(|id| craft::about(id).is_empty()).collect();
+    assert!(silent.is_empty(), "uten beskrivelse: {silent:?}");
 }
 
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet

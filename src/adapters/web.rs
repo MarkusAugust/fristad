@@ -314,7 +314,7 @@ fn quality_json(q: &Quality) -> serde_json::Value {
 /// Et kort (utstyret i inventaret og galleriet i skriptoriet).
 fn gear_json(g: &crate::ports::driving::GearView) -> serde_json::Value {
     use serde_json::json;
-    json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
+    json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "about": g.about, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
 }
 
 fn json(e: &Event) -> serde_json::Value {

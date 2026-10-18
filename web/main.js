@@ -1000,8 +1000,9 @@ function openLore(title, text) {
   dlg.querySelector('[data-act="close"]').focus();
 }
 
-// Infopanelet til høyre om fienden du sikter på: navnet, om den er elite
-// eller boss, hva den er (kanon og slaget) og livet som følger skaden.
+// Fiendekortet midt på skjermen om fienden du sikter på: navnet, om den er
+// elite eller boss, om den skyter, hva den er (kanon og slaget) og livet som
+// følger skaden. Det står på samme plass som siktekortet, aldri samtidig.
 function setFoe(f) {
   const el = $("foe");
   el.hidden = !f;
@@ -1010,6 +1011,8 @@ function setFoe(f) {
   $("foe-info").textContent = f.info;
   $("foe-rank").textContent = f.rank;
   $("foe-rank").hidden = !f.rank;
+  // Slagene som skyter (inputen, Toast-frosken), plan 13e.
+  $("foe-ranged").hidden = !f.ranged;
   $("foe-hp").max = f.max_hp;
   $("foe-hp").value = f.hp;
   $("foe-hp-text").textContent = `${f.hp} / ${f.max_hp}`;
@@ -1037,76 +1040,163 @@ function initKeysPanel() {
 }
 initKeysPanel();
 
-// Inventaret (I): utstyret du har på deg og komponentene du har, bygd med
-// Fristils dialog, faner, kort, tabell, merker og framdriftsstolper.
+// Inventaret (I), plan 13a/13b: plassene for det du har på (Våpen, Skjold,
+// Rustning, Lys) til venstre er filteret, lista over utstyret ruller for
+// seg i en dialog med fast høyde, hver rad er en oppsummering (ikon, navn,
+// sjeldenhet), og den valgte står med beskrivelse og sammenligning mot det
+// du har på, med «Bruk <navn>» rett under tabellen. Dobbeltklikk eller
+// Enter tar på, og piltastene går i lista. Fanen «Komponenter» er lageret.
 let invOpen = null;
+let invSelected = null;
+let invFilter = "all";
+let invDetail = false;
 function toggleInventory() {
   if (invOpen) {
     closeInventory(true);
     return;
   }
-  const e = lastInv ?? { stash: [], carried: [], weapon: "Sverd", weapon_special: "", shield: "Rundskjold", armor: "Gambeson", lantern: false, max_hp: 100, max_stamina: 100, tokens: 0, read: [], gear: [] };
-  const h = lastHud;
+  const e = lastInv ?? { stash: [], carried: [], weapon: "Rustent sverd", weapon_special: "", shield: "Gammelt rundskjold", armor: "ingen", lantern: false, max_hp: 100, max_stamina: 100, tokens: 0, read: [], gear: [] };
   playing = false;
   dragging = false;
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
-  const title = (c) => docs[c]?.title ?? c;
-  const counts = new Map();
-  for (const [c, n] of e.stash) counts.set(c, { stash: n, carried: 0 });
-  for (const [c, n] of e.carried) counts.set(c, { stash: counts.get(c)?.stash ?? 0, carried: n });
-  const rows = [...counts.entries()]
-    .sort((a, b) => title(a[0]).localeCompare(title(b[0]), "nb"))
-    .map(([c, k]) => `<tr>
-        <th scope="row">${esc(title(c))}</th>
-        <td data-align="end">${k.stash}</td>
-        <td data-align="end">${k.carried ? `<span class="fs-badge" data-color="warning">${k.carried}</span>` : "0"}</td>
-        <td>${e.read.includes(c) ? '<span class="fs-badge" data-color="success">Lest</span>' : '<span class="fs-badge" data-color="neutral">Ulest</span>'}</td>
-        <td data-align="end">${docs[c] ? `<button class="fs-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
-      </tr>`)
-    .join("");
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog inventory-dialog";
+  dlg.className = "fs-dialog menu-dialog inventory-dialog";
   dlg.setAttribute("aria-labelledby", "inv-title");
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="inv-title">Utstyr og lager</h2>
-    <div class="fs-dialog__body">
-      <div class="inv-stats">
-        <label class="fs-label">Liv ${h.hp} av ${e.max_hp}<progress class="fs-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
-        <label class="fs-label">Utholdenhet ${h.stamina} av ${e.max_stamina}<progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
-        <div class="inv-badges">
-          <span class="fs-badge" data-color="warning">${e.tokens} tokens</span>
-          <span class="fs-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys} nøkler`}</span>
-        </div>
-      </div>
+    <div class="fs-dialog__header menu-head">
+      <h2 class="fs-dialog__title" id="inv-title">Utstyr og lager</h2>
+      <div class="inv-stats"></div>
+    </div>
+    <div class="fs-dialog__body menu-body">
       <fs-tabs>
         <div class="fs-tabs__list" aria-label="Inventaret">
           <button>Utstyr</button>
-          <button>Komponenter (${counts.size})</button>
+          <button class="inv-comp-tab">Komponenter</button>
         </div>
-        <div class="fs-tabs__panel">
-          <div class="inv-slots">${invSlots(e)}</div>
-          <div class="inv-gear"></div>
-        </div>
-        <div class="fs-tabs__panel">
-          ${counts.size
-            ? `<table class="fs-table" data-variant="striped">
-                <caption>Komponentene du har vunnet. Det du bærer, er ditt først når du er oppe igjen.</caption>
-                <thead><tr><th scope="col">Komponent</th><th scope="col" data-align="end">I lageret</th><th scope="col" data-align="end">Bærer</th><th scope="col">Boka</th><th scope="col"></th></tr></thead>
-                <tbody>${rows}</tbody>
-              </table>`
-            : `<p class="fs-paragraph">Du har ingen komponenter ennå. De ligger i kistene og hos fiendene i krypten.</p>`}
-        </div>
+        <div class="fs-tabs__panel inv-gear-panel"></div>
+        <div class="fs-tabs__panel inv-comps"></div>
       </fs-tabs>
     </div>
     <div class="fs-dialog__footer">
-      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (I)</button>
+      <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk (I)</button>
     </div>`;
   document.body.appendChild(dlg);
   invOpen = dlg;
   invSelected = null;
+  invDetail = false;
   renderInvGear(e);
   dlg.querySelector('[data-act="close"]').addEventListener("click", () => closeInventory(true));
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    if (invDetail && narrow()) {
+      invDetail = false;
+      renderInvGear(lastInv ?? e);
+      return;
+    }
+    closeInventory(true);
+  });
+  sfx.play("bag");
+  dlg.showModal();
+  dlg.querySelector(".pick-row[aria-selected='true']")?.focus();
+}
+
+// Smal skjerm: lista alene, og detaljene i stedet for lista med «Tilbake».
+const narrow = () => innerWidth <= 720;
+
+// Lykta som en ting i plassen «Lys»: oljen og hvor lenge den brenner
+// (`lantern::FULL` er 8 minutter).
+function lanternItem(e) {
+  const light = lastHud?.light ?? 100;
+  const min = Math.round((light / 100) * 8);
+  return {
+    id: e.lantern ? "search_lantern" : "",
+    name: e.lantern ? "Søkelykt" : "Lykta i beltet",
+    slot: "lantern",
+    rarity: e.lantern ? "sjelden" : "vanlig",
+    special: "",
+    about: e.lantern ? "Lykt med slipt glass som kaster lyset dobbelt så langt inn i mørket." : "Lykta du bærer i beltet. Oljen brenner bare nede i krypten; fyll den hos Apotekeren eller på hvilestedene.",
+    stats: [{ label: "Olje", value: light / 100, max: 1, text: `${light} %`, up: true }, { label: "Brenner", value: min, max: 8, text: min ? `ca. ${min} min` : "tom", up: true }, { label: "Bærelyset", value: e.lantern ? 2.2 : 1, max: 2.2, text: e.lantern ? "×2,2" : "×1,0", up: true }],
+    equipped: true,
+    owned: true,
+    light,
+  };
+}
+
+function renderInvGear(e) {
+  const dlg = invOpen;
+  if (!dlg) return;
+  const h = lastHud;
+  dlg.querySelector(".inv-stats").innerHTML = `
+    <label class="fs-label">Liv <span class="bar-num">${h.hp} / ${e.max_hp}</span><progress class="fs-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
+    <label class="fs-label">Utholdenhet <span class="bar-num">${h.stamina} / ${e.max_stamina}</span><progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
+    <span class="fs-badge" data-color="warning">${e.tokens} tokens</span>
+    <span class="fs-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys ?? 0} nøkler`}</span>`;
+  const gear = e.gear ?? [];
+  const lantern = lanternItem(e);
+  const worn = (slot) => (slot === "lantern" ? lantern : gear.find((g) => g.slot === slot && g.equipped) ?? (slot === "armor" ? NO_ARMOR : null));
+  const slotOf = { weapon: 0, shield: 1, armor: 2, lantern: 3 };
+  const all = [...gear, lantern]
+    .filter((g) => invFilter === "all" || g.slot === invFilter)
+    .sort((a, b) => slotOf[a.slot] - slotOf[b.slot] || Number(b.equipped) - Number(a.equipped) || rarityRank(b.rarity) - rarityRank(a.rarity) || a.name.localeCompare(b.name, "nb"));
+  // Først det første du ikke har på, så det står mot det du har på med en
+  // gang; ellers det du har på.
+  if (!all.some((g) => itemKey(g) === invSelected)) invSelected = itemKey(all.find((g) => !g.equipped) ?? all[0] ?? {});
+  const sel = all.find((g) => itemKey(g) === invSelected);
+  // Plassene: det du har på, og filteret.
+  const slotCard = (slot, label, item, empty) => {
+    const [name, r] = splitRarity(item?.name ?? "");
+    const rarity = item?.rarity || r;
+    const real = item && item.id !== "" || slot === "lantern";
+    return `<button type="button" class="slot-card" data-slot="${slot}" data-rarity="${esc(rarity || "vanlig")}" aria-pressed="${invFilter === slot}" title="${esc(label)}: ${esc(real ? name : empty)}" ${real ? "" : 'data-empty=""'}>
+        ${real ? gearIcon(item, "small") : `<span class="gear-ico small silhouette" aria-hidden="true">${SILHOUETTES[slot]}</span>`}
+        <span class="slot-text">
+          <span class="eyebrow">${label}</span>
+          <span class="slot-name">${esc(real ? name : empty)}</span>
+          ${slot === "lantern" ? `<progress class="fs-progress mini" data-color="warning" max="100" value="${lantern.light}" aria-label="Olje"></progress>` : ""}
+        </span>
+      </button>`;
+  };
+  const wornName = (slot) => worn(slot) ?? null;
+  const counts = new Map();
+  for (const [c, n] of e.stash) counts.set(c, { stash: n, carried: 0 });
+  for (const [c, n] of e.carried) counts.set(c, { stash: counts.get(c)?.stash ?? 0, carried: n });
+  const panel = dlg.querySelector(".inv-gear-panel");
+  const hadFocus = panel.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
+  panel.innerHTML = `<div class="inv-layout picker${invDetail ? " show-detail" : ""}">
+      <div class="inv-slots" role="group" aria-label="Det du har på (velg for å vise bare det slaget)">
+        <button type="button" class="fs-tag inv-all" data-selectable data-slot="all" aria-pressed="${invFilter === "all"}">Alt <span class="count">${gear.length + 1}</span></button>
+        ${slotCard("weapon", "Våpen", wornName("weapon"), "")}
+        ${slotCard("shield", "Skjold", wornName("shield"), "")}
+        ${slotCard("armor", "Rustning", worn("armor") === NO_ARMOR ? null : worn("armor"), "Finn eller smi en rustning i Skriptoriet")}
+        ${slotCard("lantern", "Lys", lantern, "")}
+      </div>
+      <div class="pick-side">
+        <p class="pick-count fs-help-text">${invFilter === "all" ? "Alt utstyret ditt" : SLOT_NAMES[invFilter]}: ${all.length}</p>
+        <ul class="pick-list" role="listbox" aria-label="Utstyret ditt">
+          ${all.map((g) => pickRow(itemKey(g), g, g.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : "", invSelected === itemKey(g), invFilter === "all" ? SLOT_NAMES[g.slot] : "")).join("")}
+        </ul>
+      </div>
+      <section class="detail" aria-live="polite">${sel ? invDetailHtml(sel, worn(sel.slot), [...gear, NO_ARMOR]) : ""}</section>
+    </div>`;
+  const tab = dlg.querySelector(".inv-comp-tab");
+  tab.textContent = `Komponenter (${counts.size})`;
+  dlg.querySelector(".inv-comps").innerHTML = counts.size
+    ? `<div class="menu-scroll"><table class="fs-table" data-variant="striped">
+        <caption>Komponentene du har vunnet. Det du bærer, er ditt først når du er oppe igjen.</caption>
+        <thead><tr><th scope="col">Komponent</th><th scope="col" data-align="end">I lageret</th><th scope="col" data-align="end">Bærer</th><th scope="col">Boka</th><th scope="col"></th></tr></thead>
+        <tbody>${[...counts.entries()]
+          .sort((a, b) => compTitle(a[0]).localeCompare(compTitle(b[0]), "nb"))
+          .map(([c, k]) => `<tr>
+            <th scope="row"><span class="comp-name"><img class="comp-ico" src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.hidden=true">${esc(compTitle(c))}</span></th>
+            <td data-align="end">${k.stash}</td>
+            <td data-align="end">${k.carried ? `<span class="fs-badge" data-color="warning">${k.carried}</span>` : "0"}</td>
+            <td>${e.read.includes(c) ? '<span class="fs-badge" data-color="success">Lest</span>' : '<span class="fs-badge" data-color="neutral">Ulest</span>'}</td>
+            <td data-align="end">${docs[c] ? `<button class="fs-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
+          </tr>`)
+          .join("")}</tbody>
+      </table></div>`
+    : `<p class="fs-paragraph">Du har ingen komponenter ennå. De ligger i kistene og hos fiendene i krypten.</p>`;
   for (const b of dlg.querySelectorAll("[data-read]")) {
     b.addEventListener("click", () => {
       const c = b.dataset.read;
@@ -1114,74 +1204,59 @@ function toggleInventory() {
       readDoc(c);
     });
   }
-  dlg.addEventListener("cancel", (ev) => {
-    ev.preventDefault();
-    closeInventory(true);
-  });
-  sfx.play("bag");
-  dlg.showModal();
-}
-
-// Alt utstyret du har samlet, som kort. Velg et, så står det ved siden av
-// det du har på i samme spor med grønne og røde piler per verdi, og «Bruk»
-// tar det på (eieren 18. oktober).
-let invSelected = null;
-function invSlots(e) {
-  const slot = (label, name, note, tag) => `<div class="fs-card" data-variant="filled">
-      <p class="eyebrow">${label}</p>
-      <h3 class="fs-card__title">${esc(name)}</h3>
-      ${note ? `<p class="fs-help-text">${esc(note)}</p>` : ""}
-      ${tag ? `<span class="fs-tag" data-variant="filled">${esc(tag)}</span>` : ""}
-    </div>`;
-  return `${slot("Våpen", e.weapon, e.weapon_special, "I høyre hånd")}
-    ${slot("Skjold", e.shield, "", "I venstre hånd")}
-    ${slot("Rustning", e.armor, "", "På kroppen")}
-    ${slot("Lys", e.lantern ? "Søkelykt" : "Fakkel", e.lantern ? "Lyser lenger inn i mørket." : "", "")}`;
-}
-const NO_ARMOR = { id: "", name: "Ingen rustning", slot: "armor", rarity: "vanlig", special: "", equipped: true, owned: true, stats: [
-  { label: "Skade du tar", value: 1, text: "100 %", up: false },
-  { label: "Utholdenhet tilbake", value: 1, text: "×1.00", up: true },
-  { label: "Unnamanøver koster", value: 1, text: "×1.00", up: false },
-] };
-function renderInvGear(e) {
-  const root = invOpen?.querySelector(".inv-gear");
-  if (!root) return;
-  invOpen.querySelector(".inv-slots").innerHTML = invSlots(e);
-  const gear = e.gear ?? [];
-  const worn = (slot) => gear.find((g) => g.slot === slot && g.equipped) ?? (slot === "armor" ? NO_ARMOR : null);
-  const sel = gear.find((g) => g.id === invSelected);
-  const compare = sel
-    ? `<div class="gear-compare" aria-live="polite">
-        ${gearCard(sel, worn(sel.slot))}
-        <div class="gear-vs" aria-hidden="true">mot</div>
-        ${gearCard(worn(sel.slot) ?? sel, null)}
-      </div>
-      <div class="gear-actions">
-        <button type="button" class="fs-button" data-variant="primary" data-equip="${esc(sel.id)}" ${sel.equipped ? "disabled" : ""}>Bruk</button>
-        <span class="fs-help-text">${sel.equipped ? "Du har den på deg." : `Bytter ut ${esc(worn(sel.slot)?.name ?? "")}.`}</span>
-      </div>`
-    : `<p class="fs-help-text">Velg noe du har, så ser du det mot det du har på.</p>`;
-  root.innerHTML = `<h3 class="fs-heading" data-size="xs">Alt utstyret ditt (${gear.length})</h3>
-    <div class="gear-grid pick">${gear.map((g) => gearCard(g, worn(g.slot), "", `tabindex="0" role="button" aria-pressed="${g.id === invSelected}" data-pick="${esc(g.id)}"`)).join("")}</div>
-    ${compare}`;
-  for (const c of root.querySelectorAll("[data-pick]")) {
-    const pick = () => {
-      invSelected = c.dataset.pick;
+  for (const b of panel.querySelectorAll("[data-slot]")) {
+    b.addEventListener("click", () => {
+      invFilter = b.dataset.slot === invFilter ? "all" : b.dataset.slot;
+      invSelected = null;
+      invDetail = false;
       sfx.play("click");
-      renderInvGear(e);
-      root.querySelector(".gear-compare")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    };
-    c.addEventListener("click", pick);
-    c.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter" || ev.key === " ") {
-        ev.preventDefault();
-        pick();
-      }
+      renderInvGear(lastInv ?? e);
     });
   }
-  root.querySelector("[data-equip]")?.addEventListener("click", (ev) => {
-    engine.equip(ev.currentTarget.dataset.equip);
+  const equip = (key) => {
+    const g = all.find((x) => itemKey(x) === key);
+    if (!g || g.equipped || g.slot === "lantern") return;
+    if (engine.equip(g.id)) sfx.play("click");
+  };
+  bindPickList(panel, {
+    select(key, open) {
+      invSelected = key;
+      if (open) invDetail = true;
+      sfx.play("click");
+      renderInvGear(lastInv ?? e);
+    },
+    activate: equip,
   });
+  panel.querySelector("[data-equip]")?.addEventListener("click", (ev) => equip(ev.currentTarget.dataset.equip));
+  panel.querySelector("[data-back]")?.addEventListener("click", () => {
+    invDetail = false;
+    renderInvGear(lastInv ?? e);
+  });
+  const row = panel.querySelector(".pick-row[aria-selected='true']");
+  row?.scrollIntoView({ block: "nearest" });
+  if (hadFocus) row?.focus();
+}
+
+// Detaljene for en ting i inventaret: beskrivelsen, sammenligningen og
+// «Bruk <navn>» rett under tabellen.
+function invDetailHtml(sel, worn, pool) {
+  const [name] = splitRarity(sel.name);
+  const same = !worn || itemKey(worn) === itemKey(sel);
+  const action =
+    sel.slot === "lantern"
+      ? `<p class="fs-help-text">${sel.id ? "Søkelykta henger i beltet." : "En søkelykt smis i Skriptoriet."} Olje får du hos Apotekeren og på hvilestedene.</p>`
+      : `<div class="detail-actions">
+          ${sel.equipped
+            ? '<span class="fs-help-text">Du har den på deg. Velg noe annet i lista for å se det mot denne.</span>'
+            : `<button type="button" class="fs-button" data-variant="primary" data-equip="${esc(sel.id)}">Bruk ${esc(name)}</button>
+               <span class="fs-help-text">Bytter ut ${esc(splitRarity(worn?.name ?? "")[0])}. Dobbeltklikk eller Enter i lista gjør det samme.</span>`}
+        </div>`;
+  return `<div class="detail-scroll">
+      <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+      ${detailHead(sel)}
+      ${compareTable(sel, same ? null : worn, pool)}
+      ${action}
+    </div>`;
 }
 
 function closeInventory(resume) {
@@ -1402,17 +1477,19 @@ function openGraphics(resume = playing) {
   dlg.showModal();
 }
 
-// Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
-// spillet på pause mens den står.
+// Butikk og verksted: en Fristil-dialog midt på skjermen med spillet på
+// pause mens den står. Den ligger i HUD-en, så den tar imot musa selv.
 let overlayOpen = false;
-function openOverlay(title) {
+function openOverlay(title, subtitle = "") {
   overlayOpen = true;
   playing = false;
   dragging = false;
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
   $("overlay-title").textContent = title;
-  $("overlay").querySelector(".overlay-inner").classList.remove("wide");
+  $("overlay-sub").textContent = subtitle;
+  $("overlay-sub").hidden = !subtitle;
+  $("overlay").querySelector(".overlay-inner").classList.remove("menu");
   $("overlay-body").replaceChildren();
   $("overlay").hidden = false;
   return $("overlay-body");
@@ -1429,14 +1506,18 @@ function closeOverlay(resume = true, relock = true) {
   if (resume && !relock) clickHint();
 }
 
+// Butikken: én rad per vare (navnet, prisen og «Kjøp»). Lista ruller inne i
+// dialogen når den er lang (plan 13c).
 function openShop(npc, wares) {
-  const body = openOverlay(npc);
-  const list = document.createElement("div");
-  list.className = "wares";
+  const body = openOverlay(npc, "");
+  const list = document.createElement("ul");
+  list.className = "fs-list wares";
+  list.dataset.variant = "divided";
   for (const w of wares) {
-    const row = document.createElement("div");
+    const row = document.createElement("li");
     row.className = "ware";
     const name = document.createElement("span");
+    name.className = "ware-name";
     name.textContent = w.name;
     const buy = document.createElement("div");
     buy.className = "ware-buy";
@@ -1466,6 +1547,10 @@ function openShop(npc, wares) {
 // Kalles når butikken åpnes og hver gang tokenene endres (etter et kjøp).
 function updateShop() {
   const tokens = lastHud?.tokens ?? 0;
+  if (!$("overlay").querySelector(".overlay-inner").classList.contains("menu")) {
+    $("overlay-sub").textContent = `Du har ${tokens} tokens.`;
+    $("overlay-sub").hidden = false;
+  }
   for (const btn of document.querySelectorAll("#overlay-body .ware .fs-button[data-price]")) {
     const price = Number(btn.dataset.price);
     const short = price > tokens;
@@ -1475,111 +1560,269 @@ function updateShop() {
   }
 }
 
-// Utstyret som kort (galleriet i skriptoriet og inventaret): ikonet
-// (`icons/<id>.png`, eierens malte ikoner eller et rendret bilde av
-// modellen), navnet, sjeldenheten og verdiene, med grønne og røde piler mot
-// det du har på i samme spor.
+// Felles for inventaret og Skriptoriet (plan 13a): sjeldenheten i farge
+// (Fristils tokens: vanlig grå, sjelden blå, episk lilla, legendarisk gull),
+// ikonet (`icons/<id>.png`), raden med oppsummeringen og
+// sammenligningstabellen.
 const SLOT_NAMES = { weapon: "Våpen", shield: "Skjold", armor: "Rustning", lantern: "Lys" };
-const RARITY_COLORS = { vanlig: "neutral", sjelden: "info", episk: "warning" };
-function gearStats(item, other) {
-  const rows = item.stats
-    .map((st) => {
-      const o = other?.stats.find((x) => x.label === st.label);
+const RARITIES = ["vanlig", "sjelden", "episk", "legendarisk"];
+const rarityRank = (r) => Math.max(0, RARITIES.indexOf(r));
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : "");
+// «Gammelt rundskjold (vanlig)» → ["Gammelt rundskjold", "vanlig"].
+function splitRarity(name) {
+  const m = /^(.*?)\s*\((vanlig|sjelden|episk|legendarisk)\)$/.exec(name ?? "");
+  return m ? [m[1], m[2]] : [name ?? "", ""];
+}
+const rarityTag = (r) => (r ? `<span class="fs-tag rarity-tag" data-rarity="${esc(r)}">${cap(esc(r))}</span>` : "");
+const itemKey = (g) => `${g?.slot ?? ""}:${g?.id ?? ""}`;
+const compTitle = (c) => docs[c]?.title ?? c;
+const SILHOUETTES = {
+  weapon: '<svg viewBox="0 0 24 24"><path d="M14 3h7v7L10 21l-3-3L18 7M5 15l4 4M3 21l3-3"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/></svg>',
+  armor: '<svg viewBox="0 0 24 24"><path d="M8 3l4 2 4-2 4 3-2 4v11H6V10L4 6z"/></svg>',
+  lantern: '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v3h4V3M7 6h10v13H7zM9 21h6M12 10v5"/></svg>',
+};
+function gearIcon(item, size) {
+  const r = item?.rarity || splitRarity(item?.name)[1] || "vanlig";
+  if (!item?.id) return `<span class="gear-ico ${size} silhouette" data-rarity="${esc(r)}" aria-hidden="true">${SILHOUETTES[item?.slot] ?? ""}</span>`;
+  return `<span class="gear-ico ${size}" data-rarity="${esc(r)}"><img src="icons/${esc(item.id)}.png" alt="" loading="lazy" onerror="this.hidden=true"></span>`;
+}
+const NO_ARMOR = { id: "", name: "Ingen rustning", slot: "armor", rarity: "vanlig", special: "", about: "Bare skjorta og kappa du kom til porten i.", equipped: true, owned: true, stats: [
+  { label: "Skade du tar", value: 1, text: "100 %", up: false },
+  { label: "Utholdenhet tilbake", value: 1, text: "×1.00", up: true },
+  { label: "Unnamanøver koster", value: 1, text: "×1.00", up: false },
+] };
+
+// Egenskaper der lavt er bra, vises slik at høyt er bra der det går
+// («Tåler 75 %» i stedet for «Slipper gjennom 25 %»); ellers følger fargen.
+const FLIP = { "Slipper gjennom": "Tåler", "Skade du tar": "Demper skade" };
+function shownStat(st) {
+  if (FLIP[st.label]) {
+    const v = 1 - st.value;
+    return { label: FLIP[st.label], value: v, text: `${Math.round(v * 100)} %`, up: true };
+  }
+  return { ...st, text: String(st.text).replace(/(\d)\.(\d)/g, "$1,$2") };
+}
+function fmtDelta(st, d) {
+  const sign = d > 0 ? "+" : "−";
+  const a = Math.abs(d);
+  const n = (x, k) => x.toFixed(k).replace(".", ",");
+  if (/%$/.test(st.text)) return `${sign}${Math.round(a * 100)} %`;
+  if (/ m$/.test(st.text)) return `${sign}${n(a, 1)} m`;
+  if (/ s$/.test(st.text)) return `${sign}${n(a, 2)} s`;
+  if (/min$/.test(st.text)) return `${sign}${Math.round(a)} min`;
+  return `${sign}${n(a, 2)}`;
+}
+// Hvor god en verdi er mot de andre tingene i samme meny (0–100): lengre
+// stolpe er bedre, også der lavt er bra.
+function goodness(st, label, pool) {
+  if (st.max) return (100 * st.value) / st.max;
+  const vals = pool.flatMap((g) => g?.stats ?? []).filter((x) => x.label === label).map((x) => shownStat(x).value);
+  if (!vals.length) return 100;
+  return st.up ? (100 * st.value) / Math.max(...vals, 1e-6) : (100 * Math.min(...vals)) / Math.max(st.value, 1e-6);
+}
+function compareTable(sel, other, pool) {
+  const cell = (st, label) => `<span class="stat-val">${esc(st.text)}</span><progress class="fs-progress mini" max="100" value="${Math.round(goodness(st, label, pool))}" aria-hidden="true"></progress>`;
+  const rows = sel.stats
+    .map((raw) => {
+      const st = shownStat(raw);
+      const oraw = other?.stats.find((x) => x.label === raw.label);
+      const o = oraw && shownStat(oraw);
       let delta = "";
-      if (o && other.id !== item.id) {
+      if (o) {
         const d = st.value - o.value;
-        if (Math.abs(d) < 1e-4) delta = `<span class="delta same" aria-label="likt">=</span>`;
-        else {
-          const better = st.up ? d > 0 : d < 0;
-          delta = `<span class="delta ${better ? "better" : "worse"}" aria-label="${better ? "bedre" : "dårligere"} enn ${esc(other.name)}">${d > 0 ? "▲" : "▼"}</span>`;
+        if (Math.abs(d) > 1e-4) {
+          const good = st.up ? d > 0 : d < 0;
+          delta = `<span class="delta ${good ? "better" : "worse"}" aria-label="${good ? "bedre" : "dårligere"}">${fmtDelta(st, d)}</span>`;
         }
       }
-      return `<div class="gear-stat"><dt>${esc(st.label)}</dt><dd>${esc(st.text)} ${delta}</dd></div>`;
+      return `<tr><th scope="row">${esc(st.label)}${st.up ? "" : ' <span class="low-good" title="Lavt er bra">(lavt er bra)</span>'}</th>${other ? `<td data-align="end">${o ? cell(o, raw.label) : "–"}</td>` : ""}<td data-align="end">${cell(st, raw.label)}</td>${other ? `<td data-align="end" class="delta-cell">${delta}</td>` : ""}</tr>`;
     })
     .join("");
-  return `<dl class="gear-stats">${rows}</dl>`;
+  const otherName = splitRarity(other?.name)[0];
+  return `<table class="fs-table compare">
+      <caption class="fs-sr-only">${other ? `${esc(splitRarity(sel.name)[0])} mot ${esc(otherName)}` : "Verdiene"}</caption>
+      <thead><tr><th scope="col">Egenskap</th>${other ? `<th scope="col" data-align="end">Har på</th>` : ""}<th scope="col" data-align="end">${other ? "Denne" : "Verdi"}</th>${other ? '<th scope="col" data-align="end">Forskjell</th>' : ""}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
-function gearCard(item, other, extra = "", attrs = "") {
-  return `<article class="fs-card gear-card" data-variant="outlined" data-rarity="${esc(item.rarity)}" ${attrs}>
-      <img class="gear-icon" src="icons/${esc(item.id)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-      <div class="gear-head">
-        <h3 class="fs-card__title">${esc(item.name)}</h3>
-        <div class="gear-tags">
-          <span class="fs-badge" data-color="${RARITY_COLORS[item.rarity] ?? "neutral"}">${esc(item.rarity)}</span>
-          <span class="fs-tag">${SLOT_NAMES[item.slot] ?? ""}</span>
-          ${item.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : ""}
-        </div>
+function detailHead(item, badge = "") {
+  const [name, r] = splitRarity(item.name);
+  const rarity = item.rarity || r;
+  return `<header class="detail-head" data-rarity="${esc(rarity)}">
+      ${gearIcon(item, "big")}
+      <div class="detail-title">
+        <h3 class="fs-heading" data-size="m">${esc(name)}</h3>
+        <div class="gear-tags">${rarityTag(rarity)}<span class="fs-tag">${SLOT_NAMES[item.slot] ?? ""}</span>${item.equipped && item.slot !== "lantern" ? '<span class="fs-badge" data-color="success">På deg</span>' : ""}${badge}</div>
+        ${item.special ? `<p class="detail-special"><span class="fs-tag" data-variant="filled">${esc(cap(item.special))}</span></p>` : ""}
       </div>
-      ${item.special ? `<p class="fs-help-text gear-special">${esc(item.special)}</p>` : ""}
-      ${gearStats(item, other)}
-      ${extra}
-    </article>`;
+    </header>
+    ${item.about ? `<p class="fs-paragraph detail-about">${esc(item.about)}</p>` : ""}`;
 }
-
-// Skriptoriet: alle oppskriftene som kort i et galleri, med det tingen
-// gir, verdiene mot det du har på, og komponentene du har og mangler (og hvor
-// de finnes). «Smi» er av til du har alt (eieren 18. oktober).
-let workshopFilter = "all";
-function openWorkshop(recipes) {
-  const body = openOverlay("Skriptoriet");
-  $("overlay").querySelector(".overlay-inner").classList.add("wide");
-  const wrap = document.createElement("div");
-  wrap.className = "workshop";
-  const filters = [["all", "Alt"], ["weapon", "Våpen"], ["shield", "Skjold"], ["armor", "Rustning"], ["lantern", "Lys"]];
-  wrap.innerHTML = `<p class="fs-paragraph" data-size="small">Søknad om smiing: hver oppskrift er et skjema. Har du alle komponentene i lageret, godkjennes det og tingen smis.</p>
-    <div class="gear-filter" role="group" aria-label="Vis">${filters.map(([k, n]) => `<button type="button" class="fs-button" data-size="small" data-filter="${k}" aria-pressed="${k === workshopFilter}">${n}</button>`).join("")}</div>
-    <div class="gear-grid"></div>`;
-  body.appendChild(wrap);
-  const grid = wrap.querySelector(".gear-grid");
-  const title = (c) => docs[c]?.title ?? c;
-  const render = () => {
-    for (const b of wrap.querySelectorAll("[data-filter]")) {
-      b.setAttribute("aria-pressed", String(b.dataset.filter === workshopFilter));
-      b.dataset.variant = b.dataset.filter === workshopFilter ? "primary" : "secondary";
-    }
-    grid.innerHTML = recipes
-      .filter((r) => workshopFilter === "all" || r.item.slot === workshopFilter)
-      .map((r) => {
-        const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
-        const crypt = (c) => (where.get(c)?.cryptOnly ? ' <span class="fs-badge" data-color="warning">Bare i krypten</span>' : "");
-        const need = r.needs
-          .map(([c, n, have]) => {
-            const ok = have >= n;
-            return `<li class="${ok ? "have" : "lack"}"><span class="gear-comp">${ok ? "✓" : "✗"} ${esc(title(c))} ${have}/${n}</span>${crypt(c)}${ok ? "" : `<span class="fs-help-text">${esc(where.get(c)?.text ?? "")}</span>`}</li>`;
-          })
-          .concat(
-            r.requires.map(
-              ([c, ok]) =>
-                `<li class="${ok ? "have" : "lack"}"><span class="gear-comp">${ok ? "✓" : "✗"} ${esc(title(c))} i lageret</span>${crypt(c)}${ok ? "" : `<span class="fs-help-text">${esc(where.get(c)?.text ?? "")}</span>`}</li>`,
-            ),
-          )
-          .join("");
-        const owned = r.item.owned;
-        const can = r.ok && !owned;
-        const why = owned ? "Du har den allerede." : r.ok ? "" : "Mangler komponenter.";
-        const extra = `<ul class="gear-needs" aria-label="Komponentene">${need}</ul>
-          <div class="gear-actions">
-            ${owned ? '<span class="fs-badge" data-color="success">Har du</span>' : ""}
-            <button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : `disabled aria-describedby="why-${esc(r.id)}"`}>Smi</button>
-            <span class="fs-help-text" id="why-${esc(r.id)}">${why}</span>
-          </div>`;
-        return gearCard(r.item, r.current, extra, `data-recipe="${esc(r.id)}"`);
-      })
-      .join("");
-    for (const b of grid.querySelectorAll("[data-craft]")) {
-      b.addEventListener("click", () => {
-        if (engine.craft(b.dataset.craft)) closeOverlay(true);
-      });
-    }
-  };
-  for (const b of wrap.querySelectorAll("[data-filter]")) {
-    b.addEventListener("click", () => {
-      workshopFilter = b.dataset.filter;
-      sfx.play("click");
-      render();
+// Én rad i lista: ikonet, navnet, sjeldenheten og et merke.
+function pickRow(key, item, badge, selected, sub = "") {
+  const [name, r] = splitRarity(item.name);
+  const rarity = item.rarity || r;
+  return `<li class="pick-row" role="option" data-key="${esc(key)}" data-rarity="${esc(rarity)}" aria-selected="${selected}" tabindex="${selected ? 0 : -1}">
+      ${gearIcon(item, "small")}
+      <span class="pick-text"><span class="pick-name">${esc(name)}</span><span class="pick-meta">${rarityTag(rarity)}${sub ? `<span class="pick-sub">${esc(sub)}</span>` : ""}</span></span>
+      <span class="pick-badge">${badge}</span>
+    </li>`;
+}
+// Musa og tastene i lista: klikk velger (på smal skjerm åpner det
+// detaljene), to klikk eller Enter bruker, piltastene flytter.
+let lastPick = { key: "", at: 0 };
+function bindPickList(root, { select, activate }) {
+  const list = root.querySelector(".pick-list");
+  if (!list) return;
+  const rows = [...list.querySelectorAll(".pick-row")];
+  for (const row of rows) {
+    row.addEventListener("click", () => {
+      const key = row.dataset.key;
+      const now = performance.now();
+      if (activate && lastPick.key === key && now - lastPick.at < 450) {
+        lastPick = { key: "", at: 0 };
+        activate(key);
+        return;
+      }
+      lastPick = { key, at: now };
+      select(key, narrow());
     });
   }
+  list.addEventListener("keydown", (ev) => {
+    const i = rows.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      const next = rows[Math.min(rows.length - 1, Math.max(0, i + (ev.key === "ArrowDown" ? 1 : -1)))];
+      next.focus();
+      select(next.dataset.key, false);
+    } else if (ev.key === "Enter") {
+      ev.preventDefault();
+      if (activate) activate(rows[i].dataset.key);
+      else select(rows[i].dataset.key, true);
+    } else if (ev.key === " ") {
+      ev.preventDefault();
+      select(rows[i].dataset.key, true);
+    }
+  });
+}
+
+// Skriptoriet (plan 13c, eierens revisjon 18. oktober): en dialog med fast
+// høyde. Til venstre filtrene med antall og lista som ruller for seg, med
+// én oppsummering per oppskrift (ikon, navn, sjeldenhet og «Kan smis»,
+// «Mangler N» eller «Har du»); de du kan smi nå øverst, det du har nederst
+// og dempet. Til høyre detaljene for den valgte: beskrivelsen,
+// sammenligningen med det du har på, komponentene med «har 2 av 3», og
+// «Smi» fast nederst, av med grunnen. På smal skjerm står detaljene i
+// stedet for lista, med «Tilbake».
+let workshopFilter = "all";
+let workshopSel = null;
+function openWorkshop(recipes) {
+  const body = openOverlay("Skriptoriet", "Søknad om smiing: har du komponentene i lageret, godkjennes skjemaet og tingen smis.");
+  $("overlay").querySelector(".overlay-inner").classList.add("menu");
+  let detail = false;
+  const lack = (r) => r.needs.reduce((s, [, n, have]) => s + Math.max(0, n - have), 0) + r.requires.filter(([, ok]) => !ok).length;
+  const state = (r) => (r.item.owned ? 2 : r.ok ? 0 : 1);
+  const sorted = [...recipes].sort((a, b) => state(a) - state(b) || lack(a) - lack(b) || rarityRank(a.item.rarity) - rarityRank(b.item.rarity) || a.item.name.localeCompare(b.item.name, "nb"));
+  const pool = recipes.flatMap((r) => [r.item, r.current]).filter(Boolean);
+  const filters = [["all", "Alt"], ["weapon", "Våpen"], ["shield", "Skjold"], ["armor", "Rustning"], ["lantern", "Lys"]].filter(([k]) => k === "all" || recipes.some((r) => r.item.slot === k));
+  const badge = (r) => (r.item.owned ? '<span class="fs-badge" data-color="neutral">Har du</span>' : r.ok ? '<span class="fs-badge" data-color="success">Kan smis</span>' : `<span class="fs-badge" data-color="warning">Mangler ${lack(r)}</span>`);
+  const wrap = document.createElement("div");
+  wrap.className = "workshop picker";
+  body.appendChild(wrap);
+  const recipeDetail = (r) => {
+    const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
+    const missing = [];
+    const comp = (c, have, n, keep) => {
+      const ok = have >= n;
+      if (!ok) missing.push(compTitle(c));
+      const w = where.get(c);
+      return `<li class="comp ${ok ? "have" : "lack"}">
+          <img class="comp-ico" src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+          <div class="comp-main">
+            <div class="comp-top"><span class="comp-title">${esc(compTitle(c))}</span><span class="comp-count">${keep ? (ok ? "ligger i lageret" : "må ligge i lageret") : `har ${have} av ${n}`}</span>${w?.cryptOnly ? '<span class="fs-badge" data-color="warning">Bare i krypten</span>' : ""}</div>
+            <progress class="fs-progress mini" data-color="${ok ? "success" : "warning"}" max="${n}" value="${Math.min(have, n)}" aria-hidden="true"></progress>
+            ${ok || !w ? "" : `<p class="comp-where">${esc(w.text)}</p>`}
+          </div>
+        </li>`;
+    };
+    const comps = r.needs.map(([c, n, have]) => comp(c, have, n, false)).concat(r.requires.map(([c, ok]) => comp(c, ok ? 1 : 0, 1, true)));
+    const [name] = splitRarity(r.item.name);
+    const owned = r.item.owned;
+    const can = r.ok && !owned;
+    const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} og ${xs.at(-1)}` : xs[0] ?? "");
+    const why = owned ? "Du har den allerede." : can ? "Komponentene trekkes fra lageret." : `Mangler ${list(missing)}.`;
+    const other = r.current && r.current.id !== r.item.id ? r.current : null;
+    return `<div class="detail-scroll">
+        <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+        ${detailHead(r.item, badge(r))}
+        <h4 class="fs-heading detail-sub" data-size="xs">${other ? `Mot ${esc(splitRarity(other.name)[0])}, som du har på` : "Verdiene"}</h4>
+        ${compareTable(r.item, other, pool)}
+        <h4 class="fs-heading detail-sub" data-size="xs">Komponentene</h4>
+        <ul class="comp-list">${comps.join("")}</ul>
+      </div>
+      <div class="detail-foot">
+        <button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi ${esc(name)}</button>
+        <span class="fs-help-text" id="craft-why">${esc(why)}</span>
+      </div>`;
+  };
+  const render = () => {
+    const shown = sorted.filter((r) => workshopFilter === "all" || r.item.slot === workshopFilter);
+    if (!shown.some((r) => r.id === workshopSel)) workshopSel = shown[0]?.id ?? null;
+    const sel = shown.find((r) => r.id === workshopSel);
+    const hadFocus = wrap.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
+    wrap.classList.toggle("show-detail", detail);
+    wrap.innerHTML = `<div class="pick-side">
+        <div class="fs-toggle-group pick-filter" role="radiogroup" aria-label="Vis">
+          ${filters.map(([k, n]) => `<label class="fs-toggle-group__option"><input type="radio" name="ws-filter" value="${k}" ${k === workshopFilter ? "checked" : ""}>${n}<span class="count">${k === "all" ? recipes.length : recipes.filter((r) => r.item.slot === k).length}</span></label>`).join("")}
+        </div>
+        <ul class="pick-list" role="listbox" aria-label="Oppskriftene">
+          ${shown.map((r) => pickRow(r.id, r.item, badge(r), r.id === workshopSel, workshopFilter === "all" ? SLOT_NAMES[r.item.slot] : "").replace('class="pick-row"', `class="pick-row${r.item.owned ? " dim" : ""}" data-recipe="${esc(r.id)}"`)).join("")}
+        </ul>
+      </div>
+      <section class="detail" aria-live="polite">${sel ? recipeDetail(sel) : '<p class="fs-paragraph">Ingen oppskrifter her.</p>'}</section>`;
+    for (const input of wrap.querySelectorAll('input[name="ws-filter"]')) {
+      input.addEventListener("change", () => {
+        workshopFilter = input.value;
+        detail = false;
+        sfx.play("click");
+        render();
+        wrap.querySelector(`input[value="${workshopFilter}"]`)?.focus();
+      });
+    }
+    bindPickList(wrap, {
+      select(key, open) {
+        if (key === workshopSel && !open) return;
+        workshopSel = key;
+        if (open) detail = true;
+        sfx.play("click");
+        render();
+      },
+    });
+    wrap.querySelector("[data-back]")?.addEventListener("click", () => {
+      detail = false;
+      render();
+      wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
+    });
+    wrap.querySelector("[data-craft]")?.addEventListener("click", (ev) => {
+      const b = ev.currentTarget;
+      if (b.disabled) return;
+      if (engine.craft(b.dataset.craft)) {
+        // Gnister over ikonet mens hammeren slår, så lukkes skriptoriet.
+        b.disabled = true;
+        wrap.querySelector(".detail")?.classList.add("forging");
+        setTimeout(() => closeOverlay(true), 900);
+      } else {
+        sfx.play("deny");
+      }
+    });
+    const row = wrap.querySelector(".pick-row[aria-selected='true']");
+    row?.scrollIntoView({ block: "nearest" });
+    if (hadFocus) row?.focus();
+  };
   render();
+  if (!narrow()) wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
 }
 
 // Snakkeboblene over innbyggerne: vanlige bobler, ikke designsystemet.
@@ -2136,6 +2379,20 @@ function renderDemo(d) {
 function inlineCode(text) {
   const esc = text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   return esc.replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+// `?uitest`: tools/ui-test.mjs viser menyene med falske data uten motoren
+// (hendelsene går gjennom `handle` som fra Rust, og `engine` er en attrapp).
+if (new URLSearchParams(location.search).has("uitest")) {
+  window.fristadUi = {
+    handle,
+    toggleInventory,
+    set(o) {
+      if (o.engine) engine = o.engine;
+      if (o.docs) docs = o.docs;
+      if (o.hud) lastHud = o.hud;
+    },
+  };
 }
 
 boot().catch((e) => {

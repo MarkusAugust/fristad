@@ -525,6 +525,8 @@ pub struct GearView {
     pub slot: String,
     pub rarity: String,
     pub special: String,
+    /// Én linje om tingen etter kanon (`craft::about`).
+    pub about: String,
     /// (navn, verdi, tekst, høyere er bedre).
     pub stats: Vec<(String, f32, String, bool)>,
     pub equipped: bool,
@@ -548,8 +550,8 @@ pub struct RecipeView {
     pub needs: Vec<(String, u32, u32)>,
     /// (komponent, har).
     pub requires: Vec<(String, bool)>,
-    /// (komponent, hvor den finnes, bare i krypten) for alle komponentene
-    /// over.
+    /// (komponent, hvor den finnes kort på én linje, bare i krypten) for
+    /// alle komponentene over.
     pub sources: Vec<(String, String, bool)>,
     pub ok: bool,
     /// Tingen oppskriften gir, som kort (med om du har den).

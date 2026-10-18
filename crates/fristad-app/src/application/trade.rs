@@ -15,6 +15,7 @@ fn gear_view(i: &craft::Item, equipped: bool, owned: bool) -> GearView {
         slot: i.slot.key().into(),
         rarity: i.rarity.name().into(),
         special: i.special.clone(),
+        about: craft::about(i.id).into(),
         stats: i.stats.iter().map(|s| (s.label.to_string(), s.value, s.text.clone(), s.higher_better)).collect(),
         equipped,
         owned,
@@ -112,7 +113,7 @@ impl Session {
                         .chain(r.requires.iter().copied())
                         .map(|c| {
                             let s = craft::source(c);
-                            (c.to_string(), s.describe(), s.crypt_only())
+                            (c.to_string(), s.brief(), s.crypt_only())
                         })
                         .collect(),
                     ok: craft::missing(r, &self.hero.inventory).is_empty(),

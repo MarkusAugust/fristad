@@ -57,6 +57,10 @@ cp assets/catalog/thumbs/*.jpg dist/catalog/ 2>/dev/null || true
 # et rendret bilde av modellen (tools/models/gear_icons.py).
 mkdir -p dist/icons
 cp assets/textures/icons/*.png dist/icons/
+# Bildene av komponentene (fra boka, tools/gallery/) til lista over
+# komponentene i Skriptoriet og inventaret.
+mkdir -p dist/components
+cp assets/textures/components/*.jpg dist/components/
 # Lydene (opptak fra frie spill, se assets/sounds/CREDITS.md).
 mkdir -p dist/sounds
 cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/sounds/

@@ -217,6 +217,8 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **«Smi»** står fast nederst i detaljene, er deaktivert med grunnen («Mangler Card og Badge») og gir en liten smie-animasjon og lyd når den brukes.
 - **Liv-, energi- og lysstolpene** skjules mens en dialog står, så de ikke ligger over den.
 
+**Gjort 18. oktober (13a–13c, uten ikonene):** menyene over er bygd slik (`web/main.js`: `toggleInventory`, `openWorkshop`, `openShop`; `tools/ui-test.mjs`). Én linje per ting står i `craft::about`, og hvor komponentene finnes kort i `Source::brief`. Gjenstår: eierens malte ikoner med lysere bakgrunn, og en smie-animasjon som er mer enn gnister over ikonet.
+
 ### 13d. Troféene på galleriveggen (eieren: «alt for lav oppløsning, uklare»)
 - Årsak: bildene lages i 512 × 512 (`tools/gallery/pack.py`, `SIZE`), med papirstøy og uskarphet over, og nettleseren tar teksturene ned til 1024 (`delivery::browser_caps`).
 - Retting: render komponentene skarpere (`tools/gallery/render.mjs` med `deviceScaleFactor` 3), lag platene i 2048 (`SIZE = 2048`), fjern uskarpheten over skriften og la papiret bare ligge i kantene, bak dem inn på nytt (`home.py`), og gi `gallery_*` taket 2048 i `browser_caps`. Anisotropisk filtrering på teksturene, så de er skarpe også på skrå. Sjekk med `snapshot` på 1 m avstand før og etter.
@@ -231,7 +233,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - Test: et skudd fra en input lager en synlig instans hvert bilde til det treffer.
 
 ### 13f. Siktekortet midt på skjermen (eieren 18. oktober)
-- Kortet om det du sikter på (fienden, en innbygger, en ting du kan bruke) er for vanskelig å se ute ved høyre kant. Det flyttes midt på skjermen, et lite stykke over stolpene for liv og utholdenhet, som ett kort (`#target` og `#foe` på samme plass, aldri samtidig). Kolonnen til høyre har bare minikartet og tastene. `tools/layout-test.mjs` sjekker at kortet ikke dekker siktepunktet eller stolpene på åtte skjermstørrelser.
+- Kortet om det du sikter på (fienden, en innbygger, en ting du kan bruke) er for vanskelig å se ute ved høyre kant. Det flyttes midt på skjermen, et lite stykke over stolpene for liv og utholdenhet, som ett kort (`#target` og `#foe` på samme plass, aldri samtidig). Kolonnen til høyre har bare minikartet og tastene. `tools/layout-test.mjs` sjekker at kortet ikke dekker siktepunktet eller stolpene på åtte skjermstørrelser. **Gjort 18. oktober** (`#aimed` i `web/index.html`; under 1100 px slutter kolonnen til høyre over kortet).
 
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
