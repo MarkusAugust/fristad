@@ -576,12 +576,16 @@ function handle(e) {
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
       setBars(e.hp, e.stamina);
-      // Lykta: stolpen nede i krypten, og mørket som lukker seg når oljen går tom.
-      $("light-bar").hidden = !e.cellar;
+      // Lykta: stolpen står alltid (i byen ser du hva du må fylle hos
+      // Apotekeren; oljen brenner bare nede), og mørket lukker seg nede når
+      // oljen går tom.
+      $("light-bar").hidden = false;
       $("light").value = e.light;
       $("light-text").textContent = `${e.light} %`;
+      $("light-bar").title = e.cellar ? "Oljen i lykta brenner" : "Lykta brenner bare i krypten. Olje får du hos Apotekeren.";
       document.documentElement.style.setProperty("--dark", e.cellar ? String(Math.max(0, 1 - e.light / 25)) : "0");
       $("tokens").textContent = `${e.tokens} tokens`;
+      if (overlayOpen) updateShop();
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;
       $("boss").hidden = !e.boss;
@@ -1249,18 +1253,41 @@ function openShop(npc, wares) {
     row.className = "ware";
     const name = document.createElement("span");
     name.textContent = w.name;
+    const buy = document.createElement("div");
+    buy.className = "ware-buy";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "fs-button";
     btn.dataset.variant = "secondary";
+    btn.dataset.price = String(w.price);
     btn.textContent = `Kjøp (${w.price} tokens)`;
+    const why = document.createElement("span");
+    why.className = "fs-help-text ware-why";
+    why.id = `ware-why-${w.id}`;
+    btn.setAttribute("aria-describedby", why.id);
     btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       engine.buy(w.id);
     });
-    row.append(name, btn);
+    buy.append(btn, why);
+    row.append(name, buy);
     list.appendChild(row);
   }
   body.appendChild(list);
+  updateShop();
+}
+
+// Det du ikke har råd til, er en deaktivert Fristil-knapp med forklaring.
+// Kalles når butikken åpnes og hver gang tokenene endres (etter et kjøp).
+function updateShop() {
+  const tokens = lastHud?.tokens ?? 0;
+  for (const btn of document.querySelectorAll("#overlay-body .ware .fs-button[data-price]")) {
+    const price = Number(btn.dataset.price);
+    const short = price > tokens;
+    btn.disabled = short;
+    const why = document.getElementById(btn.getAttribute("aria-describedby"));
+    if (why) why.textContent = short ? `Har ikke råd (mangler ${price - tokens} tokens)` : "";
+  }
 }
 
 // Skjemakontoret: oppskriften er et Fristil-skjema. Feltene er
