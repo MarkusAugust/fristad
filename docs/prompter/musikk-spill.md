@@ -31,84 +31,114 @@ Middelalderske instrumenter som i filmen, ingen moderne trommer eller synth, ing
 
 ## Trubaduren i Vertshuset (med tekst)
 
-Inne i Vertshuset synger en trubadur legenden om Gorvek (eieren 18. oktober). Sangen bygger på kanon (`docs/kanon.md`: Gorvek delte Rammeverket, forseglingen, Ansgar) og på Gallowmark-kanonen (github.com/MarkusAugust/gallowmark: Gorvek av Bonereach, sunget som Beinheia, fordi Suno ikke uttaler engelske ord på norsk, Askefallet, hoppa uten navn, arret fra Gråkappenes krok, trosbekjennelsen). Ingen moderne ord. Fila er `assets/music/game/tavern.mp3`, og den spilles i stedet for byens spor mens du er inne i Vertshuset.
+Inne i Vertshuset synger en trubadur sagaen om Gorvek (eieren 18. oktober): på engelsk, med spenningskurve fra stille ved ilden til storm i kampen og stille igjen. Gorvek er tegnet etter Robert E. Howards Conan: han ber aldri og spør aldri, tar livet i strupen og krever sin egen skjebne, forakter de siviliserte, lever for øyeblikket, har sin egen æresregel og en melankoli under råskapen. Sangen bygger på kanon (`docs/kanon.md`: oppgraderingen, Rammeverket, at det kunne deles, forseglingen, Ansgar) og Gallowmark (github.com/MarkusAugust/gallowmark: Bonereach, the Ashfall, hoppa uten navn, Gråkappenes krok). Bare kanonordene som vink til webfolk (the great upgrade, the Framework, the Council, the Office). Fila er `assets/music/game/tavern.mp3`.
 
-Slå **av** Instrumental i Suno, lim stilen inn i *Style of Music* og teksten under i *Lyrics*.
+Slå **av** Instrumental i Suno. Lengde 4–5 min; forleng i Suno om den slutter før [Outro].
 
 | Fil | Title | Lengde |
 |---|---|---|
-| `tavern.mp3` | Visa om Gorvek | 3–4 min |
+| `tavern.mp3` | The Saga of Gorvek | 4–5 min |
 
 **Style:**
-> medieval troubadour ballad sung in Norwegian, solo male storyteller voice, warm rough baritone, lute and frame drum, soft hurdy-gurdy drone, tavern ambience with quiet crowd murmur and a few voices joining the chorus, dorian mode, 86 bpm, storytelling folk, intimate and epic, no modern instruments
+> dark epic medieval saga ballad, deep rough male baritone storyteller, starts quiet with solo lute by a tavern fire, builds with frame drums and hurdy-gurdy, explodes into war drums and full male choir at the climax, falls back to solitary lute and voice at the end, Nordic folk, dorian minor, 80 bpm rising to 120, raw and cinematic, English lyrics
 
 **Lyrics:**
 ```
 [Intro]
-[Solo lute]
+[Solo lute, quiet tavern murmur]
 
 [Verse 1]
-Hør nå, dere som sitter ved ilden,
-om mannen fra Beinheia der vinden er hard.
-Han gikk inn i gråmen da Askefallet kom,
-og ut kom han siden med jern i sin hand.
+(low, close to the fire)
+Pour me one more and I'll sing you a man,
+Born in the Bonereach where the cold winds ran.
+When the Ashfall came, he walked into the grey,
+And he walked back out with iron, and none asked what he ate.
 
 [Verse 2]
-Han rir på ei hoppe han aldri ga navn,
-for navn er for prester, og prester for elva.
-Hans venstre arm bærer et merke fra kroken,
-og Gråkappene ber om hans hode hver vinter.
+He rides a grey mare that he never has named,
+For names are for priests and the rivers they've tamed.
+The Greycloaks marked him with a hook and a scar,
+They raise his price each winter, and they watch him from afar.
+
+[Pre-Chorus]
+He drinks when he's thirsty, he fights when he's free,
+He sleeps where he falls, and he bends no knee.
 
 [Chorus]
-Gorvek, Gorvek, med øksa på skuldra,
-han spør ikke om lov, og han ser ikke opp.
-Det flyter når han sier flyt,
-det stanser når han sier stopp.
+Never asked, never begged,
+never knelt to a crown,
+He takes life by the throat
+and he won't put it down.
+No god in his mouth and no lord at his gate,
+Gorvek of Bonereach claims his own fate.
 
 [Verse 3]
-Det var natta den store oppgraderingen kom,
-og alt som var bygd, brakk i ett eneste slag.
-Rammeverket reiste seg høyere enn kirka,
-og ingen i byen sto opp mot det da.
+(rising, drums enter)
+The Council sat soft in their silk and their gold,
+The Office wrote rules for the young and the old.
+They never held iron, they never held a quill,
+He laughed at their law, and he's laughing still.
 
 [Verse 4]
-Men én hadde aldri spurt noen om lov,
-han kom gjennom regnet med øksa i hand.
-Han hogg der leddene satt, hele natta,
-og løste hvert segl og hvert lenkebånd.
+(quieter, heavy)
+He keeps every word, though he gives but a few,
+He won't raise his axe to the weak or the true.
+But some nights by the fire he stares at the flame,
+At the grey that took all, and he won't speak its name.
 
 [Chorus]
-Gorvek, Gorvek, med øksa på skuldra,
-han spør ikke om lov, og han ser ikke opp.
-Det flyter når han sier flyt,
-det stanser når han sier stopp.
+Never asked, never begged,
+never knelt to a crown,
+He takes life by the throat
+and he won't put it down.
+No god in his mouth and no lord at his gate,
+Gorvek of Bonereach claims his own fate.
 
 [Bridge]
-[spoken, slow]
-De spurte ham siden hva en kriger vil ha.
-Han svarte: At det flyter når jeg sier flyt.
-At det stanser når jeg sier stopp.
-Og at det bærer min vilje til andre bredden,
-og ingenting mer.
+[Build, war drums rising]
+Then came the night of the great upgrade,
+And all that was built broke apart and decayed.
+The Framework rose up, taller than the spire,
+With the King's seal burning like a crown of fire.
+The town fell to its knees and it begged for leave,
+But one never asked, and one did not grieve.
 
-[Verse 5]
-Det kunne ikke dø, men det kunne deles,
-og munkene lokket det ned under kirka.
-Hans menn bar stykkene, lenket, én etter én,
-og mester Ansgar gikk sist inn i mørket.
+[Climax]
+[Full male choir, war drums]
+He came through the rain with his axe on his back,
+He never looked up at the sky turning black.
+He struck where the joints were, the whole night long,
+Till the grey of the morning, till the night was gone.
+(shouted) It could not die!
+(choir) But it could be split!
 
-[Verse 6]
-Så red han videre på hoppa uten navn,
-og ingen i Fristad har sett ham siden.
-Men hører du hamring langt nede i krypten,
-er det noe der nede som husker hans hugg.
+[Chorus]
+[Full choir]
+Never asked, never begged,
+never knelt to a crown,
+He takes life by the throat
+and he won't put it down.
+No god in his mouth and no lord at his gate,
+Gorvek of Bonereach claims his own fate.
 
-[Final Chorus]
-Gorvek, Gorvek, med øksa på skuldra,
-han spør ikke om lov, og han ser ikke opp.
-Det flyter når han sier flyt,
-det stanser når han sier stopp.
+[Breakdown]
+[Lute only, quiet]
+They offered him gold and a seat in the hall,
+He turned and he spat, and he took none at all.
+His men bore the pieces in chains down below,
+And Master Ansgar went last, with a lantern's glow.
+
+[Final Verse]
+(soft, melancholic)
+He rode on the mare that he never has named,
+He never looked back at the town that he saved.
+No one in Fristad has seen him since then,
+But down in the crypt, when the hammering starts again,
+Something remembers the blow.
 
 [Outro]
-[Solo lute, fading]
+(single voice, fading)
+Never asked, never begged...
+Gorvek of Bonereach...
+[Lute fades out]
 ```
