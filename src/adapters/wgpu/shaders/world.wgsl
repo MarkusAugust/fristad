@@ -221,6 +221,11 @@ fn fs_shadow(i: ShadowOut) {
     }
 }
 
+// Helningen til én bølge på vannet: retning, frekvens, styrke og fase.
+fn water_wave(w: vec2<f32>, dir: vec2<f32>, freq: f32, slope: f32, phase: f32) -> vec2<f32> {
+    return dir * slope * cos(dot(dir, w) * freq + phase);
+}
+
 fn ggx(n: vec3<f32>, v: vec3<f32>, l: vec3<f32>, rough: f32, f0: vec3<f32>) -> vec3<f32> {
     let h = normalize(v + l);
     let a = max(rough * rough, 0.002);
@@ -242,7 +247,7 @@ struct Surf {
     n: vec3<f32>,
     cavity: f32,
     emissive: vec3<f32>,
-    // 0 vanlig, 1 blad (lys gjennom), 2 glass.
+    // 0 vanlig, 1 blad (lys gjennom), 2 glass, 3 vann.
     kind: u32,
     // Okklusjon fra geometrien.
     ao: f32,
@@ -546,8 +551,9 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
     }
     let sh = sun_shadow(i.world, n_geo);
     let sun = g.sun_color.rgb * g.sun_dir.w * sh;
-    // Glansen dempes: malte flater er matte, bare metall og glass skinner.
-    let spec_k = mix(0.2, 1.0, s.metal);
+    // Glansen dempes: malte flater er matte, bare metall, glass og vann skinner.
+    let water = s.kind == 3u;
+    let spec_k = select(mix(0.2, 1.0, s.metal), 1.0, water);
     var color = sun * (diffuse_albedo * wrap + ggx(n, v, l, s.rough, f0) * PI * ndl * spec_k);
     if (s.kind == 1u) {
         // Lys gjennom bladet.
@@ -597,6 +603,19 @@ fn shade(i: VsOut, s_in: Surf, n_geo: vec3<f32>) -> vec3<f32> {
             let pl = li.color_intensity.rgb * li.color_intensity.w * att;
             let pndl = max(dot(n, ld), 0.0);
             color += pl * (diffuse_albedo * pndl + ggx(n, v, ld, s.rough, f0) * PI * pndl) * mix(0.5, 1.0, ao);
+            if (water) {
+                // Speilbildet av lyset strekkes ut av bølgene: en bredere
+                // glans under den skarpe, og en stripe nedover mot deg (som
+                // en fakkel speiler seg i en kanal), så faklene og lykta
+                // synes i vannet.
+                let lit = max(dot(n_geo, ld), 0.0);
+                color += pl * ggx(n, v, ld, 0.32, vec3<f32>(0.06)) * PI * lit * 1.6;
+                let r = reflect(-v, n);
+                let az = max(dot(normalize(r.xz + vec2<f32>(1e-5, 0.0)), normalize(ld.xz + vec2<f32>(1e-5, 0.0))), 0.0);
+                let el = r.y - ld.y;
+                let streak = pow(az, 400.0) * exp(-el * el * 6.0);
+                color += pl * streak * 0.35 * min(dist, 6.0);
+            }
         }
     }
 
@@ -622,7 +641,7 @@ const L_SNOW: i32 = 44;
 
 fn weather(s_in: Surf, world: vec3<f32>, n_geo: vec3<f32>, height: f32, flags: u32, dp1: vec3<f32>, dp2: vec3<f32>) -> Surf {
     var s = s_in;
-    if ((flags & F_NO_WEATHER) != 0u || s.kind == 2u) {
+    if ((flags & F_NO_WEATHER) != 0u || s.kind >= 2u) {
         return s;
     }
     let up = clamp(n_geo.y, 0.0, 1.0);
@@ -914,11 +933,35 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         s.rough = 0.8;
         s.emissive = tint * shimmer * (0.05 + night * 0.4);
     } else if (kind == K_WATER) {
-        s.albedo = vec3<f32>(0.02, 0.04, 0.05);
-        s.rough = 0.02;
+        // Vannet i kloakken og cisternen (eieren 18. oktober: «nesten
+        // svart»): grumsete grønnblått med flekker som driver, små bølger i
+        // to skalaer og ringer der det drypper fra hvelvet, og glansen fra
+        // faklene og lykta i `shade` (`s.kind` 3).
+        s.kind = 3u;
         let t = g.camera.w;
-        let ripple = vec3<f32>(fbm2(i.world.xz * 6.0 + t * 0.5) - 0.5, 0.0, fbm2(i.world.zx * 6.0 - t * 0.4) - 0.5);
-        s.n = normalize(n_geo + ripple * 0.15);
+        let w = i.world.xz;
+        let murk = fbm2(w * 0.3 + vec2<f32>(t * 0.02, -t * 0.015));
+        s.albedo = mix(vec3<f32>(0.07, 0.115, 0.105), vec3<f32>(0.14, 0.2, 0.17), murk);
+        s.rough = 0.08;
+        s.ao = 1.0;
+        // Bølgene: summen av fire sinuser (helningen regnet ut direkte).
+        var grad = water_wave(w, vec2<f32>(0.8, 0.6), 2.1, 0.046, t * 0.9);
+        grad += water_wave(w, vec2<f32>(-0.6, 0.8), 3.3, 0.046, t * 1.25);
+        grad += water_wave(w, vec2<f32>(0.28, -0.96), 5.2, 0.042, t * 1.6);
+        grad += water_wave(w, vec2<f32>(-0.92, -0.39), 7.9, 0.04, t * 1.95);
+        grad += (vec2<f32>(fbm2(w * 4.0 + t * 0.3), fbm2(w.yx * 4.0 - t * 0.25)) - 0.5) * 0.12;
+        // Ringene: en dråpe i noen av rutene på 1,6 m, i sin egen takt.
+        let cell = floor(w / 1.6);
+        let hc = hash21(cell + 17.0);
+        if (hc < 0.45) {
+            let age = fract(t * 0.4 + hc * 9.0);
+            let c = (cell + 0.5 + (vec2<f32>(hash21(cell + 3.0), hash21(cell + 5.0)) - 0.5) * 0.5) * 1.6;
+            let d = w - c;
+            let r = length(d);
+            let ring = smoothstep(0.045, 0.0, abs(r - age * 0.6)) * (1.0 - age) * (1.0 - age);
+            grad += d / max(r, 1e-3) * ring * 0.5;
+        }
+        s.n = normalize(vec3<f32>(-grad.x, 1.0, -grad.y));
     }
 
     if (glow == 3u) {
