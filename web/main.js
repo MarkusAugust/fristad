@@ -1088,7 +1088,7 @@ initKeysPanel();
 // Enter tar på, og piltastene går i lista. Fanen «Komponenter» er lageret.
 let invOpen = null;
 let invSelected = null;
-let invFilter = "all";
+let invFilter = remembered("fristad.inventory.slot", "weapon");
 let invDetail = false;
 function toggleInventory() {
   if (invOpen) {
@@ -1118,7 +1118,7 @@ function toggleInventory() {
         <div class="fs-tabs__panel inv-comps"></div>
       </fs-tabs>
     </div>
-    <div class="fs-dialog__footer">
+    <div class="fs-dialog__footer menu-foot">
       <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk (I)</button>
     </div>`;
   document.body.appendChild(dlg);
@@ -1169,7 +1169,7 @@ function renderInvGear(e) {
   const h = lastHud;
   dlg.querySelector(".inv-stats").innerHTML = `
     <label class="fs-label">Liv <span class="bar-num">${h.hp} / ${e.max_hp}</span><progress class="fs-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
-    <label class="fs-label">Utholdenhet <span class="bar-num">${h.stamina} / ${e.max_stamina}</span><progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
+    <label class="fs-label">Energi <span class="bar-num">${h.stamina} / ${e.max_stamina}</span><progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
     <span class="fs-badge" data-color="warning">${e.tokens} tokens</span>
     <span class="fs-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys ?? 0} nøkler`}</span>`;
   const gear = e.gear ?? [];
@@ -1177,7 +1177,7 @@ function renderInvGear(e) {
   const worn = (slot) => (slot === "lantern" ? lantern : gear.find((g) => g.slot === slot && g.equipped) ?? (slot === "armor" ? NO_ARMOR : null));
   const slotOf = { weapon: 0, shield: 1, armor: 2, lantern: 3 };
   const all = [...gear, lantern]
-    .filter((g) => invFilter === "all" || g.slot === invFilter)
+    .filter((g) => g.slot === invFilter)
     .sort((a, b) => slotOf[a.slot] - slotOf[b.slot] || Number(b.equipped) - Number(a.equipped) || rarityRank(b.rarity) - rarityRank(a.rarity) || a.name.localeCompare(b.name, "nb"));
   // Først det første du ikke har på, så det står mot det du har på med en
   // gang; ellers det du har på.
@@ -1205,22 +1205,21 @@ function renderInvGear(e) {
   const hadFocus = panel.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
   panel.innerHTML = `<div class="inv-layout picker${invDetail ? " show-detail" : ""}">
       <div class="inv-slots" role="group" aria-label="Det du har på (velg for å vise bare det slaget)">
-        <button type="button" class="fs-tag inv-all" data-selectable data-slot="all" aria-pressed="${invFilter === "all"}">Alt <span class="count">${gear.length + 1}</span></button>
         ${slotCard("weapon", "Våpen", wornName("weapon"), "")}
         ${slotCard("shield", "Skjold", wornName("shield"), "")}
         ${slotCard("armor", "Rustning", worn("armor") === NO_ARMOR ? null : worn("armor"), "Finn eller smi en rustning i Skriptoriet")}
         ${slotCard("lantern", "Lys", lantern, "")}
       </div>
       <div class="pick-side">
-        <p class="pick-count fs-help-text">${invFilter === "all" ? "Alt utstyret ditt" : SLOT_NAMES[invFilter]}: ${all.length}</p>
+        <p class="pick-count">${SLOT_NAMES[invFilter]} <span class="tab-count">${all.length}</span></p>
         <ul class="pick-list" role="listbox" aria-label="Utstyret ditt">
-          ${all.map((g) => pickRow(itemKey(g), g, g.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : "", invSelected === itemKey(g), invFilter === "all" ? SLOT_NAMES[g.slot] : "")).join("")}
+          ${all.map((g) => pickRow(itemKey(g), g, g.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : "", invSelected === itemKey(g))).join("")}
         </ul>
       </div>
       <section class="detail" aria-live="polite">${sel ? invDetailHtml(sel, worn(sel.slot), [...gear, NO_ARMOR]) : ""}</section>
     </div>`;
   const tab = dlg.querySelector(".inv-comp-tab");
-  tab.textContent = `Komponenter (${counts.size})`;
+  tab.innerHTML = `Komponenter <span class="tab-count">${counts.size}</span>`;
   dlg.querySelector(".inv-comps").innerHTML = counts.size
     ? `<div class="menu-scroll"><table class="fs-table" data-variant="striped">
         <caption>Komponentene du har vunnet. Det du bærer, er ditt først når du er oppe igjen.</caption>
@@ -1246,7 +1245,8 @@ function renderInvGear(e) {
   }
   for (const b of panel.querySelectorAll("[data-slot]")) {
     b.addEventListener("click", () => {
-      invFilter = b.dataset.slot === invFilter ? "all" : b.dataset.slot;
+      invFilter = b.dataset.slot;
+      remember("fristad.inventory.slot", invFilter);
       invSelected = null;
       invDetail = false;
       sfx.play("click");
@@ -1294,6 +1294,7 @@ function invDetailHtml(sel, worn, pool) {
   return `<div class="detail-scroll">
       <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
       ${detailHead(sel)}
+      <h4 class="fs-heading detail-sub" data-size="xs">${same ? "Verdiene" : `Mot ${esc(splitRarity(worn?.name ?? "")[0])}, som du har på`}</h4>
       ${compareTable(sel, same ? null : worn, pool)}
       ${action}
     </div>`;
@@ -1563,6 +1564,7 @@ function openOverlay(title, subtitle = "") {
   $("overlay-sub").hidden = !subtitle;
   $("overlay").querySelector(".overlay-inner").classList.remove("menu");
   $("overlay-body").replaceChildren();
+  $("overlay-actions").replaceChildren();
   $("overlay").hidden = false;
   return $("overlay-body");
 }
@@ -1588,17 +1590,21 @@ function openShop(npc, wares) {
   for (const w of wares) {
     const row = document.createElement("li");
     row.className = "ware";
+    const text = document.createElement("div");
+    text.className = "ware-text";
     const name = document.createElement("span");
     name.className = "ware-name";
     name.textContent = w.name;
-    const buy = document.createElement("div");
-    buy.className = "ware-buy";
+    const price = document.createElement("span");
+    price.className = "ware-price";
+    price.textContent = `${w.price} tokens`;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "fs-button";
     btn.dataset.variant = "secondary";
     btn.dataset.price = String(w.price);
-    btn.textContent = `Kjøp (${w.price} tokens)`;
+    btn.textContent = "Kjøp";
+    btn.setAttribute("aria-label", `Kjøp ${w.name} for ${w.price} tokens`);
     const why = document.createElement("span");
     why.className = "fs-help-text ware-why";
     why.id = `ware-why-${w.id}`;
@@ -1607,8 +1613,8 @@ function openShop(npc, wares) {
       if (btn.disabled) return;
       engine.buy(w.id);
     });
-    buy.append(btn, why);
-    row.append(name, buy);
+    text.append(name, why);
+    row.append(text, price, btn);
     list.appendChild(row);
   }
   body.appendChild(list);
@@ -1648,6 +1654,33 @@ function splitRarity(name) {
 const rarityTag = (r) => (r ? `<span class="fs-tag rarity-tag" data-rarity="${esc(r)}">${cap(esc(r))}</span>` : "");
 const itemKey = (g) => `${g?.slot ?? ""}:${g?.id ?? ""}`;
 const compTitle = (c) => docs[c]?.title ?? c;
+const SLOTS = ["weapon", "shield", "armor", "lantern"];
+// Det sist valgte slaget huskes mellom gangene (en bekvemmelighet).
+function remembered(key, fallback) {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+// Fanerekken over lista (Fristils `fs-tabs__list`): én rad som aldri
+// brytes, med antallet som en liten badge. [[nøkkel, navn, antall]].
+function menuTabs(tabs, current, label) {
+  return `<div class="fs-tabs__list menu-tabs" role="tablist" aria-label="${esc(label)}">
+      ${tabs.map(([k, n, count]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === current}" tabindex="${k === current ? 0 : -1}">${esc(n)}<span class="tab-count">${count}</span></button>`).join("")}
+    </div>`;
+}
+function bindTabs(root, pick) {
+  const tabs = [...root.querySelectorAll(".menu-tabs [data-tab]")];
+  for (const t of tabs) t.addEventListener("click", () => t.getAttribute("aria-selected") !== "true" && pick(t.dataset.tab));
+  root.querySelector(".menu-tabs")?.addEventListener("keydown", (ev) => {
+    const i = tabs.indexOf(document.activeElement);
+    if (i < 0 || (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft")) return;
+    ev.preventDefault();
+    pick(tabs[(i + (ev.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].dataset.tab);
+  });
+  root.querySelector('.menu-tabs [aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
 const SILHOUETTES = {
   weapon: '<svg viewBox="0 0 24 24"><path d="M14 3h7v7L10 21l-3-3L18 7M5 15l4 4M3 21l3-3"/></svg>',
   shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/></svg>',
@@ -1737,8 +1770,7 @@ function pickRow(key, item, badge, selected, sub = "") {
   const rarity = item.rarity || r;
   return `<li class="pick-row" role="option" data-key="${esc(key)}" data-rarity="${esc(rarity)}" aria-selected="${selected}" tabindex="${selected ? 0 : -1}">
       ${gearIcon(item, "small")}
-      <span class="pick-text"><span class="pick-name">${esc(name)}</span><span class="pick-meta">${rarityTag(rarity)}${sub ? `<span class="pick-sub">${esc(sub)}</span>` : ""}</span></span>
-      <span class="pick-badge">${badge}</span>
+      <span class="pick-text"><span class="pick-name">${esc(name)}</span><span class="pick-meta">${rarityTag(rarity)}${sub ? `<span class="pick-sub">${esc(sub)}</span>` : ""}${badge}</span></span>
     </li>`;
 }
 // Musa og tastene i lista: klikk velger (på smal skjerm åpner det
@@ -1787,8 +1819,9 @@ function bindPickList(root, { select, activate }) {
 // og dempet. Til høyre detaljene for den valgte: beskrivelsen,
 // sammenligningen med det du har på, komponentene med «har 2 av 3», og
 // «Smi» fast nederst, av med grunnen. På smal skjerm står detaljene i
-// stedet for lista, med «Tilbake».
-let workshopFilter = "all";
+// stedet for lista, med «Tilbake». Fanene er slagene (eieren 18. oktober:
+// ingen «Alt», du velger alltid et slag), og den sist valgte huskes.
+let workshopFilter = remembered("fristad.workshop.tab", "weapon");
 let workshopSel = null;
 function openWorkshop(recipes) {
   const body = openOverlay("Skriptoriet", "Søknad om smiing: har du komponentene i lageret, godkjennes skjemaet og tingen smis.");
@@ -1798,11 +1831,14 @@ function openWorkshop(recipes) {
   const state = (r) => (r.item.owned ? 2 : r.ok ? 0 : 1);
   const sorted = [...recipes].sort((a, b) => state(a) - state(b) || lack(a) - lack(b) || rarityRank(a.item.rarity) - rarityRank(b.item.rarity) || a.item.name.localeCompare(b.item.name, "nb"));
   const pool = recipes.flatMap((r) => [r.item, r.current]).filter(Boolean);
-  const filters = [["all", "Alt"], ["weapon", "Våpen"], ["shield", "Skjold"], ["armor", "Rustning"], ["lantern", "Lys"]].filter(([k]) => k === "all" || recipes.some((r) => r.item.slot === k));
+  const filters = SLOTS.filter((k) => recipes.some((r) => r.item.slot === k)).map((k) => [k, SLOT_NAMES[k], recipes.filter((r) => r.item.slot === k).length]);
+  if (!filters.some(([k]) => k === workshopFilter)) workshopFilter = filters[0]?.[0] ?? "weapon";
   const badge = (r) => (r.item.owned ? '<span class="fs-badge" data-color="neutral">Har du</span>' : r.ok ? '<span class="fs-badge" data-color="success">Kan smis</span>' : `<span class="fs-badge" data-color="warning">Mangler ${lack(r)}</span>`);
   const wrap = document.createElement("div");
   wrap.className = "workshop picker";
   body.appendChild(wrap);
+  // «Smi» står fast i bunnlinja til venstre for «Tilbake».
+  const actions = $("overlay-actions");
   const recipeDetail = (r) => {
     const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
     const missing = [];
@@ -1826,6 +1862,8 @@ function openWorkshop(recipes) {
     const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} og ${xs.at(-1)}` : xs[0] ?? "");
     const why = owned ? "Du har den allerede." : can ? "Komponentene trekkes fra lageret." : `Mangler ${list(missing)}.`;
     const other = r.current && r.current.id !== r.item.id ? r.current : null;
+    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi ${esc(name)}</button>
+        <span class="fs-help-text" id="craft-why">${esc(why)}</span>`;
     return `<div class="detail-scroll">
         <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
         ${detailHead(r.item, badge(r))}
@@ -1833,36 +1871,32 @@ function openWorkshop(recipes) {
         ${compareTable(r.item, other, pool)}
         <h4 class="fs-heading detail-sub" data-size="xs">Komponentene</h4>
         <ul class="comp-list">${comps.join("")}</ul>
-      </div>
-      <div class="detail-foot">
-        <button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi ${esc(name)}</button>
-        <span class="fs-help-text" id="craft-why">${esc(why)}</span>
       </div>`;
   };
   const render = () => {
-    const shown = sorted.filter((r) => workshopFilter === "all" || r.item.slot === workshopFilter);
+    const shown = sorted.filter((r) => r.item.slot === workshopFilter);
     if (!shown.some((r) => r.id === workshopSel)) workshopSel = shown[0]?.id ?? null;
     const sel = shown.find((r) => r.id === workshopSel);
     const hadFocus = wrap.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
     wrap.classList.toggle("show-detail", detail);
-    wrap.innerHTML = `<div class="pick-side">
-        <div class="fs-toggle-group pick-filter" role="radiogroup" aria-label="Vis">
-          ${filters.map(([k, n]) => `<label class="fs-toggle-group__option"><input type="radio" name="ws-filter" value="${k}" ${k === workshopFilter ? "checked" : ""}>${n}<span class="count">${k === "all" ? recipes.length : recipes.filter((r) => r.item.slot === k).length}</span></label>`).join("")}
-        </div>
+    actions.innerHTML = "";
+    const detailHtml = sel ? recipeDetail(sel) : '<p class="fs-paragraph">Ingen oppskrifter her.</p>';
+    wrap.innerHTML = `${menuTabs(filters, workshopFilter, "Slagene")}
+      <div class="pick-side">
         <ul class="pick-list" role="listbox" aria-label="Oppskriftene">
-          ${shown.map((r) => pickRow(r.id, r.item, badge(r), r.id === workshopSel, workshopFilter === "all" ? SLOT_NAMES[r.item.slot] : "").replace('class="pick-row"', `class="pick-row${r.item.owned ? " dim" : ""}" data-recipe="${esc(r.id)}"`)).join("")}
+          ${shown.map((r) => pickRow(r.id, r.item, badge(r), r.id === workshopSel).replace('class="pick-row"', `class="pick-row${r.item.owned ? " dim" : ""}" data-recipe="${esc(r.id)}"`)).join("")}
         </ul>
       </div>
-      <section class="detail" aria-live="polite">${sel ? recipeDetail(sel) : '<p class="fs-paragraph">Ingen oppskrifter her.</p>'}</section>`;
-    for (const input of wrap.querySelectorAll('input[name="ws-filter"]')) {
-      input.addEventListener("change", () => {
-        workshopFilter = input.value;
-        detail = false;
-        sfx.play("click");
-        render();
-        wrap.querySelector(`input[value="${workshopFilter}"]`)?.focus();
-      });
-    }
+      <section class="detail" aria-live="polite">${detailHtml}</section>`;
+    bindTabs(wrap, (k) => {
+      workshopFilter = k;
+      remember("fristad.workshop.tab", k);
+      workshopSel = null;
+      detail = false;
+      sfx.play("click");
+      render();
+      wrap.querySelector(`[data-tab="${k}"]`)?.focus();
+    });
     bindPickList(wrap, {
       select(key, open) {
         if (key === workshopSel && !open) return;
@@ -1877,7 +1911,7 @@ function openWorkshop(recipes) {
       render();
       wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
     });
-    wrap.querySelector("[data-craft]")?.addEventListener("click", (ev) => {
+    actions.querySelector("[data-craft]")?.addEventListener("click", (ev) => {
       const b = ev.currentTarget;
       if (b.disabled) return;
       if (engine.craft(b.dataset.craft)) {
