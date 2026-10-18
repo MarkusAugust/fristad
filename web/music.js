@@ -191,7 +191,10 @@ const CUES = Object.fromEntries([...SONGS.map((s, i) => [`town${i}`, songCue(s)]
 // partituret, for kampen det som spilte der du står).
 const TRACKS = { town: "town_night", town_night: "town", crypt: null, combat: null, combat_boss: "combat" };
 // Så lenge etter at kampen er over spiller kampsporet før det tones ut.
-const FIGHT_HOLD = 6;
+// Kort hold etter kampen, og kampsporet tones raskt ut (eieren 18. oktober:
+// det hang igjen for lenge).
+const FIGHT_HOLD = 2;
+const COMBAT_OUT = 1.2;
 // Kampsporet tones inn over så lang tid, starter aldri de siste
 // `COMBAT_TAIL` sekundene, og fortsetter der det var om en ny kamp kommer
 // innen `COMBAT_RESUME` sekunder.
@@ -421,7 +424,7 @@ export function createMusic(context, base = "music/") {
     const secs = combat ? COMBAT_FADE : 3;
     if (pick) {
       if (playing !== pick) {
-        if (playing) fadeOut(playing, secs);
+        if (playing) fadeOut(playing, playing.startsWith("combat") && !combat ? COMBAT_OUT : secs);
         playing = pick;
         tone(pick, secs);
         fadeIn(pick, secs);
@@ -430,7 +433,7 @@ export function createMusic(context, base = "music/") {
       return;
     }
     if (playing) {
-      fadeOut(playing, 3);
+      fadeOut(playing, playing.startsWith("combat") ? COMBAT_OUT : 3);
       playing = null;
     }
     ready.then(() => {
