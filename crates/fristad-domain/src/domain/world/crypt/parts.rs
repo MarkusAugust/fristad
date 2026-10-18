@@ -58,12 +58,17 @@ pub struct Shortcut {
 
 #[derive(Clone, Debug)]
 pub struct Secret {
+    /// Midt på foten av den falske delen, i flukt med muren rundt; fronten
+    /// (+z) mot rommet du ser den fra.
     pub pos: Vec3,
     pub yaw: f32,
     pub width: f32,
     pub height: f32,
     pub level: usize,
     pub switch: usize,
+    /// Modellen: nivåets egen bit av muren (`crypt_NN_secret_<id>`, med
+    /// murens tekstur og sprekkene), ellers `KIT_SECRET`.
+    pub model: &'static str,
 }
 
 #[derive(Clone, Debug)]

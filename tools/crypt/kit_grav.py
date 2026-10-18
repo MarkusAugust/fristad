@@ -1511,16 +1511,51 @@ def kit_shortcut_frame(w=1.6, spring=1.5, depth=0.5):
 
 
 def kit_false_wall(w=2.0, h=2.6, t=0.4):
-    """Den falske veggen: én hel murbit med fronten mot +z, med murens
-    tekstur i meter som muren rundt (ingen skjeve blokker eller brutte
-    flater, eierens dom i runde 7), og sprekken fra `crack_web` på seg."""
+    """Den falske veggen (reserven når nivået ikke har sin egen bit,
+    `secret_pieces` i build_level.py): én hel murbit med fronten i flukt med
+    muren (z = 0, mot +z) og resten inne i muren (eieren 18. oktober: den
+    stakk ut og røpet seg), med murens tekstur og sprekken i fugene på seg."""
     m = MB()
-    box(m, (-w / 2, 0.0, -t / 2), (w / 2, h, t / 2), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
-    # Sprekken står på selve veggen også, så den synes uten et eget merke
-    # (eieren i runde 8: «hvor er sprekken?»), og den går i fugene
-    # (runde 10).
-    mortar_crack(m, t / 2, 11, x0=0.2, half=w / 2, top=1.9)
+    box(m, (-w / 2, 0.0, -t), (w / 2, h, 0.0), "wall", faces=("+z", "-z", "+x", "-x", "+y"))
+    mortar_crack(m, 0.0, 11, x0=0.2, half=w / 2, top=1.9)
     return m
+
+
+def surface_crack(m, surf, u0, u1, y0, y1, seed, d=0.0, width=0.015):
+    """Sprekken i fugene på en mur i nivået (`surf`, u langs muren, v
+    absolutt høyde) mellom u0 og u1 og fra y0 til y1: samme trapp som
+    `mortar_crack`, men i murens egen tekstur, så den følger fugene der
+    den falske veggen står (`secret_pieces` i build_level.py)."""
+    import random
+
+    rng = random.Random(seed)
+    u0t, u1t = surf.uv(u0, 0.0)[0], surf.uv(u1, 0.0)[0]
+    shift = STONE_TEX_M * math.floor(y0 / STONE_TEX_M)
+    courses = [(a + shift, b + shift, heads) for a, b, heads in wall_courses(y1 - shift + STONE_TEX_M) if b + shift > y0 + 0.05 and a + shift < y1]
+    tile = lambda h: [h + STONE_TEX_M * j for j in range(math.floor((u0t - 2) / STONE_TEX_M), math.ceil((u1t + 2) / STONE_TEX_M) + 1)]
+    pts = []
+    x = (u0t + u1t) / 2 + rng.uniform(-0.3, 0.3)
+    for a, b, heads in courses:
+        hs = sorted({hh for h in heads for hh in tile(h - STONE_TEX_M * math.floor(h / STONE_TEX_M)) if u0t + 0.25 < hh < u1t - 0.25})
+        if not hs:
+            break
+        near = sorted(hs, key=lambda h: abs(h - x))
+        h = near[0] if rng.random() < 0.65 or len(near) < 2 else near[1]
+        pts.append((h, max(a, y0 + 0.02)))
+        pts.append((h, min(b, y1)))
+        x = h
+    n = len(pts) - 1
+    P = lambda ut, v, dd: surf.point(ut - (u0t - u0), v, dd)
+    for i in range(n):
+        (ax, ay), (bx, by) = pts[i], pts[i + 1]
+        w0 = width * (1.0 - 0.6 * i / max(n, 1))
+        w1 = width * (1.0 - 0.6 * (i + 1) / max(n, 1))
+        dx, dy = bx - ax, by - ay
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / ln, dx / ln
+        ex, ey = dx / ln * w1, dy / ln * w1
+        q = [(ax - nx * w0 - ex, ay - ny * w0 - ey), (bx - nx * w1 + ex, by - ny * w1 + ey), (bx + nx * w1 + ex, by + ny * w1 + ey), (ax + nx * w0 - ex, ay + ny * w0 - ey)]
+        m.quad(*[P(qx, qy, d + 0.004) for qx, qy in q], "crack", facing=surf.normal((u0 + u1) / 2))
 
 
 def kit_trapdoor(w=1.2, d=1.2, t=0.08):

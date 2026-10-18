@@ -95,7 +95,7 @@ def marks(_):
         {"kind": "hint", "label": "sound", "pos": [64, -3, 40.3], "for": "lokk_5"},
         # Krystallkammeret under lokket, og sprekken videre ned til krystallåra.
         {"kind": "rare", "pos": [66.5, -11, 45.8], "yaw": -P / 2, "label": "Tag"},
-        {"kind": "secret_wall", "id": "hemmelig_5b", "pos": [62, -11, 46.5], "yaw": 0.0, "width": 2.0, "height": 2.6},
+        {"kind": "secret_wall", "id": "hemmelig_5b", "pos": [62, -11, 46.5], "yaw": P, "width": 2.0, "height": 2.6},  # fronten mot rommet (eieren 18. oktober)
         {"kind": "hint", "label": "draft", "pos": [62, -11, 46.0], "for": "hemmelig_5b"},
         # Vinsjhuset: spaken løsner bremsen, heisen går ned sjakta.
         {"kind": "lever", "id": "spak_5", "pos": [76.5, -3, 35.45], "yaw": 0.0, "opens": [HEIS]},
@@ -110,7 +110,7 @@ def marks(_):
         # Vognbanen og kruttkammeret.
         {"kind": "mob", "pos": [51, -18, 86], "label": "accordion", "n": 2},
         {"kind": "trap", "label": "arrows", "id": "vogn_5", "pos": [60, -18, 86], "size": [1.2, 1.2], "dir": [-1, 0, 0]},
-        {"kind": "secret_wall", "id": "hemmelig_5c", "pos": [40, -18, 88], "yaw": 0.0, "width": 2.0, "height": 2.6},
+        {"kind": "secret_wall", "id": "hemmelig_5c", "pos": [40, -18, 88], "yaw": P, "width": 2.0, "height": 2.6},  # fronten mot rommet (eieren 18. oktober)
         {"kind": "hint", "label": "sound", "pos": [40, -18, 87.5], "for": "hemmelig_5c"},
         {"kind": "chest", "pos": [37.0, -18, 96.5], "yaw": P / 2},
         {"kind": "bonus", "pos": [42.5, -18, 98.4], "yaw": P, "label": "utholdenhet"},

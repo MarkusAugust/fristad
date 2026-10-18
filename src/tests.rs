@@ -1965,6 +1965,40 @@ fn sprekken_star_pa_den_falske_veggen() {
     assert!(bad.is_empty(), "\n{}", bad.join("\n"));
 }
 
+/// Den falske veggen ligger i flukt med muren rundt (eieren 18. oktober: den
+/// stakk ut og røpet seg): hver har nivåets egen bit med murens tekstur
+/// (`crypt_NN_secret_<id>`), forsida ligger i murens plan, og målet går
+/// ikke ut til sidene.
+#[test]
+fn den_falske_veggen_ligger_i_flukt() {
+    let p = world();
+    let c = &p.world.crypt;
+    assert!(!c.secrets.is_empty(), "ingen falske vegger i krypten");
+    let mut bad = vec![];
+    for (i, s) in c.secrets.iter().enumerate() {
+        if s.model == crypt::KIT_SECRET {
+            bad.push(format!("den falske veggen {i} i nivå {} har ikke sin egen bit (build_level.py N --secrets)", c.levels[s.level].n));
+            continue;
+        }
+        let Some(m) = p.models.iter().find(|m| m.name == s.model) else {
+            bad.push(format!("{} finnes ikke", s.model));
+            continue;
+        };
+        // Midt på flaten (over sokkelen) ligger forsida i murens plan; i et
+        // rundt rom bøyer den seg med muren ut mot kantene.
+        let (lo, hi) = m.mesh.bounds();
+        let front = m.mesh.vertices.iter().filter(|v| v.pos[0].abs() < 0.3 && (0.5..2.0).contains(&v.pos[1])).map(|v| v.pos[2]).fold(f32::MIN, f32::max);
+        if front > 0.02 || (hi.x - s.width * 0.5).abs() > 0.1 || (lo.x + s.width * 0.5).abs() > 0.1 {
+            bad.push(format!("{} går fra {lo:?} til {hi:?} (forsida midt på {front:.2} m ut): står ut fra muren eller er ikke {} m bred", s.model, s.width));
+        }
+        let t = p.world.targets.iter().find(|t| t.what == Use::Secret(i)).expect("den falske veggen har intet mål");
+        if t.half.x > s.width * 0.5 + 0.01 || t.center.z + t.half.z > 0.1 {
+            bad.push(format!("målet til {} går utenfor den falske delen", s.model));
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
 /// Den falske veggen slås inn med et hugg, ikke bare med F (eieren 18.
 /// oktober: «hvordan åpner man den?»; siktet sier «Slå, eller skyv»).
 #[test]

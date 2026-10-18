@@ -71,7 +71,8 @@ HALLS = [
     ("vakt", "kapell", STAIRS, [(-22, 34), (-22, 40)], 2.0, (0, 0.6, 5.4), None, {"name": "Løkka rundt pendlene"}),
     ("soylesal", "kapell", DOOR, [(SOYLE["x0"], 46), (-20, 46)], 3.0, None, None),
     ("soylesal", "rundsal", DOOR, [(SOYLE["x1"], 46), (RUND["c"][0] - RUND["r"] + 0.4, 46)], 3.0, None, None),
-    ("rundsal", "skatt", SECRET, [(RUND["c"][0], RUND["c"][1] - RUND["r"] + 0.4), (RUND["c"][0], 30)], 2.0, None, SKATT, {"ya": GALR}),
+    # Gangen bak den falske veggen begynner ved den runde muren (2 cm inne, så navigasjonsnettet henger sammen), ikke 0,4 m inne i salen, så ingen ramme røper den (eieren 18. oktober); `secret_reveal` lukker buen mellom muren og gangen.
+    ("rundsal", "skatt", SECRET, [(RUND["c"][0], RUND["c"][1] - RUND["r"] + 0.02), (RUND["c"][0], 30)], 2.0, None, SKATT, {"ya": GALR}),
     ("rundsal", "gilde", HALL, [(RUND["c"][0], RUND["c"][1] + RUND["r"] - 0.4), (RUND["c"][0], GILDE["z0"])], 3.0, None, None, {"name": "Gangen til gildehallen"}),
     ("vin", "stigebunn", HALL, [(24.5, 84.5), (5.5, 84.5)], 2.0, None, None, {"name": "Kjellergangen"}),
     ("gilde", "forvaerelse", DOOR, [(GILDE["x0"], 80), (7, 80)], 3.0, None, None),
@@ -135,7 +136,8 @@ def marks(_):
         {"kind": "lever", "id": "statue_8a", "pos": [27, HALLY, 41], "yaw": face(27, 41, c[0], c[1]), "opens": [SKATT]},
         {"kind": "lever", "id": "statue_8b", "pos": [41, HALLY, 41], "yaw": face(41, 41, c[0], c[1]), "opens": [SKATT]},
         {"kind": "lever", "id": "statue_8c", "pos": [28.34, HALLY, 51.66], "yaw": face(28.34, 51.66, c[0], c[1]), "opens": [SKATT]},
-        {"kind": "secret_wall", "id": SKATT, "pos": [c[0], GALR, c[1] - RUND["r"] + 0.2], "yaw": 0.0, "width": 2.0, "height": 2.6},
+        # I flukt med muren (eieren 18. oktober: den stakk ut).
+        {"kind": "secret_wall", "id": SKATT, "pos": [c[0], GALR, c[1] - RUND["r"]], "yaw": 0.0, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "crack", "pos": [c[0] + 1.5, GALR, c[1] - RUND["r"] + 0.18], "yaw": 0.0, "for": SKATT},
         # Skattkammeret.
         {"kind": "rare", "pos": [34, GALR, 26], "yaw": 0.0, "label": "Avatar"},

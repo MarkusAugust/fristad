@@ -9,6 +9,7 @@ byggesettet (`kit_grav.py`), og skriver det motoren trenger
 
     python3 tools/crypt/build_level.py 1            # json, bilde og tall (uten Blender)
     python3.13 tools/crypt/build_level.py 1 --export  # og glb-bitene (Blender)
+    python3.13 tools/crypt/build_level.py 1 --secrets # bare de falske veggene (Blender)
 
 Planen sier hvilke rom som finnes, hvor de står og hvordan de henger sammen.
 Hvor gangene går (rette strekk på rutenettet), hvor trappene ligger i dem og
@@ -45,6 +46,7 @@ INSET = 0.4  # navigasjonsnettet holder seg så langt fra murene
 SPRING = 2.2  # høyden på gangmurene (vederlaget), over gulvet
 STAIR_IN = 0.1  # trapper og ramper inntil en mur går så langt inn i murblokka (aldri tangent)
 WALL_T = 0.4  # tykkelsen på murkolliderne
+SECRET_T = 0.3  # hvor dypt den falske veggen går inn i muren
 # Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
 # over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
 # med rette biter, sto under hvelvkanten der, med kiler av himmel på begge
@@ -506,6 +508,7 @@ def pillar_top(r, x, z, size):
 class Level:
     def __init__(self, n):
         self.n = n
+        self.secrets = []  # de falske veggene (`secret_wall`)
         self.plan = load_plan(n)
         lay = load_layout(n)
         self.rooms = {}
@@ -670,6 +673,75 @@ class Level:
                     w = 2.0
                 r.doors.append((side, u, w, y, kind if rid == h.a else (DOOR if kind in (SHORTCUT, SECRET) else kind), h))
 
+    def secret_wall(self, h, surf, u, w, y, mat, cell, plinth_h):
+        """Den falske veggen i åpningen (`secret_pieces`): huskes med murens
+        flate, så biten får samme tekstur og sokkel som muren rundt."""
+        self.secrets.append(dict(id=h.gate, surf=surf, u=u, w=w, y=y, mat=mat, cell=cell, plinth=plinth_h))
+
+    def secret_reveal(self, surf, u, w, y, mat, depth=0.12):
+        """Lysningen rundt den falske veggen i en rund mur: muren buer seg inn
+        i rommet ved kantene av åpningen, og gangen begynner rett bak muren
+        (ikke inne i rommet, der den ble en ramme som røpet veggen), så sidene
+        og toppen av åpningen mures `depth` inn til gangen."""
+        mb, top = self.mb, y + 2.6
+        P = surf.point
+        a, b = u - w / 2, u + w / 2
+        for uu, sg in ((a, 1.0), (b, -1.0)):
+            inward = surf.point(uu + sg * 0.01, y, 0.0)
+            o = surf.point(uu, y, 0.0)
+            mb.quad(P(uu, y - 0.05, 0.0), P(uu, top, 0.0), P(uu, top, -depth), P(uu, y - 0.05, -depth), mat, facing=(inward[0] - o[0], 0.0, inward[2] - o[2]))
+        mb.quad(P(a, top, 0.0), P(b, top, 0.0), P(b, top, -depth), P(a, top, -depth), mat, facing=(0, -1, 0))
+
+    def secret_pieces(self):
+        """Den falske veggen i hver åpning som egen modell
+        (`crypt_NN_secret_<id>`, eieren 18. oktober): forsida i flukt med
+        muren rundt, med murens egen tekstur (uv fra samme flate), sokkelen
+        videre over åpningen og sprekkene i fugene, og en kropp `SECRET_T`
+        inn i muren. Bygd i nivåets rom og flyttet til merket (`secret_wall`:
+        midt på foten, fronten mot rommet), som motoren setter den ut og
+        senker etter."""
+        out = {}
+        for rec in self.secrets:
+            mark = next((m for m in self.marks if m.get("kind") == "secret_wall" and m.get("id") == rec["id"]), None)
+            if mark is None:
+                print(f"  den falske veggen {rec['id']}: intet merke, bruker byggesettets")
+                continue
+            surf, u, w, y = rec["surf"], rec["u"], rec["w"], rec["y"]
+            hgt = mark.get("height", 2.6)
+            mb = K.MB()
+            hole = Polygon([(u + du, v) for du, v in self.opening(w, y, SECRET)])
+            K.grid_face(mb, surf, hole, rec["mat"], cell=rec["cell"], origin=(0.0, math.floor(y - 0.05)))
+            K.plinth(mb, surf, [(u - w / 2, u + w / 2, y)], h=rec["plinth"])
+            # To sprekker i fugene, brede nok til å synes fra rommet (eieren:
+            # den falske veggen skal bare synes på sprekkene).
+            seed = sum(map(ord, rec["id"]))
+            K.surface_crack(mb, surf, u - w / 2, u + w / 2, y, y + min(2.2, hgt - 0.2), seed, width=0.032)
+            K.surface_crack(mb, surf, u - w / 2, u + w / 4, y + 0.6, y + min(1.6, hgt - 0.6), seed + 7, width=0.022)
+            # Kroppen inn i muren: toppen, endene og baksida.
+            t = SECRET_T
+            P = lambda uu, v, d: surf.point(uu, v, d)
+            n = surf.normal(u)
+            a, b = u - w / 2, u + w / 2
+            mb.quad(P(a, y + hgt, 0.0), P(b, y + hgt, 0.0), P(b, y + hgt, -t), P(a, y + hgt, -t), rec["mat"], facing=(0, 1, 0))
+            for uu, sg in ((a, -1.0), (b, 1.0)):
+                du = surf.point(uu + sg * 0.01, y, 0.0)
+                o = surf.point(uu, y, 0.0)
+                mb.quad(P(uu, y, 0.0), P(uu, y + hgt, 0.0), P(uu, y + hgt, -t), P(uu, y, -t), rec["mat"], facing=(du[0] - o[0], 0.0, du[2] - o[2]))
+            mb.quad(P(a, y, -t), P(b, y, -t), P(b, y + hgt, -t), P(a, y + hgt, -t), rec["mat"], facing=(-n[0], 0.0, -n[2]))
+            # Til merkets rom.
+            pos, yaw = mark["pos"], mark.get("yaw", 0.0)
+            front = (math.sin(yaw), math.cos(yaw))
+            mid = surf.point(u, y, 0.0)
+            off = math.dist((mid[0], mid[2]), (pos[0], pos[2]))
+            if off > 0.05 or front[0] * n[0] + front[1] * n[2] < 0.99:
+                print(f"  ADVARSEL: merket til {rec['id']} står {off:.2f} m fra midten av åpningen, eller vender ikke mot rommet")
+            local = K.MB()
+            for pts, uvs, mat, smooth in mb.faces:
+                q = [K.rot_y((p[0] - pos[0], p[1] - pos[1], p[2] - pos[2]), -yaw) for p in pts]
+                local.faces.append((q, uvs, mat, smooth))
+            out[f"crypt_{self.n:02d}_secret_{rec['id']}"] = local
+        return out
+
     def opening(self, w, y, kind):
         """Omrisset av en åpning (u fra midten, v absolutt)."""
         if kind == SECRET:
@@ -714,6 +786,8 @@ class Level:
                     continue
                 prof = [(to_u(u) + du, v) for du, v in self.opening(w, y, kind)]
                 openings.append(Polygon(prof))
+                if kind == SECRET:
+                    self.secret_wall(h, surf, to_u(u), w, y, self.wall_mat(r), cell, 0.34 + (0.004 if side in ("n", "s") else 0.0))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 apex = max(v for _, v in prof)
@@ -803,6 +877,8 @@ class Level:
                     continue
                 prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
                 openings.append(Polygon(prof))
+                if kind == SECRET:
+                    self.secret_wall(h, surf, u, w, y, self.wall_mat(r), 1.0, 0.34 + 0.004 * (k % 2))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 lintels.append((u - w / 2, u + w / 2, max(v for _, v in prof), y))
@@ -1454,6 +1530,9 @@ class Level:
             u = ((ang - seam) % (2 * math.pi)) * R
             prof = [(u + du, v) for du, v in self.opening(w, y, kind)]
             openings.append(Polygon(prof))
+            if kind == SECRET:
+                self.secret_wall(h, cyl, u, w, y, spec.get("wall_mat", "wall"), spec.get("wall_cell", 1.0), 0.34)
+                self.secret_reveal(cyl, u, w, y, spec.get("wall_mat", "wall"))
             if kind not in (SECRET, SHORTCUT):
                 K.portal(mb, cyl, prof, mat="dressed", band=0.3, depth=0.12)
             cuts.append((u - w / 2 - 0.1, u + w / 2 + 0.1, max(v for _, v in prof), y))
@@ -2017,6 +2096,12 @@ def main():
     export = "--export" in args
     L = Level(n)
     L.build()
+    if "--secrets" in args:
+        # Bare de falske veggene (uten å skrive nivåfila eller bitene på nytt).
+        for name, m in sorted(L.secret_pieces().items()):
+            print(f"  {name}: {m.tris()} trekanter")
+            K.export_model(m, os.path.join(OUT, f"{name}.glb"), ao=True, samples=32)
+        return
     if L.layout_lights is not None:
         L.lights = L.layout_lights
     else:
@@ -2055,13 +2140,15 @@ def main():
             sys.exit(1)
     if export:
         only = [a for a in args[1:] if a.startswith("crypt_")]
-        for name, m in sorted(pieces.items()):
+        secrets = L.secret_pieces()
+        pieces_out = {**pieces, **secrets}
+        for name, m in sorted(pieces_out.items()):
             if only and name not in only:
                 continue
             K.export_model(m, os.path.join(OUT, f"{name}.glb"), ao=True, samples=32)
         # Biter fra en eldre utgave som ikke finnes lenger.
         for fn in os.listdir(OUT):
-            if fn.startswith(f"crypt_{n:02d}_") and fn.endswith(".glb") and fn[:-4] not in pieces:
+            if fn.startswith(f"crypt_{n:02d}_") and fn.endswith(".glb") and fn[:-4] not in pieces_out:
                 os.remove(os.path.join(OUT, fn))
 
 

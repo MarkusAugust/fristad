@@ -73,6 +73,10 @@ pub const KIT_LEVER_ARM: &str = "kit_lever_arm";
 pub const KIT_SHORTCUT: &str = "kit_shortcut";
 pub const KIT_SHORTCUT_LEAF: &str = "kit_shortcut_leaf";
 pub const KIT_SECRET: &str = "kit_secret_wall";
+/// Den falske veggen: hvor langt målet og kollideren står foran murflaten,
+/// og hvor dypt de går (flaten er i flukt med muren rundt, z = 0).
+pub const SECRET_FRONT: f32 = 0.05;
+pub const SECRET_DEPTH: f32 = 0.45;
 pub const KIT_TRAPDOOR: &str = "kit_trapdoor";
 pub const KIT_LADDER: &str = "kit_ladder";
 pub const KIT_LADDER_TOP: &str = "kit_ladder_top";
@@ -222,7 +226,9 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
         b.target(Use::Shortcut(i), super::at(s.pos, s.yaw), Vec3::new(0.0, SHORTCUT_H * 0.5, 0.0), Vec3::new(s.width * 0.5, SHORTCUT_H * 0.5, 0.08));
     }
     for (i, s) in c.secrets.iter().enumerate() {
-        b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, 0.0), Vec3::new(s.width * 0.5, s.height * 0.5, 0.25));
+        // Målet og kollideren er den falske delen: fra 5 cm foran murflaten
+        // (så siktet treffer) og inn i muren, og ikke noe ved siden av.
+        b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, SECRET_FRONT - SECRET_DEPTH * 0.5), Vec3::new(s.width * 0.5, s.height * 0.5, SECRET_DEPTH * 0.5));
     }
     for (i, l) in c.levers.iter().enumerate() {
         b.target(Use::Lever(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.85, 0.05), Vec3::new(0.3, 0.45, 0.2));
@@ -272,12 +278,19 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
 /// Plass til det økta poserer: portgitrene, kistelokkene, dørene, spakene,
 /// de falske veggene, lemmene, pilene og flammene på hvilestedene.
 pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
-    vec![
+    // Hver falsk vegg har sin egen modell (eller byggesettets).
+    let mut secrets: Vec<(&'static str, usize)> = vec![];
+    for s in &c.secrets {
+        match secrets.iter_mut().find(|(m, _)| *m == s.model) {
+            Some((_, n)) => *n += 1,
+            None => secrets.push((s.model, 1)),
+        }
+    }
+    let mut out = vec![
         (PORTCULLIS, c.gates.len()),
         (CHEST_LID, c.chests.len()),
         (KIT_SHORTCUT_LEAF, c.shortcuts.len()),
         (KIT_LEVER_ARM, c.levers.len()),
-        (KIT_SECRET, c.secrets.len()),
         (KIT_TRAPDOOR, c.trapdoors.iter().filter(|t| t.lid).count()),
         (KIT_ARROW, if c.traps.is_empty() { 0 } else { 16 }),
         (KIT_REST_FLAME, c.rests.len()),
@@ -285,7 +298,9 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_CHAIN, 4 * c.bridges.len() + 4 * c.lifts.len()),
         (KIT_LIFT, c.lifts.len()),
         (KIT_WATER, c.waters.len()),
-    ]
+    ];
+    out.extend(secrets);
+    out
 }
 
 /// Hvor mange biter på 1 m en stige på `h` meter stables av, og hvor høy
@@ -593,7 +608,11 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "secret_wall" => {
                 let s = id(c, "secret");
-                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s });
+                // Nivåets egen bit av muren (build_level.py), i flukt med muren
+                // rundt og med samme tekstur, så den bare synes på sprekkene.
+                let own = format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"));
+                let model: &'static str = if b.has_model(&own) { Box::leak(own.into_boxed_str()) } else { KIT_SECRET };
+                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model });
             }
             "trapdoor" => {
                 let s = id(c, "trapdoor");
