@@ -220,6 +220,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 ### 13d. Troféene på galleriveggen (eieren: «alt for lav oppløsning, uklare»)
 - Årsak: bildene lages i 512 × 512 (`tools/gallery/pack.py`, `SIZE`), med papirstøy og uskarphet over, og nettleseren tar teksturene ned til 1024 (`delivery::browser_caps`).
 - Retting: render komponentene skarpere (`tools/gallery/render.mjs` med `deviceScaleFactor` 3), lag platene i 2048 (`SIZE = 2048`), fjern uskarpheten over skriften og la papiret bare ligge i kantene, bak dem inn på nytt (`home.py`), og gi `gallery_*` taket 2048 i `browser_caps`. Anisotropisk filtrering på teksturene, så de er skarpe også på skrå. Sjekk med `snapshot` på 1 m avstand før og etter.
+- **Gjort 18. oktober:** platene er 2048 (rendret i 6–12× etter størrelsen, `scaleFor`), komponenten 15rem bred (skriften en tredjedel større), papiret bare i kanten, jpeg 4:4:4, `gallery_*` har taket 2048 (`teksturene_har_tak_i_nettleseren`), og løvkortenes sampler har også anisotropisk filtrering (de andre hadde 8× fra før). Nedlastingen vokste med 1,8 MB (troféene fra 0,7 til 2,5 MB). Før og etter i `assets/catalog/review/gallery_for_etter.jpg`.
 
 ### 13e. Angrep på avstand (eieren: vanskelig å se at Korrupt input skyter)
 - Årsak: prosjektilet (`Bolt`, modellen `bolt`) står i `model::PLANNED` og finnes ikke, så spyttet er usynlig.

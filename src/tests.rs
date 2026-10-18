@@ -765,7 +765,7 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
     assert!(asked(&mut native).is_empty());
 }
 
-/// I nettleseren får teksturene et tak (armene og våpnene 2048, resten
+/// I nettleseren får teksturene et tak (armene, våpnene og troféene 2048, resten
 /// 1024, normal- og metallkartene halvparten), og de pakkes ut først når
 /// rendereren laster dem opp (`gltf::pixels`), så de aldri står utpakket
 /// samtidig.
@@ -773,7 +773,7 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
 fn teksturene_har_tak_i_nettleseren() {
     use crate::adapters::delivery::browser_caps;
     use crate::adapters::gltf::{load_capped, model_files, pixels};
-    for name in ["arms", "npc_smith", "tavern"] {
+    for name in ["arms", "npc_smith", "tavern", "gallery_card"] {
         let Some((_, p)) = model_files().find(|(n, _)| *n == name) else { continue };
         let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
         let caps = browser_caps(name);
@@ -789,6 +789,12 @@ fn teksturene_har_tak_i_nettleseren() {
     }
     assert_eq!(browser_caps("sword").color, 2048);
     assert_eq!(browser_caps("crypt_01_aa").color, 1024);
+    // Troféene er skarpe i nettleseren også (plan 13d): platen er 2048.
+    assert_eq!(browser_caps("gallery_card").color, 2048);
+    let (_, p) = model_files().find(|(n, _)| *n == "gallery_card").expect("gallery_card");
+    let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let m = load_capped("gallery_card", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("gallery_card")).unwrap();
+    assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "troféet er 2048 i nettleseren");
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i

@@ -10,7 +10,9 @@ use super::gltf::{model_files, Caps};
 /// foran kameraet og beholder 2048 i fargen; resten får 1024, og normal- og
 /// metallkartene halvparten av fargen.
 pub fn browser_caps(name: &str) -> Caps {
-    const NEAR: [&str; 6] = ["arms", "sword", "axe", "dagger", "shield", "mace"];
+    // Armene og våpnene står rett foran kameraet, og troféene på
+    // galleriveggen har skrift som leses på en meters hold (plan 13d).
+    const NEAR: [&str; 7] = ["arms", "sword", "axe", "dagger", "shield", "mace", "gallery_"];
     if NEAR.iter().any(|p| name.starts_with(p)) {
         Caps { color: 2048, data: 1024 }
     } else {

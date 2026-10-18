@@ -454,6 +454,9 @@ impl Materials {
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Linear,
+            // Anisotropisk (lagene og modellenes egne teksturer, også
+            // troféene på skrå); krever lineær filtrering på alle tre, og
+            // WebGL2 uten utvidelsen og WebGPU tar det ned til det kortet tåler.
             anisotropy_clamp: 8,
             ..Default::default()
         });
@@ -464,6 +467,7 @@ impl Materials {
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Linear,
+            anisotropy_clamp: 8,
             ..Default::default()
         });
 
