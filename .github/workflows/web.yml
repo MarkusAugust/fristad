@@ -50,21 +50,16 @@ jobs:
       # publiseres; feiler de, stopper bygget her.
       - name: Tester
         run: cargo test --release --workspace
-      # Åpningsfilmen klippes av ffmpeg fra eierens klipp, malerier, stemmen
-      # og musikken (tools/film/cut.py). Den tar noen minutter, så resultatet
-      # ligger i hurtiglageret til noe av kildene endres.
-      - name: Hurtiglager for åpningsfilmen
-        id: film
-        uses: actions/cache@v4
-        with:
-          path: target/film/intro.mp4
-          key: film-${{ hashFiles('tools/film/**', 'assets/film/**', 'assets/music/film/**', 'assets/sounds/sounds.json') }}
-      - name: Klipp åpningsfilmen
-        if: steps.film.outputs.cache-hit != 'true'
+      # Åpningsfilmen klippes ikke her: den klippes én gang med tools/film/cut.py
+      # og legges ferdig på grenen `film` (tools/film/publish.sh), som hentes.
+      - name: Åpningsfilmen fra grenen film
         run: |
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          pip3 install --quiet pillow numpy
-          python3 tools/film/cut.py --out target/film/intro.mp4
+          mkdir -p target/film
+          if git fetch -q --depth 1 origin film; then
+            git show FETCH_HEAD:intro.mp4 > target/film/intro.mp4
+          else
+            echo "::warning::Grenen film mangler; siden får ingen åpningsfilm."
+          fi
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
       # Claude når ikke Poly Haven fra skymiljøet sitt, men når GitHub.
