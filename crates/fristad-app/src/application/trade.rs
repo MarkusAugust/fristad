@@ -5,7 +5,21 @@
 use super::session::Session;
 use crate::domain::craft::{self, Gear};
 use crate::domain::note::Note;
-use crate::ports::driving::{Event, InventoryView, RecipeView, SaveData, WareView};
+use crate::ports::driving::{Event, GearView, InventoryView, RecipeView, SaveData, WareView};
+
+/// Et kort til nettlaget.
+fn gear_view(i: &craft::Item, equipped: bool, owned: bool) -> GearView {
+    GearView {
+        id: i.id.into(),
+        name: i.name.into(),
+        slot: i.slot.key().into(),
+        rarity: i.rarity.name().into(),
+        special: i.special.clone(),
+        stats: i.stats.iter().map(|s| (s.label.to_string(), s.value, s.text.clone(), s.higher_better)).collect(),
+        equipped,
+        owned,
+    }
+}
 
 impl Session {
     /// Det reglene sa, til neste bilde.
@@ -30,7 +44,34 @@ impl Session {
             max_stamina: self.combat.max_stamina.round() as u32,
             tokens: h.coins,
             read: h.read_docs.iter().cloned().collect(),
+            gear: self.gear_views(),
         }
+    }
+
+    /// Det du har på i et spor, som kort (uten rustning: «Ingen rustning»).
+    fn worn(&self, slot: craft::Slot) -> Option<craft::Item> {
+        let g = &self.hero.gear;
+        match slot {
+            craft::Slot::Weapon => craft::item(g.weapon.id),
+            craft::Slot::Shield => craft::item(g.shield.id),
+            craft::Slot::Armor => Some(g.armor.and_then(|a| craft::item(a.id)).unwrap_or_else(craft::no_armor)),
+            craft::Slot::Lantern => None,
+        }
+    }
+
+    /// Alt utstyret du har, i rekkefølgen i `craft` (våpen, skjold, rustning).
+    fn gear_views(&self) -> Vec<GearView> {
+        let g = &self.hero.gear;
+        let worn = [g.weapon.id, g.shield.id, g.armor.map(|a| a.id).unwrap_or("")];
+        craft::WEAPONS
+            .iter()
+            .map(|w| w.id)
+            .chain(craft::SHIELDS.iter().map(|s| s.id))
+            .chain(craft::ARMORS.iter().map(|a| a.id))
+            .filter(|id| self.hero.owned.contains(*id))
+            .filter_map(craft::item)
+            .map(|i| gear_view(&i, worn.contains(&i.id), true))
+            .collect()
     }
 
     /// Butikken eller verkstedet til innbygger `i`.
@@ -75,6 +116,15 @@ impl Session {
                         })
                         .collect(),
                     ok: craft::missing(r, &self.hero.inventory).is_empty(),
+                    item: {
+                        let i = craft::recipe_item(r);
+                        let owned = match i.slot {
+                            craft::Slot::Lantern => matches!(r.result, craft::Result::Lantern(k) if self.hero.gear.lantern >= k),
+                            _ => self.hero.owned.contains(i.id),
+                        };
+                        gear_view(&i, false, owned)
+                    },
+                    current: self.worn(craft::recipe_item(r).slot).map(|i| gear_view(&i, true, true)),
                 }
             })
             .collect()
@@ -83,6 +133,13 @@ impl Session {
     /// Smi etter en oppskrift (fra skjemaet i skriptoriet). Gir om det gikk.
     pub fn craft(&mut self, id: &str) -> bool {
         let (ok, notes) = self.hero.craft(id, &mut self.combat);
+        self.later(notes);
+        ok
+    }
+
+    /// Ta på noe du har (inventaret). Gir om det gikk.
+    pub fn equip(&mut self, id: &str) -> bool {
+        let (ok, notes) = self.hero.equip(id, &mut self.combat);
         self.later(notes);
         ok
     }
@@ -118,6 +175,7 @@ impl Session {
             oil: Some(h.lamp.oil),
             deepest: self.deepest().map(|d| d as u32),
             lore: self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| l.title.clone()).collect(),
+            owned: h.owned.iter().cloned().collect(),
         }
     }
 
@@ -134,6 +192,12 @@ impl Session {
             h.gear.shield = s;
         }
         h.gear.armor = d.armor.as_deref().and_then(craft::armor);
+        // Alt du har; gamle lagringer har bare det du har på.
+        h.owned = d.owned.into_iter().filter(|id| craft::item(id).is_some()).collect();
+        h.owned.extend([craft::RUSTY_SWORD.id, craft::OLD_SHIELD.id, h.gear.weapon.id, h.gear.shield.id].map(String::from));
+        if let Some(a) = h.gear.armor {
+            h.owned.insert(a.id.into());
+        }
         h.gear.lantern = if d.lantern > 0.0 { d.lantern } else { 1.0 };
         h.lamp.oil = d.oil.unwrap_or(crate::domain::lantern::FULL).clamp(0.0, crate::domain::lantern::FULL);
         if d.max_hp >= 100.0 {

@@ -405,6 +405,12 @@ impl Mobs {
     /// Et slag mot fiende `i` fra `from`: skade, rykk bakover, og tokens
     /// om den dør.
     pub fn strike(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt) -> Strike {
+        self.strike_with(i, damage, from, crypt, false)
+    }
+
+    /// Som `strike`, og med `crush` (kølla) går slaget gjennom panseret og
+    /// teller dobbelt mot balansen.
+    pub fn strike_with(&mut self, i: usize, damage: f32, from: Vec3, crypt: &Crypt, crush: bool) -> Strike {
         let Some(m) = self.mobs.get_mut(i) else { return Strike::default() };
         if !m.alive() {
             return Strike::default();
@@ -413,7 +419,7 @@ impl Mobs {
         let mut damage = damage;
         let mut armored = false;
         // Panseret: modalen tar lite forfra når den ikke er midt i et slag.
-        if stats.armor < 1.0 && matches!(m.state, State::Idle | State::Walk) {
+        if !crush && stats.armor < 1.0 && matches!(m.state, State::Idle | State::Walk) {
             let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
             let to = (from - m.pos).with_y(0.0).normalize_or_zero();
             if facing.dot(to) > 0.2 {
@@ -448,7 +454,7 @@ impl Mobs {
             return Strike { killed: true, armored, staggered: false };
         }
         // De tunge lar seg ikke avbryte av lette slag.
-        if damage < stats.poise {
+        if damage * if crush { 2.0 } else { 1.0 } < stats.poise {
             return Strike { killed: false, armored, staggered: false };
         }
         m.state = State::Hit;

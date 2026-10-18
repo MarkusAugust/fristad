@@ -21,6 +21,9 @@ pub struct Hero {
     /// huset ditt). Det du selger eller bruker opp, blir hengende.
     pub found: BTreeSet<String>,
     pub gear: Gear,
+    /// Alt utstyret du har (våpen, skjold og rustninger etter id), også det
+    /// du ikke har på deg; byttes i inventaret (`equip`).
+    pub owned: BTreeSet<String>,
     /// Komponentene du har lest om i boka denne turen (liv tilbake én gang per).
     pub read_docs: HashSet<String>,
     /// Den varige styrken du har tatt (relikviene i krypten).
@@ -42,6 +45,7 @@ impl Default for Hero {
             carried: BTreeMap::new(),
             found: BTreeSet::new(),
             gear: Gear { weapon: craft::RUSTY_SWORD, shield: craft::OLD_SHIELD, armor: None, lantern: 1.0 },
+            owned: [craft::RUSTY_SWORD.id, craft::OLD_SHIELD.id].into_iter().map(String::from).collect(),
             read_docs: HashSet::new(),
             bonus_taken: BTreeSet::new(),
             lamp: Default::default(),
@@ -134,6 +138,13 @@ impl Hero {
     /// Smi etter en oppskrift. Gir om det gikk, og det som skal sies.
     pub fn craft(&mut self, id: &str, combat: &mut Combat) -> (bool, Vec<Note>) {
         let Some(r) = craft::recipe(id) else { return (false, vec![]) };
+        let made = match r.result {
+            craft::Result::Weapon(id) | craft::Result::Shield(id) | craft::Result::Armor(id) => self.owned.contains(id),
+            craft::Result::Lantern(k) => self.gear.lantern >= k,
+        };
+        if made {
+            return (false, vec![Note::Sfx("deny"), Note::toast(format!("Du har allerede {}.", r.name))]);
+        }
         let missing = craft::missing(&r, &self.inventory);
         if !missing.is_empty() {
             let list: Vec<String> = missing.iter().map(|(c, n)| format!("{c} ×{n}")).collect();
@@ -143,6 +154,9 @@ impl Hero {
             if let Some(v) = self.inventory.get_mut(*c) {
                 *v = v.saturating_sub(*n);
             }
+        }
+        if let craft::Result::Weapon(id) | craft::Result::Shield(id) | craft::Result::Armor(id) = r.result {
+            self.owned.insert(id.to_string());
         }
         let (what, sound) = match r.result {
             craft::Result::Weapon(id) => {
@@ -169,6 +183,29 @@ impl Hero {
         combat.set_gear(self.gear);
         self.dirty = true;
         (true, vec![Note::Sfx("craft"), Note::Sfx(sound), Note::toast(format!("Skjemaet er godkjent. {} er smidd: {what} er byttet.", r.name))])
+    }
+
+    /// Ta på noe du har (fra inventaret). Gir om det gikk, og det som skal
+    /// sies.
+    pub fn equip(&mut self, id: &str, combat: &mut Combat) -> (bool, Vec<Note>) {
+        if !self.owned.contains(id) {
+            return (false, vec![Note::Sfx("deny")]);
+        }
+        let (name, sound) = if let Some(w) = craft::weapon(id) {
+            self.gear.weapon = w;
+            (w.name, "equip_metal")
+        } else if let Some(s) = craft::shield(id) {
+            self.gear.shield = s;
+            (s.name, if s.sound == "block_metal" { "equip_metal" } else { "equip_wood" })
+        } else if let Some(a) = craft::armor(id) {
+            self.gear.armor = Some(a);
+            (a.name, "equip_leather")
+        } else {
+            return (false, vec![]);
+        };
+        combat.set_gear(self.gear);
+        self.dirty = true;
+        (true, vec![Note::Sfx(sound), Note::toast(format!("Du har på deg {name}."))])
     }
 
     /// Kjøp i en butikk, for tokens. Gir om det gikk, og det som skal sies.
@@ -237,6 +274,18 @@ mod tests {
         let (lost, bag) = h.die();
         assert_eq!((lost, h.coins, h.keys, h.hp), (10, 30, 0, 100.0));
         assert_eq!(bag.get("tabs"), Some(&1));
+    }
+
+    #[test]
+    fn utstyret_du_har_kan_byttes() {
+        let mut h = Hero::default();
+        let mut c = Combat::new(None);
+        assert!(!h.equip("card_axe", &mut c).0, "øksa har du ikke");
+        h.owned.insert("card_axe".into());
+        assert!(h.equip("card_axe", &mut c).0);
+        assert_eq!((h.gear.weapon.id, c.gear.weapon.id), ("card_axe", "card_axe"));
+        assert!(h.equip("rusty_sword", &mut c).0, "det gamle sverdet er fortsatt ditt");
+        assert_eq!(h.gear.weapon.id, "rusty_sword");
     }
 
     #[test]

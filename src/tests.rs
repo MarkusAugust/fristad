@@ -418,6 +418,69 @@ fn skjemaet_smir_utstyr() {
 }
 
 
+/// Utstyret (eieren 18. oktober: «alt skal se forskjellig ut med forskjellige
+/// stats»): hvert våpen, skjold og hver rustning har sin egen modell, som
+/// finnes, og sine egne tall; alt utenom det du starter med kan smis, og
+/// ikonet til kortet finnes. Det du har smidd, holder økta på og lagrer, og
+/// en gammel lagring uten lista får det du har på.
+#[test]
+fn utstyret_ser_forskjellig_ut_og_kan_byttes() {
+    use crate::domain::craft;
+    let root = env!("CARGO_MANIFEST_DIR");
+    let files: Vec<&str> = crate::adapters::gltf::model_files().map(|(n, _)| *n).collect();
+    let mut models = vec![];
+    let mut bad = vec![];
+    let items: Vec<(&str, &str, Vec<f32>)> = craft::WEAPONS
+        .iter()
+        .map(|w| (w.id, w.model, vec![w.damage, w.speed, w.reach, w.riposte, w.stamina]))
+        .chain(craft::SHIELDS.iter().map(|s| (s.id, s.model, vec![s.block, s.parry_window, s.stamina])))
+        .chain(craft::ARMORS.iter().map(|a| (a.id, a.arms, vec![a.taken, a.regen, a.dodge])))
+        .collect();
+    for (id, model, stats) in &items {
+        if !files.contains(model) {
+            bad.push(format!("{id}: modellen {model} finnes ikke"));
+        }
+        if models.contains(model) {
+            bad.push(format!("{id}: modellen {model} er brukt av noe annet"));
+        }
+        models.push(*model);
+        if items.iter().any(|(o, _, s)| o != id && s == stats) {
+            bad.push(format!("{id}: samme tall som noe annet"));
+        }
+        let starter = *id == craft::RUSTY_SWORD.id || *id == craft::OLD_SHIELD.id;
+        let made = craft::RECIPES.iter().any(|r| matches!(r.result, craft::Result::Weapon(x) | craft::Result::Shield(x) | craft::Result::Armor(x) if x == *id));
+        if !starter && !made {
+            bad.push(format!("{id}: ingen oppskrift"));
+        }
+        if !std::path::Path::new(&format!("{root}/assets/textures/icons/{id}.png")).exists() {
+            bad.push(format!("{id}: ikonet mangler"));
+        }
+    }
+    assert!(bad.is_empty(), "utstyret:\n{}", bad.join("\n"));
+    assert!(craft::WEAPONS.len() >= 5 && craft::SHIELDS.len() >= 5 && craft::ARMORS.len() >= 5);
+
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    for (c, n) in [("button", 3), ("divider", 1), ("tag", 3)] {
+        game.give(c, n);
+    }
+    assert!(game.craft("component_sword") && game.craft("tag_dagger"));
+    assert_eq!(game.gear().weapon.id, "tag_dagger");
+    assert!(!game.craft("tag_dagger"), "det du har, smis ikke på nytt");
+    assert!(game.equip("component_sword"), "det du har smidd, kan du ta på igjen");
+    assert!(!game.equip("tabs_axe"), "det du ikke har, kan du ikke ta på");
+    let saved = game.save();
+    assert!(saved.owned.iter().any(|o| o == "tag_dagger"));
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(saved.clone());
+    assert!(fresh.equip("tag_dagger"), "lagringen husker alt utstyret");
+    let mut old = session(&mut physics2);
+    old.load(SaveData { owned: vec![], ..saved });
+    assert_eq!(old.gear().weapon.id, "component_sword");
+    assert!(old.equip("rusty_sword") && !old.equip("tag_dagger"), "en gammel lagring har det du hadde på og det du startet med");
+}
+
 /// Husene man kan gå inn i: gå med Rapier fra gata, gjennom døråpningen og
 /// inn i rommet (opp trinnene til gulvet), uten å bli stoppet av veggene.
 #[test]

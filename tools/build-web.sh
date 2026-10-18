@@ -53,6 +53,10 @@ mkdir -p dist/film/fonts && cp web/film/player.js dist/film/ && cp web/film/font
 # Bildene til katalogen i redigeringen (`?edit`, tools/qa/thumbs.py).
 mkdir -p dist/catalog
 cp assets/catalog/thumbs/*.jpg dist/catalog/ 2>/dev/null || true
+# Ikonene på utstyrskortene (inventaret og skriptoriet): eierens malte, ellers
+# et rendret bilde av modellen (tools/models/gear_icons.py).
+mkdir -p dist/icons
+cp assets/textures/icons/*.png dist/icons/
 # Lydene (opptak fra frie spill, se assets/sounds/CREDITS.md).
 mkdir -p dist/sounds
 cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/sounds/

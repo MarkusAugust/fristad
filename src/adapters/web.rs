@@ -311,6 +311,12 @@ fn quality_json(q: &Quality) -> serde_json::Value {
     })
 }
 
+/// Et kort (utstyret i inventaret og galleriet i skriptoriet).
+fn gear_json(g: &crate::ports::driving::GearView) -> serde_json::Value {
+    use serde_json::json;
+    json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
+}
+
 fn json(e: &Event) -> serde_json::Value {
     use serde_json::json;
     match e {
@@ -346,13 +352,13 @@ fn json(e: &Event) -> serde_json::Value {
         }
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
         Event::Inventory(v) => {
-            json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read})
+            json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read, "gear": v.gear.iter().map(gear_json).collect::<Vec<_>>()})
         }
         Event::Shop { npc, wares } => {
             json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()})
         }
         Event::Workshop { recipes } => {
-            json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok})).collect::<Vec<_>>()})
+            json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok, "item": gear_json(&r.item), "current": r.current.as_ref().map(gear_json)})).collect::<Vec<_>>()})
         }
         Event::Speech(bubbles) => {
             json!({"type": "speech", "bubbles": bubbles.iter().map(|b| json!({"id": b.id, "x": b.x, "y": b.y, "name": b.name, "text": b.text})).collect::<Vec<_>>()})
@@ -432,6 +438,12 @@ impl Engine {
         self.app.command(Command::Craft(recipe.into()))
     }
 
+    /// Ta på et våpen, skjold eller en rustning du har (id fra inventaret).
+    /// Gir om det gikk.
+    pub fn equip(&mut self, item: &str) -> bool {
+        self.app.command(Command::Equip(item.into()))
+    }
+
     /// Kjøp en vare (id fra butikken). Gir om det gikk.
     pub fn buy(&mut self, ware: &str) -> bool {
         self.app.command(Command::Buy(ware.into()))
@@ -445,7 +457,7 @@ impl Engine {
     /// Lageret og utstyret som JSON, til localStorage.
     pub fn save_state(&self) -> String {
         let d = self.app.save();
-        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses, "oil": d.oil, "deepest": d.deepest, "lore": d.lore}).to_string()
+        serde_json::json!({"stash": d.stash, "weapon": d.weapon, "shield": d.shield, "armor": d.armor, "lantern": d.lantern, "max_hp": d.max_hp, "max_stamina": d.max_stamina, "coins": d.coins, "found": d.found, "bonuses": d.bonuses, "oil": d.oil, "deepest": d.deepest, "lore": d.lore, "owned": d.owned}).to_string()
     }
 
     pub fn load_state(&mut self, json: &str) {
@@ -468,6 +480,8 @@ impl Engine {
             oil: v["oil"].as_f64().map(|o| o as f32),
             deepest: v["deepest"].as_u64().map(|d| d as u32),
             lore: v["lore"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
+            // Gamle lagringer har bare det du har på.
+            owned: v["owned"].as_array().map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect()).unwrap_or_default(),
         };
         self.app.command(Command::Load(d));
     }

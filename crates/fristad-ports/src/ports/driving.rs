@@ -94,6 +94,8 @@ pub enum Command {
     Craft(String),
     /// Kjøp en vare.
     Buy(String),
+    /// Ta på et våpen, skjold eller en rustning du har (fra inventaret).
+    Equip(String),
     /// Les om en komponent i boka (gir liv).
     ReadDoc(String),
     Load(SaveData),
@@ -506,6 +508,24 @@ pub struct InventoryView {
     pub tokens: u32,
     /// Komponentene du har lest om i boka denne turen.
     pub read: Vec<String>,
+    /// Alt utstyret du har (det du har på er merket), som kort.
+    pub gear: Vec<GearView>,
+}
+
+/// Et våpen, skjold, en rustning eller lykta som kort (inventaret og
+/// galleriet i skriptoriet). Bildet er `icons/<id>.png`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct GearView {
+    pub id: String,
+    pub name: String,
+    /// «weapon», «shield», «armor» eller «lantern».
+    pub slot: String,
+    pub rarity: String,
+    pub special: String,
+    /// (navn, verdi, tekst, høyere er bedre).
+    pub stats: Vec<(String, f32, String, bool)>,
+    pub equipped: bool,
+    pub owned: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -529,6 +549,10 @@ pub struct RecipeView {
     /// over.
     pub sources: Vec<(String, String, bool)>,
     pub ok: bool,
+    /// Tingen oppskriften gir, som kort (med om du har den).
+    pub item: GearView,
+    /// Det du har på i samme spor, til sammenligningen.
+    pub current: Option<GearView>,
 }
 
 /// Det som lagres i nettleseren mellom øktene.
@@ -555,6 +579,9 @@ pub struct SaveData {
     pub deepest: Option<u32>,
     /// Titlene på lappene og bøkene du har lest i krypten (journalen).
     pub lore: Vec<String>,
+    /// Alt utstyret du har (id-ene); mangler i gamle lagringer, og da er
+    /// det du har på og det du startet med.
+    pub owned: Vec<String>,
 }
 
 /// En snakkeboble: over hvem (id), hvor på skjermen (0..1), navn og tekst.

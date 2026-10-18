@@ -668,6 +668,7 @@ function setBars(hp, stamina) {
 let lastInv = null;
 function renderInventory(e) {
   lastInv = e;
+  if (invOpen) renderInvGear(e);
   $("gear").innerHTML = `<div><b>Våpen:</b> ${esc(e.weapon)} <i>${esc(e.weapon_special)}</i></div><div><b>Skjold:</b> ${esc(e.shield)}</div><div><b>Rustning:</b> ${esc(e.armor)}${e.lantern ? " · Søkelykt" : ""}</div>`;
   const inv = $("inventory");
   inv.replaceChildren();
@@ -1014,7 +1015,7 @@ function toggleInventory() {
     closeInventory(true);
     return;
   }
-  const e = lastInv ?? { stash: [], carried: [], weapon: "Sverd", weapon_special: "", shield: "Rundskjold", armor: "Gambeson", lantern: false, max_hp: 100, max_stamina: 100, tokens: 0, read: [] };
+  const e = lastInv ?? { stash: [], carried: [], weapon: "Sverd", weapon_special: "", shield: "Rundskjold", armor: "Gambeson", lantern: false, max_hp: 100, max_stamina: 100, tokens: 0, read: [], gear: [] };
   const h = lastHud;
   playing = false;
   dragging = false;
@@ -1034,12 +1035,6 @@ function toggleInventory() {
         <td data-align="end">${docs[c] ? `<button class="fs-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
       </tr>`)
     .join("");
-  const slot = (label, name, note, tag) => `<div class="fs-card" data-variant="filled">
-      <p class="eyebrow">${label}</p>
-      <h3 class="fs-card__title">${esc(name)}</h3>
-      ${note ? `<p class="fs-help-text">${esc(note)}</p>` : ""}
-      ${tag ? `<span class="fs-tag" data-variant="filled">${esc(tag)}</span>` : ""}
-    </div>`;
   const dlg = document.createElement("dialog");
   dlg.className = "fs-dialog inventory-dialog";
   dlg.setAttribute("aria-labelledby", "inv-title");
@@ -1060,12 +1055,8 @@ function toggleInventory() {
           <button>Komponenter (${counts.size})</button>
         </div>
         <div class="fs-tabs__panel">
-          <div class="inv-slots">
-            ${slot("Våpen", e.weapon, e.weapon_special, "I høyre hånd")}
-            ${slot("Skjold", e.shield, "", "I venstre hånd")}
-            ${slot("Rustning", e.armor, "", "På kroppen")}
-            ${slot("Lys", e.lantern ? "Søkelykt" : "Fakkel", e.lantern ? "Lyser lenger inn i mørket." : "", "")}
-          </div>
+          <div class="inv-slots">${invSlots(e)}</div>
+          <div class="inv-gear"></div>
         </div>
         <div class="fs-tabs__panel">
           ${counts.size
@@ -1083,6 +1074,8 @@ function toggleInventory() {
     </div>`;
   document.body.appendChild(dlg);
   invOpen = dlg;
+  invSelected = null;
+  renderInvGear(e);
   dlg.querySelector('[data-act="close"]').addEventListener("click", () => closeInventory(true));
   for (const b of dlg.querySelectorAll("[data-read]")) {
     b.addEventListener("click", () => {
@@ -1097,6 +1090,68 @@ function toggleInventory() {
   });
   sfx.play("bag");
   dlg.showModal();
+}
+
+// Alt utstyret du har samlet, som kort. Velg et, så står det ved siden av
+// det du har på i samme spor med grønne og røde piler per verdi, og «Bruk»
+// tar det på (eieren 18. oktober).
+let invSelected = null;
+function invSlots(e) {
+  const slot = (label, name, note, tag) => `<div class="fs-card" data-variant="filled">
+      <p class="eyebrow">${label}</p>
+      <h3 class="fs-card__title">${esc(name)}</h3>
+      ${note ? `<p class="fs-help-text">${esc(note)}</p>` : ""}
+      ${tag ? `<span class="fs-tag" data-variant="filled">${esc(tag)}</span>` : ""}
+    </div>`;
+  return `${slot("Våpen", e.weapon, e.weapon_special, "I høyre hånd")}
+    ${slot("Skjold", e.shield, "", "I venstre hånd")}
+    ${slot("Rustning", e.armor, "", "På kroppen")}
+    ${slot("Lys", e.lantern ? "Søkelykt" : "Fakkel", e.lantern ? "Lyser lenger inn i mørket." : "", "")}`;
+}
+const NO_ARMOR = { id: "", name: "Ingen rustning", slot: "armor", rarity: "vanlig", special: "", equipped: true, owned: true, stats: [
+  { label: "Skade du tar", value: 1, text: "100 %", up: false },
+  { label: "Utholdenhet tilbake", value: 1, text: "×1.00", up: true },
+  { label: "Unnamanøver koster", value: 1, text: "×1.00", up: false },
+] };
+function renderInvGear(e) {
+  const root = invOpen?.querySelector(".inv-gear");
+  if (!root) return;
+  invOpen.querySelector(".inv-slots").innerHTML = invSlots(e);
+  const gear = e.gear ?? [];
+  const worn = (slot) => gear.find((g) => g.slot === slot && g.equipped) ?? (slot === "armor" ? NO_ARMOR : null);
+  const sel = gear.find((g) => g.id === invSelected);
+  const compare = sel
+    ? `<div class="gear-compare" aria-live="polite">
+        ${gearCard(sel, worn(sel.slot))}
+        <div class="gear-vs" aria-hidden="true">mot</div>
+        ${gearCard(worn(sel.slot) ?? sel, null)}
+      </div>
+      <div class="gear-actions">
+        <button type="button" class="fs-button" data-variant="primary" data-equip="${esc(sel.id)}" ${sel.equipped ? "disabled" : ""}>Bruk</button>
+        <span class="fs-help-text">${sel.equipped ? "Du har den på deg." : `Bytter ut ${esc(worn(sel.slot)?.name ?? "")}.`}</span>
+      </div>`
+    : `<p class="fs-help-text">Velg noe du har, så ser du det mot det du har på.</p>`;
+  root.innerHTML = `<h3 class="fs-heading" data-size="xs">Alt utstyret ditt (${gear.length})</h3>
+    <div class="gear-grid pick">${gear.map((g) => gearCard(g, worn(g.slot), "", `tabindex="0" role="button" aria-pressed="${g.id === invSelected}" data-pick="${esc(g.id)}"`)).join("")}</div>
+    ${compare}`;
+  for (const c of root.querySelectorAll("[data-pick]")) {
+    const pick = () => {
+      invSelected = c.dataset.pick;
+      sfx.play("click");
+      renderInvGear(e);
+      root.querySelector(".gear-compare")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    };
+    c.addEventListener("click", pick);
+    c.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        pick();
+      }
+    });
+  }
+  root.querySelector("[data-equip]")?.addEventListener("click", (ev) => {
+    engine.equip(ev.currentTarget.dataset.equip);
+  });
 }
 
 function closeInventory(resume) {
@@ -1327,6 +1382,7 @@ function openOverlay(title) {
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
   $("overlay-title").textContent = title;
+  $("overlay").querySelector(".overlay-inner").classList.remove("wide");
   $("overlay-body").replaceChildren();
   $("overlay").hidden = false;
   return $("overlay-body");
@@ -1389,61 +1445,111 @@ function updateShop() {
   }
 }
 
-// Skjemakontoret: oppskriften er et Fristil-skjema. Feltene er
-// komponentene som trengs, feilteksten sier hva som mangler.
+// Utstyret som kort (galleriet i skriptoriet og inventaret): ikonet
+// (`icons/<id>.png`, eierens malte ikoner eller et rendret bilde av
+// modellen), navnet, sjeldenheten og verdiene, med grønne og røde piler mot
+// det du har på i samme spor.
+const SLOT_NAMES = { weapon: "Våpen", shield: "Skjold", armor: "Rustning", lantern: "Lys" };
+const RARITY_COLORS = { vanlig: "neutral", sjelden: "info", episk: "warning" };
+function gearStats(item, other) {
+  const rows = item.stats
+    .map((st) => {
+      const o = other?.stats.find((x) => x.label === st.label);
+      let delta = "";
+      if (o && other.id !== item.id) {
+        const d = st.value - o.value;
+        if (Math.abs(d) < 1e-4) delta = `<span class="delta same" aria-label="likt">=</span>`;
+        else {
+          const better = st.up ? d > 0 : d < 0;
+          delta = `<span class="delta ${better ? "better" : "worse"}" aria-label="${better ? "bedre" : "dårligere"} enn ${esc(other.name)}">${d > 0 ? "▲" : "▼"}</span>`;
+        }
+      }
+      return `<div class="gear-stat"><dt>${esc(st.label)}</dt><dd>${esc(st.text)} ${delta}</dd></div>`;
+    })
+    .join("");
+  return `<dl class="gear-stats">${rows}</dl>`;
+}
+function gearCard(item, other, extra = "", attrs = "") {
+  return `<article class="fs-card gear-card" data-variant="outlined" data-rarity="${esc(item.rarity)}" ${attrs}>
+      <img class="gear-icon" src="icons/${esc(item.id)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div class="gear-head">
+        <h3 class="fs-card__title">${esc(item.name)}</h3>
+        <div class="gear-tags">
+          <span class="fs-badge" data-color="${RARITY_COLORS[item.rarity] ?? "neutral"}">${esc(item.rarity)}</span>
+          <span class="fs-tag">${SLOT_NAMES[item.slot] ?? ""}</span>
+          ${item.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : ""}
+        </div>
+      </div>
+      ${item.special ? `<p class="fs-help-text gear-special">${esc(item.special)}</p>` : ""}
+      ${gearStats(item, other)}
+      ${extra}
+    </article>`;
+}
+
+// Skriptoriet: alle oppskriftene som kort i et galleri, med det tingen
+// gir, verdiene mot det du har på, og komponentene du har og mangler (og hvor
+// de finnes). «Smi» er av til du har alt (eieren 18. oktober).
+let workshopFilter = "all";
 function openWorkshop(recipes) {
   const body = openOverlay("Skriptoriet");
-  const form = document.createElement("form");
-  form.className = "workshop";
-  form.innerHTML = `
-    <p class="fs-paragraph" data-size="small">Søknad om smiing. Velg oppskrift, så fylles feltene ut fra lageret ditt.</p>
-    <label class="fs-label" for="recipe">Oppskrift</label>
-    <select id="recipe" class="fs-select"></select>
-    <p id="recipe-result" class="fs-help-text"></p>
-    <div id="recipe-fields"></div>
-    <div class="panel-actions"><button type="submit" class="fs-button" data-variant="primary">Send søknad</button></div>`;
-  body.appendChild(form);
-  const sel = form.querySelector("#recipe");
-  for (const r of recipes) {
-    const o = document.createElement("option");
-    o.value = r.id;
-    o.textContent = `${r.name} (${r.rarity})${r.ok ? "" : " · mangler"}`;
-    sel.appendChild(o);
-  }
-  const fields = form.querySelector("#recipe-fields");
+  $("overlay").querySelector(".overlay-inner").classList.add("wide");
+  const wrap = document.createElement("div");
+  wrap.className = "workshop";
+  const filters = [["all", "Alt"], ["weapon", "Våpen"], ["shield", "Skjold"], ["armor", "Rustning"], ["lantern", "Lys"]];
+  wrap.innerHTML = `<p class="fs-paragraph" data-size="small">Søknad om smiing: hver oppskrift er et skjema. Har du alle komponentene i lageret, godkjennes det og tingen smis.</p>
+    <div class="gear-filter" role="group" aria-label="Vis">${filters.map(([k, n]) => `<button type="button" class="fs-button" data-size="small" data-filter="${k}" aria-pressed="${k === workshopFilter}">${n}</button>`).join("")}</div>
+    <div class="gear-grid"></div>`;
+  body.appendChild(wrap);
+  const grid = wrap.querySelector(".gear-grid");
+  const title = (c) => docs[c]?.title ?? c;
   const render = () => {
-    const r = recipes.find((x) => x.id === sel.value) ?? recipes[0];
-    form.querySelector("#recipe-result").textContent = r.result;
-    fields.replaceChildren();
-    // Hvor hver komponent finnes; de som bare finnes i krypten merkes.
-    const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
-    const mark = (c) => (where.get(c)?.cryptOnly ? ` <span class="fs-badge" data-color="warning">Bare i krypten</span>` : "");
-    for (const [c, need, have] of r.needs) {
-      const wrap = document.createElement("div");
-      wrap.className = "field";
-      const src = where.get(c)?.text ?? "";
-      wrap.innerHTML = `<label class="fs-label">${esc(c)}${mark(c)}</label><input class="fs-input" readonly value="${need} stk (har ${have})"><p class="${have >= need ? "fs-help-text" : "fs-error-text"}">${have >= need ? "" : `Mangler ${Math.max(0, need - have)}. `}${esc(src)}</p>`;
-      fields.appendChild(wrap);
+    for (const b of wrap.querySelectorAll("[data-filter]")) {
+      b.setAttribute("aria-pressed", String(b.dataset.filter === workshopFilter));
+      b.dataset.variant = b.dataset.filter === workshopFilter ? "primary" : "secondary";
     }
-    if (r.requires.length) {
-      const fs = document.createElement("fieldset");
-      fs.className = "fs-fieldset";
-      fs.innerHTML = `<legend>Avanserte felt (må være i lageret)</legend>`;
-      for (const [c, ok] of r.requires) {
-        const p = document.createElement("p");
-        p.className = ok ? "fs-help-text" : "fs-error-text";
-        p.innerHTML = `${esc(c)}${mark(c)}: ${ok ? "i lageret" : `mangler. ${esc(where.get(c)?.text ?? "")}`}`;
-        fs.appendChild(p);
-      }
-      fields.appendChild(fs);
+    grid.innerHTML = recipes
+      .filter((r) => workshopFilter === "all" || r.item.slot === workshopFilter)
+      .map((r) => {
+        const where = new Map((r.sources ?? []).map(([c, text, cryptOnly]) => [c, { text, cryptOnly }]));
+        const crypt = (c) => (where.get(c)?.cryptOnly ? ' <span class="fs-badge" data-color="warning">Bare i krypten</span>' : "");
+        const need = r.needs
+          .map(([c, n, have]) => {
+            const ok = have >= n;
+            return `<li class="${ok ? "have" : "lack"}"><span class="gear-comp">${ok ? "✓" : "✗"} ${esc(title(c))} ${have}/${n}</span>${crypt(c)}${ok ? "" : `<span class="fs-help-text">${esc(where.get(c)?.text ?? "")}</span>`}</li>`;
+          })
+          .concat(
+            r.requires.map(
+              ([c, ok]) =>
+                `<li class="${ok ? "have" : "lack"}"><span class="gear-comp">${ok ? "✓" : "✗"} ${esc(title(c))} i lageret</span>${crypt(c)}${ok ? "" : `<span class="fs-help-text">${esc(where.get(c)?.text ?? "")}</span>`}</li>`,
+            ),
+          )
+          .join("");
+        const owned = r.item.owned;
+        const can = r.ok && !owned;
+        const why = owned ? "Du har den allerede." : r.ok ? "" : "Mangler komponenter.";
+        const extra = `<ul class="gear-needs" aria-label="Komponentene">${need}</ul>
+          <div class="gear-actions">
+            ${owned ? '<span class="fs-badge" data-color="success">Har du</span>' : ""}
+            <button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : `disabled aria-describedby="why-${esc(r.id)}"`}>Smi</button>
+            <span class="fs-help-text" id="why-${esc(r.id)}">${why}</span>
+          </div>`;
+        return gearCard(r.item, r.current, extra, `data-recipe="${esc(r.id)}"`);
+      })
+      .join("");
+    for (const b of grid.querySelectorAll("[data-craft]")) {
+      b.addEventListener("click", () => {
+        if (engine.craft(b.dataset.craft)) closeOverlay(true);
+      });
     }
   };
-  sel.addEventListener("change", render);
+  for (const b of wrap.querySelectorAll("[data-filter]")) {
+    b.addEventListener("click", () => {
+      workshopFilter = b.dataset.filter;
+      sfx.play("click");
+      render();
+    });
+  }
   render();
-  form.addEventListener("submit", (ev) => {
-    ev.preventDefault();
-    if (engine.craft(sel.value)) closeOverlay(true);
-  });
 }
 
 // Snakkeboblene over innbyggerne: vanlige bobler, ikke designsystemet.
