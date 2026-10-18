@@ -474,6 +474,9 @@ pub struct Ambience {
     pub chasm: f32,
     /// Den åpne portalen ved sørporten summer.
     pub portal: f32,
+    /// Trubaduren i Vertshuset: 1 inne, svakere utenfor døra (musikken
+    /// spiller `tavern` i stedet for byens spor inne).
+    pub tavern: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,

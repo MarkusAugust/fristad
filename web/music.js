@@ -12,11 +12,14 @@
 // `docs/prompter/musikk-spill.md`): `music/game/<navn>.mp3` (kopiert fra
 // `assets/music/game/` av `tools/build-web.sh`). `town` spiller i hele byen,
 // om natta dempet og mørkere gjennom et lavpassfilter; `crypt` i alle
-// nivåene; `combat` tones inn når en fiende som har sett deg er nær
+// nivåene (`town_night` om natta, og om dagen så lenge `town` mangler;
+// `town` om natta mørknes med et lavpass); `combat` tones inn når en fiende som har sett deg er nær
 // (`hud.fight` fra økta: 1 fiende, 2 boss, 3 Rammeverket; bossene og
 // Rammeverket bruker `combat_boss` om den finnes) og ut igjen `FIGHT_HOLD`
 // sekunder etter at kampen er over. Mangler et spor, spiller partituret som
-// før; mangler kampsporet, spiller det som spilte.
+// før; mangler kampsporet, spiller det som spilte. Inne i Vertshuset synger
+// trubaduren (`tavern`, `ambience.tavern` fra økta: 1 inne, svakere og
+// dempet utenfor døra) i stedet for byens spor.
 
 import { arp, beats, createScore, lengthOf, midi, repeat, shift, tune } from "./score.js";
 
@@ -186,20 +189,23 @@ const CUES = Object.fromEntries([...SONGS.map((s, i) => [`town${i}`, songCue(s)]
 
 // Sporene fra filer, og sporet som står i stedet når ett mangler (`null`:
 // partituret, for kampen det som spilte der du står).
-const TRACKS = { town: null, crypt: null, combat: null, combat_boss: "combat" };
+const TRACKS = { town: "town_night", town_night: "town", crypt: null, combat: null, combat_boss: "combat" };
 // Så lenge etter at kampen er over spiller kampsporet før det tones ut.
 const FIGHT_HOLD = 6;
 const VOLUME = 0.55;
-// Natta i byen: sporet dempes og mørknes.
+// Natta i byen når bare dagsporet finnes: det dempes og mørknes.
 const NIGHT_GAIN = 0.6;
 const NIGHT_LOWPASS = 1100;
 
+// Trubaduren: hvor dempet han er utenfor Vertshuset (lavpass gjennom veggene).
+const TAVERN_OUTSIDE_LOWPASS = 900;
+
 /** Hvilket spor som skal spille: `where` er "town", "cellar" eller
- * "silence", og `fight` kampen (0–3). */
-export function trackFor({ where, fight = 0 }) {
+ * "silence", `fight` kampen (0–3) og `night` om det er natt. */
+export function trackFor({ where, fight = 0, night = false }) {
   if (where === "silence") return null;
   if (where === "cellar") return fight >= 2 ? "combat_boss" : fight === 1 ? "combat" : "crypt";
-  return "town";
+  return night ? "town_night" : "town";
 }
 
 export function createMusic(context, base = "music/") {
@@ -213,6 +219,8 @@ export function createMusic(context, base = "music/") {
   let songStart = 0;
   let timer = null;
   let night = false;
+  // Vertshuset: 1 inne, mindre utenfor døra (`ambience.tavern`).
+  let tavern = 0;
   let fight = 0;
   // Den hardeste kampen siden kampen begynte (bossen holder seg til den er over).
   let lastFight = 0;
@@ -241,9 +249,11 @@ export function createMusic(context, base = "music/") {
   const tone = (name, secs) => {
     const f = files[name];
     if (!f?.filter) return;
+    if (name === "tavern") return;
     const dark = name === "town" && night;
+    const hushed = name.startsWith("town") && insideTavern();
     f.filter.frequency.setTargetAtTime(dark ? NIGHT_LOWPASS : 20000, c.currentTime, secs / 3);
-    f.level.gain.setTargetAtTime(dark ? NIGHT_GAIN : 1, c.currentTime, secs / 3);
+    f.level.gain.setTargetAtTime(hushed ? 0 : dark ? NIGHT_GAIN : 1, c.currentTime, secs / 3);
   };
   // Et filspor: lastes første gang det trengs, og spiller i løkke gjennom
   // sitt eget filter og sin egen styrke, så det kan tones inn og ut.
@@ -260,11 +270,13 @@ export function createMusic(context, base = "music/") {
         if (f.ok === undefined) {
           f.ok = true;
           apply();
+          mixTavern();
         }
       });
       el.addEventListener("error", () => {
         f.ok = false;
         apply();
+        mixTavern();
       });
       el.src = `${base}game/${name}.mp3`;
       f.el = el;
@@ -315,12 +327,12 @@ export function createMusic(context, base = "music/") {
   // står i stedet, og til slutt partituret.
   const apply = () => {
     if (!c || !mode) return;
-    const home = trackFor({ where: mode });
-    const want = trackFor({ where: mode, fight: fight > 0 || now() < fightUntil ? lastFight : 0 });
+    const home = trackFor({ where: mode, night });
+    const want = trackFor({ where: mode, night, fight: fight > 0 || now() < fightUntil ? lastFight : 0 });
     const combat = want !== home;
     // Bosskampen faller tilbake på kampen, og kampen på sporet der du står.
     const chain = [];
-    for (let k = want; k; k = TRACKS[k]) chain.push(k);
+    for (let k = want; k && !chain.includes(k); k = TRACKS[k]) chain.push(k);
     if (combat && home) chain.push(home);
     // Kampsporet lastes mens du er nede, så det er klart når det trengs.
     if (mode === "cellar") file("combat");
@@ -339,6 +351,7 @@ export function createMusic(context, base = "music/") {
       if (playing !== pick) {
         if (playing) fadeOut(playing, secs);
         playing = pick;
+        tone(pick, secs);
         fadeIn(pick, secs);
       }
       if (score.current) score.stop(secs);
@@ -349,8 +362,34 @@ export function createMusic(context, base = "music/") {
       playing = null;
     }
     ready.then(() => {
-      if (!playing) scoreFor(mode);
+      if (playing) return;
+      if (insideTavern()) score.stop(2);
+      else scoreFor(mode);
     });
+  };
+  // Trubaduren i Vertshuset: et eget spor over byens, så sterkt som du er
+  // nær (inne er det alt), dempet gjennom veggene utenfor; byens spor tones
+  // ned så lenge du er inne.
+  const insideTavern = () => mode === "town" && tavern >= 0.99 && files.tavern?.ok === true;
+  let wasInside = false;
+  const mixTavern = () => {
+    if (!c) return;
+    const want = mode === "town" ? tavern : 0;
+    if (want > 0.01) file("tavern");
+    const f = files.tavern;
+    const on = f?.ok === true && want > 0.01;
+    if (f?.gain) {
+      f.gain.gain.setTargetAtTime(on ? want : 0, c.currentTime, 0.6);
+      f.filter.frequency.setTargetAtTime(want >= 0.99 ? 20000 : TAVERN_OUTSIDE_LOWPASS, c.currentTime, 0.4);
+      if (on && f.el.paused) f.el.play().catch(() => {});
+      if (!on && !f.el.paused) setTimeout(() => (tavern > 0.01 && mode === "town") || f.el.pause(), 2500);
+    }
+    // Inne i Vertshuset tones byens spor (eller partituret) ned.
+    const inside = insideTavern();
+    if (playing) tone(playing, 2);
+    if (inside && score.current) score.stop(2);
+    if (wasInside && !inside) apply();
+    wasInside = inside;
   };
   return {
     set(where) {
@@ -358,6 +397,7 @@ export function createMusic(context, base = "music/") {
       if (where === mode) return;
       mode = where;
       ready.then(apply);
+      mixTavern();
       // Nytt stykke i byen når tiden er ute, og kampen som tones ut.
       timer ??= setInterval(() => {
         if (mode === "town" && !playing && score.current && c.currentTime - songStart > SONG_SECONDS) nextSong();
@@ -379,11 +419,21 @@ export function createMusic(context, base = "music/") {
       fight = f;
       apply();
     },
-    /** Natt (mørkt tema): byens spor dempes og mørknes. */
+    /** Natt (mørkt tema): nattsporet, eller byens spor dempet og mørknet. */
     night(dark) {
       if (dark === night) return;
       night = dark;
-      if (c) tone("town", 4);
+      if (c) {
+        tone("town", 4);
+        apply();
+      }
+    },
+    /** Lydbildet fra økta (`ambience`): hvor nær Vertshuset du er. */
+    ambience(a) {
+      const t = a.cellar ? 0 : a.tavern || 0;
+      if (Math.abs(t - tavern) < 0.02 && !(t >= 0.99 && tavern < 0.99) && !(t < 0.99 && tavern >= 0.99)) return;
+      tavern = t;
+      mixTavern();
     },
     toggle() {
       if (!setup()) return;

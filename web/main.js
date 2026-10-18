@@ -639,6 +639,7 @@ function handle(e) {
       if (playing) {
         ambience.set(e);
         sfx.ambience(e);
+        music.ambience(e);
       }
       break;
     case "shop":
@@ -1693,6 +1694,7 @@ function enter(relock = true) {
   if (lastAmbience) {
     ambience.set(lastAmbience);
     sfx.ambience(lastAmbience);
+    music.ambience(lastAmbience);
   }
   gateEl.hidden = true;
   hud.hidden = false;

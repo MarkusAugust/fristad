@@ -818,6 +818,12 @@ fn lydene_i_byen_folger_deg() {
     game.place_feet(forge + Vec3::new(0.0, 0.0, 6.0));
     let a = last(&mut game, &mut physics);
     assert!(a.forge > 0.3, "ved smia: {a:?}");
+    assert!(a.tavern < 1.0, "ved smia er du ikke i Vertshuset: {a:?}");
+    // Inne i Vertshuset synger trubaduren (musikken spiller `tavern`).
+    let tavern = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| Vec3::from(p.transforms[0].translation)).expect("Vertshuset");
+    game.place_feet(tavern + Vec3::Y * 0.3);
+    let a = last(&mut game, &mut physics);
+    assert!(a.indoor && a.tavern >= 1.0, "inne i Vertshuset: {a:?}");
     game.use_first(|u| *u == Use::Descend);
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
