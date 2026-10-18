@@ -264,7 +264,10 @@ def build(fast, out_path):
         if vo and bed:
             f.append("".join(f"[{m}]" for m in vo) + f"amix=inputs={len(vo)}:normalize=0:dropout_transition=0,asplit[voa][vob]")
             f.append("".join(f"[{m}]" for m in bed) + f"amix=inputs={len(bed)}:normalize=0:dropout_transition=0[beda]")
-            f.append("[beda][vob]sidechaincompress=threshold=0.02:ratio=4:attack=60:release=700:makeup=1[bedd]")
+            # Kompressoren slutter når det korteste sporet slutter; uten apad ble sengen (og musikken)
+            # borte med den siste replikken, og tittelen kom i stillhet (eieren 18. oktober).
+            f.append("[vob]apad[vobp]")
+            f.append("[beda][vobp]sidechaincompress=threshold=0.02:ratio=4:attack=60:release=700:makeup=1[bedd]")
             f.append(f"[bedd][voa]amix=inputs=2:normalize=0:dropout_transition=0,alimiter=limit=0.95,atrim=end={END:.3f}[aout]")
         else:
             f.append("".join(f"[{m}]" for m in mixes) + f"amix=inputs={len(mixes)}:normalize=0:dropout_transition=0,alimiter=limit=0.95,atrim=end={END:.3f}[aout]")

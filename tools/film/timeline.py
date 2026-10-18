@@ -84,5 +84,5 @@ SCORE = [
     ("02_raadet", 0.0, 31.979999999999997, 94.16, 2.5, 3.0),  # rådet, budet, Inkvisisjonen, omveiene (bygger)
     ("03_bruddet", 110.0, 92.16, 137.7, 2.0, 1.2),  # bruddet, Rammeverket, Gorvek: slutthugget lander når hugget er over
     ("04_krypten", 160.0, 137.2, 176.69, 1.5, 3.0),   # prosesjonen, døra mures, jorda, hjertet
-    ("05_veien", 177.0, 174.99, 192.0, 2.0, 2.5),        # veien til porten, sporets egen slutt
+    ("05_veien", 175.5, 174.99, END + 0.01, 2.0, FADE_OUT + 1.0),  # veien til porten og tittelen; toner ut med bildet
 ]

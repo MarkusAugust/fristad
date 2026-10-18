@@ -482,6 +482,23 @@ code {
   display: none;
 }
 
+/* Første gang: verden står ikke bak startkortet før du har valgt filmen eller spillet. */
+.overlay.gate-first {
+  background: radial-gradient(ellipse at center, #141b28, #06080d);
+}
+
+.look-prompt {
+  position: fixed;
+  left: 50%;
+  top: 58%;
+  transform: translateX(-50%);
+  z-index: 30;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.4);
+}
+.look-prompt[hidden] {
+  display: none;
+}
+
 .gate-card {
   max-width: 34rem;
   display: grid;
@@ -732,7 +749,8 @@ code {
 }
 
 /* Innstillingene: radioknappene på rad med forklaringen bak. */
-.settings-dialog { width: min(560px, 92vw); }
+.settings-dialog { width: min(560px, 92vw); position: relative; }
+.settings-dialog .dialog-x { position: absolute; top: var(--fs-spacing-3); right: var(--fs-spacing-3); font-size: 1.4rem; line-height: 1; padding: 4px 10px; }
 .settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
 .settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
 .settings-dialog .fs-help-text { display: inline; }
