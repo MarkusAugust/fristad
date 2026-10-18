@@ -2402,3 +2402,87 @@ fn moblene_star_der_kolliderne_er() {
     }
     assert!(bad.is_empty(), "\n{}", bad.join("\n"));
 }
+
+/// Innbyggerne havner aldri oppå hverandre (eieren 18. oktober): hver har
+/// sin egen rute og sine egne ventepunkter, og når to møtes går de rundt
+/// hverandre (`npcs::steer`, `keep_apart`). Over halvannet minutt står
+/// ingen to nærmere enn 0,8 m, og de går faktisk noe sted.
+#[test]
+fn innbyggerne_gar_ikke_oppa_hverandre() {
+    let layout: crate::domain::world::layout::Layout = serde_json::from_str(crate::adapters::data::layout_file().unwrap()).unwrap();
+    let npcs = &layout.npcs;
+    // Egne replikker og egne ruter med egne ventepunkter.
+    for (i, a) in npcs.iter().enumerate() {
+        for b in &npcs[i + 1..] {
+            assert_ne!(a.lines, b.lines, "{} og {} har de samme replikkene", a.name, b.name);
+            for (p, w) in a.route.iter().filter(|(_, w)| *w > 0.0) {
+                for (q, v) in b.route.iter().filter(|(_, v)| *v > 0.0) {
+                    assert!(p.distance(*q) > 1.4, "{} ({w} s) og {} ({v} s) venter på samme sted: {p:?} {q:?}", a.name, b.name);
+                }
+            }
+        }
+    }
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    // Langt unna alle: utenfor sørporten.
+    game.place_feet(Vec3::new(0.0, 0.5, 90.0));
+    let start = game.npc_positions();
+    let mut closest = (f32::MAX, 0, 0, 0.0);
+    let dt = 1.0 / 30.0;
+    for step in 0..(90.0 / dt) as usize {
+        game.update(&mut input, dt, &mut physics);
+        let at = game.npc_positions();
+        for i in 0..at.len() {
+            for j in i + 1..at.len() {
+                let gap = Vec2::new(at[i].x - at[j].x, at[i].z - at[j].z).length();
+                if gap < closest.0 {
+                    closest = (gap, i, j, step as f32 * dt);
+                }
+            }
+        }
+    }
+    let names: Vec<&str> = npcs.iter().map(|n| n.name.as_str()).collect();
+    assert!(closest.0 >= 0.8, "{} og {} sto {:.2} m fra hverandre etter {:.1} s", names[closest.1], names[closest.2], closest.0, closest.3);
+    let moved = game.npc_positions().iter().zip(&start).filter(|(a, b)| a.distance(**b) > 0.5).count();
+    assert!(moved >= 6, "bare {moved} innbyggere har gått noe sted på 90 s");
+}
+
+/// Hver innbygger har sine egne replikker etter rollen (eieren 18.
+/// oktober), minst fem, aldri den samme to ganger på rad, og noen som
+/// kommer først når du har vært dypere nede.
+#[test]
+fn innbyggerne_sier_sitt_eget() {
+    use crate::domain::world::cast;
+    let layout: crate::domain::world::layout::Layout = serde_json::from_str(crate::adapters::data::layout_file().unwrap()).unwrap();
+    let mut progress = 0;
+    for n in &layout.npcs {
+        let lines = cast::lines(&n.lines);
+        assert!(lines.len() >= 5, "{} har bare {} replikker", n.name, lines.len());
+        progress += lines.iter().filter(|l| l.from > 0).count();
+    }
+    assert!(progress >= 20, "bare {progress} replikker følger framgangen");
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let k = game.npc_positions().len();
+    let mut first = std::collections::HashSet::new();
+    for i in 0..k {
+        let mut last = String::new();
+        let mut said = std::collections::HashSet::new();
+        for _ in 0..12 {
+            let s = game.talk_to(i, 0).expect("innbyggeren svarer");
+            assert_ne!(s, last, "innbygger {i} sa det samme to ganger på rad");
+            said.insert(s.clone());
+            last = s;
+        }
+        assert!(said.len() >= 4, "innbygger {i} sa bare {} ulike ting", said.len());
+        first.insert(game.talk_to(i, 0).unwrap());
+        // Dypere nede: det nye kommer først.
+        let lines = cast::lines(&layout.npcs[i].lines);
+        let deep = game.talk_to(i, 10).unwrap();
+        if lines.iter().any(|l| l.from > 0) {
+            assert!(lines.iter().any(|l| l.text == deep && l.from > 0), "{}: «{deep}» er ikke noe nytt dypt nede", layout.npcs[i].name);
+        }
+    }
+    assert!(first.len() == k, "to innbyggere sier det samme");
+}

@@ -31,7 +31,9 @@ impl Session {
                 }
             }
             Use::Talk(n) => {
-                if self.npcs.talk(n).is_some() {
+                // Replikkene følger framgangen: hvor mange nivåer du har nådd.
+                let depth = self.deepest().map(|d| (d + 1).min(u8::MAX as usize) as u8).unwrap_or(0);
+                if self.npcs.talk(n, depth).is_some() {
                     let at = self.npcs.npcs.get(n).map(|p| p.pos + Vec3::Y * 1.6).unwrap_or(self.eye());
                     events.push(self.sound_at("talk", at, 1.0));
                 }

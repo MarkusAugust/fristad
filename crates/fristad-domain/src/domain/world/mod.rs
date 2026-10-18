@@ -126,7 +126,8 @@ pub struct NpcSpec {
     pub pos: Vec3,
     pub yaw: f32,
     pub tint: Vec3,
-    pub lines: &'static [&'static str],
+    /// Replikkene (`cast`), hver med når den kan sies.
+    pub lines: &'static [cast::Line],
     /// Punktene innbyggeren går mellom (føttene på bakken) og hvor lenge
     /// hen blir stående ved hvert (0: går rett forbi, langs gata).
     pub route: Vec<(Vec3, f32)>,

@@ -293,6 +293,11 @@ impl Session {
         self.npcs.npcs.iter().map(|n| n.pos).collect()
     }
 
+    /// Snakk med innbygger `i` som om du har nådd `depth` nivåer (til testene).
+    pub fn talk_to(&mut self, i: usize, depth: u8) -> Option<String> {
+        self.npcs.talk(i, depth).map(|s| s.text)
+    }
+
     /// Flytt spilleren (til testene).
     pub fn place_feet(&mut self, feet: Vec3) {
         self.teleport(feet, 0.0);
