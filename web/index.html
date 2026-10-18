@@ -19,18 +19,9 @@
   <!-- Siktekors og hva du ser på. -->
   <div id="dark" class="dark" aria-hidden="true"></div>
   <div id="hud" hidden>
-    <!-- Siktekorset er utløseren i Fristils tooltip; boblen åpnes når du
-         sikter på noe du kan bruke, og forteller hva det er og hva du kan
-         gjøre. -->
-    <span id="aim" class="fs-tooltip aim">
-      <span class="crosshair" aria-describedby="prompt"></span>
-      <span id="prompt" class="fs-tooltip__bubble prompt" role="tooltip" aria-live="polite">
-        <strong id="prompt-name" class="prompt-name"></strong>
-        <span id="prompt-info" class="prompt-info"></span>
-        <span class="keys">
-          <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
-          <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
-        </span>
+    <!-- Siktepunktet midt på skjermen. Hva du sikter på, står i kortet
+         `#target` i kolonnen til høyre. -->
+    <span id="aim" class="aim" aria-hidden="true"><span class="crosshair"></span></span>
       </span>
     </span>
     <div id="vitals" class="vitals" hidden>
@@ -47,14 +38,24 @@
     <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
          dreier med deg, og det store kartet (K) med nord opp. Det du ikke
          har sett, er mørkt. -->
-    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten), fienden du
-         sikter på (infopanelet) og tastene, som kan foldes sammen (F1). De
+    <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten), det du
+         sikter på (tingen eller fienden) og tastene, som kan foldes sammen (F1). De
          står i én kolonne, så de aldri legger seg over hverandre. -->
     <div id="side" class="side">
     <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
       <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </aside>
+    <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
+         galleriet, senga): navnet, hva det er, og tastene. -->
+    <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
+      <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
+      <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
+      <p class="target-keys">
+        <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+        <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
+      </p>
+    </section>
     <!-- Fienden du sikter på: navnet, hva den er og livet. -->
     <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
       <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span></p>

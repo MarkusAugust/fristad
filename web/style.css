@@ -53,17 +53,13 @@ code {
   pointer-events: none;
 }
 
-/* Siktekorset midt på skjermen, som utløser i Fristils tooltip
-   (`.fs-tooltip`). Boblen er Fristils `.fs-tooltip__bubble`; den åpnes av
-   spillet (`.is-open`) når du sikter på noe, ikke av hover og fokus, og står
-   under siktet så den ikke dekker det du ser på. */
+/* Siktepunktet midt på skjermen. Hva du sikter på, står i kortet til
+   høyre (`.target` i `.side`). */
 .aim {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  --fs-tooltip-width: 22rem;
-  --fs-tooltip-padding: var(--fs-spacing-2) var(--fs-spacing-3);
 }
 
 .crosshair {
@@ -75,42 +71,6 @@ code {
   box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.35);
 }
 
-.aim .prompt {
-  inset-block-end: auto;
-  inset-block-start: calc(100% + 3.5rem);
-  display: grid;
-  gap: var(--fs-spacing-1);
-  justify-items: center;
-  text-align: center;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.3);
-}
-
-.aim.is-open .prompt {
-  visibility: visible;
-  opacity: 1;
-}
-
-.prompt-name {
-  font-weight: var(--fs-font-weight-semibold);
-  font-size: var(--fs-font-size-m);
-}
-
-.prompt-info {
-  opacity: 0.85;
-}
-
-.prompt kbd {
-  color: var(--fs-color-neutral-text-strong);
-  background: var(--fs-color-neutral-canvas);
-}
-
-.keys {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--fs-spacing-2) var(--fs-spacing-4);
-  font-size: var(--fs-font-size-s);
-}
 
 .vitals {
   position: absolute;
@@ -147,7 +107,15 @@ code {
   flex: none;
   box-sizing: border-box;
 }
-.foe {
+.target-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-spacing-1) var(--fs-spacing-3);
+  margin: var(--fs-spacing-1) 0 0;
+  font-size: var(--fs-font-size-s);
+}
+.target-keys kbd { font-size: var(--fs-font-size-xs); }
+.target, .foe {
   --fs-card-padding: var(--fs-spacing-3);
   gap: var(--fs-spacing-1);
   background: color-mix(in srgb, var(--fs-color-neutral-canvas) 88%, transparent);
@@ -155,7 +123,15 @@ code {
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
   border-color: var(--fs-color-danger-border, var(--fs-color-neutral-border-subtle));
 }
-.foe .fs-heading { margin: 0; }
+/* Fienden og det du kan bruke står aldri samtidig (fiendepanelet blir
+   stående et øyeblikk etter at siktet gikk av den). */
+.side:has(> #target:not([hidden])) > #foe {
+  display: none;
+}
+.target {
+  border-color: var(--fs-color-accent-border, var(--fs-color-neutral-border-subtle));
+}
+.target .fs-heading, .foe .fs-heading { margin: 0; }
 .foe-head:has(> [hidden]:only-child) { display: none; }
 .foe-hp { display: grid; gap: var(--fs-spacing-1); margin-top: var(--fs-spacing-1); }
 .foe-hp .fs-progress { width: 100%; }

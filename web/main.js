@@ -24,7 +24,6 @@ const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
 const hud = $("hud");
 const panel = $("panel");
-const aimEl = $("aim");
 const status = $("status");
 const enterBtn = $("enter");
 const beginBtn = $("begin");
@@ -533,9 +532,9 @@ function handle(e) {
         $("key-use-text").textContent = e.verb || "";
         $("key-trade").hidden = !e.trade;
         $("key-trade-text").textContent = e.trade || "";
-        aimEl.classList.add("is-open");
+        $("target").hidden = false;
       } else {
-        aimEl.classList.remove("is-open");
+        $("target").hidden = true;
       }
       break;
     case "fade":
