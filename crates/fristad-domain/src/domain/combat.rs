@@ -37,6 +37,8 @@ const REACH: f32 = 2.3;
 const ARC: f32 = 0.55;
 const LIGHT_DAMAGE: [f32; 3] = [22.0, 25.0, 34.0];
 const HEAVY_DAMAGE: f32 = 58.0;
+/// Det tunge hugget dytter fienden så mye ekstra (m/s, delt på størrelsen).
+const HEAVY_PUSH: f32 = 3.0;
 /// Utholdenhet: det hvert trekk koster, og hvor fort den kommer igjen.
 pub const STAMINA_MAX: f32 = 100.0;
 const COST_LIGHT: f32 = 12.0;
@@ -49,6 +51,11 @@ const DODGE_LEN: f32 = 0.42;
 const DODGE_IFRAMES: f32 = 0.34;
 const DODGE_SPEED: f32 = 7.5;
 const HITSTOP: f32 = 0.08;
+/// Ladningen dreier sverdarmen om skulderen (radianer, `Combat::windup`):
+/// fram, inn mot midten, og tilbake igjen jo lenger du lader.
+const WINDUP_FORWARD: f32 = 0.66;
+const WINDUP_IN: f32 = 0.25;
+const WINDUP_BACK: f32 = 0.16;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Phase {
@@ -398,6 +405,27 @@ impl Combat {
         (yaw, pitch)
     }
 
+    /// Armene under ladningen av det tunge hugget: klippet holder sverdet
+    /// høyt ved siden av hodet, utenfor bildet, så overarmen dreies fram og
+    /// inn om skulderen til hånda og klinga står oppe til høyre, trekkes litt
+    /// tilbake jo lenger du lader, og dirrer. Skjoldarmen står som før. Når
+    /// hugget slippes, går den tilbake på et øyeblikk, så slaget ned går
+    /// fortere.
+    fn windup(&self, rig: &Rig, pose: &mut crate::domain::anim::Pose) {
+        let l = self.lift;
+        let Some(arm) = rig.joint("upper_arm.R") else { return };
+        if l <= 0.001 || arm >= pose.0.len() {
+            return;
+        }
+        let w = (l / 0.45).min(1.0);
+        let back = ((l - 0.45) / 0.55).clamp(0.0, 1.0);
+        let shiver = (self.t * 71.0).sin() * 0.012 * back;
+        let turn = Quat::from_rotation_y(WINDUP_IN * w + shiver) * Quat::from_rotation_x(-WINDUP_FORWARD * w + WINDUP_BACK * back + shiver * 0.7);
+        let globals = rig.globals(pose);
+        let parent = rig.joints[arm].parent.map(|p| Quat::from_mat4(&globals[p]).normalize()).unwrap_or(Quat::IDENTITY);
+        pose.0[arm].1 = (parent.inverse() * turn * parent * pose.0[arm].1).normalize();
+    }
+
     /// Ett steg. `dt` er ekte tid; `sim_dt` er null under hitstop. Huggene
     /// treffer fiendene i `mobs` innen rekkevidde i kjeglen foran.
     pub fn update(&mut self, dt: f32, sim_dt: f32, eye: Vec3, forward: Vec3, feet: Vec3, mobs: &mut Mobs, crypt: &crate::domain::world::crypt::Crypt) -> Vec<CombatEvent> {
@@ -594,6 +622,9 @@ impl Combat {
                 }
             }
             let strike = mobs.strike(i, damage, feet, crypt);
+            if heavy {
+                mobs.shove(i, feet, HEAVY_PUSH);
+            }
             let killed = strike.killed;
             let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
             self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
@@ -651,7 +682,8 @@ impl Combat {
             let arms_t = Affine3A::from_rotation_translation(look, eye);
             match (&self.rig, &self.anim) {
                 (Some(rig), Some(a)) => {
-                    let pose = a.pose(rig);
+                    let mut pose = a.pose(rig);
+                    self.windup(rig, &mut pose);
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
@@ -741,5 +773,41 @@ mod tests {
             lowest = lowest.min(c.view_kick(0.0).1);
         }
         assert!(lowest < -0.025, "hugget kaster blikket ned: {lowest:.3}");
+    }
+    /// Eieren 18. oktober: «Ser ingen forskjell på tungt og raskt slag med
+    /// våpenet. Virker det egentlig?» Holdt knapp gir et tungt hugg som
+    /// treffer hardere og dytter fienden lenger enn et klikk, og ladningen
+    /// løfter sverdarmen inn i bildet.
+    #[test]
+    fn det_tunge_hugget_treffer_hardere_og_dytter_mer() {
+        let crypt = Crypt::default();
+        let hit = |hold: bool| {
+            let mut mobs = Mobs::new(&crypt, &[]);
+            mobs.spawn(crate::domain::mob_kind::Kind::Table, Vec3::new(0.0, 0.0, -1.6), false);
+            let mut c = Combat::new(None);
+            c.press_attack();
+            if !hold {
+                c.release_attack();
+            }
+            let (mut damage, mut push, mut lifted) = (0.0, 0.0f32, 0.0f32);
+            for n in 0..120 {
+                if hold && n == 50 {
+                    c.release_attack();
+                }
+                for e in c.update(1.0 / 60.0, 1.0 / 60.0, Vec3::Y * 1.6, -Vec3::Z, Vec3::ZERO, &mut mobs, &crypt) {
+                    if let CombatEvent::Hit { damage: d, .. } = e {
+                        damage += d;
+                        push = push.max(mobs.mobs[0].knock.length());
+                    }
+                }
+                lifted = lifted.max(c.lift);
+            }
+            (damage, push, lifted)
+        };
+        let (light, light_push, light_lift) = hit(false);
+        let (heavy, heavy_push, heavy_lift) = hit(true);
+        assert!(light > 0.0 && heavy >= light * 2.0, "det tunge hugget gjør for lite skade: {heavy:.0} mot {light:.0}");
+        assert!(heavy_push >= light_push * 2.0, "det tunge hugget dytter for lite: {heavy_push:.2} mot {light_push:.2}");
+        assert!(light_lift == 0.0 && heavy_lift > 0.6, "ladningen løfter ikke armen: {heavy_lift:.2}");
     }
 }
