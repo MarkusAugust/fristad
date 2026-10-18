@@ -192,6 +192,39 @@ const CUES = Object.fromEntries([...SONGS.map((s, i) => [`town${i}`, songCue(s)]
 const TRACKS = { town: "town_night", town_night: "town", crypt: null, combat: null, combat_boss: "combat" };
 // Så lenge etter at kampen er over spiller kampsporet før det tones ut.
 const FIGHT_HOLD = 6;
+// Kampsporet tones inn over så lang tid, starter aldri de siste
+// `COMBAT_TAIL` sekundene, og fortsetter der det var om en ny kamp kommer
+// innen `COMBAT_RESUME` sekunder.
+const COMBAT_FADE = 1.5;
+const COMBAT_TAIL = 20;
+const COMBAT_RESUME = 20;
+
+/** Frasegrensene i et spor: der lydstyrken (i biter på 50 ms) stiger brått
+ * mot det som var før, minst fire sekunder fra hverandre. */
+export function phraseStarts(audio) {
+  const data = audio.getChannelData(0);
+  const hop = Math.max(1, Math.round(audio.sampleRate * 0.05));
+  const env = [];
+  for (let i = 0; i + hop <= data.length; i += hop) {
+    let e = 0;
+    for (let j = i; j < i + hop; j++) e += data[j] * data[j];
+    env.push(Math.sqrt(e / hop));
+  }
+  // Stigningen mot snittet av sekundet før.
+  const rise = env.map((e, i) => {
+    let m = 0;
+    for (let k = Math.max(0, i - 20); k < i; k++) m += env[k];
+    return e - m / Math.max(1, Math.min(20, i));
+  });
+  const order = rise.map((r, i) => [r, i]).filter(([r]) => r > 0).sort((a, b) => b[0] - a[0]);
+  const picked = [];
+  for (const [, i] of order) {
+    const t = Math.max(0, i * 0.05 - 0.05);
+    if (picked.every((p) => Math.abs(p - t) >= 4)) picked.push(t);
+    if (picked.length >= 24) break;
+  }
+  return picked.sort((a, b) => a - b);
+}
 const VOLUME = 0.55;
 // Natta i byen når bare dagsporet finnes: det dempes og mørknes.
 const NIGHT_GAIN = 0.6;
@@ -296,9 +329,44 @@ export function createMusic(context, base = "music/") {
     }
     return f;
   };
+  // Kampsporene starter ikke likt hver gang (eieren 18. oktober): et
+  // tilfeldig startpunkt ved en frasegrense (der lydstyrken stiger brått,
+  // regnet ut én gang når sporet lastes), aldri det samme to ganger på rad
+  // og ikke de siste `COMBAT_TAIL` sekundene; kommer en ny kamp innen
+  // `COMBAT_RESUME` sekunder, fortsetter sporet der det var.
+  const starts = {};
+  const lastStart = {};
+  const ended = {};
+  const findStarts = (name) => {
+    if (starts[name]) return;
+    starts[name] = [];
+    fetch(`${base}game/${name}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((buf) => new OfflineAudioContext(1, 1, 8000).decodeAudioData(buf))
+      .then((audio) => (starts[name] = phraseStarts(audio)))
+      .catch(() => {});
+  };
+  const seekCombat = (name) => {
+    const el = files[name].el;
+    if (now() - (ended[name] ?? -Infinity) < COMBAT_RESUME) return;
+    const dur = Number.isFinite(el.duration) ? el.duration : 0;
+    let list = (starts[name] ?? []).filter((t) => t < dur - COMBAT_TAIL);
+    // Uten utregningen: annenhver takt i 140 slag i minuttet (3,4 s).
+    if (list.length < 2 && dur > COMBAT_TAIL + 4) list = Array.from({ length: Math.floor((dur - COMBAT_TAIL) / 3.43) }, (_, i) => i * 3.43);
+    list = list.filter((t) => t !== lastStart[name]);
+    if (!list.length) return;
+    const t = list[Math.floor(Math.random() * list.length)];
+    lastStart[name] = t;
+    try {
+      el.currentTime = t;
+    } catch {
+      /* ikke klar ennå: begynner fra start */
+    }
+  };
   const fadeOut = (name, secs) => {
     const f = files[name];
     if (!f?.gain) return;
+    if (name.startsWith("combat")) ended[name] = now();
     f.gain.gain.cancelScheduledValues(c.currentTime);
     f.gain.gain.setTargetAtTime(0, c.currentTime, secs / 3);
     setTimeout(() => {
@@ -307,6 +375,7 @@ export function createMusic(context, base = "music/") {
   };
   const fadeIn = (name, secs) => {
     const f = files[name];
+    if (name.startsWith("combat")) seekCombat(name);
     f.gain.gain.cancelScheduledValues(c.currentTime);
     f.gain.gain.setTargetAtTime(1, c.currentTime, secs / 3);
     f.el.play().catch(() => {});
@@ -334,8 +403,11 @@ export function createMusic(context, base = "music/") {
     const chain = [];
     for (let k = want; k && !chain.includes(k); k = TRACKS[k]) chain.push(k);
     if (combat && home) chain.push(home);
-    // Kampsporet lastes mens du er nede, så det er klart når det trengs.
-    if (mode === "cellar") file("combat");
+    // Kampsporet lastes mens du er nede, så det er klart når det trengs,
+    // og startpunktene regnes ut.
+    if (mode === "cellar") {
+      for (const k of ["combat", "combat_boss"]) if (file(k).ok) findStarts(k);
+    }
     let pick = null;
     for (const k of chain) {
       const ok = file(k).ok;
@@ -345,8 +417,8 @@ export function createMusic(context, base = "music/") {
         break;
       }
     }
-    // Kampen kommer fort, og alt annet tones over langsomt.
-    const secs = combat ? 1.2 : 3;
+    // Kampen kommer fort (men ikke hardt), og alt annet tones over langsomt.
+    const secs = combat ? COMBAT_FADE : 3;
     if (pick) {
       if (playing !== pick) {
         if (playing) fadeOut(playing, secs);
