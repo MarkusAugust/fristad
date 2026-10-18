@@ -49,6 +49,11 @@ WALL_T = 0.4  # tykkelsen på murkolliderne
 WALL_END = 0.02  # så langt murkolliderne går forbi endene av muren de står bak
 RAIL_T = 0.26  # tykkelsen på kolliderne til rekkverkene (brystningen i `K.parapet`)
 SECRET_T = 0.3  # hvor dypt den falske veggen går inn i muren
+# Muren i enden av gangen bak en falsk vegg eller en snarvei står så langt
+# inn i gangen, bak murflaten i rommet (eieren 18. oktober: en buet skygge
+# over den falske veggen i Ridderhallen; muren sto 2 cm foran den runde
+# muren, med baksida og den mørke okklusjonen mot rommet).
+END_BACK = 0.08
 # Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
 # over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
 # med rette biter, sto under hvelvkanten der, med kiler av himmel på begge
@@ -809,6 +814,7 @@ class Level:
                 openings.append(Polygon(prof))
                 if kind == SECRET:
                     self.secret_wall(h, surf, to_u(u), w, y, self.wall_mat(r), cell, 0.34 + (0.004 if side in ("n", "s") else 0.0))
+                    self.secret_reveal(surf, to_u(u), w, y, self.wall_mat(r))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 apex = max(v for _, v in prof)
@@ -900,6 +906,7 @@ class Level:
                 openings.append(Polygon(prof))
                 if kind == SECRET:
                     self.secret_wall(h, surf, u, w, y, self.wall_mat(r), 1.0, 0.34 + 0.004 * (k % 2))
+                    self.secret_reveal(surf, u, w, y, self.wall_mat(r))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 lintels.append((u - w / 2, u + w / 2, max(v for _, v in prof), y))
@@ -1380,7 +1387,7 @@ class Level:
         if h.kind in (SHORTCUT, SECRET):
             p0, p1, d, L = h.segs[0]
             lat = (-d[1], d[0])
-            surf = Plane((p0[0] - lat[0] * a, p0[1] - lat[1] * a), lat, d)
+            surf = Plane((p0[0] - lat[0] * a + d[0] * END_BACK, p0[1] - lat[1] * a + d[1] * END_BACK), lat, d)
             section = Polygon([(u + a, v) for u, v in arch_profile(0.0, h.w, h.ya, SPRING, n=self.vn)])
             ow = 1.6 if h.kind == SHORTCUT else 2.0
             hole = Polygon([(u + a, v) for u, v in self.opening(ow, h.ya, h.kind)])
