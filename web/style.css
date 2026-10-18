@@ -6,6 +6,14 @@
   display: none !important;
 }
 
+/* Tekststørrelsen (eieren 18. oktober: «et hakk større»): rot-fontstørrelsen
+   er 18 px ganger `--ui-text` (glideren i Innstillingene, 90–140 %), og
+   Fristils tokens og målene her står i rem, så hele grensesnittet skaleres
+   likt. Canvaset står som det er. */
+html {
+  font-size: calc(18px * var(--ui-text, 1));
+}
+
 html, body {
   margin: 0;
   height: 100%;
@@ -78,7 +86,7 @@ code {
   top: var(--fs-spacing-4);
   display: grid;
   gap: var(--fs-spacing-1);
-  width: 220px;
+  width: 13.75rem;
   padding: var(--fs-spacing-3);
   border-radius: var(--fs-spacing-2);
   background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
@@ -113,22 +121,34 @@ code {
    på samme plass, aldri samtidig. Kortet er nesten tett, med kraftig kant
    og skygge, så det kan leses mot alt spillet viser bak. */
 .aimed {
-  position: absolute;
-  left: 50%;
-  bottom: var(--aimed-bottom, 6.25rem);
-  transform: translateX(-50%);
+  /* Kortet står i samme stabel som stolpene (`.bottom`), så det aldri
+     legger seg over dem uansett tekststørrelse, og det slutter godt under
+     siktepunktet midt på skjermen. */
   display: grid;
+  align-items: end;
   width: min(25rem, calc(100vw - 32px));
-  max-height: calc(50vh - var(--aimed-bottom, 6.25rem) - 2rem);
+  max-height: calc(50vh - 9rem);
   pointer-events: none;
 }
+.aimed:not(:has(> :not([hidden]))) { display: none; }
 .aimed > * { grid-area: 1 / 1; box-sizing: border-box; min-width: 0; }
-/* Der kortet når bort under kolonnen til høyre (smalere enn rundt 1100
-   px), slutter kolonnen over den øverste kanten kortet kan få (halve
-   høyden pluss 2rem), og tastene ruller i stedet. */
-@media (max-width: 1100px) {
-  .side { max-height: calc(50vh + 2rem - var(--fs-spacing-4) - var(--fs-spacing-3)); }
+/* Er det trangt (lavt vindu eller stor tekst), kortes forklaringen av, så
+   kortet holder seg under siktepunktet. */
+.aimed > .fs-card { max-height: calc(50vh - 9rem); overflow: hidden; }
+.aimed > .fs-card > * { flex: none; }
+.aimed > .fs-card > .fs-paragraph {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
+/* Der kortet når bort under kolonnen til høyre (`side-short`, regnet ut av
+   bredden på vinduet, kortet og kolonnen i main.js), slutter kolonnen over
+   den øverste kanten kortet kan få, og tastene ruller i stedet. */
+.side-short .side { max-height: calc(50vh + 1rem - var(--fs-spacing-4)); }
+.side-short #minimap-canvas { width: min(12.5rem, 34vw, 50vh - 8rem); height: min(12.5rem, 34vw, 50vh - 8rem); }
 .target-keys {
   display: flex;
   flex-wrap: wrap;
@@ -230,8 +250,8 @@ body:has(#panel:not([hidden])) .aimed {
 }
 #minimap-canvas {
   justify-self: center;
-  width: min(200px, 34vw);
-  height: min(200px, 34vw);
+  width: min(12.5rem, 34vw);
+  height: min(12.5rem, 34vw);
   border-radius: 50%;
   background: #120e0b;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fs-color-neutral-border, #888) 70%, transparent);
@@ -254,8 +274,8 @@ body:has(#panel:not([hidden])) .aimed {
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
 }
 #bigmap-canvas {
-  width: min(640px, 80vw, 70vh);
-  height: min(640px, 80vw, 70vh);
+  width: min(40rem, 80vw, 70vh);
+  height: min(40rem, 80vw, 70vh);
   border-radius: var(--fs-spacing-2);
   background: #120e0b;
 }
@@ -291,7 +311,7 @@ body:has(#panel:not([hidden])) .aimed {
   display: grid;
   gap: var(--fs-spacing-1);
   /* To stolper og mellomrommet skal alltid få plass innenfor kantene. */
-  width: min(260px, calc((100vw - 32px - var(--bars-gap)) / 2));
+  width: min(16.25rem, calc((100vw - 2rem - var(--bars-gap)) / 2));
   box-sizing: border-box;
   padding: var(--fs-spacing-2) var(--fs-spacing-3);
   border-radius: var(--fs-spacing-2);
@@ -305,12 +325,18 @@ body:has(#panel:not([hidden])) .aimed {
   --bars-gap: clamp(8px, 4vw, 3rem);
 }
 .bars:has(#light-bar:not([hidden])) .bar {
-  width: min(240px, calc((100vw - 32px - 2 * var(--bars-gap)) / 3));
+  width: min(15rem, calc((100vw - 2rem - 2 * var(--bars-gap)) / 3));
 }
 .bar-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+}
+/* Er stolpen for smal til tallet (smal skjerm og stor tekst), står bare
+   navnet og stolpen. */
+.bar { container-type: inline-size; }
+@container (max-width: 8.5rem) {
+  .bar-num { display: none; }
 }
 .bar-num {
   font-family: var(--fs-font-family-mono, "IBM Plex Mono", monospace);
@@ -352,7 +378,7 @@ body:has(#panel:not([hidden])) .aimed {
 }
 
 .mark-bar {
-  width: 64px;
+  width: 4rem;
   height: 6px;
   border-radius: 3px;
   background: rgb(0 0 0 / 0.55);
@@ -370,7 +396,7 @@ body:has(#panel:not([hidden])) .aimed {
 .mark-text {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-weight: 600;
-  font-size: 22px;
+  font-size: 1.375rem;
   color: #fff;
   text-shadow: 0 0 6px rgb(0 0 0 / 0.9), 0 2px 2px rgb(0 0 0 / 0.8);
 }
@@ -439,7 +465,7 @@ body:has(#panel:not([hidden])) .aimed {
   box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
 }
 .overlay-inner {
-  width: min(560px, calc(100vw - 32px));
+  width: min(35rem, calc(100vw - 32px));
   max-height: min(80vh, 760px);
 }
 .overlay-inner > .fs-dialog__header,
@@ -470,6 +496,7 @@ body:has(#panel:not([hidden])) .aimed {
   border-top: 1px solid var(--fs-color-neutral-border-subtle);
   background: color-mix(in srgb, var(--fs-color-neutral-surface) 45%, var(--fs-color-neutral-canvas));
 }
+.menu-actions .fs-button { white-space: nowrap; }
 .menu-actions { display: flex; align-items: center; gap: var(--fs-spacing-3); flex: 1; min-width: 0; }
 .menu-actions:empty { display: none; }
 .menu-actions .fs-help-text { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -485,7 +512,7 @@ body:has(#panel:not([hidden])) .aimed {
 }
 .ware-text { display: grid; gap: 2px; min-width: 0; }
 .ware-name { font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text-strong); }
-.ware-price { font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text); text-align: end; }
+.ware-price { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text); text-align: end; }
 .ware .fs-button { justify-content: center; }
 .ware-why { margin: 0; }
 .ware-why:empty { display: none; }
@@ -538,19 +565,19 @@ body:has(#panel:not([hidden])) .aimed {
   color: var(--fs-color-neutral-text-subtle);
 }
 .gear-ico img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
-.gear-ico.small { width: 44px; height: 44px; }
-.gear-ico.big { width: 104px; height: 104px; border-radius: var(--fs-spacing-3); box-shadow: inset 0 0 0 3px var(--r-fill), 0 6px 24px -6px var(--r-fill); }
+.gear-ico.small { width: 2.75rem; height: 2.75rem; }
+.gear-ico.big { width: 6.5rem; height: 6.5rem; border-radius: var(--fs-spacing-3); box-shadow: inset 0 0 0 3px var(--r-fill), 0 6px 24px -6px var(--r-fill); }
 .gear-ico.silhouette svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: 0.6; }
 
 /* Menyene med lister (Skriptoriet og inventaret, plan 13c): fast høyde,
    rundt 80 % av vinduet og høyst 760 px. */
 .overlay-inner.menu,
 .menu-dialog {
-  width: min(1080px, calc(100vw - 32px));
+  width: min(67.5rem, calc(100vw - 32px));
   height: min(80vh, 760px);
   max-height: calc(100vh - 32px);
 }
-.menu-dialog { width: min(1180px, calc(100vw - 32px)); }
+.menu-dialog { width: min(73.75rem, calc(100vw - 32px)); }
 .overlay-inner.menu > .fs-dialog__body,
 .menu-dialog > .fs-dialog__body { overflow: hidden; padding: 0; }
 
@@ -607,7 +634,7 @@ body:has(#panel:not([hidden])) .aimed {
 /* Lista til venstre og detaljene til høyre møtes i én strek. */
 .picker {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(16.25rem, 21.25rem) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
@@ -697,7 +724,7 @@ body:has(#panel:not([hidden])) .aimed {
 .detail-back { display: none; margin: 0 0 var(--fs-spacing-3) calc(-1 * var(--fs-spacing-3)); }
 .detail-head { display: flex; gap: var(--fs-spacing-5); align-items: center; }
 .detail-title { display: grid; gap: var(--fs-spacing-2); min-width: 0; }
-.detail-title .fs-heading { margin: 0; font-size: var(--fs-font-size-xl); line-height: 1.2; }
+.detail-title .fs-heading { overflow-wrap: break-word; margin: 0; font-size: var(--fs-font-size-xl); line-height: 1.2; }
 .gear-tags { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-1); align-items: center; }
 .gear-tags .fs-tag:not(.rarity-tag) { --fs-tag-padding: 0 var(--fs-spacing-2); font-size: var(--fs-font-size-xs); line-height: 1.6; color: var(--fs-color-neutral-text); }
 .detail-special { margin: 0; }
@@ -739,7 +766,7 @@ body:has(#panel:not([hidden])) .aimed {
   padding-block: var(--fs-spacing-2);
 }
 .comp + .comp { border-top: 1px solid var(--fs-color-neutral-border-subtle); }
-.comp-ico { width: 40px; height: 40px; object-fit: cover; border-radius: var(--fs-spacing-1); border: 1px solid var(--fs-color-neutral-border-subtle); background: var(--fs-color-neutral-surface); }
+.comp-ico { width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--fs-spacing-1); border: 1px solid var(--fs-color-neutral-border-subtle); background: var(--fs-color-neutral-surface); }
 .comp-main { display: grid; gap: var(--fs-spacing-1); min-width: 0; }
 .comp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--fs-spacing-1) var(--fs-spacing-2); }
 .comp-title { font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text-strong); }
@@ -748,7 +775,7 @@ body:has(#panel:not([hidden])) .aimed {
 .comp.lack .comp-count { color: var(--fs-color-danger-text); }
 .comp-where { margin: 0; font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .comp-name { display: inline-flex; align-items: center; gap: var(--fs-spacing-2); }
-.comp-name .comp-ico { width: 28px; height: 28px; }
+.comp-name .comp-ico { width: 1.75rem; height: 1.75rem; }
 
 /* Smiinga: gnister over ikonet mens hammeren slår. */
 .detail.forging .gear-ico.big { animation: forge-glow 0.9s ease-out; }
@@ -756,8 +783,8 @@ body:has(#panel:not([hidden])) .aimed {
 .detail.forging .detail-head::after {
   content: "";
   position: absolute;
-  left: 52px;
-  top: 52px;
+  left: 3.25rem;
+  top: 3.25rem;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -797,7 +824,7 @@ body:has(#panel:not([hidden])) .aimed {
 .inventory-dialog .fs-tabs__panel:not([hidden]) { display: flex; flex-direction: column; }
 .inventory-dialog .fs-tabs__panel > * { flex: 1; min-height: 0; }
 .menu-scroll { overflow: auto; padding: var(--fs-spacing-4) var(--menu-pad); }
-.inv-layout { grid-template-columns: 220px minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.inv-layout { grid-template-columns: 13.75rem minmax(15rem, 18.75rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .inv-slots {
   display: grid;
   align-content: start;
@@ -835,13 +862,13 @@ body:has(#panel:not([hidden])) .aimed {
 /* Lave vinduer: forklaringen under tittelen tar plass fra lista. */
 @media (max-height: 800px) {
   .overlay-inner.menu .fs-dialog__subtitle { display: none; }
-  .gear-ico.big { width: 88px; height: 88px; }
+  .gear-ico.big { width: 5.5rem; height: 5.5rem; }
 }
 /* Middels brede vinduer: plassene på rad over lista og detaljene. */
 @media (max-width: 1000px) {
-  .inv-layout { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .inv-layout { grid-template-columns: minmax(13.75rem, 17.5rem) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .inv-slots { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--fs-color-neutral-border-subtle); }
-  .slot-card .gear-ico.small { width: 32px; height: 32px; }
+  .slot-card .gear-ico.small { width: 2rem; height: 2rem; }
 }
 /* Smal skjerm: lista alene, og detaljene i stedet for lista med «Tilbake». */
 @media (max-width: 720px) {
@@ -852,7 +879,7 @@ body:has(#panel:not([hidden])) .aimed {
   .pick-side { border-inline-end: 0; padding-inline: var(--fs-spacing-2); }
   .detail-back { display: inline-flex; }
   .detail-scroll { padding-top: var(--fs-spacing-3); }
-  .gear-ico.big { width: 80px; height: 80px; }
+  .gear-ico.big { width: 5rem; height: 5rem; }
   .compare .low-good { display: none; }
   .compare td { padding-inline-start: var(--fs-spacing-3); }
   .menu-tabs, .menu-dialog .fs-tabs__list { --fs-tabs-gap: 0; padding-inline: var(--fs-spacing-1); }
@@ -861,7 +888,7 @@ body:has(#panel:not([hidden])) .aimed {
   /* Plassene som en rad med ikoner: navnet står i lista og detaljene. */
   .inv-slots { gap: var(--fs-spacing-1); padding: var(--fs-spacing-2); }
   .slot-card { grid-template-columns: 1fr; justify-items: center; gap: 2px; padding: var(--fs-spacing-1); }
-  .slot-card .gear-ico.small { width: 32px; height: 32px; }
+  .slot-card .gear-ico.small { width: 2rem; height: 2rem; }
   .slot-card .slot-name { display: none; }
   .slot-card .slot-text { justify-items: center; }
   .slot-card .eyebrow { font-size: 0.625rem; }
@@ -872,20 +899,24 @@ body:has(#panel:not([hidden])) .aimed {
   .menu-head { gap: var(--fs-spacing-1) var(--fs-spacing-3); }
   .overlay-inner.menu, .menu-dialog { width: calc(100vw - 16px); max-width: none; }
   .menu-head .fs-dialog__subtitle { display: none; }
-  .menu-actions .fs-help-text { display: none; }
+  .menu-actions .fs-help-text, .menu-actions .craft-name { display: none; }
+  .detail-head { gap: var(--fs-spacing-3); flex-wrap: wrap; }
+  .ware { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--fs-spacing-1); }
+  .ware-price { grid-row: 2; text-align: start; }
+  .ware .fs-button { grid-column: 2; grid-row: 1 / span 2; }
 }
 
 /* Snakkebobler: hvit boble med spiss, over hodet på den som snakker. */
 .bubble {
   position: absolute;
   transform: translate(-50%, calc(-100% - 14px));
-  max-width: 320px;
-  padding: 10px 14px;
-  border-radius: 14px;
+  max-width: 20rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.875rem;
   background: #fffdf6;
   color: #1c1a17;
   font-family: Inter, system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.35;
   box-shadow: 0 6px 22px rgb(0 0 0 / 0.35);
 }
@@ -905,7 +936,7 @@ body:has(#panel:not([hidden])) .aimed {
 
 .bubble-name {
   font-weight: 700;
-  font-size: 12px;
+  font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #7a5a2a;
@@ -913,7 +944,7 @@ body:has(#panel:not([hidden])) .aimed {
 }
 
 .mark-text.heavy {
-  font-size: 30px;
+  font-size: 1.875rem;
   color: #ffd166;
 }
 
@@ -1192,11 +1223,11 @@ body:has(#panel:not([hidden])) .aimed {
 
 /* Kistedialogen: Fristils dialog, litt bredere. */
 .loot {
-  width: min(520px, calc(100vw - 32px));
+  width: min(32.5rem, calc(100vw - 32px));
 }
 
 /* Innstillingene: radioknappene på rad med forklaringen bak. */
-.settings-dialog { width: min(560px, 92vw); position: relative; }
+.settings-dialog { width: min(35rem, 92vw); position: relative; }
 .settings-dialog .dialog-x { position: absolute; top: var(--fs-spacing-3); right: var(--fs-spacing-3); font-size: 1.4rem; line-height: 1; padding: 4px 10px; }
 .settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
 .settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
@@ -1206,7 +1237,7 @@ body:has(#panel:not([hidden])) .aimed {
 .settings-dialog .range { width: 100%; accent-color: var(--fs-color-accent-border, #2563eb); }
 .settings-dialog fieldset .fs-help-text { display: block; margin-top: var(--fs-spacing-2); }
 /* De avanserte grafikkinnstillingene: én bryter per rad, rullbar på små skjermer. */
-.graphics-dialog .fs-dialog__body { max-height: min(70vh, 640px); overflow-y: auto; }
+.graphics-dialog .fs-dialog__body { max-height: min(70vh, 40rem); overflow-y: auto; }
 .graphics-dialog .gfx-presets { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-2) var(--fs-spacing-4); }
 .graphics-dialog .gfx-row { padding: 4px 0; }
 .graphics-dialog .gfx-row .fs-help-text { display: block; }
@@ -1628,7 +1659,7 @@ body.filming #bars {
   line-height: 1.35;
 }
 .journal-card {
-  width: min(560px, 90vw);
+  width: min(35rem, 90vw);
   max-height: 80vh;
   overflow-y: auto;
 }

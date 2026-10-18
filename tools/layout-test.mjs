@@ -28,6 +28,8 @@ let bad = 0;
 // hver størrelse prøves med det ene og med det andre.
 for (const [w, h] of [[2560, 1440], [1920, 1080], [1366, 768], [1280, 720], [1024, 640], [800, 600], [600, 800], [390, 844]]) for (const aimed of ["target", "foe"]) {
   const page = await browser.newPage({ viewport: { width: w, height: h } });
+  // TEXTSIZE=1.4 prøver den største tekststørrelsen (Innstillinger, `fristad.textsize`).
+  if (process.env.TEXTSIZE) await page.addInitScript((v) => localStorage.setItem("fristad.textsize", v), process.env.TEXTSIZE);
   await page.route("**/*.wasm", (r) => r.abort());
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.evaluate((aimed) => {

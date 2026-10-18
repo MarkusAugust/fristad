@@ -76,31 +76,6 @@
       </div>
     </details>
     </div>
-    <!-- Det du sikter på, midt på skjermen et lite stykke over stolpene
-         (eieren 18. oktober: for vanskelig å se ute ved høyre kant): tingen
-         eller innbyggeren (#target) eller fienden (#foe), aldri begge. -->
-    <div id="aimed" class="aimed">
-      <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
-           galleriet, senga): navnet, hva det er, og tastene. -->
-      <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
-        <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
-        <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
-        <p class="target-keys">
-          <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
-          <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
-        </p>
-      </section>
-      <!-- Fienden du sikter på: navnet, hva den er og livet. -->
-      <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
-        <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span><span id="foe-ranged" class="fs-tag" hidden>Skyter på avstand</span></p>
-        <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
-        <p id="foe-info" class="fs-paragraph" data-size="small"></p>
-        <div class="foe-hp">
-          <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
-          <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
-        </div>
-      </section>
-    </div>
     <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
       <div class="bigmap-card">
         <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
@@ -129,6 +104,31 @@
       </div>
     </div>
     <div class="bottom">
+      <!-- Det du sikter på, midt på skjermen et lite stykke over stolpene
+           (eieren 18. oktober: for vanskelig å se ute ved høyre kant): tingen
+           eller innbyggeren (#target) eller fienden (#foe), aldri begge. -->
+      <div id="aimed" class="aimed">
+        <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
+             galleriet, senga): navnet, hva det er, og tastene. -->
+        <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
+          <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
+          <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
+          <p class="target-keys">
+            <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
+            <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
+          </p>
+        </section>
+        <!-- Fienden du sikter på: navnet, hva den er og livet. -->
+        <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
+          <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span><span id="foe-ranged" class="fs-tag" hidden>Skyter på avstand</span></p>
+          <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
+          <p id="foe-info" class="fs-paragraph" data-size="small"></p>
+          <div class="foe-hp">
+            <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
+            <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+          </div>
+        </section>
+      </div>
       <!-- Liv, energi og lys som Fristil-stolper nederst, som i Diablo:
            livet til venstre, energien (utholdenheten) til høyre. Tastene
            står i panelet oppe til høyre (#keys-panel). -->

@@ -128,6 +128,8 @@ let bad = 0;
 for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
   for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop"]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
+    // TEXTSIZE=1.4 prøver den største tekststørrelsen (Innstillinger, `fristad.textsize`).
+    if (process.env.TEXTSIZE) await page.addInitScript((v) => localStorage.setItem("fristad.textsize", v), process.env.TEXTSIZE);
     page.on("pageerror", (e) => console.log("sidefeil:", e.message));
     await page.route("**/*.wasm", (r) => r.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/?uitest&nofilm`);

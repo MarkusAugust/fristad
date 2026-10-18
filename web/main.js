@@ -84,6 +84,25 @@ const readNum = (key, lo, hi, def) => {
 };
 let mouseSens = readNum("fristad.mouse", 0.2, 3, 1);
 let gamma = readNum("fristad.gamma", 0.6, 2, 1);
+// Tekststørrelsen i hele grensesnittet (eieren 18. oktober: «et hakk
+// større»): 1 er 18 px brødtekst, og Fristils tokens og alt i style.css
+// følger rot-fontstørrelsen (rem), mens canvaset står som det er. Huskes
+// som `fristad.textsize`.
+let textSize = readNum("fristad.textsize", 0.9, 1.4, 1);
+// Kolonnen til høyre slutter over siktekortet når de ellers ville møttes
+// (smalt vindu eller stor tekst).
+function fitSide() {
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 18;
+  const card = Math.min(25 * rem, innerWidth - 32);
+  const side = Math.min(19 * rem, innerWidth - 32);
+  document.documentElement.classList.toggle("side-short", innerWidth / 2 + card / 2 + 12 > innerWidth - 16 - side);
+}
+const setTextSize = (v) => {
+  document.documentElement.style.setProperty("--ui-text", String(v));
+  fitSide();
+};
+setTextSize(textSize);
+addEventListener("resize", fitSide);
 const remember = (key, v) => {
   try {
     localStorage.setItem(key, String(v));
@@ -1368,12 +1387,14 @@ function openSettings() {
       </fieldset>
       <p class="fs-help-text" id="set-res-info">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
       <fieldset class="fs-fieldset">
-        <legend class="fs-legend">Mus og lysstyrke</legend>
+        <legend class="fs-legend">Mus, lysstyrke og tekst</legend>
         <label class="fs-label range-row" for="set-mouse">Musefølsomhet <output id="set-mouse-out">${mouseSens.toFixed(2)}×</output></label>
         <input class="range" id="set-mouse" name="mouse" type="range" min="0.2" max="3" step="0.05" value="${mouseSens}">
         <label class="fs-label range-row" for="set-gamma">Lysstyrke <output id="set-gamma-out">${gamma.toFixed(2)}</output></label>
         <input class="range" id="set-gamma" name="gamma" type="range" min="0.6" max="2" step="0.05" value="${gamma}">
         <p class="fs-help-text">Er skjermen mørk, så du ikke ser noe i krypten, skru lysstyrken opp. 1,00 er slik bildet er malt.</p>
+        <label class="fs-label range-row" for="set-text">Tekststørrelse <output id="set-text-out">${Math.round(textSize * 100)} %</output></label>
+        <input class="range" id="set-text" name="textsize" type="range" min="0.9" max="1.4" step="0.05" value="${textSize}">
         <p><button class="fs-button" data-variant="secondary" data-size="small" type="button" data-act="reset-input">Tilbakestill</button></p>
       </fieldset>
     </div>
@@ -1388,6 +1409,13 @@ function openSettings() {
     dlg.querySelector("#set-mouse").value = v;
     dlg.querySelector("#set-mouse-out").textContent = `${v.toFixed(2)}×`;
   };
+  const setText = (v) => {
+    textSize = v;
+    remember("fristad.textsize", v);
+    setTextSize(v);
+    dlg.querySelector("#set-text").value = v;
+    dlg.querySelector("#set-text-out").textContent = `${Math.round(v * 100)} %`;
+  };
   const setGamma = (v) => {
     gamma = v;
     remember("fristad.gamma", v);
@@ -1398,15 +1426,17 @@ function openSettings() {
   dlg.addEventListener("input", (ev) => {
     if (ev.target.name === "mouse") setSens(Number(ev.target.value));
     if (ev.target.name === "gamma") setGamma(Number(ev.target.value));
+    if (ev.target.name === "textsize") setText(Number(ev.target.value));
   });
   dlg.querySelector('[data-act="reset-input"]').addEventListener("click", () => {
     setSens(1);
     setGamma(1);
+    setText(1);
     sfx.play("click");
   });
   dlg.addEventListener("change", (ev) => {
     const t = ev.target;
-    if (t.name === "mouse" || t.name === "gamma") return sfx.play("click");
+    if (t.name === "mouse" || t.name === "gamma" || t.name === "textsize") return sfx.play("click");
     if (t.name === "gfx" && t.value !== "custom") setQuality(t.value);
     if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
     dlg.querySelector("#set-res-info").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
@@ -1862,7 +1892,7 @@ function openWorkshop(recipes) {
     const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} og ${xs.at(-1)}` : xs[0] ?? "");
     const why = owned ? "Du har den allerede." : can ? "Komponentene trekkes fra lageret." : `Mangler ${list(missing)}.`;
     const other = r.current && r.current.id !== r.item.id ? r.current : null;
-    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi ${esc(name)}</button>
+    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi<span class="craft-name"> ${esc(name)}</span></button>
         <span class="fs-help-text" id="craft-why">${esc(why)}</span>`;
     return `<div class="detail-scroll">
         <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
