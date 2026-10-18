@@ -71,6 +71,26 @@ let current = { component: "" };
 // plass på skjermen, men aldri over 1080p i standard grafikk og 1440p i
 // avansert. Valget huskes som `fristad.resolution` (høyden eller «auto»).
 const RES_STEPS = [720, 900, 1080, 1152, 1440, 1620, 1800, 2160];
+// Musefølsomheten (ganger bevegelsen) og lysstyrken (gamma, 1 er som malt;
+// over 1 løfter de mørke tonene for mørke skjermer), fra Innstillinger (O).
+// Huskes som `fristad.mouse` og `fristad.gamma`.
+const readNum = (key, lo, hi, def) => {
+  try {
+    const v = Number(localStorage.getItem(key));
+    return Number.isFinite(v) && v >= lo && v <= hi && localStorage.getItem(key) !== null ? v : def;
+  } catch {
+    return def;
+  }
+};
+let mouseSens = readNum("fristad.mouse", 0.2, 3, 1);
+let gamma = readNum("fristad.gamma", 0.6, 2, 1);
+const remember = (key, v) => {
+  try {
+    localStorage.setItem(key, String(v));
+  } catch {
+    /* ingen lagring */
+  }
+};
 const RES_NAMES = { 720: "720p", 900: "900p", 1080: "1080p (FHD)", 1152: "QWXGA", 1440: "1440p (QHD)", 1620: "1620p (3K)", 1800: "1800p (QHD+)", 2160: "2160p (4K)" };
 let resolution = "auto";
 try {
@@ -150,6 +170,7 @@ async function boot() {
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   if (gpuLost !== null) loseGpu(gpuLost);
+  engine.set_gamma(gamma);
   // Til feilsøking i konsollen og til testene.
   window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
@@ -1344,18 +1365,50 @@ function openSettings() {
         ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${QUALITY_INFO[quality ?? "standard"].cap}p.`, resolution === "auto")}
         ${steps}
       </fieldset>
-      <p class="fs-help-text">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
+      <p class="fs-help-text" id="set-res-info">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Mus og lysstyrke</legend>
+        <label class="fs-label range-row" for="set-mouse">Musefølsomhet <output id="set-mouse-out">${mouseSens.toFixed(2)}×</output></label>
+        <input class="range" id="set-mouse" name="mouse" type="range" min="0.2" max="3" step="0.05" value="${mouseSens}">
+        <label class="fs-label range-row" for="set-gamma">Lysstyrke <output id="set-gamma-out">${gamma.toFixed(2)}</output></label>
+        <input class="range" id="set-gamma" name="gamma" type="range" min="0.6" max="2" step="0.05" value="${gamma}">
+        <p class="fs-help-text">Er skjermen mørk, så du ikke ser noe i krypten, skru lysstyrken opp. 1,00 er slik bildet er malt.</p>
+        <p><button class="fs-button" data-variant="secondary" data-size="small" type="button" data-act="reset-input">Tilbakestill</button></p>
+      </fieldset>
     </div>
     <div class="fs-dialog__footer">
       <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (O)</button>
     </div>`;
   document.body.appendChild(dlg);
   settingsOpen = dlg;
+  const setSens = (v) => {
+    mouseSens = v;
+    remember("fristad.mouse", v);
+    dlg.querySelector("#set-mouse").value = v;
+    dlg.querySelector("#set-mouse-out").textContent = `${v.toFixed(2)}×`;
+  };
+  const setGamma = (v) => {
+    gamma = v;
+    remember("fristad.gamma", v);
+    engine?.set_gamma(v);
+    dlg.querySelector("#set-gamma").value = v;
+    dlg.querySelector("#set-gamma-out").textContent = v.toFixed(2);
+  };
+  dlg.addEventListener("input", (ev) => {
+    if (ev.target.name === "mouse") setSens(Number(ev.target.value));
+    if (ev.target.name === "gamma") setGamma(Number(ev.target.value));
+  });
+  dlg.querySelector('[data-act="reset-input"]').addEventListener("click", () => {
+    setSens(1);
+    setGamma(1);
+    sfx.play("click");
+  });
   dlg.addEventListener("change", (ev) => {
     const t = ev.target;
+    if (t.name === "mouse" || t.name === "gamma") return sfx.play("click");
     if (t.name === "gfx" && t.value !== "custom") setQuality(t.value);
     if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
-    dlg.querySelector(".fs-help-text:last-of-type").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
+    dlg.querySelector("#set-res-info").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
     sfx.play("click");
   });
   const close = () => {
@@ -2175,7 +2228,7 @@ function bindInput() {
     if (!playing) return;
     if (editor?.mouseMove(e)) return;
     if (dragging) dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
-    if (locked() || dragging) engine.look(e.movementX, e.movementY);
+    if (locked() || dragging) engine.look(e.movementX * mouseSens, e.movementY * mouseSens);
   });
 
   const keys = new Set(["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);

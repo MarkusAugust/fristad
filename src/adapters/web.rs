@@ -524,6 +524,11 @@ impl Engine {
         self.app.command(Command::Voice(v));
     }
 
+    /// Lysstyrken fra innstillingene (gamma, 0,6–2; 1 er som malt).
+    pub fn set_gamma(&mut self, g: f32) {
+        self.app.command(Command::Gamma(g));
+    }
+
     /// Bryterne i et forhåndsvalg som json (nettlaget bygger
     /// grafikkdialogen av dem, så verdiene står bare i `ports::Quality`).
     pub fn quality_preset(&self, name: &str) -> String {

@@ -191,6 +191,7 @@ impl Session {
             fog_density: if in_crypt { 0.0 } else { (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c) },
             fog_falloff: 0.03,
             exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 0.5),
+            gamma: 1.0,
             bloom: 0.06 + t * 0.06,
             windows_lit: 0.55,
             street_lights: 1.0,

@@ -152,6 +152,10 @@ fn main() {
     if let Some(v) = arg("--voice") {
         app.command(Command::Voice(v.parse().expect("--voice 0..1")));
     }
+    // --gamma G: lysstyrken fra innstillingene (1 er som malt).
+    if let Some(g) = arg("--gamma") {
+        app.command(Command::Gamma(g.parse().expect("--gamma 0.6..2")));
+    }
     // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
     if flag("--well") {
         app.session.use_first(|u| matches!(u, Use::Well(_)));

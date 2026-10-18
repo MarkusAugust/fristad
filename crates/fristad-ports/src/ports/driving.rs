@@ -124,6 +124,8 @@ pub enum Command {
     /// Hvor sterkt trubaduren synger nå (0..1, sangens lydstyrke der
     /// sangen er, `assets/music/game/tavern_voice.json`): munnen følger den.
     Voice(f32),
+    /// Lysstyrken spilleren har valgt (gamma, 0,6–2; 1 er som malt).
+    Gamma(f32),
 }
 
 /// Ett bilde i filmen: øyet, retningen og synsfeltet (grader).

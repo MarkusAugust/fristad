@@ -1107,6 +1107,10 @@ body:has(#panel:not([hidden])) .aimed {
 .settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
 .settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
 .settings-dialog .fs-help-text { display: inline; }
+.settings-dialog .range-row { display: flex; justify-content: space-between; margin-top: var(--fs-spacing-2); }
+.settings-dialog .range-row output { font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text-subtle, inherit); }
+.settings-dialog .range { width: 100%; accent-color: var(--fs-color-accent-border, #2563eb); }
+.settings-dialog fieldset .fs-help-text { display: block; margin-top: var(--fs-spacing-2); }
 /* De avanserte grafikkinnstillingene: én bryter per rad, rullbar på små skjermer. */
 .graphics-dialog .fs-dialog__body { max-height: min(70vh, 640px); overflow-y: auto; }
 .graphics-dialog .gfx-presets { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-2) var(--fs-spacing-4); }

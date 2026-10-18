@@ -144,6 +144,8 @@ struct PostUniform {
     /// Tonemappingen: xy sola på skjermen (uv), z styrken på solstrålene,
     /// w den malte graderingen (1) eller den gamle ACES-kurven (0).
     sun: [f32; 4],
+    /// x: spillerens lysstyrke (gamma, 1 er som malt).
+    extra: [f32; 4],
 }
 
 #[repr(C)]
@@ -1441,7 +1443,7 @@ impl Renderer {
             out
         };
         let post = |buf: &wgpu::Buffer, params: [f32; 4], sw: u32, sh: u32| {
-            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32], sun: sun_post };
+            let u = PostUniform { params, texel: [sw as f32, sh as f32, 1.0 / sw as f32, 1.0 / sh as f32], sun: sun_post, extra: [if f.gamma > 0.0 { f.gamma } else { 1.0 }, 0.0, 0.0, 0.0] };
             self.queue.write_buffer(buf, 0, bytemuck::bytes_of(&u));
         };
         let fullscreen = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pipe: &wgpu::RenderPipeline, bg: &wgpu::BindGroup, load: wgpu::LoadOp<wgpu::Color>, timestamps: Option<wgpu::RenderPassTimestampWrites>| {

@@ -8,6 +8,8 @@ struct Post {
     // Tonemappingen: xy sola på skjermen (uv), z styrken på solstrålene,
     // w den malte graderingen (1) eller den gamle ACES-kurven (0).
     sun: vec4<f32>,
+    // x: spillerens lysstyrke (gamma, 1 er som malt).
+    extra: vec4<f32>,
 }
 @group(1) @binding(0) var tex0: texture_2d<f32>;
 @group(1) @binding(1) var tex1: texture_2d<f32>;
@@ -220,6 +222,9 @@ fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
         c = mix(c, vec3<f32>(0.55, 0.02, 0.0), hurt * smoothstep(0.78, 1.45, length(v)) * 0.85);
     }
     c = clamp(c, vec3<f32>(0.0), vec3<f32>(1.0));
+    // Lysstyrken fra innstillingene: over 1 løfter de mørke tonene (mørke
+    // skjermer), og hvitt blir hvitt.
+    c = pow(c, vec3<f32>(1.0 / max(post.extra.x, 0.1)));
     if (post.params.z > 0.5) {
         c = linear_to_srgb(c);
     }
