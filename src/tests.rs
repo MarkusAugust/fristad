@@ -619,6 +619,24 @@ fn pipene_ryker() {
     }
 }
 
+/// Trubaduren sitter på krakken ved ildstedet i Vertshuset (plassen er
+/// data: `seated` i `assets/layout/town.json`, krakken i
+/// `assets/layout/inside/tavern.json`), vendt ut i rommet, og figuren hans
+/// ventes (`model::PLANNED`) til TRELLIS-modellen kommer.
+#[test]
+fn trubaduren_sitter_ved_ildstedet() {
+    let w = &world().world;
+    let t = w.npcs.iter().find(|n| n.name == "Trubaduren").expect("trubaduren i town.json");
+    assert!(t.seated && t.route.is_empty(), "trubaduren sitter og går ingen steder");
+    let stools: Vec<Vec3> = w.placements.iter().filter(|p| p.model == "stool").flat_map(|p| p.transforms.iter().map(|a| Vec3::from(a.translation))).collect();
+    let stool = stools.iter().min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).expect("krakker");
+    assert!(stool.distance(t.pos) < 0.05, "trubaduren sitter ikke på en krakk: {:?} mot {stool:?}", t.pos);
+    let hearth = w.lights.iter().filter(|l| l.always).map(|l| l.pos).min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).unwrap();
+    assert!(hearth.distance(t.pos) < 2.5, "krakken står ikke ved ildstedet ({hearth:?})");
+    assert_eq!(t.model, "npc_troubadour");
+    assert!(crate::domain::model::PLANNED.iter().any(|(n, _)| *n == t.model) || world().models.iter().any(|m| m.name == t.model), "figuren ventes eller finnes");
+}
+
 /// Innbyggerne går rundt på gjøremålene sine, og stopper når du kommer nær.
 #[test]
 fn innbyggerne_gar_og_stopper() {

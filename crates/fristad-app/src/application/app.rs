@@ -135,6 +135,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
                 self.input.release_all();
                 return self.session.edit_command(e);
             }
+            Command::Voice(v) => self.session.npcs.set_voice(v),
         }
         true
     }

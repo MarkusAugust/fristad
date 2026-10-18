@@ -521,6 +521,8 @@ function loop(now) {
     }
   }
   updateLook();
+  // Trubaduren i Vertshuset: munnen følger sangen der den er (0 når den ikke spiller).
+  engine.set_voice?.(music.voice());
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.

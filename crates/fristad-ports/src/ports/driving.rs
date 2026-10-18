@@ -121,6 +121,9 @@ pub enum Command {
     /// kamp og fysikk, mens byfolket og fiendene lever videre. `None` gir
     /// spillet tilbake.
     Film(Option<Shot>),
+    /// Hvor sterkt trubaduren synger nå (0..1, sangens lydstyrke der
+    /// sangen er, `assets/music/game/tavern_voice.json`): munnen følger den.
+    Voice(f32),
 }
 
 /// Ett bilde i filmen: øyet, retningen og synsfeltet (grader).

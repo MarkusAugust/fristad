@@ -177,6 +177,9 @@ pub struct NpcSpec {
     /// Hvor høy figuren er (fra modellen; 1,8 m om den mangler), så
     /// snakkebobla og siktemålet står rett over hodet.
     pub height: f32,
+    /// Sitter på krakken der `pos` er og spiller (trubaduren i Vertshuset):
+    /// klippene «play» og «sit», går ingen steder, og kjeven følger sangen.
+    pub seated: bool,
 }
 
 pub struct World {

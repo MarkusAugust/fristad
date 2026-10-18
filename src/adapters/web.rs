@@ -516,6 +516,13 @@ impl Engine {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
     }
 
+    /// Hvor sterkt trubaduren synger nå (0..1): nettlaget leser det der
+    /// sangen er (`music.voice()`, `assets/music/game/tavern_voice.json`)
+    /// hvert bilde, og munnen følger.
+    pub fn set_voice(&mut self, v: f32) {
+        self.app.command(Command::Voice(v));
+    }
+
     /// Bryterne i et forhåndsvalg som json (nettlaget bygger
     /// grafikkdialogen av dem, så verdiene står bare i `ports::Quality`).
     pub fn quality_preset(&self, name: &str) -> String {

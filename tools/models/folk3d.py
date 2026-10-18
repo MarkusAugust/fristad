@@ -33,6 +33,9 @@ from common import armature, bake_textured, clear, pack_weighted  # noqa: E402
 import folk_motion  # noqa: E402
 from townsfolk import FOLK, bones  # noqa: E402
 
+# Trubaduren (glb fra TRELLIS kommer fra eieren, `docs/prompter-folk-3d.md`).
+FOLK = {**FOLK, "troubadour": 1.78}
+
 SRC = "assets/textures/people/3d"
 REF = "assets/textures/people/ref"
 OUT = "assets/models/npcs"
@@ -59,6 +62,16 @@ VOXEL = float(os.environ.get("FOLK3D_VOXEL", 0.005))  # skallet (m); grovere sme
 WEIGHT_RADIUS = 0.05  # lag nærmere enn dette (m) får samme vekter (`layered_weights`)
 LIMB_BONES = ("arm", "hand", "shoulder")  # bein som ikke jevnes ut med kroppen
 LOOSE = 0.002  # løse biter med færre flater enn denne brøken av skallet fjernes
+# Figurene som sitter (trubaduren på krakken i Vertshuset): de får også
+# klippene «sit» og «play» (`folk_motion.SEATED_CLIPS`).
+SEATED = {"troubadour"}
+# Figurene som synger: et kjevebein «jaw» under hodet, som spillet åpner
+# etter sangens lydstyrke (`Npcs::set_voice`). Kjeven er det som ligger
+# foran og under munnen (`jaw_weights`); munnen ligger `MOUTH` under
+# nesetippen og ledd-dreiepunktet ved øret.
+JAW = {"troubadour"}
+MOUTH = 0.023  # brøk av høyden fra nesetippen ned til leppesømmen (målt på skriveren: rundt 0,02)
+JAW_SOFT = (0.004, 0.02)  # overgangen over munnen og bak haka (brøk av høyden)
 
 
 def load(name):
@@ -514,8 +527,58 @@ def landmarks(ob, H):
     return J
 
 
+def face_profile(ob, H):
+    """Nesetippen og haka (x fram, z opp) fra profilen midt i ansiktet."""
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    x, y, z = co[:, 0], co[:, 1], co[:, 2]
+    mid = np.abs(y) < 0.02 * H
+    nose = mid & (z > 0.89 * H) & (z < 0.96 * H)
+    i = np.argmax(np.where(nose, x, -1e9))
+    return Vector((float(x[i]), 0.0, float(z[i])))
+
+
+def jaw_bone(ob, J, H):
+    """Kjevebeinet: fra øret (midt i hodet, like under nesetippen) fram til
+    haka."""
+    nose = face_profile(ob, H)
+    mouth = nose.z - MOUTH * H
+    pivot = Vector((J["head"].x, 0.0, mouth + 0.01 * H))
+    chin = Vector((nose.x - 0.01 * H, 0.0, J["head"].z))
+    return ("jaw", tuple(pivot), tuple(chin), "head"), mouth
+
+
+def jaw_weights(ob, arm, J, H, mouth):
+    """Kjeven tar det som ligger under munnen og foran dreiepunktet (haka,
+    underleppa og skjegget under), med en myk overgang; resten av hodet
+    beholder vektene sine (skalert ned der kjeven tar over)."""
+    g = ob.vertex_groups.get("jaw") or ob.vertex_groups.new(name="jaw")
+    pivot_x = J["head"].x
+    soft_z, soft_x = JAW_SOFT[0] * H, JAW_SOFT[1] * H
+    n = 0
+    for v in ob.data.vertices:
+        x, _, z = v.co
+        below = min(1.0, max(0.0, (mouth - z) / soft_z))
+        front = min(1.0, max(0.0, (x - pivot_x - 0.01 * H) / soft_x))
+        neck = min(1.0, max(0.0, (z - J["neck"].z) / (0.02 * H)))
+        w = below * front * neck
+        w = w * w * (3 - 2 * w)
+        if w <= 1e-3:
+            g.remove([v.index])
+            continue
+        for vg in v.groups:
+            if vg.group != g.index:
+                vg.weight *= 1.0 - w
+        g.add([v.index], w, "REPLACE")
+        n += 1
+    print("kjeven tar", n, "hjørner")
+
+
 def rig(ob, name, J):
-    arm = armature(f"npc_{name}_rig", bones(J))
+    extra, mouth = ([], None)
+    if name in JAW:
+        jb, mouth = jaw_bone(ob, J, FOLK[name])
+        extra = [jb]
+    arm = armature(f"npc_{name}_rig", bones(J) + extra)
     bpy.ops.object.select_all(action="DESELECT")
     ob.select_set(True)
     arm.select_set(True)
@@ -524,6 +587,8 @@ def rig(ob, name, J):
     if not any(len(v.groups) for v in ob.data.vertices[:200]):
         bpy.ops.object.parent_set(type="ARMATURE_ENVELOPE")
     layered_weights(ob, arm)
+    if mouth is not None:
+        jaw_weights(ob, arm, J, FOLK[name], mouth)
     return arm
 
 
@@ -595,7 +660,8 @@ def build(name, size=2048):
             st[k] *= f
     out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
     st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
-    folk_motion.clips(arm, st, {}, only=("idle", "walk", "talk", "wave"))
+    only = ("idle", "walk", "talk", "wave") + (folk_motion.SEATED_CLIPS if name in SEATED else ())
+    folk_motion.clips(arm, st, {}, only=only)
     bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False)
     return J
 

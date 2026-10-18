@@ -71,6 +71,8 @@ DUTY = 0.6
 # Så mange grader dreier figuren per klipp i turn_l og turn_r (npcs.rs).
 TURN_DEG = 60.0
 TURN_FRAMES = 20
+# De sittende klippene lages bare for figurene som sitter (`only`).
+SEATED_CLIPS = ("sit", "play")
 
 
 # --- Små hjelpere ----------------------------------------------------------------
@@ -222,6 +224,7 @@ FIGURES = {
     "guard": ("guard", {"R": "long"}),
     "merchant": ("old", {"R": "hang"}),
     "pilgrim": ("old", {"R": "long"}),
+    "troubadour": ("default", {}),
 }
 
 
@@ -1135,6 +1138,106 @@ def wave(body, st, grips):
     return out
 
 
+# --- Sittende: trubaduren på krakken ved ildstedet i Vertshuset ------------------
+#
+# Figuren står med føttene i origo; sittende er origo punktet på gulvet rett
+# under midten av setet, så spillet setter figuren der krakken står
+# (`NpcSpec.seated`). Bekkenet ligger `SEAT` over gulvet (krakken i
+# Vertshuset er 0,43 m) og litt over setet, føttene står flatt foran, og
+# beina legges med IK, så knærne kommer der de skal av seg selv.
+
+SEAT = 0.43  # setets høyde over gulvet (m), krakken `stool`
+SIT_TEMPO = 1.5  # slag per sekund i spilleklippet (sangen i Vertshuset går rundt 90 i minuttet)
+
+
+def seated_pose(body, st, t, period):
+    """Sitter rett på krakken med føttene flatt foran, puster, og ser rolig
+    omkring. Gir posen og pusten."""
+    k = body.k
+    pose = Pose()
+    hips = body.head["hips"]
+    # Bekkenet over midten av setet, litt over det (setebeina).
+    pose.root = Vector((0.01 * k - hips.x, 0.0, SEAT + 0.085 * k - hips.z))
+    # Bekkenet vipper litt bakover, ryggen retter seg og brystet kommer fram.
+    pose.add("hips", y=-6.0)
+    pose.add("spine", y=4.0 + st["hunch"] * 0.3)
+    pose.add("chest", y=4.0 + st["hunch"] * 0.5)
+    pose.add("neck", y=st["jut"] * 0.5)
+    pose.neck_share = 0.4
+    for s in ("L", "R"):
+        sy = side_sign(s)
+        # Føttene flatt på gulvet foran setet, litt fra hverandre og ut.
+        pose.feet[s] = (Vector((0.4 * k, sy * 0.15 * k, body.ankle_h + body.sole)), 0.0, sy * 9.0)
+        pose.add(f"upper_arm.{s}", x=sy * st["arm_out"] * 0.5)
+    br = breathe(body, st, pose, t, period / 3)
+    pose.head_world = eul(1.5 * noise(t, 5.1, period), st["head"] * 0.5 + 3.0 + 2.0 * noise(t, 3.3, period) - 0.8 * br, 7.0 * noise(t, 0.7, period))
+    return pose, br
+
+
+def sit(body, st, grips):
+    """Sitter på krakken med hendene på lårene (når trubaduren snakker med
+    deg i stedet for å spille)."""
+    L = 10.0
+    n = int(round(L * FPS))
+    k = body.k
+    hips = body.head["hips"]
+    out = []
+    for f in range(n + 1):
+        t = f / FPS
+        pose, br = seated_pose(body, st, t, L)
+        for s in ("L", "R"):
+            sy = side_sign(s)
+            # Hendene hviler midt på lårene (målet i hoftenes rom).
+            tgt = hips + Vector((0.24 * k + 0.01 * k * noise(t, 2.0 + sy, L), sy * 0.13 * k, 0.07 * k + 0.004 * k * br))
+            pose.hands[s] = (tgt, 1.0, Vector((-0.4, sy * 0.6, -0.7)), "hips")
+            pose.add(f"hand.{s}", y=-15.0)
+        out.append(pose)
+    return out
+
+
+def play(body, st, grips):
+    """Spiller lutt sittende: lutten ligger på høyre lår med halsen opp mot
+    venstre, høyre hånd slår over strengene i takt (ned på slaget, opp på
+    halvslaget), venstre hånd griper på halsen og flytter seg innimellom, og
+    kroppen vugger og hodet nikker med. Hendene står i hoftenes rom, så de
+    blir på lutten mens overkroppen vugger. Lutten selv er egen modell
+    (kommer fra TRELLIS) og henges på hoftene, der hendene står."""
+    L = 8.0
+    n = int(round(L * FPS))
+    k = body.k
+    hips = body.head["hips"]
+    beat = SIT_TEMPO
+    out = []
+    for f in range(n + 1):
+        t = f / FPS
+        pose, br = seated_pose(body, st, t, L)
+        ph = (t * beat) % 1.0
+        # Slaget: raskt ned over strengene på slaget, roligere opp igjen, og
+        # et mindre slag opp på halvslaget.
+        down = curve([(0.0, 1.0), (0.12, -1.0), (0.5, -0.35), (0.6, 0.8), (1.0, 1.0)])(ph)
+        accent = 1.0 if int(t * beat) % 4 == 0 else 0.75
+        rh = hips + Vector((0.23 * k, -0.07 * k + 0.012 * k * down, 0.17 * k + 0.045 * k * down * accent))
+        pose.hands["R"] = (rh, 1.0, Vector((-0.25, -1.0, -0.55)), "hips")
+        pose.add("hand.R", y=18.0 - 12.0 * down, x=6.0 * down)
+        # Grepet: langs halsen (opp mot venstre og fram), flytter seg hver
+        # andre takt og trykker litt på hvert slag.
+        slide = curve([(0.0, 0.0), (2.6, 0.0), (2.9, 1.0), (5.3, 1.0), (5.6, 0.4), (7.4, 0.4), (7.7, 0.0)], period=L)(t)
+        press = math.exp(-((ph - 0.04) / 0.08) ** 2)
+        along = Vector((0.45, 0.85, 0.3)).normalized()
+        lh = hips + Vector((0.2 * k, -0.02 * k, 0.16 * k)) + along * (0.40 - 0.07 * slide) * k
+        pose.hands["L"] = (lh, 1.0, Vector((-0.3, 0.45, -1.0)), "hips")
+        pose.add("hand.L", y=-10.0 - 6.0 * press, x=20.0)
+        # Kroppen vugger fra side til side over to takter og lener seg inn
+        # mot lutten; hodet nikker på slaget og ser ut i rommet.
+        sway = math.sin(2 * math.pi * t * beat / 4.0)
+        pose.add("spine", x=2.5 * sway, y=3.0)
+        pose.add("chest", x=2.0 * sway, z=-3.0 * sway, y=3.0)
+        nod = math.exp(-((ph - 0.08) / 0.12) ** 2)
+        pose.head_world = eul(-3.0 * sway, st["head"] * 0.5 - 2.0 + 3.0 * nod - 0.8 * br, 6.0 * noise(t, 0.7, L) + 4.0 * sway)
+        out.append(pose)
+    return out
+
+
 def turn(body, st, grips, direction=1):
     """Snur på stedet: små skritt, overkroppen og hodet leder dreiningen.
     Kroppen dreier `TURN_DEG` grader per klipp (spillet dreier figuren like
@@ -1309,9 +1412,12 @@ def clips(arm, style="default", grips=None, body=None, tools=None, only=None):
         "turn_r": (lambda: turn(B, st, grips, -1), True, 1),
         "look": (lambda: gesture(B, st, grips, "look"), False, 1),
         "fidget": (lambda: gesture(B, st, grips, st["gestures"][1]), False, 1),
+        # Sittende (trubaduren): bare når de bes om (`only`).
+        "sit": (lambda: sit(B, st, grips), True, 1),
+        "play": (lambda: play(B, st, grips), True, 1),
     }
     for name, (fn, loop, step) in made.items():
-        if only and name not in only:
+        if (only and name not in only) or (not only and name in SEATED_CLIPS):
             continue
         poses = fn()
         keep_clear(B, poses, grips, loop)

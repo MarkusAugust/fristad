@@ -457,6 +457,8 @@ export function createMusic(context, base = "music/") {
   // ned så lenge du er inne.
   const insideTavern = () => mode === "town" && tavern >= 0.99 && files.tavern?.ok === true;
   let wasInside = false;
+  // Sangens lydstyrke (`voice()`): undefined til den trengs, null mens den hentes.
+  let voiceEnv;
   const mixTavern = () => {
     if (!c) return;
     const want = mode === "town" ? tavern : 0;
@@ -530,6 +532,23 @@ export function createMusic(context, base = "music/") {
         /* ingen lagring */
       }
       return !muted;
+    },
+    /** Hvor sterkt trubaduren synger der sangen er nå (0..1), fra
+     * `game/tavern_voice.json` (`tools/music/voice.py`, 20 verdier i
+     * sekundet); 0 når sangen ikke spiller. Motoren åpner munnen etter det. */
+    voice() {
+      const f = files.tavern;
+      if (!f?.el || f.el.paused || f.ok !== true) return 0;
+      if (voiceEnv === undefined) {
+        voiceEnv = null;
+        fetch(`${base}game/tavern_voice.json`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => (voiceEnv = j))
+          .catch(() => {});
+      }
+      if (!voiceEnv?.values?.length) return 0;
+      const i = Math.floor(f.el.currentTime * voiceEnv.rate);
+      return (voiceEnv.values[Math.min(i, voiceEnv.values.length - 1)] ?? 0) / 100;
     },
     // Til testing: hvilket stykke som spiller.
     get song() {

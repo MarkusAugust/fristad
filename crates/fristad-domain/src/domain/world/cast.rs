@@ -114,6 +114,19 @@ pub const GUARD: &[Line] = &[
     at(5, "Du kommer opp med kullstøv på hendene. Gruva? Under kirka? Jeg vil ikke vite det."),
 ];
 
+/// Trubaduren på krakken ved ildstedet i Vertshuset: synger sagaen om
+/// Gorvek (`assets/music/game/tavern.mp3`).
+pub const TROUBADOUR: &[Line] = &[
+    a("Sett deg ved ilden, fremmede. Visa om Gorvek er lang, og ølet er kort."),
+    a("Gorvek ba aldri og spurte aldri. Han tok livet i strupen. Derfor synger vi om ham."),
+    a("Jeg kan alle versene om forseglingen. Mester Ansgar får det siste, men ingen vet hvordan det slutter."),
+    a("En vise til? Det koster et krus. Eller en historie fra krypten."),
+    new("Et nytt ansikt ved porten. Det blir kanskje et vers av deg også."),
+    at(1, "Du kommer nedenfra. Fortell hva du så, så setter jeg det i visa."),
+    at(5, "Gruva, sier du? Det rimer ikke på noe. Jeg får finne på noe."),
+    at(10, "Kjernen. Det finnes ikke noe vers om den ennå. Kanskje det blir ditt."),
+];
+
 pub const PILGRIM: &[Line] = &[
     a("Jeg har gått fra Nidaros for å se mønsterboka. De sier den aldri sto i veien for noen."),
     a("Fristil. Navnet alene gjør meg rolig."),
@@ -191,6 +204,7 @@ pub const LINES: &[(&str, &[Line])] = &[
     ("apothecary", APOTHECARY),
     ("gorvek", GORVEK),
     ("innkeeper", INNKEEPER),
+    ("troubadour", TROUBADOUR),
     ("guard", GUARD),
     ("pilgrim", PILGRIM),
     ("farmer", FARMER),

@@ -10,7 +10,10 @@
 //! nivå N; med --eye er koordinatene i nivåets eget rom), --portal (ned og hjem med H, så portalen åpner seg), --chest (åpne den første kista), --attack S [--hold], --block, --edit [--edit-move X,Y,Z] (redigeringen, det midt i bildet valgt og flyttet), --film [--fov G] (som i filmen: uten armer), --frames N,
 //! --at MODELL X,Y,Z YAW (kamera i modellens rom), --gallery (full gallerivegg), --debug albedo|normal|ao|rough|shadow,
 //! --dump-layer N, --shots FIL (mange bilder i én kjøring: én linje per bilde,
-//! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at).
+//! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at),
+//! --model NAVN=FIL.glb (en modell fra fila i stedet for den innebygde, eller
+//! en som mangler: en stedfortreder, som trubaduren før figuren kommer),
+//! --voice V (hvor sterkt trubaduren synger, 0..1).
 
 use fristad::adapters::gltf::Embedded;
 use fristad::adapters::native::seed;
@@ -24,6 +27,26 @@ use fristad::ports::Quality;
 use fristad::ports::Renderer as _;
 use glam::Vec3;
 
+/// De innebygde modellene, med noen fra filer foran (`--model`).
+struct WithFiles(Vec<(String, Vec<u8>)>);
+
+impl fristad::ports::ModelSource for WithFiles {
+    fn load(&self, name: &str) -> Option<fristad::domain::model::Model> {
+        match self.0.iter().find(|(n, _)| n == name) {
+            Some((_, bytes)) => fristad::adapters::gltf::load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok(),
+            None => Embedded.load(name),
+        }
+    }
+    fn names(&self) -> Vec<String> {
+        let mut out = Embedded.names();
+        out.extend(self.0.iter().map(|(n, _)| n.clone()).filter(|n| !out.contains(n)).collect::<Vec<_>>());
+        out
+    }
+    fn world_data(&self) -> fristad::domain::world::Data {
+        Embedded.world_data()
+    }
+}
+
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     let args: Vec<String> = std::env::args().collect();
@@ -33,7 +56,15 @@ fn main() {
     let out = arg("--out").unwrap_or_else(|| "snapshot.png".into());
     let (width, height) = arg("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap(), h.parse().unwrap()))).unwrap_or((1280u32, 720u32));
 
-    let prepared = if flag("--edit") { prepare_for_edit(&Embedded, seed()) } else { prepare(&Embedded, seed()) };
+    // --model NAVN=FIL: modeller fra filer foran de innebygde.
+    let extra: Vec<(String, Vec<u8>)> = args
+        .iter()
+        .enumerate()
+        .filter(|(_, a)| *a == "--model")
+        .filter_map(|(i, _)| args.get(i + 1)?.split_once('=').map(|(n, f)| (n.to_string(), std::fs::read(f).unwrap_or_else(|e| panic!("--model {f}: {e}")))))
+        .collect();
+    let source = WithFiles(extra);
+    let prepared = if flag("--edit") { prepare_for_edit(&source, seed()) } else { prepare(&source, seed()) };
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
     let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();
@@ -116,6 +147,10 @@ fn main() {
         for c in fristad::domain::craft::GALLERY {
             app.session.give(c, 1);
         }
+    }
+    // --voice V: så sterkt trubaduren synger (munnen åpnes etter det).
+    if let Some(v) = arg("--voice") {
+        app.command(Command::Voice(v.parse().expect("--voice 0..1")));
     }
     // --well: heis opp vann i den første brønnen (--time styrer hvor langt).
     if flag("--well") {

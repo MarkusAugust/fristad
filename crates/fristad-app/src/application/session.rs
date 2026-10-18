@@ -161,7 +161,7 @@ impl Session {
             map: Map::new(&world.crypt),
             herd: Herd::new(),
             sound: Soundscape::new(world),
-            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone(), n.height)).collect()),
+            npcs: Npcs::new(rig_of, world.npcs.iter().map(|n| (n.name, n.model, n.pos, n.yaw, n.tint, n.lines, n.route.clone(), n.height, n.seated)).collect()),
             bubbles_shown: false,
             mobs: Mobs::new(&world.crypt, rigs),
             mech: Mechanisms::new(&world.crypt, wells),
