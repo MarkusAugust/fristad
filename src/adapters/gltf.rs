@@ -517,7 +517,50 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
     let far = Far::of(&doc).map_err(|e| format!("roten: {e}"))?;
     let far_mesh = far.cards.then(|| mesh.thinned_cards(3, 1.7));
     let far_cell = if far.cards { 0.0005 } else { far.cell };
-    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig })
+    // Kolliderne som følger formen, dreid, skalert og flyttet som nettet.
+    let norm = Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center) * Affine3A::from_rotation_y(yaw.to_radians());
+    let solids = solids(&doc).iter().map(|sh| sh.posed(&norm)).collect();
+    Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig, solids })
+}
+
+/// Kolliderne som følger formen (`extras.solids` på roten, skrevet av
+/// `tools/crypt/solids.py`): bokser og skrog i modellens rom.
+fn solids(doc: &gltf::Gltf) -> Vec<crate::domain::world::Shape> {
+    use crate::domain::world::Shape;
+    #[derive(serde::Deserialize)]
+    struct BoxDef {
+        center: [f32; 3],
+        size: [f32; 3],
+        #[serde(default)]
+        yaw: f32,
+    }
+    #[derive(serde::Deserialize)]
+    struct Def {
+        #[serde(rename = "box")]
+        cuboid: Option<BoxDef>,
+        hull: Option<Vec<[f32; 3]>>,
+    }
+    #[derive(serde::Deserialize, Default)]
+    struct Root {
+        #[serde(default)]
+        solids: Vec<Def>,
+    }
+    let Some(raw) = doc.as_json().extras.as_ref() else { return vec![] };
+    let root: Root = match serde_json::from_str(raw.get()) {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("kolliderne på roten kan ikke leses: {e}");
+            return vec![];
+        }
+    };
+    root.solids
+        .into_iter()
+        .filter_map(|d| match (d.cuboid, d.hull) {
+            (Some(b), _) => Some(Shape::Cuboid { center: Vec3::from(b.center), size: Vec3::from(b.size), yaw: b.yaw }),
+            (None, Some(h)) if h.len() >= 4 => Some(Shape::Hull { points: h.into_iter().map(Vec3::from).collect() }),
+            _ => None,
+        })
+        .collect()
 }
 
 /// Rollen et materiale har fått ved eksporten (`extras.fristad`, skrevet av

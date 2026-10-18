@@ -88,6 +88,49 @@ impl Visible {
     }
 }
 
+impl Visible {
+    /// Om noe som synes ligger innen `r` fra punktet (et treff på kanten av
+    /// en flate, der strålen streifer den, er ikke en usynlig vegg).
+    fn touches(&self, q: Vec3, r: f32) -> bool {
+        let (x, z) = ((q.x / CELL).floor() as i32, (q.z / CELL).floor() as i32);
+        (-1..=1).any(|dx| (-1..=1).any(|dz| self.cells.get(&(x + dx, z + dz)).is_some_and(|v| v.iter().any(|&n| closest(q, &self.tris[n as usize]).distance(q) <= r))))
+    }
+}
+
+/// Det nærmeste punktet på trekanten (Ericson, «Real-Time Collision Detection»).
+fn closest(p: Vec3, t: &[Vec3; 3]) -> Vec3 {
+    let (a, b, c) = (t[0], t[1], t[2]);
+    let (ab, ac, ap) = (b - a, c - a, p - a);
+    let (d1, d2) = (ab.dot(ap), ac.dot(ap));
+    if d1 <= 0.0 && d2 <= 0.0 {
+        return a;
+    }
+    let bp = p - b;
+    let (d3, d4) = (ab.dot(bp), ac.dot(bp));
+    if d3 >= 0.0 && d4 <= d3 {
+        return b;
+    }
+    let vc = d1 * d4 - d3 * d2;
+    if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
+        return a + ab * (d1 / (d1 - d3));
+    }
+    let cp = p - c;
+    let (d5, d6) = (ab.dot(cp), ac.dot(cp));
+    if d6 >= 0.0 && d5 <= d6 {
+        return c;
+    }
+    let vb = d5 * d2 - d1 * d6;
+    if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
+        return a + ac * (d2 / (d2 - d6));
+    }
+    let va = d3 * d6 - d5 * d4;
+    if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
+        return b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
+    }
+    let denom = 1.0 / (va + vb + vc);
+    a + ab * (vb * denom) + ac * (vc * denom)
+}
+
 /// Möller–Trumbore, begge sider.
 fn hit(o: Vec3, d: Vec3, t: &[Vec3; 3]) -> Option<f32> {
     let (e1, e2) = (t[1] - t[0], t[2] - t[0]);
@@ -122,12 +165,14 @@ fn floor_points(c: &Crypt, k: usize, step: f32) -> Vec<Vec3> {
             let (a, b) = (p.pts[j], p.pts[(j + 1) % n]);
             (b.x - a.x) * (q.y - a.z) - (b.z - a.z) * (q.x - a.x) >= -1e-4
         });
+        // Rutenettet i nivåets eget rom (som `floor_points` i `solids.py`).
+        let o = Vec2::new(c.levels[k].origin.x, c.levels[k].origin.z);
         let mut pts = vec![Vec2::new(p.center.x, p.center.z)];
-        let (x0, z0) = ((p.min.x / step).ceil() as i32, (p.min.y / step).ceil() as i32);
-        let (x1, z1) = ((p.max.x / step).floor() as i32, (p.max.y / step).floor() as i32);
+        let (x0, z0) = (((p.min.x - o.x) / step).ceil() as i32, ((p.min.y - o.y) / step).ceil() as i32);
+        let (x1, z1) = (((p.max.x - o.x) / step).floor() as i32, ((p.max.y - o.y) / step).floor() as i32);
         for x in x0..=x1 {
             for z in z0..=z1 {
-                pts.push(Vec2::new(x as f32 * step, z as f32 * step));
+                pts.push(o + Vec2::new(x as f32 * step, z as f32 * step));
             }
         }
         for q in pts.into_iter().filter(|q| inside(*q)) {
@@ -140,28 +185,31 @@ fn floor_points(c: &Crypt, k: usize, step: f32) -> Vec<Vec3> {
 /// Usynlige vegger: fra hvert sted på gulvet ser strålene rundt seg i tre
 /// høyder. Treffer en stråle en kollider som er loddrett (to stråler 6 cm
 /// over hverandre treffer like langt unna), skal det være en synlig flate
-/// innen `TOL` bak treffpunktet. Gir stedene (gruppert per halvmeter).
-fn invisible_walls(game: &Session, physics: &RapierPhysics, vis: &Visible, k: usize) -> Vec<(Vec3, f32, f32)> {
+/// innen `TOL` bak treffpunktet, eller like ved det (`EDGE`: strålen
+/// streifer kanten av en flate). Gir stedene (gruppert per halvmeter).
+fn invisible_walls(game: &Session, physics: &RapierPhysics, vis: &Visible, k: usize) -> Vec<(Vec3, f32, f32, u64, Vec3)> {
     const TOL: f32 = 0.12;
     const REACH: f32 = 1.2;
+    // Strålen streifer en flate: treffet ligger så nær noe som synes.
+    const EDGE: f32 = 0.03;
     let c = game.crypt_now();
-    let mut found: HashMap<(i32, i32, i32), (Vec3, f32, f32)> = HashMap::new();
+    let mut found: HashMap<(i32, i32, i32), (Vec3, f32, f32, u64, Vec3)> = HashMap::new();
     for p in floor_points(c, k, 0.7) {
         for h in [0.45f32, 0.95, 1.5] {
             for a in 0..16 {
                 let ang = a as f32 * std::f32::consts::TAU / 16.0;
                 let d = Vec3::new(ang.cos(), 0.0, ang.sin());
                 let o = p + Vec3::Y * h;
-                let Some(hc) = physics.cast_ray(o, d, REACH) else { continue };
-                let Some(h2) = physics.cast_ray(o + Vec3::Y * 0.06, d, REACH + 0.5) else { continue };
-                if (h2.distance - hc.distance).abs() > 0.03 {
-                    continue; // skrått (rampe, trapp): ikke en vegg
+                let Some(hc) = physics.cast_solid(o, d, REACH) else { continue };
+                let Some(h2) = physics.cast_solid(o + Vec3::Y * 0.06, d, REACH + 0.5) else { continue };
+                if (h2.distance - hc.distance).abs() > 0.03 || hc.distance < 0.02 {
+                    continue; // skrått (rampe, trapp), eller stedet er inni noe: ikke en vegg
                 }
                 let seen = vis.ray(o, d, hc.distance + 1.0);
-                if seen.is_none_or(|s| s > hc.distance + TOL) {
-                    let at = o + d * hc.distance;
+                let at = o + d * hc.distance;
+                if seen.is_none_or(|s| s > hc.distance + TOL) && !vis.touches(at, EDGE) {
                     let key = ((at.x * 2.0).floor() as i32, (at.y * 2.0).floor() as i32, (at.z * 2.0).floor() as i32);
-                    found.entry(key).or_insert((at, hc.distance, seen.unwrap_or(f32::INFINITY)));
+                    found.entry(key).or_insert((at, hc.distance, seen.unwrap_or(f32::INFINITY), hc.collider.0, o));
                 }
             }
         }
@@ -172,9 +220,12 @@ fn invisible_walls(game: &Session, physics: &RapierPhysics, vis: &Visible, k: us
 }
 
 /// Kartleggingen av usynlige vegger i alle nivåene (`cargo test --release
-/// ingen_usynlige -- --ignored --nocapture`). Står som feilsøking til
-/// rekvisittene (lysestaker, pulter, gitter, stiger) har kollidere som
-/// følger formen; de faste murene, rekkverkene og dørene er rettet.
+/// ingen_usynlige -- --ignored --nocapture`). Kolliderne følger formen
+/// (`tools/crypt/solids.py`), og treffene gikk fra 14 484 til 194 (18.
+/// oktober: nivå 1–10 har 4, 19, 7, 4, 51, 21, 16, 62, 10 og 0). Det som er
+/// igjen er 165 skrog (kantene av trappeskrogene og de trimmede trappene
+/// som stikker ut over trinnet, og tynne biter i gitter og rekkverk) og 29
+/// bokser; står som feilsøking til de er rettet.
 #[test]
 #[ignore]
 fn ingen_usynlige_vegger_i_krypten() {
@@ -185,13 +236,37 @@ fn ingen_usynlige_vegger_i_krypten() {
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     let vis = Visible::new(&game);
     let c = &world().world.crypt;
+    let w = &world().world;
+    // Kolliderne legges inn i rekkefølge (økta: verdens faste, så målene).
+    let describe = |id: u64, o: Vec3| -> String {
+        let i = id as usize - 1;
+        if let Some(sh) = w.colliders.get(i) {
+            return match sh {
+                crate::domain::world::Shape::Cuboid { center, size, .. } => format!("boks {:.2?} {:.2?}", (*center - o).to_array(), size.to_array()),
+                crate::domain::world::Shape::Cylinder { center, radius, .. } => format!("sylinder {:.2?} r {radius:.2}", (*center - o).to_array()),
+                crate::domain::world::Shape::Hull { points } => format!("skrog ved {:.2?}", (points[0] - o).to_array()),
+                other => format!("{other:?}").chars().take(40).collect(),
+            };
+        }
+        // Så målene, hvert med kolliderne som flyttes med det.
+        let mut k = w.colliders.len();
+        for (t, parts) in w.targets.iter().zip(&w.target_parts) {
+            if i >= k && i <= k + parts.len() {
+                return format!("{:?}", t.what);
+            }
+            k += 1 + parts.len();
+        }
+        "annet".into()
+    };
     let mut report = vec![];
     for k in 0..c.levels.len() {
         let o = c.levels[k].origin;
         let walls = invisible_walls(&game, &physics, &vis, k);
-        for (at, dc, dv) in &walls {
+        for (at, dc, dv, id, from) in &walls {
             let l = *at - o;
-            report.push(format!("nivå {}: usynlig vegg ved ({:.2}, {:.2}, {:.2}) i nivåets rom: kollideren {:.2} m unna, det synlige {:.2} m", k + 1, l.x, l.y, l.z, dc, dv));
+            let what = describe(*id, o);
+            let f = *from - o;
+            report.push(format!("nivå {}: usynlig vegg ved ({:.2}, {:.2}, {:.2}) i nivåets rom, sett fra ({:.2}, {:.2}, {:.2}): kollideren {:.2} m unna, det synlige {:.2} m ({what})", k + 1, l.x, l.y, l.z, f.x, f.y, f.z, dc, dv));
         }
     }
     eprintln!("{}", report.join("\n"));

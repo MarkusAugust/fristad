@@ -21,45 +21,8 @@ pub mod portal;
 pub mod terrain;
 pub mod town;
 
-#[derive(Clone, Debug)]
-pub enum Shape {
-    /// Boks med sentrum, hele mål og rotasjon om Y.
-    Cuboid { center: Vec3, size: Vec3, yaw: f32 },
-    /// Stående sylinder med sentrum, radius og halv høyde.
-    Cylinder { center: Vec3, radius: f32, half_height: f32 },
-    /// Terrenget: et rutenett av høyder, `cols` langs X og `rows` langs Z,
-    /// sentrert i `center` og `size` meter stort.
-    /// `holes` er rutene (rad langs Z, kolonne langs X) som er fjernet, så
-    /// man kan gå ned i en kjeller under et hus.
-    Heightfield { center: Vec3, size: Vec3, cols: usize, rows: usize, heights: Vec<f32>, holes: Vec<(usize, usize)> },
-    /// Kapsel mellom to punkter (trestammer og greiner).
-    Capsule { a: Vec3, b: Vec3, radius: f32 },
-    /// Konveks omhylling av punktene (trappetrinn, fjell).
-    Hull { points: Vec<Vec3> },
-}
-
-impl Shape {
-    /// Ligger punktet i kollideren, med `tol` meter slingring? Terrenget og
-    /// skallene teller ikke (de er bakke og trapper, ikke ting).
-    pub fn covers(&self, q: Vec3, tol: f32) -> bool {
-        match self {
-            Shape::Cuboid { center, size, yaw } => {
-                let d = Quat::from_rotation_y(-*yaw) * (q - *center);
-                d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
-            }
-            Shape::Cylinder { center, radius, half_height } => {
-                let d = q - *center;
-                (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
-            }
-            Shape::Capsule { a, b, radius } => {
-                let ab = *b - *a;
-                let t = ((q - *a).dot(ab) / ab.length_squared().max(1e-6)).clamp(0.0, 1.0);
-                (q - (*a + ab * t)).length() <= radius + tol
-            }
-            Shape::Heightfield { .. } | Shape::Hull { .. } => false,
-        }
-    }
-}
+mod shape;
+pub use shape::Shape;
 
 /// Siktemålet skal aldri ligge inni tingens egen kollider (eieren 18.
 /// oktober: relikvieskrinet kunne bare aktiveres fra endene; kollideren gikk
@@ -80,17 +43,15 @@ pub fn wrap_own_solids(targets: &mut [Target], colliders: &[Shape]) {
         let to_local = frame.inverse();
         let mut half = t.half;
         for c in colliders {
-            let corners: Vec<Vec3> = match c {
-                Shape::Cuboid { center, size, yaw } => {
-                    let r = Quat::from_rotation_y(*yaw);
-                    (0..8).map(|k| *center + r * (Vec3::new(if k & 1 == 0 { -0.5 } else { 0.5 }, if k & 2 == 0 { -0.5 } else { 0.5 }, if k & 4 == 0 { -0.5 } else { 0.5 }) * *size)).collect()
-                }
-                Shape::Cylinder { center, radius, half_height } => (0..8)
-                    .map(|k| *center + Vec3::new(if k & 1 == 0 { -radius } else { *radius }, if k & 2 == 0 { -half_height } else { *half_height }, if k & 4 == 0 { -radius } else { *radius }))
-                    .collect(),
-                _ => continue,
-            };
-            let mid = to_local.transform_point3(corners.iter().copied().sum::<Vec3>() / 8.0);
+            // Bokser, sylindre og skrog (kolliderne som følger formen).
+            if matches!(c, Shape::Heightfield { .. } | Shape::Capsule { .. }) {
+                continue;
+            }
+            let corners = c.corners();
+            if corners.is_empty() {
+                continue;
+            }
+            let mid = to_local.transform_point3(corners.iter().copied().sum::<Vec3>() / corners.len() as f32);
             if mid.x.abs() > t.half.x || mid.y.abs() > t.half.y || mid.z.abs() > t.half.z {
                 continue;
             }
@@ -192,6 +153,8 @@ pub struct World {
     pub smoke: Vec<(Vec3, f32)>,
     pub placements: Vec<Placement>,
     pub targets: Vec<Target>,
+    /// Kolliderne som flyttes med hvert mål (`Builder::target_solids`).
+    pub target_parts: Vec<Vec<(Vec3, Affine3A)>>,
     pub spawn: Vec3,
     pub spawn_yaw: f32,
     /// Det `Builder::audit` fant: modeller som svever eller synker.
@@ -235,6 +198,9 @@ pub struct Builder {
     pub origin: Option<layout::Ref>,
     pub origins: Vec<(&'static str, usize, layout::Ref)>,
     pub solid_origins: Vec<Option<layout::Ref>>,
+    /// Kolliderne som flyttes med et mål (portgitteret, snarveidøra, den
+    /// falske veggen), per mål: halve mål og posen i målets rom.
+    pub target_parts: Vec<Vec<(Vec3, Affine3A)>>,
 }
 
 impl Builder {
@@ -258,7 +224,60 @@ impl Builder {
             origin: None,
             origins: vec![],
             solid_origins: vec![],
+            target_parts: vec![],
         }
+    }
+
+    /// Kolliderne som følger modellens form (`ModelInfo.solids`), satt ut
+    /// med posen. Gir `false` (og legger ingenting til) når modellen ikke
+    /// har dem; da står kollideren den som kaller, legger selv.
+    pub fn place_solids(&mut self, name: &str, t: Affine3A) -> bool {
+        let Some(solids) = self.models.get(name).map(|m| m.solids.clone()).filter(|s| !s.is_empty()) else { return false };
+        for s in solids {
+            self.solid(s.posed(&t));
+        }
+        true
+    }
+
+    /// Målet `i` stenger veien med sin egen boks (når modellen ikke har
+    /// kollidere som følger formen).
+    pub fn target_box(&mut self, i: usize) {
+        let Some(t) = self.targets.get(i).copied() else { return };
+        if self.target_parts.len() <= i {
+            self.target_parts.resize(i + 1, vec![]);
+        }
+        self.target_parts[i] = vec![(t.half, Affine3A::IDENTITY)];
+    }
+
+    /// Modellens kollidere som bokser som flyttes med målet `i` (de som
+    /// er skrog, får boksen rundt seg). `model_pose` er modellens pose i
+    /// målets egen pose (før `center`). Gir `false` når modellen ikke har dem.
+    pub fn target_solids(&mut self, i: usize, name: &str, model_pose: Affine3A) -> bool {
+        let Some(solids) = self.models.get(name).map(|m| m.solids.clone()).filter(|s| !s.is_empty()) else { return false };
+        let Some(t) = self.targets.get(i).copied() else { return false };
+        let rel = Affine3A::from_translation(-t.center) * model_pose;
+        let parts = solids
+            .iter()
+            .filter_map(|s| {
+                let (center, half, yaw) = match s.posed(&rel) {
+                    Shape::Cuboid { center, size, yaw } => (center, size * 0.5, yaw),
+                    other => {
+                        let c = other.corners();
+                        let (lo, hi) = c.iter().fold((Vec3::splat(f32::MAX), Vec3::splat(f32::MIN)), |(a, b), p| (a.min(*p), b.max(*p)));
+                        if lo.x > hi.x {
+                            return None;
+                        }
+                        ((lo + hi) * 0.5, (hi - lo) * 0.5, 0.0)
+                    }
+                };
+                Some((half, Affine3A::from_rotation_translation(Quat::from_rotation_y(yaw), center)))
+            })
+            .collect();
+        if self.target_parts.len() <= i {
+            self.target_parts.resize(i + 1, vec![]);
+        }
+        self.target_parts[i] = parts;
+        true
     }
 
     pub fn push_light(&mut self, light: Light) {
@@ -579,6 +598,11 @@ pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
         lights: b.lights,
         smoke: b.smoke,
         placements: b.placements,
+        target_parts: {
+            let mut parts = b.target_parts;
+            parts.resize(b.targets.len(), vec![]);
+            parts
+        },
         targets: b.targets,
         crypt,
         npcs: b.npcs,

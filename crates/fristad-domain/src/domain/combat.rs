@@ -739,7 +739,7 @@ pub fn debris_model() -> Model {
     for v in &mut m.vertices {
         v.mat[0] = kind::MODEL;
     }
-    Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None }
+    Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None, solids: vec![] }
 }
 
 #[cfg(test)]

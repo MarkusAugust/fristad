@@ -149,7 +149,7 @@ pub fn lacks_collider(colliders: &[Shape], lo: Vec3, hi: Vec3, t: &Affine3A) -> 
     let o = Vec3::from(t.translation);
     let q = Vec3::new(o.x, wlo.y + 0.5, o.z);
     let steps = ((whi.y - wlo.y - 1.0) / 0.5).max(0.0) as usize;
-    let covered = (0..=steps).any(|k| colliders.iter().any(|c| c.covers(q + Vec3::Y * (k as f32 * 0.5), 0.35)));
+    let covered = (0..=steps).any(|k| colliders.iter().any(|c| c.covers_shaped(q + Vec3::Y * (k as f32 * 0.5), 0.35)));
     (!covered).then_some(q)
 }
 

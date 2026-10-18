@@ -46,7 +46,21 @@ const SENSITIVITY: f32 = 0.0035;
 /// Noe du kan bruke, med kollideren strålen treffer.
 pub(super) struct TargetState {
     pub target: Target,
+    /// Det du sikter på (en sensor, unntatt innbyggerne, som du går rundt).
     pub collider: ColliderId,
+    /// Kolliderne som stenger veien og flyttes med målet (stengene i
+    /// gitteret, dørbladet, den falske veggen): posen i målets rom.
+    pub parts: Vec<(ColliderId, Affine3A)>,
+}
+
+impl TargetState {
+    /// Flytt målet og kolliderne som følger det (`pose`: målets midte).
+    pub fn set_pose(&self, physics: &mut dyn Physics, pose: Affine3A) {
+        physics.set_pose(self.collider, pose);
+        for (id, rel) in &self.parts {
+            physics.set_pose(*id, pose * *rel);
+        }
+    }
 }
 
 /// Langt under verden: der kolliderne venter til de trengs.
@@ -132,9 +146,12 @@ impl Session {
                 Use::Gate(n) if world.crypt.gates.get(n).is_some_and(|g| g.arena.is_some()) => Vec3::Y * crate::domain::world::crypt::GATE_LIFT,
                 _ => Vec3::ZERO,
             };
-            let collider = physics.add_movable(t.half, t.pose * Affine3A::from_translation(t.center + lift));
+            let frame = t.pose * Affine3A::from_translation(t.center + lift);
+            // Innbyggerne går du rundt; resten er bare å sikte på.
+            let collider = if matches!(t.what, Use::Talk(_)) { physics.add_movable(t.half, frame) } else { physics.add_aim(t.half, frame) };
+            let parts = world.target_parts.get(i).map(|p| p.iter().map(|(half, rel)| (physics.add_movable(*half, frame * *rel), *rel)).collect()).unwrap_or_default();
             by_collider.insert(collider, i);
-            targets.push(TargetState { target: *t, collider });
+            targets.push(TargetState { target: *t, collider, parts });
         }
         let rig_of = |n: &str| rigs.iter().find(|(m, _)| m == n).map(|(_, r)| r.clone());
         let wells = world.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count();
@@ -384,7 +401,7 @@ impl Session {
         self.aim = if self.aimed_mob.is_some() { None } else { hit.as_ref().and_then(|h| self.by_collider.get(&h.collider).copied()) };
         // Infopanelet viser fienden du sikter på, også på avstand (til
         // første vegg).
-        let wall = physics.cast_ray(eye, dir, FOE_SIGHT).map_or(FOE_SIGHT, |h| h.distance);
+        let wall = physics.cast_solid(eye, dir, FOE_SIGHT).map_or(FOE_SIGHT, |h| h.distance);
         let foe = if in_crypt { self.aimed_mob.or_else(|| self.mobs.aimed(eye, dir, wall)) } else { None };
         self.update_foe(foe, dt, &mut events);
         self.combat.set_block(input.block && in_crypt && !self.paused);
@@ -600,7 +617,7 @@ impl Session {
         }
         if let Some(show) = self.portal.shown_changed() {
             if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Portal) {
-                physics.set_pose(t.collider, if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { away() });
+                t.set_pose(physics, if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { away() });
                 for (id, (c, _)) in self.portal_solids.iter().zip(town::PORTAL_SOLIDS) {
                     physics.set_pose(*id, if show { t.target.pose * Affine3A::from_translation(c) } else { away() });
                 }
@@ -706,7 +723,7 @@ impl Session {
                     physics.set_pose(*id, pose);
                     let deck = self.mech.lift_pose(&self.crypt, n).unwrap_or(pose);
                     if let Some(t) = target(Use::Lift(n)) {
-                        physics.set_pose(t.collider, deck * Affine3A::from_translation(t.target.center));
+                        t.set_pose(physics, deck * Affine3A::from_translation(t.target.center));
                     }
                     // Står du på dekket, blir du med det (kapselen følger ikke en kollider som flyttes).
                     let l = &self.crypt.lifts[n];
@@ -722,13 +739,13 @@ impl Session {
                 }
                 Moved::Shortcut(n) => {
                     if let (Some(pose), Some(t)) = (self.mech.shortcut_collider(&self.crypt, n), target(Use::Shortcut(n))) {
-                        physics.set_pose(t.collider, pose);
+                        t.set_pose(physics, pose);
                     }
                 }
                 Moved::Secret(n) => {
                     if let Some(t) = target(Use::Secret(n)) {
                         let sink = self.mech.secret_sink(&self.crypt, n);
-                        physics.set_pose(t.collider, t.target.pose * Affine3A::from_translation(t.target.center - Vec3::Y * sink));
+                        t.set_pose(physics, t.target.pose * Affine3A::from_translation(t.target.center - Vec3::Y * sink));
                     }
                 }
                 Moved::Trapdoor(n) => {
@@ -743,7 +760,7 @@ impl Session {
                 }
                 Moved::Gate(n) => {
                     if let Some(t) = target(Use::Gate(n)) {
-                        physics.set_pose(t.collider, self.mech.gate_lifted(n, t.target.pose) * Affine3A::from_translation(t.target.center));
+                        t.set_pose(physics, self.mech.gate_lifted(n, t.target.pose) * Affine3A::from_translation(t.target.center));
                     }
                 }
             }

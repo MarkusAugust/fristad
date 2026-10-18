@@ -61,7 +61,7 @@ fn alt_er_ekte_modeller_med_teksturer() {
 #[test]
 fn alt_stort_har_kollider() {
     let p = world();
-    let covers = |shape: &Shape, q: Vec3| shape.covers(q, 0.35);
+    let covers = |shape: &Shape, q: Vec3| shape.covers_shaped(q, 0.35);
     // Bitene av kryptnivåene er selve rommene, med murene som kollidere.
     let level_piece = |name: &str| name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
     let skip = |name: &str| level_piece(name) || name.ends_with("_interior");
@@ -1711,7 +1711,10 @@ impl Bot {
                 let mobs: Vec<_> = game.living().into_iter().filter(|(m, _, _)| m.distance(feet) < 6.0).map(|(m, k, _)| format!("{k:?} ved {m:?}")).collect();
                 self.fail(format!("sto fast på vei til {what}: føttene ved {feet:?}, {left:.1} m igjen, neste hjørne {:?}, fiender nær: {mobs:?}, tastene {:?}, liv {} utholdenhet {}, øyet {:.2} over føttene", path.first(), (self.input.forward, self.input.left, self.input.right, self.input.crouch, self.input.block), game.hp_now(), game.stamina_now(), game.eye().y - feet.y));
             }
-            let next = path.iter().copied().find(|c| c.with_y(0.0).distance(feet.with_y(0.0)) > 0.25).unwrap_or(to);
+            // Står den og vender (trakten gir et hjørne like ved, så et annet
+            // når den har tatt et skritt), sikter den lenger fram.
+            let reach = if self.t - since > 3.0 { 0.6 } else { 0.25 };
+            let next = path.iter().copied().find(|c| c.with_y(0.0).distance(feet.with_y(0.0)) > reach).unwrap_or(to);
             if std::env::var("FRISTAD_BOT_TRACE").is_ok() && (self.t * 30.0) as u32 % 15 == 0 {
                 eprintln!("  [{:.1}] føttene {feet:?} neste {next:?} igjen {left:.1}", self.t);
             }

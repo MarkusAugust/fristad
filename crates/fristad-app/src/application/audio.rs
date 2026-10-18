@@ -142,8 +142,8 @@ impl Session {
         }
         // Innendørs: tak over deg og vegger på minst tre kanter.
         let eye = self.eye();
-        let roof = physics.cast_ray(eye, Vec3::Y, 12.0).is_some();
-        let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].iter().filter(|d| physics.cast_ray(eye, **d, 9.0).is_some()).count();
+        let roof = physics.cast_solid(eye, Vec3::Y, 12.0).is_some();
+        let walls = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].iter().filter(|d| physics.cast_solid(eye, **d, 9.0).is_some()).count();
         self.sound.indoor = !in_crypt && roof && walls >= 3;
         let close = |list: &[Vec3], r: f32| list.iter().map(|q| (1.0 - q.distance(eye) / r).clamp(0.0, 1.0)).fold(0.0, f32::max).powi(2);
         let p = Vec2::new(feet.x, feet.z);

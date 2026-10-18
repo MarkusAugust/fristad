@@ -62,14 +62,14 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool)
         .iter()
         .map(|m| {
             let (min, max) = m.mesh.bounds();
-            ModelInfo { name: m.name.clone(), min, max }
+            ModelInfo { name: m.name.clone(), min, max, solids: m.solids.clone() }
         })
         .collect();
     // Modellene som kommer senere (kryptnivåene i nettleseren) settes ut
     // som de andre; målene er ukjente til de er lastet.
     for name in models.deferred() {
         if !infos.iter().any(|i| i.name == name) {
-            infos.push(ModelInfo { name, min: glam::Vec3::ZERO, max: glam::Vec3::ZERO });
+            infos.push(ModelInfo { name, min: glam::Vec3::ZERO, max: glam::Vec3::ZERO, solids: vec![] });
         }
     }
     let kept = edit.then(|| {

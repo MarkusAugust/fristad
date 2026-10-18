@@ -40,6 +40,9 @@ pub struct Model {
     pub far_mesh: Option<Mesh>,
     /// Skjelettet og klippene, for modeller som er skinnet (figurene).
     pub rig: Option<crate::domain::anim::Rig>,
+    /// Kolliderne som følger formen, i modellens rom (`extras.solids`,
+    /// `tools/crypt/solids.py`); tom når modellen ikke har dem.
+    pub solids: Vec<crate::domain::world::Shape>,
 }
 
 /// Hvor en modell står i byen, med alle instansene.
@@ -92,6 +95,8 @@ pub struct ModelInfo {
     pub name: String,
     pub min: glam::Vec3,
     pub max: glam::Vec3,
+    /// Kolliderne som følger formen (`Model.solids`).
+    pub solids: Vec<crate::domain::world::Shape>,
 }
 
 /// Modellene systemene venter på: koden for dem står og virker, men

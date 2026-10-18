@@ -2144,6 +2144,58 @@ def fixed_form(marks, lights):
     return "{\n  \"marks\": [\n" + ",\n".join(line(mark(m)) for m in marks) + "\n  ],\n  \"lights\": [\n" + ",\n".join(line(light(l)) for l in lights) + "\n  ]\n}\n"
 
 
+def fitted_colliders(L, nav):
+    """Kolliderne lagt etter formen (`solids.py`). Det som synes er bitene,
+    de falske veggene og byggesettets modeller motoren setter ut etter
+    merkene (pynten, kistene, portene, stigene …)."""
+    import solids as SO
+
+    cols, n = SO.fit(L.colliders, SO.Scene(visible_triangles(L)), nav)
+    print(f"  kolliderne etter formen: {n} av {len(L.colliders)} bokser lagt om, {len(cols)} kollidere")
+    return cols
+
+
+def visible_triangles(L):
+    """Trekantene som synes i nivået (n, 3, 3)."""
+    import numpy as np
+    import solids as SO
+
+    tris = [SO.triangles(L.mb.faces)]
+    for name, m in L.secret_pieces().items():
+        mark = next(mk for mk in L.marks if mk.get("kind") == "secret_wall" and name.endswith("_" + mk.get("id", "")))
+        tris.append(posed(SO.triangles(m.faces), mark))
+    for m in L.marks:
+        model = mark_model(m)
+        path = model and os.path.join(OUT, f"{model}.glb")
+        if not path or not os.path.exists(path):
+            continue
+        t = SO.glb_triangles(path)
+        if m.get("kind") == "gate":
+            t = t * np.array([m.get("width", 2.8) / 2.8, 1.0, 1.0])
+        if m.get("kind") == "ladder" and m.get("top"):
+            t = t * np.array([1.0, max(m["top"][1] - m["pos"][1], 0.5), 1.0])
+        tris.append(posed(t, m))
+    return np.concatenate(tris)
+
+
+def mark_model(m):
+    """Modellen motoren setter ut for et merke (`crypt/mod.rs`)."""
+    kind = m.get("kind")
+    if kind == "prop":
+        return m.get("label")
+    return {"up": "kit_up", "down": "kit_down", "rest": "kit_rest", "lore": "kit_lore", "bonus": "kit_bonus", "lever": "kit_lever", "gate": "kit_gate", "shortcut": "kit_shortcut", "ladder": "kit_ladder", "lift": "kit_winch"}.get(kind)
+
+
+def posed(t, m):
+    """Trekantene (n, 3, 3) satt ut der merket står (`at(pos, yaw)`)."""
+    import numpy as np
+
+    yaw = m.get("yaw", 0.0)
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    rot = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]])
+    return t @ rot.T + np.array(m["pos"], dtype=np.float64)
+
+
 # --- Hovedprogrammet ------------------------------------------------------------
 
 
@@ -2180,6 +2232,7 @@ def main():
         "lights": L.lights,
         "marks": L.marks,
     }
+    data["colliders"] = fitted_colliders(L, data["nav"])
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, f"crypt_{n:02d}.json"), "w") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
