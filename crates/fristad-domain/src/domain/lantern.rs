@@ -29,6 +29,11 @@ impl Lantern {
         self.oil = FULL;
     }
 
+    /// Fyll på `secs` sekunder olje, aldri over full.
+    pub fn top_up(&mut self, secs: f32) {
+        self.oil = (self.oil + secs).min(FULL);
+    }
+
     /// Hvor mye olje som er igjen, 0..1.
     pub fn fraction(&self) -> f32 {
         (self.oil / FULL).clamp(0.0, 1.0)

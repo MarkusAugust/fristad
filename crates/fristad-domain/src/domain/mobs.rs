@@ -928,6 +928,19 @@ mod tests {
             assert!(s.reach >= s.range, "{k:?}");
         }
     }
+
+    /// Eieren 18. oktober: «spillet er for lett». Hver fiende har 50 % mer
+    /// liv enn før, og forholdet mellom slagene, eliten og bossene er det samme.
+    #[test]
+    fn fiendene_har_halvannen_gang_livet() {
+        let mut mobs = Mobs::new(&Crypt::default(), &[]);
+        for (k, (kind, elite)) in [(Kind::Button, false), (Kind::Button, true), (Kind::Framework, false), (Kind::Tooltip, false)].into_iter().enumerate() {
+            mobs.spawn(kind, Vec3::X * 3.0 * k as f32, elite);
+        }
+        let hp: Vec<f32> = mobs.mobs.iter().map(|m| m.max_hp).collect();
+        assert_eq!((hp[0], hp[2], hp[3]), (150.0, 2100.0, 57.0), "knappen, Rammeverket og tooltipen");
+        assert!((hp[1] - 150.0 * ELITE_HP).abs() < 1e-3 && mobs.mobs.iter().all(|m| m.hp == m.max_hp), "eliten: {}", hp[1]);
+    }
 }
 
 /// Dreier ledd om opp-aksen i riggens rom (`up`), hvert med sin vinkel, uten

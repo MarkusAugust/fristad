@@ -8,6 +8,11 @@ use crate::domain::craft::{self, Gear};
 use crate::domain::note::Note;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
+/// Oljen boka fyller på i lykta: en firedel av en full lykt (to minutter).
+pub const BOOK_OIL: f32 = crate::domain::lantern::FULL / 4.0;
+/// Hva en natt i senga di koster (eieren 18. oktober), i tokens.
+pub const SLEEP_PRICE: u32 = 10;
+
 #[derive(Clone, Debug)]
 pub struct Hero {
     pub hp: f32,
@@ -235,19 +240,37 @@ impl Hero {
         (true, vec![Note::Sfx("coins"), Note::toast(format!("Kjøpt: {}.", w.name))])
     }
 
-    /// Boka: å lese dokumentasjonen for en komponent gir liv tilbake, én
-    /// gang per komponent per tur.
-    pub fn read_doc(&mut self, component: &str) -> (bool, Vec<Note>) {
+    /// Boka (eieren 18. oktober: «det skal alltid lønne seg veldig å lese
+    /// boka»): å lese dokumentasjonen for en komponent gir fullt liv, full
+    /// utholdenhet og `BOOK_OIL` olje i lykta, én gang per komponent per tur
+    /// (til du dør). Toasten sier hva den ga.
+    pub fn read_doc(&mut self, component: &str, combat: &mut Combat) -> (bool, Vec<Note>) {
         if !self.read_docs.insert(component.to_string()) {
             return (false, vec![]);
         }
-        let before = self.hp;
-        self.heal(20.0);
+        let (hp, stamina, oil) = (self.hp, combat.stamina, self.lamp.oil);
+        self.restore(combat);
+        self.lamp.top_up(BOOK_OIL);
         self.dirty = true;
+        let mut gave = vec![];
+        if self.hp > hp {
+            gave.push(format!("fullt liv (+{:.0})", self.hp - hp));
+        }
+        if combat.stamina > stamina {
+            gave.push("full utholdenhet".to_string());
+        }
+        if self.lamp.oil > oil {
+            gave.push(format!("{:.0} minutter olje i lykta", ((self.lamp.oil - oil) / 60.0).max(1.0)));
+        }
         let mut notes = vec![Note::Sfx("book")];
-        if self.hp > before {
+        let title = craft::title(component);
+        if gave.is_empty() {
+            notes.push(Note::toast(format!("Du leste om {title}. Du var alt uthvilt, med full lykt.")));
+        } else {
             notes.push(Note::Sfx("heal"));
-            notes.push(Note::toast(format!("Du leste om {component}: +{:.0} liv.", self.hp - before)));
+            let last = gave.pop().unwrap_or_default();
+            let list = if gave.is_empty() { last } else { format!("{} og {last}", gave.join(", ")) };
+            notes.push(Note::toast(format!("Du leste om {title}: {list}.")));
         }
         (true, notes)
     }
@@ -289,11 +312,24 @@ mod tests {
     }
 
     #[test]
-    fn boka_gir_liv_en_gang() {
-        let mut h = Hero { hp: 50.0, ..Default::default() };
-        assert!(h.read_doc("button").0);
-        assert_eq!(h.hp, 70.0);
-        assert!(!h.read_doc("button").0);
-        assert_eq!(h.hp, 70.0);
+    fn boka_gir_fullt_liv_utholdenhet_og_olje_en_gang() {
+        let mut h = Hero { hp: 20.0, ..Default::default() };
+        h.lamp.oil = 30.0;
+        let mut c = Combat::new(None);
+        c.stamina = 5.0;
+        let (ok, notes) = h.read_doc("button", &mut c);
+        assert!(ok);
+        assert_eq!((h.hp, c.stamina), (h.max_hp, c.max_stamina), "fullt liv og full utholdenhet");
+        assert_eq!(h.lamp.oil, 30.0 + BOOK_OIL, "olje i lykta");
+        let toast = notes.iter().find_map(|n| if let Note::Toast(t) = n { Some(t.clone()) } else { None }).expect("toasten");
+        assert!(toast.contains("fullt liv (+80)") && toast.contains("full utholdenhet") && toast.contains("2 minutter olje"), "{toast}");
+        h.hp = 20.0;
+        c.stamina = 5.0;
+        assert!(!h.read_doc("button", &mut c).0, "én gang per komponent per tur");
+        assert_eq!((h.hp, c.stamina), (20.0, 5.0));
+        assert!(h.read_doc("card", &mut c).0, "en annen komponent gir igjen");
+        h.die();
+        h.hp = 20.0;
+        assert!(h.read_doc("button", &mut c).0, "etter døden kan den leses på nytt");
     }
 }

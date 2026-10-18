@@ -53,6 +53,10 @@ check(await page.isHidden("#minimap"), "oppe i byen er det ikke noe minikart");
 // SwiftShader tegner sakte: god tid (standard grafikk er valgt fra start).
 await page.evaluate(() => window.fristad.engine.descend());
 await page.waitForSelector("#minimap:not([hidden])", { timeout: 180000 });
+// Første gang ned: lappen fra mester Ansgar midt på skjermen; klikk lukker den.
+await page.waitForSelector("dialog.lore", { timeout: 30000 }).catch(() => null);
+check((await page.textContent("dialog.lore #lore-title").catch(() => "")) === "Til den fremmede som går ned", "Ansgars lapp første gang ned");
+await page.evaluate(() => document.querySelector("dialog.lore")?.click());
 await page.waitForTimeout(8000);
 check(await page.isVisible("#minimap"), "minikartet står i hjørnet nede i kjelleren");
 check((await page.textContent("#map-name")).startsWith("Nivå 1"), `navnet på nivået: ${await page.textContent("#map-name")}`);

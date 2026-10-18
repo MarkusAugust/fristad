@@ -3,6 +3,7 @@
 
 use super::session::{sfx, Session};
 use crate::domain::craft;
+use crate::domain::hero::SLEEP_PRICE;
 use crate::domain::mobs::Kind as MobKind;
 use crate::domain::weather::Daylight;
 use crate::domain::world::crypt;
@@ -18,12 +19,23 @@ impl Session {
         self.map.dirty = true;
         match self.targets[i].target.what {
             Use::Sleep => {
+                // En natt i senga koster `SLEEP_PRICE` tokens; uten råd blir
+                // det et avslag som i butikkene, og ingen søvn.
+                let coins = self.hero.coins;
+                if coins < SLEEP_PRICE {
+                    events.push(sfx("deny"));
+                    events.push(Event::Toast(format!("Har ikke råd: en natt i senga koster {SLEEP_PRICE} tokens, og du har {coins}.")));
+                    return;
+                }
+                self.hero.coins -= SLEEP_PRICE;
+                self.hero.dirty = true;
+                events.push(sfx("coins"));
                 // Skjermen går i svart, og du våkner når døgnet har snudd.
                 self.hero.restore(&mut self.combat);
                 let d = if self.sky.daylight == Daylight::Day { Daylight::Night } else { Daylight::Day };
                 self.sky.set_daylight(d, true);
                 events.extend([Event::Fade, Event::Daylight(d), self.bell()]);
-                events.push(Event::Toast(if d == Daylight::Night { "Du sov til kvelden." } else { "Du sov til morgenen." }.into()));
+                events.push(Event::Toast(format!("{} (−{SLEEP_PRICE} tokens)", if d == Daylight::Night { "Du sov til kvelden." } else { "Du sov til morgenen." })));
             }
             Use::Gallery(n) => {
                 if let Some(c) = craft::GALLERY.get(n).filter(|c| self.hero.found.contains(**c)) {
@@ -221,6 +233,12 @@ impl Session {
                 events.extend([Event::Fade, sfx("crypt_door")]);
                 let name = self.crypt.levels[0].name.clone();
                 events.push(Event::Toast(format!("Nivå 1: {name}. Venstre mus hugger (hold for tungt), høyre mus blokker, Shift og retning er unnamanøver.")));
+                // Første gang ned: lappen fra mester Ansgar midt på skjermen.
+                if !self.run.welcomed {
+                    self.run.welcomed = true;
+                    events.push(sfx("page"));
+                    events.push(Event::Lore { title: crypt::run::ANSGAR_TITLE.into(), text: crypt::run::ANSGAR_TEXT.into() });
+                }
             }
             Use::Portal => {
                 let Some((to, yaw, level)) = self.portal.dest.take() else { return };

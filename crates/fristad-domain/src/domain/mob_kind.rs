@@ -3,6 +3,11 @@
 
 use crate::domain::mobs::{FPS, MOB_HP};
 
+/// Alle fiendene er seigere enn tallene i tabellen (eieren 18. oktober:
+/// «spillet er for lett»): 50 % mer liv for hvert slag, også eliten og
+/// bossene, så forholdet mellom dem er det samme.
+pub const TOUGHNESS: f32 = 1.5;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
     Button,
@@ -139,7 +144,7 @@ impl Kind {
     pub fn stats(self) -> Stats {
         let bite = (15.0 / FPS, 30.0 / FPS);
         let slam = (28.0 / FPS, 44.0 / FPS);
-        match self {
+        let s = match self {
             Kind::Button => Stats { hp: MOB_HP, speed: 1.4, damage: 12.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 26.0, cooldown: 0.9, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 3 },
             Kind::Tooltip => Stats { hp: 38.0, speed: 3.6, damage: 6.0, range: 1.3, reach: 1.7, scale: 0.55, sight: 30.0, cooldown: 0.7, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
             Kind::Input => Stats { hp: 80.0, speed: 1.9, damage: 10.0, range: 1.8, reach: 2.2, scale: 1.15, sight: 34.0, cooldown: 1.6, attack_hit: bite.0, attack_len: bite.1, bolt: Some((3.5, 14.0, 14.0)), armor: 1.0, poise: 0.0, tokens: 3 },
@@ -153,7 +158,8 @@ impl Kind {
             Kind::Breadcrumb => Stats { hp: 55.0, speed: 1.9, damage: 8.0, range: 1.5, reach: 2.0, scale: 1.0, sight: 30.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
             Kind::Accordion => Stats { hp: 90.0, speed: 1.3, damage: 14.0, range: 1.6, reach: 2.2, scale: 1.0, sight: 18.0, cooldown: 1.4, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.8, poise: 10.0, tokens: 3 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
-        }
+        };
+        Stats { hp: s.hp * TOUGHNESS, ..s }
     }
 
     /// Slaget etter navnet i nivåfila (`label` på merket): norsk eller

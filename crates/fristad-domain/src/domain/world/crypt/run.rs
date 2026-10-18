@@ -8,6 +8,28 @@ use crate::domain::world::mechanisms::Mechanisms;
 use glam::{Quat, Vec3};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Lappen fra mester Ansgar som åpnes første gang du går ned i krypten
+/// (eieren 18. oktober): hva du skal gjøre der nede, veien hjem, lykta,
+/// døden og hvilestedene. Den føres i journalen som en lest lapp, og
+/// tittelen i `SaveData.lore` sier at du har fått den. Teksten sjekkes av
+/// `kanon_ingen_moderne_ord_i_verden`.
+pub const ANSGAR_TITLE: &str = "Til den fremmede som går ned";
+pub const ANSGAR_TEXT: &str = concat!(
+    "Du som går ned der vi murte igjen, les dette først.\n\n",
+    "Her nede ligger komponentene fra Mønsterboka, den frie boka som aldri tilhørte noe hoff. ",
+    "Rådet og Kontoret lenket dem til Den kongelige komponentboken på hoffets tunge, den store oppgraderingen vred dem til skapninger, og vi forseglet dem her. ",
+    "Finn dem og bær dem opp. I Skriptoriet smis de til utstyr, i boka leser du om dem, og på veggen i huset ditt henger de, side for side. ",
+    "Nederst venter Rammeverket.\n\n",
+    "Det du bærer, er trygt først oppe i byen. Når du vil hjem:\n",
+    "Trykk H.\n",
+    "En virvel tar deg til sørporten, og steinringen der fører deg tilbake dit du sto.\n\n",
+    "Lykta brenner ut på rundt åtte minutter her nede, og i mørket ser du nesten ingenting. ",
+    "Fyll den ved alterene, eller kjøp olje hos Apotekeren.\n\n",
+    "Alterene er hvilestedene: tenn lysene der, så får du liv og olje igjen. Men hver gang du hviler, våkner skapningene også.\n\n",
+    "Dør du, blir det du bar liggende her nede, og du våkner ved det siste alteret du tente, eller ved døra på kirkegården.\n\n",
+    "Mester Ansgar, den siste som holdt boka",
+);
+
 /// En pil fra en felle: hvor den er, farten, alderen, og om den bare
 /// skal skremme (første gang treffer den gulvet foran deg).
 #[derive(Clone, Copy, Debug)]
@@ -43,6 +65,8 @@ pub struct Run {
     pub rests_lit: Vec<bool>,
     pub last_rest: Option<usize>,
     pub lore_read: Vec<bool>,
+    /// Ansgars lapp er lest (første gang du gikk ned, `ANSGAR_TITLE`).
+    pub welcomed: bool,
     /// Fellene: hvor mange ganger hver har gått av, og hvor lenge til den
     /// er klar igjen; pilene i lufta.
     traps: Vec<(u32, f32)>,
@@ -66,6 +90,7 @@ impl Run {
             rests_lit: vec![false; crypt.rests.len()],
             last_rest: None,
             lore_read: vec![false; crypt.lores.len()],
+            welcomed: false,
             traps: vec![(0, 0.0); crypt.traps.len()],
             darts: vec![],
             slain: BTreeSet::new(),

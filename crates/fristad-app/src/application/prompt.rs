@@ -16,7 +16,15 @@ impl Session {
     /// Siktet for et mål, slik det er nå.
     pub(super) fn prompt_for(&self, i: usize) -> Prompt {
         match self.targets[i].target.what {
-            Use::Sleep => p("Senga di", "Sov", "", "Sov til døgnet snur, og våkn med fullt liv og full utholdenhet."),
+            Use::Sleep => {
+                let price = crate::domain::hero::SLEEP_PRICE;
+                let verb = format!("Sov ({price} tokens)");
+                if self.hero.coins < price {
+                    p("Senga di", &verb, "", &format!("Har ikke råd: du har {} tokens.", self.hero.coins))
+                } else {
+                    p("Senga di", &verb, "", "Sov til døgnet snur, og våkn med fullt liv og full utholdenhet.")
+                }
+            }
             Use::Gallery(n) => match craft::GALLERY.get(n) {
                 Some(c) if self.hero.found.contains(*c) => p(&craft::title(c), "Les", "", "Du har funnet den. Les om den i boka."),
                 Some(c) => p("Tom ramme", "", "", &format!("Her henger {} når du har funnet den. {}", craft::title(c), craft::source(c).describe())),

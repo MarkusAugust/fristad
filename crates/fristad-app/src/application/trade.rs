@@ -152,10 +152,11 @@ impl Session {
         ok
     }
 
-    /// Boka: å lese dokumentasjonen for en komponent gir liv tilbake, én
-    /// gang per komponent per tur.
+    /// Boka: å lese dokumentasjonen for en komponent gir fullt liv, full
+    /// utholdenhet og litt olje i lykta, én gang per komponent per tur
+    /// (`Hero::read_doc`).
     pub fn read_doc(&mut self, component: &str) -> bool {
-        let (ok, notes) = self.hero.read_doc(component);
+        let (ok, notes) = self.hero.read_doc(component, &mut self.combat);
         self.later(notes);
         ok
     }
@@ -175,7 +176,7 @@ impl Session {
             bonuses: h.bonus_taken.iter().cloned().collect(),
             oil: Some(h.lamp.oil),
             deepest: self.deepest().map(|d| d as u32),
-            lore: self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| l.title.clone()).collect(),
+            lore: self.lore_titles(),
             owned: h.owned.iter().cloned().collect(),
         }
     }

@@ -240,17 +240,17 @@ fn malet_og_journalen_viser_veien_og_huskes() {
     let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
     if lore {
         let (_, read) = goal(&events).expect("journalen sendes når du har lest");
-        assert_eq!(read, 1);
+        assert_eq!(read, 2, "Ansgars lapp fra første gang ned og lappen du leste");
     }
     let saved = game.save();
     assert_eq!(saved.deepest, Some(0));
-    assert_eq!(saved.lore.len(), lore as usize);
+    assert_eq!(saved.lore.len(), 1 + lore as usize);
     // Ei ny økt fra lagringen husker nivået og lappen.
     let mut physics2 = RapierPhysics::new();
     let mut again = session(&mut physics2);
     again.load(saved);
     assert_eq!(again.deepest(), Some(0));
-    assert_eq!(again.journal().len(), lore as usize);
+    assert_eq!(again.journal().len(), 1 + lore as usize);
     assert!(again.goal().contains("Dypeste nivå"), "{}", again.goal());
 }
 
@@ -918,13 +918,18 @@ fn kanon_ingen_moderne_ord_i_verden() {
     let mut texts: Vec<(String, String)> = vec![];
     // Strengene i kildekoden (ikke kommentarene).
     let cast = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/cast.rs")).expect("cast.rs");
-    for line in cast.lines().filter(|l| !l.trim_start().starts_with("//")) {
-        for (k, part) in line.split('"').enumerate() {
-            if k % 2 == 1 {
-                texts.push(("cast.rs".into(), part.to_string()));
+    // Ansgars lapp første gang du går ned (`crypt/run.rs`).
+    let run = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/crypt/run.rs")).expect("run.rs");
+    for (name, src) in [("cast.rs", &cast), ("run.rs", &run)] {
+        for line in src.lines().filter(|l| !l.trim_start().starts_with("//")) {
+            for (k, part) in line.split('"').enumerate() {
+                if k % 2 == 1 {
+                    texts.push((name.into(), part.to_string()));
+                }
             }
         }
     }
+    assert!(texts.iter().any(|(f, t)| f == "run.rs" && t.contains("Mønsterboka")), "Ansgars lapp sjekkes");
     fn strings(v: &serde_json::Value, out: &mut Vec<String>) {
         match v {
             serde_json::Value::String(s) => out.push(s.clone()),
@@ -1090,17 +1095,24 @@ fn alle_husene_er_i_bruk() {
 }
 
 /// Senga i huset ditt: F gir fullt liv og full utholdenhet, skjermen går i
-/// svart, og døgnet snur (dag til natt og natt til dag).
+/// svart, og døgnet snur (dag til natt og natt til dag). Hver natt koster
+/// `SLEEP_PRICE` (10) tokens, og siktet sier det.
 #[test]
 fn senga_gir_hvile_og_snur_dognet() {
+    use crate::domain::hero::SLEEP_PRICE;
     use crate::domain::weather::Daylight;
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
     let mut input = Input::default();
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     assert_eq!(game.daylight(), Daylight::Day);
+    assert_eq!(SLEEP_PRICE, 10);
+    game.set_coins(25);
+    let prompt = game.prompt_first(|u| *u == Use::Sleep).expect("senga");
+    assert_eq!(prompt.verb, "Sov (10 tokens)");
     game.set_vitals(12.0, 3.0);
     let events = game.use_first(|u| *u == Use::Sleep);
+    assert_eq!(game.coins_now(), 15, "søvnen koster 10 tokens");
     assert!(events.contains(&Event::Fade), "skjermen skal gå i svart: {events:?}");
     assert!(events.contains(&Event::Daylight(Daylight::Night)), "døgnet skal snu: {events:?}");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("kvelden"))), "{events:?}");
@@ -1111,6 +1123,92 @@ fn senga_gir_hvile_og_snur_dognet() {
     assert!(events.contains(&Event::Daylight(Daylight::Day)), "og tilbake til morgenen: {events:?}");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("morgenen"))), "{events:?}");
     assert_eq!(game.daylight(), Daylight::Day);
+    assert_eq!(game.coins_now(), 5);
+}
+
+/// Uten 10 tokens blir det ingen søvn: et avslag som i butikkene («Har ikke
+/// råd», lyden `deny`), og livet, døgnet og tokenene er som før.
+#[test]
+fn senga_koster_og_avslar_uten_tokens() {
+    use crate::domain::weather::Daylight;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.set_coins(9);
+    game.set_vitals(12.0, 3.0);
+    let prompt = game.prompt_first(|u| *u == Use::Sleep).expect("senga");
+    assert_eq!(prompt.verb, "Sov (10 tokens)");
+    assert!(prompt.info.contains("Har ikke råd"), "siktet sier at du ikke har råd: {}", prompt.info);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "deny")), "avslaget: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("Har ikke råd"))), "{events:?}");
+    assert!(!events.contains(&Event::Fade) && !events.iter().any(|e| matches!(e, Event::Daylight(_))), "ingen søvn: {events:?}");
+    assert_eq!((game.coins_now(), game.daylight(), game.hp_now()), (9, Daylight::Day, 12.0));
+    game.set_coins(10);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Fade) && game.coins_now() == 0, "med akkurat nok sover du: {events:?}");
+}
+
+/// Eieren 18. oktober: «det skal alltid lønne seg veldig å lese boka». Å
+/// lese om en komponent gir fullt liv, full utholdenhet og olje i lykta,
+/// sier det i toasten, og bare én gang per komponent per tur.
+#[test]
+fn boka_gir_fullt_liv_utholdenhet_og_olje() {
+    use crate::domain::hero::BOOK_OIL;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.set_vitals(10.0, 2.0);
+    game.set_oil(0.1);
+    let oil = game.oil_now();
+    assert!(game.read_doc("button"));
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert_eq!(game.hp_now(), game.max_hp_now(), "fullt liv");
+    assert!(game.stamina_now() >= 99.0, "full utholdenhet: {}", game.stamina_now());
+    assert!((game.oil_now() - (oil + BOOK_OIL)).abs() < 1.0, "olje i lykta: {} mot {}", game.oil_now(), oil);
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("fullt liv") && t.contains("full utholdenhet") && t.contains("olje"))), "toasten sier hva boka ga: {events:?}");
+    game.set_vitals(10.0, 2.0);
+    assert!(!game.read_doc("button"), "én gang per komponent per tur");
+    assert_eq!(game.hp_now(), 10.0);
+}
+
+/// Første gang du går ned i krypten, åpnes lappen fra mester Ansgar midt
+/// på skjermen (`Event::Lore`) og føres i journalen; neste gang ikke, heller
+/// ikke etter lagring og innlasting. Gamle lagringer uten lappen får den
+/// bare om du ikke har kommet lenger enn nivå 1.
+#[test]
+fn ansgars_lapp_kommer_forste_gang_du_gar_ned() {
+    use crate::domain::world::crypt::run::{ANSGAR_TEXT, ANSGAR_TITLE};
+    let letter = |events: &[Event]| events.iter().any(|e| matches!(e, Event::Lore { title, text } if title == ANSGAR_TITLE && text == ANSGAR_TEXT));
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    assert!(game.journal().is_empty());
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(letter(&events), "lappen første gang ned: {events:?}");
+    assert_eq!(game.journal().first().map(|(t, _)| t.as_str()), Some(ANSGAR_TITLE), "lappen står i journalen");
+    for w in ["Mønsterboka", "Rammeverket", "Trykk H", "Apotekeren", "Skriptoriet", "hvilestedene", "Dør du"] {
+        assert!(ANSGAR_TEXT.contains(w), "lappen sier {w}");
+    }
+    let words = ANSGAR_TEXT.split_whitespace().count();
+    assert!((120..=200).contains(&words), "lappen leses på under ett minutt: {words} ord");
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(!letter(&events), "bare første gang: {events:?}");
+    let saved = game.save();
+    assert!(saved.lore.iter().any(|t| t == ANSGAR_TITLE), "lappen huskes: {:?}", saved.lore);
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(saved);
+    assert!(!letter(&fresh.use_first(|u| *u == Use::Descend)), "ikke igjen etter ny økt");
+    assert!(fresh.journal().iter().any(|(t, _)| t == ANSGAR_TITLE));
+    // Gamle lagringer uten lappen: nivå 1 eller ingenting får den, dypere ikke.
+    for (deepest, shown) in [(None, true), (Some(0), true), (Some(2), false)] {
+        let mut physics3 = RapierPhysics::new();
+        let mut old = session(&mut physics3);
+        old.load(SaveData { deepest, ..Default::default() });
+        assert_eq!(letter(&old.use_first(|u| *u == Use::Descend)), shown, "gammel lagring med dypeste {deepest:?}");
+    }
 }
 
 /// Galleriveggen: en komponent du bærer opp fra kjelleren, henger i sin
