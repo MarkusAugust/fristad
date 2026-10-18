@@ -63,6 +63,8 @@ cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/s
 # Instrumentprøvene til musikken (FluidR3_GM, se assets/music/CREDITS.md).
 mkdir -p dist/music
 cp -r assets/music/. dist/music/
+# Lista over Suno-sporene som finnes (music.js henter ikke de som mangler).
+(cd assets/music/game && ls *.mp3 2>/dev/null | sed 's/\.mp3$//' | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}') > dist/music/game/tracks.json
 cp node_modules/@fristil/designsystem/dist/fristil.css dist/
 # De frittstående web-komponentene (toast, connection-status) importeres som
 # ES-moduler fra pakken, uten kildekart og typer.

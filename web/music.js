@@ -293,8 +293,18 @@ export function createMusic(context, base = "music/") {
   };
   // Et filspor: lastes første gang det trengs, og spiller i løkke gjennom
   // sitt eget filter og sin egen styrke, så det kan tones inn og ut.
+  // Sporene som finnes (`game/tracks.json` fra tools/build-web.sh), så et spor
+  // som mangler aldri hentes (det ga 404 i konsollen). Mangler lista, prøves alle.
+  let known;
+  fetch(`${base}game/tracks.json`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((list) => (known = Array.isArray(list) ? new Set(list) : null))
+    .catch(() => (known = null))
+    .then(() => c && apply());
   const file = (name) => {
     if (files[name]) return files[name];
+    if (known === undefined) return { ok: undefined };
+    if (known && !known.has(name)) return (files[name] = { ok: false });
     const f = { el: null, gain: null, filter: null, level: null, ok: undefined };
     files[name] = f;
     try {
