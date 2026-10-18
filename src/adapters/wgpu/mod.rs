@@ -1654,7 +1654,7 @@ impl Renderer {
     /// kryptnivå kom etter tapet). Spillet går videre uten bilde.
     pub fn lose(&mut self, why: &str) {
         if !self.lost {
-            log::error!("Grafikkortet er borte: {why}. Last siden på nytt for å tegne igjen.");
+            log::error!("Grafikkortet er borte: {}. Last siden på nytt for å tegne igjen.", why.trim_end_matches('.'));
         }
         self.lost = true;
         self.current = None;
