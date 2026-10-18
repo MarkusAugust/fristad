@@ -1,0 +1,21 @@
+{
+ "ref": "assets/textures/people/ref/fishwife_head.jpeg",
+ "layout": "head2x2",
+ "merk": "myser forfra; øynene skal være åpne i spillet Begge profilene ser mot høyre: bruk bare nede til venstre som profil (den andre er speilet tegnet).",
+ "views": {
+  "front": [
+   0,
+   0
+  ],
+  "face_right": [
+   1,
+   0
+  ],
+  "back": [
+   1,
+   1
+  ]
+ },
+ "target": "fristad",
+ "root": "../../.."
+}

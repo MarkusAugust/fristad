@@ -1,0 +1,80 @@
+{
+ "_om": "Runde 9: det som ikke ble godkjent i runde 8, rettet etter eierens punkter (og kit_crack, som har fått samme sprekk som den falske veggen).",
+ "round": 9,
+ "fix": {
+  "chest": "Kassa er hul igjen: bunn og fire vegger (4,5 cm), åpen oppe. Hengelåsen er tilbake som på den gamle kista: en rund bøyle gjennom krampa, låsekropp med avrundede kanter og nøkkelhull, og haspen på lokket har et spor krampa går gjennom. Ny regel: skriptet stopper om kassa eller lokket ikke er hule (stråler ned i kassa og opp under lokket).",
+  "chest_lid": "Ja, lokket er hult: et skall av planker med innside. Bildet «under» viser det nedenfra (lokket snudd). Haspen har nå et spor til krampa.",
+  "well": "Feilen satt i koden, ikke i brønnen: vinda, tauet og bøtta (og kistelokk, spaker, portgitter og lemmer) ble satt der tingen sto da spillet ble bygd, ikke der redigeringen hadde flyttet den. Nå følger de tingen sin mens du drar. Testen bevegelige_deler_folger_med_i_redigeringen flytter brønnen 2 m og sjekker at alle tre delene står 2 m unna.",
+  "roof": "Den grønne mønerullen er byttet ut med en lav mønestein av grå hogd stein som følger svaien i mønet. Moseflekkene på taket over kryptinngangen er også borte.",
+  "parapet": "Gavlene følger nå takflaten: gavllinja ligger 8 cm over taket hele veien fra hjørnet til mønet, dekkhellene ligger på den (overkanten rundt 22 cm over taket, før opptil 50 cm), og knelesteinen i hjørnet slutter ved takfoten i stedet for å stå opp som en kloss. Korsene står på dekkhella. Nye regler: dekkhella skal ligge 0–30 cm over taket langs hele gavlen, og korsene skal stå på noe.",
+  "stairs_tavern": "Ingen endring i modellen. Målt: 1,05 m fritt gulv foran nederste trinn mot østveggen, og 0,60 m mellom trappa og sørveggen (der står vinduene, og trappa skal holde seg 30 cm unna dem). Nye vinkler: fra gulvet ved foten, og langs veggen.",
+  "stairs_scriptorium": "Ingen endring i modellen. Målt: 1,05 m fritt gulv foran nederste trinn mot sørveggen, og 1,50 m mellom trappa og vestveggen. Nye vinkler: fra rommet mot foten, og langs vestveggen.",
+  "sarcophagus": "De firkantede klossene på hjørnene er fjernet. Lokket har i stedet en avfaset kant rundt, som på hogde steinsarkofager.",
+  "secret": "Sprekken var tegnet med lys murtekstur, så den forsvant i veggen. Nå er revnene nesten svarte og 3–5 cm brede, med lyse avslåtte kanter, en løs stein og smuldret stein ved foten, og sprekken står på selve den falske veggen også. Bildet er tatt fra 3 m i øyehøyde. Hintet (kit_crack) har samme sprekk.",
+  "arch": "Buen er mur av kilesteiner som peker inn mot buens sentrum, med sluttstein øverst. Hver stein viser én hel stein fra murbildet, lagt langs steinen, så bildet følger buen i stedet for vannrette skift som kappes. Bak fugene ligger mørk mørtel, så kanten ikke ser hullete ut lenger."
+ },
+ "items": {
+  "chest": {
+   "fix": [
+    "chest"
+   ]
+  },
+  "chest_lid": {
+   "fix": [
+    "chest_lid"
+   ]
+  },
+  "well": {
+   "fix": [
+    "well"
+   ]
+  },
+  "crypt": {
+   "fix": [
+    "roof",
+    "parapet"
+   ]
+  },
+  "stave_church": {
+   "fix": [
+    "roof",
+    "parapet"
+   ]
+  },
+  "tavern_interior": {
+   "fix": [
+    "stairs_tavern"
+   ]
+  },
+  "scriptorium_interior": {
+   "fix": [
+    "stairs_scriptorium"
+   ]
+  },
+  "kit_sarcophagus": {
+   "fix": [
+    "sarcophagus"
+   ]
+  },
+  "kit_secret_wall": {
+   "fix": [
+    "secret"
+   ]
+  },
+  "kit_crack": {
+   "fix": [
+    "secret"
+   ]
+  },
+  "kit_shortcut": {
+   "fix": [
+    "arch"
+   ]
+  },
+  "kit_up": {
+   "fix": [
+    "arch"
+   ]
+  }
+ }
+}

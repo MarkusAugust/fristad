@@ -1,0 +1,173 @@
+{
+ "_om": "Runde 3 på godkjenningssiden: bare det som er endret, med eierens punkter, hvordan hvert er rettet, og før- og etterbilder fra tools/qa/studio.py i samme vinkler (før: commit bcaaa5a).",
+ "before": "bcaaa5a",
+ "fix": {
+  "timber": "Bindingsverket er bygd om for alle husene: stolpene står tett inntil hvert vindu og hver dør og er selve karmen, riglene går rett under og rett over hvert vindu i samme høyde rundt hele huset, skråbånd bare i hjørnene og speilvendt, og alle bjelkene møtes kant i kant uten tilfeldig skjevhet. Gavlen er bygd på samme måte.",
+  "gap": "Glippen mellom etasjene er tettet: overetasjen står på et bjelkelag med et gjennomgående bord og bjelkeender som bærer utkragingen.",
+  "found": "Grunnmuren går 1,6 m ned i bakken, huset settes på det høyeste hjørnet, og testene sjekker nå at grunnmuren når bakken i alle fire hjørner.",
+  "door": "De hvite dørene kom av at dørteksturen manglet da bildet ble tatt. Nå stopper bygget og testene om en tekstur mangler, så det kan ikke skje igjen.",
+  "brick": "«Pipemursteinen» kom av at teksturen for hogd stein manglet da bildet ble tatt (rettet sammen med dørene).",
+  "barge": "Vindskiene ligger utenpå gavlkanten med overkanten under takflaten, så de ikke stikker opp fra taket.",
+  "outroof": "Sideveggene følger takfallet, så ingenting stikker opp gjennom taket; taket er nå mørke, værbitte bord som går nedover fallet, og det utskårne overstykket over døra er tatt bort på uthusene.",
+  "outfound": "Grunnen går ned i bakken, så uthuset ikke svever i skråninger.",
+  "hay": "Høystakken har tekstur av løs høy i stedet for stråtak, og foten går ned i bakken.",
+  "fence": "Stakene og flettverket går ned i bakken, så gjerdet ikke svever.",
+  "gate": "Bjelkene tvers under hvelvet i portrommet er fjernet; ingenting går over en åpning man skal gå gjennom.",
+  "forge": "Gavlene på smia er murt av samme stein som veggene helt opp under mønet; ingen puss eller bjelker der.",
+  "frames": "Vinduene sitter i bindingsverket, og stolpene og riglene er karmen, så de tynne karmene er borte.",
+  "palette": "Huset er kledd med grå, værbitte bord og har skifertak, så det ikke er brunt i brunt.",
+  "materials": "Første etasje er murt under bindingsverket, som på de andre steinhusene; bord under bindingsverk hang ikke sammen.",
+  "ramp": "Hønsebrua er et grått, værbitt bord med tverrlister, i stedet for gulvplanker."
+ },
+ "items": {
+  "house_a": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_b": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_c": {
+   "fix": [
+    "found",
+    "barge"
+   ]
+  },
+  "house_d": {
+   "fix": [
+    "timber",
+    "gap"
+   ]
+  },
+  "house_e": {
+   "fix": [
+    "found",
+    "palette"
+   ]
+  },
+  "house_f": {
+   "fix": [
+    "door",
+    "timber"
+   ]
+  },
+  "house_g": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_i": {
+   "fix": [
+    "gap",
+    "door",
+    "timber"
+   ]
+  },
+  "house_l": {
+   "fix": [
+    "timber",
+    "brick"
+   ]
+  },
+  "house_m": {
+   "fix": [
+    "gap",
+    "door",
+    "materials",
+    "timber"
+   ]
+  },
+  "house_n": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_p": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_q": {
+   "fix": [
+    "found",
+    "door"
+   ]
+  },
+  "house_r": {
+   "fix": [
+    "gap",
+    "timber"
+   ]
+  },
+  "house_s": {
+   "fix": [
+    "gap",
+    "door",
+    "timber"
+   ]
+  },
+  "privy": {
+   "fix": [
+    "door",
+    "outroof",
+    "outfound"
+   ]
+  },
+  "shed_a": {
+   "fix": [
+    "outroof",
+    "door",
+    "outfound"
+   ]
+  },
+  "shed_b": {
+   "fix": [
+    "outroof",
+    "outfound"
+   ]
+  },
+  "coop": {
+   "fix": [
+    "outroof",
+    "ramp"
+   ]
+  },
+  "haystack": {
+   "fix": [
+    "hay"
+   ]
+  },
+  "garden": {
+   "fix": [
+    "fence"
+   ]
+  },
+  "gatehouse": {
+   "fix": [
+    "gate"
+   ]
+  },
+  "forge": {
+   "fix": [
+    "forge",
+    "timber"
+   ]
+  },
+  "tavern": {
+   "fix": [
+    "frames",
+    "timber",
+    "barge"
+   ]
+  }
+ },
+ "round": 3
+}

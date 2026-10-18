@@ -1,0 +1,285 @@
+# Lærdom: feil som er blitt regler
+
+Hver feil som oppdages (av en kontroll, vurdereren eller eieren) får en årsak og en regel i felles kode med en test, og føres her (`docs/plan.md`, prinsipp 3). Tersklene strammes, aldri slakkes.
+
+## 11. oktober
+
+- **Teksturlag som ikke finnes, ga en stille flat farge** (smia brukte «bark»). Regel: `tools/models/roles.py` stopper eksporten når laget ikke finnes i `assets/textures/`, og motoren laster ikke en modell med ukjent lag (`modellene_har_roller`).
+- **Ryddingen fjernet hjelpere byggesettet brukte** (`town.SMOKE`, `LIT`, `RELIEF`), så husene ikke kunne eksporteres. Regel: `tools/models/check_scripts.py` (testen `blenderskriptene_henger_sammen`).
+- **Materialrollen ble gjettet ut fra navnet** i motoren. Regel: rollene er data i glb-fila (`extras.fristad`), og motoren sammenligner ingen navn (`lasteren_leser_rollene_og_gjetter_ikke`).
+- **Teksturkontrollen (P-T), kalibrert mot bildene:**
+  - Skjøten målt som snitt over hele kanten druknet skjøter som bare synes et stykke, og et forholdstall mot nabosteget overdrev på glatte flater (puss). Regel: den verste åttendedelen langs skjøten mot 99-persentilen av de naturlige overgangene i bildet; skjøter synes med øyet fra rundt 1,0 (`MAX_SEAM`).
+  - Laplace-variansen straffet glatte materialer. Regel: hvor mye de sterkeste kantene mister ved 1 piksel uskarphet (`MIN_CRISP` 1,40; oppskalerte bilder ligger under).
+  - Ramme målt som forskjell mellom kantbånd slo ut på mønstre som kuttes ved kanten (takstein, brostein). Regel: en ramme er en stripe som er jevn langs hele kanten (`MAX_FRAME`).
+  - Perspektiv kan ikke skilles fra mønstre som er grovere på én side med vilje (`core_stone`) med enkle mål. Regel: perspektiv vurderes med øyet i den estetiske kontrollen; P-T har ingen perspektivsjekk.
+  - Arkene (dører, list, skilt, vinduer) er ikke fliser. Regel: slaget står i `assets/catalog/textures.json`, og P-T sjekker arkene bare for størrelse og skarphet.
+- **Kildebildet for kryptpussen var fortsatt stjernetapetet** som eieren underkjente, under samme navn som laget. Regel: katalogen (`docs/katalog.md`) viser kilden, laget og eierens dom side om side.
+
+## Eierens dom over alt som finnes (11. oktober, godkjenningssiden)
+
+209 ting vurdert: av teksturene 75 godkjent, 6 underkjent, 1 usikker; av modellene 40 godkjent, 79 underkjent (28 er bitene i kryptnivå 1), 8 usikker. Grunnene, samlet etter årsak, og regelen hver blir:
+
+- **Bildene var feil for alle modeller med dører, hogd stein og planker.** Hvite dører og «pipemurstein» kom av at de lokale teksturlagene manglet `door`, `door_b`, `ashlar`, `planks`, `iron`, `oak_planed` og `straw_floor`, og et lag uten bilde falt stille tilbake til et prosedyrisk lag. Regel: et lag en modell bruker må ha et bilde, ellers feiler `cargo test` og `snapshot` (`alle_lagene_har_bilde`). Modellene vises eieren på nytt.
+- **Glippe mellom etasjene** (hus a, b, g, i, m, n, p, r, s): utkragingen la 0,3 m tom luft mellom etasjene. Regel: felles etasjeskille i `kit` med bjelkelag og svill, som Vertshuset.
+- **Bindingsverket ser feil ut, særlig rundt vinduene** (Vertshuset, Apoteket, gjestehuset, hus a, b, d, l): felt med vindu manglet losholt over og under, stolpene overlappet karmene, og skråbåndene var tilfeldige. Regel: bindingsverket bygges etter ekte konstruksjon (stolpe ved hver vindusside, losholt som brystning og overligger, skråbånd symmetrisk ved hjørnene), med kontroll.
+- **Hus som svever** (c, e, q, hagen): sokkelen gikk bare 0,25 m ned, og høyden ble målt halvveis ut. Regel: grunnmur ned til terrenget i hvert hjørne, og bakkekontrollen over hele fotavtrykket.
+- **Harde overganger uten lister** (alle innsidene unntatt smia, kryptens vegg mot gulv, rundt dører og buer i krypten): to ulike lag møtes i 90° uten noe imellom. Regel: profilerte lister (ikke kvadratiske) med egne teksturer der to lag møtes, og omramming rundt dører; en dør tar aldri med seg vegg (`kit_up`). Gjelder alle bygninger.
+- **Innredning plassert dårlig** (tønne i veggen, hyller foran vindu, bord for nær veggen, for nakent): Regel: `group()` med ankre, fri sone foran vinduer og dører, og kontroll på overlapp med vegger.
+- **Feil materiale** (stråtak på høystakken, uthustak med strukket tekstur, puss på smias endevegger innvendig, stein på lesepulten i krypten, kista uten beslag): Regel: uv per flate på tak, og hvert slag ting har sitt materiale i byggesettet.
+- **Ting som går inn i hverandre** (kjerrehjul, snarveidøras slå, fallemmen, våpenstativet i gjerdet): Regel: kontroll på inntrengning mellom deler (P5) og mellom plasserte ting.
+- **Uleselige ting** (torgkorset, sarkofagen, bonusen, stigen som ikke synes): Regel: silhuetten må kunne kjennes igjen; vurdereren og godkjenningsbildet viser tingen tydelig.
+- **Porthuset hadde en tverrbjelke midt i portrommet.** Regel: ingenting tvers over en åpning man skal gå gjennom.
+- **Skjøter som synes** (`stone`, `cobble`, `crypt_wall`, `core_stone`) og **gjentatte små flekker som blir støy på avstand** (`plaster_red`): Regel: teksturkontrollen skal være enig med eieren (`kontrollen_er_enig_med_eieren`), og den får en måling av gjentakelse på avstand.
+- **Spillerens hus:** en vandrer har ikke eget hjem. Regel: det heter Gjestehuset.
+
+## Eierens tid (11. oktober, kveld)
+
+- **Eieren ble bedt om å se på nye bilder der ingenting av det eieren påpekte var rettet** (bare teksturene i bildene var nye). Regel: eieren får bare se en ting igjen når hvert punkt eieren skrev om den er rettet og sjekket på før- og etterbilder; kortet viser punktene, «rettet slik» og før/etter side om side, og det som ikke er endret, vises ikke.
+- **Godkjenningssiden arvet forrige grunn**: feltet var fylt med teksten fra forrige runde, og en ny dom ble lagret med den gamle grunnen (hus h, j og k ble «godkjent: hvit dør»). Regel: hver runde har sitt eget felt (`round` i lagringen, `ROUND` i `tools/qa/approvals.py`); forrige dom står bare som «Forrige dom», og `approvals apply` fører en endret dom med uendret grunn inn med tom grunn og den gamle som `before`.
+- **«Nytt bilde» tok med ting eieren hadde godkjent.** Regel: bare det som ikke er godkjent, vises igjen.
+- **Tastene på siden traff kortet over det eieren så på.** Regel: tastene virker bare på kortet som er merket.
+- **Planen ble lagt fram i sin helhet for hver lille endring**, så eieren ikke kunne se hva som var nytt. Regel: eieren får bare endringen; hele planen står i `docs/plan.md`.
+- **Runde 2 sa i tillegg:** etasjeskillet og bindingsverket må løses samlet for alle husene; vinduskarmene er for spinkle til det kraftige bindingsverket (Vertshuset); noe stikker opp gjennom taket på uthusene og hus c, og takteksturen er feil; tønnene i veggene og trappa for nær veggen er ikke rettet (Vertshuset, Gjestehuset); Smia skal ha stein helt opp i endeveggene under mønet; kryptdøra har merkelige beslag; stigen og bonusen kan ikke kjennes igjen.
+
+## Runde 3 og 4 (12. oktober)
+
+- **Husene og uthusene er godkjent** etter at feilene ble rettet i felles kode: bindingsverket som ekte konstruksjon (`kit.half_timbered`), bjelkelaget mellom etasjene (`kit.storey_band`), grunnmur ned i bakken med bakkekontroll over hele fotavtrykket, vindskiene under takflaten, pulttak med vegger som følger fallet (`yard.lean_roof`, `slope_wall`).
+- **Hønsebrua var vridd på skrå** fordi en bjelke dreid fra x-aksen uten fast retning fikk bredden i en tilfeldig retning. Regel: skrå bjelker får en fast basis (bredden vannrett på tvers), som `kit.wall_member`.
+- **Høystakken så bra ut fra noen vinkler, men ikke alle:** flate fasetter og en søm der vinkelen går rundt. Regel: runde former merkes med `town.smooth` (ellers gjør `finish` alt flatt), og uv rundt en form regnes per flate uten hopp.
+- **Bildene fra byen var ubrukelige til å sjekke en modell** (kameraet havnet i nabohus). Regel: før- og etterbilder tas med `tools/qa/studio.py` (modellen alene med de ekte teksturlagene, i faste vinkler), og en runde bygges med `approvals round`.
+
+## Runde 5 (12. oktober)
+
+- **Studiobildene i runde 3 og 4 viste teksturlagene uten fargetonen.** glTF-importen i Blender legger grunnfargen i en MIX-node sammen med hjørnefargen, og `studio.py` leste den ukoblede standardverdien (hvit). Pussen, sokkelen og bordkledningen ble dømt på for lyse bilder. Regel: `studio.py` henter tonen fra MIX-noden, og et nytt verktøy prøves på et kjent tilfelle (et rødt forheng som skal bli rødt) før eieren får bildene. De 23 modellene vises på nytt i runde 5.
+- **Et møbel fikk samme navn som en modell i byen** (`weapon_rack` i Smia og på øvingsplassen), og den ene skjulte den andre. Regel: `moblene_er_egne_modeller` krever at alle modellnavn er unike.
+- **Uten solskygge mistet tønna i Smia skyggen sin på muren** (Smia er åpen mot torget). Regel: møblene kaster solskygge innen `INDOOR_SHADOW` (10 m) fra kameraet, og før- og etterbilder inne i alle husene sjekkes etter hver endring i rendereren.
+- **Tønnene sto i feil høyde i alle husene, og de liggende stakk inn i veggen.** I `kit.barrel` ble `z` (høyden tønna skulle stå i) brukt som løkkevariabel, så hver tønne, krukke, skinke og gryte havnet i høyden `h` over husets origo (kjellertønnene i Vertshuset sto oppe i første etasje). Liggende tønner ble flyttet en halv lengde med `location` før `matrix_world` ble lest, så flyttingen forsvant og tønna stakk 35 cm inn i veggen bak disken. Det er grunnen til «tønne i veggen». Fant det fordi møbelets mål i sitt eget rom (0 til høyden) ikke stemte. Regel: et møbel skal stå med foten i origo i sitt eget rom; studiobildene og målene sjekkes for hvert nytt møbel.
+
+## Runde 6 (12. oktober)
+
+- **Bordbena lå flatt under bordplata.** `stick` setter `location` og rotasjon, og `kit._place` leste `matrix_world` før Blender hadde regnet den ut, så bena ble liggende langs bakken midt under bordet; det eieren så som «lego» var bokser med timber-arket på tvers. Regel: `_place` (og `town.piece`) kaller `view_layer.update()` før `matrix_world` leses, og bena er `stick` med kornet langs. Testen `moblene_star_der_kolliderne_er` krever at ingenting i et møbel går under gulvet.
+- **Bindingsverket delte opp åpninger:** felt bredere enn 1,3 m fikk ekstra stolper, også verkstedåpningen i Smia (fire stolper midt i). Regel: et felt som er en åpning, deles ikke (`kit.half_timbered`).
+- **Skrå bøker ble dreid om origo** og havnet under gulvet. Regel: noe som lener seg, dreies om sitt eget hjørne.
+- **Det som står høyt, ble fotografert fra gulvet** (hjelmhylla, krukkehylla), og flammene lyste ikke i studioet. Regel: `studio.py` sikter på tingen og lar `fire…`/`glow…` lyse.
+- **Gjentakelse ser kunstig ut** (eieren om hyllene, disken og verktøyveggen). Regel: hyller og bord fylles fra `tools/models/vessels.py` (`row`) med blandede former og størrelser, og verktøy og ting i rekker er forskjellige.
+
+## Runde 7 (12. oktober)
+
+- **Rad to i tønnestativet svevde 8 cm.** Høyden var regnet som om tønnene under lå tett (r·√3), men de lå en meter fra hverandre. Regel: det som hviler på noe, får høyden regnet fra kontakten med det det hviler på, med de samme målene som plasserer det (`kit.barrel_stack`), ikke fra et tall skrevet for hånd.
+- **Kar på en disk i én rad ser oppstilt ut.** Regel: hyller fylles med `vessels.row`, bord og disker med `vessels.spread` (tette grupper av det som hører sammen, spredt over hele flata).
+- **Smia-kortet fikk bildene av kassa i Smia**, fordi verktøyet plukket bildene på navnet (`before_forge_*` traff `before_forge_crate_*`). Regel: vinkelnavn har ingen understrek, og `round_page` tar bare dem.
+- **Disken ble vist forfra, fra enden**, der det som står oppå ikke synes. Regel: det som ligger oppå en flate, vises også ovenfra (`top`).
+
+## Runde 8 (12. oktober)
+
+- **Byggesettet i krypten brukte dørbilder som tre** (`oak` = `bronze_door`, `wood` = `door_b`): lemmen ble svart, stigen fikk hengsler og nøkkelhull malt på trinnene, kister og fakler i nivået likeså. Regel: tre er planker (`planks`) og bjelker (`timber`); lag som er ett helt bilde av en ting (`WHOLE_IMAGES`) brukes bare på et dørblad med uv 0–1, og eksporten stopper ellers (`check_whole_images`).
+- **Projiserte gjenstander fra ark** (kista, brønnen) ble bokser med et bilde av tingen på, og teksturen passet ikke formen. Regel: gjenstander bygges av ekte geometri med teksturlagene, som resten av byen.
+- **Steingavler som overlapper murkronen** gir to flater i samme plan og svarte striper (krypten, kirka, Skriptoriet). Regel: `parapet` begynner på murkronen.
+- **Tønner i veggene og hyller over vinduet** (Vertshuset, spillerens hus), og trappa over to vinduer. Regel: hver vegg fra `kit.slab_grid` registreres, og hvert møbel og hver trapp sjekkes mot veggene og vinduene (`town.check_piece`, `check_points`); eksporten stopper om noe går inn i en vegg eller står foran et vindu.
+- **Lasten i vogna og hjulet mot kassa.** Regel: det som ligger i noe, sjekkes mot det (`check_clear`, `check_apart` i `streetlife.py`).
+- **En ting i et gjerde ble ikke funnet** av reglene i redigeringen, fordi gjerder og murdeler var unntatt. Regel: en ting kan ikke stå inni noens kollider, heller ikke et gjerdes.
+- **`cargo fmt` skrev om 67 filer.** Regel: kjør det aldri på hele repoet (CLAUDE.md).
+
+## Runde 8 – dommen (12. oktober)
+
+- **Hule ting skal være hule.** Kista ble bygd som en massiv boks med jern utenpå. Regel: `check_hollow` i `streetlife.py` skyter stråler ned i kassa og opp under lokket.
+- **Bevegelige deler følger tingen sin i redigeringen.** Vinda og bøtta sto igjen når brønnen ble flyttet, fordi de ble satt etter verdenen spillet startet med. Nå hentes målene fra redigeringens verden (`view.rs::target_poses`, `live_crypt`). Testen er `bevegelige_deler_folger_med_i_redigeringen`.
+- **Gavler av stein følger taket.** Dekkhellene ble satt fast over murkronen, ikke etter takflaten, og sto opptil 50 cm over taket. Regler:
+  - `roof_parapet` regner gavllinja ut fra mønet og takvinkelen.
+  - `check_parapet` måler med stråler at dekkhella ligger 0–30 cm over taket.
+  - `check_crosses` sjekker at korsene står på noe.
+- **Ikke grønt øverst.** Mose på mønet og flekker på taket så ut som feil. Mønet er hogd stein (`ridge_saddle`).
+- **En sprekk må ha mørk farge.** Revnene var tegnet med `wall_dark`, som er lys murtekstur, og forsvant. De har nå sitt eget materiale (`crack`), er 3–5 cm brede og har lyse kanter.
+- **Steinene i en bue følger buen.** Murbildet lagt flatt over karmsteinene ga vannrette skift som ble kappet av hver stein, og åpne fuger så ut som hull. Nå:
+  - Hver kilestein får én hel stein fra bildet langs seg (`stone_uv`, `STONE_PX`).
+  - Bak fugene ligger mørtel.
+- **Vis det eieren spør om.** Trappene ble vist uten vinkel fra foten. Kortene skal ha vinkler som svarer på punktene, og målene skal stå i teksten.
+
+## Runde 9 – dommen (12. oktober)
+
+- **Én type strek.** En mørk revne med en lys kant ved siden av ble en hard strektegning. En sprekk er én sammenhengende strek som smalner av, og greinene går ut fra den (`crack_web`).
+- **Svaien må passe til mønet.** 32 cm svai med en stiv mønestein ga en hengende bue. Mønesteinen tåler høyst 12 cm, som på kirka.
+- **Plass ved foten.** 1,05 m foran nederste trinn var for lite når hjørnet ved foten er møblert. Skriptoriet har 1,6 m.
+- **Regler gjelder også det som er godkjent.** Pultene i Skriptoriet dekket vinduene, men ble ikke fanget før huset ble eksportert på nytt. Etter en ny regel skal alle husene eksporteres på nytt.
+- **En kodefeil får også et bilde.** Når eieren skal vurdere en kodefeil (brønnen i redigeringen), tas bildet fra nettleseren med den ferdige nettsiden.
+
+## Runde 10 – dommen (12. oktober)
+
+- **Det som ligger under, må ikke stikke opp.** En kile under mønet fulgte ikke svaien og stakk opp gjennom mønesteinen. Regelen `check_ridge` skyter stråler ned langs mønet, og det første de treffer skal være mønesteinen.
+- **En sprekk i kvadermur går i fugene.** Den går trinnvis, opp og bortover, aldri tvers gjennom steinene. Fugene er målt i murbildet (`WALL_BEDS`, `WALL_HEADS`), og bildet står opp ned i meter, fordi glTF har v nedover.
+- **En trapp står langs en vegg.** Det som står mellom trappa og veggen, flyttes. Vinduer som trappa eller galleriet ville stå foran, mures igjen eller flyttes, og utsida vises på nytt.
+
+## Runde 11 – dommen (12. oktober)
+
+- **Rett feilen overalt der den kan oppstå.** Vannbordene ble rettet på kirka og kryptinngangen, men ikke på Skriptoriet, som brukte den samme gamle funksjonen. Når en feil rettes ved roten, slettes den gamle funksjonen (`parapet`). Da må alle som brukte den, gå over til den nye (`roof_parapet`) med reglene.
+
+## Monstrene fra arkene (12. oktober)
+
+- **Arket legges på fra den visningen flaten vender mot.** `project_sheet` i `tools/models/monsters.py` gir hver flate uv inn i forfra-, bakfra- eller sidebildet. Sidebildet brukes bare når flaten vender mer enn 63° til siden; ellers drar det inn det som står foran i sidebildet (armen, en mørk glipe).
+- **Bakgrunnen fylles fra innsida av figuren.** Der en flate stikker litt utenfor omrisset, tar `filled_sheet` fargen fra nærmeste piksel inni figuren, ikke fra den mørke streken rundt. Hull i masken fylles først: grå partier inni kappa ligner bakgrunnen, og ble ellers flekker.
+- **`ellipsoid` tar diametre, ikke radier.** Skulderplatene og hetta til presten ble halvparten så store.
+- **Faste deler henger på sitt bein.** Hansker, støvler, kabler og staven settes stivt på hånda, foten eller brystet (`rigid`). Ellers vektes de etter avstand og dras med av leggen ved siden av.
+- **Skrittet følger beinlengden.** Med korte bein (Modalen) må tråkket være raskere og skrittet kortere, og hvileposen kan bare senkes litt. Ellers knekker knærne sammen. Armen med stav står i hvileposen (`hold`), så staven står loddrett.
+
+## Kryptnivå 1 – dommen (13. oktober)
+
+- **Et hull er det du kan se gjennom.** Trinnene i trappa ned var tynne plater med to sider, så bakgrunnen synes mellom dem som grå striper. Tetthetssjekken fant det ikke, fordi den skyter fra gulvet i rommene og ikke fra innsida av en modell. Trinn er massive ned til bunnen.
+- **Det som ligger under gulvet, må høre til et rom.** Lyset følger rommene (`room_of`), og utenfor alle rom lyser bare lykta du bærer. Sjakta til trappa ned lå under gulvet og ble utbrent i lykteskinnet. Rommet når nå ned i sjakta (`Room.sink`).
+- **To flater i samme plan blinker.** Det gjaldt terskelen 3 mm under gulvet, enden av brystvernet mot portalmuren, og innsida av brystvernet mot lysningen i buen. En flate skal enten stå inne i den andre eller minst 1 cm unna.
+- **Samme stein overalt i et rom.** Hvelvet, veggene og kapellet mures av den samme steinen (`crypt_wall`). En annen stein brukes bare der den betyr noe (gravheller, beinmuren).
+
+## Datepicker-presten – dommen (13. oktober)
+
+- **Et våpen holdes og svinges.** Fingrene pekte rett fram ved siden av skaftet, og angrepet var slaget i bakken, så staven ble slengt flatt med nevene. En hånd med våpen har fingre lagt rundt skaftet (stivt på samme bein som våpenet), og et monster med våpen har et eget angrep der våpenet bærer slaget (`attack_staff`).
+- **Våpenet går aldri gjennom kroppen.** `staff_clearance` i `tools/models/monsters.py` måler staven mot kapsler rundt kroppen i hvert bilde av angrepet og stopper eksporten om den går inn. Før regelen gikk skaftet 5 cm inn i kappa i treffet.
+
+## Armene og våpnene (13. oktober)
+
+- **Hugg sees fra kameraet.** En klinge som peker rett fram eller bakover over skulderen blir forkortet til nesten ingenting. Et vannrett hugg legger klinga på tvers av bildet, og opptrekket holder den synlig ut til siden. Hvert nøkkelbilde sier hvor grepet er og hvor klinga peker (`aim`), og grepet holdes innenfor synsfeltet (72°).
+- **Del-objekter må ha plassen sin i hjørnene før de flyttes.** `tube` og `ellipsoid` lager objekter med egen plassering; ble bare hjørnene flyttet, ble tommelen hengende igjen og fløy løs i huggene.
+- **Lyst metall på grått ark trenger egen maske.** Klingas lyse side ligner bakgrunnen. Dolken bygges av delene langs aksen (konvekst skall for klinga og knappen, rad for rad for grepet med ringer), symmetrisk om aksen.
+- **Tynne kropper får ikke omregnede normaler.** På en klinge noen millimeter tykk snudde omregningen normalene innover, og okklusjonen bakte albedoen svart.
+
+## Armene og våpnene – dommen (runde 16, 13. oktober)
+
+- **En arm ender aldri inne i bildet.** Overarmen var et kort erme bygd langs underarmen, og i blokken så det ut som avkappede armer som fløy inn. Overarmen går nå langs selve leddet fra albuen til 15 cm forbi skulderen (`ARM_PAST`). `arms_leave_frame` stopper eksporten om enden av armen havner innenfor synsfeltet i noe bilde av noe klipp.
+- **Hånda er én kropp etter omrisset i arket.** Knyttneven var stykker (håndbak, fire ringer, rør til tommel) som stakk ut hver for seg, og fingertuppene vendte mot kameraet. Hånda og underarmen loftes nå etter silhuettene ovenfra og fra tommelsida (`silhouettes`, `arm_mesh`). Detaljene står i det malte arket. Lillefingersida får håndbaken eller håndflaten, ikke tommelsida, som ellers ville synes to ganger.
+- **Hånda holder som man holder.** Tommelen ligger over grepet, og knokene peker fram langs eggen. Håndbaken vender ut og opp, ikke håndflaten mot øyet. Våpnene eksporteres i hvileposen (`RIGHT`), så de må bygges på nytt hver gang hvileposen endres.
+- **Et våpen bygges av lukkede deler, ikke blåses opp og slankes.** Decimate på den oppblåste klinga ga hull. Parerstanga og knappen ble like tynne som klinga, og de malte hakkene i eggen kom med i omrisset. Hver del (`PARTS`) er nå en lukket kropp med sin egen form. Klinga er rett og symmetrisk om én akse og blir aldri smalere mot parerstanga. Arket speiles fra den hele sida. `solid_report` stopper en del med åpne kanter.
+- **Grepet passer hånda.** Arkene tegner grepet 5 cm tykt, mens hånda er laget rundt 3 cm. Grepet skaleres til 3,2 cm der hånda holder, og `GRIP_D` stopper et våpen med grep utenfor 2,8–3,6 cm.
+- **Skjoldet vender dit man holder det, ikke dit underarmen peker.** Flaten sto vinkelrett på venstre underarm, som pekte inn mot midten. Retningen er nå fast: rett fram, dreid 10° ut mot venstre (`SHIELD_OUT`). `shield_check` stopper hvile utenfor 0–20° og en blokk som dreier skjoldet inn forbi rett fram.
+- **Klinga går heller ikke gjennom skjoldet.** `blade_clearance` måler nå også mot skjoldene. Skjoldet trekkes ned og ut mens klinga går over.
+
+## Armene – dommen (runde 17, 13. oktober)
+
+- **Grepet ligger skrått i neven.** Våpnene sto vinkelrett på fingrenes retning, så klinga sto rett opp fra en vannrett underarm, og håndleddet så knekt ut. I en ekte knyttneve går skaftet på skrå over håndflaten. Våpnene står nå i `WEAPON` (`GRIP_TILT` 20°), og underarmen stiger fram mot hånda (`grip_frame`).
+- **Håndleddet bøyes lite og vris aldri.** IK-en valgte albuen bare etter retningen den skulle bøyes, og hånda ble dreid fritt, så håndleddet ble knekt 60–90° og blandingsvektene strakk armen som gummi i skjoldblokken. Nå velges albuen der håndleddet bøyes minst. Underarmen tar hele vridningen, og `aim` velger rullen om klinga som gir minst bøy. `wrist_bend` stopper eksporten over 35° bøy eller 15° vridning, i alle klipp og for begge hender.
+- **Et punkt uten dom føres inn likevel.** «Øksa holdes feil vei» kom uten dom og ble hoppet over av `approvals apply`. Nå føres punktet inn, og dommen står.
+- **Bladet skal synes.** Øksebladet sto med kanten mot kameraet. `face_visible` måler flaten mot synslinja i hvile (høyst 60°).
+
+## Øksa og brynja – dommen (runde 18, 13. oktober)
+
+- **Eggen måles fra skaftet der hodet sitter.** Skaftet er bøyd. Målt fra midtlinja ved grepet så nakken ut som den lengste sida av hodet, så eggen ble snudd bakover. Midtlinja til skaftet ble i tillegg skalert sammen med tykkelsen, så skaftet gikk skjevt gjennom hodet. Nå måles sidene fra skaftets egen midtlinje i radene der hodet sitter, og bare tykkelsen skaleres. `edge_forward` måler på modellen at eggen peker mot fienden midt i bildet i hvile (høyst 40°).
+- **Eggen går først i hugget.** Rullen om klinga velges slik at knokene og eggen vender i retningen spissen beveger seg på tvers av klinga, uten å bryte håndleddsregelen. Det gjelder ikke etter treffet. `edge_leads` krever cos ≥ 0,5 i hvert treff.
+- **Det synlige av armen skal vise rustningen.** Underarmen i `arms_mail` ble strukket jevnt over radene i arket, så hanskens mansjett dekket det meste og brynja bare litt nederst. `FOREARM_ROWS` legger nå hver del av underarmen på sine rader, og `mail_coverage` krever at brynja dekker minst 70 % av underarmen.
+
+## Dommen – eieren (13. oktober)
+
+- **Siden viser tilstanden, ikke den siste runden.** Hver runde byttet ut hele siden med det jeg nettopp hadde endret. Et kort eieren ikke rakk å svare på, forsvant derfor (rundskjoldet i runde 18), og 26 kryptbiter ble stående med en dom fra 11. oktober. Nå gjelder en dom versjonen eieren så. Alt som ikke er vurdert, eller som er endret siden, står i «Venter på deg» til eieren har svart. `check` og testen `dommen_mister_ingenting` stopper en side der noe mangler.
+
+## Krypten og dolken – dommen (runde 20, 13. oktober)
+
+- **Hull ses best med motorens egne øyne.** Lekkasjesjekken med voksler (8 cm) fant ingenting, men eieren så kiler av himmel ved konsollene. `snapshot --leak-scan PUNKTER --debug void` tegner alt svart og himmelen magenta, og ser fra hvert punkt over gulvet (`tools/crypt/leak_points.py`) i 24 retninger. Det som er magenta, er hull, også de på noen få centimeter og de som bare finnes langt unna.
+- **En mur under et hvelv går opp bak hvelvet.** Veggen under krysshvelvet fulgte buen med 17 rette biter og sto under hvelvkanten der buen er bratt ved vederlaget. Det ga kiler av himmel på begge sider av hver konsoll. Murene går nå `VAULT_LAP` (35 cm) opp bak hvelvflaten.
+- **Det grove detaljnivået åpnet sprekker.** Lenger unna enn 28 m (14 m i standard grafikk) tegnet motoren en forenklet utgave der hjørnene ble slått sammen i ruter på 1/70 av modellen. En smal murrute (11,5 cm der den runde muren i Beinhuset slutter) forsvant, og skjøtene ble ulike i to naboer. Modeller under `LOD_MIN_TRIS` (12 000 trekanter) tegnes nå helt på alle avstander, og testen `kryptmurene_forenkles_ikke_pa_avstand` holder kryptbitene der.
+- **En trapp begynner utenfor hjørnefaget.** Trappa i snarveien begynte midt i faget der gangen svinger, under gulvet der, og gjennom spalten under hjørnegulvet så man ut under gangen. `Hall` flytter nå trappa ut av hjørnefagene og stopper bygget om den ikke får plass. Murene i gangene går også `VAULT_LAP` opp bak det trappete hvelvet.
+- **Under jorda er det jord, ikke himmel (eieren).** Nede i krypten tegnes himmelen sort (`sky.wgsl`, når nivået har rom). En sprekk som slipper gjennom, blir da en mørk strek og aldri en lys kile. Sprekkesjekken ser fortsatt himmelen (`--debug void`).
+- **En søyle bærer noe.** Søylene i Søylegangen sluttet ved vederlaget, 2 m under tønnehvelvet. Nå står gjordbuene over søyleradene, og kapitélet går opp til buen (`pillar_top`).
+- **En dolk er spiss.** Spissen var en halvsirkel. Klinga smalner nå jevnt til et punkt, og `tip_check` stopper en klinge som 2 cm fra spissen er bredere enn halvparten av sin største bredde.
+- **Store ting dømmes i 3D.** Eieren kunne ikke dømme 16 m store kryptbiter fra to små bilder. Dommen har nå «Se i 3D» (`tools/qa/viewer.js`): modellen med teksturlagene, før og etter, og for kryptbitene hele nivået rundt. Man kan rotere, zoome og dobbeltklikke seg inn i rommene.
+
+## Lyset, tokenene og huggene – eieren (runde 21, 13. oktober)
+
+- **Lys har bare betydning i mørke.** Krypten hadde et blått grunnlys fra «himmelen» og kalde fyllys uten kilde, og øyet ble skrudd opp 2,5 ganger, så alt var synlig uten lykt. Nå er grunnlyset nesten borte, de kalde lysene er et svakt skjær, og spilleren bærer lykta i beltet med olje som brenner ned. Uten olje ser du bare faklene og lysene.
+- **Lyset fra beltet blender ikke det du holder.** Et lys midt mellom hendene gjorde skjoldet hvitt. Lykta står foran deg ved hofta, og et svakt lys når opp på hendene.
+- **En modell som ventes, er usynlig.** Tokenene ble sluppet og plukket opp, men modellen `token` sto i `PLANNED`, så ingen så dem. Når spillet bruker noe synlig, lages modellen før det vises eieren.
+- **Et Python-skript heter ikke som en modul i standardbiblioteket.** `token.py` krasjet Blender (`token` er Pythons egen); skriptet heter `design_token.py`.
+- **Klinga snurret fordi bevegelsen gikk i sløyfe.** Når klingas retning går rundt en sløyfe (opp til høyre, ned til venstre og tilbake en annen vei), må den vris om sin egen akse like mye som sløyfa omslutter: nesten en halv omdreining per hugg. Vridningen ble valgt bilde for bilde, låste seg og tok igjen med 20–40° på ett bilde. Nå går hvert hugg fram og tilbake i ett plan gjennom hvileretningen, vridningen velges for hele hugget samlet (Viterbi), og `blade_spin` stopper eksporten over 20° per bilde.
+- **Det tunge hugget må merkes, ikke bare være tregere.** Det feier lenger enn de vanlige (`heavy_distinct`), kroppen kaster seg mer enn dobbelt så langt fram, ladningen løfter blikket og får det til å dirre, og slaget kaster blikket ned med lengre hitstop og mer risting (`det_tunge_hugget_kjennes_i_kameraet`).
+- **Ikke alle retninger kan nås med håndleddet.** Klinga kan ikke peke rett fram og vannrett midt foran deg uten at håndleddet knekker; huggene går skrått ned over midten. Trenger eggen tid til å snu før treffet, får hugget et bilde mer opptrekk (treffet på bilde 6, og `combat.rs` følger klippet).
+
+## Innbyggerne – piloten (14. oktober)
+
+- **Hull i masken er ikke alltid hull.** Mellomrommet mellom armen og kroppen er bakgrunn omsluttet av figuren; fylles alle hull, smelter armene inn i kroppen. Bare små hull fylles (`folk_sheet.mask`).
+- **Klærne skjuler skrittet.** Der buksebeina skilles under forkleet, sitter ikke hofta: med skrittet derfra ble beina halvparten så lange, og gangen gikk på huk. Hofta, kneet og ankelen står etter kroppens mål.
+- **En vinkel i stilen er fra loddrett, ikke fra hvileposen.** `arm_out` ble lagt på vinkelen armen alt hadde på arket, og armene sto ut som på en fugleskremsel.
+- **Det figuren holder er ikke kropp.** Der hammeren rører forkleet forfra, ble raden en flat skive; kroppen får ikke bli brått bredere enn radene over, og hånda høyst litt bredere enn håndleddet.
+- **Hodet på kroppsarket er for lite til et ansikt.** På kroppsarket er hodet rundt 230 piksler, og bakt i 1024 ble ansiktene uskarpe (eieren 14. oktober). Hodet har nå sin egen del med hodearket (to til fire ganger så stort), passet inn etter omrisset (`folk_sheet.head_fit`), tre ganger plass i teksturen og baking i 2048.
+- **Én visning per flate gir dobbelt ansikt på skrå.** Der flaten bytter fra bildet forfra til bildet fra siden, sto profilen og ansiktet forfra side om side. Materialet blander nå de to bildene etter flatens retning (`blended_sheet_material`, uv-lagene «src» og «src_side»), og hodet er rundt.
+- **Armene på arket står ut fra kroppen.** Hvileposen trekker armene inn mot kroppen (`arm_out` under null), så de henger langs siden i stedet for å stå ut som på et dreieark.
+
+## Innbyggerne og huggene – dommen 14. oktober
+
+- **Formen må komme fra samme bilde som teksturen.** Hodet var formet etter kroppsarket og malt med hodearket; profilen og ansiktet forfra lå da hver sitt sted, og hodet ble stripete. Hodet leses nå av hodearket selv (`head_rows`).
+- **Et omriss kan passe speilvendt.** Profilen på hodearket passet nesten like godt speilet, og fiskerkona fikk ansiktet bak på hodet; retningen kroppen ser leses av foten (tåa og hælen samlet, en tresko står på begge), og profilen speiles etter den.
+- **Skjelettet leses av formen, ikke av faste prosenter.** Ankelen, håndleddet, albuen, hofta og hodeleddet står der modellen viser dem (`model_joints`); faste kroppsmål brukes bare der klærne skjuler leddet.
+- **Det hånda holder er ikke kropp, heller ikke fra siden.** Vaktens hånd med spydet ga kroppen en hylle framover; dybden mellom brystet og hofta holdes nær linja mellom dem.
+- **Hugg drives av skulderen.** Når grepet nesten står stille mens klinga feier 140°, må underarmen svinge om albuen (eieren: «albuen roterer»). Nå går hånda en stor bue like langt fra skulderen, albuen holder vinkelen, overarmen tar med seg albuens plan, og `shoulder_drives` måler det (fra 0,4× til 1,6–3,4×).
+- **En regel som erstatter en måling må være sikrere enn målingen.** Profilen ble speilet etter en regel (halsen sitter bak midten av hodet), men skjegg og hår som henger, snudde den, og fire av innbyggerne fikk ansiktet i bakhodet. Omrisset på sidebildet velger igjen speilingen; det som var feil hos fiskerkona, var at kroppen ble lest feil vei, og det rettes ved foten.
+- **Bildet forfra hører hjemme på ansiktet, ikke rundt sidene.** Da bildet forfra ble trukket langt rundt hodet, sto ansiktet forfra og profilen side om side (to ansikter, to sett ører). Bildet forfra holdes på den fremre femtedelen, og overgangen til profilen er kort.
+- **En glattingsregel kan kappe det som skal stå ut.** Regelen mot hyller i hodet kappet haka (budeia «ingen hake»); forkanten glattes nå bare litt.
+
+
+## Innbyggerne – motoren skal treffe arket (14. oktober)
+
+Eieren: «hull gjennom kroppen innenfor albuen … Den må forbedres slik at du treffer mer riktig med en gang.» Rettet ved roten, og porten `folk_check` måler nå hver figur mot arket før den slippes ut.
+
+- **Mål modellen mot arket, ikke bare med øynene.** Hullene, de svarte flekkene og skivene ved albuen sto der i flere runder fordi ingen ting målte dem. `folk_check` rendrer figuren som arket og regner det som mangler, stikker ut, fargeavviket og svarte flekker; `townsfolk.py` stopper om en figur ikke består.
+- **Okklusjonen hører ikke hjemme i et malt ark.** Arket har lyset og skyggene malt inn, og der armen ligger inntil kroppen, bakte okklusjonen svarte flekker. Innbyggerne bakes uten (`ao=False`).
+- **Deler som går inn i hverandre bakes hver for seg.** Cycles så den andre flaten først der armen ligger inne i kroppen, og bakte svart. Delene flyttes fra hverandre under bakingen (`apart=True`), med skjelettet slått av (ellers svingte det de flyttede bitene).
+- **En stabel ringer brettes ut som en sylinder.** Blenders utbretting delte kroppen i hundrevis av små øyer med svarte kanter; hver del er nå én øy.
+- **Det arket viser, skal finnes i modellen.** Kurven, krukka, sekken og fletta lå bare som bilde på kroppen bak, så man så gjennom figuren. Det ingen del dekker, blir egne deler.
+- **En regel mot ett tilfelle må avgrenses til det tilfellet.** Regelen mot smedens hammer kappet skjørtet og kjøpmannens mage, regelen mot hårhyller kappet hattebremmen, og bøtta ble tatt for et bein. Reglene gjelder nå bare der hendene er, et bånd som stikker ut over og under er en brem, og bare det som står på bakken er bein.
+- **To ark kan være uenige.** Hodearket kan tegne hodet smalere enn kroppsarket, og bakfra kan armene henge der de holder noe forfra. Kroppsarket bestemmer bredden, og der bildet forfra og bakfra er uenige, telles det ikke mot modellen.
+
+### Hodene og kroppen (15. oktober)
+
+Eieren: «ikke vis meg noe deformert igjen». Alle tolv består nå porten i 2048, og hver regel under rettet en feil som synes:
+
+- **Hodet leses av hodearket selv, rundt.** Haka er der profilen går brått inn (ikke munnen), issen ender i toppen av omrisset og tar fargen innenfor den, og ansiktet holder sin egen bredde foran mens håret står ut bak øret (`rounded_head`, `framed_face`).
+- **Uv-lengden måles langs flaten.** Med høyden mellom radene ble hattebremmen klemt til en strek, og lokkene lå oppå halsen i teksturen (den prikkete streken under haka).
+- **Armen står der arket viser den fra siden.** Sidearket ble projisert på en arm som sto et annet sted, så bildet av armen havnet på kjolen (en arm til, sett skrått). Den bare armen finnes nå etter hudfargen på hånda (tone og metning, ikke lysstyrke), bare for armen nærmest, og kroppen får et sideark der den er malt bort (`armless_side`).
+- **Det som henger under hånda er en ting, ikke kroppen.** Bøtta gjorde kroppen like bred som bøtta; der kanten springer ut og inn igjen, blir det imellom sin egen del (`HANGING`, `hangs`). Biter i samme rad følges hver for seg (`chains`).
+- **Regelen mot hendene gjelder bare sida der hånda rører kroppen.** Ellers kappet den skjørtet til vaskekona og fiskerkona.
+- **Under kappa er beinet like smalt som leggen** der kappa synes fra siden (apotekerens kloss); kjøpmannens vide bukser er bein.
+- **Håret som henger ned er en egen del** som vokser ut av hodet bak midten av det og går ned i skuldrene. Som del av hodet ble det en flat kloss under haka, og som del av halsen en krage.
+- **Linja for magen fra siden ender over skrittet**, ellers kappet hendene under skrittet (gutten) forsiden av kjortelen.
+- **En arm har én positur.** Arket kan vise armen bøyd forfra (krukka, morteren) og hengende bakfra; motoren prøvde å forene dem, og armen ble bånd og skiver. Armen bygges nå hengende etter bildet bakfra (`REST`), det den holdt blir en egen gjenstand, og brystet bak fylles med bildet bakfra.
+- **Det verktøyet dekket, males bort i alle bilder og for alle deler.** Hammeren og øksa lå igjen malt på forkleet, låret og hånda, og øksehodet ble en bit av beinet; nå tar alle delene arket uten verktøyet, og kanten av beinet hopper ikke.
+- **Sidearket viser den sida figuren snur mot oss.** Flest hudrader valgte feil arm hos smeden, og den andre armen gikk fram som en hale.
+- **Innmaling henter farge bare fra figuren**, ellers trekkes fyllet utenfor omrisset (verktøyets farge) inn.
+
+## Hodene til innbyggerne (15. oktober)
+
+- En terskel på normalen i projeksjonen gir trapp: nabobitene får bildet fra hvert sitt sted. Forskyvninger i teksturen skal følge hjørnets normal jevnt og bare gjelde der de er ment (under haka, ikke nesa).
+- Et mål som blandes inn i et forhold (bredden på kroppsarket) må måles likt på begge ark: en flette på én side strakk ansiktet 24 %.
+- Når en regel smalner en rad, må radene under følge (kjeven ble en tallerken under haka).
+- Se på formen i leire (Workbench, én farge) før teksturen: skjegg som kloss, kant på issen og halsen som kasse synes der med en gang.
+
+## Innbyggerne fra TRELLIS.2 (15. oktober)
+
+Eieren godkjente smeden og ba meg huske hvordan («husk hva du gjorde nå til de neste»). Fremgangsmåten står i CLAUDE.md; dette lærte vi på veien:
+
+- **Ikke bygg formen eller teksturen på nytt.** Teksturen som følger med glb-fila passer langt bedre enn arket projisert på formen (eieren). Sidebildet og bildet bakfra treffer ikke formen, fordi TRELLIS bare så bildet forfra og gjettet dybden; de ga ansikt i bakhodet og armen malt på kroppen.
+- **Sjekk hvor detaljen forsvinner før du retter.** Sammenlign ansiktet rett fra glb-fila med spillmodellen, flatt (emisjon). Øynene manglet allerede hos TRELLIS, mens overføringen var tro.
+- **Ansiktet fra bildet forfra, og bare ansiktet.** Det er bildet TRELLIS ble laget av, så det passer på flatene som vender fram. Masken er omrisset på bildet trukket inn: formen stikker litt utenfor (håret), og der ble bakgrunnen malt på som lyse grå flekker.
+- **Glb-fila henger ikke sammen.** Hjørnene er delt langs sømmene, og flatene er åpne. Forenkling rett på den rev den i småbiter og svarte flekker, og et skall uten tykkelse fikk hull i forkleet og håret. Gi flatene tykkelse, lag et lukket skall og bak fargen over fra den fulle formen.
+- **En tekstur som brukes gjennom et uv-lag, må lese sitt eget lag.** Pakkingen flyttet uv-ene bildet ble lest gjennom, og teksturen ble revet opp. Kilden leses gjennom «src».
+- **Et bilde laget i minnet blir ikke med i bakingen.** Masken må lagres som fil og lastes inn.
+- **Bedre innstillinger i TRELLIS gir mest.** 1536, Texture Size 4096 og Decimation 500000 ga grått hår, rynker og et ansikt der den første fila hadde svarte striper.
+
+## Natta 15.–16. oktober: alle innbyggerne, filmen og gjenstandene
+
+- **Når tre ulike metoder gir samme feil, ligger feilen i det de deler.** Strålene, nærmeste punkt og Blenders baking ga alle mørke flekker på tjenestejentas arm. Det var skallet: 1 cm voxler smeltet armen sammen med skjørtet der hånda henger nær hofta. Med 5 mm og 6 mm tykkelse er armen ren.
+- **Mål i tall før du gjetter.** Prøvepunkter på armen viste at strålen traff rett sted, men at stedet var skjørt; det pekte på geometrien, ikke teksturen.
+- **En stil laget for figurer som står rett, blir dobbel på en form som allerede har holdning.** Apotekeren segnet med «old»; formen fra TRELLIS har holdningen fra arket.
+- **Et ansikt fra bildet forfra skal bare legges der formen er enig.** TRELLIS satte vaktas hjelmbrem lavere enn bildet, og øyenbrynene havnet på bremmen. Metningen skiller hud fra metall; fargeavstand gjør det ikke.
+- **Bildegeneratoren følger ikke alltid prompten** (tre vandrere i stedet for én, prosesjonen malt inn i bakgrunnen): se på hvert bilde og tilpass i `layers.py` (`FIT`, `WHOLE`) i stedet for å be om nye.
+- **Lag i full størrelse dekker hverandre.** Klipp mellomgrunnen og forgrunnen til innholdet og plasser dem som brøk av bildet; kameraet må ikke gå så langt innover at forgrunnen fyller bildet.
+- **To grafikkontekster samtidig** (spillet og filmen) fylte minnet i Chromium; spillet tegnes ikke mens filmen går.
+
+## 16. oktober: innbyggerne svarte i spillet, filmen som stillbilder
+
+- **`bake_textured(ao=False)` bakte AO likevel:** navnet `ao` ble overskrevet av AO-bildet, så `if ao:` alltid var sant. På skallene fra TRELLIS ble AO-en svart over halve figuren. Rettet (`occl`), og AO bakes ikke uten at den brukes. Lærdom: se på teksturen i den ferdige glb-fila og på figuren i spillet (`snapshot`), ikke bare på forhåndsvisningen fra Blender.
+- **Figuren så riktig ut i hvile, men ikke i bevegelse:** kjolen bak forkleet fikk andre bein enn forkleet og gikk gjennom det. Lag oppå hverandre må ha samme vekter (`layered_weights`). Sjekk figurene i en pose, ikke bare i hvile.
+- **Pakking etter at fargen er hentet** kan legge øyer oppå hverandre; pakk først, bak til samme øyer.
+- **Filmen:** eieren ville ha en sammenhengende bane gjennom maleriene, som planen sa (del 8), ikke scener som toner til svart. Les planen før noe bygges, og se på bevegelsen bilde for bilde.
+
+## 16. oktober: filmen skulle være selvstendig
+
+Eieren ba om en selvstendig, malt introfilm og om å droppe blandingen med spillet, men jeg fortsatte med å fly gjennom spillets verden og male over motoren. Det ga et stort gap mellom stilene og kostet eieren flere runder. Regler: når eieren forkaster en retning, forkastes den helt, uten flere forsøk på den. Er en bestilling uklar, still spørsmål til den er forstått (stilen, verdenen, kameraet, bildene, historien, lengden, tonen) før noe bygges. Historien er nå kanon (`docs/kanon.md`), og filmen er bygd av eierens malte lag alene (`tools/film/intro.py`).
+
+## 16. oktober: plassering før bevegelse i filmen
+
+I første versjon av den selvstendige filmen sto figurene der kamerabanen førte dem, ikke på gulvet i maleriene: munkene, kjøpmennene og Ansgar svevde, munkene sto dobbelt i Skriptoriet, og alt gikk, svaiet og fløy. Eieren: «Riktig plassering er mye viktigere enn at ting svever rundt … ikke dette sirkuset.» Regler: komponer hver scene først, sett fra et fast kamera, med foten til hver figur på gulvet i maleriet (målt fra alfaen) eller under bildekanten; kameraet holder høyden i scenen og beveger seg lite; ingen gange eller svaiing i lagene; legg aldri på figurer som alt står i maleriet. Se på hver scene med figurene før noe annet (`tools/film/intro.py`).
+

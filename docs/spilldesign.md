@@ -1,5 +1,7 @@
 # Fristad som spill – forslag
 
+> Historien og navnene i spillet står i `docs/kanon.md`, som går foran det som står her.
+
 Eieren (7. oktober 2026): «Det er ikke noe morsomt å utforske dokumentasjonen på denne måten. Komponentene virker klistret tilfeldig rundt. De må være en del av spillmekanikken: nivå 1, løse oppgaver, låse opp komponenter, hus, til slutt et skjema som låser opp temageneratoren. Vær kreativ, kom med de mest ekstreme forslagene.»
 
 Dette er forslagene, fra et samlende premiss til de mest ekstreme. Alt kan bygges i motoren vi har (installasjoner, props, flytur, panel, nettlaget), men flere av dem krever nye systemer: NPC-er, inventar, lagring av framgang, en manusmotor for oppdrag.
@@ -28,7 +30,7 @@ Verktøybeltet nederst på skjermen er bygd av de ekte komponentene (badges for 
 | 1. Ankomst | Plakaten og porten | button, link, breadcrumbs | Porten åpnes først når du har fikset knappen (velg primary, trykk F). Brødsmulene i brosteinen lærer deg å gå. |
 | 2. Torget | Torget, oppslagstavla, kiosken | alert, badge, tag, switch, progress, spinner, dialog, toast | Byen er mørk til du finner bryteren. Telefonkiosken ringer: dialogen gir deg første oppdrag fra ordføreren. |
 | 3. Bydelene | Østre, Vestre, Nord, Sør | tabs, card, accordion, table, avatar, divider, tooltip, skeleton, connection-status | Hvert hus har en innbygger som er «sin» komponent (se NPC-ene under). Du får nøkkel til neste hus når du har hjulpet den forrige. |
-| 4. Søknadskontoret | Kontoret sør for Østre gate | input, select, textarea, checkbox, radio, fieldset, label, help-text, error-text, file-upload, search, heading | Søknaden er «bossen»: hvert felt krever en komponent du har gjenopprettet, og vedleggene er ting du har samlet (saksnummeret fra kortet, fylket fra tabellen, fødselsattesten fra Gorvek). Valideringen er fienden: feil er ekte `.fs-error-text`. |
+| 4. Søknadskontoret | Kontoret sør for Østre gate | input, select, textarea, checkbox, radio, fieldset, label, help-text, error-text, file-upload, search, heading | Søknaden er «bossen»: hvert felt krever en komponent du har gjenopprettet, og vedleggene er ting du har samlet (saksnummeret fra kortet, fylket fra tabellen, fødselsattesten fra Torgils). Valideringen er fienden: feil er ekte `.fs-error-text`. |
 | 5. Temageneratoren | Tokenparken | tokens (farger, avstander, radius, skrift) | Innvilget søknad gir deg nøkkelen til verkstedet i parken. Der setter du sammen ditt eget tema av tokenene du har plukket i parken, og **hele byen bytter tema live**. Temaet kan eksporteres som ekte CSS (`[data-theme="mitt"]`), så spillet ender i noe du kan bruke på jobben. |
 
 Etter akt 5 åpner veiene til Linelord, Streamlord og Cobble (se «De tre rikene»).
@@ -41,7 +43,7 @@ Komponentene «klistret rundt» blir personer med ærend, og dialogen deres er d
 - **Spinneren** på masta er mannen som aldri blir ferdig; han stopper først når du fikser forbindelsen (`connection-status`), og da får du vite hva han ventet på.
 - **Skjelettet** er spøkelset av et hus som ikke er lastet ennå; byggeplassen er der det skal stå. Når du har levert tegningene (en card med riktig variant), reiser huset seg over natta (bokstavelig: du må sove til neste dag, T).
 - **Tooltip-mannen** ved kontoret snakker bare når du står helt inntil (hover), og sier én setning om gangen.
-- **Toast** er Gorvek: han dukker opp, sier noe høyt og forsvinner etter fem sekunder. Oppdraget hans er en jakt.
+- **Toast** er Torgils: han dukker opp, sier noe høyt og forsvinner etter fem sekunder. Oppdraget hans er en jakt.
 - **Dialogen** er telefonkiosken: ordføreren ringer, og du må svare riktig (bekreft/avbryt) under tidspress.
 - **Tabs** er huset med tre dører og tre søsken som alle påstår at døra deres er den riktige.
 - **Table** er buss-sjåføren som kjører deg (flytur) dit tabellen sier, men bare om du sorterer rutene riktig.
@@ -127,7 +129,7 @@ Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, tre
 7. **Utstyr** bygges av komponenter, men ser ut som ekte våpen og utstyr: sverd, skjold, øks, dolk, bue. Tematisk kobling er ok (divider = klinge, button = grep, card = skjoldplate, badge = skjoldbule, progress = bue, tag = pilspiss, tooltip = dolk).
 8. **Skjemaet er verkstedet:** oppskriften er et ekte Fristil-skjema i Skjemakontoret, feltene er plassene, validering er kravene. Avansert utstyr krever fieldset, file-upload og search.
 9. **Statistikk:** skade, fart, rekkevidde, blokk, ett spesialtrekk per våpen, sjeldenhetsgrader, ingen tilfeldige rulleverdier.
-10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Buttonsmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Gorvek lærer trekk. De bor i husene rundt torget.
+10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Buttonsmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Torgils lærer trekk. De bor i husene rundt torget.
 11. **Fem etasjer per nedstigning**, hver en epoke (2026 forretningslogikk, 2019 klassekomponenter, 2014 jQuery, 2009 tabellayout, 1999 blink), trapp ned bak en rusten port med nøkkel fra minibossen, Rammeverket nederst. En nedstigning er 20 til 30 minutter.
 12. **Generator:** rom og ganger (BSP), to høydenivåer med trapper og avsatser, hemmelige rom, kister, tema per epoke (murstein med mose, kloakk med gjørme, serverrom med lysrør, katakomber med stearinlys, lava i dypet), varierte lys (fakler, lykter, glødende mose, flakkende lysrør, lysskjær fra sprekker).
 13. **Nøkler** fra minibosser og låste kister, porten er et rustent gitter som sveives opp, låste dører til valgfrie rom.
@@ -146,7 +148,7 @@ Gjort: skjelettanimasjon (1–2), kampen (3–5), kjelleren med fem etasjer, tra
 
 Eieren ba om å forkaste byen og bygge den på nytt for spillet: ingen brønn som nedgang, ingen stiger, alt som ekte modeller med håndlagde teksturer, og koden i hexagonal arkitektur. Svarene på spørsmålene:
 
-1. **Setting:** nordisk kjøpstad rundt 1350, med bymur og porter, torg med markedsboder, Smia, Apoteket, Skriptoriet, Vertshuset, stavkirke og Gorveks øvingsplass. Borgruinen står på haugen nord for byen, og krypten under den er nedgangen til kjelleren (en dør med overgang i svart, og en trapp opp igjen nede).
+1. **Setting:** nordisk kjøpstad rundt 1350, med bymur og porter, torg med markedsboder, Smia, Apoteket, Skriptoriet, Vertshuset, stavkirke og Torgils' øvingsplass. Borgruinen står på haugen nord for byen, og krypten under den er nedgangen til kjelleren (en dør med overgang i svart, og en trapp opp igjen nede).
 2. **Komponentene** finnes bare som bytte, utstyr og bøker, ikke som ting rundt i byen.
 3. **Det som blir:** landskapet, dyrene og trærne. Alt annet i den gamle byen er borte.
 4. **Grafikken:** detaljgraden på modeller og figurer skal opp; motoren skal brukes for alt den er god for.

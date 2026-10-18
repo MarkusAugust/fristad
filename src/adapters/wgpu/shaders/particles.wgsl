@@ -7,7 +7,7 @@ struct Pass {
     // x 0 regn / 1 snø / 2 røyk, y mengde 0..1.
     params: vec4<f32>,
 }
-@group(1) @binding(4) var<uniform> pass_u: Pass;
+@group(1) @binding(2) var<uniform> pass_u: Pass;
 
 struct VsOut {
     @builtin(position) clip: vec4<f32>,
@@ -30,7 +30,7 @@ fn smoke_vs(vi: u32, ii: u32) -> VsOut {
     let h2 = ihash(ii * 7u + 2u);
     let h3 = ihash(ii * 7u + 3u);
     let t = g.camera.w;
-    let wind = g.jitter.w;
+    let wind = g.misc.x;
     let age = fract(t / SMOKE_LIFE + f32(k) / f32(PUFFS) + h1 * 0.03);
     // Stiger raskt fra pipa og saktere etter hvert, driver med vinden og
     // vrir seg litt.
@@ -96,7 +96,7 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VsOut
     let h2 = ihash(ii * 4u + 2u);
     let h3 = ihash(ii * 4u + 3u);
     let t = g.camera.w;
-    let wind = g.jitter.w;
+    let wind = g.misc.x;
     var speed = 9.0 + h3 * 3.0;
     if (snow) {
         speed = 0.9 + h3 * 0.6;

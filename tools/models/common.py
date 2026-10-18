@@ -119,6 +119,9 @@ def spin(name, profile, mat, steps=24):
 
 
 def export(path):
+    for name in ("src", "src_side"):
+        if ob.data.uv_layers.get(name) is not None:
+            ob.data.uv_layers.remove(ob.data.uv_layers[name])
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=False, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for ob in bpy.data.objects if ob.type == "MESH" for p in ob.data.polygons)
@@ -175,9 +178,73 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82):
+def pack_weighted(ob):
+    """Øyene i det aktive uv-laget skaleres etter flateattributtet «uv_density»
+    og pakkes på nytt (pakkingen beholder forholdet mellom øyene); 0 stabler
+    øyene i én liten flis. Attributtet tas ut etterpå."""
+    # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
+    # (pakkingen beholder forholdet mellom øyene).
+    import bmesh
+    from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
+
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    uv = bm.loops.layers.uv.active
+    dens = bm.faces.layers.float.get("uv_density")
+    stacked = []
+    area = 0.0
+    # Hver øy flyttes til sin egen rute langt unna før pakkingen: når
+    # øyene skaleres om midten sin, vokser de inn i naboene, og
+    # pakkingen (som slår sammen øyer som overlapper, for de stablede)
+    # ville latt dem ligge oppå hverandre, så bakingen skrev ansiktet
+    # over med kroppen under klærne.
+    spread = 0
+    for island in bmesh_linked_uv_islands(bm, uv):
+        w = sum(f[dens] for f in island) / len(island)
+        loops = [l for f in island for l in f.loops]
+        if w <= 0.0:
+            stacked.append(loops)
+            continue
+        if abs(w - 1.0) > 1e-3:
+            cu = sum(l[uv].uv.x for l in loops) / len(loops)
+            cv = sum(l[uv].uv.y for l in loops) / len(loops)
+            for l in loops:
+                l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
+                l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
+        spread += 1
+        for l in loops:
+            l[uv].uv.x += 10.0 * spread
+        for f in island:
+            pts = [l[uv].uv for l in f.loops]
+            area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
+    # Tetthet 0: øyene legges oppå hverandre i én liten flis (hårlokker
+    # og skjeggtuster, som ser like ut uansett), så tusenvis av øyer ikke
+    # spiser teksturen. Flisen er en liten del av resten.
+    side = STACK * area ** 0.5
+    for loops in stacked:
+        u0 = min(l[uv].uv.x for l in loops)
+        v0 = min(l[uv].uv.y for l in loops)
+        du = max(max(l[uv].uv.x for l in loops) - u0, 1e-6)
+        dv = max(max(l[uv].uv.y for l in loops) - v0, 1e-6)
+        for l in loops:
+            l[uv].uv.x = (l[uv].uv.x - u0) / du * side
+            l[uv].uv.y = (l[uv].uv.y - v0) / dv * side
+    bm.to_mesh(ob.data)
+    bm.free()
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.select_all(action="SELECT")
+    bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    ob.data.attributes.remove(ob.data.attributes["uv_density"])
+
+
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False, pack=True):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
-    begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO,
+    begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO
+    (uten AO med `ao=False`: arket har skyggene malt inn; `uv_angle=None`
+    beholder øyene modellen har i første uv-lag og bare pakker dem;
+    `apart=True` baker bitene som ikke henger sammen hver for seg),
     normalkart og ruhet/metall til teksturer, bytter til teksturerte
     materialer og eksporterer glTF. Materialer som begynner på «paint» bakes
     hvite og beholder navnet, så motoren farger dem per instans; resten
@@ -226,65 +293,33 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
             mod = o.modifiers.new("Armature", "ARMATURE")
             mod.object = armature
             o.parent = armature
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.003)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    if weighted:
-        # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
-        # (pakkingen beholder forholdet mellom øyene).
-        import bmesh
-        from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
-
-        bm = bmesh.new()
-        bm.from_mesh(ob.data)
-        uv = bm.loops.layers.uv.active
-        dens = bm.faces.layers.float.get("uv_density")
-        stacked = []
-        area = 0.0
-        # Hver øy flyttes til sin egen rute langt unna før pakkingen: når
-        # øyene skaleres om midten sin, vokser de inn i naboene, og
-        # pakkingen (som slår sammen øyer som overlapper, for de stablede)
-        # ville latt dem ligge oppå hverandre, så bakingen skrev ansiktet
-        # over med kroppen under klærne.
-        spread = 0
-        for island in bmesh_linked_uv_islands(bm, uv):
-            w = sum(f[dens] for f in island) / len(island)
-            loops = [l for f in island for l in f.loops]
-            if w <= 0.0:
-                stacked.append(loops)
-                continue
-            if abs(w - 1.0) > 1e-3:
-                cu = sum(l[uv].uv.x for l in loops) / len(loops)
-                cv = sum(l[uv].uv.y for l in loops) / len(loops)
-                for l in loops:
-                    l[uv].uv.x = cu + (l[uv].uv.x - cu) * w
-                    l[uv].uv.y = cv + (l[uv].uv.y - cv) * w
-            spread += 1
-            for l in loops:
-                l[uv].uv.x += 10.0 * spread
-            for f in island:
-                pts = [l[uv].uv for l in f.loops]
-                area += abs(sum(pts[k].x * pts[k - 1].y - pts[k - 1].x * pts[k].y for k in range(len(pts)))) / 2
-        # Tetthet 0: øyene legges oppå hverandre i én liten flis (hårlokker
-        # og skjeggtuster, som ser like ut uansett), så tusenvis av øyer ikke
-        # spiser teksturen. Flisen er en liten del av resten.
-        side = STACK * area ** 0.5
-        for loops in stacked:
-            u0 = min(l[uv].uv.x for l in loops)
-            v0 = min(l[uv].uv.y for l in loops)
-            du = max(max(l[uv].uv.x for l in loops) - u0, 1e-6)
-            dv = max(max(l[uv].uv.y for l in loops) - v0, 1e-6)
-            for l in loops:
-                l[uv].uv.x = (l[uv].uv.x - u0) / du * side
-                l[uv].uv.y = (l[uv].uv.y - v0) / dv * side
-        bm.to_mesh(ob.data)
-        bm.free()
+    # Et uv-lag «src» er kilden til et bilde i materialet (et forbilde lagt
+    # på en flate, monsters.py); atlaset bakes i det første laget, og «src»
+    # tas ut før eksporten.
+    src = ob.data.uv_layers.get("src")
+    if src is not None:
+        first = next(l for l in ob.data.uv_layers if not l.name.startswith("src"))
+        ob.data.uv_layers.active = first
+        first.active_render = True
+    if not pack:
+        # Øyene står som modellen har dem (folk3d pakker før fargen hentes,
+        # så bakingen er en ren kopi; ny pakking la øyer oppå hverandre).
+        pass
+    elif uv_angle is not None:
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=uv_angle, island_margin=0.003)
+        bpy.ops.object.mode_set(mode="OBJECT")
+    elif not weighted:
+        # Øyene modellen har med seg i første uv-lag (i meter), bare pakket.
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.select_all(action="SELECT")
         bpy.ops.uv.select_all(action="SELECT")
-        bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
+        bpy.ops.uv.pack_islands(rotate=True, margin=0.004)
         bpy.ops.object.mode_set(mode="OBJECT")
+    if weighted and pack:
+        pack_weighted(ob)
+    elif "uv_density" in ob.data.attributes:
         ob.data.attributes.remove(ob.data.attributes["uv_density"])
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
@@ -332,13 +367,43 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         metals.append(bsdf.inputs["Metallic"].default_value)
         bsdf.inputs["Metallic"].default_value = 0.0
+    # Skjelettet står ute av spill under bakingen (hvileposen er formen
+    # teksturen hører til).
+    held_mods = [(m, m.show_render, m.show_viewport) for m in ob.modifiers if m.type == "ARMATURE"]
+    for m, _, _ in held_mods:
+        m.show_render = m.show_viewport = False
+    if apart:
+        # Bitene som ikke henger sammen (armene, kroppen, hodet) bakes langt
+        # fra hverandre: der armen ligger inne i kroppen, så Cycles den
+        # andre flaten først og bakte svart (innbyggerne, 14. oktober).
+        # Formen og normalene er de samme, bare flyttet.
+        co = np.array([v.co[:] for v in ob.data.vertices])
+        parent = np.arange(len(co))
+
+        def root(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        for e in ob.data.edges:
+            a, b = root(e.vertices[0]), root(e.vertices[1])
+            if a != b:
+                parent[a] = b
+        _, piece = np.unique([root(i) for i in range(len(co))], return_inverse=True)
+        moved = co.copy()
+        moved[:, 0] += piece * 5.0
+        ob.data.vertices.foreach_set("co", moved.ravel())
+        ob.data.update()
     albedo = bake_to("albedo", "DIFFUSE", "sRGB", pass_filter={"COLOR"})
     for mat, m in zip(ob.data.materials, metals):
         mat.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = m
     bumps = [n for mat in ob.data.materials for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBump"]
     for n in bumps:
         n.mute = True
-    ao = bake_to("ao", "AO", "Non-Color")
+    # Uten AO bakes den ikke: navnet `ao` ble før overskrevet av bildet, så
+    # `ao=False` ga AO likevel, og på skallene fra TRELLIS ble den svart.
+    occl = bake_to("ao", "AO", "Non-Color") if ao else None
     for n in bumps:
         n.mute = False
     normal = bake_to("normal", "NORMAL", "Non-Color", normal_space="TANGENT")
@@ -349,9 +414,15 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
         bsdf.inputs["Emission Color"].default_value = (m, m, m, 1.0)
         bsdf.inputs["Emission Strength"].default_value = 1.0
     metal = bake_to("metal", "EMIT", "Non-Color")
+    if apart:
+        ob.data.vertices.foreach_set("co", co.ravel())
+        ob.data.update()
+    for m, r, v in held_mods:
+        m.show_render, m.show_viewport = r, v
     a = np.array(albedo.pixels[:]).reshape(size, size, 4)
-    o = np.array(ao.pixels[:]).reshape(size, size, 4)
-    a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
+    if occl is not None:
+        o = np.array(occl.pixels[:]).reshape(size, size, 4)
+        a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
     albedo.pixels = a.ravel().tolist()
     r = np.array(rough.pixels[:]).reshape(size, size, 4)
     mt = np.array(metal.pixels[:]).reshape(size, size, 4)
@@ -397,6 +468,12 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
             tex_mat[key] = nm
     for slot in ob.material_slots:
         slot.material = tex_mat[key_of(slot.material.name)]
+    for name in ("src", "src_side"):
+        if ob.data.uv_layers.get(name) is not None:
+            ob.data.uv_layers.remove(ob.data.uv_layers[name])
+    # Vekten mellom bildene (`blended_sheet_material`) trengs bare til bakingen.
+    if ob.data.color_attributes.get("src_front") is not None:
+        ob.data.color_attributes.remove(ob.data.color_attributes["src_front"])
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_image_format="JPEG", export_jpeg_quality=jpeg_quality, export_animations=armature is not None, export_skins=armature is not None, export_animation_mode="NLA_TRACKS", export_force_sampling=True, export_optimize_animation_size=False, export_cameras=False, export_lights=False)
     slim.slim(path)  # normalene og hjørnefargen pakkes (slim.py)
     tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)

@@ -12,8 +12,11 @@ const modules = {
   world: ["noise", "common", "shadow", "world"],
   sky: ["noise", "common", "sky"],
   particles: ["noise", "common", "particles"],
+  lines: ["noise", "common", "lines"],
   post: ["noise", "common", "shadow", "post"],
   bake: ["noise", "bake"],
+  smaa: ["smaa"],
+  ao: ["common", "ao"],
 };
 
 const browser = await chromium.launch({

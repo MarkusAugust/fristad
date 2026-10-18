@@ -1,0 +1,38 @@
+{
+ "ref": "assets/textures/props/prop2/chest.jpeg",
+ "layout": "prop2",
+ "tris": 3000,
+ "tex": 1024,
+ "target": "fristad",
+ "root": "../../..",
+ "limits": {
+  "sharpness_min": 40.0
+ },
+ "opt": {
+  "prior": "chest",
+  "size": {
+   "hx": 0.3,
+   "hy": 0.23,
+   "hz": 0.54,
+   "lid": 0.6
+  },
+  "view_pitch": 20.0,
+  "tiles": "auto",
+  "edge_fade": 6.0,
+  "game_yaw": 90,
+  "yaw_range": 15.0,
+  "split": {
+   "at": "lid",
+   "names": [
+    "chest",
+    "chest_lid"
+   ],
+   "hinge": [
+    0.0,
+    0.46,
+    -0.28
+   ]
+  }
+ },
+ "merk": "kista med spillets mål (1,08 × 0,60 × 0,46 + lokk 0,18), delt i kasse og lokk om CHEST_HINGE"
+}

@@ -1,0 +1,11 @@
+{
+ "_om": "Runde 14: Datepicker-presten holder og svinger staven.",
+ "round": 14,
+ "fix": {
+  "grep": "Nei, før gjorde han ikke det: fingrene på venstre hånd pekte rett fram ved siden av skaftet. Nå ligger tre bøyde fingre rundt skaftet med knokene ute og tommelen over, håndflaten ligger inntil, og håndleddet går helt inn i hånda. Grepet henger fast i staven, så det følger med i alle bevegelsene.",
+  "sving": "Nei, før slo han begge nevene i gulvet, og staven ble slengt flatt med. Nå har han et eget stavslag: han tar staven med begge hender (høyre griper lenger ned på skaftet), trekker urskiva opp bak skulderen og lener seg bakover, står et øyeblikk så du ser slaget komme, og hogger den så i en bue over og skrått ned foran seg mot høyre med et skritt fram. Slaget treffer på samme tid som før, så kampen er lik. En ny regel i eksporten måler staven mot kroppen i hvert bilde av slaget og stopper om den går inn i kappa eller hodet (nå minst 6 cm klaring)."
+ },
+ "items": {
+  "datepicker_priest": {"fix": ["grep", "sving"]}
+ }
+}

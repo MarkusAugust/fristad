@@ -1,0 +1,5 @@
+{
+ "_om": "Runde 13: monstrene i gravkjelleren, laget etter arkene dine. Øverst på hvert kort står arket, under står modellen forfra, fra siden og bakfra, og i spillet når den står i nivå 1.",
+ "round": 13,
+ "new": ["mutant_button", "mutant_tooltip", "datepicker_priest", "mutant_modal"]
+}

@@ -2,7 +2,7 @@
 bildegenerator eller et foto), så et enkelt bilde blir et fullt teksturlag.
 
     python3 tools/textures/derive.py <lag> <bilde> [--size-m 2.0] [--rough 0.8] [--depth 1.0] [--invert]
-        [--keystone 0.3] [--crop] [--seamless] [--flatten]
+        [--keystone 0.3] [--crop] [--seamless] [--flatten] [--even]
 
 Skriver assets/textures/<lag>/albedo.jpg, normal.jpg, height.jpg,
 rough.jpg og meta.json (meter per flis). Alt regnes med omslag i kantene,
@@ -13,7 +13,9 @@ fliser: `--keystone K` retter opp et bilde tatt på skrå (øverste rad K
 mindre enn nederste), `--crop` tar et kvadrat midt i bildet i stedet for å
 strekke det, og `--seamless` blander inn en kopi forskjøvet en halv flis
 langs kantene så bildet møtes uten søm. `--flatten` glatter ut store folder
-(stoff) og beholder den fine strukturen. Lagnavnene er de i
+(stoff) og beholder den fine strukturen. `--even` jevner ut lysheten rad for
+rad og kolonne for kolonne og deler bort de store flekkene (bilder som er
+lysere øverst enn nederst blir ellers stripete når de gjentas). Lagnavnene er de i
 `Layer::name` (cobble, plaster, oak, tiles, stone, cladding …)."""
 
 import json
@@ -83,6 +85,27 @@ def seamless(a, band=0.22):
     return a
 
 
+def even(a):
+    """Jevner ut lysheten og fargetonen: først rad for rad og kolonne for
+    kolonne (den glattede middelverdien per rad deles bort, kanal for kanal,
+    så en flis som går fra kremgul øverst til blålilla nederst blir lik hele
+    veien), så de store flekkene (alt større enn rundt en åttendedel av
+    flisen). De små formene står."""
+    h, w = a.shape[:2]
+    for axis in (1, 0):
+        prof = a.mean(axis=axis)  # (n, 3)
+        n = prof.shape[0]
+        f = np.fft.fftfreq(n)[:, None]
+        r = n / 18.0
+        smooth = np.real(np.fft.ifft(np.fft.fft(prof, axis=0) * np.exp(-2.0 * (np.pi * r) ** 2 * f * f), axis=0))
+        k = prof.mean(axis=0)[None, :] / np.maximum(smooth, 1.0)
+        a = a * (k[:, None, :] if axis == 1 else k[None, :, :])
+    for c in range(3):
+        low = blur(a[..., c], h / 10.0)
+        a[..., c] = a[..., c] * (a[..., c].mean() / np.maximum(low, 1.0))
+    return a
+
+
 def main():
     args = sys.argv[1:]
     layer, src = args[0], args[1]
@@ -95,7 +118,7 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     img = Image.open(src).convert("RGB")
-    if any(f in args for f in ("--keystone", "--crop", "--seamless", "--flatten")):
+    if any(f in args for f in ("--keystone", "--crop", "--seamless", "--flatten", "--even")):
         a = np.asarray(img, dtype=np.float32)
         if "--keystone" in args:
             a = keystone(a, opt("--keystone", 0.3))
@@ -111,6 +134,8 @@ def main():
             a = a * (lum.mean() / np.maximum(big, 1.0))[..., None]
         if "--seamless" in args:
             a = seamless(a)
+        if "--even" in args:
+            a = even(a)
         img = Image.fromarray(a.clip(0, 255).astype(np.uint8))
     img = img.resize((SIZE, SIZE), Image.LANCZOS)
     img.save(f"{out}/albedo.jpg", quality=90)

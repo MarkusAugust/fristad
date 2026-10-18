@@ -722,6 +722,9 @@ dependencies = [
  "console_log",
  "env_logger",
  "fontdue",
+ "fristad-app",
+ "fristad-domain",
+ "fristad-ports",
  "glam",
  "gltf",
  "image",
@@ -737,6 +740,34 @@ dependencies = [
  "web-sys",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "fristad-app"
+version = "0.1.0"
+dependencies = [
+ "fristad-domain",
+ "fristad-ports",
+ "glam",
+ "log",
+]
+
+[[package]]
+name = "fristad-domain"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "glam",
+ "log",
+ "serde",
+]
+
+[[package]]
+name = "fristad-ports"
+version = "0.1.0"
+dependencies = [
+ "fristad-domain",
+ "glam",
 ]
 
 [[package]]
@@ -814,6 +845,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
 dependencies = [
  "bytemuck",
+ "serde_core",
 ]
 
 [[package]]

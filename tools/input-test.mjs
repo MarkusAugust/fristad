@@ -58,14 +58,15 @@ const fps = async () => {
   return Number((await page.textContent("#perf")).split(" ")[0]);
 };
 // Grafikken.
-check((await page.textContent("#graphics-label")) === "avansert", "starter i avansert grafikk");
-const fpsAdvanced = await fps();
+check((await page.textContent("#graphics-label")) === "standard", "starter i standard grafikk");
+const fpsStandard = await fps();
 await page.keyboard.press("g");
-check((await page.textContent("#graphics-label")) === "redusert", "G bytter til redusert");
-check((await page.evaluate(() => localStorage.getItem("fristad.graphics"))) === "redusert", "valget huskes");
-const fpsReduced = await fps();
-console.log(`     bilder per sekund: avansert ${fpsAdvanced}, redusert ${fpsReduced} (SwiftShader)`);
-check(fpsReduced >= fpsAdvanced, "redusert er ikke tregere");
+check((await page.textContent("#graphics-label")) === "avansert", "G bytter til avansert");
+check((await page.evaluate(() => localStorage.getItem("fristad.graphics"))) === "avansert", "valget huskes");
+const fpsAdvanced = await fps();
+console.log(`     bilder per sekund: standard ${fpsStandard}, avansert ${fpsAdvanced} (SwiftShader)`);
+check(fpsStandard >= fpsAdvanced, "standard er ikke tregere");
+await page.keyboard.press("g");
 // Musa: et klikk i bildet sender et hugg (med eller uten pekerlås).
 await page.evaluate(() => (window.__mouse = []));
 await page.mouse.click(480, 270, { delay: 30 });

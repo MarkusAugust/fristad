@@ -1,0 +1,16 @@
+[package]
+name = "fristad-domain"
+version = "0.1.0"
+edition = "2021"
+description = "Kjernen i Fristad: verden, reglene og figurene. Bare matematikk, serde og logging; ingen motorer, filer eller miljø."
+license = "MIT"
+
+[features]
+# Hjelpere som bare testene i hovedpakken bruker (vekke alle fiender osv.).
+testing = []
+
+[dependencies]
+glam = { version = "0.30", features = ["bytemuck", "serde"] }
+bytemuck = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+log = "0.4"

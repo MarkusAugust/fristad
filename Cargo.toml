@@ -5,6 +5,9 @@ edition = "2021"
 description = "Fristad: dokumentasjonen til Fristil som en by du kan gå rundt i."
 license = "MIT"
 
+[workspace]
+members = ["crates/fristad-domain", "crates/fristad-ports", "crates/fristad-app"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -17,10 +20,21 @@ name = "snapshot"
 path = "src/bin/snapshot.rs"
 
 [[bin]]
+name = "catalog"
+path = "src/bin/catalog.rs"
+
+[[bin]]
+name = "layout"
+path = "src/bin/layout.rs"
+
+[[bin]]
 name = "bake_font"
 path = "src/bin/bake_font.rs"
 
 [dependencies]
+fristad-domain = { path = "crates/fristad-domain" }
+fristad-ports = { path = "crates/fristad-ports" }
+fristad-app = { path = "crates/fristad-app" }
 wgpu = { version = "25", features = ["webgl"] }
 winit = "0.30"
 glam = { version = "0.30", features = ["bytemuck"] }
@@ -30,7 +44,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-gltf = { version = "1", default-features = false, features = ["utils", "import", "names"] }
+gltf = { version = "1", default-features = false, features = ["utils", "import", "names", "extras"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.4"
@@ -45,6 +59,11 @@ js-sys = "0.3"
 web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement", "Performance"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
+
+[dev-dependencies]
+# Testene i hovedpakken bruker hjelperne bak `testing` (vekke fiendene osv.).
+fristad-domain = { path = "crates/fristad-domain", features = ["testing"] }
+fristad-app = { path = "crates/fristad-app", features = ["testing"] }
 
 [profile.release]
 opt-level = 3

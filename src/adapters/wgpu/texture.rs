@@ -68,9 +68,11 @@ pub fn upload(device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, img: 
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
         view_formats: &[],
     });
+    // Kodede bilder pakkes ut her, ett om gangen, og slippes med en gang.
+    let rgba = crate::adapters::gltf::pixels(img);
     queue.write_texture(
         wgpu::TexelCopyTextureInfo { texture: &tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-        &img.rgba,
+        &rgba,
         wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(img.width * 4), rows_per_image: Some(img.height) },
         wgpu::Extent3d { width: img.width, height: img.height, depth_or_array_layers: 1 },
     );
@@ -381,13 +383,12 @@ impl Materials {
             }
             queue.submit([enc.finish()]);
         }
-        // Fotoskannede materialer skrives over de bakte lagene.
+        // Eierens malte lag (assets/textures/<lag>/, avledet fra painted/) skrives over de bakte.
         let mut scales = TEX_SCALE;
         for (layer, imgs) in external {
-            // Lagene som får malingsfarge fra geometrien (puss og panel) skal
-            // bare bidra med variasjon, så albedoen skaleres til lys grå.
-            let tinted = matches!(layer, Layer::Plaster | Layer::Cladding);
-            let (a, n) = pack_external(imgs, tinted);
+            // De malte lagene har fargen sin i bildet; modellene toner dem
+            // med hvit.
+            let (a, n) = pack_external(imgs, false);
             for (tex, data) in [(&albedo, &a), (&nrh, &n)] {
                 queue.write_texture(
                     wgpu::TexelCopyTextureInfo { texture: tex, mip_level: 0, origin: wgpu::Origin3d { x: 0, y: 0, z: *layer as u32 }, aspect: wgpu::TextureAspect::All },
@@ -397,7 +398,7 @@ impl Materials {
                 );
             }
             scales[*layer as usize] = imgs.size_m.max(0.1);
-            log::info!("Lag {} bruker fotoskannet materiale ({} m per flis)", layer.name(), imgs.size_m);
+            log::info!("Lag {} bruker malt bilde ({} m per flis)", layer.name(), imgs.size_m);
         }
         mipper.generate(device, queue, &albedo, &nrh, srgb, lin, LAYERS, mips);
 
@@ -529,7 +530,7 @@ impl Materials {
 
 /// Skalerer et bilde til lagstørrelsen.
 fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
-    let src = image::RgbaImage::from_raw(img.width, img.height, img.rgba.clone()).expect("bilde");
+    let src = image::RgbaImage::from_raw(img.width, img.height, crate::adapters::gltf::pixels(img).into_owned()).expect("bilde");
     if img.width == SIZE && img.height == SIZE {
         src
     } else {
@@ -537,7 +538,7 @@ fn fit(img: &crate::domain::model::Image) -> image::RgbaImage {
     }
 }
 
-/// Pakker et fotoskannet materiale til lagformatene: albedo (med AO bakt
+/// Pakker et lagbilde (eierens malte, avledet med derive.py) til lagformatene: albedo (med AO bakt
 /// inn) og normal xy, ruhet, høyde.
 fn pack_external(imgs: &LayerImages, normalize: bool) -> (Vec<u8>, Vec<u8>) {
     let diffuse = fit(&imgs.diffuse);

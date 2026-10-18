@@ -1,0 +1,15 @@
+{
+ "_om": "Runde 13, del 2: krypten nivå 1 og trappa ned, rettet etter dommen din.",
+ "round": 13,
+ "fix": {
+  "sokkel": "Harde overganger: Langs foten av alle murene i rommene og gangene står nå en sokkel, et skift av hogd stein 34 cm høyt og 7 cm ut fra muren, med skrådd overkant. Den stopper ved døråpningene. I trappene går trinnene inn i muren som før.",
+  "stein": "Teksturer som ikke passet sammen: Hvelvene hadde små, mørke bruddsteiner over store, lyse kvadre. Kapellet og Alterkapellet hadde gul kalkpuss med flekker. Nå mures hvelv, vegger og kapell av den samme steinen, og hvelvet er litt mørkere.",
+  "ribber": "Ribbene i krysshvelvene endte i en spiss i hjørnet. Nå står de på en konsollstein i hvert hjørne.",
+  "hull": "Hull: Trinnene i trappa ned var tynne plater med to sider, så du så rett gjennom mellom trinnene (de grå stripene). Nå er trinnene massive helt ned til bunnen av sjakta, og en terskelstein fyller kanten av hullet i gulvet. Under gulvet lå trinnene dessuten utenfor alle rom, så bare lykta du bærer lyste dem, og de ble utbrent. Nå lyser rommet sjakta.",
+  "portal": "Trappa ned: De frittstående søylene med bue er byttet ut med en kort portalmur med rundbuet åpning. Den har vangestein og kilestein på begge sider, slik som døra opp og snarveien du har godkjent."
+ },
+ "items": {
+  "crypt_01_aa": {"fix": ["sokkel", "stein", "ribber"]},
+  "kit_down": {"fix": ["hull", "portal"]}
+ }
+}

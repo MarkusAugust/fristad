@@ -1,0 +1,21 @@
+[
+  {"at":{"pos":[-3.52,0.7,1.435],"rot":[0,0,0,1]},"model":"apothecary_shelf","mounted":true},
+  {"at":{"pos":[-0.91,0.7,1.375],"rot":[0,0,0,1]},"model":"apothecary_counter","mounted":true},
+  {"at":{"pos":[0.8,0.7,2.6],"rot":[0,0,0,1]},"model":"stool","mounted":true},
+  {"at":{"pos":[-2.7,0.7,2.89],"rot":[0,0,0,1]},"model":"herb_sacks","mounted":true},
+  {"at":{"pos":[-1.7,3.05,3.075],"rot":[0,0,0,1]},"model":"door_shelf_jars","mounted":true},
+  {"at":{"pos":[-0.21,0.7,-2.85],"rot":[0,0,0,1]},"model":"lab_bench","mounted":true},
+  {"at":{"pos":[-0.21,2.45,-3.06],"rot":[0,0,0,1]},"model":"lab_shelf","mounted":true},
+  {"at":{"pos":[-1,0.7,-1.55],"rot":[0,0,0,1]},"model":"lab_table","mounted":true},
+  {"at":{"pos":[-1.2,0.7,-0.8],"rot":[0,0,0,1]},"model":"stool","mounted":true},
+  {"at":{"pos":[-3.53,0.7,-1.85],"rot":[0,0,0,1]},"model":"bookcase_lab","mounted":true},
+  {"at":{"pos":[-0.715,3.44,3.225],"rot":[0,0,0,1]},"model":"drying_bed_front","mounted":true},
+  {"at":{"pos":[-1.225,3.44,-2.825],"rot":[0,0,0,1]},"model":"drying_bed_back","mounted":true},
+  {"at":{"pos":[-1.8,3.44,0.2],"rot":[0,0,0,1]},"model":"drying_rack_0","mounted":true},
+  {"at":{"pos":[0.4,3.44,0.2],"rot":[0,0,0,1]},"model":"drying_rack_1","mounted":true},
+  {"at":{"pos":[-3.15,3.44,0.2],"rot":[0,0,0,1]},"model":"bed_apothecary","mounted":true},
+  {"at":{"pos":[1.2,3.44,2.35],"rot":[0,0,0,1]},"model":"herb_basket_0","mounted":true},
+  {"at":{"pos":[1.75,3.44,2.5],"rot":[0,0,0,1]},"model":"herb_basket_1","mounted":true},
+  {"at":{"pos":[0.9,3.44,-2],"rot":[0,0,0,1]},"model":"herb_basket_2","mounted":true},
+  {"at":{"pos":[-1.25,3.44,-2.13],"rot":[0,0,0,1]},"model":"sacks_two","mounted":true}
+]

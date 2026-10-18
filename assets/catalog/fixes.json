@@ -1,0 +1,1040 @@
+{
+ "shield_round": {
+  "f83c91e60c39": {
+   "text": [
+    "Armen var bøyd som gummi i blokken fordi håndleddet ble knekt nesten 40° og vektene ved håndleddet strakk huden. Nå går underarmen rett inn i neven i blokken (håndleddsregelen gjelder også venstre hånd), skjoldet holdes litt lenger fram, og det vender fortsatt rett fram, dreid ut mot venstre."
+   ],
+   "images": [
+    "assets/catalog/review/shield_round_block.jpg",
+    "assets/catalog/review/shield_round_game.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "bilde to, hånden ser ut som at den er bøyd som gummi"
+   }
+  }
+ },
+ "arms": {
+  "28a2644d32ab": {
+   "text": [
+    "Siden du godkjente armene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
+   ]
+  },
+  "f91e00aced2d": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
+   ]
+  },
+  "79fba50c4694": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
+   ]
+  }
+ },
+ "arms_leather": {
+  "57c2bf4bde03": {
+   "text": [
+    "Siden du godkjente lærarmene i runde 18, er huggene endret for øksa (runde 19): rullen om klinga velges så eggen går først i hvert treff, uten å bryte håndleddsregelen. Formen og arket er det samme."
+   ]
+  },
+  "ca31eaeebc0b": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
+   ]
+  },
+  "5dd0553f3e34": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
+   ]
+  }
+ },
+ "sword": {
+  "e83b62769426": {
+   "text": [
+    "Siden du godkjente sverdet i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ],
+   "images": [
+    "assets/catalog/review/sword.jpg"
+   ]
+  }
+ },
+ "dagger": {
+  "2ccc53cd57b0": {
+   "text": [
+    "Siden du godkjente dolken i runde 17, ligger grepet 20° på skrå i neven (runde 18), så klinga heller fram langs underarmen. Formen er den samme; bildet er tatt i våpenets eget rom, så det står litt annerledes dreid."
+   ],
+   "images": [
+    "assets/catalog/review/dagger.jpg"
+   ]
+  },
+  "5577fc5e7947": {
+   "text": [
+    "Spissen er for rund → klinga er parallell den første halvdelen og smalner så jevnt, svakt buet, til et spisst punkt, som på arket.",
+    "Ny kontroll ved eksporten (tip_check): 2 cm fra spissen er klinga høyst halvparten så bred som der den er bredest. Dolken er nå 35 %, før 67 %."
+   ],
+   "images": [
+    "assets/catalog/review/dagger.jpg"
+   ]
+  }
+ },
+ "crypt_01_ab": {
+  "695a04e32028": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/crypt_corner.jpg"
+   ]
+  }
+ },
+ "crypt_01_ac": {
+  "46eebe288c9a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ad": {
+  "f6e8bcce24d9": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ae": {
+  "724a32931aad": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_af": {
+  "857df977968f": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ag": {
+  "9fbec62b777a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ah": {
+  "ee6e73733aa2": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ai": {
+  "b8efdeaa91ae": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aj": {
+  "408bdce5800e": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ak": {
+  "abddf435f251": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_al": {
+  "77496444a2b3": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/crypt_pillars.jpg"
+   ]
+  }
+ },
+ "crypt_01_am": {
+  "d50d6089ef62": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_an": {
+  "130743195d97": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Søylene i Søylegangen sluttet ved vederlaget, rundt 2 m under hvelvet, og bar ingenting (du så riktig). Nå står gjordbuene rett over søyleradene, og kapitélet går opp til buen (pillar_top).",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ao": {
+  "0d3eef70271b": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ap": {
+  "e17e822e8179": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aq": {
+  "823ec78f9c66": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ar": {
+  "631b9af79e0a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_as": {
+  "424c95388afd": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_at": {
+  "fd8f2013a583": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_au": {
+  "9de5600fa73f": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_av": {
+  "a6c76dae8c23": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_aw": {
+  "59710189a16a": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ax": {
+  "1e5824a8a031": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ay": {
+  "044ce64e59df": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_az": {
+  "73803fe39bc3": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_ba": {
+  "78ec34cad30c": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "crypt_01_bb": {
+  "297d939efdcc": {
+   "text": [
+    "Nå kan du se biten i 3D: «Se i 3D» viser den inne i hele nivået med teksturene. Dra for å rotere, rull for å zoome, og dobbeltklikk på en flate for å gå dit. «Før» viser biten slik du så den.",
+    "Hull ved konsollene i hjørnene: veggen under krysshvelvet fulgte buen med rette biter og sto under hvelvkanten nær vederlaget, så det ble kiler av himmel på begge sider av hver konsoll (du så riktig). Murene går nå 35 cm opp bak hvelvet (VAULT_LAP), i alle rom med hvelv, i gangene og under kuppelen i Beinhuset, der det også var sprekker.",
+    "Trappa i snarveien begynte midt i hjørnefaget, under gulvet der, og gjennom spalten så man ut under gangen. En trapp begynner og slutter nå alltid utenfor hjørnefagene, og bygget stopper om den ikke får plass.",
+    "Sprekker på avstand: lenger unna enn 28 m (14 m i standard grafikk) tegnet spillet en forenklet utgave av bitene, og forenklingen åpnet sprekker i skjøtene, blant annet en loddrett sprekk i den runde muren i Beinhuset. Lette modeller (under 12 000 trekanter) forenkles ikke lenger; testen kryptmurene_forenkles_ikke_pa_avstand.",
+    "Ditt forslag: nede i krypten tegnes himmelen nå sort, så en sprekk som skulle slippe gjennom, blir en mørk strek og aldri en lys kile med himmel.",
+    "Ny sprekkesjekk i spillmotoren (snapshot --leak-scan): himmelen tegnes magenta, og fra hvert punkt på gulvet (994 punkter) ses det i 24 retninger. Før: hundrevis av bilder med himmel (kilene ved konsollene, Beinhuset, snarveien, trappegangene). Nå: 7 av 23 832 bilder har én enkelt piksel (kanter i skjøtene), og de er sorte i spillet."
+   ]
+  }
+ },
+ "kit_lever_arm": {
+  "33334e47a952": {
+   "text": [
+    "Nå kan du se spakarmen i 3D: «Se i 3D», dra for å rotere og rull for å zoome."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": ""
+   }
+  }
+ },
+ "arms_mail": {
+  "46df5051c6e8": {
+   "text": [
+    "Huggene er bygd på nytt. Sverdet snurret fordi klinga gikk i sløyfe og vridningen ble valgt bilde for bilde; nå går hvert hugg fram og tilbake langs samme bue, og vridningen velges for hele hugget samlet. Ny kontroll ved eksporten: klinga vris høyst 20° per bilde (nå høyst 16°).",
+    "I treffet peker klinga inn mot fienden, ikke loddrett eller på tvers foran deg, og eggen går først.",
+    "Det tunge hugget skiller seg ut: sverdet løftes bak hodet og holdes der mens det lades, så kaster hele kroppen seg fram (2,5 ganger så langt som i de vanlige). I spillet løfter ladningen blikket og får det til å dirre, og slaget kaster blikket ned, med lengre stopp og mer risting når det treffer. Ny kontroll: det tunge hugget må feie lenger og kaste kroppen minst dobbelt så langt som de vanlige."
+   ],
+   "images": [
+    "assets/catalog/review/arms_hugg.jpg"
+   ]
+  },
+  "891397ebd81f": {
+   "text": [
+    "Huggene drives nå av skulderen, ikke av albuen: hånda går en stor bue over bildet, like langt fra skulderen hele veien, så albuen holder vinkelen og hele armen svinger fra skulderen.",
+    "Når albuen dreies rundt, er det nå overarmen som roterer i skulderen; underarmen bøyes bare som et hengsel og rulles én gang per hugg, og klinga følger armen i stedet for å vippe om albuen.",
+    "Ny kontroll ved eksporten: overarmen må dreies minst 1,5 ganger så mye som underarmen mot overarmen. Før var det 0,4 (albuen gjorde mesteparten), nå 1,6–3,4.",
+    "Eggen går fortsatt først i hvert treff, klinga vris høyst 15° per bilde, og det tunge hugget feier 190° fra ladningen. Tilbakehugget fra venstre er tre bilder lengre, så underarmen rekker å rulle tilbake uten at klinga snurrer."
+   ],
+   "images": [
+    "assets/catalog/review/arms_skulder.jpg"
+   ]
+  }
+ },
+ "npc_smith": {
+  "66817bb1a12f": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "1e8c6351e191": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "90a070d0e9b5": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "4015ac836f5f": {
+   "text": [
+    "Skjegget var delt: skjegget er nå én del med ansiktet og smalner ned til spissen, i stedet for en kloss under haka og en krage rundt halsen.",
+    "Hodet var deformert fra siden: issen er en kuppel også fra siden (hårtusten foran ga et loddrett ansikt og en skarp kant øverst), og nesebulen går ikke lenger opp over pannen som en rygg.",
+    "Hoftene stakk ut i gangen: det var forkleet som fulgte låret helt og svingte ut som en plate, og et hudfarget felt der hammeren var malt bort. Nå følger det som henger langt fra låret mindre, og hammeren males bort med tøyet under."
+   ]
+  },
+  "ceffd39ad6db": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Skjegget er ikke delt lenger, hodet er formen fra TRELLIS, og hoftene stikker ikke ut når han går (skallet er sluttet og forenklet i ett stykke)."
+   ]
+  },
+  "22f6c4adf9a1": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_clerk": {
+  "95231b858df8": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "da3a4c248692": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "911d788c24da": {
+   "text": [
+    "Den merkelige hodeformen kom av de samme feilene (formen var kappet foran og bildet forfra lå rundt sidene).",
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "5f473ec3e985": {
+   "text": [
+    "Hullet i kroppen på venstre side er tettet (kroppen fyller omrisset der armen ligger inntil)."
+   ]
+  },
+  "4a98767e61b9": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "ef198bc71a42": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_apothecary": {
+  "f4b9e308fd8e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "7d34ef0a65a6": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "9b676fc623a7": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "3a077856b2a3": {
+   "text": [
+    "Den mørke streken rundt halsen er borte: halsen vokser nå fra halsens egen bredde på arket, og toppen av skuldrene tar fargen fra tøyet i stedet for kragen."
+   ]
+  },
+  "6bb9aa33c89c": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Han går og står rett; stilen «gammel» bøyde ham så han segnet."
+   ]
+  },
+  "4d204a9a4bab": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_innkeeper": {
+  "20cc201d2337": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "e965e20b70a7": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "58dba2093458": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "138731cac728": {
+   "text": [
+    "Halsen bulte ut: halsen holdes innenfor hodets forkant og bakkant, og trappen under haka er borte (fargen under haka følger formen jevnt)."
+   ]
+  }
+ },
+ "npc_gorvek": {
+  "1b076207686e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "e3ea2499ac28": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "710cb43776a6": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "73c2d2f8c3cf": {
+   "text": [
+    "Hodet var deformert: issen er rund også fra siden, og pannen har ikke lenger en rygg.",
+    "Beina var vrengt: kanten av beinet hopper ikke lenger ut der øksa henger, så beina er rette.",
+    "Fra siden er øksa malt bort med buksa under, så låret ikke får lapper av skaftet og hånda."
+   ]
+  },
+  "0b8cbc76c630": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "fb6a14f0121f": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_farmer": {
+  "dc0da2a9304c": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "49d0e66b20d2": {
+   "text": [
+    "Skuldrene: armen stakk opp over skulderlinja på arket og fikk bakgrunnen som farge; den holder seg nå innenfor omrisset.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "97f303669326": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "2656476f99cb": {
+   "text": [
+    "Hodet var deformert: issen er rund fra siden, og høygaffelen males bort fra skulderen og hodet."
+   ]
+  },
+  "99423bf1c3f8": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "61c062dea48d": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_maid": {
+  "41ebfd9be83d": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "6d5e93de1efb": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "6a8606d0ff13": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "bbe5a3d95ba4": {
+   "text": [
+    "Hodet var deformert: ansiktet var strukket 24 % i bredden fordi fletta telte med; bredden måles nå likt på begge ark.",
+    "Kjeven var en bred kloss med hår på sidene: kjeven smalner nå til ansiktet, og håret ved siden av henger for seg.",
+    "Kroppen var vrengt: armen med krukka bygges hengende etter bildet bakfra, og krukka er en egen ting."
+   ]
+  },
+  "aadf0ec257d3": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Armene er rene; skallet smeltet før armen sammen med skjørtet."
+   ]
+  },
+  "78d24942b33e": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_guard": {
+  "40da289cc624": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "c5ec9def2fc3": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "565dd767ee62": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "04d07dc2126f": {
+   "text": [
+    "Hodet var deformert: issen er en kuppel fra siden og nesebulen holder seg i ansiktet.",
+    "Kroppen var vrengt: armene og kroppen følger arket forfra og bakfra."
+   ]
+  },
+  "d5d0ca54acba": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Ansiktet legges ikke på hjelmbremmen (TRELLIS satte bremmen lavere enn bildet)."
+   ]
+  },
+  "1b6587e2e740": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_merchant": {
+  "11d4482a8cc9": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "ffcfc66ac2b9": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "70d1a8b8fb3b": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "81ca664b6d2c": {
+   "text": [
+    "Godkjent før; bygd på nytt med de samme reglene for hode og hals, uten synlig endring utover rundere isse."
+   ]
+  },
+  "c65d2d25b320": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "930a44c14876": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_fishwife": {
+  "66713cf1458e": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "dd38b69719f3": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "80531ed56eed": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "ebe44699d0da": {
+   "text": [
+    "Hodet var deformert: kjeven smalner nå til ansiktet og bare nedover (håret ved kinnene ga en tallerken under haka).",
+    "Hullet innenfor venstre albue er tettet."
+   ]
+  },
+  "ad446f33147f": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Ingen svarte flekker på forkleet (fargen hentes nå fra den ytterste flaten)."
+   ]
+  },
+  "f4fa81072139": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_boy": {
+  "6d8415f3d93a": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "22b6aaf7e194": {
+   "text": [
+    "Hull i kroppen: kroppen går nå et stykke inn under armene, og armene holder seg innenfor omrisset på arket, så det ikke er glipe mellom armen og skulderen.",
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "456f7648d87d": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "ab6216691c7e": {
+   "text": [
+    "Hodet var deformert: issen er en kuppel også fra siden, og ørene teller ikke som bredde."
+   ]
+  },
+  "b0c1457a7571": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Gutten er 1,36 m, lavere enn de voksne."
+   ]
+  },
+  "e0a513a124db": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_washerwoman": {
+  "a369524e6881": {
+   "text": [
+    "Ansiktet var uskarpt (bildet ditt fra torget): hodet er nå en egen del med hodearket ditt, som er to til fire ganger så skarpt som hodet på kroppsarket, med tre ganger plass i teksturen, og hele figuren er bakt i 2048 i stedet for 1024.",
+    "Ingen dobbelt ansikt på skrå: bildet forfra og fra siden blandes mykt etter hvilken vei flaten vender, og forreste del av hodet viser alltid ansiktet forfra.",
+    "Armene sto stivt ut fra kroppen: i hvile henger de nå langs siden.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er foreløpig bare det arket viser på hånda; det blir egne gjenstander senere. Fra siden kan kanten av ansiktet forfra synes strukket."
+   ]
+  },
+  "67f4d319b3d0": {
+   "text": [
+    "Teksturen rundt hodet: formen på hodet leses nå av hodearket selv (bredden forfra og profilen fra siden), så ansiktet forfra og profilen ligger på samme form, og de blandes ved 45°. Profilen speiles så den ser samme vei som kroppen, og hodet går ned i skuldrene uten hylle.",
+    "Føttene: skjørtet og kjortelen slutter ved kanten og går ikke lenger ned til bakken som en plate mellom beina, og sålen tar fargen fra skoen, ikke fra bakkestreken.",
+    "Fra siden er det armen (og det hånda holder, som vaktens spyd) ikke lenger del av kroppen, så kroppen ikke får en hylle framover; der armen dekker kroppen på sidebildet, tar kroppen fargen forfra i stedet for svarte flekker når figuren går.",
+    "Skjelettet leses av modellen: ankelen der foten begynner fra siden, håndleddet der armen er smalest over hånda, albuen der armen bøyer, hofta der kroppen er bredest under livet, og hodeleddet under haka.",
+    "Det figuren holder (hammer, høygaffel, spyd, krus, bøtter) er fortsatt bare det arket viser på hånda; det blir egne gjenstander senere."
+   ]
+  },
+  "4b94f364ad15": {
+   "text": [
+    "Ansiktet i bakhodet: profilen fra hodearket ble speilet etter en regel som tok feil når skjegg eller hår henger; nå velges speilingen igjen etter omrisset av hodet på sidebildet, så profilen ser samme vei som ansiktet forfra.",
+    "To ansikter og to sett ører: bildet forfra var trukket langt rundt sidene av hodet, så ansiktet forfra og profilen sto side om side. Nå ligger bildet forfra bare på den fremre femtedelen av hodet, og overgangen til profilen er kort.",
+    "Ingen hake: regelen mot hyller i hodet kappet haka; forkanten (panne, nese, hake) følger nå profilen.",
+    "Det som var rettet sist (hull, føtter, skuldre, skjelettet fra formen) står som før."
+   ]
+  },
+  "f6d63798a624": {
+   "text": [
+    "Beina var vrengt: under kappa er beinet like smalt som leggen, og bøtta er en egen del.",
+    "Hodet var deformert: kjeven smalner til ansiktet, og trappen under haka er borte."
+   ]
+  },
+  "437bc1736927": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort."
+   ]
+  },
+  "117ada8687f4": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "npc_pilgrim": {
+  "a5dc1d78e673": {
+   "text": [
+    "Laget helt på nytt fra din TRELLIS.2-fil (1536, 4096): formen og teksturen er fra fila, bare ansiktet er lagt på fra bildet forfra (det TRELLIS ble laget av), der formen og bildet er enige. Den gamle motoren med arkene er lagt bort.",
+    "Ny i byen: går mellom nordporten og torget."
+   ]
+  },
+  "8f794022e909": {
+   "text": [
+    "Teksturen var svart over store deler av figuren i spillet: AO-en ble bakt inn selv om den var slått av (feil i felles bakekode), og på skallet fra TRELLIS ble den svart. Rettet ved roten, nå er fargen den samme som i TRELLIS.",
+    "Kjolen bak forkleet gikk gjennom forkleet når figuren gikk (lagene hadde ulike bein). Vektene jevnes nå ut mellom lag som ligger oppå hverandre.",
+    "Teksturøyene pakkes før fargen hentes, så ingen øyer ligger oppå hverandre i den ferdige teksturen."
+   ]
+  }
+ },
+ "barrel": {
+  "35c46e1d69bd": {
+   "text": [
+    "Fra din TRELLIS.2-fil, samme mål og kollider som før."
+   ]
+  }
+ },
+ "kit_rest": {
+  "00cb01c6a18d": {
+   "text": [
+    "Hvilestedet fra din TRELLIS.2-fil: sprukken steinsokkel med jernlysestake; flammen sitter på lyset."
+   ]
+  }
+ },
+ "well": {
+  "24eece1d683f": {
+   "text": [
+    "Brønnen fra din TRELLIS.2-fil (kummen, stolpene og taket); vinda, tauet og bøtta er spillets egne bevegelige deler. Den er mørkere og mer grå enn den gamle; si fra om du vil ha den gamle tilbake."
+   ]
+  }
+ }
+}

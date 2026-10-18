@@ -2,10 +2,12 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
 // den drivende porten.
 
-import init, { start, asset_paths, model_paths } from "./pkg/fristad.js";
+import init, { start, asset_paths, model_paths, start_paths, level_paths, model_url } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
+import { createFilm } from "./film/player.js";
 import { createSounds } from "./sounds.js";
+import { createEditor } from "./editor.js";
 import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
 import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
 import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
@@ -25,39 +27,95 @@ const panel = $("panel");
 const aimEl = $("aim");
 const status = $("status");
 const enterBtn = $("enter");
+const beginBtn = $("begin");
 const toast = document.querySelector("fs-toast");
 
 let canvas = $("world");
-// Grafikken: avansert (alt på) eller redusert (to skyggekaskader, ingen SSAO
-// eller glød, færre lys, grovere detalj, lavere oppløsning) for vanlige
-// jobb-PC-er. Valget huskes; uten valg byttes det til redusert av seg selv
-// om bildefrekvensen blir liggende lavt.
-let reducedGfx = false;
-let gfxChosen = false;
+// Grafikken: forhåndsvalgene enkel (de svakeste maskinene og WebGL2: uten
+// kantutjevning, solskygge og glød, høyst 900p), standard (myke skygger,
+// solstråler, SMAA, opptil 1,5 piksler per CSS-piksel, høyst 1080p) og
+// avansert (lengre sikt, skygge langt unna, skygge i krokene, alle lys,
+// opptil 1440p) setter bryterne i `ports::Quality`; hver bryter kan endres
+// for seg i grafikkdialogen (`openGraphics`). Valget huskes, og grafikken
+// byttes aldri av seg selv.
+const QUALITIES = ["enkel", "standard", "avansert"];
+const QUALITY_INFO = {
+  enkel: { cap: 900, dense: 1, note: "uten solskygge, glød og kantutjevning; for svake maskiner og WebGL2." },
+  standard: { cap: 1080, dense: 1.5, note: "myke skygger, solstråler og SMAA, kortere sikt. Laget for en vanlig maskin." },
+  avansert: { cap: 1440, dense: 1.5, note: "lengre sikt, skygge langt unna og i krokene, alle lys, høyere oppløsning." },
+};
+let quality = null;
+// Har spilleren endret en bryter i grafikkdialogen, står bryterne her
+// (`fristad.graphics.custom`, med `scale` for oppløsningsskalaen), og
+// forhåndsvalget over er bare utgangspunktet og taket for oppløsningen.
+let custom = null;
 try {
-  const g = localStorage.getItem("fristad.graphics");
-  gfxChosen = g === "redusert" || g === "avansert";
-  reducedGfx = g === "redusert";
+  const q = localStorage.getItem("fristad.graphics");
+  if (QUALITIES.includes(q)) quality = q;
+  const c = JSON.parse(localStorage.getItem("fristad.graphics.custom") || "null");
+  if (quality && c && typeof c === "object") custom = c;
 } catch {
   /* ingen lagring */
 }
 let engine = null;
+// Redigeringsmodusen (`?edit`, bare for eieren; web/editor.js).
+const EDIT = new URLSearchParams(location.search).has("edit");
+let editor = null;
+let editorStarted = false;
 let docs = {};
 let panelOpen = false;
 let current = { component: "" };
 
-// Lerretet tegnes i en litt lavere oppløsning enn skjermen på skjermer med
-// høy pikseltetthet. Forskjellen synes knapt, men GPU-en får mye mindre å gjøre.
-// I redusert grafikk tegnes det aldri tettere enn én piksel per CSS-piksel.
+// Oppløsningen tegnes i faste trinn (høyden i piksler; bredden følger
+// vinduet), så et stort vindu på en svak maskin ikke gir en oppløsning
+// den ikke kan håndtere. «Automatisk» tar det største trinnet som får
+// plass på skjermen, men aldri over 1080p i standard grafikk og 1440p i
+// avansert. Valget huskes som `fristad.resolution` (høyden eller «auto»).
+const RES_STEPS = [720, 900, 1080, 1152, 1440, 1620, 1800, 2160];
+const RES_NAMES = { 720: "720p", 900: "900p", 1080: "1080p (FHD)", 1152: "QWXGA", 1440: "1440p (QHD)", 1620: "1620p (3K)", 1800: "1800p (QHD+)", 2160: "2160p (4K)" };
+let resolution = "auto";
+try {
+  const r = localStorage.getItem("fristad.resolution");
+  if (r && (r === "auto" || RES_STEPS.includes(Number(r)))) resolution = r === "auto" ? r : Number(r);
+} catch {
+  /* ingen lagring */
+}
+// Høyden i piksler som tegnes for vinduet slik det er nå.
+function renderHeight() {
+  const dpr = window.devicePixelRatio || 1;
+  const ph = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  if (resolution === "auto") {
+    // Standard og avansert tegner opptil 1,5 piksler per CSS-piksel på
+    // skjermer med høy pikseltetthet, og aldri over trinnet (1080p og 1440p).
+    const info = QUALITY_INFO[quality ?? "standard"];
+    const dense = Math.round(canvas.clientHeight * Math.min(dpr, info.dense));
+    const cap = Math.min(dense, info.cap);
+    const fit = RES_STEPS.filter((h) => h <= cap);
+    return fit.length ? fit[fit.length - 1] : Math.min(ph, cap);
+  }
+  // Et valgt trinn, men aldri flere piksler enn skjermen viser.
+  return Math.min(resolution, ph);
+}
+// Målingen (`?bench`) kan tegne i en brøkdel av oppløsningen.
+let benchScale = 1;
 function fit() {
-  const scale = Math.min(window.devicePixelRatio || 1, reducedGfx ? 1 : 1.5);
-  const w = Math.max(1, Math.round(canvas.clientWidth * scale));
-  const h = Math.max(1, Math.round(canvas.clientHeight * scale));
+  const h = Math.max(1, Math.round(renderHeight() * benchScale * (custom?.scale ?? 1)));
+  const w = Math.max(1, Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight)));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
   }
   engine?.resize(w, h);
+}
+function setResolution(r, announce = true) {
+  resolution = r;
+  try {
+    localStorage.setItem("fristad.resolution", String(r));
+  } catch {
+    /* ingen lagring */
+  }
+  fit();
+  if (announce) toast?.show?.(r === "auto" ? "Oppløsning: automatisk." : `Oppløsning: ${canvas.width} × ${canvas.height}.`);
 }
 
 async function boot() {
@@ -81,19 +139,32 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, openShop, setScale, setQuality, setGraphics };
-  setGraphics(reducedGfx, false, false);
+  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
+  // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
+  setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
+  if (EDIT && engine.can_edit()) {
+    editor = createEditor({
+      engine,
+      canvas,
+      toast,
+      // P: musa fanges med en gang (mens tastetrykket teller), og når
+      // spillet er bygget på nytt, settes grafikknivået igjen.
+      onLock: () => lock(),
+      onPlay: () => setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false),
+    });
+    window.fristad.editor = editor;
+  }
   $("version").textContent = engine.fristil_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
@@ -103,12 +174,21 @@ async function boot() {
 
   status.hidden = true;
   $("loading").hidden = true;
-  enterBtn.hidden = false;
-  enterBtn.focus();
+  // Med filmen er «Klikk for å begynne» den eneste veien inn (filmen toner
+  // gjennom byen og ender der du begynner); uten den går du rett inn.
+  if (FILM) {
+    beginBtn.addEventListener("click", startFilm, { once: true });
+    beginBtn.hidden = false;
+    beginBtn.focus();
+  } else {
+    enterBtn.hidden = false;
+    enterBtn.focus();
+  }
   if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
     $("touch-note").hidden = false;
   }
   checkGpu();
+  if (new URLSearchParams(location.search).has("bench")) runBench();
 }
 
 // Tegner nettleseren uten grafikkortet (maskinvareakselerasjon slått av,
@@ -149,9 +229,9 @@ async function checkGpu() {
   const short = name.match(/swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic render driver|basic render driver/i)?.[0];
   $("gpu-name").textContent = short ? `tegnes med ${short}` : "tegnes med programvare";
   $("gpu-warning").hidden = false;
-  $("gpu-reduced").hidden = reducedGfx;
+  $("gpu-reduced").hidden = quality === "enkel";
   $("gpu-reduced").addEventListener("click", () => {
-    setGraphics(true);
+    setQuality("enkel");
     $("gpu-reduced").hidden = true;
   });
 }
@@ -200,16 +280,65 @@ async function loadAssets() {
   return { manifest, names: got.map(([p]) => p), blobs: got.map(([, b]) => b) };
 }
 
-// Henter modellfilene (models/<sti>.gz) og pakker dem ut. Framdriften
-// regnes i byte, fra størrelsene i models/sizes.json.
+// Henter én modellfil (models/<sti>.gz, stien fra `model_url`) og pakker
+// den ut; `count` får bytene mens de kommer.
+async function fetchModel(path, count = () => {}) {
+  const r = await fetch(`models/${model_url(path)}.gz`);
+  if (!r.ok) {
+    console.warn(`Modellen ${path} mangler: HTTP ${r.status}`);
+    return undefined;
+  }
+  const counted = r.body.pipeThrough(
+    new TransformStream({
+      transform(chunk, ctl) {
+        count(chunk.byteLength);
+        ctl.enqueue(chunk);
+      },
+    }),
+  );
+  let bytes = new Uint8Array(await new Response(counted).arrayBuffer());
+  // Pakket ut allerede hvis serveren sendte den med Content-Encoding.
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    const plain = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    bytes = new Uint8Array(await new Response(plain).arrayBuffer());
+  }
+  return bytes;
+}
+
+// Bitene til et kryptnivå hentes først når økta ber om nivået
+// (`fetch_level`, plan del 10a), og gis motoren med `add_level`.
+const levelsAsked = new Set();
+async function fetchLevel(n) {
+  if (levelsAsked.has(n)) return;
+  levelsAsked.add(n);
+  const paths = level_paths(n);
+  const out = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      out[i] = await fetchModel(paths[i]).catch((e) => console.warn(`Modellen ${paths[i]}:`, e));
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  levelsAsked.delete(n);
+  engine?.add_level(n, out);
+}
+
+// Henter modellfilene byen trenger (alle utenom bitene til kryptnivåene;
+// med ?edit alle) og pakker dem ut. Framdriften regnes i byte, fra
+// størrelsene i models/sizes.json.
 async function loadModels() {
-  const paths = model_paths();
+  const all = model_paths();
+  const wanted = new Set(EDIT ? all : start_paths());
   let sizes = {};
   try {
     sizes = await (await fetch("models/sizes.json")).json();
   } catch {
     sizes = {};
   }
+  for (const level of Object.values(sizes.levels || {})) Object.assign(sizes, level);
+  const paths = all.filter((p) => wanted.has(p));
   const total = paths.reduce((a, p) => a + (sizes[p] || 1), 0);
   let got = 0;
   const bar = $("loading");
@@ -219,37 +348,20 @@ async function loadModels() {
     setStatus(`Henter byen (${(got / 1e6).toFixed(0)} av ${(total / 1e6).toFixed(0)} MB) …`);
   };
   show();
-  const out = new Array(paths.length);
+  // Samme rekkefølge som model_paths(); det som ikke hentes, er tomt.
+  const out = new Array(all.length);
   let next = 0;
+  let last = 0;
   const worker = async () => {
     while (next < paths.length) {
-      const i = next++;
-      const r = await fetch(`models/${paths[i]}.gz`);
-      if (!r.ok) {
-        console.warn(`Modellen ${paths[i]} mangler: HTTP ${r.status}`);
-        continue;
-      }
-      // Telle bytene mens de kommer.
-      let last = 0;
-      const counted = r.body.pipeThrough(
-        new TransformStream({
-          transform(chunk, ctl) {
-            got += chunk.byteLength;
-            if (got - last > 256 * 1024) {
-              last = got;
-              show();
-            }
-            ctl.enqueue(chunk);
-          },
-        }),
-      );
-      let bytes = new Uint8Array(await new Response(counted).arrayBuffer());
-      // Pakket ut allerede hvis serveren sendte den med Content-Encoding.
-      if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
-        const plain = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-        bytes = new Uint8Array(await new Response(plain).arrayBuffer());
-      }
-      out[i] = bytes;
+      const path = paths[next++];
+      out[all.indexOf(path)] = await fetchModel(path, (n) => {
+        got += n;
+        if (got - last > 256 * 1024) {
+          last = got;
+          show();
+        }
+      });
       show();
     }
   };
@@ -273,79 +385,126 @@ function stage(text) {
 let last = performance.now();
 let frames = 0;
 let perfAt = performance.now();
-// Intern oppløsning og kvalitet: endres aldri av seg selv, bare når
-// spilleren bytter grafikk (G eller knappen i menyen). `setScale(tall)` og
-// `setQuality(tall)` setter dem for hånd (til feilsøking).
-let scale = 1;
-let quality = 1;
-function setScale(s) {
-  scale = Math.min(1, Math.max(0.4, s ?? 1));
-  engine.set_scale(scale);
-}
-function setQuality(q) {
-  quality = Math.min(1, Math.max(0, q ?? 1));
-  engine.set_quality(quality);
-}
-// Byttes grafikken: motoren, kvaliteten og knappene. Redusert grafikk ser
-// kortere (rendereren kutter det som er langt unna og tetner tåka) og
-// sparer skygger, SSAO og glød, men beholder full oppløsning, så bildet
-// ikke blir uskarpt.
-function setGraphics(reduced, chosen = true, announce = true) {
-  reducedGfx = reduced;
+// Byttes grafikken: motoren, oppløsningen og knappene. Et forhåndsvalg
+// setter alle bryterne (de egendefinerte glemmes).
+function setQuality(name, chosen = true, announce = true) {
+  quality = name;
   if (chosen) {
-    gfxChosen = true;
+    custom = null;
     try {
-      localStorage.setItem("fristad.graphics", reduced ? "redusert" : "avansert");
+      localStorage.setItem("fristad.graphics", name);
+      localStorage.removeItem("fristad.graphics.custom");
     } catch {
       /* ingen lagring */
     }
   }
+  sendGraphics();
+  if (announce) toast?.show?.(`Grafikk: ${name} – ${QUALITY_INFO[name].note} G bytter nivå.`);
+}
+// Bryterne i et forhåndsvalg, fra motoren (verdiene står i `ports::Quality`).
+const presetCache = {};
+function presetOf(name) {
+  if (!presetCache[name] && engine?.quality_preset) {
+    try {
+      presetCache[name] = { ...JSON.parse(engine.quality_preset(name)), scale: 1 };
+    } catch {
+      /* eldre motor */
+    }
+  }
+  return presetCache[name];
+}
+// Bryterne slik de står nå (forhåndsvalget eller de egendefinerte).
+function currentGraphics() {
+  return custom ?? presetOf(quality ?? "standard");
+}
+// Egendefinerte brytere fra dialogen. Svarer de til et forhåndsvalg, er
+// det det forhåndsvalget igjen.
+function setCustom(values) {
+  const same = QUALITIES.find((q) => {
+    const p = presetOf(q);
+    return p && Object.keys(p).every((k) => Number(p[k]) === Number(values[k]));
+  });
+  if (same) {
+    setQuality(same, true, false);
+    return;
+  }
+  custom = values;
+  try {
+    localStorage.setItem("fristad.graphics", quality ?? "standard");
+    localStorage.setItem("fristad.graphics.custom", JSON.stringify(values));
+  } catch {
+    /* ingen lagring */
+  }
+  sendGraphics();
+}
+function graphicsName() {
+  return custom ? "egendefinert" : (quality ?? "standard");
+}
+function sendGraphics() {
   if (engine) {
-    engine.set_reduced(reduced);
-    quality = reduced ? 0 : 1;
-    engine.set_quality(quality);
-    scale = 1;
-    engine.set_scale(scale);
+    if (custom) {
+      const { scale, ...switches } = custom;
+      engine.set_quality(JSON.stringify({ preset: quality ?? "standard", ...switches }));
+    } else engine.set_quality(quality ?? "standard");
   }
   slowSeconds = 0;
   fit();
-  const name = reduced ? "redusert" : "avansert";
+  const name = graphicsName();
   $("graphics").textContent = `Grafikk: ${name}`;
-  $("graphics").setAttribute("aria-pressed", String(reduced));
   $("graphics-label").textContent = name;
-  if (announce) toast?.show?.(reduced ? "Redusert grafikk: kortere sikt og enklere lys, lettere å kjøre. G bytter tilbake." : "Avansert grafikk: alt på. G bytter til redusert.");
 }
-// Går det tregt over tid i avansert grafikk, foreslås redusert én gang.
-// Ingenting byttes uten at spilleren ber om det.
+// Til nettlesertestene og eldre lenker: standard (`true`) eller avansert.
+function setGraphics(reduced, chosen = true, announce = true) {
+  setQuality(reduced ? "standard" : "avansert", chosen, announce);
+}
+// Går det tregt over tid, foreslås et lavere nivå én gang. Ingenting
+// byttes uten at spilleren ber om det.
 let slowSeconds = 0;
 let suggested = false;
 function adapt(fps) {
-  if (!playing || reducedGfx || suggested) return;
+  if (!playing || quality === "enkel" || suggested || benchRunning) return;
   slowSeconds = fps < 25 ? slowSeconds + 1 : 0;
   if (slowSeconds >= 8) {
     suggested = true;
-    toast?.show?.("Spillet går tregt. Trykk G for redusert grafikk.");
+    toast?.show?.("Spillet går tregt. Velg et lavere grafikknivå i Innstillinger (O) eller med G.");
   }
 }
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  // Åpningsfilmen er sitt eget malte bilde over spillet. Mens den dekker
+  // hele skjermen, tegnes ikke spillet; når den toner bort til slutt, står
+  // du ved sørporten bak den.
+  if (film) {
+    const cover = film.tick(dt);
+    if (cover < 0.999 && !filmReveal) {
+      filmReveal = true;
+      engine.set_theme(false);
+      engine.respawn();
+    }
+    if (cover >= 0.999) {
+      requestAnimationFrame(loop);
+      return;
+    }
+  }
   const events = JSON.parse(engine.frame(dt));
   for (const e of events) handle(e);
   // Bilder per sekund, så eieren kan si hvordan det flyter.
   frames++;
+  benchFrames++;
   if (now - perfAt > 1000) {
     const fps = Math.round((frames * 1000) / (now - perfAt));
     adapt(fps);
     const tris = Math.round(engine.triangles() / 1000);
-    const res = `${Math.round(canvas.width * scale)}×${Math.round(canvas.height * scale)}`;
-    const q = quality >= 1 ? "" : quality > 0 ? " · middels" : " · lav";
+    const res = `${canvas.width}×${canvas.height}`;
     // Tiden på grafikkortet per del (bare der nettleseren kan måle den):
     // summen i telleren, delene når du holder musa over.
     const parts = engine.gpu_times ? engine.gpu_times() : "";
     // (Programvaregrafikk kan gi bare nuller; da vises ingenting.)
     const gpuMs = parts ? parts.split(" · ").reduce((sum, p) => sum + parseFloat(p.split(" ").pop()), 0) : 0;
-    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res}${scale < 1 ? ` (${Math.round(scale * 100)} %)` : ""}${q} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms` : ""}`;
+    // Delene står rett i telleren (musa er fanget, så ingen kan holde den over).
+    const partText = parts ? parts.replace(/skygge/i, "sk").replace(/verden/i, "v").replace(/etterbehandling/i, "e").replace(/ ms/g, "") : "";
+    $("perf").textContent = `${fps} fps · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"}${softwareGpu ? " · uten grafikkort" : ""} · ${res} · ${tris}k △${gpuMs > 0 ? ` · GPU ${gpuMs.toFixed(1)} ms (${partText})` : ""}`;
     $("perf").title = `Bilder per sekund, grafikk-API og oppløsning${gpuName ? `. Grafikk: ${gpuName}` : ""}${gpuMs > 0 ? `. GPU-tid (ms): ${parts}` : ""}`;
     frames = 0;
     perfAt = now;
@@ -377,6 +536,9 @@ function handle(e) {
     case "fade":
       fade();
       break;
+    case "fetch_level":
+      fetchLevel(e.level);
+      break;
     case "warp":
       warp();
       break;
@@ -391,7 +553,12 @@ function handle(e) {
       document.documentElement.dataset.theme = e.theme;
       break;
     case "toast":
-      toast?.show?.(e.text);
+      // Lappene i krypten er opptil rundt 400 tegn: la varselet stå lenge nok
+      // til å lese dem (rundt 15 tegn i sekundet, minst seks sekunder).
+      toast?.show?.(e.text, { duration: Math.max(6000, e.text.length * 70) });
+      break;
+    case "goal":
+      setGoal(e);
       break;
     case "weather":
       $("weather").textContent = e.weather;
@@ -404,6 +571,11 @@ function handle(e) {
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
       setBars(e.hp, e.stamina);
+      // Lykta: stolpen nede i krypten, og mørket som lukker seg når oljen går tom.
+      $("light-bar").hidden = !e.cellar;
+      $("light").value = e.light;
+      $("light-text").textContent = `${e.light} %`;
+      document.documentElement.style.setProperty("--dark", e.cellar ? String(Math.max(0, 1 - e.light / 25)) : "0");
       $("tokens").textContent = `${e.tokens} tokens`;
       $("keys").textContent = e.keys === 1 ? "1 nøkkel" : `${e.keys} nøkler`;
       $("keys").hidden = !e.keys;
@@ -436,6 +608,13 @@ function handle(e) {
       break;
     case "loot":
       openLoot(e.component);
+      break;
+    case "edit":
+      editor?.update(e.edit);
+      break;
+    case "open_doc":
+      // F på en fylt ramme på galleriveggen: boka i panelet til høyre.
+      readDoc(e.component);
       break;
     case "ambience":
       lastAmbience = e;
@@ -519,18 +698,53 @@ let mapData = null;
 let mapWhere = null;
 let bigMapOpen = false;
 function setMap(m) {
-  mapData = m && { ...m, cells: Array.from(m.cells, (c) => parseInt(c, 16)), seen: Array.from(m.seen, (s) => s === "1") };
+  mapData = m;
   $("minimap").hidden = !mapData;
   if (!mapData) toggleBigMap(false);
-  else $("map-name").textContent = `Etasje ${m.floor + 1} · ${m.name.replace(/^\d+: /, "")}`;
+  else $("map-name").textContent = `Nivå ${m.level} · ${m.name}`;
   drawMaps();
+}
+// Målet nå (én linje i panelet) og journalen (J) med det du har lest.
+// Målet endres når du går ned, slår bossen, finner noe eller leser en lapp,
+// så spillet lagres da også.
+function setGoal(g) {
+  const goal = $("goal");
+  goal.textContent = g.text;
+  goal.hidden = !g.text;
+  $("journal-goal").textContent = g.text;
+  const lore = $("journal-lore");
+  lore.replaceChildren();
+  if (!g.journal.length) {
+    const p = document.createElement("p");
+    p.textContent = "Du har ikke lest noe ennå. Lappene og bøkene i krypten havner her.";
+    lore.append(p);
+  }
+  for (const j of g.journal) {
+    const h = document.createElement("h3");
+    h.className = "fs-heading";
+    h.dataset.size = "xs";
+    h.textContent = j.title;
+    const p = document.createElement("p");
+    p.className = "fs-paragraph";
+    p.textContent = j.text;
+    lore.append(h, p);
+  }
+  try {
+    localStorage.setItem("fristad.save", engine.save_state());
+  } catch {
+    /* lagring er en bekvemmelighet */
+  }
+}
+function toggleJournal(on = $("journal").hidden) {
+  $("journal").hidden = !on;
 }
 function toggleBigMap(on = !bigMapOpen) {
   bigMapOpen = on && !!mapData;
   $("bigmap").hidden = !bigMapOpen;
   drawMaps();
 }
-const MAP_COLORS = { floor: "#6b5a44", wall: "#e8d9b8", player: "#ffd75e", exit: "#4cc3ff", gate: "#c9a24a", gate_open: "#7d6a3c", chest: "#e8b84a", ascend: "#9be08a", boss: "#e0483a", shortcut: "#b08a5a" };
+const MAP_COLORS = { floor: "#6b5a44", wall: "#e8d9b8", player: "#ffd75e", exit: "#4cc3ff", gate: "#c9a24a", gate_open: "#7d6a3c", chest: "#e8b84a", ascend: "#9be08a", boss: "#e0483a", shortcut: "#b08a5a", lever: "#d9d0c0", lever_pulled: "#8a8070", rest: "#f0c060", rest_lit: "#ffe08a" };
+// Kartet er rommene du har sett (omrisset ovenfra, x og z i meter).
 function drawMap(canvas, rotate, metres) {
   const dpr = window.devicePixelRatio || 1;
   const css = canvas.getBoundingClientRect();
@@ -542,10 +756,12 @@ function drawMap(canvas, rotate, metres) {
   ctx.clearRect(0, 0, w, w);
   const m = mapData;
   if (!m) return;
-  const n = m.n;
-  const cs = m.cell;
-  const [ox, oz] = m.origin;
-  const me = mapWhere ?? { x: ox + (n * cs) / 2, z: oz + (n * cs) / 2, yaw: 0 };
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const poly of m.rooms) for (const [x, z] of poly) {
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+  }
+  if (x0 === Infinity) { x0 = -10; x1 = 10; z0 = -10; z1 = 10; }
+  const me = mapWhere ?? { x: (x0 + x1) / 2, z: (z0 + z1) / 2, yaw: 0 };
   // Verden (x, z) til skjermen: dreid så fram er opp, eller nord opp med
   // hele det oppdagede kartet.
   let a, b, c, d, e, f;
@@ -556,18 +772,11 @@ function drawMap(canvas, rotate, metres) {
     e = w / 2 - (a * me.x + c * me.z);
     f = w / 2 - (b * me.x + d * me.z);
   } else {
-    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (let i = 0; i < n * n; i++) {
-      if (!m.seen[i] || !m.cells[i]) continue;
-      const ix = i % n, iz = Math.floor(i / n);
-      x0 = Math.min(x0, ix); x1 = Math.max(x1, ix + 1); z0 = Math.min(z0, iz); z1 = Math.max(z1, iz + 1);
-    }
-    if (x0 === Infinity) { x0 = 0; x1 = n; z0 = 0; z1 = n; }
-    const span = Math.max(x1 - x0, z1 - z0, 8) * cs * 1.1;
+    const span = Math.max(x1 - x0, z1 - z0, 20) * 1.1;
     const s = w / span;
     a = s; b = 0; c = 0; d = s;
-    e = w / 2 - s * (ox + ((x0 + x1) / 2) * cs);
-    f = w / 2 - s * (oz + ((z0 + z1) / 2) * cs);
+    e = w / 2 - s * ((x0 + x1) / 2);
+    f = w / 2 - s * ((z0 + z1) / 2);
   }
   const at = (x, z) => [a * x + c * z + e, b * x + d * z + f];
   ctx.save();
@@ -578,29 +787,23 @@ function drawMap(canvas, rotate, metres) {
   }
   ctx.setTransform(a, b, c, d, e, f);
   ctx.fillStyle = MAP_COLORS.floor;
-  for (let i = 0; i < n * n; i++) {
-    if (!m.seen[i] || !m.cells[i]) continue;
-    const ix = i % n, iz = Math.floor(i / n);
-    ctx.fillRect(ox + ix * cs - 0.02, oz + iz * cs - 0.02, cs + 0.04, cs + 0.04);
-  }
-  // Murene: kantene der du ikke kan gå videre.
   ctx.strokeStyle = MAP_COLORS.wall;
-  ctx.lineWidth = rotate ? 0.45 : Math.max(0.3, 1.6 / Math.abs(a));
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  for (let i = 0; i < n * n; i++) {
-    const v = m.cells[i];
-    if (!m.seen[i] || !v) continue;
-    const ix = i % n, iz = Math.floor(i / n);
-    const x = ox + ix * cs, z = oz + iz * cs;
-    const west = ix > 0 ? m.cells[i - 1] : 0;
-    const north = iz > 0 ? m.cells[i - n] : 0;
-    if (!(v & 2)) { ctx.moveTo(x + cs, z); ctx.lineTo(x + cs, z + cs); }
-    if (!(v & 4)) { ctx.moveTo(x, z + cs); ctx.lineTo(x + cs, z + cs); }
-    if (!(west & 2)) { ctx.moveTo(x, z); ctx.lineTo(x, z + cs); }
-    if (!(north & 4)) { ctx.moveTo(x, z); ctx.lineTo(x + cs, z); }
+  ctx.lineWidth = rotate ? 0.3 : Math.max(0.2, 1.4 / Math.abs(a));
+  ctx.lineJoin = "round";
+  for (const poly of m.rooms) {
+    if (poly.length < 3) continue;
+    ctx.beginPath();
+    poly.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.closePath();
+    ctx.fill();
   }
-  ctx.stroke();
+  for (const poly of m.rooms) {
+    if (poly.length < 3) continue;
+    ctx.beginPath();
+    poly.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.closePath();
+    ctx.stroke();
+  }
   // Merkene og deg selv står rett opp, med fast størrelse.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const r = Math.max(4, w / (rotate ? 36 : 70));
@@ -796,6 +999,193 @@ function closeInventory(resume) {
   if (resume) enter();
 }
 
+// Innstillingene (O, eller knappen på startkortet): grafikk og oppløsning
+// som Fristil-radioknapper i en dialog. Ingenting byttes uten at
+// spilleren velger det.
+let settingsOpen = null;
+function openSettings() {
+  if (settingsOpen) return;
+  const wasPlaying = playing;
+  playing = false;
+  dragging = false;
+  engine?.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const dpr = window.devicePixelRatio || 1;
+  const ph = Math.round(canvas.clientHeight * dpr);
+  const radio = (name, value, label, note, checked, disabled = false) => `<label class="fs-radio-row">
+      <input class="fs-radio" type="radio" name="${name}" value="${value}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
+      <span>${label}${note ? ` <span class="fs-help-text">${note}</span>` : ""}</span>
+    </label>`;
+  const steps = RES_STEPS.map((h) => {
+    const w = Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight));
+    const px = ((w * h) / 1e6).toFixed(1);
+    return radio("res", h, `${w} × ${h} (${RES_NAMES[h]})`, `${px} Mpx${h > ph ? ", større enn skjermen" : ""}`, resolution === h, h > ph);
+  }).join("");
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog";
+  dlg.setAttribute("aria-labelledby", "settings-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="settings-title">Innstillinger</h2>
+    <div class="fs-dialog__body">
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Grafikk</legend>
+        ${QUALITIES.map((q) => radio("gfx", q, q[0].toUpperCase() + q.slice(1), QUALITY_INFO[q].note, !custom && quality === q)).join("")}
+        ${custom ? radio("gfx", "custom", "Egendefinert", `med ${quality} som utgangspunkt.`, true) : ""}
+        <p><button class="fs-button" data-variant="secondary" type="button" data-act="graphics">Avanserte grafikkinnstillinger …</button></p>
+      </fieldset>
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Oppløsning</legend>
+        ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${QUALITY_INFO[quality ?? "standard"].cap}p.`, resolution === "auto")}
+        ${steps}
+      </fieldset>
+      <p class="fs-help-text">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (O)</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  settingsOpen = dlg;
+  dlg.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (t.name === "gfx" && t.value !== "custom") setQuality(t.value);
+    if (t.name === "res") setResolution(t.value === "auto" ? "auto" : Number(t.value));
+    dlg.querySelector(".fs-help-text:last-of-type").textContent = `Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
+    sfx.play("click");
+  });
+  const close = () => {
+    settingsOpen.close();
+    settingsOpen.remove();
+    settingsOpen = null;
+    if (wasPlaying) enter();
+    else if (!gateEl.hidden) enterBtn.focus();
+  };
+  dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dlg.querySelector('[data-act="graphics"]').addEventListener("click", () => {
+    settingsOpen.close();
+    settingsOpen.remove();
+    settingsOpen = null;
+    openGraphics(wasPlaying);
+  });
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close();
+  });
+  dlg.showModal();
+}
+
+// De avanserte grafikkinnstillingene (knappen «Grafikk» i pausemenyen, eller
+// fra Innstillinger): hver bryter for seg, med hva den koster. Forhåndsvalgene
+// setter bryterne; endres én, står det «Egendefinert». Ingenting byttes uten
+// at spilleren velger det. Kostnadene er målt på grafikkortet
+// (docs/kvalitet/ytelse.md).
+const GRAPHICS_ROWS = [
+  { key: "scale", label: "Oppløsningsskala", note: "andelen av oppløsningen som tegnes; resten skaleres opp.", options: [[0.5, "50 %"], [0.67, "67 %"], [0.75, "75 %"], [0.85, "85 %"], [1, "100 %"]] },
+  { key: "shadow", label: "Solskygge", note: "skyggene fra sola og månen." },
+  { key: "shadow_res", label: "Skyggeoppløsning", note: "skarpere skygger med større kart.", options: [[1024, "1024"], [2048, "2048"], [4096, "4096"]] },
+  { key: "soft_shadow", label: "Myke skygger", note: "tolv faste prøver langs kanten i stedet for fire, uten støy." },
+  { key: "far_shadow", label: "Skygge langt unna", note: "en kaskade til, ut til 110 m." },
+  { key: "ao", label: "Skygge i krokene", note: "mørkere i hjørner og under ting (bare WebGPU).", webgpu: true },
+  { key: "bloom", label: "Glød", note: "lys, ild og vinduer gløder." },
+  { key: "rays", label: "Solstråler", note: "lyset står i stråler rundt sola." },
+  { key: "smaa", label: "Kantutjevning (SMAA)", note: "glatte kanter uten uskarphet." },
+  { key: "grade", label: "Malt fargegradering", note: "varm by, kald kjeller og myk overgang mot hvitt." },
+  { key: "fog", label: "Avstandståke", note: "lufta mellom deg og det som er langt unna." },
+  { key: "far", label: "Sikt", note: "hvor langt unna modellene tegnes.", options: [[120, "120 m"], [160, "160 m"], [250, "250 m"], [0, "Hele verden"]] },
+  { key: "detail", label: "Småting langt unna", note: "småting og fin detalj også på avstand." },
+  { key: "lights", label: "Lys samtidig", note: "lykter, ild og vinduer som lyser opp rundt seg.", options: [[4, "4"], [8, "8"], [16, "16"], [48, "48"]] },
+  { key: "textures", label: "Full teksturtetthet", note: "av: ett mipnivå ned, halv tetthet." },
+  { key: "ground", label: "Blandet bakke", note: "brostein, jord og gress glir ujevnt over i hverandre." },
+  { key: "particles", label: "Røyk og nedbør", note: "røyk fra pipene, regn og snø." },
+];
+let graphicsOpen = null;
+function openGraphics(resume = playing) {
+  if (graphicsOpen) return;
+  const cur = currentGraphics();
+  // Før motoren er lastet finnes ikke bryterne ennå: da de vanlige innstillingene.
+  if (!cur) {
+    openSettings();
+    return;
+  }
+  const wasPlaying = resume;
+  playing = false;
+  dragging = false;
+  engine?.set_paused(true);
+  if (locked()) document.exitPointerLock?.();
+  const gl = engine?.backend() === "Gl";
+  const row = (r) => {
+    const id = `gfx-${r.key}`;
+    const off = r.webgpu && gl;
+    const note = `<span class="fs-help-text">${r.note}${off ? " Ikke i WebGL2." : ""}</span>`;
+    if (r.options) {
+      return `<div class="gfx-row"><label class="fs-label" for="${id}">${r.label}</label>
+        <select class="fs-select" id="${id}" data-key="${r.key}">${r.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select>${note}</div>`;
+    }
+    return `<div class="fs-switch-row gfx-row"><input class="fs-switch" type="checkbox" role="switch" id="${id}" data-key="${r.key}" ${off ? "disabled" : ""}>
+      <label class="fs-label" for="${id}">${r.label} ${note}</label></div>`;
+  };
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog graphics-dialog";
+  dlg.setAttribute("aria-labelledby", "graphics-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="graphics-title">Grafikk</h2>
+    <div class="fs-dialog__body">
+      <fieldset class="fs-fieldset">
+        <legend class="fs-legend">Forhåndsvalg</legend>
+        <div class="gfx-presets">
+          ${QUALITIES.map((q) => `<label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="${q}"><span>${q[0].toUpperCase() + q.slice(1)}</span></label>`).join("")}
+          <label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="custom" disabled><span>Egendefinert</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="fs-fieldset gfx-switches">
+        <legend class="fs-legend">Brytere</legend>
+        ${GRAPHICS_ROWS.map(row).join("")}
+      </fieldset>
+      <p class="fs-help-text gfx-now"></p>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  graphicsOpen = dlg;
+  const show = () => {
+    const v = currentGraphics();
+    for (const el of dlg.querySelectorAll("[data-key]")) {
+      const k = el.dataset.key;
+      if (el.type === "checkbox") el.checked = !!v[k] && !(el.disabled && k === "ao");
+      else el.value = String(v[k]);
+    }
+    for (const el of dlg.querySelectorAll('[name="gfx-preset"]')) el.checked = el.value === (custom ? "custom" : (quality ?? "standard"));
+    dlg.querySelector(".gfx-now").textContent = `Spillet tegnes nå i ${canvas.width} × ${canvas.height}.`;
+  };
+  show();
+  dlg.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (t.name === "gfx-preset") {
+      if (t.value !== "custom") setQuality(t.value, true, false);
+    } else if (t.dataset.key) {
+      const v = { ...currentGraphics() };
+      // En bryter som ikke kan brukes her (skygge i krokene i WebGL2) beholder verdien.
+      for (const el of dlg.querySelectorAll("[data-key]")) if (!el.disabled) v[el.dataset.key] = el.type === "checkbox" ? el.checked : Number(el.value);
+      setCustom(v);
+    }
+    show();
+    sfx.play("click");
+  });
+  const close = () => {
+    graphicsOpen.close();
+    graphicsOpen.remove();
+    graphicsOpen = null;
+    if (wasPlaying) enter();
+    else if (!gateEl.hidden) enterBtn.focus();
+  };
+  dlg.querySelector('[data-act="close"]').addEventListener("click", close);
+  dlg.addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    close();
+  });
+  dlg.showModal();
+}
+
 // Butikk og verksted: en enkel overleggsboks (ikke designsystemet), med
 // spillet på pause mens den står.
 let overlayOpen = false;
@@ -982,8 +1372,22 @@ let playing = false;
 let dragging = false;
 
 function lock() {
-  const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
-  if (p?.catch) p.catch(() => canvas.requestPointerLock?.());
+  // Avslår nettleseren (uten brukerhandling, eller uten rå bevegelse), er
+  // det ikke en feil: et klikk i bildet låser igjen.
+  try {
+    const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
+    if (p?.catch) {
+      p.catch(() => {
+        try {
+          canvas.requestPointerLock?.()?.catch?.(() => {});
+        } catch {
+          /* ingen pekerlås */
+        }
+      });
+    }
+  } catch {
+    /* ingen pekerlås */
+  }
 }
 
 function locked() {
@@ -1031,7 +1435,12 @@ function enter(relock = true) {
   engine.set_paused(false);
   canvas.focus();
   fadeHelp();
-  if (relock) lock();
+  // Med `?edit` begynner du i redigeringen, med fri mus.
+  if (editor && !editorStarted) {
+    editorStarted = true;
+    if (editor.begin()) return;
+  }
+  if (relock && !editor?.active) lock();
 }
 
 function quit() {
@@ -1065,8 +1474,47 @@ function pause() {
   }
 }
 
+// Åpningsfilmen (den ferdige videoen film/intro.mp4, klippet av
+// tools/film/cut.py; manuset i docs/film/manus.md, kanon i docs/kanon.md)
+// spilles hver gang med ett klikk («Klikk for å begynne», som også gir lyd)
+// når byen er bygd, og toner over i spillet ved sørporten. `?nofilm` hopper
+// over den.
+const FILM = !EDIT && !new URLSearchParams(location.search).has("nofilm");
+let film = null;
+let filmReveal = false;
+
+async function startFilm() {
+  beginBtn.hidden = true;
+  gateEl.hidden = true;
+  hud.hidden = true;
+  if (!soundsLoading) {
+    soundsLoading = true;
+    sfx.preload();
+  }
+  music.set("silence");
+  engine.set_theme(false);
+  engine.set_paused(false);
+  filmReveal = false;
+  try {
+    film = createFilm();
+  } catch (e) {
+    console.warn("Filmen kunne ikke vises:", e);
+    enter();
+    return;
+  }
+  const { skipped } = await film.done;
+  film = null;
+  // Hoppet over: rett til sørporten om dagen.
+  if (skipped || !filmReveal) {
+    engine.set_theme(false);
+    engine.respawn();
+  }
+  enter(false);
+  toast?.show?.("Klikk i bildet for å se deg rundt med musa.");
+}
+
 function bindInput() {
-  enterBtn.addEventListener("click", enter);
+  enterBtn.addEventListener("click", () => enter());
   // Sitter du fast, tar knappen i pausemenyen (og H) deg tilbake til sørporten.
   $("respawn").addEventListener("click", () => {
     engine.respawn();
@@ -1075,12 +1523,12 @@ function bindInput() {
   // Avslutt: tilbake til startskjermen, med spilleren ved sørporten igjen.
   $("quit").addEventListener("click", quit);
   canvas.addEventListener("click", () => {
-    if (playing && !locked()) lock();
+    if (playing && !locked() && !editor?.active) lock();
   });
 
   document.addEventListener("pointerlockchange", () => {
     // Slippes låsen mens du spiller (Esc), er det pause.
-    if (!locked() && playing && !panelOpen) pause();
+    if (!locked() && playing && !panelOpen && !editor?.active) pause();
   });
   // Ga ikke nettleseren oss musa, går det an å spille uten: dra for å se,
   // klikk for å hugge.
@@ -1096,6 +1544,7 @@ function bindInput() {
   let dragDist = 0;
   const inGame = (t) => t === canvas || (t instanceof Element && !t.closest("dialog, #overlay, #panel, #gate, button, a, input"));
   document.addEventListener("mousedown", (e) => {
+    if (playing && editor?.mouseDown(e)) return;
     if (!playing || !inGame(e.target)) return;
     if (locked()) {
       e.preventDefault();
@@ -1109,6 +1558,7 @@ function bindInput() {
     }
   });
   window.addEventListener("mouseup", (e) => {
+    if (editor?.mouseUp(e)) return;
     const wasDrag = dragging;
     dragging = false;
     if (!playing) return;
@@ -1126,6 +1576,7 @@ function bindInput() {
   });
   document.addEventListener("mousemove", (e) => {
     if (!playing) return;
+    if (editor?.mouseMove(e)) return;
     if (dragging) dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     if (locked() || dragging) engine.look(e.movementX, e.movementY);
   });
@@ -1136,6 +1587,8 @@ function bindInput() {
     // uten å be om pekerlås (Esc gir ingen brukerhandling å låse på, og et
     // avslått forsøk åpnet pausemenyen). Klikk i bildet låser igjen; neste
     // Esc åpner menyen.
+    // Redigeringen tar sine taster først (og P for å gå inn i den igjen).
+    if (editor && playing && !panelOpen && !invOpen && !overlayOpen && !settingsOpen && editor.key(e)) return;
     if (panelOpen && e.code === "Escape") {
       // Er dialogen i demoen åpen, er det den Esc lukker.
       if ($("demo").shadowRoot?.querySelector("dialog:modal")) return;
@@ -1165,15 +1618,27 @@ function bindInput() {
       }
       return;
     }
+    if (e.code === "KeyJ" && !e.repeat && playing) {
+      e.preventDefault();
+      toggleJournal();
+      return;
+    }
     if (e.code === "KeyK" && !e.repeat && playing) {
       e.preventDefault();
       toggleBigMap();
       return;
     }
-    if (e.code === "KeyG" && !e.repeat && (playing || !gateEl.hidden)) {
-      setGraphics(!reducedGfx);
+    if (e.code === "KeyG" && !e.repeat && !graphicsOpen && (playing || !gateEl.hidden)) {
+      setQuality(QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]);
       return;
     }
+    if (e.code === "KeyO" && !e.repeat && (playing || !gateEl.hidden || settingsOpen)) {
+      e.preventDefault();
+      if (settingsOpen) settingsOpen.querySelector('[data-act="close"]').click();
+      else openSettings();
+      return;
+    }
+    if (settingsOpen || graphicsOpen) return;
     if (!playing) return;
     if (e.code === "Escape" && !locked()) {
       pause();
@@ -1190,7 +1655,8 @@ function bindInput() {
 
   $("close").addEventListener("click", () => closePanel(true));
   $("overlay-close").addEventListener("click", () => closeOverlay(true, true));
-  $("graphics").addEventListener("click", () => setGraphics(!reducedGfx));
+  $("graphics").addEventListener("click", () => openGraphics());
+  $("settings").addEventListener("click", () => openSettings());
 }
 
 // Tastekartet nederst står hele tida, så det alltid går an å se hva tastene gjør.
@@ -1322,3 +1788,131 @@ boot().catch((e) => {
   status.textContent =
     "Fristad trenger WebGPU eller WebGL2, og fikk ikke startet her. Prøv en oppdatert Chrome, Edge, Safari eller Firefox.";
 });
+
+
+// Målingen (`?bench` i adressen, eller `fristad.bench()` i konsollen): går
+// gjennom faste steder og grafikkvalg, måler tiden på grafikkortet per del
+// og bildene per sekund, og viser alt som én tekst eieren kan kopiere.
+// Bryterne (MSAA, alpha to coverage, solskygge, flat farge) skiller hva som
+// koster: flat farge måler bare rasterisering og overtegning.
+let benchFrames = 0;
+let benchRunning = false;
+const BENCH_PLACES = [
+  ["torget", 2, 1.7, 9, 0],
+  ["Storgata", 4.7, 1.7, 28, 0],
+  ["sørporten", 4.7, 1.7, 50, 0],
+];
+// Hver kjøring: nivået, en kort forklaring og bryterne til `engine.set_bench`
+// (det som mangler, står som i vanlig spill). `scale` ganger oppløsningen.
+const BENCH_RUNS = [
+  { q: "standard", what: "som i spillet (SMAA)" },
+  { q: "standard", what: "uten kantutjevning", smaa: false },
+  { q: "standard", what: "MSAA 4× i stedet for SMAA", msaa: 4 },
+  { q: "standard", what: "flat farge", flat: true },
+  { q: "standard", what: "halv oppløsning", scale: 0.5 },
+  // Grafikkbryterne (`gfx`, som i grafikkdialogen) én om gangen.
+  { q: "standard", what: "uten myke skygger", gfx: { soft_shadow: 0 } },
+  { q: "standard", what: "uten solstråler", gfx: { rays: 0 } },
+  { q: "standard", what: "med skygge i krokene", gfx: { ao: 1 } },
+  { q: "standard", what: "med skygge langt unna", gfx: { far_shadow: 1 } },
+  { q: "standard", what: "uten malt gradering", gfx: { grade: 0 } },
+  { q: "enkel", what: "som i spillet" },
+  { q: "avansert", what: "som i spillet (SMAA)" },
+  { q: "avansert", what: "MSAA 8× i stedet for SMAA", msaa: 8 },
+];
+
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function measure(seconds) {
+  const parts = new Map();
+  let samples = 0;
+  benchFrames = 0;
+  const t0 = performance.now();
+  while (performance.now() - t0 < seconds * 1000) {
+    await sleep(100);
+    const text = engine.gpu_times ? engine.gpu_times() : "";
+    if (!text) continue;
+    samples++;
+    for (const p of text.split(" · ")) {
+      const k = p.slice(0, p.lastIndexOf(" "));
+      parts.set(k, (parts.get(k) ?? 0) + parseFloat(p.split(" ").pop()));
+    }
+  }
+  const fps = (benchFrames * 1000) / (performance.now() - t0);
+  const avg = [...parts].map(([k, v]) => [k, v / Math.max(samples, 1)]);
+  const total = avg.reduce((a, [, v]) => a + v, 0);
+  return { fps, total, avg };
+}
+async function runBench() {
+  if (benchRunning || !engine) return;
+  benchRunning = true;
+  // Målingen bruker forhåndsvalgene; de egendefinerte bryterne settes til side.
+  const customBefore = custom;
+  custom = null;
+  const before = quality;
+  gateEl.hidden = true;
+  engine.set_paused(false);
+  const lines = [
+    `Fristad ${engine.fristil_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
+    `${navigator.userAgent}`,
+    `Lerret ${canvas.width}×${canvas.height} · vindu ${innerWidth}×${innerHeight} · dpr ${devicePixelRatio}`,
+    "sted · nivå · kjøring → GPU ms (delene) · fps · trekanter og kall i hovedpasset · lerret",
+  ];
+  toast?.show?.("Måler grafikken … (rundt ett minutt)");
+  for (const [name, x, y, z, yaw] of BENCH_PLACES) {
+    for (const run of BENCH_RUNS) {
+      if (name !== "torget" && run !== BENCH_RUNS[0] && run.q === "standard") continue;
+      setQuality(run.q, false, false);
+      const { q, what, scale, gfx, ...flags } = run;
+      if (gfx) engine.set_quality(JSON.stringify({ preset: q, ...gfx }));
+      engine.set_bench(JSON.stringify(flags));
+      benchScale = scale ?? 1;
+      fit();
+      engine.place(x, y, z, yaw, 0);
+      await sleep(600);
+      const m = await measure(2);
+      const partText = m.avg.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");
+      const tris = `${Math.round(engine.triangles() / 1000)}k △ · ${engine.calls()} kall`;
+      lines.push(`${name} · ${q} · ${what} → ${m.total > 0 ? `${m.total.toFixed(1)} ms (${partText})` : "GPU-tid ikke tilgjengelig"} · ${m.fps.toFixed(0)} fps · ${tris} · ${canvas.width}×${canvas.height}`);
+    }
+  }
+  engine.set_bench("{}");
+  benchScale = 1;
+  fit();
+  custom = customBefore;
+  setQuality(before ?? "standard", false, false);
+  benchRunning = false;
+  showBench(lines.join("\n"));
+}
+function showBench(text) {
+  console.info(text);
+  const dlg = document.createElement("dialog");
+  dlg.className = "fs-dialog settings-dialog";
+  dlg.setAttribute("aria-labelledby", "bench-title");
+  dlg.innerHTML = `
+    <h2 class="fs-dialog__title" id="bench-title">Målingen</h2>
+    <div class="fs-dialog__body">
+      <p class="fs-help-text">Kopier teksten og send den til Claude.</p>
+      <textarea class="fs-textarea" rows="16" readonly style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+    </div>
+    <div class="fs-dialog__footer">
+      <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk</button>
+      <button class="fs-button" data-variant="primary" type="button" data-act="copy">Kopier</button>
+    </div>`;
+  document.body.appendChild(dlg);
+  dlg.querySelector("textarea").value = text;
+  dlg.querySelector('[data-act="copy"]').addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast?.show?.("Kopiert.");
+    } catch {
+      dlg.querySelector("textarea").select();
+    }
+  });
+  dlg.querySelector('[data-act="close"]').addEventListener("click", () => {
+    dlg.close();
+    dlg.remove();
+    gateEl.hidden = false;
+  });
+  dlg.showModal();
+}

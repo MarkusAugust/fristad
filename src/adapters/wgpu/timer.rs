@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 
 /// Delene av bildet, i den rekkefølgen de tegnes.
-pub const SECTIONS: [&str; 5] = ["skygger", "prepass", "ssao", "verden", "etterbehandling"];
+pub const SECTIONS: [&str; 3] = ["skygge", "verden", "etterbehandling"];
 const QUERIES: u32 = SECTIONS.len() as u32 * 2;
 
 /// Tilbakelesingen: ledig, venter på kartlegging, klar til å leses.
@@ -47,6 +47,9 @@ impl GpuTimer {
 
     /// Tidsstemplene til et pass: begynnelsen og/eller slutten av delen.
     pub fn writes(&self, section: usize, begin: bool, end: bool) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
+        if !begin && !end {
+            return None;
+        }
         Some(wgpu::RenderPassTimestampWrites {
             query_set: &self.set,
             beginning_of_pass_write_index: begin.then_some(section as u32 * 2),

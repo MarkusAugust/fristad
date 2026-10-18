@@ -1,0 +1,14 @@
+{
+  "_om": "Runde 7: det som ble underkjent eller usikkert i runde 6, rettet.",
+  "round": 7,
+  "fix": {
+    "stack": "Tønnene nederst ligger tett i tett, og høyden på rad to regnes nå ut fra der tønnene møter hverandre, så hver tønne oppå hviler på de to under (før var høyden regnet som om tønnene under lå tett, men de lå en meter fra hverandre, og rad to fikk 8 cm luft). Kilene står der tønna møter svilla. Dette er en felles hjelper i byggesettet (kit.barrel_stack), så alle tønnestabler blir slik.",
+    "spread": "Tingene står i fire tette grupper av det som hører sammen (en kanne med krus rundt, fat med en bolle, flasker med en mugge), foran og bak på disken om hverandre, med tomme flekker mellom. En ny felles hjelper til bord og disker (vessels.spread); hyllene fylles som før.",
+    "forge_shots": "Kortet viser bare Smia. Verktøyet plukket bildene på navnet, så bildene av kassa i Smia (forge_crate) kom med; nå teller bare vinkler uten understrek. Smia selv er ikke endret siden runde 6."
+  },
+  "items": {
+    "barrel_rack": {"fix": ["stack"]},
+    "tavern_counter": {"fix": ["spread"]},
+    "forge": {"fix": ["forge_shots"]}
+  }
+}

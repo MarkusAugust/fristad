@@ -1,0 +1,59 @@
+{
+ "ref": "assets/textures/people/ref/farmer_body.jpeg",
+ "layout": "body3",
+ "scale": 0.0009,
+ "opt": {
+  "floor_line": true,
+  "open_holes": true,
+  "min_hole": 400,
+  "dome": 0,
+  "scale_per_view": true,
+  "mirror_texture": true,
+  "edge_slack": 8,
+  "edge_gain": 1.0,
+  "elliptic": true,
+  "elliptic_p": 2.5,
+  "elliptic_tol": 4,
+  "style": "default",
+  "grip": "long",
+  "tool_side": "R",
+  "drop_pole": true,
+  "model_tool": false,
+  "erase": {
+   "front": [
+    [
+     600,
+     380,
+     780,
+     820
+    ]
+   ],
+   "back": [
+    [
+     40,
+     380,
+     240,
+     820
+    ]
+   ],
+   "right": [
+    [
+     470,
+     60,
+     640,
+     318
+    ],
+    [
+     505,
+     1640,
+     570,
+     1815
+    ]
+   ]
+  }
+ },
+ "tris": 14000,
+ "target": "fristad",
+ "root": "../../..",
+ "head": "farmer_head"
+}

@@ -1,0 +1,23 @@
+{
+ "ref": "assets/textures/props/prop2/barrel.jpeg",
+ "layout": "prop2",
+ "tris": 2000,
+ "tex": 1024,
+ "target": "fristad",
+ "root": "../../..",
+ "limits": {
+  "sharpness_min": 40.0
+ },
+ "opt": {
+  "prior": "barrel",
+  "size": {
+   "r": 0.33,
+   "hy": 0.43,
+   "bulge": 0.14
+  },
+  "view_pitch": 20.0,
+  "tiles": "auto",
+  "edge_fade": 6.0
+ },
+ "merk": "tønna 0,66 × 0,86 som dagens barrel, bulen 0,14 (fra den frie passingen)"
+}

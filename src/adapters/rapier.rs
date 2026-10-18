@@ -73,11 +73,16 @@ impl Physics for RapierPhysics {
         let c = match shape {
             Shape::Cuboid { center, size, yaw } => ColliderBuilder::cuboid(size.x * 0.5, size.y * 0.5, size.z * 0.5).position(iso(*center, *yaw)).build(),
             Shape::Cylinder { center, radius, half_height } => ColliderBuilder::cylinder(*half_height, *radius).position(iso(*center, 0.0)).build(),
-            Shape::Heightfield { center, size, cols, rows, ref heights } => {
+            Shape::Heightfield { center, size, cols, rows, ref heights, ref holes } => {
                 // Rapier: rader langs X? Nei: matrisen er (nrows × ncols) der
                 // rad i er langs Z og kolonne j langs X, skalert til `size`.
                 let m = rapier3d::na::DMatrix::from_fn(*rows, *cols, |i, j| heights[i * cols + j]);
-                ColliderBuilder::heightfield(m, vector![size.x, size.y, size.z]).position(iso(*center, 0.0)).build()
+                let mut hf = rapier3d::parry::shape::HeightField::new(m, vector![size.x, size.y, size.z]);
+                // Kjellerne under husene: rutene fjernes.
+                for &(i, j) in holes {
+                    hf.set_cell_status(i, j, rapier3d::parry::shape::HeightFieldCellStatus::CELL_REMOVED);
+                }
+                ColliderBuilder::new(rapier3d::geometry::SharedShape::new(hf)).position(iso(*center, 0.0)).build()
             }
             Shape::Capsule { a, b, radius } => ColliderBuilder::new(SharedShape::capsule(point![a.x, a.y, a.z], point![b.x, b.y, b.z], *radius)).build(),
             Shape::Hull { points } => {

@@ -1,23 +1,20 @@
-// Etterbehandling: SSAO, tåke med lysstråler, TAA, glød og tonemapping.
-// Alle tegner en trekant over hele skjermen. Hvilke teksturer som er
-// bundet avhenger av passet, se render.rs.
+// Etterbehandling: glød og tonemapping. Begge tegner en trekant over hele
+// skjermen.
 
 struct Post {
     params: vec4<f32>,
     // Størrelsen på kilden: bredde, høyde, 1/bredde, 1/høyde.
     texel: vec4<f32>,
-    // x: skarpingen etter TAA (0 av).
-    extra: vec4<f32>,
+    // Tonemappingen: xy sola på skjermen (uv), z styrken på solstrålene,
+    // w den malte graderingen (1) eller den gamle ACES-kurven (0).
+    sun: vec4<f32>,
 }
-@group(2) @binding(0) var tex0: texture_2d<f32>;
-@group(2) @binding(1) var tex1: texture_2d<f32>;
-@group(2) @binding(2) var tex2: texture_2d<f32>;
-// Dybden er en R32Float-fargetekstur fra prepasset: WebGL2 kan ikke lese
-// dybdeteksturer med textureLoad.
-@group(2) @binding(3) var depth_tex: texture_2d<f32>;
-@group(2) @binding(4) var lin: sampler;
-@group(2) @binding(5) var near: sampler;
-@group(2) @binding(6) var<uniform> post: Post;
+@group(1) @binding(0) var tex0: texture_2d<f32>;
+@group(1) @binding(1) var tex1: texture_2d<f32>;
+@group(1) @binding(2) var lin: sampler;
+@group(1) @binding(3) var<uniform> post: Post;
+// Skygge i krokene i halv oppløsning (hvit når den er av).
+@group(1) @binding(4) var tex_ao: texture_2d<f32>;
 
 struct VsOut {
     @builtin(position) clip: vec4<f32>,
@@ -33,265 +30,17 @@ fn vs(@builtin(vertex_index) vi: u32) -> VsOut {
     return o;
 }
 
-fn depth_at(uv: vec2<f32>) -> f32 {
-    let size = vec2<f32>(textureDimensions(depth_tex));
-    let c = vec2<i32>(clamp(uv * size, vec2<f32>(0.0), size - 1.0));
-    return textureLoad(depth_tex, c, 0).r;
-}
-
-// ---- SSAO i halv oppløsning. tex0 er normalene fra prepasset. ----
-
-@fragment
-fn fs_ssao(i: VsOut) -> @location(0) vec4<f32> {
-    let d = depth_at(i.uv);
-    if (d >= 1.0) {
-        return vec4<f32>(1.0);
-    }
-    let p = world_from_depth(i.uv, d);
-    let n = normalize(textureSampleLevel(tex0, near, i.uv, 0.0).xyz * 2.0 - 1.0);
-    let dist = distance(p, g.camera.xyz);
-    let radius = post.params.x;
-    let px = i.clip.xy;
-    let rnd = ign(px);
-    let rnd2 = ign(px + 17.0);
-    // Ortonormal ramme rundt normalen, rotert tilfeldig per piksel.
-    var t = normalize(cross(n, vec3<f32>(0.0, 1.0, 0.01)));
-    if (abs(n.y) > 0.99) {
-        t = normalize(cross(n, vec3<f32>(1.0, 0.0, 0.0)));
-    }
-    let b = cross(n, t);
-    let rot = rnd * 6.2831;
-    let tr = t * cos(rot) + b * sin(rot);
-    let br = cross(n, tr);
-    var occ = 0.0;
-    // Kvaliteten skalerer antall prøver: 4–10.
-    let taps = max(4, i32(round(10.0 * mix(0.4, 1.0, g.cascade.w))));
-    for (var k = 0; k < taps; k++) {
-        let fk = f32(k) + rnd2;
-        let a = fk * 2.39996;
-        let r = sqrt((fk + 0.5) / f32(taps));
-        // Hemisfære: mer vekt nær normalen.
-        let dir = tr * cos(a) * r + br * sin(a) * r + n * (0.3 + 0.7 * (1.0 - r * r));
-        let sp = p + dir * radius * (0.3 + 0.7 * fract(fk * 0.618));
-        let cp = g.view_proj * vec4<f32>(sp, 1.0);
-        let suv = vec2<f32>(cp.x / cp.w * 0.5 + 0.5, 0.5 - cp.y / cp.w * 0.5);
-        if (any(suv < vec2<f32>(0.0)) || any(suv > vec2<f32>(1.0))) {
-            continue;
-        }
-        let sd = depth_at(suv);
-        let scene_dist = linear_depth(sd);
-        let sample_dist = linear_depth(cp.z / cp.w);
-        let diff = sample_dist - scene_dist;
-        if (diff > 0.02) {
-            occ += smoothstep(radius * 2.0, 0.0, diff);
-        }
-    }
-    let ao = 1.0 - occ / f32(taps) * post.params.y;
-    // Mindre effekt langt unna, der presisjonen svikter.
-    return vec4<f32>(mix(ao, 1.0, smoothstep(60.0, 150.0, dist)));
-}
-
-// Dybdebevisst uskarphet av SSAO, én retning per pass (params.zw).
-@fragment
-fn fs_blur(i: VsOut) -> @location(0) vec4<f32> {
-    let d0 = linear_depth(depth_at(i.uv));
-    var sum = 0.0;
-    var wsum = 0.0;
-    for (var k = -3; k <= 3; k++) {
-        let uv = i.uv + post.params.zw * post.texel.zw * f32(k);
-        let d = linear_depth(depth_at(uv));
-        let w = exp(-f32(k * k) * 0.3) * exp(-abs(d - d0) * 2.0);
-        sum += textureSampleLevel(tex0, lin, uv, 0.0).r * w;
-        wsum += w;
-    }
-    return vec4<f32>(sum / max(wsum, 1e-4));
-}
-
-// ---- Tåke med lysstråler. tex0 er HDR-bildet. ----
-
-fn phase_hg(cos_t: f32, gg: f32) -> f32 {
-    let denom = 1.0 + gg * gg - 2.0 * gg * cos_t;
-    return (1.0 - gg * gg) / (4.0 * PI * pow(max(denom, 1e-3), 1.5));
-}
-
-// Hvor mye en lykt lyser opp tåka langs strålen, lukket form for 1/d².
-fn lamp_scatter(origin: vec3<f32>, dir: vec3<f32>, len: f32, lp: vec3<f32>, radius: f32) -> f32 {
-    let q = origin - lp;
-    let b = dot(dir, q);
-    let c = dot(q, q);
-    let h2 = max(c - b * b, 0.04);
-    let h = sqrt(h2);
-    let inv = (atan((len + b) / h) - atan(b / h)) / h;
-    // Ikke la lykter langt fra strålen telle.
-    return inv * smoothstep(radius, radius * 0.3, h);
-}
-
-@fragment
-fn fs_fog(i: VsOut) -> @location(0) vec4<f32> {
-    let color = textureSampleLevel(tex0, near, i.uv, 0.0).rgb;
-    let d = depth_at(i.uv);
-    let cam = g.camera.xyz;
-    var p_end = world_from_depth(i.uv, min(d, 0.99999));
-    var dist = distance(p_end, cam);
-    let is_sky = d >= 1.0;
-    if (is_sky) {
-        dist = 600.0;
-    }
-    let dir = normalize(p_end - cam);
-    let density = g.sky_horizon.w;
-    let falloff = g.ground_bounce.w;
-    let night = g.sun_color.w;
-
-    // Høydetåke analytisk for utslokkingen.
-    let y0 = cam.y;
-    let dy = dir.y * dist;
-    var height_term = exp(-falloff * y0);
-    if (abs(dy) > 0.01) {
-        height_term = (exp(-falloff * y0) - exp(-falloff * (y0 + dy))) / (falloff * dy);
-    }
-    let optical = density * dist * height_term;
-    let transmittance = exp(-optical);
-
-    // Innspredning fra sola: marsj gjennom skyggekartet med dithering.
-    // Kvaliteten skalerer marsjen: 5–14 steg.
-    let steps = max(5, i32(round(14.0 * mix(0.35, 1.0, g.cascade.w))));
-    let march_len = min(dist, 90.0);
-    let jitter = ign(i.clip.xy);
-    var sun_vis = 0.0;
-    for (var k = 0; k < steps; k++) {
-        let t = (f32(k) + jitter) / f32(steps);
-        let p = cam + dir * (t * march_len);
-        let w = exp(-falloff * max(p.y, 0.0));
-        sun_vis += sun_shadow_cheap(p) * w;
-    }
-    sun_vis /= f32(steps);
-    // Resten av strålen antas delvis i sol.
-    let tail = clamp((dist - march_len) / max(dist, 1.0), 0.0, 1.0);
-    sun_vis = mix(sun_vis, 0.6, tail);
-    let cos_t = dot(dir, g.sun_dir.xyz);
-    let phase = phase_hg(cos_t, 0.55) * 4.0 * PI;
-    let sun_in = g.sun_color.rgb * g.sun_dir.w * sun_vis * mix(0.35, phase, 0.6);
-    let ambient_in = mix(g.fog_color.rgb, sky_gradient(normalize(vec3<f32>(dir.x, 0.05, dir.z))), 0.5);
-    var inscatter = (ambient_in * 0.7 + sun_in * 0.3) * (1.0 - transmittance);
-
-    // Lyktene lyser opp tåka rundt seg.
-    let count = i32(g.params.y);
-    var lamp = vec3<f32>(0.0);
-    for (var k = 0; k < count; k++) {
-        let li = g.lights[k];
-        let r = li.pos_radius.w;
-        lamp += li.color_intensity.rgb * li.color_intensity.w * lamp_scatter(cam, dir, dist, li.pos_radius.xyz, r);
-    }
-    inscatter += lamp * density * 1.4 * (0.5 + g.weather.z * 1.5 + g.weather.w);
-
-    var out = color * transmittance + inscatter;
-    // Lyn lyser opp alt i tåka.
-    out += g.sky.z * (1.0 - transmittance) * vec3<f32>(0.8, 0.85, 1.0);
-    return vec4<f32>(out, 1.0);
-}
-
-// ---- TAA. tex0 er bildet nå, tex1 historien, tex2 bevegelsen. ----
-
-fn rgb_to_ycocg(c: vec3<f32>) -> vec3<f32> {
-    return vec3<f32>(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b, -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
-}
-
-fn ycocg_to_rgb(c: vec3<f32>) -> vec3<f32> {
-    return vec3<f32>(c.x + c.y - c.z, c.x + c.z, c.x - c.y - c.z);
-}
-
-// Historien leses med Catmull-Rom (fem bilineære oppslag), ikke bare
-// bilineært: et bilineært oppslag midt mellom pikslene visker ut litt hver
-// gang bildet flyttes, og med 90 % historie hoper det seg opp.
-fn history(uv: vec2<f32>) -> vec3<f32> {
-    let size = post.texel.xy;
-    let pos = uv * size;
-    let c = floor(pos - 0.5) + 0.5;
-    let f = pos - c;
-    let w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
-    let w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
-    let w2 = f * (0.5 + f * (2.0 - 1.5 * f));
-    let w3 = f * f * (-0.5 + 0.5 * f);
-    let w12 = w1 + w2;
-    let t0 = (c - 1.0) * post.texel.zw;
-    let t3 = (c + 2.0) * post.texel.zw;
-    let t12 = (c + w2 / w12) * post.texel.zw;
-    var r = textureSampleLevel(tex1, lin, vec2<f32>(t12.x, t0.y), 0.0).rgb * (w12.x * w0.y);
-    r += textureSampleLevel(tex1, lin, vec2<f32>(t0.x, t12.y), 0.0).rgb * (w0.x * w12.y);
-    r += textureSampleLevel(tex1, lin, t12, 0.0).rgb * (w12.x * w12.y);
-    r += textureSampleLevel(tex1, lin, vec2<f32>(t3.x, t12.y), 0.0).rgb * (w3.x * w12.y);
-    r += textureSampleLevel(tex1, lin, vec2<f32>(t12.x, t3.y), 0.0).rgb * (w12.x * w3.y);
-    let wsum = w12.x * w0.y + w0.x * w12.y + w12.x * w12.y + w3.x * w12.y + w12.x * w3.y;
-    // Catmull-Rom kan skyte under null ved skarpe kanter.
-    return max(r / wsum, vec3<f32>(0.0));
-}
-
-@fragment
-fn fs_taa(i: VsOut) -> @location(0) vec4<f32> {
-    let cur = textureSampleLevel(tex0, near, i.uv, 0.0).rgb;
-    if (post.params.x < 0.5) {
-        return vec4<f32>(cur, 1.0);
-    }
-    // Finn den nærmeste dybden i 3×3 for en stabil reprojeksjon på kanter.
-    var best_d = 1.0;
-    var best_uv = i.uv;
-    var mn = vec3<f32>(1e9);
-    var mx = vec3<f32>(-1e9);
-    var m1 = vec3<f32>(0.0);
-    var m2 = vec3<f32>(0.0);
-    for (var y = -1; y <= 1; y++) {
-        for (var x = -1; x <= 1; x++) {
-            let uv = i.uv + vec2<f32>(f32(x), f32(y)) * post.texel.zw;
-            let d = depth_at(uv);
-            if (d < best_d) {
-                best_d = d;
-                best_uv = uv;
-            }
-            let c = rgb_to_ycocg(textureSampleLevel(tex0, near, uv, 0.0).rgb);
-            mn = min(mn, c);
-            mx = max(mx, c);
-            m1 += c;
-            m2 += c * c;
-        }
-    }
-    // Varians-klemme gir mindre flimmer enn ren min/maks.
-    let mu = m1 / 9.0;
-    let sigma = sqrt(max(m2 / 9.0 - mu * mu, vec3<f32>(0.0)));
-    let gamma = 1.25;
-    mn = max(mn, mu - sigma * gamma);
-    mx = min(mx, mu + sigma * gamma);
-
-    // Bevegelsen fra prepasset (tex2): kameraet og alt som flytter seg eller
-    // er skinnet, tatt fra den nærmeste pikselen så kantene følger med.
-    let vel = textureSampleLevel(tex2, near, best_uv, 0.0).xy;
-    let puv = i.uv - vel;
-    if (any(puv < vec2<f32>(0.0)) || any(puv > vec2<f32>(1.0)) || best_d >= 1.0) {
-        // Himmelen: reprojiser retningen i stedet, den er langt unna.
-        if (best_d >= 1.0) {
-            let far = world_from_depth(i.uv, 0.9999);
-            let pr = g.prev_view_proj * vec4<f32>(far, 1.0);
-            let suv = vec2<f32>(pr.x / pr.w * 0.5 + 0.5, 0.5 - pr.y / pr.w * 0.5);
-            if (all(suv >= vec2<f32>(0.0)) && all(suv <= vec2<f32>(1.0))) {
-                let h = rgb_to_ycocg(textureSampleLevel(tex1, lin, suv, 0.0).rgb);
-                let hc = clamp(h, mn, mx);
-                return vec4<f32>(ycocg_to_rgb(mix(rgb_to_ycocg(cur), hc, 0.9)), 1.0);
-            }
-        }
-        return vec4<f32>(cur, 1.0);
-    }
-    let hist = rgb_to_ycocg(history(puv));
-    let clamped = clamp(hist, mn, mx);
-    // Mindre vekt på historien der den måtte klemmes mye (bevegelse).
-    let dev = length(hist - clamped) / max(length(sigma), 1e-3);
-    let blend = post.params.y * (1.0 - smoothstep(0.5, 2.5, dev) * 0.5);
-    let out = mix(rgb_to_ycocg(cur), clamped, blend);
-    return vec4<f32>(max(ycocg_to_rgb(out), vec3<f32>(0.0)), 1.0);
-}
-
 // ---- Glød. ----
 
 fn karis(c: vec3<f32>) -> f32 {
     return 1.0 / (1.0 + max(max(c.r, c.g), c.b));
+}
+
+// Byttes et ugyldig tall (NaN eller uendelig) ut med 0. Ett eneste slikt i
+// bildet ville ellers spredd seg gjennom gløden til en svart firkant.
+fn finite(c: vec3<f32>) -> vec3<f32> {
+    let bad = (bitcast<vec3<u32>>(c) & vec3<u32>(0x7f800000u)) == vec3<u32>(0x7f800000u);
+    return select(c, vec3<f32>(0.0), bad);
 }
 
 @fragment
@@ -310,6 +59,7 @@ fn fs_down(i: VsOut) -> @location(0) vec4<f32> {
     for (var k = 0; k < 13; k++) {
         var s = textureSampleLevel(tex0, lin, i.uv + offs[k] * t, 0.0).rgb;
         if (first) {
+            s = finite(s);
             // Bare det som er lysere enn hvitt gløder, dempet mot flimmer.
             s = max(s - vec3<f32>(1.0), vec3<f32>(0.0)) * karis(s);
         }
@@ -351,72 +101,125 @@ fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
     return select(hi, lo, c <= vec3<f32>(0.0031308));
 }
 
-// Skarping etter TAA (som AMDs CAS): pikselen trekkes bort fra naboene i
-// et kors, mindre der kontrasten alt er høy, så kantene ikke får glorie.
-// Alt leses med samme sampler: WebGL2 tåler ikke to samplere på ett bilde.
-// Styrken står i extra.x (0 av).
-fn sharpened(uv: vec2<f32>) -> vec3<f32> {
-    let c = textureSampleLevel(tex0, lin, uv, 0.0).rgb;
-    let amount = post.extra.x;
-    if (amount <= 0.0) {
-        return textureSampleLevel(tex0, lin, uv, 0.0).rgb;
+fn luma(c: vec3<f32>) -> f32 {
+    return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+}
+
+// Solstråler gjennom lufta: himmelen (alfa 0 i HDR-bildet) nær sola
+// samles langs linja fra punktet mot sola, så husene, trærne og murene
+// skjærer lyset i stråler. Faste steg uten støy; kort rekkevidde, så
+// trinnene ikke synes.
+fn sun_rays(uv: vec2<f32>) -> vec3<f32> {
+    let sun = post.sun.xy;
+    let aspect = post.texel.x * post.texel.w;
+    let step = (sun - uv) * (0.7 / 24.0);
+    var p = uv;
+    var acc = vec3<f32>(0.0);
+    var w = 1.0;
+    for (var k = 0; k < 24; k++) {
+        p += step;
+        let t = textureSampleLevel(tex0, lin, p, 0.0);
+        let r = (p - sun) * vec2<f32>(aspect, 1.0);
+        let near = exp(-dot(r, r) * 14.0);
+        acc += min(t.rgb, vec3<f32>(6.0)) * (1.0 - t.a) * near * w;
+        w *= 0.95;
     }
-    let t = post.texel.zw;
-    let n = textureSampleLevel(tex0, lin, uv - vec2<f32>(0.0, t.y), 0.0).rgb;
-    let s = textureSampleLevel(tex0, lin, uv + vec2<f32>(0.0, t.y), 0.0).rgb;
-    let w = textureSampleLevel(tex0, lin, uv - vec2<f32>(t.x, 0.0), 0.0).rgb;
-    let e = textureSampleLevel(tex0, lin, uv + vec2<f32>(t.x, 0.0), 0.0).rgb;
-    // Vektene regnes i et komprimert rom, så sterke lys ikke styrer dem.
-    let tc = c / (1.0 + c);
-    let tn = n / (1.0 + n);
-    let ts = s / (1.0 + s);
-    let tw = w / (1.0 + w);
-    let te = e / (1.0 + e);
-    let mn = min(tc, min(min(tn, ts), min(tw, te)));
-    let mx = max(tc, max(max(tn, ts), max(tw, te)));
-    let amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3<f32>(1e-4)), vec3<f32>(0.0), vec3<f32>(1.0)));
-    let peak = -1.0 / mix(8.0, 5.0, amount);
-    let wt = amp * peak;
-    let out = (c + (n + s + w + e) * wt) / (1.0 + 4.0 * wt);
-    return max(out, vec3<f32>(0.0));
+    return acc * (post.sun.z * 0.04);
+}
+
+// Den malte tonemappingen: ACES-kurven på lysstyrken med fargene beholdt
+// (lys ild blir ikke gul, himmelen ikke cyan), og det som da går over hvitt
+// glir mykt mot hvitt som på lerret; blandet halvt med ACES per kanal.
+fn painted(x: vec3<f32>) -> vec3<f32> {
+    let l = luma(x);
+    let mapped = aces(vec3<f32>(l)).r;
+    var kept = x * (mapped / max(l, 1e-5));
+    let over = max(max(kept.r, kept.g), kept.b);
+    if (over > 1.0) {
+        kept = mix(kept / over, vec3<f32>(1.0), clamp((over - 1.0) * 0.5, 0.0, 1.0));
+    }
+    return mix(kept, aces(x), 0.5);
+}
+
+// Bildet tonemappet og fargegradert i ett punkt (uten vignett og flash).
+fn graded(uv: vec2<f32>, exposure: f32, bloom: f32) -> vec3<f32> {
+    var hdr = textureSampleLevel(tex0, lin, uv, 0.0).rgb * textureSampleLevel(tex_ao, lin, uv, 0.0).r;
+    hdr += textureSampleLevel(tex1, lin, uv, 0.0).rgb * bloom;
+    if (post.sun.z > 0.0) {
+        hdr += sun_rays(uv);
+    }
+    if (post.sun.w > 0.5) {
+        return paint_grade(painted(hdr * exposure));
+    }
+    var c = aces(hdr * exposure);
+    // Fargegradering for den malte stilen: mettede farger, en mild
+    // S-kurve, varme lys og litt kjøligere skygger.
+    var lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+    c = max(mix(vec3<f32>(lum), c, 1.22), vec3<f32>(0.0));
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.2);
+    lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+    c = mix(c, c * vec3<f32>(0.94, 0.98, 1.08), smoothstep(0.4, 0.0, lum) * 0.5);
+    c = mix(c, c * vec3<f32>(1.05, 1.0, 0.9), smoothstep(0.45, 1.0, lum) * 0.5);
+    return c;
+}
+
+// Fargegraderingen i den malte stilen etter stedet og tida: varm by om
+// dagen med gyldne lys og blålige skygger, blå måneskinnsnatt der lyktene
+// og vinduene står varme, og kald kjeller (grønnblå skygger) der faklene
+// og lykta er det eneste varme.
+fn paint_grade(c_in: vec3<f32>) -> vec3<f32> {
+    var c = c_in;
+    let night = clamp(g.sun_color.w, 0.0, 1.0);
+    let cellar = g.room_info.x > 0.0;
+    var lum = luma(c);
+    // Metning og en mild S-kurve, som før.
+    c = max(mix(vec3<f32>(lum), c, select(1.22, 1.15, cellar)), vec3<f32>(0.0));
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.2);
+    lum = luma(c);
+    let shadows = smoothstep(0.42, 0.0, lum);
+    let lights = smoothstep(0.4, 1.0, lum);
+    var cold = vec3<f32>(0.94, 0.98, 1.08);
+    var warm = vec3<f32>(1.06, 1.0, 0.88);
+    var cold_k = 0.5;
+    if (cellar) {
+        cold = vec3<f32>(0.84, 0.95, 1.14);
+        warm = vec3<f32>(1.06, 0.99, 0.88);
+        cold_k = 0.7;
+    } else {
+        cold = mix(cold, vec3<f32>(0.9, 0.96, 1.1), night);
+        cold_k = mix(0.5, 0.6, night);
+    }
+    c = mix(c, c * cold, shadows * cold_k);
+    // Det varme går bare der fargen allerede er varm (ild, lys, sol), så
+    // en blå himmel ikke blir grå.
+    let warmth = smoothstep(-0.05, 0.15, c.r - c.b);
+    c = mix(c, c * warm, lights * mix(0.35, 0.6, warmth));
+    // Litt løftede, aldri helt svarte skygger, som maling på lerret.
+    c = c + vec3<f32>(0.0012, 0.0012, 0.0018) * (1.0 - smoothstep(0.0, 0.02, lum));
+    return c;
 }
 
 @fragment
 fn fs_tonemap(i: VsOut) -> @location(0) vec4<f32> {
     let exposure = post.params.x;
     let bloom = post.params.y;
-    var hdr = sharpened(i.uv);
-    if (g.sky.w > 0.0 && g.sky.w < 13.0) {
-        var d = clamp(hdr, vec3<f32>(0.0), vec3<f32>(1.0));
+    if (g.sky.w > 0.0) {
+        var d = clamp(textureSampleLevel(tex0, lin, i.uv, 0.0).rgb, vec3<f32>(0.0), vec3<f32>(1.0));
         if (post.params.z > 0.5) {
             d = linear_to_srgb(d);
         }
         return vec4<f32>(d, 1.0);
     }
-    hdr += textureSampleLevel(tex1, lin, i.uv, 0.0).rgb * bloom;
-    hdr *= exposure;
-    var c = aces(hdr);
-    // Fargegradering mot et dempet, filmatisk uttrykk: mindre metning
-    // (særlig i grønt), en S-kurve for kontrast, varme lys og kalde skygger,
-    // og svarte som løftes litt mot oliven.
-    var lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
-    let green = max(c.g - max(c.r, c.b), 0.0);
-    c = mix(vec3<f32>(lum), c, 0.8 - green * 0.6);
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.3);
-    lum = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
-    c = mix(c, c * vec3<f32>(0.9, 0.96, 1.08), smoothstep(0.45, 0.0, lum) * 0.6);
-    c = mix(c, c * vec3<f32>(1.06, 1.0, 0.88), smoothstep(0.4, 1.0, lum) * 0.55);
-    c = c * 0.97 + vec3<f32>(0.012, 0.011, 0.006);
-    // Vignett og fint korn.
+    var c = graded(i.uv, exposure, bloom);
     let v = i.uv * 2.0 - 1.0;
-    c *= 1.0 - dot(v, v) * 0.12;
+    // Vignett.
+    c *= 1.0 - dot(v, v) * 0.06;
     // Rødt flash langs kantene når spilleren er truffet.
     let hurt = post.params.w;
     if (hurt > 0.0) {
         c = mix(c, vec3<f32>(0.55, 0.02, 0.0), hurt * smoothstep(0.78, 1.45, length(v)) * 0.85);
     }
-    let grain = (ign(i.clip.xy) - 0.5) * 0.02 * (1.0 - lum * 0.5);
-    c = clamp(c + grain, vec3<f32>(0.0), vec3<f32>(1.0));
+    c = clamp(c, vec3<f32>(0.0), vec3<f32>(1.0));
     if (post.params.z > 0.5) {
         c = linear_to_srgb(c);
     }

@@ -1,0 +1,21 @@
+{
+ "_om": "Runde 17: armene, våpnene og skjoldene rettet etter dommen i runde 16. Hvert kort viser før og etter fra samme vinkel. Armene vises fra kameraet: i hvile, midt i hugg 1, i blokken og i det tunge hugget, og til sist fra spillet i krypten.",
+ "round": 17,
+ "fix": {
+  "armer": "Ja, før gjorde de det. Overarmen var et kort erme som fortsatte rett bakover langs underarmen og sluttet midt i bildet, så i blokken og i huggene så det ut som avkappede armer. Nå går armen hele veien: underarmen til albuen, og overarmen langs selve leddet fra albuen opp til skulderen og 15 cm forbi. En ny regel i eksporten sjekker hvert bilde av alle klippene og stopper om enden av armen havner inne i bildet. Nå er den alltid utenfor, bak kameraet. En annen ny regel stopper hugg der armen må strekkes lenger enn den rekker; før ble hånda da dratt inn mot øyet.",
+  "hand": "Hånda var satt sammen av stykker: en håndbak, fire ringer som fingre og to rør som tommel. Fingertuppene og håndflaten vendte mot kameraet. Nå er hånda og underarmen én kropp, formet etter omrisset i grepsarket ditt ovenfra og fra tommelsida, med arket malt på. Hånda holder som man holder et våpen: tommelen over grepet, knokene fram langs eggen og håndbaken ut og opp. Grepet i alle våpnene er 3,2 cm tykt, akkurat det hånda er formet rundt; før var grepene tegnet 5 cm tykke. En regel stopper et våpen med grep hånda ikke passer.",
+  "sverd": "Hullene kom av at sverdet ble blåst opp fra omrisset og så slanket. Nå bygges det av fire lukkede deler: en rett, symmetrisk klinge med rygg, ei parerstang 2 cm tykk, et rundt grep og en knapp som skive. De malte hakkene i eggen er tatt ut av omrisset; arket på klinga speiles fra den hele sida der eggen har hakk. En regel stopper en del med hull eller åpne kanter.",
+  "deler": "Våpenet er bygd av lukkede deler i stedet for blåst opp og slanket. Øksa har skaftet som følger den bøyde treskaftet i arket og bladet som en kile; dolken har fått knappen nederst og den runde parerplata.",
+  "skjold": "Skjoldet sto vinkelrett på venstre underarm, og underarmen pekte inn mot midten, så skjoldet vendte inn. Nå er retningen fast: rett fram, dreid 10° ut mot venstre, uansett hvor armen peker. Underarmen peker rett fram med håndtaket loddrett i neven og knokene mot skjoldet, og håndtaket står 5,5 cm bak brettet så knokene går klar. I blokken løftes skjoldet foran brystet og dreies rett fram, aldri inn mot midten. To nye regler: skjoldet skal vende 0–20° ut i hvile og aldri inn i blokken, og klinga går aldri gjennom skjoldet i huggene (skjoldet trekkes ned og ut mens klinga går over)."
+ },
+ "items": {
+  "arms": {"fix": ["armer", "hand"]},
+  "arms_leather": {"fix": ["armer", "hand"]},
+  "arms_mail": {"fix": ["armer", "hand"]},
+  "sword": {"fix": ["sverd", "hand"]},
+  "axe": {"fix": ["deler", "hand"]},
+  "dagger": {"fix": ["deler", "hand"]},
+  "shield_round": {"fix": ["skjold"]},
+  "shield_tower": {"fix": ["skjold"]}
+ }
+}

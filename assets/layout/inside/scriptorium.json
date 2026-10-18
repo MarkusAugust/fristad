@@ -1,0 +1,20 @@
+[
+  {"at":{"pos":[-0.5,0.36,-3.2],"rot":[0,0,0,1]},"model":"bookshelf_a","mounted":true},
+  {"at":{"pos":[1.9,0.36,-3.2],"rot":[0,0,0,1]},"model":"bookshelf_b","mounted":true},
+  {"at":{"pos":[-2.2,0.36,-3.2],"rot":[0,0,0,1]},"model":"bookshelf_w","mounted":true},
+  {"at":{"pos":[4.2,0.36,0],"rot":[0,-0.70711,0,0.70711]},"model":"bookshelf_e","mounted":true},
+  {"at":{"pos":[-2.3,0.36,0.4],"rot":[0,0.70711,0,0.70711]},"model":"writing_desk_0","mounted":true},
+  {"at":{"pos":[3.55,0.36,1.9],"rot":[0,-0.70711,0,0.70711]},"model":"writing_desk_1","mounted":true},
+  {"at":{"pos":[3.55,0.36,-1.9],"rot":[0,-0.70711,0,0.70711]},"model":"writing_desk_2","mounted":true},
+  {"at":{"pos":[3,0.36,2.55],"rot":[0,1,0,0]},"model":"writing_desk_unlit","mounted":true},
+  {"at":{"pos":[0.6,0.36,0.2],"rot":[0,0,0,1]},"model":"chained_book","mounted":true},
+  {"at":{"pos":[-1.5,0.36,2.95],"rot":[0,0,0,1]},"model":"candle_stand","mounted":true},
+  {"at":{"pos":[1.5,0.36,2.95],"rot":[0,0,0,1]},"model":"candle_stand","mounted":true},
+  {"at":{"pos":[-2.45,0.36,2.9],"rot":[0,0,0,1]},"model":"chest_forms","mounted":true},
+  {"at":{"pos":[0,3.8,1.7],"rot":[0,0,0,1]},"model":"chandelier_large","mounted":true},
+  {"at":{"pos":[1.2,4.1,-0.8],"rot":[0,0,0,1]},"model":"chandelier_small","mounted":true},
+  {"at":{"pos":[-1.85,2.86,-3.2],"rot":[0,0,0,1]},"model":"bookshelf_gallery_0","mounted":true},
+  {"at":{"pos":[1.85,2.86,-3.2],"rot":[0,0,0,1]},"model":"bookshelf_gallery_1","mounted":true},
+  {"at":{"pos":[0,2.86,-2.55],"rot":[0,0,0,1]},"model":"writing_desk_gallery","mounted":true},
+  {"at":{"pos":[2.25,2.86,-2.38],"rot":[0,0,0,1]},"model":"scroll_chest","mounted":true}
+]

@@ -1,0 +1,12 @@
+{
+ "_om": "Runde 19: øksa og brynjearmene rettet etter dommen i runde 18. Før er runde 18, etter er nå, fra samme vinkel. Rundskjoldet fra runde 18 venter fortsatt på dommen din.",
+ "round": 19,
+ "fix": {
+  "egg": "Eggen pekte bakover. Skaftet i arket er bøyd, og siden hodet ble målt fra skaftet ved grepet, så nakken ut som den lengste sida av hodet. Øksa ble derfor snudd feil vei. Nå måles hodet fra skaftets egen midtlinje der hodet sitter, så eggen peker fram mot monsteret: 12° fra retningen mot midten av bildet i hvile. I treffet i alle huggene går eggen først, i retningen øksa beveger seg. To nye regler måler dette på modellen: eggen høyst 40° fra fienden i hvile, og eggen først i hvert treff. Håndleddsregelen fra runde 18 gjelder fortsatt.",
+  "brynje": "Ja, det skal være brynje. Underarmen var strukket jevnt over arket, så hanskens brune mansjett dekket nesten alt, og brynja kom bare inn nede ved albuen. Nå tar mansjetten bare stykket ved håndleddet, og brynja dekker resten (83 % av underarmen). Ringene ligger i samme målestokk som i arket, i stedet for å være strukket fire ganger på langs. Det nære bildet viser underarmen i hugg 1. En ny regel krever at brynja dekker minst 70 % av underarmen."
+ },
+ "items": {
+  "arms_mail": {"fix": ["brynje"]},
+  "axe": {"fix": ["egg"]}
+ }
+}

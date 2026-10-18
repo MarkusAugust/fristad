@@ -1,75 +1,79 @@
-// Kaskaderte skyggekart i et 2×2-atlas. Kaskade 0 er nærmest og skarpest.
+// Skyggen fra sola: ett skyggekart rundt kameraet ut til `g.misc.w`, som
+// toner bort fra `g.misc.z`, og om spilleren vil en kaskade til ut til
+// `g.shadow.w` (grovere, side om side i samme kart). Prøvene står fast (ingen
+// tilfeldig dreiing), så kantene er rolige uten støy: fire (2 × 2 texels)
+// eller tolv i en poissonskive, hver bilineært sammenlignet, til myke kanter.
 
 @group(1) @binding(0) var shadow_map: texture_depth_2d;
 @group(1) @binding(1) var shadow_sampler: sampler_comparison;
+// Skyggepasset: x er kaskaden som tegnes (0 eller 1).
+@group(1) @binding(2) var<uniform> shadow_pass: vec4<f32>;
 
-fn cascade_for(world: vec3<f32>) -> i32 {
-    let d = distance(world, g.camera.xyz);
-    if (d < g.cascade.x) { return 0; }
-    if (d < g.cascade.y) { return 1; }
-    return 2;
+// Punktet i skyggekartets rom: uv i kaskaden og dybden.
+fn shadow_coord(vp: mat4x4<f32>, p: vec3<f32>) -> vec3<f32> {
+    let c = vp * vec4<f32>(p, 1.0);
+    let q = c.xyz / c.w;
+    return vec3<f32>(q.xy * vec2<f32>(0.5, -0.5) + 0.5, q.z);
 }
 
-// Atlasrute for kaskaden: 0 oppe til venstre, 1 oppe til høyre, 2 nede til venstre.
-fn atlas_uv(c: i32, uv: vec2<f32>) -> vec2<f32> {
-    let o = vec2<f32>(f32(c % 2), f32(c / 2));
-    return (clamp(uv, vec2<f32>(0.001), vec2<f32>(0.999)) + o) * 0.5;
+fn in_cascade(c: vec3<f32>) -> bool {
+    return all(c.xy > vec2<f32>(0.0)) && all(c.xy < vec2<f32>(1.0)) && c.z <= 1.0;
 }
 
-fn shadow_sample(c: i32, world: vec3<f32>, taps: i32, rot_seed: vec2<f32>) -> f32 {
-    let lp = g.sun_vp[c] * vec4<f32>(world, 1.0);
-    let p = lp.xyz / lp.w;
-    let uv = p.xy * vec2<f32>(0.5, -0.5) + 0.5;
-    if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0)) || p.z > 1.0) {
+// Lys (1) eller skygge (0) i kaskade `k`, filtrert etter innstillingen.
+fn shadow_taps(c: vec3<f32>, k: f32, bias: f32) -> f32 {
+    let n = max(g.shadow.z, 1.0);
+    let t = g.shadow.xy;
+    let lo = k / n + t.x;
+    let hi = (k + 1.0) / n - t.x;
+    let base = vec2<f32>((k + c.x) / n, c.y);
+    let z = c.z - bias;
+    if (g.quality.z > 1.5) {
+        let poisson = array<vec2<f32>, 12>(
+            vec2<f32>(-0.326, -0.406), vec2<f32>(-0.840, -0.074), vec2<f32>(-0.696, 0.457),
+            vec2<f32>(-0.203, 0.621), vec2<f32>(0.962, -0.195), vec2<f32>(0.473, -0.480),
+            vec2<f32>(0.519, 0.767), vec2<f32>(0.185, -0.893), vec2<f32>(0.507, 0.064),
+            vec2<f32>(0.896, 0.412), vec2<f32>(-0.322, -0.933), vec2<f32>(-0.792, -0.598),
+        );
+        var s = 0.0;
+        for (var i = 0; i < 12; i++) {
+            let o = base + poisson[i] * t * 1.8;
+            s += textureSampleCompareLevel(shadow_map, shadow_sampler, vec2<f32>(clamp(o.x, lo, hi), o.y), z);
+        }
+        return s / 12.0;
+    }
+    let h = t * 0.5;
+    var s = textureSampleCompareLevel(shadow_map, shadow_sampler, base + vec2<f32>(-h.x, -h.y), z);
+    s += textureSampleCompareLevel(shadow_map, shadow_sampler, base + vec2<f32>(h.x, -h.y), z);
+    s += textureSampleCompareLevel(shadow_map, shadow_sampler, base + vec2<f32>(-h.x, h.y), z);
+    s += textureSampleCompareLevel(shadow_map, shadow_sampler, base + vec2<f32>(h.x, h.y), z);
+    return s * 0.25;
+}
+
+fn sun_shadow(world: vec3<f32>, n: vec3<f32>) -> f32 {
+    if (g.quality.z < 0.5) {
         return 1.0;
     }
-    let texel = g.params.z;
-    let bias = select(0.0012, 0.0006, c == 0);
-    var sum = 0.0;
-    let rot = hash21(rot_seed) * 6.2831;
-    let cs = vec2<f32>(cos(rot), sin(rot));
-    let n = f32(taps);
-    for (var i = 0; i < taps; i++) {
-        let fi = f32(i);
-        let r = sqrt((fi + 0.5) / n) * 1.6;
-        let a = fi * 2.39996;
-        var d = vec2<f32>(cos(a), sin(a)) * r;
-        d = vec2<f32>(d.x * cs.x - d.y * cs.y, d.x * cs.y + d.y * cs.x);
-        sum += textureSampleCompareLevel(shadow_map, shadow_sampler, atlas_uv(c, uv + d * texel), p.z - bias);
-    }
-    return sum / n;
-}
-
-// Skygge fra sola i et punkt, med myk overgang mellom kaskadene.
-fn sun_shadow(world: vec3<f32>, n: vec3<f32>, rot_seed: vec2<f32>) -> f32 {
-    let ndl = dot(n, g.sun_dir.xyz);
-    let c = cascade_for(world);
-    let scale = select(select(0.12, 0.05, c == 1), 0.025, c == 0);
-    let offset = n * scale * (1.0 + 2.0 * (1.0 - clamp(ndl, 0.0, 1.0)));
-    // Kvaliteten (g.cascade.w, 0–1) skalerer antall prøver: 3–12 i nærmeste kaskade.
-    let q = mix(0.25, 1.0, g.cascade.w);
-    let base = select(select(6, 8, c == 1), 12, c == 0);
-    let taps = max(2, i32(round(f32(base) * q)));
-    var s = shadow_sample(c, world + offset, taps, rot_seed);
-    // Bland mot neste kaskade nær grensa.
     let d = distance(world, g.camera.xyz);
-    let edge = select(select(1e9, g.cascade.y, c == 1), g.cascade.x, c == 0);
-    let blend = smoothstep(edge * 0.85, edge, d);
-    if (blend > 0.0 && c < 2) {
-        let s2 = shadow_sample(c + 1, world + offset * 2.5, max(2, i32(round(6.0 * q))), rot_seed);
-        s = mix(s, s2, blend);
+    let two = g.shadow.z > 1.5;
+    // Punktet flyttes litt ut langs normalen (mer på skrå mot sola), så
+    // flatene ikke skygger for seg selv; mer i den grove kaskaden.
+    let ndl = clamp(dot(n, g.sun_dir.xyz), 0.0, 1.0);
+    let lean = 1.0 + 2.0 * (1.0 - ndl);
+    var far_s = 1.0;
+    if (two && d > g.misc.z) {
+        let c2 = shadow_coord(g.sun_vp2, world + n * 0.08 * lean);
+        if (in_cascade(c2)) {
+            far_s = mix(shadow_taps(c2, 1.0, 0.0007), 1.0, smoothstep(g.shadow.w * 0.82, g.shadow.w, d));
+        }
     }
-    return s;
-}
-
-// Billig skygge til tåkemarsjen: én prøve, riktig kaskade.
-fn sun_shadow_cheap(world: vec3<f32>) -> f32 {
-    let c = cascade_for(world);
-    let lp = g.sun_vp[c] * vec4<f32>(world, 1.0);
-    let p = lp.xyz / lp.w;
-    let uv = p.xy * vec2<f32>(0.5, -0.5) + 0.5;
-    if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0)) || p.z > 1.0) {
-        return 1.0;
+    let fade = smoothstep(g.misc.z, g.misc.w, d);
+    if (fade >= 1.0) {
+        return select(1.0, far_s, two);
     }
-    return textureSampleCompareLevel(shadow_map, shadow_sampler, atlas_uv(c, uv), p.z - 0.002);
+    let c = shadow_coord(g.sun_vp, world + n * 0.03 * lean);
+    if (!in_cascade(c)) {
+        return select(1.0, far_s, two);
+    }
+    return mix(shadow_taps(c, 0.0, 0.0005), select(1.0, far_s, two), fade);
 }

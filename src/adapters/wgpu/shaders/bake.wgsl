@@ -341,17 +341,6 @@ fn mat_rock(uv: vec2<f32>) -> Sample {
     return s;
 }
 
-fn mat_snow(uv: vec2<f32>) -> Sample {
-    // Snø: lys, blåhvit, med myke driver og små skavler.
-    let drifts = pfbm(uv * 3.0 + 5.0, 3.0, 3);
-    let crust = pnoise(uv * 60.0, 60.0);
-    var s: Sample;
-    s.albedo = mix(vec3<f32>(0.78, 0.82, 0.88), vec3<f32>(0.94, 0.95, 0.97), drifts) * (0.96 + crust * 0.06);
-    s.height = 0.4 + drifts * 0.4 + crust * 0.05;
-    s.rough = 0.45 + crust * 0.2;
-    return s;
-}
-
 fn mat_metal(uv: vec2<f32>) -> Sample {
     let dent = pfbm(uv * 8.0, 8.0, 3);
     let rust = smoothstep(0.62, 0.8, pfbm(uv * 5.0 + 4.0, 5.0, 4));
@@ -371,17 +360,6 @@ fn mat_grass(uv: vec2<f32>) -> Sample {
     let green = mix(vec3<f32>(0.22, 0.36, 0.12), vec3<f32>(0.40, 0.46, 0.16), clumps);
     s.albedo = mix(green * (0.8 + blades * 0.4), vec3<f32>(0.32, 0.26, 0.18), dirt);
     s.height = 0.4 + clumps * 0.3 + blades * 0.2 - dirt * 0.2;
-    s.rough = 0.9;
-    return s;
-}
-
-fn mat_bark(uv: vec2<f32>) -> Sample {
-    let ridges = pfbm(vec2<f32>(uv.x * 24.0, uv.y * 4.0), 24.0, 4);
-    let cracks = abs(pnoise(vec2<f32>(uv.x * 16.0, uv.y * 3.0), 16.0) - 0.5) * 2.0;
-    let fine = pfbm(uv * 60.0, 60.0, 2);
-    var s: Sample;
-    s.albedo = vec3<f32>(0.30, 0.24, 0.19) * (0.6 + ridges * 0.6) * (0.7 + cracks * 0.4) * (0.9 + fine * 0.2);
-    s.height = ridges * 0.6 + cracks * 0.3 + fine * 0.1;
     s.rough = 0.9;
     return s;
 }
@@ -421,12 +399,13 @@ fn material(layer: i32, uv: vec2<f32>) -> Sample {
         case 7: { return mat_oak(uv); }
         case 8: { return mat_metal(uv); }
         case 9: { return mat_grass(uv); }
-        case 10: { return mat_bark(uv); }
+        case 10: { return mat_plaster(uv); }
         case 11: { return mat_gravel(uv); }
+        case 12: { return mat_metal(uv); }
         case 13: { return mat_timber(uv); }
         case 14: { return mat_plywood(uv); }
         case 15: { return mat_rock(uv); }
-        case 16: { return mat_snow(uv); }
+        case 16: { return mat_plaster(uv); }
         case 17: { return mat_gravel(uv); }
         case 18: { return mat_tiles(uv); }
         case 19: { return mat_timber(uv); }
@@ -434,10 +413,8 @@ fn material(layer: i32, uv: vec2<f32>) -> Sample {
         case 21: { return mat_plaster(uv); }
         case 22: { return mat_plaster(uv); }
         case 23: { return mat_oak(uv); }
-        case 24: { return mat_stone(uv); }
+        case 24: { return mat_plaster(uv); }
         case 25: { return mat_tiles(uv); }
-        case 26: { return mat_timber(uv); }
-        case 27: { return mat_stone(uv); }
         default: { return mat_concrete(uv); }
     }
 }
@@ -455,12 +432,13 @@ fn relief(layer: i32) -> f32 {
         case 7: { return 0.012; }
         case 8: { return 0.006; }
         case 9: { return 0.04; }
-        case 10: { return 0.03; }
+        case 10: { return 0.004; }
         case 11: { return 0.02; }
+        case 12: { return 0.006; }
         case 13: { return 0.008; }
         case 14: { return 0.004; }
         case 15: { return 1.5; }
-        case 16: { return 0.3; }
+        case 16: { return 0.002; }
         case 17: { return 0.02; }
         case 18: { return 0.05; }
         case 19: { return 0.03; }
@@ -468,10 +446,8 @@ fn relief(layer: i32) -> f32 {
         case 21: { return 0.002; }
         case 22: { return 0.002; }
         case 23: { return 0.002; }
-        case 24: { return 0.03; }
+        case 24: { return 0.002; }
         case 25: { return 0.02; }
-        case 26: { return 0.008; }
-        case 27: { return 0.03; }
         default: { return 0.004; }
     }
 }

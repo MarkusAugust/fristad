@@ -1,0 +1,5092 @@
+{
+ "models": [
+  {
+   "file": "town/house_a.glb",
+   "instances": 1,
+   "name": "house_a",
+   "reserve": 0,
+   "triangles": 8796,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.25,
+    15.16,
+    10.81
+   ]
+  },
+  {
+   "file": "town/house_b.glb",
+   "instances": 1,
+   "name": "house_b",
+   "reserve": 0,
+   "triangles": 8716,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_white",
+    "slate",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    10.83,
+    13.43,
+    9.6
+   ]
+  },
+  {
+   "file": "town/house_c.glb",
+   "instances": 1,
+   "name": "house_c",
+   "reserve": 0,
+   "triangles": 5552,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "logs",
+    "plaster",
+    "sod",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.8,
+    8.82,
+    9.14
+   ]
+  },
+  {
+   "file": "town/house_d.glb",
+   "instances": 1,
+   "name": "house_d",
+   "reserve": 0,
+   "triangles": 10624,
+   "layers": [
+    "ashlar",
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_red",
+    "stone",
+    "tiles",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.25,
+    19.28,
+    11.81
+   ]
+  },
+  {
+   "file": "town/house_e.glb",
+   "instances": 1,
+   "name": "house_e",
+   "reserve": 0,
+   "triangles": 4848,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "slate",
+    "stone",
+    "timber",
+    "trim",
+    "weatherboard_grey"
+   ],
+   "size": [
+    11.43,
+    12.56,
+    8.99
+   ]
+  },
+  {
+   "file": "town/house_f.glb",
+   "instances": 1,
+   "name": "house_f",
+   "reserve": 0,
+   "triangles": 9020,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_old",
+    "stone",
+    "thatch",
+    "timber_grey",
+    "trim"
+   ],
+   "size": [
+    9.05,
+    15.08,
+    11.01
+   ]
+  },
+  {
+   "file": "town/house_g.glb",
+   "instances": 1,
+   "name": "house_g",
+   "reserve": 0,
+   "triangles": 8300,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_white",
+    "shingles",
+    "stone",
+    "timber_grey",
+    "trim"
+   ],
+   "size": [
+    7.46,
+    15.58,
+    10.42
+   ]
+  },
+  {
+   "file": "town/house_h.glb",
+   "instances": 1,
+   "name": "house_h",
+   "reserve": 0,
+   "triangles": 5108,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    10.04,
+    9.98,
+    8.61
+   ]
+  },
+  {
+   "file": "town/house_i.glb",
+   "instances": 1,
+   "name": "house_i",
+   "reserve": 0,
+   "triangles": 9020,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "plaster_white",
+    "stone",
+    "tiles",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    9.43,
+    14.14,
+    10.8
+   ]
+  },
+  {
+   "file": "town/house_j.glb",
+   "instances": 1,
+   "name": "house_j",
+   "reserve": 0,
+   "triangles": 3416,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "shingles",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    7.82,
+    9.09,
+    8.38
+   ]
+  },
+  {
+   "file": "town/house_k.glb",
+   "instances": 1,
+   "name": "house_k",
+   "reserve": 0,
+   "triangles": 8432,
+   "layers": [
+    "ashlar",
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_red",
+    "slate",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    11.83,
+    13.41,
+    10.09
+   ]
+  },
+  {
+   "file": "town/house_l.glb",
+   "instances": 1,
+   "name": "house_l",
+   "reserve": 0,
+   "triangles": 12304,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "plaster_old",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.65,
+    20.17,
+    12.62
+   ]
+  },
+  {
+   "file": "town/house_m.glb",
+   "instances": 1,
+   "name": "house_m",
+   "reserve": 0,
+   "triangles": 6588,
+   "layers": [
+    "ashlar",
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "plaster_white",
+    "shingles_tar",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    9.23,
+    13.31,
+    9.4
+   ]
+  },
+  {
+   "file": "town/house_n.glb",
+   "instances": 1,
+   "name": "house_n",
+   "reserve": 0,
+   "triangles": 9508,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "stone",
+    "tiles",
+    "timber_grey",
+    "trim"
+   ],
+   "size": [
+    10.64,
+    14.01,
+    10.01
+   ]
+  },
+  {
+   "file": "town/house_o.glb",
+   "instances": 1,
+   "name": "house_o",
+   "reserve": 0,
+   "triangles": 5048,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "logs",
+    "plaster",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    7.63,
+    9.21,
+    8.19
+   ]
+  },
+  {
+   "file": "town/house_p.glb",
+   "instances": 1,
+   "name": "house_p",
+   "reserve": 0,
+   "triangles": 8844,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "plaster_red",
+    "slate",
+    "stone",
+    "timber_grey",
+    "trim"
+   ],
+   "size": [
+    8.45,
+    15.52,
+    11.31
+   ]
+  },
+  {
+   "file": "town/house_q.glb",
+   "instances": 1,
+   "name": "house_q",
+   "reserve": 0,
+   "triangles": 4704,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "plaster",
+    "shingles",
+    "stone",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    11.02,
+    12.43,
+    8.99
+   ]
+  },
+  {
+   "file": "town/house_r.glb",
+   "instances": 1,
+   "name": "house_r",
+   "reserve": 0,
+   "triangles": 8436,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "plaster_white",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.84,
+    14.59,
+    10.61
+   ]
+  },
+  {
+   "file": "town/house_s.glb",
+   "instances": 1,
+   "name": "house_s",
+   "reserve": 0,
+   "triangles": 10608,
+   "layers": [
+    "ashlar",
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "stone",
+    "tiles",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    8.06,
+    20.0,
+    12.02
+   ]
+  },
+  {
+   "file": "town/house_t.glb",
+   "instances": 2,
+   "name": "house_t",
+   "reserve": 0,
+   "triangles": 4892,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door_b",
+    "iron",
+    "plaster",
+    "plaster_old",
+    "shingles",
+    "stone",
+    "timber_grey",
+    "trim"
+   ],
+   "size": [
+    9.83,
+    9.69,
+    8.6
+   ]
+  },
+  {
+   "file": "town/shed_a.glb",
+   "instances": 7,
+   "name": "shed_a",
+   "reserve": 0,
+   "triangles": 372,
+   "layers": [
+    "door_b",
+    "stone",
+    "timber_grey",
+    "trim",
+    "weatherboard",
+    "weatherboard_grey"
+   ],
+   "size": [
+    3.9,
+    3.74,
+    3.3
+   ]
+  },
+  {
+   "file": "town/shed_b.glb",
+   "instances": 7,
+   "name": "shed_b",
+   "reserve": 0,
+   "triangles": 4188,
+   "layers": [
+    "logs",
+    "stone",
+    "timber_grey",
+    "weatherboard",
+    "weatherboard_grey"
+   ],
+   "size": [
+    4.3,
+    3.59,
+    2.7
+   ]
+  },
+  {
+   "file": "town/privy.glb",
+   "instances": 9,
+   "name": "privy",
+   "reserve": 0,
+   "triangles": 288,
+   "layers": [
+    "cladding",
+    "door",
+    "stone",
+    "trim",
+    "weatherboard_grey"
+   ],
+   "size": [
+    1.7,
+    3.41,
+    1.7
+   ]
+  },
+  {
+   "file": "town/haystack.glb",
+   "instances": 7,
+   "name": "haystack",
+   "reserve": 0,
+   "triangles": 446,
+   "layers": [
+    "straw_floor",
+    "timber_grey"
+   ],
+   "size": [
+    3.41,
+    4.1,
+    3.0
+   ]
+  },
+  {
+   "file": "town/garden.glb",
+   "instances": 6,
+   "name": "garden",
+   "reserve": 0,
+   "triangles": 1440,
+   "layers": [
+    "earth",
+    "sod",
+    "timber_grey",
+    "wattle"
+   ],
+   "size": [
+    4.08,
+    1.6,
+    3.08
+   ]
+  },
+  {
+   "file": "town/coop.glb",
+   "instances": 8,
+   "name": "coop",
+   "reserve": 0,
+   "triangles": 316,
+   "layers": [
+    "planks",
+    "timber_grey",
+    "weatherboard",
+    "weatherboard_grey"
+   ],
+   "size": [
+    2.2,
+    2.74,
+    2.61
+   ]
+  },
+  {
+   "file": "town/town_wall.glb",
+   "instances": 46,
+   "name": "town_wall",
+   "reserve": 0,
+   "triangles": 1522,
+   "layers": [
+    "flagstone",
+    "stone",
+    "wall_stone"
+   ],
+   "size": [
+    6.24,
+    8.47,
+    2.47
+   ]
+  },
+  {
+   "file": "town/wall_tower.glb",
+   "instances": 10,
+   "name": "wall_tower",
+   "reserve": 0,
+   "triangles": 4518,
+   "layers": [
+    "flagstone",
+    "iron",
+    "shingles",
+    "stone",
+    "timber",
+    "wall_stone",
+    "weatherboard"
+   ],
+   "size": [
+    9.4,
+    20.8,
+    9.4
+   ]
+  },
+  {
+   "file": "town/gatehouse.glb",
+   "instances": 2,
+   "name": "gatehouse",
+   "reserve": 0,
+   "triangles": 9678,
+   "layers": [
+    "door_b",
+    "flagstone",
+    "iron",
+    "shingles",
+    "stone",
+    "timber",
+    "wall_stone",
+    "weatherboard"
+   ],
+   "size": [
+    14.94,
+    19.05,
+    7.14
+   ]
+  },
+  {
+   "file": "town/market_cross.glb",
+   "instances": 1,
+   "name": "market_cross",
+   "reserve": 0,
+   "triangles": 982,
+   "layers": [
+    "iron",
+    "stone"
+   ],
+   "size": [
+    2.4,
+    4.86,
+    2.4
+   ]
+  },
+  {
+   "file": "town/market_stall.glb",
+   "instances": 1,
+   "name": "market_stall",
+   "reserve": 0,
+   "triangles": 3050,
+   "layers": [
+    "linen",
+    "timber",
+    "timber_grey",
+    "trim",
+    "weatherboard"
+   ],
+   "size": [
+    3.38,
+    2.85,
+    1.98
+   ]
+  },
+  {
+   "file": "town/market_stall_b.glb",
+   "instances": 1,
+   "name": "market_stall_b",
+   "reserve": 0,
+   "triangles": 3006,
+   "layers": [
+    "linen",
+    "straw_floor",
+    "timber",
+    "timber_grey",
+    "trim",
+    "weatherboard",
+    "wool"
+   ],
+   "size": [
+    3.36,
+    2.82,
+    1.82
+   ]
+  },
+  {
+   "file": "town/cart.glb",
+   "instances": 0,
+   "name": "cart",
+   "reserve": 0,
+   "triangles": 0,
+   "layers": [
+    "linen",
+    "timber",
+    "timber_grey",
+    "trim",
+    "weatherboard"
+   ],
+   "size": [
+    3.28,
+    1.31,
+    1.76
+   ]
+  },
+  {
+   "file": "town/barrel.glb",
+   "instances": 6,
+   "name": "barrel",
+   "reserve": 0,
+   "triangles": 624,
+   "layers": [],
+   "size": [
+    0.75,
+    0.86,
+    0.75
+   ]
+  },
+  {
+   "file": "town/crate.glb",
+   "instances": 2,
+   "name": "crate",
+   "reserve": 0,
+   "triangles": 480,
+   "layers": [
+    "timber",
+    "weatherboard"
+   ],
+   "size": [
+    0.72,
+    0.74,
+    0.74
+   ]
+  },
+  {
+   "file": "town/lantern_post.glb",
+   "instances": 7,
+   "name": "lantern_post",
+   "reserve": 0,
+   "triangles": 886,
+   "layers": [
+    "flagstone",
+    "iron",
+    "linen",
+    "timber",
+    "wall_stone"
+   ],
+   "size": [
+    0.55,
+    3.32,
+    0.55
+   ]
+  },
+  {
+   "file": "town/training_dummy.glb",
+   "instances": 3,
+   "name": "training_dummy",
+   "reserve": 0,
+   "triangles": 926,
+   "layers": [
+    "iron",
+    "linen",
+    "thatch",
+    "timber",
+    "trim",
+    "weatherboard"
+   ],
+   "size": [
+    1.4,
+    2.18,
+    0.83
+   ]
+  },
+  {
+   "file": "town/weapon_rack.glb",
+   "instances": 1,
+   "name": "weapon_rack",
+   "reserve": 0,
+   "triangles": 1144,
+   "layers": [
+    "iron",
+    "timber",
+    "timber_grey",
+    "weatherboard"
+   ],
+   "size": [
+    3.07,
+    2.33,
+    0.71
+   ]
+  },
+  {
+   "file": "town/well.glb",
+   "instances": 2,
+   "name": "well",
+   "reserve": 0,
+   "triangles": 288,
+   "layers": [
+    "flagstone",
+    "iron",
+    "shingles",
+    "timber",
+    "trim",
+    "wall_stone",
+    "weatherboard"
+   ],
+   "size": [
+    2.88,
+    3.19,
+    2.88
+   ]
+  },
+  {
+   "file": "town/well_winch.glb",
+   "instances": 0,
+   "name": "well_winch",
+   "reserve": 2,
+   "triangles": 96,
+   "layers": [],
+   "size": [
+    1.24,
+    0.16,
+    0.16
+   ]
+  },
+  {
+   "file": "town/well_rope.glb",
+   "instances": 0,
+   "name": "well_rope",
+   "reserve": 2,
+   "triangles": 28,
+   "layers": [
+    "trim"
+   ],
+   "size": [
+    0.03,
+    1.0,
+    0.03
+   ]
+  },
+  {
+   "file": "town/well_bucket.glb",
+   "instances": 0,
+   "name": "well_bucket",
+   "reserve": 2,
+   "triangles": 412,
+   "layers": [
+    "iron",
+    "timber",
+    "trim",
+    "weatherboard"
+   ],
+   "size": [
+    0.38,
+    0.46,
+    0.36
+   ]
+  },
+  {
+   "file": "town/woodpile.glb",
+   "instances": 1,
+   "name": "woodpile",
+   "reserve": 0,
+   "triangles": 1196,
+   "layers": [
+    "iron",
+    "logs",
+    "shingles",
+    "timber",
+    "timber_grey",
+    "weatherboard"
+   ],
+   "size": [
+    2.88,
+    1.94,
+    1.0
+   ]
+  },
+  {
+   "file": "town/signpost.glb",
+   "instances": 2,
+   "name": "signpost",
+   "reserve": 0,
+   "triangles": 1162,
+   "layers": [
+    "iron",
+    "shingles",
+    "timber",
+    "timber_grey",
+    "wall_stone"
+   ],
+   "size": [
+    1.57,
+    3.01,
+    0.63
+   ]
+  },
+  {
+   "file": "town/chest.glb",
+   "instances": 5,
+   "name": "chest",
+   "reserve": 0,
+   "triangles": 92,
+   "layers": [
+    "iron",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    1.09,
+    0.46,
+    0.67
+   ]
+  },
+  {
+   "file": "town/chest_lid.glb",
+   "instances": 0,
+   "name": "chest_lid",
+   "reserve": 5,
+   "triangles": 140,
+   "layers": [
+    "iron",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    1.02,
+    0.31,
+    0.62
+   ]
+  },
+  {
+   "file": "town/wattle_fence.glb",
+   "instances": 137,
+   "name": "wattle_fence",
+   "reserve": 0,
+   "triangles": 880,
+   "layers": [
+    "timber_grey",
+    "wattle"
+   ],
+   "size": [
+    2.1,
+    1.36,
+    0.12
+   ]
+  },
+  {
+   "file": "town/rail_fence.glb",
+   "instances": 104,
+   "name": "rail_fence",
+   "reserve": 0,
+   "triangles": 748,
+   "layers": [
+    "timber",
+    "timber_grey",
+    "wattle"
+   ],
+   "size": [
+    2.29,
+    1.49,
+    0.24
+   ]
+  },
+  {
+   "file": "town/picket_fence.glb",
+   "instances": 24,
+   "name": "picket_fence",
+   "reserve": 0,
+   "triangles": 660,
+   "layers": [
+    "planks",
+    "timber",
+    "timber_grey"
+   ],
+   "size": [
+    2.13,
+    1.43,
+    0.18
+   ]
+  },
+  {
+   "file": "town/stone_fence.glb",
+   "instances": 48,
+   "name": "stone_fence",
+   "reserve": 0,
+   "triangles": 768,
+   "layers": [
+    "wall_stone"
+   ],
+   "size": [
+    2.0,
+    1.29,
+    0.52
+   ]
+  },
+  {
+   "file": "town/portal_ring.glb",
+   "instances": 0,
+   "name": "portal_ring",
+   "reserve": 1,
+   "triangles": 5900,
+   "layers": [
+    "flagstone",
+    "ruin",
+    "wall_stone"
+   ],
+   "size": [
+    4.0,
+    3.41,
+    2.44
+   ]
+  },
+  {
+   "file": "town/portal_runes.glb",
+   "instances": 0,
+   "name": "portal_runes",
+   "reserve": 1,
+   "triangles": 2156,
+   "layers": [],
+   "size": [
+    2.96,
+    2.94,
+    0.01
+   ]
+  },
+  {
+   "file": "town/portal_swirl.glb",
+   "instances": 0,
+   "name": "portal_swirl",
+   "reserve": 2,
+   "triangles": 7740,
+   "layers": [],
+   "size": [
+    2.2,
+    2.2,
+    0.14
+   ]
+  },
+  {
+   "file": "town/portal_shard.glb",
+   "instances": 0,
+   "name": "portal_shard",
+   "reserve": 8,
+   "triangles": 18,
+   "layers": [],
+   "size": [
+    0.1,
+    0.3,
+    0.1
+   ]
+  },
+  {
+   "file": "town/forge.glb",
+   "instances": 1,
+   "name": "forge",
+   "reserve": 0,
+   "triangles": 9187,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "door_b",
+    "flagstone",
+    "iron",
+    "logs",
+    "oak_planed",
+    "planks",
+    "plaster",
+    "plaster_old",
+    "plaster_red",
+    "rock",
+    "shingles",
+    "stone",
+    "tiles",
+    "timber",
+    "trim",
+    "wall_stone",
+    "wattle",
+    "weatherboard",
+    "wool"
+   ],
+   "size": [
+    10.51,
+    7.78,
+    10.41
+   ]
+  },
+  {
+   "file": "town/forge_interior.glb",
+   "instances": 1,
+   "name": "forge_interior",
+   "reserve": 0,
+   "triangles": 2292,
+   "layers": [
+    "iron",
+    "timber"
+   ],
+   "size": [
+    1.18,
+    0.17,
+    2.55
+   ]
+  },
+  {
+   "file": "town/tavern.glb",
+   "instances": 1,
+   "name": "tavern",
+   "reserve": 0,
+   "triangles": 13400,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "door_b",
+    "iron",
+    "oak_planed",
+    "plaster",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    14.95,
+    14.72,
+    11.91
+   ]
+  },
+  {
+   "file": "town/tavern_interior.glb",
+   "instances": 1,
+   "name": "tavern_interior",
+   "reserve": 0,
+   "triangles": 18942,
+   "layers": [
+    "door_b",
+    "flagstone",
+    "iron",
+    "logs",
+    "planks",
+    "plaster",
+    "stone",
+    "timber",
+    "trim",
+    "wall_stone"
+   ],
+   "size": [
+    11.42,
+    14.86,
+    9.47
+   ]
+  },
+  {
+   "file": "town/home.glb",
+   "instances": 1,
+   "name": "home",
+   "reserve": 0,
+   "triangles": 15692,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "oak_planed",
+    "planks",
+    "plaster",
+    "plaster_red",
+    "plaster_white",
+    "sod",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    10.23,
+    8.58,
+    9.39
+   ]
+  },
+  {
+   "file": "town/home_interior.glb",
+   "instances": 1,
+   "name": "home_interior",
+   "reserve": 0,
+   "triangles": 4963,
+   "layers": [
+    "logs",
+    "planks",
+    "stone",
+    "timber",
+    "trim",
+    "wool"
+   ],
+   "size": [
+    7.8,
+    3.3,
+    6.4
+   ]
+  },
+  {
+   "file": "town/gallery_button.glb",
+   "instances": 0,
+   "name": "gallery_button",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_tag.glb",
+   "instances": 0,
+   "name": "gallery_tag",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_badge.glb",
+   "instances": 0,
+   "name": "gallery_badge",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_divider.glb",
+   "instances": 0,
+   "name": "gallery_divider",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_card.glb",
+   "instances": 0,
+   "name": "gallery_card",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_alert.glb",
+   "instances": 0,
+   "name": "gallery_alert",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_progress.glb",
+   "instances": 0,
+   "name": "gallery_progress",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_label.glb",
+   "instances": 0,
+   "name": "gallery_label",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_help_text.glb",
+   "instances": 0,
+   "name": "gallery_help_text",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_tooltip.glb",
+   "instances": 0,
+   "name": "gallery_tooltip",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_fieldset.glb",
+   "instances": 0,
+   "name": "gallery_fieldset",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_file_upload.glb",
+   "instances": 0,
+   "name": "gallery_file_upload",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_search.glb",
+   "instances": 0,
+   "name": "gallery_search",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_dialog.glb",
+   "instances": 0,
+   "name": "gallery_dialog",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/gallery_tabs.glb",
+   "instances": 0,
+   "name": "gallery_tabs",
+   "reserve": 1,
+   "triangles": 60,
+   "layers": [
+    "plaster"
+   ],
+   "size": [
+    0.51,
+    0.51,
+    0.03
+   ]
+  },
+  {
+   "file": "town/apothecary.glb",
+   "instances": 1,
+   "name": "apothecary",
+   "reserve": 0,
+   "triangles": 10226,
+   "layers": [
+    "chimney",
+    "cladding",
+    "door",
+    "iron",
+    "leather",
+    "planks",
+    "plaster",
+    "plaster_red",
+    "plaster_white",
+    "slate",
+    "sod",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    9.83,
+    11.38,
+    9.14
+   ]
+  },
+  {
+   "file": "town/apothecary_interior.glb",
+   "instances": 1,
+   "name": "apothecary_interior",
+   "reserve": 0,
+   "triangles": 18778,
+   "layers": [
+    "chimney",
+    "planks",
+    "plaster_white",
+    "sod",
+    "stone",
+    "thatch",
+    "timber",
+    "trim"
+   ],
+   "size": [
+    7.48,
+    9.18,
+    6.96
+   ]
+  },
+  {
+   "file": "town/scriptorium.glb",
+   "instances": 1,
+   "name": "scriptorium",
+   "reserve": 0,
+   "triangles": 9538,
+   "layers": [
+    "ashlar",
+    "door",
+    "iron",
+    "leather",
+    "linen",
+    "plaster",
+    "slate",
+    "timber",
+    "wall_stone"
+   ],
+   "size": [
+    11.7,
+    14.95,
+    9.93
+   ]
+  },
+  {
+   "file": "town/scriptorium_interior.glb",
+   "instances": 1,
+   "name": "scriptorium_interior",
+   "reserve": 0,
+   "triangles": 14800,
+   "layers": [
+    "flagstone",
+    "planks",
+    "timber",
+    "wall_stone"
+   ],
+   "size": [
+    9.0,
+    5.78,
+    6.85
+   ]
+  },
+  {
+   "file": "town/stave_church.glb",
+   "instances": 1,
+   "name": "stave_church",
+   "reserve": 0,
+   "triangles": 10078,
+   "layers": [
+    "door_b",
+    "iron",
+    "ruin",
+    "slate",
+    "sod",
+    "stone",
+    "wall_stone"
+   ],
+   "size": [
+    9.44,
+    11.65,
+    14.15
+   ]
+  },
+  {
+   "file": "town/stave_church_interior.glb",
+   "instances": 1,
+   "name": "stave_church_interior",
+   "reserve": 0,
+   "triangles": 5552,
+   "layers": [
+    "flagstone",
+    "iron",
+    "linen",
+    "planks",
+    "plaster",
+    "plaster_white",
+    "timber"
+   ],
+   "size": [
+    6.8,
+    4.99,
+    11.7
+   ]
+  },
+  {
+   "file": "town/crypt.glb",
+   "instances": 1,
+   "name": "crypt",
+   "reserve": 0,
+   "triangles": 6244,
+   "layers": [
+    "door_b",
+    "iron",
+    "leather",
+    "logs",
+    "ruin",
+    "slate",
+    "sod",
+    "stone",
+    "wall_stone"
+   ],
+   "size": [
+    8.66,
+    7.16,
+    7.94
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_aa.glb",
+   "instances": 1,
+   "name": "crypt_01_aa",
+   "reserve": 0,
+   "triangles": 1842,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "glitch_seam",
+    "grave_slab",
+    "iron",
+    "plaster_white"
+   ],
+   "size": [
+    13.71,
+    6.75,
+    8.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ab.glb",
+   "instances": 1,
+   "name": "crypt_01_ab",
+   "reserve": 0,
+   "triangles": 2386,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab"
+   ],
+   "size": [
+    18.21,
+    14.75,
+    19.08
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ac.glb",
+   "instances": 1,
+   "name": "crypt_01_ac",
+   "reserve": 0,
+   "triangles": 1221,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "iron",
+    "rubble",
+    "timber"
+   ],
+   "size": [
+    15.71,
+    14.5,
+    11.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ad.glb",
+   "instances": 1,
+   "name": "crypt_01_ad",
+   "reserve": 0,
+   "triangles": 1956,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab"
+   ],
+   "size": [
+    20.5,
+    14.45,
+    11.71
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ae.glb",
+   "instances": 1,
+   "name": "crypt_01_ae",
+   "reserve": 0,
+   "triangles": 747,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    18.0,
+    11.46,
+    16.49
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_af.glb",
+   "instances": 1,
+   "name": "crypt_01_af",
+   "reserve": 0,
+   "triangles": 618,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    18.5,
+    4.77,
+    2.05
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ag.glb",
+   "instances": 1,
+   "name": "crypt_01_ag",
+   "reserve": 0,
+   "triangles": 1499,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "timber"
+   ],
+   "size": [
+    13.71,
+    7.25,
+    10.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ah.glb",
+   "instances": 1,
+   "name": "crypt_01_ah",
+   "reserve": 0,
+   "triangles": 366,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "timber"
+   ],
+   "size": [
+    12.42,
+    7.0,
+    2.19
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ai.glb",
+   "instances": 1,
+   "name": "crypt_01_ai",
+   "reserve": 0,
+   "triangles": 2540,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "plaster_white",
+    "timber"
+   ],
+   "size": [
+    10.42,
+    8.25,
+    16.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_aj.glb",
+   "instances": 1,
+   "name": "crypt_01_aj",
+   "reserve": 0,
+   "triangles": 2594,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "ossuary"
+   ],
+   "size": [
+    12.58,
+    6.45,
+    28.0
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ak.glb",
+   "instances": 1,
+   "name": "crypt_01_ak",
+   "reserve": 0,
+   "triangles": 2788,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "plaster_white",
+    "timber"
+   ],
+   "size": [
+    16.99,
+    8.25,
+    23.08
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_al.glb",
+   "instances": 1,
+   "name": "crypt_01_al",
+   "reserve": 0,
+   "triangles": 2588,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "rubble",
+    "timber"
+   ],
+   "size": [
+    16.99,
+    9.25,
+    16.5
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_am.glb",
+   "instances": 1,
+   "name": "crypt_01_am",
+   "reserve": 0,
+   "triangles": 3263,
+   "layers": [
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "timber"
+   ],
+   "size": [
+    14.57,
+    11.4,
+    34.0
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_an.glb",
+   "instances": 1,
+   "name": "crypt_01_an",
+   "reserve": 0,
+   "triangles": 2755,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "timber"
+   ],
+   "size": [
+    15.21,
+    10.25,
+    19.5
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ao.glb",
+   "instances": 1,
+   "name": "crypt_01_ao",
+   "reserve": 0,
+   "triangles": 2451,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "plaster_old",
+    "plaster_white",
+    "timber"
+   ],
+   "size": [
+    15.21,
+    10.25,
+    20.0
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ap.glb",
+   "instances": 1,
+   "name": "crypt_01_ap",
+   "reserve": 0,
+   "triangles": 367,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    7.42,
+    5.27,
+    2.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_aq.glb",
+   "instances": 1,
+   "name": "crypt_01_aq",
+   "reserve": 0,
+   "triangles": 1410,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    17.19,
+    11.97,
+    7.78
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ar.glb",
+   "instances": 1,
+   "name": "crypt_01_ar",
+   "reserve": 0,
+   "triangles": 1739,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    17.19,
+    12.23,
+    16.44
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_as.glb",
+   "instances": 1,
+   "name": "crypt_01_as",
+   "reserve": 0,
+   "triangles": 714,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    1.68,
+    3.95,
+    17.2
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_at.glb",
+   "instances": 1,
+   "name": "crypt_01_at",
+   "reserve": 0,
+   "triangles": 715,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "iron",
+    "timber"
+   ],
+   "size": [
+    16.28,
+    10.52,
+    32.4
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_au.glb",
+   "instances": 1,
+   "name": "crypt_01_au",
+   "reserve": 0,
+   "triangles": 2302,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "iron",
+    "timber"
+   ],
+   "size": [
+    21.5,
+    11.25,
+    13.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_av.glb",
+   "instances": 1,
+   "name": "crypt_01_av",
+   "reserve": 0,
+   "triangles": 3094,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    17.86,
+    13.67,
+    11.13
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_aw.glb",
+   "instances": 1,
+   "name": "crypt_01_aw",
+   "reserve": 0,
+   "triangles": 4374,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    17.23,
+    13.92,
+    16.65
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ax.glb",
+   "instances": 1,
+   "name": "crypt_01_ax",
+   "reserve": 0,
+   "triangles": 1143,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    9.31,
+    3.95,
+    17.1
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ay.glb",
+   "instances": 1,
+   "name": "crypt_01_ay",
+   "reserve": 0,
+   "triangles": 480,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall"
+   ],
+   "size": [
+    1.1,
+    3.56,
+    32.4
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_az.glb",
+   "instances": 1,
+   "name": "crypt_01_az",
+   "reserve": 0,
+   "triangles": 801,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "iron",
+    "timber"
+   ],
+   "size": [
+    4.81,
+    9.25,
+    11.21
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_ba.glb",
+   "instances": 1,
+   "name": "crypt_01_ba",
+   "reserve": 0,
+   "triangles": 477,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    3.9,
+    11.72,
+    7.4
+   ]
+  },
+  {
+   "file": "crypt/crypt_01_bb.glb",
+   "instances": 1,
+   "name": "crypt_01_bb",
+   "reserve": 0,
+   "triangles": 633,
+   "layers": [
+    "crypt_floor",
+    "crypt_wall",
+    "grave_slab",
+    "iron",
+    "ossuary",
+    "timber"
+   ],
+   "size": [
+    3.38,
+    11.72,
+    7.6
+   ]
+  },
+  {
+   "file": "crypt/kit_arrow.glb",
+   "instances": 0,
+   "name": "kit_arrow",
+   "reserve": 16,
+   "triangles": 28,
+   "layers": [
+    "door_b",
+    "iron",
+    "plaster_white"
+   ],
+   "size": [
+    0.08,
+    0.09,
+    0.66
+   ]
+  },
+  {
+   "file": "crypt/kit_bonus.glb",
+   "instances": 1,
+   "name": "kit_bonus",
+   "reserve": 0,
+   "triangles": 108,
+   "layers": [
+    "crypt_wall",
+    "grave_slab",
+    "planks",
+    "plaster_white"
+   ],
+   "size": [
+    0.6,
+    1.32,
+    0.6
+   ]
+  },
+  {
+   "file": "crypt/kit_crack.glb",
+   "instances": 1,
+   "name": "kit_crack",
+   "reserve": 0,
+   "triangles": 54,
+   "layers": [
+    "crypt_wall"
+   ],
+   "size": [
+    0.75,
+    1.74,
+    0.22
+   ]
+  },
+  {
+   "file": "crypt/kit_down.glb",
+   "instances": 1,
+   "name": "kit_down",
+   "reserve": 0,
+   "triangles": 450,
+   "layers": [
+    "crypt_wall",
+    "grave_slab",
+    "plaster_old"
+   ],
+   "size": [
+    4.02,
+    7.09,
+    4.5
+   ]
+  },
+  {
+   "file": "crypt/kit_gate.glb",
+   "instances": 0,
+   "name": "kit_gate",
+   "reserve": 1,
+   "triangles": 156,
+   "layers": [
+    "iron"
+   ],
+   "size": [
+    2.8,
+    3.0,
+    0.1
+   ]
+  },
+  {
+   "file": "crypt/kit_ladder.glb",
+   "instances": 1,
+   "name": "kit_ladder",
+   "reserve": 0,
+   "triangles": 48,
+   "layers": [
+    "timber"
+   ],
+   "size": [
+    0.56,
+    1.0,
+    0.06
+   ]
+  },
+  {
+   "file": "crypt/kit_lever.glb",
+   "instances": 1,
+   "name": "kit_lever",
+   "reserve": 0,
+   "triangles": 30,
+   "layers": [
+    "crypt_wall",
+    "grave_slab",
+    "iron"
+   ],
+   "size": [
+    0.64,
+    0.64,
+    0.52
+   ]
+  },
+  {
+   "file": "crypt/kit_lever_arm.glb",
+   "instances": 0,
+   "name": "kit_lever_arm",
+   "reserve": 1,
+   "triangles": 42,
+   "layers": [
+    "iron",
+    "timber"
+   ],
+   "size": [
+    0.11,
+    0.97,
+    0.08
+   ]
+  },
+  {
+   "file": "crypt/kit_lore.glb",
+   "instances": 1,
+   "name": "kit_lore",
+   "reserve": 0,
+   "triangles": 72,
+   "layers": [
+    "iron",
+    "leather",
+    "planks",
+    "plaster_white",
+    "timber"
+   ],
+   "size": [
+    0.79,
+    1.24,
+    0.5
+   ]
+  },
+  {
+   "file": "crypt/kit_plate.glb",
+   "instances": 1,
+   "name": "kit_plate",
+   "reserve": 0,
+   "triangles": 10,
+   "layers": [
+    "grave_slab"
+   ],
+   "size": [
+    1.0,
+    0.2,
+    1.0
+   ]
+  },
+  {
+   "file": "crypt/kit_rest.glb",
+   "instances": 1,
+   "name": "kit_rest",
+   "reserve": 0,
+   "triangles": 1520,
+   "layers": [],
+   "size": [
+    0.6,
+    1.72,
+    0.6
+   ]
+  },
+  {
+   "file": "crypt/kit_sarcophagus.glb",
+   "instances": 13,
+   "name": "kit_sarcophagus",
+   "reserve": 0,
+   "triangles": 196,
+   "layers": [
+    "crypt_wall",
+    "grave_slab"
+   ],
+   "size": [
+    1.04,
+    1.14,
+    2.14
+   ]
+  },
+  {
+   "file": "crypt/kit_secret_wall.glb",
+   "instances": 0,
+   "name": "kit_secret_wall",
+   "reserve": 1,
+   "triangles": 36,
+   "layers": [
+    "crypt_wall"
+   ],
+   "size": [
+    2.0,
+    2.6,
+    0.62
+   ]
+  },
+  {
+   "file": "crypt/kit_shortcut.glb",
+   "instances": 1,
+   "name": "kit_shortcut",
+   "reserve": 0,
+   "triangles": 170,
+   "layers": [
+    "crypt_wall",
+    "grave_slab",
+    "plaster_old"
+   ],
+   "size": [
+    2.2,
+    2.64,
+    0.7
+   ]
+  },
+  {
+   "file": "crypt/kit_shortcut_leaf.glb",
+   "instances": 0,
+   "name": "kit_shortcut_leaf",
+   "reserve": 1,
+   "triangles": 122,
+   "layers": [
+    "bronze_door",
+    "iron",
+    "planks",
+    "timber"
+   ],
+   "size": [
+    1.56,
+    2.28,
+    0.26
+   ]
+  },
+  {
+   "file": "crypt/kit_trapdoor.glb",
+   "instances": 0,
+   "name": "kit_trapdoor",
+   "reserve": 1,
+   "triangles": 34,
+   "layers": [
+    "iron",
+    "planks",
+    "trim"
+   ],
+   "size": [
+    1.2,
+    0.11,
+    1.2
+   ]
+  },
+  {
+   "file": "crypt/kit_up.glb",
+   "instances": 1,
+   "name": "kit_up",
+   "reserve": 0,
+   "triangles": 358,
+   "layers": [
+    "bronze_door",
+    "crypt_wall",
+    "grave_slab",
+    "planks",
+    "plaster_old"
+   ],
+   "size": [
+    2.2,
+    3.19,
+    1.0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "name": "ashlar",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Hogde sandsteinsblokker i forband, beige og grå, lyse fuger."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_d",
+    "house_k",
+    "house_m",
+    "house_s",
+    "scriptorium"
+   ]
+  },
+  {
+   "name": "bark_birch",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Hvit bjørkebark med svarte streker."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "bark_oak",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Grov, mørk eikebark med mose i sprekkene."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "bark_spruce",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Rødbrun granbark i flak med harpiksdråper."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "bronze_door",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Mørke eikeplanker med jernbånd og nagler (kryptdører)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "kit_shortcut_leaf",
+    "kit_up"
+   ]
+  },
+  {
+   "name": "cave_rock",
+   "info": {
+    "kind": "tile",
+    "theme": "gruve",
+    "shows": "Lagdelt blågrå berg, skrått sjiktet (huler)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "chainmail",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Ringbrynje, tett flettede jernringer."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "chimney",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Murt pipe av rød og grå tegl."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "forge",
+    "tavern",
+    "home",
+    "apothecary",
+    "apothecary_interior"
+   ]
+  },
+  {
+   "name": "church_boards",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Tjærebredde, mørke stående bord (stavkirka)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "cladding",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Stående brune bord med fuger (kledning)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "privy",
+    "forge",
+    "tavern",
+    "home",
+    "apothecary"
+   ]
+  },
+  {
+   "name": "cobble",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Brostein, avrundede steiner i varme og grå farger."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "core_plastic",
+   "info": {
+    "kind": "tile",
+    "theme": "kjerne",
+    "shows": "Grå plastaktige plater med bolter og flekker (den korrupte kjernen)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "core_stone",
+   "info": {
+    "kind": "tile",
+    "theme": "kjerne",
+    "shows": "Mørk stein med lysende cyan og fiolette fuger (den korrupte kjernen)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "cow_fur",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Rødbrun og hvit kuskinn i flekker."
+   },
+   "source": true,
+   "layer": false,
+   "ok": false,
+   "failed": [
+    "lys 0.18"
+   ],
+   "users": []
+  },
+  {
+   "name": "crypt_floor",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Uregelmessige grå steinheller (kryptgulv)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "crypt_01_aa",
+    "crypt_01_ab",
+    "crypt_01_ac",
+    "crypt_01_ad",
+    "crypt_01_ae",
+    "crypt_01_af",
+    "crypt_01_ag",
+    "crypt_01_ah",
+    "crypt_01_ai",
+    "crypt_01_aj",
+    "crypt_01_ak",
+    "crypt_01_al",
+    "crypt_01_an",
+    "crypt_01_ao",
+    "crypt_01_ap",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_as",
+    "crypt_01_at",
+    "crypt_01_au",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_ax",
+    "crypt_01_ay",
+    "crypt_01_az",
+    "crypt_01_ba",
+    "crypt_01_bb"
+   ]
+  },
+  {
+   "name": "crypt_plaster",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Hvit puss med stjerner og prikker og murhull. Underkjent som «barnerom»."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "crypt_vault",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Mørk, smal tegl i hvelv (kryptens tak)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "crypt_wall",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Lyse kvadersteiner i forband (kryptens vegger)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "crypt_01_aa",
+    "crypt_01_ab",
+    "crypt_01_ac",
+    "crypt_01_ad",
+    "crypt_01_ae",
+    "crypt_01_af",
+    "crypt_01_ag",
+    "crypt_01_ah",
+    "crypt_01_ai",
+    "crypt_01_aj",
+    "crypt_01_ak",
+    "crypt_01_al",
+    "crypt_01_am",
+    "crypt_01_an",
+    "crypt_01_ao",
+    "crypt_01_ap",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_as",
+    "crypt_01_at",
+    "crypt_01_au",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_ax",
+    "crypt_01_ay",
+    "crypt_01_az",
+    "crypt_01_ba",
+    "crypt_01_bb",
+    "kit_bonus",
+    "kit_crack",
+    "kit_down",
+    "kit_lever",
+    "kit_sarcophagus",
+    "kit_secret_wall",
+    "kit_shortcut",
+    "kit_up"
+   ]
+  },
+  {
+   "name": "crystal",
+   "info": {
+    "kind": "tile",
+    "theme": "gruve",
+    "shows": "Blå krystaller i klaser."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "door",
+   "info": {
+    "kind": "sheet",
+    "theme": "by",
+    "shows": "Én dør: brune stående bord med smijernshengsler og ring."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_k",
+    "house_l",
+    "house_n",
+    "house_o",
+    "house_q",
+    "privy",
+    "forge",
+    "tavern",
+    "home",
+    "apothecary",
+    "scriptorium"
+   ]
+  },
+  {
+   "name": "door_b",
+   "info": {
+    "kind": "sheet",
+    "theme": "by",
+    "shows": "Én dør, variant: rødbrune bord med hengsler og ring."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_e",
+    "house_i",
+    "house_j",
+    "house_m",
+    "house_p",
+    "house_r",
+    "house_s",
+    "house_t",
+    "shed_a",
+    "gatehouse",
+    "forge",
+    "tavern",
+    "tavern_interior",
+    "stave_church",
+    "crypt",
+    "kit_arrow"
+   ]
+  },
+  {
+   "name": "earth",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Brun, tråkket jord med småstein og fotspor."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "garden"
+   ]
+  },
+  {
+   "name": "felt",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Brun filt."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "flagstone",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Store kantete heller i varme og grå toner."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "town_wall",
+    "wall_tower",
+    "gatehouse",
+    "lantern_post",
+    "well",
+    "portal_ring",
+    "forge",
+    "tavern_interior",
+    "scriptorium_interior",
+    "stave_church_interior"
+   ]
+  },
+  {
+   "name": "forest_floor",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Barnåler, kongler og mose (skogbunn)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "fur",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Grå pels i lokker."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skarphet 1.38"
+   ],
+   "users": []
+  },
+  {
+   "name": "gambeson",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Kremhvit vattert kjortel i ruter."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "glitch_seam",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Mørk stein med lysende cyan og rosa sprekker og pikselblokker (de korrupte sømmene)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skarphet 1.34"
+   ],
+   "users": [
+    "crypt_01_aa"
+   ]
+  },
+  {
+   "name": "grave_slab",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Gravheller med kors og skjold i et steingulv."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "crypt_01_aa",
+    "crypt_01_ab",
+    "crypt_01_ad",
+    "crypt_01_ai",
+    "crypt_01_aj",
+    "crypt_01_ak",
+    "crypt_01_al",
+    "crypt_01_am",
+    "crypt_01_an",
+    "crypt_01_ao",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_ba",
+    "crypt_01_bb",
+    "kit_bonus",
+    "kit_down",
+    "kit_lever",
+    "kit_plate",
+    "kit_sarcophagus",
+    "kit_shortcut",
+    "kit_up"
+   ]
+  },
+  {
+   "name": "gravel",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Grus og småstein på gul jord."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "iron",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Blåsvart smijern med naglehoder."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "lys 0.57"
+   ],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "wall_tower",
+    "gatehouse",
+    "market_cross",
+    "lantern_post",
+    "training_dummy",
+    "weapon_rack",
+    "well",
+    "well_bucket",
+    "woodpile",
+    "signpost",
+    "chest",
+    "chest_lid",
+    "forge",
+    "forge_interior",
+    "tavern",
+    "tavern_interior",
+    "home",
+    "apothecary",
+    "scriptorium",
+    "stave_church",
+    "stave_church_interior",
+    "crypt",
+    "crypt_01_aa",
+    "crypt_01_ac",
+    "crypt_01_ai",
+    "crypt_01_ak",
+    "crypt_01_al",
+    "crypt_01_am",
+    "crypt_01_an",
+    "crypt_01_ao",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_at",
+    "crypt_01_au",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_az",
+    "crypt_01_ba",
+    "crypt_01_bb",
+    "kit_arrow",
+    "kit_gate",
+    "kit_lever",
+    "kit_lever_arm",
+    "kit_lore",
+    "kit_shortcut_leaf",
+    "kit_trapdoor"
+   ]
+  },
+  {
+   "name": "iron_worked",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Hamret mørkt jern med bulker."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "keep_ashlar",
+   "info": {
+    "kind": "tile",
+    "theme": "borg",
+    "shows": "Mørk kvaderstein (borgen)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "keep_floor",
+   "info": {
+    "kind": "tile",
+    "theme": "borg",
+    "shows": "Rutete gulv av grå og røde steinfliser på skrå (borgen)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "leather",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Brunt lær med sømmer."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skarphet 1.38"
+   ],
+   "users": [
+    "apothecary",
+    "scriptorium",
+    "crypt",
+    "kit_lore"
+   ]
+  },
+  {
+   "name": "linen",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Hvitt lin, fin vev."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "market_stall",
+    "market_stall_b",
+    "cart",
+    "lantern_post",
+    "training_dummy",
+    "scriptorium",
+    "stave_church_interior"
+   ]
+  },
+  {
+   "name": "logs",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Liggende tømmerstokker med mose i fugene (laft)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_c",
+    "house_o",
+    "shed_b",
+    "woodpile",
+    "forge",
+    "tavern_interior",
+    "home_interior",
+    "crypt"
+   ]
+  },
+  {
+   "name": "meadow",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Gress med hvite, gule og lilla blomster (eng)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "mine_rock",
+   "info": {
+    "kind": "tile",
+    "theme": "gruve",
+    "shows": "Mørk, kantet berg (gruva)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "mine_timber",
+   "info": {
+    "kind": "tile",
+    "theme": "gruve",
+    "shows": "Grå, slitte bjelker (gruvas avstivning)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "mud",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Søle med hjulspor og gress i kantene (veiene)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 0.88",
+    "skjøt 2.26"
+   ],
+   "users": []
+  },
+  {
+   "name": "oak_planed",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Høvlede lyse eikebord (gulv og møbler)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skarphet 1.34"
+   ],
+   "users": [
+    "forge",
+    "tavern",
+    "home"
+   ]
+  },
+  {
+   "name": "ossuary",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Hodeskaller og knokler stablet (beinhuset)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "crypt_01_ai",
+    "crypt_01_aj",
+    "crypt_01_ak",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_ba",
+    "crypt_01_bb"
+   ]
+  },
+  {
+   "name": "parchment",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Lyst pergament med flekker."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "planks",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Liggende rødbrune bord med spikre."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "coop",
+    "picket_fence",
+    "forge",
+    "tavern_interior",
+    "home",
+    "home_interior",
+    "apothecary",
+    "apothecary_interior",
+    "scriptorium_interior",
+    "stave_church_interior",
+    "kit_bonus",
+    "kit_lore",
+    "kit_shortcut_leaf",
+    "kit_trapdoor",
+    "kit_up"
+   ]
+  },
+  {
+   "name": "plaster",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Varm, lys kalkpuss."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "forge",
+    "tavern",
+    "tavern_interior",
+    "home",
+    "gallery_button",
+    "gallery_tag",
+    "gallery_badge",
+    "gallery_divider",
+    "gallery_card",
+    "gallery_alert",
+    "gallery_progress",
+    "gallery_label",
+    "gallery_help_text",
+    "gallery_tooltip",
+    "gallery_fieldset",
+    "gallery_file_upload",
+    "gallery_search",
+    "gallery_dialog",
+    "gallery_tabs",
+    "apothecary",
+    "scriptorium",
+    "stave_church_interior"
+   ]
+  },
+  {
+   "name": "plaster_old",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Lys puss med avskallinger."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 1.79",
+    "skarphet 1.34"
+   ],
+   "users": [
+    "house_f",
+    "house_l",
+    "house_t",
+    "forge",
+    "crypt_01_ao",
+    "kit_down",
+    "kit_shortcut",
+    "kit_up"
+   ]
+  },
+  {
+   "name": "plaster_red",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Rød puss med avskallinger."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 1.54"
+   ],
+   "users": [
+    "house_d",
+    "house_k",
+    "house_p",
+    "forge",
+    "home",
+    "apothecary"
+   ]
+  },
+  {
+   "name": "plaster_white",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Hvit puss."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 1.79",
+    "skarphet 1.27"
+   ],
+   "users": [
+    "house_b",
+    "house_g",
+    "house_i",
+    "house_m",
+    "house_r",
+    "home",
+    "apothecary",
+    "apothecary_interior",
+    "stave_church_interior",
+    "crypt_01_aa",
+    "crypt_01_ai",
+    "crypt_01_ak",
+    "crypt_01_ao",
+    "kit_arrow",
+    "kit_bonus",
+    "kit_lore"
+   ]
+  },
+  {
+   "name": "plate_steel",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Hamret stålplate."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "pottery",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Oransje brent leire med glasurflekker (krukker)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "rock",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Grått berg med lav."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "forge"
+   ]
+  },
+  {
+   "name": "rope",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Snodd tau, liggende rader."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "rubble",
+   "info": {
+    "kind": "tile",
+    "theme": "krypt",
+    "shows": "Steinur, løse steiner og grus."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "crypt_01_ac",
+    "crypt_01_al"
+   ]
+  },
+  {
+   "name": "ruin",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Gammel, mosegrodd steinmur."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "portal_ring",
+    "stave_church",
+    "crypt"
+   ]
+  },
+  {
+   "name": "rust",
+   "info": {
+    "kind": "tile",
+    "theme": "kjerne",
+    "shows": "Grått metall med rustflekker."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "sewer_brick",
+   "info": {
+    "kind": "tile",
+    "theme": "kloakk",
+    "shows": "Mørk, fuktig tegl (kloakken)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "sewer_floor",
+   "info": {
+    "kind": "tile",
+    "theme": "kloakk",
+    "shows": "Våte steinheller med pytter og mose (kloakken)."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "sheep_wool",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Krøllet saueull."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "shingles",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Spon, rødbrune og grå trespon (tak)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_g",
+    "house_j",
+    "house_q",
+    "house_t",
+    "wall_tower",
+    "gatehouse",
+    "well",
+    "woodpile",
+    "signpost",
+    "forge"
+   ]
+  },
+  {
+   "name": "shingles_tar",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Tjærebredt, rundet spon i skjell (stavkirketaket)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 1.00",
+    "skjøt 1.31"
+   ],
+   "users": [
+    "house_m"
+   ]
+  },
+  {
+   "name": "signs",
+   "info": {
+    "kind": "sheet",
+    "theme": "by",
+    "shows": "Fire hengeskilt: ambolt, ølkrus, morter, bok og fjær."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "slate",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Skifer, blågrå med enkelte røde og grønne."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_b",
+    "house_e",
+    "house_k",
+    "house_p",
+    "apothecary",
+    "scriptorium",
+    "stave_church",
+    "crypt"
+   ]
+  },
+  {
+   "name": "snow",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Snø i myke driver."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skjøt 1.21",
+    "skarphet 1.22"
+   ],
+   "users": []
+  },
+  {
+   "name": "sod",
+   "info": {
+    "kind": "tile",
+    "theme": "natur",
+    "shows": "Torv, gresstuster og jord (torvtak)."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_c",
+    "garden",
+    "home",
+    "apothecary",
+    "apothecary_interior",
+    "stave_church",
+    "crypt"
+   ]
+  },
+  {
+   "name": "stone",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Grå kvadersteinsmur med runde steiner og mose."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skjøt 1.04"
+   ],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "shed_a",
+    "shed_b",
+    "privy",
+    "town_wall",
+    "wall_tower",
+    "gatehouse",
+    "market_cross",
+    "forge",
+    "tavern",
+    "tavern_interior",
+    "home",
+    "home_interior",
+    "apothecary",
+    "apothecary_interior",
+    "stave_church",
+    "crypt"
+   ]
+  },
+  {
+   "name": "straw",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Løs halm, lys."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "straw_floor",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Halm strødd på et mørkt gulv."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "haystack",
+    "market_stall_b"
+   ]
+  },
+  {
+   "name": "thatch",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Halmtak i lag."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "megapiksler 1.05",
+    "skjøt 1.50"
+   ],
+   "users": [
+    "house_a",
+    "house_f",
+    "house_h",
+    "house_l",
+    "house_o",
+    "house_r",
+    "training_dummy",
+    "tavern",
+    "home",
+    "apothecary",
+    "apothecary_interior"
+   ]
+  },
+  {
+   "name": "tiles",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Røde munk-og-nonne-takstein."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_d",
+    "house_i",
+    "house_n",
+    "house_s",
+    "forge"
+   ]
+  },
+  {
+   "name": "timber",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Mørkbrunt tømmer, liggende bjelker."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_o",
+    "house_q",
+    "house_r",
+    "house_s",
+    "wall_tower",
+    "gatehouse",
+    "market_stall",
+    "market_stall_b",
+    "cart",
+    "crate",
+    "lantern_post",
+    "training_dummy",
+    "weapon_rack",
+    "well",
+    "well_bucket",
+    "woodpile",
+    "signpost",
+    "chest",
+    "chest_lid",
+    "rail_fence",
+    "picket_fence",
+    "forge",
+    "forge_interior",
+    "tavern",
+    "tavern_interior",
+    "home",
+    "home_interior",
+    "apothecary",
+    "apothecary_interior",
+    "scriptorium",
+    "scriptorium_interior",
+    "stave_church_interior",
+    "crypt_01_ac",
+    "crypt_01_ag",
+    "crypt_01_ah",
+    "crypt_01_ai",
+    "crypt_01_ak",
+    "crypt_01_al",
+    "crypt_01_am",
+    "crypt_01_an",
+    "crypt_01_ao",
+    "crypt_01_aq",
+    "crypt_01_ar",
+    "crypt_01_at",
+    "crypt_01_au",
+    "crypt_01_av",
+    "crypt_01_aw",
+    "crypt_01_az",
+    "crypt_01_ba",
+    "crypt_01_bb",
+    "kit_ladder",
+    "kit_lever_arm",
+    "kit_lore",
+    "kit_shortcut_leaf"
+   ]
+  },
+  {
+   "name": "timber_grey",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Gråvær, sprukket tømmer."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_f",
+    "house_g",
+    "house_n",
+    "house_p",
+    "house_t",
+    "shed_a",
+    "shed_b",
+    "haystack",
+    "garden",
+    "coop",
+    "market_stall",
+    "market_stall_b",
+    "cart",
+    "weapon_rack",
+    "woodpile",
+    "signpost",
+    "wattle_fence",
+    "rail_fence",
+    "picket_fence"
+   ]
+  },
+  {
+   "name": "trim",
+   "info": {
+    "kind": "sheet",
+    "theme": "by",
+    "shows": "Trim-ark: utskåret list, profiler, tegl, nagleband, tau."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_a",
+    "house_b",
+    "house_c",
+    "house_d",
+    "house_e",
+    "house_f",
+    "house_g",
+    "house_h",
+    "house_i",
+    "house_j",
+    "house_k",
+    "house_l",
+    "house_m",
+    "house_n",
+    "house_o",
+    "house_p",
+    "house_q",
+    "house_r",
+    "house_s",
+    "house_t",
+    "shed_a",
+    "privy",
+    "market_stall",
+    "market_stall_b",
+    "cart",
+    "training_dummy",
+    "well",
+    "well_rope",
+    "well_bucket",
+    "chest",
+    "chest_lid",
+    "forge",
+    "tavern",
+    "tavern_interior",
+    "home",
+    "home_interior",
+    "apothecary",
+    "apothecary_interior",
+    "kit_trapdoor"
+   ]
+  },
+  {
+   "name": "wall_stone",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Kløyvd naturstein i blå, grå og rustrøde toner."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "town_wall",
+    "wall_tower",
+    "gatehouse",
+    "lantern_post",
+    "well",
+    "signpost",
+    "stone_fence",
+    "portal_ring",
+    "forge",
+    "tavern_interior",
+    "scriptorium",
+    "scriptorium_interior",
+    "stave_church",
+    "crypt"
+   ]
+  },
+  {
+   "name": "water_murky",
+   "info": {
+    "kind": "tile",
+    "theme": "kloakk",
+    "shows": "Grumsete grønt vann med ringer."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "wattle",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Flettverk av kvister mellom stolper."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "garden",
+    "wattle_fence",
+    "rail_fence",
+    "forge"
+   ]
+  },
+  {
+   "name": "weatherboard",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Liggende kledningsbord, brune og grå."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "shed_a",
+    "shed_b",
+    "coop",
+    "wall_tower",
+    "gatehouse",
+    "market_stall",
+    "market_stall_b",
+    "cart",
+    "crate",
+    "training_dummy",
+    "weapon_rack",
+    "well",
+    "well_bucket",
+    "woodpile",
+    "forge"
+   ]
+  },
+  {
+   "name": "weatherboard_grey",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Liggende gråværede kledningsbord."
+   },
+   "source": true,
+   "layer": true,
+   "ok": true,
+   "failed": [],
+   "users": [
+    "house_e",
+    "shed_a",
+    "shed_b",
+    "privy",
+    "coop"
+   ]
+  },
+  {
+   "name": "weave",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Grov vev i fiskebein."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "wicker",
+   "info": {
+    "kind": "tile",
+    "theme": "by",
+    "shows": "Flettet kurv."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "windows",
+   "info": {
+    "kind": "sheet",
+    "theme": "by",
+    "shows": "Fire vinduer: blyglass med karm, med skodder, rundbuet i stein, gjenspikret."
+   },
+   "source": true,
+   "layer": false,
+   "ok": true,
+   "failed": [],
+   "users": []
+  },
+  {
+   "name": "wool",
+   "info": {
+    "kind": "tile",
+    "theme": "figur",
+    "shows": "Grå ullvev."
+   },
+   "source": true,
+   "layer": true,
+   "ok": false,
+   "failed": [
+    "skjøt 1.67"
+   ],
+   "users": [
+    "market_stall_b",
+    "forge",
+    "home_interior"
+   ]
+  }
+ ],
+ "refs": [
+  {
+   "path": "assets/textures/monsters/ref/accordion_coffin_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_accordion_coffin_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/avatar_skull_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_avatar_skull_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/breadcrumb_crawler_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_breadcrumb_crawler_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/button_wight_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_button_wight_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/datepicker_priest_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_datepicker_priest_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/datepicker_priest_head.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_datepicker_priest_head_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/input_leech_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_input_leech_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/modal_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_modal_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/modal_head.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_modal_head_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/select_broodmother_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_select_broodmother_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/select_broodmother_head.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_select_broodmother_head_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/table_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_table_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/table_head.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_table_head_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/toast_frog_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_toast_frog_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/monsters/ref/tooltip_sprite_body.jpeg",
+   "group": "monsters",
+   "img": "r_monsters_tooltip_sprite_body_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/ref/apothecary_body.jpeg",
+   "group": "people",
+   "img": "r_people_apothecary_body_jpeg.jpg",
+   "configs": [
+    "apothecary_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/apothecary_head.jpeg",
+   "group": "people",
+   "img": "r_people_apothecary_head_jpeg.jpg",
+   "configs": [
+    "apothecary_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/boy_body.jpeg",
+   "group": "people",
+   "img": "r_people_boy_body_jpeg.jpg",
+   "configs": [
+    "boy_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/boy_head.jpeg",
+   "group": "people",
+   "img": "r_people_boy_head_jpeg.jpg",
+   "configs": [
+    "boy_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/clerk_body.jpeg",
+   "group": "people",
+   "img": "r_people_clerk_body_jpeg.jpg",
+   "configs": [
+    "clerk_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/clerk_head.jpeg",
+   "group": "people",
+   "img": "r_people_clerk_head_jpeg.jpg",
+   "configs": [
+    "clerk_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/farmer_body.jpeg",
+   "group": "people",
+   "img": "r_people_farmer_body_jpeg.jpg",
+   "configs": [
+    "farmer_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/farmer_head.jpeg",
+   "group": "people",
+   "img": "r_people_farmer_head_jpeg.jpg",
+   "configs": [
+    "farmer_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/fishwife_body.jpeg",
+   "group": "people",
+   "img": "r_people_fishwife_body_jpeg.jpg",
+   "configs": [
+    "fishwife_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/fishwife_head.jpeg",
+   "group": "people",
+   "img": "r_people_fishwife_head_jpeg.jpg",
+   "configs": [
+    "fishwife_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/gorvek_body.jpeg",
+   "group": "people",
+   "img": "r_people_gorvek_body_jpeg.jpg",
+   "configs": [
+    "gorvek_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/gorvek_head.jpeg",
+   "group": "people",
+   "img": "r_people_gorvek_head_jpeg.jpg",
+   "configs": [
+    "gorvek_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/guard_body.jpeg",
+   "group": "people",
+   "img": "r_people_guard_body_jpeg.jpg",
+   "configs": [
+    "guard_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/guard_head.jpeg",
+   "group": "people",
+   "img": "r_people_guard_head_jpeg.jpg",
+   "configs": [
+    "guard_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/innkeeper_body.jpeg",
+   "group": "people",
+   "img": "r_people_innkeeper_body_jpeg.jpg",
+   "configs": [
+    "innkeeper_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/innkeeper_head.jpeg",
+   "group": "people",
+   "img": "r_people_innkeeper_head_jpeg.jpg",
+   "configs": [
+    "innkeeper_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/maid_body.jpeg",
+   "group": "people",
+   "img": "r_people_maid_body_jpeg.jpg",
+   "configs": [
+    "maid_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/maid_head.jpeg",
+   "group": "people",
+   "img": "r_people_maid_head_jpeg.jpg",
+   "configs": [
+    "maid_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/merchant_body.jpeg",
+   "group": "people",
+   "img": "r_people_merchant_body_jpeg.jpg",
+   "configs": [
+    "merchant_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/merchant_head.jpeg",
+   "group": "people",
+   "img": "r_people_merchant_head_jpeg.jpg",
+   "configs": [
+    "merchant_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/pilgrim_body.jpeg",
+   "group": "people",
+   "img": "r_people_pilgrim_body_jpeg.jpg",
+   "configs": [
+    "pilgrim_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/pilgrim_head.jpeg",
+   "group": "people",
+   "img": "r_people_pilgrim_head_jpeg.jpg",
+   "configs": [
+    "pilgrim_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/smith_body.jpeg",
+   "group": "people",
+   "img": "r_people_smith_body_jpeg.jpg",
+   "configs": [
+    "smith_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/smith_head.jpeg",
+   "group": "people",
+   "img": "r_people_smith_head_jpeg.jpg",
+   "configs": [
+    "smith_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/washerwoman_body.jpeg",
+   "group": "people",
+   "img": "r_people_washerwoman_body_jpeg.jpg",
+   "configs": [
+    "washerwoman_body (body3)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/ref/washerwoman_head.jpeg",
+   "group": "people",
+   "img": "r_people_washerwoman_head_jpeg.jpg",
+   "configs": [
+    "washerwoman_head (head2x2)"
+   ]
+  },
+  {
+   "path": "assets/textures/people/tiles/beard.jpeg",
+   "group": "people",
+   "img": "r_people_beard_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/chainmail.jpeg",
+   "group": "people",
+   "img": "r_people_chainmail_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/eyes.jpeg",
+   "group": "people",
+   "img": "r_people_eyes_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/felt.jpeg",
+   "group": "people",
+   "img": "r_people_felt_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/fur.jpeg",
+   "group": "people",
+   "img": "r_people_fur_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/gambeson.jpeg",
+   "group": "people",
+   "img": "r_people_gambeson_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/hair_blond.jpeg",
+   "group": "people",
+   "img": "r_people_hair_blond_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/hair_dark.jpeg",
+   "group": "people",
+   "img": "r_people_hair_dark_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/hair_grey.jpeg",
+   "group": "people",
+   "img": "r_people_hair_grey_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/hair_red.jpeg",
+   "group": "people",
+   "img": "r_people_hair_red_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/leather.jpeg",
+   "group": "people",
+   "img": "r_people_leather_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/linen.jpeg",
+   "group": "people",
+   "img": "r_people_linen_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/skin_light.jpeg",
+   "group": "people",
+   "img": "r_people_skin_light_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/skin_ruddy.jpeg",
+   "group": "people",
+   "img": "r_people_skin_ruddy_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/skin_tan.jpeg",
+   "group": "people",
+   "img": "r_people_skin_tan_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/people/tiles/wool.jpeg",
+   "group": "people",
+   "img": "r_people_wool_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/prop2/altar.jpeg",
+   "group": "props",
+   "img": "r_props_altar_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/prop2/anvil.jpeg",
+   "group": "props",
+   "img": "r_props_anvil_jpeg.jpg",
+   "configs": [
+    "anvil (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/barrel.jpeg",
+   "group": "props",
+   "img": "r_props_barrel_jpeg.jpg",
+   "configs": [
+    "barrel (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/cauldron.jpeg",
+   "group": "props",
+   "img": "r_props_cauldron_jpeg.jpg",
+   "configs": [
+    "cauldron (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/chest.jpeg",
+   "group": "props",
+   "img": "r_props_chest_jpeg.jpg",
+   "configs": [
+    "chest (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/gate.jpeg",
+   "group": "props",
+   "img": "r_props_gate_jpeg.jpg",
+   "configs": [
+    "gate (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/lever.jpeg",
+   "group": "props",
+   "img": "r_props_lever_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/prop2/rest_shrine.jpeg",
+   "group": "props",
+   "img": "r_props_rest_shrine_jpeg.jpg",
+   "configs": [
+    "rest_shrine (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/sarcophagus.jpeg",
+   "group": "props",
+   "img": "r_props_sarcophagus_jpeg.jpg",
+   "configs": [
+    "sarcophagus (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/prop2/well.jpeg",
+   "group": "props",
+   "img": "r_props_well_jpeg.jpg",
+   "configs": [
+    "well (prop2)"
+   ]
+  },
+  {
+   "path": "assets/textures/props/ref/animals2.jpeg",
+   "group": "props",
+   "img": "r_props_animals2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/animals_ref.jpeg",
+   "group": "props",
+   "img": "r_props_animals_ref_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/apothecary.jpeg",
+   "group": "props",
+   "img": "r_props_apothecary_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/bush_ref.jpeg",
+   "group": "props",
+   "img": "r_props_bush_ref_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/clutter_dungeon.jpeg",
+   "group": "props",
+   "img": "r_props_clutter_dungeon_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/clutter_market.jpeg",
+   "group": "props",
+   "img": "r_props_clutter_market_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/clutter_town.jpeg",
+   "group": "props",
+   "img": "r_props_clutter_town_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_borg.jpeg",
+   "group": "props",
+   "img": "r_props_dng_borg_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_grav.jpeg",
+   "group": "props",
+   "img": "r_props_dng_grav_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_gruve.jpeg",
+   "group": "props",
+   "img": "r_props_dng_gruve_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_kjerne.jpeg",
+   "group": "props",
+   "img": "r_props_dng_kjerne_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_kloakk.jpeg",
+   "group": "props",
+   "img": "r_props_dng_kloakk_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dng_mekanikk.jpeg",
+   "group": "props",
+   "img": "r_props_dng_mekanikk_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/dungeon_clutter2.jpeg",
+   "group": "props",
+   "img": "r_props_dungeon_clutter2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/furniture2.jpeg",
+   "group": "props",
+   "img": "r_props_furniture2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/furniture_a.jpeg",
+   "group": "props",
+   "img": "r_props_furniture_a_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/furniture_b.jpeg",
+   "group": "props",
+   "img": "r_props_furniture_b_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/hearth.jpeg",
+   "group": "props",
+   "img": "r_props_hearth_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/items1.jpeg",
+   "group": "props",
+   "img": "r_props_items1_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/items2.jpeg",
+   "group": "props",
+   "img": "r_props_items2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/items3.jpeg",
+   "group": "props",
+   "img": "r_props_items3_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/items4.jpeg",
+   "group": "props",
+   "img": "r_props_items4_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/items5.jpeg",
+   "group": "props",
+   "img": "r_props_items5_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/tableware.jpeg",
+   "group": "props",
+   "img": "r_props_tableware_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/textiles.jpeg",
+   "group": "props",
+   "img": "r_props_textiles_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/tree_ref.jpeg",
+   "group": "props",
+   "img": "r_props_tree_ref_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/props/ref/workshop.jpeg",
+   "group": "props",
+   "img": "r_props_workshop_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/armour_sets.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_armour_sets_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/armour_sets2.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_armour_sets2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/arms_fp.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_arms_fp_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/arms_fp2.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_arms_fp2_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/arms_fp2_palm_side.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_arms_fp2_palm_side_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/arms_grip.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_arms_grip_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/axe_rarity.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_axe_rarity_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/dagger_rarity.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_dagger_rarity_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/mace_rarity.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_mace_rarity_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_back.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_back_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_heater_back.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_heater_back_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_heater_front.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_heater_front_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_round_front.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_round_front_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_tower_back.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_tower_back_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/shield_tower_front.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_shield_tower_front_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/sword_rarity.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_sword_rarity_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/weapon_axe.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_weapon_axe_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/weapon_dagger.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_weapon_dagger_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/weapon_mace.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_weapon_mace_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/weapon_spear.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_weapon_spear_jpeg.jpg",
+   "configs": []
+  },
+  {
+   "path": "assets/textures/weapons_ref/weapon_sword.jpeg",
+   "group": "weapons_ref",
+   "img": "r_weapons_ref_weapon_sword_jpeg.jpg",
+   "configs": []
+  }
+ ],
+ "planned": [
+  {
+   "name": "mutant_button",
+   "why": "fiende (fase 5)"
+  },
+  {
+   "name": "mutant_tooltip",
+   "why": "fiende (fase 5)"
+  },
+  {
+   "name": "mutant_input",
+   "why": "fiende (fase 5)"
+  },
+  {
+   "name": "mutant_modal",
+   "why": "fiende (fase 5)"
+  },
+  {
+   "name": "mutant_table",
+   "why": "fiende (fase 5)"
+  },
+  {
+   "name": "framework",
+   "why": "sluttbossen Rammeverket (fase 5)"
+  },
+  {
+   "name": "token",
+   "why": "tokenene fiendene mister (fase 7)"
+  },
+  {
+   "name": "key",
+   "why": "nøkkelen eliten mister (fase 7)"
+  },
+  {
+   "name": "bolt",
+   "why": "spyttet fra inputen (fase 5)"
+  },
+  {
+   "name": "arms",
+   "why": "armene i førsteperson (fase 7)"
+  },
+  {
+   "name": "sword",
+   "why": "våpen (fase 7)"
+  },
+  {
+   "name": "axe",
+   "why": "våpen (fase 7)"
+  },
+  {
+   "name": "dagger",
+   "why": "våpen (fase 7)"
+  },
+  {
+   "name": "shield_round",
+   "why": "skjold (fase 7)"
+  },
+  {
+   "name": "shield_tower",
+   "why": "skjold (fase 7)"
+  },
+  {
+   "name": "sheep_body",
+   "why": "sau (fase 7)"
+  },
+  {
+   "name": "sheep_leg",
+   "why": "sau (fase 7)"
+  },
+  {
+   "name": "cow_body",
+   "why": "ku (fase 7)"
+  },
+  {
+   "name": "cow_leg_front",
+   "why": "ku (fase 7)"
+  },
+  {
+   "name": "cow_leg_hind",
+   "why": "ku (fase 7)"
+  },
+  {
+   "name": "npc_smith",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_clerk",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_apothecary",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_innkeeper",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_gorvek",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_farmer",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_maid",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_guard",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_merchant",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_fishwife",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_boy",
+   "why": "figur (fase 5)"
+  },
+  {
+   "name": "npc_washerwoman",
+   "why": "figur (fase 5)"
+  }
+ ],
+ "missing": [
+  "npc_smith",
+  "npc_clerk",
+  "npc_apothecary",
+  "npc_innkeeper",
+  "npc_gorvek",
+  "npc_farmer",
+  "npc_maid",
+  "npc_guard",
+  "npc_merchant",
+  "npc_fishwife",
+  "npc_boy",
+  "npc_washerwoman",
+  "mutant_button",
+  "mutant_tooltip",
+  "mutant_input",
+  "mutant_modal",
+  "mutant_table",
+  "framework",
+  "token",
+  "key",
+  "bolt",
+  "arms",
+  "sword",
+  "axe",
+  "dagger",
+  "shield_round",
+  "shield_tower",
+  "cow_body",
+  "cow_leg_front",
+  "cow_leg_hind",
+  "sheep_body",
+  "sheep_leg"
+ ]
+}

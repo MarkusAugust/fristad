@@ -44,10 +44,21 @@ rm -rf dist
 mkdir -p dist
 "$TOOLS/wasm-bindgen" --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/fristad.wasm
-cp web/index.html web/main.js web/music.js web/ambience.js web/sounds.js web/style.css web/docs.json dist/
+cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json dist/
+# Åpningsfilmen: den ferdige videoen (tools/film/cut.py skriver target/film/intro.mp4;
+# i Actions bygges den i et eget steg med hurtiglager). Mangler den, starter spillet
+# uten film, så bygget stopper ikke.
+mkdir -p dist/film/fonts && cp web/film/player.js dist/film/ && cp web/film/fonts/* dist/film/fonts/
+[ -f target/film/intro.mp4 ] && cp target/film/intro.mp4 dist/film/intro.mp4 || echo "ADVARSEL: target/film/intro.mp4 mangler, siden får ingen åpningsfilm"
+# Bildene til katalogen i redigeringen (`?edit`, tools/qa/thumbs.py).
+mkdir -p dist/catalog
+cp assets/catalog/thumbs/*.jpg dist/catalog/ 2>/dev/null || true
 # Lydene (opptak fra frie spill, se assets/sounds/CREDITS.md).
 mkdir -p dist/sounds
 cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/sounds/
+# Instrumentprøvene til musikken (FluidR3_GM, se assets/music/CREDITS.md).
+mkdir -p dist/music
+cp -r assets/music/. dist/music/
 cp node_modules/@fristil/designsystem/dist/fristil.css dist/
 # De frittstående web-komponentene (toast, connection-status) importeres som
 # ES-moduler fra pakken, uten kildekart og typer.

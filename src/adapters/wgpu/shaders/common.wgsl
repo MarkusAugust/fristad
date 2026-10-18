@@ -8,9 +8,8 @@ struct Light {
 struct Globals {
     view_proj: mat4x4<f32>,
     inv_view_proj: mat4x4<f32>,
-    prev_view_proj: mat4x4<f32>,
-    // Skyggekartene, ett per kaskade.
-    sun_vp: array<mat4x4<f32>, 3>,
+    // Skyggekartet fra sola (én kaskade).
+    sun_vp: mat4x4<f32>,
     // xyz kamera, w tid i sekunder.
     camera: vec4<f32>,
     // xyz retning mot sola (eller månen), w styrke.
@@ -30,82 +29,76 @@ struct Globals {
     weather: vec4<f32>,
     // bredde, høyde, 1/bredde, 1/høyde.
     screen: vec4<f32>,
-    // xy TAA-forskyvning i piksler, z bildenummer, w vind.
-    jitter: vec4<f32>,
-    // Hvor kaskadene slutter, i meter fra kameraet.
-    cascade: vec4<f32>,
+    // x vind, y MSAA-prøver, z der skyggen begynner å tone bort, w der den
+    // slutter (meter fra kameraet).
+    misc: vec4<f32>,
     // x skydekke, y nordlys, z lyn, w feilsøkingsvisning.
     sky: vec4<f32>,
     // Meter per flis for teksturlagene, 4 per vec4.
-    tex_scale: array<vec4<f32>, 7>,
+    tex_scale: array<vec4<f32>, 16>,
     palette: array<vec4<f32>, 64>,
     lights: array<Light, 48>,
     // Pipene som ryker: toppen (xyz) og tykkelsen (w), opptil 32.
     smoke: array<vec4<f32>, 32>,
-    // Kjellerens rutenett (40 × 40): hjørnet i x og z, gulvhøyden og
-    // cellestørrelsen (0 utenfor kjelleren); én byte per celle, fire per
-    // u32: bit 0 åpen, bit 1 fri vei mot +x, bit 2 mot +z.
-    grid_info: vec4<f32>,
-    grid: array<vec4<u32>, 100>,
+    // Rommene i kryptnivået (lyset stoppes av murene): x antallet (0 oppe
+    // i byen); boksene (x0, z0, x1, z1); gulvet og taket, to rom per vec4;
+    // og rommene hvert lys lyser i, to u32 per lys og to lys per vec4.
+    room_info: vec4<f32>,
+    room_box: array<vec4<f32>, 64>,
+    room_y: array<vec4<f32>, 32>,
+    light_rooms: array<vec4<u32>, 24>,
+    // x full teksturtetthet, y flat farge (målingen `?bench`), z skyggen
+    // (0 av, 1 fire prøver, 2 myk), w blandede lag på bakken.
+    quality: vec4<f32>,
+    // Kaskade nummer to.
+    sun_vp2: mat4x4<f32>,
+    // xy en texel i skyggekartet (kaskadene side om side), z antall
+    // kaskader, w hvor langt kaskade to når (m).
+    shadow: vec4<f32>,
 }
 
-fn grid_cell(ix: i32, iz: i32) -> u32 {
-    if (ix < 0 || iz < 0 || ix >= 40 || iz >= 40) {
-        return 0u;
+// Rommet et punkt er i: det minste rommet med en boks som rommer det, eller
+// −1 (inne i muren, eller oppe i byen).
+fn room_of(p: vec3<f32>) -> i32 {
+    let n = i32(g.room_info.x);
+    var best = -1;
+    var area = 1.0e9;
+    for (var i = 0; i < n; i++) {
+        let b = g.room_box[i];
+        let yy = g.room_y[i / 2];
+        let y = select(yy.xy, yy.zw, (i % 2) == 1);
+        if (p.x >= b.x && p.x <= b.z && p.z >= b.y && p.z <= b.w && p.y >= y.x - 0.3 && p.y <= y.y + 0.3) {
+            let a = (b.z - b.x) * (b.w - b.y);
+            if (a < area) {
+                area = a;
+                best = i;
+            }
+        }
     }
-    let i = u32(iz * 40 + ix);
-    let word = g.grid[i / 16u][(i / 4u) % 4u];
-    return (word >> ((i % 4u) * 8u)) & 255u;
+    return best;
 }
 
-// Om lyset i `light` når punktet `p` uten å gå gjennom en mur i kjelleren:
-// går cellene langs linja mellom dem (flatt) og sjekker hver kant.
-fn grid_lit(p: vec3<f32>, light: vec3<f32>) -> f32 {
-    let cell = g.grid_info.w;
-    if (cell <= 0.0) {
-        return 1.0;
+// Om lys nummer `k` lyser i rommet: i sitt eget og i rom med åpen
+// forbindelse. Utenfor alle rom lyser bare lyktene med alle bitene satt
+// (lykta du bærer). Oppe i byen lyser alt.
+fn light_reaches(k: i32, room: i32) -> bool {
+    if (g.room_info.x <= 0.0) {
+        return true;
     }
-    let a = (p.xz - g.grid_info.xy) / cell;
-    let b = (light.xz - g.grid_info.xy) / cell;
-    var c = vec2<i32>(floor(a));
-    let end = vec2<i32>(floor(b));
-    let d = b - a;
-    let stepv = vec2<i32>(select(-1, 1, d.x >= 0.0), select(-1, 1, d.y >= 0.0));
-    let inv = vec2<f32>(1.0 / max(abs(d.x), 1e-5), 1.0 / max(abs(d.y), 1e-5));
-    let fr = a - floor(a);
-    var t = vec2<f32>(select(fr.x, 1.0 - fr.x, d.x >= 0.0) * inv.x, select(fr.y, 1.0 - fr.y, d.y >= 0.0) * inv.y);
-    for (var k = 0; k < 8; k++) {
-        if (c.x == end.x && c.y == end.y) {
-            return 1.0;
-        }
-        if (t.x < t.y) {
-            // Over kanten i x: fri vei står i cella med lavest x.
-            let lo = select(c.x - 1, c.x, stepv.x > 0);
-            if ((grid_cell(lo, c.y) & 2u) == 0u) {
-                return 0.0;
-            }
-            c.x += stepv.x;
-            t.x += inv.x;
-        } else {
-            let lo = select(c.y - 1, c.y, stepv.y > 0);
-            if ((grid_cell(c.x, lo) & 4u) == 0u) {
-                return 0.0;
-            }
-            c.y += stepv.y;
-            t.y += inv.y;
-        }
+    let v = g.light_rooms[k / 2];
+    let odd = (k % 2) == 1;
+    let lo = select(v.x, v.z, odd);
+    let hi = select(v.y, v.w, odd);
+    if (room < 0) {
+        return lo == 0xffffffffu && hi == 0xffffffffu;
     }
-    return 1.0;
+    if (room < 32) {
+        return ((lo >> u32(room)) & 1u) == 1u;
+    }
+    return ((hi >> u32(room - 32)) & 1u) == 1u;
 }
 
 @group(0) @binding(0) var<uniform> g: Globals;
-
-// Blått-ish støymønster per piksel som bytter hvert bilde, til TAA og dithering.
-fn ign(px: vec2<f32>) -> f32 {
-    let f = g.jitter.z;
-    let p = px + 5.588238 * (f % 64.0);
-    return fract(52.9829189 * fract(0.06711056 * p.x + 0.00583715 * p.y));
-}
 
 // Himmelfargen i en retning, uten sol og stjerner. Brukes både av himmelen og
 // til refleksjoner og tåke.
@@ -119,16 +112,31 @@ fn sky_gradient(dir: vec3<f32>) -> vec3<f32> {
     return c;
 }
 
-// Lineær dybde fra dybdebufferet (perspektiv, revers-ikke).
-fn linear_depth(d: f32) -> f32 {
-    // proj er perspective_rh med near 0.1 og far 2500.
-    let n = 0.1;
-    let f = 2500.0;
-    return n * f / (f - d * (f - n));
-}
-
-fn world_from_depth(uv: vec2<f32>, depth: f32) -> vec3<f32> {
-    let ndc = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);
-    let w = g.inv_view_proj * ndc;
-    return w.xyz / w.w;
+// Tåka i et punkt: høydetåke regnet analytisk langs strålen fra kameraet,
+// lyst opp av himmelen og (mot sola) av sollyset, og lyn. Regnes rett i
+// hvert punkt i hovedpasset, uten eget pass og uten støy.
+fn fog(color: vec3<f32>, p: vec3<f32>) -> vec3<f32> {
+    let density = g.sky_horizon.w;
+    if (density <= 0.0) {
+        return color;
+    }
+    let cam = g.camera.xyz;
+    let ray = p - cam;
+    let dist = length(ray);
+    let dir = ray / max(dist, 1e-4);
+    let falloff = g.ground_bounce.w;
+    let dy = dir.y * dist;
+    var height_term = exp(-falloff * cam.y);
+    if (abs(dy) > 0.01) {
+        height_term = (exp(-falloff * cam.y) - exp(-falloff * (cam.y + dy))) / (falloff * dy);
+    }
+    let transmittance = exp(-density * dist * height_term);
+    let cos_t = dot(dir, g.sun_dir.xyz);
+    let gg = 0.55;
+    let phase = (1.0 - gg * gg) / pow(1.0 + gg * gg - 2.0 * gg * cos_t, 1.5);
+    let sun_in = g.sun_color.rgb * g.sun_dir.w * 0.6 * mix(0.35, phase, 0.6);
+    let ambient_in = mix(g.fog_color.rgb, sky_gradient(normalize(vec3<f32>(dir.x, 0.05, dir.z))), 0.5);
+    var inscatter = (ambient_in * 0.7 + sun_in * 0.3) * (1.0 - transmittance);
+    inscatter += g.sky.z * (1.0 - transmittance) * vec3<f32>(0.8, 0.85, 1.0);
+    return color * transmittance + inscatter;
 }

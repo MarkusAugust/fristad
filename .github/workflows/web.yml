@@ -9,6 +9,8 @@ on:
     branches: [master, "claude/**"]
     paths:
       - "src/**"
+      - "crates/**"
+      - "build.rs"
       - "web/**"
       - "tools/**"
       - "assets/**"
@@ -41,6 +43,28 @@ jobs:
         with:
           path: assets/external
           key: external-assets-${{ hashFiles('tools/fetch-assets.ts', 'assets/textures/**') }}
+      # Teksturlagene før testene: `alle_lagene_har_bilde` krever dem.
+      - name: Teksturlagene
+        run: bun tools/fetch-assets.ts
+      # Testene (arkitekturen, verden, krypten, fysikken, lydene) før noe
+      # publiseres; feiler de, stopper bygget her.
+      - name: Tester
+        run: cargo test --release --workspace
+      # Åpningsfilmen klippes av ffmpeg fra eierens klipp, malerier, stemmen
+      # og musikken (tools/film/cut.py). Den tar noen minutter, så resultatet
+      # ligger i hurtiglageret til noe av kildene endres.
+      - name: Hurtiglager for åpningsfilmen
+        id: film
+        uses: actions/cache@v4
+        with:
+          path: target/film/intro.mp4
+          key: film-${{ hashFiles('tools/film/**', 'assets/film/**', 'assets/music/film/**', 'assets/sounds/sounds.json') }}
+      - name: Klipp åpningsfilmen
+        if: steps.film.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip3 install --quiet pillow numpy
+          python3 tools/film/cut.py --out target/film/intro.mp4
       - name: Bygg Fristad for nettleseren
         run: sh tools/build-web.sh
       # Claude når ikke Poly Haven fra skymiljøet sitt, men når GitHub.

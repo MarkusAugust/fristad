@@ -23,75 +23,41 @@ macro_rules! models {
 }
 
 models! {
-    // Dyrene fra tools/models/animals.py: kroppen har origo i bakken under
-    // midten, beina i hofteleddet (domain/herd.rs poserer dem).
-    "sheep_body" => "animals/sheep_body.glb",
-    "sheep_leg" => "animals/sheep_leg.glb",
-    "cow_body" => "animals/cow_body.glb",
-    "cow_leg_front" => "animals/cow_leg_front.glb",
-    "cow_leg_hind" => "animals/cow_leg_hind.glb",
-    // Trærne og buskene fra tools/models/trees.py: stammen med bakt bark,
-    // og bladverket som kort (to modeller med samme origo).
-    // Gresstustene fra tools/models/grass.py (kort med eierens strå).
-    "grass_a" => "trees/grass_a.glb",
-    "grass_b" => "trees/grass_b.glb",
-    "grass_c" => "trees/grass_c.glb",
-    "grass_d" => "trees/grass_d.glb",
-    "flowers_a" => "trees/flowers_a.glb",
-    "flowers_b" => "trees/flowers_b.glb",
-    "flowers_c" => "trees/flowers_c.glb",
-    "flowers_d" => "trees/flowers_d.glb",
-    "oak1_trunk" => "trees/oak1_trunk.glb",
-    "oak1_leaves" => "trees/oak1_leaves.glb",
-    "oak2_trunk" => "trees/oak2_trunk.glb",
-    "oak2_leaves" => "trees/oak2_leaves.glb",
-    "birch1_trunk" => "trees/birch1_trunk.glb",
-    "birch1_leaves" => "trees/birch1_leaves.glb",
-    "spruce1_trunk" => "trees/spruce1_trunk.glb",
-    "spruce1_needles" => "trees/spruce1_needles.glb",
-    "spruce2_trunk" => "trees/spruce2_trunk.glb",
-    "spruce2_needles" => "trees/spruce2_needles.glb",
-    "bush1_trunk" => "trees/bush1_trunk.glb",
-    "bush1_leaves" => "trees/bush1_leaves.glb",
-    "bush2_trunk" => "trees/bush2_trunk.glb",
-    "bush2_leaves" => "trees/bush2_leaves.glb",
-    // Pynten i kjelleren (tools/models/gorvek.py og house.py).
-    "gorvek_chest" => "gorvek/chest.glb",
-    "gorvek_keg" => "gorvek/keg.glb",
-    "gorvek_torch" => "gorvek/torch.glb",
-    "gorvek_skull" => "gorvek/skull.glb",
-    "door_lamp" => "house/door_lamp.glb",
-    // Fiendene og lootet i kjelleren fra tools/models/mobs.py.
-    "mutant_button" => "mobs/mutant_button.glb",
-    "mutant_tooltip" => "mobs/mutant_tooltip.glb",
-    "mutant_input" => "mobs/mutant_input.glb",
-    "mutant_modal" => "mobs/mutant_modal.glb",
-    "mutant_table" => "mobs/mutant_table.glb",
-    "framework" => "mobs/framework.glb",
-    "token" => "mobs/token.glb",
-    "bolt" => "mobs/bolt.glb",
-    "key" => "mobs/key.glb",
-    // Spillerens armer fra tools/models/arms.py, i kamerarommet (origo i
-    // øyet, −Z fram), og våpnene og skjoldene i armenes rom.
-    "arms" => "arms/arms.glb",
-    "sword" => "arms/sword.glb",
-    "axe" => "arms/axe.glb",
-    "dagger" => "arms/dagger.glb",
-    "shield_round" => "arms/shield_round.glb",
-    "shield_tower" => "arms/shield_tower.glb",
-    // Husene i kjøpstaden fra tools/models/town.py: teksturlag i meter-uv
-    // og bakt okklusjon i hjørnefargen; døra mot +Z, origo midt på grunnflaten.
+    // Husene fra tools/models/houses.py (byggesettet i kit.py): teksturlag i
+    // meter-uv og bakt okklusjon i hjørnefargen; døra mot +Z, origo midt på
+    // grunnflaten. Småbyggene på gårdene fra yard.py.
     "house_a" => "town/house_a.glb",
     "house_b" => "town/house_b.glb",
     "house_c" => "town/house_c.glb",
     "house_d" => "town/house_d.glb",
     "house_e" => "town/house_e.glb",
     "house_f" => "town/house_f.glb",
-    // Bymuren fra tools/models/walls.py: segment, hjørnetårn og porthus.
+    "house_g" => "town/house_g.glb",
+    "house_h" => "town/house_h.glb",
+    "house_i" => "town/house_i.glb",
+    "house_j" => "town/house_j.glb",
+    "house_k" => "town/house_k.glb",
+    "house_l" => "town/house_l.glb",
+    "house_m" => "town/house_m.glb",
+    "house_n" => "town/house_n.glb",
+    "house_o" => "town/house_o.glb",
+    "house_p" => "town/house_p.glb",
+    "house_q" => "town/house_q.glb",
+    "house_r" => "town/house_r.glb",
+    "house_s" => "town/house_s.glb",
+    "house_t" => "town/house_t.glb",
+    "shed_a" => "town/shed_a.glb",
+    "shed_b" => "town/shed_b.glb",
+    "privy" => "town/privy.glb",
+    "haystack" => "town/haystack.glb",
+    "garden" => "town/garden.glb",
+    "coop" => "town/coop.glb",
+    // Bymuren fra tools/models/fortress.py: segment, hjørnetårn og porthus.
     "town_wall" => "town/town_wall.glb",
     "wall_tower" => "town/wall_tower.glb",
     "gatehouse" => "town/gatehouse.glb",
-    // Torget fra tools/models/props.py.
+    // Gatelivet fra tools/models/streetlife.py: torget, brønnene, veiskiltet,
+    // kista og lokket som åpnes (origo i hengslet).
     "market_cross" => "town/market_cross.glb",
     "market_stall" => "town/market_stall.glb",
     "market_stall_b" => "town/market_stall_b.glb",
@@ -101,92 +67,102 @@ models! {
     "lantern_post" => "town/lantern_post.glb",
     "training_dummy" => "town/training_dummy.glb",
     "weapon_rack" => "town/weapon_rack.glb",
-    // Gatelivet og landskapet fra tools/models/street.py.
     "well" => "town/well.glb",
-    "npc_smith" => "npc/npc_smith.glb",
-    "npc_innkeeper" => "npc/npc_innkeeper.glb",
-    "npc_apothecary" => "npc/npc_apothecary.glb",
-    "npc_clerk" => "npc/npc_clerk.glb",
-    "npc_gorvek" => "npc/npc_gorvek.glb",
-    "npc_woman" => "npc/npc_woman.glb",
-    // Portalen ved sørporten (tools/models/portal.py).
+    "well_winch" => "town/well_winch.glb",
+    "well_rope" => "town/well_rope.glb",
+    "well_bucket" => "town/well_bucket.glb",
+    "woodpile" => "town/woodpile.glb",
+    "signpost" => "town/signpost.glb",
+    "chest" => "town/chest.glb",
+    "chest_lid" => "town/chest_lid.glb",
+    // Fiendene i krypten fra tools/models/monsters.py (etter eierens ark).
+    "mutant_button" => "mobs/mutant_button.glb",
+    "mutant_tooltip" => "mobs/mutant_tooltip.glb",
+    "datepicker_priest" => "mobs/datepicker_priest.glb",
+    "mutant_modal" => "mobs/mutant_modal.glb",
+    "mutant_input" => "mobs/mutant_input.glb",
+    "mutant_table" => "mobs/mutant_table.glb",
+    "mutant_toast" => "mobs/mutant_toast.glb",
+    "mutant_select" => "mobs/mutant_select.glb",
+    // Armene i førsteperson og våpnene og skjoldene de holder
+    // (tools/models/arms.py), i kamerarommet.
+    "arms" => "arms/arms.glb",
+    "arms_leather" => "arms/arms_leather.glb",
+    "arms_mail" => "arms/arms_mail.glb",
+    "sword" => "arms/sword.glb",
+    "axe" => "arms/axe.glb",
+    "dagger" => "arms/dagger.glb",
+    "shield_round" => "arms/shield_round.glb",
+    "shield_tower" => "arms/shield_tower.glb",
+    "avatar_skull" => "mobs/avatar_skull.glb",
+    "breadcrumb_crawler" => "mobs/breadcrumb_crawler.glb",
+    "accordion_coffin" => "mobs/accordion_coffin.glb",
+    // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
+    // lav steinmur.
+    "wattle_fence" => "town/wattle_fence.glb",
+    "rail_fence" => "town/rail_fence.glb",
+    "picket_fence" => "town/picket_fence.glb",
+    "stone_fence" => "town/stone_fence.glb",
+    // Portalen fra tools/models/portal.py: ringen, runene som gløder, de to
+    // virvelskivene og splintene (posert av økta).
     "portal_ring" => "town/portal_ring.glb",
     "portal_runes" => "town/portal_runes.glb",
     "portal_swirl" => "town/portal_swirl.glb",
     "portal_shard" => "town/portal_shard.glb",
-    "npc_farmer" => "npc/npc_farmer.glb",
-    "npc_boy" => "npc/npc_boy.glb",
-    "npc_guard" => "npc/npc_guard.glb",
-    "npc_merchant" => "npc/npc_merchant.glb",
-    "npc_pilgrim" => "npc/npc_pilgrim.glb",
-    "well_winch" => "town/well_winch.glb",
-    "well_rope" => "town/well_rope.glb",
-    "well_bucket" => "town/well_bucket.glb",
-    "wattle_fence" => "town/wattle_fence.glb",
-    "woodpile" => "town/woodpile.glb",
-    "stone_wall" => "town/stone_wall.glb",
-    "boulder_a" => "town/boulder_a.glb",
-    "boulder_b" => "town/boulder_b.glb",
-    "boulder_c" => "town/boulder_c.glb",
-    // Veiskiltet til krypten.
-    "signpost" => "town/signpost.glb",
-    // Kista i kjelleren og lokket som åpnes (origo i hengslet).
-    "chest" => "town/chest.glb",
-    "chest_lid" => "town/chest_lid.glb",
-    // Bygningene på torget fra tools/models/buildings.py.
+    "token" => "props/token.glb",
+    "npc_smith" => "npcs/npc_smith.glb",
+    "npc_clerk" => "npcs/npc_clerk.glb",
+    "npc_apothecary" => "npcs/npc_apothecary.glb",
+    "npc_innkeeper" => "npcs/npc_innkeeper.glb",
+    "npc_gorvek" => "npcs/npc_gorvek.glb",
+    "npc_farmer" => "npcs/npc_farmer.glb",
+    "npc_maid" => "npcs/npc_maid.glb",
+    "npc_guard" => "npcs/npc_guard.glb",
+    "npc_merchant" => "npcs/npc_merchant.glb",
+    "npc_fishwife" => "npcs/npc_fishwife.glb",
+    "npc_boy" => "npcs/npc_boy.glb",
+    "npc_washerwoman" => "npcs/npc_washerwoman.glb",
+    "npc_pilgrim" => "npcs/npc_pilgrim.glb",
+    // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
+    // krypten (sacred.py).
     "forge" => "town/forge.glb",
+    "forge_interior" => "town/forge_interior.glb",
     "tavern" => "town/tavern.glb",
+    "tavern_interior" => "town/tavern_interior.glb",
+    "home" => "town/home.glb",
+    "home_interior" => "town/home_interior.glb",
+    // Galleriveggen: platene med bildet av hver komponent (home.py).
+    "gallery_button" => "town/gallery_button.glb",
+    "gallery_tag" => "town/gallery_tag.glb",
+    "gallery_badge" => "town/gallery_badge.glb",
+    "gallery_divider" => "town/gallery_divider.glb",
+    "gallery_card" => "town/gallery_card.glb",
+    "gallery_alert" => "town/gallery_alert.glb",
+    "gallery_progress" => "town/gallery_progress.glb",
+    "gallery_label" => "town/gallery_label.glb",
+    "gallery_help_text" => "town/gallery_help_text.glb",
+    "gallery_tooltip" => "town/gallery_tooltip.glb",
+    "gallery_fieldset" => "town/gallery_fieldset.glb",
+    "gallery_file_upload" => "town/gallery_file_upload.glb",
+    "gallery_search" => "town/gallery_search.glb",
+    "gallery_dialog" => "town/gallery_dialog.glb",
+    "gallery_tabs" => "town/gallery_tabs.glb",
     "apothecary" => "town/apothecary.glb",
+    "apothecary_interior" => "town/apothecary_interior.glb",
     "scriptorium" => "town/scriptorium.glb",
+    "scriptorium_interior" => "town/scriptorium_interior.glb",
     "stave_church" => "town/stave_church.glb",
-    "gravestone" => "town/gravestone.glb",
-    // Borgruinen, krypten, døra opp fra kjelleren og portgitteret fra
-    // tools/models/castle.py.
-    "castle_ruin" => "town/castle_ruin.glb",
+    "stave_church_interior" => "town/stave_church_interior.glb",
     "crypt" => "town/crypt.glb",
-    "crypt_stair" => "town/crypt_stair.glb",
-    "portcullis" => "town/portcullis.glb",
-    // Kjelleren fra tools/models/dungeon.py: gangene, rommene, den tilmurte
-    // døra og vindeltrappa (origo i hjørnet av fotavtrykket, trappa i midten
-    // av tårncella; domain/world/dungeon.rs setter dem sammen).
-    "dng_hall_i" => "dungeon/dng_hall_i.glb",
-    "dng_hall_i2" => "dungeon/dng_hall_i2.glb",
-    "dng_hall_i3" => "dungeon/dng_hall_i3.glb",
-    "dng_hall_sewer" => "dungeon/dng_hall_sewer.glb",
-    "dng_hall_crypt" => "dungeon/dng_hall_crypt.glb",
-    "dng_hall_lava" => "dungeon/dng_hall_lava.glb",
-    "dng_hall_l" => "dungeon/dng_hall_l.glb",
-    "dng_hall_t" => "dungeon/dng_hall_t.glb",
-    "dng_hall_x" => "dungeon/dng_hall_x.glb",
-    "dng_hall_end" => "dungeon/dng_hall_end.glb",
-    "dng_seal" => "dungeon/dng_seal.glb",
-    "dng_shortcut" => "dungeon/dng_shortcut.glb",
-    "dng_shortcut_leaf" => "dungeon/dng_shortcut_leaf.glb",
-    "dng_spiral" => "dungeon/dng_spiral.glb",
-    "dng_start" => "dungeon/dng_start.glb",
-    "dng_gate" => "dungeon/dng_gate.glb",
-    "dng_landing" => "dungeon/dng_landing.glb",
-    "dng_hall" => "dungeon/dng_hall.glb",
-    "dng_long" => "dungeon/dng_long.glb",
-    "dng_cistern" => "dungeon/dng_cistern.glb",
-    "dng_gallery" => "dungeon/dng_gallery.glb",
-    "dng_chasm" => "dungeon/dng_chasm.glb",
-    "dng_chapel" => "dungeon/dng_chapel.glb",
-    "dng_treasury" => "dungeon/dng_treasury.glb",
-    "dng_arena" => "dungeon/dng_arena.glb",
-    // Pynten per etasje (dungeon::theme).
-    "dngp_shelf" => "dungeon/dngp_shelf.glb",
-    "dngp_sacks" => "dungeon/dngp_sacks.glb",
-    "dngp_banner" => "dungeon/dngp_banner.glb",
-    "dngp_moss" => "dungeon/dngp_moss.glb",
-    "dngp_puddle" => "dungeon/dngp_puddle.glb",
-    "dngp_roots" => "dungeon/dngp_roots.glb",
-    "dngp_skulls" => "dungeon/dngp_skulls.glb",
-    "dngp_bonepile" => "dungeon/dngp_bonepile.glb",
-    "dngp_lava" => "dungeon/dngp_lava.glb",
-    "dngp_embers" => "dungeon/dngp_embers.glb",
-    // Innbyggerne fra tools/models/npc.py: én modell, tunikaen farges per instans.
-    "npc" => "npc/npc.glb",
+}
+
+// Kryptmodellene (`CRYPT_FILES`, `CRYPT_MODELS`): bitene og byggesettet i
+// `assets/models/crypt/`, funnet av build.rs.
+include!(concat!(env!("OUT_DIR"), "/crypt_models.rs"));
+
+/// Alle modellfilene: tabellen over og kryptmodellene.
+pub fn model_files() -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    MODEL_FILES.iter().chain(CRYPT_FILES.iter())
 }
 
 /// Modellene som er med, lest ved behov.
@@ -195,34 +171,100 @@ pub struct Embedded;
 
 #[cfg(not(target_arch = "wasm32"))]
 impl ModelSource for Embedded {
+    fn world_data(&self) -> crate::domain::world::Data {
+        super::data::world_data()
+    }
     fn names(&self) -> Vec<String> {
-        MODELS.iter().map(|(n, _)| n.to_string()).collect()
+        MODELS.iter().chain(CRYPT_MODELS.iter()).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let (_, bytes) = MODELS.iter().find(|(n, _)| *n == name)?;
+        let (_, bytes) = MODELS.iter().chain(CRYPT_MODELS.iter()).find(|(n, _)| *n == name)?;
         load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
+}
+
+/// Teksturlagene en glb-fil bruker (`extras.fristad.layer` på materialene),
+/// uten å lese geometrien.
+pub fn layers_of(bytes: &[u8]) -> Result<Vec<String>, String> {
+    let doc = gltf::Gltf::from_slice(bytes).map_err(|e| format!("ugyldig glTF: {e}"))?;
+    let mut out = vec![];
+    for mat in doc.materials() {
+        if let Some(l) = extras::<RawRole>(mat.extras())?.layer {
+            out.push(l);
+        }
+    }
+    Ok(out)
+}
+
+/// Alle teksturlagene modellene i spillet bruker.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn used_layers() -> std::collections::BTreeSet<String> {
+    MODELS.iter().chain(CRYPT_MODELS.iter()).flat_map(|(_, b)| layers_of(b).unwrap_or_default()).collect()
 }
 
 /// Modellfilene etter stien i `MODEL_FILES`, hentet utenfra.
 pub struct Files(pub std::collections::HashMap<String, Vec<u8>>);
 
 impl ModelSource for Files {
+    fn world_data(&self) -> crate::domain::world::Data {
+        super::data::world_data()
+    }
     fn names(&self) -> Vec<String> {
-        MODEL_FILES.iter().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
+        model_files().filter(|(_, p)| self.0.contains_key(*p)).map(|(n, _)| n.to_string()).collect()
+    }
+    /// Bitene til kryptnivåene som ikke er hentet: de kommer når økta ber
+    /// om nivået.
+    fn deferred(&self) -> Vec<String> {
+        model_files().filter(|(_, p)| !self.0.contains_key(*p) && super::delivery::level_of(p).is_some()).map(|(n, _)| n.to_string()).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {
-        let (_, path) = MODEL_FILES.iter().find(|(n, _)| *n == name)?;
+        let (_, path) = model_files().find(|(n, _)| *n == name)?;
         let bytes = self.0.get(*path)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, super::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 
-fn decode(bytes: &[u8]) -> Option<Image> {
-    let img = image::load_from_memory(bytes).ok()?.into_rgba8();
-    Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
+/// Lengste side for teksturene: fargen og resten (normal, metall/ruhet,
+/// glød). 0 er som i fila.
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct Caps {
+    pub color: u32,
+    pub data: u32,
+}
+
+/// Leser bare målene og beholder fila kodet; `pixels` pakker den ut når
+/// rendereren trenger den.
+pub fn encoded(bytes: &[u8], cap: u32) -> Option<Image> {
+    let (w, h) = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?.into_dimensions().ok()?;
+    let (w, h) = capped(w, h, cap);
+    Some(Image { width: w, height: h, rgba: vec![], encoded: bytes.to_vec() })
+}
+
+fn capped(w: u32, h: u32, cap: u32) -> (u32, u32) {
+    let side = w.max(h);
+    if cap == 0 || side <= cap {
+        (w, h)
+    } else {
+        ((w as u64 * cap as u64 / side as u64).max(1) as u32, (h as u64 * cap as u64 / side as u64).max(1) as u32)
+    }
+}
+
+/// Pikslene i RGBA8: pakker ut et kodet bilde og skalerer det til målene.
+pub fn pixels(img: &Image) -> std::borrow::Cow<'_, [u8]> {
+    if img.encoded.is_empty() {
+        return std::borrow::Cow::Borrowed(&img.rgba);
+    }
+    let Some(full) = image::load_from_memory(&img.encoded).ok().map(|i| i.into_rgba8()) else {
+        log::warn!("Et bilde i en modell kunne ikke pakkes ut");
+        return std::borrow::Cow::Owned(vec![128; (img.width * img.height * 4) as usize]);
+    };
+    if full.width() == img.width && full.height() == img.height {
+        std::borrow::Cow::Owned(full.into_raw())
+    } else {
+        std::borrow::Cow::Owned(image::imageops::resize(&full, img.width, img.height, image::imageops::FilterType::Triangle).into_raw())
+    }
 }
 
 /// Leser en glTF-fil med tilhørende filer fra minnet (første fil er
@@ -230,6 +272,11 @@ fn decode(bytes: &[u8]) -> Option<Image> {
 /// grader om Y og setter føttene i y = 0. `height` > 0 skalerer modellen
 /// til den høyden; 0 beholder modellens egne mål (meter).
 pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Result<Model, String> {
+    load_capped(name, files, height, yaw, Caps::default())
+}
+
+/// Som `load`, med et tak på teksturene.
+pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, caps: Caps) -> Result<Model, String> {
     let get = |n: &str| -> Result<&[u8], String> {
         // Stier i glTF kan være URL-kodet.
         let plain = n.replace("%20", " ");
@@ -243,12 +290,12 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             gltf::buffer::Source::Bin => doc.blob.clone().ok_or("glb uten blob")?,
         });
     }
-    let image = |t: Option<gltf::Texture>| -> Option<Image> {
+    let image = |t: Option<gltf::Texture>, cap: u32| -> Option<Image> {
         match t?.source().source() {
-            gltf::image::Source::Uri { uri, .. } => decode(get(uri).ok()?),
+            gltf::image::Source::Uri { uri, .. } => encoded(get(uri).ok()?, cap),
             gltf::image::Source::View { view, .. } => {
                 let b = &buffers[view.buffer().index()];
-                decode(&b[view.offset()..view.offset() + view.length()])
+                encoded(&b[view.offset()..view.offset() + view.length()], cap)
             }
         }
     };
@@ -355,10 +402,10 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             roughness = pbr.roughness_factor();
             metallic = pbr.metallic_factor();
             if albedo.is_none() {
-                albedo = image(pbr.base_color_texture().map(|t| t.texture()));
-                metal_rough = image(pbr.metallic_roughness_texture().map(|t| t.texture()));
-                normal = image(mat.normal_texture().map(|t| t.texture()));
-                emissive = image(mat.emissive_texture().map(|t| t.texture()));
+                albedo = image(pbr.base_color_texture().map(|t| t.texture()), caps.color);
+                metal_rough = image(pbr.metallic_roughness_texture().map(|t| t.texture()), caps.data);
+                normal = image(mat.normal_texture().map(|t| t.texture()), caps.data);
+                emissive = image(mat.emissive_texture().map(|t| t.texture()), caps.data);
             }
             let reader = prim.reader(|b| Some(&buffers[b.index()]));
             let Some(positions) = reader.read_positions() else { continue };
@@ -372,11 +419,13 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let uv: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_default();
             // Okklusjonen Blender har bakt i hjørnefargen (rød kanal, lineær).
             let ao: Vec<f32> = reader.read_colors(0).map(|c| c.into_rgba_f32().map(|c| c[0]).collect()).unwrap_or_default();
-            // «layer_<lag>»: et flisbart teksturlag lagt på etter uv i meter.
-            let layer = mat.name().and_then(|n| n.strip_prefix("layer_")).map(|n| n.split('.').next().unwrap_or(n)).and_then(|n| Layer::ALL.iter().copied().find(|l| l.name() == n));
-            if mat.name().is_some_and(|n| n.starts_with("layer_")) && layer.is_none() {
-                log::warn!("Modell {name}: ukjent teksturlag i materialet {:?}", mat.name());
-            }
+            // Rollen materialet har fått ved eksporten (`tools/models/roles.py`):
+            // slaget, teksturlaget etter uv i meter, og flaggene.
+            let role = Role::of(&mat).map_err(|e| format!("materialet {:?}: {e}", mat.name()))?;
+            let layer = match &role.layer {
+                Some(n) => Some(Layer::ALL.iter().copied().find(|l| l.name() == n).ok_or_else(|| format!("materialet {:?}: ukjent teksturlag {n}", mat.name()))?),
+                None => None,
+            };
             let idx: Vec<u32> = reader.read_indices().map(|i| i.into_u32().collect()).unwrap_or_else(|| (0..pos.len() as u32).collect());
             // Normalene kan være pakket som 8 bit med fortegn
             // (KHR_mesh_quantization, `tools/models/slim.py`); leseren i
@@ -392,54 +441,15 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
             let tint = pbr.base_color_factor();
             // Fargefaktoren er lineær; hjørnefargen er sRGB.
             let mut mmat = Mat::plain(0xffffff, roughness).tint(Vec3::new(tint[0], tint[1], tint[2]));
-            // «paint» får fargen fra instansen; metall merkes med flagg.
-            // Blender legger på .001 når navnet finnes fra før, så prefikset holder.
-            let named = |n: &str| mat.name().map(|m| m.starts_with(n)).unwrap_or(false);
-            if named("paint") {
-                mmat = mmat.tint(Vec3::ONE).flags(flag::PAINT);
-            }
-            // «glow» lyser om natta, som lampene ellers i byen; «glass»
-            // speiler som vinduene.
-            if named("glow") {
-                mmat.kind = kind::LAMP;
-            }
-            if named("glass") {
-                mmat.kind = kind::GLASS;
-            }
-            // «glass_day» er innsiden av en vindusrute: dagslyset skinner gjennom.
-            if named("glass_day") {
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // «glass_lit» er utsida av en rute i et hus man kan gå inn i:
-            // lyset inne skinner ut om natta.
-            if named("glass_lit") {
-                mmat = mmat.flags(flag::GLOW_LAMP);
-            }
-            // «water» er vann (cisternen i kjelleren).
-            if named("water") {
-                mmat.kind = kind::WATER;
-            }
-            // Kjelleren ligger under bakken: verken regn eller snø.
-            if name.starts_with("dng_") {
-                mmat = mmat.flags(flag::NO_WEATHER);
-            }
-            // «fire» brenner hele døgnet (fakler, ildsteder).
-            if named("fire") {
-                mmat.kind = kind::LAMP;
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // «magic» gløder i sin egen farge hele døgnet (portalen).
-            if named("magic") {
-                mmat.kind = kind::MAGIC;
-                mmat = mmat.flags(flag::GLOW_ALWAYS);
-            }
-            // Bladkort og nålekvister: alfatestes og svaier i vinden.
-            if named("leaf") || named("needle") || named("grass") {
-                mmat = mmat.flags(flag::ALPHA | flag::WIND | flag::NO_WEATHER);
+            mmat.kind = role.kind;
+            mmat = mmat.flags(role.flags);
+            // Lakken får fargen fra instansen i stedet for materialets.
+            if role.flags & flag::PAINT != 0 && layer.is_none() {
+                mmat = mmat.tint(Vec3::ONE);
             }
             // Gresstrå: mørkere mot rota (høyden i primitivet).
             let (y_lo, y_hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| (lo.min(p[1]), hi.max(p[1])));
-            let grass = named("grass");
+            let grass = role.grass;
             if metallic >= 0.5 && layer.is_none() {
                 mmat = mmat.flags(flag::METAL);
             }
@@ -487,18 +497,99 @@ pub fn load(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32) -> Resul
     }
     let (lo, hi) = mesh.bounds();
     log::info!("Modell {name}: {} trekanter, {:.2} × {:.2} × {:.2} m", mesh.indices.len() / 3, hi.x - lo.x, hi.y - lo.y, hi.z - lo.z);
-    // Bladverk som kort tåler ikke å slås sammen på avstand: det grove
-    // detaljnivået er hvert tredje kort, forstørret.
-    let far_mesh = (name.ends_with("_leaves") || name.ends_with("_needles")).then(|| mesh.thinned_cards(3, 1.7));
-    let far_cell = if far_mesh.is_some() {
-        0.0005
-    } else if name.ends_with("_trunk") {
-        // Stammene: grovt på avstand, kvistene forsvinner i bladverket.
-        0.6
-    } else {
-        0.0
-    };
+    // Hvordan modellen forenkles på avstand (rollen på roten): bladverk som
+    // kort tåler ikke å slås sammen, så det grove detaljnivået er hvert
+    // tredje kort, forstørret; stammene får et grovt nett.
+    let far = Far::of(&doc).map_err(|e| format!("roten: {e}"))?;
+    let far_mesh = far.cards.then(|| mesh.thinned_cards(3, 1.7));
+    let far_cell = if far.cards { 0.0005 } else { far.cell };
     Ok(Model { name: name.to_string(), mesh, albedo, normal, metal_rough, emissive, roughness, metallic, far_cell, far_mesh, rig })
+}
+
+/// Rollen et materiale har fått ved eksporten (`extras.fristad`, skrevet av
+/// `tools/models/slim.py` med reglene i `tools/models/roles.py`). Motoren
+/// gjetter aldri ut fra navnet.
+struct Role {
+    kind: u8,
+    layer: Option<String>,
+    flags: u8,
+    /// Gresstrå: okklusjonen byttes mot høyden i primitivet.
+    grass: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct RawRole {
+    kind: String,
+    layer: Option<String>,
+    flags: Vec<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct Extras<T> {
+    fristad: T,
+}
+
+/// Rollene i `extras` på et glTF-objekt.
+fn extras<T: serde::de::DeserializeOwned>(raw: &gltf::json::Extras) -> Result<T, String> {
+    let raw = raw.as_ref().ok_or("mangler rollene (kjør tools/models/slim.py --tag)")?;
+    serde_json::from_str::<Extras<T>>(raw.get()).map(|e| e.fristad).map_err(|e| format!("rollene kan ikke leses: {e}"))
+}
+
+impl Role {
+    fn of(mat: &gltf::Material) -> Result<Self, String> {
+        // Primitiver uten materiale får standardmaterialet, som er vanlig.
+        if mat.index().is_none() {
+            return Ok(Role { kind: kind::PLAIN, layer: None, flags: 0, grass: false });
+        }
+        let r: RawRole = extras(mat.extras())?;
+        let kind = match r.kind.as_str() {
+            "plain" => kind::PLAIN,
+            "lamp" => kind::LAMP,
+            "glass" => kind::GLASS,
+            "water" => kind::WATER,
+            "magic" => kind::MAGIC,
+            k => return Err(format!("ukjent slag {k}")),
+        };
+        let mut flags = 0;
+        let mut grass = false;
+        for f in &r.flags {
+            flags |= match f.as_str() {
+                "paint" => flag::PAINT,
+                "glow_always" => flag::GLOW_ALWAYS,
+                "glow_lamp" => flag::GLOW_LAMP,
+                "no_weather" => flag::NO_WEATHER,
+                "alpha" => flag::ALPHA,
+                "wind" => flag::WIND,
+                "grass" => {
+                    grass = true;
+                    0
+                }
+                f => return Err(format!("ukjent flagg {f}")),
+            };
+        }
+        Ok(Role { kind, layer: r.layer, flags, grass })
+    }
+}
+
+/// Hvordan hele modellen forenkles på avstand (`extras.fristad` på roten).
+#[derive(Default, serde::Deserialize)]
+#[serde(default)]
+struct Far {
+    #[serde(rename = "far", deserialize_with = "cards")]
+    cards: bool,
+    #[serde(rename = "far_cell")]
+    cell: f32,
+}
+
+fn cards<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    let s: String = serde::Deserialize::deserialize(d)?;
+    Ok(s == "cards")
+}
+
+impl Far {
+    fn of(doc: &gltf::Gltf) -> Result<Self, String> {
+        extras(&doc.as_json().extras)
+    }
 }
 
 /// Fire ledd og vekter per hjørne, kvantisert til byte med summen 255.

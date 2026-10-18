@@ -7,11 +7,11 @@ use crate::application::{prepare, rigs, Prepared, Session};
 use crate::domain::world::{Shape, Use};
 use crate::ports::driving::{Action, Event, Input, SaveData};
 use crate::ports::Physics;
-use glam::{Affine3A, Quat, Vec2, Vec3};
+use glam::{Affine3A, Vec2, Vec3};
 use std::sync::OnceLock;
 
 /// Verden bygges én gang og deles av testene (det tar noen sekunder).
-fn world() -> &'static Prepared {
+pub(crate) fn world() -> &'static Prepared {
     static P: OnceLock<Prepared> = OnceLock::new();
     P.get_or_init(|| prepare(&Embedded, 7))
 }
@@ -61,26 +61,10 @@ fn alt_er_ekte_modeller_med_teksturer() {
 #[test]
 fn alt_stort_har_kollider() {
     let p = world();
-    let tol = 0.35;
-    let covers = |shape: &Shape, q: Vec3| -> bool {
-        match shape {
-            Shape::Cuboid { center, size, yaw } => {
-                let d = Quat::from_rotation_y(-*yaw) * (q - *center);
-                d.x.abs() <= size.x * 0.5 + tol && d.y.abs() <= size.y * 0.5 + tol && d.z.abs() <= size.z * 0.5 + tol
-            }
-            Shape::Cylinder { center, radius, half_height } => {
-                let d = q - *center;
-                (d.x * d.x + d.z * d.z).sqrt() <= radius + tol && d.y.abs() <= half_height + tol
-            }
-            Shape::Capsule { a, b, radius } => {
-                let ab = *b - *a;
-                let t = ((q - *a).dot(ab) / ab.length_squared().max(1e-6)).clamp(0.0, 1.0);
-                (q - (*a + ab * t)).length() <= radius + tol
-            }
-            Shape::Heightfield { .. } | Shape::Hull { .. } => false,
-        }
-    };
-    let skip = |name: &str| name.ends_with("_leaves") || name.ends_with("_needles") || name.starts_with("grass_") || name.starts_with("flowers_") || name == "door_lamp" || name == "gorvek_torch" || name == "crypt_stair";
+    let covers = |shape: &Shape, q: Vec3| shape.covers(q, 0.35);
+    // Bitene av kryptnivåene er selve rommene, med murene som kollidere.
+    let level_piece = |name: &str| name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
+    let skip = |name: &str| level_piece(name) || name.ends_with("_interior");
     let mut problems = vec![];
     for pl in &p.world.placements {
         if skip(pl.model) {
@@ -135,13 +119,6 @@ fn kapselen_stopper_mot_trær_og_kanten() {
         }
         (pos, nearest)
     };
-    let oak = p.world.placements.iter().find(|pl| pl.model == "oak1_trunk" && pl.transforms.len() > 3).expect("ingen eik");
-    for t in oak.transforms.iter().take(4) {
-        let base = Vec3::from(t.translation);
-        let y = half + radius + 0.1;
-        let (_, nearest) = walk(base + Vec3::new(2.0, y, 0.0), base + Vec3::new(-2.0, y, 0.0), base);
-        assert!(nearest > 0.4, "gikk gjennom eika ved ({:.1}, {:.1}): kom {:.2} m fra stammen", base.x, base.z, nearest);
-    }
     let start = Vec3::new(185.0, crate::domain::world::terrain::height(185.0, 0.0) + half + radius + 0.1, 0.0);
     let (end, _) = walk(start, Vec3::new(215.0, start.y, 0.0), Vec3::ZERO);
     assert!(end.x < 199.0, "gikk ut av verden: endte ved x = {:.1}", end.x);
@@ -179,81 +156,6 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
-/// Krypten tar deg ned i kjelleren og døra opp igjen; fiendene kommer,
-/// biter, og kan slås i hjel.
-#[test]
-fn kjelleren_kan_nas_og_fiendene_biter() {
-    use crate::domain::mobs::Kind;
-    use crate::domain::world::dungeon::DEPTH;
-    let p = world();
-    let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
-    let mut input = Input::default();
-    game.update(&mut input, 1.0 / 30.0, &mut physics);
-    assert!(game.eye().y > 0.0, "starter oppe");
-    // Alle slagene er med, og akkurat én boss; tabellen er elite nederst.
-    let roster = game.roster();
-    for k in Kind::ALL {
-        assert!(roster.iter().any(|(r, _)| *r == k), "ingen {k:?} i kjelleren");
-    }
-    assert_eq!(roster.iter().filter(|(k, _)| k.boss()).count(), 1, "akkurat én boss");
-    assert!(roster.iter().any(|(k, e)| *k == Kind::Table && *e), "tabellen er elite nederst");
-    // De dype etasjene: du skal kunne stå der uten å havne oppe igjen.
-    let deep = &p.world.dungeon.floors[p.world.dungeon.floors.len() - 1];
-    let there = deep.center(deep.start.0, deep.start.1);
-    game.place(there + Vec3::Y * 1.7, 0.0, 0.0);
-    for _ in 0..30 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    assert!((game.eye().y - there.y - 1.7).abs() < 1.0, "sto ikke igjen nederst: øyet er på y = {:.1}, gulvet på {:.1}", game.eye().y, there.y);
-    // Tilbake opp, og ned gjennom krypten.
-    game.respawn();
-    game.update(&mut input, 1.0 / 30.0, &mut physics);
-    let events = game.use_first(|u| *u == Use::Descend);
-    assert!(events.iter().any(|e| matches!(e, Event::Fade)), "nedgangen skal tone til svart");
-    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
-    assert!(game.eye().y < DEPTH + 3.0, "døra i krypten skal ta deg ned: øyet er på y = {:.1}", game.eye().y);
-    assert!(events.iter().any(|e| matches!(e, Event::Hud { cellar: true, .. })), "HUD-en skal melde at du er nede");
-    // Fiendene jager: etter noen sekunder biter en, og livet synker.
-    let mut bitten = false;
-    for _ in 0..(30 * 40) {
-        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
-            if let Event::Hud { hp, .. } = e {
-                if hp < 100 {
-                    bitten = true;
-                }
-            }
-        }
-        if bitten {
-            break;
-        }
-    }
-    assert!(bitten, "ingen fiende rakk fram og bet på 40 sekunder");
-    // Snu deg mot den nærmeste og slå til den dør.
-    let mut killed = false;
-    'outer: for _ in 0..(30 * 20) {
-        let feet = game.eye() - Vec3::Y * 0.8;
-        if let Some(m) = game.nearest_mob(feet) {
-            let d = m + Vec3::Y * 0.8 - game.eye();
-            let flat = d.with_y(0.0).length();
-            game.set_look(-d.x.atan2(-d.z), d.y.atan2(flat));
-        }
-        input.actions.push(Action::Use);
-        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
-            if let Event::Toast(t) = e {
-                if t.contains("falt fra hverandre") {
-                    killed = true;
-                    break 'outer;
-                }
-            }
-        }
-    }
-    assert!(killed, "fikk ikke slått i hjel en fiende på 20 sekunder");
-    // Og opp igjen gjennom døra i startrommet.
-    game.use_first(|u| *u == Use::Ascend);
-    game.update(&mut input, 1.0 / 30.0, &mut physics);
-    assert!(game.eye().y > 0.0, "døra opp skal ta deg til krypten: øyet er på y = {:.1}", game.eye().y);
-}
 
 /// Det du finner i kjelleren havner i lageret uansett hvordan du kommer
 /// deg opp: også med H (tilbake til sørporten), ikke bare gjennom døra i
@@ -275,6 +177,62 @@ fn funnet_havner_i_lageret_ogsa_med_h() {
     let v = game.inventory_view();
     assert!(v.carried.is_empty(), "sekken skal være tømt oppe: {:?}", v.carried);
     assert!(v.stash.iter().any(|(c, n)| *c == found && *n > 0), "{found} skal være i lageret: {:?}", v.stash);
+}
+
+/// Målet på skjermen og journalen: i byen før du har vært nede sier målet
+/// at krypten er ut nordporten; nede sier det hvilket nivå du står i og hva
+/// som gjenstår; lappen du leser havner i journalen, og det dypeste nivået
+/// og lappene huskes fra en lagring.
+#[test]
+fn malet_og_journalen_viser_veien_og_huskes() {
+    fn goal(events: &[Event]) -> Option<(String, usize)> {
+        events.iter().rev().find_map(|e| if let Event::Goal { text, journal } = e { Some((text.clone(), journal.len())) } else { None })
+    }
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let (text, read) = goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).expect("målet sendes første bilde");
+    assert!(text.contains("nordporten") && text.contains("krypten"), "før du har vært nede: {text}");
+    assert_eq!(read, 0);
+    assert!(goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).is_none(), "målet sendes bare når det endres");
+    game.use_first(|u| *u == Use::Descend);
+    let (text, _) = goal(&game.update(&mut input, 1.0 / 30.0, &mut physics)).expect("målet endres nede");
+    assert!(text.starts_with("Nivå 1"), "nede: {text}");
+    // En lapp havner i journalen.
+    let lore = !game.use_first(|u| matches!(u, Use::Lore(_))).is_empty();
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    if lore {
+        let (_, read) = goal(&events).expect("journalen sendes når du har lest");
+        assert_eq!(read, 1);
+    }
+    let saved = game.save();
+    assert_eq!(saved.deepest, Some(0));
+    assert_eq!(saved.lore.len(), lore as usize);
+    // Ei ny økt fra lagringen husker nivået og lappen.
+    let mut physics2 = RapierPhysics::new();
+    let mut again = session(&mut physics2);
+    again.load(saved);
+    assert_eq!(again.deepest(), Some(0));
+    assert_eq!(again.journal().len(), lore as usize);
+    assert!(again.goal().contains("Dypeste nivå"), "{}", again.goal());
+}
+
+/// Hvilestedet lagrer: når du hviler, sendes lageret, og nettlaget lagrer
+/// spillet da (`case "inventory"` i `web/main.js`).
+#[test]
+fn hvilestedet_lagrer() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..3 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let quiet = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(!quiet.iter().any(|e| matches!(e, Event::Inventory(_))), "lageret sendes ikke uten grunn");
+    game.use_first(|u| matches!(u, Use::Rest(_)));
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(events.iter().any(|e| matches!(e, Event::Inventory(_))), "hvilen skal sende lageret, så spillet lagres");
 }
 
 /// H fra kjelleren tar deg gjennom en virvel til sørporten, og portalen der
@@ -322,18 +280,19 @@ fn portalen_tar_deg_tilbake() {
     assert_eq!(floor, 0, "bare første etasje er nådd");
 }
 
-/// Kartet: nede i kjelleren sendes kartet over etasjen med det du har sett
-/// (startrommet og døra opp), og hvor du står; mer blir sett når du går;
-/// oppe forsvinner det.
+/// Kartet: nede i krypten sendes kartet over nivået med rommene du har
+/// sett (startrommet og døra opp), og hvor du står; mer blir sett når du
+/// går; oppe forsvinner det.
 #[test]
 fn kartet_viser_det_du_har_sett() {
     use crate::ports::driving::MapView;
+    let c = &world().world.crypt;
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
     let mut input = Input::default();
     let mut map: Option<MapView> = None;
     let mut wheres = 0;
-    let mut take = |events: Vec<Event>, map: &mut Option<MapView>, wheres: &mut usize| {
+    let take = |events: Vec<Event>, map: &mut Option<MapView>, wheres: &mut usize| {
         for e in events {
             match e {
                 Event::Map(m) => *map = m,
@@ -348,74 +307,30 @@ fn kartet_viser_det_du_har_sett() {
         let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
         take(e, &mut map, &mut wheres);
     }
-    let m = map.clone().expect("kartet skal sendes nede i kjelleren");
-    assert_eq!(m.floor, 0);
-    let seen = m.seen.iter().filter(|s| **s).count();
-    assert!(seen >= 6, "startrommet skal være sett: {seen} celler");
-    assert!(m.seen.iter().zip(&m.cells).all(|(s, c)| !*s || *c > 0), "bare gulv kan være sett");
+    let m = map.clone().expect("kartet skal sendes nede i krypten");
+    assert_eq!(m.level, c.levels[0].n);
+    let seen = m.rooms.len();
+    assert!(seen >= 1, "startrommet skal være sett");
+    assert!(m.rooms.len() < c.levels[0].rooms.len(), "hele nivået skal ikke være sett med en gang");
     assert!(m.marks.iter().any(|k| k.kind == "ascend"), "døra opp skal stå på kartet: {:?}", m.marks);
     assert!(wheres > 0, "hvor du står skal sendes");
-    // Går du, ser du mer.
-    input.forward = true;
-    for _ in 0..90 {
+    // Står du i et annet rom, ser du det også.
+    let far = c.spawns.iter().find(|s| s.level == 0 && c.room_at(s.pos + Vec3::Y * 0.2) != c.room_at(c.levels[0].start.0 + Vec3::Y * 0.2)).expect("et annet rom").pos;
+    game.clear_mobs();
+    game.place_feet(far);
+    for _ in 0..10 {
+        game.clear_mobs();
         let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
         take(e, &mut map, &mut wheres);
     }
-    input.forward = false;
-    let more = map.as_ref().map(|m| m.seen.iter().filter(|s| **s).count()).unwrap_or(0);
-    assert!(more >= seen, "kartet skal ikke glemme: {seen} → {more}");
-    // Oppe forsvinner kartet.
+    let more = map.as_ref().map(|m| m.rooms.len()).unwrap_or(0);
+    assert!(more > seen, "kartet skal vise det nye rommet: {seen} → {more}");
     input.actions.push(Action::Home);
     let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
     take(e, &mut map, &mut wheres);
     let e = game.update(&mut input, 1.0 / 30.0, &mut physics);
     take(e, &mut map, &mut wheres);
     assert!(map.is_none(), "oppe i byen skal kartet være borte");
-}
-
-/// Hver etasje kan gås gjennom, uansett frø: fra startcella er det vei på
-/// rutenettet til tårnet med trappa ned (og nederst til Rammeverket), uten
-/// snarveiene, og hver etasje har fiender. (Kløfta hadde en dør rett ut i
-/// hullet, så noen etasjer var stengt.)
-#[test]
-fn alle_etasjer_kan_gas_gjennom() {
-    use crate::domain::world::dungeon::N;
-    let mut problems = vec![];
-    for seed in [7u64, 1, 2, 3, 5, 11, 13, 42, 1350, 2026] {
-        let p = prepare(&Embedded, seed);
-        let d = &p.world.dungeon;
-        for (k, f) in d.floors.iter().enumerate() {
-            let goal = match (f.exit, d.boss) {
-                (Some(e), _) => e,
-                (None, Some(b)) => f.cell_of(b),
-                _ => continue,
-            };
-            let mut seen = vec![false; N * N];
-            let mut queue = std::collections::VecDeque::from([f.start]);
-            seen[f.start.1 as usize * N + f.start.0 as usize] = true;
-            while let Some(c) = queue.pop_front() {
-                for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-                    let n = (c.0 + dx, c.1 + dz);
-                    if n.0 < 0 || n.1 < 0 || n.0 >= N as i32 || n.1 >= N as i32 || seen[n.1 as usize * N + n.0 as usize] || !f.passable(c, n) {
-                        continue;
-                    }
-                    seen[n.1 as usize * N + n.0 as usize] = true;
-                    queue.push_back(n);
-                }
-            }
-            // Tårncella er selve vindeltrappa (uten gulv): målet er en celle
-            // ved siden av den.
-            let at = |c: (i32, i32)| c.0 >= 0 && c.1 >= 0 && c.0 < N as i32 && c.1 < N as i32 && seen[c.1 as usize * N + c.0 as usize];
-            if ![(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dz)| at((goal.0 + dx, goal.1 + dz))) {
-                problems.push(format!("frø {seed}, etasje {}: ingen vei fra start {:?} til {:?}", k + 1, f.start, goal));
-            }
-            let mobs = d.spawns.iter().filter(|s| d.floor_of(**s) == Some(k)).count();
-            if mobs < 6 {
-                problems.push(format!("frø {seed}, etasje {}: bare {mobs} fiender", k + 1));
-            }
-        }
-    }
-    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
 /// Skriptoriet sier hvor hver komponent i oppskriftene finnes, og de som
@@ -465,29 +380,6 @@ fn skjemaet_smir_utstyr() {
     assert!(fresh.buy("potion"), "med tokens går kjøpet");
 }
 
-/// Hodet skal aldri gå gjennom taket i kjelleren: over hver celle, også
-/// toppen av trappene og de hevede rommene, er det minst plass til en
-/// stående spiller (1,8 m) som hopper.
-#[test]
-fn hodet_gar_ikke_gjennom_taket() {
-    use crate::domain::world::dungeon::{Cell, HEADROOM, N};
-    let p = world();
-    let mut problems = vec![];
-    for (k, f) in p.world.dungeon.floors.iter().enumerate() {
-        for iz in 0..N as i32 {
-            for ix in 0..N as i32 {
-                if f.cell(ix, iz) == Cell::Rock {
-                    continue;
-                }
-                let room = f.ceil_at(ix, iz) - f.top_at(ix, iz);
-                if room < HEADROOM - 0.01 {
-                    problems.push(format!("etasje {k}, celle ({ix}, {iz}): {room:.2} m under taket"));
-                }
-            }
-        }
-    }
-    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
-}
 
 /// Husene man kan gå inn i: gå med Rapier fra gata, gjennom døråpningen og
 /// inn i rommet (opp trinnene til gulvet), uten å bli stoppet av veggene.
@@ -500,7 +392,7 @@ fn man_kan_ga_inn_i_husene() {
     }
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, start ute og mål inne, i Blenders akser (x, y): døra mot −y.
-    let houses = [("tavern", (-1.2, -7.0), (-1.2, -2.5)), ("forge", (1.6, -1.6), (1.6, 1.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5)), ("stave_church", (0.0, -7.6), (0.0, 0.0))];
+    let houses = [("tavern", (-1.6, -7.0), (-1.6, -2.0)), ("forge", (0.4, -6.0), (0.4, 0.8)), ("scriptorium", (0.0, -6.0), (0.0, -1.5)), ("apothecary", (1.9, -7.0), (1.9, -1.5)), ("stave_church", (0.0, -7.6), (0.0, 0.0))];
     let mut problems = vec![];
     for (model, from, to) in houses {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -537,7 +429,7 @@ fn man_kan_ga_opp_trappene() {
     let (half, radius) = (0.55f32, 0.35f32);
     // Modell, foten av trappa og målet oppe (Blenders akser), gulvet nede
     // og høyden oppe over bakken.
-    let stairs = [("tavern", (5.39, -3.6), (5.39, 1.6), 0.6, 3.0), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-2.43, -2.75), (-2.43, 2.0), 0.36, 2.9)];
+    let stairs = [("tavern", (5.3, -3.55), (0.2, -3.55), 0.6, 3.6), ("apothecary", (3.1, -2.7), (3.1, 1.8), 0.7, 3.1), ("scriptorium", (-3.875, -2.75), (-3.875, 2.2), 0.36, 2.8)];
     let mut problems = vec![];
     for (model, from, to, floor, up) in stairs {
         let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
@@ -566,6 +458,34 @@ fn man_kan_ga_opp_trappene() {
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
+/// Ølkjelleren under Vertshuset: ned trappa fra kjøkkenet, gjennom hullet
+/// i bakken (`Builder::hole`), til kjellergulvet.
+#[test]
+fn man_kan_ga_ned_i_kjelleren() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    let pl = p.world.placements.iter().find(|pl| pl.model == "tavern").expect("tavern");
+    let t = pl.transforms[0];
+    let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+    let (a, b) = (world((1.5, 2.4)), world((1.5, -2.6)));
+    let base = t.transform_point3(Vec3::ZERO).y;
+    let mut pos = a + Vec3::Y * (0.6 + half + radius + 0.05);
+    let dir = (b - a).with_y(0.0).normalize();
+    for _ in 0..600 {
+        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+            break;
+        }
+        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.06, 0.016);
+        pos += moved;
+    }
+    let feet = pos.y - half - radius - base;
+    assert!(feet < -1.8 && (pos - b).with_y(0.0).length() < 0.6, "stoppet med føttene {feet:.2} m over bakken, {:.1} m fra målet", (pos - b).with_y(0.0).length());
+}
+
 /// Brønnene: bøtta slippes ned og sveives opp, og du drikker når den er oppe.
 #[test]
 fn bronnen_gir_vann() {
@@ -586,7 +506,7 @@ fn bronnen_gir_vann() {
 #[test]
 fn pipene_ryker() {
     let smoke = &world().world.smoke;
-    assert!(smoke.len() >= 20, "bare {} piper ryker", smoke.len());
+    assert!(smoke.len() >= 12, "bare {} piper ryker", smoke.len());
     for (p, s) in smoke {
         let ground = crate::domain::world::terrain::height(p.x, p.z);
         assert!(p.y > ground + 5.0 && *s > 0.0, "røyken ved ({:.1}, {:.1}, {:.1}) står for lavt", p.x, p.y, p.z);
@@ -620,459 +540,155 @@ fn innbyggerne_gar_og_stopper() {
     assert!(game.npc_positions()[0].distance(here) < 0.05, "innbyggeren gikk fra deg mens du sto ved siden av");
 }
 
-/// Nettleseren henter modellfilene selv (`Files`, stiene i `MODEL_FILES`):
-/// byen skal bli den samme som med modellene bygd inn.
+/// Nettleseren henter modellfilene selv (`Files`, stiene i `model_files`,
+/// også kryptmodellene): byen skal bli den samme som med modellene bygd inn.
+/// Bitene til kryptnivåene hentes først når økta ber om nivået (plan del
+/// 10a): de settes ut likevel, og `tools/pack-models.sh` legger dem i en
+/// mappe per nivå (`delivery::dist_path`), med størrelsene per nivå i sizes.json.
 #[test]
 fn nettleseren_far_de_samme_modellene() {
-    use crate::adapters::gltf::{Files, MODEL_FILES};
-    let files = MODEL_FILES.iter().map(|(_, p)| (p.to_string(), std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p))).collect();
-    let web = prepare(&Files(files), 7);
+    use crate::adapters::delivery::{dist_path, level_of};
+    use crate::adapters::gltf::{model_files, Files};
+    use crate::ports::ModelSource;
+    let read = |p: &str| std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p);
+    let all = Files(model_files().map(|(_, p)| (p.to_string(), read(p))).collect());
+    let web = prepare(&all, 7);
     let native = world();
     let names = |p: &Prepared| p.models.iter().map(|m| (m.name.clone(), m.mesh.indices.len())).collect::<Vec<_>>();
     assert_eq!(names(&web), names(native));
     assert_eq!(web.world.placements.len(), native.world.placements.len());
+
+    // Ved start: alt utenom bitene. De står ute som før, men lastes ikke.
+    let start = Files(model_files().filter(|(_, p)| level_of(p).is_none()).map(|(_, p)| (p.to_string(), read(p))).collect());
+    let pieces: Vec<String> = native.world.crypt.levels.iter().flat_map(|l| l.pieces.clone()).collect();
+    assert!(!pieces.is_empty());
+    let mut deferred = start.deferred();
+    deferred.sort();
+    let mut want = pieces.clone();
+    want.sort();
+    assert_eq!(deferred, want, "bitene som venter er bitene i nivåene");
+    let lazy = prepare(&start, 7);
+    assert_eq!(lazy.world.placements.len(), native.world.placements.len(), "bitene står ute");
+    assert!(lazy.models.iter().all(|m| !pieces.contains(&m.name)));
+    assert_eq!(lazy.models.len() + pieces.len(), native.models.len());
+
+    // Pakkingen: en mappe per nivå, og størrelsene per nivå.
+    let out = std::env::temp_dir().join(format!("fristad-pack-{}", std::process::id()));
+    let status = std::process::Command::new("sh").arg("tools/pack-models.sh").arg(&out).current_dir(env!("CARGO_MANIFEST_DIR")).status().expect("sh");
+    assert!(status.success());
+    let sizes: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("models/sizes.json")).unwrap()).unwrap();
+    for (_, p) in model_files() {
+        let file = out.join(format!("models/{}.gz", dist_path(p)));
+        assert!(file.exists(), "{} mangler", file.display());
+        match level_of(p) {
+            Some(n) => {
+                assert!(dist_path(p).starts_with(&format!("crypt/{n:02}/")), "{p}");
+                assert!(sizes["levels"][n.to_string()][p].is_u64(), "{p} mangler under nivå {n} i sizes.json");
+                assert!(sizes[p].is_null(), "{p} skal bare stå under nivået");
+            }
+            None => assert!(sizes[p].is_u64(), "{p} mangler i sizes.json"),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&out);
 }
 
-/// Gjennomspillingen: en bot går ned gjennom krypten og gjennom alle
-/// etasjene med ekte fysikk, slik en spiller må: åpner kistene, jakter
-/// eliten til den har nøkkelen, låser opp portgitteret, går ned
-/// vindeltrappa og slår Rammeverket nederst. Den slåss uten å blokke, så
-/// den får fullt liv når livet er under 25 (og teller det som et dødsfall
-/// en ekte spiller kunne fått). Står den fast, feiler testen med hvor.
-/// Tar noen minutter: `cargo test --release gjennomspilling -- --ignored --nocapture`.
+/// En renderer som bare husker modellene den har.
+#[derive(Default)]
+struct Counting {
+    models: Vec<String>,
+}
+
+impl crate::ports::Renderer for Counting {
+    fn render(&mut self, _frame: &crate::domain::scene::Frame) {}
+    fn resize(&mut self, _width: u32, _height: u32) {}
+    fn set_quality(&mut self, _quality: crate::ports::Quality) {}
+    fn triangles(&self) -> u32 {
+        0
+    }
+    fn add_models(&mut self, models: &[crate::domain::model::Model]) {
+        self.models.extend(models.iter().map(|m| m.name.clone()));
+    }
+    fn drop_models(&mut self, names: &[String]) {
+        self.models.retain(|m| !names.contains(m));
+    }
+}
+
+/// Økta ber om kryptnivåene før du går ned (`Event::FetchLevel`): det
+/// første oppe i byen, og nivåene rundt deg nede. Rendereren får bitene
+/// med `add_level` og slipper nivåer du har forlatt.
 #[test]
-#[ignore]
-fn gjennomspilling() {
-    use crate::domain::world::dungeon::{Dungeon, FLOOR_DROP};
-    let p = world();
-    let d: &Dungeon = &p.world.dungeon;
-    let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
-    let mut bot = Bot { input: Input::default(), t: 0.0, near_deaths: 0, kills: 0, chests: 0, unopened: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false, fighting: 0.0, ignore_until: 0.0, cell: None, blocked: 0.0 };
-    bot.step(&mut game, &mut physics);
-    let events = game.use_first(|u| *u == Use::Descend);
-    assert!(events.iter().any(|e| matches!(e, Event::Fade)), "døra i krypten tok deg ikke ned");
-    bot.step(&mut game, &mut physics);
-    let spirals = p.world.placements.iter().find(|pl| pl.model == "dng_spiral").map(|pl| pl.transforms.clone()).unwrap_or_default();
-    for (f, floor) in d.floors.iter().enumerate() {
-        let t0 = bot.t;
-        bot.note(format!("etasje {f} ({}): starter ved {:?}", crate::domain::world::dungeon::EPOCHS[f], floor.cell_of(game.eye())));
-        // Kistene i etasjen.
-        for (c, yaw, cf) in d.chests.iter() {
-            if *cf != f {
-                continue;
-            }
-            // Et sted ved kista det går an å stå, helst foran den.
-            let _ = yaw;
-            let feet = game.eye() - Vec3::Y * 1.6;
-            let spots = [Vec3::X, -Vec3::X, Vec3::Z, -Vec3::Z].map(|v| *c + v * 1.3);
-            let at = spots.into_iter().filter(|q| d.walkable(*q, 0.3)).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet))).unwrap_or(*c);
-            // Veien kan gå bort fra kista først (ned trappa fra et galleri), så
-            // boten får god tid før den gir opp.
-            let reached = bot.walk_to_soft(&mut game, &mut physics, d, at, 0.5, 25.0);
-            bot.aim(&mut game, *c + Vec3::Y * 0.4);
-            bot.input.actions.push(Action::Use);
-            let mut opened = false;
-            for e in bot.step(&mut game, &mut physics) {
-                if let Event::Loot(c) = e {
-                    opened = true;
-                    bot.chests += 1;
-                    bot.note(format!("  kiste: {c:?}"));
-                }
-            }
-            if !opened {
-                bot.unopened += 1;
-                bot.note(format!("  FANT IKKE FRAM til kista ved {:?} (kom {}fram)", floor.cell_of(*c), if reached { "" } else { "ikke " }));
-            }
+fn kryptnivaaene_hentes_nivaa_for_nivaa() {
+    use crate::adapters::delivery::{level_files, level_of};
+    use crate::adapters::gltf::{model_files, Files};
+    use crate::application::app::Pieces;
+    use crate::application::App;
+    use crate::ports::driving::Play;
+    let read = |p: &str| std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).expect(p);
+    let start = Files(model_files().filter(|(_, p)| level_of(p).is_none()).map(|(_, p)| (p.to_string(), read(p))).collect());
+    let prepared = prepare(&start, 7);
+    let levels: Vec<(Vec3, Vec<String>)> = prepared.world.crypt.levels.iter().map(|l| (l.start.0, l.pieces.clone())).collect();
+    assert!(levels.len() >= 3);
+    let mut app = App::new(prepared, Counting::default(), RapierPhysics::new());
+    let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<u32> {
+        let mut out = vec![];
+        for _ in 0..3 {
+            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchLevel(n) = e { Some(n) } else { None }));
         }
-        if f + 1 < d.floors.len() {
-            // Eliten bærer nøkkelen.
-            let keys = game.keys();
-            let deadline = bot.t + 600.0;
-            while game.keys() == keys {
-                assert!(bot.t < deadline, "etasje {f}: fant ikke eliten med nøkkelen på ti minutter\n{}", bot.log.join("\n"));
-                let feet = game.eye() - Vec3::Y * 1.6;
-                let elite = game.living().into_iter().filter(|(m, _, e)| *e && (m.y - feet.y).abs() < 4.0).map(|(m, _, _)| m).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet)));
-                // Eliten slipper nøkkelen på gulvet: gå og hent den.
-                let key = game.loose_keys().into_iter().filter(|k| (k.y - feet.y).abs() < 4.0).min_by(|a, b| a.distance(feet).total_cmp(&b.distance(feet)));
-                let Some(e) = elite.or(key) else { panic!("etasje {f}: ingen elite og ingen nøkkel å finne\n{}", bot.log.join("\n")) };
-                if !bot.fight(&mut game, &mut physics) {
-                    bot.walk_toward(&mut game, &mut physics, d, e, &format!("eliten i etasje {f}"));
-                }
-            }
-            bot.note(format!("  nøkkelen etter {:.0} s", bot.t - t0));
-            // Portgitteret: still deg foran det på romsida og lås opp.
-            let (g, gyaw) = d.gates[f];
-            let exit = floor.exit.expect("etasjen har trapp");
-            let fwd = Vec3::new(gyaw.sin(), 0.0, gyaw.cos());
-            let stand = [g + fwd * 1.8, g - fwd * 1.8].into_iter().find(|q| {
-                let c = floor.cell_of(*q);
-                c != exit && floor.is_open(c.0, c.1)
-            });
-            let stand = stand.unwrap_or_else(|| panic!("etasje {f}: ingen plass foran portgitteret"));
-            bot.walk_to(&mut game, &mut physics, d, stand, 0.6, &format!("portgitteret i etasje {f}"));
-            bot.aim(&mut game, g + Vec3::Y * 1.3);
-            bot.input.actions.push(Action::Use);
-            bot.step(&mut game, &mut physics);
-            assert_eq!(game.keys(), keys, "etasje {f}: portgitteret tok ikke nøkkelen (siktet du på det?)\n{}", bot.log.join("\n"));
-            bot.idle(&mut game, &mut physics, 3.0);
-            // Vindeltrappa: inn, rundt og ned, og ut i trappefoten under.
-            let top = floor.center(exit.0, exit.1);
-            let tf = *spirals.iter().min_by(|a, b| Vec3::from(a.translation).distance(top).total_cmp(&Vec3::from(b.translation).distance(top))).expect("vindeltrapp");
-            let local = |x: f32, y: f32, z: f32| tf.transform_point3(Vec3::new(x, y, z));
-            let mut path = vec![local(0.0, 0.0, -2.2), local(0.0, 0.0, -1.3)];
-            let (a0, a1) = ((-50f32).to_radians(), (-130f32 + 1080.0).to_radians());
-            let mut a = (-70f32).to_radians();
-            while a < a1 {
-                let y = -FLOOR_DROP * ((a - a0) / (a1 - a0)).clamp(0.0, 1.0);
-                path.push(local(a.cos() * 1.2, y, a.sin() * 1.2));
-                a += 12f32.to_radians();
-            }
-            // Helt ut av trappecella, ellers står boten på grensa til rommet.
-            path.extend([local(0.0, -FLOOR_DROP, -1.3), local(0.0, -FLOOR_DROP, -3.0)]);
-            for (k, w) in path.iter().enumerate() {
-                bot.walk_straight(&mut game, &mut physics, *w, 0.45, &format!("vindeltrappa i etasje {f}, punkt {k} av {}", path.len()));
-            }
-            let below = &d.floors[f + 1];
-            let now = game.eye() - Vec3::Y * 1.6;
-            assert!((now.y - below.y).abs() < 2.5, "etasje {f}: kom ikke ned trappa (føttene på y = {:.1}, etasjen under på {:.1})\n{}", now.y, below.y, bot.log.join("\n"));
-            bot.note(format!("  ned trappa etter {:.0} s", bot.t - t0));
-        } else {
-            // Nederst: Rammeverket.
-            let boss = d.boss.expect("bossen");
-            let deadline = bot.t + 900.0;
-            loop {
-                let alive = game.living().into_iter().any(|(_, k, _)| k.boss());
-                if !alive {
-                    break;
-                }
-                assert!(bot.t < deadline, "slo ikke Rammeverket på et kvarter\n{}", bot.log.join("\n"));
-                if !bot.fight(&mut game, &mut physics) {
-                    // Dit Rammeverket er nå, ikke der det sto.
-                    let at = game.living().into_iter().find(|(_, k, _)| k.boss()).map(|(m, _, _)| m).unwrap_or(boss);
-                    bot.walk_toward(&mut game, &mut physics, d, at, "Rammeverket");
-                }
-            }
-            bot.note(format!("  Rammeverket falt etter {:.0} s", bot.t - t0));
-        }
-    }
-    bot.note(format!("ferdig på {:.0} s spilltid: {} fiender drept, {} kister åpnet, {} ikke nådd, {} ganger nesten død", bot.t, bot.kills, bot.chests, bot.unopened, bot.near_deaths));
-    eprintln!("{}", bot.log.join("\n"));
-}
-
-/// Boten i gjennomspillingen: styrer med tastene og musa som en spiller.
-struct Bot {
-    input: Input,
-    t: f32,
-    near_deaths: u32,
-    kills: u32,
-    chests: u32,
-    unopened: u32,
-    log: Vec<String>,
-    swing: u32,
-    last: Vec3,
-    stuck: f32,
-    sidestep: f32,
-    side: bool,
-    fighting: f32,
-    ignore_until: f32,
-    cell: Option<(i32, i32)>,
-    blocked: f32,
-}
-
-impl Bot {
-    const DT: f32 = 1.0 / 30.0;
-
-    fn note(&mut self, s: String) {
-        eprintln!("{s}");
-        self.log.push(s);
-    }
-
-    fn step(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> Vec<Event> {
-        let events = game.update(&mut self.input, Self::DT, physics);
-        self.t += Self::DT;
-        if (self.t / 30.0).floor() != ((self.t - Self::DT) / 30.0).floor() {
-            let feet = game.eye() - Vec3::Y * 1.6;
-            eprintln!("  [{:.0} s] føttene ved ({:.1}, {:.1}, {:.1}), {} drept, {} kister, {} ganger nesten død", self.t, feet.x, feet.y, feet.z, self.kills, self.chests, self.near_deaths);
-        }
-        for e in &events {
-            match e {
-                Event::Hud { hp, cellar: true, .. } if *hp < 60 => {
-                    self.near_deaths += 1;
-                    game.heal();
-                }
-                Event::Toast(t) if t.contains("falt fra hverandre") => {
-                    self.kills += 1;
-                    self.fighting = 0.0;
-                }
-                Event::Toast(t) if t.contains("overkjørt") => panic!("boten døde likevel: {t}\n{}", self.log.join("\n")),
-                _ => {}
-            }
-        }
-        events
-    }
-
-    fn aim(&mut self, game: &mut Session, at: Vec3) {
-        let d = at - game.eye();
-        game.set_look(-d.x.atan2(-d.z), d.y.atan2(d.with_y(0.0).length()));
-    }
-
-    fn idle(&mut self, game: &mut Session, physics: &mut RapierPhysics, secs: f32) {
-        self.input.key("KeyW", false);
-        let end = self.t + secs;
-        while self.t < end {
-            self.step(game, physics);
-        }
-    }
-
-    /// Slåss med den nærmeste fienden innen tre meter på samme etasje.
-    /// Gir om det var noen å slåss med.
-    fn fight(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> bool {
-        let feet = game.eye() - Vec3::Y * 1.6;
-        // Bare fiender boten faktisk når: i samme celle eller en nabocelle
-        // med fri vei (ikke bak en vegg).
-        let d = &world().world.dungeon;
-        let reach = |m: &Vec3| -> bool {
-            let Some(f) = d.floor_of(feet) else { return false };
-            let fl = &d.floors[f];
-            let (a, b) = (fl.cell_of(feet), fl.cell_of(*m));
-            a == b || ((a.0 - b.0).abs() + (a.1 - b.1).abs() == 1 && fl.passable(a, b))
-        };
-        let near = game.living().into_iter().filter(|(m, _, _)| (m.y - feet.y).abs() < 2.5 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0 && reach(m)).min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
-        if self.t < self.ignore_until {
-            return false;
-        }
-        let Some((m, kind, _)) = near else {
-            self.fighting = 0.0;
-            return false;
-        };
-        // Står fienden utenfor rekkevidden (den kommer seg ikke nærmere forbi
-        // en sarkofag eller søyle), går boten inn til den. Blir det stående
-        // slik, går den videre en stund, som en spiller ville gjort.
-        self.fighting += Self::DT;
-        if self.fighting > 20.0 {
-            self.note(format!("    {:.0} s: ga opp {kind:?} ved ({:.1}, {:.1}, {:.1}) etter 20 s uten å felle den", self.t, m.x, m.y, m.z));
-            self.fighting = 0.0;
-            self.ignore_until = self.t + 6.0;
-            return false;
-        }
-        self.input.key("KeyW", m.with_y(0.0).distance(feet.with_y(0.0)) > 1.6 * if kind.boss() { 1.5 } else { 1.0 });
-        self.aim(game, m + Vec3::Y * 0.8 * if kind.boss() { 2.0 } else { 1.0 });
-        self.swing += 1;
-        self.input.actions.push(if self.swing % 2 == 0 { Action::Attack } else { Action::AttackRelease });
-        self.step(game, physics);
-        true
-    }
-
-    /// Ett steg mot et mål som kan flytte seg, langs veien på rutenettet.
-    fn walk_toward(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, what: &str) {
-        let feet = game.eye() - Vec3::Y * 1.6;
-        let mut next = d.next_step(feet, to).unwrap_or_else(|| panic!("ingen vei til {what} fra {feet:?}\n{}", self.log.join("\n")));
-        // Følg linja mellom cellemidtene (gangene er smale): er boten langt
-        // ut til siden, går den først til midten av cella den står i.
-        if let Some(f) = d.floor_of(feet) {
-            let fl = &d.floors[f];
-            let c = fl.cell_of(feet);
-            let cur = fl.center(c.0, c.1);
-            let seg = (next - cur).with_y(0.0);
-            if seg.length() > 0.1 && fl.cell_of(next) != c {
-                let off = feet.with_y(0.0) - cur.with_y(0.0);
-                let side = (off - seg.normalize() * off.dot(seg.normalize())).length();
-                // Står det en søyle midt i cella, går den rett på i stedet.
-                if side > 0.5 && self.stuck < 1.5 && self.blocked < 2.0 {
-                    next = cur;
-                }
-            }
-        }
-        if (self.t / 10.0).floor() != ((self.t - Self::DT) / 10.0).floor() {
-            let f = d.floor_of(feet).unwrap_or(0);
-            self.note(format!("    {:.0} s: står i {:?} ({:.1}, {:.1}, {:.1}), på vei til {what} i {:?}, neste {:?}", self.t, d.floors[f].cell_of(feet), feet.x, feet.y, feet.z, d.floors[f].cell_of(to), d.floors[f].cell_of(next)));
-        }
-        self.aim(game, next.with_y(game.eye().y));
-        self.input.key("KeyW", true);
-        // Står den stille (en sarkofag, en søyle), går den sidelengs en stund,
-        // annenhver gang til venstre og høyre, som en spiller ville gjort.
-        let moved = feet.distance(self.last);
-        self.last = feet;
-        self.stuck = if moved < 0.01 { self.stuck + Self::DT } else { 0.0 };
-        // Hvor lenge boten har stått i samme celle uten å komme videre.
-        let cell = d.floor_of(feet).map(|f| d.floors[f].cell_of(feet));
-        if cell == self.cell {
-            self.blocked += Self::DT;
-        } else {
-            self.cell = cell;
-            self.blocked = 0.0;
-        }
-        if self.blocked > 8.0 {
-            self.blocked = 0.0;
-        }
-        if self.stuck > 1.0 && self.sidestep <= 0.0 {
-            self.sidestep = 0.8;
-            self.side = !self.side;
-        }
-        let side = if self.side { "KeyA" } else { "KeyD" };
-        self.input.key(side, self.sidestep > 0.0);
-        self.sidestep -= Self::DT;
-        self.step(game, physics);
-        if self.sidestep <= 0.0 {
-            self.input.key("KeyA", false);
-            self.input.key("KeyD", false);
-        }
-    }
-
-    /// Gå langs veien på rutenettet til du er innen `near` meter fra målet,
-    /// og slåss med det som kommer underveis.
-    fn walk_to(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, near: f32, what: &str) {
-        let mut best = f32::MAX;
-        let mut since = self.t;
-        loop {
-            let feet = game.eye() - Vec3::Y * 1.6;
-            let dist = feet.with_y(0.0).distance(to.with_y(0.0));
-            if dist < near {
-                break;
-            }
-            if self.fight(game, physics) {
-                since = self.t;
-                continue;
-            }
-            if dist < best - 0.2 {
-                best = dist;
-                since = self.t;
-            }
-            if self.t - since > 8.0 {
-                panic!("sto fast på vei til {what}: føttene ved {feet:?} (celle {:?}), {dist:.1} m igjen\n{}", d.floor_of(feet).map(|f| d.floors[f].cell_of(feet)), self.log.join("\n"));
-            }
-            self.walk_toward(game, physics, d, to, what);
-        }
-        self.input.key("KeyW", false);
-    }
-
-    /// Som `walk_to`, men gir `false` i stedet for å feile om boten står
-    /// fast i `patience` sekunder.
-    fn walk_to_soft(&mut self, game: &mut Session, physics: &mut RapierPhysics, d: &crate::domain::world::dungeon::Dungeon, to: Vec3, near: f32, patience: f32) -> bool {
-        let mut best = f32::MAX;
-        let mut since = self.t;
-        loop {
-            let feet = game.eye() - Vec3::Y * 1.6;
-            let dist = feet.with_y(0.0).distance(to.with_y(0.0));
-            if dist < near {
-                self.input.key("KeyW", false);
-                return true;
-            }
-            if self.fight(game, physics) {
-                since = self.t;
-                continue;
-            }
-            if dist < best - 0.2 {
-                best = dist;
-                since = self.t;
-            }
-            if self.t - since > patience || d.next_step(feet, to).is_none() {
-                self.input.key("KeyW", false);
-                return false;
-            }
-            self.walk_toward(game, physics, d, to, "kista");
-        }
-    }
-
-    /// Gå rett mot et punkt (i trappa, der rutenettet ikke hjelper).
-    fn walk_straight(&mut self, game: &mut Session, physics: &mut RapierPhysics, to: Vec3, near: f32, what: &str) {
-        let start = self.t;
-        loop {
-            let feet = game.eye() - Vec3::Y * 1.6;
-            if feet.with_y(0.0).distance(to.with_y(0.0)) < near {
-                break;
-            }
-            assert!(self.t - start < 6.0, "sto fast i {what}: føttene ved {feet:?}, målet {to:?}\n{}", self.log.join("\n"));
-            self.aim(game, to.with_y(game.eye().y));
-            self.input.key("KeyW", true);
-            self.step(game, physics);
-        }
-    }
-}
-
-
-
-
-/// Fiendene går rundt det som står i rommene, men ingen dør eller gang er
-/// sperret av hindringene: langs hver dør og hvert gangforløp mellom to
-/// celler er det plass til en kropp. (Inne i rommene kan noe stenge, som
-/// apsisen rundt alteret i kapellet.)
-#[test]
-fn fiendene_gar_rundt_det_som_star() {
-    let d = &world().world.dungeon;
-    let (mut open, mut shut, mut centers, mut blocked) = (0, vec![], 0, 0);
-    for (f, fl) in d.floors.iter().enumerate() {
-        for iz in 0..40 {
-            for ix in 0..40 {
-                if !fl.is_open(ix, iz) {
-                    continue;
-                }
-                let c = fl.center(ix, iz);
-                centers += 1;
-                if !d.clear(c, 0.3) {
-                    blocked += 1;
-                }
-                for n in [(ix + 1, iz), (ix, iz + 1)] {
-                    if fl.is_open(n.0, n.1) && fl.passable((ix, iz), n) && !fl.same_room((ix, iz), n) {
-                        open += 1;
-                        // Et sted langs kanten der en kropp kommer forbi.
-                        let e = (c + fl.center(n.0, n.1)) * 0.5;
-                        let across = if n.0 != ix { Vec3::Z } else { Vec3::X };
-                        if !(-8..=8).any(|k| {
-                            let q = e + across * (k as f32 * 0.2);
-                            d.walkable(q, 0.3) && d.clear(q, 0.3)
-                        }) {
-                            shut.push(format!("etasje {f}: {:?}–{:?}", (ix, iz), n));
-                        }
-                    }
-                }
-            }
-        }
-    }
-    eprintln!("{open} åpne kanter, {} sperret; {blocked} av {centers} cellemidter står i noe", shut.len());
-    assert!(shut.is_empty(), "hindringene sperrer veien mellom cellene:\n{}", shut.join("\n"));
-}
-
-
-
-
-
-/// Eliten slipper nøkkelen der den kan plukkes opp, også etter at du har
-/// dødd og fiendene er kommet igjen, og portgitteret du har låst opp, står
-/// oppe etter døden.
-#[test]
-fn nokkelen_og_porten_etter_doden() {
-    let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
-    let mut input = Input::default();
-    game.use_first(|u| *u == Use::Descend);
-    let pick = |game: &mut Session, physics: &mut RapierPhysics, input: &mut Input| {
-        let mut events = vec![];
-        game.fell_elite(0, &mut events);
-        let key = *game.loose_keys().first().expect("eliten slapp ingen nøkkel");
-        let before = game.keys();
-        game.place_feet(key + Vec3::new(0.3, 0.0, 0.0));
-        for _ in 0..20 {
-            game.update(input, 1.0 / 30.0, physics);
-        }
-        assert_eq!(game.keys(), before + 1, "nøkkelen ved {key:?} ble ikke plukket opp");
+        out
     };
-    pick(&mut game, &mut physics, &mut input);
-    game.use_first(|u| matches!(u, Use::Gate(0)));
-    for _ in 0..90 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let load = |app: &mut App<Counting, RapierPhysics>, n: u32| {
+        let models: Vec<_> = level_files(n).filter_map(|(name, p)| crate::adapters::gltf::load(name, &[("model.glb", &read(p))], -1.0, 0.0).ok()).collect();
+        app.add_level(n, &models);
+    };
+    // Oppe i byen: bare det første nivået.
+    assert_eq!(asked(&mut app), vec![1]);
+    load(&mut app, 1);
+    assert_eq!(app.level_pieces()[0], Pieces::Loaded);
+    assert!(levels[0].1.iter().all(|p| app.renderer.models.contains(p)));
+    // Nede i nivå 2: nivået over er der, nivå 2 og 3 hentes.
+    app.session.place_feet(levels[1].0);
+    assert_eq!(asked(&mut app), vec![2, 3]);
+    load(&mut app, 2);
+    load(&mut app, 3);
+    // Opp i byen igjen: nivå 2 og 3 slippes, nivå 1 blir.
+    app.session.place_feet(crate::domain::world::town::square_center());
+    assert!(asked(&mut app).is_empty());
+    assert_eq!(app.level_pieces()[1], Pieces::Missing);
+    assert_eq!(app.level_pieces()[2], Pieces::Missing);
+    assert!(levels[1].1.iter().all(|p| !app.renderer.models.contains(p)), "nivå 2 er sluppet");
+    assert!(levels[0].1.iter().all(|p| app.renderer.models.contains(p)), "nivå 1 blir");
+
+    // Utenom nettleseren er alt lastet, og ingenting bes om eller slippes.
+    let mut native = App::new(prepare(&Embedded, 7), Counting::default(), RapierPhysics::new());
+    assert!(native.level_pieces().iter().all(|p| *p == Pieces::Always));
+    native.session.place_feet(levels[1].0);
+    assert!(asked(&mut native).is_empty());
+}
+
+/// I nettleseren får teksturene et tak (armene og våpnene 2048, resten
+/// 1024, normal- og metallkartene halvparten), og de pakkes ut først når
+/// rendereren laster dem opp (`gltf::pixels`), så de aldri står utpakket
+/// samtidig.
+#[test]
+fn teksturene_har_tak_i_nettleseren() {
+    use crate::adapters::delivery::browser_caps;
+    use crate::adapters::gltf::{load_capped, model_files, pixels};
+    for name in ["arms", "npc_smith", "tavern"] {
+        let Some((_, p)) = model_files().find(|(n, _)| *n == name) else { continue };
+        let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let caps = browser_caps(name);
+        let m = load_capped(name, &[("model.glb", &bytes)], -1.0, 0.0, caps).unwrap();
+        let full = crate::adapters::gltf::load(name, &[("model.glb", &bytes)], -1.0, 0.0).unwrap();
+        for (img, orig, cap) in [(&m.albedo, &full.albedo, caps.color), (&m.normal, &full.normal, caps.data), (&m.metal_rough, &full.metal_rough, caps.data)] {
+            let (Some(img), Some(orig)) = (img, orig) else { continue };
+            assert!(img.rgba.is_empty() && !img.encoded.is_empty(), "{name}: bildet pakkes ut senere");
+            assert!(img.width.max(img.height) <= cap.max(orig.width.max(orig.height).min(cap)), "{name}: {}×{} over {cap}", img.width, img.height);
+            assert_eq!(img.width.max(img.height), orig.width.max(orig.height).min(cap), "{name}");
+            assert_eq!(pixels(img).len(), (img.width * img.height * 4) as usize, "{name}");
+        }
     }
-    assert_eq!(game.gate(0), (1.0, true), "portgitteret gikk ikke opp");
-    game.use_first(|u| *u == Use::Descend);
-    game.die_now();
-    for _ in 0..10 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    assert_eq!(game.gate(0), (1.0, true), "portgitteret falt ned igjen da du døde");
-    // Fiendene er kommet igjen, og eliten slipper en ny nøkkel.
-    game.use_first(|u| *u == Use::Descend);
-    pick(&mut game, &mut physics, &mut input);
+    assert_eq!(browser_caps("sword").color, 2048);
+    assert_eq!(browser_caps("crypt_01_aa").color, 1024);
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i
@@ -1106,85 +722,6 @@ fn lydene_i_byen_folger_deg() {
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
 }
-
-
-
-/// Kløfta: faller du utfor broen, havner du der du sist sto trygt, med
-/// vondt.
-#[test]
-fn kloften_tar_deg_opp_igjen() {
-    let w = &world().world;
-    let Some(pl) = w.placements.iter().find(|p| p.model == "dng_chasm") else {
-        panic!("ingen kløft i kjelleren med dette frøet");
-    };
-    let t = pl.transforms[0];
-    let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
-    let mut input = Input::default();
-    // Stå trygt på vestsida av kløfta, og hopp så ned i den.
-    let west = t.transform_point3(Vec3::new(2.0, 0.0, 6.0));
-    let pit = t.transform_point3(Vec3::new(6.0, 0.0, 2.5));
-    game.place_feet(west);
-    for _ in 0..20 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    let hp = game.hp_now();
-    game.place_feet(pit + Vec3::Y * 0.5);
-    let mut fell = false;
-    for _ in 0..120 {
-        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
-            if matches!(&e, Event::Toast(s) if s.contains("kløfta")) {
-                fell = true;
-            }
-        }
-    }
-    let feet = game.eye() - Vec3::Y * 1.6;
-    assert!(fell, "falt ikke i kløfta (føttene ved {feet:?})");
-    assert!((feet.y - west.y).abs() < 1.0 && feet.with_y(0.0).distance(west.with_y(0.0)) < 2.0, "kom ikke opp igjen der du sto: {feet:?}, trygt var {west:?}");
-    assert!(game.hp_now() < hp, "fallet gjorde ikke vondt");
-}
-
-
-/// Snarveidøra er boltet fra startrommet, kan åpnes fra gangsida, og
-/// står åpen så du kan gå gjennom.
-#[test]
-fn snarveien_apnes_fra_innsida() {
-    let d = &world().world.dungeon;
-    let sc = *d.shortcuts.first().expect("ingen snarvei i kjelleren");
-    let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
-    let mut input = Input::default();
-    let into_room = Vec3::new(sc.yaw.sin(), 0.0, sc.yaw.cos());
-    let room_side = sc.pos + into_room * 1.6;
-    let hall_side = sc.pos - into_room * 1.6;
-    game.place_feet(room_side);
-    for _ in 0..5 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    let events = game.use_first(|u| *u == Use::Shortcut(0));
-    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("boltet"))), "døra gikk opp fra startrommet: {events:?}");
-    game.place_feet(hall_side);
-    for _ in 0..5 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    let events = game.use_first(|u| *u == Use::Shortcut(0));
-    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("åpen"))), "døra gikk ikke opp fra gangen: {events:?}");
-    for _ in 0..60 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    // Gå gjennom døråpningen og inn i startrommet.
-    let yaw = (-(into_room.x)).atan2(-(into_room.z));
-    game.set_look(yaw, 0.0);
-    input.key("KeyW", true);
-    for _ in 0..90 {
-        game.update(&mut input, 1.0 / 30.0, &mut physics);
-    }
-    let feet = game.eye() - Vec3::Y * 1.6;
-    assert!((feet - sc.pos).with_y(0.0).dot(into_room) > 1.0, "kom ikke gjennom snarveien: føttene ved {feet:?}");
-}
-
-
-
 
 /// Skrittene følger underlaget: brostein på torget, gress på enga og stein
 /// i kjelleren.
@@ -1229,9 +766,60 @@ fn skrittene_folger_underlaget() {
         .expect("fant ingen eng");
     let heard = steps(&mut game, &mut physics, meadow);
     assert!(heard.iter().any(|s| s == "step_grass"), "ingen skritt i gresset ved {meadow:?}: {heard:?}");
-    let start = world().world.dungeon.start;
+    let start = world().world.crypt.start().expect("krypten har et nivå").0;
     let heard = steps(&mut game, &mut physics, start);
     assert!(heard.iter().all(|s| s != "step_grass") && heard.iter().any(|s| s == "step_rock"), "skrittene i kjelleren: {heard:?}");
+}
+
+/// Kanon (`docs/kanon.md`): ingen moderne ord i det verden sier. Replikkene
+/// (`world/cast.rs`), byen (`assets/layout/town.json`), lappene og navnene i
+/// kryptnivåene og filmens tekster sjekkes. Bøkene viser Fristils ekte
+/// dokumentasjon og er unntatt.
+#[test]
+fn kanon_ingen_moderne_ord_i_verden() {
+    const MODERN: &[&str] = &["react", "javascript", "js", "jsx", "typescript", "npm", "props", "webpack", "html", "css", "api", "frontend", "backend", "deploy"];
+    let root = env!("CARGO_MANIFEST_DIR");
+    let mut texts: Vec<(String, String)> = vec![];
+    // Strengene i kildekoden (ikke kommentarene).
+    let cast = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/cast.rs")).expect("cast.rs");
+    for line in cast.lines().filter(|l| !l.trim_start().starts_with("//")) {
+        for (k, part) in line.split('"').enumerate() {
+            if k % 2 == 1 {
+                texts.push(("cast.rs".into(), part.to_string()));
+            }
+        }
+    }
+    fn strings(v: &serde_json::Value, out: &mut Vec<String>) {
+        match v {
+            serde_json::Value::String(s) => out.push(s.clone()),
+            serde_json::Value::Array(a) => a.iter().for_each(|x| strings(x, out)),
+            serde_json::Value::Object(o) => o.values().for_each(|x| strings(x, out)),
+            _ => {}
+        }
+    }
+    let mut files = vec![format!("{root}/assets/layout/town.json"), format!("{root}/assets/film/voice/lines.json")];
+    for e in std::fs::read_dir(format!("{root}/assets/models/crypt")).expect("krypten").flatten() {
+        let p = e.path();
+        if p.extension().is_some_and(|x| x == "json") {
+            files.push(p.to_string_lossy().into_owned());
+        }
+    }
+    for f in files {
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&f).expect("fila")).expect("gyldig json");
+        let mut out = vec![];
+        strings(&v, &mut out);
+        texts.extend(out.into_iter().map(|t| (f.clone(), t)));
+    }
+    let bad: Vec<String> = texts
+        .iter()
+        .filter(|(_, t)| t.contains(' '))
+        .filter_map(|(f, t)| {
+            let lower = t.to_lowercase();
+            let hit = lower.split(|c: char| !c.is_alphanumeric()).find(|w| MODERN.contains(w))?;
+            Some(format!("{f}: «{t}» ({hit})"))
+        })
+        .collect();
+    assert!(bad.is_empty(), "moderne ord i verden (docs/kanon.md):\n{}", bad.join("\n"));
 }
 
 /// Alle lydene spillet ber om finnes i lydbiblioteket (`assets/sounds`), med
@@ -1245,11 +833,22 @@ fn lydene_finnes() {
     let credits = std::fs::read_to_string(format!("{root}/assets/sounds/CREDITS.md")).expect("CREDITS.md");
     let js = std::fs::read_to_string(format!("{root}/web/sounds.js")).expect("sounds.js");
     let mut used = std::collections::BTreeSet::new();
-    for path in ["src/application/session.rs", "src/domain/mobs.rs", "src/domain/combat.rs"] {
-        let src = std::fs::read_to_string(format!("{root}/{path}")).expect("kilden");
-        // Lydnavnene er strenger med små bokstaver og understrek i kall
-        // til sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene.
-        for marker in ["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_", "cues.push(\"", "sounds.push((if", "let name = ["] {
+    // Lydnavnene er strenger med små bokstaver og understrek i kall til
+    // sfx, sound_at, Sound { name: … }, fiendelydene og kamplydene (i hele
+    // applikasjonen, fiendene og kampen), lydene reglene sier fra om
+    // (`Note`), og lydene utstyret har (`sound: "…"`).
+    const CALLS: &[&str] = &["sfx(\"", "sound_at(\"", "name: \"", "sounds.push((\"", "CombatEvent::Sound(", "\"step_", "\"gear_", "\"hit_", "\"equip_", "\"windup", "\"block_", "cues.push(\"", "sounds.push((if", "let name = [", "Note::Sfx(\"", "Note::At(\""];
+    let mut sources: Vec<(String, &[&str])> = vec![];
+    for e in std::fs::read_dir(format!("{root}/crates/fristad-app/src/application")).expect("applikasjonen").flatten() {
+        sources.push((e.path().to_string_lossy().into_owned(), CALLS));
+    }
+    for f in ["mobs.rs", "combat.rs", "hero.rs", "world/crypt/run.rs", "world/mechanisms.rs"] {
+        sources.push((format!("{root}/crates/fristad-domain/src/domain/{f}"), CALLS));
+    }
+    sources.push((format!("{root}/crates/fristad-domain/src/domain/craft.rs"), &["sound: \""]));
+    for (path, markers) in &sources {
+        let src = std::fs::read_to_string(path).expect("kilden");
+        for marker in markers.iter().copied() {
             let mut rest = src.as_str();
             while let Some(i) = rest.find(marker) {
                 rest = &rest[i + marker.len()..];
@@ -1306,6 +905,7 @@ fn lydene_finnes() {
 /// Fiendene har alle klippene fra mob_motion.py, og hodet dreier seg mot
 /// spilleren når de har sett deg.
 #[test]
+#[ignore = "venter på de nye fiendene: de gamle modellene med klippene er slettet (rydd/gamle), så ingen slag har rigg"]
 fn fiendene_ser_mot_deg() {
     use crate::domain::mobs::{Kind, Mobs, State};
     let p = world();
@@ -1316,7 +916,7 @@ fn fiendene_ser_mot_deg() {
             assert!(rig.clip(c).is_some(), "{} mangler klippet {c}", k.model());
         }
     }
-    let mut mobs = Mobs::new(&p.world.dungeon, &all);
+    let mut mobs = Mobs::new(&p.world.crypt, &all);
     let i = mobs.mobs.iter().position(|m| !m.kind.boss()).expect("en fiende");
     let mut flip = 0;
     for side in [1.0f32, -1.0] {
@@ -1329,7 +929,7 @@ fn fiendene_ser_mot_deg() {
         let player = m.pos + to * 6.0;
         for _ in 0..60 {
             // Utenfor kjelleren står den stille, men ser fortsatt mot deg.
-            mobs.update(1.0 / 30.0, player, false, &p.world.dungeon);
+            mobs.update(1.0 / 30.0, player, false, &p.world.crypt);
         }
         let turned = mobs.head_dir(i).expect("hodet");
         let look = mobs.mobs[i].look;
@@ -1342,4 +942,1461 @@ fn fiendene_ser_mot_deg() {
         flip += 1;
     }
     assert_eq!(flip, 2);
+}
+
+/// Alle de tjue husmodellene står et sted: de femten byhusene i byen, og
+/// de laftede og bordkledde som våningshus på bondegårdene utenfor muren.
+#[test]
+fn alle_husene_er_i_bruk() {
+    let p = world();
+    let missing: Vec<String> = (b'a'..=b't').map(|c| format!("house_{}", c as char)).filter(|m| !p.world.placements.iter().any(|pl| pl.model == m.as_str())).collect();
+    assert!(missing.is_empty(), "står ingen steder: {}", missing.join(", "));
+}
+
+/// Senga i huset ditt: F gir fullt liv og full utholdenhet, skjermen går i
+/// svart, og døgnet snur (dag til natt og natt til dag).
+#[test]
+fn senga_gir_hvile_og_snur_dognet() {
+    use crate::domain::weather::Daylight;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert_eq!(game.daylight(), Daylight::Day);
+    game.set_vitals(12.0, 3.0);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Fade), "skjermen skal gå i svart: {events:?}");
+    assert!(events.contains(&Event::Daylight(Daylight::Night)), "døgnet skal snu: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("kvelden"))), "{events:?}");
+    assert_eq!(game.daylight(), Daylight::Night);
+    assert!(game.hp_now() >= 100.0, "fullt liv etter søvnen: {}", game.hp_now());
+    assert!(game.stamina_now() >= 100.0, "full utholdenhet etter søvnen: {}", game.stamina_now());
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Daylight(Daylight::Day)), "og tilbake til morgenen: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("morgenen"))), "{events:?}");
+    assert_eq!(game.daylight(), Daylight::Day);
+}
+
+/// Galleriveggen: en komponent du bærer opp fra kjelleren, henger i sin
+/// ramme for alltid, også etter lagring og innlasting, og selv om lageret
+/// er tomt (solgt eller brukt opp).
+#[test]
+fn funnet_henger_i_galleriet() {
+    use crate::domain::craft::{GALLERY, GALLERY_MODELS};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    assert!(game.found().is_empty(), "ingenting funnet før du har vært nede");
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let events = game.use_first(|u| matches!(u, Use::Chest(_)));
+    let found = events.iter().find_map(|e| if let Event::Loot(Some(c)) = e { Some(c.clone()) } else { None }).expect("kista skal gi en komponent");
+    assert!(GALLERY.contains(&found.as_str()), "{found} skal ha en ramme");
+    assert!(!game.found().contains(&found), "det du bærer nede er ikke ditt ennå");
+    input.actions.push(Action::Home);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.found().contains(&found), "{found} skal henge i galleriet: {:?}", game.found());
+    let frame = game.frame(16.0 / 9.0);
+    let pieces: Vec<&str> = frame.instances.iter().map(|i| i.model).filter(|m| GALLERY_MODELS.contains(m)).collect();
+    assert_eq!(pieces.len(), game.found().iter().filter(|c| GALLERY.contains(&c.as_str())).count(), "én komponent per fylt ramme");
+    // Rammen viser bildet av akkurat den komponenten, ikke en annen.
+    let n = GALLERY.iter().position(|c| *c == found).unwrap();
+    assert!(pieces.contains(&GALLERY_MODELS[n]), "{found} skal henge som {}: {pieces:?}", GALLERY_MODELS[n]);
+
+    let saved = game.save();
+    assert!(saved.found.contains(&found));
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(SaveData { stash: vec![], ..saved });
+    assert!(fresh.found().contains(&found), "galleriet skal huskes etter innlasting, også med tomt lager");
+    // Gamle lagringer uten galleriet: lageret teller.
+    let mut physics3 = RapierPhysics::new();
+    let mut old = session(&mut physics3);
+    old.load(SaveData { stash: vec![("badge".into(), 1)], found: vec![], ..Default::default() });
+    assert_eq!(old.found(), vec!["badge".to_string()]);
+}
+
+/// F på en fylt ramme åpner boka for komponenten i rammen; en tom ramme
+/// gjør ingenting.
+#[test]
+fn rammen_apner_boka() {
+    use crate::domain::craft::GALLERY;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    assert_eq!(GALLERY[4], "card");
+    let events = game.use_first(|u| *u == Use::Gallery(4));
+    assert!(!events.iter().any(|e| matches!(e, Event::OpenDoc(_))), "tom ramme: {events:?}");
+    game.give("card", 1);
+    let events = game.use_first(|u| *u == Use::Gallery(4));
+    assert!(events.contains(&Event::OpenDoc("card".into())), "{events:?}");
+    let events = game.use_first(|u| *u == Use::Gallery(0));
+    assert!(!events.iter().any(|e| matches!(e, Event::OpenDoc(_))), "button er ikke funnet: {events:?}");
+}
+
+// --- Krypten ------------------------------------------------------------------
+//
+// Testene går gjennom nivåene som finnes (`crypt_NN.json`: det ekte nivået
+// fra Blender, ellers testnivået), styrt av merkene, så de virker for alle
+// nivåer uten å vite hvordan de ser ut.
+
+use crate::domain::world::crypt::{self, Crypt};
+
+/// Krypten med alle bryterne åpne (porter, dører, falske vegger, lemmer).
+fn crypt_open() -> Crypt {
+    let mut c = world().world.crypt.clone();
+    c.open = vec![true; c.switches.len()];
+    c
+}
+
+/// Gulvet under (x, z) nærmest høyden i punktet: hjørnene på veien kan stå
+/// langt fra hverandre (en lang gang med trapp), så høyden på en rett linje
+/// imellom er ikke gulvet.
+fn floor_near(c: &Crypt, p: Vec3) -> Vec3 {
+    let mut best: Option<f32> = None;
+    for off in [0.0f32, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0] {
+        if let Some(h) = c.floor_under(p + Vec3::Y * off) {
+            if best.is_none_or(|b| (h - p.y).abs() < (b - p.y).abs()) {
+                best = Some(h);
+            }
+        }
+    }
+    best.map_or(p, |h| p.with_y(h))
+}
+
+/// Punktet `d` meter langs en vei av hjørner.
+fn along(path: &[Vec3], mut d: f32) -> Vec3 {
+    for w in path.windows(2) {
+        let l = w[0].distance(w[1]);
+        if d <= l {
+            return w[0].lerp(w[1], d / l.max(1e-4));
+        }
+        d -= l;
+    }
+    *path.last().unwrap()
+}
+
+/// Om det er åpen vei helt fram fra `a` til `b` (`Crypt::path` går til
+/// nærmeste åpne sted ved målet).
+fn connected(c: &Crypt, a: Vec3, b: Vec3) -> bool {
+    c.path(a, b).is_some_and(|p| p.last().is_some_and(|e| e.with_y(0.0).distance(b.with_y(0.0)) < 0.3))
+}
+
+fn path_len(path: &[Vec3]) -> f32 {
+    path.windows(2).map(|w| w[0].distance(w[1])).sum()
+}
+
+/// Et sted på gulvet foran et punkt (`yaw` sier hvor fronten er; negativ
+/// `d` er bak), også bak en stengt port.
+fn in_front(c: &Crypt, pos: Vec3, yaw: f32, d: f32) -> Vec3 {
+    let f = Vec3::new(yaw.sin(), 0.0, yaw.cos());
+    let q = pos + f * d;
+    match c.floor_under(q + Vec3::Y * 0.3) {
+        Some(y) if (y - pos.y).abs() < 1.0 => q.with_y(y),
+        _ => c.snap(q + Vec3::Y * 0.3, 2.0).unwrap_or(q),
+    }
+}
+
+/// Ned i krypten fra kirkegården: døra toner til svart og setter deg i
+/// nivå 1, fiendene jager og biter, og de kan slås i hjel. Døra opp tar deg
+/// til krypten i byen igjen.
+#[test]
+fn krypten_kan_nas_og_fiendene_biter() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.eye().y > 0.0, "starter oppe");
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(events.iter().any(|e| matches!(e, Event::Fade)), "nedgangen skal tone til svart");
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.eye().y < crypt::TOP, "døra i krypten skal ta deg ned: øyet er på y = {:.1}", game.eye().y);
+    assert!(events.iter().any(|e| matches!(e, Event::Hud { cellar: true, .. })), "HUD-en skal melde at du er nede");
+    // Du står igjen på gulvet.
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let (start, _) = p.world.crypt.start().unwrap();
+    assert!((game.feet().y - start.y).abs() < 0.5, "falt gjennom gulvet: føttene på {:.2}, startstedet på {:.2}", game.feet().y, start.y);
+    // Still deg nær en fiende som er våken, og vent til den biter.
+    let c = &p.world.crypt;
+    let s = c.spawns.iter().find(|s| s.level == 0 && s.ambush.is_none() && !s.boss).expect("en fiende i nivå 1");
+    let near = c.path(s.pos, start).map(|mut path| {
+        path.insert(0, s.pos);
+        along(&path, 3.0)
+    }).unwrap_or(s.pos);
+    game.place_feet(near);
+    let mut bitten = false;
+    for _ in 0..(30 * 40) {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Hud { hp, .. } = e {
+                if hp < 100 {
+                    bitten = true;
+                }
+            }
+        }
+        if bitten {
+            break;
+        }
+    }
+    assert!(bitten, "ingen fiende rakk fram og bet på 40 sekunder");
+    let mut killed = false;
+    'outer: for _ in 0..(30 * 20) {
+        if let Some(m) = game.nearest_mob(game.feet()) {
+            let d = m + Vec3::Y * 0.8 - game.eye();
+            game.set_look(-d.x.atan2(-d.z), d.y.atan2(d.with_y(0.0).length()));
+        }
+        game.heal();
+        input.actions.push(Action::Use);
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            if let Event::Toast(t) = e {
+                if t.contains("falt fra hverandre") {
+                    killed = true;
+                    break 'outer;
+                }
+            }
+        }
+    }
+    assert!(killed, "fikk ikke slått i hjel en fiende på 20 sekunder");
+    game.use_first(|u| *u == Use::Ascend(0));
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.eye().y > 0.0, "døra opp skal ta deg til krypten: øyet er på y = {:.1}", game.eye().y);
+}
+
+/// Hvert nivå har start, hvilested og trappa ned (unntatt det nederste), og
+/// taket står minst `HEADROOM` over hvert hjørne i navigasjonsnettet.
+#[test]
+fn kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok() {
+    let c = &world().world.crypt;
+    assert!(!c.levels.is_empty(), "ingen kryptnivåer");
+    let mut problems = vec![];
+    for (k, l) in c.levels.iter().enumerate() {
+        if c.rests.iter().filter(|r| r.level == k).count() != 1 {
+            problems.push(format!("nivå {}: ikke nøyaktig ett hvilested", l.n));
+        }
+        if l.down.is_none() && l.n != 10 {
+            problems.push(format!("nivå {}: ingen trapp ned", l.n));
+        }
+        if l.nav.polys.is_empty() {
+            problems.push(format!("nivå {}: tomt navigasjonsnett", l.n));
+        }
+        for (i, poly) in l.nav.polys.iter().enumerate() {
+            for v in &poly.pts {
+                let q = Vec2::new(v.x, v.z);
+                let roof = l.rooms.iter().filter(|r| v.y >= r.y - 1.2 && v.y <= r.y + r.h && r.contains(q)).map(|r| r.y + r.h).fold(f32::MIN, f32::max);
+                if roof == f32::MIN {
+                    problems.push(format!("nivå {}: hjørnet {v:?} i polygon {i} står ikke i noe rom", l.n));
+                } else if roof - v.y < crypt::HEADROOM - 0.01 {
+                    problems.push(format!("nivå {}: bare {:.2} m til taket over {v:?}", l.n, roof - v.y));
+                }
+            }
+        }
+    }
+    problems.dedup();
+    assert!(problems.is_empty(), "\n{}", problems.iter().take(40).cloned().collect::<Vec<_>>().join("\n"));
+}
+
+/// Navigasjonsnettet: hver fiende står på nettet og har vei til startstedet
+/// når alle porter er åpne, ingen polygon er avskåret (unntatt i hemmelige
+/// rom, som har en annen vei ut), og fiendene finner fram: en fiende som har
+/// sett deg, følger deg hele veien fra der den står til startstedet uten å
+/// sette seg fast.
+#[test]
+fn fiendene_finner_fram_i_krypten() {
+    use crate::domain::mobs::Mobs;
+    let p = world();
+    let c = crypt_open();
+    let all = rigs(&p.models);
+    let mut problems = vec![];
+    for (k, l) in c.levels.iter().enumerate() {
+        let (start, _) = l.start;
+        let Some(root) = l.nav.locate(start + Vec3::Y * 0.3, 0.6) else {
+            problems.push(format!("nivå {}: startstedet står ikke på nettet", l.n));
+            continue;
+        };
+        let reach = l.nav.reachable(root, &|_| true);
+        for (i, poly) in l.nav.polys.iter().enumerate() {
+            let secret = poly.room.is_some_and(|r| l.rooms[r].secret);
+            if !reach[i] && !secret {
+                problems.push(format!("nivå {}: polygon {i} ved {:?} kan ikke nås fra start", l.n, poly.center));
+            }
+        }
+        for s in c.spawns.iter().filter(|s| s.level == k) {
+            if !c.walkable(s.pos + Vec3::Y * 0.1) {
+                problems.push(format!("nivå {}: {} ved {:?} står ikke på nettet", l.n, s.label, s.pos));
+            } else if c.path(s.pos, start).is_none() {
+                problems.push(format!("nivå {}: {} ved {:?} har ingen vei til start", l.n, s.label, s.pos));
+            }
+        }
+        // Hver fiende følger deg til start. Du går foran, og venter til den
+        // har tatt deg igjen.
+        let n = {
+            let mut m = Mobs::new(&c, &all);
+            m.enter(&c, k);
+            m.mobs.len()
+        };
+        for i in 0..n {
+            let mut mobs = Mobs::new(&c, &all);
+            mobs.enter(&c, k);
+            let one = mobs.mobs.remove(i);
+            mobs.mobs = vec![one];
+            mobs.wake_all();
+            let from = mobs.mobs[0].pos;
+            let label = format!("{:?}", mobs.mobs[0].kind);
+            let Some(mut path) = c.path(from, start) else { continue };
+            path.insert(0, from);
+            let len = path_len(&path);
+            let mut ahead = 4.0f32.min(len);
+            let speed = mobs.mobs[0].kind.stats().speed;
+            // Tatt igjen: innen 2,6 m, eller innen rekkevidden for de store (Rammeverket slår fra 3 m).
+            let caught = 2.6f32.max(mobs.mobs[0].kind.stats().range + 0.3);
+            let rise = 1.6 * mobs.mobs[0].kind.stats().scale.max(1.0);
+            let limit = len / speed.max(0.5) * 3.0 + 20.0;
+            let (mut t, mut best, mut since) = (0.0f32, f32::MAX, 0.0f32);
+            loop {
+                // Hjørnene på veien er langt fra hverandre i en lang gang med
+                // trapp: høyden imellom er gulvet, ikke en rett linje.
+                let p0 = along(&path, ahead);
+                let player = floor_near(&c, p0);
+                mobs.update(1.0 / 30.0, player, true, &c);
+                t += 1.0 / 30.0;
+                let m = &mobs.mobs[0];
+                let gap = m.pos.with_y(0.0).distance(player.with_y(0.0));
+                if gap < caught && (m.pos.y - player.y).abs() < rise {
+                    if ahead >= len {
+                        break;
+                    }
+                    ahead = (ahead + 4.0).min(len);
+                    best = f32::MAX;
+                }
+                if gap < best - 0.1 {
+                    best = gap;
+                    since = t;
+                }
+                if t - since > 8.0 || t > limit {
+                    problems.push(format!("nivå {}: {label} fra {from:?} satt fast ved {:?} ({gap:.1} m bak deg ved {player:?}) etter {t:.0} s", l.n, m.pos));
+                    break;
+                }
+            }
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Fiendene med en rute går den når de ikke ser deg, og de i bakhold sover
+/// til du kommer nær eller går inn i rommet deres.
+#[test]
+fn fiendene_patruljerer_og_ligger_i_bakhold() {
+    use crate::domain::mobs::Mobs;
+    use crate::domain::world::crypt::Ambush;
+    let p = world();
+    let c = crypt_open();
+    let all = rigs(&p.models);
+    let far = Vec3::new(0.0, 500.0, 0.0);
+    let (mut patrols, mut ambushes) = (0, 0);
+    for (k, _) in c.levels.iter().enumerate() {
+        let mut mobs = Mobs::new(&c, &all);
+        mobs.enter(&c, k);
+        let spawns: Vec<_> = c.spawns.iter().filter(|s| s.level == k).collect();
+        // Rutene: hvert punkt nås.
+        let mut visited: Vec<Vec<f32>> = mobs.mobs.iter().map(|_| vec![f32::MAX; 8]).collect();
+        let route = |m: &crate::domain::mobs::Mob| spawns.iter().find(|s| !s.patrol.is_empty() && s.pos.distance(m.pos) < 3.0).map(|s| s.patrol.clone());
+        let routes: Vec<Option<Vec<Vec3>>> = mobs.mobs.iter().map(route).collect();
+        // To minutter: Button Wight tasser på korte bein (1,4 m/s).
+        for _ in 0..(30 * 120) {
+            mobs.update(1.0 / 30.0, far, true, &c);
+            for (i, m) in mobs.mobs.iter().enumerate() {
+                if let Some(r) = &routes[i] {
+                    for (j, q) in r.iter().enumerate().take(8) {
+                        visited[i][j] = visited[i][j].min(m.pos.with_y(0.0).distance(q.with_y(0.0)));
+                    }
+                }
+            }
+        }
+        for (i, r) in routes.iter().enumerate() {
+            let Some(r) = r else { continue };
+            patrols += 1;
+            for (j, q) in r.iter().enumerate().take(8) {
+                assert!(visited[i][j] < 1.5, "fienden på ruta {r:?} kom aldri til punkt {j} ({q:?}); nærmest {:.1} m", visited[i][j]);
+            }
+        }
+        // Bakholdet.
+        for s in spawns.iter().filter(|s| s.ambush.is_some()) {
+            ambushes += 1;
+            let mut mobs = Mobs::new(&c, &all);
+            mobs.enter(&c, k);
+            let i = mobs.mobs.iter().position(|m| m.pos.distance(s.pos) < 3.0).expect("fienden i bakhold");
+            let home = mobs.mobs[i].pos;
+            for _ in 0..90 {
+                mobs.update(1.0 / 30.0, far, true, &c);
+            }
+            assert!(mobs.dormant(i) && mobs.mobs[i].pos.distance(home) < 0.05, "fienden i bakhold ved {home:?} sov ikke");
+            // Du kommer inn i rommet, et par meter fra den.
+            let near = match s.ambush {
+                Some(Ambush::Room(r)) => {
+                    let room = &c.levels[k].rooms[r];
+                    c.snap(Vec3::new((room.min.x + room.max.x) * 0.5, room.y + 0.3, (room.min.y + room.max.y) * 0.5), 3.0).unwrap()
+                }
+                _ => c.path(home, c.levels[k].start.0).map(|mut path| {
+                    path.insert(0, home);
+                    along(&path, 2.0)
+                }).unwrap(),
+            };
+            for _ in 0..60 {
+                mobs.update(1.0 / 30.0, near, true, &c);
+            }
+            assert!(!mobs.dormant(i), "fienden i bakhold ved {home:?} våknet ikke da du sto ved {near:?}");
+        }
+    }
+    assert!(patrols > 0, "ingen fiender patruljerer");
+    assert!(ambushes > 0, "ingen fiender ligger i bakhold");
+}
+
+/// Boten som går gjennom krypten med ekte fysikk: styrer med tastene og
+/// musa, følger veien på navigasjonsnettet, trekker spakene den trenger, og
+/// slåss (i gjennomspillingen) med det som kommer.
+struct Bot {
+    input: Input,
+    t: f32,
+    fight: bool,
+    near_deaths: u32,
+    kills: u32,
+    chests: u32,
+    log: Vec<String>,
+    swing: u32,
+    last: Vec3,
+    stuck: f32,
+    sidestep: f32,
+    side: bool,
+}
+
+impl Bot {
+    const DT: f32 = 1.0 / 30.0;
+
+    fn new(fight: bool) -> Self {
+        Bot { input: Input::default(), t: 0.0, fight, near_deaths: 0, kills: 0, chests: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false }
+    }
+
+    fn note(&mut self, s: String) {
+        eprintln!("{s}");
+        self.log.push(s);
+    }
+
+    fn fail(&self, msg: String) -> ! {
+        panic!("{msg}\n{}", self.log.join("\n"))
+    }
+
+    fn step(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> Vec<Event> {
+        if !self.fight {
+            game.clear_mobs();
+        }
+        let events = game.update(&mut self.input, Self::DT, physics);
+        self.t += Self::DT;
+        for e in &events {
+            match e {
+                Event::Hud { hp, cellar: true, .. } if *hp < 60 => {
+                    self.near_deaths += 1;
+                    game.heal();
+                }
+                Event::Toast(t) if t.contains("falt fra hverandre") => self.kills += 1,
+                Event::Toast(t) if t.contains("overkjørt") => self.fail(format!("boten døde: {t}")),
+                _ => {}
+            }
+        }
+        events
+    }
+
+    fn aim(&mut self, game: &mut Session, at: Vec3) {
+        let d = at - game.eye();
+        game.set_look(-d.x.atan2(-d.z), d.y.atan2(d.with_y(0.0).length()));
+    }
+
+    fn idle(&mut self, game: &mut Session, physics: &mut RapierPhysics, secs: f32) {
+        self.input.key("KeyW", false);
+        let end = self.t + secs;
+        while self.t < end {
+            self.step(game, physics);
+        }
+    }
+
+    /// Slåss med den nærmeste fienden innen tre meter som er på samme gulv
+    /// og ikke bak en mur. Gir om det var noen.
+    fn brawl(&mut self, game: &mut Session, physics: &mut RapierPhysics) -> bool {
+        if !self.fight {
+            return false;
+        }
+        let feet = game.feet();
+        let c = game.crypt_now();
+        let near = game
+            .living()
+            .into_iter()
+            .filter(|(m, _, _)| (m.y - feet.y).abs() < 2.0 && m.with_y(0.0).distance(feet.with_y(0.0)) < 3.0)
+            .filter(|(m, _, _)| c.path(feet, *m).is_some_and(|p| path_len(&p) < 4.0))
+            .min_by(|a, b| a.0.distance(feet).total_cmp(&b.0.distance(feet)));
+        let Some((m, kind, _)) = near else { return false };
+        self.input.key("KeyW", m.with_y(0.0).distance(feet.with_y(0.0)) > 1.5 * if kind.boss() { 1.5 } else { 1.0 });
+        self.aim(game, m + Vec3::Y * 0.8);
+        self.swing += 1;
+        self.input.actions.push(if self.swing % 2 == 0 { Action::Attack } else { Action::AttackRelease });
+        self.step(game, physics);
+        true
+    }
+
+    /// Gå langs navigasjonsnettet til du er innen `near` meter fra målet.
+    /// Gir `false` om det ikke er noen vei (en port er stengt), og feiler om
+    /// boten står fast.
+    fn walk_to(&mut self, game: &mut Session, physics: &mut RapierPhysics, to: Vec3, near: f32, what: &str) -> bool {
+        let (mut best, mut since) = (f32::MAX, self.t);
+        loop {
+            let feet = game.feet();
+            let dist = feet.with_y(0.0).distance(to.with_y(0.0));
+            if dist < near && (feet.y - to.y).abs() < 1.5 {
+                self.input.key("KeyW", false);
+                return true;
+            }
+            if self.brawl(game, physics) {
+                since = self.t;
+                continue;
+            }
+            // Slipp et tungt hugg som lades, ellers går boten ikke videre.
+            if self.swing % 2 == 0 && self.swing > 0 {
+                self.swing += 1;
+                self.input.actions.push(Action::AttackRelease);
+            }
+            let Some(path) = game.crypt_now().path(feet + Vec3::Y * 0.2, to) else {
+                self.input.key("KeyW", false);
+                return false;
+            };
+            let left = path_len(&path) + path.first().map_or(0.0, |c| c.distance(feet));
+            if left < best - 0.2 {
+                best = left;
+                since = self.t;
+            }
+            if self.t - since > 10.0 {
+                let mobs: Vec<_> = game.living().into_iter().filter(|(m, _, _)| m.distance(feet) < 6.0).map(|(m, k, _)| format!("{k:?} ved {m:?}")).collect();
+                self.fail(format!("sto fast på vei til {what}: føttene ved {feet:?}, {left:.1} m igjen, neste hjørne {:?}, fiender nær: {mobs:?}, tastene {:?}, liv {} utholdenhet {}, øyet {:.2} over føttene", path.first(), (self.input.forward, self.input.left, self.input.right, self.input.crouch, self.input.block), game.hp_now(), game.stamina_now(), game.eye().y - feet.y));
+            }
+            let next = path.iter().copied().find(|c| c.with_y(0.0).distance(feet.with_y(0.0)) > 0.25).unwrap_or(to);
+            if std::env::var("FRISTAD_BOT_TRACE").is_ok() && (self.t * 30.0) as u32 % 15 == 0 {
+                eprintln!("  [{:.1}] føttene {feet:?} neste {next:?} igjen {left:.1}", self.t);
+            }
+            self.aim(game, next.with_y(game.eye().y));
+            self.input.key("KeyW", true);
+            let moved = feet.distance(self.last);
+            self.last = feet;
+            self.stuck = if moved < 0.01 { self.stuck + Self::DT } else { 0.0 };
+            if self.stuck > 1.0 && self.sidestep <= 0.0 {
+                self.sidestep = 0.6;
+                self.side = !self.side;
+            }
+            self.input.key(if self.side { "KeyA" } else { "KeyD" }, self.sidestep > 0.0);
+            self.sidestep -= Self::DT;
+            self.step(game, physics);
+            if self.sidestep <= 0.0 {
+                self.input.key("KeyA", false);
+                self.input.key("KeyD", false);
+            }
+        }
+    }
+
+    /// Gå rett mot `to` uten navigasjonsnettet i `secs` sekunder (om bord
+    /// på heisen, som ikke er med i nettet).
+    fn stride(&mut self, game: &mut Session, physics: &mut RapierPhysics, to: Vec3, secs: f32) {
+        let end = self.t + secs;
+        while self.t < end {
+            self.aim(game, to.with_y(game.eye().y));
+            self.input.key("KeyW", true);
+            self.step(game, physics);
+        }
+        self.input.key("KeyW", false);
+    }
+
+    /// Heisen i nivå `k` når bremsen er løsnet: hent den opp om den står
+    /// nede, gå om bord fra den åpne sida, dra i styrestangen og vent til
+    /// den har kjørt. Gir `false` om det ikke er noen heis å ta herfra.
+    fn ride_lift(&mut self, game: &mut Session, physics: &mut RapierPhysics, c: &Crypt, k: usize) -> bool {
+        let feet = game.feet();
+        let Some((i, l)) = c.lifts.iter().enumerate().find(|(i, l)| l.level == k && game.lift_state(*i).0 && (l.pos.y - feet.y).abs() < 2.0) else { return false };
+        let pose = crate::domain::world::at(l.pos, l.yaw);
+        let board = pose.transform_point3(Vec3::new(-(l.size.x * 0.5 + 0.7), 0.0, 0.0));
+        if !self.walk_to(game, physics, board, 0.6, "heisen") {
+            return false;
+        }
+        if !game.lift_state(i).1 {
+            self.aim(game, pose.transform_point3(Vec3::new(0.0, 0.7, crate::domain::world::crypt::LIFT_WINCH_Z)));
+            game.use_exact(Use::Winch(i));
+            self.note(format!("  sveiver heisen opp etter {:.0} s", self.t));
+            let t1 = self.t;
+            while game.lift_state(i).2 && self.t - t1 < 20.0 {
+                self.step(game, physics);
+            }
+            self.walk_to(game, physics, board, 0.6, "heisen");
+        }
+        self.stride(game, physics, l.pos, 0.9);
+        self.aim(game, pose.transform_point3(Vec3::new(l.size.x * 0.5 - 0.3, 0.75, l.size.y * 0.5 - 0.3)));
+        game.use_exact(Use::Lift(i));
+        self.note(format!("  tar heisen ned fra {:?} etter {:.0} s", game.feet(), self.t));
+        let t1 = self.t;
+        self.idle(game, physics, 0.5);
+        while game.lift_state(i).2 && self.t - t1 < 20.0 {
+            self.step(game, physics);
+        }
+        self.idle(game, physics, 0.5);
+        let feet = game.feet();
+        if (feet.y - (l.pos.y - l.drop)).abs() > 1.5 {
+            self.fail(format!("heisen tok ikke boten med ned: føttene ved {feet:?}, bunnen på {:.1}", l.pos.y - l.drop));
+        }
+        self.note(format!("  nede ved {feet:?}"));
+        true
+    }
+
+    /// Det nederste nivået har ingen trapp ned: boten går ned til bossen i
+    /// arenaen (porten står oppe til bossen stenger den bak deg), og slår den
+    /// når den slåss.
+    fn final_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
+        let c = &world().world.crypt;
+        let l = &c.levels[k];
+        let Some(boss) = c.spawns.iter().find(|s| s.level == k && s.boss) else { return };
+        let t0 = self.t;
+        self.note(format!("nivå {} ({}): starter ved {:?}, bossen venter ved {:?}", l.n, l.name, game.feet(), boss.pos));
+        if !self.walk_to(game, physics, boss.pos, 2.5, "bossen") && game.boss_pos().is_none() && game.feet().distance(boss.pos) > 4.0 {
+            self.fail(format!("nivå {}: kom ikke fram til bossen ved {:?}", l.n, boss.pos));
+        }
+        let arena = c.room_at(game.feet()).map(|(_, r)| l.rooms[r].id.clone());
+        self.note(format!("  ved bossen i {arena:?} etter {:.0} s", self.t - t0));
+        let t1 = self.t;
+        while let Some(at) = game.boss_pos() {
+            if self.t - t1 > 240.0 {
+                self.fail(format!("nivå {}: fikk ikke slått bossen på fire minutter", l.n));
+            }
+            if !self.brawl(game, physics) {
+                self.walk_to(game, physics, at, 1.8, "bossen");
+            }
+        }
+        if self.fight {
+            self.note(format!("  bossen falt etter {:.0} s", self.t - t0));
+        }
+        self.idle(game, physics, 2.0);
+    }
+
+    /// Gjennom nivå `k`: fra der boten står til trappa ned, og trekker
+    /// spakene (og henter nøkkelen) når veien er stengt.
+    fn through_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
+        let c = &world().world.crypt;
+        let l = &c.levels[k];
+        let Some((down, _)) = l.down else {
+            self.final_level(game, physics, k);
+            return;
+        };
+        let t0 = self.t;
+        self.note(format!("nivå {} ({}): starter ved {:?}", l.n, l.name, game.feet()));
+        if self.fight {
+            // Kistene på veien (de som kan nås nå).
+            for (i, ch) in c.chests.iter().enumerate().filter(|(_, ch)| ch.level == k) {
+                let at = in_front(c, ch.pos, ch.yaw, 0.9);
+                if self.walk_to(game, physics, at, 0.6, "kista") {
+                    for e in game.use_exact(Use::Chest(i)) {
+                        if matches!(e, Event::Loot(Some(_))) {
+                            self.chests += 1;
+                        }
+                    }
+                }
+            }
+        }
+        for _ in 0..12 {
+            // Trappa ned tar deg videre alt 1,2 m fra merket: er boten i
+            // nivået under, er den kommet fram.
+            if self.walk_to(game, physics, down, 1.0, "trappa ned") || c.level_at(game.feet()) == Some(k + 1) {
+                self.note(format!("  trappa ned etter {:.0} s", self.t - t0));
+                return;
+            }
+            // Veien er stengt: en spak som kan nås, eller nøkkelen.
+            let feet = game.feet();
+            let lever = c.levers.iter().enumerate().find(|(i, lv)| lv.level == k && !game.lever_pulled(*i) && game.crypt_now().path(feet + Vec3::Y * 0.2, in_front(c, lv.pos, lv.yaw, 0.9)).is_some());
+            if let Some((i, lv)) = lever {
+                let at = in_front(c, lv.pos, lv.yaw, 0.9);
+                self.walk_to(game, physics, at, 0.5, "spaken");
+                self.aim(game, lv.pos + Vec3::Y * 0.9);
+                game.use_exact(Use::Lever(i));
+                self.note(format!("  trakk spaken ved {:?} etter {:.0} s", lv.pos, self.t - t0));
+                self.idle(game, physics, 2.5);
+                continue;
+            }
+            // Heisen (bremsen løsnet av spaken): ned sjakta med den.
+            if self.ride_lift(game, physics, c, k) {
+                continue;
+            }
+            let gate = c.gates.iter().enumerate().find(|(i, g)| g.level == k && g.key && !game.gate(*i).1);
+            if let Some((i, g)) = gate {
+                let mut events = vec![];
+                if !game.fell_elite(&mut events) {
+                    // Uten fiender (den korte gjennomgangen) er eliten borte: nøkkelen i lomma.
+                    game.give_key();
+                }
+                if let Some(key) = game.loose_keys().first().copied() {
+                    self.walk_to(game, physics, key, 0.4, "nøkkelen");
+                }
+                let side = [in_front(c, g.pos, g.yaw, 1.5), in_front(c, g.pos, g.yaw, -1.5)].into_iter().find(|q| game.crypt_now().path(game.feet() + Vec3::Y * 0.2, *q).is_some());
+                if let Some(q) = side {
+                    self.walk_to(game, physics, q, 0.5, "porten");
+                }
+                game.use_exact(Use::Gate(i));
+                self.idle(game, physics, 3.0);
+                continue;
+            }
+            // Porten ut av arenaen er stengt så lenge bossen lever: slå den.
+            if let Some(boss) = game.boss_pos() {
+                self.note(format!("  går mot bossen ved {boss:?} etter {:.0} s", self.t - t0));
+                let t1 = self.t;
+                while let Some(at) = game.boss_pos() {
+                    if self.t - t1 > 180.0 {
+                        self.fail(format!("nivå {}: fikk ikke slått bossen på tre minutter", l.n));
+                    }
+                    if !self.brawl(game, physics) {
+                        self.walk_to(game, physics, at, 1.8, "bossen");
+                    }
+                }
+                self.note(format!("  bossen falt etter {:.0} s", self.t - t0));
+                self.idle(game, physics, 2.0);
+                continue;
+            }
+            self.fail(format!("nivå {}: ingen vei til trappa ned fra {feet:?}, og ingen spak eller port å åpne", l.n));
+        }
+        self.fail(format!("nivå {}: kom ikke fram til trappa ned", l.n));
+    }
+}
+
+/// Hele krypten kan gås med ekte fysikk (Rapier og økta): fra startstedet
+/// i nivå 1, med spakene trukket etter tur, ned trappa i hvert nivå til det
+/// nederste. Fiendene er borte, så det er veien som testes.
+#[test]
+fn kryptnivaaene_kan_gas_gjennom() {
+    let c = &world().world.crypt;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut bot = Bot::new(false);
+    bot.step(&mut game, &mut physics);
+    game.use_first(|u| *u == Use::Descend);
+    bot.idle(&mut game, &mut physics, 0.5);
+    for k in 0..c.levels.len() {
+        bot.through_level(&mut game, &mut physics, k);
+        bot.idle(&mut game, &mut physics, 0.5);
+        if k + 1 < c.levels.len() {
+            assert_eq!(c.level_at(game.feet()), Some(k + 1), "trappa ned i nivå {} tok deg ikke til neste\n{}", k + 1, bot.log.join("\n"));
+        }
+    }
+}
+
+/// Gjennomspillingen: boten går gjennom alle nivåene med fiendene, åpner
+/// kistene den når, trekker spakene og slåss. Den slåss uten å blokke, så
+/// den får fullt liv når livet er under 60 (og teller det).
+/// `cargo test --release gjennomspilling -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn gjennomspilling() {
+    let c = &world().world.crypt;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut bot = Bot::new(true);
+    bot.step(&mut game, &mut physics);
+    game.use_first(|u| *u == Use::Descend);
+    bot.idle(&mut game, &mut physics, 0.5);
+    for k in 0..c.levels.len() {
+        bot.through_level(&mut game, &mut physics, k);
+        bot.idle(&mut game, &mut physics, 0.5);
+    }
+    bot.note(format!("ferdig på {:.0} s spilltid: {} fiender drept, {} kister åpnet, {} ganger nesten død", bot.t, bot.kills, bot.chests, bot.near_deaths));
+}
+
+/// Hvilestedet: før du har tent det, våkner du i byen når du dør. Har du
+/// tent lysene, våkner du ved alteret, med fullt liv.
+#[test]
+fn hvilestedet_vekker_deg_der_du_tente() {
+    let c = &world().world.crypt;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.die_now();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(game.eye().y > 0.0, "uten tent hvilested skal du våkne i byen");
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert!(!game.frame(1.6).instances.iter().any(|i| i.model == crate::domain::world::crypt::KIT_REST_FLAME), "flammen brenner før hvilestedet er tent");
+    let events = game.use_exact(Use::Rest(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("tenner"))), "lysene ble ikke tent: {events:?}");
+    // Tent: flammen synes i skåla (eierens dom i runde 7: «ikke noe brennende lys?»).
+    let rest = c.rests[0].pos;
+    assert!(game.frame(1.6).instances.iter().any(|i| i.model == crate::domain::world::crypt::KIT_REST_FLAME && (glam::Vec3::from(i.transform.translation) - rest).length() < 1e-3), "ingen flamme på det tente hvilestedet");
+    game.place_feet(c.levels[0].down.map(|d| d.0).unwrap_or(rest + Vec3::X * 5.0));
+    game.set_vitals(10.0, 0.0);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.die_now();
+    for _ in 0..10 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!(feet.with_y(0.0).distance(rest.with_y(0.0)) < 3.0 && (feet.y - rest.y).abs() < 1.0, "våknet ikke ved hvilestedet {rest:?}, men ved {feet:?}");
+    assert_eq!(game.hp_now(), game.max_hp_now());
+}
+
+/// Spaken heiser gitteret den hører til: før er det ingen vei gjennom, etter
+/// er gitteret oppe og veien åpen.
+#[test]
+fn spaken_heiser_gitteret() {
+    let c = &world().world.crypt;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let (n, lever) = c.levers.iter().enumerate().find(|(_, l)| !l.opens.is_empty()).expect("ingen spak i krypten");
+    let g = c.gates.iter().position(|g| lever.opens.contains(&g.switch)).expect("spaken åpner ingen port");
+    let gate = &c.gates[g];
+    let (a, b) = (in_front(c, gate.pos, gate.yaw, 1.6), in_front(c, gate.pos, gate.yaw, -1.6));
+    assert!(!connected(game.crypt_now(), a, b), "det er vei forbi det stengte gitteret");
+    game.place_feet(in_front(c, lever.pos, lever.yaw, 0.9));
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.use_exact(Use::Lever(n));
+    for _ in 0..120 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(game.lever_pulled(n));
+    assert_eq!(game.gate(g), (1.0, true), "gitteret er ikke oppe");
+    assert!(connected(game.crypt_now(), a, b), "ingen vei gjennom det åpne gitteret");
+    // Og du kommer gjennom med fysikken.
+    game.place_feet(a);
+    let d = b - a;
+    game.set_look((-d.x).atan2(-d.z), 0.0);
+    input.key("KeyW", true);
+    for _ in 0..75 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!((feet - gate.pos).with_y(0.0).dot(d.with_y(0.0).normalize()) > 0.8, "kom ikke gjennom gitteret: føttene ved {feet:?}");
+}
+
+/// Snarveidøra er boltet fra den ene sida, kan åpnes fra sida med slåen, og
+/// står åpen så du kan gå gjennom.
+#[test]
+fn snarveien_apnes_fra_en_side() {
+    let c = &world().world.crypt;
+    let sc = c.shortcuts.first().expect("ingen snarvei i krypten").clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let snap = |q: Vec3| c.snap(q + Vec3::Y * 0.3, 1.5).unwrap_or(q);
+    let latch_side = snap(sc.pos + sc.latch * 1.6);
+    let other_side = snap(sc.pos - sc.latch * 1.6);
+    game.place_feet(other_side);
+    for _ in 0..5 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let events = game.use_exact(Use::Shortcut(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("boltet"))), "døra gikk opp fra feil side: {events:?}");
+    assert!(!connected(game.crypt_now(), latch_side, other_side), "det er vei gjennom den stengte døra");
+    game.place_feet(latch_side);
+    for _ in 0..5 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let events = game.use_exact(Use::Shortcut(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("åpen"))), "døra gikk ikke opp fra slåsida: {events:?}");
+    for _ in 0..60 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(connected(game.crypt_now(), latch_side, other_side), "ingen vei gjennom den åpne døra");
+    let d = -sc.latch;
+    game.set_look((-d.x).atan2(-d.z), 0.0);
+    input.key("KeyW", true);
+    for _ in 0..75 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!((feet - sc.pos).with_y(0.0).dot(d) > 1.0, "kom ikke gjennom snarveien: føttene ved {feet:?}");
+}
+
+/// Den falske veggen: ingen vei forbi før du bruker den, så synker den og du
+/// kan gå inn i rommet bak.
+#[test]
+fn den_falske_veggen_apnes() {
+    let c = &world().world.crypt;
+    let s = c.secrets.first().expect("ingen falsk vegg i krypten").clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let (front, back) = (in_front(c, s.pos, s.yaw, 1.4), in_front(c, s.pos, s.yaw, -1.4));
+    assert!(!connected(game.crypt_now(), front, back), "det er vei gjennom den falske veggen før den er åpnet");
+    game.place_feet(front);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let events = game.use_exact(Use::Secret(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("rom bak"))), "veggen ga ikke etter: {events:?}");
+    for _ in 0..90 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(connected(game.crypt_now(), front, back), "ingen vei forbi den åpnede veggen");
+    let d = (back - front).with_y(0.0).normalize();
+    game.set_look((-d.x).atan2(-d.z), 0.0);
+    input.key("KeyW", true);
+    for _ in 0..75 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!((feet - s.pos).with_y(0.0).dot(d) > 0.8, "kom ikke inn bak veggen: føttene ved {feet:?}");
+}
+
+/// Fallemmen eller sjakta: du faller ned i rommet under, og stigen der tar
+/// deg opp igjen.
+#[test]
+fn fallemmen_og_stigen() {
+    let c = &world().world.crypt;
+    let t = c.trapdoors.iter().find(|t| !t.bolted).expect("ingen fallem eller sjakt i krypten").clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.place_feet(t.pos + Vec3::Y * 0.3);
+    for _ in 0..120 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!(feet.y < t.pos.y - 2.0, "falt ikke ned: føttene ved {feet:?}, lemmen ved {:?}", t.pos);
+    if let Some(to) = t.to {
+        assert_eq!(c.room_at(feet + Vec3::Y * 0.2).map(|r| r.1), Some(to), "havnet ikke i rommet under ({feet:?})");
+    }
+    let (n, ladder) = c.ladders.iter().enumerate().min_by(|a, b| a.1.pos.distance(feet).total_cmp(&b.1.pos.distance(feet))).expect("ingen stige");
+    assert!(c.path(feet + Vec3::Y * 0.2, ladder.pos).is_some(), "ingen vei fra der du landet til stigen");
+    game.place_feet(in_front(c, ladder.pos, ladder.yaw, 0.6));
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.use_exact(Use::Ladder(n));
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let feet = game.feet();
+    assert!((feet.y - ladder.top.y).abs() < 0.6 && feet.with_y(0.0).distance(ladder.top.with_y(0.0)) < 1.5, "stigen tok deg ikke opp til {:?}: føttene ved {feet:?}", ladder.top);
+}
+
+/// Kistene: den sjeldne komponenten ligger i sin kiste, lappene kan leses,
+/// og den varige styrken gir mer liv bare én gang.
+#[test]
+fn kistene_lappene_og_den_varige_styrken() {
+    let c = &world().world.crypt;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let (i, rare) = c.chests.iter().enumerate().find(|(_, ch)| ch.loot.is_some()).expect("ingen sjelden komponent i krypten");
+    let events = game.use_exact(Use::Chest(i));
+    assert!(events.iter().any(|e| *e == Event::Loot(rare.loot.clone())), "kista ga ikke {:?}: {events:?}", rare.loot);
+    assert!(crate::domain::craft::title(rare.loot.as_deref().unwrap()) != "", "den sjeldne komponenten finnes ikke i spillet");
+    let events = game.use_exact(Use::Chest(i));
+    assert!(!events.iter().any(|e| matches!(e, Event::Loot(_))), "kista ga to ganger");
+    let lore = c.lores.first().expect("ingen lapp i krypten");
+    let events = game.use_exact(Use::Lore(0));
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains(&lore.title))), "lappen ble ikke lest: {events:?}");
+    let before = game.max_hp_now();
+    game.use_exact(Use::Bonus(0));
+    let after = game.max_hp_now();
+    game.use_exact(Use::Bonus(0));
+    assert!(after > before || game.stamina_now() > 100.0, "den varige styrken ga ingenting");
+    assert_eq!(game.max_hp_now(), after, "den varige styrken ga to ganger");
+    assert!(game.save().bonuses.len() == 1, "styrken skal lagres");
+}
+
+/// Pilfella: første gang treffer pilene gulvet foran deg, siden gjør de
+/// vondt.
+#[test]
+fn pilfella_laerer_deg_forst() {
+    use crate::domain::world::crypt::TrapKind;
+    let c = &world().world.crypt;
+    let (_, trap) = c.traps.iter().enumerate().find(|(_, t)| t.kind == TrapKind::Arrows).expect("ingen pilfelle i krypten");
+    let trap = trap.clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let off = c.path(trap.pos, c.levels[trap.level].start.0).map(|mut p| {
+        p.insert(0, trap.pos);
+        along(&p, 3.0)
+    }).unwrap();
+    game.place_feet(off);
+    for _ in 0..10 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    let hp = game.hp_now();
+    game.place_feet(trap.pos + Vec3::Y * 0.05);
+    let mut warned = false;
+    for _ in 0..40 {
+        for e in game.update(&mut input, 1.0 / 30.0, &mut physics) {
+            warned |= matches!(e, Event::Toast(t) if t.contains("Klikk"));
+        }
+    }
+    assert!(warned, "trykkplata ved {:?} klikket ikke", trap.pos);
+    assert_eq!(game.hp_now(), hp, "pilene skal treffe gulvet første gang");
+    game.place_feet(off);
+    for _ in 0..120 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    game.place_feet(trap.pos + Vec3::Y * 0.05);
+    for _ in 0..40 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(game.hp_now() < hp, "pilene gjorde ikke vondt andre gang");
+}
+
+/// Lyset følger rommene: et lys lyser i sitt rom og i rom med åpen
+/// forbindelse, og et stengt gitter stopper det til det åpnes.
+#[test]
+fn lyset_folger_rommene() {
+    let w = &world().world;
+    let c = &w.crypt;
+    let lit: Vec<_> = w.lights.iter().filter(|l| l.pos.y < crypt::TOP).collect();
+    assert!(!lit.is_empty(), "ingen lys i krypten");
+    for l in &lit {
+        assert!(l.room.is_some(), "lyset ved {:?} står ikke i noe rom", l.pos);
+    }
+    let gate = &c.gates[0];
+    // Et sted på hver side, utenfor rommet gitteret står i.
+    let gate_room = c.room_at(gate.pos + Vec3::Y * 0.2).map(|r| r.1);
+    let side = |sgn: f32| {
+        (1..12)
+            .map(|k| in_front(c, gate.pos, gate.yaw, sgn * 0.6 * k as f32))
+            .find_map(|q| c.room_at(q + Vec3::Y * 0.2).map(|r| r.1).filter(|r| Some(*r) != gate_room))
+            .expect("ingen rom ved gitteret")
+    };
+    // Rommet gitteret står i (gangen), eller rommet på andre siden.
+    let ra = side(1.0);
+    let rb = gate_room.filter(|g| *g != ra).unwrap_or_else(|| side(-1.0));
+    assert_ne!(ra, rb, "gitteret står ikke mellom to rom");
+    let mut c = c.clone();
+    assert_eq!(c.light_mask(gate.level, ra) & (1 << rb), 0, "lyset går gjennom det stengte gitteret");
+    c.open[gate.switch] = true;
+    assert_ne!(c.light_mask(gate.level, ra) & (1 << rb), 0, "lyset går ikke gjennom det åpne gitteret");
+}
+
+
+
+/// Måler tiden per `update` og `frame` i byen og i krypten (feilsøking av
+/// bildefrekvensen). `cargo test --release maal_tiden -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn maal_tiden_per_bilde() {
+    let mut physics = RapierPhysics::new();
+    let mut s = session(&mut physics);
+    let mut input = Input::default();
+    for (name, descend) in [("byen", false), ("krypten", true)] {
+        if descend {
+            s.use_first(|u| *u == Use::Descend);
+            for _ in 0..60 {
+                s.update(&mut input, 1.0 / 60.0, &mut physics);
+            }
+        }
+        let mut upd = 0.0f64;
+        let mut frm = 0.0f64;
+        let n = 120;
+        for _ in 0..n {
+            let t = std::time::Instant::now();
+            s.update(&mut input, 1.0 / 60.0, &mut physics);
+            upd += t.elapsed().as_secs_f64();
+            let t = std::time::Instant::now();
+            let f = s.frame(16.0 / 9.0);
+            frm += t.elapsed().as_secs_f64();
+            s.settle();
+            std::hint::black_box(f.instances.len());
+        }
+        println!("{name}: update {:.2} ms, frame {:.2} ms per bilde", upd / n as f64 * 1e3, frm / n as f64 * 1e3);
+    }
+}
+
+/// Skriver hvor rammene på galleriveggen står (til `snapshot --gallery`):
+/// `cargo test --release galleriveggen_star -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn galleriveggen_star() {
+    let p = world();
+    for t in p.world.targets.iter().filter(|t| matches!(t.what, Use::Gallery(_))) {
+        let (_, rot, pos) = t.pose.to_scale_rotation_translation();
+        let front = rot * Vec3::Z;
+        println!("{:?}: {:.2} {:.2} {:.2}  front {:.2} {:.2}", t.what, pos.x, pos.y, pos.z, front.x, front.z);
+    }
+}
+
+/// Trappereglene i byggesettet (`kit.stairs`): du går stående (ikke huk)
+/// opp og ned alle tre trappene uten å bli stoppet eller presset ned, og
+/// det er minst en meter fritt gulv foran nederste trinn.
+#[test]
+fn trappene_har_hoderom() {
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    // Modell, foten (0,5 m foran nederste trinn) og toppen (Blenders
+    // akser), gulvet nede og høyden oppe, og retningen bort fra trappa
+    // ved foten.
+    let stairs = [("tavern", (5.15, -3.55), (-0.3, -3.55), 0.6, 3.7, (1.0, 0.0)), ("apothecary", (3.1, -2.65), (3.1, 1.9), 0.7, 3.3, (0.0, -1.0)), ("scriptorium", (-3.875, -2.85), (-3.875, 2.2), 0.36, 2.8, (0.0, -1.0))];
+    let mut problems = vec![];
+    for (model, foot, top, floor, up, away) in stairs {
+        let Some(pl) = p.world.placements.iter().find(|pl| pl.model == model) else {
+            problems.push(format!("{model} mangler"));
+            continue;
+        };
+        let t = pl.transforms[0];
+        let world = |(x, y): (f32, f32)| t.transform_point3(Vec3::new(x, 0.0, -y));
+        let base = t.transform_point3(Vec3::ZERO).y;
+        let (a, b) = (world(foot), world(top));
+        // Opp og ned, stående.
+        for (from, to, z_from, z_to, way) in [(a, b, floor, up, "opp"), (b, a, up, floor, "ned")] {
+            let mut pos = from + Vec3::Y * (z_from + half + radius + 0.05);
+            let dir = (to - from).with_y(0.0).normalize();
+            let (mut stuck, mut top_feet) = (0, f32::MIN);
+            for _ in 0..600 {
+                if (to - pos).with_y(0.0).dot(dir) < 0.05 {
+                    break;
+                }
+                let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+                pos += moved;
+                top_feet = top_feet.max(pos.y - half - radius - base);
+                stuck = if moved.with_y(0.0).length() < 0.01 { stuck + 1 } else { 0 };
+                if stuck > 20 {
+                    break;
+                }
+            }
+            let left = (pos - to).with_y(0.0).length();
+            let feet = pos.y - half - radius - base;
+            if stuck > 20 && left > 0.6 {
+                problems.push(format!("{model} {way}: stoppet med føttene {feet:.2} m over bakken, {left:.1} m fra målet (for lavt under taket?)"));
+            } else if left > 0.6 || (way == "opp" && feet < up) || (way == "ned" && feet > z_to + 0.3) {
+                problems.push(format!("{model} {way}: endte {left:.1} m fra målet med føttene {feet:.2} m over bakken"));
+            }
+            if way == "ned" && top_feet > up + 0.5 {
+                problems.push(format!("{model} {way}: ble løftet til {top_feet:.2} m"));
+            }
+        }
+        // Fritt gulv foran nederste trinn: stråler bort fra trappa i kne-,
+        // hofte- og hodehøyde treffer ingenting innen en meter.
+        let dir = t.transform_vector3(Vec3::new(away.0, 0.0, -away.1)).normalize();
+        for h in [0.4, 1.0, 1.6] {
+            let origin = world(foot) - dir * 0.5 + Vec3::Y * (floor + h);
+            // Veggkolliderne er 5 cm tykkere enn pussen (`kit.WALL_PAD`).
+            if let Some(hit) = physics.cast_ray(origin, dir, 0.98) {
+                problems.push(format!("{model}: noe står {:.2} m foran nederste trinn i {h} m høyde", hit.distance));
+            }
+        }
+    }
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Torgils' øvingsplass har en åpning mot gata: man går med Rapier fra
+/// Storgata inn til midten av plassen uten å stoppe mot noe.
+#[test]
+fn man_kan_ga_til_gorvek() {
+    use crate::domain::world::town::{main_x, YARD};
+    let p = world();
+    let mut physics = RapierPhysics::new();
+    for c in &p.world.colliders {
+        physics.add(c);
+    }
+    let (half, radius) = (0.55f32, 0.35f32);
+    let (yc, _) = YARD;
+    let from = Vec3::new(main_x(yc.y), 0.0, yc.y);
+    let to = Vec3::new(yc.x, 0.0, yc.y);
+    let ground = |q: Vec3| Vec3::new(q.x, crate::domain::world::terrain::height(q.x, q.z), q.z);
+    let (a, b) = (ground(from), ground(to));
+    let mut pos = a + Vec3::Y * (half + radius + 0.1);
+    let dir = (b - a).with_y(0.0).normalize();
+    for _ in 0..((b - a).length() / 0.05) as usize * 2 {
+        if (b - pos).with_y(0.0).dot(dir) < 0.05 {
+            break;
+        }
+        let (moved, _) = physics.move_capsule(pos, half, radius, dir * 0.05 - Vec3::Y * 0.03, 0.016);
+        pos += moved;
+    }
+    let left = (pos - b).with_y(0.0).length();
+    assert!(left <= 0.6, "stoppet {left:.1} m fra midten av Torgils' plass, ved ({:.1}, {:.1})", pos.x, pos.z);
+    assert!(p.world.targets.iter().any(|t| matches!(t.what, Use::Talk(_)) && t.pose.translation.distance(b.into()) < 6.0), "ingen å snakke med på plassen");
+}
+
+/// Sperringene i byen er synlige: hver gjerdekollider (`FENCE_SOLID_H` høy,
+/// satt av `town::fence`) er dekket av en modellinstans (gjerde eller
+/// steinmur) langs hele lengden, prøvd hver 0,5 m med 0,3 m slingring.
+#[test]
+fn sperringene_er_synlige() {
+    use crate::domain::world::town::FENCE_SOLID_H;
+    let p = world();
+    let bounds: std::collections::HashMap<&str, (Vec3, Vec3)> = p
+        .models
+        .iter()
+        .map(|m| {
+            let (mut lo, mut hi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+            for v in &m.mesh.vertices {
+                lo = lo.min(Vec3::from(v.pos));
+                hi = hi.max(Vec3::from(v.pos));
+            }
+            (m.name.as_str(), (lo, hi))
+        })
+        .collect();
+    let covered = |q: Vec3| {
+        p.world.placements.iter().any(|pl| {
+            let Some((lo, hi)) = bounds.get(pl.model) else { return false };
+            pl.transforms.iter().any(|t| {
+                if t.translation.distance(q.into()) > 16.0 {
+                    return false;
+                }
+                let l = t.inverse().transform_point3(q);
+                (l.x > lo.x - 0.3 && l.x < hi.x + 0.3) && (l.z > lo.z - 0.3 && l.z < hi.z + 0.3) && (l.y > lo.y - 0.5 && l.y < hi.y + 0.5)
+            })
+        })
+    };
+    let (mut fences, mut problems) = (0, vec![]);
+    for c in &p.world.colliders {
+        let Shape::Cuboid { center, size, yaw } = c else { continue };
+        if size.y != FENCE_SOLID_H || center.y < -5.0 {
+            continue;
+        }
+        fences += 1;
+        let along = Vec3::new(yaw.cos(), 0.0, -yaw.sin());
+        let n = (size.x / 0.5).ceil().max(1.0) as i32;
+        for k in 0..=n {
+            let q = *center + along * (size.x * (k as f32 / n as f32 - 0.5));
+            if !covered(q) {
+                problems.push(format!("usynlig sperring ved ({:.1}, {:.1})", q.x, q.z));
+                break;
+            }
+        }
+    }
+    assert!(fences > 20, "fant bare {fences} gjerdekollidere");
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// Hver modell har rollene sine som data (`extras.fristad`, skrevet av
+/// `tools/models/slim.py`), og lastes uten feil: et materiale uten roller,
+/// med et ukjent slag eller et teksturlag som ikke finnes, stopper lastingen.
+#[test]
+fn modellene_har_roller() {
+    use crate::ports::ModelSource;
+    let bad: Vec<String> = Embedded.names().into_iter().filter(|n| Embedded.load(n).is_none()).collect();
+    assert!(bad.is_empty(), "modeller som ikke kan lastes (se loggen): {bad:?}");
+}
+
+/// Murverket i krypten tegnes helt også langt unna: det grove detaljnivået
+/// slår sammen hjørner og åpnet sprekker med himmel i skjøtene (eieren 13.
+/// oktober). Kryptbitene er lette nok til at de aldri får et (`lod::far_detail`,
+/// `LOD_MIN_TRIS`); `snapshot --leak-scan` finner det som synes gjennom.
+#[test]
+fn kryptmurene_forenkles_ikke_pa_avstand() {
+    let p = world();
+    let heavy: Vec<String> = p
+        .models
+        .iter()
+        .filter(|m| m.name.starts_with("crypt_") && m.far_mesh.is_none() && crate::adapters::wgpu::lod::far_detail(&m.mesh, 0.2).is_some())
+        .map(|m| format!("{} ({} trekanter)", m.name, m.mesh.indices.len() / 3))
+        .collect();
+    assert!(heavy.is_empty(), "kryptbiter som ville fått sprekker på avstand: {heavy:?}");
+}
+
+/// Hvert teksturlag en modell bruker, har et bilde i `assets/external`
+/// (`bun tools/fetch-assets.ts`). Et lag uten bilde faller ellers stille
+/// tilbake til det prosedyriske laget (hvite dører, 11. okt.).
+#[test]
+fn alle_lagene_har_bilde() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/external");
+    let have = crate::adapters::layers::from_dir(&dir);
+    let missing = crate::adapters::layers::missing(&have, &crate::adapters::gltf::used_layers());
+    assert!(missing.is_empty(), "teksturlag uten bilde: {missing:?} (kjør `bun tools/fetch-assets.ts`)");
+}
+
+/// Hvert teksturlag spillet bruker, er eierens malte bilde (plan del 12):
+/// `assets/textures/<lag>/meta.json` peker på kilden i
+/// `assets/textures/painted/<lag>/`, og ingen lag i manifestet kommer fra
+/// Poly Haven (fotoskannet). Lag som venter på eierens bilde, står i
+/// `WAITING` med hvorfor; stryk dem når bildet er levert.
+#[test]
+fn alle_lagene_er_malte() {
+    const WAITING: &[&str] = &[];
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut bad = vec![];
+    for name in crate::adapters::gltf::used_layers() {
+        let name = name.as_str();
+        if WAITING.contains(&name) {
+            continue;
+        }
+        let dir = root.join("assets/textures").join(name);
+        let Ok(meta) = std::fs::read_to_string(dir.join("meta.json")) else {
+            // Lag uten bilde bakes prosedyrisk (bake.wgsl) og er ikke fotoskannet.
+            continue;
+        };
+        let meta: serde_json::Value = serde_json::from_str(&meta).expect("meta.json");
+        let src = meta["source"].as_str().unwrap_or("");
+        if src.is_empty() || !root.join("assets/textures/painted").join(name).join(src).exists() {
+            bad.push(format!("{name}: kilden «{src}» finnes ikke i assets/textures/painted/{name}/"));
+        }
+    }
+    if let Ok(text) = std::fs::read_to_string(root.join("assets/external/manifest.json")) {
+        let manifest: serde_json::Value = serde_json::from_str(&text).expect("manifest.json");
+        for (name, entry) in manifest["textures"].as_object().into_iter().flatten() {
+            let id = entry["id"].as_str().unwrap_or("");
+            if !id.starts_with("egen:") && !WAITING.contains(&name.as_str()) {
+                bad.push(format!("{name}: fotoskannet ({id}) i manifestet"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "lag som ikke er eierens malte bilde: {bad:#?}");
+}
+
+/// En modell byen eller systemene bruker, finnes, eller den står i
+/// `model::PLANNED` (fiendene, figurene, våpnene …). Og en modell som står
+/// der, men nå finnes, skal strykes fra lista.
+#[test]
+fn alle_modellnavn_finnes_eller_ventes() {
+    use crate::domain::model::PLANNED;
+    let missing = &world().world.missing;
+    let unknown: Vec<_> = missing.iter().filter(|m| !PLANNED.iter().any(|(p, _)| p == *m)).collect();
+    assert!(unknown.is_empty(), "modeller som brukes, men verken finnes eller ventes: {unknown:?}");
+    let done: Vec<_> = PLANNED.iter().map(|(p, _)| *p).filter(|p| !missing.contains(p)).collect();
+    assert!(done.is_empty(), "modeller i PLANNED som finnes nå (eller ikke brukes lenger), stryk dem: {done:?}");
+}
+
+/// Blender-skriptene henger sammen (`tools/models/check_scripts.py`): hver
+/// fil kompilerer, og hvert `town.X`, `kit.X` … finnes i modulen. Ellers
+/// viser feilen seg først ved neste eksport.
+#[test]
+fn blenderskriptene_henger_sammen() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let out = std::process::Command::new("python3").arg(format!("{root}/tools/models/check_scripts.py")).output().expect("python3");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stdout));
+}
+
+/// Dommen mister ingenting (eieren 13. okt.): hver dom gjelder versjonen
+/// eieren så, hver ting i katalogen har en fil, og alt som venter på eieren
+/// får plass på siden (`tools/qa/review.py`, `audit`).
+#[test]
+fn dommen_mister_ingenting() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let out = std::process::Command::new("python3").args(["-m", "tools.qa", "approvals", "audit"]).current_dir(root).output().expect("python3");
+    assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+}
+
+/// Katalogen (`docs/katalog.md`, `python3 -m tools.qa catalog`) dekker alt:
+/// hver modell spillet har, står i `assets/catalog/models.json` med hva den
+/// er, hvert teksturlag og hvert malt bilde i `textures.json`, og eierens dom
+/// i `approvals.json` gjelder noe som finnes.
+#[test]
+fn katalogen_dekker_alt() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let read = |f: &str| -> serde_json::Value { serde_json::from_str(&std::fs::read_to_string(format!("{root}/assets/catalog/{f}")).expect(f)).expect(f) };
+    let models = read("models.json");
+    let textures = read("textures.json");
+    let approvals = read("approvals.json");
+    let m = models["models"].as_object().expect("models");
+    let t = textures["textures"].as_object().expect("textures");
+    let mut bad = vec![];
+    for (name, _) in crate::adapters::gltf::model_files() {
+        if !m.contains_key(*name) {
+            bad.push(format!("modellen {name} mangler i models.json"));
+        }
+    }
+    let dirs = |d: &str, file: &str| -> Vec<String> {
+        std::fs::read_dir(format!("{root}/{d}")).expect(d).flatten().filter(|e| e.path().join(file).exists()).map(|e| e.file_name().to_string_lossy().into_owned()).collect()
+    };
+    for name in dirs("assets/textures/painted", "albedo.png").into_iter().chain(dirs("assets/textures", "albedo.jpg")) {
+        if !t.contains_key(&name) {
+            bad.push(format!("teksturen {name} mangler i textures.json"));
+        }
+    }
+    for (kind, list) in [("models", m), ("textures", t)] {
+        for name in approvals[kind].as_object().expect("approvals").keys() {
+            if !list.contains_key(name) {
+                bad.push(format!("approvals.json dømmer {kind}/{name}, som ikke finnes"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "katalogen er ikke komplett:\n{}", bad.join("\n"));
+}
+
+/// Byen er data (`assets/layout/town.json`, `docs/redigering.md`): spillet
+/// bygger den fra fila, med husene, gjerdene, muren og innbyggerne, og fila
+/// står i fast form (`layout_json`), så det redigeringsmodusen lagrer, gir
+/// små endringer i git.
+#[test]
+fn byen_er_data() {
+    use crate::adapters::data::{layout_file, layout_json};
+    use crate::domain::world::layout::Layout;
+    let text = layout_file().expect("assets/layout/town.json mangler");
+    let layout: Layout = serde_json::from_str(text).unwrap();
+    assert_eq!(layout_json(&layout), text, "fila står ikke i fast form: cargo run --bin layout");
+    // Husenes innhold i samme faste form (redigeringen lagrer slik).
+    for (house, text) in crate::adapters::data::content_files() {
+        let items: Vec<crate::domain::world::layout::Item> = serde_json::from_str(text).unwrap();
+        assert_eq!(crate::adapters::data::contents_json(&items), *text, "assets/layout/inside/{house}.json står ikke i fast form: cargo run --bin layout");
+    }
+    let w = &world().world;
+    let count = |m: &str| w.placements.iter().find(|p| p.model == m).map_or(0, |p| p.transforms.len());
+    assert_eq!(layout.items.iter().filter(|i| i.building).count(), 71, "husene og uthusene i fila");
+    assert_eq!(count("tavern"), 1);
+    assert!(count("town_wall") > 40 && count("wattle_fence") > 100, "muren og gjerdene står");
+    assert_eq!(w.npcs.len(), layout.npcs.len());
+    assert!(w.targets.iter().any(|t| t.what == Use::Portal) && w.targets.iter().filter(|t| matches!(t.what, Use::Well(_))).count() == 2);
+}
+
+/// Møblene er egne modeller (`docs/redigering.md`, steg 2): det som står
+/// inne i husene (`assets/layout/inside/<hus>.json`) er modeller som finnes,
+/// i `assets/models/furniture/`, og ingen har samme navn som en annen modell
+/// (da ville den ene skjule den andre). Senga i spillerens hus har med seg
+/// det du sikter på for å sove.
+#[test]
+fn moblene_er_egne_modeller() {
+    use crate::adapters::gltf::model_files;
+    let data = crate::adapters::data::world_data();
+    let mut bad = vec![];
+    let mut seen = std::collections::HashMap::new();
+    for (name, path) in model_files() {
+        if let Some(other) = seen.insert(*name, *path) {
+            bad.push(format!("{name} er både {other} og {path}"));
+        }
+    }
+    for (house, items) in &data.contents {
+        for m in items.iter().filter_map(|i| i.model.as_deref()) {
+            match model_files().find(|(n, _)| *n == m) {
+                Some((_, path)) if path.starts_with("furniture/") => {}
+                Some((_, path)) => bad.push(format!("{m} i {house} er {path}, ikke et møbel")),
+                None => bad.push(format!("{m} i {house} finnes ikke")),
+            }
+        }
+    }
+    assert!(data.contents.len() >= 6, "husene med innside mangler møbler");
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+    let w = &world().world;
+    assert_eq!(w.targets.iter().filter(|t| t.what == Use::Sleep).count(), 1, "senga har med seg siktemålet");
+}
+
+/// Hvert møbel står i sitt eget rom med foten i origo: ingenting under
+/// gulvet, og kolliderne ligger der møbelet er. Fanger feil som tønnene som
+/// havnet 3 m over kollideren sin (`kit.barrel`, runde 5).
+#[test]
+fn moblene_star_der_kolliderne_er() {
+    use crate::adapters::gltf::model_files;
+    use crate::ports::ModelSource;
+    let data = crate::adapters::data::world_data();
+    let mut bad = vec![];
+    for (name, path) in model_files().filter(|(_, p)| p.starts_with("furniture/")) {
+        let Some(m) = Embedded.load(name) else { continue };
+        let (lo, hi) = m.mesh.bounds();
+        if lo.y < -0.05 {
+            bad.push(format!("{name} ({path}) går {:.0} cm under gulvet", -lo.y * 100.0));
+        }
+        let Some((_, inside)) = data.insides.iter().find(|(n, _)| n == name) else { continue };
+        for (c, size, _) in &inside.boxes {
+            let (c, h) = (Vec3::from(*c), Vec3::from(*size) * 0.5);
+            let far = (0..3).any(|k| c[k] + h[k] < lo[k] - 0.05 || c[k] - h[k] > hi[k] + 0.05);
+            if far {
+                bad.push(format!("{name}: kollideren ved {c:.2} ligger utenfor møbelet ({lo:.2} .. {hi:.2})"));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
 }

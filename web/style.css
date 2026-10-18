@@ -248,6 +248,14 @@ code {
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
 }
+/* Nede i krypten er lyset den tredje stolpen: smalere stolper og
+   mellomrom, så alle tre får plass innenfor kantene. */
+.bars:has(#light-bar:not([hidden])) {
+  --bars-gap: clamp(8px, 4vw, 3rem);
+}
+.bars:has(#light-bar:not([hidden])) .bar {
+  width: min(240px, calc((100vw - 32px - 2 * var(--bars-gap)) / 3));
+}
 .bar-head {
   display: flex;
   justify-content: space-between;
@@ -722,3 +730,438 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* Innstillingene: radioknappene på rad med forklaringen bak. */
+.settings-dialog { width: min(560px, 92vw); }
+.settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
+.settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
+.settings-dialog .fs-help-text { display: inline; }
+/* De avanserte grafikkinnstillingene: én bryter per rad, rullbar på små skjermer. */
+.graphics-dialog .fs-dialog__body { max-height: min(70vh, 640px); overflow-y: auto; }
+.graphics-dialog .gfx-presets { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-2) var(--fs-spacing-4); }
+.graphics-dialog .gfx-row { padding: 4px 0; }
+.graphics-dialog .gfx-row .fs-help-text { display: block; }
+.graphics-dialog .gfx-row .fs-select { max-width: 12rem; }
+
+/* Redigeringen (`?edit`, web/editor.js): panelet til venstre, og HUD-en
+   for spillet er borte mens du redigerer. */
+body.editing #vitals,
+body.editing .bottom,
+body.editing #minimap,
+body.editing #aim,
+body.editing #bubbles,
+body.editing #marks {
+  display: none !important;
+}
+
+.editor {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: min(24rem, 100vw);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--fs-spacing-4, 1rem);
+  background: var(--fs-color-neutral-canvas, #fff);
+  color: var(--fs-color-neutral-text, #222);
+  border-right: 1px solid var(--fs-color-neutral-border, #ccc);
+  display: flex;
+  flex-direction: column;
+  gap: var(--fs-spacing-3, 0.75rem);
+}
+
+.editor-head,
+.editor-actions,
+.editor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.editor-head {
+  justify-content: space-between;
+}
+
+.editor-filters > * {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+.editor-section > * + * {
+  margin-top: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-breaches {
+  margin: 0;
+  padding-left: 1.1rem;
+  max-height: 10rem;
+  overflow-y: auto;
+  color: var(--fs-color-danger-text, #a40000);
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: stretch;
+  padding: 0.25rem;
+  border: 1px solid var(--fs-color-neutral-border, #ccc);
+  border-radius: var(--fs-radius-2, 6px);
+  background: var(--fs-color-neutral-surface, #f6f6f6);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.editor-item.is-active {
+  outline: 2px solid var(--fs-color-accent-border, #c07000);
+}
+
+.editor-item img {
+  width: 100%;
+  aspect-ratio: 320 / 224;
+  object-fit: cover;
+  border-radius: var(--fs-radius-1, 4px);
+  background: var(--fs-color-neutral-border, #ddd);
+}
+
+.editor-item-name {
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+/* Lista under pekeren, historikken og egenskapene i redigeringen. */
+.editor-under,
+.editor-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor-history {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.editor-under-item,
+.editor-step {
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--fs-radius-1, 4px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-under-item:hover,
+.editor-step:hover {
+  background: var(--fs-color-neutral-surface, #f0f0f0);
+}
+
+.editor-under-item.is-active,
+.editor-step.is-active {
+  border-color: var(--fs-color-accent-border, #c07000);
+  font-weight: 600;
+}
+
+.editor-step.is-undone {
+  opacity: 0.55;
+}
+
+.editor-props {
+  display: grid;
+  gap: var(--fs-spacing-2, 0.5rem);
+}
+
+.editor-prop {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--fs-spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.editor-prop .fs-input {
+  min-width: 0;
+}
+
+.editor-prop input[type="checkbox"] {
+  justify-self: start;
+}
+
+.editor-color {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.editor-color input[type="color"] {
+  flex: 0 0 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.editor-snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+/* Lag gruppe og Løs opp under det valgte. */
+.editor-grouping {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.editor-grouping .fs-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+#ed-placing[data-state="bad"] {
+  color: var(--fs-color-danger-text, #a40000);
+}
+
+/* Rammen når Shift+dra velger. */
+.editor-box {
+  position: fixed;
+  z-index: 59;
+  border: 1px dashed #ffd24a;
+  background: rgb(255 210 74 / 0.12);
+  pointer-events: none;
+}
+
+body.editor-dragging,
+body.editor-dragging canvas {
+  cursor: copy !important;
+}
+
+/* I spillet etter P: merket om at P tar deg tilbake i redigeringen. */
+.editor-back {
+  position: fixed;
+  top: var(--fs-spacing-3, 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  margin: 0;
+  pointer-events: none;
+}
+
+/* Mørket rundt deg nede i krypten: kanten av bildet lukker seg når lykta
+   går tom for olje (`--dark` 0..1, satt fra HUD-en). */
+.dark {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at 50% 55%, transparent calc(62% - var(--dark, 0) * 40%), rgb(0 0 0 / calc(var(--dark, 0) * 0.85)) 100%);
+  transition: background 1.2s ease;
+}
+
+/* Filmene (web/film/): svarte striper, tekst i middelalderskrift, toning og
+   glitch. HUD-en er borte mens filmen går. */
+body.filming #hud,
+body.filming .bottom,
+body.filming #bars {
+  display: none !important;
+}
+.film {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+.film-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+.film-video .film-loading {
+  pointer-events: none;
+}
+.film {
+  background: #000;
+}
+.film-rotate {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12vh;
+  margin: 0;
+  text-align: center;
+  color: #cbbd9c;
+  font-family: "Uncial Antiqua", serif;
+  font-size: 1rem;
+}
+@media (orientation: portrait) {
+  .film-rotate {
+    display: block;
+  }
+}
+.film-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #f3e6c8;
+  font-family: "Uncial Antiqua", serif;
+  font-size: 2rem;
+}
+.film-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6vh;
+  background: #000;
+}
+.film-bar--top {
+  top: 0;
+}
+.film-bar--bottom {
+  bottom: 0;
+}
+.film-black {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 1;
+}
+.film-words {
+  position: absolute;
+  left: 8vw;
+  right: 8vw;
+  bottom: 13vh;
+  text-align: center;
+  color: #f3e6c8;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+}
+.film-heading {
+  font-family: "UnifrakturMaguntia", serif;
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  font-weight: 400;
+  margin: 0 0 0.6rem;
+  color: #f7d98b;
+}
+.film-text {
+  font-family: "Uncial Antiqua", serif;
+  font-size: clamp(1rem, 2.2vw, 1.6rem);
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 46rem;
+}
+.film-glitch {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 0, 80, 0.35) 0 3px, transparent 3px 9px),
+    linear-gradient(90deg, rgba(0, 220, 255, 0.4), rgba(255, 0, 140, 0.4));
+}
+.film-skip {
+  position: absolute;
+  right: 2rem;
+  bottom: calc(9vh + 1rem);
+  pointer-events: auto;
+}
+/* Venter den siste scenen på spillet, går en tynn linje langs bunnen. */
+.film-progress {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: calc(9vh + 1.4rem);
+  height: 2px;
+  background: rgba(243, 230, 200, 0.18);
+}
+.film-progress-fill {
+  height: 100%;
+  width: 0;
+  background: rgba(247, 217, 139, 0.85);
+  transition: width 0.4s linear;
+}
+/* Middelalderskriftene til filmen ligger ved spillet (SIL OFL, web/film/fonts/OFL.txt). */
+@font-face {
+  font-family: "UnifrakturMaguntia";
+  src: url("film/fonts/UnifrakturMaguntia-Book.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Uncial Antiqua";
+  src: url("film/fonts/UncialAntiqua-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+/* Filmen som flytur (web/film/film.js): slør over alt, og tekstene store og
+   fritt plassert i bildet, ord for ord inn. */
+.film-veil,
+.film-texts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.film-say {
+  position: absolute;
+  max-width: min(56rem, 88vw);
+  color: #f6ead0;
+  text-shadow: 0 0 22px rgba(0, 0, 0, 0.9), 0 2px 5px rgba(0, 0, 0, 0.95), 0 0 2px #000;
+}
+.film-say-heading {
+  margin: 0;
+  font-family: "UnifrakturMaguntia", "Old English Text MT", serif;
+  font-weight: 400;
+  font-size: clamp(4rem, 12vw, 10rem);
+  line-height: 0.95;
+  color: #f7d98b;
+}
+.film-say-text {
+  margin: 0;
+  font-family: "Uncial Antiqua", "Palatino Linotype", Georgia, serif;
+  font-size: clamp(1.7rem, 3.3vw, 3rem);
+  line-height: 1.3;
+}
+.film-word {
+  display: inline-block;
+  white-space: pre;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-word {
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Målet øverst i panelet og journalen (J). */
+.goal {
+  margin: 0;
+  font-style: italic;
+  line-height: 1.35;
+}
+.journal-card {
+  width: min(560px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.journal-lore h3 { margin: var(--fs-spacing-3) 0 var(--fs-spacing-1); }
+.journal-lore p { margin: 0; white-space: pre-line; }

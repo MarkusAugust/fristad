@@ -1,0 +1,519 @@
+"""Dommen som tilstand, ikke runder (eieren 13. okt.: «det virker som at du
+ikke klarer å følge med på hva jeg har sett på og hva du skal vise meg
+igjen»).
+
+Hver modell og tekstur har en versjon: git-blobben til fila spillet bruker
+(`.glb` eller det malte bildet). En dom i `approvals.json` gjelder versjonen
+den ble gitt for (`seen`). Hvert kort står i én av tre bunker:
+
+- `venter`: ikke vurdert, eller endret siden eieren så det (versjonen er en
+  annen enn `seen`) – det eieren skal se, med før og etter;
+- `hos_meg`: underkjent eller usikker og ikke endret ennå – det jeg skal
+  rette, og som ikke vises eieren igjen før det er rettet;
+- `godkjent`: godkjent, og ikke endret siden.
+
+Siden (`approvals.html`) viser alle tingene i faner per kategori, med det
+som venter først. Bare kortene som venter, har bilder: ett samlet bilde per
+kort (før og etter, alle vinklene), så siden holder seg langt under
+grensen på filer. `check` stopper en publisering der noe som venter
+mangler bilde, eller det er for mange.
+
+    python3 -m tools.qa approvals migrate          # én gang: `seen` fra svartidene
+    python3 -m tools.qa approvals review UT        # bygg siden i UT
+    python3 -m tools.qa approvals check UT         # det som venter er med
+"""
+import datetime
+import glob
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+
+from .gate import DATA, ROOT
+
+
+class _Lazy:
+    """Pillow lastes først når et bilde lages: `audit` (testen
+    `dommen_mister_ingenting`) kjører uten den, som i Actions."""
+
+    def __init__(self, name):
+        self._name = name
+
+    def __getattr__(self, attr):
+        import importlib
+        return getattr(importlib.import_module(self._name), attr)
+
+
+Image, ImageDraw, ImageFont = _Lazy("PIL.Image"), _Lazy("PIL.ImageDraw"), _Lazy("PIL.ImageFont")
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, "target", "qa", "review")
+STUDIO = os.path.join(HERE, "studio.py")
+VIEWS = ["front:0:6:1.15:0.4", "corner:-35:12:1.2:0.4"]
+# Siden har plass til høyst 511 filer per versjon; ett bilde per kort, og resten
+# (siden, data.json, viewer.js, teksturlagene i 3D) får plass i de siste 31.
+# Hevet fra 400 da kryptnivå 8–10 kom (17. oktober).
+MAX_WAITING = 480
+
+# Fanene, i rekkefølge.
+CATEGORIES = [
+    ("arms", "Armer og våpen"),
+    ("mobs", "Fiender"),
+    ("people", "Innbyggerne"),
+    ("crypt", "Krypten"),
+    ("town", "Byen: hus og bygninger"),
+    ("things", "Møbler og småting"),
+    ("textures", "Teksturer"),
+]
+BUILDINGS = ("house_", "tavern", "forge", "apothecary", "scriptorium", "home", "town_wall", "wall_tower",
+             "gatehouse", "stave_church", "crypt", "shed_", "privy", "coop", "garden", "haystack")
+
+# Når en side ble publisert (artefaktversjonene 24–26, 13. okt.). Et svar
+# gitt mens en side var ute, gjelder filene slik de var da siden ble laget:
+# rundene ble committet like etter publiseringen.
+PAGES = ["2026-10-13T12:34:31Z", "2026-10-13T13:46:36Z", "2026-10-13T15:20:49Z"]
+
+
+def git(*args):
+    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+
+def locate(name, kind):
+    """Fila spillet bruker for tingen (relativt til repoet), eller None."""
+    if kind == "modell":
+        hits = sorted(glob.glob(os.path.join(ROOT, "assets", "models", "**", f"{name}.glb"), recursive=True))
+        return os.path.relpath(hits[0], ROOT) if hits else None
+    for p in (f"assets/textures/painted/{name}/albedo.png", f"assets/textures/{name}/albedo.jpg"):
+        if os.path.exists(os.path.join(ROOT, p)):
+            return p
+    return None
+
+
+def glb_layers(path):
+    """Teksturlagene materialene i en glb bruker (`extras.fristad.layer`)."""
+    import struct
+    with open(path, "rb") as f:
+        b = f.read()
+    n = struct.unpack("<I", b[12:16])[0]
+    j = json.loads(b[20:20 + n])
+    return {((m.get("extras") or {}).get("fristad") or {}).get("layer") for m in j.get("materials", [])} - {None}
+
+
+def glb_to_json(src, dst):
+    """glb som glTF i JSON med dataene innebygd (artefaktene tar ikke imot
+    `.glb`; three.js leser begge)."""
+    import base64
+    import struct
+    with open(src, "rb") as f:
+        b = f.read()
+    n = struct.unpack("<I", b[12:16])[0]
+    j = json.loads(b[20:20 + n])
+    rest = b[20 + n:]
+    binary = b""
+    if len(rest) >= 8:
+        m = struct.unpack("<I", rest[:4])[0]
+        binary = rest[8:8 + m]
+        # Siden får ikke laste data:- eller blob:-adresser (artefaktenes
+        # CSP): bufferen står som base64 i et eget felt (`viewer.js` setter
+        # sammen en glb i minnet), og bildene blir egne filer ved siden av.
+        j["fristadBin"] = base64.b64encode(binary).decode()
+    base = os.path.splitext(os.path.basename(dst))[0]
+    for k, im in enumerate(j.get("images", [])):
+        if "bufferView" not in im:
+            continue
+        bv = j["bufferViews"][im["bufferView"]]
+        data = binary[bv.get("byteOffset", 0):bv.get("byteOffset", 0) + bv["byteLength"]]
+        ext = ".png" if im.get("mimeType") == "image/png" else ".jpg"
+        with open(os.path.join(os.path.dirname(dst), f"{base}_{k}{ext}"), "wb") as f:
+            f.write(data)
+        del im["bufferView"]
+        im.pop("mimeType", None)
+        im["uri"] = f"{base}_{k}{ext}"
+    with open(dst, "w") as f:
+        json.dump(j, f, separators=(",", ":"))
+
+
+LEVEL_PIECE = __import__("re").compile(r"^(crypt_\d\d)_[a-z]{2}$")
+
+
+def models_3d(out, items):
+    """3D-visningen (`viewer.js`): modellen til hvert kort som venter, den
+    eieren så sist (`glb/før/`), alle bitene i et kryptnivå der en bit venter
+    (så biten kan ses inne i nivået), og teksturlagene de bruker (`tex/`)."""
+    root = os.path.join(out, "glb")
+    if os.path.isdir(root):
+        shutil.rmtree(root)
+    texdir = os.path.join(out, "tex")
+    if os.path.isdir(texdir):
+        shutil.rmtree(texdir)
+    os.makedirs(os.path.join(root, "før"), exist_ok=True)
+    os.makedirs(texdir, exist_ok=True)
+    used, levels = set(), {}
+    for it in items:
+        if it["state"] != "venter" or it["kind"] != "modell" or not it.get("path"):
+            continue
+        src = os.path.join(ROOT, it["path"])
+        m = LEVEL_PIECE.match(it["name"])
+        if m:
+            lv = m.group(1)
+            if lv not in levels:
+                pieces = sorted(glob.glob(os.path.join(os.path.dirname(src), f"{lv}_??.glb")))
+                os.makedirs(os.path.join(root, lv), exist_ok=True)
+                levels[lv] = []
+                for pc in pieces:
+                    nm = os.path.basename(pc)[:-4] + ".json"
+                    glb_to_json(pc, os.path.join(root, lv, nm))
+                    levels[lv].append(f"glb/{lv}/{nm}")
+                    used |= glb_layers(pc)
+            it["glb"], it["level"] = f"glb/{lv}/{it['name']}.json", lv
+        else:
+            glb_to_json(src, os.path.join(root, f"{it['id']}.json"))
+            it["glb"] = f"glb/{it['id']}.json"
+            used |= glb_layers(src)
+        seen = (it.get("seen") or "")
+        if seen and seen != it["version"]:
+            old = subprocess.run(["git", "cat-file", "blob", seen], cwd=ROOT, capture_output=True).stdout
+            if old[:4] == b"glTF":
+                tmp = os.path.join(WORK, "før.glb")
+                os.makedirs(WORK, exist_ok=True)
+                with open(tmp, "wb") as f:
+                    f.write(old)
+                glb_to_json(tmp, os.path.join(root, "før", f"{it['id']}.json"))
+                it["glb_before"] = f"glb/før/{it['id']}.json"
+                used |= glb_layers(tmp)
+    layers = {}
+    for name in sorted(used):
+        src = os.path.join(ROOT, "assets", "textures", name, "albedo.jpg")
+        if not os.path.exists(src):
+            continue
+        im = Image.open(src).convert("RGB")
+        im.thumbnail((1024, 1024))
+        im.save(os.path.join(texdir, f"{name}.jpg"), quality=86)
+        size = 2.0
+        try:
+            with open(os.path.join(ROOT, "assets", "textures", name, "meta.json")) as f:
+                size = float(json.load(f).get("size_m", 2.0))
+        except (OSError, ValueError):
+            pass
+        layers[name] = {"url": f"tex/{name}.jpg", "size": size}
+    return layers, levels
+
+
+def version(path):
+    """Versjonen av fila slik den ligger nå (git-blob, 12 tegn)."""
+    return git("hash-object", path)[:12]
+
+
+def version_at(path, when):
+    """Versjonen eieren så da svaret ble gitt (`when`, ISO-tid)."""
+    t = datetime.datetime.fromisoformat(when.replace("Z", "+00:00"))
+    page = max((p for p in PAGES if datetime.datetime.fromisoformat(p.replace("Z", "+00:00")) <= t), default=None)
+    if page:
+        commit = git("rev-list", "--reverse", "--since=" + page, "HEAD").split("\n")[0]
+    else:
+        commit = git("log", "-1", "--until=" + when, "--format=%H")
+    if not commit:
+        return None
+    return git("rev-parse", f"{commit}:{path}")[:12] or None
+
+
+def category(name, kind, path):
+    if kind == "tekstur":
+        return "textures"
+    folder = path.split("/")[2]
+    if folder in ("arms", "mobs", "crypt"):
+        return folder
+    if folder == "npcs":
+        return "people"
+    if folder == "town" and name.startswith(BUILDINGS):
+        return "town"
+    return "things"
+
+
+def load(name):
+    with open(os.path.join(DATA, name)) as f:
+        return json.load(f)
+
+
+def save(name, data):
+    with open(os.path.join(DATA, name), "w") as f:
+        json.dump(data, f, indent=1, ensure_ascii=False)
+        f.write("\n")
+
+
+def things():
+    """Alle modellene og teksturene i katalogen: (id, kind, name, path)."""
+    out = []
+    for n in load("models.json")["models"]:
+        p = locate(n, "modell")
+        if p:
+            out.append((f"m_{n}", "modell", n, p))
+    for n in load("textures.json")["textures"]:
+        p = locate(n, "tekstur")
+        if p:
+            out.append((f"t_{n}", "tekstur", n, p))
+    return out
+
+
+def state(entry, current, fix=None):
+    """Bunken for en ting: `venter`, `hos_meg` eller `godkjent`. En retting
+    (`fix`, fra `fixes.json`) som svarer på dommen som står, gjør at tingen
+    venter selv om modellen ser lik ut: det som ble rettet, kan ligge i en
+    annen modell (rundskjoldet: hånda i blokken er armene)."""
+    if not entry or entry.get("verdict") not in ("godkjent", "underkjent", "usikker"):
+        return "venter"
+    if entry.get("seen") != current:
+        return "venter"
+    ans = (fix or {}).get("answers")
+    if ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
+        return "venter"
+    return "godkjent" if entry["verdict"] == "godkjent" else "hos_meg"
+
+
+def fix_for(fixes, name):
+    """Den siste rettingen av tingen (`fixes.json`: navn → versjon → retting)."""
+    v = fixes.get(name) or {}
+    return list(v.values())[-1] if v else None
+
+
+def migrate(answers_dir):
+    """Én gang: `seen` for hver dom fra svartiden i samlingen `dom`
+    (`answers_dir`, lagret med ArtifactData `out_dir`)."""
+    ap = load("approvals.json")
+    at = {}
+    for f in glob.glob(os.path.join(answers_dir, "**", "*.json"), recursive=True):
+        with open(f) as fh:
+            at[os.path.basename(f)[:-5]] = json.load(fh).get("at")
+    n = 0
+    for id_, kind, name, path in things():
+        group = "models" if kind == "modell" else "textures"
+        e = ap.get(group, {}).get(name)
+        if not e or "seen" in e:
+            continue
+        when = at.get(id_) or (e.get("date", "") + "T23:59:59Z")
+        e["seen"] = version_at(path, when)
+        n += 1
+    save("approvals.json", ap)
+    return n
+
+
+# --- Bildene -------------------------------------------------------------------
+
+
+def blob_file(path, ver, tmp):
+    """Fila i versjon `ver` lagt i `tmp` (None om den ikke finnes)."""
+    full = git("rev-parse", "--verify", "--quiet", ver) if ver else ""
+    if not full:
+        return None
+    out = os.path.join(tmp, f"{ver}{os.path.splitext(path)[1]}")
+    with open(out, "wb") as f:
+        subprocess.run(["git", "cat-file", "blob", ver], cwd=ROOT, stdout=f, check=True)
+    return out
+
+
+def shots(kind, name, path, ver):
+    """Bildene av tingen i versjon `ver` (bufret i target/qa/review/shots):
+    modellene i studio fra faste vinkler, teksturene lagt 2 × 2."""
+    d = os.path.join(WORK, "shots", f"{name}@{ver}")
+    folk = "/npcs/" in path
+    names = ["sheet"] if folk else [v.split(":")[0] for v in VIEWS] if kind == "modell" else ["tile"]
+    files = [os.path.join(d, f"{v}.png") for v in names]
+    if all(os.path.exists(f) for f in files):
+        return files
+    os.makedirs(d, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        src = os.path.join(ROOT, path) if ver == version(path) else blob_file(path, ver, tmp)
+        if not src:
+            return []
+        if folk:
+            # Innbyggerne: arket, figuren fra fire kanter, gangen og
+            # nærbilder av hodet (`tools/models/folk_preview.py`).
+            who = name.removeprefix("npc_")
+            out = os.path.join(d, "sheet.jpg")
+            subprocess.run(["python3.13", os.path.join(ROOT, "tools", "models", "folk_preview.py"), src, who, out], cwd=ROOT, capture_output=True, check=True)
+            Image.open(out).convert("RGB").save(files[0])
+        elif kind == "modell":
+            env = dict(os.environ, FRISTAD_STUDIO_SIZE="640x448")
+            subprocess.run(["python3.13", STUDIO, src, os.path.join(d, "x"), *VIEWS], cwd=ROOT, env=env, capture_output=True, check=True)
+            for v in names:
+                os.replace(os.path.join(d, f"x_{v}.png"), os.path.join(d, f"{v}.png"))
+        else:
+            im = Image.open(src).convert("RGB").resize((320, 320), Image.LANCZOS)
+            big = Image.new("RGB", (640, 640))
+            for x in (0, 320):
+                for y in (0, 320):
+                    big.paste(im, (x, y))
+            big.save(files[0])
+    return files
+
+
+def same_look(a, b):
+    """To sett bilder ser like ut (snittforskjell under 1,5 av 255)."""
+    import numpy as np
+
+    if not a or not b or len(a) != len(b):
+        return False
+    for x, y in zip(a, b):
+        p = np.asarray(Image.open(x).convert("RGB"), dtype=float)
+        q = np.asarray(Image.open(y).convert("RGB"), dtype=float)
+        if p.shape != q.shape or abs(p - q).mean() > 1.5:
+            return False
+    return True
+
+
+def font(h):
+    for f in ("DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+        try:
+            return ImageFont.truetype(f, h)
+        except OSError:
+            pass
+    return ImageFont.load_default()
+
+
+def sheet(before, after, out):
+    """Ett bilde: én rad per vinkel, før til venstre og etter til høyre
+    (bare etter når det ikke finnes noe før)."""
+    rows = []
+    for i, a in enumerate(after):
+        b = before[i] if before and i < len(before) else None
+        ims = [Image.open(x).convert("RGB") for x in ([b, a] if b else [a])]
+        rows.append(ims)
+    w, h = rows[0][-1].size
+    cols = max(len(r) for r in rows)
+    img = Image.new("RGB", (cols * w + (cols - 1) * 8, len(rows) * h + (len(rows) - 1) * 8), (24, 26, 30))
+    draw = ImageDraw.Draw(img)
+    f = font(max(16, h // 18))
+    for r, ims in enumerate(rows):
+        for c, im in enumerate(ims):
+            x, y = c * (w + 8), r * (h + 8)
+            img.paste(im.resize((w, h)), (x, y))
+            if len(ims) == 2:
+                label = ("Før", "Etter")[c]
+                box = draw.textbbox((x + 10, y + 8), label, font=f)
+                draw.rectangle((box[0] - 6, box[1] - 4, box[2] + 6, box[3] + 4), fill=(24, 26, 30) if c == 0 else (40, 110, 70))
+                draw.text((x + 10, y + 8), label, fill=(255, 255, 255), font=f)
+    img.save(out, quality=84)
+
+
+# --- Siden ---------------------------------------------------------------------
+
+
+def build(out, render=True):
+    """Bygger siden i `out` (index.html, data.json og img/ med ett bilde per
+    kort som venter). Ting som er bygd på nytt uten å se annerledes ut,
+    beholder dommen (versjonen føres videre). Returnerer kortene."""
+    ap = load("approvals.json")
+    about = load("models.json")["models"]
+    tex = load("textures.json")["textures"]
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    img = os.path.join(out, "img")
+    if os.path.isdir(img):
+        shutil.rmtree(img)
+    os.makedirs(img, exist_ok=True)
+    items, carried = [], 0
+    for id_, kind, name, path in things():
+        group = "models" if kind == "modell" else "textures"
+        e = ap.get(group, {}).get(name)
+        cur = version(path)
+        fix = fix_for(fixes, name)
+        st = state(e, cur, fix)
+        before = after = None
+        if st == "venter" and render and e and e.get("seen"):
+            before, after = shots(kind, name, path, e["seen"]), shots(kind, name, path, cur)
+            # Bygd på nytt, men ser ut som det eieren så: dommen står. Ikke
+            # når jeg har rettet noe i denne versjonen (`fixes.json`):
+            # studiobildene utenfra så ikke at dolkspissen eller hullene i
+            # kryptbitene var rettet (13. oktober).
+            if not (fixes.get(name) or {}).get(cur) and same_look(before, after):
+                e["seen"] = cur
+                st = state(e, cur, fix)
+                carried += st != "venter"
+        item = {
+            "id": id_, "kind": kind, "cat": category(name, kind, path), "name": name, "version": cur, "state": st,
+            "about": about.get(name, "") if kind == "modell" else (tex.get(name) or {}).get("shows", ""),
+            "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
+            "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
+            "fixed": (fix or {}).get("text", []),
+            "path": path, "seen": (e or {}).get("seen"),
+        }
+        if st == "venter" and render:
+            if fix and fix.get("images"):
+                ims = [Image.open(os.path.join(ROOT, p)).convert("RGB") for p in fix["images"]]
+                w = max(i.width for i in ims)
+                ims = [i.resize((w, round(i.height * w / i.width))) for i in ims]
+                s = Image.new("RGB", (w, sum(i.height for i in ims) + 8 * (len(ims) - 1)), (24, 26, 30))
+                y = 0
+                for i in ims:
+                    s.paste(i, (0, y))
+                    y += i.height + 8
+                s.save(os.path.join(img, f"{id_}.jpg"), quality=84)
+            else:
+                after = after or shots(kind, name, path, cur)
+                if after:
+                    seen_b = before if before and e and e.get("seen") != cur else None
+                    sheet(seen_b, after, os.path.join(img, f"{id_}.jpg"))
+            item["img"] = f"img/{id_}.jpg" if os.path.exists(os.path.join(img, f"{id_}.jpg")) else None
+        items.append(item)
+    save("approvals.json", ap)
+    layers, levels = models_3d(out, items) if render else ({}, {})
+    for it in items:
+        it.pop("path", None)
+        it.pop("seen", None)
+    with open(os.path.join(out, "data.json"), "w") as f:
+        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels}, f, ensure_ascii=False)
+    shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
+    shutil.copy(os.path.join(HERE, "viewer.js"), os.path.join(out, "viewer.js"))
+    return items, carried
+
+
+def check(out):
+    """Det som venter, står på siden med bilde, og det er plass til alt.
+    Gir feilene som tekst (tom liste: alt er med)."""
+    with open(os.path.join(out, "data.json")) as f:
+        data = json.load(f)
+    ap = load("approvals.json")
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    seen = {it["id"]: it for it in data["items"]}
+    errors = []
+    for id_, kind, name, path in things():
+        group = "models" if kind == "modell" else "textures"
+        st = state(ap.get(group, {}).get(name), version(path), fix_for(fixes, name))
+        it = seen.get(id_)
+        if not it:
+            errors.append(f"{name} mangler på siden")
+        elif it["state"] != st:
+            errors.append(f"{name} står som {it['state']} på siden, men er {st}")
+        elif st == "venter" and not (it.get("img") and os.path.exists(os.path.join(out, it["img"]))):
+            errors.append(f"{name} venter, men har ikke bilde")
+    waiting = sum(1 for it in data["items"] if it["state"] == "venter")
+    if waiting > MAX_WAITING:
+        errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")
+    return errors
+
+
+def audit():
+    """Det som kan sjekkes uten å bygge siden (testen `dommen_mister_ingenting`):
+    hver dom har versjonen eieren så, hver ting i katalogen har en fil, og alt
+    som venter, får plass på siden. Gir feilene som tekst."""
+    ap = load("approvals.json")
+    errors = []
+    names = {"models": set(load("models.json")["models"]), "textures": set(load("textures.json")["textures"])}
+    found = {(("models" if k == "modell" else "textures"), n) for _, k, n, _ in things()}
+    for group in ("models", "textures"):
+        for n in names[group]:
+            if (group, n) not in found:
+                errors.append(f"{n} har ingen fil")
+        for n, e in ap.get(group, {}).items():
+            if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
+                errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    # «Rettet slik» er punkter (siden viser én linje per punkt).
+    for n, vs in fixes.items():
+        for v, fx in vs.items():
+            if not isinstance(fx.get("text", []), list):
+                errors.append(f"«rettet slik» for {n} ({v}) må være en liste med punkter")
+    waiting = sum(1 for _, k, n, p in things() if state(ap.get("models" if k == "modell" else "textures", {}).get(n), version(p), fix_for(fixes, n)) == "venter")
+    if waiting > MAX_WAITING:
+        errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")
+    return errors

@@ -1,0 +1,38 @@
+{
+ "ref": "assets/textures/people/ref/gorvek_body.jpeg",
+ "layout": "body3",
+ "scale": 0.0009,
+ "opt": {
+  "floor_line": true,
+  "open_holes": true,
+  "min_hole": 400,
+  "dome": 0,
+  "scale_per_view": true,
+  "mirror_texture": true,
+  "edge_slack": 8,
+  "edge_gain": 1.0,
+  "elliptic": true,
+  "elliptic_p": 2.5,
+  "elliptic_tol": 4,
+  "drop_mirrored_tool": true,
+  "style": "gorvek",
+  "tool_side": "R",
+  "tool_kind": "iron",
+  "model_tool": false,
+  "tool_box": [
+   [
+    95,
+    930,
+    690,
+    1452
+   ]
+  ],
+  "tool_strip": "color",
+  "depth_margin": 60,
+  "flake_frac": 0.04
+ },
+ "tris": 14000,
+ "target": "fristad",
+ "root": "../../..",
+ "head": "gorvek_head"
+}

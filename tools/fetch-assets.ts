@@ -11,7 +11,7 @@
 //
 // Kjøres i GitHub Actions (nettversjonen, og grenen external-assets som
 // `sh tools/pull-assets.sh` henter til skymiljøet). Lagnavnene er de i
-// `Layer::name` i src/domain/geometry.rs.
+// `Layer::name` i crates/fristad-domain/src/domain/geometry.rs.
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -39,27 +39,22 @@ const TEXTURES: Record<string, string[]> = {
   tiles: ["thatch_roof_angled", "thatch", "roof_shingles", "shingles"],
   // Bruddstein i murene.
   stone: ["castle_wall_slates", "medieval_wall_01", "stone_wall_04", "castle_wall", "stone_wall"],
-  // Hogd stein i borgen og kirka.
-  brick: ["castle_brick_02", "castle_brick", "stone_brick_wall", "brick"],
-  // Mørk, grovhogd eik i bjelkene.
-  oak: ["wood_planks_dirt", "dark_wood", "old_wood", "wood_table"],
+  // Hogd stein.
+  ashlar: ["castle_brick_02", "castle_brick", "stone_brick_wall", "brick"],
+  // Planker: gulv, bord, kasser.
+  planks: ["wood_floor", "wood_planks", "planks"],
   // Smijern med rust.
-  metal: ["rusty_metal_02", "rust_coarse_01", "rusty_metal", "metal"],
+  iron: ["rusty_metal_02", "rust_coarse_01", "rusty_metal", "metal"],
   // Eng.
-  grass: ["aerial_grass_rock", "grass_path_2", "leafy_grass", "grass"],
-  // Bark.
-  bark: ["bark_brown_02", "bark_willow", "pine_bark", "bark"],
+  meadow: ["aerial_grass_rock", "grass_path_2", "leafy_grass", "grass"],
   // Tråkket jord og søle på veiene.
-  gravel: ["brown_mud_leaves_01", "forest_ground_01", "brown_mud", "dirt", "mud"],
-  // Steinheller i krypten.
-  concrete: ["stone_tiles_02", "floor_tiles_06", "flagstone", "stone_floor"],
+  mud: ["brown_mud_leaves_01", "forest_ground_01", "brown_mud", "dirt", "mud"],
   // Lysere tømmer (laft, planker).
   timber: ["wood_planks", "pine_planks", "wooden_planks", "planks"],
   // Skogbunn med strå og løv.
-  plywood: ["forest_leaves_02", "forrest_ground_01", "forest_floor", "leaves"],
+  forest_floor: ["forest_leaves_02", "forrest_ground_01", "forest_floor", "leaves"],
   // Berg.
   rock: ["rock_face", "cliff_side", "rock_wall", "rock"],
-  snow: ["snow_02", "snow_field", "snow"],
   // Tråkket jord uten hjulspor på gårdsplassene.
   thatch: ["thatch_roof_angled", "thatch"],
   logs: ["log_wall", "logs"],
@@ -68,11 +63,46 @@ const TEXTURES: Record<string, string[]> = {
   wool: ["wool", "fabric"],
   linen: ["linen", "fabric"],
   leather: ["leather"],
-  cryptwall: ["damp_wall", "stone_wall"],
-  straw: ["straw", "hay"],
-  floor: ["wood_floor", "planks"],
-  soot: ["burnt_wall", "stone_wall"],
+  straw_floor: ["straw", "hay"],
+  // Pels, brynje, filt og vattert kjortel til figurene (bare egne bilder).
+  fur: [],
+  chainmail: [],
+  felt: [],
+  gambeson: [],
   earth: ["brown_mud_02", "dirt_floor", "mud_forest", "dirt"],
+  // Malte lag fra eieren (bare egne bilder).
+  plaster_white: [],
+  plaster_red: [],
+  plaster_old: [],
+  weatherboard: [],
+  weatherboard_grey: [],
+  wattle: [],
+  shingles: [],
+  shingles_tar: [],
+  trim: [],
+  door: [],
+  door_b: [],
+  timber_grey: [],
+  church_boards: [],
+  ruin: [],
+  wall_stone: [],
+  flagstone: [],
+  gravel: [],
+  chimney: [],
+  // Snødekket i været.
+  snow: [],
+  // Høvlet eik til møblene.
+  oak_planed: [],
+  // Gravkjelleren (krypten, tema 1) og Fristil-korrupsjonen.
+  crypt_wall: [],
+  crypt_floor: [],
+  crypt_vault: [],
+  grave_slab: [],
+  ossuary: [],
+  crypt_plaster: [],
+  rubble: [],
+  bronze_door: [],
+  glitch_seam: [],
 };
 
 const force = process.argv.includes("--force");

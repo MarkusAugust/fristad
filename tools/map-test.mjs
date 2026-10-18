@@ -39,23 +39,23 @@ const check = (ok, what) => {
   console.log(`${ok ? "ok  " : "FEIL"} ${what}`);
   if (!ok) failed++;
 };
-await page.goto(`http://127.0.0.1:${port}/${mode === "webgl" ? "?webgl" : ""}`);
+await page.goto(`http://127.0.0.1:${port}/?nofilm${mode === "webgl" ? "&webgl" : ""}`);
 await page.waitForFunction(() => window.fristad?.engine, null, { timeout: 180000 });
 await page.waitForSelector("#enter:not([hidden])", { timeout: 180000 });
-await page.click("#enter", { timeout: 120000 });
+// Klikk i siden selv: SwiftShader tegner så sakte at Playwright aldri ser knappen stå stille.
+await page.evaluate(() => document.querySelector("#enter").click());
 await page.waitForTimeout(1500);
 // Stolpene over knappelinja.
 check(await page.isVisible("#bars"), "liv og energi står over knappelinja");
 check(/\d+ \/ \d+/.test(await page.textContent("#hp-text")), `livet med tall: ${await page.textContent("#hp-text")}`);
 check(await page.isHidden("#minimap"), "oppe i byen er det ikke noe minikart");
 // Ned i kjelleren: minikartet kommer.
-// SwiftShader tegner sakte: redusert grafikk, og god tid.
-await page.keyboard.press("g");
+// SwiftShader tegner sakte: god tid (standard grafikk er valgt fra start).
 await page.evaluate(() => window.fristad.engine.descend());
 await page.waitForSelector("#minimap:not([hidden])", { timeout: 180000 });
 await page.waitForTimeout(8000);
 check(await page.isVisible("#minimap"), "minikartet står i hjørnet nede i kjelleren");
-check((await page.textContent("#map-name")).startsWith("Etasje 1"), `navnet på etasjen: ${await page.textContent("#map-name")}`);
+check((await page.textContent("#map-name")).startsWith("Nivå 1"), `navnet på nivået: ${await page.textContent("#map-name")}`);
 const lit = await page.evaluate(() => {
   const c = document.getElementById("minimap-canvas");
   const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;

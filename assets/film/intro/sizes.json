@@ -1,0 +1,213 @@
+{
+ "aaser_fjerne": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "aaser_naere": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "ansgar_bok": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "ansgar_ned": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "baal": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "byen_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "den_fremmede": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "folkemengde_bud": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "forgrunn_gress": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "forgrunn_steiner": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "herold": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.652,
+   "y": 0.6566,
+   "w": 0.0356,
+   "h": 0.2248
+  }
+ },
+ "himmel_morgen": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "inkvisitorer": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.5864,
+   "y": 0.5936,
+   "w": 0.0444,
+   "h": 0.2712
+  }
+ },
+ "jordlag": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "soft": [
+   "top"
+  ]
+ },
+ "kjopmenn": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "komponent_i_ramme": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "komponentboken": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "kongens_segl": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.5832,
+   "y": 0.8771,
+   "w": 0.0947,
+   "h": 0.1094
+  }
+ },
+ "lesepulten": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.4387,
+   "y": 0.6929,
+   "w": 0.0337,
+   "h": 0.2073
+  }
+ },
+ "munkene_lokker": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.6012,
+   "y": 0.5111,
+   "w": 0.0518,
+   "h": 0.3316
+  }
+ },
+ "natthimmel": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "omveiene": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.2864,
+   "y": 0.7516,
+   "w": 0.0679,
+   "h": 0.0472
+  }
+ },
+ "raadet": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "raadssal": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "rammeverket_reiser_seg": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.3025,
+   "y": 0.5159,
+   "w": 0.0664,
+   "h": 0.1059
+  }
+ },
+ "rammeverket_sover": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "skriptoriet_fasade": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout",
+  "hole": {
+   "x": 0.504,
+   "y": 0.494,
+   "w": 0.0806,
+   "h": 0.308
+  }
+ },
+ "skriptoriet_kveld": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "skriptoriet_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "torget_bud": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "plate"
+ },
+ "veien_natt": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ },
+ "veiskiltet": {
+  "w": 2048,
+  "h": 1143,
+  "kind": "cutout"
+ }
+}

@@ -1,0 +1,120 @@
+"""Nivå 5: Gruva.
+
+Nytt tema. Lærer å gå nedover i etapper: stoller med tømmerstiver, en malmhall med
+lasterampe, en heis med vinsj ned til den dype stollen, og malmvogner på skinner.
+Fellene er steinras og en løpsk malmvogn. Formannen bærer nøkkelen til porten ned.
+"""
+
+import math
+
+from plan import *
+
+
+def ngon(cx, cz, r, n, rot=0.0):
+    return [(round(cx + r * math.cos(rot + 2 * math.pi * i / n), 2),
+             round(cz + r * math.sin(rot + 2 * math.pi * i / n), 2)) for i in range(n)]
+
+
+LEVEL = Level(
+    n=5,
+    name="Gruva",
+    theme="Gruva og grottene",
+    intro="Trappa fra cisternen ender i gruveinngangen ved lavehuset. Stollene går ned i berget; "
+          "heisen i vinsjhuset er bremset fast, og porten ned er låst med formannens nøkkel.",
+    rooms=[
+        Room("inngang", "Gruveinngangen", ("rect", 0, 0, 8, 7), y=0, h=5,
+             note="Start. Trappa opp til nivå 4. Skinnene begynner her."),
+        Room("lavehus", "Lavehuset", ("rect", -16, 6, 9, 8), y=0, h=4,
+             note="Hvilestedet: gruvearbeidernes hus med lampetavla. Luka i gulvet er snarveien opp luftesjakta."),
+        Room("hovedstoll", "Hovedstollen", ("rect", 0, 21, 4.5, 18), y=-1, h=3.2,
+             note="Smal stoll med tømmerstiver hver andre meter og skinner i gulvet. To av stivene i vest bærer ingenting."),
+        Room("forseglet", "Den forseglede stollen", ("rect", -13, 26, 8, 7), y=-1, h=3, secret=True,
+             note="Bak en tømmervegg som ser ut som stiver: gruvefogdens regnskap og varig styrke."),
+        Room("malmhall", "Malmhallen", ("poly", [(10, 32), (26, 30), (36, 36), (34, 48), (20, 52), (8, 44)]),
+             y=-3, h=9, levels=[("rect", 31, 41, 5, 10, -0.5)],
+             note="Stor hall der malmen ble sortert. Lasterampe (−0,5 m) i øst med en malmrenne, og vogner på sidespor."),
+        Room("gammelstoll", "Den gamle stollen", ("rect", 54, 40, 30, 3.5), y=-3, h=3,
+             note="Gamle, morkne stiver. Midt i stollen knaker de, og taket raser. Et morkent lokk i gulvet lengst øst."),
+        Room("vinsjhus", "Vinsjhuset", ("rect", 78, 40, 10, 10), y=-3, h=8,
+             note="Vinsjen og heissjakta. Spaken løsner bremsen; heisen går 14 m ned og kan kalles opp igjen."),
+        Room("krystallkammer", "Krystallkammeret", ("rect", 64, 52, 7, 6), y=-11, h=3, secret=True,
+             note="Under lokket i den gamle stollen: en sjakt ned til et lite kammer fullt av lysende krystaller og Tag."),
+        Room("heisbunn", "Heisbunnen", ("poly", [(66, 62), (84, 60), (90, 72), (80, 80), (68, 78)]),
+             y=-17, h=7, note="Bunnen av heissjakta: en grotte med lagerhyller og to veier videre, skinnene i sør og krystallåra i vest."),
+        Room("krystallaara", "Krystallåra", ("poly", [(38, 56), (52, 54), (58, 62), (54, 72), (40, 72), (36, 64)]),
+             y=-16, h=6, note="Naturlig grotte langs en åre av lysende krystaller. Lyset er blått og kaldt, og spinnerne lever her."),
+        Room("vognbane", "Vognbanen", ("rect", 50, 86, 36, 4), y=-18, h=3.5,
+             note="Lang, svakt hellende stoll med skinner mot vest. En trykkplate slipper en lastet vogn løs fra øst."),
+        Room("lagerrom", "Kruttkammeret", ("rect", 40, 96, 8, 6), y=-18, h=3, secret=True,
+             note="Bak en morken bordvegg i svingen. Den løpske vogna knuser veggen om du lar den gå: kiste og varig styrke."),
+        Room("smeltehule", "Smeltehula", ("circle", 18, 82, 10), y=-19, h=10,
+             note="Den gamle smelteovnen gløder fortsatt. Formannen holder til her, med nøkkelen i beltet."),
+        Room("gruveport", "Gruveporten", ("rect", 8, 104, 12, 8), y=-20, h=6,
+             note="Jernporten ned er låst. Eikedør med slå i vest til luftesjakta (snarveien)."),
+        Room("nedgang", "Nedgangen", ("rect", 8, 120, 8, 6), y=-21, h=5,
+             note="Trappa ned til krystallgrotta. Et blått lys og lyden av vann langt nede."),
+    ],
+    links=[
+        Link("inngang", "lavehus", DOOR, width=2.5),
+        Link("inngang", "hovedstoll", HALL, width=3),
+        Link("hovedstoll", "forseglet", SECRET, note="tømmervegg"),
+        Link("hovedstoll", "malmhall", HALL, path=[(0, 32)], width=3),
+        Link("malmhall", "gammelstoll", HALL, path=[(36, 40)], width=2.5),
+        Link("gammelstoll", "vinsjhus", DOOR, width=2.5),
+        Link("gammelstoll", "krystallkammer", FALL, path=[(64, 42)], note="det morkne lokket"),
+        Link("krystallkammer", "krystallaara", SECRET, note="sprekk bak krystallene"),
+        Link("vinsjhus", "heisbunn", LIFT, path=[(80, 50)], width=2.5, note="heisen, 14 m ned"),
+        Link("heisbunn", "krystallaara", HALL, path=[(60, 66)], width=2.5),
+        Link("heisbunn", "vognbane", HALL, path=[(78, 86)], width=3),
+        Link("vognbane", "lagerrom", SECRET, path=[(40, 88)], note="bordveggen, knust av vogna"),
+        Link("vognbane", "smeltehule", HALL, width=3),
+        Link("krystallaara", "smeltehule", HALL, path=[(30, 70)], width=2.5),
+        Link("smeltehule", "gruveport", HALL, width=3),
+        Link("gruveport", "nedgang", GATE, note="jernporten, låst; nøkkelen har formannen"),
+        Link("gruveport", "lavehus", SHORTCUT, path=[(-14, 104), (-26, 60), (-26, 10)], width=2,
+             note="luftesjakta: stiger 20 m opp, luka åpnes fra under"),
+    ],
+    marks=[
+        Mark(START, 0, 1),
+        Mark(UP, 0, -3, "opp til nivå 4"),
+        Mark(REST, -18, 6, "alteret"),
+        Mark(MOB, 0, 26, "spinner", n=2, patrol=[(0, 13), (0, 29)]),
+        Mark(HINT, -2, 18, "stiver uten last"),
+        Mark(LORE, -15, 25, "regnskapet"),
+        Mark(BONUS, -12, 28, "+ liv"),
+        Mark(MOB, 18, 40, "knapp", n=3),
+        Mark(MOB, 31, 39, "progress", n=2),
+        Mark(MOB, 22, 47, "tooltip", n=2),
+        Mark(CHEST, 12, 43),
+        Mark(MOB, 42, 40, "slider", patrol=[(40, 40), (68, 40)]),
+        Mark(TRAP, 53, 40, "steinras"),
+        Mark(HINT, 65, 40, "lokk"),
+        Mark(RARE, 64, 52, "Tag"),
+        Mark(LEVER, 81, 37, "vinsjen"),
+        Mark(MOB, 76, 43, "spinner", n=3),
+        Mark(MOB, 78, 70, "slider", n=2, patrol=[(70, 66), (84, 64), (86, 74), (72, 76)]),
+        Mark(MOB, 74, 76, "tooltip i bakhold", n=3),
+        Mark(MOB, 46, 63, "spinner", n=3),
+        Mark(CHEST, 52, 69),
+        Mark(MOB, 51, 86, "progress", n=2),
+        Mark(TRAP, 64, 86, "løpsk vogn"),
+        Mark(HINT, 38, 88, "morkne bord"),
+        Mark(CHEST, 38, 96),
+        Mark(BONUS, 42, 97, "+ utholdenhet"),
+        Mark(ELITE, 16, 84, "Progress-formannen"),
+        Mark(MOB, 22, 78, "spinner + knapp", n=4),
+        Mark(MOB, 8, 104, "slider", n=2),
+        Mark(DOWN, 8, 120, "til nivå 6"),
+    ],
+    main=["inngang", "hovedstoll", "malmhall", "gammelstoll", "vinsjhus", "heisbunn",
+          "vognbane", "smeltehule", "gruveport", "nedgang"],
+    notes=[
+        "Lærer å gå ned i etapper: stoll, hall, heis, dyp stoll. Skinnene i gulvet går hele hovedveien fra inngangen til smeltehula, så du kan alltid følge dem.",
+        "Landemerket: heissjakta. Du ser vinsjhjulet og kjettingene fra malmhallen, og nede i heisbunnen ser du opp i sjakta til lyset i vinsjhuset.",
+        "Lyset: gule gruvelamper henger langs hovedveien; krystallåra er blå og kald, smeltehula rødglødende. Gløden fra ovnen synes i enden av vognbanen.",
+        "Løkka: heisbunnen → krystallåra → smeltehula → vognbanen → heisbunnen. Snarveien er luftesjakta fra gruveporten opp til lavehuset (hvilestedet).",
+        "Hemmelighetene: tømmerveggen i hovedstollen (regnskapet, + liv), det morkne lokket i den gamle stollen ned til krystallkammeret (Tag, og en kort vei ned til krystallåra), og kruttkammeret som den løpske vogna knuser opp (+ utholdenhet).",
+        "Fellene: steinras i den gamle stollen (stivene knaker, løp) og en løpsk malmvogn i vognbanen; begge varsles med lyd først.",
+        "Nye fiender: spinner (snurrer som et bor og graver seg fram), progress (lader opp et slag mens stolpen fylles) og slider (glir langs skinnene og veggene). Eliten er Progress-formannen med nøkkelen.",
+    ],
+)

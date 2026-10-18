@@ -54,9 +54,9 @@ pub fn from_files(manifest_json: &str, files: &HashMap<String, Vec<u8>>) -> Vec<
         }
     };
     let image = |p: &Option<String>| -> Option<Image> {
-        let bytes = files.get(p.as_ref()?)?;
-        let img = image::load_from_memory(bytes).ok()?.into_rgba8();
-        Some(Image { width: img.width(), height: img.height(), rgba: img.into_raw() })
+        // Kodet til rendereren pakker ut ett lag om gangen (`gltf::pixels`):
+        // utpakket på forhånd holdt de 276 bildene over 1 GB i wasm-haugen.
+        crate::adapters::gltf::encoded(files.get(p.as_ref()?)?, 0)
     };
     let mut out = vec![];
     for layer in Layer::ALL {
@@ -66,6 +66,13 @@ pub fn from_files(manifest_json: &str, files: &HashMap<String, Vec<u8>>) -> Vec<
     }
     log::info!("Teksturlag: {}", out.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
     out
+}
+
+/// Lagene i `used` som ikke har et bilde i `have`. Et lag uten bilde ville
+/// falt stille tilbake til det prosedyriske fra `bake.wgsl` (hvite dører og
+/// murstein i stedet for hogd stein, 11. okt.), så det er en feil.
+pub fn missing<'a>(have: &[(Layer, LayerImages)], used: impl IntoIterator<Item = &'a String>) -> Vec<String> {
+    used.into_iter().filter(|u| !have.iter().any(|(l, _)| l.name() == u.as_str())).cloned().collect()
 }
 
 /// Lagene i en katalog (`assets/external`), om den finnes.

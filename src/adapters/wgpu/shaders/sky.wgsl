@@ -1,5 +1,5 @@
 // Himmelen: gradient, sol, skyer, og om natta stjerner, måne og nordlys.
-// Tåka legges på etterpå i tåkepasset, som også dekker himmelen.
+// Tåka legges over som om himmelen sto 600 m unna.
 
 struct SkyOut {
     @builtin(position) clip: vec4<f32>,
@@ -56,6 +56,16 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     let far = g.inv_view_proj * vec4<f32>(i.ndc, 1.0, 1.0);
     let near = g.inv_view_proj * vec4<f32>(i.ndc, 0.0, 1.0);
     let dir = normalize(far.xyz / far.w - near.xyz / near.w);
+    // `--debug void`: himmelen magenta, så hull i krypten kan telles.
+    if (i32(g.sky.w) == 7) {
+        return vec4<f32>(4.0, 0.0, 4.0, 1.0);
+    }
+    // Nede i krypten (rommene er med) er det jord rundt, ingen himmel: en
+    // sprekk i muren blir en mørk strek, aldri en lys kile (eieren 13.
+    // oktober). Sprekkene finnes likevel med `--debug void` over.
+    if (g.room_info.x > 0.0) {
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
     let night = g.sun_color.w;
     let cover_amount = g.sky.x;
 
@@ -65,7 +75,7 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     // fra været gjør dem tettere og mørkere.
     if (dir.y > 0.0) {
         let t = g.camera.w;
-        let p = dir.xz / (dir.y + 0.08) * 1.6 + vec2<f32>(t * 0.004 + g.jitter.w * t * 0.01, t * 0.001);
+        let p = dir.xz / (dir.y + 0.08) * 1.6 + vec2<f32>(t * 0.004 + g.misc.x * t * 0.01, t * 0.001);
         let shape = fbm2(p * 0.9) * 0.65 + fbm2(p * 2.7 + 4.0) * 0.35;
         let lo = mix(0.5, 0.18, cover_amount);
         let hi = mix(0.78, 0.5, cover_amount);
@@ -89,5 +99,7 @@ fn fs(i: SkyOut) -> @location(0) vec4<f32> {
     }
     // Lyn: hele himmelen blinker.
     c += vec3<f32>(0.8, 0.85, 1.0) * g.sky.z * (0.3 + 0.7 * smoothstep(-0.2, 0.6, dir.y));
-    return vec4<f32>(c, 1.0);
+    // Tåka over himmelen, som om den sto 600 m unna.
+    // Alfa 0: himmel (masken til solstrålene i tonemappingen).
+    return vec4<f32>(fog(c, g.camera.xyz + dir * 600.0), 0.0);
 }

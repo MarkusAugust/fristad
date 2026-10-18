@@ -1,21 +1,14 @@
-"""Husene i kjøpstaden, modellert i Blender (bpy) og eksportert til
-assets/models/town/. Kjør:
-
-    python3 tools/models/town.py [house_a house_b ...]
-
-Husene er bygd av ekte deler: steinsokkel, bindingsverk av enkeltbjelker
-med skråstag, kalkpuss mellom, framskutt overetasje med bjelkeender,
-vinduer med karm, glass og skodder, plankedør med jernbeslag, og bratt
-spontak med vindskier, mønebord og steinpipe.
-
-Materialene er teksturlagene i motoren (`layer_<lag>`), lagt på etter uv i
-meter som regnes ut for hver del før den dreies, så årene følger bjelkene
-og spon-radene følger takflaten. Okklusjonen bakes i hjørnefargen (Cycles
-AO til vertex colors), så fugene og krokene blir mørke.
+"""Felles hjelpere for modellene i byen (brukes av `kit.py`, `houses.py`,
+`tavern.py`, `workshops.py`, `sacred.py`, `fortress.py`, `streetlife.py`,
+`street.py`, `home.py`, `yard.py` og `portal.py`): materialene (`layer`,
+`plain`), deler med uv i meter (`block`, `beam`, `prism`, `uv_box`),
+registrene som `finish` skriver til `<navn>_inside.json` (`collide`, `ramp`,
+`light`, `lamp`, `prop`, `wall_lantern`, røyken), vindusruter med dagslys
+(`daylight`), og `finish` (slår sammen, deler lange kanter, baker
+okklusjonen i hjørnefargen og eksporterer).
 
 Akser i Blender: X til høyre, −Y fram (gata), Z opp. Origo midt på
-grunnflaten i bakkehøyde. I motoren blir −Y til +Z, så døra vender mot
-lokal +Z som byen forventer."""
+grunnflaten i bakkehøyde. I motoren blir −Y til +Z."""
 
 import math
 import os
@@ -74,10 +67,10 @@ class M:
     def __init__(self, plaster_tint=(0.42, 0.4, 0.37), timber_tint=(1.0, 1.0, 1.0), roof="tiles"):
         self.stone = layer("stone", (0.5, 0.48, 0.45), 0.5)
         self.plaster = layer("plaster", plaster_tint, 0.5)
-        self.timber = layer("oak", timber_tint, 0.5)
+        self.timber = layer("timber", timber_tint, 0.5)
         self.boards = layer("cladding", (0.6, 0.57, 0.53), 0.5)
         self.roof = layer(roof, (0.62, 0.62, 0.6) if roof == "slate" else (1.0, 1.0, 1.0), 0.5)
-        self.iron = layer("metal", (0.55, 0.5, 0.48), 0.5)
+        self.iron = layer("iron", (0.55, 0.5, 0.48), 0.5)
         self.glass = plain("glass", (0.05, 0.06, 0.06), 0.05)
 
 
@@ -111,9 +104,161 @@ def light(c, color=(1.0, 0.6, 0.3), intensity=1.0, radius=5.0):
 # som «lamps».
 LAMPS = []
 
+# Hus man kan gå inn i: lyset inne skinner ut gjennom rutene om natta
+# (`daylight`, satt i `buildings.py`).
+LIT = False
+
+# Pipene som ryker: toppen og tykkelsen (0..1); `finish` skriver dem som
+# «smoke».
+SMOKE = []
+
 
 def lamp(c, color=(1.0, 0.68, 0.38), intensity=1.6, radius=8.0):
     LAMPS.append((tuple(c), tuple(color), intensity, radius))
+
+
+# Småting ute (tønner, kasser, vedstabler) som hører til huset, men står på
+# bakken, ikke på modellens z = 0: `finish` skriver dem som «props», og byen
+# setter hver av dem på terrenget med `Builder::place` (så `audit` gjelder).
+# (modellnavn i `models!`, (x, y) i husets akser, yaw om z)
+PROPS = []
+
+
+def prop(name, x, y, yaw=0.0):
+    PROPS.append((name, (x, y), yaw))
+
+
+# --- Møblene som egne modeller ----------------------------------------------
+#
+# `with piece("bench", (x, y, z), yaw):` rundt koden som lager et møbel: det
+# som lages i blokka (deler, kollidere, lys), tas ut av huset. Første gang et
+# navn brukes, blir det modellen `assets/models/furniture/<navn>.glb` (med
+# kolliderne og lysene i `<navn>_inside.json`, i møbelets eget rom, origo på
+# gulvet midt under), og hver gang skrives stedet til
+# `assets/layout/inside/<hus>.json` (`write_contents`). Samme navn må gi samme
+# møbel; et møbel med en annen farge får et eget navn.
+
+FURNITURE = "assets/models/furniture"
+PLACED = []      # (navn, (x, y, z), yaw, targets) i husets akser
+# Veggene (fra `kit.slab_grid`): (ramme, lengde, z0, z1, tykkelse, hull).
+# Hvert møbel sjekkes mot dem (`check_piece`).
+WALLS = []
+_WALL_MARK = 0
+
+
+def check_points(name, pts, gap=0.4):
+    """Punktene (verden) går ikke inn i en vegg og står ikke innen `gap`
+    foran et vindu (se `check_piece`)."""
+    _check(name, pts, gap)
+
+
+def check_piece(name, made):
+    """Et møbel går ikke inn i en vegg (mer enn 3 cm) og dekker ikke et
+    vindu (står ikke innen 40 cm foran en åpning som ikke går fra gulvet);
+    ellers stopper eksporten (eierens dom i runde 7: tønner i veggene,
+    hyller over vinduet)."""
+    _check(name, [o.matrix_world @ v.co for o in made if o.type == "MESH" for v in o.data.vertices], 0.4)
+
+
+def _check(name, pts, gap):
+    for (px, py), (dx, dy), L, z0, z1, thick, holes in WALLS:
+        nx, ny = -dy, dx
+        for p in pts:
+            s = (p.x - px) * dx + (p.y - py) * dy
+            t = (p.x - px) * nx + (p.y - py) * ny
+            if not (0.02 < s < L - 0.02 and z0 + 0.02 < p.z < z1 - 0.02):
+                continue
+            hole = next((h for h in holes if h[0] - 0.02 < s < h[1] + 0.02 and h[2] - 0.02 < p.z < h[3] + 0.02), None)
+            if hole is None:
+                if abs(t) < thick / 2 - 0.03:
+                    raise SystemExit(f"møbelet «{name}» går {thick / 2 - abs(t):.2f} m inn i veggen ved ({p.x:.2f}, {p.y:.2f}, {p.z:.2f})")
+            elif hole[2] > z0 + 0.3 and abs(t) < thick / 2 + gap and hole[0] + 0.03 < s < hole[1] - 0.03 and hole[2] + 0.03 < p.z < hole[3] - 0.03:
+                raise SystemExit(f"møbelet «{name}» dekker vinduet ved ({p.x:.2f}, {p.y:.2f}, {p.z:.2f})")
+_PIECE_DEFS = {}  # navn -> (blend-fil, trekanter, kollidere, lys, hull)
+
+
+class piece:
+    def __init__(self, name, at, yaw=0.0, targets=()):
+        self.name, self.at, self.yaw, self.targets = name, tuple(at), yaw, list(targets)
+
+    def __enter__(self):
+        self.before = set(bpy.data.objects)
+        self.n = (len(COLLIDERS), len(LIGHTS), len(HULLS))
+        return self
+
+    def __exit__(self, *exc):
+        if exc[0]:
+            return False
+        bpy.context.view_layer.update()  # deler med location/rotation satt
+        made = [o for o in bpy.data.objects if o not in self.before]
+        check_piece(self.name, made)
+        cols, lights, hulls = COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
+        del COLLIDERS[self.n[0]:], LIGHTS[self.n[1]:], HULLS[self.n[2]:]
+        for o in made:
+            if o in PIECES:
+                PIECES.remove(o)
+        # Til møbelets eget rom: flytt og drei tilbake.
+        c, s = math.cos(-self.yaw), math.sin(-self.yaw)
+        ox, oy, oz = self.at
+        local = lambda v: ((v[0] - ox) * c - (v[1] - oy) * s, (v[0] - ox) * s + (v[1] - oy) * c, v[2] - oz)
+        tris = sum(len(p.vertices) - 2 for o in made if o.type == "MESH" for p in o.data.polygons)
+        if self.name not in _PIECE_DEFS:
+            os.makedirs("target/pieces", exist_ok=True)
+            blend = f"target/pieces/{self.name}.blend"
+            to = Matrix.Rotation(-self.yaw, 4, "Z") @ Matrix.Translation((-ox, -oy, -oz))
+            for o in made:
+                if o.parent is None:
+                    o.matrix_world = to @ o.matrix_world
+            bpy.data.libraries.write(blend, set(made), fake_user=True)
+            _PIECE_DEFS[self.name] = (blend, tris, [(local(cc), sz, y - self.yaw) for cc, sz, y in cols], [(local(cc), col, i, r) for cc, col, i, r in lights], [[local(q) for q in pts] for pts in hulls])
+        elif _PIECE_DEFS[self.name][1] != tris:
+            raise RuntimeError(f"møbelet «{self.name}» har {tris} trekanter her, men {_PIECE_DEFS[self.name][1]} første gang: gi det et eget navn")
+        for o in made:
+            bpy.data.objects.remove(o, do_unlink=True)
+        PLACED.append((self.name, self.at, self.yaw, self.targets))
+        return False
+
+
+def write_contents(house):
+    """Skriv stedene til møblene i `house` til `assets/layout/inside/<hus>.json`
+    (motorens akser, husets rom), om fila ikke finnes: etter første gang er
+    fila sannheten, og redigeringsmodusen endrer den. Så eksporteres møblene
+    som er nye (`FRISTAD_PIECES=alle` eksporterer alle på nytt)."""
+    import json
+    path = f"assets/layout/inside/{house}.json"
+    if not os.path.exists(path) or os.environ.get("FRISTAD_CONTENTS") == "skriv":
+        items = []
+        for name, (x, y, z), yaw, targets in PLACED:
+            h = yaw / 2
+            items.append({"at": {"pos": [round(x, 5), round(z, 5), round(-y, 5)], "rot": [0, round(math.sin(h), 5), 0, round(math.cos(h), 5)]}, "model": name, "mounted": True, **({"targets": targets} if targets else {})})
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("[\n" + ",\n".join("  " + json.dumps(i, separators=(",", ":"), ensure_ascii=False) for i in items) + "\n]\n")
+        print(f"{path}: {len(items)} møbler (kjør `cargo run --bin layout` for fast form)")
+    else:
+        print(f"{path} finnes og skrives ikke over")
+    PLACED.clear()
+    export_pieces()
+
+
+def export_pieces():
+    """Hvert møbel i sin egen glb, med kolliderne og lysene sine."""
+    defs = dict(_PIECE_DEFS)
+    _PIECE_DEFS.clear()
+    for name, (blend, _, cols, lights, hulls) in defs.items():
+        out = f"{FURNITURE}/{name}.glb"
+        if os.path.exists(out) and os.environ.get("FRISTAD_PIECES") != "alle":
+            continue
+        clear()
+        PIECES.clear()
+        with bpy.data.libraries.load(blend) as (src, dst):
+            dst.objects = list(src.objects)
+        for o in dst.objects:
+            bpy.context.scene.collection.objects.link(o)
+        COLLIDERS.extend(cols)
+        LIGHTS.extend(lights)
+        HULLS.extend(hulls)
+        finish(out, max_edge=100.0)
 
 
 def wall_lantern(m, x, y_face, z, normal_y):
@@ -256,85 +401,6 @@ def prism(name, pts2d, depth, mat, at, rot=(0, 0, 0)):
     return ob
 
 
-def keep_uv(target, names):
-    """Booleanen tar med uv-lagene til kutteren; behold bare de målet hadde
-    (ellers eksporteres kubens 0..1-uv i stedet for uv i meter)."""
-    for layer in [l for l in target.data.uv_layers if l.name not in names]:
-        target.data.uv_layers.remove(layer)
-
-
-# Steiner som står ut av en mur (navnet på muren → delene), så hull som
-# skjæres senere kan ta dem med.
-RELIEF = {}
-
-
-def clear_relief(target, size, at, margin=0.3):
-    """Fjern steinene utenpå `target` som ligger i åpningen."""
-    keep = []
-    for ob in RELIEF.get(target.name, []):
-        p = ob.location
-        if all(abs(p[i] - at[i]) < size[i] / 2 + margin for i in range(3)):
-            if ob in PIECES:
-                PIECES.remove(ob)
-            bpy.data.objects.remove(ob, do_unlink=True)
-        else:
-            keep.append(ob)
-    if target.name in RELIEF:
-        RELIEF[target.name] = keep
-
-
-def cut(target, size, at, rot=(0, 0, 0)):
-    """Skjær et hull (vindu, dør) gjennom en del, med boolean."""
-    clear_relief(target, size, at)
-    names = {l.name for l in target.data.uv_layers}
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=at, rotation=rot)
-    c = bpy.context.active_object
-    c.scale = size
-    mod = target.modifiers.new("cut", "BOOLEAN")
-    mod.operation = "DIFFERENCE"
-    mod.object = c
-    mod.solver = "EXACT"
-    bpy.context.view_layer.objects.active = target
-    bpy.ops.object.modifier_apply(modifier=mod.name)
-    bpy.data.objects.remove(c)
-    keep_uv(target, names)
-
-
-def carve(target, cutters):
-    """Skjær bort alt av `target` som ligger inne i `cutters` (én boolean
-    mot en samling), og regn uv på nytt."""
-    if not cutters:
-        return
-    coll = bpy.data.collections.new("cutters")
-    bpy.context.scene.collection.children.link(coll)
-    copies = []
-    for c in cutters:
-        d = c.copy()
-        d.data = c.data
-        coll.objects.link(d)
-        copies.append(d)
-    names = {l.name for l in target.data.uv_layers}
-    mod = target.modifiers.new("carve", "BOOLEAN")
-    mod.operation = "DIFFERENCE"
-    mod.operand_type = "COLLECTION"
-    mod.collection = coll
-    mod.solver = "EXACT"
-    bpy.context.view_layer.objects.active = target
-    bpy.ops.object.modifier_apply(modifier=mod.name)
-    for d in copies:
-        bpy.data.objects.remove(d)
-    bpy.data.collections.remove(coll)
-    keep_uv(target, names)
-    uv_box(target)
-
-
-# --- Delene i et hus ------------------------------------------------------
-
-
-# Hus man kan gå inn i: lyset inne skinner ut gjennom rutene om natta.
-LIT = False
-
-
 def daylight(ob, inward):
     """Flatene på ruta som vender inn i huset får «glass_day»: innenfra
     skinner dagslyset gjennom, utenfra speiler ruta som før. I hus man kan
@@ -358,322 +424,14 @@ def daylight(ob, inward):
     return ob
 
 
-def window(m, x, z, y_face, w, h, normal_y, shutters=True, rng=None):
-    """Et vindu i en vegg med yta i y = y_face (normalen ±y): karm, sprosser,
-    glass innfelt, og skodder som står ut."""
-    s = normal_y
-    t = 0.07
-    # Karmen: fire bjelker rundt hullet.
-    beam("win_top", (x - w / 2 - t, y_face + s * 0.03, z + h / 2 + t / 2), (x + w / 2 + t, y_face + s * 0.03, z + h / 2 + t / 2), 0.1, t, m.timber)
-    beam("win_bot", (x - w / 2 - t, y_face + s * 0.05, z - h / 2 - t / 2), (x + w / 2 + t, y_face + s * 0.05, z - h / 2 - t / 2), 0.14, t, m.timber)
-    for sx in (-1, 1):
-        beam("win_side", (x + sx * (w / 2 + t / 2), y_face + s * 0.03, z - h / 2), (x + sx * (w / 2 + t / 2), y_face + s * 0.03, z + h / 2), 0.1, t, m.timber)
-    # Glasset innfelt, med blysprosser i rutemønster.
-    daylight(block("glass", (w, 0.02, h), m.glass, at=(x, y_face - s * 0.12, z), bevel=0), (0, -s, 0))
-    # Blysprossene på begge sider av glasset.
-    for g in (0.11, 0.13):
-        for k in range(1, 3):
-            block("lead", (0.012, 0.012, h), m.iron, at=(x - w / 2 + w * k / 3, y_face - s * g, z), bevel=0)
-        for k in range(1, 4):
-            block("lead", (w, 0.012, 0.012), m.iron, at=(x, y_face - s * g, z - h / 2 + h * k / 4), bevel=0)
-    if shutters:
-        # Skoddene: to plankeflater som står litt ut fra veggen, slått opp.
-        for sx in (-1, 1):
-            ang = sx * (math.radians(100 + (rng.uniform(-8, 8) if rng else 0)))
-            hinge = Vector((x + sx * (w / 2 + t), y_face + s * 0.05, z))
-            sw = w / 2
-            ob = block("shutter", (sw, 0.035, h + 0.04), m.boards, bevel=0.006)
-            ob.rotation_euler = Euler((0, 0, ang * (1 if s < 0 else -1) * -1))
-            off = Matrix.Rotation(ob.rotation_euler.z, 4, "Z") @ Vector((sx * sw / 2, 0, 0))
-            ob.location = hinge + off.xyz
-            for zz in (-h * 0.3, h * 0.3):
-                hb = block("hinge", (sw * 0.9, 0.045, 0.035), m.iron, bevel=0.004)
-                hb.rotation_euler = ob.rotation_euler
-                hb.location = hinge + off.xyz + Vector((0, 0, zz))
-
-
-def door(m, x, y_face, normal_y, w=1.0, h=2.0, z0=0.0, open=False):
-    """Plankedør med jernbeslag og ring, i karm, med steintrinn foran.
-    `open`: døra står slått innover, hengslet på venstre side."""
-    s = normal_y
-    t = 0.12
-    for sx in (-1, 1):
-        beam("door_post", (x + sx * (w / 2 + t / 2), y_face + s * 0.04, z0), (x + sx * (w / 2 + t / 2), y_face + s * 0.04, z0 + h + t), 0.14, t, m.timber)
-    beam("door_lintel", (x - w / 2 - t, y_face + s * 0.05, z0 + h + t / 2), (x + w / 2 + t, y_face + s * 0.05, z0 + h + t / 2), 0.16, t, m.timber)
-    # Plankene, litt ulike, innfelt i døråpningen.
-    n = 5
-    if open:
-        # Slått innover om hengslet: plankene langs en retning inn i huset.
-        a = math.radians(95)
-        d = Vector((math.cos(a), -s * math.sin(a), 0))
-        hinge = Vector((x - w / 2, y_face - s * 0.06, 0))
-        for k in range(n):
-            u = w * (k + 0.5) / n
-            block("door_plank", (w / n - 0.006, 0.05, h), m.boards, at=hinge + d * u + Vector((0, 0, z0 + h / 2)), rot=(0, 0, math.atan2(d.y, d.x)), bevel=0.005)
-        for zz in (0.35, h - 0.35):
-            block("door_strap", (w * 0.85, 0.02, 0.06), m.iron, at=hinge + d * (w * 0.45) + Vector((s * 0.03 * d.y, 0, z0 + zz)), rot=(0, 0, math.atan2(d.y, d.x)), bevel=0.004)
-        block("step", (w + 0.5, 0.45, 0.18), m.stone, at=(x, y_face + s * 0.25, z0 - 0.06), bevel=0.03, segments=2)
-        return
-    for k in range(n):
-        px = x - w / 2 + w * (k + 0.5) / n
-        block("door_plank", (w / n - 0.006, 0.05, h), m.boards, at=(px, y_face - s * 0.06, z0 + h / 2), bevel=0.005)
-    for zz in (0.35, h - 0.35):
-        block("door_strap", (w * 0.85, 0.02, 0.06), m.iron, at=(x - w * 0.05, y_face - s * 0.03, z0 + zz), bevel=0.004)
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.06, minor_radius=0.01, location=(x + w * 0.3, y_face - s * 0.02, z0 + 1.0), rotation=(math.pi / 2, 0, 0))
-    ring = bpy.context.active_object
-    ring.data.materials.append(m.iron)
-    uv_box(ring)
-    PIECES.append(ring)
-    # Steintrinnet.
-    block("step", (w + 0.5, 0.45, 0.18), m.stone, at=(x, y_face + s * 0.25, z0 - 0.06), bevel=0.03, segments=2)
-
-
-def timber_wall(m, name, x0, x1, y, z0, z1, normal_y, openings, rng, braces=True):
-    """En bindingsverksvegg langs x i y: svill, stolper, løsholt, toppsvill og
-    skråstag, med kalkpuss mellom, og hull for vinduer og dører.
-    `openings` er (x, z, b, h, slag) med slag "w" (vindu) eller "d" (dør)."""
-    s = normal_y
-    bw = 0.2  # bjelkebredde i veggen
-    thick = 0.22
-    # Pussen: én plate litt innenfor bjelkene, med hull.
-    wall = block(f"{name}_plaster", (x1 - x0, thick - 0.06, z1 - z0), m.plaster, at=((x0 + x1) / 2, y - s * 0.03, (z0 + z1) / 2), bevel=0)
-    for ox, oz, ob, oh, kind in openings:
-        cut(wall, (ob + (0.02 if kind == "w" else 0.04), 1.0, oh + 0.02), ((ox), y, oz))
-    uv_box(wall)
-    # Bjelkene i flukt med yta, litt ut.
-    fy = y + s * 0.0
-    first_beam = len(PIECES)
-    beam(f"{name}_sill", (x0, fy, z0 + bw / 2), (x1, fy, z0 + bw / 2), thick, bw, m.timber)
-    beam(f"{name}_plate", (x0, fy, z1 - bw / 2), (x1, fy, z1 - bw / 2), thick, bw, m.timber)
-    # Stolper med jevne mellomrom, men ikke midt i en åpning.
-    span = x1 - x0
-    count = max(2, round(span / 1.25))
-    posts = [x0 + bw / 2 + (span - bw) * k / count for k in range(count + 1)]
-    blocked = lambda px: any(abs(px - ox) < ob / 2 + bw / 2 + 0.02 for ox, _, ob, _, _ in openings)
-    posts = [p for p in posts if not blocked(p) or p in (posts[0], posts[-1])]
-    for px in posts:
-        beam(f"{name}_post", (px, fy, z0 + bw), (px, fy, z1 - bw), thick * 0.95, bw, m.timber, roll=math.pi / 2)
-    # Løsholt i brysthøyde mellom stolpene der det ikke er åpninger, og
-    # skråstag i endefeltene.
-    mid = z0 + (z1 - z0) * 0.45
-    for a, b in zip(posts[:-1], posts[1:]):
-        c = (a + b) / 2
-        hole = [o for o in openings if a < o[0] < b]
-        if hole:
-            ox, oz, ob, oh, kind = hole[0]
-            # Bjelker rundt åpningen: over og under (vinduer).
-            beam(f"{name}_head", (a + bw / 2, fy, oz + oh / 2 + 0.06), (b - bw / 2, fy, oz + oh / 2 + 0.06), thick * 0.9, 0.12, m.timber)
-            if kind == "w":
-                beam(f"{name}_under", (a + bw / 2, fy, oz - oh / 2 - 0.06), (b - bw / 2, fy, oz - oh / 2 - 0.06), thick * 0.9, 0.12, m.timber)
-            continue
-        beam(f"{name}_rail", (a + bw / 2, fy, mid), (b - bw / 2, fy, mid), thick * 0.9, bw * 0.8, m.timber)
-        if braces and (a == posts[0] or b == posts[-1]) and rng.random() < 0.9:
-            # Skråstaget går fra svilla ved hjørnet opp mot løsholtet.
-            if a == posts[0]:
-                beam(f"{name}_brace", (a + bw / 2, fy, z0 + bw), (b - bw / 2, fy, mid - bw * 0.4), thick * 0.85, bw * 0.8, m.timber)
-            else:
-                beam(f"{name}_brace", (b - bw / 2, fy, z0 + bw), (a + bw / 2, fy, mid - bw * 0.4), thick * 0.85, bw * 0.8, m.timber)
-    # Pussen skjæres bort der bjelkene ligger, så den bare finnes i feltene
-    # mellom dem: ingen hjørner gjemt under bjelkene (de ville fått svart
-    # okklusjon som smitter ut i feltet).
-    carve(wall, PIECES[first_beam:])
-
-
-def side_wall(m, name, y0, y1, x, z0, z1, normal_x, openings, rng):
-    """En bindingsverksvegg langs y i x: bygd som en vegg langs x og dreid 90°."""
-    # Bygg i et midlertidig rom: x' = y, normalen ±y'; så drei om z.
-    before = len(PIECES)
-    # Dreid −90° speiles y; bygg fra −y1 til −y0 så veggen havner riktig.
-    if normal_x < 0:
-        y0, y1 = -y1, -y0
-        openings = [(-o[0], *o[1:]) for o in openings]
-    timber_wall(m, name, y0, y1, 0.0, z0, z1, -1.0, openings, rng)
-    for ox, oz, ob, oh, kind in openings:
-        if kind == "w":
-            window(m, ox, oz, -0.11, ob, oh, -1.0, shutters=rng.random() < 0.5, rng=rng)
-    rot = Matrix.Rotation(math.radians(90 if normal_x > 0 else -90), 4, "Z")
-    for ob in PIECES[before:]:
-        mw = Matrix.Translation((x, 0, 0)) @ rot @ ob.matrix_world
-        ob.matrix_world = mw
-    _ = name
-
-
-def roof(m, w, d, eave, pitch_deg, overhang=0.45, gable_to_street=True):
-    """Saltak med spontak: to takflater, vindskier, mønebord, og takfot.
-    Gavlen mot gata betyr mønet langs y."""
-    pitch = math.radians(pitch_deg)
-    run = (w if gable_to_street else d) / 2 + overhang
-    length = (d if gable_to_street else w) + overhang * 2
-    slope = run / math.cos(pitch)
-    rise = run * math.tan(pitch)
-    for side in (-1, 1):
-        # Takflaten bygd flat (u langs mønet, v opp skrått), så vippet.
-        if gable_to_street:
-            ob = block("roof", (slope, length, 0.16), m.roof, bevel=0.01)
-            # Uv: u langs mønet (y), v opp fallet: bygg uv på nytt for det.
-            _roof_uv(ob, along_y=True)
-            ob.rotation_euler = Euler((0, side * pitch, 0))
-            ob.location = (side * run / 2, 0, eave + rise / 2 + 0.08)
-            # Vindskiene langs gavlkantene.
-            for sy in (-1, 1):
-                a = Vector((side * run, sy * length / 2, eave + 0.05))
-                b = Vector((0, sy * length / 2, eave + rise + 0.12))
-                beam("barge", a, b, 0.05, 0.22, m.boards)
-        else:
-            ob = block("roof", (length, slope, 0.16), m.roof, bevel=0.01)
-            _roof_uv(ob, along_y=False)
-            ob.rotation_euler = Euler((-side * pitch, 0, 0))
-            ob.location = (0, side * run / 2, eave + rise / 2 + 0.08)
-            for sx in (-1, 1):
-                a = Vector((sx * length / 2, side * run, eave + 0.05))
-                b = Vector((sx * length / 2, 0, eave + rise + 0.12))
-                beam("barge", a, b, 0.05, 0.22, m.boards)
-    # Mønebordene.
-    if gable_to_street:
-        beam("ridge", (0, -length / 2, eave + rise + 0.2), (0, length / 2, eave + rise + 0.2), 0.3, 0.08, m.boards)
-    else:
-        beam("ridge", (-length / 2, 0, eave + rise + 0.2), (length / 2, 0, eave + rise + 0.2), 0.3, 0.08, m.boards)
-    return rise
-
-
-def _roof_uv(ob, along_y):
-    """Takflatene: u langs mønet, v opp fallet, i meter, på oversida."""
-    me = ob.data
-    bm = bmesh.new()
-    bm.from_mesh(me)
-    uvl = bm.loops.layers.uv.verify()
-    for f in bm.faces:
-        for loop in f.loops:
-            p = loop.vert.co
-            loop[uvl].uv = (p.y, p.x) if along_y else (p.x, p.y)
-    bm.to_mesh(me)
-    bm.free()
-
-
-def gable(m, w, eave, rise, y, normal_y, rng, boards=True):
-    """Gavltrekanten: stående bord eller bindingsverk med puss."""
-    pts = [(-w / 2, 0.0), (w / 2, 0.0), (0.0, rise)]
-    mat = m.boards if boards else m.plaster
-    ob = prism("gable", pts, 0.16, mat, at=(0, y, eave))
-    if boards:
-        # Bordene står: uv med v opp er riktig fra uv_box (x, z).
-        # Lekter over skjøtene.
-        n = int(w / 0.22)
-        for k in range(1, n):
-            x = -w / 2 + w * k / n
-            top = rise * (1 - abs(x) / (w / 2))
-            if top > 0.15:
-                beam("batten", (x, y + normal_y * 0.09, eave + 0.02), (x, y + normal_y * 0.09, eave + top - 0.05), 0.02, 0.05, m.boards, roll=math.pi / 2)
-        # Et lite lufteluke-vindu øverst.
-        window(m, 0.0, eave + rise * 0.4, y + normal_y * 0.08, 0.35, 0.4, normal_y, shutters=False)
+def smooth(ob):
+    """Merk en del som rund: `finish` gir den myke normaler (alt annet er
+    flatt)."""
+    a = ob.data.attributes.new("keep_smooth", "BOOLEAN", "FACE")
+    for v in a.data:
+        v.value = True
+    ob.data.shade_smooth()
     return ob
-
-
-# Pipene som ryker: toppen og tykkelsen (0..1); `finish` skriver dem som
-# «smoke».
-SMOKE = []
-
-
-def chimney(m, x, y, z0, z1, smoke=0.6):
-    """Steinpipe: murt av enkeltstein, med en krage øverst. Røyken stiger
-    fra toppen (`smoke` er tykkelsen)."""
-    SMOKE.append(((x, y, z1 + 0.15), smoke))
-    rng = random.Random(int(x * 100 + y * 10))
-    w = 0.7
-    block("chimney", (w, w, z1 - z0), m.stone, at=(x, y, (z0 + z1) / 2), bevel=0.02)
-    block("chimney_cap", (w + 0.16, w + 0.16, 0.12), m.stone, at=(x, y, z1 + 0.05), bevel=0.02)
-    block("chimney_hole", (w - 0.25, w - 0.25, 0.1), layer("stone", (0.08, 0.07, 0.06), 0.5), at=(x, y, z1 + 0.08), bevel=0)
-    _ = rng
-
-
-def plinth(m, w, d, h, rng):
-    """Steinsokkelen: murt av kampestein, litt bredere enn huset."""
-    block("plinth", (w + 0.16, d + 0.16, h + 0.24), m.stone, at=(0, 0, h / 2 - 0.12), bevel=0.04, segments=2)
-    # Enkeltstein som stikker litt ut, så sokkelen ikke er en glatt kloss.
-    for k in range(int((w + d) * 2.2)):
-        side = rng.choice((0, 1, 2, 3))
-        if side < 2:
-            x = rng.uniform(-w / 2, w / 2)
-            y = (-1 if side == 0 else 1) * (d / 2 + 0.09)
-            size = (rng.uniform(0.25, 0.5), 0.1, rng.uniform(0.15, h * 0.7))
-        else:
-            y = rng.uniform(-d / 2, d / 2)
-            x = (-1 if side == 2 else 1) * (w / 2 + 0.09)
-            size = (0.1, rng.uniform(0.25, 0.5), rng.uniform(0.15, h * 0.7))
-        block("plinth_stone", size, m.stone, at=(x, y, rng.uniform(0.1, h - 0.1)), bevel=0.03, segments=2)
-
-
-# --- Husene ----------------------------------------------------------------
-
-
-def half_timbered(spec):
-    """Et bindingsverkshus med gavlen eller langsida mot gata."""
-    rng = random.Random(spec["seed"])
-    m = M(plaster_tint=tuple(c * 0.42 for c in spec.get("plaster", (1, 0.965, 0.905))), timber_tint=spec.get("timber", (1, 1, 1)), roof=spec.get("roof", "tiles"))
-    w, d = spec["w"], spec["d"]
-    floors = spec["floors"]
-    fh = 2.7
-    base = spec.get("plinth", 0.55)
-    jetty = spec.get("jetty", 0.35)
-    plinth(m, w, d, base, rng)
-    z = base
-    for f in range(floors):
-        ext = jetty * f  # framskutt overetasje mot gata
-        fy = -d / 2 - ext
-        z1 = z + fh
-        # Fasaden mot gata: dør i første etasje, vinduer.
-        openings = []
-        if f == 0:
-            dx = spec.get("door_x", -w * 0.22)
-            openings.append((dx, z + 1.0 + 0.05, 1.0, 2.0, "d"))
-            for wx in spec.get("windows0", [w * 0.22]):
-                openings.append((wx, z + 1.45, 0.8, 0.95, "w"))
-        else:
-            n = spec.get("windows_up", 2)
-            for k in range(n):
-                openings.append((-w / 2 + w * (k + 0.5) / n, z + 1.45, 0.8, 0.95, "w"))
-        timber_wall(m, f"front{f}", -w / 2, w / 2, fy, z, z1, -1.0, openings, rng)
-        for ox, oz, ob, oh, kind in openings:
-            if kind == "w":
-                window(m, ox, oz, fy - 0.11, ob, oh, -1.0, shutters=f > 0 or rng.random() < 0.7, rng=rng)
-            else:
-                door(m, ox, fy - 0.11, -1.0, ob, oh, z, open=spec.get("open_door", False))
-                if spec.get("lantern", True):
-                    wall_lantern(m, ox + 0.95 * spec.get("lantern_side", 1), fy - 0.1, z + 2.25, -1.0)
-        # Baksida og sidene.
-        back = [(0.0, z + 1.45, 0.7, 0.8, "w")] if rng.random() < 0.8 else []
-        timber_wall(m, f"back{f}", -w / 2, w / 2, d / 2, z, z1, 1.0, back, rng)
-        for ox, oz, ob, oh, _ in back:
-            window(m, ox, oz, d / 2 + 0.11, ob, oh, 1.0, shutters=False)
-        for sx in (-1, 1):
-            side_open = [(rng.uniform(-d * 0.2, d * 0.2), z + 1.45, 0.7, 0.8, "w")] if rng.random() < 0.6 else []
-            side_wall(m, f"side{f}{sx}", -d / 2 - ext, d / 2, sx * w / 2, z, z1, sx, side_open, rng)
-        # Bjelkeendene under den framskutte etasjen.
-        if f > 0 and jetty > 0:
-            for k in range(int(w / 0.6) + 1):
-                x = -w / 2 + 0.15 + (w - 0.3) * k / max(1, int(w / 0.6))
-                beam("joist", (x, -d / 2 + 0.3, z - 0.1), (x, -d / 2 - ext - 0.12, z - 0.1), 0.16, 0.18, m.timber)
-            # Gulvbjelken som bærer utkragingen.
-            beam("bressumer", (-w / 2, -d / 2 - ext, z + 0.05), (w / 2, -d / 2 - ext, z + 0.05), 0.24, 0.22, m.timber)
-        z = z1
-    # Taket.
-    eave = z
-    gable_street = spec.get("gable", True)
-    rise = roof(m, w + 0.1, d + jetty * (floors - 1), eave, spec.get("pitch", 52), gable_to_street=gable_street)
-    if gable_street:
-        for sy, ny in ((-d / 2 - jetty * (floors - 1), -1.0), (d / 2, 1.0)):
-            gable(m, w, eave, rise, sy, ny, rng, boards=spec.get("gable_boards", True))
-    else:
-        # Gavlene på sidene: bygd langs x og dreid.
-        for sx in (-1, 1):
-            before = len(PIECES)
-            gable(m, d + jetty * (floors - 1), eave, rise, 0.0, -1.0, rng)
-            rot = Matrix.Rotation(math.radians(90 if sx > 0 else -90), 4, "Z")
-            for ob in PIECES[before:]:
-                ob.matrix_world = Matrix.Translation((sx * w / 2, -jetty * (floors - 1) / 2, 0)) @ rot @ ob.matrix_world
-    if spec.get("chimney", True):
-        chimney(m, w * 0.22, d * 0.15, eave + rise * 0.4, eave + rise + 0.8)
-    return m
 
 
 def finish(path, ao_samples=160, max_edge=0.6):
@@ -705,8 +463,11 @@ def finish(path, ao_samples=160, max_edge=0.6):
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
     bm.to_mesh(ob.data)
     bm.free()
+    # Flatt overalt, unntatt deler merket med `smooth()` (runde former som
+    # høystakken), som beholder myke normaler.
+    keep = ob.data.attributes.get("keep_smooth")
     for p in ob.data.polygons:
-        p.use_smooth = False
+        p.use_smooth = bool(keep and keep.data[p.index].value)
     # Okklusjonen til hjørnefargen.
     attr = ob.data.color_attributes.new("ao", "BYTE_COLOR", "POINT")
     ob.data.color_attributes.active_color = attr
@@ -747,6 +508,15 @@ def finish(path, ao_samples=160, max_edge=0.6):
     # flater (som ga synlige trekanter) løftes til fullt lys.
     t = np.clip((ao - 0.3) / 0.55, 0.0, 1.0)
     col[:, 0] = col[:, 1] = col[:, 2] = 0.45 + 0.55 * t * t * (3.0 - 2.0 * t)
+    if os.environ.get("FRISTAD_GRADIENT", "1") == "1" and ("/town/" in path or "/furniture/" in path):
+        # Malt stil: mørkere nede ved bakken (skitt og skygge), lysere oppe.
+        zs = np.empty(len(ob.data.vertices) * 3, dtype=np.float32)
+        ob.data.vertices.foreach_get("co", zs)
+        z = zs.reshape(-1, 3)[:, 2]
+        g = 0.68 + 0.32 * np.clip((z + 0.2) / 3.2, 0.0, 1.0)
+        col[:, 0] *= g
+        col[:, 1] *= g
+        col[:, 2] *= g
     attr.data.foreach_set("color", col.ravel())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, export_materials="EXPORT", export_yup=True, export_normals=True, export_texcoords=True, export_vertex_color="ACTIVE", export_all_vertex_colors=False, export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
@@ -759,7 +529,7 @@ def finish(path, ao_samples=160, max_edge=0.6):
 def write_inside(path):
     """Skriv kolliderne, lysene, lyktene og pipene til `<navn>_inside.json`
     i motorens akser, og tøm registrene."""
-    if COLLIDERS or LIGHTS or HULLS or LAMPS or SMOKE:
+    if COLLIDERS or LIGHTS or HULLS or LAMPS or SMOKE or PROPS:
         import json
         # Blender (x, y, z) er (x, z, −y) i motoren; yaw om z blir yaw om y.
         eng = lambda v: [round(v[0], 3), round(v[2], 3), round(-v[1], 3)]
@@ -770,37 +540,22 @@ def write_inside(path):
             "hulls": [[eng(p) for p in pts] for pts in HULLS],
             "lamps": [[eng(c), list(col), i, r] for c, col, i, r in LAMPS],
             "smoke": [[eng(c), s] for c, s in SMOKE],
+            "props": [[name, eng((x, y, 0.0)), round(yaw, 4)] for name, (x, y), yaw in PROPS],
         }
         with open(path.replace(".glb", "_inside.json"), "w") as f:
             json.dump(data, f)
-        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper")
+        print(f"  {len(COLLIDERS)} kollidere, {len(LIGHTS)} lys, {len(LAMPS)} lykter, {len(SMOKE)} piper, {len(PROPS)} småting ute")
     COLLIDERS.clear()
+    # Veggene fra utsida gjelder for møblene i innsida som lages etterpå;
+    # etter en innside, eller en ny utside, gjelder de ikke lenger.
+    global _WALL_MARK
+    if path.endswith("_interior.glb"):
+        WALLS.clear()
+    else:
+        del WALLS[:_WALL_MARK]
+    _WALL_MARK = len(WALLS)
+    PROPS.clear()
     LAMPS.clear()
     SMOKE.clear()
-    RELIEF.clear()
     LIGHTS.clear()
     HULLS.clear()
-
-
-HOUSES = {
-    # Smalt hus med gavl mot gata, to etasjer, framskutt.
-    "house_a": dict(seed=1, w=6.4, d=8.0, floors=2, jetty=0.4, pitch=54, door_x=-1.4, windows0=[1.3], windows_up=2),
-    # Bredere, langsida mot gata, okerpuss.
-    "house_b": dict(seed=2, roof="slate", w=9.0, d=6.5, floors=2, jetty=0.3, pitch=48, gable=False, plaster=(0.95, 0.85, 0.66), door_x=-2.4, windows0=[0.4, 2.8], windows_up=3),
-    # Lavt hus med én etasje og bratt tak.
-    "house_c": dict(seed=3, roof="thatch", w=7.0, d=7.5, floors=1, jetty=0.0, pitch=56, door_x=1.6, windows0=[-1.5], windows_up=0, plinth=0.7),
-    # Høyt, smalt kjøpmannshus med tre etasjer.
-    "house_d": dict(seed=4, roof="slate", w=6.0, d=9.0, floors=3, jetty=0.32, pitch=56, door_x=-1.3, windows0=[1.2], windows_up=2, plaster=(1.0, 0.97, 0.92)),
-    # Langsida mot gata, to etasjer, mørkere tømmer.
-    "house_e": dict(seed=5, w=10.0, d=7.0, floors=2, jetty=0.35, pitch=46, gable=False, door_x=0.0, windows0=[-3.0, 3.0], windows_up=4, timber=(0.8, 0.78, 0.76)),
-    # Gavlhus med puss i gavlen og blekrosa puss.
-    "house_f": dict(seed=6, roof="thatch", w=7.2, d=8.5, floors=2, jetty=0.4, pitch=50, door_x=1.8, windows0=[-1.6], windows_up=3, gable_boards=False, plaster=(0.98, 0.9, 0.86)),
-}
-
-if __name__ == "__main__":
-    names = [a for a in sys.argv[1:] if a in HOUSES] or list(HOUSES)
-    for name in names:
-        clear()
-        PIECES.clear()
-        half_timbered(HOUSES[name])
-        finish(f"{OUT}/{name}.glb")
