@@ -334,6 +334,7 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Hurt { angle } => json!({"type": "hurt", "angle": angle}),
         Event::Goal { text, journal } => json!({"type": "goal", "text": text, "journal": journal.iter().map(|(t, b)| json!({"title": t, "text": b})).collect::<Vec<_>>()}),
         Event::Loot(c) => json!({"type": "loot", "component": c}),
+        Event::Haul(more) => json!({"type": "haul", "components": more}),
         Event::Ambience(a) => {
             json!({"type": "ambience", "square": a.square, "forge": a.forge, "church": a.church, "meadow": a.meadow, "fire": a.fire, "water": a.water, "lava": a.lava, "chasm": a.chasm, "portal": a.portal, "tavern": a.tavern, "rain": a.rain, "wind": a.wind, "night": a.night, "cellar": a.cellar, "indoor": a.indoor})
         }
@@ -355,8 +356,9 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Inventory(v) => {
             json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read, "gear": v.gear.iter().map(gear_json).collect::<Vec<_>>()})
         }
-        Event::Shop { npc, wares } => {
-            json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()})
+        Event::Shop { npc, wares, swaps } => {
+            let swaps: Vec<_> = swaps.iter().map(|s| json!({"id": s.id, "give": s.give, "n": s.n, "have": s.have, "give_rarity": s.give_rarity, "get": s.get, "get_have": s.get_have, "get_rarity": s.get_rarity, "fee": s.fee, "source": s.source, "ok": s.ok})).collect();
+            json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>(), "swaps": swaps})
         }
         Event::Workshop { recipes } => {
             json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok, "item": gear_json(&r.item), "current": r.current.as_ref().map(gear_json)})).collect::<Vec<_>>()})
@@ -448,6 +450,12 @@ impl Engine {
     /// Kjøp en vare (id fra butikken). Gir om det gikk.
     pub fn buy(&mut self, ware: &str) -> bool {
         self.app.command(Command::Buy(ware.into()))
+    }
+
+    /// Bytt komponenter hos Buttonsmeden (id fra fanen «Bytte»). Gir om det
+    /// gikk; butikken kommer på nytt med det du har nå.
+    pub fn swap(&mut self, id: &str) -> bool {
+        self.app.command(Command::Swap(id.into()))
     }
 
     /// Boka: lesing av en komponents dokumentasjon gir liv.

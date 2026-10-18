@@ -4,7 +4,9 @@
 use super::session::{sfx, Session};
 use crate::domain::craft;
 use crate::domain::hero::SLEEP_PRICE;
+use crate::domain::loot;
 use crate::domain::mobs::Kind as MobKind;
+use crate::domain::rng::Rng;
 use crate::domain::weather::Daylight;
 use crate::domain::world::crypt;
 use crate::domain::world::mechanisms::Mechanisms;
@@ -56,15 +58,18 @@ impl Session {
                 }
                 let chest = self.crypt.chests.get(n).cloned();
                 let level = chest.as_ref().map(|c| c.level).unwrap_or(0);
-                let list = craft::LOOT[craft::theme_of(level)];
-                self.loot_seed ^= self.loot_seed << 13;
-                self.loot_seed ^= self.loot_seed >> 7;
-                self.loot_seed ^= self.loot_seed << 17;
-                // Den sjeldne komponenten i kista, eller en fra temaets liste.
-                let pick = chest.and_then(|c| c.loot).unwrap_or_else(|| list[(self.loot_seed >> 33) as usize % list.len()].to_string());
-                self.hero.carry(&pick, 1);
+                // Den sjeldne komponenten i kista og mer fra temaets liste
+                // (`loot::RULES`, plan 14).
+                let rare = chest.as_ref().and_then(|c| c.loot.clone());
+                let got = self.roll(|r| loot::chest(level, rare.as_deref(), &loot::RULES, r));
+                for c in &got {
+                    self.hero.carry(c, 1);
+                }
                 events.push(self.sound_at("chest", self.target_pos(i), 1.0));
-                events.extend([sfx("loot"), Event::Loot(Some(pick))]);
+                // Det første er kistas egen (den sjeldne), resten følger med.
+                let mut got = got.into_iter();
+                let first = got.next();
+                events.extend([sfx("loot"), Event::Haul(got.collect()), Event::Loot(first)]);
             }
             Use::Shortcut(n) => {
                 if self.mech.shortcut_open(n) {
@@ -381,6 +386,14 @@ impl Session {
         events.push(Event::Toast(format!("Du ble overkjørt av forretningslogikk. {lost} tokens ble igjen nede.")));
     }
 
+    /// Terningen til det krypten gir (kistene og fiendene).
+    fn roll<T>(&mut self, f: impl FnOnce(&mut Rng) -> T) -> T {
+        let mut r = Rng(self.loot_seed);
+        let out = f(&mut r);
+        self.loot_seed = r.0;
+        out
+    }
+
     /// En fiende falt: bossen gir skatten og seieren, eliten nøkkelen og en
     /// komponent.
     pub(super) fn killed(&mut self, mob: usize, pos: Vec3, events: &mut Vec<Event>) {
@@ -389,29 +402,61 @@ impl Session {
             // Bossen i et tema (Modalen): porten ut av arenaen går opp, og
             // den kommer ikke igjen. Den bærer det eliten i temaet bærer.
             self.run.slain.insert(self.mobs.level);
-            let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
-            self.hero.carry(c, 1);
+            let level = self.crypt.level_at(pos).unwrap_or(0);
+            let got = self.roll(|r| loot::boss(level, false, &loot::RULES, r));
+            for c in &got {
+                self.hero.carry(c, 1);
+            }
             self.map.dirty = true;
             events.push(self.sound_at("gate", pos, 1.2));
-            events.push(Event::Toast(format!("{} er beseiret! En {c} ligger igjen, og steinporten går opp.", kind.label())));
+            events.push(Event::Toast(format!("{} er beseiret! {} ligger igjen, og steinporten går opp.", kind.label(), cap(&listed(&got)))));
         } else if kind.boss() {
             self.run.slain.insert(self.mobs.level);
-            for c in craft::BOSS_LOOT {
+            let level = self.crypt.level_at(pos).unwrap_or(0);
+            let got = self.roll(|r| loot::boss(level, true, &loot::RULES, r));
+            for c in &got {
                 self.hero.carry(c, 1);
             }
             self.won = true;
             self.map.dirty = true;
-            events.push(Event::Toast("Rammeverket er beseiret! En dialog og en tabs ligger igjen der det falt, og porten i rotunden står åpen.".into()));
+            events.push(Event::Toast(format!("Rammeverket er beseiret! {} ligger igjen der det falt, og porten i rotunden står åpen.", cap(&listed(&got)))));
         } else if elite {
-            let c = craft::ELITE_LOOT[craft::theme_of(self.crypt.level_at(pos).unwrap_or(0))];
-            self.hero.carry(c, 1);
+            let level = self.crypt.level_at(pos).unwrap_or(0);
+            let got = self.roll(|r| loot::elite(level, &loot::RULES, r));
+            for c in &got {
+                self.hero.carry(c, 1);
+            }
             events.push(self.sound_at("key", pos - Vec3::Y * 0.8, 1.0));
-            events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og en {c} ligger igjen.")));
+            events.push(Event::Toast(format!("Elitefienden falt fra hverandre: nøkkelen og {} ligger igjen.", listed(&got))));
         } else if kind != MobKind::Tooltip {
-            events.push(Event::Toast(format!("{} falt fra hverandre. Plukk opp tokenene.", kind.label())));
+            // Av og til mister en vanlig fiende en komponent fra temaet.
+            let level = self.crypt.level_at(pos).unwrap_or(0);
+            match self.roll(|r| loot::mob(level, &loot::RULES, r)) {
+                Some(c) => {
+                    self.hero.carry(&c, 1);
+                    events.push(sfx("loot"));
+                    events.push(Event::Toast(format!("{} falt fra hverandre og mistet en {}. Plukk opp tokenene.", kind.label(), craft::title(&c))));
+                }
+                None => events.push(Event::Toast(format!("{} falt fra hverandre. Plukk opp tokenene.", kind.label()))),
+            }
         }
         if self.aimed_mob == Some(mob) {
             self.aimed_mob = None;
         }
     }
+}
+
+/// Komponentene som en liste til teksten: «Button, Tag og Card».
+fn listed(got: &[String]) -> String {
+    let names: Vec<String> = got.iter().map(|c| craft::title(c)).collect();
+    match names.as_slice() {
+        [] => String::new(),
+        [a] => a.clone(),
+        [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
+    }
+}
+
+fn cap(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
 }

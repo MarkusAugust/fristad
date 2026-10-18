@@ -111,6 +111,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
         match c {
             Command::Craft(id) => return self.session.craft(&id),
             Command::Buy(id) => return self.session.buy(&id),
+            Command::Swap(id) => return self.session.swap(&id),
             Command::Equip(id) => return self.session.equip(&id),
             Command::ReadDoc(c) => return self.session.read_doc(&c),
             Command::Load(d) => self.session.load(d),

@@ -712,6 +712,9 @@ function handle(e) {
         /* lagring er en bekvemmelighet */
       }
       break;
+    case "haul":
+      lootMore = e.components ?? [];
+      break;
     case "loot":
       openLoot(e.component);
       break;
@@ -731,7 +734,7 @@ function handle(e) {
       }
       break;
     case "shop":
-      openShop(e.npc, e.wares);
+      openShop(e.npc, e.wares, e.swaps ?? []);
       break;
     case "workshop":
       openWorkshop(e.recipes);
@@ -963,6 +966,8 @@ function warp() {
 // Kista: en Fristil-dialog som sier hva du fant, og lar deg lese om
 // komponenten i boka (panelet til høyre). Spillet står på pause så lenge.
 let lootOpen = false;
+// Det som fulgte med i kista utenom kistas egen komponent (`haul`, plan 14).
+let lootMore = [];
 function openLoot(component) {
   lootOpen = true;
   playing = false;
@@ -971,13 +976,16 @@ function openLoot(component) {
   if (locked()) document.exitPointerLock?.();
   const d = docs[component] ?? {};
   const title = d.title ?? component;
+  const more = lootMore;
+  lootMore = [];
   const dlg = document.createElement("dialog");
   dlg.className = "fs-dialog loot";
   dlg.setAttribute("aria-labelledby", "loot-title");
   const found = component
     ? `<p>Under lokket, mellom råtne filler og knokler, ligger <strong>${esc(title)}</strong>: en bit av Fristil, slik den så ut før den ble korrupt.</p>
        <p class="fs-help-text">${esc(d.description ?? "")}</p>
-       <p>Bær den opp til byen, så er den din. Dør du før det, blir den liggende her nede.</p>`
+       ${more.length ? `<p>Under den ligger også ${more.map((c) => `<strong>${esc(compTitle(c))}</strong>`).join(more.length > 2 ? ", " : " og ").replace(/, (?=[^,]*$)/, " og ")}.</p>` : ""}
+       <p>Bær ${more.length ? "dem" : "den"} opp til byen, så er de${more.length ? "" : "n"} din${more.length ? "e" : ""}. Dør du før det, blir ${more.length ? "de" : "den"} liggende her nede.</p>`
     : `<p>Kista er tom. Noen har vært her før deg.</p>`;
   dlg.innerHTML = `
     <h2 class="fs-dialog__title" id="loot-title">${component ? "Du fant noe i kista" : "Ingenting"}</h2>
@@ -1611,9 +1619,16 @@ function closeOverlay(resume = true, relock = true) {
 }
 
 // Butikken: én rad per vare (navnet, prisen og «Kjøp»). Lista ruller inne i
-// dialogen når den er lang (plan 13c).
-function openShop(npc, wares) {
+// dialogen når den er lang (plan 13c). Buttonsmeden har også byttene
+// (plan 14): da står varene og byttene i hver sin fane (`openSmith`).
+function openShop(npc, wares, swaps = []) {
+  if (swaps.length) return openSmith(npc, wares, swaps);
   const body = openOverlay(npc, "");
+  body.appendChild(wareList(wares));
+  updateShop();
+}
+
+function wareList(wares) {
   const list = document.createElement("ul");
   list.className = "fs-list wares";
   list.dataset.variant = "divided";
@@ -1647,15 +1662,145 @@ function openShop(npc, wares) {
     row.append(text, price, btn);
     list.appendChild(row);
   }
-  body.appendChild(list);
-  updateShop();
+  return list;
+}
+
+// Buttonsmeden (plan 14): fanene «Kjøp» og «Bytte», som Skriptoriet. I
+// «Bytte» står ett bytte per rad (det du får, sjeldenheten og hva du gir),
+// de du kan gjøre nå øverst; detaljene viser hva du gir og har, avgiften og
+// hvor komponenten ellers finnes, og «Bytt» står fast i bunnlinja. Etter et
+// bytte sender motoren butikken på nytt, så tallene er de nye.
+let shopTab = remembered("fristad.shop.tab", "swap");
+let swapSel = null;
+function openSmith(npc, wares, swaps) {
+  const body = openOverlay(npc, `Du har ${lastHud?.tokens ?? 0} tokens.`);
+  $("overlay").querySelector(".overlay-inner").classList.add("menu");
+  let detail = false;
+  const lack = (s) => Math.max(0, s.n - s.have);
+  const sorted = [...swaps].sort((a, b) => Number(b.ok) - Number(a.ok) || lack(a) - lack(b) || rarityRank(a.get_rarity) - rarityRank(b.get_rarity));
+  const tabs = [["buy", "Kjøp", wares.length], ["swap", "Bytte", swaps.length]];
+  if (!tabs.some(([k]) => k === shopTab)) shopTab = "swap";
+  const badge = (s) => (s.ok ? '<span class="fs-badge" data-color="success">Kan byttes</span>' : lack(s) ? `<span class="fs-badge" data-color="warning">Mangler ${lack(s)}</span>` : '<span class="fs-badge" data-color="warning">Mangler tokens</span>');
+  const compIco = (c, size, r) => `<span class="gear-ico ${size} comp-face" data-rarity="${esc(r)}"><img src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.hidden=true"></span>`;
+  const wrap = document.createElement("div");
+  wrap.className = "smith picker";
+  body.appendChild(wrap);
+  const actions = $("overlay-actions");
+  const swapDetail = (s) => {
+    const tokens = lastHud?.tokens ?? 0;
+    const why = s.ok ? `Du gir ${s.n} ${compTitle(s.give)} og ${s.fee} tokens.` : lack(s) ? `Mangler ${lack(s)} ${compTitle(s.give)} i lageret.` : `Mangler ${s.fee - tokens} tokens til avgiften.`;
+    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-swap="${esc(s.id)}" ${s.ok ? "" : "disabled"} aria-describedby="swap-why"><span>Bytt<span class="craft-name"> til ${esc(compTitle(s.get))}</span></span></button>
+        <span class="fs-help-text" id="swap-why">${esc(why)}</span>`;
+    const giveOk = s.have >= s.n;
+    const feeOk = tokens >= s.fee;
+    return `<div class="detail-scroll">
+        <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+        <header class="detail-head" data-rarity="${esc(s.get_rarity)}">
+          ${compIco(s.get, "big", s.get_rarity)}
+          <div class="detail-title">
+            <h3 class="fs-heading" data-size="m">${esc(compTitle(s.get))}</h3>
+            <div class="gear-tags">${rarityTag(s.get_rarity)}<span class="fs-tag">Komponent</span>${badge(s)}</div>
+          </div>
+        </header>
+        <p class="fs-paragraph detail-about">${esc(docs[s.get]?.description ?? "")}</p>
+        <h4 class="fs-heading detail-sub" data-size="xs">Du gir</h4>
+        <ul class="comp-list">
+          <li class="comp ${giveOk ? "have" : "lack"}">
+            <img class="comp-ico" src="components/${esc(s.give)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="comp-main">
+              <div class="comp-top"><span class="comp-title">${s.n} × ${esc(compTitle(s.give))}</span>${rarityTag(s.give_rarity)}<span class="comp-count">har ${s.have} av ${s.n}</span></div>
+              <progress class="fs-progress mini" data-color="${giveOk ? "success" : "warning"}" max="${s.n}" value="${Math.min(s.have, s.n)}" aria-hidden="true"></progress>
+            </div>
+          </li>
+          <li class="comp ${feeOk ? "have" : "lack"}">
+            <span class="comp-ico token-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/></svg></span>
+            <div class="comp-main">
+              <div class="comp-top"><span class="comp-title">Avgift: ${s.fee} tokens</span><span class="comp-count">har ${tokens}</span></div>
+            </div>
+          </li>
+        </ul>
+        <h4 class="fs-heading detail-sub" data-size="xs">Du får</h4>
+        <ul class="comp-list">
+          <li class="comp have">
+            <img class="comp-ico" src="components/${esc(s.get)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="comp-main">
+              <div class="comp-top"><span class="comp-title">1 × ${esc(compTitle(s.get))}</span><span class="comp-count">har ${s.get_have} nå</span></div>
+              <p class="comp-where">Ellers: ${esc(s.source)}</p>
+            </div>
+          </li>
+        </ul>
+        <p class="fs-help-text swap-rule">Byttet går bare én vei, og smeden kjøper ingenting tilbake.</p>
+      </div>`;
+  };
+  const render = () => {
+    const hadFocus = wrap.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
+    actions.innerHTML = "";
+    if (shopTab === "buy") {
+      wrap.classList.remove("show-detail");
+      wrap.innerHTML = `${menuTabs(tabs, shopTab, "Butikken")}<div class="shop-buy"></div>`;
+      wrap.querySelector(".shop-buy").appendChild(wareList(wares));
+      updateShop();
+    } else {
+      if (!sorted.some((s) => s.id === swapSel)) swapSel = sorted[0]?.id ?? null;
+      const sel = sorted.find((s) => s.id === swapSel);
+      wrap.classList.toggle("show-detail", detail);
+      const detailHtml = sel ? swapDetail(sel) : '<p class="fs-paragraph">Ingen bytter her.</p>';
+      wrap.innerHTML = `${menuTabs(tabs, shopTab, "Butikken")}
+        <div class="pick-side">
+          <ul class="pick-list" role="listbox" aria-label="Byttene">
+            ${sorted
+              .map(
+                (s) => `<li class="pick-row" role="option" data-key="${esc(s.id)}" data-rarity="${esc(s.get_rarity)}" aria-selected="${s.id === swapSel}" tabindex="${s.id === swapSel ? 0 : -1}">
+                ${compIco(s.get, "small", s.get_rarity)}
+                <span class="pick-text"><span class="pick-name">${esc(compTitle(s.get))}</span><span class="pick-meta">${rarityTag(s.get_rarity)}<span class="pick-sub">${s.n} × ${esc(compTitle(s.give))} + ${s.fee} t</span>${badge(s)}</span></span>
+              </li>`,
+              )
+              .join("")}
+          </ul>
+        </div>
+        <section class="detail" aria-live="polite">${detailHtml}</section>`;
+    }
+    bindTabs(wrap, (k) => {
+      shopTab = k;
+      remember("fristad.shop.tab", k);
+      detail = false;
+      sfx.play("click");
+      render();
+      wrap.querySelector(`[data-tab="${k}"]`)?.focus();
+    });
+    bindPickList(wrap, {
+      select(key, open) {
+        if (key === swapSel && !open) return;
+        swapSel = key;
+        if (open) detail = true;
+        sfx.play("click");
+        render();
+      },
+    });
+    wrap.querySelector("[data-back]")?.addEventListener("click", () => {
+      detail = false;
+      render();
+      wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
+    });
+    actions.querySelector("[data-swap]")?.addEventListener("click", (ev) => {
+      const b = ev.currentTarget;
+      if (b.disabled) return;
+      // Går byttet, kommer butikken på nytt med de nye tallene.
+      if (!engine.swap?.(b.dataset.swap)) sfx.play("deny");
+    });
+    const row = wrap.querySelector(".pick-row[aria-selected='true']");
+    row?.scrollIntoView({ block: "nearest" });
+    if (hadFocus) row?.focus();
+  };
+  render();
+  if (!narrow()) wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
 }
 
 // Det du ikke har råd til, er en deaktivert Fristil-knapp med forklaring.
 // Kalles når butikken åpnes og hver gang tokenene endres (etter et kjøp).
 function updateShop() {
   const tokens = lastHud?.tokens ?? 0;
-  if (!$("overlay").querySelector(".overlay-inner").classList.contains("menu")) {
+  if (!$("overlay").querySelector(".overlay-inner").classList.contains("menu") || $("overlay-body").querySelector(".smith")) {
     $("overlay-sub").textContent = `Du har ${tokens} tokens.`;
     $("overlay-sub").hidden = false;
   }

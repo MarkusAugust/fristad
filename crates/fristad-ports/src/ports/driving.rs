@@ -94,6 +94,9 @@ pub enum Command {
     Craft(String),
     /// Kjøp en vare.
     Buy(String),
+    /// Bytt komponenter hos Buttonsmeden (`loot::SWAPS` etter id). Gir om
+    /// det gikk; butikken sendes på nytt med det du har nå.
+    Swap(String),
     /// Ta på et våpen, skjold eller en rustning du har (fra inventaret).
     Equip(String),
     /// Les om en komponent i boka (gir liv).
@@ -353,6 +356,9 @@ pub enum Event {
         text: String,
         journal: Vec<(String, String)>,
     },
+    /// Det som fulgte med i kista utenom kistas egen komponent (plan 14),
+    /// sendt rett før `Loot`.
+    Haul(Vec<String>),
     /// En kiste er åpnet: komponenten som lå i den (eller ingenting).
     Loot(Option<String>),
     Weather(String),
@@ -391,6 +397,8 @@ pub enum Event {
     Shop {
         npc: String,
         wares: Vec<WareView>,
+        /// Byttene (fanen «Bytte», bare hos Buttonsmeden; tom ellers).
+        swaps: Vec<SwapView>,
     },
     /// E i skriptoriet: oppskriftene som skjema.
     Workshop {
@@ -551,6 +559,24 @@ pub struct WareView {
     pub id: String,
     pub name: String,
     pub price: u32,
+}
+
+/// Et bytte hos Buttonsmeden: gi `n` av `give` (du har `have`) og `fee`
+/// tokens, få én `get` (du har `get_have`). Sjeldenhetene, hvor `get` ellers
+/// finnes (kort), og om du kan bytte nå.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SwapView {
+    pub id: String,
+    pub give: String,
+    pub n: u32,
+    pub have: u32,
+    pub give_rarity: String,
+    pub get: String,
+    pub get_have: u32,
+    pub get_rarity: String,
+    pub fee: u32,
+    pub source: String,
+    pub ok: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]

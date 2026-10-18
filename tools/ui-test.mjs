@@ -122,21 +122,26 @@ const wares = [
   { id: "rope", name: "Tau", price: 5 },
   { id: "candle", name: "Talglys", price: 2 },
 ];
+// Byttene hos Buttonsmeden (`SwapView`, plan 14).
+const R2 = { button: "vanlig", tag: "vanlig", badge: "vanlig", divider: "vanlig", card: "vanlig", progress: "vanlig", label: "vanlig", "help-text": "vanlig", alert: "sjelden", tooltip: "sjelden", fieldset: "sjelden", "file-upload": "sjelden", search: "sjelden", dialog: "episk", tabs: "episk" };
+const SW = (id, give, n, get, fee) => ({ id, give, n, have: stash[give] ?? 0, give_rarity: R2[give], get, get_have: stash[get] ?? 0, get_rarity: R2[get], fee, source: src[get]?.[0] ?? "Krypten", ok: (stash[give] ?? 0) >= n && 34 >= fee });
+const swaps = [SW("tag_divider", "tag", 3, "divider", 4), SW("badge_divider", "badge", 3, "divider", 4), SW("badge_card", "badge", 3, "card", 6), SW("button_progress", "button", 3, "progress", 6), SW("card_alert", "card", 3, "alert", 8), SW("divider_label", "divider", 3, "label", 8), SW("card_help", "card", 3, "help-text", 8), SW("label_tooltip", "label", 3, "tooltip", 10), SW("label_fieldset", "label", 3, "fieldset", 12), SW("alert_search", "alert", 3, "search", 12), SW("alert_upload", "alert", 3, "file-upload", 12), SW("fieldset_dialog", "fieldset", 2, "dialog", 20), SW("search_tabs", "search", 2, "tabs", 20)];
 
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
 let bad = 0;
 for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
-  for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop"]) {
+  for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop", "smith-swap", "smith-swap-detail", "smith-buy"]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     // TEXTSIZE=1.4 prøver den største tekststørrelsen (Innstillinger, `fristad.textsize`).
     if (process.env.TEXTSIZE) await page.addInitScript((v) => localStorage.setItem("fristad.textsize", v), process.env.TEXTSIZE);
     page.on("pageerror", (e) => console.log("sidefeil:", e.message));
+    if (menu.startsWith("smith")) await page.addInitScript((tab) => localStorage.setItem("fristad.shop.tab", tab), menu === "smith-buy" ? "buy" : "swap");
     await page.route("**/*.wasm", (r) => r.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/?uitest&nofilm`);
     await page.waitForFunction(() => window.fristadUi);
-    await page.evaluate(async ({ menu, inventory, recipes, wares }) => {
+    await page.evaluate(async ({ menu, inventory, recipes, wares, swaps }) => {
       const docs = await (await fetch("docs.json")).json();
-      const engine = { set_paused() {}, craft: () => false, equip: () => true, buy: () => true, read_doc() {} };
+      const engine = { set_paused() {}, craft: () => false, equip: () => true, buy: () => true, swap: () => false, read_doc() {} };
       const ui = window.fristadUi;
       ui.set({ engine, docs, hud: { hp: 96, stamina: 80, tokens: 34, keys: 1, light: 62, cellar: false } });
       document.getElementById("gate").hidden = true;
@@ -145,9 +150,14 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
       ui.handle(inventory);
       if (menu.startsWith("workshop")) ui.handle({ type: "workshop", recipes });
       if (menu.startsWith("inventory")) ui.toggleInventory();
-      if (menu === "shop") ui.handle({ type: "shop", npc: "Buttonsmeden", wares });
-    }, { menu, inventory, recipes, wares });
+      if (menu === "shop") ui.handle({ type: "shop", npc: "Apotekeren", wares });
+      if (menu.startsWith("smith")) ui.handle({ type: "shop", npc: "Buttonsmeden", wares: wares.slice(0, 4), swaps });
+    }, { menu, inventory, recipes, wares, swaps });
     await page.waitForTimeout(300);
+    if (menu === "smith-swap-detail") {
+      await page.locator(".smith .pick-row").nth(5).click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(200);
+    }
     if (menu === "workshop-detail") {
       // Velg en oppskrift lenger ned (på smal skjerm åpner den detaljene).
       await page.locator("[data-recipe]").nth(4).click({ timeout: 2000 }).catch(() => {});

@@ -4,8 +4,9 @@
 
 use super::session::Session;
 use crate::domain::craft::{self, Gear};
+use crate::domain::loot;
 use crate::domain::note::Note;
-use crate::ports::driving::{Event, GearView, InventoryView, RecipeView, SaveData, WareView};
+use crate::ports::driving::{Event, GearView, InventoryView, RecipeView, SaveData, SwapView, WareView};
 
 /// Et kort til nettlaget.
 fn gear_view(i: &craft::Item, equipped: bool, owned: bool) -> GearView {
@@ -80,12 +81,47 @@ impl Session {
         let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
         let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
         match name {
-            "Buttonsmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
-            "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) }),
-            "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
+            "Buttonsmeden" => Some(self.smith_shop()),
+            "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES), swaps: vec![] }),
+            "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES), swaps: vec![] }),
             "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
             _ => None,
         }
+    }
+
+    /// Buttonsmeden: varene og byttene (plan 14).
+    fn smith_shop(&self) -> Event {
+        let have = |c: &str| self.hero.inventory.get(c).copied().unwrap_or(0);
+        let swaps = loot::SWAPS
+            .iter()
+            .map(|s| SwapView {
+                id: s.id.into(),
+                give: s.give.into(),
+                n: s.n,
+                have: have(s.give),
+                give_rarity: loot::rarity(s.give).name().into(),
+                get: s.get.into(),
+                get_have: have(s.get),
+                get_rarity: loot::rarity(s.get).name().into(),
+                fee: s.fee,
+                source: craft::source(s.get).brief(),
+                ok: have(s.give) >= s.n && self.hero.coins >= s.fee,
+            })
+            .collect();
+        let wares = craft::SMITH_WARES.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
+        Event::Shop { npc: "Buttonsmeden".into(), wares, swaps }
+    }
+
+    /// Bytt hos Buttonsmeden. Gir om det gikk; butikken sendes på nytt med
+    /// det du har nå.
+    pub fn swap(&mut self, id: &str) -> bool {
+        let (ok, notes) = self.hero.swap(id);
+        self.later(notes);
+        if ok {
+            let shop = self.smith_shop();
+            self.pending.push(shop);
+        }
+        ok
     }
 
     fn recipe_views(&self) -> Vec<RecipeView> {

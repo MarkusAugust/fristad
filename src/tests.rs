@@ -1944,6 +1944,16 @@ fn gjennomspilling() {
         bot.idle(&mut game, &mut physics, 0.5);
     }
     bot.note(format!("ferdig på {:.0} s spilltid: {} fiender drept, {} kister åpnet, {} ganger nesten død", bot.t, bot.kills, bot.chests, bot.near_deaths));
+    // Komponentene ved bunnen og hva de holder til (plan 14), med en firedel
+    // av tokenene hos Buttonsmeden.
+    let v = game.inventory_view();
+    let mut got = std::collections::BTreeMap::new();
+    for (c, n) in v.stash.iter().chain(&v.carried) {
+        *got.entry(c.clone()).or_insert(0) += n;
+    }
+    let made = crate::domain::loot::forge(&got, game.coins_now() / 4, true);
+    bot.note(format!("komponentene ved bunnen ({} i alt, {} tokens): {got:?}", got.values().sum::<u32>(), game.coins_now()));
+    bot.note(format!("holder til {} oppskrifter: {}", made.len(), made.iter().map(|r| format!("{} ({})", r.name, r.rarity.name())).collect::<Vec<_>>().join(", ")));
 }
 
 /// Hvilestedet: før du har tent det, våkner du i byen når du dør. Har du

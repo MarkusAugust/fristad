@@ -641,6 +641,13 @@ body:has(#panel:not([hidden])) .aimed {
 }
 .picker > .menu-tabs { grid-column: 1 / -1; }
 .picker > .menu-tabs + .pick-side, .picker > .menu-tabs ~ .detail { grid-row: 2; }
+/* Buttonsmeden (plan 14): varene i «Kjøp» over hele bredden, og byttene i
+   «Bytte» som lista og detaljene i Skriptoriet. Komponentene har bildet av
+   seg selv i stedet for et ikon, og avgiften en tokenbrikke. */
+.smith > .shop-buy { grid-column: 1 / -1; grid-row: 2; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--fs-spacing-3) var(--menu-pad) var(--fs-spacing-6); }
+.token-ico { display: grid; place-items: center; color: var(--fs-color-warning-text); }
+.token-ico svg { width: 60%; height: 60%; fill: currentColor; opacity: 0.85; }
+.swap-rule { margin: var(--fs-spacing-5) 0 0; }
 .pick-side {
   display: flex;
   flex-direction: column;

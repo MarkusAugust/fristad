@@ -240,6 +240,28 @@ impl Hero {
         (true, vec![Note::Sfx("coins"), Note::toast(format!("Kjøpt: {}.", w.name))])
     }
 
+    /// Bytte hos Buttonsmeden (`loot::SWAPS`, plan 14): `n` av en komponent
+    /// fra lageret og avgiften i tokens mot én av en dyrere. Avslås uten nok
+    /// av begge, og ingenting endres da.
+    pub fn swap(&mut self, id: &str) -> (bool, Vec<Note>) {
+        let Some(s) = crate::domain::loot::swap(id) else { return (false, vec![]) };
+        let have = self.inventory.get(s.give).copied().unwrap_or(0);
+        if have < s.n {
+            return (false, vec![Note::Sfx("deny"), Note::toast(format!("Du har {have} {} i lageret, og byttet krever {}.", craft::title(s.give), s.n))]);
+        }
+        if self.coins < s.fee {
+            return (false, vec![Note::Sfx("deny"), Note::toast(format!("Du mangler {} tokens til avgiften.", s.fee - self.coins))]);
+        }
+        self.coins -= s.fee;
+        if let Some(v) = self.inventory.get_mut(s.give) {
+            *v -= s.n;
+        }
+        *self.inventory.entry(s.get.to_string()).or_insert(0) += 1;
+        self.discover();
+        self.dirty = true;
+        (true, vec![Note::Sfx("coins"), Note::toast(format!("Byttet: {} × {} mot én {}.", s.n, craft::title(s.give), craft::title(s.get)))])
+    }
+
     /// Boka (eieren 18. oktober: «det skal alltid lønne seg veldig å lese
     /// boka»): å lese dokumentasjonen for en komponent gir fullt liv, full
     /// utholdenhet og `BOOK_OIL` olje i lykta, én gang per komponent per tur

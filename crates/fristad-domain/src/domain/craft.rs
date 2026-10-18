@@ -489,6 +489,8 @@ pub struct Source {
     pub elite: Vec<usize>,
     pub boss: bool,
     pub smith: Option<u32>,
+    /// Byttet hos Buttonsmeden som gir den (det du gir og hvor mange).
+    pub swap: Option<(&'static str, u32)>,
 }
 
 pub fn source(component: &str) -> Source {
@@ -497,6 +499,7 @@ pub fn source(component: &str) -> Source {
         elite: ELITE_LOOT.iter().enumerate().filter(|(_, c)| **c == component).map(|(f, _)| f + 1).collect(),
         boss: BOSS_LOOT.contains(&component),
         smith: SMITH_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
+        swap: crate::domain::loot::SWAPS.iter().find(|s| s.get == component).map(|s| (s.give, s.n)),
     }
 }
 
@@ -523,6 +526,9 @@ impl Source {
         }
         if let Some(price) = self.smith {
             parts.push(format!("Buttonsmeden {price} tokens"));
+        }
+        if let Some((give, n)) = self.swap {
+            parts.push(format!("bytte {n} {} hos Buttonsmeden", title(give)));
         }
         let mut line = parts.join(" · ");
         if let Some(first) = line.get(..1) {
@@ -558,9 +564,10 @@ impl Source {
             [a] => a.clone(),
             [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
         };
+        let swap = self.swap.map(|(give, n)| format!(" Buttonsmeden bytter den mot {n} {}.", title(give))).unwrap_or_default();
         match self.smith {
-            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens."),
-            None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes."),
+            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens.{swap}"),
+            None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes.{swap}"),
         }
     }
 }
