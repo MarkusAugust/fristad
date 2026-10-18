@@ -244,6 +244,23 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **Gjort:** fiendene har 50 % mer liv (`TOUGHNESS` i `mob_kind.rs`, alle slag, eliten og bossene i samme forhold); kampen ellers som før. Senga koster 10 tokens (`SLEEP_PRICE`, avslag uten råd). Boka gir fullt liv, full utholdenhet og 2 minutter olje, én gang per komponent per tur. Brønnen og døden er som før.
 - **Gjort:** første gang ned i krypten åpnes lappen fra mester Ansgar (`crypt::run::ANSGAR_TEXT`): målet, H hjem gjennom virvelen, lykta, døden og hvilestedene. Den står i journalen og kommer ikke igjen (`SaveData.lore`).
 
+## 14. Komponentene: mer å finne, og bytte hos kjøpmannen (eieren 18. oktober, i kø)
+
+Eieren spilte hele spillet gjennom uten å få smidd mer enn første trinn av utstyret: komponentene som trengs, kommer for sjelden.
+- **Mer å finne:** gå gjennom hva kistene, eliten, bossene og fiendene gir (`drops.rs`, `craft::source`, kistene i nivåfilene og `RECIPES`), og øk det så en vanlig gjennomspilling gir nok til omtrent hele andre trinn og noe av tredje, og alt med litt leting (hemmelige vegger, sjeldne kister). Regn det ut med gjennomspillingsboten (`gjennomspilling`): hva den har samlet ved bunnen, og hva den kunne smidd. Dobbelt så mange kister kommer også (krypt-hjelperen).
+- **Bytte hos kjøpmannen:** Buttonsmeden (eller en egen kjøpmann på torget) bytter «billige» komponenter mot dyrere: for eksempel tre vanlige mot én sjelden av samme tema, med en liten avgift i tokens. Kursene i data (`craft.rs`), en egen fane i butikken med de samme kortene som Skriptoriet, og en test for at byttet virker og ikke kan misbrukes (ingen evig løkke som gir tokens).
+
+## 15. Nivåredigeringen: bygg krypten selv (eieren 18. oktober, etter neste prod-utgivelse)
+
+Eieren synes nivåene er for kjedelige og generiske, og vil bygge dem selv i en egen, levende redigering. Svarene fra grillingen:
+- **Byggeklosser på rutenett:** ferdige biter i den malte stilen som smetter i hverandre på et rutenett på 4 × 4 m med høyde i trinn på 1 m: rom i flere størrelser, ganger, hjørner, kryss, T, blindgang, trapper (hele og halve etasjer), dobbel høyde, buer, dører, broer, sjakter, vann. Murene, kolliderne, lysene og navigasjonsnettet følger med bitene, så alt som settes sammen kan gås og ser ferdig ut.
+- **En egen side: kart ovenfra med 3D ved siden av.** Rommene legges ut på et 2D-kart (etasje for etasje), og 3D-vinduet viser resultatet med en gang. Én knapp spiller nivået fra starten med fiender og alt, og Esc tar deg tilbake dit du var.
+- **Alt innholdet:** rom og ganger; mekanismer med koblinger (spak til port, nøkkel, snarvei, hemmelig vegg, feller, heis — koble med musa); fiender (patrulje, bakhold, elite, boss), kister med valgt innhold, lapper og bonuser; lys og stemning (fakler, lysestaker, tema per rom, tåke, lyder).
+- **Reglene underveis:** redigeringen sier fra med en gang om noe ikke henger sammen (dør som ikke går noen vei, spak uten port, rom du ikke når, nivå uten trapp ned) — de samme reglene som testene. Utkast huskes i nettleseren, og nivåene lagres på grenen `redigering` som byen; jeg slår dem inn.
+- **Bitene:** jeg lager et første sett per tema (gravkjelleren, kloakken, gruva, borgen, kjernen) i Blender med murene vi har, eieren godkjenner dem på godkjenningssiden, og flere kommer når eieren savner noe.
+- **De ti nivåene begynnes helt på nytt:** de gamle står til de nye er klare, så fjernes de, og eieren bygger alle fra blankt.
+- **Rekkefølge:** etter neste prod-utgivelse og del 14. Planen i detalj (formatet for nivåene, bitene, sammenføyningen, navigasjonen, lagringen, redigeringens skjermbilde) skrives før arbeidet starter og vises eieren.
+
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
 - Endres: `sheet2model/cli.py` (portene før finish/rig, ingen glb ved feil), `sheet2model/{geom,texture,report,config}.py`, `tools/models/kit.py` (overganger, dørmodul, `group()`), `tools/models/{houses,tavern,workshops,home,sacred,fortress,streetlife}.py`, `tools/crypt/{kit_grav,build_level,leak_check}.py`, `tools/textures/derive.py`, `src/application/session.rs` (delt), `src/domain/world/{town,mod}.rs`, `src/adapters/gltf.rs`, `src/adapters/wgpu/{mod.rs,shaders/world.wgsl}`, `web/main.js`, `src/tests.rs`, `src/architecture.rs`, `.github/workflows/web.yml`, `CLAUDE.md`, `docs/ny-stil.md`.
