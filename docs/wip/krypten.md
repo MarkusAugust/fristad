@@ -234,7 +234,10 @@ Utlegget `tools/crypt/layouts/layout_09.py` etter planen `levels/level_09.py`. F
 
 Utlegget `tools/crypt/layouts/layout_10.py` etter planen `levels/level_10.py`. Det nederste nivået: en trakt av plast, 83 m over, der steinen nesten er borte (bare gangene ut til sidekamrene og Urskriften er murt). Fra **Kanten** (start, døra opp) ser du ned i trakten, og tre terrasser skrur seg nedover rundt **Rotunden**, som lyser hvitt i bunnen. **Den ytre spiralen** går med klokka nesten en hel runde fra 0 til −11,6 m (øst og vest er hvert sitt rom; tabellene patruljerer under kanten, knapper, breadcrumbs, en piggfelle); i øst står veggen som henger igjen foran **Det glemte forrådet** (lappen og den sjeldne kista), i vest gangen til **Stabelkammeret** (bakholdet, kista) og fallemmen i det sprukne gulvet ned til **Urskriften** (rommet inne i blokka under terrassen, med skriften om hvordan Rammeverket ble skrevet, + liv, og stigen opp igjen). Trappebroa ved 290° går ned til **Sammenføyningen** (den vestre halvdelen av den midtre ringen: samlebåndet, tabellene og accordions, kista). Broa i nord fører over til **Den midtre spiralen** (−11,6 til −16,8 m: tooltips, glitchflisene, accordions og modalen); de tre **sømknutene** (spakene med det lysende hodet på rekkverket) heiser gitteret på Knutebroa inn til **Knutekammeret** (den østre halvdelen av den indre ringen: + utholdenhet, kista og lappen «Knutene»), og spaken i sør heiser **sømsperren** på den buede broa over til Sammenføyningen (løkka). Trappebroa i sør går ned til **Den indre spiralen** (−18,8 til −26 m), og i enden står **Det siste alteret**. Fra enden av den indre spiralen går den brede trappa ned gjennom porten i rotundemuren (−28,5 m): porten slår igjen bak deg, og **Rammeverket** venter midt i lyset, med kongens ringer av hvite sømmer i gulvet og **mester Ansgars siste side** ved muren. Ingen trapp ned.
 
-Tallene, tetthetssjekken og sprekkesjekken står under «Sjekket».
+### Sjekket
+- 63 200 trekanter i 10 biter på 32 × 32 m, 1 653 kollidere, 2 033 nav-polygoner, 27 lys, 30 rom i json (avsatsene over rommets gulv er egne rom).
+- Tetthetssjekken: 0 hull (3 824 punkter). Motorens sprekkesjekk (`snapshot --leak-scan`, hvert tiende punkt fra `leak_points.py 10 6`, 210 punkter) fant først himmel i spalten mellom den flate kuppelen og traktmuren (rettet med en ring over kuppelkanten); nå én enkeltpiksel (1 px).
+- `cargo test --release` grønn; `gjennomspilling` går nivå 1–10 med kamp og slår Rammeverket i rotunden (310 s spilltid i nivå 10).
 
 ### Nytt (felles kode)
 - **Runde rom med bunn under gulvet**: `round_room` bruker `r.floor_y` (som rektangelrommene), så trakten har bunnen i avgrunnen (−38 m) mens rommet står med gulvet −31 m i json. Det laveste rommet ligger da mer enn 3 m over bunnen, og faller du utfor en terrasse, løfter økta deg opp der du sist sto (`Run::rescue`), i stedet for at du blir stående i avgrunnen.
@@ -258,6 +261,7 @@ Tallene, tetthetssjekken og sprekkesjekken står under «Sjekket».
 - Plasten er fortsatt `plaster_white` med kald tone (`core_plastic` er ikke et teksturlag ennå).
 
 ### Lærdom
+- **Kuppelkanten over et stort rundt rom**: kanten av en flat kuppel står med rette stykker innenfor muren, og over murkronen (`VAULT_LAP`) synes himmelen gjennom spalten. Over trakten lukker en ring over kuppelkanten den.
 - **Tetthetssjekken ser bare opp til rommets vederlag + 4,6 m**: en kuppel som stiger høyere over et stort rundt rom, regnes som et hull. Over trakten (83 m) er kuppelen derfor lav (4,2 m).
 - **Generatoren har ikke konkave rom**: buene i planen (terrassene) kan ikke bli mangekantrom med klosterhvelv. De bygges som blokker i et vertsrom (`virtual`), og rommet i json er sektoren (kartet og `room_at` tåler konkave polygoner).
 - **Rekkverk som lyser**: i et stort, mørkt rom gir dekkhella på rekkverkene i `magic_seam` formen på spiralen; uten den var terrassene svarte flater i svart (se `09_ovenfra`).

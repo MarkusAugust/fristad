@@ -640,6 +640,12 @@ def features(L):
             seam_cyl(mb, ROT_R, dd, ROT_Y + 0.2, ROT_TOP - 0.1, True)
             seam_cyl(mb, ROT_R + ROT_W, dd + 15, BOTTOM + 2.0, ROT_TOP - 0.1, False)
     rot.floor_walk = Point(C).buffer(ROT_R - I, 72).difference(cut_all.buffer(-0.001))
+    # Kanten under kuppelen: kuppelen er så flat over trakten at kanten av
+    # den (72 rette stykker) står 4 cm innenfor muren, og gjennom spalten
+    # synes himmelen over murkronen (`snapshot --leak-scan`). En ring rett
+    # over kuppelkanten og bak muren lukker den.
+    rim = Point(C).buffer(HOST_R + 0.3, 144).difference(Point(C).buffer(HOST_R - 0.5, 144))
+    grid_face(mb, Horizontal(HOST_TOP + 0.2, up=False), rim, "plastic")
     # Urskriften: sjaktene fra taket opp gjennom avsatsen.
     kt = KILDE_Y + rm["kilde"].h
     L.shaft(TRAP_HOLE, kt, -7.6, mat="fresco")
