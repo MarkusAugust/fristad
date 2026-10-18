@@ -130,8 +130,16 @@ fn kapselen_stopper_mot_trær_og_kanten() {
 fn alt_du_kan_bruke_kan_siktes_pa() {
     let p = world();
     let mut physics = RapierPhysics::new();
+    // Midten av hver fast kollider (boks og sylinder), etter id.
+    let mut middles = std::collections::HashMap::new();
     for c in &p.world.colliders {
-        physics.add(c);
+        let id = physics.add(c);
+        match c {
+            Shape::Cuboid { center, .. } | Shape::Cylinder { center, .. } => {
+                middles.insert(id, *center);
+            }
+            _ => {}
+        }
     }
     let mut ids = std::collections::HashMap::new();
     for (i, t) in p.world.targets.iter().enumerate() {
@@ -140,8 +148,9 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
     physics.move_capsule(Vec3::new(0.0, 50.0, 0.0), 0.5, 0.3, Vec3::ZERO, 0.016);
     let mut problems = vec![];
     for (i, t) in p.world.targets.iter().enumerate() {
-        let center = t.pose.transform_point3(t.center);
-        // Innbyggerne siktes på fra alle kanter; resten forfra.
+        let frame = t.pose * Affine3A::from_translation(t.center);
+        let center = frame.transform_point3(Vec3::ZERO);
+        // Forfra (innbyggerne fra +x) må strålen treffe målet.
         let facing = match t.what {
             Use::Talk(_) => Vec3::X,
             _ => t.pose.transform_vector3(Vec3::Z).normalize_or_zero(),
@@ -150,7 +159,35 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
         let from = center + facing * (depth + 0.6);
         let hit = physics.cast_ray(from, -facing, 2.0);
         if hit.as_ref().and_then(|h| ids.get(&h.collider)) != Some(&i) {
-            problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}) kan ikke siktes på", t.what, center.x, center.y, center.z));
+            problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}) kan ikke siktes på forfra", t.what, center.x, center.y, center.z));
+            continue;
+        }
+        // Fra alle fire kanter, både vannrett og ovenfra på skrå (øyet 1,7 m
+        // over foten av målet, 1,5 m unna, mot øvre del av målet): målet kan
+        // stå inntil en mur, men tingens egen kollider skal aldri skygge for
+        // siktet (relikvieskrinet, eieren 18. oktober). Tingens egen
+        // kollider er den som har midten sin i målet.
+        let to_local = frame.inverse();
+        let inside = |q: Vec3, pad: f32| {
+            let l = to_local.transform_point3(q);
+            l.x.abs() <= t.half.x + pad && l.y.abs() <= t.half.y + pad && l.z.abs() <= t.half.z + pad
+        };
+        let foot = frame.transform_point3(-Vec3::Y * t.half.y);
+        let upper = frame.transform_point3(Vec3::Y * t.half.y * 0.85);
+        for (side_name, yaw) in [("forfra", 0.0f32), ("fra venstre", 90.0), ("bakfra", 180.0), ("fra høyre", 270.0)] {
+            let side = glam::Quat::from_rotation_y(yaw.to_radians()) * facing;
+            let reach = t.half.x.max(t.half.z) + 0.6;
+            let eye = foot + Vec3::Y * 1.7 + side * (reach + 0.9);
+            let rays = [("vannrett", center + side * reach, -side), ("ovenfra", eye, (upper - eye).normalize())];
+            for (how, from, dir) in rays {
+                if inside(from, 0.05) {
+                    continue;
+                }
+                let Some(h) = physics.cast_ray(from, dir, 4.0) else { continue };
+                if middles.get(&h.collider).is_some_and(|m| inside(*m, 0.0)) {
+                    problems.push(format!("{:?} ved ({:.1}, {:.1}, {:.1}): en kollider skygger for siktet {side_name} {how}", t.what, center.x, center.y, center.z));
+                }
+            }
         }
     }
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
@@ -1845,6 +1882,54 @@ fn den_falske_veggen_apnes() {
     }
     let feet = game.feet();
     assert!((feet - s.pos).with_y(0.0).dot(d) > 0.8, "kom ikke inn bak veggen: føttene ved {feet:?}");
+}
+
+/// Sprekken som hinter om en falsk vegg står på selve veggen (som har sin
+/// egen sprekk), aldri på muren ved siden av, der et slag ikke gjør noe.
+#[test]
+fn sprekken_star_pa_den_falske_veggen() {
+    let p = world();
+    let c = &p.world.crypt;
+    let cracks: Vec<Vec3> = p.world.placements.iter().filter(|pl| pl.model == crypt::KIT_CRACK).flat_map(|pl| pl.transforms.iter().map(|t| t.transform_point3(Vec3::ZERO))).collect();
+    let mut bad = vec![];
+    for s in &c.secrets {
+        for q in &cracks {
+            if q.distance(s.pos) < s.width * 0.5 + 2.0 {
+                bad.push(format!("en sprekk ved ({:.1}, {:.1}, {:.1}) står {:.1} m fra den falske veggen ved ({:.1}, {:.1}, {:.1}), ikke på den", q.x, q.y, q.z, q.distance(s.pos), s.pos.x, s.pos.y, s.pos.z));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
+
+/// Den falske veggen slås inn med et hugg, ikke bare med F (eieren 18.
+/// oktober: «hvordan åpner man den?»; siktet sier «Slå, eller skyv»).
+#[test]
+fn den_falske_veggen_slas_inn() {
+    let c = &world().world.crypt;
+    let s = c.secrets.first().expect("ingen falsk vegg i krypten").clone();
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    let front = in_front(c, s.pos, s.yaw, 1.4);
+    game.place_feet(front);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    let eye = game.eye();
+    let d = (s.pos + Vec3::Y * 1.2 - eye).normalize();
+    game.set_look((-d.x).atan2(-d.z), d.y.asin());
+    let mut opened = false;
+    for k in 0..60 {
+        if k == 1 {
+            input.actions.push(Action::Attack);
+        }
+        if k == 3 {
+            input.actions.push(Action::AttackRelease);
+        }
+        let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+        opened |= events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("rom bak")));
+    }
+    assert!(opened, "hugget slo ikke inn den falske veggen");
 }
 
 /// Fallemmen eller sjakta: du faller ned i rommet under, og stigen der tar

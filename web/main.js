@@ -556,6 +556,7 @@ function handle(e) {
       break;
     case "theme":
       document.documentElement.dataset.theme = e.theme;
+      music.night(e.theme === "dark");
       break;
     case "toast":
       // Lappene i krypten er opptil rundt 400 tegn: la varselet stå lenge nok
@@ -581,6 +582,7 @@ function handle(e) {
       if (playing) sfx.heart(e.hp);
       lastHud = e;
       if (playing) music.set(e.cellar ? "cellar" : "town");
+      music.hud(e);
       setBars(e.hp, e.stamina);
       // Lykta: stolpen står alltid (i byen ser du hva du må fylle hos
       // Apotekeren; oljen brenner bare nede), og mørket lukker seg nede når
@@ -1511,7 +1513,8 @@ function updateMarks(marks) {
 // Lydene (web/sounds.js): opptak og syntetiske lyder, med retning og etterklang.
 const sfx = createSounds();
 
-// Musikken (web/music.js): fem stykker etter tur i byen, uhygge i krypten.
+// Musikken (web/music.js): sporene fra filer (byen etter døgnet, krypten
+// etter temaet, kampen når en fiende er nær), ellers partituret.
 const music = createMusic(() => sfx.context());
 // Lydene i byen (web/ambience.js) etter hvor du står.
 const ambience = createAmbience(() => sfx.context(), sfx);

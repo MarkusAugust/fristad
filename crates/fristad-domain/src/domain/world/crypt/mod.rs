@@ -75,6 +75,7 @@ pub const KIT_SHORTCUT_LEAF: &str = "kit_shortcut_leaf";
 pub const KIT_SECRET: &str = "kit_secret_wall";
 pub const KIT_TRAPDOOR: &str = "kit_trapdoor";
 pub const KIT_LADDER: &str = "kit_ladder";
+pub const KIT_LADDER_TOP: &str = "kit_ladder_top";
 pub const KIT_PLATE: &str = "kit_plate";
 pub const KIT_ARROW: &str = "kit_arrow";
 pub const KIT_LORE: &str = "kit_lore";
@@ -237,11 +238,19 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
         b.target(Use::Lift(i), super::at(l.pos, l.yaw), Vec3::new(l.size.x * 0.5 - 0.3, 0.75, l.size.y * 0.5 - 0.3), Vec3::new(0.16, 0.7, 0.16));
         b.target(Use::Winch(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.7, LIFT_WINCH_Z), Vec3::new(0.9, 0.6, 0.4));
     }
+    // Pulten og skrinet: målet dekker hele modellen (korset på taket også),
+    // så siktet treffer det du ser fra alle kanter.
+    let whole = |b: &Builder, name: &str, fallback: (Vec3, Vec3)| {
+        let (lo, hi) = b.bounds(name).unwrap_or(fallback);
+        ((lo + hi) * 0.5, ((hi - lo) * 0.5).max(Vec3::splat(0.1)))
+    };
+    let (lore_c, lore_h) = whole(b, KIT_LORE, (Vec3::new(-0.3, 0.0, -0.3), Vec3::new(0.3, 1.0, 0.3)));
     for (i, l) in c.lores.iter().enumerate() {
-        b.target(Use::Lore(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
+        b.target(Use::Lore(i), super::at(l.pos, l.yaw), lore_c, lore_h);
     }
+    let (bonus_c, bonus_h) = whole(b, KIT_BONUS, (Vec3::new(-0.3, 0.0, -0.3), Vec3::new(0.3, 1.35, 0.3)));
     for (i, l) in c.bonuses.iter().enumerate() {
-        b.target(Use::Bonus(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.3, 0.5, 0.3));
+        b.target(Use::Bonus(i), super::at(l.pos, l.yaw), bonus_c, bonus_h);
     }
     for (k, l) in c.levels.iter().enumerate() {
         if let Some((p, yaw)) = l.up {
@@ -277,6 +286,13 @@ pub fn reserve(c: &Crypt) -> Vec<(&'static str, usize)> {
         (KIT_LIFT, c.lifts.len()),
         (KIT_WATER, c.waters.len()),
     ]
+}
+
+/// Hvor mange biter på 1 m en stige på `h` meter stables av, og hvor høy
+/// hver bit blir (nær 1 m, så trinnene står 30–37 cm fra hverandre).
+pub fn ladder_pieces(h: f32) -> (usize, f32) {
+    let n = h.round().max(1.0) as usize;
+    (n, h / n as f32)
 }
 
 /// Den første modellen i lista som finnes (`missing` får den første).
@@ -595,12 +611,17 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "ladder" => {
                 let top = m.top.map(w).unwrap_or(pos + Vec3::Y * 3.0);
-                if let Some((lo, hi)) = b.bounds(KIT_LADDER) {
-                    let s = ((top.y - pos.y) / (hi.y - lo.y).max(0.1)).max(0.2);
-                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
-                } else {
-                    b.place_mounted(KIT_LADDER, pose);
+                // Bitene på 1 m stables og strekkes bare litt, så trinnene
+                // står like tett som på en ekte stige (før ble én bit strukket
+                // til hele høyden), og toppen med krokene henger i kanten.
+                let h = (top.y - pos.y).max(0.5);
+                let (n, s) = ladder_pieces(h);
+                for i in 0..n {
+                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_translation(Vec3::Y * (i as f32 * s)) * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
                 }
+                b.place_mounted(KIT_LADDER_TOP, pose * Affine3A::from_translation(Vec3::Y * h));
+                // Ingen går gjennom stigen: en tynn kollider langs vangene.
+                b.solid_box(pose.transform_point3(Vec3::new(0.0, h * 0.5, 0.0)), Vec3::new(0.6, h, 0.08), m.yaw);
                 c.ladders.push(Ladder { pos, yaw: m.yaw, top, level: k });
             }
             "trap" => {
@@ -629,10 +650,15 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     "sound" => HintKind::Sound,
                     _ => HintKind::Crack,
                 };
-                if kind == HintKind::Crack {
+                // Hintet til en falsk vegg står på selve veggen, der du skal
+                // slå (eieren 18. oktober); veggen har sin egen sprekk og tar
+                // den med seg når den synker, så sprekken ved siden av, på
+                // muren som aldri gir etter, settes ikke ut.
+                let wall = m.for_id.as_deref().and_then(|id| f.marks.iter().find(|o| o.kind == "secret_wall" && o.id.as_deref() == Some(id))).and_then(|o| o.pos.map(w)).filter(|_| kind == HintKind::Crack);
+                if kind == HintKind::Crack && wall.is_none() {
                     b.place_mounted(KIT_CRACK, pose);
                 }
-                c.hints.push(Hint { kind, pos, level: k });
+                c.hints.push(Hint { kind, pos: wall.unwrap_or(pos), level: k });
             }
             "prop" => {
                 // Pynt fra byggesettet (sarkofagene): modellen i `label`, kolliderne står i nivåfila.

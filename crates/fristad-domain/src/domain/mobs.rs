@@ -75,6 +75,9 @@ impl Blow {
     }
 }
 
+/// Så nær en fiende som har sett deg må være for at det er kamp (musikken).
+pub const FIGHT_NEAR: f32 = 12.0;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum State {
     Idle,
@@ -331,6 +334,18 @@ impl Mobs {
     }
 
     /// Bossen, om den lever og har sett deg: (navn, liv 0..1).
+    /// Hvor hard kampen er nå (`Event::Hud.fight`): 0 ingen, 1 en fiende,
+    /// 2 en boss, 3 Rammeverket. En fiende er i kamp med deg når den har
+    /// fått øye på deg og står innen `FIGHT_NEAR` (eller slår).
+    pub fn fight(&self, feet: Vec3) -> u8 {
+        self.mobs
+            .iter()
+            .filter(|m| m.alive() && m.aware && (m.pos.distance(feet) <= FIGHT_NEAR || matches!(m.state, State::Attack { .. })))
+            .map(|m| if m.kind == Kind::Framework { 3 } else if m.boss { 2 } else { 1 })
+            .max()
+            .unwrap_or(0)
+    }
+
     pub fn boss(&self) -> Option<(&'static str, f32)> {
         self.mobs.iter().find(|m| m.boss && m.alive() && m.aware).map(|m| (m.kind.label(), (m.hp / m.max_hp).clamp(0.0, 1.0)))
     }

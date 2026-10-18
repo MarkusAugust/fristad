@@ -5,6 +5,7 @@
 use super::session::{sfx, Session};
 use crate::domain::combat::CombatEvent;
 use crate::domain::mobs::Kind as MobKind;
+use crate::domain::world::Use;
 use crate::ports::driving::{Event, FoeView, Mark};
 use glam::{Mat4, Vec3};
 
@@ -15,7 +16,7 @@ pub(super) struct Hud {
     popups: Vec<(Vec3, f32, f32, u32)>,
     seq: u32,
     marks_shown: bool,
-    last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>, u32)>,
+    last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>, u32, u8)>,
     /// Fienden i infopanelet, sekundene siden du sist siktet på den, og det
     /// som sist ble sendt.
     foe: Option<usize>,
@@ -26,6 +27,8 @@ pub(super) struct Hud {
 /// Så lenge står infopanelet etter at siktet har gått av fienden (så det
 /// ikke blinker når den hopper eller du snur deg i kampen).
 const FOE_LINGER: f32 = 0.6;
+/// Så nær den falske veggen må være for at et hugg slår den inn (målt fra øyet til midten av muren).
+const WALL_REACH: f32 = 3.0;
 
 impl Hud {
     pub fn clear(&mut self) {
@@ -108,7 +111,13 @@ impl Session {
                         self.killed(mob, pos, events);
                     }
                 }
-                CombatEvent::Miss => {}
+                // Et hugg som ikke treffer noen fiende, men den falske
+                // veggen du sikter på, slår den inn (som F).
+                CombatEvent::Miss => {
+                    if let Some(i) = self.aim.filter(|&i| matches!(self.targets[i].target.what, Use::Secret(_)) && self.target_pos(i).distance(eye) <= WALL_REACH) {
+                        self.use_target(i, events);
+                    }
+                }
                 CombatEvent::Sound(s) => match struck {
                     Some(at) if s != "swing" && s != "swing_heavy" => events.push(self.sound_at(s, at, 1.0)),
                     _ => events.push(sfx(s)),
@@ -179,13 +188,14 @@ impl Session {
         }
         let boss = if in_crypt { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
         let h = &self.hero;
-        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss, (h.lamp.fraction() * 100.0).ceil() as u32);
+        let fight = if in_crypt { self.mobs.fight(self.body.sole()) } else { 0 };
+        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss, (h.lamp.fraction() * 100.0).ceil() as u32, fight);
         if self.hud.last != Some(hud) {
             if self.hud.last.as_ref().map(|h| h.2) != Some(self.hero.coins) {
                 self.hero.dirty = true;
             }
             self.hud.last = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)), light: hud.6 });
+            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)), light: hud.6, fight: hud.7 });
         }
         if self.hero.dirty {
             self.hero.dirty = false;

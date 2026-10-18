@@ -341,8 +341,8 @@ fn json(e: &Event) -> serde_json::Value {
         }}),
         Event::OpenDoc(c) => json!({"type": "open_doc", "component": c}),
         Event::Where { x, z, yaw } => json!({"type": "where", "x": x, "z": z, "yaw": yaw}),
-        Event::Hud { hp, stamina, tokens, cellar, keys, boss, light } => {
-            json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "light": light, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))})
+        Event::Hud { hp, stamina, tokens, cellar, keys, boss, light, fight } => {
+            json!({"type": "hud", "hp": hp, "stamina": stamina, "tokens": tokens, "cellar": cellar, "keys": keys, "light": light, "fight": fight, "boss": boss.as_ref().map(|(n, f)| json!({"name": n, "hp": f}))})
         }
         Event::Sound(s) => json!({"type": "sound", "name": s.name, "at": s.at, "gain": s.gain}),
         Event::Inventory(v) => {

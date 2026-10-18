@@ -362,6 +362,9 @@ pub enum Event {
         boss: Option<(String, u32)>,
         /// Oljen i lykta, 0–100.
         light: u32,
+        /// Kampen nå (`Fight`): 0 ingen, 1 en fiende, 2 en boss, 3
+        /// Rammeverket. Musikken toner inn kampsporet etter det.
+        fight: u8,
     },
     /// En lyd å spille (navnene står i `assets/sounds/sounds.json`).
     Sound(Sound),
