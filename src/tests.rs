@@ -2665,3 +2665,30 @@ fn lykta_brenner_bare_i_krypten() {
     }
     assert!(down.is_some_and(|l| l < 50), "nede brenner oljen: {down:?}");
 }
+
+/// Eieren 18. oktober: siktet på en fiende gir infopanelet til høyre
+/// (`Event::Foe`), ikke sikteboblen midt på skjermen (`Event::Prompt`).
+#[test]
+fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.update(&mut input, 1.0 / 60.0, &mut physics);
+    let mob = game.nearest_mob(game.feet()).expect("ingen fiende i nivå 1");
+    let target = mob + Vec3::Y * 0.6;
+    let mut seen = false;
+    for k in 0..8 {
+        let a = k as f32 * std::f32::consts::TAU / 8.0;
+        let eye = target + Vec3::new(a.cos(), 0.0, a.sin()) * 2.0 + Vec3::Y * 0.5;
+        let d = (target - eye).normalize();
+        game.place(eye, (-d.x).atan2(-d.z), d.y.asin());
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        if events.iter().any(|e| matches!(e, Event::Foe(Some(f)) if !f.name.is_empty() && !f.info.is_empty() && f.max_hp > 0)) {
+            assert!(!events.iter().any(|e| matches!(e, Event::Prompt(Some(_)))), "fienden fikk sikteboblen: {events:?}");
+            seen = true;
+            break;
+        }
+    }
+    assert!(seen, "infopanelet kom ikke når du siktet på fienden ved {mob:?}");
+}

@@ -136,8 +136,4 @@ impl Session {
             }
         }
     }
-
-    pub(super) fn mob_prompt(label: &str) -> Prompt {
-        p(label, "Hugg", "", "Klikk for å hugge, høyreklikk for å blokke.")
-    }
 }

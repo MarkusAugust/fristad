@@ -394,8 +394,9 @@ impl Session {
         }
 
         // Siktet: sendes når det endrer seg.
+        // En fiende får ikke sikteboblen: infopanelet til høyre viser den
+        // (`Event::Foe`, eieren 18. oktober).
         let prompt = match (self.aimed_mob, self.aim) {
-            (Some(m), _) => Some(Self::mob_prompt(self.mobs.mobs[m].kind.label())),
             (None, Some(i)) => Some(self.prompt_for(i)),
             _ => None,
         };
