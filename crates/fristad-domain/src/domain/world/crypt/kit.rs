@@ -19,6 +19,10 @@ use serde::{Deserialize, Serialize};
 pub struct KitDef {
     #[serde(default)]
     pub pieces: Vec<KitPiece>,
+    /// Modulene eieren setter sammen (`assets/levels/moduler/<tema>/`,
+    /// `docs/nivaaredigering.md` del 21).
+    #[serde(default)]
+    pub modules: Vec<super::doc::ModuleDef>,
 }
 
 /// Ett manifest (`<tema>.json`).
@@ -62,6 +66,10 @@ impl KitDef {
             }
             self.pieces.push(p);
         }
+    }
+
+    pub fn module(&self, id: &str) -> Option<&super::doc::ModuleDef> {
+        self.modules.iter().find(|m| m.id == id)
     }
 
     pub fn piece(&self, id: &str) -> Option<&KitPiece> {

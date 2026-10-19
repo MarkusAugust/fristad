@@ -3,21 +3,61 @@
 //! et tak. Reglene her gjelder filene og stiene, ikke materialene (dem leser
 //! `gltf` fra fila).
 
-use super::gltf::{model_files, Caps};
+use super::gltf::{capped, model_files, Caps};
+use crate::domain::model::{Image, Model};
 
-/// Taket i nettleseren (plan del 10a): utpakket med mipmaps ga modellene
-/// 1,6 GB teksturer, som telefonen ikke tåler. Armene og våpnene står rett
-/// foran kameraet og beholder 2048 i fargen; resten får 1024, og normal- og
-/// metallkartene halvparten av fargen.
+/// Taket i nettleseren (plan del 10a): bare datamaskin er et mål (eieren
+/// 19. oktober), så fargen får 2048 og normal- og metallkartene 1024. De
+/// store fiendene (Rammeverket er 4 m høyt og bakt i 4096, modalen og
+/// tabellen bossene i nivå 2 og 4) står en meter eller to unna og fyller
+/// bildet: fargen får 4096. Bildene pakkes fortsatt ut én om gangen, så
+/// wasm-haugen holder bare ett av dem.
 pub fn browser_caps(name: &str) -> Caps {
-    // Armene og våpnene står rett foran kameraet, og troféene på
-    // galleriveggen har skrift som leses på en meters hold (plan 13d).
-    const NEAR: [&str; 7] = ["arms", "sword", "axe", "dagger", "shield", "mace", "gallery_"];
-    if NEAR.iter().any(|p| name.starts_with(p)) {
-        Caps { color: 2048, data: 1024 }
+    const BIG: [&str; 3] = ["framework", "mutant_modal", "mutant_table"];
+    if BIG.contains(&name) {
+        Caps { color: 4096, data: 1024 }
     } else {
-        Caps { color: 1024, data: 512 }
+        Caps { color: 2048, data: 1024 }
     }
+}
+
+/// Det lave taket teksturene lastes opp med først i nettleseren (lat
+/// lasting): byen kommer raskt opp, og rendereren oppgraderer dem til
+/// `browser_caps` i bakgrunnen, de nærmeste først (`upgrade_pick`).
+pub const LOW: Caps = Caps { color: 512, data: 256 };
+
+/// Bilder over denne siden (Rammeverkets 4096) oppgraderes bare når
+/// modellen er innen `BIG_NEAR` meter fra kameraet.
+pub const BIG_SIDE: u32 = 2048;
+pub const BIG_NEAR: f32 = 30.0;
+
+/// Tiden oppgraderingen får per bilde i snitt (ms): ett bilde pakkes ut
+/// av gangen, og et som tok lenger, betales av de neste bildene.
+pub const UPGRADE_MS: f64 = 4.0;
+
+/// Gir modellens bilder det lave taket først og husker målene de skal
+/// oppgraderes til (`Image.later`).
+pub fn stage(m: &mut Model, low: Caps) {
+    let one = |img: &mut Option<Image>, cap: u32| {
+        let Some(i) = img.as_mut() else { return };
+        let (w, h) = capped(i.width, i.height, cap);
+        if (w, h) != (i.width, i.height) && !i.encoded.is_empty() {
+            i.later = Some((i.width, i.height));
+            (i.width, i.height) = (w, h);
+        }
+    };
+    one(&mut m.albedo, low.color);
+    one(&mut m.normal, low.data);
+    one(&mut m.metal_rough, low.data);
+    one(&mut m.emissive, low.data);
+}
+
+/// Hvilken modell som oppgraderes nå: (avstand fra kameraet til nærmeste
+/// instans, største side det skal opp til) per kandidat; den nærmeste
+/// først, og de store bare innen `BIG_NEAR`. Modeller uten instanser har
+/// uendelig avstand og kommer sist.
+pub fn upgrade_pick(cands: impl Iterator<Item = (usize, f32, u32)>) -> Option<usize> {
+    cands.filter(|(_, d, side)| *side <= BIG_SIDE || *d <= BIG_NEAR).min_by(|a, b| a.1.total_cmp(&b.1)).map(|(k, _, _)| k)
 }
 
 /// Kryptnivået en modellfil er en bit av (`crypt/crypt_NN_aa.glb`), eller
@@ -41,4 +81,23 @@ pub fn dist_path(path: &str) -> String {
 /// Bitene til kryptnivå n: (navn, sti).
 pub fn level_files(n: u32) -> impl Iterator<Item = &'static (&'static str, &'static str)> {
     model_files().filter(move |(_, p)| level_of(p) == Some(n))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Den nærmeste først, de uten instanser sist, og de store (over
+    /// `BIG_SIDE`) bare innen `BIG_NEAR`.
+    #[test]
+    fn oppgraderingen_tar_det_naermeste_forst() {
+        assert_eq!(upgrade_pick([(0, 50.0, 2048), (1, 3.0, 1024), (2, f32::INFINITY, 2048)].into_iter()), Some(1));
+        assert_eq!(upgrade_pick([(0, f32::INFINITY, 2048)].into_iter()), Some(0));
+        assert_eq!(upgrade_pick([(0, 31.0, 4096), (1, 80.0, 2048)].into_iter()), Some(1), "bossen venter til du er nær");
+        assert_eq!(upgrade_pick([(0, 31.0, 4096)].into_iter()), None);
+        assert_eq!(upgrade_pick([(0, 12.0, 4096), (1, 5.0, 2048)].into_iter()), Some(1));
+        assert_eq!(upgrade_pick([(0, 12.0, 4096), (1, 20.0, 2048)].into_iter()), Some(0));
+        assert_eq!(browser_caps("framework").color, 4096);
+        assert!(LOW.color < browser_caps("house_a").color && LOW.data < browser_caps("house_a").data);
+    }
 }

@@ -256,6 +256,7 @@
   "forge_interior": "Smia: innsida med esse og ambolt.",
   "forge_weapon_rack": "Møbel: Våpenstativ med sverd og økser (Smia).",
   "forge_workbench": "Møbel: Arbeidsbenk med skrustikke, klinge, jernbarre og sekker (Smia).",
+  "framework": "Rammeverket (sluttbossen, nivå 10): en bred jernkjempe av firkantede rammer fylt med glødende magenta rutenett, kongens segl over kjernen på brystet, krone, kjettinger med hengelåser og gulnede sider mellom platene; TRELLIS-formen fra eieren med teksturen som den er, rigget med fiendeskjelettet og klippene fra mob_motion (tools/models/mob3d.py).",
   "gallery_alert": "Platen med Fristil-komponenten alert i galleriveggen.",
   "gallery_badge": "Platen med Fristil-komponenten badge i galleriveggen.",
   "gallery_button": "Platen med Fristil-komponenten button i galleriveggen.",

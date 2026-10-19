@@ -289,6 +289,12 @@ struct GpuModel {
     slot_of: Vec<u32>,
     originals: Vec<InstanceData>,
     hidden: std::cell::RefCell<Vec<u32>>,
+    /// Teksturene i bindegruppen og målene deres, og bildene som skal
+    /// oppgraderes i bakgrunnen (plassen 0–3 og bildet med de endelige
+    /// målene; lat lasting i nettleseren, `upgrade_textures`).
+    views: [wgpu::TextureView; 4],
+    sizes: [(u32, u32); 4],
+    pending: Vec<(usize, crate::domain::model::Image)>,
 }
 
 /// De faste instansene i en rute på `CELL_M` meter: boksen rundt dem og
@@ -500,6 +506,11 @@ pub struct Renderer {
     /// med `add_models` (så de kan slippes igjen).
     waiting: Vec<crate::domain::model::Placement>,
     later: Vec<crate::domain::model::Placement>,
+    /// Tiden oppgraderingen av teksturene har til gode (ms, høyst
+    /// `delivery::UPGRADE_MS`; negativ når forrige bilde tok lenger), og
+    /// taket per bilde (`set_upgrade_budget`).
+    upgrade_credit: f64,
+    upgrade_ms: f64,
     /// Enheten er borte (`lose`): ingenting sendes til den mer.
     lost: bool,
     mipper: texture::Mipper,
@@ -847,6 +858,8 @@ impl Renderer {
             models: gpu_models,
             waiting,
             later: vec![],
+            upgrade_credit: 0.0,
+            upgrade_ms: std::env::var("FRISTAD_UPGRADE_MS").ok().and_then(|v| v.parse().ok()).unwrap_or(crate::adapters::delivery::UPGRADE_MS),
             lost: false,
             mipper,
             skins,
@@ -1502,6 +1515,8 @@ impl Renderer {
         if let Some(tm) = &mut self.timer {
             tm.map();
         }
+        // Lat lasting: teksturene med lavt tak oppgraderes etter bildet.
+        self.upgrade_textures(f.camera, &f.instances);
     }
 
     /// Tegn verden og modellene. Verden tegnes bit for bit, bare

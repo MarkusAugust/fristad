@@ -4,75 +4,41 @@
   "name": "Prøvenivået",
   "status": "utkast",
   "seed": 1,
-  "kit": ["grav@1"],
+  "kit": ["grav@2"],
   "bands": [
     {"name": "Hovedplanet", "from": -1, "to": 5}
   ],
-  "rooms": [
-    {"id": "kapell", "name": "Kapellet", "theme": "grav", "mood": {"torches": 0.5}},
-    {"id": "gjemme", "name": "Gjemmestedet", "theme": "grav", "secret": true},
-    {"id": "gangen", "name": "Gangen", "theme": "grav", "mood": {"torches": 0.5}},
-    {"id": "hvelv", "name": "Hvelvet", "theme": "grav", "mood": {"torches": 0.35}},
-    {"id": "forhall", "name": "Forhallen", "theme": "grav", "mood": {"torches": 0.4}},
-    {"id": "sidegang", "name": "Sidegangen", "theme": "grav", "mood": {"torches": 0.5}},
-    {"id": "beinhus", "name": "Beinhuset", "theme": "grav", "mood": {"torches": 1.0}},
-    {"id": "gravkammer", "name": "Gravkammeret", "theme": "grav", "mood": {"torches": 0.5}}
+  "modules": [
+    {"id": "kapell", "module": "grav/kapell", "at": [2, 0, 1], "name": "Kapellet", "overrides": [{"opening": "0,1,S", "kind": "dor"}]},
+    {"id": "gjemme", "module": "grav/skattkammer", "at": [0, 0, 1], "name": "Gjemmestedet"},
+    {"id": "g41", "module": "grav/gang_1", "at": [4, 0, 1], "rot": 1, "room": "gangen", "name": "Gangen", "mood": {"torches": 0.5}},
+    {"id": "g51", "module": "grav/gang_hjorne", "at": [5, 0, 1], "rot": 2, "room": "gangen"},
+    {"id": "g52", "module": "grav/gang_1", "at": [5, 0, 2], "room": "gangen"},
+    {"id": "t53", "module": "grav/halvtrapp", "at": [5, 0, 3], "rot": 2, "room": "gangen"},
+    {"id": "hvelv", "module": "grav/rom_3x2", "at": [6, 1, 4], "name": "Hvelvet", "mood": {"torches": 0.35}, "overrides": [{"opening": "-1,1,W", "kind": "port", "id": "port1"}]},
+    {"id": "forhall", "module": "grav/rom_1x2", "at": [4, 1, 5], "name": "Forhallen", "mood": {"torches": 0.4}},
+    {"id": "ned", "module": "grav/nedgang", "at": [3, 1, 5], "rot": 3, "room": "forhall"},
+    {"id": "s23", "module": "grav/gang_1", "at": [2, 0, 3], "room": "sidegang", "name": "Sidegangen", "mood": {"torches": 0.5}},
+    {"id": "s24", "module": "grav/gang_kryss", "at": [2, 0, 4], "room": "sidegang"},
+    {"id": "s34", "module": "grav/blindgang", "at": [3, 0, 4], "rot": 3, "room": "sidegang"},
+    {"id": "beinhus", "module": "grav/rotunde", "at": [0, 0, 4], "name": "Beinhuset"},
+    {"id": "gravkammer", "module": "grav/rom_1x1", "at": [0, 0, 6], "name": "Gravkammeret"}
   ],
-  "cells": [
-    {"id": "k10", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0, "room": "kapell"},
-    {"id": "k11", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0, "room": "kapell"},
-    {"id": "k12", "bit": "grav/romfelt", "at": [1, 0, 2], "rot": 0, "room": "kapell"},
-    {"id": "k20", "bit": "grav/romfelt", "at": [2, 0, 0], "rot": 0, "room": "kapell"},
-    {"id": "k21", "bit": "grav/romfelt", "at": [2, 0, 1], "rot": 0, "room": "kapell"},
-    {"id": "k22", "bit": "grav/romfelt", "at": [2, 0, 2], "rot": 0, "room": "kapell"},
-    {"id": "k30", "bit": "grav/romfelt", "at": [3, 0, 0], "rot": 0, "room": "kapell"},
-    {"id": "k31", "bit": "grav/romfelt", "at": [3, 0, 1], "rot": 0, "room": "kapell"},
-    {"id": "k32", "bit": "grav/romfelt", "at": [3, 0, 2], "rot": 0, "room": "kapell"},
-    {"id": "gjemme", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "room": "gjemme"},
-    {"id": "g41", "bit": "grav/gang", "at": [4, 0, 1], "rot": 1, "room": "gangen"},
-    {"id": "g51", "bit": "grav/gang_hjorne", "at": [5, 0, 1], "rot": 2, "room": "gangen"},
-    {"id": "g52", "bit": "grav/gang", "at": [5, 0, 2], "rot": 0, "room": "gangen"},
-    {"id": "t53", "bit": "grav/halvtrapp", "at": [5, 0, 3], "rot": 2, "room": "gangen"},
-    {"id": "h54", "bit": "grav/romfelt", "at": [5, 1, 4], "rot": 0, "room": "hvelv"},
-    {"id": "h55", "bit": "grav/romfelt", "at": [5, 1, 5], "rot": 0, "room": "hvelv"},
-    {"id": "h64", "bit": "grav/romfelt", "at": [6, 1, 4], "rot": 0, "room": "hvelv"},
-    {"id": "h65", "bit": "grav/romfelt", "at": [6, 1, 5], "rot": 0, "room": "hvelv"},
-    {"id": "h74", "bit": "grav/romfelt", "at": [7, 1, 4], "rot": 0, "room": "hvelv"},
-    {"id": "h75", "bit": "grav/romfelt", "at": [7, 1, 5], "rot": 0, "room": "hvelv"},
-    {"id": "f45", "bit": "grav/romfelt", "at": [4, 1, 5], "rot": 0, "room": "forhall"},
-    {"id": "n35", "bit": "grav/nedgang", "at": [3, 1, 5], "rot": 3, "room": "forhall"},
-    {"id": "f46", "bit": "grav/romfelt", "at": [4, 1, 6], "rot": 0, "room": "forhall"},
-    {"id": "s23", "bit": "grav/gang", "at": [2, 0, 3], "rot": 0, "room": "sidegang"},
-    {"id": "s24", "bit": "grav/gang_kryss", "at": [2, 0, 4], "rot": 0, "room": "sidegang"},
-    {"id": "s34", "bit": "grav/gang_blind", "at": [3, 0, 4], "rot": 3, "room": "sidegang"},
-    {"id": "rot", "bit": "grav/rotunde", "at": [0, 0, 4], "rot": 0, "room": "beinhus"},
-    {"id": "g06", "bit": "grav/romfelt", "at": [0, 0, 6], "rot": 0, "room": "gravkammer"}
-  ],
-  "edges": [
-    {"cell": "k22", "side": "S", "kind": "dor"}
-  ],
+  "rooms": [],
+  "cells": [],
+  "edges": [],
   "things": [
-    {"id": "start", "kind": "start", "anchor": "celle:k21", "pos": [0, 0, 0], "yaw": -90},
-    {"id": "opp", "kind": "up", "anchor": "celle:k20", "pos": [0, 0, -0.45], "yaw": 0},
-    {"id": "hvile", "kind": "rest", "anchor": "celle:h74", "pos": [0, 0, -0.6], "yaw": 0},
-    {"id": "ned", "kind": "down", "anchor": "celle:n35"},
-    {"id": "port1", "kind": "gate", "anchor": "kant:h55/W"},
-    {"id": "spak1", "kind": "lever", "anchor": "celle:h75", "pos": [0, 0, 1.1], "yaw": 180},
-    {"id": "falsk1", "kind": "secret_wall", "anchor": "kant:k11/W"},
-    {"id": "sprekk1", "kind": "hint", "anchor": "celle:k11", "pos": [-1.6, 0, 0], "yaw": 90, "label": "crack"},
-    {"id": "kiste1", "kind": "chest", "anchor": "celle:s34", "pos": [0, 0, 1.0], "yaw": 180},
-    {"id": "kiste2", "kind": "chest", "anchor": "celle:g06", "pos": [0, 0, 1.0], "yaw": 180},
-    {"id": "kiste3", "kind": "chest", "anchor": "celle:gjemme", "pos": [-0.6, 0, 0], "yaw": 90},
-    {"id": "knapper", "kind": "mob", "anchor": "celle:rot", "pos": [0, 0, -2.5], "yaw": 90, "label": "button", "n": 2, "patrol": [[0, 0, -2.5], [2.5, 0, 0], [0, 0, 2.5], [-2.5, 0, 0]]},
-    {"id": "vokter", "kind": "mob", "anchor": "celle:h65", "pos": [0, 0, 0], "yaw": 180, "label": "tooltip"}
+    {"id": "hvile", "kind": "rest", "anchor": "celle:hvelv/c20", "pos": [0, 0, -0.6], "yaw": 0},
+    {"id": "spak1", "kind": "lever", "anchor": "celle:hvelv/c21", "pos": [0, 0, 1.1], "yaw": 180},
+    {"id": "kiste1", "kind": "chest", "anchor": "celle:s34/c00", "pos": [0, 0, 1.0], "yaw": 180},
+    {"id": "kiste2", "kind": "chest", "anchor": "celle:gravkammer/c00", "pos": [0, 0, 1.0], "yaw": 180},
+    {"id": "knapper", "kind": "mob", "anchor": "celle:beinhus/c", "pos": [0, 0, -2.5], "yaw": 90, "label": "button", "n": 2, "patrol": [[0, 0, -2.5], [2.5, 0, 0], [0, 0, 2.5], [-2.5, 0, 0]]},
+    {"id": "vokter", "kind": "mob", "anchor": "celle:hvelv/c11", "pos": [0, 0, 0], "yaw": 180, "label": "tooltip"}
   ],
   "links": [
-    {"from": "spak1", "to": "port1", "kind": "opens"},
-    {"from": "sprekk1", "to": "falsk1", "kind": "for"}
+    {"from": "spak1", "to": "port1", "kind": "opens"}
   ],
   "lights": [
-    {"id": "l6", "anchor": "celle:f45", "pos": [0, 3.0, 0], "color": [0.42, 0.52, 0.85], "range": 8, "flicker": false},
-    {"id": "l7", "anchor": "celle:gjemme", "pos": [0, 2.5, 0], "color": [1.0, 0.62, 0.3], "range": 6, "flicker": true},
-    {"id": "l8", "anchor": "celle:rot", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": false}
+    {"id": "l6", "anchor": "celle:forhall/c00", "pos": [0, 3.0, 0], "color": [0.42, 0.52, 0.85], "range": 8, "flicker": false}
   ]
 }

@@ -6,6 +6,8 @@
 //! hvilke ekte modeller som står hvor. Redigeringen, spillet, `cargo test`
 //! og `snapshot` kjører den samme koden.
 //!
+//! 0. Modulene utvides til celler, rom, innhold og kantvalg, og åpningene
+//!    der to moduler møtes, føyes sammen (`modules`, del 21).
 //! 1. Cellene slås opp i rutenettet; sidene og gulvene dreies og speiles.
 //! 2. Hver kant får en åpning (sidenes ønsker og eierens valg, tabellen i
 //!    del 5.1) og en halvkant per side; hvert hjørne et kvarthjørne der en
@@ -25,6 +27,7 @@ pub mod board;
 pub mod check;
 mod grid;
 mod look;
+pub mod modules;
 mod nav;
 mod rooms;
 mod solids;
@@ -254,7 +257,7 @@ impl<'a> Grid<'a> {
                 return (Open::Wall, None, issues);
             };
             let (fb, pb) = self.cells[b].face(opposite(w));
-            if fa == "closed" && fb == "closed" && (kind == "bue" || kind == "aapen") {
+            if fa == "closed" && fb == "closed" && (kind == "bue" || kind == "aapen" || kind == "gang") {
                 issues.push(Issue::error("kant", Some(mid), format!("«{kind}» mellom {} og {}: begge sidene er lukket", c.doc.id, self.cells[b].doc.id)));
                 return (Open::Wall, None, issues);
             }
@@ -267,6 +270,8 @@ impl<'a> Grid<'a> {
                     Open::Gate
                 }
                 "falsk" => Open::Secret,
+                // Gangåpningen (mellom to moduler: et rom og en gang, eller to ganger).
+                "gang" => Open::Gang,
                 "bue" | "aapen" => {
                     if fa == "gang" || fb == "gang" {
                         Open::Gang
@@ -312,6 +317,10 @@ impl Compiler {
             self.kit = Some(kit.clone());
         }
         let mut report = Report::default();
+        // Modulene først: etter dette er dokumentet celler og kantvalg.
+        let (flat, mut issues) = modules::flatten(doc, kit);
+        report.issues.append(&mut issues);
+        let doc = &flat;
         // Rommene: de i dokumentet, og de cellene nevner uten at de står der.
         let mut room_list: Vec<super::doc::DocRoom> = doc.rooms.clone();
         for c in &doc.cells {

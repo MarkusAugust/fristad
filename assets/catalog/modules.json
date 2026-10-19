@@ -1,0 +1,29 @@
+{
+ "_om": "Modulene i nivåredigeringen (docs/nivaaredigering.md, del 21; eieren 19. oktober: «jeg vil ha moduler som kan settes sammen»). Eieren dømmer modulene (assets/levels/moduler/<tema>/<navn>.json, bildene fra tools/crypt/module_shots.py), ikke bitene de er bygd av: bitene i `gjennom_moduler` står ikke som egne kort på godkjenningssiden, og en modul venter på nytt når fila eller en av bitene i temaet endres. `overmur` og `rekkverk` kommer i modulene i fase 6.",
+ "gjennom_moduler": [
+  "grav_fakkel",
+  "grav_falsk",
+  "grav_gang",
+  "grav_gang_b",
+  "grav_gangkryss",
+  "grav_gjordbue",
+  "grav_halvtrapp",
+  "grav_hjorne",
+  "grav_hjorne_ut",
+  "grav_nedgang",
+  "grav_overmur",
+  "grav_pilaster",
+  "grav_rekkverk",
+  "grav_romfelt",
+  "grav_romfelt_b",
+  "grav_rotunde",
+  "grav_soyle",
+  "grav_trapp2",
+  "grav_vegg",
+  "grav_vegg_b",
+  "grav_vegg_dor",
+  "grav_vegg_falsk",
+  "grav_vegg_gang",
+  "grav_vegg_port"
+ ]
+}

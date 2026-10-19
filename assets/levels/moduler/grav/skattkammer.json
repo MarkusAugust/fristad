@@ -1,0 +1,30 @@
+{
+  "id": "grav/skattkammer",
+  "name": "Skattkammeret",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",
+  "rooms": [
+    {"id": "rom", "name": "Skattkammeret", "theme": "grav", "mood": {"torches": 0.0}, "secret": true}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0}
+  ],
+  "openings": [
+    {"at": [0, 0], "side": "N", "kind": "falsk"},
+    {"at": [0, 0], "side": "E", "kind": "falsk"},
+    {"at": [0, 0], "side": "S", "kind": "falsk"},
+    {"at": [0, 0], "side": "W", "kind": "falsk"}
+  ],
+  "things": [
+    {"id": "kiste", "kind": "chest", "anchor": "celle:c00", "pos": [-0.6, 0, 0], "yaw": 90},
+    {"id": "skrin", "kind": "prop", "anchor": "celle:c00", "pos": [1.1, 0, -1.25], "yaw": 0, "label": "scroll_chest", "size": [0.95, 0.6]},
+    {"id": "kiste_so", "kind": "prop", "anchor": "celle:c00", "pos": [1.25, 0, 1.0], "yaw": 90, "label": "chest_forms", "size": [1.15, 0.65]},
+    {"id": "rustning", "kind": "prop", "anchor": "celle:c00", "pos": [-1.2, 0, -1.2], "yaw": 45, "label": "kit_armor", "size": [0.8, 0.6]},
+    {"id": "sekker", "kind": "prop", "anchor": "celle:c00", "pos": [-1.15, 0, 1.15], "yaw": 0, "label": "sacks", "size": [1.0, 1.15]},
+    {"id": "lys", "kind": "prop", "anchor": "celle:c00", "pos": [1.3, 0.59, -1.35], "yaw": 0, "label": "candle"}
+  ],
+  "lights": [
+    {"id": "lys", "anchor": "celle:c00", "pos": [0, 2.5, 0], "color": [1.0, 0.62, 0.3], "range": 6, "flicker": true}
+  ]
+}

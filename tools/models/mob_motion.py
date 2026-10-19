@@ -217,7 +217,10 @@ STYLES = {
     "input": dict(frames=20, v0=1.65, duty=0.62, lift=0.15, width=0.14, hunch=6, arm=10, sway=0.03, bob=0.025, tail=10, twitch=False, hips_yaw=12, idle=56, spears=True),
     "modal": dict(frames=28, v0=0.87, duty=0.7, lift=0.11, width=0.27, hunch=12, arm=20, sway=0.07, bob=0.035, tail=8, twitch=False, hips_yaw=6, idle=60, heavy=True),
     "table": dict(frames=16, v0=1.71, duty=0.52, lift=0.12, width=0.23, hunch=50, arm=0, sway=0.03, bob=0.03, tail=20, twitch=True, hips_yaw=7, idle=40, quad=True),
-    "framework": dict(frames=32, v0=0.7, duty=0.7, lift=0.1, width=0.26, hunch=14, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True),
+    # Rammeverket (mob3d.py): korte bein under en bred kropp, så skrittene er
+    # korte og tette (en lang syklus senket hofta til knærne), føttene langt
+    # fra hverandre som i formen.
+    "framework": dict(frames=24, v0=0.7, duty=0.65, lift=0.1, width=0.35, hunch=14, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True),
 }
 
 

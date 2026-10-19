@@ -102,6 +102,9 @@ async function fetchModel(url) {
   const bin = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
   if (j.buffers && j.buffers[0]) delete j.buffers[0].uri;
+  // Bildene kan ligge i sidens asset-lager (`/_blob/…`, `approvals assets`):
+  // GLTFLoader legger mappa foran alt som ikke er en full adresse.
+  for (const im of j.images || []) if (im.uri && im.uri.startsWith("/")) im.uri = new URL(im.uri, location.href).href;
   let text = new TextEncoder().encode(JSON.stringify(j));
   const pad = (n) => (4 - (n % 4)) % 4;
   const jl = text.length + pad(text.length), bl = bin.length + pad(bin.length);
@@ -160,7 +163,8 @@ export async function show(it, data, ui) {
   const sides = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide;
   ui.status.textContent = "laster …";
   const crypt = !!it.level;
-  const after = await load(st, it.glb, layers, sides);
+  // En modul har ingen egen modell: den er bitene i nivået.
+  const after = it.glb ? await load(st, it.glb, layers, sides) : new THREE.Group();
   after.name = "etter";
   const before = it.glb_before ? await load(st, it.glb_before, layers, sides) : null;
   if (before) { before.name = "før"; before.visible = false; }
@@ -207,6 +211,7 @@ export async function show(it, data, ui) {
   ui.which.onchange = () => { after.visible = ui.which.value === "etter"; if (before) before.visible = ui.which.value === "før"; };
   // Byggesettet: biten står selv i nivået, så den alene skjules der.
   const kit = !!(lv && lv.instances);
+  if (!it.glb && level) { ui.whole.checked = true; level.visible = true; }
   if (kit && level) after.visible = !level.visible;
   ui.whole.onchange = () => { if (level) { level.visible = ui.whole.checked; mark(level.visible); if (kit) after.visible = !level.visible; } };
   ui.both.onchange = () => { for (const g of st.groups) g.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.side = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; } }); };
@@ -230,6 +235,6 @@ export async function show(it, data, ui) {
     ui.clip.onchange = () => play(ui.clip.value);
     play(pick);
   }
-  frame(st, after, crypt);
+  frame(st, it.glb ? after : (level || after), crypt);
   ui.status.textContent = "";
 }

@@ -161,7 +161,22 @@ function setResolution(r, announce = true) {
   if (announce) toast?.show?.(r === "auto" ? "Oppløsning: automatisk." : `Oppløsning: ${canvas.width} × ${canvas.height}.`);
 }
 
+// Fristad er laget for datamaskin med mus og tastatur; mobil og nettbrett er
+// ikke et mål (eieren 19. oktober). Der lastes ingenting, og startkortet ber
+// deg prøve på en datamaskin (`?mobil` laster likevel).
+function onPhone() {
+  const touchOnly = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;
+  const ua = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  return (touchOnly || ua) && !new URLSearchParams(location.search).has("mobil");
+}
+
 async function boot() {
+  if (onPhone()) {
+    status.hidden = true;
+    $("loading").hidden = true;
+    $("touch-note").hidden = false;
+    return;
+  }
   fit();
   stage("Laster motoren …");
   await init();
@@ -235,9 +250,6 @@ async function boot() {
   } else {
     enterBtn.hidden = false;
     enterBtn.focus();
-  }
-  if (matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches) {
-    $("touch-note").hidden = false;
   }
   checkGpu();
   if (new URLSearchParams(location.search).has("bench")) runBench();

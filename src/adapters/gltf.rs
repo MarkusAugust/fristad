@@ -109,6 +109,8 @@ models! {
     "avatar_skull" => "mobs/avatar_skull.glb",
     "breadcrumb_crawler" => "mobs/breadcrumb_crawler.glb",
     "accordion_coffin" => "mobs/accordion_coffin.glb",
+    // Rammeverket, sluttbossen fra TRELLIS (tools/models/mob3d.py).
+    "framework" => "mobs/framework.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",
@@ -198,7 +200,21 @@ impl ModelSource for Embedded {
 
     fn load(&self, name: &str) -> Option<Model> {
         let (_, bytes) = MODELS.iter().chain(CRYPT_MODELS.iter()).find(|(n, _)| *n == name)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        // `FRISTAD_BROWSER_CAPS=1` gir teksturene nettleserens tak
+        // (`delivery::browser_caps`), et tall N taket N på fargen for alle,
+        // så skjermbildene viser det nettleseren viser.
+        // `FRISTAD_STAGED=1` laster som nettleseren: først det lave taket,
+        // og rendereren oppgraderer i bakgrunnen (`delivery::stage`).
+        let caps = match std::env::var("FRISTAD_BROWSER_CAPS").ok().and_then(|v| v.parse::<u32>().ok()) {
+            Some(1) => super::delivery::browser_caps(name),
+            Some(n) => Caps { color: n, data: n / 2 },
+            None => Caps::default(),
+        };
+        let mut m = load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, caps).map_err(|e| log::warn!("Modell {name}: {e}")).ok()?;
+        if std::env::var("FRISTAD_STAGED").is_ok_and(|v| v == "1") {
+            super::delivery::stage(&mut m, super::delivery::LOW);
+        }
+        Some(m)
     }
 }
 
@@ -240,7 +256,11 @@ impl ModelSource for Files {
     fn load(&self, name: &str) -> Option<Model> {
         let (_, path) = model_files().find(|(n, _)| *n == name)?;
         let bytes = self.0.get(*path)?;
-        load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, super::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        // Lat lasting: først det lave taket, og rendereren oppgraderer
+        // teksturene til `browser_caps` i bakgrunnen.
+        let mut m = load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, super::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()?;
+        super::delivery::stage(&mut m, super::delivery::LOW);
+        Some(m)
     }
 }
 
@@ -257,10 +277,10 @@ pub struct Caps {
 pub fn encoded(bytes: &[u8], cap: u32) -> Option<Image> {
     let (w, h) = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?.into_dimensions().ok()?;
     let (w, h) = capped(w, h, cap);
-    Some(Image { width: w, height: h, rgba: vec![], encoded: bytes.to_vec() })
+    Some(Image { width: w, height: h, rgba: vec![], encoded: bytes.into(), later: None })
 }
 
-fn capped(w: u32, h: u32, cap: u32) -> (u32, u32) {
+pub fn capped(w: u32, h: u32, cap: u32) -> (u32, u32) {
     let side = w.max(h);
     if cap == 0 || side <= cap {
         (w, h)
@@ -280,6 +300,10 @@ pub fn pixels(img: &Image) -> std::borrow::Cow<'_, [u8]> {
     };
     if full.width() == img.width && full.height() == img.height {
         std::borrow::Cow::Owned(full.into_raw())
+    } else if full.width() >= img.width * 2 && full.height() >= img.height * 2 {
+        // Halvparten eller mindre (det lave taket i nettleseren): snittet
+        // over rutene er like skarpt og mye raskere.
+        std::borrow::Cow::Owned(image::imageops::thumbnail(&full, img.width, img.height).into_raw())
     } else {
         std::borrow::Cow::Owned(image::imageops::resize(&full, img.width, img.height, image::imageops::FilterType::Triangle).into_raw())
     }

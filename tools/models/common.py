@@ -178,10 +178,12 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def pack_weighted(ob):
+def pack_weighted(ob, margin=0.004, margin_method="SCALED"):
     """Øyene i det aktive uv-laget skaleres etter flateattributtet «uv_density»
     og pakkes på nytt (pakkingen beholder forholdet mellom øyene); 0 stabler
-    øyene i én liten flis. Attributtet tas ut etterpå."""
+    øyene i én liten flis. Attributtet tas ut etterpå. Med tusenvis av øyer
+    (skallet av Rammeverket, `mob3d.py`) dekket «SCALED» bare 8 % av
+    teksturen; `margin_method="FRACTION"` gir en fast kant i brøk av bildet."""
     # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
     # (pakkingen beholder forholdet mellom øyene).
     import bmesh
@@ -234,12 +236,12 @@ def pack_weighted(ob):
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.select_all(action="SELECT")
-    bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
+    bpy.ops.uv.pack_islands(rotate=True, margin=margin, margin_method=margin_method, merge_overlap=True)
     bpy.ops.object.mode_set(mode="OBJECT")
     ob.data.attributes.remove(ob.data.attributes["uv_density"])
 
 
-def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False, pack=True):
+def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, armature=None, rigid=None, skin=None, density=None, jpeg_quality=82, uv_angle=1.15, ao=True, apart=False, pack=True, data_size=None):
     """Slår sammen alle mesh-objektene (unntatt dem med materialer som
     begynner på `keep`, som beholdes som de er), UV-pakker, baker albedo × AO
     (uten AO med `ao=False`: arket har skyggene malt inn; `uv_angle=None`
@@ -254,7 +256,11 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     plass i teksturen enn flatene deres tilsier, så ansiktet ikke presses
     ned til noen få piksler; 0 stabler øyene oppå hverandre i én flis
     (hårlokker og skjeggtuster). Et objekt kan
-    også ha flateattributtet «uv_density» selv (ansiktet på en figur)."""
+    også ha flateattributtet «uv_density» selv (ansiktet på en figur).
+
+    `data_size` gir normal- og ruhetskartet en egen størrelse (de store
+    fiendene fra TRELLIS har fargen i 4096, men et glatt skall og samme ruhet
+    overalt)."""
     import os
 
     import numpy as np
@@ -345,8 +351,15 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
             else:
                 bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
 
-    def bake_to(label, bake_type, colorspace, **kw):
-        img = bpy.data.images.new(label, size, size, alpha=False)
+    data_size = data_size or size
+
+    def pixels(img, n):
+        a = np.empty(n * n * 4, np.float32)
+        img.pixels.foreach_get(a)
+        return a.reshape(n, n, 4)
+
+    def bake_to(label, bake_type, colorspace, sz=size, **kw):
+        img = bpy.data.images.new(label, sz, sz, alpha=False)
         img.colorspace_settings.name = colorspace
         for mat in ob.data.materials:
             tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
@@ -406,33 +419,34 @@ def bake_textured(path, size=1024, keep=("glass", "glow", "mesh"), samples=16, a
     occl = bake_to("ao", "AO", "Non-Color") if ao else None
     for n in bumps:
         n.mute = False
-    normal = bake_to("normal", "NORMAL", "Non-Color", normal_space="TANGENT")
-    rough = bake_to("rough", "ROUGHNESS", "Non-Color")
+    normal = bake_to("normal", "NORMAL", "Non-Color", sz=data_size, normal_space="TANGENT")
+    rough = bake_to("rough", "ROUGHNESS", "Non-Color", sz=data_size)
     for mat in ob.data.materials:
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         m = bsdf.inputs["Metallic"].default_value
         bsdf.inputs["Emission Color"].default_value = (m, m, m, 1.0)
         bsdf.inputs["Emission Strength"].default_value = 1.0
-    metal = bake_to("metal", "EMIT", "Non-Color")
+    metal = bake_to("metal", "EMIT", "Non-Color", sz=data_size)
     if apart:
         ob.data.vertices.foreach_set("co", co.ravel())
         ob.data.update()
     for m, r, v in held_mods:
         m.show_render, m.show_viewport = r, v
-    a = np.array(albedo.pixels[:]).reshape(size, size, 4)
+    # foreach_get/set: som lister i Python tok et bilde i 4096 gigabyter.
+    a = pixels(albedo, size)
     if occl is not None:
-        o = np.array(occl.pixels[:]).reshape(size, size, 4)
+        o = pixels(occl, size)
         a[:, :, :3] *= np.power(np.clip(o[:, :, :1], 0.0, 1.0), 0.8)
-    albedo.pixels = a.ravel().tolist()
-    r = np.array(rough.pixels[:]).reshape(size, size, 4)
-    mt = np.array(metal.pixels[:]).reshape(size, size, 4)
+    albedo.pixels.foreach_set(a.ravel())
+    r = pixels(rough, data_size)
+    mt = pixels(metal, data_size)
     mr = np.zeros_like(r)
     mr[:, :, 1] = r[:, :, 0]
     mr[:, :, 2] = mt[:, :, 0]
     mr[:, :, 3] = 1.0
-    mr_img = bpy.data.images.new("mr", size, size, alpha=False)
+    mr_img = bpy.data.images.new("mr", data_size, data_size, alpha=False)
     mr_img.colorspace_settings.name = "Non-Color"
-    mr_img.pixels = mr.ravel().tolist()
+    mr_img.pixels.foreach_set(mr.ravel())
     tex_mat = {}
 
     def key_of(name):

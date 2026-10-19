@@ -13,6 +13,7 @@
 //! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at),
 //! --model NAVN=FIL.glb (en modell fra fila i stedet for den innebygde, eller
 //! en som mangler: en stedfortreder, som trubaduren før figuren kommer),
+//! --dump-doc UT.json (nivådokumentet med modulene utvidet, merkene og rommene; med --level-doc),
 //! --voice V (hvor sterkt trubaduren synger, 0..1), --level-doc NAVN (nivådokumentet
 //! `assets/levels/nivaa_NAVN.json`, eller `brett`: prøvebrettet, kompilert som
 //! eneste kryptnivå; med --level 1 og --eye i nivåets rom), --merge (bitene fra
@@ -78,6 +79,25 @@ fn main() {
         let (f, _) = fristad::domain::world::crypt::compose::compile(&doc, &fristad::adapters::data::kit());
         std::fs::write(&out, serde_json::to_string(&f.instances).unwrap()).expect("kan ikke skrive --dump-level");
         println!("{out}: {} biter", f.instances.len());
+        return;
+    }
+    // --dump-doc UT.json: nivådokumentet slik eieren skrev det (modulene),
+    // utvidet (cellene, rommene, kantvalgene) og merkene og rommene etter
+    // kompileringen, til bildene av modulene og kartet over prøvenivået
+    // (`tools/crypt/module_shots.py`).
+    if let (Some(out), Some(name)) = (arg("--dump-doc"), arg("--level-doc")) {
+        let kit = fristad::adapters::data::kit();
+        let doc = fristad::adapters::data::level_doc(&name).expect("nivådokumentet finnes ikke");
+        let (flat, _) = fristad::domain::world::crypt::compose::modules::flatten(&doc, &kit);
+        let (f, _) = fristad::domain::world::crypt::compose::compile(&doc, &kit);
+        let openings: Vec<serde_json::Value> = doc
+            .modules
+            .iter()
+            .flat_map(|m| fristad::domain::world::crypt::compose::modules::placed_openings(m, &kit).into_iter().map(move |o| serde_json::json!({ "module": m.id, "id": o.id, "kind": o.kind, "at": o.at, "y": o.y, "side": o.side })))
+            .collect();
+        let all = serde_json::json!({ "doc": doc, "flat": flat, "marks": f.marks, "rooms": f.rooms, "instances": f.instances, "openings": openings });
+        std::fs::write(&out, serde_json::to_string(&all).unwrap()).expect("kan ikke skrive --dump-doc");
+        println!("{out}: {} moduler, {} celler", doc.modules.len(), flat.cells.len());
         return;
     }
     let source = WithFiles(extra, arg("--level-doc"));

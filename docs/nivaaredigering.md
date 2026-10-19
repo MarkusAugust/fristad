@@ -1,24 +1,20 @@
 # Nivåredigeringen for krypten
 
-*Plan skrevet 18. oktober 2026, etter eierens beslutninger samme dag (`docs/plan.md`, del 15). Dette er planen i detalj som del 15 sier skal vises eieren før arbeidet starter. Den tar for seg formatet, bitene, sammenføyningen, navigasjonen, reglene, lagringen, skjermbildet, fasene og testene.*
+*Plan skrevet 18. oktober 2026, etter eierens beslutninger samme dag (`docs/plan.md`, del 15). Endret 19. oktober: eieren jobber med **moduler**, ikke biter (del 21). Dette er planen i detalj som del 15 sier skal vises eieren før arbeidet starter. Den tar for seg formatet, bitene, sammenføyningen, navigasjonen, reglene, lagringen, skjermbildet, fasene og testene.*
 
 ## Kort oppsummering
 
 - **Eieren bygger nivåene selv** på en egen side (`?nivaa`). Til venstre ligger et kart ovenfra, etasje for etasje, og til høyre et 3D-vindu som oppdateres med en gang. Én knapp spiller nivået fra starten med fiender og alt, og Esc tar deg tilbake dit du var.
-- **Byggeklossene er ekte Blender-modeller** på et rutenett på 4 × 4 m med høyde i trinn på 1 m. Eieren setter ut *celler*: rom, gang, trapp, sjakt, kløft, vann og sammensatte rom som rotunder og haller. Murene mellom cellene velges automatisk fra byggesettet:
-  - **halvkanter:** én halv mur per side, så hver side kan ha sitt eget tema og sin egen form,
-  - **kvarthjørner:** søyler og hjørner,
-  - **gulv og hvelv.**
-
-  Eieren kan overstyre hver kant: dør, port, bue, vindu, gitter, falsk vegg, snarvei, rekkverk eller åpen. Ingen geometri lages i Rust. Kjernen velger bare hvilke ekte modeller som står hvor, så regelen «alt som synes er en ekte modell» holder.
-- **Kildefila er `assets/levels/nivaa_NN.json`.** Den holder rutenettet, bitene med rotasjon og speiling, rommene med tema og stemning, innholdet, koblingene, pynten og lysene.
+- **Eieren bygger med moduler, som Lego** (eieren 19. oktober, del 21): ferdige rom i ulike størrelser, ganger (rett, hjørne, T, kryss, blindgang), trapper (halvtrapp, halv etasje, nedgang), rotunde og ferdige rom med innhold (kapellet med døra opp, gravgangen, skattkammeret). En modul dras ut, dreies og speiles, og føyes sammen av seg selv der den møter en annen: **åpning der begge har en åpning på samme kant, mur ellers.** Eieren kan overstyre hver åpning: dør, port, falsk vegg, gang, bue, snarvei eller mur.
+- **Inni er modulene ekte Blender-modeller** på et rutenett på 4 × 4 m med høyde i trinn på 1 m: celler (romfelt, gang, trapp …), og murene mellom cellene velges automatisk fra byggesettet (**halvkanter**, én halv mur per side; **kvarthjørner**, søyler og hjørner; **gulv og hvelv**). Bitene og cellene er bare det kompilatoren bruker; eieren ser dem aldri (en «avansert» skuff for Claude). Ingen geometri lages i Rust. Kjernen velger bare hvilke ekte modeller som står hvor, så regelen «alt som synes er en ekte modell» holder.
+- **Kildefila er `assets/levels/nivaa_NN.json`.** Den holder modulene med rotasjon, speiling og eierens valg for åpningene, innholdet, koblingene, pynten og lysene. Modulene selv er maler i `assets/levels/moduler/<tema>/<navn>.json`.
 - **En ny kompilator i kjernen** (`fristad-domain`, uten fs eller wgpu) gjør fila om til den samme `LevelFile` som motoren bruker i dag: instanser, kollidere, navigasjonsnett, rom, lys og merker. Redigeringen og spillet kjører den samme koden, så de bygger likt. Blender trengs bare når bitene lages, aldri når et nivå bygges.
 - **Reglene er de samme som testene.** De kjøres mens eieren bygger og står som en liste med «Gå til» og «Rett». En egen løser går gjennom nivået med nøkler, spaker og fall, og finner dører som ikke går noen vei, spaker uten port, rom du ikke når, nøkler bak sin egen port og steder du blir sittende fast.
 - **Utkast og lagring:** utkastet huskes i nettleseren. Lagre legger nivået på grenen `redigering` som byen, med sjekk mot det som ligger der fra før. Et nivå er «utkast» til eieren merker det «klart». Bare klare nivåer erstatter de gamle i spillet, og de gamle står til da.
 - **Rekkefølgen:**
   1. kompilatoren med et grått pilotsett,
-  2. pilotsettet for gravkjelleren i malt stil (eieren godkjenner),
-  3. siden med ett lite testnivå som eieren bygger,
+  2. pilotsettet for gravkjelleren i malt stil, satt sammen til moduler (eieren godkjenner modulene),
+  3. siden med modulpaletten og ett lite testnivå som eieren bygger,
   4. mekanismene og løseren,
   5. variasjon og stemning,
   6. full vertikalitet,
@@ -40,7 +36,8 @@
 
    Adapterne leser glb og json, nettleseren tegner kartet, og GitHub lagrer. `src/architecture.rs` passer på grensene som før.
 4. **Det motoren gjør i dag, står.** `Crypt::build`, `nav.rs` (A* og trakt), `map.rs`, `run.rs`, mekanismene, fiendene, `light_mask` og alle testene over `Crypt` brukes uendret. Det nye ender i samme kontrakt (`docs/krypten/format.md`) med ett nytt felt for instanser.
-5. **Faste nivåer.** Nivåene er like hver gang. Frø brukes bare til å velge varianter og pynt, regnes ut av cellens plass og er låst i fila (del 9).
+5. **Modulen er enheten eieren jobber med** (del 21). Alt eieren ser i redigeringen er moduler, åpninger og innhold. Cellene, halvkantene og kvarthjørnene er kompilatorens; de vises bare i en avansert skuff.
+6. **Faste nivåer.** Nivåene er like hver gang. Frø brukes bare til å velge varianter og pynt, regnes ut av cellens plass og er låst i fila (del 9).
 
 ## 2. Hvordan det henger sammen
 
@@ -77,6 +74,8 @@ Faste mål gjør at alle temaene passer sammen. De bestemmes én gang i pilotfas
 **Etasjene i kartet** er høydebånd eieren navngir, for eksempel «Hovedplanet» fra 0 til 5 og «Kjelleren» fra −6 til −1. Kartet viser cellene som har gulv i det aktive båndet og de andre svakt. Et gulv kan stå på hvilken som helst heltallshøyde. Båndene er bare en visning.
 
 ## 4. Bitene (byggesettet)
+
+*Bitene er det modulene er bygd av (del 21). Eieren setter ut moduler; bitene velges inni og dømmes gjennom modulene på godkjenningssiden.*
 
 ### 4.1 Slag
 
@@ -128,9 +127,11 @@ Resten av settet (dobbel høyde, sjakt, kløft, bro, vindeltrapp, vindu og gitte
 
 ## 5. Sammenføyningen
 
+**Først modulene** (del 21): der to moduler møtes og begge har en åpning på samme kant, blir det en åpning (dør mellom to rom, gangåpning der en gang er med, bue om en av dem vil ha bue, og port, falsk vegg eller snarvei om en av dem ber om det; eierens valg går foran). Møtes de langs flere kanter som passer, blir bare den midterste åpen. Ellers er det mur. Etter det er nivået celler med kantvalg, og reglene under gjelder som før.
+
 ### 5.1 Celler, halvkanter og kvarthjørner
 
-Eieren setter ut **cellebiter** og **sammensatte biter**. Kompilatoren regner ut resten:
+Modulene (og den avanserte skuffen) gir **cellebiter** og **sammensatte biter**. Kompilatoren regner ut resten:
 
 1. **Kantene.** For hver kant mellom to celler, eller mellom en celle og tomt fjell, slås de to sidenes ønsker sammen med eierens overstyring (se tabellen). Det gir **åpningen** for kanten. Så velges én **halvkant** for hver side ut fra
    - sidens tema,
@@ -199,7 +200,8 @@ Fila skrives i fast form, med én ting per linje sortert etter id (som `layout_j
 | `seed` | nivåets frø. Varianter og pynt regnes av frøet og cellens plass, ikke av rekkefølgen. |
 | `kit` | settene og versjonene nivået ble laget med (`grav@3`, `kloakk@1`) |
 | `bands` | etasjene i kartet: navn, fra og til (m) |
-| `cells` | bitene: `id`, `bit` (`grav/romfelt`), `at` (i, y, j), `rot` (0–3), `mirror`, `room` (rom-id), `variant` (valgfri, låst), `tags` |
+| `modules` | modulene eieren har satt ut (del 21): `id`, `module` (`grav/kapell`), `at` (i, y, j for modulens (0, 0)), `rot` (0–3), `mirror`, `room` (valgfri: rommet modulen hører til, om flere moduler skal være ett rom), `name`, `mood`, og `overrides` (eierens valg per åpning: `opening`, `kind` og `id` for porten, snarveien og den falske veggen) |
+| `cells` | løse celler fra den avanserte skuffen (et nivå av moduler har ingen): `id`, `bit` (`grav/romfelt`), `at` (i, y, j), `rot` (0–3), `mirror`, `room` (rom-id), `variant` (valgfri, låst), `tags` |
 | `edges` | overstyringene: kanten (celle og side), `kind` (dør, port, bue, åpen, vindu, gitter, rekkverk, falsk, snarvei, vegg, åpen kant), `owner` (siden med rammen), `variant` |
 | `rooms` | `id`, `name`, `theme`, `secret`, `mood` (lysstemning, tåke, lyd, forfall 0–1, pyntetetthet), `priority`. Cellene peker på rommet, ikke omvendt, så en celle aldri står i to rom. |
 | `things` | innholdet: `id`, `kind` (som merkene i dag: `start`, `up`, `down`, `rest`, `mob`, `elite`, `boss`, `chest`, `rare`, `lore`, `bonus`, `lever`, `trap`, `hint`, `lift`, `ladder`, `bridge`, `water`, `trapdoor` …), `anchor`, `pos` og `yaw` i ankerets rom, og egenskapene (slag, antall, patrulje, bakhold, innhold, tekst, størrelse …) |
@@ -209,7 +211,7 @@ Fila skrives i fast form, med én ting per linje sortert etter id (som `layout_j
 | `lights` | lys eieren har satt: fritt, eller i et lysfeste med endrede egenskaper (farge, rekkevidde, styrke, blafring) |
 | `view` | bare for redigeringen: siste etasje, kamera og bokmerker (holdes utenfor sammenligningen av endringer) |
 
-**Malene** (gjenbrukbare rom) ligger i `assets/levels/maler/<navn>.json` med de samme feltene i malens eget rom (origo i hjørnet, `rot` 0).
+**Modulene** (malene) ligger i `assets/levels/moduler/<tema>/<navn>.json` med cellene, rommet, standardinnholdet, lysene, åpningene og murene i modulens eget rom (midtcella i (0, 0), `rot` 0). Se del 21. Rom-malene eieren lager selv (del 9) blir moduler i samme format.
 
 ## 7. Fra dokumentet til det motoren trenger (kompilatoren)
 
@@ -415,7 +417,8 @@ Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokument
 ```
 
 - **Verktøylinja:** valg av nivå, utkast eller klar, angre og gjenta, verktøyene (Velg, Bygg, Kant, Koble, Rom, Pynt, Lys), etasjen, snittet, lysvisningen, **Spill fra start** (Shift: spill herfra) og Lagre med antall endringer.
-- **Paletten:** bildene av bitene fra `tools/qa/thumbs.py` med dom og tema, søk, filter på tema og slag, og mest brukte øverst. Dra ut på kartet eller i 3D. R dreier, X speiler, og fantomet er grønt eller rødt med grunnen.
+- **Paletten:** **modulene** med bildet (`tools/crypt/module_shots.py`), dommen og temaet, gruppert som rom, ganger, trapper og ferdige rom, med søk og mest brukte øverst. Dra ut på kartet eller i 3D. R dreier, X speiler, og fantomet er grønt eller rødt med grunnen; åpningene vises som piler, og der fantomet møter en annen modul, vises åpningen som blir. Bitene ligger i en avansert skuff som er lukket.
+- **Åpningene:** klikk på en åpning (eller en kant mellom to moduler) og velg dør, port, falsk vegg, gang, bue, snarvei eller mur (`overrides`).
 - **Kartet:** cellene tegnet med tema og rom, kantene med symbol (dør, port, bue, vindu …), innholdet som ikoner, koblingene som buer, patruljene som streker og bakhold som sirkler. Musehjulet zoomer, mellomknappen eller mellomrom+dra flytter, og rammen velger. Andre etasjer står svakt. Det røde er konflikter og grensen.
 - **Etasjene:** liste med navn og høyde, øye (vis/skjul) og lås. PageUp og PageDown bytter.
 - **Panelet:** egenskapene til det valgte (bit, variant med lås, rom, tema, stemning, innholdet), koblingene som lenker, reglene, historikken og budsjettet.
@@ -442,7 +445,7 @@ Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokument
 | Ctrl+Z / Ctrl+Shift+Z | angre og gjøre om |
 | Ctrl+C / Ctrl+V / Ctrl+D | kopiere, lime inn, kopiere ved siden av |
 | Delete | slette |
-| Ctrl+G | lagre utvalget som mal |
+| Ctrl+G | lagre utvalget som modul |
 | PageUp / PageDown | etasjen opp og ned |
 | + / − | løfte og senke gulvet 1 m |
 | K | koble |
@@ -548,11 +551,11 @@ Hver fase slutter med push til forhåndsvisningen og ett godkjenningsark til eie
 - **Eieren ser:** skjermbilder og prøvenivået spillbart på forhåndsvisningen (`snapshot --level-doc test`).
 
 **Fase 2: Pilotsettet for gravkjelleren i malt stil (middels)**
-- Rundt 20 biter (4.4), med okklusjon bakt i sammenheng, nær- og fjernversjon og pyntefester.
-- **Eieren ser:** bitene på godkjenningssiden, hver for seg og på prøvebrettet i 3D («Se i 3D»). Eieren godkjenner før neste fase.
+- Rundt 20 biter (4.4), med okklusjon bakt i sammenheng, nær- og fjernversjon og pyntefester, satt sammen til **moduler** (del 21).
+- **Eieren ser:** modulene på godkjenningssiden, hver ferdig satt sammen innenfra med fakler og lys, med et kart over modulen og åpningene, og «Se i 3D»; og kartet over prøvenivået bygd av moduler. Eieren godkjenner før neste fase.
 
 **Fase 3: Siden, ett tema, ett lite nivå (stor)**
-- `?nivaa` med kartet (én etasje), paletten, Bygg, Kant og Velg, dreiing og speiling, 3D ved siden av, angre og gjenta, reglene med «Gå til», utkastet, Lagre og zip, og **Spill fra start** med Esc tilbake.
+- `?nivaa` med kartet (én etasje), **modulpaletten** (del 21), Bygg, Åpning og Velg, dreiing og speiling, 3D ved siden av, angre og gjenta, reglene med «Gå til», utkastet, Lagre og zip, og **Spill fra start** med Esc tilbake.
 - Bare halvtrapp og halv etasje i høyden.
 - **Tester:**
   - `nivaaredigeringen_bygger_og_angrer` (Rust),
@@ -727,3 +730,46 @@ Med instanser blir det ett kall per modell som synes, uansett hvor mange instans
 - `tools/crypt/build_level.py`: dagens regler for murer, nett, tetthet og hemmeligheter, som skal bli kjernekode og så slettes
 - `src/adapters/wgpu/mod.rs` (`draw_all`, instanser og biter) og `src/adapters/delivery.rs` (lasting per tema)
 - `src/tests.rs` og `src/crypt_tests.rs`: testene reglene skal speile
+
+
+## 21. Moduler (eieren 19. oktober)
+
+**Hvorfor:** eieren fikk de 24 bitene fra fase 2 på godkjenningssiden og skrev: «jeg er veldig usikker på alt det som ligger fra krypten. Jeg vil ha moduler som kan settes sammen. her er det bare masse rare løse deler? … mener du virkelig at det er slik jeg skal jobbe i editoren? masse små rare biter?» Eieren valgte moduler: ferdige rom og ganger han setter sammen som Lego. Bitene og cellene er bare det kompilatoren bruker inni.
+
+**En modul** er en mal i `assets/levels/moduler/<tema>/<navn>.json` (`ModuleDef` i `crypt/doc.rs`, lest av `adapters/data.rs` til `KitDef.modules`):
+- `id`, `name`, `theme`, `kind` (`rom`, `gang`, `trapp`, `ferdig`; paletten grupperer etter det) og `about`;
+- `cells` i modulens eget rom (midtcella i (0, 0), id `c<kolonne><rad>`), `rooms` (det første er hovedrommet med stemningen; `secret` for skattkammeret);
+- standardinnholdet (`things`, `links`, `lights`, ankret i modulens celler);
+- **åpningene:** hver ytre side av en celle som ikke er lukket, er en åpning (`auto`), med id `i,j,S` (cella og siden i modulens rom). `walls` lukker en side (kapellet har mur der døra opp står), og `openings` gir en åpning et annet slag eller navn (`bue` i nedgangen, `falsk` i skattkammeret).
+
+**I dokumentet** står modulene i `modules` (del 6). Før kompileringen utvides de (`compose::modules::flatten`): cellene får id-en `<modul>/<celle>` og dreies og speiles med modulen (samme `transform` som de sammensatte bitene), rommet heter som modulen (eller `room`, så flere moduler blir ett rom, som gangen i prøvenivået av fire moduler), og innholdet, koblingene og lysene følger med (`celle:` og `kant:` får modulens id foran; frie steder flyttes og dreies). Innhold i dokumentet kan ankres i en modul (`celle:hvelv/c20`) eller på en åpning (`aapning:<modul>/<åpning>`).
+
+**Sammenføyningen** (der to moduler møtes, med gulvet i samme høyde):
+| Modul A | Modul B | Kanten |
+|---|---|---|
+| åpning | åpning | åpning: eierens valg om det finnes (det sterkeste om begge har valgt), ellers port, falsk vegg, snarvei eller dør om en modul ber om det, gangåpning om en av sidene er en gang, bue om en av dem vil ha bue, ellers dør |
+| åpning | ingen åpning (eller lukket side) | mur |
+| flere åpninger langs samme møte | | bare den midterste er åpen (med mindre eieren har valgt flere) |
+| åpning | løs celle (avansert) | cellereglene (del 5.1) |
+| ingen åpning | løs celle | mur |
+| hva som helst | fjell | mur (en åpning mot ingenting er bare lukket) |
+
+Porten, snarveien og den falske veggen blir innhold med id-en eieren gir (`overrides[].id`) eller `<modul>/<åpning>`, så koblingene kan peke på dem. Den falske veggen står i muren på siden til modulen som *ikke* ba om den (skattkammeret ber om den, så veggen synes fra rommet ved siden av), med en sprekk koblet til den (`for`). Etter utvidelsen er dokumentet celler med kantvalg, så kompilatoren, reglene og testene er de samme (`"gang"` er et nytt kantvalg: gangåpning mellom to romfelt).
+
+**Reglene:** to moduler i samme celle er en feil (`check::overlaps`, «modulene A og B overlapper»), en ukjent modul eller åpning er en feil, og en åpning på en lukket side i en modulfil er en feil.
+
+**Modulsettet for gravkjelleren** (18, `tools/crypt/modules_grav.py` skrev dem; de kan endres for hånd):
+- rom: `rom_1x1`, `rom_1x2`, `rom_2x2`, `rom_3x2`, `rom_3x3` (fire søyler), `rotunde`;
+- ganger: `gang_1`, `gang_2`, `gang_hjorne`, `gang_t`, `gang_kryss`, `blindgang`;
+- trapper: `halvtrapp` (1 m), `halv_etasje` (2 m), `nedgang` (trappa ned; bue mot rommet ved siden av);
+- ferdige rom: `kapell` (3 × 3 med døra opp og startstedet, et frittstående alter med lys midt under hvelvet og benkerader vendt mot det), `gravgang` (12 m med gravheller, sarkofager annenhver side med lys på lokket og en knapp på vakt), `skattkammer` (hemmelig rom med kiste bak en falsk vegg, og skrin, kiste, sekker og en rustning på stativ i hjørnene). Innholdet er `prop` med modellen i `label` (byggesettets pynt eller møblene fra byen i `crypt::PROPS`, med kolliderne etter formen eller fra `<navn>_inside.json`) og fotavtrykket i `size` som hull i nettet; det står aldri foran en åpning (alteret står fritt, ikke mot en vegg som kan få en dør).
+
+**Prøvenivået** (`assets/levels/nivaa_test.json`) er bygd om av 14 moduler og har nøyaktig de samme bitene på de samme stedene som før (266 instanser), de samme rommene (gangen og sidegangen er flere moduler med `room`), porten som eierens valg på hvelvets åpning (`port1`), og den falske veggen fra skattkammeret.
+
+**Bildene til eieren** (`python3 tools/crypt/module_shots.py`): alle modulene står side om side i nivået `moduler` (`compose::modules::gallery`, `snapshot --level-doc moduler`, `?nivaa=moduler`); gangene, trappene og de ferdige rommene som ikke er saler får et lite naborom ved åpningene, så bildet viser dem koblet. Hver modul får ett bilde med kartet over modulen (grønne piler: åpningene; lilla: falsk vegg; blå: bue) og to bilder innenfra med faklene og lyset. `oversikt_test.png` er kartet ovenfra over prøvenivået, tegnet av det kompilatoren lager (`snapshot --dump-doc`). En modul alene er `snapshot --level-doc modul:grav/kapell`.
+
+**Godkjenningssiden:** modulene er kortene (`u_<tema>_<navn>`, kategorien Krypten, «Se i 3D» viser modulen med naboene), og versjonen er modulfila sammen med bitene i temaet. Bitene står i `assets/catalog/modules.json` (`gjennom_moduler`), vises ikke som egne kort (bare i en sammenfoldet liste) og dømmes gjennom modulene.
+
+**Testene** (`src/level_doc_tests.rs`): `modulene_utvides_til_celler` (settet finnes, hver modul alene og alle side om side bygges tett og uten feil, prøvenivået er moduler), `modulene_dreies_og_speiles` (hver modul i alle fire dreininger og speilet: bitene står likt dreid tilbake, åpningene følger med, tett), `modulene_fores_sammen` (dør mellom rom, gangåpning mot en gang, mur mot sida av en gang, gangen fortsetter, bare én dør langs to kanter, eierens mur, bue og port, skattkammeret med den falske veggen og sprekken, og modul mot løs celle), `to_moduler_i_samme_celle_er_feil`; og prøvenivået gjennom de gamle testene som før.
+
+**Gjenstår:** siden `?nivaa` (fase 3) bygges med modulpaletten, åpningene som piler og valget per åpning; eierens egne moduler (lagre et utvalg som modul, del 9); moduler i flere etasjer og med galleri (fase 6); modulsett for de fire andre temaene (fase 8); `overmur` og `rekkverk` i moduler (fase 6).

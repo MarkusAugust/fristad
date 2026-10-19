@@ -4,12 +4,13 @@
     python3 -m tools.qa approvals check UT     # alt som venter står på siden med bilde
     python3 -m tools.qa approvals audit        # hver dom har versjonen eieren så (testen)
     python3 -m tools.qa approvals apply SVAR   # svarene fra siden inn i approvals.json
+    python3 -m tools.qa approvals assets UT MAP # bildene i UT pekes til asset-lageret (MAP: sti → /_blob/id)
     python3 -m tools.qa approvals migrate SVAR # én gang: versjonen eieren så, fra svartidene
 
 Siden er `tools/qa/approvals.html`, bygd av `review.py`: den viser
 tilstanden (det som venter, det som ligger hos meg og det godkjente), ikke
 en runde. Den lagrer svarene i samlingen `dom` (dokument `t_<lag>` eller
-`m_<modell>`: `verdict`, `why`, `at` og `version`, versjonen kortet viste).
+`m_<modell>` eller `u_<tema>_<modul>`: `verdict`, `why`, `at` og `version`, versjonen kortet viste).
 
 `apply` leser svarene (en mappe med ett json-dokument per ting, `<id>.json`,
 slik ArtifactData lagrer samlingen med `out_dir`, eller en json-liste med
@@ -49,7 +50,7 @@ def apply(path):
     for row in rows:
         d = row["data"]
         kind, name = row["id"].split("_", 1)
-        group = {"t": "textures", "m": "models"}[kind]
+        group = {"t": "textures", "m": "models", "u": "modules"}[kind]
         if d.get("verdict") not in VERDICTS:
             # Et punkt uten dom (runde 17: «øksa holdes feil vei»): dommen
             # står, men punktet føres inn så det rettes og vises i neste runde.
@@ -104,7 +105,7 @@ def main(argv):
         items, carried = review.build(argv[1])
         for key, label in review.CATEGORIES:
             c = [it for it in items if it["cat"] == key]
-            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent")
+            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent" + (f", {sum(it['state'] == 'i_modul' for it in c)} bit(er) dømt gjennom modulene" if any(it['state'] == 'i_modul' for it in c) else ""))
         print(f"{carried} bygd på nytt uten å se annerledes ut (dommen står)")
         errors = review.check(argv[1])
         for e in errors:
@@ -122,6 +123,12 @@ def main(argv):
         for e in errors:
             print("FEIL:", e)
         return 1 if errors else 0
+    if argv[:1] == ["assets"] and len(argv) == 3:
+        from . import review
+        with open(argv[2]) as f:
+            left = review.use_assets(argv[1], json.load(f))
+        print(f"{len(left)} filer igjen å publisere (siden har plass til 511 per versjon)")
+        return 0 if len(left) <= 511 else 1
     if argv[:1] == ["apply"] and len(argv) == 2:
         print(f"{apply(argv[1])} dommer ført inn i assets/catalog/approvals.json")
         return 0

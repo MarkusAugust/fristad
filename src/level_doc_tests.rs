@@ -8,7 +8,7 @@
 
 use crate::adapters::data::{kit, level_doc};
 use crate::domain::world::crypt::compose::{self, board::board, check, Compiler, Severity, *};
-use crate::domain::world::crypt::doc::{DocCell, DocEdge, LevelDoc};
+use crate::domain::world::crypt::doc::{DocCell, DocEdge, DocModule, DocOverride, LevelDoc};
 use crate::domain::world::crypt::kit::PieceKind;
 use glam::{Vec2, Vec3};
 
@@ -70,20 +70,20 @@ fn nivaadokumentet_kompileres_likt() {
     let (same, r) = c.compile(&doc, &k);
     assert_eq!(r.recomputed, 0, "ingenting var endret, men {} celler ble regnet på nytt", r.recomputed);
     assert_eq!(same, a);
-    // Tre endringer: døra blir port, en celle forsvinner, og en ny kommer.
+    // Tre endringer: døra blir port, en modul forsvinner, og en ny kommer.
     let mut doc2 = doc.clone();
-    doc2.edges = vec![DocEdge { cell: "k22".into(), side: "S".into(), kind: "port".into(), ..Default::default() }];
-    doc2.cells.retain(|c| c.id != "g06");
-    doc2.cells.push(DocCell { id: "ny".into(), bit: "grav/romfelt".into(), at: [-1, 0, 1], room: "gjemme".into(), ..Default::default() });
+    doc2.modules.iter_mut().find(|m| m.id == "kapell").unwrap().overrides[0].kind = "port".into();
+    doc2.modules.retain(|m| m.id != "gravkammer");
+    doc2.modules.push(DocModule { id: "ny".into(), module: "grav/rom_1x1".into(), at: [-1, 0, 1], ..Default::default() });
     let (inc, r) = c.compile(&doc2, &k);
     let (full, _) = compose::compile(&doc2, &k);
     assert_eq!(serde_json::to_string(&inc).unwrap(), serde_json::to_string(&full).unwrap(), "bare det endrede ga noe annet enn alt på nytt");
     // Nabolaget er 5 × 5 celler rundt hver endring.
-    assert!(r.recomputed > 0 && r.recomputed < doc2.cells.len(), "regnet {} av {} celler på nytt", r.recomputed, doc2.cells.len());
+    assert!(r.recomputed > 0 && r.recomputed < r.cells, "regnet {} av {} celler på nytt", r.recomputed, r.cells);
     let mut doc3 = doc2.clone();
-    doc3.cells.iter_mut().find(|c| c.id == "f46").unwrap().room = "forhall2".into();
+    doc3.modules.iter_mut().find(|m| m.id == "ny").unwrap().room = Some("ny2".into());
     let (inc, r) = c.compile(&doc3, &k);
-    assert!(r.recomputed <= 9, "én celle i hjørnet endret, men {} regnet på nytt", r.recomputed);
+    assert!(r.recomputed <= 9, "én modul i hjørnet endret, men {} regnet på nytt", r.recomputed);
     assert_eq!(inc, compose::compile(&doc3, &k).0);
     // Og det endrede synes: porten står der døra sto.
     assert!(inc.instances.iter().any(|i| i.model == "grav_vegg_port") && !inc.instances.iter().any(|i| i.model == "grav_vegg_dor"));
@@ -186,7 +186,7 @@ fn kantene_passer() {
     }
     // Eierens valg som ikke går: en dør mot fjellet.
     let mut bad = test_doc();
-    bad.edges.push(DocEdge { cell: "k10".into(), side: "N".into(), kind: "dor".into(), ..Default::default() });
+    bad.edges.push(DocEdge { cell: "kapell/c00".into(), side: "N".into(), kind: "dor".into(), ..Default::default() });
     let (f2, r) = compose::compile(&bad, &k);
     assert!(r.errors().any(|i| i.rule == "kant" && i.msg.contains("går ingen vei")), "døra mot fjellet ble ikke meldt");
     assert!(check::tight(&bad, &k, &f2).is_empty(), "døra mot fjellet skal bli vegg");
@@ -305,8 +305,8 @@ fn variantene_er_faste() {
     let now = cell(&a, k21).unwrap();
     let other = family(&k, "grav/romfelt").into_iter().find(|m| *m != now).unwrap();
     let vid = k.piece("grav/romfelt").unwrap().variants.iter().find(|v| v.model == other).unwrap().id.clone();
-    let mut locked = doc.clone();
-    locked.cells.iter_mut().find(|c| c.id == "k21").unwrap().variant = Some(vid);
+    let mut locked = modules::flatten(&doc, &k).0;
+    locked.cells.iter_mut().find(|c| c.id == "kapell/c11").unwrap().variant = Some(vid);
     let (b, _) = compose::compile(&locked, &k);
     assert_eq!(cell(&b, k21).as_deref(), Some(other.as_str()), "det låste utseendet står ikke");
     let changed = a.instances.iter().zip(&b.instances).filter(|(x, y)| x != y).count();
@@ -328,7 +328,7 @@ fn variantene_er_faste() {
 #[test]
 fn faklene_star_i_festene() {
     let k = kit();
-    let doc = test_doc();
+    let doc = modules::flatten(&test_doc(), &k).0;
     let (f, _) = compose::compile(&doc, &k);
     let torches: Vec<_> = f.instances.iter().filter(|i| i.model == "grav_fakkel").collect();
     assert!(torches.len() >= 6, "bare {} fakler i prøvenivået", torches.len());
@@ -405,3 +405,179 @@ fn rotunden_settes_sammen() {
     assert!(room.poly.len() >= 4);
 }
 
+
+// --- Modulene (del 21) ---------------------------------------------------------
+
+/// Et dokument med modulene, uten noe annet.
+fn modules_doc(list: Vec<DocModule>) -> LevelDoc {
+    LevelDoc { format: 1, modules: list, ..Default::default() }
+}
+
+fn put(id: &str, module: &str, at: [i32; 3], rot: u8, mirror: bool) -> DocModule {
+    DocModule { id: id.into(), module: module.into(), at, rot, mirror, ..Default::default() }
+}
+
+/// Modellene uten utseendet (variantene og faklene velges med plassen).
+fn shape(f: &crate::domain::world::crypt::level::LevelFile, k: &crate::domain::world::crypt::kit::KitDef) -> Vec<String> {
+    let family = |m: &str| k.pieces.iter().find(|p| p.model == m || p.variants.iter().any(|v| v.model == m)).map(|p| p.id.clone()).unwrap_or_else(|| m.to_string());
+    let mut out: Vec<String> = f.instances.iter().filter(|i| i.model != "grav_fakkel").map(|i| format!("{} {:.2} {:.2} {:.2}", family(&i.model), i.pos[0], i.pos[1], i.pos[2])).collect();
+    out.sort();
+    out
+}
+
+/// Modulsettet for gravkjelleren finnes, og hver modul alene (slik eieren
+/// ser den i paletten og på godkjenningssiden) bygges uten feil, tett og
+/// uten overlapp, med åpninger på de ytre sidene.
+#[test]
+fn modulene_utvides_til_celler() {
+    let k = kit();
+    for id in [
+        "grav/rom_1x1", "grav/rom_2x2", "grav/rom_3x2", "grav/rom_3x3", "grav/gang_1", "grav/gang_2", "grav/gang_hjorne", "grav/gang_t", "grav/gang_kryss", "grav/blindgang",
+        "grav/halvtrapp", "grav/nedgang", "grav/rotunde", "grav/kapell", "grav/gravgang", "grav/skattkammer",
+    ] {
+        let m = k.module(id).unwrap_or_else(|| panic!("modulen {id} mangler i assets/levels/moduler/"));
+        let (ops, problems) = modules::openings(m, &k);
+        assert!(problems.is_empty(), "{id}: {problems:?}");
+        assert!(!ops.is_empty(), "{id} har ingen åpninger");
+        let doc = modules::showcase(&k, id).unwrap();
+        let (f, r) = compose::compile(&doc, &k);
+        // Alene ender trappene i mur (det er naboene som gir dem en vei).
+        assert!(r.errors().all(|i| i.msg.contains("ender i vegg")), "{id}: {:?}", errors(&r));
+        assert!(check::tight(&doc, &k, &f).is_empty(), "{id} er ikke tett: {:?}", check::tight(&doc, &k, &f));
+        assert!(check::overlaps(&doc, &k).is_empty(), "{id}: {:?}", check::overlaps(&doc, &k));
+        // (Nedgangen alene er bare hullet med trappa: ingen gulv å gå på.)
+        assert!(!f.instances.is_empty() && (!f.nav.polys.is_empty() || id == "grav/nedgang"), "{id}: tomt");
+        assert!(f.marks.iter().any(|m| m.kind == "start"), "{id}: ingen start i bildet");
+    }
+    // Alle modulene side om side (bildene til eieren): ingen feil utenom
+    // trappene som ender i mur, tett, og ingen åpning mellom dem.
+    let g = modules::gallery(&k);
+    assert_eq!(g.modules.iter().filter(|m| !m.id.contains("_nabo")).count(), k.modules.len());
+    let (f, r) = compose::compile(&g, &k);
+    assert!(r.errors().all(|i| i.msg.contains("ender i vegg")), "{:?}", errors(&r));
+    assert!(check::tight(&g, &k, &f).is_empty() && check::overlaps(&g, &k).is_empty());
+    // Kapellet har døra opp, en mur der den står, og søylene.
+    let (f, _) = compose::compile(&modules::showcase(&k, "grav/kapell").unwrap(), &k);
+    assert_eq!(f.instances.iter().filter(|i| i.model == "grav_soyle").count(), 4, "kapellet på 3 × 3 skal ha fire søyler");
+    assert!(f.marks.iter().any(|m| m.kind == "up"));
+    // Prøvenivået er bygd av moduler, uten løse celler.
+    let doc = test_doc();
+    assert!(doc.cells.is_empty() && doc.modules.len() >= 10, "prøvenivået skal være moduler");
+    let (flat, issues) = modules::flatten(&doc, &k);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert!(flat.cells.iter().all(|c| doc.modules.iter().any(|m| c.id.starts_with(&format!("{}/", m.id)))));
+    assert!(flat.rooms.iter().any(|r| r.id == "gangen") && flat.rooms.iter().any(|r| r.id == "gjemme" && r.secret), "rommene fra modulene mangler");
+}
+
+/// Dreid og speilet er modulen den samme: alle bitene står på de samme
+/// stedene dreid tilbake, åpningene følger med, og den er tett.
+#[test]
+fn modulene_dreies_og_speiles() {
+    let k = kit();
+    for m in &k.modules {
+        let at = [0, 0, 0];
+        let (base, _) = compose::compile(&modules_doc(vec![put("m", &m.id, at, 0, false)]), &k);
+        for rot in 0..4u8 {
+            for mirror in [false, true] {
+                let doc = modules_doc(vec![put("m", &m.id, at, rot, mirror)]);
+                let (mut f, r) = compose::compile(&doc, &k);
+                assert!(r.errors().all(|i| i.rule != "tett" && i.rule != "bit" && i.rule != "modul"), "{} rot {rot} speilet {mirror}: {:?}", m.id, errors(&r));
+                assert!(check::tight(&doc, &k, &f).is_empty(), "{} rot {rot} speilet {mirror} er ikke tett", m.id);
+                // Dreid tilbake.
+                let back = transform(Vec3::ZERO, cell_yaw(rot), mirror).inverse();
+                for i in &mut f.instances {
+                    i.pos = mm3(back.transform_point3(Vec3::from(i.pos)));
+                }
+                assert_eq!(shape(&f, &k), shape(&base, &k), "{} rot {rot} speilet {mirror}: bitene står ikke likt dreid tilbake", m.id);
+                // Åpningene: hver lokale åpning står på siden den skal i nivået.
+                let (ops, _) = modules::openings(m, &k);
+                for o in &ops {
+                    let w = local_to_world(o.side, rot, mirror);
+                    let d = transform(Vec3::ZERO, cell_yaw(rot), mirror).transform_vector3(Vec3::new(o.at[0] as f32, 0.0, o.at[1] as f32));
+                    let n = outward_v(o.side);
+                    let nw = transform(Vec3::ZERO, cell_yaw(rot), mirror).transform_vector3(Vec3::new(n.x, 0.0, n.y));
+                    assert!((Vec2::new(nw.x, nw.z) - outward_v(w)).length() < 1e-5, "{}: åpningen {} følger ikke dreiningen", m.id, o.id);
+                    assert!(d.x.fract().abs() < 1e-4 && d.z.fract().abs() < 1e-4);
+                }
+            }
+        }
+    }
+}
+
+/// Sammenføyningen: der to moduler møtes og begge har en åpning, blir det
+/// åpning (dør mellom rom, gangåpning mot en gang); ellers mur; bare én
+/// åpning der to moduler møtes langs flere kanter; eierens valg går foran;
+/// skattkammeret får den falske veggen med sprekken, og en port blir innhold
+/// koblingene kan peke på.
+#[test]
+fn modulene_fores_sammen() {
+    let k = kit();
+    let at_edge = |f: &crate::domain::world::crypt::level::LevelFile, model: &str, x: f32, z: f32| f.instances.iter().filter(|i| family(&k, model).contains(&i.model) && Vec2::new(i.pos[0] - x, i.pos[2] - z).length() < 0.01).count();
+    // To rom inntil hverandre: døra mellom dem (halve døra på hver side).
+    let (f, r) = compose::compile(&modules_doc(vec![put("a", "grav/rom_1x1", [0, 0, 0], 0, false), put("b", "grav/rom_1x1", [1, 0, 0], 0, false)]), &k);
+    assert!(r.errors().next().is_none(), "{:?}", errors(&r));
+    assert_eq!(at_edge(&f, "grav/vegg_dor", 2.0, 0.0), 2, "to rom: døra");
+    assert_eq!(at_edge(&f, "grav/vegg", 2.0, 0.0), 0);
+    // Et rom mot enden av en gang: gangåpningen på romsiden.
+    let (f, _) = compose::compile(&modules_doc(vec![put("a", "grav/rom_1x1", [0, 0, 0], 0, false), put("g", "grav/gang_1", [1, 0, 0], 1, false)]), &k);
+    assert_eq!(at_edge(&f, "grav/vegg_gang", 2.0, 0.0), 1, "rom mot gang: gangåpningen");
+    // Et rom mot sida av en gang (lukket): mur.
+    let (f, _) = compose::compile(&modules_doc(vec![put("a", "grav/rom_1x1", [0, 0, 0], 0, false), put("g", "grav/gang_1", [1, 0, 0], 0, false)]), &k);
+    assert_eq!(at_edge(&f, "grav/vegg", 2.0, 0.0), 2, "rom mot sida av en gang: mur");
+    // Ganger etter hverandre: gangen fortsetter (ingen halvkant).
+    let (f, _) = compose::compile(&modules_doc(vec![put("g1", "grav/gang_1", [0, 0, 0], 0, false), put("g2", "grav/gang_2", [0, 0, 1], 0, false)]), &k);
+    let edges: Vec<String> = k.pieces.iter().filter(|p| p.kind == PieceKind::Edge).flat_map(|p| std::iter::once(p.model.clone()).chain(p.variants.iter().map(|v| v.model.clone()))).collect();
+    assert!(!f.instances.iter().any(|i| edges.contains(&i.model) && (i.pos[2] - 2.0).abs() < 0.01 && i.pos[0].abs() < 0.01), "gangen skal fortsette");
+    // To rom 2 × 2 langs hele sida: bare én dør.
+    let two = modules_doc(vec![put("a", "grav/rom_2x2", [0, 0, 0], 0, false), put("b", "grav/rom_2x2", [2, 0, 0], 0, false)]);
+    let (f, _) = compose::compile(&two, &k);
+    let doors = f.instances.iter().filter(|i| family(&k, "grav/vegg_dor").contains(&i.model)).count();
+    assert_eq!(doors, 2, "to rom langs to kanter: én dør (to halvdeler)");
+    // Eierens valg: mur, bue og port.
+    let mut wall = two.clone();
+    wall.modules[0].overrides = vec![DocOverride { opening: "1,0,E".into(), kind: "vegg".into(), id: None }, DocOverride { opening: "1,1,E".into(), kind: "vegg".into(), id: None }];
+    let (f, _) = compose::compile(&wall, &k);
+    assert_eq!(f.instances.iter().filter(|i| family(&k, "grav/vegg_dor").contains(&i.model)).count(), 0, "eieren valgte mur");
+    let mut arch = two.clone();
+    arch.modules[1].overrides = vec![DocOverride { opening: "0,0,W".into(), kind: "bue".into(), id: None }, DocOverride { opening: "0,1,W".into(), kind: "bue".into(), id: None }];
+    let (f, r) = compose::compile(&arch, &k);
+    assert!(r.errors().next().is_none(), "{:?}", errors(&r));
+    assert_eq!(at_edge(&f, "grav/gjordbue", 6.0, 0.0) + at_edge(&f, "grav/gjordbue", 6.0, 4.0), 4, "to buer (to halvdeler hver)");
+    let mut gate = two.clone();
+    gate.modules[0].overrides = vec![DocOverride { opening: "1,1,E".into(), kind: "port".into(), id: Some("porten".into()) }];
+    let (f, _) = compose::compile(&gate, &k);
+    assert!(f.marks.iter().any(|m| m.kind == "gate" && m.id.as_deref() == Some("porten")), "porten ble ikke innhold");
+    assert_eq!(f.instances.iter().filter(|i| family(&k, "grav/vegg_dor").contains(&i.model)).count(), 0, "porten tar plassen til døra");
+    // Skattkammeret: den falske veggen står i rommet ved siden av, med sprekken.
+    let (f, r) = compose::compile(&modules_doc(vec![put("a", "grav/rom_1x1", [0, 0, 0], 0, false), put("s", "grav/skattkammer", [-1, 0, 0], 0, false)]), &k);
+    assert!(r.errors().next().is_none(), "{:?}", errors(&r));
+    let wall = f.marks.iter().find(|m| m.kind == "secret_wall").expect("ingen falsk vegg");
+    assert!(wall.pos.unwrap()[0] > -2.0, "den falske veggen skal synes fra rommet, ikke fra kammeret: {:?}", wall.pos);
+    assert!(f.marks.iter().any(|m| m.kind == "hint" && m.for_id == wall.id), "sprekken mangler");
+    assert!(f.rooms.iter().any(|r| r.id == "s" && r.secret));
+    // En modul uten åpning mot en løs celle: mur; med åpning: cellereglene.
+    let mut mixed = modules_doc(vec![put("g", "grav/gang_1", [0, 0, 0], 0, false)]);
+    mixed.cells.push(DocCell { id: "x".into(), bit: "grav/romfelt".into(), at: [1, 0, 0], room: "x".into(), ..Default::default() });
+    mixed.cells.push(DocCell { id: "y".into(), bit: "grav/romfelt".into(), at: [0, 0, 1], room: "y".into(), ..Default::default() });
+    let (f, _) = compose::compile(&mixed, &k);
+    assert!(check::tight(&mixed, &k, &f).is_empty());
+    assert_eq!(at_edge(&f, "grav/vegg_gang", 0.0, 2.0), 1, "gangens åpning mot den løse cella");
+}
+
+/// To moduler i samme celle er en feil (`compose/check.rs`), meldt med
+/// modulene.
+#[test]
+fn to_moduler_i_samme_celle_er_feil() {
+    let k = kit();
+    let doc = modules_doc(vec![put("a", "grav/rom_2x2", [0, 0, 0], 0, false), put("b", "grav/gang_1", [1, 0, 1], 0, false)]);
+    let o = check::overlaps(&doc, &k);
+    assert_eq!(o.len(), 1, "{o:?}");
+    assert!(o[0].msg.contains("modulene a og b"), "{}", o[0].msg);
+    let (_, r) = compose::compile(&doc, &k);
+    assert!(r.errors().any(|i| i.rule == "overlapp"));
+    // Ukjent modul og ukjent åpning meldes.
+    let mut bad = modules_doc(vec![put("a", "grav/finnes_ikke", [0, 0, 0], 0, false), put("b", "grav/rom_1x1", [3, 0, 0], 0, false)]);
+    bad.modules[1].overrides = vec![DocOverride { opening: "9,9,N".into(), kind: "dor".into(), id: None }];
+    let (_, r) = compose::compile(&bad, &k);
+    assert_eq!(r.errors().filter(|i| i.rule == "modul").count(), 2, "{:?}", errors(&r));
+}

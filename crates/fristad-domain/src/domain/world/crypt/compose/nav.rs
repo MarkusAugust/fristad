@@ -131,8 +131,13 @@ fn walkable(s: (Vec2, Vec2), center: Vec2, walls: &[Option<f32>], switches: &[Op
 }
 
 /// Fotavtrykket til det som står på gulvet (i merkets rom: x0, z0, x1, z1).
-fn footprint(kind: &str) -> Option<[f32; 4]> {
-    Some(match kind {
+fn footprint(m: &MarkDef) -> Option<[f32; 4]> {
+    Some(match m.kind.as_str() {
+        // Pynten på gulvet med målene i `size` (bredde og dybde).
+        "prop" => {
+            let (w, d) = m.size?.wd();
+            [-w * 0.5, -d * 0.5, w * 0.5, d * 0.5]
+        }
         "rest" => [-0.8, -0.5, 0.8, 0.5],
         "chest" | "rare" => [-0.45, -0.3, 0.45, 0.3],
         "lever" => [-0.25, -0.25, 0.25, 0.15],
@@ -146,7 +151,7 @@ fn footprint(kind: &str) -> Option<[f32; 4]> {
 /// Hull i nettet rundt det som står på gulvet (fotavtrykket og `NAV_INSET`).
 pub fn cut_marks(raster: &mut BTreeMap<(i32, i32, i32), Label>, marks: &[MarkDef]) {
     for m in marks {
-        let (Some(f), Some(p)) = (footprint(&m.kind), m.pos) else { continue };
+        let (Some(f), Some(p)) = (footprint(m), m.pos) else { continue };
         let p = Vec3::from(p);
         let rot = glam::Quat::from_rotation_y(m.yaw);
         let pts = [(f[0], f[1]), (f[2], f[1]), (f[2], f[3]), (f[0], f[3])].map(|(x, z)| p + rot * Vec3::new(x, 0.0, z));

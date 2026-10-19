@@ -123,6 +123,8 @@ impl Kind {
             Kind::Avatar => (0.72, 0.34, 0.0),
             Kind::Breadcrumb => (0.55, 0.3, 0.55),
             Kind::Accordion => (1.2, 0.36, 0.0),
+            // Rammeverket fra TRELLIS: 1,74 høy i modellen (4 m i spillet).
+            Kind::Framework => (1.7, 0.5, 0.0),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -131,9 +133,9 @@ impl Kind {
         self == Kind::Framework
     }
 
-    /// Slaget som står i stedet når slagets egen modell mangler: Rammeverket
-    /// har ingen modell ennå (`model::PLANNED`), så modalen står der, større
-    /// (`Stats.scale`).
+    /// Slaget som står i stedet når slagets egen modell mangler: om
+    /// Rammeverkets modell (`framework`, fra `tools/models/mob3d.py`) ikke
+    /// lastes, står modalen der, større (`Stats.scale`).
     pub fn stand_in(self) -> Option<Kind> {
         match self {
             Kind::Framework => Some(Kind::Modal),

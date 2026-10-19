@@ -5,7 +5,7 @@
 //! deres står i `waiting` til da.
 
 use super::*;
-use crate::domain::model::{Model, Placement};
+use crate::domain::model::{Image, Model, Placement};
 
 /// Bygger en modell med instansene sine.
 pub(super) fn gpu_model(device: &wgpu::Device, queue: &wgpu::Queue, materials: &Materials, mipper: &texture::Mipper, pl: &Placement, m: &Model) -> GpuModel {
@@ -99,13 +99,27 @@ pub(super) fn gpu_model(device: &wgpu::Device, queue: &wgpu::Queue, materials: &
         None => 0..near_count,
     };
     log::info!("Modell {}: {} trekanter nær, {} fjern", m.name, near_count / 3, far_range.len() / 3);
+    let (views, sizes) = materials.model_views(device, queue, mipper, m);
+    // Bildene med lavt tak først (nettleseren) oppgraderes i bakgrunnen.
+    let pending = [&m.albedo, &m.normal, &m.metal_rough, &m.emissive]
+        .into_iter()
+        .enumerate()
+        .filter_map(|(k, img)| {
+            let img = img.as_ref()?;
+            let (width, height) = img.later?;
+            Some((k, Image { width, height, later: None, ..img.clone() }))
+        })
+        .collect();
     GpuModel {
         name: m.name.clone(),
         cutout: m.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
         mesh: GpuMesh::new(&device, &combined, &m.name),
         near: 0..near_count,
         far: far_range,
-        textures: materials.model_bind_group(&device, &queue, &mipper, m),
+        textures: materials.model_bind_group(device, &views, &m.name),
+        views,
+        sizes,
+        pending,
         instances: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&m.name),
             contents: bytemuck::cast_slice(&data),
@@ -154,6 +168,77 @@ impl Renderer {
     /// Antall modeller på grafikkortet (til testene).
     pub fn model_count(&self) -> usize {
         self.models.len()
+    }
+
+    /// Setter tiden oppgraderingen av teksturene får per bilde (ms), og
+    /// glemmer det som var brukt for mye.
+    pub fn set_upgrade_budget(&mut self, ms: f64) {
+        self.upgrade_ms = ms;
+        self.upgrade_credit = 0.0;
+    }
+
+    /// Bildene som venter på å oppgraderes.
+    pub fn pending_textures(&self) -> usize {
+        self.models.iter().map(|g| g.pending.len()).sum()
+    }
+
+    /// Bytene teksturene til modellene tar på grafikkortet nå (RGBA8 med
+    /// mipmaps), til testene: den lave kopien slippes når den byttes ut.
+    pub fn texture_bytes(&self) -> u64 {
+        self.models.iter().flat_map(|g| g.sizes).map(|(w, h)| w as u64 * h as u64 * 4 * 4 / 3).sum()
+    }
+
+    /// Lat lasting (nettleseren): oppgraderer teksturene som ble lastet opp
+    /// med lavt tak til de endelige målene, ett bilde av gangen, de nærmeste
+    /// modellene først (`delivery::upgrade_pick`), innenfor tiden
+    /// `upgrade_ms` per bilde i snitt. Kalles etter at bildet er sendt, så
+    /// det første bildet tegnes med det lave. Gir modellene som fikk et
+    /// bilde, i rekkefølge.
+    pub fn upgrade_textures(&mut self, eye: Vec3, instances: &[crate::domain::scene::ModelInstance]) -> Vec<String> {
+        let mut done = vec![];
+        if self.lost || self.models.iter().all(|g| g.pending.is_empty()) {
+            return done;
+        }
+        self.upgrade_credit = (self.upgrade_credit + self.upgrade_ms).min(self.upgrade_ms);
+        // Avstanden til nærmeste instans: de faste rutene og de bevegelige.
+        let distance = |g: &GpuModel| {
+            let fixed = g.cells.iter().map(|c| eye.clamp(c.lo, c.hi).distance(eye));
+            let moving = instances.iter().filter(|i| i.model == g.name).map(|i| Vec3::from(i.transform.translation).distance(eye));
+            fixed.chain(moving).fold(f32::INFINITY, f32::min)
+        };
+        let near: Vec<f32> = self.models.iter().map(|g| if g.pending.is_empty() { f32::INFINITY } else { distance(g) }).collect();
+        while self.upgrade_credit > 0.0 {
+            let cands: Vec<(usize, usize)> = self.models.iter().enumerate().flat_map(|(k, g)| (0..g.pending.len()).map(move |j| (k, j))).collect();
+            let pick = crate::adapters::delivery::upgrade_pick(cands.iter().enumerate().map(|(n, &(k, j))| {
+                let img = &self.models[k].pending[j].1;
+                (n, near[k], img.width.max(img.height))
+            }));
+            let Some(n) = pick else { break };
+            let (k, j) = cands[n];
+            let start = now_ms();
+            let g = &mut self.models[k];
+            let (slot, img) = g.pending.remove(j);
+            // Fargen og gløden er sRGB, som i `model_views`.
+            g.views[slot] = texture::upload(&self.device, &self.queue, &self.mipper, &img, slot == 0 || slot == 3, &g.name);
+            g.sizes[slot] = (img.width, img.height);
+            g.textures = self.materials.model_bind_group(&self.device, &g.views, &g.name);
+            done.push(g.name.clone());
+            self.upgrade_credit -= (now_ms() - start).max(0.25);
+        }
+        done
+    }
+}
+
+/// Millisekunder fra en fast start, til tidsbudsjettet.
+fn now_ms() -> f64 {
+    #[cfg(target_arch = "wasm32")]
+    {
+        web_sys::window().and_then(|w| w.performance()).map_or_else(js_sys::Date::now, |p| p.now())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        START.get_or_init(std::time::Instant::now).elapsed().as_secs_f64() * 1000.0
     }
 }
 
@@ -210,5 +295,62 @@ mod tests {
         assert_eq!(r.waiting.len(), 1, "biten venter");
         r.resize(128, 128);
         r.set_quality(Quality::default());
+    }
+
+    /// Lat lasting: teksturene lastes opp med lavt tak og oppgraderes ett
+    /// bilde av gangen, de nærmeste modellene først og de uten instanser
+    /// sist; alle ender på de endelige målene, og den lave kopien slippes,
+    /// så minnet aldri er mer enn det endelige.
+    #[test]
+    fn teksturene_oppgraderes_naermest_forst() {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
+        let Ok((adapter, device, queue)) = pollster::block_on(crate::adapters::gpu(&instance, None)) else {
+            eprintln!("Ingen GPU; testen hoppes over");
+            return;
+        };
+        let mut jpeg = vec![];
+        image::RgbImage::from_fn(64, 64, |x, y| image::Rgb([(x * 4) as u8, (y * 4) as u8, 90])).write_to(&mut std::io::Cursor::new(&mut jpeg), image::ImageFormat::Jpeg).unwrap();
+        let model = |name: &str| {
+            let img = || crate::adapters::gltf::encoded(&jpeg, 0);
+            let mut m = Model { name: name.into(), mesh: quad(), albedo: img(), normal: img(), metal_rough: None, emissive: None, roughness: 0.8, metallic: 0.0, far_cell: 0.0, far_mesh: None, rig: None, solids: vec![] };
+            crate::adapters::delivery::stage(&mut m, crate::adapters::gltf::Caps { color: 16, data: 8 });
+            assert_eq!(m.albedo.as_ref().map(|i| (i.width, i.later)), Some((16, Some((64, 64)))));
+            m
+        };
+        let models = [model("langt"), model("nær"), model("figur")];
+        let at = |name: &'static str, z: f32| Placement { model: name, transforms: vec![Affine3A::from_translation(Vec3::new(0.0, 0.0, z))], tints: vec![], looks: vec![], reserve: 0, indoor: false };
+        let figure = Placement { model: "figur", transforms: vec![], tints: vec![], looks: vec![], reserve: 1, indoor: false };
+        let placements = [at("langt", 60.0), at("nær", 4.0), figure];
+        let world = quad();
+        let scene = ports::StaticScene { mesh: &world, chunks: &[], placements: &placements, models: &models };
+        let mut r = Renderer::new(device, queue, &adapter, wgpu::TextureFormat::Rgba8UnormSrgb, &scene, &[], 64, 64);
+        let full = 6 * (64 * 64 * 4 * 4 / 3);
+        let low = r.texture_bytes();
+        assert!(low * 8 < full, "lavt først: {low} mot {full}");
+        assert_eq!(r.pending_textures(), 6);
+        // Ett bilde per kall (budsjettet er mindre enn ett bilde; det som
+        // gikk over, glemmes her og betales ellers av de neste bildene).
+        let mut order = vec![];
+        let mut last = low;
+        for _ in 0..10 {
+            r.set_upgrade_budget(0.01);
+            order.extend(r.upgrade_textures(Vec3::ZERO, &[]));
+            let now = r.texture_bytes();
+            assert!(now >= last && now <= full, "minnet vokser bare mot det endelige: {now} (før {last}, endelig {full})");
+            last = now;
+        }
+        assert_eq!(order, ["nær", "nær", "langt", "langt", "figur", "figur"]);
+        assert_eq!(r.pending_textures(), 0);
+        assert_eq!(r.texture_bytes(), full, "alle på fullt tak");
+        // En bevegelig figur nær kameraet går foran de faste langt unna.
+        let mut r2 = {
+            let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor { backends: wgpu::Backends::PRIMARY, ..Default::default() });
+            let (adapter, device, queue) = pollster::block_on(crate::adapters::gpu(&instance, None)).unwrap();
+            Renderer::new(device, queue, &adapter, wgpu::TextureFormat::Rgba8UnormSrgb, &scene, &[], 64, 64)
+        };
+        r2.set_upgrade_budget(0.01);
+        let near_figure = crate::domain::scene::ModelInstance { model: "figur", transform: Affine3A::from_translation(Vec3::new(1.0, 0.0, 0.0)), skin: None, flash: 0.0, tint: None };
+        assert_eq!(r2.upgrade_textures(Vec3::ZERO, std::slice::from_ref(&near_figure)), ["figur"]);
+        assert!(r2.upgrade_textures(Vec3::ZERO, &[]).is_empty(), "neste bilde betaler for det forrige");
     }
 }
