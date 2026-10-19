@@ -42,6 +42,9 @@ pub struct InstanceDef {
     /// Speilet langs modellens x før dreiningen.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub mirror: bool,
+    /// Steinbyttet (`stone`): lagene biten får i stedet for sine egne.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<super::stone::InstanceStone>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
@@ -199,6 +202,9 @@ pub struct MarkDef {
     pub loot: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub levels: Vec<f32>,
+    /// Steinen til den falske veggen (som muren den står i).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<super::stone::InstanceStone>,
 }
 
 /// Det som står i et nivå (`assets/layout/crypt_NN.json`): merkene og

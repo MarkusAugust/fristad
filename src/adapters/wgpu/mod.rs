@@ -154,7 +154,7 @@ pub struct InstanceData {
     pub model: [[f32; 4]; 4],
     pub extra: [f32; 4],
     /// x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers;
-    /// y: flammefargen i utseendet.
+    /// z og w: steinbyttet (`with_look`).
     pub extra2: [f32; 4],
 }
 
@@ -164,6 +164,16 @@ impl InstanceData {
     }
     pub fn skinned(t: &Affine3A, extra: [f32; 4], base: u32) -> Self {
         Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [base as f32 + 1.0, 0.0, 0.0, 0.0] }
+    }
+    /// Steinbyttet (`model::Look`), 6 bit per lag, eksakt i f32: z er gulvet
+    /// (fra, til) og muren (fra, til), w hvelvet og bit 6 som slår det på.
+    pub fn with_look(mut self, look: Option<&crate::domain::model::Look>) -> Self {
+        if let Some(l) = look {
+            let b = |l: crate::domain::geometry::Layer| l as u32 & 63;
+            self.extra2[2] = (b(l.floor.0) | b(l.floor.1) << 6 | b(l.wall.0) << 12 | b(l.wall.1) << 18) as f32;
+            self.extra2[3] = (b(l.vault) | 1 << 6) as f32;
+        }
+        self
     }
     const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: INSTANCE_STRIDE,
@@ -1169,7 +1179,8 @@ impl Renderer {
                     let inst = match i.skin.map(|(base, _)| base).filter(|base| m.skinned && (*base as usize) < SKIN_MAX) {
                         Some(base) => InstanceData::skinned(&i.transform, extra, base),
                         None => InstanceData::new(&i.transform, extra),
-                    };
+                    }
+                    .with_look(i.look.as_ref());
                     (inst, lo, hi)
                 })
                 .collect();

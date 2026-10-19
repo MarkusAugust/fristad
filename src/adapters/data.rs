@@ -51,6 +51,10 @@ pub fn kit() -> KitDef {
             Err(e) => log::warn!("assets/levels/moduler/{name}.json: {e}"),
         }
     }
+    match serde_json::from_str(STONES_FILE) {
+        Ok(s) => kit.stones = s,
+        Err(e) => log::warn!("assets/levels/steiner.json: {e}"),
+    }
     kit
 }
 

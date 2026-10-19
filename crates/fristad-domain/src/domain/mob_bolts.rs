@@ -63,7 +63,7 @@ impl Mobs {
             let dir = b.vel.normalize_or(Vec3::X);
             // Vokser ut av munnen de første hundredelene.
             let pop = (0.4 + b.age * 6.0).min(1.0);
-            out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(aligned(dir, time * 12.0 + k as f32), b.pos) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None });
+            out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(aligned(dir, time * 12.0 + k as f32), b.pos) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None, look: None });
             // Gnistene bak: mindre og mindre, og bare så langt den har flydd.
             let flown = b.age * b.vel.length();
             for j in 1..=BOLT_TRAIL {
@@ -74,7 +74,7 @@ impl Mobs {
                 let wob = Vec3::new((time * 17.0 + j as f32 * 2.1).sin(), (time * 13.0 + j as f32 * 1.3).cos(), 0.0) * 0.04 * j as f32;
                 let size = 0.55 * (1.0 - j as f32 / (BOLT_TRAIL + 1) as f32);
                 let at = b.pos - dir * back + wob;
-                out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(aligned(dir, time * 9.0 + j as f32), at) * Affine3A::from_scale(Vec3::splat(size)), skin: None, flash: 0.0, tint: None });
+                out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(aligned(dir, time * 9.0 + j as f32), at) * Affine3A::from_scale(Vec3::splat(size)), skin: None, flash: 0.0, tint: None, look: None });
             }
         }
         for m in &self.mobs {
@@ -83,7 +83,7 @@ impl Mobs {
                 // bakover, så den ses som en klump forfra.
                 let throb = 1.0 + 0.18 * (time * 38.0).sin();
                 let rot = aligned(Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos()), time * 7.0);
-                out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(rot, at) * Affine3A::from_scale(Vec3::splat((0.25 + 0.75 * charge) * 0.7 * throb)), skin: None, flash: 0.0, tint: None });
+                out.push(ModelInstance { model: BOLT_MODEL, transform: Affine3A::from_rotation_translation(rot, at) * Affine3A::from_scale(Vec3::splat((0.25 + 0.75 * charge) * 0.7 * throb)), skin: None, flash: 0.0, tint: None, look: None });
             }
         }
         out.truncate(BOLT_INSTANCES);

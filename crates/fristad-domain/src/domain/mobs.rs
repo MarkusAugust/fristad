@@ -867,13 +867,13 @@ impl Mobs {
                     // Modellens front er +X; yaw regner front som (sin, 0, cos).
                     let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(lean);
                     let t = Affine3A::from_rotation_translation(rot, m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
-                    out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None });
+                    out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None, look: None });
                 }
                 _ => {
                     let bob = (m.phase * 2.3).sin() * 0.05;
                     let tilt = (m.phase * 1.7).cos() * 0.06;
                     let t = Affine3A::from_rotation_translation(Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_z(tilt - flinch * 0.3), m.pos + Vec3::Y * bob) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.15)));
-                    out.push(ModelInstance { model, transform: t, skin: None, flash, tint: None });
+                    out.push(ModelInstance { model, transform: t, skin: None, flash, tint: None, look: None });
                 }
             }
         }
@@ -891,7 +891,7 @@ impl Mobs {
             let spin = Quat::from_rotation_y(time * 1.5 + k.age) * Quat::from_rotation_x(0.4);
             let pop = (k.age * 4.0).min(1.0);
             let hover = 0.25 + (time * 2.5 + k.age).sin() * 0.06;
-            out.push(ModelInstance { model: KEY_MODEL, transform: Affine3A::from_rotation_translation(spin, k.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None });
+            out.push(ModelInstance { model: KEY_MODEL, transform: Affine3A::from_rotation_translation(spin, k.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None, look: None });
         }
         out
     }

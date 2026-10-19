@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "level": "steiner",
+  "name": "Steinene",
+  "status": "utkast",
+  "seed": 7,
+  "kit": ["grav@1"],
+  "modules": [
+    {"id": "r_gravmur", "module": "grav/rom_2x2", "at": [0, 0, 0], "name": "Rom: gravmur", "stone": "gravmur"},
+    {"id": "g_gravmur", "module": "grav/gang_1", "at": [0, 0, 2], "name": "Gang: gravmur", "stone": "gravmur"},
+    {"id": "r_gravtegl", "module": "grav/rom_2x2", "at": [0, 0, 3], "name": "Rom: gravtegl", "stone": "gravtegl"},
+    {"id": "r_tegl", "module": "grav/rom_2x2", "at": [2, 0, 0], "name": "Rom: tegl", "stone": "tegl"},
+    {"id": "g_tegl", "module": "grav/gang_1", "at": [2, 0, 2], "name": "Gang: tegl", "stone": "tegl"},
+    {"id": "r_beinhus", "module": "grav/rom_2x2", "at": [2, 0, 3], "name": "Rom: beinhus", "stone": "beinhus"},
+    {"id": "r_berg", "module": "grav/rom_2x2", "at": [4, 0, 0], "name": "Rom: berg", "stone": "berg"},
+    {"id": "g_berg", "module": "grav/gang_1", "at": [4, 0, 2], "name": "Gang: berg", "stone": "berg"},
+    {"id": "r_kalkmaleri", "module": "grav/rom_2x2", "at": [4, 0, 3], "name": "Rom: kalkmaleri", "stone": "kalkmaleri"},
+    {"id": "r_kvader", "module": "grav/rom_2x2", "at": [6, 0, 0], "name": "Rom: kvader", "stone": "kvader"},
+    {"id": "g_kvader", "module": "grav/gang_1", "at": [6, 0, 2], "name": "Gang: kvader", "stone": "kvader"},
+    {"id": "r_tommer", "module": "grav/rom_2x2", "at": [6, 0, 3], "name": "Rom: tommer", "stone": "tommer"},
+    {"id": "r_kjernestein", "module": "grav/rom_2x2", "at": [8, 0, 0], "name": "Rom: kjernestein", "stone": "kjernestein"},
+    {"id": "g_kjernestein", "module": "grav/gang_1", "at": [8, 0, 2], "name": "Gang: kjernestein", "stone": "kjernestein"},
+    {"id": "r_plast", "module": "grav/rom_2x2", "at": [8, 0, 3], "name": "Rom: plast", "stone": "plast"}
+  ],
+  "lights": [
+    {"id": "l0_0", "anchor": "fri", "pos": [2, 3.2, 2], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l0_3", "anchor": "fri", "pos": [2, 3.2, 14], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l2_0", "anchor": "fri", "pos": [10, 3.2, 2], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l2_3", "anchor": "fri", "pos": [10, 3.2, 14], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l4_0", "anchor": "fri", "pos": [18, 3.2, 2], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l4_3", "anchor": "fri", "pos": [18, 3.2, 14], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l6_0", "anchor": "fri", "pos": [26, 3.2, 2], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l6_3", "anchor": "fri", "pos": [26, 3.2, 14], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l8_0", "anchor": "fri", "pos": [34, 3.2, 2], "color": [1.0, 0.7, 0.42], "range": 11.0},
+    {"id": "l8_3", "anchor": "fri", "pos": [34, 3.2, 14], "color": [1.0, 0.7, 0.42], "range": 11.0}
+  ]
+}

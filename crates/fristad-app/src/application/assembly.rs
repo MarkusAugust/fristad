@@ -120,7 +120,8 @@ pub fn merge_instances(p: &mut Prepared, names: &[&str], cell: f32) -> usize {
         if model.albedo.is_some() || model.rig.is_some() {
             continue; // egne teksturer eller skjelett: kan ikke deles
         }
-        for t in pl.transforms.drain(..) {
+        let looks: Vec<_> = pl.looks.iter().copied().chain(std::iter::repeat(None)).take(pl.transforms.len()).collect();
+        for (t, look) in pl.transforms.drain(..).zip(looks) {
             let o = glam::Vec3::from(t.translation);
             let key = ((o.x / cell).floor() as i32, (o.y / 20.0).floor() as i32, (o.z / cell).floor() as i32);
             let mesh = chunks.entry(key).or_insert_with(|| Mesh { vertices: vec![], indices: vec![] });
@@ -128,6 +129,10 @@ pub fn merge_instances(p: &mut Prepared, names: &[&str], cell: f32) -> usize {
             let flip = t.matrix3.determinant() < 0.0;
             for v in &model.mesh.vertices {
                 let mut w = *v;
+                // Steinbyttet bakes inn i hjørnene (som `look` i world.wgsl).
+                if let Some(l) = &look {
+                    w.mat[0] = l.layer(v.mat[0], v.normal[1]);
+                }
                 w.pos = t.transform_point3(glam::Vec3::from(v.pos)).to_array();
                 w.normal = (t.matrix3 * glam::Vec3A::from(glam::Vec3::from(v.normal))).normalize_or_zero().to_array();
                 mesh.vertices.push(w);

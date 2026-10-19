@@ -184,7 +184,8 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
             let (r, mirror) = if inst.mirror { ((rot + 4 - c.rot % 4) % 4, !c.mirror) } else { ((rot + c.rot) % 4, c.mirror) };
             let id = prefix(&c.id);
             owner.insert(id.clone(), n);
-            out.cells.push(DocCell { id, at: place(c.at), rot: r, mirror, room: room_of(&c.room), ..c.clone() });
+            // Modulens stein (eierens valg i nivået) går foran malens.
+            out.cells.push(DocCell { id, at: place(c.at), rot: r, mirror, room: room_of(&c.room), stone: inst.stone.clone().or_else(|| c.stone.clone()), ..c.clone() });
         }
         for e in &m.edges {
             module_edges.push(DocEdge { cell: prefix(&e.cell), ..e.clone() });

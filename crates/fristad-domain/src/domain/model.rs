@@ -67,20 +67,37 @@ pub struct Placement {
     pub indoor: bool,
 }
 
-/// Et annet utseende på samme modell: kjellerens modulsett bygges med fire
-/// roller (`Look::ROLES`: mur, hvelv, kvaderstein og gulv), som hver etasje
-/// gir sine egne teksturlag. Tonen (lineær) ganges på rollene, og flammene
-/// (materialer som heter `fire…`) får fargen `flame`.
+/// Steinbyttet per instans (`crypt::stone`, `docs/nivaaredigering.md` del
+/// 22): bitene er laget med temaets lag for gulvet og muren, og instansen
+/// bytter dem. Flatene av murlaget som vender nedover i modellens rom
+/// (normalen under `VAULT_NY`: hvelvene, buene og overliggerne) får
+/// hvelvlaget. Rendereren gjør det samme i vertexshaderen (`look` i
+/// `world.wgsl`), og sammenslåingen av bitene med `layer`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Look {
-    pub layers: [Layer; 4],
-    pub tint: glam::Vec3,
-    pub flame: glam::Vec3,
+    /// (laget biten er laget med, laget den får)
+    pub floor: (Layer, Layer),
+    pub wall: (Layer, Layer),
+    pub vault: Layer,
 }
 
 impl Look {
-    /// Lagene modulsettet er bygd med, som rollene byttes ut fra.
-    pub const ROLES: [Layer; 4] = [Layer::Stone, Layer::Ashlar, Layer::Flagstone, Layer::Tiles];
+    pub const VAULT_NY: f32 = -0.3;
+
+    /// Laget en flate med laget `layer` og normalen `normal_y` (modellens rom) får.
+    pub fn layer(&self, layer: u8, normal_y: f32) -> u8 {
+        if layer == self.floor.0 as u8 {
+            self.floor.1 as u8
+        } else if layer == self.wall.0 as u8 {
+            if normal_y < Self::VAULT_NY {
+                self.vault as u8
+            } else {
+                self.wall.1 as u8
+            }
+        } else {
+            layer
+        }
+    }
 }
 
 /// Bildene til et teksturlag (eierens malte, avledet med `tools/textures/derive.py`), som erstatter det bakte laget.

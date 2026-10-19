@@ -7,6 +7,7 @@ use super::{CellOut, Grid};
 use crate::domain::world::crypt::doc::{DocCell, LevelDoc};
 use crate::domain::world::crypt::kit::{KitDef, KitPiece, PieceKind};
 use crate::domain::world::crypt::level::{InstanceDef, LightDef};
+use crate::domain::world::crypt::stone::{StoneRef, Surfaces};
 use glam::Vec3;
 
 /// Et tall i [0, 1) fra frøet og plassen (`splitmix64`): det samme i wasm og
@@ -41,11 +42,33 @@ pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, 
         }
         let at = t.transform_point3(Vec3::from(m.pos));
         let turn = yaw + m.yaw;
-        out.instances.push(InstanceDef { model: torch.model.clone(), pos: mm3(at), yaw: turn, mirror: false });
+        out.instances.push(InstanceDef { model: torch.model.clone(), pos: mm3(at), yaw: turn, mirror: false, stone: None });
         let flame = torch.mounts.iter().find(|m| m.kind == "lys").map(|m| Vec3::from(m.pos)).unwrap_or(Vec3::new(0.0, 0.5, 0.28));
         let light = transform(at, turn, false).transform_point3(flame);
         out.lights.push(LightDef { pos: mm3(light), color: [1.0, 0.6, 0.28], range: 7.5, flicker: true, intensity: None, room: Some(room.to_string()) });
     }
+}
+
+/// Steinen i hver celle (`crypt::stone`): temaets standardstein, så
+/// nivåets, rommets og cellas valg (modulens er lagt på cellene), flate for
+/// flate (et tema uten stein: bitens). Ukjente steiner og lag er feil.
+pub(super) fn cell_stone(kit: &KitDef, themes: [&str; 2], picks: [Option<&StoneRef>; 3], at: Vec3, issues: &mut Vec<super::Issue>) -> Surfaces {
+    let mut s = kit.stones.base(themes[0]).or_else(|| kit.stones.base(themes[1])).unwrap_or_default();
+    for r in picks.into_iter().flatten() {
+        if let Err(e) = kit.stones.apply(&mut s, r) {
+            issues.push(super::Issue::error("stein", Some(at), e));
+        }
+    }
+    s
+}
+
+/// Steinen på en halvkant: cellas, med eierens valg for kanten over.
+pub(super) fn edge_stone(g: &Grid, a: usize, w: usize) -> Surfaces {
+    let mut s = g.cells[a].stone.clone();
+    if let Some(r) = g.edge_stones.get(&(a, w)) {
+        let _ = g.kit.stones.apply(&mut s, r);
+    }
+    s
 }
 
 /// Cellene i dokumentet med de sammensatte bitene delt i delbitene sine

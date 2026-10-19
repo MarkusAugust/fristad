@@ -76,5 +76,5 @@ pub fn token_instance(t: &Token, time: f32) -> ModelInstance {
     let pop = (t.age * 4.0).min(1.0);
     let hover = if t.vel == Vec3::ZERO { 0.08 + (time * 3.0 + t.age).sin() * 0.04 } else { 0.0 };
     let tint = Some(TOKEN_COLORS[t.color as usize % TOKEN_COLORS.len()]);
-    ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint }
+    ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint, look: None }
 }

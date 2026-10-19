@@ -11,6 +11,7 @@
 //!   så de følger biten når den dreies eller speiles.
 //! - `yaw` i dokumentet er grader (0 ser mot +z i ankerets rom).
 
+use super::stone::StoneRef;
 use serde::{Deserialize, Serialize};
 
 /// Nummeret (1–10) eller navnet (`test`).
@@ -54,6 +55,13 @@ pub struct LevelDoc {
     pub kit: Vec<String>,
     #[serde(default)]
     pub bands: Vec<Band>,
+    /// Nivåets tema (`grav`, `kloakk` …) for rommene som ikke har sitt
+    /// eget: byggesettet og standardsteinen (`steiner.json`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub theme: String,
+    /// Steinen i hele nivået (over temaets standardstein).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<StoneRef>,
     /// Modulene eieren har satt ut (del 21): utvides til celler, rom,
     /// innhold og kantvalg før kompileringen (`compose::modules::flatten`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -104,6 +112,8 @@ pub struct DocRoom {
     /// Stemningen (fase 2: bare faklene; tåke, lyd og forfall kommer i fase 5).
     #[serde(default, skip_serializing_if = "Mood::is_default")]
     pub mood: Mood,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<StoneRef>,
 }
 
 /// Stemningen i et rom.
@@ -138,6 +148,8 @@ pub struct DocCell {
     pub variant: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<StoneRef>,
 }
 
 /// Eierens valg for en kant: `vegg`, `dor`, `port`, `bue`, `aapen`,
@@ -147,11 +159,16 @@ pub struct DocEdge {
     pub cell: String,
     /// `N`, `E`, `S` eller `W` i cellens rom.
     pub side: String,
+    /// Tomt: kanten låser bare utseendet eller steinen.
+    #[serde(default)]
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variant: Option<String>,
+    /// Steinen i muren på denne siden (halvkanten til cella).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<StoneRef>,
 }
 
 /// Innholdet: det som blir merkene i nivåfila.
@@ -251,6 +268,9 @@ pub struct DocModule {
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mood: Option<Mood>,
+    /// Steinen i modulen (over rommets og nivåets).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stone: Option<StoneRef>,
     /// Eierens valg for åpningene: dør, port, falsk vegg, gang, bue,
     /// snarvei eller vegg.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

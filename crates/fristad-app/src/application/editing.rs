@@ -696,14 +696,14 @@ impl Session {
             for (t, tint) in pl.transforms.iter().zip(&pl.tints) {
                 match base.get_mut(&pose_key(pl.model, t)).and_then(|v| v.pop()) {
                     Some(_) => {}
-                    None => shown.push(ModelInstance { model: pl.model, transform: *t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint) }),
+                    None => shown.push(ModelInstance { model: pl.model, transform: *t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint), look: None }),
                 }
             }
         }
         // Fantomet, med den grønne eller røde boksen rundt (`edit_lines`).
         if let Some((model, _, pose, _)) = &self.edit_ui.ghost {
             if scene.bounds(model).is_some() {
-                shown.push(ModelInstance { model: crate::domain::world::layout::intern(model), transform: *pose, skin: None, flash: 0.0, tint: None });
+                shown.push(ModelInstance { model: crate::domain::world::layout::intern(model), transform: *pose, skin: None, flash: 0.0, tint: None, look: None });
             }
         }
         let hidden = base.into_values().flatten().collect();

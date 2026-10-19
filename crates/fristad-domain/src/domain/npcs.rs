@@ -444,14 +444,14 @@ impl Npcs {
                     // langs halsen), og glb-fila har y opp: dreid om x.
                     if let Some(j) = c.lute {
                         let at = Affine3A::from_mat4(rig.joint_transform(&pose, j)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
-                        out.push(ModelInstance { model: LUTE_MODEL, transform: t * at, skin: None, flash: 0.0, tint: None });
+                        out.push(ModelInstance { model: LUTE_MODEL, transform: t * at, skin: None, flash: 0.0, tint: None, look: None });
                     }
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: n.model, transform: t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: Some(n.tint) });
+                    out.push(ModelInstance { model: n.model, transform: t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: Some(n.tint), look: None });
                 }
-                _ => out.push(ModelInstance { model: n.model, transform: t, skin: None, flash: 0.0, tint: Some(n.tint) }),
+                _ => out.push(ModelInstance { model: n.model, transform: t, skin: None, flash: 0.0, tint: Some(n.tint), look: None }),
             }
         }
         out

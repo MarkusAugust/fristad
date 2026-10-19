@@ -180,7 +180,7 @@ Modulene (og den avanserte skuffen) gir **cellebiter** og **sammensatte biter**.
 
 ### 5.5 Temaoverganger
 
-Hver halvkant og hvert kvarthjørne tar temaet fra sin egen celle. En dør mellom kloakken og gravkjelleren er derfor kloakkmur på den ene siden og gravmur på den andre, og de møtes midt i lysningen. Åpningene har samme mål i alle temaer (tabellen i del 3), så det går alltid opp. Rammen rundt døra står på siden eieren velger (standard er rommet med høyest prioritet i hovedveien). Egne overgangsbiter (en bue med blandet stein) kan komme senere.
+Hver halvkant og hvert kvarthjørne tar temaet fra sin egen celle. En dør mellom kloakken og gravkjelleren er derfor kloakkmur på den ene siden og gravmur på den andre, og de møtes midt i lysningen. Åpningene har samme mål i alle temaer (tabellen i del 3), så det går alltid opp. Rammen rundt døra står på siden eieren velger (standard er rommet med høyest prioritet i hovedveien). Egne overgangsbiter (en bue med blandet stein) kan komme senere. Steinen følger samme regel (del 22).
 
 ### 5.6 Konflikter
 
@@ -773,3 +773,14 @@ Porten, snarveien og den falske veggen blir innhold med id-en eieren gir (`overr
 **Testene** (`src/level_doc_tests.rs`): `modulene_utvides_til_celler` (settet finnes, hver modul alene og alle side om side bygges tett og uten feil, prøvenivået er moduler), `modulene_dreies_og_speiles` (hver modul i alle fire dreininger og speilet: bitene står likt dreid tilbake, åpningene følger med, tett), `modulene_fores_sammen` (dør mellom rom, gangåpning mot en gang, mur mot sida av en gang, gangen fortsetter, bare én dør langs to kanter, eierens mur, bue og port, skattkammeret med den falske veggen og sprekken, og modul mot løs celle), `to_moduler_i_samme_celle_er_feil`; og prøvenivået gjennom de gamle testene som før.
 
 **Gjenstår:** siden `?nivaa` (fase 3) bygges med modulpaletten, åpningene som piler og valget per åpning; eierens egne moduler (lagre et utvalg som modul, del 9); moduler i flere etasjer og med galleri (fase 6); modulsett for de fire andre temaene (fase 8); `overmur` og `rekkverk` i moduler (fase 6).
+
+## 22. Steinen (eieren 19. oktober)
+
+«Det må være mulig å skifte type tekstur på mur også, eller ha moduler med forskjellige teksturer ut ifra nivået vi er på.» En modul er en form, og steinen er et valg.
+
+- **Steinene** står i `assets/levels/steiner.json`: `id`, `name` og lagene for `floor`, `wall` og `vault`, og `themes` med standardsteinen per tema (byggesettet for et tema er laget med den: gravkjelleren med `crypt_floor`/`crypt_wall`). Ti steiner: gravmur, gravtegl (teglhvelv), beinhus, kalkmaleri, tegl, berg, tømmer, kvader, kjernestein og plast. Lagene for kloakken, gruva, borgen og kjernen er tatt inn (lag 55–62; plass til ett til).
+- **Valget** (`stone` i dokumentet): på nivået (sammen med `theme`, som gir standardsteinen), rommet, modulen (går foran malens celler), cella og kanten (`edges` med `cell`, `side` og `stone`, uten `kind`). Verdien er et steinnavn (`"tegl"`) eller flatene hver for seg (`{"wall": "sewer_brick", "vault": "gravtegl"}`: et lagnavn, eller flaten fra en stein). Det nærmeste vinner, flate for flate. Ukjent stein eller lag er en feil (`stein`) med sted.
+- **Kompilatoren** setter `stone` på hver instans (lagene biten er laget med → lagene den får). Cella, halvkantene og hjørnene den setter ut tar dens stein, så overgangen mellom to steiner går midt i åpningen (del 5.5); kanten overstyrer bare cellas halvdel av muren. Den falske veggen får murens stein (merket `secret_wall`). Faklene byttes ikke.
+- **Motoren** gjør det til `model::Look`, og vertexshaderen bytter laget per instans (`look` i `world.wgsl`): gulvlaget blir gulv, murlaget mur, og murlaget som vender nedover i modellens rom (normalen under −0,3) hvelv. Sammenslåingen per 16 m baker det samme inn i hjørnene. Instansene med samme modell tegnes fortsatt i ett kall: nivået `steiner` har 21 kall med ti steiner og 21 uten.
+- **Bildene:** `snapshot --level-doc steiner` (`assets/levels/nivaa_steiner.json`: rom 2 × 2 og ganger i alle ti steinene, med overganger i dørene og gangene).
+- **Det som ikke passer ennå:** søylene, ribbene, gjordbuene og karmene er laget med murlaget og får murens stein (berg på en hogd søyle, tømmer på ribbene, plast på gjordbuene); en egen rolle for hogd stein (`.dressed`) trenger et eget lag i bitene. Gravhellene og mørtelen (`grave_slab`, `plaster_old`) byttes ikke. Kalkmaleriet ser ut som tapet som før. Hvelvene er mørke, så hvelvsteinen synes lite.

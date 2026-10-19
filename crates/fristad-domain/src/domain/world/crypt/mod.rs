@@ -12,8 +12,7 @@
 //! Fiendene går på navigasjonsnettet (`nav.rs`: A* over polygonene og trakt).
 //! Portene, snarveidørene og de falske veggene er brytere (`Crypt.open`) som
 //! stenger polygonene sine til de åpnes. Rommene brukes til kartet, til lyset
-//! (et lys lyser i sitt rom og i rom med åpen forbindelse, `light_mask`) og
-//! til å finne rommet du står i.
+//! (et lys lyser i sitt rom og i rom med åpen forbindelse, `light_mask`) og til å finne rommet du står i.
 
 pub mod compose;
 pub mod doc;
@@ -24,6 +23,7 @@ pub mod nav;
 mod query;
 pub mod run;
 mod parts;
+pub mod stone;
 
 pub use parts::*;
 
@@ -428,7 +428,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     // murverk med fundament, som bitene over.
     for inst in &f.instances {
         let name = crate::domain::world::layout::intern(&inst.model);
-        b.place_mounted(name, compose::transform(origin + Vec3::from(inst.pos), inst.yaw, inst.mirror));
+        b.place_mounted_look(name, compose::transform(origin + Vec3::from(inst.pos), inst.yaw, inst.mirror), inst.stone.as_ref().and_then(stone::InstanceStone::look));
     }
     for col in &f.colliders {
         if let Some(bx) = &col.cuboid {
@@ -659,7 +659,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if b.has_model(&format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"))) {
                     level.pieces.push(model.to_string());
                 }
-                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model });
+                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model, look: m.stone.as_ref().and_then(stone::InstanceStone::look) });
             }
             "trapdoor" => {
                 let s = id(c, "trapdoor");

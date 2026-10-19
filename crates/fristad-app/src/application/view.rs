@@ -139,21 +139,22 @@ impl Session {
         let mut instances = self.herd.instances(self.time);
         instances.extend(self.npcs.instances(&mut skins));
         instances.extend(self.mobs.instances(self.time, &mut skins));
-        instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.well_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None, look: None }));
         instances.extend(self.portal_pose().map(|p| self.portal.poses(p, self.time)).unwrap_or_default().into_iter().map(|(model, transform)| ModelInstance {
             model,
             transform,
             skin: None,
             flash: 0.0,
             tint: None,
+            look: None,
         }));
-        instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None }));
-        let posed = |model: &'static str, list: Vec<glam::Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None });
+        instances.extend(self.gate_poses().into_iter().map(|transform| ModelInstance { model: PORTCULLIS, transform, skin: None, flash: 0.0, tint: None, look: None }));
+        let posed = |model: &'static str, list: Vec<glam::Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None, look: None });
         instances.extend(posed(crypt::KIT_SHORTCUT_LEAF, self.mech.shortcut_poses(self.live_crypt())));
         instances.extend(posed(crypt::CHEST_LID, self.chest_poses()));
         instances.extend(posed(crypt::KIT_LEVER_ARM, self.mech.lever_poses(self.live_crypt())));
         let live = self.live_crypt();
-        instances.extend(live.secrets.iter().zip(self.mech.secret_poses(live, self.time)).map(|(s, transform)| ModelInstance { model: s.model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(live.secrets.iter().zip(self.mech.secret_poses(live, self.time)).map(|(s, transform)| ModelInstance { model: s.model, transform, skin: None, flash: 0.0, tint: None, look: s.look }));
         instances.extend(posed(crypt::KIT_TRAPDOOR, self.mech.trapdoor_poses(self.live_crypt())));
         let (decks, chains) = self.mech.bridge_poses(self.live_crypt());
         instances.extend(posed(crypt::KIT_BRIDGE, decks));
@@ -163,7 +164,7 @@ impl Session {
         instances.extend(posed(crypt::KIT_WATER, self.mech.water_poses(self.live_crypt())));
         instances.extend(posed(crypt::KIT_ARROW, self.dart_poses()));
         instances.extend(posed(crypt::KIT_REST_FLAME, self.rest_flame_poses()));
-        instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None }));
+        instances.extend(self.gallery_poses().into_iter().map(|(model, transform)| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None, look: None }));
         if self.film.is_none() {
             instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         }
