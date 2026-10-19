@@ -650,6 +650,40 @@ Hver fase slutter med push til forhåndsvisningen og ett godkjenningsark til eie
 4. **Stemningene:** begynn med det temaene har i dag (to–tre lysstemninger og romlydene per tema); flere når eieren savner dem.
 5. **Skjermen:** kartet til venstre og 3D til høyre, og en tast eller knapp som viser bare den ene over hele skjermen.
 
+## 19. Status: fase 0 og 1 (19. oktober)
+
+**Gjort:**
+- **Kjernen** (`crates/fristad-domain/src/domain/world/crypt/`): `doc.rs` (`LevelDoc`), `kit.rs` (`KitDef`), og kompilatoren i `compose/` (`mod.rs`: kantene, hjørnene og instansene; `grid.rs`: standardmålene; `solids.rs`: kolliderne flettet; `nav.rs`: nettet rastret og slått sammen til rektangler; `rooms.rs`: omrisset av cellene; `check.rs`: reglene `tight`, `overlaps`, `edges`; `board.rs`: prøvebrettet). `LevelFile` har fått feltet `instances`, som `Crypt::build` setter ut. `Data.docs` og `Data::compose_levels` lar et nivådokument merket «klar» erstatte det gamle nivået med samme nummer; ingen er klare ennå, så de ti nivåene er uendret.
+- **Det grå pilotsettet** (`tools/crypt/kit_cells.py`, målene i `kit_common.py`): 14 modeller og 17 biter i manifestet `assets/models/crypt/kit/grav.json` (romfelt, gang, gang_blind, gang_hjorne, gang_t, gang_kryss, halvtrapp, trapp2, nedgang; halvkantene vegg, vegg_gang, vegg_dor, vegg_port, vegg_falsk, gjordbue; hjorne og soyle), med dagens stein (`crypt_wall`, `crypt_floor`) uten pynt og uten bakt okklusjon.
+- **Prøvenivået** `assets/levels/nivaa_test.json`, skrevet for hånd: 31 celler på et rutenett på 8 × 7 (kapellet 3 × 3 med søyler og døra opp, et hemmelig rom bak en falsk vegg med sprekk, gangen med hjørne og halvtrapp opp til hvelvet 3 × 2 med hvilestedet og spaken, porten til forhallen med trappa ned, en dør til sidegangen med kryss og blindgang, og beinhuset med to fiender på patrulje). Det gir 242 instanser, 59 kollidere (flettet), 92 polygoner og 7 rom.
+- **Prøvebrettet** (`compose::board`, `snapshot --level-doc brett`): hver av de 9 cellebitene mot hver av dem med alle 4 × 4 dreininger, 1 296 par.
+- **Testene** (`src/level_doc_tests.rs`): `nivaadokumentet_kompileres_likt` (to ganger, og bare det endrede mot alt på nytt), `bitene_dreies_og_speiles_riktig`, `kantene_passer` (tabellen i del 5.1 over hele prøvebrettet, og en dør mot fjellet), `nivaaet_er_tett`, `bitene_overlapper_ikke`, `byggesettet_har_bitene`, `provenivaaet_bygges_av_bitene`; og prøvenivået gjennom de gamle testene: `provenivaaet_kan_gas_gjennom` (boten med ekte fysikk: spaken, porten, trappa ned), `ingen_usynlige_vegger_i_provenivaaet` (ingen treff), `fiendene_finner_fram_i_provenivaaet`, `lyset_folger_rommene_i_provenivaaet` og `provenivaaet_har_det_det_skal_og_taket_er_hoyt_nok`.
+- **Hull:** `snapshot --leak-scan` fra hver celle i prøvenivået og 73 tilfeldige par på brettet: ingen. To ting rettet underveis: kvarte dreininger var ikke eksakte (sprekker på én piksel langs gulvskjøtene), og halvkantene og hjørnene fikk bakside og ender, så skjøtene har noe bak seg.
+- **Skissen** av skjermbildet: `docs/nivaaredigering-skisse.html` (kartet er tegnet av prøvenivået, 3D-vinduet er et bilde av det).
+
+**Valg og avvik fra planen:**
+- Cellas midte står i (4i, y, 4j); sidene og ankrene (`kant:<celle>/<side>`, `edges`) er i cellens eget rom; `yaw` i dokumentet er grader.
+- Det gangbare kommer fra manifestet (`walk`: rektangler, skrå for trappene), ikke fra `extras.kit` i glb. Manifestet skrives av Blender-skriptet ved siden av modellene.
+- Nettet rastres i ruter på 0,2 m (ikke 0,25), så murflaten (1,6), nettets kant (1,2), døra (±0,4) og porten (±1,0) går opp i rutene.
+- Kvarthjørnet settes der en mur (en halvkant som ikke er åpen) når hjørnet i en av cellene rundt, eller en av rutene rundt er fjell; søyla der fire romfelt møtes, åpne mot hverandre. Det er færre tilfeller enn «marching squares» i del 5.1, men det gir det samme.
+- Trappene har et skrått tønnehvelv som følger trinnene, så begge endene har gangprofilen og ingen overmur trengs mot en gang.
+- Porten står i kantlinja og vender inn i cella den er festet til; den falske veggen står i murflaten på den siden (og synker som før). Testen `lyset_folger_rommene` tåler nå at porten står på grensen mellom to rom.
+- «Bare det endrede» er et minne per celle med nabolaget på 5 × 5 som nøkkel; kolliderne, nettet og rommene settes sammen på nytt hver gang (det er raskt).
+- Et rom med hull deles ikke ennå (det gir en advarsel).
+
+**Målingen (fase 0)**, `snapshot --level-doc test --stats` i skyen (lavapipe, ikke M2; ms gir bare mening på M2). Instansene er det som tegnes i hovedpasset (også armene og fiendene); krypten har ingen solskygge.
+
+| Sted | Instanser | Kall | Trekanter | Slått sammen per 16 m: kall | trekanter |
+|---|---|---|---|---|---|
+| Kapellet | 130 | 13 | 20 152 | 9 | 23 892 |
+| Hvelvet | 84 | 16 | 25 336 | 8 | 23 117 |
+| Gangen | 236 | 24 | 38 151 | 17 | 36 626 |
+| Prøvebrettet (langs en rad) | 2 831 | 46 | 155 946 | 77 (158 ruter) | 153 338 |
+
+Med instanser blir det ett kall per modell som synes, uansett hvor mange instanser; med få ulike biter (14) er det allerede få kall. Sammenslått gir færre kall i ett rom, men flere når mange ruter synes. Eieren måler ms på M2 med `?nivaa=test&bench` og `?nivaa=test&slaa&bench` på forhåndsvisningen når Actions har bygd.
+
+**Gjenstår til fase 2:** bitene i malt stil med okklusjon bakt i sammenheng, nær- og fjernversjon og pyntefester; `extras.kit` i glb og testen «manifestet likt glb-filene»; lysfester (lysene står i dokumentet ennå); å dele rom med hull; trinnmur, rekkverk og ulike tak over en kant (fase 6); tetthetssjekken per bit i Blender.
+
 ---
 
 ### De viktigste filene
