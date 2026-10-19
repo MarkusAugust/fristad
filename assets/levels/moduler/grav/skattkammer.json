@@ -1,0 +1,25 @@
+{
+  "id": "grav/skattkammer",
+  "name": "Skattkammeret",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Et hemmelig rom på 4 × 4 m med en kiste. Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",
+  "rooms": [
+    {"id": "rom", "name": "Skattkammeret", "theme": "grav", "mood": {"torches": 0.0}, "secret": true}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0}
+  ],
+  "openings": [
+    {"at": [0, 0], "side": "N", "kind": "falsk"},
+    {"at": [0, 0], "side": "E", "kind": "falsk"},
+    {"at": [0, 0], "side": "S", "kind": "falsk"},
+    {"at": [0, 0], "side": "W", "kind": "falsk"}
+  ],
+  "things": [
+    {"id": "kiste", "kind": "chest", "anchor": "celle:c00", "pos": [-0.6, 0, 0], "yaw": 90}
+  ],
+  "lights": [
+    {"id": "lys", "anchor": "celle:c00", "pos": [0, 2.5, 0], "color": [1.0, 0.62, 0.3], "range": 6, "flicker": true}
+  ]
+}

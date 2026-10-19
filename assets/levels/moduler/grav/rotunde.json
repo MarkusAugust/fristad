@@ -1,0 +1,16 @@
+{
+  "id": "grav/rotunde",
+  "name": "Rotunde",
+  "theme": "grav",
+  "kind": "rom",
+  "about": "Rundt rom på 12 × 12 m med kuppel, fire nisjer med fakler og en gang ut midt på hver side.",
+  "rooms": [
+    {"id": "rom", "name": "Rotunde", "theme": "grav", "mood": {"torches": 1.0}}
+  ],
+  "cells": [
+    {"id": "c", "bit": "grav/rotunde", "at": [0, 0, 0], "rot": 0}
+  ],
+  "lights": [
+    {"id": "kuppel", "anchor": "celle:c", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": false}
+  ]
+}

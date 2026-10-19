@@ -1,0 +1,28 @@
+{
+  "id": "grav/kapell",
+  "name": "Kapellet med døra opp",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Inngangen til nivået: en sal på 3 × 3 fag med fire søyler, døra opp midt på nordveggen og startstedet midt i.",
+  "rooms": [
+    {"id": "rom", "name": "Kapellet med døra opp", "theme": "grav", "mood": {"torches": 0.5}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, -1], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, -1], "rot": 0},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, -1], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c02", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0},
+    {"id": "c12", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c22", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "walls": [
+    {"at": [0, -1], "side": "N"}
+  ],
+  "things": [
+    {"id": "start", "kind": "start", "anchor": "celle:c11", "pos": [0, 0, 0], "yaw": -90},
+    {"id": "opp", "kind": "up", "anchor": "celle:c10", "pos": [0, 0, -0.45], "yaw": 0}
+  ]
+}

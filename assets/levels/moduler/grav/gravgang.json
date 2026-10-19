@@ -1,0 +1,18 @@
+{
+  "id": "grav/gravgang",
+  "name": "Gravgangen",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "En gang på 12 m med gravheller og gjordbuer, og en knapp som går vakt fram og tilbake.",
+  "rooms": [
+    {"id": "rom", "name": "Gravgangen", "theme": "grav", "mood": {"torches": 0.6}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/gang", "at": [0, 0, -1], "rot": 0, "variant": "b"},
+    {"id": "c01", "bit": "grav/gang", "at": [0, 0, 0], "rot": 0, "variant": "b"},
+    {"id": "c02", "bit": "grav/gang", "at": [0, 0, 1], "rot": 0, "variant": "b"}
+  ],
+  "things": [
+    {"id": "vakt", "kind": "mob", "anchor": "celle:c01", "pos": [0, 0, -3], "yaw": 0, "label": "button", "patrol": [[0, 0, -3.5], [0, 0, 3.5]]}
+  ]
+}
