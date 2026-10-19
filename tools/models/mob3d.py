@@ -8,15 +8,21 @@ gjort spillklare med de samme stegene som innbyggerne i `folk3d.py`:
 2. et tett, lukket skall over formen (`folk3d.simplify`: tykkelse på de åpne
    flatene, voxel-skall, løse biter bort, forenklet til `tris`);
 3. fargen fra den fulle formen hentet uendret over på skallet
-   (`folk3d.transfer`/`nearest_colors`, uv-laget «src», pakket før fargen
-   hentes); ingen ansiktslapp, teksturen brukes som den er;
+   (`folk3d.transfer`/`nearest_colors`, uv-laget «src», lagt før fargen
+   hentes); ingen ansiktslapp, teksturen brukes som den er. Øyene legges med
+   xatlas (`unwrap`, `pip install xatlas`): Blenders smart_project ga
+   3 500 småøyer som dekket 34 % av teksturen, xatlas gir rundt 1 900 og
+   dekker nær 70 %, og hodet og brystet forfra får `DENSE` ganger så mange
+   piksler per meter som resten (det man ser nært);
 4. leddene lest av formen (`landmarks`: høydene står i tabellen som brøk av
    høyden, sidene og dybden måles i formen), fiendeskjelettet
    (`BONES`, samme navn som i `monsters.py`), vektene fra Blender jevnet ut
    i rommet (`folk3d.layered_weights`) og klippene fra `mob_motion` med
    slagets stil (`STYLES`);
 5. eksport med `bake_textured(..., uv_angle=None, ao=False, pack=False)`:
-   en ren kopi av fargen (teksturen fra TRELLIS har skyggene malt inn).
+   en ren kopi av fargen (teksturen fra TRELLIS har skyggene malt inn), i
+   størrelsen `size` i tabellen (bossene 4096, de vanlige 2048; normal- og
+   ruhetskartet 1024, formen er glatt).
 
     python3.13 tools/models/mob3d.py framework [størrelse]
 """
@@ -35,11 +41,14 @@ import mob_motion  # noqa: E402
 
 SRC = "assets/textures/monsters/3d"
 OUT = "assets/models/mobs"
-# Skallet av en rustet kjempe har tusenvis av uv-øyer (rammene, kjettingene,
-# sidene): med kanten skalert dekket de 8 % av teksturen, med en fast kant på
-# 4 piksler i 2048 rundt 35 %.
-PACK = dict(margin=0.002, margin_method="FRACTION")
-SRC_SIZE = 2048  # fargen fra formen hentes i denne størrelsen (som teksturen)
+# Kanten rundt hver øy i piksler i den ferdige teksturen (resten fylles med
+# fargen fra kanten, `nearest_colors`, så mipmapene ikke trekker inn sort).
+PADDING = 2
+# Hodet (over `DENSE_FROM` av høyden) og brystet forfra (normalen fram,
+# mellom hoftene og halsen): så mange ganger flere piksler per meter.
+DENSE = (1.6, 1.4)
+DENSE_FROM = 0.76
+DATA_SIZE = 1024  # normal- og ruhetskartet (et glatt skall, samme ruhet)
 
 # navn: høyden i modellens målestokk, trekanter, voxel og tykkelse (m i
 # modellen), stilen og angrepet i `mob_motion`, ekstra klipp, og leddene
@@ -51,7 +60,7 @@ MOBS = {
     # armene hengende nesten rett ned med nevene i hoftehøyde, et lite hode
     # med krone over skulderplatene. Angrepet er bittet (`Stats.attack_hit`
     # er bittets), slaget i bakken og brølet er egne klipp.
-    "framework": dict(height=4.0 / 2.3, tris=25000, voxel=0.006, thick=0.006, style="framework", attack="bite", extra=("slam", "roar"),
+    "framework": dict(height=4.0 / 2.3, size=4096, tris=25000, voxel=0.006, thick=0.006, style="framework", attack="bite", extra=("slam", "roar"),
                       joints=dict(hip=0.36, knee=0.2, ankle=0.07, chest=0.52, neck=0.74, head=0.82, shoulder=0.62, elbow=0.45, wrist=0.31, tip=0.16,
                                   arm=0.32, leg=0.06, shoulder_in=0.08)),
 }
@@ -157,20 +166,85 @@ def rig(ob, name, B):
     return arm
 
 
-def build(name, size=2048):
+def unwrap(ob, size):
+    """Øyene med xatlas: først delt og foldet ut etter formen, så skaleres
+    hodet og brystet forfra (`DENSE`), og øyene pakkes tett på nytt med
+    rotasjon (brute force, et par minutter). Skallet trianguleres først, så
+    hver flate er én trekant i samme rekkefølge som i xatlas."""
+    import bmesh
+    import xatlas
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.to_mesh(ob.data)
+    bm.free()
+    me = ob.data
+    v = coords(ob).astype(np.float32)
+    f = np.array([p.vertices[:] for p in me.polygons], np.uint32)
+    pack = xatlas.PackOptions()
+    pack.resolution = size
+    pack.padding = PADDING
+    pack.bilinear = True
+    pack.rotate_charts = True
+    at = xatlas.Atlas()
+    at.add_mesh(v, f)
+    at.generate(xatlas.ChartOptions(), pack)
+    vm, ix, uv = at[0]
+    assert (vm[ix] == f).all(), "xatlas byttet om på hjørnene"
+    # Øyene er de sammenhengende bitene i uv (hjørnene er delt i sømmene).
+    n = len(uv)
+    g = coo_matrix((np.ones(ix.size), (ix.ravel(), ix[:, [1, 2, 0]].ravel())), shape=(n, n))
+    k, lab = connected_components(g, directed=False)
+    p = v[f]
+    c = p.mean(1)
+    nrm = np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])
+    nrm /= np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-12
+    H = float(v[:, 2].max())
+    w = np.ones(len(f))
+    w[(c[:, 2] > 0.40 * H) & (c[:, 2] <= DENSE_FROM * H) & (nrm[:, 0] > 0.3)] = DENSE[1]
+    w[c[:, 2] > DENSE_FROM * H] = DENSE[0]
+    fl = lab[ix[:, 0]]
+    cw = np.bincount(fl, w, k) / np.bincount(fl, minlength=k)
+    uv = uv.copy()
+    for i in np.nonzero(np.abs(cw - 1) > 1e-3)[0]:
+        m = lab == i
+        mid = uv[m].mean(0)
+        uv[m] = mid + (uv[m] - mid) * cw[i]
+    pack.bruteForce = True
+    at = xatlas.Atlas()
+    at.add_uv_mesh(uv.astype(np.float32), ix.astype(np.uint32))
+    at.generate(xatlas.ChartOptions(), pack)
+    vm2, ix2, uv2 = at[0]
+    assert (vm2[ix2] == ix).all(), "pakkingen byttet om på hjørnene"
+    t = uv2[ix2]
+    e1, e2 = t[:, 1] - t[:, 0], t[:, 2] - t[:, 0]
+    print(f"xatlas: {k} øyer, dekning {np.abs(e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0]).sum() / 2:.1%}")
+    flat = uv2[ix2].reshape(-1, 2).astype(np.float32)
+    # Løkkene i hver trekant står i samme rekkefølge som hjørnene.
+    loops = np.array([l for p in me.polygons for l in p.loop_indices])
+    out = np.zeros((len(me.loops), 2), np.float32)
+    out[loops] = flat
+    me.uv_layers["src"].data.foreach_set("uv", out.ravel())
+
+
+def build(name, size=None):
     spec = MOBS[name]
     clear()
     ob = load(name, spec["height"])
     hi = ob.copy()
     hi.data = ob.data.copy()
     bpy.context.scene.collection.objects.link(hi)
-    keep = {k: getattr(folk3d, k) for k in ("VOXEL", "THICK", "PACK")}
+    size = size or spec.get("size", 2048)
+    keep = {k: getattr(folk3d, k) for k in ("VOXEL", "THICK")}
     try:
         folk3d.VOXEL = spec["voxel"]
         folk3d.THICK = spec["thick"]
-        folk3d.PACK = PACK
         folk3d.simplify(ob, spec["tris"])
-        folk3d.transfer(hi, ob, name, SRC_SIZE)
+        # Fargen hentes i samme størrelse som teksturen (TRELLIS-fila har 4096).
+        folk3d.transfer(hi, ob, name, size, unwrap=unwrap)
     finally:
         for k, v in keep.items():
             setattr(folk3d, k, v)
@@ -180,11 +254,11 @@ def build(name, size=2048):
     arm = rig(ob, name, B)
     mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()))
     print(name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
-    bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False)
+    bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False, data_size=min(DATA_SIZE, size))
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    size = next((int(a) for a in args if a.isdigit()), 2048)
+    size = next((int(a) for a in args if a.isdigit()), None)
     for n in [a for a in args if a in MOBS] or list(MOBS):
         build(n, size)
