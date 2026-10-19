@@ -1,0 +1,23 @@
+{
+  "id": "grav/hvilested",
+  "name": "Hvilestedet",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Et lite kapell på 4 × 4 m med hvilestedet mot nordmuren og en lapp fra munkene. Her tennes lyset, og her våkner du.",
+  "rooms": [
+    {"id": "rom", "name": "Hvilestedet", "theme": "grav", "mood": {"torches": 0.6}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0}
+  ],
+  "walls": [
+    {"at": [0, 0], "side": "N"}
+  ],
+  "things": [
+    {"id": "hvile", "kind": "rest", "anchor": "celle:c00", "pos": [0, 0, -1.0], "yaw": 0},
+    {"id": "lapp", "kind": "lore", "anchor": "celle:c00", "pos": [1.15, 0, -1.1], "yaw": -45, "label": "Et blad fra munkene", "text": "Den som tenner lyset her, våkner her. Fyll lykta før du går dypere; mørket der nede er ikke tomt."}
+  ],
+  "lights": [
+    {"id": "hvilelys", "anchor": "celle:c00", "pos": [0, 1.6, -1.0], "color": [1.0, 0.7, 0.4], "range": 5, "flicker": true}
+  ]
+}

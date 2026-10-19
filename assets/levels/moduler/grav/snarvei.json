@@ -1,0 +1,21 @@
+{
+  "id": "grav/snarvei",
+  "name": "Snarveien",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "To rom på 4 × 4 m med ei snarveidør imellom. Slåen sitter i det nordre rommet, så døra åpnes derfra og står åpen etterpå.",
+  "rooms": [
+    {"id": "rom", "name": "Snarveien", "theme": "grav", "mood": {"torches": 0.5}},
+    {"id": "ytterst", "name": "Ytterst", "theme": "grav", "mood": {"torches": 0.5}}
+  ],
+  "cells": [
+    {"id": "innerst", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "ytterst", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "room": "ytterst"}
+  ],
+  "things": [
+    {"id": "dor", "kind": "shortcut", "anchor": "kant:ytterst/N"}
+  ],
+  "links": [
+    {"from": "dor", "to": "rom", "kind": "from"}
+  ]
+}

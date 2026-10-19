@@ -1,0 +1,13 @@
+{
+  "id": "kloakk/blindgang",
+  "name": "Blindgang",
+  "theme": "kloakk",
+  "kind": "gang",
+  "about": "Gangen ender i en mur.",
+  "rooms": [
+    {"id": "rom", "name": "Blindgang", "theme": "kloakk", "mood": {"torches": 0.3}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/gang_blind", "at": [0, 0, 0], "rot": 0}
+  ]
+}

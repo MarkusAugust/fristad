@@ -1,0 +1,21 @@
+{
+  "id": "kjerne/rom_3x3",
+  "name": "Rom 3 × 3 med søyler",
+  "theme": "kjerne",
+  "kind": "rom",
+  "about": "En sal på 12 × 12 m, ni fag med fire søyler.",
+  "rooms": [
+    {"id": "rom", "name": "Rom 3 × 3 med søyler", "theme": "kjerne", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, -1], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, -1], "rot": 0},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, -1], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c02", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0},
+    {"id": "c12", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c22", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ]
+}

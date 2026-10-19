@@ -1,0 +1,21 @@
+{
+  "id": "kloakk/nedgang",
+  "name": "Nedgang",
+  "theme": "kloakk",
+  "kind": "trapp",
+  "about": "Romfeltet med trappa ned til neste nivå. Står det inntil et rom, åpnes det med en bue.",
+  "rooms": [
+    {"id": "rom", "name": "Nedgang", "theme": "kloakk", "mood": {"torches": 0.3}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/nedgang", "at": [0, 0, 0], "rot": 0}
+  ],
+  "openings": [
+    {"at": [0, 0], "side": "E", "kind": "bue"},
+    {"at": [0, 0], "side": "S", "kind": "bue"},
+    {"at": [0, 0], "side": "W", "kind": "bue"}
+  ],
+  "things": [
+    {"id": "ned", "kind": "down", "anchor": "celle:c00"}
+  ]
+}

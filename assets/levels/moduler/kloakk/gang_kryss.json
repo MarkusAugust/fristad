@@ -1,0 +1,13 @@
+{
+  "id": "kloakk/gang_kryss",
+  "name": "Gang, kryss",
+  "theme": "kloakk",
+  "kind": "gang",
+  "about": "Fire ganger møtes.",
+  "rooms": [
+    {"id": "rom", "name": "Gang, kryss", "theme": "kloakk", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/gang_kryss", "at": [0, 0, 0], "rot": 0}
+  ]
+}

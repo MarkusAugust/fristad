@@ -1,0 +1,29 @@
+{
+  "id": "grav/nokkelport",
+  "name": "Nøkkelporten",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "En vaktstue på 4 × 8 m der en elite går vakt med nøkkelen, og et portgitter inn til et lite kammer med ei kiste. Porten åpnes med nøkkelen eliten bærer.",
+  "rooms": [
+    {"id": "rom", "name": "Nøkkelporten", "theme": "grav", "mood": {"torches": 0.5}},
+    {"id": "kammer", "name": "Kammeret", "theme": "grav", "mood": {"torches": 0.3}}
+  ],
+  "cells": [
+    {"id": "stue_n", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "stue_s", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "kammer", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0, "room": "kammer"}
+  ],
+  "things": [
+    {"id": "port", "kind": "gate", "anchor": "kant:stue_n/E"},
+    {"id": "vokter", "kind": "elite", "anchor": "celle:stue_n", "pos": [0, 0, -0.5], "yaw": 180, "label": "button", "patrol": [[0, 0, -0.5], [0, 0, 4.5]]},
+    {"id": "kiste", "kind": "chest", "anchor": "celle:kammer", "pos": [0.9, 0, 0], "yaw": -90}
+  ],
+  "walls": [
+    {"at": [1, 0], "side": "N"},
+    {"at": [1, 0], "side": "E"},
+    {"at": [1, 0], "side": "S"}
+  ],
+  "links": [
+    {"from": "vokter", "to": "port", "kind": "key"}
+  ]
+}

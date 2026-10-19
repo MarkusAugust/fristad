@@ -1,0 +1,40 @@
+{
+  "id": "borg/tronsal",
+  "name": "Tronsalen",
+  "theme": "borg",
+  "kind": "ferdig",
+  "about": "En sal på 12 × 12 m med fire søyler, tronen mot nordmuren, faner på murene, statuer og rustninger langs veggene.",
+  "rooms": [
+    {"id": "rom", "name": "Tronsalen", "theme": "borg", "mood": {"torches": 0.45}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, -1], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, -1], "rot": 0},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, -1], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c02", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0},
+    {"id": "c12", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c22", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "walls": [
+    {"at": [0, -1], "side": "N"}
+  ],
+  "things": [
+    {"id": "trone", "kind": "prop", "anchor": "celle:c10", "pos": [0, 0, -0.85], "yaw": 0, "label": "kit_throne", "size": [1.6, 1.4]},
+    {"id": "statue_v", "kind": "prop", "anchor": "celle:c00", "pos": [-0.9, 0, -1.0], "yaw": 30, "label": "kit_statue", "size": [1.4, 1.0]},
+    {"id": "statue_o", "kind": "prop", "anchor": "celle:c20", "pos": [0.9, 0, -1.0], "yaw": -30, "label": "kit_statue", "size": [1.4, 1.0]},
+    {"id": "rustning1", "kind": "prop", "anchor": "celle:c01", "pos": [-1.25, 0, 0], "yaw": 90, "label": "kit_armor", "size": [0.8, 0.6]},
+    {"id": "rustning2", "kind": "prop", "anchor": "celle:c21", "pos": [1.25, 0, 0], "yaw": -90, "label": "kit_armor", "size": [0.8, 0.6]},
+    {"id": "fane1", "kind": "prop", "anchor": "celle:c10", "pos": [-1.2, 2.9, -1.58], "yaw": 0, "label": "kit_banner"},
+    {"id": "fane2", "kind": "prop", "anchor": "celle:c10", "pos": [1.2, 2.9, -1.58], "yaw": 0, "label": "kit_banner"},
+    {"id": "fane3", "kind": "prop", "anchor": "celle:c00", "pos": [-1.58, 2.9, 0.0], "yaw": 90, "label": "kit_banner"},
+    {"id": "fane4", "kind": "prop", "anchor": "celle:c20", "pos": [1.58, 2.9, 0.0], "yaw": -90, "label": "kit_banner"},
+    {"id": "fane5", "kind": "prop", "anchor": "celle:c02", "pos": [-1.58, 2.9, 0.0], "yaw": 90, "label": "kit_banner"},
+    {"id": "fane6", "kind": "prop", "anchor": "celle:c22", "pos": [1.58, 2.9, 0.0], "yaw": -90, "label": "kit_banner"}
+  ],
+  "lights": [
+    {"id": "trone", "anchor": "celle:c10", "pos": [0, 2.6, -0.4], "color": [1.0, 0.66, 0.34], "range": 8, "flicker": true, "intensity": 2.0}
+  ]
+}

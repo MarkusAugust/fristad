@@ -1,0 +1,28 @@
+{
+  "id": "kloakk/slusekammer",
+  "name": "Slusekammeret",
+  "theme": "kloakk",
+  "kind": "ferdig",
+  "about": "En sal på 12 × 8 m der vannet står til knærne. Spaken ved muren åpner slusa, og vannet renner ut.",
+  "rooms": [
+    {"id": "rom", "name": "Slusekammeret", "theme": "kloakk", "mood": {"torches": 0.35}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "vann", "kind": "water", "anchor": "celle:c10", "pos": [0, 0.35, 2.0], "size": [11.2, 7.2]},
+    {"id": "spak", "kind": "lever", "anchor": "celle:c00", "pos": [-1.2, 0.35, -0.8], "yaw": 90}
+  ],
+  "links": [
+    {"from": "spak", "to": "vann", "kind": "opens"}
+  ],
+  "lights": [
+    {"id": "skjaer", "anchor": "celle:c11", "pos": [0, 2.6, 0], "color": [0.55, 0.75, 0.7], "range": 9, "flicker": false}
+  ]
+}
