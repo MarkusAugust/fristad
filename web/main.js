@@ -559,8 +559,10 @@ function loop(now) {
     const cover = film.tick(dt);
     if (cover < 0.999 && !filmReveal) {
       filmReveal = true;
-      engine.set_theme(false);
-      engine.respawn();
+      if (!filmReplay) {
+        engine.set_theme(false);
+        engine.respawn();
+      }
     }
     if (cover >= 0.999) {
       requestAnimationFrame(loop);
@@ -2277,6 +2279,7 @@ function clickHint() {
 let loadedSave = false;
 let soundsLoading = false;
 function enter(relock = true) {
+  pausedMenu = false;
   gateEl.classList.remove("gate-first");
   beginBtn.hidden = true;
   delete enterBtn.dataset.variant;
@@ -2331,9 +2334,14 @@ function updateLook() {
 
 // Knappene som bare hører til pausemenyen. Startkortet viser bare framdriften
 // mens siden laster (eieren 18. oktober: knappene sto der uten å virke).
-const PAUSE_ONLY = ["respawn", "quit", "graphics", "settings"];
+const PAUSE_ONLY = ["respawn", "replay", "quit", "graphics", "settings"];
+// Pausemenyen står (Esc i spillet): Esc igjen eller et klikk utenfor kortet
+// tar deg tilbake i spillet (eieren 19. oktober).
+let pausedMenu = false;
+let pausedAt = 0;
 
 function quit() {
+  pausedMenu = false;
   playing = false;
   dragging = false;
   panelOpen = false;
@@ -2355,8 +2363,10 @@ function pause() {
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
   if (!panelOpen) {
+    pausedMenu = true;
+    pausedAt = performance.now();
     enterBtn.textContent = "Fortsett";
-    for (const id of PAUSE_ONLY) $(id).hidden = false;
+    for (const id of PAUSE_ONLY) $(id).hidden = id === "replay" && !FILM;
     gateEl.hidden = false;
     enterBtn.focus();
   }
@@ -2370,8 +2380,13 @@ function pause() {
 const FILM = !EDIT && !new URLSearchParams(location.search).has("nofilm");
 let film = null;
 let filmReveal = false;
+// Filmen sett på nytt fra pausemenyen: du blir stående der du var, i den
+// tida på døgnet det var, og spillet står stille under den.
+let filmReplay = false;
 
-async function startFilm() {
+async function startFilm(replay = false) {
+  filmReplay = replay === true;
+  pausedMenu = false;
   beginBtn.hidden = true;
   gateEl.classList.remove("gate-first");
   gateEl.hidden = true;
@@ -2381,8 +2396,10 @@ async function startFilm() {
     sfx.preload();
   }
   music.set("silence");
-  engine.set_theme(false);
-  engine.set_paused(false);
+  if (!filmReplay) {
+    engine.set_theme(false);
+    engine.set_paused(false);
+  }
   filmReveal = false;
   try {
     film = createFilm();
@@ -2393,8 +2410,8 @@ async function startFilm() {
   }
   const { skipped, gesture } = await film.done;
   film = null;
-  // Hoppet over: rett til sørporten om dagen.
-  if (skipped || !filmReveal) {
+  // Hoppet over: rett til sørporten om dagen (ikke når den ble sett på nytt).
+  if (!filmReplay && (skipped || !filmReveal)) {
     engine.set_theme(false);
     engine.respawn();
   }
@@ -2412,6 +2429,12 @@ function bindInput() {
   });
   // Avslutt: tilbake til startskjermen, med spilleren ved sørporten igjen.
   $("quit").addEventListener("click", quit);
+  // Filmen på nytt fra pausemenyen.
+  $("replay").addEventListener("click", () => startFilm(true));
+  // Et klikk utenfor kortet i pausemenyen er det samme som «Fortsett».
+  gateEl.addEventListener("click", (e) => {
+    if (pausedMenu && e.target === gateEl) enter();
+  });
   canvas.addEventListener("click", () => {
     if (playing && !locked() && !editor?.active) lock();
   });
@@ -2564,6 +2587,14 @@ function bindInput() {
       return;
     }
     if (settingsOpen || graphicsOpen) return;
+    // Esc i pausemenyen: tilbake i spillet. Musa fanges ikke med Esc (det er
+    // ingen brukerhandling å låse på); «Klikk for å se deg rundt» står da i bildet.
+    // (Ikke den samme Esc-en som slapp musa og åpnet menyen.)
+    if (pausedMenu && e.code === "Escape" && !e.repeat && performance.now() - pausedAt > 300) {
+      e.preventDefault();
+      enter(false);
+      return;
+    }
     if (!playing) return;
     if (e.code === "Escape" && !locked()) {
       pause();
