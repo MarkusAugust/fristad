@@ -41,7 +41,7 @@ pub(super) fn sfx(name: &str) -> Event {
 }
 
 /// Radianer per piksel musa flytter seg.
-const SENSITIVITY: f32 = 0.0035;
+pub(super) const SENSITIVITY: f32 = 0.0035;
 
 /// Noe du kan bruke, med kollideren strålen treffer.
 pub(super) struct TargetState {
@@ -132,6 +132,13 @@ pub struct Session {
     pub(super) edit_ui: super::editing::EditUi,
     /// Trubaduren og kvadet (`tavern.rs`).
     pub(super) tavern: super::tavern::Troubadour,
+    /// Nivåredigeringen (`level_editing.rs`, bare med `?nivaa`).
+    pub(super) level: Option<super::level_editing::LevelEditing>,
+    /// Id-ene siste endring laget, og hvorfor den siste ikke gikk.
+    pub level_made: Vec<String>,
+    pub level_error: Option<String>,
+    /// Prøveturen i nivåredigeringen: du kan ikke dø.
+    pub immortal: bool,
 }
 
 impl Session {
@@ -225,6 +232,10 @@ impl Session {
             edit: None,
             edit_data: None,
             edit_ui: Default::default(),
+            level: None,
+            level_made: vec![],
+            level_error: None,
+            immortal: false,
         }
     }
 
@@ -374,6 +385,16 @@ impl Session {
             self.pitch = (self.pitch - input.look.1 * SENSITIVITY).clamp(-1.5, 1.5);
         }
         input.look = (0.0, 0.0);
+        // På prøvetur i nivåredigeringen tar du ingen skade, og lykta er full.
+        if self.immortal {
+            self.hero.hp = self.hero.max_hp;
+            self.hero.lamp.fill();
+        }
+        // I nivåredigeringen flyr du, og ingenting annet skjer.
+        if self.level_active() {
+            self.level_tick(input, dt);
+            return events;
+        }
         // I redigeringen flyr du, og ingenting annet skjer, men T og V
         // bytter dag og natt og været, så lysene kan ses om natta.
         if self.edit.is_some() {

@@ -18,6 +18,7 @@ mod edit_marks;
 mod editing;
 mod fight;
 mod goals;
+pub mod level_editing;
 mod prompt;
 pub mod session;
 mod testing;
@@ -28,5 +29,5 @@ pub mod view;
 mod water;
 
 pub use app::App;
-pub use assembly::{prepare, prepare_for_edit, prepare_with, rigs, EditData, Prepared};
+pub use assembly::{prepare, prepare_for_edit, prepare_level_editor, prepare_with, rigs, EditData, Prepared};
 pub use session::Session;

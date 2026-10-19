@@ -14,6 +14,10 @@ use crate::ports::driving::{Command, EditCommand, Event, Grab, Play, SaveData};
 use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
+// Nivåredigeringen (`?nivaa`, `web/nivaa.js`).
+#[path = "web_level.rs"]
+mod level;
+
 #[wasm_bindgen(start)]
 pub fn boot() {
     console_error_panic_hook::set_once();

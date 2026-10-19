@@ -74,6 +74,20 @@ pub struct Report {
     /// Cellene som ble regnet på nytt (resten kom fra minnet).
     pub recomputed: usize,
     pub cells: usize,
+    /// Åpningene slik de ble (til kartet i redigeringen): én per kant som
+    /// ikke er mur, med gulvet og siden i nivået.
+    pub edges: Vec<EdgeOpen>,
+}
+
+/// En åpning i nivået etter sammenføyningen: ruta (i, gulvet, j), siden i
+/// nivået, slaget (`Open::kit_name`) og bryteren (porten, snarveien eller
+/// den falske veggen) om den har en.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EdgeOpen {
+    pub at: [i32; 3],
+    pub side: usize,
+    pub kind: &'static str,
+    pub switch: Option<String>,
 }
 
 impl Report {
@@ -427,6 +441,17 @@ impl Compiler {
         }
         self.cache = keep;
         report.cells = grid.cells.len();
+        // Åpningene til kartet, én gang per kant.
+        for a in 0..grid.cells.len() {
+            for w in 0..4 {
+                let (open, switch, _) = grid.opening(a, w);
+                if matches!(open, Open::Wall | Open::Inner) || grid.neighbor(a, w).is_some_and(|b| b < a) {
+                    continue;
+                }
+                let c = &grid.cells[a];
+                report.edges.push(EdgeOpen { at: [c.i, c.floor(w).round() as i32, c.j], side: w, kind: open.kit_name(), switch });
+            }
+        }
 
         // Samlet.
         let mut file = LevelFile { level: doc.level.number().unwrap_or(0), name: doc.name.clone(), theme: grid.cells.first().map(|c| c.theme.clone()).unwrap_or_default(), ..Default::default() };

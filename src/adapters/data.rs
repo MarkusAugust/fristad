@@ -256,6 +256,50 @@ pub fn layout_json(layout: &Layout) -> String {
     out + "}\n"
 }
 
+/// Nivådokumentet i fast form, slik `assets/levels/nivaa_<navn>.json` står:
+/// én ting per linje i listene (modulene, innholdet, koblingene, lysene …)
+/// og tallene rundet, så endringene er lette å lese i git.
+pub fn level_doc_json(doc: &LevelDoc) -> String {
+    let mut v = serde_json::to_value(doc).unwrap_or_default();
+    round(&mut v);
+    let Some(o) = v.as_object() else {
+        return String::new();
+    };
+    let mut out = String::from("{\n");
+    for (i, (k, val)) in o.iter().enumerate() {
+        let sep = if i + 1 < o.len() { "," } else { "" };
+        match val.as_array().filter(|a| a.iter().any(|x| x.is_object())) {
+            Some(list) => {
+                out += &format!("  {k:?}: [\n");
+                for (j, x) in list.iter().enumerate() {
+                    out += &format!("    {}{}\n", x, if j + 1 < list.len() { "," } else { "" });
+                }
+                out += &format!("  ]{sep}\n");
+            }
+            None => out += &format!("  {k:?}: {val}{sep}\n"),
+        }
+    }
+    out + "}\n"
+}
+
+/// Stien nivådokumentet lagres i: `assets/levels/nivaa_01.json` for et
+/// nummer, ellers navnet.
+pub fn level_doc_path(doc: &LevelDoc) -> String {
+    use crate::domain::world::crypt::doc::LevelId;
+    let name = match &doc.level {
+        LevelId::N(n) => format!("{n:02}"),
+        LevelId::Name(s) if s.parse::<u32>().is_ok() => format!("{:02}", s.parse::<u32>().unwrap_or(0)),
+        LevelId::Name(s) if !s.is_empty() => s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c.to_ascii_lowercase() } else { '_' }).collect(),
+        _ => "nytt".into(),
+    };
+    format!("assets/levels/nivaa_{name}.json")
+}
+
+/// Teksten til nivådokumentet `nivaa_<navn>.json` slik det står i repoet.
+pub fn level_doc_text(name: &str) -> Option<&'static str> {
+    LEVEL_DOC_FILES.iter().find(|(n, _)| *n == name).map(|(_, t)| *t)
+}
+
 /// Byen slik den står i `assets/layout/town.json`.
 pub fn layout_file() -> Option<&'static str> {
     LAYOUT_FILE
