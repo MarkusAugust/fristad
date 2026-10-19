@@ -76,9 +76,14 @@ MODULES = [
            openings=[{"at": [0, 0], "side": s, "kind": "bue"} for s in ("E", "S", "W")],
            things=[{"id": "ned", "kind": "down", "anchor": "celle:c00"}]),
     # De sammensatte.
-    module("rotunde", "Rotunde", "rom", "Rundt rom på 12 × 12 m med kuppel, fire nisjer med fakler og en gang ut midt på hver side.",
+    # Kuppelen var for mørk (eieren 19. oktober): ei hjulkrone henger fra
+    # sluttsteinen (kroken i toppen av kuppelen, `ROT_CROWN` 7,6 m; hjulet
+    # 3,2 m under), og lyset fra den og et svakt skjær i toppen når hvelvet.
+    module("rotunde", "Rotunde", "rom", "Rundt rom på 12 × 12 m med kuppel, ei hjulkrone under sluttsteinen, fire nisjer med fakler og en gang ut midt på hver side.",
            [{"id": "c", "bit": "grav/rotunde", "at": [0, 0, 0], "rot": 0}], 1.0,
-           lights=[{"id": "kuppel", "anchor": "celle:c", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": False}]),
+           things=[prop("krone", "kit_chandelier", "c", [0, 7.55, 0], 0)],
+           lights=[{"id": "krone", "anchor": "celle:c", "pos": [0, 4.6, 0], "color": [1.0, 0.66, 0.34], "range": 10, "flicker": True, "intensity": 3.0},
+                   {"id": "kuppel", "anchor": "celle:c", "pos": [0, 6.6, 0], "color": [0.85, 0.72, 0.6], "range": 7, "flicker": False}]),
     # Ferdige rom.
     module("kapell", "Kapellet med døra opp", "ferdig",
            "Inngangen til nivået: et kapell på 3 × 3 fag med fire søyler, døra opp midt på nordveggen, det frittstående alteret "
