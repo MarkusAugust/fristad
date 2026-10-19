@@ -571,7 +571,15 @@ function loop(now) {
   // Trubaduren i Vertshuset: munnen følger sangen der den er (0 når den ikke spiller).
   engine.set_voice?.(music.voice());
   const events = JSON.parse(engine.frame(dt));
-  for (const e of events) handle(e);
+  // En feil i én hendelse skal aldri stoppe løkka (og fryse spillet): den
+  // logges, og resten av hendelsene og neste bilde går som før.
+  for (const e of events) {
+    try {
+      handle(e);
+    } catch (err) {
+      console.error(`Hendelsen ${e?.type ?? "?"} feilet:`, err);
+    }
+  }
   // Bilder per sekund, så eieren kan si hvordan det flyter.
   frames++;
   benchFrames++;

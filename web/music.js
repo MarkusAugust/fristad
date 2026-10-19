@@ -596,8 +596,9 @@ export function createMusic(context, base = "music/") {
       const i = Math.floor(f.el.currentTime * voiceEnv.rate);
       return (voiceEnv.values[Math.min(i, voiceEnv.values.length - 1)] ?? 0) / 100;
     },
-    // Til testing: hvilket stykke som spiller.
-    get song() {
+    // Til testing: hvilket stykke som spiller. (Heter ikke `song`: det er
+    // funksjonen som starter kvadet, og en getter med samme navn skjulte den.)
+    get piece() {
       if (playing) return playing;
       return mode === "town" && song >= 0 ? SONGS[song].name : null;
     },
