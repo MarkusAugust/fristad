@@ -154,7 +154,8 @@ fn is_false(b: &bool) -> bool {
 }
 
 /// En innbygger: navnet, figuren, fargen, replikkene (nøkkel i `cast`) og
-/// ruta (punkt og hvor lenge hen står der).
+/// ruta (punkt og hvor lenge hen står der). `seated`: sitter på krakken der
+/// `pos` er (punktet på gulvet under setet) og spiller (trubaduren).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct NpcDef {
     pub name: String,
@@ -164,6 +165,8 @@ pub struct NpcDef {
     pub tint: Vec3,
     pub lines: String,
     pub route: Vec<(Vec3, f32)>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub seated: bool,
 }
 
 /// Byen som data.
@@ -220,7 +223,7 @@ pub fn apply(b: &mut Builder, layout: &Layout) -> town::Town {
     }
     for (i, n) in layout.npcs.iter().enumerate() {
         b.origin = Some(Ref::Npc(i));
-        town::settle(b, NpcSpec { name: intern(&n.name), model: intern(&n.model), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::lines(&n.lines), route: n.route.clone(), height: 0.0 });
+        town::settle(b, NpcSpec { name: intern(&n.name), model: intern(&n.model), pos: n.pos, yaw: n.yaw, tint: n.tint, lines: cast::lines(&n.lines), route: n.route.clone(), height: 0.0, seated: n.seated });
     }
     b.origin = None;
     town::Town { spawn: layout.spawn.0, spawn_yaw: layout.spawn.1, crypt_anchor: layout.crypt_anchor, crypt_exit: layout.crypt_exit }

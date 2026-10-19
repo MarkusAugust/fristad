@@ -94,6 +94,14 @@ pub enum Command {
     Craft(String),
     /// Kjøp en vare.
     Buy(String),
+    /// Bytt komponenter hos Buttonsmeden (`loot::SWAPS` etter id). Gir om
+    /// det gikk; butikken sendes på nytt med det du har nå.
+    Swap(String),
+    /// Kjøp trubaduren et krus mjød (1 token), så han synger kvadet om
+    /// Gorvek (`Event::Song`). Gir om det gikk.
+    BuyMead,
+    /// Sangen er spilt til endes i nettlaget (`tavern.mp3` er ferdig).
+    SongOver,
     /// Ta på et våpen, skjold eller en rustning du har (fra inventaret).
     Equip(String),
     /// Les om en komponent i boka (gir liv).
@@ -121,6 +129,11 @@ pub enum Command {
     /// kamp og fysikk, mens byfolket og fiendene lever videre. `None` gir
     /// spillet tilbake.
     Film(Option<Shot>),
+    /// Hvor sterkt trubaduren synger nå (0..1, sangens lydstyrke der
+    /// sangen er, `assets/music/game/tavern_voice.json`): munnen følger den.
+    Voice(f32),
+    /// Lysstyrken spilleren har valgt (gamma, 0,6–2; 1 er som malt).
+    Gamma(f32),
 }
 
 /// Ett bilde i filmen: øyet, retningen og synsfeltet (grader).
@@ -336,12 +349,21 @@ pub enum Event {
     /// Fienden du sikter på (infopanelet til høyre), sendt når den eller
     /// livet endrer seg; `None` når du ikke sikter på noen.
     Foe(Option<FoeView>),
+    /// Du ble truffet: hvor slaget eller skuddet kom fra, som vinkel i
+    /// radianer fra blikket (0 rett foran, positiv til høyre, ±π bak).
+    /// Nettlaget viser det som en rød bue i den kanten av bildet.
+    Hurt {
+        angle: f32,
+    },
     /// Målet nå (én linje øverst til venstre) og journalen (J): lappene og
     /// bøkene du har lest i krypten, tittel og tekst. Sendes når noe endres.
     Goal {
         text: String,
         journal: Vec<(String, String)>,
     },
+    /// Det som fulgte med i kista utenom kistas egen komponent (plan 14),
+    /// sendt rett før `Loot`.
+    Haul(Vec<String>),
     /// En kiste er åpnet: komponenten som lå i den (eller ingenting).
     Loot(Option<String>),
     Weather(String),
@@ -380,11 +402,18 @@ pub enum Event {
     Shop {
         npc: String,
         wares: Vec<WareView>,
+        /// Byttene (fanen «Bytte», bare hos Buttonsmeden; tom ellers).
+        swaps: Vec<SwapView>,
     },
     /// E i skriptoriet: oppskriftene som skjema.
     Workshop {
         recipes: Vec<RecipeView>,
     },
+    /// E på trubaduren: tilbudet om et krus mjød (en egen liten dialog).
+    Mead(MeadView),
+    /// Trubaduren begynner kvadet om Gorvek fra start (`true`, spilles én
+    /// gang, ikke i løkke), eller det er over (`false`).
+    Song(bool),
     /// Lydbildet der du står, når det endrer seg merkbart.
     Ambience(Ambience),
     /// Kartet over etasjen du er i (minikartet og det store kartet), når
@@ -413,6 +442,8 @@ pub struct FoeView {
     pub rank: String,
     pub hp: u32,
     pub max_hp: u32,
+    /// Skyter på avstand (inputen, Toast: slagene med markører).
+    pub ranged: bool,
 }
 
 /// Kartet over et kryptnivå: omrisset (x, z) av rommene du har sett (fog
@@ -474,14 +505,26 @@ pub struct Ambience {
     pub chasm: f32,
     /// Den åpne portalen ved sørporten summer.
     pub portal: f32,
-    /// Trubaduren i Vertshuset: 1 inne, svakere utenfor døra (musikken
-    /// spiller `tavern` i stedet for byens spor inne).
+    /// Vertshuset: 1 i skjenkestua der trubaduren sitter, `TAVERN_UPPER`
+    /// og `TAVERN_CELLAR` i overetasjen og kjelleren, under 0,5 og
+    /// avtagende utenfor døra. Inne i huset (≥ 0,6) tones byens spor ned;
+    /// synger trubaduren (`Event::Song`), spiller `tavern` så sterkt.
     pub tavern: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,
     pub cellar: bool,
     pub indoor: bool,
+}
+
+/// Trubadurens tilbud: det han sier, prisen, og om han synger allerede
+/// (da er knappen av, så ingen betaler to ganger).
+#[derive(Clone, Debug, PartialEq)]
+pub struct MeadView {
+    pub npc: String,
+    pub text: String,
+    pub price: u32,
+    pub singing: bool,
 }
 
 /// Siktet: navnet på det du sikter på, hva F gjør, og hva E gjør (tom om
@@ -525,6 +568,8 @@ pub struct GearView {
     pub slot: String,
     pub rarity: String,
     pub special: String,
+    /// Én linje om tingen etter kanon (`craft::about`).
+    pub about: String,
     /// (navn, verdi, tekst, høyere er bedre).
     pub stats: Vec<(String, f32, String, bool)>,
     pub equipped: bool,
@@ -538,6 +583,24 @@ pub struct WareView {
     pub price: u32,
 }
 
+/// Et bytte hos Buttonsmeden: gi `n` av `give` (du har `have`) og `fee`
+/// tokens, få én `get` (du har `get_have`). Sjeldenhetene, hvor `get` ellers
+/// finnes (kort), og om du kan bytte nå.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SwapView {
+    pub id: String,
+    pub give: String,
+    pub n: u32,
+    pub have: u32,
+    pub give_rarity: String,
+    pub get: String,
+    pub get_have: u32,
+    pub get_rarity: String,
+    pub fee: u32,
+    pub source: String,
+    pub ok: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RecipeView {
     pub id: String,
@@ -548,8 +611,8 @@ pub struct RecipeView {
     pub needs: Vec<(String, u32, u32)>,
     /// (komponent, har).
     pub requires: Vec<(String, bool)>,
-    /// (komponent, hvor den finnes, bare i krypten) for alle komponentene
-    /// over.
+    /// (komponent, hvor den finnes kort på én linje, bare i krypten) for
+    /// alle komponentene over.
     pub sources: Vec<(String, String, bool)>,
     pub ok: bool,
     /// Tingen oppskriften gir, som kort (med om du har den).

@@ -367,7 +367,8 @@ fn house_prop(b: &mut Builder, name: &str, at_house: Vec3, yaw: f32) {
 pub fn settle(b: &mut Builder, mut npc: NpcSpec) {
     let model = figure(b, npc.model);
     npc.height = npc_height(b, model);
-    let (pos, h) = (npc.pos, npc.height);
+    // Sittende er figuren lavere (`npcs::SEATED_TOP`).
+    let (pos, h) = (npc.pos, npc.height * if npc.seated { crate::domain::npcs::SEATED_TOP } else { 1.0 });
     b.npcs.push(npc);
     b.target(Use::Talk(b.npcs.len() - 1), Affine3A::from_translation(pos), Vec3::new(0.0, h * 0.5, 0.0), Vec3::new(0.3, h * 0.5, 0.3));
 }

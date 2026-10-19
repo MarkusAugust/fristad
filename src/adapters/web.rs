@@ -314,7 +314,7 @@ fn quality_json(q: &Quality) -> serde_json::Value {
 /// Et kort (utstyret i inventaret og galleriet i skriptoriet).
 fn gear_json(g: &crate::ports::driving::GearView) -> serde_json::Value {
     use serde_json::json;
-    json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
+    json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "about": g.about, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
 }
 
 fn json(e: &Event) -> serde_json::Value {
@@ -330,9 +330,11 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Toast(t) => json!({"type": "toast", "text": t}),
         Event::Lore { title, text } => json!({"type": "lore", "title": title, "text": text}),
         Event::Foe(None) => json!({"type": "foe", "foe": null}),
-        Event::Foe(Some(f)) => json!({"type": "foe", "foe": {"name": f.name, "info": f.info, "rank": f.rank, "hp": f.hp, "max_hp": f.max_hp}}),
+        Event::Foe(Some(f)) => json!({"type": "foe", "foe": {"name": f.name, "info": f.info, "rank": f.rank, "hp": f.hp, "max_hp": f.max_hp, "ranged": f.ranged}}),
+        Event::Hurt { angle } => json!({"type": "hurt", "angle": angle}),
         Event::Goal { text, journal } => json!({"type": "goal", "text": text, "journal": journal.iter().map(|(t, b)| json!({"title": t, "text": b})).collect::<Vec<_>>()}),
         Event::Loot(c) => json!({"type": "loot", "component": c}),
+        Event::Haul(more) => json!({"type": "haul", "components": more}),
         Event::Ambience(a) => {
             json!({"type": "ambience", "square": a.square, "forge": a.forge, "church": a.church, "meadow": a.meadow, "fire": a.fire, "water": a.water, "lava": a.lava, "chasm": a.chasm, "portal": a.portal, "tavern": a.tavern, "rain": a.rain, "wind": a.wind, "night": a.night, "cellar": a.cellar, "indoor": a.indoor})
         }
@@ -354,9 +356,12 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Inventory(v) => {
             json!({"type": "inventory", "stash": v.stash, "carried": v.carried, "weapon": v.weapon, "weapon_special": v.weapon_special, "shield": v.shield, "armor": v.armor, "lantern": v.lantern, "max_hp": v.max_hp, "max_stamina": v.max_stamina, "tokens": v.tokens, "read": v.read, "gear": v.gear.iter().map(gear_json).collect::<Vec<_>>()})
         }
-        Event::Shop { npc, wares } => {
-            json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>()})
+        Event::Shop { npc, wares, swaps } => {
+            let swaps: Vec<_> = swaps.iter().map(|s| json!({"id": s.id, "give": s.give, "n": s.n, "have": s.have, "give_rarity": s.give_rarity, "get": s.get, "get_have": s.get_have, "get_rarity": s.get_rarity, "fee": s.fee, "source": s.source, "ok": s.ok})).collect();
+            json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>(), "swaps": swaps})
         }
+        Event::Mead(m) => json!({"type": "mead", "npc": m.npc, "text": m.text, "price": m.price, "singing": m.singing}),
+        Event::Song(on) => json!({"type": "song", "on": on}),
         Event::Workshop { recipes } => {
             json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok, "item": gear_json(&r.item), "current": r.current.as_ref().map(gear_json)})).collect::<Vec<_>>()})
         }
@@ -449,6 +454,22 @@ impl Engine {
         self.app.command(Command::Buy(ware.into()))
     }
 
+    /// Bytt komponenter hos Buttonsmeden (id fra fanen «Bytte»). Gir om det
+    /// gikk; butikken kommer på nytt med det du har nå.
+    pub fn swap(&mut self, id: &str) -> bool {
+        self.app.command(Command::Swap(id.into()))
+    }
+
+    /// Kjøp trubaduren et krus mjød, så han synger. Gir om det gikk.
+    pub fn buy_mead(&mut self) -> bool {
+        self.app.command(Command::BuyMead)
+    }
+
+    /// Kvadet i Vertshuset er spilt til endes (`tavern.mp3` er ferdig).
+    pub fn song_over(&mut self) {
+        self.app.command(Command::SongOver);
+    }
+
     /// Boka: lesing av en komponents dokumentasjon gir liv.
     pub fn read_doc(&mut self, component: &str) -> bool {
         self.app.command(Command::ReadDoc(component.into()))
@@ -514,6 +535,18 @@ impl Engine {
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.
     pub fn place(&mut self, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
         self.app.command(Command::Place { eye: glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
+    }
+
+    /// Hvor sterkt trubaduren synger nå (0..1): nettlaget leser det der
+    /// sangen er (`music.voice()`, `assets/music/game/tavern_voice.json`)
+    /// hvert bilde, og munnen følger.
+    pub fn set_voice(&mut self, v: f32) {
+        self.app.command(Command::Voice(v));
+    }
+
+    /// Lysstyrken fra innstillingene (gamma, 0,6–2; 1 er som malt).
+    pub fn set_gamma(&mut self, g: f32) {
+        self.app.command(Command::Gamma(g));
     }
 
     /// Bryterne i et forhåndsvalg som json (nettlaget bygger

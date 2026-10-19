@@ -4,8 +4,9 @@
 
 use super::session::Session;
 use crate::domain::craft::{self, Gear};
+use crate::domain::loot;
 use crate::domain::note::Note;
-use crate::ports::driving::{Event, GearView, InventoryView, RecipeView, SaveData, WareView};
+use crate::ports::driving::{Event, GearView, InventoryView, RecipeView, SaveData, SwapView, WareView};
 
 /// Et kort til nettlaget.
 fn gear_view(i: &craft::Item, equipped: bool, owned: bool) -> GearView {
@@ -15,6 +16,7 @@ fn gear_view(i: &craft::Item, equipped: bool, owned: bool) -> GearView {
         slot: i.slot.key().into(),
         rarity: i.rarity.name().into(),
         special: i.special.clone(),
+        about: craft::about(i.id).into(),
         stats: i.stats.iter().map(|s| (s.label.to_string(), s.value, s.text.clone(), s.higher_better)).collect(),
         equipped,
         owned,
@@ -79,12 +81,48 @@ impl Session {
         let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
         let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
         match name {
-            "Buttonsmeden" => Some(Event::Shop { npc: name.into(), wares: wares(craft::SMITH_WARES) }),
-            "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES) }),
-            "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES) }),
+            "Buttonsmeden" => Some(self.smith_shop()),
+            "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES), swaps: vec![] }),
+            "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES), swaps: vec![] }),
             "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
+            "Trubaduren" => Some(self.mead_view(i)),
             _ => None,
         }
+    }
+
+    /// Buttonsmeden: varene og byttene (plan 14).
+    fn smith_shop(&self) -> Event {
+        let have = |c: &str| self.hero.inventory.get(c).copied().unwrap_or(0);
+        let swaps = loot::SWAPS
+            .iter()
+            .map(|s| SwapView {
+                id: s.id.into(),
+                give: s.give.into(),
+                n: s.n,
+                have: have(s.give),
+                give_rarity: loot::rarity(s.give).name().into(),
+                get: s.get.into(),
+                get_have: have(s.get),
+                get_rarity: loot::rarity(s.get).name().into(),
+                fee: s.fee,
+                source: craft::source(s.get).brief(),
+                ok: have(s.give) >= s.n && self.hero.coins >= s.fee,
+            })
+            .collect();
+        let wares = craft::SMITH_WARES.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
+        Event::Shop { npc: "Buttonsmeden".into(), wares, swaps }
+    }
+
+    /// Bytt hos Buttonsmeden. Gir om det gikk; butikken sendes på nytt med
+    /// det du har nå.
+    pub fn swap(&mut self, id: &str) -> bool {
+        let (ok, notes) = self.hero.swap(id);
+        self.later(notes);
+        if ok {
+            let shop = self.smith_shop();
+            self.pending.push(shop);
+        }
+        ok
     }
 
     fn recipe_views(&self) -> Vec<RecipeView> {
@@ -112,7 +150,7 @@ impl Session {
                         .chain(r.requires.iter().copied())
                         .map(|c| {
                             let s = craft::source(c);
-                            (c.to_string(), s.describe(), s.crypt_only())
+                            (c.to_string(), s.brief(), s.crypt_only())
                         })
                         .collect(),
                     ok: craft::missing(r, &self.hero.inventory).is_empty(),
@@ -151,10 +189,11 @@ impl Session {
         ok
     }
 
-    /// Boka: å lese dokumentasjonen for en komponent gir liv tilbake, én
-    /// gang per komponent per tur.
+    /// Boka: å lese dokumentasjonen for en komponent gir fullt liv, full
+    /// utholdenhet og litt olje i lykta, én gang per komponent per tur
+    /// (`Hero::read_doc`).
     pub fn read_doc(&mut self, component: &str) -> bool {
-        let (ok, notes) = self.hero.read_doc(component);
+        let (ok, notes) = self.hero.read_doc(component, &mut self.combat);
         self.later(notes);
         ok
     }
@@ -174,7 +213,7 @@ impl Session {
             bonuses: h.bonus_taken.iter().cloned().collect(),
             oil: Some(h.lamp.oil),
             deepest: self.deepest().map(|d| d as u32),
-            lore: self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| l.title.clone()).collect(),
+            lore: self.lore_titles(),
             owned: h.owned.iter().cloned().collect(),
         }
     }

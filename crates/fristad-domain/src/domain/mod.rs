@@ -24,6 +24,7 @@ pub mod geometry;
 pub mod herd;
 pub mod hero;
 pub mod lantern;
+pub mod loot;
 pub mod mob_kind;
 pub mod mobs;
 pub mod model;

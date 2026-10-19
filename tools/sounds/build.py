@@ -111,6 +111,10 @@ SOUNDS = {
     "windup_big": S(f"{FL}/enemies/minotaur_phys.ogg", gain=0.55, pitch=0.06, synth="growl"),
     "notice": S(f"{FL}/enemies/wyvern_ment.ogg", f"{FL}/enemies/goblin_ment.ogg", f"{FL}/enemies/antlion_ment.ogg", gain=0.4, pitch=0.12),
     "spit": S(f"{A0}/attack/weapon/jav_attack_0*.ogg", gain=0.5, pitch=0.1, synth="spit"),
+    # Varselet før spyttet (gurgling som lades, syntetisk) og spruten der
+    # markøren treffer (de samme kjøttslagene som `hit`, lysere og raskere).
+    "spit_charge": S(gain=0.9, pitch=0.08, synth="spit_charge"),
+    "spit_hit": S(f"{A0}/attack/impact/fleshimp_1*.ogg", gain=0.55, pitch=0.12, rate=1.4, synth="splat"),
     "slam": S(f"{A0}/attack/impact/siegeprojectilehit_0*.ogg", gain=0.9, pitch=0.05, synth="slam"),
     "roar": S(f"{FL}/enemies/minotaur_hit.ogg", gain=0.8, pitch=0.03, synth="roar"),
     "boss_step": S(f"{A0}/attack/impact/siegeprojectilehit_0[34].ogg", gain=0.35, pitch=0.08, max_len=0.9, synth="creak"),

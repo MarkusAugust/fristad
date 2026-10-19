@@ -648,6 +648,11 @@ impl Combat {
         let _ = eye;
     }
 
+    /// Spruten der en markør treffer: rusket kastes tilbake dit den kom fra.
+    pub fn splash(&mut self, at: Vec3, dir: Vec3) {
+        self.spawn_debris(at, -dir * 0.6, 10);
+    }
+
     fn spawn_debris(&mut self, at: Vec3, fwd: Vec3, n: usize) {
         for _ in 0..n {
             if self.debris.len() >= MAX_DEBRIS {
@@ -734,7 +739,7 @@ pub fn debris_model() -> Model {
     for v in &mut m.vertices {
         v.mat[0] = kind::MODEL;
     }
-    Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None }
+    Model { name: DEBRIS_MODEL.into(), mesh: m, albedo: None, normal: None, metal_rough: None, emissive: None, roughness: 0.5, metallic: 0.0, far_cell: 0.2, far_mesh: None, rig: None, solids: vec![] }
 }
 
 #[cfg(test)]

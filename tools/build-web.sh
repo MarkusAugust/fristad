@@ -57,12 +57,18 @@ cp assets/catalog/thumbs/*.jpg dist/catalog/ 2>/dev/null || true
 # et rendret bilde av modellen (tools/models/gear_icons.py).
 mkdir -p dist/icons
 cp assets/textures/icons/*.png dist/icons/
+# Bildene av komponentene (fra boka, tools/gallery/) til lista over
+# komponentene i Skriptoriet og inventaret.
+mkdir -p dist/components
+cp assets/textures/components/*.jpg dist/components/
 # Lydene (opptak fra frie spill, se assets/sounds/CREDITS.md).
 mkdir -p dist/sounds
 cp assets/sounds/*.mp3 assets/sounds/sounds.json assets/sounds/CREDITS.md dist/sounds/
 # Instrumentprøvene til musikken (FluidR3_GM, se assets/music/CREDITS.md).
 mkdir -p dist/music
 cp -r assets/music/. dist/music/
+# Lista over Suno-sporene som finnes (music.js henter ikke de som mangler).
+(cd assets/music/game && ls *.mp3 2>/dev/null | sed 's/\.mp3$//' | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}') > dist/music/game/tracks.json
 cp node_modules/@fristil/designsystem/dist/fristil.css dist/
 # De frittstående web-komponentene (toast, connection-status) importeres som
 # ES-moduler fra pakken, uten kildekart og typer.

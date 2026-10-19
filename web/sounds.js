@@ -405,6 +405,19 @@ export function createSounds() {
       whoosh(c, 900, 3200, 0.3, 0.22);
       tone(c, "sawtooth", 600, 1400, 0.12, 0.01, 0.15);
     },
+    // Spyttet lades (et halvt sekund før skuddet): gurgling i halsen og et
+    // hvin som stiger mot skuddet, så det går an å komme seg unna.
+    spit_charge: (c) => {
+      for (let k = 0; k < 6; k++) tone(c, "sine", 140 + Math.random() * 80, 90, 0.06, 0.01, 0.07, k * 0.07);
+      tone(c, "sawtooth", 260, 1300, 0.05, 0.4, 0.15);
+      whoosh(c, 500, 2400, 0.08, 0.55);
+    },
+    // Markøren treffer: et vått klask og noe som freser.
+    splat: (c) => {
+      crunch(c, 0.45, 0.12, 1800);
+      tone(c, "sine", 320, 70, 0.2, 0.004, 0.18);
+      whoosh(c, 3000, 6000, 0.1, 0.35, 0.03);
+    },
     slam: (c) => {
       tone(c, "sine", 60, 25, 1.0, 0.005, 0.7);
       crunch(c, 0.7, 0.5, 600);

@@ -72,6 +72,9 @@ pub struct Frame {
     pub fog_density: f32,
     pub fog_falloff: f32,
     pub exposure: f32,
+    /// Spillerens lysstyrke (gamma i innstillingene, 1 er som malt): over 1
+    /// løfter de mørke tonene, for mørke skjermer.
+    pub gamma: f32,
     pub bloom: f32,
     pub windows_lit: f32,
     /// Gatelysene, 0..1.

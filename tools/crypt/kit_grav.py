@@ -2241,6 +2241,13 @@ def export_glb(obs, path):
                               export_vertex_color="ACTIVE" if has_color else "NONE", export_all_vertex_colors=False,
                               export_animations=False, export_skins=False, export_cameras=False, export_lights=False)
     slim.slim(path)
+    # Kolliderne som følger formen, for modellene motoren setter ut etter
+    # merkene og for de falske veggene (`solids.py`, `extras.solids`).
+    import solids
+
+    name = os.path.splitext(os.path.basename(path))[0]
+    if name in solids.KIT or "_secret_" in name:
+        solids.write_solids(path, solids.model_solids(path))
     tris = sum(len(p.vertices) - 2 for o in obs for p in o.data.polygons)
     print(f"{os.path.relpath(path, ROOT)}: {tris} trekanter, {os.path.getsize(path) // 1024} kB")
     return tris

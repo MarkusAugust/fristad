@@ -296,7 +296,7 @@ def dress(L):
     # Stollmunningen: de siste stiverne fra gruva, fakler.
     la = rm["landing"]
     for z in (-1.5, 1.5):
-        L.prop("kit_strut", 0.0, la.y, z, P / 2)
+        L.prop("kit_strut", 0.0, la.y, z, 0.0)  # stolpene ved veggene (x = ±1,6), ikke midt i veien
         L.box((0.0, la.y + 2.76, z), (3.5, 0.28, 0.28), P / 2)
         for sx in (-1, 1):
             L.box((sx * 1.55, la.y + 1.45, z), (0.3, 2.9, 0.3))

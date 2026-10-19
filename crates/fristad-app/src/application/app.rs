@@ -13,6 +13,8 @@ pub struct App<R: Renderer, P: Physics> {
     pub physics: P,
     /// Bitene til hvert kryptnivå og om rendereren har dem.
     levels: Vec<(Vec<String>, Pieces)>,
+    /// Lysstyrken spilleren har valgt (`Command::Gamma`).
+    gamma: f32,
 }
 
 /// Om rendereren har bitene til et kryptnivå.
@@ -42,7 +44,7 @@ impl<R: Renderer, P: Physics> App<R, P> {
                 (l.pieces.clone(), if have { Pieces::Always } else { Pieces::Missing })
             })
             .collect();
-        Self { session, input: Input::default(), renderer, physics, levels }
+        Self { session, input: Input::default(), renderer, physics, levels, gamma: 1.0 }
     }
 
     /// Bitene til kryptnivå n (1 og oppover) er hentet: rendereren får dem.
@@ -95,7 +97,8 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     }
 
     fn draw(&mut self, aspect: f32) {
-        let frame = self.session.frame(aspect);
+        let mut frame = self.session.frame(aspect);
+        frame.gamma = self.gamma;
         self.renderer.render(&frame);
         self.session.settle();
     }
@@ -108,6 +111,9 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
         match c {
             Command::Craft(id) => return self.session.craft(&id),
             Command::Buy(id) => return self.session.buy(&id),
+            Command::Swap(id) => return self.session.swap(&id),
+            Command::BuyMead => return self.session.buy_mead(),
+            Command::SongOver => self.session.end_song(),
             Command::Equip(id) => return self.session.equip(&id),
             Command::ReadDoc(c) => return self.session.read_doc(&c),
             Command::Load(d) => self.session.load(d),
@@ -135,6 +141,8 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
                 self.input.release_all();
                 return self.session.edit_command(e);
             }
+            Command::Voice(v) => self.session.npcs.set_voice(v),
+            Command::Gamma(g) => self.gamma = g.clamp(0.6, 2.0),
         }
         true
     }

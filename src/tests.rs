@@ -61,7 +61,7 @@ fn alt_er_ekte_modeller_med_teksturer() {
 #[test]
 fn alt_stort_har_kollider() {
     let p = world();
-    let covers = |shape: &Shape, q: Vec3| shape.covers(q, 0.35);
+    let covers = |shape: &Shape, q: Vec3| shape.covers_shaped(q, 0.35);
     // Bitene av kryptnivåene er selve rommene, med murene som kollidere.
     let level_piece = |name: &str| name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
     let skip = |name: &str| level_piece(name) || name.ends_with("_interior");
@@ -240,17 +240,17 @@ fn malet_og_journalen_viser_veien_og_huskes() {
     let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
     if lore {
         let (_, read) = goal(&events).expect("journalen sendes når du har lest");
-        assert_eq!(read, 1);
+        assert_eq!(read, 2, "Ansgars lapp fra første gang ned og lappen du leste");
     }
     let saved = game.save();
     assert_eq!(saved.deepest, Some(0));
-    assert_eq!(saved.lore.len(), lore as usize);
+    assert_eq!(saved.lore.len(), 1 + lore as usize);
     // Ei ny økt fra lagringen husker nivået og lappen.
     let mut physics2 = RapierPhysics::new();
     let mut again = session(&mut physics2);
     again.load(saved);
     assert_eq!(again.deepest(), Some(0));
-    assert_eq!(again.journal().len(), lore as usize);
+    assert_eq!(again.journal().len(), 1 + lore as usize);
     assert!(again.goal().contains("Dypeste nivå"), "{}", again.goal());
 }
 
@@ -390,6 +390,12 @@ fn skjemaet_sier_hvor_komponentene_finnes() {
         }
     }
     assert!(nowhere.is_empty(), "finnes ingen steder: {}", nowhere.join(", "));
+    // Kort på én linje til skjemaet, og hver ting har sin linje om seg selv.
+    assert_eq!(button.brief().lines().count(), 1);
+    assert!(button.brief().contains("Buttonsmeden"), "{}", button.brief());
+    let ids = craft::WEAPONS.iter().map(|w| w.id).chain(craft::SHIELDS.iter().map(|s| s.id)).chain(craft::ARMORS.iter().map(|a| a.id)).chain(craft::RECIPES.iter().map(|r| r.id));
+    let silent: Vec<&str> = ids.filter(|id| craft::about(id).is_empty()).collect();
+    assert!(silent.is_empty(), "uten beskrivelse: {silent:?}");
 }
 
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
@@ -613,6 +619,24 @@ fn pipene_ryker() {
     }
 }
 
+/// Trubaduren sitter på krakken ved ildstedet i Vertshuset (plassen er
+/// data: `seated` i `assets/layout/town.json`, krakken i
+/// `assets/layout/inside/tavern.json`), vendt ut i rommet, og figuren hans
+/// ventes (`model::PLANNED`) til TRELLIS-modellen kommer.
+#[test]
+fn trubaduren_sitter_ved_ildstedet() {
+    let w = &world().world;
+    let t = w.npcs.iter().find(|n| n.name == "Trubaduren").expect("trubaduren i town.json");
+    assert!(t.seated && t.route.is_empty(), "trubaduren sitter og går ingen steder");
+    let stools: Vec<Vec3> = w.placements.iter().filter(|p| p.model == "stool").flat_map(|p| p.transforms.iter().map(|a| Vec3::from(a.translation))).collect();
+    let stool = stools.iter().min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).expect("krakker");
+    assert!(stool.distance(t.pos) < 0.05, "trubaduren sitter ikke på en krakk: {:?} mot {stool:?}", t.pos);
+    let hearth = w.lights.iter().filter(|l| l.always).map(|l| l.pos).min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).unwrap();
+    assert!(hearth.distance(t.pos) < 2.5, "krakken står ikke ved ildstedet ({hearth:?})");
+    assert_eq!(t.model, "npc_troubadour");
+    assert!(crate::domain::model::PLANNED.iter().any(|(n, _)| *n == t.model) || world().models.iter().any(|m| m.name == t.model), "figuren ventes eller finnes");
+}
+
 /// Innbyggerne går rundt på gjøremålene sine, og stopper når du kommer nær.
 #[test]
 fn innbyggerne_gar_og_stopper() {
@@ -765,7 +789,7 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
     assert!(asked(&mut native).is_empty());
 }
 
-/// I nettleseren får teksturene et tak (armene og våpnene 2048, resten
+/// I nettleseren får teksturene et tak (armene, våpnene og troféene 2048, resten
 /// 1024, normal- og metallkartene halvparten), og de pakkes ut først når
 /// rendereren laster dem opp (`gltf::pixels`), så de aldri står utpakket
 /// samtidig.
@@ -773,7 +797,7 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
 fn teksturene_har_tak_i_nettleseren() {
     use crate::adapters::delivery::browser_caps;
     use crate::adapters::gltf::{load_capped, model_files, pixels};
-    for name in ["arms", "npc_smith", "tavern"] {
+    for name in ["arms", "npc_smith", "tavern", "gallery_card"] {
         let Some((_, p)) = model_files().find(|(n, _)| *n == name) else { continue };
         let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
         let caps = browser_caps(name);
@@ -789,6 +813,12 @@ fn teksturene_har_tak_i_nettleseren() {
     }
     assert_eq!(browser_caps("sword").color, 2048);
     assert_eq!(browser_caps("crypt_01_aa").color, 1024);
+    // Troféene er skarpe i nettleseren også (plan 13d): platen er 2048.
+    assert_eq!(browser_caps("gallery_card").color, 2048);
+    let (_, p) = model_files().find(|(n, _)| *n == "gallery_card").expect("gallery_card");
+    let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let m = load_capped("gallery_card", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("gallery_card")).unwrap();
+    assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "troféet er 2048 i nettleseren");
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i
@@ -819,7 +849,7 @@ fn lydene_i_byen_folger_deg() {
     let a = last(&mut game, &mut physics);
     assert!(a.forge > 0.3, "ved smia: {a:?}");
     assert!(a.tavern < 1.0, "ved smia er du ikke i Vertshuset: {a:?}");
-    // Inne i Vertshuset synger trubaduren (musikken spiller `tavern`).
+    // Inne i Vertshuset (der trubaduren synger når han har fått mjød).
     let tavern = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| Vec3::from(p.transforms[0].translation)).expect("Vertshuset");
     game.place_feet(tavern + Vec3::Y * 0.3);
     let a = last(&mut game, &mut physics);
@@ -827,6 +857,95 @@ fn lydene_i_byen_folger_deg() {
     game.use_first(|u| *u == Use::Descend);
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
+}
+
+/// Vertshuset høres i alle etasjene (eieren 18. oktober): skjenkestua er
+/// 1, overetasjen og kjelleren litt svakere, men fortsatt inne i huset
+/// (≥ 0,6, så byens spor tones ned), og utenfor døra under 0,5.
+#[test]
+fn vertshuset_hores_i_alle_etasjene() {
+    use crate::ports::driving::Ambience;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let pl = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| p.transforms[0]).expect("Vertshuset");
+    let mut at = |game: &mut Session, physics: &mut RapierPhysics, local: Vec3| -> Ambience {
+        game.place_feet(pl.transform_point3(local));
+        let mut a = None;
+        for _ in 0..10 {
+            for e in game.update(&mut input, 1.0 / 30.0, physics) {
+                if let Event::Ambience(x) = e {
+                    a = Some(x);
+                }
+            }
+        }
+        a.unwrap_or(Ambience { tavern: -1.0, ..Default::default() })
+    };
+    let ground = at(&mut game, &mut physics, Vec3::new(2.0, 0.7, 1.0));
+    assert!(ground.tavern >= 1.0, "skjenkestua: {ground:?}");
+    let upstairs = at(&mut game, &mut physics, Vec3::new(-2.0, 4.0, 0.5));
+    assert!((0.6..1.0).contains(&upstairs.tavern), "overetasjen: {upstairs:?}");
+    let cellar = at(&mut game, &mut physics, Vec3::new(0.0, -2.1, 0.0));
+    assert!((0.6..1.0).contains(&cellar.tavern), "kjelleren: {cellar:?}");
+    let outside = at(&mut game, &mut physics, Vec3::new(0.0, 0.0, 9.0));
+    assert!((0.0..0.5).contains(&outside.tavern), "utenfor døra: {outside:?}");
+}
+
+/// Trubaduren synger bare for et krus mjød (eieren 18. oktober): E gir en
+/// egen dialog med prisen, uten token går det ikke, kruset koster 1 token,
+/// og så synger han kvadet om Gorvek én gang (`Event::Song`) og spiller
+/// (`play`) mens det går; mens han synger er knappen av, og ingen betaler to
+/// ganger. Når kvadet er over, sitter han stille (`sit`).
+#[test]
+fn trubaduren_synger_for_et_krus_mjod() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let mut tick = |game: &mut Session, physics: &mut RapierPhysics| -> Vec<Event> { (0..10).flat_map(|_| game.update(&mut input, 1.0 / 30.0, physics)).collect() };
+    let song = |events: &[Event]| events.iter().find_map(|e| if let Event::Song(on) = e { Some(*on) } else { None });
+    tick(&mut game, &mut physics);
+    assert!(!game.singing(), "uten mjød synger han ikke");
+    assert_eq!(game.troubadour_clip(), Some("sit"), "uten mjød sitter han stille");
+    match game.trade_troubadour() {
+        Some(Event::Mead(m)) => assert!(m.price == 1 && !m.singing && m.text.contains("Gorvek"), "{m:?}"),
+        e => panic!("E på trubaduren gir mjøddialogen: {e:?}"),
+    }
+    // Uten token.
+    game.set_tokens(0);
+    assert!(!game.buy_mead(), "mjød uten token");
+    let ev = tick(&mut game, &mut physics);
+    assert!(!game.singing() && song(&ev).is_none(), "sangen startet uten mjød");
+    // Med én token: kruset koster 1, og han synger.
+    game.set_tokens(1);
+    assert!(game.buy_mead(), "mjød for 1 token");
+    assert_eq!(game.tokens(), 0, "mjøden koster 1 token");
+    let ev = tick(&mut game, &mut physics);
+    assert_eq!(song(&ev), Some(true), "sangen begynner");
+    assert!(ev.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "coins")), "myntene klirrer");
+    assert!(game.singing());
+    // Takken står litt; så spiller han.
+    for _ in 0..25 {
+        tick(&mut game, &mut physics);
+    }
+    assert_eq!(game.troubadour_clip(), Some("play"), "han spiller mens sangen går");
+    // Kjøper du igjen mens han synger, betaler du ikke.
+    game.set_tokens(3);
+    match game.trade_troubadour() {
+        Some(Event::Mead(m)) => assert!(m.singing, "knappen er av mens han synger"),
+        e => panic!("{e:?}"),
+    }
+    assert!(!game.buy_mead(), "to krus for samme sang");
+    assert_eq!(game.tokens(), 3, "ingen betaler to ganger");
+    assert!(game.singing(), "han synger videre");
+    // Kvadet er over: han sitter stille og er tørr i strupen.
+    game.end_song();
+    let ev = tick(&mut game, &mut physics);
+    assert_eq!(song(&ev), Some(false), "sangen er over");
+    for _ in 0..25 {
+        tick(&mut game, &mut physics);
+    }
+    assert!(!game.singing());
+    assert_eq!(game.troubadour_clip(), Some("sit"), "etter sangen sitter han stille");
 }
 
 /// Skrittene følger underlaget: brostein på torget, gress på enga og stein
@@ -888,13 +1007,18 @@ fn kanon_ingen_moderne_ord_i_verden() {
     let mut texts: Vec<(String, String)> = vec![];
     // Strengene i kildekoden (ikke kommentarene).
     let cast = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/cast.rs")).expect("cast.rs");
-    for line in cast.lines().filter(|l| !l.trim_start().starts_with("//")) {
-        for (k, part) in line.split('"').enumerate() {
-            if k % 2 == 1 {
-                texts.push(("cast.rs".into(), part.to_string()));
+    // Ansgars lapp første gang du går ned (`crypt/run.rs`).
+    let run = std::fs::read_to_string(format!("{root}/crates/fristad-domain/src/domain/world/crypt/run.rs")).expect("run.rs");
+    for (name, src) in [("cast.rs", &cast), ("run.rs", &run)] {
+        for line in src.lines().filter(|l| !l.trim_start().starts_with("//")) {
+            for (k, part) in line.split('"').enumerate() {
+                if k % 2 == 1 {
+                    texts.push((name.into(), part.to_string()));
+                }
             }
         }
     }
+    assert!(texts.iter().any(|(f, t)| f == "run.rs" && t.contains("Mønsterboka")), "Ansgars lapp sjekkes");
     fn strings(v: &serde_json::Value, out: &mut Vec<String>) {
         match v {
             serde_json::Value::String(s) => out.push(s.clone()),
@@ -1060,17 +1184,24 @@ fn alle_husene_er_i_bruk() {
 }
 
 /// Senga i huset ditt: F gir fullt liv og full utholdenhet, skjermen går i
-/// svart, og døgnet snur (dag til natt og natt til dag).
+/// svart, og døgnet snur (dag til natt og natt til dag). Hver natt koster
+/// `SLEEP_PRICE` (10) tokens, og siktet sier det.
 #[test]
 fn senga_gir_hvile_og_snur_dognet() {
+    use crate::domain::hero::SLEEP_PRICE;
     use crate::domain::weather::Daylight;
     let mut physics = RapierPhysics::new();
     let mut game = session(&mut physics);
     let mut input = Input::default();
     game.update(&mut input, 1.0 / 30.0, &mut physics);
     assert_eq!(game.daylight(), Daylight::Day);
+    assert_eq!(SLEEP_PRICE, 10);
+    game.set_coins(25);
+    let prompt = game.prompt_first(|u| *u == Use::Sleep).expect("senga");
+    assert_eq!(prompt.verb, "Sov (10 tokens)");
     game.set_vitals(12.0, 3.0);
     let events = game.use_first(|u| *u == Use::Sleep);
+    assert_eq!(game.coins_now(), 15, "søvnen koster 10 tokens");
     assert!(events.contains(&Event::Fade), "skjermen skal gå i svart: {events:?}");
     assert!(events.contains(&Event::Daylight(Daylight::Night)), "døgnet skal snu: {events:?}");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("kvelden"))), "{events:?}");
@@ -1081,6 +1212,92 @@ fn senga_gir_hvile_og_snur_dognet() {
     assert!(events.contains(&Event::Daylight(Daylight::Day)), "og tilbake til morgenen: {events:?}");
     assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("morgenen"))), "{events:?}");
     assert_eq!(game.daylight(), Daylight::Day);
+    assert_eq!(game.coins_now(), 5);
+}
+
+/// Uten 10 tokens blir det ingen søvn: et avslag som i butikkene («Har ikke
+/// råd», lyden `deny`), og livet, døgnet og tokenene er som før.
+#[test]
+fn senga_koster_og_avslar_uten_tokens() {
+    use crate::domain::weather::Daylight;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.set_coins(9);
+    game.set_vitals(12.0, 3.0);
+    let prompt = game.prompt_first(|u| *u == Use::Sleep).expect("senga");
+    assert_eq!(prompt.verb, "Sov (10 tokens)");
+    assert!(prompt.info.contains("Har ikke råd"), "siktet sier at du ikke har råd: {}", prompt.info);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "deny")), "avslaget: {events:?}");
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("Har ikke råd"))), "{events:?}");
+    assert!(!events.contains(&Event::Fade) && !events.iter().any(|e| matches!(e, Event::Daylight(_))), "ingen søvn: {events:?}");
+    assert_eq!((game.coins_now(), game.daylight(), game.hp_now()), (9, Daylight::Day, 12.0));
+    game.set_coins(10);
+    let events = game.use_first(|u| *u == Use::Sleep);
+    assert!(events.contains(&Event::Fade) && game.coins_now() == 0, "med akkurat nok sover du: {events:?}");
+}
+
+/// Eieren 18. oktober: «det skal alltid lønne seg veldig å lese boka». Å
+/// lese om en komponent gir fullt liv, full utholdenhet og olje i lykta,
+/// sier det i toasten, og bare én gang per komponent per tur.
+#[test]
+fn boka_gir_fullt_liv_utholdenhet_og_olje() {
+    use crate::domain::hero::BOOK_OIL;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.set_vitals(10.0, 2.0);
+    game.set_oil(0.1);
+    let oil = game.oil_now();
+    assert!(game.read_doc("button"));
+    let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
+    assert_eq!(game.hp_now(), game.max_hp_now(), "fullt liv");
+    assert!(game.stamina_now() >= 99.0, "full utholdenhet: {}", game.stamina_now());
+    assert!((game.oil_now() - (oil + BOOK_OIL)).abs() < 1.0, "olje i lykta: {} mot {}", game.oil_now(), oil);
+    assert!(events.iter().any(|e| matches!(e, Event::Toast(t) if t.contains("fullt liv") && t.contains("full utholdenhet") && t.contains("olje"))), "toasten sier hva boka ga: {events:?}");
+    game.set_vitals(10.0, 2.0);
+    assert!(!game.read_doc("button"), "én gang per komponent per tur");
+    assert_eq!(game.hp_now(), 10.0);
+}
+
+/// Første gang du går ned i krypten, åpnes lappen fra mester Ansgar midt
+/// på skjermen (`Event::Lore`) og føres i journalen; neste gang ikke, heller
+/// ikke etter lagring og innlasting. Gamle lagringer uten lappen får den
+/// bare om du ikke har kommet lenger enn nivå 1.
+#[test]
+fn ansgars_lapp_kommer_forste_gang_du_gar_ned() {
+    use crate::domain::world::crypt::run::{ANSGAR_TEXT, ANSGAR_TITLE};
+    let letter = |events: &[Event]| events.iter().any(|e| matches!(e, Event::Lore { title, text } if title == ANSGAR_TITLE && text == ANSGAR_TEXT));
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    assert!(game.journal().is_empty());
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(letter(&events), "lappen første gang ned: {events:?}");
+    assert_eq!(game.journal().first().map(|(t, _)| t.as_str()), Some(ANSGAR_TITLE), "lappen står i journalen");
+    for w in ["Mønsterboka", "Rammeverket", "Trykk H", "Apotekeren", "Skriptoriet", "hvilestedene", "Dør du"] {
+        assert!(ANSGAR_TEXT.contains(w), "lappen sier {w}");
+    }
+    let words = ANSGAR_TEXT.split_whitespace().count();
+    assert!((120..=200).contains(&words), "lappen leses på under ett minutt: {words} ord");
+    let events = game.use_first(|u| *u == Use::Descend);
+    assert!(!letter(&events), "bare første gang: {events:?}");
+    let saved = game.save();
+    assert!(saved.lore.iter().any(|t| t == ANSGAR_TITLE), "lappen huskes: {:?}", saved.lore);
+    let mut physics2 = RapierPhysics::new();
+    let mut fresh = session(&mut physics2);
+    fresh.load(saved);
+    assert!(!letter(&fresh.use_first(|u| *u == Use::Descend)), "ikke igjen etter ny økt");
+    assert!(fresh.journal().iter().any(|(t, _)| t == ANSGAR_TITLE));
+    // Gamle lagringer uten lappen: nivå 1 eller ingenting får den, dypere ikke.
+    for (deepest, shown) in [(None, true), (Some(0), true), (Some(2), false)] {
+        let mut physics3 = RapierPhysics::new();
+        let mut old = session(&mut physics3);
+        old.load(SaveData { deepest, ..Default::default() });
+        assert_eq!(letter(&old.use_first(|u| *u == Use::Descend)), shown, "gammel lagring med dypeste {deepest:?}");
+    }
 }
 
 /// Galleriveggen: en komponent du bærer opp fra kjelleren, henger i sin
@@ -1583,7 +1800,10 @@ impl Bot {
                 let mobs: Vec<_> = game.living().into_iter().filter(|(m, _, _)| m.distance(feet) < 6.0).map(|(m, k, _)| format!("{k:?} ved {m:?}")).collect();
                 self.fail(format!("sto fast på vei til {what}: føttene ved {feet:?}, {left:.1} m igjen, neste hjørne {:?}, fiender nær: {mobs:?}, tastene {:?}, liv {} utholdenhet {}, øyet {:.2} over føttene", path.first(), (self.input.forward, self.input.left, self.input.right, self.input.crouch, self.input.block), game.hp_now(), game.stamina_now(), game.eye().y - feet.y));
             }
-            let next = path.iter().copied().find(|c| c.with_y(0.0).distance(feet.with_y(0.0)) > 0.25).unwrap_or(to);
+            // Står den og vender (trakten gir et hjørne like ved, så et annet
+            // når den har tatt et skritt), sikter den lenger fram.
+            let reach = if self.t - since > 3.0 { 0.6 } else { 0.25 };
+            let next = path.iter().copied().find(|c| c.with_y(0.0).distance(feet.with_y(0.0)) > reach).unwrap_or(to);
             if std::env::var("FRISTAD_BOT_TRACE").is_ok() && (self.t * 30.0) as u32 % 15 == 0 {
                 eprintln!("  [{:.1}] føttene {feet:?} neste {next:?} igjen {left:.1}", self.t);
             }
@@ -1813,6 +2033,16 @@ fn gjennomspilling() {
         bot.idle(&mut game, &mut physics, 0.5);
     }
     bot.note(format!("ferdig på {:.0} s spilltid: {} fiender drept, {} kister åpnet, {} ganger nesten død", bot.t, bot.kills, bot.chests, bot.near_deaths));
+    // Komponentene ved bunnen og hva de holder til (plan 14), med en firedel
+    // av tokenene hos Buttonsmeden.
+    let v = game.inventory_view();
+    let mut got = std::collections::BTreeMap::new();
+    for (c, n) in v.stash.iter().chain(&v.carried) {
+        *got.entry(c.clone()).or_insert(0) += n;
+    }
+    let made = crate::domain::loot::forge(&got, game.coins_now() / 4, true);
+    bot.note(format!("komponentene ved bunnen ({} i alt, {} tokens): {got:?}", got.values().sum::<u32>(), game.coins_now()));
+    bot.note(format!("holder til {} oppskrifter: {}", made.len(), made.iter().map(|r| format!("{} ({})", r.name, r.rarity.name())).collect::<Vec<_>>().join(", ")));
 }
 
 /// Hvilestedet: før du har tent det, våkner du i byen når du dør. Har du
@@ -2752,4 +2982,85 @@ fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
         }
     }
     assert!(seen, "infopanelet kom ikke når du siktet på fienden ved {mob:?}");
+}
+
+/// Angrep på avstand synes (planen del 13e): inputen lader (lyd og glød i
+/// munnen) et halvt sekund før skuddet, markøren tegnes hvert bilde fra den
+/// spyttes til den treffer, og treffer den deg, sier `Event::Hurt` hvor den
+/// kom fra (her fra høyre). Infopanelet sier at den skyter på avstand.
+#[test]
+fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
+    use crate::domain::mobs::Kind;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    // Et sted 6–9 m unna med fritt gulv hele veien.
+    let clear = |a: Vec3, b: Vec3| (1..20).all(|k| c.walkable(Vec3::new(a.lerp(b, k as f32 / 20.0).x, c.height_at(a.lerp(b, k as f32 / 20.0) + Vec3::Y * 0.5), a.lerp(b, k as f32 / 20.0).z)));
+    let at = (0..32)
+        .flat_map(|k| [6.0f32, 7.5, 9.0].map(move |d| (k, d)))
+        .map(|(k, d)| {
+            let a = k as f32 * std::f32::consts::TAU / 32.0;
+            let q = feet + Vec3::new(a.cos(), 0.0, a.sin()) * d;
+            Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z)
+        })
+        .find(|q| c.walkable(*q) && (q.y - feet.y).abs() < 0.3 && clear(feet, *q))
+        .expect("ingen plass til inputen 6–9 m unna startstedet i nivå 1");
+    game.only_mob(Kind::Input, at);
+    // Snu deg så inputen står til høyre for deg.
+    let to = (at - feet).with_y(0.0).normalize();
+    let fwd = Vec3::new(to.z, 0.0, -to.x);
+    game.set_look((-fwd.x).atan2(-fwd.z), 0.0);
+    let (mut t, mut charge_at, mut spit_at, mut flying, mut hurt) = (0.0f32, None, None, 0, None);
+    let mut glow_before = false;
+    let mut foe_ranged = false;
+    let mut trail = false;
+    for _ in 0..(8 * 60) {
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        t += 1.0 / 60.0;
+        for e in &events {
+            match e {
+                Event::Sound(s) if s.name == "spit_charge" && charge_at.is_none() => charge_at = Some(t),
+                Event::Sound(s) if s.name == "spit" && spit_at.is_none() => spit_at = Some(t),
+                Event::Hurt { angle } => hurt = Some(*angle),
+                _ => {}
+            }
+        }
+        let frame = game.frame(16.0 / 9.0);
+        let drawn = frame.instances.iter().filter(|i| i.model == "bolt").count();
+        let bolts = game.bolts_flying();
+        if charge_at.is_some() && spit_at.is_none() && drawn > 0 {
+            glow_before = true;
+        }
+        if !bolts.is_empty() {
+            flying += 1;
+            assert!(drawn >= bolts.len(), "markøren i lufta ved {:?} ble ikke tegnet", bolts[0]);
+            trail |= drawn > bolts.len();
+            assert!(frame.lights.iter().any(|l| bolts.iter().any(|b| l.pos.distance(*b) < 0.01)), "markøren lyser ikke");
+        }
+        if hurt.is_some() {
+            break;
+        }
+    }
+    let (charge_at, spit_at) = (charge_at.expect("ingen ladelyd før skuddet"), spit_at.expect("inputen skjøt ikke"));
+    assert!(spit_at - charge_at >= 0.4, "varselet kom bare {:.2} s før skuddet", spit_at - charge_at);
+    assert!(glow_before, "ingen glød i munnen mens den ladet");
+    assert!(flying >= 10, "markøren var bare i lufta i {flying} bilder");
+    assert!(trail, "markøren hadde ingen hale av gnister");
+    let angle = hurt.expect("markøren traff deg ikke");
+    assert!((angle - std::f32::consts::FRAC_PI_2).abs() < 0.35, "skuddet kom fra høyre, men vinkelen var {angle:.2}");
+    // Infopanelet: sikt på den.
+    for _ in 0..30 {
+        let mob = game.nearest_mob(game.feet()).expect("inputen");
+        let d = (mob + Vec3::Y * 0.7 - game.eye()).normalize();
+        game.set_look((-d.x).atan2(-d.z), d.y.asin());
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        foe_ranged |= events.iter().any(|e| matches!(e, Event::Foe(Some(f)) if f.ranged));
+    }
+    assert!(foe_ranged, "infopanelet sa ikke at inputen skyter på avstand");
 }

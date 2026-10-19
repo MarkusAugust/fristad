@@ -213,14 +213,21 @@ pub struct Hit {
 pub trait Physics {
     /// Legg til en fast form i verden.
     fn add(&mut self, shape: &Shape) -> ColliderId;
-    /// Legg til en boks som kan flyttes etterpå (porter, ting du sikter på).
+    /// Legg til en boks som kan flyttes etterpå (porter, innbyggerne).
     fn add_movable(&mut self, half: Vec3, pose: Affine3A) -> ColliderId;
+    /// Legg til en boks som bare er å sikte på (et mål): `cast_ray` treffer
+    /// den, men kapselen går gjennom og `cast_solid` ser den ikke. Den
+    /// flyttes med `set_pose`.
+    fn add_aim(&mut self, half: Vec3, pose: Affine3A) -> ColliderId;
     fn set_pose(&mut self, id: ColliderId, pose: Affine3A);
     /// Flytt en kapsel (halv høyde `half`, radius `radius`) med `delta`,
     /// med kollisjon og trappesteg. Gir faktisk flytting og om den står på
     /// bakken.
     fn move_capsule(&mut self, pos: Vec3, half: f32, radius: f32, delta: Vec3, dt: f32) -> (Vec3, bool);
+    /// Første kollider eller mål langs strålen (siktet).
     fn cast_ray(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit>;
+    /// Første kollider langs strålen, uten målene (murer, ting i veien).
+    fn cast_solid(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit>;
 }
 
 pub trait ModelSource {

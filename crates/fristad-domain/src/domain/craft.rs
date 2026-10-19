@@ -313,6 +313,34 @@ pub fn item(id: &str) -> Option<Item> {
     armor(id).map(|a| Item { id: a.id, name: a.name, slot: Slot::Armor, rarity: a.rarity, special: String::new(), stats: a.stats() })
 }
 
+/// Én linje om tingen etter kanon (plan 13a), som fiendene har sin: hva den
+/// er og hva den er god til. Tom for en id som ikke finnes.
+pub fn about(id: &str) -> &'static str {
+    match id {
+        "" => "Bare skjorta og kappa du kom til porten i.",
+        "rusty_sword" => "Sverdet du kom til porten med. Rusten i eggen, men det biter ennå.",
+        "component_sword" => "Smidd etter mønsterboka av Button og Divider: rett, enkelt og til å stole på.",
+        "tag_dagger" => "Kort og lett. Den som ser en annen vei, får stikket dobbelt i ryggen.",
+        "card_axe" => "Bladet er slått av Card. Feier bredt og tar flere i samme hugg.",
+        "alert_mace" => "Køllehodet ringer som stormklokka. Slår gjennom panser og velter balansen.",
+        "tooltip_stiletto" => "Tynn som en nål og like rask. Gir mest etter en parade og i ryggen.",
+        "divider_blade" => "Skiller rent der leddene sitter, slik Gorvek gjorde. En parade gir trippelt.",
+        "tabs_axe" => "Den tyngste øksa i Fristad, smidd av delene fra den korrupte kjernen.",
+        "old_shield" => "Et slitt rundskjold av bord og jernbeslag. Bedre enn ingenting.",
+        "card_shield" => "Lett, blåmalt rundskjold. Paraden kommer lettere, og blokken sliter mindre.",
+        "badge_heater" => "Trekantskjold med merket fra mønsterboka. Holder godt og glipper sjelden.",
+        "fieldset_tower" => "Et tårnskjold som et helt skjema: nesten ingenting slipper gjennom, men det er tungt å løfte.",
+        "dialog_heater" => "Fiolett trekantskjold med det lengste paradevinduet i byen.",
+        "badge_jerkin" => "Lærvams med Badge sydd på brystet. Tar av for det verste uten å hindre deg.",
+        "tag_cuirass" => "Mørkt herdet lær. Lett å bevege seg i, og pusten kommer fortere tilbake.",
+        "fieldset_mail" => "Ringbrynje knyttet ring for ring. Holder mye, men du blir tyngre på foten.",
+        "search_plate" => "Harnisk av stål. Nesten ingenting biter, men hvert unnaskritt koster.",
+        "dialog_plate" => "Mørkt harnisk fra den korrupte kjernen, det beste vernet i riket.",
+        "search_lantern" => "Lykt med slipt glass som kaster lyset dobbelt så langt inn i mørket.",
+        _ => "",
+    }
+}
+
 /// Tingen en oppskrift gir, som kort (lykta har sitt eget).
 pub fn recipe_item(r: &Recipe) -> Item {
     match r.result {
@@ -461,6 +489,8 @@ pub struct Source {
     pub elite: Vec<usize>,
     pub boss: bool,
     pub smith: Option<u32>,
+    /// Byttet hos Buttonsmeden som gir den (det du gir og hvor mange).
+    pub swap: Option<(&'static str, u32)>,
 }
 
 pub fn source(component: &str) -> Source {
@@ -469,6 +499,7 @@ pub fn source(component: &str) -> Source {
         elite: ELITE_LOOT.iter().enumerate().filter(|(_, c)| **c == component).map(|(f, _)| f + 1).collect(),
         boss: BOSS_LOOT.contains(&component),
         smith: SMITH_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
+        swap: crate::domain::loot::SWAPS.iter().find(|s| s.get == component).map(|s| (s.give, s.n)),
     }
 }
 
@@ -476,6 +507,38 @@ impl Source {
     /// Bare i krypten (ikke til salgs i byen).
     pub fn crypt_only(&self) -> bool {
         self.smith.is_none()
+    }
+
+    /// Hvor den finnes, kort på én linje til skjemaet i Skriptoriet (plan
+    /// 13c): «Kister i Gruva · elite i Kloakken · Buttonsmeden 12 tokens».
+    pub fn brief(&self) -> String {
+        let name = |f: &usize| THEMES.get(f.wrapping_sub(1)).copied().unwrap_or("krypten");
+        let floors = |v: &[usize]| v.iter().map(name).collect::<Vec<_>>().join(" og ");
+        let mut parts = vec![];
+        if !self.chests.is_empty() {
+            parts.push(format!("kister i {}", floors(&self.chests)));
+        }
+        if !self.elite.is_empty() {
+            parts.push(format!("elite i {}", floors(&self.elite)));
+        }
+        if self.boss {
+            parts.push("Rammeverket".to_string());
+        }
+        if let Some(price) = self.smith {
+            parts.push(format!("Buttonsmeden {price} tokens"));
+        }
+        if let Some((give, n)) = self.swap {
+            parts.push(format!("bytte {n} {} hos Buttonsmeden", title(give)));
+        }
+        let mut line = parts.join(" · ");
+        if let Some(first) = line.get(..1) {
+            line = first.to_uppercase() + &line[1..];
+        }
+        if line.is_empty() {
+            "Krypten".into()
+        } else {
+            line
+        }
     }
 
     /// Hvor den finnes, som en setning.
@@ -501,9 +564,10 @@ impl Source {
             [a] => a.clone(),
             [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
         };
+        let swap = self.swap.map(|(give, n)| format!(" Buttonsmeden bytter den mot {n} {}.", title(give))).unwrap_or_default();
         match self.smith {
-            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens."),
-            None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes."),
+            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens.{swap}"),
+            None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes.{swap}"),
         }
     }
 }

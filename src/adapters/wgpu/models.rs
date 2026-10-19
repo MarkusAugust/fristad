@@ -193,6 +193,7 @@ mod tests {
             far_cell: 0.0,
             far_mesh: None,
             rig: None,
+            solids: vec![],
         };
         let pl = Placement { model: "crypt_01_aa", transforms: vec![Affine3A::from_translation(Vec3::new(0.0, -40.0, 0.0))], tints: vec![], looks: vec![], reserve: 0, indoor: false };
         let scene = ports::StaticScene { mesh: &world, chunks: &[], placements: std::slice::from_ref(&pl), models: &[] };

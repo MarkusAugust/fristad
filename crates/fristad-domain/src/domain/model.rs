@@ -40,6 +40,9 @@ pub struct Model {
     pub far_mesh: Option<Mesh>,
     /// Skjelettet og klippene, for modeller som er skinnet (figurene).
     pub rig: Option<crate::domain::anim::Rig>,
+    /// Kolliderne som følger formen, i modellens rom (`extras.solids`,
+    /// `tools/crypt/solids.py`); tom når modellen ikke har dem.
+    pub solids: Vec<crate::domain::world::Shape>,
 }
 
 /// Hvor en modell står i byen, med alle instansene.
@@ -92,6 +95,8 @@ pub struct ModelInfo {
     pub name: String,
     pub min: glam::Vec3,
     pub max: glam::Vec3,
+    /// Kolliderne som følger formen (`Model.solids`).
+    pub solids: Vec<crate::domain::world::Shape>,
 }
 
 /// Modellene systemene venter på: koden for dem står og virker, men
@@ -100,8 +105,8 @@ pub struct ModelInfo {
 /// strykes (testen `alle_modellnavn_finnes_eller_ventes`).
 pub const PLANNED: &[(&str, &str)] = &[
     ("framework", "sluttbossen Rammeverket (fase 5)"),
+    ("npc_troubadour", "trubaduren på krakken i Vertshuset: TRELLIS-figuren fra eieren, bygd med `folk3d.py troubadour` (klippene sit og play, kjeven)"),
     ("key", "nøkkelen eliten mister (fase 7)"),
-    ("bolt", "spyttet fra inputen (fase 5)"),
     ("sheep_body", "sau (fase 7)"),
     ("sheep_leg", "sau (fase 7)"),
     ("cow_body", "ku (fase 7)"),

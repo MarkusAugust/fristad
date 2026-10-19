@@ -222,16 +222,32 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
     for (i, ch) in c.chests.iter().enumerate() {
         b.target(Use::Chest(i), super::at(ch.pos, ch.yaw), Vec3::new(0.0, 0.3, 0.0), Vec3::new(0.48, 0.33, 0.33));
     }
+    // Målene er bare å sikte på; det som stenger veien (stengene i
+    // gitteret, dørbladet, den falske veggen) er modellens egne kollidere,
+    // som økta flytter med målet (`Builder::target_solids`).
     for (i, g) in c.gates.iter().enumerate() {
         b.target(Use::Gate(i), super::at(g.pos, g.yaw), Vec3::new(0.0, GATE_H * 0.5, 0.0), Vec3::new(g.width * 0.5, GATE_H * 0.5, 0.12));
+        let t = b.targets.len() - 1;
+        if !b.target_solids(t, PORTCULLIS, Affine3A::from_scale(Vec3::new(g.width / GATE_W, 1.0, 1.0))) {
+            b.target_box(t);
+        }
     }
     for (i, s) in c.shortcuts.iter().enumerate() {
         b.target(Use::Shortcut(i), super::at(s.pos, s.yaw), Vec3::new(0.0, SHORTCUT_H * 0.5, 0.0), Vec3::new(s.width * 0.5, SHORTCUT_H * 0.5, 0.08));
+        let t = b.targets.len() - 1;
+        if !b.target_solids(t, KIT_SHORTCUT_LEAF, Affine3A::from_translation(Vec3::new(-s.width * 0.5, 0.0, 0.0))) {
+            b.target_box(t);
+        }
     }
     for (i, s) in c.secrets.iter().enumerate() {
-        // Målet og kollideren er den falske delen: fra 5 cm foran murflaten
-        // (så siktet treffer) og inn i muren, og ikke noe ved siden av.
+        // Målet er den falske delen: fra 5 cm foran murflaten (så siktet
+        // treffer) og inn i muren, og ikke noe ved siden av. Kollideren er
+        // veggen selv, i flukt med muren.
         b.target(Use::Secret(i), super::at(s.pos, s.yaw), Vec3::new(0.0, s.height * 0.5, SECRET_FRONT - SECRET_DEPTH * 0.5), Vec3::new(s.width * 0.5, s.height * 0.5, SECRET_DEPTH * 0.5));
+        let t = b.targets.len() - 1;
+        if !b.target_solids(t, s.model, Affine3A::IDENTITY) {
+            b.target_box(t);
+        }
     }
     for (i, l) in c.levers.iter().enumerate() {
         b.target(Use::Lever(i), super::at(l.pos, l.yaw), Vec3::new(0.0, 0.85, 0.05), Vec3::new(0.3, 0.45, 0.2));
@@ -490,11 +506,14 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                         ramp.extend([p(x, 0.0, 0.0), p(x, 0.0, -0.95), p(x, 0.45, -0.95), p(x, 0.02, 0.0)]);
                     }
                     b.solid(Shape::Hull { points: ramp });
-                    for k in 0..3 {
-                        let h = 0.16 * (k + 1) as f32;
-                        b.solid_box(p(0.0, h * 0.5, -0.15 - 0.3 * k as f32), Vec3::new(2.2, h, 0.3), m.yaw);
+                    // Døra, karmen og trinnene etter formen (`solids.py`).
+                    if !b.place_solids(KIT_UP, pose) {
+                        for k in 0..3 {
+                            let h = 0.16 * (k + 1) as f32;
+                            b.solid_box(p(0.0, h * 0.5, -0.15 - 0.3 * k as f32), Vec3::new(2.2, h, 0.3), m.yaw);
+                        }
+                        b.solid_box(p(0.0, 1.9, -0.95), Vec3::new(3.2, 3.8, 0.3), m.yaw);
                     }
-                    b.solid_box(p(0.0, 1.9, -0.95), Vec3::new(3.2, 3.8, 0.3), m.yaw);
                 }
             }
             "down" => {
@@ -502,12 +521,14 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if b.place_mounted(KIT_DOWN, pose) {
                     // Brystvernet rundt trappa: åpent der du går inn.
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
-                    b.solid_box(p(-1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
-                    b.solid_box(p(1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
-                    b.solid_box(p(0.0, 0.5, -3.95), Vec3::new(3.1, 1.0, 0.4), m.yaw);
-                    // Portalmuren på begge sider av åpningen.
-                    for x in [-1.58f32, 1.58] {
-                        b.solid_box(p(x, 2.05, -0.25), Vec3::new(0.75, 4.1, 0.5), m.yaw);
+                    // Brystvernet og portalmuren etter formen (`solids.py`).
+                    if !b.place_solids(KIT_DOWN, pose) {
+                        b.solid_box(p(-1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
+                        b.solid_box(p(1.35, 0.5, -1.95), Vec3::new(0.4, 1.0, 4.3), m.yaw);
+                        b.solid_box(p(0.0, 0.5, -3.95), Vec3::new(3.1, 1.0, 0.4), m.yaw);
+                        for x in [-1.58f32, 1.58] {
+                            b.solid_box(p(x, 2.05, -0.25), Vec3::new(0.75, 4.1, 0.5), m.yaw);
+                        }
                     }
                     // Trinnene ned som en rampe, og bunnen.
                     let mut ramp = vec![];
@@ -520,7 +541,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 }
             }
             "rest" => {
-                if b.place(KIT_REST, pose) {
+                if b.place(KIT_REST, pose) && !b.place_solids(KIT_REST, pose) {
                     // Alteret (uten trinnene rundt): kjernen av modellens mål.
                     let (lo, hi) = b.bounds(KIT_REST).unwrap_or((Vec3::new(-0.7, 0.0, -0.4), Vec3::new(0.7, 1.0, 0.4)));
                     let size = Vec3::new((hi.x - lo.x) * 0.62, 1.0, (hi.z - lo.z) * 0.5);
@@ -549,20 +570,21 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 });
             }
             "chest" | "rare" => {
-                if b.place(first(b, &["kit_chest", CHEST]), pose) {
+                let chest = first(b, &["kit_chest", CHEST]);
+                if b.place(chest, pose) && !b.place_solids(chest, pose) {
                     b.solid_box(pos + Vec3::Y * 0.3, Vec3::new(0.9, 0.6, 0.6), m.yaw);
                 }
                 let loot = if m.kind == "rare" { m.label.as_ref().map(|l| l.to_lowercase()) } else { m.loot.clone() };
                 c.chests.push(Chest { pos, yaw: m.yaw, level: k, loot });
             }
             "lore" => {
-                if b.place(KIT_LORE, pose) {
+                if b.place(KIT_LORE, pose) && !b.place_solids(KIT_LORE, pose) {
                     b.solid_box(pos + Vec3::Y * 0.5, Vec3::new(0.5, 1.0, 0.4), m.yaw);
                 }
                 c.lores.push(Lore { pos, yaw: m.yaw, title: m.label.clone().unwrap_or_else(|| "En lapp".into()), text: m.text.clone().unwrap_or_default(), level: k });
             }
             "bonus" => {
-                if b.place(KIT_BONUS, pose) {
+                if b.place(KIT_BONUS, pose) && !b.place_solids(KIT_BONUS, pose) {
                     b.solid_box(pos + Vec3::Y * 0.55, Vec3::new(0.5, 1.1, 0.5), m.yaw);
                 }
                 let label = m.label.clone().unwrap_or_default().to_lowercase();
@@ -571,7 +593,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 bonus_n += 1;
             }
             "lever" => {
-                if b.place(KIT_LEVER, pose) {
+                if b.place(KIT_LEVER, pose) && !b.place_solids(KIT_LEVER, pose) {
                     b.solid_box(pose.transform_point3(Vec3::new(0.0, 0.3, -0.1)), Vec3::new(0.4, 0.6, 0.2), m.yaw);
                 }
                 let opens = m.opens.iter().map(|o| intern(c, k, o)).collect();
@@ -599,7 +621,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     }
                     None => front,
                 };
-                if b.place_mounted(KIT_SHORTCUT, pose) {
+                if b.place_mounted(KIT_SHORTCUT, pose) && !b.place_solids(KIT_SHORTCUT, pose) {
                     // Buen over døra og vangene (muren rundt er nivåets).
                     let w = m.width.unwrap_or(1.6);
                     b.solid_box(pose.transform_point3(Vec3::new(0.0, SHORTCUT_H + 0.2, 0.0)), Vec3::new(w + 0.6, 0.4, 0.5), m.yaw);
@@ -642,12 +664,20 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 // til hele høyden), og toppen med krokene henger i kanten.
                 let h = (top.y - pos.y).max(0.5);
                 let (n, s) = ladder_pieces(h);
+                // Ingen går gjennom stigen: vangene og trinnene etter formen
+                // (`solids.py`), ellers en tynn kollider langs vangene.
+                let mut shaped = true;
                 for i in 0..n {
-                    b.place_mounted(KIT_LADDER, pose * Affine3A::from_translation(Vec3::Y * (i as f32 * s)) * Affine3A::from_scale(Vec3::new(1.0, s, 1.0)));
+                    let piece = pose * Affine3A::from_translation(Vec3::Y * (i as f32 * s)) * Affine3A::from_scale(Vec3::new(1.0, s, 1.0));
+                    b.place_mounted(KIT_LADDER, piece);
+                    shaped &= b.place_solids(KIT_LADDER, piece);
                 }
                 b.place_mounted(KIT_LADDER_TOP, pose * Affine3A::from_translation(Vec3::Y * h));
-                // Ingen går gjennom stigen: en tynn kollider langs vangene.
-                b.solid_box(pose.transform_point3(Vec3::new(0.0, h * 0.5, 0.0)), Vec3::new(0.6, h, 0.08), m.yaw);
+                if shaped {
+                    b.place_solids(KIT_LADDER_TOP, pose * Affine3A::from_translation(Vec3::Y * h));
+                } else {
+                    b.solid_box(pose.transform_point3(Vec3::new(0.0, h * 0.5, 0.0)), Vec3::new(0.6, h, 0.08), m.yaw);
+                }
                 c.ladders.push(Ladder { pos, yaw: m.yaw, top, level: k });
             }
             "trap" => {
@@ -694,8 +724,12 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                     Some(name) if MOUNTED_PROPS.contains(name) => {
                         b.place_mounted(name, pose);
                     }
+                    // Pynten på gulvet har kolliderne etter formen (`solids.py`),
+                    // i tillegg til dem i nivåfila.
                     Some(name) => {
-                        b.place(name, pose);
+                        if b.place(name, pose) {
+                            b.place_solids(name, pose);
+                        }
                     }
                     None => log::warn!("Kryptnivå {n}: ukjent pynt «{label}» (kjente: {PROPS:?})"),
                 }
@@ -714,6 +748,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 let (lw, ld) = m.size.map(|s| s.wd()).unwrap_or((LIFT_W, LIFT_W));
                 let drop = m.bottom.map(w).map(|b| pos.y - b.y).unwrap_or(10.0).max(0.5);
                 // Heistårnet med vinsjen står over sjakta; stolpene får kollider.
+                // (Ikke kolliderne etter formen: tauet henger ned i sjakta der heisen går.)
                 b.place(KIT_WINCH, pose);
                 for sx in [-1.0f32, 1.0] {
                     b.solid_box(pose.transform_point3(Vec3::new(sx * (lw * 0.5 + 0.45), 2.0, 0.0)), Vec3::new(0.36, 4.0, 0.36), m.yaw);

@@ -4,8 +4,9 @@
 
 use glam::Vec3;
 
-/// Øyet over kapselens sentrum når du står.
-pub const EYE: f32 = 0.8;
+/// Øyet over kapselens sentrum når du står: 1,6 m over føttene, som en mann
+/// på rundt 1,72 m (eieren 18. oktober: spilleren var høyere enn byfolket).
+pub const EYE: f32 = 0.7;
 const RADIUS: f32 = 0.35;
 const HALF: f32 = 0.55;
 const GRAVITY: f32 = 18.0;

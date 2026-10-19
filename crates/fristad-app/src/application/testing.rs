@@ -18,6 +18,11 @@ impl Session {
         events
     }
 
+    /// Siktet for det første målet av et slag, slik det er nå.
+    pub fn prompt_first(&self, what: fn(&Use) -> bool) -> Option<crate::ports::driving::Prompt> {
+        self.targets.iter().position(|t| what(&t.target.what)).map(|i| self.prompt_for(i))
+    }
+
     /// Besetningen: slag og om den er elite.
     pub fn roster(&self) -> Vec<(MobKind, bool)> {
         self.mobs.mobs.iter().map(|m| (m.kind, m.elite)).collect()
@@ -56,6 +61,20 @@ impl Session {
         self.combat.stamina = stamina;
     }
 
+    /// Tokenene du har, og sett dem (senga koster).
+    pub fn coins_now(&self) -> u32 {
+        self.hero.coins
+    }
+
+    pub fn set_coins(&mut self, n: u32) {
+        self.hero.coins = n;
+    }
+
+    /// Oljen i lykta (sekunder).
+    pub fn oil_now(&self) -> f32 {
+        self.hero.lamp.oil
+    }
+
     pub fn keys(&self) -> u32 {
         self.hero.keys
     }
@@ -88,6 +107,18 @@ impl Session {
     /// Ingen fiender i nivået.
     pub fn clear_mobs(&mut self) {
         self.mobs.mobs.clear();
+    }
+
+    /// Bare én fiende av slaget `kind` ved `at`, som har sett deg.
+    pub fn only_mob(&mut self, kind: MobKind, at: Vec3) {
+        self.mobs.mobs.clear();
+        self.mobs.bolts.clear();
+        self.mobs.spawn_aware(kind, at);
+    }
+
+    /// Markørene i lufta nå.
+    pub fn bolts_flying(&self) -> Vec<Vec3> {
+        self.mobs.bolts.iter().map(|b| b.pos).collect()
     }
 
     /// Nivået fiendene er satt ut i.

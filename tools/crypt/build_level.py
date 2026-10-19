@@ -49,6 +49,11 @@ WALL_T = 0.4  # tykkelsen på murkolliderne
 WALL_END = 0.02  # så langt murkolliderne går forbi endene av muren de står bak
 RAIL_T = 0.26  # tykkelsen på kolliderne til rekkverkene (brystningen i `K.parapet`)
 SECRET_T = 0.3  # hvor dypt den falske veggen går inn i muren
+# Muren i enden av gangen bak en falsk vegg eller en snarvei står så langt
+# inn i gangen, bak murflaten i rommet (eieren 18. oktober: en buet skygge
+# over den falske veggen i Ridderhallen; muren sto 2 cm foran den runde
+# muren, med baksida og den mørke okklusjonen mot rommet).
+END_BACK = 0.08
 # Murene under et hvelv går så langt opp bak hvelvet (i murens plan, skjult
 # over hvelvflaten): buen er bratt ved vederlaget, og en mur som følger den
 # med rette biter, sto under hvelvkanten der, med kiler av himmel på begge
@@ -809,6 +814,7 @@ class Level:
                 openings.append(Polygon(prof))
                 if kind == SECRET:
                     self.secret_wall(h, surf, to_u(u), w, y, self.wall_mat(r), cell, 0.34 + (0.004 if side in ("n", "s") else 0.0))
+                    self.secret_reveal(surf, to_u(u), w, y, self.wall_mat(r))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 apex = max(v for _, v in prof)
@@ -900,6 +906,7 @@ class Level:
                 openings.append(Polygon(prof))
                 if kind == SECRET:
                     self.secret_wall(h, surf, u, w, y, self.wall_mat(r), 1.0, 0.34 + 0.004 * (k % 2))
+                    self.secret_reveal(surf, u, w, y, self.wall_mat(r))
                 if kind not in (SECRET, SHORTCUT):
                     K.portal(mb, surf, prof, mat="dressed", band=0.3, depth=0.12)
                 lintels.append((u - w / 2, u + w / 2, max(v for _, v in prof), y))
@@ -1380,7 +1387,7 @@ class Level:
         if h.kind in (SHORTCUT, SECRET):
             p0, p1, d, L = h.segs[0]
             lat = (-d[1], d[0])
-            surf = Plane((p0[0] - lat[0] * a, p0[1] - lat[1] * a), lat, d)
+            surf = Plane((p0[0] - lat[0] * a + d[0] * END_BACK, p0[1] - lat[1] * a + d[1] * END_BACK), lat, d)
             section = Polygon([(u + a, v) for u, v in arch_profile(0.0, h.w, h.ya, SPRING, n=self.vn)])
             ow = 1.6 if h.kind == SHORTCUT else 2.0
             hole = Polygon([(u + a, v) for u, v in self.opening(ow, h.ya, h.kind)])
@@ -2137,6 +2144,58 @@ def fixed_form(marks, lights):
     return "{\n  \"marks\": [\n" + ",\n".join(line(mark(m)) for m in marks) + "\n  ],\n  \"lights\": [\n" + ",\n".join(line(light(l)) for l in lights) + "\n  ]\n}\n"
 
 
+def fitted_colliders(L, nav):
+    """Kolliderne lagt etter formen (`solids.py`). Det som synes er bitene,
+    de falske veggene og byggesettets modeller motoren setter ut etter
+    merkene (pynten, kistene, portene, stigene …)."""
+    import solids as SO
+
+    cols, n = SO.fit(L.colliders, SO.Scene(visible_triangles(L)), nav)
+    print(f"  kolliderne etter formen: {n} av {len(L.colliders)} bokser lagt om, {len(cols)} kollidere")
+    return cols
+
+
+def visible_triangles(L):
+    """Trekantene som synes i nivået (n, 3, 3)."""
+    import numpy as np
+    import solids as SO
+
+    tris = [SO.triangles(L.mb.faces)]
+    for name, m in L.secret_pieces().items():
+        mark = next(mk for mk in L.marks if mk.get("kind") == "secret_wall" and name.endswith("_" + mk.get("id", "")))
+        tris.append(posed(SO.triangles(m.faces), mark))
+    for m in L.marks:
+        model = mark_model(m)
+        path = model and os.path.join(OUT, f"{model}.glb")
+        if not path or not os.path.exists(path):
+            continue
+        t = SO.glb_triangles(path)
+        if m.get("kind") == "gate":
+            t = t * np.array([m.get("width", 2.8) / 2.8, 1.0, 1.0])
+        if m.get("kind") == "ladder" and m.get("top"):
+            t = t * np.array([1.0, max(m["top"][1] - m["pos"][1], 0.5), 1.0])
+        tris.append(posed(t, m))
+    return np.concatenate(tris)
+
+
+def mark_model(m):
+    """Modellen motoren setter ut for et merke (`crypt/mod.rs`)."""
+    kind = m.get("kind")
+    if kind == "prop":
+        return m.get("label")
+    return {"up": "kit_up", "down": "kit_down", "rest": "kit_rest", "lore": "kit_lore", "bonus": "kit_bonus", "lever": "kit_lever", "gate": "kit_gate", "shortcut": "kit_shortcut", "ladder": "kit_ladder", "lift": "kit_winch"}.get(kind)
+
+
+def posed(t, m):
+    """Trekantene (n, 3, 3) satt ut der merket står (`at(pos, yaw)`)."""
+    import numpy as np
+
+    yaw = m.get("yaw", 0.0)
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    rot = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]])
+    return t @ rot.T + np.array(m["pos"], dtype=np.float64)
+
+
 # --- Hovedprogrammet ------------------------------------------------------------
 
 
@@ -2173,6 +2232,7 @@ def main():
         "lights": L.lights,
         "marks": L.marks,
     }
+    data["colliders"] = fitted_colliders(L, data["nav"])
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, f"crypt_{n:02d}.json"), "w") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))

@@ -1,0 +1,666 @@
+# Nivåredigeringen for krypten
+
+*Plan skrevet 18. oktober 2026, etter eierens beslutninger samme dag (`docs/plan.md`, del 15). Dette er planen i detalj som del 15 sier skal vises eieren før arbeidet starter. Den tar for seg formatet, bitene, sammenføyningen, navigasjonen, reglene, lagringen, skjermbildet, fasene og testene.*
+
+## Kort oppsummering
+
+- **Eieren bygger nivåene selv** på en egen side (`?nivaa`). Til venstre ligger et kart ovenfra, etasje for etasje, og til høyre et 3D-vindu som oppdateres med en gang. Én knapp spiller nivået fra starten med fiender og alt, og Esc tar deg tilbake dit du var.
+- **Byggeklossene er ekte Blender-modeller** på et rutenett på 4 × 4 m med høyde i trinn på 1 m. Eieren setter ut *celler*: rom, gang, trapp, sjakt, kløft, vann og sammensatte rom som rotunder og haller. Murene mellom cellene velges automatisk fra byggesettet:
+  - **halvkanter:** én halv mur per side, så hver side kan ha sitt eget tema og sin egen form,
+  - **kvarthjørner:** søyler og hjørner,
+  - **gulv og hvelv.**
+
+  Eieren kan overstyre hver kant: dør, port, bue, vindu, gitter, falsk vegg, snarvei, rekkverk eller åpen. Ingen geometri lages i Rust. Kjernen velger bare hvilke ekte modeller som står hvor, så regelen «alt som synes er en ekte modell» holder.
+- **Kildefila er `assets/levels/nivaa_NN.json`.** Den holder rutenettet, bitene med rotasjon og speiling, rommene med tema og stemning, innholdet, koblingene, pynten og lysene.
+- **En ny kompilator i kjernen** (`fristad-domain`, uten fs eller wgpu) gjør fila om til den samme `LevelFile` som motoren bruker i dag: instanser, kollidere, navigasjonsnett, rom, lys og merker. Redigeringen og spillet kjører den samme koden, så de bygger likt. Blender trengs bare når bitene lages, aldri når et nivå bygges.
+- **Reglene er de samme som testene.** De kjøres mens eieren bygger og står som en liste med «Gå til» og «Rett». En egen løser går gjennom nivået med nøkler, spaker og fall, og finner dører som ikke går noen vei, spaker uten port, rom du ikke når, nøkler bak sin egen port og steder du blir sittende fast.
+- **Utkast og lagring:** utkastet huskes i nettleseren. Lagre legger nivået på grenen `redigering` som byen, med sjekk mot det som ligger der fra før. Et nivå er «utkast» til eieren merker det «klart». Bare klare nivåer erstatter de gamle i spillet, og de gamle står til da.
+- **Rekkefølgen:**
+  1. kompilatoren med et grått pilotsett,
+  2. pilotsettet for gravkjelleren i malt stil (eieren godkjenner),
+  3. siden med ett lite testnivå som eieren bygger,
+  4. mekanismene og løseren,
+  5. variasjon og stemning,
+  6. full vertikalitet,
+  7. ytelsen målt på M2,
+  8. de fire andre temaene.
+
+  Etter det bygger eieren nivå 1–10 fra blankt.
+
+---
+
+## 1. Mål og prinsipper
+
+1. **Samme kode i redigeringen og spillet.** Nivået lagres som kildedata. Kjernen kompilerer det til `LevelFile` (`crates/fristad-domain/src/domain/world/crypt/level.rs`) ved lasting, både i spillet, i redigeringen, i `cargo test` og i `snapshot`. Det finnes ingen genererte filer som kan komme ut av takt med kilden.
+2. **Alt som synes, er ekte modeller.** Bitene lages i Blender (`tools/crypt/kit_<tema>.py`, med funksjonene fra `kit_grav.py`: `wall`, `plinth`, `groin_bay`, `arch_profile`, `pillar`, `steps`, `parapet` …). Kompilatoren velger og plasserer dem og lager aldri geometri. Når rendereren slår sammen instanser til større biter for å spare tegnekall (del 14), setter den bare sammen ekte modeller.
+3. **Heksagonal arkitektur.** Kjernen kjenner bare data:
+   - byggesettets beskrivelse (`KitDef`),
+   - nivådokumentet (`LevelDoc`),
+   - resultatet (`LevelFile` med instanser).
+
+   Adapterne leser glb og json, nettleseren tegner kartet, og GitHub lagrer. `src/architecture.rs` passer på grensene som før.
+4. **Det motoren gjør i dag, står.** `Crypt::build`, `nav.rs` (A* og trakt), `map.rs`, `run.rs`, mekanismene, fiendene, `light_mask` og alle testene over `Crypt` brukes uendret. Det nye ender i samme kontrakt (`docs/krypten/format.md`) med ett nytt felt for instanser.
+5. **Faste nivåer.** Nivåene er like hver gang. Frø brukes bare til å velge varianter og pynt, regnes ut av cellens plass og er låst i fila (del 9).
+
+## 2. Hvordan det henger sammen
+
+**Kjeden:**
+
+1. **Blender** (`kit_<tema>.py`) gir hver bit som glb. Kolliderne ligger i `extras.solids` som i dag (`solids.py --models`), og i `extras.kit` står flatene, fotavtrykket, navigasjonsflatene, lysfestene og pyntefestene. I tillegg skrives en liten manifestfil per tema (`assets/models/crypt/kit/<tema>.json`).
+2. **Adapterne** (`adapters/data.rs`, `gltf.rs`) leser manifestene og nivådokumentene og gir kjernen `KitDef` og `LevelDoc` gjennom `ModelSource::world_data`.
+3. **Kjernen** (ny modul `domain/world/crypt/compose/`) gjør `LevelDoc` + `KitDef` om til en `LevelFile` med instanser, rom, kollidere, nett, lys og merker. Reglene (`domain/world/crypt/check/`) går over både dokumentet og resultatet.
+4. **`Crypt::build`** bygger som før, men setter ut `instances` i stedet for bitene `crypt_NN_aa`.
+5. **Redigeringen** (`domain/edit/level/`) endrer `LevelDoc` med angre og gjenta, kompilerer det som er endret på nytt og sender et kartbilde og 3D-instanser ut gjennom portene.
+
+**Overgangen fra de gamle nivåene:** `build.rs` velger per nivå. Er `assets/levels/nivaa_NN.json` merket `"status": "klar"`, kompileres den. Ellers brukes dagens `assets/models/crypt/crypt_NN.json`. De gamle står altså til hvert nytt nivå er klart, og så slettes de ett for ett. Når alle ti er nye, slettes `build_level.py`, `layouts/`, `levels/` og `crypt_NN_*.glb`.
+
+**Lasting nivå for nivå** (`adapters/delivery.rs`): bitene hentes per tema, ikke per nivå (`dist/models/crypt/kit/<tema>/`). Nivå n trenger temaene som rommene i nivået bruker. Manifestene og nivådokumentene er små og hentes ved start. Meshene hentes ved `Event::FetchLevel` som i dag.
+
+## 3. Rutenettet og standardmålene
+
+Faste mål gjør at alle temaene passer sammen. De bestemmes én gang i pilotfasen og ligger som konstanter både i kjernen (`compose/grid.rs`) og i `kit_common.py`.
+
+| Mål | Verdi | Hvorfor |
+|---|---|---|
+| Celle | 4 × 4 m (i, j heltall; x = 4i, z = 4j i nivåets rom) | eieren |
+| Gulvhøyde | heltall meter (y) | eieren |
+| Kant | 0,8 m tykk mur, delt i to halvkanter på 0,4 m (en per side) | tema og form per side; `WALL_T` 0,4 |
+| Kantsone | de ytterste 0,5 m av gulvet langs en kant hører til halvkanten | okklusjonen ved veggfoten og sokkelen stemmer; åpne kanter får gulv uten mørk stripe |
+| Åpninger (felles for alle temaer) | dør 1,6 × 2,3 m (`SHORTCUT_H`); port 2,8 × 3,0 (`GATE_W`, `GATE_H`); gang 2,0 og 3,0 m; bue 3,2 × 3,4; helt åpen 4,0 | de to halvdelene av lysningen møtes alltid |
+| Standardrom | 4 m til vederlaget og hvelv over; rommet bruker y−0,5 til y+5,5 | under `HEADROOM` (2,9) aldri |
+| Gang | 2,6 m til vederlaget; bruker y−0,5 til y+3,6 | |
+| Etasje (vanlig) | 6 m mellom gulvene over hverandre | gulvskive og hvelv får plass |
+| Trapper | 1 m over én celle (halvtrapp), 2 m over én celle (halv etasje), 4 m over to celler (hel etasje); vindeltrapp 4–6 m i én celle | helningen ≤ 27°, som kapselen tåler |
+| Murhøyder over 4 m | stables av moduler på 1 m med topp, som stigen (`ladder_pieces`) | ingen strukket tekstur |
+| Uv | i meter; steinbildet gjentar seg hver 2 m (`STONE_TEX_M`) | 4 m er et multiplum, så skjøtene møtes ved flytting, dreiing og speiling |
+
+**Etasjene i kartet** er høydebånd eieren navngir, for eksempel «Hovedplanet» fra 0 til 5 og «Kjelleren» fra −6 til −1. Kartet viser cellene som har gulv i det aktive båndet og de andre svakt. Et gulv kan stå på hvilken som helst heltallshøyde. Båndene er bare en visning.
+
+## 4. Bitene (byggesettet)
+
+### 4.1 Slag
+
+| Slag | Hva | Eksempler |
+|---|---|---|
+| **Cellebit** | det som fyller en celle: gulv, hvelv og innmat | romfelt med kryssribbet hvelv; gang rett, hjørne, T, kryss og blindgang (i 2,0 og 3,0 m bredde); trapp 1/2/4 m; vindeltrapp; dobbel høyde (8–9 m); sjakt med stigefeste; kløft (ingen bunn, eller bunn langt nede); basseng; brofelt |
+| **Halvkant** | en side av en kant, velges automatisk | vegg; vegg med dør, port, gang eller bue; åpen med gjordbue; overmur (der takene er ulike); vindu og gitter (ser gjennom, går ikke gjennom); brystning og rekkverk; trappevange (skrå); falsk vegg (samme mur som veggen, med sprekker); avslutning mot fjell; trinnmur (åpning over et lavere gulv) |
+| **Kvarthjørne** | det som står i et hjørne der fire celler møtes, velges automatisk | frittstående søyle; innvendig og utvendig hjørne; pilaster der en vegg slutter; T og kryss; gjordbueanfang; i stabler for høye rom |
+| **Sammensatt bit** | flere celler som én modell, med kantene ut mot resten | rotunde 3 × 3 (som beinhuset) med kuppel og galleri, tårn 3 × 3 i flere etasjer, apsis 2 × 1, stor hall 3 × 4 uten søyler, skrå gang 2 × 2 (45°), grotte 2 × 2 og 3 × 3 med ujevn vegg |
+| **Mekanisme** | dagens `kit_*`, som motoren setter ut etter merkene | `kit_gate`, `kit_lever`, `kit_shortcut`, `kit_bridge`, `kit_lift`, `kit_water`, `kit_trapdoor`, `kit_ladder` … |
+| **Pynt** | fri eller i et pyntefeste | sarkofager, hyller med hodeskaller, kjeder, bein, søppel, fat, røtter, fakler, lysestaker (dagens `PROPS` og nye) |
+
+### 4.2 Det hver bit har med seg (`extras.kit` og manifestet)
+
+- **id og versjon:** `grav/romfelt`, `v`. Det se under 13.4.
+- **fotavtrykk:** cellene den dekker, i bitens rom, og **volumet** den bruker i høyden (fra og til, i meter over gulvet). Volumet brukes mot overlapp.
+- **flatene:** for hver side av hver celle i fotavtrykket står det
+  - hva siden *vil ha*: `lukket`, `åpen`, `gang-2`, `gang-3`, `trapp-topp`, `trapp-bunn`, `vann`, `kløft`, eller en åpning som er fast i biten,
+  - gulvhøyden ved kanten (fast eller skrå),
+  - takhøyden.
+
+  Over og under står `tak`, `hull` (for sjakt og fallem) og `luft` (for dobbel høyde).
+- **gangbare flater:** polygoner på gulv, trapper og ramper, trukket 0,4 m inn fra bitens egne murer. Ved åpne kanter går de helt ut til kanten.
+- **kollidere:** `extras.solids`, som følger formen. Gulvene ligger nøyaktig i flukt med heltallshøyden, uten små kanter.
+- **lysfester og pyntefester:** fakkelfester på murer, nisjer, kroker i hvelvet og hjørner på gulvet, med slag og retning.
+- **speiling:** om biten kan speiles. Har biten tekst eller annet som ikke tåler speiling, peker den på sin egen speilede modell.
+- **varianter:** for eksempel intakt, forfall, ras, røtter, mose, glitch, med vekt per variant.
+- **godkjent:** dommen står i `approvals.json` som for alle andre modeller.
+
+### 4.3 Hvordan bitene lages
+
+- Bitene lages i Blender med dagens murer (`crypt_wall`, `crypt_floor`, `dressed`, `rib`, `vault` …) og lagene for hvert tema (plan del 12, steg 5).
+- **Okklusjonen bakes i sammenheng:** hver bit bakes stående i en standard omgivelse av naboer, så lyset langs kantene går over i nøytralt og skjøtene ikke synes. Kantsonen (tabellen i del 3) sørger for at mørket ved veggfoten hører til veggen.
+- **Nær- og fjernversjon** av hver bit, siden rendereren har `near`/`far`.
+- **Tetthetssjekken** (som `leak_check.py`) kjøres per bit i Blender: hver flate som sier `lukket`, skal være tett.
+
+### 4.4 Pilotsettet (gravkjelleren, rundt 20 biter)
+
+- romfelt med kryssribbet hvelv, i to varianter,
+- gang 3,0: rett, hjørne, T, kryss og blindgang,
+- halvtrapp og halv etasje,
+- halvkantene vegg, dør, port, gang 3,0, åpen med gjordbue, overmur, rekkverk og falsk vegg,
+- kvarthjørnene søyle, innvendig hjørne, utvendig hjørne og pilaster,
+- én sammensatt rotunde 3 × 3,
+- fakkelfestet,
+- de mekanismene vi har.
+
+Resten av settet (dobbel høyde, sjakt, kløft, bro, vindeltrapp, vindu og gitter, flere varianter) kommer i fase 6.
+
+## 5. Sammenføyningen
+
+### 5.1 Celler, halvkanter og kvarthjørner
+
+Eieren setter ut **cellebiter** og **sammensatte biter**. Kompilatoren regner ut resten:
+
+1. **Kantene.** For hver kant mellom to celler, eller mellom en celle og tomt fjell, slås de to sidenes ønsker sammen med eierens overstyring (se tabellen). Det gir **åpningen** for kanten. Så velges én **halvkant** for hver side ut fra
+   - sidens tema,
+   - åpningen,
+   - gulv og tak på begge sider (flat mot flat, ulike høyder, skrå mot flat, skrå mot skrå),
+   - variant og frø.
+2. **Hjørnene.** Hvert hjørne der fire celler møtes, får et **kvarthjørne** per celle. Det velges etter de to kantene cellen har der (som «marching squares»: 16 tilfeller som blir 6 med dreiing og speiling) og etter tema.
+3. **Gulv og hvelv** kommer fra cellebiten. Mellom to felt i samme rom med samme tak står en gjordbue på den åpne kanten, så hvelvene møtes riktig.
+4. **Tomt er fjell.** Alt som ikke er en celle, er massivt berg. En side mot fjell blir alltid vegg, så ingenting blir stående åpent ut i fjellet.
+
+**Slik slås de to sidene sammen:**
+
+| Side A vil | Side B vil | Eieren har ikke valgt | Om eieren har valgt |
+|---|---|---|---|
+| `åpen` (rom) | `åpen`, samme rom | åpen med gjordbue (søyler i hjørnene om rommet vil det) | vegg, bue, vindu, gitter … |
+| `åpen` | `åpen`, et annet rom | **vegg** (rommene skilles) | dør, port, bue, åpen, vindu, gitter, falsk vegg, snarvei |
+| `åpen` | `gang-3` | vegg med gangåpning 3,0 | port, dør (smalere), falsk vegg |
+| `gang-3` | `gang-3` (samme akse) | gangen fortsetter (bare en gjordbue) | port, dør, falsk vegg |
+| `gang-x` | `lukket` eller fjell | **blindgang**, gangen lukkes | regel: «gangen ender i vegg» om eieren har bedt om åpning |
+| `trapp-topp` eller `-bunn` | gulvet passer | åpning som profilen | port, dør |
+| `trapp-x` | gulvet passer ikke | **konflikt** | — |
+| hva som helst | fjell | vegg | en åpning her er en feil: «dør som ikke går noen vei» |
+| `kløft` | `åpen` | rekkverk på rom-siden | åpen (du kan falle) |
+| `vann` | `vann` | samme basseng | — |
+
+### 5.2 Høyder
+
+- **Gulvene er ulike over en kant.** Ved 1 m eller mer uten trapp får den lave siden en trinnmur under åpningen og den høye siden rekkverk. Eieren kan velge «åpen kant», så du kan hoppe ned. Det blir en vei bare én vei i løseren (del 10).
+- **Takene er ulike.** En overmur fyller fra det lave taket opp til det høye, med buen under.
+- **Dobbel høyde.** En celle med tak på 8–9 m. Cellen over i samme kolonne er `luft` og kan ikke brukes til noe annet (det sjekkes mot overlapp).
+- **Galleri og balkong.** En celle i et høyere bånd med flaten `luft` under seg, inne i et rom med dobbel høyde. Kanten mot lufta får brystning. Biten har en underside, så du ser hvelv og ikke hull nedenfra. Galleriet hører til salens rom eller er sitt eget rom som overlapper. Overlappet gir delt lys (`overlaps`) som i dag.
+- **Rom over rom.** Lov når volumene ikke overlapper (gulvskive og hvelv er med i volumet).
+
+### 5.3 Trapper, sjakter, broer, vann og fall
+
+- **Trapper:** trappebitens topp og bunn skal møte gulv i riktig høyde på riktig side. En trapp som ender i en vegg eller i lufta, er en feil som stopper «klar». Vindeltrappa er én celle med en åpning nede og en oppe.
+- **Sjakter:** en søyle av celler med `hull` og `hull`, med et stigefeste eller heis (`lift`) og en avsats oppe og nede. Regelen sjekker at sjakta er rett, at avsatsene finnes og at det er en vei opp (stige eller heis). Fallem (`trapdoor`) er en celle med `hull` og et rom rett under (`to` fylles ut automatisk).
+- **Broer over kløfter:** kløftceller på rad. Brobiten eller mekanismen `bridge` får lengden (4 m × antall celler), feste i taket over (`top`) og hvor høyt den henger. En fast bro er en cellebit, en bro som senkes er et merke.
+- **Vann:** bassengceller. Kompilatoren lager ett `water`-merke per rektangel i bassenget, alle med samme `id`, og dermed samme bryter. Vannstanden står i bassengets egenskaper (høy og lav). Regelen: hovedveien må kunne gås når vannet står høyt, eller spaken som senker det må nås før.
+- **Fall:** åpne kanter, fallemmer og kløfter er veier bare én vei.
+
+### 5.4 Sammensatte biter og store rom
+
+- Rotunder, tårn og haller uten søyler er sammensatte biter. Innenfor er de en ferdig modell med eget omriss (sirkelen blir rommets polygon) og eget nett. Utover har de flater på kvadratet. Bare noen celler har åpninger (for eksempel midten av hver side). Resten er `lukket` med fjell mellom sirkelen og kvadratet.
+- Store saler kan også bygges av vanlige romfelt med søyler i hjørnene. Det er slik en ekte krypt er bygd, fag for fag.
+
+### 5.5 Temaoverganger
+
+Hver halvkant og hvert kvarthjørne tar temaet fra sin egen celle. En dør mellom kloakken og gravkjelleren er derfor kloakkmur på den ene siden og gravmur på den andre, og de møtes midt i lysningen. Åpningene har samme mål i alle temaer (tabellen i del 3), så det går alltid opp. Rammen rundt døra står på siden eieren velger (standard er rommet med høyest prioritet i hovedveien). Egne overgangsbiter (en bue med blandet stein) kan komme senere.
+
+### 5.6 Konflikter
+
+- **Bitene overlapper** (fotavtrykk og volum): fantomet blir rødt og plasseringen nektes. Med Alt erstatter den nye biten den gamle, og innholdet på den gamle følger med eller blir løst (det står i angresteget).
+- **To sider som ikke passer:** kompilatoren lager likevel noe tett og trygt (vegg) og merker kanten rød med grunnen. Nivået kan fortsatt spilles.
+- **Overstyring som ikke går** (port der den ene siden er fjell): vegg og en feil i lista.
+- **En bit mangler i byggesettet** (eldre versjon, ukjent id): en grå kasse og en feil. Nivået lastes likevel, like rausing som `level.rs` i dag.
+
+## 6. Dataformatet: `assets/levels/nivaa_NN.json`
+
+Fila skrives i fast form, med én ting per linje sortert etter id (som `layout_json`), så endringene er lette å lese i git. Alle id-er er stabile og byttes ikke når noe annet endres.
+
+| Felt | Innhold |
+|---|---|
+| `format` | versjon av formatet (1). Kjernen har migreringer fra hver eldre versjon. |
+| `level`, `name`, `status` | nummeret (1–10, eller `test`), navnet, og `utkast` eller `klar` |
+| `seed` | nivåets frø. Varianter og pynt regnes av frøet og cellens plass, ikke av rekkefølgen. |
+| `kit` | settene og versjonene nivået ble laget med (`grav@3`, `kloakk@1`) |
+| `bands` | etasjene i kartet: navn, fra og til (m) |
+| `cells` | bitene: `id`, `bit` (`grav/romfelt`), `at` (i, y, j), `rot` (0–3), `mirror`, `room` (rom-id), `variant` (valgfri, låst), `tags` |
+| `edges` | overstyringene: kanten (celle og side), `kind` (dør, port, bue, åpen, vindu, gitter, rekkverk, falsk, snarvei, vegg, åpen kant), `owner` (siden med rammen), `variant` |
+| `rooms` | `id`, `name`, `theme`, `secret`, `mood` (lysstemning, tåke, lyd, forfall 0–1, pyntetetthet), `priority`. Cellene peker på rommet, ikke omvendt, så en celle aldri står i to rom. |
+| `things` | innholdet: `id`, `kind` (som merkene i dag: `start`, `up`, `down`, `rest`, `mob`, `elite`, `boss`, `chest`, `rare`, `lore`, `bonus`, `lever`, `trap`, `hint`, `lift`, `ladder`, `bridge`, `water`, `trapdoor` …), `anchor`, `pos` og `yaw` i ankerets rom, og egenskapene (slag, antall, patrulje, bakhold, innhold, tekst, størrelse …) |
+| `anchor` (i `things` og `decor`) | `fri` (nivåets rom), `celle:<id>` (følger biten når den flyttes, dreies eller speiles) eller `kant:<celle>/<side>` (porter, snarveier og falske vegger som *er* kanten) |
+| `links` | koblingene: `from`, `to`, `kind`. Slagene er `opens` (spak eller elite til port, bro, vann eller heis), `key` (eliten bærer nøkkelen), `arena` (port til rom), `exit`, `for` (hint til hemmelighet), `to` (fallem til rom), `from` (snarveiens slåside). Målet har `requires`: `én` eller `alle` (flere spaker til én port). |
+| `decor` | pynt: `id`, `model`, `anchor`, `pos`, `yaw`, `scale` (smal grense), `layer` (pyntelaget) og `slot` (pyntefestet den står i, eller fri). Pynt som er satt ut automatisk og så endret, lagres her. Det som ikke er endret, regnes ut på nytt. |
+| `lights` | lys eieren har satt: fritt, eller i et lysfeste med endrede egenskaper (farge, rekkevidde, styrke, blafring) |
+| `view` | bare for redigeringen: siste etasje, kamera og bokmerker (holdes utenfor sammenligningen av endringer) |
+
+**Malene** (gjenbrukbare rom) ligger i `assets/levels/maler/<navn>.json` med de samme feltene i malens eget rom (origo i hjørnet, `rot` 0).
+
+## 7. Fra dokumentet til det motoren trenger (kompilatoren)
+
+Modulene ligger i `crates/fristad-domain/src/domain/world/crypt/compose/`. Ingen fs, klokke eller wgpu. Alt er rene funksjoner som tar `LevelDoc` + `KitDef` og gir `LevelFile` og en rapport.
+
+1. **Rutenettet:** cellene slås opp i en tabell over (i, y, j). Fotavtrykk og volumer regnes ut med rotasjon og speiling.
+2. **Kantene og hjørnene** (del 5) gir instansene: modell, sted, dreining og speiling. De går i et nytt felt `instances` i `LevelFile`, som `Crypt::build` setter ut med `place_mounted` (de er murverk med fundament og måles ikke mot gulvet, som bitene i dag). `pieces` står for de gamle nivåene.
+3. **Kolliderne:** bitenes `solids`, flyttet på plass. De **flettes**:
+   - Gulvene i samme plan blir store rektangler, så kapselen ikke henger seg opp i skjøtene mellom boksene.
+   - Murbokser i samme plan og tykkelse slås sammen langs rette murløp.
+
+   Målet er under rundt 15 000 kollidere per nivå (i dag 500–9 500).
+4. **Navigasjonsnettet:** bitenes gangbare flater samles per plan. Rundt mekanismene og pynten på gulvet gjøres det hull: fotavtrykket utvidet med 0,4 m tas bort. Så lages konvekse polygoner. Fremgangsmåten er robust og enkel: flatene rastres i ruter på 0,25 m per plan, rutene slås grådig sammen til rektangler, og trapper og ramper tas med som skrå firkanter fra biten. `Nav::new` sveiser og kobler kanter som før. Hver polygon får rom og bryter (`poly_gate` for porter, falske vegger, broer og vann under).
+5. **Rommene** (til lyset, kartet, `room_at` og tåkeleggingen):
+   - Omrisset er cellenes union (et sammensatt rom tar sitt eget omriss), `y` er det laveste gulvet og `h` til det laveste taket over det gangbare.
+   - Et rom med hull (en ring rundt en blokk) deles automatisk i to, fordi `RoomDef.poly` ikke kan ha hull.
+   - Forbindelsene for lyset regnes som i dag fra nettet. Vinduer og gitter gir en egen lysforbindelse uten nett.
+6. **Merkene:** innholdet blir `MarkDef` i nivåets rom. Koblingene blir `opens`, `arena`, `for`, `to` og `from`. Porter og falske vegger på en kant får sted midt i kanten, retning etter kantens normal og bredde etter åpningen.
+   - Den falske veggen blir halvkantens egen variant `falsk`, som er den samme muren som rundt den. Bitene `crypt_NN_secret_<id>` per nivå trengs ikke lenger.
+   - Sprekke-hintet legges på veggen som i dag.
+7. **Lysene:** lysfestene i bitene og rommets stemning gir fakler og lysestaker (frø og tetthet). Eierens lys går foran. Hvert lys får rom.
+8. **Pynten:** pyntefestene fylles etter rommets pyntesett og tetthet, med frø (del 9). Eierens pynt går foran.
+9. **Deterministisk:** samme dokument og samme byggesett gir byte for byte samme `LevelFile`, både i wasm og i maskinkode (hjørnene avrundes til mm).
+10. **Bare det som er endret:** et lite inngrep regner bare cellene innen én celle fra det som ble endret, nettet i de planene det rører og reglene som gjelder. Løseren og lyslekk-sjekken venter 150 ms etter siste endring. Målene: under 16 ms for en vanlig endring og under 150 ms for et helt nivå på 60 × 60 celler i wasm. Testen krever at det å regne bare det endrede gir det samme som å regne alt på nytt.
+
+**Nivåets plass i verden** er uendret: origo = ankeret under krypten minus `start`, `LEVEL_DROP` × n ned, og flyttet innenfor `REACH` (±185 m). Redigeringen tegner grensen som en rød ramme på kartet etter hvor `start` står.
+
+## 8. Innholdet
+
+### 8.1 Mekanismer og koblinger (koblingsmodus)
+
+- **Spak til port, bro, vann eller heis:** velg spaken, trykk K (eller dra fra den lille kroken på spaken) og slipp på målet. Koblingen tegnes som en bue på kartet og i 3D, i farge etter slag. Et mål med flere spaker velger `én` eller `alle`. I dag er det ikke eksplisitt (broa senkes når «alle spakene» er trukket), så motoren må få støtte for begge, og det testes.
+- **Nøkkel:** eliten kobles til porten (`key`).
+- **Arena:** et rom merkes som arena. Portene inn kobles (`arena`), og én er `exit`. Bossen settes i rommet.
+- **Snarvei:** en kant av slaget snarvei. Siden med slåen velges med en pil på kanten.
+- **Hemmelig vegg og rom:** en kant av slaget falsk vegg. Rommet bak merkes hemmelig, og hint (sprekk, trekk, lyd) foreslås og kobles (`for`).
+- **Feller** (pil, pigger, steiner, pendel): trykkplata og retningen settes med et håndtak. Flom og gass kommer når motoren har dem.
+- **Heis, bro og vann:** som i 5.3, med egenskapene i panelet.
+- **Fallem og stige:** fallemmen kobles til rommet under (fylles ut automatisk når det står rett under). Stigen fra bunnen foreslås.
+
+### 8.2 Fiender
+
+- **Slag** fra en liste (`mob_kind.rs`), med antall, og vanlig, elite eller boss.
+- **Patrulje:** punkter på kartet som dras. Hvert punkt festes til nettet, og streken går langs veien de faktisk går (A* tegnet).
+- **Bakhold:** av, en radius (en sirkel på kartet) eller rommet de vekkes i.
+- **Siktet** vises som en kjegle i 3D når fienden er valgt.
+- **«Kan ikke nås – med vilje»:** for skyttere på et brystvern man ikke kommer opp på, så regelen ikke klager.
+
+### 8.3 Kister, lapper og bonuser
+
+- **Kister:** innhold fra en liste over komponentene (`craft.rs`), tilfeldig fra nivåets liste, eller sjelden (`rare`).
+- **Lapper:** tittel og tekst med forhåndsvisning i Fristil-dialogen. Kanon gjelder (`docs/kanon.md`).
+- **Bonuser:** liv eller utholdenhet.
+
+### 8.4 Lys og stemning
+
+- **Per rom:** stemning (varm fakkel, kald blå, likgrønn, krystall, glør), tåke (tetthet og farge) og lyd (drypp, vind, kjeder, vann).
+  - Tåka følger rommet du står i og glir over på ett sekund. Det trenger bare noen få verdier i `Frame` og ingen tåke per piksel, siden tåka er felles for hele bildet i dag (`fog_color` i `common.wgsl`).
+  - Lyden går gjennom `web/ambience.js`.
+- **Forhåndsvisning:** tre brytere: *Spillets lys* (mørket og lykta), *Arbeidslys* (flatt og lyst) og *Bare dette rommets lys*.
+
+## 9. Kreativitet og variasjon
+
+- **Varianter per bit** (intakt, forfall, ras, røtter, mose, glitch): valgt med frøet og cellens plass, vektet med rommets **forfall** (0–1). Eieren kan
+  - låse en variant per celle,
+  - «kaste på nytt» for det valgte (ett angresteg),
+  - male forfall med en pensel over cellene.
+- **Pynt i lag** (sarkofager, hyller, kjeder, bein, søppel, røtter, fat):
+  - Hvert rom har et *pyntesett* og en tetthet, og pyntefestene i bitene fylles etter det.
+  - Hvert lag kan skjules, låses og tømmes.
+  - Pynt kan settes **fritt** hvor som helst (fantom, fest og dreiing som i dagens redigering: `edit/ghost.rs`, `snap_pose`), også over kanter, så rutenettet brytes opp.
+- **Lysstemninger** per rom (8.4), og lys som blafrer der det trekker (hint).
+- **Vertikalitet:** dobbel høyde, gallerier, balkonger over salen, broer over kløfter, sjakter, vindeltrapper, fall du kan hoppe ned, og avsatser med utsikt.
+- **Utsikt gjennom rom:** vindu og gitter på en kant (du ser gjennom, men går ikke gjennom, og de gir lysforbindelse), gitter i gulvet og hull i hvelvet.
+- **Hemmeligheter:** falske vegger, hemmelige rom (skjult på kartet til du har vært der), hint foreslått automatisk og sjeldne kister.
+- **Vann og fall:** basseng med sluse, fosser (pynt) og fall bare én vei.
+- **Temaoverganger** mellom rom (5.5), med pynt som blander temaene, for eksempel slim som kryper inn i gravkjelleren.
+- **Rom-maler:** velg celler, kanter, innhold og pynt og lagre dem som en mal med navn og bilde. Malen settes ut med dreiing og speiling som én handling. Id-ene lages nye, og koblingene inne i malen følger med. Koblinger ut av malen slippes og meldes.
+- **Kopier, lim inn, speil og gjenta:**
+  - Ctrl+C og Ctrl+V.
+  - Ctrl+D kopierer et fotavtrykk til siden.
+  - X og Shift+X speiler langs en akse.
+  - «Gjenta» gir N kopier med et fast steg, for eksempel en gang med nisjer.
+- **Løft og senk:** +1 eller −1 m på cellene som er valgt, med forslag om trapp der kanten nå har trinn.
+- **Bryte rutenettet:** sammensatte grotter med ujevne vegger, skrå ganger, fri pynt og ras over kanter, og varianter i hver celle. Målet er at du ikke ser rutenettet når du går der (eierens innvending: «for kjedelige og generiske»).
+
+## 10. Reglene (de samme som testene)
+
+Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokumentet og resultatet. `cargo test` kjører de samme funksjonene på alle klare nivåer, og de tunge testene med Rapier kjører i tillegg. Hvert brudd har alvor, sted («Gå til») og om mulig en rettelse («Rett»).
+
+- **Feil** stopper «klar», men aldri lagring av et utkast.
+- **Advarsel** stopper ingenting.
+
+| Regel | Alvor | Testen den speiler |
+|---|---|---|
+| Nøyaktig én `start`, `up`, `rest` og `down` (nivå 10 ingen `down`) | feil | `kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok` |
+| Taket ≥ `HEADROOM` over alt gangbart, også over trapper, under gallerier og broer | feil | samme |
+| Bitene overlapper i volum | feil | ny: `bitene_overlapper_ikke` |
+| To sider som ikke passer, åpning mot fjell («dør som ikke går noen vei»), trapp som ender i vegg eller lufta | feil | ny: `kantene_passer` |
+| Tett: hver side mot fjell har vegg, og hver underside mot luft har underside | feil | `leak-scan` per bit + ny: `nivaaet_er_tett` |
+| Høyden: gulv og tak innenfor −12 til +14 m fra origo (så `level_at` med −8/+4 m slakk aldri blander to nivåer), og nivå 1 under `TOP` (−20 m) og kirkegården | feil | ny: `nivaaene_ligger_i_hver_sin_hoyde` |
+| Bredden: innenfor ±185 m (`REACH`) fra ankeret | feil | samme |
+| Alt kan nås fra start (løseren under), utenom det hemmelige, som må ha en vei ut | feil | `kryptnivaaene_kan_gas_gjennom`, `kapselen_gar_mellom_noekkelstedene_i_hvert_nivaa` |
+| Spak uten mål, port uten spak, nøkkel eller arena, kobling til noe som er slettet | feil | ny: `koblingene_henger_sammen` |
+| Nøkkel eller spak bak sin egen port, soft-lock, `down` som ikke kan nås | feil | ny: `loseren_finner_ingen_laas` |
+| Boss uten arena, arena med en inngang uten arenaport, arena uten `exit` | feil | ny: `arenaene_er_lukket` |
+| Hver fiende står på nettet og har vei til start (alle porter åpne), og patruljepunktene kan nås | feil (eller «med vilje») | `fiendene_finner_fram_i_krypten` |
+| Pynt eller innhold som sperrer den eneste veien | feil | samme som nåbarhet |
+| Ingen usynlige vegger: kolliderne følger formen | feil | `ingen_usynlige_vegger_i_krypten` |
+| Merket står på gulvet i et rom | feil | `edit::crypt::breaches` |
+| Åpningene minst 1,2 m brede og 2,2 m høye; trapper ikke brattere enn kapselen tåler | feil | `kapselen_proever_en_strekning` |
+| Lys lekker gjennom mur: lysets rekkevidde når celler i eget eller tilkoblet rom uten fri sikt (sikt regnet over cellene). Forslag: kortere rekkevidde, eller del rommet | advarsel | `lyset_folger_rommene` |
+| Høyst 64 rom (`MAX_ROOMS`, `light_mask` er u64), og høyst rundt 40 lys innen synsvidde (`MAX_LIGHTS` 48) | feil / advarsel | ny |
+| Budsjettet: synlige trekanter (anslag), ulike modeller, instanser, kollidere, polygoner og fiender | advarsel | `snapshot --stats` |
+| Biter som ikke er godkjent | advarsel (feil for «klar») | `approvals` |
+| Tom lapp, ukjent komponent i kista, sjelden komponent to ganger | feil | ny |
+| Vann som stenger hovedveien uten at slusa kan nås først | feil | løseren |
+
+**Løseren** er ny i kjernen. Den lager en rettet graf av rommene og nettet:
+
+- Vanlige forbindelser går begge veier. Fall, fallemmer og åpne kanter går bare én vei. En snarvei er stengt fra den ene siden til den er åpnet. En heis krever spaken. Høyt vann stenger til slusa er dreid.
+- Løseren starter ved `start` med alle brytere stengt. Den tar det den når (spaker, eliter med nøkler, sluser), åpner og fortsetter til ingenting nytt skjer.
+- Til slutt sjekker den at `down` (eller bossen på nivå 10) er nådd, at du fra hvert sted du kan havne kommer til `rest` eller `down` (ingen grop uten vei opp), og den lager rekkefølgen spakene trekkes i. Den rekkefølgen bruker testen som går gjennom nivået med Rapier.
+
+## 11. Grensetilfeller
+
+**Rotasjon og speiling:**
+- Innhold festet til en bit følger biten: stedet transformeres, dreiningen blir −yaw ved speiling, og venstre og høyre byttes for snarveiens slå, hengslene og stigens side.
+- Biter med tekst eller annen asymmetri har en egen speilet modell, ellers nektes speiling med grunnen.
+- Speilede instanser snur omløpet. Rendereren tegner begge sider (`cull_mode: None`), men normalene og tangentene må få riktig fortegn når determinanten er negativ. Testen `speilet_bit_ser_lik_ut` sammenligner et bilde av en speilet bit med den speilede modellen.
+- Nettets polygoner snus så de går mot klokka, som `Nav` krever.
+- Fire dreininger gir det samme som ingen dreining, og to speilinger det samme som ingen (testet per bit).
+
+**Overlapp og biter i lufta:** volumene sjekkes (5.6). En bit i lufta finnes bare over en luftcelle, og da kreves en underside (tetthetsregelen).
+
+**Kanten av kartet:**
+- En dør mot en celle som ikke finnes, er en feil.
+- Utenfor ±185 m er en feil.
+- Den røde rammen flytter seg når `start` flyttes, fordi origo følger `start`.
+
+**Origo og `LEVEL_DROP`:** høydebåndet −12 til +14 m (tabellen i del 10). Høyere sammensatte biter (tårn) må passe innenfor.
+
+**Taket:** sjekkes per polygon i nettet med det laveste over (hvelvets kurve tas fra bitens eget mål for frihøyde).
+
+**Lys som lekker:** rommene skiller lyset. Inne i ett rom finner sjekken lys som når rundt en blokk (del 10). Gallerier som overlapper, deler lys med vilje.
+
+**Kapselen setter seg fast:**
+- Gulvkolliderne flettes, så det ikke blir noen sømmer.
+- Kvarthjørnene går ikke inn i åpningene; åpningene måles mot standardmålene.
+- Trappene har en rampe som kollider.
+- Testene `kapselen_*` går mellom alle viktige steder, og `ingen_usynlige_vegger_i_krypten` skyter strålene som i dag.
+
+**Fiender som ikke når deg:** regelen over, unntatt «med vilje». Fall går bare én vei, også for fiendene, som ikke hopper.
+
+**Nøkkel bak egen port og soft-lock:** løseren.
+
+**Arenaporter:** alle veier inn til arenaen går gjennom en arenaport. Arenaen har en `exit`. Bossen står inne i arenaen.
+
+**Flere spaker per port:** `requires` er `én` eller `alle`, og vises på porten («2 av 2»).
+
+**Angre og gjenta:**
+- Hver endring er en `Change` med det motsatte (som `edit/editor.rs`): biter, kanter, rom, innhold, koblinger, egenskaper, varianter, maler, liming og løft/senk. Et drag eller en mal er ett steg.
+- Historikken står som en liste (`edit/history.rs`).
+- En prøvetur endrer ikke dokumentet, så angre går gjennom den.
+- Testen gjør tilfeldige rekker av handlinger, angrer alt og krever at dokumentet er som før.
+
+**Slettet innhold:** innhold som er festet til en bit som slettes, slettes med den i samme steg. Koblinger til noe slettet tas bort i samme steg og står i angreteksten.
+
+**Lim inn:** id-ene lages nye. Koblinger inne i utvalget følger med, koblinger ut slippes.
+
+**Store nivåer:**
+- Kompilatoren regner bare det som er endret.
+- Kartet tegner bare det som synes.
+- 3D-vinduet har et *snitt* som skjuler alt over det aktive båndet (`Frame.hidden`), så du ser ned i etasjen.
+- Budsjettmåleren står i panelet.
+
+**Lagring:** se del 13. **Formatet og byggesettet:** se del 13.
+
+**Liten skjerm og mobil:** ikke støttet. Siden sier «Bruk en skjerm som er minst 1100 px bred». Spillet er ikke berørt.
+
+**Spill fra start uten start:** knappen er grå med grunnen. Med feil kan du spille likevel, men lista blinker.
+
+**Flyttall:** wasm og maskinkode avrunder til mm, så resultatet er likt.
+
+**Hemmelige rom:** skjult på kartet til du har vært der. Polygoner uten vei ut regnes ikke som feil når de er hemmelige og har en vei ut (som `build_level.py` i dag).
+
+## 12. Skjermbildet
+
+**Siden:** `?nivaa` på forhåndsvisningen (bare for eieren, som `?edit`). Fristil-komponenter.
+
+```
+┌ verktøylinje ─────────────────────────────────────────────────────────────┐
+│ Nivå ▾  Utkast/Klar  Angre Gjenta  Velg Bygg Kant Koble Rom Pynt Lys       │
+│ Etasje ▾  Snitt  Lys: spill/arbeid/rom   ▶ Spill fra start  Lagre (n)      │
+├ palett ────┬ kart ovenfra (2D) ──────────────┬ 3D ──────────────┬ panel ──┤
+│ søk        │ rutenett, celler, kanter,        │ orbit/fly, snitt │ egenskaper│
+│ Celler     │ innhold, koblinger, patruljer,   │ håndtak, fantom  │ rom/tema  │
+│ Sammensatt │ grensen ±185, etasjer svakt      │                  │ koblinger │
+│ Innhold    │                                  │                  │ regler    │
+│ Pynt       │                       minikart ▢ │                  │ historikk │
+│ Maler      │                                  │                  │ budsjett  │
+└────────────┴──────────────────────────────────┴──────────────────┴──────────┘
+```
+
+- **Verktøylinja:** valg av nivå, utkast eller klar, angre og gjenta, verktøyene (Velg, Bygg, Kant, Koble, Rom, Pynt, Lys), etasjen, snittet, lysvisningen, **Spill fra start** (Shift: spill herfra) og Lagre med antall endringer.
+- **Paletten:** bildene av bitene fra `tools/qa/thumbs.py` med dom og tema, søk, filter på tema og slag, og mest brukte øverst. Dra ut på kartet eller i 3D. R dreier, X speiler, og fantomet er grønt eller rødt med grunnen.
+- **Kartet:** cellene tegnet med tema og rom, kantene med symbol (dør, port, bue, vindu …), innholdet som ikoner, koblingene som buer, patruljene som streker og bakhold som sirkler. Musehjulet zoomer, mellomknappen eller mellomrom+dra flytter, og rammen velger. Andre etasjer står svakt. Det røde er konflikter og grensen.
+- **Etasjene:** liste med navn og høyde, øye (vis/skjul) og lås. PageUp og PageDown bytter.
+- **Panelet:** egenskapene til det valgte (bit, variant med lås, rom, tema, stemning, innholdet), koblingene som lenker, reglene, historikken og budsjettet.
+- **Koblingsmodus (K):** pekeren drar en bue fra kilden. Gyldige mål lyser, og ugyldige er grå med grunnen.
+- **Valideringslista:** gruppert som feil, advarsel og info. «Gå til» flytter kartet, sentrerer 3D og velger. «Rett» der det går: lukk døra, legg til rekkverk, flytt fienden til nettet, lag en spak til porten, del rommet.
+- **Minikartet:** hele nivået med alle etasjene, 3D-kameraets synsfelt tegnet inn, og klikk for å gå dit.
+- **3D-kameraet:**
+  - orbit rundt det valgte (Alt+dra eller mellomknappen),
+  - flyging (høyre knapp + WASD, mellomrom og C, Shift fort, som i dag),
+  - F setter fokus på det valgte,
+  - klikk i 3D velger og viser det samme i kartet.
+- **Spill fra start:** spillet bygges fra det kompilerte nivået i sin plass (`Engine::play` og `prepare_with` som P i dag). Du starter ved `start` med fiender, mekanismer og lykt.
+  - Med en «prøvespiller» (utstyr som ventet for nivået, og valgfritt «tål alt») kan nivået prøves uten å ha spilt fram til det.
+  - **Esc** går rett tilbake til redigeringen med samme kamera, etasje og valg. Pausemenyen er slått av under prøveturen.
+  - Dør du, kan du våkne ved hvilestedet eller gå tilbake.
+
+**Tastene:**
+
+| Tast | Gjør |
+|---|---|
+| 1–7 | verktøyene (Velg, Bygg, Kant, Koble, Rom, Pynt, Lys) |
+| R / Shift+R | dreie 90° med og mot klokka |
+| X / Shift+X | speile langs x eller z |
+| Ctrl+Z / Ctrl+Shift+Z | angre og gjøre om |
+| Ctrl+C / Ctrl+V / Ctrl+D | kopiere, lime inn, kopiere ved siden av |
+| Delete | slette |
+| Ctrl+G | lagre utvalget som mal |
+| PageUp / PageDown | etasjen opp og ned |
+| + / − | løfte og senke gulvet 1 m |
+| K | koble |
+| V | kaste variantene på nytt |
+| L | låse varianten |
+| H | skjule laget |
+| S | snittet av og på |
+| T | lysvisningen |
+| F | fokus på det valgte |
+| Tab / Shift+Tab | blar i det som ligger under pekeren (som i dag) |
+| Ctrl+1–9 / 1–9 | bokmerker for kameraet |
+| P | spill fra start (Shift+P herfra) |
+| Esc | tilbake fra prøveturen, eller avbryt det du holder på med |
+| Ctrl+S | lagre |
+
+## 13. Lagring, utkast og versjoner
+
+### 13.1 Utkast
+
+- Utkastet ligger i nettleseren (IndexedDB, én post per nivå). Det har med seg formatversjonen, versjonen av byggesettet og fila det bygger på (blob-sha og innhold), og skrives ved hver endring (etter 2 s) og hvert 30. sekund.
+- Når siden åpnes, velger du mellom utkastet og det som ligger på grenen. Begge vises med tid.
+
+### 13.2 Lagre
+
+- Lagre bruker `web/github.js` (`commit`, én commit per økt, uendret) og tar bare med nivåene og malene som er endret.
+- **Før commit** sammenlignes fila på grenen med den utkastet bygger på. Er den endret av noen andre (en annen fane, byredigeringen eller Claude), kommer et valg:
+  - behold min,
+  - ta deres,
+  - last ned begge som zip.
+- **Uten nøkkel** blir det zip (`makeZip`).
+- **Feil:**
+  - Nettfeil: utkastet står, og det prøves igjen.
+  - 401: lim inn nøkkelen på nytt.
+  - Konflikt på ref: hent på nytt og prøv én gang, ellers valget over.
+- Fila holdes under 1 MB, som er grensen i Contents-API-et.
+- Når Claude har slått inn og slettet `redigering`, begynner neste lagring fra `claude/detaljnivaa`. Er innholdet likt det som ble slått inn, er det ingen konflikt.
+
+### 13.3 Formatet
+
+`format` i fila og migreringer i kjernen fra hver eldre versjon. Testen leser en fil fra hver versjon som ligger i `assets/levels/fixtures/`.
+
+### 13.4 Byggesettet over tid
+
+- **Rent utseende:** en bit som får nytt utseende, får `v+1` med samme id. Alle nivåene blir finere uten å bygges på nytt. Det er den store fordelen med instanser.
+- **Ny form:** endres flatene eller fotavtrykket, får biten ny id (`grav/romfelt2`). Den gamle merkes «utgår» og står til ingen nivåer bruker den.
+- **Bytt bit:** verktøyet «Bytt bit» bytter alle forekomster med en tabell for dreiningen.
+- **Nye varianter** blandes bare inn i nivåer som slår dem på. Låste og regnede varianter flytter seg ikke, fordi den valgte varianten skrives i fila første gang nivået merkes klart.
+
+## 14. Ytelse
+
+**Målet:** 60 bilder i sekundet på eierens Mac mini M2 i nettleseren, under rundt 500 000 trekanter og under 300 tegnekall (CLAUDE.md).
+
+**Tegnekall:**
+- Rendereren tegner hver modell med instanser, ett kall per modell og nær/fjern-versjon (`draw_all`).
+- Om 40 ulike biter synes, blir det rundt 80 kall i hovedpasset, pluss pynt og fiender.
+- **I spillet** slås instansene sammen ved lasting: per bit på 16 m og per materiallag, i adapteren eller rendereren og ikke i kjernen. De blir verdensbiter som i dag (`chunks`, sammenhengende områder blir ett kall). Det er mulig fordi alle kryptbitene bruker de samme teksturlagene.
+- **I redigeringen** brukes instansene direkte, så endringer synes med en gang.
+- Fase 7 måler begge og bestemmer.
+
+**Trekanter:** et anslag på rundt 2 500 per celle med vegg, hjørner, gulv og hvelv. 100 synlige celler gir rundt 250 000. Fjernversjoner for alle bitene.
+
+**Hva som tegnes:** rommene brukes også til utvalget. Bare rommene du ser inn i (forbindelsene fra rommet du står i, to ledd ut) tegnes. Det er planlagt i `docs/krypten-ny.md` («portaler») og blir naturlig nå som rommene er celler.
+
+**Fysikken:** kolliderne flettes (del 7), under rundt 15 000 per nivå.
+
+**Minnet:** bitene hentes per tema og deles mellom nivåene (to nivåer per tema), så nedlastingen blir mindre enn med dagens bit per nivå.
+
+**Målingene:** `snapshot --level-doc N --stats` og `?bench` i nettleseren. Grunnlinjen skrives i `docs/ny-stil.md`, og budsjettestene i CI stopper et klart nivå som går over.
+
+## 15. Hva som gjenbrukes, og hva som er nytt
+
+| Del | Gjenbrukes | Nytt |
+|---|---|---|
+| `web/github.js` | hele (`commit`, `branchFiles`, nøkkelen) | sjekken mot blob-sha før commit (del 13.2) |
+| `web/editor.js` | `makeZip`, utkast og autolagring, lagringsdialogen, katalogkortene med dom, egenskapspanelet, historikklista, bokmerkene og tastemønsteret. Flyttes til `web/edit-common.js`, så begge sidene bruker det | `web/nivaa.js` (siden), `web/nivaa-plan.js` (kartet i Canvas 2D), `web/nivaa-palette.js` |
+| `domain/edit/` | mønsteret med `Change` og angre (`editor.rs`), `history.rs`, `props.rs` (`Prop`), `ghost.rs` (fantomet med reglene), `select.rs`, `group.rs`, `rules::Breach` (får alvor og sted), `crypt.rs` (`model_of`, `default_box`, `breaches`) | `domain/edit/level/`: `LevelEditor` over `LevelDoc` (celler, kanter, rom, innhold, koblinger, pynt, maler, liming, speiling, gjentak) |
+| `application/editing.rs` | `screen_ray`, håndtakene, drag, flyging, `edit_lines`, `edit_instances` (`EDIT_RESERVE`), `prepare_with` / P | `application/level_editing.rs`: modusen, utsnittet til kartet, snittet og prøveturen med Esc tilbake |
+| Portene | `Command::Edit` og `Event::Edit`, `LayoutStore` | `EditCommand::Level(LevelCommand)`, `Event::LevelEdit(LevelView)` (kartbildet per etasje som endringer), `ModelSource` gir `KitDef` og `LevelDoc` |
+| Krypten i kjernen | `LevelFile`, `Crypt::build`, `nav.rs`, `map.rs`, `run.rs`, mekanismene, `light_mask`, `query.rs` | `compose/`, `check/` (reglene og løseren), `doc.rs` (format og migreringer), `kit.rs`; feltet `instances` i `LevelFile`; `requires` (én eller alle) i mekanismene; tåke og lyd per rom i `Frame` |
+| Python og Blender | funksjonene i `kit_grav.py`, `solids.py --models`, `export_model` med okklusjon, tanken i `leak_check.py`, `tools/qa` (bilder, godkjenning, «Se i 3D») | `kit_common.py` (standardmålene, flatene, manifestet), `kit_<tema>.py` per tema, prøvebrettet |
+| Slettes når alle ti er nye | — | `build_level.py`, `layouts/`, `levels/`, `plan.py`, `crypt_NN_*.glb`, `crypt_NN_secret_*.glb`, `assets/layout/crypt_NN.json` (innholdet bor i `nivaa_NN.json`) |
+
+## 16. Fasene
+
+Hver fase slutter med push til forhåndsvisningen og ett godkjenningsark til eieren.
+
+**Fase 0: Planen og en måling (liten)**
+- Denne planen godkjennes, med svarene på de åpne spørsmålene (del 18).
+- En rask måling: 400 instanser av grå biter laget med `kit_grav.py`-funksjonene, tegnet med instanser og sammenslått, kall og ms på M2 (`?bench`).
+- **Eieren ser:** planen, en skisse av skjermbildet og tallene fra målingen.
+
+**Fase 1: Kompilatoren med et grått pilotsett (stor)**
+- `LevelDoc`, `KitDef`, kantene og hjørnene, instansene, kolliderne med fletting, nettet, rommene, merkene og `instances` i `Crypt::build`.
+- Rundt 12 grå biter (dagens stein, uten pynt) og et prøvenivå på 8 × 8 celler som Claude skriver for hånd i json.
+- Prøvebrettet: hver bit mot hver bit i alle dreininger.
+- **Tester:**
+  - `nivaadokumentet_kompileres_likt` (to ganger og bare det endrede mot alt på nytt),
+  - `bitene_dreies_og_speiles_riktig`,
+  - `kantene_passer`,
+  - `nivaaet_er_tett`,
+  - `bitene_overlapper_ikke`,
+  - prøvenivået gjennom de gamle testene (`kryptnivaaene_kan_gas_gjennom`, `ingen_usynlige_vegger_i_krypten`, `fiendene_finner_fram_i_krypten`, `lyset_folger_rommene`).
+- **Eieren ser:** skjermbilder og prøvenivået spillbart på forhåndsvisningen (`snapshot --level-doc test`).
+
+**Fase 2: Pilotsettet for gravkjelleren i malt stil (middels)**
+- Rundt 20 biter (4.4), med okklusjon bakt i sammenheng, nær- og fjernversjon og pyntefester.
+- **Eieren ser:** bitene på godkjenningssiden, hver for seg og på prøvebrettet i 3D («Se i 3D»). Eieren godkjenner før neste fase.
+
+**Fase 3: Siden, ett tema, ett lite nivå (stor)**
+- `?nivaa` med kartet (én etasje), paletten, Bygg, Kant og Velg, dreiing og speiling, 3D ved siden av, angre og gjenta, reglene med «Gå til», utkastet, Lagre og zip, og **Spill fra start** med Esc tilbake.
+- Bare halvtrapp og halv etasje i høyden.
+- **Tester:**
+  - `nivaaredigeringen_bygger_og_angrer` (Rust),
+  - `tools/level-edit-test.mjs`: sett ut biter, se 3D, spill, Esc, last inn utkastet på nytt, lagre zip.
+- **Eieren ser og gjør:** bygger et lite testnivå selv (5–8 rom) og spiller det.
+
+**Fase 4: Mekanismene, koblingene og løseren (stor)**
+- Koblingsmodus, porter, spaker (én eller alle), nøkkel og elite, arena med `exit`, snarvei, falsk vegg med hint, feller, fallem og stige.
+- Fiender med patrulje, bakhold og «med vilje». Kister, lapper og bonuser.
+- Løseren og «Rett».
+- **Tester:**
+  - `loseren_finner_ingen_laas` med nivåer som har feil med vilje (nøkkel bak egen port, spak bak sin port, en grop uten vei opp, en arena med bakdør),
+  - `koblingene_henger_sammen`, `arenaene_er_lukket`,
+  - `gjennomspilling` på testnivået med rekkefølgen fra løseren.
+- **Eieren ser:** testnivået med en hel gåte (spak, port, hemmelighet, elite med nøkkel).
+
+**Fase 5: Variasjon og stemning (middels)**
+- Varianter med frø og lås, forfallspensel, pyntelag og pyntesett, fri pynt, lysfester, stemninger, tåke og lyd per rom, lysvisningen og lyslekk-sjekken.
+- Maler, kopier, lim inn, speil, gjenta, løft og senk, minikartet.
+- **Tester:**
+  - `variantene_er_faste` (samme fil gir samme utseende; nye varianter flytter ingenting),
+  - `malene_settes_ut_med_koblingene`,
+  - `lyset_lekker_ikke` (advarselen finner lekken i et laget eksempel).
+- **Eieren ser:** to like rom ved siden av hverandre som ser forskjellige ut, og en mal brukt tre steder.
+
+**Fase 6: Full vertikalitet (stor)**
+- Etasjene og snittet, dobbel høyde, gallerier og balkonger, hel etasje og vindeltrapp, sjakt med stige og heis, kløft med bro (fast og senket), basseng med sluse, rotunde og tårn, vindu og gitter.
+- **Tester:**
+  - `nivaaene_ligger_i_hver_sin_hoyde`,
+  - taket under gallerier og broer,
+  - heisen og broa i `gjennomspilling`,
+  - `kapselen_*` over alle trappene.
+- **Eieren ser:** en sal med galleri, en bro over en kløft og et fall ned til et hemmelig rom.
+
+**Fase 7: Ytelsen (middels)**
+- Sammenslåing ved lasting, fjernversjonene, utvalg etter rom og fletting av kolliderne. Budsjettestene i CI.
+- **Eieren ser:** `?bench`-tall fra M2 på det største testnivået. Målet er 60 bilder i sekundet.
+
+**Fase 8: De fire andre temaene (stor, ett tema om gangen)**
+- Kloakken (med vann), gruva og grotta (ujevne grotter, stiver, heis), borgen (søylesaler, brystvern) og kjernen (plast og sømmer).
+- Hvert tema går gjennom prøvebrettet og godkjenningssiden, og så overgangene.
+- Teksturlagene for hvert tema (plan del 12, steg 5; `LAYERS` mot 64).
+
+**Fase 9: Eieren bygger nivå 1–10**
+- Claude slår inn og kjører testene. Hvert nivå som merkes klart, erstatter det gamle.
+- Når alle ti står, slettes den gamle kjeden (del 15).
+- Nye biter kommer når eieren savner noe.
+
+## 17. Testene samlet
+
+**Kjernen** (`crates/fristad-domain`, raske):
+- formatet og migreringene,
+- dreining og speiling per bit,
+- kanttabellen (begge veier og alle par),
+- tetthet og overlapp,
+- like resultat (fullt, bare det endrede, wasm og maskinkode),
+- løseren mot laget feil,
+- angre og gjenta med tilfeldige rekker,
+- maler og liming,
+- variantene er faste,
+- lyslekken.
+
+**Spillet** (`src/tests.rs`, `src/crypt_tests.rs`, med Rapier) på alle klare nivåer og prøvenivået:
+- `kryptnivaaene_kan_gas_gjennom`,
+- `ingen_usynlige_vegger_i_krypten`,
+- `kapselen_gar_mellom_noekkelstedene_i_hvert_nivaa`,
+- `fiendene_finner_fram_i_krypten`,
+- `fiendene_patruljerer_og_ligger_i_bakhold`,
+- `lyset_folger_rommene`,
+- `kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok`,
+- `gjennomspilling`,
+- `kryptnivaaene_hentes_nivaa_for_nivaa` (nå per tema),
+- nye: `nivaaene_bygges_likt_i_redigeringen_og_spillet` og `reglene_og_testene_er_enige` (feilnivåene gir samme svar i begge).
+
+**Byggesettet** (pytest og eksporten):
+- hver bit er tett på de lukkede flatene,
+- uv i meter og på 2 m-rutenettet,
+- okklusjonen nøytral mot kantene,
+- kolliderne i `extras.solids`,
+- manifestet likt glb-filene,
+- budsjettet for trekanter,
+- fjernversjonen finnes.
+
+**Nettleseren:**
+- `tools/level-edit-test.mjs`: bygg, koble, spill, Esc, utkast, konflikt (falsk GitHub), zip og under 1100 px,
+- `tools/browser-test.mjs` med `?webgl`.
+
+**Ytelsen:** `snapshot --level-doc N --stats` mot budsjettet.
+
+## 18. Eierens svar (18. oktober)
+
+1. **Murene** velges automatisk, med overstyring per kant (dør, port, bue, vindu, gitter, falsk vegg, snarvei, rekkverk, åpen).
+2. **Lagring:** Lagre legger alltid utkastet på grenen `redigering`; et nivå kommer først inn i spillet når det merkes «klar» og alle reglene er grønne.
+3. **Prøveturen:** udødelig (ingen skade, full olje), så du ser på nivået og går gjennom det. Fiendene er der og angriper, men du tar ingen skade.
+4. **Stemningene:** begynn med det temaene har i dag (to–tre lysstemninger og romlydene per tema); flere når eieren savner dem.
+5. **Skjermen:** kartet til venstre og 3D til høyre, og en tast eller knapp som viser bare den ene over hele skjermen.
+
+---
+
+### De viktigste filene
+
+- `crates/fristad-domain/src/domain/world/crypt/level.rs`: `LevelFile` og `MarkDef`, kontrakten kompilatoren skal skrive til (nytt felt `instances`)
+- `crates/fristad-domain/src/domain/world/crypt/mod.rs`: `Crypt::build` og `build_level` (origo, `LEVEL_DROP`, `REACH`, merkene, lysene, rommene)
+- `crates/fristad-domain/src/domain/world/crypt/nav.rs`: `Nav::new` (sveising og kobling av kanter), som det sammensatte nettet må passe til
+- `crates/fristad-domain/src/domain/edit/editor.rs` og `crates/fristad-domain/src/domain/edit/crypt.rs`: mønsteret for angre, `Change` og reglene for merkene, som `domain/edit/level/` bygger på
+- `crates/fristad-app/src/application/editing.rs`: økta i redigeringen, `prepare_with`/P, stråler, håndtak og instanser, som skal få en egen nivåmodus
+- `web/editor.js` og `web/github.js`: utkastet, zip og lagringen til grenen `redigering`, som flyttes til felles moduler for `web/nivaa.js`
+- `tools/crypt/kit_grav.py`: geometrifunksjonene og eksporten (okklusjon, `extras.solids`), som `kit_common.py` og `kit_<tema>.py` bygger på
+- `tools/crypt/build_level.py`: dagens regler for murer, nett, tetthet og hemmeligheter, som skal bli kjernekode og så slettes
+- `src/adapters/wgpu/mod.rs` (`draw_all`, instanser og biter) og `src/adapters/delivery.rs` (lasting per tema)
+- `src/tests.rs` og `src/crypt_tests.rs`: testene reglene skal speile

@@ -60,6 +60,13 @@ impl RapierPhysics {
         id
     }
 
+    fn cast(&self, origin: Vec3, dir: Vec3, max: f32, filter: QueryFilter) -> Option<Hit> {
+        let ray = Ray::new(point![origin.x, origin.y, origin.z], vector![dir.x, dir.y, dir.z]);
+        let (h, t) = self.query.cast_ray(&self.bodies, &self.colliders, &ray, max, true, filter)?;
+        let id = self.handles.iter().find(|(_, v)| **v == h).map(|(k, _)| ColliderId(*k))?;
+        Some(Hit { collider: id, distance: t })
+    }
+
     fn refresh(&mut self) {
         if self.dirty {
             self.query.update(&self.colliders);
@@ -100,6 +107,10 @@ impl Physics for RapierPhysics {
         self.insert(ColliderBuilder::cuboid(half.x, half.y, half.z).position(to_iso(&pose)).build())
     }
 
+    fn add_aim(&mut self, half: Vec3, pose: Affine3A) -> ColliderId {
+        self.insert(ColliderBuilder::cuboid(half.x, half.y, half.z).position(to_iso(&pose)).sensor(true).build())
+    }
+
     fn set_pose(&mut self, id: ColliderId, pose: Affine3A) {
         if let Some(h) = self.handles.get(&id.0) {
             if let Some(c) = self.colliders.get_mut(*h) {
@@ -113,14 +124,16 @@ impl Physics for RapierPhysics {
         self.refresh();
         let shape = Capsule::new_y(half, radius);
         let p = Isometry::translation(pos.x, pos.y, pos.z);
-        let mv = self.controller.move_shape(dt, &self.bodies, &self.colliders, &self.query, &shape, &p, vector![delta.x, delta.y, delta.z], QueryFilter::default(), |_| {});
+        // Målene (sensorene) er bare å sikte på: kapselen går gjennom dem.
+        let mv = self.controller.move_shape(dt, &self.bodies, &self.colliders, &self.query, &shape, &p, vector![delta.x, delta.y, delta.z], QueryFilter::default().exclude_sensors(), |_| {});
         (Vec3::new(mv.translation.x, mv.translation.y, mv.translation.z), mv.grounded)
     }
 
     fn cast_ray(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit> {
-        let ray = Ray::new(point![origin.x, origin.y, origin.z], vector![dir.x, dir.y, dir.z]);
-        let (h, t) = self.query.cast_ray(&self.bodies, &self.colliders, &ray, max, true, QueryFilter::default())?;
-        let id = self.handles.iter().find(|(_, v)| **v == h).map(|(k, _)| ColliderId(*k))?;
-        Some(Hit { collider: id, distance: t })
+        self.cast(origin, dir, max, QueryFilter::default())
+    }
+
+    fn cast_solid(&self, origin: Vec3, dir: Vec3, max: f32) -> Option<Hit> {
+        self.cast(origin, dir, max, QueryFilter::default().exclude_sensors())
     }
 }

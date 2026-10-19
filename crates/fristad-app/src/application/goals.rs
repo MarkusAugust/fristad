@@ -6,6 +6,7 @@
 
 use super::session::Session;
 use crate::domain::lantern;
+use crate::domain::world::crypt::run::{ANSGAR_TEXT, ANSGAR_TITLE};
 use crate::ports::driving::Event;
 
 impl Session {
@@ -48,16 +49,22 @@ impl Session {
         }
     }
 
-    /// Lappene og bøkene du har lest, tittel og tekst, i den rekkefølgen
-    /// de står i krypten.
+    /// Lappene og bøkene du har lest, tittel og tekst: Ansgars lapp fra
+    /// første gang du gikk ned, så de i krypten i den rekkefølgen de står.
     pub fn journal(&self) -> Vec<(String, String)> {
-        self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| (l.title.clone(), l.text.clone())).collect()
+        let ansgar = self.run.welcomed.then(|| (ANSGAR_TITLE.to_string(), ANSGAR_TEXT.to_string()));
+        ansgar.into_iter().chain(self.crypt.lores.iter().zip(&self.run.lore_read).filter(|(_, r)| **r).map(|(l, _)| (l.title.clone(), l.text.clone()))).collect()
+    }
+
+    /// Titlene i journalen, til lagringen (`SaveData.lore`).
+    pub(super) fn lore_titles(&self) -> Vec<String> {
+        self.journal().into_iter().map(|(t, _)| t).collect()
     }
 
     /// Sender målet og journalen når noe er endret.
     pub(super) fn update_goal(&mut self, events: &mut Vec<Event>) {
         let text = self.goal();
-        let read = self.run.lore_read.iter().filter(|r| **r).count();
+        let read = self.run.lore_read.iter().filter(|r| **r).count() + self.run.welcomed as usize;
         if self.goal_sent.as_ref().is_some_and(|(t, n)| *t == text && *n == read) {
             return;
         }
@@ -66,8 +73,11 @@ impl Session {
     }
 
     /// Fra en lagring: nivåene du har nådd (portalen tar deg til
-    /// inngangen) og lappene du har lest.
+    /// inngangen) og lappene du har lest. Ansgars lapp er lest om tittelen
+    /// står der; gamle lagringer uten den får den bare om du ikke har
+    /// kommet lenger enn nivå 1.
     pub(super) fn restore_progress(&mut self, deepest: Option<usize>, lore: &[String]) {
+        self.run.welcomed = lore.iter().any(|t| t == ANSGAR_TITLE) || deepest.is_some_and(|d| d > 0);
         if let Some(d) = deepest {
             for k in 0..=d.min(self.portal.entries.len().saturating_sub(1)) {
                 if self.portal.entries[k].is_none() {
