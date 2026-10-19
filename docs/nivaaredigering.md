@@ -684,6 +684,35 @@ Med instanser blir det ett kall per modell som synes, uansett hvor mange instans
 
 **Gjenstår til fase 2:** bitene i malt stil med okklusjon bakt i sammenheng, nær- og fjernversjon og pyntefester; `extras.kit` i glb og testen «manifestet likt glb-filene»; lysfester (lysene står i dokumentet ennå); å dele rom med hull; trinnmur, rekkverk og ulike tak over en kant (fase 6); tetthetssjekken per bit i Blender.
 
+
+## 20. Status: fase 2 (19. oktober)
+
+**Gjort:**
+- **Pilotsettet for gravkjelleren i malt stil** (`tools/crypt/kit_cells.py`, eksporten i `kit_bake.py`): 24 modeller og 22 biter i `assets/models/crypt/kit/grav.json`, med lagene fra nivå 1 (`crypt_wall` som mur, hogd stein og hvelv, `crypt_floor`, `grave_slab`, `ossuary`, `plaster_old` som mørtel) og detaljene derfra: sokkel langs foten, karm av hogde steiner rundt døra, karm rundt porten, buestav rundt gangåpningen, ribber og gjordbuer, gravnisjer.
+  - Celler: romfelt (a, og b med gravheller i gulvet og ribber i hvelvet), gang (a, og b med gjordbue på konsoller og gravheller), gangkryss, halvtrapp, halv etasje, nedgang, og **rotunden 3 × 3** som sammensatt bit (kuppel med ribber og sluttstein, gesims, fire nisjer med fakkelfester, en gang ut midt på hver side).
+  - Halvkanter: mur (a, og b med to gravnisjer, en åpen med knokler og en lukket med helle), overmur over gang, dør, port, falsk vegg, gjordbue, overmur over et lavere hvelv og rekkverk (de to siste tas i bruk i fase 6).
+  - Kvarthjørner: innvendig (og der muren går videre), utvendig (avfaset over sokkelen), pilaster under gjordbuen; søyla; fakkelen; den falske veggen som synker (`grav_falsk`, samme mur og sokkel som rundt, sprekk i fugene).
+- **Okklusjonen bakt i sammenheng:** hver bit bakes blant naboene den vanligvis har (`kit_bake.context`), og går over i det nøytrale innen 0,35 m fra skjøtene (`SEAMS`): flater opp og ned får 1, loddrette flater mørket en rett mur har i samme høyde (`wall_profile`, bakt først). Skjøtene har derfor samme mørke på begge sider.
+- **Nær- og fjernversjon:** noden `far` i hver glb (uten sokkel, karmer, ribber, nisjer; grovere hvelv med de samme hjørnene langs kantene), som `gltf.rs` legger i det grove detaljnivået i stedet for å regne det ut.
+- **Festene:** `mounts` med `fakkel` (midt på muren, og over nisjene i rotunden), `pynt_gulv` og `pynt_vegg` (fylles i fase 5). Kompilatoren setter fakler i festene etter rommets `mood.torches` (0–1, med frøet), hver med et lys ved flammen i rommets eget rom; ikke på murene bak en sammensatt bit.
+- **Variantene** (del 9): `variants` per bit med vekt, valgt med `compose::roll(frø, plass)` eller låst med `variant` i cella/kanten; en variant med en annen form har egne kollidere (nisjene).
+- **Kvarthjørnet etter tilfellet** (`fits`): de to sidene cella har i hjørnet gir innvendig, mur som går videre, pilaster (mur mot gjordbue) eller utvendig.
+- **Testene** (`src/level_doc_tests.rs`): `manifestet_er_likt_glb_filene` (`extras.kit` i hver glb er manifestet for bitene som bruker modellen), `bitene_har_fjernversjon_og_holder_budsjettet` (fjern ≤ nær, høyst 1 200 trekanter per celle for én bit), `variantene_er_faste`, `faklene_star_i_festene`, `hjornene_passer_til_murene`, `rotunden_settes_sammen`, og de fra fase 1. **Tetthetssjekken per bit** er `kit_cells.py --check` (Blender, stråler mot mur, hjørne, gulv, hvelv og kuppel; åpningene skal være åpne), og eksporten stopper på en bit som lekker.
+- **Prøvenivået** er bygd om: beinhuset er rotunden (to fiender på patrulje rundt midten, gangen ut mot sidegangen), et gravkammer sør for den med kista, et L-formet forhall (utvendig hjørne), fakler i rommene i stedet for lysene midt i rommet. **Prøvebrettet** bruker de nye bitene.
+- **Hull:** `snapshot --leak-scan` fra hver celle i prøvenivået (480 × 270 og 960 × 540) og 160 punkter på brettet: null. Rettet underveis: trinnene og kvarthjørnene hadde færre hjørner langs skjøten enn naboen (T-kryss, hull på én piksel), muren i rotunden fulgte ikke ringen i kuppelen, og gulvet i rotundens ganger møtte naboens gulv med andre hjørner.
+- **Rettet etter bildene:** hjørnesteinene i det utvendige hjørnet var for urolige (nå en avfasing), pilasteren var en mørk strek (nå hogde steiner), gravhella i gulvet viste biter av flere heller (nå hele bildet), og rotundens gang lå oppå kvarthjørnene (z-kamp).
+- **Andre runde (etter at arbeidet ble tatt opp igjen):** kuppelen i rotunden hadde uv skåret skjevt rundt kuppelen (u var buelengden på hver ring for seg, så bildet ble strukket til striper som så ut som tre); nå er v buelengden opp langs kuppelen og u buelengden rundt ved midten av hver ring, så steinene ligger i skift. Enkeltsteinene i murbildet (`kit_grav.STONE_PX`) var målt i det forrige bildet, så hver karmstein viste biter av flere steiner; de er målt på nytt. Pilasteren er ett skaft i forbandt med muren (enkeltsteinene speilet seg i kantlinja mellom de to halvdelene), med sida i kantlinja der naboen har en åpning. Gjordbuene, buestavene, ribbene og kuppelribbene legges som kilesteiner (`band(..., stones=)`, med `half` for gjordbuen som naboen speiler) i stedet for murbildet strukket langs buen. `grid_face` setter inn hjørnene der omrisset krysser en rutelinje i naboruta (T-krysset i gulvet i rotunden der gangen møter sirkelen slapp gjennom to piksler).
+- **Budsjettet (del 14):** de vanlige cellene 204–720 trekanter (romfelt b med ribber og gravheller er størst), halvkantene 28–586 (døra med karm), hjørnene 80–144, rotunden 4 836 for ni celler (537 per celle); fjernversjonen er mindre for hver bit (`bitene_har_fjernversjon_og_holder_budsjettet`).
+
+**Valg og avvik fra planen:**
+- Okklusjonen på gulvet er nøytral langs alle kanter; mørket ved veggfoten ligger på muren og sokkelen, ikke i en kantsone på 0,5 m av gulvet (en egen gulvbit per veggkombinasjon ble for mange modeller nå).
+- Festene og flatene står i manifestet og i `extras.kit`; kjernen leser manifestet (som i fase 1), og testen holder dem like.
+- Rotunden er en sammensatt bit allerede nå (planen hadde den i fase 6): kompilatoren deler den i ni delceller med flatene `inner` innvendig.
+- Overmuren over et lavere hvelv og rekkverket er laget, men kompilatoren bruker dem først i fase 6 (ulike tak og gulv).
+- Nettet tar bort smale striper (under 0,4 m) etter at innholdet er skåret ut (`drop_slivers`).
+
+**Gjenstår til fase 3:** eierens dom over bitene på godkjenningssiden (kortene og bildene er laget, `python3 -m tools.qa approvals review UT`, ikke publisert); `grav_gang_b`, `grav_trapp2`, `grav_falsk`, `grav_overmur` og `grav_rekkverk` står ikke i prøvenivået og har bare studiobildene; rotunden er mørk under kuppelen (bare faklene i nisjene lyser); siden `?nivaa` (kartet, paletten, Bygg/Kant/Velg, dreiing og speiling, 3D, angre, reglene, utkast, lagring og Spill fra start); pynt i festene og flere varianter (fase 5); ulike tak og gulv over en kant (fase 6).
+
 ---
 
 ### De viktigste filene
