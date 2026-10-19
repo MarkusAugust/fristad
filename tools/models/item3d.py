@@ -67,6 +67,11 @@ ITEMS = {
     # står rett opp og lokket vender mot −Y (`folk3d.LUTE` legger den i
     # fanget). Foten (den runde enden av kroppen) i z = 0, 0,78 m lang.
     "lute": dict(src="lute", out="assets/models/props/lute.glb", height=0.78, tilt=44.6, yaw=0.0, tris=4000, voxel=0.0035, size=1024),
+    # Nøkkelen eliten mister (eieren 19. oktober, `trellis-gjenstander.md`):
+    # TRELLIS la den flat med hanken mot −X; `roll` dreier den om y så den
+    # står med hanken (og krona) opp og skjegget ned, slik den svever og
+    # snurrer der den ligger (`Mobs::instances`). 0,15 m lang.
+    "key": dict(src="key", out="assets/models/props/key.glb", height=0.15, roll=90.0, yaw=0.0, tris=3000, voxel=0.0008, size=1024),
     # Steinene på enga (eieren 19. oktober, `docs/prompter/natur.md` nr. 6
     # og 7): den store steinen (1,3 m høy, rundt 2 × 2,4 m) ved veiene og på
     # åsene, og gruppa på fem (den største 0,85 m) spredt på enga. De står
@@ -78,9 +83,9 @@ ITEMS = {
 }
 
 
-def load(src, yaw, tilt=0.0, folder=SRC):
-    """Formen samlet i ett objekt uten foreldre, dreid `tilt` om x og så
-    `yaw` om z."""
+def load(src, yaw, tilt=0.0, folder=SRC, roll=0.0):
+    """Formen samlet i ett objekt uten foreldre, dreid `tilt` om x, `roll`
+    om y og så `yaw` om z."""
     bpy.ops.import_scene.gltf(filepath=os.path.join(folder, f"{src}.glb"))
     obs = [o for o in bpy.data.objects if o.type == "MESH"]
     bpy.ops.object.select_all(action="DESELECT")
@@ -93,7 +98,7 @@ def load(src, yaw, tilt=0.0, folder=SRC):
     mw = ob.matrix_world.copy()
     ob.parent = None
     ob.matrix_world = Matrix.Identity(4)
-    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(tilt), 4, "X") @ mw)
+    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(roll), 4, "Y") @ Matrix.Rotation(math.radians(tilt), 4, "X") @ mw)
     for o in [o for o in bpy.data.objects if o is not ob]:
         bpy.data.objects.remove(o)
     ob.name = "item"
@@ -266,7 +271,7 @@ def scale_of(ob, spec):
 def build(name):
     spec = ITEMS[name]
     clear()
-    ob = load(spec["src"], spec.get("yaw", 0.0), spec.get("tilt", 0.0), spec.get("dir", SRC))
+    ob = load(spec["src"], spec.get("yaw", 0.0), spec.get("tilt", 0.0), spec.get("dir", SRC), spec.get("roll", 0.0))
     # Først 1 enhet høy med foten i z = 0 midt over origo; bokser og
     # `center` står i disse enhetene.
     place(ob, 1.0 / float(np.ptp(coords(ob)[:, 2])))

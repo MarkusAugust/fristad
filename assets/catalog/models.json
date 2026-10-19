@@ -363,6 +363,7 @@
   "lab_shelf": "Møbel: Hylle med flasker og krukker (laboratoriet i Apoteket).",
   "lab_table": "Møbel: Bord med mortere, bok, urteblad og tent lys (laboratoriet i Apoteket).",
   "lantern_post": "Lyktestolpe.",
+  "key": "Nøkkelen eliten mister: tykk rund hanke med et rutenett under ei lita krone (kongens segl), tykt skaft med ringer, kantete skjegg, litt rust og en fiolett glødende søm i hanken, 0,15 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py); svever og snurrer der eliten falt, med et fiolett lys (drops::key_instance), og åpner portgitteret.",
   "lute": "Lutten trubaduren har i fanget: pæreformet kropp, lokk med utskåret rose, kort hals og stolen bøyd bakover. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), satt etter beinet «lute» i figuren.",
   "rock_big": "Stor stein: grå granitt med lav og mose på toppen, sprekker og jord ved foten, 1,3 m høy og rundt 2 × 2,4 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), ved veiene og på åsene utenfor muren (nature::rocks).",
   "rock_group": "Steingruppe: fem grå fjellsteiner med mose på toppen, den største 0,85 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), spredt på enga utenfor muren (nature::rocks).",

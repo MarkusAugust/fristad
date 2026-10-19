@@ -102,6 +102,13 @@ impl Session {
                 let room = self.crypt.room_at(at).map(|(l, r)| (l as u16, r as u16));
                 lights.push(Light { pos: at, radius: 2.5 + 1.5 * k, color: Vec3::new(0.45, 1.0, 0.3), intensity: 1.3 * k, always: true, flicker: 0.1, room });
             }
+            // Nøkkelen som ligger, gløder fiolett som sømmen i hanken, så
+            // den synes i mørket.
+            for k in self.mobs.keys.iter().filter(|k| !k.taken).take(2) {
+                let at = crate::domain::drops::key_at(k, self.time) + Vec3::Y * 0.5;
+                let room = self.crypt.room_at(at).map(|(l, r)| (l as u16, r as u16));
+                lights.push(Light { pos: at, radius: 2.2, color: Vec3::new(0.85, 0.35, 1.0), intensity: 0.9, always: true, flicker: 0.15, room });
+            }
         }
         lights.extend(self.portal_pose().and_then(|p| self.portal.light(p, self.time)));
         // Rommene i nivået du er i, og rommene hvert lys lyser i. Lysene som

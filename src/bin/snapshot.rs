@@ -291,6 +291,11 @@ fn main() {
     if let Some(n) = arg("--drop") {
         app.session.drop_tokens(3.0, n.parse().unwrap());
     }
+    // --key: nøkkelen eliten mister ligger og svever 2,5 m foran deg, litt
+    // til høyre for skjoldet.
+    if flag("--key") {
+        app.session.drop_key(2.5, 0.35);
+    }
     // --bolt [--bolt-side M] [--bolt-at S]: bare én korrupt input 7 m foran
     // deg (og M til høyre), som lader og spytter; bildet tas S sekunder
     // etter (0,95: markøren midt i lufta; under 0,6 lader den ennå). --time

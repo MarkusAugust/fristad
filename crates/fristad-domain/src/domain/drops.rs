@@ -78,3 +78,20 @@ pub fn token_instance(t: &Token, time: f32) -> ModelInstance {
     let tint = Some(TOKEN_COLORS[t.color as usize % TOKEN_COLORS.len()]);
     ModelInstance { model: TOKEN_MODEL, transform: Affine3A::from_rotation_translation(spin, t.pos + Vec3::Y * hover) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint, look: None }
 }
+
+/// Hvor nøkkelen svever: 0,25 m over der den ligger, opp og ned.
+pub fn key_at(k: &Token, time: f32) -> Vec3 {
+    k.pos + Vec3::Y * (0.25 + (time * 2.5 + k.age).sin() * 0.06)
+}
+
+/// Hvor mye større nøkkelen vises der den svever enn de 0,15 m den er, så
+/// den synes på avstand i mørket (som tokenene).
+pub const KEY_SHOW: f32 = 1.8;
+
+/// Nøkkelen (`key`, TRELLIS gjennom `item3d.py key`: hanken opp, foten i
+/// origo) til rendereren: står og snurrer, litt på skrå, der den svever.
+pub fn key_instance(k: &Token, time: f32) -> ModelInstance {
+    let spin = Quat::from_rotation_y(time * 1.5 + k.age) * Quat::from_rotation_x(0.3);
+    let pop = (k.age * 4.0).min(1.0) * KEY_SHOW;
+    ModelInstance { model: crate::domain::mobs::KEY_MODEL, transform: Affine3A::from_rotation_translation(spin, key_at(k, time)) * Affine3A::from_scale(Vec3::splat(pop)), skin: None, flash: 0.0, tint: None, look: None }
+}

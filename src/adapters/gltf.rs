@@ -157,6 +157,8 @@ models! {
     // (TRELLIS, `item3d.py lute`; satt etter beinet `lute`, `Npcs::instances`).
     "npc_troubadour" => "npcs/npc_troubadour.glb",
     "lute" => "props/lute.glb",
+    // Nøkkelen eliten mister (TRELLIS, `item3d.py key`; `drops::key_instance`).
+    "key" => "props/key.glb",
     // Steinene på enga fra TRELLIS (tools/models/item3d.py, `nature::rocks`).
     "rock_big" => "nature/rock_big.glb",
     "rock_group" => "nature/rock_group.glb",
