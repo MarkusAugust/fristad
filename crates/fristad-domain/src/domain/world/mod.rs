@@ -536,10 +536,34 @@ pub struct Data {
     /// Modellene eieren har godkjent (`assets/catalog/approvals.json`), til
     /// reglene i redigeringen.
     pub approved: Option<std::collections::HashSet<String>>,
+    /// Byggesettet for nivåredigeringen (`assets/models/crypt/kit/*.json`).
+    pub kit: crypt::kit::KitDef,
+    /// Nivådokumentene som skal kompileres (`assets/levels/nivaa_NN.json`
+    /// merket «klar», eller prøvenivået): de erstatter nivået med samme
+    /// nummer (`compose_levels`).
+    pub docs: Vec<(u32, crypt::doc::LevelDoc)>,
+}
+
+impl Data {
+    /// Kompiler nivådokumentene (`crypt::compose`) og la dem erstatte de
+    /// gamle nivåene med samme nummer. Bruddene meldes i loggen.
+    pub fn compose_levels(&mut self) {
+        for (n, doc) in std::mem::take(&mut self.docs) {
+            let (mut file, report) = crypt::compose::compile(&doc, &self.kit);
+            for i in &report.issues {
+                log::warn!("Nivådokumentet {:?}: {:?} {}: {}", doc.level, i.severity, i.rule, i.msg);
+            }
+            file.level = n;
+            self.levels.retain(|(k, _)| *k != n);
+            self.levels.push((n, file));
+        }
+        self.levels.sort_by_key(|(n, _)| *n);
+    }
 }
 
 /// Bygg verden. Krypten er fast; `seed` brukes ikke til noe der lenger.
-pub fn build(models: &[ModelInfo], _seed: u64, data: Data) -> World {
+pub fn build(models: &[ModelInfo], _seed: u64, mut data: Data) -> World {
+    data.compose_levels();
     let mut b = Builder::new(models);
     b.insides = data.insides.into_iter().collect();
     b.contents = data.contents.into_iter().collect();

@@ -13,7 +13,10 @@
 //! «ut.png MODELL X,Y,Z YAW PITCH» med kameraet i modellens rom som --at),
 //! --model NAVN=FIL.glb (en modell fra fila i stedet for den innebygde, eller
 //! en som mangler: en stedfortreder, som trubaduren før figuren kommer),
-//! --voice V (hvor sterkt trubaduren synger, 0..1).
+//! --voice V (hvor sterkt trubaduren synger, 0..1), --level-doc NAVN (nivådokumentet
+//! `assets/levels/nivaa_NAVN.json`, eller `brett`: prøvebrettet, kompilert som
+//! eneste kryptnivå; med --level 1 og --eye i nivåets rom), --merge (bitene fra
+//! byggesettet slått sammen per rute på 16 m, som målingen i fase 0).
 
 use fristad::adapters::gltf::Embedded;
 use fristad::adapters::native::seed;
@@ -27,8 +30,9 @@ use fristad::ports::Quality;
 use fristad::ports::Renderer as _;
 use glam::Vec3;
 
-/// De innebygde modellene, med noen fra filer foran (`--model`).
-struct WithFiles(Vec<(String, Vec<u8>)>);
+/// De innebygde modellene, med noen fra filer foran (`--model`), og et
+/// nivådokument som eneste kryptnivå (`--level-doc`).
+struct WithFiles(Vec<(String, Vec<u8>)>, Option<String>);
 
 impl fristad::ports::ModelSource for WithFiles {
     fn load(&self, name: &str) -> Option<fristad::domain::model::Model> {
@@ -43,7 +47,10 @@ impl fristad::ports::ModelSource for WithFiles {
         out
     }
     fn world_data(&self) -> fristad::domain::world::Data {
-        Embedded.world_data()
+        match &self.1 {
+            Some(name) => fristad::adapters::data::world_data_with_doc(name),
+            None => Embedded.world_data(),
+        }
     }
 }
 
@@ -63,8 +70,14 @@ fn main() {
         .filter(|(_, a)| *a == "--model")
         .filter_map(|(i, _)| args.get(i + 1)?.split_once('=').map(|(n, f)| (n.to_string(), std::fs::read(f).unwrap_or_else(|e| panic!("--model {f}: {e}")))))
         .collect();
-    let source = WithFiles(extra);
-    let prepared = if flag("--edit") { prepare_for_edit(&source, seed()) } else { prepare(&source, seed()) };
+    let source = WithFiles(extra, arg("--level-doc"));
+    let mut prepared = if flag("--edit") { prepare_for_edit(&source, seed()) } else { prepare(&source, seed()) };
+    // --merge: bitene fra byggesettet slått sammen per rute på 16 m.
+    if flag("--merge") {
+        let kit = fristad::adapters::data::kit();
+        let n = fristad::application::assembly::merge_instances(&mut prepared, &kit.models(), 16.0);
+        eprintln!("Bitene slått sammen til {n} ruter");
+    }
     // --at MODELL X,Y,Z YAW: kameraet i modellens eget rom (første instans;
     // Blenders akser, −y er fram), yaw i grader der 0 ser mot huset forfra.
     let first: Vec<(String, glam::Affine3A)> = prepared.world.placements.iter().filter_map(|pl| Some((pl.model.to_string(), *pl.transforms.first()?))).collect();

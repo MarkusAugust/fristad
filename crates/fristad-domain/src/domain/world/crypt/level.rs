@@ -24,6 +24,24 @@ pub struct LevelFile {
     pub lights: Vec<LightDef>,
     #[serde(default)]
     pub marks: Vec<MarkDef>,
+    /// Bitene fra byggesettet (nivåer kompilert fra et nivådokument,
+    /// `compose`): modellen, stedet, dreiningen og speilingen. `pieces` står
+    /// for de gamle nivåene.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub instances: Vec<InstanceDef>,
+}
+
+/// En bit fra byggesettet satt ut i nivået.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct InstanceDef {
+    pub model: String,
+    pub pos: [f32; 3],
+    /// Radianer om y (0: modellens +z mot +z).
+    #[serde(default)]
+    pub yaw: f32,
+    /// Speilet langs modellens x før dreiningen.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub mirror: bool,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]

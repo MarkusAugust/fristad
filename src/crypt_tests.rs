@@ -4,11 +4,12 @@
 //! i rotunden i kloakken).
 
 use crate::adapters::rapier::RapierPhysics;
+use crate::application::Prepared;
 use crate::application::Session;
 use crate::domain::world::crypt::Crypt;
 use crate::ports::driving::Input;
 use crate::ports::Physics;
-use crate::tests::{session, world};
+use crate::tests::{doc_world, session, session_in, world};
 use glam::{Vec2, Vec3};
 use std::collections::HashMap;
 
@@ -23,8 +24,7 @@ const CELL: f32 = 1.0;
 impl Visible {
     /// Alt som er satt ut under byen (bitene, byggesettet) og det økta
     /// poserer per bilde (portene, vannet, de falske veggene …).
-    fn new(game: &Session) -> Self {
-        let p = world();
+    fn new(p: &Prepared, game: &Session) -> Self {
         let mut tris = vec![];
         let mut add = |name: &str, t: &glam::Affine3A| {
             let Some(m) = p.models.iter().find(|m| m.name == name) else { return };
@@ -229,14 +229,25 @@ fn invisible_walls(game: &Session, physics: &RapierPhysics, vis: &Visible, k: us
 #[test]
 #[ignore]
 fn ingen_usynlige_vegger_i_krypten() {
+    invisible_walls_in(world());
+}
+
+/// Det samme i prøvenivået fra nivådokumentet (bitene fra byggesettet og
+/// kolliderne deres, flettet av `crypt::compose`): ingen treff.
+#[test]
+fn ingen_usynlige_vegger_i_provenivaaet() {
+    invisible_walls_in(doc_world());
+}
+
+fn invisible_walls_in(p: &Prepared) {
     let mut physics = RapierPhysics::new();
-    let game = session(&mut physics);
+    let game = session_in(p, &mut physics);
     let mut input = Input::default();
     let mut game = game;
     game.update(&mut input, 1.0 / 30.0, &mut physics);
-    let vis = Visible::new(&game);
-    let c = &world().world.crypt;
-    let w = &world().world;
+    let vis = Visible::new(p, &game);
+    let c = &p.world.crypt;
+    let w = &p.world;
     // Kolliderne legges inn i rekkefølge (økta: verdens faste, så målene).
     let describe = |id: u64, o: Vec3| -> String {
         let i = id as usize - 1;
