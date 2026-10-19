@@ -105,7 +105,6 @@ pub struct ModelInfo {
 /// strykes (testen `alle_modellnavn_finnes_eller_ventes`).
 pub const PLANNED: &[(&str, &str)] = &[
     ("framework", "sluttbossen Rammeverket (fase 5)"),
-    ("npc_troubadour", "trubaduren på krakken i Vertshuset: TRELLIS-figuren fra eieren, bygd med `folk3d.py troubadour` (klippene sit og play, kjeven)"),
     ("key", "nøkkelen eliten mister (fase 7)"),
     ("sheep_body", "sau (fase 7)"),
     ("sheep_leg", "sau (fase 7)"),

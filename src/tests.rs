@@ -648,7 +648,7 @@ fn pipene_ryker() {
 /// Trubaduren sitter på krakken ved ildstedet i Vertshuset (plassen er
 /// data: `seated` i `assets/layout/town.json`, krakken i
 /// `assets/layout/inside/tavern.json`), vendt ut i rommet, og figuren hans
-/// ventes (`model::PLANNED`) til TRELLIS-modellen kommer.
+/// (TRELLIS, `folk3d.py troubadour`) har beinet lutten henger i.
 #[test]
 fn trubaduren_sitter_ved_ildstedet() {
     let w = &world().world;
@@ -660,7 +660,9 @@ fn trubaduren_sitter_ved_ildstedet() {
     let hearth = w.lights.iter().filter(|l| l.always).map(|l| l.pos).min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).unwrap();
     assert!(hearth.distance(t.pos) < 2.5, "krakken står ikke ved ildstedet ({hearth:?})");
     assert_eq!(t.model, "npc_troubadour");
-    assert!(crate::domain::model::PLANNED.iter().any(|(n, _)| *n == t.model) || world().models.iter().any(|m| m.name == t.model), "figuren ventes eller finnes");
+    let figure = world().models.iter().find(|m| m.name == t.model).expect("figuren til trubaduren finnes");
+    assert!(figure.rig.as_ref().is_some_and(|r| r.joint("lute").is_some() && r.clip("play").is_some() && r.clip("sit").is_some() && r.joint("jaw").is_some()), "figuren har lutebeinet, kjeven og de sittende klippene");
+    assert!(world().models.iter().any(|m| m.name == crate::domain::npcs::LUTE_MODEL), "lutten finnes");
 }
 
 /// Innbyggerne går rundt på gjøremålene sine, og stopper når du kommer nær.

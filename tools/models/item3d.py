@@ -62,11 +62,17 @@ ITEMS = {
                       ((0.035, -0.05, 0.15), (0.09, 0.05, 0.5)),  # tauet ned i sjakta
                       ((-0.4, -0.09, 0.42), (-0.198, 0.09, 0.64)),  # sveiven utenfor stolpen
                       ((0.314, -0.09, 0.5), (0.4, 0.09, 0.64))]),  # akselenden på den andre sida
+    # Trubadurens lutt (eieren 19. oktober): TRELLIS la den på skrå, halsen
+    # opp mot +Y og lokket mot −Y og opp; `tilt` dreier den om x så halsen
+    # står rett opp og lokket vender mot −Y (`folk3d.LUTE` legger den i
+    # fanget). Foten (den runde enden av kroppen) i z = 0, 0,78 m lang.
+    "lute": dict(src="lute", out="assets/models/props/lute.glb", height=0.78, tilt=44.6, yaw=0.0, tris=4000, voxel=0.0035, size=1024),
 }
 
 
-def load(src, yaw):
-    """Formen samlet i ett objekt uten foreldre, dreid `yaw` om z."""
+def load(src, yaw, tilt=0.0):
+    """Formen samlet i ett objekt uten foreldre, dreid `tilt` om x og så
+    `yaw` om z."""
     bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, f"{src}.glb"))
     obs = [o for o in bpy.data.objects if o.type == "MESH"]
     bpy.ops.object.select_all(action="DESELECT")
@@ -79,7 +85,7 @@ def load(src, yaw):
     mw = ob.matrix_world.copy()
     ob.parent = None
     ob.matrix_world = Matrix.Identity(4)
-    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ mw)
+    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(tilt), 4, "X") @ mw)
     for o in [o for o in bpy.data.objects if o is not ob]:
         bpy.data.objects.remove(o)
     ob.name = "item"
@@ -147,7 +153,7 @@ def scale_of(ob, spec):
 def build(name):
     spec = ITEMS[name]
     clear()
-    ob = load(spec["src"], spec.get("yaw", 0.0))
+    ob = load(spec["src"], spec.get("yaw", 0.0), spec.get("tilt", 0.0))
     # Først 1 enhet høy med foten i z = 0 midt over origo; bokser og
     # `center` står i disse enhetene.
     place(ob, 1.0 / float(np.ptp(coords(ob)[:, 2])))

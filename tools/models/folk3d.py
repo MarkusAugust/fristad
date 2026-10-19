@@ -47,7 +47,7 @@ THICK = float(os.environ.get("FOLK3D_THICK", 0.006))  # tykkelsen de åpne flate
 # Figurer der TRELLIS har beholdt øynene og ansiktet: bildet forfra legges
 # ikke på, for der håret og brynene fra bildet ikke passer formen, ble det
 # flekker rundt øynene og streker over pannen (vertinnen, 18. oktober).
-FACE_KEEP = {"innkeeper"}
+FACE_KEEP = {"innkeeper", "troubadour"}  # trubaduren: «bare bruk ham som han er» (eieren 19. oktober)
 FACE_FROM = 0.80  # ansiktet fra bildet forfra legges over denne brøken av høyden
 FACE_INSET = 0.006  # masken trekkes så mye inn fra omrisset (brøk av bredden)
 FACE_FACING = (0.35, 0.7)
@@ -72,6 +72,17 @@ SEATED = {"troubadour"}
 JAW = {"troubadour"}
 MOUTH = 0.023  # brøk av høyden fra nesetippen ned til leppesømmen (målt på skriveren: rundt 0,02)
 JAW_SOFT = (0.004, 0.02)  # overgangen over munnen og bak haka (brøk av høyden)
+# Figurene med en gjenstand i fanget (trubaduren og lutten, `item3d.py lute`):
+# et bein «lute» under hoftene som ikke former kroppen, og som spillet setter
+# gjenstanden etter (`Npcs::instances`). Beinets rom er gjenstandens eget
+# (x til siden, y bakover fra lokket, z opp langs halsen), så modellen står
+# som den er eksportert. Alt i hoftenes rom i hvileposen (som hendene i
+# `folk_motion.play`), meter ganger figurens skala: `face` er retningen lokket
+# vender, `neck` retningen halsen går, og punktet `at` på lutten (der høyre
+# hånd slår) står i `strum`.
+LUTE = {
+    "troubadour": dict(face=(0.95, -0.2, 0.3), neck=(0.3, 0.9, 0.3), at=(0.0, -0.09, 0.19), strum=(0.20, -0.07, 0.10)),
+}
 
 
 def load(name):
@@ -293,7 +304,7 @@ def transfer(hi, lo, name, size=2048):
     # Hodet får plass og øyene pakkes her, før fargen hentes: teksturen
     # i spillet har de samme øyene, så bakingen til slutt er en ren kopi
     # (pakket den på nytt, la den forkleet og kjolen oppå hverandre).
-    head_density(lo, FOLK[name])
+    head_density(lo, FOLK.get(name))
     pack_weighted(lo)
     img = bpy.data.images.new(f"src_{name}", size, size)
     mat = bpy.data.materials.new(f"npc_{name}")
@@ -473,9 +484,10 @@ def face_agreement(ob, name, im, sc, cu, top, H):
 
 def head_density(ob, H):
     """Ansiktet er det man ser på: hodet får `HEAD_DENSITY` ganger så mye
-    plass i teksturen som resten (`bake_textured` leser «uv_density»)."""
+    plass i teksturen som resten (`bake_textured` leser «uv_density»).
+    Gjenstandene (`item3d.py`, `H` er None) har lik tetthet overalt."""
     a = ob.data.attributes.new("uv_density", "FLOAT", "FACE")
-    a.data.foreach_set("value", [HEAD_DENSITY if p.center.z > HEAD_FROM * H else 1.0 for p in ob.data.polygons])
+    a.data.foreach_set("value", [HEAD_DENSITY if H and p.center.z > HEAD_FROM * H else 1.0 for p in ob.data.polygons])
 
 
 def landmarks(ob, H):
@@ -587,9 +599,38 @@ def rig(ob, name, J):
     if not any(len(v.groups) for v in ob.data.vertices[:200]):
         bpy.ops.object.parent_set(type="ARMATURE_ENVELOPE")
     layered_weights(ob, arm)
+    lute = lute_bone(arm, LUTE[name], FOLK[name] / 1.8) if name in LUTE else None
     if mouth is not None:
         jaw_weights(ob, arm, J, FOLK[name], mouth)
-    return arm
+    return arm, lute
+
+
+def lute_bone(arm, spec, k):
+    """Beinet «lute» (former ikke kroppen) under hoftene, med lutens rom:
+    hodet i lutens origo (midt under den runde enden), x til siden, y bakover
+    fra lokket og z langs halsen."""
+    from mathutils import Matrix
+
+    hips = Vector(arm.data.bones["hips"].head_local)
+    n = Vector(spec["neck"]).normalized()
+    f = Vector(spec["face"])
+    f = (f - n * f.dot(n)).normalized()
+    y = -f
+    x = y.cross(n).normalized()
+    R = Matrix((x, y, n)).transposed()
+    at = R @ Vector(spec["at"])
+    origin = hips + Vector(spec["strum"]) * k - at
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    b = arm.data.edit_bones.new("lute")
+    b.head = origin
+    b.tail = origin + y * 0.1
+    b.matrix = Matrix.Translation(origin) @ R.to_4x4()
+    b.parent = arm.data.edit_bones["hips"]
+    b.use_deform = False
+    bpy.ops.object.mode_set(mode="OBJECT")
+    print("lutten:", tuple(round(c, 3) for c in origin), "halsen", tuple(round(c, 2) for c in n))
+    return origin, R
 
 
 def layered_weights(ob, arm, radius=WEIGHT_RADIUS):
@@ -646,7 +687,7 @@ def build(name, size=2048):
     face_patch(ob, name, FOLK[name])
     H = FOLK[name]
     J = landmarks(ob, H)
-    arm = rig(ob, name, J)
+    arm, lute = rig(ob, name, J)
     style, grips = folk_motion.FIGURES.get(name, ("default", {}))
     st = dict(folk_motion.STYLES.get(style, {}))
     if style == "old":
@@ -661,7 +702,7 @@ def build(name, size=2048):
     out = max(math.degrees(math.atan2(abs(J[f"wrist.{s}"].y - J[f"shoulder.{s}"].y), J[f"shoulder.{s}"].z - J[f"wrist.{s}"].z)) for s in ("L", "R"))
     st["arm_out"] = folk_motion.style_of(style)["arm_out"] * 0.5 - out * 0.65
     only = ("idle", "walk", "talk", "wave") + (folk_motion.SEATED_CLIPS if name in SEATED else ())
-    folk_motion.clips(arm, st, {}, only=only)
+    folk_motion.clips(arm, st, {}, only=only, lute=lute)
     bake_textured(f"{OUT}/npc_{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False)
     return J
 

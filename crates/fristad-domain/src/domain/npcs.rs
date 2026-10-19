@@ -18,9 +18,10 @@ const TALK_RANGE: f32 = 4.5;
 /// siktemålet står over det.
 pub const SEATED_TOP: f32 = 0.74;
 /// Så langt åpnes kjeven (radianer) når sangen er på det sterkeste, og så
-/// langt løftes hodet i stedet når figuren ikke har noe kjevebein
-/// (stedfortrederen til trubadurens modell kommer).
-pub const JAW_OPEN: f32 = 0.30;
+/// langt løftes hodet i stedet når figuren ikke har noe kjevebein. Munnen
+/// fra TRELLIS har ikke noe innside, så kjeven strekker underleppa og
+/// skjegget: 0,30 ga en lang, blek hake (19. oktober), derfor bare litt.
+pub const JAW_OPEN: f32 = 0.12;
 pub const HEAD_LIFT: f32 = 0.12;
 
 #[derive(Clone, Debug)]
@@ -75,7 +76,13 @@ struct Clips {
     /// Kjevebeinet (`jaw`), eller hodet om figuren ikke har noe.
     jaw: Option<usize>,
     head: Option<usize>,
+    /// Beinet lutten henger i (`lute`, under hoftene; `folk3d.LUTE`).
+    lute: Option<usize>,
 }
+
+/// Lutten trubaduren har i fanget (`tools/models/item3d.py lute`), satt etter
+/// beinet `lute` i figurens skjelett hvert bilde (`Npcs::instances`).
+pub const LUTE_MODEL: &str = "lute";
 
 /// Ganghastigheten (m/s) og hvor fort de snur seg.
 const WALK_SPEED: f32 = 0.95;
@@ -235,7 +242,7 @@ impl Npcs {
                         let find = |n: &str| r.clip(n).unwrap_or(0);
                         let idle = find("idle");
                         let sit = r.clip("sit").unwrap_or(idle);
-                        let c = Clips { idle, talk: find("talk"), wave: find("wave"), walk: r.clip("walk").unwrap_or(idle), sit, play: r.clip("play").unwrap_or(sit), jaw: r.joint("jaw"), head: r.joint("head") };
+                        let c = Clips { idle, talk: find("talk"), wave: find("wave"), walk: r.clip("walk").unwrap_or(idle), sit, play: r.clip("play").unwrap_or(sit), jaw: r.joint("jaw"), head: r.joint("head"), lute: r.joint("lute") };
                         rigs.push((r, c));
                         rigs.len() - 1
                     });
@@ -429,9 +436,15 @@ impl Npcs {
             match (n.rig.map(|r| &self.rigs[r].0), &n.anim) {
                 (Some(rig), Some(a)) => {
                     let mut pose = a.pose(rig);
+                    let c = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
                     if n.seated && self.singing && n.speaking.is_none() {
-                        let c = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
                         sing(rig, &mut pose, &c, self.voice);
+                    }
+                    // Beinets rom er lutens rom slik Blender har det (z opp
+                    // langs halsen), og glb-fila har y opp: dreid om x.
+                    if let Some(j) = c.lute {
+                        let at = Affine3A::from_mat4(rig.joint_transform(&pose, j)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
+                        out.push(ModelInstance { model: LUTE_MODEL, transform: t * at, skin: None, flash: 0.0, tint: None });
                     }
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;

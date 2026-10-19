@@ -161,8 +161,9 @@ fn main() {
             app.session.give(c, 1);
         }
     }
-    // --voice V: så sterkt trubaduren synger (munnen åpnes etter det).
+    // --voice V: trubaduren spiller og synger så sterkt (munnen åpnes etter det).
     if let Some(v) = arg("--voice") {
+        app.session.play_song();
         app.command(Command::Voice(v.parse().expect("--voice 0..1")));
     }
     // --gamma G: lysstyrken fra innstillingene (1 er som malt).

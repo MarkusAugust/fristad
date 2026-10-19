@@ -137,6 +137,10 @@ models! {
     "npc_boy" => "npcs/npc_boy.glb",
     "npc_washerwoman" => "npcs/npc_washerwoman.glb",
     "npc_pilgrim" => "npcs/npc_pilgrim.glb",
+    // Trubaduren (TRELLIS, `folk3d.py troubadour`) og lutten i fanget hans
+    // (TRELLIS, `item3d.py lute`; satt etter beinet `lute`, `Npcs::instances`).
+    "npc_troubadour" => "npcs/npc_troubadour.glb",
+    "lute" => "props/lute.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",
