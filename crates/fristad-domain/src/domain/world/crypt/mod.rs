@@ -103,9 +103,8 @@ pub const KIT_CHAIN: &str = "kit_chain";
 /// Heisen (dekket, posert av økta) og heistårnet med vinsjen (står fast).
 pub const KIT_LIFT: &str = "kit_lift";
 pub const KIT_WINCH: &str = "kit_winch";
-/// Dekket på heisen (`kit_lift`), og høyden på undersida av hengebjelkene
-/// under bommen i heistårnet over gulvet oppe, der kjettingene ender
-/// (`kit_winch`).
+/// Dekket på heisen (`kit_lift`), og høyden på hengebjelkene i heistårnet
+/// over gulvet oppe, der kjettingene ender (`kit_winch`).
 pub const LIFT_W: f32 = 2.8;
 pub const LIFT_HEAD: f32 = 3.45;
 /// Vinsjen står så langt fra sjaktmidten (langs −z i heistårnets rom).
@@ -772,8 +771,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 for sx in [-1.0f32, 1.0] {
                     b.solid_box(pose.transform_point3(Vec3::new(sx * (lw * 0.5 + 0.45), 2.0, 0.0)), Vec3::new(0.36, 4.0, 0.36), m.yaw);
                 }
-                // Bommen over stolpene og bindbjelken under den, midt over
-                // sjakta (hengebjelkene står over hodet).
+                // Bommen og bindbjelken under den, midt over sjakta.
                 b.solid_box(pose.transform_point3(Vec3::new(0.0, LIFT_HEAD + 0.5, 0.0)), Vec3::new(lw + 1.4, 1.0, 0.34), m.yaw);
                 c.lifts.push(Lift { pos, yaw: m.yaw, size: Vec2::new(lw, ld), drop, level: k, switch: s });
             }
