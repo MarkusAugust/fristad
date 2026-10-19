@@ -37,6 +37,7 @@ impl Session {
                     "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
                     "Torgils" => ("Handle", "Lærer deg trekk på øvingsplassen."),
                     "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypten, og les om dem i bøkene."),
+                    "Trubaduren" => ("Kjøp mjød", "Et krus mjød (1 token), så synger han kvadet om Gorvek."),
                     "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypten."),
                     _ => ("", ""),
                 };

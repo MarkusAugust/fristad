@@ -85,6 +85,7 @@ impl Session {
             "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES), swaps: vec![] }),
             "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES), swaps: vec![] }),
             "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
+            "Trubaduren" => Some(self.mead_view(i)),
             _ => None,
         }
     }

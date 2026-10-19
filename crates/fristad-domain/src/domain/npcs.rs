@@ -43,8 +43,8 @@ pub struct Npc {
     last_line: Option<usize>,
     round: usize,
     anim: Option<Animator>,
-    /// Replikken som vises nå, og hvor lenge den har stått.
-    pub speaking: Option<(usize, f32)>,
+    /// Replikken som vises nå (teksten), og hvor lenge den har stått.
+    pub speaking: Option<(&'static str, f32)>,
     /// Vinker når du kommer nær første gang.
     waved: bool,
     /// Gjøremålene: punktene innbyggeren går mellom (minst to, ellers står
@@ -57,8 +57,9 @@ pub struct Npc {
     held: bool,
     /// Hvor lenge hen ikke har kommet nærmere målet (står fast bak noen).
     stuck: f32,
-    /// Sitter på krakken og spiller (trubaduren): går ingen steder, snur
-    /// seg ikke, og kjeven følger sangen (`Npcs::set_voice`).
+    /// Sitter på krakken (trubaduren): går ingen steder og snur seg ikke;
+    /// spiller (`play`) og synger bare mens sangen går (`Npcs::set_singing`,
+    /// kjeven følger `Npcs::set_voice`), ellers sitter han stille (`sit`).
     pub seated: bool,
 }
 
@@ -93,6 +94,9 @@ pub struct Npcs {
     /// Hvor sterkt det synges nå (0..1, sangens lydstyrke fra nettlaget,
     /// `assets/music/game/tavern_voice.json`): så åpen er munnen på dem som sitter.
     pub voice: f32,
+    /// Trubaduren synger (noen har kjøpt ham et krus mjød,
+    /// `application/tavern.rs`): de som sitter, spiller.
+    pub singing: bool,
 }
 
 /// Det som sies dette bildet: hvem, hvor (over hodet) og hva.
@@ -188,6 +192,36 @@ impl Npcs {
         self.voice = if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 };
     }
 
+    /// Sangen begynner eller er over: de som sitter, tar opp spillet
+    /// (`play`) eller legger det fra seg (`sit`), om de ikke snakker.
+    pub fn set_singing(&mut self, on: bool) {
+        self.singing = on;
+        for n in self.npcs.iter_mut().filter(|n| n.seated && n.speaking.is_none()) {
+            let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
+            if let Some(a) = n.anim.as_mut() {
+                a.play(if on { clips.play } else { clips.sit }, true, 0.4);
+            }
+        }
+    }
+
+    /// Klippet innbygger `i` spiller nå (`sit`, `play`, `walk` …).
+    pub fn clip_of(&self, i: usize) -> Option<&str> {
+        let n = self.npcs.get(i)?;
+        let (r, _) = self.rigs.get(n.rig?)?;
+        Some(r.clips.get(n.anim.as_ref()?.clip)?.name.as_str())
+    }
+
+    /// Innbygger `i` sier `text` (utenom replikkene: takken for mjøden).
+    pub fn say(&mut self, i: usize, text: &'static str) -> Option<Speech> {
+        let n = self.npcs.get_mut(i)?;
+        let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
+        n.speaking = Some((text, 0.0));
+        if let Some(a) = &mut n.anim {
+            a.play(if n.seated { clips.sit } else { clips.talk }, true, 0.15);
+        }
+        Some(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.top() + 0.1), text: text.to_string() })
+    }
+
     /// `rig_of` gir skjelettet til en modell; hver innbygger har sin.
     pub fn new(rig_of: impl Fn(&str) -> Option<Rig>, cast: Vec<(&'static str, &'static str, Vec3, f32, Vec3, &'static [Line], Vec<(Vec3, f32)>, f32, bool)>) -> Self {
         let mut rigs: Vec<(Rig, Clips)> = vec![];
@@ -209,13 +243,13 @@ impl Npcs {
                     r
                 }
             };
-            let mut anim = rig.map(|r| Animator::new(if seated { rigs[r].1.play } else { rigs[r].1.idle }, true));
+            let mut anim = rig.map(|r| Animator::new(if seated { rigs[r].1.sit } else { rigs[r].1.idle }, true));
             if let Some(a) = &mut anim {
                 a.time = i as f32 * 0.9;
             }
             npcs.push(Npc { name, pos, yaw, tint, lines, model, height, rig, heard: 0, last_line: None, round: 0, anim, speaking: None, waved: false, route, leg: 0, wait: 2.0 + i as f32 * 1.3, walking: false, held: false, stuck: 0.0, seated });
         }
-        Self { npcs, rigs, voice: 0.0 }
+        Self { npcs, rigs, voice: 0.0, singing: false }
     }
 
     /// F på en innbygger: neste replikk. `depth` er hvor mange nivåer i
@@ -228,7 +262,7 @@ impl Npcs {
         let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
         let line = next_line(n.lines, depth, &mut n.heard, &mut n.round, n.last_line)?;
         n.last_line = Some(line);
-        n.speaking = Some((line, 0.0));
+        n.speaking = Some((n.lines[line].text, 0.0));
         if let Some(a) = &mut n.anim {
             // Sittende legger hen fra seg spillet og snakker med hendene på lårene.
             a.play(if n.seated { clips.sit } else { clips.talk }, true, 0.15);
@@ -244,26 +278,28 @@ impl Npcs {
         let others: Vec<Vec3> = self.npcs.iter().map(|n| n.pos).collect();
         for (i, n) in self.npcs.iter_mut().enumerate() {
             let clips = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
+            let rest = if self.singing { clips.play } else { clips.sit };
             let to = (player - n.pos).with_y(0.0);
             let dist = to.length();
             if let (Some(r), Some(a)) = (n.rig.map(|r| &self.rigs[r].0), n.anim.as_mut()) {
                 a.update(dt, r);
                 if a.finished {
-                    a.play(if n.seated { clips.play } else { clips.idle }, true, 0.2);
+                    a.play(if n.seated { rest } else { clips.idle }, true, 0.2);
                 }
             }
             if n.seated {
-                // Sitter og spiller på krakken: blir sittende, snur seg ikke
-                // og vinker ikke; snakker hen, står replikken som ellers.
-                if let Some((line, t)) = &mut n.speaking {
+                // Sitter på krakken (og spiller mens sangen går): blir
+                // sittende, snur seg ikke og vinker ikke; snakker hen, står
+                // replikken som ellers.
+                if let Some((text, t)) = &mut n.speaking {
                     *t += dt;
                     if *t > LINE_SECS || dist > TALK_RANGE + 2.0 {
                         n.speaking = None;
                         if let Some(a) = n.anim.as_mut() {
-                            a.play(clips.play, true, 0.4);
+                            a.play(rest, true, 0.4);
                         }
                     } else {
-                        out.push(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height * SEATED_TOP + 0.1), text: n.lines[*line].text.to_string() });
+                        out.push(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height * SEATED_TOP + 0.1), text: text.to_string() });
                     }
                 }
                 continue;
@@ -336,7 +372,7 @@ impl Npcs {
                     }
                 }
             }
-            if let Some((line, t)) = &mut n.speaking {
+            if let Some((text, t)) = &mut n.speaking {
                 *t += dt;
                 if *t > LINE_SECS || dist > TALK_RANGE + 2.0 {
                     n.speaking = None;
@@ -344,7 +380,7 @@ impl Npcs {
                         a.play(clips.idle, true, 0.3);
                     }
                 } else {
-                    out.push(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height + 0.1), text: n.lines[*line].text.to_string() });
+                    out.push(Speech { npc: i, name: n.name, pos: n.pos + Vec3::Y * (n.height + 0.1), text: text.to_string() });
                 }
             }
         }
@@ -393,7 +429,7 @@ impl Npcs {
             match (n.rig.map(|r| &self.rigs[r].0), &n.anim) {
                 (Some(rig), Some(a)) => {
                     let mut pose = a.pose(rig);
-                    if n.seated && n.speaking.is_none() {
+                    if n.seated && self.singing && n.speaking.is_none() {
                         let c = n.rig.map(|r| self.rigs[r].1).unwrap_or_default();
                         sing(rig, &mut pose, &c, self.voice);
                     }
@@ -437,12 +473,15 @@ mod tests {
         &r.clips[npc.anim.as_ref().unwrap().clip].name
     }
 
-    /// Trubaduren sitter der han sitter og spiller: han går ingen steder,
-    /// snur seg ikke mot deg og vinker ikke; snakker han, legger han fra seg
-    /// spillet (`sit`) og tar det opp igjen etterpå.
+    /// Trubaduren sitter der han sitter: han går ingen steder, snur seg
+    /// ikke mot deg og vinker ikke. Han sitter stille (`sit`) til sangen
+    /// begynner, spiller (`play`) mens den går; snakker han, legger han fra
+    /// seg spillet og tar det opp igjen etterpå.
     #[test]
     fn trubaduren_sitter_og_spiller() {
         let mut n = troubadour(true);
+        assert_eq!(clip_name(&n), "sit", "uten mjød spiller han ikke");
+        n.set_singing(true);
         assert_eq!(clip_name(&n), "play");
         let (pos, yaw) = (n.npcs[0].pos, n.npcs[0].yaw);
         for k in 0..600 {
@@ -467,6 +506,7 @@ mod tests {
     fn munnen_folger_sangen() {
         for jaw in [true, false] {
             let mut n = troubadour(jaw);
+            n.set_singing(true);
             n.update(0.1, Vec3::new(40.0, 0.0, 40.0));
             let joint = if jaw { 2 } else { 1 };
             let at = |n: &Npcs| {
@@ -483,6 +523,9 @@ mod tests {
             let turned = (open.to_scale_rotation_translation().1 * shut.to_scale_rotation_translation().1.inverse()).to_axis_angle();
             let want = if jaw { -JAW_OPEN } else { HEAD_LIFT };
             assert!((turned.0.z.signum() * turned.1 - want).abs() < 1e-3, "jaw {jaw}: {turned:?}");
+            n.set_singing(false);
+            n.set_voice(1.0);
+            assert_eq!(at(&n), shut, "jaw {jaw}: munnen står stille når han ikke synger");
         }
     }
 }

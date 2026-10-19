@@ -736,6 +736,12 @@ function handle(e) {
     case "shop":
       openShop(e.npc, e.wares, e.swaps ?? []);
       break;
+    case "mead":
+      openMead(e);
+      break;
+    case "song":
+      music.song(e.on, () => engine.song_over?.());
+      break;
     case "workshop":
       openWorkshop(e.recipes);
       break;
@@ -1811,6 +1817,41 @@ function updateShop() {
     const why = document.getElementById(btn.getAttribute("aria-describedby"));
     if (why) why.textContent = short ? `Har ikke råd (mangler ${price - tokens} tokens)` : "";
   }
+}
+
+// Trubaduren (E): det han sier og ett kjøp, et krus mjød, så synger han
+// kvadet om Gorvek. Har du ikke råd, er knappen av som i butikkene
+// (`updateShop`); synger han allerede, er den av med en forklaring.
+function openMead(e) {
+  const body = openOverlay(e.npc, "");
+  const say = document.createElement("p");
+  say.className = "fs-paragraph mead-text";
+  say.textContent = `«${e.text}»`;
+  const row = document.createElement("div");
+  row.className = "ware mead";
+  const text = document.createElement("div");
+  text.className = "ware-text";
+  const why = document.createElement("span");
+  why.className = "fs-help-text ware-why";
+  why.id = "ware-why-mead";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "fs-button";
+  btn.dataset.variant = "primary";
+  btn.textContent = `Kjøp et krus mjød (${e.price} token)`;
+  btn.setAttribute("aria-describedby", why.id);
+  if (e.singing) {
+    btn.disabled = true;
+    why.textContent = "Han synger allerede for kruset ditt.";
+  } else btn.dataset.price = String(e.price);
+  btn.addEventListener("click", () => {
+    if (btn.disabled) return;
+    if (engine.buy_mead?.()) closeOverlay();
+  });
+  text.append(why);
+  row.append(text, btn);
+  body.append(say, row);
+  updateShop();
 }
 
 // Felles for inventaret og Skriptoriet (plan 13a): sjeldenheten i farge

@@ -130,6 +130,8 @@ pub struct Session {
     pub(super) edit: Option<crate::domain::edit::Editor>,
     pub edit_data: Option<super::assembly::EditData>,
     pub(super) edit_ui: super::editing::EditUi,
+    /// Trubaduren og kvadet (`tavern.rs`).
+    pub(super) tavern: super::tavern::Troubadour,
 }
 
 impl Session {
@@ -212,6 +214,7 @@ impl Session {
             hero: Hero::default(),
             loot_seed: 0x2545_f491_4f6c_dd1d,
             pending: vec![],
+            tavern: Default::default(),
             goal_sent: None,
             combat: Combat::new(rig_of(crate::domain::combat::ARMS_MODEL)),
             hud: Hud::default(),
@@ -584,6 +587,7 @@ impl Session {
     /// Innbyggerne: de går, snakker (boblene som står sendes hvert bilde,
     /// og én tom når de er borte), og siktemålet følger dem.
     fn update_people(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
+        self.tick_song(dt);
         let speeches = self.npcs.update(dt, feet);
         self.npc_steps(feet, in_crypt, events);
         for t in &self.targets {

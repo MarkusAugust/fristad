@@ -7,19 +7,41 @@ use crate::domain::weather::Daylight;
 use crate::domain::world::{terrain, town, World};
 use crate::ports::driving::{Ambience, Event, Sound};
 use crate::ports::Physics;
-use glam::{Vec2, Vec3};
+use glam::{Affine3A, Vec2, Vec3};
 
-/// Vertshuset: så nær midten du må stå inne for å være i skjenkestua, og
-/// hvor langt unna trubaduren høres utenfor.
-const TAVERN_INSIDE: f32 = 10.0;
+/// Vertshuset i husets eget rom (fra veggene i `tavern_inside.json`):
+/// halve mål innenfor ytterveggene, og høydene som skiller kjelleren,
+/// skjenkestua og overetasjen (gulvene står på −2,2, 0,6 og 3,85).
+const TAVERN_HALF: Vec2 = Vec2::new(5.85, 4.35);
+const TAVERN_GROUND: f32 = 0.0;
+const TAVERN_UPSTAIRS: f32 = 3.4;
+const TAVERN_ROOF: f32 = 11.0;
+const TAVERN_FLOOR: f32 = -3.0;
+/// Så sterkt trubaduren høres i overetasjen og i kjelleren (gjennom
+/// gulvplankene), og hvor langt unna han høres utenfor.
+pub const TAVERN_UPPER: f32 = 0.75;
+pub const TAVERN_CELLAR: f32 = 0.65;
 const TAVERN_HEARD: f32 = 22.0;
+
+/// Hvor sterkt Vertshuset høres med føttene i `local` (husets rom) og `d`
+/// meter fra midten: 1 i skjenkestua, `TAVERN_UPPER` oppe, `TAVERN_CELLAR`
+/// i kjelleren, og under 0,5 utenfor.
+fn tavern_level(local: Vec3, d: f32) -> f32 {
+    let inside = local.x.abs() < TAVERN_HALF.x && local.z.abs() < TAVERN_HALF.y && (TAVERN_FLOOR..TAVERN_ROOF).contains(&local.y);
+    match local.y {
+        _ if !inside => 0.5 * (1.0 - d / TAVERN_HEARD).clamp(0.0, 1.0).powi(2),
+        y if y < TAVERN_GROUND => TAVERN_CELLAR,
+        y if y > TAVERN_UPSTAIRS => TAVERN_UPPER,
+        _ => 1.0,
+    }
+}
 
 /// Det lydbildet husker mellom bildene.
 pub(super) struct Soundscape {
     /// Der lydene i byen kommer fra: torget, smia og kirka (flatt).
     spots: [Vec2; 3],
-    /// Midt i Vertshuset (flatt), der trubaduren synger.
-    tavern: Vec2,
+    /// Vertshuset: fra verden inn i husets rom, og midten (flatt).
+    tavern: Option<(Affine3A, Vec2)>,
     /// Det som lager lyd i løkke der det står: ild (ildsteder og fakler).
     fires: Vec<Vec3>,
     last: Ambience,
@@ -41,7 +63,7 @@ impl Soundscape {
         let sq = town::square_center();
         Self {
             spots: [Vec2::new(sq.x, sq.z), at("forge"), at("stave_church")],
-            tavern: at("tavern"),
+            tavern: world.placements.iter().find(|p| p.model == "tavern").and_then(|p| p.transforms.first()).map(|t| (t.inverse(), Vec2::new(t.translation.x, t.translation.z))),
             fires: world.lights.iter().filter(|l| l.always).map(|l| l.pos).collect(),
             last: Ambience::default(),
             t: 0.0,
@@ -159,13 +181,10 @@ impl Session {
             water: 0.0,
             lava: 0.0,
             chasm: 0.0,
-            // Inne i Vertshuset (tak og vegger, nær midten) er det trubaduren;
-            // utenfor høres han svakere jo lenger unna du står.
-            tavern: match p.distance(self.sound.tavern) {
-                _ if in_crypt => 0.0,
-                d if self.sound.indoor && d < TAVERN_INSIDE => 1.0,
-                d => 0.5 * (1.0 - d / TAVERN_HEARD).clamp(0.0, 1.0).powi(2),
-            },
+            // Inne i Vertshuset: skjenkestua der trubaduren sitter er 1,
+            // overetasjen og kjelleren litt svakere; utenfor høres han
+            // svakere jo lenger unna du står.
+            tavern: if in_crypt { 0.0 } else { self.sound.tavern.map(|(into, mid)| tavern_level(into.transform_point3(feet), p.distance(mid))).unwrap_or(0.0) },
             portal: match (in_crypt, self.portal.dest.is_some(), self.portal_center()) {
                 (false, true, Some(c)) => close(&[c], 16.0),
                 _ => 0.0,

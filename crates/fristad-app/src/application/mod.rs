@@ -21,6 +21,7 @@ mod goals;
 mod prompt;
 pub mod session;
 mod testing;
+mod tavern;
 mod trade;
 mod usage;
 pub mod view;

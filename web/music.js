@@ -17,9 +17,12 @@
 // (`hud.fight` fra økta: 1 fiende, 2 boss, 3 Rammeverket; bossene og
 // Rammeverket bruker `combat_boss` om den finnes) og ut igjen `FIGHT_HOLD`
 // sekunder etter at kampen er over. Mangler et spor, spiller partituret som
-// før; mangler kampsporet, spiller det som spilte. Inne i Vertshuset synger
-// trubaduren (`tavern`, `ambience.tavern` fra økta: 1 inne, svakere og
-// dempet utenfor døra) i stedet for byens spor.
+// før; mangler kampsporet, spiller det som spilte. Trubaduren i Vertshuset
+// synger kvadet om Gorvek (`tavern`) bare når noen har kjøpt ham et krus mjød
+// (`song(true)` fra `Event::Song`), én gang fra start til slutt; det høres i
+// alle etasjene (`ambience.tavern` fra økta: 1 i skjenkestua, litt svakere
+// oppe og i kjelleren, dempet utenfor døra). Inne i huset tones byens spor
+// ned: helt mens han synger, ellers til `TAVERN_HUSH`.
 
 import { arp, beats, createScore, lengthOf, midi, repeat, shift, tune } from "./score.js";
 
@@ -233,8 +236,14 @@ const VOLUME = 0.55;
 const NIGHT_GAIN = 0.6;
 const NIGHT_LOWPASS = 1100;
 
-// Trubaduren: hvor dempet han er utenfor Vertshuset (lavpass gjennom veggene).
+// Trubaduren: hvor dempet han er utenfor Vertshuset (lavpass gjennom
+// veggene) og i de andre etasjene (gjennom gulvplankene).
 const TAVERN_OUTSIDE_LOWPASS = 900;
+const TAVERN_FLOOR_LOWPASS = 2400;
+// Fra så sterkt `ambience.tavern` er du inne i Vertshuset (alle etasjene).
+const TAVERN_HOUSE = 0.6;
+// Byens spor inne i Vertshuset når trubaduren ikke synger.
+const TAVERN_HUSH = 0.35;
 
 /** Hvilket spor som skal spille: `where` er "town", "cellar" eller
  * "silence", `fight` kampen (0–3) og `night` om det er natt. */
@@ -255,8 +264,12 @@ export function createMusic(context, base = "music/") {
   let songStart = 0;
   let timer = null;
   let night = false;
-  // Vertshuset: 1 inne, mindre utenfor døra (`ambience.tavern`).
+  // Vertshuset: 1 i skjenkestua, mindre i de andre etasjene og utenfor
+  // døra (`ambience.tavern`), og om trubaduren synger (`song`).
   let tavern = 0;
+  let singing = false;
+  // Kalles når kvadet er spilt til endes (motoren får vite det).
+  let onSongEnd = null;
   let fight = 0;
   // Den hardeste kampen siden kampen begynte (bossen holder seg til den er over).
   let lastFight = 0;
@@ -287,9 +300,10 @@ export function createMusic(context, base = "music/") {
     if (!f?.filter) return;
     if (name === "tavern") return;
     const dark = name === "town" && night;
-    const hushed = name.startsWith("town") && insideTavern();
-    f.filter.frequency.setTargetAtTime(dark ? NIGHT_LOWPASS : 20000, c.currentTime, secs / 3);
-    f.level.gain.setTargetAtTime(hushed ? 0 : dark ? NIGHT_GAIN : 1, c.currentTime, secs / 3);
+    const inside = name.startsWith("town") && insideTavern();
+    const song = inside && singing && files.tavern?.ok === true;
+    f.filter.frequency.setTargetAtTime(inside ? TAVERN_OUTSIDE_LOWPASS * 2 : dark ? NIGHT_LOWPASS : 20000, c.currentTime, secs / 3);
+    f.level.gain.setTargetAtTime(song ? 0 : inside ? TAVERN_HUSH : dark ? NIGHT_GAIN : 1, c.currentTime, secs / 3);
   };
   // Et filspor: lastes første gang det trengs, og spiller i løkke gjennom
   // sitt eget filter og sin egen styrke, så det kan tones inn og ut.
@@ -309,7 +323,9 @@ export function createMusic(context, base = "music/") {
     files[name] = f;
     try {
       const el = new Audio();
-      el.loop = true;
+      // Kvadet spilles én gang; resten går i løkke.
+      el.loop = name !== "tavern";
+      if (name === "tavern") el.addEventListener("ended", () => endSong(true));
       el.preload = "auto";
       el.crossOrigin = "anonymous";
       el.addEventListener("canplaythrough", () => {
@@ -448,33 +464,44 @@ export function createMusic(context, base = "music/") {
     }
     ready.then(() => {
       if (playing) return;
-      if (insideTavern()) score.stop(2);
+      if (insideTavern() && singing) score.stop(2);
       else scoreFor(mode);
     });
   };
-  // Trubaduren i Vertshuset: et eget spor over byens, så sterkt som du er
-  // nær (inne er det alt), dempet gjennom veggene utenfor; byens spor tones
-  // ned så lenge du er inne.
-  const insideTavern = () => mode === "town" && tavern >= 0.99 && files.tavern?.ok === true;
+  // Trubaduren i Vertshuset: et eget spor over byens mens han synger, så
+  // sterkt som du er nær (skjenkestua er alt, de andre etasjene litt
+  // mindre), dempet gjennom gulvet og veggene; byens spor tones ned så
+  // lenge du er inne i huset.
+  const insideTavern = () => mode === "town" && tavern >= TAVERN_HOUSE;
+  // Kvadet er over: fila er ferdig (`fromFile`, motoren får vite det), eller
+  // økta sa det.
+  const endSong = (fromFile) => {
+    if (!singing) return;
+    singing = false;
+    const f = files.tavern;
+    if (f?.gain) f.gain.gain.setTargetAtTime(0, c.currentTime, 0.4);
+    if (f?.el && !fromFile) setTimeout(() => singing || f.el.pause(), 1500);
+    if (fromFile) onSongEnd?.();
+    mixTavern();
+  };
   let wasInside = false;
   // Sangens lydstyrke (`voice()`): undefined til den trengs, null mens den hentes.
   let voiceEnv;
   const mixTavern = () => {
     if (!c) return;
-    const want = mode === "town" ? tavern : 0;
-    if (want > 0.01) file("tavern");
-    const f = files.tavern;
-    const on = f?.ok === true && want > 0.01;
+    // Kvadet går videre (lydløst) når du er borte, så det er der økta er
+    // når du kommer tilbake; det stopper bare når det er over.
+    const want = mode === "town" && singing ? tavern : 0;
+    const f = singing ? file("tavern") : files.tavern;
     if (f?.gain) {
-      f.gain.gain.setTargetAtTime(on ? want : 0, c.currentTime, 0.6);
-      f.filter.frequency.setTargetAtTime(want >= 0.99 ? 20000 : TAVERN_OUTSIDE_LOWPASS, c.currentTime, 0.4);
-      if (on && f.el.paused) f.el.play().catch(() => {});
-      if (!on && !f.el.paused) setTimeout(() => (tavern > 0.01 && mode === "town") || f.el.pause(), 2500);
+      f.gain.gain.setTargetAtTime(f.ok === true ? want : 0, c.currentTime, 0.6);
+      f.filter.frequency.setTargetAtTime(tavern >= 0.99 ? 20000 : tavern >= TAVERN_HOUSE ? TAVERN_FLOOR_LOWPASS : TAVERN_OUTSIDE_LOWPASS, c.currentTime, 0.4);
+      if (singing && f.ok === true && f.el.paused && !f.el.ended) f.el.play().catch(() => {});
     }
     // Inne i Vertshuset tones byens spor (eller partituret) ned.
     const inside = insideTavern();
     if (playing) tone(playing, 2);
-    if (inside && score.current) score.stop(2);
+    if (inside && singing && score.current) score.stop(2);
     if (wasInside && !inside) apply();
     wasInside = inside;
   };
@@ -518,8 +545,27 @@ export function createMusic(context, base = "music/") {
     /** Lydbildet fra økta (`ambience`): hvor nær Vertshuset du er. */
     ambience(a) {
       const t = a.cellar ? 0 : a.tavern || 0;
-      if (Math.abs(t - tavern) < 0.02 && !(t >= 0.99 && tavern < 0.99) && !(t < 0.99 && tavern >= 0.99)) return;
+      const crossed = (k) => t >= k !== tavern >= k;
+      if (Math.abs(t - tavern) < 0.02 && !crossed(0.99) && !crossed(TAVERN_HOUSE)) return;
       tavern = t;
+      mixTavern();
+    },
+    /** Trubaduren begynner kvadet fra start (`on`, noen kjøpte mjød), eller
+     * det er over (`Event::Song`). `ended` kalles når fila er spilt ferdig. */
+    song(on, ended) {
+      if (ended) onSongEnd = ended;
+      if (!setup()) return;
+      if (!on) return endSong(false);
+      singing = true;
+      const f = file("tavern");
+      if (f.el) {
+        try {
+          f.el.currentTime = 0;
+        } catch {
+          /* ikke klar ennå: begynner fra start likevel */
+        }
+        if (f.ok === true) f.el.play().catch(() => {});
+      }
       mixTavern();
     },
     toggle() {

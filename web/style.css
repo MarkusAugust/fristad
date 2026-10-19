@@ -516,6 +516,10 @@ body:has(#panel:not([hidden])) .aimed {
 .ware .fs-button { justify-content: center; }
 .ware-why { margin: 0; }
 .ware-why:empty { display: none; }
+/* Trubaduren: replikken og ett kjøp, knappen så bred som teksten. */
+.ware.mead { grid-template-columns: minmax(0, 1fr) auto; }
+.mead-text { margin: 0 0 var(--fs-spacing-2); font-style: italic; max-width: 60ch; }
+@media (max-width: 480px) { .ware.mead { grid-template-columns: minmax(0, 1fr); } }
 
 /* Sjeldenheten i farge (plan 13a, Fristils tokens): vanlig grå, sjelden
    blå, episk lilla, legendarisk gull. */

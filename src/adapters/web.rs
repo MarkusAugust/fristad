@@ -360,6 +360,8 @@ fn json(e: &Event) -> serde_json::Value {
             let swaps: Vec<_> = swaps.iter().map(|s| json!({"id": s.id, "give": s.give, "n": s.n, "have": s.have, "give_rarity": s.give_rarity, "get": s.get, "get_have": s.get_have, "get_rarity": s.get_rarity, "fee": s.fee, "source": s.source, "ok": s.ok})).collect();
             json!({"type": "shop", "npc": npc, "wares": wares.iter().map(|w| json!({"id": w.id, "name": w.name, "price": w.price})).collect::<Vec<_>>(), "swaps": swaps})
         }
+        Event::Mead(m) => json!({"type": "mead", "npc": m.npc, "text": m.text, "price": m.price, "singing": m.singing}),
+        Event::Song(on) => json!({"type": "song", "on": on}),
         Event::Workshop { recipes } => {
             json!({"type": "workshop", "recipes": recipes.iter().map(|r| json!({"id": r.id, "name": r.name, "rarity": r.rarity, "result": r.result, "needs": r.needs, "requires": r.requires, "sources": r.sources, "ok": r.ok, "item": gear_json(&r.item), "current": r.current.as_ref().map(gear_json)})).collect::<Vec<_>>()})
         }
@@ -456,6 +458,16 @@ impl Engine {
     /// gikk; butikken kommer på nytt med det du har nå.
     pub fn swap(&mut self, id: &str) -> bool {
         self.app.command(Command::Swap(id.into()))
+    }
+
+    /// Kjøp trubaduren et krus mjød, så han synger. Gir om det gikk.
+    pub fn buy_mead(&mut self) -> bool {
+        self.app.command(Command::BuyMead)
+    }
+
+    /// Kvadet i Vertshuset er spilt til endes (`tavern.mp3` er ferdig).
+    pub fn song_over(&mut self) {
+        self.app.command(Command::SongOver);
     }
 
     /// Boka: lesing av en komponents dokumentasjon gir liv.

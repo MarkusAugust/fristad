@@ -120,12 +120,21 @@ pub const TROUBADOUR: &[Line] = &[
     a("Sett deg ved ilden, fremmede. Visa om Gorvek er lang, og ølet er kort."),
     a("Gorvek ba aldri og spurte aldri. Han tok livet i strupen. Derfor synger vi om ham."),
     a("Jeg kan alle versene om forseglingen. Mester Ansgar får det siste, men ingen vet hvordan det slutter."),
-    a("En vise til? Det koster et krus. Eller en historie fra krypten."),
+    a("Kvadet om Gorvek koster et krus mjød. En tørr strupe synger ikke."),
     new("Et nytt ansikt ved porten. Det blir kanskje et vers av deg også."),
     at(1, "Du kommer nedenfra. Fortell hva du så, så setter jeg det i visa."),
     at(5, "Gruva, sier du? Det rimer ikke på noe. Jeg får finne på noe."),
     at(10, "Kjernen. Det finnes ikke noe vers om den ennå. Kanskje det blir ditt."),
 ];
+
+/// Trubaduren og mjøden (E, `application/tavern.rs`): det han sier når du
+/// står ved krakken, når du har kjøpt et krus, om du vil kjøpe mens han
+/// synger, og når kvadet er sunget og strupen er tørr.
+pub const MEAD_OFFER: &str = "Et krus mjød, fremmede, så synger jeg kvadet om Gorvek: han som kom gjennom regnet med øksa over skulderen og hogg beistet der leddene satt, natta gjennom. Men strupen er tørr, og kvadet er langt.";
+pub const MEAD_SINGING: &str = "Han er midt i kvadet, og kruset ditt står ennå ved krakken.";
+pub const MEAD_THANKS: &str = "Skål, fremmede! Så hør da om Gorvek og regnet.";
+pub const MEAD_AGAIN: &str = "Takk, men kruset står ennå fullt. Hør heller etter.";
+pub const MEAD_DRY: &str = "Der er Gorvek borte i regnet igjen. Strupen er tørr som pergament. Et krus til, så synger jeg igjen.";
 
 pub const PILGRIM: &[Line] = &[
     a("Jeg har gått fra Nidaros for å se mønsterboka. De sier den aldri sto i veien for noen."),

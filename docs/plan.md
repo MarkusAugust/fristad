@@ -238,6 +238,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 
 ### 13g. Trubaduren i Vertshuset (forarbeid 18. oktober, uten eierens modeller)
 - **Gjort:** plassen (krakken ved ildstedet, `seated` i `town.json`), de sittende klippene `sit` og `play` (`folk_motion.py`), kjevebeinet `jaw` i `folk3d.py` (`JAW`, `MOUTH`), sangens lydstyrke som data (`tools/music/voice.py`, `tavern_voice.json`) og munnen i motoren (`Command::Voice`, `Npcs::set_voice`). Prøvd på skriveren bygd som stedfortreder (`snapshot --model`).
+- **Gjort (eieren 18. oktober, «et krus mjød»):** han synger bare for et krus mjød (1 token, E gir egen dialog), kvadet spilles én gang fra start og høres i alle etasjene; etterpå sitter han stille (`application/tavern.rs`).
 - **Gjenstår (eieren):** trubadurens ark og glb fra TRELLIS (`docs/prompter-folk-3d.md`, så `python3.13 tools/models/folk3d.py troubadour`), og lutten (`item3d.py`), som henges på hoftebeinet (den ligger i fanget; hendene står i hoftenes rom i `play`). Munnen har ikke noe innside (TRELLIS lukker leppene), så den åpnes som en strekning av underleppa; et mørkt munnhule-lag kan legges på når modellen er der.
 
 ### 13h. Krypten: vannet, usynlige vegger og den falske veggen (18. oktober)

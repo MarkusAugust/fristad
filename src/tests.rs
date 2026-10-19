@@ -849,7 +849,7 @@ fn lydene_i_byen_folger_deg() {
     let a = last(&mut game, &mut physics);
     assert!(a.forge > 0.3, "ved smia: {a:?}");
     assert!(a.tavern < 1.0, "ved smia er du ikke i Vertshuset: {a:?}");
-    // Inne i Vertshuset synger trubaduren (musikken spiller `tavern`).
+    // Inne i Vertshuset (der trubaduren synger når han har fått mjød).
     let tavern = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| Vec3::from(p.transforms[0].translation)).expect("Vertshuset");
     game.place_feet(tavern + Vec3::Y * 0.3);
     let a = last(&mut game, &mut physics);
@@ -857,6 +857,95 @@ fn lydene_i_byen_folger_deg() {
     game.use_first(|u| *u == Use::Descend);
     let a = last(&mut game, &mut physics);
     assert!(a.cellar, "i kjelleren: {a:?}");
+}
+
+/// Vertshuset høres i alle etasjene (eieren 18. oktober): skjenkestua er
+/// 1, overetasjen og kjelleren litt svakere, men fortsatt inne i huset
+/// (≥ 0,6, så byens spor tones ned), og utenfor døra under 0,5.
+#[test]
+fn vertshuset_hores_i_alle_etasjene() {
+    use crate::ports::driving::Ambience;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let pl = world().world.placements.iter().find(|p| p.model == "tavern").map(|p| p.transforms[0]).expect("Vertshuset");
+    let mut at = |game: &mut Session, physics: &mut RapierPhysics, local: Vec3| -> Ambience {
+        game.place_feet(pl.transform_point3(local));
+        let mut a = None;
+        for _ in 0..10 {
+            for e in game.update(&mut input, 1.0 / 30.0, physics) {
+                if let Event::Ambience(x) = e {
+                    a = Some(x);
+                }
+            }
+        }
+        a.unwrap_or(Ambience { tavern: -1.0, ..Default::default() })
+    };
+    let ground = at(&mut game, &mut physics, Vec3::new(2.0, 0.7, 1.0));
+    assert!(ground.tavern >= 1.0, "skjenkestua: {ground:?}");
+    let upstairs = at(&mut game, &mut physics, Vec3::new(-2.0, 4.0, 0.5));
+    assert!((0.6..1.0).contains(&upstairs.tavern), "overetasjen: {upstairs:?}");
+    let cellar = at(&mut game, &mut physics, Vec3::new(0.0, -2.1, 0.0));
+    assert!((0.6..1.0).contains(&cellar.tavern), "kjelleren: {cellar:?}");
+    let outside = at(&mut game, &mut physics, Vec3::new(0.0, 0.0, 9.0));
+    assert!((0.0..0.5).contains(&outside.tavern), "utenfor døra: {outside:?}");
+}
+
+/// Trubaduren synger bare for et krus mjød (eieren 18. oktober): E gir en
+/// egen dialog med prisen, uten token går det ikke, kruset koster 1 token,
+/// og så synger han kvadet om Gorvek én gang (`Event::Song`) og spiller
+/// (`play`) mens det går; mens han synger er knappen av, og ingen betaler to
+/// ganger. Når kvadet er over, sitter han stille (`sit`).
+#[test]
+fn trubaduren_synger_for_et_krus_mjod() {
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    let mut tick = |game: &mut Session, physics: &mut RapierPhysics| -> Vec<Event> { (0..10).flat_map(|_| game.update(&mut input, 1.0 / 30.0, physics)).collect() };
+    let song = |events: &[Event]| events.iter().find_map(|e| if let Event::Song(on) = e { Some(*on) } else { None });
+    tick(&mut game, &mut physics);
+    assert!(!game.singing(), "uten mjød synger han ikke");
+    assert_eq!(game.troubadour_clip(), Some("sit"), "uten mjød sitter han stille");
+    match game.trade_troubadour() {
+        Some(Event::Mead(m)) => assert!(m.price == 1 && !m.singing && m.text.contains("Gorvek"), "{m:?}"),
+        e => panic!("E på trubaduren gir mjøddialogen: {e:?}"),
+    }
+    // Uten token.
+    game.set_tokens(0);
+    assert!(!game.buy_mead(), "mjød uten token");
+    let ev = tick(&mut game, &mut physics);
+    assert!(!game.singing() && song(&ev).is_none(), "sangen startet uten mjød");
+    // Med én token: kruset koster 1, og han synger.
+    game.set_tokens(1);
+    assert!(game.buy_mead(), "mjød for 1 token");
+    assert_eq!(game.tokens(), 0, "mjøden koster 1 token");
+    let ev = tick(&mut game, &mut physics);
+    assert_eq!(song(&ev), Some(true), "sangen begynner");
+    assert!(ev.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "coins")), "myntene klirrer");
+    assert!(game.singing());
+    // Takken står litt; så spiller han.
+    for _ in 0..25 {
+        tick(&mut game, &mut physics);
+    }
+    assert_eq!(game.troubadour_clip(), Some("play"), "han spiller mens sangen går");
+    // Kjøper du igjen mens han synger, betaler du ikke.
+    game.set_tokens(3);
+    match game.trade_troubadour() {
+        Some(Event::Mead(m)) => assert!(m.singing, "knappen er av mens han synger"),
+        e => panic!("{e:?}"),
+    }
+    assert!(!game.buy_mead(), "to krus for samme sang");
+    assert_eq!(game.tokens(), 3, "ingen betaler to ganger");
+    assert!(game.singing(), "han synger videre");
+    // Kvadet er over: han sitter stille og er tørr i strupen.
+    game.end_song();
+    let ev = tick(&mut game, &mut physics);
+    assert_eq!(song(&ev), Some(false), "sangen er over");
+    for _ in 0..25 {
+        tick(&mut game, &mut physics);
+    }
+    assert!(!game.singing());
+    assert_eq!(game.troubadour_clip(), Some("sit"), "etter sangen sitter han stille");
 }
 
 /// Skrittene følger underlaget: brostein på torget, gress på enga og stein

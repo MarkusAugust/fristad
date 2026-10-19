@@ -130,7 +130,7 @@ const swaps = [SW("tag_divider", "tag", 3, "divider", 4), SW("badge_divider", "b
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
 let bad = 0;
 for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
-  for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop", "smith-swap", "smith-swap-detail", "smith-buy"]) {
+  for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop", "smith-swap", "smith-swap-detail", "smith-buy", "mead", "mead-poor", "mead-singing"]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     // TEXTSIZE=1.4 prøver den største tekststørrelsen (Innstillinger, `fristad.textsize`).
     if (process.env.TEXTSIZE) await page.addInitScript((v) => localStorage.setItem("fristad.textsize", v), process.env.TEXTSIZE);
@@ -152,6 +152,10 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
       if (menu.startsWith("inventory")) ui.toggleInventory();
       if (menu === "shop") ui.handle({ type: "shop", npc: "Apotekeren", wares });
       if (menu.startsWith("smith")) ui.handle({ type: "shop", npc: "Buttonsmeden", wares: wares.slice(0, 4), swaps });
+      // Trubaduren (E): et krus mjød for kvadet om Gorvek, uten råd og mens han synger.
+      if (menu === "mead-poor") ui.handle({ type: "hud", hp: 96, stamina: 80, tokens: 0, keys: 1, light: 62, cellar: false, boss: null });
+      const offer = "Et krus mjød, fremmede, så synger jeg kvadet om Gorvek: han som kom gjennom regnet med øksa over skulderen og hogg beistet der leddene satt, natta gjennom. Men strupen er tørr, og kvadet er langt.";
+      if (menu.startsWith("mead")) ui.handle({ type: "mead", npc: "Trubaduren", text: menu === "mead-singing" ? "Han er midt i kvadet, og kruset ditt står ennå ved krakken." : offer, price: 1, singing: menu === "mead-singing" });
     }, { menu, inventory, recipes, wares, swaps });
     await page.waitForTimeout(300);
     if (menu === "smith-swap-detail") {

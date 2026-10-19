@@ -97,6 +97,11 @@ pub enum Command {
     /// Bytt komponenter hos Buttonsmeden (`loot::SWAPS` etter id). Gir om
     /// det gikk; butikken sendes på nytt med det du har nå.
     Swap(String),
+    /// Kjøp trubaduren et krus mjød (1 token), så han synger kvadet om
+    /// Gorvek (`Event::Song`). Gir om det gikk.
+    BuyMead,
+    /// Sangen er spilt til endes i nettlaget (`tavern.mp3` er ferdig).
+    SongOver,
     /// Ta på et våpen, skjold eller en rustning du har (fra inventaret).
     Equip(String),
     /// Les om en komponent i boka (gir liv).
@@ -404,6 +409,11 @@ pub enum Event {
     Workshop {
         recipes: Vec<RecipeView>,
     },
+    /// E på trubaduren: tilbudet om et krus mjød (en egen liten dialog).
+    Mead(MeadView),
+    /// Trubaduren begynner kvadet om Gorvek fra start (`true`, spilles én
+    /// gang, ikke i løkke), eller det er over (`false`).
+    Song(bool),
     /// Lydbildet der du står, når det endrer seg merkbart.
     Ambience(Ambience),
     /// Kartet over etasjen du er i (minikartet og det store kartet), når
@@ -495,14 +505,26 @@ pub struct Ambience {
     pub chasm: f32,
     /// Den åpne portalen ved sørporten summer.
     pub portal: f32,
-    /// Trubaduren i Vertshuset: 1 inne, svakere utenfor døra (musikken
-    /// spiller `tavern` i stedet for byens spor inne).
+    /// Vertshuset: 1 i skjenkestua der trubaduren sitter, `TAVERN_UPPER`
+    /// og `TAVERN_CELLAR` i overetasjen og kjelleren, under 0,5 og
+    /// avtagende utenfor døra. Inne i huset (≥ 0,6) tones byens spor ned;
+    /// synger trubaduren (`Event::Song`), spiller `tavern` så sterkt.
     pub tavern: f32,
     pub rain: f32,
     pub wind: f32,
     pub night: bool,
     pub cellar: bool,
     pub indoor: bool,
+}
+
+/// Trubadurens tilbud: det han sier, prisen, og om han synger allerede
+/// (da er knappen av, så ingen betaler to ganger).
+#[derive(Clone, Debug, PartialEq)]
+pub struct MeadView {
+    pub npc: String,
+    pub text: String,
+    pub price: u32,
+    pub singing: bool,
 }
 
 /// Siktet: navnet på det du sikter på, hva F gjør, og hva E gjør (tom om
