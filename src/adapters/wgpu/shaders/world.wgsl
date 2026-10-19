@@ -146,9 +146,10 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
 
 // Steinbyttet per instans (`model::Look`, `crypt::stone`): gulvlaget og
 // murlaget biten er laget med byttes med instansens; flatene av murlaget som
-// vender nedover i modellens rom (hvelvet) får hvelvlaget. extra2.z er
-// gulvet (fra, til) og muren (fra, til), 6 bit hver; extra2.w hvelvet, og
-// bit 6 slår det på.
+// vender nedover i modellens rom (hvelvet) får hvelvlaget, og den hogde
+// steinen (søyler, ribber, buer, karmer) sitt eget. extra2.z er gulvet (fra,
+// til) og muren (fra, til), 6 bit hver; extra2.w hvelvet, bit 6 slår det
+// på, og den hogde steinen (fra, til) står i bit 7–18.
 fn look(o: ptr<function, VsOut>, v: VsIn, inst: Instance) {
     let w = u32(inst.extra2.w);
     if ((w & 64u) == 0u) {
@@ -158,6 +159,8 @@ fn look(o: ptr<function, VsOut>, v: VsIn, inst: Instance) {
     let m = v.mat.x;
     if (m == (z & 63u)) {
         (*o).mat.x = (z >> 6u) & 63u;
+    } else if (m == ((w >> 7u) & 63u)) {
+        (*o).mat.x = (w >> 13u) & 63u;
     } else if (m == ((z >> 12u) & 63u)) {
         if (v.normal.y < -0.3) {
             (*o).mat.x = w & 63u;

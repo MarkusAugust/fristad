@@ -159,9 +159,9 @@ pub enum Layer {
     CorePlastic = 61,
     /// Kjernen: stein som går over i plast med lysende sømmer (malt).
     CoreStone = 62,
+    CryptDressed = 63, // Hogd stein i krypten: søyler, ribber, buer, karmer (bildet til `crypt_wall`, egen rolle til steinbyttet).
 }
-/// Høyst 64: `tex_scale` i `Globals` har plass til 16 × 4.
-pub const LAYERS: u32 = 63;
+pub const LAYERS: u32 = 64; // Høyst 64 (fullt): `tex_scale` i `Globals` har plass til 16 × 4, og steinbyttet pakker 6 bit per lag.
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
@@ -172,7 +172,7 @@ impl Layer {
         Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin,
         Layer::WallStone, Layer::Flagstone, Layer::Gravel, Layer::Chimney, Layer::Snow, Layer::OakPlaned,
         Layer::CryptStone, Layer::CryptFloor, Layer::CryptVault, Layer::GraveSlab, Layer::Ossuary, Layer::CryptPlaster, Layer::Rubble, Layer::BronzeDoor, Layer::GlitchSeam,
-        Layer::SewerBrick, Layer::SewerFloor, Layer::MineRock, Layer::MineTimber, Layer::KeepAshlar, Layer::KeepFloor, Layer::CorePlastic, Layer::CoreStone,
+        Layer::SewerBrick, Layer::SewerFloor, Layer::MineRock, Layer::MineTimber, Layer::KeepAshlar, Layer::KeepFloor, Layer::CorePlastic, Layer::CoreStone, Layer::CryptDressed,
     ];
     /// Laget med navnet (mappa i `assets/textures/`).
     pub fn from_name(name: &str) -> Option<Layer> {
@@ -191,11 +191,11 @@ const NAMES: [&str; LAYERS as usize] = [
         "plaster_red", "plaster_old", "weatherboard", "weatherboard_grey", "wattle", "shingles", "shingles_tar", "trim", "door", "door_b",
         "timber_grey", "church_boards", "ruin", "wall_stone", "flagstone", "gravel", "chimney", "snow", "oak_planed", "crypt_wall", "crypt_floor",
         "crypt_vault", "grave_slab", "ossuary", "crypt_plaster", "rubble", "bronze_door", "glitch_seam", "sewer_brick", "sewer_floor", "mine_rock",
-        "mine_timber", "keep_ashlar", "keep_floor", "core_plastic", "core_stone",
+        "mine_timber", "keep_ashlar", "keep_floor", "core_plastic", "core_stone", "crypt_dressed",
 ];
 
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0, 1.5, 2.0, 3.0, 1.5, 2.5, 2.0, 2.0, 2.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0, 1.5, 2.0, 3.0, 1.5, 2.5, 2.0, 2.0, 2.0, 2.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

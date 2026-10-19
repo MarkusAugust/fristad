@@ -108,7 +108,12 @@ def rot_y(p, yaw):
 # døgnet, «magic_» gløder i sin egen farge, «water» er vann.
 MATS = {
     "wall": ("crypt_wall", (0.9, 0.9, 0.93), 0.5),
-    "dressed": ("crypt_wall", (1.0, 0.98, 0.95), 0.45),
+    # Den hogde steinen (søyler, ribber, gjordbuer, buestaver, karmer,
+    # kapitéler, konsoller, sokkel, terskler): samme bilde som muren, men
+    # eget lag (`crypt_dressed`), så steinbyttet gir den sin egen stein
+    # (`docs/nivaaredigering.md` del 22; ellers fikk søylene berg og ribbene
+    # tømmer).
+    "dressed": ("crypt_dressed", (1.0, 0.98, 0.95), 0.45),
     "wall_dark": ("crypt_wall", (0.62, 0.62, 0.68), 0.55),
     # Innsida av alkovene: samme stein, mørkere, så dybden leses (lyset
     # når dårlig inn, og okklusjonen i hjørnefargen har få hjørner der).
@@ -125,7 +130,7 @@ MATS = {
     # om nivå 1: «teksturer som ikke passer sammen»; crypt_vault var små,
     # mørke bruddsteiner over store lyse kvadre).
     "vault": ("crypt_wall", (0.72, 0.72, 0.76), 0.5),
-    "rib": ("crypt_wall", (0.8, 0.79, 0.8), 0.5),
+    "rib": ("crypt_dressed", (0.8, 0.79, 0.8), 0.5),
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
     "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
     "rubble": ("rubble", (1.0, 1.0, 1.0), 0.55),

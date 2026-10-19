@@ -42,7 +42,7 @@ fn steinene_peker_pa_lag_som_finnes() {
     assert!(k.stones.check().is_empty(), "{:#?}", k.stones.check());
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for s in &k.stones.stones {
-        for l in [&s.floor, &s.wall, &s.vault] {
+        for l in [&s.floor, &s.wall, &s.vault, &s.trim] {
             assert!(root.join("assets/textures").join(l).join("meta.json").exists(), "steinen {}: laget {l} har ikke noe malt bilde i assets/textures/", s.id);
         }
     }
@@ -51,7 +51,11 @@ fn steinene_peker_pa_lag_som_finnes() {
     }
     let base = k.stones.base("grav").unwrap();
     let used = crate::adapters::gltf::used_layers();
-    assert!(used.contains(&base.floor) && used.contains(&base.wall), "byggesettet er ikke laget med {base:?}");
+    assert!(used.contains(&base.floor) && used.contains(&base.wall) && used.contains(&base.trim), "byggesettet er ikke laget med {base:?}");
+    // Den hogde steinen er hogd i hver stein: aldri tømmer eller plast.
+    for s in &k.stones.stones {
+        assert!(!["mine_timber", "core_plastic"].contains(&s.trim.as_str()), "steinen {}: søylene og buene i {}", s.id, s.trim);
+    }
 }
 
 /// Dokumentet med stein på nivået, rommet, modulen og kanten skrives og
@@ -70,7 +74,7 @@ fn dokumentet_med_stein_leses_og_skrives() {
     let json = r#"{"stone": "tegl", "rooms": [{"id": "r", "stone": {"wall": "sewer_brick", "floor": "kvader"}}], "edges": [{"cell": "c", "side": "N", "stone": "berg"}]}"#;
     let d: LevelDoc = serde_json::from_str(json).unwrap();
     assert_eq!(d.stone, named("tegl"));
-    assert_eq!(d.rooms[0].stone, Some(StoneRef::Parts(StoneParts { floor: Some("kvader".into()), wall: Some("sewer_brick".into()), vault: None })));
+    assert_eq!(d.rooms[0].stone, Some(StoneRef::Parts(StoneParts { floor: Some("kvader".into()), wall: Some("sewer_brick".into()), vault: None, trim: None })));
     assert_eq!(d.edges[0].stone, named("berg"));
 }
 
@@ -90,8 +94,8 @@ fn kompilatoren_gir_steinen_per_instans() {
     assert!(r.errors().next().is_none(), "{:?}", r.errors().collect::<Vec<_>>());
     for i in f.instances.iter().filter(|i| i.model != "grav_fakkel") {
         let s = i.stone.as_ref().unwrap_or_else(|| panic!("{} har ingen stein", i.model));
-        assert_eq!(s.from, ["crypt_floor".to_string(), "crypt_wall".into()]);
-        assert_eq!(s.to, ["sewer_floor".to_string(), "sewer_brick".into(), "sewer_brick".into()]);
+        assert_eq!(s.from, ["crypt_floor".to_string(), "crypt_wall".into(), "crypt_dressed".into()]);
+        assert_eq!(s.to, ["sewer_floor".to_string(), "sewer_brick".into(), "sewer_brick".into(), "crypt_dressed".into()]);
     }
     assert!(f.instances.iter().filter(|i| i.model == "grav_fakkel").all(|i| i.stone.is_none()));
 
@@ -107,7 +111,7 @@ fn kompilatoren_gir_steinen_per_instans() {
     assert!(r.errors().next().is_none(), "{:?}", r.errors().collect::<Vec<_>>());
     let cell_a = at(&f, 0.0, 0.0, None);
     assert_eq!(cell_a.len(), 1);
-    assert_eq!(cell_a[0].stone.as_ref().unwrap().to, ["sewer_floor".to_string(), "sewer_brick".into(), "crypt_vault".into()], "rommet over nivået, flate for flate");
+    assert_eq!(cell_a[0].stone.as_ref().unwrap().to, ["sewer_floor".to_string(), "sewer_brick".into(), "crypt_vault".into(), "crypt_dressed".into()], "rommet over nivået, flate for flate");
     assert_eq!(wall(at(&f, 4.0, 0.0, None)[0]), "keep_ashlar", "modulens stein");
     // Døra mellom dem: a sin halvdel tegl, b sin kvader.
     let (east, west) = (side_yaw(1), side_yaw(3));
@@ -186,12 +190,37 @@ fn steinbyttet_folger_flatene() {
     doc.stone = named("kjernestein");
     let (f, _) = compose::compile(&doc, &k);
     let look: Look = f.instances.iter().find_map(|i| i.stone.as_ref()).and_then(|s| s.look()).expect("utseendet");
-    let (floor, wall, plank) = (Layer::CryptFloor as u8, Layer::CryptStone as u8, Layer::Planks as u8);
+    let (floor, wall, trim, plank) = (Layer::CryptFloor as u8, Layer::CryptStone as u8, Layer::CryptDressed as u8, Layer::Planks as u8);
     assert_eq!(look.layer(floor, 1.0), Layer::CoreStone as u8);
     assert_eq!(look.layer(wall, 0.0), Layer::CoreStone as u8, "loddrett mur");
     assert_eq!(look.layer(wall, 0.6), Layer::CoreStone as u8, "trinn og sokkel");
     assert_eq!(look.layer(wall, -0.8), Layer::CorePlastic as u8, "hvelvet");
+    assert_eq!(look.layer(trim, 0.0), Layer::CoreStone as u8, "søyla");
+    assert_eq!(look.layer(trim, -0.8), Layer::CoreStone as u8, "ribba under hvelvet er hogd stein, ikke hvelv");
     assert_eq!(look.layer(plank, -1.0), plank, "andre lag er som før");
+}
+
+/// Den hogde steinen (søyler, ribber, buer, karmer) er en egen flate: bitene
+/// er laget med den, hver stein har sin, og den overstyres som de andre.
+#[test]
+fn den_hogde_steinen_er_egen_flate() {
+    let k = kit();
+    let used = crate::adapters::gltf::used_layers();
+    assert!(used.iter().any(|l| l == "crypt_dressed"), "byggesettet har ingen hogd stein");
+    let mut doc = two_rooms();
+    doc.stone = named("berg");
+    let (f, _) = compose::compile(&doc, &k);
+    let s = f.instances.iter().find_map(|i| i.stone.as_ref()).unwrap();
+    assert_eq!((s.to[1].as_str(), s.to[3].as_str()), ("mine_rock", "keep_ashlar"), "berget har kvader i søylene");
+    doc.modules[1].stone = Some(StoneRef::Parts(StoneParts { trim: Some("kjernestein".into()), ..Default::default() }));
+    let (f, r) = compose::compile(&doc, &k);
+    assert!(r.errors().next().is_none(), "{:?}", r.errors().collect::<Vec<_>>());
+    let b = at(&f, 4.0, 0.0, None)[0].stone.as_ref().unwrap();
+    assert_eq!((b.to[1].as_str(), b.to[3].as_str()), ("mine_rock", "core_stone"), "trim fra en stein, muren arvet");
+    doc.modules[1].stone = Some(StoneRef::Parts(StoneParts { trim: Some("ashlar".into()), ..Default::default() }));
+    assert_eq!(at(&compose::compile(&doc, &k).0, 4.0, 0.0, None)[0].stone.as_ref().unwrap().to[3], "ashlar", "trim som lagnavn");
+    let d: LevelDoc = serde_json::from_str(r#"{"stone": {"trim": "kvader"}}"#).unwrap();
+    assert_eq!(d.stone, Some(StoneRef::Parts(StoneParts { trim: Some("kvader".into()), ..Default::default() })));
 }
 
 /// Prøvenivået med steinene (`assets/levels/nivaa_steiner.json`: rom 2 × 2
@@ -204,6 +233,6 @@ fn steinnivaaet_bygges() {
     let (f, r) = compose::compile(&doc, &k);
     assert!(r.errors().next().is_none(), "{:?}", r.errors().collect::<Vec<_>>());
     for s in k.stones.stones.iter().filter(|s| s.id != "gravmur") {
-        assert!(f.instances.iter().any(|i| i.stone.as_ref().is_some_and(|x| x.to == [s.floor.clone(), s.wall.clone(), s.vault.clone()])), "steinen {} er ikke brukt", s.id);
+        assert!(f.instances.iter().any(|i| i.stone.as_ref().is_some_and(|x| x.to == [s.floor.clone(), s.wall.clone(), s.vault.clone(), s.trim.clone()])), "steinen {} er ikke brukt", s.id);
     }
 }

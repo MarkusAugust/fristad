@@ -166,12 +166,13 @@ impl InstanceData {
         Self { model: Mat4::from(*t).to_cols_array_2d(), extra, extra2: [base as f32 + 1.0, 0.0, 0.0, 0.0] }
     }
     /// Steinbyttet (`model::Look`), 6 bit per lag, eksakt i f32: z er gulvet
-    /// (fra, til) og muren (fra, til), w hvelvet og bit 6 som slår det på.
+    /// (fra, til) og muren (fra, til), w hvelvet, bit 6 som slår det på og
+    /// den hogde steinen (fra, til) i bit 7–18.
     pub fn with_look(mut self, look: Option<&crate::domain::model::Look>) -> Self {
         if let Some(l) = look {
             let b = |l: crate::domain::geometry::Layer| l as u32 & 63;
             self.extra2[2] = (b(l.floor.0) | b(l.floor.1) << 6 | b(l.wall.0) << 12 | b(l.wall.1) << 18) as f32;
-            self.extra2[3] = (b(l.vault) | 1 << 6) as f32;
+            self.extra2[3] = (b(l.vault) | 1 << 6 | b(l.trim.0) << 7 | b(l.trim.1) << 13) as f32;
         }
         self
     }

@@ -111,6 +111,7 @@ const TEXTURES: Record<string, string[]> = {
   keep_floor: [],
   core_plastic: [],
   core_stone: [],
+  crypt_dressed: [],
 };
 
 const force = process.argv.includes("--force");

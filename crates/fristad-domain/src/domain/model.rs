@@ -69,7 +69,7 @@ pub struct Placement {
 
 /// Steinbyttet per instans (`crypt::stone`, `docs/nivaaredigering.md` del
 /// 22): bitene er laget med temaets lag for gulvet og muren, og instansen
-/// bytter dem. Flatene av murlaget som vender nedover i modellens rom
+/// bytter dem (og den hogde steinen). Flatene av murlaget som vender nedover i modellens rom
 /// (normalen under `VAULT_NY`: hvelvene, buene og overliggerne) får
 /// hvelvlaget. Rendereren gjør det samme i vertexshaderen (`look` i
 /// `world.wgsl`), og sammenslåingen av bitene med `layer`.
@@ -79,6 +79,9 @@ pub struct Look {
     pub floor: (Layer, Layer),
     pub wall: (Layer, Layer),
     pub vault: Layer,
+    /// Den hogde steinen (søyler, ribber, buer, karmer, sokkel): egen rolle,
+    /// aldri hvelv.
+    pub trim: (Layer, Layer),
 }
 
 impl Look {
@@ -88,6 +91,8 @@ impl Look {
     pub fn layer(&self, layer: u8, normal_y: f32) -> u8 {
         if layer == self.floor.0 as u8 {
             self.floor.1 as u8
+        } else if layer == self.trim.0 as u8 {
+            self.trim.1 as u8
         } else if layer == self.wall.0 as u8 {
             if normal_y < Self::VAULT_NY {
                 self.vault as u8

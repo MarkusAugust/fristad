@@ -1,8 +1,8 @@
 """Pilotsettet for gravkjelleren i den malte stilen (docs/nivaaredigering.md,
 del 4.4 og fase 2): bitene kjernen setter sammen etter nivådokumentet
 (`assets/levels/nivaa_*.json`, `domain/world/crypt/compose/`), laget med
-funksjonene i `kit_grav.py` og de malte lagene (`crypt_wall`, `crypt_floor`,
-`grave_slab`, `ossuary`), med sokkel, karmer, ribber og nisjer som i nivå 1.
+funksjonene i `kit_grav.py` og de malte lagene (`crypt_wall`, `crypt_dressed`
+til den hogde steinen, `crypt_floor`, `grave_slab`, `ossuary`), med sokkel, karmer, ribber og nisjer som i nivå 1.
 
 Bitene står på rutenettet på 4 × 4 m (`kit_common.py`):
 

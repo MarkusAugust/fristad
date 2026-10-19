@@ -1,9 +1,11 @@
 //! Steinen i murene (`docs/nivaaredigering.md` del 22, eieren 19. oktober:
 //! «det må være mulig å skifte type tekstur på mur også»). En modul er en
 //! form, og steinen er et valg: bitene i byggesettet er laget med temaets
-//! lag for gulvet og muren (`layer_crypt_floor`, `layer_crypt_wall`), og
-//! hver instans får sine egne lag for gulvet, muren og hvelvet
-//! (`model::Look`), så ingen nye modeller trengs per tema.
+//! lag for gulvet, muren og den hogde steinen (`layer_crypt_floor`,
+//! `layer_crypt_wall`, `layer_crypt_dressed`: søyler, ribber, buer, karmer,
+//! kapitéler, konsoller, sokkel og terskler), og hver instans får sine egne
+//! lag for gulvet, muren, hvelvet og den hogde steinen (`model::Look`), så
+//! ingen nye modeller trengs per tema.
 //!
 //! Steinene står i `assets/levels/steiner.json` (`StoneFile`): navn → lag
 //! for gulv, mur og hvelv, og standardsteinen per tema. Nivådokumentet
@@ -15,7 +17,8 @@ use crate::domain::model::Look;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// En stein: lagene for gulvet, muren og hvelvet (navnene i `Layer::name`).
+/// En stein: lagene for gulvet, muren, hvelvet og den hogde steinen
+/// (`trim`; navnene i `Layer::name`).
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct StoneDef {
     pub id: String,
@@ -24,6 +27,7 @@ pub struct StoneDef {
     pub floor: String,
     pub wall: String,
     pub vault: String,
+    pub trim: String,
 }
 
 /// `assets/levels/steiner.json`.
@@ -55,6 +59,8 @@ pub struct StoneParts {
     pub wall: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vault: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trim: Option<String>,
 }
 
 /// Lagene en celle eller en halvkant får (navnene).
@@ -63,6 +69,13 @@ pub struct Surfaces {
     pub floor: String,
     pub wall: String,
     pub vault: String,
+    pub trim: String,
+}
+
+impl Surfaces {
+    fn of(s: &StoneDef) -> Self {
+        Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone(), trim: s.trim.clone() }
+    }
 }
 
 impl StoneFile {
@@ -72,8 +85,7 @@ impl StoneFile {
 
     /// Standardsteinen for et tema (lagene byggesettet for temaet er laget med).
     pub fn base(&self, theme: &str) -> Option<Surfaces> {
-        let s = self.stone(self.themes.get(theme)?)?;
-        Some(Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone() })
+        Some(Surfaces::of(self.stone(self.themes.get(theme)?)?))
     }
 
     /// Ett lag: et lagnavn, eller flaten fra en stein.
@@ -92,7 +104,7 @@ impl StoneFile {
         match r {
             StoneRef::Named(id) => {
                 let st = self.stone(id).ok_or_else(|| format!("ukjent stein «{id}»"))?;
-                *s = Surfaces { floor: st.floor.clone(), wall: st.wall.clone(), vault: st.vault.clone() };
+                *s = Surfaces::of(st);
             }
             StoneRef::Parts(p) => {
                 if let Some(n) = &p.floor {
@@ -104,6 +116,9 @@ impl StoneFile {
                 if let Some(n) = &p.vault {
                     s.vault = self.layer(n, |s| &s.vault)?;
                 }
+                if let Some(n) = &p.trim {
+                    s.trim = self.layer(n, |s| &s.trim)?;
+                }
             }
         }
         Ok(())
@@ -113,14 +128,14 @@ impl StoneFile {
     /// (ingenting når det er likt det biten er laget med).
     pub fn swap(&self, theme: &str, to: &Surfaces) -> Option<InstanceStone> {
         let base = self.base(theme)?;
-        (base != *to).then(|| InstanceStone { from: [base.floor, base.wall], to: [to.floor.clone(), to.wall.clone(), to.vault.clone()] })
+        (base != *to).then(|| InstanceStone { from: [base.floor, base.wall, base.trim], to: [to.floor.clone(), to.wall.clone(), to.vault.clone(), to.trim.clone()] })
     }
 
     /// Hver stein og hvert tema peker på lag som finnes (feilene).
     pub fn check(&self) -> Vec<String> {
         let mut bad = vec![];
         for s in &self.stones {
-            for l in [&s.floor, &s.wall, &s.vault] {
+            for l in [&s.floor, &s.wall, &s.vault, &s.trim] {
                 if Layer::from_name(l).is_none() {
                     bad.push(format!("steinen {}: laget «{l}» finnes ikke", s.id));
                 }
@@ -136,17 +151,17 @@ impl StoneFile {
 }
 
 /// Steinbyttet på en instans i nivåfila: lagene biten er laget med (gulv,
-/// mur) og lagene den får (gulv, mur, hvelv).
+/// mur, hogd stein) og lagene den får (gulv, mur, hvelv, hogd stein).
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct InstanceStone {
-    pub from: [String; 2],
-    pub to: [String; 3],
+    pub from: [String; 3],
+    pub to: [String; 4],
 }
 
 impl InstanceStone {
     /// Utseendet for rendereren (ingenting om et lag er ukjent).
     pub fn look(&self) -> Option<Look> {
         let l = |n: &String| Layer::from_name(n);
-        Some(Look { floor: (l(&self.from[0])?, l(&self.to[0])?), wall: (l(&self.from[1])?, l(&self.to[1])?), vault: l(&self.to[2])? })
+        Some(Look { floor: (l(&self.from[0])?, l(&self.to[0])?), wall: (l(&self.from[1])?, l(&self.to[1])?), vault: l(&self.to[2])?, trim: (l(&self.from[2])?, l(&self.to[3])?) })
     }
 }
