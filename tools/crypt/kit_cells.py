@@ -169,21 +169,51 @@ def barrel(m, S0, S1, R, mat="vault", steps=4):
             m.poly(pts, uvs, mat, facing=K.sub((0.0, S(c[2]) - 2.0, c[2]), c), smooth=True)
 
 
-def stone_column(m, surf, u0, u1, v0, v1, proud, seed=0, mat="dressed"):
-    """En stabel hogde steiner på murflaten (pilasteren, hjørnesteinene):
-    skift annenhver 0,42 og 0,30 m høye, hver med én hel stein fra murbildet
-    (`K.stone_uv`) og mørtel bak fugene, som karmene."""
-    g = 0.008
-    q = [(u0 + 0.004, v0), (u1 - 0.004, v0), (u1 - 0.004, v1), (u0 + 0.004, v1)]
-    m.poly([surf.point(u, v, proud * 0.35) for u, v in q], [surf.uv(u, v) for u, v in q], "mortar", facing=surf.normal(0.0))
-    v, j, k = v0, 0, seed
-    while v < v1 - 0.05:
-        h = min(0.42 if j % 2 == 0 else 0.3, v1 - v)
-        pts = [(u0, v + g), (u1, v + g), (u1, v + h - g), (u0, v + h - g)]
-        K._trim_block(m, surf, pts, proud, mat, K.stone_uv(k, pts))
-        v += h
-        j += 1
-        k += 3
+def dome(m, r, S, crown, rings=10, seg=64, mat="vault"):
+    """Kuppelen (flat kalott) over rotunden, med de samme hjørnene som
+    `kit_grav.dome`, men uv som følger steinskiftene: v er buelengden opp
+    langs kuppelen, og u buelengden rundt ved midten av hver ring (lik på
+    begge kantene av ringen, så bildet ikke skjæres skjevt rundt kuppelen;
+    sømmen i a = 0 ligger under en ribbe). Gir høyden h(q)."""
+    rise = crown - S
+    Rs = (r * r + rise * rise) / (2 * rise)
+    yc = crown - Rs
+    h = lambda q: yc + math.sqrt(max(0.0, Rs * Rs - q * q))
+    arc = lambda q: Rs * (math.asin(min(1.0, r / Rs)) - math.asin(min(1.0, q / Rs)))
+    for i in range(rings):
+        r0 = r * (1 - i / rings)
+        r1 = r * (1 - (i + 1) / rings)
+        rm = (r0 + r1) / 2
+        for j in range(seg):
+            a0 = 2 * math.pi * j / seg
+            a1 = 2 * math.pi * (j + 1) / seg
+            P = lambda q, a: (q * math.cos(a), h(q), q * math.sin(a))
+            pts = [P(r0, a0), P(r0, a1), P(r1, a1), P(r1, a0)]
+            uvs = [(rm * a0, arc(r0)), (rm * a1, arc(r0)), (rm * a1, arc(r1)), (rm * a0, arc(r1))]
+            if r1 < 1e-6:
+                pts, uvs = pts[:3], uvs[:3]
+            cen = K.lerp(pts[0], pts[2], 0.5)
+            m.poly(pts, uvs, mat, facing=K.sub((0.0, S - 3.0, 0.0), cen), smooth=True)
+    return h
+
+
+def pilaster_half(m, surf, v0, v1):
+    """Den ene halvdelen av pilasteren (u fra 0 i kantlinja til `PIL_W`,
+    `PIL_OUT` ut fra muren): ett skaft av hogd stein i forbandt med muren
+    (murens uv, så skiftene går i flukt med skiftene i muren og rundt
+    hjørnet til sida), uten fuger i kantlinja der halvdelen i naboen tar
+    over (enkeltsteiner fra bildet speilet seg i kantlinja)."""
+    ys = [v0] + [float(k) for k in range(int(v0) + 1, int(v1) + 1) if v0 < k < v1] + [v1]
+    side_dir = K.sub(surf.point(1.0, 0.0, 0.0), surf.point(0.0, 0.0, 0.0))
+    for a, b in zip(ys, ys[1:]):
+        front = [surf.point(0.0, a, PIL_OUT), surf.point(PIL_W, a, PIL_OUT), surf.point(PIL_W, b, PIL_OUT), surf.point(0.0, b, PIL_OUT)]
+        m.poly(front, [surf.uv(0.0, a), surf.uv(PIL_W, a), surf.uv(PIL_W, b), surf.uv(0.0, b)], "dressed", facing=surf.normal(0.0))
+        side = [surf.point(PIL_W, a, PIL_OUT), surf.point(PIL_W, a, 0.0), surf.point(PIL_W, b, 0.0), surf.point(PIL_W, b, PIL_OUT)]
+        m.poly(side, [surf.uv(PIL_W, a), surf.uv(PIL_W + PIL_OUT, a), surf.uv(PIL_W + PIL_OUT, b), surf.uv(PIL_W, b)], "dressed", facing=side_dir)
+        # Sida i kantlinja: inne i naboens halvdel, men synlig der naboen har
+        # en åpning (ingen usynlig vegg).
+        inner = [surf.point(0.0, a, 0.0), surf.point(0.0, a, PIL_OUT), surf.point(0.0, b, PIL_OUT), surf.point(0.0, b, 0.0)]
+        m.poly(inner, [surf.uv(-PIL_OUT, a), surf.uv(0.0, a), surf.uv(0.0, b), surf.uv(-PIL_OUT, b)], "dressed", facing=K.sub((0, 0, 0), side_dir))
 
 
 def sealed_niche(m, surf, u, v0, w=1.7, h=0.44):
@@ -225,7 +255,7 @@ def stair(m, rise, n):
 def wall_rib(m, z, S, R, with_consoles=True):
     """Gjordbuen på tvers av gangen i z (over tønnehvelvet), som dør inn i
     murene, med en konsoll under på hver side."""
-    K.barrel_rib(m, "z", z, 0.0, S, R, HALF, width=0.32, depth=0.15)
+    K.barrel_rib(m, "z", z, 0.0, S, R, HALF, width=0.32, depth=0.15, stones=23)
     if with_consoles:
         y = gang_h(FACE)
         for sx in (-1.0, 1.0):
@@ -307,7 +337,7 @@ def half(kind, far=False, niches=False):
             nu, nv = u / HALF ** 2, (v - GANG_S) / GANG_R ** 2  # ut fra ellipsen
             L = math.hypot(nu, nv)
             path.append((u + 0.11 * nu / L, v + 0.11 * nv / L, WALL_T))
-        K.band(m, path, 0.2, 0.12, mat="dressed", down=lambda p: (0.0, 0.0, 1.0))
+        K.band(m, path, 0.2, 0.12, mat="dressed", down=lambda p: (0.0, 0.0, 1.0), stones=11)
     return m
 
 
@@ -353,7 +383,7 @@ def arch_half(far=False):
     m = K.MB()
     ts = vault_ts() if not far else [t for k, t in enumerate(vault_ts()) if k % 2 == 0 or abs(t) > 0.99]
     path = [(HALF * t, room_h(HALF * t), 0.075) for t in ts]
-    K.band(m, path, 0.15, 0.22, mat="rib", down=lambda p: (-p[0], ROOM_S - p[1], 0.0))
+    K.band(m, path, 0.15, 0.22, mat="rib", down=lambda p: (-p[0], ROOM_S - p[1], 0.0), stones=5, half=(2, 0.0))
     return m
 
 
@@ -428,7 +458,7 @@ def corner(kind="plain", far=False):
         for s in (zf, xf):
             K.plinth(m, s, [(PIL_W, WALL_T, 0.0)], h=PLINTH_H, proud=PLINTH_OUT)
             # Skaftet av hogde steiner, basen og kapitélet (impost) under buen.
-            stone_column(m, s, 0.0, PIL_W, PLINTH_H + 0.06, ROOM_S - 0.25, PIL_OUT, seed=7 if s is zf else 11)
+            pilaster_half(m, s, PLINTH_H + 0.06, ROOM_S - 0.25)
             pil = K.MB()
             K.box(pil, (0.0, WALL_FOOT, 0.0), (PIL_W + 0.06, PLINTH_H + 0.06, PIL_OUT + 0.08), "dressed", faces=("+z", "+x", "+y"))
             K.box(pil, (0.0, ROOM_S - 0.25, 0.0), (PIL_W + 0.08, ROOM_S, PIL_OUT + 0.1), "dressed", faces=("+z", "+x", "-y", "+y"))
@@ -470,7 +500,7 @@ def romfelt(far=False, b=False):
         floor(m)
     groin(m, ROOM_S, ROOM_R, k=1 if far else 3)
     if b and not far:
-        K.groin_ribs(m, -HALF, HALF, -HALF, HALF, ROOM_S, ROOM_R, width=0.22, depth=0.15)
+        K.groin_ribs(m, -HALF, HALF, -HALF, HALF, ROOM_S, ROOM_R, width=0.22, depth=0.15, stones=19)
     return m
 
 
@@ -633,7 +663,7 @@ def rotunde(far=False):
         if not far:
             # Buestaven rundt gangåpningen i rotunden.
             path = [R(math.sqrt(max(0.0, ROT_R ** 2 - (t * HALF) ** 2)) - 0.06, gang_h(t * HALF), t * HALF) for t in ts]
-            K.band(m, path, 0.12, 0.2, mat="dressed", down=lambda p, R=R: K.sub(R(0.0, GANG_S, 0.0), (p[0], p[1], p[2])))
+            K.band(m, path, 0.12, 0.2, mat="dressed", down=lambda p, R=R: K.sub(R(0.0, GANG_S, 0.0), (p[0], p[1], p[2])), stones=13 + 5 * k)
     # Sokkelen langs muren mellom gangene.
     if not far:
         spans = []
@@ -649,9 +679,9 @@ def rotunde(far=False):
                 a, b = u0 + (u1 - u0) * q / n, u0 + (u1 - u0) * (q + 1) / n
                 K.plinth(m, cyl, [(a, b, 0.0)], h=PLINTH_H, proud=PLINTH_OUT)
     # Kuppelen over muren, med en list ved foten, ribber og sluttstein.
-    h = K.dome(m, (0.0, 0.0), ROT_R, ROT_S + 0.3, ROT_CROWN, rings=6 if far else 10, seg=seg)
+    h = dome(m, ROT_R, ROT_S + 0.3, ROT_CROWN, rings=6 if far else 10, seg=seg)
     if not far:
-        K.dome_ribs(m, (0.0, 0.0), ROT_R, h, count=8, a0=math.pi / 4)
+        K.dome_ribs(m, (0.0, 0.0), ROT_R, h, count=8, a0=math.pi / 4, stones=17)
         # Gesimsen der kuppelen begynner.
         ring_in = K.circle((0.0, 0.0), ROT_R - 0.14, seg)
         ring_out = K.circle((0.0, 0.0), ROT_R + 0.01, seg)
