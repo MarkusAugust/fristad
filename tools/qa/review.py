@@ -505,6 +505,36 @@ def build(out, render=True):
     return items, carried
 
 
+def use_assets(out, urls):
+    """Bildene til sidens asset-lager (19. oktober: 1147 filer, siden har
+    plass til 511 per versjon). `urls` er sti i `out` → adressen lageret ga
+    (`/_blob/<id>`); data.json og glTF-filene peker dit, og bildene slettes
+    fra `out`, så bare siden, data.json, viewer.js og glTF-filene publiseres
+    som filer. Gir stiene som ble igjen."""
+    with open(os.path.join(out, "data.json")) as f:
+        data = json.load(f)
+    for it in data["items"]:
+        if it.get("img"):
+            it["img"] = urls[it["img"]]
+    for layer in data["layers"].values():
+        layer["url"] = urls[layer["url"]]
+    with open(os.path.join(out, "data.json"), "w") as f:
+        json.dump(data, f, ensure_ascii=False)
+    for p in glob.glob(os.path.join(out, "glb", "**", "*.json"), recursive=True):
+        with open(p) as f:
+            j = json.load(f)
+        base = os.path.relpath(os.path.dirname(p), out)
+        for im in j.get("images", []):
+            if im.get("uri") and not im["uri"].startswith("/"):
+                im["uri"] = urls[os.path.join(base, im["uri"])]
+        with open(p, "w") as f:
+            json.dump(j, f, separators=(",", ":"))
+    for rel in urls:
+        if os.path.exists(os.path.join(out, rel)):
+            os.remove(os.path.join(out, rel))
+    return sorted(os.path.relpath(os.path.join(d, n), out) for d, _, ns in os.walk(out) for n in ns)
+
+
 def check(out):
     """Det som venter, står på siden med bilde, og det er plass til alt.
     Gir feilene som tekst (tom liste: alt er med)."""

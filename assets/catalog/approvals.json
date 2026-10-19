@@ -812,7 +812,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "0d3eef70271b",
+   "seen": "a736ec7519cf",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -897,7 +897,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "9de5600fa73f",
+   "seen": "cb3e6926c242",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -967,7 +967,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "73803fe39bc3",
+   "seen": "8354924d02f9",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -1069,7 +1069,7 @@
     "teksturen passer ikke modellen, det ser rart ut",
     "kisten er ikke lenger hul. låsen så faktisk litt bedre ut før."
    ],
-   "seen": "35ab079db111"
+   "seen": "936007b5a1b5"
   },
   "chest_lid": {
    "verdict": "godkjent",
@@ -1612,7 +1612,7 @@
     "ser ut som et minihus? hva er dette?",
     "det ser ikke ut som et skrin"
    ],
-   "seen": "b5a6541dd9ba"
+   "seen": "5a2f2f5479b8"
   },
   "kit_crack": {
    "verdict": "godkjent",
@@ -1640,13 +1640,13 @@
    "history": [
     "ikke imponert, men kasnkje godt nok for nå"
    ],
-   "seen": "df8786c608d6"
+   "seen": "f1953c8e8777"
   },
   "kit_gate": {
    "verdict": "godkjent",
    "date": "2026-10-11",
    "why": "",
-   "seen": "a878174f066c"
+   "seen": "8f0c352472a9"
   },
   "kit_ladder": {
    "verdict": "godkjent",
@@ -1675,7 +1675,7 @@
    "history": [
     "må forbedres. modellen ser rar ut. for øvrig er overgangen mellom gulv og vegg her merkelig. at for hard. foreslå en bedre løsning for sånt"
    ],
-   "seen": "7522413c06b6"
+   "seen": "da894b805d80"
   },
   "kit_lever_arm": {
    "verdict": "godkjent",
@@ -1700,7 +1700,7 @@
    "history": [
     "en slik pedestal skal ikke være av stein, men bygget av treverk som passer til dette"
    ],
-   "seen": "1405e4bf7d41"
+   "seen": "5496e633bad3"
   },
   "kit_plate": {
    "verdict": "godkjent",
@@ -1735,13 +1735,13 @@
     "ligner overhodet ikke på en sakrofag",
     "de firkantende klossene på hver hkære ser ikke så bra ut."
    ],
-   "seen": "748642d792f0"
+   "seen": "5fdb0e5c5a58"
   },
   "kit_secret_wall": {
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "c814accec68e",
+   "seen": "96a4408e47ad",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-12",
@@ -1767,7 +1767,7 @@
     "mangler en trim langs kanten slik at det blir en pen overgang mellom dør og vegg. trim må ha en tekstur som passer til dette.",
     "venstre kant ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
    ],
-   "seen": "f00ce8609b62"
+   "seen": "9e0501e96f30"
   },
   "kit_shortcut_leaf": {
    "verdict": "godkjent",
@@ -1781,7 +1781,7 @@
    "history": [
     "spekkegbjelken ligger delvis inn i søren og på høyre side ligger den ikke i bracket. allers er det ting som klipper inn i hverandre her."
    ],
-   "seen": "ce34786751d1"
+   "seen": "4a053cf578d8"
   },
   "kit_trapdoor": {
    "verdict": "godkjent",
@@ -1810,7 +1810,7 @@
     "her krasjer veggteksturen rundt døra med teksturen på veggen omkring. en dør kan ikke inkludere vegg, og det må være en passende trim rundt dørens karm og bue",
     "kant ne rundt ser hullete ut. teksturen er ujevn. tenk på hvodan man bygger en slik bue i stein. steinene legges / mures slikat de følger buen, de ligger ikke horisontalt hele veien med kappinger."
    ],
-   "seen": "73143649892f"
+   "seen": "24c4628627f2"
   },
   "lantern_post": {
    "verdict": "godkjent",

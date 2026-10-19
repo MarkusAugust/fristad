@@ -4,6 +4,7 @@
     python3 -m tools.qa approvals check UT     # alt som venter står på siden med bilde
     python3 -m tools.qa approvals audit        # hver dom har versjonen eieren så (testen)
     python3 -m tools.qa approvals apply SVAR   # svarene fra siden inn i approvals.json
+    python3 -m tools.qa approvals assets UT MAP # bildene i UT pekes til asset-lageret (MAP: sti → /_blob/id)
     python3 -m tools.qa approvals migrate SVAR # én gang: versjonen eieren så, fra svartidene
 
 Siden er `tools/qa/approvals.html`, bygd av `review.py`: den viser
@@ -122,6 +123,12 @@ def main(argv):
         for e in errors:
             print("FEIL:", e)
         return 1 if errors else 0
+    if argv[:1] == ["assets"] and len(argv) == 3:
+        from . import review
+        with open(argv[2]) as f:
+            left = review.use_assets(argv[1], json.load(f))
+        print(f"{len(left)} filer igjen å publisere (siden har plass til 511 per versjon)")
+        return 0 if len(left) <= 511 else 1
     if argv[:1] == ["apply"] and len(argv) == 2:
         print(f"{apply(argv[1])} dommer ført inn i assets/catalog/approvals.json")
         return 0

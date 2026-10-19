@@ -102,6 +102,9 @@ async function fetchModel(url) {
   const bin = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
   if (j.buffers && j.buffers[0]) delete j.buffers[0].uri;
+  // Bildene kan ligge i sidens asset-lager (`/_blob/…`, `approvals assets`):
+  // GLTFLoader legger mappa foran alt som ikke er en full adresse.
+  for (const im of j.images || []) if (im.uri && im.uri.startsWith("/")) im.uri = new URL(im.uri, location.href).href;
   let text = new TextEncoder().encode(JSON.stringify(j));
   const pad = (n) => (4 - (n % 4)) % 4;
   const jl = text.length + pad(text.length), bl = bin.length + pad(bin.length);
