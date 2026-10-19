@@ -54,6 +54,10 @@ pub struct LevelDoc {
     pub kit: Vec<String>,
     #[serde(default)]
     pub bands: Vec<Band>,
+    /// Modulene eieren har satt ut (del 21): utvides til celler, rom,
+    /// innhold og kantvalg før kompileringen (`compose::modules::flatten`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub modules: Vec<DocModule>,
     #[serde(default)]
     pub rooms: Vec<DocRoom>,
     #[serde(default)]
@@ -222,4 +226,98 @@ fn warm() -> [f32; 3] {
 
 fn eight() -> f32 {
     8.0
+}
+
+/// En modul satt ut i nivået (`docs/nivaaredigering.md`, del 21): malen
+/// `module` (`grav/kapell`) med midtcella (modulens (0, 0)) i `at`, dreid
+/// `rot` kvart omdreininger med klokka og speilet langs x før den dreies,
+/// som cellene. Cellene får id-en `<id>/<celle>`, og rommet heter `id`
+/// (eller `room`, om modulen skal høre til et rom en annen modul har).
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct DocModule {
+    pub id: String,
+    pub module: String,
+    /// (i, y, j).
+    pub at: [i32; 3],
+    #[serde(default)]
+    pub rot: u8,
+    #[serde(default)]
+    pub mirror: bool,
+    /// Rommet modulen hører til (utelatt: sitt eget, som heter `id`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub room: Option<String>,
+    /// Navnet på rommet (utelatt: malens).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mood: Option<Mood>,
+    /// Eierens valg for åpningene: dør, port, falsk vegg, gang, bue,
+    /// snarvei eller vegg.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub overrides: Vec<DocOverride>,
+}
+
+/// Eierens valg for én åpning i en modul. `kind`: `dor`, `gang`, `bue`,
+/// `port`, `falsk`, `snarvei` eller `vegg`. Porten, snarveien og den falske
+/// veggen blir innhold med id-en `id` (utelatt: `<modul>/<åpning>`), som
+/// koblingene kan peke på.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct DocOverride {
+    pub opening: String,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
+/// En modul (`assets/levels/moduler/<tema>/<navn>.json`): cellene, rommet,
+/// standardinnholdet, lysene og åpningene, i modulens eget rom (midtcella
+/// i (0, 0, 0), `rot` 0). Hver ytre side av en celle som ikke er lukket, er
+/// en åpning (`auto`), utenom `walls`; `openings` gir en åpning et annet
+/// slag eller navn. Id-en til en åpning er `i,j,S` (cella og siden i
+/// modulens rom) om den ikke har et navn.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct ModuleDef {
+    /// `grav/kapell`.
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub theme: String,
+    /// `rom`, `gang`, `trapp` eller `ferdig` (paletten grupperer etter det).
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub about: String,
+    /// Rommene i modulen; det første er hovedrommet (cellene uten `room`).
+    #[serde(default)]
+    pub rooms: Vec<DocRoom>,
+    #[serde(default)]
+    pub cells: Vec<DocCell>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub openings: Vec<ModuleOpening>,
+    /// Ytre sider som alltid er mur.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub walls: Vec<ModuleOpening>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub edges: Vec<DocEdge>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub things: Vec<Thing>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<DocLink>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lights: Vec<DocLight>,
+}
+
+/// En åpning (eller en mur) på en ytre side av en modul: cella (i, j) og
+/// siden i modulens rom, og slaget (`auto`: dør mot et rom, gangåpning mot
+/// en gang; `gang`, `bue`, `dor`, `port`, `falsk`, `snarvei`).
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct ModuleOpening {
+    #[serde(default)]
+    pub id: String,
+    pub at: [i32; 2],
+    pub side: String,
+    #[serde(default)]
+    pub kind: String,
 }

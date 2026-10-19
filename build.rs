@@ -13,6 +13,7 @@
 //!   `assets/models/crypt/kit/<tema>.json`) og `LEVEL_DOC_FILES` (nivå-
 //!   dokumentene `assets/levels/nivaa_<navn>.json`), til `adapters/data.rs`.
 //!   Bitene i `assets/models/crypt/kit/<tema>/` er med i `crypt_models.rs`.
+//!   `MODULE_FILES`: modulene (`assets/levels/moduler/<tema>/<navn>.json`).
 //! - `inside_files.rs`: `INSIDE_FILES`, alle `<navn>_inside.json` i
 //!   `assets/models/town/` (det husene har med seg fra Blender), til
 //!   `adapters/data.rs`.
@@ -113,6 +114,30 @@ fn main() {
     text.push_str("];\n/// Nivådokumentene: navnet (`01`, `test`) og json-fila.\nconst LEVEL_DOC_FILES: &[(&str, &str)] = &[\n");
     for (n, p) in &docs {
         writeln!(text, "    ({n:?}, include_str!({:?})),", p.display().to_string()).unwrap();
+    }
+    // Modulene (`assets/levels/moduler/<tema>/<navn>.json`, del 21).
+    let mod_dir = docs_dir.join("moduler");
+    println!("cargo:rerun-if-changed={}", mod_dir.display());
+    let mut mods: Vec<PathBuf> = vec![];
+    if let Ok(themes) = std::fs::read_dir(&mod_dir) {
+        for t in themes.flatten() {
+            println!("cargo:rerun-if-changed={}", t.path().display());
+            if let Ok(dir) = std::fs::read_dir(t.path()) {
+                for e in dir.flatten() {
+                    let p = e.path();
+                    if p.extension().is_some_and(|x| x == "json") {
+                        println!("cargo:rerun-if-changed={}", p.display());
+                        mods.push(p);
+                    }
+                }
+            }
+        }
+    }
+    mods.sort();
+    text.push_str("];\n/// Modulene: `tema/navn` og json-fila.\nconst MODULE_FILES: &[(&str, &str)] = &[\n");
+    for p in &mods {
+        let rel = p.strip_prefix(&mod_dir).unwrap().with_extension("").to_string_lossy().replace('\\', "/");
+        writeln!(text, "    ({rel:?}, include_str!({:?})),", p.display().to_string()).unwrap();
     }
     text.push_str("];\n");
     std::fs::write(out.join("level_docs.rs"), text).unwrap();

@@ -23,7 +23,7 @@ struct C {
 }
 
 fn cells(doc: &LevelDoc, kit: &KitDef) -> Vec<C> {
-    super::expand(doc, kit)
+    super::expand(&super::modules::flatten(doc, kit).0, kit)
         .iter()
         .filter_map(|c| {
             let p = kit.piece(&c.bit).filter(|p| p.kind == PieceKind::Cell)?;
@@ -36,15 +36,21 @@ fn cells(doc: &LevelDoc, kit: &KitDef) -> Vec<C> {
 }
 
 /// Bitene overlapper i volum: to celler i samme rute med volumer som går inn
-/// i hverandre (gulvskive og hvelv er med).
+/// i hverandre (gulvskive og hvelv er med). To moduler i samme celle er
+/// den samme feilen, og meldes med modulene.
 pub fn overlaps(doc: &LevelDoc, kit: &KitDef) -> Vec<Issue> {
     let cs = cells(doc, kit);
+    let module = |id: &str| id.split_once('/').map(|(m, _)| m).filter(|m| doc.modules.iter().any(|x| x.id == *m)).map(str::to_string);
     let mut out = vec![];
     for a in 0..cs.len() {
         for b in a + 1..cs.len() {
             let (p, q) = (&cs[a], &cs[b]);
             if p.i == q.i && p.j == q.j && p.lo < q.hi - 0.01 && q.lo < p.hi - 0.01 {
-                out.push(Issue { severity: Severity::Error, rule: "overlapp", at: Some(mm3(cell_center(p.i, p.y, p.j))), msg: format!("{} og {} overlapper", p.id, q.id) });
+                let msg = match (module(&p.id), module(&q.id)) {
+                    (Some(x), Some(y)) if x != y => format!("modulene {x} og {y} overlapper i ({}, {}, {})", p.i, p.y, p.j),
+                    _ => format!("{} og {} overlapper", p.id, q.id),
+                };
+                out.push(Issue { severity: Severity::Error, rule: "overlapp", at: Some(mm3(cell_center(p.i, p.y, p.j))), msg });
             }
         }
     }
@@ -136,8 +142,8 @@ pub fn edges(issues: &[Issue]) -> Vec<&Issue> {
     issues.iter().filter(|i| i.rule == "kant").collect()
 }
 
-/// Rommet en celle hører til, sett fra et punkt i nivåets rom (til «Gå til»).
-pub fn cell_at(doc: &LevelDoc, p: Vec3) -> Option<&str> {
+/// Cella ved et punkt i nivåets rom (til «Gå til»), også i modulene.
+pub fn cell_at(doc: &LevelDoc, kit: &KitDef, p: Vec3) -> Option<String> {
     let (i, j) = ((p.x / CELL).round() as i32, (p.z / CELL).round() as i32);
-    doc.cells.iter().find(|c| c.at[0] == i && c.at[2] == j && (p.y - c.at[1] as f32).abs() < 3.0).map(|c| c.id.as_str())
+    super::modules::flatten(doc, kit).0.cells.into_iter().find(|c| c.at[0] == i && c.at[2] == j && (p.y - c.at[1] as f32).abs() < 3.0).map(|c| c.id)
 }

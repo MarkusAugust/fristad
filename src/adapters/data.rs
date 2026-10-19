@@ -40,22 +40,43 @@ pub fn kit() -> KitDef {
             Err(e) => log::warn!("assets/models/crypt/kit/{theme}.json: {e}"),
         }
     }
+    for (name, json) in MODULE_FILES {
+        match serde_json::from_str::<crate::domain::world::crypt::doc::ModuleDef>(json) {
+            Ok(mut m) => {
+                if m.id.is_empty() {
+                    m.id = name.to_string();
+                }
+                kit.modules.push(m);
+            }
+            Err(e) => log::warn!("assets/levels/moduler/{name}.json: {e}"),
+        }
+    }
     kit
 }
 
-/// Navnene på nivådokumentene som finnes (`01`, `test`), og `brett`
-/// (prøvebrettet, laget av byggesettet).
+/// Navnene på nivådokumentene som finnes (`01`, `test`), `brett`
+/// (prøvebrettet, laget av byggesettet) og `moduler` (alle modulene).
 pub fn level_doc_names() -> Vec<String> {
     let mut out: Vec<String> = LEVEL_DOC_FILES.iter().map(|(n, _)| n.to_string()).collect();
     out.push("brett".into());
+    out.push("moduler".into());
     out
 }
 
-/// Nivådokumentet `assets/levels/nivaa_<navn>.json`, eller prøvebrettet
-/// (`brett`: hver bit mot hver bit i alle dreininger).
+/// Nivådokumentet `assets/levels/nivaa_<navn>.json`, prøvebrettet
+/// (`brett`: hver bit mot hver bit i alle dreininger) eller en modul alene
+/// (`modul:<tema>/<navn>`).
 pub fn level_doc(name: &str) -> Option<LevelDoc> {
     if name == "brett" {
         return Some(crate::domain::world::crypt::compose::board::board(&kit()));
+    }
+    // `moduler`: alle modulene side om side.
+    if name == "moduler" {
+        return Some(crate::domain::world::crypt::compose::modules::gallery(&kit()));
+    }
+    // `modul:grav/kapell`: modulen alene, med fakler og lys (bildene til eieren).
+    if let Some(id) = name.strip_prefix("modul:") {
+        return crate::domain::world::crypt::compose::modules::showcase(&kit(), id);
     }
     let (_, json) = LEVEL_DOC_FILES.iter().find(|(n, _)| *n == name)?;
     match serde_json::from_str::<LevelDoc>(json) {

@@ -219,7 +219,7 @@ function card(it) {
   }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
-  eb.textContent = (it.kind === "modell" ? "Modell" : "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
+  eb.textContent = ({ modell: "Modell", modul: "Modul (satt sammen av bitene)" }[it.kind] || "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
   const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
   p.append(eb, h);
   if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }
@@ -251,9 +251,9 @@ function card(it) {
   ta.addEventListener("input", () => { clearTimeout(timers.get(it.id)); timers.set(it.id, setTimeout(() => save(it, { why: ta.value }), 900)); });
   ta.addEventListener("blur", () => { clearTimeout(timers.get(it.id)); save(it, { why: ta.value }); });
   const s = document.createElement("div"); s.className = "saved"; s.setAttribute("aria-live", "polite");
-  if (it.glb) {
+  if (it.glb || it.level) {
     const b3 = document.createElement("button"); b3.type = "button"; b3.className = "btn3d";
-    b3.textContent = it.level ? "Se i 3D (gå rundt inne i nivået)" : "Se i 3D (roter og zoom)";
+    b3.textContent = it.kind === "modul" ? "Se i 3D (modulen med naboene)" : it.level ? "Se i 3D (gå rundt inne i nivået)" : "Se i 3D (roter og zoom)";
     b3.onclick = () => view3d(it);
     p.append(b3);
   }
@@ -297,6 +297,8 @@ function renderList() {
     const b = document.createElement("b"); b.textContent = it.prior.verdict; v.append(b, " ", it.prior.date || "", ": ", it.prior.why || "");
   }));
   if (done.length) out.push(pile("Godkjent", done, (v, it) => { v.append("godkjent ", (it.prior && it.prior.date) || ""); }));
+  const parts = mine.filter(it => it.state === "i_modul");
+  if (parts.length) out.push(pile("Bitene modulene er bygd av (du dømmer dem gjennom modulene)", parts, (v, it) => { v.append(it.about || ""); }));
   list.replaceChildren(...out);
   list.style.display = "grid"; list.style.gap = "18px";
   cur = -1;

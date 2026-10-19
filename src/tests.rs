@@ -825,7 +825,7 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
 fn teksturene_har_tak_i_nettleseren() {
     use crate::adapters::delivery::browser_caps;
     use crate::adapters::gltf::{load_capped, model_files, pixels};
-    for name in ["arms", "npc_smith", "tavern", "gallery_card"] {
+    for name in ["arms", "npc_smith", "tavern", "gallery_card", "framework"] {
         let Some((_, p)) = model_files().find(|(n, _)| *n == name) else { continue };
         let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
         let caps = browser_caps(name);
@@ -847,6 +847,14 @@ fn teksturene_har_tak_i_nettleseren() {
     let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
     let m = load_capped("gallery_card", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("gallery_card")).unwrap();
     assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "troféet er 2048 i nettleseren");
+    // De store fiendene er skarpe nært (Rammeverket er bakt i 4096), de
+    // vanlige som før.
+    assert_eq!(browser_caps("framework").color, 2048);
+    assert_eq!(browser_caps("mutant_button").color, 1024);
+    let (_, p) = model_files().find(|(n, _)| *n == "framework").expect("framework");
+    let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let m = load_capped("framework", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("framework")).unwrap();
+    assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "Rammeverket er 2048 i nettleseren");
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i

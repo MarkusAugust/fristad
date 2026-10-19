@@ -163,7 +163,8 @@ export async function show(it, data, ui) {
   const sides = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide;
   ui.status.textContent = "laster …";
   const crypt = !!it.level;
-  const after = await load(st, it.glb, layers, sides);
+  // En modul har ingen egen modell: den er bitene i nivået.
+  const after = it.glb ? await load(st, it.glb, layers, sides) : new THREE.Group();
   after.name = "etter";
   const before = it.glb_before ? await load(st, it.glb_before, layers, sides) : null;
   if (before) { before.name = "før"; before.visible = false; }
@@ -210,6 +211,7 @@ export async function show(it, data, ui) {
   ui.which.onchange = () => { after.visible = ui.which.value === "etter"; if (before) before.visible = ui.which.value === "før"; };
   // Byggesettet: biten står selv i nivået, så den alene skjules der.
   const kit = !!(lv && lv.instances);
+  if (!it.glb && level) { ui.whole.checked = true; level.visible = true; }
   if (kit && level) after.visible = !level.visible;
   ui.whole.onchange = () => { if (level) { level.visible = ui.whole.checked; mark(level.visible); if (kit) after.visible = !level.visible; } };
   ui.both.onchange = () => { for (const g of st.groups) g.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.side = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; } }); };
@@ -233,6 +235,6 @@ export async function show(it, data, ui) {
     ui.clip.onchange = () => play(ui.clip.value);
     play(pick);
   }
-  frame(st, after, crypt);
+  frame(st, it.glb ? after : (level || after), crypt);
   ui.status.textContent = "";
 }

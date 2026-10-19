@@ -10,7 +10,7 @@
 Siden er `tools/qa/approvals.html`, bygd av `review.py`: den viser
 tilstanden (det som venter, det som ligger hos meg og det godkjente), ikke
 en runde. Den lagrer svarene i samlingen `dom` (dokument `t_<lag>` eller
-`m_<modell>`: `verdict`, `why`, `at` og `version`, versjonen kortet viste).
+`m_<modell>` eller `u_<tema>_<modul>`: `verdict`, `why`, `at` og `version`, versjonen kortet viste).
 
 `apply` leser svarene (en mappe med ett json-dokument per ting, `<id>.json`,
 slik ArtifactData lagrer samlingen med `out_dir`, eller en json-liste med
@@ -50,7 +50,7 @@ def apply(path):
     for row in rows:
         d = row["data"]
         kind, name = row["id"].split("_", 1)
-        group = {"t": "textures", "m": "models"}[kind]
+        group = {"t": "textures", "m": "models", "u": "modules"}[kind]
         if d.get("verdict") not in VERDICTS:
             # Et punkt uten dom (runde 17: «øksa holdes feil vei»): dommen
             # står, men punktet føres inn så det rettes og vises i neste runde.
@@ -105,7 +105,7 @@ def main(argv):
         items, carried = review.build(argv[1])
         for key, label in review.CATEGORIES:
             c = [it for it in items if it["cat"] == key]
-            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent")
+            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent" + (f", {sum(it['state'] == 'i_modul' for it in c)} bit(er) dømt gjennom modulene" if any(it['state'] == 'i_modul' for it in c) else ""))
         print(f"{carried} bygd på nytt uten å se annerledes ut (dommen står)")
         errors = review.check(argv[1])
         for e in errors:

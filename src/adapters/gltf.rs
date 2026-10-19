@@ -200,7 +200,15 @@ impl ModelSource for Embedded {
 
     fn load(&self, name: &str) -> Option<Model> {
         let (_, bytes) = MODELS.iter().chain(CRYPT_MODELS.iter()).find(|(n, _)| *n == name)?;
-        load(name, &[("model.glb", bytes)], -1.0, 0.0).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+        // `FRISTAD_BROWSER_CAPS=1` gir teksturene nettleserens tak
+        // (`delivery::browser_caps`), et tall N taket N på fargen for alle,
+        // så skjermbildene viser det nettleseren viser.
+        let caps = match std::env::var("FRISTAD_BROWSER_CAPS").ok().and_then(|v| v.parse::<u32>().ok()) {
+            Some(1) => super::delivery::browser_caps(name),
+            Some(n) => Caps { color: n, data: n / 2 },
+            None => Caps::default(),
+        };
+        load_capped(name, &[("model.glb", bytes)], -1.0, 0.0, caps).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
     }
 }
 

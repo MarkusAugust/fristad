@@ -287,10 +287,12 @@ def nearest_colors(hi, lo, img, size):
     print("nærmeste punkt for", len(pix_pos), "punkter")
 
 
-def transfer(hi, lo, name, size=2048):
+def transfer(hi, lo, name, size=2048, unwrap=None):
     """Fargen fra den fulle formen bakes over på den forenklede i egne uv
     (laget «src»): forenklingen slår sammen flater over sømmene i formens
-    uv, og der ble bildet revet i svarte flekker."""
+    uv, og der ble bildet revet i svarte flekker. `unwrap(lo, size)` legger
+    øyene selv (mob3d.py, med xatlas) i stedet for smart_project og
+    `pack_weighted`."""
     me = lo.data
     while me.uv_layers:
         me.uv_layers.remove(me.uv_layers[0])
@@ -298,15 +300,18 @@ def transfer(hi, lo, name, size=2048):
     bpy.ops.object.select_all(action="DESELECT")
     lo.select_set(True)
     bpy.context.view_layer.objects.active = lo
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    # Hodet får plass og øyene pakkes her, før fargen hentes: teksturen
-    # i spillet har de samme øyene, så bakingen til slutt er en ren kopi
-    # (pakket den på nytt, la den forkleet og kjolen oppå hverandre).
-    head_density(lo, FOLK.get(name))
-    pack_weighted(lo, **PACK)
+    if unwrap is not None:
+        unwrap(lo, size)
+    else:
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004)
+        bpy.ops.object.mode_set(mode="OBJECT")
+        # Hodet får plass og øyene pakkes her, før fargen hentes: teksturen
+        # i spillet har de samme øyene, så bakingen til slutt er en ren kopi
+        # (pakket den på nytt, la den forkleet og kjolen oppå hverandre).
+        head_density(lo, FOLK.get(name))
+        pack_weighted(lo, **PACK)
     img = bpy.data.images.new(f"src_{name}", size, size)
     mat = bpy.data.materials.new(f"npc_{name}")
     mat.use_nodes = True

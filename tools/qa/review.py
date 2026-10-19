@@ -150,6 +150,7 @@ def models_3d(out, items):
     os.makedirs(os.path.join(root, "før"), exist_ok=True)
     os.makedirs(texdir, exist_ok=True)
     used, levels = set(), {}
+    modules_3d(root, items, levels, used)
     for it in items:
         if it["state"] != "venter" or it["kind"] != "modell" or not it.get("path"):
             continue
@@ -217,6 +218,49 @@ def models_3d(out, items):
     return layers, levels
 
 
+def modules_3d(root, items, levels, used):
+    """«Se i 3D» for modulene: hver modul med naboene sine slik de står i
+    nivået `moduler` (`tools/crypt/module_shots.py`, `snapshot --dump-doc`),
+    flyttet til origo, som instanser av bitene."""
+    src = os.path.join(WORK, "moduler", "moduler.json")
+    if not os.path.exists(src):
+        return
+    with open(src) as f:
+        gal = json.load(f)
+    urls = {}
+    for it in items:
+        if it["kind"] != "modul" or it["state"] != "venter":
+            continue
+        name = it["module"]
+        keep = [m for m in gal["doc"]["modules"] if m["id"] == name or m["id"].startswith(name + "_nabo")]
+        if not keep:
+            continue
+        cells = [c for c in gal["flat"]["cells"] if any(c["id"].startswith(m["id"] + "/") for m in keep)]
+        reach = 6.0 if any("rotunde" in c["bit"] for c in cells) else 2.0
+        xs = [c["at"][0] * 4.0 for c in cells]
+        zs = [c["at"][2] * 4.0 for c in cells]
+        lo, hi = (min(xs) - reach - 0.01, min(zs) - reach - 0.01), (max(xs) + reach + 0.01, max(zs) + reach + 0.01)
+        mine = [c for c in gal["flat"]["cells"] if c["id"].startswith(name + "/")]
+        cx = sum(c["at"][0] for c in mine) / len(mine) * 4.0
+        cz = sum(c["at"][2] for c in mine) / len(mine) * 4.0
+        inst = []
+        for i in gal["instances"]:
+            x, y, z = i["pos"]
+            if lo[0] <= x <= hi[0] and lo[1] <= z <= hi[1]:
+                inst.append({**i, "pos": [x - cx, y, z - cz]})
+        os.makedirs(os.path.join(root, "kit"), exist_ok=True)
+        for model in sorted({i["model"] for i in inst}):
+            if model in urls:
+                continue
+            hits = glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", "*", f"{model}.glb"))
+            if hits:
+                glb_to_json(hits[0], os.path.join(root, "kit", f"{model}.json"))
+                urls[model] = f"glb/kit/{model}.json"
+                used |= glb_layers(hits[0])
+        levels[f"modul_{name}"] = {"models": {m: u for m, u in urls.items() if any(i["model"] == m for i in inst)}, "instances": [i for i in inst if i["model"] in urls]}
+        it["level"] = f"modul_{name}"
+
+
 def version(path):
     """Versjonen av fila slik den ligger nå (git-blob, 12 tegn)."""
     return git("hash-object", path)[:12]
@@ -238,6 +282,8 @@ def version_at(path, when):
 def category(name, kind, path):
     if kind == "tekstur":
         return "textures"
+    if kind == "modul":
+        return "crypt"
     folder = path.split("/")[2]
     if folder in ("arms", "mobs", "crypt"):
         return folder
@@ -270,7 +316,41 @@ def things():
         p = locate(n, "tekstur")
         if p:
             out.append((f"t_{n}", "tekstur", n, p))
+    # Modulene i nivåredigeringen (del 21): `u_<tema>_<navn>`.
+    for p in sorted(glob.glob(os.path.join(ROOT, "assets", "levels", "moduler", "*", "*.json"))):
+        theme, name = os.path.basename(os.path.dirname(p)), os.path.basename(p)[:-5]
+        out.append((f"u_{theme}_{name}", "modul", f"{theme}_{name}", os.path.relpath(p, ROOT)))
     return out
+
+
+def via_modules():
+    """Bitene som dømmes gjennom modulene (`assets/catalog/modules.json`)."""
+    try:
+        return set(load("modules.json").get("gjennom_moduler", []))
+    except OSError:
+        return set()
+
+
+def group_of(kind):
+    return {"modell": "models", "tekstur": "textures", "modul": "modules"}[kind]
+
+
+def current(kind, name, path):
+    """Versjonen eieren dømmer: fila, og for en modul også bitene i temaet
+    (en modul ser annerledes ut når en bit endres)."""
+    if kind != "modul":
+        return version(path)
+    import hashlib
+    theme = name.split("_", 1)[0]
+    parts = [version(path)] + [version(os.path.relpath(g, ROOT)) for g in sorted(glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", theme, "*.glb")))]
+    return hashlib.sha1(" ".join(parts).encode()).hexdigest()[:12]
+
+
+def state_of(kind, name, entry, cur, fix=None):
+    """Som `state`, men bitene som dømmes gjennom modulene står i `i_modul`."""
+    if kind == "modell" and name in via_modules():
+        return "i_modul"
+    return state(entry, cur, fix)
 
 
 def state(entry, current, fix=None):
@@ -450,13 +530,34 @@ def build(out, render=True):
         shutil.rmtree(img)
     os.makedirs(img, exist_ok=True)
     items, carried = [], 0
+    mods = {}
+    if os.path.exists(os.path.join(WORK, "moduler", "moduler.json")):
+        with open(os.path.join(WORK, "moduler", "moduler.json")) as f:
+            mods = json.load(f)
     for id_, kind, name, path in things():
-        group = "models" if kind == "modell" else "textures"
+        group = group_of(kind)
         e = ap.get(group, {}).get(name)
-        cur = version(path)
+        cur = current(kind, name, path)
         fix = fix_for(fixes, name)
-        st = state(e, cur, fix)
+        st = state_of(kind, name, e, cur, fix)
         before = after = None
+        if kind == "modul":
+            with open(os.path.join(ROOT, path)) as f:
+                mdef = json.load(f)
+            item = {
+                "id": id_, "kind": kind, "cat": "crypt", "name": name, "version": cur, "state": st,
+                "about": f"{mdef.get('name', '')}: {mdef.get('about', '')}",
+                "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
+                "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
+                "fixed": (fix or {}).get("text", []),
+                "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1],
+            }
+            shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
+            if st == "venter" and render and os.path.exists(shot):
+                Image.open(shot).convert("RGB").save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                item["img"] = f"img/{id_}.jpg"
+            items.append(item)
+            continue
         if st == "venter" and render and e and e.get("seen"):
             before, after = shots(kind, name, path, e["seen"]), shots(kind, name, path, cur)
             # Bygd på nytt, men ser ut som det eieren så: dommen står. Ikke
@@ -465,7 +566,7 @@ def build(out, render=True):
             # kryptbitene var rettet (13. oktober).
             if not (fixes.get(name) or {}).get(cur) and same_look(before, after):
                 e["seen"] = cur
-                st = state(e, cur, fix)
+                st = state_of(kind, name, e, cur, fix)
                 carried += st != "venter"
         item = {
             "id": id_, "kind": kind, "cat": category(name, kind, path), "name": name, "version": cur, "state": st,
@@ -545,8 +646,7 @@ def check(out):
     seen = {it["id"]: it for it in data["items"]}
     errors = []
     for id_, kind, name, path in things():
-        group = "models" if kind == "modell" else "textures"
-        st = state(ap.get(group, {}).get(name), version(path), fix_for(fixes, name))
+        st = state_of(kind, name, ap.get(group_of(kind), {}).get(name), current(kind, name, path), fix_for(fixes, name))
         it = seen.get(id_)
         if not it:
             errors.append(f"{name} mangler på siden")
@@ -567,7 +667,7 @@ def audit():
     ap = load("approvals.json")
     errors = []
     names = {"models": set(load("models.json")["models"]), "textures": set(load("textures.json")["textures"])}
-    found = {(("models" if k == "modell" else "textures"), n) for _, k, n, _ in things()}
+    found = {(group_of(k), n) for _, k, n, _ in things()}
     for group in ("models", "textures"):
         for n in names[group]:
             if (group, n) not in found:
@@ -581,7 +681,14 @@ def audit():
         for v, fx in vs.items():
             if not isinstance(fx.get("text", []), list):
                 errors.append(f"«rettet slik» for {n} ({v}) må være en liste med punkter")
-    waiting = sum(1 for _, k, n, p in things() if state(ap.get("models" if k == "modell" else "textures", {}).get(n), version(p), fix_for(fixes, n)) == "venter")
+    # Bitene som dømmes gjennom modulene: de finnes, og hver modul har sitt bilde å vises med.
+    for n in sorted(via_modules()):
+        if n not in names["models"]:
+            errors.append(f"{n} står i modules.json, men ikke i models.json")
+    for n, e in ap.get("modules", {}).items():
+        if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
+            errors.append(f"dommen over modulen {n} mangler versjonen eieren så (`seen`)")
+    waiting = sum(1 for _, k, n, p in things() if state_of(k, n, ap.get(group_of(k), {}).get(n), current(k, n, p), fix_for(fixes, n)) == "venter")
     if waiting > MAX_WAITING:
         errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")
     return errors
