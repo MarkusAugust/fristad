@@ -364,6 +364,8 @@
   "lab_table": "Møbel: Bord med mortere, bok, urteblad og tent lys (laboratoriet i Apoteket).",
   "lantern_post": "Lyktestolpe.",
   "lute": "Lutten trubaduren har i fanget: pæreformet kropp, lokk med utskåret rose, kort hals og stolen bøyd bakover. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), satt etter beinet «lute» i figuren.",
+  "rock_big": "Stor stein: grå granitt med lav og mose på toppen, sprekker og jord ved foten, 1,3 m høy og rundt 2 × 2,4 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), ved veiene og på åsene utenfor muren (nature::rocks).",
+  "rock_group": "Steingruppe: fem grå fjellsteiner med mose på toppen, den største 0,85 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py), spredt på enga utenfor muren (nature::rocks).",
   "mace": "Alertkølla: køllehode med seks flenser og jernkrage, treskaft med lærvikling, fra weapon_mace.jpeg (tools/models/arms.py).",
   "mantel_crocks": "Møbel: Krukker og et lys på peishylla (spillerens hus).",
   "market_cross": "Torgkorset.",

@@ -192,7 +192,7 @@ Rekkefølgen, billigst og størst virkning først:
 3. **Stilkontroll som port** (`tools/qa`, del 4): den estetiske vurdereren får stilguidens punkter som rubrikk (ingen konturer, malt flate uten fotostøy, varm by/kald kjeller, mettede farger), og hver modell og hvert lag får en score som vises i katalogen. Under terskelen stoppes modellen før den tas i bruk.
 4. **Figurene og armene**: innbyggerne er malte fra TRELLIS; armene (`arms.py`) bruker lagene `linen`, `leather`, `chainmail`, som byttes i steg 1. Vertinnen mangler glb (eieren).
 5. **Krypten**: nivå 1–8 bruker `crypt_wall` (malt) i murene, men kloakken, cisternen, gruva, grottene og borgen har ingen egne teksturer (`sewer_brick`, `sewer_floor`, `mine_rock`, `mine_timber`, `cave_rock`, `crystal`, `keep_ashlar`, `keep_floor` er malt og godkjent, men ikke lag). De tas inn som lag og legges i `kit_grav.MATS` per tema, så hvert tema får sin egen stein; bitene eksporteres på nytt per nivå (`build_level.py N --export`).
-6. **Naturen** (eng, berg, veier): lagene `meadow`, `mud`, `gravel`, `rock`, `earth` er malt; byttes i steg 1. Trærne og dyrene kommer som nye modeller etter planen i `docs/ny-alt.md` når alt over står.
+6. **Naturen** (eng, berg, veier): lagene `meadow`, `mud`, `gravel`, `rock`, `earth` er malt; byttes i steg 1. Steinene på enga og ved veiene er satt ut (19. oktober, `nature::rocks`, TRELLIS-modellene `rock_big` og `rock_group`). Trærne og dyrene kommer som nye modeller etter planen i `docs/ny-alt.md` når alt over står.
 
 Målet for hvert steg er det samme: skjermbilder fra de faste kameraene, før og etter, til eieren, og ingen fotoskannet pixel igjen i spillet.
 

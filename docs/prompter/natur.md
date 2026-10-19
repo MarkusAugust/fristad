@@ -53,24 +53,6 @@ Single game asset for 3D modelling, ONE single view from the front and slightly 
 Single game asset for 3D modelling, ONE single view from the front and slightly above, the whole tree centred and fully inside the image from the roots to the tips of the branches. Late winter: NO leaves, NO needles and NO blossoms anywhere, only the bare trunk and the branches. A bare multi-stemmed hazel bush: eight to ten thick grey-brown stems rising from one root clump and fanning out, a few side branches near the top. The branches are thick, smooth and simplified, tapering to blunt ends; only the main limbs and a second order of branches, never a fine web of thin twigs. The bark is painted, not sculpted. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. A tree of the Nordic countryside around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 6. `rock_big`: Stor stein
-
-- **Hvor:** på enga og ved veiene. **Størrelse:** 1,5–2,5 m.
-- **Ny.**
-
-```
-Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A large grey granite boulder with soft rounded edges, patches of yellow-green lichen and moss on top, a few cracks, its base flat as if half buried. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
-```
-
-### 7. `rock_group`: Steingruppe
-
-- **Hvor:** spredt på enga. **Størrelse:** 0,3–1 m.
-- **Ny.**
-
-```
-Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small group of five grey fieldstones of different sizes lying close together, mossy tops, rounded edges, flat bottoms. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
-```
-
 ## B. Løv og fliser (bildegeneratoren)
 
 ### 8. `needles_pine`: Furubar (løvark)

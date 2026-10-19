@@ -19,7 +19,7 @@ Hver prompt sier hva fila skal hete, hvor den havner og hva den erstatter. Send 
 3. **`teksturer.md`**: de fem underkjente teksturene (brosteinen, grunnmuren, den røde pussen, kryptpussen, kjernesteinen) og det krypttemaene mangler (slim, cisternestein, gruve- og grottegulv, flisgulv, fanestoff, statuestein, forgylling, hvit plast).
 4. **`trellis-monstre.md`, nr. 1–6**: resten av fiendene til nivå 5–10, som i dag låner modellene fra gravkjelleren og kloakken.
 5. **`trellis-dyr.md`**: sauen og kua (venter i `model::PLANNED`), så hest, geit, hund, høne og katt.
-6. **`natur.md`**: stammene til eik, bjørk, gran, furu og hassel, to steiner, furubaret og to fliser.
+6. **`natur.md`**: stammene til eik, bjørk, gran, furu og hassel, furubaret og to fliser.
 7. **`trellis-gjenstander.md`, nr. 5–24**: pynten i krypten og byen.
 8. **`trellis-folk.md`**: Torgils, som låner Gorveks figur.
 9. **`film.md`**: Veo-klipp for seks innstillinger som står som stillbilde, og to nye malerier.

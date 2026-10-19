@@ -1,10 +1,85 @@
-//! Landskapet rundt byen: åsene utenfor terrenget og kanten av verden.
-//! Trærne, buskene, gresset og steinene er slettet til de nye modellene
-//! kommer (`docs/ny-alt.md`).
+//! Landskapet rundt byen: åsene utenfor terrenget, steinene på enga og
+//! kanten av verden. Trærne, buskene og gresset kommer med de nye
+//! modellene (`docs/ny-alt.md`).
 
-use super::{terrain, Builder, Shape};
+use super::{terrain, town, Builder, Shape};
 use crate::domain::geometry::{Layer, Mat};
-use glam::Vec3;
+use crate::domain::rng::Rng;
+use glam::{Affine3A, Vec2, Vec3};
+
+/// Steinene utenfor muren (modellene fra TRELLIS, `item3d.py`): gruppene
+/// på fem spredt på enga, og de store steinene ved veiene og på åsene.
+pub const ROCK_GROUPS: usize = 40;
+pub const ROCKS_BIG: usize = 14;
+/// Hvor langt ned i bakken steinene står (den flate bunnen skjules).
+const ROCK_SINK: f32 = 0.05;
+
+/// Setter ut steinene, like hver gang (eget frø): aldri på veiene og
+/// stiene, på tunene, kirkegården, ved portene, innenfor muren eller nær
+/// noe som alt står der; loddrett på det laveste punktet under foten der
+/// bakken er nesten flat, dreid og litt skalert hver for seg, med
+/// kolliderne som følger formen (`extras.solids`, `Builder::place_solids`).
+pub fn rocks(b: &mut Builder) {
+    let gates = [town::gate(true).0, town::gate(false).0];
+    // Det som alt står utenfor muren (veiskilt, brønnen, gårdene).
+    let taken: Vec<Vec2> = b.placements.iter().flat_map(|p| p.transforms.iter().map(|t| Vec2::new(t.translation.x, t.translation.z))).filter(|p| terrain::town_edge(p.x, p.y) > -2.0).collect();
+    let mut placed: Vec<(Vec2, f32)> = vec![];
+    let mut rng = Rng(0x5713_1350_0b0c_a11e);
+    // (modell, antall, skala, radius, avstand til veien (fra, til), minste normal.y)
+    let kinds: [(&'static str, usize, (f32, f32), f32, (f32, f32), f32); 2] =
+        [("rock_big", ROCKS_BIG, (0.8, 1.25), 1.6, (5.5, 14.0), 0.82), ("rock_group", ROCK_GROUPS, (0.75, 1.3), 1.1, (4.5, f32::MAX), 0.88)];
+    for (model, count, (s0, s1), radius, (near, far), steep) in kinds {
+        if !b.has_model(model) {
+            b.place(model, Affine3A::IDENTITY);
+            continue;
+        }
+        let mut n = 0;
+        for _ in 0..4000 {
+            if n >= count {
+                break;
+            }
+            let a = rng.range(0.0, std::f32::consts::TAU);
+            let r = rng.range(58.0, 182.0);
+            let p = Vec2::new(a.cos(), a.sin()) * r;
+            let (yaw, scale) = (rng.range(0.0, std::f32::consts::TAU), rng.range(s0, s1));
+            let reach = radius * scale;
+            let road = town::path_dist(p.x, p.y) - reach;
+            let clear = road > near
+                && road < far
+                && town::town_dist(p.x, p.y) > 8.0 + reach
+                && gates.iter().all(|g| g.distance(p) > 20.0)
+                && terrain::normal(p.x, p.y).y > steep
+                && taken.iter().all(|q| q.distance(p) > 6.0 + reach)
+                && placed.iter().all(|(q, rq)| q.distance(p) > 5.0 + reach + rq);
+            if !clear {
+                continue;
+            }
+            // Bakken under foten: nesten flat midt under (`audit` måler hjørnene
+            // ±0,6 m i modellen), og høyst en halv meter over omrisset. Steinen
+            // står loddrett på det laveste punktet og går ned i bakken på
+            // oversida (kolliderne er loddrette prismer, som testene leser).
+            let ring = |r: f32| {
+                (0..8).map(move |k| {
+                    let a = k as f32 * std::f32::consts::FRAC_PI_4;
+                    terrain::height(p.x + a.cos() * r, p.y + a.sin() * r)
+                })
+            };
+            let span = |it: &mut dyn Iterator<Item = f32>| it.fold((f32::MAX, f32::MIN), |(lo, hi), h| (lo.min(h), hi.max(h)));
+            let (lo_mid, hi_mid) = span(&mut ring(0.86 * scale + 0.05).chain(ring(0.45 * scale)).chain(std::iter::once(terrain::height(p.x, p.y))));
+            let (lo, hi) = span(&mut ring(reach).chain(ring(0.86 * scale + 0.05)));
+            if hi_mid - lo.min(lo_mid) > 0.2 || hi - lo > 0.5 {
+                continue;
+            }
+            let t = Affine3A::from_translation(Vec3::new(p.x, lo - ROCK_SINK * scale, p.y)) * Affine3A::from_rotation_y(yaw) * Affine3A::from_scale(Vec3::splat(scale));
+            b.place(model, t);
+            b.place_solids(model, t);
+            placed.push((p, reach));
+            log::debug!("{model} ved ({:.1}, {:.1})", p.x, p.y);
+            n += 1;
+        }
+        log::info!("Steinene: {n} av {count} {model} satt ut");
+    }
+}
 
 /// Landskapet rundt terrenget: fra kanten av bakken (±200 m) stiger
 /// rullende åser i ett sammenhengende polart rutenett. Lavt er det eng,
@@ -43,11 +118,7 @@ pub fn landscape(b: &mut Builder) {
             let ground = terrain::height(c.x, c.z);
             let rise = c.y - ground;
             // Bratte og høye sider er berg.
-            let mat = if rise > 60.0 || up < 0.62 {
-                &rock
-            } else {
-                &grass
-            };
+            let mat = if rise > 60.0 || up < 0.62 { &rock } else { &grass };
             b.mesh.quad_n([p[3], p[2], p[1], p[0]], [n[3], n[2], n[1], n[0]], mat, 1.0);
         }
     }

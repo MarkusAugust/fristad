@@ -157,6 +157,9 @@ models! {
     // (TRELLIS, `item3d.py lute`; satt etter beinet `lute`, `Npcs::instances`).
     "npc_troubadour" => "npcs/npc_troubadour.glb",
     "lute" => "props/lute.glb",
+    // Steinene på enga fra TRELLIS (tools/models/item3d.py, `nature::rocks`).
+    "rock_big" => "nature/rock_big.glb",
+    "rock_group" => "nature/rock_group.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",
