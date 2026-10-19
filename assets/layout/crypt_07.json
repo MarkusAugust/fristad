@@ -4,7 +4,7 @@
     {"kind":"up","pos":[0,0,-3],"yaw":0},
     {"kind":"rest","pos":[12,-1,11],"yaw":3.14159},
     {"kind":"mob","label":"button","n":2,"patrol":[[30,-1,12],[60,-1,13]],"pos":[44,-1,12],"yaw":0},
-    {"height":6,"id":"vindebro_7","kind":"bridge","pos":[46,-1,22.5],"size":[3.6,7],"top":[46,8.5,22.5],"yaw":0},
+    {"height":3.2,"id":"vindebro_7","kind":"bridge","pos":[46,-1,22.5],"size":[3.6,7],"top":[46,8.5,22.5],"yaw":0},
     {"id":"gitter_7","kind":"gate","pos":[46,-1,31],"width":3.4,"yaw":0},
     {"kind":"mob","label":"table","n":2,"pos":[20,-7,22.5],"yaw":0},
     {"dir":[0,0,1],"id":"skoddehull_7","kind":"trap","label":"rocks","pos":[30,-7,22.5],"size":[1.2,1.2],"yaw":0},

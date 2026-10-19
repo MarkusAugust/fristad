@@ -98,7 +98,7 @@ def marks(_):
         {"kind": "mob", "pos": [44, COURT, 12], "label": "button", "n": 2, "patrol": [[30, COURT, 12], [60, COURT, 13]]},
         # Vindebroen og gitteret: vinsjen i porthuset åpner begge.
         {"kind": "bridge", "id": BRO, "pos": [bx, COURT, (BRIDGE["z0"] + BRIDGE["z1"]) / 2], "yaw": 0.0,
-         "size": [BRIDGE["w"], BRIDGE["z1"] - BRIDGE["z0"]], "height": 6.0, "top": [bx, 8.5, (BRIDGE["z0"] + BRIDGE["z1"]) / 2]},
+         "size": [BRIDGE["w"], BRIDGE["z1"] - BRIDGE["z0"]], "height": 3.2, "top": [bx, 8.5, (BRIDGE["z0"] + BRIDGE["z1"]) / 2]},
         {"kind": "gate", "id": GITTER, "pos": [bx, COURT, 31.0], "yaw": 0.0, "width": 3.4},
         # Vollgrava: tabellene i gjørma, steinene fra skoddehullene, og det rasede hjørnet.
         {"kind": "mob", "pos": [20, MOAT, 22.5], "label": "table", "n": 2},

@@ -588,7 +588,7 @@ def build(out, render=True):
             }
             shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
             if st == "venter" and render and os.path.exists(shot):
-                Image.open(shot).convert("RGB").save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                before_after(shot, os.path.join(WORK, "moduler", "foer", f"{item['module']}.png")).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -604,7 +604,7 @@ def build(out, render=True):
             }
             shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
             if st == "venter" and render and os.path.exists(shot):
-                Image.open(shot).convert("RGB").save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                before_after(shot, os.path.join(WORK, "mekanismer", "foer", f"{card['id']}.png")).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -711,6 +711,34 @@ def check(out):
     if waiting > MAX_WAITING:
         errors.append(f"{waiting} kort venter, siden har plass til {MAX_WAITING}")
     return errors
+
+
+def before_after(shot, before):
+    """Bildet av et modul- eller mekanismekort, med bildet eieren dømte
+    over («Før», lagt i `foer/` før bildene lages på nytt) når det finnes."""
+    after = Image.open(shot).convert("RGB")
+    if not os.path.exists(before):
+        return after
+    prev = Image.open(before).convert("RGB")
+    prev = prev.resize((after.width, round(prev.height * after.width / prev.width)))
+    band = 36
+    out = Image.new("RGB", (after.width, prev.height + after.height + 2 * band + 8), (24, 26, 30))
+    d = ImageDraw.Draw(out)
+    d.text((12, 8), "FØR", fill=(230, 140, 120), font=_font(22))
+    out.paste(prev, (0, band))
+    y = band + prev.height + 8
+    d.text((12, y + 8), "ETTER", fill=(140, 220, 150), font=_font(22))
+    out.paste(after, (0, y + band))
+    return out
+
+
+def _font(h):
+    for f in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+        try:
+            return ImageFont.truetype(f, h)
+        except OSError:
+            pass
+    return ImageFont.load_default()
 
 
 def audit():

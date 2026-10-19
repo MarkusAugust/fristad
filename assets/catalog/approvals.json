@@ -3379,5 +3379,211 @@
    "why": "",
    "seen": "d17c0ddffcb6"
   }
+ },
+ "modules": {
+  "grav_blindgang": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "7c5ef2a5a202"
+  },
+  "grav_gang_1": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene i den ene enden",
+   "seen": "9690d142439a",
+   "history": [
+    "det er noen rare teksturer på veggene i den ene enden"
+   ]
+  },
+  "grav_gang_2": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene i den ene enden",
+   "seen": "6c7cc74a2475",
+   "history": [
+    "det er noen rare teksturer på veggene i den ene enden"
+   ]
+  },
+  "grav_gang_hjorne": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene",
+   "seen": "50ea58b28359",
+   "history": [
+    "det er noen rare teksturer på veggene"
+   ]
+  },
+  "grav_gang_kryss": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "385f2dd429c2",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_gang_t": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "86c08888459f",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_gravgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "58172dafffe4",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_halv_etasje": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "8be02ad5dd3f",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_halvtrapp": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "6d5ee87163da",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_kapell": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "d05811fa599c",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_nedgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "6e2060cd3925",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_rom_1x1": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "64a1b16f2c59",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_rom_1x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "2dc14b393a9f"
+  },
+  "grav_rom_2x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "0b326e14413d",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_rom_3x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "678910441ebc",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_rom_3x3": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "205686ee27d1",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_rotunde": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "fa51cddb38cf",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "grav_skattkammer": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "fa617b04426c",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "mek_bro_vann_heis": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede",
+   "seen": "c867f0a624f1",
+   "history": [
+    "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede"
+   ]
+  },
+  "mek_feller": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "2de91f3dc24e"
+  },
+  "mek_hvile": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "1612297f1bad"
+  },
+  "mek_opp_ned": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+   "seen": "63a71da4c59e",
+   "history": [
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   ]
+  },
+  "mek_porter": {
+   "verdict": "usikker",
+   "date": "2026-10-19",
+   "why": "vanskelig å vite hva jeg godkjenner her",
+   "seen": "7e12b7ff8047",
+   "history": [
+    "vanskelig å vite hva jeg godkjenner her"
+   ]
+  },
+  "mek_pynt": {
+   "verdict": "usikker",
+   "date": "2026-10-19",
+   "why": "vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her",
+   "seen": "677e751cdb33",
+   "history": [
+    "vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her"
+   ]
+  }
  }
 }
