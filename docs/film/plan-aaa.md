@@ -155,7 +155,7 @@ Alt dette kjøres av `tools/film/check.py` og testen `filmen_holder_malene`.
 - Bildene lages i Gemini (A og B via redigering), 2752 × 1536; oppskalering 2× på Hugging Face der kameraet zoomer mer enn 1,3×. Dybdekart med Depth Anything V2 på Hugging Face (eieren har abonnement).
 - Fortellerstemme ja, ikke eierens egen: ElevenLabs (norsk, eldre rolig mannsstemme), reserve Piper/MMS på Hugging Face.
 - 16:9 beholdes; innstillingslista i del 4 står til eieren sier noe annet.
-- Promptene og stemmemanuset: `docs/film/prompter-innstillinger.md`.
+- Det som mangler (Veo-klipp og malerier): `docs/prompter/film.md`. Stemmen er innspilt (`assets/film/voice/`), manuset i `docs/film/manus.md`.
 
 ## 13. Spørsmål som sto
 

@@ -1,6 +1,6 @@
 # Forbildene til menneskene
 
-Fra eierens bildegenerator etter `docs/prompter-folk.md`. `<navn>_body` viser hele figuren forfra, fra siden og bakfra. `<navn>_head` viser hodet i et rutenett på 2 × 2.
+Fra eierens bildegenerator etter de gamle promptene (`docs/prompter-folk.md`, slettet 19. oktober; nye i `docs/prompter/`). `<navn>_body` viser hele figuren forfra, fra siden og bakfra. `<navn>_head` viser hodet i et rutenett på 2 × 2.
 
 Rekkefølgen i hodearkene er stort sett denne:
 

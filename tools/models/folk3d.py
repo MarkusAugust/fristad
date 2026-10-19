@@ -33,7 +33,7 @@ from common import armature, bake_textured, clear, pack_weighted  # noqa: E402
 import folk_motion  # noqa: E402
 from townsfolk import FOLK, bones  # noqa: E402
 
-# Trubaduren (glb fra TRELLIS kommer fra eieren, `docs/prompter-folk-3d.md`).
+# Trubaduren (glb fra TRELLIS kommer fra eieren, `docs/prompter/trellis-folk.md`).
 FOLK = {**FOLK, "troubadour": 1.78}
 
 SRC = "assets/textures/people/3d"

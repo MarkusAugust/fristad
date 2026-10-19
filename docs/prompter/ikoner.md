@@ -1,6 +1,6 @@
-# Ikonene til utstyret (18. oktober)
+# Ikonene til utstyret
 
-Ett malt ikon per våpen, skjold, rustning og lykta, til kortene i inventaret (I) og galleriet i Skriptoriet. Alle i samme stil: én ting alene, malt, nøytral varm grå bakgrunn, 512 × 512.
+Ett malt ikon per våpen, skjold, rustning og lykta, til kortene i inventaret (I) og Skriptoriet. Alle de 19 er stedfortredere i dag (rendret modell, `placeholders.json`). Alle i samme stil: én ting alene, malt, nøytral varm grå bakgrunn, 512 × 512.
 
 **Slik gjør du det:** lag bildet med prompten under hver ting og lagre det som `assets/textures/icons/<id>.png` (id-en står i overskriften). Send filene her. Til ikonet finnes, viser kortet et rendret bilde av modellen (`python3.13 tools/models/gear_icons.py`, listet i `assets/textures/icons/placeholders.json`); et ikon du har laget, skrives aldri over. `tools/build-web.sh` legger dem i `dist/icons/`.
 

@@ -1,6 +1,6 @@
 # Forbildene til inventaret
 
-Arkene fra eierens bildegenerator etter `docs/prompter-3.md`, hvert med 3 × 3 ting. Formene modelleres i Blender etter dem, og flatene får de malte teksturlagene (se `docs/ny-alt.md`).
+Arkene fra eierens bildegenerator etter de gamle promptene (`docs/prompter-3.md`, slettet 19. oktober; nye i `docs/prompter/`), hvert med 3 × 3 ting. Formene modelleres i Blender etter dem, og flatene får de malte teksturlagene (se `docs/ny-alt.md`).
 
 | Ark | Innhold |
 |---|---|

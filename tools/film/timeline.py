@@ -11,7 +11,7 @@ begynner, eller en tid). Tidene er sekunder i den ferdige filmen.
 """
 
 # Replikkene i rekkefølge (indeksen brukes i `voice`), samme som i
-# docs/film/prompter-innstillinger.md.
+# docs/film/manus.md.
 LINES = 25
 # titles: (stil, tekst, fra, til, skrivetid): teksten skrives bokstav for bokstav over skrivetiden, i takt med replikken.
 

@@ -1,6 +1,6 @@
 """Stedfortredere for ikonene på utstyrskortene (inventaret og galleriet i
 skriptoriet): `assets/textures/icons/<id>.png`, 512 × 512 på nøytral
-bakgrunn, til eieren har malt de ekte etter `docs/prompter/ikoner-utstyr.md`.
+bakgrunn, til eieren har malt de ekte etter `docs/prompter/ikoner.md`.
 
     python3 tools/models/gear_icons.py [id ...] [--force]
 
