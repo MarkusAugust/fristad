@@ -178,10 +178,12 @@ def weather(mat, dirt_from=0.0, dirt_to=0.6, strength=0.45, noise_scale=14.0):
 STACK = 0.12
 
 
-def pack_weighted(ob):
+def pack_weighted(ob, margin=0.004, margin_method="SCALED"):
     """Øyene i det aktive uv-laget skaleres etter flateattributtet «uv_density»
     og pakkes på nytt (pakkingen beholder forholdet mellom øyene); 0 stabler
-    øyene i én liten flis. Attributtet tas ut etterpå."""
+    øyene i én liten flis. Attributtet tas ut etterpå. Med tusenvis av øyer
+    (skallet av Rammeverket, `mob3d.py`) dekket «SCALED» bare 8 % av
+    teksturen; `margin_method="FRACTION"` gir en fast kant i brøk av bildet."""
     # Hver øy skaleres etter tettheten sin, og så pakkes de på nytt
     # (pakkingen beholder forholdet mellom øyene).
     import bmesh
@@ -234,7 +236,7 @@ def pack_weighted(ob):
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.select_all(action="SELECT")
-    bpy.ops.uv.pack_islands(rotate=True, margin=0.004, merge_overlap=True)
+    bpy.ops.uv.pack_islands(rotate=True, margin=margin, margin_method=margin_method, merge_overlap=True)
     bpy.ops.object.mode_set(mode="OBJECT")
     ob.data.attributes.remove(ob.data.attributes["uv_density"])
 

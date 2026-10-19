@@ -150,6 +150,7 @@ Problemet: med sju nivåer lastet samtidig krasjer Safari på iPhone («A proble
 - **Test**: `tools/browser-test.mjs` med `?webgl` må komme til «motoren er klar» igjen; og `engine.descend()` etterfulgt av lasting av nivå 1 i `tools/map-test.mjs`.
 
 ### 10b. Rammeverket som sluttboss (nivå 10)
+**Gjort 19. oktober:** eierens TRELLIS-form (`assets/textures/monsters/3d/framework.glb`) er gjort spillklar med `tools/models/mob3d.py framework` (teksturen som den er, 25 000 trekanter, stilen «framework» i `mob_motion.STYLES` med `bite`, `slam` og `roar`); modalen står ikke lenger i. Det under er planen slik den var.
 Modellen `framework` finnes uten rigg («fienden svever»). Den skal lages på nytt etter filmen, så spilleren kjenner den igjen: jernrammer med stive, rette ledd, gylne/magenta rutenett (`magic_…`), kongens segl og krone på hodet, revne sider i leddene, og **skjøtene etter Gorveks hugg**: grove jernsømmer der armene og beina er satt på igjen (kanon: bossen er hjertet som har samlet delene). Rundt 4 m høy, så den får plass i rotunden.
 - Forbilde (19. oktober): ett bilde forfra til TRELLIS.2 etter `docs/prompter/trellis-monstre.md` nr. 1, med filmens stillbilde av beistet som referanse.
 - Bygges med `tools/models/monsters.py` (`project_sheet`), rigg med `common.armature`, klippene fra `mob_motion.py` i stilen «tramper og vagger» pluss `slam` og `roar` som alt er definert for bossen, og rykker digitalt i hvile.

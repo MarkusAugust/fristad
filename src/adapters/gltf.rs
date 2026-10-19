@@ -109,6 +109,8 @@ models! {
     "avatar_skull" => "mobs/avatar_skull.glb",
     "breadcrumb_crawler" => "mobs/breadcrumb_crawler.glb",
     "accordion_coffin" => "mobs/accordion_coffin.glb",
+    // Rammeverket, sluttbossen fra TRELLIS (tools/models/mob3d.py).
+    "framework" => "mobs/framework.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

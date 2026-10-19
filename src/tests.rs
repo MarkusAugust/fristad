@@ -1163,7 +1163,6 @@ fn lydene_finnes() {
 /// Fiendene har alle klippene fra mob_motion.py, og hodet dreier seg mot
 /// spilleren når de har sett deg.
 #[test]
-#[ignore = "venter på de nye fiendene: de gamle modellene med klippene er slettet (rydd/gamle), så ingen slag har rigg"]
 fn fiendene_ser_mot_deg() {
     use crate::domain::mobs::{Kind, Mobs, State};
     let p = world();
@@ -1175,9 +1174,17 @@ fn fiendene_ser_mot_deg() {
         }
     }
     let mut mobs = Mobs::new(&p.world.crypt, &all);
-    let i = mobs.mobs.iter().position(|m| !m.kind.boss()).expect("en fiende");
+    // En vanlig fiende, og Rammeverket i sitt nivå (TRELLIS-formen fra mob3d.py).
+    let plain = mobs.mobs.iter().position(|m| !m.kind.boss()).expect("en fiende");
+    let deep = p.world.crypt.spawns.iter().find(|s| Kind::from_label(&s.label) == Kind::Framework).expect("Rammeverket står i et nivå").level;
     let mut flip = 0;
-    for side in [1.0f32, -1.0] {
+    for (i, side) in [(Some(plain), 1.0f32), (Some(plain), -1.0), (None, 1.0), (None, -1.0)] {
+        let i = i.unwrap_or_else(|| {
+            if mobs.level != deep {
+                mobs.enter(&p.world.crypt, deep);
+            }
+            mobs.mobs.iter().position(|m| m.kind == Kind::Framework).expect("Rammeverket")
+        });
         let m = &mut mobs.mobs[i];
         m.yaw = 0.0;
         m.aware = true;
@@ -1195,11 +1202,11 @@ fn fiendene_ser_mot_deg() {
         let ahead = mobs.head_dir(i).expect("hodet");
         mobs.mobs[i].look = look;
         let ang = |d: Vec3| d.dot(to).clamp(-1.0, 1.0).acos();
-        assert!(ahead.dot(Vec3::Z) > 0.7, "uten dreining ser hodet ikke fram ({ahead:?})");
-        assert!(ang(turned) < ang(ahead) - 0.3, "hodet dreier seg ikke mot spilleren på side {side}: {turned:?} mot {ahead:?}, ønsket {to:?}");
+        assert!(ahead.dot(Vec3::Z) > 0.7, "uten dreining ser hodet til {} ikke fram ({ahead:?})", mobs.mobs[i].kind.model());
+        assert!(ang(turned) < ang(ahead) - 0.3, "{} dreier ikke hodet mot spilleren på side {side}: {turned:?} mot {ahead:?}, ønsket {to:?}", mobs.mobs[i].kind.model());
         flip += 1;
     }
-    assert_eq!(flip, 2);
+    assert_eq!(flip, 4);
 }
 
 /// Alle de tjue husmodellene står et sted: de femten byhusene i byen, og
