@@ -642,13 +642,13 @@ Hver fase slutter med push til forhåndsvisningen og ett godkjenningsark til eie
 
 **Ytelsen:** `snapshot --level-doc N --stats` mot budsjettet.
 
-## 18. Åpne spørsmål til eieren
+## 18. Eierens svar (18. oktober)
 
-1. **Halvkanter:** skal murene alltid velges automatisk med overstyring per kant (som foreslått), eller vil du også sette murbiter selv?
-2. **Lagring av utkast:** er det greit at Lagre alltid legger utkastet på grenen, og at bare «klar» krever alle reglene grønne?
-3. **Prøveturen:** hvilket utstyr skal prøvespilleren ha som standard, det som ventes for nivået eller det du har i lagringen din?
-4. **Stemningene:** hvor mange lysstemninger og lyder per tema til å begynne med?
-5. **Skjermen:** kartet til venstre og 3D til høyre (som foreslått), eller kunne bytte til bare ett av dem i full størrelse?
+1. **Murene** velges automatisk, med overstyring per kant (dør, port, bue, vindu, gitter, falsk vegg, snarvei, rekkverk, åpen).
+2. **Lagring:** Lagre legger alltid utkastet på grenen `redigering`; et nivå kommer først inn i spillet når det merkes «klar» og alle reglene er grønne.
+3. **Prøveturen:** udødelig (ingen skade, full olje), så du ser på nivået og går gjennom det. Fiendene er der og angriper, men du tar ingen skade.
+4. **Stemningene:** begynn med det temaene har i dag (to–tre lysstemninger og romlydene per tema); flere når eieren savner dem.
+5. **Skjermen:** kartet til venstre og 3D til høyre, og en tast eller knapp som viser bare den ene over hele skjermen.
 
 ---
 
