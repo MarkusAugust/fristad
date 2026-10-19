@@ -8,6 +8,10 @@ modul får to bilder fra motsatte hjørner (eller fra hver ende av en gang),
 satt sammen til ett bilde per modul. Kartet tegnes av det kompilatoren
 faktisk lager (`snapshot --dump-doc`): cellene farget per modul, modulenes
 omriss, murene, dørene, portene, buene og gangåpningene, og innholdet.
+Bildene tas med 16 lys i stedet for standardens 8: fyllysene og
+naborommene i oversiktsnivået ville ellers skjøvet ut lysene modulen selv
+har (alterlysene i kapellet, lysene på sarkofagene), som i et ekte nivå er
+blant de nærmeste.
 
     python3 tools/crypt/module_shots.py [modul ...]
 
@@ -73,6 +77,11 @@ def cameras(name, cells, hosts):
         return cams[:2]
     if i0 == i1 and j0 == j1 or (i0 == i1 and j1 - j0 == 1):
         return [((x0, y + EYE, z1), yaw_to(x1 - x0, -(z1 - z0)), 12.0), ((x1, y + EYE, z0), yaw_to(-(x1 - x0), z1 - z0), 12.0)]
+    xc = (i0 + i1) // 2 * CELL
+    zc = (j0 + j1) // 2 * CELL
+    # Kapellet: langs midtgangen fra vest mot alteret i øst, og på skrå fra sørvest.
+    if name == "kapell":
+        return [((x0, y + EYE, zc), -90.0, -4.0), ((x0 + 0.4, y + EYE, z1), yaw_to(xc + 0.4 - x0 - 0.4, zc - z1), -4.0)]
     # Midtgangen (fagenes midte, ikke søylerekka) fra sør, tverrgangen fra øst.
     xc = (i0 + i1) // 2 * CELL
     zc = (j0 + j1) // 2 * CELL
@@ -143,7 +152,7 @@ def shoot(only):
     shots = os.path.join(OUT, "shots.txt")
     with open(shots, "w") as f:
         f.write("\n".join(lines) + "\n")
-    subprocess.run([SNAP, "--level-doc", "moduler", "--level", "1", "--film", "--size", "800x560", "--frames", "2", "--shots", shots], cwd=ROOT, check=True, capture_output=True)
+    subprocess.run([SNAP, "--level-doc", "moduler", "--level", "1", "--film", "--size", "800x560", "--frames", "2", "--gfx", "lights=16", "--shots", shots], cwd=ROOT, check=True, capture_output=True)
     for name, title, files, p in cards:
         sheet(name, title, p, files, os.path.join(OUT, f"{name}.png"))
         print(os.path.join(OUT, f"{name}.png"))

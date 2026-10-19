@@ -762,7 +762,7 @@ Porten, snarveien og den falske veggen blir innhold med id-en eieren gir (`overr
 - rom: `rom_1x1`, `rom_1x2`, `rom_2x2`, `rom_3x2`, `rom_3x3` (fire søyler), `rotunde`;
 - ganger: `gang_1`, `gang_2`, `gang_hjorne`, `gang_t`, `gang_kryss`, `blindgang`;
 - trapper: `halvtrapp` (1 m), `halv_etasje` (2 m), `nedgang` (trappa ned; bue mot rommet ved siden av);
-- ferdige rom: `kapell` (3 × 3 med døra opp og startstedet), `gravgang` (12 m med gravheller og en knapp på vakt), `skattkammer` (hemmelig rom med kiste bak en falsk vegg).
+- ferdige rom: `kapell` (3 × 3 med døra opp og startstedet, et frittstående alter med lys midt under hvelvet og benkerader vendt mot det), `gravgang` (12 m med gravheller, sarkofager annenhver side med lys på lokket og en knapp på vakt), `skattkammer` (hemmelig rom med kiste bak en falsk vegg, og skrin, kiste, sekker og en rustning på stativ i hjørnene). Innholdet er `prop` med modellen i `label` (byggesettets pynt eller møblene fra byen i `crypt::PROPS`, med kolliderne etter formen eller fra `<navn>_inside.json`) og fotavtrykket i `size` som hull i nettet; det står aldri foran en åpning (alteret står fritt, ikke mot en vegg som kan få en dør).
 
 **Prøvenivået** (`assets/levels/nivaa_test.json`) er bygd om av 14 moduler og har nøyaktig de samme bitene på de samme stedene som før (266 instanser), de samme rommene (gangen og sidegangen er flere moduler med `room`), porten som eierens valg på hvelvets åpning (`port1`), og den falske veggen fra skattkammeret.
 

@@ -30,6 +30,21 @@ def grid(bit, cols, rows, i0=0, j0=0, rot=0, variant=None):
     return out
 
 
+# Høyden på lokket til sarkofagen og skrinet (`kit_sarcophagus`, `scroll_chest`), der lysene står.
+SARCOPHAGUS_TOP = 1.14
+SCROLL_CHEST_TOP = 0.59
+
+
+def prop(id_, model, cell, pos, yaw, size=None):
+    """Pynt i en celle: en modell fra byggesettet eller møblene
+    (`crypt::PROPS`), med fotavtrykket i `size` (bredde og dybde i modellens
+    rom) som hull i navigasjonsnettet."""
+    t = {"id": id_, "kind": "prop", "anchor": f"celle:{cell}", "pos": pos, "yaw": yaw, "label": model}
+    if size:
+        t["size"] = size
+    return t
+
+
 def module(name, label, kind, about, cells, torches, **extra):
     room = {"id": "rom", "name": label, "theme": "grav", "mood": {"torches": torches}}
     if extra.pop("secret", False):
@@ -66,21 +81,38 @@ MODULES = [
            lights=[{"id": "kuppel", "anchor": "celle:c", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": False}]),
     # Ferdige rom.
     module("kapell", "Kapellet med døra opp", "ferdig",
-           "Inngangen til nivået: en sal på 3 × 3 fag med fire søyler, døra opp midt på nordveggen og startstedet midt i.",
-           grid("grav/romfelt", 3, 3, -1, -1), 0.5,
+           "Inngangen til nivået: et kapell på 3 × 3 fag med fire søyler, døra opp midt på nordveggen, det frittstående alteret "
+           "med lys under midthvelvet og benkerader vendt mot alteret. Startstedet er i midtgangen bak benkene.",
+           grid("grav/romfelt", 3, 3, -1, -1), 0.25,
            walls=[{"at": [0, -1], "side": "N"}],
-           things=[{"id": "start", "kind": "start", "anchor": "celle:c11", "pos": [0, 0, 0], "yaw": -90},
-                   {"id": "opp", "kind": "up", "anchor": "celle:c10", "pos": [0, 0, -0.45], "yaw": 0}]),
+           things=[{"id": "start", "kind": "start", "anchor": "celle:c11", "pos": [-1.3, 0, 0], "yaw": -90},
+                   {"id": "opp", "kind": "up", "anchor": "celle:c10", "pos": [0, 0, -0.45], "yaw": 0},
+                   # Alteret står fritt midt i kapellet, så det aldri stenger en åpning.
+                   prop("alter", "altar", "c11", [0.4, 0, 0], 90, [1.5, 0.95])]
+                  + [prop(f"benk_{n}", "bench_16", "c01", [x, 0, z], 90, [1.6, 0.34]) for n, (x, z) in enumerate((x, z) for x in (0.3, 1.5) for z in (-1.75, 1.75))],
+           lights=[{"id": "alterlys", "anchor": "celle:c11", "pos": [-0.3, 2.0, 0], "color": [1.0, 0.68, 0.35], "range": 7, "flicker": True, "intensity": 3.0},
+                   {"id": "lys_n", "anchor": "celle:c11", "pos": [0.4, 1.9, -0.5], "color": [1.0, 0.68, 0.35], "range": 4.5, "flicker": True},
+                   {"id": "lys_s", "anchor": "celle:c11", "pos": [0.4, 1.9, 0.5], "color": [1.0, 0.68, 0.35], "range": 4.5, "flicker": True}]),
     module("gravgang", "Gravgangen", "ferdig",
-           "En gang på 12 m med gravheller og gjordbuer, og en knapp som går vakt fram og tilbake.",
+           "En gang på 12 m med gravnisjer og gjordbuer, sarkofager annenhver side med lys på lokket, og en knapp som går vakt fram og tilbake.",
            grid("grav/gang", 1, 3, 0, -1, variant="b"), 0.6,
            things=[{"id": "vakt", "kind": "mob", "anchor": "celle:c01", "pos": [0, 0, -3], "yaw": 0, "label": "button",
-                    "patrol": [[0, 0, -3.5], [0, 0, 3.5]]}]),
+                    "patrol": [[0, 0, -3.5], [0, 0, 3.5]]}]
+                  + [prop(f"sarkofag_{c}", "kit_sarcophagus", c, [x, 0, 0], 0, [1.04, 2.14]) for c, x in (("c00", -1.03), ("c01", 1.03), ("c02", -1.03))]
+                  + [prop(f"lys_{c}", "candle", c, [x, SARCOPHAGUS_TOP, 0.65], 0) for c, x in (("c00", -1.03), ("c02", -1.03))],
+           lights=[{"id": f"lys_{c}", "anchor": f"celle:{c}", "pos": [x, SARCOPHAGUS_TOP + 0.35, 0.65], "color": [1.0, 0.66, 0.32], "range": 3.5, "flicker": True}
+                   for c, x in (("c00", -1.03), ("c02", -1.03))]),
     module("skattkammer", "Skattkammeret", "ferdig",
-           "Et hemmelig rom på 4 × 4 m med en kiste. Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",
+           "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
+           "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",
            grid("grav/romfelt", 1, 1), 0.0, secret=True,
            openings=[{"at": [0, 0], "side": s, "kind": "falsk"} for s in ("N", "E", "S", "W")],
-           things=[{"id": "kiste", "kind": "chest", "anchor": "celle:c00", "pos": [-0.6, 0, 0], "yaw": 90}],
+           things=[{"id": "kiste", "kind": "chest", "anchor": "celle:c00", "pos": [-0.6, 0, 0], "yaw": 90},
+                   prop("skrin", "scroll_chest", "c00", [1.1, 0, -1.25], 0, [0.95, 0.6]),
+                   prop("kiste_so", "chest_forms", "c00", [1.25, 0, 1.0], 90, [1.15, 0.65]),
+                   prop("rustning", "kit_armor", "c00", [-1.2, 0, -1.2], 45, [0.8, 0.6]),
+                   prop("sekker", "sacks", "c00", [-1.15, 0, 1.15], 0, [1.0, 1.15]),
+                   prop("lys", "candle", "c00", [1.3, SCROLL_CHEST_TOP, -1.35], 0)],
            lights=[{"id": "lys", "anchor": "celle:c00", "pos": [0, 2.5, 0], "color": [1.0, 0.62, 0.3], "range": 6, "flicker": True}]),
 ]
 

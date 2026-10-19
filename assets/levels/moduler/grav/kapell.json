@@ -3,9 +3,9 @@
   "name": "Kapellet med døra opp",
   "theme": "grav",
   "kind": "ferdig",
-  "about": "Inngangen til nivået: en sal på 3 × 3 fag med fire søyler, døra opp midt på nordveggen og startstedet midt i.",
+  "about": "Inngangen til nivået: et kapell på 3 × 3 fag med fire søyler, døra opp midt på nordveggen, det frittstående alteret med lys under midthvelvet og benkerader vendt mot alteret. Startstedet er i midtgangen bak benkene.",
   "rooms": [
-    {"id": "rom", "name": "Kapellet med døra opp", "theme": "grav", "mood": {"torches": 0.5}}
+    {"id": "rom", "name": "Kapellet med døra opp", "theme": "grav", "mood": {"torches": 0.25}}
   ],
   "cells": [
     {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, -1], "rot": 0},
@@ -22,7 +22,17 @@
     {"at": [0, -1], "side": "N"}
   ],
   "things": [
-    {"id": "start", "kind": "start", "anchor": "celle:c11", "pos": [0, 0, 0], "yaw": -90},
-    {"id": "opp", "kind": "up", "anchor": "celle:c10", "pos": [0, 0, -0.45], "yaw": 0}
+    {"id": "start", "kind": "start", "anchor": "celle:c11", "pos": [-1.3, 0, 0], "yaw": -90},
+    {"id": "opp", "kind": "up", "anchor": "celle:c10", "pos": [0, 0, -0.45], "yaw": 0},
+    {"id": "alter", "kind": "prop", "anchor": "celle:c11", "pos": [0.4, 0, 0], "yaw": 90, "label": "altar", "size": [1.5, 0.95]},
+    {"id": "benk_0", "kind": "prop", "anchor": "celle:c01", "pos": [0.3, 0, -1.75], "yaw": 90, "label": "bench_16", "size": [1.6, 0.34]},
+    {"id": "benk_1", "kind": "prop", "anchor": "celle:c01", "pos": [0.3, 0, 1.75], "yaw": 90, "label": "bench_16", "size": [1.6, 0.34]},
+    {"id": "benk_2", "kind": "prop", "anchor": "celle:c01", "pos": [1.5, 0, -1.75], "yaw": 90, "label": "bench_16", "size": [1.6, 0.34]},
+    {"id": "benk_3", "kind": "prop", "anchor": "celle:c01", "pos": [1.5, 0, 1.75], "yaw": 90, "label": "bench_16", "size": [1.6, 0.34]}
+  ],
+  "lights": [
+    {"id": "alterlys", "anchor": "celle:c11", "pos": [-0.3, 2.0, 0], "color": [1.0, 0.68, 0.35], "range": 7, "flicker": true, "intensity": 3.0},
+    {"id": "lys_n", "anchor": "celle:c11", "pos": [0.4, 1.9, -0.5], "color": [1.0, 0.68, 0.35], "range": 4.5, "flicker": true},
+    {"id": "lys_s", "anchor": "celle:c11", "pos": [0.4, 1.9, 0.5], "color": [1.0, 0.68, 0.35], "range": 4.5, "flicker": true}
   ]
 }
