@@ -34,7 +34,7 @@ pub fn cell(out: &mut CellOut, c: &Cell, opens: &[Open; 4], switches: &[Option<S
         .map(|w| {
             let profile_gang = c.face(w).1 == "gang";
             match opens[w] {
-                Open::Arch => None,
+                Open::Arch | Open::Inner => None,
                 Open::Gang if profile_gang => None,
                 o => Some(o.width()),
             }
@@ -161,6 +161,22 @@ pub fn cut_marks(raster: &mut BTreeMap<(i32, i32, i32), Label>, marks: &[MarkDef
             !(x0 + SUB > lo.x + EPS && x0 < hi.x - EPS && z0 + SUB > lo.y + EPS && z0 < hi.y - EPS)
         });
     }
+}
+
+/// Tar bort ruter som ikke er del av en blokk på 2 × 2 ruter (0,4 m) i samme
+/// plan: smale striper (mellom en kiste og muren) er ikke gangbare for
+/// kapselen, og nettet kobler ikke kanter under 0,2 m (`Nav::new`), så de
+/// ble polygoner uten vei til start.
+pub fn drop_slivers(raster: &mut BTreeMap<(i32, i32, i32), Label>) {
+    let has = |r: &BTreeMap<(i32, i32, i32), Label>, k: (i32, i32, i32)| r.contains_key(&k);
+    let keep: BTreeSet<(i32, i32, i32)> = raster
+        .keys()
+        .copied()
+        .filter(|&(y, z, x)| {
+            [(-1, -1), (-1, 0), (0, -1), (0, 0)].iter().any(|&(dz, dx)| (0..2).all(|a| (0..2).all(|b| has(raster, (y, z + dz + a, x + dx + b)))))
+        })
+        .collect();
+    raster.retain(|k, _| keep.contains(k));
 }
 
 /// Nettet: rutene slått sammen til rektangler per plan, og trappene.

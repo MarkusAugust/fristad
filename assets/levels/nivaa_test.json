@@ -9,13 +9,14 @@
     {"name": "Hovedplanet", "from": -1, "to": 5}
   ],
   "rooms": [
-    {"id": "kapell", "name": "Kapellet", "theme": "grav"},
+    {"id": "kapell", "name": "Kapellet", "theme": "grav", "mood": {"torches": 0.5}},
     {"id": "gjemme", "name": "Gjemmestedet", "theme": "grav", "secret": true},
-    {"id": "gangen", "name": "Gangen", "theme": "grav"},
-    {"id": "hvelv", "name": "Hvelvet", "theme": "grav"},
-    {"id": "forhall", "name": "Forhallen", "theme": "grav"},
-    {"id": "sidegang", "name": "Sidegangen", "theme": "grav"},
-    {"id": "beinhus", "name": "Beinhuset", "theme": "grav"}
+    {"id": "gangen", "name": "Gangen", "theme": "grav", "mood": {"torches": 0.5}},
+    {"id": "hvelv", "name": "Hvelvet", "theme": "grav", "mood": {"torches": 0.35}},
+    {"id": "forhall", "name": "Forhallen", "theme": "grav", "mood": {"torches": 0.4}},
+    {"id": "sidegang", "name": "Sidegangen", "theme": "grav", "mood": {"torches": 0.5}},
+    {"id": "beinhus", "name": "Beinhuset", "theme": "grav", "mood": {"torches": 1.0}},
+    {"id": "gravkammer", "name": "Gravkammeret", "theme": "grav", "mood": {"torches": 0.5}}
   ],
   "cells": [
     {"id": "k10", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0, "room": "kapell"},
@@ -40,15 +41,12 @@
     {"id": "h75", "bit": "grav/romfelt", "at": [7, 1, 5], "rot": 0, "room": "hvelv"},
     {"id": "f45", "bit": "grav/romfelt", "at": [4, 1, 5], "rot": 0, "room": "forhall"},
     {"id": "n35", "bit": "grav/nedgang", "at": [3, 1, 5], "rot": 3, "room": "forhall"},
+    {"id": "f46", "bit": "grav/romfelt", "at": [4, 1, 6], "rot": 0, "room": "forhall"},
     {"id": "s23", "bit": "grav/gang", "at": [2, 0, 3], "rot": 0, "room": "sidegang"},
     {"id": "s24", "bit": "grav/gang_kryss", "at": [2, 0, 4], "rot": 0, "room": "sidegang"},
     {"id": "s34", "bit": "grav/gang_blind", "at": [3, 0, 4], "rot": 3, "room": "sidegang"},
-    {"id": "b04", "bit": "grav/romfelt", "at": [0, 0, 4], "rot": 0, "room": "beinhus"},
-    {"id": "b05", "bit": "grav/romfelt", "at": [0, 0, 5], "rot": 0, "room": "beinhus"},
-    {"id": "b06", "bit": "grav/romfelt", "at": [0, 0, 6], "rot": 0, "room": "beinhus"},
-    {"id": "b14", "bit": "grav/romfelt", "at": [1, 0, 4], "rot": 0, "room": "beinhus"},
-    {"id": "b15", "bit": "grav/romfelt", "at": [1, 0, 5], "rot": 0, "room": "beinhus"},
-    {"id": "b16", "bit": "grav/romfelt", "at": [1, 0, 6], "rot": 0, "room": "beinhus"}
+    {"id": "rot", "bit": "grav/rotunde", "at": [0, 0, 4], "rot": 0, "room": "beinhus"},
+    {"id": "g06", "bit": "grav/romfelt", "at": [0, 0, 6], "rot": 0, "room": "gravkammer"}
   ],
   "edges": [
     {"cell": "k22", "side": "S", "kind": "dor"}
@@ -63,9 +61,9 @@
     {"id": "falsk1", "kind": "secret_wall", "anchor": "kant:k11/W"},
     {"id": "sprekk1", "kind": "hint", "anchor": "celle:k11", "pos": [-1.6, 0, 0], "yaw": 90, "label": "crack"},
     {"id": "kiste1", "kind": "chest", "anchor": "celle:s34", "pos": [0, 0, 1.0], "yaw": 180},
-    {"id": "kiste2", "kind": "chest", "anchor": "celle:b06", "pos": [0, 0, 1.0], "yaw": 180},
+    {"id": "kiste2", "kind": "chest", "anchor": "celle:g06", "pos": [0, 0, 1.0], "yaw": 180},
     {"id": "kiste3", "kind": "chest", "anchor": "celle:gjemme", "pos": [-0.6, 0, 0], "yaw": 90},
-    {"id": "knapper", "kind": "mob", "anchor": "celle:b05", "pos": [0, 0, 0], "yaw": 90, "label": "button", "n": 2, "patrol": [[0, 0, 0], [4, 0, 0], [4, 0, 4], [0, 0, 4]]},
+    {"id": "knapper", "kind": "mob", "anchor": "celle:rot", "pos": [0, 0, -2.5], "yaw": 90, "label": "button", "n": 2, "patrol": [[0, 0, -2.5], [2.5, 0, 0], [0, 0, 2.5], [-2.5, 0, 0]]},
     {"id": "vokter", "kind": "mob", "anchor": "celle:h65", "pos": [0, 0, 0], "yaw": 180, "label": "tooltip"}
   ],
   "links": [
@@ -73,14 +71,8 @@
     {"from": "sprekk1", "to": "falsk1", "kind": "for"}
   ],
   "lights": [
-    {"id": "l1", "anchor": "celle:k11", "pos": [0, 3.0, 0], "color": [1.0, 0.62, 0.3], "range": 9, "flicker": true},
-    {"id": "l2", "anchor": "celle:k31", "pos": [0, 3.0, 0], "color": [1.0, 0.62, 0.3], "range": 9, "flicker": true},
-    {"id": "l3", "anchor": "celle:g51", "pos": [0, 2.4, 0], "color": [1.0, 0.62, 0.3], "range": 7, "flicker": true},
-    {"id": "l4", "anchor": "celle:h54", "pos": [0, 3.0, 0], "color": [1.0, 0.62, 0.3], "range": 9, "flicker": true},
-    {"id": "l5", "anchor": "celle:h75", "pos": [0, 3.0, 0], "color": [1.0, 0.62, 0.3], "range": 9, "flicker": true},
     {"id": "l6", "anchor": "celle:f45", "pos": [0, 3.0, 0], "color": [0.42, 0.52, 0.85], "range": 8, "flicker": false},
     {"id": "l7", "anchor": "celle:gjemme", "pos": [0, 2.5, 0], "color": [1.0, 0.62, 0.3], "range": 6, "flicker": true},
-    {"id": "l8", "anchor": "celle:b05", "pos": [0, 3.0, 0], "color": [1.0, 0.62, 0.3], "range": 9, "flicker": true},
-    {"id": "l9", "anchor": "celle:s24", "pos": [0, 2.4, 0], "color": [1.0, 0.62, 0.3], "range": 7, "flicker": true}
+    {"id": "l8", "anchor": "celle:rot", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": false}
   ]
 }

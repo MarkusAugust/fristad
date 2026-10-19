@@ -97,6 +97,24 @@ pub struct DocRoom {
     pub secret: bool,
     #[serde(default)]
     pub priority: i32,
+    /// Stemningen (fase 2: bare faklene; tåke, lyd og forfall kommer i fase 5).
+    #[serde(default, skip_serializing_if = "Mood::is_default")]
+    pub mood: Mood,
+}
+
+/// Stemningen i et rom.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct Mood {
+    /// Andelen av fakkelfestene i rommets murer som får en fakkel (0–1),
+    /// valgt med nivåets frø og plassen.
+    #[serde(default)]
+    pub torches: f32,
+}
+
+impl Mood {
+    fn is_default(&self) -> bool {
+        *self == Mood::default()
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]

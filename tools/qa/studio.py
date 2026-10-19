@@ -89,6 +89,11 @@ def glow(mat):
 def main(path, prefix, views):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=path)
+    # Fjernversjonen (noden `far` i byggesettet for krypten) står oppå den
+    # nære: bare den nære vises.
+    for o in list(bpy.context.scene.objects):
+        if o.name == "far" or o.name.startswith("far."):
+            bpy.data.objects.remove(o, do_unlink=True)
     for m in bpy.data.materials:
         if m.use_nodes:
             dress(m)

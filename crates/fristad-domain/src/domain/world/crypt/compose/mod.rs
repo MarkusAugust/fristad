@@ -24,11 +24,14 @@
 pub mod board;
 pub mod check;
 mod grid;
+mod look;
 mod nav;
 mod rooms;
 mod solids;
 
 pub use grid::*;
+pub use look::{expand, roll};
+use look::torches;
 
 use super::doc::{DocCell, LevelDoc, Thing};
 use super::kit::{KitDef, KitPiece, PieceKind};
@@ -90,6 +93,8 @@ pub enum Open {
     Door,
     Gate,
     Secret,
+    /// Inne i en sammensatt bit: ingen halvkant, ingen mur.
+    Inner,
 }
 
 impl Open {
@@ -102,11 +107,12 @@ impl Open {
             Open::Door => "door",
             Open::Gate => "gate",
             Open::Secret => "secret",
+            Open::Inner => "inner",
         }
     }
     pub fn width(self) -> f32 {
         match self {
-            Open::Wall | Open::Arch => 0.0,
+            Open::Wall | Open::Arch | Open::Inner => 0.0,
             Open::Gang => GANG_W,
             Open::Door => DOOR_W,
             Open::Gate => GATE_W,
@@ -168,6 +174,7 @@ pub(crate) struct CellOut {
     pub hulls: Vec<Vec<[f32; 3]>>,
     pub raster: Vec<((i32, i32, i32), nav::Label)>,
     pub slopes: Vec<(Vec<[f32; 3]>, nav::Label)>,
+    pub lights: Vec<LightDef>,
     pub issues: Vec<Issue>,
 }
 
@@ -185,7 +192,13 @@ pub(crate) struct Grid<'a> {
     /// Eierens valg per (celle, side i nivået): slaget og bryteren (porter,
     /// snarveier og falske vegger som er innhold på kanten).
     pub overrides: HashMap<(usize, usize), (String, Option<String>)>,
+    /// Utseendet eieren har låst per (celle, side i nivået).
+    pub edge_variants: HashMap<(usize, usize), String>,
     pub kit: &'a KitDef,
+    /// Nivåets frø (variantene og faklene).
+    pub seed: u64,
+    /// Fakkeltettheten per rom.
+    pub torches: HashMap<String, f32>,
 }
 
 impl<'a> Grid<'a> {
@@ -228,6 +241,10 @@ impl<'a> Grid<'a> {
         let mid = c.center() + Vec3::new(outward_v(w).x, 0.0, outward_v(w).y) * HALF;
         let mut issues = vec![];
         let (fa, pa) = c.face(w);
+        // Inne i en sammensatt bit.
+        if fa == "inner" && b.is_some_and(|b| self.cells[b].face(opposite(w)).0 == "inner") {
+            return (Open::Inner, None, issues);
+        }
         if let Some((kind, switch)) = self.override_at(a, w, b) {
             if kind == "vegg" {
                 return (Open::Wall, None, issues);
@@ -274,7 +291,7 @@ impl<'a> Grid<'a> {
         };
         let (fb, _) = self.cells[b].face(opposite(w));
         let open = match (fa, fb) {
-            ("closed", _) | (_, "closed") => Open::Wall,
+            ("closed", _) | (_, "closed") | ("inner", _) | (_, "inner") => Open::Wall,
             ("open", "open") => {
                 if c.doc.room == self.cells[b].doc.room {
                     Open::Arch
@@ -306,7 +323,7 @@ impl Compiler {
         // Cellene.
         let mut cells: Vec<Cell> = vec![];
         let mut cell_docs: Vec<DocCell> = vec![];
-        for c in &doc.cells {
+        for c in &expand(doc, kit) {
             let mut c = c.clone();
             if c.room.is_empty() {
                 c.room = c.id.clone();
@@ -340,13 +357,20 @@ impl Compiler {
         }
         // Eierens valg på kantene, og innholdet som er kanten.
         let mut overrides: HashMap<(usize, usize), (String, Option<String>)> = HashMap::new();
+        let mut edge_variants: HashMap<(usize, usize), String> = HashMap::new();
         for e in &doc.edges {
             let (Some(&a), Some(l)) = (index.get(e.cell.as_str()), side_index(&e.side)) else {
                 report.issues.push(Issue::error("kant", None, format!("kanten {}/{} finnes ikke", e.cell, e.side)));
                 continue;
             };
             let w = local_to_world(l, cells[a].rot(), cells[a].mirror());
-            overrides.insert((a, w), (e.kind.clone(), None));
+            if let Some(v) = &e.variant {
+                edge_variants.insert((a, w), v.clone());
+            }
+            // Uten slag låser kanten bare utseendet.
+            if !e.kind.is_empty() {
+                overrides.insert((a, w), (e.kind.clone(), None));
+            }
         }
         for t in &doc.things {
             if let Some((a, w)) = edge_anchor(&t.anchor, &index, &cells) {
@@ -359,7 +383,8 @@ impl Compiler {
                 overrides.insert((a, w), (kind.to_string(), Some(t.id.clone())));
             }
         }
-        let grid = Grid { cells, columns, overrides, kit };
+        let torches = room_list.iter().map(|r| (r.id.clone(), r.mood.torches)).collect();
+        let grid = Grid { cells, columns, overrides, edge_variants, kit, seed: doc.seed, torches };
 
         // Hver celle, fra minnet om ingenting i nabolaget er endret.
         let mut outs: Vec<CellOut> = vec![];
@@ -393,6 +418,7 @@ impl Compiler {
             }
             raster.extend(out.raster.iter().cloned());
             slopes.extend(out.slopes.iter().cloned());
+            file.lights.extend(out.lights.iter().cloned());
             report.issues.extend(out.issues.iter().cloned());
         }
         let merged = solids::merge(boxes);
@@ -404,9 +430,13 @@ impl Compiler {
         let (marks, mut issues) = marks(doc, &grid, &index, &room_list);
         report.issues.append(&mut issues);
         nav::cut_marks(&mut raster, &marks);
+        nav::drop_slivers(&mut raster);
         file.nav = nav::build(&raster, &slopes);
         file.marks = marks;
+        // Eierens lys først, så faklene i festene.
+        let torches = std::mem::take(&mut file.lights);
         file.lights = lights(doc, &grid, &index);
+        file.lights.extend(torches);
         let (rooms, mut issues) = rooms::rooms(&grid, &room_list);
         report.issues.append(&mut issues);
         file.rooms = rooms;
@@ -434,14 +464,15 @@ fn edge_anchor(anchor: &str, index: &HashMap<&str, usize>, cells: &[Cell]) -> Op
 /// valg på kantene deres og temaene. Lik nøkkel gir likt resultat.
 fn neighborhood_key(g: &Grid, a: usize, rooms: &[super::doc::DocRoom]) -> String {
     let c = &g.cells[a];
-    let mut parts = vec![];
+    let mut parts = vec![format!("frø {}", g.seed)];
     for dj in -2..=2 {
         for di in -2..=2 {
             if let Some(v) = g.columns.get(&(c.i + di, c.j + dj)) {
                 for &b in v {
                     let o = &g.cells[b];
-                    parts.push(format!("{:?}|{}|{}", o.doc, o.theme, rooms.iter().find(|r| r.id == o.doc.room).map(|r| r.secret).unwrap_or(false)));
-                    let mut ov: Vec<_> = (0..4).filter_map(|w| g.overrides.get(&(b, w)).map(|o| format!("{w}:{o:?}"))).collect();
+                    let room = rooms.iter().find(|r| r.id == o.doc.room);
+                    parts.push(format!("{:?}|{}|{:?}|{:?}", o.doc, o.theme, room.map(|r| r.secret), room.map(|r| &r.mood)));
+                    let mut ov: Vec<_> = (0..4).filter_map(|w| g.overrides.get(&(b, w)).map(|o| format!("{w}:{o:?}"))).chain((0..4).filter_map(|w| g.edge_variants.get(&(b, w)).map(|v| format!("{w}v{v}")))).collect();
                     ov.sort();
                     parts.push(ov.join(","));
                 }
@@ -452,21 +483,32 @@ fn neighborhood_key(g: &Grid, a: usize, rooms: &[super::doc::DocRoom]) -> String
 }
 
 /// Det cella `a` bidrar med: biten, halvkantene på sidene, kvarthjørnene
-/// og søyla, kolliderne og nettet.
+/// og søyla, faklene i festene, kolliderne og nettet. Utseendet (varianten)
+/// velges med nivåets frø og plassen, om eieren ikke har låst det.
 fn cell_out(g: &Grid, a: usize) -> CellOut {
     let c = &g.cells[a];
     let mut out = CellOut::default();
     let center = c.center();
     let theme = c.theme.as_str();
+    let at = [c.i as i64, (c.y * 1000.0).round() as i64, c.j as i64];
     // Biten selv.
-    let put = |out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, mirror: bool| {
-        out.instances.push(InstanceDef { model: piece.model.clone(), pos: mm3(pos), yaw, mirror });
+    let put = |out: &mut CellOut, (model, solids): (&str, &[ColliderDef]), pos: Vec3, yaw: f32, mirror: bool| {
+        if !model.is_empty() {
+            out.instances.push(InstanceDef { model: model.to_string(), pos: mm3(pos), yaw, mirror });
+        }
         let t = transform(pos, yaw, mirror);
-        for s in &piece.solids {
+        for s in solids {
             solids::add(&mut out.boxes, &mut out.hulls, s, &t, yaw);
         }
     };
-    put(&mut out, c.piece, center, c.yaw(), c.mirror());
+    let look = c.piece.pick(c.doc.variant.as_deref(), roll(g.seed, [at[0], at[1], at[2], 0]));
+    put(&mut out, look, center, c.yaw(), c.mirror());
+    // Fakkelfestene i biten selv (rotunden).
+    if !c.mirror() {
+        torches(g, &mut out, c.piece, center, c.yaw(), &c.doc.room, [at[0], at[1], at[2], 9]);
+    }
+    // Murene rundt en sammensatt bit står bak dens egen mur: ingen fakler der.
+    let hidden = c.piece.part_of.is_some();
     // Halvkantene.
     let mut opens = [Open::Wall; 4];
     let mut switches: [Option<String>; 4] = Default::default();
@@ -478,19 +520,33 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
         let profile_gang = c.face(w).1 == "gang";
         let kit_open = match open {
             Open::Gang if profile_gang => None,
+            Open::Inner => None,
             o => Some(o.kit_name()),
         };
         if let Some(name) = kit_open {
             match g.kit.edge(theme, name) {
                 Some(piece) => {
                     let o = outward_v(w) * HALF;
-                    put(&mut out, piece, Vec3::new(center.x + o.x, c.floor(w), center.z + o.y), side_yaw(w), false);
+                    let pos = Vec3::new(center.x + o.x, c.floor(w), center.z + o.y);
+                    let look = piece.pick(g.edge_variants.get(&(a, w)).map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
+                    put(&mut out, look, pos, side_yaw(w), false);
+                    if !hidden {
+                        torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64]);
+                    }
                 }
                 None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler halvkanten «{name}» ({theme})"))),
             }
         }
     }
-    // Hjørnene.
+    // Hjørnene: kvarthjørnet etter de to sidene cella har der (innvendig,
+    // muren går videre, pilaster under en gjordbue, utvendig).
+    // Inne i en sammensatt bit står bitens egen mur: som en mur her.
+    let solid = |w: usize| match opens[w] {
+        Open::Inner => true,
+        Open::Arch => false,
+        Open::Gang => c.face(w).1 != "gang",
+        _ => true,
+    };
     let mut fills = [false; 4];
     let mut pillars: Vec<Vec2> = vec![];
     for k in 0..4 {
@@ -498,10 +554,18 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
         let (touch, missing, all_open) = vertex_state(g, a, v);
         if touch || missing {
             fills[k] = true;
-            match g.kit.of_kind(theme, PieceKind::Corner) {
+            let [sa, sb] = corner_sides(k);
+            let class = match (solid(sa), solid(sb)) {
+                (true, true) => "inner",
+                (true, false) if opens[sb] == Open::Arch => "pilaster",
+                (false, true) if opens[sa] == Open::Arch => "pilaster",
+                (true, false) | (false, true) => "wall",
+                _ => "outer",
+            };
+            match g.kit.corner(theme, class) {
                 Some(piece) => {
                     let p = vertex_pos(v);
-                    put(&mut out, piece, Vec3::new(p.x, c.y, p.y), corner_yaw(k), false);
+                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), corner_yaw(k), false);
                 }
                 None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler kvarthjørnet ({theme})"))),
             }
@@ -511,7 +575,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
             if k == 0 {
                 if let Some(piece) = g.kit.of_kind(theme, PieceKind::Pillar) {
                     let p = vertex_pos(v);
-                    put(&mut out, piece, Vec3::new(p.x, c.y, p.y), 0.0, false);
+                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), 0.0, false);
                 }
             }
         }
@@ -543,7 +607,7 @@ fn vertex_state(g: &Grid, a: usize, v: (i32, i32)) -> (bool, bool, bool) {
                 let (open, _, _) = g.opening(b, w);
                 let profile_gang = g.cells[b].face(w).1 == "gang";
                 let solid = match open {
-                    Open::Arch => false,
+                    Open::Arch | Open::Inner => false,
                     Open::Gang => !profile_gang,
                     _ => true,
                 };
@@ -585,6 +649,12 @@ fn marks(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>, rooms: &[super:
         };
         if m.kind == "mob" && m.label.is_none() {
             m.label = Some("button".into());
+        }
+        // Den falske veggen er byggesettets egen (den samme muren som rundt).
+        if m.kind == "secret_wall" && m.label.is_none() {
+            if let Some((a, _)) = edge_anchor(&t.anchor, index, &g.cells) {
+                m.label = g.kit.of_kind(&g.cells[a].theme, PieceKind::Leaf).map(|p| p.model.clone());
+            }
         }
         out.push(m);
     }
