@@ -840,7 +840,7 @@ fn teksturene_har_tak_i_nettleseren() {
         }
     }
     assert_eq!(browser_caps("sword").color, 2048);
-    assert_eq!(browser_caps("crypt_01_aa").color, 1024);
+    assert_eq!(browser_caps("crypt_01_aa").color, 2048);
     // Troféene er skarpe i nettleseren også (plan 13d): platen er 2048.
     assert_eq!(browser_caps("gallery_card").color, 2048);
     let (_, p) = model_files().find(|(n, _)| *n == "gallery_card").expect("gallery_card");
@@ -848,13 +848,13 @@ fn teksturene_har_tak_i_nettleseren() {
     let m = load_capped("gallery_card", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("gallery_card")).unwrap();
     assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "troféet er 2048 i nettleseren");
     // De store fiendene er skarpe nært (Rammeverket er bakt i 4096), de
-    // vanlige som før.
-    assert_eq!(browser_caps("framework").color, 2048);
-    assert_eq!(browser_caps("mutant_button").color, 1024);
+    // vanlige 2048 som resten.
+    assert_eq!(browser_caps("framework").color, 4096);
+    assert_eq!(browser_caps("mutant_button").color, 2048);
     let (_, p) = model_files().find(|(n, _)| *n == "framework").expect("framework");
     let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
     let m = load_capped("framework", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("framework")).unwrap();
-    assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(2048), "Rammeverket er 2048 i nettleseren");
+    assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(4096), "Rammeverket er 4096 i nettleseren");
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i

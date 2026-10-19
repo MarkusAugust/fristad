@@ -5,24 +5,18 @@
 
 use super::gltf::{model_files, Caps};
 
-/// Taket i nettleseren (plan del 10a): utpakket med mipmaps ga modellene
-/// 1,6 GB teksturer, som telefonen ikke tåler. Armene og våpnene står rett
-/// foran kameraet og beholder 2048 i fargen; resten får 1024, og normal- og
-/// metallkartene halvparten av fargen.
+/// Taket i nettleseren (plan del 10a): bare datamaskin er et mål (eieren
+/// 19. oktober), så fargen får 2048 og normal- og metallkartene 1024. De
+/// store fiendene (Rammeverket er 4 m høyt og bakt i 4096, modalen og
+/// tabellen bossene i nivå 2 og 4) står en meter eller to unna og fyller
+/// bildet: fargen får 4096. Bildene pakkes fortsatt ut én om gangen, så
+/// wasm-haugen holder bare ett av dem.
 pub fn browser_caps(name: &str) -> Caps {
-    // Armene og våpnene står rett foran kameraet, og troféene på
-    // galleriveggen har skrift som leses på en meters hold (plan 13d).
-    const NEAR: [&str; 7] = ["arms", "sword", "axe", "dagger", "shield", "mace", "gallery_"];
-    // De store fiendene (Rammeverket er 4 m høyt, modalen og tabellen
-    // bossene i nivå 2 og 4) står en meter eller to unna og fyller bildet:
-    // fargen får 2048, normal- og ruhetskartet som de andre.
     const BIG: [&str; 3] = ["framework", "mutant_modal", "mutant_table"];
-    if NEAR.iter().any(|p| name.starts_with(p)) {
-        Caps { color: 2048, data: 1024 }
-    } else if BIG.contains(&name) {
-        Caps { color: 2048, data: 512 }
+    if BIG.contains(&name) {
+        Caps { color: 4096, data: 1024 }
     } else {
-        Caps { color: 1024, data: 512 }
+        Caps { color: 2048, data: 1024 }
     }
 }
 
