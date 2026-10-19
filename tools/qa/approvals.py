@@ -105,7 +105,7 @@ def main(argv):
         items, carried = review.build(argv[1])
         for key, label in review.CATEGORIES:
             c = [it for it in items if it["cat"] == key]
-            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent" + (f", {sum(it['state'] == 'i_modul' for it in c)} bit(er) dømt gjennom modulene" if any(it['state'] == 'i_modul' for it in c) else ""))
+            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent" + (f", {sum(it['state'] == 'i_modul' for it in c)} bit(er) dømt gjennom modulene og kortene" if any(it['state'] == 'i_modul' for it in c) else "") + (f", {sum(it['state'] == 'utgaar' for it in c)} utgår" if any(it['state'] == 'utgaar' for it in c) else ""))
         print(f"{carried} bygd på nytt uten å se annerledes ut (dommen står)")
         errors = review.check(argv[1])
         for e in errors:

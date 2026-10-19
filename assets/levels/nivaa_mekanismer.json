@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "level": "mekanismer",
+  "name": "Mekanismene",
+  "status": "utkast",
+  "seed": 1,
+  "kit": ["grav@2"],
+  "bands": [
+    {"name": "Hovedplanet", "from": -1, "to": 5}
+  ],
+  "modules": [
+    {"id": "porthall", "module": "grav/rom_3x3", "at": [0, 0, 0], "name": "Porthallen", "mood": {"torches": 0.6}, "overrides": [
+      {"opening": "1,0,E", "kind": "port", "id": "port1"},
+      {"opening": "1,-1,E", "kind": "vegg"},
+      {"opening": "-1,0,W", "kind": "snarvei", "id": "snarvei1"}
+    ]},
+    {"id": "hvile", "module": "grav/rom_2x2", "at": [2, 0, -1], "name": "Hvilestedet", "mood": {"torches": 0.5}},
+    {"id": "ned", "module": "grav/nedgang", "at": [0, 0, -2]},
+    {"id": "opp", "module": "grav/rom_1x1", "at": [0, 0, 2], "name": "Døra opp", "mood": {"torches": 0.6}},
+    {"id": "gang", "module": "grav/gang_1", "at": [-2, 0, 0], "rot": 1, "name": "Gangen", "mood": {"torches": 0.6}},
+    {"id": "pynt", "module": "grav/rom_3x3", "at": [-4, 0, 0], "name": "Pynthallen", "mood": {"torches": 0.7}}
+  ],
+  "rooms": [],
+  "cells": [],
+  "edges": [],
+  "things": [
+    {"id": "start", "kind": "start", "anchor": "fri", "pos": [0, 0, 0], "yaw": 180},
+    {"id": "spak1", "kind": "lever", "anchor": "fri", "pos": [5.25, 0, 2.6], "yaw": -90},
+    {"id": "plate1", "kind": "trap", "anchor": "fri", "pos": [-2.5, 0, 2.5], "yaw": 0, "label": "arrows", "size": [1.2, 1.2]},
+    {"id": "sprekk1", "kind": "hint", "anchor": "fri", "pos": [-3.5, 0, -5.6], "yaw": 0, "label": "crack"},
+    {"id": "kiste1", "kind": "chest", "anchor": "fri", "pos": [3.4, 0, -4.9], "yaw": 0},
+    {"id": "hvile1", "kind": "rest", "anchor": "fri", "pos": [12.9, 0, -4.6], "yaw": -90},
+    {"id": "lapp1", "kind": "lore", "anchor": "fri", "pos": [11.6, 0, 1.0], "yaw": 180, "label": "En lapp", "text": "Prøvelappen."},
+    {"id": "styrke1", "kind": "bonus", "anchor": "fri", "pos": [8.4, 0, 1.0], "yaw": 180, "label": "liv"},
+    {"id": "stige1", "kind": "ladder", "anchor": "fri", "pos": [7.6, 0, -5.3], "yaw": 0},
+    {"id": "fallem1", "kind": "trapdoor", "anchor": "fri", "pos": [7.6, 0, -2.6], "yaw": 0, "label": "bolted", "size": [1.2, 1.2]},
+    {"id": "opp1", "kind": "up", "anchor": "fri", "pos": [0, 0, 8.6], "yaw": 180},
+    {"id": "trone", "kind": "prop", "anchor": "fri", "pos": [-21.0, 0, 0], "yaw": 90, "label": "kit_throne"},
+    {"id": "statue", "kind": "prop", "anchor": "fri", "pos": [-20.6, 0, -4.6], "yaw": 45, "label": "kit_statue"},
+    {"id": "rustning", "kind": "prop", "anchor": "fri", "pos": [-20.6, 0, 4.6], "yaw": 135, "label": "kit_armor"},
+    {"id": "stativ", "kind": "prop", "anchor": "fri", "pos": [-16.0, 0, -5.3], "yaw": 0, "label": "kit_rack"},
+    {"id": "sarkofag", "kind": "prop", "anchor": "fri", "pos": [-16.0, 0, 0], "yaw": 90, "label": "kit_sarcophagus"},
+    {"id": "fane1", "kind": "prop", "anchor": "fri", "pos": [-12.5, 3.6, -5.55], "yaw": 0, "label": "kit_banner"},
+    {"id": "fane2", "kind": "prop", "anchor": "fri", "pos": [-19.5, 3.6, 5.55], "yaw": 180, "label": "kit_banner"},
+    {"id": "lysekrone", "kind": "prop", "anchor": "fri", "pos": [-16.0, 5.2, 4.0], "yaw": 0, "label": "kit_chandelier"},
+    {"id": "stiver", "kind": "prop", "anchor": "fri", "pos": [-12.0, 0, 4.4], "yaw": 0, "label": "kit_strut"},
+    {"id": "lampe", "kind": "prop", "anchor": "fri", "pos": [-11.2, 2.95, 4.4], "yaw": 0, "label": "kit_lamp"},
+    {"id": "skinne1", "kind": "prop", "anchor": "fri", "pos": [-12.0, 0, -4.6], "yaw": 0, "label": "kit_rail"},
+    {"id": "skinne2", "kind": "prop", "anchor": "fri", "pos": [-12.0, 0, -2.6], "yaw": 0, "label": "kit_rail"},
+    {"id": "skinne3", "kind": "prop", "anchor": "fri", "pos": [-12.0, 0, -0.6], "yaw": 0, "label": "kit_rail"},
+    {"id": "vogn", "kind": "prop", "anchor": "fri", "pos": [-12.0, 0, -2.6], "yaw": 0, "label": "kit_cart"},
+    {"id": "krystall1", "kind": "prop", "anchor": "fri", "pos": [-17.8, 0, 5.0], "yaw": 20, "label": "kit_crystal"},
+    {"id": "krystall2", "kind": "prop", "anchor": "fri", "pos": [-14.2, 0, 5.0], "yaw": 70, "label": "kit_crystal"}
+  ],
+  "links": [
+    {"from": "spak1", "to": "port1", "kind": "opens"}
+  ],
+  "lights": [
+    {"id": "lp1", "anchor": "fri", "pos": [-13, 3.2, -3], "range": 8, "flicker": true},
+    {"id": "lp4", "anchor": "fri", "pos": [-19, 3.2, 3], "range": 8, "flicker": true},
+    {"id": "lp5", "anchor": "fri", "pos": [-19, 3.2, -3], "range": 8, "flicker": true},
+    {"id": "lp2", "anchor": "fri", "pos": [-2, 3.0, 2], "range": 7, "flicker": true},
+    {"id": "lp3", "anchor": "fri", "pos": [10, 3.0, -2], "range": 7, "flicker": true}
+  ]
+}

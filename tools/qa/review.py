@@ -12,6 +12,12 @@ den ble gitt for (`seen`). Hvert kort står i én av tre bunker:
   rette, og som ikke vises eieren igjen før det er rettet;
 - `godkjent`: godkjent, og ikke endret siden.
 
+Og to som eieren ikke dømmer én og én (`assets/catalog/modules.json`):
+`i_modul` for bitene og byggesettets mekanismer, som dømmes gjennom
+modulene og de samlede kortene (`mekanismer`: tingene i bruk i et rom), og
+`utgaar` for det som erstattes (bitene i de gamle kryptnivåene), som står
+sammenfoldet nederst med dommene eieren alt har gitt.
+
 Siden (`approvals.html`) viser alle tingene i faner per kategori, med det
 som venter først. Bare kortene som venter, har bilder: ett samlet bilde per
 kort (før og etter, alle vinklene), så siden holder seg langt under
@@ -282,7 +288,7 @@ def version_at(path, when):
 def category(name, kind, path):
     if kind == "tekstur":
         return "textures"
-    if kind == "modul":
+    if kind in ("modul", "samlet"):
         return "crypt"
     folder = path.split("/")[2]
     if folder in ("arms", "mobs", "crypt"):
@@ -320,27 +326,53 @@ def things():
     for p in sorted(glob.glob(os.path.join(ROOT, "assets", "levels", "moduler", "*", "*.json"))):
         theme, name = os.path.basename(os.path.dirname(p)), os.path.basename(p)[:-5]
         out.append((f"u_{theme}_{name}", "modul", f"{theme}_{name}", os.path.relpath(p, ROOT)))
+    # Byggesettets mekanismer og pynt, satt sammen (`mekanismer`): `u_mek_<kort>`.
+    for c in mechanism_cards():
+        out.append((f"u_mek_{c['id']}", "samlet", f"mek_{c['id']}", "assets/catalog/modules.json"))
     return out
+
+
+def mechanism_cards():
+    """De samlede kortene for byggesettets mekanismer og pynt
+    (`tools/crypt/mechanism_shots.py`)."""
+    try:
+        return load("modules.json").get("mekanismer", {}).get("kort", [])
+    except OSError:
+        return []
+
+
+def retired(name):
+    """Det som utgår (`utgaar` i `modules.json`): navnene og mønstrene."""
+    import re
+    try:
+        rule = load("modules.json").get("utgaar", {})
+    except OSError:
+        return False
+    return name in rule.get("navn", []) or any(re.search(p, name) for p in rule.get("moenster", []))
 
 
 def via_modules():
     """Bitene som dømmes gjennom modulene (`assets/catalog/modules.json`)."""
     try:
-        return set(load("modules.json").get("gjennom_moduler", []))
+        return set(load("modules.json").get("gjennom_moduler", [])) | {m for c in mechanism_cards() for m in c["modeller"]}
     except OSError:
         return set()
 
 
 def group_of(kind):
-    return {"modell": "models", "tekstur": "textures", "modul": "modules"}[kind]
+    return {"modell": "models", "tekstur": "textures", "modul": "modules", "samlet": "modules"}[kind]
 
 
 def current(kind, name, path):
     """Versjonen eieren dømmer: fila, og for en modul også bitene i temaet
     (en modul ser annerledes ut når en bit endres)."""
+    import hashlib
+    if kind == "samlet":
+        card = next(c for c in mechanism_cards() if f"mek_{c['id']}" == name)
+        parts = [version(locate(m, "modell")) for m in card["modeller"]]
+        return hashlib.sha1(" ".join(parts).encode()).hexdigest()[:12]
     if kind != "modul":
         return version(path)
-    import hashlib
     theme = name.split("_", 1)[0]
     parts = [version(path)] + [version(os.path.relpath(g, ROOT)) for g in sorted(glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", theme, "*.glb")))]
     return hashlib.sha1(" ".join(parts).encode()).hexdigest()[:12]
@@ -350,6 +382,8 @@ def state_of(kind, name, entry, cur, fix=None):
     """Som `state`, men bitene som dømmes gjennom modulene står i `i_modul`."""
     if kind == "modell" and name in via_modules():
         return "i_modul"
+    if kind == "modell" and retired(name):
+        return "utgaar"
     return state(entry, cur, fix)
 
 
@@ -558,6 +592,22 @@ def build(out, render=True):
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
+        if kind == "samlet":
+            card = next(c for c in mechanism_cards() if f"mek_{c['id']}" == name)
+            item = {
+                "id": id_, "kind": kind, "cat": "crypt", "name": card["name"], "version": cur, "state": st,
+                "about": card.get("about", "") + " (" + ", ".join(card["modeller"]) + ")",
+                "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
+                "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
+                "fixed": (fix or {}).get("text", []),
+                "path": path, "seen": (e or {}).get("seen"),
+            }
+            shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
+            if st == "venter" and render and os.path.exists(shot):
+                Image.open(shot).convert("RGB").save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                item["img"] = f"img/{id_}.jpg"
+            items.append(item)
+            continue
         if st == "venter" and render and e and e.get("seen"):
             before, after = shots(kind, name, path, e["seen"]), shots(kind, name, path, cur)
             # Bygd på nytt, men ser ut som det eieren så: dommen står. Ikke
@@ -576,6 +626,8 @@ def build(out, render=True):
             "fixed": (fix or {}).get("text", []),
             "path": path, "seen": (e or {}).get("seen"),
         }
+        if st == "utgaar":
+            item["about"] = load("modules.json")["utgaar"].get("hvorfor", "")
         if st == "venter" and render:
             if fix and fix.get("images"):
                 ims = [Image.open(os.path.join(ROOT, p)).convert("RGB") for p in fix["images"]]
@@ -652,7 +704,8 @@ def check(out):
             errors.append(f"{name} mangler på siden")
         elif it["state"] != st:
             errors.append(f"{name} står som {it['state']} på siden, men er {st}")
-        elif st == "venter" and not (it.get("img") and os.path.exists(os.path.join(out, it["img"]))):
+        # Etter `assets` ligger bildet i sidens asset-lager (`/_blob/<id>`).
+        elif st == "venter" and not (it.get("img") and (it["img"].startswith("/_blob/") or os.path.exists(os.path.join(out, it["img"])))):
             errors.append(f"{name} venter, men har ikke bilde")
     waiting = sum(1 for it in data["items"] if it["state"] == "venter")
     if waiting > MAX_WAITING:
@@ -685,6 +738,13 @@ def audit():
     for n in sorted(via_modules()):
         if n not in names["models"]:
             errors.append(f"{n} står i modules.json, men ikke i models.json")
+    for c in mechanism_cards():
+        for n in c["modeller"]:
+            if n not in names["models"]:
+                errors.append(f"{n} står i mekanismekortet {c['id']}, men ikke i models.json")
+    for n in load("modules.json").get("utgaar", {}).get("navn", []):
+        if n not in names["models"]:
+            errors.append(f"{n} står som utgått i modules.json, men ikke i models.json")
     for n, e in ap.get("modules", {}).items():
         if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
             errors.append(f"dommen over modulen {n} mangler versjonen eieren så (`seen`)")

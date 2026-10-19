@@ -813,7 +813,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "a736ec7519cf",
+   "seen": "0d3eef70271b",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -898,7 +898,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "cb3e6926c242",
+   "seen": "9de5600fa73f",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -968,7 +968,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "8354924d02f9",
+   "seen": "73803fe39bc3",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-13",
@@ -1742,7 +1742,7 @@
    "verdict": "godkjent",
    "date": "2026-10-13",
    "why": "",
-   "seen": "96a4408e47ad",
+   "seen": "c814accec68e",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-12",
@@ -3372,6 +3372,12 @@
    "date": "2026-10-19",
    "why": "",
    "seen": "04874fb8b9ba"
+  },
+  "framework": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "d17c0ddffcb6"
   }
  }
 }
