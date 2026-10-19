@@ -114,17 +114,6 @@ pub const KIT_WATER: &str = "kit_water";
 /// Målene broa er modellert i (skaleres til merkets `size`).
 pub const BRIDGE_W: f32 = 3.6;
 pub const BRIDGE_L: f32 = 8.0;
-/// Pynten merket `prop` kan sette ut (modellnavnet i `label`): byggesettets,
-/// og møblene fra byen som hører hjemme i en gravkjeller (alteret,
-/// lysestakene, benkene, kistene og hyllene i de ferdige rommene, del 21),
-/// med kolliderne fra `<navn>_inside.json` (`town::carry`).
-pub const PROPS: &[&str] = &[
-    "kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal", "kit_banner", "kit_armor", "kit_statue", "kit_rack", "kit_throne", "kit_chandelier",
-    "altar", "candle_stand", "candle_stand_low", "candle", "bench_16", "bench_20", "scroll_chest", "chest_forms", "cellar_shelf", "cellar_crate", "sacks", "barrel_tall",
-];
-/// Pynten som henger på muren eller i taket, eller står oppå noe (tronen på
-/// forhøyningen), ikke på gulvet: settes ut med `place_mounted`.
-pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner", "kit_chandelier", "kit_throne", "candle"];
 pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
@@ -259,9 +248,7 @@ pub fn build(b: &mut Builder, anchor: Vec2, files: Vec<(u32, LevelFile)>) -> Cry
             // murflaten (de 5 cm foran ga en usynlig vegg på skrå).
             let half = Vec3::new(s.width * 0.5, s.height * 0.5, (SECRET_DEPTH - SECRET_FRONT) * 0.5);
             let shift = Vec3::new(0.0, 0.0, -SECRET_FRONT * 0.5);
-            if b.target_parts.len() <= t {
-                b.target_parts.resize(t + 1, vec![]);
-            }
+            if b.target_parts.len() <= t { b.target_parts.resize(t + 1, vec![]); }
             b.target_parts[t] = vec![(half, Affine3A::from_translation(shift))];
         }
     }
@@ -756,8 +743,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                         b.place_mounted(name, pose);
                     }
                     // Pynten på gulvet har kolliderne etter formen (`solids.py`),
-                    // i tillegg til dem i nivåfila.
-                    // (Møblene fra byen har dem i `<navn>_inside.json`.)
+                    // i tillegg til dem i nivåfila (møblene fra byen i `<navn>_inside.json`).
                     Some(name) => {
                         if b.place(name, pose) && !b.place_solids(name, pose) {
                             super::town::carry(b, name, pose, false);

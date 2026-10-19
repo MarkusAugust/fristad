@@ -248,3 +248,15 @@ pub struct Pending {
     pub pos: Vec3,
     pub level: usize,
 }
+
+/// Pynten merket `prop` kan sette ut (modellnavnet i `label`): byggesettets,
+/// og møblene fra byen som hører hjemme i en gravkjeller (alteret,
+/// lysestakene, benkene, kistene og hyllene i de ferdige rommene, del 21),
+/// med kolliderne fra `<navn>_inside.json` (`town::carry`).
+pub const PROPS: &[&str] = &[
+    "kit_sarcophagus", "kit_strut", "kit_rail", "kit_cart", "kit_lamp", "kit_crystal", "kit_banner", "kit_armor", "kit_statue", "kit_rack", "kit_throne", "kit_chandelier",
+    "altar", "candle_stand", "candle_stand_low", "candle", "bench_16", "bench_20", "scroll_chest", "chest_forms", "cellar_shelf", "cellar_crate", "sacks", "barrel_tall",
+];
+/// Pynten som henger på muren eller i taket, eller står oppå noe (tronen på
+/// forhøyningen), ikke på gulvet: settes ut med `place_mounted`.
+pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner", "kit_chandelier", "kit_throne", "candle"];
