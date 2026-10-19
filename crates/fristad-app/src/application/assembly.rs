@@ -54,7 +54,10 @@ pub fn prepare_for_edit(models: &dyn ModelSource, seed: u64) -> Prepared {
 
 /// Bygg spillet fra `data` (dataene fra fila, eller fra redigeringen når du
 /// trykker P for å spille).
-pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool) -> Prepared {
+pub fn prepare_with(models: &dyn ModelSource, seed: u64, mut data: Data, edit: bool) -> Prepared {
+    // Nivådokumentene kompileres før noe annet, så redigeringen ser de samme
+    // nivåene som spillet.
+    data.compose_levels();
     let mut loaded: Vec<Model> = models.names().iter().filter_map(|n| models.load(n)).collect();
     // Gresstusten og ruskbitene lages i kjernen, ikke i Blender.
     loaded.push(crate::domain::combat::debris_model());
@@ -101,4 +104,64 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool)
 /// Skjelettene til de skinnede modellene, til økta.
 pub fn rigs(models: &[Model]) -> Vec<(String, crate::domain::anim::Rig)> {
     models.iter().filter_map(|m| m.rig.clone().map(|r| (m.name.clone(), r))).collect()
+}
+
+/// Slår sammen instansene av modellene `names` (bitene fra byggesettet) til
+/// én modell per rute på `cell` meter (og 20 m i høyden), som rendereren
+/// tegner med ett kall per rute i stedet for ett per modell (målingen i
+/// fase 0, `docs/nivaaredigering.md`; i spillet gjøres det ved lasting i
+/// fase 7). Bare ekte modeller settes sammen: hjørnene flyttes, ingenting
+/// lages. Gir antallet ruter.
+pub fn merge_instances(p: &mut Prepared, names: &[&str], cell: f32) -> usize {
+    use crate::domain::geometry::Mesh;
+    let mut chunks: BTreeMap<(i32, i32, i32), Mesh> = BTreeMap::new();
+    for pl in p.world.placements.iter_mut().filter(|pl| names.contains(&pl.model)) {
+        let Some(model) = p.models.iter().find(|m| m.name == pl.model) else { continue };
+        if model.albedo.is_some() || model.rig.is_some() {
+            continue; // egne teksturer eller skjelett: kan ikke deles
+        }
+        for t in pl.transforms.drain(..) {
+            let o = glam::Vec3::from(t.translation);
+            let key = ((o.x / cell).floor() as i32, (o.y / 20.0).floor() as i32, (o.z / cell).floor() as i32);
+            let mesh = chunks.entry(key).or_insert_with(|| Mesh { vertices: vec![], indices: vec![] });
+            let base = mesh.vertices.len() as u32;
+            let flip = t.matrix3.determinant() < 0.0;
+            for v in &model.mesh.vertices {
+                let mut w = *v;
+                w.pos = t.transform_point3(glam::Vec3::from(v.pos)).to_array();
+                w.normal = (t.matrix3 * glam::Vec3A::from(glam::Vec3::from(v.normal))).normalize_or_zero().to_array();
+                mesh.vertices.push(w);
+            }
+            for tri in model.mesh.indices.chunks_exact(3) {
+                if flip {
+                    mesh.indices.extend([base + tri[0], base + tri[2], base + tri[1]]);
+                } else {
+                    mesh.indices.extend(tri.iter().map(|i| base + i));
+                }
+            }
+        }
+        pl.tints.clear();
+        pl.looks.clear();
+    }
+    let n = chunks.len();
+    for ((x, y, z), mesh) in chunks {
+        let name = crate::domain::world::layout::intern(&format!("merged_{x}_{y}_{z}"));
+        let model = Model {
+            name: name.to_string(),
+            mesh,
+            albedo: None,
+            normal: None,
+            metal_rough: None,
+            emissive: None,
+            roughness: 0.5,
+            metallic: 0.0,
+            far_cell: 0.0,
+            far_mesh: None,
+            rig: None,
+            solids: vec![],
+        };
+        p.models.push(model);
+        p.world.placements.push(Placement { model: name, transforms: vec![Affine3A::IDENTITY], tints: vec![], looks: vec![], reserve: 0, indoor: false });
+    }
+    n
 }

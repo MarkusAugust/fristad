@@ -115,7 +115,9 @@ for k, yaw in enumerate((0, -40, -90)):
 
 from PIL import Image, ImageDraw  # noqa: E402
 
-ref = Image.open(os.path.join(ROOT, "assets", "textures", "people", "ref", f"{name}_body.jpeg")).convert("RGB")
+refs = os.path.join(ROOT, "assets", "textures", "people", "ref")
+ref = next((os.path.join(refs, f"{name}_{k}.jpeg") for k in ("body", "apose") if os.path.exists(os.path.join(refs, f"{name}_{k}.jpeg"))), None)
+ref = Image.open(ref).convert("RGB")  # arket fra 15. oktober, ellers arket i A-stilling
 W = 1680
 ref = ref.resize((W, int(ref.height * W / ref.width)))
 rest = [Image.open(f).convert("RGB") for f in files]

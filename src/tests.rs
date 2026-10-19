@@ -17,8 +17,34 @@ pub(crate) fn world() -> &'static Prepared {
 }
 
 pub(crate) fn session(physics: &mut RapierPhysics) -> Session {
-    let p = world();
+    session_in(world(), physics)
+}
+
+pub(crate) fn session_in(p: &Prepared, physics: &mut RapierPhysics) -> Session {
     Session::new(&p.world, physics, &rigs(&p.models))
+}
+
+/// Byen med prøvenivået (`assets/levels/nivaa_test.json`, kompilert av
+/// `crypt::compose`) som eneste kryptnivå: de gamle testene over krypten
+/// kjører på det også (`docs/nivaaredigering.md`, fase 1).
+pub(crate) fn doc_world() -> &'static Prepared {
+    static P: OnceLock<Prepared> = OnceLock::new();
+    P.get_or_init(|| prepare(&DocSource("test"), 7))
+}
+
+/// De innebygde modellene, med et nivådokument som eneste kryptnivå.
+pub(crate) struct DocSource(pub &'static str);
+
+impl crate::ports::ModelSource for DocSource {
+    fn load(&self, name: &str) -> Option<crate::domain::model::Model> {
+        Embedded.load(name)
+    }
+    fn names(&self) -> Vec<String> {
+        Embedded.names()
+    }
+    fn world_data(&self) -> crate::domain::world::Data {
+        crate::adapters::data::world_data_with_doc(self.0)
+    }
 }
 
 /// Rutinen mot svevende modeller: ingen instans får sveve over eller stå
@@ -622,7 +648,7 @@ fn pipene_ryker() {
 /// Trubaduren sitter på krakken ved ildstedet i Vertshuset (plassen er
 /// data: `seated` i `assets/layout/town.json`, krakken i
 /// `assets/layout/inside/tavern.json`), vendt ut i rommet, og figuren hans
-/// ventes (`model::PLANNED`) til TRELLIS-modellen kommer.
+/// (TRELLIS, `folk3d.py troubadour`) har beinet lutten henger i.
 #[test]
 fn trubaduren_sitter_ved_ildstedet() {
     let w = &world().world;
@@ -634,7 +660,9 @@ fn trubaduren_sitter_ved_ildstedet() {
     let hearth = w.lights.iter().filter(|l| l.always).map(|l| l.pos).min_by(|a, b| a.distance(t.pos).total_cmp(&b.distance(t.pos))).unwrap();
     assert!(hearth.distance(t.pos) < 2.5, "krakken står ikke ved ildstedet ({hearth:?})");
     assert_eq!(t.model, "npc_troubadour");
-    assert!(crate::domain::model::PLANNED.iter().any(|(n, _)| *n == t.model) || world().models.iter().any(|m| m.name == t.model), "figuren ventes eller finnes");
+    let figure = world().models.iter().find(|m| m.name == t.model).expect("figuren til trubaduren finnes");
+    assert!(figure.rig.as_ref().is_some_and(|r| r.joint("lute").is_some() && r.clip("play").is_some() && r.clip("sit").is_some() && r.joint("jaw").is_some()), "figuren har lutebeinet, kjeven og de sittende klippene");
+    assert!(world().models.iter().any(|m| m.name == crate::domain::npcs::LUTE_MODEL), "lutten finnes");
 }
 
 /// Innbyggerne går rundt på gjøremålene sine, og stopper når du kommer nær.
@@ -1367,7 +1395,11 @@ use crate::domain::world::crypt::{self, Crypt};
 
 /// Krypten med alle bryterne åpne (porter, dører, falske vegger, lemmer).
 fn crypt_open() -> Crypt {
-    let mut c = world().world.crypt.clone();
+    crypt_open_in(world())
+}
+
+fn crypt_open_in(p: &Prepared) -> Crypt {
+    let mut c = p.world.crypt.clone();
     c.open = vec![true; c.switches.len()];
     c
 }
@@ -1491,7 +1523,16 @@ fn krypten_kan_nas_og_fiendene_biter() {
 /// taket står minst `HEADROOM` over hvert hjørne i navigasjonsnettet.
 #[test]
 fn kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok() {
-    let c = &world().world.crypt;
+    levels_have_what_they_need(world());
+}
+
+#[test]
+fn provenivaaet_har_det_det_skal_og_taket_er_hoyt_nok() {
+    levels_have_what_they_need(doc_world());
+}
+
+fn levels_have_what_they_need(p: &Prepared) {
+    let c = &p.world.crypt;
     assert!(!c.levels.is_empty(), "ingen kryptnivåer");
     let mut problems = vec![];
     for (k, l) in c.levels.iter().enumerate() {
@@ -1527,9 +1568,18 @@ fn kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok() {
 /// sette seg fast.
 #[test]
 fn fiendene_finner_fram_i_krypten() {
+    enemies_find_their_way(world());
+}
+
+/// Det samme i prøvenivået fra nivådokumentet.
+#[test]
+fn fiendene_finner_fram_i_provenivaaet() {
+    enemies_find_their_way(doc_world());
+}
+
+fn enemies_find_their_way(p: &Prepared) {
     use crate::domain::mobs::Mobs;
-    let p = world();
-    let c = crypt_open();
+    let c = crypt_open_in(p);
     let all = rigs(&p.models);
     let mut problems = vec![];
     for (k, l) in c.levels.iter().enumerate() {
@@ -1680,6 +1730,8 @@ fn fiendene_patruljerer_og_ligger_i_bakhold() {
 /// musa, følger veien på navigasjonsnettet, trekker spakene den trenger, og
 /// slåss (i gjennomspillingen) med det som kommer.
 struct Bot {
+    /// Verden boten går i (spillet, eller prøvenivået).
+    world: &'static Prepared,
     input: Input,
     t: f32,
     fight: bool,
@@ -1698,7 +1750,7 @@ impl Bot {
     const DT: f32 = 1.0 / 30.0;
 
     fn new(fight: bool) -> Self {
-        Bot { input: Input::default(), t: 0.0, fight, near_deaths: 0, kills: 0, chests: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false }
+        Bot { world: world(), input: Input::default(), t: 0.0, fight, near_deaths: 0, kills: 0, chests: 0, log: vec![], swing: 0, last: Vec3::ZERO, stuck: 0.0, sidestep: 0.0, side: false }
     }
 
     fn note(&mut self, s: String) {
@@ -1881,7 +1933,8 @@ impl Bot {
     /// arenaen (porten står oppe til bossen stenger den bak deg), og slår den
     /// når den slåss.
     fn final_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
-        let c = &world().world.crypt;
+        let w = self.world;
+        let c = &w.world.crypt;
         let l = &c.levels[k];
         let Some(boss) = c.spawns.iter().find(|s| s.level == k && s.boss) else { return };
         let t0 = self.t;
@@ -1909,7 +1962,8 @@ impl Bot {
     /// Gjennom nivå `k`: fra der boten står til trappa ned, og trekker
     /// spakene (og henter nøkkelen) når veien er stengt.
     fn through_level(&mut self, game: &mut Session, physics: &mut RapierPhysics, k: usize) {
-        let c = &world().world.crypt;
+        let w = self.world;
+        let c = &w.world.crypt;
         let l = &c.levels[k];
         let Some((down, _)) = l.down else {
             self.final_level(game, physics, k);
@@ -1998,10 +2052,24 @@ impl Bot {
 /// nederste. Fiendene er borte, så det er veien som testes.
 #[test]
 fn kryptnivaaene_kan_gas_gjennom() {
-    let c = &world().world.crypt;
+    walk_through(world());
+}
+
+/// Det samme i prøvenivået fra nivådokumentet: fra startstedet, gjennom
+/// porten med spaken, ned trappa i nedgangen.
+#[test]
+fn provenivaaet_kan_gas_gjennom() {
+    let p = doc_world();
+    walk_through(p);
+    // Nivået har bare ett nivå: trappa ned sier at det ikke går dypere.
+}
+
+fn walk_through(p: &'static Prepared) {
+    let c = &p.world.crypt;
     let mut physics = RapierPhysics::new();
-    let mut game = session(&mut physics);
+    let mut game = session_in(p, &mut physics);
     let mut bot = Bot::new(false);
+    bot.world = p;
     bot.step(&mut game, &mut physics);
     game.use_first(|u| *u == Use::Descend);
     bot.idle(&mut game, &mut physics, 0.5);
@@ -2371,7 +2439,16 @@ fn pilfella_laerer_deg_forst() {
 /// forbindelse, og et stengt gitter stopper det til det åpnes.
 #[test]
 fn lyset_folger_rommene() {
-    let w = &world().world;
+    light_follows_rooms(world());
+}
+
+#[test]
+fn lyset_folger_rommene_i_provenivaaet() {
+    light_follows_rooms(doc_world());
+}
+
+fn light_follows_rooms(p: &Prepared) {
+    let w = &p.world;
     let c = &w.crypt;
     let lit: Vec<_> = w.lights.iter().filter(|l| l.pos.y < crypt::TOP).collect();
     assert!(!lit.is_empty(), "ingen lys i krypten");
@@ -2381,15 +2458,12 @@ fn lyset_folger_rommene() {
     let gate = &c.gates[0];
     // Et sted på hver side, utenfor rommet gitteret står i.
     let gate_room = c.room_at(gate.pos + Vec3::Y * 0.2).map(|r| r.1);
-    let side = |sgn: f32| {
-        (1..12)
-            .map(|k| in_front(c, gate.pos, gate.yaw, sgn * 0.6 * k as f32))
-            .find_map(|q| c.room_at(q + Vec3::Y * 0.2).map(|r| r.1).filter(|r| Some(*r) != gate_room))
-            .expect("ingen rom ved gitteret")
-    };
-    // Rommet gitteret står i (gangen), eller rommet på andre siden.
-    let ra = side(1.0);
-    let rb = gate_room.filter(|g| *g != ra).unwrap_or_else(|| side(-1.0));
+    let side = |sgn: f32| (1..12).map(|k| in_front(c, gate.pos, gate.yaw, sgn * 0.6 * k as f32)).find_map(|q| c.room_at(q + Vec3::Y * 0.2).map(|r| r.1).filter(|r| Some(*r) != gate_room));
+    // Rommet gitteret står i (gangen), eller rommet på andre siden. Står
+    // gitteret på grensen mellom to rom (en kant i nivådokumentet), kan
+    // rommet foran være det gitteret regnes til: da er det andre bak.
+    let ra = side(1.0).or(gate_room).expect("ingen rom ved gitteret");
+    let rb = gate_room.filter(|g| *g != ra).or_else(|| side(-1.0)).expect("ingen rom bak gitteret");
     assert_ne!(ra, rb, "gitteret står ikke mellom to rom");
     let mut c = c.clone();
     assert_eq!(c.light_mask(gate.level, ra) & (1 << rb), 0, "lyset går gjennom det stengte gitteret");

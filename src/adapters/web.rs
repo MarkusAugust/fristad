@@ -32,6 +32,24 @@ pub struct Engine {
     rebuild: Option<Rebuild>,
 }
 
+/// Modellfilene, med et nivådokument som eneste kryptnivå (`?nivaa=`).
+struct WithDoc<'a>(&'a Files, String);
+
+impl crate::ports::ModelSource for WithDoc<'_> {
+    fn load(&self, name: &str) -> Option<crate::domain::model::Model> {
+        crate::ports::ModelSource::load(self.0, name)
+    }
+    fn names(&self) -> Vec<String> {
+        crate::ports::ModelSource::names(self.0)
+    }
+    fn deferred(&self) -> Vec<String> {
+        crate::ports::ModelSource::deferred(self.0)
+    }
+    fn world_data(&self) -> crate::domain::world::Data {
+        crate::adapters::data::world_data_with_doc(&self.1)
+    }
+}
+
 struct Rebuild {
     files: Files,
     queue: wgpu::Queue,
@@ -98,6 +116,8 @@ pub async fn start(
     blobs: js_sys::Array,
     models: js_sys::Array,
     edit: bool,
+    level_doc: Option<String>,
+    merge: bool,
 ) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
@@ -118,7 +138,20 @@ pub async fn start(
     let seed = (js_sys::Date::now() as u64) ^ 0x5eed;
     let files = Files(model_paths().into_iter().zip(models.iter()).filter(|(_, b)| !b.is_undefined()).map(|(p, b)| (p, js_sys::Uint8Array::new(&b).to_vec())).collect());
     // Med `?edit` (bare for eieren): alle modellene, med plass til å flytte dem.
-    let prepared = if edit { prepare_for_edit(&files, seed) } else { prepare(&files, seed) };
+    // Med `?nivaa=NAVN`: nivådokumentet (`assets/levels/nivaa_NAVN.json`, eller
+    // `brett`) som eneste kryptnivå, og med `&slaa` bitene slått sammen per
+    // rute på 16 m (målingen i fase 0, `docs/nivaaredigering.md`).
+    let mut prepared = match &level_doc {
+        Some(name) => prepare(&WithDoc(&files, name.clone()), seed),
+        None if edit => prepare_for_edit(&files, seed),
+        None => prepare(&files, seed),
+    };
+    if merge {
+        let kit = crate::adapters::data::kit();
+        let names: Vec<&str> = kit.models();
+        let n = crate::application::assembly::merge_instances(&mut prepared, &names, 16.0);
+        log::info!("Bitene slått sammen til {n} ruter");
+    }
     let layers = match manifest_json {
         Some(m) => {
             let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();
@@ -530,6 +563,15 @@ impl Engine {
     /// Tilbake til sørporten, fra knappen i pausemenyen.
     pub fn respawn(&mut self) {
         self.app.command(Command::Respawn);
+    }
+
+    /// Flytt kameraet til et sted i kryptnivå `n` (fra 1), i nivåets eget
+    /// rom (målingen i prøvenivået, `?nivaa=test&bench`).
+    pub fn place_in_level(&mut self, n: u32, x: f32, y: f32, z: f32, yaw_deg: f32, pitch_deg: f32) {
+        let k = n.max(1) as usize - 1;
+        let Some(o) = self.app.session.level_origin(k) else { return };
+        self.app.session.go_to_level(k);
+        self.app.command(Command::Place { eye: o + glam::Vec3::new(x, y, z), yaw: yaw_deg.to_radians(), pitch: pitch_deg.to_radians() });
     }
 
     /// Flytt kameraet. Brukes av testene og til å lenke til et sted i byen.

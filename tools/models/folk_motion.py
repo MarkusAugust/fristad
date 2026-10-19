@@ -1174,9 +1174,38 @@ def seated_pose(body, st, t, period):
     return pose, br
 
 
-def sit(body, st, grips):
+def on_lute(lute, p):
+    """Et punkt i lutens rom (x til siden, y bakover fra lokket, z langs
+    halsen; `item3d.py lute`) i hvileposens rom: `lute` er (origo, dreining)
+    fra `folk3d.lute_bone`, og målene gis i hoftenes rom, som lutten henger i."""
+    origin, R = lute
+    return origin + R @ Vector(p)
+
+
+# Hendene på lutten (lutens rom, meter): høyre håndledd foran lokket over
+# rosen, så fingrene når strengene mellom rosen og stolen; venstre håndledd
+# bak og under halsen, så fingrene griper rundt den. Slaget går på tvers av
+# strengene (lutens x).
+LUTE_STRUM = (-0.05, -0.15, 0.24)
+LUTE_STROKE = 0.035
+LUTE_FRET = (0.03, 0.0, 0.54)  # venstre håndledd ved halsen
+LUTE_SLIDE = 0.06  # så langt grepet flytter seg langs halsen
+LUTE_REST = (-0.07, -0.11, 0.16)  # høyre hånd som hviler på kroppen (`sit`)
+LUTE_GRIP = (-0.7, -0.45, 0.3)  # venstre hånd går opp og fram rundt halsen fra håndleddet
+
+
+def grip_neck(body, lute, pose):
+    """Venstre hånd rundt halsen: fra håndleddet opp og fram over gripebrettet
+    (`LUTE_GRIP` i lutens rom), dreid fra hvileposen (`Pose.hand_world`)."""
+    rest = body.vec("hand.L").normalized()
+    want = (lute[1] @ Vector(LUTE_GRIP)).normalized()
+    pose.hand_world["L"] = rest.rotation_difference(want)
+
+
+def sit(body, st, grips, lute=None):
     """Sitter på krakken med hendene på lårene (når trubaduren snakker med
-    deg i stedet for å spille)."""
+    deg i stedet for å spille); med lutt i fanget hviler høyre hånd på
+    kroppen og venstre holder halsen."""
     L = 10.0
     n = int(round(L * FPS))
     k = body.k
@@ -1189,13 +1218,17 @@ def sit(body, st, grips):
             sy = side_sign(s)
             # Hendene hviler midt på lårene (målet i hoftenes rom).
             tgt = hips + Vector((0.24 * k + 0.01 * k * noise(t, 2.0 + sy, L), sy * 0.13 * k, 0.07 * k + 0.004 * k * br))
+            if lute is not None:
+                tgt = on_lute(lute, LUTE_REST if s == "R" else LUTE_FRET) + Vector((0, 0, 0.004 * k * br))
+                if s == "L":
+                    grip_neck(body, lute, pose)
             pose.hands[s] = (tgt, 1.0, Vector((-0.4, sy * 0.6, -0.7)), "hips")
             pose.add(f"hand.{s}", y=-15.0)
         out.append(pose)
     return out
 
 
-def play(body, st, grips):
+def play(body, st, grips, lute=None):
     """Spiller lutt sittende: lutten ligger på høyre lår med halsen opp mot
     venstre, høyre hånd slår over strengene i takt (ned på slaget, opp på
     halvslaget), venstre hånd griper på halsen og flytter seg innimellom, og
@@ -1217,6 +1250,9 @@ def play(body, st, grips):
         down = curve([(0.0, 1.0), (0.12, -1.0), (0.5, -0.35), (0.6, 0.8), (1.0, 1.0)])(ph)
         accent = 1.0 if int(t * beat) % 4 == 0 else 0.75
         rh = hips + Vector((0.23 * k, -0.07 * k + 0.012 * k * down, 0.17 * k + 0.045 * k * down * accent))
+        if lute is not None:
+            sx, sy_, sz = LUTE_STRUM
+            rh = on_lute(lute, (sx - LUTE_STROKE * down * accent, sy_, sz))
         pose.hands["R"] = (rh, 1.0, Vector((-0.25, -1.0, -0.55)), "hips")
         pose.add("hand.R", y=18.0 - 12.0 * down, x=6.0 * down)
         # Grepet: langs halsen (opp mot venstre og fram), flytter seg hver
@@ -1225,8 +1261,12 @@ def play(body, st, grips):
         press = math.exp(-((ph - 0.04) / 0.08) ** 2)
         along = Vector((0.45, 0.85, 0.3)).normalized()
         lh = hips + Vector((0.2 * k, -0.02 * k, 0.16 * k)) + along * (0.40 - 0.07 * slide) * k
+        if lute is not None:
+            fx, fy, fz = LUTE_FRET
+            lh = on_lute(lute, (fx, fy - 0.006 * press, fz - LUTE_SLIDE * slide))
+            grip_neck(body, lute, pose)
         pose.hands["L"] = (lh, 1.0, Vector((-0.3, 0.45, -1.0)), "hips")
-        pose.add("hand.L", y=-10.0 - 6.0 * press, x=20.0)
+        pose.add("hand.L", y=(25.0 if lute is not None else -10.0) - 6.0 * press, x=20.0)
         # Kroppen vugger fra side til side over to takter og lener seg inn
         # mot lutten; hodet nikker på slaget og ser ut i rommet.
         sway = math.sin(2 * math.pi * t * beat / 4.0)
@@ -1394,8 +1434,10 @@ def prepare(arm, style="default", body=None, tools=None):
     return B, st
 
 
-def clips(arm, style="default", grips=None, body=None, tools=None, only=None):
-    """Alle klippene på armaturen `arm`. Gir stilen (med farten)."""
+def clips(arm, style="default", grips=None, body=None, tools=None, only=None, lute=None):
+    """Alle klippene på armaturen `arm`. Gir stilen (med farten). `lute`
+    (origo og dreining i hvileposen) legger hendene på lutten i de sittende
+    klippene."""
     import bpy
 
     grips = dict(grips or {})
@@ -1413,8 +1455,8 @@ def clips(arm, style="default", grips=None, body=None, tools=None, only=None):
         "look": (lambda: gesture(B, st, grips, "look"), False, 1),
         "fidget": (lambda: gesture(B, st, grips, st["gestures"][1]), False, 1),
         # Sittende (trubaduren): bare når de bes om (`only`).
-        "sit": (lambda: sit(B, st, grips), True, 1),
-        "play": (lambda: play(B, st, grips), True, 1),
+        "sit": (lambda: sit(B, st, grips, lute), True, 1),
+        "play": (lambda: play(B, st, grips, lute), True, 1),
     }
     for name, (fn, loop, step) in made.items():
         if (only and name not in only) or (not only and name in SEATED_CLIPS):

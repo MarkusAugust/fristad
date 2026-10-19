@@ -239,7 +239,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 ### 13g. Trubaduren i Vertshuset (forarbeid 18. oktober, uten eierens modeller)
 - **Gjort:** plassen (krakken ved ildstedet, `seated` i `town.json`), de sittende klippene `sit` og `play` (`folk_motion.py`), kjevebeinet `jaw` i `folk3d.py` (`JAW`, `MOUTH`), sangens lydstyrke som data (`tools/music/voice.py`, `tavern_voice.json`) og munnen i motoren (`Command::Voice`, `Npcs::set_voice`). Prøvd på skriveren bygd som stedfortreder (`snapshot --model`).
 - **Gjort (eieren 18. oktober, «et krus mjød»):** han synger bare for et krus mjød (1 token, E gir egen dialog), kvadet spilles én gang fra start og høres i alle etasjene; etterpå sitter han stille (`application/tavern.rs`).
-- **Gjenstår (eieren):** trubadurens ark og glb fra TRELLIS (`docs/prompter-folk-3d.md`, så `python3.13 tools/models/folk3d.py troubadour`), og lutten (`item3d.py`), som henges på hoftebeinet (den ligger i fanget; hendene står i hoftenes rom i `play`). Munnen har ikke noe innside (TRELLIS lukker leppene), så den åpnes som en strekning av underleppa; et mørkt munnhule-lag kan legges på når modellen er der.
+- **Gjort (19. oktober, eierens TRELLIS-filer):** trubaduren bygd med `folk3d.py troubadour` uten ansiktslapp (`FACE_KEEP`), lutten med `item3d.py lute`; lutten henger i beinet `lute` under hoftene (`folk3d.LUTE`) og settes ut av `Npcs::instances`, og hendene i `play`/`sit` står i lutens rom (`LUTE_STRUM`, `LUTE_FRET`). Kjeven dempet til 0,12 rad. **Gjenstår:** munnen har ikke noe innside (et mørkt munnhule-lag), fingrene er rette fra TRELLIS (griper ikke rundt halsen), og baksida av lutten er åpen i TRELLIS-formen (synes bare bakfra).
 
 ### 13h. Krypten: vannet, usynlige vegger og den falske veggen (18. oktober)
 - **Vannet** (kloakken, cisternen) var nesten svart: `K_WATER` i `world.wgsl` er nå grumsete grønnblått med flekker som driver, bølger i to skalaer, ringer der det drypper, og i `shade` (`s.kind` 3) full glans, en bred glans og en stripe nedover i vannet fra hver fakkel og lykta. Gjenstår: gjennomskinnelig nær kanten (trenger dybden i hovedpasset).
@@ -268,6 +268,7 @@ Eieren synes nivåene er for kjedelige og generiske, og vil bygge dem selv i en 
 - **Bitene:** jeg lager et første sett per tema (gravkjelleren, kloakken, gruva, borgen, kjernen) i Blender med murene vi har, eieren godkjenner dem på godkjenningssiden, og flere kommer når eieren savner noe.
 - **De ti nivåene begynnes helt på nytt:** de gamle står til de nye er klare, så fjernes de, og eieren bygger alle fra blankt.
 - **Rekkefølge:** etter neste prod-utgivelse og del 14. Planen i detalj står i `docs/nivaaredigering.md` (18. oktober) og vises eieren før arbeidet starter.
+- **19. oktober:** fase 0 og 1 er gjort (kompilatoren i kjernen, det grå pilotsettet, prøvenivået og prøvebrettet, testene og målingen); status og tall i `docs/nivaaredigering.md` del 19.
 
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).

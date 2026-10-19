@@ -63,6 +63,13 @@ impl Session {
         true
     }
 
+    /// Kvadet uten mjød (skjermbildene: `snapshot --voice V`).
+    pub fn play_song(&mut self) {
+        let mut events = vec![];
+        self.start_song(&mut events);
+        self.pending.extend(events);
+    }
+
     fn start_song(&mut self, events: &mut Vec<Event>) {
         self.tavern.song = Some(0.0);
         self.npcs.set_singing(true);

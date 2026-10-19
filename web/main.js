@@ -59,6 +59,11 @@ try {
 let engine = null;
 // Redigeringsmodusen (`?edit`, bare for eieren; web/editor.js).
 const EDIT = new URLSearchParams(location.search).has("edit");
+// `?nivaa=test` (eller `brett`): nivådokumentet som eneste kryptnivå, og med
+// `&slaa` bitene slått sammen per rute på 16 m (målingen i fase 0 av
+// nivåredigeringen, `docs/nivaaredigering.md`; `?nivaa=test&bench`).
+const NIVAA = new URLSearchParams(location.search).get("nivaa") || undefined;
+const SLAA = new URLSearchParams(location.search).has("slaa");
 let editor = null;
 let editorStarted = false;
 let docs = {};
@@ -178,18 +183,20 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   if (gpuLost !== null) loseGpu(gpuLost);
   engine.set_gamma(gamma);
+  // Med `?nivaa=`: rett ned i nivået.
+  if (NIVAA) engine.descend();
   // Til feilsøking i konsollen og til testene.
   window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
@@ -2737,6 +2744,12 @@ const BENCH_PLACES = [
   ["Storgata", 4.7, 1.7, 28, 0],
   ["sørporten", 4.7, 1.7, 50, 0],
 ];
+// I prøvenivået (`?nivaa=test`): stedene i nivåets eget rom (nivå 1).
+const BENCH_LEVEL_PLACES = [
+  ["kapellet", 8, 1.7, 9.5, 0],
+  ["hvelvet", 19, 2.7, 15, -135],
+  ["gangen", 20, 1.7, 7.5, 180],
+];
 // Hver kjøring: nivået, en kort forklaring og bryterne til `engine.set_bench`
 // (det som mangler, står som i vanlig spill). `scale` ganger oppløsningen.
 const BENCH_RUNS = [
@@ -2794,16 +2807,19 @@ async function runBench() {
     "sted · nivå · kjøring → GPU ms (delene) · fps · trekanter og kall i hovedpasset · lerret",
   ];
   toast?.show?.("Måler grafikken … (rundt ett minutt)");
-  for (const [name, x, y, z, yaw] of BENCH_PLACES) {
+  if (NIVAA) lines.push(`Nivådokumentet «${NIVAA}» ${SLAA ? "med bitene slått sammen per 16 m" : "med bitene som instanser"}`);
+  const places = NIVAA ? BENCH_LEVEL_PLACES : BENCH_PLACES;
+  for (const [name, x, y, z, yaw] of places) {
     for (const run of BENCH_RUNS) {
-      if (name !== "torget" && run !== BENCH_RUNS[0] && run.q === "standard") continue;
+      if (name !== places[0][0] && run !== BENCH_RUNS[0] && run.q === "standard") continue;
       setQuality(run.q, false, false);
       const { q, what, scale, gfx, ...flags } = run;
       if (gfx) engine.set_quality(JSON.stringify({ preset: q, ...gfx }));
       engine.set_bench(JSON.stringify(flags));
       benchScale = scale ?? 1;
       fit();
-      engine.place(x, y, z, yaw, 0);
+      if (NIVAA) engine.place_in_level(1, x, y, z, yaw, 0);
+      else engine.place(x, y, z, yaw, 0);
       await sleep(600);
       const m = await measure(2);
       const partText = m.avg.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");

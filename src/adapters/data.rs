@@ -5,6 +5,8 @@
 //! bygges inn i binæren, også i nettleseren.
 
 use crate::domain::world::{
+    crypt::doc::LevelDoc,
+    crypt::kit::{KitDef, KitFile},
     crypt::level::{CryptContents, LevelFile},
     layout::{Item, Layout},
     town::Inside,
@@ -25,6 +27,58 @@ include!(concat!(env!("OUT_DIR"), "/crypt_content_files.rs"));
 
 // `LAYOUT_FILE`: byen som data, `assets/layout/town.json` (build.rs).
 include!(concat!(env!("OUT_DIR"), "/layout_file.rs"));
+
+// `KIT_FILES` og `LEVEL_DOC_FILES`: byggesettet og nivådokumentene (build.rs).
+include!(concat!(env!("OUT_DIR"), "/level_docs.rs"));
+
+/// Byggesettet for nivåredigeringen: alle manifestene slått sammen.
+pub fn kit() -> KitDef {
+    let mut kit = KitDef::default();
+    for (theme, json) in KIT_FILES {
+        match serde_json::from_str::<KitFile>(json) {
+            Ok(f) => kit.add(f),
+            Err(e) => log::warn!("assets/models/crypt/kit/{theme}.json: {e}"),
+        }
+    }
+    kit
+}
+
+/// Navnene på nivådokumentene som finnes (`01`, `test`), og `brett`
+/// (prøvebrettet, laget av byggesettet).
+pub fn level_doc_names() -> Vec<String> {
+    let mut out: Vec<String> = LEVEL_DOC_FILES.iter().map(|(n, _)| n.to_string()).collect();
+    out.push("brett".into());
+    out
+}
+
+/// Nivådokumentet `assets/levels/nivaa_<navn>.json`, eller prøvebrettet
+/// (`brett`: hver bit mot hver bit i alle dreininger).
+pub fn level_doc(name: &str) -> Option<LevelDoc> {
+    if name == "brett" {
+        return Some(crate::domain::world::crypt::compose::board::board(&kit()));
+    }
+    let (_, json) = LEVEL_DOC_FILES.iter().find(|(n, _)| *n == name)?;
+    match serde_json::from_str::<LevelDoc>(json) {
+        Ok(d) => Some(d),
+        Err(e) => {
+            log::warn!("assets/levels/nivaa_{name}.json: {e}");
+            None
+        }
+    }
+}
+
+/// Dataene med ett nivådokument som eneste kryptnivå (nivå 1): prøvenivået
+/// i `snapshot --level-doc`, testene og `?nivaa=` i nettleseren.
+pub fn world_data_with_doc(name: &str) -> Data {
+    let mut data = world_data();
+    if let Some(doc) = level_doc(name) {
+        data.levels.clear();
+        data.docs = vec![(1, doc)];
+    } else {
+        log::warn!("Fant ikke nivådokumentet «{name}»");
+    }
+    data
+}
 
 /// Leser alt. En fil som ikke kan tolkes, meldes og hoppes over (et hus
 /// får da en boks rundt seg; krypten slutter ved nivået før).
@@ -61,7 +115,17 @@ pub fn world_data() -> Data {
     // Kan ikke byen leses, stopper spillet: den er hele byen.
     let layout = LAYOUT_FILE.map(|json| serde_json::from_str::<Layout>(json).unwrap_or_else(|e| panic!("assets/layout/town.json: {e}")));
     let contents = CONTENT_FILES.iter().map(|(n, json)| (n.to_string(), serde_json::from_str::<Vec<Item>>(json).unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")))).collect();
-    Data { insides, levels, layout, contents, approved: Some(approved()) }
+    // Nivådokumentene som er merket «klar», erstatter de gamle nivåene med
+    // samme nummer (`Data::compose_levels`).
+    let docs = LEVEL_DOC_FILES
+        .iter()
+        .filter_map(|(name, _)| {
+            let d = level_doc(name)?;
+            let n = d.level.number()?;
+            d.ready().then_some((n, d))
+        })
+        .collect();
+    Data { insides, levels, layout, contents, approved: Some(approved()), kit: kit(), docs }
 }
 
 /// Dommen fra godkjenningssiden (`assets/catalog/approvals.json`).

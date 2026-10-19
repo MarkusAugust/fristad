@@ -369,6 +369,11 @@ pub fn settle(b: &mut Builder, mut npc: NpcSpec) {
     npc.height = npc_height(b, model);
     // Sittende er figuren lavere (`npcs::SEATED_TOP`).
     let (pos, h) = (npc.pos, npc.height * if npc.seated { crate::domain::npcs::SEATED_TOP } else { 1.0 });
+    // Den som sitter, har lutten i fanget (satt etter beinet `lute`,
+    // `Npcs::instances`).
+    if npc.seated {
+        b.reserve(crate::domain::npcs::LUTE_MODEL, 1);
+    }
     b.npcs.push(npc);
     b.target(Use::Talk(b.npcs.len() - 1), Affine3A::from_translation(pos), Vec3::new(0.0, h * 0.5, 0.0), Vec3::new(0.3, h * 0.5, 0.3));
 }

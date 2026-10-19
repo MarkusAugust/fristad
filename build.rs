@@ -9,6 +9,10 @@
 //!   `CRYPT_MODELS` (bygd inn utenom nettleseren) for alle `.glb` i
 //!   `assets/models/crypt/`, til glTF-adapteren. Bitene og byggesettet trenger
 //!   derfor ingen linje i `models!`.
+//! - `level_docs.rs`: `KIT_FILES` (manifestene til byggesettet,
+//!   `assets/models/crypt/kit/<tema>.json`) og `LEVEL_DOC_FILES` (nivå-
+//!   dokumentene `assets/levels/nivaa_<navn>.json`), til `adapters/data.rs`.
+//!   Bitene i `assets/models/crypt/kit/<tema>/` er med i `crypt_models.rs`.
 //! - `inside_files.rs`: `INSIDE_FILES`, alle `<navn>_inside.json` i
 //!   `assets/models/town/` (det husene har med seg fra Blender), til
 //!   `adapters/data.rs`.
@@ -41,8 +45,27 @@ fn main() {
     // husene) tas inn uten linje i `models!`.
     let furniture = root.join("assets/models/furniture");
     println!("cargo:rerun-if-changed={}", furniture.display());
+    // Byggesettet for nivåredigeringen: bitene per tema og manifestene.
+    let kit = real.join("kit");
+    println!("cargo:rerun-if-changed={}", kit.display());
+    let mut kit_dirs: Vec<PathBuf> = vec![];
+    let mut kit_files: Vec<PathBuf> = vec![];
+    if let Ok(dir) = std::fs::read_dir(&kit) {
+        for e in dir.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                println!("cargo:rerun-if-changed={}", p.display());
+                kit_dirs.push(p);
+            } else if p.extension().is_some_and(|x| x == "json") {
+                println!("cargo:rerun-if-changed={}", p.display());
+                kit_files.push(p);
+            }
+        }
+    }
+    kit_dirs.sort();
+    kit_files.sort();
     let mut glbs: Vec<(String, PathBuf)> = vec![];
-    for d in [&real, &furniture] {
+    for d in [&real, &furniture].into_iter().chain(kit_dirs.iter()) {
         let Ok(dir) = std::fs::read_dir(d) else {
             continue;
         };
@@ -67,6 +90,32 @@ fn main() {
     }
     models.push_str("];\n");
     std::fs::write(out.join("crypt_models.rs"), models).unwrap();
+
+    // Nivådokumentene (`assets/levels/nivaa_<navn>.json`).
+    let docs_dir = root.join("assets/levels");
+    println!("cargo:rerun-if-changed={}", docs_dir.display());
+    let mut docs: Vec<(String, PathBuf)> = vec![];
+    if let Ok(dir) = std::fs::read_dir(&docs_dir) {
+        for e in dir.flatten() {
+            let p = e.path();
+            let stem = p.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            if let Some(name) = stem.strip_prefix("nivaa_").filter(|_| p.extension().is_some_and(|x| x == "json")) {
+                println!("cargo:rerun-if-changed={}", p.display());
+                docs.push((name.to_string(), p));
+            }
+        }
+    }
+    docs.sort();
+    let mut text = String::from("/// Manifestene til byggesettet: temaet og json-fila.\nconst KIT_FILES: &[(&str, &str)] = &[\n");
+    for p in &kit_files {
+        writeln!(text, "    ({:?}, include_str!({:?})),", p.file_stem().unwrap().to_string_lossy(), p.display().to_string()).unwrap();
+    }
+    text.push_str("];\n/// Nivådokumentene: navnet (`01`, `test`) og json-fila.\nconst LEVEL_DOC_FILES: &[(&str, &str)] = &[\n");
+    for (n, p) in &docs {
+        writeln!(text, "    ({n:?}, include_str!({:?})),", p.display().to_string()).unwrap();
+    }
+    text.push_str("];\n");
+    std::fs::write(out.join("level_docs.rs"), text).unwrap();
 
     let town = root.join("assets/models/town");
     println!("cargo:rerun-if-changed={}", town.display());

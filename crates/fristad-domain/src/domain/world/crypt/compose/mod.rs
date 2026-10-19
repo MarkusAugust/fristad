@@ -1,0 +1,675 @@
+//! Kompilatoren for nivåredigeringen (`docs/nivaaredigering.md`, del 5 og
+//! 7): gjør nivådokumentet (`LevelDoc`) og byggesettet (`KitDef`) om til den
+//! samme `LevelFile` som motoren bruker for de gamle nivåene, med bitene som
+//! instanser (`instances`), kolliderne flettet, navigasjonsnettet, rommene,
+//! lysene og merkene. Ingen geometri lages her: kompilatoren velger bare
+//! hvilke ekte modeller som står hvor. Redigeringen, spillet, `cargo test`
+//! og `snapshot` kjører den samme koden.
+//!
+//! 1. Cellene slås opp i rutenettet; sidene og gulvene dreies og speiles.
+//! 2. Hver kant får en åpning (sidenes ønsker og eierens valg, tabellen i
+//!    del 5.1) og en halvkant per side; hvert hjørne et kvarthjørne der en
+//!    mur når hjørnet eller fjellet står på skrå, ellers en søyle der fire
+//!    romfelt møtes.
+//! 3. Kolliderne er bitenes egne, flyttet på plass og flettet (`solids`).
+//! 4. Nettet rastres i ruter på 0,2 m per plan og slås sammen til
+//!    rektangler; trappene er skrå firkanter (`nav`).
+//! 5. Rommene er omrisset av cellene (`rooms`), merkene og lysene kommer
+//!    fra innholdet med koblingene.
+//!
+//! Resultatet er likt byte for byte for samme dokument (tallene avrundes
+//! til mm). `Compiler` husker hver celle med naboene: bare cellene der noe i
+//! nabolaget er endret, regnes på nytt.
+
+pub mod board;
+pub mod check;
+mod grid;
+mod nav;
+mod rooms;
+mod solids;
+
+pub use grid::*;
+
+use super::doc::{DocCell, LevelDoc, Thing};
+use super::kit::{KitDef, KitPiece, PieceKind};
+use super::level::{ColliderDef, InstanceDef, LevelFile, LightDef, MarkDef};
+use glam::{Vec2, Vec3};
+use std::collections::{BTreeMap, HashMap};
+
+/// Hvor alvorlig et brudd er: feil stopper «klar», advarsler ingenting.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Severity {
+    Error,
+    Warning,
+}
+
+/// Et brudd på reglene, med sted (i nivåets rom) når det finnes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Issue {
+    pub severity: Severity,
+    /// `kant`, `tett`, `overlapp`, `bit`, `kobling`, `innhold`, `rom`.
+    pub rule: &'static str,
+    pub at: Option<[f32; 3]>,
+    pub msg: String,
+}
+
+impl Issue {
+    fn error(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
+        Issue { severity: Severity::Error, rule, at: at.map(mm3), msg }
+    }
+    fn warn(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
+        Issue { severity: Severity::Warning, rule, at: at.map(mm3), msg }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Report {
+    pub issues: Vec<Issue>,
+    /// Cellene som ble regnet på nytt (resten kom fra minnet).
+    pub recomputed: usize,
+    pub cells: usize,
+}
+
+impl Report {
+    pub fn errors(&self) -> impl Iterator<Item = &Issue> {
+        self.issues.iter().filter(|i| i.severity == Severity::Error)
+    }
+}
+
+/// Kompiler et dokument fra bunnen av.
+pub fn compile(doc: &LevelDoc, kit: &KitDef) -> (LevelFile, Report) {
+    Compiler::default().compile(doc, kit)
+}
+
+/// Åpningen i en kant.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Open {
+    Wall,
+    Arch,
+    Gang,
+    Door,
+    Gate,
+    Secret,
+}
+
+impl Open {
+    /// Halvkantens åpning i byggesettet (`opening`), og bredden.
+    pub fn kit_name(self) -> &'static str {
+        match self {
+            Open::Wall => "wall",
+            Open::Arch => "arch",
+            Open::Gang => "gang",
+            Open::Door => "door",
+            Open::Gate => "gate",
+            Open::Secret => "secret",
+        }
+    }
+    pub fn width(self) -> f32 {
+        match self {
+            Open::Wall | Open::Arch => 0.0,
+            Open::Gang => GANG_W,
+            Open::Door => DOOR_W,
+            Open::Gate => GATE_W,
+            Open::Secret => SECRET_W,
+        }
+    }
+}
+
+/// En celle med biten slått opp.
+#[derive(Clone)]
+pub(crate) struct Cell<'a> {
+    pub doc: &'a DocCell,
+    pub piece: &'a KitPiece,
+    pub i: i32,
+    pub j: i32,
+    pub y: f32,
+    pub theme: String,
+}
+
+impl Cell<'_> {
+    pub fn rot(&self) -> u8 {
+        self.doc.rot % 4
+    }
+    pub fn mirror(&self) -> bool {
+        self.doc.mirror && self.piece.mirror
+    }
+    pub fn center(&self) -> Vec3 {
+        cell_center(self.i, self.y, self.j)
+    }
+    pub fn yaw(&self) -> f32 {
+        cell_yaw(self.rot())
+    }
+    /// Et punkt i bitens rom, i nivåets rom.
+    pub fn point(&self, p: Vec3) -> Vec3 {
+        transform(self.center(), self.yaw(), self.mirror()).transform_point3(p)
+    }
+    /// En dreining i bitens rom (radianer), i nivåets rom.
+    pub fn turn(&self, yaw: f32) -> f32 {
+        (if self.mirror() { -yaw } else { yaw }) + self.yaw()
+    }
+    pub fn face(&self, w: usize) -> (&str, &str) {
+        let l = world_to_local(w, self.rot(), self.mirror());
+        self.piece.faces.get(l).map(|f| (f.kind.as_str(), f.profile.as_str())).unwrap_or(("closed", "gang"))
+    }
+    /// Gulvet ved kanten på siden `w` (absolutt).
+    pub fn floor(&self, w: usize) -> f32 {
+        self.y + self.piece.floors[world_to_local(w, self.rot(), self.mirror())]
+    }
+    pub fn volume(&self) -> (f32, f32) {
+        (self.y + self.piece.bottom, self.y + self.piece.top.max(self.piece.bottom + 0.5))
+    }
+}
+
+/// Det én celle bidrar med (det som huskes).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct CellOut {
+    pub instances: Vec<InstanceDef>,
+    pub boxes: Vec<solids::Aabb>,
+    pub hulls: Vec<Vec<[f32; 3]>>,
+    pub raster: Vec<((i32, i32, i32), nav::Label)>,
+    pub slopes: Vec<(Vec<[f32; 3]>, nav::Label)>,
+    pub issues: Vec<Issue>,
+}
+
+/// Kompilatoren med minnet per celle.
+#[derive(Default)]
+pub struct Compiler {
+    kit: Option<KitDef>,
+    cache: HashMap<String, (String, CellOut)>,
+}
+
+/// Rutenettet og kantvalgene, felles for alle cellene i én kompilering.
+pub(crate) struct Grid<'a> {
+    pub cells: Vec<Cell<'a>>,
+    pub columns: HashMap<(i32, i32), Vec<usize>>,
+    /// Eierens valg per (celle, side i nivået): slaget og bryteren (porter,
+    /// snarveier og falske vegger som er innhold på kanten).
+    pub overrides: HashMap<(usize, usize), (String, Option<String>)>,
+    pub kit: &'a KitDef,
+}
+
+impl<'a> Grid<'a> {
+    /// Cella på andre siden av `w` med gulvet i samme høyde.
+    pub fn neighbor(&self, a: usize, w: usize) -> Option<usize> {
+        let c = &self.cells[a];
+        let (di, dj) = outward(w);
+        let h = c.floor(w);
+        self.columns.get(&(c.i + di, c.j + dj))?.iter().copied().find(|&b| (self.cells[b].floor(opposite(w)) - h).abs() < 0.01)
+    }
+
+    /// Cellene i ruta (i, j) som overlapper cella `a` i høyden.
+    pub fn overlapping(&self, a: usize, at: (i32, i32)) -> Vec<usize> {
+        let (lo, hi) = self.cells[a].volume();
+        self.columns
+            .get(&at)
+            .map(|v| {
+                v.iter()
+                    .copied()
+                    .filter(|&b| {
+                        b != a && {
+                            let (l, h) = self.cells[b].volume();
+                            l < hi - 0.01 && lo < h - 0.01
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn override_at(&self, a: usize, w: usize, b: Option<usize>) -> Option<&(String, Option<String>)> {
+        self.overrides.get(&(a, w)).or_else(|| b.and_then(|b| self.overrides.get(&(b, opposite(w)))))
+    }
+
+    /// Åpningen i kanten på siden `w` av cella `a` (og bryteren for porter,
+    /// snarveier og falske vegger), med brudd.
+    pub fn opening(&self, a: usize, w: usize) -> (Open, Option<String>, Vec<Issue>) {
+        let c = &self.cells[a];
+        let b = self.neighbor(a, w);
+        let mid = c.center() + Vec3::new(outward_v(w).x, 0.0, outward_v(w).y) * HALF;
+        let mut issues = vec![];
+        let (fa, pa) = c.face(w);
+        if let Some((kind, switch)) = self.override_at(a, w, b) {
+            if kind == "vegg" {
+                return (Open::Wall, None, issues);
+            }
+            let Some(b) = b else {
+                issues.push(Issue::error("kant", Some(mid), format!("«{kind}» i {} mot {} går ingen vei (fjell eller et annet gulv)", c.doc.id, SIDES[w])));
+                return (Open::Wall, None, issues);
+            };
+            let (fb, pb) = self.cells[b].face(opposite(w));
+            if fa == "closed" && fb == "closed" && (kind == "bue" || kind == "aapen") {
+                issues.push(Issue::error("kant", Some(mid), format!("«{kind}» mellom {} og {}: begge sidene er lukket", c.doc.id, self.cells[b].doc.id)));
+                return (Open::Wall, None, issues);
+            }
+            let open = match kind.as_str() {
+                "dor" | "snarvei" => Open::Door,
+                "port" => {
+                    if pa != "room" || pb != "room" {
+                        issues.push(Issue::warn("kant", Some(mid), format!("port mellom {} og {}: porten er 3 m høy og trenger romhvelv på begge sider", c.doc.id, self.cells[b].doc.id)));
+                    }
+                    Open::Gate
+                }
+                "falsk" => Open::Secret,
+                "bue" | "aapen" => {
+                    if fa == "gang" || fb == "gang" {
+                        Open::Gang
+                    } else {
+                        Open::Arch
+                    }
+                }
+                other => {
+                    issues.push(Issue::error("kant", Some(mid), format!("ukjent kant «{other}» i {}", c.doc.id)));
+                    Open::Wall
+                }
+            };
+            return (open, switch.clone(), issues);
+        }
+        let Some(b) = b else {
+            // En trapp som ender i vegg eller lufta.
+            let stair = c.piece.floors.iter().any(|f| (f - c.piece.floors[0]).abs() > 0.01);
+            if stair && fa == "gang" {
+                issues.push(Issue::error("kant", Some(mid), format!("trappa {} ender i vegg mot {}", c.doc.id, SIDES[w])));
+            }
+            return (Open::Wall, None, issues);
+        };
+        let (fb, _) = self.cells[b].face(opposite(w));
+        let open = match (fa, fb) {
+            ("closed", _) | (_, "closed") => Open::Wall,
+            ("open", "open") => {
+                if c.doc.room == self.cells[b].doc.room {
+                    Open::Arch
+                } else {
+                    Open::Wall
+                }
+            }
+            _ => Open::Gang,
+        };
+        (open, None, issues)
+    }
+}
+
+impl Compiler {
+    pub fn compile(&mut self, doc: &LevelDoc, kit: &KitDef) -> (LevelFile, Report) {
+        if self.kit.as_ref() != Some(kit) {
+            self.cache.clear();
+            self.kit = Some(kit.clone());
+        }
+        let mut report = Report::default();
+        // Rommene: de i dokumentet, og de cellene nevner uten at de står der.
+        let mut room_list: Vec<super::doc::DocRoom> = doc.rooms.clone();
+        for c in &doc.cells {
+            let id = if c.room.is_empty() { c.id.clone() } else { c.room.clone() };
+            if !room_list.iter().any(|r| r.id == id) {
+                room_list.push(super::doc::DocRoom { id: id.clone(), name: id, ..Default::default() });
+            }
+        }
+        // Cellene.
+        let mut cells: Vec<Cell> = vec![];
+        let mut cell_docs: Vec<DocCell> = vec![];
+        for c in &doc.cells {
+            let mut c = c.clone();
+            if c.room.is_empty() {
+                c.room = c.id.clone();
+            }
+            cell_docs.push(c);
+        }
+        for c in &cell_docs {
+            let Some(piece) = kit.piece(&c.bit).filter(|p| p.kind == PieceKind::Cell) else {
+                report.issues.push(Issue::error("bit", Some(cell_center(c.at[0], c.at[1] as f32, c.at[2])), format!("{}: ukjent bit «{}»", c.id, c.bit)));
+                continue;
+            };
+            let theme = room_list.iter().find(|r| r.id == c.room).map(|r| r.theme.clone()).filter(|t| !t.is_empty()).unwrap_or_else(|| piece.theme.clone());
+            cells.push(Cell { doc: c, piece, i: c.at[0], j: c.at[2], y: c.at[1] as f32, theme });
+        }
+        let mut columns: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
+        for (k, c) in cells.iter().enumerate() {
+            columns.entry((c.i, c.j)).or_default().push(k);
+        }
+        let index: HashMap<&str, usize> = cells.iter().enumerate().map(|(k, c)| (c.doc.id.as_str(), k)).collect();
+        // Overlapp i høyden.
+        for (k, c) in cells.iter().enumerate() {
+            let (lo, hi) = c.volume();
+            for &o in &columns[&(c.i, c.j)] {
+                if o > k {
+                    let (l2, h2) = cells[o].volume();
+                    if l2 < hi - 0.01 && lo < h2 - 0.01 {
+                        report.issues.push(Issue::error("overlapp", Some(c.center()), format!("{} og {} overlapper i høyden", c.doc.id, cells[o].doc.id)));
+                    }
+                }
+            }
+        }
+        // Eierens valg på kantene, og innholdet som er kanten.
+        let mut overrides: HashMap<(usize, usize), (String, Option<String>)> = HashMap::new();
+        for e in &doc.edges {
+            let (Some(&a), Some(l)) = (index.get(e.cell.as_str()), side_index(&e.side)) else {
+                report.issues.push(Issue::error("kant", None, format!("kanten {}/{} finnes ikke", e.cell, e.side)));
+                continue;
+            };
+            let w = local_to_world(l, cells[a].rot(), cells[a].mirror());
+            overrides.insert((a, w), (e.kind.clone(), None));
+        }
+        for t in &doc.things {
+            if let Some((a, w)) = edge_anchor(&t.anchor, &index, &cells) {
+                let kind = match t.kind.as_str() {
+                    "gate" => "port",
+                    "shortcut" => "snarvei",
+                    "secret_wall" => "falsk",
+                    _ => continue,
+                };
+                overrides.insert((a, w), (kind.to_string(), Some(t.id.clone())));
+            }
+        }
+        let grid = Grid { cells, columns, overrides, kit };
+
+        // Hver celle, fra minnet om ingenting i nabolaget er endret.
+        let mut outs: Vec<CellOut> = vec![];
+        let mut keep: HashMap<String, (String, CellOut)> = HashMap::new();
+        for a in 0..grid.cells.len() {
+            let key = neighborhood_key(&grid, a, &room_list);
+            let id = grid.cells[a].doc.id.clone();
+            let out = match self.cache.get(&id) {
+                Some((k, out)) if *k == key => out.clone(),
+                _ => {
+                    report.recomputed += 1;
+                    cell_out(&grid, a)
+                }
+            };
+            keep.insert(id, (key, out.clone()));
+            outs.push(out);
+        }
+        self.cache = keep;
+        report.cells = grid.cells.len();
+
+        // Samlet.
+        let mut file = LevelFile { level: doc.level.number().unwrap_or(0), name: doc.name.clone(), theme: grid.cells.first().map(|c| c.theme.clone()).unwrap_or_default(), ..Default::default() };
+        let mut boxes = vec![];
+        let mut raster: BTreeMap<(i32, i32, i32), nav::Label> = BTreeMap::new();
+        let mut slopes = vec![];
+        for out in &outs {
+            file.instances.extend(out.instances.iter().cloned());
+            boxes.extend(out.boxes.iter().cloned());
+            for h in &out.hulls {
+                file.colliders.push(ColliderDef { cuboid: None, hull: Some(h.clone()) });
+            }
+            raster.extend(out.raster.iter().cloned());
+            slopes.extend(out.slopes.iter().cloned());
+            report.issues.extend(out.issues.iter().cloned());
+        }
+        let merged = solids::merge(boxes);
+        let mut cols: Vec<ColliderDef> = merged.iter().map(|b| b.def()).collect();
+        cols.append(&mut file.colliders);
+        file.colliders = cols;
+
+        // Merkene og lysene.
+        let (marks, mut issues) = marks(doc, &grid, &index, &room_list);
+        report.issues.append(&mut issues);
+        nav::cut_marks(&mut raster, &marks);
+        file.nav = nav::build(&raster, &slopes);
+        file.marks = marks;
+        file.lights = lights(doc, &grid, &index);
+        let (rooms, mut issues) = rooms::rooms(&grid, &room_list);
+        report.issues.append(&mut issues);
+        file.rooms = rooms;
+        // Det et nivå må ha.
+        for kind in ["start", "up", "rest", "down"] {
+            let n = file.marks.iter().filter(|m| m.kind == kind).count();
+            if n != 1 && !(kind == "down" && doc.level.number() == Some(10)) {
+                report.issues.push(Issue::warn("innhold", None, format!("{n} «{kind}» (skal være nøyaktig ett)")));
+            }
+        }
+        (file, report)
+    }
+}
+
+/// `kant:<celle>/<side>` → (cella, siden i nivået).
+fn edge_anchor(anchor: &str, index: &HashMap<&str, usize>, cells: &[Cell]) -> Option<(usize, usize)> {
+    let rest = anchor.strip_prefix("kant:")?;
+    let (cell, side) = rest.rsplit_once('/')?;
+    let a = *index.get(cell)?;
+    let l = side_index(side)?;
+    Some((a, local_to_world(l, cells[a].rot(), cells[a].mirror())))
+}
+
+/// Alt cella `a` bygges av, som tekst: cellene i ruta 5 × 5 rundt, eierens
+/// valg på kantene deres og temaene. Lik nøkkel gir likt resultat.
+fn neighborhood_key(g: &Grid, a: usize, rooms: &[super::doc::DocRoom]) -> String {
+    let c = &g.cells[a];
+    let mut parts = vec![];
+    for dj in -2..=2 {
+        for di in -2..=2 {
+            if let Some(v) = g.columns.get(&(c.i + di, c.j + dj)) {
+                for &b in v {
+                    let o = &g.cells[b];
+                    parts.push(format!("{:?}|{}|{}", o.doc, o.theme, rooms.iter().find(|r| r.id == o.doc.room).map(|r| r.secret).unwrap_or(false)));
+                    let mut ov: Vec<_> = (0..4).filter_map(|w| g.overrides.get(&(b, w)).map(|o| format!("{w}:{o:?}"))).collect();
+                    ov.sort();
+                    parts.push(ov.join(","));
+                }
+            }
+        }
+    }
+    parts.join(";")
+}
+
+/// Det cella `a` bidrar med: biten, halvkantene på sidene, kvarthjørnene
+/// og søyla, kolliderne og nettet.
+fn cell_out(g: &Grid, a: usize) -> CellOut {
+    let c = &g.cells[a];
+    let mut out = CellOut::default();
+    let center = c.center();
+    let theme = c.theme.as_str();
+    // Biten selv.
+    let put = |out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, mirror: bool| {
+        out.instances.push(InstanceDef { model: piece.model.clone(), pos: mm3(pos), yaw, mirror });
+        let t = transform(pos, yaw, mirror);
+        for s in &piece.solids {
+            solids::add(&mut out.boxes, &mut out.hulls, s, &t, yaw);
+        }
+    };
+    put(&mut out, c.piece, center, c.yaw(), c.mirror());
+    // Halvkantene.
+    let mut opens = [Open::Wall; 4];
+    let mut switches: [Option<String>; 4] = Default::default();
+    for w in 0..4 {
+        let (open, switch, mut issues) = g.opening(a, w);
+        out.issues.append(&mut issues);
+        opens[w] = open;
+        switches[w] = switch;
+        let profile_gang = c.face(w).1 == "gang";
+        let kit_open = match open {
+            Open::Gang if profile_gang => None,
+            o => Some(o.kit_name()),
+        };
+        if let Some(name) = kit_open {
+            match g.kit.edge(theme, name) {
+                Some(piece) => {
+                    let o = outward_v(w) * HALF;
+                    put(&mut out, piece, Vec3::new(center.x + o.x, c.floor(w), center.z + o.y), side_yaw(w), false);
+                }
+                None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler halvkanten «{name}» ({theme})"))),
+            }
+        }
+    }
+    // Hjørnene.
+    let mut fills = [false; 4];
+    let mut pillars: Vec<Vec2> = vec![];
+    for k in 0..4 {
+        let v = corner_vertex(c.i, c.j, k);
+        let (touch, missing, all_open) = vertex_state(g, a, v);
+        if touch || missing {
+            fills[k] = true;
+            match g.kit.of_kind(theme, PieceKind::Corner) {
+                Some(piece) => {
+                    let p = vertex_pos(v);
+                    put(&mut out, piece, Vec3::new(p.x, c.y, p.y), corner_yaw(k), false);
+                }
+                None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler kvarthjørnet ({theme})"))),
+            }
+        } else if all_open {
+            pillars.push(vertex_pos(v));
+            // Søyla settes ut av cella der hjørnet er NV.
+            if k == 0 {
+                if let Some(piece) = g.kit.of_kind(theme, PieceKind::Pillar) {
+                    let p = vertex_pos(v);
+                    put(&mut out, piece, Vec3::new(p.x, c.y, p.y), 0.0, false);
+                }
+            }
+        }
+    }
+    // Nettet.
+    let room = c.doc.room.clone();
+    let pillar_r = g.kit.of_kind(theme, PieceKind::Pillar).map(|p| p.radius).unwrap_or(0.5);
+    nav::cell(&mut out, c, &opens, &switches, &fills, &pillars, pillar_r, &room);
+    out
+}
+
+/// Hjørnet `v` sett fra cella `a`: om en mur når hjørnet (en halvkant som
+/// ikke er åpen, i en av cellene rundt), om en av rutene rundt er fjell, og
+/// om alle fire er romfelt som er åpne mot hverandre (da står det en søyle).
+fn vertex_state(g: &Grid, a: usize, v: (i32, i32)) -> (bool, bool, bool) {
+    let mut touch = false;
+    let mut missing = false;
+    let mut all_open = true;
+    for ((i, j), corner) in around_vertex(v) {
+        let here = g.cells[a].i == i && g.cells[a].j == j;
+        let list: Vec<usize> = if here { vec![a] } else { g.overlapping(a, (i, j)) };
+        if list.is_empty() {
+            missing = true;
+            all_open = false;
+            continue;
+        }
+        for b in list {
+            for w in corner_sides(corner) {
+                let (open, _, _) = g.opening(b, w);
+                let profile_gang = g.cells[b].face(w).1 == "gang";
+                let solid = match open {
+                    Open::Arch => false,
+                    Open::Gang => !profile_gang,
+                    _ => true,
+                };
+                touch |= solid;
+                if open != Open::Arch {
+                    all_open = false;
+                }
+            }
+        }
+    }
+    (touch, missing, all_open)
+}
+
+/// Merkene fra innholdet og koblingene.
+fn marks(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>, rooms: &[super::doc::DocRoom]) -> (Vec<MarkDef>, Vec<Issue>) {
+    let mut out: Vec<MarkDef> = vec![];
+    let mut issues = vec![];
+    for t in &doc.things {
+        let Some((pos, yaw, extra)) = place_thing(t, g, index) else {
+            issues.push(Issue::error("innhold", None, format!("{} ({}): ankeret «{}» finnes ikke", t.id, t.kind, t.anchor)));
+            continue;
+        };
+        let patrol = t.patrol.iter().filter_map(|p| anchor_point(&t.anchor, Vec3::from(*p), g, index)).map(mm3).collect();
+        let mut m = MarkDef {
+            kind: t.kind.clone(),
+            pos: Some(mm3(pos)),
+            yaw: mm(yaw),
+            id: Some(t.id.clone()),
+            label: t.label.clone(),
+            n: t.n,
+            patrol,
+            ambush: t.ambush.clone(),
+            text: t.text.clone(),
+            loot: t.loot.clone(),
+            width: t.width.or(extra.0),
+            height: t.height.or(extra.1),
+            size: t.size,
+            ..Default::default()
+        };
+        if m.kind == "mob" && m.label.is_none() {
+            m.label = Some("button".into());
+        }
+        out.push(m);
+    }
+    let room_ok = |id: &str| rooms.iter().any(|r| r.id == id);
+    for l in &doc.links {
+        let Some(from) = out.iter().position(|m| m.id.as_deref() == Some(l.from.as_str())) else {
+            issues.push(Issue::error("kobling", None, format!("koblingen {} → {}: «{}» finnes ikke", l.from, l.to, l.from)));
+            continue;
+        };
+        let target_mark = out.iter().any(|m| m.id.as_deref() == Some(l.to.as_str()));
+        let m = &mut out[from];
+        match l.kind.as_str() {
+            "opens" | "key" if target_mark => m.opens.push(l.to.clone()),
+            "arena" if room_ok(&l.to) => m.arena = Some(l.to.clone()),
+            "exit" if room_ok(&l.to) => {
+                m.arena = Some(l.to.clone());
+                m.label = Some("exit".into());
+            }
+            "for" if target_mark => m.for_id = Some(l.to.clone()),
+            "to" if room_ok(&l.to) => m.to = Some(l.to.clone()),
+            "from" if room_ok(&l.to) => m.from = Some(l.to.clone()),
+            other => issues.push(Issue::error("kobling", m.pos.map(Vec3::from), format!("koblingen {} → {} ({other}): målet finnes ikke eller slaget er ukjent", l.from, l.to))),
+        }
+    }
+    (out, issues)
+}
+
+/// Stedet, dreiningen (radianer) og (bredde, høyde) for innhold på kanten.
+fn place_thing(t: &Thing, g: &Grid, index: &HashMap<&str, usize>) -> Option<(Vec3, f32, (Option<f32>, Option<f32>))> {
+    let yaw = t.yaw.to_radians();
+    if let Some((a, w)) = edge_anchor(&t.anchor, index, &g.cells) {
+        let c = &g.cells[a];
+        let o = outward_v(w);
+        let mid = Vec3::new(c.center().x + o.x * HALF, c.floor(w), c.center().z + o.y * HALF);
+        let face = side_yaw(w);
+        return Some(match t.kind.as_str() {
+            // Den falske veggen står i murflaten på siden den synes fra.
+            "secret_wall" => (mid - Vec3::new(o.x, 0.0, o.y) * (2.0 * WALL_T), face, (Some(SECRET_W), Some(SECRET_H))),
+            "gate" => (mid, face + yaw, (Some(GATE_W), None)),
+            "shortcut" => (mid, face + yaw, (Some(DOOR_W), None)),
+            _ => (mid + Vec3::from(t.pos.unwrap_or_default()), face + yaw, (None, None)),
+        });
+    }
+    if let Some(id) = t.anchor.strip_prefix("celle:") {
+        let c = &g.cells[*index.get(id)?];
+        let (p, y) = match (t.pos, c.piece.mounts.iter().find(|m| m.kind == t.kind)) {
+            (None, Some(m)) => (Vec3::from(m.pos), m.yaw),
+            (p, _) => (Vec3::from(p.unwrap_or_default()), yaw),
+        };
+        return Some((c.point(p), c.turn(y), (None, None)));
+    }
+    if t.anchor.is_empty() || t.anchor == "fri" {
+        return Some((Vec3::from(t.pos.unwrap_or_default()), yaw, (None, None)));
+    }
+    None
+}
+
+fn anchor_point(anchor: &str, p: Vec3, g: &Grid, index: &HashMap<&str, usize>) -> Option<Vec3> {
+    if let Some(id) = anchor.strip_prefix("celle:") {
+        return Some(g.cells[*index.get(id)?].point(p));
+    }
+    if let Some((a, w)) = edge_anchor(anchor, index, &g.cells) {
+        let c = &g.cells[a];
+        let o = outward_v(w);
+        return Some(Vec3::new(c.center().x + o.x * HALF, c.floor(w), c.center().z + o.y * HALF) + p);
+    }
+    Some(p)
+}
+
+fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDef> {
+    doc.lights
+        .iter()
+        .filter_map(|l| {
+            let pos = anchor_point(&l.anchor, Vec3::from(l.pos), g, index)?;
+            // Rommet: cella lyset står i.
+            let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
+            let room = g.columns.get(&(i, j)).and_then(|v| {
+                v.iter()
+                    .find(|&&b| {
+                        let (lo, hi) = g.cells[b].volume();
+                        pos.y >= lo && pos.y <= hi
+                    })
+                    .map(|&b| g.cells[b].doc.room.clone())
+            });
+            Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity: l.intensity, room })
+        })
+        .collect()
+}

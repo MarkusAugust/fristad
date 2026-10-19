@@ -15,6 +15,9 @@
 //! (et lys lyser i sitt rom og i rom med åpen forbindelse, `light_mask`) og
 //! til å finne rommet du står i.
 
+pub mod compose;
+pub mod doc;
+pub mod kit;
 pub mod level;
 pub mod map;
 pub mod nav;
@@ -420,6 +423,12 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     for piece in &f.pieces {
         let name: &'static str = Box::leak(piece.clone().into_boxed_str());
         b.place_mounted(name, Affine3A::from_translation(origin));
+    }
+    // Bitene fra byggesettet (nivåer kompilert fra et nivådokument):
+    // murverk med fundament, som bitene over.
+    for inst in &f.instances {
+        let name = crate::domain::world::layout::intern(&inst.model);
+        b.place_mounted(name, compose::transform(origin + Vec3::from(inst.pos), inst.yaw, inst.mirror));
     }
     for col in &f.colliders {
         if let Some(bx) = &col.cuboid {
