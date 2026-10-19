@@ -27,6 +27,8 @@ fi
 echo "== Fristil"
 command -v bun >/dev/null 2>&1 || npm install -g bun
 bun install
+# Det nettlaget kaller på musikken, finnes som funksjoner (mjøden frøs spillet).
+bun tools/music-check.mjs
 bun tools/export-tokens.ts
 # Dokumentasjonen hentes ferskt fra GitHub. Feiler det, brukes den som
 # ligger i repoet.
