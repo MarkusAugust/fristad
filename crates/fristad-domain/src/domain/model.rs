@@ -3,6 +3,7 @@
 
 use crate::domain::geometry::{Layer, Mesh};
 
+#[derive(Clone)]
 pub struct Image {
     /// Målene bildet har når det er pakket ut (etter `encoded` er skalert ned).
     pub width: u32,
@@ -12,13 +13,18 @@ pub struct Image {
     /// Bildefila (png eller jpeg) når den pakkes ut først når rendereren
     /// laster den opp, én om gangen, så alle modellenes teksturer aldri står
     /// utpakket i minnet samtidig. Det er adapteren som pakker ut og skalerer
-    /// til `width` × `height`.
-    pub encoded: Vec<u8>,
+    /// til `width` × `height`. Delt, så rendereren kan beholde fila til
+    /// den oppgraderer bildet uten å kopiere den.
+    pub encoded: std::sync::Arc<[u8]>,
+    /// Målene bildet får når rendereren oppgraderer det i bakgrunnen
+    /// (nettleseren laster først et lavt tak, `delivery::stage`), eller
+    /// ingen: `width` × `height` er det endelige.
+    pub later: Option<(u32, u32)>,
 }
 
 impl Image {
     pub fn rgba(width: u32, height: u32, rgba: Vec<u8>) -> Self {
-        Self { width, height, rgba, encoded: vec![] }
+        Self { width, height, rgba, encoded: Vec::new().into(), later: None }
     }
 }
 

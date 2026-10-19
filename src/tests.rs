@@ -855,6 +855,14 @@ fn teksturene_har_tak_i_nettleseren() {
     let bytes = std::fs::read(format!("{}/assets/models/{p}", env!("CARGO_MANIFEST_DIR"))).unwrap();
     let m = load_capped("framework", &[("model.glb", &bytes)], -1.0, 0.0, browser_caps("framework")).unwrap();
     assert_eq!(m.albedo.as_ref().map(|i| i.width), Some(4096), "Rammeverket er 4096 i nettleseren");
+    // Lat lasting: nettleseren (`Files`) laster først det lave taket og
+    // husker taket over til rendereren oppgraderer (`Image.later`).
+    use crate::ports::ModelSource;
+    let files = crate::adapters::gltf::Files([(p.to_string(), bytes)].into_iter().collect());
+    let staged = files.load("framework").expect("framework");
+    let img = staged.albedo.as_ref().unwrap();
+    assert_eq!((img.width.max(img.height), img.later.map(|(w, h)| w.max(h))), (crate::adapters::delivery::LOW.color, Some(4096)), "lavt først, 4096 senere");
+    assert!(staged.normal.as_ref().is_none_or(|i| i.width.max(i.height) <= crate::adapters::delivery::LOW.data));
 }
 
 /// Lydbildet følger deg: folk på torget, hamring ved smia, stille i

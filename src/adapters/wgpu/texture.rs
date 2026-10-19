@@ -510,23 +510,30 @@ impl Materials {
     }
 
     /// Bindingen for en modell med egne teksturer.
-    pub fn model_bind_group(&self, device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, m: &crate::domain::model::Model) -> wgpu::BindGroup {
+    /// Teksturene til en modell (farge, normal, metall/ruhet, glød), lastet
+    /// opp med målene bildene har nå, og målene (0 × 0 for reserven).
+    pub fn model_views(&self, device: &wgpu::Device, queue: &wgpu::Queue, mipper: &Mipper, m: &crate::domain::model::Model) -> ([wgpu::TextureView; 4], [(u32, u32); 4]) {
         let tex = |img: &Option<crate::domain::model::Image>, srgb: bool, fallback: [u8; 4]| match img {
-            Some(i) => upload(device, queue, mipper, i, srgb, &m.name),
-            None => solid(device, queue, fallback, srgb),
+            Some(i) => (upload(device, queue, mipper, i, srgb, &m.name), (i.width, i.height)),
+            None => (solid(device, queue, fallback, srgb), (0, 0)),
         };
-        let albedo = tex(&m.albedo, true, [255, 255, 255, 255]);
-        let normal = tex(&m.normal, false, [128, 128, 255, 255]);
-        let mr = tex(&m.metal_rough, false, [255, 255, 255, 255]);
-        let emissive = tex(&m.emissive, true, [0, 0, 0, 255]);
+        let (albedo, a) = tex(&m.albedo, true, [255, 255, 255, 255]);
+        let (normal, n) = tex(&m.normal, false, [128, 128, 255, 255]);
+        let (mr, r) = tex(&m.metal_rough, false, [255, 255, 255, 255]);
+        let (emissive, e) = tex(&m.emissive, true, [0, 0, 0, 255]);
+        ([albedo, normal, mr, emissive], [a, n, r, e])
+    }
+
+    /// Bindegruppen til en modell fra de fire teksturene (`model_views`).
+    pub fn model_bind_group(&self, device: &wgpu::Device, views: &[wgpu::TextureView; 4], label: &str) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some(&m.name),
+            label: Some(label),
             layout: &self.model_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&albedo) },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&normal) },
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&mr) },
-                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&emissive) },
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&views[0]) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&views[1]) },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&views[2]) },
+                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&views[3]) },
             ],
         })
     }
