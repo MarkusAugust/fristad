@@ -215,13 +215,13 @@ def marks(_):
                  "rammen, mønstre ingen regel hadde plass til. Veggen henger igjen fordi ingen orket å "
                  "rive den. Ta det som ligger her. Det var aldri feil, bare glemt."},
         # Den ytre spiralen, vest.
-        {"kind": "mob", "pos": at(38, 195, -5.6), "label": "breadcrumb", "n": 2},
+        {"kind": "mob", "pos": at(38, 195, -5.6), "label": "skeleton loader", "n": 2},
         {"kind": "trapdoor", "id": "fallem_10", "pos": [round(tc.x, 3), -7.6, round(tc.y, 3)], "size": [1.2, 1.2], "to": "kilde"},
         {"kind": "ladder", "pos": [round(lc.x, 3), KILDE_Y, round(lc.y - 0.54, 3)], "yaw": 0.0, "top": [round(lc.x, 3), -7.6, round(lc.y + 1.25, 3)]},
-        {"kind": "mob", "pos": at(38, 285, -9.2), "label": "breadcrumb", "n": 3,
+        {"kind": "mob", "pos": at(38, 285, -9.2), "label": "skeleton loader", "n": 3,
          "patrol": [at(38, 256, -9.2), at(38, 296, -9.2), at(38, 330, -11.6)]},
         # Stabelkammeret: bakholdet.
-        {"kind": "mob", "pos": [-50, -9.2, 46], "label": "breadcrumb i bakhold", "n": 3, "ambush": "cache"},
+        {"kind": "mob", "pos": [-50, -9.2, 46], "label": "skeleton loader i bakhold", "n": 3, "ambush": "cache"},
         {"kind": "chest", "pos": [-53.6, -9.2, 48.4], "yaw": P / 2},
         # Urskriften.
         {"kind": "lore", "pos": [round(kx + 1.55, 3), KILDE_Y, round(kz + 1.1, 3)], "yaw": -P / 2, "label": "Urskriften",

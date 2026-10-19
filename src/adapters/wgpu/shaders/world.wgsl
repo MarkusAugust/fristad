@@ -846,7 +846,10 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         if (dot(t, t) > 1e-8) {
             s.n = normalize(tbn * nm);
         }
-        s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * (0.2 + night * 8.0 * g.params.w);
+        // Glødeteksturen lyser om natta som lyktene, eller hele døgnet
+        // (`….glow`: de magenta sømmene og øynene på fiendene, også i krypten).
+        let lit = select(0.2 + night * 8.0 * g.params.w, 2.2, glow == 3u);
+        s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * lit;
         if ((flags & F_ALPHA) != 0u) {
             // Alfakort (barnåler, gress, blader i modellene) er løv: matte,
             // uten himmelspeiling i flate vinkler, og med lys gjennom.
@@ -960,7 +963,7 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         s.n = normalize(vec3<f32>(-grad.x, 1.0, -grad.y));
     }
 
-    if (glow == 3u) {
+    if (glow == 3u && kind != K_MODEL) {
         s.emissive += s.albedo * (0.05 + night * 0.35);
     } else if (glow == 2u && kind != K_GLASS) {
         s.emissive += tint * vec3<f32>(1.0, 0.78, 0.5) * (0.2 + night * 9.0 * g.params.w);

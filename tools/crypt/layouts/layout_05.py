@@ -75,7 +75,7 @@ def marks(_):
         {"kind": "up", "pos": [0, 0, -3], "yaw": 0.0},
         {"kind": "rest", "pos": [-16, 0, 7.3], "yaw": P},
         # Hovedstollen og den forseglede stollen.
-        {"kind": "mob", "pos": [0, -1, 26], "label": "breadcrumb", "n": 2, "patrol": [[0, -1, 14], [0, -1, 29]]},
+        {"kind": "mob", "pos": [0, -1, 26], "label": "spinner", "n": 2, "patrol": [[0, -1, 14], [0, -1, 29]]},
         {"kind": "secret_wall", "id": "hemmelig_5a", "pos": [-2, -1, 26], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "draft", "pos": [-1.4, -1, 26], "for": "hemmelig_5a"},
         {"kind": "lore", "pos": [-16.6, -1, 23.0], "yaw": P / 2, "label": "Gruvefogdens regnskap",
@@ -89,7 +89,7 @@ def marks(_):
         {"kind": "mob", "pos": [22, -3, 47], "label": "tooltip", "n": 2},
         {"kind": "chest", "pos": [12, -3, 43.5], "yaw": P / 2},
         # Den gamle stollen: slideren på skinnene, raset og lokket.
-        {"kind": "mob", "pos": [42, -3, 40], "label": "avatar", "patrol": [[41, -3, 40], [60, -3, 40]]},
+        {"kind": "mob", "pos": [42, -3, 40], "label": "spinner", "patrol": [[41, -3, 40], [60, -3, 40]]},
         {"kind": "trap", "label": "rocks", "id": "ras_5", "pos": [53, -3, 40], "size": [1.2, 1.2], "dir": [1, 0, 0]},
         {"kind": "trapdoor", "id": "lokk_5", "pos": [64, -3, 40.3], "size": [1.4, 1.4], "to": "krystallkammer"},
         {"kind": "hint", "label": "sound", "pos": [64, -3, 40.3], "for": "lokk_5"},
@@ -100,12 +100,12 @@ def marks(_):
         # Vinsjhuset: spaken løsner bremsen, heisen går ned sjakta.
         {"kind": "lever", "id": "spak_5", "pos": [76.5, -3, 35.45], "yaw": 0.0, "opens": [HEIS]},
         {"kind": "lift", "id": HEIS, "pos": [80, LIFT_TOP, 42], "yaw": 0.0, "size": [2.8, 2.8], "bottom": [80, LIFT_BOTTOM, 42]},
-        {"kind": "mob", "pos": [76, -3, 43], "label": "breadcrumb", "n": 3},
+        {"kind": "mob", "pos": [76, -3, 43], "label": "spinner", "n": 3},
         # Heisbunnen.
-        {"kind": "mob", "pos": [78, -17, 70], "label": "avatar", "n": 2, "patrol": [[70, -17, 66], [84, -17, 64], [86, -17, 74], [72, -17, 76]]},
+        {"kind": "mob", "pos": [78, -17, 70], "label": "spinner", "n": 2, "patrol": [[70, -17, 66], [84, -17, 64], [86, -17, 74], [72, -17, 76]]},
         {"kind": "mob", "pos": [74, -17, 76], "label": "tooltip i bakhold", "n": 3, "ambush": "heisbunn"},
         # Krystallåra.
-        {"kind": "mob", "pos": [46, -16, 63], "label": "breadcrumb", "n": 3},
+        {"kind": "mob", "pos": [46, -16, 63], "label": "spinner", "n": 3},
         {"kind": "chest", "pos": [52, -16, 69.5], "yaw": P},
         # Vognbanen og kruttkammeret.
         {"kind": "mob", "pos": [51, -18, 86], "label": "accordion", "n": 2},
@@ -115,11 +115,11 @@ def marks(_):
         {"kind": "chest", "pos": [37.0, -18, 96.5], "yaw": P / 2},
         {"kind": "bonus", "pos": [42.5, -18, 98.4], "yaw": P, "label": "utholdenhet"},
         # Smeltehula: formannen med nøkkelen.
-        {"kind": "elite", "pos": [17, -19, 84], "yaw": P / 2, "label": "accordion", "opens": [PORT]},
-        {"kind": "mob", "pos": [22, -19, 78], "label": "breadcrumb", "n": 2},
+        {"kind": "elite", "pos": [17, -19, 84], "yaw": P / 2, "label": "progress-formann", "opens": [PORT]},
+        {"kind": "mob", "pos": [22, -19, 78], "label": "spinner", "n": 2},
         {"kind": "mob", "pos": [19, -19, 90], "label": "button", "n": 2},
         # Gruveporten, snarveien og nedgangen.
-        {"kind": "mob", "pos": [13, -20, 104], "label": "avatar", "n": 2},
+        {"kind": "mob", "pos": [13, -20, 104], "label": "spinner", "n": 2},
         {"kind": "gate", "id": PORT, "pos": [13, -20, 109.5], "yaw": 0.0, "width": 2.6},
         {"kind": "shortcut", "id": "snarvei_5", "from": "gruveport", "pos": [6, -20, 104], "yaw": P / 2, "width": 1.6},
         {"kind": "down", "pos": list(DOWN), "yaw": P},

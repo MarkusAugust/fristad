@@ -9,11 +9,11 @@ use crate::domain::model::{Image, Model};
 /// Taket i nettleseren (plan del 10a): bare datamaskin er et mål (eieren
 /// 19. oktober), så fargen får 2048 og normal- og metallkartene 1024. De
 /// store fiendene (Rammeverket er 4 m høyt og bakt i 4096, modalen og
-/// tabellen bossene i nivå 2 og 4) står en meter eller to unna og fyller
+/// tabellen bossene i nivå 2 og 4, Navbaren og Dropdownen 5 m i nivå 8 og 6) står en meter eller to unna og fyller
 /// bildet: fargen får 4096. Bildene pakkes fortsatt ut én om gangen, så
 /// wasm-haugen holder bare ett av dem.
 pub fn browser_caps(name: &str) -> Caps {
-    const BIG: [&str; 3] = ["framework", "mutant_modal", "mutant_table"];
+    const BIG: [&str; 5] = ["framework", "mutant_modal", "mutant_table", "navbar", "dropdown"];
     if BIG.contains(&name) {
         Caps { color: 4096, data: 1024 }
     } else {
@@ -98,6 +98,8 @@ mod tests {
         assert_eq!(upgrade_pick([(0, 12.0, 4096), (1, 5.0, 2048)].into_iter()), Some(1));
         assert_eq!(upgrade_pick([(0, 12.0, 4096), (1, 20.0, 2048)].into_iter()), Some(0));
         assert_eq!(browser_caps("framework").color, 4096);
+        assert_eq!(browser_caps("navbar").color, 4096);
+        assert_eq!(browser_caps("dropdown").color, 4096);
         assert!(LOW.color < browser_caps("house_a").color && LOW.data < browser_caps("house_a").data);
     }
 }

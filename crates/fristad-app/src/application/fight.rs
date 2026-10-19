@@ -109,7 +109,7 @@ impl Session {
                     struck = Some(pos);
                     let material = match self.mobs.mobs.get(mob).map(|m| m.kind) {
                         Some(MobKind::Table) => Some("hit_wood"),
-                        Some(MobKind::Framework) => Some("hit_metal"),
+                        Some(MobKind::Framework | MobKind::Navbar) => Some("hit_metal"),
                         _ => None,
                     };
                     if let Some(m) = material {

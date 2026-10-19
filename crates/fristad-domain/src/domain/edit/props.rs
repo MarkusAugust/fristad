@@ -12,16 +12,19 @@ use crate::domain::world::crypt::level::MarkDef;
 use crate::domain::world::layout::Pose;
 use glam::{Affine3A, Vec3};
 
-/// Én egenskap: nøkkelen, navnet i panelet og verdien som tekst.
+/// Én egenskap: nøkkelen, navnet i panelet og verdien som tekst, og
+/// valgene panelet foreslår (fiendeslagene for et fiendemerke; fri tekst
+/// går fortsatt, som «button i bakhold»).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Prop {
     pub key: String,
     pub label: String,
     pub value: String,
+    pub options: Vec<String>,
 }
 
 fn prop(key: &str, label: &str, value: String) -> Prop {
-    Prop { key: key.into(), label: label.into(), value }
+    Prop { key: key.into(), label: label.into(), value, options: vec![] }
 }
 
 /// Et tall med høyst to desimaler, uten unødvendige nuller.
@@ -202,7 +205,12 @@ impl Editor {
                 for k in MARK_KEYS {
                     let v = mark_value(&m, k);
                     if wanted.contains(&k) || !v.is_empty() {
-                        out.push(prop(k, mark_label(&m.kind, k), v));
+                        let mut p = prop(k, mark_label(&m.kind, k), v);
+                        if k == "label" && matches!(m.kind.as_str(), "mob" | "elite" | "boss") {
+                            // Fiendeslagene redigeringen kan sette ut.
+                            p.options = crate::domain::mobs::Kind::ALL.iter().map(|k| k.key().to_string()).collect();
+                        }
+                        out.push(p);
                     }
                 }
             }

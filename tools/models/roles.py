@@ -66,6 +66,10 @@ def material(name, model):
         # `magic_paint…`: gløder i fargen fra instansen (tokenene).
         if named("magic_paint"):
             flags.append("paint")
+    # `….glow`: modellens egen glødetekstur (emissive) lyser hele døgnet, i
+    # krypten også (de magenta sømmene og øynene på fiendene, `mob3d.glow`).
+    if name.endswith(".glow"):
+        flags.append("glow_always")
     if named("leaf") or named("needle") or named("grass"):
         flags += ["alpha", "wind", "no_weather"]
     if named("grass"):

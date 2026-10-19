@@ -95,7 +95,7 @@ def marks(_):
         {"kind": "up", "pos": [0, 0, -3], "yaw": 0.0},
         # Ytterbredden: leirbålet (hvilestedet) og vaktene.
         {"kind": "rest", "pos": [12, COURT, 11], "yaw": P},
-        {"kind": "mob", "pos": [44, COURT, 12], "label": "button", "n": 2, "patrol": [[30, COURT, 12], [60, COURT, 13]]},
+        {"kind": "mob", "pos": [44, COURT, 12], "label": "kortknekt", "n": 2, "patrol": [[30, COURT, 12], [60, COURT, 13]]},
         # Vindebroen og gitteret: vinsjen i porthuset åpner begge.
         {"kind": "bridge", "id": BRO, "pos": [bx, COURT, (BRIDGE["z0"] + BRIDGE["z1"]) / 2], "yaw": 0.0,
          "size": [BRIDGE["w"], BRIDGE["z1"] - BRIDGE["z0"]], "height": 3.2, "top": [bx, 8.5, (BRIDGE["z0"] + BRIDGE["z1"]) / 2]},
@@ -103,7 +103,7 @@ def marks(_):
         # Vollgrava: tabellene i gjørma, steinene fra skoddehullene, og det rasede hjørnet.
         {"kind": "mob", "pos": [20, MOAT, 22.5], "label": "table", "n": 2},
         {"kind": "trap", "label": "rocks", "id": "skoddehull_7", "pos": [30, MOAT, 22.5], "size": [1.2, 1.2], "dir": [0, 0, 1]},
-        {"kind": "mob", "pos": [1, MOAT, 40], "label": "button"},
+        {"kind": "mob", "pos": [1, MOAT, 40], "label": "kortknekt"},
         {"kind": "secret_wall", "id": SKATT, "pos": [0.5, MOAT, 56], "yaw": P, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "draft", "pos": [0.5, MOAT, 55.4], "for": SKATT},
         {"kind": "rare", "pos": [0.5, MOAT, 62.6], "yaw": P, "label": "Switch"},
@@ -117,12 +117,12 @@ def marks(_):
         {"kind": "lever", "id": "vinsj_7", "pos": [54, WALK, 27.45], "yaw": 0.0, "opens": [GITTER, BRO]},
         {"kind": "mob", "pos": [51, WALK, 31], "label": "accordion"},
         # Borggården: vakter, den tørre brønnen og steinene fra taket.
-        {"kind": "mob", "pos": [46, COURT, 50], "label": "button", "n": 3, "patrol": [[34, COURT, 48], [58, COURT, 48], [58, COURT, 68], [34, COURT, 68]]},
+        {"kind": "mob", "pos": [46, COURT, 50], "label": "kortknekt", "n": 3, "patrol": [[34, COURT, 48], [58, COURT, 48], [58, COURT, 68], [34, COURT, 68]]},
         {"kind": "trap", "label": "rocks", "id": "bronnen_7", "pos": [46, COURT, 61.0], "size": [1.2, 1.2], "dir": [0, 0, -1]},
         # Østtårnet.
         {"kind": "mob", "pos": [76.5, COURT, 39.5], "label": "tooltip", "n": 2},
         # Stallen: bakholdet i båsene, kista i høyet.
-        {"kind": "mob", "pos": [33, COURT, 86], "label": "button i bakhold", "n": 3, "ambush": "stall"},
+        {"kind": "mob", "pos": [33, COURT, 86], "label": "kortknekt i bakhold", "n": 3, "ambush": "stall"},
         {"kind": "chest", "pos": [37.5, COURT, 88.4], "yaw": P},
         # Kapellet: lysestaken åpner steinhella under alteret.
         {"kind": "mob", "pos": [16, COURT, 69], "label": "accordion", "n": 2},
@@ -137,7 +137,7 @@ def marks(_):
         {"kind": "bonus", "pos": [20.0, -6, 91], "yaw": -P / 2, "label": "liv"},
         # Kastellet: Kortkapteinen med nøkkelen, skjoldbærerne og bueskytterne på galleriet.
         {"kind": "elite", "pos": [56, COURT, 91], "yaw": 0.0, "label": "modal", "opens": [PORT]},
-        {"kind": "mob", "pos": [52, COURT, 88], "label": "button", "n": 2},
+        {"kind": "mob", "pos": [52, COURT, 88], "label": "kortknekt", "n": 2},
         {"kind": "mob", "pos": [58, GAL, 83.4], "label": "breadcrumb-bueskytter", "n": 2},
         {"kind": "chest", "pos": [64.3, COURT, 95], "yaw": -P / 2},
         {"kind": "gate", "id": PORT, "pos": [56, COURT, 99.6], "yaw": 0.0, "width": 2.2},

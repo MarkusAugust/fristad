@@ -650,6 +650,9 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         return `<input type="checkbox" name="${name}" ${p.value === "ja" ? "checked" : ""} data-was="${value}">`;
       if (p.key === "tint" || p.key === "color")
         return `<span class="editor-color"><input type="color" data-pick="${name}" value="${/^#[0-9a-f]{6}$/i.test(p.value) ? value : "#ffffff"}" aria-label="Velg farge"><input class="fs-input" name="${name}" value="${value}" data-was="${value}" placeholder="#rrggbb"></span>`;
+      // Valgene (fiendeslagene): en liste å velge fra, fri tekst går også.
+      if (p.options?.length)
+        return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" list="ed-opt-${name}"><datalist id="ed-opt-${name}">${p.options.map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>`;
       const num = ["x", "y", "z", "yaw", "range", "intensity", "flicker", "width", "height", "n"].includes(p.key) || p.key.startsWith("route.");
       return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" ${num ? 'inputmode="decimal"' : ""}>`;
     };
