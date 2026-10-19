@@ -8,8 +8,7 @@
 // klokker. Overgangene tones over på tre sekunder. M slår den av og på.
 // Til prøvene er lastet, er det stille.
 //
-// Egne spor fra filer (eieren 18. oktober, Suno, promptene i
-// `docs/prompter/musikk-spill.md`): `music/game/<navn>.mp3` (kopiert fra
+// Egne spor fra filer (eieren 18. oktober, Suno): `music/game/<navn>.mp3` (kopiert fra
 // `assets/music/game/` av `tools/build-web.sh`). `town` spiller i hele byen,
 // om natta dempet og mørkere gjennom et lavpassfilter; `crypt` i alle
 // nivåene (`town_night` om natta, og om dagen så lenge `town` mangler;

@@ -33,8 +33,35 @@ pub struct KitFile {
 }
 
 impl KitDef {
+    /// Legger til et manifest. En sammensatt bit (`footprint`) får i tillegg
+    /// én delbit per celle (`<id>#<k>`, `part_of`), som kompilatoren setter ut
+    /// i stedet for den (`compose::expand`): midtcella bærer modellen,
+    /// kolliderne og det gangbare, de andre bare flatene og volumet.
     pub fn add(&mut self, f: KitFile) {
-        self.pieces.extend(f.pieces);
+        for p in f.pieces {
+            for (k, fc) in p.footprint.iter().enumerate() {
+                let center = fc.at == [0, 0];
+                self.pieces.push(KitPiece {
+                    id: format!("{}#{k}", p.id),
+                    model: if center { p.model.clone() } else { String::new() },
+                    kind: PieceKind::Cell,
+                    theme: p.theme.clone(),
+                    v: p.v,
+                    faces: fc.faces.clone(),
+                    floors: p.floors,
+                    clear: p.clear,
+                    bottom: p.bottom,
+                    top: p.top,
+                    walk: if center { p.walk.clone() } else { vec![] },
+                    mounts: if center { p.mounts.clone() } else { vec![] },
+                    solids: if center { p.solids.clone() } else { vec![] },
+                    mirror: p.mirror,
+                    part_of: Some(p.id.clone()),
+                    ..Default::default()
+                });
+            }
+            self.pieces.push(p);
+        }
     }
 
     pub fn piece(&self, id: &str) -> Option<&KitPiece> {
@@ -47,14 +74,27 @@ impl KitDef {
         self.pieces.iter().filter(of).find(|p| p.theme == theme).or_else(|| self.pieces.iter().find(of))
     }
 
-    /// Kvarthjørnet eller søyla i et tema.
+    /// Kvarthjørnet, søyla, den falske veggen eller fakkelen i et tema.
     pub fn of_kind(&self, theme: &str, kind: PieceKind) -> Option<&KitPiece> {
         self.pieces.iter().filter(|p| p.kind == kind).find(|p| p.theme == theme).or_else(|| self.pieces.iter().find(|p| p.kind == kind))
     }
 
-    /// Modellene bitene bruker.
+    /// Kvarthjørnet som passer (`fits`: `inner`, `wall`, `pilaster`,
+    /// `outer`), ellers et hvilket som helst kvarthjørne i temaet.
+    pub fn corner(&self, theme: &str, class: &str) -> Option<&KitPiece> {
+        let fits = |p: &&KitPiece| p.kind == PieceKind::Corner && p.fits.iter().any(|f| f == class);
+        self.pieces.iter().filter(fits).find(|p| p.theme == theme).or_else(|| self.pieces.iter().find(fits)).or_else(|| self.of_kind(theme, PieceKind::Corner))
+    }
+
+    /// Bitene eieren setter ut eller kompilatoren velger (ikke delbitene til
+    /// de sammensatte).
+    pub fn listed(&self) -> impl Iterator<Item = &KitPiece> {
+        self.pieces.iter().filter(|p| p.part_of.is_none())
+    }
+
+    /// Modellene bitene bruker, med variantene.
     pub fn models(&self) -> Vec<&str> {
-        let mut out: Vec<&str> = self.pieces.iter().map(|p| p.model.as_str()).collect();
+        let mut out: Vec<&str> = self.pieces.iter().flat_map(|p| std::iter::once(p.model.as_str()).chain(p.variants.iter().map(|v| v.model.as_str()))).filter(|m| !m.is_empty()).collect();
         out.sort();
         out.dedup();
         out
@@ -69,6 +109,34 @@ pub enum PieceKind {
     Edge,
     Corner,
     Pillar,
+    /// Den falske veggen som synker (motoren setter den ut etter merket).
+    Leaf,
+    /// Pynt i et feste (fakkelen).
+    Prop,
+}
+
+/// Et utseende av en bit (`docs/nivaaredigering.md`, del 9): velges med
+/// nivåets frø og plassen, vektet, eller låst i dokumentet (`variant`).
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct Variant {
+    pub id: String,
+    pub model: String,
+    #[serde(default = "one")]
+    pub weight: f32,
+    /// Kolliderne når varianten har en annen form (nisjer), ellers bitens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub solids: Option<Vec<ColliderDef>>,
+}
+
+fn one() -> f32 {
+    1.0
+}
+
+/// En celle i en sammensatt bit: plassen fra midtcella (i, j) og flatene.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+pub struct FootCell {
+    pub at: [i32; 2],
+    pub faces: Vec<Face>,
 }
 
 /// Hva en side av en celle vil ha.
@@ -143,4 +211,46 @@ pub struct KitPiece {
     pub solids: Vec<ColliderDef>,
     #[serde(default)]
     pub mirror: bool,
+    /// Utseendene (tom: bare `model`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<Variant>,
+    /// Kvarthjørnene: tilfellene hjørnet passer til.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fits: Vec<String>,
+    /// Sammensatte biter: cellene de dekker.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub footprint: Vec<FootCell>,
+    /// Delbitene: den sammensatte biten de hører til.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part_of: Option<String>,
+}
+
+impl KitPiece {
+    /// Modellen for et utseende: det låste (`variant`), ellers et valgt med
+    /// `roll` i [0, 1) etter vektene.
+    pub fn model_for(&self, locked: Option<&str>, roll: f32) -> &str {
+        self.pick(locked, roll).0
+    }
+
+    /// Modellen og kolliderne for et utseende (som `model_for`).
+    pub fn pick(&self, locked: Option<&str>, roll: f32) -> (&str, &[ColliderDef]) {
+        fn of<'a>(v: &'a Variant, own: &'a [ColliderDef]) -> (&'a str, &'a [ColliderDef]) {
+            (v.model.as_str(), v.solids.as_deref().unwrap_or(own))
+        }
+        if self.variants.is_empty() {
+            return (&self.model, &self.solids);
+        }
+        if let Some(v) = locked.and_then(|id| self.variants.iter().find(|v| v.id == id)) {
+            return of(v, &self.solids);
+        }
+        let total: f32 = self.variants.iter().map(|v| v.weight.max(0.0)).sum();
+        let mut at = roll * total;
+        for v in &self.variants {
+            at -= v.weight.max(0.0);
+            if at < 0.0 {
+                return of(v, &self.solids);
+            }
+        }
+        self.variants.last().map(|v| of(v, &self.solids)).unwrap_or((&self.model, &self.solids))
+    }
 }

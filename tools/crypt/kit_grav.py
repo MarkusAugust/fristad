@@ -401,6 +401,7 @@ def grid_face(mb, surf, shape, mat, cell=1.0, origin=(0.0, 0.0), smooth=False, c
     i1 = math.ceil((u1 - origin[0]) / cell - 1e-9)
     j0 = math.floor((v0 - origin[1]) / cv + 1e-9)
     j1 = math.ceil((v1 - origin[1]) / cv - 1e-9)
+    rings = []
     for i in range(i0, i1):
         for j in range(j0, j1):
             a = (origin[0] + i * cell, origin[1] + j * cv)
@@ -411,15 +412,59 @@ def grid_face(mb, surf, shape, mat, cell=1.0, origin=(0.0, 0.0), smooth=False, c
                 if p.area < 1e-5:
                     continue
                 if abs(p.area - cell * cv) < 1e-6:
-                    ring = [(a[0], a[1]), (b[0], a[1]), (b[0], b[1]), (a[0], b[1])]
-                    _surf_poly(mb, surf, ring, mat, smooth)
+                    rings.append([(a[0], a[1]), (b[0], a[1]), (b[0], b[1]), (a[0], b[1])])
                     continue
                 coords = list(p.exterior.coords)[:-1]
                 if not p.interiors and _convex(coords):
-                    _surf_poly(mb, surf, coords, mat, smooth)
+                    rings.append(coords)
                     continue
                 for t in _pieces(constrained_delaunay_triangles(p)):
-                    _surf_poly(mb, surf, list(t.exterior.coords)[:-1], mat, smooth)
+                    rings.append(list(t.exterior.coords)[:-1])
+    # Et hjørne i én rute som ligger på kanten av naboruta (der omrisset
+    # krysser en rutelinje) settes inn i naboens kant også, så flaten ikke
+    # får T-kryss som slipper gjennom en piksel (`--leak-scan`).
+    for ring in _weld_rings(rings):
+        _surf_poly(mb, surf, ring, mat, smooth)
+
+
+def _weld_rings(rings, eps=1e-6):
+    """Ringene (2D) med hjørnene fra de andre ringene som ligger inne på en
+    av kantene deres satt inn i kanten."""
+    pts = {}
+    for r in rings:
+        for p in r:
+            pts[(round(p[0], 5), round(p[1], 5))] = p
+    allp = list(pts.values())
+    out = []
+    for r in rings:
+        new = []
+        n = len(r)
+        for k in range(n):
+            a, b = r[k], r[(k + 1) % n]
+            new.append(a)
+            dx, dy = b[0] - a[0], b[1] - a[1]
+            L2 = dx * dx + dy * dy
+            if L2 < 1e-12:
+                continue
+            lo_x, hi_x = min(a[0], b[0]) - eps, max(a[0], b[0]) + eps
+            lo_y, hi_y = min(a[1], b[1]) - eps, max(a[1], b[1]) + eps
+            ins = []
+            for q in allp:
+                if not (lo_x <= q[0] <= hi_x and lo_y <= q[1] <= hi_y):
+                    continue
+                t = ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / L2
+                if t <= 1e-6 or t >= 1 - 1e-6:
+                    continue
+                cx, cy = a[0] + dx * t - q[0], a[1] + dy * t - q[1]
+                if cx * cx + cy * cy < eps * eps:
+                    ins.append((t, q))
+            new += [q for _, q in sorted(ins)]
+        if len(new) > n:
+            # Viften begynner i det innsatte hjørnet, så ingen trekant blir flat.
+            k0 = next(i for i, p in enumerate(new) if p not in r)
+            new = new[k0:] + new[:k0]
+        out.append(new)
+    return out
 
 
 def _convex(c):
@@ -656,11 +701,15 @@ def groin_bay(mb, x0, x1, z0, z1, S, R, mat="vault", n=12, k=3):
                     mb.poly(pts, uvs, mat, facing=facing, smooth=True)
 
 
-def band(mb, path, width, depth, mat="rib", down=None, smooth=False):
+def band(mb, path, width, depth, mat="rib", down=None, smooth=False, stones=None, half=None):
     """En ribbe eller gjordbue under et hvelv: et rektangulært tverrsnitt langs
     `path` (punkter i 3D), `depth` ned fra flaten. Siden mot hvelvet lages
     ikke. `down(p)` er retningen ned fra flaten i punktet (standard: rett ned
-    mot midten av buen)."""
+    mot midten av buen). `stones` (et frø): hvert stykke mellom to punkter er
+    én kilestein med én hel stein fra murbildet (`stone_uv`), i stedet for
+    murbildet strukket langs ribben. `half` (akse, verdi): ribben er den ene
+    halvdelen av en bue som naboen speiler; kanten nærmest planet der aksen
+    har den verdien er midten av steinen."""
     rings = []
     for i, p in enumerate(path):
         t = norm(sub(path[min(i + 1, len(path) - 1)], path[max(i - 1, 0)]))
@@ -676,11 +725,26 @@ def band(mb, path, width, depth, mat="rib", down=None, smooth=False):
         A, B = rings[i], rings[i + 1]
         L = math.dist(path[i], path[i + 1])
         cen = lambda r: lerp(r[0], r[2], 0.5)
+        uvs = None
+        if stones is not None:
+            x0, y0, x1, y1 = STONE_PX[(stones + 3 * i) % len(STONE_PX)]
+            f = STONE_TEX_M / STONE_TEX_PX
+            su0, su1, sv0, sv1 = (x0 + 2) * f, (x1 - 2) * f, (y0 + 2) * f, (y1 - 2) * f
+            v2, v3 = sv0, sv1  # kanten 2 og 3 av tverrsnittet (bunnen av ribben)
+            if half is not None:
+                ax, val = half
+                vc = (sv0 + sv1) / 2
+                v2, v3 = (vc, sv1) if abs(A[2][ax] - val) < abs(A[3][ax] - val) else (sv1, vc)
+            dv = (sv1 - sv0) * min(1.0, depth / width)
+            uvs = {(1, 2): [(su0, sv0), (su1, sv0), (su1, sv0 + dv), (su0, sv0 + dv)],
+                   (2, 3): [(su0, v2), (su1, v2), (su1, v3), (su0, v3)],
+                   (3, 0): [(su0, sv1 - dv), (su1, sv1 - dv), (su1, sv1), (su0, sv1)]}
         for j0, j1 in ((1, 2), (2, 3), (3, 0)):
             pts = [A[j0], B[j0], B[j1], A[j1]]
             mid = lerp(lerp(A[j0], A[j1], 0.5), lerp(B[j0], B[j1], 0.5), 0.5)
             c = lerp(cen(A), cen(B), 0.5)
-            mb.poly(pts, [(s, 0), (s + L, 0), (s + L, width), (s, width)], mat, facing=sub(mid, c), smooth=smooth)
+            uv = uvs[(j0, j1)] if uvs else [(s, 0), (s + L, 0), (s + L, width), (s, width)]
+            mb.poly(pts, uv, mat, facing=sub(mid, c), smooth=smooth)
         s += L
     # Endene.
     for R, other in ((rings[0], rings[1]), (rings[-1], rings[-2])):
@@ -689,14 +753,14 @@ def band(mb, path, width, depth, mat="rib", down=None, smooth=False):
         mb.poly(R, [(0, 0), (width, 0), (width, depth), (0, depth)], mat, facing=sub(c, o))
 
 
-def groin_ribs(mb, x0, x1, z0, z1, S, R, n=12, width=0.24, depth=0.17):
+def groin_ribs(mb, x0, x1, z0, z1, S, R, n=12, width=0.24, depth=0.17, stones=None):
     """Ribbene langs gratene i et krysshvelv (ribbehvelv)."""
     cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
     a, b = (x1 - x0) / 2, (z1 - z0) / 2
     ts = tsamples(n)
     for sx, sz in ((1, 1), (1, -1)):
         path = [(cx + a * t * sx, S + R * math.sqrt(max(0.0, 1 - t * t)), cz + b * t * sz) for t in ts]
-        band(mb, path, width, depth)
+        band(mb, path, width, depth, stones=stones)
     # Ribbene står på en konsoll i hvert hjørne (ellers ender de i en spiss
     # mot muren; eieren om nivå 1: «harde overganger»).
     for sx in (1, -1):
@@ -728,11 +792,11 @@ def barrel(mb, axis, c0, length, cw, S, R, a, mat="vault", n=12, step=1.0, lo=No
             mb.poly(pts, uvs, mat, facing=sub(target, c), smooth=True)
 
 
-def barrel_rib(mb, axis, s, cw, S, R, a, n=12, width=0.3, depth=0.16):
+def barrel_rib(mb, axis, s, cw, S, R, a, n=12, width=0.3, depth=0.16, stones=None):
     ts = tsamples(n)
     path = [((s, S + R * math.sqrt(max(0.0, 1 - t * t)), cw + a * t) if axis == "x" else (cw + a * t, S + R * math.sqrt(max(0.0, 1 - t * t)), s)) for t in ts]
     cen = (s, S, cw) if axis == "x" else (cw, S, s)
-    band(mb, path, width, depth, down=lambda p: sub(cen, p))
+    band(mb, path, width, depth, down=lambda p: sub(cen, p), stones=stones)
 
 
 def dome(mb, c, r, S, crown, mat="vault", rings=8, seg=48):
@@ -758,12 +822,12 @@ def dome(mb, c, r, S, crown, mat="vault", rings=8, seg=48):
     return h
 
 
-def dome_ribs(mb, c, r, h, count=8, width=0.3, depth=0.2, n=10, a0=0.0):
+def dome_ribs(mb, c, r, h, count=8, width=0.3, depth=0.2, n=10, a0=0.0, stones=None):
     for k in range(count):
         a = a0 + 2 * math.pi * k / count
         path = [(c[0] + q * math.cos(a), h(q), c[1] + q * math.sin(a)) for q in [r * (1 - i / n) for i in range(n + 1)]]
         cen = (c[0], h(0) - 30.0, c[1])
-        band(mb, path, width, depth, down=lambda p: sub(cen, p))
+        band(mb, path, width, depth, down=lambda p: sub(cen, p), stones=None if stones is None else stones + 7 * k)
     # Sluttsteinen i toppen.
     cylinder(mb, c, 0.55, h(0) - 0.25, h(0) + 0.02, "dressed", n=8, caps=(False, True), smooth=False)
 
@@ -1300,10 +1364,15 @@ def strap(mb, a, b, w, t, up):
 # piksler (x0, y0, x1, y1) innenfor fugene. En stein i en karm får én av dem
 # over hele forsida, med steinens lange akse langs steinen, så bildet følger
 # buen i stedet for vannrette skift som kuttes av steinens kant (eieren i
-# runde 8: «steinene legges slik at de følger buen»).
-STONE_PX = [(32, 60, 205, 174), (226, 60, 389, 174), (408, 60, 560, 174), (578, 60, 743, 174), (133, 196, 296, 312), (672, 196, 827, 312),
-            (24, 334, 204, 450), (753, 334, 910, 450), (95, 474, 246, 588), (264, 474, 397, 588), (404, 474, 583, 588), (600, 474, 790, 588),
-            (810, 474, 968, 588), (697, 610, 876, 729), (32, 750, 239, 864), (260, 750, 389, 864), (401, 750, 563, 864)]
+# runde 8: «steinene legges slik at de følger buen»). Målt på nytt i bildet
+# som er der nå (19. oktober: de gamle tallene var fra det forrige bildet og
+# ga biter av flere steiner i hver karmstein).
+STONE_PX = [(892, 130, 1002, 250), (134, 132, 262, 248), (270, 132, 486, 245), (494, 132, 680, 249), (689, 133, 881, 249), (60, 260, 186, 378),
+            (195, 260, 404, 374), (615, 260, 741, 377), (750, 260, 960, 374), (413, 262, 606, 373), (335, 387, 510, 502), (520, 387, 694, 501),
+            (704, 389, 867, 508), (149, 390, 326, 506), (48, 516, 243, 630), (252, 516, 402, 631), (603, 516, 798, 631), (807, 516, 957, 631),
+            (411, 517, 593, 630), (360, 642, 456, 762), (466, 644, 623, 764), (146, 645, 351, 762), (702, 645, 907, 763), (536, 772, 742, 890),
+            (197, 773, 328, 886), (336, 773, 528, 887), (752, 773, 884, 888), (250, 901, 403, 1016), (413, 901, 614, 1013), (806, 901, 959, 1016),
+            (69, 902, 241, 1012), (624, 902, 796, 1011)]
 STONE_TEX_M = 2.0  # crypt_wall: size_m i meta.json
 STONE_TEX_PX = 1024
 
@@ -1313,7 +1382,7 @@ def stone_uv(k, pts):
     `pts` (i rekkefølge rundt), med steinbildets lange akse langs den lengste
     sida av firkanten."""
     x0, y0, x1, y1 = STONE_PX[k % len(STONE_PX)]
-    inset = 4
+    inset = 2
     f = STONE_TEX_M / STONE_TEX_PX
     u0, u1, v0, v1 = (x0 + inset) * f, (x1 - inset) * f, (y0 + inset) * f, (y1 - inset) * f
     corners = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]

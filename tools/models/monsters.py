@@ -1,5 +1,5 @@
-"""Monstrene i krypten, bygd etter eierens ark (`assets/textures/monsters/ref/`,
-`docs/prompter-monstre.md`): formen modelleres her, og der arket viser en
+"""Monstrene i krypten, bygd etter eierens ark (`assets/textures/monsters/ref/`;
+nye fiender kommer fra TRELLIS, `docs/prompter/trellis-monstre.md`): formen modelleres her, og der arket viser en
 flate rett forfra eller bakfra (Button Wights steinplate), legges arket selv
 på som bilde (uv-laget «src», bakt inn av `common.bake_textured`). Skjelettet
 har beinnavnene og klippene fra `mob_motion.py`, men står der dette monsteret

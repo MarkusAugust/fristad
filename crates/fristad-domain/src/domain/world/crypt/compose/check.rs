@@ -23,7 +23,7 @@ struct C {
 }
 
 fn cells(doc: &LevelDoc, kit: &KitDef) -> Vec<C> {
-    doc.cells
+    super::expand(doc, kit)
         .iter()
         .filter_map(|c| {
             let p = kit.piece(&c.bit).filter(|p| p.kind == PieceKind::Cell)?;
@@ -57,7 +57,12 @@ pub fn overlaps(doc: &LevelDoc, kit: &KitDef) -> Vec<Issue> {
 /// Leser instansene i nivåfila, ikke valgene kompilatoren gjorde.
 pub fn tight(doc: &LevelDoc, kit: &KitDef, file: &LevelFile) -> Vec<Issue> {
     let cs = cells(doc, kit);
-    let opening: HashMap<&str, &str> = kit.pieces.iter().filter(|p| p.kind == PieceKind::Edge).map(|p| (p.model.as_str(), p.opening.as_deref().unwrap_or(""))).collect();
+    let opening: HashMap<&str, &str> = kit
+        .pieces
+        .iter()
+        .filter(|p| p.kind == PieceKind::Edge)
+        .flat_map(|p| std::iter::once(p.model.as_str()).chain(p.variants.iter().map(|v| v.model.as_str())).map(move |m| (m, p.opening.as_deref().unwrap_or(""))))
+        .collect();
     let corners: Vec<&str> = kit.pieces.iter().filter(|p| p.kind == PieceKind::Corner).map(|p| p.model.as_str()).collect();
     let key = |p: [f32; 3], yaw: f32| {
         ((p[0] * 100.0).round() as i64, (p[1] * 100.0).round() as i64, (p[2] * 100.0).round() as i64, ((yaw.rem_euclid(std::f32::consts::TAU) / std::f32::consts::FRAC_PI_2).round() as i64) % 4)

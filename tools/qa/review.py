@@ -155,7 +155,24 @@ def models_3d(out, items):
             continue
         src = os.path.join(ROOT, it["path"])
         m = LEVEL_PIECE.match(it["name"])
-        if m:
+        if KIT in it["path"] and os.path.exists(os.path.join(WORK, "kit", "nivaa_test.json")):
+            # Bitene i byggesettet: prøvenivået som instanser av modellene
+            # (`kit_shots.py`, `snapshot --dump-level`).
+            if "grav_test" not in levels:
+                inst = json.load(open(os.path.join(WORK, "kit", "nivaa_test.json")))
+                os.makedirs(os.path.join(root, "grav_test"), exist_ok=True)
+                urls = {}
+                for name in sorted({i["model"] for i in inst}):
+                    hits = glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", "*", f"{name}.glb"))
+                    if hits:
+                        glb_to_json(hits[0], os.path.join(root, "grav_test", f"{name}.json"))
+                        urls[name] = f"glb/grav_test/{name}.json"
+                        used |= glb_layers(hits[0])
+                levels["grav_test"] = {"models": urls, "instances": [i for i in inst if i["model"] in urls]}
+            glb_to_json(src, os.path.join(root, f"{it['id']}.json"))
+            it["glb"], it["level"] = f"glb/{it['id']}.json", "grav_test"
+            used |= glb_layers(src)
+        elif m:
             lv = m.group(1)
             if lv not in levels:
                 pieces = sorted(glob.glob(os.path.join(os.path.dirname(src), f"{lv}_??.glb")))
@@ -312,13 +329,34 @@ def blob_file(path, ver, tmp):
     return out
 
 
+KIT = "/crypt/kit/"  # byggesettet for nivåredigeringen
+
+
+def kit_shot(name):
+    """Bildet av en bit fra byggesettet inne i prøvenivået
+    (`tools/crypt/kit_shots.py`), om det finnes."""
+    p = os.path.join(WORK, "kit", f"{name}.png")
+    return p if os.path.exists(p) else None
+
+
 def shots(kind, name, path, ver):
     """Bildene av tingen i versjon `ver` (bufret i target/qa/review/shots):
-    modellene i studio fra faste vinkler, teksturene lagt 2 × 2."""
+    modellene i studio fra faste vinkler, teksturene lagt 2 × 2. Bitene i
+    byggesettet for krypten får i tillegg bildet inne i prøvenivået (bare
+    for versjonen som ligger nå)."""
     d = os.path.join(WORK, "shots", f"{name}@{ver}")
     folk = "/npcs/" in path
     names = ["sheet"] if folk else [v.split(":")[0] for v in VIEWS] if kind == "modell" else ["tile"]
     files = [os.path.join(d, f"{v}.png") for v in names]
+    if KIT in path and ver == version(path) and kit_shot(name):
+        inside = os.path.join(d, "nivaa.png")
+        os.makedirs(d, exist_ok=True)
+        Image.open(kit_shot(name)).convert("RGB").resize((640, 448)).save(inside)
+        return _studio(kind, name, path, ver, d, folk, names, files) + [inside]
+    return _studio(kind, name, path, ver, d, folk, names, files)
+
+
+def _studio(kind, name, path, ver, d, folk, names, files):
     if all(os.path.exists(f) for f in files):
         return files
     os.makedirs(d, exist_ok=True)

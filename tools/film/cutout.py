@@ -139,7 +139,7 @@ def main(names):
         sizes[src.stem] = build(src)
         print(src.stem, sizes[src.stem])
         if sizes[src.stem].get("soft") and src.stem not in TILES:
-            print(f"  {src.stem} rører kanten ({', '.join(sizes[src.stem]['soft'])}): be om et nytt bilde med alt inne i bildet (docs/film/prompter-nye-bilder.md)")
+            print(f"  {src.stem} rører kanten ({', '.join(sizes[src.stem]['soft'])}): be om et nytt bilde med alt inne i bildet (docs/prompter/film.md)")
     sizes_path.write_text(json.dumps(dict(sorted(sizes.items())), indent=1) + "\n")
 
 

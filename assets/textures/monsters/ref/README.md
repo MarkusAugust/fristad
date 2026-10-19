@@ -1,6 +1,6 @@
 # Forbildene til monstrene
 
-Fra eieren etter `docs/prompter-monstre.md`. `<navn>_body` er kroppen forfra, fra siden og bakfra (ikke kvadratisk, rundt 2750 × 1540); `<navn>_head` er hodet i 2 × 2 for elite og boss. Bygges med `sheet2model` (`body3`/`head2x2`) og monstermålet (oppgave #24).
+Fra eieren etter de gamle promptene (`docs/prompter-monstre.md`, slettet 19. oktober; nye i `docs/prompter/`). `<navn>_body` er kroppen forfra, fra siden og bakfra (ikke kvadratisk, rundt 2750 × 1540); `<navn>_head` er hodet i 2 × 2 for elite og boss. Bygges med `sheet2model` (`body3`/`head2x2`) og monstermålet (oppgave #24).
 
 | Fil | Monster | Nivå | Tema |
 |---|---|---|---|

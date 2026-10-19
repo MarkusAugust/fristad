@@ -1,6 +1,6 @@
 # Heltegjenstander i to visninger (`prop2`)
 
-Fra eieren etter `docs/prompter-gjenstander.md`: 3/4 forfra til venstre og 3/4 bakfra til høyre i samme bilde, samme skala, grå bakgrunn uten skygge. Bygges med `sheet2model` (`layout: prop2`).
+Fra eieren etter de gamle promptene (`docs/prompter-gjenstander.md`, slettet 19. oktober; nye i `docs/prompter/`): 3/4 forfra til venstre og 3/4 bakfra til høyre i samme bilde, samme skala, grå bakgrunn uten skygge. Bygges med `sheet2model` (`layout: prop2`).
 
 | Fil | Gjenstand | Prior |
 |---|---|---|

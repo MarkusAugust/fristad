@@ -1,6 +1,6 @@
 # Løvatlas fra eieren
 
-Ark på hvit bakgrunn etter `docs/prompter-3.md`: klyngene skjæres ut mot det hvite (som `tools/textures/leaf_atlas.py`) og blir alfakort til trærne, buskene og gresset.
+Ark på hvit bakgrunn etter de gamle promptene (`docs/prompter-3.md`, slettet 19. oktober; nye i `docs/prompter/`): klyngene skjæres ut mot det hvite (som `tools/textures/leaf_atlas.py`) og blir alfakort til trærne, buskene og gresset.
 
 | Fil | Innhold |
 |---|---|

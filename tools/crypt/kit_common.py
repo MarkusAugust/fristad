@@ -66,21 +66,22 @@ def vault_ts():
 SIDES = ["N", "E", "S", "W"]
 
 
+def rounded(v):
+    """Tallene avrundet til 0,1 mm, som i manifestet (og `extras.kit`)."""
+    if isinstance(v, float):
+        return round(v, 4) + 0.0
+    if isinstance(v, (list, tuple)):
+        return [rounded(x) for x in v]
+    if isinstance(v, dict):
+        return {k: rounded(x) for k, x in v.items()}
+    return v
+
+
 def write_manifest(path, theme, version, pieces):
     """Manifestet for et tema: bitene med flatene, kolliderne og det
     gangbare, slik kjernen leser det (`KitDef`)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    def r(v):
-        if isinstance(v, float):
-            return round(v, 4) + 0.0
-        if isinstance(v, (list, tuple)):
-            return [r(x) for x in v]
-        if isinstance(v, dict):
-            return {k: r(x) for k, x in v.items()}
-        return v
-
-    lines = [json.dumps(r(p), ensure_ascii=False, separators=(",", ":")) for p in pieces]
+    lines = [json.dumps(rounded(p), ensure_ascii=False, separators=(",", ":")) for p in pieces]
     text = "{\n" + f'  "theme": "{theme}",\n  "version": {version},\n  "pieces": [\n    ' + ",\n    ".join(lines) + "\n  ]\n}\n"
     with open(path, "w") as f:
         f.write(text)

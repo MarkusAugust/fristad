@@ -70,6 +70,16 @@ fn main() {
         .filter(|(_, a)| *a == "--model")
         .filter_map(|(i, _)| args.get(i + 1)?.split_once('=').map(|(n, f)| (n.to_string(), std::fs::read(f).unwrap_or_else(|e| panic!("--model {f}: {e}")))))
         .collect();
+    // --dump-level UT.json: bitene i nivådokumentet (--level-doc NAVN) som
+    // kompilatoren setter dem ut (modell, sted, dreining, speiling), til
+    // «Se i 3D» på godkjenningssiden (`tools/qa/review.py`).
+    if let (Some(out), Some(name)) = (arg("--dump-level"), arg("--level-doc")) {
+        let doc = fristad::adapters::data::level_doc(&name).expect("nivådokumentet finnes ikke");
+        let (f, _) = fristad::domain::world::crypt::compose::compile(&doc, &fristad::adapters::data::kit());
+        std::fs::write(&out, serde_json::to_string(&f.instances).unwrap()).expect("kan ikke skrive --dump-level");
+        println!("{out}: {} biter", f.instances.len());
+        return;
+    }
     let source = WithFiles(extra, arg("--level-doc"));
     let mut prepared = if flag("--edit") { prepare_for_edit(&source, seed()) } else { prepare(&source, seed()) };
     // --merge: bitene fra byggesettet slått sammen per rute på 16 m.
@@ -411,6 +421,11 @@ fn main() {
             };
             let pitch: f32 = f.get(pitch_at).map(|p| p.parse().unwrap()).unwrap_or(4.0);
             app.command(Command::Place { eye, yaw, pitch: pitch.to_radians() });
+            // Med --film: uten armer, som i filmen.
+            if flag("--film") {
+                app.command(Command::Film(Some(fristad::ports::driving::Shot { eye, yaw, pitch: pitch.to_radians(), fov: 70.0, roll: 0.0 })));
+                app.tick(1.0 / 30.0);
+            }
             for _ in 0..frames.max(1) {
                 app.renderer.set_target(target.create_view(&Default::default()));
                 app.draw(width as f32 / height as f32);

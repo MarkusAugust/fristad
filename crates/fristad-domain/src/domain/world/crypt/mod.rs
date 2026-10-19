@@ -645,9 +645,18 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 // Nivåets egen bit av muren (build_level.py), i flukt med muren
                 // rundt og med samme tekstur, så den bare synes på sprekkene.
                 let own = format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"));
-                let model: &'static str = if b.has_model(&own) { Box::leak(own.into_boxed_str()) } else { KIT_SECRET };
-                // Den hentes og slippes med nivået, som bitene.
-                if model != KIT_SECRET {
+                // Ellers byggesettets falske vegg (nivåer fra et nivådokument,
+                // `label`), og til sist reserven.
+                let model: &'static str = if b.has_model(&own) {
+                    Box::leak(own.into_boxed_str())
+                } else {
+                    match m.label.as_deref().filter(|l| b.has_model(l)) {
+                        Some(l) => crate::domain::world::layout::intern(l),
+                        None => KIT_SECRET,
+                    }
+                };
+                // Nivåets egen hentes og slippes med nivået, som bitene.
+                if b.has_model(&format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"))) {
                     level.pieces.push(model.to_string());
                 }
                 c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model });

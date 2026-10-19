@@ -399,6 +399,8 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
     }
 
     let mut mesh = Mesh::default();
+    // Fjernversjonen (noden `far`, byggesettet for krypten: `kit_bake.py`).
+    let mut far_geo = Mesh::default();
     let mut albedo = None;
     let mut normal = None;
     let mut metal_rough = None;
@@ -414,6 +416,7 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
             stack.push((child, world));
         }
         let Some(m) = node.mesh() else { continue };
+        let mesh = if node.name() == Some("far") { &mut far_geo } else { &mut mesh };
         for prim in m.primitives() {
             let mat = prim.material();
             let pbr = mat.pbr_metallic_roughness();
@@ -505,11 +508,13 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
     // modellens eget origo (husdetaljene som står i et hull i veggen).
     if yaw != 0.0 {
         mesh.transform(&Affine3A::from_rotation_y(yaw.to_radians()));
+        far_geo.transform(&Affine3A::from_rotation_y(yaw.to_radians()));
     }
     let (lo, hi) = mesh.bounds();
     let s = if height > 0.0 { height / (hi.y - lo.y).max(1e-3) } else { 1.0 };
     let center = if height < 0.0 { Vec3::ZERO } else { Vec3::new((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5) };
     mesh.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
+    far_geo.transform(&(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)));
     if let Some(r) = &mut rig {
         r.root = Mat4::from(Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center)) * Mat4::from_rotation_y(yaw.to_radians());
     }
@@ -519,7 +524,7 @@ pub fn load_capped(name: &str, files: &[(&str, &[u8])], height: f32, yaw: f32, c
     // kort tåler ikke å slås sammen, så det grove detaljnivået er hvert
     // tredje kort, forstørret; stammene får et grovt nett.
     let far = Far::of(&doc).map_err(|e| format!("roten: {e}"))?;
-    let far_mesh = far.cards.then(|| mesh.thinned_cards(3, 1.7));
+    let far_mesh = if !far_geo.indices.is_empty() { Some(far_geo) } else { far.cards.then(|| mesh.thinned_cards(3, 1.7)) };
     let far_cell = if far.cards { 0.0005 } else { far.cell };
     // Kolliderne som følger formen, dreid, skalert og flyttet som nettet.
     let norm = Affine3A::from_scale(Vec3::splat(s)) * Affine3A::from_translation(-center) * Affine3A::from_rotation_y(yaw.to_radians());

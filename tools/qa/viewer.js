@@ -120,6 +120,10 @@ async function fetchModel(url) {
 async function load(st, url, layers, sides) {
   const data = await fetchModel(url);
   const g = await st.loader.parseAsync(data, url.slice(0, url.lastIndexOf("/") + 1));
+  // Fjernversjonen (noden «far» i byggesettet for krypten) står oppå den nære.
+  const far = [];
+  g.scene.traverse(o => { if (o.name === "far") far.push(o); });
+  for (const o of far) o.removeFromParent();
   dress(st, g.scene, layers, sides);
   g.scene.userData.clips = g.animations || [];
   return g.scene;
@@ -161,12 +165,32 @@ export async function show(it, data, ui) {
   const before = it.glb_before ? await load(st, it.glb_before, layers, sides) : null;
   if (before) { before.name = "før"; before.visible = false; }
   let level = null;
-  if (crypt && data.levels && data.levels[it.level]) {
+  const lv = crypt && data.levels ? data.levels[it.level] : null;
+  if (lv && Array.isArray(lv)) {
     level = new THREE.Group();
     level.name = "nivået";
-    const urls = data.levels[it.level].filter(u => u !== it.glb);
+    const urls = lv.filter(u => u !== it.glb);
     const parts = await Promise.all(urls.map(u => load(st, u, layers, sides)));
     for (const p of parts) level.add(p);
+    level.visible = ui.whole.checked;
+  } else if (lv && lv.instances) {
+    // Byggesettet: prøvenivået som instanser av bitene (sted, dreining om
+    // y og speiling langs x), og biten som dømmes lyser svakt.
+    level = new THREE.Group();
+    level.name = "nivået";
+    const names = Object.keys(lv.models);
+    const scenes = await Promise.all(names.map(n => load(st, lv.models[n], layers, sides)));
+    const byName = Object.fromEntries(names.map((n, i) => [n, scenes[i]]));
+    for (const inst of lv.instances) {
+      const src = byName[inst.model];
+      if (!src) continue;
+      const o = src.clone(true);
+      o.position.set(inst.pos[0], inst.pos[1], inst.pos[2]);
+      o.rotation.y = inst.yaw || 0;
+      if (inst.mirror) o.scale.x = -1;
+      if (inst.model === it.name) o.traverse(m => { if (m.isMesh) { m.material = [].concat(m.material).map(x => { const c = x.clone(); if (c.emissive) c.emissive.set(0x3a2a10); return c; }); if (m.material.length === 1) m.material = m.material[0]; } });
+      level.add(o);
+    }
     level.visible = ui.whole.checked;
   }
   for (const g of [after, before, level]) if (g) { st.scene.add(g); st.groups.push(g); }
@@ -181,7 +205,10 @@ export async function show(it, data, ui) {
   ui.which.hidden = !before;
   ui.which.value = "etter";
   ui.which.onchange = () => { after.visible = ui.which.value === "etter"; if (before) before.visible = ui.which.value === "før"; };
-  ui.whole.onchange = () => { if (level) { level.visible = ui.whole.checked; mark(level.visible); } };
+  // Byggesettet: biten står selv i nivået, så den alene skjules der.
+  const kit = !!(lv && lv.instances);
+  if (kit && level) after.visible = !level.visible;
+  ui.whole.onchange = () => { if (level) { level.visible = ui.whole.checked; mark(level.visible); if (kit) after.visible = !level.visible; } };
   ui.both.onchange = () => { for (const g of st.groups) g.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.side = ui.both.checked ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; } }); };
   // Figurer med klipp (innbyggerne, fiendene): velg bevegelsen og se den
   // mens du roterer; «Hvilepose» står stille.

@@ -39,12 +39,16 @@ pub struct Hero {
     pub dirty: bool,
 }
 
+/// Tokenene en ny spiller har (eieren 19. oktober: ett, så det første
+/// kruset mjød til trubaduren er innen rekkevidde).
+pub const START_COINS: u32 = 1;
+
 impl Default for Hero {
     fn default() -> Self {
         Self {
             hp: 100.0,
             max_hp: 100.0,
-            coins: 0,
+            coins: START_COINS,
             keys: 0,
             inventory: BTreeMap::new(),
             carried: BTreeMap::new(),

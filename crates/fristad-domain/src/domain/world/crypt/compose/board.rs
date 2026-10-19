@@ -12,7 +12,7 @@ use crate::domain::world::crypt::kit::{KitDef, PieceKind};
 const PER_ROW: usize = 30;
 
 pub fn board(kit: &KitDef) -> LevelDoc {
-    let cells: Vec<_> = kit.pieces.iter().filter(|p| p.kind == PieceKind::Cell).collect();
+    let cells: Vec<_> = kit.listed().filter(|p| p.kind == PieceKind::Cell && p.footprint.is_empty()).collect();
     let mut doc = LevelDoc { format: 1, level: LevelId::Name("brett".into()), name: "Prøvebrettet".into(), status: "utkast".into(), ..Default::default() };
     let mut n = 0usize;
     for a in &cells {

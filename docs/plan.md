@@ -151,7 +151,7 @@ Problemet: med sju nivåer lastet samtidig krasjer Safari på iPhone («A proble
 
 ### 10b. Rammeverket som sluttboss (nivå 10)
 Modellen `framework` finnes uten rigg («fienden svever»). Den skal lages på nytt etter filmen, så spilleren kjenner den igjen: jernrammer med stive, rette ledd, gylne/magenta rutenett (`magic_…`), kongens segl og krone på hodet, revne sider i leddene, og **skjøtene etter Gorveks hugg**: grove jernsømmer der armene og beina er satt på igjen (kanon: bossen er hjertet som har samlet delene). Rundt 4 m høy, så den får plass i rotunden.
-- Forbilde: eieren lager et ark (forfra, fra siden, bakfra) med prompt fra `docs/film/prompter-innstillinger.md` sin beskrivelse av skapningen, i samme stil som monsterarkene i `assets/textures/monsters/ref/`.
+- Forbilde (19. oktober): ett bilde forfra til TRELLIS.2 etter `docs/prompter/trellis-monstre.md` nr. 1, med filmens stillbilde av beistet som referanse.
 - Bygges med `tools/models/monsters.py` (`project_sheet`), rigg med `common.armature`, klippene fra `mob_motion.py` i stilen «tramper og vagger» pluss `slam` og `roar` som alt er definert for bossen, og rykker digitalt i hvile.
 - Treffene er jern (`Outcome.sounds`), og slutten (`docs/kanon.md`, «Åpent») avgjøres av eieren før den bygges: beseires med det mønsterboka er.
 
@@ -200,7 +200,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **Små kort med fast bredde i rutenettet:** ikon, navn og sjeldenhet, og ingenting mer. Tallene vises først når kortet er valgt.
 - **Én sammenligningstabell** når et kort er valgt: én rad per egenskap med verdien du har, den nye verdien og forskjellen («+0,45») farget etter hva som er bra, med en liten stolpe (`fs-progress`) per verdi. Egenskaper der lavt er bra, vises slik at høyt er bra («Tåler 75 %» i stedet for «Slipper gjennom 25 %»), eller fargen følger det. Like verdier får ikke noe merke («=» bort).
 - **Én linje beskrivelse etter kanon** per ting (`craft.rs`), som fiendene har.
-- **Ikonene:** lysere bakgrunn som passer kortet, tettere utsnitt og en glorie i sjeldenhetsfargen til eierens malte ikoner kommer (`docs/prompter/ikoner-utstyr.md`).
+- **Ikonene:** lysere bakgrunn som passer kortet, tettere utsnitt og en glorie i sjeldenhetsfargen til eierens malte ikoner kommer (`docs/prompter/ikoner.md`).
 
 ### 13b. Inventaret (I)
 - **Venstre side:** plassene for det du har på (Våpen, Skjold, Rustning, Lys) med ikon, navn og sjeldenhetsfarge. Lys viser lykta med olje og brenntid. Tomme plasser har en svak silhuett og «Finn eller smi en rustning i Skriptoriet».
@@ -268,7 +268,7 @@ Eieren synes nivåene er for kjedelige og generiske, og vil bygge dem selv i en 
 - **Bitene:** jeg lager et første sett per tema (gravkjelleren, kloakken, gruva, borgen, kjernen) i Blender med murene vi har, eieren godkjenner dem på godkjenningssiden, og flere kommer når eieren savner noe.
 - **De ti nivåene begynnes helt på nytt:** de gamle står til de nye er klare, så fjernes de, og eieren bygger alle fra blankt.
 - **Rekkefølge:** etter neste prod-utgivelse og del 14. Planen i detalj står i `docs/nivaaredigering.md` (18. oktober) og vises eieren før arbeidet starter.
-- **19. oktober:** fase 0 og 1 er gjort (kompilatoren i kjernen, det grå pilotsettet, prøvenivået og prøvebrettet, testene og målingen); status og tall i `docs/nivaaredigering.md` del 19.
+- **19. oktober:** fase 0 og 1 er gjort (kompilatoren i kjernen, det grå pilotsettet, prøvenivået og prøvebrettet, testene og målingen); status og tall i `docs/nivaaredigering.md` del 19. Fase 2 er gjort samme dag (pilotsettet for gravkjelleren i malt stil, 24 modeller, med okklusjon bakt i sammenheng, fjernversjon, fester, varianter, manifestet i glb og tetthetssjekken); kortene til godkjenningssiden er laget, og eierens dom gjenstår før fase 3 (del 20).
 
 ## Kritiske filer
 - Nye: `tools/qa/` (raster, glb, porter, board, golden, vurderer-oppsett), `tools/lib/`, `assets/specs.json`, `assets/approvals.json`, `docs/kvalitet/{stilguide,rubrikker,laerdom,ytelse}.md`, `web/film/`, crates under `crates/` (domain, ports, app, adapters).
