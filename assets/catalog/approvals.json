@@ -519,20 +519,21 @@
  },
  "models": {
   "well": {
-   "verdict": "godkjent",
-   "date": "2026-10-12",
-   "why": "",
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "litt for blurry",
+   "seen": "24eece1d683f",
    "before": {
-    "verdict": "usikker",
+    "verdict": "godkjent",
     "date": "2026-10-12",
-    "why": "ser ikke noe bilde her"
+    "why": ""
    },
    "history": [
     "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark.",
     "når jeg prøvde å flytte på brønnen i editoren fulgte ikke stangen og bøtta med, det er et problem",
-    "ser ikke noe bilde her"
-   ],
-   "seen": "0933e8d1a14d"
+    "ser ikke noe bilde her",
+    "litt for blurry"
+   ]
   },
   "crypt": {
    "verdict": "godkjent",
@@ -1038,9 +1039,9 @@
   },
   "barrel": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "165eaa7ef2ae"
+   "seen": "35c46e1d69bd"
   },
   "cart": {
    "verdict": "godkjent",
@@ -1140,93 +1141,93 @@
   },
   "gallery_alert": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "a0c715ac5484"
+   "seen": "45177418a6f5"
   },
   "gallery_badge": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "5fa65511968c"
+   "seen": "12cbeb1f70e4"
   },
   "gallery_button": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "6deea6615556"
+   "seen": "67458dc03ac4"
   },
   "gallery_card": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "24c6f7390ce7"
+   "seen": "d9c644464f22"
   },
   "gallery_dialog": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "c7aa90b58688"
+   "seen": "08a543d127aa"
   },
   "gallery_divider": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "038ceeb8f613"
+   "seen": "29aa660a5f77"
   },
   "gallery_fieldset": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "c48312d2bf57"
+   "seen": "11ff7f0f46f9"
   },
   "gallery_file_upload": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "d01cba4d2947"
+   "seen": "6744125ca211"
   },
   "gallery_help_text": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "a729627243cc"
+   "seen": "8cb8622313ac"
   },
   "gallery_label": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "b31acf4ef694"
+   "seen": "95f10ed64646"
   },
   "gallery_progress": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "c27487d7a271"
+   "seen": "b00a704ea386"
   },
   "gallery_search": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "4028d7d33355"
+   "seen": "cbd6bcac69a2"
   },
   "gallery_tabs": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "0a9839b860a1"
+   "seen": "b5ca54358d47"
   },
   "gallery_tag": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "af582b345adf"
+   "seen": "0642a21ea624"
   },
   "gallery_tooltip": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "7025d368ab68"
+   "seen": "7eb7769dab1b"
   },
   "garden": {
    "verdict": "godkjent",
@@ -2081,7 +2082,7 @@
    "history": [
     "forhenget ser bare ut som en rød vegg. forhenget kan bare dekke kasnkje 70-90 prosent av muren som alternet er laget av"
    ],
-   "seen": "18d11c0e40c9"
+   "seen": "216aed40cc7b"
   },
   "apothecary_counter": {
    "verdict": "godkjent",
@@ -2999,10 +3000,15 @@
    "seen": "61002af48c67"
   },
   "npc_apothecary": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "stygg strek på halsen",
-   "seen": "9b676fc623a7",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "4d204a9a4bab",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "stygg strek på halsen"
+   },
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "Det ble verre. han har et ansikt i bakhodet.",
@@ -3010,10 +3016,15 @@
    ]
   },
   "npc_boy": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert",
-   "seen": "456f7648d87d",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "e0a513a124db",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart.",
     "hodet er ikke bra",
@@ -3021,10 +3032,15 @@
    ]
   },
   "npc_clerk": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hull i kroppen på venstre side. ser du ikke det?",
-   "seen": "911d788c24da",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "ef198bc71a42",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hull i kroppen på venstre side. ser du ikke det?"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "hodet har en merkelig form.",
@@ -3032,10 +3048,15 @@
    ]
   },
   "npc_farmer": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert",
-   "seen": "97f303669326",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "61c062dea48d",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert"
+   },
    "history": [
     "Noe rart med skuldrene Tekstur rundt hodet er rart.",
     "to ansikt. et ekstra i bakhodet",
@@ -3043,10 +3064,15 @@
    ]
   },
   "npc_fishwife": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert. kroppen har et hull på venstre side, innenfor venstre albue",
-   "seen": "80531ed56eed",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "f4fa81072139",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert. kroppen har et hull på venstre side, innenfor venstre albue"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "hodet er ikke bra",
@@ -3054,10 +3080,15 @@
    ]
   },
   "npc_gorvek": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert. beina er vrengt.",
-   "seen": "710cb43776a6",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "fb6a14f0121f",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert. beina er vrengt."
+   },
    "history": [
     "Tekstur rundt hodet er rart.",
     "han har to ansikt",
@@ -3065,10 +3096,15 @@
    ]
   },
   "npc_guard": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert. kroppen er vrengt",
-   "seen": "565dd767ee62",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "1b6587e2e740",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert. kroppen er vrengt"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "samme",
@@ -3076,10 +3112,15 @@
    ]
   },
   "npc_innkeeper": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "halsen er deformert. buler ut.",
-   "seen": "58dba2093458",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "ca3e640d3eef",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "halsen er deformert. buler ut."
+   },
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "hun har to sett ører",
@@ -3087,10 +3128,15 @@
    ]
   },
   "npc_maid": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "hodet er deformert. kroppen er vrengt",
-   "seen": "6a8606d0ff13",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "78d24942b33e",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "hodet er deformert. kroppen er vrengt"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "mye verre.. ingen hake.",
@@ -3099,9 +3145,9 @@
   },
   "npc_merchant": {
    "verdict": "godkjent",
-   "date": "2026-10-14",
+   "date": "2026-10-19",
    "why": "",
-   "seen": "70d1a8b8fb3b",
+   "seen": "930a44c14876",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-14",
@@ -3113,10 +3159,15 @@
    ]
   },
   "npc_smith": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "skjegget er merkelig delt. hodet derformert fra siden. hoftene stikker ut av kroppen når han går",
-   "seen": "90a070d0e9b5",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "22f6c4adf9a1",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "skjegget er merkelig delt. hodet derformert fra siden. hoftene stikker ut av kroppen når han går"
+   },
    "history": [
     "Hull i kroppen. Tekstur rundt hodet er rart.",
     "hodet er ikke bra. to ansikt.",
@@ -3124,10 +3175,15 @@
    ]
   },
   "npc_washerwoman": {
-   "verdict": "underkjent",
-   "date": "2026-10-14",
-   "why": "beina er helt vrengt. hodet er deformert.",
-   "seen": "4b94f364ad15",
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "117ada8687f4",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-14",
+    "why": "beina er helt vrengt. hodet er deformert."
+   },
    "history": [
     "Tekstur rundt hodet er rart. Noe rart ved føttende.",
     "hodet er ikke bra. to ansikt.",
@@ -3139,6 +3195,183 @@
    "date": "2026-10-14",
    "why": "",
    "seen": "b9bf4276b346"
+  },
+  "arms_leather_dark": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "eec96b4b34bb"
+  },
+  "arms_plate": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "bc5b59fcf6be"
+  },
+  "arms_plate_dark": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "11fecb5a1d71"
+  },
+  "axe_rare": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "314e51ffa7a3"
+  },
+  "bolt": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "fe4d66af0a98"
+  },
+  "crypt_01_secret_hemmelig_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "af5cc5ff5081"
+  },
+  "crypt_02_aa": {
+   "verdict": "underkjent",
+   "date": "2026-10-19",
+   "why": "det er jo hull i noen av hjørnene her",
+   "seen": "5f7ba79d761c",
+   "history": [
+    "det er jo hull i noen av hjørnene her"
+   ]
+  },
+  "crypt_02_ab": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "34016f1eeabb"
+  },
+  "crypt_02_ac": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "d0d801b86b80"
+  },
+  "crypt_02_ad": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "223784c5b9d9"
+  },
+  "crypt_02_ae": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "ee1791cf850c"
+  },
+  "crypt_02_af": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "453d10e17fff"
+  },
+  "crypt_02_ag": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "e14e81128f72"
+  },
+  "crypt_02_ah": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "5e08ac8060ac"
+  },
+  "crypt_02_ai": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "d6008d7418a0"
+  },
+  "crypt_02_aj": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "024dc8d1cc13"
+  },
+  "crypt_02_ak": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "4bb7fcaa27fc"
+  },
+  "crypt_02_al": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "71238eeb6148"
+  },
+  "crypt_02_am": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "41013f6988eb"
+  },
+  "dagger_rare": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "7b836baf443c"
+  },
+  "lute": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "90942e5ebfad"
+  },
+  "mace": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "90530f747197"
+  },
+  "npc_pilgrim": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "8f794022e909"
+  },
+  "npc_troubadour": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "4f6eb77161d1"
+  },
+  "shield_heater": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "88a13012d980"
+  },
+  "shield_heater_violet": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "9ffcb5d32817"
+  },
+  "shield_round_blue": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "945984e7f8ba"
+  },
+  "sword_legend": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "3577e2bb4a9a"
+  },
+  "sword_rare": {
+   "verdict": "godkjent",
+   "date": "2026-10-19",
+   "why": "",
+   "seen": "04874fb8b9ba"
   }
  }
 }

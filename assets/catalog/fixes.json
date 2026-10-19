@@ -1527,5 +1527,15 @@
     "assets/catalog/review/sword_rare.jpg"
    ]
   }
+ },
+ "framework": {
+  "d17c0ddffcb6": {
+   "text": [
+    "Rammeverket er ny: sluttbossen fra TRELLIS etter eierens bilde (riggen og klippene fra mob3d.py), og den står i i stedet for modalen som var stedfortreder. Før: den første utgaven fra TRELLIS; etter: uv lagt med xatlas og fargen hentet i 4096, så maleriet er skarpere (2048 i nettleseren)."
+   ],
+   "images": [
+    "assets/catalog/review/framework_for_etter.jpg"
+   ]
+  }
  }
 }
