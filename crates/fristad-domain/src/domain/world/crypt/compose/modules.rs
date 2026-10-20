@@ -218,6 +218,11 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
         }
         for l in m.links.iter().filter(|l| !gone(&l.from) && !gone(&l.to)) {
             let fix = |s: &str| {
+                // Innholdet på en navngitt åpning (porten i en egen modul,
+                // `LevelEditor::as_module`): det eieren har kalt det her, ellers `<modul>/<åpning>`.
+                if m.openings.iter().any(|o| o.id == s) && !ids.contains(&s) {
+                    return inst.overrides.iter().find(|v| v.opening == s).and_then(|v| v.id.clone()).unwrap_or_else(|| prefix(s));
+                }
                 if ids.contains(&s) || local_rooms.iter().any(|r| r == s) {
                     if local_rooms.first().is_some_and(|r| r == s) {
                         main.clone()
