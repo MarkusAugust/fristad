@@ -301,13 +301,20 @@ fn nivaaredigeringen_har_ingen_himmel() {
 /// modell, og så må jeg kunne kle flatene i den teksturen jeg vil ha»),
 /// gruppert som rom, ganger, trapper, ferdigrom, mekanismer og bosshall,
 /// hver form én gang og med bildet sitt (`module_shots.py`,
-/// `assets/levels/moduler/grav/<navn>.jpg`), og temaene nivået kan ha er
+/// `assets/levels/moduler/grav/<navn>.jpg`; eierens egne moduler, `OWN`,
+/// kan stå uten til bildet er tatt), og temaene nivået kan ha er
 /// de som har en standardstein.
 #[test]
 fn paletten_har_alle_temaene_gruppert() {
     use crate::domain::edit::level::map;
-    let k = kit();
+    let mut k = kit();
+    // En modul eieren har lagret selv (Ctrl+Shift+G), uten bilde ennå.
+    let mut own = k.modules.iter().find(|m| m.id == "grav/rom_1x1").unwrap().clone();
+    own.id = "grav/egen_provemodul".into();
+    own.about = format!("{} Rom 1 × 1.", crate::domain::edit::level::OWN);
+    k.modules.push(own);
     let p = map::palette(&k, vec![], vec![]);
+    assert!(p.modules.iter().any(|m| m.id == "grav/egen_provemodul"), "eierens modul står i paletten");
     assert!(p.modules.len() >= 30, "bare {} moduler", p.modules.len());
     for g in ["rom", "gang", "trapp", "ferdig", "mekanisme", "bosshall"] {
         assert!(p.modules.iter().any(|m| m.group == g), "ingen i gruppen {g}");
@@ -317,6 +324,11 @@ fn paletten_har_alle_temaene_gruppert() {
     assert!(names.windows(2).all(|w| w[0] != w[1]), "samme form står to ganger: {names:?}");
     for m in &p.modules {
         assert!(m.id.starts_with("grav/"), "{} står utenfor settet", m.id);
+        // Eierens egne moduler (Ctrl+Shift+G) står med «Bilde mangler» til
+        // `module_shots.py` har tatt bildet.
+        if m.about.starts_with(crate::domain::edit::level::OWN) {
+            continue;
+        }
         let name = m.id.split('/').nth(1).unwrap();
         let img = format!("{}/assets/levels/moduler/grav/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
         assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);

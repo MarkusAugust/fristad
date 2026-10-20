@@ -1891,6 +1891,21 @@
     "verdict": "godkjent",
     "why": ""
    }
+  },
+  "e4c28785b4f3": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "Ny variant `skar` av muren (borgens skyteskår, plan del 25): to skrå lysninger av hogd stein inn til en smal, mørk spalte, med overligger og brystningsstein. Kvaderen velger den på annenhver mur (`wall_variant`), og den kan låses per kant i redigeringen; ingen skår i trapper. Nederst: før og etter, rommet 2 × 2 i kvader (kortet over er i gravmur)."
+   ],
+   "images": [
+    "assets/catalog/review/vegg_skar_for_etter.jpg"
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_rom_3x2": {
@@ -2250,6 +2265,17 @@
     "verdict": "underkjent",
     "why": "ikke la det være synlig åpent under trappen"
    }
+  },
+  "ba0cb0389081": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Under trappa er det ikke lenger åpent (du skrev: «ikke la det være synlig åpent under trappen»). Rettet slik: enden av trappa under galleriet er mur helt opp, sokkelen går langs nord- og vestmuren, trappemuren og enden, alle festene har fakkel, og to lys står under galleriet og ett ved trappefoten."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "ikke la det være synlig åpent under trappen"
+   }
   }
  },
  "grav_gruvegang": {
@@ -2277,6 +2303,21 @@
     "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
     "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
     "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen"
+   }
+  },
+  "71197fd0953f": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet).",
+    "Ny variant `tommer` av sjakta (gruvas tømmerforede sjakt, plan del 25): kransen av tømmer øverst i sjakta, og murene i sjakta kles med stokker i hjørnene, stivere og knestøtter (`grav_vegg_tommer`, laget `mine_timber`). Berget og tømmeret velger den (`cell_variant` i `steiner.json`); gravkjellerens sjakt er som før. Nederst: før og etter, heisen i berg (kortet over er i gravmur)."
+   ],
+   "images": [
+    "assets/catalog/review/sjakt_tommer_for_etter.jpg"
    ],
    "answers": {
     "verdict": "usikker",
@@ -2344,6 +2385,14 @@
     "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
     "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
     "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  },
+  "4212a16c5fe6": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet).",
+    "Plastsømmene i kjernens mur (varianten «som» av muren, `grav_vegg_som`) er nye: ujevne, greinete sprekker med svidd kant, magenta glød (`magic_vein`) og plast som buler ut, innenfor budsjettet på 1 200 trekanter. Kjernesteinen gir dem på annenhver mur."
    ]
   }
  },

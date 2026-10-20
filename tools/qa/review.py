@@ -664,8 +664,19 @@ def build(out, render=True):
                 "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1] if name.startswith("grav_") else name,
             }
             shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
+            seen_shot = os.path.join(WORK, "moduler", "foer", f"{item['module']}.png")
+            # Bitene bygd på nytt, men modulen ser ut som det eieren så
+            # (bildet i `foer/`): dommen står, som for modellene.
+            # Ikke når en retting venter på eieren (`answers`).
+            if st == "venter" and render and e and e.get("seen") and e["seen"] != cur and not (fixes.get(name) or {}).get(cur) and state_of(kind, name, dict(e, seen=cur), cur, fix) != "venter" and os.path.exists(shot) and same_look([seen_shot], [shot]):
+                e["seen"] = cur
+                st = item["state"] = state_of(kind, name, e, cur, fix)
+                carried += 1
             if st == "venter" and render and os.path.exists(shot):
-                before_after(shot, os.path.join(WORK, "moduler", "foer", f"{item['module']}.png")).save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                # En bit som bare synes i en annen stein (skyteskårene i
+                # kvader, tømmeret i sjakta i berg): rettingens bilder under.
+                extra = ((fixes.get(name) or {}).get(cur) or {}).get("images", [])
+                with_fix(before_after(shot, os.path.join(WORK, "moduler", "foer", f"{item['module']}.png")), extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -681,7 +692,8 @@ def build(out, render=True):
             }
             shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
             if st == "venter" and render and os.path.exists(shot):
-                before_after(shot, os.path.join(WORK, "mekanismer", "foer", f"{card['id']}.png")).save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                extra = ((fixes.get(name) or {}).get(cur) or {}).get("images", [])
+                with_fix(before_after(shot, os.path.join(WORK, "mekanismer", "foer", f"{card['id']}.png")), extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -819,6 +831,21 @@ def before_after(shot, before):
     y = band + prev.height + 8
     d.text((12, y + 8), "ETTER", fill=(140, 220, 150), font=_font(22))
     out.paste(after, (0, y + band))
+    return out
+
+
+def with_fix(card, images):
+    """Kortet med rettingens bilder (`fixes.json`, `images`) under."""
+    if not images:
+        return card
+    ims = [Image.open(os.path.join(ROOT, p)).convert("RGB") for p in images]
+    ims = [i.resize((card.width, round(i.height * card.width / i.width))) for i in ims]
+    out = Image.new("RGB", (card.width, card.height + sum(i.height + 8 for i in ims)), (24, 26, 30))
+    out.paste(card, (0, 0))
+    y = card.height + 8
+    for i in ims:
+        out.paste(i, (0, y))
+        y += i.height + 8
     return out
 
 
