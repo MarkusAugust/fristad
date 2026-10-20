@@ -3,13 +3,26 @@
 use super::*;
 
 pub(super) fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, push: Vec3, stats: &Stats, clips: &Clips, out: &mut Outcome) {
+    if climb(m, dt, clips, out) {
+        return;
+    }
     m.repath -= dt;
     if m.repath <= 0.0 || m.path.is_empty() || m.goal.distance(goal) > 1.0 {
-        m.path = crypt.path(m.pos, goal).unwrap_or_default();
+        m.path = crypt.route(m.pos, goal).unwrap_or_default();
         m.goal = goal;
         m.repath = 0.5;
     }
-    while m.path.len() > 1 && m.path[0].with_y(0.0).distance(m.pos.with_y(0.0)) < 0.3 {
+    loop {
+        // Ved foten av stigen eller kanten av heisen: veien går over lenken.
+        if let Some(steps) = m.path.first().and_then(|next| crypt.hop_ahead(m.pos, *next, speed)) {
+            m.climb = steps;
+            m.path.clear();
+            climb(m, dt, clips, out);
+            return;
+        }
+        if !(m.path.len() > 1 && m.path[0].with_y(0.0).distance(m.pos.with_y(0.0)) < 0.3) {
+            break;
+        }
         // Rundt en indre krok (bro mot balkong): helt fram til hjørnet først.
         if m.path[0].with_y(0.0).distance(m.pos.with_y(0.0)) > 0.02 && !crypt.walkable(m.pos + (m.path[1] - m.pos).with_y(0.0).normalize_or_zero() * 0.15) {
             break;
@@ -64,4 +77,41 @@ pub(super) fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, 
         let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
         m.yaw += diff * (dt * 6.0).min(1.0);
     }
+}
+
+/// Fienden går langs stigen eller heisen (`Mob.climb`), utenom nettet, i
+/// stigefarten eller heisfarten; heisen kjøres når den går om bord. Gir om
+/// den er på en lenke.
+fn climb(m: &mut Mob, dt: f32, clips: &Clips, out: &mut Outcome) -> bool {
+    if m.climb.is_empty() {
+        return false;
+    }
+    let from = m.pos;
+    let mut left = dt;
+    while left > 0.0 {
+        let Some(step) = m.climb.first_mut() else { break };
+        if let Some(n) = step.ride.take() {
+            out.lifts.push(n);
+        }
+        let d = step.to - m.pos;
+        let reach = step.speed * left;
+        if d.length() <= reach {
+            m.pos = step.to;
+            left -= d.length() / step.speed.max(1e-3);
+            m.climb.remove(0);
+        } else {
+            m.pos += d.normalize_or_zero() * reach;
+            left = 0.0;
+        }
+    }
+    if m.climb.is_empty() {
+        // Av lenken: ny vei herfra.
+        m.repath = 0.0;
+    }
+    let flat = (m.pos - from).with_y(0.0);
+    if flat.length_squared() > 1e-6 {
+        m.yaw = flat.x.atan2(flat.z);
+    }
+    set_state(m, State::Walk, clips);
+    true
 }

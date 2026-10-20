@@ -245,6 +245,7 @@ pub fn apply_item(b: &mut Builder, item: &Item, parent: Affine3A) {
             let placed = if item.mounted { b.place_mounted_look(m, t, None::<Look>) } else { b.place_tinted(m, t, item.tint.unwrap_or(Vec3::ONE)) };
             if placed {
                 town::carry(b, m, t, lamps);
+                super::nature::companions(b, m, t);
             }
         }
     }

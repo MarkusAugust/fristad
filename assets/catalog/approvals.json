@@ -515,18 +515,24 @@
    "date": "2026-10-11",
    "why": "",
    "seen": "024d2376795a"
+  },
+  "crypt_dressed": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "6b5585cc3010"
   }
  },
  "models": {
   "well": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "litt for blurry",
-   "seen": "24eece1d683f",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "00bcb9adb51e",
    "before": {
-    "verdict": "godkjent",
-    "date": "2026-10-12",
-    "why": ""
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "litt for blurry"
    },
    "history": [
     "Brønnen ser merkelig ut; teksturene er lagt dårlig på. Lages på nytt fra ark.",
@@ -2052,9 +2058,9 @@
   },
   "well_winch": {
    "verdict": "godkjent",
-   "date": "2026-10-11",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "f65062955748"
+   "seen": "199781754180"
   },
   "woodpile": {
    "verdict": "godkjent",
@@ -3375,175 +3381,364 @@
   },
   "framework": {
    "verdict": "godkjent",
-   "date": "2026-10-19",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "d17c0ddffcb6"
+   "seen": "ea308eee86e0"
+  },
+  "breadcrumb_archer": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender",
+   "seen": "e53ff7486a36",
+   "history": [
+    "det ser rart ut at den angriper med buen på ryggen og tomme hender"
+   ]
+  },
+  "card_squire": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "knærne kommer ut av kroppen når han går.",
+   "seen": "1bc6325f748d",
+   "history": [
+    "knærne kommer ut av kroppen når han går."
+   ]
+  },
+  "dropdown": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "3fd8e2a85544"
+  },
+  "grid_warden": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "ed70fc1dccb3"
+  },
+  "key": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "ce285e618ff7"
+  },
+  "navbar": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned",
+   "seen": "c3f238a32575",
+   "history": [
+    "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
+   ]
+  },
+  "popover_wisp": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "deler av kroppen følger med armen ut når han beveger på den",
+   "seen": "d79b2dc2d3a1",
+   "history": [
+    "deler av kroppen følger med armen ut når han beveger på den"
+   ]
+  },
+  "progress_foreman": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "90e88463a805"
+  },
+  "rock_big": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "5b0c0bfb740d"
+  },
+  "rock_group": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "1dad9c4323b2"
+  },
+  "skeleton_loader": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "b5f33728f6c7"
+  },
+  "spinner": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "denne var fantastisk. digger den.",
+   "seen": "e6f2b4099bbc",
+   "history": [
+    "denne var fantastisk. digger den."
+   ]
+  },
+  "tree_birch_leaves": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "a8a3e25cee68"
+  },
+  "tree_birch_trunk": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "må jeg plassere trunk og leaves hver for seg i editoren? det virker vanskelig",
+   "seen": "66f727628f1d",
+   "history": [
+    "må jeg plassere trunk og leaves hver for seg i editoren? det virker vanskelig"
+   ]
+  },
+  "twin_warden": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "4d7e0e7ad3b9"
   }
  },
  "modules": {
   "grav_blindgang": {
    "verdict": "godkjent",
-   "date": "2026-10-19",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "7c5ef2a5a202"
+   "seen": "8f2299ba71e2"
   },
   "grav_gang_1": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene i den ene enden",
-   "seen": "9690d142439a",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c9c7bceca7a8",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene i den ene enden"
+   },
    "history": [
     "det er noen rare teksturer på veggene i den ene enden"
    ]
   },
   "grav_gang_2": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene i den ene enden",
-   "seen": "6c7cc74a2475",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c461e0168e29",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene i den ene enden"
+   },
    "history": [
     "det er noen rare teksturer på veggene i den ene enden"
    ]
   },
   "grav_gang_hjorne": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene",
-   "seen": "50ea58b28359",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c350e6e511c2",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene"
+   },
    "history": [
     "det er noen rare teksturer på veggene"
    ]
   },
   "grav_gang_kryss": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "385f2dd429c2",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "a381f538780d",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_gang_t": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "86c08888459f",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c297933a44ce",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_gravgang": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "58172dafffe4",
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "jeg ser ikke kistene, men jeg antar at de kan byttes og/eller flyttes etterpå?",
+   "seen": "17bb823edf45",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
-    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+    "jeg ser ikke kistene, men jeg antar at de kan byttes og/eller flyttes etterpå?"
    ]
   },
   "grav_halv_etasje": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "8be02ad5dd3f",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "7e017148a30b",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_halvtrapp": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "6d5ee87163da",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "ff865d9a367d",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_kapell": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "d05811fa599c",
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke inventaret på 3d visningen",
+   "seen": "7c8d5a8c948e",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
-    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+    "ser ikke inventaret på 3d visningen"
    ]
   },
   "grav_nedgang": {
    "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "6e2060cd3925",
+   "date": "2026-10-20",
+   "why": "ser ingen trapp ned, bare et grått hull",
+   "seen": "1b516ead0a1f",
    "history": [
-    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+    "ser ingen trapp ned, bare et grått hull"
    ]
   },
   "grav_rom_1x1": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "64a1b16f2c59",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "71b86d023937",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_rom_1x2": {
    "verdict": "godkjent",
-   "date": "2026-10-19",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "2dc14b393a9f"
+   "seen": "a8a754bb38bc"
   },
   "grav_rom_2x2": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "0b326e14413d",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "eb3f3f93dfa3",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_rom_3x2": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "678910441ebc",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "7627729a3863",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_rom_3x3": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "205686ee27d1",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "223a1d8460d7",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
   },
   "grav_rotunde": {
    "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "fa51cddb38cf",
+   "date": "2026-10-20",
+   "why": "litt rar farge på teksturere ved og i alkovene på veggene?",
+   "seen": "e219dba82d4a",
    "history": [
-    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+    "litt rar farge på teksturere ved og i alkovene på veggene?"
    ]
   },
   "grav_skattkammer": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "fa617b04426c",
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser kun rommet i visningen. jeg antar at inventaret kan flyttes på og endres i etterkant?",
+   "seen": "e41c2fdf15ba",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
-    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
+    "ser kun rommet i visningen. jeg antar at inventaret kan flyttes på og endres i etterkant?"
    ]
   },
   "mek_bro_vann_heis": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede",
-   "seen": "c867f0a624f1",
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette",
+   "seen": "6a7375ca1d26",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede"
+   },
    "history": [
-    "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede"
+    "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede",
+    "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette"
    ]
   },
   "mek_feller": {
@@ -3559,10 +3754,15 @@
    "seen": "1612297f1bad"
   },
   "mek_opp_ned": {
-   "verdict": "underkjent",
-   "date": "2026-10-19",
-   "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
-   "seen": "63a71da4c59e",
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "f378ea87c629",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-19",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
    ]
@@ -3583,6 +3783,918 @@
    "seen": "677e751cdb33",
    "history": [
     "vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her"
+   ]
+  },
+  "borg_blindgang": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "noen fakler går opp i taket, de på sideveggene. kan de flyttes på i etterkant? kan de i utgangspunktet være plassert bedre slik at jeg slipper gjøre det hver gang?",
+   "seen": "911f7ddf4e1c",
+   "history": [
+    "noen fakler går opp i taket, de på sideveggene. kan de flyttes på i etterkant? kan de i utgangspunktet være plassert bedre slik at jeg slipper gjøre det hver gang?"
+   ]
+  },
+  "borg_bosshall": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "hvor kom lampen i bildet fra? ser den ikke i 3d-visningen. det er kanskje et eget objekt?",
+   "seen": "a5be0853721f",
+   "history": [
+    "hvor kom lampen i bildet fra? ser den ikke i 3d-visningen. det er kanskje et eget objekt?"
+   ]
+  },
+  "borg_galleri": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "det må ikke være åpent under trappen",
+   "seen": "76342523e1d8",
+   "history": [
+    "det må ikke være åpent under trappen"
+   ]
+  },
+  "borg_gang_1": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "87792b469329"
+  },
+  "borg_gang_2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "3a4eac450a1f"
+  },
+  "borg_gang_hjorne": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "93ab7d5ef534"
+  },
+  "borg_gang_kryss": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c9ac32a34711"
+  },
+  "borg_gang_t": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "4b43973956ef"
+  },
+  "borg_halv_etasje": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "08f2b70e8f8d"
+  },
+  "borg_halvtrapp": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "midt i trappa er det to vindusrammer på den ene veggen, eller hva vi skal kalle dem. ta de bort.",
+   "seen": "21058273db5f",
+   "history": [
+    "midt i trappa er det to vindusrammer på den ene veggen, eller hva vi skal kalle dem. ta de bort."
+   ]
+  },
+  "borg_heis": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "jeg kan ikke se selve heisen i 3d-visningen",
+   "seen": "0bf7d6d3a738",
+   "history": [
+    "jeg kan ikke se selve heisen i 3d-visningen"
+   ]
+  },
+  "borg_nedgang": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "i 3d visningen ser jeg bare en grå flate der jeg forventet å se en trapp",
+   "seen": "79ddaee5e18d",
+   "history": [
+    "i 3d visningen ser jeg bare en grå flate der jeg forventet å se en trapp"
+   ]
+  },
+  "borg_riddergang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "blandingen av teksturer i gulvet ser ikke bra ut",
+   "seen": "8a92e4b45de6",
+   "history": [
+    "blandingen av teksturer i gulvet ser ikke bra ut"
+   ]
+  },
+  "borg_rom_1x1": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "7b6af4bc424f"
+  },
+  "borg_rom_1x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "e5cee50a79fd"
+  },
+  "borg_rom_2x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "a8e46693d332"
+  },
+  "borg_rom_3x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "liker ikke blanding av teksturer på gulvet.",
+   "seen": "33b21fa13584",
+   "history": [
+    "liker ikke blanding av teksturer på gulvet."
+   ]
+  },
+  "borg_rom_3x3": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "liker ikke blanding av teksturer på gulvet.",
+   "seen": "74debda3e5c8",
+   "history": [
+    "liker ikke blanding av teksturer på gulvet."
+   ]
+  },
+  "borg_rotunde": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "496e50e53dab"
+  },
+  "borg_stige": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke stigen på bildet",
+   "seen": "520c7a42526a",
+   "history": [
+    "ser ikke stigen på bildet"
+   ]
+  },
+  "borg_tronsal": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "f75a35bd90ee"
+  },
+  "borg_vaktstue": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "051c0758422a",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "borg_vindebro": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ingen bru i 3d-visningen",
+   "seen": "e9bd513caf23",
+   "history": [
+    "ser ingen bru i 3d-visningen"
+   ]
+  },
+  "grav_bosshall": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "d27e34ff03a5"
+  },
+  "grav_fellegang": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "faf69acfa408"
+  },
+  "grav_galleri": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke la det være synlig åpent under trappen",
+   "seen": "3391cc81d6bd",
+   "history": [
+    "ikke la det være synlig åpent under trappen"
+   ]
+  },
+  "grav_heis": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen",
+   "seen": "2f5655c8e0fd",
+   "history": [
+    "rommet er fint men jeg ser ikke heisen i 3d-visningen"
+   ]
+  },
+  "grav_hvilested": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke hvilestedet i 3d-visnignen",
+   "seen": "964b27842daf",
+   "history": [
+    "ser ikke hvilestedet i 3d-visnignen"
+   ]
+  },
+  "grav_nokkelport": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ser ingen port i 3d-visningen",
+   "seen": "f6b419300b7f",
+   "history": [
+    "ser ingen port i 3d-visningen"
+   ]
+  },
+  "grav_porthall": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er greit men jeg ser ikke porten så jeg vet ikke",
+   "seen": "ac2f6e168d07",
+   "history": [
+    "rommet er greit men jeg ser ikke porten så jeg vet ikke"
+   ]
+  },
+  "grav_snarvei": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er fint, ser ingen dør",
+   "seen": "323d707d078d",
+   "history": [
+    "rommet er fint, ser ingen dør"
+   ]
+  },
+  "grav_stige": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er fint, ser ingen stige",
+   "seen": "2c42217dbf53",
+   "history": [
+    "rommet er fint, ser ingen stige"
+   ]
+  },
+  "grav_vindebro": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?",
+   "seen": "f620a7e6da87",
+   "history": [
+    "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?"
+   ]
+  },
+  "gruve_blindgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "09d8876b4d48",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_bosshall": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "7aa73fca316c"
+  },
+  "gruve_galleri": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke la trappen være åpen under",
+   "seen": "d361d3e01f90",
+   "history": [
+    "ikke la trappen være åpen under"
+   ]
+  },
+  "gruve_gang_1": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "a6da795ef035",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_gang_2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "88a057c36167"
+  },
+  "gruve_gang_hjorne": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "cc1ad0dbd281"
+  },
+  "gruve_gang_kryss": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "e8bcb871809f"
+  },
+  "gruve_gang_t": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "11825ba9fae7",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_gruvegang": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ingen skinner på visningen",
+   "seen": "7359c6ec21c2",
+   "history": [
+    "ser ingen skinner på visningen"
+   ]
+  },
+  "gruve_gruvesal": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "a1c9aafedce5",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_halv_etasje": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "5dd3047aa13c"
+  },
+  "gruve_halvtrapp": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "hva er egentlig forskjellen på halvtrapp og halv etasje modulene?",
+   "seen": "9503a715aade",
+   "history": [
+    "hva er egentlig forskjellen på halvtrapp og halv etasje modulene?"
+   ]
+  },
+  "gruve_heis": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ingen heis i visningen",
+   "seen": "5934af0729ce",
+   "history": [
+    "ser ingen heis i visningen"
+   ]
+  },
+  "gruve_krystallgrotte": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke krystallene, men rommet er fint",
+   "seen": "f4f7b514ece3",
+   "history": [
+    "ser ikke krystallene, men rommet er fint"
+   ]
+  },
+  "gruve_nedgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "bare et grått hull, ingen trapp ned. trappen ned må ende i en synlig dør. og det må være en trapp altså.",
+   "seen": "cba5c8eee2d5",
+   "history": [
+    "bare et grått hull, ingen trapp ned. trappen ned må ende i en synlig dør. og det må være en trapp altså."
+   ]
+  },
+  "gruve_rom_1x1": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "602cb2035f15",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_rom_1x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "d10f183f1f8f",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_rom_2x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "2d0e9c900345"
+  },
+  "gruve_rom_3x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "a372eb4e0aed"
+  },
+  "gruve_rom_3x3": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland ulike teksturer på gulvet",
+   "seen": "1edf0c4cc630",
+   "history": [
+    "ikke bland ulike teksturer på gulvet"
+   ]
+  },
+  "gruve_rotunde": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "sjekk teksturfarger på alkovene",
+   "seen": "7326bc7edf76",
+   "history": [
+    "sjekk teksturfarger på alkovene"
+   ]
+  },
+  "gruve_stige": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ser ingen stige. vi kan ikke ha en fakkel midt i stigen heller.",
+   "seen": "3138d5dcff13",
+   "history": [
+    "ser ingen stige. vi kan ikke ha en fakkel midt i stigen heller."
+   ]
+  },
+  "gruve_vindebro": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ingen bru",
+   "seen": "408fbb36771a",
+   "history": [
+    "ser ingen bru"
+   ]
+  },
+  "kjerne_blindgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "65b5e825129c",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_bosshall": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "9c92fe58ec47",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_galleri": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. og ikke la trappen være hul under",
+   "seen": "a932cba427e0",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. og ikke la trappen være hul under"
+   ]
+  },
+  "kjerne_gang_1": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "037eec6b63b2",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_gang_2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "681497d65aa4",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_gang_hjorne": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "3e7aa903a6ba",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_gang_kryss": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "fad60a9d9889",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_gang_t": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "dae80987ee7c",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_halv_etasje": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "29f3aac1f1e1",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_halvtrapp": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "07c779666493",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_heis": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen heis",
+   "seen": "438de86eb47d",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen heis"
+   ]
+  },
+  "kjerne_kjernerotunde": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "d8fcd700f265",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_nedgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen trapp med dør i enden",
+   "seen": "1de3d1676a0e",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen trapp med dør i enden"
+   ]
+  },
+  "kjerne_plastsal": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "33a151648518",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rom_1x1": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "c04d0b6ef147",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rom_1x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "8bf216f6c5c9",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rom_2x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "0f015b53912a",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rom_3x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "e705e13df2b8",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rom_3x3": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "a7db6383c559",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_rotunde": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "0d1a72872bb4",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_stige": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer",
+   "seen": "ee5bc7720f90",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer"
+   ]
+  },
+  "kjerne_vindebro": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen bru",
+   "seen": "551eecdc355b",
+   "history": [
+    "disse teksturene lar seg dessverre ikke tile med mindre du speilvender annenhver. gjør det, eller be om nye teksturer. ser ingen bru"
+   ]
+  },
+  "kloakk_blindgang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "d687402ba187",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_bosshall": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "416c22dad9e6"
+  },
+  "kloakk_galleri": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ikke la trappen være hul under",
+   "seen": "8f5255bf4504",
+   "history": [
+    "ikke la trappen være hul under"
+   ]
+  },
+  "kloakk_gang_1": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "ad9196ae71b5",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_gang_2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "ae5e6a119b34"
+  },
+  "kloakk_gang_hjorne": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "94151ad84e18"
+  },
+  "kloakk_gang_kryss": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "031c2dc6ae53"
+  },
+  "kloakk_gang_t": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "00e7a10fcfbe",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_halv_etasje": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c7c25643f939"
+  },
+  "kloakk_halvtrapp": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "36534e3bca0a"
+  },
+  "kloakk_heis": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ingen heis",
+   "seen": "93a6f522316d",
+   "history": [
+    "ser ingen heis"
+   ]
+  },
+  "kloakk_kanal": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "rommet er fint, ser ikke vannet i visningen",
+   "seen": "301d6c6f7621",
+   "history": [
+    "rommet er fint, ser ikke vannet i visningen"
+   ]
+  },
+  "kloakk_nedgang": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke trapp ned til dør",
+   "seen": "dd39c137630b",
+   "history": [
+    "ser ikke trapp ned til dør"
+   ]
+  },
+  "kloakk_rom_1x1": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "acb6ee44359b"
+  },
+  "kloakk_rom_1x2": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "0743dcca446d"
+  },
+  "kloakk_rom_2x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "6f44101e6c2f",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_rom_3x2": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "fc07fcc58b28",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_rom_3x3": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet",
+   "seen": "48c69a302d0e",
+   "history": [
+    "ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_slusekammer": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet. ser ikke vannet på gulvet",
+   "seen": "dbc2eb487155",
+   "history": [
+    "ikke bland teksturer på gulvet. ser ikke vannet på gulvet"
+   ]
+  },
+  "kloakk_smuglerlager": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ser ikke inventaret",
+   "seen": "f8442696ba4b",
+   "history": [
+    "ser ikke inventaret"
+   ]
+  },
+  "kloakk_stige": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "ser ikke stugen. ikke bland teksturer på gulvet",
+   "seen": "f844601adfd0",
+   "history": [
+    "ser ikke stugen. ikke bland teksturer på gulvet"
+   ]
+  },
+  "kloakk_vindebro": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "ikke bland teksturer på gulvet. ser ikke brua",
+   "seen": "3166645bd474",
+   "history": [
+    "ikke bland teksturer på gulvet. ser ikke brua"
+   ]
+  },
+  "mek_fane": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "44afffe7bab8"
+  },
+  "mek_gruvestiver": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "seen": "35ff0784403d",
+   "history": [
+    "burde ses i 3d, for vanskeilig å bedømme dette"
+   ]
+  },
+  "mek_krystaller": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "4f9773cea91f"
+  },
+  "mek_lysekrone": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c6aba8441b4f"
+  },
+  "mek_malmvogn": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "burde ses i 3d, for vanskeilig å bedømme dette, men jeg ser at innholdet i vognen klipper ut av kanten",
+   "seen": "602f10e173d2",
+   "history": [
+    "burde ses i 3d, for vanskeilig å bedømme dette, men jeg ser at innholdet i vognen klipper ut av kanten"
+   ]
+  },
+  "mek_portgitter": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "skal spaken være rett ved siden av? da trenger ikke spiller lete etter den eller utforske nivået",
+   "seen": "39695e41422c",
+   "history": [
+    "skal spaken være rett ved siden av? da trenger ikke spiller lete etter den eller utforske nivået"
+   ]
+  },
+  "mek_rustning": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "seen": "d414547fdd2b",
+   "history": [
+    "burde ses i 3d, for vanskeilig å bedømme dette"
+   ]
+  },
+  "mek_sarkofag": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "denne må ha en egen 3d modell med tekstur, så det må promptes frem.og vi trenger minst to varianter av den",
+   "seen": "b9fadd84c349",
+   "history": [
+    "denne må ha en egen 3d modell med tekstur, så det må promptes frem.og vi trenger minst to varianter av den"
+   ]
+  },
+  "mek_snarvei": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c35856505ebb"
+  },
+  "mek_statue": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "en statue av stein?",
+   "seen": "091786ca557f",
+   "history": [
+    "en statue av stein?"
+   ]
+  },
+  "mek_trone": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "burde ses i 3d",
+   "seen": "237388b3f6bb",
+   "history": [
+    "burde ses i 3d"
+   ]
+  },
+  "mek_vapenstativ": {
+   "verdict": "usikker",
+   "date": "2026-10-20",
+   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "seen": "5bc0538b62cb",
+   "history": [
+    "burde ses i 3d, for vanskeilig å bedømme dette"
    ]
   }
  }

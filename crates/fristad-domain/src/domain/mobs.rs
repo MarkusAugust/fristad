@@ -111,6 +111,7 @@ struct Clips {
     /// riggens rom.
     look: Option<(usize, usize)>,
     up: Vec3,
+    held: Option<(usize, &'static str)>, // det den holder (`mob_rigs::HELD`)
 }
 
 #[derive(Clone, Debug)]
@@ -160,6 +161,8 @@ pub struct Mob {
     pub look: f32,
     turn: f32,
     last_yaw: f32,
+    /// Stegene igjen langs stigen eller heisen den er på (`crypt::hops`).
+    climb: Vec<crate::domain::world::crypt::hops::HopStep>,
 }
 
 impl Mob {
@@ -208,6 +211,8 @@ pub struct Outcome {
     pub quakes: u32,
     /// Brøl.
     pub roars: u32,
+    /// Heisene en fiende står på og vil kjøre (økta kjører dem).
+    pub lifts: Vec<usize>,
 }
 
 #[derive(Default)]
@@ -260,7 +265,7 @@ impl Mobs {
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![] });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -558,8 +563,8 @@ impl Mobs {
             let to_player = (player - m.pos).with_y(0.0);
             let dist = to_player.length();
             // Spilleren i et annet nivå (eller langt over eller under) er
-            // utenfor syne.
-            let same_floor = player_level == Some(m.level) && (player.y - m.pos.y).abs() < 6.0;
+            // utenfor syne; har den sett deg, følger den deg en etasje opp eller ned (stigen, heisen).
+            let same_floor = player_level == Some(m.level) && (player.y - m.pos.y).abs() < if m.aware { 12.5 } else { 6.0 };
             if m.alive() {
                 // Dyttet fra et slag glir ut.
                 if m.knock.length_squared() > 1e-4 {
@@ -873,6 +878,7 @@ impl Mobs {
                     // Modellens front er +X; yaw regner front som (sin, 0, cos).
                     let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(lean);
                     let t = Affine3A::from_rotation_translation(rot, m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
+                    out.extend(mob_rigs::held(rig, &pose, clips, t, flash));
                     out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None, look: None });
                 }
                 _ => {

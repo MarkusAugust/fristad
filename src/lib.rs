@@ -38,6 +38,8 @@ mod loot_tests;
 #[cfg(test)]
 mod mechanism_tests;
 #[cfg(test)]
+mod module_set_tests;
+#[cfg(test)]
 mod stone_tests;
 #[cfg(test)]
 mod tests;

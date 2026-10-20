@@ -59,14 +59,24 @@ impl Crypt {
         self.levels[l].nav.nearest(p, reach, &self.open_poly()).map(|(_, c)| c)
     }
 
-    /// Veien fra `from` til `to` gjennom åpne polygoner: hjørnene etter
-    /// startpunktet, det siste er målet.
+    /// Veien til fots fra `from` til `to` gjennom åpne polygoner: hjørnene
+    /// etter startpunktet, det siste er målet.
     pub fn path(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
+        self.path_over(from, to, &|_, _| false)
+    }
+
+    /// Veien fiendene går: også over stigene og heisene som kan brukes nå
+    /// (`hops`), med lenkenes punkter.
+    pub fn route(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
+        self.path_over(from, to, &self.open_hop())
+    }
+
+    fn path_over(&self, from: Vec3, to: Vec3, hops: &dyn Fn(&nav::Hop, bool) -> bool) -> Option<Vec<Vec3>> {
         let l = self.level_at(from)?;
         if self.level_at(to) != Some(l) {
             return None;
         }
-        self.levels[l].nav.path(from, to, &self.open_poly())
+        self.levels[l].nav.path_with(from, to, &self.open_poly(), hops)
     }
 
     /// Neste hjørne på veien.

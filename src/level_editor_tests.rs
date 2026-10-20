@@ -282,28 +282,54 @@ fn nivaaredigeringen_har_ingen_himmel() {
     let rooms = app.session.level_editing().unwrap().editor.file().rooms.len();
     assert_eq!(r.boxes.len(), rooms, "rommene i nivået");
     assert_eq!(r.masks.len(), f.lights.len());
+    // Snittet (S): alt over etasjen kuttes bort, og det som ligger helt over tegnes ikke.
+    assert!(f.clip.is_none(), "uten snitt kuttes ingenting");
+    assert!(app.command(Command::Level(LevelCommand::Cut(Some(6.0)))));
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    let origin = app.session.level_editing().unwrap().origin;
+    let clip = f.clip.expect("snittet er på");
+    assert!((clip - (origin.y + 6.0 + crate::application::level_editing::CUT_HEIGHT)).abs() < 1e-3, "{clip}");
+    assert!(f.band.1 <= clip);
+    assert!(app.command(Command::Level(LevelCommand::Cut(None))));
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    assert!(f.clip.is_none());
 }
 
-/// Paletten har modulene for alle temaene, gruppert som rom, ganger,
-/// trapper, ferdigrom, mekanismer og bosshall, og hver modul har bildet sitt
-/// (`module_shots.py`, `assets/levels/moduler/<tema>/<navn>.jpg`).
+/// Paletten har ett sett moduler (eieren 20. oktober: «det holder med en
+/// modell, og så må jeg kunne kle flatene i den teksturen jeg vil ha»),
+/// gruppert som rom, ganger, trapper, ferdigrom, mekanismer og bosshall,
+/// hver form én gang og med bildet sitt (`module_shots.py`,
+/// `assets/levels/moduler/grav/<navn>.jpg`), og temaene nivået kan ha er
+/// de som har en standardstein.
 #[test]
 fn paletten_har_alle_temaene_gruppert() {
     use crate::domain::edit::level::map;
     let k = kit();
     let p = map::palette(&k, vec![], vec![]);
-    for theme in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
-        let mine: Vec<_> = p.modules.iter().filter(|m| m.theme == theme).collect();
-        assert!(mine.len() >= 15, "{theme}: bare {} moduler", mine.len());
-        for g in ["rom", "gang", "trapp", "mekanisme", "bosshall"] {
-            assert!(mine.iter().any(|m| m.group == g), "{theme} har ingen i gruppen {g}");
-        }
-        for m in &mine {
-            let name = m.id.split('/').nth(1).unwrap();
-            let img = format!("{}/assets/levels/moduler/{theme}/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
-            assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);
-        }
+    assert!(p.modules.len() >= 30, "bare {} moduler", p.modules.len());
+    for g in ["rom", "gang", "trapp", "ferdig", "mekanisme", "bosshall"] {
+        assert!(p.modules.iter().any(|m| m.group == g), "ingen i gruppen {g}");
     }
+    let mut names: Vec<&str> = p.modules.iter().map(|m| m.id.split('/').nth(1).unwrap()).collect();
+    names.sort();
+    assert!(names.windows(2).all(|w| w[0] != w[1]), "samme form står to ganger: {names:?}");
+    for m in &p.modules {
+        assert!(m.id.starts_with("grav/"), "{} står utenfor settet", m.id);
+        let name = m.id.split('/').nth(1).unwrap();
+        let img = format!("{}/assets/levels/moduler/grav/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
+        assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);
+    }
+    for t in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
+        assert!(p.themes.iter().any(|x| x == t), "temaet {t} mangler: {:?}", p.themes);
+    }
+    for id in ["grav/tronsal", "grav/slusekammer", "grav/plastsal", "grav/gruvesal", "grav/kanal"] {
+        assert!(p.modules.iter().any(|m| m.id == id), "ferdigrommet {id} mangler");
+    }
+    // De gamle kopiene per tema leses som modulen i settet.
+    assert_eq!(k.module("kloakk/rom_2x2").map(|m| m.id.as_str()), Some("grav/rom_2x2"));
+    assert_eq!(k.module("borg/tronsal").map(|m| m.id.as_str()), Some("grav/tronsal"));
     let g = |id: &str| p.modules.iter().find(|m| m.id == id).map(|m| m.group);
     assert_eq!(g("grav/bosshall"), Some("bosshall"));
     assert_eq!(g("grav/porthall"), Some("mekanisme"));
@@ -571,4 +597,104 @@ fn et_klart_nivaa_erstatter_det_gamle() {
     assert_eq!(l1.rooms.len(), want, "nivå 1 er det nye ({want} rom, det gamle hadde {old1:?})");
     assert!(l1.rooms.iter().any(|r| r.id == "kapell"), "kapellet fra det nye nivået");
     assert!(l1.down.is_some(), "trappa ned");
+}
+
+/// «Rett» (del 27): de vanlige bruddene har en retting når den er entydig,
+/// og den som endrer dokumentet, er en vanlig handling med angre.
+#[test]
+fn rett_retter_de_vanlige_bruddene() {
+    use crate::domain::edit::level::fixes::FixKind;
+    let fix = |e: &LevelEditor, rule: &str, has: &str| {
+        let k = e.issues().iter().position(|i| i.rule == rule && i.msg.contains(has)).unwrap_or_else(|| panic!("ingen {rule} med «{has}»: {:?}", e.issues()));
+        e.fix(k).cloned().unwrap_or_else(|| panic!("ingen retting for {:?}", e.issues()[k]))
+    };
+    let mut e = blank();
+    // En spak uten mål kobles til porten.
+    let r = op(&mut e, r#"{"op":"add_module","module":"grav/rom_3x2","at":[3,0,0]}"#)[0].clone();
+    let opening = e.map().modules.iter().find(|m| m.id == r).unwrap().openings.iter().find(|o| o.side == 3 && o.at == [2, 0]).unwrap().id.clone();
+    op(&mut e, &format!(r#"{{"op":"opening","module":"{r}","opening":"{opening}","kind":"port"}}"#));
+    let gate = e.doc().modules.iter().find(|m| m.id == r).unwrap().overrides[0].id.clone().unwrap();
+    let lever = op(&mut e, r#"{"op":"add_thing","kind":"lever","at":[1.0,0,1.0]}"#)[0].clone();
+    let f = fix(&e, "kobling", &format!("spaken {lever} åpner ingenting"));
+    let FixKind::Op { op: o } = f.what else { panic!("{f:?}") };
+    assert_eq!(o, LevelOp::Link { from: lever.clone(), to: gate.clone(), kind: "opens".into() });
+    e.apply(o).unwrap();
+    assert!(!errors(&e).iter().any(|x| x.contains("åpner ingenting") || x.contains("kan ikke åpnes")), "{:?}", errors(&e));
+    assert!(e.undo() && errors(&e).iter().any(|x| x.contains("åpner ingenting")), "angre gir bruddet tilbake");
+    assert!(e.redo());
+    // Den tomme lappen: tekstfeltet.
+    let lore = op(&mut e, r#"{"op":"add_thing","kind":"lore","at":[2.0,0,2.0]}"#)[0].clone();
+    let f = fix(&e, "innhold", &format!("lappen {lore} er tom"));
+    assert_eq!(f.what, FixKind::Focus { thing: lore, field: "text" });
+    // En boss i et vanlig rom: bosshallen.
+    let boss = op(&mut e, r#"{"op":"add_thing","kind":"boss","at":[16.0,0,0.0],"label":"navbar"}"#)[0].clone();
+    assert_eq!(fix(&e, "takhoyde", &boss).what, FixKind::Palette { module: "grav/bosshall".into() });
+    assert!(e.kit().module("grav/bosshall").is_some());
+    // Et rom ingen kommer til: den nærmeste åpningen.
+    let far = op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[10,0,0]}"#)[0].clone();
+    let FixKind::Show { at, module } = fix(&e, "naa", "kan ikke nås fra start (ingen åpning").what else { panic!() };
+    assert_eq!(module, far);
+    assert!((at[0] - 38.0).abs() < 0.01 && at[2].abs() < 0.01, "åpningen mot vest, nærmest rommet: {at:?}");
+    // En dør mot ingenting: mur.
+    let west = e.map().modules.iter().find(|m| m.id == far).unwrap().openings.iter().find(|o| o.side == 3).unwrap().id.clone();
+    op(&mut e, &format!(r#"{{"op":"opening","module":"{far}","opening":"{west}","kind":"dor"}}"#));
+    let f = fix(&e, "aapning", "møter ingenting");
+    assert_eq!(f.label, "Gjør til mur");
+    let FixKind::Op { op: o } = f.what else { panic!() };
+    e.apply(o).unwrap();
+    assert!(!e.issues().iter().any(|i| i.rule == "aapning"), "{:?}", e.issues());
+    assert_eq!(e.doc().modules.iter().find(|m| m.id == far).unwrap().overrides[0].kind, "vegg");
+    assert!(e.undo() && e.issues().iter().any(|i| i.rule == "aapning"));
+    // Kartet har rettingen med til siden.
+    assert!(e.map().issues.iter().any(|i| i.fix.as_ref().is_some_and(|f| f.label == "Gjør til mur")));
+}
+
+/// Et utvalg som ny modul (del 27): modulene utvidet til cellene, med
+/// kantene der de møttes, innholdet og koblingene, i fast form; tatt inn i
+/// byggesettet står den i paletten og bygger det samme som utvalget.
+#[test]
+fn utvalget_blir_en_ny_modul() {
+    use crate::adapters::data::{module_json, module_path};
+    use crate::domain::world::crypt::doc::ModuleDef;
+    let mut e = blank();
+    // Porthallen og et rom ved siden av, med en dør imellom.
+    let a = op(&mut e, r#"{"op":"add_module","module":"grav/porthall","at":[3,0,0]}"#)[0].clone();
+    let b = op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[4,0,0]}"#)[0].clone();
+    let ids = vec![a.clone(), b.clone()];
+    assert!(e.as_module(&ids, "Porthall med kott", "Porthall").is_err(), "filnavnet med store bokstaver");
+    assert!(e.as_module(&ids, "Kapell", "kapell").is_err(), "byggesettets egne moduler skrives ikke over");
+    let def = e.as_module(&ids, "Porthall med kott", "porthall_kott").expect("modulen");
+    assert_eq!(def.id, "grav/porthall_kott");
+    assert_eq!(module_path(&def.id), "assets/levels/moduler/grav/porthall_kott.json");
+    let cells: usize = e.doc().modules.iter().filter(|m| ids.contains(&m.id)).map(|m| e.footprint(m).len()).sum();
+    assert_eq!(def.cells.len(), cells, "cellene til begge modulene");
+    assert!(def.things.iter().any(|t| t.kind == "lever") && def.things.iter().any(|t| t.kind == "gate"), "spaken og porten følger med");
+    assert!(def.links.iter().any(|l| l.kind == "opens"), "koblingen følger med");
+    // Fast form og tilbake.
+    let text = module_json(&def);
+    assert!(text.lines().count() > def.cells.len(), "én celle per linje");
+    let back: ModuleDef = serde_json::from_str(&text).unwrap();
+    assert_eq!(back.cells.len(), def.cells.len());
+    // I byggesettet: i paletten, og satt ut alene bygger den det samme.
+    e.add_module(back);
+    let k = e.kit().clone();
+    let palette = crate::domain::edit::level::map::palette(&k, vec![], vec![]);
+    let pm = palette.modules.iter().find(|m| m.id == def.id).expect("i paletten");
+    assert_eq!(pm.cells.len(), cells);
+    assert!(!pm.openings.is_empty(), "den nye modulen har åpninger");
+    let before = e.file().instances.len();
+    let errs = errors(&e).len();
+    op(&mut e, &format!(r#"{{"op":"delete","ids":["{a}","{b}"]}}"#));
+    let n = op(&mut e, r#"{"op":"add_module","module":"grav/porthall_kott","at":[3,0,0]}"#)[0].clone();
+    assert!(errors(&e).iter().all(|x| !x.starts_with("modul") && !x.starts_with("kant") && !x.starts_with("kobling")), "{:?}", errors(&e));
+    assert_eq!(errors(&e).len(), errs, "de samme bruddene som utvalget: {:?}", errors(&e));
+    let after = e.file().instances.len();
+    assert!((after as i64 - before as i64).abs() <= 2, "samme bygg: {before} før, {after} etter");
+    assert!(
+        e.file()
+            .marks
+            .iter()
+            .any(|m| m.kind == "lever" && m.opens.iter().any(|o| o.starts_with(&format!("{n}/")) || e.file().marks.iter().any(|g| g.kind == "gate" && g.id.as_deref() == Some(o.as_str())))),
+        "spaken åpner porten i den nye modulen"
+    );
 }

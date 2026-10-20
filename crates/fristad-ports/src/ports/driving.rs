@@ -166,8 +166,18 @@ pub enum LevelCommand {
     WorkLight(bool),
     /// Gulvet kartet viser (y i dokumentet).
     Floor(f32),
+    /// Snittet (S): alt over etasjen med gulvet i y (i dokumentet) kuttes
+    /// bort i 3D, så du ser inn i en etasje under en annen; `None` av.
+    Cut(Option<f32>),
+    /// En modul eieren har laget av et utvalg (`LevelEditor::as_module`),
+    /// tatt inn i byggesettet så den står i paletten.
+    AddModule(Box<crate::domain::world::crypt::doc::ModuleDef>),
     /// Kameraet i 3D-vinduet: øyet i dokumentets rom.
-    Place { at: Vec3, yaw: f32, pitch: f32 },
+    Place {
+        at: Vec3,
+        yaw: f32,
+        pitch: f32,
+    },
 }
 
 /// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).

@@ -1,13 +1,13 @@
-"""Modulene for de fire andre temaene (`docs/nivaaredigering.md`, del 24):
-kloakken, gruva, borgen og kjernen. Formene er de samme som gravkjellerens
-(rom, ganger, trapper, nedgangen), bygd av de samme bitene, og temaet gir
-steinen (`assets/levels/steiner.json`: kloakken tegl, gruva berg med kvader
-i søylene, borgen kvader, kjernen kjernestein). Ferdigrommene per tema er
-satt sammen av byggesettets pynt og mekanismer (`crypt::PROPS`, merkene).
-
-Mekanismene med egne biter (`kit_mech.py`: vindebroa, heisen, stigen og
-galleriet) får alle temaene; kanalen er kloakkens, og plastsømmene i kjernen
-kommer med steinen (`wall_variant` i `steiner.json`).
+"""Ferdigrommene fra de fire andre temaene (`docs/nivaaredigering.md`, del
+24 og 27): kloakken, gruva, borgen og kjernen. Det er ett sett moduler
+(eieren 20. oktober: «det holder med en modell, og så må jeg kunne kle
+flatene i den teksturen jeg vil ha i editoren»): formene (rom, ganger,
+trapper, nedgangen, rotunden, bosshallen og mekanismene) står én gang i
+`assets/levels/moduler/grav/` (`modules_grav.py`), og steinen velges i
+nivået, rommet, modulen, cella eller kanten. Her skrives ferdigrommene som
+er virkelig forskjellige i form eller innhold, i det samme settet: rommet
+har temaet som foreslått stein (`rooms[].theme`), som bare gjelder når
+nivået ikke har tema; plastsalen er plast.
 
     python3 tools/crypt/modules_themes.py
 """
@@ -21,13 +21,6 @@ import modules_grav as G  # noqa: E402
 
 ROOT = G.ROOT
 BASE = os.path.join(ROOT, "assets", "levels", "moduler")
-
-# Formene fra gravkjelleren som hvert tema får (navnet i modules_grav).
-FORMS = ["rom_1x1", "rom_1x2", "rom_2x2", "rom_3x2", "rom_3x3", "gang_1", "gang_2", "gang_hjorne", "gang_t", "gang_kryss", "blindgang",
-         "halvtrapp", "halv_etasje", "nedgang", "rotunde", "bosshall", "vindebro", "heis", "stige", "galleri"]
-
-# Bossen i bosshallen per tema (`Kind::from_label`).
-BOSSES = {"kloakk": "table", "gruve": "select", "borg": "navbar", "kjerne": "rammeverket"}
 
 # Temaet: navnet i paletten og fakkeltettheten (kloakken og gruva er
 # mørkere enn borgen).
@@ -43,15 +36,12 @@ grid = G.grid
 
 
 def themed(theme, m, torches=None):
-    """En modul fra gravkjelleren i et annet tema: samme celler, innhold og
-    lys, temaet på modulen og rommene (som gir steinen)."""
+    """Et ferdigrom i det felles settet (`grav/<navn>`), med temaet som
+    foreslått stein på rommene og temaets fakkeltetthet."""
     m = copy.deepcopy(m)
     name = m["id"].split("/", 1)[1]
-    m["id"] = f"{theme}/{name}"
-    m["theme"] = theme
-    for t in m.get("things", []):
-        if t.get("kind") == "boss" and theme in BOSSES:
-            t["label"] = BOSSES[theme]
+    m["id"] = f"grav/{name}"
+    m["theme"] = "grav"
     for r in m["rooms"]:
         r["theme"] = theme
         if torches is not None and r.get("mood", {}).get("torches", 0) > 0:
@@ -190,22 +180,17 @@ EXTRA = {
 
 
 def main():
-    forms = {n: m for n, m in G.MODULES if n in FORMS}
+    G.OUT = os.path.join(BASE, "grav")
     total = 0
-    for theme, (_, torches) in THEMES.items():
-        out = os.path.join(BASE, theme)
-        os.makedirs(out, exist_ok=True)
-        G.OUT = out
-        mods = [themed(theme, forms[n], torches) for n in FORMS] + EXTRA[theme]
-        for name, m in mods:
+    for theme in THEMES:
+        for name, m in EXTRA[theme]:
             stone = m.pop("stone", None)
             if stone:
                 for c in m["cells"]:
                     c["stone"] = stone
             G.write(name, m)
-        total += len(mods)
-        print(f"{len(mods)} moduler i {os.path.relpath(out, ROOT)}")
-    print(f"{total} i alt")
+            total += 1
+    print(f"{total} ferdigrom i {os.path.relpath(G.OUT, ROOT)}")
 
 
 if __name__ == "__main__":

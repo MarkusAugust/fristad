@@ -32,6 +32,10 @@ const ERROR: Vec3 = Vec3::new(4.0, 0.3, 0.2);
 const LINK: Vec3 = Vec3::new(0.6, 2.2, 4.0);
 const PATROL: Vec3 = Vec3::new(3.2, 1.2, 0.3);
 
+/// Snittet står så høyt over gulvet i etasjen (S): murene til brysthøyde
+/// og litt over døråpningene, hvelvet og etasjene over kuttet bort.
+pub const CUT_HEIGHT: f32 = 2.4;
+
 /// Hvor mange av hver bit 3D-vinduet kan vise (plassen monteringen setter av).
 pub const LEVEL_RESERVE: usize = 1500;
 /// Det samme for mekanismene, pynten og innholdet.
@@ -60,6 +64,8 @@ pub struct LevelEditing {
     pub camera: Option<(Vec3, f32, f32)>,
     /// Gulvet kartet viser (y i dokumentet), til å finne punktet under pekeren.
     pub floor: f32,
+    /// Snittet (S): gulvet i etasjen det kutter over (y i dokumentet).
+    pub cut: Option<f32>,
     /// Nivået slik det er bygd på kladdearket (rommene til lyset).
     crypt: crypt::Crypt,
 }
@@ -83,6 +89,7 @@ impl LevelEditing {
             selected: vec![],
             camera: None,
             floor: 0.0,
+            cut: None,
             crypt: crypt::Crypt::default(),
         };
         e.refresh();
@@ -106,7 +113,14 @@ impl LevelEditing {
         // Mekanismene i hvile (portene nede, veggene og lokkene lukket).
         let mech = Mechanisms::new(&c, 0);
         let posed = |model: &'static str, list: Vec<Affine3A>| list.into_iter().map(move |transform| ModelInstance { model, transform, skin: None, flash: 0.0, tint: None, look: None });
-        shown.extend(c.gates.iter().enumerate().map(|(n, g)| ModelInstance { model: crypt::PORTCULLIS, transform: mech.gate_pose(&c, n, world::at(g.pos, g.yaw)), skin: None, flash: 0.0, tint: None, look: None }));
+        shown.extend(c.gates.iter().enumerate().map(|(n, g)| ModelInstance {
+            model: crypt::PORTCULLIS,
+            transform: mech.gate_pose(&c, n, world::at(g.pos, g.yaw)),
+            skin: None,
+            flash: 0.0,
+            tint: None,
+            look: None,
+        }));
         shown.extend(posed(crypt::KIT_LEVER_ARM, mech.lever_poses(&c)));
         shown.extend(posed(crypt::KIT_SHORTCUT_LEAF, mech.shortcut_poses(&c)));
         shown.extend(posed(crypt::CHEST_LID, c.chests.iter().enumerate().map(|(n, ch)| mech.chest_lid(n, world::at(ch.pos, ch.yaw))).collect()));
@@ -240,6 +254,14 @@ impl Session {
                 l.floor = y;
                 return true;
             }
+            LevelCommand::AddModule(def) => {
+                l.editor.add_module(*def);
+                true
+            }
+            LevelCommand::Cut(y) => {
+                l.cut = y;
+                return true;
+            }
             LevelCommand::Place { at, yaw, pitch } => {
                 let eye = l.to_world(at);
                 self.place(eye, yaw, pitch);
@@ -329,6 +351,12 @@ impl Session {
         f.skins.clear();
         f.hidden = l.hidden.clone();
         f.band = l.band;
+        // Snittet: alt over planet kuttes bort, og det som ligger helt over
+        // tegnes ikke.
+        f.clip = l.cut.map(|y| l.origin.y + y + CUT_HEIGHT);
+        if let Some(y) = f.clip {
+            f.band.1 = f.band.1.min(y);
+        }
         f.fog_density = 0.0;
         f.sun_intensity = 0.0;
         f.sky_top = Vec3::splat(0.002);
@@ -343,6 +371,15 @@ impl Session {
             // Arbeidslyset: et stort, varmt lys over deg og litt mer lys fra
             // bakken, så alt synes (himmelen er svart, som nede i krypten).
             lights.insert(0, Light { pos: eye + Vec3::Y * 1.5, radius: 30.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 1.8, always: true, flicker: 0.0, room: None });
+            // Med snittet: et lys like under snittet der du ser, så etasjen
+            // under lyser opp når du ser ned i den ovenfra.
+            if let Some(y) = f.clip.filter(|y| eye.y > *y) {
+                let ahead = -f.view.inverse().z_axis.truncate();
+                let t = if ahead.y < -0.05 { ((y - eye.y) / ahead.y).min(40.0) } else { 0.0 };
+                let mut at = eye + ahead * t;
+                at.y = y - 0.3;
+                lights.insert(1, Light { pos: at, radius: 36.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 3.0, always: true, flicker: 0.0, room: None });
+            }
             f.ground_bounce = Vec3::splat(0.03);
             f.exposure = 0.8;
         } else {

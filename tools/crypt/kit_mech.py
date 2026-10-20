@@ -12,7 +12,7 @@ fra temaet og bakes og sjekkes på samme måte.
 | `grav_luke`, `grav_luke_topp` | celle under og over | flatt tak med bjelker og luke nede, gulv med luke oppe (`ladder`, `trapdoor`) |
 | `grav_kanal`, `grav_kanal_ende` | celle | gangen med en kanal midt i og gangbane på hver side (`water`) |
 | `grav_galleri` | sammensatt 3 × 3 | sal på 10 × 10 m med galleri 5 m oppe langs nordmuren, trapp langs vestmuren og rekkverk |
-| `grav_vegg_som` | halvkant | muren med fiolette sømmer (`magic_seam_dim`), variant `som` av `grav/vegg` |
+| `grav_vegg_som` | halvkant | muren med magenta plastsømmer som skjærer gjennom steinen (`magic_vein`, svidd kant og plast som buler ut), variant `som` av `grav/vegg` |
 """
 
 import math
@@ -238,32 +238,128 @@ def kanal_walk(end=False):
 # --- Plastsømmene ------------------------------------------------------------------
 
 
-def seam(m, surf, u, v0, v1, seed, w=0.06):
-    """En søm som lyser fiolett (`magic_seam_dim`, dempet så den ikke blir hvit på nært hold) i fugene, i sikksakk opp
-    langs muren, litt ut fra flaten."""
+def _crack(rng, u, v, ang, length, w, step=(0.11, 0.2)):
+    """En sprekk som vandrer fra (u, v) i retningen `ang` (radianer, 0 opp):
+    knekker brått til sidene og smalner mot enden. Gir punktene og bredden."""
+    pts, ws = [(u, v)], [w * 0.5]
+    run, a = 0.0, ang
+    while run < length:
+        d = step[0] + rng.random() * (step[1] - step[0])
+        # Knekkene: oftest små, av og til et brått hakk til siden.
+        a = ang + (rng.random() - 0.5) * (1.4 if rng.random() < 0.3 else 0.6)
+        u, v = u + math.sin(a) * d, v + math.cos(a) * d
+        run += d
+        t = run / length
+        pts.append((u, v))
+        ws.append(w * (0.45 + 0.55 * math.sin(math.pi * min(t, 1.0)) ** 0.6) * (0.6 + 0.8 * rng.random()))
+    ws[-1] = w * 0.12
+    return pts, ws
+
+
+def _strip(m, surf, pts, ws, d, mat, scale=1.0, joints=True):
+    """Et bånd langs sprekken `d` ut fra muren, med en rute i hver knekk så
+    det ikke blir glipper (`joints`)."""
+    for (ua, va), (ub, vb), wa, wb in zip(pts, pts[1:], ws, ws[1:]):
+        L = math.hypot(ub - ua, vb - va)
+        if L < 1e-6:
+            continue
+        nu, nv = -(vb - va) / L, (ub - ua) / L
+        ha, hb = wa * scale / 2, wb * scale / 2
+        quad = [(ua - nu * ha, va - nv * ha), (ub - nu * hb, vb - nv * hb), (ub + nu * hb, vb + nv * hb), (ua + nu * ha, va + nv * ha)]
+        m.poly([surf.point(a, b, d) for a, b in quad], quad, mat, facing=surf.normal(ua))
+    if not joints:
+        return
+    for (uc, vc), wc in zip(pts[1:-1], ws[1:-1]):
+        r = wc * scale / 2
+        ring = [(uc + r * math.cos(k * math.pi / 2), vc + r * math.sin(k * math.pi / 2)) for k in range(4)]
+        m.poly([surf.point(a, b, d * 0.98) for a, b in ring], ring, mat, facing=surf.normal(uc))
+
+
+def _blob(m, surf, rng, u, v, r, h):
+    """Plast som buler ut av sprekken: en ujevn, lav kul (`plastic_seam`) med en
+    glødende rand der den presser seg ut av steinen."""
+    n, rings = 8, 2
+    rad = [r * (0.7 + 0.5 * rng.random()) for _ in range(n)]
+    sq = 0.75 + 0.5 * rng.random()  # avlang
+    rim = []
+    for k in range(n):
+        a = 2 * math.pi * k / n
+        rim.append((math.cos(a) * sq, math.sin(a) / sq))
+
+    def at(k, i):
+        """Punktet på ring i (0 er randen, `rings` er toppen) i retning k."""
+        t = i / rings
+        rr = rad[k % n] * math.cos(t * math.pi / 2)
+        hh = h * math.sin(t * math.pi / 2) ** 0.8
+        cu, cv = rim[k % n]
+        return (u + cu * rr, v + cv * rr, 0.004 + hh)
+
+    top = surf.point(u, v, 0.004 + h * 1.05)
+    for i in range(rings):
+        for k in range(n):
+            a, b = at(k, i), at(k + 1, i)
+            if i == rings - 1:
+                m.tri(surf.point(*a), surf.point(*b), top, "plastic_seam", facing=surf.normal(u))
+            else:
+                c, d = at(k + 1, i + 1), at(k, i + 1)
+                m.quad(surf.point(*a), surf.point(*b), surf.point(*c), surf.point(*d), "plastic_seam", facing=surf.normal(u))
+    # Randen: et smalt glødende bånd rundt foten.
+    for k in range(n):
+        a, b = at(k, 0), at(k + 1, 0)
+        cu, cv = rim[k % n]
+        du, dv = rim[(k + 1) % n]
+        o = 0.025
+        quad = [(a[0], a[1]), (b[0], b[1]), (b[0] + du * o, b[1] + dv * o), (a[0] + cu * o, a[1] + cv * o)]
+        m.poly([surf.point(p, q, 0.009) for p, q in quad], quad, "magic_vein", facing=surf.normal(u))
+
+
+SEAM_W = 0.05  # den glødende sømmen på det bredeste
+
+
+def seam(m, surf, u, v0, v1, seed, w=SEAM_W, blobs=2):
+    """En plastsøm som skjærer gjennom steinen (kanon: de magenta sømmene
+    fra kongens rammeverk): en ujevn sprekk opp langs muren med greiner,
+    svidd mørk stein langs kantene (`scorch`), magenta glød i midten
+    (`magic_vein`), og plast som buler ut av sprekken (`_blob`)."""
     import random
 
     rng = random.Random(seed)
-    pts = [(u, v0)]
-    v = v0
-    while v < v1:
-        v = min(v1, v + 0.18 + rng.random() * 0.22)
-        pts.append((u + (rng.random() - 0.5) * 0.5, v))
-    for (ua, va), (ub, vb) in zip(pts, pts[1:]):
-        L = math.hypot(ub - ua, vb - va)
-        nu, nv = -(vb - va) / L * w / 2, (ub - ua) / L * w / 2
-        quad = [(ua - nu, va - nv), (ub - nu, vb - nv), (ub + nu, vb + nv), (ua + nu, va + nv)]
-        m.poly([surf.point(a, b, 0.012) for a, b in quad], [(a, b) for a, b in quad], "magic_seam_dim", facing=surf.normal(u))
+    main, mw = _crack(rng, u, v0, (rng.random() - 0.5) * 0.4, v1 - v0, w)
+    cracks = [(main, mw)]
+    # Greinene: fra et punkt på sprekken, skrått ut til en side.
+    for _ in range(2 + rng.randrange(2)):
+        k = rng.randrange(1, max(2, len(main) - 2))
+        side = rng.choice((-1, 1))
+        bu, bv = main[k]
+        cracks.append(_crack(rng, bu, bv, side * (0.6 + rng.random() * 0.9), 0.25 + rng.random() * 0.6, mw[k] * 0.7, step=(0.08, 0.14)))
+        # Av og til en kvist på greina.
+        if rng.random() < 0.4:
+            bp, bw = cracks[-1]
+            j = len(bp) // 2
+            cracks.append(_crack(rng, *bp[j], side * (1.2 + rng.random() * 0.6), 0.12 + rng.random() * 0.2, bw[j] * 0.7, step=(0.06, 0.1)))
+    for pts, ws in cracks:
+        # Hold sprekken på muren (u i 0,1–3,1, over sokkelen).
+        pts[:] = [(min(2 * FACE - 0.1, max(0.1, a)), max(c_plinth() + 0.02, b)) for a, b in pts]
+        _strip(m, surf, pts, ws, 0.004, "scorch", scale=3.0, joints=False)
+        _strip(m, surf, pts, ws, 0.008, "magic_vein")
+    for _ in range(blobs):
+        k = rng.randrange(1, len(main) - 1)
+        bu, bv = main[k]
+        _blob(m, surf, rng, bu, bv, 0.07 + rng.random() * 0.1, 0.03 + rng.random() * 0.05)
+
+
+def c_plinth():
+    return _cells().PLINTH_H
 
 
 def vegg_som(far=False):
-    """Muren i kjernen: den vanlige halvkanten med tre sømmer som lyser
-    fiolett (plasten som brer seg i steinen)."""
+    """Muren i kjernen: den vanlige halvkanten med tre plastsømmer som
+    skjærer gjennom steinen (plasten som brer seg i muren)."""
     c = _cells()
     m = c.half("wall", far)
     surf = c.surf_face()
-    for k, (u, v0, v1) in enumerate(((0.7, 0.2, 3.4), (1.9, 1.1, 4.6), (2.7, 0.4, 2.2))):
-        seam(m, surf, u, v0, v1, seed=17 + 5 * k)
+    for k, (u, v0, v1, blobs) in enumerate(((0.75, 0.35, 3.3, 1), (2.0, 1.2, 4.5, 2), (2.75, 0.4, 2.1, 1))):
+        seam(m, surf, u, v0, v1, seed=17 + 5 * k, blobs=0 if far else blobs)
     return m
 
 
@@ -302,8 +398,13 @@ def galleri(far=False):
             if side == k:
                 holes.append(Polygon([(Q - c.ROT_GANG, y + WALL_FOOT - 0.01)] + [(Q + t * HALF, y + gang_h(t * HALF)) for t in ts] + [(Q + c.ROT_GANG, y + WALL_FOOT - 0.01)]))
         K.wall(m, surf, 2 * Q, WALL_FOOT, top, holes, mat="wall")
-        if not far and k in (1, 2):
-            K.plinth(m, surf, [(0.0, Q - c.ROT_GANG, 0.0), (Q + c.ROT_GANG, 2 * Q, 0.0)], h=c.PLINTH_H, proud=c.PLINTH_OUT)
+        if far:
+            continue
+        # Sokkelen langs foten: rundt gangene i sør og øst, hele nordmuren
+        # (gangen ut der går fra galleriet), og vestmuren på hver side av
+        # trappa (u = 0 i sørvest).
+        spans = {0: [(0.0, 2 * Q, 0.0)], 3: [(0.0, Q - G_FOOT, 0.0), (Q - G_EDGE, 2 * Q, 0.0)]}.get(k, [(0.0, Q - c.ROT_GANG, 0.0), (Q + c.ROT_GANG, 2 * Q, 0.0)])
+        K.plinth(m, surf, spans, h=c.PLINTH_H, proud=c.PLINTH_OUT)
     # Lysningen i gangene ut, med gulvet i nord (galleriet) og gangens hvelv.
     arc = K.ellipse_arclen(HALF, GANG_R, ts)
     for side, y in G_EXITS:
@@ -353,6 +454,14 @@ def galleri(far=False):
     for k in reversed(range(n)):
         outline += [((k + 1) * t, (k + 1) * r), (k * t, (k + 1) * r)]
     K.grid_face(m, side, Polygon(outline), "wall")
+    # Enden av trappa under galleriet er mur helt opp (eieren 20. oktober:
+    # «ikke la det være synlig åpent under trappen»): trappa er massiv.
+    end = K.Plane((x_in, G_EDGE), (-1.0, 0.0), (0.0, -1.0))
+    K.grid_face(m, end, sbox(0.0, WALL_FOOT, G_STAIR, G_UP - 0.42), "wall")
+    if not far:
+        # Sokkelen går videre langs trappemuren mot salen og rundt enden.
+        K.plinth(m, side, [(0.0, run, 0.0)], h=_cells().PLINTH_H, proud=_cells().PLINTH_OUT)
+        K.plinth(m, end, [(0.0, G_STAIR, 0.0)], h=_cells().PLINTH_H, proud=_cells().PLINTH_OUT)
     # Rekkverket: opp langs trappa og videre langs galleriets kant.
     # Langs trappa: stolper av hogd stein med en håndlist av eik; langs
     # galleriet en brystning.

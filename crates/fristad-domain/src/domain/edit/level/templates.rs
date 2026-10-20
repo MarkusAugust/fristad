@@ -4,8 +4,8 @@
 //! løsnes i ett nivå (`LevelOp::Detach`, `DocModule.hidden`).
 
 use super::{mm, mm3, Change, Entry, LevelEditor};
-use crate::domain::world::crypt::compose::CELL;
-use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, Thing};
+use crate::domain::world::crypt::compose::{modules, Compiler, Severity, CELL};
+use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, ModuleDef, Thing};
 use glam::Vec3;
 
 impl LevelEditor {
@@ -59,9 +59,8 @@ impl LevelEditor {
         lights.extend(ids.iter().filter_map(|id| self.doc.lights.iter().position(|l| &l.id == id)));
         lights.sort();
         lights.dedup();
-        let origin = mods.first().map(|m| m.at).or_else(|| {
-            things.first().and_then(|&k| self.doc.things[k].pos).map(|p| [(p[0] / CELL).round() as i32, p[1].round() as i32, (p[2] / CELL).round() as i32])
-        });
+        let origin =
+            mods.first().map(|m| m.at).or_else(|| things.first().and_then(|&k| self.doc.things[k].pos).map(|p| [(p[0] / CELL).round() as i32, p[1].round() as i32, (p[2] / CELL).round() as i32]));
         let o = origin.unwrap_or([0, 0, 0]);
         let d = Vec3::new(o[0] as f32 * CELL, o[1] as f32, o[2] as f32 * CELL);
         let shift = |p: [f32; 3]| mm3(Vec3::from(p) - d);
@@ -71,7 +70,14 @@ impl LevelEditor {
             .iter()
             .map(|&k| {
                 let t = &self.doc.things[k];
-                Thing { pos: t.pos.map(shift), patrol: t.patrol.iter().map(|p| shift(*p)).collect(), top: t.top.map(shift), bottom: t.bottom.map(shift), levels: t.levels.iter().map(|l| mm(l - d.y)).collect(), ..t.clone() }
+                Thing {
+                    pos: t.pos.map(shift),
+                    patrol: t.patrol.iter().map(|p| shift(*p)).collect(),
+                    top: t.top.map(shift),
+                    bottom: t.bottom.map(shift),
+                    levels: t.levels.iter().map(|l| mm(l - d.y)).collect(),
+                    ..t.clone()
+                }
             })
             .collect();
         doc.lights = lights.iter().map(|&k| DocLight { pos: shift(self.doc.lights[k].pos), ..self.doc.lights[k].clone() }).collect();
@@ -139,7 +145,15 @@ impl LevelEditor {
             let (r2, mirror2) = if mirror { ((rot + 4 - r) % 4, !m.mirror) } else { ((rot + r) % 4, m.mirror) };
             let id = rename(&m.id);
             let overrides = m.overrides.iter().map(|v| DocOverride { id: v.id.as_deref().map(rename), ..v.clone() }).collect();
-            let m2 = DocModule { id: id.clone(), at: [at[0] + x.round() as i32, at[1] + m.at[1], at[2] + z.round() as i32], rot: r2, mirror: mirror2, overrides, room: m.room.as_deref().map(rename), ..m.clone() };
+            let m2 = DocModule {
+                id: id.clone(),
+                at: [at[0] + x.round() as i32, at[1] + m.at[1], at[2] + z.round() as i32],
+                rot: r2,
+                mirror: mirror2,
+                overrides,
+                room: m.room.as_deref().map(rename),
+                ..m.clone()
+            };
             out.push(Change::Insert { index: self.doc.modules.len() + k, entry: Entry::Module(m2) });
             made.push(id);
         }
@@ -171,3 +185,60 @@ impl LevelEditor {
         (out, made)
     }
 }
+
+impl LevelEditor {
+    /// Utvalget `ids` som en ny modul eieren kan sette ut som de andre
+    /// (`docs/nivaaredigering.md` del 27; Ctrl+G er en mal, dette en modul):
+    /// modulene utvidet til cellene sine (`modules::flatten`), med kantene der
+    /// de møttes, rommene, innholdet, lysene og koblingene, flyttet så den
+    /// første modulen står i (0, 0, 0). Åpningene er de ytre sidene som ikke
+    /// er lukket, som i alle modulene. `slug` er filnavnet
+    /// (`assets/levels/moduler/<tema>/<slug>.json`).
+    pub fn as_module(&self, ids: &[String], name: &str, slug: &str) -> Result<ModuleDef, String> {
+        if slug.is_empty() || !slug.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+            return Err(format!("Navnet på fila «{slug}» kan bare ha små bokstaver a–z, tall og _"));
+        }
+        let tpl = self.template(ids, name);
+        let first = tpl.modules.first().ok_or("Velg minst én modul først")?;
+        let theme = if self.doc.theme.is_empty() { self.kit.module(&first.module).map(|m| m.theme.clone()).unwrap_or_else(|| "grav".into()) } else { self.doc.theme.clone() };
+        // I samme mappe som modulene den er laget av (settet, `grav/`).
+        let set = self.kit.module(&first.module).and_then(|m| m.id.split_once('/')).map(|(s, _)| s.to_string()).unwrap_or_else(|| theme.clone());
+        let id = format!("{set}/{slug}");
+        if self.kit.module(&id).is_some_and(|m| !m.about.starts_with(OWN)) {
+            return Err(format!("Modulen «{id}» finnes i byggesettet; velg et annet navn"));
+        }
+        let (flat, issues) = modules::flatten(&tpl, &self.kit);
+        if let Some(i) = issues.iter().find(|i| i.severity == Severity::Error) {
+            return Err(i.msg.clone());
+        }
+        let names: Vec<String> = tpl.modules.iter().map(|m| m.name.clone().or_else(|| self.kit.module(&m.module).map(|d| d.name.clone())).unwrap_or_else(|| m.id.clone())).collect();
+        Ok(ModuleDef {
+            id,
+            name: name.to_string(),
+            theme,
+            kind: "ferdig".into(),
+            about: format!("{OWN} {}.", names.join(", ")),
+            rooms: flat.rooms,
+            cells: flat.cells,
+            openings: vec![],
+            walls: vec![],
+            edges: flat.edges,
+            things: flat.things,
+            links: flat.links,
+            lights: flat.lights,
+        })
+    }
+
+    /// Ta en modul inn i byggesettet (eierens egen, lagret eller husket i
+    /// nettleseren): den står i paletten og kan settes ut som de andre. En
+    /// med samme id byttes ut.
+    pub fn add_module(&mut self, def: ModuleDef) {
+        self.kit.modules.retain(|m| m.id != def.id);
+        self.kit.modules.push(def);
+        self.compiler = Compiler::default();
+        self.rebuild();
+    }
+}
+
+/// Begynnelsen på beskrivelsen av eierens egne moduler (`as_module`).
+pub const OWN: &str = "Eierens modul, satt sammen av";

@@ -510,6 +510,8 @@ body:has(#panel:not([hidden])) .aimed {
   gap: var(--fs-spacing-4);
   padding-block: var(--fs-spacing-3);
 }
+.ware-main { display: flex; align-items: center; gap: var(--fs-spacing-3); min-width: 0; }
+.ware-ico { width: 2.75rem; height: 2.75rem; flex: none; object-fit: cover; border-radius: var(--fs-spacing-2); }
 .ware-text { display: grid; gap: 2px; min-width: 0; }
 .ware-name { font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text-strong); }
 .ware-price { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text); text-align: end; }

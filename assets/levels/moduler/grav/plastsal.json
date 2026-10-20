@@ -1,0 +1,26 @@
+{
+  "id": "grav/plastsal",
+  "name": "Plastsalen",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "En sal på 12 × 8 m der muren og gulvet har blitt plast, og fiolette krystaller vokser ut av sømmene.",
+  "rooms": [
+    {"id": "rom", "name": "Plastsalen", "theme": "kjerne", "mood": {"torches": 0.3}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0, "stone": "plast"},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0, "stone": "plast"},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0, "stone": "plast"},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0, "stone": "plast"},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "stone": "plast"},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0, "stone": "plast"}
+  ],
+  "things": [
+    {"id": "krystall1", "kind": "prop", "anchor": "celle:c00", "pos": [-1.0, 0, -1.0], "yaw": 30, "label": "kit_crystal", "size": [1.2, 1.5]},
+    {"id": "krystall2", "kind": "prop", "anchor": "celle:c21", "pos": [1.0, 0, 1.0], "yaw": 200, "label": "kit_crystal", "size": [1.2, 1.5]}
+  ],
+  "lights": [
+    {"id": "som1", "anchor": "celle:c00", "pos": [-1.0, 1.0, -1.0], "color": [0.7, 0.4, 1.0], "range": 7, "flicker": false},
+    {"id": "som2", "anchor": "celle:c21", "pos": [1.0, 1.0, 1.0], "color": [0.7, 0.4, 1.0], "range": 7, "flicker": false}
+  ]
+}

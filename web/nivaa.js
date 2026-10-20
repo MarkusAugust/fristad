@@ -30,6 +30,8 @@ const LAST = "fristad.nivaa.siste";
 // Malene eieren har lagret i denne nettleseren (navn → tekst), og de som
 // ikke er lagret på grenen ennå.
 const TEMPLATES = "fristad.nivaa.maler";
+// Eierens egne moduler (Ctrl+Shift+G): id → { path, text, pending }.
+const MODULES = "fristad.nivaa.moduler";
 const MARKS = "fristad.nivaa.kamera:";
 // Blob-sha-en til fila redigeringen begynte fra (repoet, grenen eller sist
 // lagret), per sti: konfliktsjekken før lagring.
@@ -215,7 +217,8 @@ async function boot() {
     canvas = fresh;
     engine = await start_level_editor(canvas, false, assets.manifest, assets.names, assets.blobs, models, first.text);
   }
-  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule, select, blank: level_blank };
+  loadOwnModules();
+  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule, select, blank: level_blank, saveModule };
   engine.set_quality(engine.backend() === "Gl" ? "enkel" : "standard");
   fit();
   new ResizeObserver(fit).observe(canvas);
@@ -340,7 +343,7 @@ async function save() {
     if (key) setToken(key.trim());
   }
   if (!token()) {
-    const url = URL.createObjectURL(makeZip([d, ...pendingTemplates()]));
+    const url = URL.createObjectURL(makeZip([d, ...pendingTemplates(), ...pendingModules()]));
     const a = document.createElement("a");
     a.href = url;
     a.download = d.path.split("/").pop().replace(".json", ".zip");
@@ -355,8 +358,10 @@ async function save() {
     const conflict = await checkConflict(d);
     if (conflict === "avbryt") return setStatus("");
     const tpls = pendingTemplates();
-    const r = await commit([d, ...tpls], `Nivåredigeringen: ${st.map.name || d.path}`);
+    const mods = pendingModules();
+    const r = await commit([d, ...tpls, ...mods], `Nivåredigeringen: ${st.map.name || d.path}`);
     clearPendingTemplates();
+    clearPendingModules();
     rememberBase(d.path, d.text);
     send({ cmd: "saved" });
     toast(r.unchanged ? "Ingenting nytt å lagre." : `Lagret på grenen ${SAVE_BRANCH}.`);
@@ -533,6 +538,64 @@ function saveTemplate() {
   toast(`Malen «${name}» er lagret. Lagre legger den på grenen sammen med nivået.`);
 }
 
+// ---------------------------------------------------------------- eierens moduler
+
+function localModules() {
+  try {
+    return JSON.parse(store.get(MODULES) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+/// Ctrl+Shift+G: det valgte som en ny modul (`LevelEditor::as_module`): den
+/// står i paletten med en gang (bildet mangler til `module_shots.py` har tatt
+/// det), huskes i nettleseren og legges i
+/// `assets/levels/moduler/<tema>/<navn>.json` neste gang du lagrer.
+function saveModule() {
+  if (!st.sel.some((id) => st.map.modules.some((m) => m.id === id))) return toast("Velg modulene som skal bli en ny modul først.");
+  const name = prompt("Navnet på modulen", "Ny modul");
+  if (!name) return;
+  const out = JSON.parse(engine.level_module(JSON.stringify(st.sel), name, slug(name)));
+  if (out.error) return toast(out.error, 6000);
+  const all = localModules();
+  all[out.id] = { path: out.path, text: out.text, pending: true };
+  store.set(MODULES, JSON.stringify(all));
+  palette = JSON.parse(out.palette);
+  buildPalette();
+  refresh(JSON.parse(engine.level_map()));
+  armModule(out.id);
+  toast(`Modulen «${name}» (${out.id}) står i paletten. Bildet mangler til module_shots.py har tatt det; Lagre legger fila på grenen.`, 7000);
+  return out;
+}
+
+/// Modulene eieren har laget før, inn i byggesettet (de som ikke er i repoet ennå).
+function loadOwnModules() {
+  let changed = false;
+  for (const [id, m] of Object.entries(localModules())) {
+    if (palette.modules.some((p) => p.id === id) && !m.pending) continue;
+    const out = JSON.parse(engine.level_add_module(m.text));
+    if (out.error) console.warn(id, out.error);
+    else {
+      palette = out;
+      changed = true;
+    }
+  }
+  if (changed) buildPalette();
+}
+
+function pendingModules() {
+  return Object.values(localModules())
+    .filter((m) => m.pending)
+    .map((m) => ({ path: m.path, text: m.text }));
+}
+
+function clearPendingModules() {
+  const all = localModules();
+  for (const m of Object.values(all)) delete m.pending;
+  store.set(MODULES, JSON.stringify(all));
+}
+
 let repoTemplates = {};
 async function loadTemplates() {
   try {
@@ -660,7 +723,8 @@ function buildPalette() {
       b.dataset.theme = theme;
       b.innerHTML = `<img alt="" loading="lazy" draggable="false" src="moduler/${theme}/${name}.jpg"><span>${m.name}</span>`;
       b.addEventListener("dragstart", (e) => e.preventDefault());
-      b.querySelector("img").onerror = (e) => (e.target.style.visibility = "hidden");
+      // Bildet fra `module_shots.py`; eierens nye moduler har ikke noe ennå.
+      b.querySelector("img").onerror = (e) => e.target.replaceWith(Object.assign(document.createElement("div"), { className: "noimg", textContent: "Bilde mangler" }));
       b.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         armModule(m.id);
@@ -670,6 +734,8 @@ function buildPalette() {
     }
     list.append(tiles);
   }
+  // Bygd før (en ny modul er lagt til): bare lista og filteret på nytt.
+  if ($("theme")) return $("theme").dispatchEvent(new Event("change"));
   // Temaet: modulene i nivåets tema (eller alle), så samme navn i flere
   // temaer ikke står om hverandre.
   const themes = [...new Set(palette.modules.map((m) => m.theme || m.id.split("/")[0]))];
@@ -1051,7 +1117,14 @@ function setFloor(y) {
   st.floor = y;
   $("floor").value = String(y);
   engine.level(JSON.stringify({ cmd: "floor", y }));
+  sendCut();
   redraw();
+}
+
+/// Snittet i 3D (S): alt over etasjen kartet viser kuttes bort
+/// (`LevelCommand::Cut`, `fs_clip`), så du ser inn i den under en annen.
+function sendCut() {
+  engine.level(JSON.stringify({ cmd: "cut", y: st.cut ? st.floor : null }));
 }
 
 // ---------------------------------------------------------------- 3D
@@ -1117,6 +1190,7 @@ function bindUi() {
   $("cut").onclick = () => {
     st.cut = !st.cut;
     $("cut").setAttribute("aria-pressed", st.cut);
+    sendCut();
     redraw();
   };
   $("v-map").onclick = () => setView("map");
@@ -1169,7 +1243,7 @@ function onKey(e) {
   }
   if (ctrl && e.code === "KeyG") {
     e.preventDefault();
-    return saveTemplate();
+    return e.shiftKey ? saveModule() : saveTemplate();
   }
   const digit = /^Digit([1-9])$/.exec(e.code)?.[1];
   if (digit && (ctrl || e.shiftKey)) {
@@ -1391,7 +1465,11 @@ function showSelection() {
       <button class="fs-button" data-variant="secondary" id="s-turn">Drei (R)</button>
       <button class="fs-button" data-variant="secondary" id="s-mirror">Speil (M)</button>
       <button class="fs-button" data-variant="secondary" id="s-copy">Kopier ved siden av</button>
+      <button class="fs-button" data-variant="secondary" id="s-tpl" title="Ctrl+G">Lagre som mal</button>
+      <button class="fs-button" data-variant="secondary" id="s-mod" title="Ctrl+Shift+G">Lagre som modul</button>
       <button class="fs-button" data-variant="danger" id="s-del">Slett</button></div>`;
+    box.querySelector("#s-tpl").onclick = saveTemplate;
+    box.querySelector("#s-mod").onclick = saveModule;
     box.querySelector("#s-turn").onclick = () => turnSelection(false);
     box.querySelector("#s-mirror").onclick = () => send({ op: "mirror", ids: st.sel });
     box.querySelector("#s-copy").onclick = () => (copy(), paste());
@@ -1612,25 +1690,63 @@ function showIssues() {
     li.className = i.severity;
     li.textContent = i.msg;
     li.title = `${i.rule}${i.at ? " · klikk for å gå dit" : ""}`;
-    if (i.at) {
-      li.onclick = () => {
-        const [x, y, z] = i.at;
-        const f = st.map.floors.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a), st.floor);
-        setFloor(f);
-        st.view.cx = x;
-        st.view.cz = z;
-        st.flash = i.at;
-        setTimeout(() => {
-          st.flash = null;
-          redraw();
-        }, 1500);
-        const h = hit(st.map, f, x, z, 1);
-        if (h?.type === "module" || h?.type === "thing") select([h.id]);
-        engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
-        redraw();
+    if (i.at) li.onclick = () => goTo(i.at);
+    // «Rett»: rettingen når den er entydig (`edit/level/fixes.rs`).
+    if (i.fix) {
+      const b = document.createElement("button");
+      b.className = "chip fix";
+      b.textContent = i.fix.label;
+      b.title = "Rett bruddet (Ctrl+Z angrer)";
+      b.onclick = (e) => {
+        e.stopPropagation();
+        applyFix(i);
       };
+      li.append(" ", b);
     }
     list.append(li);
+  }
+}
+
+/// Gå til et sted i kartet og 3D: etasjen, utsnittet, valget og et blink.
+function goTo(at, pick = true) {
+  const [x, y, z] = at;
+  const f = st.map.floors.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a), st.floor);
+  setFloor(f);
+  st.view.cx = x;
+  st.view.cz = z;
+  st.flash = at;
+  setTimeout(() => {
+    st.flash = null;
+    redraw();
+  }, 1500);
+  if (pick) {
+    const h = hit(st.map, f, x, z, 1);
+    if (h?.type === "module" || h?.type === "thing") select([h.id]);
+  }
+  engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
+  redraw();
+}
+
+/// Gjør rettingen til et brudd (`MapIssue.fix`).
+function applyFix(i) {
+  const f = i.fix;
+  if (f.do === "op") {
+    if (send(f.op)) toast(`Rettet: ${f.label.toLowerCase()} (Ctrl+Z angrer)`);
+  } else if (f.do === "focus") {
+    const t = st.map.things.find((t) => t.id === f.thing);
+    if (t && !t.own) send({ op: "detach", id: f.thing });
+    if (i.at) goTo(i.at, false);
+    select([f.thing]);
+    const el = $("props").querySelector(f.field === "text" ? "#t-text" : `#t-${f.field}`);
+    el?.focus();
+  } else if (f.do === "palette") {
+    armModule(f.module);
+    document.querySelector(`.tile[data-module="${CSS.escape(f.module)}"]`)?.scrollIntoView({ block: "nearest" });
+    toast("Bosshallen er valgt i paletten: sett den ut og flytt fienden dit");
+  } else if (f.do === "show") {
+    goTo(f.at, false);
+    select([f.module]);
+    toast("Den nærmeste åpningen: åpne den mot noe man kommer til");
   }
 }
 

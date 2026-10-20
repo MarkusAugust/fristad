@@ -31,6 +31,7 @@ mangler bilde, eller det er for mange.
 import datetime
 import glob
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -215,13 +216,17 @@ def models_3d(out, items):
         im = Image.open(src).convert("RGB")
         im.thumbnail((1024, 1024))
         im.save(os.path.join(texdir, f"{name}.jpg"), quality=86)
-        size = 2.0
+        size, mirror = 2.0, False
         try:
             with open(os.path.join(ROOT, "assets", "textures", name, "meta.json")) as f:
-                size = float(json.load(f).get("size_m", 2.0))
+                meta = json.load(f)
+            size = float(meta.get("size_m", 2.0))
+            mirror = bool(meta.get("mirror"))
         except (OSError, ValueError):
             pass
         layers[name] = {"url": f"tex/{name}.jpg", "size": size}
+        if mirror:
+            layers[name]["mirror"] = True  # speilvendt annenhver flis, som i spillet
     return layers, levels
 
 
@@ -229,21 +234,21 @@ def modules_3d(root, items, levels, used):
     """«Se i 3D» for modulene: hver modul med naboene sine slik de står i
     nivået `moduler` (`tools/crypt/module_shots.py`, `snapshot --dump-doc`),
     flyttet til origo, som instanser av bitene."""
-    # Ett galleri per tema (`moduler.json` for gravkjelleren, ellers
-    # `moduler_<tema>.json`): lyset følger høyst 64 rom per nivå.
-    gals = {}
+    # Galleriet står på flere sider (`moduler.json` er side 1, så
+    # `moduler_<n>.json`): lyset følger høyst 64 rom per nivå.
+    pages = []
+    for f in sorted(glob.glob(os.path.join(WORK, "moduler", "moduler*.json"))):
+        with open(f) as fh:
+            pages.append(json.load(fh))
 
-    def gallery(theme):
-        if theme not in gals:
-            src = os.path.join(WORK, "moduler", "moduler.json" if theme == "grav" else f"moduler_{theme}.json")
-            gals[theme] = json.load(open(src)) if os.path.exists(src) else None
-        return gals[theme]
+    def gallery(name):
+        return next((g for g in pages if any(m["id"] == name for m in g["doc"]["modules"])), None)
     urls = {}
     for it in items:
         if it["kind"] != "modul" or it["state"] != "venter":
             continue
         name = it["module"]
-        gal = gallery(it["name"].split("_", 1)[0])
+        gal = gallery(name)
         if gal is None:
             continue
         keep = [m for m in gal["doc"]["modules"] if m["id"] == name or m["id"].startswith(name + "_nabo")]
@@ -258,7 +263,7 @@ def modules_3d(root, items, levels, used):
         cx = sum(c["at"][0] for c in mine) / len(mine) * 4.0
         cz = sum(c["at"][2] for c in mine) / len(mine) * 4.0
         inst = []
-        for i in gal["instances"]:
+        for i in gal["instances"] + mark_instances(gal["marks"]):
             x, y, z = i["pos"]
             if lo[0] <= x <= hi[0] and lo[1] <= z <= hi[1]:
                 inst.append({**i, "pos": [x - cx, y, z - cz]})
@@ -266,7 +271,7 @@ def modules_3d(root, items, levels, used):
         for model in sorted({i["model"] for i in inst}):
             if model in urls:
                 continue
-            hits = glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", "*", f"{model}.glb"))
+            hits = glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", "*", f"{model}.glb")) or glob.glob(os.path.join(ROOT, "assets", "models", "**", f"{model}.glb"), recursive=True)
             if hits:
                 glb_to_json(hits[0], os.path.join(root, "kit", f"{model}.json"))
                 urls[model] = f"glb/kit/{model}.json"
@@ -278,6 +283,63 @@ def modules_3d(root, items, levels, used):
                 used |= set(i["stone"]["to"])
         levels[f"modul_{name}"] = {"models": {m: u for m, u in urls.items() if any(i["model"] == m for i in inst)}, "instances": [i for i in inst if i["model"] in urls]}
         it["level"] = f"modul_{name}"
+
+
+# Byggesettet motoren setter ut etter merkene (`crypt::Crypt::build`), så
+# «Se i 3D» viser porten, spaken, stigen, broa, heisen, kistene, vannet og
+# pynten i modulen (eieren 20. oktober: «ser ingen port i 3d-visningen»).
+MARK_MODELS = {"up": ["kit_up"], "down": ["kit_down"], "rest": ["kit_rest"], "lore": ["kit_lore"], "bonus": ["kit_bonus"], "hint": ["kit_crack"],
+               "gate": ["kit_gate"], "trapdoor": ["kit_trapdoor"], "trap": ["kit_plate"], "lift": ["kit_lift", "kit_winch"], "bridge": ["kit_bridge"]}
+
+
+def mark_instances(marks):
+    """Instansene for merkene (som i spillet, i hvile: portene nede, broa
+    nede, heisen oppe, kistene lukket)."""
+    out = []
+
+    def put(model, m, off=(0.0, 0.0, 0.0), scale=None):
+        yaw = m.get("yaw", 0.0)
+        c, s_ = math.cos(yaw), math.sin(yaw)
+        x, y, z = m["pos"]
+        i = {"model": model, "pos": [x + off[0] * c + off[2] * s_, y + off[1], z - off[0] * s_ + off[2] * c], "yaw": yaw}
+        if scale:
+            i["scale"] = list(scale)
+        out.append(i)
+    for m in marks:
+        if not m.get("pos"):
+            continue
+        kind = m["kind"]
+        if kind == "prop" and m.get("label"):
+            put(m["label"], m)
+        elif kind == "secret_wall" and m.get("label"):
+            put(m["label"], m)
+        elif kind in ("chest", "rare"):
+            put("chest", m)
+            put("chest_lid", m, (0.0, 0.46, -0.28))
+        elif kind == "lever":
+            put("kit_lever", m)
+            put("kit_lever_arm", m, (0.0, 0.56, 0.0))
+        elif kind == "shortcut":
+            put("kit_shortcut", m)
+            put("kit_shortcut_leaf", m, (-0.78, 0.0, 0.0))
+        elif kind == "ladder":
+            h = max(0.5, (m.get("top") or [0, m["pos"][1] + 3.0, 0])[1] - m["pos"][1])
+            n = max(1, round(h))
+            for k in range(n):
+                put("kit_ladder", m, (0.0, k * h / n, 0.0), (1.0, h / n, 1.0))
+            put("kit_ladder_top", m, (0.0, h, 0.0))
+        elif kind == "water":
+            w, d = (m.get("size") or [4.0, 4.0])[:2]
+            put("kit_water", m, scale=(w, 1.0, d))
+        elif kind == "gate":
+            put("kit_gate", m, scale=(m.get("width", 2.8) / 2.8, 1.0, 1.0))
+        elif kind == "bridge":
+            w, l = (m.get("size") or [3.6, 8.0])[:2]
+            put("kit_bridge", m, scale=(w / 3.6, 1.0, l / 8.0))
+        else:
+            for model in MARK_MODELS.get(kind, []):
+                put(model, m)
+    return out
 
 
 def version(path):
@@ -661,6 +723,19 @@ def build(out, render=True):
                     sheet(seen_b, after, os.path.join(img, f"{id_}.jpg"))
             item["img"] = f"img/{id_}.jpg" if os.path.exists(os.path.join(img, f"{id_}.jpg")) else None
         items.append(item)
+    # Modulkortene som er borte (kopiene per tema, eieren 20. oktober: «det
+    # holder med en modell»): dommene står, i «Utgår» med modulen som tar over.
+    cards = {n for _, k, n, _ in things() if k in ("modul", "samlet")}
+    for name, e in sorted(ap.get("modules", {}).items()):
+        if name in cards or name.startswith("mek_"):
+            continue
+        base = name.split("_", 1)[1] if "_" in name else name
+        items.append({
+            "id": f"u_{name}", "kind": "modul", "cat": "crypt", "name": name, "version": e.get("seen", ""), "state": "utgaar",
+            "about": f"Kopien per tema er borte: modulen er grav_{base}, og steinen velges i nivået." if os.path.exists(os.path.join(ROOT, "assets", "levels", "moduler", "grav", f"{base}.json")) else "Kopien per tema er borte: formen finnes i settet, og steinen velges i nivået.",
+            "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e},
+            "points": e.get("history") or ([e["why"]] if e.get("why") else []), "fixed": [], "path": None, "seen": e.get("seen"),
+        })
     save("approvals.json", ap)
     layers, levels = models_3d(out, items) if render else ({}, {})
     for it in items:

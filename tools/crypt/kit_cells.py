@@ -898,8 +898,12 @@ def build():
         for v in vs:
             vid, m, w = v[:3]
             d = {"id": vid, "model": m, "weight": w}
-            if len(v) > 3:
+            if len(v) > 3 and v[3] is not None:
                 d["solids"] = v[3]  # en variant med en annen form har egne kollidere
+            if len(v) > 4 and v[4]:
+                # Gravhellene: velges bare der gulvet er gravkjellerens
+                # (`Variant::own_floor`; aldri to gulv i ett rom).
+                d["own_floor"] = True
             out.append(d)
         return out
 
@@ -915,10 +919,10 @@ def build():
     cellseams = "cell"
     rf = model("grav_romfelt", romfelt, "cell", cellseams)
     rfb = model("grav_romfelt_b", lambda far: romfelt(far, b=True), "cell", cellseams)
-    cell("romfelt", rf, [OPEN] * 4, ROOM_CLEAR, mounts=FLOOR_SLOTS, var=variants(("a", rf, 3.0), ("b", rfb, 1.0)))
+    cell("romfelt", rf, [OPEN] * 4, ROOM_CLEAR, mounts=FLOOR_SLOTS, var=variants(("a", rf, 3.0), ("b", rfb, 1.0, None, True)))
     g = model("grav_gang", gang, "gang", cellseams)
     gb = model("grav_gang_b", lambda far: gang(far, b=True), "gang", cellseams)
-    gvar = variants(("a", g, 3.0), ("b", gb, 1.0))
+    gvar = variants(("a", g, 3.0), ("b", gb, 1.0, None, True))
     cell("gang", g, [GANG, CLOSED, GANG, CLOSED], GANG_CLEAR, var=gvar)
     cell("gang_blind", g, [GANG, CLOSED, CLOSED, CLOSED], GANG_CLEAR, var=gvar)
     gk = model("grav_gangkryss", gangkryss, "gangkryss", cellseams)

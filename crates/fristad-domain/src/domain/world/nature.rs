@@ -89,6 +89,20 @@ const BIRCH_LEAVES: &str = "tree_birch_leaves";
 /// Hvor langt ned i bakken stammen står (rota går ned i jorda).
 const BIRCH_SINK: f32 = 0.06;
 
+/// Det som følger med en ting satt ut i byen (`layout::apply_item`):
+/// bjørkestammen tar med seg kollideren og løvet sitt, så bjørka er én ting
+/// i redigeringen (eieren 20. oktober: «må jeg plassere trunk og leaves hver
+/// for seg?»), og løvet står ikke i katalogen (`data::category`).
+pub fn companions(b: &mut Builder, model: &str, t: Affine3A) {
+    if model == BIRCH_TRUNK {
+        b.place_solids(BIRCH_TRUNK, t);
+        b.place_mounted(BIRCH_LEAVES, t);
+    }
+}
+
+/// Modellene som bare kommer med en annen (`companions`).
+pub const COMPANIONS: &[&str] = &[BIRCH_LEAVES];
+
 /// Setter ut små klynger på 3–5 bjørker langs veiene og stiene, like hver
 /// gang (eget frø): 4,5–14 m fra veien, aldri på den, aldri innen 40 m fra portene, på tunene, kirkegården,
 /// ved portene eller nær noe som alt står der (steinene, gårdene). Hvert tre
@@ -149,8 +163,7 @@ pub fn birches(b: &mut Builder) {
             let (yaw, scale) = (rng.range(0.0, std::f32::consts::TAU), rng.range(0.85, 1.12));
             let t = Affine3A::from_translation(Vec3::new(p.x, ground - BIRCH_SINK, p.y)) * Affine3A::from_rotation_y(yaw) * Affine3A::from_scale(Vec3::splat(scale));
             b.place(BIRCH_TRUNK, t);
-            b.place_solids(BIRCH_TRUNK, t);
-            b.place_mounted(BIRCH_LEAVES, t);
+            companions(b, BIRCH_TRUNK, t);
             placed.push(p);
             n += 1;
         }

@@ -116,7 +116,7 @@ const wares = [
   { id: "label", name: "Label", price: 20 },
   { id: "oil", name: "Lampeolje (full lykt)", price: 6 },
   { id: "potion", name: "Helsedrikk", price: 15 },
-  { id: "potion2", name: "Stor helsedrikk", price: 40 },
+  { id: "big_potion", name: "Fullt liv", price: 22 },
   { id: "bandage", name: "Bind", price: 4 },
   { id: "whet", name: "Brynestein", price: 10 },
   { id: "rope", name: "Tau", price: 5 },

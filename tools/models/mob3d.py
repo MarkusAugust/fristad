@@ -79,7 +79,7 @@ MOBS = {
     # Bare de rosa sømmene og visiret gløder, ikke de fiolette skjoldene
     # (`glow_thin`: baksida av skjoldene er malt i samme farge, men er brede
     # flater).
-    "navbar": dict(glow=((300.0, 20.0),), glow_thin=24, height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="navbar", attack="fist", extra=("slam", "roar"),
+    "navbar": dict(glow=((300.0, 20.0),), glow_thin=24, height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="navbar", attack="sweep", extra=("slam", "roar"),
                    joints=dict(hip=0.35, knee=0.19, ankle=0.06, chest=0.57, neck=0.77, head=0.83, shoulder=0.69, elbow=0.52, wrist=0.43, tip=0.31,
                                arm=0.27, leg=0.04, shoulder_in=0.15, leg_back=-0.08, leg_out=0.22),
                    # Bjelken med skjoldene (bak skuldrene, x under 0: ellers tok
@@ -108,7 +108,11 @@ MOBS = {
                                     arm=0.27, leg=0.03, shoulder_in=0.11, leg_out=0.25)),
     # Breadcrumb-bueskytteren (nivå 7–8): 1,6 m. Buen og koggeret på ryggen
     # følger brystet, ikke armene.
-    "breadcrumb_archer": dict(height=1.6, size=2048, tris=14000, voxel=0.004, thick=0.005, style="archer", attack="shoot", extra=(),
+    # Buen holdes i venstre hånd (`bow`: modellen `bow` fra bow.py etter
+    # beinet «bow», `bow_bone`); den på ryggen står som reservebue (den er
+    # grodd inn i skallet: skåret bort sto undersida igjen som en flat bue,
+    # og presset inn synes omrisset over skulderen).
+    "breadcrumb_archer": dict(height=1.6, size=2048, tris=14000, voxel=0.004, thick=0.005, style="archer", attack="shoot", extra=(), bow=True,
                               joints=dict(hip=0.3, knee=0.17, ankle=0.04, chest=0.57, neck=0.75, head=0.82, shoulder=0.72, elbow=0.55, wrist=0.4, tip=0.3,
                                           arm=0.19, leg=0.02, shoulder_in=0.11, leg_out=0.2),
                               rigid=[dict(bone="chest", seed=dict(x=(-1.0, -0.09), z=(0.4, 1.0)), within=dict(x=(-1.0, -0.06), z=(0.4, 1.0)),
@@ -490,6 +494,40 @@ def torso_guard(ob, arm, spec):
 
 TORSO_MARGIN = 0.02  # innenfor skulderleddet (brøk av høyden)
 TORSO_FADE = 0.05  # armvekten tones inn over så langt utover
+
+
+def bow_bone(arm, spec):
+    """Beinet «bow» (former ikke kroppen) på venstre hånd, med buens rom
+    (`bow.py`: grepet i origo, lemmene langs z, buken mot x): grepet midt i
+    hånda, buken langs hånda (fram når hånda peker fram i skuddet,
+    `attack_shoot`) og lemmene fram og tilbake i hvile, så buen står
+    loddrett i skuddet. Spillet setter modellen `bow` etter det
+    (`mob_rigs::HELD`)."""
+    from mathutils import Matrix
+
+    if not spec.get("bow"):
+        return
+    hand = arm.data.bones["hand.L"]
+    w, tip = Vector(hand.head_local), Vector(hand.tail_local)
+    x = (tip - w).normalized()
+    z = Vector((1.0, 0.0, 0.0))
+    z = (z - x * z.dot(x)).normalized()
+    y = z.cross(x)
+    R = Matrix((x, y, z)).transposed()
+    origin = w + (tip - w) * BOW_GRIP
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    b = arm.data.edit_bones.new("bow")
+    b.head = origin
+    b.tail = origin + y * 0.1
+    b.matrix = Matrix.Translation(origin) @ R.to_4x4()
+    b.parent = arm.data.edit_bones["hand.L"]
+    b.use_deform = False
+    bpy.ops.object.mode_set(mode="OBJECT")
+    print("buen:", tuple(round(c, 3) for c in origin), "lemmene", tuple(round(c, 2) for c in z))
+
+
+BOW_GRIP = 0.45  # grepet så langt ut i hånda (brøk fra håndleddet)
 
 
 def tethers(ob, arm, spec):
@@ -904,6 +942,7 @@ def build(name, size=None):
         torso_guard(ob, arm, spec)
         rigid_parts(ob, arm, spec)
         tethers(ob, arm, spec)
+        bow_bone(arm, spec)
         mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()))
     print(name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False, data_size=min(DATA_SIZE, size))

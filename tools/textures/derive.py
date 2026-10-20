@@ -2,7 +2,7 @@
 bildegenerator eller et foto), så et enkelt bilde blir et fullt teksturlag.
 
     python3 tools/textures/derive.py <lag> <bilde> [--size-m 2.0] [--rough 0.8] [--depth 1.0] [--invert]
-        [--keystone 0.3] [--crop] [--seamless] [--flatten] [--even]
+        [--keystone 0.3] [--crop] [--seamless] [--flatten] [--even] [--mirror] [--trim 0.07]
 
 Skriver assets/textures/<lag>/albedo.jpg, normal.jpg, height.jpg,
 rough.jpg og meta.json (meter per flis). Alt regnes med omslag i kantene,
@@ -15,7 +15,14 @@ strekke det, og `--seamless` blander inn en kopi forskjøvet en halv flis
 langs kantene så bildet møtes uten søm. `--flatten` glatter ut store folder
 (stoff) og beholder den fine strukturen. `--even` jevner ut lysheten rad for
 rad og kolonne for kolonne og deler bort de store flekkene (bilder som er
-lysere øverst enn nederst blir ellers stripete når de gjentas). Lagnavnene er de i
+lysere øverst enn nederst blir ellers stripete når de gjentas). `--mirror`
+er for bilder som bare kan flislegges speilvendt annenhver gang (kjernens
+stein og plast, eieren 20. oktober: «lar seg dessverre ikke tile med mindre
+du speilvender annenhver»): høyden, normalen og ruheten regnes med
+speilede kanter, og `mirror` i meta.json ber rendereren speile annenhver
+flis (`sample_plane` i `world.wgsl`). `--trim T` skjærer bort T av bildet
+nederst og til høyre (en utvisket kant fra en tidligere sømløs-blanding).
+Lagnavnene er de i
 `Layer::name` (cobble, plaster, oak, tiles, stone, cladding …)."""
 
 import json
@@ -118,8 +125,13 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     img = Image.open(src).convert("RGB")
-    if any(f in args for f in ("--keystone", "--crop", "--seamless", "--flatten", "--even")):
+    mirror = "--mirror" in args
+    if any(f in args for f in ("--keystone", "--crop", "--seamless", "--flatten", "--even", "--trim")):
         a = np.asarray(img, dtype=np.float32)
+        if "--trim" in args:
+            t = opt("--trim", 0.07)
+            h0, w0 = a.shape[:2]
+            a = a[:int(round(h0 * (1 - t))), :int(round(w0 * (1 - t)))]
         if "--keystone" in args:
             a = keystone(a, opt("--keystone", 0.3))
         if "--crop" in args:
@@ -140,6 +152,9 @@ def main():
     img = img.resize((SIZE, SIZE), Image.LANCZOS)
     img.save(f"{out}/albedo.jpg", quality=90)
     rgb = np.asarray(img, dtype=np.float32) / 255.0
+    if mirror:
+        # Speilet 2 × 2: omslaget i uskarpheten og normalen blir speilede kanter.
+        rgb = np.concatenate([np.concatenate([rgb, rgb[:, ::-1]], 1), np.concatenate([rgb[::-1], rgb[::-1, ::-1]], 1)], 0)
     lum = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
     if invert:
         # Lyse fuger blir lave, men de dypeste sprekkene (mørkest i bildet)
@@ -152,7 +167,7 @@ def main():
     h = blur(h, 1.2)
     lo, hi = np.percentile(h, 1), np.percentile(h, 99)
     h = np.clip((h - lo) / max(hi - lo, 1e-4), 0, 1)
-    Image.fromarray((h * 255).astype(np.uint8)).save(f"{out}/height.jpg", quality=92)
+    Image.fromarray((h[:SIZE, :SIZE] * 255).astype(np.uint8)).save(f"{out}/height.jpg", quality=92)
 
     # Normalen fra høyden (OpenGL-konvensjon, grønt opp), med omslag.
     strength = 6.0 * depth
@@ -161,14 +176,17 @@ def main():
     nx, ny, nz = -dx * strength, dy * strength, np.ones_like(h)
     length = np.sqrt(nx * nx + ny * ny + nz * nz)
     n = np.stack([nx / length, ny / length, nz / length], axis=-1)
-    Image.fromarray(((n * 0.5 + 0.5) * 255).astype(np.uint8)).save(f"{out}/normal.jpg", quality=92)
+    Image.fromarray(((n[:SIZE, :SIZE] * 0.5 + 0.5) * 255).astype(np.uint8)).save(f"{out}/normal.jpg", quality=92)
 
     # Ruheten: grunnverdien, glattere på toppene som slites, ruere i fugene.
     r = np.clip(rough_base + (0.5 - h) * 0.2 + (lum - lum.mean()) * -0.1, 0.05, 1.0)
-    Image.fromarray((r * 255).astype(np.uint8)).save(f"{out}/rough.jpg", quality=92)
+    Image.fromarray((r[:SIZE, :SIZE] * 255).astype(np.uint8)).save(f"{out}/rough.jpg", quality=92)
 
+    meta = {"size_m": size_m, "source": os.path.basename(src)}
+    if mirror:
+        meta["mirror"] = True
     with open(f"{out}/meta.json", "w") as f:
-        json.dump({"size_m": size_m, "source": os.path.basename(src)}, f)
+        json.dump(meta, f)
     print(f"{out}: albedo, normal, høyde, ruhet ({size_m} m per flis)")
 
 

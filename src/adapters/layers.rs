@@ -21,6 +21,9 @@ struct Manifest {
 struct Entry {
     #[serde(default = "two")]
     size_m: f32,
+    /// Flisene speilvendes annenhver gang (`derive.py --mirror`).
+    #[serde(default)]
+    mirror: bool,
     diffuse: Option<String>,
     normal: Option<String>,
     rough: Option<String>,
@@ -62,7 +65,7 @@ pub fn from_files(manifest_json: &str, files: &HashMap<String, Vec<u8>>) -> Vec<
     for layer in Layer::ALL {
         let Some(e) = m.textures.get(layer.name()) else { continue };
         let Some(diffuse) = image(&e.diffuse) else { continue };
-        out.push((layer, LayerImages { diffuse, normal: image(&e.normal), rough: image(&e.rough), height: image(&e.height), ao: image(&e.ao), size_m: e.size_m }));
+        out.push((layer, LayerImages { diffuse, normal: image(&e.normal), rough: image(&e.rough), height: image(&e.height), ao: image(&e.ao), size_m: e.size_m, mirror: e.mirror }));
     }
     log::info!("Teksturlag: {}", out.iter().map(|(l, _)| l.name()).collect::<Vec<_>>().join(", "));
     out

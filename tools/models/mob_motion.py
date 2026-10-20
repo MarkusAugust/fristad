@@ -223,8 +223,8 @@ STYLES = {
     # Navbaren (mob3d.py): en tung ridderkonge i plate som skrider rak i
     # ryggen, med lange, rolige skritt og armene nesten stille (åket med
     # skjoldene ligger over skuldrene).
-    "navbar": dict(frames=28, v0=0.6, duty=0.66, lift=0.1, width=0.24, hunch=4, arm=10, sway=0.05, bob=0.03, tail=0, twitch=False, hips_yaw=5, idle=64, heavy=True,
-                   roar_arms=0.45, swell=0.04, fist_bend=70.0, fist_sink=-0.38),
+    "navbar": dict(frames=28, v0=0.6, duty=0.66, lift=0.1, width=0.24, hunch=4, arm=3, swing_out=8, arm_out=-4, sway=0.05, bob=0.03, tail=0, twitch=False, hips_yaw=5, idle=64, heavy=True,
+                   roar_arms=0.45, swell=0.04, arms_up=0.35),
     # Tvillingvokteren: stiv og ujevn. Steinsida (høyre) er tung og synker
     # når foten setter seg (`heavy_side`), plastsida (venstre) går stivt og
     # rykkete i trinn (`stiff`).
@@ -243,8 +243,10 @@ STYLES = {
     # Progress-formannen: tung, bred gruvearbeider.
     "foreman": dict(frames=20, v0=1.4, duty=0.64, lift=0.09, width=0.24, hunch=14, arm=12, sway=0.07, bob=0.04, tail=0, twitch=False, hips_yaw=6, idle=60, heavy=True,
                     roar_arms=0.5, swell=0.03, arms_up=0.65),
-    # Kortknekten: kort og stiv, vagger fra side til side.
-    "squire": dict(frames=16, v0=1.7, duty=0.6, lift=0.07, width=0.15, hunch=0, arm=8, sway=0.08, bob=0.02, tail=0, twitch=False, hips_yaw=3, idle=48, roll=9),
+    # Kortknekten: kort og stiv, vagger fra side til side. Korte, raske
+    # tasseskritt med lave føtter: knærne står like under kortplata og kom
+    # ut gjennom den med lange skritt (eieren 20. oktober).
+    "squire": dict(frames=10, v0=1.7, duty=0.6, lift=0.035, width=0.15, hunch=0, arm=8, sway=0.08, bob=0.015, tail=0, twitch=False, hips_yaw=3, idle=48, roll=9),
     "framework": dict(frames=16, v0=0.7, duty=0.65, lift=0.1, width=0.35, hunch=6, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True,
                       slam_sink=0.1, slam_lean=22),
 }
@@ -275,8 +277,8 @@ def base_pose(body, st, spec, crouch=0.0):
         "neck": (0, -h * 0.35, 0),
         "head": (0, -h * 0.55 - 18 * tilt, 0),
         "jaw": (0, 12, 0),
-        "upper_arm.L": (14, -8, 0),
-        "upper_arm.R": (-14, -8, 0),
+        "upper_arm.L": (st.get("arm_out", 14), -8, 0),
+        "upper_arm.R": (-st.get("arm_out", 14), -8, 0),
         "forearm.L": (0, -18, 0),
         "forearm.R": (0, -18, 0),
         "tail1": (0, 8, 0),
@@ -724,6 +726,41 @@ def attack_fist(c, body, st):
         body.key(c, f, spec)
 
 
+def attack_sweep(c, body, st):
+    """Feiet (Navbaren; eieren 20. oktober: «angrepet kan være mer en
+    rotasjon med armen ut enn et slag ovenfra og ned»): høyre arm føres ut
+    til sida og bakover i skulderhøyde (varselet), kroppen vris med, og
+    armen feier rundt og fram foran ham med et skritt med venstre fot ved
+    bilde 22, som `attack_fist`. Armen holdes under åket hele veien."""
+    T = 36
+    crouch = -0.03 - (0.06 if st.get("heavy") else 0.0)
+    # Armen løftes ut til sida (om fram-aksen, x) og feies vannrett rundt
+    # (om opp-aksen, z: bakover i varselet, fram i treffet).
+    out = curve([(0, 0.0), (14, 44.0), (20, 46.0), (22, 42.0), (28, 38.0), (36, 0.0)])
+    swing = curve([(0, 0.0), (14, -34.0), (20, -38.0), (22, 62.0), (28, 56.0), (36, 0.0)])
+    elbow = curve([(0, 0.0), (14, -28.0), (20, -30.0), (22, -8.0), (28, -10.0), (36, 0.0)])
+    twist = curve([(0, 0.0), (14, 26.0), (20, 28.0), (22, -30.0), (28, -26.0), (36, 0.0)])
+    spine = curve([(0, 0.0), (14, -6.0), (20, -6.0), (22, 12.0), (28, 10.0), (36, 0.0)])
+    root_x = curve([(0, 0.0), (14, -0.06), (20, -0.06), (22, 0.16), (28, 0.14), (36, 0.0)])
+    sink = curve([(0, 0.0), (14, 0.02), (20, 0.03), (22, -0.08), (28, -0.06), (36, 0.0)])
+    head = curve([(0, 0.0), (14, -6.0), (22, 8.0), (36, 0.0)])
+    step = curve([(0, 0.0), (16, 0.0), (22, 0.3), (30, 0.3), (36, 0.0)])
+    lift = curve([(0, 0.0), (16, 0.0), (19, 0.1), (22, 0.0), (30, 0.0), (33, 0.06), (36, 0.0)])
+    for f in range(T + 1):
+        spec = base_pose(body, st, Spec(), crouch)
+        tremble = 2.0 * math.sin(f * 2.9) if 12 <= f <= 20 else 0
+        spec.root = Vector((root_x(f), 0.0, crouch + sink(f)))
+        xl, yl, zl, _ = spec.feet["L"]
+        spec.feet["L"] = (xl + step(f), yl, zl + lift(f), 0)
+        add(spec, "hips", y=spine(f) * 0.35, z=twist(f) * 0.4)
+        add(spec, "chest", y=spine(f) * 0.65, x=tremble, z=twist(f) * 0.6)
+        add(spec, "head", y=head(f), z=-twist(f) * 0.5)
+        add(spec, "upper_arm.L", x=10 * min(1.0, f / 14))
+        add(spec, "upper_arm.R", x=-out(f), z=swing(f))
+        add(spec, "forearm.R", y=elbow(f))
+        body.key(c, f, spec)
+
+
 def attack_shoot(c, body, st):
     """Skuddet (bueskytteren): venstre arm strekkes fram som om den holder
     buen, høyre hånd trekkes bak til haka (varselet, bilde 0–13), og slippes
@@ -837,7 +874,7 @@ def attack_staff(c, body, st):
         body.key(c, f, spec)
 
 
-ATTACKS = {"shoot": (attack_shoot, 30), "fist": (attack_fist, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
+ATTACKS = {"shoot": (attack_shoot, 30), "fist": (attack_fist, 36), "sweep": (attack_sweep, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
 
 
 def make_clips(Clip, arm, bones, style, attack, extra=()):

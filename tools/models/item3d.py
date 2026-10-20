@@ -76,6 +76,11 @@ ITEMS = {
     # står med hanken (og krona) opp og skjegget ned, slik den svever og
     # snurrer der den ligger (`Mobs::instances`). 0,15 m lang.
     "key": dict(src="key", out="assets/models/props/key.glb", height=0.15, roll=90.0, yaw=0.0, tris=3000, voxel=0.0008, size=1024),
+    # Helsedrikken (eieren 20. oktober, `trellis-gjenstander.md` nr. 2):
+    # grønn glassflaske med rødt innhold, voksforseglet kork, tau og en blank
+    # lapp. TRELLIS satte den rett opp; 0,18 m høy. Glasset er malt inn i
+    # TRELLIS-teksturen (ett materiale, ikke gjennomsiktig).
+    "potion": dict(src="potion", out="assets/models/furniture/potion.glb", height=0.18, yaw=0.0, tris=2500, voxel=0.001, size=1024),
     # Steinene på enga (eieren 19. oktober, `docs/prompter/natur.md` nr. 6
     # og 7): den store steinen (1,3 m høy, rundt 2 × 2,4 m) ved veiene og på
     # åsene, og gruppa på fem (den største 0,85 m) spredt på enga. De står

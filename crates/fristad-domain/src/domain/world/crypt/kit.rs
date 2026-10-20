@@ -28,6 +28,10 @@ pub struct KitDef {
     pub stones: super::stone::StoneFile,
 }
 
+/// Mappa med modulsettet (`assets/levels/moduler/grav/`): én modul per
+/// form, og steinen velges i nivået (`crypt::stone`).
+pub const MODULE_SET: &str = "grav";
+
 /// Ett manifest (`<tema>.json`).
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct KitFile {
@@ -71,8 +75,16 @@ impl KitDef {
         }
     }
 
+    /// Modulen `id`. Det er ett sett moduler (eieren 20. oktober: «det
+    /// holder med en modell, og så må jeg kunne kle flatene i den teksturen
+    /// jeg vil ha»), i `grav/`; de gamle kopiene per tema (`kloakk/rom_2x2`,
+    /// `borg/tronsal`) leses som modulen med samme navn der (`MODULE_SET`).
     pub fn module(&self, id: &str) -> Option<&super::doc::ModuleDef> {
-        self.modules.iter().find(|m| m.id == id)
+        self.modules.iter().find(|m| m.id == id).or_else(|| {
+            let (_, name) = id.split_once('/')?;
+            let alias = format!("{MODULE_SET}/{name}");
+            self.modules.iter().find(|m| m.id == alias)
+        })
     }
 
     pub fn piece(&self, id: &str) -> Option<&KitPiece> {
@@ -137,6 +149,11 @@ pub struct Variant {
     /// Kolliderne når varianten har en annen form (nisjer), ellers bitens.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub solids: Option<Vec<ColliderDef>>,
+    /// Varianten har sitt eget gulvmønster (gravhellene, `grave_slab`), som
+    /// bare passer gulvet biten er laget med: den velges aldri der gulvet
+    /// byttes (eieren 20. oktober: «ikke bland ulike teksturer på gulvet»).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub own_floor: bool,
 }
 
 fn one() -> f32 {
@@ -249,23 +266,33 @@ impl KitPiece {
 
     /// Modellen og kolliderne for et utseende (som `model_for`).
     pub fn pick(&self, locked: Option<&str>, roll: f32) -> (&str, &[ColliderDef]) {
+        self.pick_where(locked, roll, |_| true)
+    }
+
+    /// Som `pick`, men bare blant variantene `ok` slipper gjennom (også en
+    /// låst variant): gravhellene der gulvet byttes, nisjene i en trapp.
+    /// Slipper `ok` ingen gjennom, er det den første som passer, ellers bitens.
+    pub fn pick_where(&self, locked: Option<&str>, roll: f32, ok: impl Fn(&Variant) -> bool) -> (&str, &[ColliderDef]) {
         fn of<'a>(v: &'a Variant, own: &'a [ColliderDef]) -> (&'a str, &'a [ColliderDef]) {
             (v.model.as_str(), v.solids.as_deref().unwrap_or(own))
         }
         if self.variants.is_empty() {
             return (&self.model, &self.solids);
         }
-        if let Some(v) = locked.and_then(|id| self.variants.iter().find(|v| v.id == id)) {
+        if let Some(v) = locked.and_then(|id| self.variants.iter().find(|v| v.id == id)).filter(|v| ok(v)) {
             return of(v, &self.solids);
         }
-        let total: f32 = self.variants.iter().map(|v| v.weight.max(0.0)).sum();
+        let total: f32 = self.variants.iter().filter(|v| ok(v)).map(|v| v.weight.max(0.0)).sum();
+        if total <= 0.0 {
+            return self.variants.iter().find(|v| ok(v)).map(|v| of(v, &self.solids)).unwrap_or((&self.model, &self.solids));
+        }
         let mut at = roll * total;
-        for v in &self.variants {
+        for v in self.variants.iter().filter(|v| ok(v)) {
             at -= v.weight.max(0.0);
             if at < 0.0 {
                 return of(v, &self.solids);
             }
         }
-        self.variants.last().map(|v| of(v, &self.solids)).unwrap_or((&self.model, &self.solids))
+        self.variants.iter().filter(|v| ok(v)).last().map(|v| of(v, &self.solids)).unwrap_or((&self.model, &self.solids))
     }
 }

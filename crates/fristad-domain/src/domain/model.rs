@@ -114,6 +114,9 @@ pub struct LayerImages {
     pub ao: Option<Image>,
     /// Hvor mange meter én flis dekker.
     pub size_m: f32,
+    /// Flisene speilvendes annenhver gang (bilder som bare møtes speilet:
+    /// kjernens stein og plast, `derive.py --mirror`).
+    pub mirror: bool,
 }
 
 /// Det byen trenger å vite om en modell før den bygges: at den finnes, og

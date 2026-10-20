@@ -209,6 +209,63 @@ pub fn rooms(file: &LevelFile) -> Vec<Issue> {
         .collect()
 }
 
+/// Om (x, z) er inne i polygonet.
+fn inside(poly: &[[f32; 2]], x: f32, z: f32) -> bool {
+    let mut c = false;
+    for k in 0..poly.len() {
+        let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
+        if (a[1] > z) != (b[1] > z) && x < a[0] + (z - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) {
+            c = !c;
+        }
+    }
+    c
+}
+
+/// Aldri blandet gulv i ett rom (eieren 20. oktober: «ikke bland ulike
+/// teksturer på gulvet»): cellene i et rom har samme gulvlag, og en variant
+/// med gravheller (`own_floor`) står bare på gulvet biten er laget med.
+/// Gulvlaget er steinbyttet på instansen, ellers temaets standardstein.
+pub fn floor_mix(file: &LevelFile, kit: &KitDef) -> Vec<Issue> {
+    let mut out = vec![];
+    let mut floors: Vec<(usize, String, [f32; 3])> = vec![];
+    for inst in &file.instances {
+        let Some((p, v)) = kit.listed().filter(|p| p.kind == PieceKind::Cell).find_map(|p| {
+            if p.model == inst.model {
+                Some((p, None))
+            } else {
+                p.variants.iter().find(|v| v.model == inst.model).map(|v| (p, Some(v)))
+            }
+        }) else {
+            continue;
+        };
+        let Some(base) = kit.stones.base(&p.theme) else { continue };
+        let floor = inst.stone.as_ref().map(|s| s.to[0].clone()).unwrap_or(base.floor.clone());
+        if v.is_some_and(|v| v.own_floor) && floor != base.floor {
+            out.push(Issue { severity: Severity::Error, rule: "gulv", at: Some(inst.pos), msg: format!("{} har gravheller på gulvet {floor}", inst.model) });
+        }
+        let at = inst.pos;
+        if let Some(r) = file.rooms.iter().position(|r| (at[1] - r.y).abs() < 1.5 && inside(&r.poly, at[0], at[2])) {
+            floors.push((r, floor, at));
+        }
+    }
+    let mut seen: HashMap<usize, String> = HashMap::new();
+    for (r, floor, at) in floors {
+        match seen.get(&r) {
+            Some(f) if *f != floor => {
+                let room = &file.rooms[r];
+                out.push(Issue { severity: Severity::Warning, rule: "gulv", at: Some(at), msg: format!("rommet {} har to gulv ({f} og {floor})", if room.name.is_empty() { &room.id } else { &room.name }) });
+            }
+            Some(_) => {}
+            None => {
+                seen.insert(r, floor);
+            }
+        }
+    }
+    out.sort_by(|a, b| a.msg.cmp(&b.msg));
+    out.dedup_by(|a, b| a.msg == b.msg);
+    out
+}
+
 /// Høyden en fiende trenger: modellene er rundt 2 m ved skala 1
 /// (`Kind::stats().scale`; Navbaren og Dropdownen er 5 m, Rammeverket 4–5 m),
 /// og 0,5 m over hodet til slaget.
@@ -220,16 +277,6 @@ pub fn mob_height(label: &str) -> f32 {
 /// hjelmen til bossen gikk opp i kuppelen): takhøyden i rommet de står i
 /// (`RoomDef.h`) er minst `mob_height`. Bossene trenger bosshallen.
 pub fn headroom(file: &LevelFile) -> Vec<Issue> {
-    let inside = |poly: &[[f32; 2]], x: f32, z: f32| {
-        let mut c = false;
-        for k in 0..poly.len() {
-            let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
-            if (a[1] > z) != (b[1] > z) && x < a[0] + (z - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) {
-                c = !c;
-            }
-        }
-        c
-    };
     let mut out = vec![];
     for m in file.marks.iter().filter(|m| matches!(m.kind.as_str(), "mob" | "elite" | "boss")) {
         let Some(p) = m.pos else { continue };

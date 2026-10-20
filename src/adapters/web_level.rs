@@ -54,7 +54,15 @@ fn parse_doc(json: &str) -> Result<LevelDoc, String> {
 /// Start motoren i nivåredigeringen med dokumentet `doc` (json; uten: et
 /// nytt nivå 1). Som `start`, med alle modellene.
 #[wasm_bindgen]
-pub async fn start_level_editor(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array, doc: Option<String>) -> Result<Engine, JsValue> {
+pub async fn start_level_editor(
+    canvas: web_sys::HtmlCanvasElement,
+    webgpu: bool,
+    manifest_json: Option<String>,
+    names: js_sys::Array,
+    blobs: js_sys::Array,
+    models: js_sys::Array,
+    doc: Option<String>,
+) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -114,6 +122,7 @@ enum LevelJson {
     Select { ids: Vec<String> },
     Light { work: bool },
     Floor { y: f32 },
+    Cut { y: Option<f32> },
     Place { x: f32, y: f32, z: f32, yaw: f32, pitch: f32 },
 }
 
@@ -144,6 +153,7 @@ impl Engine {
                 Ok(LevelJson::Select { ids }) => LevelCommand::Select(ids),
                 Ok(LevelJson::Light { work }) => LevelCommand::WorkLight(work),
                 Ok(LevelJson::Floor { y }) => LevelCommand::Floor(y),
+                Ok(LevelJson::Cut { y }) => LevelCommand::Cut(y),
                 Ok(LevelJson::Place { x, y, z, yaw, pitch }) => LevelCommand::Place { at: glam::Vec3::new(x, y, z), yaw: yaw.to_radians(), pitch: pitch.to_radians() },
                 Err(e) => return serde_json::json!({"error": format!("Ukjent kommando: {e}")}).to_string(),
             }
@@ -186,6 +196,42 @@ impl Engine {
         crate::adapters::data::level_doc_json(&l.editor.template(&ids, name))
     }
 
+    /// Utvalget (json-liste med id-er) som en ny modul (`LevelEditor::as_module`):
+    /// tatt inn i byggesettet med en gang, og `{"id", "path", "text",
+    /// "palette"}` (fila i fast form og paletten med den nye), eller
+    /// `{"error": …}`.
+    pub fn level_module(&mut self, ids_json: &str, name: &str, slug: &str) -> String {
+        let ids: Vec<String> = serde_json::from_str(ids_json).unwrap_or_default();
+        let def = match self.app.session.level_editing().map(|l| l.editor.as_module(&ids, name, slug)) {
+            Some(Ok(def)) => def,
+            Some(Err(e)) => return serde_json::json!({"error": e}).to_string(),
+            None => return serde_json::json!({"error": "Ikke i nivåredigeringen."}).to_string(),
+        };
+        let (id, text) = (def.id.clone(), crate::adapters::data::module_json(&def));
+        self.app.command(Command::Level(LevelCommand::AddModule(Box::new(def))));
+        serde_json::json!({"id": id, "path": crate::adapters::data::module_path(&id), "text": text, "palette": self.level_palette_now()}).to_string()
+    }
+
+    /// Ta inn en modul eieren har laget før (json, husket i nettleseren).
+    /// Gir paletten, eller `{"error": …}`.
+    pub fn level_add_module(&mut self, json: &str) -> String {
+        match serde_json::from_str::<crate::domain::world::crypt::doc::ModuleDef>(json) {
+            Ok(def) => {
+                self.app.command(Command::Level(LevelCommand::AddModule(Box::new(def))));
+                self.level_palette_now()
+            }
+            Err(e) => serde_json::json!({"error": format!("Modulen kan ikke leses: {e}")}).to_string(),
+        }
+    }
+
+    /// Paletten med byggesettet redigeringen har nå (med eierens moduler).
+    pub fn level_palette_now(&self) -> String {
+        let Some(l) = self.app.session.level_editing() else { return level_palette() };
+        let mobs = crate::domain::mob_kind::Kind::ALL.iter().map(|k| (k.key().to_string(), k.label().to_string())).collect();
+        let loot = crate::domain::craft::GALLERY.iter().map(|c| c.to_string()).collect();
+        serde_json::to_string(&map::palette(l.editor.kit(), mobs, loot)).unwrap_or_default()
+    }
+
     /// Åpne et annet dokument (json). Gir kartet eller `{"error": …}`.
     pub fn level_open(&mut self, json: &str) -> String {
         match parse_doc(json) {
@@ -220,7 +266,8 @@ impl Engine {
             return false;
         };
         let prepared = prepare_level_editor(&rb.files, rb.seed, editor);
-        let renderer = Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
+        let renderer =
+            Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
         self.app = App::new(prepared, renderer, RapierPhysics::new());
         self.app.session.level_play(back, here)
     }

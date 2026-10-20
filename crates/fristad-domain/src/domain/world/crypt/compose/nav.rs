@@ -251,3 +251,15 @@ pub fn build(raster: &BTreeMap<(i32, i32, i32), Label>, slopes: &[(Vec<[f32; 3]>
     }
     nav
 }
+
+/// Nåbarheten over nettet og lenkene i den kompilerte nivåfila, med alle
+/// porter åpne: polygonene som kan nås fra `from` (stigene og heisene er
+/// lenker, `crypt::hops`), og nettet de står i. `None` om `from` ikke står
+/// på nettet (innen 1,5 m). Redigeringens regel og testene bruker den.
+pub fn reach(file: &crate::domain::world::crypt::level::LevelFile, from: Vec3) -> Option<(crate::domain::world::crypt::nav::Nav, Vec<bool>)> {
+    let nav = crate::domain::world::crypt::hops::level_nav(file);
+    let all = |_: &crate::domain::world::crypt::nav::Poly| true;
+    let (a, _) = nav.nearest(from, 1.5, &all)?;
+    let seen = nav.reachable(a, &all);
+    Some((nav, seen))
+}

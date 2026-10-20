@@ -49,6 +49,7 @@
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .tile { border: 1px solid var(--line); border-radius: 6px; background: #111316; color: var(--text); padding: 0; cursor: grab; text-align: left; font: inherit; overflow: hidden; }
     .tile img { display: block; width: 100%; aspect-ratio: 10 / 7; object-fit: cover; background: #222; }
+    .tile .noimg { aspect-ratio: 10 / 7; display: grid; place-items: center; background: repeating-linear-gradient(45deg, #1b1d20 0 8px, #222428 8px 16px); color: var(--muted, #999); font-size: 11px; }
     .tile span { display: block; padding: 3px 5px; font-size: 11.5px; line-height: 1.25; }
     .tile.armed, .chip.armed { outline: 2px solid var(--accent); }
     .chips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -62,6 +63,7 @@
     #issues li { padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12.5px; line-height: 1.3; border-left: 3px solid var(--warn); margin-bottom: 3px; background: #15171a; }
     #issues li.feil { border-left-color: var(--danger); }
     #issues li:hover { background: #22262b; }
+    #issues .chip.fix { margin-left: 4px; padding: 1px 7px; border-color: var(--accent); }
     .muted { color: var(--muted); font-size: 12px; }
     .stats { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
     #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.6); z-index: 20; }
@@ -95,7 +97,7 @@
     <div class="group">
       <label class="fs-label" for="floor">Etasje</label>
       <select id="floor" class="fs-select" title="PageUp og PageDown"></select>
-      <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="false" title="S: bare denne etasjen og den under (gjennomsiktig)">Snitt</button>
+      <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="false" title="S: bare denne etasjen og den under på kartet, og i 3D kuttes alt over etasjen bort">Snitt</button>
     </div>
     <div class="group" role="group" aria-label="Visning">
       <button id="v-map" class="fs-button" data-variant="secondary" type="button" title="Bare kartet (Tab bytter)">Kart</button>
@@ -125,7 +127,7 @@
       <div id="moblist" class="chips"></div>
       <h2>Maler</h2>
       <div id="tpllist" class="chips"></div>
-      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut.</p>
+      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut. Ctrl+Shift+G lagrer det som en ny modul i paletten.</p>
       <p class="muted">Klikk en modul eller ting og så på kartet (eller dra den dit). R dreier, M speiler, Delete sletter, Esc avbryter.</p>
     </aside>
     <section id="views">

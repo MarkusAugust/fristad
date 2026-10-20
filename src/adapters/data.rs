@@ -78,12 +78,12 @@ pub fn level_doc(name: &str) -> Option<LevelDoc> {
     if name == "moduler" {
         return Some(crate::domain::world::crypt::compose::modules::gallery(&kit()));
     }
-    // `moduler:<tema>`: modulene i ett tema (lyset følger høyst 64 rom per
-    // nivå, `Crypt::light_mask`, så alle temaene i ett nivå blir mørke).
-    if let Some(theme) = name.strip_prefix("moduler:") {
-        let mut k = kit();
-        k.modules.retain(|m| m.id.split('/').next() == Some(theme));
-        return (!k.modules.is_empty()).then(|| crate::domain::world::crypt::compose::modules::gallery(&k));
+    // `moduler:<n>`: siden n (fra 1) av galleriet (lyset følger høyst 64
+    // rom per nivå, `Crypt::light_mask`, så alle modulene i ett nivå blir
+    // mørke; `compose::modules::gallery_pages`).
+    if let Some(page) = name.strip_prefix("moduler:") {
+        let n: usize = page.parse().ok()?;
+        return crate::domain::world::crypt::compose::modules::gallery_pages(&kit()).into_iter().nth(n.checked_sub(1)?);
     }
     // `modul:grav/kapell`: modulen alene, med fakler og lys (bildene til eieren).
     if let Some(id) = name.strip_prefix("modul:") {
@@ -271,7 +271,21 @@ pub fn layout_json(layout: &Layout) -> String {
 /// én ting per linje i listene (modulene, innholdet, koblingene, lysene …)
 /// og tallene rundet, så endringene er lette å lese i git.
 pub fn level_doc_json(doc: &LevelDoc) -> String {
-    let mut v = serde_json::to_value(doc).unwrap_or_default();
+    fixed_json(serde_json::to_value(doc).unwrap_or_default())
+}
+
+/// En modul i fast form (`assets/levels/moduler/<tema>/<navn>.json`), som
+/// nivådokumentene: én celle, kant eller ting per linje.
+pub fn module_json(def: &crate::domain::world::crypt::doc::ModuleDef) -> String {
+    fixed_json(serde_json::to_value(def).unwrap_or_default())
+}
+
+/// Stien modulen lagres i: `assets/levels/moduler/grav/kapell.json` for `grav/kapell`.
+pub fn module_path(id: &str) -> String {
+    format!("assets/levels/moduler/{id}.json")
+}
+
+fn fixed_json(mut v: serde_json::Value) -> String {
     round(&mut v);
     let Some(o) = v.as_object() else {
         return String::new();
@@ -330,6 +344,7 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         || name.starts_with("gallery_")
         || name.starts_with("portal_")
         || moving.contains(&name)
+        || crate::domain::world::nature::COMPANIONS.contains(&name)
         || (name.starts_with("crypt_") && name[6..].starts_with(|c: char| c.is_ascii_digit()))
     {
         return None;
@@ -345,6 +360,8 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         "Møbler"
     } else if path.starts_with("crypt/") {
         "Krypten"
+    } else if path.starts_with("nature/") {
+        "Natur"
     } else {
         "Gjenstander"
     })

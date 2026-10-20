@@ -3,6 +3,19 @@
 
 use super::*;
 
+/// Det en fiende holder (beinet i riggen → modellen): bueskytterens bue
+/// (`mob3d.bow_bone`, `tools/models/bow.py`). Beinets rom er modellens rom
+/// slik Blender har det (z opp), og glb-fila har y opp (som lutten,
+/// `Npcs::instances`).
+pub const HELD: &[(&str, &str)] = &[("bow", "bow")];
+
+/// Det fienden holder, satt etter beinet i posen (`t` er fiendens plass).
+pub(super) fn held(rig: &Rig, pose: &crate::domain::anim::Pose, clips: &Clips, t: Affine3A, flash: f32) -> Option<ModelInstance> {
+    let (j, model) = clips.held?;
+    let at = Affine3A::from_mat4(rig.joint_transform(pose, j)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
+    Some(ModelInstance { model, transform: t * at, skin: None, flash, tint: None, look: None })
+}
+
 pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, Vec<&'static str>) {
     let mut all_rigs = vec![];
     let mut clips = vec![];
@@ -41,6 +54,7 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
                     stagger: r.clip("stagger"),
                     die2: r.clip("die2"),
                     look: joint("neck").zip(joint("head")),
+                    held: HELD.iter().find_map(|(b, m)| joint(b).map(|i| (i, *m))),
                     up: r.root.inverse().transform_vector3(Vec3::Y).normalize_or_zero(),
                 }
             })

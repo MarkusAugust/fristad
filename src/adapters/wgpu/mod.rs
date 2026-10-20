@@ -392,6 +392,9 @@ struct ScenePipes {
     world: wgpu::RenderPipeline,
     /// Modellene med alfakort (gress, blad): alpha to coverage og `discard`.
     cutout: wgpu::RenderPipeline,
+    /// Snittet i nivåredigeringen (`Frame.clip`): `discard` over høyden, så
+    /// bare når snittet er på (det vanlige passet har ingen `discard`).
+    clip: wgpu::RenderPipeline,
     sky: wgpu::RenderPipeline,
     particles: wgpu::RenderPipeline,
     /// Linjene redigeringen tegner (`Frame.lines`), uten dybdetest.
@@ -433,6 +436,7 @@ impl SceneSources {
         };
         let world = world_pipe("world", "fs", false);
         let cutout = world_pipe("cutout", "fs_cutout", a2c);
+        let clip = world_pipe("clip", "fs_clip", false);
         let sky = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("sky"),
             layout: Some(&self.simple_layout),
@@ -467,7 +471,7 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, a2c, hdr, world, cutout, sky, particles, lines }
+        ScenePipes { samples, a2c, hdr, world, cutout, clip, sky, particles, lines }
     }
 }
 
@@ -1270,6 +1274,11 @@ impl Renderer {
         let mut room_box = [[0.0f32; 4]; MAX_ROOMS];
         let mut room_y = [[0.0f32; 4]; MAX_ROOMS / 2];
         let mut light_rooms = [[u32::MAX; 4]; MAX_LIGHTS / 2];
+        // Snittet (redigeringen): høyden i y og om det er på i z.
+        if let Some(y) = f.clip {
+            room_info[1] = y;
+            room_info[2] = 1.0;
+        }
         if let Some(r) = &f.rooms {
             let n = r.boxes.len().min(MAX_ROOMS);
             room_info[0] = n as f32;
@@ -1423,7 +1432,8 @@ impl Renderer {
             pass.set_bind_group(1, &self.frame_bg, &[0]);
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
-            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, &self.scene.world, &self.scene.cutout);
+            let (opaque, cards) = if f.clip.is_some() { (&self.scene.clip, &self.scene.clip) } else { (&self.scene.world, &self.scene.cutout) };
+            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, opaque, cards);
             self.triangles.set((stats[1].world, 0, stats[1].models));
             if self.bench.sky {
                 pass.set_pipeline(&self.scene.sky);

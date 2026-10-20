@@ -148,6 +148,9 @@ pub struct MapIssue {
     pub rule: &'static str,
     pub msg: String,
     pub at: Option<[f32; 3]>,
+    /// «Rett»: rettingen når den er entydig (`fixes::suggest`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fix: Option<super::fixes::Fix>,
 }
 
 impl LevelEditor {
@@ -232,7 +235,12 @@ impl LevelEditor {
             .zip(flat.lights.iter().map(|l| (l.id.clone(), doc.lights.iter().any(|d| d.id == l.id))).chain(std::iter::repeat((String::new(), false))))
             .map(|(l, (id, own))| MapLight { id, pos: l.pos, color: l.color, range: l.range, intensity: l.intensity.unwrap_or(2.0), flicker: l.flicker, own })
             .collect();
-        let issues = self.issues().iter().map(|i| MapIssue { severity: if i.severity == Severity::Error { "feil" } else { "advarsel" }, rule: i.rule, msg: i.msg.clone(), at: i.at }).collect();
+        let issues = self
+            .issues()
+            .iter()
+            .enumerate()
+            .map(|(k, i)| MapIssue { severity: if i.severity == Severity::Error { "feil" } else { "advarsel" }, rule: i.rule, msg: i.msg.clone(), at: i.at, fix: self.fix(k).cloned() })
+            .collect();
         let mut floors: Vec<i32> = mods.iter().flat_map(|m: &MapModule| m.cells.iter().map(|c| c[1])).collect();
         floors.sort();
         floors.dedup();
@@ -255,7 +263,15 @@ impl LevelEditor {
             can_redo: self.can_redo(),
             unsaved: self.unsaved,
             clean: self.clean(),
-            stats: Stats { cells: r.cells, recomputed: r.recomputed, instances: file.instances.len(), colliders: file.colliders.len(), polys: file.nav.polys.len(), rooms: file.rooms.len(), lights: file.lights.len() },
+            stats: Stats {
+                cells: r.cells,
+                recomputed: r.recomputed,
+                instances: file.instances.len(),
+                colliders: file.colliders.len(),
+                polys: file.nav.polys.len(),
+                rooms: file.rooms.len(),
+                lights: file.lights.len(),
+            },
         }
     }
 }
@@ -312,7 +328,8 @@ pub fn palette_group(m: &crate::domain::world::crypt::doc::ModuleDef) -> &'stati
 }
 
 /// Slagene for åpningene med navnet eieren ser.
-pub const OPENING_NAMES: [(&str, &str); 8] = [("auto", "Automatisk"), ("dor", "Dør"), ("gang", "Gang"), ("bue", "Bue"), ("port", "Port"), ("falsk", "Falsk vegg"), ("snarvei", "Snarvei"), ("vegg", "Mur")];
+pub const OPENING_NAMES: [(&str, &str); 8] =
+    [("auto", "Automatisk"), ("dor", "Dør"), ("gang", "Gang"), ("bue", "Bue"), ("port", "Port"), ("falsk", "Falsk vegg"), ("snarvei", "Snarvei"), ("vegg", "Mur")];
 
 /// Innholdet eieren kan sette ut.
 pub const THING_NAMES: [(&str, &str); 14] = [
@@ -344,14 +361,23 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         .map(|m| {
             let inst = crate::domain::world::crypt::doc::DocModule { id: "m".into(), module: m.id.clone(), ..Default::default() };
             let openings = modules::placed_openings(&inst, kit).into_iter().map(|o| MapOpening { id: o.id, at: o.at, y: o.y, side: o.side, kind: o.kind, chosen: None }).collect();
-            PaletteModule { id: m.id.clone(), name: m.name.clone(), theme: m.theme.clone(), kind: m.kind.clone(), group: palette_group(m), about: m.about.clone(), cells: footprint(&inst, kit), openings }
+            PaletteModule {
+                id: m.id.clone(),
+                name: m.name.clone(),
+                theme: m.theme.clone(),
+                kind: m.kind.clone(),
+                group: palette_group(m),
+                about: m.about.clone(),
+                cells: footprint(&inst, kit),
+                openings,
+            }
         })
         .collect();
     let order = |k: &str| GROUPS.iter().position(|(x, _)| *x == k).unwrap_or(9);
     list.sort_by(|a, b| (order(a.group), &a.id).cmp(&(order(b.group), &b.id)));
-    let mut themes: Vec<String> = kit.modules.iter().map(|m| m.theme.clone()).filter(|t| !t.is_empty()).collect();
-    themes.sort();
-    themes.dedup();
+    // Temaene nivået kan ha: de som har en standardstein (modulene er ett
+    // sett, og temaet gir bare steinen).
+    let themes: Vec<String> = kit.stones.themes.keys().cloned().collect();
     Palette {
         modules: list,
         stones: kit.stones.stones.iter().map(|s| (s.id.clone(), if s.name.is_empty() { s.id.clone() } else { s.name.clone() })).collect(),

@@ -48,7 +48,15 @@ impl Session {
         let sim_dt = if self.combat.hitstop > 0.0 { 0.0 } else { dt };
         let eye = self.eye();
         let fwd = self.forward();
+        // Hvor heisene står (fiendene kjører heisen når den står der de er).
+        self.crypt.lift_rest = (0..self.crypt.lifts.len()).map(|n| (!self.mech.lift_moving(n)).then(|| !self.mech.lift_up(n))).collect();
         let outcome = self.mobs.update(sim_dt, feet, in_crypt, &self.crypt);
+        for &n in &outcome.lifts {
+            if self.mech.ride_lift(&self.crypt, n).is_some() {
+                let at = self.crypt.lifts[n].pos + Vec3::Y * 2.0;
+                events.push(self.sound_at("gate", at, 1.2));
+            }
+        }
         self.hero.coins += outcome.tokens;
         if outcome.tokens > 0 {
             events.push(sfx("pickup"));
@@ -176,6 +184,12 @@ impl Session {
     /// (der gulvet er fritt), som har sett deg og spytter straks (til
     /// skjermbildene, `--bolt`).
     pub fn input_ahead(&mut self, ahead: f32, side: f32) -> bool {
+        self.foe_ahead(MobKind::Input, ahead, side)
+    }
+
+    /// Bare én fiende av slaget `kind` foran deg, som har sett deg (til
+    /// skjermbildene, `snapshot --bolt --bolt-kind`).
+    pub fn foe_ahead(&mut self, kind: MobKind, ahead: f32, side: f32) -> bool {
         let feet = self.body.sole();
         let f = self.forward().with_y(0.0).normalize_or_zero();
         let right = f.cross(Vec3::Y);
@@ -184,7 +198,7 @@ impl Session {
         let Some(at) = spot else { return false };
         self.mobs.mobs.clear();
         self.mobs.bolts.clear();
-        let i = self.mobs.spawn_aware(MobKind::Input, at);
+        let i = self.mobs.spawn_aware(kind, at);
         self.mobs.mobs[i].yaw = (feet - at).x.atan2((feet - at).z);
         true
     }
