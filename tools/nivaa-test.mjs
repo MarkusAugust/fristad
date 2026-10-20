@@ -76,18 +76,20 @@ const painted = await page.evaluate(() => {
 });
 check(painted > 500, `kartet er tegnet (${painted} lyse punkter)`);
 // 3D: noe er tegnet (WebGL: les tilbake pikslene fra et kopi-canvas).
-const lit = await page.evaluate(async () => {
-  const c = document.querySelector("#world");
-  const tmp = document.createElement("canvas");
-  tmp.width = 160;
-  tmp.height = 90;
-  await new Promise((r) => requestAnimationFrame(r));
-  tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
-  const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
-  let n = 0;
-  for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
-  return n;
-});
+const litNow = () =>
+  page.evaluate(async () => {
+    const c = document.querySelector("#world");
+    const tmp = document.createElement("canvas");
+    tmp.width = 160;
+    tmp.height = 90;
+    await new Promise((r) => requestAnimationFrame(r));
+    tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
+    const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
+    return n;
+  });
+const lit = await litNow();
 check(lit > 200, `3D-vinduet viser nivået (${lit} lyse punkter av 14400)`);
 await shot("1_prøvenivået");
 
@@ -139,6 +141,9 @@ await page.waitForTimeout(400);
 await shot("3_reglene");
 await page.keyboard.press("Control+KeyZ");
 // Åpningen: klikk en pil og velg port.
+await page.locator("#plan").click({ position: { x: 5, y: 5 }, button: "right" });
+await page.keyboard.press("Home");
+await page.waitForTimeout(300);
 const opening = await page.evaluate(() => {
   const st = window.fristad.state;
   const m = st.map.modules.find((m) => m.module === "grav/rom_2x2") || st.map.modules[0];
@@ -161,6 +166,8 @@ if (await page.evaluate(() => !!document.querySelector("#op-kind"))) {
 await page.keyboard.press("Escape");
 await page.click("#v-3d");
 await page.waitForTimeout(1500);
+const lit3d = await litNow();
+check(lit3d > 1000, `bare 3D fyller vinduet (${lit3d} lyse punkter)`);
 await shot("4_bare_3d");
 await page.click("#v-map");
 await page.waitForTimeout(400);
@@ -173,6 +180,8 @@ await page.waitForFunction(() => document.body.classList.contains("playing"), nu
 const playing = await page.evaluate(() => window.fristad.engine.level_playing());
 check(playing, "Spill fra start bygger verden og starter prøveturen");
 await page.waitForTimeout(3000);
+const litPlay = await litNow();
+check(litPlay > 500, `prøveturen viser nivået (${litPlay} lyse punkter)`);
 await shot("6_proveturen");
 await page.keyboard.press("Escape");
 await page.waitForTimeout(800);

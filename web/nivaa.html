@@ -35,8 +35,7 @@
     #palette { border-right: 1px solid var(--line); }
     #props { border-left: 1px solid var(--line); }
     #views { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; min-height: 0; position: relative; }
-    #views.only-map { grid-template-columns: 1fr 0; }
-    #views.only-3d { grid-template-columns: 0 1fr; }
+    #views.only-map, #views.only-3d { grid-template-columns: 1fr; }
     #views.only-map #pane3d, #views.only-3d #panemap { display: none; }
     .pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
     #panemap { border-right: 1px solid var(--line); }
@@ -70,8 +69,8 @@
     #status { font-size: 13px; }
     #toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #222; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; z-index: 30; max-width: 70vw; }
     body.playing header, body.playing #palette, body.playing #props, body.playing #panemap { display: none; }
-    body.playing main { grid-template-columns: 0 1fr 0; }
-    body.playing #views { grid-template-columns: 0 1fr; }
+    body.playing main { grid-template-columns: 1fr; }
+    body.playing #views { grid-template-columns: 1fr; }
     #playbar { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 25; background: rgba(20,20,20,.8); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
     .doclist button { display: block; width: 100%; margin: 3px 0; text-align: left; }
     @media (max-width: 1100px) { main { grid-template-columns: 190px 1fr 250px; } }
