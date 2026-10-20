@@ -208,6 +208,7 @@ def models_3d(out, items):
                 glb_to_json(tmp, os.path.join(root, "før", f"{it['id']}.json"))
                 it["glb_before"] = f"glb/før/{it['id']}.json"
                 used |= glb_layers(tmp)
+    held = held_3d(root, items, used)
     layers = {}
     for name in sorted(used):
         src = os.path.join(ROOT, "assets", "textures", name, "albedo.jpg")
@@ -227,7 +228,57 @@ def models_3d(out, items):
         layers[name] = {"url": f"tex/{name}.jpg", "size": size}
         if mirror:
             layers[name]["mirror"] = True  # speilvendt annenhver flis, som i spillet
-    return layers, levels
+    return layers, levels, held
+
+
+def held_bones():
+    """Det spillet setter på et bein (beinet → modellen), lest av spillets
+    egne tabeller, så det ikke finnes to kilder: `mob_rigs::HELD` (buen
+    bueskytteren holder) og trubadurens lutt (`npcs::LUTE_MODEL` på beinet
+    `r.joint(..)` i `Clips.lute`). Filene fra `models!` i gltf.rs."""
+    import re
+    dom = os.path.join(ROOT, "crates", "fristad-domain", "src", "domain")
+    rigs = open(os.path.join(dom, "mob_rigs.rs")).read()
+    npcs = open(os.path.join(dom, "npcs.rs")).read()
+    table = open(os.path.join(ROOT, "src", "adapters", "gltf.rs")).read()
+    out = {}
+    held = re.search(r"pub const HELD: &\[\(&str, &str\)\] = &\[(.*?)\];", rigs)
+    for bone, model in re.findall(r'\("(\w+)",\s*"(\w+)"\)', held.group(1) if held else ""):
+        out[bone] = model
+    lute = re.search(r'pub const LUTE_MODEL: &str = "(\w+)";', npcs)
+    bone = re.search(r'lute: r\.joint\("(\w+)"\)', npcs)
+    if lute and bone:
+        out[bone.group(1)] = lute.group(1)
+    files = dict(re.findall(r'^\s*"(\w+)" => "([^"]+\.glb)",', table, re.M))
+    return {b: (m, os.path.join(ROOT, "assets", "models", files[m])) for b, m in out.items() if m in files}
+
+
+def held_3d(root, items, used):
+    """De holdte modellene til «Se i 3D» (`glb/held/`): bare de med et bein i
+    en modell som venter. viewer.js setter dem på beinet som spillet gjør
+    (beinets rom dreid om x, `mob_rigs::held`, `Npcs::instances`)."""
+    bones = held_bones()
+    need = set()
+    for it in items:
+        if it["state"] != "venter" or not it.get("glb"):
+            continue
+        for g in [it["glb"]] + ([it["glb_before"]] if it.get("glb_before") else []):
+            try:
+                with open(os.path.join(os.path.dirname(root), g)) as f:
+                    names = {n.get("name") for n in json.load(f).get("nodes", [])}
+            except (OSError, ValueError):
+                continue
+            need |= names & set(bones)
+    out = {}
+    for bone in sorted(need):
+        model, src = bones[bone]
+        if not os.path.exists(src):
+            continue
+        os.makedirs(os.path.join(root, "held"), exist_ok=True)
+        glb_to_json(src, os.path.join(root, "held", f"{model}.json"))
+        used |= glb_layers(src)
+        out[bone] = {"model": model, "glb": f"glb/held/{model}.json"}
+    return out
 
 
 def modules_3d(root, items, levels, used):
@@ -473,16 +524,103 @@ def state(entry, current, fix=None):
         return "venter"
     if entry.get("seen") != current:
         return "venter"
+    # Rettingen venter bare når den gjelder versjonen som står, og eieren ikke
+    # har dømt etter at den kom (`judged`, fra `apply`): ellers ventet en modul
+    # eieren godkjente på nytt med samme dom for alltid (20. oktober).
     ans = (fix or {}).get("answers")
-    if ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
+    fresh = fix and fix.get("version") in (None, current) and not fix.get("judged")
+    if fresh and ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
         return "venter"
     return "godkjent" if entry["verdict"] == "godkjent" else "hos_meg"
+
+
+def rule_errors():
+    """Regelen for hva som venter, prøvd på laget eksempler (20. oktober:
+    femten moduler eieren godkjente på nytt, ventet likevel): godkjent og
+    uendret venter ikke, heller ikke med en gammel retting eller en retting
+    eieren har dømt etter; endret eller rettet etter dommen venter."""
+    ok = {"verdict": "godkjent", "why": "", "seen": "v2"}
+    bad = {"verdict": "underkjent", "why": "hånda", "seen": "v2"}
+    answers_ok = {"text": ["…"], "answers": {"verdict": "godkjent", "why": ""}}
+    cases = [
+        ("godkjent og uendret", ok, "v2", None, "godkjent"),
+        ("godkjent, men endret siden", ok, "v3", None, "venter"),
+        ("godkjent med en retting i en eldre versjon", ok, "v2", fix_for({"x": {"v1": answers_ok}}, "x"), "godkjent"),
+        ("godkjent på nytt etter rettingen", ok, "v2", fix_for({"x": {"v2": dict(answers_ok, judged="2026-10-20T14:39:51Z")}}, "x"), "godkjent"),
+        ("rettet etter dommen, samme modell", ok, "v2", fix_for({"x": {"v2": answers_ok}}, "x"), "venter"),
+        ("underkjent og rettet i en ny versjon", bad, "v3", fix_for({"x": {"v3": {"text": ["…"], "answers": {"verdict": "underkjent", "why": "hånda"}}}}, "x"), "venter"),
+        ("underkjent og ikke rettet", bad, "v2", None, "hos_meg"),
+    ]
+    return [f"regelen for hva som venter: {what} gir {got}, ikke {want}"
+            for what, e, cur, fix, want in cases if (got := state(e, cur, fix)) != want]
+
+
+def fixed_at(fix, cur):
+    """Tida rettingen som gjelder versjonen kortet viser, ble commitet
+    (første commit med versjonen i fixes.json, i UTC; ikke commitet ennå:
+    nå). Siden regner bare svar gitt etter den (`answerOf`): ellers gjaldt
+    svaret rettingen svarer på, kortet (20. oktober: riddergangen sto som
+    besvart fordi bare naborommene i bildet var endret, ikke modulen)."""
+    if not fix or fix.get("version") != cur or not fix.get("answers"):
+        return None
+    from .approvals import _first_commit, _now, _utc
+    t = _first_commit(os.path.join(DATA, "fixes.json"), cur)
+    return _utc(t).strftime("%Y-%m-%dT%H:%M:%SZ") if t and _utc(t) else _now()
+
+
+def answer_of(it, a):
+    """Svaret fra samlingen `dom` som gjelder kortet, som `answerOf` i
+    approvals.html: samme versjon, og gitt etter rettingen (`fixed_at`)."""
+    from .approvals import after_fix
+    if not a or a.get("version") != it.get("version"):
+        return None
+    if it.get("fixed_at") and not after_fix(a, it["fixed_at"]):
+        return None
+    return a
+
+
+def answer_errors():
+    """Regelen for hvilket svar som gjelder et kort, prøvd på laget eksempler,
+    og at siden bruker den (`answerOf` i approvals.html krever `fixed_at`).
+    Og at `apply` ikke tar svaret en retting svarer på som ny dom."""
+    from .approvals import answered_by_fix, mark_judged
+    errors = []
+    it = {"version": "v2", "fixed_at": "2026-10-20T15:09:56Z"}
+    old = {"verdict": "underkjent", "at": "2026-10-20T14:39:51Z", "version": "v2"}
+    new = dict(old, at="2026-10-20T16:00:00Z")
+    cases = [
+        ("svaret før rettingen, samme versjon", it, old, False),
+        ("svaret etter rettingen", it, new, True),
+        ("svaret uten tid", it, dict(old, at=""), False),
+        ("svaret på en annen versjon", dict(it, fixed_at=None), dict(new, version="v1"), False),
+        ("uten retting", dict(it, fixed_at=None), old, True),
+    ]
+    errors += [f"svaret som gjelder kortet: {what} gir {bool(got)}, ikke {want}"
+               for what, card, a, want in cases if bool(got := answer_of(card, a)) != want]
+    html = open(os.path.join(HERE, "approvals.html")).read()
+    line = next((l for l in html.splitlines() if l.startswith("const answerOf")), "")
+    if "fixed_at" not in line:
+        errors.append("answerOf i approvals.html regner ikke med rettingen (`fixed_at`)")
+    fix = {"text": ["…"], "answers": {"verdict": "underkjent", "why": "gulvet"}}
+    came = lambda: "2026-10-20T15:09:56+00:00"
+    if not answered_by_fix(old, fix, came):
+        errors.append("apply tar svaret rettingen svarer på som ny dom")
+    if answered_by_fix(new, fix, came):
+        errors.append("apply hopper over et svar gitt etter rettingen")
+    for what, a, want in (("før rettingen", old, 0), ("etter rettingen", new, 1), ("uten tid", dict(old, at=""), 0)):
+        fixes = {"x": {"v2": dict(fix)}}
+        if (got := mark_judged([{"id": "u_x", "data": a}], fixes, lambda v: came())) != want:
+            errors.append(f"et svar {what} merker rettingen som dømt {got} gang(er), ikke {want}")
+    return errors
 
 
 def fix_for(fixes, name):
     """Den siste rettingen av tingen (`fixes.json`: navn → versjon → retting)."""
     v = fixes.get(name) or {}
-    return list(v.values())[-1] if v else None
+    if not v:
+        return None
+    ver = list(v)[-1]
+    return dict(v[ver], version=ver)
 
 
 def migrate(answers_dir):
@@ -660,7 +798,7 @@ def build(out, render=True):
                 "about": f"{mdef.get('name', '')}: {mdef.get('about', '')}",
                 "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
                 "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-                "fixed": (fix or {}).get("text", []),
+                "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
                 "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1] if name.startswith("grav_") else name,
             }
             shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
@@ -687,7 +825,7 @@ def build(out, render=True):
                 "about": card.get("about", "") + " (" + ", ".join(card["modeller"]) + ")",
                 "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
                 "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-                "fixed": (fix or {}).get("text", []),
+                "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
                 "path": path, "seen": (e or {}).get("seen"),
             }
             shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
@@ -712,7 +850,7 @@ def build(out, render=True):
             "about": about.get(name, "") if kind == "modell" else (tex.get(name) or {}).get("shows", ""),
             "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
             "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-            "fixed": (fix or {}).get("text", []),
+            "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
             "path": path, "seen": (e or {}).get("seen"),
         }
         if st == "utgaar":
@@ -749,12 +887,12 @@ def build(out, render=True):
             "points": e.get("history") or ([e["why"]] if e.get("why") else []), "fixed": [], "path": None, "seen": e.get("seen"),
         })
     save("approvals.json", ap)
-    layers, levels = models_3d(out, items) if render else ({}, {})
+    layers, levels, held = models_3d(out, items) if render else ({}, {}, {})
     for it in items:
         it.pop("path", None)
         it.pop("seen", None)
     with open(os.path.join(out, "data.json"), "w") as f:
-        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels}, f, ensure_ascii=False)
+        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels, "held": held}, f, ensure_ascii=False)
     shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
     shutil.copy(os.path.join(HERE, "viewer.js"), os.path.join(out, "viewer.js"))
     return items, carried
@@ -873,6 +1011,8 @@ def audit():
         for n, e in ap.get(group, {}).items():
             if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
+    errors += rule_errors()
+    errors += answer_errors()
     fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
     # «Rettet slik» er punkter (siden viser én linje per punkt).
     for n, vs in fixes.items():

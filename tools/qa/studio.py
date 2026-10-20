@@ -89,6 +89,12 @@ def glow(mat):
 def main(path, prefix, views):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=path)
+    # Det en fiende holder (bueskytterens bue) på beinet, som i spillet
+    # (`tools/models/held_props.py`, `mob_rigs::HELD`).
+    sys.path.insert(0, os.path.join(ROOT, "tools", "models"))
+    import held_props
+
+    held_props.attach()
     # Fjernversjonen (noden `far` i byggesettet for krypten) står oppå den
     # nære: bare den nære vises.
     for o in list(bpy.context.scene.objects):

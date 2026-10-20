@@ -277,7 +277,8 @@ impl Kind {
             Kind::Spinner => Stats { hp: 45.0, speed: 2.6, damage: 9.0, range: 1.3, reach: 1.8, scale: 1.0, sight: 28.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.8, poise: 0.0, tokens: 2 },
             // Eliten i nivå 5 (`ELITE_HP` og `ELITE_SCALE` i tillegg).
             Kind::Foreman => Stats { hp: 180.0, speed: 1.4, damage: 26.0, range: 2.1, reach: 2.8, scale: 1.0, sight: 28.0, cooldown: 1.6, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.6, poise: 35.0, tokens: 8 },
-            // Plata tar av forfra.
+            // Plata tar av forfra. Virvelvinden (`attack_whirl`): høyre neve
+            // feier forbi foran ham i bilde 22, som neveslaget.
             Kind::CardSquire => Stats { hp: 70.0, speed: 1.7, damage: 13.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 28.0, cooldown: 1.2, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.5, poise: 10.0, tokens: 3 },
             // Svever (`mob_rigid.wisp`): stikket i bilde 15.
             Kind::Wisp => Stats { hp: 35.0, speed: 2.8, damage: 8.0, range: 1.4, reach: 1.9, scale: 1.0, sight: 32.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },

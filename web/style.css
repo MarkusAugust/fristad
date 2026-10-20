@@ -790,34 +790,94 @@ body:has(#panel:not([hidden])) .aimed {
 .comp-name { display: inline-flex; align-items: center; gap: var(--fs-spacing-2); }
 .comp-name .comp-ico { width: 1.75rem; height: 1.75rem; }
 
-/* Smiinga: gnister over ikonet mens hammeren slår. */
-.detail.forging .gear-ico.big { animation: forge-glow 0.9s ease-out; }
-.detail.forging .detail-head { position: relative; }
-.detail.forging .detail-head::after {
-  content: "";
+/* Smie-animasjonen (`forgeAnimation`, plan 13c): komponentene flyr inn mot
+   midten og lyser i Fristils fyllfarger (`--glow`), smelter i gløden,
+   hammeren slår, og ikonet for det nye kommer fram med en kort blink. */
+.forge-host { position: relative; }
+.comp.lit {
+  background: color-mix(in srgb, var(--glow) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--glow);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.comp.lit .comp-ico { border-color: var(--glow); box-shadow: 0 0 0 2px var(--glow), 0 0 14px var(--glow); }
+.forge-stage {
   position: absolute;
-  left: 3.25rem;
-  top: 3.25rem;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 55%, transparent);
+  animation: forge-dim 0.35s ease-out both;
+}
+.forge-stage.calm { animation: none; background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent); }
+@keyframes forge-dim { from { background: transparent; } }
+.forge-fly {
+  position: absolute;
+  object-fit: cover;
+  border-radius: var(--fs-spacing-1);
+  border: 2px solid var(--glow);
+  box-shadow: 0 0 0 2px var(--glow), 0 0 22px 6px var(--glow);
+  background: var(--fs-color-neutral-surface);
+  pointer-events: none;
+}
+.forge-core,
+.forge-sparks,
+.forge-item {
+  position: absolute;
+  left: var(--forge-x, 50%);
+  top: var(--forge-y, 42%);
+  pointer-events: none;
+}
+.forge-core {
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle, #fff8e0 0%, var(--fs-color-warning-fill) 28%, color-mix(in srgb, var(--fs-color-danger-fill) 70%, transparent) 52%, transparent 72%);
+}
+.forge-sparks {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ffd36b;
-  box-shadow: 18px -22px 0 #ffb43a, -20px -16px 0 #ffe39a, 26px 8px 0 #ff9a2a, -24px 14px 0 #ffd36b, 4px -30px 0 #fff0b8, -8px 26px 0 #ffb43a;
-  animation: forge-sparks 0.9s ease-out forwards;
+  opacity: 0;
+  background: #fff0b8;
+  box-shadow: 30px -38px 0 var(--fs-color-warning-fill), -34px -26px 0 #ffe39a, 44px 12px 0 var(--fs-color-danger-fill), -40px 24px 0 var(--fs-color-warning-fill), 6px -50px 0 #fff0b8, -12px 44px 0 var(--fs-color-accent-fill), 52px -8px 0 var(--fs-color-brand2-fill), -54px -4px 0 var(--fs-color-success-fill);
+}
+.forge-item {
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: var(--fs-spacing-3);
+  opacity: 0;
+  text-align: center;
+}
+.forge-item .gear-ico.big { box-shadow: 0 0 0 2px var(--r-fill), 0 0 28px var(--r-fill); }
+.forge-text {
+  margin: 0;
+  font-size: var(--fs-font-size-l);
+  font-weight: var(--fs-font-weight-semibold, 600);
+  color: var(--fs-color-neutral-text-strong);
+  white-space: nowrap;
+}
+.forge-blink {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at var(--forge-x, 50%) var(--forge-y, 42%), #fffbea, color-mix(in srgb, var(--fs-color-warning-fill) 40%, transparent) 60%);
   pointer-events: none;
 }
-@keyframes forge-glow {
-  0%, 100% { filter: none; }
-  20%, 60% { filter: brightness(1.6) drop-shadow(0 0 12px #ffb43a); }
-  40%, 80% { filter: brightness(1.1); }
+.forge-skip {
+  position: absolute;
+  top: var(--fs-spacing-3);
+  right: var(--fs-spacing-4);
+  margin: 0;
+  padding: var(--fs-spacing-1) var(--fs-spacing-3);
+  border-radius: var(--fs-spacing-4);
+  background: var(--fs-color-neutral-surface);
+  font-size: var(--fs-font-size-xs);
+  color: var(--fs-color-neutral-text);
 }
-@keyframes forge-sparks {
-  from { transform: scale(0.3); opacity: 1; }
-  to { transform: scale(2.4); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .detail.forging .gear-ico.big, .detail.forging .detail-head::after { animation: none; }
-}
+.forge-stage.calm .forge-core, .forge-stage.calm .forge-sparks, .forge-stage.calm .forge-blink { display: none; }
 
 /* Inventaret: fanene Utstyr og Komponenter, så plassene til venstre (som
    er filteret), lista og detaljene. */

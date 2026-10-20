@@ -14,6 +14,9 @@ import tempfile
 import bpy
 from mathutils import Vector
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import held_props  # noqa: E402
+
 path, clip, out = sys.argv[1], sys.argv[2], sys.argv[3]
 n = int(sys.argv[4]) if len(sys.argv) > 4 else 8
 view = sys.argv[5] if len(sys.argv) > 5 else "side"
@@ -41,6 +44,8 @@ for o in bpy.data.objects:
     if o.type == "MESH" and o.parent is None:
         o.hide_render = True
 meshes = [o for o in bpy.data.objects if o.type == "MESH" and o.parent is not None]
+# Det fienden holder (buen), på beinet slik spillet setter det.
+holding = held_props.attach()
 lo = Vector((1e9, 1e9, 1e9))
 hi = Vector((-1e9, -1e9, -1e9))
 for o in meshes:
@@ -89,6 +94,7 @@ frames = [round(start + (end - start) * k / max(1, n - 1)) for k in range(n)] if
 files = []
 for k, f in enumerate(frames):
     scene.frame_set(int(f))
+    held_props.place(holding)
     p = os.path.join(tmp, f"{k:02d}.png")
     scene.render.filepath = p
     bpy.ops.render.render(write_still=True)

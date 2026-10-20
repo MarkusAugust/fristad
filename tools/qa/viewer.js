@@ -133,6 +133,27 @@ async function load(st, url, layers, sides) {
   return g.scene;
 }
 
+// Det spillet setter på et bein (`data.held`: beinet → modellen, skrevet av
+// review.py fra `mob_rigs::HELD` og trubadurens lutt): buen i hånda på
+// bueskytteren, lutten i fanget på trubaduren. Som i spillet står modellen i
+// beinets rom dreid om x (Blenders z opp → glb-ens y opp; `mob_rigs::held`,
+// `Npcs::instances`), og som barn av beinet følger den klippet.
+async function hold(st, root, data, layers, sides) {
+  const held = data.held || {};
+  for (const [bone, h] of Object.entries(held)) {
+    const b = root.getObjectByName(bone);
+    if (!b) continue;
+    if (!st.held) st.held = new Map();
+    if (!st.held.has(h.glb)) st.held.set(h.glb, load(st, h.glb, layers, sides));
+    const prop = (await st.held.get(h.glb)).clone(true);
+    const at = new THREE.Group();
+    at.name = "holder:" + h.model;
+    at.rotation.x = Math.PI / 2;
+    at.add(prop);
+    b.add(at);
+  }
+}
+
 function frame(st, obj, inside) {
   // Skinnede figurer: skjelettet stilles først, og boksen tas fra
   // hjørnene slik de står (ellers rammer kameraet bare inn føttene).
@@ -169,6 +190,8 @@ export async function show(it, data, ui) {
   after.name = "etter";
   const before = it.glb_before ? await load(st, it.glb_before, layers, sides) : null;
   if (before) { before.name = "før"; before.visible = false; }
+  await hold(st, after, data, layers, sides);
+  if (before) await hold(st, before, data, layers, sides);
   let level = null;
   const lv = crypt && data.levels ? data.levels[it.level] : null;
   if (lv && Array.isArray(lv)) {

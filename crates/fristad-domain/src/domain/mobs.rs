@@ -331,7 +331,7 @@ impl Mobs {
 
     /// Hvor mange instanser hver modell trenger plass til.
     pub fn reserve() -> Vec<(&'static str, usize)> {
-        let mut v: Vec<(&'static str, usize)> = Kind::ALL.iter().map(|k| (k.model(), MAX_MOBS)).collect();
+        let mut v: Vec<(&'static str, usize)> = Kind::ALL.iter().map(|k| (k.model(), MAX_MOBS)).chain(mob_rigs::HELD.iter().map(|(_, m)| (*m, MAX_MOBS))).collect();
         v.push((TOKEN_MODEL, MAX_TOKENS));
         v.push((KEY_MODEL, MAX_KEYS));
         v.push((BOLT_MODEL, BOLT_INSTANCES));
