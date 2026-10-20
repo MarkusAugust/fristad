@@ -1035,6 +1035,14 @@
    "text": [
     "Brønnen fra din TRELLIS.2-fil (kummen, stolpene og taket); vinda, tauet og bøtta er spillets egne bevegelige deler. Den er mørkere og mer grå enn den gamle; si fra om du vil ha den gamle tilbake."
    ]
+  },
+  "00bcb9adb51e": {
+   "text": [
+    "Eieren 19. oktober: «litt for blurry». Fargen hentes og bakes nå i 4096 i stedet for 2048, med øyene lagt med xatlas (rundt 70 % av teksturen brukt mot 44 % før), så tettheten er rundt 450 teksler per meter mot 255. Vinda er bygd på nytt med teksturlag i meter i stedet for et bakt bilde der øyene brukte under 1 % av bildet, og valsen er av samme mørke tre som stolpene. Bildet: før til venstre, etter til høyre, på en halvannen meters hold."
+   ],
+   "images": [
+    "assets/catalog/review/well_for_etter.jpg"
+   ]
   }
  },
  "gallery_alert": {
@@ -1873,6 +1881,16 @@
    ],
    "images": [
     "assets/catalog/review/spinner_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "well_winch": {
+  "199781754180": {
+   "text": [
+    "Vinda var uskarp: et bakt bilde der øyene brukte under 1 % av bildet. Nå har den teksturlag i meter (treverk for valsen, tau for kveilen, jern for båndene og sveiven), 908 trekanter, og valsen har samme mørke tre som brønnen."
+   ],
+   "images": [
+    "assets/catalog/review/well_for_etter.jpg"
    ]
   }
  }

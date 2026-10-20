@@ -11,10 +11,12 @@ use std::collections::BTreeMap;
 /// 19. oktober), så fargen får 2048 og normal- og metallkartene 1024. De
 /// store fiendene (Rammeverket er 4 m høyt og bakt i 4096, modalen og
 /// tabellen bossene i nivå 2 og 4, Navbaren og Dropdownen 5 m i nivå 8 og 6) står en meter eller to unna og fyller
-/// bildet: fargen får 4096. Bildene pakkes fortsatt ut én om gangen, så
+/// bildet: fargen får 4096. Det gjør også brønnen (bakt i 4096 fra
+/// TRELLIS, eieren 19. oktober: «litt for blurry»), som står midt på
+/// torget og ses på armlengdes avstand. Bildene pakkes fortsatt ut én om gangen, så
 /// wasm-haugen holder bare ett av dem.
 pub fn browser_caps(name: &str) -> Caps {
-    const BIG: [&str; 5] = ["framework", "mutant_modal", "mutant_table", "navbar", "dropdown"];
+    const BIG: [&str; 6] = ["framework", "mutant_modal", "mutant_table", "navbar", "dropdown", "well"];
     if BIG.contains(&name) {
         Caps { color: 4096, data: 1024 }
     } else {
@@ -153,6 +155,7 @@ mod tests {
         assert_eq!(browser_caps("framework").color, 4096);
         assert_eq!(browser_caps("navbar").color, 4096);
         assert_eq!(browser_caps("dropdown").color, 4096);
+        assert_eq!(browser_caps("well").color, 4096);
         assert!(LOW.color < browser_caps("house_a").color && LOW.data < browser_caps("house_a").data);
     }
 }
