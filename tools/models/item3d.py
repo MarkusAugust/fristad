@@ -70,7 +70,10 @@ ITEMS = {
     # opp mot +Y og lokket mot −Y og opp; `tilt` dreier den om x så halsen
     # står rett opp og lokket vender mot −Y (`folk3d.LUTE` legger den i
     # fanget). Foten (den runde enden av kroppen) i z = 0, 0,78 m lang.
-    "lute": dict(src="lute", out="assets/models/props/lute.glb", height=0.78, tilt=44.6, yaw=0.0, tris=4000, voxel=0.0035, size=1024),
+    # Baksida var åpen i TRELLIS-formen (et grunt trau bak lokket, med rosen
+    # synlig bakfra); `back` lukker kroppen med en buet bolle (`close_back`).
+    "lute": dict(src="lute", out="assets/models/props/lute.glb", height=0.78, tilt=44.6, yaw=0.0, tris=4000, voxel=0.0035, size=1024,
+                 back=dict(z=(0.0, 0.445), depth=0.07)),
     # Nøkkelen eliten mister (eieren 19. oktober, `trellis-gjenstander.md`):
     # TRELLIS la den flat med hanken mot −X; `roll` dreier den om y så den
     # står med hanken (og krona) opp og skjegget ned, slik den svever og
@@ -197,6 +200,118 @@ def solid(ob, voxel):
     print("massiv", len(me.polygons), "trekanter")
 
 
+def close_back(ob, z, depth, rows=28, cols=18, step=0.015, lap=0.008, staves=11):
+    """Lukker en åpen bakside (lutten) med en bolle: for hver skive av
+    kroppen mellom `z` (m, etter `place`) er kanten bak det bakerste
+    hjørnet (største y) og bredden omrisset i x; bollen går fra kanten og
+    `depth` bakover (+y) på det dypeste, rund på tvers og avsmalnende mot
+    endene. Kanten av bollen går `lap` inn i sargen, så skallet
+    (`folk3d.simplify`) lukker seg om den uten sprekk. Gir profilen
+    (`paint_back` maler stavene etter den)."""
+    co = coords(ob)
+    z0, z1 = z
+    zs = np.linspace(z0, z1, rows)
+    cx, hw, yb = [], [], []
+    for zz in zs:
+        m = np.abs(co[:, 2] - zz) < step
+        cx.append((co[m, 0].min() + co[m, 0].max()) / 2)
+        hw.append((co[m, 0].max() - co[m, 0].min()) / 2)
+        yb.append(co[m, 1].max())
+    cx, hw, yb = np.array(cx), np.array(hw), np.array(yb)
+    hmax = hw.max()
+    zm, zr = (z0 + z1) / 2, (z1 - z0) / 2
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    grid = []
+    for i, zz in enumerate(zs):
+        end = math.sqrt(max(0.0, 1.0 - ((zz - zm) / zr) ** 2))
+        row = []
+        for j in range(cols):
+            u = -1.0 + 2.0 * j / (cols - 1)
+            d = depth * end * math.sqrt(hw[i] / hmax) * math.sqrt(max(0.0, 1.0 - u * u))
+            w = hw[i] - lap
+            row.append(bm.verts.new((cx[i] + u * max(w, 0.0), yb[i] - lap + d, min(max(zz, z0 + lap), z1 - lap))))
+        grid.append(row)
+    for i in range(rows - 1):
+        for j in range(cols - 1):
+            bm.faces.new((grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]))
+    bm.to_mesh(ob.data)
+    bm.free()
+    print(f"bollen bak: {rows}×{cols}, {depth * 100:.0f} cm dyp, bredest {2 * hmax:.3f} m")
+    return dict(zs=zs, cx=cx, hw=hw, yb=yb, staves=staves)
+
+
+def paint_back(ob, name, back, size):
+    """Bollen bak har ingen farge i formen (nærmeste punkt var innsida av
+    lokket med rosen). Den males som en lutt er bygd: spon av tre i
+    `staves` striper på langs fra foten til halsen, vekselvis lysere og
+    mørkere, med mørke fuger, i fargen formen har bak på halsen."""
+    me = ob.data
+    img = bpy.data.images[f"src_{name}"]
+    px = np.empty(size * size * 4, np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(size, size, 4)
+    me.calc_loop_triangles()
+    co = coords(ob)
+    uv = np.empty(len(me.uv_layers["src"].data) * 2, np.float32)
+    me.uv_layers["src"].data.foreach_get("uv", uv)
+    uv = uv.reshape(-1, 2) * size
+    zs, cx, hw, yb = back["zs"], back["cx"], back["hw"], back["yb"]
+    z0, z1 = zs[0], zs[-1]
+
+    def behind(p):
+        z = p[..., 2]
+        return (z > z0 + 0.01) & (z < z1 - 0.01) & (p[..., 1] > np.interp(z, zs, yb) + 0.004)
+
+    # Fargen bak på halsen (treet), som grunntone.
+    band = (co[:, 2] > z1 + 0.04) & (co[:, 2] < z1 + 0.2)
+    neck = band & (co[:, 1] > np.median(co[band, 1]))
+    tris = list(me.loop_triangles)
+    base = []
+    for t in tris:
+        if neck[list(t.vertices)].all():
+            c = uv[list(t.loops)].mean(0).astype(int)
+            base.append(px[min(c[1], size - 1), min(c[0], size - 1), :3])
+    base = np.median(np.array(base), 0) if base else np.array([0.18, 0.08, 0.03])
+    n = 0
+    for t in tris:
+        p = co[list(t.vertices)]
+        if not behind(p).all():
+            continue
+        q = uv[list(t.loops)]
+        x0, y0 = np.floor(q.min(0) - 1).astype(int)
+        x1, y1 = np.ceil(q.max(0) + 1).astype(int)
+        xs, ys = np.meshgrid(np.arange(max(x0, 0), min(x1, size)), np.arange(max(y0, 0), min(y1, size)))
+        c = np.stack([xs.ravel() + 0.5, ys.ravel() + 0.5], 1)
+        a, b, cc = q
+        m = np.array([[b[0] - a[0], cc[0] - a[0]], [b[1] - a[1], cc[1] - a[1]]])
+        if abs(np.linalg.det(m)) < 1e-12:
+            continue
+        w = np.linalg.solve(m, (c - a).T).T
+        w = np.column_stack([1 - w.sum(1), w])
+        inside = (w > -0.05).all(1)
+        if not inside.any():
+            continue
+        w = np.clip(w[inside], 0, None)
+        w /= w.sum(1, keepdims=True)
+        pos = w @ p
+        # Stavene følger vinkelen rundt bollen (x mot kanten), så de samles
+        # mot endene som på en ekte lutt.
+        u = (pos[:, 0] - np.interp(pos[:, 2], zs, cx)) / np.maximum(np.interp(pos[:, 2], zs, hw), 1e-3)
+        ang = (np.arcsin(np.clip(u, -1, 1)) / math.pi + 0.5) * back["staves"]
+        k = np.floor(ang).astype(int)
+        f = ang - k
+        tone = np.where(k % 2 == 0, 1.15, 0.85)
+        seam = np.clip(np.minimum(f, 1 - f) / 0.06, 0, 1) * 0.45 + 0.55
+        grain = 1.0 + 0.06 * np.sin(pos[:, 2] * 260.0 + k * 1.7)
+        col = base[None, :] * (tone * seam * grain)[:, None]
+        yy, xx = ys.ravel()[inside], xs.ravel()[inside]
+        px[yy, xx, :3] = np.clip(col, 0, 1)
+        n += len(yy)
+    img.pixels.foreach_set(px.ravel())
+    print(f"bollen malt: {n} piksler, grunntone {np.round(base, 3)}")
+
+
 def decimate(ob, tris):
     for _ in range(4):
         n = sum(len(p.vertices) - 2 for p in ob.data.polygons)
@@ -292,6 +407,7 @@ def build(name):
     hi = ob.copy()
     hi.data = ob.data.copy()
     bpy.context.scene.collection.objects.link(hi)
+    back = close_back(ob, **spec["back"]) if "back" in spec else None
     v = spec["voxel"]
     keep = {k: getattr(folk3d, k) for k in ("VOXEL", "THICK", "LOOSE")}
     try:
@@ -309,6 +425,8 @@ def build(name):
     finally:
         for k, val in keep.items():
             setattr(folk3d, k, val)
+    if back is not None:
+        paint_back(ob, name, back, spec.get("src_size", SRC_SIZE))
     if "flat" in spec:
         flatten(ob, spec["flat"] * spec["height"])
     ob.name = name

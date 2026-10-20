@@ -73,6 +73,27 @@ SEATED = {"troubadour"}
 JAW = {"troubadour"}
 MOUTH = 0.023  # brøk av høyden fra nesetippen ned til leppesømmen (målt på skriveren: rundt 0,02)
 JAW_SOFT = (0.004, 0.02)  # overgangen over munnen og bak haka (brøk av høyden)
+# Munnen fra TRELLIS er en malt strek på en hel flate: kjeven strakk
+# underleppa til en lang, blek hake. Leppesømmen skjæres opp (`open_mouth`:
+# flaten deles langs `MOUTH` innenfor halve bredden `MOUTH_W`, overleppa
+# følger hodet og underleppa kjeven), og bak den ligger munnhula, en liten
+# lukket, mørk form (`MOUTH_CAVE`: dybde, halv bredde og halv høyde, brøk av
+# høyden) med den øvre halvdelen på hodet og den nedre på kjeven, så det
+# mørke synes mellom leppene når han synger.
+MOUTH_W = 0.012  # halve bredden av munnen (brøk av høyden)
+MOUTH_DEPTH = 0.008  # så langt inn fra fronten av ansiktet sømmen skjæres (brøk av høyden)
+MOUTH_CAVE = (0.011, 0.012, 0.006)
+MOUTH_CUTS = 2
+MOUTH_LIP = 0.010  # underleppa: så langt under sømmen går overgangen fra munnvikene til haka (brøk av høyden)  # flatene ved munnen deles så mange ganger før sømmen skjæres
+MOUTH_DARK = ((0.11, 0.045, 0.04), (0.32, 0.12, 0.10))  # munnhula: inne og ned mot tunga (sRGB)
+# Fingrene fra TRELLIS er rette og henger sammen (en vott i skallet): to
+# bein per hånd (`finger1`/`finger2`, `finger_bones`) bøyer dem om
+# knokene og midtleddet, så venstre hånd griper rundt lutthalsen i `play`
+# og `sit` (`folk_motion.FINGER_CURL`). Målene langs hånda fra håndleddet
+# (m for en figur på 1,8 m): knokene, midtleddet, og tommelen, som står på
+# siden mot +x i hvileposen og ikke bøyes (`thumb`: avstanden fra midten
+# av hånda mot tommelsida der den begynner).
+FINGERS = {"troubadour": dict(sides=("L",), knuckle=0.145, mid=0.185, thumb=0.045)}
 # Figurene med en gjenstand i fanget (trubaduren og lutten, `item3d.py lute`):
 # et bein «lute» under hoftene som ikke former kroppen, og som spillet setter
 # gjenstanden etter (`Npcs::instances`). Beinets rom er gjenstandens eget
@@ -565,17 +586,29 @@ def jaw_bone(ob, J, H):
     return ("jaw", tuple(pivot), tuple(chin), "head"), mouth
 
 
-def jaw_weights(ob, arm, J, H, mouth):
+def jaw_weights(ob, arm, J, H, mouth, lower=()):
     """Kjeven tar det som ligger under munnen og foran dreiepunktet (haka,
     underleppa og skjegget under), med en myk overgang; resten av hodet
-    beholder vektene sine (skalert ned der kjeven tar over)."""
+    beholder vektene sine (skalert ned der kjeven tar over). Langs sømmen
+    `open_mouth` skar opp, er overgangen hard: underleppa (`lower` og det
+    under sømmen) følger kjeven helt, overleppa hodet, og mot munnvikene
+    går det over i den myke overgangen."""
     g = ob.vertex_groups.get("jaw") or ob.vertex_groups.new(name="jaw")
     pivot_x = J["head"].x
     soft_z, soft_x = JAW_SOFT[0] * H, JAW_SOFT[1] * H
+    lower = set(lower)
+    half = MOUTH_W * H
     n = 0
     for v in ob.data.vertices:
-        x, _, z = v.co
+        x, y, z = v.co
         below = min(1.0, max(0.0, (mouth - z) / soft_z))
+        if lower and (z < mouth - 1e-4 or v.index in lower):
+            # Under sømmen: underleppa følger kjeven mest midt på og
+            # ingenting i munnvikene, så åpningen blir rund som en munn;
+            # nedover mot haka følger alt kjeven.
+            prof = max(0.0, 1.0 - (abs(y) / half) ** 2)
+            down = min(1.0, max(0.0, (mouth - z) / (MOUTH_LIP * H)))
+            below = prof + (1.0 - prof) * down * down * (3 - 2 * down)
         front = min(1.0, max(0.0, (x - pivot_x - 0.01 * H) / soft_x))
         neck = min(1.0, max(0.0, (z - J["neck"].z) / (0.02 * H)))
         w = below * front * neck
@@ -583,12 +616,234 @@ def jaw_weights(ob, arm, J, H, mouth):
         if w <= 1e-3:
             g.remove([v.index])
             continue
+        # De andre vektene skaleres så de til sammen blir 1 − w (de summerte
+        # ikke alltid til 1, og eksporten normaliserer: kjeven fikk mer enn
+        # den skulle, og munnvikene åpnet seg).
+        rest = sum(vg.weight for vg in v.groups if vg.group != g.index)
         for vg in v.groups:
             if vg.group != g.index:
-                vg.weight *= 1.0 - w
+                vg.weight *= (1.0 - w) / max(rest, 1e-6)
         g.add([v.index], w, "REPLACE")
         n += 1
     print("kjeven tar", n, "hjørner")
+
+
+def open_mouth(ob, H, mouth):
+    """Skjærer opp leppesømmen: flatene foran på ansiktet deles i høyden
+    `mouth` innenfor halve bredden `MOUTH_W`, og kantene langs snittet
+    deles i to, så underleppa kan gå ned med kjeven uten å strekke huden.
+    Gir hjørnene på undersida av snittet."""
+    import bmesh
+
+    half, deep = MOUTH_W * H, MOUTH_DEPTH * H
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    near = (np.abs(co[:, 1]) < 0.01 * H) & (np.abs(co[:, 2] - mouth) < 0.006 * H)
+    front = float(co[near, 0].max())
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+
+    def zone(p, pad=0.0):
+        return p.x > front - deep - pad and abs(p.y) < half + 0.006 * H + pad and abs(p.z - mouth) < 0.012 * H + pad
+
+    # Skallet er grovt ved munnen (flater på rundt en centimeter): flatene
+    # der deles først, så sømmen får nok hjørner til å åpne seg rundt.
+    faces = [f for f in bm.faces if all(zone(v.co) for v in f.verts)]
+    edges = list({e for f in faces for e in f.edges})
+    bmesh.ops.subdivide_edges(bm, edges=edges, cuts=MOUTH_CUTS, use_grid_fill=True)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    faces = [f for f in bm.faces if all(zone(v.co) for v in f.verts)]
+    geom = list({e for f in faces for e in f.edges}) + faces + list({v for f in faces for v in f.verts})
+    res = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0.0, 0.0, mouth), plane_no=(0.0, 0.0, 1.0), dist=1e-5)
+    cut = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge)]
+    slit = [e for e in cut if all(abs(v.co.y) < half and v.co.x > front - deep and abs(v.co.z - mouth) < 1e-4 for v in e.verts)]
+    bmesh.ops.split_edges(bm, edges=slit)
+    bm.verts.index_update()
+    lower = []
+    for v in bm.verts:
+        if abs(v.co.z - mouth) < 1e-4 and abs(v.co.y) < half and v.co.x > front - deep and v.link_faces:
+            mz = sum(f.calc_center_median().z for f in v.link_faces) / len(v.link_faces)
+            if mz < mouth:
+                lower.append(v.index)
+    bm.to_mesh(ob.data)
+    bm.free()
+    print(f"munnen skåret opp: {len(slit)} kanter, {len(lower)} hjørner på underleppa, fronten x {front:.3f}")
+    return lower
+
+
+def free_spot(ob, size, layer="src"):
+    """Midten (piksler) og radien til det største tomme stedet mellom øyene
+    i teksturen."""
+    from PIL import ImageDraw
+    from scipy import ndimage
+
+    me = ob.data
+    uv = np.empty(len(me.uv_layers[layer].data) * 2, np.float32)
+    me.uv_layers[layer].data.foreach_get("uv", uv)
+    uv = uv.reshape(-1, 2) * size
+    im = Image.new("L", (size, size), 0)
+    dr = ImageDraw.Draw(im)
+    for p in me.polygons:
+        dr.polygon([tuple(uv[i]) for i in p.loop_indices], fill=255, outline=255)
+    used = np.asarray(im) > 0
+    dist = ndimage.distance_transform_edt(~used)
+    edge = 40  # unna kanten av bildet (uv går rundt der)
+    dist[:edge], dist[-edge:], dist[:, :edge], dist[:, -edge:] = 0, 0, 0, 0
+    y, x = np.unravel_index(np.argmax(dist), dist.shape)
+    return (float(x), float(y)), float(dist[y, x])
+
+
+def mouth_cave(ob, name, H, mouth):
+    """Munnhula: en lukket, mørk ellipsoide bak leppesømmen, holdt inne i
+    hodet (hjørner som ville stukket ut, trekkes inn langs strålen fra
+    midten). Den øvre halvdelen følger hodet og den nedre kjeven, så den
+    strekkes og fyller åpningen mellom leppene. Fargen males på et tomt
+    sted i teksturen (`free_spot`), mørkt inne og rødere nede mot tunga."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+
+    depth, half, tall = (f * H for f in MOUTH_CAVE)
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    near = (np.abs(co[:, 1]) < 0.01 * H) & (np.abs(co[:, 2] - mouth) < 0.006 * H)
+    front = float(co[near, 0].max())
+    c = Vector((front - MOUTH_DEPTH * H * 0.5 - depth, 0.0, mouth - 0.15 * tall))
+    bvh = BVHTree.FromObject(ob, bpy.context.evaluated_depsgraph_get())
+    img = bpy.data.images[f"src_{name}"]
+    size = img.size[0]
+    (sx, sy), room = free_spot(ob, size)
+    r = max(2.0, min(room - 6.0, 14.0))
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    made = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0)
+    verts = made["verts"]
+    pulled = 0
+    for v in verts:
+        p = Vector((v.co.x * depth, v.co.y * half, v.co.z * tall))
+        d = p.length
+        hit = bvh.ray_cast(c, p.normalized(), d + 0.004) if d > 1e-6 else (None,)
+        if hit[0] is not None:
+            d2 = max((hit[0] - c).length - 0.003, 0.2 * d)
+            p = p.normalized() * d2
+            pulled += 1
+        v.co = c + p
+    new_faces = {f for v in verts for f in v.link_faces}
+    layers = [bm.loops.layers.uv[n] for n in ("src", "UVMap") if n in bm.loops.layers.uv]
+    for f in new_faces:
+        f.smooth = True
+        f.material_index = 0
+        for l in f.loops:
+            q = l.vert.co - c
+            u = (sx + q.y / half * 0.7 * r) / size
+            w = (sy + q.z / tall * 0.7 * r) / size
+            for lay in layers:
+                l[lay].uv = (u, w)
+    bm.verts.index_update()
+    idx = [v.index for v in verts]
+    bm.to_mesh(ob.data)
+    bm.free()
+    head, jaw = ob.vertex_groups["head"], ob.vertex_groups["jaw"]
+    for i in idx:
+        v = ob.data.vertices[i]
+        for vg in list(v.groups):
+            ob.vertex_groups[vg.group].remove([i])
+        t = min(1.0, max(0.0, (mouth - v.co.z) / tall * 1.5 + 0.5))
+        t = t * t * (3 - 2 * t)
+        if t < 0.999:
+            head.add([i], 1.0 - t, "REPLACE")
+        if t > 0.001:
+            jaw.add([i], t, "REPLACE")
+    # Fargen: et mørkt felt (litt større enn øyene bruker), rødere nede.
+    px = np.empty(size * size * 4, np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(size, size, 4)
+    R = int(r) + 4
+    ys, xs = np.mgrid[-R:R + 1, -R:R + 1]
+    dark, red = np.array(MOUTH_DARK[0]), np.array(MOUTH_DARK[1])
+    k = np.clip(-ys / (0.7 * r) * 0.8, 0, 1)[..., None] ** 1.5
+    col = dark * (1 - k) + red * k
+    yy, xx = (int(sy) + ys).clip(0, size - 1), (int(sx) + xs).clip(0, size - 1)
+    px[yy, xx, :3] = col
+    px[yy, xx, 3] = 1.0
+    img.pixels.foreach_set(px.ravel())
+    print(f"munnhula: {len(idx)} hjørner, {pulled} trukket inn, i teksturen ved ({sx:.0f}, {sy:.0f}) r {r:.0f} av {room:.0f}")
+
+
+def finger_bones(ob, arm, spec, k):
+    """Bein for fingrene (`FINGERS`): `finger1` fra knokene og `finger2`
+    fra midtleddet, med x-aksen langs knokene, så en dreining om x bøyer
+    fingrene inn mot håndflata. Håndflata vender inn mot kroppen i
+    hvileposen (tommelen fram); retningene leses av hånda (den flate
+    aksen på tvers av hånda). Vektene går mykt over ved leddene, og
+    tommelen (på siden mot +x) beholder hånda."""
+    for s in spec["sides"]:
+        hb = arm.data.bones[f"hand.{s}"]
+        h0, h1 = Vector(hb.head_local), Vector(hb.tail_local)
+        d = (h1 - h0).normalized()
+        g = ob.vertex_groups[f"hand.{s}"]
+        ids, pts = [], []
+        for v in ob.data.vertices:
+            for vg in v.groups:
+                if vg.group == g.index and vg.weight > 0.5:
+                    ids.append(v.index)
+                    pts.append(v.co[:])
+        P = np.array(pts)
+        rel = P - np.array(h0[:])
+        t = rel @ np.array(d[:])
+        side = rel - np.outer(t, d[:])
+        _, _, vt = np.linalg.svd(side - side.mean(0), full_matrices=False)
+        across = Vector(vt[0]).normalized()  # langs knokene
+        if across.x < 0:
+            across = -across  # mot tommelen (fram)
+        palm = d.cross(across).normalized()
+        if palm.y * (1 if s == "L" else -1) > 0:
+            palm = -palm  # håndflata vender inn mot kroppen
+        axis = d.cross(palm).normalized()  # dreining om denne bøyer d mot håndflata
+        kn, md, thumb = spec["knuckle"] * k, spec["mid"] * k, spec["thumb"] * k
+        mid_side = side.mean(0)
+        joints = {}
+        for name, at, nxt in ((f"finger1.{s}", kn, md), (f"finger2.{s}", md, md + 0.04 * k)):
+            band = np.abs(t - at) < 0.01 * k
+            c = Vector((P[band].mean(0) if band.any() else (h0 + d * at)[:]))
+            joints[name] = (c, nxt - at)
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        parent = arm.data.edit_bones[f"hand.{s}"]
+        for name, (c, ln) in joints.items():
+            b = arm.data.edit_bones.new(name)
+            b.head = c
+            b.tail = c + d * ln
+            b.align_roll(palm)  # z mot håndflata, så x er knokene
+            b.parent = parent
+            b.use_deform = True
+            parent = b
+        bpy.ops.object.mode_set(mode="OBJECT")
+        # Vektene: ut forbi knokene til finger1, forbi midtleddet til
+        # finger2, ikke tommelen.
+        g1 = ob.vertex_groups.get(f"finger1.{s}") or ob.vertex_groups.new(name=f"finger1.{s}")
+        g2 = ob.vertex_groups.get(f"finger2.{s}") or ob.vertex_groups.new(name=f"finger2.{s}")
+        ramp = 0.008 * k
+        n = 0
+        for v in ob.data.vertices:
+            wh = next((vg.weight for vg in v.groups if vg.group == g.index), 0.0)
+            if wh <= 1e-3:
+                continue
+            r = Vector(v.co) - h0
+            tt = r.dot(d)
+            off = (r - d * tt - Vector(mid_side)).dot(across)
+            f1 = min(1.0, max(0.0, (tt - kn + ramp) / (2 * ramp)))
+            f2 = min(1.0, max(0.0, (tt - md + ramp) / (2 * ramp)))
+            # Tommelen står på siden mot +across, og går ikke så langt ut
+            # som fingrene.
+            th = min(1.0, max(0.0, (off - thumb) / (0.01 * k))) * min(1.0, max(0.0, (md - tt) / (0.01 * k)))
+            f1 *= 1.0 - th
+            f2 *= 1.0 - th
+            if f1 <= 1e-3:
+                continue
+            g.add([v.index], wh * (1.0 - f1), "REPLACE")
+            g1.add([v.index], wh * (f1 - f2), "REPLACE")
+            if f2 > 1e-3:
+                g2.add([v.index], wh * f2, "REPLACE")
+            n += 1
+        print(f"fingrene {s}: {n} hjørner, knokene langs {tuple(round(c, 2) for c in across)}, håndflata {tuple(round(c, 2) for c in palm)}, bøyes om {tuple(round(c, 2) for c in axis)}")
 
 
 def rig(ob, name, J):
@@ -607,7 +862,11 @@ def rig(ob, name, J):
     layered_weights(ob, arm)
     lute = lute_bone(arm, LUTE[name], FOLK[name] / 1.8) if name in LUTE else None
     if mouth is not None:
-        jaw_weights(ob, arm, J, FOLK[name], mouth)
+        lower = open_mouth(ob, FOLK[name], mouth)
+        jaw_weights(ob, arm, J, FOLK[name], mouth, lower)
+        mouth_cave(ob, name, FOLK[name], mouth)
+    if name in FINGERS:
+        finger_bones(ob, arm, FINGERS[name], FOLK[name] / 1.8)
     return arm, lute
 
 
@@ -683,14 +942,26 @@ def layered_weights(ob, arm, radius=WEIGHT_RADIUS):
 
 
 def build(name, size=2048):
-    clear()
-    ob = load(name)
-    hi = ob.copy()
-    hi.data = ob.data.copy()
-    bpy.context.scene.collection.objects.link(hi)
-    simplify(ob)
-    transfer(hi, ob, name, SRC_SIZE)
-    face_patch(ob, name, FOLK[name])
+    # `FOLK3D_CACHE=mappe` gjenbruker skallet med fargen (det tunge: skallet
+    # og fargen fra formen) når bare riggen, munnen eller klippene endres.
+    cache = os.environ.get("FOLK3D_CACHE")
+    blend = os.path.abspath(os.path.join(cache, f"{name}.blend")) if cache else None
+    if blend and os.path.exists(blend):
+        bpy.ops.wm.open_mainfile(filepath=blend)
+        ob = bpy.data.objects["body"]
+    else:
+        clear()
+        ob = load(name)
+        hi = ob.copy()
+        hi.data = ob.data.copy()
+        bpy.context.scene.collection.objects.link(hi)
+        simplify(ob)
+        transfer(hi, ob, name, SRC_SIZE)
+        face_patch(ob, name, FOLK[name])
+        if blend:
+            os.makedirs(os.path.dirname(blend), exist_ok=True)
+            bpy.data.images[f"src_{name}"].pack()
+            bpy.ops.wm.save_as_mainfile(filepath=blend)
     H = FOLK[name]
     J = landmarks(ob, H)
     arm, lute = rig(ob, name, J)

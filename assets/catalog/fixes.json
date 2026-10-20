@@ -2539,5 +2539,26 @@
     "assets/catalog/review/skeleton_loader_klatring_for_etter.jpg"
    ]
   }
+ },
+ "npc_troubadour": {
+  "1339248a2011": {
+   "text": [
+    "Munnen hadde ikke noe innside: kjeven strakk underleppa til en lang, blek hake, så den bare kunne åpnes 0,12. Rettet slik: leppesømmen er skåret opp (`folk3d.open_mouth`: flatene ved munnen deles, og kantene langs sømmen deles i to innenfor munnens bredde), underleppa følger kjeven mest midt på og ingenting i munnvikene, så åpningen blir rund, og bak sømmen ligger munnhula, en liten lukket, mørk form som følger hodet oppe og kjeven nede (`mouth_cave`, fargen på et tomt sted i teksturen). Kjeven åpnes nå 0,2 (`JAW_OPEN`). Ansiktsteksturen er ikke rørt.",
+    "Fingrene var rette fra TRELLIS og sto ut fra halsen. Rettet slik: to fingerbein på venstre hånd (`finger1.L` fra knokene, `finger2.L` fra midtleddet, tommelen står), bøyd rundt lutthalsen i `play` og `sit` (`folk_motion.FINGER_CURL`), litt mer på hvert slag. Før/etter: i Vertshuset ved ildstedet med `--voice 0.8`, munnen nær, og hånda på halsen."
+   ],
+   "images": [
+    "assets/catalog/review/npc_troubadour_munn_fingre_for_etter.jpg"
+   ]
+  }
+ },
+ "lute": {
+  "db40b8da9ae1": {
+   "text": [
+    "Baksida var åpen i TRELLIS-formen (et grunt trau med rosen synlig bakfra). Rettet slik: `item3d.close_back` lukker kroppen med en buet bolle fra sargen, 7 cm dyp, avsmalnende mot endene, og `paint_back` maler den som spon i elleve striper med mørke fuger i fargen bak på halsen. Forsida er som før. Før/etter: forfra, bakfra, fra siden og skrått bakfra."
+   ],
+   "images": [
+    "assets/catalog/review/lute_bakside_for_etter.jpg"
+   ]
+  }
  }
 }
