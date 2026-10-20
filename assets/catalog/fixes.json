@@ -1561,6 +1561,14 @@
    "images": [
     "assets/catalog/review/framework_for_etter.jpg"
    ]
+  },
+  "ea308eee86e0": {
+   "text": [
+    "Kjettingene fra håndleddene til livet strakk seg når armene beveget seg. Rettet slik: kjettingen deles der den er tynnest (`tethers`), halvdelen ved håndleddet følger armen og halvdelen ved livet kroppen, og skallet skilles langs kuttet. Før/etter: brølet og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r2_for_etter.jpg"
+   ]
   }
  },
  "grav_blindgang": {
@@ -1815,6 +1823,56 @@
   "4f9773cea91f": {
    "text": [
     "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "dropdown": {
+  "3fd8e2a85544": {
+   "text": [
+    "Brystet krøllet seg når armene ble løftet (armene er grodd inntil kroppen). Rettet slik: kroppen innenfor skulderleddet mister armvektene, og delingen mellom hoftene og brystet følger høyden (`torso_guard`). Før/etter: angrepet og brølet forfra."
+   ],
+   "images": [
+    "assets/catalog/review/dropdown_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "navbar": {
+  "c3f238a32575": {
+   "text": [
+    "Baksidene av de fem skjoldene glødet, og neven nådde ikke bakken. Rettet slik: bare tynne striper og små flekker gløder (`glow_thin`, skjoldflatene tas bort), og han bøyer seg dypere i neveslaget så neven treffer bakken (`fist_bend`). Før/etter: neveslaget fra siden, i spillet, og glødekartet."
+   ],
+   "images": [
+    "assets/catalog/review/navbar_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "twin_warden": {
+  "4d7e0e7ad3b9": {
+   "text": [
+    "Tvillingvokteren glødet ikke (teksturen fra TRELLIS har ingen magenta). Rettet slik: gløden hentes fra eierens bilde forfra og legges på flatene som vender fram (`front_glow`): sømmen, øynene og nøkkelen. Før/etter i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/twin_warden_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "progress_foreman": {
+  "90e88463a805": {
+   "text": [
+    "Brystet krøllet seg når armene ble løftet. Rettet slik: som Dropdownen (`torso_guard`). Glasstolpen og øynene gløder nå (rødt til rosa i teksturen), og tolpen lader et magenta lys før slaget. Før/etter: angrepet og brølet forfra, og i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/progress_foreman_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "spinner": {
+  "e6f2b4099bbc": {
+   "text": [
+    "Små fliser ved grensen mellom hjul og bein synes når hjulet spinner. Rettet slik: hjulet er alt innenfor hjulets omdreide profil og beina resten, og småøyer går til delen rundt. Noen små fliser står igjen ved beinfestene. Før/etter: gangen fra kanten og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/spinner_r2_for_etter.jpg"
    ]
   }
  }
