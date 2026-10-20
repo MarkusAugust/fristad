@@ -5,9 +5,9 @@ Kjør:
     python3.13 tools/models/bow.py
 
 En reflekskbue av mørk eik med lærviklet grep og en streng av lin. Origo
-midt i grepet, buen langs Z (lemmene opp og ned), buken (fronten bort fra
+`BELLY` bak grepet (der lemmene ville møttes), buen langs Z (lemmene opp og ned), buken (fronten bort fra
 strengen) mot +X og strengen mot −X. Spillet setter den etter beinet «bow»
-i bueskytteren (`mob3d.bow_bone`, `mob_rigs`), som har buens rom. Rundt
+i bueskytteren (`mob3d.bow_bone`, `mob_rigs`), som har buens rom og står `BELLY` bak midten av neven. Rundt
 800 trekanter, teksturlag i meter.
 
 Akser som i town.py: Z opp."""

@@ -609,7 +609,8 @@ impl Combat {
             let dist = flat.length();
             // Rekkevidden måles til kroppen, ikke midten: store fiender
             // (tabellene, Rammeverket) står lenger unna når de slår.
-            if dist > reach + 0.4 * m.scale() || flat.normalize_or_zero().dot(fwd) < self.gear.arc(ARC) {
+            // Flaggermusa som henger oppe, går sverdet under (`mob_bat.rs`).
+            if dist > reach + 0.4 * m.scale() || flat.normalize_or_zero().dot(fwd) < self.gear.arc(ARC) || m.out_of_reach(feet) {
                 continue;
             }
             any = true;
@@ -626,7 +627,7 @@ impl Combat {
                 mobs.shove(i, feet, HEAVY_PUSH);
             }
             let killed = strike.killed;
-            let body = mobs.mobs[i].pos + Vec3::Y * 1.0 * mobs.mobs[i].scale();
+            let body = mobs.mobs[i].body_mid();
             self.spawn_debris(body, fwd, if strike.armored { 3 } else if heavy { 14 } else { 8 });
             out.push(CombatEvent::Hit { mob: i, damage, killed, pos: body });
             out.push(CombatEvent::Sound(if killed { "kill" } else if strike.armored { "clang" } else if heavy { "hit_heavy" } else { "hit" }));

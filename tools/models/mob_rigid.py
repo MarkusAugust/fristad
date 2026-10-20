@@ -11,6 +11,9 @@ die2), og nakken og hodet står der spillet dreier dem mot deg.
 - `wisp`: Popover-irrbloset, en hvit kube med ett øye som svever, to små
   vinger, stikkeren under og tre glødende kuber bak (løse biter, eget bein
   som dreier sakte).
+- `bat`: Alert-flaggermusa, en rund kropp med utropstegnet over hodet som
+  henger stivt på hodet, vingene på hvert sitt bein og en kort hale.
+  Spillet bestemmer flyhøyden (`mob_bat.rs`), så klippene henger på stedet.
 """
 
 import math
@@ -372,4 +375,156 @@ def wisp_clips(arm, H, Clip):
         _clip(Clip, arm, name, 36, die)
 
 
-RIGS = {"spinner": spinner, "wisp": wisp}
+# --- Alert-flaggermusa -------------------------------------------------------
+
+
+BAT_TAIL = 0.6  # halen kortes inn til så mye av lengden (en liten hale)
+BAT_WING_CLEAR = 0.012  # vingen begynner så langt utenfor kroppens side (brøk av høyden)
+
+
+def _short_tail(ob, co, H, x0):
+    """Halen bak `x0` trekkes sammen langs lengden (`BAT_TAIL`): x mot
+    roten og midtlinja (høyden per skive) like mye opp mot rotens høyde,
+    så tykkelsen står og halen blir kort og tykk."""
+    tail = (co[:, 0] < x0) & (np.abs(co[:, 1]) < 0.2 * H) & (co[:, 2] < 0.45 * H)
+    if not tail.any():
+        return co
+    q = co[tail]
+    step = 0.02 * H
+    k = ((x0 - q[:, 0]) / step).astype(int)
+    mid = np.array([q[k == i, 2].mean() if (k == i).any() else np.nan for i in range(k.max() + 1)])
+    for i in range(1, len(mid)):
+        if np.isnan(mid[i]):
+            mid[i] = mid[i - 1]
+    base = mid[0]
+    new = q.copy()
+    new[:, 0] = x0 + (q[:, 0] - x0) * BAT_TAIL
+    # Midtlinja i den nye lengden: høyden der skiva kom fra, trukket mot roten.
+    kn = np.minimum(((x0 - new[:, 0]) / step / BAT_TAIL).astype(int), len(mid) - 1)
+    new[:, 2] = q[:, 2] - mid[k] + base + (mid[kn] - base) * BAT_TAIL
+    co = co.copy()
+    co[tail] = new
+    ob.data.vertices.foreach_set("co", co.ravel())
+    ob.data.update()
+    print(f"halen: {int(tail.sum())} hjørner, kortet til {BAT_TAIL:.0%}")
+    return co
+
+
+def bat(ob, co, H, armature, Clip):
+    """Kroppen, hodet og utropstegnet (løse biter over hodet) stivt på
+    `head`, så hele flaggermusa ser mot deg; vingene (det som står utenfor
+    kroppens side) på `wing.L`/`wing.R` med leddet ved skulderen, og halen
+    (bak ryggen, lavt) på `tail`."""
+    lab = _components(ob)
+    main = np.bincount(lab).argmax()
+    # Kroppens side måles under vingene (bunnen av bryst og buk), der
+    # bare kroppen er; vingene står utenfor den.
+    low = (lab == main) & (co[:, 2] > 0.12 * H) & (co[:, 2] < 0.42 * H) & (np.abs(co[:, 1]) < 0.4 * H)
+    side = float(np.percentile(np.abs(co[low, 1]), 99.5))
+    edge = side + BAT_WING_CLEAR * H
+    print(f"kroppens side {side / H:.3f}, vingene fra {edge / H:.3f} av høyden")
+    # Halen: bak ryggen, lavt og smalt.
+    back = co[(lab == main) & (co[:, 2] > 0.3 * H) & (co[:, 2] < 0.6 * H) & (np.abs(co[:, 1]) < 0.1 * H), 0].min()
+    x0 = back - 0.02 * H
+    co = _short_tail(ob, co, H, x0)
+    labels = np.array(["head"] * len(co), dtype=object)
+    for nm, sg in (("wing.L", 1), ("wing.R", -1)):
+        labels[(sg * co[:, 1] > edge) & (lab == main)] = nm
+    tail = (co[:, 0] < x0) & (np.abs(co[:, 1]) < edge) & (co[:, 2] < 0.45 * H) & (lab == main)
+    labels[tail] = "tail"
+    # Vingeleddet: midt i vingeroten.
+    shoulder = {}
+    for nm, sg in (("wing.L", 1), ("wing.R", -1)):
+        root = (labels == nm) & (sg * co[:, 1] < edge + 0.06 * H)
+        p = co[root].mean(0) if root.any() else np.array([0.1 * H, sg * edge, 0.6 * H])
+        tip = co[labels == nm]
+        far = tip[np.argmax(sg * tip[:, 1])]
+        shoulder[nm] = (Vector((p[0], sg * edge, p[2])), Vector(far))
+    q = co[tail]
+    t0 = Vector((x0, 0.0, float(q[q[:, 0] > x0 - 0.05 * H, 2].mean()) if len(q) else 0.25 * H))
+    t1 = Vector(q[np.argmin(q[:, 0])]) if len(q) else t0 + Vector((-0.2 * H, 0, 0))
+    body = Vector((float(co[lab == main, 0].mean()), 0.0, 0.45 * H))
+    print("skuldrene:", {k: tuple(round(x / H, 3) for x in v[0]) for k, v in shoulder.items()}, "halen fra", tuple(round(x / H, 3) for x in t0), "til", tuple(round(x / H, 3) for x in t1))
+    B = [
+        ("root", (0, 0, 0), (0, 0, 0.1 * H), None),
+        ("hips", tuple(body), tuple(body + Vector((0, 0, 0.1 * H))), "root"),
+        ("chest", tuple(body), tuple(body + Vector((0, 0, 0.15 * H))), "hips"),
+        ("neck", tuple(body), tuple(body + Vector((0.05 * H, 0, 0))), "chest"),
+        ("head", tuple(body + Vector((0.05 * H, 0, 0))), tuple(body + Vector((0.4 * H, 0, 0))), "neck"),
+        ("wing.L", tuple(shoulder["wing.L"][0]), tuple(shoulder["wing.L"][1]), "head"),
+        ("wing.R", tuple(shoulder["wing.R"][0]), tuple(shoulder["wing.R"][1]), "head"),
+        ("tail", tuple(t0), tuple(t1), "head"),
+    ]
+    arm = armature("alert_bat_rig", B)
+    _assign(ob, arm, labels)
+    bat_clips(arm, H, Clip)
+    return arm, B
+
+
+def bat_clips(arm, H, Clip):
+    """Klippene henger på stedet: flyhøyden, stupet og fallet til gulvet
+    styrer spillet (`mob_bat.rs`). `flap` er vingeslaget (opp er positivt),
+    `sweep` legger vingene bakover langs kroppen (stupet)."""
+
+    def pose(c, f, root=(0, 0, 0), pitch=0.0, roll=0.0, yaw=0.0, flap=0.0, sweep=0.0, tail=0.0, tail_side=0.0, fall=(0.0, 0.0)):
+        c.loc("root", f, root)
+        c.rot("root", f, x=fall[0], y=fall[1])
+        c.rot("hips", f, x=roll, y=pitch, z=yaw)
+        c.rot("chest", f)
+        c.rot("neck", f)
+        c.rot("head", f)
+        c.rot("wing.L", f, x=flap, z=-sweep)
+        c.rot("wing.R", f, x=-flap, z=sweep)
+        c.rot("tail", f, y=tail, z=tail_side)
+
+    def beat(t, n, amp=38.0, mid=8.0):
+        # Slaget ned er raskere enn løftet (som en ekte flaggermus).
+        ph = (n * t) % 1.0
+        w = math.cos(math.pi * ph / 0.4) if ph < 0.4 else -math.cos(math.pi * (ph - 0.4) / 0.6)
+        return mid + amp * w
+
+    def bob(t, n, amp=0.04):
+        # Kroppen løftes når vingene slår ned.
+        return amp * H * math.sin(2 * math.pi * (n * t - 0.15))
+
+    _clip(Clip, arm, "idle", 24, lambda c, f, t: pose(c, f, root=(0, 0, bob(t, 3)), pitch=-4, flap=beat(t, 3), tail=10 * math.sin(2 * math.pi * 3 * t - 1.0), tail_side=8 * math.sin(2 * math.pi * t)))
+    _clip(Clip, arm, "walk", 16, lambda c, f, t: pose(c, f, root=(0, 0, bob(t, 3, 0.05)), pitch=16, flap=beat(t, 3, 44, 4), sweep=6, tail=-6 + 8 * math.sin(2 * math.pi * 3 * t - 1.0)))
+
+    def alert(c, f, t):
+        # Varselskriket: rygger opp med hodet bakover, vingene spent ut og
+        # løftet, og hele kroppen dirrer mens den skriker (bilde 5–17).
+        u = smooth01(min(1.0, f / 5)) * (1 - smooth01(max(0.0, (f - 17) / 5)))
+        shake = math.sin(f * 2.6) * u
+        pose(c, f, root=(-0.05 * H * u, 0, 0.05 * H * u), pitch=-26 * u + 3 * shake, roll=4 * shake, flap=(1 - u) * beat(t, 2) + u * (48 + 6 * shake), sweep=-10 * u, tail=-30 * u)
+    _clip(Clip, arm, "alert", 22, alert)
+
+    def attack(c, f, t):
+        # Stupet (treffet i bilde 18 av 36): vingene opp og nesa opp (0–7),
+        # vingene legges bakover langs kroppen og nesa ned (7–17), bittet
+        # med hodet fram (18), vingene slår kraftig og den løfter seg igjen.
+        if f <= 7:
+            u = smooth01(f / 7)
+            pose(c, f, pitch=-4 - 18 * u, flap=8 + 50 * u, tail=-20 * u)
+        elif f <= 18:
+            u = smooth01((f - 7) / 11)
+            pose(c, f, pitch=-22 + 70 * u, flap=58 - 70 * u, sweep=55 * u, tail=-20 + 35 * u)
+        else:
+            u = smooth01((f - 18) / 18)
+            snap = math.exp(-(f - 18) / 2.5)
+            pose(c, f, pitch=48 * (1 - u) - 4 * u - 12 * snap, flap=(-12 * (1 - u)) * (1 - u) + u * beat(t, 3, 44, 8), sweep=55 * (1 - smooth01((f - 18) / 5)), tail=15 * (1 - u))
+    _clip(Clip, arm, "attack", 36, attack)
+    for name, side in (("hit", 1.0), ("hit2", -1.0)):
+        _clip(Clip, arm, name, 14, lambda c, f, t, side=side: pose(c, f, root=(-0.1 * H * math.exp(-4 * t), 0, 0), roll=side * 28 * math.exp(-4 * t) * math.cos(10 * t), pitch=-14 * math.exp(-5 * t), flap=-30 * math.exp(-4 * t) + (1 - math.exp(-4 * t)) * beat(t, 2), tail=20 * math.exp(-4 * t)))
+    # Svimmel (etter en parade ligger den på gulvet): spreller med vingene.
+    _clip(Clip, arm, "stagger", 30, lambda c, f, t: pose(c, f, root=(0, 0, 0.02 * H * abs(math.sin(4 * math.pi * t))), roll=18 * math.sin(4 * math.pi * t), yaw=25 * math.sin(2 * math.pi * t), flap=-10 + 30 * math.sin(10 * math.pi * t), tail=20 * math.sin(6 * math.pi * t)))
+    # Døden: vingene klapper sammen, og den velter på ryggen (die) eller
+    # framover på snuten (die2) og blir liggende; spillet lar den falle.
+    for name, sgn in (("die", -1.0), ("die2", 1.0)):
+        def die(c, f, t, sgn=sgn):
+            u = smooth01(min(1.0, t * 1.5))
+            lift = (0.12 if sgn < 0 else 0.55) * H * u
+            pose(c, f, root=(0, 0, lift), fall=(0.0, sgn * 88 * u), flap=(1 - u) * beat(t, 4) - 12 * u, sweep=20 * u, tail=(50 if sgn < 0 else -45) * u)
+        _clip(Clip, arm, name, 36, die)
+
+
+RIGS = {"spinner": spinner, "wisp": wisp, "bat": bat}

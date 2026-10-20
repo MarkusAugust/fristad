@@ -49,6 +49,9 @@ pub enum Kind {
     CardSquire,
     /// Nivå 9: irrbloset som svever.
     Wisp,
+    /// Alle nivåene, i flokk: flaggermusa som skriker og vekker de andre,
+    /// og stuper ned og biter (`mob_bat.rs`).
+    AlertBat,
 }
 
 /// Tallene bak et slag.
@@ -76,7 +79,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 22] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp];
+    pub const ALL: [Kind; 23] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp, Kind::AlertBat];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -102,6 +105,7 @@ impl Kind {
             Kind::Foreman => "progress_foreman",
             Kind::CardSquire => "card_squire",
             Kind::Wisp => "popover_wisp",
+            Kind::AlertBat => "alert_bat",
         }
     }
 
@@ -131,6 +135,7 @@ impl Kind {
             Kind::Foreman => "progress-formann",
             Kind::CardSquire => "kortknekt",
             Kind::Wisp => "popover",
+            Kind::AlertBat => "alert-flaggermus",
         }
     }
 
@@ -158,6 +163,7 @@ impl Kind {
             Kind::Foreman => "Progress-formannen",
             Kind::CardSquire => "Kortknekten",
             Kind::Wisp => "Popover-irrbloss",
+            Kind::AlertBat => "Alert-flaggermusa",
         }
     }
 
@@ -187,6 +193,7 @@ impl Kind {
             Kind::Foreman => "Formannen i gruva, med hakka i neven og en glasstolpe i brystet som fylles og aldri blir full. Tung og bred. Bærer nøkkelen.",
             Kind::CardSquire => "En knekt av stein med kroppen som et spillekort. Plata tar imot slagene forfra: gå rundt ham.",
             Kind::Wisp => "Et lite hvitt irrbloss med ett øye, tre glødende kuber bak seg og en pil under. Svever, og stikker ned fra lufta.",
+            Kind::AlertBat => "En rund flaggermus av anløpet messing med et utropstegn av jern over hodet. Skriker når den ser deg, og alt som sover i nærheten våkner og kommer. Henger for høyt for sverdet og stuper ned for å bite: hugg når den er nede, eller slå den i bakken med en parade.",
         }
     }
 
@@ -220,6 +227,9 @@ impl Kind {
             Kind::Foreman => (1.6, 0.45, 0.0),
             Kind::CardSquire => (1.45, 0.4, 0.0),
             Kind::Wisp => (0.95, 0.3, 0.0),
+            // 0,25 høy (0,5 m mellom vingespissene); flyhøyden kommer i
+            // tillegg (`Mob.air`).
+            Kind::AlertBat => (0.25, 0.22, 0.0),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -240,7 +250,7 @@ impl Kind {
             Kind::Spinner => Some(Kind::Avatar),
             Kind::Foreman => Some(Kind::Accordion),
             Kind::CardSquire => Some(Kind::Button),
-            Kind::Wisp => Some(Kind::Tooltip),
+            Kind::Wisp | Kind::AlertBat => Some(Kind::Tooltip),
             _ => None,
         }
     }
@@ -282,6 +292,9 @@ impl Kind {
             Kind::CardSquire => Stats { hp: 70.0, speed: 1.7, damage: 13.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 28.0, cooldown: 1.2, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.5, poise: 10.0, tokens: 3 },
             // Svever (`mob_rigid.wisp`): stikket i bilde 15.
             Kind::Wisp => Stats { hp: 35.0, speed: 2.8, damage: 8.0, range: 1.4, reach: 1.9, scale: 1.0, sight: 32.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
+            // Svak og rask, i flokk. Stupet (`mob_bat.rs`) begynner
+            // `range` unna og biter i bilde 18 av 36 (`BITE` nært).
+            Kind::AlertBat => Stats { hp: 24.0, speed: 3.4, damage: 7.0, range: 3.4, reach: 3.4, scale: 1.0, sight: 30.0, cooldown: 1.6, attack_hit: 18.0 / FPS, attack_len: 36.0 / FPS, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         };
         Stats { hp: s.hp * TOUGHNESS, ..s }
@@ -312,6 +325,8 @@ impl Kind {
             Kind::Foreman
         } else if has(&["kortknekt", "card"]) {
             Kind::CardSquire
+        } else if has(&["flaggermus", "alert", " bat"]) || l == "bat" {
+            Kind::AlertBat
         } else if has(&["popover", "irrbloss"]) {
             Kind::Wisp
         } else if has(&["tabell", "table"]) {

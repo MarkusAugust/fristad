@@ -203,6 +203,11 @@ impl Session {
         true
     }
 
+    /// Hvor den første fienden står (til skjermbildene, `snapshot --bolt-view`).
+    pub fn foe_at(&self) -> Option<Vec3> {
+        self.mobs.mobs.first().map(|m| m.pos)
+    }
+
     /// Hvor mange markører som er i lufta.
     pub fn bolts_in_air(&self) -> usize {
         self.mobs.bolts.len()
