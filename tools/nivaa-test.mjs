@@ -96,10 +96,12 @@ const n0 = map0.modules.length;
 const tile = page.locator('#modlist .tile[data-module="grav/rom_2x2"]');
 const target = await page.evaluate(() => {
   const st = window.fristad.state;
-  const xs = st.map.modules.flatMap((m) => m.cells.map((c) => c[0]));
-  const i = Math.max(...xs) + 3;
+  // Under nivået (sør), ved den venstre kanten: fritt og innenfor kartet.
+  const cells = st.map.modules.flatMap((m) => m.cells);
+  const i = Math.min(...cells.map((c) => c[0])) + 1;
+  const j = Math.max(...cells.map((c) => c[2])) + 2;
   const r = document.querySelector("#plan").getBoundingClientRect();
-  const [px, py] = st.view.toScreen(i * 4, 0);
+  const [px, py] = st.view.toScreen(i * 4, j * 4);
   return [r.left + px, r.top + py, i];
 });
 const tb = await tile.boundingBox();
@@ -139,7 +141,7 @@ await page.keyboard.press("Control+KeyZ");
 // Åpningen: klikk en pil og velg port.
 const opening = await page.evaluate(() => {
   const st = window.fristad.state;
-  const m = st.map.modules.find((m) => m.module === "grav/rom_2x2");
+  const m = st.map.modules.find((m) => m.module === "grav/rom_2x2") || st.map.modules[0];
   const o = m.openings[0];
   const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][o.side];
   const r = document.querySelector("#plan").getBoundingClientRect();

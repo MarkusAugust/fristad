@@ -128,6 +128,11 @@ impl LevelEditing {
         }
     }
 
+    /// Startstedet (føttene i verden, retningen), om nivået har et.
+    pub fn start(&self) -> Option<(Vec3, f32)> {
+        self.start
+    }
+
     /// Et punkt i dokumentets rom, i verden.
     pub fn to_world(&self, p: Vec3) -> Vec3 {
         p + self.origin
