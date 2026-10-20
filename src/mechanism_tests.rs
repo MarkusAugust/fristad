@@ -206,3 +206,99 @@ fn mekanismene_uten_bitene_sine_er_feil() {
     assert!(msgs(&doc).iter().any(|m| m.contains("kanalen har ikke vann")), "{:?}", msgs(&doc));
 }
 
+
+/// Stigen og heisen er lenker i navigasjonsnettet (`crypt::hops`): en
+/// fiende nede finner fram til deg oppe over stigen når fallemmen er åpen,
+/// og med heisen når bremsen er løsnet og heisen står nede der den er.
+/// Nåbarheten i den kompilerte fila (`compose::reach`, redigeringens regel)
+/// går over begge.
+#[test]
+fn fiendene_folger_deg_opp_stigen_og_med_heisen() {
+    use crate::domain::mobs::{Kind, Mobs};
+    use crate::domain::world::{crypt, Builder};
+    use glam::{Vec2, Vec3};
+    let (below, above) = (Vec3::new(0.0, 0.0, 4.0), Vec3::new(0.0, 6.0, -4.0));
+    for id in ["grav/stige", "grav/heis"] {
+        let (f, _) = showcase(id);
+        // Fila: oppe kan nås fra nede bare over lenken.
+        let (nav, seen) = compose::reach(&f, below).unwrap_or_else(|| panic!("{id}: nede står ikke på nettet"));
+        let all = |_: &crypt::nav::Poly| true;
+        let (top, _) = nav.nearest(above, 1.5, &all).unwrap_or_else(|| panic!("{id}: oppe står ikke på nettet"));
+        assert!(seen[top as usize], "{id}: oppe kan ikke nås fra nede");
+        assert_eq!(nav.hops.len(), 1, "{id}: én lenke");
+        let mut bare = nav.clone();
+        bare.hops.clear();
+        let (a, _) = bare.nearest(below, 1.5, &all).unwrap();
+        assert!(!bare.reachable(a, &all)[top as usize], "{id}: oppe kan nås uten lenken");
+
+        // Krypten: veien er stengt til fallemmen eller bremsen er åpnet.
+        let mut c = crypt::build(&mut Builder::new(&[]), Vec2::ZERO, vec![(1, f.clone())]);
+        let o = c.levels[0].origin;
+        let (from, to) = (below + o, above + o);
+        assert!(c.route(from, to).is_none(), "{id}: veien går over lenken med fallemmen eller bremsen stengt");
+        c.open = vec![true; c.switches.len()];
+        if id == "grav/heis" {
+            // Heisen står oppe: fienden nede kommer ikke med den, og heller
+            // ikke mens den kjører.
+            for rest in [Some(false), None] {
+                c.lift_rest = vec![rest];
+                assert!(c.route(from, to).is_none(), "{id}: veien går med heisen {rest:?}");
+            }
+            c.lift_rest = vec![Some(true)];
+        }
+        assert!(c.path(from, to).is_none(), "{id}: veien til fots går opp");
+        let path = c.route(from, to).unwrap_or_else(|| panic!("{id}: ingen vei opp"));
+        assert!(path.iter().any(|p| p.y > o.y + 1.0 && p.y < o.y + 5.0) || path.windows(2).any(|w| (w[1].y - w[0].y).abs() > 3.0), "{id}: veien går ikke opp lenken: {path:?}");
+
+        // Fienden går dit, klatrer eller kjører, og tar deg igjen oppe.
+        let mut mobs = Mobs::new(&c, &[]);
+        let i = mobs.spawn_aware(Kind::Button, from);
+        let (mut rode, mut best) = (false, f32::MAX);
+        for _ in 0..30 * 40 {
+            let out = mobs.update(1.0 / 30.0, to, true, &c);
+            rode |= out.lifts.contains(&0);
+            let p = mobs.mobs[i].pos;
+            best = best.min(p.distance(to));
+            if best < 2.5 {
+                break;
+            }
+        }
+        assert!(best < 2.5, "{id}: fienden kom ikke opp til deg (nærmest {best:.1} m, står ved {:?})", mobs.mobs[i].pos - o);
+        assert_eq!(rode, id == "grav/heis", "{id}: fienden kjørte heisen");
+    }
+}
+
+/// Den boltede fallemmen åpnes bare nedenfra: står du på den, faller du
+/// ikke, og fiendene kan ikke gå over stigen under den; klatrer du opp
+/// stigen, går den opp, og da kan fiendene også bruke stigen.
+#[test]
+fn den_boltede_fallemmen_apnes_bare_nedenfra() {
+    use crate::adapters::rapier::RapierPhysics;
+    use crate::domain::world::Use;
+    use crate::ports::driving::Input;
+    use glam::Vec3;
+    let c = &crate::tests::world().world.crypt;
+    let t = c.trapdoors.iter().find(|t| t.bolted).expect("ingen boltet fallem i krypten").clone();
+    let (n, ladder) = c.ladders.iter().enumerate().filter(|(_, l)| l.level == t.level).min_by(|a, b| a.1.top.distance(t.pos).total_cmp(&b.1.top.distance(t.pos))).expect("ingen stige under lemmen");
+    assert!(ladder.top.distance(t.pos) < 2.5, "stigen når ikke lemmen");
+    let mut physics = RapierPhysics::new();
+    let mut game = crate::tests::session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    game.place_feet(t.pos + Vec3::Y * 0.3);
+    for _ in 0..90 {
+        game.update(&mut input, 1.0 / 30.0, &mut physics);
+    }
+    assert!(game.feet().y > t.pos.y - 0.5, "du falt gjennom den boltede lemmen ({:?})", game.feet());
+    assert!(!game.crypt_now().open[t.switch], "den boltede lemmen gikk opp ovenfra");
+    let below = ladder.pos + Vec3::new(ladder.yaw.sin(), 0.0, ladder.yaw.cos()) * 0.6;
+    let hop = c.levels[t.level].nav.hops.iter().find(|h| h.pts.iter().any(|p| p.distance(ladder.top) < 0.1)).expect("stigen er ikke en lenke i nettet").clone();
+    assert_eq!(hop.gate, Some(t.switch), "lemmen stenger ikke stigen");
+    let usable = |game: &crate::application::Session| [true, false].map(|f| game.crypt_now().hop_open(&hop, f));
+    assert_eq!(usable(&game), [false, false], "fiendene går over stigen gjennom den stengte lemmen");
+    game.place_feet(below);
+    game.update(&mut input, 1.0 / 30.0, &mut physics);
+    game.use_exact(Use::Ladder(n));
+    assert!(game.crypt_now().open[t.switch], "lemmen gikk ikke opp nedenfra");
+    assert_eq!(usable(&game), [true, true], "fiendene kan ikke bruke stigen når lemmen er åpen");
+}

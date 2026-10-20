@@ -4,7 +4,10 @@
 //! midtpunktene på kantene de går gjennom) og glatter den med trakten
 //! (funnel / «simple stupid funnel»), så de går rett mellom hjørnene.
 //! Porter, dører og falske vegger stenger polygonene sine (`Poly.gate`) til
-//! de åpnes.
+//! de åpnes. Stigene og heisene er lenker utenom nettet (`Hop`, «off-mesh
+//! links») mellom to polygoner i hver sin etasje: A* går over dem som over
+//! en kant, og veien får lenkens punkter (fiendene klatrer og kjører langs
+//! dem, `mob_walk.rs`).
 
 use glam::{Vec2, Vec3};
 use std::cmp::Reverse;
@@ -37,9 +40,59 @@ pub struct Poly {
     pub links: Vec<Link>,
 }
 
+/// En lenke utenom nettet: stigen eller heisen fra polygonen `from` til
+/// `to`, begge veier. `pts` er veien langs den (den første i `from`, den
+/// siste i `to`).
+#[derive(Clone, Debug)]
+pub struct Hop {
+    pub from: u32,
+    pub to: u32,
+    pub pts: Vec<Vec3>,
+    pub kind: HopKind,
+    /// Bryteren som stenger den: fallemmen over stigen, bremsen på heisen.
+    pub gate: Option<usize>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HopKind {
+    Ladder,
+    /// Heis nummer n (`Crypt.lifts`).
+    Lift(usize),
+}
+
+impl Hop {
+    /// Punktene i den retningen du går (`forward`: fra `from` til `to`).
+    pub fn oriented(&self, forward: bool) -> Vec<Vec3> {
+        let mut p = self.pts.clone();
+        if !forward {
+            p.reverse();
+        }
+        p
+    }
+
+    /// Kostnaden i A* (meter gange): stigen er treg, og heisen må man vente på.
+    fn cost(&self) -> f32 {
+        let len: f32 = self.pts.windows(2).map(|w| w[0].distance(w[1])).sum();
+        match self.kind {
+            HopKind::Ladder => 2.0 + len * 2.5,
+            HopKind::Lift(_) => 4.0 + len * 1.5,
+        }
+    }
+}
+
+/// Et steg i korridoren: gjennom kanten `links[k]` i polygonen, eller over
+/// lenken (og retningen).
+#[derive(Clone, Copy, Debug)]
+enum Step {
+    Edge(u32, usize),
+    Hop(usize, bool),
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Nav {
     pub polys: Vec<Poly>,
+    /// Stigene og heisene (`add_hop`).
+    pub hops: Vec<Hop>,
     buckets: HashMap<(i32, i32), Vec<u32>>,
 }
 
@@ -150,6 +203,30 @@ impl Nav {
                 }
             }
         }
+    }
+
+    /// Legg til en lenke langs `pts` (enden i hver etasje; endene kobles
+    /// til nettet innen `reach` meter). Gir om den ble lagt til.
+    pub fn add_hop(&mut self, kind: HopKind, pts: &[Vec3], gate: Option<usize>, reach: f32) -> bool {
+        let all = |_: &Poly| true;
+        let (Some(first), Some(last)) = (pts.first(), pts.last()) else { return false };
+        let (Some((a, pa)), Some((b, pb))) = (self.nearest(*first, reach, &all), self.nearest(*last, reach, &all)) else { return false };
+        if a == b {
+            return false;
+        }
+        let mut full: Vec<Vec3> = vec![pa];
+        for p in pts.iter().copied().chain([pb]) {
+            if full.last().is_none_or(|q| q.distance(p) > 0.05) {
+                full.push(p);
+            }
+        }
+        self.hops.push(Hop { from: a, to: b, pts: full, kind, gate });
+        true
+    }
+
+    /// Lenkene ut fra polygonen `p`: (lenken, om den går forover).
+    fn hops_from(&self, p: u32) -> impl Iterator<Item = (usize, bool)> + '_ {
+        self.hops.iter().enumerate().filter_map(move |(h, hop)| if hop.from == p { Some((h, true)) } else if hop.to == p { Some((h, false)) } else { None })
     }
 
     /// Polygonene som kan berøre rektangelet.
@@ -265,8 +342,15 @@ impl Nav {
 
     /// Veien fra `from` til `to`: A* over polygonene, så trakten. Gir
     /// hjørnene etter startpunktet (det siste er målet), eller `None` om det
-    /// ikke finnes noen åpen vei.
+    /// ikke finnes noen åpen vei. Alle lenkene er åpne.
     pub fn path(&self, from: Vec3, to: Vec3, open: &dyn Fn(&Poly) -> bool) -> Option<Vec<Vec3>> {
+        self.path_with(from, to, open, &|_, _| true)
+    }
+
+    /// Som `path`, med `hop_open` som sier om lenken kan brukes i den
+    /// retningen (heisen står i den andre enden, fallemmen er stengt). Over
+    /// en lenke får veien lenkens punkter.
+    pub fn path_with(&self, from: Vec3, to: Vec3, open: &dyn Fn(&Poly) -> bool, hop_open: &dyn Fn(&Hop, bool) -> bool) -> Option<Vec<Vec3>> {
         let (a, start) = self.nearest(from, 1.5, open)?;
         let (b, goal) = self.nearest(to, 2.5, open)?;
         // Står fienden på kanten av nettet (innerkanten av en vindeltrapp),
@@ -275,19 +359,34 @@ impl Nav {
         let c = self.polys[a as usize].center;
         let d = (c - start).with_y(0.0);
         let start = if d.length() > 1e-4 { start + d / d.length() * d.length().min(0.03) } else { start };
-        let corridor = self.corridor(a, start, b, goal, open)?;
-        Some(self.funnel(start, goal, &corridor))
+        let corridor = self.corridor(a, start, b, goal, open, hop_open)?;
+        // Trakten for hvert strekk på nettet, og lenkens punkter imellom.
+        let (mut out, mut here, mut leg) = (vec![], start, vec![]);
+        for step in corridor {
+            match step {
+                Step::Edge(p, k) => leg.push((p, k)),
+                Step::Hop(h, fwd) => {
+                    let pts = self.hops[h].oriented(fwd);
+                    out.extend(self.funnel(here, pts[0], &leg));
+                    out.extend(pts[1..].iter().copied());
+                    here = *pts.last().unwrap_or(&here);
+                    leg.clear();
+                }
+            }
+        }
+        out.extend(self.funnel(here, goal, &leg));
+        Some(out)
     }
 
-    /// Polygonene på korteste vei og kantene imellom (indeks i `links`).
-    fn corridor(&self, a: u32, start: Vec3, b: u32, goal: Vec3, open: &dyn Fn(&Poly) -> bool) -> Option<Vec<(u32, usize)>> {
+    /// Polygonene på korteste vei og kantene og lenkene imellom.
+    fn corridor(&self, a: u32, start: Vec3, b: u32, goal: Vec3, open: &dyn Fn(&Poly) -> bool, hop_open: &dyn Fn(&Hop, bool) -> bool) -> Option<Vec<Step>> {
         if a == b {
             return Some(vec![]);
         }
         let n = self.polys.len();
         let mut g = vec![f32::MAX; n];
         let mut at = vec![start; n];
-        let mut prev: Vec<Option<(u32, usize)>> = vec![None; n];
+        let mut prev: Vec<Option<(u32, Step)>> = vec![None; n];
         let mut heap = BinaryHeap::new();
         g[a as usize] = 0.0;
         let key = |f: f32| (f * 1000.0) as u64;
@@ -298,26 +397,31 @@ impl Nav {
             }
             let here = at[p as usize];
             let gp = g[p as usize];
-            for (k, l) in self.polys[p as usize].links.iter().enumerate() {
-                let q = l.to as usize;
+            let edges = self.polys[p as usize].links.iter().enumerate().map(|(k, l)| (l.to, (l.a + l.b) * 0.5, here.distance((l.a + l.b) * 0.5), Step::Edge(p, k)));
+            let hops = self.hops_from(p).filter(|&(h, fwd)| hop_open(&self.hops[h], fwd)).map(|(h, fwd)| {
+                let hop = &self.hops[h];
+                let pts = hop.oriented(fwd);
+                (if fwd { hop.to } else { hop.from }, pts[pts.len() - 1], here.distance(pts[0]) + hop.cost(), Step::Hop(h, fwd))
+            });
+            for (to, mid, step_cost, step) in edges.chain(hops).collect::<Vec<_>>() {
+                let q = to as usize;
                 if !open(&self.polys[q]) {
                     continue;
                 }
-                let mid = (l.a + l.b) * 0.5;
-                let cost = gp + here.distance(mid) + if l.to == b { mid.distance(goal) } else { 0.0 };
+                let cost = gp + step_cost + if to == b { mid.distance(goal) } else { 0.0 };
                 if cost + 1e-4 < g[q] {
                     g[q] = cost;
                     at[q] = mid;
-                    prev[q] = Some((p, k));
-                    heap.push(Reverse((key(cost + mid.distance(goal)), l.to)));
+                    prev[q] = Some((p, step));
+                    heap.push(Reverse((key(cost + mid.distance(goal)), to)));
                 }
             }
         }
         prev[b as usize]?;
         let mut out = vec![];
         let mut cur = b;
-        while let Some((p, k)) = prev[cur as usize] {
-            out.push((p, k));
+        while let Some((p, step)) = prev[cur as usize] {
+            out.push(step);
             cur = p;
             if cur == a {
                 break;
@@ -388,16 +492,18 @@ impl Nav {
         out.into_iter().filter(|p| !same(*p, start) || corridor.is_empty()).collect()
     }
 
-    /// Om polygonen `b` kan nås fra `a` når `open` sier hvilke som er åpne.
+    /// Polygonene som kan nås fra `a` når `open` sier hvilke som er åpne,
+    /// over kantene og alle lenkene (stigene og heisene).
     pub fn reachable(&self, a: u32, open: &dyn Fn(&Poly) -> bool) -> Vec<bool> {
         let mut seen = vec![false; self.polys.len()];
         let mut stack = vec![a];
         seen[a as usize] = true;
         while let Some(p) = stack.pop() {
-            for l in &self.polys[p as usize].links {
-                if !seen[l.to as usize] && open(&self.polys[l.to as usize]) {
-                    seen[l.to as usize] = true;
-                    stack.push(l.to);
+            let hops = self.hops_from(p).map(|(h, fwd)| if fwd { self.hops[h].to } else { self.hops[h].from });
+            for to in self.polys[p as usize].links.iter().map(|l| l.to).chain(hops).collect::<Vec<_>>() {
+                if !seen[to as usize] && open(&self.polys[to as usize]) {
+                    seen[to as usize] = true;
+                    stack.push(to);
                 }
             }
         }

@@ -48,7 +48,15 @@ impl Session {
         let sim_dt = if self.combat.hitstop > 0.0 { 0.0 } else { dt };
         let eye = self.eye();
         let fwd = self.forward();
+        // Hvor heisene står (fiendene kjører heisen når den står der de er).
+        self.crypt.lift_rest = (0..self.crypt.lifts.len()).map(|n| (!self.mech.lift_moving(n)).then(|| !self.mech.lift_up(n))).collect();
         let outcome = self.mobs.update(sim_dt, feet, in_crypt, &self.crypt);
+        for &n in &outcome.lifts {
+            if self.mech.ride_lift(&self.crypt, n).is_some() {
+                let at = self.crypt.lifts[n].pos + Vec3::Y * 2.0;
+                events.push(self.sound_at("gate", at, 1.2));
+            }
+        }
         self.hero.coins += outcome.tokens;
         if outcome.tokens > 0 {
             events.push(sfx("pickup"));

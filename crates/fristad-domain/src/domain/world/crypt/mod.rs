@@ -16,6 +16,7 @@
 
 pub mod compose;
 pub mod doc;
+pub mod hops;
 pub mod kit;
 pub mod level;
 pub mod map;
@@ -159,6 +160,8 @@ pub struct Crypt {
     pub ladders: Vec<Ladder>,
     pub bridges: Vec<Bridge>,
     pub lifts: Vec<Lift>,
+    /// Hvor heisene står for fiendene (`lift_rest`; økta setter den).
+    pub lift_rest: Vec<Option<bool>>,
     pub waters: Vec<Water>,
     pub traps: Vec<Trap>,
     pub rests: Vec<Rest>,
@@ -761,5 +764,6 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     }
     level.rooms = rooms;
     log::info!("Kryptnivå {n} ({}): {} rom, {} polygoner, origo ({:.0}, {:.0}, {:.0})", level.name, level.rooms.len(), level.nav.polys.len(), origin.x, origin.y, origin.z);
+    hops::link(c, k, &mut level.nav);
     c.levels.push(level);
 }

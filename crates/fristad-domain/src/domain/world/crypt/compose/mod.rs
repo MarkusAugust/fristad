@@ -34,6 +34,7 @@ mod solids;
 
 pub use grid::*;
 pub use look::{expand, roll};
+pub use nav::reach;
 use look::{anchor_point, cell_at, cell_stone, edge_stone, lights, torches};
 
 use super::doc::{DocCell, LevelDoc, Thing};
