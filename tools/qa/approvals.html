@@ -184,9 +184,11 @@ const answers = new Map();   // id -> {verdict, why, at, version} fra lagringen
 let db = null, readOnly = false;
 const queue = new Map(), timers = new Map();
 
-// Et svar gjelder versjonen kortet viser; et svar på en eldre versjon er
-// «Forrige dom».
-const answerOf = it => { const a = answers.get(it.id); return a && a.version === it.version ? a : null; };
+// Et svar gjelder versjonen kortet viser, og bare om det er gitt etter den
+// siste rettingen (`fixed_at`): ellers er det svaret rettingen svarer på
+// (riddergangen: modulen var den samme, bare naborommene i bildet var
+// rettet). Et svar på en eldre versjon er «Forrige dom».
+const answerOf = it => { const a = answers.get(it.id); return a && a.version === it.version && (!it.fixed_at || Date.parse(a.at) > Date.parse(it.fixed_at)) ? a : null; };
 const waiting = it => it.state === "venter";
 const open = it => waiting(it) && !(answerOf(it) || {}).verdict;
 

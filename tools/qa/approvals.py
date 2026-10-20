@@ -46,6 +46,8 @@ def apply(path):
     p = os.path.join(DATA, "approvals.json")
     with open(p) as f:
         ap = json.load(f)
+    fp = os.path.join(DATA, "fixes.json")
+    fixes = json.load(open(fp)) if os.path.exists(fp) else {}
     n = 0
     for row in rows:
         d = row["data"]
@@ -60,6 +62,8 @@ def apply(path):
                 old["history"] = list(old.get("history", [])) + [why]
                 old["why"] = why
                 n += 1
+            continue
+        if answered_by_fix(d, (fixes.get(name) or {}).get(d.get("version") or ""), lambda: _first_commit(fp, d["version"])):
             continue
         entry = {"verdict": d["verdict"], "date": d.get("at", "")[:10], "why": d.get("why", "").strip()}
         old = ap.setdefault(group, {}).get(name)
@@ -107,6 +111,18 @@ def judged(rows, came=None):
     with open(p) as f:
         fixes = json.load(f)
     came = came or (lambda v: _first_commit(p, v))
+    n = mark_judged(rows, fixes, came)
+    if n:
+        with open(p, "w") as f:
+            json.dump(fixes, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+    return n
+
+
+def mark_judged(rows, fixes, came):
+    """Som `judged`, uten fila: gir rettingene i `fixes` `judged` og gir
+    antallet. Et svar uten tid, eller gitt før rettingen kom (svaret
+    rettingen svarer på, 20. oktober: riddergangen), er ingen ny dom."""
     n = 0
     for row in rows:
         d = row["data"]
@@ -115,15 +131,29 @@ def judged(rows, came=None):
         fix = (fixes.get(name) or {}).get(ver)
         if d.get("verdict") not in VERDICTS or not fix or not fix.get("answers") or fix.get("judged"):
             continue
-        t = came(ver)
-        if t and _utc(t) < _utc(d.get("at", "")):
+        if after_fix(d, came(ver)):
             fix["judged"] = d["at"]
             n += 1
-    if n:
-        with open(p, "w") as f:
-            json.dump(fixes, f, indent=1, ensure_ascii=False)
-            f.write("\n")
     return n
+
+
+def answered_by_fix(d, fix, came):
+    """Svaret er det en retting av samme versjon svarer på (gitt før
+    rettingen kom inn, og rettingen er ikke dømt): det er allerede ført inn
+    og er ingen ny dom (20. oktober: riddergangen). `came()` gir tiden."""
+    return bool(fix and fix.get("answers") and not fix.get("judged") and not after_fix(d, came() or _now()))
+
+
+def _now():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def after_fix(d, fixed_at):
+    """Om svaret `d` er gitt etter rettingen (`fixed_at`, tiden den kom inn).
+    Et svar uten gyldig tid regnes aldri som etter."""
+    at = _utc(d.get("at") or "")
+    return bool(fixed_at) and at is not None and (_utc(fixed_at) or at) < at
 
 
 def _first_commit(path, version):
@@ -138,7 +168,7 @@ def _utc(t):
     try:
         return datetime.fromisoformat(t.replace("Z", "+00:00")).astimezone(timezone.utc)
     except ValueError:
-        return datetime.max.replace(tzinfo=timezone.utc)
+        return None
 
 
 def main(argv):

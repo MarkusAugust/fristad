@@ -555,6 +555,65 @@ def rule_errors():
             for what, e, cur, fix, want in cases if (got := state(e, cur, fix)) != want]
 
 
+def fixed_at(fix, cur):
+    """Tida rettingen som gjelder versjonen kortet viser, ble commitet
+    (første commit med versjonen i fixes.json, i UTC; ikke commitet ennå:
+    nå). Siden regner bare svar gitt etter den (`answerOf`): ellers gjaldt
+    svaret rettingen svarer på, kortet (20. oktober: riddergangen sto som
+    besvart fordi bare naborommene i bildet var endret, ikke modulen)."""
+    if not fix or fix.get("version") != cur or not fix.get("answers"):
+        return None
+    from .approvals import _first_commit, _now, _utc
+    t = _first_commit(os.path.join(DATA, "fixes.json"), cur)
+    return _utc(t).strftime("%Y-%m-%dT%H:%M:%SZ") if t and _utc(t) else _now()
+
+
+def answer_of(it, a):
+    """Svaret fra samlingen `dom` som gjelder kortet, som `answerOf` i
+    approvals.html: samme versjon, og gitt etter rettingen (`fixed_at`)."""
+    from .approvals import after_fix
+    if not a or a.get("version") != it.get("version"):
+        return None
+    if it.get("fixed_at") and not after_fix(a, it["fixed_at"]):
+        return None
+    return a
+
+
+def answer_errors():
+    """Regelen for hvilket svar som gjelder et kort, prøvd på laget eksempler,
+    og at siden bruker den (`answerOf` i approvals.html krever `fixed_at`).
+    Og at `apply` ikke tar svaret en retting svarer på som ny dom."""
+    from .approvals import answered_by_fix, mark_judged
+    errors = []
+    it = {"version": "v2", "fixed_at": "2026-10-20T15:09:56Z"}
+    old = {"verdict": "underkjent", "at": "2026-10-20T14:39:51Z", "version": "v2"}
+    new = dict(old, at="2026-10-20T16:00:00Z")
+    cases = [
+        ("svaret før rettingen, samme versjon", it, old, False),
+        ("svaret etter rettingen", it, new, True),
+        ("svaret uten tid", it, dict(old, at=""), False),
+        ("svaret på en annen versjon", dict(it, fixed_at=None), dict(new, version="v1"), False),
+        ("uten retting", dict(it, fixed_at=None), old, True),
+    ]
+    errors += [f"svaret som gjelder kortet: {what} gir {bool(got)}, ikke {want}"
+               for what, card, a, want in cases if bool(got := answer_of(card, a)) != want]
+    html = open(os.path.join(HERE, "approvals.html")).read()
+    line = next((l for l in html.splitlines() if l.startswith("const answerOf")), "")
+    if "fixed_at" not in line:
+        errors.append("answerOf i approvals.html regner ikke med rettingen (`fixed_at`)")
+    fix = {"text": ["…"], "answers": {"verdict": "underkjent", "why": "gulvet"}}
+    came = lambda: "2026-10-20T15:09:56+00:00"
+    if not answered_by_fix(old, fix, came):
+        errors.append("apply tar svaret rettingen svarer på som ny dom")
+    if answered_by_fix(new, fix, came):
+        errors.append("apply hopper over et svar gitt etter rettingen")
+    for what, a, want in (("før rettingen", old, 0), ("etter rettingen", new, 1), ("uten tid", dict(old, at=""), 0)):
+        fixes = {"x": {"v2": dict(fix)}}
+        if (got := mark_judged([{"id": "u_x", "data": a}], fixes, lambda v: came())) != want:
+            errors.append(f"et svar {what} merker rettingen som dømt {got} gang(er), ikke {want}")
+    return errors
+
+
 def fix_for(fixes, name):
     """Den siste rettingen av tingen (`fixes.json`: navn → versjon → retting)."""
     v = fixes.get(name) or {}
@@ -739,7 +798,7 @@ def build(out, render=True):
                 "about": f"{mdef.get('name', '')}: {mdef.get('about', '')}",
                 "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
                 "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-                "fixed": (fix or {}).get("text", []),
+                "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
                 "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1] if name.startswith("grav_") else name,
             }
             shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
@@ -766,7 +825,7 @@ def build(out, render=True):
                 "about": card.get("about", "") + " (" + ", ".join(card["modeller"]) + ")",
                 "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
                 "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-                "fixed": (fix or {}).get("text", []),
+                "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
                 "path": path, "seen": (e or {}).get("seen"),
             }
             shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
@@ -791,7 +850,7 @@ def build(out, render=True):
             "about": about.get(name, "") if kind == "modell" else (tex.get(name) or {}).get("shows", ""),
             "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
             "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
-            "fixed": (fix or {}).get("text", []),
+            "fixed": (fix or {}).get("text", []), "fixed_at": fixed_at(fix, cur),
             "path": path, "seen": (e or {}).get("seen"),
         }
         if st == "utgaar":
@@ -953,6 +1012,7 @@ def audit():
             if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
     errors += rule_errors()
+    errors += answer_errors()
     fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
     # «Rettet slik» er punkter (siden viser én linje per punkt).
     for n, vs in fixes.items():
