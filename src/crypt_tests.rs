@@ -519,3 +519,25 @@ fn vindeltrappa_i_rotunden_gaar_ned_i_vannet() {
     let feet = down(&mut game, &mut physics, &mut input);
     assert!(feet.y < -3.3, "når vannet har sunket, skal trappa gå til bunnen (−3,6 m), men føttene sto på {:.2}", feet.y);
 }
+
+/// Vannet er gjennomskinnelig etter dybden (planen 13h): posen er en kasse
+/// fra flaten ned til bunnen, så rendereren vet hvor dypt det er. Kanalen i
+/// kloakken er rundt tre meter dyp, og når slusa er dreid og vannet har
+/// sunket, er det nesten ingenting igjen (bunnen synes klart).
+#[test]
+fn vannet_vet_hvor_dypt_det_er() {
+    use crate::domain::world::mechanisms::Mechanisms;
+    let c = &world().world.crypt;
+    let mut mech = Mechanisms::new(c, 0);
+    let depth = |m: &Mechanisms| m.water_poses(c).iter().map(|p| p.matrix3.y_axis.length()).collect::<Vec<_>>();
+    let full = depth(&mech);
+    for (w, d) in c.waters.iter().zip(&full) {
+        assert!((d - (w.high - w.bottom())).abs() < 1e-3, "vannet i nivå {} skal være {:.2} m dypt, men posen sier {d:.2}", c.levels[w.level].n, w.high - w.bottom());
+        assert!(*d > 0.3 && *d < 4.0, "vannet i nivå {} er {d:.2} m dypt", c.levels[w.level].n);
+    }
+    let k = c.levels.iter().position(|l| l.n == 3).expect("nivå 3");
+    let n = c.waters.iter().position(|w| w.level == k).expect("vannet i nivå 3");
+    assert!(full[n] > 2.5, "kanalen i kloakken er dyp, men posen sier {:.2} m", full[n]);
+    mech.waters[n] = 1.0;
+    assert!(depth(&mech)[n] < 0.1, "når vannet har sunket, er det grunt: {:.2} m", depth(&mech)[n]);
+}

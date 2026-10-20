@@ -143,11 +143,51 @@ def kit_cart(L=1.5, W=0.9, H=1.1):
     for x in (-W / 2 - 0.006, W / 2 + 0.006):
         strap(m, (x, 0.42, -L / 2), (x, 0.42, L / 2), 0.07, 0.012, (1.0 if x > 0 else -1.0, 0.0, 0.0))
         strap(m, (x, H - 0.1, -L / 2), (x, H - 0.1, L / 2), 0.07, 0.012, (1.0 if x > 0 else -1.0, 0.0, 0.0))
-    # Malmen: en haug som stikker opp av kassen.
-    rubble(m, 0.0, 0.0, H - 0.22, r=0.5, h=0.32, seed=4)
-    # Innsida av kassen over malmen.
-    box(m, (-W / 2 + 0.04, H - 0.25, -L / 2 + 0.04), (W / 2 - 0.04, H, L / 2 - 0.04), "oak", faces=("+x", "-x", "+z", "-z"))
+    # Kassen har plankene 4 cm tykke: innsida vender inn, og kanten på toppen.
+    t = 0.04
+    ix, iz = W / 2 - t, L / 2 - t
+    floor_y = H - 0.3
+    for x0, z0, x1, z1, f in ((-ix, -iz, ix, -iz, (0, 0, 1)), (ix, -iz, ix, iz, (-1, 0, 0)), (ix, iz, -ix, iz, (0, 0, -1)), (-ix, iz, -ix, -iz, (1, 0, 0))):
+        m.quad((x0, floor_y, z0), (x1, floor_y, z1), (x1, H, z1), (x0, H, z0), "oak", facing=f)
+    for x0, z0, x1, z1 in ((-W / 2, -L / 2, W / 2, -iz), (-W / 2, iz, W / 2, L / 2), (-W / 2, -iz, -ix, iz), (ix, -iz, W / 2, iz)):
+        m.quad((x0, H, z0), (x1, H, z0), (x1, H, z1), (x0, H, z1), "oak", facing=(0, 1, 0))
+    ore(m, ix - 0.02, iz - 0.02, floor_y, H)
     return m
+
+
+def ore(m, ix, iz, y0, rim, seed=4):
+    """Malmen i kassen (eieren 20. oktober: steinene stakk gjennom kassen):
+    en haug som et høydefelt innenfor innsida (|x| ≤ ix, |z| ≤ iz), lav ved
+    kanten (under kanten av kassen) og 0,2 m over den midt på, med noen
+    klumper som står helt innenfor haugen. Ingenting går gjennom plankene."""
+    import random
+
+    rng = random.Random(seed)
+    nx, nz = 6, 10
+    top = rim + 0.2
+
+    def h(i, k):
+        u, v = 2 * i / nx - 1, 2 * k / nz - 1
+        edge = max(abs(u), abs(v))
+        if edge >= 0.999:
+            return rim - 0.08
+        return rim - 0.08 + (top - rim + 0.08) * (1 - edge ** 2) * (0.75 + 0.5 * rng.random())
+
+    hs = {(i, k): h(i, k) for i in range(nx + 1) for k in range(nz + 1)}
+    P = lambda i, k: (-ix + 2 * ix * i / nx, hs[(i, k)], -iz + 2 * iz * k / nz)
+    for i in range(nx):
+        for k in range(nz):
+            a, b, c, d = P(i, k), P(i + 1, k), P(i + 1, k + 1), P(i, k + 1)
+            m.quad(a, b, c, d, "rubble", facing=(0, 1, 0), uv=[(p[0], p[2]) for p in (a, b, c, d)], smooth=True)
+    # Klumpene: små, og så langt inn at de holder seg innenfor kassen dreid.
+    for _ in range(5):
+        s = 0.1 + 0.06 * rng.random()
+        r = s * 0.75
+        x = (ix - r) * (2 * rng.random() - 1) * 0.8
+        z = (iz - r) * (2 * rng.random() - 1) * 0.8
+        u, v = x / ix, z / iz
+        y = rim - 0.08 + (top - rim + 0.08) * (1 - max(abs(u), abs(v)) ** 2) * 0.7
+        obox(m, (x, y - s * 0.4, z), (s * 1.2, s, s), rng.random() * 3, "rubble")
 
 
 def kit_lamp():

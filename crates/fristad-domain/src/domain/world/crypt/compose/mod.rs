@@ -35,7 +35,7 @@ mod solids;
 pub use grid::*;
 pub use look::{expand, roll};
 pub use nav::reach;
-use look::{anchor_point, cell_at, cell_look, cell_stone, edge_stone, lights, side_wall, torches, wall_variant_fits};
+use look::{anchor_point, cell_at, cell_look, cell_variant_id, cell_stone, edge_stone, lights, side_wall, torches, wall_variant_fits};
 
 use super::doc::{DocCell, LevelDoc, Thing};
 use super::kit::{KitDef, KitPiece, PieceKind};
@@ -569,6 +569,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
         }
     };
     let look = cell_look(g, c, at);
+    let cell_var = cell_variant_id(c, look.0);
     put(&mut out, look, center, c.yaw(), c.mirror(), (&c.piece.theme, &c.stone));
     // Fakkelfestene i biten selv (rotunden).
     if !c.mirror() {
@@ -595,11 +596,13 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
                 Some(piece) => {
                     let o = outward_v(w) * HALF;
                     let pos = Vec3::new(center.x + o.x, c.floor(w), center.z + o.y);
-                    // Eierens variant, ellers steinens på annenhver mur (plastsømmene), ellers frøet.
+                    // Eierens variant, ellers cellas (tømmeret i sjakta kler murene), ellers
+                    // steinens på annenhver mur (plastsømmene, skyteskårene), ellers frøet.
                     let stone = edge_stone(g, a, w);
-                    let by_stone = stone.wall_variant.as_ref().filter(|v| piece.variants.iter().any(|x| &x.id == *v) && roll(g.seed, [at[0], at[1], at[2], 40 + w as i64]) < 0.5);
-                    let locked = g.edge_variants.get(&(a, w)).or(by_stone);
-                    let look = piece.pick_where(locked.map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]), |v| wall_variant_fits(c, v));
+                    let by_cell = cell_var.filter(|v| piece.variants.iter().any(|x| x.id == *v));
+                    let by_stone = stone.wall_variant.as_deref().filter(|v| piece.variants.iter().any(|x| x.id == *v) && roll(g.seed, [at[0], at[1], at[2], 40 + w as i64]) < 0.5);
+                    let locked = g.edge_variants.get(&(a, w)).map(|s| s.as_str()).or(by_cell).or(by_stone);
+                    let look = piece.pick_where(locked, roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]), |v| wall_variant_fits(c, v));
                     put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &stone));
                     if !hidden {
                         torches(g, &mut out, piece, (pos, side_yaw(w), side_wall(c, w)), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64], g.kit.stones.light_of(&c.stone));

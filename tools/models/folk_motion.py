@@ -253,6 +253,8 @@ class Body:
         self.head = {b.name: Vector(b.head_local) for b in bones}
         self.tail = {b.name: Vector(b.tail_local) for b in bones}
         self.parent = {b.name: (b.parent.name if b.parent else None) for b in bones}
+        # Fingerbeina bøyes om sin egen x-akse (knokene, `folk3d.finger_bones`).
+        self.curl_axis = {b.name: Vector(b.matrix_local.col[0][:3]).normalized() for b in bones if b.name.startswith("finger")}
         for s in ("L", "R"):
             for a, c in (("thigh", "shin"), ("shin", "foot"), ("upper_arm", "forearm"), ("forearm", "hand")):
                 self.tail[f"{a}.{s}"] = self.head[f"{c}.{s}"].copy()
@@ -429,6 +431,11 @@ class Body:
                 continue
             G, H = self.fk(R, root, pose.loc)
             R[f"hand.{s}"] = G[f"forearm.{s}"].inverted() @ q
+        # Fingrene bøyes om knokene og midtleddet.
+        for s, angles in pose.curl.items():
+            for b, a in zip((f"finger1.{s}", f"finger2.{s}"), angles):
+                if b in self.curl_axis:
+                    R[b] = Quaternion(self.curl_axis[b], a) @ R[b]
         return R, root
 
     def tool_points(self, R, root, loc, s):
@@ -498,6 +505,9 @@ class Pose:
         self.hand_world = {}
         self.head_world = None
         self.neck_share = 0.45
+        # side → (bøyningen ved knokene, ved midtleddet) i radianer, for
+        # figurer med fingerbein (`folk3d.FINGERS`)
+        self.curl = {}
 
     def add(self, bone, x=0.0, y=0.0, z=0.0):
         ox, oy, oz = self.rot.get(bone, (0.0, 0.0, 0.0))
@@ -1192,6 +1202,11 @@ LUTE_FRET = (0.03, 0.0, 0.54)  # venstre håndledd ved halsen
 LUTE_SLIDE = 0.06  # så langt grepet flytter seg langs halsen
 LUTE_REST = (-0.07, -0.11, 0.16)  # høyre hånd som hviler på kroppen (`sit`)
 LUTE_GRIP = (-0.7, -0.45, 0.3)  # venstre hånd går opp og fram rundt halsen fra håndleddet
+# Venstre hånds fingre rundt halsen (radianer ved knokene og midtleddet;
+# bare for figurer med fingerbein, `folk3d.FINGERS`). Når han spiller,
+# trykker de litt mer på slaget.
+FINGER_CURL = (0.95, 0.75)
+FINGER_PRESS = 0.12
 
 
 def grip_neck(body, lute, pose):
@@ -1222,6 +1237,7 @@ def sit(body, st, grips, lute=None):
                 tgt = on_lute(lute, LUTE_REST if s == "R" else LUTE_FRET) + Vector((0, 0, 0.004 * k * br))
                 if s == "L":
                     grip_neck(body, lute, pose)
+                    pose.curl["L"] = FINGER_CURL
             pose.hands[s] = (tgt, 1.0, Vector((-0.4, sy * 0.6, -0.7)), "hips")
             pose.add(f"hand.{s}", y=-15.0)
         out.append(pose)
@@ -1265,6 +1281,7 @@ def play(body, st, grips, lute=None):
             fx, fy, fz = LUTE_FRET
             lh = on_lute(lute, (fx, fy - 0.006 * press, fz - LUTE_SLIDE * slide))
             grip_neck(body, lute, pose)
+            pose.curl["L"] = (FINGER_CURL[0] + FINGER_PRESS * press, FINGER_CURL[1] + 0.5 * FINGER_PRESS * press)
         pose.hands["L"] = (lh, 1.0, Vector((-0.3, 0.45, -1.0)), "hips")
         pose.add("hand.L", y=(25.0 if lute is not None else -10.0) - 6.0 * press, x=20.0)
         # Kroppen vugger fra side til side over to takter og lener seg inn

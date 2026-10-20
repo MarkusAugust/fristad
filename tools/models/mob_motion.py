@@ -85,6 +85,10 @@ class Body:
         self.head = {b[0]: Vector(b[1]) for b in bones}
         self.tail = {b[0]: Vector(b[2]) for b in bones}
         self.parent = {b[0]: b[3] for b in bones}
+        # Det som henger fra en lem (`chain.L`/`chain.R`, Rammeverkets
+        # kjettingstumper fra `mob3d.tethers`): følger festet, men vender
+        # som hoftene, så det henger ned uansett hvor armen er.
+        self.dangle = [b for b in self.order if b.split(".")[0] == "chain"]
 
     def vec(self, b):
         return self.tail[b] - self.head[b]
@@ -182,6 +186,10 @@ class Body:
                 root.z -= low
             else:
                 break
+        if self.dangle:
+            G, H = self.fk(R, root)
+            for b in self.dangle:
+                R[b] = G[self.parent[b]].inverted() @ G["hips"]
         return R, root
 
     def key(self, clip, frame, spec, ik_legs=True, slack=0.0):
@@ -874,11 +882,96 @@ def attack_staff(c, body, st):
         body.key(c, f, spec)
 
 
+# Stigen (`crypt::hops`, `kit_grav.kit_ladder`): trinnene står `LADDER_RUNG`
+# fra hverandre, fiendene klatrer `CLIMB_SPEED` (m/s i spillet), og de står
+# `LADDER_GAP` foran stigen (`hops::ladder_points`).
+LADDER_RUNG = 1.0 / 3.0
+CLIMB_SPEED = 1.0
+LADDER_GAP = 0.4
+
+
+def climb(c, body, st, scale):
+    """Klatringen i stigen (eieren 20. oktober: fiendene gled opp og ned i
+    gangklippet): ansiktet mot stigen, hendene griper vekselvis over hodet og
+    føttene står på trinnene. Hver lem flytter seg to trinn om gangen
+    (`LADDER_RUNG`), høyre hånd og venstre fot sammen, så venstre hånd og
+    høyre fot. Klippet er laget for farten i spillet (`CLIMB_SPEED`; i
+    modellens målestokk delt på `scale`), så lemmene som holder, glir nedover
+    med akkurat den farten og står stille på trinnene mens fienden stiger;
+    spillet spiller det baklengs ned stigen. Stigen står `LADDER_GAP` foran
+    roten (x fram)."""
+    S = 2 * LADDER_RUNG / scale  # hvor langt hver lem flytter seg per syklus
+    T = max(8, round(2 * LADDER_RUNG / CLIMB_SPEED * FPS))
+    duty = 0.62
+    travel = S * duty
+    lx = LADDER_GAP / scale
+    # Kroppen står nær stigen (roten fram), rett opp som når den står.
+    lean_x = 0.35 * lx
+    reach_leg = body.leg_reach()
+    foot_len = body.length("foot.L")
+    ankle_x = lx - 0.6 * foot_len
+    hip = body.head["thigh.L"]
+    ankle0 = body.foot_rest("L").z
+    # Nederste fot står på gulvet (rett bein), øverste `travel` høyere.
+    f_lo = ankle0
+    f_hi = f_lo + travel
+    dx_leg = ankle_x - (hip.x + lean_x)
+    hip_z = f_lo + math.sqrt(max(0.01, (0.97 * reach_leg) ** 2 - dx_leg * dx_leg))
+    root_z = min(0.0, hip_z - hip.z)
+    sh = body.head["upper_arm.L"]
+    reach_arm = body.length("upper_arm.L") + body.length("forearm.L")
+    wrist_x = lx - 0.04 / scale
+    dx_arm = wrist_x - (sh.x + lean_x)
+    h_hi = sh.z + root_z + math.sqrt(max(0.01, (0.9 * reach_arm) ** 2 - dx_arm * dx_arm))
+    h_lo = h_hi - travel
+    hand_y = min(0.19 / scale, abs(sh.y) * 0.9)
+    foot_y = min(0.13 / scale, st["width"])
+    # (lem, side, fasen den løfter seg i): diagonalt parvis.
+    limbs = (("hand", "R", 0.0), ("foot", "L", 0.06), ("hand", "L", 0.5), ("foot", "R", 0.56))
+    for f in range(T + 1):
+        ph = f / T
+        spec = base_pose(body, st, Spec(), 0.0)
+        for kind, s, off in limbs:
+            sy = 1 if s == "L" else -1
+            u = (ph - off) % 1.0
+            lo, hi = (h_lo, h_hi) if kind == "hand" else (f_lo, f_hi)
+            back = (0.09 if kind == "hand" else 0.1) / scale
+            if u < 1 - duty:
+                # Løftes: litt ut fra stigen, opp i en bue og inn på trinnet.
+                k = u / (1 - duty)
+                e = smooth(k)
+                z = lo + (hi - lo) * e
+                dx = -back * math.sin(math.pi * k)
+            else:
+                k = (u - (1 - duty)) / duty
+                z = hi - (hi - lo) * k
+                dx = 0.0
+            if kind == "hand":
+                spec.hands[s] = (wrist_x + dx, sy * hand_y, z)
+                spec.rot[f"hand_world.{s}"] = (0, 140 - 30 * (dx != 0), 0)
+            else:
+                spec.feet[s] = (ankle_x + dx, sy * foot_y, z, -10 if dx else 0)
+        # Kroppen vugger mot sida som holder, og hodet ser opp langs stigen.
+        w = 2 * math.pi * ph
+        sway = 0.025 / scale * math.sin(w)
+        spec.root = Vector((lean_x + 0.012 / scale * math.cos(2 * w), sway, root_z + 0.01 / scale * math.sin(2 * w)))
+        spec.rot["hips"] = (4 * math.sin(w), 2, -4 * math.sin(w))
+        spec.rot["chest"] = (-3 * math.sin(w), 4, 5 * math.sin(w))
+        add(spec, "neck", y=-6)
+        add(spec, "head", y=-14 + 3 * math.sin(2 * w), z=4 * math.sin(w))
+        add(spec, "jaw", y=4 * math.sin(2 * w))
+        for i, b in enumerate(("tail1", "tail2", "tail3")):
+            add(spec, b, y=10, z=6 * math.sin(w - 0.8 * (i + 1)))
+        body.key(c, f, spec)
+    return T
+
+
 ATTACKS = {"shoot": (attack_shoot, 30), "fist": (attack_fist, 36), "sweep": (attack_sweep, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
 
 
-def make_clips(Clip, arm, bones, style, attack, extra=()):
-    """Alle klippene for én fiende."""
+def make_clips(Clip, arm, bones, style, attack, extra=(), climb_scale=None):
+    """Alle klippene for én fiende; med `climb_scale` (slagets `scale` i
+    spillet) også klatringen i stigen (`climb`)."""
     st = STYLES[style]
     body = Body(bones, st.get("leg_pole", (1.0, 0.0, -0.1)), st.get("arm_pole", (-1.0, 0.8, 0.0)))
     todo = [
@@ -897,8 +990,10 @@ def make_clips(Clip, arm, bones, style, attack, extra=()):
             todo.append(("slam", 44, lambda c: attack_slam(c, body, st)))
         elif name == "roar":
             todo.append(("roar", 36, lambda c: roar(c, body, st)))
+    if climb_scale:
+        todo.append(("climb", max(8, round(2 * LADDER_RUNG / CLIMB_SPEED * FPS)), lambda c: climb(c, body, st, climb_scale)))
     for name, length, fn in todo:
-        body.hold = None if name in ("attack", "slam", "die", "die2") else st.get("hold")
+        body.hold = None if name in ("attack", "slam", "die", "die2", "climb") else st.get("hold")
         c = Clip(arm, name, length, FPS)
         fn(c)
         c.finish()

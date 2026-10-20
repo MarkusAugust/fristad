@@ -103,6 +103,7 @@ pub(super) fn gpu_model(device: &wgpu::Device, queue: &wgpu::Queue, materials: &
     GpuModel {
         name: m.name.clone(),
         cutout: m.mesh.vertices.iter().any(|v| v.mat[2] & flag::ALPHA != 0 || v.mat[0] == kind::LEAF),
+        water: !m.mesh.vertices.is_empty() && m.mesh.vertices.iter().all(|v| v.mat[0] == kind::WATER),
         mesh: GpuMesh::new(&device, &combined, &m.name),
         near: 0..near_count,
         far: far_range,

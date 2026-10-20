@@ -18,10 +18,11 @@ const TALK_RANGE: f32 = 4.5;
 /// siktemålet står over det.
 pub const SEATED_TOP: f32 = 0.74;
 /// Så langt åpnes kjeven (radianer) når sangen er på det sterkeste, og så
-/// langt løftes hodet i stedet når figuren ikke har noe kjevebein. Munnen
-/// fra TRELLIS har ikke noe innside, så kjeven strekker underleppa og
-/// skjegget: 0,30 ga en lang, blek hake (19. oktober), derfor bare litt.
-pub const JAW_OPEN: f32 = 0.12;
+/// langt løftes hodet i stedet når figuren ikke har noe kjevebein. Leppesømmen
+/// er skåret opp og har en mørk munnhule bak seg (`folk3d.open_mouth`,
+/// `mouth_cave`, 20. oktober), så kjeven kan åpnes mer enn de 0,12 den hadde
+/// da den bare strakk underleppa til en lang, blek hake.
+pub const JAW_OPEN: f32 = 0.2;
 pub const HEAD_LIFT: f32 = 0.12;
 
 #[derive(Clone, Debug)]

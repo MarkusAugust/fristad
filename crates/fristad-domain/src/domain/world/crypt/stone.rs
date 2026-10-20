@@ -32,6 +32,10 @@ pub struct StoneDef {
     /// halvkanten har den; ellers velger frøet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wall_variant: Option<String>,
+    /// Cellevarianten steinen vil ha (`tommer`: tømmeret i gruvas sjakt),
+    /// om cella har den; murene i cella tar varianten med samme navn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cell_variant: Option<String>,
 }
 
 /// `assets/levels/steiner.json`.
@@ -81,11 +85,13 @@ pub struct Surfaces {
     pub trim: String,
     /// Murvarianten (`StoneDef::wall_variant`).
     pub wall_variant: Option<String>,
+    /// Cellevarianten (`StoneDef::cell_variant`).
+    pub cell_variant: Option<String>,
 }
 
 impl Surfaces {
     fn of(s: &StoneDef) -> Self {
-        Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone(), trim: s.trim.clone(), wall_variant: s.wall_variant.clone() }
+        Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone(), trim: s.trim.clone(), wall_variant: s.wall_variant.clone(), cell_variant: s.cell_variant.clone() }
     }
 
     fn layers(&self) -> [&String; 4] {
@@ -133,6 +139,7 @@ impl StoneFile {
                 if let Some(n) = &p.wall {
                     s.wall = self.layer(n, |s| &s.wall)?;
                     s.wall_variant = self.stone(n).and_then(|st| st.wall_variant.clone());
+                    s.cell_variant = self.stone(n).and_then(|st| st.cell_variant.clone());
                 }
                 if let Some(n) = &p.vault {
                     s.vault = self.layer(n, |s| &s.vault)?;

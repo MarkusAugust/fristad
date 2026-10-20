@@ -107,8 +107,8 @@ struct Clips {
     hit2: Option<usize>,
     stagger: Option<usize>,
     die2: Option<usize>,
-    /// Leddene hodet ser med (nakke, hode), og hvilken vei som er opp i
-    /// riggens rom.
+    climb: Option<(usize, f32)>, // klatringen i stigen (`mob_motion.climb`) og lengden på én syklus (to trinn)
+    /// Leddene hodet ser med (nakke, hode), og hvilken vei som er opp i riggens rom.
     look: Option<(usize, usize)>,
     up: Vec3,
     held: Option<(usize, &'static str)>, // det den holder (`mob_rigs::HELD`)

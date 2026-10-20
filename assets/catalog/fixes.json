@@ -1624,6 +1624,22 @@
    "images": [
     "assets/catalog/review/framework_r2_for_etter.jpg"
    ]
+  },
+  "6a22b8cdb0fb": {
+   "text": [
+    "Kjettingstumpen med hengelåsen under mansjetten bak hver neve fulgte hånda stivt og stakk rett opp når armene ble løftet (slaget i bakken, brølet). Rettet slik: stumpen henger på et eget bein fra mansjetten (`hang_parts`, `chain.L`/`chain.R`) som vender som hoftene i hvert bilde (`Body.dangle`), så den henger ned uansett hvor armen er. Kjettingene til livet er delt som før. Før/etter: nærbilder av slaget, brølet og hvilen, og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r3_for_etter.jpg"
+   ]
+  },
+  "b5428540f7bd": {
+   "text": [
+    "Det sto fortsatt en liten flis ved håndleddet i slaget i bakken: kjettingleddet der kjettingen til livet er kuttet, satt på mansjetten med snittet av vektene til ankrene (0,57 underarm, 0,29 hånd og 0,14 overarm), så når hånda bøyde seg vred leddet seg ut av mansjetten, som fulgte underarmen, og en flik og et mørkt hakk stakk ut. Rettet slik: halvdelen av kjettingen ved lemmen følger bare beinet ankrene følger mest (underarmen), stivt, og kuttet legges der det tynne leddet begynner nærmest lemmen, så mindre av kjettingen blir igjen på mansjetten (`tethers` i mob3d.py). Den største strekningen i en kant rundt håndleddene i klippet gikk fra 5,7 til 2,7 cm. Før/etter: nærbilder av håndleddene og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r4_for_etter.jpg"
+   ]
   }
  },
  "grav_blindgang": {
@@ -2036,6 +2052,14 @@
    "text": [
     "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
    ]
+  },
+  "74a1fea7db84": {
+   "text": [
+    "Malmen klippet ut av kanten. Rettet slik: haugen fra `rubble` (med tre store steiner som stakk gjennom plankene) er byttet mot en egen malmlast (`kit_mine.ore`): et høydefelt som bare dekker innsida av kassen, lavere enn kanten ved plankene og 0,2 m over den midt på, og fem små klumper som står helt innenfor. Kassen har fått innsida som vender inn og en kant på toppen (4 cm planker). Før/etter: kortet fra prøvenivået."
+   ],
+   "images": [
+    "assets/catalog/review/malmvogn_for_etter.jpg"
+   ]
   }
  },
  "mek_krystaller": {
@@ -2076,6 +2100,14 @@
     "verdict": "underkjent",
     "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
    }
+  },
+  "34b18256b259": {
+   "text": [
+    "Ved albuen sto en liten bit igjen når armen beveget seg. Det var baksida av albuen og underarmen: sonen som lar kappa følge brystet (`rigid`), nådde dit langs skallet, så den biten fulgte brystet og ikke armen. Rettet slik: albuene og underarmene står utenfor kappas sone (`outside`), og baksida av overarmen følger nå armen (armvekt 0,8 mot 0,3 før). Skjoldene og kappa følger brystet som før. Før/etter: vektene (rødt følger armen), brølet, feiet og brølet forfra."
+   ],
+   "images": [
+    "assets/catalog/review/navbar_r4_for_etter.jpg"
+   ]
   }
  },
  "twin_warden": {
@@ -2085,6 +2117,14 @@
    ],
    "images": [
     "assets/catalog/review/twin_warden_r2_for_etter.jpg"
+   ]
+  },
+  "6bdd47c11435": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/twin_warden_klatring_for_etter.jpg"
    ]
   }
  },
@@ -2422,6 +2462,14 @@
     "verdict": "underkjent",
     "why": "knærne kommer ut av kroppen når han går."
    }
+  },
+  "c0d7045f74bb": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/card_squire_klatring_for_etter.jpg"
+   ]
   }
  },
  "popover_wisp": {
@@ -2450,6 +2498,75 @@
     "verdict": "underkjent",
     "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender"
    }
+  },
+  "d53205c1895b": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra. Buen følger venstre hånd som før."
+   ],
+   "images": [
+    "assets/catalog/review/breadcrumb_archer_klatring_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_sjakt_tommer": {
+  "5e0b3c208c0c": {
+   "text": [
+    "Ny variant `tommer` av sjakta (gruvas tømmerforede sjakt, plan del 25): kransen av tømmer øverst i sjakta, og murene i sjakta kles med stokker i hjørnene, stivere og knestøtter (`grav_vegg_tommer`, laget `mine_timber`). Berget og tømmeret velger den (`cell_variant` i `steiner.json`); gravkjellerens sjakt er som før. Før/etter: modulen heisen i berg."
+   ],
+   "images": [
+    "assets/catalog/review/sjakt_tommer_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_vegg_tommer": {
+  "5cc85de41696": {
+   "text": [
+    "Ny variant `tommer` av muren: tømmeret i gruvas sjakt (stokkene, stiverne og knestøttene, unna fakkelen), satt der sjakta har tømmer. Før/etter: modulen heisen i berg."
+   ],
+   "images": [
+    "assets/catalog/review/sjakt_tommer_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_vegg_skar": {
+  "a01a8beeac6b": {
+   "text": [
+    "Ny variant `skar` av muren (borgens skyteskår, plan del 25): to skrå lysninger av hogd stein inn til en smal, mørk spalte, med overligger og brystningsstein. Kvaderen velger den på annenhver mur (`wall_variant`), og den kan låses per kant i redigeringen; ingen skår i trapper. Før/etter: rommet 2 × 2 i kvader."
+   ],
+   "images": [
+    "assets/catalog/review/vegg_skar_for_etter.jpg"
+   ]
+  }
+ },
+ "skeleton_loader": {
+  "2a93ab5af583": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/skeleton_loader_klatring_for_etter.jpg"
+   ]
+  }
+ },
+ "npc_troubadour": {
+  "1339248a2011": {
+   "text": [
+    "Munnen hadde ikke noe innside: kjeven strakk underleppa til en lang, blek hake, så den bare kunne åpnes 0,12. Rettet slik: leppesømmen er skåret opp (`folk3d.open_mouth`: flatene ved munnen deles, og kantene langs sømmen deles i to innenfor munnens bredde), underleppa følger kjeven mest midt på og ingenting i munnvikene, så åpningen blir rund, og bak sømmen ligger munnhula, en liten lukket, mørk form som følger hodet oppe og kjeven nede (`mouth_cave`, fargen på et tomt sted i teksturen). Kjeven åpnes nå 0,2 (`JAW_OPEN`). Ansiktsteksturen er ikke rørt.",
+    "Fingrene var rette fra TRELLIS og sto ut fra halsen. Rettet slik: to fingerbein på venstre hånd (`finger1.L` fra knokene, `finger2.L` fra midtleddet, tommelen står), bøyd rundt lutthalsen i `play` og `sit` (`folk_motion.FINGER_CURL`), litt mer på hvert slag. Før/etter: i Vertshuset ved ildstedet med `--voice 0.8`, munnen nær, og hånda på halsen."
+   ],
+   "images": [
+    "assets/catalog/review/npc_troubadour_munn_fingre_for_etter.jpg"
+   ]
+  }
+ },
+ "lute": {
+  "db40b8da9ae1": {
+   "text": [
+    "Baksida var åpen i TRELLIS-formen (et grunt trau med rosen synlig bakfra). Rettet slik: `item3d.close_back` lukker kroppen med en buet bolle fra sargen, 7 cm dyp, avsmalnende mot endene, og `paint_back` maler den som spon i elleve striper med mørke fuger i fargen bak på halsen. Forsida er som før. Før/etter: forfra, bakfra, fra siden og skrått bakfra."
+   ],
+   "images": [
+    "assets/catalog/review/lute_bakside_for_etter.jpg"
+   ]
   }
  }
 }

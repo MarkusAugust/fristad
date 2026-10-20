@@ -13,6 +13,8 @@ fra temaet og bakes og sjekkes på samme måte.
 | `grav_kanal`, `grav_kanal_ende` | celle | gangen med en kanal midt i og gangbane på hver side (`water`) |
 | `grav_galleri` | sammensatt 3 × 3 | sal på 10 × 10 m med galleri 5 m oppe langs nordmuren, trapp langs vestmuren og rekkverk |
 | `grav_vegg_som` | halvkant | muren med magenta plastsømmer som skjærer gjennom steinen (`magic_vein`, svidd kant og plast som buler ut), variant `som` av `grav/vegg` |
+| `grav_sjakt_tommer`, `grav_vegg_tommer` | celle og halvkant | gruvas tømmerforede sjakt: kransen øverst i sjakta og stokkene, stiverne og knestøttene på murene (`mine_timber`), variant `tommer` av `grav/sjakt` og `grav/vegg`, valgt av steinen (`cell_variant` i `steiner.json`: berg og tømmer) |
+| `grav_vegg_skar` | halvkant | muren med to skyteskår (borgen): skrå lysninger av hogd stein inn til en smal spalte, variant `skar` av `grav/vegg`, valgt av kvadersteinen (`wall_variant`) |
 """
 
 import math
@@ -129,6 +131,157 @@ def sjakt(far=False):
     top = STOREY - 0.5
     K.grid_face(m, K.Horizontal(top, up=False), sbox(-HALF, -HALF, HALF, HALF).difference(sbox(-FACE, -FACE, FACE, FACE)), "vault", origin=(-HALF, -HALF))
     return m
+
+
+# --- Tømmeret i gruvas sjakt og skyteskårene i borgen ------------------------------
+#
+# Formen er en annen enn muren og sjakta, så de er varianter (eieren 20.
+# oktober: ett sett moduler, steinen velges per flate; nye biter bare der
+# formen er en annen). Steinen velger dem (`steiner.json`): berg og tømmer
+# gir sjakta `tommer`, og murene i en sjakt med tømmer tar `tommer` (motoren:
+# `look::cell_variant_id`); kvaderen gir `skar` på annenhver mur.
+
+TIMBER_POST = (0.24, 0.18)  # stokkene i hjørnene: bredde langs muren, dybde ut
+TIMBER_WALER = (0.14, 0.22)  # stiverne langs muren: dybde ut, høyde
+TIMBER_BRACE = 0.14
+WALERS = (0.95, 3.5, 5.1)  # midten av stiverne (fakkelen står i 2,0–2,9)
+POST_U = FACE - TIMBER_POST[0] / 2  # stokken står i hjørnet, inntil naboens
+
+
+def timber_wall(m, far=False):
+    """Tømmeret på murflaten (halvkantens rom, flaten i z = 0,4 mot +z):
+    en stokk i hver ende, tre stivere langs muren mellom dem og knestøtter
+    fra stokkene opp under stiverne, unna fakkelen midt på. Stokkene i
+    nabomuren står inntil, så hjørnet aldri får to flater i samme plan."""
+    pw, pd = TIMBER_POST
+    wd, wh = TIMBER_WALER
+    for sx in (-1, 1):
+        K.beam(m, (sx * POST_U, WALL_FOOT, WALL_T + pd / 2), (sx * POST_U, WALL_TOP, WALL_T + pd / 2), pw, pd, "mine_timber", up=(0.0, 0.0, 1.0))
+    edge = FACE - pw
+    for y in WALERS:
+        K.beam(m, (-edge, y, WALL_T + wd / 2), (edge, y, WALL_T + wd / 2), wd, wh, "mine_timber")
+    if far:
+        return
+    b = TIMBER_BRACE
+    for sx in (-1, 1):
+        x0 = sx * (edge - 0.02)
+        for y0, y1 in ((1.85, WALERS[0] + wh / 2), (2.55, WALERS[1] - wh / 2), (4.25, WALERS[2] - wh / 2)):
+            x1 = sx * 0.62
+            K.beam(m, (x0, y0, WALL_T + b / 2), (x1, y1, WALL_T + b / 2), b, b, "mine_timber", up=(0.0, 0.0, 1.0))
+
+
+def timber_solids():
+    """Kolliderne: muren, og stokkene og stiverne foran den."""
+    pw, pd = TIMBER_POST
+    wd, wh = TIMBER_WALER
+
+    def bx(x0, x1, y0, y1, z0, z1):
+        return {"box": {"center": [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], "size": [x1 - x0, y1 - y0, z1 - z0]}}
+    out = [bx(-FACE, FACE, WALL_FOOT, WALL_TOP, 0.0, WALL_T)]
+    for sx in (-1, 1):
+        out.append(bx(sx * POST_U - pw / 2, sx * POST_U + pw / 2, WALL_FOOT, WALL_TOP, WALL_T, WALL_T + pd))
+    for y in WALERS:
+        out.append(bx(-(FACE - pw), FACE - pw, y - wh / 2, y + wh / 2, WALL_T, WALL_T + wd))
+    return out
+
+
+def vegg_tommer(far=False):
+    """Muren i gruvas tømmerforede sjakt (variant `tommer` av `grav/vegg`)."""
+    m = _cells().half("wall", far)
+    timber_wall(m, far)
+    return m
+
+
+def sjakt_tommer(far=False):
+    """Bunnen av sjakta med tømmer: kransen av fire bjelker øverst i sjakta
+    (under taket i 5,5 m, over buen mot rommet ved siden av), der stokkene
+    i hjørnene ender. Murene kles av `vegg_tommer`."""
+    m = sjakt(far)
+    d, h = 0.16, 0.22
+    y = STOREY - 0.5 - h / 2 - 0.02
+    for sz in (-1, 1):
+        z = sz * (FACE - d / 2)
+        K.beam(m, (-FACE, y, z), (FACE, y, z), d, h, "mine_timber")
+    for sx in (-1, 1):
+        x = sx * (FACE - d / 2)
+        K.beam(m, (x, y, -FACE + d), (x, y, FACE - d), d, h, "mine_timber")
+    return m
+
+
+# Skyteskårene: (u fra midten av muren, brystningen, toppen) ytterst i
+# murflaten; de smalner inn til spalten `SLIT` bak i `SLIT_D`.
+SLITS = [(-0.85, 1.2, 2.7), (0.85, 1.2, 2.7)]
+SLIT_OUT = 0.34  # halve bredden i murflaten
+SLIT = 0.05  # halve bredden på spalten
+SLIT_D = 0.32  # så dypt inn i muren (halvkanten er 0,4)
+SLIT_IN = 0.14  # spalten er så mye lavere enn åpningen, oppe og nede
+
+
+def _metric(m, pts, mat, facing, origin):
+    """En plan flate med uv i meter i sitt eget plan (ingen strekk)."""
+    a = pts[0]
+    t = K.norm(K.sub(pts[1], a))
+    n = K.newell(pts)
+    b = K.norm(K.cross(n, t))
+    uvs = [(origin[0] + K.dot(K.sub(p, a), t), origin[1] + K.dot(K.sub(p, a), b)) for p in pts]
+    m.poly(pts, uvs, mat, facing=facing)
+
+
+def embrasure(m, surf, uc, v0, v1):
+    """Ett skyteskår: lysningen av hogd stein (vangene, den skrå
+    brystningen og overliggeren) fra åpningen i murflaten inn til spalten,
+    og spalten bak (mørk). Gir omrisset i murflaten."""
+    o = [(uc - SLIT_OUT, v0), (uc + SLIT_OUT, v0), (uc + SLIT_OUT, v1), (uc - SLIT_OUT, v1)]
+    i = [(uc - SLIT, v0 + SLIT_IN), (uc + SLIT, v0 + SLIT_IN), (uc + SLIT, v1 - SLIT_IN), (uc - SLIT, v1 - SLIT_IN)]
+    cen = surf.point(uc, (v0 + v1) / 2, -SLIT_D / 2)
+    for k in range(4):
+        a0, b0 = surf.point(*o[k], 0.0), surf.point(*o[(k + 1) % 4], 0.0)
+        a1, b1 = surf.point(*i[k], -SLIT_D), surf.point(*i[(k + 1) % 4], -SLIT_D)
+        mid = [(a0[j] + b0[j] + a1[j] + b1[j]) / 4 for j in range(3)]
+        _metric(m, [a0, b0, b1, a1], "dressed", K.sub(cen, mid), surf.uv(*o[k]))
+    back = [surf.point(u, v, -SLIT_D) for u, v in i]
+    m.poly(back, [surf.uv(u, v) for u, v in i], "crack", facing=surf.normal(uc))
+    return o
+
+
+def vegg_skar(far=False):
+    """Muren med to skyteskår (borgen; variant `skar` av `grav/vegg`)."""
+    c = _cells()
+    m = K.MB()
+    surf = c.surf_face()
+    extra = K.MB()
+    holes = [Polygon([(u, v) for u, v in embrasure(extra, surf, FACE + uc, v0, v1)]) for uc, v0, v1 in SLITS]
+    K.wall(m, surf, 2 * FACE, WALL_FOOT, WALL_TOP, holes, mat="wall")
+    m.faces += extra.faces
+    back = K.Plane((FACE, 0.0), (-1.0, 0.0), (0.0, -1.0), u0=WALL_T)
+    K.wall(m, back, 2 * FACE, WALL_FOOT, WALL_TOP, [], mat="wall")
+    for x, sg in ((-FACE, -1.0), (FACE, 1.0)):
+        m.quad((x, WALL_FOOT, 0.0), (x, WALL_FOOT, WALL_T), (x, WALL_TOP + 0.05, WALL_T), (x, WALL_TOP + 0.05, 0.0), "wall", facing=(sg, 0.0, 0.0))
+    if not far:
+        K.plinth(m, surf, K.free_spans(2 * FACE, [], 0.0, c.PLINTH_H), h=c.PLINTH_H, proud=c.PLINTH_OUT)
+        # Karmen: en overligger og en brystningsstein av hogd stein over og
+        # under hver åpning, litt ut fra muren.
+        for uc, v0, v1 in SLITS:
+            u0, u1 = FACE + uc - SLIT_OUT - 0.08, FACE + uc + SLIT_OUT + 0.08
+            for k, (a, b) in enumerate(((v1, v1 + 0.2), (v0 - 0.16, v0))):
+                pts = [(u0, a), (u1, a), (u1, b), (u0, b)]
+                K._trim_block(m, surf, pts, 0.05, "dressed", K.stone_uv(7 + 3 * k + int(uc > 0), pts))
+    return m
+
+
+def skar_solids():
+    """Kolliderne: muren bak spaltene, og murflaten rundt åpningene (ingen
+    usynlig vegg foran skårene, som `niche_solids`)."""
+    def bx(x0, x1, y0, y1, z0=0.0, z1=WALL_T):
+        return {"box": {"center": [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], "size": [x1 - x0, y1 - y0, z1 - z0]}}
+    z = WALL_T - SLIT_D
+    lo = min(v0 for _, v0, _ in SLITS)
+    hi = max(v1 for _, _, v1 in SLITS)
+    out = [bx(-FACE, FACE, WALL_FOOT, WALL_TOP, 0.0, z), bx(-FACE, FACE, WALL_FOOT, lo, z, WALL_T), bx(-FACE, FACE, hi, WALL_TOP, z, WALL_T)]
+    edges = [-FACE] + [x for uc, _, _ in sorted(SLITS) for x in (uc - SLIT_OUT, uc + SLIT_OUT)] + [FACE]
+    for x0, x1 in zip(edges[::2], edges[1::2]):
+        out.append(bx(x0, x1, lo, hi, z, WALL_T))
+    return out
 
 
 def rim(m, x0, z0, x1, z1, depth=0.5):
@@ -556,7 +709,9 @@ def add(cell, model, face):
     kl = model("grav_kloft", kloft, "cell", "cell")
     cell("kloft", kl, [OPEN, CLOSED_ROOM, OPEN, CLOSED_ROOM], ROOM_CLEAR, walk=[], solids=kloft_solids())
     sj = model("grav_sjakt", sjakt, "cell", "cell")
-    cell("sjakt", sj, [OPEN] * 4, ROOM_CLEAR)
+    # Gruvas sjakt med tømmer: velges av steinen (`cell_variant`), aldri av frøet.
+    sjt = model("grav_sjakt_tommer", sjakt_tommer, "cell", "cell")
+    cell("sjakt", sj, [OPEN] * 4, ROOM_CLEAR, var=[{"id": "a", "model": sj, "weight": 1.0}, {"id": "tommer", "model": sjt, "weight": 0.0}])
     st = model("grav_sjakt_topp", sjakt_topp, "cell", "cell")
     cell("sjakt_topp", st, [OPEN] * 4, ROOM_CLEAR, walk=ring_walk(-FACE, -FACE, FACE, FACE), solids=ring_solids(-FACE, -FACE, FACE, FACE))
     lk = model("grav_luke", luke, "cell", "cell")

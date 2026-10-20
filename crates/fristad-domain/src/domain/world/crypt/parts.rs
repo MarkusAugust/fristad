@@ -90,6 +90,9 @@ pub struct Trapdoor {
     pub bolted: bool,
 }
 
+/// Hvor dypt vann som ikke synker er (sjøen i Krystallgrotta).
+pub const STILL_DEPTH: f32 = 1.5;
+
 /// Vann som står høyt til bryteren åpnes (sluseratten), og så synker
 /// (`kit_water`, en flate på 1 × 1 m skalert til `size`).
 #[derive(Clone, Debug)]
@@ -108,6 +111,17 @@ impl Water {
     /// Vann som synker når slusa dreies (ikke sjøen i grottene, som står).
     pub fn sinks(&self) -> bool {
         self.high - self.low > 0.1
+    }
+
+    /// Bunnen under vannet: det sunkne vannet står 5 cm over den (som
+    /// nivåene legger `levels`), og vann som står (sjøen i grottene) er
+    /// `STILL_DEPTH` dypt.
+    pub fn bottom(&self) -> f32 {
+        if self.sinks() {
+            self.low + 0.05
+        } else {
+            self.high - STILL_DEPTH
+        }
     }
 }
 

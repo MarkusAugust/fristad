@@ -13,6 +13,28 @@ use glam::Vec3;
 
 /// Så fort fiendene klatrer i stigen (m/s).
 pub const CLIMB_SPEED: f32 = 1.0;
+/// Trinnene i hver bit av stigen (`kit_grav.LADDER_RUNGS`), og tykkelsen
+/// på trinnet (radien, `kit_grav.kit_ladder`): foten står oppå det.
+pub const LADDER_RUNGS: f32 = 3.0;
+const RUNG_RADIUS: f32 = 0.021;
+/// Fasen i klatreklippet der venstre fot står nederst på trinnet sitt
+/// (`mob_motion.climb`: `limbs`, foten løfter seg i 0,06), og høyre fot en
+/// halv syklus (ett trinn) senere. Hver syklus stiger fienden to trinn.
+const CLIMB_FOOT_PHASE: f32 = 0.06;
+
+/// Hvor langt klatreklippet er kommet (0..1) når fienden står `height` over
+/// stigens fot og trinnene står `rung` fra hverandre: regnet fra høyden, ikke
+/// fra klokka, så føttene står på trinnene uansett hvor fienden begynte å
+/// klatre (grepene står like langt fra hverandre som trinnene).
+pub fn climb_phase(height: f32, rung: f32) -> f32 {
+    let rung = rung.max(0.05);
+    ((height - RUNG_RADIUS - 0.5 * rung) / (2.0 * rung) + CLIMB_FOOT_PHASE).rem_euclid(1.0)
+}
+
+/// Trinnavstanden i en stige på `h` meter (bitene strekkes litt, `ladder_pieces`).
+pub fn ladder_rung(h: f32) -> f32 {
+    super::ladder_pieces(h).1 / LADDER_RUNGS
+}
 /// Så langt fra endene lenken kobles til nettet (stigen, heisen: dekket er
 /// 2,8 m bredt, og nettet holdes unna sjakta).
 const LADDER_REACH: f32 = 2.0;
@@ -73,12 +95,32 @@ pub fn level_nav(file: &LevelFile) -> Nav {
 }
 
 /// Et steg langs en lenke for fienden: punktet, farten dit, og heisen som
-/// skal kjøres når den begynner på steget.
+/// skal kjøres når den begynner på steget. `climb` er steget opp eller ned
+/// selve stigen (klippet `climb`), og `face` er retningen mot stigen
+/// (vannrett), som fienden vender ansiktet mot mens den klatrer. `foot` er
+/// høyden på stigens fot og `rung` trinnavstanden (`climb_phase`).
 #[derive(Clone, Copy, Debug)]
 pub struct HopStep {
     pub to: Vec3,
     pub speed: f32,
     pub ride: Option<usize>,
+    pub climb: bool,
+    pub face: Vec3,
+    pub foot: f32,
+    pub rung: f32,
+}
+
+/// Retningen mot stigen i lenken: fra toppen av den loddrette delen inn
+/// mot toppen av stigen (`ladder_points`: foran foten, rett opp, inn).
+fn ladder_face(pts: &[Vec3]) -> Vec3 {
+    pts.windows(3)
+        .find(|w| {
+            let d = w[1] - w[0];
+            d.y.abs() > d.with_y(0.0).length()
+        })
+        .map(|w| if w[1].y > w[0].y { (w[2] - w[1]).with_y(0.0) } else { (w[0] - w[1]).with_y(0.0) })
+        .unwrap_or(Vec3::ZERO)
+        .normalize_or_zero()
 }
 
 impl Crypt {
@@ -117,6 +159,9 @@ impl Crypt {
                 if !near || pts[1].distance(next) > 0.05 || !self.hop_open(h, fwd) {
                     continue;
                 }
+                let face = if h.kind == HopKind::Ladder { ladder_face(&h.pts) } else { Vec3::ZERO };
+                let (lo, hi) = h.pts.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| (lo.min(p.y), hi.max(p.y)));
+                let rung = ladder_rung((hi - lo).max(0.5));
                 return Some(
                     pts.windows(2)
                         .map(|w| {
@@ -131,7 +176,7 @@ impl Crypt {
                                 HopKind::Lift(n) if up => Some(n),
                                 _ => None,
                             };
-                            HopStep { to: w[1], speed, ride }
+                            HopStep { to: w[1], speed, ride, climb: up && h.kind == HopKind::Ladder, face, foot: lo, rung }
                         })
                         .collect(),
                 );

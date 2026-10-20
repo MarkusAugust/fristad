@@ -266,6 +266,108 @@ fn fiendene_folger_deg_opp_stigen_og_med_heisen() {
         }
         assert!(best < 2.5, "{id}: fienden kom ikke opp til deg (nærmest {best:.1} m, står ved {:?})", mobs.mobs[i].pos - o);
         assert_eq!(rode, id == "grav/heis", "{id}: fienden kjørte heisen");
+        if id != "grav/stige" {
+            continue;
+        }
+
+        // I stigen spiller fienden klatreklippet (`mob_motion.climb`) med
+        // ansiktet mot stigen, opp og ned; uten klippet glir den i gangen.
+        let all = crate::application::rigs(&crate::tests::world().models);
+        let climbers: Vec<Kind> = Kind::ALL.into_iter().filter(|k| all.iter().any(|(n, r)| n == k.model() && r.clip("climb").is_some())).collect();
+        assert!(climbers.contains(&Kind::SkeletonLoader), "Skeleton Loader har ikke klatreklippet: {climbers:?}");
+        let face = Vec3::new(0.0, 0.0, -1.0); // stigen står mot nord i modulen (yaw 0, foten bak)
+        for (k, want) in [(Kind::SkeletonLoader, "climb"), (Kind::Button, "walk")] {
+            assert_eq!(climbers.contains(&k), want == "climb", "{k:?}");
+            for (start, goal) in [(from, to), (to, from)] {
+                let mut mobs = Mobs::new(&c, &all);
+                let i = mobs.spawn_aware(k, start);
+                let mut seen = std::collections::BTreeSet::new();
+                let mut faced = true;
+                for _ in 0..30 * 40 {
+                    mobs.update(1.0 / 30.0, goal, true, &c);
+                    let m = &mobs.mobs[i];
+                    if m.pos.y > o.y + 1.5 && m.pos.y < o.y + 4.5 {
+                        seen.insert(mobs.clip_name(i).unwrap_or("?").to_string());
+                        let ahead = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
+                        faced &= ahead.dot(face) > 0.9;
+                    }
+                    if mobs.mobs[i].pos.distance(goal) < 2.5 {
+                        break;
+                    }
+                }
+                let dir = if start == from { "opp" } else { "ned" };
+                assert!(mobs.mobs[i].pos.distance(goal) < 2.5, "{k:?} kom ikke {dir} stigen");
+                assert_eq!(seen.into_iter().collect::<Vec<_>>(), vec![want.to_string()], "{k:?} spiller feil klipp {dir} stigen");
+                assert!(faced || want == "walk", "{k:?} vender ikke ansiktet mot stigen {dir}");
+            }
+        }
+    }
+}
+
+/// Klatreklippet står på trinnene (`hops::climb_phase`): fasen regnes fra
+/// høyden over stigens fot delt på trinnavstanden, ikke fra klokka, så
+/// foten som holder står oppå et trinn opp og ned stigen, og fasen er den
+/// samme hvor fienden enn begynner (også i en stige som er strukket litt).
+#[test]
+fn klatreklippet_star_pa_trinnene() {
+    use crate::domain::mobs::{Kind, Mobs};
+    use crate::domain::world::crypt::hops::{climb_phase, ladder_rung};
+    use crate::domain::world::{crypt, Builder};
+    use glam::{Vec2, Vec3};
+    // Fasen: samme to trinn høyere, og venstre fot nederst på trinnet sitt
+    // (fasen 0,06 i `mob_motion.climb`) når foten står oppå et trinn.
+    for h in [3.0, 5.6, 6.0, 7.4] {
+        let r = ladder_rung(h);
+        assert!((0.3..0.37).contains(&r), "trinnavstanden {r} i en stige på {h} m");
+        for k in 0..6 {
+            let on = r * (k as f32 + 0.5) + 0.021;
+            let want = if k % 2 == 0 { 0.06 } else { 0.56 };
+            let ph = climb_phase(on, r);
+            assert!((ph - want).abs() < 1e-4, "{h} m, trinn {k}: fasen {ph}, ikke {want}");
+            assert!((climb_phase(on + 0.13 + 2.0 * r, r) - climb_phase(on + 0.13, r)).abs() < 1e-4);
+        }
+    }
+    // I stigen i modulen: foten som holder, står på et trinn opp og ned.
+    let (f, _) = showcase("grav/stige");
+    let mut c = crypt::build(&mut Builder::new(&[]), Vec2::ZERO, vec![(1, f)]);
+    c.open = vec![true; c.switches.len()];
+    let o = c.levels[0].origin;
+    let (below, above) = (Vec3::new(0.0, 0.0, 4.0) + o, Vec3::new(0.0, 6.0, -4.0) + o);
+    let l = c.ladders[0].clone();
+    let r = ladder_rung(l.top.y - l.pos.y);
+    let all = crate::application::rigs(&crate::tests::world().models);
+    for (start, goal) in [(below, above), (above, below)] {
+        let mut mobs = Mobs::new(&c, &all);
+        let i = mobs.spawn_aware(Kind::SkeletonLoader, start);
+        // Ankelen over sålen når den står (hvileposen).
+        let rest = ["foot.L", "foot.R"].map(|b| mobs.joint_world(i, b).unwrap().y - start.y).iter().copied().fold(f32::MAX, f32::min);
+        let mut last: Option<[f32; 2]> = None;
+        let (mut checked, mut worst, mut on) = (0, 0.0f32, 0.0f32);
+        for _ in 0..30 * 40 {
+            mobs.update(1.0 / 30.0, goal, true, &c);
+            let m = &mobs.mobs[i];
+            let climbing = mobs.clip_name(i) == Some("climb");
+            on = if climbing { on + 1.0 / 30.0 } else { 0.0 };
+            let feet = ["foot.L", "foot.R"].map(|b| mobs.joint_world(i, b).unwrap().y);
+            if let Some(prev) = last.filter(|_| on > 0.3 && m.pos.y > l.pos.y + 0.6 && m.pos.y < l.top.y - 0.6) {
+                for (y, p) in feet.iter().zip(prev) {
+                    // Foten står stille mens fienden stiger: den holder.
+                    if (y - p).abs() < 0.006 {
+                        let sole = y - rest - l.pos.y - 0.021;
+                        let off = (sole / r - 0.5 - (sole / r - 0.5).round()).abs() * r;
+                        worst = worst.max(off);
+                        checked += 1;
+                    }
+                }
+            }
+            last = Some(feet);
+            if m.pos.distance(goal) < 2.5 {
+                break;
+            }
+        }
+        let dir = if start == below { "opp" } else { "ned" };
+        assert!(checked > 20, "{dir}: føttene holdt aldri i stigen ({checked})");
+        assert!(worst < 0.05, "{dir}: foten står {worst:.3} m fra trinnet");
     }
 }
 
@@ -302,4 +404,27 @@ fn den_boltede_fallemmen_apnes_bare_nedenfra() {
     game.use_exact(Use::Ladder(n));
     assert!(game.crypt_now().open[t.switch], "lemmen gikk ikke opp nedenfra");
     assert_eq!(usable(&game), [true, true], "fiendene kan ikke bruke stigen når lemmen er åpen");
+}
+
+/// Gruvas tømmerforede sjakt og borgens skyteskår (eieren 20. oktober: ett
+/// sett moduler, nye biter bare der formen er en annen): berget og tømmeret
+/// gir sjakta tømmer (`cell_variant`), og murene i sjakta tar tømmeret; kvaderen
+/// gir skyteskår på annenhver mur (`wall_variant`). Gravkjelleren får ingen av dem.
+#[test]
+fn gruvesjakta_har_tommer_og_borgen_skyteskar() {
+    let count = |id: &str, model: &str| showcase(id).0.instances.iter().filter(|i| i.model == model).count();
+    assert_eq!(count("gruve/heis", "grav_sjakt_tommer"), 1, "gruvas sjakt er tømmerforet");
+    assert_eq!(count("gruve/heis", "grav_sjakt"), 0);
+    assert!(count("gruve/heis", "grav_vegg_tommer") >= 3, "murene i sjakta er kledd med tømmer");
+    assert_eq!(count("grav/heis", "grav_sjakt_tommer") + count("grav/heis", "grav_vegg_tommer"), 0, "gravkjellerens sjakt er av stein");
+    // Tømmeret står bare i sjakta, ikke i forrommet eller oppe.
+    let (f, _) = showcase("gruve/heis");
+    let sjakt = f.instances.iter().find(|i| i.model == "grav_sjakt_tommer").unwrap().pos;
+    for w in f.instances.iter().filter(|i| i.model == "grav_vegg_tommer") {
+        assert!((w.pos[0] - sjakt[0]).abs() <= 2.01 && (w.pos[2] - sjakt[2]).abs() <= 2.01 && (w.pos[1] - sjakt[1]).abs() < 0.01, "tømmeret står i sjakta: {:?}", w.pos);
+    }
+    assert!(count("borg/rom_3x3", "grav_vegg_skar") > 0, "borgen har skyteskår");
+    for id in ["grav/rom_3x3", "kloakk/rom_3x3", "kjerne/rom_3x3", "gruve/rom_3x3"] {
+        assert_eq!(count(id, "grav_vegg_skar"), 0, "{id}: skyteskårene hører borgen til");
+    }
 }
