@@ -800,6 +800,57 @@ def attack_shoot(c, body, st):
         body.key(c, f, spec)
 
 
+def attack_whirl(c, body, st):
+    """Virvelvinden (kortknekten; eieren 20. oktober: «angrepet gjør at armen
+    klippes inn i kroppen. finn på noe annet som fungerer med den formen
+    dette monsteret har ... virvelvind»): kortplata står foran kroppen, så
+    armene kan ikke slå fram over den. I stedet løftes begge armene rett ut
+    til sidene (varselet, bilde 0–12, kroppen vris litt den andre veien og
+    dirrer), og hele knekten snurrer én gang rundt på stedet med et lite hopp
+    (roten dreies om loddaksen, og føttene følger med), så armene feier
+    rundt i skulderhøyde langt utenfor plata: høyre neve går forbi foran
+    ham i bilde 22, som treffet i `attack_fist`. Han lander vendt fram og
+    senker armene. Ingen lem kommer foran plata."""
+    T = 36
+    crouch = -0.03
+    out = curve([(0, 0.0), (10, 48.0), (26, 52.0), (30, 40.0), (36, 0.0)])
+    elbow = curve([(0, 0.0), (10, 14.0), (26, 14.0), (36, 0.0)])
+    wind, spin_at, spin_end = 35.0, 12, 25
+    rate = (wind + 270.0) / (22 - spin_at)  # høyre arm fram i bilde 22
+
+    def yaw(f):
+        if f <= spin_at:
+            return wind * smooth(f / spin_at)
+        if f <= spin_end:
+            return wind - rate * (f - spin_at)
+        # Bremser opp til en hel runde.
+        a = wind - rate * (spin_end - spin_at)
+        return a + (-360.0 - a) * snap((f - spin_end) / 3.0)
+
+    hop = curve([(0, 0.0), (spin_at, 0.0), (spin_at + 3, 0.09), (spin_end - 1, 0.09), (spin_end + 2, 0.0)])
+    sink = curve([(0, 0.0), (10, -0.05), (spin_at, -0.06), (spin_at + 2, 0.0), (spin_end + 2, -0.05), (30, -0.04), (36, 0.0)])
+    lean = curve([(0, 0.0), (10, 8.0), (spin_at, 8.0), (spin_at + 2, -4.0), (spin_end, -4.0), (30, 6.0), (36, 0.0)])
+    for f in range(T + 1):
+        spec = base_pose(body, st, Spec(), crouch)
+        tremble = 2.0 * math.sin(f * 3.1) if 6 <= f <= spin_at else 0
+        a = yaw(f)
+        spec.root = Vector((0.0, 0.0, crouch + sink(f) + hop(f)))
+        spec.rot["root"] = (0, 0, a)
+        q = Matrix.Rotation(math.radians(a), 3, "Z")
+        for side in ("L", "R"):
+            x, y, z, pitch = spec.feet[side]
+            p = q @ Vector((x, y, 0.0))
+            spec.feet[side] = (p.x, p.y, z + hop(f), pitch)
+        add(spec, "hips", y=lean(f) * 0.4)
+        add(spec, "chest", y=lean(f) * 0.6, x=tremble)
+        add(spec, "head", y=-lean(f) * 0.5, z=tremble * 2)
+        add(spec, "upper_arm.L", x=out(f))
+        add(spec, "upper_arm.R", x=-out(f))
+        add(spec, "forearm.L", y=elbow(f))
+        add(spec, "forearm.R", y=elbow(f))
+        body.key(c, f, spec)
+
+
 def roar(c, body, st):
     """Reiser seg, slår ut med armene og brøler: kjeven helt åpen, brystet
     svulmer, hele kroppen rister."""
@@ -966,7 +1017,7 @@ def climb(c, body, st, scale):
     return T
 
 
-ATTACKS = {"shoot": (attack_shoot, 30), "fist": (attack_fist, 36), "sweep": (attack_sweep, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
+ATTACKS = {"shoot": (attack_shoot, 30), "whirl": (attack_whirl, 36), "fist": (attack_fist, 36), "sweep": (attack_sweep, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
 
 
 def make_clips(Clip, arm, bones, style, attack, extra=(), climb_scale=None):

@@ -119,10 +119,10 @@ MOBS = {
     # Breadcrumb-bueskytteren (nivå 7–8): 1,6 m. Buen og koggeret på ryggen
     # følger brystet, ikke armene.
     # Buen holdes i venstre hånd (`bow`: modellen `bow` fra bow.py etter
-    # beinet «bow», `bow_bone`); den på ryggen står som reservebue (den er
-    # grodd inn i skallet: skåret bort sto undersida igjen som en flat bue,
-    # og presset inn synes omrisset over skulderen).
+    # beinet «bow», `bow_bone`); den på ryggen er grodd inn i skallet og
+    # trekkes inn i kroppen (`stow`).
     "breadcrumb_archer": dict(climb=1.0, height=1.6, size=2048, tris=14000, voxel=0.004, thick=0.005, style="archer", attack="shoot", extra=(), bow=True,
+                              stow=dict(center=(0.0, 1.05 / 1.6), behind=-0.035 / 1.6, quiver=(-0.1 / 1.6, 1.22 / 1.6), knot=0.06 / 1.6, scale=0.3, depth=-0.03 / 1.6),
                               joints=dict(hip=0.3, knee=0.17, ankle=0.04, chest=0.57, neck=0.75, head=0.82, shoulder=0.72, elbow=0.55, wrist=0.4, tip=0.3,
                                           arm=0.19, leg=0.02, shoulder_in=0.11, leg_out=0.2),
                               rigid=[dict(bone="chest", seed=dict(x=(-1.0, -0.09), z=(0.4, 1.0)), within=dict(x=(-1.0, -0.06), z=(0.4, 1.0)),
@@ -159,8 +159,9 @@ MOBS = {
                                     dict(bone="chest", seed=dict(x=(-1.0, -0.14), y=(0.0, 0.2), z=(0.55, 1.0)), within=dict(x=(-1.0, -0.1), y=(0.0, 0.24), z=(0.5, 1.0)),
                                          avoid=("upper_arm", "forearm", "hand", "head"), clear=0.09)]),
     # Kortknekten (nivå 7–8): 1,5 m, kroppen er en tykk steinplate (kortet)
-    # med hodet bak toppen; plata følger brystet stivt.
-    "card_squire": dict(climb=1.0, height=1.5, size=2048, tris=14000, voxel=0.004, thick=0.005, style="squire", attack="fist", extra=(),
+    # med hodet bak toppen; plata følger brystet stivt. Angrepet er
+    # virvelvinden (`attack_whirl`): neveslaget fram gikk gjennom plata.
+    "card_squire": dict(climb=1.0, height=1.5, size=2048, tris=14000, voxel=0.004, thick=0.005, style="squire", attack="whirl", extra=(),
                         joints=dict(hip=0.3, knee=0.17, ankle=0.05, chest=0.6, neck=0.8, head=0.88, shoulder=0.72, elbow=0.55, wrist=0.42, tip=0.33,
                                     arm=0.25, leg=0.04, shoulder_in=0.115, leg_out=0.24),
                         rigid=[dict(bone="chest", seed=dict(x=(0.07, 1.0), y=(0.0, 0.2), z=(0.4, 0.75)), within=dict(y=(0.0, 0.25), z=(0.2, 0.83)),
@@ -545,6 +546,64 @@ def bow_bone(arm, spec):
 
 
 BOW_GRIP = 0.45  # grepet så langt ut i hånda (brøk fra håndleddet)
+
+
+def stow(ob, name, spec):
+    """Buen på ryggen (bueskytteren; eieren 20. oktober: «han står fortsatt og
+    liksom skyter med pil og bue, uten buen i hendene ... den er på ryggen»)
+    er grodd inn i TRELLIS-skallet: skåret bort sto undersida igjen, og
+    presset inn mot ryggen synes omrisset over skulderen og ved hofta.
+    Hjørnene i buen og strengen (brun i teksturen, bak ryggen, utenom
+    koggeret) trekkes i stedet sammen mot knuten der den er festet midt på
+    ryggen (`center`, brøk av høyden, ganger `scale` i høyden og bredden)
+    og inn i kroppen, så alt utenom knuten ligger inne i brystet; knuten
+    står igjen som et spenne på remmen. `spec["stow"]`: center (y, z),
+    behind (x under), quiver ((y under, z over): koggeret står), knot
+    (radius rundt festet som står), scale, depth (x inne i kroppen)."""
+    cfg = spec.get("stow")
+    if not cfg:
+        return
+    H = spec["height"]
+    me = ob.data
+    img = bpy.data.images[f"src_{name}"]
+    W, Hh = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(Hh, W, 4)
+    uv = np.zeros(len(me.loops) * 2)
+    me.uv_layers["src"].data.foreach_get("uv", uv)
+    uv = uv.reshape(-1, 2)
+    vi = np.zeros(len(me.loops), int)
+    me.loops.foreach_get("vertex_index", vi)
+    col = np.zeros((len(me.vertices), 3))
+    cnt = np.zeros(len(me.vertices))
+    tx = np.clip((uv[:, 0] * W).astype(int), 0, W - 1)
+    ty = np.clip((uv[:, 1] * Hh).astype(int), 0, Hh - 1)
+    np.add.at(col, vi, px[ty, tx, :3])
+    np.add.at(cnt, vi, 1)
+    s = np.clip(col / np.maximum(cnt, 1)[:, None], 0, 1) ** (1 / 2.2)
+    co = coords(ob)
+    x, y, z = co.T
+    r, g, b = s.T
+    qy, qz = cfg["quiver"]
+    back = (x < cfg["behind"] * H) & ~((y < qy * H) & (z > qz * H))
+    m = (r > b + 0.03) & (r >= g - 0.01) & back
+    # Naboene jevner ut fargeflekkene (flertallet avgjør).
+    edges = np.array([e.vertices[:] for e in me.edges])
+    n = len(co)
+    deg = np.bincount(edges.ravel(), minlength=n).astype(float)
+    for _ in range(3):
+        k = np.bincount(edges[:, 0], m[edges[:, 1]], n) + np.bincount(edges[:, 1], m[edges[:, 0]], n)
+        m = back & np.where(m, k >= 0.25 * deg, k >= 0.5 * deg)
+    cy, cz = cfg["center"]
+    c = np.array([cy * H, cz * H])
+    d = np.linalg.norm(co[:, 1:] - c, axis=1)
+    w = np.clip((d - cfg["knot"] * H) / (0.5 * cfg["knot"] * H), 0.0, 1.0)
+    w = w * w * (3 - 2 * w)
+    out = co.copy()
+    out[m, 1:] = c + (co[m, 1:] - c) * (1 - w[m] * (1 - cfg["scale"]))[:, None]
+    out[m, 0] = co[m, 0] + (cfg["depth"] * H - co[m, 0]) * w[m]
+    me.vertices.foreach_set("co", out.ravel())
+    me.update()
+    print(f"buen på ryggen: {int(m.sum())} hjørner trukket inn i kroppen ({int((m & (w > 0.99)).sum())} helt)")
 
 
 def hang_parts(ob, arm, spec):
@@ -1037,6 +1096,7 @@ def build(name, size=None):
         # Uten to armer og to bein: delene stivt på egne bein og egne klipp.
         arm, B = mob_rigid.RIGS[spec["rig"]](ob, coords(ob), spec["height"], armature, Clip)
     else:
+        stow(ob, name, spec)
         J = landmarks(ob, spec)
         B = bones(J)
         arm = rig(ob, name, B)

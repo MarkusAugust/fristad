@@ -1187,6 +1187,8 @@ fn bueskytteren_holder_buen() {
     use glam::Affine3A;
     let p = world();
     assert!(crate::adapters::gltf::model_files().any(|(n, _)| *n == "bow"), "buen mangler");
+    // Uten plass satt av tegner rendereren den aldri (eieren 20. oktober).
+    assert!(crate::domain::mobs::Mobs::reserve().iter().any(|(m, n)| *m == "bow" && *n > 0), "buen har ingen plass i rendereren");
     let all = rigs(&p.models);
     let (_, rig) = all.iter().find(|(n, _)| n == "breadcrumb_archer").expect("bueskytteren");
     let (bow, hand) = (rig.joint("bow").expect("beinet «bow»"), rig.joint("hand.L").unwrap());

@@ -6,7 +6,8 @@ use super::*;
 /// Det en fiende holder (beinet i riggen → modellen): bueskytterens bue
 /// (`mob3d.bow_bone`, `tools/models/bow.py`). Beinets rom er modellens rom
 /// slik Blender har det (z opp), og glb-fila har y opp (som lutten,
-/// `Npcs::instances`).
+/// `Npcs::instances`). `Mobs::reserve` setter av plass til dem (uten den
+/// tegnet rendereren aldri buen, og eieren så bare den på ryggen).
 pub const HELD: &[(&str, &str)] = &[("bow", "bow")];
 
 /// Det fienden holder, satt etter beinet i posen (`t` er fiendens plass).

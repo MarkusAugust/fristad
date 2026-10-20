@@ -2534,6 +2534,14 @@
    "images": [
     "assets/catalog/review/card_squire_klatring_for_etter.jpg"
    ]
+  },
+  "98c989e37fb6": {
+   "text": [
+    "Angrepet fikk armen til å gå inn i kroppen. Rettet slik: nytt angrep, virvelvinden (`attack_whirl` i mob_motion.py): begge armene løftes rett ut til sidene, kroppen vris litt den andre veien og dirrer, og så snurrer hele knekten én runde på stedet med et lite hopp, med armene i skulderhøyde langt utenfor kortplata; høyre neve feier forbi foran ham i bilde 22, der treffet regnes som før. Ingen lem kommer foran plata. Gangen, hvilen og klatringen er uendret. Før/etter: angrepet forfra, virvelvinden ovenfra, i spillet, og gangen, hvilen og klatringen."
+   ],
+   "images": [
+    "assets/catalog/review/card_squire_r3_for_etter.jpg"
+   ]
   }
  },
  "popover_wisp": {
@@ -2569,6 +2577,14 @@
    ],
    "images": [
     "assets/catalog/review/breadcrumb_archer_klatring_for_etter.jpg"
+   ]
+  },
+  "64868af03c30": {
+   "text": [
+    "Han skjøt med tomme hender og buen på ryggen. Rettet slik: feilen var i spillet: buen i hånda (modellen `bow` på beinet «bow») fikk aldri plass i rendereren (`Mobs::reserve` satte ikke av plass til den), så den ble aldri tegnet, og bildene på denne siden rendret bare glb-fila uten den. Nå er plassen satt av (testen `bueskytteren_holder_buen` krever det), og studiobildene og kontaktarkene setter buen på beinet slik spillet gjør (`tools/models/held_props.py`). Buen på ryggen er trukket inn i kroppen (`mob3d.stow`: hjørnene i buen og strengen, funnet etter fargen bak ryggen, trekkes mot knuten midt på ryggen og inn i brystet); knuten og remmene står igjen. Før/etter: det du så, skuddet i spillet før og etter, skuddet med buen, ryggen, gangen og klatringen."
+   ],
+   "images": [
+    "assets/catalog/review/breadcrumb_archer_r3_for_etter.jpg"
    ]
   }
  },
