@@ -274,6 +274,9 @@ def spinner_clips(arm, H, Clip):
         _clip(Clip, arm, name, 36, die)
 
 
+WING_CLEAR = 0.01  # vingene begynner så langt utenfor kubens side (brøk av høyden)
+
+
 # --- Popover-irrbloset -------------------------------------------------------
 
 
@@ -286,9 +289,18 @@ def wisp(ob, co, H, armature, Clip):
     main = np.bincount(lab).argmax()
     labels = np.array(["head"] * len(co), dtype=object)
     labels[co[:, 2] < STING * H] = "stinger"
-    side = (np.abs(co[:, 1]) > WING * H) & (co[:, 2] < 0.7 * H)
-    labels[side & (co[:, 1] > 0)] = "wing.L"
-    labels[side & (co[:, 1] < 0)] = "wing.R"
+    # Vingene er det som står utenfor kubens side: sida måles over vingene
+    # (eieren 20. oktober: «deler av kroppen følger med armen ut når han
+    # beveger på den»; med en fast grense på 0,3 av høyden fulgte kanten av
+    # kuben vingen).
+    top = (lab == main) & (co[:, 2] > 0.72 * H) & (co[:, 2] < 0.95 * H)
+    edge = {}
+    for nm, sg in (("wing.L", 1), ("wing.R", -1)):
+        q = sg * co[top, 1]
+        q = q[q > 0]
+        edge[nm] = max(WING * H, float(np.percentile(q, 99)) + WING_CLEAR * H) if len(q) else WING * H
+        print(f"{nm} fra {edge[nm] / H:.3f} av høyden ut til sida")
+        labels[(sg * co[:, 1] > edge[nm]) & (co[:, 2] < 0.7 * H)] = nm
     loose = lab != main
     labels[loose] = "cubes"
     mid = Vector(co[loose].mean(0)) if loose.any() else Vector((0, -0.45 * H, 0.65 * H))
@@ -300,8 +312,8 @@ def wisp(ob, co, H, armature, Clip):
         ("chest", tuple(body), tuple(body + Vector((0, 0, 0.15 * H))), "hips"),
         ("neck", tuple(body), tuple(body + Vector((0.05 * H, 0, 0))), "chest"),
         ("head", tuple(body + Vector((0.05 * H, 0, 0))), tuple(body + Vector((0.3 * H, 0, 0))), "neck"),
-        ("wing.L", (0, WING * H, 0.55 * H), (0, 0.48 * H, 0.5 * H), "head"),
-        ("wing.R", (0, -WING * H, 0.55 * H), (0, -0.48 * H, 0.5 * H), "head"),
+        ("wing.L", (0, edge["wing.L"], 0.55 * H), (0, 0.48 * H, 0.5 * H), "head"),
+        ("wing.R", (0, -edge["wing.R"], 0.55 * H), (0, -0.48 * H, 0.5 * H), "head"),
         ("stinger", (0, 0, STING * H), (0, 0, 0.05 * H), "head"),
         ("cubes", tuple(mid), tuple(mid + Vector((0, 0, 0.1 * H))), "hips"),
     ]
