@@ -37,7 +37,7 @@ pub struct Engine {
 }
 
 /// Modellfilene, med et nivådokument som eneste kryptnivå (`?nivaa=`).
-struct WithDoc<'a>(&'a Files, String);
+struct WithDoc<'a>(&'a dyn crate::ports::ModelSource, String);
 
 impl crate::ports::ModelSource for WithDoc<'_> {
     fn load(&self, name: &str) -> Option<crate::domain::model::Model> {
@@ -46,7 +46,7 @@ impl crate::ports::ModelSource for WithDoc<'_> {
     fn names(&self) -> Vec<String> {
         crate::ports::ModelSource::names(self.0)
     }
-    fn deferred(&self) -> Vec<String> {
+    fn deferred(&self) -> Vec<crate::domain::model::Later> {
         crate::ports::ModelSource::deferred(self.0)
     }
     fn world_data(&self) -> crate::domain::world::Data {
@@ -99,6 +99,14 @@ pub fn start_paths() -> Vec<String> {
     model_files().filter(|(_, p)| crate::adapters::delivery::level_of(p).is_none()).map(|(_, p)| p.to_string()).collect()
 }
 
+/// Modellfilene som hentes etter start når manifestet finnes
+/// (`models/manifest.json`, `delivery::lazy`): de er ikke med i
+/// `start_paths()`s første henting, og økta ber om dem (`fetch_models`).
+#[wasm_bindgen]
+pub fn lazy_paths() -> Vec<String> {
+    model_files().filter(|(n, p)| crate::adapters::delivery::lazy(n, p)).map(|(_, p)| p.to_string()).collect()
+}
+
 /// Hvor modellfila ligger i nettsiden, under `models/` (uten `.gz`).
 #[wasm_bindgen]
 pub fn model_url(path: &str) -> String {
@@ -122,6 +130,7 @@ pub async fn start(
     edit: bool,
     level_doc: Option<String>,
     merge: bool,
+    lazy_manifest: Option<String>,
 ) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
@@ -145,10 +154,16 @@ pub async fn start(
     // Med `?nivaa=NAVN`: nivådokumentet (`assets/levels/nivaa_NAVN.json`, eller
     // `brett`) som eneste kryptnivå, og med `&slaa` bitene slått sammen per
     // rute på 16 m (målingen i fase 0, `docs/nivaaredigering.md`).
+    // Manifestet for modellene som hentes etter start (plan del 10a).
+    let manifest: crate::adapters::delivery::Manifest = match lazy_manifest.filter(|_| !edit) {
+        Some(m) => serde_json::from_str(&m).map_err(|e| log::warn!("Modellmanifestet: {e}")).unwrap_or_default(),
+        None => Default::default(),
+    };
+    let source = crate::adapters::delivery::WithManifest(&files, manifest);
     let mut prepared = match &level_doc {
-        Some(name) => prepare(&WithDoc(&files, name.clone()), seed),
+        Some(name) => prepare(&WithDoc(&source, name.clone()), seed),
         None if edit => prepare_for_edit(&files, seed),
-        None => prepare(&files, seed),
+        None => prepare(&source, seed),
     };
     if merge {
         let kit = crate::adapters::data::kit();
@@ -378,6 +393,10 @@ fn json(e: &Event) -> serde_json::Value {
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
         Event::FetchLevel(n) => json!({"type": "fetch_level", "level": n}),
+        Event::FetchModels(names) => {
+            let paths: Vec<&str> = names.iter().filter_map(|n| model_files().find(|(m, _)| *m == n.as_str()).map(|(_, p)| *p)).collect();
+            json!({"type": "fetch_models", "names": names, "paths": paths})
+        }
         Event::Warp => json!({"type": "warp"}),
         Event::Map(None) => json!({"type": "map", "map": null}),
         Event::Map(Some(m)) => json!({"type": "map", "map": {
@@ -441,6 +460,31 @@ impl Engine {
             .collect();
         log::info!("Kryptnivå {n}: {} biter", models.len());
         self.app.add_level(n, &models);
+    }
+
+    /// Modellene økta ba om (`fetch_models`) er hentet: `names` og filene i
+    /// samme rekkefølge (tomme hoppes over). De lastes med nettleserens tak
+    /// og gis rendereren.
+    pub fn add_models(&mut self, names: js_sys::Array, blobs: js_sys::Array) {
+        let names: Vec<String> = names.iter().map(|n| n.as_string().unwrap_or_default()).collect();
+        let models: Vec<crate::domain::model::Model> = names
+            .iter()
+            .zip(blobs.iter())
+            .filter(|(_, b)| !b.is_undefined())
+            .filter_map(|(name, b)| {
+                let bytes = js_sys::Uint8Array::new(&b).to_vec();
+                crate::adapters::gltf::load_capped(name, &[("model.glb", &bytes)], -1.0, 0.0, crate::adapters::delivery::browser_caps(name)).map_err(|e| log::warn!("Modell {name}: {e}")).ok()
+            })
+            .collect();
+        log::info!("Hentet etter start: {}", names.join(", "));
+        self.app.add_models(&models);
+    }
+
+    /// Modellene som hentes etter start: (navn, 0 venter, 1 bedt om, 2 kommet).
+    pub fn lazy_state(&self) -> String {
+        use crate::application::app::Pieces;
+        let v: Vec<serde_json::Value> = self.app.lazy_models().iter().map(|l| serde_json::json!([l.name, match l.state { Pieces::Missing => 0, Pieces::Asked => 1, _ => 2 }])).collect();
+        serde_json::Value::Array(v).to_string()
     }
 
     /// Versjonen av Fristil som komponentene i spillet hører til

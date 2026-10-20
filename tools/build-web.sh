@@ -88,6 +88,10 @@ SRC=node_modules/@fristil/designsystem/dist
 done
 # Modellene ligger ved siden av motoren, gzip-pakket (main.js pakker dem ut).
 sh tools/pack-models.sh dist
+# Manifestet over modellene som hentes etter start (plan del 10a): mål,
+# kollidere og skjelett, lest fra de samme glb-filene.
+cargo run --release --bin manifest -- dist/models/manifest.json
+gzip -9 -n -f dist/models/manifest.json
 if [ -f assets/external/manifest.json ]; then
   mkdir -p dist/assets
   cp -r assets/external/. dist/assets/

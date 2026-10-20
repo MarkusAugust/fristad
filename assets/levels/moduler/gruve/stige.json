@@ -1,0 +1,28 @@
+{
+  "id": "gruve/stige",
+  "name": "Stigen og fallemmen",
+  "theme": "gruve",
+  "kind": "ferdig",
+  "about": "To etasjer (6 m) med en stige opp gjennom ei luke: nede et rom med bjelketak og et forrom, oppe en fallem over luka og et rom. Fallemmen åpnes nedenfra.",
+  "rooms": [
+    {"id": "rom", "name": "Stigen og fallemmen", "theme": "gruve", "mood": {"torches": 0.4}},
+    {"id": "oppe", "name": "Oppe", "theme": "gruve", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "nede", "bit": "grav/luke", "at": [0, 0, 0], "rot": 0},
+    {"id": "luke", "bit": "grav/luke_topp", "at": [0, 6, 0], "rot": 0, "room": "oppe"},
+    {"id": "oppe", "bit": "grav/romfelt", "at": [0, 6, -1], "rot": 0, "room": "oppe"}
+  ],
+  "walls": [
+    {"at": [0, 0], "side": "E"},
+    {"at": [0, 0], "side": "W"}
+  ],
+  "things": [
+    {"id": "stige", "kind": "ladder", "anchor": "celle:nede", "pos": [0, 0, -0.62], "yaw": 0, "top": [0, 6, -0.62]},
+    {"id": "lem", "kind": "trapdoor", "anchor": "celle:luke", "pos": [0, 0, 0], "yaw": 0, "size": [1.6, 1.6], "label": "bolted"}
+  ],
+  "links": [
+    {"from": "lem", "to": "rom", "kind": "to"}
+  ]
+}

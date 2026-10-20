@@ -249,6 +249,8 @@ pub struct Palette {
     pub mobs: Vec<(String, String)>,
     pub loot: Vec<String>,
     pub links: Vec<(&'static str, &'static str)>,
+    /// Gruppene i paletten (`GROUPS`).
+    pub groups: Vec<(&'static str, &'static str)>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -257,9 +259,31 @@ pub struct PaletteModule {
     pub name: String,
     pub theme: String,
     pub kind: String,
+    /// Gruppen i paletten: `rom`, `gang`, `trapp`, `ferdig`, `mekanisme`
+    /// eller `bosshall` (`palette_group`).
+    pub group: &'static str,
     pub about: String,
     pub cells: Vec<[i32; 3]>,
     pub openings: Vec<MapOpening>,
+}
+
+/// Gruppene i paletten i rekkefølge, med navnet eieren ser.
+pub const GROUPS: [(&str, &str); 6] = [("rom", "Rom"), ("gang", "Ganger"), ("trapp", "Trapper"), ("ferdig", "Ferdigrom"), ("mekanisme", "Mekanismer"), ("bosshall", "Bosshall")];
+
+/// Innholdet som gjør et ferdig rom til en mekanisme (spaker, porter med
+/// nøkkel, feller, snarveier, stiger, broer, heiser, sluser og hvilesteder).
+const MECHANISM: [&str; 10] = ["lever", "trap", "shortcut", "ladder", "trapdoor", "bridge", "lift", "water", "rest", "elite"];
+
+/// Gruppen en modul står i: bosshallen har en boss, mekanismene har noe som
+/// virker (`MECHANISM`), ellers modulens slag.
+pub fn palette_group(m: &crate::domain::world::crypt::doc::ModuleDef) -> &'static str {
+    if m.things.iter().any(|t| t.kind == "boss") {
+        return "bosshall";
+    }
+    if m.things.iter().any(|t| MECHANISM.contains(&t.kind.as_str())) {
+        return "mekanisme";
+    }
+    GROUPS.iter().map(|(g, _)| *g).find(|g| *g == m.kind).unwrap_or("ferdig")
 }
 
 /// Slagene for åpningene med navnet eieren ser.
@@ -295,11 +319,11 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         .map(|m| {
             let inst = crate::domain::world::crypt::doc::DocModule { id: "m".into(), module: m.id.clone(), ..Default::default() };
             let openings = modules::placed_openings(&inst, kit).into_iter().map(|o| MapOpening { id: o.id, at: o.at, y: o.y, side: o.side, kind: o.kind, chosen: None }).collect();
-            PaletteModule { id: m.id.clone(), name: m.name.clone(), theme: m.theme.clone(), kind: m.kind.clone(), about: m.about.clone(), cells: footprint(&inst, kit), openings }
+            PaletteModule { id: m.id.clone(), name: m.name.clone(), theme: m.theme.clone(), kind: m.kind.clone(), group: palette_group(m), about: m.about.clone(), cells: footprint(&inst, kit), openings }
         })
         .collect();
-    let order = |k: &str| ["rom", "gang", "trapp", "ferdig"].iter().position(|x| *x == k).unwrap_or(9);
-    list.sort_by(|a, b| (order(&a.kind), &a.id).cmp(&(order(&b.kind), &b.id)));
+    let order = |k: &str| GROUPS.iter().position(|(x, _)| *x == k).unwrap_or(9);
+    list.sort_by(|a, b| (order(a.group), &a.id).cmp(&(order(b.group), &b.id)));
     let mut themes: Vec<String> = kit.modules.iter().map(|m| m.theme.clone()).filter(|t| !t.is_empty()).collect();
     themes.sort();
     themes.dedup();
@@ -312,6 +336,7 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         mobs,
         loot,
         links: LINK_NAMES.to_vec(),
+        groups: GROUPS.to_vec(),
     }
 }
 

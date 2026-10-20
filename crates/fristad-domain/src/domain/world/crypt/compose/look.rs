@@ -3,7 +3,8 @@
 //! (`docs/nivaaredigering.md`, del 4.2 og 9).
 
 use super::grid::*;
-use super::{CellOut, Grid};
+use super::{edge_anchor, CellOut, Grid};
+use std::collections::HashMap;
 use crate::domain::world::crypt::doc::{DocCell, LevelDoc};
 use crate::domain::world::crypt::kit::{KitDef, KitPiece, PieceKind};
 use crate::domain::world::crypt::level::{InstanceDef, LightDef};
@@ -28,8 +29,8 @@ pub fn roll(seed: u64, parts: [i64; 4]) -> f32 {
 
 /// Faklene i festene på en halvkant: rommets fakkeltetthet avgjør hvor mange
 /// av festene som får en fakkel (med frøet), og hver fakkel gir et lys ved
-/// flammen.
-pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, room: &str, key: [i64; 4]) {
+/// flammen, sterkere i mørk stein (`StoneFile::light`, faktoren `k`).
+pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, room: &str, key: [i64; 4], k: f32) {
     let density = g.torches.get(room).copied().unwrap_or(0.0);
     if density <= 0.0 {
         return;
@@ -45,7 +46,7 @@ pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, 
         out.instances.push(InstanceDef { model: torch.model.clone(), pos: mm3(at), yaw: turn, mirror: false, stone: None });
         let flame = torch.mounts.iter().find(|m| m.kind == "lys").map(|m| Vec3::from(m.pos)).unwrap_or(Vec3::new(0.0, 0.5, 0.28));
         let light = transform(at, turn, false).transform_point3(flame);
-        out.lights.push(LightDef { pos: mm3(light), color: [1.0, 0.6, 0.28], range: 7.5, flicker: true, intensity: None, room: Some(room.to_string()) });
+        out.lights.push(LightDef { pos: mm3(light), color: [1.0, 0.6, 0.28], range: mm(7.5 * (1.0 + (k - 1.0) * 0.25)), flicker: true, intensity: (k != 1.0).then_some(mm(2.0 * k)), room: Some(room.to_string()) });
     }
 }
 
@@ -94,4 +95,44 @@ pub fn expand(doc: &LevelDoc, kit: &KitDef) -> Vec<DocCell> {
         }
     }
     out
+}
+
+/// Et punkt i ankerets rom (`celle:`, `kant:` eller fritt), i nivåets rom.
+pub(super) fn anchor_point(anchor: &str, p: Vec3, g: &Grid, index: &HashMap<&str, usize>) -> Option<Vec3> {
+    if let Some(id) = anchor.strip_prefix("celle:") {
+        return Some(g.cells[*index.get(id)?].point(p));
+    }
+    if let Some((a, w)) = edge_anchor(anchor, index, &g.cells) {
+        let c = &g.cells[a];
+        let o = outward_v(w);
+        return Some(Vec3::new(c.center().x + o.x * HALF, c.floor(w), c.center().z + o.y * HALF) + p);
+    }
+    Some(p)
+}
+
+pub(super) fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDef> {
+    doc.lights
+        .iter()
+        .filter_map(|l| {
+            let pos = anchor_point(&l.anchor, Vec3::from(l.pos), g, index)?;
+            // Rommet: cella lyset står i.
+            let cell = cell_at(g, pos);
+            let room = cell.map(|b| g.cells[b].doc.room.clone());
+            // Mørk stein får sterkere lys, som faklene (`StoneFile::light`).
+            let k = cell.map(|b| g.kit.stones.light_of(&g.cells[b].stone)).unwrap_or(1.0);
+            let intensity = if k == 1.0 { l.intensity } else { Some(mm(l.intensity.unwrap_or(2.0) * k)) };
+            Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity, room })
+        })
+        .collect()
+}
+
+/// Cella punktet står i (rutene og høyden den bruker).
+pub(super) fn cell_at(g: &Grid, pos: Vec3) -> Option<usize> {
+    let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
+    g.columns.get(&(i, j)).and_then(|v| {
+        v.iter().copied().find(|&b| {
+            let (lo, hi) = g.cells[b].volume();
+            pos.y >= lo && pos.y <= hi
+        })
+    })
 }

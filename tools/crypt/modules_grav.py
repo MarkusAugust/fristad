@@ -151,6 +151,64 @@ MODULES = [
                    {"id": "lapp", "kind": "lore", "anchor": "celle:c00", "pos": [1.15, 0, -1.1], "yaw": -45, "label": "Et blad fra munkene",
                     "text": "Den som tenner lyset her, våkner her. Fyll lykta før du går dypere; mørket der nede er ikke tomt."}],
            lights=[{"id": "hvilelys", "anchor": "celle:c00", "pos": [0, 1.6, -1.0], "color": [1.0, 0.7, 0.4], "range": 5, "flicker": True}]),
+    # Bosshallen (bossene er 4–5 m høye): hallen på 10 × 10 m med hvelvet
+    # til 10 m, og et forrom med arenaporten, som slår igjen bak deg til
+    # bossen faller.
+    module("bosshall", "Bosshallen", "ferdig",
+           "En hall på 10 × 10 m med krysshvelv til 10 m, søyler i hjørnene og en gang ut midt på hver side. Bossen venter i hallen, "
+           "og portgitteret mellom forrommet og hallen slår igjen bak deg til den faller.",
+           [{"id": "hall", "bit": "grav/hall", "at": [0, 0, 0], "rot": 0},
+            {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 2], "rot": 0, "room": "forrom"}], 0.8,
+           rooms_extra=[{"id": "forrom", "name": "Forrommet", "theme": "grav", "mood": {"torches": 0.5}}],
+           things=[{"id": "port", "kind": "gate", "anchor": "kant:forrom/N"},
+                   {"id": "boss", "kind": "boss", "anchor": "celle:hall", "pos": [0, 0, -2.0], "yaw": 0, "label": "modal"},
+                   prop("krone", "kit_chandelier", "hall", [0, 9.95, 0], 0)],
+           links=[{"from": "port", "to": "rom", "kind": "arena"}],
+           lights=[{"id": "krone", "anchor": "celle:hall", "pos": [0, 6.9, 0], "color": [1.0, 0.68, 0.38], "range": 12, "flicker": True, "intensity": 3.0},
+                   {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": False}]
+           # Lyset fra hjørnene opp i hvelvkappene (eieren 20. oktober: hvelvene var svarte).
+           + [{"id": f"kappe{k}", "anchor": "celle:hall", "pos": [sx * 3.3, 6.2, sz * 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": False, "intensity": 1.4}
+              for k, (sx, sz) in enumerate(((-1, -1), (1, -1), (1, 1), (-1, 1)))]),
+    # Mekanismene med egne biter (`kit_mech.py`, docs/nivaaredigering.md del 25).
+    module("vindebro", "Vindebroa", "ferdig",
+           "En sal på 4 × 12 m delt av en kløft 6 m ned. Vindebroa henger oppe under hvelvet til spaken på sørsida senker den.",
+           [{"id": "nord", "bit": "grav/romfelt", "at": [0, 0, -1], "rot": 0},
+            {"id": "kloft", "bit": "grav/kloft", "at": [0, 0, 0], "rot": 0},
+            {"id": "sor", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0}], 0.7,
+           things=[{"id": "bro", "kind": "bridge", "anchor": "celle:kloft", "pos": [0, 0, 0], "yaw": 0, "size": [2.8, 4.8], "height": 2.6, "top": [0, 5.0, 0]},
+                   {"id": "spak", "kind": "lever", "anchor": "celle:sor", "pos": [1.2, 0, 1.0], "yaw": -90}],
+           links=[{"from": "spak", "to": "bro", "kind": "opens"}]),
+    module("heis", "Heisen", "ferdig",
+           "En heissjakt mellom to etasjer (6 m): nede forrommet og bunnen av sjakta, oppe heistårnet over sjakta og et rom med vinsjen. "
+           "Spaken nede løsner bremsen, og heisen går opp og ned.",
+           [{"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+            {"id": "sjakt", "bit": "grav/sjakt", "at": [0, 0, 0], "rot": 0},
+            {"id": "topp", "bit": "grav/sjakt_topp", "at": [0, 6, 0], "rot": 0, "room": "oppe"},
+            {"id": "oppe", "bit": "grav/romfelt", "at": [0, 6, -1], "rot": 0, "room": "oppe"}], 0.6,
+           rooms_extra=[{"id": "oppe", "name": "Oppe", "theme": "grav", "mood": {"torches": 0.6}}],
+           walls=[{"at": [0, 0], "side": "E"}, {"at": [0, 0], "side": "W"}],
+           things=[{"id": "heis", "kind": "lift", "anchor": "celle:topp", "pos": [0, 0, 0], "yaw": 0, "size": [2.8, 2.8], "bottom": [0, -6, 0]},
+                   {"id": "spak", "kind": "lever", "anchor": "celle:forrom", "pos": [1.2, 0, -0.9], "yaw": -90}],
+           links=[{"from": "spak", "to": "heis", "kind": "opens"}],
+           lights=[{"id": "sjakt", "anchor": "celle:sjakt", "pos": [0, 4.2, 0], "color": [1.0, 0.66, 0.36], "range": 7, "flicker": True, "intensity": 1.2}]),
+    module("stige", "Stigen og fallemmen", "ferdig",
+           "To etasjer (6 m) med en stige opp gjennom ei luke: nede et rom med bjelketak og et forrom, oppe en fallem over luka og et rom. "
+           "Fallemmen åpnes nedenfra.",
+           [{"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+            {"id": "nede", "bit": "grav/luke", "at": [0, 0, 0], "rot": 0},
+            {"id": "luke", "bit": "grav/luke_topp", "at": [0, 6, 0], "rot": 0, "room": "oppe"},
+            {"id": "oppe", "bit": "grav/romfelt", "at": [0, 6, -1], "rot": 0, "room": "oppe"}], 0.6,
+           rooms_extra=[{"id": "oppe", "name": "Oppe", "theme": "grav", "mood": {"torches": 0.6}}],
+           walls=[{"at": [0, 0], "side": "E"}, {"at": [0, 0], "side": "W"}],
+           things=[{"id": "stige", "kind": "ladder", "anchor": "celle:nede", "pos": [0, 0, -0.62], "yaw": 0, "top": [0, 6, -0.62]},
+                   {"id": "lem", "kind": "trapdoor", "anchor": "celle:luke", "pos": [0, 0, 0], "yaw": 0, "size": [1.6, 1.6], "label": "bolted"}],
+           links=[{"from": "lem", "to": "rom", "kind": "to"}]),
+    module("galleri", "Galleriet", "rom",
+           "En sal på 12 × 12 m i to etasjer: et galleri 5 m oppe langs nordmuren med rekkverk, trapp opp langs vestmuren, "
+           "krysshvelv med ribber til 11 m, gangene ut i sør og øst nede og i nord fra galleriet.",
+           [{"id": "sal", "bit": "grav/galleri", "at": [0, 0, 0], "rot": 0}], 0.7,
+           lights=[{"id": "galleri", "anchor": "celle:sal", "pos": [0, 7.6, -3.6], "color": [1.0, 0.68, 0.38], "range": 9, "flicker": False, "intensity": 1.4},
+                   {"id": "hvelv", "anchor": "celle:sal", "pos": [0, 9.2, 1.5], "color": [0.95, 0.74, 0.55], "range": 8, "flicker": False, "intensity": 1.2}]),
     module("skattkammer", "Skattkammeret", "ferdig",
            "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
            "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",

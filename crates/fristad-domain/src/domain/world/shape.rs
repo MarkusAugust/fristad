@@ -3,7 +3,7 @@
 
 use glam::{Affine3A, Quat, Vec2, Vec3};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Shape {
     /// Boks med sentrum, hele mål og rotasjon om Y.
     Cuboid { center: Vec3, size: Vec3, yaw: f32 },

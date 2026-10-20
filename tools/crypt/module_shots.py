@@ -36,10 +36,15 @@ EYE = 1.65
 
 
 def dump(name):
-    path = os.path.join(OUT, f"{name}.json")
+    path = os.path.join(OUT, f"{name.replace(':', '_')}.json")
     subprocess.run([SNAP, "--level-doc", name, "--dump-doc", path], cwd=ROOT, check=True, capture_output=True)
     with open(path) as f:
         return json.load(f)
+
+
+def composite(bit):
+    """De sammensatte bitene på 3 × 3 celler (rotunden og bosshallen)."""
+    return "rotunde" in bit or bit.endswith("/hall") or bit.endswith("/galleri")
 
 
 def yaw_to(dx, dz):
@@ -66,6 +71,27 @@ def cameras(name, cells, hosts):
         # Nedgangen: på skrå ned mot hullet med trappa (mot sør i modulen).
         look = (-ox - oz * 0.0 + (0.7 if name == "nedgang" and ox else 0.0) * 0, -oz + (0.7 if name == "nedgang" else 0.0))
         cams.append((eye, yaw_to(*look), -28.0 if name == "nedgang" else 3.0))
+    if name.endswith("bosshall"):
+        # Fra forrommet gjennom porten mot bossen, og opp mot hvelvet fra et hjørne.
+        hx, hz = (i0 + i1) / 2 * CELL, (j0 + j1 - 1) / 2 * CELL
+        return [((hx, y + EYE, hz + 2 * CELL + 1.0), 0.0, 10.0), ((hx + 3.4, y + EYE, hz + 3.4), yaw_to(-1, -1), 26.0)]
+    if name in ("heis", "stige"):
+        # Nedenfra fra forrommet opp i sjakta, og ovenfra ned mot heisen eller luka.
+        lo = [c for c in cells if c[1] == y]
+        hi = [c for c in cells if c[1] > y]
+        sx = lo[0][0] * CELL
+        zs = max(c[2] for c in lo) * CELL + 1.2
+        zt = min(c[2] for c in hi) * CELL - 1.0
+        up = max(c[1] for c in hi)
+        return [((sx + 0.8, y + EYE, zs), 0.0, 38.0), ((sx - 1.0, up + EYE, zt), yaw_to(0.35, 1.0), -32.0)]
+    if name in ("vindebro", "kanal"):
+        # Langs kløfta eller kanalen: fra sør, og fra nord ned mot vannet eller i dypet.
+        xc = (i0 + i1) / 2 * CELL + (0.0 if name == "vindebro" else 1.15)
+        return [((xc, y + EYE, z1 + 0.3), 0.0, 6.0), ((xc, y + EYE, z0 - 0.2), 180.0, -24.0 if name == "vindebro" else -12.0)]
+    if name == "galleri":
+        # Fra salen opp mot galleriet og trappa, og fra galleriet ned i salen.
+        cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
+        return [((cx + 3.6, y + EYE, cz + 4.2), yaw_to(-0.8, -1.0), 16.0), ((cx + 3.2, y + 5 + EYE, cz - 3.9), yaw_to(-0.9, 1.0), -18.0)]
     if name.endswith("rotunde"):
         cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
         return [((cx, y + EYE, z1 + 0.2), 0.0, 16.0), ((cx + 3.0, y + EYE, cz + 3.0), yaw_to(-1, -1), 24.0)]
@@ -117,7 +143,19 @@ def sheet(name, title, plan_img, files, out):
 
 
 def shoot(only):
-    gal = dump("moduler")
+    """Bildene tema for tema: hvert tema i sitt eget nivå (`moduler:<tema>`),
+    for lyset følger høyst 64 rom per nivå."""
+    themes = sorted(d for d in os.listdir(os.path.join(ROOT, "assets", "levels", "moduler")) if not d.startswith("."))
+    for theme in themes:
+        shoot_theme(theme, only)
+
+
+def shoot_theme(theme, only):
+    level = f"moduler:{theme}"
+    gal = dump(level)
+    # «Se i 3D» på godkjenningssiden leser galleriet (`moduler.json` for gravkjelleren).
+    with open(os.path.join(OUT, "moduler.json" if theme == "grav" else f"moduler_{theme}.json"), "w") as f:
+        json.dump(gal, f)
     modules = {m["id"]: m for m in load_modules()}
     lines, cards = [], []
     for inst in gal["doc"]["modules"]:
@@ -127,11 +165,12 @@ def shoot(only):
         name = inst["id"]
         if only and name not in only and inst["module"] not in only:
             continue
-        cells = [tuple(c["at"]) for c in gal["flat"]["cells"] if c["id"].startswith(name + "/")]
-        # De sammensatte bitene dekker flere celler (rotunden 3 × 3).
-        if any("rotunde" in c["bit"] for c in gal["flat"]["cells"] if c["id"].startswith(name + "/")):
-            c0 = cells[0]
-            cells = [(c0[0] + di, c0[1], c0[2] + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)]
+        # De sammensatte bitene dekker flere celler (rotunden og bosshallen 3 × 3).
+        cells = []
+        for c in gal["flat"]["cells"]:
+            if c["id"].startswith(name + "/"):
+                a = c["at"]
+                cells += [(a[0] + di, a[1], a[2] + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)] if composite(c["bit"]) else [tuple(a)]
         hosts = []
         for h in gal["doc"]["modules"]:
             if h["id"].startswith(name + "_nabo"):
@@ -151,10 +190,12 @@ def shoot(only):
         keep = {name} | {h["id"] for h in gal["doc"]["modules"] if h["id"].startswith(name + "_nabo")}
         cards.append((name, m["name"], files, draw_plan(gal, keep, scale=110, focus=name)))
     os.makedirs(os.path.join(OUT, "skudd"), exist_ok=True)
+    if not lines:
+        return
     shots = os.path.join(OUT, "shots.txt")
     with open(shots, "w") as f:
         f.write("\n".join(lines) + "\n")
-    subprocess.run([SNAP, "--level-doc", "moduler", "--level", "1", "--film", "--size", "800x560", "--frames", "2", "--gfx", "lights=16", "--shots", shots], cwd=ROOT, check=True, capture_output=True)
+    subprocess.run([SNAP, "--level-doc", level, "--level", "1", "--film", "--size", "800x560", "--frames", "2", "--gfx", "lights=16", "--shots", shots], cwd=ROOT, check=True, capture_output=True)
     for name, title, files, p in cards:
         sheet(name, title, p, files, os.path.join(OUT, f"{name}.png"))
         print(os.path.join(OUT, f"{name}.png"))
@@ -216,9 +257,10 @@ def draw_plan(d, keep, scale=96, focus=None):
     for c in flat["cells"]:
         if not inside(owner(c["id"])):
             continue
-        if "rotunde" in c["bit"]:
+        if composite(c["bit"]):
             cells += [(c["at"][0] + di, c["at"][1], c["at"][2] + dj, owner(c["id"])) for di in (-1, 0, 1) for dj in (-1, 0, 1)]
-            rounds.append((c["at"][0] * CELL, c["at"][2] * CELL, owner(c["id"])))
+            if "rotunde" in c["bit"]:
+                rounds.append((c["at"][0] * CELL, c["at"][2] * CELL, owner(c["id"])))
         else:
             cells.append((c["at"][0], c["at"][1], c["at"][2], owner(c["id"])))
     i0, i1 = min(c[0] for c in cells) - 1, max(c[0] for c in cells) + 1

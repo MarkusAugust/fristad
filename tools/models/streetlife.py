@@ -782,7 +782,9 @@ def bucket_body(m, water=True):
 def well_winch():
     m = Mats()
     # Valsen (radius 0,08 som WELL_DRUM) med tauet kveilet i bånd.
-    drum = lathe("drum", [(0.08, -0.62), (0.08, 0.62)], m.logs, n=10)
+    # Valsen av samme mørke tre som stolpene i brønnen (laget «logs» er
+    # vedkubber med bark og ble oransje stripet rundt valsen).
+    drum = lathe("drum", [(0.08, -0.62), (0.08, 0.62)], layer("timber", (0.55, 0.42, 0.32)), n=10)
     move([drum], pitch=math.pi / 2)
     for x in (-0.6, 0.6):
         ob = ring("drum_band", 0.083, 0.012, 0.05, m.iron, n=10)

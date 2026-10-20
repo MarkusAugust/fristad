@@ -57,7 +57,11 @@ ITEMS = {
     # bøtta er egne modeller som økta dreier og heiser (`town::WELL_PARTS`),
     # så de tas bort her; vinda i formen står 0,565 oppe og skal sitte i
     # `town::WELL_AXLE` (1,55 m), og midten er midt mellom stolpene.
-    "well": dict(src="well", out="assets/models/town/well.glb", height=1.55 / 0.565, center=(0.058, 0.0), yaw=0.0, tris=8000, voxel=0.012, size=2048,
+    # Eieren 19. oktober: «litt for blurry». Fargen hentes og bakes i 4096
+    # med øyene fra xatlas (`atlas`, dekning rundt 70 % mot 44 % med
+    # smart_project), så tettheten er det TRELLIS-teksturen har (rundt 450
+    # teksler per meter, før 255).
+    "well": dict(src="well", out="assets/models/town/well.glb", height=1.55 / 0.565, center=(0.058, 0.0), yaw=0.0, tris=8000, voxel=0.012, size=4096, src_size=4096, data_size=1024, atlas=True,
                  cut=[((-0.12, -0.08, 0.49), (0.236, 0.08, 0.645)),  # valsen med tauet kveilet
                       ((0.035, -0.05, 0.15), (0.09, 0.05, 0.5)),  # tauet ned i sjakta
                       ((-0.4, -0.09, 0.42), (-0.198, 0.09, 0.64)),  # sveiven utenfor stolpen
@@ -296,7 +300,7 @@ def build(name):
             # (`solid`), så skallet blir massivt.
             solid(ob, v)
             decimate(ob, spec["tris"])
-        folk3d.transfer(hi, ob, name, SRC_SIZE)
+        folk3d.transfer(hi, ob, name, spec.get("src_size", SRC_SIZE), unwrap=atlas if spec.get("atlas") else None)
     finally:
         for k, val in keep.items():
             setattr(folk3d, k, val)
@@ -305,7 +309,8 @@ def build(name):
     ob.name = name
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(name, "trekanter", tris)
-    bake_textured(spec["out"], spec["size"], keep=("glass", "magic"), uv_angle=None, ao=False)
+    # Med `atlas` står øyene fra xatlas, og bakingen er en ren kopi.
+    bake_textured(spec["out"], spec["size"], keep=("glass", "magic"), uv_angle=None, ao=False, pack=not spec.get("atlas"), data_size=spec.get("data_size"))
 
 
 if __name__ == "__main__":

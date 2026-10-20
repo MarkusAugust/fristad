@@ -9,8 +9,8 @@
     {"id": "berg", "name": "Berg (gruva)", "floor": "rubble", "wall": "mine_rock", "vault": "mine_rock", "trim": "keep_ashlar"},
     {"id": "tommer", "name": "Tømmerforet gruve", "floor": "rubble", "wall": "mine_timber", "vault": "mine_rock", "trim": "keep_ashlar"},
     {"id": "kvader", "name": "Kvaderstein (borgen)", "floor": "keep_floor", "wall": "keep_ashlar", "vault": "keep_ashlar", "trim": "keep_ashlar"},
-    {"id": "kjernestein", "name": "Stein som blir plast (kjernen)", "floor": "core_stone", "wall": "core_stone", "vault": "core_plastic", "trim": "core_stone"},
-    {"id": "plast", "name": "Plast (kjernen)", "floor": "core_plastic", "wall": "core_plastic", "vault": "core_plastic", "trim": "core_stone"}
+    {"id": "kjernestein", "name": "Stein som blir plast (kjernen)", "floor": "core_stone", "wall": "core_stone", "vault": "core_plastic", "trim": "core_stone", "wall_variant": "som"},
+    {"id": "plast", "name": "Plast (kjernen)", "floor": "core_plastic", "wall": "core_plastic", "vault": "core_plastic", "trim": "core_stone", "wall_variant": "som"}
   ],
   "themes": {
     "grav": "gravmur",
@@ -18,5 +18,13 @@
     "gruve": "berg",
     "borg": "kvader",
     "kjerne": "kjernestein"
+  },
+  "_lys": "Lyset i rom med mørk stein: murlaget → faktor på faklene og lysene i rommet (albedoen målt: gravmur 0,33, tegl 0,06, berg 0,07, kvader 0,07, kjernestein 0,13), så de mørke steinene er lesbare og beholder fargen sin.",
+  "light": {
+    "sewer_brick": 2.2,
+    "mine_rock": 2.1,
+    "mine_timber": 1.9,
+    "keep_ashlar": 2.0,
+    "core_stone": 1.5
   }
 }

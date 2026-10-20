@@ -208,6 +208,8 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
                 th2.pos = th.pos.map(point);
                 th2.yaw = turn(th.yaw);
                 th2.patrol = th.patrol.iter().map(|p| point(*p)).collect();
+                th2.top = th.top.map(point);
+                th2.bottom = th.bottom.map(point);
             }
             module_things.push(th2);
         }
@@ -441,8 +443,10 @@ pub fn showcase(kit: &KitDef, id: &str) -> Option<LevelDoc> {
 pub fn placed_openings(inst: &DocModule, kit: &KitDef) -> Vec<LocalOpening> {
     let Some(m) = kit.module(&inst.module) else { return vec![] };
     let t = transform(Vec3::ZERO, cell_yaw(inst.rot % 4), inst.mirror);
+    // Delcellene i de sammensatte bitene har sitt eget gulv (galleriet).
+    let subs = expand(&LevelDoc { cells: m.cells.clone(), ..Default::default() }, kit);
     let floors = |o: &LocalOpening| {
-        let c = m.cells.iter().find(|c| o.cell.split('#').next() == Some(c.id.as_str()));
+        let c = subs.iter().find(|c| c.id == o.cell);
         let p = c.and_then(|c| kit.piece(&c.bit));
         match (c, p) {
             (Some(c), Some(p)) => p.floors[world_to_local(o.side, c.rot % 4, c.mirror && p.mirror)].round() as i32,
@@ -504,7 +508,7 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
             .iter()
             .map(|o| {
                 let (di, dj) = outward(o.side);
-                let c = m.cells.iter().find(|c| o.cell.split('#').next() == Some(c.id.as_str())).unwrap();
+                let c = cells.iter().find(|c| c.id == o.cell).unwrap();
                 let p = kit.piece(&c.bit).unwrap();
                 let lift = p.floors[world_to_local(o.side, c.rot % 4, c.mirror && p.mirror)].round() as i32;
                 [o.at[0] + di, o.y + lift, o.at[1] + dj]

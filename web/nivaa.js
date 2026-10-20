@@ -53,6 +53,9 @@ let playing = false;
 let docPath = "";
 let lastMouse = [0, 0];
 let drag = null;
+// Paletten viser temaet nivået har (settes når nivået er åpnet).
+let paletteFilter = () => {};
+const THEME_NAMES = { grav: "Gravkjelleren", kloakk: "Kloakken", gruve: "Gruva", borg: "Borgen", kjerne: "Kjernen" };
 
 const store = {
   get(k) {
@@ -284,6 +287,10 @@ function refresh(map) {
   showStats();
   redraw();
   docPath = JSON.parse(engine.level_doc()).path;
+  if (map.theme !== refresh.theme) {
+    refresh.theme = map.theme;
+    paletteFilter(map.theme || map.modules[0]?.module.split("/")[0]);
+  }
   store.set(LAST, docPath);
   scheduleDraft();
 }
@@ -404,14 +411,17 @@ function openText(text, note) {
 // ---------------------------------------------------------------- paletten
 
 function buildPalette() {
-  const groups = { rom: "Rom", gang: "Ganger", trapp: "Trapper", ferdig: "Ferdige rom" };
+  // Gruppene fra kjernen (`map::GROUPS`): rom, ganger, trapper, ferdigrom,
+  // mekanismer og bosshallen.
+  const groups = palette.groups || [["rom", "Rom"], ["gang", "Ganger"], ["trapp", "Trapper"], ["ferdig", "Ferdigrom"]];
   const list = $("modlist");
   list.innerHTML = "";
-  for (const [kind, title] of Object.entries(groups)) {
-    const mods = palette.modules.filter((m) => m.kind === kind);
+  for (const [group, title] of groups) {
+    const mods = palette.modules.filter((m) => (m.group || m.kind) === group);
     if (!mods.length) continue;
     const h = document.createElement("h2");
     h.textContent = title;
+    h.dataset.group = group;
     list.append(h);
     const tiles = document.createElement("div");
     tiles.className = "tiles";
@@ -422,7 +432,9 @@ function buildPalette() {
       b.dataset.module = m.id;
       b.title = m.about || m.name;
       const [theme, name] = m.id.split("/");
-      b.innerHTML = `<img alt="" loading="lazy" src="moduler/${theme}/${name}.jpg"><span>${m.name}</span>`;
+      b.dataset.theme = theme;
+      b.innerHTML = `<img alt="" loading="lazy" draggable="false" src="moduler/${theme}/${name}.jpg"><span>${m.name}</span>`;
+      b.addEventListener("dragstart", (e) => e.preventDefault());
       b.querySelector("img").onerror = (e) => (e.target.style.visibility = "hidden");
       b.addEventListener("pointerdown", (e) => {
         e.preventDefault();
@@ -433,10 +445,29 @@ function buildPalette() {
     }
     list.append(tiles);
   }
-  $("search").addEventListener("input", () => {
+  // Temaet: modulene i nivåets tema (eller alle), så samme navn i flere
+  // temaer ikke står om hverandre.
+  const themes = [...new Set(palette.modules.map((m) => m.theme || m.id.split("/")[0]))];
+  const pick = document.createElement("select");
+  pick.id = "theme";
+  pick.className = "fs-select";
+  pick.setAttribute("aria-label", "Temaet i paletten");
+  pick.innerHTML = themes.map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("") + `<option value="">Alle temaene</option>`;
+  pick.value = themes.includes("grav") ? "grav" : themes[0] || "";
+  $("search").after(pick);
+  const filter = () => {
     const q = $("search").value.toLowerCase();
-    list.querySelectorAll(".tile").forEach((t) => (t.hidden = q && !t.textContent.toLowerCase().includes(q) && !t.dataset.module.includes(q)));
-  });
+    const t = pick.value;
+    list.querySelectorAll(".tile").forEach((el) => (el.hidden = (t && el.dataset.theme !== t) || (q && !el.textContent.toLowerCase().includes(q) && !el.dataset.module.includes(q))));
+    list.querySelectorAll("h2").forEach((h) => (h.hidden = ![...h.nextElementSibling.children].some((c) => !c.hidden)));
+  };
+  $("search").addEventListener("input", filter);
+  pick.addEventListener("change", filter);
+  paletteFilter = (theme) => {
+    if (theme && themes.includes(theme) && pick.value !== theme) pick.value = theme;
+    filter();
+  };
+  filter();
   const things = $("thinglist");
   for (const [kind, name] of palette.things.filter(([k]) => !["mob", "elite", "boss"].includes(k))) {
     things.append(chip(name, () => armThing(kind, null), kind));
@@ -930,7 +961,7 @@ function focusSelection() {
   if (!p) return;
   st.view.cx = p[0];
   st.view.cz = p[2];
-  engine.level(JSON.stringify({ cmd: "place", x: p[0], y: p[1] + 5, z: p[2] + 7, yaw: 0, pitch: -35 }));
+  engine.level(JSON.stringify({ cmd: "place", x: p[0], y: p[1] + 1.7, z: p[2], yaw: st.camera?.length ? st.camera[3] : 0, pitch: -10 }));
   redraw();
 }
 
@@ -1207,7 +1238,7 @@ function showIssues() {
         }, 1500);
         const h = hit(st.map, f, x, z, 1);
         if (h?.type === "module" || h?.type === "thing") select([h.id]);
-        engine.level(JSON.stringify({ cmd: "place", x, y: y + 4, z: z + 6, yaw: 0, pitch: -30 }));
+        engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
         redraw();
       };
     }

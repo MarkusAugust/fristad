@@ -1,0 +1,31 @@
+{
+  "id": "gruve/bosshall",
+  "name": "Bosshallen",
+  "theme": "gruve",
+  "kind": "ferdig",
+  "about": "En hall på 10 × 10 m med krysshvelv til 10 m, søyler i hjørnene og en gang ut midt på hver side. Bossen venter i hallen, og portgitteret mellom forrommet og hallen slår igjen bak deg til den faller.",
+  "rooms": [
+    {"id": "rom", "name": "Bosshallen", "theme": "gruve", "mood": {"torches": 0.4}},
+    {"id": "forrom", "name": "Forrommet", "theme": "gruve", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "hall", "bit": "grav/hall", "at": [0, 0, 0], "rot": 0},
+    {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 2], "rot": 0, "room": "forrom"}
+  ],
+  "things": [
+    {"id": "port", "kind": "gate", "anchor": "kant:forrom/N"},
+    {"id": "boss", "kind": "boss", "anchor": "celle:hall", "pos": [0, 0, -2.0], "yaw": 0, "label": "select"},
+    {"id": "krone", "kind": "prop", "anchor": "celle:hall", "pos": [0, 9.95, 0], "yaw": 0, "label": "kit_chandelier"}
+  ],
+  "links": [
+    {"from": "port", "to": "rom", "kind": "arena"}
+  ],
+  "lights": [
+    {"id": "krone", "anchor": "celle:hall", "pos": [0, 6.9, 0], "color": [1.0, 0.68, 0.38], "range": 12, "flicker": true, "intensity": 3.0},
+    {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": false},
+    {"id": "kappe0", "anchor": "celle:hall", "pos": [-3.3, 6.2, -3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe1", "anchor": "celle:hall", "pos": [3.3, 6.2, -3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe2", "anchor": "celle:hall", "pos": [3.3, 6.2, 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe3", "anchor": "celle:hall", "pos": [-3.3, 6.2, 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4}
+  ]
+}

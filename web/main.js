@@ -2,7 +2,7 @@
 // Byen, fysikken og grafikken bor i Rust (pkg/fristad.js og .wasm), bak
 // den drivende porten.
 
-import init, { start, asset_paths, model_paths, start_paths, level_paths, model_url } from "./pkg/fristad.js";
+import init, { start, asset_paths, model_paths, start_paths, lazy_paths, level_paths, model_url } from "./pkg/fristad.js";
 import { createMusic } from "./music.js";
 import { createAmbience } from "./ambience.js";
 import { createFilm } from "./film/player.js";
@@ -198,14 +198,14 @@ async function boot() {
   const forceGl = new URLSearchParams(location.search).has("webgl");
   try {
     if (forceGl) throw new Error("WebGL2 valgt i adressen");
-    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA);
+    engine = await start(canvas, true, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA, lazyManifest);
   } catch (e) {
     console.warn("WebGPU feilet, prøver WebGL2:", e);
     const fresh = canvas.cloneNode();
     canvas.replaceWith(fresh);
     canvas = fresh;
     fit();
-    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA);
+    engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA, lazyManifest);
   }
   console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
   if (gpuLost !== null) loseGpu(gpuLost);
@@ -417,12 +417,37 @@ async function fetchLevel(n) {
   engine?.add_level(n, out);
 }
 
-// Henter modellfilene byen trenger (alle utenom bitene til kryptnivåene;
-// med ?edit alle) og pakker dem ut. Framdriften regnes i byte, fra
-// størrelsene i models/sizes.json.
+// Byens modeller som ikke trengs til første bilde (innsiden, møblene,
+// galleriet, fiendene, utstyret du ikke har på; `lazy_paths`, plan del 10a)
+// hentes når økta ber om dem (`fetch_models`) og gis motoren med
+// `add_models`. Verden bygges før de kommer, fra manifestet
+// (models/manifest.json, mål, kollidere og skjelett). Mangler manifestet,
+// hentes alt ved start som før.
+let lazyManifest;
+async function fetchLazy(names, paths) {
+  const out = new Array(paths.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < paths.length) {
+      const i = next++;
+      out[i] = await fetchModel(paths[i]).catch((e) => console.warn(`Modellen ${paths[i]}:`, e));
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  engine?.add_models(names, out);
+}
+
+// Henter modellfilene byen trenger (alle utenom bitene til kryptnivåene og
+// det som hentes senere; med ?edit alle) og pakker dem ut. Framdriften
+// regnes i byte, fra størrelsene i models/sizes.json.
 async function loadModels() {
   const all = model_paths();
-  const wanted = new Set(EDIT ? all : start_paths());
+  if (!EDIT) {
+    const bytes = await fetchModel("manifest.json").catch(() => undefined);
+    if (bytes) lazyManifest = new TextDecoder().decode(bytes);
+  }
+  const later = new Set(lazyManifest ? lazy_paths() : []);
+  const wanted = new Set(EDIT ? all : start_paths().filter((p) => !later.has(p)));
   let sizes = {};
   try {
     sizes = await (await fetch("models/sizes.json")).json();
@@ -657,6 +682,9 @@ function handle(e) {
       break;
     case "fetch_level":
       fetchLevel(e.level);
+      break;
+    case "fetch_models":
+      fetchLazy(e.names, e.paths);
       break;
     case "warp":
       warp();

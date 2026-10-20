@@ -28,6 +28,10 @@ pub struct StoneDef {
     pub wall: String,
     pub vault: String,
     pub trim: String,
+    /// Murvarianten steinen vil ha (`som`: plastsømmene i kjernen), om
+    /// halvkanten har den; ellers velger frøet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wall_variant: Option<String>,
 }
 
 /// `assets/levels/steiner.json`.
@@ -39,6 +43,11 @@ pub struct StoneFile {
     /// tema er laget med temaets standardstein.
     #[serde(default)]
     pub themes: BTreeMap<String, String>,
+    /// Lyset i rom med mørk stein (lag → faktor): faklene og lysene i et
+    /// rom lyser så mye sterkere som murlaget sier, så tegl, berg og kvader
+    /// er lesbare uten at gravmuren blir lysere (eieren 20. oktober).
+    #[serde(default)]
+    pub light: BTreeMap<String, f32>,
 }
 
 /// Eierens valg: en stein ved navn (`"tegl"`: gulv, mur og hvelv), eller
@@ -70,17 +79,28 @@ pub struct Surfaces {
     pub wall: String,
     pub vault: String,
     pub trim: String,
+    /// Murvarianten (`StoneDef::wall_variant`).
+    pub wall_variant: Option<String>,
 }
 
 impl Surfaces {
     fn of(s: &StoneDef) -> Self {
-        Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone(), trim: s.trim.clone() }
+        Surfaces { floor: s.floor.clone(), wall: s.wall.clone(), vault: s.vault.clone(), trim: s.trim.clone(), wall_variant: s.wall_variant.clone() }
+    }
+
+    fn layers(&self) -> [&String; 4] {
+        [&self.floor, &self.wall, &self.vault, &self.trim]
     }
 }
 
 impl StoneFile {
     pub fn stone(&self, id: &str) -> Option<&StoneDef> {
         self.stones.iter().find(|s| s.id == id)
+    }
+
+    /// Lysfaktoren for flatene (murlaget; 1 for det som ikke står i `light`).
+    pub fn light_of(&self, s: &Surfaces) -> f32 {
+        self.light.get(&s.wall).copied().unwrap_or(1.0)
     }
 
     /// Standardsteinen for et tema (lagene byggesettet for temaet er laget med).
@@ -112,6 +132,7 @@ impl StoneFile {
                 }
                 if let Some(n) = &p.wall {
                     s.wall = self.layer(n, |s| &s.wall)?;
+                    s.wall_variant = self.stone(n).and_then(|st| st.wall_variant.clone());
                 }
                 if let Some(n) = &p.vault {
                     s.vault = self.layer(n, |s| &s.vault)?;
@@ -128,7 +149,7 @@ impl StoneFile {
     /// (ingenting når det er likt det biten er laget med).
     pub fn swap(&self, theme: &str, to: &Surfaces) -> Option<InstanceStone> {
         let base = self.base(theme)?;
-        (base != *to).then(|| InstanceStone { from: [base.floor, base.wall, base.trim], to: [to.floor.clone(), to.wall.clone(), to.vault.clone(), to.trim.clone()] })
+        (base.layers() != to.layers()).then(|| InstanceStone { from: [base.floor, base.wall, base.trim], to: [to.floor.clone(), to.wall.clone(), to.vault.clone(), to.trim.clone()] })
     }
 
     /// Hver stein og hvert tema peker på lag som finnes (feilene).

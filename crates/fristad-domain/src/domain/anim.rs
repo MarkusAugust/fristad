@@ -6,7 +6,7 @@
 
 use glam::{Mat4, Quat, Vec3};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Joint {
     pub name: String,
     /// Indeksen til forelderen i `Rig.joints`; alltid lavere enn egen indeks.
@@ -19,14 +19,14 @@ pub struct Joint {
     pub inverse_bind: Mat4,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Keys {
     Translation(Vec<Vec3>),
     Rotation(Vec<Quat>),
     Scale(Vec<Vec3>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Channel {
     pub joint: usize,
     pub times: Vec<f32>,
@@ -35,7 +35,7 @@ pub struct Channel {
     pub step: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Clip {
     pub name: String,
     pub duration: f32,
@@ -46,7 +46,7 @@ pub struct Clip {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pose(pub Vec<(Vec3, Quat, Vec3)>);
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Rig {
     pub joints: Vec<Joint>,
     pub clips: Vec<Clip>,

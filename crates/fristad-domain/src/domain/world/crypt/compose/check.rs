@@ -195,3 +195,123 @@ pub fn links(file: &LevelFile) -> Vec<Issue> {
     }
     out
 }
+
+/// Lyset følger rommene i en maske på 64 bit (`Crypt::light_mask`): rom
+/// nummer 64 og over får ikke lys fra noe. Et nivå med flere rom er en feil
+/// (modulgalleriet med alle temaene ble svart bakerst).
+pub const MAX_ROOMS: usize = 64;
+
+pub fn rooms(file: &LevelFile) -> Vec<Issue> {
+    let n = file.rooms.len();
+    (n > MAX_ROOMS)
+        .then(|| Issue { severity: Severity::Error, rule: "lys", at: None, msg: format!("nivået har {n} rom; lyset følger bare de første {MAX_ROOMS}") })
+        .into_iter()
+        .collect()
+}
+
+/// Høyden en fiende trenger: modellene er rundt 2 m ved skala 1
+/// (`Kind::stats().scale`; Navbaren og Dropdownen er 5 m, Rammeverket 4–5 m),
+/// og 0,5 m over hodet til slaget.
+pub fn mob_height(label: &str) -> f32 {
+    2.0 * crate::domain::mob_kind::Kind::from_label(label).stats().scale + 0.5
+}
+
+/// Fiendene står i et rom med plass til høyden sin (eieren 19. oktober:
+/// hjelmen til bossen gikk opp i kuppelen): takhøyden i rommet de står i
+/// (`RoomDef.h`) er minst `mob_height`. Bossene trenger bosshallen.
+pub fn headroom(file: &LevelFile) -> Vec<Issue> {
+    let inside = |poly: &[[f32; 2]], x: f32, z: f32| {
+        let mut c = false;
+        for k in 0..poly.len() {
+            let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
+            if (a[1] > z) != (b[1] > z) && x < a[0] + (z - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) {
+                c = !c;
+            }
+        }
+        c
+    };
+    let mut out = vec![];
+    for m in file.marks.iter().filter(|m| matches!(m.kind.as_str(), "mob" | "elite" | "boss")) {
+        let Some(p) = m.pos else { continue };
+        let label = m.label.clone().unwrap_or_else(|| if m.kind == "boss" { "rammeverket".into() } else { "button".into() });
+        let need = mob_height(&label);
+        let Some(room) = file.rooms.iter().find(|r| (p[1] - r.y).abs() < 1.5 && inside(&r.poly, p[0], p[2])) else { continue };
+        if room.h + 0.01 < need {
+            let id = m.id.clone().unwrap_or_else(|| m.kind.clone());
+            out.push(Issue { severity: Severity::Error, rule: "takhoyde", at: m.pos, msg: format!("{id} ({label}) trenger {need:.1} m under taket, men {} har {:.1} m (bruk bosshallen)", room.name, room.h) });
+        }
+    }
+    out
+}
+
+/// Bitene mekanismene står i (modellene i `kit_mech.py`).
+pub const CHASM: &str = "grav_kloft";
+pub const SHAFT: &str = "grav_sjakt";
+pub const SHAFT_TOP: &str = "grav_sjakt_topp";
+pub const HATCH: &str = "grav_luke";
+pub const HATCH_TOP: &str = "grav_luke_topp";
+pub const CANALS: [&str; 2] = ["grav_kanal", "grav_kanal_ende"];
+
+/// Mekanismene står i bitene sine (`docs/nivaaredigering.md` del 25): en
+/// kløft har en vindebro over seg (ellers kommer ingen over), og en vindebro
+/// står over en kløft; heisen står i en sjakt med bunnen i sjakta under;
+/// fallemmen ligger over en luke, og stigen under den når opp til gulvet
+/// over; en kanal har vann.
+pub fn mechanisms(file: &LevelFile) -> Vec<Issue> {
+    let at = |model: &'static str| file.instances.iter().filter(move |i| i.model == model).map(|i| Vec3::from(i.pos));
+    let near = |a: Vec3, b: Vec3, r: f32| (a.x - b.x).abs() < r && (a.z - b.z).abs() < r && (a.y - b.y).abs() < 0.6;
+    // Om punktet er innenfor merket (målene i `size`, dreid med merket).
+    let covers = |m: &crate::domain::world::crypt::level::MarkDef, p: Vec3, dflt: (f32, f32)| {
+        let Some(c) = m.pos.map(Vec3::from) else { return false };
+        let (w, l) = m.size.map(|s| s.wd()).unwrap_or(dflt);
+        let d = glam::Quat::from_rotation_y(-m.yaw) * (p - c);
+        d.x.abs() <= w * 0.5 + 0.05 && d.z.abs() <= l * 0.5 + 0.05
+    };
+    let marks = |kind: &'static str| file.marks.iter().filter(move |m| m.kind == kind);
+    let mut out = vec![];
+    let mut put = |severity, at: Option<Vec3>, msg: String| out.push(Issue { severity, rule: "mekanisme", at: at.map(mm3), msg });
+    for c in at(CHASM) {
+        if !marks("bridge").any(|m| covers(m, c, (3.6, 8.0)) && m.pos.is_some_and(|p| (p[1] - c.y).abs() < 0.6)) {
+            put(Severity::Warning, Some(c), "kløfta har ingen vindebro over seg; ingen kommer over".into());
+        }
+    }
+    for m in marks("bridge") {
+        let id = m.id.clone().unwrap_or_default();
+        if !at(CHASM).any(|c| covers(m, c, (3.6, 8.0)) && m.pos.is_some_and(|p| (p[1] - c.y).abs() < 0.6)) {
+            put(Severity::Error, m.pos.map(Vec3::from), format!("vindebroa {id} står ikke over en kløft"));
+        }
+    }
+    for m in marks("lift") {
+        let id = m.id.clone().unwrap_or_default();
+        let Some(p) = m.pos.map(Vec3::from) else { continue };
+        let top = at(SHAFT_TOP).any(|c| near(c, p, 0.6));
+        let bottom = m.bottom.map(Vec3::from).is_some_and(|b| at(SHAFT).any(|c| near(c, b, 0.6)));
+        if !top || !bottom {
+            put(Severity::Error, Some(p), format!("heisen {id} står ikke i en sjakt (sjakta nede og sjaktas topp over den, med bunnen i sjakta)"));
+        }
+    }
+    for m in marks("trapdoor") {
+        let id = m.id.clone().unwrap_or_default();
+        let Some(p) = m.pos.map(Vec3::from) else { continue };
+        if !at(HATCH_TOP).any(|c| near(c, p, 0.3)) {
+            put(Severity::Error, Some(p), format!("fallemmen {id} ligger ikke over en luke"));
+        }
+    }
+    for m in marks("ladder") {
+        let id = m.id.clone().unwrap_or_default();
+        let (Some(p), Some(t)) = (m.pos.map(Vec3::from), m.top.map(Vec3::from)) else { continue };
+        if let Some(c) = at(HATCH).find(|c| near(*c, p, HALF)) {
+            if !at(HATCH_TOP).any(|u| near(u, Vec3::new(c.x, t.y, c.z), 0.3)) {
+                put(Severity::Error, Some(p), format!("stigen {id} når ikke opp til luka over"));
+            }
+        }
+    }
+    for name in CANALS {
+        for c in at(name) {
+            if !marks("water").any(|m| covers(m, c, (4.0, 4.0))) {
+                put(Severity::Warning, Some(c), "kanalen har ikke vann".into());
+            }
+        }
+    }
+    out
+}

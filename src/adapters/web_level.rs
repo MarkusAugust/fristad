@@ -91,10 +91,13 @@ pub async fn start_level_editor(canvas: web_sys::HtmlCanvasElement, webgpu: bool
     };
     let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, config.width, config.height);
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
-    // Kameraet over startstedet, litt bak og oppe, mot nivået.
+    // Kameraet i startstedet (ellers over origo), så 3D viser nivået innenfra.
     if let Some(l) = app.session.level_editing() {
-        let o = l.origin;
-        app.command(Command::Place { eye: o + glam::Vec3::new(0.0, 7.0, 10.0), yaw: 0.0, pitch: -0.45 });
+        let (eye, yaw) = match l.start() {
+            Some((feet, yaw)) => (feet + glam::Vec3::Y * 1.7, yaw),
+            None => (l.origin + glam::Vec3::new(0.0, 1.7, 0.0), 0.0),
+        };
+        app.command(Command::Place { eye, yaw, pitch: -0.1 });
     }
     let rebuild = Some(Rebuild { files, queue, adapter, format, layers, seed });
     Ok(Engine { app, surface, config, device, backend, rebuild })

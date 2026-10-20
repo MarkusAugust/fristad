@@ -236,3 +236,80 @@ fn nivaaredigeringen_viser_nivaaet_og_proveturen_dreper_ikke() {
     assert!(!app.session.immortal);
     let _ = app.tick(0.016);
 }
+
+/// Fase 4: kompilatorens regler for koblingene, takhøyden og antallet rom
+/// står i redigeringens liste med et sted å gå til.
+#[test]
+fn nivaaredigeringen_bruker_kompilatorens_regler() {
+    let mut e = blank();
+    // En boss i et vanlig rom: taket er for lavt (bosshallen trengs).
+    op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[2,0,0]}"#);
+    let boss = op(&mut e, r#"{"op":"add_thing","kind":"boss","at":[8.0,0,0.0],"label":"navbar"}"#)[0].clone();
+    let tall = e.issues().iter().find(|i| i.rule == "takhoyde" && i.msg.contains(&boss)).unwrap_or_else(|| panic!("ingen takhøyde for bossen: {:?}", errors(&e)));
+    assert!(tall.at.is_some(), "takhøyden har et sted");
+    op(&mut e, &format!(r#"{{"op":"delete","ids":["{boss}"]}}"#));
+    // En spak som åpner noe som ikke finnes.
+    let lever = op(&mut e, r#"{"op":"add_thing","kind":"lever","at":[1.0,0,1.0]}"#)[0].clone();
+    op(&mut e, &format!(r#"{{"op":"link","from":"{lever}","to":"finnes_ikke","kind":"opens"}}"#));
+    assert!(errors(&e).iter().any(|x| x.starts_with("kobling") && x.contains("finnes_ikke") && x.contains("finnes ikke")), "{:?}", errors(&e));
+    // Det samme bruddet meldes én gang.
+    let msgs: Vec<_> = e.issues().iter().map(|i| (i.rule, i.msg.clone())).collect();
+    let mut uniq = msgs.clone();
+    uniq.sort();
+    uniq.dedup();
+    assert_eq!(msgs.len(), uniq.len(), "dobbelt i lista: {msgs:?}");
+}
+
+/// 3D i redigeringen har rom til rendereren, så himmelen er svart (ingen
+/// skyer når kameraet står utenfor nivået); med spillets lys følger lysene
+/// rommene som i krypten.
+#[test]
+fn nivaaredigeringen_har_ingen_himmel() {
+    use crate::application::{prepare_level_editor, App};
+    use crate::ports::driving::{Command, LevelCommand, Play};
+    let k = kit();
+    let editor = LevelEditor::new(LevelEditor::blank("Prøve", 1, "grav", &k), k);
+    let prepared = prepare_level_editor(&crate::adapters::gltf::Embedded, 7, editor);
+    let mut app = App::new(prepared, Blind, crate::adapters::rapier::RapierPhysics::new());
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    let r = f.rooms.as_ref().expect("rom til rendereren med arbeidslyset");
+    assert!(!r.boxes.is_empty() && r.masks.iter().all(|m| *m == u64::MAX), "arbeidslyset lyser overalt");
+    assert!(app.command(Command::Level(LevelCommand::WorkLight(false))));
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    let r = f.rooms.as_ref().expect("rom til rendereren med spillets lys");
+    let rooms = app.session.level_editing().unwrap().editor.file().rooms.len();
+    assert_eq!(r.boxes.len(), rooms, "rommene i nivået");
+    assert_eq!(r.masks.len(), f.lights.len());
+}
+
+/// Paletten har modulene for alle temaene, gruppert som rom, ganger,
+/// trapper, ferdigrom, mekanismer og bosshall, og hver modul har bildet sitt
+/// (`module_shots.py`, `assets/levels/moduler/<tema>/<navn>.jpg`).
+#[test]
+fn paletten_har_alle_temaene_gruppert() {
+    use crate::domain::edit::level::map;
+    let k = kit();
+    let p = map::palette(&k, vec![], vec![]);
+    for theme in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
+        let mine: Vec<_> = p.modules.iter().filter(|m| m.theme == theme).collect();
+        assert!(mine.len() >= 15, "{theme}: bare {} moduler", mine.len());
+        for g in ["rom", "gang", "trapp", "mekanisme", "bosshall"] {
+            assert!(mine.iter().any(|m| m.group == g), "{theme} har ingen i gruppen {g}");
+        }
+        for m in &mine {
+            let name = m.id.split('/').nth(1).unwrap();
+            let img = format!("{}/assets/levels/moduler/{theme}/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
+            assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);
+        }
+    }
+    let g = |id: &str| p.modules.iter().find(|m| m.id == id).map(|m| m.group);
+    assert_eq!(g("grav/bosshall"), Some("bosshall"));
+    assert_eq!(g("grav/porthall"), Some("mekanisme"));
+    assert_eq!(g("grav/kapell"), Some("ferdig"));
+    assert_eq!(g("grav/halvtrapp"), Some("trapp"));
+    // Rekkefølgen følger gruppene.
+    let order: Vec<usize> = p.modules.iter().map(|m| map::GROUPS.iter().position(|(x, _)| *x == m.group).unwrap()).collect();
+    assert!(order.windows(2).all(|w| w[0] <= w[1]), "paletten står i gruppene sine");
+}

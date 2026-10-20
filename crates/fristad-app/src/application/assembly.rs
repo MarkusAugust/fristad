@@ -18,6 +18,12 @@ pub struct Prepared {
     /// Målene til alle modellene som finnes, også de som ikke står ute (til
     /// redigeringen, som kan sette dem ut).
     pub infos: Vec<ModelInfo>,
+    /// Skjelettene til de skinnede modellene, også dem som hentes senere
+    /// (fra manifestet), til økta.
+    pub rigs: Vec<(String, crate::domain::anim::Rig)>,
+    /// Modellene som står i verden, men hentes senere (nettleseren): bitene
+    /// til kryptnivåene og de andre (`App` ber om dem).
+    pub later: Vec<String>,
     /// Det redigeringen trenger (bare med `prepare_for_edit`).
     pub edit: Option<EditData>,
     /// Nivåredigeringen (bare med `prepare_level_editor`).
@@ -86,12 +92,20 @@ fn assemble(models: &dyn ModelSource, seed: u64, mut data: Data, edit: bool, lev
             ModelInfo { name: m.name.clone(), min, max, solids: m.solids.clone() }
         })
         .collect();
-    // Modellene som kommer senere (kryptnivåene i nettleseren) settes ut
-    // som de andre; målene er ukjente til de er lastet.
-    for name in models.deferred() {
-        if !infos.iter().any(|i| i.name == name) {
-            infos.push(ModelInfo { name, min: glam::Vec3::ZERO, max: glam::Vec3::ZERO, solids: vec![] });
+    let mut rigs = rigs(&loaded);
+    // Modellene som kommer senere (nettleseren) settes ut som de andre,
+    // etter målene, kolliderne og skjelettet fra manifestet (bitene til
+    // kryptnivåene har dem i nivåfila).
+    let mut later = vec![];
+    for d in models.deferred() {
+        if infos.iter().any(|i| i.name == d.info.name) {
+            continue;
         }
+        later.push(d.info.name.clone());
+        if let Some(r) = d.rig {
+            rigs.push((d.info.name.clone(), r));
+        }
+        infos.push(d.info);
     }
     let kept = edit.then(|| {
         (
@@ -128,7 +142,8 @@ fn assemble(models: &dyn ModelSource, seed: u64, mut data: Data, edit: bool, lev
         EditData { sources, layout, contents, approved, base, baseline: None }
     });
     let models: Vec<Model> = loaded.into_iter().filter(|m| world.placements.iter().any(|p| p.model == m.name)).collect();
-    Prepared { world, models, infos, edit, level }
+    later.retain(|n| world.placements.iter().any(|p| p.model == n));
+    Prepared { world, models, infos, rigs, later, edit, level }
 }
 
 /// Skjelettene til de skinnede modellene, til økta.

@@ -35,9 +35,29 @@ pub fn rooms(g: &Grid, list: &[DocRoom]) -> (Vec<RoomDef>, Vec<Issue>) {
                 c.y + c.piece.floors.iter().copied().fold(f32::MIN, f32::max) + c.piece.clear
             })
             .fold(f32::MIN, f32::max);
-        out.push(RoomDef { id: r.id.clone(), name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }, poly, y: mm(y), h: mm(top - y), secret: r.secret });
+        // Hvelvet: toppen av bitene (`top`), over den frie høyden.
+        let vault = cells.iter().map(|&k| g.cells[k].y + g.cells[k].piece.top).fold(f32::MIN, f32::max);
+        let rise = (vault - top).max(0.0);
+        out.push(RoomDef { id: r.id.clone(), name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }, poly, y: mm(y), h: mm(top - y), rise: mm(rise), secret: r.secret });
+    }
+    // Hvelvet når aldri opp i et rom over (to etasjer over hverandre).
+    let boxes: Vec<([f32; 4], f32)> = out.iter().map(|r| (bounds(&r.poly), r.y)).collect();
+    for r in out.iter_mut() {
+        let b = bounds(&r.poly);
+        let roof = r.y + r.h;
+        for (o, oy) in &boxes {
+            let over = b[0] < o[2] - 0.1 && o[0] < b[2] - 0.1 && b[1] < o[3] - 0.1 && o[1] < b[3] - 0.1;
+            if over && *oy > roof - 0.05 {
+                r.rise = mm((oy - roof - 0.35).clamp(0.0, r.rise));
+            }
+        }
     }
     (out, issues)
+}
+
+/// Rommets utstrekning: [min x, min z, maks x, maks z].
+fn bounds(p: &[[f32; 2]]) -> [f32; 4] {
+    p.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |b, q| [b[0].min(q[0]), b[1].min(q[1]), b[2].max(q[0]), b[3].max(q[1])])
 }
 
 fn area(p: &[[f32; 2]]) -> f32 {

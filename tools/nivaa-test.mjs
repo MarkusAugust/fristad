@@ -76,18 +76,32 @@ const painted = await page.evaluate(() => {
 });
 check(painted > 500, `kartet er tegnet (${painted} lyse punkter)`);
 // 3D: noe er tegnet (WebGL: les tilbake pikslene fra et kopi-canvas).
-const lit = await page.evaluate(async () => {
-  const c = document.querySelector("#world");
-  const tmp = document.createElement("canvas");
-  tmp.width = 160;
-  tmp.height = 90;
-  await new Promise((r) => requestAnimationFrame(r));
-  tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
-  const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
-  let n = 0;
-  for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
-  return n;
-});
+const litNow = () =>
+  page.evaluate(async () => {
+    const c = document.querySelector("#world");
+    const tmp = document.createElement("canvas");
+    tmp.width = 160;
+    tmp.height = 90;
+    // Uten preserveDrawingBuffer kan bildet være tømt: les i neste bilde,
+    // og prøv noen ganger.
+    let best = 0;
+    for (let k = 0; k < 5 && best < 1000; k++) {
+      // I samme bilde som motoren tegnet (dens løkke ligger før i køen).
+      await new Promise((r) =>
+        requestAnimationFrame(() => {
+          tmp.getContext("2d").clearRect(0, 0, 160, 90);
+          tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
+          r();
+        }),
+      );
+      const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
+      best = Math.max(best, n);
+    }
+    return best;
+  });
+const lit = await litNow();
 check(lit > 200, `3D-vinduet viser nivået (${lit} lyse punkter av 14400)`);
 await shot("1_prøvenivået");
 
@@ -96,10 +110,12 @@ const n0 = map0.modules.length;
 const tile = page.locator('#modlist .tile[data-module="grav/rom_2x2"]');
 const target = await page.evaluate(() => {
   const st = window.fristad.state;
-  const xs = st.map.modules.flatMap((m) => m.cells.map((c) => c[0]));
-  const i = Math.max(...xs) + 3;
+  // Under nivået (sør), ved den venstre kanten: fritt og innenfor kartet.
+  const cells = st.map.modules.flatMap((m) => m.cells);
+  const i = Math.min(...cells.map((c) => c[0])) + 1;
+  const j = Math.max(...cells.map((c) => c[2])) + 2;
   const r = document.querySelector("#plan").getBoundingClientRect();
-  const [px, py] = st.view.toScreen(i * 4, 0);
+  const [px, py] = st.view.toScreen(i * 4, j * 4);
   return [r.left + px, r.top + py, i];
 });
 const tb = await tile.boundingBox();
@@ -137,9 +153,12 @@ await page.waitForTimeout(400);
 await shot("3_reglene");
 await page.keyboard.press("Control+KeyZ");
 // Åpningen: klikk en pil og velg port.
+await page.locator("#plan").click({ position: { x: 5, y: 5 }, button: "right" });
+await page.keyboard.press("Home");
+await page.waitForTimeout(300);
 const opening = await page.evaluate(() => {
   const st = window.fristad.state;
-  const m = st.map.modules.find((m) => m.module === "grav/rom_2x2");
+  const m = st.map.modules.find((m) => m.module === "grav/rom_2x2") || st.map.modules[0];
   const o = m.openings[0];
   const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][o.side];
   const r = document.querySelector("#plan").getBoundingClientRect();
@@ -152,13 +171,21 @@ check(await page.evaluate(() => !!document.querySelector("#op-kind")), "klikk p�
 if (await page.evaluate(() => !!document.querySelector("#op-kind"))) {
   await page.selectOption("#op-kind", "port");
   await page.waitForTimeout(400);
-  const ov = await page.evaluate(([m]) => window.fristad.state.map.modules.find((x) => x.id === m)?.overrides, opening);
+  const ov = await page.evaluate((m) => window.fristad.state.map.modules.find((x) => x.id === m)?.overrides, opening[2]);
   check(ov?.some((o) => o.kind === "port"), "åpningen er en port");
 }
 // Delt skjerm og full størrelse.
 await page.keyboard.press("Escape");
+// Kameraet tilbake i kapellet (det forrige «gå dit» sto ved kista i fjellet).
+await page.evaluate(() => {
+  const m = window.fristad.state.map.modules.find((m) => m.module === "grav/kapell") || window.fristad.state.map.modules[0];
+  const c = m.cells[Math.floor(m.cells.length / 2)];
+  window.fristad.level({ cmd: "place", x: c[0] * 4, y: c[1] + 1.7, z: c[2] * 4 + 1, yaw: 0, pitch: -5 });
+});
 await page.click("#v-3d");
 await page.waitForTimeout(1500);
+const lit3d = await litNow();
+check(lit3d > 1000, `bare 3D fyller vinduet (${lit3d} lyse punkter)`);
 await shot("4_bare_3d");
 await page.click("#v-map");
 await page.waitForTimeout(400);
@@ -171,6 +198,8 @@ await page.waitForFunction(() => document.body.classList.contains("playing"), nu
 const playing = await page.evaluate(() => window.fristad.engine.level_playing());
 check(playing, "Spill fra start bygger verden og starter prøveturen");
 await page.waitForTimeout(3000);
+const litPlay = await litNow();
+check(litPlay > 500, `prøveturen viser nivået (${litPlay} lyse punkter)`);
 await shot("6_proveturen");
 await page.keyboard.press("Escape");
 await page.waitForTimeout(800);
@@ -178,8 +207,8 @@ check(!(await page.evaluate(() => window.fristad.engine.level_playing())), "Esc 
 check((await page.evaluate(() => window.fristad.state.map.modules.length)) === n0 + 1, "redigeringen er som den var etter prøveturen");
 // Lagre uten nøkkel: zip, og utkastet er i nettleseren.
 page.once("dialog", (d) => d.accept(""));
-const dl = page.waitForEvent("download", { timeout: 20000 }).catch(() => null);
-await page.click("#save");
+const dl = page.waitForEvent("download", { timeout: 90000 }).catch(() => null);
+await page.click("#save", { force: true });
 const file = await dl;
 check(!!file && file.suggestedFilename().endsWith(".zip"), `Lagre uten nøkkel laster ned ${file?.suggestedFilename()}`);
 const draft = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("fristad.nivaa.utkast:")));

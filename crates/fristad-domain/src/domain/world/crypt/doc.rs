@@ -207,6 +207,15 @@ pub struct Thing {
     pub height: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<super::level::Size>,
+    /// Toppen (stigen, broas feste i hvelvet) og bunnen (heisen), i
+    /// ankerets rom.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bottom: Option<[f32; 3]>,
+    /// Vannstanden høy og lav (slusa), over ankerets gulv.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub levels: Vec<f32>,
 }
 
 /// En kobling: `opens` (spak eller elite til port), `key` (eliten bærer

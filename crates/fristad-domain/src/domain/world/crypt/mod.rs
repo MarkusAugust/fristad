@@ -118,41 +118,6 @@ pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
 
-/// Et rom eller en gang, i verden.
-#[derive(Clone, Debug)]
-pub struct Room {
-    pub id: String,
-    pub name: String,
-    pub poly: Vec<Vec2>,
-    /// Gulvet og taket over det (absolutt y og høyde).
-    pub y: f32,
-    pub h: f32,
-    pub secret: bool,
-    pub min: Vec2,
-    pub max: Vec2,
-    area: f32,
-    /// Så langt under gulvet rommet når i lyset (sjakta til trappa ned).
-    pub sink: f32,
-}
-
-impl Room {
-    /// Om punktet (x, z) er inne i omrisset.
-    pub fn contains(&self, q: Vec2) -> bool {
-        if q.x < self.min.x || q.y < self.min.y || q.x > self.max.x || q.y > self.max.y {
-            return false;
-        }
-        let mut inside = false;
-        let n = self.poly.len();
-        for i in 0..n {
-            let (a, b) = (self.poly[i], self.poly[(i + n - 1) % n]);
-            if (a.y > q.y) != (b.y > q.y) && q.x < (b.x - a.x) * (q.y - a.y) / (b.y - a.y) + a.x {
-                inside = !inside;
-            }
-        }
-        inside
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Level {
     /// Nummeret (1–10), navnet og temaet.
@@ -381,7 +346,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         let min = poly.iter().fold(Vec2::splat(f32::MAX), |m, p| m.min(*p));
         let max = poly.iter().fold(Vec2::splat(f32::MIN), |m, p| m.max(*p));
         let area = (0..poly.len()).map(|i| poly[i].perp_dot(poly[(i + 1) % poly.len()])).sum::<f32>().abs() * 0.5;
-        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area, sink: 0.0 });
+        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area, sink: 0.0, rise: r.rise });
     }
     let room_ix = |id: &str| rooms.iter().position(|r| r.id == id);
 
@@ -507,7 +472,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             "start" => level.start = (pos, m.yaw),
             "up" => {
                 level.up = Some((pos, m.yaw));
-                if b.place_mounted(KIT_UP, pose) {
+                if b.place_mounted_look(KIT_UP, pose, m.stone.as_ref().and_then(stone::InstanceStone::look)) {
                     // Trinnene opp til døra som en rampe, og muren bak.
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
                     let mut ramp = vec![];
@@ -527,7 +492,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "down" => {
                 level.down = Some((pos, m.yaw));
-                if b.place_mounted(KIT_DOWN, pose) {
+                if b.place_mounted_look(KIT_DOWN, pose, m.stone.as_ref().and_then(stone::InstanceStone::look)) {
                     // Brystvernet rundt trappa: åpent der du går inn.
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
                     // Brystvernet og portalmuren etter formen (`solids.py`).

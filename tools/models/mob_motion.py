@@ -224,7 +224,7 @@ STYLES = {
     # ryggen, med lange, rolige skritt og armene nesten stille (åket med
     # skjoldene ligger over skuldrene).
     "navbar": dict(frames=28, v0=0.6, duty=0.66, lift=0.1, width=0.24, hunch=4, arm=10, sway=0.05, bob=0.03, tail=0, twitch=False, hips_yaw=5, idle=64, heavy=True,
-                   roar_arms=0.45, swell=0.04),
+                   roar_arms=0.45, swell=0.04, fist_bend=70.0, fist_sink=-0.38),
     # Tvillingvokteren: stiv og ujevn. Steinsida (høyre) er tung og synker
     # når foten setter seg (`heavy_side`), plastsida (venstre) går stivt og
     # rykkete i trinn (`stiff`).
@@ -683,10 +683,14 @@ def attack_fist(c, body, st):
     bakken et øyeblikk og reiser seg."""
     T = 36
     crouch = -0.03 - (0.06 if st.get("heavy") else 0.0)
-    spine = curve([(0, 0.0), (14, -14.0), (20, -16.0), (22, 30.0), (28, 26.0), (36, 0.0)])
+    # Hvor langt fram han bøyer seg og synker i slaget (`fist_bend`,
+    # `fist_sink`): de med korte armer og høye skuldre (Navbaren) må
+    # lenger ned for at neven skal nå bakken.
+    bend, down = st.get("fist_bend", 30.0), st.get("fist_sink", -0.16)
+    spine = curve([(0, 0.0), (14, -14.0), (20, -16.0), (22, bend), (28, bend - 4), (36, 0.0)])
     twist = curve([(0, 0.0), (14, 22.0), (20, 24.0), (22, -18.0), (28, -14.0), (36, 0.0)])
     root_x = curve([(0, 0.0), (14, -0.08), (20, -0.08), (22, 0.22), (28, 0.2), (36, 0.0)])
-    sink = curve([(0, 0.0), (14, 0.04), (20, 0.05), (22, -0.16), (28, -0.13), (36, 0.0)])
+    sink = curve([(0, 0.0), (14, 0.04), (20, 0.05), (22, down), (28, down + 0.03), (36, 0.0)])
     # Neven løftes til hodehøyde foran åket, ikke over det.
     raise_ = curve([(0, 0.0), (14, -105.0), (20, -110.0), (21, -50.0), (22, 0.0)])
     elbow = curve([(0, 0.0), (14, -85.0), (20, -90.0), (22, 0.0)])

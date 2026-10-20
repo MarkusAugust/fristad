@@ -47,6 +47,20 @@ impl Mob {
             _ => None,
         }
     }
+
+    /// Progress-formannens glasstolpe lader før slaget (0..1) og står foran
+    /// brystet: den fylles mens hakka løftes og tømmes når den treffer.
+    pub fn bar_charge(&self) -> Option<(f32, Vec3)> {
+        match (self.kind, self.state) {
+            (Kind::Foreman, State::Attack { blow: Blow::Melee, landed: false }) => {
+                let (hit_at, _) = Blow::Melee.timing(&self.kind.stats());
+                let s = self.scale();
+                let at = self.pos + Vec3::Y * 1.15 * s + Vec3::new(self.yaw.sin(), 0.0, self.yaw.cos()) * 0.45 * s;
+                Some(((self.t / hit_at).clamp(0.0, 1.0), at))
+            }
+            _ => None,
+        }
+    }
 }
 
 impl Mobs {
@@ -88,6 +102,11 @@ impl Mobs {
         }
         out.truncate(BOLT_INSTANCES);
         out
+    }
+
+    /// Glasstolpene som lader (sted, styrke 0..1), til lysene i bildet.
+    pub fn charges(&self) -> Vec<(Vec3, f32)> {
+        self.mobs.iter().filter_map(|m| m.bar_charge().map(|(c, at)| (at, c * c))).collect()
     }
 
     /// Lyset fra markørene i lufta og fra munnene som lader (sted, styrke

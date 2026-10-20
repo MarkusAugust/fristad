@@ -295,7 +295,9 @@ fn variantene_er_faste() {
     let doc = test_doc();
     let (a, _) = compose::compile(&doc, &k);
     for id in ["grav/vegg", "grav/romfelt"] {
-        for m in family(&k, id) {
+        // Variantene uten vekt velges bare av steinen (plastsømmene i kjernen).
+        let by_stone: Vec<&str> = k.piece(id).unwrap().variants.iter().filter(|v| v.weight <= 0.0).map(|v| v.model.as_str()).collect();
+        for m in family(&k, id).into_iter().filter(|m| !by_stone.contains(&m.as_str())) {
             assert!(a.instances.iter().any(|i| i.model == m), "prøvenivået bruker ikke {m} ({id})");
         }
     }

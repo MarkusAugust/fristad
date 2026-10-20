@@ -185,8 +185,46 @@ export async function show(it, data, ui) {
     const names = Object.keys(lv.models);
     const scenes = await Promise.all(names.map(n => load(st, lv.models[n], layers, sides)));
     const byName = Object.fromEntries(names.map((n, i) => [n, scenes[i]]));
+    // Steinbyttet (`crypt::stone`): lagene biten er laget med (gulv, mur,
+    // hogd stein) byttes mot lagene instansen får (gulv, mur, hvelv, hogd
+    // stein); muren som vender ned i modellen blir hvelv, som i spillet.
+    const swapped = new Map();
+    const stoned = (src, inst) => {
+      const s = inst.stone;
+      if (!s) return src;
+      const key = inst.model + "|" + s.from.join(",") + "|" + s.to.join(",");
+      if (!swapped.has(key)) {
+        const o = src.clone(true);
+        o.traverse(m => {
+          if (!m.isMesh) return;
+          const mats = [].concat(m.material).map(x => {
+            const role = (x.userData && x.userData.fristad) || {};
+            let to = null;
+            if (role.layer === s.from[0]) to = s.to[0];
+            else if (role.layer === s.from[1]) to = s.to[1];
+            else if (role.layer === s.from[2]) to = s.to[3];
+            if (!to) return x;
+            if (to === s.to[1] && s.to[2] !== s.to[1] && m.geometry.attributes.normal) {
+              const n = m.geometry.attributes.normal;
+              let down = 0;
+              for (let k = 0; k < n.count; k++) if (n.getY(k) < -0.3) down++;
+              if (down > n.count / 2) to = s.to[2];
+            }
+            const t = layerTexture(st, layers, to);
+            if (!t) return x;
+            const c = x.clone();
+            c.map = t;
+            c.needsUpdate = true;
+            return c;
+          });
+          m.material = mats.length === 1 ? mats[0] : mats;
+        });
+        swapped.set(key, o);
+      }
+      return swapped.get(key);
+    };
     for (const inst of lv.instances) {
-      const src = byName[inst.model];
+      const src = byName[inst.model] && stoned(byName[inst.model], inst);
       if (!src) continue;
       const o = src.clone(true);
       o.position.set(inst.pos[0], inst.pos[1], inst.pos[2]);

@@ -2,14 +2,18 @@
 //! (`docs/nivaaredigering.md` del 10), de samme som testene:
 //! - alt viktig kan nås fra start med alle porter åpne
 //!   (`kryptnivaaene_kan_gas_gjennom`, `fiendene_finner_fram_i_krypten`),
-//! - koblingene henger sammen: en spak åpner noe, en port kan åpnes,
+//! - koblingene henger sammen (`compose::check::links`: en spak åpner noe
+//!   som finnes, en port kan åpnes, nøkkelen bæres av eliten …), og
+//!   mekanismene står i bitene sine (`check::mechanisms`),
+//! - fiendene har takhøyde (`check::headroom`: bossene trenger
+//!   bosshallen), og nivået har høyst 64 rom (`check::rooms`),
 //! - taket står minst `HEADROOM` over gulvet i hvert rom
 //!   (`kryptnivaaene_har_det_de_skal_og_taket_er_hoyt_nok`).
 //!
 //! Usynlige vegger (`ingen_usynlige_vegger_i_krypten`) trenger fysikken og
 //! sjekkes i testene, ikke her.
 
-use crate::domain::world::crypt::compose::{Issue, Severity};
+use crate::domain::world::crypt::compose::{check, Issue, Severity};
 use crate::domain::world::crypt::doc::LevelDoc;
 use crate::domain::world::crypt::level::LevelFile;
 use crate::domain::world::crypt::nav::Nav;
@@ -27,15 +31,16 @@ fn issue(severity: Severity, rule: &'static str, at: Option<[f32; 3]>, msg: Stri
 pub fn check(doc: &LevelDoc, file: &LevelFile) -> Vec<Issue> {
     let mut out = vec![];
     let _ = doc;
-    // Koblingene.
-    let opened: Vec<&str> = file.marks.iter().flat_map(|m| m.opens.iter().map(String::as_str)).collect();
+    // Koblingene, takhøyden for fiendene, mekanismene og høyst 64 rom
+    // (kompilatorens regler, de samme som `src/mechanism_tests.rs`).
+    out.extend(check::links(file));
+    out.extend(check::headroom(file));
+    out.extend(check::mechanisms(file));
+    out.extend(check::rooms(file));
     for m in &file.marks {
         let id = m.id.clone().unwrap_or_default();
         match m.kind.as_str() {
             "lever" if m.opens.is_empty() => out.push(issue(Severity::Error, "kobling", m.pos, format!("spaken {id} åpner ingenting (koble den til en port, bro eller sluse)"))),
-            "gate" if !opened.contains(&id.as_str()) && m.arena.is_none() => {
-                out.push(issue(Severity::Error, "kobling", m.pos, format!("porten {id} kan ikke åpnes (ingen spak, nøkkel eller arena)")));
-            }
             "elite" if m.opens.is_empty() => out.push(issue(Severity::Warning, "kobling", m.pos, format!("eliten {id} bærer ingen nøkkel"))),
             "lore" if m.text.as_deref().unwrap_or("").trim().is_empty() => out.push(issue(Severity::Error, "innhold", m.pos, format!("lappen {id} er tom"))),
             _ => {}

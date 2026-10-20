@@ -714,7 +714,7 @@ fn nettleseren_far_de_samme_modellene() {
     let start = Files(model_files().filter(|(_, p)| level_of(p).is_none()).map(|(_, p)| (p.to_string(), read(p))).collect());
     let pieces: Vec<String> = native.world.crypt.levels.iter().flat_map(|l| l.pieces.clone()).collect();
     assert!(!pieces.is_empty());
-    let mut deferred = start.deferred();
+    let mut deferred: Vec<String> = start.deferred().into_iter().map(|d| d.info.name).collect();
     deferred.sort();
     let mut want = pieces.clone();
     want.sort();
@@ -746,8 +746,8 @@ fn nettleseren_far_de_samme_modellene() {
 
 /// En renderer som bare husker modellene den har.
 #[derive(Default)]
-struct Counting {
-    models: Vec<String>,
+pub(crate) struct Counting {
+    pub(crate) models: Vec<String>,
 }
 
 impl crate::ports::Renderer for Counting {

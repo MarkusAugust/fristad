@@ -1035,6 +1035,14 @@
    "text": [
     "Brønnen fra din TRELLIS.2-fil (kummen, stolpene og taket); vinda, tauet og bøtta er spillets egne bevegelige deler. Den er mørkere og mer grå enn den gamle; si fra om du vil ha den gamle tilbake."
    ]
+  },
+  "00bcb9adb51e": {
+   "text": [
+    "Eieren 19. oktober: «litt for blurry». Fargen hentes og bakes nå i 4096 i stedet for 2048, med øyene lagt med xatlas (rundt 70 % av teksturen brukt mot 44 % før), så tettheten er rundt 450 teksler per meter mot 255. Vinda er bygd på nytt med teksturlag i meter i stedet for et bakt bilde der øyene brukte under 1 % av bildet, og valsen er av samme mørke tre som stolpene. Bildet: før til venstre, etter til høyre, på en halvannen meters hold."
+   ],
+   "images": [
+    "assets/catalog/review/well_for_etter.jpg"
+   ]
   }
  },
  "gallery_alert": {
@@ -1561,6 +1569,14 @@
    "images": [
     "assets/catalog/review/framework_for_etter.jpg"
    ]
+  },
+  "ea308eee86e0": {
+   "text": [
+    "Kjettingene fra håndleddene til livet strakk seg når armene beveget seg. Rettet slik: kjettingen deles der den er tynnest (`tethers`), halvdelen ved håndleddet følger armen og halvdelen ved livet kroppen, og skallet skilles langs kuttet. Før/etter: brølet og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r2_for_etter.jpg"
+   ]
   }
  },
  "grav_blindgang": {
@@ -1815,6 +1831,66 @@
   "4f9773cea91f": {
    "text": [
     "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "dropdown": {
+  "3fd8e2a85544": {
+   "text": [
+    "Brystet krøllet seg når armene ble løftet (armene er grodd inntil kroppen). Rettet slik: kroppen innenfor skulderleddet mister armvektene, og delingen mellom hoftene og brystet følger høyden (`torso_guard`). Før/etter: angrepet og brølet forfra."
+   ],
+   "images": [
+    "assets/catalog/review/dropdown_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "navbar": {
+  "c3f238a32575": {
+   "text": [
+    "Baksidene av de fem skjoldene glødet, og neven nådde ikke bakken. Rettet slik: bare tynne striper og små flekker gløder (`glow_thin`, skjoldflatene tas bort), og han bøyer seg dypere i neveslaget så neven treffer bakken (`fist_bend`). Før/etter: neveslaget fra siden, i spillet, og glødekartet."
+   ],
+   "images": [
+    "assets/catalog/review/navbar_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "twin_warden": {
+  "4d7e0e7ad3b9": {
+   "text": [
+    "Tvillingvokteren glødet ikke (teksturen fra TRELLIS har ingen magenta). Rettet slik: gløden hentes fra eierens bilde forfra og legges på flatene som vender fram (`front_glow`): sømmen, øynene og nøkkelen. Før/etter i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/twin_warden_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "progress_foreman": {
+  "90e88463a805": {
+   "text": [
+    "Brystet krøllet seg når armene ble løftet. Rettet slik: som Dropdownen (`torso_guard`). Glasstolpen og øynene gløder nå (rødt til rosa i teksturen), og tolpen lader et magenta lys før slaget. Før/etter: angrepet og brølet forfra, og i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/progress_foreman_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "spinner": {
+  "e6f2b4099bbc": {
+   "text": [
+    "Små fliser ved grensen mellom hjul og bein synes når hjulet spinner. Rettet slik: hjulet er alt innenfor hjulets omdreide profil og beina resten, og småøyer går til delen rundt. Noen små fliser står igjen ved beinfestene. Før/etter: gangen fra kanten og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/spinner_r2_for_etter.jpg"
+   ]
+  }
+ },
+ "well_winch": {
+  "199781754180": {
+   "text": [
+    "Vinda var uskarp: et bakt bilde der øyene brukte under 1 % av bildet. Nå har den teksturlag i meter (treverk for valsen, tau for kveilen, jern for båndene og sveiven), 908 trekanter, og valsen har samme mørke tre som brønnen."
+   ],
+   "images": [
+    "assets/catalog/review/well_for_etter.jpg"
    ]
   }
  }

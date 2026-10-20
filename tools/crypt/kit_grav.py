@@ -165,6 +165,7 @@ MATS = {
     "magic_down": None,
     "magic_bonus": None,
     "magic_seam": None,  # sømmene som lyser fiolett i muren (nivå 9–10)
+    "magic_seam_dim": None,  # plastsømmene i kjernens mur (`kit_mech.vegg_som`), svakere
     "water": None,
 }
 # Fargene til de spesielle materialene (lineær RGB).
@@ -178,6 +179,7 @@ SPECIAL = {
     "magic_down": ((0.25, 0.45, 1.0), 0.3),
     "magic_bonus": ((1.0, 0.72, 0.25), 0.3),
     "magic_seam": ((0.7, 0.35, 1.0), 0.2),
+    "magic_seam_dim": ((0.22, 0.07, 0.38), 0.2),
     "water": ((0.02, 0.04, 0.05), 0.05),
 }
 
