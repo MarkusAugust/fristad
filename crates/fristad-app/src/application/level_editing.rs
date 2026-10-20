@@ -254,6 +254,10 @@ impl Session {
                 l.floor = y;
                 return true;
             }
+            LevelCommand::AddModule(def) => {
+                l.editor.add_module(*def);
+                true
+            }
             LevelCommand::Cut(y) => {
                 l.cut = y;
                 return true;

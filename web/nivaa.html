@@ -49,6 +49,7 @@
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .tile { border: 1px solid var(--line); border-radius: 6px; background: #111316; color: var(--text); padding: 0; cursor: grab; text-align: left; font: inherit; overflow: hidden; }
     .tile img { display: block; width: 100%; aspect-ratio: 10 / 7; object-fit: cover; background: #222; }
+    .tile .noimg { aspect-ratio: 10 / 7; display: grid; place-items: center; background: repeating-linear-gradient(45deg, #1b1d20 0 8px, #222428 8px 16px); color: var(--muted, #999); font-size: 11px; }
     .tile span { display: block; padding: 3px 5px; font-size: 11.5px; line-height: 1.25; }
     .tile.armed, .chip.armed { outline: 2px solid var(--accent); }
     .chips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -126,7 +127,7 @@
       <div id="moblist" class="chips"></div>
       <h2>Maler</h2>
       <div id="tpllist" class="chips"></div>
-      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut.</p>
+      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut. Ctrl+Shift+G lagrer det som en ny modul i paletten.</p>
       <p class="muted">Klikk en modul eller ting og så på kartet (eller dra den dit). R dreier, M speiler, Delete sletter, Esc avbryter.</p>
     </aside>
     <section id="views">

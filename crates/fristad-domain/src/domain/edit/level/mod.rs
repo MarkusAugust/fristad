@@ -12,6 +12,7 @@ pub mod fixes;
 pub mod map;
 pub mod rules;
 mod templates;
+pub use templates::OWN;
 
 use crate::domain::world::crypt::compose::{self, modules, Compiler, Issue, Report, Severity, CELL};
 use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, Thing};

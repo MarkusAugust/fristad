@@ -2,7 +2,8 @@
 // nettsiden i Chromium uten skjerm og sjekker at kartet, paletten og 3D kommer
 // opp, at en modul kan settes ut med musa (fra paletten til kartet), at angre
 // virker, at reglene vises, at prøveturen starter og Esc går tilbake, og at
-// Lagre uten nøkkel gir en zip (utkastet huskes). Skjermbildene skrives i UT.
+// Lagre uten nøkkel gir en zip (utkastet huskes), «Rett» ved bruddene,
+// snittet i 3D og et utvalg som ny modul. Skjermbildene skrives i UT.
 //   node tools/nivaa-test.mjs KATALOG [webgl|webgpu] [UT-mappe]
 // Nettsiden hentes fra grenen web-dist: `sh tools/pull-dist.sh`.
 import { createRequire } from "node:module";
@@ -319,6 +320,81 @@ if (await tplChip.count()) {
   check(after.modules.length === nBefore + 1 && after.modules.at(-1).rot === 1, `malen er satt ut dreid (${after.modules.length - nBefore} ny, rot ${after.modules.at(-1)?.rot})`);
   await page.keyboard.press("Home");
   await shot("14_malen_satt_ut");
+}
+// «Rett» (del 27): en tom lapp gir tekstfeltet, og en spak uten mål kobles
+// til nærmeste port med ett klikk (og angres).
+await page.keyboard.press("Escape");
+const kc = await page.evaluate((id) => window.fristad.state.map.modules.find((m) => m.id === id).cells[0], kapell);
+await page.evaluate((c) => window.fristad.level({ op: "add_thing", kind: "lore", at: [c[0] * 4 + 0.5, c[1], c[2] * 4 + 0.5] }), kc);
+await page.waitForTimeout(200);
+const loreFix = page.locator("#issues .chip.fix", { hasText: "Skriv teksten" });
+check((await loreFix.count()) >= 1, "den tomme lappen har «Skriv teksten»");
+if (await loreFix.count()) {
+  await loreFix.first().click();
+  await page.waitForTimeout(200);
+  check(await page.evaluate(() => document.activeElement?.id === "t-text"), "«Skriv teksten» går til tekstfeltet");
+}
+await page.evaluate((c) => window.fristad.level({ op: "add_thing", kind: "lever", at: [c[0] * 4 - 0.5, c[1], c[2] * 4 - 0.5] }), kc);
+await page.waitForTimeout(200);
+const hasGate = await page.evaluate(() => window.fristad.state.map.things.some((t) => ["gate", "bridge", "water", "lift"].includes(t.kind)));
+const leverFix = page.locator("#issues .chip.fix", { hasText: "Koble til" });
+check(!hasGate || (await leverFix.count()) >= 1, `spaken uten mål har «Koble til …» (${hasGate ? "en port finnes" : "ingen port i nivået"})`);
+if (await leverFix.count()) {
+  await leverFix.first().click();
+  await page.waitForTimeout(300);
+  check(await page.evaluate(() => !window.fristad.state.map.issues.some((i) => i.msg.includes("åpner ingenting"))), "spaken er koblet etter «Rett»");
+  await shot("17_rett");
+}
+// Snittet i 3D: kameraet over kapellet ser ned; med snittet kommer rommet fram.
+await page.evaluate((c) => window.fristad.level({ cmd: "place", x: c[0] * 4, y: c[1] + 14, z: c[2] * 4 + 12, yaw: 0, pitch: -50 }), kc);
+await page.click("#v-3d");
+const lum3d = () =>
+  page.evaluate(async () => {
+    const c = document.querySelector("#world");
+    const tmp = document.createElement("canvas");
+    tmp.width = 160;
+    tmp.height = 90;
+    await new Promise((r) => requestAnimationFrame(() => (tmp.getContext("2d").drawImage(c, 0, 0, 160, 90), r())));
+    const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+    return sum / (d.length / 4) / 3;
+  });
+await page.waitForTimeout(1500);
+const before3d = await lum3d();
+await shot("18_uten_snitt_3d");
+await page.click("#cut");
+await page.waitForTimeout(1500);
+const after3d = await lum3d();
+check(Math.abs(after3d - before3d) > 0.3, `snittet endrer 3D (${before3d.toFixed(1)} → ${after3d.toFixed(1)})`);
+await shot("19_snitt_3d");
+await page.click("#cut");
+await page.click("#v-split");
+// Et utvalg som ny modul (Ctrl+Shift+G): i paletten uten bilde, og kan settes ut.
+await page.evaluate((id) => window.fristad.select([id]), kapell);
+page.once("dialog", (d) => d.accept("Prøvemodul"));
+await page.locator("#plan").focus();
+await page.keyboard.press("Control+Shift+KeyG");
+await page.waitForTimeout(600);
+const own = await page.evaluate(() => {
+  const t = [...document.querySelectorAll("#modlist .tile")].find((b) => b.dataset.module.endsWith("/provemodul"));
+  return t ? { id: t.dataset.module, missing: !!t.querySelector(".noimg") || !t.querySelector("img")?.naturalWidth } : null;
+});
+check(!!own, `den nye modulen står i paletten (${own?.id})`);
+check(own?.missing, "paletten viser at bildet mangler");
+if (own) {
+  const nBefore = await page.evaluate(() => window.fristad.state.map.modules.length);
+  const free = await page.evaluate(() => {
+    const st = window.fristad.state;
+    const taken = new Set(st.map.modules.flatMap((m) => m.cells.map((c) => `${c[0]},${c[2]}`)));
+    for (let i = 20; i < 60; i += 4) if (![...Array(5).keys()].some((a) => taken.has(`${i + a - 2},-12`))) return [i, 0, -12];
+    return [40, 0, -12];
+  });
+  const out = await page.evaluate(([id, at]) => window.fristad.place(id, at), [own.id, free]);
+  check(out && !out.error && out.modules.length === nBefore + 1, "den nye modulen settes ut som en vanlig modul");
+  check(await page.evaluate(() => !window.fristad.state.map.issues.some((i) => i.rule === "modul" || i.rule === "bit")), "ingen brudd i modulen eller bitene");
+  check(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("fristad.nivaa.moduler") || "{}")).length === 1), "modulen huskes i nettleseren til den lagres");
+  await shot("20_ny_modul");
 }
 // Minikartet: klikk flytter kartet.
 await page.keyboard.press("Escape");

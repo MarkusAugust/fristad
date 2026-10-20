@@ -635,3 +635,53 @@ fn rett_retter_de_vanlige_bruddene() {
     // Kartet har rettingen med til siden.
     assert!(e.map().issues.iter().any(|i| i.fix.as_ref().is_some_and(|f| f.label == "Gjør til mur")));
 }
+
+/// Et utvalg som ny modul (del 27): modulene utvidet til cellene, med
+/// kantene der de møttes, innholdet og koblingene, i fast form; tatt inn i
+/// byggesettet står den i paletten og bygger det samme som utvalget.
+#[test]
+fn utvalget_blir_en_ny_modul() {
+    use crate::adapters::data::{module_json, module_path};
+    use crate::domain::world::crypt::doc::ModuleDef;
+    let mut e = blank();
+    // Porthallen og et rom ved siden av, med en dør imellom.
+    let a = op(&mut e, r#"{"op":"add_module","module":"grav/porthall","at":[3,0,0]}"#)[0].clone();
+    let b = op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[4,0,0]}"#)[0].clone();
+    let ids = vec![a.clone(), b.clone()];
+    assert!(e.as_module(&ids, "Porthall med kott", "Porthall").is_err(), "filnavnet med store bokstaver");
+    assert!(e.as_module(&ids, "Kapell", "kapell").is_err(), "byggesettets egne moduler skrives ikke over");
+    let def = e.as_module(&ids, "Porthall med kott", "porthall_kott").expect("modulen");
+    assert_eq!(def.id, "grav/porthall_kott");
+    assert_eq!(module_path(&def.id), "assets/levels/moduler/grav/porthall_kott.json");
+    let cells: usize = e.doc().modules.iter().filter(|m| ids.contains(&m.id)).map(|m| e.footprint(m).len()).sum();
+    assert_eq!(def.cells.len(), cells, "cellene til begge modulene");
+    assert!(def.things.iter().any(|t| t.kind == "lever") && def.things.iter().any(|t| t.kind == "gate"), "spaken og porten følger med");
+    assert!(def.links.iter().any(|l| l.kind == "opens"), "koblingen følger med");
+    // Fast form og tilbake.
+    let text = module_json(&def);
+    assert!(text.lines().count() > def.cells.len(), "én celle per linje");
+    let back: ModuleDef = serde_json::from_str(&text).unwrap();
+    assert_eq!(back.cells.len(), def.cells.len());
+    // I byggesettet: i paletten, og satt ut alene bygger den det samme.
+    e.add_module(back);
+    let k = e.kit().clone();
+    let palette = crate::domain::edit::level::map::palette(&k, vec![], vec![]);
+    let pm = palette.modules.iter().find(|m| m.id == def.id).expect("i paletten");
+    assert_eq!(pm.cells.len(), cells);
+    assert!(!pm.openings.is_empty(), "den nye modulen har åpninger");
+    let before = e.file().instances.len();
+    let errs = errors(&e).len();
+    op(&mut e, &format!(r#"{{"op":"delete","ids":["{a}","{b}"]}}"#));
+    let n = op(&mut e, r#"{"op":"add_module","module":"grav/porthall_kott","at":[3,0,0]}"#)[0].clone();
+    assert!(errors(&e).iter().all(|x| !x.starts_with("modul") && !x.starts_with("kant") && !x.starts_with("kobling")), "{:?}", errors(&e));
+    assert_eq!(errors(&e).len(), errs, "de samme bruddene som utvalget: {:?}", errors(&e));
+    let after = e.file().instances.len();
+    assert!((after as i64 - before as i64).abs() <= 2, "samme bygg: {before} før, {after} etter");
+    assert!(
+        e.file()
+            .marks
+            .iter()
+            .any(|m| m.kind == "lever" && m.opens.iter().any(|o| o.starts_with(&format!("{n}/")) || e.file().marks.iter().any(|g| g.kind == "gate" && g.id.as_deref() == Some(o.as_str())))),
+        "spaken åpner porten i den nye modulen"
+    );
+}

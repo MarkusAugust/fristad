@@ -271,7 +271,21 @@ pub fn layout_json(layout: &Layout) -> String {
 /// én ting per linje i listene (modulene, innholdet, koblingene, lysene …)
 /// og tallene rundet, så endringene er lette å lese i git.
 pub fn level_doc_json(doc: &LevelDoc) -> String {
-    let mut v = serde_json::to_value(doc).unwrap_or_default();
+    fixed_json(serde_json::to_value(doc).unwrap_or_default())
+}
+
+/// En modul i fast form (`assets/levels/moduler/<tema>/<navn>.json`), som
+/// nivådokumentene: én celle, kant eller ting per linje.
+pub fn module_json(def: &crate::domain::world::crypt::doc::ModuleDef) -> String {
+    fixed_json(serde_json::to_value(def).unwrap_or_default())
+}
+
+/// Stien modulen lagres i: `assets/levels/moduler/grav/kapell.json` for `grav/kapell`.
+pub fn module_path(id: &str) -> String {
+    format!("assets/levels/moduler/{id}.json")
+}
+
+fn fixed_json(mut v: serde_json::Value) -> String {
     round(&mut v);
     let Some(o) = v.as_object() else {
         return String::new();
