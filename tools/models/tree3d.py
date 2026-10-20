@@ -133,6 +133,34 @@ def stem_solid(co, h, step=0.5):
     return out
 
 
+def bark(img, spec):
+    """Bjørkebarken lys og hvit. TRELLIS-teksturen er grå (rundt 0,55 i
+    sRGB), og i spillet står stammen i skyggen av kronen, så den ble nesten
+    svart (eieren 20. oktober: «en bjørk må ha hvit stamme»). Det grønne
+    som ble igjen der løvet og mosen satt, gjøres til bark med samme
+    lysstyrke, og lysstyrken strekkes (`white`: den lyse barken løftes til
+    rundt 0,85, de svarte merkene blir stående mørke)."""
+    w, h = img.size
+    px = np.empty(w * h * 4, np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(-1, 4)
+    c = px[:, :3]
+    lum = c @ np.array([0.3, 0.59, 0.11], np.float32)
+    tint = np.array(spec.get("bark_tint", (1.0, 0.97, 0.93)), np.float32)
+    # Det grønne: fargen byttes med barkens tone i samme lysstyrke.
+    g = np.clip((c[:, 1] - np.maximum(c[:, 0], c[:, 2]) - 0.01) / 0.05, 0, 1)[:, None]
+    c = c * (1 - g) + (lum[:, None] * tint) * g
+    # Lysstyrken strekkes, fargen beholdes litt (varm grå mot hvit).
+    lo, hi = spec.get("white", (0.18, 0.62))
+    out = np.clip(0.2 + (lum - lo) / (hi - lo) * 0.68, 0.1, 0.92)
+    grey = out[:, None] * tint
+    c = 0.35 * c * (out / np.maximum(lum, 1e-3))[:, None] + 0.65 * grey
+    px[:, :3] = np.clip(c, 0, 1)
+    img.pixels.foreach_set(px.ravel())
+    img.update()
+    print(f"barken: lysstyrke {lum.mean():.2f} -> {(c @ np.array([0.3, 0.59, 0.11])).mean():.2f}, grønt {float((g > 0.5).mean()):.1%}")
+
+
 def trunk(name, spec, ob):
     """Stammen: det grønne bort, forenklet med fargen fra den fulle formen,
     eksportert med den grove utgaven og kollideren."""
@@ -148,6 +176,7 @@ def trunk(name, spec, ob):
     finally:
         for k, val in keep.items():
             setattr(folk3d, k, val)
+    bark(bpy.data.images[f"src_{name}"], spec)
     ob.name = f"{name}_trunk"
     print(ob.name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     path = f"{OUT}/{name}_trunk.glb"
