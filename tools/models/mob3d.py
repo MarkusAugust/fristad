@@ -65,16 +65,21 @@ MOBS = {
     "framework": dict(height=4.0 / 2.3, size=4096, tris=25000, voxel=0.006, thick=0.006, style="framework", attack="bite", extra=("slam", "roar"),
                       joints=dict(hip=0.36, knee=0.2, ankle=0.07, chest=0.52, neck=0.74, head=0.82, shoulder=0.62, elbow=0.45, wrist=0.31, tip=0.16,
                                   arm=0.32, leg=0.06, shoulder_in=0.08),
-                      # Kjettingene henger der armens innside er (en sone for
-                      # dem tok med seg armen); de får lemmevaktens vekter.
+                      # Kjettingene fra håndleddene til livet deles der de er
+                      # tynnest (`tethers`): halvdelen ved hånda følger
+                      # håndleddet, halvdelen ved livet hoftene.
+                      tether=[dict(seed=dict(x=(-0.08, -0.02), y=(0.24, 0.3), z=(0.37, 0.45)), within=dict(x=(-0.16, 0.06), y=(0.18, 0.46), z=(0.26, 0.5)),
+                                   avoid=(("forearm", 0.055), ("hand", 0.05), ("upper_arm", 0.09)))],
                       glow=((300.0, 40.0), (345.0, 20.0))),
     # Navbaren (boss, nivå 8): 5 m i spillet med `scale` 2,5. En ridderkonge
     # i plate med kappe, krone og et åk over skuldrene (bjelken går ut
     # forbi hendene) med fem skjold i kjettinger; åket og skjoldene følger
     # brystet stivt (`rigid`), og bare de som står foran kappa måles som
     # bein (`leg_back`). Angrepet er neveslaget (`attack_fist`).
-    # Bare de rosa sømmene og visiret gløder, ikke de fiolette skjoldene.
-    "navbar": dict(glow=((300.0, 20.0),), height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="navbar", attack="fist", extra=("slam", "roar"),
+    # Bare de rosa sømmene og visiret gløder, ikke de fiolette skjoldene
+    # (`glow_thin`: baksida av skjoldene er malt i samme farge, men er brede
+    # flater).
+    "navbar": dict(glow=((300.0, 20.0),), glow_thin=24, height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="navbar", attack="fist", extra=("slam", "roar"),
                    joints=dict(hip=0.35, knee=0.19, ankle=0.06, chest=0.57, neck=0.77, head=0.83, shoulder=0.69, elbow=0.52, wrist=0.43, tip=0.31,
                                arm=0.27, leg=0.04, shoulder_in=0.15, leg_back=-0.08, leg_out=0.22),
                    # Bjelken med skjoldene (bak skuldrene, x under 0: ellers tok
@@ -89,7 +94,8 @@ MOBS = {
                                avoid=("upper_arm", "forearm", "hand", "head"), clear=0.05, blend=4)]),
     # Dropdownen (boss, nivå 6): 5 m. En steinkjempe med lange armer og et
     # V-formet hode; krystallene på skuldrene og ryggen følger brystet.
-    "dropdown": dict(glow=((300.0, 40.0), (192.0, 20.0)), height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="dropdown", attack="slam", extra=("roar",),
+    # Armene er grodd inntil kroppen: brystet holdes samlet (`torso`).
+    "dropdown": dict(torso=True, glow=((300.0, 40.0), (192.0, 20.0)), height=5.0 / 2.5, size=4096, tris=25000, voxel=0.006, thick=0.006, style="dropdown", attack="slam", extra=("roar",),
                      joints=dict(hip=0.43, knee=0.27, ankle=0.075, chest=0.67, neck=0.8, head=0.87, shoulder=0.75, elbow=0.5, wrist=0.33, tip=0.22,
                                  arm=0.26, leg=0.04, shoulder_in=0.14, leg_out=0.32),
                      rigid=[dict(bone="chest", seed=dict(z=(0.8, 1.0), y=(0.22, 1.0)), within=dict(z=(0.62, 1.0), y=(0.15, 1.0)),
@@ -97,7 +103,7 @@ MOBS = {
     # Tvillingvokteren (elite, nivå 9): 2,4 m med `ELITE_SCALE` 1,3. Står i
     # et skritt med armene nede langs kroppen (ikke A-stilling), halvt stein
     # (høyre) og halvt plast (venstre).
-    "twin_warden": dict(height=2.4 / 1.3, size=2048, tris=16000, voxel=0.005, thick=0.006, style="warden", attack="fist", extra=(),
+    "twin_warden": dict(glow_front=True, height=2.4 / 1.3, size=2048, tris=16000, voxel=0.005, thick=0.006, style="warden", attack="fist", extra=(),
                         joints=dict(hip=0.47, knee=0.25, ankle=0.06, chest=0.67, neck=0.85, head=0.9, shoulder=0.77, elbow=0.57, wrist=0.42, tip=0.3,
                                     arm=0.27, leg=0.03, shoulder_in=0.11, leg_out=0.25)),
     # Breadcrumb-bueskytteren (nivå 7–8): 1,6 m. Buen og koggeret på ryggen
@@ -125,7 +131,9 @@ MOBS = {
     # Progress-formannen (elite, nivå 5): 2,2 m med `ELITE_SCALE` 1,3; armene
     # tett inntil kroppen, hakka i høyre neve (følger hånda) og kassen på
     # ryggen (følger brystet).
-    "progress_foreman": dict(height=2.2 / 1.3, size=2048, tris=18000, voxel=0.005, thick=0.006, style="foreman", attack="slam", extra=("roar",),
+    # Glasstolpen i brystet og øynene er røde til rosa i teksturen (`glow`),
+    # og brystet holdes samlet (`torso`).
+    "progress_foreman": dict(torso=True, glow=((345.0, 25.0),), height=2.2 / 1.3, size=2048, tris=18000, voxel=0.005, thick=0.006, style="foreman", attack="slam", extra=("roar",),
                              joints=dict(hip=0.38, knee=0.2, ankle=0.05, chest=0.62, neck=0.8, head=0.86, shoulder=0.78, elbow=0.55, wrist=0.36, tip=0.25,
                                          arm=0.29, leg=0.04, shoulder_in=0.125, leg_out=0.28),
                              rigid=[dict(bone="hand.R", seed=dict(sy=(-1.0, -0.42), z=(0.0, 0.2)), within=dict(sy=(-1.0, -0.36), z=(0.0, 0.3)),
@@ -395,6 +403,210 @@ def rigid_parts(ob, arm, spec):
             np.save(os.environ["MOB3D_DEBUG"] + f"_{zi}.npy", np.c_[co, k])
 
 
+def _weights(ob, names):
+    """Vektene som matrise (hjørne × bein i `names`)."""
+    gi = {g.index: names.index(g.name) for g in ob.vertex_groups if g.name in names}
+    W = np.zeros((len(ob.data.vertices), len(names)))
+    for v in ob.data.vertices:
+        for g in v.groups:
+            if g.group in gi:
+                W[v.index, gi[g.group]] = g.weight
+    return W
+
+
+def _set_weights(ob, names, W, rows):
+    """Vektene i `rows` skrives tilbake (normalisert)."""
+    W = W / np.maximum(W.sum(1, keepdims=True), 1e-9)
+    for b, nm in enumerate(names):
+        g = ob.vertex_groups.get(nm) or ob.vertex_groups.new(name=nm)
+        g.remove([int(i) for i in rows if W[i, b] <= 1e-3])
+        for i in rows:
+            if W[i, b] > 1e-3:
+                g.add([int(i)], float(W[i, b]), "REPLACE")
+
+
+def _adjacency(ob, co):
+    from scipy.sparse import coo_matrix
+
+    ed = np.empty(len(ob.data.edges) * 2, np.int64)
+    ob.data.edges.foreach_get("vertices", ed)
+    ed = ed.reshape(-1, 2)
+    L = np.linalg.norm(co[ed[:, 0]] - co[ed[:, 1]], axis=1)
+    n = len(co)
+    return coo_matrix((np.r_[L, L], (np.r_[ed[:, 0], ed[:, 1]], np.r_[ed[:, 1], ed[:, 0]])), shape=(n, n)).tocsr()
+
+
+ARM_BONES = ("upper_arm", "forearm", "hand")
+LEG_BONES = ("thigh", "shin", "foot")
+
+
+def torso_guard(ob, arm, spec):
+    """Kroppen holdes samlet når armene løftes og ryggen bøyes (Dropdownen,
+    Progress-formannen): armene er grodd inntil kroppen i skallet, så
+    varmen ga brystplatene armvekter, og platene som ligger lagvis fikk
+    ulike andeler av hoftene og brystet, så brystet krøllet seg. I kroppen
+    (innenfor skulderleddet minus `TORSO_MARGIN` til sida, mellom hoftene
+    og halsen) tas armvektene bort (tonet ut over `TORSO_FADE` utover), og
+    delingen mellom hoftene og brystet blir en jevn funksjon av høyden:
+    hoftene ved hofteleddet, brystet ved brystleddet, jevnt imellom (en
+    smal overgang krøllet platene der).
+    Hode, nakke og bein beholder sine vekter. Bare for fiendene med
+    `torso=True` i tabellen (Rammeverkets skulderplater går innenfor
+    skulderleddet og ble dratt ut)."""
+    if not spec.get("torso"):
+        return
+    names = [b.name for b in arm.data.bones]
+    if "hips" not in names or "chest" not in names:
+        return
+    bones = {b.name: (np.array(b.head_local), np.array(b.tail_local)) for b in arm.data.bones}
+    co = coords(ob)
+    H = spec["height"]
+    W = _weights(ob, names)
+    hip_z, chest_z, neck_z = bones["hips"][0][2], bones["chest"][0][2], bones["neck"][0][2]
+    sh = min(abs(bones["shoulder.L"][0][1]), abs(bones["shoulder.R"][0][1])) if "shoulder.L" in bones else abs(bones["upper_arm.L"][0][1])
+    y_in = sh - TORSO_MARGIN * H
+    ay = np.abs(co[:, 1])
+    # Hvor mye punktet er kropp: 1 innenfor `y_in`, 0 ute ved `y_in + fade`,
+    # og bare mellom hoftene og halsen.
+    k = 1.0 - np.clip((ay - y_in) / (TORSO_FADE * H), 0.0, 1.0)
+    k *= np.clip((co[:, 2] - (hip_z - 0.02 * H)) / (0.04 * H), 0.0, 1.0)
+    k *= np.clip((neck_z + 0.02 * H - co[:, 2]) / (0.04 * H), 0.0, 1.0)
+    arms = [i for i, n in enumerate(names) if n.split(".")[0] in ARM_BONES]
+    hi, ci = names.index("hips"), names.index("chest")
+    rows = np.nonzero(k > 0)[0]
+    before = W[rows][:, arms].sum(1)
+    # Armvektene ut.
+    W[np.ix_(rows, arms)] *= (1.0 - k[rows])[:, None]
+    # Hoftene og brystet etter høyden.
+    u = np.clip((co[rows, 2] - hip_z) / max(chest_z - hip_z, 1e-6), 0.0, 1.0)
+    u = u * u * (3 - 2 * u)
+    spine = W[rows, hi] + W[rows, ci] + before * k[rows]
+    kk = k[rows]
+    W[rows, hi] = (1 - kk) * W[rows, hi] + kk * spine * (1 - u)
+    W[rows, ci] = (1 - kk) * W[rows, ci] + kk * spine * u
+    _set_weights(ob, names, W, rows)
+    print(f"kroppen: {int((k > 0.99).sum())} hjørner (+{int(((k > 0) & (k <= 0.99)).sum())} i overgangen), armvekt tatt bort {float((before * k[rows]).sum()):.0f}")
+
+
+TORSO_MARGIN = 0.02  # innenfor skulderleddet (brøk av høyden)
+TORSO_FADE = 0.05  # armvekten tones inn over så langt utover
+
+
+def tethers(ob, arm, spec):
+    """Det som henger mellom en lem og kroppen (Rammeverkets kjettinger fra
+    håndleddene til livet, `tether` i tabellen) deles i to der det er
+    tynnest: halvdelen ved lemmen følger stedet den henger i på lemmen
+    stivt, halvdelen ved kroppen stedet på kroppen, og skallet skilles
+    langs kuttet. Med vekter fra begge ble kjettingen strukket som gummi
+    når armene beveget seg, og en stiv sone på kroppen rev med seg armen.
+
+    Sonen fylles langs kantene fra frøet (`seed`) innenfor `within` og
+    unna beina i `avoid` (som `rigid_parts`). For hver sammenhengende bit
+    (én kjetting per side) er ankrene hjørnene rett utenfor: de som mest
+    følger en arm (`ARM_BONES`) eller et bein (`LEG_BONES`) og de som
+    følger kroppen. Hvert hjørne i biten får brøken t = veien til lemmen
+    delt på summen av veiene til begge, kuttet legges der færrest hjørner
+    har samme t (det tynneste leddet, mellom 0,2 og 0,8), og hver halvdel
+    tar snittet av vektene til ankrene den nådde."""
+    import bmesh
+    from scipy.sparse.csgraph import connected_components, dijkstra
+
+    zones = spec.get("tether", ())
+    if not zones:
+        return
+    names = [b.name for b in arm.data.bones]
+    bones = {b.name: (np.array(b.head_local), np.array(b.tail_local)) for b in arm.data.bones}
+    co = coords(ob)
+    H = float(co[:, 2].max())
+    G = _adjacency(ob, co)
+    W = _weights(ob, names)
+    W /= np.maximum(W.sum(1, keepdims=True), 1e-9)
+    limb = np.array([n.split(".")[0] in ARM_BONES + LEG_BONES for n in names])
+    labels = np.zeros(len(co), np.int64)  # 0 utenfor, ellers nummeret på halvdelen + 1
+    halves = []
+    for z in zones:
+        ok = _inside(co, z["within"], H)
+        for b in z.get("avoid", ()):
+            b, c = (b, z["clear"]) if isinstance(b, str) else b
+            for nm in [x for x in bones if x == b or x.startswith(b + ".")]:
+                ok &= _seg_dist(co, *bones[nm]) > c * H
+        got = _inside(co, z["seed"], H) & ok
+        front = np.nonzero(got)[0]
+        while len(front):
+            nb = np.unique(G[front].indices)
+            nb = nb[ok[nb] & ~got[nb]]
+            got[nb] = True
+            front = nb
+        idx = np.nonzero(got)[0]
+        k, lab = connected_components(G[idx][:, idx], directed=False)
+        for c in range(k):
+            C = idx[lab == c]
+            if len(C) < 20:
+                continue
+            inC = np.zeros(len(co), bool)
+            inC[C] = True
+            N = np.unique(G[C].indices)
+            N = N[~got[N]]
+            dom = W[N].argmax(1)
+            Na, Nb = N[limb[dom]], N[~limb[dom]]
+            if not len(Na) or not len(Nb):
+                print(f"tjoret: en bit på {len(C)} hjørner henger ikke mellom lem og kropp, står")
+                continue
+            sub = np.r_[C, N]
+            Gs = G[sub][:, sub]
+            pos = {int(v): i for i, v in enumerate(sub)}
+            da, _, sa = dijkstra(Gs, indices=[pos[int(v)] for v in Na], min_only=True, return_predecessors=True)
+            db, _, sb = dijkstra(Gs, indices=[pos[int(v)] for v in Nb], min_only=True, return_predecessors=True)
+            m = len(C)
+            da, db, sa, sb = da[:m], db[:m], sa[:m], sb[:m]
+            fin = np.isfinite(da) & np.isfinite(db)
+            t = np.where(fin, da / np.maximum(da + db, 1e-9), np.where(np.isfinite(da), 0.0, 1.0))
+            bins = np.linspace(0.2, 0.8, 13)
+            cnt = np.histogram(t[fin], bins)[0]
+            cut = float((bins[cnt.argmin()] + bins[cnt.argmin() + 1]) / 2)
+            near = t < cut
+            for side, pick, src in ((0, near, sa), (1, ~near, sb)):
+                s = src[pick]
+                s = s[s >= 0]
+                w = W[sub[s]].mean(0) if len(s) else W[C[pick]].mean(0)
+                halves.append(w / w.sum())
+                labels[C[pick]] = len(halves)
+            top = names[int(halves[-2].argmax())], names[int(halves[-1].argmax())]
+            print(f"tjoret: {len(C)} hjørner, kuttet ved t={cut:.2f} ({int(cnt.min())} hjørner der), {int(near.sum())} følger {top[0]}, {int((~near).sum())} følger {top[1]}")
+    if not halves:
+        return
+    # Skallet skilles langs kuttet: flatene får halvdelen de fleste
+    # hjørnene har, og kantene mellom to halvdeler deles.
+    gidx = {nm: (ob.vertex_groups.get(nm) or ob.vertex_groups.new(name=nm)).index for nm in names}
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.verts.ensure_lookup_table()
+    tag = bm.faces.layers.int.new("tether")
+    for f in bm.faces:
+        ls = [int(labels[v.index]) for v in f.verts if labels[v.index]]
+        f[tag] = max(set(ls), key=ls.count) if len(ls) * 2 > len(f.verts) else 0
+    pair = lambda a, b: a and b and a != b and (a - 1) // 2 == (b - 1) // 2
+    edges = [e for e in bm.edges if len(e.link_faces) == 2 and pair(e.link_faces[0][tag], e.link_faces[1][tag])]
+    bmesh.ops.split_edges(bm, edges=edges)
+    dl = bm.verts.layers.deform.verify()
+    n = 0
+    for v in bm.verts:
+        ls = {f[tag] for f in v.link_faces if f[tag]}
+        if len(ls) != 1:
+            continue
+        w = halves[ls.pop() - 1]
+        d = v[dl]
+        d.clear()
+        for b, nm in enumerate(names):
+            if w[b] > 1e-3:
+                d[gidx[nm]] = float(w[b])
+        n += 1
+    bm.to_mesh(ob.data)
+    bm.free()
+    print(f"tjoret: {len(edges)} kanter delt, {n} hjørner følger halvdelen sin")
+
+
+
 # Fargene som gløder (`glow`): (fargetone i grader, halv bredde); standard er
 # magenta, sømmene og øynene fiendene har fra kongens rammeverk.
 # TRELLIS maler dem fiolette til rosa (tone 280–340) og ofte mørke.
@@ -403,7 +615,117 @@ GLOW_SAT = (0.4, 0.6)  # metningen: ingen glød under, full over
 GLOW_VAL = (0.25, 0.45)  # lysheten: ingen glød under, full over
 
 
-def glow(path, hues=GLOW_HUES):
+def thin_glow(m, width):
+    """Bare de tynne stripene og de små flekkene gløder (sømmene og
+    øynene): en sammenhengende flekk i masken som er bredere enn `width`
+    teksler (dobbelt avstand fra kanten til midten) tas bort. Navbarens
+    skjold er malt fiolette på baksida i samme farge som sømmene, og
+    lyste som store flater."""
+    from scipy import ndimage
+
+    on = m > 0.15
+    lab, n = ndimage.label(on, np.ones((3, 3)))
+    if not n:
+        return m
+    d = ndimage.distance_transform_edt(on)
+    wide = np.asarray(ndimage.maximum(d, lab, np.arange(1, n + 1))) * 2 > width
+    drop = ndimage.binary_dilation(wide[lab - 1] & on, iterations=2)
+    print(f"glød: {int(wide.sum())} av {n} flekker er bredere enn {width:.0f} teksler og lyser ikke")
+    return np.where(drop, 0.0, m)
+
+
+REF = "assets/textures/monsters/ref"
+
+
+def front_glow(j, bin_, name, hues, size):
+    """Gløden fra eierens bilde forfra (`<navn>_front.jpg`), lagt på flatene
+    som vender fram og står fremst: TRELLIS mistet de magenta sømmene og
+    øynene på Tvillingvokteren (teksturen har dem ikke), men bildet TRELLIS
+    ble laget av har dem. Bildet og formen passes sammen etter ytterkantene
+    (høyden og midten), som `folk3d.face_patch`; hver teksel i glødekartet
+    får punktet og normalen sin fra trekanten den ligger i."""
+    from PIL import Image
+    from scipy import ndimage
+
+    import slim
+
+    path = next((f"{REF}/{name}_front.{e}" for e in ("jpg", "jpeg", "png") if os.path.exists(f"{REF}/{name}_front.{e}")), None)
+    if path is None:
+        print("glød forfra: fant ikke bildet")
+        return np.zeros((size, size, 3))
+    ref = Image.open(path).convert("RGB")
+    im = np.asarray(ref).astype(np.float32) / 255.0
+    hsv = np.asarray(ref.convert("HSV")).astype(np.float32) / 255.0
+    bg = np.median(np.concatenate([im[:8].reshape(-1, 3), im[-8:].reshape(-1, 3)]), 0)
+    fg = np.linalg.norm(im - bg, axis=2) > 0.12
+    rows, cols = np.nonzero(fg)
+    h, sat, val = hsv[..., 0] * 360.0, hsv[..., 1], hsv[..., 2]
+
+    def ramp(x, lo, hi):
+        t = np.clip((x - lo) / (hi - lo), 0.0, 1.0)
+        return t * t * (3 - 2 * t)
+
+    m = np.zeros_like(h)
+    for c, w in hues:
+        d = np.abs((h - c + 180.0) % 360.0 - 180.0)
+        m = np.maximum(m, 1.0 - ramp(d, w * 0.6, w))
+    m *= ramp(sat, *GLOW_SAT) * ramp(val, *GLOW_VAL) * fg
+    m = np.clip(ndimage.gaussian_filter(m, 1.5) * 1.4, 0, 1)
+    col = im / np.maximum(im.max(-1, keepdims=True), 0.3) * 0.9
+    # Formen fra glb-fila (y opp) i Blenders rom (z opp, y til venstre).
+    prim = j["meshes"][0]["primitives"][0]
+    P = np.array(slim.elements(j, bin_, prim["attributes"]["POSITION"]), np.float64)
+    P = np.c_[P[:, 0], -P[:, 2], P[:, 1]]
+    UV = np.array(slim.elements(j, bin_, prim["attributes"]["TEXCOORD_0"]), np.float64)
+    F = np.array(slim.elements(j, bin_, prim["indices"]), np.int64).reshape(-1, 3)
+    H = P[:, 2].max()
+    sc = (rows.max() - rows.min()) / H
+    cmid = (cols.min() + cols.max()) / 2 - (P[:, 1].min() + P[:, 1].max()) / 2 * sc
+    out = np.zeros((size, size, 3), np.float32)
+    samples = []  # (piksel i glødekartet, punkt, framvendthet)
+    for f in F:
+        a, b, c = P[f]
+        n = np.cross(b - a, c - a)
+        ln = np.linalg.norm(n)
+        if ln < 1e-12 or n[0] / ln < 0.3:
+            continue
+        uv = UV[f] * size - 0.5
+        lo = np.floor(uv.min(0)).astype(int)
+        hi = np.ceil(uv.max(0)).astype(int)
+        xs, ys = np.meshgrid(np.arange(lo[0], hi[0] + 1), np.arange(lo[1], hi[1] + 1))
+        q = np.c_[xs.ravel(), ys.ravel()].astype(np.float64)
+        e1, e2 = uv[1] - uv[0], uv[2] - uv[0]
+        det = e1[0] * e2[1] - e1[1] * e2[0]
+        if abs(det) < 1e-12:
+            continue
+        d = q - uv[0]
+        l1 = (d[:, 0] * e2[1] - d[:, 1] * e2[0]) / det
+        l2 = (e1[0] * d[:, 1] - e1[1] * d[:, 0]) / det
+        ok = (l1 >= -0.02) & (l2 >= -0.02) & (l1 + l2 <= 1.02)
+        ok &= (q[:, 0] >= 0) & (q[:, 1] >= 0) & (q[:, 0] < size) & (q[:, 1] < size)
+        if not ok.any():
+            continue
+        p = a + l1[ok, None] * (b - a) + l2[ok, None] * (c - a)
+        samples.append((q[ok].astype(int), p, np.full(ok.sum(), n[0] / ln)))
+    if not samples:
+        return out
+    q = np.concatenate([s[0] for s in samples])
+    p = np.concatenate([s[1] for s in samples])
+    fx = np.concatenate([s[2] for s in samples])
+    r = np.clip((rows.max() - p[:, 2] * sc).round().astype(int), 0, im.shape[0] - 1)
+    cc = np.clip((cmid + p[:, 1] * sc).round().astype(int), 0, im.shape[1] - 1)
+    # Bare det som står fremst (dybden per rute på 4 piksler i bildet).
+    cell = (r // 4) * (im.shape[1] // 4 + 1) + cc // 4
+    front = np.full(cell.max() + 1, -np.inf)
+    np.maximum.at(front, cell, p[:, 0])
+    seen = p[:, 0] >= front[cell] - 0.015 * H
+    k = (m[r, cc] * ramp(fx, 0.3, 0.6) * seen)[:, None]
+    np.maximum.at(out, (q[:, 1], q[:, 0]), (col[r, cc] * k).astype(np.float32))
+    print(f"glød forfra: {float((out.max(-1) > 0.4).mean()):.2%} av glødekartet fra {os.path.basename(path)}")
+    return out
+
+
+def glow(path, hues=GLOW_HUES, thin=None, front=None):
     """De glødende flatene skilles ut etter fargen i teksturen og blir
     modellens glødetekstur (emissive), og materialet heter `….glow`, så det
     lyser hele døgnet (`roles.py`, `world.wgsl`). Masken regnes per teksel
@@ -438,10 +760,15 @@ def glow(path, hues=GLOW_HUES):
         d = np.abs((h - c + 180.0) % 360.0 - 180.0)
         m = np.maximum(m, 1.0 - ramp(d, w * 0.6, w))
     m *= ramp(s, *GLOW_SAT) * ramp(v, *GLOW_VAL)
+    if thin:
+        m = thin_glow(m, thin * im.width / 2048)
     # Gløden i malingens fargetone, men lys: fargen skaleres opp til den
     # sterkeste kanalen er nær hel (mørk fiolett blir lysende fiolett).
     bright = a / np.maximum(a.max(-1, keepdims=True), 0.3) * 0.9
-    out = Image.fromarray((np.clip(bright * m[..., None], 0, 1) * 255.0 + 0.5).astype(np.uint8))
+    lit = bright * m[..., None]
+    if front:
+        lit = np.maximum(lit, front_glow(j, bin_, front, hues, im.width))
+    out = Image.fromarray((np.clip(lit, 0, 1) * 255.0 + 0.5).astype(np.uint8))
     buf = io.BytesIO()
     out.save(buf, "JPEG", quality=88, subsampling=0)
     data = buf.getvalue()
@@ -574,11 +901,13 @@ def build(name, size=None):
         B = bones(J)
         arm = rig(ob, name, B)
         limb_guard(ob, arm, spec["height"])
+        torso_guard(ob, arm, spec)
         rigid_parts(ob, arm, spec)
+        tethers(ob, arm, spec)
         mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()))
     print(name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False, data_size=min(DATA_SIZE, size))
-    glow(f"{OUT}/{name}.glb", spec.get("glow", GLOW_HUES))
+    glow(f"{OUT}/{name}.glb", spec.get("glow", GLOW_HUES), spec.get("glow_thin"), spec.get("glow_front") and name)
 
 
 if __name__ == "__main__":
@@ -586,7 +915,7 @@ if __name__ == "__main__":
     if args[:1] == ["--glow"]:
         # Bare glødeteksturen på nytt i en ferdig fil (uten å bygge den).
         for n in args[1:]:
-            glow(f"{OUT}/{n}.glb", MOBS[n].get("glow", GLOW_HUES))
+            glow(f"{OUT}/{n}.glb", MOBS[n].get("glow", GLOW_HUES), MOBS[n].get("glow_thin"), MOBS[n].get("glow_front") and n)
         sys.exit(0)
     size = next((int(a) for a in args if a.isdigit()), None)
     for n in [a for a in args if a in MOBS] or list(MOBS):

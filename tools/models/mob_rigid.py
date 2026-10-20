@@ -79,6 +79,7 @@ def _split(ob, labels):
     bm = bmesh.new()
     bm.from_mesh(me)
     bm.faces.ensure_lookup_table()
+    face = _islands(bm, face)
     tag = bm.faces.layers.int.new("part")
     names = sorted(set(face))
     for f in bm.faces:
@@ -101,6 +102,51 @@ def _split(ob, labels):
     return out
 
 
+# En bit av en del som henger sammen med færre flater enn dette (brøk av
+# delen) går til delen rundt den: ellers sto små fliser av hjulet igjen ved
+# beina (og av beina på hjulet) og stakk ut når hjulet spant.
+ISLAND = 0.04
+
+
+def _islands(bm, face):
+    """Små øyer av en del (flater som henger sammen langs kanter) tas av
+    delen som omgir dem flest kanter."""
+    from collections import Counter
+
+    face = list(face)
+    for _ in range(3):
+        seen = [False] * len(face)
+        total = Counter(face)
+        moved = 0
+        for f0 in bm.faces:
+            if seen[f0.index]:
+                continue
+            lab = face[f0.index]
+            comp, stack = [], [f0]
+            seen[f0.index] = True
+            while stack:
+                f = stack.pop()
+                comp.append(f)
+                for e in f.edges:
+                    for g in e.link_faces:
+                        if not seen[g.index] and face[g.index] == lab:
+                            seen[g.index] = True
+                            stack.append(g)
+            if len(comp) >= ISLAND * total[lab]:
+                continue
+            ids = {f.index for f in comp}
+            around = Counter(face[g.index] for f in comp for e in f.edges for g in e.link_faces if g.index not in ids)
+            if around:
+                new = around.most_common(1)[0][0]
+                for f in comp:
+                    face[f.index] = new
+                moved += len(comp)
+        print("småøyer flyttet:", moved, "flater")
+        if not moved:
+            break
+    return face
+
+
 def _assign(ob, arm, labels):
     """Hvert hjørne helt på beinet i `labels` (navn per hjørne); skallet
     deles først langs grensene (`_split`)."""
@@ -117,6 +163,9 @@ def _assign(ob, arm, labels):
 
 
 # --- Spinneren ---------------------------------------------------------------
+
+
+WHEEL_SLACK = 0.006  # luft rundt hjulets omdreide profil (brøk av høyden)
 
 
 def spinner(ob, co, H, armature, Clip):
@@ -137,6 +186,25 @@ def spinner(ob, co, H, armature, Clip):
     names = list(seeds)
     D = np.stack([_geodesic(ob, co, seeds[nm]) for nm in names], 1)
     labels = np.array(names, dtype=object)[D.argmin(1)]
+    # Grensen mellom hjulet og beina er rommet hjulet fyller når det
+    # dreier: profilen (største |x| per avstand fra navet) måles i øvre
+    # halvdel, der det ikke er bein, og alt innenfor den omdreide profilen
+    # er hjul, alt utenfor under navet bein (hjørnet i samme kvadrant).
+    # Langs kantene ble grensen taggete, og fliser av hjulet sto igjen på
+    # beina (og av beina på hjulet) og stakk ut når hjulet spant.
+    step = 0.02 * H
+    k = np.minimum((r / step).astype(int), 200)
+    up = co[:, 2] > hub.z
+    prof = np.full(201, -1.0)
+    np.maximum.at(prof, k[up], np.abs(co[up, 0]))
+    for i in range(1, 201):
+        if prof[i] < 0 and prof[i - 1] >= 0 and (prof[i + 1:] >= 0).any():
+            prof[i] = prof[i - 1]
+    inside = np.abs(co[:, 0]) <= prof[k] + WHEEL_SLACK * H
+    labels[inside] = "chest"
+    for nm, sx, sy in corners:
+        out = ~inside & ~up & (np.sign(co[:, 0]) == sx) & (np.sign(co[:, 1]) == sy)
+        labels[out] = nm
     legs = {}
     for nm, sx, sy in corners:
         q = co[labels == nm]
