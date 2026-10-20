@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="nb" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nivåredigering</title>
+  <meta name="description" content="Fristad: bygg kryptnivåene av moduler, med kart ovenfra og 3D.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="fristil.css">
+  <style>
+    [hidden] { display: none !important; }
+    :root {
+      --bg: var(--fs-color-neutral-canvas, #15171a);
+      --panel: var(--fs-color-neutral-surface, #1d2024);
+      --line: var(--fs-color-neutral-border-subtle, #30343a);
+      --text: var(--fs-color-neutral-text, #e7e4dc);
+      --muted: var(--fs-color-neutral-text-subtle, #a7a49c);
+      --accent: var(--fs-color-accent-fill, #c9a35a);
+      --danger: var(--fs-color-danger-text, #ff7a6a);
+      --warn: var(--fs-color-warning-text, #e8c25a);
+      --gap: var(--fs-spacing-2, 8px);
+    }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 14px; overflow: hidden; }
+    body { display: grid; grid-template-rows: auto 1fr; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap); padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    header .group { display: flex; align-items: center; gap: 6px; }
+    header .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+    header h1 { font-size: 15px; margin: 0 6px 0 0; font-weight: 600; white-space: nowrap; }
+    .fs-button { white-space: nowrap; }
+    .fs-button[aria-pressed="true"] { outline: 2px solid var(--accent); }
+    main { display: grid; grid-template-columns: 230px 1fr 300px; min-height: 0; }
+    #palette, #props { overflow-y: auto; padding: 8px 10px; background: var(--panel); min-height: 0; }
+    #palette { border-right: 1px solid var(--line); }
+    #props { border-left: 1px solid var(--line); }
+    #views { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; min-height: 0; position: relative; }
+    #views.only-map, #views.only-3d { grid-template-columns: 1fr; }
+    #views.only-map #pane3d, #views.only-3d #panemap { display: none; }
+    .pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+    #panemap { border-right: 1px solid var(--line); }
+    #plan, #world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #plan { cursor: crosshair; background: #0e0f11; }
+    #world { background: #000; outline: none; }
+    .pane-label { position: absolute; left: 8px; top: 6px; font-size: 12px; color: var(--muted); pointer-events: none; text-shadow: 0 1px 2px #000; }
+    .pane-help { position: absolute; left: 8px; bottom: 6px; right: 8px; font-size: 11px; color: var(--muted); pointer-events: none; text-shadow: 0 1px 2px #000; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+    h2:first-child { margin-top: 4px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .tile { border: 1px solid var(--line); border-radius: 6px; background: #111316; color: var(--text); padding: 0; cursor: grab; text-align: left; font: inherit; overflow: hidden; }
+    .tile img { display: block; width: 100%; aspect-ratio: 10 / 7; object-fit: cover; background: #222; }
+    .tile .noimg { aspect-ratio: 10 / 7; display: grid; place-items: center; background: repeating-linear-gradient(45deg, #1b1d20 0 8px, #222428 8px 16px); color: var(--muted, #999); font-size: 11px; }
+    .tile span { display: block; padding: 3px 5px; font-size: 11.5px; line-height: 1.25; }
+    .tile.armed, .chip.armed { outline: 2px solid var(--accent); }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { border: 1px solid var(--line); border-radius: 999px; background: #111316; color: var(--text); padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+    #search { width: 100%; box-sizing: border-box; }
+    .field { display: grid; gap: 3px; margin: 8px 0; }
+    .field label, .field .fs-label { font-size: 12px; color: var(--muted); }
+    .field input, .field select, .field textarea { width: 100%; box-sizing: border-box; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    #issues { list-style: none; margin: 0; padding: 0; }
+    #issues li { padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12.5px; line-height: 1.3; border-left: 3px solid var(--warn); margin-bottom: 3px; background: #15171a; }
+    #issues li.feil { border-left-color: var(--danger); }
+    #issues li:hover { background: #22262b; }
+    #issues .chip.fix { margin-left: 4px; padding: 1px 7px; border-color: var(--accent); }
+    .muted { color: var(--muted); font-size: 12px; }
+    .stats { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
+    #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.6); z-index: 20; }
+    #overlay .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; max-width: 520px; width: calc(100% - 40px); max-height: 80vh; overflow: auto; }
+    #status { font-size: 13px; }
+    #toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #222; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; z-index: 30; max-width: 70vw; }
+    body.playing header, body.playing #palette, body.playing #props, body.playing #panemap { display: none; }
+    body.playing { grid-template-rows: 1fr; }
+    body.playing .pane-label, body.playing .pane-help { display: none; }
+    body.playing main { grid-template-columns: 1fr; }
+    body.playing #views { grid-template-columns: 1fr; }
+    #playbar { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 25; background: rgba(20,20,20,.8); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+    .doclist button { display: block; width: 100%; margin: 3px 0; text-align: left; }
+    @media (max-width: 1100px) { main { grid-template-columns: 190px 1fr 250px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Nivåredigering</h1>
+    <div class="group">
+      <button id="open" class="fs-button" data-variant="secondary" type="button" title="Åpne et nivå eller lag et nytt">Åpne …</button>
+      <span id="docname" class="fs-badge" data-variant="neutral">–</span>
+      <span id="docstatus" class="fs-badge" data-variant="warning">Utkast</span>
+    </div>
+    <div class="sep"></div>
+    <div class="group">
+      <button id="undo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
+      <button id="redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Y eller Ctrl+Shift+Z">Gjør om</button>
+    </div>
+    <div class="sep"></div>
+    <div class="group">
+      <label class="fs-label" for="floor">Etasje</label>
+      <select id="floor" class="fs-select" title="PageUp og PageDown"></select>
+      <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="false" title="S: bare denne etasjen og den under på kartet, og i 3D kuttes alt over etasjen bort">Snitt</button>
+    </div>
+    <div class="group" role="group" aria-label="Visning">
+      <button id="v-map" class="fs-button" data-variant="secondary" type="button" title="Bare kartet (Tab bytter)">Kart</button>
+      <button id="v-split" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" title="Kart og 3D side om side">Delt</button>
+      <button id="v-3d" class="fs-button" data-variant="secondary" type="button" title="Bare 3D">3D</button>
+    </div>
+    <button id="light" class="fs-button" data-variant="secondary" type="button" title="L: arbeidslys eller spillets lys">Arbeidslys</button>
+    <div class="sep"></div>
+    <div class="group">
+      <button id="play" class="fs-button" data-variant="primary" type="button" title="P: spill nivået fra startstedet (Shift+P: der kameraet står). Du kan ikke dø. Esc tilbake.">Spill fra start</button>
+      <button id="play-here" class="fs-button" data-variant="secondary" type="button" title="Shift+P">Spill herfra</button>
+    </div>
+    <div class="sep"></div>
+    <div class="group">
+      <button id="save" class="fs-button" data-variant="primary" type="button" title="Ctrl+S: lagre på grenen redigering (uten nøkkel: last ned zip)">Lagre</button>
+      <button id="ready" class="fs-button" data-variant="secondary" type="button" title="Merk nivået klart (krever at reglene er grønne)">Merk klart</button>
+    </div>
+    <span id="status" class="muted" aria-live="polite"></span>
+  </header>
+  <main>
+    <aside id="palette" aria-label="Paletten">
+      <input id="search" class="fs-input" type="search" placeholder="Søk i modulene" aria-label="Søk">
+      <div id="modlist"></div>
+      <h2>Innhold</h2>
+      <div id="thinglist" class="chips"></div>
+      <h2>Fiender</h2>
+      <div id="moblist" class="chips"></div>
+      <h2>Maler</h2>
+      <div id="tpllist" class="chips"></div>
+      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut. Ctrl+Shift+G lagrer det som en ny modul i paletten.</p>
+      <p class="muted">Klikk en modul eller ting og så på kartet (eller dra den dit). R dreier, M speiler, Delete sletter, Esc avbryter.</p>
+    </aside>
+    <section id="views">
+      <div id="panemap" class="pane">
+        <canvas id="plan" tabindex="0" aria-label="Kartet ovenfra"></canvas>
+        <span class="pane-label" id="maplabel">Kart</span>
+        <span class="pane-help">Hjulet zoomer, høyre knapp eller mellomrom + dra flytter. Dra en modul for å flytte den, ramme for å velge flere. Dobbeltklikk: gå inn her i 3D. K kobler det valgte. Ctrl+1–9 (eller Shift+1–9) husker kameraet, 1–9 går dit.</span>
+      </div>
+      <div id="pane3d" class="pane">
+        <canvas id="world" tabindex="0" aria-label="Nivået i 3D"></canvas>
+        <span class="pane-label">3D</span>
+        <span class="pane-help">Høyre knapp + dra ser rundt, WASD flyr, mellomrom og C opp og ned, Shift fort. Klikk velger modulen der.</span>
+      </div>
+    </section>
+    <aside id="props" aria-label="Egenskaper og regler">
+      <div id="sel"></div>
+      <h2>Reglene <span id="issuecount" class="fs-badge" data-variant="neutral">0</span></h2>
+      <ul id="issues"></ul>
+      <h2>Nivået</h2>
+      <div id="stats" class="stats"></div>
+    </aside>
+  </main>
+  <div id="overlay"><div class="card"><p id="loading" class="fs-paragraph">Laster motoren …</p><progress id="bar" class="fs-progress" max="100" value="0"></progress></div></div>
+  <div id="playbar" hidden>Prøvetur: du kan ikke dø. <strong>Esc</strong> tilbake til redigeringen.</div>
+  <div id="toast" hidden></div>
+  <script type="module" src="nivaa.js"></script>
+</body>
+</html>
