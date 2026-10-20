@@ -53,7 +53,10 @@ DENSE_FROM = 0.76
 DATA_SIZE = 1024  # normal- og ruhetskartet (et glatt skall, samme ruhet)
 
 # navn: høyden i modellens målestokk, trekanter, voxel og tykkelse (m i
-# modellen), stilen og angrepet i `mob_motion`, ekstra klipp, og leddene
+# modellen), stilen og angrepet i `mob_motion`, ekstra klipp, `climb`
+# (slagets `scale` i spillet: klatreklippet i stigen, bare de tobeinte med
+# armer som får plass i en stige; bossene og de eieren har godkjent glir
+# som før), og leddene
 # (høyden som brøk av `height`; `arm` er grensen ut til sida der armen
 # begynner, `leg` der beinet slutter innover).
 MOBS = {
@@ -70,6 +73,10 @@ MOBS = {
                       # håndleddet, halvdelen ved livet hoftene.
                       tether=[dict(seed=dict(x=(-0.08, -0.02), y=(0.24, 0.3), z=(0.37, 0.45)), within=dict(x=(-0.16, 0.06), y=(0.18, 0.46), z=(0.26, 0.5)),
                                    avoid=(("forearm", 0.055), ("hand", 0.05), ("upper_arm", 0.09)))],
+                      # Kjettingstumpen med hengelåsen under mansjetten bak
+                      # neven henger fritt (`hang_parts`).
+                      hang=[dict(parent="forearm", seed=dict(x=(-0.06, -0.015), sy=(0.345, 0.39), z=(0.155, 0.19)),
+                                 within=dict(x=(-0.075, 0.0), sy=(0.33, 0.4), z=(0.15, 0.32)), avoid=(("hand", 0.025),))],
                       glow=((300.0, 40.0), (345.0, 20.0))),
     # Navbaren (boss, nivå 8): 5 m i spillet med `scale` 2,5. En ridderkonge
     # i plate med kappe, krone og et åk over skuldrene (bjelken går ut
@@ -89,8 +96,11 @@ MOBS = {
                           dict(bone="chest", seed=dict(x=(-1.0, -0.03), z=(0.86, 0.92), y=(0.0, 0.12)), within=dict(x=(-1.0, -0.015), z=(0.85, 0.93), y=(0.0, 0.2)),
                                blend=2),
                           # Kappa bak ryggen følger brystet, ikke armene (den
-                          # løftet seg med armene i brølet).
-                          dict(bone="chest", seed=dict(x=(-1.0, -0.12), z=(0.45, 0.7)), within=dict(x=(-1.0, -0.04), z=(0.4, 0.8)),
+                          # løftet seg med armene i brølet). Albuene og
+                          # underarmene står utenfor (`outside`): sonen nådde
+                          # baksida av albuen langs skallet, og den biten ble
+                          # stående igjen ved albuen når armen beveget seg.
+                          dict(bone="chest", seed=dict(x=(-1.0, -0.12), z=(0.45, 0.7)), within=dict(x=(-1.0, -0.04), z=(0.4, 0.8)), outside=(dict(y=(0.3, 1.0), z=(0.0, 0.6)),),
                                avoid=("upper_arm", "forearm", "hand", "head"), clear=0.05, blend=4)]),
     # Dropdownen (boss, nivå 6): 5 m. En steinkjempe med lange armer og et
     # V-formet hode; krystallene på skuldrene og ryggen følger brystet.
@@ -103,7 +113,7 @@ MOBS = {
     # Tvillingvokteren (elite, nivå 9): 2,4 m med `ELITE_SCALE` 1,3. Står i
     # et skritt med armene nede langs kroppen (ikke A-stilling), halvt stein
     # (høyre) og halvt plast (venstre).
-    "twin_warden": dict(glow_front=True, height=2.4 / 1.3, size=2048, tris=16000, voxel=0.005, thick=0.006, style="warden", attack="fist", extra=(),
+    "twin_warden": dict(climb=1.3, glow_front=True, height=2.4 / 1.3, size=2048, tris=16000, voxel=0.005, thick=0.006, style="warden", attack="fist", extra=(),
                         joints=dict(hip=0.47, knee=0.25, ankle=0.06, chest=0.67, neck=0.85, head=0.9, shoulder=0.77, elbow=0.57, wrist=0.42, tip=0.3,
                                     arm=0.27, leg=0.03, shoulder_in=0.11, leg_out=0.25)),
     # Breadcrumb-bueskytteren (nivå 7–8): 1,6 m. Buen og koggeret på ryggen
@@ -112,7 +122,7 @@ MOBS = {
     # beinet «bow», `bow_bone`); den på ryggen står som reservebue (den er
     # grodd inn i skallet: skåret bort sto undersida igjen som en flat bue,
     # og presset inn synes omrisset over skulderen).
-    "breadcrumb_archer": dict(height=1.6, size=2048, tris=14000, voxel=0.004, thick=0.005, style="archer", attack="shoot", extra=(), bow=True,
+    "breadcrumb_archer": dict(climb=1.0, height=1.6, size=2048, tris=14000, voxel=0.004, thick=0.005, style="archer", attack="shoot", extra=(), bow=True,
                               joints=dict(hip=0.3, knee=0.17, ankle=0.04, chest=0.57, neck=0.75, head=0.82, shoulder=0.72, elbow=0.55, wrist=0.4, tip=0.3,
                                           arm=0.19, leg=0.02, shoulder_in=0.11, leg_out=0.2),
                               rigid=[dict(bone="chest", seed=dict(x=(-1.0, -0.09), z=(0.4, 1.0)), within=dict(x=(-1.0, -0.06), z=(0.4, 1.0)),
@@ -120,12 +130,14 @@ MOBS = {
     # Skeleton Loader (nivå 9–10): 1,8 m, et tynt skjelett av grå staver
     # (fint skall, så ribbeina og de to beina i underarmen står hver for
     # seg); klemma med seglet på brystet følger brystet.
-    "skeleton_loader": dict(height=1.8, size=2048, tris=16000, voxel=0.003, thick=0.004, style="loader", attack="bite", extra=(),
+    "skeleton_loader": dict(climb=1.0, height=1.8, size=2048, tris=16000, voxel=0.003, thick=0.004, style="loader", attack="bite", extra=(),
                             joints=dict(hip=0.47, knee=0.25, ankle=0.06, chest=0.67, neck=0.8, head=0.86, shoulder=0.8, elbow=0.62, wrist=0.5, tip=0.4,
                                         arm=0.2, leg=0.04, shoulder_in=0.11, leg_out=0.2),
                             rigid=[dict(bone="chest", seed=dict(x=(0.085, 1.0), y=(0.03, 0.16), z=(0.66, 0.77)), within=dict(x=(0.05, 1.0), y=(0.0, 0.2), z=(0.62, 0.8)),
                                         avoid=(("upper_arm", 0.04), ("head", 0.06)), clear=0.04)]),
-    # Grid-vokteren (nivå 9): 2,2 m, bygd av hule hvite celler.
+    # Grid-vokteren (nivå 9): 2,2 m, bygd av hule hvite celler. Uten
+    # klatreklipp: armene er grodd inn i cellene på kroppen, og med armene
+    # over hodet ble kroppen dratt opp som en hinne (glir i stigen som før).
     "grid_warden": dict(height=2.2, size=2048, tris=16000, voxel=0.005, thick=0.006, style="grid", attack="fist", extra=(),
                         joints=dict(hip=0.42, knee=0.22, ankle=0.05, chest=0.62, neck=0.8, head=0.88, shoulder=0.78, elbow=0.58, wrist=0.42, tip=0.32,
                                     arm=0.21, leg=0.03, shoulder_in=0.12, leg_out=0.2)),
@@ -146,7 +158,7 @@ MOBS = {
                                          avoid=("upper_arm", "forearm", "hand", "head"), clear=0.09)]),
     # Kortknekten (nivå 7–8): 1,5 m, kroppen er en tykk steinplate (kortet)
     # med hodet bak toppen; plata følger brystet stivt.
-    "card_squire": dict(height=1.5, size=2048, tris=14000, voxel=0.004, thick=0.005, style="squire", attack="fist", extra=(),
+    "card_squire": dict(climb=1.0, height=1.5, size=2048, tris=14000, voxel=0.004, thick=0.005, style="squire", attack="fist", extra=(),
                         joints=dict(hip=0.3, knee=0.17, ankle=0.05, chest=0.6, neck=0.8, head=0.88, shoulder=0.72, elbow=0.55, wrist=0.42, tip=0.33,
                                     arm=0.25, leg=0.04, shoulder_in=0.115, leg_out=0.24),
                         rigid=[dict(bone="chest", seed=dict(x=(0.07, 1.0), y=(0.0, 0.2), z=(0.4, 0.75)), within=dict(y=(0.0, 0.25), z=(0.2, 0.83)),
@@ -355,7 +367,7 @@ def rigid_parts(ob, arm, spec):
     Hver sone har frøet (`seed`, en boks i brøk av høyden), og derfra
     fylles det langs kantene i skallet så lenge punktet står i `within` og
     ikke nærmere enn `clear` (brøk av høyden) fra beina i `avoid` (armene,
-    hodet): det som henger sammen med frøet uten å gå gjennom en lem. Så
+    hodet) og ikke i boksene i `outside`: det som henger sammen med frøet uten å gå gjennom en lem. Så
     jevnes overgangen ut over `blend` kanter."""
     zones = spec.get("rigid", ())
     if not zones:
@@ -372,6 +384,9 @@ def rigid_parts(ob, arm, spec):
     bones = {b.name: (np.array(b.head_local), np.array(b.tail_local)) for b in arm.data.bones}
     for zi, z in enumerate(zones):
         ok = _inside(co, z["within"], H)
+        # `outside`: bokser sonen ikke går inn i (albuene bak kappa).
+        for box in z.get("outside", ()):
+            ok &= ~_inside(co, box, H)
         for b in z.get("avoid", ()):
             # Et bein alene bruker `clear`, (bein, avstand) sin egen.
             b, c = (b, z["clear"]) if isinstance(b, str) else b
@@ -530,6 +545,75 @@ def bow_bone(arm, spec):
 BOW_GRIP = 0.45  # grepet så langt ut i hånda (brøk fra håndleddet)
 
 
+def hang_parts(ob, arm, spec):
+    """Det som henger fritt fra en lem (Rammeverkets kjettingstumper med
+    hengelåsen under mansjetten bak neven, `hang` i tabellen): stivt på
+    hånda stakk stumpen rett opp når armene ble løftet (slaget i bakken,
+    brølet). Sonen fylles langs kantene fra frøet som i `rigid_parts`, og
+    får sitt eget bein `chain.<side>` (forelder `parent`) med hodet i
+    festet øverst i sonen; `mob_motion.Body.dangle` gir beinet hoftenes
+    dreining i hvert bilde, så stumpen henger ned fra festet uansett hvor
+    armen er. Gir de nye beina til `mob_motion`."""
+    zones = spec.get("hang", ())
+    if not zones:
+        return []
+    from scipy.sparse import coo_matrix
+
+    me = ob.data
+    co = coords(ob)
+    H = float(co[:, 2].max())
+    ed = np.empty(len(me.edges) * 2, np.int64)
+    me.edges.foreach_get("vertices", ed)
+    ed = ed.reshape(-1, 2)
+    n = len(co)
+    adj = coo_matrix((np.ones(len(ed) * 2), (np.r_[ed[:, 0], ed[:, 1]], np.r_[ed[:, 1], ed[:, 0]])), shape=(n, n)).tocsr()
+    bones = {b.name: (np.array(b.head_local), np.array(b.tail_local)) for b in arm.data.bones}
+    extra = []
+    for z in zones:
+        for side, sg in (("L", 1.0), ("R", -1.0)):
+            # Boksene står for venstre side (`sy`) og speiles til høyre.
+            def box(b):
+                b = dict(b)
+                if "sy" in b and sg < 0:
+                    lo, hi = b["sy"]
+                    b["sy"] = (-hi, -lo)
+                return b
+            ok = _inside(co, box(z["within"]), H)
+            for b, c in z.get("avoid", ()):
+                nm = f"{b}.{side}"
+                if nm in bones:
+                    ok &= _seg_dist(co, *bones[nm]) > c * H
+            got = _inside(co, box(z["seed"]), H) & ok
+            front = np.nonzero(got)[0]
+            while len(front):
+                nb = np.unique(adj[front].indices)
+                nb = nb[ok[nb] & ~got[nb]]
+                got[nb] = True
+                front = nb
+            if not got.any():
+                print(f"henger: ingenting i sonen på side {side}")
+                continue
+            name, parent = f"chain.{side}", f"{z['parent']}.{side}"
+            top = co[got][co[got][:, 2].argmax()]
+            bpy.context.view_layer.objects.active = arm
+            bpy.ops.object.mode_set(mode="EDIT")
+            eb = arm.data.edit_bones.new(name)
+            eb.head = Vector(top)
+            eb.tail = Vector(top) - Vector((0.0, 0.0, 0.05 * H))
+            eb.parent = arm.data.edit_bones[parent]
+            eb.use_deform = True
+            bpy.ops.object.mode_set(mode="OBJECT")
+            g = ob.vertex_groups.new(name=name)
+            for i in np.nonzero(got)[0]:
+                v = me.vertices[int(i)]
+                for vg in list(v.groups):
+                    ob.vertex_groups[vg.group].remove([int(i)])
+                g.add([int(i)], 1.0, "REPLACE")
+            extra.append((name, tuple(top), tuple(Vector(top) - Vector((0.0, 0.0, 0.05 * H))), parent))
+            print(f"henger: {int(got.sum())} hjørner på {name} fra {parent}, festet i {tuple(round(float(c), 3) for c in top)}")
+    return extra
+
+
 def tethers(ob, arm, spec):
     """Det som henger mellom en lem og kroppen (Rammeverkets kjettinger fra
     håndleddene til livet, `tether` i tabellen) deles i to der det er
@@ -609,6 +693,7 @@ def tethers(ob, arm, spec):
                 w = W[sub[s]].mean(0) if len(s) else W[C[pick]].mean(0)
                 halves.append(w / w.sum())
                 labels[C[pick]] = len(halves)
+
             top = names[int(halves[-2].argmax())], names[int(halves[-1].argmax())]
             print(f"tjoret: {len(C)} hjørner, kuttet ved t={cut:.2f} ({int(cnt.min())} hjørner der), {int(near.sum())} følger {top[0]}, {int((~near).sum())} følger {top[1]}")
     if not halves:
@@ -942,8 +1027,9 @@ def build(name, size=None):
         torso_guard(ob, arm, spec)
         rigid_parts(ob, arm, spec)
         tethers(ob, arm, spec)
+        B = B + hang_parts(ob, arm, spec)
         bow_bone(arm, spec)
-        mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()))
+        mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()), spec.get("climb"))
     print(name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False, data_size=min(DATA_SIZE, size))
     glow(f"{OUT}/{name}.glb", spec.get("glow", GLOW_HUES), spec.get("glow_thin"), spec.get("glow_front") and name)

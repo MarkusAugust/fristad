@@ -73,12 +73,29 @@ pub fn level_nav(file: &LevelFile) -> Nav {
 }
 
 /// Et steg langs en lenke for fienden: punktet, farten dit, og heisen som
-/// skal kjøres når den begynner på steget.
+/// skal kjøres når den begynner på steget. `climb` er steget opp eller ned
+/// selve stigen (klippet `climb`), og `face` er retningen mot stigen
+/// (vannrett), som fienden vender ansiktet mot mens den klatrer.
 #[derive(Clone, Copy, Debug)]
 pub struct HopStep {
     pub to: Vec3,
     pub speed: f32,
     pub ride: Option<usize>,
+    pub climb: bool,
+    pub face: Vec3,
+}
+
+/// Retningen mot stigen i lenken: fra toppen av den loddrette delen inn
+/// mot toppen av stigen (`ladder_points`: foran foten, rett opp, inn).
+fn ladder_face(pts: &[Vec3]) -> Vec3 {
+    pts.windows(3)
+        .find(|w| {
+            let d = w[1] - w[0];
+            d.y.abs() > d.with_y(0.0).length()
+        })
+        .map(|w| if w[1].y > w[0].y { (w[2] - w[1]).with_y(0.0) } else { (w[0] - w[1]).with_y(0.0) })
+        .unwrap_or(Vec3::ZERO)
+        .normalize_or_zero()
 }
 
 impl Crypt {
@@ -117,6 +134,7 @@ impl Crypt {
                 if !near || pts[1].distance(next) > 0.05 || !self.hop_open(h, fwd) {
                     continue;
                 }
+                let face = if h.kind == HopKind::Ladder { ladder_face(&h.pts) } else { Vec3::ZERO };
                 return Some(
                     pts.windows(2)
                         .map(|w| {
@@ -131,7 +149,7 @@ impl Crypt {
                                 HopKind::Lift(n) if up => Some(n),
                                 _ => None,
                             };
-                            HopStep { to: w[1], speed, ride }
+                            HopStep { to: w[1], speed, ride, climb: up && h.kind == HopKind::Ladder, face }
                         })
                         .collect(),
                 );

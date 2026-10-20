@@ -80,13 +80,16 @@ pub(super) fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, 
 }
 
 /// Fienden går langs stigen eller heisen (`Mob.climb`), utenom nettet, i
-/// stigefarten eller heisfarten; heisen kjøres når den går om bord. Gir om
-/// den er på en lenke.
+/// stigefarten eller heisfarten; heisen kjøres når den går om bord. I selve
+/// stigen vender den ansiktet mot den og spiller klatreklippet (`climb`,
+/// baklengs ned), eller gangen om modellen ikke har det; på heisen står
+/// den. Gir om den er på en lenke.
 fn climb(m: &mut Mob, dt: f32, clips: &Clips, out: &mut Outcome) -> bool {
     if m.climb.is_empty() {
         return false;
     }
     let from = m.pos;
+    let now = m.climb[0];
     let mut left = dt;
     while left > 0.0 {
         let Some(step) = m.climb.first_mut() else { break };
@@ -104,14 +107,37 @@ fn climb(m: &mut Mob, dt: f32, clips: &Clips, out: &mut Outcome) -> bool {
             left = 0.0;
         }
     }
-    if m.climb.is_empty() {
-        // Av lenken: ny vei herfra.
-        m.repath = 0.0;
-    }
     let flat = (m.pos - from).with_y(0.0);
-    if flat.length_squared() > 1e-6 {
-        m.yaw = flat.x.atan2(flat.z);
+    let riding = !now.climb && (now.to.y - from.y).abs() > (now.to - from).with_y(0.0).length();
+    m.state = State::Walk;
+    if now.climb {
+        if now.face.length_squared() > 0.5 {
+            let want = now.face.x.atan2(now.face.z);
+            let diff = (want - m.yaw + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+            m.yaw += diff * (dt * 10.0).min(1.0);
+        }
+        if let Some(a) = m.anim.as_mut() {
+            // Klippet er laget for stigefarten (`mob_motion.CLIMB_SPEED`).
+            a.play(clips.climb.unwrap_or(clips.walk), true, 0.2);
+            let up = if now.to.y >= from.y { 1.0 } else { -1.0 };
+            a.speed = if clips.climb.is_some() { up } else { 1.0 };
+        }
+    } else {
+        if flat.length_squared() > 1e-6 {
+            m.yaw = flat.x.atan2(flat.z);
+        }
+        if let Some(a) = m.anim.as_mut() {
+            a.play(if riding { clips.idle } else { clips.walk }, true, 0.2);
+            a.speed = 1.0;
+        }
     }
-    set_state(m, State::Walk, clips);
+    if m.climb.is_empty() {
+        // Av lenken: ny vei herfra, og gangen igjen.
+        m.repath = 0.0;
+        if let Some(a) = m.anim.as_mut() {
+            a.play(clips.walk, true, 0.2);
+            a.speed = 1.0;
+        }
+    }
     true
 }

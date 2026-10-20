@@ -53,6 +53,7 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
                     hit2: r.clip("hit2"),
                     stagger: r.clip("stagger"),
                     die2: r.clip("die2"),
+                    climb: r.clip("climb"),
                     look: joint("neck").zip(joint("head")),
                     held: HELD.iter().find_map(|(b, m)| joint(b).map(|i| (i, *m))),
                     up: r.root.inverse().transform_vector3(Vec3::Y).normalize_or_zero(),
@@ -66,4 +67,13 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
         clips.push(c);
     }
     (all_rigs, clips, models)
+}
+
+impl Mobs {
+    /// Navnet på klippet fiende `i` spiller nå (til testene).
+    pub fn clip_name(&self, i: usize) -> Option<&str> {
+        let m = self.mobs.get(i)?;
+        let rig = self.rigs[m.kind as usize].as_ref()?;
+        rig.clips.get(m.anim.as_ref()?.clip).map(|c| c.name.as_str())
+    }
 }

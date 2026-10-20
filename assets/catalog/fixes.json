@@ -1624,6 +1624,14 @@
    "images": [
     "assets/catalog/review/framework_r2_for_etter.jpg"
    ]
+  },
+  "6a22b8cdb0fb": {
+   "text": [
+    "Kjettingstumpen med hengelåsen under mansjetten bak hver neve fulgte hånda stivt og stakk rett opp når armene ble løftet (slaget i bakken, brølet). Rettet slik: stumpen henger på et eget bein fra mansjetten (`hang_parts`, `chain.L`/`chain.R`) som vender som hoftene i hvert bilde (`Body.dangle`), så den henger ned uansett hvor armen er. Kjettingene til livet er delt som før. Før/etter: nærbilder av slaget, brølet og hvilen, og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r3_for_etter.jpg"
+   ]
   }
  },
  "grav_blindgang": {
@@ -2084,6 +2092,14 @@
     "verdict": "underkjent",
     "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
    }
+  },
+  "34b18256b259": {
+   "text": [
+    "Ved albuen sto en liten bit igjen når armen beveget seg. Det var baksida av albuen og underarmen: sonen som lar kappa følge brystet (`rigid`), nådde dit langs skallet, så den biten fulgte brystet og ikke armen. Rettet slik: albuene og underarmene står utenfor kappas sone (`outside`), og baksida av overarmen følger nå armen (armvekt 0,8 mot 0,3 før). Skjoldene og kappa følger brystet som før. Før/etter: vektene (rødt følger armen), brølet, feiet og brølet forfra."
+   ],
+   "images": [
+    "assets/catalog/review/navbar_r4_for_etter.jpg"
+   ]
   }
  },
  "twin_warden": {
@@ -2093,6 +2109,14 @@
    ],
    "images": [
     "assets/catalog/review/twin_warden_r2_for_etter.jpg"
+   ]
+  },
+  "6bdd47c11435": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/twin_warden_klatring_for_etter.jpg"
    ]
   }
  },
@@ -2430,6 +2454,14 @@
     "verdict": "underkjent",
     "why": "knærne kommer ut av kroppen når han går."
    }
+  },
+  "c0d7045f74bb": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/card_squire_klatring_for_etter.jpg"
+   ]
   }
  },
  "popover_wisp": {
@@ -2458,6 +2490,14 @@
     "verdict": "underkjent",
     "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender"
    }
+  },
+  "d53205c1895b": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra. Buen følger venstre hånd som før."
+   ],
+   "images": [
+    "assets/catalog/review/breadcrumb_archer_klatring_for_etter.jpg"
+   ]
   }
  },
  "grav_sjakt_tommer": {
@@ -2487,6 +2527,16 @@
    ],
    "images": [
     "assets/catalog/review/vegg_skar_for_etter.jpg"
+   ]
+  }
+ },
+ "skeleton_loader": {
+  "2a93ab5af583": {
+   "text": [
+    "I stigen gled den opp og ned i gangklippet. Rettet slik: nytt klatreklipp `climb` (mob_motion.py): ansiktet mot stigen, hendene griper vekselvis over hodet og føttene står på trinnene, to trinn per lem (høyre hånd og venstre fot sammen, så venstre hånd og høyre fot), laget for farten i stigen, så hendene og føttene står stille på trinnene mens den stiger; spillet spiller det baklengs ned stigen. Resten av klippene er som før. Før/etter: gangen den gled i, og klatringen fra siden og forfra."
+   ],
+   "images": [
+    "assets/catalog/review/skeleton_loader_klatring_for_etter.jpg"
    ]
   }
  }

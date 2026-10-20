@@ -266,6 +266,41 @@ fn fiendene_folger_deg_opp_stigen_og_med_heisen() {
         }
         assert!(best < 2.5, "{id}: fienden kom ikke opp til deg (nærmest {best:.1} m, står ved {:?})", mobs.mobs[i].pos - o);
         assert_eq!(rode, id == "grav/heis", "{id}: fienden kjørte heisen");
+        if id != "grav/stige" {
+            continue;
+        }
+
+        // I stigen spiller fienden klatreklippet (`mob_motion.climb`) med
+        // ansiktet mot stigen, opp og ned; uten klippet glir den i gangen.
+        let all = crate::application::rigs(&crate::tests::world().models);
+        let climbers: Vec<Kind> = Kind::ALL.into_iter().filter(|k| all.iter().any(|(n, r)| n == k.model() && r.clip("climb").is_some())).collect();
+        assert!(climbers.contains(&Kind::SkeletonLoader), "Skeleton Loader har ikke klatreklippet: {climbers:?}");
+        let face = Vec3::new(0.0, 0.0, -1.0); // stigen står mot nord i modulen (yaw 0, foten bak)
+        for (k, want) in [(Kind::SkeletonLoader, "climb"), (Kind::Button, "walk")] {
+            assert_eq!(climbers.contains(&k), want == "climb", "{k:?}");
+            for (start, goal) in [(from, to), (to, from)] {
+                let mut mobs = Mobs::new(&c, &all);
+                let i = mobs.spawn_aware(k, start);
+                let mut seen = std::collections::BTreeSet::new();
+                let mut faced = true;
+                for _ in 0..30 * 40 {
+                    mobs.update(1.0 / 30.0, goal, true, &c);
+                    let m = &mobs.mobs[i];
+                    if m.pos.y > o.y + 1.5 && m.pos.y < o.y + 4.5 {
+                        seen.insert(mobs.clip_name(i).unwrap_or("?").to_string());
+                        let ahead = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
+                        faced &= ahead.dot(face) > 0.9;
+                    }
+                    if mobs.mobs[i].pos.distance(goal) < 2.5 {
+                        break;
+                    }
+                }
+                let dir = if start == from { "opp" } else { "ned" };
+                assert!(mobs.mobs[i].pos.distance(goal) < 2.5, "{k:?} kom ikke {dir} stigen");
+                assert_eq!(seen.into_iter().collect::<Vec<_>>(), vec![want.to_string()], "{k:?} spiller feil klipp {dir} stigen");
+                assert!(faced || want == "walk", "{k:?} vender ikke ansiktet mot stigen {dir}");
+            }
+        }
     }
 }
 
