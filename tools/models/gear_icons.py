@@ -44,6 +44,10 @@ ICONS = {
     "search_plate": ("armor", "arms_plate"),
     "dialog_plate": ("armor", "arms_plate_dark"),
     "search_lantern": ("lantern", "furniture/hanging_lantern"),
+    # Helsedrikkene hos Apotekeren (`craft::WARES`): flaska fra TRELLIS
+    # (`item3d.py potion`) med lappen mot deg; «Fullt liv» er to flasker.
+    "potion": ("potion", "furniture/potion"),
+    "big_potion": ("potions", "furniture/potion"),
 }
 
 
@@ -93,7 +97,7 @@ def render_item(model, tmp):
 PLAIN = """
 import bpy, sys
 from mathutils import Vector
-path, out = sys.argv[-2], sys.argv[-1]
+path, out, look = sys.argv[-3], sys.argv[-2], sys.argv[-1]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=path)
 obs = [o for o in bpy.data.objects if o.type == "MESH"]
@@ -115,7 +119,7 @@ cam.ortho_scale = size * 1.12
 co = bpy.data.objects.new("cam", cam)
 sc.collection.objects.link(co)
 sc.camera = co
-d = Vector((0.5, 1.0, -0.25)).normalized()
+d = Vector([float(v) for v in look.split(",")]).normalized()
 co.location = c - d * size * 3
 co.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
 sc.render.filepath = out
@@ -123,10 +127,11 @@ bpy.ops.render.render(write_still=True)
 """
 
 
-def render_lantern(model, tmp):
+def render_lantern(model, tmp, look="0.5,1.0,-0.25"):
+    """Modellen rett fra fila, sett langs `look` (fra kameraet)."""
     out = os.path.join(tmp, "lantern.png")
     glb = os.path.join(ROOT, "assets", "models", f"{model}.glb")
-    subprocess.run([sys.executable, "-c", PLAIN, glb, out], check=True, capture_output=True)
+    subprocess.run([sys.executable, "-c", PLAIN, glb, out, look], check=True, capture_output=True)
     return out
 
 
@@ -170,6 +175,15 @@ def main(args):
                 img = armor_sheet(model)
             elif kind == "lantern":
                 img = keyed(render_lantern(model, tmp))
+            elif kind in ("potion", "potions"):
+                # Lappen vender mot +X: kameraet står foran den, litt ovenfra.
+                img = keyed(render_lantern(model, tmp, "-1.0,0.35,-0.35"))
+                if kind == "potions":
+                    pair = Image.new("RGBA", (int(img.width * 1.75), img.height))
+                    pair.alpha_composite(img, (int(img.width * 0.75), 0))
+                    small = img.resize((int(img.width * 0.88), int(img.height * 0.88)))
+                    pair.alpha_composite(small, (0, img.height - small.height))
+                    img = pair
             else:
                 img = keyed(render_item(model, tmp))
                 if kind == "weapon":

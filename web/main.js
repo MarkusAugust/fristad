@@ -1722,7 +1722,17 @@ function wareList(wares) {
       engine.buy(w.id);
     });
     text.append(name, why);
-    row.append(text, price, btn);
+    // Varen med ikon (`icons/<id>.png`, helsedrikkene); uten ikon står bare teksten.
+    const main = document.createElement("div");
+    main.className = "ware-main";
+    const ico = document.createElement("img");
+    ico.className = "ware-ico";
+    ico.src = `icons/${w.id}.png`;
+    ico.alt = "";
+    ico.loading = "lazy";
+    ico.onerror = () => ico.remove();
+    main.append(ico, text);
+    row.append(main, price, btn);
     list.appendChild(row);
   }
   return list;

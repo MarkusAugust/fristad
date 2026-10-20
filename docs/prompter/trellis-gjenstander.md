@@ -15,15 +15,6 @@ Ting som skal være ekte modeller fra TRELLIS, viktigst først: det spilleren ta
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small round glazed clay flask with a thick cork, a leather cord tied around the neck, a drip of golden oil at the lip. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 2. `potion`: Helsedrikken
-
-- **Hvor:** kistene og Apotekeren. **Størrelse:** 0,18 m.
-- **Ny.**
-
-```
-Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small squat green glass bottle of deep red herbal tincture, a waxed cork, a blank parchment label tied with string. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
-```
-
 ### 3. `lore_book`: Boka med lappene
 
 - **Hvor:** lappene og bøkene i krypten (`kit_lore`). **Størrelse:** 0,3 m.

@@ -17,5 +17,8 @@
   {"at":{"pos":[1.2,3.44,2.35],"rot":[0,0,0,1]},"model":"herb_basket_0","mounted":true},
   {"at":{"pos":[1.75,3.44,2.5],"rot":[0,0,0,1]},"model":"herb_basket_1","mounted":true},
   {"at":{"pos":[0.9,3.44,-2],"rot":[0,0,0,1]},"model":"herb_basket_2","mounted":true},
-  {"at":{"pos":[-1.25,3.44,-2.13],"rot":[0,0,0,1]},"model":"sacks_two","mounted":true}
+  {"at":{"pos":[-1.25,3.44,-2.13],"rot":[0,0,0,1]},"model":"sacks_two","mounted":true},
+  {"at":{"pos":[-0.62,1.76,2.125],"rot":[0,0,0,1]},"model":"potion","mounted":true},
+  {"at":{"pos":[-0.62,1.76,1.925],"rot":[0,0.2164,0,0.9763]},"model":"potion","mounted":true},
+  {"at":{"pos":[-0.62,1.76,0.855],"rot":[0,-0.1305,0,0.9914]},"model":"potion","mounted":true}
 ]

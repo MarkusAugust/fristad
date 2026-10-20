@@ -407,6 +407,7 @@
   "picket_fence": "Stakittgjerde.",
   "plate_rail": "Møbel: Tallerkenhylle med seks tinnfat på bakveggen (Vertshuset).",
   "popover_wisp": "Popover-irrbloset (nivå 9): en hvit, avrundet kube med ett stort øye, seglet på toppen, to små vinger, en pil under (stikkeren) og tre glødende fiolette kuber bak (eget bein); svever (tools/models/mob_rigid.py).",
+  "potion": "Helsedrikken: liten rund flaske av grønt glass med rødt innhold, voksforseglet kork, tau om halsen og en blank lapp, 0,18 m. Fra eierens 3D-form (TRELLIS.2, tools/models/item3d.py); står på disken hos Apotekeren, som selger den (craft::WARES), og er ikonet på varen (gear_icons.py).",
   "portal_ring": "Portalens steinring med runer.",
   "portal_runes": "Portalens glødende runer.",
   "portal_shard": "Svevende splint rundt portalen.",
