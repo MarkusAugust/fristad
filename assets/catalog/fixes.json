@@ -1632,6 +1632,14 @@
    "images": [
     "assets/catalog/review/framework_r3_for_etter.jpg"
    ]
+  },
+  "b5428540f7bd": {
+   "text": [
+    "Det sto fortsatt en liten flis ved håndleddet i slaget i bakken: kjettingleddet der kjettingen til livet er kuttet, satt på mansjetten med snittet av vektene til ankrene (0,57 underarm, 0,29 hånd og 0,14 overarm), så når hånda bøyde seg vred leddet seg ut av mansjetten, som fulgte underarmen, og en flik og et mørkt hakk stakk ut. Rettet slik: halvdelen av kjettingen ved lemmen følger bare beinet ankrene følger mest (underarmen), stivt, og kuttet legges der det tynne leddet begynner nærmest lemmen, så mindre av kjettingen blir igjen på mansjetten (`tethers` i mob3d.py). Den største strekningen i en kant rundt håndleddene i klippet gikk fra 5,7 til 2,7 cm. Før/etter: nærbilder av håndleddene og slaget i bakken forfra."
+   ],
+   "images": [
+    "assets/catalog/review/framework_r4_for_etter.jpg"
+   ]
   }
  },
  "grav_blindgang": {

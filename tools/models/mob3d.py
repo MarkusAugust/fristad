@@ -627,9 +627,10 @@ def tethers(ob, arm, spec):
     (én kjetting per side) er ankrene hjørnene rett utenfor: de som mest
     følger en arm (`ARM_BONES`) eller et bein (`LEG_BONES`) og de som
     følger kroppen. Hvert hjørne i biten får brøken t = veien til lemmen
-    delt på summen av veiene til begge, kuttet legges der færrest hjørner
-    har samme t (det tynneste leddet, mellom 0,2 og 0,8), og hver halvdel
-    tar snittet av vektene til ankrene den nådde."""
+    delt på summen av veiene til begge, kuttet legges der det tynne leddet
+    begynner nærmest lemmen (så tynt som det tynneste mellom 0,2 og 0,8),
+    og halvdelen ved kroppen tar snittet av vektene til ankrene den nådde,
+    mens halvdelen ved lemmen følger beinet ankrene følger mest alene."""
     import bmesh
     from scipy.sparse.csgraph import connected_components, dijkstra
 
@@ -683,19 +684,33 @@ def tethers(ob, arm, spec):
             da, db, sa, sb = da[:m], db[:m], sa[:m], sb[:m]
             fin = np.isfinite(da) & np.isfinite(db)
             t = np.where(fin, da / np.maximum(da + db, 1e-9), np.where(np.isfinite(da), 0.0, 1.0))
-            bins = np.linspace(0.2, 0.8, 13)
+            # Kuttet legges der det tynne leddet begynner, nærmest lemmen
+            # (den første ruta fra 0,1 som er nesten så tynn som den
+            # tynneste mellom 0,2 og 0,8): midt i det tynne ble en stump av
+            # kjettingen stående igjen på lemmen og stakk ut som en flis ved
+            # håndleddet når armen ble løftet (Rammeverkets slag i bakken).
+            bins = np.linspace(0.1, 0.8, 15)
             cnt = np.histogram(t[fin], bins)[0]
-            cut = float((bins[cnt.argmin()] + bins[cnt.argmin() + 1]) / 2)
+            thin = cnt[2:].min()
+            first = int(np.nonzero(cnt <= max(thin * 1.5, thin + 1))[0][0])
+            cut = float(bins[first])
             near = t < cut
             for side, pick, src in ((0, near, sa), (1, ~near, sb)):
                 s = src[pick]
                 s = s[s >= 0]
                 w = W[sub[s]].mean(0) if len(s) else W[C[pick]].mean(0)
+                if side == 0:
+                    # Halvdelen ved lemmen følger bare beinet ankrene følger
+                    # mest (underarmen), stivt: med snittet av vektene
+                    # (Rammeverket: 0,29 hånd og 0,14 overarm) vred slaget i
+                    # bakken kjettingleddet ut av mansjetten som en flis ved
+                    # håndleddet, mens mansjetten rundt fulgte underarmen.
+                    w = (np.arange(len(w)) == w.argmax()).astype(float)
                 halves.append(w / w.sum())
                 labels[C[pick]] = len(halves)
 
             top = names[int(halves[-2].argmax())], names[int(halves[-1].argmax())]
-            print(f"tjoret: {len(C)} hjørner, kuttet ved t={cut:.2f} ({int(cnt.min())} hjørner der), {int(near.sum())} følger {top[0]}, {int((~near).sum())} følger {top[1]}")
+            print(f"tjoret: {len(C)} hjørner, kuttet ved t={cut:.2f} ({int(cnt[first])} hjørner der), {int(near.sum())} følger {top[0]}, {int((~near).sum())} følger {top[1]}")
     if not halves:
         return
     # Skallet skilles langs kuttet: flatene får halvdelen de fleste

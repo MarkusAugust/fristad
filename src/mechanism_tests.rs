@@ -304,6 +304,73 @@ fn fiendene_folger_deg_opp_stigen_og_med_heisen() {
     }
 }
 
+/// Klatreklippet står på trinnene (`hops::climb_phase`): fasen regnes fra
+/// høyden over stigens fot delt på trinnavstanden, ikke fra klokka, så
+/// foten som holder står oppå et trinn opp og ned stigen, og fasen er den
+/// samme hvor fienden enn begynner (også i en stige som er strukket litt).
+#[test]
+fn klatreklippet_star_pa_trinnene() {
+    use crate::domain::mobs::{Kind, Mobs};
+    use crate::domain::world::crypt::hops::{climb_phase, ladder_rung};
+    use crate::domain::world::{crypt, Builder};
+    use glam::{Vec2, Vec3};
+    // Fasen: samme to trinn høyere, og venstre fot nederst på trinnet sitt
+    // (fasen 0,06 i `mob_motion.climb`) når foten står oppå et trinn.
+    for h in [3.0, 5.6, 6.0, 7.4] {
+        let r = ladder_rung(h);
+        assert!((0.3..0.37).contains(&r), "trinnavstanden {r} i en stige på {h} m");
+        for k in 0..6 {
+            let on = r * (k as f32 + 0.5) + 0.021;
+            let want = if k % 2 == 0 { 0.06 } else { 0.56 };
+            let ph = climb_phase(on, r);
+            assert!((ph - want).abs() < 1e-4, "{h} m, trinn {k}: fasen {ph}, ikke {want}");
+            assert!((climb_phase(on + 0.13 + 2.0 * r, r) - climb_phase(on + 0.13, r)).abs() < 1e-4);
+        }
+    }
+    // I stigen i modulen: foten som holder, står på et trinn opp og ned.
+    let (f, _) = showcase("grav/stige");
+    let mut c = crypt::build(&mut Builder::new(&[]), Vec2::ZERO, vec![(1, f)]);
+    c.open = vec![true; c.switches.len()];
+    let o = c.levels[0].origin;
+    let (below, above) = (Vec3::new(0.0, 0.0, 4.0) + o, Vec3::new(0.0, 6.0, -4.0) + o);
+    let l = c.ladders[0].clone();
+    let r = ladder_rung(l.top.y - l.pos.y);
+    let all = crate::application::rigs(&crate::tests::world().models);
+    for (start, goal) in [(below, above), (above, below)] {
+        let mut mobs = Mobs::new(&c, &all);
+        let i = mobs.spawn_aware(Kind::SkeletonLoader, start);
+        // Ankelen over sålen når den står (hvileposen).
+        let rest = ["foot.L", "foot.R"].map(|b| mobs.joint_world(i, b).unwrap().y - start.y).iter().copied().fold(f32::MAX, f32::min);
+        let mut last: Option<[f32; 2]> = None;
+        let (mut checked, mut worst, mut on) = (0, 0.0f32, 0.0f32);
+        for _ in 0..30 * 40 {
+            mobs.update(1.0 / 30.0, goal, true, &c);
+            let m = &mobs.mobs[i];
+            let climbing = mobs.clip_name(i) == Some("climb");
+            on = if climbing { on + 1.0 / 30.0 } else { 0.0 };
+            let feet = ["foot.L", "foot.R"].map(|b| mobs.joint_world(i, b).unwrap().y);
+            if let Some(prev) = last.filter(|_| on > 0.3 && m.pos.y > l.pos.y + 0.6 && m.pos.y < l.top.y - 0.6) {
+                for (y, p) in feet.iter().zip(prev) {
+                    // Foten står stille mens fienden stiger: den holder.
+                    if (y - p).abs() < 0.006 {
+                        let sole = y - rest - l.pos.y - 0.021;
+                        let off = (sole / r - 0.5 - (sole / r - 0.5).round()).abs() * r;
+                        worst = worst.max(off);
+                        checked += 1;
+                    }
+                }
+            }
+            last = Some(feet);
+            if m.pos.distance(goal) < 2.5 {
+                break;
+            }
+        }
+        let dir = if start == below { "opp" } else { "ned" };
+        assert!(checked > 20, "{dir}: føttene holdt aldri i stigen ({checked})");
+        assert!(worst < 0.05, "{dir}: foten står {worst:.3} m fra trinnet");
+    }
+}
+
 /// Den boltede fallemmen åpnes bare nedenfra: står du på den, faller du
 /// ikke, og fiendene kan ikke gå over stigen under den; klatrer du opp
 /// stigen, går den opp, og da kan fiendene også bruke stigen.

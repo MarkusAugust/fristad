@@ -81,8 +81,8 @@ pub(super) fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, 
 
 /// Fienden går langs stigen eller heisen (`Mob.climb`), utenom nettet, i
 /// stigefarten eller heisfarten; heisen kjøres når den går om bord. I selve
-/// stigen vender den ansiktet mot den og spiller klatreklippet (`climb`,
-/// baklengs ned), eller gangen om modellen ikke har det; på heisen står
+/// stigen vender den ansiktet mot den og spiller klatreklippet (`climb`, med
+/// fasen fra høyden), eller gangen om modellen ikke har det; på heisen står
 /// den. Gir om den er på en lenke.
 fn climb(m: &mut Mob, dt: f32, clips: &Clips, out: &mut Outcome) -> bool {
     if m.climb.is_empty() {
@@ -117,10 +117,17 @@ fn climb(m: &mut Mob, dt: f32, clips: &Clips, out: &mut Outcome) -> bool {
             m.yaw += diff * (dt * 10.0).min(1.0);
         }
         if let Some(a) = m.anim.as_mut() {
-            // Klippet er laget for stigefarten (`mob_motion.CLIMB_SPEED`).
-            a.play(clips.climb.unwrap_or(clips.walk), true, 0.2);
-            let up = if now.to.y >= from.y { 1.0 } else { -1.0 };
-            a.speed = if clips.climb.is_some() { up } else { 1.0 };
+            a.play(clips.climb.map_or(clips.walk, |c| c.0), true, 0.2);
+            if let Some((_, len)) = clips.climb {
+                // Klippet følger høyden på stigen, ikke klokka: fasen fra
+                // høyden over foten delt på trinnavstanden (`climb_phase`),
+                // så føttene står på trinnene opp og ned.
+                let ph = crate::domain::world::crypt::hops::climb_phase(m.pos.y - now.foot, now.rung);
+                a.time = ph * len;
+                a.speed = if now.to.y >= from.y { 1.0 } else { -1.0 };
+            } else {
+                a.speed = 1.0;
+            }
         }
     } else {
         if flat.length_squared() > 1e-6 {

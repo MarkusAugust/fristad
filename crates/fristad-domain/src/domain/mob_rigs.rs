@@ -53,7 +53,7 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
                     hit2: r.clip("hit2"),
                     stagger: r.clip("stagger"),
                     die2: r.clip("die2"),
-                    climb: r.clip("climb"),
+                    climb: r.clip("climb").map(|c| (c, r.clips[c].duration)),
                     look: joint("neck").zip(joint("head")),
                     held: HELD.iter().find_map(|(b, m)| joint(b).map(|i| (i, *m))),
                     up: r.root.inverse().transform_vector3(Vec3::Y).normalize_or_zero(),
@@ -70,6 +70,17 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
 }
 
 impl Mobs {
+    /// Hvor leddet `joint` står i verden nå (uten svingen og rykket etter et
+    /// slag), til testene.
+    pub fn joint_world(&self, i: usize, joint: &str) -> Option<Vec3> {
+        let m = self.mobs.get(i)?;
+        let rig = self.rigs[m.kind as usize].as_ref()?;
+        let pose = m.anim.as_ref()?.pose(rig);
+        let j = rig.joint_transform(&pose, rig.joint(joint)?).transform_point3(Vec3::ZERO);
+        let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2);
+        Some(m.pos + rot * (j * m.scale()))
+    }
+
     /// Navnet på klippet fiende `i` spiller nå (til testene).
     pub fn clip_name(&self, i: usize) -> Option<&str> {
         let m = self.mobs.get(i)?;
