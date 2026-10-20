@@ -313,3 +313,262 @@ fn paletten_har_alle_temaene_gruppert() {
     let order: Vec<usize> = p.modules.iter().map(|m| map::GROUPS.iter().position(|(x, _)| *x == m.group).unwrap()).collect();
     assert!(order.windows(2).all(|w| w[0] <= w[1]), "paletten står i gruppene sine");
 }
+
+/// Stemningen i et rom (fase 4): lysstyrken og fargen går til faklene og
+/// lysene i rommet, tåka og lyden til rommet i nivåfila, og i spillet hører
+/// du vannet og står i tåka der. Lys eieren setter ut, kan endres og flyttes.
+#[test]
+fn stemningen_og_lysene_folger_rommet() {
+    use crate::application::{prepare_level_editor, App};
+    use crate::domain::world::crypt::doc::Mood;
+    use crate::ports::driving::{Event, Play};
+    let mut e = blank();
+    let id = op(&mut e, r#"{"op":"add_module","module":"grav/rom_2x2","at":[2,0,0]}"#)[0].clone();
+    let room = |e: &LevelEditor| e.file().lights.iter().filter(|l| l.room.as_deref() == Some(id.as_str())).cloned().collect::<Vec<_>>();
+    let mut m = e.doc().modules.iter().find(|m| m.id == id).unwrap().clone();
+    m.mood = Some(Mood { torches: 1.0, ..Mood::default() });
+    e.apply(LevelOp::SetModule { module: m.clone() }).unwrap();
+    let plain = room(&e);
+    assert!(!plain.is_empty(), "faklene i rommet");
+    m.mood = Some(Mood { torches: 1.0, light: 0.5, color: Some([0.5, 0.7, 1.0]), fog: 0.6, sound: "vann".into() });
+    e.apply(LevelOp::SetModule { module: m.clone() }).unwrap();
+    let dim = room(&e);
+    assert_eq!(dim.len(), plain.len());
+    for (a, b) in plain.iter().zip(&dim) {
+        assert!((b.intensity.unwrap_or(2.0) - a.intensity.unwrap_or(2.0) * 0.5).abs() < 0.01, "halv lysstyrke: {a:?} → {b:?}");
+        assert_eq!(b.color, [0.5, 0.7, 1.0]);
+    }
+    let r = e.file().rooms.iter().find(|r| r.id == id).unwrap();
+    assert_eq!((r.fog, r.sound.as_str()), (0.6, "vann"));
+    // Kartet viser stemningen som gjelder (malens om eieren ikke har endret den).
+    let map = e.map();
+    assert!(map.modules.iter().find(|x| x.id == id).unwrap().own_mood);
+    assert!(!map.modules.iter().find(|x| x.module.ends_with("kapell")).unwrap().own_mood);
+    // Et lys eieren setter ut: farge, styrke, flamme, og det flyttes.
+    let l = op(&mut e, r#"{"op":"add_light","at":[9.0,2.4,1.0]}"#)[0].clone();
+    let mut light = e.doc().lights.iter().find(|x| x.id == l).unwrap().clone();
+    light.color = [0.4, 1.0, 0.4];
+    light.intensity = Some(4.0);
+    light.flicker = false;
+    light.pos = [10.0, 2.4, 2.0];
+    e.apply(LevelOp::SetLight { light }).unwrap();
+    let ml = e.map().lights.into_iter().find(|x| x.id == l).unwrap();
+    assert!(ml.own && !ml.flicker && ml.pos == [10.0, 2.4, 2.0] && ml.color == [0.4, 1.0, 0.4], "eierens lys har sin egen farge: {ml:?}");
+    // 0,5 lysstyrke i rommet halverer også eierens lys der.
+    assert!((ml.intensity - 2.0).abs() < 0.01, "styrken ganget med rommets: {}", ml.intensity);
+    // I spillet: stå i rommet og hør vannet; tåka kommer.
+    let k = kit();
+    let doc = e.doc().clone();
+    let prepared = prepare_level_editor(&crate::adapters::gltf::Embedded, 7, LevelEditor::new(doc, k));
+    let mut app = App::new(prepared, Blind, crate::adapters::rapier::RapierPhysics::new());
+    let back = app.session.view_pose();
+    assert!(app.session.level_play(back, false));
+    let origin = app.session.level_editing().unwrap().origin;
+    app.session.place_feet(origin + glam::Vec3::new(10.0, 0.1, 2.0));
+    let mut amb = None;
+    for _ in 0..90 {
+        for ev in app.tick(1.0 / 30.0) {
+            if let Event::Ambience(a) = ev {
+                amb = Some(a);
+            }
+        }
+    }
+    let a = amb.expect("lydbildet");
+    assert!(a.cellar && a.water > 0.9, "vannet i rommet: {a:?}");
+    let f = app.session.frame(16.0 / 9.0);
+    assert!(f.fog_density > 0.03, "tåka i rommet: {}", f.fog_density);
+}
+
+/// Malens innhold kan endres per nivå (fase 4): flyttes, endres og fjernes,
+/// lagret i modulen (`hidden`) og dokumentet, koblingene i malen følger
+/// med, og «tilbake til malen» gir det som var.
+#[test]
+fn malens_innhold_endres_per_nivaa() {
+    let mut e = blank();
+    let m = op(&mut e, r#"{"op":"add_module","module":"grav/porthall","at":[3,0,0]}"#)[0].clone();
+    let before = e.doc().clone();
+    let map = e.map();
+    let lever = map.things.iter().find(|t| t.kind == "lever" && t.module.as_deref() == Some(m.as_str())).expect("spaken i porthallen").clone();
+    let chest = map.things.iter().find(|t| t.kind == "chest" && t.module.as_deref() == Some(m.as_str())).expect("kista i porthallen").clone();
+    assert!(!lever.own);
+    // Flytt spaken: den blir eierens med samme id, og koblingen til porten står.
+    let to = [lever.pos[0] + 1.0, lever.pos[1], lever.pos[2]];
+    e.apply(LevelOp::MoveThing { id: lever.id.clone(), to }).unwrap();
+    let local = lever.id.split_once('/').unwrap().1.to_string();
+    assert!(e.doc().modules.iter().find(|x| x.id == m).unwrap().hidden.contains(&local));
+    let mark = e.file().marks.iter().find(|x| x.id.as_deref() == Some(lever.id.as_str())).unwrap();
+    assert_eq!(mark.pos.unwrap(), to, "spaken står der den ble flyttet");
+    assert!(!mark.opens.is_empty(), "spaken åpner fortsatt porten");
+    assert_eq!(e.file().marks.iter().filter(|x| x.kind == "lever").count(), 1, "bare én spak");
+    let t = e.map().things.into_iter().find(|x| x.id == lever.id).unwrap();
+    assert!(t.own && t.template.as_deref() == Some(m.as_str()));
+    assert!(!errors(&e).iter().any(|x| x.contains("kobling")), "{:?}", errors(&e));
+    // Endre kista: hva den gir.
+    let mut c = e.flat().things.into_iter().find(|x| x.id == chest.id).unwrap();
+    c.loot = Some("button".into());
+    c.anchor = "fri".into();
+    c.pos = Some(chest.pos);
+    e.apply(LevelOp::SetThing { thing: c }).unwrap();
+    assert_eq!(e.file().marks.iter().find(|x| x.id.as_deref() == Some(chest.id.as_str())).unwrap().loot.as_deref(), Some("button"));
+    // Fjern kista fra modulen i dette nivået.
+    e.apply(LevelOp::Reattach { module: m.clone(), thing: chest.id.split_once('/').unwrap().1.into() }).unwrap();
+    e.apply(LevelOp::Delete { ids: vec![chest.id.clone()] }).unwrap();
+    assert!(!e.file().marks.iter().any(|x| x.id.as_deref() == Some(chest.id.as_str())), "kista er borte");
+    assert_eq!(e.map().modules.iter().find(|x| x.id == m).unwrap().removed, vec![chest.id.split_once('/').unwrap().1.to_string()]);
+    // Flytt modulen: den løsnede spaken følger med.
+    e.apply(LevelOp::Move { ids: vec![m.clone()], by: [0, 0, 2] }).unwrap();
+    assert_eq!(e.doc().things.iter().find(|x| x.id == lever.id).unwrap().pos.unwrap(), [to[0], to[1], to[2] + 8.0]);
+    // Tilbake til malen: begge, og dokumentet er som før.
+    e.apply(LevelOp::Move { ids: vec![m.clone()], by: [0, 0, -2] }).unwrap();
+    e.apply(LevelOp::Reattach { module: m.clone(), thing: local }).unwrap();
+    e.apply(LevelOp::Reattach { module: m.clone(), thing: chest.id.split_once('/').unwrap().1.into() }).unwrap();
+    assert_eq!(e.doc(), &before, "tilbake til malen gir dokumentet som før");
+    // Det lagres og leses likt.
+    e.apply(LevelOp::MoveThing { id: lever.id.clone(), to }).unwrap();
+    let text = level_doc_json(e.doc());
+    assert!(text.contains("\"hidden\""), "{text}");
+    let back: LevelDoc = serde_json::from_str(&text).unwrap();
+    assert_eq!(&back, e.doc());
+}
+
+/// Toppen og bunnen (stigen, heisen, broa) og vannstanden følger innholdet
+/// når det flyttes, dreies og limes inn.
+#[test]
+fn toppen_og_bunnen_folger_innholdet() {
+    let mut e = blank();
+    let r = op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[2,0,0]}"#)[0].clone();
+    let l = op(&mut e, r#"{"op":"add_thing","kind":"ladder","at":[8.0,0,0.0]}"#)[0].clone();
+    let mut t = e.doc().things.iter().find(|x| x.id == l).unwrap().clone();
+    t.top = Some([8.0, 6.0, 0.5]);
+    t.bottom = Some([8.0, -1.0, 0.0]);
+    t.levels = vec![1.0, 0.2];
+    e.apply(LevelOp::SetThing { thing: t }).unwrap();
+    e.apply(LevelOp::MoveThing { id: l.clone(), to: [9.0, 1.0, 0.0] }).unwrap();
+    let t = e.doc().things.iter().find(|x| x.id == l).unwrap().clone();
+    assert_eq!((t.top, t.bottom), (Some([9.0, 7.0, 0.5]), Some([9.0, 0.0, 0.0])));
+    assert_eq!(t.levels, vec![2.0, 1.2]);
+    e.apply(LevelOp::Move { ids: vec![r.clone()], by: [0, 0, 1] }).unwrap();
+    let t = e.doc().things.iter().find(|x| x.id == l).unwrap().clone();
+    assert_eq!(t.top, Some([9.0, 7.0, 4.5]), "toppen følger modulen");
+    e.apply(LevelOp::Turn { ids: vec![r.clone()], back: false }).unwrap();
+    let t = e.doc().things.iter().find(|x| x.id == l).unwrap().clone();
+    // Dreid om modulens midte (8, 4): (9, 4.5) → (7.5, 5).
+    assert_eq!(t.top, Some([7.5, 7.0, 5.0]), "toppen dreies med");
+    assert_eq!(t.pos, Some([8.0, 1.0, 5.0]));
+}
+
+/// Etasjene (fase 4): stigen og heisen kobler etasjene i nåbarheten, en
+/// modul ingen kommer til, meldes, og en trapp som ikke går noen vei i den
+/// ene enden, meldes.
+#[test]
+fn etasjene_henger_sammen() {
+    let mut e = blank();
+    // Stigen øst for kapellet: forrommet nede mot kapellet, rommet oppe 6 m over.
+    let s = op(&mut e, r#"{"op":"add_module","module":"grav/stige","at":[2,0,-1]}"#)[0].clone();
+    // (En kiste midt i rommet oppe stenger den smale gangen i nettet; en fiende gjør ikke det.)
+    let chest = op(&mut e, r#"{"op":"add_thing","kind":"mob","at":[8.0,6.0,-8.0],"label":"button"}"#)[0].clone();
+    assert!(!errors(&e).iter().any(|x| x.contains(&chest)), "fienden oppe nås over stigen: {:?}", errors(&e));
+    assert!(!e.issues().iter().any(|i| i.rule == "naa" && i.msg.contains("kan ikke nås fra start")), "{:?}", e.issues());
+    assert!(e.map().things.iter().any(|t| t.kind == "ladder" && t.other_end.is_some_and(|p| p[1] > 5.0)), "kartet kjenner toppen av stigen");
+    // Uten stigen kommer ingen opp.
+    let ladder = e.map().things.into_iter().find(|t| t.kind == "ladder").unwrap().id;
+    e.apply(LevelOp::Delete { ids: vec![ladder] }).unwrap();
+    assert!(errors(&e).iter().any(|x| x.contains(&chest) && x.contains("kan ikke nås")), "{:?}", errors(&e));
+    assert!(e.undo());
+    let _ = s;
+    // En halv etasje inntil kapellet: den ene enden møter kapellet, den andre ingenting.
+    op(&mut e, r#"{"op":"add_module","module":"grav/halv_etasje","at":[-2,0,0]}"#);
+    let stair = e.issues().iter().filter(|i| i.rule == "trapp").map(|i| i.msg.clone()).collect::<Vec<_>>();
+    assert!(!stair.is_empty() && stair.iter().all(|m| m.contains("går ikke noen vei")), "{stair:?}");
+    // Et rom ingen kommer til.
+    op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[10,0,10]}"#);
+    assert!(e.issues().iter().any(|i| i.rule == "naa" && i.msg.contains("kan ikke nås fra start")), "{:?}", e.issues());
+}
+
+/// Malene (fase 4): et utvalg lagres som mal med innholdet og koblingene,
+/// og settes ut igjen dreid og speilet med nye id-er som henger sammen.
+#[test]
+fn malene_settes_ut_med_koblingene() {
+    let mut e = blank();
+    // Rommet med en gang vest for seg og porten mellom dem, langt unna kapellet.
+    let r = op(&mut e, r#"{"op":"add_module","module":"grav/rom_3x2","at":[10,0,0]}"#)[0].clone();
+    let map = e.map();
+    let m = map.modules.iter().find(|m| m.id == r).unwrap();
+    let o = m.openings.iter().filter(|o| o.side == 3).min_by_key(|o| o.at[1].abs()).unwrap().clone();
+    let g = op(&mut e, &format!(r#"{{"op":"add_module","module":"grav/rom_1x1","at":[{},0,{}]}}"#, o.at[0] - 1, o.at[1]))[0].clone();
+    op(&mut e, &format!(r#"{{"op":"opening","module":"{r}","opening":"{}","kind":"port"}}"#, o.id));
+    let gate = e.doc().modules.iter().find(|m| m.id == r).unwrap().overrides[0].id.clone().unwrap();
+    assert!(e.map().edges.iter().any(|x| x.kind == "gate"), "porten mellom gangen og rommet");
+    let lever = op(&mut e, r#"{"op":"add_thing","kind":"lever","at":[41.0,0,1.0]}"#)[0].clone();
+    op(&mut e, &format!(r#"{{"op":"link","from":"{lever}","to":"{gate}","kind":"opens"}}"#));
+    let light = op(&mut e, r#"{"op":"add_light","at":[40.0,2.4,0.0]}"#)[0].clone();
+    let tpl = e.template(&[r.clone(), g.clone()], "Porten med spaken");
+    assert_eq!(tpl.modules.len(), 2);
+    assert_eq!(tpl.modules[0].at, [0, 0, 0], "malen begynner i origo");
+    assert!(tpl.things.iter().any(|t| t.id == lever), "spaken i rommet er med");
+    assert!(tpl.lights.iter().any(|l| l.id == light), "lyset i rommet er med");
+    assert_eq!(tpl.links.len(), 1, "koblingen er med");
+    // Malen leses og skrives som et nivådokument.
+    let text = level_doc_json(&tpl);
+    let tpl: LevelDoc = serde_json::from_str(&text).unwrap();
+    // Sett den ut tre steder: som den er, dreid og speilet.
+    let before = e.doc().clone();
+    for (at, rot, mirror) in [([10, 0, 8], 0u8, false), ([24, 0, 0], 1, false), ([10, 0, -10], 2, true)] {
+        let made = e.apply(LevelOp::Stamp { template: Box::new(tpl.clone()), at, rot, mirror }).unwrap();
+        assert_eq!(made.len(), 4, "modulene, spaken og lyset: {made:?}");
+        let (m2, l2) = (made[0].clone(), made[2].clone());
+        assert_ne!(m2, r);
+        let doc = e.doc();
+        let gate2 = doc.modules.iter().find(|m| m.id == m2).unwrap().overrides[0].id.clone().unwrap();
+        assert_ne!(gate2, gate, "porten får ny id");
+        assert!(doc.links.iter().any(|l| l.from == l2 && l.to == gate2), "spaken åpner sin egen port");
+        // Spaken står i den nye modulen.
+        let foot = e.footprint(doc.modules.iter().find(|m| m.id == m2).unwrap());
+        let p = doc.things.iter().find(|t| t.id == l2).unwrap().pos.unwrap();
+        let cell = [(p[0] / 4.0).round() as i32, (p[2] / 4.0).round() as i32];
+        assert!(foot.iter().any(|c| [c[0], c[2]] == cell), "spaken {p:?} i modulen {foot:?}");
+        let mm = doc.modules.iter().find(|m| m.id == m2).unwrap();
+        assert_eq!((mm.rot, mm.mirror), (rot, mirror));
+    }
+    assert!(!errors(&e).iter().any(|x| x.starts_with("kobling")), "{:?}", errors(&e));
+    // Ett angresteg per mal.
+    for _ in 0..3 {
+        assert!(e.undo());
+    }
+    assert_eq!(e.doc(), &before);
+}
+
+/// «Merk klart» (fase 4): et lite nivå 1 merket klart erstatter det gamle
+/// nivå 1 i spillet (`data::ready_docs`, `Data::compose_levels`), mens et
+/// utkast og et prøvenivå uten nummer blir stående utenfor.
+#[test]
+fn et_klart_nivaa_erstatter_det_gamle() {
+    use crate::adapters::data::ready_docs;
+    use crate::ports::ModelSource;
+    let mut e = blank();
+    let head = |e: &LevelEditor, n: u32, status: &str| crate::domain::edit::level::Head { level: LevelId::N(n), status: status.into(), ..e.head() };
+    op(&mut e, r#"{"op":"add_module","module":"grav/nedgang","at":[2,0,0],"rot":1}"#);
+    op(&mut e, r#"{"op":"add_thing","kind":"rest","at":[0.0,0,2.0]}"#);
+    e.apply(LevelOp::SetHead { head: head(&e, 1, "utkast") }).unwrap();
+    assert!(errors(&e).is_empty(), "det lille nivået: {:?}", errors(&e));
+    let draft = e.doc().clone();
+    e.apply(LevelOp::SetHead { head: head(&e, 1, "klar") }).unwrap();
+    let ready = e.doc().clone();
+    let test = LevelDoc { status: "klar".into(), level: LevelId::Name("test".into()), ..ready.clone() };
+    let picked = ready_docs([draft.clone(), ready.clone(), test].into_iter());
+    assert_eq!(picked.len(), 1, "bare det klare med nummer");
+    assert_eq!(picked[0].0, 1);
+    // Verden bygd med det: nivå 1 er det nye, de andre står.
+    let mut data = crate::adapters::gltf::Embedded.world_data();
+    let old: Vec<u32> = data.levels.iter().map(|(n, _)| *n).collect();
+    let old1 = data.levels.iter().find(|(n, _)| *n == 1).map(|(_, f)| f.rooms.len());
+    data.docs = picked;
+    let prepared = crate::application::prepare_with(&crate::adapters::gltf::Embedded, 7, data, false);
+    let c = &prepared.world.crypt;
+    assert_eq!(c.levels.iter().map(|l| l.n).collect::<Vec<_>>(), old, "de samme nivåene");
+    let l1 = c.levels.iter().find(|l| l.n == 1).unwrap();
+    let want = e.file().rooms.len();
+    assert_eq!(l1.rooms.len(), want, "nivå 1 er det nye ({want} rom, det gamle hadde {old1:?})");
+    assert!(l1.rooms.iter().any(|r| r.id == "kapell"), "kapellet fra det nye nivået");
+    assert!(l1.down.is_some(), "trappa ned");
+}

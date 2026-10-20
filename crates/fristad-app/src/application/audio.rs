@@ -52,6 +52,9 @@ pub(super) struct Soundscape {
     seed: u32,
     /// Innendørs (tak over deg og vegger rundt), målt med stråler.
     pub indoor: bool,
+    /// Tåka i rommet du står i nede i krypten (stemningen, `Room.fog`),
+    /// jevnet ut over et sekund eller to.
+    pub mood_fog: f32,
     /// Innbyggerne: hvor de sto sist bilde og hvor langt de har gått siden
     /// forrige skritt.
     npc_steps: Vec<(Vec3, f32)>,
@@ -70,6 +73,7 @@ impl Soundscape {
             distant_t: 6.0,
             seed: 0x9e37_79b9,
             indoor: false,
+            mood_fog: 0.0,
             npc_steps: vec![],
         }
     }
@@ -145,6 +149,11 @@ impl Session {
     /// Lydbildet: hvor nær du er torget, smia, kirka og dyrene, sendt fire
     /// ganger i sekundet når det har endret seg.
     pub(super) fn ambience(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
+        // Stemningen i rommet du står i (`docs/nivaaredigering.md` del 8.4):
+        // tåka tones inn og ut, og lyden kommer i lydbildet under.
+        let room = if in_crypt { self.crypt.room_at(feet + Vec3::Y * 0.2) } else { None };
+        let fog = room.map(|(l, r)| self.crypt.levels[l].rooms[r].fog).unwrap_or(0.0);
+        self.sound.mood_fog += (fog - self.sound.mood_fog) * (1.0 - (-dt * 1.2).exp());
         self.sound.t -= dt;
         if self.sound.t > 0.0 {
             return;
@@ -172,15 +181,18 @@ impl Session {
         let near = |at: Vec2, r: f32| (1.0 - p.distance(at) / r).clamp(0.0, 1.0).powi(2);
         let [square, forge, church] = self.sound.spots;
         let meadow = self.herd.positions().map(|a| near(a, 45.0)).fold(0.0, f32::max);
+        // Lyden rommet har fått i redigeringen (`doc::SOUNDS`).
+        let mood = room.map(|(l, r)| self.crypt.levels[l].rooms[r].sound.as_str()).unwrap_or("");
+        let is = |s: &str| if mood == s { 1.0 } else { 0.0 };
         let a = Ambience {
             square: near(square, 55.0),
             forge: near(forge, 32.0),
             church: near(church, 140.0),
             meadow,
-            fire: close(&self.sound.fires, 7.0),
-            water: 0.0,
-            lava: 0.0,
-            chasm: 0.0,
+            fire: close(&self.sound.fires, 7.0).max(is("ild") * 0.8),
+            water: is("vann"),
+            lava: is("lava"),
+            chasm: is("kloft").max(is("vind") * 0.5),
             // Inne i Vertshuset: skjenkestua der trubaduren sitter er 1,
             // overetasjen og kjelleren litt svakere; utenfor høres han
             // svakere jo lenger unna du står.

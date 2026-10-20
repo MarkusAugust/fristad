@@ -125,6 +125,11 @@ export function draw(canvas, st) {
   }
   const floor = st.floor;
   const onFloor = (y) => y >= floor - 0.5 && y < floor + 2.5;
+  // Etasjen under (den nærmeste under denne): gjennomsiktig, så du ser hva
+  // trappene, stigene og heisene skal ned til. Med snittet (S) står bare den
+  // og denne; ellers er de andre stiplet.
+  const below = (map.floors || []).filter((f) => f < floor - 2.5).reduce((a, f) => (a === null || f > a ? f : a), null);
+  const onBelow = (y) => below !== null && y >= below - 0.5 && y < below + 2.5;
   const rect = (i, j, inset) => {
     const [a, b] = v.toScreen(i * CELL - CELL / 2 + inset, j * CELL - CELL / 2 + inset);
     const size = (CELL - 2 * inset) * s;
@@ -135,10 +140,17 @@ export function draw(canvas, st) {
     for (const m of map.modules) {
       const here = m.cells.filter((c) => onFloor(c[1]));
       if (pass === 0) {
-        if (here.length) continue;
+        const under = m.cells.filter((c) => onBelow(c[1]) && !onFloor(c[1]));
+        if (under.length) {
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = KIND_FILL[m.kind] || "#4a4a4a";
+          for (const c of under) ctx.fillRect(...rect(c[0], c[2], 0.25));
+          ctx.globalAlpha = 1;
+        }
+        if (here.length || st.cut) continue;
         ctx.strokeStyle = "#2c3036";
         ctx.setLineDash([3, 3]);
-        for (const c of m.cells) ctx.strokeRect(...rect(c[0], c[2], 0.3));
+        for (const c of m.cells) if (!onBelow(c[1])) ctx.strokeRect(...rect(c[0], c[2], 0.3));
         ctx.setLineDash([]);
         continue;
       }
@@ -212,6 +224,22 @@ export function draw(canvas, st) {
       arrow(ctx, v, o.at[0], o.at[1], o.side, isSel ? "#ffd36a" : o.chosen ? CHOSEN_COLOR[o.chosen] || "#ddd" : "rgba(220,214,200,.45)", isSel ? 1.3 : 1);
     }
   }
+  // Stigene og heisene: enden i en annen etasje (⇅ med høyden).
+  for (const t of map.things) {
+    if (!t.other_end) continue;
+    for (const [p, q] of [
+      [t.pos, t.other_end],
+      [t.other_end, t.pos],
+    ]) {
+      if (!onFloor(p[1]) || onFloor(q[1])) continue;
+      const [px, py] = v.toScreen(p[0], p[2]);
+      ctx.fillStyle = "#4fd3e0";
+      ctx.font = "600 12px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`⇅ ${q[1] > p[1] ? "+" : ""}${Math.round(q[1] - p[1])} m`, px, py - 14);
+    }
+  }
   // Koblingene og patruljene.
   const pos = new Map(map.things.map((t) => [t.id, t.pos]));
   ctx.strokeStyle = "#5aa7ff";
@@ -242,12 +270,32 @@ export function draw(canvas, st) {
   ctx.lineWidth = 1;
   // Lysene.
   for (const l of map.lights) {
-    if (!onFloor(l.pos[1] - 1.5) || !l.own) continue;
+    if (!onFloor(l.pos[1] - 1.5)) continue;
     const [px, py] = v.toScreen(l.pos[0], l.pos[2]);
-    ctx.fillStyle = "rgba(255,200,90,.85)";
+    const c = l.color.map((x) => Math.round(Math.min(1, x) * 255));
+    if (!l.own) {
+      // Faklene og lysene fra modulene: små prikker.
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},.45)`;
+      ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
+      continue;
+    }
+    const selected = st.sel.includes(l.id);
+    if (selected) {
+      ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},.5)`;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(px, py, l.range * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
     ctx.beginPath();
-    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.arc(px, py, selected ? 7 : 5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = selected ? "#ffd36a" : "#101114";
+    ctx.lineWidth = selected ? 2.5 : 1.5;
+    ctx.stroke();
+    ctx.lineWidth = 1;
   }
   // Innholdet.
   const r = Math.max(6, Math.min(11, s * 0.5));
@@ -338,6 +386,7 @@ export function draw(canvas, st) {
       ctx.setLineDash([]);
     }
   }
+  drawMini(ctx, st, W, H);
   // Kameraet i 3D.
   if (st.camera && st.camera.length) {
     const [x, , z, yaw] = st.camera;
@@ -361,6 +410,67 @@ export function draw(canvas, st) {
     ctx.arc(px, py, 4, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+/// Minikartet nede til høyre: hele nivået med alle etasjene (denne
+/// sterkest), utsnittet kartet viser og 3D-kameraet. Gir ruta det står i
+/// og hvordan et punkt der blir et sted i nivået (`toWorld`), eller null.
+export function miniMap(map, W, H) {
+  const cells = map.modules.flatMap((m) => m.cells);
+  if (!cells.length || W < 360 || H < 260) return null;
+  const xs = cells.map((c) => c[0] * CELL);
+  const zs = cells.map((c) => c[2] * CELL);
+  const [x0, x1, z0, z1] = [Math.min(...xs) - 6, Math.max(...xs) + 6, Math.min(...zs) - 6, Math.max(...zs) + 6];
+  const w = 170;
+  const h = 130;
+  const k = Math.min(w / (x1 - x0), h / (z1 - z0));
+  const rect = [W - w - 10, H - h - 30, w, h];
+  const ox = rect[0] + (w - (x1 - x0) * k) / 2;
+  const oz = rect[1] + (h - (z1 - z0) * k) / 2;
+  return {
+    rect,
+    k,
+    toScreen: (x, z) => [ox + (x - x0) * k, oz + (z - z0) * k],
+    toWorld: (px, py) => [(px - ox) / k + x0, (py - oz) / k + z0],
+    inside: (px, py) => px >= rect[0] && px <= rect[0] + w && py >= rect[1] && py <= rect[1] + h,
+  };
+}
+
+function drawMini(ctx, st, W, H) {
+  const mini = miniMap(st.map, W, H);
+  if (!mini) return;
+  const [rx, ry, rw, rh] = mini.rect;
+  ctx.fillStyle = "rgba(10,11,13,.88)";
+  ctx.fillRect(rx - 4, ry - 4, rw + 8, rh + 8);
+  ctx.strokeStyle = "#30343a";
+  ctx.strokeRect(rx - 4.5, ry - 4.5, rw + 9, rh + 9);
+  const size = CELL * mini.k;
+  for (const m of st.map.modules) {
+    for (const c of m.cells) {
+      const here = c[1] >= st.floor - 0.5 && c[1] < st.floor + 2.5;
+      ctx.fillStyle = here ? KIND_FILL[m.kind] || "#4a4a4a" : "rgba(120,120,120,.35)";
+      const [px, py] = mini.toScreen(c[0] * CELL - CELL / 2, c[2] * CELL - CELL / 2);
+      ctx.fillRect(px, py, Math.max(1, size - 0.5), Math.max(1, size - 0.5));
+    }
+  }
+  // Utsnittet kartet viser.
+  const v = st.view;
+  const [a, b] = mini.toScreen(...v.toWorld(0, 0));
+  const [c, d] = mini.toScreen(...v.toWorld(W, H));
+  ctx.strokeStyle = "#ffd36a";
+  ctx.strokeRect(Math.max(rx, a), Math.max(ry, b), Math.min(rx + rw, c) - Math.max(rx, a), Math.min(ry + rh, d) - Math.max(ry, b));
+  if (st.camera && st.camera.length) {
+    const [px, py] = mini.toScreen(st.camera[0], st.camera[2]);
+    ctx.fillStyle = "#8fd0ff";
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#a7a49c";
+  ctx.font = "11px Inter, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("Oversikt (klikk for å gå dit)", rx, ry - 6);
 }
 
 function sideLine(ctx, v, i, j, w) {
@@ -417,6 +527,13 @@ export function hit(map, floor, x, z, reach) {
     if (!onFloor(t.pos[1]) || t.kind === "prop") continue;
     const d = Math.hypot(t.pos[0] - x, t.pos[2] - z);
     if (d < reach && (!best || d < best.d)) best = { type: "thing", id: t.id, own: t.own, d };
+  }
+  if (best) return best;
+  // Lysene eieren har satt ut.
+  for (const l of map.lights) {
+    if (!l.own || !onFloor(l.pos[1] - 1.5)) continue;
+    const d = Math.hypot(l.pos[0] - x, l.pos[2] - z);
+    if (d < reach && (!best || d < best.d)) best = { type: "light", id: l.id, own: true, d };
   }
   if (best) return best;
   // Åpningene: nær midten av en ytre side.

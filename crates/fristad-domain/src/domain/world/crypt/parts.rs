@@ -280,6 +280,9 @@ pub struct Room {
     pub sink: f32,
     /// Så langt over taket (`h`) rommet når i lyset: hvelvet.
     pub rise: f32,
+    /// Stemningen: tåka (0–1) og lyden (`doc::SOUNDS`).
+    pub fog: f32,
+    pub sound: String,
 }
 
 impl Room {

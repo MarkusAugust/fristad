@@ -38,7 +38,7 @@ pub fn rooms(g: &Grid, list: &[DocRoom]) -> (Vec<RoomDef>, Vec<Issue>) {
         // Hvelvet: toppen av bitene (`top`), over den frie høyden.
         let vault = cells.iter().map(|&k| g.cells[k].y + g.cells[k].piece.top).fold(f32::MIN, f32::max);
         let rise = (vault - top).max(0.0);
-        out.push(RoomDef { id: r.id.clone(), name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }, poly, y: mm(y), h: mm(top - y), rise: mm(rise), secret: r.secret });
+        out.push(RoomDef { id: r.id.clone(), name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }, poly, y: mm(y), h: mm(top - y), rise: mm(rise), secret: r.secret, fog: mm(r.mood.fog.clamp(0.0, 1.0)), sound: r.mood.sound.clone() });
     }
     // Hvelvet når aldri opp i et rom over (to etasjer over hverandre).
     let boxes: Vec<([f32; 4], f32)> = out.iter().map(|r| (bounds(&r.poly), r.y)).collect();

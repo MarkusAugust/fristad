@@ -362,6 +362,12 @@ impl Session {
             _ => RoomLight { boxes: vec![(Vec2::splat(1.0e6), Vec2::splat(1.0e6 + 1.0), 1.0e6, 1.0e6 + 1.0)], masks: vec![u64::MAX; lights.len()] },
         });
         f.lights = lights;
+        // Med spillets lys: tåka i rommet kameraet står i (stemningen).
+        if let Some((lv, r)) = l.crypt.room_at(eye - Vec3::Y * 1.4).filter(|_| !l.work_light) {
+            f.fog_density = l.crypt.levels[lv].rooms[r].fog * 0.09;
+            f.fog_falloff = 1.0e-4;
+            f.fog_color = Vec3::new(0.035, 0.042, 0.045);
+        }
         f.lines = l.lines();
     }
 }

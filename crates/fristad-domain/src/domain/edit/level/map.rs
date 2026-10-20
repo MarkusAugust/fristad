@@ -59,12 +59,18 @@ pub struct MapModule {
     pub rot: u8,
     pub mirror: bool,
     pub room: Option<String>,
-    pub mood: Option<Mood>,
+    /// Stemningen som gjelder: eierens, ellers malens hovedrom.
+    pub mood: Mood,
+    /// Eieren har endret stemningen.
+    pub own_mood: bool,
     pub stone: Option<StoneRef>,
     /// Rutene (i, y, j) modulen dekker.
     pub cells: Vec<[i32; 3]>,
     pub overrides: Vec<DocOverride>,
     pub openings: Vec<MapOpening>,
+    /// Malens innhold eieren har fjernet i dette nivået (malens id-er), så
+    /// det kan settes tilbake.
+    pub removed: Vec<String>,
 }
 
 /// En åpning i en modul satt ut: ruta, gulvet, siden i nivået (0 N, 1 Ø,
@@ -107,6 +113,12 @@ pub struct MapThing {
     pub own: bool,
     /// Modulen det kom fra (de som ikke er eierens).
     pub module: Option<String>,
+    /// Den andre enden av en stige (toppen) eller heis (bunnen), som kobler
+    /// etasjene.
+    pub other_end: Option<[f32; 3]>,
+    /// Malens innhold eieren har flyttet eller endret: modulen det hører til
+    /// (så det kan settes tilbake slik malen har det).
+    pub template: Option<String>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -123,6 +135,9 @@ pub struct MapLight {
     pub pos: [f32; 3],
     pub color: [f32; 3],
     pub range: f32,
+    /// Styrken (2 om den ikke er satt) og om den blafrer som en flamme.
+    pub intensity: f32,
+    pub flicker: bool,
     pub own: bool,
 }
 
@@ -164,11 +179,13 @@ impl LevelEditor {
                     rot: m.rot % 4,
                     mirror: m.mirror,
                     room: m.room.clone(),
-                    mood: m.mood.clone(),
+                    mood: m.mood.clone().or_else(|| def.and_then(|d| d.rooms.first()).map(|r| r.mood.clone())).unwrap_or_default(),
+                    own_mood: m.mood.is_some(),
                     stone: m.stone.clone(),
                     cells: footprint(m, kit),
                     overrides: m.overrides.clone(),
                     openings,
+                    removed: m.hidden.iter().filter(|h| !doc.things.iter().any(|t| t.id == format!("{}/{h}", m.id))).cloned().collect(),
                 }
             })
             .collect();
@@ -182,7 +199,6 @@ impl LevelEditor {
                 let own = own_thing(&id);
                 let module = (!own).then(|| id.split('/').next().unwrap_or("").to_string()).filter(|s| doc.modules.iter().any(|x| x.id == *s));
                 Some(MapThing {
-                    id,
                     kind: m.kind.clone(),
                     label: m.label.clone(),
                     pos: m.pos.unwrap_or_default(),
@@ -198,6 +214,13 @@ impl LevelEditor {
                     text: m.text.clone(),
                     own,
                     module,
+                    other_end: match m.kind.as_str() {
+                        "ladder" => m.top,
+                        "lift" => m.bottom,
+                        _ => None,
+                    },
+                    template: id.split_once('/').filter(|(m, l)| own && doc.modules.iter().any(|x| x.id == *m && x.hidden.iter().any(|h| h == l))).map(|(m, _)| m.to_string()),
+                    id,
                 })
             })
             .collect();
@@ -207,7 +230,7 @@ impl LevelEditor {
             .lights
             .iter()
             .zip(flat.lights.iter().map(|l| (l.id.clone(), doc.lights.iter().any(|d| d.id == l.id))).chain(std::iter::repeat((String::new(), false))))
-            .map(|(l, (id, own))| MapLight { id, pos: l.pos, color: l.color, range: l.range, own })
+            .map(|(l, (id, own))| MapLight { id, pos: l.pos, color: l.color, range: l.range, intensity: l.intensity.unwrap_or(2.0), flicker: l.flicker, own })
             .collect();
         let issues = self.issues().iter().map(|i| MapIssue { severity: if i.severity == Severity::Error { "feil" } else { "advarsel" }, rule: i.rule, msg: i.msg.clone(), at: i.at }).collect();
         let mut floors: Vec<i32> = mods.iter().flat_map(|m: &MapModule| m.cells.iter().map(|c| c[1])).collect();
@@ -251,6 +274,8 @@ pub struct Palette {
     pub links: Vec<(&'static str, &'static str)>,
     /// Gruppene i paletten (`GROUPS`).
     pub groups: Vec<(&'static str, &'static str)>,
+    /// Lydene et rom kan ha (`doc::SOUNDS`).
+    pub sounds: Vec<(&'static str, &'static str)>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -337,6 +362,7 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         loot,
         links: LINK_NAMES.to_vec(),
         groups: GROUPS.to_vec(),
+        sounds: crate::domain::world::crypt::doc::SOUNDS.to_vec(),
     }
 }
 

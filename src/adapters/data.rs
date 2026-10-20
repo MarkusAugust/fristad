@@ -149,15 +149,19 @@ pub fn world_data() -> Data {
     let contents = CONTENT_FILES.iter().map(|(n, json)| (n.to_string(), serde_json::from_str::<Vec<Item>>(json).unwrap_or_else(|e| panic!("assets/layout/inside/{n}.json: {e}")))).collect();
     // Nivådokumentene som er merket «klar», erstatter de gamle nivåene med
     // samme nummer (`Data::compose_levels`).
-    let docs = LEVEL_DOC_FILES
-        .iter()
-        .filter_map(|(name, _)| {
-            let d = level_doc(name)?;
-            let n = d.level.number()?;
-            d.ready().then_some((n, d))
-        })
-        .collect();
+    let docs = ready_docs(LEVEL_DOC_FILES.iter().filter_map(|(name, _)| level_doc(name)));
     Data { insides, levels, layout, contents, approved: Some(approved()), kit: kit(), docs }
+}
+
+/// Nivådokumentene som skal inn i spillet: de som er merket «klar» og har
+/// et nummer (1–10), som erstatter det gamle nivået med samme nummer
+/// (`Data::compose_levels`). Utkastene og prøvenivåene blir stående utenfor.
+pub fn ready_docs(docs: impl Iterator<Item = LevelDoc>) -> Vec<(u32, LevelDoc)> {
+    docs.filter_map(|d| {
+        let n = d.level.number().filter(|n| (1..=10).contains(n))?;
+        d.ready().then_some((n, d))
+    })
+    .collect()
 }
 
 /// Dommen fra godkjenningssiden (`assets/catalog/approvals.json`).
