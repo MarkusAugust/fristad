@@ -509,7 +509,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             "start" => level.start = (pos, m.yaw),
             "up" => {
                 level.up = Some((pos, m.yaw));
-                if b.place_mounted(KIT_UP, pose) {
+                if b.place_mounted_look(KIT_UP, pose, m.stone.as_ref().and_then(stone::InstanceStone::look)) {
                     // Trinnene opp til døra som en rampe, og muren bak.
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
                     let mut ramp = vec![];
@@ -529,7 +529,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
             }
             "down" => {
                 level.down = Some((pos, m.yaw));
-                if b.place_mounted(KIT_DOWN, pose) {
+                if b.place_mounted_look(KIT_DOWN, pose, m.stone.as_ref().and_then(stone::InstanceStone::look)) {
                     // Brystvernet rundt trappa: åpent der du går inn.
                     let p = |x: f32, y: f32, z: f32| pose.transform_point3(Vec3::new(x, y, z));
                     // Brystvernet og portalmuren etter formen (`solids.py`).

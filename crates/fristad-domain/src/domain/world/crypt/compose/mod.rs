@@ -709,6 +709,13 @@ fn marks(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>, rooms: &[super:
             }
             m.stone = leaf.and_then(|p| g.kit.stones.swap(&p.theme, &edge_stone(g, a, w)));
         }
+        // Døra opp og trappa ned er mures av steinen i cella de står i
+        // (byggesettets modeller er laget i gravkjellerens stein).
+        if matches!(m.kind.as_str(), "up" | "down") {
+            if let Some(b) = m.pos.and_then(|p| cell_at(g, Vec3::from(p) + Vec3::Y * 0.1)) {
+                m.stone = g.kit.stones.swap("grav", &g.cells[b].stone);
+            }
+        }
         out.push(m);
     }
     let room_ok = |id: &str| rooms.iter().any(|r| r.id == id);
@@ -783,13 +790,7 @@ fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDe
         .filter_map(|l| {
             let pos = anchor_point(&l.anchor, Vec3::from(l.pos), g, index)?;
             // Rommet: cella lyset står i.
-            let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
-            let cell = g.columns.get(&(i, j)).and_then(|v| {
-                v.iter().copied().find(|&b| {
-                    let (lo, hi) = g.cells[b].volume();
-                    pos.y >= lo && pos.y <= hi
-                })
-            });
+            let cell = cell_at(g, pos);
             let room = cell.map(|b| g.cells[b].doc.room.clone());
             // Mørk stein får sterkere lys, som faklene (`StoneFile::light`).
             let k = cell.map(|b| g.kit.stones.light_of(&g.cells[b].stone)).unwrap_or(1.0);
@@ -797,4 +798,15 @@ fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDe
             Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity, room })
         })
         .collect()
+}
+
+/// Cella punktet står i (rutene og høyden den bruker).
+fn cell_at(g: &Grid, pos: Vec3) -> Option<usize> {
+    let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
+    g.columns.get(&(i, j)).and_then(|v| {
+        v.iter().copied().find(|&b| {
+            let (lo, hi) = g.cells[b].volume();
+            pos.y >= lo && pos.y <= hi
+        })
+    })
 }

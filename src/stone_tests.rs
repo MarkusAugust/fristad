@@ -261,3 +261,19 @@ fn hvelvene_er_i_lyset_og_mork_stein_far_sterkere_lys() {
         assert!(k.stones.light.get(l).is_some_and(|v| *v > 1.0), "{l} mangler lysfaktor");
     }
 }
+
+/// Trappa ned og døra opp mures av temaets stein, ikke gravmuren
+/// (byggesettets modeller er laget i gravkjellerens stein).
+#[test]
+fn trappa_ned_tar_temaets_stein() {
+    let k = kit();
+    for (id, wall) in [("kloakk/nedgang", "sewer_brick"), ("gruve/nedgang", "mine_rock"), ("borg/nedgang", "keep_ashlar")] {
+        let (f, _) = compose::compile(&compose::modules::showcase(&k, id).unwrap(), &k);
+        let down = f.marks.iter().find(|m| m.kind == "down").unwrap_or_else(|| panic!("{id}: ingen trapp ned"));
+        let s = down.stone.as_ref().unwrap_or_else(|| panic!("{id}: trappa ned har gravmuren"));
+        assert_eq!(s.to[1], wall, "{id}");
+        assert_ne!(s.to[3], "crypt_wall", "{id}: den hogde steinen");
+    }
+    let (f, _) = compose::compile(&compose::modules::showcase(&k, "grav/nedgang").unwrap(), &k);
+    assert!(f.marks.iter().any(|m| m.kind == "down" && m.stone.is_none()), "gravkjelleren trenger ikke bytte");
+}
