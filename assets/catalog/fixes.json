@@ -2617,5 +2617,15 @@
     "assets/catalog/review/lute_bakside_for_etter.jpg"
    ]
   }
+ },
+ "grid_warden": {
+  "5101c2727668": {
+   "text": [
+    "I stigen gled han i gangklippet: med klatreklippet ble kroppen dratt opp som en hinne når armene gikk over hodet. Årsaken: armene er grodd inn i cellene på kroppen, og vektene ga cellene i brystet armvekt helt inn mot midten (0,3–0,6 innenfor skulderleddet). Rettet slik: brystet holdes samlet (`torso=True`, `torso_guard`, som Dropdownen og Progress-formannen): innenfor skulderleddet tas armvektene bort, og hoftene og brystet deles etter høyden. Nå klatrer han (`climb`) uten at kroppen strekkes, og cellene i brystet holder formen også i angrepet; gangen og hvilen er som før. Før/etter: klatringen forfra og fra siden, angrepet, gangen og hvilen."
+   ],
+   "images": [
+    "assets/catalog/review/grid_warden_klatring_for_etter.jpg"
+   ]
+  }
  }
 }
