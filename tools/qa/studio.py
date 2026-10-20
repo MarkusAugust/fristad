@@ -104,7 +104,9 @@ def main(path, prefix, views):
         if m.use_nodes:
             dress(m)
             glow(m)
-    obs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    # Glb-importøren legger beinformen (en ikosfære på 2 m) i en skjult
+    # samling; den teller ikke med i målene (de små fiendene ble prikker).
+    obs = [o for o in bpy.context.scene.objects if o.type == "MESH" and o.visible_get()]
     pts = [o.matrix_world @ Vector(c) for o in obs for c in o.bound_box]
     # Det som henger eller står høyt (hyller, lykter), sees der det er:
     # kameraet sikter på tingen, ikke på gulvet under (runde 5).

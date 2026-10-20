@@ -2435,7 +2435,8 @@
    "answers": {
     "verdict": "underkjent",
     "why": "her har du blandet teksturer på gulvet. den skal være samme hele veien"
-   }
+   },
+   "judged": "2026-10-20T17:03:07.440Z"
   }
  },
  "grav_slusekammer": {
@@ -2591,6 +2592,14 @@
    ],
    "images": [
     "assets/catalog/review/breadcrumb_archer_r3_for_etter.jpg"
+   ]
+  },
+  "0a234b86e91b": {
+   "text": [
+    "Eieren 20. oktober: «Holder buen feil vei». Rettet slik: venstre hånd griper midt på staven, og hånda dreies i alle klippene (utenom døden og stigen) så buen står loddrett med buken ut mot målet og strengen mot brystet (`mob_motion.bow_aim`); i hvile og gang bæres den med albuen bøyd fram, loddrett over gulvet. Før pekte hånda bakover i skuddet, så buken vendte mot ham og strengen mot målet, og buen lå vannrett i gangen. Beinet «bow» står så langt bak midten av neven at staven går gjennom den (`bow.BELLY`), og testen `bueskytteren_holder_buen` sjekker retningen i skuddet, gangen og hvilen. Før/etter: skuddet og gangen fra siden, og skuddet i spillet."
+   ],
+   "images": [
+    "assets/catalog/review/breadcrumb_archer_bue_for_etter.jpg"
    ]
   }
  },
