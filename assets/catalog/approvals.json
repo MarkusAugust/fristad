@@ -3388,18 +3388,24 @@
   "breadcrumb_archer": {
    "verdict": "underkjent",
    "date": "2026-10-20",
-   "why": "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen",
-   "seen": "d53205c1895b",
+   "why": "Holder buen feil vei",
+   "seen": "64868af03c30",
    "history": [
     "det ser rart ut at den angriper med buen på ryggen og tomme hender",
-    "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen"
+    "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen",
+    "Holder buen feil vei"
    ]
   },
   "card_squire": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "angrepet gjør at armen klippes inn i kroppen. finn på noe annet som fungerer med den formen dette monsteret har. kanskje en backflip hvor han sparker spilleren feks, eller virvelvind",
-   "seen": "c0d7045f74bb",
+   "why": "",
+   "seen": "98c989e37fb6",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "angrepet gjør at armen klippes inn i kroppen. finn på noe annet som fungerer med den formen dette monsteret har. kanskje en backflip hvor han sparker spilleren feks, eller virvelvind"
+   },
    "history": [
     "knærne kommer ut av kroppen når han går.",
     "angrepet gjør at armen klippes inn i kroppen. finn på noe annet som fungerer med den formen dette monsteret har. kanskje en backflip hvor han sparker spilleren feks, eller virvelvind"
@@ -3415,7 +3421,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "ed70fc1dccb3"
+   "seen": "5101c2727668"
   },
   "key": {
    "verdict": "godkjent",
