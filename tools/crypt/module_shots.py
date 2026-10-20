@@ -96,7 +96,10 @@ def cameras(name, cells, hosts):
         cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
         return [((cx, y + EYE, z1 + 0.2), 0.0, 16.0), ((cx + 3.0, y + EYE, cz + 3.0), yaw_to(-1, -1), 24.0)]
     if name == "nedgang":
-        cams.append(((x0, y + EYE, z0), yaw_to(1, 1), -30.0))
+        # Fra toppen av trappa ned mot døra nederst (eieren 20. oktober: «trappen
+        # ned må ende i en synlig dør»), så fra naborommet.
+        cx, cz = i0 * CELL, j0 * CELL
+        return [((cx, y + EYE, cz + 1.3), 0.0, -40.0)] + cams[:1]
     elif name == "skattkammer":
         cams.append(((x1, y + EYE, (z0 + z1) / 2 + 0.6), yaw_to(-1, -0.2), -14.0))
     if cams:
@@ -143,18 +146,22 @@ def sheet(name, title, plan_img, files, out):
 
 
 def shoot(only):
-    """Bildene tema for tema: hvert tema i sitt eget nivå (`moduler:<tema>`),
-    for lyset følger høyst 64 rom per nivå."""
-    themes = sorted(d for d in os.listdir(os.path.join(ROOT, "assets", "levels", "moduler")) if not d.startswith("."))
-    for theme in themes:
-        shoot_theme(theme, only)
+    """Bildene side for side i galleriet (`moduler:<n>`,
+    `compose::modules::gallery_pages`): lyset følger høyst 64 rom per nivå,
+    så modulene med naborommene står på flere sider."""
+    n = 1
+    while shoot_page(n, only):
+        n += 1
 
 
-def shoot_theme(theme, only):
-    level = f"moduler:{theme}"
-    gal = dump(level)
-    # «Se i 3D» på godkjenningssiden leser galleriet (`moduler.json` for gravkjelleren).
-    with open(os.path.join(OUT, "moduler.json" if theme == "grav" else f"moduler_{theme}.json"), "w") as f:
+def shoot_page(page, only):
+    level = f"moduler:{page}"
+    try:
+        gal = dump(level)
+    except subprocess.CalledProcessError:
+        return False
+    # «Se i 3D» på godkjenningssiden leser galleriet (`moduler.json` er side 1).
+    with open(os.path.join(OUT, "moduler.json" if page == 1 else f"moduler_{page}.json"), "w") as f:
         json.dump(gal, f)
     modules = {m["id"]: m for m in load_modules()}
     lines, cards = [], []
@@ -191,14 +198,26 @@ def shoot_theme(theme, only):
         cards.append((name, m["name"], files, draw_plan(gal, keep, scale=110, focus=name)))
     os.makedirs(os.path.join(OUT, "skudd"), exist_ok=True)
     if not lines:
-        return
+        return True
     shots = os.path.join(OUT, "shots.txt")
     with open(shots, "w") as f:
         f.write("\n".join(lines) + "\n")
     subprocess.run([SNAP, "--level-doc", level, "--level", "1", "--film", "--size", "800x560", "--frames", "2", "--gfx", "lights=16", "--shots", shots], cwd=ROOT, check=True, capture_output=True)
     for name, title, files, p in cards:
         sheet(name, title, p, files, os.path.join(OUT, f"{name}.png"))
+        palette(name, files)
         print(os.path.join(OUT, f"{name}.png"))
+    return True
+
+
+def palette(name, files):
+    """Bildet i paletten i redigeringen (`assets/levels/moduler/grav/<navn>.jpg`,
+    320 × 224): det første bildet innenfra."""
+    if not files or not os.path.exists(files[0]):
+        return
+    im = Image.open(files[0]).convert("RGB")
+    im.thumbnail((320, 224))
+    im.save(os.path.join(ROOT, "assets", "levels", "moduler", "grav", f"{name}.jpg"), quality=82)
 
 
 def load_modules():

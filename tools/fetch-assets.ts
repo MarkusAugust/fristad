@@ -171,6 +171,8 @@ if (existsSync(OWN)) {
     try {
       const meta = JSON.parse(await Bun.file(join(dir, "meta.json")).text());
       if (meta.size_m) entry.size_m = meta.size_m;
+      // Speilvendt annenhver flis (kjernens stein og plast, `derive.py --mirror`).
+      if (meta.mirror) entry.mirror = true;
     } catch {
       /* standard 2 m */
     }

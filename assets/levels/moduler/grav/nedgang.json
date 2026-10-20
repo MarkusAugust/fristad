@@ -17,5 +17,8 @@
   ],
   "things": [
     {"id": "ned", "kind": "down", "anchor": "celle:c00"}
+  ],
+  "lights": [
+    {"id": "ned", "anchor": "celle:c00", "pos": [0, -1.2, -1.4], "color": [0.45, 0.62, 1.0], "range": 6.5, "flicker": false, "intensity": 1.6}
   ]
 }

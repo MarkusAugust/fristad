@@ -40,6 +40,7 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
     out.extend(check::headroom(file));
     out.extend(check::mechanisms(file));
     out.extend(check::rooms(file));
+    out.extend(check::floor_mix(file, kit));
     for m in &file.marks {
         let id = m.id.clone().unwrap_or_default();
         match m.kind.as_str() {

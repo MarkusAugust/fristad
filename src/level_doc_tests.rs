@@ -338,7 +338,12 @@ fn faklene_star_i_festene() {
     let mount = k.piece("grav/vegg").unwrap().mounts.iter().find(|m| m.kind == "fakkel").unwrap().pos;
     let rot = k.piece("grav/rotunde").unwrap();
     for t in &torches {
-        let on_wall = f.instances.iter().filter(|i| walls.contains(&i.model)).any(|w| transform(Vec3::from(w.pos), w.yaw, false).transform_point3(Vec3::from(mount)).distance(Vec3::from(t.pos)) < 0.01)
+        // Under et tønnehvelv senkes fakkelen rett ned i festet (`faklene_star_under_hvelvet`).
+        let fits = |p: Vec3| {
+            let d = Vec3::from(t.pos) - p;
+            Vec3::new(d.x, 0.0, d.z).length() < 0.01 && d.y < 0.01 && d.y > -0.5
+        };
+        let on_wall = f.instances.iter().filter(|i| walls.contains(&i.model)).any(|w| fits(transform(Vec3::from(w.pos), w.yaw, false).transform_point3(Vec3::from(mount))))
             || rot.mounts.iter().any(|m| (Vec3::from(m.pos) + Vec3::new(0.0, 0.0, 16.0)).distance(Vec3::from(t.pos)) < 0.01);
         assert!(on_wall, "fakkelen ved {:?} står ikke i et feste", t.pos);
     }

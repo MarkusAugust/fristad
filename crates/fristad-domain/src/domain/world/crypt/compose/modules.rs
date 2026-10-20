@@ -417,12 +417,15 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
 
 /// En modul alene i et eget nivå, til bildene og «Se i 3D»: startstedet i
 /// midtcella (om modulen ikke har et), fakler i alle festene og et svakt
-/// lys midt i, så rommet synes slik det er bygd.
+/// lys midt i, så rommet synes slik det er bygd. `kloakk/rom_2x2` er
+/// modulen `rom_2x2` i et nivå med temaet `kloakk` (steinen), som de gamle
+/// kopiene per tema (`KitDef::module`).
 pub fn showcase(kit: &KitDef, id: &str) -> Option<LevelDoc> {
     let m = kit.module(id)?;
     let main = m.rooms.first().cloned().unwrap_or_default();
-    let mut doc = LevelDoc { format: 1, level: LevelId::Name(format!("modul:{id}")), name: m.name.clone(), status: "utkast".into(), seed: 1, ..Default::default() };
-    doc.modules.push(DocModule { id: "m".into(), module: id.into(), mood: Some(Mood { torches: main.mood.torches.max(0.8), ..main.mood.clone() }), ..Default::default() });
+    let theme = id.split_once('/').map(|(t, _)| t).filter(|t| m.id != id && kit.stones.themes.contains_key(*t)).unwrap_or_default();
+    let mut doc = LevelDoc { format: 1, level: LevelId::Name(format!("modul:{id}")), name: m.name.clone(), status: "utkast".into(), seed: 1, theme: theme.into(), ..Default::default() };
+    doc.modules.push(DocModule { id: "m".into(), module: m.id.clone(), mood: Some(Mood { torches: main.mood.torches.max(0.8), ..main.mood.clone() }), ..Default::default() });
     if !m.things.iter().any(|t| t.kind == "start") {
         let first = m.cells.iter().min_by_key(|c| (c.at[0].abs() + c.at[2].abs(), c.at[0], c.at[2]))?;
         doc.things.push(Thing { id: "start".into(), kind: "start".into(), anchor: format!("celle:m/{}", first.id), pos: Some([0.0, 0.0, 0.0]), ..Default::default() });
@@ -560,3 +563,43 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
     }
     doc
 }
+
+/// Galleriet delt i sider på høyst `GALLERY_ROOMS` rom (`moduler:<n>`, fra
+/// 1): lyset følger høyst 64 rom per nivå (`Crypt::light_mask`), og
+/// modulene med naborommene sine er flere enn det. Hver side har sitt
+/// startsted.
+pub fn gallery_pages(kit: &KitDef) -> Vec<LevelDoc> {
+    let all = gallery(kit);
+    let mut pages: Vec<Vec<&DocModule>> = vec![];
+    let mut rooms = 0;
+    for m in all.modules.iter().filter(|m| !m.id.contains("_nabo")) {
+        let hosts: Vec<&DocModule> = all.modules.iter().filter(|h| h.id.starts_with(&format!("{}_nabo", m.id))).collect();
+        let n = kit.module(&m.module).map(|d| d.rooms.len().max(1)).unwrap_or(1) + hosts.len();
+        if pages.is_empty() || rooms + n > GALLERY_ROOMS {
+            pages.push(vec![]);
+            rooms = 0;
+        }
+        rooms += n;
+        let page = pages.last_mut().unwrap();
+        page.push(m);
+        page.extend(hosts);
+    }
+    pages
+        .into_iter()
+        .enumerate()
+        .map(|(k, mods)| {
+            let names: Vec<&str> = mods.iter().map(|m| m.id.as_str()).collect();
+            let mut doc = LevelDoc { level: LevelId::Name(format!("moduler:{}", k + 1)), modules: mods.into_iter().cloned().collect(), things: vec![], ..all.clone() };
+            doc.lights.retain(|l| l.id.strip_prefix("fyll_").is_some_and(|n| names.contains(&n)));
+            if !doc.modules.iter().any(|d| kit.module(&d.module).is_some_and(|m| m.things.iter().any(|t| t.kind == "start"))) {
+                let first = &doc.modules[0];
+                let m = kit.module(&first.module).unwrap();
+                doc.things.push(Thing { id: "start".into(), kind: "start".into(), anchor: format!("celle:{}/{}", first.id, m.cells[0].id), pos: Some([0.0, 0.0, 0.0]), ..Default::default() });
+            }
+            doc
+        })
+        .collect()
+}
+
+/// Rommene per side i galleriet (under grensen på 64 i lyset).
+pub const GALLERY_ROOMS: usize = 60;

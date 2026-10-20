@@ -78,12 +78,12 @@ pub fn level_doc(name: &str) -> Option<LevelDoc> {
     if name == "moduler" {
         return Some(crate::domain::world::crypt::compose::modules::gallery(&kit()));
     }
-    // `moduler:<tema>`: modulene i ett tema (lyset følger høyst 64 rom per
-    // nivå, `Crypt::light_mask`, så alle temaene i ett nivå blir mørke).
-    if let Some(theme) = name.strip_prefix("moduler:") {
-        let mut k = kit();
-        k.modules.retain(|m| m.id.split('/').next() == Some(theme));
-        return (!k.modules.is_empty()).then(|| crate::domain::world::crypt::compose::modules::gallery(&k));
+    // `moduler:<n>`: siden n (fra 1) av galleriet (lyset følger høyst 64
+    // rom per nivå, `Crypt::light_mask`, så alle modulene i ett nivå blir
+    // mørke; `compose::modules::gallery_pages`).
+    if let Some(page) = name.strip_prefix("moduler:") {
+        let n: usize = page.parse().ok()?;
+        return crate::domain::world::crypt::compose::modules::gallery_pages(&kit()).into_iter().nth(n.checked_sub(1)?);
     }
     // `modul:grav/kapell`: modulen alene, med fakler og lys (bildene til eieren).
     if let Some(id) = name.strip_prefix("modul:") {

@@ -397,7 +397,8 @@ impl Materials {
                     wgpu::Extent3d { width: SIZE, height: SIZE, depth_or_array_layers: 1 },
                 );
             }
-            scales[*layer as usize] = imgs.size_m.max(0.1);
+            // Negativ målestokk: speilvendt annenhver flis (`sample_plane`).
+            scales[*layer as usize] = imgs.size_m.max(0.1) * if imgs.mirror { -1.0 } else { 1.0 };
             log::info!("Lag {} bruker malt bilde ({} m per flis)", layer.name(), imgs.size_m);
         }
         mipper.generate(device, queue, &albedo, &nrh, srgb, lin, LAYERS, mips);

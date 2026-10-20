@@ -297,26 +297,39 @@ fn nivaaredigeringen_har_ingen_himmel() {
     assert!(f.clip.is_none());
 }
 
-/// Paletten har modulene for alle temaene, gruppert som rom, ganger,
-/// trapper, ferdigrom, mekanismer og bosshall, og hver modul har bildet sitt
-/// (`module_shots.py`, `assets/levels/moduler/<tema>/<navn>.jpg`).
+/// Paletten har ett sett moduler (eieren 20. oktober: «det holder med en
+/// modell, og så må jeg kunne kle flatene i den teksturen jeg vil ha»),
+/// gruppert som rom, ganger, trapper, ferdigrom, mekanismer og bosshall,
+/// hver form én gang og med bildet sitt (`module_shots.py`,
+/// `assets/levels/moduler/grav/<navn>.jpg`), og temaene nivået kan ha er
+/// de som har en standardstein.
 #[test]
 fn paletten_har_alle_temaene_gruppert() {
     use crate::domain::edit::level::map;
     let k = kit();
     let p = map::palette(&k, vec![], vec![]);
-    for theme in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
-        let mine: Vec<_> = p.modules.iter().filter(|m| m.theme == theme).collect();
-        assert!(mine.len() >= 15, "{theme}: bare {} moduler", mine.len());
-        for g in ["rom", "gang", "trapp", "mekanisme", "bosshall"] {
-            assert!(mine.iter().any(|m| m.group == g), "{theme} har ingen i gruppen {g}");
-        }
-        for m in &mine {
-            let name = m.id.split('/').nth(1).unwrap();
-            let img = format!("{}/assets/levels/moduler/{theme}/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
-            assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);
-        }
+    assert!(p.modules.len() >= 30, "bare {} moduler", p.modules.len());
+    for g in ["rom", "gang", "trapp", "ferdig", "mekanisme", "bosshall"] {
+        assert!(p.modules.iter().any(|m| m.group == g), "ingen i gruppen {g}");
     }
+    let mut names: Vec<&str> = p.modules.iter().map(|m| m.id.split('/').nth(1).unwrap()).collect();
+    names.sort();
+    assert!(names.windows(2).all(|w| w[0] != w[1]), "samme form står to ganger: {names:?}");
+    for m in &p.modules {
+        assert!(m.id.starts_with("grav/"), "{} står utenfor settet", m.id);
+        let name = m.id.split('/').nth(1).unwrap();
+        let img = format!("{}/assets/levels/moduler/grav/{name}.jpg", env!("CARGO_MANIFEST_DIR"));
+        assert!(std::path::Path::new(&img).exists(), "{} mangler bildet i paletten ({img})", m.id);
+    }
+    for t in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
+        assert!(p.themes.iter().any(|x| x == t), "temaet {t} mangler: {:?}", p.themes);
+    }
+    for id in ["grav/tronsal", "grav/slusekammer", "grav/plastsal", "grav/gruvesal", "grav/kanal"] {
+        assert!(p.modules.iter().any(|m| m.id == id), "ferdigrommet {id} mangler");
+    }
+    // De gamle kopiene per tema leses som modulen i settet.
+    assert_eq!(k.module("kloakk/rom_2x2").map(|m| m.id.as_str()), Some("grav/rom_2x2"));
+    assert_eq!(k.module("borg/tronsal").map(|m| m.id.as_str()), Some("grav/tronsal"));
     let g = |id: &str| p.modules.iter().find(|m| m.id == id).map(|m| m.group);
     assert_eq!(g("grav/bosshall"), Some("bosshall"));
     assert_eq!(g("grav/porthall"), Some("mekanisme"));

@@ -89,22 +89,23 @@ fn koblingene_som_ikke_henger_sammen_er_feil() {
     assert!(check::links(&ok).is_empty(), "{:?}", check::links(&ok));
 }
 
-/// Hvert temagalleri (`moduler:<tema>`, bildene til eieren) har plass til
-/// lyset i alle rommene, og et nivå med flere enn 64 rom er en feil.
+/// Hver side i galleriet (`moduler:<n>`, bildene til eieren) har plass til
+/// lyset i alle rommene, alle modulene står på en side, og et nivå med
+/// flere enn 64 rom er en feil.
 #[test]
 fn galleriene_har_lys_i_alle_rommene() {
     let k = kit();
-    let mut themes: Vec<&str> = k.modules.iter().filter_map(|m| m.id.split('/').next()).collect();
-    themes.sort();
-    themes.dedup();
-    assert!(themes.len() >= 5, "{themes:?}");
-    for t in themes {
-        let doc = crate::adapters::data::level_doc(&format!("moduler:{t}")).unwrap();
-        let (f, _) = compose::compile(&doc, &k);
-        assert!(check::rooms(&f).is_empty(), "{t}: {} rom", f.rooms.len());
+    let pages = modules::gallery_pages(&k);
+    assert!(!pages.is_empty());
+    for (n, doc) in pages.iter().enumerate() {
+        let (f, _) = compose::compile(doc, &k);
+        assert!(check::rooms(&f).is_empty(), "side {}: {} rom", n + 1, f.rooms.len());
+        assert!(f.marks.iter().any(|m| m.kind == "start"), "side {}: ingen start", n + 1);
     }
+    let on_pages: usize = pages.iter().map(|d| d.modules.iter().filter(|m| !m.id.contains("_nabo")).count()).sum();
+    assert_eq!(on_pages, k.modules.len(), "hver modul står på én side");
     let (all, _) = compose::compile(&modules::gallery(&k), &k);
-    assert!(!check::rooms(&all).is_empty(), "alle temaene i ett nivå skal være for mange rom ({})", all.rooms.len());
+    assert!(!check::rooms(&all).is_empty(), "alle modulene i ett nivå skal være for mange rom ({})", all.rooms.len());
 }
 
 /// Bossene er 4–5 m høye: bosshallen har plass til dem i hvert tema, med

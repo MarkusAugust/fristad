@@ -66,7 +66,8 @@ function layerTexture(st, layers, name) {
   if (!layers[name]) return null;
   if (!st.tex.has(name)) {
     const t = new THREE.TextureLoader().load(layers[name].url);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    // Kjernens stein og plast møtes bare speilet (`derive.py --mirror`).
+    t.wrapS = t.wrapT = layers[name].mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = st.renderer.capabilities.getMaxAnisotropy();
     const s = 1 / layers[name].size;
@@ -229,7 +230,8 @@ export async function show(it, data, ui) {
       const o = src.clone(true);
       o.position.set(inst.pos[0], inst.pos[1], inst.pos[2]);
       o.rotation.y = inst.yaw || 0;
-      if (inst.mirror) o.scale.x = -1;
+      if (inst.scale) o.scale.set(inst.scale[0], inst.scale[1], inst.scale[2]);
+      if (inst.mirror) o.scale.x *= -1;
       if (inst.model === it.name) o.traverse(m => { if (m.isMesh) { m.material = [].concat(m.material).map(x => { const c = x.clone(); if (c.emissive) c.emissive.set(0x3a2a10); return c; }); if (m.material.length === 1) m.material = m.material[0]; } });
       level.add(o);
     }

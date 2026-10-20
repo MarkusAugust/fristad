@@ -35,7 +35,7 @@ mod solids;
 pub use grid::*;
 pub use look::{expand, roll};
 pub use nav::reach;
-use look::{anchor_point, cell_at, cell_stone, edge_stone, lights, torches};
+use look::{anchor_point, cell_at, cell_look, cell_stone, edge_stone, lights, side_wall, torches, wall_variant_fits};
 
 use super::doc::{DocCell, LevelDoc, Thing};
 use super::kit::{KitDef, KitPiece, PieceKind};
@@ -486,6 +486,7 @@ impl Compiler {
         nav::drop_slivers(&mut raster);
         file.nav = nav::build(&raster, &slopes);
         file.marks = marks;
+        look::clear_torches(&mut file, &grid);
         // Eierens lys først, så faklene i festene.
         let torches = std::mem::take(&mut file.lights);
         file.lights = lights(doc, &grid, &index);
@@ -567,11 +568,11 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
             solids::add(&mut out.boxes, &mut out.hulls, s, &t, yaw);
         }
     };
-    let look = c.piece.pick(c.doc.variant.as_deref(), roll(g.seed, [at[0], at[1], at[2], 0]));
+    let look = cell_look(g, c, at);
     put(&mut out, look, center, c.yaw(), c.mirror(), (&c.piece.theme, &c.stone));
     // Fakkelfestene i biten selv (rotunden).
     if !c.mirror() {
-        torches(g, &mut out, c.piece, center, c.yaw(), &c.doc.room, [at[0], at[1], at[2], 9], g.kit.stones.light_of(&c.stone));
+        torches(g, &mut out, c.piece, (center, c.yaw(), false), &c.doc.room, [at[0], at[1], at[2], 9], g.kit.stones.light_of(&c.stone));
     }
     // Murene rundt en sammensatt bit står bak dens egen mur: ingen fakler der.
     let hidden = c.piece.part_of.is_some();
@@ -598,10 +599,10 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
                     let stone = edge_stone(g, a, w);
                     let by_stone = stone.wall_variant.as_ref().filter(|v| piece.variants.iter().any(|x| &x.id == *v) && roll(g.seed, [at[0], at[1], at[2], 40 + w as i64]) < 0.5);
                     let locked = g.edge_variants.get(&(a, w)).or(by_stone);
-                    let look = piece.pick(locked.map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
+                    let look = piece.pick_where(locked.map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]), |v| wall_variant_fits(c, v));
                     put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &stone));
                     if !hidden {
-                        torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64], g.kit.stones.light_of(&c.stone));
+                        torches(g, &mut out, piece, (pos, side_yaw(w), side_wall(c, w)), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64], g.kit.stones.light_of(&c.stone));
                     }
                 }
                 None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler halvkanten «{name}» ({theme})"))),

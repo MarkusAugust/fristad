@@ -1,0 +1,28 @@
+{
+  "id": "grav/smuglerlager",
+  "name": "Smuglerlageret",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Et rom på 8 × 8 m med tønner, kasser, sekker og hyller langs murene, og ei kiste bak tønnene.",
+  "rooms": [
+    {"id": "rom", "name": "Smuglerlageret", "theme": "kloakk", "mood": {"torches": 0.35}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "tonne1", "kind": "prop", "anchor": "celle:c00", "pos": [-1.15, 0, -1.15], "yaw": 0, "label": "barrel_tall", "size": [0.7, 0.7]},
+    {"id": "tonne2", "kind": "prop", "anchor": "celle:c00", "pos": [-0.35, 0, -1.2], "yaw": 30, "label": "barrel_tall", "size": [0.7, 0.7]},
+    {"id": "kasse1", "kind": "prop", "anchor": "celle:c10", "pos": [1.1, 0, -1.2], "yaw": 10, "label": "cellar_crate", "size": [0.7, 0.6]},
+    {"id": "kasse2", "kind": "prop", "anchor": "celle:c10", "pos": [0.3, 0, -1.25], "yaw": -8, "label": "cellar_crate", "size": [0.7, 0.6]},
+    {"id": "sekker", "kind": "prop", "anchor": "celle:c01", "pos": [-1.1, 0, 1.1], "yaw": 0, "label": "sacks", "size": [1.0, 1.15]},
+    {"id": "hylle", "kind": "prop", "anchor": "celle:c11", "pos": [1.33, 0, 0.2], "yaw": 0, "label": "cellar_shelf", "size": [0.45, 2.5]},
+    {"id": "kiste", "kind": "chest", "anchor": "celle:c00", "pos": [-1.1, 0, -0.25], "yaw": 90}
+  ],
+  "lights": [
+    {"id": "lykt", "anchor": "celle:c11", "pos": [0, 2.4, 0], "color": [1.0, 0.66, 0.34], "range": 7, "flicker": true}
+  ]
+}

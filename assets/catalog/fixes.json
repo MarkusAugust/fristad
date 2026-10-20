@@ -1279,6 +1279,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "75a69e410de4": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Muren med de to nisjene velges ikke i trapper lenger (de så ut som vindusrammer midt i trappa), og faklene på sidemurene står under hvelvet."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_hjorne": {
@@ -1315,6 +1326,18 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "87434d796fd3": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Trappa ned er en trapp med ti trinn ned til en repos med en lukket rundbuet dør i bakveggen (karm av hogd stein, terskel), og et blått lys siver ut under døra og lyser opp sjakta. Det første bildet er tatt fra toppen av trappa.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "ser ingen trapp ned, bare et grått hull"
+   }
   }
  },
  "grav_overmur": {
@@ -1377,6 +1400,18 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "598718f5bf87": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Alkovene har innsida i en varm, litt mørkere murtone i stedet for den kalde, fiolette, og mørtelen bak karmen er murlaget (følger steinen) i stedet for grå kalkpuss.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "litt rar farge på teksturere ved og i alkovene på veggene?"
+   }
   }
  },
  "grav_soyle": {
@@ -1584,6 +1619,18 @@
    "text": [
     "Godkjent før, men vises igjen fordi muren med alkovene (variant b) er bygd om: Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm."
    ]
+  },
+  "7e8b8c6ce1c7": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Faklene på sidemurene under tønnehvelvet står lavere, så flammen aldri når hvelvet (regel med test: faklene_star_under_hvelvet).",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gang_1": {
@@ -1595,6 +1642,18 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "73f81d46b231": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Faklene på sidemurene står under hvelvet.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gang_2": {
@@ -1606,6 +1665,17 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "1f93562d7c17": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Faklene på sidemurene står under hvelvet."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gang_hjorne": {
@@ -1617,6 +1687,16 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "76df33b3f755": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gang_kryss": {
@@ -1628,6 +1708,16 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "205451389988": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gang_t": {
@@ -1639,6 +1729,17 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "51c3c1b063f4": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_gravgang": {
@@ -1650,6 +1751,17 @@
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
     "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
+  },
+  "cf110245ed37": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "jeg ser ikke kistene, men jeg antar at de kan byttes og/eller flyttes etterpå?"
+   }
   }
  },
  "grav_halv_etasje": {
@@ -1660,6 +1772,16 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "fbfbf682f44d": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_kapell": {
@@ -1670,6 +1792,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "2451a14d5ab4": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "ser ikke inventaret på 3d visningen"
+   }
   }
  },
  "grav_rom_1x1": {
@@ -1680,6 +1813,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "7c32c2a45cdd": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_rom_1x2": {
@@ -1687,6 +1831,17 @@
    "text": [
     "Godkjent før, men vises igjen fordi muren med alkovene (variant b) er bygd om: Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm."
    ]
+  },
+  "df963838ede3": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_rom_2x2": {
@@ -1697,6 +1852,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "659c8be85061": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_rom_3x2": {
@@ -1707,6 +1873,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "191cb663584d": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_rom_3x3": {
@@ -1717,6 +1894,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "c4bde38321b2": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
   }
  },
  "grav_skattkammer": {
@@ -1727,6 +1915,17 @@
     "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
     "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
+  },
+  "1a6f763200a9": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "ser kun rommet i visningen. jeg antar at inventaret kan flyttes på og endres i etterkant?"
+   }
   }
  },
  "mek_opp_ned": {
@@ -1948,6 +2147,242 @@
     "assets/catalog/review/birch_naer_dag.jpg",
     "assets/catalog/review/birch_studio.jpg"
    ]
+  }
+ },
+ "grav_bosshall": {
+  "3e7bfa1d2ece": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
+  }
+ },
+ "grav_fellegang": {
+  "93c72e80b8a8": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "godkjent",
+    "why": ""
+   }
+  }
+ },
+ "grav_galleri": {
+  "e9af32f4e9c7": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "ikke la det være synlig åpent under trappen"
+   }
+  }
+ },
+ "grav_gruvegang": {
+  "b7bef3cbe60b": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_gruvesal": {
+  "5e9e293bb071": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ]
+  }
+ },
+ "grav_heis": {
+  "d687eabc9a2c": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen"
+   }
+  }
+ },
+ "grav_hvilested": {
+  "0291ef9745e2": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "ser ikke hvilestedet i 3d-visnignen"
+   }
+  }
+ },
+ "grav_kanal": {
+  "4e6424e2c759": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_kjernerotunde": {
+  "e49bffd7a2ec": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_krystallgrotte": {
+  "fbbfeef6e605": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_nokkelport": {
+  "54e9cb170f0d": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "ser ingen port i 3d-visningen"
+   }
+  }
+ },
+ "grav_plastsal": {
+  "181dea5caf11": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_porthall": {
+  "209f6a884e35": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er greit men jeg ser ikke porten så jeg vet ikke"
+   }
+  }
+ },
+ "grav_riddergang": {
+  "30409a168397": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
+   ]
+  }
+ },
+ "grav_slusekammer": {
+  "5d0ca018c3ec": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_smuglerlager": {
+  "30dce96837e3": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_snarvei": {
+  "4d56d5a599f7": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er fint, ser ingen dør"
+   }
+  }
+ },
+ "grav_stige": {
+  "96d3d786b43e": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ingen fakkel står lenger der stigen står mot muren (regel med test).",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er fint, ser ingen stige"
+   }
+  }
+ },
+ "grav_tronsal": {
+  "10a0955ad56e": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_vaktstue": {
+  "3d13fa8b95c0": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ]
+  }
+ },
+ "grav_vindebro": {
+  "579939bf0517": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein).",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?"
+   }
   }
  }
 }

@@ -375,9 +375,9 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         .collect();
     let order = |k: &str| GROUPS.iter().position(|(x, _)| *x == k).unwrap_or(9);
     list.sort_by(|a, b| (order(a.group), &a.id).cmp(&(order(b.group), &b.id)));
-    let mut themes: Vec<String> = kit.modules.iter().map(|m| m.theme.clone()).filter(|t| !t.is_empty()).collect();
-    themes.sort();
-    themes.dedup();
+    // Temaene nivået kan ha: de som har en standardstein (modulene er ett
+    // sett, og temaet gir bare steinen).
+    let themes: Vec<String> = kit.stones.themes.keys().cloned().collect();
     Palette {
         modules: list,
         stones: kit.stones.stones.iter().map(|s| (s.id.clone(), if s.name.is_empty() { s.id.clone() } else { s.name.clone() })).collect(),

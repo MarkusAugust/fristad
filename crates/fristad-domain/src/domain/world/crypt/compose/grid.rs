@@ -22,6 +22,23 @@ pub const GATE_W: f32 = 2.8;
 pub const SECRET_W: f32 = 2.0;
 pub const SECRET_H: f32 = 2.6;
 
+/// Tønnehvelvet i gangene og trappene (`kit_common.py`): vederlaget
+/// `GANG_S` og pilhøyden `GANG_R` over halve cella.
+pub const GANG_S: f32 = 1.1;
+pub const GANG_R: f32 = 2.5;
+
+/// Høyden på gangprofilen `u` meter fra gangens midtlinje (`kit_common.gang_h`).
+pub fn gang_h(u: f32) -> f32 {
+    GANG_S + GANG_R * (1.0 - (u / HALF).powi(2)).max(0.0).sqrt()
+}
+
+/// Fakkelen: flammen står så høyt over festet og så langt ut fra muren
+/// (`kit_cells.FLAME`), toppen av flammen så høyt over midten, og den
+/// holder så stor avstand til hvelvet.
+pub const TORCH_FLAME_Y: f32 = 0.5;
+pub const TORCH_TIP: f32 = 0.3;
+pub const TORCH_CLEAR: f32 = 0.15;
+
 /// Sidene: N (−z), Ø (+x), S (+z), V (−x).
 pub const SIDES: [&str; 4] = ["N", "E", "S", "W"];
 

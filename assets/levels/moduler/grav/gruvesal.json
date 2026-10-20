@@ -1,0 +1,36 @@
+{
+  "id": "grav/gruvesal",
+  "name": "Gruvesalen",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "En sal på 12 × 8 m med tømmerstøtter langs murene, skinner over gulvet og en malmvogn.",
+  "rooms": [
+    {"id": "rom", "name": "Gruvesalen", "theme": "gruve", "mood": {"torches": 0.25}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [-1, 0, 0], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c20", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [-1, 0, 1], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c21", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "stotte1", "kind": "prop", "anchor": "celle:c00", "pos": [0, 0, -1.35], "yaw": 0, "label": "kit_strut", "size": [3.5, 0.34]},
+    {"id": "stotte2", "kind": "prop", "anchor": "celle:c20", "pos": [0, 0, -1.35], "yaw": 0, "label": "kit_strut", "size": [3.5, 0.34]},
+    {"id": "stotte3", "kind": "prop", "anchor": "celle:c01", "pos": [0, 0, 1.35], "yaw": 0, "label": "kit_strut", "size": [3.5, 0.34]},
+    {"id": "stotte4", "kind": "prop", "anchor": "celle:c21", "pos": [0, 0, 1.35], "yaw": 0, "label": "kit_strut", "size": [3.5, 0.34]},
+    {"id": "skinne0", "kind": "prop", "anchor": "celle:c01", "pos": [-1.0, 0, 0.0], "yaw": 90, "label": "kit_rail"},
+    {"id": "skinne1", "kind": "prop", "anchor": "celle:c01", "pos": [1.0, 0, 0.0], "yaw": 90, "label": "kit_rail"},
+    {"id": "skinne2", "kind": "prop", "anchor": "celle:c11", "pos": [-1.0, 0, 0.0], "yaw": 90, "label": "kit_rail"},
+    {"id": "skinne3", "kind": "prop", "anchor": "celle:c11", "pos": [1.0, 0, 0.0], "yaw": 90, "label": "kit_rail"},
+    {"id": "skinne4", "kind": "prop", "anchor": "celle:c21", "pos": [-1.0, 0, 0.0], "yaw": 90, "label": "kit_rail"},
+    {"id": "vogn", "kind": "prop", "anchor": "celle:c21", "pos": [0.6, 0, 0.0], "yaw": 90, "label": "kit_cart", "size": [1.25, 1.5]},
+    {"id": "lampe1", "kind": "prop", "anchor": "celle:c00", "pos": [0, 2.95, -1.35], "yaw": 0, "label": "kit_lamp"},
+    {"id": "lampe2", "kind": "prop", "anchor": "celle:c21", "pos": [0, 2.95, 1.35], "yaw": 0, "label": "kit_lamp"}
+  ],
+  "lights": [
+    {"id": "lampe1", "anchor": "celle:c00", "pos": [0, 2.5, -1.2], "color": [1.0, 0.66, 0.34], "range": 7, "flicker": true},
+    {"id": "lampe2", "anchor": "celle:c21", "pos": [0, 2.5, 1.2], "color": [1.0, 0.66, 0.34], "range": 7, "flicker": true}
+  ]
+}

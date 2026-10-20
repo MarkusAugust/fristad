@@ -258,16 +258,27 @@ struct Tex {
     height: f32,
 }
 
-fn sample_plane(layer: i32, uv: vec2<f32>, gx_in: vec2<f32>, gy_in: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
+fn sample_plane(layer: i32, uv_in: vec2<f32>, gx_in: vec2<f32>, gy_in: vec2<f32>, t: vec3<f32>, b: vec3<f32>, n: vec3<f32>) -> Tex {
     // Uten full teksturtetthet leses ett mipnivå ned: halv tetthet.
     let lod = select(1.0, 2.0, g.quality.x < 0.5);
-    let gx = gx_in * lod;
-    let gy = gy_in * lod;
+    // Negativ målestokk: laget speilvendes annenhver flis (kjernens stein og
+    // plast, som bare møtes speilet; `derive.py --mirror`). Uv-en går fram
+    // og tilbake over bildet, holdt et halvt teksel fra kanten, og
+    // normalkartet snus i flisene som er speilet.
+    let mirror = g.tex_scale[layer / 4][layer % 4] < 0.0;
+    let f = uv_in - 2.0 * floor(uv_in * 0.5);
+    let flip = vec2<f32>(select(1.0, -1.0, f.x > 1.0), select(1.0, -1.0, f.y > 1.0));
+    let edge = 0.5 / f32(textureDimensions(tex_albedo).x);
+    let folded = clamp(select(f, 2.0 - f, f > vec2<f32>(1.0)), vec2<f32>(edge), vec2<f32>(1.0 - edge));
+    let uv = select(uv_in, folded, mirror);
+    let s = select(vec2<f32>(1.0), flip, mirror);
+    let gx = gx_in * lod * s;
+    let gy = gy_in * lod * s;
     let a = textureSampleGrad(tex_albedo, tex_sampler, uv, layer, gx, gy).rgb;
     let nrh = textureSampleGrad(tex_nrh, tex_sampler, uv, layer, gx, gy);
     // Normalkartene fra de malte bildene tas med halv styrke: formene er
     // malt inn i fargene, og fullt relieff ga et plastaktig preg.
-    let tn = vec3<f32>((nrh.xy * 2.0 - 1.0) * 0.5, 0.0);
+    let tn = vec3<f32>((nrh.xy * 2.0 - 1.0) * 0.5 * s, 0.0);
     let tz = sqrt(max(0.0, 1.0 - dot(tn.xy, tn.xy)));
     var o: Tex;
     o.albedo = a;

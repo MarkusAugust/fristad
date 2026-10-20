@@ -1,0 +1,26 @@
+{
+  "id": "grav/krystallgrotte",
+  "name": "Krystallgrotta",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "Et rom på 8 × 8 m der blå krystaller vokser ut av gulvet og lyser kaldt.",
+  "rooms": [
+    {"id": "rom", "name": "Krystallgrotta", "theme": "gruve", "mood": {"torches": 0.0}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c10", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "c11", "bit": "grav/romfelt", "at": [1, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "krystall1", "kind": "prop", "anchor": "celle:c00", "pos": [-0.9, 0, -0.9], "yaw": 20, "label": "kit_crystal", "size": [1.2, 1.5]},
+    {"id": "krystall2", "kind": "prop", "anchor": "celle:c10", "pos": [1.0, 0, -0.8], "yaw": 70, "label": "kit_crystal", "size": [1.2, 1.5]},
+    {"id": "krystall3", "kind": "prop", "anchor": "celle:c01", "pos": [-1.0, 0, 0.9], "yaw": 140, "label": "kit_crystal", "size": [1.2, 1.5]},
+    {"id": "krystall4", "kind": "prop", "anchor": "celle:c11", "pos": [0.9, 0, 1.0], "yaw": 250, "label": "kit_crystal", "size": [1.2, 1.5]}
+  ],
+  "lights": [
+    {"id": "krystall1", "anchor": "celle:c00", "pos": [-0.9, 1.0, -0.9], "color": [0.45, 0.65, 1.0], "range": 6, "flicker": false},
+    {"id": "krystall4", "anchor": "celle:c11", "pos": [0.9, 1.0, 1.0], "color": [0.45, 0.65, 1.0], "range": 6, "flicker": false}
+  ]
+}

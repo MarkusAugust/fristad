@@ -300,7 +300,7 @@ function renderList() {
   const parts = mine.filter(it => it.state === "i_modul");
   if (parts.length) out.push(pile("Bitene og mekanismene du dømmer gjennom modulene og kortene satt sammen", parts, (v, it) => { v.append(it.about || ""); }));
   const gone = mine.filter(it => it.state === "utgaar");
-  if (gone.length) out.push(pile("Utgår: erstattes av nivåene bygd av moduler (dømmes ikke)", gone, (v, it) => { v.append(it.prior ? `${it.prior.verdict} ${it.prior.date || ""}` : "ikke vurdert"); }));
+  if (gone.length) out.push(pile("Utgår (dømmes ikke): bitene i de gamle nivåene og kopiene av modulene per tema", gone, (v, it) => { v.append(it.prior ? `${it.prior.verdict} ${it.prior.date || ""}` : "ikke vurdert", it.kind === "modul" ? ` · ${it.about || ""}` : ""); }));
   list.replaceChildren(...out);
   list.style.display = "grid"; list.style.gap = "18px";
   cur = -1;

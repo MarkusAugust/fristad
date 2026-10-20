@@ -115,9 +115,11 @@ MATS = {
     # tømmer).
     "dressed": ("crypt_dressed", (1.0, 0.98, 0.95), 0.45),
     "wall_dark": ("crypt_wall", (0.62, 0.62, 0.68), 0.55),
-    # Innsida av alkovene: samme stein, mørkere, så dybden leses (lyset
+    # Innsida av alkovene: samme stein, litt mørkere, så dybden leses (lyset
     # når dårlig inn, og okklusjonen i hjørnefargen har få hjørner der).
-    "niche": ("crypt_wall", (0.42, 0.41, 0.44), 0.6),
+    # Varm som muren: den kalde, nesten fiolette tonen (0,42; 0,41; 0,44)
+    # ga «rar farge ved og i alkovene» (eieren 20. oktober, rotunden).
+    "niche": ("crypt_wall", (0.62, 0.58, 0.54), 0.6),
     # Revnene i sprekken: nesten svart over muren, så de synes på avstand
     # (eieren i runde 8; med `wall_dark` var de like lyse som muren).
     "crack": ("crypt_wall", (0.16, 0.15, 0.15), 0.7),
@@ -1366,18 +1368,19 @@ def alcove(mb, surf, u, v0, w=0.9, h=0.75, depth=0.3, rise=None, band=0.17, prou
                (cu + ro * math.sin(a1), cy + ro * math.cos(a1)), (cu + R * math.sin(a1), cy + R * math.cos(a1))]
         _trim_block(mb, surf, pts, proud, "dressed", stone_uv(k, pts))
         k += 5
-    # Mørtelen bak fugene i karmen.
+    # Mørtelen bak fugene i karmen: murlaget i nisjens tone, så den følger
+    # steinbyttet (kalkpussen ble stående grå i tegl, berg og kvader).
     back = proud * 0.35
     for sx in (-1, 1):
         u0, u1 = sorted((u + sx * (r + 0.004), u + sx * (r + band * 0.75 - 0.01)))
         q = [(u0, v0), (u1, v0), (u1, spring), (u0, spring)]
-        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "mortar", facing=surf.normal(u))
+        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "niche", facing=surf.normal(u))
     for i in range(nv):
         a0, a1 = -a_half + 2 * a_half * i / nv, -a_half + 2 * a_half * (i + 1) / nv
         ri, ro = R + 0.004, R + band - 0.01
         q = [(cu + ri * math.sin(a0), cy + ri * math.cos(a0)), (cu + ro * math.sin(a0), cy + ro * math.cos(a0)),
              (cu + ro * math.sin(a1), cy + ro * math.cos(a1)), (cu + ri * math.sin(a1), cy + ri * math.cos(a1))]
-        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "mortar", facing=surf.normal(u))
+        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "niche", facing=surf.normal(u))
     # Terskelen: en hogd steinhelle under nisjen, litt ut fra muren.
     sill = [(u - r - band, v0 - 0.1), (u + r + band, v0 - 0.1), (u + r + band, v0), (u - r - band, v0)]
     _trim_block(mb, surf, sill, proud + 0.06, "dressed")
@@ -2296,9 +2299,11 @@ def kit_up(w=1.6, spring=1.6):
 
 def kit_down(w=2.4, depth=3.2, steps=10):
     """Trappa ned, lik i alle nivåer: en trapp som går ned under gulvet mot
-    −z, med brystvern på tre sider, en rundbue over nedgangen og et kaldt
-    blått lys som stiger opp fra dypet. Origo på gulvet midt i
-    trappeåpningen (der du går inn), fronten mot +z."""
+    −z, med brystvern på tre sider, en rundbue over nedgangen, og nederst en
+    repos med en lukket dør i bakveggen (eieren 20. oktober: «trappen ned må
+    ende i en synlig dør. og det må være en trapp»), der et kaldt blått lys
+    siver ut under døra. Origo på gulvet midt i trappeåpningen (der du går
+    inn), fronten mot +z."""
     m = MB()
     run = depth / steps
     rise = 2.4 / steps
@@ -2314,10 +2319,26 @@ def kit_down(w=2.4, depth=3.2, steps=10):
     for sx in (-1, 1):
         surf = Plane((sx * w / 2, 0.0), (0.0, -1.0), (-sx, 0.0))
         grid_face(m, surf, sbox(0.0, -2.8, depth + 0.6, 0.0), "wall")
-    back = Plane((-w / 2, -depth - 0.6), (1.0, 0.0), (0.0, 1.0))
-    grid_face(m, back, sbox(0.0, -2.8, w, 0.0), "wall_dark")
-    # Det blå lyset nede.
-    m.quad((-w / 2, -2.75, -depth - 0.6), (w / 2, -2.75, -depth - 0.6), (w / 2, -2.75, -depth + 0.4), (-w / 2, -2.75, -depth + 0.4), "magic_down", facing=(0, 1, 0))
+    # Reposen nederst foran døra.
+    land = -2.4
+    box(m, (-w / 2, -2.8, -depth - 0.6), (w / 2, land, -depth), "dressed", faces=("+y",))
+    # Bakveggen med døra: en lukket rundbuet dør (dørbildet) med karm av
+    # hogd stein og terskel, som døra opp, lav nok til at buen går klar av
+    # overliggeren under muren (`kit_cells.nedgang`, y −0,4).
+    zb = -depth - 0.6
+    dw, dspring = 1.3, 1.0
+    back = Plane((0.0, zb), (1.0, 0.0), (0.0, 1.0))
+    door_hole = Polygon(arch_profile(0.0, dw, land - 0.01, dspring + 0.01, n=12))
+    grid_face(m, back, sbox(-w / 2, -2.8, w / 2, 0.0).difference(door_hole), "wall")
+    leaf = shortcut_leaf(w=dw - 0.04, spring=dspring - 0.04, t=0.1)
+    m.extend(leaf, at=(-dw / 2 + 0.02, land + 0.04, zb - 0.08), keep_uv=True)
+    # Lysningen bak bladet: mørk mur, så åpningen ikke ser rett i fjellet.
+    grid_face(m, Plane((0.0, zb - 0.14), (1.0, 0.0), (0.0, 1.0)), door_hole, "wall_dark")
+    arch_trim(m, back, dw, dspring, v0=land, band=0.24, proud=0.1, seed=7)
+    box(m, (-dw / 2 - 0.08, land - 0.01, zb - 0.02), (dw / 2 + 0.08, land + 0.03, zb + 0.16), "slab", faces=("+y", "+z", "+x", "-x"))
+    # Det blå lyset siver ut under døra og gjennom nøkkelhullet.
+    m.quad((-dw / 2 + 0.04, land + 0.005, zb - 0.07), (dw / 2 - 0.04, land + 0.005, zb - 0.07), (dw / 2 - 0.04, land + 0.042, zb - 0.07), (-dw / 2 + 0.04, land + 0.042, zb - 0.07), "magic_down", facing=(0, 0, 1))
+    m.quad((-dw / 2 + 0.06, land + 0.006, zb + 0.02), (dw / 2 - 0.06, land + 0.006, zb + 0.02), (dw / 2 - 0.06, land + 0.006, zb - 0.06), (-dw / 2 + 0.06, land + 0.006, zb - 0.06), "magic_down", facing=(0, 1, 0))
     # Brystvernet rundt hullet, åpent mot +z.
     t = 0.3
     # Det begynner bak portalmuren (T = 0,5 m, forsida 12 cm foran origo),
