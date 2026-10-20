@@ -95,6 +95,7 @@
     <div class="group">
       <label class="fs-label" for="floor">Etasje</label>
       <select id="floor" class="fs-select" title="PageUp og PageDown"></select>
+      <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="false" title="S: bare denne etasjen og den under (gjennomsiktig)">Snitt</button>
     </div>
     <div class="group" role="group" aria-label="Visning">
       <button id="v-map" class="fs-button" data-variant="secondary" type="button" title="Bare kartet (Tab bytter)">Kart</button>
@@ -122,13 +123,16 @@
       <div id="thinglist" class="chips"></div>
       <h2>Fiender</h2>
       <div id="moblist" class="chips"></div>
+      <h2>Maler</h2>
+      <div id="tpllist" class="chips"></div>
+      <p class="muted">Ctrl+G lagrer det valgte som mal (med innholdet og koblingene). R dreier og M speiler malen før du setter den ut.</p>
       <p class="muted">Klikk en modul eller ting og så på kartet (eller dra den dit). R dreier, M speiler, Delete sletter, Esc avbryter.</p>
     </aside>
     <section id="views">
       <div id="panemap" class="pane">
         <canvas id="plan" tabindex="0" aria-label="Kartet ovenfra"></canvas>
         <span class="pane-label" id="maplabel">Kart</span>
-        <span class="pane-help">Hjulet zoomer, høyre knapp eller mellomrom + dra flytter. Dra en modul for å flytte den, ramme for å velge flere. Dobbeltklikk: gå inn her i 3D. K kobler det valgte.</span>
+        <span class="pane-help">Hjulet zoomer, høyre knapp eller mellomrom + dra flytter. Dra en modul for å flytte den, ramme for å velge flere. Dobbeltklikk: gå inn her i 3D. K kobler det valgte. Ctrl+1–9 (eller Shift+1–9) husker kameraet, 1–9 går dit.</span>
       </div>
       <div id="pane3d" class="pane">
         <canvas id="world" tabindex="0" aria-label="Nivået i 3D"></canvas>

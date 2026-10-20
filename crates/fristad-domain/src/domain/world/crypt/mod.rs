@@ -346,7 +346,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
         let min = poly.iter().fold(Vec2::splat(f32::MAX), |m, p| m.min(*p));
         let max = poly.iter().fold(Vec2::splat(f32::MIN), |m, p| m.max(*p));
         let area = (0..poly.len()).map(|i| poly[i].perp_dot(poly[(i + 1) % poly.len()])).sum::<f32>().abs() * 0.5;
-        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area, sink: 0.0, rise: r.rise });
+        rooms.push(Room { id: r.id.clone(), name: r.name.clone(), poly, y: r.y + origin.y, h: r.h, secret: r.secret, min, max, area, sink: 0.0, rise: r.rise, fog: r.fog, sound: r.sound.clone() });
     }
     let room_ix = |id: &str| rooms.iter().position(|r| r.id == id);
 

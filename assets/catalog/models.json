@@ -447,6 +447,8 @@
   "tool_wall": "Møbel: Verktøyveggen med tenger, hammere, filer og hestesko (Smia).",
   "town_wall": "Bymuren, en bit.",
   "training_dummy": "Treningsdukke (Gorveks øvingsplass).",
+  "tree_birch_leaves": "Bjørkas løv: 349 alfakort med hengende bjørkeklaser fra eierens løvark (leaves_birch), tonet mot fargen TRELLIS ga løvet, hengt der TRELLIS hadde blader og dreid ut fra stammen, mørkere inne i kronen; svaier i vinden, det fjerne nivået er hvert tredje kort forstørret (tools/models/tree3d.py, nature::birches).",
+  "tree_birch_trunk": "Bjørkas stamme og greiner: hvit bark med svarte merker, skrå stamme og rotfot, 2 600 trekanter nær og 380 fjern. Fra eierens 3D-form (TRELLIS.2) med løvet skilt ut etter fargen (tools/models/tree3d.py); kollideren er et skrog rundt stammen, i klynger på 3–5 langs veiene (nature::birches).",
   "twin_warden": "Tvillingvokteren (elite, nivå 9): halvt steinkriger i jern og gull, halvt glatt hvit plast, sydd sammen med en glødende magenta søm under kongens segl, med nøkkelen grodd inn i brystet; TRELLIS-formen fra eieren med teksturen som den er (tools/models/mob3d.py).",
   "wall_tower": "Tårn i bymuren.",
   "wash_stand": "Møbel: Vaskefat på stativ (sovesalen i Vertshuset).",

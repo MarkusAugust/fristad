@@ -202,7 +202,10 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
         };
         let free = |a: &str| a.is_empty() || a == "fri";
         let ids: Vec<&str> = m.things.iter().map(|t| t.id.as_str()).collect();
-        for th in &m.things {
+        // Innhold eieren har tatt bort (eller flyttet til dokumentet, med
+        // samme id) i dette nivået.
+        let gone = |s: &str| inst.hidden.iter().any(|h| h == s) && !doc.things.iter().any(|t| t.id == prefix(s));
+        for th in m.things.iter().filter(|th| !inst.hidden.contains(&th.id)) {
             let mut th2 = Thing { id: prefix(&th.id), anchor: anchor(&th.anchor), ..th.clone() };
             if free(&th.anchor) {
                 th2.pos = th.pos.map(point);
@@ -213,7 +216,7 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
             }
             module_things.push(th2);
         }
-        for l in &m.links {
+        for l in m.links.iter().filter(|l| !gone(&l.from) && !gone(&l.to)) {
             let fix = |s: &str| {
                 if ids.contains(&s) || local_rooms.iter().any(|r| r == s) {
                     if local_rooms.first().is_some_and(|r| r == s) {
@@ -419,7 +422,7 @@ pub fn showcase(kit: &KitDef, id: &str) -> Option<LevelDoc> {
     let m = kit.module(id)?;
     let main = m.rooms.first().cloned().unwrap_or_default();
     let mut doc = LevelDoc { format: 1, level: LevelId::Name(format!("modul:{id}")), name: m.name.clone(), status: "utkast".into(), seed: 1, ..Default::default() };
-    doc.modules.push(DocModule { id: "m".into(), module: id.into(), mood: Some(Mood { torches: main.mood.torches.max(0.8) }), ..Default::default() });
+    doc.modules.push(DocModule { id: "m".into(), module: id.into(), mood: Some(Mood { torches: main.mood.torches.max(0.8), ..main.mood.clone() }), ..Default::default() });
     if !m.things.iter().any(|t| t.kind == "start") {
         let first = m.cells.iter().min_by_key(|c| (c.at[0].abs() + c.at[2].abs(), c.at[0], c.at[2]))?;
         doc.things.push(Thing { id: "start".into(), kind: "start".into(), anchor: format!("celle:m/{}", first.id), pos: Some([0.0, 0.0, 0.0]), ..Default::default() });
@@ -524,14 +527,14 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
         }
         let at = [x - i0, 0, row_z - j0];
         let main = m.rooms.first().cloned().unwrap_or_default();
-        doc.modules.push(DocModule { id: name.clone(), module: m.id.clone(), at, mood: Some(Mood { torches: main.mood.torches.max(0.8) }), ..Default::default() });
+        doc.modules.push(DocModule { id: name.clone(), module: m.id.clone(), at, mood: Some(Mood { torches: main.mood.torches.max(0.8), ..main.mood.clone() }), ..Default::default() });
         for (k, h) in host_at.iter().enumerate() {
             doc.modules.push(DocModule {
                 id: format!("{name}_nabo{k}"),
                 module: host.clone(),
                 at: [at[0] + h[0], h[1], at[2] + h[2]],
                 name: Some("Nabo".into()),
-                mood: Some(Mood { torches: 0.8 }),
+                mood: Some(Mood::torches(0.8)),
                 ..Default::default()
             });
         }

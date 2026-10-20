@@ -1893,5 +1893,61 @@
     "assets/catalog/review/well_for_etter.jpg"
    ]
   }
+ },
+ "key": {
+  "ce285e618ff7": {
+   "text": [
+    "Ny: fra din TRELLIS-form. Bildet: TRELLIS-formen til venstre, spillmodellen i midten, og nøkkelen på gulvet i krypten der eliten falt til høyre."
+   ],
+   "images": [
+    "assets/catalog/review/key_trellis_spill_krypt.jpg"
+   ]
+  }
+ },
+ "rock_big": {
+  "5b0c0bfb740d": {
+   "text": [
+    "Ny: fra din TRELLIS-form. Bildene: TRELLIS mot spillmodellen, og steinen på enga utenfor muren."
+   ],
+   "images": [
+    "assets/catalog/review/rock_big_trellis_spill.jpg",
+    "assets/catalog/review/rock_big_enga.jpg"
+   ]
+  }
+ },
+ "rock_group": {
+  "1dad9c4323b2": {
+   "text": [
+    "Ny: fra din TRELLIS-form. Bildene: TRELLIS mot spillmodellen, og gruppa på enga utenfor muren."
+   ],
+   "images": [
+    "assets/catalog/review/rock_group_trellis_spill.jpg",
+    "assets/catalog/review/rock_group_enga.jpg"
+   ]
+  }
+ },
+ "tree_birch_trunk": {
+  "66f727628f1d": {
+   "text": [
+    "Ny: fra din TRELLIS-form. Bildene: klynga ved veien om dagen, nær, og studiobildet (stammen forfra og fra hjørnet, løvet alene til høyre)."
+   ],
+   "images": [
+    "assets/catalog/review/birch_veien_dag.jpg",
+    "assets/catalog/review/birch_naer_dag.jpg",
+    "assets/catalog/review/birch_studio.jpg"
+   ]
+  }
+ },
+ "tree_birch_leaves": {
+  "a8a3e25cee68": {
+   "text": [
+    "Ny: løvet fra løvarket ditt hengt på bjørka. Bildene: klynga ved veien om dagen, nær, og studiobildet (løvet alene til høyre)."
+   ],
+   "images": [
+    "assets/catalog/review/birch_veien_dag.jpg",
+    "assets/catalog/review/birch_naer_dag.jpg",
+    "assets/catalog/review/birch_studio.jpg"
+   ]
+  }
  }
 }

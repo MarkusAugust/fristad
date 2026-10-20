@@ -10,6 +10,7 @@
 
 pub mod map;
 pub mod rules;
+mod templates;
 
 use crate::domain::world::crypt::compose::{self, modules, Compiler, Issue, Report, Severity, CELL};
 use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, Thing};
@@ -167,6 +168,26 @@ pub enum LevelOp {
     },
     SetLight { light: DocLight },
     SetHead { head: Head },
+    /// Løsne innholdet `<modul>/<id>` fra modulmalen: det blir eierens i
+    /// dokumentet med samme id og sted (malen tar det bort i dette nivået,
+    /// `DocModule.hidden`), så det kan flyttes og endres. `move_thing`,
+    /// `set_thing` og `delete` på malens innhold gjør dette selv.
+    Detach { id: String },
+    /// Malens innhold tilbake slik malen har det (det endrede eller fjernede
+    /// glemmes).
+    Reattach { module: String, thing: String },
+    /// Sett ut en mal eieren har lagret (`LevelEditor::template`,
+    /// `assets/levels/maler/<navn>.json`) med den første modulen i `at`,
+    /// speilet langs x og så dreid `rot` kvart omdreininger med klokka. Alt
+    /// får nye id-er, og koblingene i malen følger med.
+    Stamp {
+        template: Box<LevelDoc>,
+        at: [i32; 3],
+        #[serde(default)]
+        rot: u8,
+        #[serde(default)]
+        mirror: bool,
+    },
 }
 
 /// Slagene en kobling kan ha, og hva de forbinder.
@@ -250,7 +271,7 @@ impl LevelEditor {
         let mut issues = report.issues.clone();
         issues.extend(compose::check::overlaps(&self.doc, &self.kit));
         issues.extend(compose::check::tight(&self.doc, &self.kit, &file));
-        issues.extend(rules::check(&self.doc, &file));
+        issues.extend(rules::check(&self.doc, &self.kit, &file, &report));
         // Det samme bruddet fra to regler meldes én gang.
         let mut seen = std::collections::HashSet::new();
         issues.retain(|i| seen.insert((i.rule, i.msg.clone())));
@@ -402,7 +423,7 @@ impl LevelEditor {
                 }
                 for k in things {
                     let t = &self.doc.things[k];
-                    let after = Thing { pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), ..t.clone() };
+                    let after = Thing { pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t.clone() };
                     out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
                 }
                 for k in self.lights_in(&mods).into_iter().chain(ids.iter().filter_map(|id| self.doc.lights.iter().position(|l| &l.id == id))).collect::<std::collections::BTreeSet<_>>() {
@@ -434,6 +455,19 @@ impl LevelEditor {
                 for k in lights.into_iter().rev() {
                     out.push(Change::Remove { index: k, entry: Entry::Light(self.doc.lights[k].clone()) });
                 }
+                // Malens innhold i moduler som står igjen: modulen tar det bort.
+                let mut hide: std::collections::BTreeMap<usize, Vec<String>> = Default::default();
+                for id in &ids {
+                    if let Some((k, local)) = self.template_thing(id).filter(|(k, _)| !ids.contains(&self.doc.modules[*k].id)) {
+                        hide.entry(k).or_default().push(local);
+                    }
+                }
+                for (k, locals) in hide {
+                    let m = &self.doc.modules[k];
+                    let mut after = m.clone();
+                    after.hidden.extend(locals);
+                    out.push(Change::Set { index: k, before: Entry::Module(m.clone()), after: Entry::Module(after) });
+                }
                 for k in (0..self.doc.modules.len()).rev().filter(|k| ids.contains(&self.doc.modules[*k].id)) {
                     out.push(Change::Remove { index: k, entry: Entry::Module(self.doc.modules[k].clone()) });
                 }
@@ -462,7 +496,7 @@ impl LevelEditor {
                 let mut index = self.doc.things.len();
                 for t in things.into_iter().filter(|t| free(&t.anchor)) {
                     let id = fresh(self, &t.id);
-                    let t2 = Thing { id: id.clone(), anchor: "fri".into(), pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), ..t };
+                    let t2 = Thing { id: id.clone(), anchor: "fri".into(), pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t };
                     out.push(Change::Insert { index, entry: Entry::Thing(t2) });
                     index += 1;
                     made.push(id);
@@ -513,13 +547,21 @@ impl LevelEditor {
                 made.push(id);
             }
             LevelOp::MoveThing { id, to } => {
-                let k = self.thing_index(&id).ok_or_else(|| format!("Innholdet «{id}» kan ikke flyttes her (det hører til en modul)"))?;
-                let t = &self.doc.things[k];
+                let (k, t) = match self.thing_index(&id) {
+                    Some(k) => (k, self.doc.things[k].clone()),
+                    None => {
+                        let at = self.doc.things.len();
+                        let (changes, t) = self.detach(&id, at)?.ok_or_else(|| format!("Innholdet «{id}» finnes ikke"))?;
+                        out.extend(changes);
+                        (at, t)
+                    }
+                };
+                let t = &t;
                 if !free(&t.anchor) {
                     return Err(format!("«{id}» er festet ({})", t.anchor));
                 }
                 let d = Vec3::from(to) - Vec3::from(t.pos.unwrap_or_default());
-                let after = Thing { pos: Some(mm3(Vec3::from(to))), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), ..t.clone() };
+                let after = Thing { pos: Some(mm3(Vec3::from(to))), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t.clone() };
                 if after != *t {
                     out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
                 }
@@ -530,8 +572,40 @@ impl LevelEditor {
                         out.push(Change::Set { index: k, before: Entry::Thing(self.doc.things[k].clone()), after: Entry::Thing(thing) });
                     }
                 }
-                None => return Err(format!("Innholdet «{}» hører til en modul og kan ikke endres her ennå", thing.id)),
+                None => {
+                    // Malens innhold: løsnes og endres i samme steg.
+                    let at = self.doc.things.len();
+                    let (changes, t) = self.detach(&thing.id, at)?.ok_or_else(|| format!("Innholdet «{}» finnes ikke", thing.id))?;
+                    out.extend(changes);
+                    if t != thing {
+                        out.push(Change::Set { index: at, before: Entry::Thing(t), after: Entry::Thing(thing) });
+                    }
+                }
             },
+            LevelOp::Stamp { template, at, rot, mirror } => {
+                let (changes, ids) = self.stamp(&template, at, rot % 4, mirror);
+                out.extend(changes);
+                made.extend(ids);
+            }
+            LevelOp::Detach { id } => {
+                if self.thing_index(&id).is_none() {
+                    let (changes, _) = self.detach(&id, self.doc.things.len())?.ok_or_else(|| format!("«{id}» kommer ikke fra en modul"))?;
+                    out.extend(changes);
+                }
+            }
+            LevelOp::Reattach { module, thing } => {
+                let k = self.module_index(&module).ok_or_else(|| format!("Ingen modul «{module}»"))?;
+                let m = &self.doc.modules[k];
+                let full = format!("{module}/{thing}");
+                if let Some(t) = self.thing_index(&full) {
+                    out.push(Change::Remove { index: t, entry: Entry::Thing(self.doc.things[t].clone()) });
+                }
+                if m.hidden.contains(&thing) {
+                    let mut after = m.clone();
+                    after.hidden.retain(|h| *h != thing);
+                    out.push(Change::Set { index: k, before: Entry::Module(m.clone()), after: Entry::Module(after) });
+                }
+            }
             LevelOp::Link { from, to, kind } => {
                 if !LINK_KINDS.contains(&kind.as_str()) {
                     return Err(format!("Ukjent kobling «{kind}»"));
@@ -607,7 +681,7 @@ impl LevelEditor {
         let point = |p: [f32; 3]| mm3(turn(Vec3::from(p) - centre) + centre);
         for k in things {
             let t = &self.doc.things[k];
-            let after = Thing { pos: t.pos.map(point), patrol: t.patrol.iter().map(|p| point(*p)).collect(), yaw: mm(yaw(t.yaw).rem_euclid(360.0)), ..t.clone() };
+            let after = Thing { pos: t.pos.map(point), patrol: t.patrol.iter().map(|p| point(*p)).collect(), top: t.top.map(point), bottom: t.bottom.map(point), yaw: mm(yaw(t.yaw).rem_euclid(360.0)), ..t.clone() };
             out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
         }
         for k in self.lights_in(&mods) {

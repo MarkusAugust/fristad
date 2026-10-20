@@ -78,6 +78,30 @@ export async function branchFiles(paths) {
   return out;
 }
 
+// Én fil på grenen `redigering` med blob-sha-en (til konfliktsjekken før
+// lagring, docs/nivaaredigering.md del 13.2), eller null om den ikke finnes.
+export async function branchFile(path) {
+  if (!token()) return null;
+  const ref = await api(`/git/ref/heads/${BRANCH}`, { allow404: true });
+  if (!ref) return null;
+  const f = await api(`/contents/${path}?ref=${BRANCH}`, { allow404: true });
+  if (!f?.content) return null;
+  const bytes = Uint8Array.from(atob(f.content.replace(/\n/g, "")), (c) => c.charCodeAt(0));
+  return { sha: f.sha, text: new TextDecoder().decode(bytes) };
+}
+
+// Git sin blob-sha for en tekst (sha1 av «blob <lengde>\0» og innholdet),
+// så en fil i nettleseren kan sammenlignes med den på grenen.
+export async function blobSha(text) {
+  const body = new TextEncoder().encode(text);
+  const head = new TextEncoder().encode(`blob ${body.length}\0`);
+  const all = new Uint8Array(head.length + body.length);
+  all.set(head);
+  all.set(body, head.length);
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-1", all));
+  return [...hash].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // Filene på grenen `redigering` (lages fra BASE om den ikke finnes). Gir
 // commitens sha.
 export async function commit(files, message) {

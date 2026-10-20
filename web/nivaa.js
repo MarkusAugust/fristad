@@ -17,8 +17,8 @@ import init, {
   level_blank,
   level_palette,
 } from "./pkg/fristad.js";
-import { draw, hit, makeView, placeFootprint, CELL, CHOSEN_COLOR } from "./nivaa-plan.js";
-import { commit, token, setToken, branchFiles, SAVE_BRANCH } from "./github.js";
+import { draw, hit, makeView, miniMap, placeFootprint, CELL, CHOSEN_COLOR } from "./nivaa-plan.js";
+import { commit, token, setToken, branchFiles, branchFile, blobSha, SAVE_BRANCH } from "./github.js";
 import { makeZip } from "./editor.js";
 
 const $ = (id) => document.getElementById(id);
@@ -27,6 +27,13 @@ let canvas = $("world");
 const params = new URLSearchParams(location.search);
 const DRAFT_PREFIX = "fristad.nivaa.utkast:";
 const LAST = "fristad.nivaa.siste";
+// Malene eieren har lagret i denne nettleseren (navn → tekst), og de som
+// ikke er lagret på grenen ennå.
+const TEMPLATES = "fristad.nivaa.maler";
+const MARKS = "fristad.nivaa.kamera:";
+// Blob-sha-en til fila redigeringen begynte fra (repoet, grenen eller sist
+// lagret), per sti: konfliktsjekken før lagring.
+const BASE = "fristad.nivaa.grunnlag:";
 
 let engine = null;
 let palette = null;
@@ -43,6 +50,10 @@ const st = {
   mouse: null,
   camera: null,
   flash: null,
+  // Etasjene eieren har lagt til, og snittet (bare denne og den under).
+  extraFloors: [],
+  floors: [0],
+  cut: false,
 };
 // Det som er «tatt» fra paletten: { type: "module", id, rot, mirror } eller { type: "thing", kind, label }.
 let arm = null;
@@ -175,7 +186,10 @@ function firstDoc() {
   }
   const short = path.replace(/^assets\/levels\/nivaa_/, "").replace(/\.json$/, "");
   const text = short ? level_doc_source(short) : "";
-  if (text) return { text, note: "" };
+  if (text) {
+    if (!store.get(BASE + path)) rememberBase(path, text);
+    return { text, note: "" };
+  }
   return { text: level_blank("Nytt nivå", 1, "grav"), note: "Nytt nivå." };
 }
 
@@ -184,6 +198,7 @@ async function boot() {
   await init();
   palette = JSON.parse(level_palette());
   buildPalette();
+  loadTemplates();
   const assets = await loadAssets();
   const models = await loadModels();
   progress("Bygger byen og nivået …", 1);
@@ -200,7 +215,7 @@ async function boot() {
     canvas = fresh;
     engine = await start_level_editor(canvas, false, assets.manifest, assets.names, assets.blobs, models, first.text);
   }
-  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule };
+  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule, select, blank: level_blank };
   engine.set_quality(engine.backend() === "Gl" ? "enkel" : "standard");
   fit();
   new ResizeObserver(fit).observe(canvas);
@@ -261,16 +276,22 @@ function send(cmd) {
 
 function refresh(map) {
   st.map = map;
-  // Etasjene.
-  const floors = map.floors.length ? map.floors : [0];
+  // Etasjene: gulvene som finnes, og de nye eieren har lagt til (tomme til
+  // noe står der). En ny etasje står 6 m over eller under (`docs/nivaaredigering.md` del 25).
+  const floors = [...new Set([...(map.floors.length ? map.floors : [0]), ...st.extraFloors])].sort((a, b) => a - b);
   const sel = $("floor");
   const want = floors.map(String).join();
   if (sel.dataset.list !== want) {
-    sel.innerHTML = floors.map((f) => `<option value="${f}">${f === 0 ? "Hovedplanet (0 m)" : `${f > 0 ? "+" : ""}${f} m`}</option>`).join("");
+    const top = Math.max(...floors);
+    const low = Math.min(...floors);
+    sel.innerHTML =
+      floors.map((f) => `<option value="${f}">${f === 0 ? "Hovedplanet (0 m)" : `${f > 0 ? "+" : ""}${f} m`}${map.floors.includes(f) ? "" : " (tom)"}</option>`).join("") +
+      `<option value="new:${top + 6}">Ny etasje over (+${top + 6} m)</option><option value="new:${low - 6}">Ny etasje under (${low - 6} m)</option>`;
     sel.dataset.list = want;
   }
   if (!floors.includes(st.floor)) st.floor = floors.reduce((a, f) => (Math.abs(f - st.floor) < Math.abs(a - st.floor) ? f : a), floors[0]);
   sel.value = String(st.floor);
+  st.floors = floors;
   // Det valgte som ikke finnes lenger.
   const ids = new Set([...map.modules.map((m) => m.id), ...map.things.map((t) => t.id), ...map.lights.map((l) => l.id)]);
   st.sel = st.sel.filter((id) => ids.has(id));
@@ -319,7 +340,7 @@ async function save() {
     if (key) setToken(key.trim());
   }
   if (!token()) {
-    const url = URL.createObjectURL(makeZip([d]));
+    const url = URL.createObjectURL(makeZip([d, ...pendingTemplates()]));
     const a = document.createElement("a");
     a.href = url;
     a.download = d.path.split("/").pop().replace(".json", ".zip");
@@ -331,13 +352,62 @@ async function save() {
   }
   setStatus("Lagrer …");
   try {
-    const r = await commit([d], `Nivåredigeringen: ${st.map.name || d.path}`);
+    const conflict = await checkConflict(d);
+    if (conflict === "avbryt") return setStatus("");
+    const tpls = pendingTemplates();
+    const r = await commit([d, ...tpls], `Nivåredigeringen: ${st.map.name || d.path}`);
+    clearPendingTemplates();
+    rememberBase(d.path, d.text);
     send({ cmd: "saved" });
     toast(r.unchanged ? "Ingenting nytt å lagre." : `Lagret på grenen ${SAVE_BRANCH}.`);
   } catch (e) {
     toast(`Lagringen feilet: ${e.message}. Utkastet ligger i nettleseren.`, 7000);
   }
   setStatus("");
+}
+
+/// Husk hva redigeringen av `path` bygger på (teksten fra repoet, grenen
+/// eller det som ble lagret).
+async function rememberBase(path, text) {
+  try {
+    store.set(BASE + path, await blobSha(text));
+  } catch {
+    /* uten crypto.subtle (http): ingen konfliktsjekk */
+  }
+}
+
+/// Før lagring: har fila på grenen endret seg siden redigeringen begynte
+/// (lagret fra en annen fane eller maskin)? Da velger eieren å skrive over,
+/// åpne den som ligger der, eller avbryte. Gir "ok", "over" eller "avbryt".
+async function checkConflict(d) {
+  const there = await branchFile(d.path).catch(() => null);
+  if (!there) return "ok";
+  const mine = await blobSha(d.text).catch(() => "");
+  const base = store.get(BASE + d.path);
+  if (there.sha === mine || there.sha === base) return "ok";
+  return new Promise((done) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h2 class="fs-heading" data-size="s">Fila er endret på grenen</h2>
+      <p class="fs-paragraph">${esc(d.path)} på grenen ${SAVE_BRANCH} er lagret et annet sted siden du begynte her (en annen fane eller maskin). Lagrer du, skrives den over.</p>
+      <div class="row"><button class="fs-button" data-variant="danger" id="c-over">Skriv over</button>
+      <button class="fs-button" data-variant="secondary" id="c-open">Åpne den på grenen</button>
+      <button class="fs-button" data-variant="secondary" id="c-cancel">Avbryt</button></div>`;
+    const ov = $("overlay");
+    ov.replaceChildren(card);
+    ov.hidden = false;
+    const close = (v) => {
+      ov.hidden = true;
+      done(v);
+    };
+    card.querySelector("#c-over").onclick = () => close("over");
+    card.querySelector("#c-cancel").onclick = () => close("avbryt");
+    card.querySelector("#c-open").onclick = () => {
+      openText(there.text, `Åpnet ${d.path} fra grenen ${SAVE_BRANCH}; utkastet ditt ligger i nettleseren.`);
+      rememberBase(d.path, there.text);
+      close("avbryt");
+    };
+  });
 }
 
 function openDialog() {
@@ -377,7 +447,9 @@ function openDialog() {
   );
   card.querySelectorAll("[data-repo]").forEach((b) =>
     b.addEventListener("click", () => {
-      openText(level_doc_source(b.dataset.repo), `nivaa_${b.dataset.repo}.json fra repoet.`);
+      const text = level_doc_source(b.dataset.repo);
+      openText(text, `nivaa_${b.dataset.repo}.json fra repoet.`);
+      rememberBase(`assets/levels/nivaa_${b.dataset.repo}.json`, text);
       close();
     }),
   );
@@ -385,7 +457,10 @@ function openDialog() {
     try {
       const files = await branchFiles([docPath]);
       if (!files.length) toast(token() ? `${docPath} finnes ikke på grenen ${SAVE_BRANCH}.` : "Trenger nøkkelen til GitHub (Lagre spør etter den).");
-      else openText(files[0].text, `Hentet ${docPath} fra grenen ${SAVE_BRANCH}.`);
+      else {
+        openText(files[0].text, `Hentet ${docPath} fra grenen ${SAVE_BRANCH}.`);
+        rememberBase(docPath, files[0].text);
+      }
     } catch (e) {
       toast(e.message);
     }
@@ -406,6 +481,156 @@ function openText(text, note) {
   refresh(out);
   centerOn();
   if (note) toast(note);
+}
+
+// ---------------------------------------------------------------- maler
+
+function localTemplates() {
+  try {
+    return JSON.parse(store.get(TEMPLATES) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function slug(name) {
+  return (
+    name
+      .toLowerCase()
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "o")
+      .replace(/å/g, "aa")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "") || "mal"
+  );
+}
+
+/// Malene som ikke er lagret på grenen ennå, som filer.
+function pendingTemplates() {
+  return Object.entries(localTemplates())
+    .filter(([, t]) => t.pending)
+    .map(([key, t]) => ({ path: `assets/levels/maler/${key}.json`, text: t.text }));
+}
+
+function clearPendingTemplates() {
+  const all = localTemplates();
+  for (const t of Object.values(all)) delete t.pending;
+  store.set(TEMPLATES, JSON.stringify(all));
+}
+
+/// Ctrl+G: det valgte som mal, husket i nettleseren og lagret på grenen
+/// neste gang du lagrer (`assets/levels/maler/<navn>.json`).
+function saveTemplate() {
+  if (!st.sel.length) return toast("Velg modulene (og innholdet) som skal bli en mal først.");
+  const name = prompt("Navnet på malen", "Ny mal");
+  if (!name) return;
+  const text = engine.level_template(JSON.stringify(st.sel), name);
+  if (!text) return;
+  const all = localTemplates();
+  all[slug(name)] = { name, text, pending: true };
+  store.set(TEMPLATES, JSON.stringify(all));
+  buildTemplates();
+  toast(`Malen «${name}» er lagret. Lagre legger den på grenen sammen med nivået.`);
+}
+
+let repoTemplates = {};
+async function loadTemplates() {
+  try {
+    const r = await fetch("maler/index.json", { cache: "no-cache" });
+    if (r.ok) {
+      for (const f of await r.json()) {
+        const t = await fetch(`maler/${f}`).then((x) => (x.ok ? x.text() : ""));
+        if (t) repoTemplates[f.replace(/\.json$/, "")] = { name: JSON.parse(t).name || f, text: t };
+      }
+    }
+  } catch {
+    /* ingen maler i repoet */
+  }
+  buildTemplates();
+}
+
+function buildTemplates() {
+  const list = $("tpllist");
+  if (!list) return;
+  list.innerHTML = "";
+  const all = { ...repoTemplates, ...localTemplates() };
+  for (const [key, t] of Object.entries(all)) {
+    const b = chip(t.name + (t.pending ? " *" : ""), () => armTemplate(key, t), `tpl:${key}`);
+    b.title = t.pending ? "Lagret i nettleseren; Lagre legger den på grenen" : `assets/levels/maler/${key}.json`;
+    list.append(b);
+  }
+  if (!list.children.length) list.innerHTML = `<span class="muted">Ingen ennå.</span>`;
+}
+
+function armTemplate(key, t) {
+  let tpl;
+  try {
+    tpl = JSON.parse(t.text);
+  } catch {
+    return toast("Malen kan ikke leses.");
+  }
+  arm = { type: "template", key, tpl, rot: 0, mirror: false };
+  mode = null;
+  markArmed();
+  setStatus(`Klikk på kartet for å sette ut «${t.name}». R dreier, M speiler, Esc avbryter.`);
+}
+
+/// Fantomet for malen med den første modulen i ruta under pekeren: hver
+/// modul flyttet, dreid og speilet som kjernen gjør (`LevelOp::Stamp`).
+function templateGhost(x, z) {
+  const at = cellAt(x, z);
+  const flip = (i, j) => {
+    let p = [arm.mirror ? -i : i, j];
+    for (let k = 0; k < (arm.rot & 3); k++) p = [-p[1], p[0]];
+    return p;
+  };
+  const cells = [];
+  const openings = [];
+  for (const m of arm.tpl.modules || []) {
+    const pm = palette.modules.find((p) => p.id === m.module);
+    if (!pm) continue;
+    const [i, j] = flip(m.at[0], m.at[2]);
+    const r = (m.rot || 0) & 3;
+    const rot = arm.mirror ? (arm.rot + 4 - r) & 3 : (arm.rot + r) & 3;
+    const mirror = arm.mirror ? !m.mirror : !!m.mirror;
+    const g = placeFootprint(pm, [at[0] + i, at[1] + (m.at[1] || 0), at[2] + j], rot, mirror);
+    cells.push(...g.cells);
+    openings.push(...g.openings);
+  }
+  const taken = new Set(st.map.modules.flatMap((m) => m.cells.map((c) => c.join())));
+  return { cells, openings, at, ok: !cells.some((c) => taken.has(c.join())) };
+}
+
+// ---------------------------------------------------------------- bokmerker
+
+function marks() {
+  try {
+    return JSON.parse(store.get(MARKS + docPath) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+/// Ctrl+1–9 (Shift+1–9 der nettleseren tar Ctrl): husk kameraet i 3D,
+/// utsnittet i kartet og etasjen.
+function markCamera(n) {
+  const all = marks();
+  all[n] = { camera: engine.level_camera(), view: [st.view.cx, st.view.cz, st.view.s], floor: st.floor };
+  store.set(MARKS + docPath, JSON.stringify(all));
+  toast(`Bokmerke ${n} husket.`, 1500);
+}
+
+/// 1–9: tilbake til bokmerket.
+function gotoMark(n) {
+  const m = marks()[n];
+  if (!m) return toast(`Ingen bokmerke ${n} ennå (Ctrl+${n} eller Shift+${n} husker kameraet).`, 2000);
+  setFloor(m.floor);
+  [st.view.cx, st.view.cz, st.view.s] = m.view;
+  if (m.camera?.length) {
+    const [x, y, z, yaw, pitch] = m.camera;
+    engine.level(JSON.stringify({ cmd: "place", x, y, z, yaw, pitch }));
+  }
+  redraw();
 }
 
 // ---------------------------------------------------------------- paletten
@@ -476,6 +701,15 @@ function buildPalette() {
   for (const [key, name] of palette.mobs) mobs.append(chip(name.replace(/^Korrupt /, ""), () => armThing("mob", key), `mob:${key}`));
   mobs.append(chip("Elite …", () => armThing("elite", "button"), "elite"));
   mobs.append(chip("Boss …", () => armThing("boss", "modal"), "boss"));
+  // Lys du setter selv (dra dem etterpå; farge, styrke og flamme i panelet).
+  things.append(chip("Lys", armLight, "light"));
+}
+
+function armLight() {
+  arm = { type: "light" };
+  mode = null;
+  markArmed();
+  setStatus("Klikk på kartet for å sette ut et lys. Esc avbryter.");
 }
 
 function chip(text, fn, key) {
@@ -515,7 +749,7 @@ function disarm() {
 
 function markArmed() {
   document.querySelectorAll(".tile, .chip").forEach((el) => {
-    const on = arm && ((arm.type === "module" && el.dataset.module === arm.id) || (arm.type === "thing" && (el.dataset.key === arm.kind || el.dataset.key === `mob:${arm.label}`) && (arm.kind !== "mob" || el.dataset.key === `mob:${arm.label}`)));
+    const on = arm && ((arm.type === "module" && el.dataset.module === arm.id) || (arm.type === "light" && el.dataset.key === "light") || (arm.type === "template" && el.dataset.key === `tpl:${arm.key}`) || (arm.type === "thing" && (el.dataset.key === arm.kind || el.dataset.key === `mob:${arm.label}`) && (arm.kind !== "mob" || el.dataset.key === `mob:${arm.label}`)));
     el.classList.toggle("armed", !!on);
   });
 }
@@ -587,13 +821,26 @@ function bindMap() {
       return;
     }
     if (e.button !== 0) return;
+    const mini = miniMap(st.map, plan.clientWidth, plan.clientHeight);
+    const pr = plan.getBoundingClientRect();
+    if (mini?.inside(e.clientX - pr.left, e.clientY - pr.top)) {
+      [st.view.cx, st.view.cz] = mini.toWorld(e.clientX - pr.left, e.clientY - pr.top);
+      drag = { type: "mini" };
+      redraw();
+      return;
+    }
     if (mode === "patrol") return addPatrol(x, z);
     if (mode === "link") return finishLink(x, z);
     if (arm) return;
     const h = hit(st.map, st.floor, x, z, Math.max(0.6, 10 / st.view.s));
     if (h?.type === "thing") {
       if (!st.sel.includes(h.id) || e.shiftKey) select([h.id], e.shiftKey);
-      drag = h.own ? { type: "thing", id: h.id, from: [x, z], moved: false } : null;
+      drag = { type: "thing", id: h.id, own: h.own, from: [x, z], moved: false };
+      return;
+    }
+    if (h?.type === "light") {
+      if (!st.sel.includes(h.id) || e.shiftKey) select([h.id], e.shiftKey);
+      drag = { type: "light", id: h.id, from: [x, z], moved: false };
       return;
     }
     if (h?.type === "opening") {
@@ -625,7 +872,8 @@ function bindMap() {
     }
     lastMouse = [e.clientX, e.clientY];
     if (arm?.type === "module") st.ghost = ghostFor(x, z);
-    if (arm?.type === "thing") st.thingGhost = [snap(x), st.floor, snap(z)];
+    if (arm?.type === "template") st.ghost = templateGhost(x, z);
+    if (arm?.type === "thing" || arm?.type === "light") st.thingGhost = [snap(x), st.floor, snap(z)];
     if (drag?.type === "modules") {
       const c = cellAt(x, z);
       drag.by = [c[0] - drag.from[0], 0, c[2] - drag.from[2]];
@@ -633,7 +881,7 @@ function bindMap() {
       const moved = st.map.modules.filter((m) => st.sel.includes(m.id));
       st.ghost = drag.by[0] || drag.by[2] ? { cells: moved.flatMap((m) => m.cells.map((q) => [q[0] + drag.by[0], q[1], q[2] + drag.by[2]])), openings: [], ok: true } : null;
     }
-    if (drag?.type === "thing") {
+    if (drag?.type === "thing" || drag?.type === "light") {
       drag.moved = drag.moved || Math.hypot(x - drag.from[0], z - drag.from[1]) > 0.3;
       if (drag.moved) st.thingGhost = [snap(x), st.floor, snap(z)];
     }
@@ -644,10 +892,25 @@ function bindMap() {
     const [x, z] = worldAt(e);
     const d = drag;
     drag = null;
-    if (d?.type === "pan") return;
+    if (d?.type === "pan" || d?.type === "mini") return;
     if (arm?.type === "module" && (e.button === 0 || d?.type === "palette")) {
       const g = ghostFor(x, z);
       if (g) placeModule(arm.id, g.at, arm.rot, arm.mirror);
+      if (!e.shiftKey) disarm();
+      return;
+    }
+    if (arm?.type === "template" && e.button === 0) {
+      const g = templateGhost(x, z);
+      if (g) {
+        const out = send({ op: "stamp", template: arm.tpl, at: g.at, rot: arm.rot, mirror: arm.mirror });
+        if (out?.made?.length) select(out.made);
+      }
+      if (!e.shiftKey) disarm();
+      return;
+    }
+    if (arm?.type === "light" && e.button === 0) {
+      const out = send({ op: "add_light", at: [snap(x), st.floor + 2.4, snap(z)] });
+      if (out?.made?.length) select(out.made);
       if (!e.shiftKey) disarm();
       return;
     }
@@ -665,7 +928,18 @@ function bindMap() {
     }
     if (d?.type === "thing") {
       st.thingGhost = null;
-      if (d.moved) send({ op: "move_thing", id: d.id, to: [snap(x), thingY(d.id), snap(z)] });
+      if (d.moved) {
+        // Innhold fra en modulmal løsnes av kjernen i samme steg (modulen
+        // husker det i `hidden`, og dokumentet får det på det nye stedet).
+        send({ op: "move_thing", id: d.id, to: [snap(x), thingY(d.id), snap(z)] });
+      }
+      redraw();
+      return;
+    }
+    if (d?.type === "light") {
+      st.thingGhost = null;
+      const l = docLight(d.id);
+      if (d.moved && l) send({ op: "set_light", light: { ...l, pos: [snap(x), l.pos[1], snap(z)] } });
       redraw();
       return;
     }
@@ -829,7 +1103,22 @@ function bindUi() {
     head.status = "klar";
     if (send({ op: "set_head", head })) toast("Merket klart. Lagre, så tar Claude det inn i spillet.");
   };
-  $("floor").onchange = () => setFloor(Number($("floor").value));
+  $("floor").onchange = () => {
+    const v = $("floor").value;
+    if (v.startsWith("new:")) {
+      const y = Number(v.slice(4));
+      st.extraFloors.push(y);
+      $("floor").dataset.list = "";
+      refresh(st.map);
+      setFloor(y);
+      toast(`Etasjen ${y > 0 ? "+" : ""}${y} m: sett ut moduler her, og koble den til med en trapp, stige eller heis. Etasjen under står gjennomsiktig.`, 6000);
+    } else setFloor(Number(v));
+  };
+  $("cut").onclick = () => {
+    st.cut = !st.cut;
+    $("cut").setAttribute("aria-pressed", st.cut);
+    redraw();
+  };
   $("v-map").onclick = () => setView("map");
   $("v-split").onclick = () => setView("split");
   $("v-3d").onclick = () => setView("3d");
@@ -878,6 +1167,16 @@ function onKey(e) {
     e.preventDefault();
     return send({ cmd: "redo" });
   }
+  if (ctrl && e.code === "KeyG") {
+    e.preventDefault();
+    return saveTemplate();
+  }
+  const digit = /^Digit([1-9])$/.exec(e.code)?.[1];
+  if (digit && (ctrl || e.shiftKey)) {
+    e.preventDefault();
+    return markCamera(digit);
+  }
+  if (digit && !e.altKey) return gotoMark(digit);
   if (ctrl && e.code === "KeyC") return copy();
   if (ctrl && e.code === "KeyV") return paste();
   if (ctrl && e.code === "KeyD") {
@@ -891,18 +1190,18 @@ function onKey(e) {
       select([]);
       break;
     case "KeyR":
-      if (arm?.type === "module") {
+      if (arm?.type === "module" || arm?.type === "template") {
         arm.rot = (arm.rot + (e.shiftKey ? 3 : 1)) & 3;
-        if (st.mouse) st.ghost = ghostFor(...st.view.toWorld(...st.mouse));
+        if (st.mouse) st.ghost = arm.type === "module" ? ghostFor(...st.view.toWorld(...st.mouse)) : templateGhost(...st.view.toWorld(...st.mouse));
         redraw();
       } else if (arm?.type === "thing") arm.yaw = (arm.yaw + 90) % 360;
       else if (st.sel.length) turnSelection(e.shiftKey);
       break;
     case "KeyM":
     case "KeyX":
-      if (arm?.type === "module") {
+      if (arm?.type === "module" || arm?.type === "template") {
         arm.mirror = !arm.mirror;
-        if (st.mouse) st.ghost = ghostFor(...st.view.toWorld(...st.mouse));
+        if (st.mouse) st.ghost = arm.type === "module" ? ghostFor(...st.view.toWorld(...st.mouse)) : templateGhost(...st.view.toWorld(...st.mouse));
         redraw();
       } else if (st.sel.length) send({ op: "mirror", ids: st.sel });
       break;
@@ -919,13 +1218,16 @@ function onKey(e) {
     case "KeyF":
       focusSelection();
       break;
+    case "KeyS":
+      if (!ctrl) $("cut").click();
+      break;
     case "KeyP":
       play(e.shiftKey);
       break;
     case "PageUp":
     case "PageDown": {
       e.preventDefault();
-      const f = st.map.floors;
+      const f = st.floors || st.map.floors;
       const i = f.indexOf(st.floor) + (e.code === "PageUp" ? 1 : -1);
       if (i >= 0 && i < f.length) setFloor(f[i]);
       break;
@@ -1044,6 +1346,10 @@ function docThing(id) {
   return docJson().things?.find((t) => t.id === id) || null;
 }
 
+function docLight(id) {
+  return docJson().lights?.find((l) => l.id === id) || null;
+}
+
 function docModule(id) {
   return docJson().modules?.find((m) => m.id === id) || null;
 }
@@ -1097,6 +1403,8 @@ function showSelection() {
   if (mm) return showModule(box, mm);
   const tt = id && map.things.find((t) => t.id === id);
   if (tt) return showThing(box, tt);
+  const ll = id && map.lights.find((l) => l.id === id && l.own);
+  if (ll) return showLight(box, ll);
   showDoc(box);
 }
 
@@ -1122,30 +1430,107 @@ function showModule(box, m) {
   box.innerHTML = `<h2>Modulen</h2><p class="muted">${esc(pm?.name || m.module)} · dreid ${m.rot * 90}°${m.mirror ? " · speilet" : ""}</p>
     ${field("Navnet på rommet", `<input id="m-name" class="fs-input" value="${esc(m.name)}">`)}
     ${field("Hører til rommet (samme rom som en annen modul)", `<select id="m-room" class="fs-select">${options([["", "Sitt eget"], ...st.map.modules.filter((x) => x.id !== m.id).map((x) => [x.room || x.id, x.name])], m.room || "")}</select>`)}
-    ${field(`Fakler (${Math.round((m.mood?.torches ?? 0.5) * 100)} %)`, `<input id="m-torch" type="range" min="0" max="1" step="0.05" value="${m.mood?.torches ?? 0.5}">`)}
     ${field("Steinen", `<select id="m-stone" class="fs-select">${stoneOptions(m.stone)}</select>`)}
+    ${moodFields(m.mood)}
     <div class="row"><button class="fs-button" data-variant="secondary" id="m-turn">Drei (R)</button>
     <button class="fs-button" data-variant="secondary" id="m-mirror">Speil (M)</button>
     <button class="fs-button" data-variant="danger" id="m-del">Slett</button></div>
     <h2>Åpningene</h2><p class="muted">Klikk en pil på kartet for å velge dør, port, falsk vegg, gang, bue, snarvei eller mur.</p>
-    <ul class="muted">${m.openings.map((o) => `<li>${esc(o.id)}: ${esc(o.chosen ? palette.openings.find(([k]) => k === o.chosen)?.[1] || o.chosen : "automatisk")}</li>`).join("")}</ul>`;
+    <ul class="muted">${m.openings.map((o) => `<li>${esc(o.id)}: ${esc(o.chosen ? palette.openings.find(([k]) => k === o.chosen)?.[1] || o.chosen : "automatisk")}</li>`).join("")}</ul>
+    ${m.removed?.length ? `<h2>Fjernet fra malen</h2><ul class="muted">${m.removed.map((r) => `<li>${esc(r)} <button class="chip" data-restore="${esc(r)}">sett tilbake</button></li>`).join("")}</ul>` : ""}`;
+  box.querySelectorAll("[data-restore]").forEach((b) => b.addEventListener("click", () => send({ op: "reattach", module: m.id, thing: b.dataset.restore })));
   const put = (patch) => {
     const d = docModule(m.id);
     if (d) send({ op: "set_module", module: { ...d, ...patch } });
   };
   box.querySelector("#m-name").onchange = (e) => put({ name: e.target.value || undefined });
   box.querySelector("#m-room").onchange = (e) => put({ room: e.target.value || undefined });
-  box.querySelector("#m-torch").onchange = (e) => put({ mood: { torches: Number(e.target.value) } });
+  bindMood(box, (patch) => put({ mood: { ...m.mood, ...patch } }));
+  box.querySelector("#mood-reset")?.addEventListener("click", () => put({ mood: undefined }));
+  if (!m.own_mood) box.querySelector("#mood-reset")?.remove();
   box.querySelector("#m-stone").onchange = (e) => put({ stone: e.target.value || undefined });
   box.querySelector("#m-turn").onclick = () => send({ op: "turn", ids: [m.id] });
   box.querySelector("#m-mirror").onclick = () => send({ op: "mirror", ids: [m.id] });
   box.querySelector("#m-del").onclick = () => send({ op: "delete", ids: [m.id] });
 }
 
+// Fargene eieren velger mellom (lineære, som lysene i motoren).
+const LIGHT_COLORS = [
+  ["", "Ild (standard)", null],
+  ["kald", "Kaldt måneskinn", [0.55, 0.7, 1.0]],
+  ["gift", "Giftgrønt", [0.45, 1.0, 0.4]],
+  ["magi", "Fiolett magi", [0.75, 0.4, 1.0]],
+  ["blek", "Blekt hvitt", [0.95, 0.92, 0.85]],
+  ["blod", "Blodrødt", [1.0, 0.25, 0.18]],
+];
+
+function colorHex(c) {
+  if (!c) return "#ff9e4d";
+  const h = (v) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0");
+  return `#${h(c[0])}${h(c[1])}${h(c[2])}`;
+}
+
+function hexColor(s) {
+  return [1, 3, 5].map((k) => Math.round((parseInt(s.slice(k, k + 2), 16) / 255) * 1000) / 1000);
+}
+
+/// Stemningen i et rom (`Mood`): faklene, lysstyrken, fargen, tåka og lyden.
+function moodFields(mood) {
+  const m = mood || {};
+  const preset = LIGHT_COLORS.find(([, , c]) => (c && m.color ? c.every((v, k) => Math.abs(v - m.color[k]) < 0.01) : !c && !m.color))?.[0] ?? "egen";
+  return `<h2>Stemningen</h2>
+    ${field(`Fakler (${Math.round((m.torches ?? 0) * 100)} % av festene)`, `<input id="mood-torch" type="range" min="0" max="1" step="0.05" value="${m.torches ?? 0}">`)}
+    ${field(`Lysstyrke (${Math.round((m.light ?? 1) * 100)} %)`, `<input id="mood-light" type="range" min="0.1" max="2.5" step="0.05" value="${m.light ?? 1}">`)}
+    <div class="row">${field("Fargen på lysene", `<select id="mood-color" class="fs-select">${options([...LIGHT_COLORS.map(([k, n]) => [k, n]), ["egen", "Egen farge"]], preset)}</select>`)}
+      <input id="mood-pick" type="color" value="${colorHex(m.color)}" title="Egen farge" aria-label="Egen farge"></div>
+    ${field(`Tåke (${Math.round((m.fog ?? 0) * 100)} %)`, `<input id="mood-fog" type="range" min="0" max="1" step="0.05" value="${m.fog ?? 0}">`)}
+    ${field("Lyden", `<select id="mood-sound" class="fs-select">${options(palette.sounds || [["", "Drypp"]], m.sound || "")}</select>`)}
+    <button class="fs-button" data-variant="secondary" id="mood-reset" type="button">Som malen</button>`;
+}
+
+function bindMood(box, put) {
+  const on = (id, ev, fn) => box.querySelector(id)?.addEventListener(ev, fn);
+  on("#mood-torch", "change", (e) => put({ torches: Number(e.target.value) }));
+  on("#mood-light", "change", (e) => put({ light: Number(e.target.value) }));
+  on("#mood-fog", "change", (e) => put({ fog: Number(e.target.value) }));
+  on("#mood-sound", "change", (e) => put({ sound: e.target.value }));
+  on("#mood-color", "change", (e) => {
+    const c = LIGHT_COLORS.find(([k]) => k === e.target.value);
+    if (c) put({ color: c[2] || undefined });
+    else put({ color: hexColor(box.querySelector("#mood-pick").value) });
+  });
+  on("#mood-pick", "change", (e) => put({ color: hexColor(e.target.value) }));
+}
+
+/// Et lys eieren har satt ut: farge, rekkevidde, styrke, høyde og flamme.
+function showLight(box, ml) {
+  const l = docLight(ml.id);
+  if (!l) return (box.innerHTML = "");
+  const put = (patch) => send({ op: "set_light", light: { ...docLight(ml.id), ...patch } });
+  box.innerHTML = `<h2>Lyset</h2><p class="muted">${esc(l.id)} · (${l.pos.map((v) => v.toFixed(1)).join(", ")}) · dra det på kartet</p>
+    ${field("Fargen", `<input id="l-color" type="color" value="${colorHex(l.color)}">`)}
+    ${field(`Rekkevidde (${l.range.toFixed(1)} m)`, `<input id="l-range" type="range" min="2" max="20" step="0.5" value="${l.range}">`)}
+    ${field(`Styrke (${(l.intensity ?? 2).toFixed(1)})`, `<input id="l-int" type="range" min="0.2" max="6" step="0.1" value="${l.intensity ?? 2}">`)}
+    ${field(`Høyde over gulvet (${(l.pos[1] - st.floor).toFixed(1)} m)`, `<input id="l-h" type="range" min="0.3" max="8" step="0.1" value="${l.pos[1] - st.floor}">`)}
+    <label class="row"><input id="l-flicker" type="checkbox"${l.flicker ? " checked" : ""}> Flamme (blafrer)</label>
+    <div class="row" style="margin-top:8px"><button class="fs-button" data-variant="danger" id="l-del">Slett</button></div>`;
+  const on = (id, ev, fn) => box.querySelector(id)?.addEventListener(ev, fn);
+  on("#l-color", "change", (e) => put({ color: hexColor(e.target.value) }));
+  on("#l-range", "change", (e) => put({ range: Number(e.target.value) }));
+  on("#l-int", "change", (e) => put({ intensity: Number(e.target.value) }));
+  on("#l-h", "change", (e) => put({ pos: [l.pos[0], st.floor + Number(e.target.value), l.pos[2]] }));
+  on("#l-flicker", "change", (e) => put({ flicker: e.target.checked }));
+  on("#l-del", "click", () => send({ op: "delete", ids: [l.id] }));
+}
+
 function showThing(box, t) {
   const name = palette.things.find(([k]) => k === t.kind)?.[1] || t.kind;
   if (!t.own) {
-    box.innerHTML = `<h2>${esc(name)}</h2><p class="muted">Fra modulen ${esc(t.module || "")} (${esc(t.id)}). Det følger modulen; endre modulen eller sett ut ditt eget.</p>`;
+    box.innerHTML = `<h2>${esc(name)}</h2><p class="muted">Fra modulen ${esc(t.module || "")} (${esc(t.id)}). Det følger modulen. Dra det på kartet for å flytte det i dette nivået, eller endre det her; malen er den samme.</p>
+      <div class="row"><button class="fs-button" data-variant="secondary" id="t-detach">Endre her</button>
+      <button class="fs-button" data-variant="danger" id="t-del">Fjern fra modulen</button></div>`;
+    box.querySelector("#t-detach").onclick = () => send({ op: "detach", id: t.id }) && showSelection();
+    box.querySelector("#t-del").onclick = () => send({ op: "delete", ids: [t.id] });
     return;
   }
   const d = docThing(t.id) || {};
@@ -1172,7 +1557,9 @@ function showThing(box, t) {
     html += `<h2>Koblingene</h2><ul class="muted">${links.map((l, k) => `<li>${esc(l.from)} → ${esc(l.to)} (${esc(palette.links.find(([x]) => x === l.kind)?.[1] || l.kind)}) ${l.own ? `<button class="chip" data-unlink="${k}">fjern</button>` : ""}</li>`).join("") || "<li>Ingen</li>"}</ul>
       <button class="fs-button" data-variant="secondary" id="t-link">Koble (K): klikk så på målet</button>`;
   }
-  html += `<div class="row" style="margin-top:8px"><button class="fs-button" data-variant="secondary" id="t-turn">Drei (R)</button><button class="fs-button" data-variant="danger" id="t-del">Slett</button></div>`;
+  html += `<div class="row" style="margin-top:8px"><button class="fs-button" data-variant="secondary" id="t-turn">Drei (R)</button><button class="fs-button" data-variant="danger" id="t-del">Slett</button>
+    ${t.template ? `<button class="fs-button" data-variant="secondary" id="t-back" title="Slik modulmalen har det">Tilbake til malen</button>` : ""}</div>`;
+  if (t.template) html = `<p class="muted">Endret i dette nivået; malen i modulen ${esc(t.template)} er den samme.</p>` + html;
   box.innerHTML = html;
   const on = (id, ev, fn) => box.querySelector(id)?.addEventListener(ev, fn);
   on("#t-label", "change", (e) => put({ label: e.target.value }));
@@ -1189,6 +1576,7 @@ function showThing(box, t) {
   on("#t-link", "click", startLink);
   on("#t-turn", "click", () => turnSelection(false));
   on("#t-del", "click", () => send({ op: "delete", ids: [t.id] }));
+  on("#t-back", "click", () => send({ op: "reattach", module: t.template, thing: t.id.slice(t.template.length + 1) }));
   box.querySelectorAll("[data-unlink]").forEach((b) =>
     b.addEventListener("click", () => {
       const l = links[Number(b.dataset.unlink)];

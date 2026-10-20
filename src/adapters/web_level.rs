@@ -176,6 +176,16 @@ impl Engine {
         serde_json::json!({"path": crate::adapters::data::level_doc_path(doc), "text": crate::adapters::data::level_doc_json(doc)}).to_string()
     }
 
+    /// Utvalget (json-liste med id-er) som mal i fast form
+    /// (`LevelEditor::template`; lagres i `assets/levels/maler/<navn>.json`).
+    pub fn level_template(&self, ids_json: &str, name: &str) -> String {
+        let Some(l) = self.app.session.level_editing() else {
+            return String::new();
+        };
+        let ids: Vec<String> = serde_json::from_str(ids_json).unwrap_or_default();
+        crate::adapters::data::level_doc_json(&l.editor.template(&ids, name))
+    }
+
     /// Åpne et annet dokument (json). Gir kartet eller `{"error": …}`.
     pub fn level_open(&mut self, json: &str) -> String {
         match parse_doc(json) {

@@ -90,7 +90,7 @@ fn alt_stort_har_kollider() {
     let covers = |shape: &Shape, q: Vec3| shape.covers_shaped(q, 0.35);
     // Bitene av kryptnivåene er selve rommene, med murene som kollidere.
     let level_piece = |name: &str| name.strip_prefix("crypt_").is_some_and(|r| r.starts_with(|c: char| c.is_ascii_digit()));
-    let skip = |name: &str| level_piece(name) || name.ends_with("_interior");
+    let skip = |name: &str| level_piece(name) || name.ends_with("_interior") || name.ends_with("_leaves");
     let mut problems = vec![];
     for pl in &p.world.placements {
         if skip(pl.model) {

@@ -64,6 +64,12 @@ pub struct RoomDef {
     pub rise: f32,
     #[serde(default)]
     pub secret: bool,
+    /// Tåka i rommet, 0–1 (stemningen, `Mood.fog`).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub fog: f32,
+    /// Lyden i rommet (`doc::SOUNDS`; tomt: dryppet i kjelleren).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub sound: String,
 }
 
 fn is_zero(v: &f32) -> bool {

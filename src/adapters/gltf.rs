@@ -162,6 +162,10 @@ models! {
     // Steinene på enga fra TRELLIS (tools/models/item3d.py, `nature::rocks`).
     "rock_big" => "nature/rock_big.glb",
     "rock_group" => "nature/rock_group.glb",
+    // Bjørka fra TRELLIS: stammen og løvkortene (tools/models/tree3d.py,
+    // `nature::birches`).
+    "tree_birch_trunk" => "nature/tree_birch_trunk.glb",
+    "tree_birch_leaves" => "nature/tree_birch_leaves.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",

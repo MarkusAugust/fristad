@@ -54,6 +54,10 @@ for d in assets/levels/moduler/*/; do
   mkdir -p "dist/moduler/$(basename "$d")"
   cp "$d"*.jpg "dist/moduler/$(basename "$d")/" 2>/dev/null || true
 done
+# Malene eieren har lagret (assets/levels/maler/<navn>.json), med en liste.
+mkdir -p dist/maler
+ls assets/levels/maler/*.json >/dev/null 2>&1 && cp assets/levels/maler/*.json dist/maler/
+(cd dist/maler && ls *.json 2>/dev/null | grep -v '^index.json$' | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))' > index.json)
 # Åpningsfilmen: den ferdige videoen (tools/film/cut.py skriver target/film/intro.mp4;
 # i Actions bygges den i et eget steg med hurtiglager). Mangler den, starter spillet
 # uten film, så bygget stopper ikke.

@@ -197,13 +197,17 @@ impl Session {
             sky_top: sky_top * (1.0 - c * 0.999),
             sky_horizon: sky_horizon * (1.0 - c * 0.999),
             ground_bounce: (ground + snow_bounce) * (1.0 - c * 0.999),
-            fog_color: grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95),
+            // Nede i krypten er tåka stemningen i rommet (`Room.fog`): en
+            // grå, kald dis som faklene ikke når gjennom.
+            fog_color: if in_crypt { Vec3::new(0.035, 0.042, 0.045) } else { grey(lerp3(Vec3::new(0.62, 0.74, 0.88), Vec3::new(0.012, 0.02, 0.04))) * (1.0 - c * 0.95) },
             // Høydetåka tetner nedover. I kjelleren er det ingen tåke: tettheten
             // må være null der, ikke bare liten, for 200 m nede er høydeleddet
             // flere hundre ganger (nivå 5 ble helt borte i tåka før øynene var
             // vant til mørket).
-            fog_density: if in_crypt { 0.0 } else { (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c) },
-            fog_falloff: 0.03,
+            // Tåka i rommet har nesten ingen høydeledd (`fog_falloff`), så den
+            // er like tett 40 og 400 m nede.
+            fog_density: if in_crypt { self.sound.mood_fog * 0.09 } else { (0.0006 + dusk * 0.0012) * self.sky.fog_mul * (1.0 - c) },
+            fog_falloff: if in_crypt { 1.0e-4 } else { 0.03 },
             exposure: (0.5 * (1.0 - t) + 2.0 * t) * (1.0 + overcast * 0.35) * (1.0 + c * 0.5),
             gamma: 1.0,
             bloom: 0.06 + t * 0.06,

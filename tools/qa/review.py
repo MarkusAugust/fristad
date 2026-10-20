@@ -69,6 +69,7 @@ CATEGORIES = [
     ("people", "Innbyggerne"),
     ("crypt", "Krypten"),
     ("town", "Byen: hus og bygninger"),
+    ("nature", "Naturen"),
     ("things", "Møbler og småting"),
     ("textures", "Teksturer"),
 ]
@@ -307,6 +308,8 @@ def category(name, kind, path):
         return folder
     if folder == "npcs":
         return "people"
+    if folder == "nature":
+        return "nature"
     if folder == "town" and name.startswith(BUILDINGS):
         return "town"
     return "things"

@@ -339,6 +339,8 @@ impl Compiler {
         // Modulene først: etter dette er dokumentet celler og kantvalg.
         let (flat, mut issues) = modules::flatten(doc, kit);
         report.issues.append(&mut issues);
+        // Eierens egne lys står først (`flatten` beholder dem foran modulenes).
+        let own_lights = doc.lights.len();
         let doc = &flat;
         // Rommene: de i dokumentet, og de cellene nevner uten at de står der.
         let mut room_list: Vec<super::doc::DocRoom> = doc.rooms.clone();
@@ -487,6 +489,17 @@ impl Compiler {
         let torches = std::mem::take(&mut file.lights);
         file.lights = lights(doc, &grid, &index);
         file.lights.extend(torches);
+        // Stemningen i rommet: lysstyrken på alle lysene i det, og fargen på
+        // faklene og modulenes lys (eierens egne lys har sin egen farge).
+        for (k, l) in file.lights.iter_mut().enumerate() {
+            let Some(m) = l.room.as_ref().and_then(|r| room_list.iter().find(|x| &x.id == r)).map(|x| &x.mood) else { continue };
+            if m.light != 1.0 {
+                l.intensity = Some(mm(l.intensity.unwrap_or(2.0) * m.light.max(0.0)));
+            }
+            if let Some(c) = m.color.filter(|_| k >= own_lights) {
+                l.color = c;
+            }
+        }
         let (rooms, mut issues) = rooms::rooms(&grid, &room_list);
         report.issues.append(&mut issues);
         file.rooms = rooms;

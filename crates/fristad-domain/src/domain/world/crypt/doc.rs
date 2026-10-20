@@ -116,18 +116,60 @@ pub struct DocRoom {
     pub stone: Option<StoneRef>,
 }
 
-/// Stemningen i et rom.
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+/// Stemningen i et rom (`docs/nivaaredigering.md` del 8.4): faklene,
+/// lysstyrken og fargen på lysene, tåka og lyden.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Mood {
     /// Andelen av fakkelfestene i rommets murer som får en fakkel (0–1),
     /// valgt med nivåets frø og plassen.
     #[serde(default)]
     pub torches: f32,
+    /// Lysstyrken: faklene og lysene i rommet ganges med den (1 er vanlig,
+    /// 0,3 nesten mørkt, 2 dobbelt så sterkt).
+    #[serde(default = "unit", skip_serializing_if = "is_unit")]
+    pub light: f32,
+    /// Fargen på faklene og modulenes lys i rommet (utelatt: ilden; lysene
+    /// eieren setter ut har sin egen).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<[f32; 3]>,
+    /// Tåka i rommet, 0–1 (`Room.fog`; økta gjør den til tåke rundt deg).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub fog: f32,
+    /// Lyden i rommet (`SOUNDS`; tomt: dryppet i kjelleren).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub sound: String,
+}
+
+impl Default for Mood {
+    fn default() -> Self {
+        Mood { torches: 0.0, light: 1.0, color: None, fog: 0.0, sound: String::new() }
+    }
+}
+
+/// Lydene et rom kan ha, med navnet eieren ser: løkkene i `Ambience` nede
+/// i krypten (over dryppet, som alltid er der).
+pub const SOUNDS: [(&str, &str); 6] = [("", "Drypp (kjelleren)"), ("vann", "Rennende vann"), ("vind", "Grottevind"), ("kloft", "Vinden fra kløfta"), ("lava", "Lava"), ("ild", "Ild som knitrer")];
+
+fn unit() -> f32 {
+    1.0
+}
+
+fn is_unit(v: &f32) -> bool {
+    *v == 1.0
+}
+
+fn is_zero(v: &f32) -> bool {
+    *v == 0.0
 }
 
 impl Mood {
     fn is_default(&self) -> bool {
         *self == Mood::default()
+    }
+
+    /// Bare faklene (resten som vanlig).
+    pub fn torches(torches: f32) -> Self {
+        Mood { torches, ..Mood::default() }
     }
 }
 
@@ -284,6 +326,12 @@ pub struct DocModule {
     /// snarvei eller vegg.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub overrides: Vec<DocOverride>,
+    /// Innholdet fra malen eieren har tatt bort i dette nivået (malens id-er,
+    /// `spak`). Står det et innhold i dokumentet med id-en `<modul>/<id>`,
+    /// er det malens innhold flyttet eller endret (koblingene i malen peker
+    /// dit); ellers er det fjernet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hidden: Vec<String>,
 }
 
 /// Eierens valg for én åpning i en modul. `kind`: `dor`, `gang`, `bue`,

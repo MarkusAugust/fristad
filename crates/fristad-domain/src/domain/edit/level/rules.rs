@@ -13,11 +13,13 @@
 //! Usynlige vegger (`ingen_usynlige_vegger_i_krypten`) trenger fysikken og
 //! sjekkes i testene, ikke her.
 
-use crate::domain::world::crypt::compose::{check, Issue, Severity};
+use crate::domain::world::crypt::compose::{check, modules, Issue, Report, Severity, CELL};
+use crate::domain::world::crypt::kit::KitDef;
 use crate::domain::world::crypt::doc::LevelDoc;
 use crate::domain::world::crypt::level::LevelFile;
 use crate::domain::world::crypt::nav::Nav;
 use crate::domain::world::crypt::HEADROOM;
+use super::footprint;
 use glam::Vec3;
 
 /// Innholdet som må kunne nås fra start.
@@ -27,10 +29,11 @@ fn issue(severity: Severity, rule: &'static str, at: Option<[f32; 3]>, msg: Stri
     Issue { severity, rule, at, msg }
 }
 
-/// Bruddene i nivåfila `file`, kompilert fra `doc`.
-pub fn check(doc: &LevelDoc, file: &LevelFile) -> Vec<Issue> {
+/// Bruddene i nivåfila `file`, kompilert fra `doc` med byggesettet `kit`
+/// (`report`: kompilatorens rapport med åpningene etter sammenføyningen).
+pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) -> Vec<Issue> {
     let mut out = vec![];
-    let _ = doc;
+    stairs(doc, kit, report, &mut out);
     // Koblingene, takhøyden for fiendene, mekanismene og høyst 64 rom
     // (kompilatorens regler, de samme som `src/mechanism_tests.rs`).
     out.extend(check::links(file));
@@ -65,7 +68,43 @@ pub fn check(doc: &LevelDoc, file: &LevelFile) -> Vec<Issue> {
         out.push(issue(Severity::Error, "naa", Some(start), "startstedet står ikke på gulvet".into()));
         return out;
     };
-    let seen = nav.reachable(a, &all);
+    // Stigene og heisene kobler etasjene (de er ikke i nettet): det som
+    // kan nås i den ene enden, kan nås i den andre.
+    let mut seen = nav.reachable(a, &all);
+    let ends: Vec<(Vec3, Vec3)> = file
+        .marks
+        .iter()
+        .filter_map(|m| match m.kind.as_str() {
+            "ladder" => Some((Vec3::from(m.pos?), Vec3::from(m.top?))),
+            "lift" => Some((Vec3::from(m.pos?), Vec3::from(m.bottom?))),
+            _ => None,
+        })
+        .collect();
+    let mut grew = true;
+    while grew {
+        grew = false;
+        for (p, q) in &ends {
+            let (Some((i, _)), Some((j, _))) = (nav.nearest(*p, 2.0, &all), nav.nearest(*q, 2.0, &all)) else { continue };
+            for (from, to) in [(i, j), (j, i)] {
+                if seen[from as usize] && !seen[to as usize] {
+                    for (k, s) in nav.reachable(to, &all).into_iter().enumerate() {
+                        seen[k] |= s;
+                    }
+                    grew = true;
+                }
+            }
+        }
+    }
+    // Modulene: hver har minst én rute man kommer til fra start.
+    for m in &doc.modules {
+        let cells = footprint(m, kit);
+        let reached = cells.iter().any(|c| nav.nearest(Vec3::new(c[0] as f32 * CELL, c[1] as f32 + 0.3, c[2] as f32 * CELL), CELL * 0.5, &all).is_some_and(|(k, _)| seen[k as usize]));
+        if !reached && !cells.is_empty() {
+            let c = cells[0];
+            let name = m.name.clone().unwrap_or_else(|| m.id.clone());
+            out.push(issue(Severity::Warning, "naa", Some([c[0] as f32 * CELL, c[1] as f32, c[2] as f32 * CELL]), format!("{name} kan ikke nås fra start (ingen åpning, trapp, stige eller heis dit)")));
+        }
+    }
     for m in file.marks.iter().filter(|m| MUST_REACH.contains(&m.kind.as_str())) {
         let Some(p) = m.pos else { continue };
         let reach = if matches!(m.kind.as_str(), "gate" | "shortcut") { 2.5 } else { 2.0 };
@@ -82,4 +121,41 @@ pub fn check(doc: &LevelDoc, file: &LevelFile) -> Vec<Issue> {
         }
     }
     out
+}
+
+/// Trappene henger sammen (eieren: «trappa ned og opp henger sammen»): en
+/// trapp (halvtrapp, halv etasje) går et sted både øverst og nederst, så
+/// den kobler to etasjer og ikke ender i en mur.
+fn stairs(doc: &LevelDoc, kit: &KitDef, report: &Report, out: &mut Vec<Issue>) {
+    const STEP: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+    // Kanten mellom ruta og naboen er åpen, sett fra hvilken som helst av sidene.
+    let joined = |at: [i32; 2], side: usize| {
+        report.edges.iter().any(|e| {
+            let (di, dj) = STEP[e.side];
+            (e.at[0], e.at[2], e.side) == (at[0], at[1], side) || ((e.at[0] + di, e.at[2] + dj) == (at[0], at[1]) && (e.side + 2) % 4 == side)
+        })
+    };
+    for m in &doc.modules {
+        let Some(def) = kit.module(&m.module) else { continue };
+        if def.kind != "trapp" || def.things.iter().any(|t| t.kind == "down") {
+            continue;
+        }
+        let openings = modules::placed_openings(m, kit);
+        let mut ys: Vec<i32> = openings.iter().map(|o| o.y).collect();
+        ys.sort();
+        ys.dedup();
+        if ys.len() < 2 {
+            continue;
+        }
+        let name = m.name.clone().unwrap_or_else(|| def.name.clone());
+        for (k, y) in [(0, ys[0]), (1, ys[ys.len() - 1])] {
+            let here: Vec<_> = openings.iter().filter(|o| o.y == y).collect();
+            if !here.iter().any(|o| joined(o.at, o.side)) {
+                let o = here[0];
+                let (di, dj) = STEP[o.side];
+                let at = [o.at[0] as f32 * CELL + di as f32 * CELL * 0.5, y as f32, o.at[1] as f32 * CELL + dj as f32 * CELL * 0.5];
+                out.push(issue(Severity::Warning, "trapp", Some(at), format!("{} ({}) går ikke noen vei {} ({y} m)", name, m.id, if k == 0 { "nederst" } else { "øverst" })));
+            }
+        }
+    }
 }
