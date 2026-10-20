@@ -574,6 +574,7 @@ pub fn build(models: &[ModelInfo], _seed: u64, mut data: Data) -> World {
     let town = town::build(&mut b, data.layout.as_ref());
     cut_ground(&mut b, ground_at);
     nature::rocks(&mut b);
+    nature::birches(&mut b);
     nature::landscape(&mut b);
     nature::world_edge(&mut b);
     // Krypten: de faste nivåene under kirkegården.

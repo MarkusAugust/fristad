@@ -1,6 +1,6 @@
 # Naturen: trær, busker og steiner
 
-TRELLIS er svak på løv, så trærne lages i to deler: **stammen og greinene** fra TRELLIS (ett bilde av et nakent tre), og **løvet** som bladkort i Blender med de malte løvarkene. Løvarkene for eik, bjørk, gran og buskene og gresset finnes alt (`assets/textures/atlas/`); det som mangler, står i del B.
+TRELLIS er svak på løv, så trærne lages i to deler: **stammen og greinene** fra TRELLIS (ett bilde av et nakent tre), og **løvet** som bladkort i Blender med de malte løvarkene. Løvarkene for eik, bjørk, gran og buskene og gresset finnes alt (`assets/textures/atlas/`); det som mangler, står i del B. Bjørka er laget (20. oktober, `tools/models/tree3d.py`: TRELLIS ga den med løv, som skilles ut etter fargen og byttes med kort; samme vei virker om TRELLIS legger løv på de andre også).
 
 **Stammene og steinene:** lag ETT bilde med prompten. Kjør bildet gjennom https://huggingface.co/spaces/microsoft/TRELLIS.2 med **Resolution 1536, Decimation Target 500000, Texture Size 4096** (nytt frø om formen eller ansiktet blir dårlig), og last opp glb-fila som `<id>.glb`. Den legges i `assets/textures/nature/3d/<id>.glb`; jeg gjør den spillklar med `item3d.py`, setter løvkortene på greinene og viser deg treet før det settes ut (plan del 12, steg 6).
 
@@ -15,15 +15,6 @@ TRELLIS er svak på løv, så trærne lages i to deler: **stammen og greinene** 
 
 ```
 Single game asset for 3D modelling, ONE single view from the front and slightly above, the whole tree centred and fully inside the image from the roots to the tips of the branches. Late winter: NO leaves, NO needles and NO blossoms anywhere, only the bare trunk and the branches. A large old broad oak: a short thick gnarled trunk with deep furrowed grey-brown bark, roots spreading at the base, a few huge crooked limbs spreading wide and low. The branches are thick, smooth and simplified, tapering to blunt ends; only the main limbs and a second order of branches, never a fine web of thin twigs. The bark is painted, not sculpted. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. A tree of the Nordic countryside around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
-```
-
-### 2. `tree_birch`: Bjørk
-
-- **Hvor:** i små klynger langs veiene. **Størrelse:** 8–10 m.
-- **Løv:** `leaves_birch` (finnes).
-
-```
-Single game asset for 3D modelling, ONE single view from the front and slightly above, the whole tree centred and fully inside the image from the roots to the tips of the branches. Late winter: NO leaves, NO needles and NO blossoms anywhere, only the bare trunk and the branches. A slender Nordic birch: a white trunk with black markings and dark rough bark near the ground, slightly leaning, thin-ish upward branches that droop at the ends. The branches are thick, smooth and simplified, tapering to blunt ends; only the main limbs and a second order of branches, never a fine web of thin twigs. The bark is painted, not sculpted. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. A tree of the Nordic countryside around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
 ### 3. `tree_spruce`: Gran

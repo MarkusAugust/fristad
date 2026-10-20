@@ -1,6 +1,6 @@
-//! Landskapet rundt byen: åsene utenfor terrenget, steinene på enga og
-//! kanten av verden. Trærne, buskene og gresset kommer med de nye
-//! modellene (`docs/ny-alt.md`).
+//! Landskapet rundt byen: åsene utenfor terrenget, steinene på enga,
+//! bjørkeklyngene langs veiene og kanten av verden. De andre trærne,
+//! buskene og gresset kommer med de nye modellene (`docs/ny-alt.md`).
 
 use super::{terrain, town, Builder, Shape};
 use crate::domain::geometry::{Layer, Mat};
@@ -79,6 +79,88 @@ pub fn rocks(b: &mut Builder) {
         }
         log::info!("Steinene: {n} av {count} {model} satt ut");
     }
+}
+
+/// Bjørkeklyngene langs veiene (TRELLIS-stammen og løvkortene fra
+/// `tree3d.py`, to modeller med samme origo ved foten av stammen).
+pub const BIRCH_CLUSTERS: usize = 9;
+const BIRCH_TRUNK: &str = "tree_birch_trunk";
+const BIRCH_LEAVES: &str = "tree_birch_leaves";
+/// Hvor langt ned i bakken stammen står (rota går ned i jorda).
+const BIRCH_SINK: f32 = 0.06;
+
+/// Setter ut små klynger på 3–5 bjørker langs veiene og stiene, like hver
+/// gang (eget frø): 4,5–14 m fra veien, aldri på den, aldri innen 40 m fra portene, på tunene, kirkegården,
+/// ved portene eller nær noe som alt står der (steinene, gårdene). Hvert tre
+/// er dreid og skalert for seg, står på det laveste punktet under foten der
+/// bakken er nesten flat, og har bare stammen som kollider (`extras.solids`);
+/// løvet henger på stammen (`place_mounted`).
+pub fn birches(b: &mut Builder) {
+    if !b.has_model(BIRCH_TRUNK) || !b.has_model(BIRCH_LEAVES) {
+        b.place(BIRCH_TRUNK, Affine3A::IDENTITY);
+        b.place(BIRCH_LEAVES, Affine3A::IDENTITY);
+        return;
+    }
+    let gates = [town::gate(true).0, town::gate(false).0];
+    let taken: Vec<Vec2> = b.placements.iter().flat_map(|p| p.transforms.iter().map(|t| Vec2::new(t.translation.x, t.translation.z))).filter(|p| terrain::town_edge(p.x, p.y) > -2.0).collect();
+    let mut rng = Rng(0xb1a4_1350_7e3e_0b1c);
+    let mut centers: Vec<Vec2> = vec![];
+    let mut trees = 0;
+    // Stedet for én bjørk: høyden den står i, eller ingenting.
+    let spot = |p: Vec2, placed: &[Vec2]| -> Option<f32> {
+        let road = town::path_dist(p.x, p.y);
+        let clear = road > 4.5
+            && town::town_dist(p.x, p.y) > 10.0
+            && gates.iter().all(|g| g.distance(p) > 40.0)
+            && terrain::normal(p.x, p.y).y > 0.9
+            && taken.iter().all(|q| q.distance(p) > 4.0)
+            && placed.iter().all(|q| q.distance(p) > 3.2);
+        if !clear {
+            return None;
+        }
+        // Bakken under foten (`audit` måler hjørnene ±0,6 m).
+        let hs: Vec<f32> = [(0.0, 0.0), (-0.6, -0.6), (0.6, -0.6), (-0.6, 0.6), (0.6, 0.6)].iter().map(|(dx, dz)| terrain::height(p.x + dx, p.y + dz)).collect();
+        let (lo, hi) = hs.iter().fold((f32::MAX, f32::MIN), |(lo, hi), h| (lo.min(*h), hi.max(*h)));
+        (hi - lo < 0.2).then_some(lo)
+    };
+    let mut placed: Vec<Vec2> = vec![];
+    for _ in 0..3000 {
+        if centers.len() >= BIRCH_CLUSTERS {
+            break;
+        }
+        let a = rng.range(0.0, std::f32::consts::TAU);
+        let r = rng.range(56.0, 175.0);
+        let c = Vec2::new(a.cos(), a.sin()) * r;
+        let road = town::path_dist(c.x, c.y);
+        if !(7.0..12.0).contains(&road) || centers.iter().any(|q| q.distance(c) < 30.0) || spot(c, &placed).is_none() {
+            continue;
+        }
+        let want = rng.pick(&[3usize, 4, 5]);
+        let mut n = 0;
+        for _ in 0..60 {
+            if n >= want {
+                break;
+            }
+            let p = if n == 0 { c } else { c + Vec2::new(rng.range(-5.0, 5.0), rng.range(-5.0, 5.0)) };
+            if town::path_dist(p.x, p.y) > 14.0 {
+                continue;
+            }
+            let Some(ground) = spot(p, &placed) else { continue };
+            let (yaw, scale) = (rng.range(0.0, std::f32::consts::TAU), rng.range(0.85, 1.12));
+            let t = Affine3A::from_translation(Vec3::new(p.x, ground - BIRCH_SINK, p.y)) * Affine3A::from_rotation_y(yaw) * Affine3A::from_scale(Vec3::splat(scale));
+            b.place(BIRCH_TRUNK, t);
+            b.place_solids(BIRCH_TRUNK, t);
+            b.place_mounted(BIRCH_LEAVES, t);
+            placed.push(p);
+            n += 1;
+        }
+        if n > 0 {
+            centers.push(c);
+            trees += n;
+            log::debug!("bjørkeklynge med {n} ved ({:.1}, {:.1})", c.x, c.y);
+        }
+    }
+    log::info!("Bjørkene: {trees} trær i {} klynger", centers.len());
 }
 
 /// Landskapet rundt terrenget: fra kanten av bakken (±200 m) stiger
