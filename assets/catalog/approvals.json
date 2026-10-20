@@ -4819,10 +4819,15 @@
    "seen": "4212a16c5fe6"
   },
   "grav_riddergang": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "her har du blandet teksturer på gulvet. den skal være samme hele veien",
+   "why": "",
    "seen": "2e4b93e4f9d1",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "her har du blandet teksturer på gulvet. den skal være samme hele veien"
+   },
    "history": [
     "her har du blandet teksturer på gulvet. den skal være samme hele veien"
    ]
