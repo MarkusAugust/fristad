@@ -688,27 +688,27 @@ impl Combat {
                     let mats = rig.skin(&pose);
                     let base = skins.len() as u32;
                     skins.extend_from_slice(&mats);
-                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: Some((base, mats.len() as u32)), flash: 0.0, tint: None, look: None });
                     // Våpenet og skjoldet er modellert i armenes rom og følger
                     // hendenes skinnmatriser.
                     for (joint, model) in [("hand.R", self.gear.weapon.model), ("hand.L", self.gear.shield.model)] {
                         if let Some(j) = rig.joint(joint) {
                             let t = arms_t * Affine3A::from_mat4(mats[j]);
-                            out.push(ModelInstance { model, transform: t, skin: None, flash: 0.0, tint: None });
+                            out.push(ModelInstance { model, transform: t, skin: None, flash: 0.0, tint: None, look: None });
                         }
                     }
                 }
                 _ => {
-                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: None, flash: 0.0, tint: None });
-                    out.push(ModelInstance { model: self.gear.weapon.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
-                    out.push(ModelInstance { model: self.gear.shield.model, transform: arms_t, skin: None, flash: 0.0, tint: None });
+                    out.push(ModelInstance { model: self.arms_model(), transform: arms_t, skin: None, flash: 0.0, tint: None, look: None });
+                    out.push(ModelInstance { model: self.gear.weapon.model, transform: arms_t, skin: None, flash: 0.0, tint: None, look: None });
+                    out.push(ModelInstance { model: self.gear.shield.model, transform: arms_t, skin: None, flash: 0.0, tint: None, look: None });
                 }
             }
         }
         for p in &self.debris {
             let fade = (1.6 - p.age).clamp(0.0, 1.0).min(1.0);
             let rot = Quat::from_euler(glam::EulerRot::XYZ, p.spin.x * p.age, p.spin.y * p.age, p.spin.z * p.age);
-            out.push(ModelInstance { model: DEBRIS_MODEL, transform: Affine3A::from_rotation_translation(rot, p.pos) * Affine3A::from_scale(Vec3::splat(p.size * fade)), skin: None, flash: 0.0, tint: None });
+            out.push(ModelInstance { model: DEBRIS_MODEL, transform: Affine3A::from_rotation_translation(rot, p.pos) * Affine3A::from_scale(Vec3::splat(p.size * fade)), skin: None, flash: 0.0, tint: None, look: None });
         }
         out
     }

@@ -109,7 +109,7 @@ impl Session {
                     struck = Some(pos);
                     let material = match self.mobs.mobs.get(mob).map(|m| m.kind) {
                         Some(MobKind::Table) => Some("hit_wood"),
-                        Some(MobKind::Framework) => Some("hit_metal"),
+                        Some(MobKind::Framework | MobKind::Navbar) => Some("hit_metal"),
                         _ => None,
                     };
                     if let Some(m) = material {
@@ -162,6 +162,14 @@ impl Session {
         let f = self.forward().with_y(0.0).normalize_or_zero();
         let at = self.body.sole() + f * ahead;
         self.mobs.drop_tokens(at, n);
+    }
+
+    /// En nøkkel som eliten mister, `ahead` meter foran deg og `side` til
+    /// høyre (`--key`).
+    pub fn drop_key(&mut self, ahead: f32, side: f32) {
+        let f = self.forward().with_y(0.0).normalize_or_zero();
+        let at = self.body.sole() + f * ahead + f.cross(Vec3::Y) * side;
+        self.mobs.drop_key(at);
     }
 
     /// Bare én korrupt input, `ahead` meter foran deg og `side` til høyre

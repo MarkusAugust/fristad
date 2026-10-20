@@ -69,6 +69,8 @@ pub struct Secret {
     /// Modellen: nivåets egen bit av muren (`crypt_NN_secret_<id>`, med
     /// murens tekstur og sprekkene), ellers `KIT_SECRET`.
     pub model: &'static str,
+    /// Steinen i muren den står i (`stone`).
+    pub look: Option<crate::domain::model::Look>,
 }
 
 #[derive(Clone, Debug)]

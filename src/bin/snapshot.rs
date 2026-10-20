@@ -101,7 +101,18 @@ fn main() {
         return;
     }
     let source = WithFiles(extra, arg("--level-doc"));
-    let mut prepared = if flag("--edit") { prepare_for_edit(&source, seed()) } else { prepare(&source, seed()) };
+    // --level-edit NAVN: nivåredigeringen med dokumentet (`?nivaa`): nivået
+    // tegnes slik redigeringen viser det, med arbeidslys; --eye i nivåets rom,
+    // --level-op JSON (flere ganger) gjør endringer først, --game-light gir
+    // spillets lys.
+    let mut prepared = if let Some(name) = arg("--level-edit") {
+        let doc = fristad::adapters::data::level_doc(&name).expect("nivådokumentet finnes ikke");
+        fristad::application::prepare_level_editor(&source, seed(), fristad::domain::edit::level::LevelEditor::new(doc, fristad::adapters::data::kit()))
+    } else if flag("--edit") {
+        prepare_for_edit(&source, seed())
+    } else {
+        prepare(&source, seed())
+    };
     // --merge: bitene fra byggesettet slått sammen per rute på 16 m.
     if flag("--merge") {
         let kit = fristad::adapters::data::kit();
@@ -145,6 +156,17 @@ fn main() {
     }
     let renderer = Renderer::new(device.clone(), queue.clone(), &adapter, format, &App::<Renderer, RapierPhysics>::scene(&prepared), &layers, width, height);
     let mut app = App::new(prepared, renderer, RapierPhysics::new());
+    let level_origin = level_origin.or_else(|| app.session.level_editing().map(|l| l.origin));
+    for op in args.windows(2).filter(|w| w[0] == "--level-op").map(|w| w[1].clone()) {
+        use fristad::ports::driving::LevelCommand;
+        let o = serde_json::from_str(&op).unwrap_or_else(|e| panic!("--level-op {op}: {e}"));
+        if !app.command(Command::Level(LevelCommand::Op(o))) {
+            eprintln!("--level-op {op}: {:?}", app.session.level_error);
+        }
+    }
+    if flag("--game-light") {
+        app.command(Command::Level(fristad::ports::driving::LevelCommand::WorkLight(false)));
+    }
     // --anchors: stedene filmen trenger (øyet der du begynner, og startstedet
     // i hvert kryptnivå), som json, til filmens tester.
     if flag("--anchors") {
@@ -268,6 +290,11 @@ fn main() {
     // --drop N: N tokens spretter ut 3 m foran deg.
     if let Some(n) = arg("--drop") {
         app.session.drop_tokens(3.0, n.parse().unwrap());
+    }
+    // --key: nøkkelen eliten mister ligger og svever 2,5 m foran deg, litt
+    // til høyre for skjoldet.
+    if flag("--key") {
+        app.session.drop_key(2.5, 0.35);
     }
     // --bolt [--bolt-side M] [--bolt-at S]: bare én korrupt input 7 m foran
     // deg (og M til høyre), som lader og spytter; bildet tas S sekunder

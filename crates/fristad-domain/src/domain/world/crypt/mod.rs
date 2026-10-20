@@ -12,8 +12,7 @@
 //! Fiendene går på navigasjonsnettet (`nav.rs`: A* over polygonene og trakt).
 //! Portene, snarveidørene og de falske veggene er brytere (`Crypt.open`) som
 //! stenger polygonene sine til de åpnes. Rommene brukes til kartet, til lyset
-//! (et lys lyser i sitt rom og i rom med åpen forbindelse, `light_mask`) og
-//! til å finne rommet du står i.
+//! (et lys lyser i sitt rom og i rom med åpen forbindelse, `light_mask`) og til å finne rommet du står i.
 
 pub mod compose;
 pub mod doc;
@@ -24,6 +23,7 @@ pub mod nav;
 mod query;
 pub mod run;
 mod parts;
+pub mod stone;
 
 pub use parts::*;
 
@@ -103,8 +103,8 @@ pub const KIT_CHAIN: &str = "kit_chain";
 /// Heisen (dekket, posert av økta) og heistårnet med vinsjen (står fast).
 pub const KIT_LIFT: &str = "kit_lift";
 pub const KIT_WINCH: &str = "kit_winch";
-/// Dekket på heisen (`kit_lift`), og høyden på bommen i heistårnet over
-/// gulvet oppe, der kjettingene går over trinsa (`kit_winch`).
+/// Dekket på heisen (`kit_lift`), og høyden på hengebjelkene i heistårnet
+/// over gulvet oppe, der kjettingene ender (`kit_winch`).
 pub const LIFT_W: f32 = 2.8;
 pub const LIFT_HEAD: f32 = 3.45;
 /// Vinsjen står så langt fra sjaktmidten (langs −z i heistårnets rom).
@@ -428,7 +428,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
     // murverk med fundament, som bitene over.
     for inst in &f.instances {
         let name = crate::domain::world::layout::intern(&inst.model);
-        b.place_mounted(name, compose::transform(origin + Vec3::from(inst.pos), inst.yaw, inst.mirror));
+        b.place_mounted_look(name, compose::transform(origin + Vec3::from(inst.pos), inst.yaw, inst.mirror), inst.stone.as_ref().and_then(stone::InstanceStone::look));
     }
     for col in &f.colliders {
         if let Some(bx) = &col.cuboid {
@@ -659,7 +659,7 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 if b.has_model(&format!("crypt_{n:02}_secret_{}", m.id.as_deref().unwrap_or("secret"))) {
                     level.pieces.push(model.to_string());
                 }
-                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model });
+                c.secrets.push(Secret { pos, yaw: m.yaw, width: m.width.unwrap_or(2.0), height: m.height.unwrap_or(2.6), level: k, switch: s, model, look: m.stone.as_ref().and_then(stone::InstanceStone::look) });
             }
             "trapdoor" => {
                 let s = id(c, "trapdoor");
@@ -771,8 +771,8 @@ fn build_level(b: &mut Builder, c: &mut Crypt, k: usize, n: u32, f: LevelFile, a
                 for sx in [-1.0f32, 1.0] {
                     b.solid_box(pose.transform_point3(Vec3::new(sx * (lw * 0.5 + 0.45), 2.0, 0.0)), Vec3::new(0.36, 4.0, 0.36), m.yaw);
                 }
-                // Trinsehjulet under bommen, midt over sjakta.
-                b.solid_box(pose.transform_point3(Vec3::new(0.0, LIFT_HEAD, 0.0)), Vec3::new(0.16, 1.0, 1.0), m.yaw);
+                // Bommen og bindbjelken under den, midt over sjakta.
+                b.solid_box(pose.transform_point3(Vec3::new(0.0, LIFT_HEAD + 0.5, 0.0)), Vec3::new(lw + 1.4, 1.0, 0.34), m.yaw);
                 c.lifts.push(Lift { pos, yaw: m.yaw, size: Vec2::new(lw, ld), drop, level: k, switch: s });
             }
             other => log::warn!("Kryptnivå {n}: ukjent merke «{other}»"),

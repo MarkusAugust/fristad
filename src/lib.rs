@@ -30,6 +30,12 @@ mod edit_tests;
 #[cfg(test)]
 mod level_doc_tests;
 #[cfg(test)]
+mod level_editor_tests;
+#[cfg(test)]
 mod loot_tests;
+#[cfg(test)]
+mod mechanism_tests;
+#[cfg(test)]
+mod stone_tests;
 #[cfg(test)]
 mod tests;

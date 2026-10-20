@@ -184,7 +184,8 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
             let (r, mirror) = if inst.mirror { ((rot + 4 - c.rot % 4) % 4, !c.mirror) } else { ((rot + c.rot) % 4, c.mirror) };
             let id = prefix(&c.id);
             owner.insert(id.clone(), n);
-            out.cells.push(DocCell { id, at: place(c.at), rot: r, mirror, room: room_of(&c.room), ..c.clone() });
+            // Modulens stein (eierens valg i nivået) går foran malens.
+            out.cells.push(DocCell { id, at: place(c.at), rot: r, mirror, room: room_of(&c.room), stone: inst.stone.clone().or_else(|| c.stone.clone()), ..c.clone() });
         }
         for e in &m.edges {
             module_edges.push(DocEdge { cell: prefix(&e.cell), ..e.clone() });
@@ -477,7 +478,6 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
     let mut doc = LevelDoc { format: 1, level: LevelId::Name("moduler".into()), name: "Modulene".into(), status: "utkast".into(), seed: 1, ..Default::default() };
     let mut list: Vec<&ModuleDef> = kit.modules.iter().collect();
     list.sort_by(|a, b| a.id.cmp(&b.id));
-    let host = "grav/rom_1x1";
     let mut x = 0;
     let mut row_z = 0;
     let mut row_h = 0;
@@ -486,13 +486,17 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
         if cells.is_empty() {
             continue;
         }
-        let name = m.id.rsplit('/').next().unwrap_or(&m.id).to_string();
+        // Gravkjellerens moduler heter det de heter; de andre temaene får
+        // temaet foran (`kloakk_rom_2x2`), så navnene ikke kolliderer.
+        let (theme, base) = m.id.split_once('/').unwrap_or(("grav", &m.id));
+        let name = if theme == "grav" { base.to_string() } else { format!("{theme}_{base}") };
+        let host = if kit.module(&format!("{theme}/rom_1x1")).is_some() { format!("{theme}/rom_1x1") } else { "grav/rom_1x1".to_string() };
         let ops = openings(m, kit).0;
-        let hosted: Vec<&LocalOpening> = match name.as_str() {
-            _ if kit.module(host).is_none() => vec![],
+        let hosted: Vec<&LocalOpening> = match base {
+            _ if kit.module(&host).is_none() => vec![],
             "skattkammer" => ops.iter().filter(|o| o.side == 1).collect(),
             "nedgang" => ops.iter().filter(|o| o.side == 1).collect(),
-            _ if matches!(m.kind.as_str(), "gang" | "trapp") || name == "gravgang" => ops.iter().collect(),
+            _ if matches!(m.kind.as_str(), "gang" | "trapp") || matches!(base, "gravgang" | "fellegang" | "gruvegang" | "riddergang") => ops.iter().collect(),
             _ => vec![],
         };
         let mut spots: Vec<[i32; 3]> = cells.iter().map(|c| c.at).collect();
@@ -520,7 +524,7 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
         for (k, h) in host_at.iter().enumerate() {
             doc.modules.push(DocModule {
                 id: format!("{name}_nabo{k}"),
-                module: host.into(),
+                module: host.clone(),
                 at: [at[0] + h[0], h[1], at[2] + h[2]],
                 name: Some("Nabo".into()),
                 mood: Some(Mood { torches: 0.8 }),

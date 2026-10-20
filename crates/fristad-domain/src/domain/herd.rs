@@ -239,7 +239,7 @@ impl Herd {
             // Kroppen gynger litt når dyret går.
             let bob = (a.phase * 2.0).sin().abs() * 0.025 * (a.speed / a.kind.walk_speed()).min(2.0);
             let body = Affine3A::from_rotation_translation(Quat::from_rotation_arc(Vec3::Y, n) * Quat::from_rotation_y(a.yaw), Vec3::new(a.pos.x, g + bob, a.pos.y)) * Affine3A::from_scale(Vec3::splat(a.scale));
-            out.push(ModelInstance { model: a.kind.body(), transform: body, skin: None, flash: 0.0, tint: None });
+            out.push(ModelInstance { model: a.kind.body(), transform: body, skin: None, flash: 0.0, tint: None, look: None });
             // Beinsvingen: diagonale par i motfase, større utslag når det løper.
             let amp = if a.speed > a.kind.walk_speed() * 1.5 { 0.55 } else { 0.35 } * (a.speed / a.kind.walk_speed()).min(1.0);
             let idle = (time * 0.7 + a.phase).sin() * 0.02;
@@ -247,7 +247,7 @@ impl Herd {
                 let sign = if k == 0 || k == 3 { 1.0 } else { -1.0 };
                 let swing = a.phase.sin() * amp * sign + idle;
                 let leg = body * Affine3A::from_translation(*hip) * Affine3A::from_rotation_z(swing);
-                out.push(ModelInstance { model: a.kind.leg(k), transform: leg, skin: None, flash: 0.0, tint: None });
+                out.push(ModelInstance { model: a.kind.leg(k), transform: leg, skin: None, flash: 0.0, tint: None, look: None });
             }
         }
         out

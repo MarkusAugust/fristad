@@ -11,11 +11,10 @@ struct Instance {
     @location(8) m1: vec4<f32>,
     @location(9) m2: vec4<f32>,
     @location(10) m3: vec4<f32>,
-    // x markering, y animasjon (0..1) eller lakk; z utseendet (lagene for
-    // kjellerens fire roller, 5 bit hver, bit 20 slår det på), w tonen.
+    // x markering, y animasjon (0..1) eller lakk.
     @location(11) extra: vec4<f32>,
     // x: plassen i leddpaletten + 1 for skinnede instanser, 0 ellers;
-    // y: flammefargen i utseendet.
+    // z og w: steinbyttet (`look`).
     @location(12) extra2: vec4<f32>,
 }
 
@@ -145,32 +144,29 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
     return o;
 }
 
-fn unpack_rgb(p: f32) -> vec3<f32> {
-    let u = u32(p);
-    return vec3<f32>(f32((u >> 16u) & 255u), f32((u >> 8u) & 255u), f32(u & 255u)) / 255.0;
-}
-
-// Utseendet per instans (kjelleretasjene): rollene mur (stein, 5), hvelv
-// (hogd stein, 6), kvader (heller, 12) og gulv (fliser, 4) får lagene og
-// tonen fra instansen, og flammene en annen farge. Hjørnefargen er sRGB.
+// Steinbyttet per instans (`model::Look`, `crypt::stone`): gulvlaget og
+// murlaget biten er laget med byttes med instansens; flatene av murlaget som
+// vender nedover i modellens rom (hvelvet) får hvelvlaget, og den hogde
+// steinen (søyler, ribber, buer, karmer) sitt eget. extra2.z er gulvet (fra,
+// til) og muren (fra, til), 6 bit hver; extra2.w hvelvet, bit 6 slår det
+// på, og den hogde steinen (fra, til) står i bit 7–18.
 fn look(o: ptr<function, VsOut>, v: VsIn, inst: Instance) {
-    if (inst.extra.z < 1048576.0) {
+    let w = u32(inst.extra2.w);
+    if ((w & 64u) == 0u) {
         return;
     }
-    let roles = u32(inst.extra.z);
-    var role = 4u;
-    switch v.mat.x {
-        case 5u: { role = 0u; }
-        case 6u: { role = 1u; }
-        case 41u: { role = 2u; }
-        case 4u: { role = 3u; }
-        default: {}
-    }
-    if (role < 4u) {
-        (*o).mat.x = (roles >> (5u * role)) & 31u;
-        (*o).color = vec4<f32>((*o).color.rgb * pow(unpack_rgb(inst.extra.w), vec3<f32>(1.0 / 2.2)), (*o).color.a);
-    } else if (v.mat.x == K_LAMP && inst.extra2.y > 0.0) {
-        (*o).color = vec4<f32>(pow(unpack_rgb(inst.extra2.y), vec3<f32>(1.0 / 2.2)), (*o).color.a);
+    let z = u32(inst.extra2.z);
+    let m = v.mat.x;
+    if (m == (z & 63u)) {
+        (*o).mat.x = (z >> 6u) & 63u;
+    } else if (m == ((w >> 7u) & 63u)) {
+        (*o).mat.x = (w >> 13u) & 63u;
+    } else if (m == ((z >> 12u) & 63u)) {
+        if (v.normal.y < -0.3) {
+            (*o).mat.x = w & 63u;
+        } else {
+            (*o).mat.x = (z >> 18u) & 63u;
+        }
     }
 }
 
@@ -850,7 +846,10 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         if (dot(t, t) > 1e-8) {
             s.n = normalize(tbn * nm);
         }
-        s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * (0.2 + night * 8.0 * g.params.w);
+        // Glødeteksturen lyser om natta som lyktene, eller hele døgnet
+        // (`….glow`: de magenta sømmene og øynene på fiendene, også i krypten).
+        let lit = select(0.2 + night * 8.0 * g.params.w, 2.2, glow == 3u);
+        s.emissive = textureSampleGrad(model_emissive, tex_sampler, i.uv, duv1, duv2).rgb * lit;
         if ((flags & F_ALPHA) != 0u) {
             // Alfakort (barnåler, gress, blader i modellene) er løv: matte,
             // uten himmelspeiling i flate vinkler, og med lys gjennom.
@@ -964,7 +963,7 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         s.n = normalize(vec3<f32>(-grad.x, 1.0, -grad.y));
     }
 
-    if (glow == 3u) {
+    if (glow == 3u && kind != K_MODEL) {
         s.emissive += s.albedo * (0.05 + night * 0.35);
     } else if (glow == 2u && kind != K_GLASS) {
         s.emissive += tint * vec3<f32>(1.0, 0.78, 0.5) * (0.2 + night * 9.0 * g.params.w);

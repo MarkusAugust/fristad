@@ -98,7 +98,7 @@ def marks(_):
         {"kind": "up", "pos": [0, 0, -3], "yaw": 0.0},
         {"kind": "rest", "pos": [HVILE["c"][0], -4, HVILE["c"][1] + 1.0], "yaw": P},
         # Krystallgangen.
-        {"kind": "mob", "pos": [26, -1.5, 8], "label": "breadcrumb", "n": 2, "patrol": [[12, -1.5, 1], [32, -1.5, 14]]},
+        {"kind": "mob", "pos": [26, -1.5, 8], "label": "spinner", "n": 2, "patrol": [[12, -1.5, 1], [32, -1.5, 14]]},
         {"kind": "chest", "pos": [18.5, -1.5, -3.4], "yaw": 0.0},
         # Nordstranden, holmen og sørstranden.
         {"kind": "mob", "pos": [42, sh, 24], "label": "tooltip", "n": 3},
@@ -122,7 +122,7 @@ def marks(_):
                  "av karene gikk ned i kløfta etter det og kom ikke opp. Det som synger der nede, er ikke vind."},
         # Dryppsteinshallen: de tre resonanskrystallene (spakene) åpner krystallveggen når alle er slått an.
         {"kind": "mob", "pos": [86, -5, 27], "label": "accordion i bakhold", "ambush": 4.0},
-        {"kind": "mob", "pos": [94, -5, 36], "label": "breadcrumb", "n": 3, "patrol": [[86, -5, 30], [100, -5, 24], [104, -5, 42], [90, -5, 48]]},
+        {"kind": "mob", "pos": [94, -5, 36], "label": "spinner", "n": 3, "patrol": [[86, -5, 30], [100, -5, 24], [104, -5, 42], [90, -5, 48]]},
         {"kind": "mob", "pos": [100, -5, 46], "label": "modal"},
         {"kind": "lever", "id": "klang_1", "pos": [90.0, -5, 22.0], "yaw": P, "opens": [KLANG]},
         {"kind": "lever", "id": "klang_2", "pos": [109.0, -5, 28.0], "yaw": -P / 2, "opens": [KLANG]},
@@ -142,12 +142,12 @@ def marks(_):
                  "De finner hverandre. Jeg går ikke ned igjen."},
         {"kind": "bonus", "pos": [83.0, CAVE, 69.4], "yaw": P, "label": "utholdenhet"},
         # Vindeltrappa og forkammeret.
-        {"kind": "mob", "pos": [77, CAVE, 93], "label": "breadcrumb", "n": 2},
+        {"kind": "mob", "pos": [77, CAVE, 93], "label": "spinner", "n": 2},
         {"kind": "mob", "pos": [59, CAVE, 98], "label": "table", "n": 2},
         {"kind": "shortcut", "id": "snarvei_6", "from": "forkammer", "pos": [60, CAVE, 88], "yaw": 0.0, "width": 1.6},
         # Det store grottekammeret: Dropdownen.
         {"kind": "gate", "id": "arenaport_6", "pos": [50.3, CAVE, 98], "yaw": P / 2, "width": 3.4, "arena": "dropdown"},
-        {"kind": "boss", "pos": [26, CAVE, 100], "yaw": 0.0, "label": "select", "arena": "dropdown"},
+        {"kind": "boss", "pos": [26, CAVE, 100], "yaw": 0.0, "label": "dropdown", "arena": "dropdown"},
         {"kind": "chest", "pos": [30.0, CAVE, 115.0], "yaw": P * 0.9},
         {"kind": "gate", "id": "arenaport_6ut", "label": "exit", "pos": [2.0, CAVE, 102], "yaw": P / 2, "width": 2.6, "arena": "dropdown"},
         {"kind": "down", "pos": list(DOWN), "yaw": P},

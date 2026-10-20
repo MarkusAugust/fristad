@@ -351,6 +351,11 @@ impl Session {
     /// nivået du har nådd. En firedel av tokenene blir igjen nede. Fiendene
     /// kommer igjen, men portene du har åpnet, står fortsatt oppe.
     pub(super) fn die(&mut self, events: &mut Vec<Event>) {
+        // Prøveturen i nivåredigeringen: du kan ikke dø.
+        if self.immortal {
+            self.hero.hp = self.hero.max_hp;
+            return;
+        }
         let (lost, bag) = self.hero.die();
         self.combat.reset();
         self.hud.clear();

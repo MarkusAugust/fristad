@@ -86,6 +86,11 @@
    "theme": "krypt",
    "shows": "Mørk, smal tegl i hvelv (kryptens tak)."
   },
+  "crypt_dressed": {
+   "kind": "tile",
+   "theme": "krypt",
+   "shows": "Den hogde steinen i kryptens søyler, ribber, buer og karmer: samme bilde som crypt_wall (lenke), egen rolle til steinbyttet."
+  },
   "crypt_wall": {
    "kind": "tile",
    "theme": "krypt",

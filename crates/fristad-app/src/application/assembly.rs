@@ -20,6 +20,8 @@ pub struct Prepared {
     pub infos: Vec<ModelInfo>,
     /// Det redigeringen trenger (bare med `prepare_for_edit`).
     pub edit: Option<EditData>,
+    /// Nivåredigeringen (bare med `prepare_level_editor`).
+    pub level: Option<super::level_editing::LevelSetup>,
 }
 
 /// Dataene byen ble bygget fra, og instansene den satte ut, til
@@ -54,7 +56,23 @@ pub fn prepare_for_edit(models: &dyn ModelSource, seed: u64) -> Prepared {
 
 /// Bygg spillet fra `data` (dataene fra fila, eller fra redigeringen når du
 /// trykker P for å spille).
-pub fn prepare_with(models: &dyn ModelSource, seed: u64, mut data: Data, edit: bool) -> Prepared {
+pub fn prepare_with(models: &dyn ModelSource, seed: u64, data: Data, edit: bool) -> Prepared {
+    assemble(models, seed, data, edit, None)
+}
+
+/// Nivåredigeringen (`?nivaa`): byen med dokumentet i `editor` som eneste
+/// kryptnivå (nivå 1, så prøveturen kan gå rett ned), og plass til å vise
+/// nivået slik det endres (`level_editing::level_reserves`). Alle modellene
+/// lastes.
+pub fn prepare_level_editor(models: &dyn ModelSource, seed: u64, editor: crate::domain::edit::level::LevelEditor) -> Prepared {
+    let mut data = models.world_data();
+    data.levels.clear();
+    data.docs = vec![(1, editor.doc().clone())];
+    data.kit = editor.kit().clone();
+    assemble(models, seed, data, false, Some(editor))
+}
+
+fn assemble(models: &dyn ModelSource, seed: u64, mut data: Data, edit: bool, level: Option<crate::domain::edit::level::LevelEditor>) -> Prepared {
     // Nivådokumentene kompileres før noe annet, så redigeringen ser de samme
     // nivåene som spillet.
     data.compose_levels();
@@ -83,7 +101,19 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, mut data: Data, edit: b
             data.approved.clone(),
         )
     });
+    let anchor = data.layout.as_ref().map(|l| l.crypt_anchor).unwrap_or_default();
     let mut world = world::build(&infos, seed, data);
+    // Nivåredigeringen viser nivået som bevegelige instanser: plass til dem.
+    let level = level.map(|editor| {
+        for (name, n) in super::level_editing::level_reserves(editor.kit(), &infos) {
+            let name = crate::domain::world::layout::intern(&name);
+            match world.placements.iter_mut().find(|p| p.model == name) {
+                Some(p) => p.reserve = p.reserve.max(n),
+                None => world.placements.push(Placement { model: name, transforms: vec![], tints: vec![], looks: vec![], reserve: n, indoor: false }),
+            }
+        }
+        super::level_editing::LevelSetup { editor, anchor }
+    });
     log::info!("Verden: {} hjørner, {} modeller tilgjengelig", world.mesh.vertices.len(), infos.len());
     let edit = kept.map(|(sources, layout, contents, approved)| {
         let base = world.origins.iter().filter_map(|(m, n, r)| world.placements.iter().find(|p| p.model == *m).and_then(|p| p.transforms.get(*n)).map(|t| (*m, *n, *t, r.clone()))).collect();
@@ -98,7 +128,7 @@ pub fn prepare_with(models: &dyn ModelSource, seed: u64, mut data: Data, edit: b
         EditData { sources, layout, contents, approved, base, baseline: None }
     });
     let models: Vec<Model> = loaded.into_iter().filter(|m| world.placements.iter().any(|p| p.model == m.name)).collect();
-    Prepared { world, models, infos, edit }
+    Prepared { world, models, infos, edit, level }
 }
 
 /// Skjelettene til de skinnede modellene, til økta.
@@ -120,7 +150,8 @@ pub fn merge_instances(p: &mut Prepared, names: &[&str], cell: f32) -> usize {
         if model.albedo.is_some() || model.rig.is_some() {
             continue; // egne teksturer eller skjelett: kan ikke deles
         }
-        for t in pl.transforms.drain(..) {
+        let looks: Vec<_> = pl.looks.iter().copied().chain(std::iter::repeat(None)).take(pl.transforms.len()).collect();
+        for (t, look) in pl.transforms.drain(..).zip(looks) {
             let o = glam::Vec3::from(t.translation);
             let key = ((o.x / cell).floor() as i32, (o.y / 20.0).floor() as i32, (o.z / cell).floor() as i32);
             let mesh = chunks.entry(key).or_insert_with(|| Mesh { vertices: vec![], indices: vec![] });
@@ -128,6 +159,10 @@ pub fn merge_instances(p: &mut Prepared, names: &[&str], cell: f32) -> usize {
             let flip = t.matrix3.determinant() < 0.0;
             for v in &model.mesh.vertices {
                 let mut w = *v;
+                // Steinbyttet bakes inn i hjørnene (som `look` i world.wgsl).
+                if let Some(l) = &look {
+                    w.mat[0] = l.layer(v.mat[0], v.normal[1]);
+                }
                 w.pos = t.transform_point3(glam::Vec3::from(v.pos)).to_array();
                 w.normal = (t.matrix3 * glam::Vec3A::from(glam::Vec3::from(v.normal))).normalize_or_zero().to_array();
                 mesh.vertices.push(w);

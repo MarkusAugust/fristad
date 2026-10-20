@@ -1,0 +1,13 @@
+{
+  "id": "borg/gang_1",
+  "name": "Gang",
+  "theme": "borg",
+  "kind": "gang",
+  "about": "Rett gang på 4 m med tønnehvelv, åpen i begge ender.",
+  "rooms": [
+    {"id": "rom", "name": "Gang", "theme": "borg", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/gang", "at": [0, 0, 0], "rot": 0}
+  ]
+}

@@ -66,7 +66,7 @@ def cameras(name, cells, hosts):
         # Nedgangen: på skrå ned mot hullet med trappa (mot sør i modulen).
         look = (-ox - oz * 0.0 + (0.7 if name == "nedgang" and ox else 0.0) * 0, -oz + (0.7 if name == "nedgang" else 0.0))
         cams.append((eye, yaw_to(*look), -28.0 if name == "nedgang" else 3.0))
-    if name == "rotunde":
+    if name.endswith("rotunde"):
         cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
         return [((cx, y + EYE, z1 + 0.2), 0.0, 16.0), ((cx + 3.0, y + EYE, cz + 3.0), yaw_to(-1, -1), 24.0)]
     if name == "nedgang":
@@ -142,7 +142,9 @@ def shoot(only):
                         hosts.append(((h["at"][0], h["at"][1], h["at"][2]), o["side"]))
                         break
         files = []
-        for k, (eye, yaw, pitch) in enumerate(cameras(name, cells, hosts)):
+        # Kameraene etter formen (`nedgang`, `rotunde` …), også i de andre temaene.
+        base = inst["module"].split("/", 1)[1]
+        for k, (eye, yaw, pitch) in enumerate(cameras(base, cells, hosts)):
             f = os.path.join(OUT, "skudd", f"{name}_{k}.png")
             files.append(f)
             lines.append(f"{f} {eye[0]:.2f},{eye[1]:.2f},{eye[2]:.2f} {yaw:.1f} {pitch:.1f}")

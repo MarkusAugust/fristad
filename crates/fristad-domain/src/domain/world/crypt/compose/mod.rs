@@ -34,7 +34,7 @@ mod solids;
 
 pub use grid::*;
 pub use look::{expand, roll};
-use look::torches;
+use look::{cell_stone, edge_stone, torches};
 
 use super::doc::{DocCell, LevelDoc, Thing};
 use super::kit::{KitDef, KitPiece, PieceKind};
@@ -74,6 +74,20 @@ pub struct Report {
     /// Cellene som ble regnet på nytt (resten kom fra minnet).
     pub recomputed: usize,
     pub cells: usize,
+    /// Åpningene slik de ble (til kartet i redigeringen): én per kant som
+    /// ikke er mur, med gulvet og siden i nivået.
+    pub edges: Vec<EdgeOpen>,
+}
+
+/// En åpning i nivået etter sammenføyningen: ruta (i, gulvet, j), siden i
+/// nivået, slaget (`Open::kit_name`) og bryteren (porten, snarveien eller
+/// den falske veggen) om den har en.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EdgeOpen {
+    pub at: [i32; 3],
+    pub side: usize,
+    pub kind: &'static str,
+    pub switch: Option<String>,
 }
 
 impl Report {
@@ -133,6 +147,8 @@ pub(crate) struct Cell<'a> {
     pub j: i32,
     pub y: f32,
     pub theme: String,
+    /// Lagene cella får (`crypt::stone`).
+    pub stone: super::stone::Surfaces,
 }
 
 impl Cell<'_> {
@@ -197,6 +213,8 @@ pub(crate) struct Grid<'a> {
     pub overrides: HashMap<(usize, usize), (String, Option<String>)>,
     /// Utseendet eieren har låst per (celle, side i nivået).
     pub edge_variants: HashMap<(usize, usize), String>,
+    /// Steinen eieren har valgt per (celle, side i nivået).
+    pub edge_stones: HashMap<(usize, usize), super::stone::StoneRef>,
     pub kit: &'a KitDef,
     /// Nivåets frø (variantene og faklene).
     pub seed: u64,
@@ -344,8 +362,11 @@ impl Compiler {
                 report.issues.push(Issue::error("bit", Some(cell_center(c.at[0], c.at[1] as f32, c.at[2])), format!("{}: ukjent bit «{}»", c.id, c.bit)));
                 continue;
             };
-            let theme = room_list.iter().find(|r| r.id == c.room).map(|r| r.theme.clone()).filter(|t| !t.is_empty()).unwrap_or_else(|| piece.theme.clone());
-            cells.push(Cell { doc: c, piece, i: c.at[0], j: c.at[2], y: c.at[1] as f32, theme });
+            let room = room_list.iter().find(|r| r.id == c.room);
+            let theme = room.map(|r| r.theme.clone()).filter(|t| !t.is_empty()).or_else(|| Some(doc.theme.clone()).filter(|t| !t.is_empty())).unwrap_or_else(|| piece.theme.clone());
+            // Standardsteinen: nivåets tema, ellers rommets (modulene er laget i sitt).
+            let stone = cell_stone(kit, [if doc.theme.is_empty() { &theme } else { &doc.theme }, &piece.theme], [doc.stone.as_ref(), room.and_then(|r| r.stone.as_ref()), c.stone.as_ref()], cell_center(c.at[0], c.at[1] as f32, c.at[2]), &mut report.issues);
+            cells.push(Cell { doc: c, piece, i: c.at[0], j: c.at[2], y: c.at[1] as f32, theme, stone });
         }
         let mut columns: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         for (k, c) in cells.iter().enumerate() {
@@ -367,6 +388,7 @@ impl Compiler {
         // Eierens valg på kantene, og innholdet som er kanten.
         let mut overrides: HashMap<(usize, usize), (String, Option<String>)> = HashMap::new();
         let mut edge_variants: HashMap<(usize, usize), String> = HashMap::new();
+    let mut edge_stones = HashMap::new();
         for e in &doc.edges {
             let (Some(&a), Some(l)) = (index.get(e.cell.as_str()), side_index(&e.side)) else {
                 report.issues.push(Issue::error("kant", None, format!("kanten {}/{} finnes ikke", e.cell, e.side)));
@@ -375,6 +397,12 @@ impl Compiler {
             let w = local_to_world(l, cells[a].rot(), cells[a].mirror());
             if let Some(v) = &e.variant {
                 edge_variants.insert((a, w), v.clone());
+            }
+            if let Some(r) = &e.stone {
+                if let Err(e) = kit.stones.apply(&mut cells[a].stone.clone(), r) {
+                    report.issues.push(Issue::error("stein", Some(cells[a].center()), e));
+                }
+                edge_stones.insert((a, w), r.clone());
             }
             // Uten slag låser kanten bare utseendet.
             if !e.kind.is_empty() {
@@ -393,7 +421,7 @@ impl Compiler {
             }
         }
         let torches = room_list.iter().map(|r| (r.id.clone(), r.mood.torches)).collect();
-        let grid = Grid { cells, columns, overrides, edge_variants, kit, seed: doc.seed, torches };
+        let grid = Grid { cells, columns, overrides, edge_variants, edge_stones, kit, seed: doc.seed, torches };
 
         // Hver celle, fra minnet om ingenting i nabolaget er endret.
         let mut outs: Vec<CellOut> = vec![];
@@ -413,6 +441,17 @@ impl Compiler {
         }
         self.cache = keep;
         report.cells = grid.cells.len();
+        // Åpningene til kartet, én gang per kant.
+        for a in 0..grid.cells.len() {
+            for w in 0..4 {
+                let (open, switch, _) = grid.opening(a, w);
+                if matches!(open, Open::Wall | Open::Inner) || grid.neighbor(a, w).is_some_and(|b| b < a) {
+                    continue;
+                }
+                let c = &grid.cells[a];
+                report.edges.push(EdgeOpen { at: [c.i, c.floor(w).round() as i32, c.j], side: w, kind: open.kit_name(), switch });
+            }
+        }
 
         // Samlet.
         let mut file = LevelFile { level: doc.level.number().unwrap_or(0), name: doc.name.clone(), theme: grid.cells.first().map(|c| c.theme.clone()).unwrap_or_default(), ..Default::default() };
@@ -480,8 +519,9 @@ fn neighborhood_key(g: &Grid, a: usize, rooms: &[super::doc::DocRoom]) -> String
                 for &b in v {
                     let o = &g.cells[b];
                     let room = rooms.iter().find(|r| r.id == o.doc.room);
-                    parts.push(format!("{:?}|{}|{:?}|{:?}", o.doc, o.theme, room.map(|r| r.secret), room.map(|r| &r.mood)));
-                    let mut ov: Vec<_> = (0..4).filter_map(|w| g.overrides.get(&(b, w)).map(|o| format!("{w}:{o:?}"))).chain((0..4).filter_map(|w| g.edge_variants.get(&(b, w)).map(|v| format!("{w}v{v}")))).collect();
+                    parts.push(format!("{:?}|{}|{:?}|{:?}|{:?}", o.doc, o.theme, room.map(|r| r.secret), room.map(|r| &r.mood), o.stone));
+                    let stones = (0..4).filter_map(|w| g.edge_stones.get(&(b, w)).map(|s| format!("{w}s{s:?}")));
+                    let mut ov: Vec<_> = (0..4).filter_map(|w| g.overrides.get(&(b, w)).map(|o| format!("{w}:{o:?}"))).chain((0..4).filter_map(|w| g.edge_variants.get(&(b, w)).map(|v| format!("{w}v{v}")))).chain(stones).collect();
                     ov.sort();
                     parts.push(ov.join(","));
                 }
@@ -500,10 +540,11 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
     let center = c.center();
     let theme = c.theme.as_str();
     let at = [c.i as i64, (c.y * 1000.0).round() as i64, c.j as i64];
-    // Biten selv.
-    let put = |out: &mut CellOut, (model, solids): (&str, &[ColliderDef]), pos: Vec3, yaw: f32, mirror: bool| {
+    // Biten selv, med steinen (`crypt::stone`; halvkantene og hjørnene tar
+    // den fra sin egen celle, så overgangen går midt i åpningen).
+    let put = |out: &mut CellOut, (model, solids): (&str, &[ColliderDef]), pos: Vec3, yaw: f32, mirror: bool, (theme, to): (&str, &super::stone::Surfaces)| {
         if !model.is_empty() {
-            out.instances.push(InstanceDef { model: model.to_string(), pos: mm3(pos), yaw, mirror });
+            out.instances.push(InstanceDef { model: model.to_string(), pos: mm3(pos), yaw, mirror, stone: g.kit.stones.swap(theme, to) });
         }
         let t = transform(pos, yaw, mirror);
         for s in solids {
@@ -511,7 +552,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
         }
     };
     let look = c.piece.pick(c.doc.variant.as_deref(), roll(g.seed, [at[0], at[1], at[2], 0]));
-    put(&mut out, look, center, c.yaw(), c.mirror());
+    put(&mut out, look, center, c.yaw(), c.mirror(), (&c.piece.theme, &c.stone));
     // Fakkelfestene i biten selv (rotunden).
     if !c.mirror() {
         torches(g, &mut out, c.piece, center, c.yaw(), &c.doc.room, [at[0], at[1], at[2], 9]);
@@ -538,7 +579,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
                     let o = outward_v(w) * HALF;
                     let pos = Vec3::new(center.x + o.x, c.floor(w), center.z + o.y);
                     let look = piece.pick(g.edge_variants.get(&(a, w)).map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
-                    put(&mut out, look, pos, side_yaw(w), false);
+                    put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &edge_stone(g, a, w)));
                     if !hidden {
                         torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64]);
                     }
@@ -574,7 +615,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
             match g.kit.corner(theme, class) {
                 Some(piece) => {
                     let p = vertex_pos(v);
-                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), corner_yaw(k), false);
+                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), corner_yaw(k), false, (&piece.theme, &c.stone));
                 }
                 None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler kvarthjørnet ({theme})"))),
             }
@@ -584,7 +625,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
             if k == 0 {
                 if let Some(piece) = g.kit.of_kind(theme, PieceKind::Pillar) {
                     let p = vertex_pos(v);
-                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), 0.0, false);
+                    put(&mut out, (&piece.model, &piece.solids), Vec3::new(p.x, c.y, p.y), 0.0, false, (&piece.theme, &c.stone));
                 }
             }
         }
@@ -660,10 +701,13 @@ fn marks(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>, rooms: &[super:
             m.label = Some("button".into());
         }
         // Den falske veggen er byggesettets egen (den samme muren som rundt).
-        if m.kind == "secret_wall" && m.label.is_none() {
-            if let Some((a, _)) = edge_anchor(&t.anchor, index, &g.cells) {
-                m.label = g.kit.of_kind(&g.cells[a].theme, PieceKind::Leaf).map(|p| p.model.clone());
+        // Steinen er murens på samme side.
+        if let Some((a, w)) = edge_anchor(&t.anchor, index, &g.cells).filter(|_| m.kind == "secret_wall") {
+            let leaf = g.kit.of_kind(&g.cells[a].theme, PieceKind::Leaf);
+            if m.label.is_none() {
+                m.label = leaf.map(|p| p.model.clone());
             }
+            m.stone = leaf.and_then(|p| g.kit.stones.swap(&p.theme, &edge_stone(g, a, w)));
         }
         out.push(m);
     }

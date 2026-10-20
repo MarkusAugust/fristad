@@ -109,7 +109,7 @@ def marks(_):
                  "oppgraderingen kom og alt brakk, holdt vi den fortsatt. Vi holder den ennå. Ingen har sagt oss hva "
                  "den skal holde ute."},
         # Våpenkammeret: skjoldbærerne, kista og rustflekkene som renner ut av fugene.
-        {"kind": "mob", "pos": [-17, TOP, 3], "label": "button", "n": 2},
+        {"kind": "mob", "pos": [-17, TOP, 3], "label": "kortknekt", "n": 2},
         {"kind": "chest", "pos": [-22, TOP, -4.3], "yaw": 0.0},
         {"kind": "secret_wall", "id": SMED, "pos": [-28, TOP, 1], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "crack", "pos": [-27.98, TOP, 2.75], "yaw": P / 2, "for": SMED},
@@ -123,9 +123,9 @@ def marks(_):
         {"kind": "trap", "label": "pendulum", "id": "pendel_8a", "pos": [0, TOP, 15], "size": [3.0, 0.8], "dir": [0, 0, 1]},
         {"kind": "trap", "label": "pendulum", "id": "pendel_8b", "pos": [0, TOP, 23], "size": [3.0, 0.8], "dir": [0, 0, 1]},
         # Vaktgangen: patruljen.
-        {"kind": "mob", "pos": [-22, TOP, 22], "label": "button", "n": 2, "patrol": [[-22, TOP, 10], [-22, TOP, 31]]},
+        {"kind": "mob", "pos": [-22, TOP, 22], "label": "kortknekt", "n": 2, "patrol": [[-22, TOP, 10], [-22, TOP, 31]]},
         # Søylesalen: vaktrunden mellom søylene, bueskytterne på galleriene, Modalen.
-        {"kind": "mob", "pos": [0, HALLY, 42], "label": "button", "n": 3, "patrol": [[-3, HALLY, 38], [3, HALLY, 38], [3, HALLY, 56], [-3, HALLY, 56]]},
+        {"kind": "mob", "pos": [0, HALLY, 42], "label": "kortknekt", "n": 3, "patrol": [[-3, HALLY, 38], [3, HALLY, 38], [3, HALLY, 56], [-3, HALLY, 56]]},
         {"kind": "mob", "pos": [-13.5, GALS, 50], "label": "breadcrumb-bueskytter", "n": 2},
         {"kind": "mob", "pos": [13.5, GALS, 42], "label": "breadcrumb-bueskytter", "n": 2},
         {"kind": "mob", "pos": [0, HALLY, 54], "label": "modal"},
@@ -145,7 +145,7 @@ def marks(_):
         # Gildehallen: bakholdet under bordene, spillemennene på galleriet, kista og lemmen.
         {"kind": "mob", "pos": [28, HALLY, 79.5], "label": "accordion i bakhold", "n": 3, "ambush": "gilde"},
         {"kind": "mob", "pos": [32, GALG, 72.5], "label": "breadcrumb-bueskytter", "n": 2},
-        {"kind": "mob", "pos": [36, HALLY, 79.5], "label": "button"},
+        {"kind": "mob", "pos": [36, HALLY, 79.5], "label": "kortknekt"},
         {"kind": "chest", "pos": [36, HALLY, 84.4], "yaw": P},
         {"kind": "trapdoor", "id": LEM, "pos": [30, HALLY, 83.5], "size": [1.4, 1.4], "to": "vin"},
         {"kind": "hint", "label": "sound", "pos": [30, HALLY, 81.8], "for": LEM},
@@ -160,10 +160,10 @@ def marks(_):
         {"kind": "lever", "id": "gitterspak_8", "pos": [6.55, HALLY, 78], "yaw": -P / 2, "opens": [GITTER]},
         {"kind": "gate", "id": GITTER, "pos": [0, HALLY, 74.0], "yaw": 0.0, "width": 2.6},
         {"kind": "trap", "label": "pendulum", "id": "pendel_8c", "pos": [0, HALLY, 77.5], "size": [3.0, 0.8], "dir": [0, 0, 1]},
-        {"kind": "mob", "pos": [-3, HALLY, 84], "label": "button", "n": 2},
+        {"kind": "mob", "pos": [-3, HALLY, 84], "label": "kortknekt", "n": 2},
         # Tronsalen: arenaen med Navbaren.
         {"kind": "gate", "id": ARENA, "pos": [0, THRONE, 94.5], "yaw": 0.0, "width": 3.4, "arena": "tronsal"},
-        {"kind": "boss", "pos": [0, THRONE, 112], "yaw": 0.0, "label": "modal", "arena": "tronsal"},
+        {"kind": "boss", "pos": [0, THRONE, 112], "yaw": 0.0, "label": "navbar", "arena": "tronsal"},
         {"kind": "gate", "id": ARENA_UT, "label": "exit", "pos": [0, THRONE, 126], "yaw": 0.0, "width": 2.2, "arena": "tronsal"},
         {"kind": "down", "pos": list(DOWN), "yaw": P},
     ]

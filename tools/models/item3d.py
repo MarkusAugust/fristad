@@ -67,13 +67,26 @@ ITEMS = {
     # står rett opp og lokket vender mot −Y (`folk3d.LUTE` legger den i
     # fanget). Foten (den runde enden av kroppen) i z = 0, 0,78 m lang.
     "lute": dict(src="lute", out="assets/models/props/lute.glb", height=0.78, tilt=44.6, yaw=0.0, tris=4000, voxel=0.0035, size=1024),
+    # Nøkkelen eliten mister (eieren 19. oktober, `trellis-gjenstander.md`):
+    # TRELLIS la den flat med hanken mot −X; `roll` dreier den om y så den
+    # står med hanken (og krona) opp og skjegget ned, slik den svever og
+    # snurrer der den ligger (`Mobs::instances`). 0,15 m lang.
+    "key": dict(src="key", out="assets/models/props/key.glb", height=0.15, roll=90.0, yaw=0.0, tris=3000, voxel=0.0008, size=1024),
+    # Steinene på enga (eieren 19. oktober, `docs/prompter/natur.md` nr. 6
+    # og 7): den store steinen (1,3 m høy, rundt 2 × 2,4 m) ved veiene og på
+    # åsene, og gruppa på fem (den største 0,85 m) spredt på enga. De står
+    # mange, så de har få trekanter; bunnen gjøres flat (`flat`: det som
+    # ligger under denne brøken av høyden, legges i z = 0), så de står
+    # i flukt med bakken (`nature::rocks`).
+    "rock_big": dict(src="rock_big", dir="assets/textures/nature/3d", out="assets/models/nature/rock_big.glb", height=1.3, yaw=0.0, tris=1500, voxel=0.02, size=1024, flat=0.06, hollow=False),
+    "rock_group": dict(src="rock_group", dir="assets/textures/nature/3d", out="assets/models/nature/rock_group.glb", height=0.85, yaw=0.0, tris=2200, voxel=0.012, size=1024, flat=0.06, hollow=False),
 }
 
 
-def load(src, yaw, tilt=0.0):
-    """Formen samlet i ett objekt uten foreldre, dreid `tilt` om x og så
-    `yaw` om z."""
-    bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, f"{src}.glb"))
+def load(src, yaw, tilt=0.0, folder=SRC, roll=0.0):
+    """Formen samlet i ett objekt uten foreldre, dreid `tilt` om x, `roll`
+    om y og så `yaw` om z."""
+    bpy.ops.import_scene.gltf(filepath=os.path.join(folder, f"{src}.glb"))
     obs = [o for o in bpy.data.objects if o.type == "MESH"]
     bpy.ops.object.select_all(action="DESELECT")
     for o in obs:
@@ -85,7 +98,7 @@ def load(src, yaw, tilt=0.0):
     mw = ob.matrix_world.copy()
     ob.parent = None
     ob.matrix_world = Matrix.Identity(4)
-    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(tilt), 4, "X") @ mw)
+    ob.data.transform(Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(roll), 4, "Y") @ Matrix.Rotation(math.radians(tilt), 4, "X") @ mw)
     for o in [o for o in bpy.data.objects if o is not ob]:
         bpy.data.objects.remove(o)
     ob.name = "item"
@@ -126,6 +139,111 @@ def cut(ob, boxes):
     bm.free()
 
 
+def solid(ob, voxel):
+    """TRELLIS lager steinene som en tynn, dobbel hinne med åpen bunn
+    (volumet er nesten null), og voxel-skallet rundt den fikk en innside
+    rundt et hulrom: halve trekantene, som ingen ser, og forenklingen rev
+    den i stykker. Her fylles formen i stedet: rutene i et gitter på `voxel`
+    m som hinna går gjennom, søylene under dem ned til foten, og
+    flaten trekkes rundt det (marching cubes)."""
+    from scipy import ndimage
+    from skimage import measure
+
+    co = coords(ob)
+    lo = co.min(0) - 3 * voxel
+    dims = np.ceil((co.max(0) + 3 * voxel - lo) / voxel).astype(int) + 1
+    # Punkter langs kantene også, så hinna er tett i gitteret.
+    me = ob.data
+    ev = np.empty(len(me.edges) * 2, np.int64)
+    me.edges.foreach_get("vertices", ev)
+    ev = ev.reshape(-1, 2)
+    pts = [co] + [co[ev[:, 0]] * (1 - t) + co[ev[:, 1]] * t for t in (0.25, 0.5, 0.75)]
+    pts = np.concatenate(pts)
+    grid = np.zeros(dims, bool)
+    ix = np.floor((pts - lo) / voxel + 0.5).astype(int)
+    grid[ix[:, 0], ix[:, 1], ix[:, 2]] = True
+    grid = ndimage.binary_closing(grid, iterations=2)
+    # Bunnen er åpen i hinna: hver søyle i gitteret fylles fra foten
+    # (z = 0) opp til den høyeste ruta hinna går gjennom (steinene ligger
+    # på bakken uten overheng som synes), og det den ellers omslutter.
+    nz = grid.shape[2]
+    k = np.arange(nz)[None, None, :]
+    hit = grid.any(axis=2)
+    k0 = int(np.floor((co[:, 2].min() - lo[2]) / voxel + 0.5))
+    high = np.where(hit, nz - 1 - np.argmax(grid[:, :, ::-1], axis=2), -1)
+    grid |= (k >= k0) & (k <= high[:, :, None])
+    grid = ndimage.binary_fill_holes(grid)
+    print("fylt", int(grid.sum()), "ruter")
+    field = ndimage.gaussian_filter(grid.astype(np.float32), 0.8)
+    verts, faces, _, _ = measure.marching_cubes(field, 0.5)
+    verts = verts * voxel + lo
+    me.clear_geometry()
+    me.from_pydata(verts.tolist(), [], faces.tolist())
+    me.update()
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    print("massiv", len(me.polygons), "trekanter")
+
+
+def decimate(ob, tris):
+    for _ in range(4):
+        n = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+        if n <= tris * 1.05:
+            break
+        mod = ob.modifiers.new("dec", "DECIMATE")
+        mod.ratio = tris / n
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    for p in ob.data.polygons:
+        p.use_smooth = True
+
+
+def flatten(ob, below):
+    """Flat bunn: hjørnene under `below` (m) legges i z = 0, så tingen
+    står i flukt med bakken uten å vippe."""
+    co = coords(ob)
+    co[:, 2] = np.where(co[:, 2] < below, 0.0, co[:, 2])
+    ob.data.vertices.foreach_set("co", co.reshape(-1))
+    ob.data.update()
+
+
+def atlas(ob, size):
+    """Øyene med xatlas (som `mob3d.unwrap`, uten vekter): foldet ut etter
+    formen og pakket tett med rotasjon. Skallet trianguleres først, så hver
+    flate er én trekant i samme rekkefølge som i xatlas."""
+    import xatlas
+
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.to_mesh(ob.data)
+    bm.free()
+    me = ob.data
+    v = coords(ob).astype(np.float32)
+    f = np.array([p.vertices[:] for p in me.polygons], np.uint32)
+    pack = xatlas.PackOptions()
+    pack.resolution = size
+    pack.padding = 2
+    pack.bilinear = True
+    pack.rotate_charts = True
+    pack.bruteForce = True
+    at = xatlas.Atlas()
+    at.add_mesh(v, f)
+    at.generate(xatlas.ChartOptions(), pack)
+    vm, ix, uv = at[0]
+    assert (vm[ix] == f).all(), "xatlas byttet om på hjørnene"
+    t = uv[ix]
+    e1, e2 = t[:, 1] - t[:, 0], t[:, 2] - t[:, 0]
+    print(f"xatlas: dekning {np.abs(e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0]).sum() / 2:.1%}")
+    loops = np.array([l for p in me.polygons for l in p.loop_indices])
+    out = np.zeros((len(me.loops), 2), np.float32)
+    out[loops] = uv[ix].reshape(-1, 2)
+    me.uv_layers["src"].data.foreach_set("uv", out.ravel())
+
+
 def scale_of(ob, spec):
     """Skalaen fra formens enheter til meter."""
     co = coords(ob)
@@ -153,7 +271,7 @@ def scale_of(ob, spec):
 def build(name):
     spec = ITEMS[name]
     clear()
-    ob = load(spec["src"], spec.get("yaw", 0.0), spec.get("tilt", 0.0))
+    ob = load(spec["src"], spec.get("yaw", 0.0), spec.get("tilt", 0.0), spec.get("dir", SRC), spec.get("roll", 0.0))
     # Først 1 enhet høy med foten i z = 0 midt over origo; bokser og
     # `center` står i disse enhetene.
     place(ob, 1.0 / float(np.ptp(coords(ob)[:, 2])))
@@ -171,11 +289,19 @@ def build(name):
         folk3d.VOXEL = v
         folk3d.THICK = spec.get("thick", 1.2 * v)
         folk3d.LOOSE = spec.get("loose", folk3d.LOOSE)
-        folk3d.simplify(ob, spec["tris"])
+        if spec.get("hollow", True):
+            folk3d.simplify(ob, spec["tris"])
+        else:
+            # Steinene er en tynn hinne fra TRELLIS; den fylles
+            # (`solid`), så skallet blir massivt.
+            solid(ob, v)
+            decimate(ob, spec["tris"])
         folk3d.transfer(hi, ob, name, SRC_SIZE)
     finally:
         for k, val in keep.items():
             setattr(folk3d, k, val)
+    if "flat" in spec:
+        flatten(ob, spec["flat"] * spec["height"])
     ob.name = name
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     print(name, "trekanter", tris)

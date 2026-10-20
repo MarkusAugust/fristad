@@ -49,7 +49,7 @@ def module(name, label, kind, about, cells, torches, **extra):
     room = {"id": "rom", "name": label, "theme": "grav", "mood": {"torches": torches}}
     if extra.pop("secret", False):
         room["secret"] = True
-    m = {"id": f"grav/{name}", "name": label, "theme": "grav", "kind": kind, "about": about, "rooms": [room], "cells": cells}
+    m = {"id": f"grav/{name}", "name": label, "theme": "grav", "kind": kind, "about": about, "rooms": [room] + extra.pop("rooms_extra", []), "cells": cells}
     m.update(extra)
     return name, m
 
@@ -76,9 +76,14 @@ MODULES = [
            openings=[{"at": [0, 0], "side": s, "kind": "bue"} for s in ("E", "S", "W")],
            things=[{"id": "ned", "kind": "down", "anchor": "celle:c00"}]),
     # De sammensatte.
-    module("rotunde", "Rotunde", "rom", "Rundt rom på 12 × 12 m med kuppel, fire nisjer med fakler og en gang ut midt på hver side.",
+    # Kuppelen var for mørk (eieren 19. oktober): ei hjulkrone henger fra
+    # sluttsteinen (kroken i toppen av kuppelen, `ROT_CROWN` 7,6 m; hjulet
+    # 3,2 m under), og lyset fra den og et svakt skjær i toppen når hvelvet.
+    module("rotunde", "Rotunde", "rom", "Rundt rom på 12 × 12 m med kuppel, ei hjulkrone under sluttsteinen, fire nisjer med fakler og en gang ut midt på hver side.",
            [{"id": "c", "bit": "grav/rotunde", "at": [0, 0, 0], "rot": 0}], 1.0,
-           lights=[{"id": "kuppel", "anchor": "celle:c", "pos": [0, 5.5, 0], "color": [0.55, 0.6, 0.8], "range": 9, "flicker": False}]),
+           things=[prop("krone", "kit_chandelier", "c", [0, 7.55, 0], 0)],
+           lights=[{"id": "krone", "anchor": "celle:c", "pos": [0, 4.6, 0], "color": [1.0, 0.66, 0.34], "range": 10, "flicker": True, "intensity": 3.0},
+                   {"id": "kuppel", "anchor": "celle:c", "pos": [0, 6.6, 0], "color": [0.85, 0.72, 0.6], "range": 7, "flicker": False}]),
     # Ferdige rom.
     module("kapell", "Kapellet med døra opp", "ferdig",
            "Inngangen til nivået: et kapell på 3 × 3 fag med fire søyler, døra opp midt på nordveggen, det frittstående alteret "
@@ -102,6 +107,50 @@ MODULES = [
                   + [prop(f"lys_{c}", "candle", c, [x, SARCOPHAGUS_TOP, 0.65], 0) for c, x in (("c00", -1.03), ("c02", -1.03))],
            lights=[{"id": f"lys_{c}", "anchor": f"celle:{c}", "pos": [x, SARCOPHAGUS_TOP + 0.35, 0.65], "color": [1.0, 0.66, 0.32], "range": 3.5, "flicker": True}
                    for c, x in (("c00", -1.03), ("c02", -1.03))]),
+    # Mekanismene som moduler (eieren 19. oktober): hver virker alene, med
+    # koblingene inni modulen (spak → port, nøkkel → port, slåsiden på
+    # snarveien), så den kan dras ut og settes sammen uten mer.
+    module("porthall", "Porthallen med spak", "ferdig",
+           "To rom på 4 × 4 m med et portgitter imellom. Spaken i forrommet heiser gitteret, og ei kiste står i hallen bak.",
+           [{"id": "hall", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+            {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "room": "forrom"}], 0.5,
+           rooms_extra=[{"id": "forrom", "name": "Forrommet", "theme": "grav", "mood": {"torches": 0.5}}],
+           things=[{"id": "port", "kind": "gate", "anchor": "kant:forrom/N"},
+                   {"id": "spak", "kind": "lever", "anchor": "celle:forrom", "pos": [-1.2, 0, 0.7], "yaw": 90},
+                   {"id": "kiste", "kind": "chest", "anchor": "celle:hall", "pos": [0, 0, -1.0], "yaw": 0}],
+           walls=[{"at": [0, 0], "side": "N"}],
+           links=[{"from": "spak", "to": "port", "kind": "opens"}]),
+    module("nokkelport", "Nøkkelporten", "ferdig",
+           "En vaktstue på 4 × 8 m der en elite går vakt med nøkkelen, og et portgitter inn til et lite kammer med ei kiste. Porten åpnes med nøkkelen eliten bærer.",
+           [{"id": "stue_n", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+            {"id": "stue_s", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+            {"id": "kammer", "bit": "grav/romfelt", "at": [1, 0, 0], "rot": 0, "room": "kammer"}], 0.5,
+           rooms_extra=[{"id": "kammer", "name": "Kammeret", "theme": "grav", "mood": {"torches": 0.3}}],
+           things=[{"id": "port", "kind": "gate", "anchor": "kant:stue_n/E"},
+                   {"id": "vokter", "kind": "elite", "anchor": "celle:stue_n", "pos": [0, 0, -0.5], "yaw": 180, "label": "button",
+                    "patrol": [[0, 0, -0.5], [0, 0, 4.5]]},
+                   {"id": "kiste", "kind": "chest", "anchor": "celle:kammer", "pos": [0.9, 0, 0], "yaw": -90}],
+           walls=[{"at": [1, 0], "side": "N"}, {"at": [1, 0], "side": "E"}, {"at": [1, 0], "side": "S"}],
+           links=[{"from": "vokter", "to": "port", "kind": "key"}]),
+    module("snarvei", "Snarveien", "ferdig",
+           "To rom på 4 × 4 m med ei snarveidør imellom. Slåen sitter i det nordre rommet, så døra åpnes derfra og står åpen etterpå.",
+           [{"id": "innerst", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+            {"id": "ytterst", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "room": "ytterst"}], 0.5,
+           rooms_extra=[{"id": "ytterst", "name": "Ytterst", "theme": "grav", "mood": {"torches": 0.5}}],
+           things=[{"id": "dor", "kind": "shortcut", "anchor": "kant:ytterst/N"}],
+           links=[{"from": "dor", "to": "rom", "kind": "from"}]),
+    module("fellegang", "Fellegangen", "ferdig",
+           "En gang på 8 m med ei trykkplate midt i. Tråkker du på den, skytes piler tvers over gangen fra muren.",
+           grid("grav/gang", 1, 2), 0.4,
+           things=[{"id": "plate", "kind": "trap", "anchor": "celle:c01", "pos": [0, 0, -1.6], "yaw": 90, "label": "arrows", "size": [1.2, 1.2]}]),
+    module("hvilested", "Hvilestedet", "ferdig",
+           "Et lite kapell på 4 × 4 m med hvilestedet mot nordmuren og en lapp fra munkene. Her tennes lyset, og her våkner du.",
+           grid("grav/romfelt", 1, 1), 0.6,
+           walls=[{"at": [0, 0], "side": "N"}],
+           things=[{"id": "hvile", "kind": "rest", "anchor": "celle:c00", "pos": [0, 0, -1.0], "yaw": 0},
+                   {"id": "lapp", "kind": "lore", "anchor": "celle:c00", "pos": [1.15, 0, -1.1], "yaw": -45, "label": "Et blad fra munkene",
+                    "text": "Den som tenner lyset her, våkner her. Fyll lykta før du går dypere; mørket der nede er ikke tomt."}],
+           lights=[{"id": "hvilelys", "anchor": "celle:c00", "pos": [0, 1.6, -1.0], "color": [1.0, 0.7, 0.4], "range": 5, "flicker": True}]),
     module("skattkammer", "Skattkammeret", "ferdig",
            "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
            "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",

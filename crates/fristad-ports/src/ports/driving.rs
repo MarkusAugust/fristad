@@ -125,6 +125,8 @@ pub enum Command {
     SetBench(super::Bench),
     /// Redigeringsmodusen (`docs/redigering.md`; bare med `?edit`).
     Edit(EditCommand),
+    /// Nivåredigeringen (`?nivaa`, `docs/nivaaredigering.md` del 12).
+    Level(LevelCommand),
     /// Filmen (`web/film/`): kameraet står der filmen sier, uten armer,
     /// kamp og fysikk, mens byfolket og fiendene lever videre. `None` gir
     /// spillet tilbake.
@@ -145,6 +147,27 @@ pub struct Shot {
     pub fov: f32,
     /// Krengning (radianer, positiv mot venstre), så kameraet kan legge seg i svingene.
     pub roll: f32,
+}
+
+/// Det eieren gjør i nivåredigeringen (`?nivaa`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum LevelCommand {
+    /// En endring av dokumentet (`LevelOp`, som json fra kartet).
+    Op(crate::domain::edit::level::LevelOp),
+    Undo,
+    Redo,
+    /// Åpne et annet dokument (historikken tømmes).
+    Open(Box<crate::domain::world::crypt::doc::LevelDoc>),
+    /// Lagret: telleren over endringer nullstilles.
+    Saved,
+    /// Det valgte på kartet (modulene og innholdet), markert i 3D.
+    Select(Vec<String>),
+    /// Arbeidslys (lyst og flatt) eller spillets lys.
+    WorkLight(bool),
+    /// Gulvet kartet viser (y i dokumentet).
+    Floor(f32),
+    /// Kameraet i 3D-vinduet: øyet i dokumentets rom.
+    Place { at: Vec3, yaw: f32, pitch: f32 },
 }
 
 /// Hva et drag med musa gjør (tasten som holdes når knappen trykkes).

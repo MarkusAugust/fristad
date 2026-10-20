@@ -34,6 +34,7 @@ impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
         let mut session = Session::new(&prepared.world, &mut physics, &rigs(&prepared.models));
         session.edit_data = prepared.edit;
+        session.level = prepared.level.map(|s| super::level_editing::LevelEditing::new(s, &prepared.world, &prepared.infos));
         let levels = prepared
             .world
             .crypt
@@ -99,6 +100,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     fn draw(&mut self, aspect: f32) {
         let mut frame = self.session.frame(aspect);
         frame.gamma = self.gamma;
+        self.session.level_frame(&mut frame);
         self.renderer.render(&frame);
         self.session.settle();
     }
@@ -141,6 +143,7 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
                 self.input.release_all();
                 return self.session.edit_command(e);
             }
+            Command::Level(c) => return self.session.level_command(c),
             Command::Voice(v) => self.session.npcs.set_voice(v),
             Command::Gamma(g) => self.gamma = g.clamp(0.6, 2.0),
         }

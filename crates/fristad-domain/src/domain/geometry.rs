@@ -143,9 +143,25 @@ pub enum Layer {
     BronzeDoor = 53,
     /// Fristil-korrupsjonen: lysende sømmer i stein (malt, gløder med `.magic`).
     GlitchSeam = 54,
+    /// Kloakken: mørk, fuktig tegl (malt).
+    SewerBrick = 55,
+    /// Kloakken: våte steinheller med pytter og mose (malt).
+    SewerFloor = 56,
+    /// Gruva: mørkt, kantet berg (malt).
+    MineRock = 57,
+    /// Gruva: grått, slitt tømmer (malt).
+    MineTimber = 58,
+    /// Borgen: mørk kvaderstein (malt).
+    KeepAshlar = 59,
+    /// Borgen: rutete gulvfliser (malt).
+    KeepFloor = 60,
+    /// Kjernen: grå plastplater (malt).
+    CorePlastic = 61,
+    /// Kjernen: stein som går over i plast med lysende sømmer (malt).
+    CoreStone = 62,
+    CryptDressed = 63, // Hogd stein i krypten: søyler, ribber, buer, karmer (bildet til `crypt_wall`, egen rolle til steinbyttet).
 }
-/// Høyst 64: `tex_scale` i `Globals` har plass til 16 × 4.
-pub const LAYERS: u32 = 55;
+pub const LAYERS: u32 = 64; // Høyst 64 (fullt): `tex_scale` i `Globals` har plass til 16 × 4, og steinbyttet pakker 6 bit per lag.
 
 impl Layer {
     pub const ALL: [Layer; LAYERS as usize] = [
@@ -156,71 +172,30 @@ impl Layer {
         Layer::Shingles, Layer::ShinglesTar, Layer::Trim, Layer::Door, Layer::DoorB, Layer::TimberGrey, Layer::ChurchBoards, Layer::Ruin,
         Layer::WallStone, Layer::Flagstone, Layer::Gravel, Layer::Chimney, Layer::Snow, Layer::OakPlaned,
         Layer::CryptStone, Layer::CryptFloor, Layer::CryptVault, Layer::GraveSlab, Layer::Ossuary, Layer::CryptPlaster, Layer::Rubble, Layer::BronzeDoor, Layer::GlitchSeam,
+        Layer::SewerBrick, Layer::SewerFloor, Layer::MineRock, Layer::MineTimber, Layer::KeepAshlar, Layer::KeepFloor, Layer::CorePlastic, Layer::CoreStone, Layer::CryptDressed,
     ];
+    /// Laget med navnet (mappa i `assets/textures/`).
+    pub fn from_name(name: &str) -> Option<Layer> {
+        Layer::ALL.iter().copied().find(|l| l.name() == name)
+    }
     /// Navnet i `assets/external/manifest.json` (mappa i `assets/textures/`).
     pub fn name(self) -> &'static str {
-        match self {
-            Layer::Cobble => "cobble",
-            Layer::Plaster => "plaster",
-            Layer::Cladding => "cladding",
-            Layer::Slate => "slate",
-            Layer::Tiles => "tiles",
-            Layer::Stone => "stone",
-            Layer::Ashlar => "ashlar",
-            Layer::Planks => "planks",
-            Layer::Iron => "iron",
-            Layer::Meadow => "meadow",
-            Layer::Fur => "fur",
-            Layer::Mud => "mud",
-            Layer::Chainmail => "chainmail",
-            Layer::Timber => "timber",
-            Layer::ForestFloor => "forest_floor",
-            Layer::Rock => "rock",
-            Layer::Felt => "felt",
-            Layer::Earth => "earth",
-            Layer::Thatch => "thatch",
-            Layer::Logs => "logs",
-            Layer::Sod => "sod",
-            Layer::Wool => "wool",
-            Layer::Linen => "linen",
-            Layer::Leather => "leather",
-            Layer::Gambeson => "gambeson",
-            Layer::StrawFloor => "straw_floor",
-            Layer::PlasterWhite => "plaster_white",
-            Layer::PlasterRed => "plaster_red",
-            Layer::PlasterOld => "plaster_old",
-            Layer::Weatherboard => "weatherboard",
-            Layer::WeatherboardGrey => "weatherboard_grey",
-            Layer::Wattle => "wattle",
-            Layer::Shingles => "shingles",
-            Layer::ShinglesTar => "shingles_tar",
-            Layer::Trim => "trim",
-            Layer::Door => "door",
-            Layer::DoorB => "door_b",
-            Layer::TimberGrey => "timber_grey",
-            Layer::ChurchBoards => "church_boards",
-            Layer::Ruin => "ruin",
-            Layer::WallStone => "wall_stone",
-            Layer::Flagstone => "flagstone",
-            Layer::Gravel => "gravel",
-            Layer::Chimney => "chimney",
-            Layer::Snow => "snow",
-            Layer::OakPlaned => "oak_planed",
-            Layer::CryptStone => "crypt_wall",
-            Layer::CryptFloor => "crypt_floor",
-            Layer::CryptVault => "crypt_vault",
-            Layer::GraveSlab => "grave_slab",
-            Layer::Ossuary => "ossuary",
-            Layer::CryptPlaster => "crypt_plaster",
-            Layer::Rubble => "rubble",
-            Layer::BronzeDoor => "bronze_door",
-            Layer::GlitchSeam => "glitch_seam",
-        }
+        NAMES[self as usize]
     }
 }
 
+/// Navnene på lagene (`Layer::name`), i rekkefølgen i `Layer::ALL`.
+const NAMES: [&str; LAYERS as usize] = [
+        "cobble", "plaster", "cladding", "slate", "tiles", "stone", "ashlar", "planks", "iron", "meadow", "fur", "mud", "chainmail", "timber",
+        "forest_floor", "rock", "felt", "earth", "thatch", "logs", "sod", "wool", "linen", "leather", "gambeson", "straw_floor", "plaster_white",
+        "plaster_red", "plaster_old", "weatherboard", "weatherboard_grey", "wattle", "shingles", "shingles_tar", "trim", "door", "door_b",
+        "timber_grey", "church_boards", "ruin", "wall_stone", "flagstone", "gravel", "chimney", "snow", "oak_planed", "crypt_wall", "crypt_floor",
+        "crypt_vault", "grave_slab", "ossuary", "crypt_plaster", "rubble", "bronze_door", "glitch_seam", "sewer_brick", "sewer_floor", "mine_rock",
+        "mine_timber", "keep_ashlar", "keep_floor", "core_plastic", "core_stone", "crypt_dressed",
+];
+
 /// Meter per teksturflis for hvert lag.
-pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0];
+pub const TEX_SCALE: [f32; LAYERS as usize] = [2.0, 3.0, 2.0, 2.0, 1.5, 2.5, 1.5, 1.5, 1.0, 3.0, 0.5, 2.0, 0.3, 1.2, 2.4, 30.0, 0.5, 2.5, 2.0, 2.0, 2.5, 0.2, 0.35, 0.3, 0.5, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.5, 2.5, 2.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 1.0, 1.5, 2.0, 3.0, 1.5, 2.5, 2.0, 2.0, 2.0, 2.0];
 
 /// Spesialtyper som ikke er teksturlag. Må stemme med `world.wgsl`.
 pub mod kind {

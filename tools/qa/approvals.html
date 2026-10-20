@@ -219,7 +219,7 @@ function card(it) {
   }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
-  eb.textContent = ({ modell: "Modell", modul: "Modul (satt sammen av bitene)" }[it.kind] || "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
+  eb.textContent = ({ modell: "Modell", modul: "Modul (satt sammen av bitene)", samlet: "Satt sammen i et rom" }[it.kind] || "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
   const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
   p.append(eb, h);
   if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }
@@ -298,7 +298,9 @@ function renderList() {
   }));
   if (done.length) out.push(pile("Godkjent", done, (v, it) => { v.append("godkjent ", (it.prior && it.prior.date) || ""); }));
   const parts = mine.filter(it => it.state === "i_modul");
-  if (parts.length) out.push(pile("Bitene modulene er bygd av (du dømmer dem gjennom modulene)", parts, (v, it) => { v.append(it.about || ""); }));
+  if (parts.length) out.push(pile("Bitene og mekanismene du dømmer gjennom modulene og kortene satt sammen", parts, (v, it) => { v.append(it.about || ""); }));
+  const gone = mine.filter(it => it.state === "utgaar");
+  if (gone.length) out.push(pile("Utgår: erstattes av nivåene bygd av moduler (dømmes ikke)", gone, (v, it) => { v.append(it.prior ? `${it.prior.verdict} ${it.prior.date || ""}` : "ikke vurdert"); }));
   list.replaceChildren(...out);
   list.style.display = "grid"; list.style.gap = "18px";
   cur = -1;

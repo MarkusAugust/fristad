@@ -1,0 +1,13 @@
+{
+  "id": "borg/halvtrapp",
+  "name": "Halvtrapp (1 m)",
+  "theme": "borg",
+  "kind": "trapp",
+  "about": "Trapp 1 m opp mot nord over én celle, under et skrått tønnehvelv.",
+  "rooms": [
+    {"id": "rom", "name": "Halvtrapp (1 m)", "theme": "borg", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/halvtrapp", "at": [0, 0, 0], "rot": 0}
+  ]
+}

@@ -11,8 +11,8 @@ etter `lift`-merket (`KIT_LIFT`, `KIT_WINCH`, kjettingene i `KIT_CHAIN`).
 | `kit_cart` | på gulvet midt under vogna | 1,5 × 0,9 m, 1,1 m høy, langs z |
 | `kit_lamp` | kroken (henger ned) | 0,34 m |
 | `kit_crystal` | på gulvet midt i klyngen | ~1,2 m bred, opptil 1,4 m høy |
-| `kit_lift` | midt på oversida av dekket | 2,8 × 2,8 m (`LIFT_W`), åpen mot −x, styrestangen i hjørnet (+x, +z) |
-| `kit_winch` | på gulvet midt over sjakta | heistårnet over hullet (3 m), bommen 4 m oppe, vinsjen 2,6 m mot −z |
+| `kit_lift` | midt på oversida av dekket | 2,8 × 2,8 m (`LIFT_W`), åpen mot −x, bremsespaken i hjørnet (+x, +z) |
+| `kit_winch` | på gulvet midt over sjakta | heistårnet over hullet (3 m), bommen 4 m oppe med hengebjelkene i 3,45 m, vinsjen 2,6 m mot −z |
 """
 
 import math
@@ -20,7 +20,6 @@ import math
 from kit_grav import MB, beam, box, cylinder, mul, norm, obox, rubble, strap, sub
 
 LIFT_W = 2.8
-HEAD_Y = 4.0  # bommen i heistårnet over gulvet oppe
 WINCH_Z = -2.6  # vinsjen står så langt fra sjaktmidten (mot −z)
 
 
@@ -185,65 +184,68 @@ def kit_crystal(seed=3):
 
 
 def kit_lift(w=LIFT_W):
-    """Heisen: plankedekke med jernramme, tverrbjelker under, rekkverk på
-    tre sider (åpen mot −x), jernøyer i hjørnene til kjettingene, og en
-    styrestang (bremsen) i hjørnet (+x, +z) som du bruker."""
+    """Heisen: et plankedekke med en ramme av tømmer rundt, rekkverk på tre
+    sider (åpen mot −x: stolper i hjørnene og én håndlist), jernøyer i
+    hjørnene til kjettingene, og bremsespaken (én trestang i et jernbeslag)
+    ved hjørnet (+x, +z), der du bruker den (eieren 19. oktober: «heisen er
+    veldig merkelig. mye rare stenger og spaker»)."""
     m = MB()
     h = w / 2
     box(m, (-h, -0.1, -h), (h, 0.0, h), "oak")
-    for x in (-h + 0.2, h - 0.2):
-        beam(m, (x, -0.22, -h), (x, -0.22, h), 0.2, 0.24, "wood", strip=("timber", 0))
-    for z in (-h + 0.2, 0.0, h - 0.2):
-        beam(m, (-h, -0.17, z), (h, -0.17, z), 0.16, 0.14, "wood", strip=("timber", 2))
-    # Jernrammen rundt kanten.
-    for z in (-h, h):
-        strap(m, (-h, 0.005, z - (0.0 if z < 0 else 0.0)), (h, 0.005, z), 0.12, 0.012, (0.0, 1.0, 0.0))
-    for x in (-h, h):
-        strap(m, (x, 0.005, -h), (x, 0.005, h), 0.12, 0.012, (0.0, 1.0, 0.0))
-    # Rekkverket: stolper i hjørnene og midt på, håndlist og knelist.
-    posts = [(-h + 0.08, -h + 0.08), (h - 0.08, -h + 0.08), (h - 0.08, h - 0.08), (-h + 0.08, h - 0.08), (h - 0.08, 0.0)]
-    for x, z in posts:
-        beam(m, (x, 0.0, z), (x, 1.05, z), 0.09, 0.09, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 3))
-    rails = [((-h + 0.08, -h + 0.08), (h - 0.08, -h + 0.08)), ((h - 0.08, -h + 0.08), (h - 0.08, h - 0.08)), ((h - 0.08, h - 0.08), (-h + 0.08, h - 0.08))]
-    for (x0, z0), (x1, z1) in rails:
-        for y in (0.55, 1.0):
-            beam(m, (x0, y, z0), (x1, y, z1), 0.06, 0.07, "wood", strip=("timber", 1))
+    # Rammen rundt dekket og to bærebjelker under.
+    for z in (-h + 0.09, h - 0.09):
+        beam(m, (-h, -0.22, z), (h, -0.22, z), 0.18, 0.24, "wood", strip=("timber", 0))
+    for x in (-h + 0.09, h - 0.09):
+        beam(m, (x, -0.22, -h + 0.18), (x, -0.22, h - 0.18), 0.18, 0.24, "wood", strip=("timber", 2))
+    for x in (-h / 3, h / 3):
+        beam(m, (x, -0.2, -h + 0.18), (x, -0.2, h - 0.18), 0.14, 0.18, "wood", strip=("timber", 2))
+    # Rekkverket: fire hjørnestolper og håndlista på tre sider.
+    c = h - 0.08
+    for x, z in ((-c, -c), (c, -c), (c, c), (-c, c)):
+        beam(m, (x, 0.0, z), (x, 1.05, z), 0.1, 0.1, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 3))
+    for (x0, z0), (x1, z1) in (((-c, -c), (c, -c)), ((c, -c), (c, c)), ((c, c), (-c, c))):
+        beam(m, (x0, 1.0, z0), (x1, 1.0, z1), 0.08, 0.08, "wood", strip=("timber", 1))
     # Kjettingøyene.
     for sx in (-1, 1):
         for sz in (-1, 1):
             x, z = sx * (h - 0.2), sz * (h - 0.2)
             box(m, (x - 0.08, 0.0, z - 0.08), (x + 0.08, 0.17, z + 0.08), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
-    # Styrestangen: en jernstang med trehåndtak ved stolpen i hjørnet (+x, +z).
+    # Bremsespaken: beslaget på dekket og en rett trestang, litt på skrå.
     x, z = h - 0.3, h - 0.3
-    box(m, (x - 0.1, 0.0, z - 0.1), (x + 0.1, 0.12, z + 0.1), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
-    beam(m, (x, 0.12, z), (x - 0.25, 1.15, z - 0.25), 0.04, 0.04, "iron", up=(0.0, 0.0, 1.0))
-    beam(m, (x - 0.25, 1.15, z - 0.25), (x - 0.31, 1.4, z - 0.31), 0.07, 0.07, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 1))
+    box(m, (x - 0.1, 0.0, z - 0.1), (x + 0.1, 0.1, z + 0.1), "iron", faces=("+y", "+x", "-x", "+z", "-z"))
+    beam(m, (x, 0.1, z), (x - 0.12, 1.2, z - 0.12), 0.07, 0.07, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 1))
     return m
+
+
+HEAD = 3.45  # undersida av hengebjelkene, der kjettingene ender (`LIFT_HEAD`)
 
 
 def kit_winch(hole=3.0):
     """Heistårnet og vinsjen (`KIT_WINCH`, origo på gulvet midt over sjakta):
-    to stolper utenfor hullet (langs x), bommen `HEAD_Y` oppe med
-    trinsehjulet under, og vinsjen med trommel og sveiv `WINCH_Z` mot −z.
-    Kjettingene fra heisen går opp til bommen."""
+    to kraftige stolper utenfor hullet (langs x) med knestøtter, bommen
+    over dem, to høye hengebjelker under bommen der de fire kjettingene
+    fra heisen ender, og en bindbjelke mellom dem (`HEAD`, motoren: `LIFT_HEAD`). Vinsjen står `WINCH_Z` mot
+    −z: to bukker med trommelen og sveiva, og tauet fra trommelen opp til
+    bommen. Ingen trinsehjul eller løse stenger."""
     m = MB()
     px = hole / 2 + 0.35
+    hang_t = 0.66  # hengebjelkene er høye tømmer rett under bommen
+    top = HEAD + hang_t + 0.34  # oversida av bommen
     for sx in (-1, 1):
-        beam(m, (sx * px, 0.0, 0.0), (sx * px, HEAD_Y, 0.0), 0.32, 0.32, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if sx < 0 else 3))
-        # Skråstøtter mot −z.
-        beam(m, (sx * px, 0.0, -1.6), (sx * px, HEAD_Y - 0.6, -0.16), 0.16, 0.16, "wood", up=(1.0, 0.0, 0.0), strip=("timber", 2))
+        beam(m, (sx * px, 0.0, 0.0), (sx * px, top, 0.0), 0.34, 0.34, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 0 if sx < 0 else 3))
         obox(m, (sx * px, 0.0, 0.0), (0.6, 0.12, 0.6), 0.0, "dressed")
-    beam(m, (-px - 0.3, HEAD_Y + 0.17, 0.0), (px + 0.3, HEAD_Y + 0.17, 0.0), 0.34, 0.34, "wood", strip=("timber", 1))
-    # Trinsehjulet under bommen: en skive med aksel langs x.
-    ring = [(0.5 * math.cos(a), 0.5 * math.sin(a)) for a in (2 * math.pi * k / 16 for k in range(16))]
-    for x0, x1, mat, r in ((-0.06, 0.06, "iron", 1.0), (-0.3, 0.3, "iron", 0.08)):
-        p0 = [(x0, HEAD_Y - 0.55 + y * r, z * r) for y, z in ring]
-        p1 = [(x1, HEAD_Y - 0.55 + y * r, z * r) for y, z in ring]
-        for k in range(16):
-            a, b, c, d = p0[k], p0[(k + 1) % 16], p1[(k + 1) % 16], p1[k]
-            m.quad(a, b, c, d, mat, facing=(0.0, (a[1] + c[1]) / 2 - (HEAD_Y - 0.55), (a[2] + c[2]) / 2), smooth=True)
-        m.poly(p1, [(p[1], p[2]) for p in p1], mat, facing=(1, 0, 0))
-        m.poly(p0[::-1], [(p[1], p[2]) for p in p0[::-1]], mat, facing=(-1, 0, 0))
+        # Knestøtta mellom stolpen og bommen.
+        beam(m, (sx * px, top - 1.0, 0.0), (sx * (px - 0.75), top - 0.3, 0.0), 0.14, 0.14, "wood", up=(0.0, 0.0, 1.0), strip=("timber", 2))
+    # Bommen og hengebjelkene under den (langs z, over kjettingene).
+    beam(m, (-px - 0.25, top - 0.17, 0.0), (px + 0.25, top - 0.17, 0.0), 0.34, 0.34, "wood", strip=("timber", 1))
+    cz = LIFT_W / 2 - 0.2
+    for sx in (-1, 1):
+        x = sx * cz
+        beam(m, (x, HEAD + hang_t / 2, -cz - 0.15), (x, HEAD + hang_t / 2, cz + 0.15), 0.16, hang_t, "wood", strip=("timber", 2))
+        for sz in (-1, 1):
+            box(m, (x - 0.07, HEAD - 0.06, sz * cz - 0.07), (x + 0.07, HEAD, sz * cz + 0.07), "iron", faces=("-y", "+x", "-x", "+z", "-z"))
+    # Bindbjelken mellom hengebjelkene, midt over sjakta.
+    beam(m, (-cz + 0.08, HEAD + 0.1, 0.0), (cz - 0.08, HEAD + 0.1, 0.0), 0.16, 0.2, "wood", strip=("timber", 1))
     # Vinsjen: to bukker, trommelen mellom, sveiva på sida.
     wz = WINCH_Z
     for sx in (-1, 1):
@@ -253,15 +255,22 @@ def kit_winch(hole=3.0):
     p1 = [(0.75, 0.85 + y, wz + z) for y, z in ring]
     for k in range(12):
         a, b, c, d = p0[k], p0[(k + 1) % 12], p1[(k + 1) % 12], p1[k]
-        m.quad(a, b, c, d, "wood", facing=(0.0, (a[1] + c[1]) / 2 - 0.85, (a[2] + c[2]) / 2 - wz), uv=[(0, 0), (0.16, 0), (0.16, 1.5), (0, 1.5)], smooth=True)
+        L = math.dist(a, b)
+        m.quad(a, b, c, d, "wood", facing=(0.0, (a[1] + c[1]) / 2 - 0.85, (a[2] + c[2]) / 2 - wz), uv=[(0, 0), (L, 0), (L, 1.5), (0, 1.5)], smooth=True)
+    for q in (p0, p1):
+        m.poly(q, [(p[1], p[2]) for p in q], "wood", facing=(-1 if q is p0 else 1, 0, 0))
     beam(m, (-1.15, 0.85, wz), (1.15, 0.85, wz), 0.07, 0.07, "iron")
-    beam(m, (1.15, 0.85, wz), (1.15, 0.85, wz + 0.45), 0.05, 0.05, "iron", up=(0.0, 1.0, 0.0))
-    beam(m, (1.15, 0.85, wz + 0.45), (1.45, 0.85, wz + 0.45), 0.06, 0.06, "wood", strip=("timber", 1))
-    # Kjettingen fra trommelen opp til bommen og over trinsa.
-    for k in range(int((HEAD_Y - 1.0) / 0.2)):
-        y0 = 1.1 + k * 0.2
-        a, b = (0.05, 0.016) if k % 2 == 0 else (0.016, 0.05)
-        box(m, (-a, y0, wz - b), (a, y0 + 0.23, wz + b), "iron", faces=("+x", "-x", "+z", "-z"))
+    beam(m, (1.15, 0.85, wz), (1.15, 0.5, wz), 0.06, 0.06, "iron", up=(0.0, 0.0, 1.0))
+    beam(m, (1.15, 0.5, wz), (1.45, 0.5, wz), 0.07, 0.07, "wood", strip=("timber", 1))
+    # Kjettingen fra trommelen opp til bommen: ledd av smijern på skrå.
+    a, b = (0.0, 1.15, wz + 0.05), (0.0, top - 0.34, -0.12)
+    d = norm(sub(b, a))
+    n = int(math.dist(a, b) / 0.2)
+    for k in range(n):
+        p0 = tuple(a[i] + d[i] * 0.2 * k for i in range(3))
+        p1 = tuple(a[i] + d[i] * (0.2 * k + 0.23) for i in range(3))
+        w, t = (0.1, 0.03) if k % 2 == 0 else (0.03, 0.1)
+        beam(m, p0, p1, w, t, "iron", up=(0.0, 0.0, 1.0) if abs(d[2]) < 0.9 else (0.0, 1.0, 0.0))
     return m
 
 

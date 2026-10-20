@@ -87,8 +87,8 @@ def marks(_):
         {"kind": "trap", "label": "rocks", "id": "fragmenter_9", "pos": [0, 0, 24], "size": [1.2, 1.2], "dir": [0, 0, 1]},
         # Speilsalen.
         {"kind": "mob", "pos": [0, SPEIL, 46], "label": "accordion"},
-        {"kind": "mob", "pos": [-5, SPEIL, 44], "label": "breadcrumb", "n": 3},
-        {"kind": "mob", "pos": [6, SPEIL, 52], "label": "breadcrumb", "n": 2, "patrol": [[6, SPEIL, 42], [6, SPEIL, 54]]},
+        {"kind": "mob", "pos": [-5, SPEIL, 44], "label": "skeleton loader", "n": 3},
+        {"kind": "mob", "pos": [6, SPEIL, 52], "label": "skeleton loader", "n": 2, "patrol": [[6, SPEIL, 42], [6, SPEIL, 54]]},
         {"kind": "secret_wall", "id": BAK, "pos": [-11, SPEIL, 48], "yaw": P / 2, "width": 2.0, "height": 2.6},
         {"kind": "hint", "label": "crack", "pos": [-10.95, SPEIL, 49.6], "yaw": P / 2, "for": BAK},
         {"kind": "bonus", "pos": [-20.4, SPEIL, 48.0], "yaw": P / 2, "label": "liv"},
@@ -97,14 +97,14 @@ def marks(_):
                  "alt to ganger; det klarer ikke å la noe være slik det er. Jeg sto lenge og ventet på at det skulle "
                  "bli til noe. Det ble det ikke. Ta med deg det som er her, og gå. A."},
         # Brohodet og broene.
-        {"kind": "mob", "pos": [17.5, d, 62], "label": "tooltip"},
-        {"kind": "mob", "pos": [28, d, 60], "label": "tooltip", "n": 2},
+        {"kind": "mob", "pos": [17.5, d, 62], "label": "popover"},
+        {"kind": "mob", "pos": [28, d, 60], "label": "popover", "n": 2},
         # Den siste steinen: hvilestedet under lyssøyla.
         {"kind": "rest", "pos": [hx - 2.6, d, hz - 2.6], "yaw": P * 0.75},
         {"kind": "ladder", "pos": [hx, VOID["bottom"], hz - hr - 0.3], "yaw": P, "top": [hx, d, hz - hr + 1.0]},
         {"kind": "ladder", "pos": [OST["x0"] - 0.3, VOID["bottom"], 52.0], "yaw": -P / 2, "top": [OST["x0"] + 1.0, d, 52.0]},
         # Borgfragmentet.
-        {"kind": "mob", "pos": [FRAG["c"][0], d, FRAG["c"][1]], "label": "breadcrumb", "n": 3},
+        {"kind": "mob", "pos": [FRAG["c"][0], d, FRAG["c"][1]], "label": "skeleton loader", "n": 3},
         {"kind": "chest", "pos": [FRAG["c"][0] + 1.8, d, FRAG["c"][1] + 1.6], "yaw": P * 0.8},
         {"kind": "lore", "pos": [FRAG["c"][0] - 2.4, d, FRAG["c"][1] + 1.2], "yaw": P / 2, "label": "Fanen på borgfragmentet",
          "text": "Fanen fra ridderhallen henger her, på en bit av muren som ikke lenger står på noe. Rammeverket tar "
@@ -114,19 +114,19 @@ def marks(_):
         {"kind": "mob", "pos": [68.5, d, 66], "label": "table"},
         {"kind": "shortcut", "id": SNARVEI, "from": "kube", "pos": [88, KUBE, 76], "yaw": P / 2, "width": 1.6},
         # Plastkammeret: tabellene patruljerer, accordion vokter kista.
-        {"kind": "mob", "pos": [86, PLAST, 34], "label": "table", "n": 3, "patrol": [[82, PLAST, 30], [98, PLAST, 28], [100, PLAST, 44], [84, PLAST, 46]]},
+        {"kind": "mob", "pos": [86, PLAST, 34], "label": "grid-vokter", "n": 3, "patrol": [[82, PLAST, 30], [98, PLAST, 28], [100, PLAST, 44], [84, PLAST, 46]]},
         {"kind": "mob", "pos": [84, PLAST, 40], "label": "accordion"},
         {"kind": "chest", "pos": [100.5, PLAST, 33.0], "yaw": -P / 2},
         {"kind": "hint", "label": "sound", "pos": [99, PLAST, 46]},
         # Arkivet.
-        {"kind": "mob", "pos": [112, PLAST, 35], "label": "breadcrumb", "n": 2},
+        {"kind": "mob", "pos": [112, PLAST, 35], "label": "grid-vokter", "n": 2},
         {"kind": "lore", "pos": [112, PLAST, 28.6], "yaw": 0.0, "label": "Den siste lesbare boka",
          "text": "Dette er den siste boka i arkivet som står i mønsterbokas eget mål, det som kunne leses på alle "
                  "tungemål. De andre ble skrevet om til hoffets tunge, og så om igjen etter oppgraderingen, til ingen "
                  "kunne lese dem. Mønsteret er ikke borte. Det er bare glemt. Den som husker hvordan en Button skal "
                  "være, husker resten. Ansgar."},
         # Kuben: bakholdet, sømmen er spaken.
-        {"kind": "mob", "pos": [95, KUBE, 76], "label": "breadcrumb i bakhold", "n": 4, "ambush": "kube"},
+        {"kind": "mob", "pos": [95, KUBE, 76], "label": "skeleton loader i bakhold", "n": 4, "ambush": "kube"},
         {"kind": "lever", "id": "sommen_9", "pos": [101.4, KUBE, 72.0], "yaw": -P / 2, "opens": [GITTER]},
         {"kind": "rare", "pos": [101.4, KUBE, 80.0], "yaw": -P / 2, "label": "Tabs"},
         {"kind": "lore", "pos": [88.6, KUBE, 81.5], "yaw": P / 2, "label": "Nettets stemme",
@@ -135,8 +135,8 @@ def marks(_):
                  "å se hvor mange de er. Ansgar."},
         {"kind": "gate", "id": GITTER, "pos": [95, KUBE, 85.0], "yaw": 0.0, "width": 2.2},
         # Tvillingsalen: vokteren med nøkkelen.
-        {"kind": "mob", "pos": [58, TVILLING, 92], "label": "tooltip", "n": 2},
-        {"kind": "elite", "pos": [52, TVILLING, 96], "yaw": -P / 2, "label": "modal", "opens": [PORT]},
+        {"kind": "mob", "pos": [58, TVILLING, 92], "label": "popover", "n": 2},
+        {"kind": "elite", "pos": [52, TVILLING, 96], "yaw": -P / 2, "label": "tvillingvokter", "opens": [PORT]},
         {"kind": "mob", "pos": [46, TVILLING, 100], "label": "table", "n": 3},
         {"kind": "gate", "id": PORT, "pos": [40.3, TVILLING, 96], "yaw": P / 2, "width": 2.6},
         {"kind": "down", "pos": list(DOWN), "yaw": P},

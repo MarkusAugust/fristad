@@ -23,6 +23,9 @@ pub struct KitDef {
     /// `docs/nivaaredigering.md` del 21).
     #[serde(default)]
     pub modules: Vec<super::doc::ModuleDef>,
+    /// Steinene og standardsteinen per tema (`assets/levels/steiner.json`).
+    #[serde(default)]
+    pub stones: super::stone::StoneFile,
 }
 
 /// Ett manifest (`<tema>.json`).

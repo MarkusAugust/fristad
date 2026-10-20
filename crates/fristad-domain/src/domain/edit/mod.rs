@@ -10,6 +10,7 @@ mod group;
 mod history;
 mod lamps;
 mod lines;
+pub mod level;
 pub mod route;
 pub mod props;
 pub mod rules;

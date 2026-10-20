@@ -1263,6 +1263,14 @@
     "Kuppelen i rotunden har uv langs steinskiftene, pilasteren er ett skaft i forbandt med muren, og gjordbuene, buestavene og ribbene er lagt som kilesteiner.",
     "Siste bilde og «Se i 3D» viser biten satt sammen med de andre i prøvenivået."
    ]
+  },
+  "76ecb286dfa9": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
   }
  },
  "grav_hjorne": {
@@ -1289,6 +1297,15 @@
     "Nye biter til nivåredigeringen, fase 2: pilotsettet for gravkjelleren i malt stil, med de malte kryptlagene og okklusjonen bakt blant naboene (nøytral mot skjøtene).",
     "Kuppelen i rotunden har uv langs steinskiftene, pilasteren er ett skaft i forbandt med muren, og gjordbuene, buestavene og ribbene er lagt som kilesteiner.",
     "Siste bilde og «Se i 3D» viser biten satt sammen med de andre i prøvenivået."
+   ]
+  },
+  "21c5e7232a3e": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
    ]
   }
  },
@@ -1343,6 +1360,14 @@
     "Nye biter til nivåredigeringen, fase 2: pilotsettet for gravkjelleren i malt stil, med de malte kryptlagene og okklusjonen bakt blant naboene (nøytral mot skjøtene).",
     "Kuppelen i rotunden har uv langs steinskiftene, pilasteren er ett skaft i forbandt med muren, og gjordbuene, buestavene og ribbene er lagt som kilesteiner.",
     "Siste bilde og «Se i 3D» viser biten satt sammen med de andre i prøvenivået."
+   ]
+  },
+  "95271bb4098c": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
    ]
   }
  },
@@ -1535,6 +1560,261 @@
    ],
    "images": [
     "assets/catalog/review/framework_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_blindgang": {
+  "94fb08dc073c": {
+   "text": [
+    "Godkjent før, men vises igjen fordi muren med alkovene (variant b) er bygd om: Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm."
+   ]
+  }
+ },
+ "grav_gang_1": {
+  "53ba6be15c23": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_gang_2": {
+  "ca91f3acdab3": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_gang_hjorne": {
+  "ca5fbdc390de": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_gang_kryss": {
+  "16e708855707": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_gang_t": {
+  "6a64d4f90ac8": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_gravgang": {
+  "ba34b1b86a47": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet).",
+    "«I den ene enden» av gangen var muren med de samme nisjene (variant b); den har nå alkovene."
+   ]
+  }
+ },
+ "grav_halv_etasje": {
+  "3ef000dc980a": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_kapell": {
+  "0931e3b83a1e": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_rom_1x1": {
+  "2fa6e0b8df3f": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_rom_1x2": {
+  "e86c67cce8f0": {
+   "text": [
+    "Godkjent før, men vises igjen fordi muren med alkovene (variant b) er bygd om: Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm."
+   ]
+  }
+ },
+ "grav_rom_2x2": {
+  "99edba81c682": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_rom_3x2": {
+  "1a6eecb78c2f": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_rom_3x3": {
+  "05b845306641": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "grav_skattkammer": {
+  "650f93852a9c": {
+   "text": [
+    "Nisjene var en lang gravhelle og en knokkelstripe med strukket tekstur (uv-en klemte et bilde på 0,8 m over 1,7 m, og knoklene og hodeskallen var et bilde strukket over en skråflate), uten karm, så de så ut som flate, grå rektangler.",
+    "Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner.",
+    "Ny sjekk: `uv_stretch` måler skala og skjevhet i teksturen på hver flate, og eksporten av byggesettet stopper på en flate med strukket eller forstørret tekstur (den fant også kapitélet på søyla, dekkhella på rekkverket og toppen av kuppelen, som er rettet)."
+   ]
+  }
+ },
+ "mek_opp_ned": {
+  "63a71da4c59e": {
+   "text": [
+    "Det du så var alkovene i muren rundt (variant b av muren), ikke trappa, døra eller stigen: Nå er de to ekte rundbuede alkover i muren (variant b), 30 cm dype, med karm av hogde vangesteiner og kilesteiner rundt buen, en terskel av hogd stein under, og innsida mures av den samme malte steinen som muren, litt mørkere så dybden leses. I rotunden er de fire nisjene lave gravalkover med stikkbue og samme karm.",
+    "Roten var i felles kode: lysningen i et innhugg (`recess`) la steinene på tvers og strakk dem; nå ligger uv-en i meter, i flukt med murflaten. Enkeltsteinene i karmer, ribber og buer skjæres til steinens form i stedet for å strekkes, og lange stykker deles i flere kilesteiner."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+   }
+  }
+ },
+ "mek_bro_vann_heis": {
+  "6a7375ca1d26": {
+   "text": [
+    "Heisen er forenklet: plankedekket med en ramme av tømmer, rekkverk med fire hjørnestolper og én håndlist, og én bremsespak i hjørnet. Heistårnet er to kraftige stolper med knestøtter og bommen over, med to høye hengebjelker og en bindbjelke under bommen, der de fire kjettingene ender. Trinsehjulet, skråstøttene, knelista, midtstolpen og den løse kjettingen ved vinsjen er borte; kjettingen går nå på skrå fra trommelen opp til bommen.",
+    "Vindebroa var ikke usynlig, men heist 6 m opp i sjakta over buen, bak murene over åpningen, så den aldri synes fra bredden. Nå heises den 3,2 m, så den henger i buen med kjettingene, synlig fra ytterbredden, og senkes som før.",
+    "Studiobildene av broa og heisen viste dekket svart; de er byttet med nærbilder fra nivåene."
+   ]
+  }
+ },
+ "mek_portgitter": {
+  "39695e41422c": {
+   "text": [
+    "Nytt kort: delt ut av «Porter, snarveier og spaker» (du skrev: «vanskelig å vite hva jeg godkjenner her»), så hvert kort viser én ting nært og godt opplyst, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_snarvei": {
+  "c35856505ebb": {
+   "text": [
+    "Nytt kort: delt ut av «Porter, snarveier og spaker» (du skrev: «vanskelig å vite hva jeg godkjenner her»), så hvert kort viser én ting nært og godt opplyst, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_trone": {
+  "237388b3f6bb": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_statue": {
+  "091786ca557f": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_rustning": {
+  "d414547fdd2b": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_vapenstativ": {
+  "5bc0538b62cb": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_sarkofag": {
+  "b9fadd84c349": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_fane": {
+  "44afffe7bab8": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_lysekrone": {
+  "d17a90069dee": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_gruvestiver": {
+  "35ff0784403d": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_malmvogn": {
+  "602f10e173d2": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
+   ]
+  }
+ },
+ "mek_krystaller": {
+  "4f9773cea91f": {
+   "text": [
+    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
    ]
   }
  }

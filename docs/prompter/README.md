@@ -14,15 +14,14 @@ Hver prompt sier hva fila skal hete, hvor den havner og hva den erstatter. Send 
 
 ## Rekkefølgen (det spillet savner mest først)
 
-1. **`trellis-monstre.md`, nr. 1–2: bossene Navbaren og Dropdownen** (nivå 8 og 6), som låner modalen og Select-moren.
-2. **`ikoner.md`**: de 19 ikonene til våpnene, skjoldene, rustningene og lykta. Alle er stedfortredere (rendret modell).
-3. **`trellis-gjenstander.md`, nr. 1–4: nøkkelen, lampeolja, helsedrikken og boka.** Nøkkelen står i `model::PLANNED`.
-4. **`teksturer.md`**: de fem underkjente teksturene (brosteinen, grunnmuren, den røde pussen, kryptpussen, kjernesteinen) og det krypttemaene mangler (slim, cisternestein, gruve- og grottegulv, flisgulv, fanestoff, statuestein, forgylling, hvit plast).
-5. **`trellis-monstre.md`, nr. 3–10**: fiendene til nivå 5–10, som i dag låner modellene fra gravkjelleren og kloakken.
-6. **`trellis-dyr.md`**: sauen og kua (venter i `model::PLANNED`), så hest, geit, hund, høne og katt.
-7. **`natur.md`**: stammene til eik, bjørk, gran, furu og hassel, to steiner, furubaret og to fliser.
-8. **`trellis-gjenstander.md`, nr. 5–24**: pynten i krypten og byen.
-9. **`trellis-folk.md`**: Torgils, som låner Gorveks figur.
-10. **`film.md`**: Veo-klipp for seks innstillinger som står som stillbilde, og to nye malerier.
+1. **`ikoner.md`**: de 19 ikonene til våpnene, skjoldene, rustningene og lykta. Alle er stedfortredere (rendret modell).
+2. **`trellis-gjenstander.md`, nr. 1–3: lampeolja, helsedrikken og boka.**
+3. **`teksturer.md`**: de fem underkjente teksturene (brosteinen, grunnmuren, den røde pussen, kryptpussen, kjernesteinen) og det krypttemaene mangler (slim, cisternestein, gruve- og grottegulv, flisgulv, fanestoff, statuestein, forgylling, hvit plast).
+4. **`trellis-monstre.md`, nr. 1–6**: resten av fiendene til nivå 5–10, som i dag låner modellene fra gravkjelleren og kloakken.
+5. **`trellis-dyr.md`**: sauen og kua (venter i `model::PLANNED`), så hest, geit, hund, høne og katt.
+6. **`natur.md`**: stammene til eik, bjørk, gran, furu og hassel, furubaret og to fliser.
+7. **`trellis-gjenstander.md`, nr. 4–23**: pynten i krypten og byen.
+8. **`trellis-folk.md`**: Torgils, som låner Gorveks figur.
+9. **`film.md`**: Veo-klipp for seks innstillinger som står som stillbilde, og to nye malerier.
 
-Musikken er ferdig (alle sporene i `assets/music/game/` og `assets/music/film/`), innbyggerne og Rammeverket er bygd fra TRELLIS; promptene for dem er slettet.
+Musikken er ferdig (alle sporene i `assets/music/game/` og `assets/music/film/`), innbyggerne, Rammeverket, Navbaren, Dropdownen, Tvillingvokteren og bueskytteren er bygd fra TRELLIS; promptene for dem er slettet.

@@ -52,6 +52,8 @@ pub struct ModelInstance {
     pub flash: f32,
     /// Lakkfargen (lineær RGB) på flatene merket «paint», om modellen har dem.
     pub tint: Option<Vec3>,
+    /// Steinbyttet (`model::Look`): den falske veggen i en mur med annen stein.
+    pub look: Option<crate::domain::model::Look>,
 }
 
 pub struct Frame {

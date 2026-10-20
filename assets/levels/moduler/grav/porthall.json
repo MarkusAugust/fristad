@@ -1,0 +1,26 @@
+{
+  "id": "grav/porthall",
+  "name": "Porthallen med spak",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "To rom på 4 × 4 m med et portgitter imellom. Spaken i forrommet heiser gitteret, og ei kiste står i hallen bak.",
+  "rooms": [
+    {"id": "rom", "name": "Porthallen med spak", "theme": "grav", "mood": {"torches": 0.5}},
+    {"id": "forrom", "name": "Forrommet", "theme": "grav", "mood": {"torches": 0.5}}
+  ],
+  "cells": [
+    {"id": "hall", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0, "room": "forrom"}
+  ],
+  "things": [
+    {"id": "port", "kind": "gate", "anchor": "kant:forrom/N"},
+    {"id": "spak", "kind": "lever", "anchor": "celle:forrom", "pos": [-1.2, 0, 0.7], "yaw": 90},
+    {"id": "kiste", "kind": "chest", "anchor": "celle:hall", "pos": [0, 0, -1.0], "yaw": 0}
+  ],
+  "walls": [
+    {"at": [0, 0], "side": "N"}
+  ],
+  "links": [
+    {"from": "spak", "to": "port", "kind": "opens"}
+  ]
+}

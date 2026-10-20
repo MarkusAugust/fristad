@@ -31,17 +31,7 @@ pub(super) fn gpu_model(device: &wgpu::Device, queue: &wgpu::Queue, materials: &
         .zip(pl.looks.iter().chain(std::iter::repeat(&None)))
         .map(|((t, tint), look)| {
             let (wlo, whi) = world_aabb(t, lo, hi);
-            let inst = match look {
-                // Utseendet: lagene for de fire rollene (5 bit hver, bit 20
-                // slår det på), tonen, og flammefargen i extra2.y.
-                Some(l) => {
-                    let roles = l.layers.iter().enumerate().fold(1u32 << 20, |acc, (k, layer)| acc | (*layer as u32 & 31) << (5 * k));
-                    let mut inst = InstanceData::new(t, [0.0, packed(tint), roles as f32, packed(&l.tint)]);
-                    inst.extra2[1] = packed(&l.flame);
-                    inst
-                }
-                None => InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]),
-            };
+            let inst = InstanceData::new(t, [0.0, packed(tint), m.roughness, m.metallic]).with_look(look.as_ref());
             (inst, wlo, whi)
         })
         .enumerate()
@@ -349,7 +339,7 @@ mod tests {
             Renderer::new(device, queue, &adapter, wgpu::TextureFormat::Rgba8UnormSrgb, &scene, &[], 64, 64)
         };
         r2.set_upgrade_budget(0.01);
-        let near_figure = crate::domain::scene::ModelInstance { model: "figur", transform: Affine3A::from_translation(Vec3::new(1.0, 0.0, 0.0)), skin: None, flash: 0.0, tint: None };
+        let near_figure = crate::domain::scene::ModelInstance { model: "figur", transform: Affine3A::from_translation(Vec3::new(1.0, 0.0, 0.0)), skin: None, flash: 0.0, tint: None, look: None };
         assert_eq!(r2.upgrade_textures(Vec3::ZERO, std::slice::from_ref(&near_figure)), ["figur"]);
         assert!(r2.upgrade_textures(Vec3::ZERO, &[]).is_empty(), "neste bilde betaler for det forrige");
     }

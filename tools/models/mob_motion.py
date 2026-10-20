@@ -220,7 +220,33 @@ STYLES = {
     # Rammeverket (mob3d.py): korte bein under en bred kropp, så skrittene er
     # korte og tette (en lang syklus senket hofta til knærne), føttene langt
     # fra hverandre som i formen.
-    "framework": dict(frames=24, v0=0.7, duty=0.65, lift=0.1, width=0.35, hunch=14, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True),
+    # Navbaren (mob3d.py): en tung ridderkonge i plate som skrider rak i
+    # ryggen, med lange, rolige skritt og armene nesten stille (åket med
+    # skjoldene ligger over skuldrene).
+    "navbar": dict(frames=28, v0=0.6, duty=0.66, lift=0.1, width=0.24, hunch=4, arm=10, sway=0.05, bob=0.03, tail=0, twitch=False, hips_yaw=5, idle=64, heavy=True,
+                   roar_arms=0.45, swell=0.04),
+    # Tvillingvokteren: stiv og ujevn. Steinsida (høyre) er tung og synker
+    # når foten setter seg (`heavy_side`), plastsida (venstre) går stivt og
+    # rykkete i trinn (`stiff`).
+    "warden": dict(frames=16, v0=1.4, duty=0.62, lift=0.09, width=0.2, hunch=6, arm=12, sway=0.06, bob=0.03, tail=0, twitch=True, hips_yaw=6, idle=56,
+                   stiff="L", heavy_side="R"),
+    # Dropdownen: en langsom steinkjempe med lange armer; slabbene svaier
+    # ut og inn (`swing_out`) med skrittene.
+    "dropdown": dict(frames=32, v0=0.48, duty=0.68, lift=0.08, width=0.26, hunch=8, arm=20, sway=0.07, bob=0.04, tail=0, twitch=False, hips_yaw=6, idle=70, heavy=True,
+                     swing_out=9, roar_arms=0.55, swell=0.03, arms_up=0.6),
+    # Bueskytteren: lett og rask på tynne steinledd.
+    "archer": dict(frames=16, v0=2.0, duty=0.6, lift=0.11, width=0.16, hunch=6, arm=16, sway=0.03, bob=0.025, tail=0, twitch=True, hips_yaw=8, idle=48),
+    # Skeleton Loader: rykkete, «lastende» gang; begge sider går i trinn.
+    "loader": dict(frames=20, v0=1.8, duty=0.6, lift=0.1, width=0.13, hunch=10, arm=18, sway=0.03, bob=0.03, tail=0, twitch=True, hips_yaw=6, idle=48, stiff="LR"),
+    # Grid-vokteren: stiv, mekanisk og symmetrisk, uten vugging.
+    "grid": dict(frames=20, v0=1.4, duty=0.6, lift=0.08, width=0.17, hunch=0, arm=14, sway=0.0, bob=0.01, tail=0, twitch=True, hips_yaw=0, idle=48, roll=0),
+    # Progress-formannen: tung, bred gruvearbeider.
+    "foreman": dict(frames=20, v0=1.4, duty=0.64, lift=0.09, width=0.24, hunch=14, arm=12, sway=0.07, bob=0.04, tail=0, twitch=False, hips_yaw=6, idle=60, heavy=True,
+                    roar_arms=0.5, swell=0.03, arms_up=0.65),
+    # Kortknekten: kort og stiv, vagger fra side til side.
+    "squire": dict(frames=16, v0=1.7, duty=0.6, lift=0.07, width=0.15, hunch=0, arm=8, sway=0.08, bob=0.02, tail=0, twitch=False, hips_yaw=3, idle=48, roll=9),
+    "framework": dict(frames=16, v0=0.7, duty=0.65, lift=0.1, width=0.35, hunch=6, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True,
+                      slam_sink=0.1, slam_lean=22),
 }
 
 
@@ -299,6 +325,10 @@ def walk(c, body, st):
             else:
                 k = (u - duty) / (1 - duty)
                 e = 0.5 - 0.5 * math.cos(math.pi * k)
+                if s in st.get("stiff", ""):
+                    # Den stive sida går i rykk: foten står og hopper fram.
+                    k = min(1.0, round(k * 3) / 3)
+                    e = min(1.0, round(e * 3) / 3)
                 x = xc - D / 2 + D * e
                 z = body.foot_rest(s).z + st["lift"] * math.sin(math.pi * k) ** 0.8
                 pitch = 22 * (1 - k) - 12 * k
@@ -308,11 +338,15 @@ def walk(c, body, st):
         bob = -st["bob"] * math.cos(4 * math.pi * (ph - lowest))
         if st.get("heavy"):
             bob = -st["bob"] * (1 - abs(math.sin(2 * math.pi * (ph - 0.02)))) * 1.6 + st["bob"] * 0.6
+        if st.get("heavy_side"):
+            # Den tunge sida synker når foten setter seg.
+            u = (ph + (0.0 if st["heavy_side"] == "L" else 0.5)) % 1.0
+            bob -= st["bob"] * 1.5 * max(0.0, 1 - u / (duty * 0.4))
         sway = st["sway"] * math.cos(2 * math.pi * (ph - duty / 2))
         surge = 0.015 * math.sin(4 * math.pi * ph)
         spec.root = Vector((surge, sway, crouch + bob))
         yaw = st["hips_yaw"] * math.cos(2 * math.pi * ph)
-        roll = 4 * math.cos(2 * math.pi * (ph - duty / 2)) * (1.8 if st.get("heavy") else 1)
+        roll = st.get("roll", 4) * math.cos(2 * math.pi * (ph - duty / 2)) * (1.8 if st.get("heavy") else 1)
         add(spec, "hips", x=roll, z=-yaw)
         add(spec, "chest", x=-roll * 0.6, y=2 * math.sin(4 * math.pi * ph), z=yaw * 0.85)
         add(spec, "neck", z=yaw * 0.1)
@@ -323,7 +357,10 @@ def walk(c, body, st):
         if not st.get("quad"):
             for s, sgn in (("L", 1), ("R", -1)):
                 w = 2 * math.pi * ph + (0 if s == "L" else math.pi)
-                add(spec, f"upper_arm.{s}", y=st["arm"] * math.cos(w))
+                swing = st["arm"] * math.cos(w)
+                if s in st.get("stiff", ""):
+                    swing = round(swing / 6) * 6
+                add(spec, f"upper_arm.{s}", y=swing, x=sgn * st.get("swing_out", 0) * math.sin(w))
                 add(spec, f"forearm.{s}", y=st["arm"] * 0.55 * math.cos(w - 0.9))
                 add(spec, f"hand.{s}", y=st["arm"] * 0.4 * math.cos(w - 1.8))
         else:
@@ -598,9 +635,12 @@ def attack_slam(c, body, st):
     bakken foran seg ved bilde 28, med knærne inn i slaget."""
     T = 44
     crouch = -0.03 - (0.06 if st.get("heavy") else 0.0)
-    spine = curve([(0, 0.0), (18, -26.0), (26, -30.0), (28, 34.0), (36, 28.0), (44, 0.0)])
+    # `slam_sink`/`slam_lean`: de med korte armer bøyer seg dypere ned i
+    # slaget, så nevene når bakken (Rammeverket).
+    dip, lean = st.get("slam_sink", 0.0), st.get("slam_lean", 0.0)
+    spine = curve([(0, 0.0), (18, -26.0), (26, -30.0), (28, 34.0 + lean), (36, 28.0 + lean), (44, 0.0)])
     root_x = curve([(0, 0.0), (18, -0.12), (26, -0.1), (28, 0.3), (36, 0.26), (44, 0.0)])
-    sink = curve([(0, 0.0), (18, 0.06), (26, 0.08), (28, -0.2), (36, -0.16), (44, 0.0)])
+    sink = curve([(0, 0.0), (18, 0.06), (26, 0.08), (28, -0.2 - dip), (36, -0.16 - dip), (44, 0.0)])
     raise_ = curve([(0, 0.0), (18, -155.0), (26, -162.0), (27, -80.0), (28, 0.0)])
     head = curve([(0, 0.0), (18, -22.0), (28, 22.0), (44, 0.0)])
     jaw = curve([(0, 12.0), (18, 34.0), (28, 50.0), (44, 12.0)])
@@ -618,9 +658,12 @@ def attack_slam(c, body, st):
         add(spec, "head", y=head(f), z=quake * 2)
         add(spec, "jaw", y=jaw(f))
         if f < 28:
+            # `arms_up`: hvor høyt nevene løftes (de tunge med armene grodd
+            # inntil kroppen river brystet med seg over skuldrene).
+            up = st.get("arms_up", 1.0)
             for s, sgn in (("L", 1), ("R", -1)):
-                add(spec, f"upper_arm.{s}", x=sgn * 18, y=raise_(f))
-                add(spec, f"forearm.{s}", y=curve([(0, 0.0), (18, -35.0), (28, 10.0)])(f))
+                add(spec, f"upper_arm.{s}", x=sgn * 18 * up, y=raise_(f) * up)
+                add(spec, f"forearm.{s}", y=curve([(0, 0.0), (18, -35.0), (28, 10.0)])(f) * (2 - up))
         else:
             # Nevene i bakken foran føttene, til de løftes igjen.
             k = curve([(28, 1.0), (36, 1.0), (44, 0.0)])(f)
@@ -630,6 +673,81 @@ def attack_slam(c, body, st):
             spec.rot["hand_world.R"] = (0, 70, 0)
         for i, b in enumerate(("tail1", "tail2", "tail3")):
             add(spec, b, y=-spine(f) * 0.4, z=quake * 4)
+        body.key(c, f, spec)
+
+
+def attack_fist(c, body, st):
+    """Neveslaget (Navbaren): høyre neve trekkes opp og bak over skulderen
+    (varselet), kroppen vris med, og neven hamres ned i bakken foran ham
+    med et skritt med venstre fot ved bilde 22; han blir stående med neven i
+    bakken et øyeblikk og reiser seg."""
+    T = 36
+    crouch = -0.03 - (0.06 if st.get("heavy") else 0.0)
+    spine = curve([(0, 0.0), (14, -14.0), (20, -16.0), (22, 30.0), (28, 26.0), (36, 0.0)])
+    twist = curve([(0, 0.0), (14, 22.0), (20, 24.0), (22, -18.0), (28, -14.0), (36, 0.0)])
+    root_x = curve([(0, 0.0), (14, -0.08), (20, -0.08), (22, 0.22), (28, 0.2), (36, 0.0)])
+    sink = curve([(0, 0.0), (14, 0.04), (20, 0.05), (22, -0.16), (28, -0.13), (36, 0.0)])
+    # Neven løftes til hodehøyde foran åket, ikke over det.
+    raise_ = curve([(0, 0.0), (14, -105.0), (20, -110.0), (21, -50.0), (22, 0.0)])
+    elbow = curve([(0, 0.0), (14, -85.0), (20, -90.0), (22, 0.0)])
+    head = curve([(0, 0.0), (14, -10.0), (22, 18.0), (36, 0.0)])
+    step = curve([(0, 0.0), (16, 0.0), (22, 0.3), (30, 0.3), (36, 0.0)])
+    lift = curve([(0, 0.0), (16, 0.0), (19, 0.12), (22, 0.0), (30, 0.0), (33, 0.07), (36, 0.0)])
+    ground = curve([(22, 1.0), (28, 1.0), (36, 0.0)])
+    rest = body.wrist_rest("R")
+    for f in range(T + 1):
+        spec = base_pose(body, st, Spec(), crouch)
+        tremble = 2.0 * math.sin(f * 2.9) if 12 <= f <= 20 else 0
+        quake = 3 * math.sin((f - 22) * 4.0) * max(0.0, 1 - (f - 22) / 8) if f >= 22 else 0
+        spec.root = Vector((root_x(f), 0.0, crouch + sink(f)))
+        xl, yl, zl, _ = spec.feet["L"]
+        spec.feet["L"] = (xl + step(f), yl, zl + lift(f), 0)
+        add(spec, "hips", y=spine(f) * 0.35, z=twist(f) * 0.4)
+        add(spec, "chest", y=spine(f) * 0.65, x=tremble + quake, z=twist(f) * 0.6)
+        add(spec, "head", y=head(f), z=quake * 2 - twist(f) * 0.5)
+        # Venstre arm ut til sida for balansen.
+        add(spec, "upper_arm.L", x=12 * min(1.0, f / 14), y=-20 * min(1.0, f / 14))
+        if f < 22:
+            add(spec, "upper_arm.R", x=-20, y=raise_(f) * st.get("arms_up", 1.0))
+            add(spec, "forearm.R", y=elbow(f))
+        else:
+            # Neven i bakken foran høyre fot, til den løftes igjen.
+            k = ground(f)
+            hit = Vector((0.75 + root_x(f) * 0.5, -0.3, 0.12))
+            h = rest.lerp(hit, k) if k < 1 else hit
+            spec.hands["R"] = (h.x, h.y, h.z)
+            spec.rot["hand_world.R"] = (0, 80 * k + 40 * (1 - k), 0)
+        body.key(c, f, spec)
+
+
+def attack_shoot(c, body, st):
+    """Skuddet (bueskytteren): venstre arm strekkes fram som om den holder
+    buen, høyre hånd trekkes bak til haka (varselet, bilde 0–13), og slippes
+    i bilde 15, så pila går; armene senkes igjen."""
+    T = 30
+    crouch = -0.02
+    up = curve([(0, 0.0), (8, 1.0), (22, 1.0), (30, 0.0)])
+    draw = curve([(0, 0.0), (6, 0.0), (13, 1.0), (14, 1.0), (15, 0.0), (22, 0.0)], snap)
+    lean = curve([(0, 0.0), (13, -8.0), (15, 6.0), (24, 2.0), (30, 0.0)])
+    reach = body.length("upper_arm.L") + body.length("forearm.L")
+    shL, shR = body.head["upper_arm.L"], body.head["upper_arm.R"]
+    for f in range(T + 1):
+        spec = base_pose(body, st, Spec(), crouch)
+        k, d = up(f), draw(f)
+        tremble = 1.5 * math.sin(f * 3.3) if 9 <= f <= 14 else 0
+        add(spec, "hips", z=-14 * k)
+        add(spec, "chest", y=lean(f), z=-16 * k, x=tremble)
+        add(spec, "head", z=24 * k)
+        restL, restR = body.wrist_rest("L"), body.wrist_rest("R")
+        bow = shL + Vector((0.9 * reach, -0.05, 0.02))
+        hL = restL.lerp(bow, k)
+        spec.hands["L"] = (hL.x, hL.y, hL.z)
+        spec.rot["hand_world.L"] = (0, 90 * k + 40 * (1 - k), 0)
+        nock = bow + Vector((-0.12, -0.08, 0.0))
+        chin = shR + Vector((0.12, 0.16, 0.06))
+        hR = restR.lerp(nock.lerp(chin, d) if f <= 15 else nock + Vector((-0.06, -0.05, 0.0)), k)
+        spec.hands["R"] = (hR.x, hR.y, hR.z)
+        spec.rot["hand_world.R"] = (0, 90 * k + 40 * (1 - k), 0)
         body.key(c, f, spec)
 
 
@@ -649,9 +767,12 @@ def roar(c, body, st):
         add(spec, "neck", y=-10 * k)
         add(spec, "head", y=-30 * k, z=shake * 3)
         add(spec, "jaw", y=58 * k)
-        spec.scale["chest"] = 1.0 + 0.12 * k
+        # `swell`: brystet svulmer; `roar_arms`: hvor høyt armene slås ut
+        # (Navbaren har åket over skuldrene).
+        spec.scale["chest"] = 1.0 + st.get("swell", 0.12) * k
+        ra = st.get("roar_arms", 1.0)
         for s, sgn in (("L", 1), ("R", -1)):
-            add(spec, f"upper_arm.{s}", x=sgn * 65 * k, y=-35 * k)
+            add(spec, f"upper_arm.{s}", x=sgn * 65 * k * ra, y=-35 * k * ra)
             add(spec, f"forearm.{s}", y=-40 * k)
             add(spec, f"hand.{s}", y=-20 * k + shake * 3)
         for i, b in enumerate(("tail1", "tail2", "tail3")):
@@ -712,7 +833,7 @@ def attack_staff(c, body, st):
         body.key(c, f, spec)
 
 
-ATTACKS = {"bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
+ATTACKS = {"shoot": (attack_shoot, 30), "fist": (attack_fist, 36), "bite": (attack_bite, 30), "spit": (attack_spit, 30), "slam": (attack_slam, 44), "staff": (attack_staff, 44)}
 
 
 def make_clips(Clip, arm, bones, style, attack, extra=()):

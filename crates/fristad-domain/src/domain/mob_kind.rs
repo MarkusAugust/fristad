@@ -28,6 +28,27 @@ pub enum Kind {
     Breadcrumb,
     /// Gravkongens hall: ligger som en kiste og folder seg ut i bakhold.
     Accordion,
+    /// Bossen i Ridderhallen (nivå 8): ridderkongen med åket og de fem
+    /// skjoldene.
+    Navbar,
+    /// Bossen i Krystallgrotta (nivå 6): steinkjempen med krystallene.
+    Dropdown,
+    /// Eliten i Tvillingsalen (nivå 9): halvt stein, halvt plast.
+    TwinWarden,
+    /// Bueskytteren på brystvernene i nivå 7–8: skyter som inputen.
+    Archer,
+    /// Nivå 9–10: et tynt skjelett av grå staver som rykker fram.
+    SkeletonLoader,
+    /// Nivå 9: bygd av hule hvite celler.
+    GridWarden,
+    /// Nivå 5–6: steinhjulet på fire bein.
+    Spinner,
+    /// Eliten i Gruva (nivå 5) med hakka og glasstolpen i brystet.
+    Foreman,
+    /// Nivå 7–8: knekten med kroppen som et kort.
+    CardSquire,
+    /// Nivå 9: irrbloset som svever.
+    Wisp,
 }
 
 /// Tallene bak et slag.
@@ -55,7 +76,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 12] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion];
+    pub const ALL: [Kind; 22] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -71,6 +92,45 @@ impl Kind {
             Kind::Avatar => "avatar_skull",
             Kind::Breadcrumb => "breadcrumb_crawler",
             Kind::Accordion => "accordion_coffin",
+            Kind::Navbar => "navbar",
+            Kind::Dropdown => "dropdown",
+            Kind::TwinWarden => "twin_warden",
+            Kind::Archer => "breadcrumb_archer",
+            Kind::SkeletonLoader => "skeleton_loader",
+            Kind::GridWarden => "grid_warden",
+            Kind::Spinner => "spinner",
+            Kind::Foreman => "progress_foreman",
+            Kind::CardSquire => "card_squire",
+            Kind::Wisp => "popover_wisp",
+        }
+    }
+
+    /// Navnet på slaget i et fiendemerke (`label`), det redigeringen
+    /// foreslår: `from_label` gir slaget tilbake.
+    pub fn key(self) -> &'static str {
+        match self {
+            Kind::Button => "button",
+            Kind::Tooltip => "tooltip",
+            Kind::Input => "input",
+            Kind::Toast => "toast",
+            Kind::Select => "select",
+            Kind::Modal => "modal",
+            Kind::Priest => "datepicker",
+            Kind::Table => "table",
+            Kind::Framework => "rammeverket",
+            Kind::Avatar => "avatar",
+            Kind::Breadcrumb => "breadcrumb",
+            Kind::Accordion => "accordion",
+            Kind::Navbar => "navbar",
+            Kind::Dropdown => "dropdown",
+            Kind::TwinWarden => "tvillingvokter",
+            Kind::Archer => "bueskytter",
+            Kind::SkeletonLoader => "skeleton loader",
+            Kind::GridWarden => "grid-vokter",
+            Kind::Spinner => "spinner",
+            Kind::Foreman => "progress-formann",
+            Kind::CardSquire => "kortknekt",
+            Kind::Wisp => "popover",
         }
     }
 
@@ -88,6 +148,16 @@ impl Kind {
             Kind::Avatar => "Korrupt avatar",
             Kind::Breadcrumb => "Korrupt breadcrumb",
             Kind::Accordion => "Korrupt accordion",
+            Kind::Navbar => "Navbaren",
+            Kind::Dropdown => "Dropdownen",
+            Kind::TwinWarden => "Tvillingvokteren",
+            Kind::Archer => "Breadcrumb-bueskytter",
+            Kind::SkeletonLoader => "Skeleton Loader",
+            Kind::GridWarden => "Grid-vokteren",
+            Kind::Spinner => "Spinneren",
+            Kind::Foreman => "Progress-formannen",
+            Kind::CardSquire => "Kortknekten",
+            Kind::Wisp => "Popover-irrbloss",
         }
     }
 
@@ -107,6 +177,16 @@ impl Kind {
             Kind::Avatar => "En hodeskalle med et ansikt fanget i seg. Ruller som et hjul, hopper opp og biter.",
             Kind::Breadcrumb => "En kjede av kuler som kryper etter deg, ledd for ledd, og alltid vet veien tilbake.",
             Kind::Accordion => "Ligger stille som en kiste til du kommer nær. Så folder den seg ut, og lokket er kjeven.",
+            Kind::Navbar => "Ridderkongen i tronsalen, med åket og de fem skjoldene. Lenkene er smidd av Rådets regler, ett ledd for hver regel. Den skulle vise alle veien, men bare den ene. Neven slår hardt: gå til siden.",
+            Kind::Dropdown => "Steinkjempen i Krystallgrotta, med krystallene som gror ut av skuldrene. Valgene ligger lagvis på brystet, men den viser bare ett om gangen. Langsom og tung: slabbene treffer hardt.",
+            Kind::TwinWarden => "Halvt stein og halvt hvit plast, sydd sammen med en glødende søm under kongens segl. Steinsida er tung, den hvite stiv og rykkete. Bærer nøkkelen.",
+            Kind::Archer => "En smal kjede av steinledd med bue og kogger på ryggen. Står på murene og skyter. Gå tett på den.",
+            Kind::SkeletonLoader => "Et skjelett av grå staver som later som noe er på vei. Rykker fram ledd for ledd, stopper opp, og kommer igjen.",
+            Kind::GridWarden => "Bygd av hule hvite celler i rader og kolonner, stiv som en hylle. Hver celle har sin plass, og den går dit den skal.",
+            Kind::Spinner => "Et steinhjul med jerntenner på fire korte bein. Det snurrer og snurrer, og hullet i navet er munnen.",
+            Kind::Foreman => "Formannen i gruva, med hakka i neven og en glasstolpe i brystet som fylles og aldri blir full. Tung og bred. Bærer nøkkelen.",
+            Kind::CardSquire => "En knekt av stein med kroppen som et spillekort. Plata tar imot slagene forfra: gå rundt ham.",
+            Kind::Wisp => "Et lite hvitt irrbloss med ett øye, tre glødende kuber bak seg og en pil under. Svever, og stikker ned fra lufta.",
         }
     }
 
@@ -125,6 +205,21 @@ impl Kind {
             Kind::Accordion => (1.2, 0.36, 0.0),
             // Rammeverket fra TRELLIS: 1,74 høy i modellen (4 m i spillet).
             Kind::Framework => (1.7, 0.5, 0.0),
+            // Navbaren fra TRELLIS: 2,0 høy i modellen (5 m i spillet).
+            Kind::Navbar => (1.95, 0.45, 0.0),
+            // Dropdownen 2,0 høy i modellen (5 m), Tvillingvokteren 1,85
+            // (2,4 m som elite), bueskytteren 1,6.
+            Kind::Dropdown => (1.95, 0.5, 0.0),
+            Kind::TwinWarden => (1.8, 0.42, 0.0),
+            Kind::Archer => (1.55, 0.3, 0.0),
+            // Høydene i modellen: 1,8, 2,2, 0,8 (hjulet), 1,69 (2,2 m som
+            // elite), 1,5 og 0,9 (svever).
+            Kind::SkeletonLoader => (1.75, 0.3, 0.0),
+            Kind::GridWarden => (2.1, 0.4, 0.0),
+            Kind::Spinner => (0.78, 0.4, 0.0),
+            Kind::Foreman => (1.6, 0.45, 0.0),
+            Kind::CardSquire => (1.45, 0.4, 0.0),
+            Kind::Wisp => (0.95, 0.3, 0.0),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -138,7 +233,14 @@ impl Kind {
     /// lastes, står modalen der, større (`Stats.scale`).
     pub fn stand_in(self) -> Option<Kind> {
         match self {
-            Kind::Framework => Some(Kind::Modal),
+            Kind::Framework | Kind::Navbar | Kind::TwinWarden => Some(Kind::Modal),
+            Kind::Dropdown => Some(Kind::Select),
+            Kind::Archer | Kind::SkeletonLoader => Some(Kind::Breadcrumb),
+            Kind::GridWarden => Some(Kind::Table),
+            Kind::Spinner => Some(Kind::Avatar),
+            Kind::Foreman => Some(Kind::Accordion),
+            Kind::CardSquire => Some(Kind::Button),
+            Kind::Wisp => Some(Kind::Tooltip),
             _ => None,
         }
     }
@@ -146,6 +248,7 @@ impl Kind {
     pub fn stats(self) -> Stats {
         let bite = (15.0 / FPS, 30.0 / FPS);
         let slam = (28.0 / FPS, 44.0 / FPS);
+        let fist = (22.0 / FPS, 36.0 / FPS);
         let s = match self {
             Kind::Button => Stats { hp: MOB_HP, speed: 1.4, damage: 12.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 26.0, cooldown: 0.9, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 3 },
             Kind::Tooltip => Stats { hp: 38.0, speed: 3.6, damage: 6.0, range: 1.3, reach: 1.7, scale: 0.55, sight: 30.0, cooldown: 0.7, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
@@ -159,6 +262,25 @@ impl Kind {
             Kind::Avatar => Stats { hp: 40.0, speed: 2.6, damage: 9.0, range: 1.3, reach: 1.8, scale: 1.0, sight: 28.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
             Kind::Breadcrumb => Stats { hp: 55.0, speed: 1.9, damage: 8.0, range: 1.5, reach: 2.0, scale: 1.0, sight: 30.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
             Kind::Accordion => Stats { hp: 90.0, speed: 1.3, damage: 14.0, range: 1.6, reach: 2.2, scale: 1.0, sight: 18.0, cooldown: 1.4, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.8, poise: 10.0, tokens: 3 },
+            // Mellom Tabellen (nivå 4) og Rammeverket (nivå 10): platen tar
+            // av forfra, og neveslaget (`attack_fist`) lander i bilde 22.
+            Kind::Navbar => Stats { hp: 800.0, speed: 1.5, damage: 30.0, range: 2.8, reach: 3.8, scale: 2.5, sight: 36.0, cooldown: 1.3, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.6, poise: 50.0, tokens: 24 },
+            // Mellom Tabellen (nivå 4) og Navbaren (nivå 8), langsom og tung.
+            Kind::Dropdown => Stats { hp: 620.0, speed: 1.2, damage: 28.0, range: 2.6, reach: 3.6, scale: 2.5, sight: 32.0, cooldown: 1.5, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.7, poise: 45.0, tokens: 18 },
+            // Eliten i nivå 9 (`ELITE_HP` og `ELITE_SCALE` kommer i tillegg).
+            Kind::TwinWarden => Stats { hp: 170.0, speed: 1.4, damage: 22.0, range: 2.0, reach: 2.7, scale: 1.0, sight: 30.0, cooldown: 1.4, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.6, poise: 30.0, tokens: 8 },
+            // Skyter som inputen; pila går i bilde 15 av skuddet (`attack_shoot`).
+            Kind::Archer => Stats { hp: 50.0, speed: 2.0, damage: 9.0, range: 1.6, reach: 2.1, scale: 1.0, sight: 34.0, cooldown: 1.6, attack_hit: bite.0, attack_len: bite.1, bolt: Some((4.0, 16.0, 12.0)), armor: 1.0, poise: 0.0, tokens: 3 },
+            Kind::SkeletonLoader => Stats { hp: 60.0, speed: 1.8, damage: 11.0, range: 1.6, reach: 2.2, scale: 1.0, sight: 30.0, cooldown: 1.1, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 3 },
+            Kind::GridWarden => Stats { hp: 140.0, speed: 1.4, damage: 16.0, range: 1.9, reach: 2.6, scale: 1.0, sight: 28.0, cooldown: 1.3, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.8, poise: 20.0, tokens: 5 },
+            // Hjulet (`mob_rigid.spinner`): bittet med navet i bilde 15.
+            Kind::Spinner => Stats { hp: 45.0, speed: 2.6, damage: 9.0, range: 1.3, reach: 1.8, scale: 1.0, sight: 28.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.8, poise: 0.0, tokens: 2 },
+            // Eliten i nivå 5 (`ELITE_HP` og `ELITE_SCALE` i tillegg).
+            Kind::Foreman => Stats { hp: 180.0, speed: 1.4, damage: 26.0, range: 2.1, reach: 2.8, scale: 1.0, sight: 28.0, cooldown: 1.6, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.6, poise: 35.0, tokens: 8 },
+            // Plata tar av forfra.
+            Kind::CardSquire => Stats { hp: 70.0, speed: 1.7, damage: 13.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 28.0, cooldown: 1.2, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.5, poise: 10.0, tokens: 3 },
+            // Svever (`mob_rigid.wisp`): stikket i bilde 15.
+            Kind::Wisp => Stats { hp: 35.0, speed: 2.8, damage: 8.0, range: 1.4, reach: 1.9, scale: 1.0, sight: 32.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         };
         Stats { hp: s.hp * TOUGHNESS, ..s }
@@ -171,6 +293,26 @@ impl Kind {
         let has = |w: &[&str]| w.iter().any(|x| l.contains(x));
         if has(&["rammeverk", "framework"]) {
             Kind::Framework
+        } else if has(&["navbar"]) {
+            Kind::Navbar
+        } else if has(&["dropdown"]) {
+            Kind::Dropdown
+        } else if has(&["tvilling", "twin"]) {
+            Kind::TwinWarden
+        } else if has(&["bueskytter", "archer"]) {
+            Kind::Archer
+        } else if has(&["skeleton"]) {
+            Kind::SkeletonLoader
+        } else if has(&["grid"]) {
+            Kind::GridWarden
+        } else if has(&["spinner"]) {
+            Kind::Spinner
+        } else if has(&["progress", "formann"]) {
+            Kind::Foreman
+        } else if has(&["kortknekt", "card"]) {
+            Kind::CardSquire
+        } else if has(&["popover", "irrbloss"]) {
+            Kind::Wisp
         } else if has(&["tabell", "table"]) {
             Kind::Table
         } else if has(&["datepicker", "prest", "priest"]) {
@@ -196,6 +338,21 @@ impl Kind {
                 log::warn!("Ukjent fiende «{label}»: blir en knapp");
             }
             Kind::Button
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Navnet redigeringen foreslår for hvert slag (`Kind::key`) gir det
+    /// samme slaget tilbake, og hvert slag har sin egen modell.
+    #[test]
+    fn hvert_slag_har_et_navn_redigeringen_kan_bruke() {
+        for k in Kind::ALL {
+            assert_eq!(Kind::from_label(k.key()), k, "«{}»", k.key());
+            assert_eq!(Kind::ALL.iter().filter(|o| o.model() == k.model()).count(), 1, "{}", k.model());
         }
     }
 }

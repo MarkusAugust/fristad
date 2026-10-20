@@ -111,6 +111,20 @@ models! {
     "accordion_coffin" => "mobs/accordion_coffin.glb",
     // Rammeverket, sluttbossen fra TRELLIS (tools/models/mob3d.py).
     "framework" => "mobs/framework.glb",
+    // Fiendene fra TRELLIS (mob3d.py): bossene Navbaren (nivå 8) og
+    // Dropdownen (nivå 6), elitene Tvillingvokteren (9) og Progress-
+    // formannen (5), og bueskytteren, Skeleton Loader, Grid-vokteren,
+    // Spinneren, Kortknekten og Popover-irrbloset.
+    "navbar" => "mobs/navbar.glb",
+    "dropdown" => "mobs/dropdown.glb",
+    "twin_warden" => "mobs/twin_warden.glb",
+    "breadcrumb_archer" => "mobs/breadcrumb_archer.glb",
+    "skeleton_loader" => "mobs/skeleton_loader.glb",
+    "grid_warden" => "mobs/grid_warden.glb",
+    "spinner" => "mobs/spinner.glb",
+    "progress_foreman" => "mobs/progress_foreman.glb",
+    "card_squire" => "mobs/card_squire.glb",
+    "popover_wisp" => "mobs/popover_wisp.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",
@@ -143,6 +157,11 @@ models! {
     // (TRELLIS, `item3d.py lute`; satt etter beinet `lute`, `Npcs::instances`).
     "npc_troubadour" => "npcs/npc_troubadour.glb",
     "lute" => "props/lute.glb",
+    // Nøkkelen eliten mister (TRELLIS, `item3d.py key`; `drops::key_instance`).
+    "key" => "props/key.glb",
+    // Steinene på enga fra TRELLIS (tools/models/item3d.py, `nature::rocks`).
+    "rock_big" => "nature/rock_big.glb",
+    "rock_group" => "nature/rock_group.glb",
     // Bygningene på torget (workshops.py, tavern.py, home.py) og stavkirka og
     // krypten (sacred.py).
     "forge" => "town/forge.glb",

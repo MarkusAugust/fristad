@@ -140,6 +140,14 @@ fn main() {
         writeln!(text, "    ({rel:?}, include_str!({:?})),", p.display().to_string()).unwrap();
     }
     text.push_str("];\n");
+    // Steinene (`assets/levels/steiner.json`, `crypt::stone`).
+    let stones = docs_dir.join("steiner.json");
+    println!("cargo:rerun-if-changed={}", stones.display());
+    if stones.exists() {
+        writeln!(text, "/// Steinene: navn → lag for gulv, mur og hvelv, og standardsteinen per tema.\nconst STONES_FILE: &str = include_str!({:?});", stones.display().to_string()).unwrap();
+    } else {
+        text.push_str("const STONES_FILE: &str = \"{}\";\n");
+    }
     std::fs::write(out.join("level_docs.rs"), text).unwrap();
 
     let town = root.join("assets/models/town");

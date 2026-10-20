@@ -1,0 +1,385 @@
+{
+ "format": 1,
+ "level": "fiender",
+ "name": "Fiendegalleriet",
+ "status": "utkast",
+ "seed": 1,
+ "kit": [
+  "grav@2"
+ ],
+ "bands": [
+  {
+   "name": "Hovedplanet",
+   "from": -1,
+   "to": 5
+  }
+ ],
+ "modules": [
+  {
+   "id": "kapell",
+   "module": "grav/kapell",
+   "at": [
+    2,
+    0,
+    1
+   ],
+   "name": "Kapellet",
+   "overrides": [
+    {
+     "opening": "0,1,S",
+     "kind": "dor"
+    }
+   ]
+  },
+  {
+   "id": "gjemme",
+   "module": "grav/skattkammer",
+   "at": [
+    0,
+    0,
+    1
+   ],
+   "name": "Gjemmestedet"
+  },
+  {
+   "id": "g41",
+   "module": "grav/gang_1",
+   "at": [
+    4,
+    0,
+    1
+   ],
+   "rot": 1,
+   "room": "gangen",
+   "name": "Gangen",
+   "mood": {
+    "torches": 0.5
+   }
+  },
+  {
+   "id": "g51",
+   "module": "grav/gang_hjorne",
+   "at": [
+    5,
+    0,
+    1
+   ],
+   "rot": 2,
+   "room": "gangen"
+  },
+  {
+   "id": "g52",
+   "module": "grav/gang_1",
+   "at": [
+    5,
+    0,
+    2
+   ],
+   "room": "gangen"
+  },
+  {
+   "id": "t53",
+   "module": "grav/halvtrapp",
+   "at": [
+    5,
+    0,
+    3
+   ],
+   "rot": 2,
+   "room": "gangen"
+  },
+  {
+   "id": "hvelv",
+   "module": "grav/rom_3x2",
+   "at": [
+    6,
+    1,
+    4
+   ],
+   "name": "Hvelvet",
+   "mood": {
+    "torches": 0.35
+   },
+   "overrides": [
+    {
+     "opening": "-1,1,W",
+     "kind": "port",
+     "id": "port1"
+    }
+   ]
+  },
+  {
+   "id": "forhall",
+   "module": "grav/rom_1x2",
+   "at": [
+    4,
+    1,
+    5
+   ],
+   "name": "Forhallen",
+   "mood": {
+    "torches": 0.4
+   }
+  },
+  {
+   "id": "ned",
+   "module": "grav/nedgang",
+   "at": [
+    3,
+    1,
+    5
+   ],
+   "rot": 3,
+   "room": "forhall"
+  },
+  {
+   "id": "s23",
+   "module": "grav/gang_1",
+   "at": [
+    2,
+    0,
+    3
+   ],
+   "room": "sidegang",
+   "name": "Sidegangen",
+   "mood": {
+    "torches": 0.5
+   }
+  },
+  {
+   "id": "s24",
+   "module": "grav/gang_kryss",
+   "at": [
+    2,
+    0,
+    4
+   ],
+   "room": "sidegang"
+  },
+  {
+   "id": "s34",
+   "module": "grav/blindgang",
+   "at": [
+    3,
+    0,
+    4
+   ],
+   "rot": 3,
+   "room": "sidegang"
+  },
+  {
+   "id": "beinhus",
+   "module": "grav/rotunde",
+   "at": [
+    0,
+    0,
+    4
+   ],
+   "name": "Beinhuset"
+  },
+  {
+   "id": "gravkammer",
+   "module": "grav/rom_1x1",
+   "at": [
+    0,
+    0,
+    6
+   ],
+   "name": "Gravkammeret"
+  }
+ ],
+ "rooms": [],
+ "cells": [],
+ "edges": [],
+ "things": [
+  {
+   "id": "hvile",
+   "kind": "rest",
+   "anchor": "celle:hvelv/c20",
+   "pos": [
+    0,
+    0,
+    -0.6
+   ],
+   "yaw": 0
+  },
+  {
+   "id": "spak1",
+   "kind": "lever",
+   "anchor": "celle:hvelv/c21",
+   "pos": [
+    0,
+    0,
+    1.1
+   ],
+   "yaw": 180
+  },
+  {
+   "id": "kiste1",
+   "kind": "chest",
+   "anchor": "celle:s34/c00",
+   "pos": [
+    0,
+    0,
+    1.0
+   ],
+   "yaw": 180
+  },
+  {
+   "id": "kiste2",
+   "kind": "chest",
+   "anchor": "celle:gravkammer/c00",
+   "pos": [
+    0,
+    0,
+    1.0
+   ],
+   "yaw": 180
+  },
+  {
+   "id": "f0",
+   "kind": "boss",
+   "anchor": "celle:beinhus/c",
+   "pos": [
+    -2.6,
+    0,
+    0
+   ],
+   "yaw": 90,
+   "label": "navbar"
+  },
+  {
+   "id": "f1",
+   "kind": "boss",
+   "anchor": "celle:beinhus/c",
+   "pos": [
+    2.6,
+    0,
+    0
+   ],
+   "yaw": -90,
+   "label": "dropdown"
+  },
+  {
+   "id": "f2",
+   "kind": "elite",
+   "anchor": "celle:hvelv/c00",
+   "pos": [
+    -0.8,
+    0,
+    -0.8
+   ],
+   "yaw": 180,
+   "label": "tvillingvokter"
+  },
+  {
+   "id": "f3",
+   "kind": "elite",
+   "anchor": "celle:hvelv/c10",
+   "pos": [
+    -0.8,
+    0,
+    -0.8
+   ],
+   "yaw": 180,
+   "label": "progress-formann"
+  },
+  {
+   "id": "f4",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c20",
+   "pos": [
+    0.6,
+    0,
+    -0.8
+   ],
+   "yaw": 180,
+   "label": "grid-vokter"
+  },
+  {
+   "id": "f5",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c00",
+   "pos": [
+    1.0,
+    0,
+    0.8
+   ],
+   "yaw": 180,
+   "label": "skeleton loader"
+  },
+  {
+   "id": "f6",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c10",
+   "pos": [
+    1.0,
+    0,
+    0.8
+   ],
+   "yaw": 180,
+   "label": "bueskytter"
+  },
+  {
+   "id": "f7",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c01",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "yaw": 180,
+   "label": "kortknekt"
+  },
+  {
+   "id": "f8",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c11",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "yaw": 180,
+   "label": "spinner"
+  },
+  {
+   "id": "f9",
+   "kind": "mob",
+   "anchor": "celle:hvelv/c21",
+   "pos": [
+    -0.8,
+    0,
+    -0.6
+   ],
+   "yaw": 180,
+   "label": "popover"
+  }
+ ],
+ "links": [
+  {
+   "from": "spak1",
+   "to": "port1",
+   "kind": "opens"
+  }
+ ],
+ "lights": [
+  {
+   "id": "l6",
+   "anchor": "celle:forhall/c00",
+   "pos": [
+    0,
+    3.0,
+    0
+   ],
+   "color": [
+    0.42,
+    0.52,
+    0.85
+   ],
+   "range": 8,
+   "flicker": false
+  }
+ ]
+}

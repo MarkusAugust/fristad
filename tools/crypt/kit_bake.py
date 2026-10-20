@@ -14,7 +14,9 @@ manifestet i `extras.kit`, og tetthetssjekken per bit
 - **Tetthetssjekken** (`check`) skyter stråler mot flatene en bit sier er
   lukket: murene og hjørnene rett gjennom (der det ikke er en åpning skal
   strålen treffe, gjennom åpningen skal den ikke), gulvet ovenfra og hvelvet
-  nedenfra. Eksporten stopper på en bit som lekker.
+  nedenfra. Eksporten stopper på en bit som lekker, og på en bit med
+  strukket eller forstørret tekstur (`kit_grav.uv_stretch`: uv i meter,
+  skala og skjevhet innenfor `UV_SCALE` og `UV_ANISO`).
 """
 
 import math
@@ -363,9 +365,9 @@ def check_all(pieces, models, only=()):
                 continue
             seen.add(name)
             for which, mb in (("nær", models[name].near), ("fjern", models[name].far)):
-                errs = check(p, mb, f"{name} ({which})")
+                errs = [f"strukket uv: {b}" for b in K.uv_stretch(mb)] + check(p, mb, f"{name} ({which})")
                 if errs:
                     bad.append(name)
                     print(f"  {name} ({which}): {len(errs)} brudd, f.eks. {errs[0]}")
-    print(f"tetthetssjekken: {len(seen)} modeller, {len(bad)} lekker")
+    print(f"tetthetssjekken: {len(seen)} modeller, {len(bad)} lekker eller har strukket uv")
     return bad

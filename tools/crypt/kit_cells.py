@@ -1,8 +1,8 @@
 """Pilotsettet for gravkjelleren i den malte stilen (docs/nivaaredigering.md,
 del 4.4 og fase 2): bitene kjernen setter sammen etter nivådokumentet
 (`assets/levels/nivaa_*.json`, `domain/world/crypt/compose/`), laget med
-funksjonene i `kit_grav.py` og de malte lagene (`crypt_wall`, `crypt_floor`,
-`grave_slab`, `ossuary`), med sokkel, karmer, ribber og nisjer som i nivå 1.
+funksjonene i `kit_grav.py` og de malte lagene (`crypt_wall`, `crypt_dressed`
+til den hogde steinen, `crypt_floor`, `grave_slab`, `ossuary`), med sokkel, karmer, ribber og nisjer som i nivå 1.
 
 Bitene står på rutenettet på 4 × 4 m (`kit_common.py`):
 
@@ -14,7 +14,7 @@ Bitene står på rutenettet på 4 × 4 m (`kit_common.py`):
 | `grav_halvtrapp`, `grav_trapp2` | celle | trapp 1 og 2 m opp mot −z under et skrått tønnehvelv |
 | `grav_nedgang` | celle | romfelt med hull for trappa ned (`kit_down`) |
 | `grav_rotunde` | sammensatt 3 × 3 | rundt rom med kuppel og ribber, nisjer og fire ganger ut |
-| `grav_vegg`, `grav_vegg_b` | halvkant | murhalvdelen med sokkel og fakkelfeste; b med gravnisjer |
+| `grav_vegg`, `grav_vegg_b` | halvkant | murhalvdelen med sokkel og fakkelfeste; b med to rundbuede alkover |
 | `grav_vegg_gang` | halvkant | overmuren over en gangåpning, med buestav |
 | `grav_vegg_dor` | halvkant | mur med rundbuet dør 1,6 × 2,3 og karm |
 | `grav_vegg_port` | halvkant | mur med portåpning 2,8 × 3,0 (`kit_gate`) |
@@ -191,7 +191,11 @@ def dome(m, r, S, crown, rings=10, seg=64, mat="vault"):
             pts = [P(r0, a0), P(r0, a1), P(r1, a1), P(r1, a0)]
             uvs = [(rm * a0, arc(r0)), (rm * a1, arc(r0)), (rm * a1, arc(r1)), (rm * a0, arc(r1))]
             if r1 < 1e-6:
-                pts, uvs = pts[:3], uvs[:3]
+                # Den innerste ringen er trekanter mot toppen: grunnlinja i sin
+                # egen lengde og toppen midt over, så bildet ikke klemmes
+                # sammen rundt toppen (`uv_stretch`).
+                pts = pts[:3]
+                uvs = [(r0 * a0, arc(r0)), (r0 * a1, arc(r0)), (r0 * (a0 + a1) / 2, arc(r1))]
             cen = K.lerp(pts[0], pts[2], 0.5)
             m.poly(pts, uvs, mat, facing=K.sub((0.0, S - 3.0, 0.0), cen), smooth=True)
     return h
@@ -214,26 +218,6 @@ def pilaster_half(m, surf, v0, v1):
         # en åpning (ingen usynlig vegg).
         inner = [surf.point(0.0, a, 0.0), surf.point(0.0, a, PIL_OUT), surf.point(0.0, b, PIL_OUT), surf.point(0.0, b, 0.0)]
         m.poly(inner, [surf.uv(-PIL_OUT, a), surf.uv(0.0, a), surf.uv(0.0, b), surf.uv(-PIL_OUT, b)], "dressed", facing=K.sub((0, 0, 0), side_dir))
-
-
-def sealed_niche(m, surf, u, v0, w=1.7, h=0.44):
-    """En gravnisje lukket med en gravhelle: et grunt innhugg med den store
-    hella fra gravhelle-bildet på bunnen (hele hella over flaten, ikke flisen
-    gjentatt). Gir omrisset."""
-    prof = [(u - w / 2, v0), (u + w / 2, v0), (u + w / 2, v0 + h)]
-    for k in range(1, 6):
-        a = k / 6
-        prof.append((u + w / 2 - w * a, v0 + h + 0.1 * math.sin(math.pi * a)))
-    prof.append((u - w / 2, v0 + h))
-    depth = 0.07
-    K.recess(m, surf, prof, depth, "dressed", "slab", back=False)
-    # Den store, glatte hella i bildet: kolonnene 476–884 og radene 612–824
-    # av 1024 (2 m), med glTF-ets v nedover (v = 1 − rad i meter).
-    c0, c1, r0, r1 = 476 / 512, 884 / 512, 612 / 512, 824 / 512
-    top = v0 + h + 0.1
-    uvs = [(c0 + (pu - (u - w / 2)) / w * (c1 - c0), 1.0 - (r1 - (pv - v0) / (top - v0) * (r1 - r0))) for pu, pv in prof]
-    m.poly([surf.point(pu, pv, -depth) for pu, pv in prof], uvs, "slab", facing=surf.normal(u))
-    return prof
 
 
 def stair(m, rise, n):
@@ -286,19 +270,17 @@ def half(kind, far=False, niches=False):
     """Halvkanten: murflaten i z = 0,4 mot +z med åpningen skåret ut, og
     lysningen rundt åpningen inn til kantlinja (z = 0), der naboens halvdel
     tar over. Sokkelen langs foten og karmen rundt døra og porten (ikke i
-    fjernversjonen). `niches`: to rader gravnisjer (varianten b)."""
+    fjernversjonen). `niches`: to rundbuede alkover (varianten b)."""
     m = K.MB()
     prof, centre = opening(kind)
     surf = surf_face()
     holes = [Polygon([(u + FACE, v) for u, v in prof])] if prof else []
     extra = K.MB()
     if niches and not far:
-        # To rader gravnisjer: den nederste åpen med knokler, den øverste
-        # lukket med en helle (som katakombene).
-        (u1, a1, _, d1, w1), (u2, a2, _, _, w2) = NICHES
-        n1 = K.niche(extra, surf, FACE + u1, a1, w=w1, h=0.48, depth=d1)
-        n2 = sealed_niche(extra, surf, FACE + u2, a2, w=w2, h=0.44)
-        holes += [Polygon(n1), Polygon(n2)]
+        # To rundbuede alkover side om side, med karm og terskel av hogd
+        # stein, mures av den samme steinen som muren (`K.alcove`).
+        for k, (uc, v0, h, depth, w) in enumerate(NICHES):
+            holes.append(Polygon(K.alcove(extra, surf, FACE + uc, v0, w=w, h=h, depth=depth, seed=11 + 7 * k)))
     K.wall(m, surf, 2 * FACE, WALL_FOOT, WALL_TOP, holes, mat="wall")
     m.faces += extra.faces
     # Baksida i kantlinja og endene mot hjørnene: de synes aldri, men står
@@ -357,23 +339,29 @@ def half_solids(kind):
     return [bx(-FACE, -w / 2, WALL_FOOT, WALL_TOP), bx(w / 2, FACE, WALL_FOOT, WALL_TOP), bx(-w / 2, w / 2, top, WALL_TOP)]
 
 
-# Gravnisjene i varianten b av muren (u midt i nisjen, fra, til, dybden).
-NICHES = [(0.0, 0.55, 0.55 + 0.48 + 0.1, 0.3, 1.7), (0.0, 1.42, 1.42 + 0.44 + 0.1, 0.07, 1.7)]
+# Alkovene i varianten b av muren: (u midt i alkoven fra midten av muren,
+# terskelen, høyden på vangene, dybden, bredden). Rundbuen over gir toppen
+# v0 + h + w/2; fakkelen står midt mellom dem.
+NICHES = [(-0.8, 0.75, 0.7, 0.3, 0.86), (0.8, 0.75, 0.7, 0.3, 0.86)]
 
 
 def niche_solids():
-    """Kolliderne til muren med gravnisjer: muren rundt, og bak hver nisje bare
+    """Kolliderne til muren med alkover: muren rundt, og bak hver alkove bare
     det som står igjen bak bunnen av den (ingen usynlig vegg foran nisjen)."""
     def bx(x0, x1, y0, y1, z0=0.0, z1=WALL_T):
         return {"box": {"center": [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], "size": [x1 - x0, y1 - y0, z1 - z0]}}
-    w = NICHES[0][4] / 2
-    out = [bx(-FACE, -w, WALL_FOOT, WALL_TOP), bx(w, FACE, WALL_FOOT, WALL_TOP)]
-    y = WALL_FOOT
-    for _, v0, v1, depth, _ in NICHES:
-        out.append(bx(-w, w, y, v0))
-        out.append(bx(-w, w, v0, v1, 0.0, WALL_T - depth))
-        y = v1
-    out.append(bx(-w, w, y, WALL_TOP))
+    depth = min(n[3] for n in NICHES)
+    out = [bx(-FACE, FACE, WALL_FOOT, WALL_TOP, 0.0, WALL_T - depth)]
+    xs = sorted((uc - w / 2, uc + w / 2) for uc, _, _, _, w in NICHES)
+    lo = min(v0 for _, v0, _, _, _ in NICHES)
+    hi = max(v0 + h + w / 2 for _, v0, h, _, w in NICHES)
+    # Foran: under og over alkovene, og mellom dem.
+    out.append(bx(-FACE, FACE, WALL_FOOT, lo, WALL_T - depth, WALL_T))
+    out.append(bx(-FACE, FACE, hi, WALL_TOP, WALL_T - depth, WALL_T))
+    edges = [-FACE] + [x for pair in xs for x in pair] + [FACE]
+    for x0, x1 in zip(edges[::2], edges[1::2]):
+        if x1 - x0 > 1e-6:
+            out.append(bx(x0, x1, lo, hi, WALL_T - depth, WALL_T))
     return out
 
 
@@ -627,7 +615,7 @@ def rotunde(far=False):
         for k in range(4):
             u = ((k * math.pi / 2 + math.pi / 4 - a0) % (2 * math.pi)) * ROT_R
             tmp = K.MB()
-            niches.append((tmp, K.niche(tmp, cyl, u, 0.6, w=1.6, h=0.5, depth=0.32, sealed=k % 2 == 1)))
+            niches.append((tmp, K.alcove(tmp, cyl, u, 0.6, w=1.6, h=0.42, depth=0.32, rise=0.18, seed=5 + 9 * k)))
     # Rutene i muren følger ringen i kuppelen (samme hjørner langs toppen),
     # så det blir ingen sprekk der muren møter kuppelen.
     K.wall(m, cyl, circ, WALL_FOOT, ROT_S + 0.3, holes + [Polygon(p) for _, p in niches], mat="wall", cell=circ / seg)
@@ -891,6 +879,11 @@ def main():
     print(f"{os.path.relpath(MANIFEST, ROOT)}: {len(pieces)} biter, {len(models)} modeller")
     for name, md in models.items():
         print(f"  {name}: {md.near.tris()} trekanter nær, {md.far.tris()} fjern")
+    stretched = [(n, b) for n, md in models.items() for mb in (md.near, md.far) for b in K.uv_stretch(mb)]
+    for n, b in stretched[:10]:
+        print(f"  strukket uv i {n}: {b}")
+    if stretched:
+        raise SystemExit(f"uv-sjekken stopper: {len(stretched)} flater med strukket tekstur (kit_grav.uv_stretch)")
     if "--json" in args:
         return
     import kit_bake

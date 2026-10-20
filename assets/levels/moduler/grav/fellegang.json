@@ -1,0 +1,17 @@
+{
+  "id": "grav/fellegang",
+  "name": "Fellegangen",
+  "theme": "grav",
+  "kind": "ferdig",
+  "about": "En gang på 8 m med ei trykkplate midt i. Tråkker du på den, skytes piler tvers over gangen fra muren.",
+  "rooms": [
+    {"id": "rom", "name": "Fellegangen", "theme": "grav", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/gang", "at": [0, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/gang", "at": [0, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "plate", "kind": "trap", "anchor": "celle:c01", "pos": [0, 0, -1.6], "yaw": 90, "label": "arrows", "size": [1.2, 1.2]}
+  ]
+}

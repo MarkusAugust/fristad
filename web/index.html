@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fristad</title>
+  <!-- `?nivaa` uten navn: nivåredigeringen (web/nivaa.html). Med navn
+       (`?nivaa=test`) spilles nivådokumentet som før. -->
+  <script>if (new URLSearchParams(location.search).get("nivaa") === "") location.replace("nivaa.html" + location.search);</script>
   <meta name="description" content="Fristad: en kjøpstad i 1350 med en krypt full av korrupte komponenter fra designsystemet Fristil.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

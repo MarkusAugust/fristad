@@ -6,16 +6,7 @@ Ting som skal være ekte modeller fra TRELLIS, viktigst først: det spilleren ta
 
 ## A. Det du tar i hånda
 
-### 1. `key`: Nøkkelen
-
-- **Hvor:** eliten mister den, og den åpner portgitteret. **Størrelse:** 0,15 m.
-- **Erstatter:** `key` i `model::PLANNED`; blir `assets/models/props/key.glb`.
-
-```
-Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A large old iron key lying flat, slightly turned: a thick round bow shaped like a small square grid under a little crown (the king's seal), a stout shaft, a big blocky bit, a little rust and one faint magenta glowing seam in the bow. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
-```
-
-### 2. `oil_flask`: Lampeolja
+### 1. `oil_flask`: Lampeolja
 
 - **Hvor:** Apotekeren selger den (`WareKind::Oil`). **Størrelse:** 0,2 m.
 - **Ny:** til butikken og kistene.
@@ -24,7 +15,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small round glazed clay flask with a thick cork, a leather cord tied around the neck, a drip of golden oil at the lip. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 3. `potion`: Helsedrikken
+### 2. `potion`: Helsedrikken
 
 - **Hvor:** kistene og Apotekeren. **Størrelse:** 0,18 m.
 - **Ny.**
@@ -33,7 +24,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small squat green glass bottle of deep red herbal tincture, a waxed cork, a blank parchment label tied with string. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 4. `lore_book`: Boka med lappene
+### 3. `lore_book`: Boka med lappene
 
 - **Hvor:** lappene og bøkene i krypten (`kit_lore`). **Størrelse:** 0,3 m.
 - **Erstatter:** `kit_lore` fra byggesettet.
@@ -44,7 +35,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 
 ## B. Krypten
 
-### 5. `kit_bones`: Beinhaug
+### 4. `kit_bones`: Beinhaug
 
 - **Hvor:** nivå 1–2, beinhuset. **Størrelse:** 0,6 m.
 - **Ny.**
@@ -53,7 +44,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A low pile of old yellowed human bones and three skulls, chunky and simplified, a little dust. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 6. `kit_candles`: Lysestake med lys
+### 5. `kit_candles`: Lysestake med lys
 
 - **Hvor:** gravkjelleren. **Størrelse:** 0,6 m.
 - **Ny.**
@@ -62,7 +53,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A tall iron floor candelabrum on three feet with five thick half-melted candles, big drips of wax down the arms. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 7. `kit_throne`: Tronen
+### 6. `kit_throne`: Tronen
 
 - **Hvor:** nivå 8, tronsalen. **Størrelse:** 2,5 m.
 - **Erstatter:** `kit_throne` fra byggesettet.
@@ -71,7 +62,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A heavy carved oak throne on a stone step, a tall back with a golden square grid emblem under a small crown, armrests ending in carved beasts, a faded red cushion, dust. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 8. `kit_statue`: Ridderstatuen
+### 7. `kit_statue`: Ridderstatuen
 
 - **Hvor:** nivå 7–8, søylesalene. **Størrelse:** 2,9 m.
 - **Erstatter:** `kit_statue` fra byggesettet.
@@ -80,7 +71,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A stone statue of a medieval knight on a square pedestal, both hands resting on the pommel of a thick sword planted point-down in front, a great helm, weathered grey stone with moss in the cracks. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 9. `kit_armor`: Rustning på stativ
+### 8. `kit_armor`: Rustning på stativ
 
 - **Hvor:** nivå 7–8. **Størrelse:** 1,9 m.
 - **Erstatter:** `kit_armor` fra byggesettet.
@@ -89,7 +80,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A suit of mail and plate armour on a plain wooden stand, a kettle helmet on top, a faded red tabard with a simple coat of arms. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 10. `kit_rack`: Våpenstativet
+### 9. `kit_rack`: Våpenstativet
 
 - **Hvor:** nivå 7–8, våpenkammeret. **Størrelse:** 1,8 m bred.
 - **Erstatter:** `kit_rack` fra byggesettet.
@@ -98,7 +89,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A sturdy wooden weapon rack holding three thick spears, two swords and a round shield, iron fittings. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 11. `kit_chandelier`: Hjulkrona
+### 10. `kit_chandelier`: Hjulkrona
 
 - **Hvor:** nivå 7–8 og kirka. **Størrelse:** 1,6 m bred.
 - **Erstatter:** `kit_chandelier` fra byggesettet.
@@ -107,7 +98,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A medieval wheel chandelier of dark oak and iron with twelve thick candles, hanging from three short thick chains that meet in a ring at the top. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 12. `kit_cart`: Malmvogna
+### 11. `kit_cart`: Malmvogna
 
 - **Hvor:** nivå 5, gruva. **Størrelse:** 1,2 m.
 - **Erstatter:** `kit_cart` fra byggesettet.
@@ -116,7 +107,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A wooden mine cart with iron bands on four iron wheels, half full of grey ore with copper-green flecks. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 13. `kit_lamp`: Gruvelampa
+### 12. `kit_lamp`: Gruvelampa
 
 - **Hvor:** nivå 5. **Størrelse:** 0,4 m.
 - **Erstatter:** `kit_lamp` fra byggesettet.
@@ -125,7 +116,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A small iron miner's oil lamp with a thick hook on top and a warm flame behind a horn window. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 14. `kit_crystal`: Krystallklyngen
+### 13. `kit_crystal`: Krystallklyngen
 
 - **Hvor:** nivå 5–6. **Størrelse:** 1–1,5 m.
 - **Erstatter:** `kit_crystal` fra byggesettet.
@@ -134,7 +125,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A cluster of thick glowing pale-blue crystals growing from a rock base, big blunt facets, cold light inside them. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 15. `kit_stalagmite`: Dryppstein
+### 14. `kit_stalagmite`: Dryppstein
 
 - **Hvor:** nivå 6, dryppsteinshallen. **Størrelse:** 1,5–3 m.
 - **Ny.**
@@ -143,7 +134,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A group of three tall thick cave stalagmites of wet beige-grey limestone with ridged drip layers, on a shared rocky base. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 16. `kit_grate`: Kloakkristen
+### 15. `kit_grate`: Kloakkristen
 
 - **Hvor:** nivå 3–4. **Størrelse:** 1 m.
 - **Ny.**
@@ -154,7 +145,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 
 ## C. Byen og torget
 
-### 17. `anvil`: Ambolten
+### 16. `anvil`: Ambolten
 
 - **Hvor:** Smia. **Størrelse:** 0,8 m.
 - **Ny** (Smia har i dag bare benken og stativene).
@@ -163,7 +154,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A heavy dark iron blacksmith's anvil on a thick oak stump, nothing leaning against it. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 18. `cauldron`: Gryta
+### 17. `cauldron`: Gryta
 
 - **Hvor:** ildstedene og Apoteket. **Størrelse:** 0,7 m.
 - **Ny.**
@@ -172,7 +163,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A round black iron cauldron on three short legs with a thick curved handle, soot on the sides. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 19. `grindstone`: Slipesteinen
+### 18. `grindstone`: Slipesteinen
 
 - **Hvor:** ved Smia. **Størrelse:** 1 m.
 - **Ny.**
@@ -181,7 +172,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A round sandstone grindstone in a sturdy wooden frame with a crank handle and a water trough beneath. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 20. `washtub`: Vaskebaljen
+### 19. `washtub`: Vaskebaljen
 
 - **Hvor:** ved brønnen. **Størrelse:** 0,5 m.
 - **Ny.**
@@ -190,7 +181,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A wooden washtub with iron hoops, a washboard leaning inside it and a folded linen cloth over the rim. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 21. `market_goods_bread`: Brød på bodene
+### 20. `market_goods_bread`: Brød på bodene
 
 - **Hvor:** torget. **Størrelse:** 0,5 m.
 - **Ny.**
@@ -199,7 +190,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A wooden tray heaped with round dark rye loaves, flat crispbreads and braided buns, flour dust. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 22. `market_goods_fish`: Fisk
+### 21. `market_goods_fish`: Fisk
 
 - **Hvor:** torget. **Størrelse:** 0,6 m.
 - **Ny.**
@@ -208,7 +199,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A wooden crate of salted herring with a bundle of dried stockfish lying across the top. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 23. `market_goods_produce`: Grønnsaker i kurver
+### 22. `market_goods_produce`: Grønnsaker i kurver
 
 - **Hvor:** torget. **Størrelse:** 0,5 m.
 - **Ny.**
@@ -217,7 +208,7 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. Three woven baskets side by side: one with cabbages, one with turnips and onions, one with red apples. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
-### 24. `market_goods_cheese`: Ost og smør
+### 23. `market_goods_cheese`: Ost og smør
 
 - **Hvor:** torget. **Størrelse:** 0,4 m.
 - **Ny.**

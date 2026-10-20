@@ -147,3 +147,51 @@ pub fn cell_at(doc: &LevelDoc, kit: &KitDef, p: Vec3) -> Option<String> {
     let (i, j) = ((p.x / CELL).round() as i32, (p.z / CELL).round() as i32);
     super::modules::flatten(doc, kit).0.cells.into_iter().find(|c| c.at[0] == i && c.at[2] == j && (p.y - c.at[1] as f32).abs() < 3.0).map(|c| c.id)
 }
+
+/// Det en spak kan åpne (bryterne), og hva hver av dem heter i meldingene.
+const SWITCHES: [(&str, &str); 7] = [("gate", "porten"), ("bridge", "vindebroa"), ("water", "slusa"), ("lift", "heisen"), ("shortcut", "snarveien"), ("secret_wall", "den falske veggen"), ("trapdoor", "fallemmen")];
+
+/// Koblingene i nivået henger sammen (mekanismene, `docs/nivaaredigering.md`
+/// del 10): en spak åpner noe som kan åpnes; en port åpnes av en spak, en
+/// nøkkel (eliten) eller er en arenaport; vindebroa, slusa og heisen har en
+/// spak; nøkkelen bæres av en elite; et hint peker på en falsk vegg; stigen
+/// går opp; trykkplata har en felle.
+pub fn links(file: &LevelFile) -> Vec<Issue> {
+    let kind_of = |id: &str| file.marks.iter().find(|m| m.id.as_deref() == Some(id)).map(|m| m.kind.as_str());
+    let by_lever: Vec<&str> = file.marks.iter().filter(|m| m.kind == "lever").flat_map(|m| m.opens.iter().map(String::as_str)).collect();
+    let by_key: Vec<&str> = file.marks.iter().filter(|m| m.kind == "elite").flat_map(|m| m.opens.iter().map(String::as_str)).collect();
+    let mut out = vec![];
+    let mut err = |at: Option<[f32; 3]>, msg: String| out.push(Issue { severity: Severity::Error, rule: "kobling", at, msg });
+    for m in &file.marks {
+        let id = m.id.clone().unwrap_or_else(|| m.kind.clone());
+        let name = SWITCHES.iter().find(|(k, _)| *k == m.kind).map(|(_, n)| *n);
+        match m.kind.as_str() {
+            "lever" | "elite" => {
+                for t in &m.opens {
+                    match kind_of(t) {
+                        None => err(m.pos, format!("{id} åpner «{t}», som ikke finnes")),
+                        Some(k) if m.kind == "elite" && k != "gate" => err(m.pos, format!("nøkkelen til {id} passer bare i en port, ikke {k} «{t}»")),
+                        Some(k) if !SWITCHES.iter().any(|(s, _)| *s == k) => err(m.pos, format!("spaken {id} kan ikke åpne {k} «{t}»")),
+                        _ => {}
+                    }
+                }
+            }
+            "mob" | "boss" if !m.opens.is_empty() => err(m.pos, format!("{id} bærer en nøkkel, men bare eliten gjør det")),
+            "gate" if m.arena.is_none() && !by_lever.contains(&id.as_str()) && !by_key.contains(&id.as_str()) => err(m.pos, format!("porten {id} kan ikke åpnes (ingen spak, nøkkel eller arena)")),
+            "bridge" | "water" | "lift" if !by_lever.contains(&id.as_str()) => err(m.pos, format!("{} {id} har ingen spak", name.unwrap_or("bryteren"))),
+            "hint" => {
+                if let Some(f) = &m.for_id {
+                    if kind_of(f) != Some("secret_wall") {
+                        err(m.pos, format!("hintet {id} peker på «{f}», som ikke er en falsk vegg"));
+                    }
+                }
+            }
+            "ladder" if m.top.zip(m.pos).is_some_and(|(t, p)| t[1] < p[1] + 0.5) => err(m.pos, format!("stigen {id} går ikke opp")),
+            "trap" if m.label.as_deref().is_some_and(|l| !["arrows", "spikes", "rocks", "pendulum", "gas", "flood"].contains(&l)) => {
+                err(m.pos, format!("trykkplata {id} har ingen kjent felle («{}»)", m.label.as_deref().unwrap_or("")))
+            }
+            _ => {}
+        }
+    }
+    out
+}

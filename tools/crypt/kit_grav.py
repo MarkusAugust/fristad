@@ -108,8 +108,16 @@ def rot_y(p, yaw):
 # døgnet, «magic_» gløder i sin egen farge, «water» er vann.
 MATS = {
     "wall": ("crypt_wall", (0.9, 0.9, 0.93), 0.5),
-    "dressed": ("crypt_wall", (1.0, 0.98, 0.95), 0.45),
+    # Den hogde steinen (søyler, ribber, gjordbuer, buestaver, karmer,
+    # kapitéler, konsoller, sokkel, terskler): samme bilde som muren, men
+    # eget lag (`crypt_dressed`), så steinbyttet gir den sin egen stein
+    # (`docs/nivaaredigering.md` del 22; ellers fikk søylene berg og ribbene
+    # tømmer).
+    "dressed": ("crypt_dressed", (1.0, 0.98, 0.95), 0.45),
     "wall_dark": ("crypt_wall", (0.62, 0.62, 0.68), 0.55),
+    # Innsida av alkovene: samme stein, mørkere, så dybden leses (lyset
+    # når dårlig inn, og okklusjonen i hjørnefargen har få hjørner der).
+    "niche": ("crypt_wall", (0.42, 0.41, 0.44), 0.6),
     # Revnene i sprekken: nesten svart over muren, så de synes på avstand
     # (eieren i runde 8; med `wall_dark` var de like lyse som muren).
     "crack": ("crypt_wall", (0.16, 0.15, 0.15), 0.7),
@@ -122,7 +130,7 @@ MATS = {
     # om nivå 1: «teksturer som ikke passer sammen»; crypt_vault var små,
     # mørke bruddsteiner over store lyse kvadre).
     "vault": ("crypt_wall", (0.72, 0.72, 0.76), 0.5),
-    "rib": ("crypt_wall", (0.8, 0.79, 0.8), 0.5),
+    "rib": ("crypt_dressed", (0.8, 0.79, 0.8), 0.5),
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
     "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
     "rubble": ("rubble", (1.0, 1.0, 1.0), 0.55),
@@ -240,6 +248,59 @@ class MB:
         lo = tuple(min(p[i] for p in xs) for i in range(3))
         hi = tuple(max(p[i] for p in xs) for i in range(3))
         return lo, hi
+
+
+# Uv-tettheten: teksturlagene ligger i meter, så hver flate skal ha uv med
+# skala 1 (en meter på flaten er en meter i laget). Enkeltsteinene fra
+# murbildet (`stone_uv`) skaleres litt for å passe steinen; mer enn
+# `UV_SCALE` eller en strekning skjevere enn `UV_ANISO` er en strukket
+# tekstur (gravnisjene, eierens dom 19. oktober: «rare teksturer»).
+# Materialene som viser et helt bilde (dørbladet) har sin egen skala.
+UV_SCALE = (0.25, 2.5)
+UV_ANISO = 1.8
+UV_WHOLE = {"leaf"}
+
+
+def uv_stretch(mb, min_area=1e-4):
+    """Flatene med strukket eller manglende uv: (materiale, midtpunkt, skala
+    langs de to aksene). Tom liste når alt er i meter."""
+    bad = []
+    for pts, uvs, mat, _ in mb.faces:
+        spec = MATS.get(mat)
+        if spec is None or mat in UV_WHOLE or len(uvs) != len(pts):
+            continue
+        for i in range(1, len(pts) - 1):
+            p0, p1, p2 = pts[0], pts[i], pts[i + 1]
+            e1, e2 = sub(p1, p0), sub(p2, p0)
+            area = math.sqrt(dot(cross(e1, e2), cross(e1, e2))) / 2
+            if area < min_area:
+                continue
+            # Et ortonormalt grunnlag i flaten, og avbildningen til uv.
+            t = norm(e1)
+            b = norm(cross(cross(e1, e2), e1))
+            x1, y1 = dot(e1, t), dot(e1, b)
+            x2, y2 = dot(e2, t), dot(e2, b)
+            du1, dv1 = uvs[i][0] - uvs[0][0], uvs[i][1] - uvs[0][1]
+            du2, dv2 = uvs[i + 1][0] - uvs[0][0], uvs[i + 1][1] - uvs[0][1]
+            det = x1 * y2 - x2 * y1
+            if abs(det) < 1e-12:
+                continue
+            # J = [[du1 du2], [dv1 dv2]] · [[x1 x2], [y1 y2]]⁻¹
+            a = (du1 * y2 - du2 * y1) / det
+            c = (-du1 * x2 + du2 * x1) / det
+            d = (dv1 * y2 - dv2 * y1) / det
+            e = (-dv1 * x2 + dv2 * x1) / det
+            # Singulærverdiene til [[a c], [d e]].
+            s1 = a * a + c * c + d * d + e * e
+            s2 = abs(a * e - c * d)
+            disc = math.sqrt(max(0.0, s1 * s1 / 4 - s2 * s2))
+            hi = math.sqrt(s1 / 2 + disc)
+            lo = math.sqrt(max(0.0, s1 / 2 - disc))
+            if lo < UV_SCALE[0] or hi > UV_SCALE[1] or hi > UV_ANISO * max(lo, 1e-9):
+                cen = tuple(round((p0[k] + p1[k] + p2[k]) / 3, 2) for k in range(3))
+                bad.append((mat, cen, round(lo, 2), round(hi, 2)))
+                break
+    return bad
 
 
 def auto_uv(p, n):
@@ -636,8 +697,18 @@ def recess(mb, surf, profile, depth, mat_side="wall", mat_back="wall", back=True
         # Sideflatene vender inn mot midten av hullet.
         mid = surf.point((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, -depth / 2)
         cen = surf.point(uc, vc, -depth / 2)
-        L = math.dist(a, b)
-        mb.poly([pa0, pb0, pb1, pa1], [(0, 0), (L, 0), (L, depth), (0, depth)], mat_side, facing=sub(cen, mid))
+        # Uv i meter, i flukt med murflaten langs kanten og brettet rett
+        # ut fra den (vinkelrett på kanten), så steinene i lysningen verken
+        # strekkes eller ligger på tvers (gravnisjene, 19. oktober).
+        ua, ub = surf.uv(*a), surf.uv(*b)
+        L = math.dist(ua, ub)
+        if L < 1e-9:
+            continue
+        eu, ev = (ub[0] - ua[0]) / L, (ub[1] - ua[1]) / L
+        pu, pv = -ev, eu
+        if pu * (a[0] + b[0] - 2 * uc) + pv * (a[1] + b[1] - 2 * vc) < 0:
+            pu, pv = -pu, -pv  # bort fra midten av hullet
+        mb.poly([pa0, pb0, pb1, pa1], [ua, ub, (ub[0] + pu * depth, ub[1] + pv * depth), (ua[0] + pu * depth, ua[1] + pv * depth)], mat_side, facing=sub(cen, mid))
     if back:
         pts = [surf.point(u, v, -depth) for u, v in profile]
         mb.poly(pts, [surf.uv(u, v) for u, v in profile], mat_back, facing=surf.normal(uc))
@@ -710,6 +781,15 @@ def band(mb, path, width, depth, mat="rib", down=None, smooth=False, stones=None
     murbildet strukket langs ribben. `half` (akse, verdi): ribben er den ene
     halvdelen av en bue som naboen speiler; kanten nærmest planet der aksen
     har den verdien er midten av steinen."""
+    if stones is not None:
+        # Én kilestein per stykke: lange stykker deles, så hver stein er
+        # høyst `STONE_MAX` lang og bildet av steinen ikke forstørres mer
+        # enn laget tåler (`uv_stretch`).
+        out = [path[0]]
+        for a, b in zip(path, path[1:]):
+            k = max(1, math.ceil(math.dist(a, b) / STONE_MAX - 1e-9))
+            out += [lerp(a, b, q / k) for q in range(1, k + 1)]
+        path = out
     rings = []
     for i, p in enumerate(path):
         t = norm(sub(path[min(i + 1, len(path) - 1)], path[max(i - 1, 0)]))
@@ -730,12 +810,25 @@ def band(mb, path, width, depth, mat="rib", down=None, smooth=False, stones=None
             x0, y0, x1, y1 = STONE_PX[(stones + 3 * i) % len(STONE_PX)]
             f = STONE_TEX_M / STONE_TEX_PX
             su0, su1, sv0, sv1 = (x0 + 2) * f, (x1 - 2) * f, (y0 + 2) * f, (y1 - 2) * f
-            v2, v3 = sv0, sv1  # kanten 2 og 3 av tverrsnittet (bunnen av ribben)
+            # Steinen skjæres til kilesteinens form (L langs, bredden eller
+            # dybden på tvers; halve steinen for en halv ribbe), så bildet
+            # ikke strekkes (`uv_stretch`).
+            wv = max(width * (2.0 if half is not None else 1.0), depth)
+            want = max(L, 1e-6) / wv
+            cu, cv = (su0 + su1) / 2, (sv0 + sv1) / 2
+            if (su1 - su0) / (sv1 - sv0) > want:
+                hu = (sv1 - sv0) * want / 2
+                su0, su1 = cu - hu, cu + hu
+            else:
+                hv = (su1 - su0) / want / 2
+                sv0, sv1 = cv - hv, cv + hv
+            sc = (su1 - su0) / max(L, 1e-6)  # uv per meter
             if half is not None:
                 ax, val = half
-                vc = (sv0 + sv1) / 2
-                v2, v3 = (vc, sv1) if abs(A[2][ax] - val) < abs(A[3][ax] - val) else (sv1, vc)
-            dv = (sv1 - sv0) * min(1.0, depth / width)
+                v2, v3 = (cv, cv + width * sc) if abs(A[2][ax] - val) < abs(A[3][ax] - val) else (cv + width * sc, cv)
+            else:
+                v2, v3 = cv - width * sc / 2, cv + width * sc / 2  # kanten 2 og 3 av tverrsnittet (bunnen av ribben)
+            dv = depth * sc
             uvs = {(1, 2): [(su0, sv0), (su1, sv0), (su1, sv0 + dv), (su0, sv0 + dv)],
                    (2, 3): [(su0, v2), (su1, v2), (su1, v3), (su0, v3)],
                    (3, 0): [(su0, sv1 - dv), (su1, sv1 - dv), (su1, sv1), (su0, sv1)]}
@@ -743,7 +836,8 @@ def band(mb, path, width, depth, mat="rib", down=None, smooth=False, stones=None
             pts = [A[j0], B[j0], B[j1], A[j1]]
             mid = lerp(lerp(A[j0], A[j1], 0.5), lerp(B[j0], B[j1], 0.5), 0.5)
             c = lerp(cen(A), cen(B), 0.5)
-            uv = uvs[(j0, j1)] if uvs else [(s, 0), (s + L, 0), (s + L, width), (s, width)]
+            ext = math.dist(A[j0], A[j1])
+            uv = uvs[(j0, j1)] if uvs else [(s, 0), (s + L, 0), (s + L, ext), (s, ext)]
             mb.poly(pts, uv, mat, facing=sub(mid, c), smooth=smooth)
         s += L
     # Endene.
@@ -857,7 +951,11 @@ def pillar(mb, x, z, y0, y1, size=0.7, mat="dressed"):
         c_, d = hi[(i + 1) % 8], hi[i]
         pts = [(a[0], y1 - 0.42, a[1]), (b[0], y1 - 0.42, b[1]), (c_[0], y1 - 0.16, c_[1]), (d[0], y1 - 0.16, d[1])]
         mid = lerp(pts[0], pts[2], 0.5)
-        mb.poly(pts, [(0, 0), (1, 0), (1, 0.3), (0, 0.3)], mat, facing=(mid[0] - x, -0.4, mid[2] - z))
+        # Uv i meter: trapesen med bunnen og toppen i sine egne lengder.
+        la, lb = math.dist(a, b), math.dist(c_, d)
+        sh = math.dist(lerp(pts[0], pts[1], 0.5), lerp(pts[2], pts[3], 0.5))
+        u0 = 0.9 * i
+        mb.poly(pts, [(u0 - la / 2, 0), (u0 + la / 2, 0), (u0 + lb / 2, sh), (u0 - lb / 2, sh)], mat, facing=(mid[0] - x, -0.4, mid[2] - z))
     prism(mb, chamfered((x, z), size + 0.36, 0.1), y1 - 0.16, y1 + 0.02, mat, cap_top=False)
     mb.poly([(p[0], y1 - 0.16, p[1]) for p in chamfered((x, z), size + 0.36, 0.1)], [(p[0], p[1]) for p in chamfered((x, z), size + 0.36, 0.1)], mat, facing=(0, -1, 0))
 
@@ -1122,7 +1220,7 @@ def parapet(mb, path, y, h=0.95, t=0.26, mat="dressed", cap="slab", closed=False
             W = L if A is Lc else R
             c2, d2 = W[j], W[i]
             mb.poly([(a[0], by[i] + h - 0.08, a[1]), (b[0], by[j] + h - 0.08, b[1]), (c2[0], by[j] + h - 0.08, c2[1]), (d2[0], by[i] + h - 0.08, d2[1])],
-                    [(0, 0), (1, 0), (1, 0.05), (0, 0.05)], cap, facing=(0, -1, 0))
+                    [(s, 0), (s + seg, 0), (s + seg, 0.05), (s, 0.05)], cap, facing=(0, -1, 0))
         s += seg
     if ends and not closed:
         for i, o in ((0, 1), (n - 1, n - 2)):
@@ -1189,32 +1287,101 @@ def spiral_stair(mb, c, r_in, r_out, a0, a1, y0, y1, n, mat="dressed", inner_wal
     return lambda a: y0 + (y1 - y0) * min(1.0, max(0.0, (a - a0) / (a1 - a0)))
 
 
-def niche(mb, surf, u, v0, w=1.7, h=0.52, depth=0.62, sealed=False, rng=None):
-    """Gravnisje (modulen «gravnisje»): en lang, lav nisje i muren for en
-    kropp, med en liten bue øverst. Åpne nisjer har knokler og en
-    hodeskalle (beinhusteksturen) på bunnen; lukkede har en gravhelle litt
-    inn i nisjen. Gir omrisset (som må skjæres ut av muren)."""
-    prof = [(u - w / 2, v0), (u + w / 2, v0), (u + w / 2, v0 + h)]
-    for k in range(1, 6):
-        a = k / 6
-        prof.append((u + w / 2 - w * a, v0 + h + 0.1 * math.sin(math.pi * a)))
-    prof.append((u - w / 2, v0 + h))
-    if sealed:
-        recess(mb, surf, prof, 0.07, "dressed", "slab")
-    else:
-        recess(mb, surf, prof, depth, "wall_dark", "wall_dark")
-        # Knoklene: en lav haug langs bunnen.
-        m = 0.08
-        pts = [surf.point(u - w / 2 + m, v0, -depth + 0.05), surf.point(u + w / 2 - m, v0, -depth + 0.05),
-               surf.point(u + w / 2 - m, v0 + 0.16, -0.12), surf.point(u - w / 2 + m, v0 + 0.16, -0.12)]
-        mb.poly(pts, [(0, 0), (w, 0), (w, 0.6), (0, 0.6)], "bones", facing=add(surf.normal(u), (0, 1, 0)))
-        for sgn in (-1, 1):
-            e = [surf.point(u + sgn * (w / 2 - m), v0, -depth + 0.05), surf.point(u + sgn * (w / 2 - m), v0 + 0.16, -0.12), surf.point(u + sgn * (w / 2 - m), v0, -0.12)]
-            mb.poly(e, [(0, 0), (0.5, 0.2), (0.5, 0)], "bones", facing=mul(add(surf.point(u + sgn, v0, 0), mul(surf.point(u, v0, 0), -1)), 1))
-        # En hodeskalle.
-        sk = surf.point(u + (w / 4 if rng is None else (rng.random() - 0.5) * w * 0.5), v0 + 0.12, -0.35)
-        skull(mb, sk, surf.normal(u))
+class _Shift:
+    """En flate med u forskjøvet, så u = 0 ligger i `du` (karmene regner fra
+    midten av åpningen)."""
+
+    def __init__(self, s, du):
+        self.s, self.du = s, du
+
+    def point(self, u, v, d=0.0):
+        return self.s.point(u + self.du, v, d)
+
+    def normal(self, u=0.0):
+        return self.s.normal(u + self.du)
+
+    def uv(self, u, v):
+        return self.s.uv(u + self.du, v)
+
+
+def alcove_profile(u, v0, w, h, rise, n=10):
+    """Omrisset av en alkove: rette vanger fra `v0` til `v0 + h` og en
+    stikkbue (eller rundbue når `rise` er w/2) over, fra venstre fot opp,
+    over og ned til høyre fot."""
+    r = w / 2
+    R = (r * r + rise * rise) / (2 * rise)
+    cy = v0 + h + rise - R
+    half_a = math.asin(min(1.0, r / R))
+    pts = [(u - r, v0)]
+    for k in range(n + 1):
+        a = -half_a + 2 * half_a * k / n
+        pts.append((u + R * math.sin(a), cy + R * math.cos(a)))
+    pts.append((u + r, v0))
+    return pts, (u, cy), R
+
+
+def alcove(mb, surf, u, v0, w=0.9, h=0.75, depth=0.3, rise=None, band=0.17, proud=0.05, seed=0, n=10):
+    """Alkove (gravnisje): en buet nisje med ekte dybde, mures av den samme
+    malte steinen som muren (uv i meter, `recess`), med en karm av hogd
+    stein rundt (vangestein og kilestein, hver med én hel stein fra
+    murbildet) og en fremspringende terskel. Erstatter de gamle nisjene med
+    knokler og en strukket gravhelle (eierens dom 19. oktober: «rare
+    teksturer på veggene der det skal være alkover»). Gir omrisset (som
+    skjæres ut av muren)."""
+    if rise is None:
+        rise = w / 2
+    prof, (cu, cy), R = alcove_profile(u, v0, w, h, rise, n)
+    recess(mb, surf, prof, depth, "niche", "niche")
+    # Karmen: vangesteinene opp til buen, så kilesteinene rundt buen.
+    g = 0.008
+    k = seed
+    r = w / 2
+    spring = v0 + h
+    for sx in (-1, 1):
+        z = v0
+        j = 0
+        while z < spring - 0.04:
+            hh = min(0.3 if j % 2 == 0 else 0.22, spring - z)
+            bw = band if j % 2 == 0 else band * 0.75
+            u0, u1 = sorted((u + sx * r, u + sx * (r + bw)))
+            pts = [(u0, z + g), (u1, z + g), (u1, z + hh - g), (u0, z + hh - g)]
+            _trim_block(mb, surf, pts, proud, "dressed", stone_uv(k, pts))
+            k += 3
+            z += hh
+            j += 1
+    a_half = math.asin(min(1.0, r / R))
+    nv = max(3, int(round(2 * a_half * (R + band / 2) / 0.22)) | 1)
+    for i in range(nv):
+        a0 = -a_half + 2 * a_half * i / nv + g / (R + band / 2)
+        a1 = -a_half + 2 * a_half * (i + 1) / nv - g / (R + band / 2)
+        ro = R + band + (0.04 if i == nv // 2 else 0.0)
+        pts = [(cu + R * math.sin(a0), cy + R * math.cos(a0)), (cu + ro * math.sin(a0), cy + ro * math.cos(a0)),
+               (cu + ro * math.sin(a1), cy + ro * math.cos(a1)), (cu + R * math.sin(a1), cy + R * math.cos(a1))]
+        _trim_block(mb, surf, pts, proud, "dressed", stone_uv(k, pts))
+        k += 5
+    # Mørtelen bak fugene i karmen.
+    back = proud * 0.35
+    for sx in (-1, 1):
+        u0, u1 = sorted((u + sx * (r + 0.004), u + sx * (r + band * 0.75 - 0.01)))
+        q = [(u0, v0), (u1, v0), (u1, spring), (u0, spring)]
+        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "mortar", facing=surf.normal(u))
+    for i in range(nv):
+        a0, a1 = -a_half + 2 * a_half * i / nv, -a_half + 2 * a_half * (i + 1) / nv
+        ri, ro = R + 0.004, R + band - 0.01
+        q = [(cu + ri * math.sin(a0), cy + ri * math.cos(a0)), (cu + ro * math.sin(a0), cy + ro * math.cos(a0)),
+             (cu + ro * math.sin(a1), cy + ro * math.cos(a1)), (cu + ri * math.sin(a1), cy + ri * math.cos(a1))]
+        mb.poly([surf.point(a, b, back) for a, b in q], [surf.uv(a, b) for a, b in q], "mortar", facing=surf.normal(u))
+    # Terskelen: en hogd steinhelle under nisjen, litt ut fra muren.
+    sill = [(u - r - band, v0 - 0.1), (u + r + band, v0 - 0.1), (u + r + band, v0), (u - r - band, v0)]
+    _trim_block(mb, surf, sill, proud + 0.06, "dressed")
     return prof
+
+
+def niche(mb, surf, u, v0, w=1.7, h=0.52, depth=0.62, sealed=False, rng=None):
+    """Gravnisje (modulen «gravnisje», de gamle nivåene): en lang, lav
+    alkove med stikkbue (`alcove`). `sealed` og `rng` brukes ikke lenger
+    (hella og knoklene var strukne bilder)."""
+    return alcove(mb, surf, u, v0, w=w, h=h, depth=depth, rise=min(0.18, w / 2))
 
 
 def skull(mb, p, n, s=0.1):
@@ -1373,6 +1540,7 @@ STONE_PX = [(892, 130, 1002, 250), (134, 132, 262, 248), (270, 132, 486, 245), (
             (411, 517, 593, 630), (360, 642, 456, 762), (466, 644, 623, 764), (146, 645, 351, 762), (702, 645, 907, 763), (536, 772, 742, 890),
             (197, 773, 328, 886), (336, 773, 528, 887), (752, 773, 884, 888), (250, 901, 403, 1016), (413, 901, 614, 1013), (806, 901, 959, 1016),
             (69, 902, 241, 1012), (624, 902, 796, 1011)]
+STONE_MAX = 0.6  # den lengste kilesteinen i en ribbe eller bue (m)
 STONE_TEX_M = 2.0  # crypt_wall: size_m i meta.json
 STONE_TEX_PX = 1024
 
@@ -1380,15 +1548,35 @@ STONE_TEX_PX = 1024
 def stone_uv(k, pts):
     """Uv (i meter, som laget) som legger enkeltstein `k` over firkanten
     `pts` (i rekkefølge rundt), med steinbildets lange akse langs den lengste
-    sida av firkanten."""
+    sida av firkanten. Steinen skjæres til firkantens form (midt i steinen),
+    så bildet aldri strekkes skjevt (`uv_stretch`)."""
     x0, y0, x1, y1 = STONE_PX[k % len(STONE_PX)]
     inset = 2
     f = STONE_TEX_M / STONE_TEX_PX
     u0, u1, v0, v1 = (x0 + inset) * f, (x1 - inset) * f, (y0 + inset) * f, (y1 - inset) * f
-    corners = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
-    if math.dist(pts[0], pts[1]) < math.dist(pts[1], pts[2]):
-        corners = [(u0, v0), (u0, v1), (u1, v1), (u1, v0)]
-    return corners
+    la = (math.dist(pts[0], pts[1]) + math.dist(pts[2], pts[3 % len(pts)])) / 2
+    lb = (math.dist(pts[1], pts[2]) + math.dist(pts[3 % len(pts)], pts[0])) / 2
+    along_u = la >= lb  # firkantens første side langs steinens u
+    big, small = max(la, lb), max(min(la, lb), 1e-6)
+    su, sv = u1 - u0, v1 - v0
+    # Steinens lange akse langs firkantens lange side.
+    if su >= sv:
+        long_, short_ = su, sv
+    else:
+        long_, short_ = sv, su
+    want = big / small
+    if long_ / short_ > want:
+        long_c, short_c = short_ * want, short_
+    else:
+        long_c, short_c = long_, long_ / want
+    cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
+    hu, hv = (long_c / 2, short_c / 2) if su >= sv else (short_c / 2, long_c / 2)
+    u0, u1, v0, v1 = cu - hu, cu + hu, cv - hv, cv + hv
+    # Den lange sida av firkanten følger steinens lange akse.
+    stone_long_is_u = su >= sv
+    if along_u == stone_long_is_u:
+        return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+    return [(u0, v0), (u0, v1), (u1, v1), (u1, v0)]
 
 
 def arch_trim(mb, surf, w, spring, v0=0.0, band=0.3, proud=0.1, n=9, mat="dressed", seed=0):

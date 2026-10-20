@@ -1,0 +1,14 @@
+{
+  "id": "kjerne/rom_1x2",
+  "name": "Rom 1 × 2",
+  "theme": "kjerne",
+  "kind": "rom",
+  "about": "Et smalt rom på 4 × 8 m, to fag med gjordbue imellom.",
+  "rooms": [
+    {"id": "rom", "name": "Rom 1 × 2", "theme": "kjerne", "mood": {"torches": 0.5}}
+  ],
+  "cells": [
+    {"id": "c00", "bit": "grav/romfelt", "at": [0, 0, 0], "rot": 0},
+    {"id": "c01", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0}
+  ]
+}

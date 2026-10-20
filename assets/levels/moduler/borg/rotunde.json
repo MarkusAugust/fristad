@@ -1,0 +1,20 @@
+{
+  "id": "borg/rotunde",
+  "name": "Rotunde",
+  "theme": "borg",
+  "kind": "rom",
+  "about": "Rundt rom på 12 × 12 m med kuppel, ei hjulkrone under sluttsteinen, fire nisjer med fakler og en gang ut midt på hver side.",
+  "rooms": [
+    {"id": "rom", "name": "Rotunde", "theme": "borg", "mood": {"torches": 0.65}}
+  ],
+  "cells": [
+    {"id": "c", "bit": "grav/rotunde", "at": [0, 0, 0], "rot": 0}
+  ],
+  "things": [
+    {"id": "krone", "kind": "prop", "anchor": "celle:c", "pos": [0, 7.55, 0], "yaw": 0, "label": "kit_chandelier"}
+  ],
+  "lights": [
+    {"id": "krone", "anchor": "celle:c", "pos": [0, 4.6, 0], "color": [1.0, 0.66, 0.34], "range": 10, "flicker": true, "intensity": 3.0},
+    {"id": "kuppel", "anchor": "celle:c", "pos": [0, 6.6, 0], "color": [0.85, 0.72, 0.6], "range": 7, "flicker": false}
+  ]
+}

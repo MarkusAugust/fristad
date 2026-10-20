@@ -1,0 +1,20 @@
+{
+  "id": "kjerne/kjernerotunde",
+  "name": "Kjernerotunden",
+  "theme": "kjerne",
+  "kind": "ferdig",
+  "about": "Rotunden i kjernen: kuppelen er plast, muren stein som går over i plast, og et fiolett lys står i midten.",
+  "rooms": [
+    {"id": "rom", "name": "Kjernerotunden", "theme": "kjerne", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "c", "bit": "grav/rotunde", "at": [0, 0, 0], "rot": 0}
+  ],
+  "things": [
+    {"id": "krone", "kind": "prop", "anchor": "celle:c", "pos": [0, 7.55, 0], "yaw": 0, "label": "kit_chandelier"}
+  ],
+  "lights": [
+    {"id": "midt", "anchor": "celle:c", "pos": [0, 4.6, 0], "color": [0.7, 0.4, 1.0], "range": 11, "flicker": false, "intensity": 2.5},
+    {"id": "krone", "anchor": "celle:c", "pos": [0, 4.4, 0], "color": [1.0, 0.66, 0.34], "range": 8, "flicker": true}
+  ]
+}

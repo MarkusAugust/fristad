@@ -1,0 +1,22 @@
+{
+  "_om": "Steinene i krypten (docs/nivaaredigering.md del 22): navn → teksturlag for gulvet, muren, hvelvet og den hogde steinen (trim: søyler, ribber, buer, karmer, sokkel; navnene i Layer::name). Bitene i et tema er laget med temaets standardstein (themes), og hver instans bytter til steinen nivået, rommet, modulen, cella eller kanten velger.",
+  "stones": [
+    {"id": "gravmur", "name": "Gravmur (kalkstein)", "floor": "crypt_floor", "wall": "crypt_wall", "vault": "crypt_wall", "trim": "crypt_dressed"},
+    {"id": "gravtegl", "name": "Gravmur med teglhvelv", "floor": "crypt_floor", "wall": "crypt_wall", "vault": "crypt_vault", "trim": "crypt_dressed"},
+    {"id": "beinhus", "name": "Beinhus (knokler i muren)", "floor": "crypt_floor", "wall": "ossuary", "vault": "crypt_vault", "trim": "crypt_dressed"},
+    {"id": "kalkmaleri", "name": "Kalkmalt kapell", "floor": "grave_slab", "wall": "crypt_plaster", "vault": "crypt_plaster", "trim": "crypt_dressed"},
+    {"id": "tegl", "name": "Teglmur (kloakken)", "floor": "sewer_floor", "wall": "sewer_brick", "vault": "sewer_brick", "trim": "crypt_dressed"},
+    {"id": "berg", "name": "Berg (gruva)", "floor": "rubble", "wall": "mine_rock", "vault": "mine_rock", "trim": "keep_ashlar"},
+    {"id": "tommer", "name": "Tømmerforet gruve", "floor": "rubble", "wall": "mine_timber", "vault": "mine_rock", "trim": "keep_ashlar"},
+    {"id": "kvader", "name": "Kvaderstein (borgen)", "floor": "keep_floor", "wall": "keep_ashlar", "vault": "keep_ashlar", "trim": "keep_ashlar"},
+    {"id": "kjernestein", "name": "Stein som blir plast (kjernen)", "floor": "core_stone", "wall": "core_stone", "vault": "core_plastic", "trim": "core_stone"},
+    {"id": "plast", "name": "Plast (kjernen)", "floor": "core_plastic", "wall": "core_plastic", "vault": "core_plastic", "trim": "core_stone"}
+  ],
+  "themes": {
+    "grav": "gravmur",
+    "kloakk": "tegl",
+    "gruve": "berg",
+    "borg": "kvader",
+    "kjerne": "kjernestein"
+  }
+}

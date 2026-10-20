@@ -14,6 +14,10 @@ use crate::ports::driving::{Command, EditCommand, Event, Grab, Play, SaveData};
 use crate::ports::{Bench, Quality};
 use wasm_bindgen::prelude::*;
 
+// Nivåredigeringen (`?nivaa`, `web/nivaa.js`).
+#[path = "web_level.rs"]
+mod level;
+
 #[wasm_bindgen(start)]
 pub fn boot() {
     console_error_panic_hook::set_once();
@@ -410,7 +414,7 @@ fn json(e: &Event) -> serde_json::Value {
             "breaches": v.breaches.iter().map(|(r, why)| json!({"ref": r, "why": why})).collect::<Vec<_>>(),
             "can_undo": v.can_undo, "can_redo": v.can_redo, "dirty": v.dirty, "clean": v.clean, "draft": v.draft,
             "under": v.under.iter().map(|(l, sel)| json!({"label": l, "selected": sel})).collect::<Vec<_>>(),
-            "props": v.props.iter().map(|p| json!({"key": p.key, "label": p.label, "value": p.value})).collect::<Vec<_>>(),
+            "props": v.props.iter().map(|p| json!({"key": p.key, "label": p.label, "value": p.value, "options": p.options})).collect::<Vec<_>>(),
             "history": v.history, "step": v.step, "snap": v.snap, "ghost": v.ghost, "error": v.error,
             "group": v.group, "route_point": v.route_point,
         }}),
