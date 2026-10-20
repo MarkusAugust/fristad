@@ -9,8 +9,8 @@
     {"id": "berg", "name": "Berg (gruva)", "floor": "rubble", "wall": "mine_rock", "vault": "mine_rock", "trim": "keep_ashlar"},
     {"id": "tommer", "name": "Tømmerforet gruve", "floor": "rubble", "wall": "mine_timber", "vault": "mine_rock", "trim": "keep_ashlar"},
     {"id": "kvader", "name": "Kvaderstein (borgen)", "floor": "keep_floor", "wall": "keep_ashlar", "vault": "keep_ashlar", "trim": "keep_ashlar"},
-    {"id": "kjernestein", "name": "Stein som blir plast (kjernen)", "floor": "core_stone", "wall": "core_stone", "vault": "core_plastic", "trim": "core_stone"},
-    {"id": "plast", "name": "Plast (kjernen)", "floor": "core_plastic", "wall": "core_plastic", "vault": "core_plastic", "trim": "core_stone"}
+    {"id": "kjernestein", "name": "Stein som blir plast (kjernen)", "floor": "core_stone", "wall": "core_stone", "vault": "core_plastic", "trim": "core_stone", "wall_variant": "som"},
+    {"id": "plast", "name": "Plast (kjernen)", "floor": "core_plastic", "wall": "core_plastic", "vault": "core_plastic", "trim": "core_stone", "wall_variant": "som"}
   ],
   "themes": {
     "grav": "gravmur",

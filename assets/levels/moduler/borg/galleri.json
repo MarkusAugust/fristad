@@ -1,0 +1,17 @@
+{
+  "id": "borg/galleri",
+  "name": "Galleriet",
+  "theme": "borg",
+  "kind": "rom",
+  "about": "En sal på 12 × 12 m i to etasjer: et galleri 5 m oppe langs nordmuren med rekkverk, trapp opp langs vestmuren, krysshvelv med ribber til 11 m, gangene ut i sør og øst nede og i nord fra galleriet.",
+  "rooms": [
+    {"id": "rom", "name": "Galleriet", "theme": "borg", "mood": {"torches": 0.65}}
+  ],
+  "cells": [
+    {"id": "sal", "bit": "grav/galleri", "at": [0, 0, 0], "rot": 0}
+  ],
+  "lights": [
+    {"id": "galleri", "anchor": "celle:sal", "pos": [0, 7.6, -3.6], "color": [1.0, 0.68, 0.38], "range": 9, "flicker": false, "intensity": 1.4},
+    {"id": "hvelv", "anchor": "celle:sal", "pos": [0, 9.2, 1.5], "color": [0.95, 0.74, 0.55], "range": 8, "flicker": false, "intensity": 1.2}
+  ]
+}

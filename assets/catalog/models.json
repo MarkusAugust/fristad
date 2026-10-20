@@ -302,6 +302,15 @@
   "grav_hall": "Nivåredigeringen, gravkjelleren (tools/crypt/kit_cells.py): bosshallen, sammensatt på 3 × 3 celler: et rom på 10 × 10 m med murene til 7 m, krysshvelv med ribber til 10 m, søyler i hjørnene og en gang ut midt på hver side (bossene er 4–5 m høye).",
   "grav_rotunde": "Nivåredigeringen, pilotsettet for gravkjelleren i malt stil (fase 2, tools/crypt/kit_cells.py): sammensatt rotunde på 3 × 3 celler: rundt rom med kuppel, ribber, gesims, fire nisjer med fakler og en gang ut midt på hver side.",
   "grav_vegg_b": "Nivåredigeringen, pilotsettet for gravkjelleren i malt stil (fase 2, tools/crypt/kit_cells.py): halvkanten mur med to gravnisjer: en åpen med knokler og en lukket med gravhelle (utseende b).",
+  "grav_kloft": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): celle der gulvet er en kløft 6 m ned mellom murene i øst og vest, med kanten av hogd stein og falne steiner på bunnen; vindebroa (bridge) går over.",
+  "grav_sjakt": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): bunnen av heissjakta: gulvet, murene over buene og taket mellom murflaten og cellekanten, uten hvelv (sjakta går opp til etasjen over).",
+  "grav_sjakt_topp": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): toppen av heissjakta 6 m oppe: hullet mellom murflatene med kant av hogd stein, og krysshvelvet heistårnet står under.",
+  "grav_luke": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): rommet under luka: flatt steintak 5,5 m oppe med tre eikebjelker, vekslere og luka på 1,6 × 1,6 m midt i.",
+  "grav_luke_topp": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): rommet over luka: gulvet med luka (fallemmen) midt i og krysshvelvet.",
+  "grav_kanal": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): kloakkgangen med kanal: tønnehvelv, gangbane på hver side og en kanal 1,4 m bred og 1,3 m dyp midt i.",
+  "grav_kanal_ende": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): kloakkgangen der kanalen slutter: kanalen ender med en mur 1 m fra midten, og gangen fortsetter tørr.",
+  "grav_galleri": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): sammensatt sal på 3 × 3 celler i to etasjer: 10 × 10 m med murene til 8 m og krysshvelv med ribber til 11 m, et galleri 5 m oppe langs nordmuren på eikebjelker med brystning, trapp langs vestmuren med håndlist, og gangene ut i sør og øst nede og i nord fra galleriet.",
+  "grav_vegg_som": "Nivåredigeringen, mekanismebitene (tools/crypt/kit_mech.py): halvkanten mur med tre fiolette, glødende plastsømmer i fugene (magic_seam); variant «som» av muren, som steinen i kjernen velger (wall_variant).",
   "grid_warden": "Grid-vokteren (nivå 9): en figur bygd av hule hvite celler i rader og kolonner, noen fylt med stein, et kubehode med ett magenta øye og seglet på brystet; TRELLIS-formen fra eieren med teksturen som den er (tools/models/mob3d.py).",
   "ham_hanging": "Møbel: Spekeskinke i tau fra bjelken (kjøkkenet i Vertshuset).",
   "hanging_lantern": "Møbel: Lykt med hornruter fra bjelken, tent (kjelleren i Vertshuset).",
@@ -684,6 +693,6 @@
   "kit_statue": "Ridder i hogd stein på sokkel, 2,9 m høy (Ridderhallen: pendelgangen, søylesalen, Det runde bord).",
   "kit_rack": "Våpenstativ av eik med spyd og skjold, 1,8 m bredt (våpenkammeret i Ridderhallen).",
   "kit_throne": "Eiketrone med gyllen kant på forhøyningen i tronsalen, 2,5 m høy.",
-  "kit_chandelier": "Hjulkrone av eik med lys som henger fra hvelvet (søylesalen, gildehallen, tronsalen)."
+  "kit_chandelier": "Hjulkrone: en åpen eikefelg med seks eiker, jernbånd og tolv lys, i tre kjettinger fra en samlering under kroken i hvelvet, 1,9 m bred (bosshallen, rotunden, tronsalen)."
  }
 }

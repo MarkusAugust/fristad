@@ -1,0 +1,22 @@
+{
+  "id": "gruve/vindebro",
+  "name": "Vindebroa",
+  "theme": "gruve",
+  "kind": "ferdig",
+  "about": "En sal på 4 × 12 m delt av en kløft 6 m ned. Vindebroa henger oppe under hvelvet til spaken på sørsida senker den.",
+  "rooms": [
+    {"id": "rom", "name": "Vindebroa", "theme": "gruve", "mood": {"torches": 0.4}}
+  ],
+  "cells": [
+    {"id": "nord", "bit": "grav/romfelt", "at": [0, 0, -1], "rot": 0},
+    {"id": "kloft", "bit": "grav/kloft", "at": [0, 0, 0], "rot": 0},
+    {"id": "sor", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0}
+  ],
+  "things": [
+    {"id": "bro", "kind": "bridge", "anchor": "celle:kloft", "pos": [0, 0, 0], "yaw": 0, "size": [2.8, 4.8], "height": 2.6, "top": [0, 5.0, 0]},
+    {"id": "spak", "kind": "lever", "anchor": "celle:sor", "pos": [1.2, 0, 1.0], "yaw": -90}
+  ],
+  "links": [
+    {"from": "spak", "to": "bro", "kind": "opens"}
+  ]
+}

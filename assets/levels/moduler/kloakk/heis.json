@@ -1,0 +1,31 @@
+{
+  "id": "kloakk/heis",
+  "name": "Heisen",
+  "theme": "kloakk",
+  "kind": "ferdig",
+  "about": "En heissjakt mellom to etasjer (6 m): nede forrommet og bunnen av sjakta, oppe heistårnet over sjakta og et rom med vinsjen. Spaken nede løsner bremsen, og heisen går opp og ned.",
+  "rooms": [
+    {"id": "rom", "name": "Heisen", "theme": "kloakk", "mood": {"torches": 0.45}},
+    {"id": "oppe", "name": "Oppe", "theme": "kloakk", "mood": {"torches": 0.45}}
+  ],
+  "cells": [
+    {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 1], "rot": 0},
+    {"id": "sjakt", "bit": "grav/sjakt", "at": [0, 0, 0], "rot": 0},
+    {"id": "topp", "bit": "grav/sjakt_topp", "at": [0, 6, 0], "rot": 0, "room": "oppe"},
+    {"id": "oppe", "bit": "grav/romfelt", "at": [0, 6, -1], "rot": 0, "room": "oppe"}
+  ],
+  "walls": [
+    {"at": [0, 0], "side": "E"},
+    {"at": [0, 0], "side": "W"}
+  ],
+  "things": [
+    {"id": "heis", "kind": "lift", "anchor": "celle:topp", "pos": [0, 0, 0], "yaw": 0, "size": [2.8, 2.8], "bottom": [0, -6, 0]},
+    {"id": "spak", "kind": "lever", "anchor": "celle:forrom", "pos": [1.2, 0, -0.9], "yaw": -90}
+  ],
+  "links": [
+    {"from": "spak", "to": "heis", "kind": "opens"}
+  ],
+  "lights": [
+    {"id": "sjakt", "anchor": "celle:sjakt", "pos": [0, 4.2, 0], "color": [1.0, 0.66, 0.36], "range": 7, "flicker": true, "intensity": 1.2}
+  ]
+}

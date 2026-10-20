@@ -5,9 +5,9 @@ steinen (`assets/levels/steiner.json`: kloakken tegl, gruva berg med kvader
 i søylene, borgen kvader, kjernen kjernestein). Ferdigrommene per tema er
 satt sammen av byggesettets pynt og mekanismer (`crypt::PROPS`, merkene).
 
-Det som trenger egne biter (kloakkens kanal med gangbane, gruvas
-heissjakt, borgens gallerier, kjernens plastsømmer i muren), står i
-`docs/nivaaredigering.md` del 24 som det som gjenstår.
+Mekanismene med egne biter (`kit_mech.py`: vindebroa, heisen, stigen og
+galleriet) får alle temaene; kanalen er kloakkens, og plastsømmene i kjernen
+kommer med steinen (`wall_variant` i `steiner.json`).
 
     python3 tools/crypt/modules_themes.py
 """
@@ -24,7 +24,7 @@ BASE = os.path.join(ROOT, "assets", "levels", "moduler")
 
 # Formene fra gravkjelleren som hvert tema får (navnet i modules_grav).
 FORMS = ["rom_1x1", "rom_1x2", "rom_2x2", "rom_3x2", "rom_3x3", "gang_1", "gang_2", "gang_hjorne", "gang_t", "gang_kryss", "blindgang",
-         "halvtrapp", "halv_etasje", "nedgang", "rotunde", "bosshall"]
+         "halvtrapp", "halv_etasje", "nedgang", "rotunde", "bosshall", "vindebro", "heis", "stige", "galleri"]
 
 # Bossen i bosshallen per tema (`Kind::from_label`).
 BOSSES = {"kloakk": "table", "gruve": "select", "borg": "navbar", "kjerne": "rammeverket"}
@@ -94,6 +94,16 @@ EXTRA = {
                        {"id": "spak", "kind": "lever", "anchor": "celle:c00", "pos": [-1.2, 0.35, -0.8], "yaw": 90}],
                links=[{"from": "spak", "to": "vann", "kind": "opens"}],
                lights=[light("skjaer", "c11", [0, 2.6, 0], [0.55, 0.75, 0.7], 9, False)]),
+        module("kloakk", "kanal", "Kanalen", "ferdig",
+               "En kloakkgang på 12 m med en kanal midt i og gangbane på hver side. Vannet står nesten til kanten; "
+               "spaken på gangbanen åpner slusa, og kanalen tømmes.",
+               [{"id": "nord", "bit": "grav/kanal_ende", "at": [0, 0, -1], "rot": 2},
+                {"id": "midt", "bit": "grav/kanal", "at": [0, 0, 0], "rot": 0},
+                {"id": "sor", "bit": "grav/kanal_ende", "at": [0, 0, 1], "rot": 0}], 0.35,
+               things=[{"id": "vann", "kind": "water", "anchor": "celle:midt", "pos": [0, -0.25, 0], "size": [1.4, 10.0], "levels": [-0.25, -1.25]},
+                       {"id": "sluse", "kind": "lever", "anchor": "celle:midt", "pos": [1.3, 0, 1.2], "yaw": -90}],
+               links=[{"from": "sluse", "to": "vann", "kind": "opens"}],
+               lights=[light("skjaer", "midt", [0, 2.4, 0], [0.55, 0.75, 0.7], 8, False)]),
         module("kloakk", "smuglerlager", "Smuglerlageret", "ferdig",
                "Et rom på 8 × 8 m med tønner, kasser, sekker og hyller langs murene, og ei kiste bak tønnene.",
                grid("grav/romfelt", 2, 2), 0.35,

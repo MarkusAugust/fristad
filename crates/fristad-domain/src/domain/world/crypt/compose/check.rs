@@ -243,3 +243,75 @@ pub fn headroom(file: &LevelFile) -> Vec<Issue> {
     }
     out
 }
+
+/// Bitene mekanismene står i (modellene i `kit_mech.py`).
+pub const CHASM: &str = "grav_kloft";
+pub const SHAFT: &str = "grav_sjakt";
+pub const SHAFT_TOP: &str = "grav_sjakt_topp";
+pub const HATCH: &str = "grav_luke";
+pub const HATCH_TOP: &str = "grav_luke_topp";
+pub const CANALS: [&str; 2] = ["grav_kanal", "grav_kanal_ende"];
+
+/// Mekanismene står i bitene sine (`docs/nivaaredigering.md` del 25): en
+/// kløft har en vindebro over seg (ellers kommer ingen over), og en vindebro
+/// står over en kløft; heisen står i en sjakt med bunnen i sjakta under;
+/// fallemmen ligger over en luke, og stigen under den når opp til gulvet
+/// over; en kanal har vann.
+pub fn mechanisms(file: &LevelFile) -> Vec<Issue> {
+    let at = |model: &'static str| file.instances.iter().filter(move |i| i.model == model).map(|i| Vec3::from(i.pos));
+    let near = |a: Vec3, b: Vec3, r: f32| (a.x - b.x).abs() < r && (a.z - b.z).abs() < r && (a.y - b.y).abs() < 0.6;
+    // Om punktet er innenfor merket (målene i `size`, dreid med merket).
+    let covers = |m: &crate::domain::world::crypt::level::MarkDef, p: Vec3, dflt: (f32, f32)| {
+        let Some(c) = m.pos.map(Vec3::from) else { return false };
+        let (w, l) = m.size.map(|s| s.wd()).unwrap_or(dflt);
+        let d = glam::Quat::from_rotation_y(-m.yaw) * (p - c);
+        d.x.abs() <= w * 0.5 + 0.05 && d.z.abs() <= l * 0.5 + 0.05
+    };
+    let marks = |kind: &'static str| file.marks.iter().filter(move |m| m.kind == kind);
+    let mut out = vec![];
+    let mut put = |severity, at: Option<Vec3>, msg: String| out.push(Issue { severity, rule: "mekanisme", at: at.map(mm3), msg });
+    for c in at(CHASM) {
+        if !marks("bridge").any(|m| covers(m, c, (3.6, 8.0)) && m.pos.is_some_and(|p| (p[1] - c.y).abs() < 0.6)) {
+            put(Severity::Warning, Some(c), "kløfta har ingen vindebro over seg; ingen kommer over".into());
+        }
+    }
+    for m in marks("bridge") {
+        let id = m.id.clone().unwrap_or_default();
+        if !at(CHASM).any(|c| covers(m, c, (3.6, 8.0)) && m.pos.is_some_and(|p| (p[1] - c.y).abs() < 0.6)) {
+            put(Severity::Error, m.pos.map(Vec3::from), format!("vindebroa {id} står ikke over en kløft"));
+        }
+    }
+    for m in marks("lift") {
+        let id = m.id.clone().unwrap_or_default();
+        let Some(p) = m.pos.map(Vec3::from) else { continue };
+        let top = at(SHAFT_TOP).any(|c| near(c, p, 0.6));
+        let bottom = m.bottom.map(Vec3::from).is_some_and(|b| at(SHAFT).any(|c| near(c, b, 0.6)));
+        if !top || !bottom {
+            put(Severity::Error, Some(p), format!("heisen {id} står ikke i en sjakt (sjakta nede og sjaktas topp over den, med bunnen i sjakta)"));
+        }
+    }
+    for m in marks("trapdoor") {
+        let id = m.id.clone().unwrap_or_default();
+        let Some(p) = m.pos.map(Vec3::from) else { continue };
+        if !at(HATCH_TOP).any(|c| near(c, p, 0.3)) {
+            put(Severity::Error, Some(p), format!("fallemmen {id} ligger ikke over en luke"));
+        }
+    }
+    for m in marks("ladder") {
+        let id = m.id.clone().unwrap_or_default();
+        let (Some(p), Some(t)) = (m.pos.map(Vec3::from), m.top.map(Vec3::from)) else { continue };
+        if let Some(c) = at(HATCH).find(|c| near(*c, p, HALF)) {
+            if !at(HATCH_TOP).any(|u| near(u, Vec3::new(c.x, t.y, c.z), 0.3)) {
+                put(Severity::Error, Some(p), format!("stigen {id} når ikke opp til luka over"));
+            }
+        }
+    }
+    for name in CANALS {
+        for c in at(name) {
+            if !marks("water").any(|m| covers(m, c, (4.0, 4.0))) {
+                put(Severity::Warning, Some(c), "kanalen har ikke vann".into());
+            }
+        }
+    }
+    out
+}

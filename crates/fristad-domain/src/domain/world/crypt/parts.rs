@@ -262,3 +262,40 @@ pub const PROPS: &[&str] = &[
 /// Pynten som henger på muren eller i taket, eller står oppå noe (tronen på
 /// forhøyningen), ikke på gulvet: settes ut med `place_mounted`.
 pub const MOUNTED_PROPS: &[&str] = &["kit_lamp", "kit_banner", "kit_chandelier", "kit_throne", "candle"];
+
+/// Et rom eller en gang, i verden.
+#[derive(Clone, Debug)]
+pub struct Room {
+    pub id: String,
+    pub name: String,
+    pub poly: Vec<Vec2>,
+    /// Gulvet og taket over det (absolutt y og høyde).
+    pub y: f32,
+    pub h: f32,
+    pub secret: bool,
+    pub min: Vec2,
+    pub max: Vec2,
+    pub(super) area: f32,
+    /// Så langt under gulvet rommet når i lyset (sjakta til trappa ned).
+    pub sink: f32,
+    /// Så langt over taket (`h`) rommet når i lyset: hvelvet.
+    pub rise: f32,
+}
+
+impl Room {
+    /// Om punktet (x, z) er inne i omrisset.
+    pub fn contains(&self, q: Vec2) -> bool {
+        if q.x < self.min.x || q.y < self.min.y || q.x > self.max.x || q.y > self.max.y {
+            return false;
+        }
+        let mut inside = false;
+        let n = self.poly.len();
+        for i in 0..n {
+            let (a, b) = (self.poly[i], self.poly[(i + n - 1) % n]);
+            if (a.y > q.y) != (b.y > q.y) && q.x < (b.x - a.x) * (q.y - a.y) / (b.y - a.y) + a.x {
+                inside = !inside;
+            }
+        }
+        inside
+    }
+}

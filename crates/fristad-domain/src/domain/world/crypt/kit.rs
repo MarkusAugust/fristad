@@ -55,7 +55,7 @@ impl KitDef {
                     theme: p.theme.clone(),
                     v: p.v,
                     faces: fc.faces.clone(),
-                    floors: p.floors,
+                    floors: fc.floors.unwrap_or(p.floors),
                     clear: p.clear,
                     bottom: p.bottom,
                     top: p.top,
@@ -148,6 +148,10 @@ fn one() -> f32 {
 pub struct FootCell {
     pub at: [i32; 2],
     pub faces: Vec<Face>,
+    /// Gulvet ved kantene i denne cella, om det er et annet enn bitens
+    /// (galleriet: gangen ut i nord går fra galleriet, 5 m oppe).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floors: Option<[f32; 4]>,
 }
 
 /// Hva en side av en celle vil ha.

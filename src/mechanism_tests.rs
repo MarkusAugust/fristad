@@ -30,6 +30,8 @@ fn modulene_har_hele_koblinger() {
         assert!(links.is_empty(), "{}: {:?}", m.id, links.iter().map(|i| &i.msg).collect::<Vec<_>>());
         let tall = check::headroom(&f);
         assert!(tall.is_empty(), "{}: {:?}", m.id, tall.iter().map(|i| &i.msg).collect::<Vec<_>>());
+        let mech = check::mechanisms(&f);
+        assert!(mech.is_empty(), "{}: {:?}", m.id, mech.iter().map(|i| &i.msg).collect::<Vec<_>>());
     }
 }
 
@@ -125,3 +127,82 @@ fn bossene_far_plass_i_bosshallen() {
     let (f, _) = compose::compile(&doc, &k);
     assert!(check::headroom(&f).iter().any(|i| i.msg.contains("navbar")), "{:?}", check::headroom(&f));
 }
+
+/// Mekanismene med egne biter (`kit_mech.py`, docs/nivaaredigering.md del
+/// 25): vindebroa over kløfta (dekket er gangbart bak broas bryter), heisen
+/// i sjakta mellom to etasjer, stigen opp til fallemmen over luka, galleriet
+/// med trappa og gangen ut fra galleriet, og kanalen med vann, i alle temaene
+/// (kanalen i kloakken).
+#[test]
+fn mekanismene_har_bitene_sine() {
+    let model = |f: &LevelFile, name: &str| f.instances.iter().filter(|i| i.model == name).count();
+    for t in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
+        let (f, _) = showcase(&format!("{t}/vindebro"));
+        assert_eq!(model(&f, check::CHASM), 1, "{t}: kløfta");
+        let bro = marks(&f, "bridge");
+        assert!(bro.len() == 1 && bro[0].top.is_some(), "{t}: broa med feste i hvelvet");
+        let id = bro[0].id.clone().unwrap();
+        assert!(f.nav.poly_gate.iter().any(|g| g.as_deref() == Some(id.as_str())), "{t}: dekket er gangbart bak broas bryter");
+
+        let (f, _) = showcase(&format!("{t}/heis"));
+        let heis = marks(&f, "lift");
+        assert!(heis.len() == 1 && heis[0].bottom.is_some_and(|b| heis[0].pos.unwrap()[1] - b[1] > 5.9), "{t}: heisen går 6 m");
+        assert!(f.rooms.len() >= 2 && f.rooms.iter().any(|r| r.y > 5.9), "{t}: rommet oppe");
+
+        let (f, _) = showcase(&format!("{t}/stige"));
+        let stige = marks(&f, "ladder");
+        assert!(stige.len() == 1 && stige[0].top.is_some_and(|p| p[1] > 5.9), "{t}: stigen når opp");
+        assert!(marks(&f, "trapdoor").first().is_some_and(|l| l.to.is_some()), "{t}: fallemmen vet rommet under");
+
+        let (f, _) = showcase(&format!("{t}/galleri"));
+        let ys: Vec<f32> = f.nav.verts.iter().map(|v| v[1]).collect();
+        assert!(ys.iter().any(|y| (y - 5.0).abs() < 0.01) && ys.iter().any(|y| y.abs() < 0.01), "{t}: galleriet har gulv nede og oppe");
+        assert!(f.instances.iter().any(|i| i.model.starts_with("grav_vegg") && (i.pos[1] - 5.0).abs() < 0.01), "{t}: kanten ut fra galleriet står 5 m oppe");
+    }
+    // Galleriet føyes sammen med en gang 5 m oppe i nord: gangåpning, ingen mur.
+    let k = kit();
+    let mut doc = modules::showcase(&k, "grav/galleri").unwrap();
+    doc.modules.push(crate::domain::world::crypt::doc::DocModule { id: "g".into(), module: "grav/gang_1".into(), at: [0, 5, -2], ..Default::default() });
+    let (f, r) = compose::compile(&doc, &k);
+    assert!(r.errors().next().is_none(), "{:?}", r.errors().map(|i| &i.msg).collect::<Vec<_>>());
+    assert!(!f.instances.iter().any(|i| i.model == "grav_vegg" && (i.pos[1] - 5.0).abs() < 0.01 && (i.pos[2] + 6.0).abs() < 0.01), "muren står i gangen ut fra galleriet");
+    let (f, _) = showcase("kloakk/kanal");
+    assert_eq!(f.instances.iter().filter(|i| check::CANALS.contains(&i.model.as_str())).count(), 3);
+    assert!(marks(&f, "water").first().is_some_and(|w| w.levels.len() == 2 && w.levels[0] > w.levels[1]), "kanalen har vann som kan tappes");
+}
+
+/// Plastsømmene i kjernen: muren med sømmer (`grav/vegg` varianten `som`)
+/// står bare der steinen vil ha den (kjernestein og plast), aldri ellers.
+#[test]
+fn kjernen_har_plastsommer_i_muren() {
+    let count = |id: &str| showcase(id).0.instances.iter().filter(|i| i.model == "grav_vegg_som").count();
+    assert!(count("kjerne/rom_3x3") > 0, "kjernen har sømmer i muren");
+    for id in ["grav/rom_3x3", "kloakk/rom_3x3", "borg/rom_3x3"] {
+        assert_eq!(count(id), 0, "{id}: sømmene hører kjernen til");
+    }
+}
+
+/// Reglene for mekanismebitene: kløft uten bro, bro uten kløft, heis uten
+/// sjakt, fallem uten luke og kanal uten vann.
+#[test]
+fn mekanismene_uten_bitene_sine_er_feil() {
+    let k = kit();
+    let msgs = |doc: &crate::domain::world::crypt::doc::LevelDoc| -> Vec<String> { check::mechanisms(&compose::compile(doc, &k).0).into_iter().map(|i| i.msg).collect() };
+    let mut doc = modules::showcase(&k, "grav/vindebro").unwrap();
+    let full = modules::flatten(&doc, &k).0;
+    doc = crate::domain::world::crypt::doc::LevelDoc { things: full.things.iter().filter(|t| t.kind != "bridge").cloned().collect(), links: vec![], ..full.clone() };
+    assert!(msgs(&doc).iter().any(|m| m.contains("kløfta har ingen vindebro")), "{:?}", msgs(&doc));
+    let mut doc = modules::showcase(&k, "grav/rom_1x1").unwrap();
+    for (kind, id) in [("bridge", "bro"), ("lift", "heis"), ("trapdoor", "lem")] {
+        doc.things.push(crate::domain::world::crypt::doc::Thing { id: id.into(), kind: kind.into(), anchor: "celle:m/c00".into(), pos: Some([0.0; 3]), bottom: Some([0.0, -6.0, 0.0]), ..Default::default() });
+    }
+    let m = msgs(&doc);
+    for want in ["vindebroa bro står ikke over en kløft", "heisen heis står ikke i en sjakt", "fallemmen lem ligger ikke over en luke"] {
+        assert!(m.iter().any(|x| x.contains(want)), "mangler «{want}»: {m:?}");
+    }
+    let mut doc = modules::showcase(&k, "kloakk/kanal").unwrap();
+    let full = modules::flatten(&doc, &k).0;
+    doc = crate::domain::world::crypt::doc::LevelDoc { things: full.things.iter().filter(|t| t.kind != "water").cloned().collect(), links: vec![], ..full.clone() };
+    assert!(msgs(&doc).iter().any(|m| m.contains("kanalen har ikke vann")), "{:?}", msgs(&doc));
+}
+

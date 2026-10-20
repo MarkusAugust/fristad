@@ -34,7 +34,7 @@ mod solids;
 
 pub use grid::*;
 pub use look::{expand, roll};
-use look::{cell_stone, edge_stone, torches};
+use look::{anchor_point, cell_at, cell_stone, edge_stone, lights, torches};
 
 use super::doc::{DocCell, LevelDoc, Thing};
 use super::kit::{KitDef, KitPiece, PieceKind};
@@ -306,7 +306,8 @@ impl<'a> Grid<'a> {
         }
         let Some(b) = b else {
             // En trapp som ender i vegg eller lufta.
-            let stair = c.piece.floors.iter().any(|f| (f - c.piece.floors[0]).abs() > 0.01);
+            // (Gangen ut fra galleriet i en sammensatt bit er ingen trapp.)
+            let stair = c.piece.part_of.is_none() && c.piece.floors.iter().any(|f| (f - c.piece.floors[0]).abs() > 0.01);
             if stair && fa == "gang" {
                 issues.push(Issue::error("kant", Some(mid), format!("trappa {} ender i vegg mot {}", c.doc.id, SIDES[w])));
             }
@@ -478,6 +479,7 @@ impl Compiler {
         let (marks, mut issues) = marks(doc, &grid, &index, &room_list);
         report.issues.append(&mut issues);
         nav::cut_marks(&mut raster, &marks);
+        nav::bridges(&mut raster, &marks, |p| cell_at(&grid, p).map(|b| grid.cells[b].doc.room.clone()));
         nav::drop_slivers(&mut raster);
         file.nav = nav::build(&raster, &slopes);
         file.marks = marks;
@@ -578,8 +580,12 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
                 Some(piece) => {
                     let o = outward_v(w) * HALF;
                     let pos = Vec3::new(center.x + o.x, c.floor(w), center.z + o.y);
-                    let look = piece.pick(g.edge_variants.get(&(a, w)).map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
-                    put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &edge_stone(g, a, w)));
+                    // Eierens variant, ellers steinens på annenhver mur (plastsømmene), ellers frøet.
+                    let stone = edge_stone(g, a, w);
+                    let by_stone = stone.wall_variant.as_ref().filter(|v| piece.variants.iter().any(|x| &x.id == *v) && roll(g.seed, [at[0], at[1], at[2], 40 + w as i64]) < 0.5);
+                    let locked = g.edge_variants.get(&(a, w)).or(by_stone);
+                    let look = piece.pick(locked.map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
+                    put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &stone));
                     if !hidden {
                         torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64], g.kit.stones.light_of(&c.stone));
                     }
@@ -695,6 +701,9 @@ fn marks(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>, rooms: &[super:
             width: t.width.or(extra.0),
             height: t.height.or(extra.1),
             size: t.size,
+            top: t.top.and_then(|p| anchor_point(&t.anchor, Vec3::from(p), g, index)).map(mm3),
+            bottom: t.bottom.and_then(|p| anchor_point(&t.anchor, Vec3::from(p), g, index)).map(mm3),
+            levels: t.levels.iter().filter_map(|l| anchor_point(&t.anchor, Vec3::new(0.0, *l, 0.0), g, index)).map(|p| mm(p.y)).collect(),
             ..Default::default()
         };
         if m.kind == "mob" && m.label.is_none() {
@@ -770,43 +779,4 @@ fn place_thing(t: &Thing, g: &Grid, index: &HashMap<&str, usize>) -> Option<(Vec
         return Some((Vec3::from(t.pos.unwrap_or_default()), yaw, (None, None)));
     }
     None
-}
-
-fn anchor_point(anchor: &str, p: Vec3, g: &Grid, index: &HashMap<&str, usize>) -> Option<Vec3> {
-    if let Some(id) = anchor.strip_prefix("celle:") {
-        return Some(g.cells[*index.get(id)?].point(p));
-    }
-    if let Some((a, w)) = edge_anchor(anchor, index, &g.cells) {
-        let c = &g.cells[a];
-        let o = outward_v(w);
-        return Some(Vec3::new(c.center().x + o.x * HALF, c.floor(w), c.center().z + o.y * HALF) + p);
-    }
-    Some(p)
-}
-
-fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDef> {
-    doc.lights
-        .iter()
-        .filter_map(|l| {
-            let pos = anchor_point(&l.anchor, Vec3::from(l.pos), g, index)?;
-            // Rommet: cella lyset står i.
-            let cell = cell_at(g, pos);
-            let room = cell.map(|b| g.cells[b].doc.room.clone());
-            // Mørk stein får sterkere lys, som faklene (`StoneFile::light`).
-            let k = cell.map(|b| g.kit.stones.light_of(&g.cells[b].stone)).unwrap_or(1.0);
-            let intensity = if k == 1.0 { l.intensity } else { Some(mm(l.intensity.unwrap_or(2.0) * k)) };
-            Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity, room })
-        })
-        .collect()
-}
-
-/// Cella punktet står i (rutene og høyden den bruker).
-fn cell_at(g: &Grid, pos: Vec3) -> Option<usize> {
-    let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
-    g.columns.get(&(i, j)).and_then(|v| {
-        v.iter().copied().find(|&b| {
-            let (lo, hi) = g.cells[b].volume();
-            pos.y >= lo && pos.y <= hi
-        })
-    })
 }

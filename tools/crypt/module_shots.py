@@ -44,7 +44,7 @@ def dump(name):
 
 def composite(bit):
     """De sammensatte bitene på 3 × 3 celler (rotunden og bosshallen)."""
-    return "rotunde" in bit or bit.endswith("/hall")
+    return "rotunde" in bit or bit.endswith("/hall") or bit.endswith("/galleri")
 
 
 def yaw_to(dx, dz):
@@ -75,6 +75,23 @@ def cameras(name, cells, hosts):
         # Fra forrommet gjennom porten mot bossen, og opp mot hvelvet fra et hjørne.
         hx, hz = (i0 + i1) / 2 * CELL, (j0 + j1 - 1) / 2 * CELL
         return [((hx, y + EYE, hz + 2 * CELL + 1.0), 0.0, 10.0), ((hx + 3.4, y + EYE, hz + 3.4), yaw_to(-1, -1), 26.0)]
+    if name in ("heis", "stige"):
+        # Nedenfra fra forrommet opp i sjakta, og ovenfra ned mot heisen eller luka.
+        lo = [c for c in cells if c[1] == y]
+        hi = [c for c in cells if c[1] > y]
+        sx = lo[0][0] * CELL
+        zs = max(c[2] for c in lo) * CELL + 1.2
+        zt = min(c[2] for c in hi) * CELL - 1.0
+        up = max(c[1] for c in hi)
+        return [((sx + 0.8, y + EYE, zs), 0.0, 38.0), ((sx - 1.0, up + EYE, zt), yaw_to(0.35, 1.0), -32.0)]
+    if name in ("vindebro", "kanal"):
+        # Langs kløfta eller kanalen: fra sør, og fra nord ned mot vannet eller i dypet.
+        xc = (i0 + i1) / 2 * CELL + (0.0 if name == "vindebro" else 1.15)
+        return [((xc, y + EYE, z1 + 0.3), 0.0, 6.0), ((xc, y + EYE, z0 - 0.2), 180.0, -24.0 if name == "vindebro" else -12.0)]
+    if name == "galleri":
+        # Fra salen opp mot galleriet og trappa, og fra galleriet ned i salen.
+        cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
+        return [((cx + 3.6, y + EYE, cz + 4.2), yaw_to(-0.8, -1.0), 16.0), ((cx + 3.2, y + 5 + EYE, cz - 3.9), yaw_to(-0.9, 1.0), -18.0)]
     if name.endswith("rotunde"):
         cx, cz = (i0 + i1) / 2 * CELL, (j0 + j1) / 2 * CELL
         return [((cx, y + EYE, z1 + 0.2), 0.0, 16.0), ((cx + 3.0, y + EYE, cz + 3.0), yaw_to(-1, -1), 24.0)]

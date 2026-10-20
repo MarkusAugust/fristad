@@ -118,43 +118,6 @@ pub const REST_FLAME: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const LEVER_PIVOT: Vec3 = Vec3::new(0.0, 0.56, 0.0);
 pub const SHORTCUT_H: f32 = 2.3;
 
-/// Et rom eller en gang, i verden.
-#[derive(Clone, Debug)]
-pub struct Room {
-    pub id: String,
-    pub name: String,
-    pub poly: Vec<Vec2>,
-    /// Gulvet og taket over det (absolutt y og høyde).
-    pub y: f32,
-    pub h: f32,
-    pub secret: bool,
-    pub min: Vec2,
-    pub max: Vec2,
-    area: f32,
-    /// Så langt under gulvet rommet når i lyset (sjakta til trappa ned).
-    pub sink: f32,
-    /// Så langt over taket (`h`) rommet når i lyset: hvelvet.
-    pub rise: f32,
-}
-
-impl Room {
-    /// Om punktet (x, z) er inne i omrisset.
-    pub fn contains(&self, q: Vec2) -> bool {
-        if q.x < self.min.x || q.y < self.min.y || q.x > self.max.x || q.y > self.max.y {
-            return false;
-        }
-        let mut inside = false;
-        let n = self.poly.len();
-        for i in 0..n {
-            let (a, b) = (self.poly[i], self.poly[(i + n - 1) % n]);
-            if (a.y > q.y) != (b.y > q.y) && q.x < (b.x - a.x) * (q.y - a.y) / (b.y - a.y) + a.x {
-                inside = !inside;
-            }
-        }
-        inside
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Level {
     /// Nummeret (1–10), navnet og temaet.

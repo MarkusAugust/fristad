@@ -233,6 +233,9 @@ def export_all(pieces, models, out, only=()):
     profile = None
     for name in order:
         md = models[name]
+        # Med et utvalg bakes bare det (og den rette muren, som gir det nøytrale mørket).
+        if only and name not in only and profile is not None:
+            continue
         near, far = bake(md, first[name], models)
         if profile is None:
             profile = wall_profile(near)
@@ -319,10 +322,13 @@ def check(piece, mb, name):
                 if not hits(tree, (a, v, 1.0), (0, 0, -1), 1.0) or not hits(tree, (1.0, v, a), (-1, 0, 0), 1.0):
                     out.append(f"{name}: hull i hjørnet ved {a:.2f}, {v:.2f}")
     elif kind == "cell" and "footprint" not in piece:
-        holes = []
+        from kit_mech import FLOOR_HOLES, VAULT_HOLES
+
+        holes = list(FLOOR_HOLES.get(piece["id"], []))
         for m in piece.get("mounts", []):
             if m["kind"] == "down":
                 holes.append((-1.2, -HALF - 0.1, 1.2, m["pos"][2]))
+        open_vault = VAULT_HOLES.get(piece["id"], [])
         top = piece["top"]
         for i in range(40):
             for j in range(40):
@@ -332,6 +338,8 @@ def check(piece, mb, name):
                 hi = max(piece["floors"]) + 0.1
                 if not hits(tree, (x, hi + 0.5, z), (0, -1, 0), hi + 1.0):
                     out.append(f"{name}: hull i gulvet ved {x:.2f}, {z:.2f}")
+                if any(h[0] - 0.05 < x < h[2] + 0.05 and h[1] - 0.05 < z < h[3] + 0.05 for h in open_vault):
+                    continue
                 if abs(x) < FACE - 0.05 and abs(z) < FACE - 0.05 and not hits(tree, (x, hi + 0.3, z), (0, 1, 0), top + 1.0):
                     out.append(f"{name}: hull i hvelvet ved {x:.2f}, {z:.2f}")
     elif kind == "cell":

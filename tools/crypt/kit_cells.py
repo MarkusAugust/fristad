@@ -971,6 +971,11 @@ def build():
     cell("hall", hall_mdl, [INNER] * 4, HALL_S, walk=[{"rect": r, "y": [0.0, 0.0]} for r in hall_walk_rects()], solids=hall_solids(),
          mounts=hall_mounts, top=HALL_S + HALL_R + 0.6, extra={"footprint": foot})
 
+    # Mekanismene og galleriet (`kit_mech.py`).
+    import kit_mech
+
+    kit_mech.add(cell, model, face)
+
     def edge(pid, mdl, kind, width=0.0, height=0.0, mounts=(), var=None):
         p = {"id": f"{THEME}/{pid}", "model": mdl, "kind": "edge", "theme": THEME, "v": VERSION, "opening": kind, "width": width, "height": height,
              "solids": half_solids(kind), "mounts": list(mounts), "mirror": True}
@@ -982,7 +987,9 @@ def build():
     vb = model("grav_vegg_b", lambda far: half("wall", far, niches=True), "edge", "edge")
     # Festene er felles for variantene: fakkelen midt på muren, og pynt
     # (sarkofag, bein, kister) langs foten.
-    edge("vegg", v, "wall", mounts=[TORCH_MOUNT, {"kind": "pynt_vegg", "pos": [0.0, 0.0, WALL_T + 0.6], "yaw": 0.0}], var=variants(("a", v, 2.0), ("b", vb, 1.0, niche_solids())))
+    # Muren med plastsømmer (kjernen) velges bare av steinen (`wall_variant`), aldri av frøet.
+    vs = model("grav_vegg_som", kit_mech.vegg_som, "edge", "edge")
+    edge("vegg", v, "wall", mounts=[TORCH_MOUNT, {"kind": "pynt_vegg", "pos": [0.0, 0.0, WALL_T + 0.6], "yaw": 0.0}], var=variants(("a", v, 2.0), ("b", vb, 1.0, niche_solids()), ("som", vs, 0.0)))
     edge("vegg_gang", model("grav_vegg_gang", lambda far: half("gang", far), "edge", "edge"), "gang", 2 * FACE, gang_h(0.0))
     edge("vegg_dor", model("grav_vegg_dor", lambda far: half("door", far), "edge", "edge"), "door", DOOR_W, DOOR_SPRING + DOOR_W / 2)
     edge("vegg_port", model("grav_vegg_port", lambda far: half("gate", far), "edge", "edge"), "gate", GATE_W, GATE_H)

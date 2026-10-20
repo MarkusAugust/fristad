@@ -168,6 +168,27 @@ pub fn cut_marks(raster: &mut BTreeMap<(i32, i32, i32), Label>, marks: &[MarkDef
     }
 }
 
+/// Dekket på vindebroene er gangbart bak broas bryter (stengt til spaken har
+/// senket den); rutene på bredden under endene er sine egne.
+pub fn bridges(raster: &mut BTreeMap<(i32, i32, i32), Label>, marks: &[MarkDef], room: impl Fn(Vec3) -> Option<String>) {
+    for m in marks.iter().filter(|m| m.kind == "bridge") {
+        let (Some(p), Some(id)) = (m.pos, m.id.clone()) else { continue };
+        let p = Vec3::from(p);
+        let Some(room) = room(p) else { continue };
+        let (w, l) = m.size.map(|s| s.wd()).unwrap_or((3.6, 8.0));
+        let rot = glam::Quat::from_rotation_y(m.yaw);
+        let (hw, hl) = ((w * 0.5 - NAV_INSET).max(SUB), l * 0.5);
+        let pts = [(-hw, -hl), (hw, -hl), (hw, hl), (-hw, hl)].map(|(x, z)| p + rot * Vec3::new(x, 0.0, z));
+        let lo = pts.iter().fold(Vec2::splat(f32::MAX), |a, v| a.min(Vec2::new(v.x, v.z)));
+        let hi = pts.iter().fold(Vec2::splat(f32::MIN), |a, v| a.max(Vec2::new(v.x, v.z)));
+        for gz in gi(lo.y)..gi(hi.y) {
+            for gx in gi(lo.x)..gi(hi.x) {
+                raster.entry((q(p.y), gz, gx)).or_insert_with(|| (room.clone(), Some(id.clone())));
+            }
+        }
+    }
+}
+
 /// Tar bort ruter som ikke er del av en blokk på 2 × 2 ruter (0,4 m) i samme
 /// plan: smale striper (mellom en kiste og muren) er ikke gangbare for
 /// kapselen, og nettet kobler ikke kanter under 0,2 m (`Nav::new`), så de
