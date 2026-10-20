@@ -43,6 +43,9 @@ pub struct Lazy {
     pub name: String,
     /// Utstyr (armsettet, våpenet, skjoldet): straks du har det på.
     gear: bool,
+    /// En fiende (`Kind::model`): bare med et nivå (eller nivådokumentet i
+    /// redigeringen) som har et merke med slaget.
+    mob: bool,
     /// Kryptnivåene den står eller går i (fiendene etter `Crypt.spawns`):
     /// når økta ber om nivået.
     levels: Vec<usize>,
@@ -52,16 +55,19 @@ pub struct Lazy {
 }
 
 impl Lazy {
-    fn wanted(&self, eye: glam::Vec3, levels: &[usize], gear: &[&str]) -> bool {
+    fn wanted(&self, eye: glam::Vec3, levels: &[usize], gear: &[&str], editing: &[&str]) -> bool {
         if self.gear {
             return gear.contains(&self.name.as_str());
         }
         let near = self.spots.iter().any(|p| p.distance(eye) <= LAZY_NEAR);
         let level = self.levels.iter().any(|l| levels.contains(l));
+        // En fiende som ingen nivåer har ennå, venter til et nivå (eller
+        // nivådokumentet i redigeringen) setter den ut.
+        let doc = self.mob && editing.contains(&self.name.as_str());
         // Det som verken står fast eller går i et nivå (tokenene, nøkkelen,
         // markøren), kommer med det første nivået.
-        let rest = self.spots.is_empty() && self.levels.is_empty() && !levels.is_empty();
-        near || level || rest
+        let rest = !self.mob && self.spots.is_empty() && self.levels.is_empty() && !levels.is_empty();
+        near || level || doc || rest
     }
 }
 
@@ -94,7 +100,8 @@ fn lazy_models(prepared: &Prepared) -> Vec<Lazy> {
             }
             levels.sort_unstable();
             levels.dedup();
-            Lazy { name: name.clone(), gear: gear.contains(&name.as_str()), levels, spots, state: Pieces::Missing }
+            let mob = crate::domain::mob_kind::Kind::ALL.iter().any(|k| k.model() == name.as_str());
+            Lazy { name: name.clone(), gear: gear.contains(&name.as_str()), mob, levels, spots, state: Pieces::Missing }
         })
         .collect()
 }
@@ -146,10 +153,17 @@ impl<R: Renderer, P: Physics> App<R, P> {
         let levels = self.session.wanted_levels();
         let c = &self.session.combat;
         let gear = [c.arms_model(), c.gear.weapon.model, c.gear.shield.model];
+        // Fiendene i nivådokumentet som redigeres (merkene, slik de er nå).
+        let marks = self.session.level_editing().filter(|l| l.active).map(|l| l.editor.file().marks.as_slice()).unwrap_or_default();
+        let editing: Vec<&str> = marks
+            .iter()
+            .filter(|m| matches!(m.kind.as_str(), "mob" | "elite" | "boss"))
+            .map(|m| crate::domain::mob_kind::Kind::from_label(m.label.as_deref().unwrap_or(if m.kind == "boss" { "rammeverket" } else { "button" })).model())
+            .collect();
         // Utstyret først (i rekkefølgen armene, våpenet, skjoldet), så resten.
         let (mut ask, mut rest) = (vec![], vec![]);
         for l in self.lazy.iter_mut().filter(|l| l.state == Pieces::Missing) {
-            if l.wanted(eye, &levels, &gear) {
+            if l.wanted(eye, &levels, &gear, &editing) {
                 l.state = Pieces::Asked;
                 if l.gear { &mut ask } else { &mut rest }.push(l.name.clone());
             }

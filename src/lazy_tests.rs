@@ -120,7 +120,57 @@ fn modellene_hentes_naar_okta_trenger_dem() {
     assert!(app.lazy_models().iter().filter(|l| near.contains(&l.name)).all(|l| l.state == Pieces::Loaded));
     assert!(asked(&mut app).iter().all(|n| !near.contains(n)));
 
+    // En fiende som intet nivå setter ut, hentes aldri (de nye slagene
+    // ventet før med nivå 1).
+    let spawned: Vec<&str> = crypt.spawns.iter().map(|s| crate::domain::mob_kind::Kind::from_label(&s.label).model()).collect();
+    let mobs: Vec<&str> = crate::domain::mob_kind::Kind::ALL.iter().map(|k| k.model()).collect();
+    let all: Vec<&String> = first.iter().chain(&near).chain(&down).collect();
+    assert!(all.iter().all(|n| !mobs.contains(&n.as_str()) || spawned.contains(&n.as_str())), "bare fiender nivåene har: {all:?}");
+    if !spawned.contains(&"navbar") {
+        assert!(!all.iter().any(|n| *n == "navbar"), "Navbaren venter til et nivå har den");
+    }
+
     // Utenom nettleseren bes det ikke om noe.
     let mut native = App::new(prepare(&Embedded, 7), Counting::default(), RapierPhysics::new());
     assert!(asked(&mut native).is_empty());
+}
+
+/// Et nivå med en av de nye fiendene (Navbaren): redigeringen henter den
+/// straks merket står i dokumentet, og prøveturen (verden bygd på nytt med
+/// dokumentet som nivå 1, `Engine::level_play`) henter den med nivået.
+#[test]
+fn ny_fiende_i_et_nivaa_hentes_med_nivaaet() {
+    use crate::application::prepare_level_editor;
+    use crate::domain::edit::level::{LevelEditor, LevelOp};
+    use crate::ports::driving::{Command, LevelCommand};
+    let start = start_files();
+    let editor = || {
+        let k = crate::adapters::data::kit();
+        LevelEditor::new(LevelEditor::blank("Prøve", 1, "grav", &k), k)
+    };
+    let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<String> {
+        let mut out = vec![];
+        for _ in 0..3 {
+            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchModels(n) = e { Some(n) } else { None }).flatten());
+        }
+        out
+    };
+    // I redigeringen: ingen Navbar før merket står der.
+    let mut app = App::new(prepare_level_editor(&WithManifest(&start, shipped()), 7, editor()), Counting::default(), RapierPhysics::new());
+    let before = asked(&mut app);
+    assert!(!before.iter().any(|n| n == "navbar" || n == "dropdown"), "ingen nye fiender uten merke: {before:?}");
+    let add: LevelOp = serde_json::from_str(r#"{"op":"add_thing","kind":"boss","at":[0.0,0,0.0],"label":"navbar"}"#).unwrap();
+    assert!(app.command(Command::Level(LevelCommand::Op(add.clone()))));
+    let after = asked(&mut app);
+    assert!(after.iter().any(|n| n == "navbar"), "Navbaren hentes når merket settes ut: {after:?}");
+    assert!(!after.iter().any(|n| n == "dropdown"));
+    // Prøveturen: verden bygd på nytt med dokumentet, så nivå 1 har Navbaren.
+    let mut e = editor();
+    e.apply(add).unwrap();
+    let mut play = App::new(prepare_level_editor(&WithManifest(&start, shipped()), 7, e), Counting::default(), RapierPhysics::new());
+    let back = play.session.view_pose();
+    assert!(play.session.level_play(back, false));
+    let down = asked(&mut play);
+    assert!(down.iter().any(|n| n == "navbar"), "prøveturen henter Navbaren med nivået: {down:?}");
+    assert!(!down.iter().any(|n| n == "dropdown" || n == "spinner"), "bare fiendene nivået har: {down:?}");
 }
