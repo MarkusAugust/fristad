@@ -135,10 +135,12 @@ MOBS = {
                                         arm=0.2, leg=0.04, shoulder_in=0.11, leg_out=0.2),
                             rigid=[dict(bone="chest", seed=dict(x=(0.085, 1.0), y=(0.03, 0.16), z=(0.66, 0.77)), within=dict(x=(0.05, 1.0), y=(0.0, 0.2), z=(0.62, 0.8)),
                                         avoid=(("upper_arm", 0.04), ("head", 0.06)), clear=0.04)]),
-    # Grid-vokteren (nivå 9): 2,2 m, bygd av hule hvite celler. Uten
-    # klatreklipp: armene er grodd inn i cellene på kroppen, og med armene
-    # over hodet ble kroppen dratt opp som en hinne (glir i stigen som før).
-    "grid_warden": dict(height=2.2, size=2048, tris=16000, voxel=0.005, thick=0.006, style="grid", attack="fist", extra=(),
+    # Grid-vokteren (nivå 9): 2,2 m, bygd av hule hvite celler. Armene er
+    # grodd inn i cellene på kroppen, og varmen ga cellene i brystet
+    # armvekter helt inn mot midten (0,3–0,6 innenfor skulderleddet), så
+    # kroppen ble dratt opp som en hinne når armene gikk over hodet i
+    # klatringen: brystet holdes samlet (`torso`).
+    "grid_warden": dict(climb=1.0, torso=True, height=2.2, size=2048, tris=16000, voxel=0.005, thick=0.006, style="grid", attack="fist", extra=(),
                         joints=dict(hip=0.42, knee=0.22, ankle=0.05, chest=0.62, neck=0.8, head=0.88, shoulder=0.78, elbow=0.58, wrist=0.42, tip=0.32,
                                     arm=0.21, leg=0.03, shoulder_in=0.12, leg_out=0.2)),
     # Spinneren (nivå 5–6): 0,8 m, et steinhjul på høykant med navet mot

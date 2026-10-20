@@ -248,6 +248,32 @@ pub fn floor_mix(file: &LevelFile, kit: &KitDef) -> Vec<Issue> {
             floors.push((r, floor, at));
         }
     }
+    // Gulvet skifter ikke i en åpen gang eller bue mellom to rom (eieren
+    // 20. oktober om riddergangen: «den skal være samme hele veien»; rommene
+    // var hvert for seg rene, men gangen i kvader gikk rett over i
+    // gravhellene i rommet ved siden av). En dør, port eller mur er et skille.
+    let edge_open = |mid: [f32; 3]| {
+        !file.instances.iter().any(|e| {
+            (e.pos[0] - mid[0]).abs() < 0.05 && (e.pos[1] - mid[1]).abs() < 0.05 && (e.pos[2] - mid[2]).abs() < 0.05 && {
+                kit.listed().filter(|p| p.kind == PieceKind::Edge).any(|p| (p.model == e.model || p.variants.iter().any(|v| v.model == e.model)) && !matches!(p.opening.as_deref(), Some("gang" | "arch")))
+            }
+        })
+    };
+    for (a, (ra, fa, pa)) in floors.iter().enumerate() {
+        for (rb, fb, pb) in &floors[a + 1..] {
+            let (dx, dz) = ((pa[0] - pb[0]).abs(), (pa[2] - pb[2]).abs());
+            let next = (pa[1] - pb[1]).abs() < 0.05 && ((dx - CELL).abs() < 0.05 && dz < 0.05 || (dz - CELL).abs() < 0.05 && dx < 0.05);
+            if ra == rb || fa == fb || !next || !edge_open([(pa[0] + pb[0]) / 2.0, pa[1], (pa[2] + pb[2]) / 2.0]) {
+                continue;
+            }
+            let name = |r: usize| {
+                let room = &file.rooms[r];
+                if room.name.is_empty() { room.id.clone() } else { room.name.clone() }
+            };
+            let (na, nb) = (name(*ra), name(*rb));
+            out.push(Issue { severity: Severity::Warning, rule: "gulv", at: Some(*pa), msg: format!("gulvet skifter i åpningen mellom {na} og {nb} ({fa} og {fb})") });
+        }
+    }
     let mut seen: HashMap<usize, String> = HashMap::new();
     for (r, floor, at) in floors {
         match seen.get(&r) {

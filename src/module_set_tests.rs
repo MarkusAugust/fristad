@@ -33,6 +33,21 @@ fn hvert_rom_har_ett_gulv_i_hver_stein() {
         }
     }
     assert!(slabs_in_grav > 0, "gravkjelleren har fortsatt gravhellene sine");
+    // Og der eieren ser dem: modulene med naborommene i galleriet har samme
+    // gulv hele veien (riddergangen i kvader gikk over i gravhellene i
+    // naborommene, eieren 20. oktober: «den skal være samme hele veien»).
+    for page in modules::gallery_pages(&k) {
+        let (f, _) = compose::compile(&page, &k);
+        let mix = check::floor_mix(&f, &k);
+        assert!(mix.is_empty(), "{:?}: {:?}", page.level, mix.iter().map(|i| &i.msg).collect::<Vec<_>>());
+    }
+    // Gulvet som skifter i en åpen gang mellom to rom, er en advarsel.
+    let mut doc = modules::gallery(&k);
+    doc.modules.retain(|m| m.id.starts_with("riddergang"));
+    assert_eq!(doc.modules.len(), 3, "riddergangen med to naborom");
+    doc.modules.iter_mut().filter(|m| m.id.contains("_nabo")).for_each(|m| m.stone = None);
+    let (f, _) = compose::compile(&doc, &k);
+    assert!(check::floor_mix(&f, &k).iter().any(|i| i.msg.contains("skifter i åpningen")), "{:?}", check::floor_mix(&f, &k));
     // To steiner på gulvet i samme rom er en advarsel.
     let mut doc = modules::showcase(&k, "grav/rom_1x2").unwrap();
     doc.modules[0].stone = None;

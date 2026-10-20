@@ -22,6 +22,7 @@ use super::grid::*;
 use super::{expand, Issue};
 use crate::domain::world::crypt::doc::{DocCell, DocEdge, DocLight, DocLink, DocModule, DocRoom, LevelDoc, LevelId, ModuleDef, Mood, Thing};
 use crate::domain::world::crypt::kit::KitDef;
+use crate::domain::world::crypt::stone::StoneRef;
 use glam::Vec3;
 use std::collections::{BTreeMap, HashMap};
 
@@ -218,6 +219,11 @@ pub fn flatten(doc: &LevelDoc, kit: &KitDef) -> (LevelDoc, Vec<Issue>) {
         }
         for l in m.links.iter().filter(|l| !gone(&l.from) && !gone(&l.to)) {
             let fix = |s: &str| {
+                // Innholdet på en navngitt åpning (porten i en egen modul,
+                // `LevelEditor::as_module`): det eieren har kalt det her, ellers `<modul>/<åpning>`.
+                if m.openings.iter().any(|o| o.id == s) && !ids.contains(&s) {
+                    return inst.overrides.iter().find(|v| v.opening == s).and_then(|v| v.id.clone()).unwrap_or_else(|| prefix(s));
+                }
                 if ids.contains(&s) || local_rooms.iter().any(|r| r == s) {
                     if local_rooms.first().is_some_and(|r| r == s) {
                         main.clone()
@@ -478,6 +484,17 @@ fn modules_openings_or_empty(m: &ModuleDef, kit: &KitDef) -> Vec<LocalOpening> {
     openings(m, kit).0
 }
 
+/// Steinen rommet til cella `cell` i modulen har (rommets `stone`, ellers
+/// standardsteinen til rommets tema), så naborommet i galleriet får samme
+/// gulv som modulen: riddergangen i kvader fikk gravmurens heller i
+/// naborommene (eieren 20. oktober: «her har du blandet teksturer på
+/// gulvet. den skal være samme hele veien»).
+fn room_stone(m: &ModuleDef, cell: &str, kit: &KitDef) -> Option<StoneRef> {
+    let room = m.cells.iter().find(|c| c.id == cell).map(|c| c.room.as_str()).unwrap_or_default();
+    let r = m.rooms.iter().find(|r| r.id == room).or(m.rooms.first())?;
+    r.stone.clone().or_else(|| kit.stones.themes.get(&r.theme).filter(|_| r.theme != m.theme).cloned().map(StoneRef::Named))
+}
+
 /// Alle modulene side om side med fjell imellom (`?nivaa=moduler`,
 /// `snapshot --level-doc moduler`): bildene av modulene tas her i én kjøring.
 /// Hver modul står med `rot` 0 og sitt eget rom, med fakler i festene og et
@@ -531,13 +548,14 @@ pub fn gallery(kit: &KitDef) -> LevelDoc {
         let at = [x - i0, 0, row_z - j0];
         let main = m.rooms.first().cloned().unwrap_or_default();
         doc.modules.push(DocModule { id: name.clone(), module: m.id.clone(), at, mood: Some(Mood { torches: main.mood.torches.max(0.8), ..main.mood.clone() }), ..Default::default() });
-        for (k, h) in host_at.iter().enumerate() {
+        for (k, (h, o)) in host_at.iter().zip(&hosted).enumerate() {
             doc.modules.push(DocModule {
                 id: format!("{name}_nabo{k}"),
                 module: host.clone(),
                 at: [at[0] + h[0], h[1], at[2] + h[2]],
                 name: Some("Nabo".into()),
                 mood: Some(Mood::torches(0.8)),
+                stone: room_stone(m, &o.cell, kit),
                 ..Default::default()
             });
         }

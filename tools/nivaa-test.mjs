@@ -185,7 +185,9 @@ for (const theme of themes) {
   await page.selectOption("#theme", theme);
   await page.waitForTimeout(300);
   const imgs = await page.evaluate(async () => {
-    const vis = [...document.querySelectorAll("#modlist .tile")].filter((t) => !t.hidden);
+    // Eierens egne moduler (about begynner med OWN, `LevelEditor::as_module`)
+    // står med «Bilde mangler» til module_shots.py har tatt bildet.
+    const vis = [...document.querySelectorAll("#modlist .tile")].filter((t) => !t.hidden && !(t.title || "").startsWith("Eierens modul, satt sammen av"));
     for (const t of vis) if (t.querySelector("img")) t.querySelector("img").loading = "eager";
     await new Promise((r) => setTimeout(r, 1500));
     return [vis.length, vis.filter((t) => t.querySelector("img")?.naturalWidth > 0).length];

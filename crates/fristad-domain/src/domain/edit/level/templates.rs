@@ -4,8 +4,8 @@
 //! løsnes i ett nivå (`LevelOp::Detach`, `DocModule.hidden`).
 
 use super::{mm, mm3, Change, Entry, LevelEditor};
-use crate::domain::world::crypt::compose::{modules, Compiler, Severity, CELL};
-use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, ModuleDef, Thing};
+use crate::domain::world::crypt::compose::{modules, Compiler, Severity, CELL, SIDES};
+use crate::domain::world::crypt::doc::{DocLight, DocLink, DocModule, DocOverride, LevelDoc, LevelId, ModuleDef, ModuleOpening, Thing};
 use glam::Vec3;
 
 impl LevelEditor {
@@ -212,7 +212,7 @@ impl LevelEditor {
             return Err(i.msg.clone());
         }
         let names: Vec<String> = tpl.modules.iter().map(|m| m.name.clone().or_else(|| self.kit.module(&m.module).map(|d| d.name.clone())).unwrap_or_else(|| m.id.clone())).collect();
-        Ok(ModuleDef {
+        let mut def = ModuleDef {
             id,
             name: name.to_string(),
             theme,
@@ -226,7 +226,55 @@ impl LevelEditor {
             things: flat.things,
             links: flat.links,
             lights: flat.lights,
-        })
+        };
+        self.outer_openings(&tpl, &mut def);
+        Ok(def)
+    }
+
+    /// Åpningene på kanten av utvalget tar med seg slaget de hadde
+    /// (eierens valg i `overrides` først, så modulens eget), så den nye
+    /// modulen gir det samme når den settes ut igjen: mur blir `walls`,
+    /// de andre slagene `openings`. En side som ikke var en åpning i
+    /// modulen den kom fra (modulens `walls`), blir mur. Porten, snarveien
+    /// og den falske veggen beholder navnet eieren ga dem (koblingene i
+    /// utvalget peker dit); ellers heter den etter åpningen i den nye
+    /// modulen, og koblingene følger med.
+    fn outer_openings(&self, tpl: &LevelDoc, def: &mut ModuleDef) {
+        let (outer, _) = modules::openings(def, &self.kit);
+        for o in outer {
+            let at = [o.at[0], o.at[1]];
+            let side = SIDES[o.side].to_string();
+            let from = tpl.modules.iter().find(|m| o.cell.starts_with(&format!("{}/", m.id))).and_then(|m| {
+                let p = modules::placed_openings(m, &self.kit).into_iter().find(|p| p.cell == o.cell && p.side == o.side)?;
+                Some((m, p))
+            });
+            let Some((m, p)) = from else {
+                def.walls.push(ModuleOpening { id: String::new(), at, side, kind: String::new() });
+                continue;
+            };
+            let ov = m.overrides.iter().find(|v| v.opening == p.id);
+            let kind = ov.map(|v| v.kind.clone()).filter(|k| k != "auto").unwrap_or_else(|| p.kind.clone());
+            match kind.as_str() {
+                "auto" | "" => {}
+                "vegg" => def.walls.push(ModuleOpening { id: String::new(), at, side, kind: String::new() }),
+                _ => {
+                    let thing = ["port", "snarvei", "falsk"].contains(&kind.as_str());
+                    let id = ov.and_then(|v| v.id.clone()).filter(|_| thing).unwrap_or_else(|| format!("{},{},{}", at[0], at[1], side));
+                    if thing {
+                        // Innholdet på kanten het `<modul>/<åpning>` i utvalget.
+                        let old = ov.and_then(|v| v.id.clone()).unwrap_or_else(|| format!("{}/{}", m.id, p.id));
+                        for l in &mut def.links {
+                            for end in [&mut l.from, &mut l.to] {
+                                if *end == old {
+                                    *end = id.clone();
+                                }
+                            }
+                        }
+                    }
+                    def.openings.push(ModuleOpening { id, at, side, kind });
+                }
+            }
+        }
     }
 
     /// Ta en modul inn i byggesettet (eierens egen, lagret eller husket i
