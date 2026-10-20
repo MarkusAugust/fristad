@@ -201,7 +201,9 @@ impl LevelEditor {
         let tpl = self.template(ids, name);
         let first = tpl.modules.first().ok_or("Velg minst én modul først")?;
         let theme = if self.doc.theme.is_empty() { self.kit.module(&first.module).map(|m| m.theme.clone()).unwrap_or_else(|| "grav".into()) } else { self.doc.theme.clone() };
-        let id = format!("{theme}/{slug}");
+        // I samme mappe som modulene den er laget av (settet, `grav/`).
+        let set = self.kit.module(&first.module).and_then(|m| m.id.split_once('/')).map(|(s, _)| s.to_string()).unwrap_or_else(|| theme.clone());
+        let id = format!("{set}/{slug}");
         if self.kit.module(&id).is_some_and(|m| !m.about.starts_with(OWN)) {
             return Err(format!("Modulen «{id}» finnes i byggesettet; velg et annet navn"));
         }

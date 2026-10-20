@@ -845,4 +845,14 @@ Den gamle krypten kastes (plan del 15), så mekanismene og temaene kommer som mo
 
 **Valg:** Rommets farge gjelder faklene og modulenes lys, ikke lysene eieren har satt ut (de har sin egen farge). Lyden «stille» ble ikke tatt med (dryppet i kjelleren er alltid der; det ville trengt et nytt felt i `Ambience`). Etasjene står 6 m fra hverandre som i byggesettet. Malene er nivådokumenter (`LevelDoc` med `status: "mal"`). Ctrl+1–9 tas av noen nettlesere til faner, så Shift+1–9 gjør det samme.
 
-**Gjenstår:** snitt i 3D, løseren med «Rett» (del 16, fase 4 i den gamle planen), og eierens egne moduler (Ctrl+G lager en mal, ikke en modul).
+**Gjenstår:** snitt i 3D, løseren med «Rett» og eierens egne moduler: gjort i del 27.
+
+## 27. Status: snitt i 3D, «Rett» og egne moduler (20. oktober)
+
+**Gjort** (`src/level_editor_tests.rs`: `rett_retter_de_vanlige_bruddene`, `utvalget_blir_en_ny_modul`, snittet i `nivaaredigeringen_har_ingen_himmel`; `tools/nivaa-test.mjs`):
+- **Nåbarheten** bruker kompilatorens nett med stige- og heislenkene (`compose::reach`, alle porter åpne); står start ikke innen 1,5 m av nettet, er det feilen «startstedet står ikke på gulvet». Den egne løkka over stigene og heisene er borte.
+- **Snittet i 3D:** S kutter også 3D over etasjen kartet viser (`LevelCommand::Cut`, `Frame.clip`, `CUT_HEIGHT` 2,4 m over gulvet): et eget pass (`fs_clip` i `world.wgsl`) forkaster det som ligger over planet, det som ligger helt over tegnes ikke (båndet), og med arbeidslyset lyser et lys like under snittet der du ser ned. Det vanlige passet er fortsatt uten `discard`. `snapshot --level-edit NAVN --cut Y`.
+- **«Rett»** (`edit/level/fixes.rs`, `MapIssue.fix`): en knapp ved bruddet når rettingen er entydig. En åpning eieren har gitt et slag som ikke møter noe (ny advarsel `aapning`: den ble mur uten at det syntes) → «Gjør til mur»; en spak uten mål → «Koble til porten …» (den nærmeste porten, broa, slusa eller heisen uten spak, ellers den nærmeste); en tom lapp → tekstfeltet; en fiende i et for lavt rom → bosshallen i paletten; en modul ingen kommer til → den av åpningene som er nærmest det man kommer til. Det som endrer dokumentet er en vanlig `LevelOp` med angre.
+- **Egne moduler:** Ctrl+Shift+G (eller «Lagre som modul» med flere valgt) gjør utvalget til en modul (`LevelEditor::as_module`): modulene utvidet til cellene (`modules::flatten`) med kantene der de møttes, rommene, innholdet, lysene og koblingene, flyttet til origo, i fast form (`data::module_json`). Den tas inn i byggesettet med en gang (`LevelCommand::AddModule`, `engine.level_module`, `level_add_module`), står i paletten med «Bilde mangler» til `module_shots.py` har tatt bildet, huskes i nettleseren (`fristad.nivaa.moduler`) og legges i `assets/levels/moduler/<tema>/<navn>.json` når du lagrer (som malene). Byggesettets egne moduler skrives ikke over; beskrivelsen begynner med `OWN`.
+
+**Gjenstår:** bildet av en ny modul tas ikke i nettleseren (kjør `module_shots.py` etter at den er slått inn); åpningene en egen modul arver mot moduler utenfor utvalget er automatiske (eierens slag på dem følger ikke med).
