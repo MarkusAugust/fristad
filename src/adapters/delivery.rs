@@ -90,13 +90,13 @@ pub fn level_files(n: u32) -> impl Iterator<Item = &'static (&'static str, &'sta
 /// som ikke trengs til første bilde i byen. Innsiden (`…_interior`),
 /// møblene, galleriplatene, fiendene, armsettene og våpnene (det du har på
 /// hentes straks), og kryptens modeller (byggesettet og det fiendene
-/// mister). Bitene til kryptnivåene hentes for seg (`level_of`).
+/// mister, og buen bueskytteren holder). Bitene til kryptnivåene hentes for seg (`level_of`).
 pub fn lazy(name: &str, path: &str) -> bool {
     level_of(path).is_none()
         && (name.ends_with("_interior")
             || name.starts_with("gallery_")
             || ["furniture/", "mobs/", "arms/", "crypt/"].iter().any(|d| path.starts_with(d))
-            || ["token", "bolt", "key"].contains(&name))
+            || ["token", "bolt", "key", "bow"].contains(&name))
 }
 
 /// Manifestet: det monteringen trenger om hver modell som hentes senere

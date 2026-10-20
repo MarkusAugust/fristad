@@ -1178,6 +1178,32 @@ fn lydene_finnes() {
 
 /// Fiendene har alle klippene fra mob_motion.py, og hodet dreier seg mot
 /// spilleren når de har sett deg.
+/// Bueskytteren holder buen i venstre hånd (eieren 20. oktober: «det ser
+/// rart ut at den angriper med buen på ryggen og tomme hender»): grepet står
+/// i hånda i hvile og i skuddet, og buen står loddrett når pila går
+/// (bilde 15 av 30, `attack_shoot`).
+#[test]
+fn bueskytteren_holder_buen() {
+    use glam::Affine3A;
+    let p = world();
+    assert!(crate::adapters::gltf::model_files().any(|(n, _)| *n == "bow"), "buen mangler");
+    let all = rigs(&p.models);
+    let (_, rig) = all.iter().find(|(n, _)| n == "breadcrumb_archer").expect("bueskytteren");
+    let (bow, hand) = (rig.joint("bow").expect("beinet «bow»"), rig.joint("hand.L").unwrap());
+    let place = |pose: &crate::domain::anim::Pose| Affine3A::from_mat4(rig.joint_transform(pose, bow)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
+    let attack = rig.clip("attack").unwrap();
+    for (what, pose) in [("hvile", rig.rest()), ("skuddet", rig.sample(attack, 15.0 / 24.0, false))] {
+        let t = place(&pose);
+        let grip = Vec3::from(t.translation);
+        let wrist = rig.joint_transform(&pose, hand).w_axis.truncate();
+        assert!(grip.distance(wrist) < 0.15, "{what}: grepet står {:.2} m fra håndleddet", grip.distance(wrist));
+        if what == "skuddet" {
+            let along = t.transform_vector3(Vec3::Y).normalize();
+            assert!(along.y.abs() > 0.8, "buen står ikke loddrett i skuddet: {along}");
+        }
+    }
+}
+
 #[test]
 fn fiendene_ser_mot_deg() {
     use crate::domain::mobs::{Kind, Mobs, State};

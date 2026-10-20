@@ -256,6 +256,11 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **Gjort:** fiendene har 50 % mer liv (`TOUGHNESS` i `mob_kind.rs`, alle slag, eliten og bossene i samme forhold); kampen ellers som før. Senga koster 10 tokens (`SLEEP_PRICE`, avslag uten råd). Boka gir fullt liv, full utholdenhet og 2 minutter olje, én gang per komponent per tur. Brønnen og døden er som før.
 - **Gjort:** første gang ned i krypten åpnes lappen fra mester Ansgar (`crypt::run::ANSGAR_TEXT`): målet, H hjem gjennom virvelen, lykta, døden og hvilestedene. Den står i journalen og kommer ikke igjen (`SaveData.lore`).
 
+### 13j. Pussen etter dommen 20. oktober
+- **Gjort:** galleriet er lukket under trappa (enden er mur), har sokkel langs alle murene og trappemuren, fakkel i alle festene og lys under galleriet; plastsømmene i kjernens mur er greinete sprekker med svidd kant, magenta glød og plast som buler ut (`kit_mech.seam`).
+- **Gjort:** Navbaren holder armene lavt og feier i angrepet (`attack_sweep`); kortknekten tasser så knærne holder seg under plata; irrbloset tar ikke kanten av kuben med vingene; bueskytteren holder buen `bow` i venstre hånd (`mob_rigs::HELD`) og skyter fra den; bjørka er én ting i redigeringen (`nature::companions`).
+- **Gjenstår:** buen på bueskytterens rygg er grodd inn i TRELLIS-skallet og står som reservebue (trenger et nytt bilde uten bue på ryggen om den skal bort). Dropdownen, Progress-formannen og spinneren er godkjent og uendret.
+
 ## 14. Komponentene: mer å finne, og bytte hos kjøpmannen (eieren 18. oktober, i kø)
 
 Eieren spilte hele spillet gjennom uten å få smidd mer enn første trinn av utstyret: komponentene som trengs, kommer for sjelden.

@@ -111,6 +111,7 @@ struct Clips {
     /// riggens rom.
     look: Option<(usize, usize)>,
     up: Vec3,
+    held: Option<(usize, &'static str)>, // det den holder (`mob_rigs::HELD`)
 }
 
 #[derive(Clone, Debug)]
@@ -877,6 +878,7 @@ impl Mobs {
                     // Modellens front er +X; yaw regner front som (sin, 0, cos).
                     let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(lean);
                     let t = Affine3A::from_rotation_translation(rot, m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
+                    out.extend(mob_rigs::held(rig, &pose, clips, t, flash));
                     out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None, look: None });
                 }
                 _ => {

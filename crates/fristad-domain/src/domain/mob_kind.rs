@@ -180,7 +180,7 @@ impl Kind {
             Kind::Navbar => "Ridderkongen i tronsalen, med åket og de fem skjoldene. Lenkene er smidd av Rådets regler, ett ledd for hver regel. Den skulle vise alle veien, men bare den ene. Neven slår hardt: gå til siden.",
             Kind::Dropdown => "Steinkjempen i Krystallgrotta, med krystallene som gror ut av skuldrene. Valgene ligger lagvis på brystet, men den viser bare ett om gangen. Langsom og tung: slabbene treffer hardt.",
             Kind::TwinWarden => "Halvt stein og halvt hvit plast, sydd sammen med en glødende søm under kongens segl. Steinsida er tung, den hvite stiv og rykkete. Bærer nøkkelen.",
-            Kind::Archer => "En smal kjede av steinledd med bue og kogger på ryggen. Står på murene og skyter. Gå tett på den.",
+            Kind::Archer => "En smal kjede av steinledd med buen i hånda og koggeret på ryggen. Står på murene og skyter. Gå tett på den.",
             Kind::SkeletonLoader => "Et skjelett av grå staver som later som noe er på vei. Rykker fram ledd for ledd, stopper opp, og kommer igjen.",
             Kind::GridWarden => "Bygd av hule hvite celler i rader og kolonner, stiv som en hylle. Hver celle har sin plass, og den går dit den skal.",
             Kind::Spinner => "Et steinhjul med jerntenner på fire korte bein. Det snurrer og snurrer, og hullet i navet er munnen.",

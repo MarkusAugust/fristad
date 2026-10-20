@@ -306,7 +306,10 @@ fn main() {
     // teller ikke.
     if flag("--bolt") {
         let side = arg("--bolt-side").map(|s| s.parse().unwrap()).unwrap_or(0.0);
-        assert!(app.session.input_ahead(7.0, side), "ikke fritt gulv foran deg til inputen");
+        // --bolt-kind NAVN: et annet slag enn inputen (`Kind::key`, f.eks. bueskytter), --bolt-dist M så langt foran.
+        let kind = arg("--bolt-kind").map(|k| fristad::domain::mob_kind::Kind::ALL.into_iter().find(|m| m.key() == k).expect("ukjent slag")).unwrap_or(fristad::domain::mob_kind::Kind::Input);
+        let dist = arg("--bolt-dist").map(|s| s.parse().unwrap()).unwrap_or(7.0);
+        assert!(app.session.foe_ahead(kind, dist, side), "ikke fritt gulv foran deg til fienden");
         let at: f32 = arg("--bolt-at").map(|s| s.parse().unwrap()).unwrap_or(0.95);
         for _ in 0..(at * 60.0) as usize {
             app.tick(1.0 / 60.0);

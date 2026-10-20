@@ -32,6 +32,8 @@ impl Mob {
         let s = self.scale();
         let (up, ahead) = match self.kind {
             Kind::Input | Kind::Toast => (0.32, 0.5),
+            // Bueskytteren skyter fra buen i venstre hånd, i skulderhøyde.
+            Kind::Archer => (1.15, 0.6),
             _ => (1.3, 0.6),
         };
         self.pos + Vec3::Y * up * s + Vec3::new(self.yaw.sin(), 0.0, self.yaw.cos()) * ahead * s

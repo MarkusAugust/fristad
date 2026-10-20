@@ -140,6 +140,8 @@ models! {
     "token" => "props/token.glb",
     // Markøren inputen og Toast spytter (tools/models/bolt.py).
     "bolt" => "props/bolt.glb",
+    // Buen bueskytteren holder (tools/models/bow.py, `mob_rigs::HELD`).
+    "bow" => "props/bow.glb",
     "npc_smith" => "npcs/npc_smith.glb",
     "npc_clerk" => "npcs/npc_clerk.glb",
     "npc_apothecary" => "npcs/npc_apothecary.glb",

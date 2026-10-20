@@ -184,6 +184,12 @@ impl Session {
     /// (der gulvet er fritt), som har sett deg og spytter straks (til
     /// skjermbildene, `--bolt`).
     pub fn input_ahead(&mut self, ahead: f32, side: f32) -> bool {
+        self.foe_ahead(MobKind::Input, ahead, side)
+    }
+
+    /// Bare én fiende av slaget `kind` foran deg, som har sett deg (til
+    /// skjermbildene, `snapshot --bolt --bolt-kind`).
+    pub fn foe_ahead(&mut self, kind: MobKind, ahead: f32, side: f32) -> bool {
         let feet = self.body.sole();
         let f = self.forward().with_y(0.0).normalize_or_zero();
         let right = f.cross(Vec3::Y);
@@ -192,7 +198,7 @@ impl Session {
         let Some(at) = spot else { return false };
         self.mobs.mobs.clear();
         self.mobs.bolts.clear();
-        let i = self.mobs.spawn_aware(MobKind::Input, at);
+        let i = self.mobs.spawn_aware(kind, at);
         self.mobs.mobs[i].yaw = (feet - at).x.atan2((feet - at).z);
         true
     }
