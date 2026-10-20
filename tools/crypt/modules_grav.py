@@ -206,9 +206,14 @@ MODULES = [
     module("galleri", "Galleriet", "rom",
            "En sal på 12 × 12 m i to etasjer: et galleri 5 m oppe langs nordmuren med rekkverk, trapp opp langs vestmuren, "
            "krysshvelv med ribber til 11 m, gangene ut i sør og øst nede og i nord fra galleriet.",
-           [{"id": "sal", "bit": "grav/galleri", "at": [0, 0, 0], "rot": 0}], 0.7,
+           [{"id": "sal", "bit": "grav/galleri", "at": [0, 0, 0], "rot": 0}], 1.0,
+           # Alle festene har fakkel, og to lys under galleriet og ett ved
+           # trappefoten, så hjørnene under det ikke blir svarte.
            lights=[{"id": "galleri", "anchor": "celle:sal", "pos": [0, 7.6, -3.6], "color": [1.0, 0.68, 0.38], "range": 9, "flicker": False, "intensity": 1.4},
-                   {"id": "hvelv", "anchor": "celle:sal", "pos": [0, 9.2, 1.5], "color": [0.95, 0.74, 0.55], "range": 8, "flicker": False, "intensity": 1.2}]),
+                   {"id": "hvelv", "anchor": "celle:sal", "pos": [0, 9.2, 1.5], "color": [0.95, 0.74, 0.55], "range": 8, "flicker": False, "intensity": 1.2},
+                   {"id": "under_v", "anchor": "celle:sal", "pos": [-2.2, 3.3, -3.8], "color": [1.0, 0.64, 0.34], "range": 6.5, "flicker": False, "intensity": 1.6},
+                   {"id": "under_o", "anchor": "celle:sal", "pos": [2.6, 3.3, -3.8], "color": [1.0, 0.64, 0.34], "range": 6.5, "flicker": False, "intensity": 1.6},
+                   {"id": "trappefot", "anchor": "celle:sal", "pos": [-2.4, 2.4, 3.6], "color": [1.0, 0.66, 0.36], "range": 6, "flicker": False, "intensity": 1.2}]),
     module("skattkammer", "Skattkammeret", "ferdig",
            "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
            "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",

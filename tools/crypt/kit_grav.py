@@ -156,6 +156,11 @@ MATS = {
     # bildet `core_plastic` er ikke et teksturlag ennå (lagene er nesten
     # fulle), så plasten er kalkpuss med en kald, lys tone og lav ruhet.
     "plastic": ("plaster_white", (0.82, 0.83, 0.86), 0.22),
+    # Plastsømmene i kjernens mur (`kit_mech.seam`): svidd stein langs
+    # sprekken (ikke murlaget, så steinbyttet ikke tar det) og plasten som
+    # buler ut, kald og litt rosa.
+    "scorch": ("plaster_old", (0.06, 0.045, 0.06), 0.8),
+    "plastic_seam": ("plaster_white", (0.78, 0.66, 0.84), 0.18),
     "fire_torch": None,
     "fire_candle": None,
     "fire_lamp": None,
@@ -165,7 +170,7 @@ MATS = {
     "magic_down": None,
     "magic_bonus": None,
     "magic_seam": None,  # sømmene som lyser fiolett i muren (nivå 9–10)
-    "magic_seam_dim": None,  # plastsømmene i kjernens mur (`kit_mech.vegg_som`), svakere
+    "magic_vein": None,  # plastsømmene i kjernens mur (`kit_mech.vegg_som`): magenta
     "water": None,
 }
 # Fargene til de spesielle materialene (lineær RGB).
@@ -179,7 +184,7 @@ SPECIAL = {
     "magic_down": ((0.25, 0.45, 1.0), 0.3),
     "magic_bonus": ((1.0, 0.72, 0.25), 0.3),
     "magic_seam": ((0.7, 0.35, 1.0), 0.2),
-    "magic_seam_dim": ((0.22, 0.07, 0.38), 0.2),
+    "magic_vein": ((0.42, 0.01, 0.28), 0.2),
     "water": ((0.02, 0.04, 0.05), 0.05),
 }
 
