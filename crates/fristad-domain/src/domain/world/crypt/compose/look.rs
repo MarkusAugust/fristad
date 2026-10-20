@@ -101,7 +101,17 @@ pub(super) fn side_wall(c: &super::Cell, w: usize) -> bool {
 /// biten er laget med, så et rom aldri får to gulv (`check::floor_mix`).
 pub(super) fn cell_look<'a>(g: &'a Grid, c: &'a super::Cell, at: [i64; 3]) -> (&'a str, &'a [crate::domain::world::crypt::level::ColliderDef]) {
     let kept = g.kit.stones.base(&c.piece.theme).is_none_or(|b| b.floor == c.stone.floor);
-    c.piece.pick_where(c.doc.variant.as_deref(), roll(g.seed, [at[0], at[1], at[2], 0]), |v| kept || !v.own_floor)
+    // Eierens variant, ellers steinens (tømmeret i gruvas sjakt), ellers frøet.
+    let by_stone = c.stone.cell_variant.as_deref().filter(|v| c.piece.variants.iter().any(|x| x.id == *v));
+    c.piece.pick_where(c.doc.variant.as_deref().or(by_stone), roll(g.seed, [at[0], at[1], at[2], 0]), |v| kept || !v.own_floor)
+}
+
+/// Steinens cellevariant når cella fikk den (`tommer`), så murene i cella
+/// tar varianten med samme navn: sjakta og murene rundt kles med tømmer.
+/// Frøets varianter (gravhellene `b`) følger ikke med til murene.
+pub(super) fn cell_variant_id<'a>(c: &'a super::Cell, model: &str) -> Option<&'a str> {
+    let id = c.stone.cell_variant.as_deref()?;
+    c.piece.variants.iter().any(|v| v.id == id && v.model == model).then_some(id)
 }
 
 /// En trapp får ingen murvariant med egen form: nisjene stod som

@@ -303,3 +303,26 @@ fn den_boltede_fallemmen_apnes_bare_nedenfra() {
     assert!(game.crypt_now().open[t.switch], "lemmen gikk ikke opp nedenfra");
     assert_eq!(usable(&game), [true, true], "fiendene kan ikke bruke stigen når lemmen er åpen");
 }
+
+/// Gruvas tømmerforede sjakt og borgens skyteskår (eieren 20. oktober: ett
+/// sett moduler, nye biter bare der formen er en annen): berget og tømmeret
+/// gir sjakta tømmer (`cell_variant`), og murene i sjakta tar tømmeret; kvaderen
+/// gir skyteskår på annenhver mur (`wall_variant`). Gravkjelleren får ingen av dem.
+#[test]
+fn gruvesjakta_har_tommer_og_borgen_skyteskar() {
+    let count = |id: &str, model: &str| showcase(id).0.instances.iter().filter(|i| i.model == model).count();
+    assert_eq!(count("gruve/heis", "grav_sjakt_tommer"), 1, "gruvas sjakt er tømmerforet");
+    assert_eq!(count("gruve/heis", "grav_sjakt"), 0);
+    assert!(count("gruve/heis", "grav_vegg_tommer") >= 3, "murene i sjakta er kledd med tømmer");
+    assert_eq!(count("grav/heis", "grav_sjakt_tommer") + count("grav/heis", "grav_vegg_tommer"), 0, "gravkjellerens sjakt er av stein");
+    // Tømmeret står bare i sjakta, ikke i forrommet eller oppe.
+    let (f, _) = showcase("gruve/heis");
+    let sjakt = f.instances.iter().find(|i| i.model == "grav_sjakt_tommer").unwrap().pos;
+    for w in f.instances.iter().filter(|i| i.model == "grav_vegg_tommer") {
+        assert!((w.pos[0] - sjakt[0]).abs() <= 2.01 && (w.pos[2] - sjakt[2]).abs() <= 2.01 && (w.pos[1] - sjakt[1]).abs() < 0.01, "tømmeret står i sjakta: {:?}", w.pos);
+    }
+    assert!(count("borg/rom_3x3", "grav_vegg_skar") > 0, "borgen har skyteskår");
+    for id in ["grav/rom_3x3", "kloakk/rom_3x3", "kjerne/rom_3x3", "gruve/rom_3x3"] {
+        assert_eq!(count(id, "grav_vegg_skar"), 0, "{id}: skyteskårene hører borgen til");
+    }
+}

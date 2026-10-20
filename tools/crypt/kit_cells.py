@@ -993,7 +993,11 @@ def build():
     # (sarkofag, bein, kister) langs foten.
     # Muren med plastsømmer (kjernen) velges bare av steinen (`wall_variant`), aldri av frøet.
     vs = model("grav_vegg_som", kit_mech.vegg_som, "edge", "edge")
-    edge("vegg", v, "wall", mounts=[TORCH_MOUNT, {"kind": "pynt_vegg", "pos": [0.0, 0.0, WALL_T + 0.6], "yaw": 0.0}], var=variants(("a", v, 2.0), ("b", vb, 1.0, niche_solids()), ("som", vs, 0.0)))
+    # Tømmeret i gruvas sjakt (cella velger) og skyteskårene i borgen (kvaderen velger).
+    vt = model("grav_vegg_tommer", kit_mech.vegg_tommer, "edge", "edge")
+    vk = model("grav_vegg_skar", kit_mech.vegg_skar, "edge", "edge")
+    edge("vegg", v, "wall", mounts=[TORCH_MOUNT, {"kind": "pynt_vegg", "pos": [0.0, 0.0, WALL_T + 0.6], "yaw": 0.0}],
+         var=variants(("a", v, 2.0), ("b", vb, 1.0, niche_solids()), ("som", vs, 0.0), ("tommer", vt, 0.0, kit_mech.timber_solids()), ("skar", vk, 0.0, kit_mech.skar_solids())))
     edge("vegg_gang", model("grav_vegg_gang", lambda far: half("gang", far), "edge", "edge"), "gang", 2 * FACE, gang_h(0.0))
     edge("vegg_dor", model("grav_vegg_dor", lambda far: half("door", far), "edge", "edge"), "door", DOOR_W, DOOR_SPRING + DOOR_W / 2)
     edge("vegg_port", model("grav_vegg_port", lambda far: half("gate", far), "edge", "edge"), "gate", GATE_W, GATE_H)

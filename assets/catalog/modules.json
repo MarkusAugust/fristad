@@ -25,6 +25,7 @@
   "grav_romfelt_b",
   "grav_rotunde",
   "grav_sjakt",
+  "grav_sjakt_tommer",
   "grav_sjakt_topp",
   "grav_soyle",
   "grav_trapp2",
@@ -34,7 +35,9 @@
   "grav_vegg_falsk",
   "grav_vegg_gang",
   "grav_vegg_port",
-  "grav_vegg_som"
+  "grav_vegg_skar",
+  "grav_vegg_som",
+  "grav_vegg_tommer"
  ],
  "utgaar": {
   "_om": "Det som ikke dømmes lenger (eieren 19. oktober: «Det er 394 deler til godkjenning fortsatt. De fleste løse.»): bitene i de gamle kryptnivåene (`crypt_NN_*`, også de falske veggene) erstattes av nivåene bygd av moduler (docs/plan.md del 15, docs/nivaaredigering.md del 18 og 21), og byggesettets reservevegg brukes ikke der (den falske veggen er temaets egen, `grav_falsk`). De står i en sammenfoldet liste nederst på godkjenningssiden; dommene eieren alt har gitt, står.",

@@ -136,6 +136,9 @@ MATS = {
     "bones": ("ossuary", (1.0, 1.0, 1.0), 0.5),
     "fresco": ("plaster_old", (0.52, 0.55, 0.60), 0.62),  # gammel kalkpuss, mørk og kald (crypt_plaster så ut som et barnerom)
     "rubble": ("rubble", (1.0, 1.0, 1.0), 0.55),
+    # Tømmeret i gruvas sjakt (`kit_mech.vegg_tommer`): eget lag, som
+    # steinbyttet ikke rører.
+    "mine_timber": ("mine_timber", (0.95, 0.9, 0.86), 0.62),
     # Tre: planker (lemmer, pulter, skrin) og bjelker (stiger, håndtak,
     # slåer). Dørbildene (`bronze_door`, `door_b`) er hele bilder av en dør
     # og brukes bare på dørblad med uv 0–1 («leaf»; eierens dom i runde 7:

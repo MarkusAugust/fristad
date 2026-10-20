@@ -2036,6 +2036,14 @@
    "text": [
     "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
    ]
+  },
+  "74a1fea7db84": {
+   "text": [
+    "Malmen klippet ut av kanten. Rettet slik: haugen fra `rubble` (med tre store steiner som stakk gjennom plankene) er byttet mot en egen malmlast (`kit_mine.ore`): et høydefelt som bare dekker innsida av kassen, lavere enn kanten ved plankene og 0,2 m over den midt på, og fem små klumper som står helt innenfor. Kassen har fått innsida som vender inn og en kant på toppen (4 cm planker). Før/etter: kortet fra prøvenivået."
+   ],
+   "images": [
+    "assets/catalog/review/malmvogn_for_etter.jpg"
+   ]
   }
  },
  "mek_krystaller": {
@@ -2450,6 +2458,36 @@
     "verdict": "underkjent",
     "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender"
    }
+  }
+ },
+ "grav_sjakt_tommer": {
+  "5e0b3c208c0c": {
+   "text": [
+    "Ny variant `tommer` av sjakta (gruvas tømmerforede sjakt, plan del 25): kransen av tømmer øverst i sjakta, og murene i sjakta kles med stokker i hjørnene, stivere og knestøtter (`grav_vegg_tommer`, laget `mine_timber`). Berget og tømmeret velger den (`cell_variant` i `steiner.json`); gravkjellerens sjakt er som før. Før/etter: modulen heisen i berg."
+   ],
+   "images": [
+    "assets/catalog/review/sjakt_tommer_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_vegg_tommer": {
+  "5cc85de41696": {
+   "text": [
+    "Ny variant `tommer` av muren: tømmeret i gruvas sjakt (stokkene, stiverne og knestøttene, unna fakkelen), satt der sjakta har tømmer. Før/etter: modulen heisen i berg."
+   ],
+   "images": [
+    "assets/catalog/review/sjakt_tommer_for_etter.jpg"
+   ]
+  }
+ },
+ "grav_vegg_skar": {
+  "a01a8beeac6b": {
+   "text": [
+    "Ny variant `skar` av muren (borgens skyteskår, plan del 25): to skrå lysninger av hogd stein inn til en smal, mørk spalte, med overligger og brystningsstein. Kvaderen velger den på annenhver mur (`wall_variant`), og den kan låses per kant i redigeringen; ingen skår i trapper. Før/etter: rommet 2 × 2 i kvader."
+   ],
+   "images": [
+    "assets/catalog/review/vegg_skar_for_etter.jpg"
+   ]
   }
  }
 }
