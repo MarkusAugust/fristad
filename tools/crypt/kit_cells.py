@@ -77,6 +77,13 @@ PIL_W, PIL_OUT = 0.2, 0.15
 ROT_R = 5.0
 ROT_S, ROT_CROWN = 3.4, 7.6
 ROT_GANG = 1.6  # halve gangbredden ut fra rotunden (som murflaten i gangen)
+# Bosshallen (eieren 19. oktober: bossene er 4–5 m høye): et firkantet rom
+# 10 × 10 m i 3 × 3 celler, murene til vederlaget i 7 m og et krysshvelv
+# med ribber til 10 m, søyler i hjørnene under ribbene, og en gang ut midt
+# på hver side som i rotunden.
+HALL_Q = 5.0
+HALL_S, HALL_R = 7.0, 3.0
+HALL_TORCH_Y = 3.2
 
 
 def surf_face():
@@ -685,6 +692,133 @@ def rotunde(far=False):
     return m
 
 
+def hall_planes():
+    """Murflatene i bosshallen (nord, øst, sør, vest), u fra hjørnet, normalen inn."""
+    Q = HALL_Q
+    return [K.Plane((-Q, -Q), (1.0, 0.0), (0.0, 1.0), u0=0.0), K.Plane((Q, -Q), (0.0, 1.0), (-1.0, 0.0), u0=2 * Q),
+            K.Plane((Q, Q), (-1.0, 0.0), (0.0, -1.0), u0=4 * Q), K.Plane((-Q, Q), (0.0, -1.0), (1.0, 0.0), u0=6 * Q)]
+
+
+def groin_square(m, a, S, R, mat="vault", k=6):
+    """Krysshvelvet over et kvadrat med halv side `a` (som `groin`, større)."""
+    ts = vault_ts()
+    h = lambda t: S + R * math.sqrt(max(0.0, 1 - t * t))
+    arc = K.ellipse_arclen(a, R, ts)
+    for side in ("n", "s", "w", "e"):
+        for i in range(len(ts) - 1):
+            strips = []
+            for t, ar in ((ts[i], arc[i]), (ts[i + 1], arc[i + 1])):
+                y = h(t)
+                if side in "ns":
+                    zw = a if side == "s" else -a
+                    zd = a * abs(t) * (1 if side == "s" else -1)
+                    strips.append([((a * t, y, zw + (zd - zw) * q / k), (zw + (zd - zw) * q / k, ar)) for q in range(k + 1)])
+                else:
+                    xw = a if side == "e" else -a
+                    xd = a * abs(t) * (1 if side == "e" else -1)
+                    strips.append([((xw + (xd - xw) * q / k, y, a * t), (xw + (xd - xw) * q / k, ar)) for q in range(k + 1)])
+            A, B = strips
+            for q in range(k):
+                pts = [A[q][0], B[q][0], B[q + 1][0], A[q + 1][0]]
+                uvs = [A[q][1], B[q][1], B[q + 1][1], A[q + 1][1]]
+                c = K.lerp(K.lerp(pts[0], pts[1], 0.5), K.lerp(pts[2], pts[3], 0.5), 0.5)
+                facing = K.norm(K.sub((0.0, S - 2.0, 0.0), c))
+                if q == k - 1 and math.dist(pts[2], pts[3]) < 1e-6:
+                    m.poly(pts[:3], uvs[:3], mat, facing=facing, smooth=True)
+                else:
+                    m.poly(pts, uvs, mat, facing=facing, smooth=True)
+
+
+def hall(far=False):
+    """Bosshallen 3 × 3 (origo midt i midtcella): murene rundt et rom på
+    10 × 10 m opp til vederlaget, krysshvelvet med ribber over, søyler i
+    hjørnene under ribbene, sokkel og en gang ut midt på hver side (som
+    rotunden, så gangen eller overmuren på naboen passer)."""
+    m = K.MB()
+    E, Q = 3 * HALF, HALL_Q
+    top = HALL_S + HALL_R + 0.3
+    # Gulvet: kvadratet og gangene ut til kanten.
+    shape = sbox(-Q, -Q, Q, Q)
+    for sx, sz in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+        if sx == 0:
+            shape = shape.union(sbox(-HALF, min(0, E * sz), HALF, max(0, E * sz)))
+        else:
+            shape = shape.union(sbox(min(0, E * sx), -HALF, max(0, E * sx), HALF))
+    K.grid_face(m, K.Horizontal(0.0), shape, "floor", origin=(-E, -E))
+    # Murene med gangåpningen midt på.
+    ts = [t for t in vault_ts() if abs(t * HALF) <= ROT_GANG + 1e-9]
+    hole = Polygon([(Q - ROT_GANG, WALL_FOOT - 0.01)] + [(Q + t * HALF, gang_h(t * HALF)) for t in ts] + [(Q + ROT_GANG, WALL_FOOT - 0.01)])
+    for surf in hall_planes():
+        K.wall(m, surf, 2 * Q, WALL_FOOT, top, [hole], mat="wall")
+        if not far:
+            K.plinth(m, surf, [(0.0, Q - ROT_GANG, 0.0), (Q + ROT_GANG, 2 * Q, 0.0)], h=PLINTH_H, proud=PLINTH_OUT)
+    # Lysningen i gangene: fra muren ut til kanten, med gangens tønnehvelv.
+    arc = K.ellipse_arclen(HALF, GANG_R, ts)
+    for k in range(4):
+        ac = k * math.pi / 2
+        c, s = math.cos(ac), math.sin(ac)
+        R = lambda x, y, z: (x * c - z * s, y, x * s + z * c)
+        x0, x1 = Q - 0.02, E - WALL_T
+        for sz in (-1.0, 1.0):
+            pts = [R(x0, WALL_FOOT, sz * ROT_GANG), R(x1, WALL_FOOT, sz * ROT_GANG), R(x1, gang_h(ROT_GANG), sz * ROT_GANG), R(x0, gang_h(ROT_GANG), sz * ROT_GANG)]
+            m.poly(pts, [(x0, WALL_FOOT), (x1, WALL_FOOT), (x1, gang_h(ROT_GANG)), (x0, gang_h(ROT_GANG))], "wall", facing=R(0.0, 0.0, -sz))
+            if not far:
+                tmp = K.MB()
+                K.plinth(tmp, K.Plane((x0, sz * ROT_GANG), (1.0, 0.0), (0.0, -sz)), [(0.0, x1 - x0, 0.0)], h=PLINTH_H, proud=PLINTH_OUT)
+                for pts_, uvs_, mat_, sm_ in tmp.faces:
+                    m.poly([R(*p_) for p_ in pts_], uvs_, mat_, facing=R(*K.newell(pts_)), smooth=sm_)
+        for i in range(len(ts) - 1):
+            za, zb = ts[i] * HALF, ts[i + 1] * HALF
+            pts = [R(x0, gang_h(za), za), R(E, gang_h(za), za), R(E, gang_h(zb), zb), R(x0, gang_h(zb), zb)]
+            m.poly(pts, [(x0, arc[i]), (E, arc[i]), (E, arc[i + 1]), (x0, arc[i + 1])], "vault", facing=R(0.0, -1.0, -(za + zb) / 2), smooth=True)
+        if not far:
+            path = [R(Q - 0.06, gang_h(t * HALF), t * HALF) for t in ts]
+            K.band(m, path, 0.12, 0.2, mat="dressed", down=lambda p, R=R: K.sub(R(0.0, GANG_S, 0.0), (p[0], p[1], p[2])), stones=13 + 5 * k)
+    # Hvelvet, ribbene med konsollene i hjørnene, og søylene under dem.
+    groin_square(m, Q, HALL_S, HALL_R, k=3 if far else 6)
+    if not far:
+        K.groin_ribs(m, -Q, Q, -Q, Q, HALL_S, HALL_R, width=0.32, depth=0.2, stones=29)
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                K.pillar(m, sx * (Q - 0.55), sz * (Q - 0.55), 0.0, HALL_S - 0.85, size=0.62)
+    return m
+
+
+def hall_solids():
+    """Kolliderne i bosshallen: gulvet, murene (bak flatene, uten gangene),
+    murene langs gangene og søylene."""
+    E, Q = 3 * HALF, HALL_Q
+    top = HALL_S + HALL_R + 0.3
+    out = [{"box": {"center": [0.0, -0.25, 0.0], "size": [2 * E, 0.5, 2 * E]}}]
+    t = E - Q  # fra murflaten til kanten
+    for k in range(4):
+        c, s = round(math.cos(k * math.pi / 2)), round(math.sin(k * math.pi / 2))
+        for a, b in ((-E, -ROT_GANG), (ROT_GANG, E)):
+            cx, cz = Q + t / 2, (a + b) / 2
+            ctr = [cx * c - cz * s, (WALL_FOOT + top) / 2, cx * s + cz * c]
+            size = [t, top - WALL_FOOT, b - a] if c != 0 else [b - a, top - WALL_FOOT, t]
+            out.append({"box": {"center": [round(v, 4) for v in ctr], "size": [round(v, 4) for v in size]}})
+        # Over gangåpningen.
+        cx = Q + t / 2
+        ctr = [cx * c, (gang_h(0.0) + top) / 2 + 0.1, cx * s]
+        size = [t, top - gang_h(0.0) - 0.2, 2 * ROT_GANG] if c != 0 else [2 * ROT_GANG, top - gang_h(0.0) - 0.2, t]
+        out.append({"box": {"center": [round(v, 4) for v in ctr], "size": [round(v, 4) for v in size]}})
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            x, z = sx * (HALL_Q - 0.55), sz * (HALL_Q - 0.55)
+            out.append({"hull": [[round(px, 4), y, round(pz, 4)] for (px, pz) in K.chamfered((x, z), 0.96, 0.15) for y in (0.0, HALL_S - 0.85)]})
+    return out
+
+
+def hall_walk_rects():
+    """Det gangbare i bosshallen: kvadratet 0,4 m fra murene uten hjørnene
+    med søylene, og gangene ut (rektangler på 0,2 m)."""
+    E, q, cut, g = 3 * HALF, HALL_Q - 0.4, HALL_Q - 1.4, ROT_GANG - 0.4
+    out = [[-cut, -q, cut, q], [-q, -cut, -cut, cut], [cut, -cut, q, cut]]
+    out += [[-g, -E, g, -q], [-g, q, g, E], [-E, -g, -q, g], [q, -g, E, g]]
+    return [[round(v, 3) for v in r] for r in out]
+
+
 def rot_solids():
     """Kolliderne i rotunden: gulvet, muren rundt (bokser langs sirkelen mellom
     gangene) og fjellet i hjørnene."""
@@ -825,6 +959,17 @@ def build():
         rot_mounts.append({"kind": "fakkel", "pos": [ROT_R * math.cos(a), TORCH_Y, ROT_R * math.sin(a)], "yaw": math.atan2(-math.cos(a), -math.sin(a))})
     cell("rotunde", rot, [INNER] * 4, ROT_S - 0.4, walk=[{"rect": r, "y": [0.0, 0.0]} for r in rot_walk_rects()], solids=rot_solids(),
          mounts=rot_mounts, top=ROT_CROWN + 0.6, extra={"footprint": foot})
+
+    # Bosshallen: samme fotavtrykk og ganger som rotunden, høyere.
+    hall_mdl = model("grav_hall", hall, "rotunde", "rotunde")
+    hall_mounts = []
+    for surf in hall_planes():
+        n = surf.normal()
+        for u in (HALL_Q - 3.2, HALL_Q + 3.2):
+            px, _, pz = surf.point(u, HALL_TORCH_Y)
+            hall_mounts.append({"kind": "fakkel", "pos": [round(px, 4), HALL_TORCH_Y, round(pz, 4)], "yaw": round(math.atan2(n[0], n[2]), 6)})
+    cell("hall", hall_mdl, [INNER] * 4, HALL_S, walk=[{"rect": r, "y": [0.0, 0.0]} for r in hall_walk_rects()], solids=hall_solids(),
+         mounts=hall_mounts, top=HALL_S + HALL_R + 0.6, extra={"footprint": foot})
 
     def edge(pid, mdl, kind, width=0.0, height=0.0, mounts=(), var=None):
         p = {"id": f"{THEME}/{pid}", "model": mdl, "kind": "edge", "theme": THEME, "v": VERSION, "opening": kind, "width": width, "height": height,

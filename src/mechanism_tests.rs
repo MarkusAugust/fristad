@@ -28,6 +28,8 @@ fn modulene_har_hele_koblinger() {
         assert!(bad.is_empty(), "{}: {bad:?}", m.id);
         let links = check::links(&f);
         assert!(links.is_empty(), "{}: {:?}", m.id, links.iter().map(|i| &i.msg).collect::<Vec<_>>());
+        let tall = check::headroom(&f);
+        assert!(tall.is_empty(), "{}: {:?}", m.id, tall.iter().map(|i| &i.msg).collect::<Vec<_>>());
     }
 }
 
@@ -83,4 +85,43 @@ fn koblingene_som_ikke_henger_sammen_er_feil() {
     }
     let ok = LevelFile { marks: vec![mark("lever", "spak", &["port", "bro"]), mark("gate", "port", &[]), mark("bridge", "bro", &[])], ..Default::default() };
     assert!(check::links(&ok).is_empty(), "{:?}", check::links(&ok));
+}
+
+/// Hvert temagalleri (`moduler:<tema>`, bildene til eieren) har plass til
+/// lyset i alle rommene, og et nivå med flere enn 64 rom er en feil.
+#[test]
+fn galleriene_har_lys_i_alle_rommene() {
+    let k = kit();
+    let mut themes: Vec<&str> = k.modules.iter().filter_map(|m| m.id.split('/').next()).collect();
+    themes.sort();
+    themes.dedup();
+    assert!(themes.len() >= 5, "{themes:?}");
+    for t in themes {
+        let doc = crate::adapters::data::level_doc(&format!("moduler:{t}")).unwrap();
+        let (f, _) = compose::compile(&doc, &k);
+        assert!(check::rooms(&f).is_empty(), "{t}: {} rom", f.rooms.len());
+    }
+    let (all, _) = compose::compile(&modules::gallery(&k), &k);
+    assert!(!check::rooms(&all).is_empty(), "alle temaene i ett nivå skal være for mange rom ({})", all.rooms.len());
+}
+
+/// Bossene er 4–5 m høye: bosshallen har plass til dem i hvert tema, med
+/// arenaporten bak deg, og en boss i et vanlig rom er en feil.
+#[test]
+fn bossene_far_plass_i_bosshallen() {
+    let k = kit();
+    assert!(check::mob_height("navbar") >= 5.0 && check::mob_height("rammeverket") >= 4.5, "{} {}", check::mob_height("navbar"), check::mob_height("rammeverket"));
+    for t in ["grav", "kloakk", "gruve", "borg", "kjerne"] {
+        let (f, _) = showcase(&format!("{t}/bosshall"));
+        let boss = marks(&f, "boss");
+        assert_eq!(boss.len(), 1, "{t}");
+        let gate = marks(&f, "gate");
+        assert!(gate.len() == 1 && gate[0].arena.is_some(), "{t}: arenaporten");
+        let hall = f.rooms.iter().map(|r| r.h).fold(0.0f32, f32::max);
+        assert!(hall >= 7.0, "{t}: hallen er {hall} m");
+    }
+    let mut doc = modules::showcase(&k, "grav/rom_1x1").unwrap();
+    doc.things.push(crate::domain::world::crypt::doc::Thing { id: "boss".into(), kind: "boss".into(), anchor: "celle:m/c00".into(), pos: Some([0.0; 3]), label: Some("navbar".into()), ..Default::default() });
+    let (f, _) = compose::compile(&doc, &k);
+    assert!(check::headroom(&f).iter().any(|i| i.msg.contains("navbar")), "{:?}", check::headroom(&f));
 }

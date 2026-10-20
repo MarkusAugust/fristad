@@ -151,6 +151,21 @@ MODULES = [
                    {"id": "lapp", "kind": "lore", "anchor": "celle:c00", "pos": [1.15, 0, -1.1], "yaw": -45, "label": "Et blad fra munkene",
                     "text": "Den som tenner lyset her, våkner her. Fyll lykta før du går dypere; mørket der nede er ikke tomt."}],
            lights=[{"id": "hvilelys", "anchor": "celle:c00", "pos": [0, 1.6, -1.0], "color": [1.0, 0.7, 0.4], "range": 5, "flicker": True}]),
+    # Bosshallen (bossene er 4–5 m høye): hallen på 10 × 10 m med hvelvet
+    # til 10 m, og et forrom med arenaporten, som slår igjen bak deg til
+    # bossen faller.
+    module("bosshall", "Bosshallen", "ferdig",
+           "En hall på 10 × 10 m med krysshvelv til 10 m, søyler i hjørnene og en gang ut midt på hver side. Bossen venter i hallen, "
+           "og portgitteret mellom forrommet og hallen slår igjen bak deg til den faller.",
+           [{"id": "hall", "bit": "grav/hall", "at": [0, 0, 0], "rot": 0},
+            {"id": "forrom", "bit": "grav/romfelt", "at": [0, 0, 2], "rot": 0, "room": "forrom"}], 0.8,
+           rooms_extra=[{"id": "forrom", "name": "Forrommet", "theme": "grav", "mood": {"torches": 0.5}}],
+           things=[{"id": "port", "kind": "gate", "anchor": "kant:forrom/N"},
+                   {"id": "boss", "kind": "boss", "anchor": "celle:hall", "pos": [0, 0, -2.0], "yaw": 0, "label": "modal"},
+                   prop("krone", "kit_chandelier", "hall", [0, 9.95, 0], 0)],
+           links=[{"from": "port", "to": "rom", "kind": "arena"}],
+           lights=[{"id": "krone", "anchor": "celle:hall", "pos": [0, 6.9, 0], "color": [1.0, 0.68, 0.38], "range": 12, "flicker": True, "intensity": 3.0},
+                   {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": False}]),
     module("skattkammer", "Skattkammeret", "ferdig",
            "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
            "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",

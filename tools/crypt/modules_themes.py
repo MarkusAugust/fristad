@@ -24,7 +24,10 @@ BASE = os.path.join(ROOT, "assets", "levels", "moduler")
 
 # Formene fra gravkjelleren som hvert tema får (navnet i modules_grav).
 FORMS = ["rom_1x1", "rom_1x2", "rom_2x2", "rom_3x2", "rom_3x3", "gang_1", "gang_2", "gang_hjorne", "gang_t", "gang_kryss", "blindgang",
-         "halvtrapp", "halv_etasje", "nedgang", "rotunde"]
+         "halvtrapp", "halv_etasje", "nedgang", "rotunde", "bosshall"]
+
+# Bossen i bosshallen per tema (`Kind::from_label`).
+BOSSES = {"kloakk": "table", "gruve": "select", "borg": "navbar", "kjerne": "rammeverket"}
 
 # Temaet: navnet i paletten og fakkeltettheten (kloakken og gruva er
 # mørkere enn borgen).
@@ -46,6 +49,9 @@ def themed(theme, m, torches=None):
     name = m["id"].split("/", 1)[1]
     m["id"] = f"{theme}/{name}"
     m["theme"] = theme
+    for t in m.get("things", []):
+        if t.get("kind") == "boss" and theme in BOSSES:
+            t["label"] = BOSSES[theme]
     for r in m["rooms"]:
         r["theme"] = theme
         if torches is not None and r.get("mood", {}).get("torches", 0) > 0:

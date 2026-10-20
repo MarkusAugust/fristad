@@ -228,21 +228,28 @@ def modules_3d(root, items, levels, used):
     """«Se i 3D» for modulene: hver modul med naboene sine slik de står i
     nivået `moduler` (`tools/crypt/module_shots.py`, `snapshot --dump-doc`),
     flyttet til origo, som instanser av bitene."""
-    src = os.path.join(WORK, "moduler", "moduler.json")
-    if not os.path.exists(src):
-        return
-    with open(src) as f:
-        gal = json.load(f)
+    # Ett galleri per tema (`moduler.json` for gravkjelleren, ellers
+    # `moduler_<tema>.json`): lyset følger høyst 64 rom per nivå.
+    gals = {}
+
+    def gallery(theme):
+        if theme not in gals:
+            src = os.path.join(WORK, "moduler", "moduler.json" if theme == "grav" else f"moduler_{theme}.json")
+            gals[theme] = json.load(open(src)) if os.path.exists(src) else None
+        return gals[theme]
     urls = {}
     for it in items:
         if it["kind"] != "modul" or it["state"] != "venter":
             continue
         name = it["module"]
+        gal = gallery(it["name"].split("_", 1)[0])
+        if gal is None:
+            continue
         keep = [m for m in gal["doc"]["modules"] if m["id"] == name or m["id"].startswith(name + "_nabo")]
         if not keep:
             continue
         cells = [c for c in gal["flat"]["cells"] if any(c["id"].startswith(m["id"] + "/") for m in keep)]
-        reach = 6.0 if any("rotunde" in c["bit"] for c in cells) else 2.0
+        reach = 6.0 if any("rotunde" in c["bit"] or c["bit"].endswith("/hall") for c in cells) else 2.0
         xs = [c["at"][0] * 4.0 for c in cells]
         zs = [c["at"][2] * 4.0 for c in cells]
         lo, hi = (min(xs) - reach - 0.01, min(zs) - reach - 0.01), (max(xs) + reach + 0.01, max(zs) + reach + 0.01)
@@ -584,7 +591,7 @@ def build(out, render=True):
                 "prior": {k: e[k] for k in ("verdict", "date", "why") if k in e} if e else None,
                 "points": (e or {}).get("history") or ([e["why"]] if e and e.get("why") else []),
                 "fixed": (fix or {}).get("text", []),
-                "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1],
+                "path": path, "seen": (e or {}).get("seen"), "module": name.split("_", 1)[1] if name.startswith("grav_") else name,
             }
             shot = os.path.join(WORK, "moduler", f"{item['module']}.png")
             if st == "venter" and render and os.path.exists(shot):

@@ -195,3 +195,51 @@ pub fn links(file: &LevelFile) -> Vec<Issue> {
     }
     out
 }
+
+/// Lyset følger rommene i en maske på 64 bit (`Crypt::light_mask`): rom
+/// nummer 64 og over får ikke lys fra noe. Et nivå med flere rom er en feil
+/// (modulgalleriet med alle temaene ble svart bakerst).
+pub const MAX_ROOMS: usize = 64;
+
+pub fn rooms(file: &LevelFile) -> Vec<Issue> {
+    let n = file.rooms.len();
+    (n > MAX_ROOMS)
+        .then(|| Issue { severity: Severity::Error, rule: "lys", at: None, msg: format!("nivået har {n} rom; lyset følger bare de første {MAX_ROOMS}") })
+        .into_iter()
+        .collect()
+}
+
+/// Høyden en fiende trenger: modellene er rundt 2 m ved skala 1
+/// (`Kind::stats().scale`; Navbaren og Dropdownen er 5 m, Rammeverket 4–5 m),
+/// og 0,5 m over hodet til slaget.
+pub fn mob_height(label: &str) -> f32 {
+    2.0 * crate::domain::mob_kind::Kind::from_label(label).stats().scale + 0.5
+}
+
+/// Fiendene står i et rom med plass til høyden sin (eieren 19. oktober:
+/// hjelmen til bossen gikk opp i kuppelen): takhøyden i rommet de står i
+/// (`RoomDef.h`) er minst `mob_height`. Bossene trenger bosshallen.
+pub fn headroom(file: &LevelFile) -> Vec<Issue> {
+    let inside = |poly: &[[f32; 2]], x: f32, z: f32| {
+        let mut c = false;
+        for k in 0..poly.len() {
+            let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
+            if (a[1] > z) != (b[1] > z) && x < a[0] + (z - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) {
+                c = !c;
+            }
+        }
+        c
+    };
+    let mut out = vec![];
+    for m in file.marks.iter().filter(|m| matches!(m.kind.as_str(), "mob" | "elite" | "boss")) {
+        let Some(p) = m.pos else { continue };
+        let label = m.label.clone().unwrap_or_else(|| if m.kind == "boss" { "rammeverket".into() } else { "button".into() });
+        let need = mob_height(&label);
+        let Some(room) = file.rooms.iter().find(|r| (p[1] - r.y).abs() < 1.5 && inside(&r.poly, p[0], p[2])) else { continue };
+        if room.h + 0.01 < need {
+            let id = m.id.clone().unwrap_or_else(|| m.kind.clone());
+            out.push(Issue { severity: Severity::Error, rule: "takhoyde", at: m.pos, msg: format!("{id} ({label}) trenger {need:.1} m under taket, men {} har {:.1} m (bruk bosshallen)", room.name, room.h) });
+        }
+    }
+    out
+}

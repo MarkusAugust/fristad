@@ -335,7 +335,7 @@ def check(piece, mb, name):
                 if abs(x) < FACE - 0.05 and abs(z) < FACE - 0.05 and not hits(tree, (x, hi + 0.3, z), (0, 1, 0), top + 1.0):
                     out.append(f"{name}: hull i hvelvet ved {x:.2f}, {z:.2f}")
     elif kind == "cell":
-        # Rotunden: hvelvet og muren rundt fra midten.
+        # Rotunden og bosshallen: hvelvet og muren rundt fra midten.
         from kit_cells import ROT_GANG, ROT_R
 
         gang = math.asin(ROT_GANG / ROT_R) + 0.03
@@ -346,7 +346,8 @@ def check(piece, mb, name):
                 continue
             for v in (0.5, 1.5, 2.5, 3.3):
                 d = (math.cos(a), 0.0, math.sin(a))
-                if not hits(tree, (0.0, v, 0.0), d, ROT_R + 1.0):
+                # Til hjørnet av kvadratet (bosshallen er firkantet).
+                if not hits(tree, (0.0, v, 0.0), d, 3 * HALF * 1.5):
                     out.append(f"{name}: hull i muren mot {math.degrees(a):.0f}° i {v} m")
             for r in (1.0, 3.0, 4.6):
                 if not hits(tree, (r * math.cos(a), 1.0, r * math.sin(a)), (0, 1, 0), 12.0):
