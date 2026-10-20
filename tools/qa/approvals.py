@@ -92,7 +92,53 @@ def apply(path):
     with open(p, "w") as f:
         json.dump(ap, f, indent=1, ensure_ascii=False)
         f.write("\n")
+    return n + judged(rows)
+
+
+def judged(rows, came=None):
+    """Rettingene eieren har sett: en dom over versjonen en retting gjelder,
+    gitt etter at rettingen kom inn i `fixes.json`, gir rettingen `judged`
+    (dommens tid), så den ikke lenger venter (20. oktober: modulene eieren
+    godkjente på nytt med samme dom, ventet ellers for alltid). `came` gir
+    tiden en versjon kom inn (standard: første commit med den i fixes.json)."""
+    p = os.path.join(DATA, "fixes.json")
+    if not os.path.exists(p):
+        return 0
+    with open(p) as f:
+        fixes = json.load(f)
+    came = came or (lambda v: _first_commit(p, v))
+    n = 0
+    for row in rows:
+        d = row["data"]
+        name = row["id"].split("_", 1)[1]
+        ver = d.get("version") or ""
+        fix = (fixes.get(name) or {}).get(ver)
+        if d.get("verdict") not in VERDICTS or not fix or not fix.get("answers") or fix.get("judged"):
+            continue
+        t = came(ver)
+        if t and _utc(t) < _utc(d.get("at", "")):
+            fix["judged"] = d["at"]
+            n += 1
+    if n:
+        with open(p, "w") as f:
+            json.dump(fixes, f, indent=1, ensure_ascii=False)
+            f.write("\n")
     return n
+
+
+def _first_commit(path, version):
+    import subprocess
+    out = subprocess.run(["git", "log", "--reverse", "--format=%cI", "-S", f'"{version}"', "--", os.path.basename(path)],
+                         capture_output=True, text=True, cwd=os.path.dirname(path)).stdout.split()
+    return out[0] if out else None
+
+
+def _utc(t):
+    from datetime import datetime, timezone
+    try:
+        return datetime.fromisoformat(t.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return datetime.max.replace(tzinfo=timezone.utc)
 
 
 def main(argv):

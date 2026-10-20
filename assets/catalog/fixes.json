@@ -11,7 +11,8 @@
    "answers": {
     "verdict": "underkjent",
     "why": "bilde to, hånden ser ut som at den er bøyd som gummi"
-   }
+   },
+   "judged": "2026-10-13T18:00:14.002Z"
   }
  },
  "arms": {
@@ -440,7 +441,8 @@
    "answers": {
     "verdict": "usikker",
     "why": ""
-   }
+   },
+   "judged": "2026-10-13T21:12:22.331Z"
   }
  },
  "arms_mail": {
@@ -1905,7 +1907,8 @@
    "answers": {
     "verdict": "godkjent",
     "why": ""
-   }
+   },
+   "judged": "2026-10-20T14:39:51.809Z"
   }
  },
  "grav_rom_3x2": {
@@ -2275,7 +2278,8 @@
    "answers": {
     "verdict": "underkjent",
     "why": "ikke la det være synlig åpent under trappen"
-   }
+   },
+   "judged": "2026-10-20T14:36:03.221Z"
   }
  },
  "grav_gruvegang": {
@@ -2322,7 +2326,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen"
-   }
+   },
+   "judged": "2026-10-20T14:37:49.731Z"
   }
  },
  "grav_hvilested": {
@@ -2555,7 +2560,8 @@
    "answers": {
     "verdict": "underkjent",
     "why": "deler av kroppen følger med armen ut når han beveger på den"
-   }
+   },
+   "judged": "2026-10-20T14:34:12.323Z"
   }
  },
  "breadcrumb_archer": {

@@ -524,16 +524,44 @@ def state(entry, current, fix=None):
         return "venter"
     if entry.get("seen") != current:
         return "venter"
+    # Rettingen venter bare når den gjelder versjonen som står, og eieren ikke
+    # har dømt etter at den kom (`judged`, fra `apply`): ellers ventet en modul
+    # eieren godkjente på nytt med samme dom for alltid (20. oktober).
     ans = (fix or {}).get("answers")
-    if ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
+    fresh = fix and fix.get("version") in (None, current) and not fix.get("judged")
+    if fresh and ans and ans.get("verdict") == entry["verdict"] and ans.get("why", "") == entry.get("why", ""):
         return "venter"
     return "godkjent" if entry["verdict"] == "godkjent" else "hos_meg"
+
+
+def rule_errors():
+    """Regelen for hva som venter, prøvd på laget eksempler (20. oktober:
+    femten moduler eieren godkjente på nytt, ventet likevel): godkjent og
+    uendret venter ikke, heller ikke med en gammel retting eller en retting
+    eieren har dømt etter; endret eller rettet etter dommen venter."""
+    ok = {"verdict": "godkjent", "why": "", "seen": "v2"}
+    bad = {"verdict": "underkjent", "why": "hånda", "seen": "v2"}
+    answers_ok = {"text": ["…"], "answers": {"verdict": "godkjent", "why": ""}}
+    cases = [
+        ("godkjent og uendret", ok, "v2", None, "godkjent"),
+        ("godkjent, men endret siden", ok, "v3", None, "venter"),
+        ("godkjent med en retting i en eldre versjon", ok, "v2", fix_for({"x": {"v1": answers_ok}}, "x"), "godkjent"),
+        ("godkjent på nytt etter rettingen", ok, "v2", fix_for({"x": {"v2": dict(answers_ok, judged="2026-10-20T14:39:51Z")}}, "x"), "godkjent"),
+        ("rettet etter dommen, samme modell", ok, "v2", fix_for({"x": {"v2": answers_ok}}, "x"), "venter"),
+        ("underkjent og rettet i en ny versjon", bad, "v3", fix_for({"x": {"v3": {"text": ["…"], "answers": {"verdict": "underkjent", "why": "hånda"}}}}, "x"), "venter"),
+        ("underkjent og ikke rettet", bad, "v2", None, "hos_meg"),
+    ]
+    return [f"regelen for hva som venter: {what} gir {got}, ikke {want}"
+            for what, e, cur, fix, want in cases if (got := state(e, cur, fix)) != want]
 
 
 def fix_for(fixes, name):
     """Den siste rettingen av tingen (`fixes.json`: navn → versjon → retting)."""
     v = fixes.get(name) or {}
-    return list(v.values())[-1] if v else None
+    if not v:
+        return None
+    ver = list(v)[-1]
+    return dict(v[ver], version=ver)
 
 
 def migrate(answers_dir):
@@ -924,6 +952,7 @@ def audit():
         for n, e in ap.get(group, {}).items():
             if e.get("verdict") in ("godkjent", "underkjent", "usikker") and "seen" not in e:
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
+    errors += rule_errors()
     fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
     # «Rettet slik» er punkter (siden viser én linje per punkt).
     for n, vs in fixes.items():
