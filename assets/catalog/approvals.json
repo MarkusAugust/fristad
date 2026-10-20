@@ -3327,9 +3327,9 @@
   },
   "lute": {
    "verdict": "godkjent",
-   "date": "2026-10-19",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "90942e5ebfad"
+   "seen": "db40b8da9ae1"
   },
   "mace": {
    "verdict": "godkjent",
@@ -3345,9 +3345,9 @@
   },
   "npc_troubadour": {
    "verdict": "godkjent",
-   "date": "2026-10-19",
+   "date": "2026-10-20",
    "why": "",
-   "seen": "4f6eb77161d1"
+   "seen": "1339248a2011"
   },
   "shield_heater": {
    "verdict": "godkjent",
@@ -3383,24 +3383,26 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "ea308eee86e0"
+   "seen": "b5428540f7bd"
   },
   "breadcrumb_archer": {
    "verdict": "underkjent",
    "date": "2026-10-20",
-   "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender",
-   "seen": "e53ff7486a36",
+   "why": "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen",
+   "seen": "d53205c1895b",
    "history": [
-    "det ser rart ut at den angriper med buen på ryggen og tomme hender"
+    "det ser rart ut at den angriper med buen på ryggen og tomme hender",
+    "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen"
    ]
   },
   "card_squire": {
    "verdict": "underkjent",
    "date": "2026-10-20",
-   "why": "knærne kommer ut av kroppen når han går.",
-   "seen": "1bc6325f748d",
+   "why": "angrepet gjør at armen klippes inn i kroppen. finn på noe annet som fungerer med den formen dette monsteret har. kanskje en backflip hvor han sparker spilleren feks, eller virvelvind",
+   "seen": "c0d7045f74bb",
    "history": [
-    "knærne kommer ut av kroppen når han går."
+    "knærne kommer ut av kroppen når han går.",
+    "angrepet gjør at armen klippes inn i kroppen. finn på noe annet som fungerer med den formen dette monsteret har. kanskje en backflip hvor han sparker spilleren feks, eller virvelvind"
    ]
   },
   "dropdown": {
@@ -3422,19 +3424,29 @@
    "seen": "ce285e618ff7"
   },
   "navbar": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned",
-   "seen": "c3f238a32575",
+   "why": "",
+   "seen": "34b18256b259",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
+   },
    "history": [
     "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
    ]
   },
   "popover_wisp": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "deler av kroppen følger med armen ut når han beveger på den",
-   "seen": "d79b2dc2d3a1",
+   "why": "",
+   "seen": "4562d5097be2",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "deler av kroppen følger med armen ut når han beveger på den"
+   },
    "history": [
     "deler av kroppen følger med armen ut når han beveger på den"
    ]
@@ -3461,7 +3473,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "b5f33728f6c7"
+   "seen": "2a93ab5af583"
   },
   "spinner": {
    "verdict": "godkjent",
@@ -3491,7 +3503,19 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "4d7e0e7ad3b9"
+   "seen": "6bdd47c11435"
+  },
+  "bow": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "6c38d8d66673"
+  },
+  "potion": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "6e840a7a62a1"
   }
  },
  "modules": {
@@ -3499,13 +3523,13 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "8f2299ba71e2"
+   "seen": "df2596a1b37b"
   },
   "grav_gang_1": {
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "c9c7bceca7a8",
+   "seen": "08911b2560bb",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3519,7 +3543,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "c461e0168e29",
+   "seen": "f9c344ca9cf6",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3533,7 +3557,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "c350e6e511c2",
+   "seen": "94e59905614f",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3547,7 +3571,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "a381f538780d",
+   "seen": "9fb07aad4ede",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3561,7 +3585,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "c297933a44ce",
+   "seen": "74caff386cf4",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3572,14 +3596,14 @@
    ]
   },
   "grav_gravgang": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "jeg ser ikke kistene, men jeg antar at de kan byttes og/eller flyttes etterpå?",
-   "seen": "17bb823edf45",
+   "why": "",
+   "seen": "42ce8febdc03",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-19",
-    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "jeg ser ikke kistene, men jeg antar at de kan byttes og/eller flyttes etterpå?"
    },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
@@ -3590,7 +3614,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "7e017148a30b",
+   "seen": "66e2a3091af0",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3604,7 +3628,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "ff865d9a367d",
+   "seen": "6dcb8c459c0b",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3615,14 +3639,14 @@
    ]
   },
   "grav_kapell": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ser ikke inventaret på 3d visningen",
-   "seen": "7c8d5a8c948e",
+   "why": "",
+   "seen": "11bc56b92371",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-19",
-    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "ser ikke inventaret på 3d visningen"
    },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
@@ -3630,10 +3654,15 @@
    ]
   },
   "grav_nedgang": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ser ingen trapp ned, bare et grått hull",
-   "seen": "1b516ead0a1f",
+   "why": "",
+   "seen": "383354f2baf9",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "ser ingen trapp ned, bare et grått hull"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
     "ser ingen trapp ned, bare et grått hull"
@@ -3643,7 +3672,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "71b86d023937",
+   "seen": "873acc4faf82",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3657,13 +3686,13 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "a8a754bb38bc"
+   "seen": "f26efa6a1aa0"
   },
   "grav_rom_2x2": {
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "eb3f3f93dfa3",
+   "seen": "e4c28785b4f3",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3677,7 +3706,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "7627729a3863",
+   "seen": "60f11ace3b2d",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3691,7 +3720,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "223a1d8460d7",
+   "seen": "3df7b5fbb46c",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3702,24 +3731,29 @@
    ]
   },
   "grav_rotunde": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "litt rar farge på teksturere ved og i alkovene på veggene?",
-   "seen": "e219dba82d4a",
+   "why": "",
+   "seen": "f570f8270057",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "litt rar farge på teksturere ved og i alkovene på veggene?"
+   },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
     "litt rar farge på teksturere ved og i alkovene på veggene?"
    ]
   },
   "grav_skattkammer": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ser kun rommet i visningen. jeg antar at inventaret kan flyttes på og endres i etterkant?",
-   "seen": "e41c2fdf15ba",
+   "why": "",
+   "seen": "64ee54f5c90b",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-19",
-    "why": "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er"
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "ser kun rommet i visningen. jeg antar at inventaret kan flyttes på og endres i etterkant?"
    },
    "history": [
     "det er noen rare teksturer på veggene der det skal være alkover eller hva det nå enn er",
@@ -3757,7 +3791,7 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "f378ea87c629",
+   "seen": "60f9a9b12633",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-19",
@@ -3963,82 +3997,122 @@
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "d27e34ff03a5"
+   "seen": "dcee04161df4"
   },
   "grav_fellegang": {
    "verdict": "godkjent",
    "date": "2026-10-20",
    "why": "",
-   "seen": "faf69acfa408"
+   "seen": "2b435faa78a7"
   },
   "grav_galleri": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ikke la det være synlig åpent under trappen",
-   "seen": "3391cc81d6bd",
+   "why": "",
+   "seen": "ba0cb0389081",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "ikke la det være synlig åpent under trappen"
+   },
    "history": [
     "ikke la det være synlig åpent under trappen"
    ]
   },
   "grav_heis": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen",
-   "seen": "2f5655c8e0fd",
+   "why": "",
+   "seen": "71197fd0953f",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "rommet er fint men jeg ser ikke heisen i 3d-visningen"
+   },
    "history": [
     "rommet er fint men jeg ser ikke heisen i 3d-visningen"
    ]
   },
   "grav_hvilested": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ser ikke hvilestedet i 3d-visnignen",
-   "seen": "964b27842daf",
+   "why": "",
+   "seen": "40a668a3131c",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "ser ikke hvilestedet i 3d-visnignen"
+   },
    "history": [
     "ser ikke hvilestedet i 3d-visnignen"
    ]
   },
   "grav_nokkelport": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "ser ingen port i 3d-visningen",
-   "seen": "f6b419300b7f",
+   "why": "",
+   "seen": "7c2cb1e28cfb",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "ser ingen port i 3d-visningen"
+   },
    "history": [
     "ser ingen port i 3d-visningen"
    ]
   },
   "grav_porthall": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "rommet er greit men jeg ser ikke porten så jeg vet ikke",
-   "seen": "ac2f6e168d07",
+   "why": "",
+   "seen": "2eda60d63f35",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "rommet er greit men jeg ser ikke porten så jeg vet ikke"
+   },
    "history": [
     "rommet er greit men jeg ser ikke porten så jeg vet ikke"
    ]
   },
   "grav_snarvei": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "rommet er fint, ser ingen dør",
-   "seen": "323d707d078d",
+   "why": "",
+   "seen": "158faf039add",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "rommet er fint, ser ingen dør"
+   },
    "history": [
     "rommet er fint, ser ingen dør"
    ]
   },
   "grav_stige": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "rommet er fint, ser ingen stige",
-   "seen": "2c42217dbf53",
+   "why": "",
+   "seen": "a6fcbab1cb25",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "rommet er fint, ser ingen stige"
+   },
    "history": [
     "rommet er fint, ser ingen stige"
    ]
   },
   "grav_vindebro": {
-   "verdict": "usikker",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?",
-   "seen": "f620a7e6da87",
+   "why": "",
+   "seen": "d3dfce13608a",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?"
+   },
    "history": [
     "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?"
    ]
@@ -4629,10 +4703,15 @@
    "seen": "c6aba8441b4f"
   },
   "mek_malmvogn": {
-   "verdict": "underkjent",
+   "verdict": "godkjent",
    "date": "2026-10-20",
-   "why": "burde ses i 3d, for vanskeilig å bedømme dette, men jeg ser at innholdet i vognen klipper ut av kanten",
-   "seen": "602f10e173d2",
+   "why": "",
+   "seen": "74a1fea7db84",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette, men jeg ser at innholdet i vognen klipper ut av kanten"
+   },
    "history": [
     "burde ses i 3d, for vanskeilig å bedømme dette, men jeg ser at innholdet i vognen klipper ut av kanten"
    ]
@@ -4696,6 +4775,75 @@
    "history": [
     "burde ses i 3d, for vanskeilig å bedømme dette"
    ]
+  },
+  "grav_gruvegang": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "d23cabbe6983"
+  },
+  "grav_gruvesal": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "185fdb6e31fc"
+  },
+  "grav_kanal": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "f9d939b0ce12"
+  },
+  "grav_kjernerotunde": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "d9c22222004b"
+  },
+  "grav_krystallgrotte": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "c57e32b79064"
+  },
+  "grav_plastsal": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "4212a16c5fe6"
+  },
+  "grav_riddergang": {
+   "verdict": "underkjent",
+   "date": "2026-10-20",
+   "why": "her har du blandet teksturer på gulvet. den skal være samme hele veien",
+   "seen": "2e4b93e4f9d1",
+   "history": [
+    "her har du blandet teksturer på gulvet. den skal være samme hele veien"
+   ]
+  },
+  "grav_slusekammer": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "9bdd0cc8a12e"
+  },
+  "grav_smuglerlager": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "7cee77914e58"
+  },
+  "grav_tronsal": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "08d723a4ffe2"
+  },
+  "grav_vaktstue": {
+   "verdict": "godkjent",
+   "date": "2026-10-20",
+   "why": "",
+   "seen": "cbc2710f7beb"
   }
  }
 }
