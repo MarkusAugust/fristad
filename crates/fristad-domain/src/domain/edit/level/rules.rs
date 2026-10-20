@@ -13,13 +13,12 @@
 //! Usynlige vegger (`ingen_usynlige_vegger_i_krypten`) trenger fysikken og
 //! sjekkes i testene, ikke her.
 
-use crate::domain::world::crypt::compose::{check, modules, Issue, Report, Severity, CELL};
-use crate::domain::world::crypt::kit::KitDef;
-use crate::domain::world::crypt::doc::LevelDoc;
-use crate::domain::world::crypt::level::LevelFile;
-use crate::domain::world::crypt::nav::Nav;
-use crate::domain::world::crypt::HEADROOM;
 use super::footprint;
+use crate::domain::world::crypt::compose::{check, modules, reach, Issue, Report, Severity, CELL};
+use crate::domain::world::crypt::doc::LevelDoc;
+use crate::domain::world::crypt::kit::KitDef;
+use crate::domain::world::crypt::level::LevelFile;
+use crate::domain::world::crypt::HEADROOM;
 use glam::Vec3;
 
 /// Innholdet som må kunne nås fra start.
@@ -34,6 +33,7 @@ fn issue(severity: Severity, rule: &'static str, at: Option<[f32; 3]>, msg: Stri
 pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) -> Vec<Issue> {
     let mut out = vec![];
     stairs(doc, kit, report, &mut out);
+    chosen(doc, kit, report, &mut out);
     // Koblingene, takhøyden for fiendene, mekanismene og høyst 64 rom
     // (kompilatorens regler, de samme som `src/mechanism_tests.rs`).
     out.extend(check::links(file));
@@ -56,45 +56,16 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
             out.push(issue(Severity::Error, "tak", at, format!("taket i {} er {:.1} m over gulvet (minst {HEADROOM} m)", if r.name.is_empty() { &r.id } else { &r.name }, r.h)));
         }
     }
-    // Nåbarheten.
-    let verts: Vec<Vec3> = file.nav.verts.iter().map(|v| Vec3::from(*v)).collect();
-    let n = file.nav.polys.len();
-    let nav = Nav::new(&verts, &file.nav.polys, &vec![None; n], &vec![None; n]);
-    let all = |_: &crate::domain::world::crypt::nav::Poly| true;
+    // Nåbarheten: nettet med stigene og heisene som lenker og alle porter
+    // åpne (`compose::reach`, det samme som fiendene går på).
     let Some(start) = file.marks.iter().find(|m| m.kind == "start").and_then(|m| m.pos) else {
         return out;
     };
-    let Some((a, _)) = nav.nearest(Vec3::from(start), 1.5, &all) else {
+    let Some((nav, seen)) = reach(file, Vec3::from(start)) else {
         out.push(issue(Severity::Error, "naa", Some(start), "startstedet står ikke på gulvet".into()));
         return out;
     };
-    // Stigene og heisene kobler etasjene (de er ikke i nettet): det som
-    // kan nås i den ene enden, kan nås i den andre.
-    let mut seen = nav.reachable(a, &all);
-    let ends: Vec<(Vec3, Vec3)> = file
-        .marks
-        .iter()
-        .filter_map(|m| match m.kind.as_str() {
-            "ladder" => Some((Vec3::from(m.pos?), Vec3::from(m.top?))),
-            "lift" => Some((Vec3::from(m.pos?), Vec3::from(m.bottom?))),
-            _ => None,
-        })
-        .collect();
-    let mut grew = true;
-    while grew {
-        grew = false;
-        for (p, q) in &ends {
-            let (Some((i, _)), Some((j, _))) = (nav.nearest(*p, 2.0, &all), nav.nearest(*q, 2.0, &all)) else { continue };
-            for (from, to) in [(i, j), (j, i)] {
-                if seen[from as usize] && !seen[to as usize] {
-                    for (k, s) in nav.reachable(to, &all).into_iter().enumerate() {
-                        seen[k] |= s;
-                    }
-                    grew = true;
-                }
-            }
-        }
-    }
+    let all = |_: &crate::domain::world::crypt::nav::Poly| true;
     // Modulene: hver har minst én rute man kommer til fra start.
     for m in &doc.modules {
         let cells = footprint(m, kit);
@@ -102,7 +73,12 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
         if !reached && !cells.is_empty() {
             let c = cells[0];
             let name = m.name.clone().unwrap_or_else(|| m.id.clone());
-            out.push(issue(Severity::Warning, "naa", Some([c[0] as f32 * CELL, c[1] as f32, c[2] as f32 * CELL]), format!("{name} kan ikke nås fra start (ingen åpning, trapp, stige eller heis dit)")));
+            out.push(issue(
+                Severity::Warning,
+                "naa",
+                Some([c[0] as f32 * CELL, c[1] as f32, c[2] as f32 * CELL]),
+                format!("{name} kan ikke nås fra start (ingen åpning, trapp, stige eller heis dit)"),
+            ));
         }
     }
     for m in file.marks.iter().filter(|m| MUST_REACH.contains(&m.kind.as_str())) {
@@ -121,6 +97,32 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
         }
     }
     out
+}
+
+/// En åpning eieren har gitt et slag (dør, port, gang …) som ikke møter
+/// noen modul, blir mur uten at det synes (porten og koblingene til den
+/// forsvinner): en advarsel, som «Rett» gjør til mur (`fixes`).
+fn chosen(doc: &LevelDoc, kit: &KitDef, report: &Report, out: &mut Vec<Issue>) {
+    const STEP: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+    let joined = |at: [i32; 2], side: usize| {
+        report.edges.iter().any(|e| {
+            let (di, dj) = STEP[e.side];
+            (e.at[0], e.at[2], e.side) == (at[0], at[1], side) || ((e.at[0] + di, e.at[2] + dj) == (at[0], at[1]) && (e.side + 2) % 4 == side)
+        })
+    };
+    for m in &doc.modules {
+        let openings = modules::placed_openings(m, kit);
+        for v in m.overrides.iter().filter(|v| !matches!(v.kind.as_str(), "" | "auto" | "vegg")) {
+            let Some(o) = openings.iter().find(|o| o.id == v.opening) else { continue };
+            if joined(o.at, o.side) {
+                continue;
+            }
+            let (di, dj) = STEP[o.side];
+            let at = [o.at[0] as f32 * CELL + di as f32 * CELL * 0.5, o.y as f32, o.at[1] as f32 * CELL + dj as f32 * CELL * 0.5];
+            let name = m.name.clone().unwrap_or_else(|| m.id.clone());
+            out.push(issue(Severity::Warning, "aapning", Some(at), format!("«{}» i {name} ({}) møter ingenting og blir mur", v.kind, v.opening)));
+        }
+    }
 }
 
 /// Trappene henger sammen (eieren: «trappa ned og opp henger sammen»): en

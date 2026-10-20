@@ -1612,25 +1612,63 @@ function showIssues() {
     li.className = i.severity;
     li.textContent = i.msg;
     li.title = `${i.rule}${i.at ? " · klikk for å gå dit" : ""}`;
-    if (i.at) {
-      li.onclick = () => {
-        const [x, y, z] = i.at;
-        const f = st.map.floors.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a), st.floor);
-        setFloor(f);
-        st.view.cx = x;
-        st.view.cz = z;
-        st.flash = i.at;
-        setTimeout(() => {
-          st.flash = null;
-          redraw();
-        }, 1500);
-        const h = hit(st.map, f, x, z, 1);
-        if (h?.type === "module" || h?.type === "thing") select([h.id]);
-        engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
-        redraw();
+    if (i.at) li.onclick = () => goTo(i.at);
+    // «Rett»: rettingen når den er entydig (`edit/level/fixes.rs`).
+    if (i.fix) {
+      const b = document.createElement("button");
+      b.className = "chip fix";
+      b.textContent = i.fix.label;
+      b.title = "Rett bruddet (Ctrl+Z angrer)";
+      b.onclick = (e) => {
+        e.stopPropagation();
+        applyFix(i);
       };
+      li.append(" ", b);
     }
     list.append(li);
+  }
+}
+
+/// Gå til et sted i kartet og 3D: etasjen, utsnittet, valget og et blink.
+function goTo(at, pick = true) {
+  const [x, y, z] = at;
+  const f = st.map.floors.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a), st.floor);
+  setFloor(f);
+  st.view.cx = x;
+  st.view.cz = z;
+  st.flash = at;
+  setTimeout(() => {
+    st.flash = null;
+    redraw();
+  }, 1500);
+  if (pick) {
+    const h = hit(st.map, f, x, z, 1);
+    if (h?.type === "module" || h?.type === "thing") select([h.id]);
+  }
+  engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
+  redraw();
+}
+
+/// Gjør rettingen til et brudd (`MapIssue.fix`).
+function applyFix(i) {
+  const f = i.fix;
+  if (f.do === "op") {
+    if (send(f.op)) toast(`Rettet: ${f.label.toLowerCase()} (Ctrl+Z angrer)`);
+  } else if (f.do === "focus") {
+    const t = st.map.things.find((t) => t.id === f.thing);
+    if (t && !t.own) send({ op: "detach", id: f.thing });
+    if (i.at) goTo(i.at, false);
+    select([f.thing]);
+    const el = $("props").querySelector(f.field === "text" ? "#t-text" : `#t-${f.field}`);
+    el?.focus();
+  } else if (f.do === "palette") {
+    armModule(f.module);
+    document.querySelector(`.tile[data-module="${CSS.escape(f.module)}"]`)?.scrollIntoView({ block: "nearest" });
+    toast("Bosshallen er valgt i paletten: sett den ut og flytt fienden dit");
+  } else if (f.do === "show") {
+    goTo(f.at, false);
+    select([f.module]);
+    toast("Den nærmeste åpningen: åpne den mot noe man kommer til");
   }
 }
 

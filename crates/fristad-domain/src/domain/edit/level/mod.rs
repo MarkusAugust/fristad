@@ -8,6 +8,7 @@
 //! endret). Reglene er kompilatorens og de samme som testene (`rules`).
 //! Ingen nettleser, filer eller GitHub her: dokumentet inn, dokumentet ut.
 
+pub mod fixes;
 pub mod map;
 pub mod rules;
 mod templates;
@@ -105,7 +106,7 @@ impl Change {
 /// Det eieren gjør, som json fra nettlaget (`{"op": "add_module", …}`).
 /// Rutene er (i, y, j) (cellene på 4 × 4 m med gulvet i y meter), stedene
 /// for innhold er i nivåets rom (meter).
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum LevelOp {
     /// Sett ut en modul (`grav/kapell`) med midtcella i `at`.
@@ -118,7 +119,10 @@ pub enum LevelOp {
         mirror: bool,
     },
     /// Flytt moduler og innhold (rutene; innholdet 4 m per rute og 1 m per trinn).
-    Move { ids: Vec<String>, by: [i32; 3] },
+    Move {
+        ids: Vec<String>,
+        by: [i32; 3],
+    },
     /// Drei det valgte 90° med klokka (`back`: mot) om den første modulen.
     Turn {
         ids: Vec<String>,
@@ -126,8 +130,12 @@ pub enum LevelOp {
         back: bool,
     },
     /// Speil det valgte langs x om den første modulen.
-    Mirror { ids: Vec<String> },
-    Delete { ids: Vec<String> },
+    Mirror {
+        ids: Vec<String>,
+    },
+    Delete {
+        ids: Vec<String>,
+    },
     /// Lim inn kopier (nye id-er), flyttet `by`.
     Paste {
         #[serde(default)]
@@ -137,7 +145,9 @@ pub enum LevelOp {
         by: [i32; 3],
     },
     /// Bytt ut en modul (samme id) med det egenskapspanelet har endret.
-    SetModule { module: DocModule },
+    SetModule {
+        module: DocModule,
+    },
     /// Slaget for en åpning i en modul (`auto` eller tomt fjerner valget).
     Opening {
         module: String,
@@ -155,10 +165,22 @@ pub enum LevelOp {
         #[serde(default)]
         label: Option<String>,
     },
-    MoveThing { id: String, to: [f32; 3] },
-    SetThing { thing: Thing },
-    Link { from: String, to: String, kind: String },
-    Unlink { from: String, to: String },
+    MoveThing {
+        id: String,
+        to: [f32; 3],
+    },
+    SetThing {
+        thing: Thing,
+    },
+    Link {
+        from: String,
+        to: String,
+        kind: String,
+    },
+    Unlink {
+        from: String,
+        to: String,
+    },
     AddLight {
         at: [f32; 3],
         #[serde(default)]
@@ -166,16 +188,25 @@ pub enum LevelOp {
         #[serde(default)]
         range: Option<f32>,
     },
-    SetLight { light: DocLight },
-    SetHead { head: Head },
+    SetLight {
+        light: DocLight,
+    },
+    SetHead {
+        head: Head,
+    },
     /// Løsne innholdet `<modul>/<id>` fra modulmalen: det blir eierens i
     /// dokumentet med samme id og sted (malen tar det bort i dette nivået,
     /// `DocModule.hidden`), så det kan flyttes og endres. `move_thing`,
     /// `set_thing` og `delete` på malens innhold gjør dette selv.
-    Detach { id: String },
+    Detach {
+        id: String,
+    },
     /// Malens innhold tilbake slik malen har det (det endrede eller fjernede
     /// glemmes).
-    Reattach { module: String, thing: String },
+    Reattach {
+        module: String,
+        thing: String,
+    },
     /// Sett ut en mal eieren har lagret (`LevelEditor::template`,
     /// `assets/levels/maler/<navn>.json`) med den første modulen i `at`,
     /// speilet langs x og så dreid `rot` kvart omdreininger med klokka. Alt
@@ -201,6 +232,8 @@ pub struct LevelEditor {
     file: LevelFile,
     report: Report,
     issues: Vec<Issue>,
+    /// Rettingen for hvert brudd (`fixes::suggest`).
+    fixes: Vec<Option<fixes::Fix>>,
     undo: Vec<Vec<Change>>,
     redo: Vec<Vec<Change>>,
     /// Endringer siden sist lagret.
@@ -209,7 +242,8 @@ pub struct LevelEditor {
 
 impl LevelEditor {
     pub fn new(doc: LevelDoc, kit: KitDef) -> Self {
-        let mut e = LevelEditor { doc, kit, compiler: Compiler::default(), file: LevelFile::default(), report: Report::default(), issues: vec![], undo: vec![], redo: vec![], unsaved: 0 };
+        let mut e =
+            LevelEditor { doc, kit, compiler: Compiler::default(), file: LevelFile::default(), report: Report::default(), issues: vec![], fixes: vec![], undo: vec![], redo: vec![], unsaved: 0 };
         e.rebuild();
         e
     }
@@ -247,6 +281,11 @@ impl LevelEditor {
         &self.issues
     }
 
+    /// Rettingen for bruddet nummer `k` i `issues`, om den er entydig.
+    pub fn fix(&self, k: usize) -> Option<&fixes::Fix> {
+        self.fixes.get(k).and_then(Option::as_ref)
+    }
+
     /// Kan merkes «klar»: ingen feil.
     pub fn clean(&self) -> bool {
         !self.issues.iter().any(|i| i.severity == Severity::Error)
@@ -276,6 +315,7 @@ impl LevelEditor {
         let mut seen = std::collections::HashSet::new();
         issues.retain(|i| seen.insert((i.rule, i.msg.clone())));
         issues.sort_by_key(|i| (i.severity != Severity::Error, i.rule));
+        self.fixes = fixes::suggest(&self.doc, &self.kit, &file, &issues);
         self.file = file;
         self.report = report;
         self.issues = issues;
@@ -423,7 +463,14 @@ impl LevelEditor {
                 }
                 for k in things {
                     let t = &self.doc.things[k];
-                    let after = Thing { pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t.clone() };
+                    let after = Thing {
+                        pos: t.pos.map(|p| mm3(Vec3::from(p) + d)),
+                        patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(),
+                        top: t.top.map(|p| mm3(Vec3::from(p) + d)),
+                        bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)),
+                        levels: t.levels.iter().map(|l| mm(l + d.y)).collect(),
+                        ..t.clone()
+                    };
                     out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
                 }
                 for k in self.lights_in(&mods).into_iter().chain(ids.iter().filter_map(|id| self.doc.lights.iter().position(|l| &l.id == id))).collect::<std::collections::BTreeSet<_>>() {
@@ -431,7 +478,14 @@ impl LevelEditor {
                     out.push(Change::Set { index: k, before: Entry::Light(l.clone()), after: Entry::Light(DocLight { pos: mm3(Vec3::from(l.pos) + d), ..l.clone() }) });
                 }
             }
-            LevelOp::Turn { ids, back } => out = self.reshape(&ids, |p| if back { Vec3::new(p.z, p.y, -p.x) } else { Vec3::new(-p.z, p.y, p.x) }, |rot, mirror| ((rot + if back { 3 } else { 1 }) % 4, mirror), |yaw| yaw + if back { 90.0 } else { -90.0 })?,
+            LevelOp::Turn { ids, back } => {
+                out = self.reshape(
+                    &ids,
+                    |p| if back { Vec3::new(p.z, p.y, -p.x) } else { Vec3::new(-p.z, p.y, p.x) },
+                    |rot, mirror| ((rot + if back { 3 } else { 1 }) % 4, mirror),
+                    |yaw| yaw + if back { 90.0 } else { -90.0 },
+                )?
+            }
             LevelOp::Mirror { ids } => out = self.reshape(&ids, |p| Vec3::new(-p.x, p.y, p.z), |rot, mirror| ((4 - rot % 4) % 4, !mirror), |yaw| -yaw)?,
             LevelOp::Delete { ids } => {
                 let mods: Vec<&DocModule> = self.doc.modules.iter().filter(|m| ids.contains(&m.id)).collect();
@@ -445,7 +499,14 @@ impl LevelEditor {
                 lights.sort();
                 lights.dedup();
                 // Bakfra, så indeksene står når det snus.
-                let links: Vec<usize> = self.doc.links.iter().enumerate().filter(|(_, l)| gone.iter().any(|g| *g == l.from || *g == l.to || l.from.starts_with(&format!("{g}/")) || l.to.starts_with(&format!("{g}/")))).map(|(k, _)| k).collect();
+                let links: Vec<usize> = self
+                    .doc
+                    .links
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, l)| gone.iter().any(|g| *g == l.from || *g == l.to || l.from.starts_with(&format!("{g}/")) || l.to.starts_with(&format!("{g}/"))))
+                    .map(|(k, _)| k)
+                    .collect();
                 for k in links.into_iter().rev() {
                     out.push(Change::Remove { index: k, entry: Entry::Link(self.doc.links[k].clone()) });
                 }
@@ -488,7 +549,13 @@ impl LevelEditor {
                         continue;
                     }
                     let id = fresh(self, &m.id);
-                    let m2 = DocModule { id: id.clone(), at: [m.at[0] + by[0], m.at[1] + by[1], m.at[2] + by[2]], overrides: m.overrides.iter().map(|o| DocOverride { id: None, ..o.clone() }).collect(), room: None, ..m };
+                    let m2 = DocModule {
+                        id: id.clone(),
+                        at: [m.at[0] + by[0], m.at[1] + by[1], m.at[2] + by[2]],
+                        overrides: m.overrides.iter().map(|o| DocOverride { id: None, ..o.clone() }).collect(),
+                        room: None,
+                        ..m
+                    };
                     out.push(Change::Insert { index, entry: Entry::Module(m2) });
                     index += 1;
                     made.push(id);
@@ -496,7 +563,16 @@ impl LevelEditor {
                 let mut index = self.doc.things.len();
                 for t in things.into_iter().filter(|t| free(&t.anchor)) {
                     let id = fresh(self, &t.id);
-                    let t2 = Thing { id: id.clone(), anchor: "fri".into(), pos: t.pos.map(|p| mm3(Vec3::from(p) + d)), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t };
+                    let t2 = Thing {
+                        id: id.clone(),
+                        anchor: "fri".into(),
+                        pos: t.pos.map(|p| mm3(Vec3::from(p) + d)),
+                        patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(),
+                        top: t.top.map(|p| mm3(Vec3::from(p) + d)),
+                        bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)),
+                        levels: t.levels.iter().map(|l| mm(l + d.y)).collect(),
+                        ..t
+                    };
                     out.push(Change::Insert { index, entry: Entry::Thing(t2) });
                     index += 1;
                     made.push(id);
@@ -521,11 +597,15 @@ impl LevelEditor {
                 after.overrides.retain(|o| o.opening != opening);
                 if !kind.is_empty() && kind != "auto" {
                     // Porten, snarveien og den falske veggen får en id koblingene kan peke på.
-                    let id = id.filter(|s| !s.is_empty()).or_else(|| matches!(kind.as_str(), "port" | "snarvei" | "falsk").then(|| self.fresh_id(match kind.as_str() {
-                        "port" => "port",
-                        "snarvei" => "snarvei",
-                        _ => "falsk",
-                    })));
+                    let id = id.filter(|s| !s.is_empty()).or_else(|| {
+                        matches!(kind.as_str(), "port" | "snarvei" | "falsk").then(|| {
+                            self.fresh_id(match kind.as_str() {
+                                "port" => "port",
+                                "snarvei" => "snarvei",
+                                _ => "falsk",
+                            })
+                        })
+                    });
                     after.overrides.push(DocOverride { opening, kind, id });
                 }
                 if after != *m {
@@ -561,7 +641,14 @@ impl LevelEditor {
                     return Err(format!("«{id}» er festet ({})", t.anchor));
                 }
                 let d = Vec3::from(to) - Vec3::from(t.pos.unwrap_or_default());
-                let after = Thing { pos: Some(mm3(Vec3::from(to))), patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(), top: t.top.map(|p| mm3(Vec3::from(p) + d)), bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)), levels: t.levels.iter().map(|l| mm(l + d.y)).collect(), ..t.clone() };
+                let after = Thing {
+                    pos: Some(mm3(Vec3::from(to))),
+                    patrol: t.patrol.iter().map(|p| mm3(Vec3::from(*p) + d)).collect(),
+                    top: t.top.map(|p| mm3(Vec3::from(p) + d)),
+                    bottom: t.bottom.map(|p| mm3(Vec3::from(p) + d)),
+                    levels: t.levels.iter().map(|l| mm(l + d.y)).collect(),
+                    ..t.clone()
+                };
                 if after != *t {
                     out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
                 }
@@ -624,7 +711,8 @@ impl LevelEditor {
             }
             LevelOp::AddLight { at, color, range } => {
                 let id = self.fresh_id("lys");
-                let l = DocLight { id: id.clone(), anchor: "fri".into(), pos: mm3(Vec3::from(at)), color: color.unwrap_or([1.0, 0.62, 0.3]), range: range.unwrap_or(8.0), flicker: true, intensity: None };
+                let l =
+                    DocLight { id: id.clone(), anchor: "fri".into(), pos: mm3(Vec3::from(at)), color: color.unwrap_or([1.0, 0.62, 0.3]), range: range.unwrap_or(8.0), flicker: true, intensity: None };
                 out.push(Change::Insert { index: self.doc.lights.len(), entry: Entry::Light(l) });
                 made.push(id);
             }
@@ -681,7 +769,14 @@ impl LevelEditor {
         let point = |p: [f32; 3]| mm3(turn(Vec3::from(p) - centre) + centre);
         for k in things {
             let t = &self.doc.things[k];
-            let after = Thing { pos: t.pos.map(point), patrol: t.patrol.iter().map(|p| point(*p)).collect(), top: t.top.map(point), bottom: t.bottom.map(point), yaw: mm(yaw(t.yaw).rem_euclid(360.0)), ..t.clone() };
+            let after = Thing {
+                pos: t.pos.map(point),
+                patrol: t.patrol.iter().map(|p| point(*p)).collect(),
+                top: t.top.map(point),
+                bottom: t.bottom.map(point),
+                yaw: mm(yaw(t.yaw).rem_euclid(360.0)),
+                ..t.clone()
+            };
             out.push(Change::Set { index: k, before: Entry::Thing(t.clone()), after: Entry::Thing(after) });
         }
         for k in self.lights_in(&mods) {

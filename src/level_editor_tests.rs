@@ -572,3 +572,53 @@ fn et_klart_nivaa_erstatter_det_gamle() {
     assert!(l1.rooms.iter().any(|r| r.id == "kapell"), "kapellet fra det nye nivået");
     assert!(l1.down.is_some(), "trappa ned");
 }
+
+/// «Rett» (del 27): de vanlige bruddene har en retting når den er entydig,
+/// og den som endrer dokumentet, er en vanlig handling med angre.
+#[test]
+fn rett_retter_de_vanlige_bruddene() {
+    use crate::domain::edit::level::fixes::FixKind;
+    let fix = |e: &LevelEditor, rule: &str, has: &str| {
+        let k = e.issues().iter().position(|i| i.rule == rule && i.msg.contains(has)).unwrap_or_else(|| panic!("ingen {rule} med «{has}»: {:?}", e.issues()));
+        e.fix(k).cloned().unwrap_or_else(|| panic!("ingen retting for {:?}", e.issues()[k]))
+    };
+    let mut e = blank();
+    // En spak uten mål kobles til porten.
+    let r = op(&mut e, r#"{"op":"add_module","module":"grav/rom_3x2","at":[3,0,0]}"#)[0].clone();
+    let opening = e.map().modules.iter().find(|m| m.id == r).unwrap().openings.iter().find(|o| o.side == 3 && o.at == [2, 0]).unwrap().id.clone();
+    op(&mut e, &format!(r#"{{"op":"opening","module":"{r}","opening":"{opening}","kind":"port"}}"#));
+    let gate = e.doc().modules.iter().find(|m| m.id == r).unwrap().overrides[0].id.clone().unwrap();
+    let lever = op(&mut e, r#"{"op":"add_thing","kind":"lever","at":[1.0,0,1.0]}"#)[0].clone();
+    let f = fix(&e, "kobling", &format!("spaken {lever} åpner ingenting"));
+    let FixKind::Op { op: o } = f.what else { panic!("{f:?}") };
+    assert_eq!(o, LevelOp::Link { from: lever.clone(), to: gate.clone(), kind: "opens".into() });
+    e.apply(o).unwrap();
+    assert!(!errors(&e).iter().any(|x| x.contains("åpner ingenting") || x.contains("kan ikke åpnes")), "{:?}", errors(&e));
+    assert!(e.undo() && errors(&e).iter().any(|x| x.contains("åpner ingenting")), "angre gir bruddet tilbake");
+    assert!(e.redo());
+    // Den tomme lappen: tekstfeltet.
+    let lore = op(&mut e, r#"{"op":"add_thing","kind":"lore","at":[2.0,0,2.0]}"#)[0].clone();
+    let f = fix(&e, "innhold", &format!("lappen {lore} er tom"));
+    assert_eq!(f.what, FixKind::Focus { thing: lore, field: "text" });
+    // En boss i et vanlig rom: bosshallen.
+    let boss = op(&mut e, r#"{"op":"add_thing","kind":"boss","at":[16.0,0,0.0],"label":"navbar"}"#)[0].clone();
+    assert_eq!(fix(&e, "takhoyde", &boss).what, FixKind::Palette { module: "grav/bosshall".into() });
+    assert!(e.kit().module("grav/bosshall").is_some());
+    // Et rom ingen kommer til: den nærmeste åpningen.
+    let far = op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[10,0,0]}"#)[0].clone();
+    let FixKind::Show { at, module } = fix(&e, "naa", "kan ikke nås fra start (ingen åpning").what else { panic!() };
+    assert_eq!(module, far);
+    assert!((at[0] - 38.0).abs() < 0.01 && at[2].abs() < 0.01, "åpningen mot vest, nærmest rommet: {at:?}");
+    // En dør mot ingenting: mur.
+    let west = e.map().modules.iter().find(|m| m.id == far).unwrap().openings.iter().find(|o| o.side == 3).unwrap().id.clone();
+    op(&mut e, &format!(r#"{{"op":"opening","module":"{far}","opening":"{west}","kind":"dor"}}"#));
+    let f = fix(&e, "aapning", "møter ingenting");
+    assert_eq!(f.label, "Gjør til mur");
+    let FixKind::Op { op: o } = f.what else { panic!() };
+    e.apply(o).unwrap();
+    assert!(!e.issues().iter().any(|i| i.rule == "aapning"), "{:?}", e.issues());
+    assert_eq!(e.doc().modules.iter().find(|m| m.id == far).unwrap().overrides[0].kind, "vegg");
+    assert!(e.undo() && e.issues().iter().any(|i| i.rule == "aapning"));
+    // Kartet har rettingen med til siden.
+    assert!(e.map().issues.iter().any(|i| i.fix.as_ref().is_some_and(|f| f.label == "Gjør til mur")));
+}
