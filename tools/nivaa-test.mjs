@@ -86,9 +86,14 @@ const litNow = () =>
     // og prøv noen ganger.
     let best = 0;
     for (let k = 0; k < 5 && best < 1000; k++) {
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-      tmp.getContext("2d").clearRect(0, 0, 160, 90);
-      tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
+      // I samme bilde som motoren tegnet (dens løkke ligger før i køen).
+      await new Promise((r) =>
+        requestAnimationFrame(() => {
+          tmp.getContext("2d").clearRect(0, 0, 160, 90);
+          tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
+          r();
+        }),
+      );
       const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
       let n = 0;
       for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
