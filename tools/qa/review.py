@@ -208,6 +208,7 @@ def models_3d(out, items):
                 glb_to_json(tmp, os.path.join(root, "før", f"{it['id']}.json"))
                 it["glb_before"] = f"glb/før/{it['id']}.json"
                 used |= glb_layers(tmp)
+    held = held_3d(root, items, used)
     layers = {}
     for name in sorted(used):
         src = os.path.join(ROOT, "assets", "textures", name, "albedo.jpg")
@@ -227,7 +228,57 @@ def models_3d(out, items):
         layers[name] = {"url": f"tex/{name}.jpg", "size": size}
         if mirror:
             layers[name]["mirror"] = True  # speilvendt annenhver flis, som i spillet
-    return layers, levels
+    return layers, levels, held
+
+
+def held_bones():
+    """Det spillet setter på et bein (beinet → modellen), lest av spillets
+    egne tabeller, så det ikke finnes to kilder: `mob_rigs::HELD` (buen
+    bueskytteren holder) og trubadurens lutt (`npcs::LUTE_MODEL` på beinet
+    `r.joint(..)` i `Clips.lute`). Filene fra `models!` i gltf.rs."""
+    import re
+    dom = os.path.join(ROOT, "crates", "fristad-domain", "src", "domain")
+    rigs = open(os.path.join(dom, "mob_rigs.rs")).read()
+    npcs = open(os.path.join(dom, "npcs.rs")).read()
+    table = open(os.path.join(ROOT, "src", "adapters", "gltf.rs")).read()
+    out = {}
+    held = re.search(r"pub const HELD: &\[\(&str, &str\)\] = &\[(.*?)\];", rigs)
+    for bone, model in re.findall(r'\("(\w+)",\s*"(\w+)"\)', held.group(1) if held else ""):
+        out[bone] = model
+    lute = re.search(r'pub const LUTE_MODEL: &str = "(\w+)";', npcs)
+    bone = re.search(r'lute: r\.joint\("(\w+)"\)', npcs)
+    if lute and bone:
+        out[bone.group(1)] = lute.group(1)
+    files = dict(re.findall(r'^\s*"(\w+)" => "([^"]+\.glb)",', table, re.M))
+    return {b: (m, os.path.join(ROOT, "assets", "models", files[m])) for b, m in out.items() if m in files}
+
+
+def held_3d(root, items, used):
+    """De holdte modellene til «Se i 3D» (`glb/held/`): bare de med et bein i
+    en modell som venter. viewer.js setter dem på beinet som spillet gjør
+    (beinets rom dreid om x, `mob_rigs::held`, `Npcs::instances`)."""
+    bones = held_bones()
+    need = set()
+    for it in items:
+        if it["state"] != "venter" or not it.get("glb"):
+            continue
+        for g in [it["glb"]] + ([it["glb_before"]] if it.get("glb_before") else []):
+            try:
+                with open(os.path.join(os.path.dirname(root), g)) as f:
+                    names = {n.get("name") for n in json.load(f).get("nodes", [])}
+            except (OSError, ValueError):
+                continue
+            need |= names & set(bones)
+    out = {}
+    for bone in sorted(need):
+        model, src = bones[bone]
+        if not os.path.exists(src):
+            continue
+        os.makedirs(os.path.join(root, "held"), exist_ok=True)
+        glb_to_json(src, os.path.join(root, "held", f"{model}.json"))
+        used |= glb_layers(src)
+        out[bone] = {"model": model, "glb": f"glb/held/{model}.json"}
+    return out
 
 
 def modules_3d(root, items, levels, used):
@@ -749,12 +800,12 @@ def build(out, render=True):
             "points": e.get("history") or ([e["why"]] if e.get("why") else []), "fixed": [], "path": None, "seen": e.get("seen"),
         })
     save("approvals.json", ap)
-    layers, levels = models_3d(out, items) if render else ({}, {})
+    layers, levels, held = models_3d(out, items) if render else ({}, {}, {})
     for it in items:
         it.pop("path", None)
         it.pop("seen", None)
     with open(os.path.join(out, "data.json"), "w") as f:
-        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels}, f, ensure_ascii=False)
+        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels, "held": held}, f, ensure_ascii=False)
     shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
     shutil.copy(os.path.join(HERE, "viewer.js"), os.path.join(out, "viewer.js"))
     return items, carried
