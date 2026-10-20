@@ -720,6 +720,18 @@ fn fs_cutout(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<
     return vec4<f32>(c.rgb, select(1.0, c.a, g.misc.y > 1.5));
 }
 
+// Snittet i nivåredigeringen (`Frame.clip`, S): alt over høyden i
+// `room_info.y` kuttes bort, også alfakortene. Et eget pass, så det vanlige
+// er uten `discard`.
+@fragment
+fn fs_clip(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    let c = fragment(i, front);
+    if (i.world.y > g.room_info.y || ((i.mat.z & F_ALPHA) != 0u && c.a < 0.5)) {
+        discard;
+    }
+    return vec4<f32>(c.rgb, 1.0);
+}
+
 fn fragment(i: VsOut, front: bool) -> vec4<f32> {
     let kind = i.mat.x;
     let slot = i.mat.y;

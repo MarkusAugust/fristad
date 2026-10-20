@@ -166,6 +166,9 @@ pub enum LevelCommand {
     WorkLight(bool),
     /// Gulvet kartet viser (y i dokumentet).
     Floor(f32),
+    /// Snittet (S): alt over etasjen med gulvet i y (i dokumentet) kuttes
+    /// bort i 3D, så du ser inn i en etasje under en annen; `None` av.
+    Cut(Option<f32>),
     /// Kameraet i 3D-vinduet: øyet i dokumentets rom.
     Place { at: Vec3, yaw: f32, pitch: f32 },
 }

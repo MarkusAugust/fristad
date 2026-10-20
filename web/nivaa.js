@@ -1051,7 +1051,14 @@ function setFloor(y) {
   st.floor = y;
   $("floor").value = String(y);
   engine.level(JSON.stringify({ cmd: "floor", y }));
+  sendCut();
   redraw();
+}
+
+/// Snittet i 3D (S): alt over etasjen kartet viser kuttes bort
+/// (`LevelCommand::Cut`, `fs_clip`), så du ser inn i den under en annen.
+function sendCut() {
+  engine.level(JSON.stringify({ cmd: "cut", y: st.cut ? st.floor : null }));
 }
 
 // ---------------------------------------------------------------- 3D
@@ -1117,6 +1124,7 @@ function bindUi() {
   $("cut").onclick = () => {
     st.cut = !st.cut;
     $("cut").setAttribute("aria-pressed", st.cut);
+    sendCut();
     redraw();
   };
   $("v-map").onclick = () => setView("map");

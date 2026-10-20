@@ -104,7 +104,7 @@ fn main() {
     // --level-edit NAVN: nivåredigeringen med dokumentet (`?nivaa`): nivået
     // tegnes slik redigeringen viser det, med arbeidslys; --eye i nivåets rom,
     // --level-op JSON (flere ganger) gjør endringer først, --game-light gir
-    // spillets lys.
+    // spillets lys, --cut Y snittet over etasjen Y.
     let mut prepared = if let Some(name) = arg("--level-edit") {
         let doc = fristad::adapters::data::level_doc(&name).expect("nivådokumentet finnes ikke");
         fristad::application::prepare_level_editor(&source, seed(), fristad::domain::edit::level::LevelEditor::new(doc, fristad::adapters::data::kit()))
@@ -166,6 +166,10 @@ fn main() {
     }
     if flag("--game-light") {
         app.command(Command::Level(fristad::ports::driving::LevelCommand::WorkLight(false)));
+    }
+    // --cut Y: snittet i redigeringen over etasjen med gulvet i Y (S i `?nivaa`).
+    if let Some(y) = arg("--cut") {
+        app.command(Command::Level(fristad::ports::driving::LevelCommand::Cut(Some(y.parse().expect("--cut Y")))));
     }
     // --anchors: stedene filmen trenger (øyet der du begynner, og startstedet
     // i hvert kryptnivå), som json, til filmens tester.

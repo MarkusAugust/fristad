@@ -226,6 +226,7 @@ impl Session {
             debug: self.debug,
             rooms,
             band: self.band(in_crypt),
+            clip: None,
         }
     }
 

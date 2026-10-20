@@ -282,6 +282,19 @@ fn nivaaredigeringen_har_ingen_himmel() {
     let rooms = app.session.level_editing().unwrap().editor.file().rooms.len();
     assert_eq!(r.boxes.len(), rooms, "rommene i nivået");
     assert_eq!(r.masks.len(), f.lights.len());
+    // Snittet (S): alt over etasjen kuttes bort, og det som ligger helt over tegnes ikke.
+    assert!(f.clip.is_none(), "uten snitt kuttes ingenting");
+    assert!(app.command(Command::Level(LevelCommand::Cut(Some(6.0)))));
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    let origin = app.session.level_editing().unwrap().origin;
+    let clip = f.clip.expect("snittet er på");
+    assert!((clip - (origin.y + 6.0 + crate::application::level_editing::CUT_HEIGHT)).abs() < 1e-3, "{clip}");
+    assert!(f.band.1 <= clip);
+    assert!(app.command(Command::Level(LevelCommand::Cut(None))));
+    let mut f = app.session.frame(16.0 / 9.0);
+    app.session.level_frame(&mut f);
+    assert!(f.clip.is_none());
 }
 
 /// Paletten har modulene for alle temaene, gruppert som rom, ganger,

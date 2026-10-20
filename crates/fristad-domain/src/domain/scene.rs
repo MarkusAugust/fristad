@@ -111,6 +111,9 @@ pub struct Frame {
     /// seg, og et nivå i krypten ser ikke byen eller de andre nivåene.
     /// Det som ligger helt utenfor tegnes ikke, heller ikke i skyggene.
     pub band: (f32, f32),
+    /// Snittet i nivåredigeringen (S): alt over denne høyden kuttes bort,
+    /// så du ser inn i en etasje under en annen (`fs_clip` i `world.wgsl`).
+    pub clip: Option<f32>,
 }
 
 /// Rommene til lyset: hvert rom som en boks (hjørnene i x og z, gulvet og

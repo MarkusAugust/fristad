@@ -54,7 +54,15 @@ fn parse_doc(json: &str) -> Result<LevelDoc, String> {
 /// Start motoren i nivåredigeringen med dokumentet `doc` (json; uten: et
 /// nytt nivå 1). Som `start`, med alle modellene.
 #[wasm_bindgen]
-pub async fn start_level_editor(canvas: web_sys::HtmlCanvasElement, webgpu: bool, manifest_json: Option<String>, names: js_sys::Array, blobs: js_sys::Array, models: js_sys::Array, doc: Option<String>) -> Result<Engine, JsValue> {
+pub async fn start_level_editor(
+    canvas: web_sys::HtmlCanvasElement,
+    webgpu: bool,
+    manifest_json: Option<String>,
+    names: js_sys::Array,
+    blobs: js_sys::Array,
+    models: js_sys::Array,
+    doc: Option<String>,
+) -> Result<Engine, JsValue> {
     let (surface, adapter, device, queue) = connect(&canvas, webgpu).await.map_err(|e| JsValue::from_str(&e))?;
     let backend = format!("{:?}", adapter.get_info().backend);
     let caps = surface.get_capabilities(&adapter);
@@ -114,6 +122,7 @@ enum LevelJson {
     Select { ids: Vec<String> },
     Light { work: bool },
     Floor { y: f32 },
+    Cut { y: Option<f32> },
     Place { x: f32, y: f32, z: f32, yaw: f32, pitch: f32 },
 }
 
@@ -144,6 +153,7 @@ impl Engine {
                 Ok(LevelJson::Select { ids }) => LevelCommand::Select(ids),
                 Ok(LevelJson::Light { work }) => LevelCommand::WorkLight(work),
                 Ok(LevelJson::Floor { y }) => LevelCommand::Floor(y),
+                Ok(LevelJson::Cut { y }) => LevelCommand::Cut(y),
                 Ok(LevelJson::Place { x, y, z, yaw, pitch }) => LevelCommand::Place { at: glam::Vec3::new(x, y, z), yaw: yaw.to_radians(), pitch: pitch.to_radians() },
                 Err(e) => return serde_json::json!({"error": format!("Ukjent kommando: {e}")}).to_string(),
             }
@@ -220,7 +230,8 @@ impl Engine {
             return false;
         };
         let prepared = prepare_level_editor(&rb.files, rb.seed, editor);
-        let renderer = Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
+        let renderer =
+            Renderer::new(self.device.clone(), rb.queue.clone(), &rb.adapter, rb.format, &App::<Renderer, RapierPhysics>::scene(&prepared), &rb.layers, self.config.width, self.config.height);
         self.app = App::new(prepared, renderer, RapierPhysics::new());
         self.app.session.level_play(back, here)
     }
