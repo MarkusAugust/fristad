@@ -12,7 +12,7 @@ fra temaet og bakes og sjekkes på samme måte.
 | `grav_luke`, `grav_luke_topp` | celle under og over | flatt tak med bjelker og luke nede, gulv med luke oppe (`ladder`, `trapdoor`) |
 | `grav_kanal`, `grav_kanal_ende` | celle | gangen med en kanal midt i og gangbane på hver side (`water`) |
 | `grav_galleri` | sammensatt 3 × 3 | sal på 10 × 10 m med galleri 5 m oppe langs nordmuren, trapp langs vestmuren og rekkverk |
-| `grav_vegg_som` | halvkant | muren med fiolette sømmer (`magic_seam`), variant `som` av `grav/vegg` |
+| `grav_vegg_som` | halvkant | muren med fiolette sømmer (`magic_seam_dim`), variant `som` av `grav/vegg` |
 """
 
 import math
@@ -238,8 +238,8 @@ def kanal_walk(end=False):
 # --- Plastsømmene ------------------------------------------------------------------
 
 
-def seam(m, surf, u, v0, v1, seed, w=0.11):
-    """En søm som lyser fiolett (`magic_seam`) i fugene, i sikksakk opp
+def seam(m, surf, u, v0, v1, seed, w=0.06):
+    """En søm som lyser fiolett (`magic_seam_dim`, dempet så den ikke blir hvit på nært hold) i fugene, i sikksakk opp
     langs muren, litt ut fra flaten."""
     import random
 
@@ -253,7 +253,7 @@ def seam(m, surf, u, v0, v1, seed, w=0.11):
         L = math.hypot(ub - ua, vb - va)
         nu, nv = -(vb - va) / L * w / 2, (ub - ua) / L * w / 2
         quad = [(ua - nu, va - nv), (ub - nu, vb - nv), (ub + nu, vb + nv), (ua + nu, va + nv)]
-        m.poly([surf.point(a, b, 0.012) for a, b in quad], [(a, b) for a, b in quad], "magic_seam", facing=surf.normal(u))
+        m.poly([surf.point(a, b, 0.012) for a, b in quad], [(a, b) for a, b in quad], "magic_seam_dim", facing=surf.normal(u))
 
 
 def vegg_som(far=False):

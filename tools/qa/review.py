@@ -249,7 +249,7 @@ def modules_3d(root, items, levels, used):
         if not keep:
             continue
         cells = [c for c in gal["flat"]["cells"] if any(c["id"].startswith(m["id"] + "/") for m in keep)]
-        reach = 6.0 if any("rotunde" in c["bit"] or c["bit"].endswith("/hall") for c in cells) else 2.0
+        reach = 6.0 if any("rotunde" in c["bit"] or c["bit"].endswith(("/hall", "/galleri")) for c in cells) else 2.0
         xs = [c["at"][0] * 4.0 for c in cells]
         zs = [c["at"][2] * 4.0 for c in cells]
         lo, hi = (min(xs) - reach - 0.01, min(zs) - reach - 0.01), (max(xs) + reach + 0.01, max(zs) + reach + 0.01)
@@ -270,6 +270,11 @@ def modules_3d(root, items, levels, used):
                 glb_to_json(hits[0], os.path.join(root, "kit", f"{model}.json"))
                 urls[model] = f"glb/kit/{model}.json"
                 used |= glb_layers(hits[0])
+        # Steinbyttet per instans (`crypt::stone`): lagene temaet gir, så
+        # «Se i 3D» viser kloakken i tegl og borgen i kvader (viewer.js).
+        for i in inst:
+            if i.get("stone"):
+                used |= set(i["stone"]["to"])
         levels[f"modul_{name}"] = {"models": {m: u for m, u in urls.items() if any(i["model"] == m for i in inst)}, "instances": [i for i in inst if i["model"] in urls]}
         it["level"] = f"modul_{name}"
 
