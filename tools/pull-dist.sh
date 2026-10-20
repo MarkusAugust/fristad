@@ -13,4 +13,7 @@ if [ -f assets/external/manifest.json ]; then
 fi
 # Modellene ligger ikke på grenen; de pakkes fra repoet.
 sh tools/pack-models.sh dist-web
+# Manifestet for modellene som hentes etter start (som i build-web.sh).
+cargo run -q --bin manifest -- dist-web/models/manifest.json
+gzip -9 -n -f dist-web/models/manifest.json
 echo "dist-web/ er klar ($(git log -1 --format=%s origin/web-dist))"

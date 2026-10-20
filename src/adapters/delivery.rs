@@ -3,8 +3,9 @@
 //! et tak. Reglene her gjelder filene og stiene, ikke materialene (dem leser
 //! `gltf` fra fila).
 
-use super::gltf::{capped, model_files, Caps};
-use crate::domain::model::{Image, Model};
+use super::gltf::{capped, model_files, Caps, Files};
+use crate::domain::model::{Image, Later, Model, ModelInfo};
+use std::collections::BTreeMap;
 
 /// Taket i nettleseren (plan del 10a): bare datamaskin er et mål (eieren
 /// 19. oktober), så fargen får 2048 og normal- og metallkartene 1024. De
@@ -81,6 +82,58 @@ pub fn dist_path(path: &str) -> String {
 /// Bitene til kryptnivå n: (navn, sti).
 pub fn level_files(n: u32) -> impl Iterator<Item = &'static (&'static str, &'static str)> {
     model_files().filter(move |(_, p)| level_of(p) == Some(n))
+}
+
+/// Om en modellfil hentes etter start i nettleseren (plan del 10a): det
+/// som ikke trengs til første bilde i byen. Innsiden (`…_interior`),
+/// møblene, galleriplatene, fiendene, armsettene og våpnene (det du har på
+/// hentes straks), og kryptens modeller (byggesettet og det fiendene
+/// mister). Bitene til kryptnivåene hentes for seg (`level_of`).
+pub fn lazy(name: &str, path: &str) -> bool {
+    level_of(path).is_none()
+        && (name.ends_with("_interior")
+            || name.starts_with("gallery_")
+            || ["furniture/", "mobs/", "arms/", "crypt/"].iter().any(|d| path.starts_with(d))
+            || ["token", "bolt", "key"].contains(&name))
+}
+
+/// Manifestet: det monteringen trenger om hver modell som hentes senere
+/// (mål, kollidere og skjelett), laget av glb-filene ved pakkingen
+/// (`cargo run --release --bin manifest`, `models/manifest.json`).
+pub type Manifest = BTreeMap<String, Later>;
+
+/// Det monteringen trenger om en lastet modell.
+pub fn later_of(m: &Model) -> Later {
+    let (min, max) = m.mesh.bounds();
+    Later { info: ModelInfo { name: m.name.clone(), min, max, solids: m.solids.clone() }, rig: m.rig.clone() }
+}
+
+/// Manifestet for modellene `lazy` sier hentes senere, lest fra `source`.
+pub fn manifest(source: &dyn crate::ports::ModelSource) -> Manifest {
+    model_files().filter(|(n, p)| lazy(n, p)).filter_map(|(n, _)| source.load(n)).map(|m| (m.name.clone(), later_of(&m))).collect()
+}
+
+/// Modellfilene nettleseren hentet ved start, og manifestet for dem som
+/// kommer senere: monteringen setter dem ut etter manifestet, og `App`
+/// ber om dem (`Event::FetchModels`).
+pub struct WithManifest<'a>(pub &'a Files, pub Manifest);
+
+impl crate::ports::ModelSource for WithManifest<'_> {
+    fn load(&self, name: &str) -> Option<Model> {
+        self.0.load(name)
+    }
+    fn names(&self) -> Vec<String> {
+        self.0.names()
+    }
+    fn world_data(&self) -> crate::domain::world::Data {
+        self.0.world_data()
+    }
+    fn deferred(&self) -> Vec<Later> {
+        let have = self.0.names();
+        let mut out = self.0.deferred();
+        out.extend(self.1.values().filter(|l| !have.contains(&l.info.name)).cloned());
+        out
+    }
 }
 
 #[cfg(test)]

@@ -118,13 +118,26 @@ pub struct LayerImages {
 
 /// Det byen trenger å vite om en modell før den bygges: at den finnes, og
 /// hvor stor den er (føttene i y = 0, sentrert i x og z).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ModelInfo {
     pub name: String,
     pub min: glam::Vec3,
     pub max: glam::Vec3,
     /// Kolliderne som følger formen (`Model.solids`).
     pub solids: Vec<crate::domain::world::Shape>,
+}
+
+/// En modell som finnes, men hentes senere (nettleseren, plan del 10a):
+/// det monteringen trenger før fila kommer, fra glb-fila eller fra
+/// manifestet (`models/manifest.json`), som er laget av den samme fila.
+/// Bitene til kryptnivåene har ukjente mål og ingen kollidere her (de står
+/// i nivåfila).
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Later {
+    pub info: ModelInfo,
+    /// Skjelettet med klippene, for figurene som animeres.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rig: Option<crate::domain::anim::Rig>,
 }
 
 /// Modellene systemene venter på: koden for dem står og virker, men

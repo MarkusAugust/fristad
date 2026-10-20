@@ -28,6 +28,8 @@ mod crypt_tests;
 #[cfg(test)]
 mod edit_tests;
 #[cfg(test)]
+mod lazy_tests;
+#[cfg(test)]
 mod level_doc_tests;
 #[cfg(test)]
 mod level_editor_tests;

@@ -28,6 +28,10 @@ name = "layout"
 path = "src/bin/layout.rs"
 
 [[bin]]
+name = "manifest"
+path = "src/bin/manifest.rs"
+
+[[bin]]
 name = "bake_font"
 path = "src/bin/bake_font.rs"
 

@@ -268,8 +268,10 @@ impl ModelSource for Files {
     }
     /// Bitene til kryptnivåene som ikke er hentet: de kommer når økta ber
     /// om nivået.
-    fn deferred(&self) -> Vec<String> {
-        model_files().filter(|(_, p)| !self.0.contains_key(*p) && super::delivery::level_of(p).is_some()).map(|(n, _)| n.to_string()).collect()
+    fn deferred(&self) -> Vec<crate::domain::model::Later> {
+        use crate::domain::model::{Later, ModelInfo};
+        let unknown = |name: &str| Later { info: ModelInfo { name: name.to_string(), min: Vec3::ZERO, max: Vec3::ZERO, solids: vec![] }, rig: None };
+        model_files().filter(|(_, p)| !self.0.contains_key(*p) && super::delivery::level_of(p).is_some()).map(|(n, _)| unknown(n)).collect()
     }
 
     fn load(&self, name: &str) -> Option<Model> {

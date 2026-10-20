@@ -395,6 +395,11 @@ pub enum Event {
     /// Hent bitene til kryptnivå n (1 og oppover): nettleseren laster dem
     /// når økta trenger nivået, og svarer med `add_level`.
     FetchLevel(u32),
+    /// Hent disse modellene (navnene; plan del 10a): byens modeller som
+    /// ikke trengs til første bilde, når økta trenger dem (utstyret du har
+    /// på straks, innsiden og møblene når du nærmer deg, fiendene med
+    /// nivået). Nettleseren svarer med `add_models`.
+    FetchModels(Vec<String>),
     /// Du reiser gjennom portalen (hjem med H, eller tilbake): en virvel
     /// over skjermen.
     Warp,

@@ -236,10 +236,12 @@ pub trait ModelSource {
     fn names(&self) -> Vec<String>;
     /// Det husene har med seg og kryptnivåene, ferdig lest.
     fn world_data(&self) -> crate::domain::world::Data;
-    /// Modellene som finnes, men lastes senere (bitene til kryptnivåene i
-    /// nettleseren): monteringen setter dem ut, og rendereren får dem med
-    /// `Renderer::add_models` når økta ber om nivået (`Event::FetchLevel`).
-    fn deferred(&self) -> Vec<String> {
+    /// Modellene som finnes, men lastes senere i nettleseren (bitene til
+    /// kryptnivåene, og byens modeller som ikke trengs til første bilde):
+    /// monteringen setter dem ut etter målene, kolliderne og skjelettet her,
+    /// og rendereren får dem med `Renderer::add_models` når økta ber om dem
+    /// (`Event::FetchLevel`, `Event::FetchModels`).
+    fn deferred(&self) -> Vec<crate::domain::model::Later> {
         vec![]
     }
 }
