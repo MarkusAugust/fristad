@@ -130,18 +130,21 @@ const swaps = [SW("tag_divider", "tag", 3, "divider", 4), SW("badge_divider", "b
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
 let bad = 0;
 for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
-  for (const menu of ["workshop", "workshop-detail", "inventory", "inventory-armor", "inventory-lantern", "shop", "smith-swap", "smith-swap-detail", "smith-buy", "mead", "mead-poor", "mead-singing"]) {
+  for (const menu of ["workshop", "workshop-detail", "workshop-forge", "workshop-forge-skip", "workshop-forge-calm", "inventory", "inventory-armor", "inventory-lantern", "shop", "smith-swap", "smith-swap-detail", "smith-buy", "mead", "mead-poor", "mead-singing"]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     // TEXTSIZE=1.4 prøver den største tekststørrelsen (Innstillinger, `fristad.textsize`).
     if (process.env.TEXTSIZE) await page.addInitScript((v) => localStorage.setItem("fristad.textsize", v), process.env.TEXTSIZE);
     page.on("pageerror", (e) => console.log("sidefeil:", e.message));
+    // Smiinga (plan 13c): Rustning-fanen, der Taggkyrasset kan smis.
+    if (menu.startsWith("workshop-forge")) await page.addInitScript(() => localStorage.setItem("fristad.workshop.tab", "armor"));
+    if (menu === "workshop-forge-calm") await page.emulateMedia({ reducedMotion: "reduce" });
     if (menu.startsWith("smith")) await page.addInitScript((tab) => localStorage.setItem("fristad.shop.tab", tab), menu === "smith-buy" ? "buy" : "swap");
     await page.route("**/*.wasm", (r) => r.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/?uitest&nofilm`);
     await page.waitForFunction(() => window.fristadUi);
     await page.evaluate(async ({ menu, inventory, recipes, wares, swaps }) => {
       const docs = await (await fetch("docs.json")).json();
-      const engine = { set_paused() {}, craft: () => false, equip: () => true, buy: () => true, swap: () => false, read_doc() {} };
+      const engine = { set_paused() {}, craft: () => menu.startsWith("workshop-forge"), equip: () => true, buy: () => true, swap: () => false, read_doc() {} };
       const ui = window.fristadUi;
       ui.set({ engine, docs, hud: { hp: 96, stamina: 80, tokens: 34, keys: 1, light: 62, cellar: false } });
       document.getElementById("gate").hidden = true;
@@ -166,6 +169,33 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
       // Velg en oppskrift lenger ned (på smal skjerm åpner den detaljene).
       await page.locator("[data-recipe]").nth(4).click({ timeout: 2000 }).catch(() => {});
       await page.waitForTimeout(200);
+    }
+    if (menu.startsWith("workshop-forge")) {
+      // Trykk «Smi» og ta bilder midt i animasjonen; bildet etter tas under.
+      // Etterpå skal raden ha «Har du» og skriptoriet stå åpent.
+      if (w <= 720) await page.locator("[data-recipe]").first().click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(200);
+      const t0 = Date.now();
+      await page.locator("[data-craft]").click({ timeout: 2000 }).catch((e) => console.log("fant ikke «Smi»:", e.message));
+      const shots = menu === "workshop-forge" ? [["fly", 450], ["glod", 950], ["blink", 1400]] : menu === "workshop-forge-calm" ? [["midt", 250]] : [];
+      for (const [name, ms] of shots) {
+        await page.waitForTimeout(Math.max(0, ms - (Date.now() - t0)));
+        await page.screenshot({ path: `${out}-${w}-${menu}-${name}.png` });
+      }
+      if (menu === "workshop-forge-skip") {
+        await page.waitForTimeout(400);
+        await page.keyboard.press("Escape");
+      }
+      const wait = menu === "workshop-forge-skip" ? 150 : menu === "workshop-forge-calm" ? 1000 : 2100;
+      await page.waitForTimeout(Math.max(0, wait - (menu === "workshop-forge-skip" ? 0 : Date.now() - t0)));
+      const after = await page.evaluate(() => ({
+        stage: !!document.querySelector(".forge-stage"),
+        open: !document.getElementById("overlay").hidden,
+        row: document.querySelector("[data-recipe='tag_cuirass']")?.textContent ?? document.querySelector(".detail")?.textContent ?? "",
+      }));
+      const ok = !after.stage && after.open && after.row.includes("Har du");
+      console.log(`${w}x${h} ${menu}: ${ok ? "smidd, «Har du»" : `FEIL ${after.stage ? "animasjonen står ennå " : ""}${after.open ? "" : "skriptoriet lukket "}${after.row.includes("Har du") ? "" : "uten «Har du»"}`}`);
+      if (!ok) bad++;
     }
     if (menu === "inventory-armor" || menu === "inventory-lantern") {
       // Plassen er filteret; på smal skjerm åpner raden detaljene.

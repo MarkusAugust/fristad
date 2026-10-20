@@ -222,7 +222,9 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 - **«Smi»** står fast nederst i detaljene, er deaktivert med grunnen («Mangler Card og Badge») og gir en liten smie-animasjon og lyd når den brukes.
 - **Liv-, energi- og lysstolpene** skjules mens en dialog står, så de ikke ligger over den.
 
-**Gjort 18. oktober (13a–13c, uten ikonene):** menyene over er bygd slik (`web/main.js`: `toggleInventory`, `openWorkshop`, `openShop`; `tools/ui-test.mjs`). Én linje per ting står i `craft::about`, og hvor komponentene finnes kort i `Source::brief`. Gjenstår: eierens malte ikoner med lysere bakgrunn, og en smie-animasjon som er mer enn gnister over ikonet.
+**Gjort 18. oktober (13a–13c, uten ikonene):** menyene over er bygd slik (`web/main.js`: `toggleInventory`, `openWorkshop`, `openShop`; `tools/ui-test.mjs`). Én linje per ting står i `craft::about`, og hvor komponentene finnes kort i `Source::brief`. Gjenstår: eierens malte ikoner med lysere bakgrunn.
+
+**Gjort 20. oktober:** smie-animasjonen (`forgeAnimation` i `web/main.js`, `.forge-*` i `web/style.css`): komponentene flyr fra lista inn mot midten og lyser i Fristils fyllfarger, smelter i en glød, to hammerslag (`craft`), og ikonet kommer fram med en kort blink; rundt 1,8 s, klikk eller Esc hopper over, `prefers-reduced-motion` gir bare en toning. Skriptoriet står åpent etterpå med «Har du» på raden. `tools/ui-test.mjs` har stegene `workshop-forge` (bilder midt i og etter), `-skip` og `-calm`.
 
 ### 13d. Troféene på galleriveggen (eieren: «alt for lav oppløsning, uklare»)
 - Årsak: bildene lages i 512 × 512 (`tools/gallery/pack.py`, `SIZE`), med papirstøy og uskarphet over, og nettleseren tar teksturene ned til 1024 (`delivery::browser_caps`).
