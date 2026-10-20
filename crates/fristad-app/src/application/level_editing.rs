@@ -12,7 +12,7 @@ use super::session::Session;
 use crate::domain::edit::level::LevelEditor;
 use crate::domain::mob_kind::Kind;
 use crate::domain::model::ModelInfo;
-use crate::domain::scene::{Frame, Light, ModelInstance, MAX_LIGHTS};
+use crate::domain::scene::{Frame, Light, ModelInstance, RoomLight, MAX_LIGHTS, MAX_ROOMS};
 use crate::domain::world::crypt::{self, compose::CELL};
 use crate::domain::world::mechanisms::Mechanisms;
 use crate::domain::world::{self, Builder, World};
@@ -60,6 +60,8 @@ pub struct LevelEditing {
     pub camera: Option<(Vec3, f32, f32)>,
     /// Gulvet kartet viser (y i dokumentet), til å finne punktet under pekeren.
     pub floor: f32,
+    /// Nivået slik det er bygd på kladdearket (rommene til lyset).
+    crypt: crypt::Crypt,
 }
 
 impl LevelEditing {
@@ -81,6 +83,7 @@ impl LevelEditing {
             selected: vec![],
             camera: None,
             floor: 0.0,
+            crypt: crypt::Crypt::default(),
         };
         e.refresh();
         e
@@ -126,6 +129,7 @@ impl LevelEditing {
             self.band = (l.min_y - 9.0, l.max_y + 2.0);
             self.start = Some(l.start);
         }
+        self.crypt = c;
     }
 
     /// Startstedet (føttene i verden, retningen), om nivået har et.
@@ -325,14 +329,15 @@ impl Session {
         f.skins.clear();
         f.hidden = l.hidden.clone();
         f.band = l.band;
-        f.rooms = None;
         f.fog_density = 0.0;
         f.sun_intensity = 0.0;
         f.sky_top = Vec3::splat(0.002);
         f.sky_horizon = Vec3::splat(0.003);
         f.hurt = 0.0;
         let eye = f.camera;
-        let mut lights: Vec<Light> = l.lights.iter().map(|x| Light { room: None, ..*x }).collect();
+        // Arbeidslyset lyser gjennom murene; spillets lys følger rommene som
+        // nede i krypten (`Crypt::light_mask`).
+        let mut lights: Vec<Light> = if l.work_light { l.lights.iter().map(|x| Light { room: None, ..*x }).collect() } else { l.lights.clone() };
         lights.sort_by(|a, b| a.pos.distance_squared(eye).total_cmp(&b.pos.distance_squared(eye)));
         if l.work_light {
             // Arbeidslyset: et stort, varmt lys over deg og litt mer lys fra
@@ -346,6 +351,16 @@ impl Session {
             f.exposure = 0.75;
         }
         lights.truncate(MAX_LIGHTS);
+        // Rommene til rendereren: da er himmelen svart (ingen skyer når
+        // kameraet står utenfor nivået) og bildet gradert som i kjelleren.
+        // Med arbeidslyset er det én rute langt borte, og alle lys lyser overalt.
+        f.rooms = Some(match (l.work_light, l.crypt.levels.first()) {
+            (false, Some(level)) => RoomLight {
+                boxes: level.rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y - r.sink, r.y + r.h + r.rise)).collect(),
+                masks: lights.iter().map(|x| x.room.map_or(u64::MAX, |(lv, r)| if lv == 0 { l.crypt.light_mask(0, r as usize) } else { 0 })).collect(),
+            },
+            _ => RoomLight { boxes: vec![(Vec2::splat(1.0e6), Vec2::splat(1.0e6 + 1.0), 1.0e6, 1.0e6 + 1.0)], masks: vec![u64::MAX; lights.len()] },
+        });
         f.lights = lights;
         f.lines = l.lines();
     }

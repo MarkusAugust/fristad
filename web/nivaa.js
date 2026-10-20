@@ -411,14 +411,17 @@ function openText(text, note) {
 // ---------------------------------------------------------------- paletten
 
 function buildPalette() {
-  const groups = { rom: "Rom", gang: "Ganger", trapp: "Trapper", ferdig: "Ferdige rom" };
+  // Gruppene fra kjernen (`map::GROUPS`): rom, ganger, trapper, ferdigrom,
+  // mekanismer og bosshallen.
+  const groups = palette.groups || [["rom", "Rom"], ["gang", "Ganger"], ["trapp", "Trapper"], ["ferdig", "Ferdigrom"]];
   const list = $("modlist");
   list.innerHTML = "";
-  for (const [kind, title] of Object.entries(groups)) {
-    const mods = palette.modules.filter((m) => m.kind === kind);
+  for (const [group, title] of groups) {
+    const mods = palette.modules.filter((m) => (m.group || m.kind) === group);
     if (!mods.length) continue;
     const h = document.createElement("h2");
     h.textContent = title;
+    h.dataset.group = group;
     list.append(h);
     const tiles = document.createElement("div");
     tiles.className = "tiles";
