@@ -342,6 +342,29 @@ fn katalogen_har_kategorier() {
     }
 }
 
+/// Bjørka er én ting i redigeringen: stammen står i katalogen under
+/// «Natur» og tar med seg løvet og kollideren, løvet står ikke der.
+#[test]
+fn bjorka_er_en_ting_i_redigeringen() {
+    use crate::adapters::data::{buildings, category};
+    use glam::{Affine3A, Vec3};
+    let b = buildings();
+    let path = |n: &str| crate::adapters::gltf::model_files().find(|(m, _)| *m == n).map(|(_, p)| p).unwrap();
+    assert_eq!(category("tree_birch_trunk", path("tree_birch_trunk"), &b), Some("Natur"));
+    assert_eq!(category("tree_birch_leaves", path("tree_birch_leaves"), &b), None);
+    let mut e = editor();
+    let count = |e: &crate::domain::edit::Editor, m: &str| e.scene().placements.iter().filter(|p| p.model == m).map(|p| p.transforms.len()).sum::<usize>();
+    let (trunks, leaves) = (count(&e, "tree_birch_trunk"), count(&e, "tree_birch_leaves"));
+    let solids = e.scene().solid_origins.len();
+    let at = Affine3A::from_translation(Vec3::new(30.0, 0.0, 30.0));
+    let r = e.place("tree_birch_trunk", at).unwrap();
+    assert_eq!(count(&e, "tree_birch_trunk"), trunks + 1);
+    assert_eq!(count(&e, "tree_birch_leaves"), leaves + 1, "løvet kom ikke med stammen");
+    let leaf = e.scene().placements.iter().find(|p| p.model == "tree_birch_leaves").unwrap();
+    assert!(leaf.transforms.iter().any(|t| (Vec3::from(t.translation) - Vec3::from(e.pose_of(&r).unwrap().translation)).length() < 1e-3), "løvet står ikke på stammen");
+    assert!(e.scene().solid_origins.len() > solids, "stammen fikk ingen kollider");
+}
+
 /// Kirkas boks dekker steingjerdet ved siden av: første klikk gir kirka,
 /// klikk på samme sted igjen (eller Tab) gir gjerdet, og så kirka igjen.
 #[test]

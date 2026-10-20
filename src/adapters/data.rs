@@ -344,6 +344,7 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         || name.starts_with("gallery_")
         || name.starts_with("portal_")
         || moving.contains(&name)
+        || crate::domain::world::nature::COMPANIONS.contains(&name)
         || (name.starts_with("crypt_") && name[6..].starts_with(|c: char| c.is_ascii_digit()))
     {
         return None;
@@ -359,6 +360,8 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         "Møbler"
     } else if path.starts_with("crypt/") {
         "Krypten"
+    } else if path.starts_with("nature/") {
+        "Natur"
     } else {
         "Gjenstander"
     })
