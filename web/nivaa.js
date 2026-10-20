@@ -215,7 +215,7 @@ async function boot() {
     canvas = fresh;
     engine = await start_level_editor(canvas, false, assets.manifest, assets.names, assets.blobs, models, first.text);
   }
-  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule };
+  window.fristad = { engine, level: send, state: st, setFloor, place: placeModule, select, blank: level_blank };
   engine.set_quality(engine.backend() === "Gl" ? "enkel" : "standard");
   fit();
   new ResizeObserver(fit).observe(canvas);
