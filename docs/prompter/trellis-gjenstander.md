@@ -44,6 +44,21 @@ Single game asset for 3D modelling, ONE single view in three-quarter from the fr
 Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A low pile of old yellowed human bones and three skulls, chunky and simplified, a little dust. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
 ```
 
+### 4a. `kit_sarcophagus`: Sarkofagen (to utgaver)
+
+- **Hvor:** gravgangen, kapellet og gravkamrene i alle temaene. **Størrelse:** 2,2 m lang, 1 m høy.
+- **Erstatter:** `kit_sarcophagus` fra byggesettet (eieren 20. oktober: «denne må ha en egen 3d modell med tekstur … og vi trenger minst to varianter»). Lagres som `kit_sarcophagus.glb` og `kit_sarcophagus_b.glb`.
+
+Utgave A, ridderen:
+```
+Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A heavy medieval stone sarcophagus on a low plinth: a thick rectangular chest of weathered grey limestone with carved arches along its sides, and on the lid a carved effigy of a knight lying with hands folded on a sword on his chest, head on a cushion, feet against a small lion; chipped corners, moss in the cracks. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
+```
+
+Utgave B, munken:
+```
+Single game asset for 3D modelling, ONE single view in three-quarter from the front-left and slightly above, the whole object centred and fully inside the image, nothing else in the picture. A plain old stone sarcophagus of dark rough granite with a heavy slightly pushed-aside lid showing a dark gap, a simple carved cross on the lid, a worn inscription band without letters along the side, iron bands at the ends, cracks and lichen. Every part is bold and chunky enough to read from across a dark hall: no thin spikes, wires, antennae, strands or loose straps; anything long is thick and simple. Style: a high-end stylized 3D game asset with hand-painted textures, like World of Warcraft (modern) and Fable: clean sculpted forms, slightly exaggerated proportions, big readable shapes, soft painterly shading, NO black outlines, rich saturated colours, never photorealistic, never a flat cartoon. Historically plausible Nordic market town around 1350. Soft even light from the front, no cast shadows, no shadow on the ground, no rim light. Plain flat light-grey background, no scenery, no floor, no text, no letters, no labels, no frame. Square image, 2048 by 2048 pixels, the subject as large as possible with clear background space on all sides, nothing cut off at the edges.
+```
+
 ### 5. `kit_candles`: Lysestake med lys
 
 - **Hvor:** gravkjelleren. **Størrelse:** 0,6 m.
