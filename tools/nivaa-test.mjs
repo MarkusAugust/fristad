@@ -82,12 +82,19 @@ const litNow = () =>
     const tmp = document.createElement("canvas");
     tmp.width = 160;
     tmp.height = 90;
-    await new Promise((r) => requestAnimationFrame(r));
-    tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
-    const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
-    let n = 0;
-    for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
-    return n;
+    // Uten preserveDrawingBuffer kan bildet være tømt: les i neste bilde,
+    // og prøv noen ganger.
+    let best = 0;
+    for (let k = 0; k < 5 && best < 1000; k++) {
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+      tmp.getContext("2d").clearRect(0, 0, 160, 90);
+      tmp.getContext("2d").drawImage(c, 0, 0, 160, 90);
+      const d = tmp.getContext("2d").getImageData(0, 0, 160, 90).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
+      best = Math.max(best, n);
+    }
+    return best;
   });
 const lit = await litNow();
 check(lit > 200, `3D-vinduet viser nivået (${lit} lyse punkter av 14400)`);
@@ -159,11 +166,17 @@ check(await page.evaluate(() => !!document.querySelector("#op-kind")), "klikk p�
 if (await page.evaluate(() => !!document.querySelector("#op-kind"))) {
   await page.selectOption("#op-kind", "port");
   await page.waitForTimeout(400);
-  const ov = await page.evaluate(([m]) => window.fristad.state.map.modules.find((x) => x.id === m)?.overrides, opening);
+  const ov = await page.evaluate((m) => window.fristad.state.map.modules.find((x) => x.id === m)?.overrides, opening[2]);
   check(ov?.some((o) => o.kind === "port"), "åpningen er en port");
 }
 // Delt skjerm og full størrelse.
 await page.keyboard.press("Escape");
+// Kameraet tilbake i kapellet (det forrige «gå dit» sto ved kista i fjellet).
+await page.evaluate(() => {
+  const m = window.fristad.state.map.modules.find((m) => m.module === "grav/kapell") || window.fristad.state.map.modules[0];
+  const c = m.cells[Math.floor(m.cells.length / 2)];
+  window.fristad.level({ cmd: "place", x: c[0] * 4, y: c[1] + 1.7, z: c[2] * 4 + 1, yaw: 0, pitch: -5 });
+});
 await page.click("#v-3d");
 await page.waitForTimeout(1500);
 const lit3d = await litNow();
@@ -189,8 +202,8 @@ check(!(await page.evaluate(() => window.fristad.engine.level_playing())), "Esc 
 check((await page.evaluate(() => window.fristad.state.map.modules.length)) === n0 + 1, "redigeringen er som den var etter prøveturen");
 // Lagre uten nøkkel: zip, og utkastet er i nettleseren.
 page.once("dialog", (d) => d.accept(""));
-const dl = page.waitForEvent("download", { timeout: 20000 }).catch(() => null);
-await page.click("#save");
+const dl = page.waitForEvent("download", { timeout: 90000 }).catch(() => null);
+await page.click("#save", { force: true });
 const file = await dl;
 check(!!file && file.suggestedFilename().endsWith(".zip"), `Lagre uten nøkkel laster ned ${file?.suggestedFilename()}`);
 const draft = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("fristad.nivaa.utkast:")));

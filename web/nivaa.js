@@ -958,7 +958,7 @@ function focusSelection() {
   if (!p) return;
   st.view.cx = p[0];
   st.view.cz = p[2];
-  engine.level(JSON.stringify({ cmd: "place", x: p[0], y: p[1] + 5, z: p[2] + 7, yaw: 0, pitch: -35 }));
+  engine.level(JSON.stringify({ cmd: "place", x: p[0], y: p[1] + 1.7, z: p[2], yaw: st.camera?.length ? st.camera[3] : 0, pitch: -10 }));
   redraw();
 }
 
@@ -1235,7 +1235,7 @@ function showIssues() {
         }, 1500);
         const h = hit(st.map, f, x, z, 1);
         if (h?.type === "module" || h?.type === "thing") select([h.id]);
-        engine.level(JSON.stringify({ cmd: "place", x, y: y + 4, z: z + 6, yaw: 0, pitch: -30 }));
+        engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
         redraw();
       };
     }

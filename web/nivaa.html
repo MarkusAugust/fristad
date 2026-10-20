@@ -69,6 +69,8 @@
     #status { font-size: 13px; }
     #toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #222; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; z-index: 30; max-width: 70vw; }
     body.playing header, body.playing #palette, body.playing #props, body.playing #panemap { display: none; }
+    body.playing { grid-template-rows: 1fr; }
+    body.playing .pane-label, body.playing .pane-help { display: none; }
     body.playing main { grid-template-columns: 1fr; }
     body.playing #views { grid-template-columns: 1fr; }
     #playbar { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 25; background: rgba(20,20,20,.8); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
