@@ -268,6 +268,9 @@ struct GpuModel {
     mesh: GpuMesh,
     /// Har alfakort (gress, blad): tegnes med `cutout`-pipelinen.
     cutout: bool,
+    /// Bare vann (`kit_water`): tegnes gjennomskinnelig etter himmelen med
+    /// `water`-pipelinen (dybden til bunnen i instansens høyde).
+    water: bool,
     near: std::ops::Range<u32>,
     far: std::ops::Range<u32>,
     textures: wgpu::BindGroup,
@@ -395,6 +398,8 @@ struct ScenePipes {
     /// Snittet i nivåredigeringen (`Frame.clip`): `discard` over høyden, så
     /// bare når snittet er på (det vanlige passet har ingen `discard`).
     clip: wgpu::RenderPipeline,
+    /// Vannflatene: blandet over det ugjennomsiktige (`vs_water`/`fs_water`).
+    water: wgpu::RenderPipeline,
     sky: wgpu::RenderPipeline,
     particles: wgpu::RenderPipeline,
     /// Linjene redigeringen tegner (`Frame.lines`), uten dybdetest.
@@ -437,6 +442,20 @@ impl SceneSources {
         let world = world_pipe("world", "fs", false);
         let cutout = world_pipe("cutout", "fs_cutout", a2c);
         let clip = world_pipe("clip", "fs_clip", false);
+        // Forhåndsmultiplisert: fargen fra shaderen er glansen og det
+        // grumsete, og det bak dempes med alfa.
+        let premultiplied = wgpu::BlendState { color: wgpu::BlendComponent { src_factor: wgpu::BlendFactor::One, dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha, operation: wgpu::BlendOperation::Add }, alpha: wgpu::BlendComponent::OVER };
+        let water = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("water"),
+            layout: Some(&self.world_layout),
+            vertex: wgpu::VertexState { module: &self.world, entry_point: Some("vs_water"), compilation_options: Default::default(), buffers: &buffers },
+            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+            depth_stencil: depth(true, wgpu::CompareFunction::Less),
+            multisample: ms(false),
+            fragment: Some(wgpu::FragmentState { module: &self.world, entry_point: Some("fs_water"), compilation_options: Default::default(), targets: &target(Some(premultiplied)) }),
+            multiview: None,
+            cache: None,
+        });
         let sky = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("sky"),
             layout: Some(&self.simple_layout),
@@ -471,7 +490,7 @@ impl SceneSources {
             multiview: None,
             cache: None,
         });
-        ScenePipes { samples, a2c, hdr, world, cutout, clip, sky, particles, lines }
+        ScenePipes { samples, a2c, hdr, world, cutout, clip, water, sky, particles, lines }
     }
 }
 
@@ -1404,7 +1423,7 @@ impl Renderer {
                     // hvilken matrise vertexshaderen bruker.
                     pass.set_viewport((k * res) as f32, 0.0, res as f32, res as f32, 0.0, 1.0);
                     pass.set_bind_group(1, &self.shadow_frame_bg, &[if k == 0 { 0 } else { (3 * PASS_STRIDE) as u32 }]);
-                    let s = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout);
+                    let s = self.draw_all(&mut pass, &sun_cull, &model_draws, 0, &self.shadow_pipe, &self.shadow_cutout, false);
                     stats[0].add(&s);
                 }
             }
@@ -1433,12 +1452,18 @@ impl Renderer {
             pass.set_bind_group(2, &self.materials.bind_group, &[]);
             pass.set_bind_group(3, &self.materials.dummy_model, &[]);
             let (opaque, cards) = if f.clip.is_some() { (&self.scene.clip, &self.scene.clip) } else { (&self.scene.world, &self.scene.cutout) };
-            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, opaque, cards);
-            self.triangles.set((stats[1].world, 0, stats[1].models));
+            // Vannet blandes over bunnen etter himmelen (i snittet i
+            // redigeringen er det ugjennomsiktig som før).
+            let water = f.clip.is_none();
+            stats[1] = self.draw_all(&mut pass, &cam_cull, &model_draws, 1, opaque, cards, water);
             if self.bench.sky {
                 pass.set_pipeline(&self.scene.sky);
                 pass.draw(0..3, 0..1);
             }
+            if water {
+                stats[1].add(&self.draw_models(&mut pass, &model_draws, 1, |m| m.water, &self.scene.water));
+            }
+            self.triangles.set((stats[1].world, 0, stats[1].models));
             pass.set_pipeline(&self.scene.particles);
             let particles = q.particles && self.bench.particles;
             if !f.smoke.is_empty() && particles {
@@ -1547,10 +1572,11 @@ impl Renderer {
     /// Returnerer hva som ble tegnet.
     /// Tegner bymeshen og modellene: det ugjennomsiktige med `opaque` først,
     /// så alfakortene med `cutout` (også bymeshen, om den har alfakort).
-    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, opaque: &wgpu::RenderPipeline, cutout: &wgpu::RenderPipeline) -> PassStats {
+    /// Med `skip_water` venter vannflatene til sitt eget pass (`water`).
+    #[allow(clippy::too_many_arguments)]
+    fn draw_all(&self, pass: &mut wgpu::RenderPass, cull: &Cull, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, opaque: &wgpu::RenderPipeline, cutout: &wgpu::RenderPipeline, skip_water: bool) -> PassStats {
         pass.set_pipeline(if self.world_cutout { cutout } else { opaque });
         let mut calls = 0u32;
-        let mut instances = 0u32;
         pass.set_vertex_buffer(1, self.instances.slice(0..INSTANCE_STRIDE));
         self.world.bind(pass);
         let mut indices = 0u32;
@@ -1581,19 +1607,27 @@ impl Renderer {
         }
         flush(&mut run, pass);
         let world = indices / 3;
-        let mut models = 0;
         // Først de ugjennomsiktige, så alfakortene med sin pipeline.
-        let order = self.models.iter().zip(model_draws).filter(|(m, _)| !m.cutout).chain(self.models.iter().zip(model_draws).filter(|(m, _)| m.cutout));
-        pass.set_pipeline(opaque);
+        let mut s = self.draw_models(pass, model_draws, region, |m| !m.cutout && !(skip_water && m.water), opaque);
+        s.add(&self.draw_models(pass, model_draws, region, |m| m.cutout && !(skip_water && m.water), cutout));
+        PassStats { world, models: s.models, calls: s.calls + calls, instances: s.instances }
+    }
+
+    /// Tegner modellene `pick` velger med `pipe` (satt først når noe skal
+    /// tegnes, så et pass uten slike modeller ikke bytter pipeline).
+    fn draw_models(&self, pass: &mut wgpu::RenderPass, model_draws: &[[ModelDraw; REGIONS as usize]], region: usize, pick: impl Fn(&GpuModel) -> bool, pipe: &wgpu::RenderPipeline) -> PassStats {
+        let mut models = 0;
+        let mut calls = 0u32;
+        let mut instances = 0u32;
         let mut switched = false;
-        for (m, draws) in order {
+        for (m, draws) in self.models.iter().zip(model_draws).filter(|(m, _)| pick(m)) {
             let d = &draws[region];
             // Målingen kan ta modellene ut av hovedpasset.
             if (d.near.is_empty() && d.far.is_empty()) || (region == 1 && !self.bench.models) {
                 continue;
             }
-            if m.cutout && !switched {
-                pass.set_pipeline(cutout);
+            if !switched {
+                pass.set_pipeline(pipe);
                 switched = true;
             }
             pass.set_bind_group(3, &m.textures, &[]);
@@ -1612,7 +1646,7 @@ impl Renderer {
                 instances += r.len() as u32;
             }
         }
-        PassStats { world, models, calls, instances }
+        PassStats { world: 0, models, calls, instances }
     }
 
     pub fn device(&self) -> &wgpu::Device {

@@ -39,6 +39,9 @@ const K_MAGIC: u32 = 203u;
 const K_LAMP: u32 = 204u;
 const K_SKELETON: u32 = 205u;
 const K_WATER: u32 = 206u;
+/// Hvor grumsete vannet er per meter stråle gjennom det (lys som slipper
+/// gjennom: e^(−murk · lengden)).
+const WATER_MURK: f32 = 0.45;
 const K_MODEL: u32 = 207u;
 const K_TERRAIN: u32 = 209u;
 
@@ -127,6 +130,10 @@ fn wind_offset(world: vec3<f32>, v: VsIn) -> vec3<f32> {
 
 @vertex
 fn vs(v: VsIn, inst: Instance) -> VsOut {
+    return vertex(v, inst);
+}
+
+fn vertex(v: VsIn, inst: Instance) -> VsOut {
     var o: VsOut;
     let m = model_of(inst, v);
     var w = (m * vec4<f32>(v.pos, 1.0)).xyz;
@@ -141,6 +148,18 @@ fn vs(v: VsIn, inst: Instance) -> VsOut {
     o.dw = v.weights.xy;
     o.extra = inst.extra;
     look(&o, v, inst);
+    return o;
+}
+
+// Vannflatene (`kit_water`) i sitt eget pass etter det ugjennomsiktige:
+// instansen er vannet som en kasse, og høyden (matrisens y-akse, flaten
+// selv har y = 0) er dybden ned til bunnen (`Mechanisms::water_poses`).
+// Dybden går i `dw.x` (bakkevektene, som vannet ikke bruker), og `dw.y` = −1
+// sier til `fragment` at vannet blandes over bunnen.
+@vertex
+fn vs_water(v: VsIn, inst: Instance) -> VsOut {
+    var o = vertex(v, inst);
+    o.dw = vec2<f32>(length(inst.m1.xyz), -1.0);
     return o;
 }
 
@@ -731,6 +750,19 @@ fn fs_cutout(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<
     return vec4<f32>(c.rgb, select(1.0, c.a, g.misc.y > 1.5));
 }
 
+// Vannet: forhåndsmultiplisert blanding (kilden + målet · (1 − alfa)), så
+// glansen fra faklene står fullt og bunnen synes gjennom etter alfa. Tåka i
+// `fragment` er affin i fargen, så delen av den som hører til det som synes
+// gjennom, trekkes fra (målet har allerede sin egen tåke).
+@fragment
+fn fs_water(i: VsOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    if (g.quality.y > 0.5) {
+        return vec4<f32>(0.5, 0.5, 0.5, 1.0);
+    }
+    let c = fragment(i, front);
+    return vec4<f32>(max(c.rgb - fog(vec3<f32>(0.0), i.world) * (1.0 - c.a), vec3<f32>(0.0)), c.a);
+}
+
 // Snittet i nivåredigeringen (`Frame.clip`, S): alt over høyden i
 // `room_info.y` kuttes bort, også alfakortene. Et eget pass, så det vanlige
 // er uten `discard`.
@@ -984,6 +1016,22 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
             grad += d / max(r, 1e-3) * ring * 0.5;
         }
         s.n = normalize(vec3<f32>(-grad.x, 1.0, -grad.y));
+        if (i.dw.y < -0.5) {
+            // Gjennomskinnelig (eget pass, `vs_water`): lyset fra bunnen
+            // dempes langs strålen gjennom vannet ned til bunnen (flat, `dw.x`
+            // under flaten), og speilingen tar resten når du ser langs
+            // flaten. Nær deg og der det er grunt synes bunnen og steinene
+            // gjennom det grønnblå; lenger ute blir det grumsete. Alt regnes
+            // av dybden, blikket og den rolige flatenormalen (ikke bølgene),
+            // så det står stille uten støy.
+            let cos_v = max(dot(n_geo, v), 0.02);
+            let path = i.dw.x / cos_v;
+            let fres = 0.02 + 0.98 * pow(1.0 - cos_v, 5.0);
+            let through = exp(-path * WATER_MURK) * (1.0 - fres);
+            alpha = 1.0 - through;
+            // Forhåndsmultiplisert: det grumsete lyser bare så mye som det dekker.
+            s.albedo *= alpha;
+        }
     }
 
     if (glow == 3u && kind != K_MODEL) {

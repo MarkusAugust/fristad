@@ -477,13 +477,18 @@ impl Mechanisms {
         self.waters.get(n).is_some_and(|t| *t >= 1.0)
     }
 
-    /// Vannflatene der de står nå.
+    /// Vannflatene der de står nå. Vannet er en kasse fra flaten ned til
+    /// bunnen: flaten (1 × 1 m i y = 0) skaleres til bredden og lengden, og
+    /// høyden er dybden (rendereren gjør vannet gjennomskinnelig etter den).
     pub fn water_poses(&self, crypt: &Crypt) -> Vec<Affine3A> {
         crypt
             .waters
             .iter()
             .enumerate()
-            .map(|(n, w)| at(Vec3::new(w.pos.x, self.water_level(crypt, n), w.pos.z), w.yaw) * Affine3A::from_scale(Vec3::new(w.size.x, 1.0, w.size.y)))
+            .map(|(n, w)| {
+                let y = self.water_level(crypt, n);
+                at(Vec3::new(w.pos.x, y, w.pos.z), w.yaw) * Affine3A::from_scale(Vec3::new(w.size.x, (y - w.bottom()).max(0.05), w.size.y))
+            })
             .collect()
     }
 
