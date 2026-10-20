@@ -825,6 +825,7 @@ function bindMap() {
     const pr = plan.getBoundingClientRect();
     if (mini?.inside(e.clientX - pr.left, e.clientY - pr.top)) {
       [st.view.cx, st.view.cz] = mini.toWorld(e.clientX - pr.left, e.clientY - pr.top);
+      drag = { type: "mini" };
       redraw();
       return;
     }
@@ -891,7 +892,7 @@ function bindMap() {
     const [x, z] = worldAt(e);
     const d = drag;
     drag = null;
-    if (d?.type === "pan") return;
+    if (d?.type === "pan" || d?.type === "mini") return;
     if (arm?.type === "module" && (e.button === 0 || d?.type === "palette")) {
       const g = ghostFor(x, z);
       if (g) placeModule(arm.id, g.at, arm.rot, arm.mirror);

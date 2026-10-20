@@ -210,7 +210,8 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(500);
 const mood = await page.evaluate((id) => window.fristad.state.map.modules.find((m) => m.id === id)?.mood, kapell);
-check(mood && mood.fog === 0.6 && mood.sound === "vann" && mood.light === 0.6 && mood.color, `stemningen er lagret (${JSON.stringify(mood)})`);
+const near = (a, b) => Math.abs(a - b) < 1e-4;
+check(mood && near(mood.fog, 0.6) && mood.sound === "vann" && near(mood.light, 0.6) && mood.color, `stemningen er lagret (${JSON.stringify(mood)})`);
 await shot("9_stemningen");
 // Et lys eieren setter ut, og panelet for det.
 const lightId = await page.evaluate((id) => {
@@ -288,15 +289,31 @@ if (await tplChip.count()) {
   const nBefore = await page.evaluate(() => window.fristad.state.map.modules.length);
   await tplChip.click();
   await page.keyboard.press("KeyR");
+  // En ledig plass på 3 × 3 ruter (kapellet) som synes i kartet (ikke under minikartet).
   const spot = await page.evaluate(() => {
     const st = window.fristad.state;
-    const cells = st.map.modules.flatMap((m) => m.cells);
+    st.view.s = 5;
+    const taken = new Set(st.map.modules.flatMap((m) => m.cells.filter((c) => Math.abs(c[1]) < 3).map((c) => `${c[0]},${c[2]}`)));
     const r = document.querySelector("#plan").getBoundingClientRect();
-    const [px, py] = st.view.toScreen((Math.min(...cells.map((c) => c[0])) - 5) * 4, Math.min(...cells.map((c) => c[2])) * 4);
-    return [r.left + px, r.top + py];
+    for (let d = 0; d < 30; d++) {
+      for (let i = -d; i <= d; i++) {
+        for (let j = -d; j <= d; j++) {
+          const ci = Math.round(st.view.cx / 4) + i;
+          const cj = Math.round(st.view.cz / 4) + j;
+          let free = true;
+          for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) free = free && !taken.has(`${ci + a},${cj + b}`);
+          const [px, py] = st.view.toScreen(ci * 4, cj * 4);
+          if (free && px > 60 && py > 60 && px < r.width - 220 && py < r.height - 200) return [r.left + px, r.top + py];
+        }
+      }
+    }
+    return null;
   });
-  await page.mouse.move(spot[0], spot[1]);
-  await page.mouse.click(spot[0], spot[1]);
+  check(!!spot, "en ledig plass til malen i kartet");
+  if (spot) {
+    await page.mouse.move(spot[0], spot[1]);
+    await page.mouse.click(spot[0], spot[1]);
+  }
   await page.waitForTimeout(400);
   const after = await page.evaluate(() => window.fristad.state.map);
   check(after.modules.length === nBefore + 1 && after.modules.at(-1).rot === 1, `malen er satt ut dreid (${after.modules.length - nBefore} ny, rot ${after.modules.at(-1)?.rot})`);
@@ -304,9 +321,11 @@ if (await tplChip.count()) {
   await shot("14_malen_satt_ut");
 }
 // Minikartet: klikk flytter kartet.
+await page.keyboard.press("Escape");
 const mini = await page.evaluate(() => {
   const r = document.querySelector("#plan").getBoundingClientRect();
-  return [r.right - 95, r.bottom - 95, window.fristad.state.view.cx];
+  // Øverst til venstre i minikartet (midten er der Home allerede står).
+  return [r.right - 170, r.bottom - 150, window.fristad.state.view.cx];
 });
 await page.mouse.click(mini[0], mini[1]);
 await page.waitForTimeout(200);
