@@ -18,5 +18,13 @@
     "gruve": "berg",
     "borg": "kvader",
     "kjerne": "kjernestein"
+  },
+  "_lys": "Lyset i rom med mørk stein: murlaget → faktor på faklene og lysene i rommet (albedoen målt: gravmur 0,33, tegl 0,06, berg 0,07, kvader 0,07, kjernestein 0,13), så de mørke steinene er lesbare og beholder fargen sin.",
+  "light": {
+    "sewer_brick": 2.2,
+    "mine_rock": 2.1,
+    "mine_timber": 1.9,
+    "keep_ashlar": 2.0,
+    "core_stone": 1.5
   }
 }

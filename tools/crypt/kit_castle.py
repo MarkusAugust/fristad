@@ -11,7 +11,7 @@ tronen og hjulkrona. Ren Python på
 | `kit_statue` | på gulvet midt under sokkelen | ridder i hogd stein på sokkel, 2,9 m høy, vender mot +z |
 | `kit_rack` | på gulvet midt under stativet, ryggen mot −z | våpenstativ 1,8 m bredt med spyd og skjold, 2,3 m høyt |
 | `kit_throne` | på gulvet midt under tronen | eiketrone med gyllen kant, 2,5 m høy, vender mot +z |
-| `kit_chandelier` | kroken i hvelvet (henger ned) | hjulkrone av eik med lys, 3,1 m fra kroken til hjulet |
+| `kit_chandelier` | kroken i hvelvet (henger ned) | åpen hjulkrone av eik med eiker og tolv lys, i kjetting, 3,1 m fra kroken til hjulet, 1,9 m bred |
 """
 
 import math
@@ -181,29 +181,59 @@ def kit_throne():
 
 
 def kit_chandelier():
-    """Hjulkrone: et hjul av eik med jernbeslag i tre kjettinger fra kroken
-    i hvelvet, med tolv lys rundt kanten (`fire_candle` lyser). Origo i
-    kroken; hjulet henger 3,1 m under."""
+    """Hjulkrone: en åpen eikefelg med seks eiker til et jernnav, jernbånd
+    rundt felgen og tolv lys i jernskåler (`fire_candle` lyser), hengt i
+    tre kjettinger som samles i en ring under kroken i hvelvet. Origo i
+    kroken; hjulet henger 3,1 m under (eieren 20. oktober: den gamle var en
+    flat, brun skive som svevde)."""
     m = MB()
     Y = -3.1
-    cylinder(m, (0.0, 0.0), 0.05, -0.12, 0.0, "iron", n=6, caps=(False, True), smooth=False)
+    R, RIN = 0.95, 0.8
+    # Kroken og ringen der kjettingene samles.
+    cylinder(m, (0.0, 0.0), 0.05, -0.14, 0.0, "iron", n=6, caps=(False, True), smooth=False)
+    def link(a, b, k, around):
+        up = (0.0, 0.0, 1.0) if k % 2 else around
+        beam(m, a, b, 0.055 if k % 2 else 0.02, 0.02 if k % 2 else 0.055, "iron", up=up)
+    # Én kjetting fra kroken ned til samleringen 0,9 m over hjulet.
+    top, knot = (0.0, -0.14, 0.0), (0.0, Y + 0.95, 0.0)
+    n = 24
+    for k in range(n):
+        p0 = (0.0, top[1] + (knot[1] - top[1]) * k / n, 0.0)
+        p1 = (0.0, top[1] + (knot[1] - top[1]) * (k + 1) / n, 0.0)
+        link(p0, p1, k, (1.0, 0.0, 0.0))
+    cylinder(m, (0.0, 0.0), 0.07, knot[1] - 0.03, knot[1] + 0.03, "iron", n=8, caps=(True, True), smooth=False)
+    # Tre kjettinger fra samleringen ut til felgen.
     for a in (math.pi / 2, math.pi / 2 + 2.094, math.pi / 2 + 4.189):
-        end = (0.62 * math.cos(a), Y + 0.08, 0.62 * math.sin(a))
-        n = 22
+        end = ((R - 0.07) * math.cos(a), Y + 0.04, (R - 0.07) * math.sin(a))
+        n = 8
         for k in range(n):
             t0, t1 = k / n, (k + 1) / n
-            p0 = (end[0] * t0, -0.12 + (end[1] + 0.12) * t0, end[2] * t0)
-            p1 = (end[0] * t1, -0.12 + (end[1] + 0.12) * t1, end[2] * t1)
-            up = (0.0, 0.0, 1.0) if k % 2 else (math.cos(a), 0.0, math.sin(a))
-            beam(m, p0, p1, 0.05 if k % 2 else 0.02, 0.02 if k % 2 else 0.05, "iron", up=up)
-    ring = circle((0.0, 0.0), 0.75, 16)
-    prism(m, ring, Y - 0.08, Y, "oak", cap_top=True, cap_bottom=True, smooth=False)
-    cylinder(m, (0.0, 0.0), 0.76, Y - 0.09, Y + 0.01, "iron", n=16, caps=(False, False), smooth=False)
+            p0 = (end[0] * t0, knot[1] + (end[1] - knot[1]) * t0, end[2] * t0)
+            p1 = (end[0] * t1, knot[1] + (end[1] - knot[1]) * t1, end[2] * t1)
+            link(p0, p1, k, (math.cos(a), 0.0, math.sin(a)))
+    # Felgen: seksten eikebjelker rundt, og et jernbånd utenpå.
+    seg = 16
+    for k in range(seg):
+        a0, a1 = 2 * math.pi * k / seg, 2 * math.pi * (k + 1) / seg
+        rm = (R + RIN) / 2
+        p0 = (rm * math.cos(a0), Y - 0.04, rm * math.sin(a0))
+        p1 = (rm * math.cos(a1), Y - 0.04, rm * math.sin(a1))
+        beam(m, p0, p1, R - RIN, 0.1, "oak", up=(0.0, 1.0, 0.0))
+        q0 = (R * math.cos(a0) * 1.01, Y - 0.04, R * math.sin(a0) * 1.01)
+        q1 = (R * math.cos(a1) * 1.01, Y - 0.04, R * math.sin(a1) * 1.01)
+        beam(m, q0, q1, 0.015, 0.06, "iron", up=(0.0, 1.0, 0.0))
+    # Eikene og navet.
+    for k in range(6):
+        a = 2 * math.pi * k / 6 + math.pi / 12
+        beam(m, (0.1 * math.cos(a), Y - 0.04, 0.1 * math.sin(a)), (RIN * math.cos(a), Y - 0.04, RIN * math.sin(a)), 0.06, 0.07, "oak", up=(0.0, 1.0, 0.0))
+    cylinder(m, (0.0, 0.0), 0.13, Y - 0.12, Y + 0.04, "iron", n=8, caps=(True, True), smooth=False)
+    cylinder(m, (0.0, 0.0), 0.05, Y - 0.3, Y - 0.12, "iron", n=6, caps=(False, True), smooth=False)
+    # Lysene i skåler oppå felgen.
     for k in range(12):
         a = 2 * math.pi * k / 12
-        x, z = 0.62 * math.cos(a), 0.62 * math.sin(a)
-        cylinder(m, (x, z), 0.055, Y, Y + 0.03, "iron", n=6, caps=(True, False), smooth=False)
-        candle(m, x, z, Y + 0.03, h=0.24, r=0.035)
+        x, z = (R + RIN) / 2 * math.cos(a), (R + RIN) / 2 * math.sin(a)
+        cylinder(m, (x, z), 0.06, Y + 0.01, Y + 0.05, "iron", n=6, caps=(True, False), smooth=False)
+        candle(m, x, z, Y + 0.05, h=0.26, r=0.035, flame=0.08)
     return m
 
 

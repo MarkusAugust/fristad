@@ -236,3 +236,28 @@ fn steinnivaaet_bygges() {
         assert!(f.instances.iter().any(|i| i.stone.as_ref().is_some_and(|x| x.to == [s.floor.clone(), s.wall.clone(), s.vault.clone(), s.trim.clone()])), "steinen {} er ikke brukt", s.id);
     }
 }
+
+/// Hvelvene er i lyset (eieren 20. oktober: hvelvene i bosshallen og
+/// rotunden var svarte): rommet når opp til toppen av bitene (`RoomDef.rise`),
+/// også over den frie høyden, og faklene og lysene i mørk stein (tegl, berg,
+/// kvader) lyser sterkere enn i gravmuren (`StoneFile::light`).
+#[test]
+fn hvelvene_er_i_lyset_og_mork_stein_far_sterkere_lys() {
+    let k = kit();
+    for (id, top) in [("grav/bosshall", 10.0), ("grav/rotunde", 7.5), ("grav/rom_2x2", 5.0)] {
+        let doc = compose::modules::showcase(&k, id).unwrap();
+        let (f, _) = compose::compile(&doc, &k);
+        let reach = f.rooms.iter().map(|r| r.h + r.rise).fold(0.0f32, f32::max);
+        assert!(reach >= top, "{id}: rommet når {reach} m opp i lyset, hvelvet er {top} m");
+    }
+    // Faklene: samme modul i gravmur og i tegl.
+    let torch = |id: &str| {
+        let (f, _) = compose::compile(&compose::modules::showcase(&k, id).unwrap(), &k);
+        f.lights.iter().filter(|l| l.flicker).map(|l| l.intensity.unwrap_or(2.0)).fold(0.0f32, f32::max)
+    };
+    let (grav, tegl) = (torch("grav/rom_2x2"), torch("kloakk/rom_2x2"));
+    assert!(tegl > grav * 1.5, "faklene i tegl ({tegl}) skal lyse sterkere enn i gravmur ({grav})");
+    for l in ["sewer_brick", "mine_rock", "keep_ashlar"] {
+        assert!(k.stones.light.get(l).is_some_and(|v| *v > 1.0), "{l} mangler lysfaktor");
+    }
+}

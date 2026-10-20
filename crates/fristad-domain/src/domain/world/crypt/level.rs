@@ -58,8 +58,16 @@ pub struct RoomDef {
     pub y: f32,
     #[serde(default = "default_h")]
     pub h: f32,
+    /// Hvelvet over den frie høyden: så langt over `h` rommet når i lyset
+    /// (hvelvene i salene og kuppelen i rotunden; ellers var de svarte).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rise: f32,
     #[serde(default)]
     pub secret: bool,
+}
+
+fn is_zero(v: &f32) -> bool {
+    *v == 0.0
 }
 
 fn default_h() -> f32 {

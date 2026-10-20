@@ -39,6 +39,11 @@ pub struct StoneFile {
     /// tema er laget med temaets standardstein.
     #[serde(default)]
     pub themes: BTreeMap<String, String>,
+    /// Lyset i rom med mørk stein (lag → faktor): faklene og lysene i et
+    /// rom lyser så mye sterkere som murlaget sier, så tegl, berg og kvader
+    /// er lesbare uten at gravmuren blir lysere (eieren 20. oktober).
+    #[serde(default)]
+    pub light: BTreeMap<String, f32>,
 }
 
 /// Eierens valg: en stein ved navn (`"tegl"`: gulv, mur og hvelv), eller
@@ -84,6 +89,11 @@ impl StoneFile {
     }
 
     /// Standardsteinen for et tema (lagene byggesettet for temaet er laget med).
+    /// Lysfaktoren for flatene (murlaget; 1 for det som ikke står i `light`).
+    pub fn light_of(&self, s: &Surfaces) -> f32 {
+        self.light.get(&s.wall).copied().unwrap_or(1.0)
+    }
+
     pub fn base(&self, theme: &str) -> Option<Surfaces> {
         Some(Surfaces::of(self.stone(self.themes.get(theme)?)?))
     }

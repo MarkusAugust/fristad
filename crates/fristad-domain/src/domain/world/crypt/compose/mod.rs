@@ -555,7 +555,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
     put(&mut out, look, center, c.yaw(), c.mirror(), (&c.piece.theme, &c.stone));
     // Fakkelfestene i biten selv (rotunden).
     if !c.mirror() {
-        torches(g, &mut out, c.piece, center, c.yaw(), &c.doc.room, [at[0], at[1], at[2], 9]);
+        torches(g, &mut out, c.piece, center, c.yaw(), &c.doc.room, [at[0], at[1], at[2], 9], g.kit.stones.light_of(&c.stone));
     }
     // Murene rundt en sammensatt bit står bak dens egen mur: ingen fakler der.
     let hidden = c.piece.part_of.is_some();
@@ -581,7 +581,7 @@ fn cell_out(g: &Grid, a: usize) -> CellOut {
                     let look = piece.pick(g.edge_variants.get(&(a, w)).map(|s| s.as_str()), roll(g.seed, [at[0], at[1], at[2], 1 + w as i64]));
                     put(&mut out, look, pos, side_yaw(w), false, (&piece.theme, &edge_stone(g, a, w)));
                     if !hidden {
-                        torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64]);
+                        torches(g, &mut out, piece, pos, side_yaw(w), &c.doc.room, [at[0], at[1], at[2], 10 + w as i64], g.kit.stones.light_of(&c.stone));
                     }
                 }
                 None => out.issues.push(Issue::error("bit", Some(center), format!("byggesettet mangler halvkanten «{name}» ({theme})"))),
@@ -784,15 +784,17 @@ fn lights(doc: &LevelDoc, g: &Grid, index: &HashMap<&str, usize>) -> Vec<LightDe
             let pos = anchor_point(&l.anchor, Vec3::from(l.pos), g, index)?;
             // Rommet: cella lyset står i.
             let (i, j) = ((pos.x / CELL).round() as i32, (pos.z / CELL).round() as i32);
-            let room = g.columns.get(&(i, j)).and_then(|v| {
-                v.iter()
-                    .find(|&&b| {
-                        let (lo, hi) = g.cells[b].volume();
-                        pos.y >= lo && pos.y <= hi
-                    })
-                    .map(|&b| g.cells[b].doc.room.clone())
+            let cell = g.columns.get(&(i, j)).and_then(|v| {
+                v.iter().copied().find(|&b| {
+                    let (lo, hi) = g.cells[b].volume();
+                    pos.y >= lo && pos.y <= hi
+                })
             });
-            Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity: l.intensity, room })
+            let room = cell.map(|b| g.cells[b].doc.room.clone());
+            // Mørk stein får sterkere lys, som faklene (`StoneFile::light`).
+            let k = cell.map(|b| g.kit.stones.light_of(&g.cells[b].stone)).unwrap_or(1.0);
+            let intensity = if k == 1.0 { l.intensity } else { Some(mm(l.intensity.unwrap_or(2.0) * k)) };
+            Some(LightDef { pos: mm3(pos), color: l.color, range: l.range, flicker: l.flicker, intensity, room })
         })
         .collect()
 }

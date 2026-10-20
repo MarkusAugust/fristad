@@ -165,7 +165,10 @@ MODULES = [
                    prop("krone", "kit_chandelier", "hall", [0, 9.95, 0], 0)],
            links=[{"from": "port", "to": "rom", "kind": "arena"}],
            lights=[{"id": "krone", "anchor": "celle:hall", "pos": [0, 6.9, 0], "color": [1.0, 0.68, 0.38], "range": 12, "flicker": True, "intensity": 3.0},
-                   {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": False}]),
+                   {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": False}]
+           # Lyset fra hjørnene opp i hvelvkappene (eieren 20. oktober: hvelvene var svarte).
+           + [{"id": f"kappe{k}", "anchor": "celle:hall", "pos": [sx * 3.3, 6.2, sz * 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": False, "intensity": 1.4}
+              for k, (sx, sz) in enumerate(((-1, -1), (1, -1), (1, 1), (-1, 1)))]),
     module("skattkammer", "Skattkammeret", "ferdig",
            "Et hemmelig rom på 4 × 4 m med en kiste midt i, skrin, kister og sekker i hjørnene og en rustning på stativ. "
            "Inngangen er en falsk vegg med sprekker der kammeret møter et annet rom.",

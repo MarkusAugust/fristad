@@ -22,6 +22,10 @@
   ],
   "lights": [
     {"id": "krone", "anchor": "celle:hall", "pos": [0, 6.9, 0], "color": [1.0, 0.68, 0.38], "range": 12, "flicker": true, "intensity": 3.0},
-    {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": false}
+    {"id": "hvelv", "anchor": "celle:hall", "pos": [0, 8.8, 0], "color": [0.9, 0.75, 0.6], "range": 8, "flicker": false},
+    {"id": "kappe0", "anchor": "celle:hall", "pos": [-3.3, 6.2, -3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe1", "anchor": "celle:hall", "pos": [3.3, 6.2, -3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe2", "anchor": "celle:hall", "pos": [3.3, 6.2, 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4},
+    {"id": "kappe3", "anchor": "celle:hall", "pos": [-3.3, 6.2, 3.3], "color": [1.0, 0.7, 0.42], "range": 7, "flicker": false, "intensity": 1.4}
   ]
 }

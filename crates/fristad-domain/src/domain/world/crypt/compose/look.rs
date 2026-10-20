@@ -28,8 +28,8 @@ pub fn roll(seed: u64, parts: [i64; 4]) -> f32 {
 
 /// Faklene i festene på en halvkant: rommets fakkeltetthet avgjør hvor mange
 /// av festene som får en fakkel (med frøet), og hver fakkel gir et lys ved
-/// flammen.
-pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, room: &str, key: [i64; 4]) {
+/// flammen, sterkere i mørk stein (`StoneFile::light`, faktoren `k`).
+pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, yaw: f32, room: &str, key: [i64; 4], k: f32) {
     let density = g.torches.get(room).copied().unwrap_or(0.0);
     if density <= 0.0 {
         return;
@@ -45,7 +45,7 @@ pub(super) fn torches(g: &Grid, out: &mut CellOut, piece: &KitPiece, pos: Vec3, 
         out.instances.push(InstanceDef { model: torch.model.clone(), pos: mm3(at), yaw: turn, mirror: false, stone: None });
         let flame = torch.mounts.iter().find(|m| m.kind == "lys").map(|m| Vec3::from(m.pos)).unwrap_or(Vec3::new(0.0, 0.5, 0.28));
         let light = transform(at, turn, false).transform_point3(flame);
-        out.lights.push(LightDef { pos: mm3(light), color: [1.0, 0.6, 0.28], range: 7.5, flicker: true, intensity: None, room: Some(room.to_string()) });
+        out.lights.push(LightDef { pos: mm3(light), color: [1.0, 0.6, 0.28], range: mm(7.5 * (1.0 + (k - 1.0) * 0.25)), flicker: true, intensity: (k != 1.0).then_some(mm(2.0 * k)), room: Some(room.to_string()) });
     }
 }
 
