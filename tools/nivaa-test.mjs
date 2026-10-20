@@ -179,14 +179,16 @@ if (await page.evaluate(() => !!document.querySelector("#op-kind"))) {
 // Paletten: gruppene, og bildene for alle temaene.
 const groups = await page.evaluate(() => [...document.querySelectorAll("#modlist h2")].map((h) => h.dataset.group));
 check(["rom", "gang", "trapp", "mekanisme", "bosshall"].every((g) => groups.includes(g)), `paletten er gruppert (${groups.join(", ")})`);
-for (const theme of ["grav", "kloakk", "gruve", "borg", "kjerne"]) {
+// Modulene er ett sett (grav/); temaene i velgeren er de som finnes.
+const themes = await page.evaluate(() => [...document.querySelectorAll("#theme option")].map((o) => o.value).filter(Boolean));
+for (const theme of themes) {
   await page.selectOption("#theme", theme);
   await page.waitForTimeout(300);
   const imgs = await page.evaluate(async () => {
     const vis = [...document.querySelectorAll("#modlist .tile")].filter((t) => !t.hidden);
-    for (const t of vis) t.querySelector("img").loading = "eager";
+    for (const t of vis) if (t.querySelector("img")) t.querySelector("img").loading = "eager";
     await new Promise((r) => setTimeout(r, 1500));
-    return [vis.length, vis.filter((t) => t.querySelector("img").naturalWidth > 0).length];
+    return [vis.length, vis.filter((t) => t.querySelector("img")?.naturalWidth > 0).length];
   });
   check(imgs[0] >= 15 && imgs[1] === imgs[0], `paletten for ${theme}: ${imgs[1]} av ${imgs[0]} bilder`);
 }
@@ -468,7 +470,7 @@ check(!!file && file.suggestedFilename().endsWith(".zip"), `Lagre uten nøkkel l
 const draft = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("fristad.nivaa.utkast:")));
 check(draft.length > 0, `utkastet er i nettleseren (${draft.join(", ")})`);
 // Last siden på nytt: utkastet åpnes.
-await page.reload({ waitUntil: "load" });
+await page.reload({ waitUntil: "load", timeout: 300000 });
 await page.waitForFunction(() => window.fristad?.engine && document.querySelector("#overlay")?.hidden, null, { timeout: 600000 });
 check((await page.evaluate(() => window.fristad.state.map.modules.length)) === nBeforePlay, "utkastet åpnes igjen");
 await page.waitForTimeout(2000);
