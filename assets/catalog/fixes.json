@@ -1338,6 +1338,18 @@
     "verdict": "underkjent",
     "why": "ser ingen trapp ned, bare et grått hull"
    }
+  },
+  "a89d0db5ba6a": {
+   "text": [
+    "Ett sett moduler (eieren 20. oktober: «det holder med en modell»): kopiene per tema er borte, modulen står én gang, og steinen velges i redigeringen per nivå, rom, modul, celle eller vegg (temaet gir bare standardsteinen). Dommene over kopiene står i «Utgår».",
+    "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
+    "Trappa ned er en trapp med ti trinn ned til en repos med en lukket rundbuet dør i bakveggen (karm av hogd stein, terskel), og et blått lys siver ut under døra og lyser opp sjakta. Det første bildet er tatt fra toppen av trappa.",
+    "«Se i 3D» viser nå det motoren setter ut etter merkene: porten, spaken, snarveidøra, stigen, fallemmen, broa, heisen, vannet, kistene, trappa ned, døra opp, hvilestedet og pynten (før bare murene og gulvet)."
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "ser ingen trapp ned, bare et grått hull"
+   }
   }
  },
  "grav_overmur": {
@@ -2051,6 +2063,19 @@
    "images": [
     "assets/catalog/review/navbar_r2_for_etter.jpg"
    ]
+  },
+  "4b3621f97cad": {
+   "text": [
+    "Armene klippet inn i stanga med skjoldene. Rettet slik: armene henger lavere og nærmere kroppen, svinger ut til sida i stedet for fram og opp når han går, og angrepet er et feiende slag der høyre arm føres ut til sida og rundt foran ham under stanga (en rotasjon, ikke et slag ovenfra). Slaget i bakken og brølet løfter armene bare litt. Treffet kommer i samme bilde som før. Før/etter: angrepet og gangen forfra."
+   ],
+   "images": [
+    "assets/catalog/review/navbar_r3_for_etter.jpg",
+    "assets/catalog/review/navbar_r3_gang.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "armvegelsene bør holdes lave slik at de ikke klipper inn i den stanga med ting han har på tvers. la armene henge mer ned, og slå dem mer ut til siden enn opp når de skal bevege seg. angrepet kan være mer en rotasjon med armen ut enn et slag ovenfra og ned"
+   }
   }
  },
  "twin_warden": {
@@ -2382,6 +2407,48 @@
    "answers": {
     "verdict": "usikker",
     "why": "rommet er fint, ser ingen bru. hva skjer med spilleren hvis han faller ned?"
+   }
+  }
+ },
+ "card_squire": {
+  "26a81619816b": {
+   "text": [
+    "Knærne kom ut av kroppen når han gikk. Rettet slik: korte, raske tasseskritt (samme fart) med føttene løftet 3,5 cm, så knærne holder seg under kortplata. Før/etter: gangen på skrå forfra."
+   ],
+   "images": [
+    "assets/catalog/review/card_squire_r2_for_etter.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "knærne kommer ut av kroppen når han går."
+   }
+  }
+ },
+ "popover_wisp": {
+  "4562d5097be2": {
+   "text": [
+    "Deler av kroppen fulgte vingen ut. Rettet slik: vingene begynner først utenfor kubens side, målt for hver side (før var grensen fast, og kanten av kuben fulgte vingen). Før/etter: angrepet forfra (bilde 2: kanten av kuben rives ikke lenger med)."
+   ],
+   "images": [
+    "assets/catalog/review/popover_wisp_r2_for_etter.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "deler av kroppen følger med armen ut når han beveger på den"
+   }
+  }
+ },
+ "breadcrumb_archer": {
+  "d81772186bef": {
+   "text": [
+    "Den angrep med buen på ryggen og tomme hender. Rettet slik: den holder en egen bue i venstre hånd (ny modell `bow`): vannrett langs hånda når den går, og loddrett foran seg i skuddet, og markøren går fra buen. Buen på ryggen er grodd inn i TRELLIS-skallet: å skjære den bort lot undersida stå igjen, så den står som reservebue. Vil du ha den bort, trengs et nytt bilde til TRELLIS uten bue på ryggen. Før/etter: skuddet og gangen (med buen satt på slik spillet gjør)."
+   ],
+   "images": [
+    "assets/catalog/review/breadcrumb_archer_r2_for_etter.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "det ser rart ut at den angriper med buen på ryggen og tomme hender"
    }
   }
  }

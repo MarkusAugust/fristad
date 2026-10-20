@@ -77,7 +77,7 @@ MODULES = [
            things=[{"id": "ned", "kind": "down", "anchor": "celle:c00"}],
            # Det blå lyset fra døra nederst i trappa (`kit_down`), så trappa
            # og døra synes fra toppen (eieren 20. oktober: «bare et grått hull»).
-           lights=[{"id": "ned", "anchor": "celle:c00", "pos": [0, -1.2, -1.4], "color": [0.45, 0.62, 1.0], "range": 6.5, "flicker": False, "intensity": 1.6}]),
+           lights=[{"id": "ned", "anchor": "celle:c00", "pos": [0, 0.3, -1.0], "color": [0.45, 0.62, 1.0], "range": 7, "flicker": False, "intensity": 1.6}]),
     # De sammensatte.
     # Kuppelen var for mørk (eieren 19. oktober): ei hjulkrone henger fra
     # sluttsteinen (kroken i toppen av kuppelen, `ROT_CROWN` 7,6 m; hjulet
