@@ -2416,6 +2416,21 @@
     "Kjernens stein og plast flislegges speilvendt annenhver gang (derive.py --mirror, utvisket kant skåret bort), så de møtes uten søm.",
     "Ikke blandet gulv: gravhellene midt i gulvet (variantene b av romfeltet og gangen) velges bare på gravkjellerens gulv, så tegl, berg, kvader og kjernestein har ett gulv i hele rommet (regelen check::floor_mix, testen hvert_rom_har_ett_gulv_i_hver_stein)."
    ]
+  },
+  "2e4b93e4f9d1": {
+   "text": [
+    "Eieren 20. oktober: «her har du blandet teksturer på gulvet. den skal være samme hele veien». Rettet slik: selve gangen hadde ett gulv (kvaderens rutete heller i alle tre cellene), men i bildet gikk den rett over i gravkjellerens heller i de to naborommene ved endene. Galleriet satte naborommene i gravmur uansett hvilken stein modulen har; nå får naborommet steinen til rommet det står inntil (rommets stein, ellers temaets standardstein), så gulvet er det samme hele veien. Det samme gjaldt gruvegangen (berg), som nå også har berg i naborommene.",
+    "Hvorfor regelen ikke så det: check::floor_mix sjekket bare gulvet innenfor hvert rom, og naborommene er egne rom; testen sjekket bare hver modul alene. Nå varsler regelen når gulvet skifter i en åpen gang eller bue mellom to rom (en dør, port eller mur er et skille), og testen hvert_rom_har_ett_gulv_i_hver_stein går gjennom hele modulgalleriet slik du ser det, og sjekker at riddergangen med gravmur i naborommene blir varslet. Ingen andre moduler hadde feilen.",
+    "Den eldre utgaven (borg_riddergang, øverst på kortet) hadde gravheller midt i gangen; de velges bare på gravkjellerens gulv siden «ett sett moduler».",
+    "Før og etter: bildet du dømte over, og det nye."
+   ],
+   "images": [
+    "assets/catalog/review/riddergang_gulv_for_etter.jpg"
+   ],
+   "answers": {
+    "verdict": "underkjent",
+    "why": "her har du blandet teksturer på gulvet. den skal være samme hele veien"
+   }
   }
  },
  "grav_slusekammer": {
