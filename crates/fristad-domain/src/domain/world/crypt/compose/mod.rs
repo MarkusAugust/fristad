@@ -50,6 +50,10 @@ pub enum Severity {
     Warning,
 }
 
+/// Det hvert nivå må ha nøyaktig én av: merket, det i «Nivået mangler …»
+/// og flertallet.
+pub const NEEDED: [(&str, &str, &str); 4] = [("start", "et startsted", "startsteder"), ("up", "døra opp", "dører opp"), ("rest", "et hvilested", "hvilesteder"), ("down", "trappa ned", "trapper ned")];
+
 /// Et brudd på reglene, med sted (i nivåets rom) når det finnes.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Issue {
@@ -506,10 +510,11 @@ impl Compiler {
         report.issues.append(&mut issues);
         file.rooms = rooms;
         // Det et nivå må ha.
-        for kind in ["start", "up", "rest", "down"] {
+        for (kind, name, many) in NEEDED {
             let n = file.marks.iter().filter(|m| m.kind == kind).count();
             if n != 1 && !(kind == "down" && doc.level.number() == Some(10)) {
-                report.issues.push(Issue::warn("innhold", None, format!("{n} «{kind}» (skal være nøyaktig ett)")));
+                let msg = if n == 0 { format!("Nivået mangler {name}") } else { format!("Nivået har {n} {many} (skal ha én)") };
+                report.issues.push(Issue::warn("innhold", None, msg));
             }
         }
         (file, report)

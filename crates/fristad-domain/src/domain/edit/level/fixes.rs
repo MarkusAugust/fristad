@@ -11,7 +11,7 @@
 //!   man kommer til fra start.
 
 use super::{footprint, LevelOp};
-use crate::domain::world::crypt::compose::{modules, outward, reach, Issue, CELL, HALF};
+use crate::domain::world::crypt::compose::{modules, outward, reach, Issue, CELL, HALF, NEEDED};
 use crate::domain::world::crypt::doc::LevelDoc;
 use crate::domain::world::crypt::kit::KitDef;
 use crate::domain::world::crypt::level::LevelFile;
@@ -37,6 +37,9 @@ pub enum FixKind {
     Palette { module: String },
     /// Gå til stedet og vis det (åpningen i modulen `module`).
     Show { at: [f32; 3], module: String },
+    /// Ta tingen (`kind`, som `start` eller `rest`) fra paletten, klar til å
+    /// settes ut.
+    Arm { kind: &'static str },
 }
 
 /// Det lever kan åpne (`compose::check::SWITCHES` utenom snarveien og den
@@ -53,6 +56,10 @@ pub fn suggest(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, issues: &[Issue])
     issues
         .iter()
         .map(|i| {
+            if i.rule == "innhold" && i.msg.starts_with("Nivået mangler") {
+                let (kind, ..) = NEEDED.iter().find(|(_, name, _)| i.msg.ends_with(name))?;
+                return Some(Fix { label: "Sett ut".into(), what: FixKind::Arm { kind } });
+            }
             let at = i.at?;
             match i.rule {
                 "kant" | "aapning" => wall_up(doc, kit, at),

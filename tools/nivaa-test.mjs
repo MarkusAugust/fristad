@@ -56,6 +56,8 @@ const shot = async (name) => {
   console.log(`[test] ${out}/${name}.png`);
 };
 
+// Hjelpen som kommer første gang, er sett (den prøves for seg under).
+await page.addInitScript(() => localStorage.setItem("fristad.nivaa.hjelp", "1"));
 // `?nivaa` på forsiden sender videre til nivaa.html.
 await page.goto(`http://127.0.0.1:${port}/?nivaa${mode === "webgl" ? "&webgl" : ""}&fil=test`, { waitUntil: "load" });
 const t0 = Date.now();
@@ -120,11 +122,14 @@ const target = await page.evaluate(() => {
   return [r.left + px, r.top + py, i];
 });
 const tb = await tile.boundingBox();
+// Med Alt: uten magnet, så modulen står akkurat der den slippes.
 await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2);
 await page.mouse.down();
+await page.keyboard.down("Alt");
 await page.mouse.move(target[0] - 30, target[1], { steps: 8 });
 await page.mouse.move(target[0], target[1], { steps: 4 });
 await page.mouse.up();
+await page.keyboard.up("Alt");
 await page.waitForTimeout(500);
 let map1 = await page.evaluate(() => window.fristad.state.map);
 check(map1.modules.length === n0 + 1, `en modul er satt ut med musa (${n0} → ${map1.modules.length})`);
@@ -144,6 +149,50 @@ check((await page.evaluate(() => window.fristad.state.map.modules.length)) === n
 await page.keyboard.press("Control+KeyY");
 await page.waitForTimeout(300);
 check((await page.evaluate(() => window.fristad.state.map.modules.length)) === n0 + 1, "Ctrl+Y gjør om");
+// Magneten: dra en gang mot en ledig åpning; den snapper på plass, dreier
+// seg selv og kobles (de grønne prikkene), og settes ut koblet.
+{
+  const free = await page.evaluate(() => {
+    const st = window.fristad.state;
+    const SIDE = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    const joined = new Set(st.map.edges.flatMap((e) => [`${e.at[0]},${e.at[2]},${e.side}`, `${e.at[0] + SIDE[e.side][0]},${e.at[2] + SIDE[e.side][1]},${(e.side + 2) & 3}`]));
+    const taken = new Set(st.map.modules.flatMap((m) => m.cells.map((c) => `${c[0]},${c[2]}`)));
+    for (const m of st.map.modules)
+      for (const o of m.openings) {
+        const n = [o.at[0] + SIDE[o.side][0], o.at[1] + SIDE[o.side][1]];
+        const n2 = [o.at[0] + SIDE[o.side][0] * 2, o.at[1] + SIDE[o.side][1] * 2];
+        if (o.y !== 0 || o.chosen || joined.has(`${o.at[0]},${o.at[1]},${o.side}`) || taken.has(n.join()) || taken.has(n2.join())) continue;
+        const r = document.querySelector("#plan").getBoundingClientRect();
+        // Litt ved siden av der gangen skal stå: magneten tar den resten.
+        const [px, py] = st.view.toScreen(n[0] * 4 + 2.5, n[1] * 4 + 2.5);
+        return { x: r.left + px, y: r.top + py, n: st.map.modules.length, edges: st.map.edges.length };
+      }
+    return null;
+  });
+  check(!!free, "det finnes en ledig åpning å koble til");
+  if (free) {
+    const gb = await page.locator('#modlist .tile[data-module="grav/gang_2"]').boundingBox();
+    await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(free.x - 30, free.y, { steps: 8 });
+    await page.mouse.move(free.x, free.y, { steps: 4 });
+    const ghost = await page.evaluate(() => window.fristad.state.ghost);
+    check(ghost?.links?.length >= 1 && ghost.ok, `magneten viser koblingen (${ghost?.links?.length ?? 0} grønne prikker)`);
+    await shot("2b_magneten");
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    const after = await page.evaluate(() => ({ n: window.fristad.state.map.modules.length, edges: window.fristad.state.map.edges.length }));
+    check(after.n === free.n + 1 && after.edges > free.edges, `gangen er satt ut og koblet (${free.edges} → ${after.edges} åpninger)`);
+    await page.keyboard.press("Control+KeyZ");
+    await page.waitForTimeout(300);
+  }
+}
+// Hjelpen: F1 viser tastene, Esc lukker.
+await page.locator("#plan").focus();
+await page.keyboard.press("F1");
+check(await page.evaluate(() => !document.querySelector("#help").hidden), "F1 viser hjelpen");
+await page.keyboard.press("Escape");
+check(await page.evaluate(() => document.querySelector("#help").hidden), "Esc lukker hjelpen");
 // Reglene: et rom i lufta øst for alt annet har ingen vei inn: «kan ikke nås»
 // meldes for innhold der. Sett en kiste i det.
 await page.evaluate((i) => window.fristad.level({ op: "add_thing", kind: "chest", at: [i * 4 + 40, 0, 40] }), target[2]);
@@ -169,6 +218,7 @@ const opening = await page.evaluate(() => {
 await page.mouse.click(opening[0], opening[1]);
 await page.waitForTimeout(300);
 check(await page.evaluate(() => !!document.querySelector("#op-kind")), "klikk på en åpning gir valget i panelet");
+check(await page.evaluate(() => !document.querySelector("#opmenu").hidden && document.querySelectorAll("#opmenu button").length >= 6), "og knappene ved pekeren");
 if (await page.evaluate(() => !!document.querySelector("#op-kind"))) {
   await page.selectOption("#op-kind", "port");
   await page.waitForTimeout(400);
@@ -266,9 +316,10 @@ await page.selectOption("#floor", { index: (await page.evaluate(() => document.q
 await page.waitForTimeout(300);
 const fl = await page.evaluate(() => window.fristad.state.floor);
 check(fl >= 6, `ny etasje over (${fl} m)`);
+check(await page.evaluate(() => window.fristad.state.cut), "snittet er på fra start");
 await page.click("#cut");
 await page.waitForTimeout(200);
-check(await page.evaluate(() => window.fristad.state.cut), "snittet er på");
+check(await page.evaluate(() => !window.fristad.state.cut), "S slår av snittet");
 await shot("13_ny_etasje");
 await page.click("#cut");
 await page.evaluate(() => window.fristad.setFloor(0));
@@ -349,7 +400,9 @@ if (await leverFix.count()) {
   check(await page.evaluate(() => !window.fristad.state.map.issues.some((i) => i.msg.includes("åpner ingenting"))), "spaken er koblet etter «Rett»");
   await shot("17_rett");
 }
-// Snittet i 3D: kameraet over kapellet ser ned; med snittet kommer rommet fram.
+// Snittet i 3D: kameraet over kapellet ser ned; med snittet kommer rommet
+// fram (det står på fra start, så først av).
+await page.click("#cut");
 await page.evaluate((c) => window.fristad.level({ cmd: "place", x: c[0] * 4, y: c[1] + 14, z: c[2] * 4 + 12, yaw: 0, pitch: -50 }), kc);
 await page.click("#v-3d");
 const lum3d = () =>
@@ -372,7 +425,6 @@ await page.waitForTimeout(1500);
 const after3d = await lum3d();
 check(Math.abs(after3d - before3d) > 0.3, `snittet endrer 3D (${before3d.toFixed(1)} → ${after3d.toFixed(1)})`);
 await shot("19_snitt_3d");
-await page.click("#cut");
 await page.click("#v-split");
 // Et utvalg som ny modul (Ctrl+Shift+G): i paletten uten bilde, og kan settes ut.
 await page.evaluate((id) => window.fristad.select([id]), kapell);
@@ -400,12 +452,19 @@ if (own) {
   check(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("fristad.nivaa.moduler") || "{}")).length === 1), "modulen huskes i nettleseren til den lagres");
   await shot("20_ny_modul");
 }
-// Minikartet: klikk flytter kartet.
+// Minikartet (oppe til høyre, bare når nivået ikke får plass): zoom inn,
+// og klikk flytter kartet.
 await page.keyboard.press("Escape");
+{
+  const r = await page.locator("#plan").boundingBox();
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await page.mouse.wheel(0, -900);
+  await page.waitForTimeout(200);
+}
 const mini = await page.evaluate(() => {
   const r = document.querySelector("#plan").getBoundingClientRect();
-  // Øverst til venstre i minikartet (midten er der Home allerede står).
-  return [r.right - 170, r.bottom - 150, window.fristad.state.view.cx];
+  // Øverst til venstre i minikartet (midten er der kartet står).
+  return [r.right - 12 - 170 + 12, r.top + 30 + 12, window.fristad.state.view.cx];
 });
 await page.mouse.click(mini[0], mini[1]);
 await page.waitForTimeout(200);

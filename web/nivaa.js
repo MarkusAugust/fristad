@@ -17,7 +17,7 @@ import init, {
   level_blank,
   level_palette,
 } from "./pkg/fristad.js";
-import { draw, hit, makeView, miniMap, placeFootprint, CELL, CHOSEN_COLOR } from "./nivaa-plan.js";
+import { draw, hit, makeView, miniMap, placeFootprint, snapPlacement, CELL, CHOSEN_COLOR } from "./nivaa-plan.js";
 import { commit, token, setToken, branchFiles, branchFile, blobSha, SAVE_BRANCH } from "./github.js";
 import { makeZip } from "./editor.js";
 
@@ -36,6 +36,7 @@ const MARKS = "fristad.nivaa.kamera:";
 // Blob-sha-en til fila redigeringen begynte fra (repoet, grenen eller sist
 // lagret), per sti: konfliktsjekken før lagring.
 const BASE = "fristad.nivaa.grunnlag:";
+const HELP_SEEN = "fristad.nivaa.hjelp";
 
 let engine = null;
 let palette = null;
@@ -55,7 +56,8 @@ const st = {
   // Etasjene eieren har lagt til, og snittet (bare denne og den under).
   extraFloors: [],
   floors: [0],
-  cut: false,
+  // Snittet står på fra start: i 3D ser du rommene ovenfra som et dukkehus.
+  cut: true,
 };
 // Det som er «tatt» fra paletten: { type: "module", id, rot, mirror } eller { type: "thing", kind, label }.
 let arm = null;
@@ -149,15 +151,19 @@ async function fetchModel(path) {
   return bytes;
 }
 
+// Det redigeringen og prøveturen ikke trenger: byfolket (prøveturen går
+// rett ned i nivået; en innbygger uten figur er bare usynlig).
+const SKIP_MODELS = ["npcs/"];
+
 async function loadModels() {
-  const all = model_paths();
+  const all = model_paths().map((p) => (SKIP_MODELS.some((s) => p.startsWith(s)) ? null : p));
   const out = new Array(all.length);
   let next = 0;
   let done = 0;
   const worker = async () => {
     while (next < all.length) {
       const i = next++;
-      out[i] = await fetchModel(all[i]).catch(() => undefined);
+      out[i] = all[i] ? await fetchModel(all[i]).catch(() => undefined) : undefined;
       done++;
       progress(`Henter modellene (${done} av ${all.length}) …`, done / all.length);
     }
@@ -228,8 +234,15 @@ async function boot() {
   bindUi();
   bindMap();
   bind3d();
+  sendCut();
+  frameFloor();
   $("overlay").hidden = true;
   if (first.note) toast(first.note);
+  // Første gang: hjelpen med de fire stegene.
+  if (!store.get(HELP_SEEN)) {
+    store.set(HELP_SEEN, "1");
+    showHelp(true);
+  }
   requestAnimationFrame(loop);
 }
 
@@ -792,7 +805,7 @@ function armModule(id) {
   arm = { type: "module", id, rot: arm?.type === "module" && arm.id === id ? arm.rot : 0, mirror: false };
   mode = null;
   markArmed();
-  setStatus("Klikk på kartet for å sette ut. R dreier, M speiler, Esc avbryter.");
+  setStatus("Slipp den nær en ledig åpning, så snapper den på plass · R dreier · M speiler · Alt fritt · Esc avbryter");
 }
 
 function armThing(kind, label) {
@@ -831,15 +844,50 @@ function cellAt(x, z) {
   return [Math.round(x / CELL), st.floor, Math.round(z / CELL)];
 }
 
+// Alt holdt nede: ingen magnet (modulen står der pekeren er).
+let altDown = false;
+
 function ghostFor(x, z) {
   const pm = palette.modules.find((m) => m.id === arm.id);
   if (!pm) return null;
-  const at = cellAt(x, z);
-  const g = placeFootprint(pm, at, arm.rot, arm.mirror);
+  const want = cellAt(x, z);
   const taken = new Set(st.map.modules.flatMap((m) => m.cells.map((c) => c.join())));
+  // Magneten: en åpning mot en ledig åpning i nærheten; uten R dreies
+  // modulen selv så den passer.
+  const rots = arm.turned ? [arm.rot] : [0, 1, 2, 3].map((k) => (arm.rot + k) & 3);
+  const snapped = altDown ? null : snapPlacement(st.map, pm, want, rots, arm.mirror, taken);
+  const rot = snapped ? snapped.rot : arm.rot;
+  const at = snapped ? snapped.at : want;
+  const g = placeFootprint(pm, at, rot, arm.mirror);
   g.ok = !g.cells.some((c) => taken.has(c.join()));
   g.at = at;
+  g.rot = rot;
+  g.links = snapped?.links || [];
   return g;
+}
+
+/// Fantomet når modulene flyttes: én modul får magneten (uten å dreies).
+function moveGhost(x, z) {
+  const moved = st.map.modules.filter((m) => st.sel.includes(m.id));
+  const c = cellAt(x, z);
+  let by = [c[0] - drag.from[0], 0, c[2] - drag.from[2]];
+  let links = [];
+  if (moved.length === 1 && !altDown) {
+    const m = moved[0];
+    const pm = palette.modules.find((p) => p.id === m.module);
+    const taken = new Set(st.map.modules.filter((o) => o.id !== m.id).flatMap((o) => o.cells.map((q) => q.join())));
+    const want = [m.at[0] + by[0], m.at[1], m.at[2] + by[2]];
+    const snapped = pm && snapPlacement(st.map, pm, want, [m.rot], m.mirror, taken, [m.id]);
+    if (snapped) {
+      by = [snapped.at[0] - m.at[0], snapped.at[1] - m.at[1], snapped.at[2] - m.at[2]];
+      links = snapped.links;
+    }
+  }
+  drag.by = by;
+  if (!by[0] && !by[1] && !by[2]) return null;
+  const taken = new Set(st.map.modules.filter((o) => !st.sel.includes(o.id)).flatMap((o) => o.cells.map((q) => q.join())));
+  const cells = moved.flatMap((m) => m.cells.map((q) => [q[0] + by[0], q[1] + by[1], q[2] + by[2]]));
+  return { cells, openings: [], links, ok: !cells.some((q) => taken.has(q.join())) };
 }
 
 /// Sett ut en modul (`id`) med midtcella i `at` (til testene og konsollen).
@@ -878,6 +926,7 @@ function bindMap() {
     redraw();
   });
   plan.addEventListener("pointerdown", (e) => {
+    $("opmenu").hidden = true;
     plan.focus();
     plan.setPointerCapture(e.pointerId);
     const [x, z] = worldAt(e);
@@ -887,7 +936,7 @@ function bindMap() {
       return;
     }
     if (e.button !== 0) return;
-    const mini = miniMap(st.map, plan.clientWidth, plan.clientHeight);
+    const mini = miniMap(st.map, plan.clientWidth, plan.clientHeight, st.view);
     const pr = plan.getBoundingClientRect();
     if (mini?.inside(e.clientX - pr.left, e.clientY - pr.top)) {
       [st.view.cx, st.view.cz] = mini.toWorld(e.clientX - pr.left, e.clientY - pr.top);
@@ -914,6 +963,7 @@ function bindMap() {
       st.selOpening = { module: h.module, opening: h.opening };
       engine.level(JSON.stringify({ cmd: "select", ids: [h.module] }));
       showSelection();
+      openingMenu(h, e);
       redraw();
       return;
     }
@@ -927,6 +977,7 @@ function bindMap() {
     drag = { type: "box", a: [e.clientX - r.left, e.clientY - r.top], add: e.shiftKey };
   });
   plan.addEventListener("pointermove", (e) => {
+    altDown = e.altKey;
     const [x, z] = worldAt(e);
     const r = plan.getBoundingClientRect();
     st.mouse = [e.clientX - r.left, e.clientY - r.top];
@@ -939,19 +990,15 @@ function bindMap() {
     lastMouse = [e.clientX, e.clientY];
     if (arm?.type === "module") st.ghost = ghostFor(x, z);
     if (arm?.type === "template") st.ghost = templateGhost(x, z);
-    if (arm?.type === "thing" || arm?.type === "light") st.thingGhost = [snap(x), st.floor, snap(z)];
-    if (drag?.type === "modules") {
-      const c = cellAt(x, z);
-      drag.by = [c[0] - drag.from[0], 0, c[2] - drag.from[2]];
-      // Fantomet: de valgte modulene flyttet.
-      const moved = st.map.modules.filter((m) => st.sel.includes(m.id));
-      st.ghost = drag.by[0] || drag.by[2] ? { cells: moved.flatMap((m) => m.cells.map((q) => [q[0] + drag.by[0], q[1], q[2] + drag.by[2]])), openings: [], ok: true } : null;
-    }
+    if (arm?.type === "thing" || arm?.type === "light") st.thingGhost = [snap(x), st.floor, snap(z), arm.type === "light" ? "light" : arm.kind];
+    // Fantomet: de valgte modulene flyttet.
+    if (drag?.type === "modules") st.ghost = moveGhost(x, z);
     if (drag?.type === "thing" || drag?.type === "light") {
       drag.moved = drag.moved || Math.hypot(x - drag.from[0], z - drag.from[1]) > 0.3;
       if (drag.moved) st.thingGhost = [snap(x), st.floor, snap(z)];
     }
     if (drag?.type === "box") st.box = [...drag.a, ...st.mouse];
+    showTip(drag || arm || mode ? null : hit(st.map, st.floor, x, z, Math.max(0.6, 10 / st.view.s)));
     redraw();
   });
   plan.addEventListener("pointerup", (e) => {
@@ -961,7 +1008,7 @@ function bindMap() {
     if (d?.type === "pan" || d?.type === "mini") return;
     if (arm?.type === "module" && (e.button === 0 || d?.type === "palette")) {
       const g = ghostFor(x, z);
-      if (g) placeModule(arm.id, g.at, arm.rot, arm.mirror);
+      if (g) placeModule(arm.id, g.at, g.rot, arm.mirror);
       if (!e.shiftKey) disarm();
       return;
     }
@@ -988,7 +1035,7 @@ function bindMap() {
     }
     if (d?.type === "modules") {
       st.ghost = null;
-      if (d.by[0] || d.by[2]) send({ op: "move", ids: st.sel, by: d.by });
+      if (d.by[0] || d.by[1] || d.by[2]) send({ op: "move", ids: st.sel, by: d.by });
       redraw();
       return;
     }
@@ -1022,28 +1069,41 @@ function bindMap() {
       select(ids, d.add);
     }
   });
-  // Dra fra paletten og slipp på kartet.
+  // Dra fra paletten og slipp på kartet, eller i 3D (på gulvet der).
   addEventListener("pointerup", (e) => {
     if (drag?.type !== "palette") return;
     drag = null;
     const r = plan.getBoundingClientRect();
-    if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && arm?.type === "module") {
+    if (viewMode !== "3d" && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && arm?.type === "module") {
       const [x, z] = st.view.toWorld(e.clientX - r.left, e.clientY - r.top);
       const g = ghostFor(x, z);
-      if (g) placeModule(arm.id, g.at, arm.rot, arm.mirror);
+      if (g) placeModule(arm.id, g.at, g.rot, arm.mirror);
       disarm();
+      return;
     }
+    const w = canvas.getBoundingClientRect();
+    if (viewMode !== "map" && e.clientX >= w.left && e.clientX <= w.right && e.clientY >= w.top && e.clientY <= w.bottom) placeIn3d(e);
   });
   addEventListener("pointermove", (e) => {
     if (drag?.type !== "palette" || !arm) return;
+    altDown = e.altKey;
     const r = plan.getBoundingClientRect();
     if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
       const [x, z] = st.view.toWorld(e.clientX - r.left, e.clientY - r.top);
       st.ghost = ghostFor(x, z);
       redraw();
+      return;
+    }
+    // Over 3D: fantomet på kartet der det havner.
+    const w = canvas.getBoundingClientRect();
+    if (arm.type === "module" && e.clientX >= w.left && e.clientX <= w.right && e.clientY >= w.top && e.clientY <= w.bottom) {
+      const p = engine.level_pick((e.clientX - w.left) / w.width, (e.clientY - w.top) / w.height);
+      st.ghost = p.length ? ghostFor(p[0], p[2]) : null;
+      redraw();
     }
   });
   plan.addEventListener("pointerleave", () => {
+    showTip(null);
     st.ghost = arm?.type === "module" ? null : st.ghost;
     st.thingGhost = null;
     redraw();
@@ -1055,6 +1115,65 @@ function bindMap() {
     engine.level(JSON.stringify({ cmd: "place", x, y: st.floor + 1.7, z, yaw, pitch: -5 }));
     if (viewMode === "map") setView("split");
   });
+}
+
+/// Valget for en åpning rett ved pekeren: ett klikk gjør den til dør, port,
+/// falsk vegg … (det samme som i panelet).
+function openingMenu(h, e) {
+  const m = st.map.modules.find((m) => m.id === h.module);
+  const o = m?.openings.find((o) => o.id === h.opening);
+  if (!o) return;
+  const box = $("opmenu");
+  const now = o.chosen || "auto";
+  box.innerHTML = palette.openings.map(([k, n]) => `<button type="button" class="chip${k === now ? " armed" : ""}" data-kind="${esc(k)}">${esc(n)}</button>`).join("");
+  box.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      send({ op: "opening", module: m.id, opening: o.id, kind: b.dataset.kind });
+      box.hidden = true;
+    }),
+  );
+  const r = plan.getBoundingClientRect();
+  box.hidden = false;
+  box.style.left = `${Math.max(4, Math.min(e.clientX - r.left - box.offsetWidth / 2, plan.clientWidth - box.offsetWidth - 4))}px`;
+  box.style.top = `${Math.min(e.clientY - r.top + 14, plan.clientHeight - box.offsetHeight - 4)}px`;
+  showTip(null);
+}
+
+/// Lappen ved pekeren på kartet: hva det er og hva du kan gjøre med det.
+function showTip(h) {
+  const tip = $("maptip");
+  if (!h || !st.mouse) return (tip.hidden = true);
+  let html = "";
+  if (h.type === "thing") {
+    const t = st.map.things.find((t) => t.id === h.id);
+    if (!t) return (tip.hidden = true);
+    const kind = palette.things.find(([k]) => k === t.kind)?.[1] || t.kind;
+    const mob = ["mob", "elite", "boss"].includes(t.kind) ? palette.mobs.find(([k]) => k === t.label)?.[1] : null;
+    const extra = mob ? `${mob}${t.n > 1 ? ` × ${t.n}` : ""}${t.ambush ? " · i bakhold" : t.patrol.length ? " · patruljerer" : ""}` : t.kind === "lore" ? t.label || "uten tittel" : t.kind === "chest" ? t.loot || "tilfeldig fra nivået" : "";
+    html = `<b>${esc(kind)}</b>${extra ? ` · ${esc(extra)}` : ""}<div class="muted">${t.own ? "Dra for å flytte · R dreier · Delete sletter" : `Fra modulen ${esc(st.map.modules.find((m) => m.id === t.module)?.name || t.module || "")} · dra for å flytte her`}</div>`;
+  } else if (h.type === "light") {
+    html = `<b>Lys</b><div class="muted">Dra for å flytte · farge og styrke i panelet</div>`;
+  } else if (h.type === "opening") {
+    const m = st.map.modules.find((m) => m.id === h.module);
+    const o = m?.openings.find((o) => o.id === h.opening);
+    const chosen = o?.chosen ? palette.openings.find(([k]) => k === o.chosen)?.[1] || o.chosen : "automatisk";
+    html = `<b>Åpning</b> · ${esc(chosen)}<div class="muted">Klikk for å gjøre den til dør, port, falsk vegg, mur …</div>`;
+  } else if (h.type === "edge") {
+    html = `<b>${esc({ gate: "Port", secret: "Falsk vegg", door: "Dør" }[h.kind] || "Åpning")}</b> <code>${esc(h.switch)}</code><div class="muted">En spak eller nøkkel kan kobles hit (K)</div>`;
+  } else if (h.type === "module") {
+    const m = st.map.modules.find((m) => m.id === h.id);
+    const pm = m && palette.modules.find((p) => p.id === m.module);
+    if (!m) return (tip.hidden = true);
+    html = `<b>${esc(m.name)}</b>${pm && pm.name !== m.name ? ` · ${esc(pm.name)}` : ""}<div class="muted">Dra for å flytte · R dreier · M speiler · F viser i 3D</div>`;
+  }
+  if (!html) return (tip.hidden = true);
+  tip.innerHTML = html;
+  tip.hidden = false;
+  const [mx, my] = st.mouse;
+  const W = plan.clientWidth;
+  tip.style.left = `${Math.min(mx + 16, W - tip.offsetWidth - 6)}px`;
+  tip.style.top = `${my + 18}px`;
 }
 
 function snap(v) {
@@ -1078,7 +1197,7 @@ function startLink() {
   if (!t) return toast("Velg en spak, en elite eller et hint, så K, og klikk på porten eller den falske veggen.");
   mode = "link";
   st.linkFrom = id;
-  setStatus("Klikk på målet (en port, falsk vegg, bro …). Esc avbryter.");
+  setStatus("Klikk på målet: en port, en bro … eller en åpning (den blir en port) · Esc avbryter");
 }
 
 function finishLink(x, z) {
@@ -1087,14 +1206,22 @@ function finishLink(x, z) {
   let to = null;
   if (h?.type === "thing") to = h.id;
   if (h?.type === "edge") to = h.switch;
+  const fromT = st.map.things.find((t) => t.id === from);
   if (h?.type === "opening") {
     const m = st.map.modules.find((m) => m.id === h.module);
-    const ov = m?.overrides.find((o) => o.opening === h.opening);
+    let ov = m?.overrides.find((o) => o.opening === h.opening);
+    // En vanlig åpning blir det koblingen trenger: en port (spaken, eliten
+    // med nøkkelen) eller en falsk vegg (hintet).
+    if (!ov?.id && m) {
+      const kind = fromT?.kind === "hint" ? "falsk" : "port";
+      const out = send({ op: "opening", module: m.id, opening: h.opening, kind });
+      ov = out?.modules.find((x) => x.id === m.id)?.overrides.find((o) => o.opening === h.opening);
+      if (ov?.id) toast(`Åpningen er nå ${kind === "port" ? "en port" : "en falsk vegg"}`, 2000);
+    }
     to = ov?.id || null;
   }
   disarm();
-  if (!to) return toast("Det er ikke noe å koble til der. Gjør åpningen til en port, snarvei eller falsk vegg først.");
-  const fromT = st.map.things.find((t) => t.id === from);
+  if (!to) return toast("Det er ikke noe å koble til der: klikk på en åpning, en port eller en falsk vegg.");
   const kind = fromT?.kind === "elite" ? "key" : fromT?.kind === "hint" ? "for" : "opens";
   send({ op: "link", from, to, kind });
 }
@@ -1130,8 +1257,86 @@ function sendCut() {
 // ---------------------------------------------------------------- 3D
 
 let looking = false;
+// Banekameraet i 3D: kameraet går rundt et punkt (`pivot`) i en avstand og
+// retning (grader; pitch negativ ser ned). Venstre dra går rundt, hjulet
+// zoomer, midtknappen flytter, høyre knapp + WASD flyr som før.
+const orbit = { pivot: null, dist: 18, yaw: 35, pitch: -45 };
+
+function camForward(yaw, pitch) {
+  const a = (yaw * Math.PI) / 180;
+  const p = (pitch * Math.PI) / 180;
+  return [-Math.sin(a) * Math.cos(p), Math.sin(p), -Math.cos(a) * Math.cos(p)];
+}
+
+function applyOrbit() {
+  if (!orbit.pivot) return;
+  const f = camForward(orbit.yaw, orbit.pitch);
+  const [x, y, z] = orbit.pivot;
+  engine.level(JSON.stringify({ cmd: "place", x: x - f[0] * orbit.dist, y: y - f[1] * orbit.dist, z: z - f[2] * orbit.dist, yaw: orbit.yaw, pitch: orbit.pitch }));
+  st.camera = engine.level_camera();
+}
+
+/// Punktet kameraet går rundt, fra kameraet slik det står nå (etter flyging
+/// eller et hopp i kartet): gulvet midt i bildet, ellers et stykke fram.
+function syncOrbit() {
+  const c = engine.level_camera();
+  if (!c.length) return;
+  orbit.yaw = c[3];
+  orbit.pitch = c[4];
+  const f = camForward(c[3], c[4]);
+  const p = engine.level_pick(0.5, 0.5);
+  const d = p.length ? Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]) : 0;
+  orbit.dist = d > 0.5 && d < 120 ? d : Math.max(4, Math.min(orbit.dist, 30));
+  orbit.pivot = [c[0] + f[0] * orbit.dist, c[1] + f[1] * orbit.dist, c[2] + f[2] * orbit.dist];
+}
+
+/// Vis rutene (i, y, j) skrått ovenfra, så alt får plass i 3D.
+function frameCells(cells, keepYaw = true) {
+  if (!cells.length) return;
+  const xs = cells.map((c) => c[0] * CELL);
+  const zs = cells.map((c) => c[2] * CELL);
+  const ys = cells.map((c) => c[1]);
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) + CELL;
+  orbit.pivot = [(Math.min(...xs) + Math.max(...xs)) / 2, Math.min(...ys), (Math.min(...zs) + Math.max(...zs)) / 2];
+  orbit.dist = span * 0.85 + 6;
+  orbit.pitch = -50;
+  if (!keepYaw || !st.camera?.length) orbit.yaw = 35;
+  else orbit.yaw = st.camera[3];
+  applyOrbit();
+}
+
+/// Hele etasjen i 3D.
+function frameFloor() {
+  const cells = st.map.modules.flatMap((m) => m.cells).filter((c) => c[1] >= st.floor - 0.5 && c[1] < st.floor + 2.5);
+  frameCells(cells.length ? cells : st.map.modules.flatMap((m) => m.cells), false);
+}
+
+/// Sett ut det som er tatt fra paletten der pekeren treffer gulvet i 3D
+/// (med magneten, som på kartet). Gir om noe ble satt ut.
+function placeIn3d(e) {
+  if (!arm) return false;
+  const r = canvas.getBoundingClientRect();
+  const p = engine.level_pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  if (!p.length) return false;
+  const [x, z] = [p[0], p[2]];
+  let out = null;
+  if (arm.type === "module") {
+    const g = ghostFor(x, z);
+    if (g) out = placeModule(arm.id, g.at, g.rot, arm.mirror);
+  } else if (arm.type === "thing") out = send({ op: "add_thing", kind: arm.kind, at: [snap(x), st.floor, snap(z)], yaw: arm.yaw, label: arm.label });
+  else if (arm.type === "light") out = send({ op: "add_light", at: [snap(x), st.floor + 2.4, snap(z)] });
+  else if (arm.type === "template") {
+    const g = templateGhost(x, z);
+    if (g) out = send({ op: "stamp", template: arm.tpl, at: g.at, rot: arm.rot, mirror: arm.mirror });
+  }
+  if (out?.made?.length) select(out.made);
+  if (!e.shiftKey) disarm();
+  return true;
+}
+
 function bind3d() {
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  let press = null;
   canvas.addEventListener("pointerdown", (e) => {
     canvas.focus();
     if (playing) {
@@ -1139,28 +1344,70 @@ function bind3d() {
       engine.mouse(e.button, true);
       return;
     }
+    canvas.setPointerCapture(e.pointerId);
     if (e.button === 2) {
       looking = true;
-      canvas.setPointerCapture(e.pointerId);
       return;
     }
-    if (e.button === 0) {
-      const r = canvas.getBoundingClientRect();
-      const p = engine.level_pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
-      if (p.length) {
-        const h = hit(st.map, st.floor, p[0], p[2], 0.8);
-        if (h?.type === "module" || h?.type === "thing") select([h.id], e.shiftKey);
-        else if (!e.shiftKey) select([]);
-      }
-    }
+    press = { button: e.button, x: e.clientX, y: e.clientY, last: [e.clientX, e.clientY], moved: false };
   });
   canvas.addEventListener("pointerup", (e) => {
     if (playing) return engine.mouse(e.button, false);
-    if (e.button === 2) looking = false;
+    if (e.button === 2) {
+      looking = false;
+      // Etter flygingen går kameraet rundt det det ser på.
+      syncOrbit();
+      return;
+    }
+    const p0 = press;
+    press = null;
+    if (!p0 || p0.moved || e.button !== 0) return;
+    // Noe tatt fra paletten: sett det ut der.
+    if (arm && placeIn3d(e)) return;
+    // Et klikk uten å dra velger det som står der.
+    const r = canvas.getBoundingClientRect();
+    const p = engine.level_pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    if (p.length) {
+      const h = hit(st.map, st.floor, p[0], p[2], 0.8);
+      if (h?.type === "module" || h?.type === "thing") select([h.id], e.shiftKey);
+      else if (!e.shiftKey) select([]);
+    }
   });
   canvas.addEventListener("pointermove", (e) => {
-    if (looking || (playing && document.pointerLockElement === canvas)) engine.look(e.movementX, e.movementY);
+    if (looking || (playing && document.pointerLockElement === canvas)) return engine.look(e.movementX, e.movementY);
+    if (!press) return;
+    const dx = e.clientX - press.last[0];
+    const dy = e.clientY - press.last[1];
+    press.last = [e.clientX, e.clientY];
+    if (!press.moved) {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4) return;
+      press.moved = true;
+      syncOrbit();
+    }
+    if (press.button === 0) {
+      // Gå rundt punktet.
+      orbit.yaw -= dx * 0.4;
+      orbit.pitch = Math.max(-89, Math.min(20, orbit.pitch - dy * 0.3));
+    } else if (press.button === 1 && orbit.pivot) {
+      // Flytt punktet langs bildet.
+      const a = (orbit.yaw * Math.PI) / 180;
+      const k = orbit.dist * 0.0018;
+      orbit.pivot = [orbit.pivot[0] - Math.cos(a) * dx * k, orbit.pivot[1] + dy * k, orbit.pivot[2] + Math.sin(a) * dx * k];
+    }
+    applyOrbit();
   });
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      if (playing) return;
+      e.preventDefault();
+      syncOrbit();
+      if (!orbit.pivot) return;
+      orbit.dist = Math.max(1.5, Math.min(160, orbit.dist * Math.exp(e.deltaY * 0.0012)));
+      applyOrbit();
+    },
+    { passive: false },
+  );
 }
 
 const FLY_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD", "Space", "KeyC", "ShiftLeft", "ShiftRight"];
@@ -1193,6 +1440,9 @@ function bindUi() {
     sendCut();
     redraw();
   };
+  $("helpbtn").onclick = () => showHelp(true);
+  $("help-close").onclick = () => showHelp(false);
+  $("help").onclick = (e) => e.target === $("help") && showHelp(false);
   $("v-map").onclick = () => setView("map");
   $("v-split").onclick = () => setView("split");
   $("v-3d").onclick = () => setView("3d");
@@ -1206,6 +1456,11 @@ function bindUi() {
     if (playing || (document.activeElement === canvas && FLY_KEYS.includes(e.code))) engine.key(e.code, false);
   });
   addEventListener("blur", () => engine?.release_all());
+}
+
+function showHelp(on) {
+  $("help").hidden = !on;
+  if (on) $("help-close").focus();
 }
 
 function typing() {
@@ -1223,6 +1478,17 @@ function onKey(e) {
     return;
   }
   const ctrl = e.ctrlKey || e.metaKey;
+  if (!$("help").hidden) {
+    if (e.code === "Escape" || e.code === "F1" || e.key === "?") {
+      e.preventDefault();
+      showHelp(false);
+    }
+    return;
+  }
+  if (e.code === "F1" || (e.key === "?" && !typing())) {
+    e.preventDefault();
+    return showHelp(true);
+  }
   if (ctrl && e.code === "KeyS") {
     e.preventDefault();
     return save();
@@ -1260,12 +1526,15 @@ function onKey(e) {
   }
   switch (e.code) {
     case "Escape":
+      $("opmenu").hidden = true;
       disarm();
       select([]);
       break;
     case "KeyR":
       if (arm?.type === "module" || arm?.type === "template") {
-        arm.rot = (arm.rot + (e.shiftKey ? 3 : 1)) & 3;
+        // Fra dreiningen magneten valgte; etter R dreies den ikke av seg selv.
+        arm.rot = ((st.ghost?.rot ?? arm.rot) + (e.shiftKey ? 3 : 1)) & 3;
+        arm.turned = true;
         if (st.mouse) st.ghost = arm.type === "module" ? ghostFor(...st.view.toWorld(...st.mouse)) : templateGhost(...st.view.toWorld(...st.mouse));
         redraw();
       } else if (arm?.type === "thing") arm.yaw = (arm.yaw + 90) % 360;
@@ -1312,6 +1581,7 @@ function onKey(e) {
       break;
     case "Home":
       centerOn();
+      frameFloor();
       break;
   }
 }
@@ -1329,15 +1599,13 @@ function turnSelection(back) {
 }
 
 function focusSelection() {
-  const m = st.map.modules.find((m) => st.sel.includes(m.id));
-  const t = st.map.things.find((t) => st.sel.includes(t.id));
-  let p = null;
-  if (m) p = [m.cells.reduce((a, c) => a + c[0], 0) / m.cells.length * CELL, m.cells[0][1], m.cells.reduce((a, c) => a + c[2], 0) / m.cells.length * CELL];
-  else if (t) p = t.pos;
-  if (!p) return;
-  st.view.cx = p[0];
-  st.view.cz = p[2];
-  engine.level(JSON.stringify({ cmd: "place", x: p[0], y: p[1] + 1.7, z: p[2], yaw: st.camera?.length ? st.camera[3] : 0, pitch: -10 }));
+  const mods = st.map.modules.filter((m) => st.sel.includes(m.id));
+  const things = st.map.things.filter((t) => st.sel.includes(t.id));
+  const cells = [...mods.flatMap((m) => m.cells), ...things.map((t) => [Math.round(t.pos[0] / CELL), t.pos[1], Math.round(t.pos[2] / CELL)])];
+  if (!cells.length) return frameFloor();
+  st.view.cx = (Math.min(...cells.map((c) => c[0])) + Math.max(...cells.map((c) => c[0]))) * CELL / 2;
+  st.view.cz = (Math.min(...cells.map((c) => c[2])) + Math.max(...cells.map((c) => c[2]))) * CELL / 2;
+  frameCells(cells);
   redraw();
 }
 
@@ -1723,7 +1991,11 @@ function goTo(at, pick = true) {
     const h = hit(st.map, f, x, z, 1);
     if (h?.type === "module" || h?.type === "thing") select([h.id]);
   }
-  engine.level(JSON.stringify({ cmd: "place", x, y: y + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -20 }));
+  orbit.pivot = [x, y, z];
+  orbit.dist = 12;
+  orbit.pitch = -50;
+  if (st.camera?.length) orbit.yaw = st.camera[3];
+  applyOrbit();
   redraw();
 }
 
@@ -1743,6 +2015,9 @@ function applyFix(i) {
     armModule(f.module);
     document.querySelector(`.tile[data-module="${CSS.escape(f.module)}"]`)?.scrollIntoView({ block: "nearest" });
     toast("Bosshallen er valgt i paletten: sett den ut og flytt fienden dit");
+  } else if (f.do === "arm") {
+    armThing(f.kind, null);
+    toast("Klikk på kartet der den skal stå");
   } else if (f.do === "show") {
     goTo(f.at, false);
     select([f.module]);

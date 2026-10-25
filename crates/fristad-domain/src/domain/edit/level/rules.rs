@@ -73,7 +73,7 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
         let reached = cells.iter().any(|c| nav.nearest(Vec3::new(c[0] as f32 * CELL, c[1] as f32 + 0.3, c[2] as f32 * CELL), CELL * 0.5, &all).is_some_and(|(k, _)| seen[k as usize]));
         if !reached && !cells.is_empty() {
             let c = cells[0];
-            let name = m.name.clone().unwrap_or_else(|| m.id.clone());
+            let name = m.name.clone().or_else(|| kit.module(&m.module).map(|d| d.name.clone())).unwrap_or_else(|| m.id.clone());
             out.push(issue(
                 Severity::Warning,
                 "naa",
@@ -86,9 +86,10 @@ pub fn check(doc: &LevelDoc, kit: &KitDef, file: &LevelFile, report: &Report) ->
         let Some(p) = m.pos else { continue };
         let reach = if matches!(m.kind.as_str(), "gate" | "shortcut") { 2.5 } else { 2.0 };
         let id = m.id.clone().unwrap_or_else(|| m.kind.clone());
+        let what = super::map::THING_NAMES.iter().find(|(k, _)| *k == m.kind).map_or_else(|| m.kind.clone(), |(_, n)| n.split(" (").next().unwrap_or(n).to_string());
         match nav.nearest(Vec3::from(p), reach, &all) {
-            None => out.push(issue(Severity::Error, "naa", Some(p), format!("{id} ({}) står ikke på gulvet", m.kind))),
-            Some((k, _)) if !seen[k as usize] => out.push(issue(Severity::Error, "naa", Some(p), format!("{id} ({}) kan ikke nås fra start", m.kind))),
+            None => out.push(issue(Severity::Error, "naa", Some(p), format!("{what} «{id}» står ikke på gulvet"))),
+            Some((k, _)) if !seen[k as usize] => out.push(issue(Severity::Error, "naa", Some(p), format!("{what} «{id}» kan ikke nås fra start"))),
             _ => {}
         }
         for q in &m.patrol {
@@ -120,7 +121,7 @@ fn chosen(doc: &LevelDoc, kit: &KitDef, report: &Report, out: &mut Vec<Issue>) {
             }
             let (di, dj) = STEP[o.side];
             let at = [o.at[0] as f32 * CELL + di as f32 * CELL * 0.5, o.y as f32, o.at[1] as f32 * CELL + dj as f32 * CELL * 0.5];
-            let name = m.name.clone().unwrap_or_else(|| m.id.clone());
+            let name = m.name.clone().or_else(|| kit.module(&m.module).map(|d| d.name.clone())).unwrap_or_else(|| m.id.clone());
             out.push(issue(Severity::Warning, "aapning", Some(at), format!("«{}» i {name} ({}) møter ingenting og blir mur", v.kind, v.opening)));
         }
     }
