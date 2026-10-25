@@ -50,10 +50,6 @@ pub enum Severity {
     Warning,
 }
 
-/// Det hvert nivå må ha nøyaktig én av: merket, det i «Nivået mangler …»
-/// og flertallet.
-pub const NEEDED: [(&str, &str, &str); 4] = [("start", "et startsted", "startsteder"), ("up", "døra opp", "dører opp"), ("rest", "et hvilested", "hvilesteder"), ("down", "trappa ned", "trapper ned")];
-
 /// Et brudd på reglene, med sted (i nivåets rom) når det finnes.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Issue {
@@ -68,7 +64,7 @@ impl Issue {
     fn error(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
         Issue { severity: Severity::Error, rule, at: at.map(mm3), msg }
     }
-    fn warn(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
+    pub(super) fn warn(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
         Issue { severity: Severity::Warning, rule, at: at.map(mm3), msg }
     }
 }
@@ -510,13 +506,7 @@ impl Compiler {
         report.issues.append(&mut issues);
         file.rooms = rooms;
         // Det et nivå må ha.
-        for (kind, name, many) in NEEDED {
-            let n = file.marks.iter().filter(|m| m.kind == kind).count();
-            if n != 1 && !(kind == "down" && doc.level.number() == Some(10)) {
-                let msg = if n == 0 { format!("Nivået mangler {name}") } else { format!("Nivået har {n} {many} (skal ha én)") };
-                report.issues.push(Issue::warn("innhold", None, msg));
-            }
-        }
+        report.issues.extend(check::needed(&file, doc.level.number() == Some(10)));
         (file, report)
     }
 }

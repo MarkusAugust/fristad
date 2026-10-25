@@ -11,7 +11,7 @@
 //!   man kommer til fra start.
 
 use super::{footprint, LevelOp};
-use crate::domain::world::crypt::compose::{modules, outward, reach, Issue, CELL, HALF, NEEDED};
+use crate::domain::world::crypt::compose::{check::NEEDED, modules, outward, reach, Issue, CELL, HALF};
 use crate::domain::world::crypt::doc::LevelDoc;
 use crate::domain::world::crypt::kit::KitDef;
 use crate::domain::world::crypt::level::LevelFile;
