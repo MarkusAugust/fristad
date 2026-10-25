@@ -3533,6 +3533,18 @@
    "date": "2026-10-25",
    "why": "",
    "seen": "f3400d0b217c"
+  },
+  "cruel_combobox": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "c18ab7f8e848"
+  },
+  "divider_worm": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "36b1ada3fa84"
   }
  },
  "modules": {
