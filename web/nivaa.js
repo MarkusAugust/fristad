@@ -444,12 +444,13 @@ function openDialog() {
     ${names.map((n) => `<button class="fs-button" data-variant="secondary" data-repo="${n}">I repoet: nivaa_${n}.json</button>`).join("")}
     <button class="fs-button" data-variant="secondary" data-branch="1">Hent dette nivået fra grenen ${SAVE_BRANCH}</button></div>
     <h2 class="fs-heading" data-size="s">Nytt nivå</h2>
-    <div class="row">
-      <input id="new-name" class="fs-input" placeholder="Navnet" value="Nytt nivå" style="flex:1">
-      <select id="new-n" class="fs-select">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<option>${n}</option>`).join("")}</select>
-      <select id="new-theme" class="fs-select">${(palette.themes.length ? palette.themes : ["grav"]).map((t) => `<option>${t}</option>`).join("")}</select>
-      <button id="new-make" class="fs-button" data-variant="primary">Lag</button>
+    <div class="row" style="align-items:flex-end">
+      ${field("Navnet", `<input id="new-name" class="fs-input" value="Nytt nivå">`).replace('class="field"', 'class="field" style="flex:1"')}
+      ${field("Nivå", `<select id="new-n" class="fs-select">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<option>${n}</option>`).join("")}</select>`)}
+      ${field("Temaet", `<select id="new-theme" class="fs-select">${(palette.themes.length ? palette.themes : ["grav"]).map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("")}</select>`)}
+      <button id="new-make" class="fs-button" data-variant="primary" style="margin-bottom:8px">Lag</button>
     </div>
+    <p class="muted">Det nye nivået begynner med kapellet med døra opp og startstedet. Dra rom og ganger fra paletten inn til åpningene.</p>
     <div class="row" style="margin-top:12px"><button id="open-cancel" class="fs-button" data-variant="secondary">Avbryt</button></div>`;
   const ov = $("overlay");
   ov.replaceChildren(card);
@@ -498,6 +499,7 @@ function openText(text, note) {
   st.selOpening = null;
   refresh(out);
   centerOn();
+  frameFloor();
   if (note) toast(note);
 }
 
@@ -1311,6 +1313,33 @@ function frameFloor() {
   frameCells(cells.length ? cells : st.map.modules.flatMap((m) => m.cells), false);
 }
 
+/// Gulvet under pekeren i 3D (etasjen kartet viser), eller null.
+function pickAt(e) {
+  const r = canvas.getBoundingClientRect();
+  const p = engine.level_pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  return p.length ? p : null;
+}
+
+/// Tingen eller lyset dras i 3D: fantomet står på kartet til det slippes.
+function dragGrab(g, e) {
+  const p = pickAt(e);
+  if (!p) return;
+  const kind = g.h.type === "light" ? "light" : st.map.things.find((t) => t.id === g.h.id)?.kind;
+  st.thingGhost = [snap(p[0]), st.floor, snap(p[2]), kind];
+  redraw();
+}
+
+function dropGrab(g, e) {
+  const p = pickAt(e);
+  st.thingGhost = null;
+  if (p && g.h.type === "thing") send({ op: "move_thing", id: g.h.id, to: [snap(p[0]), thingY(g.h.id), snap(p[2])] });
+  else if (p && g.h.type === "light") {
+    const l = docLight(g.h.id);
+    if (l) send({ op: "set_light", light: { ...l, pos: [snap(p[0]), l.pos[1], snap(p[2])] } });
+  }
+  redraw();
+}
+
 /// Sett ut det som er tatt fra paletten der pekeren treffer gulvet i 3D
 /// (med magneten, som på kartet). Gir om noe ble satt ut.
 function placeIn3d(e) {
@@ -1350,6 +1379,13 @@ function bind3d() {
       return;
     }
     press = { button: e.button, x: e.clientX, y: e.clientY, last: [e.clientX, e.clientY], moved: false };
+    // Dra i en valgt ting eller et lys: flytt det (ellers går kameraet
+    // rundt, også over en valgt modul, som flyttes på kartet).
+    if (e.button === 0 && !arm && st.sel.length) {
+      const p = pickAt(e);
+      const h = p && hit(st.map, st.floor, p[0], p[2], 0.8);
+      if (h && st.sel.includes(h.id) && ["thing", "light"].includes(h.type)) press.grab = { h, from: p };
+    }
   });
   canvas.addEventListener("pointerup", (e) => {
     if (playing) return engine.mouse(e.button, false);
@@ -1361,6 +1397,7 @@ function bind3d() {
     }
     const p0 = press;
     press = null;
+    if (p0?.grab && p0.moved) return dropGrab(p0.grab, e);
     if (!p0 || p0.moved || e.button !== 0) return;
     // Noe tatt fra paletten: sett det ut der.
     if (arm && placeIn3d(e)) return;
@@ -1382,8 +1419,9 @@ function bind3d() {
     if (!press.moved) {
       if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4) return;
       press.moved = true;
-      syncOrbit();
+      if (!press.grab) syncOrbit();
     }
+    if (press.grab) return dragGrab(press.grab, e);
     if (press.button === 0) {
       // Gå rundt punktet.
       orbit.yaw -= dx * 0.4;
@@ -1517,6 +1555,12 @@ function onKey(e) {
     return markCamera(digit);
   }
   if (digit && !e.altKey) return gotoMark(digit);
+  if (ctrl && e.code === "KeyA") {
+    // Alt i etasjen: modulene og innholdet ditt.
+    e.preventDefault();
+    const on = (y) => y >= st.floor - 0.5 && y < st.floor + 2.5;
+    return select([...st.map.modules.filter((m) => m.cells.some((c) => on(c[1]))).map((m) => m.id), ...st.map.things.filter((t) => t.own && on(t.pos[1])).map((t) => t.id)]);
+  }
   if (ctrl && e.code === "KeyC") return copy();
   if (ctrl && e.code === "KeyV") return paste();
   if (ctrl && e.code === "KeyD") {
@@ -1760,15 +1804,33 @@ function showDoc(box) {
     ${field("Navnet", `<input id="d-name" class="fs-input" value="${esc(h.name)}">`)}
     <div class="row">
       ${field("Nummer", `<select id="d-level" class="fs-select">${options([...Array.from({ length: 10 }, (_, k) => [k + 1, String(k + 1)]), ...(typeof h.level === "string" ? [[h.level, h.level]] : [])], h.level)}</select>`)}
-      ${field("Tema", `<select id="d-theme" class="fs-select">${options([["", "Som modulene"], ...palette.themes.map((t) => [t, t])], h.theme)}</select>`)}
+      ${field("Tema", `<select id="d-theme" class="fs-select">${options([["", "Som modulene"], ...palette.themes.map((t) => [t, THEME_NAMES[t] || t])], h.theme)}</select>`)}
     </div>
     ${field("Steinen i hele nivået", `<select id="d-stone" class="fs-select">${stoneOptions(h.stone)}</select>`)}
-    <p class="muted">Velg en modul, en åpning eller en ting på kartet for å endre den. Et nivå merket «klar» erstatter det gamle nivået med samme nummer.</p>`;
+    <p class="muted">Velg en modul, en åpning eller en ting på kartet for å endre den. Et nivå merket «klar» erstatter det gamle nivået med samme nummer.</p>
+    <h2>Innholdet</h2>${contentList()}`;
+  box.querySelectorAll("[data-arm]").forEach((b) => b.addEventListener("click", () => (armThing(b.dataset.arm, null), toast("Klikk på kartet der den skal stå"))));
   const put = (patch) => send({ op: "set_head", head: { ...docHead(), ...patch } });
   box.querySelector("#d-name").onchange = (e) => put({ name: e.target.value });
   box.querySelector("#d-level").onchange = (e) => put({ level: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value });
   box.querySelector("#d-theme").onchange = (e) => put({ theme: e.target.value });
   box.querySelector("#d-stone").onchange = (e) => put({ stone: e.target.value || undefined });
+}
+
+/// Det nivået har: det som må være med (med «Sett ut» om det mangler) og
+/// hvor mange fiender, kister og lapper.
+function contentList() {
+  const count = (k) => st.map.things.filter((t) => t.kind === k).reduce((a, t) => a + (["mob", "elite"].includes(k) ? t.n || 1 : 1), 0);
+  const name = (k) => palette.things.find(([x]) => x === k)?.[1] || k;
+  const must = ["start", "up", "rest", "down"].map((k) => {
+    const n = count(k);
+    return `<li>${n === 1 ? "✓" : "✗"} ${esc(name(k))}${n > 1 ? ` (${n}, skal være én)` : ""}${n === 0 ? ` <button class="chip fix" data-arm="${k}">Sett ut</button>` : ""}</li>`;
+  });
+  const more = [["mob", "fiender"], ["elite", "eliter"], ["boss", "boss"], ["chest", "kister"], ["rare", "sjeldne kister"], ["lore", "lapper"], ["lever", "spaker"]]
+    .map(([k, n]) => [count(k), n])
+    .filter(([c]) => c)
+    .map(([c, n]) => `${c} ${n}`);
+  return `<ul class="checklist">${must.join("")}</ul><p class="muted">${more.length ? more.join(" · ") : "Ingen fiender eller kister ennå."}</p>`;
 }
 
 function showModule(box, m) {

@@ -278,7 +278,9 @@ export function draw(canvas, st) {
       const isSel = st.selOpening && st.selOpening.module === m.id && st.selOpening.opening === o.id;
       const free = !joined.has(`${o.at[0]},${o.at[1]},${o.side}`);
       if (!free && !o.chosen && !isSel) continue;
-      arrow(ctx, v, o.at[0], o.at[1], o.side, isSel ? "#ffd36a" : o.chosen ? CHOSEN_COLOR[o.chosen] || "#ddd" : "rgba(220,214,200,.45)", isSel ? 1.3 : 1);
+      // Med en modul i hånda lyser de ledige åpningene: der den kan kobles på.
+      const want = st.ghost && free && o.chosen !== "vegg";
+      arrow(ctx, v, o.at[0], o.at[1], o.side, isSel ? "#ffd36a" : want ? "#7be38f" : o.chosen ? CHOSEN_COLOR[o.chosen] || "#ddd" : "rgba(220,214,200,.45)", isSel ? 1.3 : want ? 1.25 : 1);
     }
   }
   // Stigene og heisene: enden i en annen etasje (⇅ med høyden).
@@ -432,7 +434,10 @@ export function draw(canvas, st) {
   }
   if (st.thingGhost) {
     const [px, py] = v.toScreen(st.thingGhost[0], st.thingGhost[2]);
-    const [glyph, color] = THING_STYLE[st.thingGhost[3]] || (st.thingGhost[3] === "light" ? ["☀", "#ffcf6a"] : ["", "#e8ffe8"]);
+    // Utenfor modulene (i fjellet) er fantomet rødt.
+    const inside = owner.has(`${Math.round(st.thingGhost[0] / CELL)},${Math.round(st.thingGhost[2] / CELL)}`);
+    let [glyph, color] = THING_STYLE[st.thingGhost[3]] || (st.thingGhost[3] === "light" ? ["☀", "#ffcf6a"] : ["", "#e8ffe8"]);
+    if (!inside) color = "#e0483c";
     ctx.fillStyle = "rgba(16,17,20,.7)";
     ctx.beginPath();
     ctx.arc(px, py, r, 0, Math.PI * 2);

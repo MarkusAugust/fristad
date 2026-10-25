@@ -79,7 +79,8 @@
     #issues li { padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12.5px; line-height: 1.3; border-left: 3px solid var(--warn); margin-bottom: 3px; background: #15171a; }
     #issues li.feil { border-left-color: var(--danger); }
     #issues li:hover { background: #22262b; }
-    #issues .chip.fix { margin-left: 4px; padding: 1px 7px; border-color: var(--accent); }
+    .checklist { list-style: none; margin: 0 0 6px; padding: 0; font-size: 13px; line-height: 1.9; }
+    #issues .chip.fix, .checklist .chip.fix { margin-left: 4px; padding: 1px 7px; border-color: var(--accent); }
     .muted { color: var(--muted); font-size: 12px; }
     .stats { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
     #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.6); z-index: 20; }
@@ -189,6 +190,7 @@
             <tr><td>Dra en modul eller ting</td><td>flytt (magneten virker også her)</td></tr>
             <tr><td>Alt</td><td>uten magnet</td></tr>
             <tr><td>Shift + klikk, ramme</td><td>velg flere</td></tr>
+            <tr><td>Ctrl+A</td><td>velg alt i etasjen</td></tr>
             <tr><td>R / Shift+R</td><td>drei med / mot klokka</td></tr>
             <tr><td>M</td><td>speil</td></tr>
             <tr><td>Delete</td><td>slett</td></tr>
@@ -208,7 +210,8 @@
             <tr><td>Hjulet</td><td>nærmere / lenger unna</td></tr>
             <tr><td>Midtknappen + dra</td><td>flytt</td></tr>
             <tr><td>Høyre knapp + WASD</td><td>fly (mellomrom og C opp og ned, Shift fort)</td></tr>
-            <tr><td>Klikk</td><td>velg</td></tr>
+            <tr><td>Klikk</td><td>velg, eller sett ut det du har tatt fra paletten</td></tr>
+            <tr><td>Dra en valgt ting</td><td>flytt den</td></tr>
             <tr><td>F</td><td>vis det valgte (eller hele etasjen)</td></tr>
             <tr><td>S</td><td>snittet: kutt bort taket</td></tr>
             <tr><td>L</td><td>arbeidslys / spillets lys</td></tr>
