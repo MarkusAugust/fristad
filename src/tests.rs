@@ -1193,16 +1193,34 @@ fn bueskytteren_holder_buen() {
     let (_, rig) = all.iter().find(|(n, _)| n == "breadcrumb_archer").expect("bueskytteren");
     let (bow, hand) = (rig.joint("bow").expect("beinet «bow»"), rig.joint("hand.L").unwrap());
     let place = |pose: &crate::domain::anim::Pose| Affine3A::from_mat4(rig.joint_transform(pose, bow)) * Affine3A::from_rotation_x(std::f32::consts::FRAC_PI_2);
-    let attack = rig.clip("attack").unwrap();
-    for (what, pose) in [("hvile", rig.rest()), ("skuddet", rig.sample(attack, 15.0 / 24.0, false))] {
+    let (attack, walk, idle) = (rig.clip("attack").unwrap(), rig.clip("walk").unwrap(), rig.clip("idle").unwrap());
+    let chest = rig.joint("chest").expect("brystet");
+    // Eieren 20. oktober: «Holder buen feil vei». Riggens front er +x
+    // (`Mobs::joint_world` dreier +x mot yaw); buens rom fra bow.py: lemmene
+    // langs y (z i Blender), buken mot +x, grepet 7,5 cm foran origo og
+    // strengen 3,5 cm bak.
+    let mut poses = vec![("skuddet", rig.sample(attack, 15.0 / 24.0, false))];
+    for k in 0..4 {
+        poses.push(("gangen", rig.sample(walk, k as f32 * 0.17, true)));
+        poses.push(("ventingen", rig.sample(idle, k as f32 * 0.4, true)));
+    }
+    for (what, pose) in poses {
         let t = place(&pose);
-        let grip = Vec3::from(t.translation);
+        let grip = t.transform_point3(Vec3::X * 0.075);
         let wrist = rig.joint_transform(&pose, hand).w_axis.truncate();
         assert!(grip.distance(wrist) < 0.15, "{what}: grepet står {:.2} m fra håndleddet", grip.distance(wrist));
-        if what == "skuddet" {
-            let along = t.transform_vector3(Vec3::Y).normalize();
-            assert!(along.y.abs() > 0.8, "buen står ikke loddrett i skuddet: {along}");
-        }
+        let along = t.transform_vector3(Vec3::Y).normalize();
+        let belly = t.transform_vector3(Vec3::X).normalize();
+        assert!(along.y.abs() > if what == "skuddet" { 0.95 } else { 0.8 }, "{what}: buen står ikke loddrett: {along}");
+        assert!(belly.x > 0.9, "{what}: buen buer ikke mot målet (buken {belly})");
+        // Strengen er nærmere brystet enn staven.
+        let c = rig.joint_transform(&pose, chest).w_axis.truncate();
+        let string = t.transform_point3(Vec3::X * -0.035);
+        let flat = |p: Vec3| Vec3::new(p.x - c.x, 0.0, p.z - c.z).length();
+        assert!(flat(string) < flat(grip), "{what}: strengen står lenger fra brystet enn staven");
+        // Den nederste tuppen står over gulvet.
+        let low = t.transform_point3(Vec3::Y * 0.56).y.min(t.transform_point3(-Vec3::Y * 0.56).y);
+        assert!(what == "skuddet" || low > -0.02, "{what}: buen går {:.2} m ned i gulvet", -low);
     }
 }
 

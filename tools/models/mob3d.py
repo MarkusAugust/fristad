@@ -516,23 +516,23 @@ TORSO_FADE = 0.05  # armvekten tones inn over så langt utover
 
 def bow_bone(arm, spec):
     """Beinet «bow» (former ikke kroppen) på venstre hånd, med buens rom
-    (`bow.py`: grepet i origo, lemmene langs z, buken mot x): grepet midt i
-    hånda, buken langs hånda (fram når hånda peker fram i skuddet,
-    `attack_shoot`) og lemmene fram og tilbake i hvile, så buen står
-    loddrett i skuddet. Spillet setter modellen `bow` etter det
-    (`mob_rigs::HELD`)."""
+    (`bow.py`: lemmene langs z, buken mot x), grepet midt i hånda. Aksene er `mob_motion.bow_frame`: buken langs hånda og lemmene
+    på tvers av den, fram og opp, så buen henger skrått med strengen inn
+    mot kroppen når armen henger, og skuddet dreier hånda så buken vender
+    mot målet og lemmene står loddrett (`mob_motion.bow_aim`). Spillet
+    setter modellen `bow` etter det (`mob_rigs::HELD`), og
+    `held_props.py` og «Se i 3D» gjør det samme."""
     from mathutils import Matrix
 
     if not spec.get("bow"):
         return
     hand = arm.data.bones["hand.L"]
     w, tip = Vector(hand.head_local), Vector(hand.tail_local)
-    x = (tip - w).normalized()
-    z = Vector((1.0, 0.0, 0.0))
-    z = (z - x * z.dot(x)).normalized()
-    y = z.cross(x)
+    x, y, z = mob_motion.bow_frame(w, tip)
     R = Matrix((x, y, z)).transposed()
-    origin = w + (tip - w) * BOW_GRIP
+    # Buens origo ligger `bow.BELLY` bak grepet (strengsida), så beinet
+    # står så langt bak midten av hånda, og staven går gjennom neven.
+    origin = w + (tip - w) * BOW_GRIP - x * BOW_BELLY
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="EDIT")
     b = arm.data.edit_bones.new("bow")
@@ -546,6 +546,7 @@ def bow_bone(arm, spec):
 
 
 BOW_GRIP = 0.45  # grepet så langt ut i hånda (brøk fra håndleddet)
+BOW_BELLY = 0.075  # grepet står så langt foran buens origo (`bow.BELLY`)
 
 
 def stow(ob, name, spec):

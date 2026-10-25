@@ -89,6 +89,8 @@ class Body:
         # kjettingstumper fra `mob3d.tethers`): følger festet, men vender
         # som hoftene, så det henger ned uansett hvor armen er.
         self.dangle = [b for b in self.order if b.split(".")[0] == "chain"]
+        # (side, dreining) for hånda som holder buen (`bow_aim`), satt per klipp.
+        self.bow = None
 
     def vec(self, b):
         return self.tail[b] - self.head[b]
@@ -153,6 +155,13 @@ class Body:
             for b in (f"upper_arm.{side}", f"forearm.{side}", f"hand.{side}"):
                 R[b] = eul(0, 0, 0)
         root = Vector(spec.root)
+        # Buearmen uten mål (hvile, gange) bæres med albuen bøyd fram
+        # (`BOW_ELBOW`), så buen står loddrett over gulvet.
+        if self.bow and spec.hands.get(self.bow[0]) is None:
+            s = self.bow[0]
+            G, H = self.fk(R, root)
+            Gp = G[f"upper_arm.{s}"]
+            R[f"forearm.{s}"] = Gp.inverted() @ eul(0, -BOW_ELBOW, 0) @ Gp @ R[f"forearm.{s}"]
         legs = [s for s in ("L", "R") if spec.feet.get(s) is not None and ik_legs]
         arms = [s for s in ("L", "R") if spec.hands.get(s) is not None]
         for _ in range(3):
@@ -168,6 +177,12 @@ class Body:
                 G, H = self.fk(R, root)
                 Gf = self.two_bone(R, G, H, f"upper_arm.{s}", f"forearm.{s}", f"hand.{s}", Vector(spec.hands[s]), pole)
                 R[f"hand.{s}"] = Gf.inverted() @ eul(*spec.rot.get(f"hand_world.{s}", (0, 40, 0)))
+            # Buehånda (`bow_aim`): buen loddrett med buken fram, uansett
+            # hvor armen er.
+            if self.bow:
+                side, q = self.bow
+                G, H = self.fk(R, root)
+                R[f"hand.{side}"] = G[self.parent[f"hand.{side}"]].inverted() @ q
             # Ingenting under gulvet: det laveste punktet (med tykkelsen)
             # løfter roten. Beina med mål regnes ikke med.
             G, H = self.fk(R, root)
@@ -243,7 +258,7 @@ STYLES = {
     "dropdown": dict(frames=32, v0=0.48, duty=0.68, lift=0.08, width=0.26, hunch=8, arm=20, sway=0.07, bob=0.04, tail=0, twitch=False, hips_yaw=6, idle=70, heavy=True,
                      swing_out=9, roar_arms=0.55, swell=0.03, arms_up=0.6),
     # Bueskytteren: lett og rask på tynne steinledd.
-    "archer": dict(frames=16, v0=2.0, duty=0.6, lift=0.11, width=0.16, hunch=6, arm=16, sway=0.03, bob=0.025, tail=0, twitch=True, hips_yaw=8, idle=48),
+    "archer": dict(bow="L", frames=16, v0=2.0, duty=0.6, lift=0.11, width=0.16, hunch=6, arm=16, sway=0.03, bob=0.025, tail=0, twitch=True, hips_yaw=8, idle=48),
     # Skeleton Loader: rykkete, «lastende» gang; begge sider går i trinn.
     "loader": dict(frames=20, v0=1.8, duty=0.6, lift=0.1, width=0.13, hunch=10, arm=18, sway=0.03, bob=0.03, tail=0, twitch=True, hips_yaw=6, idle=48, stiff="LR"),
     # Grid-vokteren: stiv, mekanisk og symmetrisk, uten vugging.
@@ -769,6 +784,35 @@ def attack_sweep(c, body, st):
         body.key(c, f, spec)
 
 
+def bow_frame(wrist, tip):
+    """Buens rom i hvileposen (beinet «bow», `mob3d.bow_bone`; aksene i
+    `bow.py`): x er buken, langs hånda, og z lemmene, fram og opp på tvers
+    av hånda (`BOW_TILT`), så buen henger skrått med strengen inn mot
+    kroppen når armen henger. Gir (x, y, z)."""
+    x = (tip - wrist).normalized()
+    z = Vector((1.0, 0.0, BOW_TILT))
+    z = (z - x * z.dot(x)).normalized()
+    return x, z.cross(x), z
+
+
+BOW_ELBOW = 75.0  # grader albuen bøyes fram når buearmen ellers henger
+BOW_TILT = 1.0  # lemmene så mye opp som fram i hvile (på tvers av hånda)
+
+
+def bow_aim(body):
+    """Hånddreiningen (armaturrommet, som `hand_world`) som setter buen
+    rett (eieren 20. oktober: «Holder buen feil vei»): buken mot målet (+x,
+    fram), lemmene loddrett og strengen mot brystet. `solve` holder hånda
+    slik i alle klippene utenom døden og stigen (`Body.bow`), i hvile og
+    gange med armen nede og i skuddet med armen strukket fram. Før pekte
+    hånda bakover i skuddet, så buken vendte mot ham og strengen mot målet,
+    og buen lå vannrett i gangen."""
+    x, y, z = bow_frame(body.head["hand.L"], body.tail["hand.L"])
+    rest = Matrix((x, y, z)).transposed()
+    aim = Matrix(((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)))
+    return (aim @ rest.transposed()).to_quaternion()
+
+
 def attack_shoot(c, body, st):
     """Skuddet (bueskytteren): venstre arm strekkes fram som om den holder
     buen, høyre hånd trekkes bak til haka (varselet, bilde 0–13), og slippes
@@ -791,7 +835,6 @@ def attack_shoot(c, body, st):
         bow = shL + Vector((0.9 * reach, -0.05, 0.02))
         hL = restL.lerp(bow, k)
         spec.hands["L"] = (hL.x, hL.y, hL.z)
-        spec.rot["hand_world.L"] = (0, 90 * k + 40 * (1 - k), 0)
         nock = bow + Vector((-0.12, -0.08, 0.0))
         chin = shR + Vector((0.12, 0.16, 0.06))
         hR = restR.lerp(nock.lerp(chin, d) if f <= 15 else nock + Vector((-0.06, -0.05, 0.0)), k)
@@ -1045,6 +1088,7 @@ def make_clips(Clip, arm, bones, style, attack, extra=(), climb_scale=None):
         todo.append(("climb", max(8, round(2 * LADDER_RUNG / CLIMB_SPEED * FPS)), lambda c: climb(c, body, st, climb_scale)))
     for name, length, fn in todo:
         body.hold = None if name in ("attack", "slam", "die", "die2", "climb") else st.get("hold")
+        body.bow = (st["bow"], bow_aim(body)) if st.get("bow") and name not in ("die", "die2", "climb") else None
         c = Clip(arm, name, length, FPS)
         fn(c)
         c.finish()
