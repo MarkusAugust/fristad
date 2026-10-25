@@ -52,6 +52,7 @@ impl Mob {
 
     /// Progress-formannens glasstolpe lader før slaget (0..1) og står foran
     /// brystet: den fylles mens hakka løftes og tømmes når den treffer.
+    /// Comboboxens plater gløder på samme måte mens den velger deg.
     pub fn bar_charge(&self) -> Option<(f32, Vec3)> {
         match (self.kind, self.state) {
             (Kind::Foreman, State::Attack { blow: Blow::Melee, landed: false }) => {
@@ -59,6 +60,14 @@ impl Mob {
                 let s = self.scale();
                 let at = self.pos + Vec3::Y * 1.15 * s + Vec3::new(self.yaw.sin(), 0.0, self.yaw.cos()) * 0.45 * s;
                 Some(((self.t / hit_at).clamp(0.0, 1.0), at))
+            }
+            // Comboboxen som har valgt deg: platene foran gløder til plata
+            // hamrer ned (`mob_chain.rs`).
+            (Kind::Combobox, State::Attack { blow: blow @ (Blow::Choose | Blow::Strike), landed }) if blow == Blow::Choose || !landed => {
+                let len = Blow::Choose.timing(&self.kind.stats()).1;
+                let k = if blow == Blow::Strike { 1.0 } else { (self.t / len).clamp(0.0, 1.0) };
+                let at = self.pos + Vec3::Y * 0.9 + Vec3::new(self.yaw.sin(), 0.0, self.yaw.cos()) * 0.7;
+                Some((k, at))
             }
             _ => None,
         }

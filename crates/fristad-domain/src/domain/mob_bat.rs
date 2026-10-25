@@ -42,9 +42,10 @@ impl Mob {
         self.air
     }
 
-    /// For høyt oppe for sverdet ditt (`feet` er føttene dine).
+    /// For høyt oppe for sverdet ditt (`feet` er føttene dine), eller under
+    /// gulvet (ormen, `mob_chain.rs`).
     pub fn out_of_reach(&self, feet: Vec3) -> bool {
-        self.kind == Kind::AlertBat && self.pos.y + self.air - feet.y > SWING_TOP
+        (self.kind == Kind::AlertBat && self.pos.y + self.air - feet.y > SWING_TOP) || self.under()
     }
 
     /// Midt på kroppen (skadetallene og rusket).

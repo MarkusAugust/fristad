@@ -3131,6 +3131,21 @@ fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
 /// munnen) et halvt sekund før skuddet, markøren tegnes hvert bilde fra den
 /// spyttes til den treffer, og treffer den deg, sier `Event::Hurt` hvor den
 /// kom fra (her fra høyre). Infopanelet sier at den skyter på avstand.
+/// Et sted `dists` meter unna føttene dine i nivå 1, på samme gulv og med
+/// fritt gulv hele veien (til fiendene som settes ut i testene).
+fn open_spot(c: &crate::domain::world::crypt::Crypt, feet: Vec3, dists: &[f32]) -> Vec3 {
+    let ground = |q: Vec3| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z);
+    let clear = |a: Vec3, b: Vec3| (1..20).all(|k| c.walkable(ground(a.lerp(b, k as f32 / 20.0))));
+    (0..32)
+        .flat_map(|k| dists.iter().map(move |&d| (k, d)))
+        .map(|(k, d)| {
+            let a = k as f32 * std::f32::consts::TAU / 32.0;
+            ground(feet + Vec3::new(a.cos(), 0.0, a.sin()) * d)
+        })
+        .find(|q| c.walkable(*q) && (q.y - feet.y).abs() < 0.3 && clear(feet, *q))
+        .unwrap_or_else(|| panic!("ingen plass {dists:?} m unna startstedet i nivå 1"))
+}
+
 /// Alert-flaggermusa (eieren 20. oktober: «alle monster angriper ulikt»):
 /// når den ser deg, skriker den, og en knapp som sover i bakhold like ved
 /// våkner; mellom stupene henger den for høyt for sverdet, og stupet går
@@ -3147,16 +3162,8 @@ fn flaggermusa_skriker_vekker_de_andre_og_stuper() {
     }
     let feet = game.feet();
     let c = game.crypt_now().clone();
-    let clear = |a: Vec3, b: Vec3| (1..20).all(|k| c.walkable(Vec3::new(a.lerp(b, k as f32 / 20.0).x, c.height_at(a.lerp(b, k as f32 / 20.0) + Vec3::Y * 0.5), a.lerp(b, k as f32 / 20.0).z)));
     let ground = |q: Vec3| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z);
-    let at = (0..32)
-        .flat_map(|k| [6.0f32, 7.5, 9.0].map(move |d| (k, d)))
-        .map(|(k, d)| {
-            let a = k as f32 * std::f32::consts::TAU / 32.0;
-            ground(feet + Vec3::new(a.cos(), 0.0, a.sin()) * d)
-        })
-        .find(|q| c.walkable(*q) && (q.y - feet.y).abs() < 0.3 && clear(feet, *q))
-        .expect("ingen plass til flaggermusa 6–9 m unna startstedet i nivå 1");
+    let at = open_spot(&c, feet, &[6.0, 7.5, 9.0]);
     // Knappen sover i bakhold et stykke bak flaggermusa, utenfor rekkevidden
     // som ellers vekker den.
     let away = (at - feet).with_y(0.0).normalize();
@@ -3192,6 +3199,127 @@ fn flaggermusa_skriker_vekker_de_andre_og_stuper() {
     assert!(high >= 30, "flaggermusa hang over sverdet i bare {high} bilder");
     assert!(bitten, "stupet bet ikke (lavest {low:.2} m over føttene dine)");
     assert!(low < bat::SWING_TOP, "stupet kom aldri ned dit sverdet når ({low:.2} m)");
+}
+
+/// Den grusomme Comboboxen (eieren 25. oktober: «jobb videre med combobox
+/// og ormen»): den pisker lavt og høyt og velger deg før plata hamrer ned
+/// med dobbel skade. Den høye pisken går klar når du dukker, den lave når du
+/// hopper over den.
+#[test]
+fn comboboxen_pisker_lavt_og_hoyt_og_hamrer_platene_ned() {
+    use crate::domain::mobs::{Blow, Kind};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    let at = open_spot(&c, feet, &[2.2, 2.5, 2.0]);
+    game.only_mob(Kind::Combobox, at);
+    let to = (at - feet).with_y(0.0).normalize();
+    game.set_look((-to.x).atan2(-to.z), 0.0);
+    let dmg = Kind::Combobox.stats().damage;
+    // Hvor mye livet falt da hvert slag landet: (lav pisk, høy pisk, plata),
+    // stående, dukket eller i hoppet.
+    let (mut low_stand, mut low_jump, mut high_stand, mut high_duck, mut strike) = (vec![], vec![], vec![], vec![], vec![]);
+    let mut chose = false;
+    let mut last: Option<(Blow, bool)> = None;
+    let mut mode = 0u32; // hvilket slag i rekken: annenhver gang står du, annenhver gang unngår du
+    let mut jump_at: Option<f32> = None;
+    let mut t = 0.0f32;
+    for _ in 0..(90 * 60) {
+        let now = game.mob_attack(0);
+        // Et nytt slag: bestem om du skal unngå det.
+        if let Some((blow, false)) = now {
+            if last.map(|l| l.0) != Some(blow) || last.is_some_and(|l| l.1) {
+                mode += 1;
+                if let Blow::Lash { high: false } = blow {
+                    // Hoppet skal være i lufta når halen feier forbi (bilde 20).
+                    jump_at = (mode % 2 == 0).then_some(t + 20.0 / 24.0 - 0.3);
+                }
+            }
+        }
+        let dodge = mode % 2 == 0;
+        input.crouch = dodge && matches!(now, Some((Blow::Lash { high: true }, _)));
+        input.jump = jump_at.is_some_and(|j| t >= j && t < j + 0.05);
+        game.heal();
+        let hp = game.hp_now();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        t += 1.0 / 60.0;
+        let lost = hp - game.hp_now();
+        if let (Some((blow, false)), Some((b2, true))) = (now, game.mob_attack(0)) {
+            assert_eq!(blow, b2);
+            match blow {
+                Blow::Lash { high: false } if dodge => low_jump.push(lost),
+                Blow::Lash { high: false } => low_stand.push(lost),
+                Blow::Lash { high: true } if dodge => high_duck.push(lost),
+                Blow::Lash { high: true } => high_stand.push(lost),
+                Blow::Strike => strike.push(lost),
+                _ => {}
+            }
+        }
+        chose |= matches!(now, Some((Blow::Choose, _)));
+        last = now;
+        if [&low_stand, &low_jump, &high_stand, &high_duck, &strike].iter().all(|v| !v.is_empty()) {
+            break;
+        }
+    }
+    assert!(chose, "Comboboxen valgte deg aldri før plata");
+    for (name, v) in [("den lave pisken stående", &low_stand), ("den lave pisken i hoppet", &low_jump), ("den høye pisken stående", &high_stand), ("den høye pisken dukket", &high_duck), ("plata", &strike)] {
+        assert!(!v.is_empty(), "{name}: kom aldri på 90 s");
+    }
+    assert!(low_stand.iter().all(|&l| l > 0.5 * dmg), "den lave pisken traff ikke deg som sto: {low_stand:?}");
+    assert!(high_stand.iter().all(|&l| l > 0.5 * dmg), "den høye pisken traff ikke deg som sto: {high_stand:?}");
+    assert!(low_jump.iter().all(|&l| l == 0.0), "hoppet gikk ikke klar av den lave pisken: {low_jump:?}");
+    assert!(high_duck.iter().all(|&l| l == 0.0), "å dukke gikk ikke klar av den høye pisken: {high_duck:?}");
+    let lash = low_stand.iter().chain(&high_stand).fold(0.0f32, |a, &b| a.max(b));
+    assert!(strike.iter().any(|&l| l > 1.5 * lash), "plata gjorde ikke dobbelt så mye som pisken ({strike:?} mot {lash})");
+}
+
+/// Divider-ormen graver seg ned et stykke unna, går under gulvet der du
+/// verken ser eller treffer den, og dukker opp ved deg og biter.
+#[test]
+fn ormen_graver_seg_ned_og_dukker_opp_ved_deg() {
+    use crate::domain::mobs::{Blow, Kind};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    let at = open_spot(&c, feet, &[6.0, 7.0, 5.0]);
+    game.only_mob(Kind::DividerWorm, at);
+    let to = (at - feet).with_y(0.0).normalize();
+    game.set_look((-to.x).atan2(-to.z), 0.0);
+    game.heal();
+    let hp0 = game.hp_now();
+    let (mut burrowed, mut hidden, mut emerged_near, mut bitten) = (false, 0, false, false);
+    for _ in 0..(12 * 60) {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        burrowed |= matches!(game.mob_attack(0), Some((Blow::Burrow, _)));
+        if game.mob_under(0) {
+            hidden += 1;
+            let frame = game.frame(16.0 / 9.0);
+            assert!(!frame.instances.iter().any(|i| i.model == "divider_worm"), "ormen under gulvet ble tegnet");
+        }
+        if matches!(game.mob_attack(0), Some((Blow::Emerge, _))) {
+            emerged_near |= game.mob_now(0).0.with_y(0.0).distance(game.feet().with_y(0.0)) < 1.5;
+        }
+        bitten |= emerged_near && game.hp_now() < hp0;
+        if bitten {
+            break;
+        }
+    }
+    assert!(burrowed, "ormen gravde seg aldri ned");
+    assert!(hidden >= 30, "ormen var under gulvet i bare {hidden} bilder");
+    assert!(emerged_near, "ormen dukket ikke opp ved deg");
+    assert!(bitten, "ormen bet ikke da den dukket opp");
 }
 
 #[test]

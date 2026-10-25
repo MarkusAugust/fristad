@@ -4,7 +4,8 @@
 
 use super::session::{sfx, Session};
 use crate::domain::combat::CombatEvent;
-use crate::domain::mobs::Kind as MobKind;
+use crate::domain::body::Stance;
+use crate::domain::mobs::{Kind as MobKind, Sweep};
 use crate::domain::world::Use;
 use crate::ports::driving::{Event, FoeView, Mark};
 use glam::{Mat4, Vec3};
@@ -84,9 +85,16 @@ impl Session {
             events.push(self.sound_at("spit_hit", *at, 1.0));
         }
         // Bittene: blokk tar det meste, en parade alt (og lamslår), en
-        // unnamanøver går klar.
+        // unnamanøver går klar. Comboboxens pisk går klar om du hopper over
+        // den lave og dukker under den høye.
         let mut taken_total = 0.0;
-        for (mob, damage, from) in &outcome.bites {
+        let (airborne, ducked) = (!self.body.grounded, self.body.stance == Stance::Crouch);
+        let swept = outcome.sweeps.iter().filter(|(.., how)| !match how {
+            Sweep::Low => airborne,
+            Sweep::High => ducked,
+        });
+        for (mob, damage, from) in outcome.bites.iter().copied().chain(swept.map(|&(m, d, f, _)| (m, d, f))) {
+            let (mob, damage, from) = (&mob, &damage, &from);
             let (taken, parried) = self.combat.incoming(*from, *damage, eye, fwd);
             if parried {
                 self.mobs.stagger(*mob, 1.3);

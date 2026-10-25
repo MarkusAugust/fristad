@@ -122,6 +122,19 @@ impl Session {
         self.mobs.spawn_unaware(kind, at, near)
     }
 
+    /// Angrepet fiende `i` er i gang med, og om det har landet.
+    pub fn mob_attack(&self, i: usize) -> Option<(crate::domain::mobs::Blow, bool)> {
+        match self.mobs.mobs.get(i)?.state {
+            crate::domain::mobs::State::Attack { blow, landed } => Some((blow, landed)),
+            _ => None,
+        }
+    }
+
+    /// Om fiende `i` er under gulvet (ormen).
+    pub fn mob_under(&self, i: usize) -> bool {
+        self.mobs.mobs.get(i).is_some_and(|m| m.under())
+    }
+
     /// Fiende `i`: føttene, flyhøyden, om den har sett deg, og livet.
     pub fn mob_now(&self, i: usize) -> (Vec3, f32, bool, f32) {
         let m = &self.mobs.mobs[i];

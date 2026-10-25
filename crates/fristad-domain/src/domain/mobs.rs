@@ -31,6 +31,9 @@ mod mob_rigs;
 mod bolts;
 #[path = "mob_bat.rs"]
 pub mod bat;
+#[path = "mob_chain.rs"]
+mod chain;
+pub use chain::Sweep;
 pub use bolts::Bolt;
 use bolts::{BOLT_INSTANCES, BOLT_SPEED};
 
@@ -65,16 +68,28 @@ pub enum Blow {
     Slam,
     /// Bossen brøler og kaller på tooltips.
     Roar,
+    /// Comboboxens pisk rundt seg, lavt eller høyt (`mob_chain.rs`).
+    Lash { high: bool },
+    /// Comboboxen velger deg (platene skrangler), og så kommer `Strike`.
+    Choose,
+    Strike,
+    /// Ormen graver seg ned, og dukker opp ved deg.
+    Burrow,
+    Emerge,
 }
 
 impl Blow {
     /// (sekundet slaget lander, klippets lengde).
     fn timing(self, s: &Stats) -> (f32, f32) {
+        if let Some(t) = self.chain_timing() {
+            return t;
+        }
         match self {
             Blow::Melee => (s.attack_hit, s.attack_len),
             Blow::Spit => (15.0 / FPS, 30.0 / FPS),
             Blow::Slam => (28.0 / FPS, 44.0 / FPS),
             Blow::Roar => (12.0 / FPS, 36.0 / FPS),
+            _ => (s.attack_hit, s.attack_len),
         }
     }
 }
@@ -110,6 +125,12 @@ struct Clips {
     hit2: Option<usize>,
     stagger: Option<usize>,
     die2: Option<usize>,
+    /// Kjedenes egne angrep (`mob_chain.rs`).
+    lash_high: Option<usize>,
+    choose: Option<usize>,
+    strike: Option<usize>,
+    burrow: Option<usize>,
+    emerge: Option<usize>,
     climb: Option<(usize, f32)>, // klatringen i stigen (`mob_motion.climb`) og lengden på én syklus (to trinn)
     /// Leddene hodet ser med (nakke, hode), og hvilken vei som er opp i riggens rom.
     look: Option<(usize, usize)>,
@@ -168,6 +189,8 @@ pub struct Mob {
     climb: Vec<crate::domain::world::crypt::hops::HopStep>,
     /// Høyden over gulvet den flyr i (Alert-flaggermusa, `mob_bat.rs`).
     air: f32,
+    /// Sekundene under gulvet (Divider-ormen, `mob_chain.rs`).
+    under: Option<f32>,
 }
 
 impl Mob {
@@ -203,6 +226,8 @@ pub struct Strike {
 pub struct Outcome {
     /// Slag som landet: (fiende, skade, hvor det kom fra).
     pub bites: Vec<(usize, f32, Vec3)>,
+    /// Comboboxens pisk: som bittene, men et hopp eller å dukke går klar.
+    pub sweeps: Vec<(usize, f32, Vec3, Sweep)>,
     pub tokens: u32,
     pub keys: u32,
     /// Lydene fiendene lager, og hvor: varsel før slaget (`windup`,
@@ -270,7 +295,7 @@ impl Mobs {
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![], air: if kind == Kind::AlertBat { bat::HOVER } else { 0.0 } });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![], air: if kind == Kind::AlertBat { bat::HOVER } else { 0.0 }, under: None });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -370,7 +395,7 @@ impl Mobs {
         // treffer også når du sikter litt høyt eller lavt.
         let mut best: Option<(usize, f32)> = None;
         for (i, m) in self.mobs.iter().enumerate() {
-            if !m.alive() {
+            if !m.alive() || m.under() {
                 continue;
             }
             let (s, (top, rad, half)) = (m.scale(), m.kind.body());
@@ -569,6 +594,9 @@ impl Mobs {
             bat::fly(m, dt, player, crypt, &stats);
             let to_player = (player - m.pos).with_y(0.0);
             let dist = to_player.length();
+            if m.alive() && chain::tunnel(m, dt, player, dist, crypt, &stats, &clips, &mut out) {
+                continue;
+            }
             // Spilleren i et annet nivå (eller langt over eller under) er
             // utenfor syne; har den sett deg, følger den deg en etasje opp eller ned (stigen, heisen).
             let same_floor = player_level == Some(m.level) && (player.y - m.pos.y).abs() < if m.aware { 12.5 } else { 6.0 };
@@ -669,6 +697,9 @@ impl Mobs {
                                         out.bites.push((i, stats.damage * 1.3, m.pos));
                                     }
                                 }
+                                Blow::Lash { .. } | Blow::Choose | Blow::Strike | Blow::Burrow | Blow::Emerge => {
+                                    chain::land(i, m, blow, dist, facing.dot(to_player.normalize_or_zero()) > 0.3, &stats, &mut out);
+                                }
                                 Blow::Roar => {
                                     out.roars += 1;
                                     out.sounds.push(("roar", m.pos));
@@ -683,6 +714,9 @@ impl Mobs {
                         }
                     }
                     if finished(m, len) {
+                        if chain::finish(m, blow, &clips, &mut out) {
+                            continue;
+                        }
                         m.state = State::Idle;
                         m.cooldown = stats.cooldown;
                         if let Some(a) = m.anim.as_mut() {
@@ -781,13 +815,22 @@ impl Mobs {
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
             if dist <= stats.range && level_ok && m.cooldown <= 0.0 && !bat::waits(m, before, after) {
                 // Rammeverket slår i bakken også uten eget klipp (stedfortrederen slår med nevene).
-                let blow = if m.boss && (clips.slam.is_some() || m.kind.boss()) && r < 0.35 { Blow::Slam } else { Blow::Melee };
+                let (blow, clip) = if m.boss && (clips.slam.is_some() || m.kind.boss()) && r < 0.35 { (Blow::Slam, clips.slam.unwrap_or(clips.attack)) } else { chain::close_blow(kind, r, &clips) };
                 m.state = State::Attack { blow, landed: false };
                 m.t = 0.0;
                 if let Some(a) = m.anim.as_mut() {
-                    a.play(if blow == Blow::Slam { clips.slam.unwrap_or(clips.attack) } else { clips.attack }, false, 0.08);
+                    a.play(clip, false, 0.08);
                 }
                 out.sounds.push((windup, m.pos));
+                continue;
+            }
+            // Ormen graver seg ned et stykke unna.
+            if let Some((blow, clip)) = chain::far_blow(m, dist, &clips).filter(|_| level_ok) {
+                m.state = State::Attack { blow, landed: false };
+                m.t = 0.0;
+                if let Some(a) = m.anim.as_mut() {
+                    a.play(clip, false, 0.1);
+                }
                 continue;
             }
             // Skyter på avstand når sikten er fri.
@@ -861,7 +904,7 @@ impl Mobs {
     pub fn instances(&self, time: f32, skins: &mut Vec<Mat4>) -> Vec<ModelInstance> {
         let mut out = Vec::with_capacity(self.mobs.len() + self.tokens.len());
         for m in &self.mobs {
-            if m.state == State::Gone {
+            if m.state == State::Gone || m.under() {
                 continue;
             }
             // Blinker hvitt rett etter et slag, og forstørres et øyeblikk.
