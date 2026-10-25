@@ -186,6 +186,9 @@ MOBS = {
     # Badge-billen (alle nivåene, i flokk): 0,42 m høy og 0,7 m lang,
     # kuppelskallet stivt og fire korte bein (`mob_rigid.beetle`).
     "badge_beetle": dict(height=0.42, size=2048, tris=3000, voxel=0.0018, thick=0.002, rig="beetle"),
+    # Tag-midden (alle nivåene, i flokk): 0,4 m lang og 0,23 m høy, lappen
+    # stivt og seks korte bein (`mob_rigid.mite`).
+    "tag_mite": dict(height=0.23, size=2048, tris=2800, voxel=0.001, thick=0.0012, rig="mite"),
     "alert_bat": dict(height=0.25, size=2048, tris=2600, voxel=0.0011, thick=0.0012, rig="bat", loose=0.0002,
                       glow_box=(((18.0, 20.0), dict(x=(0.3, 1.0), y=(-0.22, 0.22), z=(0.5, 0.8))),)),
 }

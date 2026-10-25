@@ -508,7 +508,7 @@ impl Session {
         }
         // C holdes for huk.
         self.body.set_stance(if input.crouch && !self.paused { Stance::Crouch } else { Stance::Stand }, dt);
-        let speed = self.body.stance.speed(input.sprint);
+        let speed = self.body.stance.speed(input.sprint) * self.mobs.drag(); // middene i ankelen
         // Hugg og blokk bremser, unnamanøveren kaster deg til sida.
         let horizontal = wish.normalize_or_zero() * speed * self.combat.move_factor() + self.combat.dodge_velocity();
         let jumped = self.body.vertical(dt, input.jump && !self.paused);

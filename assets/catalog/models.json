@@ -448,6 +448,7 @@
   "sword_rare": "Komponentsverdet: sjelden utgave fra sword_rarity.jpeg, rødbrunt grep med vikling, pyntet parerstang og knapp med blå stein, lukkede deler etter arket (tools/models/arms.py).",
   "table_18": "Møbel: Bord, 1,8 m, med tent lys (Vertshuset).",
   "table_22": "Møbel: Bord, 2,2 m, med tent lys (Vertshuset).",
+  "tag_mite": "Tag-midden (alle nivåene, i flokk): en flat midd av gammelt pergament med flossete kanter og blekkflekker, formet som en merkelapp, med jernbeslag og kongens segl midt på, øyet i en metallkantet ring bak og seks korte bein og to stumpe kjever under; 0,4 m lang og 0,23 m høy. Lappen stivt og seks bein i trefotsgang, og klippet `latch` når den henger i ankelen din (tools/models/mob_rigid.py). TRELLIS-formen fra eieren med teksturen som den er (tools/models/mob3d.py).",
   "tavern": "Vertshuset på torget (vest): utsida.",
   "tavern_counter": "Møbel: Disken med krus (Vertshuset).",
   "tavern_interior": "Vertshuset: skjenkestue, kjøkken, kjeller og sovesal.",

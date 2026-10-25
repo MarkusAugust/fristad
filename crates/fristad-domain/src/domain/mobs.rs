@@ -24,7 +24,7 @@ pub use crate::domain::mob_kind::{Kind, Stats};
 #[path = "mob_walk.rs"]
 mod walk;
 use walk::walk;
-use mob_rigs::turn_joints;
+use mob_rigs::{turn_joints, Clips};
 #[path = "mob_rigs.rs"]
 mod mob_rigs;
 #[path = "mob_bolts.rs"]
@@ -37,6 +37,8 @@ mod chain;
 pub mod badge;
 #[path = "mob_strike.rs"]
 mod strike;
+#[path = "mob_mite.rs"]
+pub mod mite;
 pub use chain::Sweep;
 pub use bolts::Bolt;
 use bolts::{BOLT_INSTANCES, BOLT_SPEED};
@@ -116,38 +118,6 @@ pub enum State {
     Gone,
 }
 
-/// Klippene i riggen, slått opp én gang.
-#[derive(Clone, Copy, Debug, Default)]
-struct Clips {
-    idle: usize,
-    walk: usize,
-    attack: usize,
-    hit: usize,
-    die: usize,
-    slam: Option<usize>,
-    roar: Option<usize>,
-    /// Klippene fra mob_motion.py (eldre modeller har dem ikke).
-    alert: Option<usize>,
-    hit2: Option<usize>,
-    stagger: Option<usize>,
-    die2: Option<usize>,
-    /// Kjedenes egne angrep (`mob_chain.rs`).
-    lash_high: Option<usize>,
-    choose: Option<usize>,
-    strike: Option<usize>,
-    burrow: Option<usize>,
-    emerge: Option<usize>,
-    /// Badge-billens stangeløp og veltet på ryggen (`mob_badge.rs`).
-    charge_wind: Option<usize>,
-    charge: Option<usize>,
-    flipped: Option<usize>,
-    climb: Option<(usize, f32)>, // klatringen i stigen (`mob_motion.climb`) og lengden på én syklus (to trinn)
-    /// Leddene hodet ser med (nakke, hode), og hvilken vei som er opp i riggens rom.
-    look: Option<(usize, usize)>,
-    up: Vec3,
-    held: Option<(usize, &'static str)>, // det den holder (`mob_rigs::HELD`)
-}
-
 #[derive(Clone, Debug)]
 pub struct Mob {
     pub kind: Kind,
@@ -203,6 +173,9 @@ pub struct Mob {
     under: Option<f32>,
     /// Velt på ryggen (Badge-billen, `mob_badge.rs`).
     flipped: bool,
+    /// Fast i ankelen din (Tag-midden, `mob_mite.rs`): stedet ved føttene
+    /// dine, og sekundene siden den sist gnagde.
+    latch: Option<(Vec3, f32)>,
 }
 
 impl Mob {
@@ -307,7 +280,7 @@ impl Mobs {
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![], air: if kind == Kind::AlertBat { bat::HOVER } else { 0.0 }, under: None, flipped: false });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![], air: if kind == Kind::AlertBat { bat::HOVER } else { 0.0 }, under: None, flipped: false, latch: None });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -509,9 +482,10 @@ impl Mobs {
             bat::fly(m, dt, player, crypt, &stats);
             let to_player = (player - m.pos).with_y(0.0);
             let dist = to_player.length();
-            if m.alive() && (chain::tunnel(m, dt, player, dist, crypt, &stats, &clips, &mut out) || badge::rush(i, m, dt, to_player, crypt, &stats, &clips, &mut out)) {
+            if m.alive() && (chain::tunnel(m, dt, player, dist, crypt, &stats, &clips, &mut out) || badge::rush(i, m, dt, to_player, crypt, &stats, &clips, &mut out) || mite::cling(i, m, dt, player, &stats, &mut out)) {
                 continue;
             }
+            mite::dart(m, dt, player, crypt);
             // Spilleren i et annet nivå (eller langt over eller under) er
             // utenfor syne; har den sett deg, følger den deg en etasje opp eller ned (stigen, heisen).
             let same_floor = player_level == Some(m.level) && (player.y - m.pos.y).abs() < if m.aware { 12.5 } else { 6.0 };
@@ -596,6 +570,7 @@ impl Mobs {
                                     let reach = if kind == Kind::AlertBat { bat::BITE } else { stats.reach } * if m.elite { 1.3 } else { 1.0 };
                                     if dist <= reach && facing.dot(to_player.normalize_or_zero()) > 0.3 {
                                         out.bites.push((i, stats.damage * if m.elite { 1.8 } else { 1.0 }, m.pos));
+                                        mite::bite(m, player, &clips);
                                     }
                                 }
                                 Blow::Spit => {
@@ -731,7 +706,8 @@ impl Mobs {
             }
             // Rekkevidden måles til kroppen, og bare på samme gulv.
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
-            if dist <= stats.range && level_ok && m.cooldown <= 0.0 && !bat::waits(m, before, after) {
+            let placed = mite::in_place(i, m, player, dist, crypt);
+            if dist <= stats.range && level_ok && placed && m.cooldown <= 0.0 && !bat::waits(m, before, after) {
                 // Rammeverket slår i bakken også uten eget klipp (stedfortrederen slår med nevene).
                 let (blow, clip) = if m.boss && (clips.slam.is_some() || m.kind.boss()) && r < 0.35 { (Blow::Slam, clips.slam.unwrap_or(clips.attack)) } else { chain::close_blow(kind, r, &clips) };
                 m.state = State::Attack { blow, landed: false };
@@ -768,12 +744,12 @@ impl Mobs {
                 }
             }
             // Nær nok, men angrepet er ikke klart: står og vender seg mot deg.
-            if dist <= stats.range && level_ok {
+            if dist <= stats.range && level_ok && placed {
                 m.yaw = to_player.x.atan2(to_player.z);
                 set_state(m, State::Idle, &clips);
                 continue;
             }
-            walk(m, player, stats.speed, dt, crypt, push, &stats, &clips, &mut out);
+            walk(m, mite::goal(i, m, player, dist, crypt), stats.speed, dt, crypt, push, &stats, &clips, &mut out);
         }
         self.wake(&shrieks);
         for p in summons {
