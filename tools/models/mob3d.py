@@ -39,6 +39,7 @@ from mathutils import Vector  # noqa: E402
 from common import Clip, armature, bake_textured, clear  # noqa: E402
 import folk3d  # noqa: E402
 import mob_motion  # noqa: E402
+import mob_chain  # noqa: E402
 import mob_rigid  # noqa: E402
 
 SRC = "assets/textures/monsters/3d"
@@ -169,6 +170,24 @@ MOBS = {
     # Popover-irrbloset (nivå 9): 0,9 m, svever (`mob_rigid.wisp`); de tre
     # kubene bak er løse biter som står (`loose`).
     "popover_wisp": dict(height=0.9, size=2048, tris=12000, voxel=0.003, thick=0.004, rig="wisp", loose=0.0002),
+    # Den grusomme Comboboxen (kloakken og borgen): 3 m lang og 1,67 m høy,
+    # et kjede av ledd (`mob_chain.combobox`): hodet, halsen, platene og
+    # halen, med tre beinpar.
+    "cruel_combobox": dict(height=1.67, size=2048, tris=9000, voxel=0.005, thick=0.006, rig="combobox"),
+    # Divider-ormen (alle nivåene, i flokk): 1,2 m lang med hodet reist
+    # 0,64 m; hodet står mot −X i fila (`turn`). En ryggrad av åtte ledd
+    # (`mob_chain.worm`).
+    "divider_worm": dict(height=0.643, turn=90.0, size=2048, tris=2800, voxel=0.0025, thick=0.003, rig="worm"),
+    # Alert-flaggermusa (alle nivåene, i flokk): 0,5 m mellom vingespissene
+    # (dobbelt så bred som høy), flyr (`mob_rigid.bat`); utropstegnet over
+    # hodet er en løs bit som står (`loose`). Øynene er ravgule, samme
+    # fargetone som båndet over buken, så de gløder bare foran på hodet
+    # (`glow_box`); de magenta sømmene gløder som hos de andre.
+    # Badge-billen (alle nivåene, i flokk): 0,42 m høy og 0,7 m lang,
+    # kuppelskallet stivt og fire korte bein (`mob_rigid.beetle`).
+    "badge_beetle": dict(height=0.42, size=2048, tris=3000, voxel=0.0018, thick=0.002, rig="beetle"),
+    "alert_bat": dict(height=0.25, size=2048, tris=2600, voxel=0.0011, thick=0.0012, rig="bat", loose=0.0002,
+                      glow_box=(((18.0, 20.0), dict(x=(0.3, 1.0), y=(-0.22, 0.22), z=(0.5, 0.8))),)),
 }
 
 
@@ -925,7 +944,64 @@ def front_glow(j, bin_, name, hues, size):
     return out
 
 
-def glow(path, hues=GLOW_HUES, thin=None, front=None):
+def texel_points(j, bin_, size):
+    """Hver teksel i teksturen med punktet på formen den ligger på
+    (hvilestillingen, Blenders rom: z opp, fronten mot +x): (piksel, punkt)."""
+    import slim
+
+    prim = j["meshes"][0]["primitives"][0]
+    P = np.array(slim.elements(j, bin_, prim["attributes"]["POSITION"]), np.float64)
+    P = np.c_[P[:, 0], -P[:, 2], P[:, 1]]
+    UV = np.array(slim.elements(j, bin_, prim["attributes"]["TEXCOORD_0"]), np.float64)
+    F = np.array(slim.elements(j, bin_, prim["indices"]), np.int64).reshape(-1, 3)
+    qs, ps = [], []
+    for f in F:
+        a, b, c = P[f]
+        uv = UV[f] * size - 0.5
+        lo = np.floor(uv.min(0)).astype(int)
+        hi = np.ceil(uv.max(0)).astype(int)
+        xs, ys = np.meshgrid(np.arange(lo[0], hi[0] + 1), np.arange(lo[1], hi[1] + 1))
+        q = np.c_[xs.ravel(), ys.ravel()].astype(np.float64)
+        e1, e2 = uv[1] - uv[0], uv[2] - uv[0]
+        det = e1[0] * e2[1] - e1[1] * e2[0]
+        if abs(det) < 1e-12:
+            continue
+        d = q - uv[0]
+        l1 = (d[:, 0] * e2[1] - d[:, 1] * e2[0]) / det
+        l2 = (e1[0] * d[:, 1] - e1[1] * d[:, 0]) / det
+        ok = (l1 >= -0.05) & (l2 >= -0.05) & (l1 + l2 <= 1.05)
+        ok &= (q[:, 0] >= 0) & (q[:, 1] >= 0) & (q[:, 0] < size) & (q[:, 1] < size)
+        if ok.any():
+            qs.append(q[ok].astype(int))
+            ps.append(a + l1[ok, None] * (b - a) + l2[ok, None] * (c - a))
+    return np.concatenate(qs), np.concatenate(ps), float(P[:, 2].max())
+
+
+def box_glow(j, bin_, h, s, v, boxes, size):
+    """Fargetoner som bare gløder innenfor en boks på formen (brøk av
+    høyden): Alert-flaggermusas ravgule øyne har samme tone som båndet over
+    buken, så bare tekslene foran på hodet tas med."""
+    q, p, H = texel_points(j, bin_, size)
+    m = np.zeros_like(h)
+
+    def ramp(x, lo, hi):
+        t = np.clip((x - lo) / (hi - lo), 0.0, 1.0)
+        return t * t * (3 - 2 * t)
+
+    for (c, w), box in boxes:
+        inside = np.ones(len(p), bool)
+        for ax, k in (("x", 0), ("y", 1), ("z", 2)):
+            lo, hi = box.get(ax, (-9.0, 9.0))
+            inside &= (p[:, k] >= lo * H) & (p[:, k] <= hi * H)
+        where = np.zeros_like(h, bool)
+        where[q[inside, 1], q[inside, 0]] = True
+        d = np.abs((h - c + 180.0) % 360.0 - 180.0)
+        m = np.maximum(m, (1.0 - ramp(d, w * 0.6, w)) * ramp(s, *GLOW_SAT) * ramp(v, *GLOW_VAL) * where)
+    print(f"glød i boksen: {float((m > 0.5).mean()):.2%} av teksturen")
+    return m
+
+
+def glow(path, hues=GLOW_HUES, thin=None, front=None, boxes=()):
     """De glødende flatene skilles ut etter fargen i teksturen og blir
     modellens glødetekstur (emissive), og materialet heter `….glow`, så det
     lyser hele døgnet (`roles.py`, `world.wgsl`). Masken regnes per teksel
@@ -960,6 +1036,8 @@ def glow(path, hues=GLOW_HUES, thin=None, front=None):
         d = np.abs((h - c + 180.0) % 360.0 - 180.0)
         m = np.maximum(m, 1.0 - ramp(d, w * 0.6, w))
     m *= ramp(s, *GLOW_SAT) * ramp(v, *GLOW_VAL)
+    if boxes:
+        m = np.maximum(m, box_glow(j, bin_, h, s, v, boxes, im.width))
     if thin:
         m = thin_glow(m, thin * im.width / 2048)
     # Gløden i malingens fargetone, men lys: fargen skaleres opp til den
@@ -1054,6 +1132,12 @@ def shell(name, spec, size):
     """Skallet med fargen fra TRELLIS-formen (steg 1–3)."""
     clear()
     ob = load(name, spec["height"])
+    if spec.get("turn"):
+        # Sett fra siden står hodet ikke alltid mot −Y i TRELLIS-fila:
+        # dreid så fronten står mot +X.
+        from mathutils import Matrix
+
+        ob.data.transform(Matrix.Rotation(np.radians(spec["turn"]), 4, "Z"))
     hi = ob.copy()
     hi.data = ob.data.copy()
     bpy.context.scene.collection.objects.link(hi)
@@ -1095,7 +1179,7 @@ def build(name, size=None):
             bpy.ops.wm.save_as_mainfile(filepath=cpath)
     if spec.get("rig"):
         # Uten to armer og to bein: delene stivt på egne bein og egne klipp.
-        arm, B = mob_rigid.RIGS[spec["rig"]](ob, coords(ob), spec["height"], armature, Clip)
+        arm, B = {**mob_rigid.RIGS, **mob_chain.RIGS}[spec["rig"]](ob, coords(ob), spec["height"], armature, Clip)
     else:
         stow(ob, name, spec)
         J = landmarks(ob, spec)
@@ -1110,7 +1194,7 @@ def build(name, size=None):
         mob_motion.make_clips(Clip, arm, B, spec["style"], spec["attack"], spec.get("extra", ()), spec.get("climb"))
     print(name, "trekanter", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     bake_textured(f"{OUT}/{name}.glb", size, keep=("glass", "magic"), armature=arm, uv_angle=None, ao=False, pack=False, data_size=min(DATA_SIZE, size))
-    glow(f"{OUT}/{name}.glb", spec.get("glow", GLOW_HUES), spec.get("glow_thin"), spec.get("glow_front") and name)
+    glow(f"{OUT}/{name}.glb", spec.get("glow", GLOW_HUES), spec.get("glow_thin"), spec.get("glow_front") and name, spec.get("glow_box", ()))
 
 
 if __name__ == "__main__":
@@ -1118,7 +1202,7 @@ if __name__ == "__main__":
     if args[:1] == ["--glow"]:
         # Bare glødeteksturen på nytt i en ferdig fil (uten å bygge den).
         for n in args[1:]:
-            glow(f"{OUT}/{n}.glb", MOBS[n].get("glow", GLOW_HUES), MOBS[n].get("glow_thin"), MOBS[n].get("glow_front") and n)
+            glow(f"{OUT}/{n}.glb", MOBS[n].get("glow", GLOW_HUES), MOBS[n].get("glow_thin"), MOBS[n].get("glow_front") and n, MOBS[n].get("glow_box", ()))
         sys.exit(0)
     size = next((int(a) for a in args if a.isdigit()), None)
     for n in [a for a in args if a in MOBS] or list(MOBS):

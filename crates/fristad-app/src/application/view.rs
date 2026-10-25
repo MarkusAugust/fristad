@@ -103,10 +103,16 @@ impl Session {
                 lights.push(Light { pos: at, radius: 2.5 + 1.5 * k, color: Vec3::new(0.45, 1.0, 0.3), intensity: 1.3 * k, always: true, flicker: 0.1, room });
             }
             // Progress-formannens glasstolpe i brystet lader før slaget:
-            // et magenta lys som vokser til hakka treffer.
+            // et magenta lys som vokser til hakka treffer; Comboboxens
+            // plater gløder på samme måte når den har valgt deg.
             for (at, k) in self.mobs.charges().into_iter().take(2) {
                 let room = self.crypt.room_at(at).map(|(l, r)| (l as u16, r as u16));
                 lights.push(Light { pos: at, radius: 1.5 + 2.5 * k, color: Vec3::new(1.0, 0.25, 0.85), intensity: 0.2 + 1.6 * k, always: true, flicker: 0.05 + 0.2 * k, room });
+            }
+            // Alert-flaggermusas øye blinker ravgult mens den skriker.
+            for (at, k) in self.mobs.shrieks().into_iter().take(3) {
+                let room = self.crypt.room_at(at).map(|(l, r)| (l as u16, r as u16));
+                lights.push(Light { pos: at, radius: 2.0 + 4.0 * k, color: Vec3::new(1.0, 0.6, 0.12), intensity: 0.3 + 2.4 * k, always: true, flicker: 0.3 * k, room });
             }
             // Nøkkelen som ligger, gløder fiolett som sømmen i hanken, så
             // den synes i mørket.

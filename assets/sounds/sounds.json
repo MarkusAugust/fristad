@@ -392,6 +392,14 @@
   "gain": 0.4,
   "pitch": 0.12
  },
+ "shriek": {
+  "files": [
+   "notice_1.mp3"
+  ],
+  "gain": 0.55,
+  "pitch": 0.1,
+  "rate": 1.7
+ },
  "spit": {
   "files": [
    "spit_1.mp3",

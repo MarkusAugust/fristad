@@ -355,6 +355,54 @@
    ],
    "yaw": 180,
    "label": "popover"
+  },
+  {
+   "id": "f10",
+   "kind": "mob",
+   "anchor": "celle:forhall/c01",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "yaw": 180,
+   "label": "alert-flaggermus"
+  },
+  {
+   "id": "f11",
+   "kind": "mob",
+   "anchor": "celle:gravkammer/c00",
+   "pos": [
+    0,
+    0,
+    -1.0
+   ],
+   "yaw": 180,
+   "label": "combobox"
+  },
+  {
+   "id": "f12",
+   "kind": "mob",
+   "anchor": "celle:s34/c00",
+   "pos": [
+    0,
+    0,
+    -0.8
+   ],
+   "yaw": 180,
+   "label": "divider-orm"
+  },
+  {
+   "id": "f13",
+   "kind": "mob",
+   "anchor": "celle:forhall/c00",
+   "pos": [
+    0.8,
+    0,
+    0.8
+   ],
+   "yaw": 180,
+   "label": "badge-bille"
   }
  ],
  "links": [

@@ -29,7 +29,7 @@ use fristad::domain::world::Use;
 use fristad::ports::driving::{Command, Play};
 use fristad::ports::Quality;
 use fristad::ports::Renderer as _;
-use glam::Vec3;
+use glam::{Quat, Vec3};
 
 /// De innebygde modellene, med noen fra filer foran (`--model`), og et
 /// nivådokument som eneste kryptnivå (`--level-doc`).
@@ -309,12 +309,28 @@ fn main() {
         // --bolt-kind NAVN: et annet slag enn inputen (`Kind::key`, f.eks. bueskytter), --bolt-dist M så langt foran.
         let kind = arg("--bolt-kind").map(|k| fristad::domain::mob_kind::Kind::ALL.into_iter().find(|m| m.key() == k).expect("ukjent slag")).unwrap_or(fristad::domain::mob_kind::Kind::Input);
         let dist = arg("--bolt-dist").map(|s| s.parse().unwrap()).unwrap_or(7.0);
+        // --bolt-yaw G: snu deg først (G grader, som --yaw), så fienden står i et annet rom.
+        if let Some(g) = arg("--bolt-yaw").map(|s| s.parse::<f32>().unwrap()) {
+            app.session.set_look(g.to_radians(), 0.0);
+        }
         assert!(app.session.foe_ahead(kind, dist, side), "ikke fritt gulv foran deg til fienden");
         let at: f32 = arg("--bolt-at").map(|s| s.parse().unwrap()).unwrap_or(0.95);
         for _ in 0..(at * 60.0) as usize {
             app.tick(1.0 / 60.0);
         }
         log::info!("markører i lufta: {}", app.session.bolts_in_air());
+        // --bolt-view G [--bolt-view-dist M]: kameraet flyttes G grader rundt
+        // fienden (like langt unna, eller M), uten armene, og fienden ser
+        // fortsatt dit du sto; fra siden med 90.
+        if let (Some(g), Some(foe)) = (arg("--bolt-view").map(|s| s.parse::<f32>().unwrap()), app.session.foe_at()) {
+            let eye = app.session.eye();
+            let d = Quat::from_rotation_y(g.to_radians()) * (eye - foe).with_y(0.0);
+            let at = foe + d.normalize_or_zero() * arg("--bolt-view-dist").map(|s| s.parse::<f32>().unwrap()).unwrap_or(d.length()) + Vec3::Y * 0.3;
+            let (yaw, pitch) = ((at - foe).x.atan2((at - foe).z), -0.12);
+            app.command(Command::Place { eye: at, yaw, pitch });
+            // Uten armene, som i filmen.
+            app.command(Command::Film(Some(fristad::ports::driving::Shot { eye: at, yaw, pitch, fov: 50.0, roll: 0.0 })));
+        }
     }
     // Kjør spillet litt, så animasjoner og fiender står der de skal.
     let time: f32 = if flag("--bolt") { 0.0 } else { arg("--time").map(|s| s.parse().unwrap()).unwrap_or(0.5) };

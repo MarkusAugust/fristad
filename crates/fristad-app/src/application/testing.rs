@@ -116,6 +116,56 @@ impl Session {
         self.mobs.spawn_aware(kind, at);
     }
 
+    /// En fiende som ikke har sett deg, ved `at`: sovende i bakhold (bare
+    /// nærmere enn `near` vekker den) eller våken.
+    pub fn add_unaware(&mut self, kind: MobKind, at: Vec3, near: Option<f32>) -> usize {
+        self.mobs.spawn_unaware(kind, at, near)
+    }
+
+    /// Angrepet fiende `i` er i gang med, og om det har landet.
+    pub fn mob_attack(&self, i: usize) -> Option<(crate::domain::mobs::Blow, bool)> {
+        match self.mobs.mobs.get(i)?.state {
+            crate::domain::mobs::State::Attack { blow, landed } => Some((blow, landed)),
+            _ => None,
+        }
+    }
+
+    /// Om fiende `i` ligger velt på ryggen (Badge-billen).
+    pub fn mob_flipped(&self, i: usize) -> bool {
+        self.mobs.mobs.get(i).is_some_and(|m| m.flipped())
+    }
+
+    /// Et slag på fiende `i` fra `from` med `damage`: hvor mye livet falt.
+    pub fn strike_mob(&mut self, i: usize, damage: f32, from: Vec3) -> f32 {
+        let before = self.mobs.mobs[i].hp;
+        self.mobs.strike_with(i, damage, from, &self.crypt, false);
+        before - self.mobs.mobs[i].hp
+    }
+
+    /// Fiende `i` vendt mot `to`.
+    pub fn turn_mob(&mut self, i: usize, to: Vec3) {
+        let m = &mut self.mobs.mobs[i];
+        let d = (to - m.pos).with_y(0.0);
+        m.yaw = d.x.atan2(d.z);
+    }
+
+    /// Føttene rett dit (til siden for stangeløpet), med samme retning.
+    pub fn step_to(&mut self, feet: Vec3) {
+        let yaw = self.yaw;
+        self.teleport(feet, yaw);
+    }
+
+    /// Om fiende `i` er under gulvet (ormen).
+    pub fn mob_under(&self, i: usize) -> bool {
+        self.mobs.mobs.get(i).is_some_and(|m| m.under())
+    }
+
+    /// Fiende `i`: føttene, flyhøyden, om den har sett deg, og livet.
+    pub fn mob_now(&self, i: usize) -> (Vec3, f32, bool, f32) {
+        let m = &self.mobs.mobs[i];
+        (m.pos, m.air(), m.aware, m.hp)
+    }
+
     /// Markørene i lufta nå.
     pub fn bolts_flying(&self) -> Vec<Vec3> {
         self.mobs.bolts.iter().map(|b| b.pos).collect()

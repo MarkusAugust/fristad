@@ -54,6 +54,14 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
                     hit2: r.clip("hit2"),
                     stagger: r.clip("stagger"),
                     die2: r.clip("die2"),
+                    lash_high: r.clip("lash_high"),
+                    choose: r.clip("choose"),
+                    strike: r.clip("strike"),
+                    burrow: r.clip("burrow"),
+                    emerge: r.clip("emerge"),
+                    charge_wind: r.clip("charge_wind"),
+                    charge: r.clip("charge"),
+                    flipped: r.clip("flipped"),
                     climb: r.clip("climb").map(|c| (c, r.clips[c].duration)),
                     look: joint("neck").zip(joint("head")),
                     held: HELD.iter().find_map(|(b, m)| joint(b).map(|i| (i, *m))),
@@ -87,5 +95,20 @@ impl Mobs {
         let m = self.mobs.get(i)?;
         let rig = self.rigs[m.kind as usize].as_ref()?;
         rig.clips.get(m.anim.as_ref()?.clip).map(|c| c.name.as_str())
+    }
+}
+
+/// Dreier ledd om opp-aksen i riggens rom (`up`), hvert med sin vinkel, uten
+/// å flytte dem: lokalt blir dreiningen forelderens globale dreining
+/// konjugert med opp-dreiningen. Brukes til at hodet ser mot spilleren.
+pub(super) fn turn_joints(rig: &Rig, pose: &mut crate::domain::anim::Pose, joints: &[(usize, f32)], up: Vec3) {
+    let globals = rig.globals(pose);
+    for &(j, angle) in joints {
+        let Some(joint) = rig.joints.get(j) else { continue };
+        let parent = joint.parent.map(|p| globals[p].to_scale_rotation_translation().1).unwrap_or(Quat::IDENTITY);
+        let q = Quat::from_axis_angle(up, angle);
+        if let Some(slot) = pose.0.get_mut(j) {
+            slot.1 = (parent.inverse() * q * parent * slot.1).normalize();
+        }
     }
 }

@@ -54,8 +54,9 @@ pub(super) fn walk(m: &mut Mob, goal: Vec3, speed: f32, dt: f32, crypt: &Crypt, 
     }
     m.pos.y = crypt.height_at(m.pos + Vec3::Y * 0.3);
     let s = m.scale();
-    // Skrittene: bossens tunge, de andres tassing (ikke tooltipene, som svever).
-    if m.kind != Kind::Tooltip {
+    // Skrittene: bossens tunge, de andres tassing (ikke tooltipene og
+    // flaggermusa, som svever, eller ormen, som kryper).
+    if !matches!(m.kind, Kind::Tooltip | Kind::AlertBat | Kind::DividerWorm) {
         m.stride += (m.pos - from).with_y(0.0).length();
         if m.stride > 1.4 * s {
             m.stride = 0.0;

@@ -3386,10 +3386,15 @@
    "seen": "b5428540f7bd"
   },
   "breadcrumb_archer": {
-   "verdict": "underkjent",
-   "date": "2026-10-20",
-   "why": "Holder buen feil vei",
-   "seen": "64868af03c30",
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "0a234b86e91b",
+   "before": {
+    "verdict": "underkjent",
+    "date": "2026-10-20",
+    "why": "Holder buen feil vei"
+   },
    "history": [
     "det ser rart ut at den angriper med buen på ryggen og tomme hender",
     "hva har du gjort her? han står fortsatt og liksom skyter med pil og bue, uten buen i hendene... den er på ryggen",
@@ -3522,6 +3527,24 @@
    "date": "2026-10-20",
    "why": "",
    "seen": "6e840a7a62a1"
+  },
+  "alert_bat": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "f3400d0b217c"
+  },
+  "cruel_combobox": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "c18ab7f8e848"
+  },
+  "divider_worm": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "36b1ada3fa84"
   }
  },
  "modules": {

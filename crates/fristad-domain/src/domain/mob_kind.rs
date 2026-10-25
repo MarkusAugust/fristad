@@ -49,6 +49,18 @@ pub enum Kind {
     CardSquire,
     /// Nivå 9: irrbloset som svever.
     Wisp,
+    /// Alle nivåene, i flokk: flaggermusa som skriker og vekker de andre,
+    /// og stuper ned og biter (`mob_bat.rs`).
+    AlertBat,
+    /// Kloakken og borgen: den lange som slår halen rundt lavt (hopp over)
+    /// og høyt (dukk under), og hamrer platene ned (`mob_chain.rs`).
+    Combobox,
+    /// Alle nivåene, i flokk: ormen som graver seg ned og dukker opp ved
+    /// deg (`mob_chain.rs`).
+    DividerWorm,
+    /// Alle nivåene, i flokk: billen med kuppelskallet som stormer og
+    /// velter når den løper i muren (`mob_badge.rs`).
+    BadgeBeetle,
 }
 
 /// Tallene bak et slag.
@@ -76,7 +88,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 22] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp];
+    pub const ALL: [Kind; 26] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp, Kind::AlertBat, Kind::Combobox, Kind::DividerWorm, Kind::BadgeBeetle];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -102,6 +114,10 @@ impl Kind {
             Kind::Foreman => "progress_foreman",
             Kind::CardSquire => "card_squire",
             Kind::Wisp => "popover_wisp",
+            Kind::AlertBat => "alert_bat",
+            Kind::Combobox => "cruel_combobox",
+            Kind::DividerWorm => "divider_worm",
+            Kind::BadgeBeetle => "badge_beetle",
         }
     }
 
@@ -131,6 +147,10 @@ impl Kind {
             Kind::Foreman => "progress-formann",
             Kind::CardSquire => "kortknekt",
             Kind::Wisp => "popover",
+            Kind::AlertBat => "alert-flaggermus",
+            Kind::Combobox => "combobox",
+            Kind::DividerWorm => "divider-orm",
+            Kind::BadgeBeetle => "badge-bille",
         }
     }
 
@@ -158,6 +178,10 @@ impl Kind {
             Kind::Foreman => "Progress-formannen",
             Kind::CardSquire => "Kortknekten",
             Kind::Wisp => "Popover-irrbloss",
+            Kind::AlertBat => "Alert-flaggermusa",
+            Kind::Combobox => "Den grusomme Comboboxen",
+            Kind::DividerWorm => "Divider-ormen",
+            Kind::BadgeBeetle => "Badge-billen",
         }
     }
 
@@ -187,6 +211,10 @@ impl Kind {
             Kind::Foreman => "Formannen i gruva, med hakka i neven og en glasstolpe i brystet som fylles og aldri blir full. Tung og bred. Bærer nøkkelen.",
             Kind::CardSquire => "En knekt av stein med kroppen som et spillekort. Plata tar imot slagene forfra: gå rundt ham.",
             Kind::Wisp => "Et lite hvitt irrbloss med ett øye, tre glødende kuber bak seg og en pil under. Svever, og stikker ned fra lufta.",
+            Kind::AlertBat => "En rund flaggermus av anløpet messing med et utropstegn av jern over hodet. Skriker når den ser deg, og alt som sover i nærheten våkner og kommer. Henger for høyt for sverdet og stuper ned for å bite: hugg når den er nede, eller slå den i bakken med en parade.",
+            Kind::Combobox => "Et felt av beinhvitt tre med en lang liste av skiferplater bak seg, hengslet sammen og satt på korte bein. Slår halen rundt seg lavt langs gulvet (hopp over den) eller høyt i brysthøyde (dukk under), og når platene foran skrangler og gløder, har den valgt deg: plata hamrer ned med dobbel kraft. Gå unna.",
+            Kind::DividerWorm => "En orm av flate skiferledd med jernbånd imellom og ett magenta øye. Kommer i flokk. Graver seg ned i gulvet, går under deg og dukker opp der du står: flytt deg når gulvet sprekker.",
+            Kind::BadgeBeetle => "En feit bille med et kuppelskall av falmet rød emalje og en kant av anløpet messing, og et stumpt horn foran. Skallet tar det meste forfra. Et stykke unna skraper den med forbeina og stormer rett fram: gå til siden, så løper den i muren, velter og ligger med buken åpen.",
         }
     }
 
@@ -220,6 +248,15 @@ impl Kind {
             Kind::Foreman => (1.6, 0.45, 0.0),
             Kind::CardSquire => (1.45, 0.4, 0.0),
             Kind::Wisp => (0.95, 0.3, 0.0),
+            // 0,25 høy (0,5 m mellom vingespissene); flyhøyden kommer i
+            // tillegg (`Mob.air`).
+            Kind::AlertBat => (0.25, 0.22, 0.0),
+            // Comboboxen 1,67 høy og 3 m lang, ormen 0,64 høy og 1,2 lang:
+            // langs ryggen.
+            Kind::Combobox => (1.3, 0.45, 1.15),
+            Kind::DividerWorm => (0.5, 0.2, 0.45),
+            // 0,42 høy og 0,7 lang.
+            Kind::BadgeBeetle => (0.4, 0.25, 0.22),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -240,7 +277,10 @@ impl Kind {
             Kind::Spinner => Some(Kind::Avatar),
             Kind::Foreman => Some(Kind::Accordion),
             Kind::CardSquire => Some(Kind::Button),
-            Kind::Wisp => Some(Kind::Tooltip),
+            Kind::Wisp | Kind::AlertBat => Some(Kind::Tooltip),
+            Kind::Combobox => Some(Kind::Table),
+            Kind::DividerWorm => Some(Kind::Breadcrumb),
+            Kind::BadgeBeetle => Some(Kind::Avatar),
             _ => None,
         }
     }
@@ -282,6 +322,16 @@ impl Kind {
             Kind::CardSquire => Stats { hp: 70.0, speed: 1.7, damage: 13.0, range: 1.7, reach: 2.3, scale: 1.0, sight: 28.0, cooldown: 1.2, attack_hit: fist.0, attack_len: fist.1, bolt: None, armor: 0.5, poise: 10.0, tokens: 3 },
             // Svever (`mob_rigid.wisp`): stikket i bilde 15.
             Kind::Wisp => Stats { hp: 35.0, speed: 2.8, damage: 8.0, range: 1.4, reach: 1.9, scale: 1.0, sight: 32.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 2 },
+            // Svak og rask, i flokk. Stupet (`mob_bat.rs`) begynner
+            // `range` unna og biter i bilde 18 av 36 (`BITE` nært).
+            Kind::AlertBat => Stats { hp: 24.0, speed: 3.4, damage: 7.0, range: 3.4, reach: 3.4, scale: 1.0, sight: 30.0, cooldown: 1.6, attack_hit: 18.0 / FPS, attack_len: 36.0 / FPS, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
+            // Den lave pisken er `attack` (treffet i bilde 20 av 36); den høye,
+            // valget og slaget med plata har egne klipp (`mob_chain.rs`).
+            Kind::Combobox => Stats { hp: 140.0, speed: 1.8, damage: 16.0, range: 2.8, reach: 3.4, scale: 1.0, sight: 30.0, cooldown: 1.5, attack_hit: 20.0 / FPS, attack_len: 36.0 / FPS, bolt: None, armor: 1.0, poise: 25.0, tokens: 5 },
+            // Bittet nært; ellers graver den seg ned og kommer opp under deg.
+            Kind::DividerWorm => Stats { hp: 30.0, speed: 1.4, damage: 8.0, range: 1.0, reach: 1.4, scale: 1.0, sight: 24.0, cooldown: 1.4, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
+            // Skallet tar det meste forfra; stangeløpet står i `mob_badge.rs`.
+            Kind::BadgeBeetle => Stats { hp: 32.0, speed: 2.2, damage: 9.0, range: 1.2, reach: 1.6, scale: 1.0, sight: 26.0, cooldown: 1.3, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.35, poise: 0.0, tokens: 1 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         };
         Stats { hp: s.hp * TOUGHNESS, ..s }
@@ -312,6 +362,14 @@ impl Kind {
             Kind::Foreman
         } else if has(&["kortknekt", "card"]) {
             Kind::CardSquire
+        } else if has(&["badge", "bille"]) {
+            Kind::BadgeBeetle
+        } else if has(&["combobox"]) {
+            Kind::Combobox
+        } else if has(&["divider", "ormen"]) || l == "orm" {
+            Kind::DividerWorm
+        } else if has(&["flaggermus", "alert", " bat"]) || l == "bat" {
+            Kind::AlertBat
         } else if has(&["popover", "irrbloss"]) {
             Kind::Wisp
         } else if has(&["tabell", "table"]) {
