@@ -403,6 +403,18 @@
    ],
    "yaw": 180,
    "label": "badge-bille"
+  },
+  {
+   "id": "f14",
+   "kind": "mob",
+   "anchor": "celle:forhall/c00",
+   "pos": [
+    -0.8,
+    0,
+    0.8
+   ],
+   "yaw": 180,
+   "label": "tag-midd"
   }
  ],
  "links": [

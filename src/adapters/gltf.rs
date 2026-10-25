@@ -132,6 +132,8 @@ models! {
     "divider_worm" => "mobs/divider_worm.glb",
     // Badge-billen (mob3d.py, mob_rigid.beetle).
     "badge_beetle" => "mobs/badge_beetle.glb",
+    // Tag-midden (mob3d.py, mob_rigid.mite).
+    "tag_mite" => "mobs/tag_mite.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

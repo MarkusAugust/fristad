@@ -3410,6 +3410,84 @@ fn billen_stormer_og_velter_i_muren() {
     assert!(!game.mob_flipped(0), "billen ble liggende på ryggen");
 }
 
+/// Tag-midden: flokken sprer seg rundt deg før den piler inn, den som
+/// biter, henger seg i ankelen, gnager og gjør deg treg, og et hopp rister
+/// den av.
+#[test]
+fn middene_omringer_deg_og_henger_seg_fast() {
+    use crate::domain::mobs::Kind;
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let c = game.crypt_now().clone();
+    // Et åpent rom i nivå 1 (gulv rundt deg i ringen), og fire midder
+    // samlet et stykke unna: de skal komme fra hver sin kant.
+    let start = game.feet();
+    let ground = |q: Vec3| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z);
+    let open = |p: Vec3| (0..16).all(|k| [1.2f32, 1.7, 2.4].iter().all(|&r| {
+        let a = k as f32 * std::f32::consts::TAU / 16.0;
+        let q = ground(p + Vec3::new(a.cos(), 0.0, a.sin()) * r);
+        c.walkable(q) && (q.y - p.y).abs() < 0.3
+    }));
+    let feet = (0..41 * 41)
+        .map(|k| ground(start + Vec3::new((k % 41) as f32 - 20.0, 0.0, (k / 41) as f32 - 20.0) * 0.5))
+        .filter(|p| c.walkable(*p) && open(*p))
+        .min_by(|a, b| a.distance(start).total_cmp(&b.distance(start)))
+        .expect("ingen åpen plass i nivå 1");
+    game.step_to(feet);
+    let at = open_spot(&c, feet, &[7.0, 8.0, 6.0, 5.0]);
+    game.only_mob(Kind::TagMite, at);
+    for k in 1..4 {
+        let q = at + Vec3::new(0.3 * k as f32, 0.0, 0.0);
+        game.add_mob(Kind::TagMite, if c.walkable(q) { q } else { at });
+    }
+    let mut sides = std::collections::BTreeSet::new();
+    for _ in 0..(6 * 60) {
+        game.heal();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        for i in 0..4 {
+            let d = (game.mob_now(i).0 - game.feet()).with_y(0.0);
+            if (1.2..2.4).contains(&d.length()) {
+                sides.insert(((d.z.atan2(d.x) + std::f32::consts::PI) / std::f32::consts::FRAC_PI_2) as i32 % 4);
+            }
+        }
+    }
+    assert!(sides.len() >= 3, "middene kom bare fra {} kanter rundt deg", sides.len());
+    // Én midd: den biter, henger fast og gnager, og du blir treg.
+    game.only_mob(Kind::TagMite, open_spot(&c, game.feet(), &[3.0, 4.0, 2.5]));
+    let (mut latched, mut drag, mut gnawed) = (false, 1.0f32, 0.0f32);
+    for _ in 0..(8 * 60) {
+        let hp = game.hp_now();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        let (l, d) = game.mob_latched(0);
+        if latched && l {
+            gnawed += hp - game.hp_now();
+        }
+        if l {
+            drag = drag.min(d);
+        }
+        latched |= l;
+        if latched && gnawed > 0.0 {
+            break;
+        }
+    }
+    assert!(latched, "midden hang seg aldri fast");
+    assert!(drag < 0.95, "midden i ankelen gjorde deg ikke treg ({drag})");
+    assert!(gnawed > 0.0, "midden i ankelen gnagde ikke");
+    // Et hopp rister den av.
+    input.jump = true;
+    for _ in 0..3 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        input.jump = false;
+    }
+    assert!(!game.mob_latched(0).0, "hoppet ristet ikke midden av");
+    assert!((game.mob_latched(0).1 - 1.0).abs() < 1e-3, "farten kom ikke tilbake");
+}
+
 #[test]
 fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
     use crate::domain::mobs::Kind;

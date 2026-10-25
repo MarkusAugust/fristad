@@ -135,6 +135,17 @@ impl Session {
         self.mobs.mobs.get(i).is_some_and(|m| m.flipped())
     }
 
+    /// Om fiende `i` henger i ankelen din (Tag-midden), og hvor mye av
+    /// farten du har igjen.
+    pub fn mob_latched(&self, i: usize) -> (bool, f32) {
+        (self.mobs.mobs.get(i).is_some_and(|m| m.latched()), self.mobs.drag())
+    }
+
+    /// En fiende til av slaget `kind` ved `at`, som har sett deg.
+    pub fn add_mob(&mut self, kind: MobKind, at: Vec3) -> usize {
+        self.mobs.spawn_aware(kind, at)
+    }
+
     /// Et slag på fiende `i` fra `from` med `damage`: hvor mye livet falt.
     pub fn strike_mob(&mut self, i: usize, damage: f32, from: Vec3) -> f32 {
         let before = self.mobs.mobs[i].hp;

@@ -3,6 +3,40 @@
 
 use super::*;
 
+/// Klippene i riggen, slått opp én gang.
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct Clips {
+    pub(super) idle: usize,
+    pub(super) walk: usize,
+    pub(super) attack: usize,
+    pub(super) hit: usize,
+    pub(super) die: usize,
+    pub(super) slam: Option<usize>,
+    pub(super) roar: Option<usize>,
+    /// Klippene fra mob_motion.py (eldre modeller har dem ikke).
+    pub(super) alert: Option<usize>,
+    pub(super) hit2: Option<usize>,
+    pub(super) stagger: Option<usize>,
+    pub(super) die2: Option<usize>,
+    /// Kjedenes egne angrep (`mob_chain.rs`).
+    pub(super) lash_high: Option<usize>,
+    pub(super) choose: Option<usize>,
+    pub(super) strike: Option<usize>,
+    pub(super) burrow: Option<usize>,
+    pub(super) emerge: Option<usize>,
+    /// Badge-billens stangeløp og veltet på ryggen (`mob_badge.rs`).
+    pub(super) charge_wind: Option<usize>,
+    pub(super) charge: Option<usize>,
+    pub(super) flipped: Option<usize>,
+    /// Tag-midden fast i ankelen din (`mob_mite.rs`).
+    pub(super) latch: Option<usize>,
+    pub(super) climb: Option<(usize, f32)>, // klatringen i stigen (`mob_motion.climb`) og lengden på én syklus (to trinn)
+    /// Leddene hodet ser med (nakke, hode), og hvilken vei som er opp i riggens rom.
+    pub(super) look: Option<(usize, usize)>,
+    pub(super) up: Vec3,
+    pub(super) held: Option<(usize, &'static str)>, // det den holder (`mob_rigs::HELD`)
+}
+
 /// Det en fiende holder (beinet i riggen → modellen): bueskytterens bue
 /// (`mob3d.bow_bone`, `tools/models/bow.py`). Beinets rom er modellens rom
 /// slik Blender har det (z opp), og glb-fila har y opp (som lutten,
@@ -62,6 +96,7 @@ pub(super) fn lookup(rigs: &[(String, Rig)]) -> (Vec<Option<Rig>>, Vec<Clips>, V
                     charge_wind: r.clip("charge_wind"),
                     charge: r.clip("charge"),
                     flipped: r.clip("flipped"),
+                    latch: r.clip("latch"),
                     climb: r.clip("climb").map(|c| (c, r.clips[c].duration)),
                     look: joint("neck").zip(joint("head")),
                     held: HELD.iter().find_map(|(b, m)| joint(b).map(|i| (i, *m))),

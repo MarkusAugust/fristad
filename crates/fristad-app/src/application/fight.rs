@@ -51,6 +51,10 @@ impl Session {
         let fwd = self.forward();
         // Hvor heisene står (fiendene kjører heisen når den står der de er).
         self.crypt.lift_rest = (0..self.crypt.lifts.len()).map(|n| (!self.mech.lift_moving(n)).then(|| !self.mech.lift_up(n))).collect();
+        // Et hopp eller en unnamanøver rister middene av ankelen.
+        if (!self.body.grounded || self.combat.dodge_velocity().length_squared() > 1.0) && self.mobs.shake_off(feet) > 0 {
+            events.push(sfx("dodge"));
+        }
         let outcome = self.mobs.update(sim_dt, feet, in_crypt, &self.crypt);
         for &n in &outcome.lifts {
             if self.mech.ride_lift(&self.crypt, n).is_some() {

@@ -18,6 +18,9 @@ die2), og nakken og hodet står der spillet dreier dem mot deg.
   `chest` og fire korte bein, ett per hjørne (som spinneren). Egne klipp for
   stangeløpet (`charge_wind`, `charge`) og for å ligge velt på ryggen og
   sprelle (`flipped`, `mob_badge.rs`).
+- `mite`: Tag-midden, den flate lappen stivt på `chest` og seks korte bein
+  i tre par (som billen). Egne klipp for å henge fast i ankelen din og
+  gnage (`latch`) og for å bli ristet av (`stagger`, `mob_mite.rs`).
 """
 
 import math
@@ -656,4 +659,124 @@ def beetle_clips(arm, H, Clip):
     _clip(Clip, arm, "die2", 36, die2)
 
 
-RIGS = {"spinner": spinner, "wisp": wisp, "bat": bat, "beetle": beetle}
+# --- Tag-midden ----------------------------------------------------------------
+
+
+MITE_FOOT = 0.1  # beina er det nederste (brøk av høyden)
+MITE_BODY = 0.55  # kroppen er alt over så høyt
+MITE_LEG_R = 0.22  # et bein er det innenfor så langt fra foten (vannrett)
+
+
+def mite(ob, co, H, armature, Clip):
+    """Lappen, ringen med øyet og kjevene stivt på `chest`; seks bein, tre på
+    hver side, hvert med frø i foten (det nederste i sin tredjedel av
+    lengden) og bare det som er lavt og nær foten, som hos billen."""
+    lo, hi = co[:, 0].min(), co[:, 0].max()
+    third = (co[:, 0] - lo) / (hi - lo) * 3.0
+    seeds = {"chest": co[:, 2] > MITE_BODY * H}
+    legs3 = (("F", 2), ("M", 1), ("B", 0))
+    names = []
+    for tag, k in legs3:
+        for side, sg in (("L", 1), ("R", -1)):
+            nm = f"leg.{tag}{side}"
+            seeds[nm] = (co[:, 2] < MITE_FOOT * H) & (np.floor(third).clip(0, 2) == k) & (np.sign(co[:, 1]) == sg)
+            names.append(nm)
+            print(f"{nm}: frø {int(seeds[nm].sum())} hjørner")
+    keys = list(seeds)
+    D = np.stack([_geodesic(ob, co, seeds[nm]) for nm in keys], 1)
+    labels = np.array(keys, dtype=object)[D.argmin(1)]
+    labels[(labels != "chest") & (co[:, 2] > 0.4 * H)] = "chest"
+    legs = {}
+    for nm in names:
+        if not seeds[nm].any():
+            labels[labels == nm] = "chest"
+            continue
+        c = co[seeds[nm], :2].mean(0)
+        labels[(labels == nm) & (np.hypot(co[:, 0] - c[0], co[:, 1] - c[1]) > MITE_LEG_R * H)] = "chest"
+        q = co[labels == nm]
+        if len(q) < 4:
+            labels[labels == nm] = "chest"
+            continue
+        top = q[q[:, 2] > np.percentile(q[:, 2], 85)].mean(0)
+        foot = q[q[:, 2] < np.percentile(q[:, 2], 15)].mean(0)
+        legs[nm] = (Vector(top), Vector((foot[0], foot[1], 0.0)))
+    body = Vector((float((lo + hi) / 2), 0.0, 0.5 * H))
+    B = [
+        ("root", (0, 0, 0), (0, 0, 0.1 * H), None),
+        ("hips", tuple(body), tuple(body + Vector((0, 0, 0.1 * H))), "root"),
+        ("chest", tuple(body), tuple(body + Vector((0.3 * H, 0, 0))), "hips"),
+        ("neck", (hi * 0.6, 0, 0.4 * H), (hi * 0.8, 0, 0.4 * H), "chest"),
+        ("head", (hi * 0.8, 0, 0.4 * H), (hi, 0, 0.4 * H), "neck"),
+    ]
+    for nm, (top, foot) in legs.items():
+        B.append((nm, tuple(top), tuple(foot), "hips"))
+    arm = armature("tag_mite_rig", B)
+    _assign(ob, arm, labels)
+    mite_clips(arm, H, Clip, list(legs))
+    return arm, B
+
+
+def mite_clips(arm, H, Clip, legs):
+    # Trefotsgang som insekter: venstre foran og bak med høyre i midten.
+    phase = {nm: (0.0 if (nm[-2] in "FB") == (nm[-1] == "L") else 0.5) for nm in legs}
+
+    def pose(c, f, root=(0, 0, 0), pitch=0.0, roll=0.0, yaw=0.0, swing=None, splay=None, flip=0.0):
+        c.loc("root", f, root)
+        c.rot("root", f, x=flip)
+        c.rot("hips", f, x=roll, y=pitch, z=yaw)
+        c.rot("chest", f)
+        c.rot("neck", f)
+        c.rot("head", f)
+        for nm in legs:
+            sg = 1.0 if nm.endswith("L") else -1.0
+            c.rot(nm, f, x=sg * (splay or {}).get(nm, 0.0), y=(swing or {}).get(nm, 0.0))
+
+    def scuttle(t, amp, k=1.0):
+        return {nm: amp * math.sin(2 * math.pi * (k * t + ph)) for nm, ph in phase.items()}
+
+    def lift(t, amp, k=1.0):
+        return {nm: amp * max(0.0, math.cos(2 * math.pi * (k * t + ph))) for nm, ph in phase.items()}
+
+    _clip(Clip, arm, "idle", 48, lambda c, f, t: pose(c, f, root=(0, 0, 0.01 * H * math.sin(2 * math.pi * 2 * t)), swing=scuttle(t, 4, 2)))
+    # Gangen: rask trefotsgang, kroppen vugger.
+    _clip(Clip, arm, "walk", 10, lambda c, f, t: pose(c, f, root=(0, 0, 0.03 * H * abs(math.sin(2 * math.pi * t))), roll=5 * math.sin(2 * math.pi * t), swing=scuttle(t, 32), splay=lift(t, 18)))
+
+    # Bittet i ankelen: kryper sammen og løfter fronten (0–10), kaster seg
+    # fram med kjevene (treffet i bilde 15) og glir tilbake.
+    def attack(c, f, t):
+        if f <= 10:
+            u = smooth01(f / 10)
+            pose(c, f, root=(-0.1 * H * u, 0, -0.04 * H * u), pitch=-12 * u, swing=scuttle(t, 6, 3))
+        elif f <= 15:
+            u = (f - 10) / 5
+            pose(c, f, root=(-0.1 * H + 0.9 * H * u, 0, 0.18 * H * math.sin(math.pi * u)), pitch=-12 + 26 * u, splay={nm: 30 * u for nm in legs})
+        else:
+            u = smooth01((f - 15) / 15)
+            pose(c, f, root=(0.8 * H * (1 - u), 0, 0), pitch=14 * (1 - u), swing=scuttle(t, 20, 2))
+    _clip(Clip, arm, "attack", 30, attack)
+
+    # Fast i ankelen: står på bakbeina med fronten opp mot leggen din,
+    # forbeina griper og kjevene gnager (løkke; spillet holder den ved
+    # foten din, `mob_mite.rs`).
+    def latch(c, f, t):
+        gnaw = math.sin(2 * math.pi * 4 * t)
+        grip = {nm: (-40 + 8 * gnaw if nm[-2] == "F" else -20 if nm[-2] == "M" else 10) for nm in legs}
+        pose(c, f, root=(0, 0, 0.35 * H), pitch=-62 + 5 * gnaw, roll=4 * math.sin(2 * math.pi * 2 * t), swing=grip, splay={nm: 25.0 for nm in legs if nm[-2] != "B"})
+    _clip(Clip, arm, "latch", 24, latch)
+
+    _clip(Clip, arm, "alert", 22, lambda c, f, t: pose(c, f, root=(0, 0, 0.12 * H * math.sin(math.pi * min(1.0, 1.6 * t)) * (1 if t < 0.62 else 0)), pitch=-14 * math.sin(math.pi * t), swing=scuttle(t, 18, 3)))
+    for name, side in (("hit", 1.0), ("hit2", -1.0)):
+        _clip(Clip, arm, name, 14, lambda c, f, t, side=side: pose(c, f, root=(-0.2 * H * math.exp(-4 * t), 0, 0.05 * H * math.exp(-4 * t)), roll=side * 18 * math.exp(-4 * t) * math.cos(10 * t)))
+    # Ristet av: kastet rundt og ligger på ryggen et øyeblikk, så snur den seg.
+    def shaken(c, f, t):
+        up = smooth01(min(1.0, t * 3)) * (1 - smooth01((t - 0.7) / 0.3))
+        pose(c, f, root=(0, 0, 0.9 * H * up), flip=180 * up, swing=scuttle(t, 30, 4), splay={nm: 20 * up for nm in legs})
+    _clip(Clip, arm, "stagger", 30, shaken)
+    def die(c, f, t):
+        u = smooth01(min(1.0, t * 1.8)) ** 2
+        pose(c, f, root=(0, 0, 0.9 * H * u), flip=180 * u, swing={nm: -25 * u for nm in legs}, splay={nm: 35 * u for nm in legs})
+    _clip(Clip, arm, "die", 36, die)
+    _clip(Clip, arm, "die2", 36, lambda c, f, t: pose(c, f, root=(0, 0, -0.1 * H * smooth01(min(1.0, t * 1.8))), splay={nm: 70 * smooth01(min(1.0, t * 1.8)) for nm in legs}))
+
+
+RIGS = {"spinner": spinner, "wisp": wisp, "bat": bat, "beetle": beetle, "mite": mite}
