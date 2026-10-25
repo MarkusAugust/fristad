@@ -130,6 +130,31 @@ impl Session {
         }
     }
 
+    /// Om fiende `i` ligger velt på ryggen (Badge-billen).
+    pub fn mob_flipped(&self, i: usize) -> bool {
+        self.mobs.mobs.get(i).is_some_and(|m| m.flipped())
+    }
+
+    /// Et slag på fiende `i` fra `from` med `damage`: hvor mye livet falt.
+    pub fn strike_mob(&mut self, i: usize, damage: f32, from: Vec3) -> f32 {
+        let before = self.mobs.mobs[i].hp;
+        self.mobs.strike_with(i, damage, from, &self.crypt, false);
+        before - self.mobs.mobs[i].hp
+    }
+
+    /// Fiende `i` vendt mot `to`.
+    pub fn turn_mob(&mut self, i: usize, to: Vec3) {
+        let m = &mut self.mobs.mobs[i];
+        let d = (to - m.pos).with_y(0.0);
+        m.yaw = d.x.atan2(d.z);
+    }
+
+    /// Føttene rett dit (til siden for stangeløpet), med samme retning.
+    pub fn step_to(&mut self, feet: Vec3) {
+        let yaw = self.yaw;
+        self.teleport(feet, yaw);
+    }
+
     /// Om fiende `i` er under gulvet (ormen).
     pub fn mob_under(&self, i: usize) -> bool {
         self.mobs.mobs.get(i).is_some_and(|m| m.under())

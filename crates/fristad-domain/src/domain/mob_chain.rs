@@ -44,6 +44,8 @@ impl Blow {
             Blow::Strike => (15.0 / FPS, 30.0 / FPS),
             Blow::Burrow => (12.0 / FPS, 24.0 / FPS),
             Blow::Emerge => (12.0 / FPS, 30.0 / FPS),
+            // Billens stangeløp styres av `mob_badge.rs`; lengden er bare et tak.
+            Blow::Charge => (14.0 / FPS, 4.0),
             _ => return None,
         })
     }

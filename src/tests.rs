@@ -3322,6 +3322,94 @@ fn ormen_graver_seg_ned_og_dukker_opp_ved_deg() {
     assert!(bitten, "ormen bet ikke da den dukket opp");
 }
 
+/// Badge-billen: skallet tar det meste forfra; et stykke unna skraper den
+/// og stormer rett fram, og stangeløpet treffer hardere enn bittet. Går du
+/// til siden, løper den i muren, velter og tar dobbelt så mye i buken.
+#[test]
+fn billen_stormer_og_velter_i_muren() {
+    use crate::domain::mobs::{badge, Blow, Kind};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    let ground = |q: Vec3| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z);
+    let clear = |a: Vec3, b: Vec3| (1..24).all(|k| c.walkable(ground(a.lerp(b, k as f32 / 24.0))));
+    // En retning med 6 m fritt gulv foran deg, en mur 1–4 m bak deg og
+    // plass til å gå 1,8 m til siden.
+    let (at, aside) = (0..64)
+        .find_map(|k| {
+            let a = k as f32 * std::f32::consts::TAU / 64.0;
+            let d = Vec3::new(a.cos(), 0.0, a.sin());
+            let at = ground(feet + d * 6.0);
+            let wall = (1..30).map(|s| s as f32 * 0.15).find(|&s| !c.walkable(ground(feet - d * s)))?;
+            let side = [1.0f32, -1.0].into_iter().map(|sg| ground(feet + Vec3::new(-d.z, 0.0, d.x) * 1.8 * sg)).find(|q| c.walkable(*q) && clear(feet, *q))?;
+            (c.walkable(at) && (at.y - feet.y).abs() < 0.3 && clear(feet, at) && (1.0..4.0).contains(&wall)).then_some((at, side))
+        })
+        .expect("ingen gang med en mur bak deg i nivå 1");
+    let face = |game: &mut Session| {
+        let to = (at - game.feet()).with_y(0.0).normalize();
+        game.set_look((-to.x).atan2(-to.z), 0.0);
+    };
+    // Skallet forfra mot sida (den står stille og ser på deg).
+    game.only_mob(Kind::BadgeBeetle, at);
+    game.turn_mob(0, feet);
+    let front = game.strike_mob(0, 10.0, at + (feet - at).normalize() * 1.0);
+    game.only_mob(Kind::BadgeBeetle, at);
+    game.turn_mob(0, feet);
+    let side = (at - feet).normalize();
+    let flank = game.strike_mob(0, 10.0, at + Vec3::new(-side.z, 0.0, side.x));
+    assert!(front < 0.5 * flank, "skallet tok ikke slaget forfra ({front} mot {flank} fra sida)");
+    // Stangeløpet rett på deg.
+    game.only_mob(Kind::BadgeBeetle, at);
+    face(&mut game);
+    let (mut ran, mut rammed) = (false, 0.0f32);
+    for _ in 0..(6 * 60) {
+        game.heal();
+        let hp = game.hp_now();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        ran |= matches!(game.mob_attack(0), Some((Blow::Charge, true)));
+        if ran {
+            rammed = rammed.max(hp - game.hp_now());
+        }
+        if rammed > 0.0 {
+            break;
+        }
+    }
+    assert!(ran, "billen stormet aldri");
+    assert!(rammed > 1.5 * Kind::BadgeBeetle.stats().damage, "stangeløpet traff ikke hardere enn bittet ({rammed})");
+    // Til siden når løpet begynner: den løper i muren og velter.
+    game.step_to(feet);
+    face(&mut game);
+    game.only_mob(Kind::BadgeBeetle, at);
+    let (mut stepped, mut flipped) = (false, false);
+    for _ in 0..(8 * 60) {
+        game.heal();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        if !stepped && matches!(game.mob_attack(0), Some((Blow::Charge, true))) {
+            game.step_to(aside);
+            stepped = true;
+        }
+        if game.mob_flipped(0) {
+            flipped = true;
+            break;
+        }
+    }
+    assert!(stepped, "billen stormet ikke den andre gangen");
+    assert!(flipped, "billen veltet ikke i muren");
+    let pos = game.mob_now(0).0;
+    let belly = game.strike_mob(0, 10.0, pos + Vec3::new(-side.z, 0.0, side.x));
+    assert!((belly - 10.0 * badge::BELLY).abs() < 0.01, "buken tok ikke dobbelt ({belly})");
+    for _ in 0..((badge::FLIP_SECS + 0.5) * 60.0) as usize {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    assert!(!game.mob_flipped(0), "billen ble liggende på ryggen");
+}
+
 #[test]
 fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
     use crate::domain::mobs::Kind;

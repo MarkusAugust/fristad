@@ -183,6 +183,9 @@ MOBS = {
     # hodet er en løs bit som står (`loose`). Øynene er ravgule, samme
     # fargetone som båndet over buken, så de gløder bare foran på hodet
     # (`glow_box`); de magenta sømmene gløder som hos de andre.
+    # Badge-billen (alle nivåene, i flokk): 0,42 m høy og 0,7 m lang,
+    # kuppelskallet stivt og fire korte bein (`mob_rigid.beetle`).
+    "badge_beetle": dict(height=0.42, size=2048, tris=3000, voxel=0.0018, thick=0.002, rig="beetle"),
     "alert_bat": dict(height=0.25, size=2048, tris=2600, voxel=0.0011, thick=0.0012, rig="bat", loose=0.0002,
                       glow_box=(((18.0, 20.0), dict(x=(0.3, 1.0), y=(-0.22, 0.22), z=(0.5, 0.8))),)),
 }

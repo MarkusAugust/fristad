@@ -391,6 +391,18 @@
    ],
    "yaw": 180,
    "label": "divider-orm"
+  },
+  {
+   "id": "f13",
+   "kind": "mob",
+   "anchor": "celle:forhall/c00",
+   "pos": [
+    0.8,
+    0,
+    0.8
+   ],
+   "yaw": 180,
+   "label": "badge-bille"
   }
  ],
  "links": [
