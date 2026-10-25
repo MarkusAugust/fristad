@@ -134,6 +134,8 @@ models! {
     "badge_beetle" => "mobs/badge_beetle.glb",
     // Tag-midden (mob3d.py, mob_rigid.mite).
     "tag_mite" => "mobs/tag_mite.glb",
+    // Den fryktinngytende Button (mob3d.py, stilen dread).
+    "dread_button" => "mobs/dread_button.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

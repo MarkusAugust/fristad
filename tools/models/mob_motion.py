@@ -270,6 +270,11 @@ STYLES = {
     # tasseskritt med lave føtter: knærne står like under kortplata og kom
     # ut gjennom den med lange skritt (eieren 20. oktober).
     "squire": dict(frames=10, v0=1.7, duty=0.6, lift=0.035, width=0.15, hunch=0, arm=8, sway=0.08, bob=0.015, tail=0, twitch=False, hips_yaw=3, idle=48, roll=9),
+    # Den fryktinngytende Button: en steinkjempe med skjermen som ansikt
+    # og jernhansker, tung og langsom, bredbeint; slaget er begge nevene ned
+    # i bakken foran seg (`attack_slam`), som trykker deg ned.
+    "dread": dict(frames=28, v0=0.55, duty=0.7, lift=0.08, width=0.3, hunch=4, arm=10, sway=0.07, bob=0.035, tail=0, twitch=False, hips_yaw=5, idle=64, heavy=True,
+                  slam_sink=0.08, slam_lean=18),
     "framework": dict(frames=16, v0=0.7, duty=0.65, lift=0.1, width=0.35, hunch=6, arm=16, sway=0.06, bob=0.04, tail=10, twitch=True, hips_yaw=5, idle=64, heavy=True,
                       slam_sink=0.1, slam_lean=22),
 }

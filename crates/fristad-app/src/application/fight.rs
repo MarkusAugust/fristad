@@ -110,6 +110,10 @@ impl Session {
             }
             if taken > 0.0 {
                 events.push(Event::Hurt { angle: hurt_angle(*from - eye, fwd) });
+                // Hammerslaget til Den fryktinngytende Button trykker deg ned.
+                if outcome.presses.contains(mob) && !parried {
+                    self.mobs.press();
+                }
             }
             taken_total += taken;
         }
