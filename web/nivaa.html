@@ -35,6 +35,8 @@
     @media (max-width: 1500px) { header h1 { display: none; } }
     #maptip { position: absolute; z-index: 5; pointer-events: none; background: rgba(12,13,15,.92); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 12px; max-width: 260px; line-height: 1.35; }
     #maptip b { font-weight: 600; }
+    #opmenu.list { flex-direction: column; align-items: stretch; }
+    #opmenu.list .chip { border-radius: 6px; text-align: left; }
     #opmenu { position: absolute; z-index: 7; background: rgba(16,17,20,.96); border: 1px solid var(--accent); border-radius: 8px; padding: 6px; max-width: 280px; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
     #maptip .muted { font-size: 11px; }
     #help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); }
@@ -152,7 +154,7 @@
       <div id="panemap" class="pane">
         <canvas id="plan" tabindex="0" aria-label="Kartet ovenfra"></canvas>
         <span class="pane-label" id="maplabel">Kart</span>
-        <span class="pane-help">Hjulet zoomer · høyre knapp drar kartet · dobbeltklikk går inn i 3D · Alt slår av magneten · <b>?</b> hjelp</span>
+        <span class="pane-help">Hjulet zoomer · høyre knapp drar kartet (klikk: meny) · dobbeltklikk går inn i 3D · Alt slår av magneten · <b>?</b> hjelp</span>
         <div id="maptip" hidden></div>
         <div id="opmenu" class="chips" hidden></div>
       </div>
@@ -198,6 +200,7 @@
             <tr><td>K</td><td>koble det valgte til en port, bro …</td></tr>
             <tr><td>Hjulet</td><td>zoom</td></tr>
             <tr><td>Høyre knapp / mellomrom + dra</td><td>flytt kartet</td></tr>
+            <tr><td>Høyre klikk</td><td>meny for det som står der</td></tr>
             <tr><td>Home</td><td>vis hele nivået</td></tr>
             <tr><td>Dobbeltklikk</td><td>gå inn der i 3D</td></tr>
             <tr><td>PageUp / PageDown</td><td>etasjen opp / ned</td></tr>

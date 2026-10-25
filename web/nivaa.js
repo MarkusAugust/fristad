@@ -934,7 +934,7 @@ function bindMap() {
     const [x, z] = worldAt(e);
     lastMouse = [e.clientX, e.clientY];
     if (e.button === 2 || e.button === 1 || space) {
-      drag = { type: "pan" };
+      drag = { type: "pan", button: e.button, at: [e.clientX, e.clientY], moved: false };
       return;
     }
     if (e.button !== 0) return;
@@ -984,6 +984,7 @@ function bindMap() {
     const r = plan.getBoundingClientRect();
     st.mouse = [e.clientX - r.left, e.clientY - r.top];
     if (drag?.type === "pan") {
+      drag.moved = drag.moved || Math.hypot(e.clientX - drag.at[0], e.clientY - drag.at[1]) > 4;
       st.view.cx -= (e.clientX - lastMouse[0]) / st.view.s;
       st.view.cz -= (e.clientY - lastMouse[1]) / st.view.s;
       lastMouse = [e.clientX, e.clientY];
@@ -1007,6 +1008,8 @@ function bindMap() {
     const [x, z] = worldAt(e);
     const d = drag;
     drag = null;
+    // Høyre klikk uten å dra: menyen for det som står der.
+    if (d?.type === "pan" && d.button === 2 && !d.moved) return contextMenu(e, x, z);
     if (d?.type === "pan" || d?.type === "mini") return;
     if (arm?.type === "module" && (e.button === 0 || d?.type === "palette")) {
       const g = ghostFor(x, z);
@@ -1126,6 +1129,7 @@ function openingMenu(h, e) {
   const o = m?.openings.find((o) => o.id === h.opening);
   if (!o) return;
   const box = $("opmenu");
+  box.classList.remove("list");
   const now = o.chosen || "auto";
   box.innerHTML = palette.openings.map(([k, n]) => `<button type="button" class="chip${k === now ? " armed" : ""}" data-kind="${esc(k)}">${esc(n)}</button>`).join("");
   box.querySelectorAll("button").forEach((b) =>
@@ -1139,6 +1143,41 @@ function openingMenu(h, e) {
   box.hidden = false;
   box.style.left = `${Math.max(4, Math.min(e.clientX - r.left - box.offsetWidth / 2, plan.clientWidth - box.offsetWidth - 4))}px`;
   box.style.top = `${Math.min(e.clientY - r.top + 14, plan.clientHeight - box.offsetHeight - 4)}px`;
+  showTip(null);
+}
+
+/// Høyreklikkmenyen på kartet: det du kan gjøre med det som står der.
+function contextMenu(e, x, z) {
+  disarm();
+  const h = hit(st.map, st.floor, x, z, Math.max(0.6, 10 / st.view.s));
+  if (h?.type === "opening") return openingMenu(h, e);
+  const items = [];
+  if (h?.type === "module" || h?.type === "thing" || h?.type === "light") {
+    if (!st.sel.includes(h.id)) select([h.id]);
+    const t = h.type === "thing" ? st.map.things.find((t) => t.id === h.id) : null;
+    items.push(["Drei (R)", () => turnSelection(false)]);
+    if (h.type === "module") items.push(["Speil (M)", () => send({ op: "mirror", ids: st.sel })], ["Kopier ved siden av (Ctrl+D)", () => (copy(), paste())]);
+    if (t && ["lever", "elite", "hint"].includes(t.kind)) items.push(["Koble til … (K)", startLink]);
+    if (t && ["mob", "elite", "boss"].includes(t.kind) && t.own) items.push(["Patrulje: klikk punktene", () => ((mode = "patrol"), setStatus("Klikk punktene på kartet · Esc er ferdig"))]);
+    items.push(["Vis i 3D (F)", focusSelection], ["Slett (Delete)", () => send({ op: "delete", ids: st.sel })]);
+  } else {
+    items.push(["Vis hele etasjen (Home)", () => (centerOn(), frameFloor())], ["Gå inn her i 3D", () => engine.level(JSON.stringify({ cmd: "place", x, y: st.floor + 1.7, z, yaw: st.camera?.length ? st.camera[3] : 0, pitch: -5 }))]);
+    if (clipboard) items.unshift(["Lim inn (Ctrl+V)", paste]);
+  }
+  const box = $("opmenu");
+  box.classList.add("list");
+  box.innerHTML = items.map(([n], k) => `<button type="button" class="chip" data-k="${k}">${esc(n)}</button>`).join("");
+  box.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      box.hidden = true;
+      items[Number(b.dataset.k)][1]();
+    }),
+  );
+  const r = plan.getBoundingClientRect();
+  box.hidden = false;
+  box.style.left = `${Math.max(4, Math.min(e.clientX - r.left, plan.clientWidth - box.offsetWidth - 4))}px`;
+  box.style.top = `${Math.min(e.clientY - r.top + 6, plan.clientHeight - box.offsetHeight - 4)}px`;
   showTip(null);
 }
 
