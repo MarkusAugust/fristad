@@ -1989,10 +1989,12 @@
  "mek_bro_vann_heis": {
   "6a7375ca1d26": {
    "text": [
-    "Heisen er forenklet: plankedekket med en ramme av tømmer, rekkverk med fire hjørnestolper og én håndlist, og én bremsespak i hjørnet. Heistårnet er to kraftige stolper med knestøtter og bommen over, med to høye hengebjelker og en bindbjelke under bommen, der de fire kjettingene ender. Trinsehjulet, skråstøttene, knelista, midtstolpen og den løse kjettingen ved vinsjen er borte; kjettingen går nå på skrå fra trommelen opp til bommen.",
-    "Vindebroa var ikke usynlig, men heist 6 m opp i sjakta over buen, bak murene over åpningen, så den aldri synes fra bredden. Nå heises den 3,2 m, så den henger i buen med kjettingene, synlig fra ytterbredden, og senkes som før.",
-    "Studiobildene av broa og heisen viste dekket svart; de er byttet med nærbilder fra nivåene."
-   ]
+    "«Se i 3D» viser nå hver ting for seg: velg vindebroa, kjettingen, vannet, heisen eller vinsjen i lista øverst i visningen. (Heisen ble ryddet og broa henger synlig i buen 20. oktober; se rettingen før.)"
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette"
+   }
   }
  },
  "mek_portgitter": {
@@ -2012,8 +2014,12 @@
  "mek_trone": {
   "237388b3f6bb": {
    "text": [
-    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
-   ]
+    "«Se i 3D» viser nå tronen alene: dra for å gå rundt den, rull for å zoome."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "burde ses i 3d"
+   }
   }
  },
  "mek_statue": {
@@ -2026,15 +2032,23 @@
  "mek_rustning": {
   "d414547fdd2b": {
    "text": [
-    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
-   ]
+    "«Se i 3D» viser nå rustningen på stativet alene: dra for å gå rundt den, rull for å zoome."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   }
   }
  },
  "mek_vapenstativ": {
   "5bc0538b62cb": {
    "text": [
-    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
-   ]
+    "«Se i 3D» viser nå våpenstativet alene: dra for å gå rundt det, rull for å zoome."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   }
   }
  },
  "mek_sarkofag": {
@@ -2061,8 +2075,12 @@
  "mek_gruvestiver": {
   "35ff0784403d": {
    "text": [
-    "Nytt kort: delt ut av «Pynt» (du skrev: «vanskelig å vite hva jeg godkjenner når det er så mye sammen. jeg ser ikke ting skikkelig her»), så hvert kort viser én eller to ting nært, med navnet i tittelen."
-   ]
+    "«Se i 3D» viser nå hver ting for seg: velg gruvestiveren eller gruvelampa i lista øverst i visningen."
+   ],
+   "answers": {
+    "verdict": "usikker",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   }
   }
  },
  "mek_malmvogn": {

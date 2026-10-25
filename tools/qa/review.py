@@ -142,6 +142,16 @@ def glb_to_json(src, dst):
         json.dump(j, f, separators=(",", ":"))
 
 
+# Navnene på byggesettets ting i «Se i 3D» for de samlede kortene.
+PART_NAMES = {
+    "kit_gate": "Portgitteret", "kit_lever": "Spaken (festet)", "kit_lever_arm": "Spakarmen", "kit_shortcut": "Snarveidøra (karmen)", "kit_shortcut_leaf": "Snarveidøra (dørbladet)",
+    "kit_plate": "Trykkplata", "kit_arrow": "Pila", "kit_crack": "Sprekken", "kit_rest": "Hvilestedet", "kit_rest_flame": "Flammen på hvilestedet", "kit_lore": "Lesepulten",
+    "kit_bonus": "Skrinet med bonusen", "kit_up": "Døra opp", "kit_down": "Trappa ned", "kit_ladder": "Stigen", "kit_ladder_top": "Toppen av stigen", "kit_trapdoor": "Fallemmen",
+    "kit_bridge": "Vindebroa", "kit_chain": "Kjettingen", "kit_water": "Vannet", "kit_lift": "Heisen", "kit_winch": "Vinsjen", "kit_throne": "Tronen", "kit_statue": "Statuen",
+    "kit_armor": "Rustningen på stativ", "kit_rack": "Våpenstativet", "kit_sarcophagus": "Sarkofagen", "kit_banner": "Fanen", "kit_chandelier": "Lysekrona",
+    "kit_strut": "Gruvestiveren", "kit_lamp": "Gruvelampa", "kit_rail": "Skinnene", "kit_cart": "Malmvogna", "kit_crystal": "Krystallene",
+}
+
 LEVEL_PIECE = __import__("re").compile(r"^(crypt_\d\d)_[a-z]{2}$")
 
 
@@ -159,6 +169,26 @@ def models_3d(out, items):
     os.makedirs(texdir, exist_ok=True)
     used, levels = set(), {}
     modules_3d(root, items, levels, used)
+    # De samlede mekanismekortene: hver modell for seg (eieren 20. oktober:
+    # «disse burde vises en og en i 3d»), valgt i visningen (`parts`).
+    for it in items:
+        if it["kind"] != "samlet" or it["state"] != "venter":
+            continue
+        card = next(c for c in mechanism_cards() if f"u_mek_{c['id']}" == it["id"])
+        parts = []
+        for model in card["modeller"]:
+            hits = glob.glob(os.path.join(ROOT, "assets", "models", "crypt", "kit", "*", f"{model}.glb")) or glob.glob(os.path.join(ROOT, "assets", "models", "**", f"{model}.glb"), recursive=True)
+            if not hits:
+                continue
+            os.makedirs(os.path.join(root, "kit"), exist_ok=True)
+            dst = os.path.join(root, "kit", f"{model}.json")
+            if not os.path.exists(dst):
+                glb_to_json(hits[0], dst)
+                used |= glb_layers(hits[0])
+            parts.append({"name": model, "label": PART_NAMES.get(model, model), "glb": f"glb/kit/{model}.json"})
+        if parts:
+            it["parts"] = parts
+            it["glb"] = parts[0]["glb"]
     for it in items:
         if it["state"] != "venter" or it["kind"] != "modell" or not it.get("path"):
             continue

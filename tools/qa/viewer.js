@@ -178,6 +178,19 @@ function frame(st, obj, inside) {
 // Åpner visningen for kortet `it` (fra data.json) i dialogen.
 export async function show(it, data, ui) {
   if (!state) state = setup(ui.canvas);
+  // De samlede kortene: én ting om gangen, valgt i lista (`parts`).
+  if (ui.part) {
+    ui.part.hidden = !it.parts || it.parts.length < 2;
+    if (it.parts) {
+      if (ui.part.dataset.for !== it.id) {
+        ui.part.replaceChildren(...it.parts.map((p, k) => new Option(p.label || p.name, String(k))));
+        ui.part.dataset.for = it.id;
+        ui.part.value = "0";
+      }
+      ui.part.onchange = () => show(it, data, ui);
+      it = { ...it, glb: it.parts[Number(ui.part.value) || 0].glb };
+    }
+  }
   const st = state;
   for (const g of st.groups) st.scene.remove(g);
   st.groups = [];
