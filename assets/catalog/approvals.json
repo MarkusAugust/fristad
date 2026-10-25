@@ -3545,6 +3545,12 @@
    "date": "2026-10-25",
    "why": "",
    "seen": "36b1ada3fa84"
+  },
+  "badge_beetle": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "595bf5f750b9"
   }
  },
  "modules": {
