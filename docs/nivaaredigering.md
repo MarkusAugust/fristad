@@ -895,4 +895,5 @@ Gått gjennom som en ny bruker i nettleseren; det som stoppet opp, er rettet:
 - **Hjelpen** (`? Hjelp`, F1 eller ?): de fire stegene for et nivå og alle tastene. Verktøylinja står på én linje, og det du holder på med står som en lapp over kartet (`#status`).
 - **Reglene på vanlig norsk:** «Nivået mangler et hvilested» med «Sett ut» (`compose::NEEDED`, `FixKind::Arm`), og rommet og tingen med navn («Kiste «kiste_2» kan ikke nås fra start»).
 - **Raskere å åpne:** figurene til byfolket hentes ikke (`SKIP_MODELS`; prøveturen går rett ned i nivået).
-- Testene: `tools/nivaa-test.mjs` (magneten, hjelpen, knappene ved åpningen, snittet fra start) og `rett_retter_de_vanlige_bruddene`.
+- Testene: `node tools/nivaa-plan-test.mjs` (magneten uten nettleser), `tools/nivaa-test.mjs` (magneten, hjelpen, knappene ved åpningen, snittet fra start) og `rett_retter_de_vanlige_bruddene`.
+- Ellers: en valgt ting eller et lys dras i 3D, K på en vanlig åpning gjør den til port (eller falsk vegg for hintet), panelet for nivået har sjekklista med «Sett ut», Ctrl+A velger alt i etasjen, og lysknappen viser lyset som er på («Lys: arbeid» / «Lys: spillet»).

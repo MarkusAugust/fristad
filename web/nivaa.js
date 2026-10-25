@@ -1485,8 +1485,11 @@ function bindUi() {
   $("v-split").onclick = () => setView("split");
   $("v-3d").onclick = () => setView("3d");
   $("light").onclick = () => {
-    const on = $("light").textContent !== "Arbeidslys";
-    $("light").textContent = on ? "Arbeidslys" : "Spillets lys";
+    // Knappen viser lyset som er på: arbeidslyset (alt synes) eller
+    // spillets (faklene og lysene som følger rommene, tåka).
+    const on = $("light").dataset.mode === "game";
+    $("light").dataset.mode = on ? "work" : "game";
+    $("light").textContent = on ? "Lys: arbeid" : "Lys: spillet";
     engine.level(JSON.stringify({ cmd: "light", work: on }));
   };
   addEventListener("keydown", onKey);
