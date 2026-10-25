@@ -3551,6 +3551,12 @@
    "date": "2026-10-25",
    "why": "",
    "seen": "595bf5f750b9"
+  },
+  "tag_mite": {
+   "verdict": "godkjent",
+   "date": "2026-10-25",
+   "why": "",
+   "seen": "f191229232a2"
   }
  },
  "modules": {
