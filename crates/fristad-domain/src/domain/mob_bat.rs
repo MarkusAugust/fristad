@@ -163,8 +163,8 @@ impl Mobs {
     }
 
     /// Sett ut en fiende som ikke har sett deg, sovende i bakhold (bare
-    /// nærmere enn `near` vekker den) eller våken (til testene).
-    #[cfg(any(test, feature = "testing"))]
+    /// nærmere enn `near` vekker den) eller våken (til testene og
+    /// skjermbildene, som `spawn_aware`).
     pub fn spawn_unaware(&mut self, kind: Kind, p: Vec3, near: Option<f32>) -> usize {
         self.spawn_at(kind, p, Some(0.0), false, vec![], near.map(Ambush::Near), self.level);
         self.mobs.len() - 1
