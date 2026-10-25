@@ -24,10 +24,13 @@ pub use crate::domain::mob_kind::{Kind, Stats};
 #[path = "mob_walk.rs"]
 mod walk;
 use walk::walk;
+use mob_rigs::turn_joints;
 #[path = "mob_rigs.rs"]
 mod mob_rigs;
 #[path = "mob_bolts.rs"]
 mod bolts;
+#[path = "mob_bat.rs"]
+pub mod bat;
 pub use bolts::Bolt;
 use bolts::{BOLT_INSTANCES, BOLT_SPEED};
 
@@ -163,6 +166,8 @@ pub struct Mob {
     last_yaw: f32,
     /// Stegene igjen langs stigen eller heisen den er på (`crypt::hops`).
     climb: Vec<crate::domain::world::crypt::hops::HopStep>,
+    /// Høyden over gulvet den flyr i (Alert-flaggermusa, `mob_bat.rs`).
+    air: f32,
 }
 
 impl Mob {
@@ -265,7 +270,7 @@ impl Mobs {
         }
         let hp = kind.stats().hp * if elite { ELITE_HP } else { 1.0 };
         let dormant = ambush.is_some();
-        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![] });
+        self.mobs.push(Mob { kind, pos: p, yaw, hp, max_hp: hp, elite, boss: kind.boss(), state: State::Idle, hit: 9.0, aware: false, t: 0.0, stun: 0.0, cooldown: 0.5, phase, anim, path: vec![], goal: p, repath, home: p, patrol, patrol_i: 0, ambush, dormant, level, roars: 0, stride: 0.0, knock: Vec3::ZERO, look: 0.0, turn: 0.0, last_yaw: yaw, climb: vec![], air: if kind == Kind::AlertBat { bat::HOVER } else { 0.0 } });
     }
 
     /// Befolk et nivå: fiendene står der merkene sier, med rutene og
@@ -370,7 +375,7 @@ impl Mobs {
             }
             let (s, (top, rad, half)) = (m.scale(), m.kind.body());
             let fwd = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos()) * half * s;
-            let (a, b) = if half > 0.0 { (m.pos + Vec3::Y * top * 0.5 * s - fwd, m.pos + Vec3::Y * top * 0.5 * s + fwd) } else { (m.pos + Vec3::Y * 0.2 * s, m.pos + Vec3::Y * top * s) };
+            let (a, b) = if half > 0.0 { (m.pos + Vec3::Y * top * 0.5 * s - fwd, m.pos + Vec3::Y * top * 0.5 * s + fwd) } else { (m.pos + Vec3::Y * if m.air > 0.0 { m.air } else { 0.2 * s }, m.pos + Vec3::Y * (top * s + m.air)) };
             // Nærmeste avstand mellom strålen (eye + dir·t, t ≥ 0) og segmentet a–b.
             let (d1, d2, r) = (dir, b - a, eye - a);
             let (a11, a12, a22) = (d1.dot(d1), -d1.dot(d2), d2.dot(d2));
@@ -532,6 +537,7 @@ impl Mobs {
         let n = self.mobs.len();
         let mut summons: Vec<Vec3> = vec![];
         let mut bolts: Vec<Bolt> = vec![];
+        let mut shrieks: Vec<(Vec3, usize)> = vec![];
         let player_level = if in_crypt { crypt.level_at(player) } else { None };
         let player_room = if in_crypt { crypt.room_at(player) } else { None };
         for i in 0..n {
@@ -560,6 +566,7 @@ impl Mobs {
                 Some(a) => a.time,
                 None => m.t,
             };
+            bat::fly(m, dt, player, crypt, &stats);
             let to_player = (player - m.pos).with_y(0.0);
             let dist = to_player.length();
             // Spilleren i et annet nivå (eller langt over eller under) er
@@ -642,7 +649,7 @@ impl Mobs {
                             let facing = Vec3::new(m.yaw.sin(), 0.0, m.yaw.cos());
                             match blow {
                                 Blow::Melee => {
-                                    let reach = stats.reach * if m.elite { 1.3 } else { 1.0 };
+                                    let reach = if kind == Kind::AlertBat { bat::BITE } else { stats.reach } * if m.elite { 1.3 } else { 1.0 };
                                     if dist <= reach && facing.dot(to_player.normalize_or_zero()) > 0.3 {
                                         out.bites.push((i, stats.damage * if m.elite { 1.8 } else { 1.0 }, m.pos));
                                     }
@@ -739,7 +746,8 @@ impl Mobs {
                 continue;
             }
             if !m.aware {
-                out.sounds.push(("notice", m.pos));
+                out.sounds.push((if kind == Kind::AlertBat { "shriek" } else { "notice" }, m.pos + Vec3::Y * m.air));
+                bat::notice(m, &mut shrieks);
                 m.aware = true;
                 m.path.clear();
                 // Får øye på deg: rykker opp og snur seg mot deg først.
@@ -771,7 +779,7 @@ impl Mobs {
             }
             // Rekkevidden måles til kroppen, og bare på samme gulv.
             let level_ok = (player.y - m.pos.y).abs() < 1.6 * s.max(1.0);
-            if dist <= stats.range && level_ok && m.cooldown <= 0.0 {
+            if dist <= stats.range && level_ok && m.cooldown <= 0.0 && !bat::waits(m, before, after) {
                 // Rammeverket slår i bakken også uten eget klipp (stedfortrederen slår med nevene).
                 let blow = if m.boss && (clips.slam.is_some() || m.kind.boss()) && r < 0.35 { Blow::Slam } else { Blow::Melee };
                 m.state = State::Attack { blow, landed: false };
@@ -805,6 +813,7 @@ impl Mobs {
             }
             walk(m, player, stats.speed, dt, crypt, push, &stats, &clips, &mut out);
         }
+        self.wake(&shrieks);
         for p in summons {
             let p = if crypt.walkable(p) { p } else { continue };
             let p = Vec3::new(p.x, crypt.height_at(p), p.z);
@@ -877,7 +886,7 @@ impl Mobs {
                     let lean = (-m.turn * 0.06).clamp(-0.18, 0.18);
                     // Modellens front er +X; yaw regner front som (sin, 0, cos).
                     let rot = Quat::from_rotation_y(m.yaw - std::f32::consts::FRAC_PI_2) * Quat::from_rotation_x(lean);
-                    let t = Affine3A::from_rotation_translation(rot, m.pos) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
+                    let t = Affine3A::from_rotation_translation(rot, m.pos + Vec3::Y * m.air) * Affine3A::from_scale(Vec3::splat(s * (1.0 + flinch * 0.06)));
                     out.extend(mob_rigs::held(rig, &pose, clips, t, flash));
                     out.push(ModelInstance { model, transform: t, skin: Some((base, mats.len() as u32)), flash, tint: None, look: None });
                 }
@@ -944,20 +953,5 @@ mod tests {
         let hp: Vec<f32> = mobs.mobs.iter().map(|m| m.max_hp).collect();
         assert_eq!((hp[0], hp[2], hp[3]), (150.0, 2100.0, 57.0), "knappen, Rammeverket og tooltipen");
         assert!((hp[1] - 150.0 * ELITE_HP).abs() < 1e-3 && mobs.mobs.iter().all(|m| m.hp == m.max_hp), "eliten: {}", hp[1]);
-    }
-}
-
-/// Dreier ledd om opp-aksen i riggens rom (`up`), hvert med sin vinkel, uten
-/// å flytte dem: lokalt blir dreiningen forelderens globale dreining
-/// konjugert med opp-dreiningen. Brukes til at hodet ser mot spilleren.
-fn turn_joints(rig: &Rig, pose: &mut crate::domain::anim::Pose, joints: &[(usize, f32)], up: Vec3) {
-    let globals = rig.globals(pose);
-    for &(j, angle) in joints {
-        let Some(joint) = rig.joints.get(j) else { continue };
-        let parent = joint.parent.map(|p| globals[p].to_scale_rotation_translation().1).unwrap_or(Quat::IDENTITY);
-        let q = Quat::from_axis_angle(up, angle);
-        if let Some(slot) = pose.0.get_mut(j) {
-            slot.1 = (parent.inverse() * q * parent * slot.1).normalize();
-        }
     }
 }

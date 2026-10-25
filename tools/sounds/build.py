@@ -110,6 +110,8 @@ SOUNDS = {
     "windup": S(f"{FL}/enemies/goblin_phys.ogg", f"{FL}/enemies/antlion_phys.ogg", f"{FL}/enemies/zombie_phys.ogg", gain=0.35, pitch=0.12, synth="growl"),
     "windup_big": S(f"{FL}/enemies/minotaur_phys.ogg", gain=0.55, pitch=0.06, synth="growl"),
     "notice": S(f"{FL}/enemies/wyvern_ment.ogg", f"{FL}/enemies/goblin_ment.ogg", f"{FL}/enemies/antlion_ment.ogg", gain=0.4, pitch=0.12),
+    # Alert-flaggermusas varselskrik: wyvernens rop, lyst og raskt.
+    "shriek": S(f"{FL}/enemies/wyvern_ment.ogg", gain=0.55, pitch=0.1, rate=1.7),
     "spit": S(f"{A0}/attack/weapon/jav_attack_0*.ogg", gain=0.5, pitch=0.1, synth="spit"),
     # Varselet før spyttet (gurgling som lades, syntetisk) og spruten der
     # markøren treffer (de samme kjøttslagene som `hit`, lysere og raskere).

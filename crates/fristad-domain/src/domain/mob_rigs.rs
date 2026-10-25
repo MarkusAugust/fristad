@@ -89,3 +89,18 @@ impl Mobs {
         rig.clips.get(m.anim.as_ref()?.clip).map(|c| c.name.as_str())
     }
 }
+
+/// Dreier ledd om opp-aksen i riggens rom (`up`), hvert med sin vinkel, uten
+/// å flytte dem: lokalt blir dreiningen forelderens globale dreining
+/// konjugert med opp-dreiningen. Brukes til at hodet ser mot spilleren.
+pub(super) fn turn_joints(rig: &Rig, pose: &mut crate::domain::anim::Pose, joints: &[(usize, f32)], up: Vec3) {
+    let globals = rig.globals(pose);
+    for &(j, angle) in joints {
+        let Some(joint) = rig.joints.get(j) else { continue };
+        let parent = joint.parent.map(|p| globals[p].to_scale_rotation_translation().1).unwrap_or(Quat::IDENTITY);
+        let q = Quat::from_axis_angle(up, angle);
+        if let Some(slot) = pose.0.get_mut(j) {
+            slot.1 = (parent.inverse() * q * parent * slot.1).normalize();
+        }
+    }
+}

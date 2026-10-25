@@ -1,6 +1,7 @@
 {
  "_om": "Hva hver modell er. Tallene (trekanter, hvor den står) regnes ut; eierens dom står i approvals.json.",
  "models": {
+  "alert_bat": "Alert-flaggermusa (alle nivåene, i flokk): en rund flaggermus av anløpet messing med ravgule øyne, et utropstegn av jern over hodet og magenta sømmer, 0,5 m mellom vingespissene; vingene og halen på egne bein, flyr (tools/models/mob_rigid.py). TRELLIS-formen fra eieren med teksturen som den er (tools/models/mob3d.py).",
   "accordion_coffin": "Accordion Coffin (trash, Gravkongens hall): en stående kiste av grå plast med trekkspillfolder, lokket som kjeve og ett linseøye i glipa under, fire korte beinbein; gravstein, kryssede bein og lys oppå; ligger stille i bakhold (tools/models/monsters.py).",
   "altar": "Møbel: Alteret i kirka med duk, rødt forheng, to lysestaker som lyser og alterkors.",
   "apothecary": "Apoteket på torget (nord): utsida.",

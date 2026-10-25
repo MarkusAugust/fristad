@@ -355,6 +355,18 @@
    ],
    "yaw": 180,
    "label": "popover"
+  },
+  {
+   "id": "f10",
+   "kind": "mob",
+   "anchor": "celle:forhall/c01",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "yaw": 180,
+   "label": "alert-flaggermus"
   }
  ],
  "links": [

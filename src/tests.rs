@@ -3131,6 +3131,69 @@ fn fienden_vises_i_infopanelet_og_ikke_i_siktet() {
 /// munnen) et halvt sekund før skuddet, markøren tegnes hvert bilde fra den
 /// spyttes til den treffer, og treffer den deg, sier `Event::Hurt` hvor den
 /// kom fra (her fra høyre). Infopanelet sier at den skyter på avstand.
+/// Alert-flaggermusa (eieren 20. oktober: «alle monster angriper ulikt»):
+/// når den ser deg, skriker den, og en knapp som sover i bakhold like ved
+/// våkner; mellom stupene henger den for høyt for sverdet, og stupet går
+/// ned til deg og biter.
+#[test]
+fn flaggermusa_skriker_vekker_de_andre_og_stuper() {
+    use crate::domain::mobs::{bat, Kind};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    let clear = |a: Vec3, b: Vec3| (1..20).all(|k| c.walkable(Vec3::new(a.lerp(b, k as f32 / 20.0).x, c.height_at(a.lerp(b, k as f32 / 20.0) + Vec3::Y * 0.5), a.lerp(b, k as f32 / 20.0).z)));
+    let ground = |q: Vec3| Vec3::new(q.x, c.height_at(q + Vec3::Y * 0.5), q.z);
+    let at = (0..32)
+        .flat_map(|k| [6.0f32, 7.5, 9.0].map(move |d| (k, d)))
+        .map(|(k, d)| {
+            let a = k as f32 * std::f32::consts::TAU / 32.0;
+            ground(feet + Vec3::new(a.cos(), 0.0, a.sin()) * d)
+        })
+        .find(|q| c.walkable(*q) && (q.y - feet.y).abs() < 0.3 && clear(feet, *q))
+        .expect("ingen plass til flaggermusa 6–9 m unna startstedet i nivå 1");
+    // Knappen sover i bakhold et stykke bak flaggermusa, utenfor rekkevidden
+    // som ellers vekker den.
+    let away = (at - feet).with_y(0.0).normalize();
+    let sleeper = [3.0f32, 2.0, 4.0].into_iter().map(|d| ground(at + away * d)).find(|q| c.walkable(*q)).expect("ingen plass til knappen");
+    game.clear_mobs();
+    let b = game.add_unaware(Kind::AlertBat, at, None);
+    let k = game.add_unaware(Kind::Button, sleeper, Some(1.0));
+    let to = (at - feet).with_y(0.0).normalize();
+    game.set_look((-to.x).atan2(-to.z), 0.0);
+    game.heal();
+    let hp0 = game.hp_now();
+    let (mut shriek, mut woke, mut high, mut low, mut bitten) = (false, false, 0, f32::MAX, false);
+    for _ in 0..(10 * 60) {
+        let events = game.update(&mut input, 1.0 / 60.0, &mut physics);
+        shriek |= events.iter().any(|e| matches!(e, Event::Sound(s) if s.name == "shriek"));
+        let (pos, air, aware, _) = game.mob_now(b);
+        if aware && !woke {
+            assert!(shriek, "flaggermusa så deg uten å skrike");
+        }
+        woke |= game.mob_now(k).2;
+        let above = pos.y + air - game.feet().y;
+        if !bitten && above > bat::SWING_TOP {
+            high += 1;
+        }
+        low = low.min(above);
+        bitten |= game.hp_now() < hp0;
+        if bitten && woke {
+            break;
+        }
+    }
+    assert!(shriek, "flaggermusa skrek ikke");
+    assert!(woke, "knappen i bakhold våknet ikke av skriket");
+    assert!(high >= 30, "flaggermusa hang over sverdet i bare {high} bilder");
+    assert!(bitten, "stupet bet ikke (lavest {low:.2} m over føttene dine)");
+    assert!(low < bat::SWING_TOP, "stupet kom aldri ned dit sverdet når ({low:.2} m)");
+}
+
 #[test]
 fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
     use crate::domain::mobs::Kind;

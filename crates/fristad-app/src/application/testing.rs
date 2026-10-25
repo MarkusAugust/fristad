@@ -116,6 +116,18 @@ impl Session {
         self.mobs.spawn_aware(kind, at);
     }
 
+    /// En fiende som ikke har sett deg, ved `at`: sovende i bakhold (bare
+    /// nærmere enn `near` vekker den) eller våken.
+    pub fn add_unaware(&mut self, kind: MobKind, at: Vec3, near: Option<f32>) -> usize {
+        self.mobs.spawn_unaware(kind, at, near)
+    }
+
+    /// Fiende `i`: føttene, flyhøyden, om den har sett deg, og livet.
+    pub fn mob_now(&self, i: usize) -> (Vec3, f32, bool, f32) {
+        let m = &self.mobs.mobs[i];
+        (m.pos, m.air(), m.aware, m.hp)
+    }
+
     /// Markørene i lufta nå.
     pub fn bolts_flying(&self) -> Vec<Vec3> {
         self.mobs.bolts.iter().map(|b| b.pos).collect()

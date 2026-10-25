@@ -125,6 +125,8 @@ models! {
     "progress_foreman" => "mobs/progress_foreman.glb",
     "card_squire" => "mobs/card_squire.glb",
     "popover_wisp" => "mobs/popover_wisp.glb",
+    // Alert-flaggermusa (mob3d.py, mob_rigid.bat), i flokk i alle nivåene.
+    "alert_bat" => "mobs/alert_bat.glb",
     // Gjerdene fra tools/models/street.py: flettverk, skigard, stakitt og
     // lav steinmur.
     "wattle_fence" => "town/wattle_fence.glb",

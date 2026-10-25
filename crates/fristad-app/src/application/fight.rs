@@ -203,6 +203,12 @@ impl Session {
         true
     }
 
+    /// Midt på kroppen til den første fienden, også når den flyr (til
+    /// skjermbildene, `snapshot --bolt-view`).
+    pub fn foe_at(&self) -> Option<Vec3> {
+        self.mobs.mobs.first().map(|m| m.body_mid())
+    }
+
     /// Hvor mange markører som er i lufta.
     pub fn bolts_in_air(&self) -> usize {
         self.mobs.bolts.len()
