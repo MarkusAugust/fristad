@@ -1404,6 +1404,8 @@ function placeIn3d(e) {
 
 function bind3d() {
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  // Midtknappen flytter; ikke nettleserens autorulling.
+  for (const el of [canvas, plan]) el.addEventListener("mousedown", (e) => e.button === 1 && e.preventDefault());
   let press = null;
   canvas.addEventListener("pointerdown", (e) => {
     canvas.focus();
