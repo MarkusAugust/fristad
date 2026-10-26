@@ -2760,7 +2760,10 @@ function bindInput() {
       toggleJournal();
       return;
     }
-    if (e.code === "F1" && !e.repeat) {
+    // Tastene: F1, eller ? (F-tastene trenger fn på små tastaturer).
+    const field = e.composedPath()[0];
+    const writing = field instanceof HTMLElement && (field.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(field.tagName));
+    if ((e.code === "F1" || (e.key === "?" && !writing)) && !e.repeat) {
       e.preventDefault();
       $("keys-panel").open = !$("keys-panel").open;
       return;

@@ -236,6 +236,7 @@ async function boot() {
   bind3d();
   sendCut();
   frameFloor();
+  macKeys(document.body);
   $("overlay").hidden = true;
   if (first.note) toast(first.note);
   // Første gang: hjelpen med de fire stegene.
@@ -1463,11 +1464,11 @@ function bind3d() {
       if (!press.grab) syncOrbit();
     }
     if (press.grab) return dragGrab(press.grab, e);
-    if (press.button === 0) {
+    if (press.button === 0 && !e.shiftKey) {
       // Gå rundt punktet.
       orbit.yaw -= dx * 0.4;
       orbit.pitch = Math.max(-89, Math.min(20, orbit.pitch - dy * 0.3));
-    } else if (press.button === 1 && orbit.pivot) {
+    } else if ((press.button === 1 || (press.button === 0 && e.shiftKey)) && orbit.pivot) {
       // Flytt punktet langs bildet.
       const a = (orbit.yaw * Math.PI) / 180;
       const k = orbit.dist * 0.0018;
@@ -1538,6 +1539,16 @@ function bindUi() {
     if (playing || (document.activeElement === canvas && FLY_KEYS.includes(e.code))) engine.key(e.code, false);
   });
   addEventListener("blur", () => engine?.release_all());
+}
+
+// På Mac står ⌘ der det står Ctrl (begge virker), og ⌥ for Alt.
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+function macKeys(root) {
+  if (!MAC) return;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) n.nodeValue = n.nodeValue.replace(/Ctrl\+/g, "⌘").replace(/\bAlt\b/g, "⌥ Alt");
+  root.querySelectorAll("[title]").forEach((el) => (el.title = el.title.replace(/Ctrl\+/g, "⌘").replace(/\bAlt\b/g, "⌥ Alt")));
 }
 
 function showHelp(on) {
@@ -1655,11 +1666,15 @@ function onKey(e) {
     case "KeyP":
       play(e.shiftKey);
       break;
+    // Etasjen: PageUp/PageDown, eller Shift+↑/↓ (tastaturer uten dem).
     case "PageUp":
-    case "PageDown": {
+    case "PageDown":
+    case "ArrowUp":
+    case "ArrowDown": {
+      if (e.code.startsWith("Arrow") && !e.shiftKey) break;
       e.preventDefault();
       const f = st.floors || st.map.floors;
-      const i = f.indexOf(st.floor) + (e.code === "PageUp" ? 1 : -1);
+      const i = f.indexOf(st.floor) + (e.code === "PageUp" || e.code === "ArrowUp" ? 1 : -1);
       if (i >= 0 && i < f.length) setFloor(f[i]);
       break;
     }
@@ -1667,7 +1682,9 @@ function onKey(e) {
       e.preventDefault();
       setView({ split: "map", map: "3d", "3d": "split" }[viewMode]);
       break;
+    // Hele etasjen: Home eller H.
     case "Home":
+    case "KeyH":
       centerOn();
       frameFloor();
       break;

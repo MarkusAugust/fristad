@@ -116,7 +116,7 @@
     <div class="sep"></div>
     <div class="group">
       <label class="fs-label" for="floor">Etasje</label>
-      <select id="floor" class="fs-select" title="PageUp og PageDown"></select>
+      <select id="floor" class="fs-select" title="Shift+↑ og Shift+↓ (eller PageUp og PageDown)"></select>
       <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" title="S: i 3D kuttes alt over etasjen bort (som et dukkehus), og kartet viser bare denne etasjen og den under">Snitt</button>
     </div>
     <div class="group" role="group" aria-label="Visning">
@@ -125,7 +125,7 @@
       <button id="v-3d" class="fs-button" data-variant="secondary" type="button" title="Bare 3D">3D</button>
     </div>
     <button id="light" class="fs-button" data-variant="secondary" type="button" data-mode="work" title="L: arbeidslyset (alt synes) eller spillets lys (faklene, rommene og tåka)">Lys: arbeid</button>
-    <button id="helpbtn" class="fs-button" data-variant="secondary" type="button" title="? eller F1: tastene og slik bygger du">? Hjelp</button>
+    <button id="helpbtn" class="fs-button" data-variant="secondary" type="button" title="? (eller F1): tastene og slik bygger du">? Hjelp</button>
     <div class="sep"></div>
     <div class="group">
       <button id="play" class="fs-button" data-variant="primary" type="button" title="P: spill nivået fra startstedet (Shift+P: der kameraet står). Du kan ikke dø. Esc tilbake.">Spill fra start</button>
@@ -154,14 +154,14 @@
       <div id="panemap" class="pane">
         <canvas id="plan" tabindex="0" aria-label="Kartet ovenfra"></canvas>
         <span class="pane-label" id="maplabel">Kart</span>
-        <span class="pane-help">Hjulet zoomer · høyre knapp drar kartet (klikk: meny) · dobbeltklikk går inn i 3D · Alt slår av magneten · <b>?</b> hjelp</span>
+        <span class="pane-help">Hjulet zoomer · mellomrom + dra flytter kartet · høyreklikk: meny · dobbeltklikk går inn i 3D · Alt slår av magneten · <b>?</b> hjelp</span>
         <div id="maptip" hidden></div>
         <div id="opmenu" class="chips" hidden></div>
       </div>
       <div id="pane3d" class="pane">
         <canvas id="world" tabindex="0" aria-label="Nivået i 3D"></canvas>
         <span class="pane-label">3D</span>
-        <span class="pane-help">Dra går rundt · hjulet zoomer · midtknappen flytter · høyre knapp + WASD flyr · klikk velger · F viser det valgte</span>
+        <span class="pane-help">Dra går rundt · hjulet zoomer · Shift + dra flytter · høyre knapp + WASD flyr · klikk velger · F viser det valgte</span>
       </div>
     </section>
     <aside id="props" aria-label="Egenskaper og regler">
@@ -195,15 +195,15 @@
             <tr><td>Ctrl+A</td><td>velg alt i etasjen</td></tr>
             <tr><td>R / Shift+R</td><td>drei med / mot klokka</td></tr>
             <tr><td>M</td><td>speil</td></tr>
-            <tr><td>Delete</td><td>slett</td></tr>
+            <tr><td>Delete / ⌫</td><td>slett</td></tr>
             <tr><td>Ctrl+C / V / D</td><td>kopier, lim inn, kopier ved siden av</td></tr>
             <tr><td>K</td><td>koble det valgte til en port, bro …</td></tr>
             <tr><td>Hjulet</td><td>zoom</td></tr>
-            <tr><td>Høyre knapp / mellomrom + dra</td><td>flytt kartet</td></tr>
-            <tr><td>Høyre klikk</td><td>meny for det som står der</td></tr>
-            <tr><td>Home</td><td>vis hele nivået</td></tr>
+            <tr><td>Mellomrom + dra (høyre knapp + dra)</td><td>flytt kartet</td></tr>
+            <tr><td>Høyre klikk (to fingre)</td><td>meny for det som står der</td></tr>
+            <tr><td>H (Home)</td><td>vis hele nivået</td></tr>
             <tr><td>Dobbeltklikk</td><td>gå inn der i 3D</td></tr>
-            <tr><td>PageUp / PageDown</td><td>etasjen opp / ned</td></tr>
+            <tr><td>Shift+↑ / Shift+↓ (PageUp / PageDown)</td><td>etasjen opp / ned</td></tr>
           </table>
         </div>
         <div>
@@ -211,7 +211,7 @@
           <table>
             <tr><td>Dra</td><td>gå rundt</td></tr>
             <tr><td>Hjulet</td><td>nærmere / lenger unna</td></tr>
-            <tr><td>Midtknappen + dra</td><td>flytt</td></tr>
+            <tr><td>Shift + dra (midtknappen)</td><td>flytt</td></tr>
             <tr><td>Høyre knapp + WASD</td><td>fly (mellomrom og C opp og ned, Shift fort)</td></tr>
             <tr><td>Klikk</td><td>velg, eller sett ut det du har tatt fra paletten</td></tr>
             <tr><td>Dra en valgt ting</td><td>flytt den</td></tr>
@@ -221,12 +221,12 @@
           </table>
           <h3>Ellers</h3>
           <table>
-            <tr><td>Ctrl+Z / Ctrl+Y</td><td>angre / gjør om</td></tr>
+            <tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>angre / gjør om</td></tr>
             <tr><td>Tab</td><td>kart, delt, 3D</td></tr>
             <tr><td>P / Shift+P</td><td>spill fra start / herfra</td></tr>
             <tr><td>Ctrl+S</td><td>lagre</td></tr>
             <tr><td>Ctrl+G</td><td>lagre det valgte som mal</td></tr>
-            <tr><td>Ctrl+1–9, 1–9</td><td>husk kameraet, gå dit</td></tr>
+            <tr><td>Shift+1–9, 1–9</td><td>husk kameraet, gå dit</td></tr>
             <tr><td>Esc</td><td>avbryt</td></tr>
           </table>
         </div>

@@ -187,10 +187,10 @@ check((await page.evaluate(() => window.fristad.state.map.modules.length)) === n
     await page.waitForTimeout(300);
   }
 }
-// Hjelpen: F1 viser tastene, Esc lukker.
+// Hjelpen: ? viser tastene (F1 trenger fn på små tastaturer), Esc lukker.
 await page.locator("#plan").focus();
-await page.keyboard.press("F1");
-check(await page.evaluate(() => !document.querySelector("#help").hidden), "F1 viser hjelpen");
+await page.keyboard.press("?");
+check(await page.evaluate(() => !document.querySelector("#help").hidden), "? viser hjelpen");
 await page.keyboard.press("Escape");
 check(await page.evaluate(() => document.querySelector("#help").hidden), "Esc lukker hjelpen");
 // Reglene: et rom i lufta øst for alt annet har ingen vei inn: «kan ikke nås»
@@ -322,6 +322,11 @@ await page.waitForTimeout(200);
 check(await page.evaluate(() => !window.fristad.state.cut), "S slår av snittet");
 await shot("13_ny_etasje");
 await page.click("#cut");
+// Shift+↓ bytter etasje (PageDown, som små tastaturer mangler).
+await page.locator("#plan").focus();
+await page.keyboard.press("Shift+ArrowDown");
+await page.waitForTimeout(200);
+check((await page.evaluate(() => window.fristad.state.floor)) < fl, "Shift+↓ går en etasje ned");
 await page.evaluate(() => window.fristad.setFloor(0));
 // Bokmerker: Shift+1 husker, 1 går tilbake.
 await page.locator("#plan").focus();
