@@ -1994,7 +1994,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette"
-   }
+   },
+   "judged": "2026-10-26T05:08:51.659Z"
   }
  },
  "mek_portgitter": {
@@ -2019,7 +2020,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "burde ses i 3d"
-   }
+   },
+   "judged": "2026-10-26T05:09:25.381Z"
   }
  },
  "mek_statue": {
@@ -2037,7 +2039,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "burde ses i 3d, for vanskeilig å bedømme dette"
-   }
+   },
+   "judged": "2026-10-26T05:09:41.065Z"
   }
  },
  "mek_vapenstativ": {
@@ -2048,7 +2051,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "burde ses i 3d, for vanskeilig å bedømme dette"
-   }
+   },
+   "judged": "2026-10-26T05:09:53.015Z"
   }
  },
  "mek_sarkofag": {
@@ -2080,7 +2084,8 @@
    "answers": {
     "verdict": "usikker",
     "why": "burde ses i 3d, for vanskeilig å bedømme dette"
-   }
+   },
+   "judged": "2026-10-26T05:10:00.936Z"
   }
  },
  "mek_malmvogn": {

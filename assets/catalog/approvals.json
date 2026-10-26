@@ -3808,14 +3808,14 @@
    ]
   },
   "mek_bro_vann_heis": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette",
+   "verdict": "godkjent",
+   "date": "2026-10-26",
+   "why": "",
    "seen": "6a7375ca1d26",
    "before": {
-    "verdict": "underkjent",
-    "date": "2026-10-19",
-    "why": "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede"
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "disse burde vises en og en i 3d. umulig å se dette godt nok slik som dette"
    },
    "history": [
     "heisen er veldig merkelig. mye rare stenger og spaker osv. vindebruen synes ikke når den er oppreist, bare når den er nede",
@@ -4729,10 +4729,15 @@
    "seen": "44afffe7bab8"
   },
   "mek_gruvestiver": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "verdict": "godkjent",
+   "date": "2026-10-26",
+   "why": "",
    "seen": "35ff0784403d",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   },
    "history": [
     "burde ses i 3d, for vanskeilig å bedømme dette"
    ]
@@ -4773,10 +4778,15 @@
    ]
   },
   "mek_rustning": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "verdict": "godkjent",
+   "date": "2026-10-26",
+   "why": "",
    "seen": "d414547fdd2b",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   },
    "history": [
     "burde ses i 3d, for vanskeilig å bedømme dette"
    ]
@@ -4806,19 +4816,29 @@
    ]
   },
   "mek_trone": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "burde ses i 3d",
+   "verdict": "godkjent",
+   "date": "2026-10-26",
+   "why": "",
    "seen": "237388b3f6bb",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "burde ses i 3d"
+   },
    "history": [
     "burde ses i 3d"
    ]
   },
   "mek_vapenstativ": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "burde ses i 3d, for vanskeilig å bedømme dette",
+   "verdict": "godkjent",
+   "date": "2026-10-26",
+   "why": "",
    "seen": "5bc0538b62cb",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "burde ses i 3d, for vanskeilig å bedømme dette"
+   },
    "history": [
     "burde ses i 3d, for vanskeilig å bedømme dette"
    ]
