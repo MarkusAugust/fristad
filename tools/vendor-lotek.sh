@@ -7,6 +7,8 @@
 # som `@lo-tek/interfaces` (package.json: "file:./vendor/lo-tek"). Pakken er
 # ikke publisert på npm ennå (bare en plassholder, 0.0.0); når den er det,
 # byttes avhengigheten tilbake til en versjon derfra og mappa slettes.
+# `gitHead` er commiten pakken er bygd fra (som npm skriver ved
+# publisering), og tools/export-docs.ts leser dokumentasjonen derfra.
 #
 #   sh tools/vendor-lotek.sh [sti-til-lo-tek-klone]
 set -e
@@ -24,12 +26,13 @@ done
 cp "$SRC/interfaces/src/tokens/tokens.css" "$OUT/src/tokens/"
 cp "$SRC/interfaces/LICENSE" "$OUT/"
 VERSION=$(sed -n 's/^  "version": "\(.*\)",/\1/p' "$SRC/interfaces/package.json")
-COMMIT=$(git -C "$SRC" rev-parse --short HEAD)
+COMMIT=$(git -C "$SRC" rev-parse HEAD)
 cat > "$OUT/package.json" <<JSON
 {
   "name": "@lo-tek/interfaces",
   "version": "$VERSION",
-  "description": "LO-TEK bygd fra github.com/MarkusAugust/lo-tek $COMMIT (tools/vendor-lotek.sh)",
+  "description": "LO-TEK bygd fra github.com/MarkusAugust/lo-tek (tools/vendor-lotek.sh)",
+  "gitHead": "$COMMIT",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

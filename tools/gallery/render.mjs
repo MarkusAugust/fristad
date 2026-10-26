@@ -30,7 +30,7 @@ const GALLERY = {
   "card": { keep: [".lt-card:not([data-variant])"] },
   "alert": { keep: [".lt-alert:not([data-color])"] },
   "progress": { keep: [".lt-progress:not([data-color])"] },
-  "label": { keep: ["label[for=navn]", "#navn"] },
+  "label": { keep: ["label[for=name]", "#name"] },
   "help-text": { keep: [".lt-help-text:not([data-variant])"] },
   "tooltip": { keep: [], css: ".lt-tooltip__bubble { visibility: visible !important; opacity: 1 !important; }", padTop: 56 },
   "fieldset": { keep: [] },
@@ -48,13 +48,14 @@ const WIDTH = "15rem";
 const FLATE = `
   html, body { margin: 0; background: transparent; }
   body { font-family: "Inter", system-ui, sans-serif; padding: 40px; }
-  .flate { display: flex; gap: var(--lt-spacing-3); padding: var(--lt-spacing-6);
+  .surface { display: flex; gap: var(--lt-spacing-3); padding: var(--lt-spacing-6);
     max-width: var(--lt-preview-max-width, none); width: max-content;
     background: transparent; color: var(--lt-color-neutral-text-strong);
     font-size: var(--lt-font-size-m); line-height: 1.6; }
-  .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
-  .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; width: auto; }
-  .flate > .lt-divider { margin-inline: 0; }
+  .surface[data-layout="row"] { flex-wrap: wrap; align-items: center; }
+  .surface[data-layout="stack"] { flex-direction: column; align-items: stretch; width: auto; }
+  .surface[data-layout="flow"] { display: block; }
+  .surface > .lt-divider { margin-inline: 0; }
 `;
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".woff2": "font/woff2" };
@@ -91,7 +92,7 @@ for (const [name, spec] of Object.entries(GALLERY)) {
   if (!demo?.html) { console.error(`${name}: ingen demo i web/docs.json`); process.exitCode = 1; continue; }
   current = `<!doctype html><html lang="nb" data-theme="light"><head><meta charset="utf-8">
     <link rel="stylesheet" href="/lotek.css"><style>${FLATE}${demo.css ?? ""}${spec.css ?? ""}</style></head>
-    <body><div class="flate" data-layout="${demo.layout || "rad"}" style="--lt-preview-max-width:${WIDTH}">${demo.html}</div>
+    <body><div class="surface" data-layout="${demo.layout || "row"}" style="--lt-preview-max-width:${WIDTH}">${demo.html}</div>
     <script type="module">
       import { defineLtTabs } from "/lotek/components/frame/tabs/lt-tabs.js";
       import { defineLtDialog } from "/lotek/components/frame/dialog/lt-dialog.js";
@@ -101,7 +102,7 @@ for (const [name, spec] of Object.entries(GALLERY)) {
     await page.goto(`${base}/__gallery?${name}`, { waitUntil: "load" });
     await page.waitForFunction(() => window.__klar === true);
     await page.evaluate(({ keep }) => {
-      const flate = document.querySelector(".flate");
+      const flate = document.querySelector(".surface");
       if (keep.length) {
         const chosen = keep.map((s) => flate.querySelector(`:scope > ${s}`)).filter(Boolean);
         for (const el of [...flate.children]) if (!chosen.includes(el)) el.remove();
@@ -112,14 +113,14 @@ for (const [name, spec] of Object.entries(GALLERY)) {
     await page.waitForTimeout(250);
     // Innholdets rammer (uten flatens polstring), til beskjæringen.
     const box = await page.evaluate(({ modal }) => {
-      const els = modal ? [document.querySelector(modal)] : [...document.querySelector(".flate").children, ...document.querySelectorAll(".lt-tooltip__bubble")];
+      const els = modal ? [document.querySelector(modal)] : [...document.querySelector(".surface").children, ...document.querySelectorAll(".lt-tooltip__bubble")];
       let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
       for (const el of els) {
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
       }
-      const bg = getComputedStyle(document.querySelector(".flate")).backgroundColor;
+      const bg = getComputedStyle(document.querySelector(".surface")).backgroundColor;
       return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, bg };
     }, { modal: spec.modal });
     const m = spec.modal ? 2 : 10;

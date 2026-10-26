@@ -30,8 +30,9 @@ bun install
 # Det nettlaget kaller på musikken, finnes som funksjoner (mjøden frøs spillet).
 bun tools/music-check.mjs
 bun tools/export-tokens.ts
-# Bøkene er web/docs.json i repoet (norsk; LO-TEK-docs er på engelsk, se
-# tools/export-docs.ts).
+# Bøkene: dokumentasjonen fra samme LO-TEK-commit som pakken. Feiler
+# hentingen, står web/docs.json fra repoet.
+bun tools/export-docs.ts || echo "Bruker web/docs.json fra repoet"
 
 echo "== Teksturlagene (egne bilder og CC0 fra Poly Haven)"
 # Feiler nedlastingen, bakes lagene i motoren.

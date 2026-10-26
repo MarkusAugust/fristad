@@ -2832,7 +2832,8 @@ function openPanel() {
 
   $("panel-title").textContent = d.title ?? current.component;
   $("panel-class").textContent = `.lt-${current.component}`;
-  $("panel-kind").textContent = d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
+  // Slaget står i beskrivelsen fra docs («Standalone component.» osv.).
+  $("panel-kind").textContent = d.description?.match(/\b(Standalone|Frame) component\b/)?.[0] ?? "CSS component";
   $("panel-description").textContent = d.description ?? "";
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";
@@ -2862,11 +2863,11 @@ function closePanel(relock) {
 // viser den (Preview.astro): i en shadow root med bare LO-TEKs CSS, så
 // ingenting fra spillets stilark treffer komponentene. Flatens stilark
 // (`docs-flate.css`) skriver tools/export-docs.ts rett fra Preview.astro, så
-// panelet kjenner de samme layoutene som docs (Divider bruker `flyt`); dette
+// panelet kjenner de samme layoutene som docs (Divider bruker `flow`); dette
 // er reserven til det er hentet.
 const FLATE = `
   :host { display: block; }
-  .flate {
+  .surface {
     display: flex;
     gap: var(--lt-spacing-3);
     padding: var(--lt-spacing-6);
@@ -2879,16 +2880,19 @@ const FLATE = `
     font-size: var(--lt-font-size-m);
     line-height: 1.6;
   }
-  .flate[data-fast-inni] { contain: layout; }
-  .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
-  .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; }
-  .flate[data-layout="flyt"] { display: block; }
+  .surface[data-fixed-inside] { contain: layout; }
+  .surface[data-layout="row"] { flex-wrap: wrap; align-items: center; }
+  .surface[data-layout="stack"] { flex-direction: column; align-items: stretch; }
+  .surface[data-layout="flow"] { display: block; }
 `;
 // Det panelet legger til over docs-flaten.
 const FLATE_EXTRA = `
+  /* Spillet setter de norske tekstene på :root (style.css), og de arves inn
+     i shadow root. Boka er LO-TEK-docs på engelsk, så her gjelder LO-TEKs. */
+  :host { --lt-label-required-text: initial; --lt-label-optional-text: initial; }
   /* Docs-flaten gir <hr> nettleserens margin-inline: auto, og da blir
      skillelinja null bred i stabelen. I boka skal den synes. */
-  .flate > .lt-divider { margin-inline: 0; }
+  .surface > .lt-divider { margin-inline: 0; }
 `;
 
 // LO-TEKs stilark hentes som tekst: kopierte regler (cssRules) mister
@@ -2908,14 +2912,14 @@ fetch("lotek.css")
 const DEMO_ACTIONS = {
   toast: (root) =>
     root.querySelector(".lt-button")?.addEventListener("click", () =>
-      root.querySelector("lt-toast")?.show("Søknaden er lagret", { color: "success" })),
+      root.querySelector("lt-toast")?.show("The application has been saved", { color: "success" })),
   "connection-status": (root) => {
     const status = root.querySelector("lt-connection-status");
-    root.getElementById("demo-samband-av")?.addEventListener("click", () => status?.reportFailure());
-    root.getElementById("demo-samband-pa")?.addEventListener("click", () => status?.reportSuccess());
+    root.getElementById("demo-connection-off")?.addEventListener("click", () => status?.reportFailure());
+    root.getElementById("demo-connection-on")?.addEventListener("click", () => status?.reportSuccess());
   },
   dialog: (root) =>
-    root.querySelector("[data-apne]")?.addEventListener("click", () =>
+    root.querySelector("[data-open]")?.addEventListener("click", () =>
       root.querySelector("lt-dialog")?.setAttribute("open", "")),
 };
 
@@ -2929,22 +2933,25 @@ function renderDemo(d) {
   }
   host.hidden = false;
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
-  root.adoptedStyleSheets = demoSheets;
+  // Eksempelets egen CSS (`extraCss`/`previewCss` i docs) sist, som i
+  // Preview.astro: i et <style> tapte den mot flaten i adoptedStyleSheets,
+  // som kommer etter i kaskaden (linja i Connection Status dekket knappen).
+  const own = new CSSStyleSheet();
+  own.replaceSync(demo.css ?? "");
+  root.adoptedStyleSheets = [...demoSheets, own];
   const tpl = document.createElement("template");
   tpl.innerHTML = demo.html;
   // Lenker i eksemplene skal ikke føre noen steder, men lenkene til et
   // anker i eksempelet står: fanene i LO-TEK er lenker til panelene sine.
   for (const a of tpl.content.querySelectorAll("a[href]")) if (!a.getAttribute("href").startsWith("#")) a.setAttribute("href", "#");
   for (const s of tpl.content.querySelectorAll("script")) s.remove();
-  const flate = document.createElement("div");
-  flate.className = "flate";
-  flate.dataset.layout = demo.layout || "rad";
-  if (demo.fixed) flate.dataset.fastInni = "";
-  if (demo.maxWidth) flate.style.setProperty("--lt-preview-max-width", demo.maxWidth);
-  flate.append(tpl.content);
-  const style = document.createElement("style");
-  style.textContent = demo.css ?? "";
-  root.replaceChildren(style, flate);
+  const surface = document.createElement("div");
+  surface.className = "surface";
+  surface.dataset.layout = demo.layout || "row";
+  if (demo.fixed) surface.dataset.fixedInside = "";
+  if (demo.maxWidth) surface.style.setProperty("--lt-preview-max-width", demo.maxWidth);
+  surface.append(tpl.content);
+  root.replaceChildren(surface);
   DEMO_ACTIONS[d.name]?.(root);
 }
 

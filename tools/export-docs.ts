@@ -1,14 +1,13 @@
-// Henter dokumentasjonen for komponentene i Fristad fra LO-TEK (før Fristil)
-// sine MDX-sider, og skriver det panelet trenger til web/docs.json.
+// Henter dokumentasjonen for komponentene i Fristad fra LO-TEK sine
+// MDX-sider, og skriver det panelet trenger til web/docs.json.
 //
 //   bun tools/export-docs.ts                       henter fra GitHub
 //   bun tools/export-docs.ts ../lo-tek             leser fra en lokal klone
 //
-// Kjøres ikke av byggingen lenger (26. oktober): LO-TEK-dokumentasjonen er
-// på engelsk, med `<Example>` i stedet for `<Eksempel kode=…>` og engelske
-// sidenavn, og bøkene i spillet står på norsk i web/docs.json (fra Fristil
-// 0.31, med lt- i stedet for fs-). Skriptet leser fortsatt den norske formen
-// og må gjøres om før det kjøres mot LO-TEK.
+// Bøkene er LO-TEK-dokumentasjonen slik den er (eieren 26. oktober: «i sync
+// med nye utgivelser. da blir det engelsk»): sidene leses fra samme commit
+// som @lo-tek/interfaces spillet bruker er bygd fra, så teksten, eksemplene
+// og stilarkene alltid hører sammen. tools/build-web.sh kjører skriptet.
 //
 // Panelet viser beskrivelsen, ingressen og eksempelkoden fra siden, så
 // teksten i byen er den samme som på dokumentasjonssiden. Forhåndsvisningen
@@ -17,16 +16,20 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { lt as fs } from "@lo-tek/interfaces";
+import { lt } from "@lo-tek/interfaces";
+import pkg from "@lo-tek/interfaces/package.json";
 
 /** Komponentene som finnes i Fristad så langt. */
 const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion", "input", "select", "checkbox", "radio", "textarea", "table", "tooltip", "link", "avatar", "divider", "heading", "label", "fieldset", "help-text", "error-text", "file-upload", "search"];
 
 /// Veiledningssidene i roten av dokumentasjonen, som Verkstedet viser.
-const PAGES = ["kom-i-gang", "typesikker-bruk", "tilgjengelighet"];
+const PAGES = ["getting-started", "type-safe-use", "accessibility"];
 
 const local = process.argv[2];
-const RAW = "https://raw.githubusercontent.com/MarkusAugust/lo-tek/master";
+// Commiten pakken er bygd fra (`gitHead`, som npm skriver ved publisering og
+// tools/vendor-lotek.sh skriver for den lokale), ellers taggen til versjonen.
+const REF: string = (pkg as { gitHead?: string }).gitHead ?? `v${pkg.version}`;
+const RAW = `https://raw.githubusercontent.com/MarkusAugust/lo-tek/${REF}`;
 const PATH = "documentation/src/content/docs/components";
 const DEMOS = "documentation/src/components";
 
@@ -40,8 +43,8 @@ async function read(path: string): Promise<string> {
 const source = (name: string, dir = PATH) => read(`${dir}/${name}.mdx`);
 
 // Et lite JSX-oppsett som gjør elementer om til HTML-tekst. Med det kan
-// <Eksempel>-taggen og demokomponentene (<ToastDemo /> osv.) leses slik
-// Astro leser dem, også `{...fs.tabs(...)}` og `.map(...)`.
+// <Example>-taggen og demokomponentene (<ToastDemo /> osv.) leses slik
+// Astro leser dem, også `{...lt.tabs(...)}` og `.map(...)`.
 type Html = { html: string };
 const VOID = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -89,14 +92,14 @@ function render(jsx: string, components: Record<string, Function>, scope = ""): 
     .transformSync(body)
     .replace(/^export /m, "");
   const names = Object.keys(components);
-  return new Function("h", "Fragment", "fs", ...names, `${js}\nreturn demo();`)(h, Fragment, fs, ...Object.values(components));
+  return new Function("h", "Fragment", "lt", ...names, `${js}\nreturn demo();`)(h, Fragment, lt, ...Object.values(components));
 }
 
 type Demo = { html: string; layout: string; maxWidth: string; css: string; fixed: boolean };
 
-/** Den første forhåndsvisningen på siden: et <Eksempel> eller en <XDemo />. */
+/** Den første forhåndsvisningen på siden: et <Example> eller en <XDemo />. */
 async function demo(body: string): Promise<Demo | null> {
-  const eks = body.search(/^\s*<Eksempel\b/m);
+  const eks = body.search(/^\s*<Example\b/m);
   const own = body.match(/^\s*<([A-Z]\w*Demo)\s*\/>/m);
   if (eks < 0 && !own) return null;
   let found: Demo | null = null;
@@ -110,21 +113,21 @@ async function demo(body: string): Promise<Demo | null> {
       // Astro slår mellomrom mellom taggene sammen til ett; JSX fjerner dem.
       .replace(/>\s*\n\s*</g, '>{" "}<');
     const Preview = (p: Record<string, any>) => {
-      found = { html: text(p.children).trim(), layout: p.layout ?? "rad", maxWidth: p.maxWidth ?? "", css: (p.ekstraCss ?? "").trim(), fixed: !!p.fastInni };
+      found = { html: text(p.children).trim(), layout: p.layout ?? "row", maxWidth: p.maxWidth ?? "", css: (p.extraCss ?? "").trim(), fixed: !!p.fixedInside };
       return { html: "" };
     };
     render(jsx, { Preview }, scope);
   } else {
-    const start = body.indexOf("<Eksempel", eks);
+    const start = body.indexOf("<Example", eks);
     // Bare åpningstaggen: barna er MDX (fanene med TypeScript), ikke JSX.
-    const open = elementEnd(body, start, "Eksempel")[0];
+    const open = elementEnd(body, start, "Example")[0];
     const jsx = body.slice(start, open).replace(/\/?>$/, "/>");
-    const Eksempel = (p: Record<string, any>) => {
-      const css = [p.egenCss, p.visningsCss].filter(Boolean).join("\n").trim();
-      found = { html: String(p.kode ?? "").trim(), layout: p.layout ?? "rad", maxWidth: p.maxWidth ?? "", css, fixed: false };
+    const Example = (p: Record<string, any>) => {
+      const css = [p.customCss, p.previewCss].filter(Boolean).join("\n").trim();
+      found = { html: String(p.code ?? "").trim(), layout: p.layout ?? "row", maxWidth: p.maxWidth ?? "", css, fixed: false };
       return { html: "" };
     };
-    render(jsx, { Eksempel });
+    render(jsx, { Example });
   }
   return found;
 }
@@ -143,10 +146,10 @@ async function parse(name: string, mdx: string, page = false) {
       .map((p) => p.trim())
       .find((p) => p && !p.startsWith("import") && !p.startsWith("<")) ?? "";
 
-  // Eksempelkoden står i `kode={`...`}` i første <Eksempel>. Rammekomponentene
+  // Eksempelkoden står i `code={`...`}` i første <Example>. Rammekomponentene
   // (tabs, dialog) viser den i stedet i en ```html-blokk med markupen; skript
   // og kommentarer tas bort, siden panelet selv registrerer komponentene.
-  let code = body.match(/kode=\{`\n?([\s\S]*?)`\}/)?.[1].trim() ?? "";
+  let code = body.match(/\bcode=\{`\n?([\s\S]*?)`\}/)?.[1].trim() ?? "";
   if (!code && page) {
     // Veiledningssidene: de første kodeblokkene, uansett språk.
     code = [...body.matchAll(/```[a-z]*\n([\s\S]*?)```/g)]
@@ -155,7 +158,7 @@ async function parse(name: string, mdx: string, page = false) {
       .join("\n\n");
   }
   const own = body.search(/^\s*<[A-Z]\w*Demo\s*\/>/m);
-  if (!code || (own >= 0 && own < body.search(/^\s*<Eksempel\b/m))) {
+  if (!code || (own >= 0 && own < body.search(/^\s*<Example\b/m))) {
     const fences = [...body.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]);
     const markup = fences.find((f) => /class="lt-|<lt-/.test(f) && !/<link /.test(f)) ?? "";
     code = markup
@@ -186,11 +189,11 @@ for (const name of PAGES) docs[name] = await parse(name, await source(name, "doc
 writeFileSync("web/docs.json", JSON.stringify(docs, null, 2) + "\n");
 
 // Flaten eksemplene vises på, rett fra LO-TEK-docs (Preview.astro): de
-// samme layoutene (`rad`, `stabel`, `flyt` …), så panelet aldri mangler en
+// samme layoutene (`row`, `stack`, `flow` …), så panelet aldri mangler en
 // som docs har fått (eieren 18. oktober: Divider sto i fire kolonner fordi
-// panelet ikke kjente `flyt`).
+// panelet ikke kjente layouten).
 const preview = await read(`${DEMOS}/Preview.astro`);
-const flate = preview.match(/const stilark = \[\s*`([\s\S]*?)`/)?.[1];
-if (!flate || !flate.includes(".flate")) throw new Error("Preview.astro: fant ikke stilarket til flaten");
-writeFileSync("web/docs-flate.css", flate.replace(/^\t/gm, "").trim() + "\n");
-console.log(`Dokumentasjon for ${COMPONENTS.length} komponent(er) og ${PAGES.length} side(r) skrevet til web/docs.json`);
+const surface = preview.match(/const css = \[\s*`([\s\S]*?)`/)?.[1];
+if (!surface || !surface.includes(".surface")) throw new Error("Preview.astro: fant ikke stilarket til flaten");
+writeFileSync("web/docs-flate.css", surface.replace(/^\t/gm, "").trim() + "\n");
+console.log(`Dokumentasjon for ${COMPONENTS.length} komponent(er) og ${PAGES.length} side(r) fra LO-TEK ${pkg.version} (${REF.slice(0, 7)}) skrevet til web/docs.json`);

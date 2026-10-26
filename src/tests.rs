@@ -2845,7 +2845,7 @@ fn dommen_mister_ingenting() {
 }
 
 /// Hvert eksempel i boka har en flate å stå på (eieren 18. oktober: Divider
-/// sto i fire kolonner fordi panelet ikke kjente layouten `flyt` fra
+/// sto i fire kolonner fordi panelet ikke kjente layouten `flow` fra
 /// LO-TEK-docs): `web/docs-flate.css`, som `tools/export-docs.ts` skriver
 /// rett fra Preview.astro, har en regel for hver layout i `web/docs.json`.
 #[test]
