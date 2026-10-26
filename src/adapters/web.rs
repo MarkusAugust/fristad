@@ -535,7 +535,7 @@ impl Engine {
         self.app.command(Command::Buy(ware.into()))
     }
 
-    /// Bytt komponenter hos Buttonsmeden (id fra fanen «Bytte»). Gir om det
+    /// Bytt komponenter i Skriptoriet (id fra fanen «Bytte»). Gir om det
     /// gikk; butikken kommer på nytt med det du har nå.
     pub fn swap(&mut self, id: &str) -> bool {
         self.app.command(Command::Swap(id.into()))

@@ -1,4 +1,4 @@
-//! Hva krypten gir av komponenter, og byttet hos Buttonsmeden (plan 14;
+//! Hva krypten gir av komponenter, og byttet i Skriptoriet (plan 14;
 //! eieren 18. oktober: «det er for vanskelig å samle komponentene som trengs
 //! for å bygge utstyr»). Kistene, eliten, bossene og de vanlige fiendene gir
 //! etter `RULES`, fra temaets liste (`craft::LOOT`), og `haul` regner ut hva
@@ -125,7 +125,7 @@ pub fn haul(levels: &[Level], rules: &Rules, seed: u64) -> BTreeMap<String, u32>
 
 /// Hvilke oppskrifter lageret holder til når du smir det du kan, de
 /// enkleste først (trinn for trinn, i rekkefølgen i `RECIPES`). Det som
-/// mangler, kjøpes hos Buttonsmeden for `tokens` om han selger det, og
+/// mangler, kjøpes i Skriptoriet for `tokens` om det selges der, og
 /// ellers byttes det til (`trade`) når et bytte kan gi det.
 pub fn forge(stash: &BTreeMap<String, u32>, tokens: u32, trade: bool) -> Vec<&'static Recipe> {
     let mut have = stash.clone();
@@ -135,7 +135,7 @@ pub fn forge(stash: &BTreeMap<String, u32>, tokens: u32, trade: bool) -> Vec<&'s
         for r in craft::RECIPES.iter().filter(|r| r.rarity == tier) {
             for _ in 0..12 {
                 let Some((c, _)) = craft::missing(r, &have).into_iter().next() else { break };
-                let price = craft::SMITH_WARES.iter().find(|w| matches!(w.what, craft::WareKind::Component(x) if x == c)).map(|w| w.price);
+                let price = craft::SCRIPTORIUM_WARES.iter().find(|w| matches!(w.what, craft::WareKind::Component(x) if x == c)).map(|w| w.price);
                 if let Some(p) = price.filter(|p| *p <= purse) {
                     purse -= p;
                     *have.entry(c).or_insert(0) += 1;
@@ -166,7 +166,7 @@ fn spare(r: &Recipe, c: &str) -> u32 {
     r.needs.iter().find(|(x, _)| *x == c).map(|(_, n)| *n).unwrap_or(0) + u32::from(r.requires.contains(&c))
 }
 
-/// Et bytte hos Buttonsmeden: `n` av `give` mot én `get`, og `fee` tokens.
+/// Et bytte i Skriptoriet: `n` av `give` mot én `get`, og `fee` tokens.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Swap {
     pub id: &'static str,

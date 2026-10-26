@@ -36,7 +36,8 @@ const fn new(text: &'static str) -> Line {
 }
 
 pub const SMITH: &[Line] = &[
-    a("Buttonsmeden, til tjeneste. Jeg smir det du bærer opp fra krypten."),
+    a("Smeden, til tjeneste. Jeg smir det du bærer opp fra krypten."),
+    a("Skriverne ville ha et skjema for hver ting jeg smir. Fyll det ut, så hamrer jeg."),
     a("Et sverd trenger en klinge og et grep: en Divider og en Button. Resten er håndlag."),
     a("Komponentene der nede er de ekte, de fra mønsterboka. Bare vridd. Bær dem hit, så retter vi dem ut."),
     a("Kontorets regler sitter som slagg i dem. Slå slagget løs, og det som blir igjen er rent."),
@@ -50,8 +51,9 @@ pub const SMITH: &[Line] = &[
 ];
 
 pub const CLERK: &[Line] = &[
-    a("Skriptoriet. Her skrev mester Ansgar en gang. Nå smir vi med det han skrev."),
-    a("Oppskriftene er skjemaer. Fyll ut feltene med komponentene du har vunnet, og send."),
+    a("Skriptoriet. Her skrev mester Ansgar en gang. Nå skriver vi av det han skrev."),
+    a("Mangler du en komponent, har vi kanskje en avskrift. Tre av de vanlige for én av de sjeldne, og litt for blekket."),
+    a("Smeden smir, vi skriver av. Uten sidene våre visste han ikke hva han hamret."),
     a("Bøkene her er mønsterboka, side for side. Les om det du bærer, så leges sårene."),
     a("På hoffets tunge måtte hver side godkjennes av Rådet. Her skriver vi det vi trenger."),
     a("Omnia una compage, sto det på budet over døra. Vi skrapte det av med en kniv."),
@@ -170,7 +172,7 @@ pub const MAID: &[Line] = &[
 pub const MERCHANT: &[Line] = &[
     a("Ull fra gårdene, salt fra kysten. Kontorets pris, men ikke Kontorets regler."),
     a("Kjøpmennene i hovedstaden ville ha alle varer i samme kasse. Jeg selger fra mine egne."),
-    a("Har du tokens? Da er du velkommen hos Buttonsmeden. Jeg tar bare sølv."),
+    a("Har du tokens? Da er du velkommen i Skriptoriet. Jeg tar bare sølv."),
     a("Alt er dyrere enn i går. Det sier jeg hver dag, og hver dag er det sant."),
     at(1, "Det du bærer opp fra krypten, kan ikke selges på torget. Men folk vil høre om det, og det er også en vare."),
     at(4, "En Table med åtte bein, sier du? Jeg har solgt dårligere bord."),

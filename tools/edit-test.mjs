@@ -202,7 +202,7 @@ await page.keyboard.up("Control");
 check(await until(() => document.querySelector("#ed-grp").hidden), "gruppen er løst opp");
 check(await undoAll(), `gruppene angret: ${await text("#ed-state")}`);
 
-// Runde 2: ruta til en innbygger. Ovenfra mot Buttonsmeden: et klikk velger
+// Runde 2: ruta til en innbygger. Ovenfra mot Smeden: et klikk velger
 // hen, ruta vises, og ventetiden ved første punkt settes i panelet.
 await page.evaluate(() => window.fristad.engine.place(10.7, 7, 6.5, 0, -45));
 await page.waitForTimeout(3000);

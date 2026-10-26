@@ -41,7 +41,7 @@ impl Session {
                 let n: u32 = self.hero.inventory.values().sum();
                 let deep = self.crypt.levels.get(d).map(|l| l.n).unwrap_or(d as u32 + 1);
                 if n > 0 {
-                    format!("Du har {n} komponenter i lageret: smi utstyr i Skriptoriet, eller gå ned igjen. Dypeste nivå: {deep}.")
+                    format!("Du har {n} komponenter i lageret: smi utstyr hos Smeden, eller gå ned igjen. Dypeste nivå: {deep}.")
                 } else {
                     format!("Gå ned i krypten igjen. Dypeste nivå du har nådd: {deep}.")
                 }

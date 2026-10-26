@@ -18,7 +18,7 @@ pub const ANSGAR_TEXT: &str = concat!(
     "Du som går ned der vi murte igjen, les dette først.\n\n",
     "Her nede ligger komponentene fra Mønsterboka, den frie boka som aldri tilhørte noe hoff. ",
     "Rådet og Kontoret lenket dem til Den kongelige komponentboken på hoffets tunge, den store oppgraderingen vred dem til skapninger, og vi forseglet dem her. ",
-    "Finn dem og bær dem opp. I Skriptoriet smis de til utstyr, i boka leser du om dem, og på veggen i huset ditt henger de, side for side. ",
+    "Finn dem og bær dem opp. I Smia smis de til utstyr, i Skriptoriet tolkes og kopieres de, i boka leser du om dem, og på veggen i huset ditt henger de, side for side. ",
     "Nederst venter Rammeverket.\n\n",
     "Det du bærer, er trygt først oppe i byen. Når du vil hjem:\n",
     "Trykk H.\n",

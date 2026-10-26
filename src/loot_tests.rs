@@ -1,5 +1,5 @@
 //! Komponentene (plan 14): hva en gjennomspilling gir, hvilke oppskrifter
-//! det holder til, og byttet hos Buttonsmeden.
+//! det holder til, og byttet i Skriptoriet.
 //! `cargo test --release komponentene -- --nocapture` skriver tallene.
 
 use crate::domain::craft::{self, Rarity};
@@ -51,7 +51,7 @@ pub(crate) fn levels(search: bool, share: f32) -> Vec<Level> {
 
 /// Gjennomsnittet over mange frø: hvor mange oppskrifter per trinn
 /// (vanlig, sjelden, episk) du kan smi med byttet, når `purse` av hundre
-/// tokens går til komponenter hos Buttonsmeden, og hvor mange komponenter
+/// tokens går til komponenter i Skriptoriet, og hvor mange komponenter
 /// det var.
 pub(crate) fn tally(levels: &[Level], rules: &Rules, purse: u32) -> ([f32; 3], f32) {
     const SEEDS: u64 = 200;
@@ -79,7 +79,7 @@ fn halved(levels: &[Level]) -> Vec<Level> {
     levels.iter().map(|l| Level { chests: l.chests.iter().take(l.chests.len().div_ceil(2)).cloned().collect(), ..l.clone() }).collect()
 }
 
-/// Hvor mange tokens av hundre som går til komponenter hos Buttonsmeden;
+/// Hvor mange tokens av hundre som går til komponenter i Skriptoriet;
 /// resten går til olje, drikker, senga og Torgils.
 const PURSE: u32 = 25;
 
@@ -125,7 +125,7 @@ fn komponentene_holder_til_utstyret() {
     assert!(half_all.iter().zip(n).all(|(t, n)| *t >= n - 1.0), "med leting og halvparten av kistene holder det ikke til omtrent alt: {}", fmt(half_all));
 }
 
-/// Byttet hos Buttonsmeden: avslår uten nok av komponenten eller tokenene
+/// Byttet i Skriptoriet: avslår uten nok av komponenten eller tokenene
 /// (og endrer ingenting da), og går det, trekkes det du ga og avgiften, du
 /// får én av den dyrere, og butikken kommer på nytt med de nye tallene.
 #[test]
@@ -151,7 +151,7 @@ fn byttet_virker_og_avslar_uten_nok() {
     assert_eq!((count(&game, s.give), count(&game, s.get), game.coins_now()), (0, 1, 5), "byttet trakk feil");
     let events = game.update(&mut input, 1.0 / 30.0, &mut physics);
     let shop = events.iter().find_map(|e| if let Event::Shop { npc, swaps, .. } = e { Some((npc.clone(), swaps.clone())) } else { None }).expect("butikken kom ikke på nytt etter byttet");
-    assert_eq!(shop.0, "Buttonsmeden");
+    assert_eq!(shop.0, "Skriptoriet");
     let v = shop.1.iter().find(|v| v.id == s.id).expect("byttet står ikke i butikken");
     assert_eq!((v.have, v.get_have, v.ok), (0, 1, false), "butikken viser ikke det du har nå: {v:?}");
     assert!(game.found().contains(&s.get.to_string()), "det du byttet til, skal henge i galleriet");
@@ -175,7 +175,7 @@ fn byttet_kan_ikke_misbrukes() {
         assert!(s.n >= 2 && s.fee > 0 && s.give != s.get, "{}: du må gi flere enn du får, og en avgift", s.id);
         assert!(rank(s.get) >= rank(s.give), "{}: byttet går nedover", s.id);
         // Kan den kjøpes, er byttet aldri billigere enn å kjøpe den.
-        let price = |c: &str| craft::SMITH_WARES.iter().find(|w| matches!(w.what, craft::WareKind::Component(x) if x == c)).map(|w| w.price);
+        let price = |c: &str| craft::SCRIPTORIUM_WARES.iter().find(|w| matches!(w.what, craft::WareKind::Component(x) if x == c)).map(|w| w.price);
         if let (Some(get), Some(give)) = (price(s.get), price(s.give)) {
             assert!(give * s.n + s.fee > get, "{}: billigere å bytte enn å kjøpe", s.id);
         }
@@ -188,7 +188,7 @@ fn byttet_kan_ikke_misbrukes() {
         assert!(!reach(s.get, s.give, 0), "{}: byttene går i ring tilbake til {}", s.id, s.give);
     }
     // Byen kjøper ingenting: varene koster tokens og gir aldri tokens.
-    for w in craft::SMITH_WARES.iter().chain(craft::APOTHECARY_WARES).chain(craft::GORVEK_WARES) {
+    for w in craft::SCRIPTORIUM_WARES.iter().chain(craft::APOTHECARY_WARES).chain(craft::GORVEK_WARES) {
         assert!(w.price > 0, "{} er gratis", w.id);
     }
 }

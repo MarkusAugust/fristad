@@ -1,4 +1,4 @@
-// Viser Skriptoriet, inventaret og butikken med falske data uten motoren
+// Viser Smia, inventaret og butikken med falske data uten motoren
 // (`?uitest` i main.js) og tar skjermbilder i tre størrelser:
 //   node tools/ui-test.mjs DIST UT [WEB]
 // DIST er den ferdige nettsiden (dist-web fra `sh tools/pull-dist.sh`, for
@@ -66,7 +66,7 @@ const owned = ["rusty_sword", "component_sword", "tag_dagger", "card_axe", "old_
 const worn = { weapon: "component_sword", shield: "old_shield", armor: "badge_jerkin" };
 const view = (id, extra = {}) => ({ ...gear[id], equipped: worn[gear[id].slot] === id, owned: owned.includes(id), ...extra });
 const stash = { button: 3, divider: 1, tag: 4, badge: 2, card: 1, alert: 1, progress: 1, label: 1 };
-const src = { button: ["Kister i Gravkjelleren · Buttonsmeden 12 tokens", false], divider: ["Kister i Gravkjelleren og Kloakken", true], tag: ["Kister i Gravkjelleren · Buttonsmeden 8 tokens", false], badge: ["Kister i Kloakken · elite i Gravkjelleren", true], card: ["Kister i Kloakken og Gruva", true], alert: ["Elite i Kloakken", true], progress: ["Kister i Gruva", true], label: ["Kister i Gruva · Buttonsmeden 20 tokens", false], tooltip: ["Kister i Kloakken", true], "help-text": ["Elite i Gruva", true], search: ["Kister i Borgen under jorda", true], fieldset: ["Kister i Borgen under jorda · elite i Gruva", true], "file-upload": ["Elite i Borgen under jorda", true], tabs: ["Rammeverket", true], dialog: ["Kister i Den korrupte kjernen · Rammeverket", true] };
+const src = { button: ["Kister i Gravkjelleren · Skriptoriet 12 tokens", false], divider: ["Kister i Gravkjelleren og Kloakken", true], tag: ["Kister i Gravkjelleren · Skriptoriet 8 tokens", false], badge: ["Kister i Kloakken · elite i Gravkjelleren", true], card: ["Kister i Kloakken og Gruva", true], alert: ["Elite i Kloakken", true], progress: ["Kister i Gruva", true], label: ["Kister i Gruva · Skriptoriet 20 tokens", false], tooltip: ["Kister i Kloakken", true], "help-text": ["Elite i Gruva", true], search: ["Kister i Borgen under jorda", true], fieldset: ["Kister i Borgen under jorda · elite i Gruva", true], "file-upload": ["Elite i Borgen under jorda", true], tabs: ["Rammeverket", true], dialog: ["Kister i Den korrupte kjernen · Rammeverket", true] };
 const R = (id, needs, requires = []) => {
   const item = gear[id];
   const n = needs.map(([c, k]) => [c, k, stash[c] ?? 0]);
@@ -122,7 +122,7 @@ const wares = [
   { id: "rope", name: "Tau", price: 5 },
   { id: "candle", name: "Talglys", price: 2 },
 ];
-// Byttene hos Buttonsmeden (`SwapView`, plan 14).
+// Byttene i Skriptoriet (`SwapView`, plan 14).
 const R2 = { button: "vanlig", tag: "vanlig", badge: "vanlig", divider: "vanlig", card: "vanlig", progress: "vanlig", label: "vanlig", "help-text": "vanlig", alert: "sjelden", tooltip: "sjelden", fieldset: "sjelden", "file-upload": "sjelden", search: "sjelden", dialog: "episk", tabs: "episk" };
 const SW = (id, give, n, get, fee) => ({ id, give, n, have: stash[give] ?? 0, give_rarity: R2[give], get, get_have: stash[get] ?? 0, get_rarity: R2[get], fee, source: src[get]?.[0] ?? "Krypten", ok: (stash[give] ?? 0) >= n && 34 >= fee });
 const swaps = [SW("tag_divider", "tag", 3, "divider", 4), SW("badge_divider", "badge", 3, "divider", 4), SW("badge_card", "badge", 3, "card", 6), SW("button_progress", "button", 3, "progress", 6), SW("card_alert", "card", 3, "alert", 8), SW("divider_label", "divider", 3, "label", 8), SW("card_help", "card", 3, "help-text", 8), SW("label_tooltip", "label", 3, "tooltip", 10), SW("label_fieldset", "label", 3, "fieldset", 12), SW("alert_search", "alert", 3, "search", 12), SW("alert_upload", "alert", 3, "file-upload", 12), SW("fieldset_dialog", "fieldset", 2, "dialog", 20), SW("search_tabs", "search", 2, "tabs", 20)];
@@ -154,7 +154,7 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
       if (menu.startsWith("workshop")) ui.handle({ type: "workshop", recipes });
       if (menu.startsWith("inventory")) ui.toggleInventory();
       if (menu === "shop") ui.handle({ type: "shop", npc: "Apotekeren", wares });
-      if (menu.startsWith("smith")) ui.handle({ type: "shop", npc: "Buttonsmeden", wares: wares.slice(0, 4), swaps });
+      if (menu.startsWith("smith")) ui.handle({ type: "shop", npc: "Skriptoriet", wares: wares.slice(0, 4), swaps });
       // Trubaduren (E): et krus mjød for kvadet om Gorvek, uten råd og mens han synger.
       if (menu === "mead-poor") ui.handle({ type: "hud", hp: 96, stamina: 80, tokens: 0, keys: 1, light: 62, cellar: false, boss: null });
       const offer = "Et krus mjød, fremmede, så synger jeg kvadet om Gorvek: han som kom gjennom regnet med øksa over skulderen og hogg beistet der leddene satt, natta gjennom. Men strupen er tørr, og kvadet er langt.";
@@ -172,7 +172,7 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
     }
     if (menu.startsWith("workshop-forge")) {
       // Trykk «Smi» og ta bilder midt i animasjonen; bildet etter tas under.
-      // Etterpå skal raden ha «Har du» og skriptoriet stå åpent.
+      // Etterpå skal raden ha «Har du» og Smia stå åpen.
       if (w <= 720) await page.locator("[data-recipe]").first().click({ timeout: 2000 }).catch(() => {});
       await page.waitForTimeout(200);
       const t0 = Date.now();
@@ -194,7 +194,7 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844]]) {
         row: document.querySelector("[data-recipe='tag_cuirass']")?.textContent ?? document.querySelector(".detail")?.textContent ?? "",
       }));
       const ok = !after.stage && after.open && after.row.includes("Har du");
-      console.log(`${w}x${h} ${menu}: ${ok ? "smidd, «Har du»" : `FEIL ${after.stage ? "animasjonen står ennå " : ""}${after.open ? "" : "skriptoriet lukket "}${after.row.includes("Har du") ? "" : "uten «Har du»"}`}`);
+      console.log(`${w}x${h} ${menu}: ${ok ? "smidd, «Har du»" : `FEIL ${after.stage ? "animasjonen står ennå " : ""}${after.open ? "" : "Smia lukket "}${after.row.includes("Har du") ? "" : "uten «Har du»"}`}`);
       if (!ok) bad++;
     }
     if (menu === "inventory-armor" || menu === "inventory-lantern") {

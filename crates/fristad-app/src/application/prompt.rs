@@ -33,10 +33,10 @@ impl Session {
             Use::Talk(n) => {
                 let name = self.npcs.npcs.get(n).map(|c| c.name).unwrap_or("Innbygger");
                 let (trade, info) = match name {
-                    "Buttonsmeden" => ("Handle", "Smeden selger våpen og skjold for tokens."),
+                    "Smeden" => ("Smi", "Smeden smir utstyr av komponentene fra krypten."),
                     "Apotekeren" => ("Handle", "Drikker som leger, og tokens for det du har funnet."),
                     "Torgils" => ("Handle", "Lærer deg trekk på øvingsplassen."),
-                    "Skriptoriet" => ("Smi og les", "Smi utstyr av komponentene fra krypten, og les om dem i bøkene."),
+                    "Skriptoriet" => ("Handle", "Kjøp og bytt komponenter, og les om dem i bøkene."),
                     "Trubaduren" => ("Kjøp mjød", "Et krus mjød (1 token), så synger han kvadet om Gorvek."),
                     "Vertinnen" => ("", "Vertshuset. Her får du høre hva som går rykter om krypten."),
                     _ => ("", ""),

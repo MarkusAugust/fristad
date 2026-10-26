@@ -90,11 +90,11 @@ pub enum Action {
 /// Det verten ber spillet om utenom tastene.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Command {
-    /// Smi etter en oppskrift (fra skjemaet i skriptoriet).
+    /// Smi etter en oppskrift (fra skjemaet i Smia).
     Craft(String),
     /// Kjøp en vare.
     Buy(String),
-    /// Bytt komponenter hos Buttonsmeden (`loot::SWAPS` etter id). Gir om
+    /// Bytt komponenter i Skriptoriet (`loot::SWAPS` etter id). Gir om
     /// det gikk; butikken sendes på nytt med det du har nå.
     Swap(String),
     /// Kjøp trubaduren et krus mjød (1 token), så han synger kvadet om
@@ -440,10 +440,10 @@ pub enum Event {
     Shop {
         npc: String,
         wares: Vec<WareView>,
-        /// Byttene (fanen «Bytte», bare hos Buttonsmeden; tom ellers).
+        /// Byttene (fanen «Bytte», bare i Skriptoriet; tom ellers).
         swaps: Vec<SwapView>,
     },
-    /// E i skriptoriet: oppskriftene som skjema.
+    /// E hos Smeden: oppskriftene som skjema.
     Workshop {
         recipes: Vec<RecipeView>,
     },
@@ -621,7 +621,7 @@ pub struct WareView {
     pub price: u32,
 }
 
-/// Et bytte hos Buttonsmeden: gi `n` av `give` (du har `have`) og `fee`
+/// Et bytte i Skriptoriet: gi `n` av `give` (du har `have`) og `fee`
 /// tokens, få én `get` (du har `get_have`). Sjeldenhetene, hvor `get` ellers
 /// finnes (kort), og om du kan bytte nå.
 #[derive(Clone, Debug, PartialEq)]
