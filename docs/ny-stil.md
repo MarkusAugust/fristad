@@ -4,7 +4,7 @@ Bestemt med eieren 9. oktober 2026. Erstatter retningen «maksimal detalj og rea
 
 ## Mål
 
-- **Utseende:** stilisert og håndmalt, uten konturer (i retning World of Warcraft og Valheim). Varm, mettet by og en kald, grønnlig og korrupt kjeller der Fristil-komponentene gløder.
+- **Utseende:** stilisert og håndmalt, uten konturer (i retning World of Warcraft og Valheim). Varm, mettet by og en kald, grønnlig og korrupt kjeller der LO-TEK-komponentene gløder.
 - **Bildekvalitet:** klare teksturer i høy oppløsning, rundt 1 teksel per millimeter nær. Ingen uskarphet, spøkelser, utsmøring, støy, korn, taggete kanter eller flimmer.
 - **Ytelse:** stabilt 60 fps i 1080p i standard grafikk på referansemaskinen, eierens Mac mini M2 i Chrome og Safari (eieren har ingen jobb-PC å måle på; 11. oktober). Svakere maskiner har enkel grafikk, og budsjettet for trekanter og kall holdes i CI. Målingene står i `docs/kvalitet/ytelse.md`. Nedlastingen spiller ingen rolle.
 

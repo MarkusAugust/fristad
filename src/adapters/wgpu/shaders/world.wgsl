@@ -980,7 +980,7 @@ fn fragment(i: VsOut, front: bool) -> vec4<f32> {
         s.albedo = glowc * 0.3;
         s.emissive = glowc * strength;
     } else if (kind == K_SKELETON) {
-        // Skimmeret i .fs-skeleton: et lyst bånd som glir over.
+        // Skimmeret i .lt-skeleton: et lyst bånd som glir over.
         let band = fract((i.world.x + i.world.y * 0.5 - g.camera.w * 1.2) / 6.0);
         let shimmer = smoothstep(0.3, 0.5, band) * smoothstep(0.7, 0.5, band);
         s.albedo = tint * (1.0 + shimmer * 0.35);

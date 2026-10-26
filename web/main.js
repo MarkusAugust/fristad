@@ -8,17 +8,17 @@ import { createAmbience } from "./ambience.js";
 import { createFilm } from "./film/player.js";
 import { createSounds } from "./sounds.js";
 import { createEditor } from "./editor.js";
-import { defineFsToast } from "./fristil/components/frittstaende/toast/fs-toast.js";
-import { defineFsTabs } from "./fristil/components/ramme/tabs/fs-tabs.js";
-import { defineFsDialog } from "./fristil/components/ramme/dialog/fs-dialog.js";
-import { defineFsConnectionStatus } from "./fristil/components/frittstaende/connection-status/fs-connection-status.js";
+import { defineLtToast } from "./lotek/components/standalone/toast/lt-toast.js";
+import { defineLtTabs } from "./lotek/components/frame/tabs/lt-tabs.js";
+import { defineLtDialog } from "./lotek/components/frame/dialog/lt-dialog.js";
+import { defineLtConnectionStatus } from "./lotek/components/standalone/connection-status/lt-connection-status.js";
 
-defineFsToast();
+defineLtToast();
 // Boka viser eksempelet fra dokumentasjonen levende, så komponentene med
-// oppførsel må være registrert, som i Fristil-docs.
-defineFsTabs();
-defineFsDialog();
-defineFsConnectionStatus();
+// oppførsel må være registrert, som i LO-TEK-docs.
+defineLtTabs();
+defineLtDialog();
+defineLtConnectionStatus();
 
 const $ = (id) => document.getElementById(id);
 const gateEl = $("gate");
@@ -27,7 +27,7 @@ const panel = $("panel");
 const status = $("status");
 const enterBtn = $("enter");
 const beginBtn = $("begin");
-const toast = document.querySelector("fs-toast");
+const toast = document.querySelector("lt-toast");
 
 let canvas = $("world");
 // Grafikken: forhåndsvalgene enkel (de svakeste maskinene og WebGL2: uten
@@ -90,7 +90,7 @@ const readNum = (key, lo, hi, def) => {
 let mouseSens = readNum("fristad.mouse", 0.2, 3, 1);
 let gamma = readNum("fristad.gamma", 0.6, 2, 1);
 // Tekststørrelsen i hele grensesnittet (eieren 18. oktober: «et hakk
-// større»): 1 er 18 px brødtekst, og Fristils tokens og alt i style.css
+// større»): 1 er 18 px brødtekst, og LO-TEKs tokens og alt i style.css
 // følger rot-fontstørrelsen (rem), mens canvaset står som det er. Huskes
 // som `fristad.textsize`.
 let textSize = readNum("fristad.textsize", 0.9, 1.4, 1);
@@ -207,13 +207,13 @@ async function boot() {
     fit();
     engine = await start(canvas, false, assets.manifest, assets.names, assets.blobs, models, EDIT, NIVAA, SLAA, lazyManifest);
   }
-  console.info(`Fristad kjører på ${engine.backend()}, Fristil ${engine.fristil_version()}`);
+  console.info(`Fristad kjører på ${engine.backend()}, LO-TEK ${engine.lotek_version()}`);
   if (gpuLost !== null) loseGpu(gpuLost);
   engine.set_gamma(gamma);
   // Med `?nivaa=`: rett ned i nivået.
   if (NIVAA) engine.descend();
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
+  window.fristad = { engine, openPanel, closePanel, openShop, readDoc, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
   setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
   if (EDIT && engine.can_edit()) {
@@ -228,7 +228,7 @@ async function boot() {
     });
     window.fristad.editor = editor;
   }
-  $("version").textContent = engine.fristil_version();
+  $("version").textContent = engine.lotek_version();
   $("weather").textContent = engine.weather();
   new ResizeObserver(fit).observe(canvas);
   fit();
@@ -644,7 +644,7 @@ function loop(now) {
 
 // Et lite klikk når du trykker på en knapp i dialogene og panelet.
 document.addEventListener("click", (ev) => {
-  if (ev.target.closest?.("dialog button, .fs-button, #panel button")) sfx.play("click");
+  if (ev.target.closest?.("dialog button, .lt-button, #panel button")) sfx.play("click");
 });
 
 // Treffet: en rød bue i den kanten av bildet slaget eller skuddet kom fra
@@ -895,11 +895,11 @@ function setGoal(g) {
   }
   for (const j of g.journal) {
     const h = document.createElement("h3");
-    h.className = "fs-heading";
+    h.className = "lt-heading";
     h.dataset.size = "xs";
     h.textContent = j.title;
     const p = document.createElement("p");
-    p.className = "fs-paragraph";
+    p.className = "lt-paragraph";
     p.textContent = j.text;
     lore.append(h, p);
   }
@@ -1026,7 +1026,7 @@ function warp() {
   el.classList.add("on");
 }
 
-// Kista: en Fristil-dialog som sier hva du fant, og lar deg lese om
+// Kista: en LO-TEK-dialog som sier hva du fant, og lar deg lese om
 // komponenten i boka (panelet til høyre). Spillet står på pause så lenge.
 let lootOpen = false;
 // Det som fulgte med i kista utenom kistas egen komponent (`haul`, plan 14).
@@ -1042,20 +1042,20 @@ function openLoot(component) {
   const more = lootMore;
   lootMore = [];
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog loot";
+  dlg.className = "lt-dialog loot";
   dlg.setAttribute("aria-labelledby", "loot-title");
   const found = component
-    ? `<p>Under lokket, mellom råtne filler og knokler, ligger <strong>${esc(title)}</strong>: en bit av Fristil, slik den så ut før den ble korrupt.</p>
-       <p class="fs-help-text">${esc(d.description ?? "")}</p>
+    ? `<p>Under lokket, mellom råtne filler og knokler, ligger <strong>${esc(title)}</strong>: en bit av LO-TEK, slik den så ut før den ble korrupt.</p>
+       <p class="lt-help-text">${esc(d.description ?? "")}</p>
        ${more.length ? `<p>Under den ligger også ${more.map((c) => `<strong>${esc(compTitle(c))}</strong>`).join(more.length > 2 ? ", " : " og ").replace(/, (?=[^,]*$)/, " og ")}.</p>` : ""}
        <p>Bær ${more.length ? "dem" : "den"} opp til byen, så er de${more.length ? "" : "n"} din${more.length ? "e" : ""}. Dør du før det, blir ${more.length ? "de" : "den"} liggende her nede.</p>`
     : `<p>Kista er tom. Noen har vært her før deg.</p>`;
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="loot-title">${component ? "Du fant noe i kista" : "Ingenting"}</h2>
-    <div class="fs-dialog__body">${found}</div>
-    <div class="fs-dialog__footer">
-      <button class="fs-button" data-variant="secondary" type="button" data-act="take">${component ? "Ta med og gå videre" : "Gå videre"}</button>
-      ${component && docs[component] ? `<button class="fs-button" data-variant="primary" type="button" data-act="read">Les om ${esc(title)}</button>` : ""}
+    <h2 class="lt-dialog__title" id="loot-title">${component ? "Du fant noe i kista" : "Ingenting"}</h2>
+    <div class="lt-dialog__body">${found}</div>
+    <div class="lt-dialog__footer">
+      <button class="lt-button" data-variant="secondary" type="button" data-act="take">${component ? "Ta med og gå videre" : "Gå videre"}</button>
+      ${component && docs[component] ? `<button class="lt-button" data-variant="primary" type="button" data-act="read">Les om ${esc(title)}</button>` : ""}
     </div>`;
   document.body.appendChild(dlg);
   const close = (then) => {
@@ -1088,14 +1088,14 @@ function openLore(title, text) {
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog lore";
+  dlg.className = "lt-dialog lore";
   dlg.setAttribute("aria-labelledby", "lore-title");
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="lore-title"></h2>
-    <div class="fs-dialog__body"><p class="fs-paragraph lore-text"></p></div>
-    <div class="fs-dialog__footer">
-      <span class="fs-help-text lore-keys"><kbd>F</kbd> <kbd>E</kbd> <kbd>Esc</kbd> eller klikk lukker</span>
-      <button class="fs-button" data-variant="primary" type="button" data-act="close">Legg fra deg</button>
+    <h2 class="lt-dialog__title" id="lore-title"></h2>
+    <div class="lt-dialog__body"><p class="lt-paragraph lore-text"></p></div>
+    <div class="lt-dialog__footer">
+      <span class="lt-help-text lore-keys"><kbd>F</kbd> <kbd>E</kbd> <kbd>Esc</kbd> eller klikk lukker</span>
+      <button class="lt-button" data-variant="primary" type="button" data-act="close">Legg fra deg</button>
     </div>`;
   dlg.querySelector("#lore-title").textContent = title;
   const body = dlg.querySelector(".lore-text");
@@ -1191,25 +1191,25 @@ function toggleInventory() {
   engine.set_paused(true);
   if (locked()) document.exitPointerLock?.();
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog menu-dialog inventory-dialog";
+  dlg.className = "lt-dialog menu-dialog inventory-dialog";
   dlg.setAttribute("aria-labelledby", "inv-title");
   dlg.innerHTML = `
-    <div class="fs-dialog__header menu-head">
-      <h2 class="fs-dialog__title" id="inv-title">Utstyr og lager</h2>
+    <div class="lt-dialog__header menu-head">
+      <h2 class="lt-dialog__title" id="inv-title">Utstyr og lager</h2>
       <div class="inv-stats"></div>
     </div>
-    <div class="fs-dialog__body menu-body">
-      <fs-tabs>
-        <div class="fs-tabs__list" aria-label="Inventaret">
-          <button>Utstyr</button>
-          <button class="inv-comp-tab">Komponenter</button>
-        </div>
-        <div class="fs-tabs__panel inv-gear-panel"></div>
-        <div class="fs-tabs__panel inv-comps"></div>
-      </fs-tabs>
+    <div class="lt-dialog__body menu-body">
+      <lt-tabs>
+        <ul class="lt-tabs__list" aria-label="Inventaret">
+          <li><a href="#inv-gear">Utstyr</a></li>
+          <li><a href="#inv-comps" class="inv-comp-tab">Komponenter</a></li>
+        </ul>
+        <div class="lt-tabs__panel inv-gear-panel" id="inv-gear"></div>
+        <div class="lt-tabs__panel inv-comps" id="inv-comps"></div>
+      </lt-tabs>
     </div>
-    <div class="fs-dialog__footer menu-foot">
-      <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk (I)</button>
+    <div class="lt-dialog__footer menu-foot">
+      <button class="lt-button" data-variant="secondary" type="button" data-act="close">Lukk (I)</button>
     </div>`;
   document.body.appendChild(dlg);
   invOpen = dlg;
@@ -1258,10 +1258,10 @@ function renderInvGear(e) {
   if (!dlg) return;
   const h = lastHud;
   dlg.querySelector(".inv-stats").innerHTML = `
-    <label class="fs-label">Liv <span class="bar-num">${h.hp} / ${e.max_hp}</span><progress class="fs-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
-    <label class="fs-label">Energi <span class="bar-num">${h.stamina} / ${e.max_stamina}</span><progress class="fs-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
-    <span class="fs-badge" data-color="warning">${e.tokens} tokens</span>
-    <span class="fs-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys ?? 0} nøkler`}</span>`;
+    <label class="lt-label">Liv <span class="bar-num">${h.hp} / ${e.max_hp}</span><progress class="lt-progress" data-color="danger" value="${h.hp}" max="${e.max_hp}"></progress></label>
+    <label class="lt-label">Energi <span class="bar-num">${h.stamina} / ${e.max_stamina}</span><progress class="lt-progress" value="${h.stamina}" max="${e.max_stamina}"></progress></label>
+    <span class="lt-badge" data-color="warning">${e.tokens} tokens</span>
+    <span class="lt-badge" data-color="neutral">${h.keys === 1 ? "1 nøkkel" : `${h.keys ?? 0} nøkler`}</span>`;
   const gear = e.gear ?? [];
   const lantern = lanternItem(e);
   const worn = (slot) => (slot === "lantern" ? lantern : gear.find((g) => g.slot === slot && g.equipped) ?? (slot === "armor" ? NO_ARMOR : null));
@@ -1283,7 +1283,7 @@ function renderInvGear(e) {
         <span class="slot-text">
           <span class="eyebrow">${label}</span>
           <span class="slot-name">${esc(real ? name : empty)}</span>
-          ${slot === "lantern" ? `<progress class="fs-progress mini" data-color="warning" max="100" value="${lantern.light}" aria-label="Olje"></progress>` : ""}
+          ${slot === "lantern" ? `<progress class="lt-progress mini" data-color="warning" max="100" value="${lantern.light}" aria-label="Olje"></progress>` : ""}
         </span>
       </button>`;
   };
@@ -1303,7 +1303,7 @@ function renderInvGear(e) {
       <div class="pick-side">
         <p class="pick-count">${SLOT_NAMES[invFilter]} <span class="tab-count">${all.length}</span></p>
         <ul class="pick-list" role="listbox" aria-label="Utstyret ditt">
-          ${all.map((g) => pickRow(itemKey(g), g, g.equipped ? '<span class="fs-badge" data-color="success">På deg</span>' : "", invSelected === itemKey(g))).join("")}
+          ${all.map((g) => pickRow(itemKey(g), g, g.equipped ? '<span class="lt-badge" data-color="success">På deg</span>' : "", invSelected === itemKey(g))).join("")}
         </ul>
       </div>
       <section class="detail" aria-live="polite">${sel ? invDetailHtml(sel, worn(sel.slot), [...gear, NO_ARMOR]) : ""}</section>
@@ -1311,7 +1311,7 @@ function renderInvGear(e) {
   const tab = dlg.querySelector(".inv-comp-tab");
   tab.innerHTML = `Komponenter <span class="tab-count">${counts.size}</span>`;
   dlg.querySelector(".inv-comps").innerHTML = counts.size
-    ? `<div class="menu-scroll"><table class="fs-table" data-variant="striped">
+    ? `<div class="menu-scroll"><table class="lt-table" data-variant="striped">
         <caption>Komponentene du har vunnet. Det du bærer, er ditt først når du er oppe igjen.</caption>
         <thead><tr><th scope="col">Komponent</th><th scope="col" data-align="end">I lageret</th><th scope="col" data-align="end">Bærer</th><th scope="col">Boka</th><th scope="col"></th></tr></thead>
         <tbody>${[...counts.entries()]
@@ -1319,13 +1319,13 @@ function renderInvGear(e) {
           .map(([c, k]) => `<tr>
             <th scope="row"><span class="comp-name"><img class="comp-ico" src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.hidden=true">${esc(compTitle(c))}</span></th>
             <td data-align="end">${k.stash}</td>
-            <td data-align="end">${k.carried ? `<span class="fs-badge" data-color="warning">${k.carried}</span>` : "0"}</td>
-            <td>${e.read.includes(c) ? '<span class="fs-badge" data-color="success">Lest</span>' : '<span class="fs-badge" data-color="neutral">Ulest</span>'}</td>
-            <td data-align="end">${docs[c] ? `<button class="fs-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
+            <td data-align="end">${k.carried ? `<span class="lt-badge" data-color="warning">${k.carried}</span>` : "0"}</td>
+            <td>${e.read.includes(c) ? '<span class="lt-badge" data-color="success">Lest</span>' : '<span class="lt-badge" data-color="neutral">Ulest</span>'}</td>
+            <td data-align="end">${docs[c] ? `<button class="lt-button" data-variant="secondary" type="button" data-read="${esc(c)}">Les</button>` : ""}</td>
           </tr>`)
           .join("")}</tbody>
       </table></div>`
-    : `<p class="fs-paragraph">Du har ingen komponenter ennå. De ligger i kistene og hos fiendene i krypten.</p>`;
+    : `<p class="lt-paragraph">Du har ingen komponenter ennå. De ligger i kistene og hos fiendene i krypten.</p>`;
   for (const b of dlg.querySelectorAll("[data-read]")) {
     b.addEventListener("click", () => {
       const c = b.dataset.read;
@@ -1374,17 +1374,17 @@ function invDetailHtml(sel, worn, pool) {
   const same = !worn || itemKey(worn) === itemKey(sel);
   const action =
     sel.slot === "lantern"
-      ? `<p class="fs-help-text">${sel.id ? "Søkelykta henger i beltet." : "En søkelykt smis i Skriptoriet."} Olje får du hos Apotekeren og på hvilestedene.</p>`
+      ? `<p class="lt-help-text">${sel.id ? "Søkelykta henger i beltet." : "En søkelykt smis i Skriptoriet."} Olje får du hos Apotekeren og på hvilestedene.</p>`
       : `<div class="detail-actions">
           ${sel.equipped
-            ? '<span class="fs-help-text">Du har den på deg. Velg noe annet i lista for å se det mot denne.</span>'
-            : `<button type="button" class="fs-button" data-variant="primary" data-equip="${esc(sel.id)}">Bruk ${esc(name)}</button>
-               <span class="fs-help-text">Bytter ut ${esc(splitRarity(worn?.name ?? "")[0])}. Dobbeltklikk eller Enter i lista gjør det samme.</span>`}
+            ? '<span class="lt-help-text">Du har den på deg. Velg noe annet i lista for å se det mot denne.</span>'
+            : `<button type="button" class="lt-button" data-variant="primary" data-equip="${esc(sel.id)}">Bruk ${esc(name)}</button>
+               <span class="lt-help-text">Bytter ut ${esc(splitRarity(worn?.name ?? "")[0])}. Dobbeltklikk eller Enter i lista gjør det samme.</span>`}
         </div>`;
   return `<div class="detail-scroll">
-      <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+      <button type="button" class="lt-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
       ${detailHead(sel)}
-      <h4 class="fs-heading detail-sub" data-size="xs">${same ? "Verdiene" : `Mot ${esc(splitRarity(worn?.name ?? "")[0])}, som du har på`}</h4>
+      <h4 class="lt-heading detail-sub" data-size="xs">${same ? "Verdiene" : `Mot ${esc(splitRarity(worn?.name ?? "")[0])}, som du har på`}</h4>
       ${compareTable(sel, same ? null : worn, pool)}
       ${action}
     </div>`;
@@ -1399,7 +1399,7 @@ function closeInventory(resume) {
 }
 
 // Innstillingene (O, eller knappen på startkortet): grafikk og oppløsning
-// som Fristil-radioknapper i en dialog. Ingenting byttes uten at
+// som LO-TEK-radioknapper i en dialog. Ingenting byttes uten at
 // spilleren velger det.
 // Innstillingene og grafikken kan alltid lukkes: med knappen, krysset i
 // hjørnet, et klikk utenfor vinduet eller Esc (eieren 18. oktober: vinduet
@@ -1407,7 +1407,7 @@ function closeInventory(resume) {
 function dismissable(dlg, close) {
   const x = document.createElement("button");
   x.type = "button";
-  x.className = "fs-button dialog-x";
+  x.className = "lt-button dialog-x";
   x.dataset.variant = "ghost";
   x.setAttribute("aria-label", "Lukk");
   x.textContent = "×";
@@ -1430,9 +1430,9 @@ function openSettings() {
   if (locked()) document.exitPointerLock?.();
   const dpr = window.devicePixelRatio || 1;
   const ph = Math.round(canvas.clientHeight * dpr);
-  const radio = (name, value, label, note, checked, disabled = false) => `<label class="fs-radio-row">
-      <input class="fs-radio" type="radio" name="${name}" value="${value}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
-      <span>${label}${note ? ` <span class="fs-help-text">${note}</span>` : ""}</span>
+  const radio = (name, value, label, note, checked, disabled = false) => `<label class="lt-radio-row">
+      <input class="lt-radio" type="radio" name="${name}" value="${value}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
+      <span>${label}${note ? ` <span class="lt-help-text">${note}</span>` : ""}</span>
     </label>`;
   const steps = RES_STEPS.map((h) => {
     const w = Math.round((h * canvas.clientWidth) / Math.max(1, canvas.clientHeight));
@@ -1440,37 +1440,37 @@ function openSettings() {
     return radio("res", h, `${w} × ${h} (${RES_NAMES[h]})`, `${px} Mpx${h > ph ? ", større enn skjermen" : ""}`, resolution === h, h > ph);
   }).join("");
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog settings-dialog";
+  dlg.className = "lt-dialog settings-dialog";
   dlg.setAttribute("aria-labelledby", "settings-title");
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="settings-title">Innstillinger</h2>
-    <div class="fs-dialog__body">
-      <fieldset class="fs-fieldset">
-        <legend class="fs-legend">Grafikk</legend>
+    <h2 class="lt-dialog__title" id="settings-title">Innstillinger</h2>
+    <div class="lt-dialog__body">
+      <fieldset class="lt-fieldset">
+        <legend class="lt-legend">Grafikk</legend>
         ${QUALITIES.map((q) => radio("gfx", q, q[0].toUpperCase() + q.slice(1), QUALITY_INFO[q].note, !custom && quality === q)).join("")}
         ${custom ? radio("gfx", "custom", "Egendefinert", `med ${quality} som utgangspunkt.`, true) : ""}
-        <p><button class="fs-button" data-variant="secondary" type="button" data-act="graphics">Avanserte grafikkinnstillinger …</button></p>
+        <p><button class="lt-button" data-variant="secondary" type="button" data-act="graphics">Avanserte grafikkinnstillinger …</button></p>
       </fieldset>
-      <fieldset class="fs-fieldset">
-        <legend class="fs-legend">Oppløsning</legend>
+      <fieldset class="lt-fieldset">
+        <legend class="lt-legend">Oppløsning</legend>
         ${radio("res", "auto", "Automatisk", `største trinn som får plass, høyst ${QUALITY_INFO[quality ?? "standard"].cap}p.`, resolution === "auto")}
         ${steps}
       </fieldset>
-      <p class="fs-help-text" id="set-res-info">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
-      <fieldset class="fs-fieldset">
-        <legend class="fs-legend">Mus, lysstyrke og tekst</legend>
-        <label class="fs-label range-row" for="set-mouse">Musefølsomhet <output id="set-mouse-out">${mouseSens.toFixed(2)}×</output></label>
+      <p class="lt-help-text" id="set-res-info">Vinduet er ${Math.round(canvas.clientWidth * dpr)} × ${ph} piksler. Spillet tegnes nå i ${canvas.width} × ${canvas.height}.</p>
+      <fieldset class="lt-fieldset">
+        <legend class="lt-legend">Mus, lysstyrke og tekst</legend>
+        <label class="lt-label range-row" for="set-mouse">Musefølsomhet <output id="set-mouse-out">${mouseSens.toFixed(2)}×</output></label>
         <input class="range" id="set-mouse" name="mouse" type="range" min="0.2" max="3" step="0.05" value="${mouseSens}">
-        <label class="fs-label range-row" for="set-gamma">Lysstyrke <output id="set-gamma-out">${gamma.toFixed(2)}</output></label>
+        <label class="lt-label range-row" for="set-gamma">Lysstyrke <output id="set-gamma-out">${gamma.toFixed(2)}</output></label>
         <input class="range" id="set-gamma" name="gamma" type="range" min="0.6" max="2" step="0.05" value="${gamma}">
-        <p class="fs-help-text">Er skjermen mørk, så du ikke ser noe i krypten, skru lysstyrken opp. 1,00 er slik bildet er malt.</p>
-        <label class="fs-label range-row" for="set-text">Tekststørrelse <output id="set-text-out">${Math.round(textSize * 100)} %</output></label>
+        <p class="lt-help-text">Er skjermen mørk, så du ikke ser noe i krypten, skru lysstyrken opp. 1,00 er slik bildet er malt.</p>
+        <label class="lt-label range-row" for="set-text">Tekststørrelse <output id="set-text-out">${Math.round(textSize * 100)} %</output></label>
         <input class="range" id="set-text" name="textsize" type="range" min="0.9" max="1.4" step="0.05" value="${textSize}">
-        <p><button class="fs-button" data-variant="secondary" data-size="small" type="button" data-act="reset-input">Tilbakestill</button></p>
+        <p><button class="lt-button" data-variant="secondary" data-size="small" type="button" data-act="reset-input">Tilbakestill</button></p>
       </fieldset>
     </div>
-    <div class="fs-dialog__footer">
-      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk (O)</button>
+    <div class="lt-dialog__footer">
+      <button class="lt-button" data-variant="primary" type="button" data-act="close">Lukk (O)</button>
     </div>`;
   document.body.appendChild(dlg);
   settingsOpen = dlg;
@@ -1578,35 +1578,35 @@ function openGraphics(resume = playing) {
   const row = (r) => {
     const id = `gfx-${r.key}`;
     const off = r.webgpu && gl;
-    const note = `<span class="fs-help-text">${r.note}${off ? " Ikke i WebGL2." : ""}</span>`;
+    const note = `<span class="lt-help-text">${r.note}${off ? " Ikke i WebGL2." : ""}</span>`;
     if (r.options) {
-      return `<div class="gfx-row"><label class="fs-label" for="${id}">${r.label}</label>
-        <select class="fs-select" id="${id}" data-key="${r.key}">${r.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select>${note}</div>`;
+      return `<div class="gfx-row"><label class="lt-label" for="${id}">${r.label}</label>
+        <select class="lt-select" id="${id}" data-key="${r.key}">${r.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select>${note}</div>`;
     }
-    return `<div class="fs-switch-row gfx-row"><input class="fs-switch" type="checkbox" role="switch" id="${id}" data-key="${r.key}" ${off ? "disabled" : ""}>
-      <label class="fs-label" for="${id}">${r.label} ${note}</label></div>`;
+    return `<div class="lt-switch-row gfx-row"><input class="lt-switch" type="checkbox" role="switch" id="${id}" data-key="${r.key}" ${off ? "disabled" : ""}>
+      <label class="lt-label" for="${id}">${r.label} ${note}</label></div>`;
   };
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog settings-dialog graphics-dialog";
+  dlg.className = "lt-dialog settings-dialog graphics-dialog";
   dlg.setAttribute("aria-labelledby", "graphics-title");
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="graphics-title">Grafikk</h2>
-    <div class="fs-dialog__body">
-      <fieldset class="fs-fieldset">
-        <legend class="fs-legend">Forhåndsvalg</legend>
+    <h2 class="lt-dialog__title" id="graphics-title">Grafikk</h2>
+    <div class="lt-dialog__body">
+      <fieldset class="lt-fieldset">
+        <legend class="lt-legend">Forhåndsvalg</legend>
         <div class="gfx-presets">
-          ${QUALITIES.map((q) => `<label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="${q}"><span>${q[0].toUpperCase() + q.slice(1)}</span></label>`).join("")}
-          <label class="fs-radio-row"><input class="fs-radio" type="radio" name="gfx-preset" value="custom" disabled><span>Egendefinert</span></label>
+          ${QUALITIES.map((q) => `<label class="lt-radio-row"><input class="lt-radio" type="radio" name="gfx-preset" value="${q}"><span>${q[0].toUpperCase() + q.slice(1)}</span></label>`).join("")}
+          <label class="lt-radio-row"><input class="lt-radio" type="radio" name="gfx-preset" value="custom" disabled><span>Egendefinert</span></label>
         </div>
       </fieldset>
-      <fieldset class="fs-fieldset gfx-switches">
-        <legend class="fs-legend">Brytere</legend>
+      <fieldset class="lt-fieldset gfx-switches">
+        <legend class="lt-legend">Brytere</legend>
         ${GRAPHICS_ROWS.map(row).join("")}
       </fieldset>
-      <p class="fs-help-text gfx-now"></p>
+      <p class="lt-help-text gfx-now"></p>
     </div>
-    <div class="fs-dialog__footer">
-      <button class="fs-button" data-variant="primary" type="button" data-act="close">Lukk</button>
+    <div class="lt-dialog__footer">
+      <button class="lt-button" data-variant="primary" type="button" data-act="close">Lukk</button>
     </div>`;
   document.body.appendChild(dlg);
   graphicsOpen = dlg;
@@ -1651,7 +1651,7 @@ function openGraphics(resume = playing) {
   dlg.showModal();
 }
 
-// Butikk og verksted: en Fristil-dialog midt på skjermen med spillet på
+// Butikk og verksted: en LO-TEK-dialog midt på skjermen med spillet på
 // pause mens den står. Den ligger i HUD-en, så den tar imot musa selv.
 let overlayOpen = false;
 function openOverlay(title, subtitle = "") {
@@ -1694,7 +1694,7 @@ function openShop(npc, wares, swaps = []) {
 
 function wareList(wares) {
   const list = document.createElement("ul");
-  list.className = "fs-list wares";
+  list.className = "lt-list wares";
   list.dataset.variant = "divided";
   for (const w of wares) {
     const row = document.createElement("li");
@@ -1709,13 +1709,13 @@ function wareList(wares) {
     price.textContent = `${w.price} tokens`;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "fs-button";
+    btn.className = "lt-button";
     btn.dataset.variant = "secondary";
     btn.dataset.price = String(w.price);
     btn.textContent = "Kjøp";
     btn.setAttribute("aria-label", `Kjøp ${w.name} for ${w.price} tokens`);
     const why = document.createElement("span");
-    why.className = "fs-help-text ware-why";
+    why.className = "lt-help-text ware-why";
     why.id = `ware-why-${w.id}`;
     btn.setAttribute("aria-describedby", why.id);
     btn.addEventListener("click", () => {
@@ -1754,7 +1754,7 @@ function openSmith(npc, wares, swaps) {
   const sorted = [...swaps].sort((a, b) => Number(b.ok) - Number(a.ok) || lack(a) - lack(b) || rarityRank(a.get_rarity) - rarityRank(b.get_rarity));
   const tabs = [["buy", "Kjøp", wares.length], ["swap", "Bytte", swaps.length]];
   if (!tabs.some(([k]) => k === shopTab)) shopTab = "swap";
-  const badge = (s) => (s.ok ? '<span class="fs-badge" data-color="success">Kan byttes</span>' : lack(s) ? `<span class="fs-badge" data-color="warning">Mangler ${lack(s)}</span>` : '<span class="fs-badge" data-color="warning">Mangler tokens</span>');
+  const badge = (s) => (s.ok ? '<span class="lt-badge" data-color="success">Kan byttes</span>' : lack(s) ? `<span class="lt-badge" data-color="warning">Mangler ${lack(s)}</span>` : '<span class="lt-badge" data-color="warning">Mangler tokens</span>');
   const compIco = (c, size, r) => `<span class="gear-ico ${size} comp-face" data-rarity="${esc(r)}"><img src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.hidden=true"></span>`;
   const wrap = document.createElement("div");
   wrap.className = "smith picker";
@@ -1763,27 +1763,27 @@ function openSmith(npc, wares, swaps) {
   const swapDetail = (s) => {
     const tokens = lastHud?.tokens ?? 0;
     const why = s.ok ? `Du gir ${s.n} ${compTitle(s.give)} og ${s.fee} tokens.` : lack(s) ? `Mangler ${lack(s)} ${compTitle(s.give)} i lageret.` : `Mangler ${s.fee - tokens} tokens til avgiften.`;
-    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-swap="${esc(s.id)}" ${s.ok ? "" : "disabled"} aria-describedby="swap-why"><span>Bytt<span class="craft-name"> til ${esc(compTitle(s.get))}</span></span></button>
-        <span class="fs-help-text" id="swap-why">${esc(why)}</span>`;
+    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="lt-button" data-variant="primary" data-swap="${esc(s.id)}" ${s.ok ? "" : "disabled"} aria-describedby="swap-why"><span>Bytt<span class="craft-name"> til ${esc(compTitle(s.get))}</span></span></button>
+        <span class="lt-help-text" id="swap-why">${esc(why)}</span>`;
     const giveOk = s.have >= s.n;
     const feeOk = tokens >= s.fee;
     return `<div class="detail-scroll">
-        <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+        <button type="button" class="lt-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
         <header class="detail-head" data-rarity="${esc(s.get_rarity)}">
           ${compIco(s.get, "big", s.get_rarity)}
           <div class="detail-title">
-            <h3 class="fs-heading" data-size="m">${esc(compTitle(s.get))}</h3>
-            <div class="gear-tags">${rarityTag(s.get_rarity)}<span class="fs-tag">Komponent</span>${badge(s)}</div>
+            <h3 class="lt-heading" data-size="m">${esc(compTitle(s.get))}</h3>
+            <div class="gear-tags">${rarityTag(s.get_rarity)}<span class="lt-tag">Komponent</span>${badge(s)}</div>
           </div>
         </header>
-        <p class="fs-paragraph detail-about">${esc(docs[s.get]?.description ?? "")}</p>
-        <h4 class="fs-heading detail-sub" data-size="xs">Du gir</h4>
+        <p class="lt-paragraph detail-about">${esc(docs[s.get]?.description ?? "")}</p>
+        <h4 class="lt-heading detail-sub" data-size="xs">Du gir</h4>
         <ul class="comp-list">
           <li class="comp ${giveOk ? "have" : "lack"}">
             <img class="comp-ico" src="components/${esc(s.give)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
             <div class="comp-main">
               <div class="comp-top"><span class="comp-title">${s.n} × ${esc(compTitle(s.give))}</span>${rarityTag(s.give_rarity)}<span class="comp-count">har ${s.have} av ${s.n}</span></div>
-              <progress class="fs-progress mini" data-color="${giveOk ? "success" : "warning"}" max="${s.n}" value="${Math.min(s.have, s.n)}" aria-hidden="true"></progress>
+              <progress class="lt-progress mini" data-color="${giveOk ? "success" : "warning"}" max="${s.n}" value="${Math.min(s.have, s.n)}" aria-hidden="true"></progress>
             </div>
           </li>
           <li class="comp ${feeOk ? "have" : "lack"}">
@@ -1793,7 +1793,7 @@ function openSmith(npc, wares, swaps) {
             </div>
           </li>
         </ul>
-        <h4 class="fs-heading detail-sub" data-size="xs">Du får</h4>
+        <h4 class="lt-heading detail-sub" data-size="xs">Du får</h4>
         <ul class="comp-list">
           <li class="comp have">
             <img class="comp-ico" src="components/${esc(s.get)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
@@ -1803,7 +1803,7 @@ function openSmith(npc, wares, swaps) {
             </div>
           </li>
         </ul>
-        <p class="fs-help-text swap-rule">Byttet går bare én vei, og smeden kjøper ingenting tilbake.</p>
+        <p class="lt-help-text swap-rule">Byttet går bare én vei, og smeden kjøper ingenting tilbake.</p>
       </div>`;
   };
   const render = () => {
@@ -1818,7 +1818,7 @@ function openSmith(npc, wares, swaps) {
       if (!sorted.some((s) => s.id === swapSel)) swapSel = sorted[0]?.id ?? null;
       const sel = sorted.find((s) => s.id === swapSel);
       wrap.classList.toggle("show-detail", detail);
-      const detailHtml = sel ? swapDetail(sel) : '<p class="fs-paragraph">Ingen bytter her.</p>';
+      const detailHtml = sel ? swapDetail(sel) : '<p class="lt-paragraph">Ingen bytter her.</p>';
       wrap.innerHTML = `${menuTabs(tabs, shopTab, "Butikken")}
         <div class="pick-side">
           <ul class="pick-list" role="listbox" aria-label="Byttene">
@@ -1870,7 +1870,7 @@ function openSmith(npc, wares, swaps) {
   if (!narrow()) wrap.querySelector(".pick-row[aria-selected='true']")?.focus();
 }
 
-// Det du ikke har råd til, er en deaktivert Fristil-knapp med forklaring.
+// Det du ikke har råd til, er en deaktivert LO-TEK-knapp med forklaring.
 // Kalles når butikken åpnes og hver gang tokenene endres (etter et kjøp).
 function updateShop() {
   const tokens = lastHud?.tokens ?? 0;
@@ -1878,7 +1878,7 @@ function updateShop() {
     $("overlay-sub").textContent = `Du har ${tokens} tokens.`;
     $("overlay-sub").hidden = false;
   }
-  for (const btn of document.querySelectorAll("#overlay-body .ware .fs-button[data-price]")) {
+  for (const btn of document.querySelectorAll("#overlay-body .ware .lt-button[data-price]")) {
     const price = Number(btn.dataset.price);
     const short = price > tokens;
     btn.disabled = short;
@@ -1893,18 +1893,18 @@ function updateShop() {
 function openMead(e) {
   const body = openOverlay(e.npc, "");
   const say = document.createElement("p");
-  say.className = "fs-paragraph mead-text";
+  say.className = "lt-paragraph mead-text";
   say.textContent = `«${e.text}»`;
   const row = document.createElement("div");
   row.className = "ware mead";
   const text = document.createElement("div");
   text.className = "ware-text";
   const why = document.createElement("span");
-  why.className = "fs-help-text ware-why";
+  why.className = "lt-help-text ware-why";
   why.id = "ware-why-mead";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "fs-button";
+  btn.className = "lt-button";
   btn.dataset.variant = "primary";
   btn.textContent = `Kjøp et krus mjød (${e.price} token)`;
   btn.setAttribute("aria-describedby", why.id);
@@ -1923,7 +1923,7 @@ function openMead(e) {
 }
 
 // Felles for inventaret og Skriptoriet (plan 13a): sjeldenheten i farge
-// (Fristils tokens: vanlig grå, sjelden blå, episk lilla, legendarisk gull),
+// (LO-TEKs tokens: vanlig grå, sjelden blå, episk lilla, legendarisk gull),
 // ikonet (`icons/<id>.png`), raden med oppsummeringen og
 // sammenligningstabellen.
 const SLOT_NAMES = { weapon: "Våpen", shield: "Skjold", armor: "Rustning", lantern: "Lys" };
@@ -1935,7 +1935,7 @@ function splitRarity(name) {
   const m = /^(.*?)\s*\((vanlig|sjelden|episk|legendarisk)\)$/.exec(name ?? "");
   return m ? [m[1], m[2]] : [name ?? "", ""];
 }
-const rarityTag = (r) => (r ? `<span class="fs-tag rarity-tag" data-rarity="${esc(r)}">${cap(esc(r))}</span>` : "");
+const rarityTag = (r) => (r ? `<span class="lt-tag rarity-tag" data-rarity="${esc(r)}">${cap(esc(r))}</span>` : "");
 const itemKey = (g) => `${g?.slot ?? ""}:${g?.id ?? ""}`;
 const compTitle = (c) => docs[c]?.title ?? c;
 const SLOTS = ["weapon", "shield", "armor", "lantern"];
@@ -1947,16 +1947,22 @@ function remembered(key, fallback) {
     return fallback;
   }
 }
-// Fanerekken over lista (Fristils `fs-tabs__list`): én rad som aldri
-// brytes, med antallet som en liten badge. [[nøkkel, navn, antall]].
+// Fanerekken over lista (LO-TEKs `lt-tabs__list`, lenker i en liste): én
+// rad som aldri brytes, med antallet som en liten badge. Lista byttes ut
+// når en fane velges, så det er ingen paneler å peke på, og klikket skriver
+// ikke i adressen. [[nøkkel, navn, antall]].
 function menuTabs(tabs, current, label) {
-  return `<div class="fs-tabs__list menu-tabs" role="tablist" aria-label="${esc(label)}">
-      ${tabs.map(([k, n, count]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === current}" tabindex="${k === current ? 0 : -1}">${esc(n)}<span class="tab-count">${count}</span></button>`).join("")}
-    </div>`;
+  return `<ul class="lt-tabs__list menu-tabs" role="tablist" aria-label="${esc(label)}">
+      ${tabs.map(([k, n, count]) => `<li role="presentation"><a href="#${k}" role="tab" data-tab="${k}" aria-selected="${k === current}" tabindex="${k === current ? 0 : -1}">${esc(n)}<span class="tab-count">${count}</span></a></li>`).join("")}
+    </ul>`;
 }
 function bindTabs(root, pick) {
   const tabs = [...root.querySelectorAll(".menu-tabs [data-tab]")];
-  for (const t of tabs) t.addEventListener("click", () => t.getAttribute("aria-selected") !== "true" && pick(t.dataset.tab));
+  for (const t of tabs)
+    t.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      if (t.getAttribute("aria-selected") !== "true") pick(t.dataset.tab);
+    });
   root.querySelector(".menu-tabs")?.addEventListener("keydown", (ev) => {
     const i = tabs.indexOf(document.activeElement);
     if (i < 0 || (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft")) return;
@@ -2011,7 +2017,7 @@ function goodness(st, label, pool) {
   return st.up ? (100 * st.value) / Math.max(...vals, 1e-6) : (100 * Math.min(...vals)) / Math.max(st.value, 1e-6);
 }
 function compareTable(sel, other, pool) {
-  const cell = (st, label) => `<span class="stat-val">${esc(st.text)}</span><progress class="fs-progress mini" max="100" value="${Math.round(goodness(st, label, pool))}" aria-hidden="true"></progress>`;
+  const cell = (st, label) => `<span class="stat-val">${esc(st.text)}</span><progress class="lt-progress mini" max="100" value="${Math.round(goodness(st, label, pool))}" aria-hidden="true"></progress>`;
   const rows = sel.stats
     .map((raw) => {
       const st = shownStat(raw);
@@ -2029,8 +2035,8 @@ function compareTable(sel, other, pool) {
     })
     .join("");
   const otherName = splitRarity(other?.name)[0];
-  return `<table class="fs-table compare">
-      <caption class="fs-sr-only">${other ? `${esc(splitRarity(sel.name)[0])} mot ${esc(otherName)}` : "Verdiene"}</caption>
+  return `<table class="lt-table compare">
+      <caption class="lt-sr-only">${other ? `${esc(splitRarity(sel.name)[0])} mot ${esc(otherName)}` : "Verdiene"}</caption>
       <thead><tr><th scope="col">Egenskap</th>${other ? `<th scope="col" data-align="end">Har på</th>` : ""}<th scope="col" data-align="end">${other ? "Denne" : "Verdi"}</th>${other ? '<th scope="col" data-align="end">Forskjell</th>' : ""}</tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -2041,12 +2047,12 @@ function detailHead(item, badge = "") {
   return `<header class="detail-head" data-rarity="${esc(rarity)}">
       ${gearIcon(item, "big")}
       <div class="detail-title">
-        <h3 class="fs-heading" data-size="m">${esc(name)}</h3>
-        <div class="gear-tags">${rarityTag(rarity)}<span class="fs-tag">${SLOT_NAMES[item.slot] ?? ""}</span>${item.equipped && item.slot !== "lantern" ? '<span class="fs-badge" data-color="success">På deg</span>' : ""}${badge}</div>
-        ${item.special ? `<p class="detail-special"><span class="fs-tag" data-variant="filled">${esc(cap(item.special))}</span></p>` : ""}
+        <h3 class="lt-heading" data-size="m">${esc(name)}</h3>
+        <div class="gear-tags">${rarityTag(rarity)}<span class="lt-tag">${SLOT_NAMES[item.slot] ?? ""}</span>${item.equipped && item.slot !== "lantern" ? '<span class="lt-badge" data-color="success">På deg</span>' : ""}${badge}</div>
+        ${item.special ? `<p class="detail-special"><span class="lt-tag" data-variant="filled">${esc(cap(item.special))}</span></p>` : ""}
       </div>
     </header>
-    ${item.about ? `<p class="fs-paragraph detail-about">${esc(item.about)}</p>` : ""}`;
+    ${item.about ? `<p class="lt-paragraph detail-about">${esc(item.about)}</p>` : ""}`;
 }
 // Én rad i lista: ikonet, navnet, sjeldenheten og et merke.
 function pickRow(key, item, badge, selected, sub = "") {
@@ -2097,7 +2103,7 @@ function bindPickList(root, { select, activate }) {
 }
 
 // Smie-animasjonen (plan 13c): komponentene flyr fra lista inn mot midten,
-// lyser i Fristils fyllfarger og smelter sammen i en glød, hammeren slår
+// lyser i LO-TEKs fyllfarger og smelter sammen i en glød, hammeren slår
 // to ganger (lyden `craft`), og ikonet for det nye kommer fram med en kort
 // blink. Rundt 1,8 s; klikk, Esc, E, Enter eller mellomrom hopper over.
 // Med `prefers-reduced-motion` toner bare ikonet inn. `done` kalles én
@@ -2160,7 +2166,7 @@ function forgeAnimation(box, item, done) {
   stage.style.setProperty("--forge-y", `${cy}px`);
   // Ingrediensene lyser opp i hver sin farge og flyr inn mot midten.
   lit.forEach((c, i) => {
-    const glow = `var(--fs-color-${FORGE_GLOWS[i % FORGE_GLOWS.length]}-fill)`;
+    const glow = `var(--lt-color-${FORGE_GLOWS[i % FORGE_GLOWS.length]}-fill)`;
     c.style.setProperty("--glow", glow);
     c.classList.add("lit");
     const ico = c.querySelector(".comp-ico");
@@ -2254,7 +2260,7 @@ function openWorkshop(recipes) {
       x.ok = !x.item.owned && x.needs.every(([, n, have]) => have >= n) && x.requires.every(([, ok]) => ok);
     }
   };
-  const badge = (r) => (r.item.owned ? '<span class="fs-badge" data-color="neutral">Har du</span>' : r.ok ? '<span class="fs-badge" data-color="success">Kan smis</span>' : `<span class="fs-badge" data-color="warning">Mangler ${lack(r)}</span>`);
+  const badge = (r) => (r.item.owned ? '<span class="lt-badge" data-color="neutral">Har du</span>' : r.ok ? '<span class="lt-badge" data-color="success">Kan smis</span>' : `<span class="lt-badge" data-color="warning">Mangler ${lack(r)}</span>`);
   const wrap = document.createElement("div");
   wrap.className = "workshop picker";
   body.appendChild(wrap);
@@ -2270,8 +2276,8 @@ function openWorkshop(recipes) {
       return `<li class="comp ${ok ? "have" : "lack"}">
           <img class="comp-ico" src="components/${esc(c)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
           <div class="comp-main">
-            <div class="comp-top"><span class="comp-title">${esc(compTitle(c))}</span><span class="comp-count">${keep ? (ok ? "ligger i lageret" : "må ligge i lageret") : `har ${have} av ${n}`}</span>${w?.cryptOnly ? '<span class="fs-badge" data-color="warning">Bare i krypten</span>' : ""}</div>
-            <progress class="fs-progress mini" data-color="${ok ? "success" : "warning"}" max="${n}" value="${Math.min(have, n)}" aria-hidden="true"></progress>
+            <div class="comp-top"><span class="comp-title">${esc(compTitle(c))}</span><span class="comp-count">${keep ? (ok ? "ligger i lageret" : "må ligge i lageret") : `har ${have} av ${n}`}</span>${w?.cryptOnly ? '<span class="lt-badge" data-color="warning">Bare i krypten</span>' : ""}</div>
+            <progress class="lt-progress mini" data-color="${ok ? "success" : "warning"}" max="${n}" value="${Math.min(have, n)}" aria-hidden="true"></progress>
             ${ok || !w ? "" : `<p class="comp-where">${esc(w.text)}</p>`}
           </div>
         </li>`;
@@ -2283,14 +2289,14 @@ function openWorkshop(recipes) {
     const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} og ${xs.at(-1)}` : xs[0] ?? "");
     const why = owned ? "Du har den allerede." : can ? "Komponentene trekkes fra lageret." : `Mangler ${list(missing)}.`;
     const other = r.current && r.current.id !== r.item.id ? r.current : null;
-    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="fs-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi<span class="craft-name"> ${esc(name)}</span></button>
-        <span class="fs-help-text" id="craft-why">${esc(why)}</span>`;
+    actions.innerHTML = narrow() && !detail ? "" : `<button type="button" class="lt-button" data-variant="primary" data-craft="${esc(r.id)}" ${can ? "" : "disabled"} aria-describedby="craft-why">Smi<span class="craft-name"> ${esc(name)}</span></button>
+        <span class="lt-help-text" id="craft-why">${esc(why)}</span>`;
     return `<div class="detail-scroll">
-        <button type="button" class="fs-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
+        <button type="button" class="lt-button detail-back" data-variant="ghost" data-back>← Tilbake til lista</button>
         ${detailHead(r.item, badge(r))}
-        <h4 class="fs-heading detail-sub" data-size="xs">${other ? `Mot ${esc(splitRarity(other.name)[0])}, som du har på` : "Verdiene"}</h4>
+        <h4 class="lt-heading detail-sub" data-size="xs">${other ? `Mot ${esc(splitRarity(other.name)[0])}, som du har på` : "Verdiene"}</h4>
         ${compareTable(r.item, other, pool)}
-        <h4 class="fs-heading detail-sub" data-size="xs">Komponentene</h4>
+        <h4 class="lt-heading detail-sub" data-size="xs">Komponentene</h4>
         <ul class="comp-list">${comps.join("")}</ul>
       </div>`;
   };
@@ -2301,7 +2307,7 @@ function openWorkshop(recipes) {
     const hadFocus = wrap.contains(document.activeElement) && document.activeElement.classList.contains("pick-row");
     wrap.classList.toggle("show-detail", detail);
     actions.innerHTML = "";
-    const detailHtml = sel ? recipeDetail(sel) : '<p class="fs-paragraph">Ingen oppskrifter her.</p>';
+    const detailHtml = sel ? recipeDetail(sel) : '<p class="lt-paragraph">Ingen oppskrifter her.</p>';
     wrap.innerHTML = `${menuTabs(filters, workshopFilter, "Slagene")}
       <div class="pick-side">
         <ul class="pick-list" role="listbox" aria-label="Oppskriftene">
@@ -2825,12 +2831,13 @@ function openPanel() {
   hud.hidden = true;
 
   $("panel-title").textContent = d.title ?? current.component;
-  $("panel-class").textContent = `.fs-${current.component}`;
-  $("panel-kind").textContent = d.description?.includes("Frittstående") ? "Frittstående komponent" : "CSS-komponent";
+  $("panel-class").textContent = `.lt-${current.component}`;
+  // Slaget står i beskrivelsen fra docs («Standalone component.» osv.).
+  $("panel-kind").textContent = d.description?.match(/\b(Standalone|Frame) component\b/)?.[0] ?? "CSS component";
   $("panel-description").textContent = d.description ?? "";
   $("panel-intro").innerHTML = inlineCode(d.intro ?? "");
   $("panel-code").textContent = d.code ?? "";
-  $("panel-link").href = d.url ?? "https://fristil.sobernetics.no/";
+  $("panel-link").href = d.url ?? "https://lo-tek.sobernetics.no/";
   renderDemo(d);
   panel.hidden = false;
   $("close").focus();
@@ -2852,40 +2859,43 @@ function closePanel(relock) {
   }
 }
 
-// Eksempelet fra dokumentasjonen, levende, i en flate slik Fristil-docs
-// viser den (Preview.astro): i en shadow root med bare Fristils CSS, så
+// Eksempelet fra dokumentasjonen, levende, i en flate slik LO-TEK-docs
+// viser den (Preview.astro): i en shadow root med bare LO-TEKs CSS, så
 // ingenting fra spillets stilark treffer komponentene. Flatens stilark
 // (`docs-flate.css`) skriver tools/export-docs.ts rett fra Preview.astro, så
-// panelet kjenner de samme layoutene som docs (Divider bruker `flyt`); dette
+// panelet kjenner de samme layoutene som docs (Divider bruker `flow`); dette
 // er reserven til det er hentet.
 const FLATE = `
   :host { display: block; }
-  .flate {
+  .surface {
     display: flex;
-    gap: var(--fs-spacing-3);
-    padding: var(--fs-spacing-6);
-    max-width: var(--fs-preview-max-width, none);
-    background: var(--fs-color-neutral-canvas);
-    color: var(--fs-color-neutral-text-strong);
-    border: 1px solid var(--fs-color-neutral-border-subtle);
-    border-radius: var(--fs-spacing-1);
+    gap: var(--lt-spacing-3);
+    padding: var(--lt-spacing-6);
+    max-width: var(--lt-preview-max-width, none);
+    background: var(--lt-color-neutral-canvas);
+    color: var(--lt-color-neutral-text-strong);
+    border: 1px solid var(--lt-color-neutral-border-subtle);
+    border-radius: var(--lt-spacing-1);
     font-family: inherit;
-    font-size: var(--fs-font-size-m);
+    font-size: var(--lt-font-size-m);
     line-height: 1.6;
   }
-  .flate[data-fast-inni] { contain: layout; }
-  .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
-  .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; }
-  .flate[data-layout="flyt"] { display: block; }
+  .surface[data-fixed-inside] { contain: layout; }
+  .surface[data-layout="row"] { flex-wrap: wrap; align-items: center; }
+  .surface[data-layout="stack"] { flex-direction: column; align-items: stretch; }
+  .surface[data-layout="flow"] { display: block; }
 `;
 // Det panelet legger til over docs-flaten.
 const FLATE_EXTRA = `
+  /* Spillet setter de norske tekstene på :root (style.css), og de arves inn
+     i shadow root. Boka er LO-TEK-docs på engelsk, så her gjelder LO-TEKs. */
+  :host { --lt-label-required-text: initial; --lt-label-optional-text: initial; }
   /* Docs-flaten gir <hr> nettleserens margin-inline: auto, og da blir
      skillelinja null bred i stabelen. I boka skal den synes. */
-  .flate > .fs-divider { margin-inline: 0; }
+  .surface > .lt-divider { margin-inline: 0; }
 `;
 
-// Fristils stilark hentes som tekst: kopierte regler (cssRules) mister
+// LO-TEKs stilark hentes som tekst: kopierte regler (cssRules) mister
 // `background: var(...)` når lengre ned i regelen setter enkeltdelene.
 const demoSheets = [new CSSStyleSheet(), new CSSStyleSheet()];
 demoSheets[1].replaceSync(FLATE + FLATE_EXTRA);
@@ -2893,24 +2903,24 @@ fetch("docs-flate.css")
   .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
   .then((css) => demoSheets[1].replace(css + FLATE_EXTRA))
   .catch((e) => console.warn("docs-flate.css til demoen:", e));
-fetch("fristil.css")
+fetch("lotek.css")
   .then((r) => r.text())
   .then((css) => demoSheets[0].replace(css))
-  .catch((e) => console.warn("fristil.css til demoen:", e));
+  .catch((e) => console.warn("lotek.css til demoen:", e));
 
 // Det skriptet ved siden av demoen i docs gjør (ToastDemo.astro osv.).
 const DEMO_ACTIONS = {
   toast: (root) =>
-    root.querySelector(".fs-button")?.addEventListener("click", () =>
-      root.querySelector("fs-toast")?.show("Søknaden er lagret", { color: "success" })),
+    root.querySelector(".lt-button")?.addEventListener("click", () =>
+      root.querySelector("lt-toast")?.show("The application has been saved", { color: "success" })),
   "connection-status": (root) => {
-    const status = root.querySelector("fs-connection-status");
-    root.getElementById("demo-samband-av")?.addEventListener("click", () => status?.reportFailure());
-    root.getElementById("demo-samband-pa")?.addEventListener("click", () => status?.reportSuccess());
+    const status = root.querySelector("lt-connection-status");
+    root.getElementById("demo-connection-off")?.addEventListener("click", () => status?.reportFailure());
+    root.getElementById("demo-connection-on")?.addEventListener("click", () => status?.reportSuccess());
   },
   dialog: (root) =>
-    root.querySelector("[data-apne]")?.addEventListener("click", () =>
-      root.querySelector("fs-dialog")?.setAttribute("open", "")),
+    root.querySelector("[data-open]")?.addEventListener("click", () =>
+      root.querySelector("lt-dialog")?.setAttribute("open", "")),
 };
 
 function renderDemo(d) {
@@ -2923,21 +2933,25 @@ function renderDemo(d) {
   }
   host.hidden = false;
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
-  root.adoptedStyleSheets = demoSheets;
+  // Eksempelets egen CSS (`extraCss`/`previewCss` i docs) sist, som i
+  // Preview.astro: i et <style> tapte den mot flaten i adoptedStyleSheets,
+  // som kommer etter i kaskaden (linja i Connection Status dekket knappen).
+  const own = new CSSStyleSheet();
+  own.replaceSync(demo.css ?? "");
+  root.adoptedStyleSheets = [...demoSheets, own];
   const tpl = document.createElement("template");
   tpl.innerHTML = demo.html;
-  // Lenker i eksemplene skal ikke føre noen steder.
-  for (const a of tpl.content.querySelectorAll("a[href]")) a.setAttribute("href", "#");
+  // Lenker i eksemplene skal ikke føre noen steder, men lenkene til et
+  // anker i eksempelet står: fanene i LO-TEK er lenker til panelene sine.
+  for (const a of tpl.content.querySelectorAll("a[href]")) if (!a.getAttribute("href").startsWith("#")) a.setAttribute("href", "#");
   for (const s of tpl.content.querySelectorAll("script")) s.remove();
-  const flate = document.createElement("div");
-  flate.className = "flate";
-  flate.dataset.layout = demo.layout || "rad";
-  if (demo.fixed) flate.dataset.fastInni = "";
-  if (demo.maxWidth) flate.style.setProperty("--fs-preview-max-width", demo.maxWidth);
-  flate.append(tpl.content);
-  const style = document.createElement("style");
-  style.textContent = demo.css ?? "";
-  root.replaceChildren(style, flate);
+  const surface = document.createElement("div");
+  surface.className = "surface";
+  surface.dataset.layout = demo.layout || "row";
+  if (demo.fixed) surface.dataset.fixedInside = "";
+  if (demo.maxWidth) surface.style.setProperty("--lt-preview-max-width", demo.maxWidth);
+  surface.append(tpl.content);
+  root.replaceChildren(surface);
   DEMO_ACTIONS[d.name]?.(root);
 }
 
@@ -3037,7 +3051,7 @@ async function runBench() {
   gateEl.hidden = true;
   engine.set_paused(false);
   const lines = [
-    `Fristad ${engine.fristil_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
+    `Fristad ${engine.lotek_version()} · ${engine.backend() === "Gl" ? "WebGL2" : "WebGPU"} · ${gpuName || "ukjent grafikk"}${softwareGpu ? " (programvare)" : ""}`,
     `${navigator.userAgent}`,
     `Lerret ${canvas.width}×${canvas.height} · vindu ${innerWidth}×${innerHeight} · dpr ${devicePixelRatio}`,
     "sted · nivå · kjøring → GPU ms (delene) · fps · trekanter og kall i hovedpasset · lerret",
@@ -3074,17 +3088,17 @@ async function runBench() {
 function showBench(text) {
   console.info(text);
   const dlg = document.createElement("dialog");
-  dlg.className = "fs-dialog settings-dialog";
+  dlg.className = "lt-dialog settings-dialog";
   dlg.setAttribute("aria-labelledby", "bench-title");
   dlg.innerHTML = `
-    <h2 class="fs-dialog__title" id="bench-title">Målingen</h2>
-    <div class="fs-dialog__body">
-      <p class="fs-help-text">Kopier teksten og send den til Claude.</p>
-      <textarea class="fs-textarea" rows="16" readonly style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+    <h2 class="lt-dialog__title" id="bench-title">Målingen</h2>
+    <div class="lt-dialog__body">
+      <p class="lt-help-text">Kopier teksten og send den til Claude.</p>
+      <textarea class="lt-textarea" rows="16" readonly style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
     </div>
-    <div class="fs-dialog__footer">
-      <button class="fs-button" data-variant="secondary" type="button" data-act="close">Lukk</button>
-      <button class="fs-button" data-variant="primary" type="button" data-act="copy">Kopier</button>
+    <div class="lt-dialog__footer">
+      <button class="lt-button" data-variant="secondary" type="button" data-act="close">Lukk</button>
+      <button class="lt-button" data-variant="primary" type="button" data-act="copy">Kopier</button>
     </div>`;
   document.body.appendChild(dlg);
   dlg.querySelector("textarea").value = text;

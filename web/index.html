@@ -7,11 +7,11 @@
   <!-- `?nivaa` uten navn: nivåredigeringen (web/nivaa.html). Med navn
        (`?nivaa=test`) spilles nivådokumentet som før. -->
   <script>if (new URLSearchParams(location.search).get("nivaa") === "") location.replace("nivaa.html" + location.search);</script>
-  <meta name="description" content="Fristad: en kjøpstad i 1350 med en krypt full av korrupte komponenter fra designsystemet Fristil.">
+  <meta name="description" content="Fristad: en kjøpstad i 1350 med en krypt full av korrupte komponenter fra designsystemet LO-TEK.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=UnifrakturMaguntia&family=Uncial+Antiqua&display=swap">
-  <link rel="stylesheet" href="fristil.css">
+  <link rel="stylesheet" href="lotek.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,17 +26,17 @@
          `#target` (eller `#foe`) midt på skjermen over stolpene. -->
     <span id="aim" class="aim" aria-hidden="true"><span class="crosshair"></span></span>
     <div id="vitals" class="vitals" hidden>
-      <p id="goal" class="goal fs-paragraph" data-size="small" aria-live="polite" hidden></p>
-      <span id="tokens" class="fs-badge" data-variant="accent">0 tokens</span>
-      <span id="keys" class="fs-badge" data-variant="warning" hidden>0 nøkler</span>
+      <p id="goal" class="goal lt-paragraph" data-size="small" aria-live="polite" hidden></p>
+      <span id="tokens" class="lt-badge" data-variant="accent">0 tokens</span>
+      <span id="keys" class="lt-badge" data-variant="warning" hidden>0 nøkler</span>
       <div id="boss" class="boss" hidden>
-        <label class="fs-label" for="boss-hp" id="boss-name">Rammeverket</label>
-        <progress id="boss-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+        <label class="lt-label" for="boss-hp" id="boss-name">Rammeverket</label>
+        <progress id="boss-hp" class="lt-progress" data-color="danger" max="100" value="100"></progress>
       </div>
       <div id="gear" class="gear"></div>
       <div id="inventory" class="inventory"></div>
     </div>
-    <!-- Kartet over etasjen i kjelleren: et Fristil-panel oppe til høyre som
+    <!-- Kartet over etasjen i kjelleren: et LO-TEK-panel oppe til høyre som
          dreier med deg, og det store kartet (K) med nord opp. Det du ikke
          har sett, er mørkt. -->
     <!-- Høyre side, ovenfra og ned: minikartet (bare i krypten) og tastene,
@@ -44,14 +44,14 @@
          seg over hverandre. -->
     <div id="side" class="side">
     <aside id="minimap" class="minimap" hidden aria-label="Kart over etasjen">
-      <div class="minimap-head"><span id="map-name" class="fs-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
+      <div class="minimap-head"><span id="map-name" class="lt-label">Etasje 1</span><span class="minimap-key"><kbd>K</kbd> kart</span></div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </aside>
-    <details id="keys-panel" class="fs-accordion keys-panel" open>
+    <details id="keys-panel" class="lt-accordion keys-panel" open>
       <summary>Taster <kbd>?</kbd></summary>
-      <div class="fs-accordion__content">
-        <table class="fs-table keys-table">
-          <caption class="fs-sr-only">Tastene i spillet</caption>
+      <div class="lt-accordion__content">
+        <table class="lt-table keys-table">
+          <caption class="lt-sr-only">Tastene i spillet</caption>
           <tbody id="fight-keys" hidden>
             <tr><th scope="row"><kbd>Venstre mus</kbd></th><td>Hugg (klikk), tungt hugg (hold)</td></tr>
             <tr><th scope="row"><kbd>Høyre mus</kbd></th><td>Blokk, parade i det bittet kommer</td></tr>
@@ -81,29 +81,29 @@
     </div>
     <section id="bigmap" class="bigmap" hidden aria-labelledby="bigmap-title">
       <div class="bigmap-card">
-        <div class="minimap-head"><h2 id="bigmap-title" class="fs-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
+        <div class="minimap-head"><h2 id="bigmap-title" class="lt-heading" data-size="s">Kart</h2><span class="minimap-key"><kbd>K</kbd> lukker</span></div>
         <canvas id="bigmap-canvas" width="640" height="640"></canvas>
-        <p class="fs-paragraph" data-size="small"><span class="legend legend-exit">▼</span> trappa ned · <span class="legend legend-gate">▮</span> portgitter · <span class="legend legend-chest">■</span> kiste · <span class="legend legend-ascend">▲</span> døra opp · <span class="legend legend-boss">●</span> Rammeverket</p>
+        <p class="lt-paragraph" data-size="small"><span class="legend legend-exit">▼</span> trappa ned · <span class="legend legend-gate">▮</span> portgitter · <span class="legend legend-chest">■</span> kiste · <span class="legend legend-ascend">▲</span> døra opp · <span class="legend legend-boss">●</span> Rammeverket</p>
       </div>
     </section>
     <!-- Journalen (J): målet nå og lappene og bøkene du har lest i krypten. -->
     <section id="journal" class="bigmap" hidden aria-labelledby="journal-title">
       <div class="bigmap-card journal-card">
-        <div class="minimap-head"><h2 id="journal-title" class="fs-heading" data-size="s">Journal</h2><span class="minimap-key"><kbd>J</kbd> lukker</span></div>
-        <p id="journal-goal" class="fs-paragraph"></p>
+        <div class="minimap-head"><h2 id="journal-title" class="lt-heading" data-size="s">Journal</h2><span class="minimap-key"><kbd>J</kbd> lukker</span></div>
+        <p id="journal-goal" class="lt-paragraph"></p>
         <div id="journal-lore" class="journal-lore"></div>
       </div>
     </section>
     <div id="marks" class="marks" aria-hidden="true"></div>
     <div id="bubbles" class="marks" aria-live="polite"></div>
     <div id="overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
-      <div class="overlay-inner fs-dialog">
-        <div class="fs-dialog__header menu-head">
-          <h2 id="overlay-title" class="fs-dialog__title">Butikk</h2>
-          <p id="overlay-sub" class="fs-dialog__subtitle" hidden></p>
+      <div class="overlay-inner lt-dialog">
+        <div class="lt-dialog__header menu-head">
+          <h2 id="overlay-title" class="lt-dialog__title">Butikk</h2>
+          <p id="overlay-sub" class="lt-dialog__subtitle" hidden></p>
         </div>
-        <div id="overlay-body" class="fs-dialog__body menu-body"></div>
-        <div class="fs-dialog__footer menu-foot"><div id="overlay-actions" class="menu-actions"></div><button id="overlay-close" class="fs-button" data-variant="secondary">Tilbake (E)</button></div>
+        <div id="overlay-body" class="lt-dialog__body menu-body"></div>
+        <div class="lt-dialog__footer menu-foot"><div id="overlay-actions" class="menu-actions"></div><button id="overlay-close" class="lt-button" data-variant="secondary">Tilbake (E)</button></div>
       </div>
     </div>
     <div class="bottom">
@@ -113,40 +113,40 @@
       <div id="aimed" class="aimed">
         <!-- Det du sikter på og kan bruke (folk, kister, spaker, dører, brønnen,
              galleriet, senga): navnet, hva det er, og tastene. -->
-        <section id="target" class="fs-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
-          <h2 id="prompt-name" class="fs-heading" data-size="s"></h2>
-          <p id="prompt-info" class="fs-paragraph" data-size="small"></p>
+        <section id="target" class="lt-card target" hidden aria-live="polite" aria-labelledby="prompt-name">
+          <h2 id="prompt-name" class="lt-heading" data-size="s"></h2>
+          <p id="prompt-info" class="lt-paragraph" data-size="small"></p>
           <p class="target-keys">
             <span id="key-use"><kbd>F</kbd> <span id="key-use-text">Bruk</span></span>
             <span id="key-trade"><kbd>E</kbd> <span id="key-trade-text">Handle</span></span>
           </p>
         </section>
         <!-- Fienden du sikter på: navnet, hva den er og livet. -->
-        <section id="foe" class="fs-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
-          <p class="foe-head"><span id="foe-rank" class="fs-tag" data-variant="filled" hidden>Elite</span><span id="foe-ranged" class="fs-tag" hidden>Skyter på avstand</span></p>
-          <h2 id="foe-name" class="fs-heading" data-size="s">Korrupt button</h2>
-          <p id="foe-info" class="fs-paragraph" data-size="small"></p>
+        <section id="foe" class="lt-card foe" hidden aria-live="polite" aria-labelledby="foe-name">
+          <p class="foe-head"><span id="foe-rank" class="lt-tag" data-variant="filled" hidden>Elite</span><span id="foe-ranged" class="lt-tag" hidden>Skyter på avstand</span></p>
+          <h2 id="foe-name" class="lt-heading" data-size="s">Korrupt button</h2>
+          <p id="foe-info" class="lt-paragraph" data-size="small"></p>
           <div class="foe-hp">
-            <div class="bar-head"><label class="fs-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
-            <progress id="foe-hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+            <div class="bar-head"><label class="lt-label" for="foe-hp">Liv</label><span id="foe-hp-text" class="bar-num">100 / 100</span></div>
+            <progress id="foe-hp" class="lt-progress" data-color="danger" max="100" value="100"></progress>
           </div>
         </section>
       </div>
-      <!-- Liv, energi og lys som Fristil-stolper nederst, som i Diablo:
+      <!-- Liv, energi og lys som LO-TEK-stolper nederst, som i Diablo:
            livet til venstre, energien (utholdenheten) til høyre. Tastene
            står i panelet oppe til høyre (#keys-panel). -->
       <div id="bars" class="bars">
         <div class="bar">
-          <div class="bar-head"><label class="fs-label" for="hp">Liv</label><span id="hp-text" class="bar-num">100 / 100</span></div>
-          <progress id="hp" class="fs-progress" data-color="danger" max="100" value="100"></progress>
+          <div class="bar-head"><label class="lt-label" for="hp">Liv</label><span id="hp-text" class="bar-num">100 / 100</span></div>
+          <progress id="hp" class="lt-progress" data-color="danger" max="100" value="100"></progress>
         </div>
         <div class="bar">
-          <div class="bar-head"><label class="fs-label" for="stamina">Energi</label><span id="stamina-text" class="bar-num">100 / 100</span></div>
-          <progress id="stamina" class="fs-progress" max="100" value="100"></progress>
+          <div class="bar-head"><label class="lt-label" for="stamina">Energi</label><span id="stamina-text" class="bar-num">100 / 100</span></div>
+          <progress id="stamina" class="lt-progress" max="100" value="100"></progress>
         </div>
         <div class="bar" id="light-bar">
-          <div class="bar-head"><label class="fs-label" for="light">Lys</label><span id="light-text" class="bar-num">100 %</span></div>
-          <progress id="light" class="fs-progress" data-color="warning" max="100" value="100"></progress>
+          <div class="bar-head"><label class="lt-label" for="light">Lys</label><span id="light-text" class="bar-num">100 %</span></div>
+          <progress id="light" class="lt-progress" data-color="warning" max="100" value="100"></progress>
         </div>
       </div>
     </div>
@@ -155,68 +155,68 @@
 
   <!-- Når spillet går uten fanget mus (etter filmen, eller når nettleseren ikke
        ga oss musa), sier denne at et klikk fanger den. -->
-  <button id="look" class="fs-button look-prompt" type="button" hidden>Klikk for å se deg rundt med musa</button>
+  <button id="look" class="lt-button look-prompt" type="button" hidden>Klikk for å se deg rundt med musa</button>
 
   <!-- Startskjerm og pause. Mens siden laster, viser kortet bare framdriften;
        Grafikk og Innstillinger hører til pausemenyen (pause() i main.js). -->
   <section id="gate" class="overlay gate-first">
-    <div class="fs-card gate-card">
-      <p class="eyebrow">Fristil <span id="version"></span></p>
-      <h1 class="fs-heading" data-size="xl">Fristad</h1>
-      <p class="fs-paragraph" data-variant="lead">Fristils spillbare dokumentasjon. Komponentene du vinner i krypten, er de ekte: les boka om hver av dem, smi dem om til utstyr, og heng dem på veggen hjemme.</p>
+    <div class="lt-card gate-card">
+      <p class="eyebrow">LO-TEK <span id="version"></span></p>
+      <h1 class="lt-heading" data-size="xl">Fristad</h1>
+      <p class="lt-paragraph" data-variant="lead">LO-TEKs spillbare dokumentasjon. Komponentene du vinner i krypten, er de ekte: les boka om hver av dem, smi dem om til utstyr, og heng dem på veggen hjemme.</p>
       <div id="status" class="status" role="status">
-        <span class="fs-spinner" aria-hidden="true"></span>
+        <span class="lt-spinner" aria-hidden="true"></span>
         <span>Laster motoren …</span>
       </div>
-      <progress id="loading" class="fs-progress" max="100" aria-label="Laster Fristad"></progress>
+      <progress id="loading" class="lt-progress" max="100" aria-label="Laster Fristad"></progress>
       <div class="gate-actions">
-        <button id="begin" class="fs-button" hidden>Se introfilmen</button>
-        <button id="enter" class="fs-button" hidden>Gå inn i Fristad</button>
-        <button id="respawn" class="fs-button" data-variant="secondary" hidden>Tilbake til sørporten</button>
-        <button id="replay" class="fs-button" data-variant="secondary" type="button" hidden>Se filmen på nytt</button>
-        <button id="quit" class="fs-button" data-variant="ghost" hidden>Avslutt</button>
-        <button id="graphics" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" hidden title="Grafikkinnstillingene: forhåndsvalg og hver bryter for seg (tasten G bytter forhåndsvalg)">Grafikk: standard</button>
-        <button id="settings" class="fs-button" data-variant="secondary" type="button" hidden title="Grafikk og oppløsning (tasten O)">Innstillinger</button>
+        <button id="begin" class="lt-button" hidden>Se introfilmen</button>
+        <button id="enter" class="lt-button" hidden>Gå inn i Fristad</button>
+        <button id="respawn" class="lt-button" data-variant="secondary" hidden>Tilbake til sørporten</button>
+        <button id="replay" class="lt-button" data-variant="secondary" type="button" hidden>Se filmen på nytt</button>
+        <button id="quit" class="lt-button" data-variant="ghost" hidden>Avslutt</button>
+        <button id="graphics" class="lt-button" data-variant="secondary" type="button" aria-pressed="true" hidden title="Grafikkinnstillingene: forhåndsvalg og hver bryter for seg (tasten G bytter forhåndsvalg)">Grafikk: standard</button>
+        <button id="settings" class="lt-button" data-variant="secondary" type="button" hidden title="Grafikk og oppløsning (tasten O)">Innstillinger</button>
       </div>
-      <div id="gpu-warning" class="fs-alert" data-color="warning" role="alert" hidden>
-        <p class="fs-alert__title">Nettleseren tegner uten grafikkortet</p>
+      <div id="gpu-warning" class="lt-alert" data-color="warning" role="alert" hidden>
+        <p class="lt-alert__title">Nettleseren tegner uten grafikkortet</p>
         <p>Spillet går da svært tregt, uansett hvor kraftig maskinen er (<span id="gpu-name">programvare</span>). Slå på maskinvareakselerasjon: i Chrome og Edge under Innstillinger → System → «Bruk grafikkakselerasjon når tilgjengelig», og start nettleseren på nytt. <code>chrome://gpu</code> viser om WebGL og WebGPU er «Hardware accelerated». Er det slått av av IT på jobb-PC-en, hjelper standard grafikk litt.</p>
-        <p><button id="gpu-reduced" class="fs-button" data-variant="secondary" type="button">Bruk enkel grafikk</button></p>
+        <p><button id="gpu-reduced" class="lt-button" data-variant="secondary" type="button">Bruk enkel grafikk</button></p>
       </div>
-      <div id="touch-note" class="fs-alert" data-color="info" role="alert" hidden>
-        <p class="fs-alert__title">Fristad spilles på datamaskin</p>
+      <div id="touch-note" class="lt-alert" data-color="info" role="alert" hidden>
+        <p class="lt-alert__title">Fristad spilles på datamaskin</p>
         <p>Spillet trenger mus, tastatur og grafikkortet i en PC eller Mac, og går ikke på mobil eller nettbrett. Åpne fristad.netlify.app i Chrome, Edge, Safari eller Firefox på en datamaskin.</p>
       </div>
-      <p class="fs-paragraph credits" data-size="small">Lydopptak fra 0 A.D. (Wildfire Games), Flare, Minetest Game og Still North Media, CC BY-SA 3.0, CC BY 3.0 og CC0. <a class="fs-link" href="sounds/CREDITS.md" target="_blank" rel="noopener">Hvem som laget hver lyd</a>. Musikken er laget for Fristad.</p>
+      <p class="lt-paragraph credits" data-size="small">Lydopptak fra 0 A.D. (Wildfire Games), Flare, Minetest Game og Still North Media, CC BY-SA 3.0, CC BY 3.0 og CC0. <a class="lt-link" href="sounds/CREDITS.md" target="_blank" rel="noopener">Hvem som laget hver lyd</a>. Musikken er laget for Fristad.</p>
     </div>
   </section>
 
   <!-- Boka: dokumentasjonen for en komponent du har vunnet. -->
   <aside id="panel" class="panel" hidden aria-labelledby="panel-title">
     <div class="panel-inner">
-      <p class="eyebrow"><span id="panel-kind" class="fs-tag" data-variant="filled">CSS-komponent</span></p>
-      <h2 id="panel-title" class="fs-heading" data-size="l">Button</h2>
-      <p><code id="panel-class">.fs-button</code></p>
-      <p id="panel-description" class="fs-paragraph" data-variant="lead"></p>
-      <p id="panel-intro" class="fs-paragraph"></p>
+      <p class="eyebrow"><span id="panel-kind" class="lt-tag" data-variant="filled">CSS component</span></p>
+      <h2 id="panel-title" class="lt-heading" data-size="l">Button</h2>
+      <p><code id="panel-class">.lt-button</code></p>
+      <p id="panel-description" class="lt-paragraph" data-variant="lead"></p>
+      <p id="panel-intro" class="lt-paragraph"></p>
 
-      <h3 class="fs-heading" data-size="s">Slik ser den ut</h3>
-      <p class="fs-paragraph" data-size="small">Dette er den ekte komponenten, fra samme CSS som i produksjon.</p>
+      <h3 class="lt-heading" data-size="s">Slik ser den ut</h3>
+      <p class="lt-paragraph" data-size="small">Dette er den ekte komponenten, fra samme CSS som i produksjon.</p>
       <div id="demo" class="demo"></div>
 
-      <h3 class="fs-heading" data-size="s">Kode</h3>
+      <h3 class="lt-heading" data-size="s">Kode</h3>
       <pre class="code"><code id="panel-code"></code></pre>
 
-      <p><a id="panel-link" class="fs-link" href="#" target="_blank" rel="noopener">Les hele dokumentasjonen</a></p>
+      <p><a id="panel-link" class="lt-link" href="#" target="_blank" rel="noopener">Les hele dokumentasjonen</a></p>
 
       <div class="panel-actions">
-        <button id="close" class="fs-button">Tilbake til Fristad</button>
+        <button id="close" class="lt-button">Tilbake til Fristad</button>
       </div>
     </div>
   </aside>
 
-  <!-- Meldingskøen er Fristils frittstående toast. -->
-  <fs-toast class="fs-toast" role="status" aria-live="polite" aria-atomic="false" aria-label="Varsler" data-ignore-morph></fs-toast>
+  <!-- Meldingskøen er LO-TEKs frittstående toast. -->
+  <lt-toast class="lt-toast" role="status" aria-live="polite" aria-atomic="false" aria-label="Varsler" label="Varsler" close-label="Lukk melding" data-ignore-morph></lt-toast>
 
   <script type="module" src="main.js"></script>
 </body>

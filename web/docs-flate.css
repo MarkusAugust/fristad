@@ -2,42 +2,43 @@
 	display: block;
 }
 
-.flate {
+.surface {
 	display: flex;
-	gap: var(--fs-spacing-3);
-	padding: var(--fs-spacing-6);
-	max-width: var(--fs-preview-max-width, none);
-	background: var(--fs-color-neutral-canvas);
-	color: var(--fs-color-neutral-text-strong);
-	border: 1px solid var(--fs-color-neutral-border-subtle);
-	border-radius: var(--fs-spacing-1);
+	gap: var(--lt-spacing-3);
+	padding: var(--lt-spacing-6);
+	max-width: var(--lt-preview-max-width, none);
+	background: var(--lt-color-neutral-canvas);
+	color: var(--lt-color-neutral-text-strong);
+	border: 1px solid var(--lt-color-neutral-border-subtle);
+	border-radius: var(--lt-spacing-1);
 	font-family: inherit;
-	font-size: var(--fs-font-size-m);
+	font-size: var(--lt-font-size-m);
 	line-height: 1.6;
 }
 
-/* Bare for visningen. Layout-inneslutning gjør boksen til utgangspunktet
-   for et fastposisjonert barn, slik at leseren ser resultatet der hun
-   trykket framfor i toppen av vinduet. En konsument trenger ikke dette,
-   og skal ikke kopiere det. */
-.flate[data-fast-inni] {
+/* Only for the preview. Layout containment makes the box the containing
+   block for a fixed-position child, so the reader sees the result where
+   they pressed rather than at the top of the window. A consumer does not
+   need this, and should not copy it. */
+.surface[data-fixed-inside] {
 	contain: layout;
 }
 
-.flate[data-layout="rad"] {
+.surface[data-layout="row"] {
 	flex-wrap: wrap;
 	align-items: center;
 }
 
-.flate[data-layout="stabel"] {
+.surface[data-layout="stack"] {
 	flex-direction: column;
 	align-items: stretch;
 }
 
-.flate[data-layout="flyt"] {
+.surface[data-layout="flow"] {
 	display: block;
 }
 
-/* Bevisst ingen reset her. Flaten skal vise nøyaktig det en konsument får
-   med stilarkene under og nettleserens egne standardverdier. Ser noe rart
-   ut, er det komponenten som mangler noe, ikke forhåndsvisningen. */
+/* Deliberately no reset here. The surface must show exactly what a
+   consumer gets with the stylesheets below and the browser's own
+   defaults. If something looks odd, it is the component that is missing
+   something, not the preview. */

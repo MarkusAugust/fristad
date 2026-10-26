@@ -1,4 +1,4 @@
-//! Det fiendene mister: tokenene (glødende brikker i Fristils farger som
+//! Det fiendene mister: tokenene (glødende brikker i LO-TEKs farger som
 //! spretter ut, faller og suges mot deg; eieren 13. oktober) og nøklene.
 
 use crate::domain::scene::ModelInstance;
@@ -15,11 +15,11 @@ pub struct Token {
     /// Farten: tokenene spretter ut når fienden dør, faller, og suges mot
     /// deg når du er nær (nøklene ligger stille).
     pub vel: Vec3,
-    /// Hvilken Fristil-farge (`TOKEN_COLORS`).
+    /// Hvilken LO-TEK-farge (`TOKEN_COLORS`).
     pub color: u8,
 }
 
-/// Fargene tokenene gløder i: fyllfargene i Fristils mørke tema (0.31),
+/// Fargene tokenene gløder i: fyllfargene i LO-TEKs mørke tema (0.31),
 /// accent, brand 1–3, success, warning og danger.
 pub const TOKEN_COLORS: [Vec3; 7] = [
     Vec3::new(0x49 as f32 / 255.0, 0x92 as f32 / 255.0, 0xe2 as f32 / 255.0),

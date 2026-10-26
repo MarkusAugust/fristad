@@ -1,8 +1,8 @@
 # Fristad
 
-Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypten, og der nede holder de korrupte komponentene fra designsystemet [Fristil](https://github.com/MarkusAugust/fristil) til: buttons med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
+Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypten, og der nede holder de korrupte komponentene fra designsystemet [LO-TEK](https://github.com/MarkusAugust/lo-tek) til: buttons med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
 
-Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypten smis til våpen, skjold og rustning hos Buttonsmeden og i Skriptoriet, der oppskriftene er Fristil-skjemaer. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
+Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypten smis til våpen, skjold og rustning hos Buttonsmeden og i Skriptoriet, der oppskriftene er LO-TEK-skjemaer. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
 
 Alt du ser er egne modeller laget i Blender med håndlagde teksturer, og motoren er skrevet fra bunnen i Rust.
 

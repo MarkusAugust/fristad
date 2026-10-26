@@ -7,6 +7,6 @@
     "build:web": "sh tools/build-web.sh"
   },
   "dependencies": {
-    "@fristil/designsystem": "^0.31.0"
+    "@lo-tek/interfaces": "file:./vendor/lo-tek"
   }
 }

@@ -2,508 +2,508 @@
   "button": {
     "name": "button",
     "title": "Button",
-    "description": "Knapp for handlinger. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Klassen settes på et vanlig `<button>`. Ingen JavaScript lastes, og den virker likt i alle rammeverk.",
-    "code": "<button class=\"fs-button\">Send søknad</button>\n<button class=\"fs-button\" data-variant=\"secondary\">Lagre utkast</button>\n<button class=\"fs-button\" data-variant=\"ghost\">Legg til vedlegg</button>\n<button class=\"fs-button\" data-variant=\"danger\">Slett søknad</button>",
+    "description": "A button for actions. CSS component with one class and no JavaScript.",
+    "intro": "The class goes on an ordinary `<button>`. No JavaScript is loaded, and it works the same in every framework.",
+    "code": "<button class=\"lt-button\">Send application</button>\n<button class=\"lt-button\" data-variant=\"secondary\">Save draft</button>\n<button class=\"lt-button\" data-variant=\"ghost\">Add attachment</button>\n<button class=\"lt-button\" data-variant=\"danger\">Delete application</button>",
     "demo": {
-      "html": "<button class=\"fs-button\">Send søknad</button>\n<button class=\"fs-button\" data-variant=\"secondary\">Lagre utkast</button>\n<button class=\"fs-button\" data-variant=\"ghost\">Legg til vedlegg</button>\n<button class=\"fs-button\" data-variant=\"danger\">Slett søknad</button>",
-      "layout": "rad",
+      "html": "<button class=\"lt-button\">Send application</button>\n<button class=\"lt-button\" data-variant=\"secondary\">Save draft</button>\n<button class=\"lt-button\" data-variant=\"ghost\">Add attachment</button>\n<button class=\"lt-button\" data-variant=\"danger\">Delete application</button>",
+      "layout": "row",
       "maxWidth": "",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/button/"
+    "url": "https://lo-tek.sobernetics.no/components/button/"
   },
   "alert": {
     "name": "alert",
     "title": "Alert",
-    "description": "Melding som gjelder hele siden eller hele skjemaet. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "En boks som sier noe om helheten: at søknaden ble sendt, at tjenesten er nede, at fristen nærmer seg. Gjelder meldingen ett felt, hører den hjemme under feltet som [Error Text](../error-text/) eller [Help Text](../help-text/).",
-    "code": "<div class=\"fs-alert\">\n  <p class=\"fs-alert__title\">Saken er registrert</p>\n  <p>Du får svar innen tre uker.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"info\">\n  <p>Vi har oppdatert tjenesten. Du må logge inn på nytt.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"success\">\n  <p>Søknaden er sendt. Kvittering er på vei til e-posten din.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"warning\">\n  <p>Søknadsfristen går ut om tre dager.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"danger\">\n  <p class=\"fs-alert__title\">Søknaden ble ikke sendt</p>\n  <p>Nettverket svarte ikke. Prøv igjen om litt.</p>\n</div>",
+    "description": "A message about the whole page or the whole form. CSS component with two classes and no JavaScript.",
+    "intro": "A box that says something about the whole: that the application was sent, that the service is down, that the deadline is approaching. If the message is about one field, it belongs under the field as an [Error Text](../error-text/) or a [Help Text](../help-text/).",
+    "code": "<div class=\"lt-alert\">\n  <p class=\"lt-alert__title\">Your case has been registered</p>\n  <p>You will get a reply within three weeks.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"info\">\n  <p>We have updated the service. You need to sign in again.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"success\">\n  <p>Your application has been sent. A receipt is on its way to your email.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"warning\">\n  <p>The application deadline is in three days.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"danger\">\n  <p class=\"lt-alert__title\">Your application was not sent</p>\n  <p>The network did not respond. Try again in a moment.</p>\n</div>",
     "demo": {
-      "html": "<div class=\"fs-alert\">\n  <p class=\"fs-alert__title\">Saken er registrert</p>\n  <p>Du får svar innen tre uker.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"info\">\n  <p>Vi har oppdatert tjenesten. Du må logge inn på nytt.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"success\">\n  <p>Søknaden er sendt. Kvittering er på vei til e-posten din.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"warning\">\n  <p>Søknadsfristen går ut om tre dager.</p>\n</div>\n\n<div class=\"fs-alert\" data-color=\"danger\">\n  <p class=\"fs-alert__title\">Søknaden ble ikke sendt</p>\n  <p>Nettverket svarte ikke. Prøv igjen om litt.</p>\n</div>",
-      "layout": "stabel",
+      "html": "<div class=\"lt-alert\">\n  <p class=\"lt-alert__title\">Your case has been registered</p>\n  <p>You will get a reply within three weeks.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"info\">\n  <p>We have updated the service. You need to sign in again.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"success\">\n  <p>Your application has been sent. A receipt is on its way to your email.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"warning\">\n  <p>The application deadline is in three days.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"danger\">\n  <p class=\"lt-alert__title\">Your application was not sent</p>\n  <p>The network did not respond. Try again in a moment.</p>\n</div>",
+      "layout": "stack",
       "maxWidth": "34rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/alert/"
+    "url": "https://lo-tek.sobernetics.no/components/alert/"
   },
   "tag": {
     "name": "tag",
     "title": "Tag",
-    "description": "Merkelapp for emneord og filtre. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "En merkelapp merker innhold: emneord på en artikkel, valgte filtre over en liste. Sier lappen hvilken tilstand noe er i, som «Innvilget» eller «Forfalt», er [Badge](../badge/) riktig i stedet.",
-    "code": "<span class=\"fs-tag\">Bostøtte</span>\n<span class=\"fs-tag\" data-variant=\"filled\">Barnehage</span>\n<span class=\"fs-tag\" aria-disabled=\"true\">Arkivert</span>",
+    "description": "A tag for topics and filters. A CSS component with one class and no JavaScript.",
+    "intro": "A tag labels content: topics on an article, chosen filters above a list. If the tag says what state something is in, such as \"Approved\" or \"Overdue\", [Badge](../badge/) is the right choice instead.",
+    "code": "<span class=\"lt-tag\">Housing benefit</span>\n<span class=\"lt-tag\" data-variant=\"filled\">Nursery</span>\n<span class=\"lt-tag\" aria-disabled=\"true\">Archived</span>",
     "demo": {
-      "html": "<span class=\"fs-tag\">Bostøtte</span>\n<span class=\"fs-tag\" data-variant=\"filled\">Barnehage</span>\n<span class=\"fs-tag\" aria-disabled=\"true\">Arkivert</span>",
-      "layout": "rad",
+      "html": "<span class=\"lt-tag\">Housing benefit</span>\n<span class=\"lt-tag\" data-variant=\"filled\">Nursery</span>\n<span class=\"lt-tag\" aria-disabled=\"true\">Archived</span>",
+      "layout": "row",
       "maxWidth": "",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/tag/"
+    "url": "https://lo-tek.sobernetics.no/components/tag/"
   },
   "badge": {
     "name": "badge",
     "title": "Badge",
-    "description": "Kompakt statusmerke. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Et lite merke som viser hvilken tilstand noe er i. Fargen styres med `data-color`.",
-    "code": "<span class=\"fs-badge\">Under behandling</span>\n<span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n<span class=\"fs-badge\" data-color=\"warning\">Mangler vedlegg</span>\n<span class=\"fs-badge\" data-color=\"danger\">Avslått</span>\n<span class=\"fs-badge\" data-color=\"neutral\">Arkivert</span>",
+    "description": "Compact status badge. A CSS component with one class and no JavaScript.",
+    "intro": "A small badge that shows what state something is in. The colour is set with `data-color`.",
+    "code": "<span class=\"lt-badge\">In progress</span>\n<span class=\"lt-badge\" data-color=\"success\">Approved</span>\n<span class=\"lt-badge\" data-color=\"warning\">Attachment missing</span>\n<span class=\"lt-badge\" data-color=\"danger\">Rejected</span>\n<span class=\"lt-badge\" data-color=\"neutral\">Archived</span>",
     "demo": {
-      "html": "<span class=\"fs-badge\">Under behandling</span>\n<span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n<span class=\"fs-badge\" data-color=\"warning\">Mangler vedlegg</span>\n<span class=\"fs-badge\" data-color=\"danger\">Avslått</span>\n<span class=\"fs-badge\" data-color=\"neutral\">Arkivert</span>",
-      "layout": "rad",
+      "html": "<span class=\"lt-badge\">In progress</span>\n<span class=\"lt-badge\" data-color=\"success\">Approved</span>\n<span class=\"lt-badge\" data-color=\"warning\">Attachment missing</span>\n<span class=\"lt-badge\" data-color=\"danger\">Rejected</span>\n<span class=\"lt-badge\" data-color=\"neutral\">Archived</span>",
+      "layout": "row",
       "maxWidth": "",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/badge/"
+    "url": "https://lo-tek.sobernetics.no/components/badge/"
   },
   "switch": {
     "name": "switch",
     "title": "Switch",
-    "description": "Bryter for en innstilling som slår inn med en gang. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "En avkryssingsboks med `role=\"switch\"`. Skjermlesere sier da «på» og «av» framfor «avkrysset», mens tastaturet og `FormData` virker som for en vanlig boks.",
-    "code": "<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"epost\" checked />\n  <label class=\"fs-label\" for=\"epost\">Varsle meg på e-post</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"sms\" />\n  <label class=\"fs-label\" for=\"sms\">Varsle meg på SMS</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"brev\" disabled />\n  <label class=\"fs-label\" for=\"brev\">Varsle meg i posten</label>\n</div>",
+    "description": "A switch for a setting that takes effect immediately. CSS component with two classes and no JavaScript.",
+    "intro": "A checkbox with `role=\"switch\"`. Screen readers then say \"on\" and \"off\" instead of \"checked\", while the keyboard and `FormData` work as for an ordinary checkbox.",
+    "code": "<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"email\" checked />\n  <label class=\"lt-label\" for=\"email\">Notify me by email</label>\n</div>\n\n<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"sms\" />\n  <label class=\"lt-label\" for=\"sms\">Notify me by text message</label>\n</div>\n\n<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"post\" disabled />\n  <label class=\"lt-label\" for=\"post\">Notify me by post</label>\n</div>",
     "demo": {
-      "html": "<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"epost\" checked />\n  <label class=\"fs-label\" for=\"epost\">Varsle meg på e-post</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"sms\" />\n  <label class=\"fs-label\" for=\"sms\">Varsle meg på SMS</label>\n</div>\n\n<div class=\"fs-switch-row\">\n  <input class=\"fs-switch\" type=\"checkbox\" role=\"switch\" id=\"brev\" disabled />\n  <label class=\"fs-label\" for=\"brev\">Varsle meg i posten</label>\n</div>",
-      "layout": "stabel",
+      "html": "<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"email\" checked />\n  <label class=\"lt-label\" for=\"email\">Notify me by email</label>\n</div>\n\n<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"sms\" />\n  <label class=\"lt-label\" for=\"sms\">Notify me by text message</label>\n</div>\n\n<div class=\"lt-switch-row\">\n  <input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"post\" disabled />\n  <label class=\"lt-label\" for=\"post\">Notify me by post</label>\n</div>",
+      "layout": "stack",
       "maxWidth": "28rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/switch/"
+    "url": "https://lo-tek.sobernetics.no/components/switch/"
   },
   "spinner": {
     "name": "spinner",
     "title": "Spinner",
-    "description": "Venteindikator for noe som pågår. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "En ring som snurrer mens noe lastes. Vet du hvor lenge det tar, eller hvor langt det er kommet, er [Progress](../progress/) bedre. Denne sier bare at noe pågår.",
-    "code": "<span class=\"fs-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>",
+    "description": "A wait indicator for something in progress. CSS component with one class and no JavaScript.",
+    "intro": "A ring that spins while something loads. If you know how long it takes, or how far it has got, [Progress](../progress/) is better. This one only says that something is in progress.",
+    "code": "<span class=\"lt-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>",
     "demo": {
-      "html": "<span class=\"fs-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" aria-hidden=\"true\"></span>\n<span class=\"fs-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>",
-      "layout": "rad",
+      "html": "<span class=\"lt-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>",
+      "layout": "row",
       "maxWidth": "",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/spinner/"
+    "url": "https://lo-tek.sobernetics.no/components/spinner/"
   },
   "breadcrumbs": {
     "name": "breadcrumbs",
     "title": "Breadcrumbs",
-    "description": "Brødsmulesti som viser hvor på siden brukeren er. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Stien fra forsiden til der brukeren står nå. Klassen settes på en `<ol>` inne i en `<nav>`: rekkefølgen betyr noe, så listen må være nummerert selv om tallene ikke vises.",
-    "code": "<nav aria-label=\"Du er her\">\n  <ol class=\"fs-breadcrumbs\">\n    <li><a href=\"#\">Forsiden</a></li>\n    <li><a href=\"#\">Mine saker</a></li>\n    <li><a href=\"#\" aria-current=\"page\">Søknad 2026-0481</a></li>\n  </ol>\n</nav>",
+    "description": "A breadcrumb trail that shows where on the site the user is. A CSS component with one class and no JavaScript.",
+    "intro": "The path from the front page to where the user is now. The class goes on an `<ol>` inside a `<nav>`: the order matters, so the list has to be numbered even though the numbers are not shown.",
+    "code": "<nav aria-label=\"You are here\">\n  <ol class=\"lt-breadcrumbs\">\n    <li><a href=\"#\">Home</a></li>\n    <li><a href=\"#\">My cases</a></li>\n    <li><a href=\"#\" aria-current=\"page\">Application 2026-0481</a></li>\n  </ol>\n</nav>",
     "demo": {
-      "html": "<nav aria-label=\"Du er her\">\n  <ol class=\"fs-breadcrumbs\">\n    <li><a href=\"#\">Forsiden</a></li>\n    <li><a href=\"#\">Mine saker</a></li>\n    <li><a href=\"#\" aria-current=\"page\">Søknad 2026-0481</a></li>\n  </ol>\n</nav>",
-      "layout": "stabel",
+      "html": "<nav aria-label=\"You are here\">\n  <ol class=\"lt-breadcrumbs\">\n    <li><a href=\"#\">Home</a></li>\n    <li><a href=\"#\">My cases</a></li>\n    <li><a href=\"#\" aria-current=\"page\">Application 2026-0481</a></li>\n  </ol>\n</nav>",
+      "layout": "stack",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/breadcrumbs/"
+    "url": "https://lo-tek.sobernetics.no/components/breadcrumbs/"
   },
   "progress": {
     "name": "progress",
     "title": "Progress",
-    "description": "Framdriftsstolpe for noe som har en ende. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Klassen settes på et ekte `<progress>`. Elementet har semantikken innebygd: nettleseren melder det som `role=\"progressbar\"` og leser opp hvor langt det er kommet, så du skriver verken rolle, `aria-valuenow` eller `aria-valuemax`. Bygger du stolpen av `<div>`-er, må du skrive alt det selv, og holde det i takt med tallet.",
-    "code": "<progress class=\"fs-progress\" value=\"3\" max=\"7\"\n          aria-label=\"Steg 3 av 7\"></progress>\n\n<progress class=\"fs-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n          aria-label=\"Opplastingen er ferdig\"></progress>\n\n<progress class=\"fs-progress\" aria-label=\"Henter søknadene dine\"></progress>",
+    "description": "A progress bar for something that has an end. CSS component with one class and no JavaScript.",
+    "intro": "The class goes on a real `<progress>`. The element has the semantics built in: the browser reports it as `role=\"progressbar\"` and announces how far it has got, so you write neither a role, `aria-valuenow` nor `aria-valuemax`. If you build the bar from `<div>` elements, you have to write all of that yourself, and keep it in step with the number.",
+    "code": "<progress class=\"lt-progress\" value=\"3\" max=\"7\"\n          aria-label=\"Application progress\" aria-valuetext=\"Step 3 of 7\"></progress>\n\n<progress class=\"lt-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n          aria-label=\"Upload complete\"></progress>\n\n<progress class=\"lt-progress\" aria-label=\"Fetching your applications\"></progress>",
     "demo": {
-      "html": "<progress class=\"fs-progress\" value=\"3\" max=\"7\"\n          aria-label=\"Steg 3 av 7\"></progress>\n\n<progress class=\"fs-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n          aria-label=\"Opplastingen er ferdig\"></progress>\n\n<progress class=\"fs-progress\" aria-label=\"Henter søknadene dine\"></progress>",
-      "layout": "stabel",
+      "html": "<progress class=\"lt-progress\" value=\"3\" max=\"7\"\n          aria-label=\"Application progress\" aria-valuetext=\"Step 3 of 7\"></progress>\n\n<progress class=\"lt-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n          aria-label=\"Upload complete\"></progress>\n\n<progress class=\"lt-progress\" aria-label=\"Fetching your applications\"></progress>",
+      "layout": "stack",
       "maxWidth": "26rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/progress/"
+    "url": "https://lo-tek.sobernetics.no/components/progress/"
   },
   "toast": {
     "name": "toast",
     "title": "Toast",
-    "description": "Kø av korte meldinger i hjørnet av skjermen. Frittstående komponent.",
-    "intro": "Elementet er beholderen, ikke meldingen. Du legger det inn én gang i appen og kaller `show()` når noe skal meldes.",
-    "code": "<fs-toast id=\"meldinger\" class=\"fs-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Meldinger\" data-ignore-morph></fs-toast>\n\n<button class=\"fs-button\" id=\"lagre\" type=\"button\">Lagre søknaden</button>",
+    "description": "A queue of short messages in the corner of the screen. Standalone component.",
+    "intro": "The element is the container, not the message. You add it once in the app and call `show()` when there is something to report.",
+    "code": "<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Messages\" data-ignore-morph></lt-toast>\n\n<button class=\"lt-button\" id=\"save\" type=\"button\">Save application</button>",
     "demo": {
-      "html": "<button class=\"fs-button\" id=\"demo-toast-knapp\" type=\"button\">Lagre søknaden</button> <fs-toast id=\"demo-toast-kø\" label=\"Meldinger\"></fs-toast>",
-      "layout": "rad",
+      "html": "<button class=\"lt-button\" id=\"demo-toast-button\" type=\"button\">Save the application</button> <lt-toast id=\"demo-toast-queue\" label=\"Notifications\"></lt-toast>",
+      "layout": "row",
       "maxWidth": "30rem",
-      "css": "/* Bare for visningen: meldingene legger seg i hjørnet av boksen, slik de\n\t\t   legger seg i hjørnet av vinduet i en app. Høyden gir dem plass. */\n\t\t.flate { min-block-size: 10rem; }",
+      "css": "/* Only for the preview: the messages sit in the corner of the box, as\n\t\t   they sit in the corner of the window in an app. The height gives them\n\t\t   room. */\n\t\t.surface { min-block-size: 10rem; }",
       "fixed": true
     },
-    "url": "https://fristil.sobernetics.no/components/toast/"
+    "url": "https://lo-tek.sobernetics.no/components/toast/"
   },
   "skeleton": {
     "name": "skeleton",
     "title": "Skeleton",
-    "description": "Plassholder som viser formen på innhold som lastes. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Grå former som viser hvor innholdet kommer. De er alltid skjult for skjermlesere, så ventingen må meldes ett sted i tillegg. Er det ingen form å vise, eller tar ventingen kort tid, er [Spinner](../spinner/) enklere.",
-    "code": "<div class=\"fs-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-siste-linje\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-bilde\" aria-hidden=\"true\"></div>",
+    "description": "A placeholder that shows the shape of content being loaded. A CSS component with one class and no JavaScript.",
+    "intro": "Grey shapes that show where the content will appear. They are always hidden from screen readers, so the wait has to be announced somewhere as well. If there is no shape to show, or the wait is short, [Spinner](../spinner/) is simpler.",
+    "code": "<div class=\"lt-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton case-last-line\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton case-image\" aria-hidden=\"true\"></div>",
     "demo": {
-      "html": "<div class=\"fs-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-siste-linje\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"fs-skeleton sak-bilde\" aria-hidden=\"true\"></div>",
-      "layout": "stabel",
+      "html": "<div class=\"lt-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton case-last-line\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton case-image\" aria-hidden=\"true\"></div>",
+      "layout": "stack",
       "maxWidth": "26rem",
-      "css": "/* Dine egne klasser. De to reglene er alt som skal til. */\n.sak-siste-linje {\n  inline-size: 70%;\n}\n\n.sak-bilde {\n  --fs-skeleton-height: var(--fs-spacing-12);\n}",
+      "css": "/* Your own classes. These two rules are all it takes. */\n.case-last-line {\n  inline-size: 70%;\n}\n\n.case-image {\n  --lt-skeleton-height: var(--lt-spacing-12);\n}",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/skeleton/"
+    "url": "https://lo-tek.sobernetics.no/components/skeleton/"
   },
   "connection-status": {
     "name": "connection-status",
     "title": "Connection Status",
-    "description": "Sier fra når forbindelsen til serveren er borte. Frittstående komponent.",
-    "intro": "En side som mister forbindelsen ser helt normal ut, men er frosset. Fyller brukeren ut et skjema inn i en død forbindelse, er alt borte når hun trykker send.",
-    "code": "<fs-connection-status class=\"fs-connection-status\" data-ignore-morph></fs-connection-status>",
+    "description": "Tells the user when the connection to the server is gone. Standalone component.",
+    "intro": "A page that loses its connection looks completely normal, but is frozen. If the user fills in a form over a dead connection, everything is gone when she presses send.",
+    "code": "<lt-connection-status class=\"lt-connection-status\" data-ignore-morph></lt-connection-status>",
     "demo": {
-      "html": "<div class=\"demo-samband-knapper\"> <button class=\"fs-button\" id=\"demo-samband-av\" type=\"button\">Simuler at kallet feiler</button> <button class=\"fs-button\" data-variant=\"secondary\" id=\"demo-samband-pa\" type=\"button\">Simuler at det virker igjen</button> </div> <fs-connection-status class=\"fs-connection-status\" data-ignore-morph></fs-connection-status>",
-      "layout": "stabel",
+      "html": "<div class=\"demo-connection-buttons\"> <button class=\"lt-button\" id=\"demo-connection-off\" type=\"button\">Simulate a failed request</button> <button class=\"lt-button\" data-variant=\"secondary\" id=\"demo-connection-on\" type=\"button\">Simulate it working again</button> </div> <lt-connection-status class=\"lt-connection-status\" data-ignore-morph></lt-connection-status>",
+      "layout": "stack",
       "maxWidth": "34rem",
-      "css": "/* Bare for visningen: linja legger seg øverst i boksen, slik den legger\n\t\t   seg øverst i vinduet i en app. Plassen her gjør at den ikke dekker\n\t\t   knappene. En konsument trenger ingenting av dette. */\n\t\t.flate { padding-block-start: var(--fs-spacing-12); }",
+      "css": "/* Only for the preview: the bar sits at the top of the box, as it sits\n\t\t   at the top of the window in an app. The space here keeps it from\n\t\t   covering the buttons. A consumer needs none of this. */\n\t\t.surface { padding-block-start: var(--lt-spacing-12); }",
       "fixed": true
     },
-    "url": "https://fristil.sobernetics.no/components/connection-status/"
+    "url": "https://lo-tek.sobernetics.no/components/connection-status/"
   },
   "dialog": {
     "name": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog bygget på det native dialog-elementet. Seks klasser og ingen JavaScript, med en valgfri komponent for servere som ikke kan kalle showModal().",
-    "intro": "Klassen settes på et `<dialog>`, og resten er nettleserens eget element. Har appen din JavaScript i nettleseren, trenger du ingenting fra Fristil: åpne dialogen med `showModal()`, lukk den med `close()`.",
-    "code": "<button class=\"fs-button\" data-variant=\"danger\" id=\"apne\" type=\"button\">\n  Slett søknaden\n</button>\n\n<dialog class=\"fs-dialog\" id=\"bekreft\" aria-labelledby=\"bekreft-tittel\">\n  <h2 class=\"fs-dialog__title\" id=\"bekreft-tittel\">Slette søknaden?</h2>\n  <div class=\"fs-dialog__body\">\n    <p>Søknaden og vedleggene blir borte. Dette kan ikke angres.</p>\n  </div>\n  <form method=\"dialog\" class=\"fs-dialog__footer\">\n    <button class=\"fs-button\" data-variant=\"secondary\" value=\"avbryt\">Avbryt</button>\n    <button class=\"fs-button\" data-variant=\"danger\" value=\"slett\">Slett søknaden</button>\n  </form>\n</dialog>",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "intro": "The class goes on a `<dialog>`, and the rest is the browser's own element. If your app runs JavaScript in the browser, you need nothing from LO-TEK: open the dialog with `showModal()` and close it with `close()`.",
+    "code": "<button class=\"lt-button\" data-variant=\"danger\" id=\"open-confirm\" type=\"button\">\n  Delete the application\n</button>\n\n<dialog class=\"lt-dialog\" id=\"confirm\" aria-labelledby=\"confirm-title\">\n  <h2 class=\"lt-dialog__title\" id=\"confirm-title\">Delete the application?</h2>\n  <div class=\"lt-dialog__body\">\n    <p>The application and its attachments will be gone. This cannot be undone.</p>\n  </div>\n  <form method=\"dialog\" class=\"lt-dialog__footer\">\n    <button class=\"lt-button\" data-variant=\"secondary\" value=\"cancel\">Cancel</button>\n    <button class=\"lt-button\" data-variant=\"danger\" value=\"delete\">Delete the application</button>\n  </form>\n</dialog>",
     "demo": {
-      "html": "<button class=\"fs-button\" data-variant=\"danger\" type=\"button\" data-apne>Slett søknaden</button> <fs-dialog> <dialog class=\"fs-dialog\" aria-labelledby=\"demo-dialog-tittel\" data-color=\"danger\"> <div class=\"fs-dialog__header\"> <h2 class=\"fs-dialog__title\" id=\"demo-dialog-tittel\">Slette søknaden?</h2> <p class=\"fs-dialog__subtitle\">Dette kan ikke angres</p> </div> <div class=\"fs-dialog__body\"> <p>Søknaden og vedleggene blir borte. Dette kan ikke angres.</p> </div> <form method=\"dialog\" class=\"fs-dialog__footer\"> <button class=\"fs-button\" data-variant=\"secondary\" value=\"avbryt\">Avbryt</button> <button class=\"fs-button\" data-variant=\"danger\" value=\"slett\">Slett søknaden</button> </form> </dialog> </fs-dialog>",
-      "layout": "rad",
+      "html": "<button class=\"lt-button\" data-variant=\"danger\" type=\"button\" data-open>Delete the application</button> <lt-dialog> <dialog class=\"lt-dialog\" aria-labelledby=\"demo-dialog-title\" data-color=\"danger\"> <div class=\"lt-dialog__header\"> <h2 class=\"lt-dialog__title\" id=\"demo-dialog-title\">Delete the application?</h2> <p class=\"lt-dialog__subtitle\">This cannot be undone</p> </div> <div class=\"lt-dialog__body\"> <p>The application and its attachments will be gone. This cannot be undone.</p> </div> <form method=\"dialog\" class=\"lt-dialog__footer\"> <button class=\"lt-button\" data-variant=\"secondary\" value=\"cancel\">Cancel</button> <button class=\"lt-button\" data-variant=\"danger\" value=\"delete\">Delete the application</button> </form> </dialog> </lt-dialog>",
+      "layout": "row",
       "maxWidth": "30rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/dialog/"
+    "url": "https://lo-tek.sobernetics.no/components/dialog/"
   },
   "tabs": {
     "name": "tabs",
     "title": "Tabs",
-    "description": "Fanerad koblet til panelene sine. Rammekomponent.",
-    "intro": "Komponenten tar piltastene, og kobler fanene til panelene når markupen kommer uten koblingen.",
-    "code": "<fs-tabs id=\"saksfaner\">\n  <div class=\"fs-tabs__list\" aria-label=\"Deler av saken\">\n    <button>Søknaden</button>\n    <button>Vedlegg</button>\n  </div>\n  <div class=\"fs-tabs__panel\">Søknaden</div>\n  <div class=\"fs-tabs__panel\">Vedlegg</div>\n</fs-tabs>",
+    "description": "Tab list of links to their panels. Frame component.",
+    "intro": "The tabs are links to their panels. Without JavaScript the row is a table of contents, and the panels follow one after another below it. With JavaScript the component turns the links into tabs: Tab skips past the whole row and into the selected panel, the arrow keys move between the tabs, and the screen reader says \"tab, 2 of 3, selected\" where it would otherwise have said \"link\".",
+    "code": "<lt-tabs id=\"case-tabs\">\n  <ul class=\"lt-tabs__list\" aria-label=\"Parts of the case\">\n    <li><a href=\"#application\">Application</a></li>\n    <li><a href=\"#attachments\">Attachments</a></li>\n  </ul>\n  <section class=\"lt-tabs__panel\" id=\"application\">\n    <h2>Application</h2>\n    <p>The application was sent on 4 March 2026.</p>\n  </section>\n  <section class=\"lt-tabs__panel\" id=\"attachments\">\n    <h2>Attachments</h2>\n    <p>Three attachments have been uploaded.</p>\n  </section>\n</lt-tabs>",
     "demo": {
-      "html": "<fs-tabs> <div class=\"fs-tabs__list\" role=\"tablist\" aria-label=\"Deler av saken\"><button id=\"demo-tab-0\" role=\"tab\" type=\"button\" aria-selected=\"true\" aria-controls=\"demo-panel-0\" tabindex=\"0\">Søknaden</button><button id=\"demo-tab-1\" role=\"tab\" type=\"button\" aria-selected=\"false\" aria-controls=\"demo-panel-1\" tabindex=\"-1\">Vedlegg</button><button id=\"demo-tab-2\" role=\"tab\" type=\"button\" aria-selected=\"false\" aria-controls=\"demo-panel-2\" tabindex=\"-1\">Meldinger</button></div><div id=\"demo-panel-0\" class=\"fs-tabs__panel\" role=\"tabpanel\" aria-labelledby=\"demo-tab-0\" tabindex=\"0\"> <p class=\"fs-paragraph\">Søknaden ble sendt 4. mars 2026. Saksnummer 2026-0481.</p> </div><div id=\"demo-panel-1\" class=\"fs-tabs__panel\" role=\"tabpanel\" aria-labelledby=\"demo-tab-1\" tabindex=\"0\" hidden> <p class=\"fs-paragraph\">Tre vedlegg er lastet opp. Siste kom 6. mars.</p> </div><div id=\"demo-panel-2\" class=\"fs-tabs__panel\" role=\"tabpanel\" aria-labelledby=\"demo-tab-2\" tabindex=\"0\" hidden> <p class=\"fs-paragraph\">Ingen meldinger i denne saken ennå.</p> </div></fs-tabs>",
-      "layout": "rad",
+      "html": "<lt-tabs> <ul class=\"lt-tabs__list\" aria-label=\"Parts of the case\"><li><a href=\"#demo-application\">Application</a></li><li><a href=\"#demo-attachments\">Attachments</a></li><li><a href=\"#demo-messages\">Messages</a></li></ul><section id=\"demo-application\" class=\"lt-tabs__panel\"> <h3 id=\"demo-application-heading\">Application</h3> <p class=\"lt-paragraph\">The application was sent on 4 March 2026. Case number 2026-0481.</p> </section><section id=\"demo-attachments\" class=\"lt-tabs__panel\"> <h3 id=\"demo-attachments-heading\">Attachments</h3> <p class=\"lt-paragraph\">Three attachments have been uploaded. The last one arrived on 6 March.</p> </section><section id=\"demo-messages\" class=\"lt-tabs__panel\"> <h3 id=\"demo-messages-heading\">Messages</h3> <p class=\"lt-paragraph\">No messages in this case yet.</p> </section></lt-tabs>",
+      "layout": "row",
       "maxWidth": "34rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/tabs/"
+    "url": "https://lo-tek.sobernetics.no/components/tabs/"
   },
   "card": {
     "name": "card",
     "title": "Card",
-    "description": "Boks som samler innhold som hører sammen. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "En ramme rundt innhold som hører sammen, som én sak i en liste over saker. Kortet er en beholder, ikke en komponent med oppførsel: det er innholdet som bestemmer hva brukeren kan gjøre.",
-    "code": "<div class=\"fs-card\">\n  <h3 class=\"fs-card__title\">Søknad om bostøtte</h3>\n  <p>Sendt 4. mars. Saksnummer 2026-0481.</p>\n  <span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n</div>\n\n<div class=\"fs-card\" data-variant=\"filled\">\n  <h3 class=\"fs-card__title\">Søknad om barnehageplass</h3>\n  <p>Vi mangler fødselsattest før vi kan behandle søknaden.</p>\n  <button class=\"fs-button\" data-variant=\"secondary\">Last opp vedlegg</button>\n</div>",
+    "description": "A box that groups content that belongs together. A CSS component with two classes and no JavaScript.",
+    "intro": "A frame around content that belongs together, such as one case in a list of cases. The card is a container, not a component with behaviour: the content decides what the user can do.",
+    "code": "<div class=\"lt-card\">\n  <h3 class=\"lt-card__title\">Housing benefit application</h3>\n  <p>Sent 4 March. Case number 2026-0481.</p>\n  <span class=\"lt-badge\" data-color=\"success\">Approved</span>\n</div>\n\n<div class=\"lt-card\" data-variant=\"filled\">\n  <h3 class=\"lt-card__title\">Nursery place application</h3>\n  <p>We need a birth certificate before we can process the application.</p>\n  <button class=\"lt-button\" data-variant=\"secondary\">Upload attachment</button>\n</div>",
     "demo": {
-      "html": "<div class=\"fs-card\">\n  <h3 class=\"fs-card__title\">Søknad om bostøtte</h3>\n  <p>Sendt 4. mars. Saksnummer 2026-0481.</p>\n  <span class=\"fs-badge\" data-color=\"success\">Innvilget</span>\n</div>\n\n<div class=\"fs-card\" data-variant=\"filled\">\n  <h3 class=\"fs-card__title\">Søknad om barnehageplass</h3>\n  <p>Vi mangler fødselsattest før vi kan behandle søknaden.</p>\n  <button class=\"fs-button\" data-variant=\"secondary\">Last opp vedlegg</button>\n</div>",
-      "layout": "stabel",
+      "html": "<div class=\"lt-card\">\n  <h3 class=\"lt-card__title\">Housing benefit application</h3>\n  <p>Sent 4 March. Case number 2026-0481.</p>\n  <span class=\"lt-badge\" data-color=\"success\">Approved</span>\n</div>\n\n<div class=\"lt-card\" data-variant=\"filled\">\n  <h3 class=\"lt-card__title\">Nursery place application</h3>\n  <p>We need a birth certificate before we can process the application.</p>\n  <button class=\"lt-button\" data-variant=\"secondary\">Upload attachment</button>\n</div>",
+      "layout": "stack",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/card/"
+    "url": "https://lo-tek.sobernetics.no/components/card/"
   },
   "accordion": {
     "name": "accordion",
     "title": "Accordion",
-    "description": "Panel som kan foldes ut, bygget på details og summary. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Klassen settes på et `<details>` med et `<summary>` først. Nettleseren tar seg av åpning, lukking, tastatur og at skjermlesere melder «utvidet» eller «sammenfoldet».",
-    "code": "<details class=\"fs-accordion\">\n  <summary>Hvem kan søke om bostøtte?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p>\n  </div>\n</details>\n\n<details class=\"fs-accordion\" open>\n  <summary>Hvor lang er behandlingstiden?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Vi behandler søknaden innen tre uker. Mangler vi vedlegg, får du beskjed i digital postkasse.</p>\n  </div>\n</details>",
+    "description": "A panel that can be expanded, built on details and summary. CSS component with two classes and no JavaScript.",
+    "intro": "The class goes on a `<details>` with a `<summary>` first. The browser handles opening, closing, the keyboard and screen readers announcing \"expanded\" or \"collapsed\".",
+    "code": "<details class=\"lt-accordion\">\n  <summary>Who can apply for housing benefit?</summary>\n  <div class=\"lt-accordion__content\">\n    <p>Anyone who lives in the home and is registered at the address can apply. You must be over 18, or have children of your own living with you.</p>\n  </div>\n</details>\n\n<details class=\"lt-accordion\" open>\n  <summary>How long does processing take?</summary>\n  <div class=\"lt-accordion__content\">\n    <p>We process the application within three weeks. If attachments are missing, you will be told in your digital mailbox.</p>\n  </div>\n</details>",
     "demo": {
-      "html": "<details class=\"fs-accordion\">\n  <summary>Hvem kan søke om bostøtte?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Alle som bor og er folkeregistrert i boligen kan søke. Du må være over 18 år, eller ha egne barn boende hos deg.</p>\n  </div>\n</details>\n\n<details class=\"fs-accordion\" open>\n  <summary>Hvor lang er behandlingstiden?</summary>\n  <div class=\"fs-accordion__content\">\n    <p>Vi behandler søknaden innen tre uker. Mangler vi vedlegg, får du beskjed i digital postkasse.</p>\n  </div>\n</details>",
-      "layout": "stabel",
+      "html": "<details class=\"lt-accordion\">\n  <summary>Who can apply for housing benefit?</summary>\n  <div class=\"lt-accordion__content\">\n    <p>Anyone who lives in the home and is registered at the address can apply. You must be over 18, or have children of your own living with you.</p>\n  </div>\n</details>\n\n<details class=\"lt-accordion\" open>\n  <summary>How long does processing take?</summary>\n  <div class=\"lt-accordion__content\">\n    <p>We process the application within three weeks. If attachments are missing, you will be told in your digital mailbox.</p>\n  </div>\n</details>",
+      "layout": "stack",
       "maxWidth": "34rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/accordion/"
+    "url": "https://lo-tek.sobernetics.no/components/accordion/"
   },
   "input": {
     "name": "input",
     "title": "Input",
-    "description": "Tekstfelt for skjema, med tilstander for gyldig og ugyldig. CSS-komponent.",
-    "intro": "Ren CSS på et vanlig `<input>`, så nettleserens egen validering, autofyll og tastaturhåndtering virker som før.",
-    "code": "<label class=\"fs-label\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" placeholder=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"bekreft\">Bekreft e-postadresse</label>\n<input class=\"fs-input\" id=\"bekreft\" type=\"email\" data-state=\"success\" value=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"reserve\">Reserve-e-post</label>\n<input class=\"fs-input\" id=\"reserve\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"ola&#64;\" />\n\n<label class=\"fs-label\" for=\"registrert\">Registrert e-postadresse</label>\n<input class=\"fs-input\" id=\"registrert\" type=\"email\" value=\"ola&#64;eksempel.no\" disabled />",
+    "description": "A text field for forms, with states for valid and invalid. CSS component.",
+    "intro": "Plain CSS on an ordinary `<input>`, so the browser's own validation, autofill and keyboard handling work as before.",
+    "code": "<label class=\"lt-label\" for=\"email\">Email address</label>\n<input class=\"lt-input\" id=\"email\" type=\"email\" placeholder=\"alex&#64;example.com\" />\n\n<label class=\"lt-label\" for=\"confirm\">Confirm email address</label>\n<input class=\"lt-input\" id=\"confirm\" type=\"email\" data-state=\"success\" value=\"alex&#64;example.com\" />\n\n<label class=\"lt-label\" for=\"backup\">Backup email</label>\n<input class=\"lt-input\" id=\"backup\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"alex&#64;\" />\n\n<label class=\"lt-label\" for=\"registered\">Registered email address</label>\n<input class=\"lt-input\" id=\"registered\" type=\"email\" value=\"alex&#64;example.com\" disabled />",
     "demo": {
-      "html": "<label class=\"fs-label\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" placeholder=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"bekreft\">Bekreft e-postadresse</label>\n<input class=\"fs-input\" id=\"bekreft\" type=\"email\" data-state=\"success\" value=\"ola&#64;eksempel.no\" />\n\n<label class=\"fs-label\" for=\"reserve\">Reserve-e-post</label>\n<input class=\"fs-input\" id=\"reserve\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"ola&#64;\" />\n\n<label class=\"fs-label\" for=\"registrert\">Registrert e-postadresse</label>\n<input class=\"fs-input\" id=\"registrert\" type=\"email\" value=\"ola&#64;eksempel.no\" disabled />",
-      "layout": "stabel",
+      "html": "<label class=\"lt-label\" for=\"email\">Email address</label>\n<input class=\"lt-input\" id=\"email\" type=\"email\" placeholder=\"alex&#64;example.com\" />\n\n<label class=\"lt-label\" for=\"confirm\">Confirm email address</label>\n<input class=\"lt-input\" id=\"confirm\" type=\"email\" data-state=\"success\" value=\"alex&#64;example.com\" />\n\n<label class=\"lt-label\" for=\"backup\">Backup email</label>\n<input class=\"lt-input\" id=\"backup\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"alex&#64;\" />\n\n<label class=\"lt-label\" for=\"registered\">Registered email address</label>\n<input class=\"lt-input\" id=\"registered\" type=\"email\" value=\"alex&#64;example.com\" disabled />",
+      "layout": "stack",
       "maxWidth": "26rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/input/"
+    "url": "https://lo-tek.sobernetics.no/components/input/"
   },
   "select": {
     "name": "select",
     "title": "Select",
-    "description": "Nedtrekksliste. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Samme utseende og tilstander som [Input](../input/), på et ekte `<select>`. Da brukes nettleserens egen liste, den som allerede virker med tastatur, skjermleser og mobilens innebygde velger.",
-    "code": "<label class=\"fs-label\" for=\"fylke\">Fylke</label>\n<select class=\"fs-select\" id=\"fylke\" name=\"fylke\">\n  <option value=\"\">Velg fylke</option>\n  <option>Innlandet</option>\n  <option selected>Vestland</option>\n  <option>Troms</option>\n</select>\n\n<label class=\"fs-label\" for=\"kommune\">Kommune</label>\n<select class=\"fs-select\" id=\"kommune\" data-state=\"invalid\" aria-invalid=\"true\">\n  <option value=\"\" selected>Velg kommune</option>\n</select>\n\n<label class=\"fs-label\" for=\"registrert\">Registrert fylke</label>\n<select class=\"fs-select\" id=\"registrert\" disabled>\n  <option selected>Vestland</option>\n</select>",
+    "description": "A dropdown list. CSS component with one class and no JavaScript.",
+    "intro": "The same appearance and states as [Input](../input/), on a real `<select>`. The browser's own list is then used, the one that already works with the keyboard, screen readers and the phone's built-in picker.",
+    "code": "<label class=\"lt-label\" for=\"country\">Country</label>\n<select class=\"lt-select\" id=\"country\" name=\"country\">\n  <option value=\"\">Choose a country</option>\n  <option>Canada</option>\n  <option selected>Ireland</option>\n  <option>United Kingdom</option>\n</select>\n\n<label class=\"lt-label\" for=\"city\">City</label>\n<select class=\"lt-select\" id=\"city\" data-state=\"invalid\" aria-invalid=\"true\">\n  <option value=\"\" selected>Choose a city</option>\n</select>\n\n<label class=\"lt-label\" for=\"registered\">Registered country</label>\n<select class=\"lt-select\" id=\"registered\" disabled>\n  <option selected>Ireland</option>\n</select>",
     "demo": {
-      "html": "<label class=\"fs-label\" for=\"fylke\">Fylke</label>\n<select class=\"fs-select\" id=\"fylke\" name=\"fylke\">\n  <option value=\"\">Velg fylke</option>\n  <option>Innlandet</option>\n  <option selected>Vestland</option>\n  <option>Troms</option>\n</select>\n\n<label class=\"fs-label\" for=\"kommune\">Kommune</label>\n<select class=\"fs-select\" id=\"kommune\" data-state=\"invalid\" aria-invalid=\"true\">\n  <option value=\"\" selected>Velg kommune</option>\n</select>\n\n<label class=\"fs-label\" for=\"registrert\">Registrert fylke</label>\n<select class=\"fs-select\" id=\"registrert\" disabled>\n  <option selected>Vestland</option>\n</select>",
-      "layout": "stabel",
+      "html": "<label class=\"lt-label\" for=\"country\">Country</label>\n<select class=\"lt-select\" id=\"country\" name=\"country\">\n  <option value=\"\">Choose a country</option>\n  <option>Canada</option>\n  <option selected>Ireland</option>\n  <option>United Kingdom</option>\n</select>\n\n<label class=\"lt-label\" for=\"city\">City</label>\n<select class=\"lt-select\" id=\"city\" data-state=\"invalid\" aria-invalid=\"true\">\n  <option value=\"\" selected>Choose a city</option>\n</select>\n\n<label class=\"lt-label\" for=\"registered\">Registered country</label>\n<select class=\"lt-select\" id=\"registered\" disabled>\n  <option selected>Ireland</option>\n</select>",
+      "layout": "stack",
       "maxWidth": "26rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/select/"
+    "url": "https://lo-tek.sobernetics.no/components/select/"
   },
   "checkbox": {
     "name": "checkbox",
     "title": "Checkbox",
-    "description": "Avkryssingsboks for valg som står for seg selv. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Ren CSS på et vanlig `<input type=\"checkbox\">`, så tastatur, `FormData` og nettleserens egen validering virker som før. Skal brukeren velge ett av flere alternativer, er [Radio](../radio/) riktig. Er valget av eller på for en innstilling som slår inn med en gang, bruk [Switch](../switch/).",
-    "code": "<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"vilkar\" />\n  <label class=\"fs-label\" for=\"vilkar\">Jeg godtar vilkårene</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"nyhetsbrev\" checked />\n  <label class=\"fs-label\" for=\"nyhetsbrev\">Send meg nyhetsbrev</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"bekreft\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"fs-label\" for=\"bekreft\">Jeg bekrefter at opplysningene stemmer</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"arkivert\" checked disabled />\n  <label class=\"fs-label\" for=\"arkivert\">Saken er arkivert</label>\n</div>",
+    "description": "A checkbox for a choice that stands on its own. CSS component with two classes and no JavaScript.",
+    "intro": "Plain CSS on an ordinary `<input type=\"checkbox\">`, so the keyboard, `FormData` and the browser's own validation work as before. If the user should choose one of several options, [Radio](../radio/) is right. If the choice turns a setting on or off and takes effect at once, use [Switch](../switch/).",
+    "code": "<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"terms\" />\n  <label class=\"lt-label\" for=\"terms\">I accept the terms</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"newsletter\" checked />\n  <label class=\"lt-label\" for=\"newsletter\">Send me newsletters</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"confirm\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"lt-label\" for=\"confirm\">I confirm that the information is correct</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"archived\" checked disabled />\n  <label class=\"lt-label\" for=\"archived\">The case is archived</label>\n</div>",
     "demo": {
-      "html": "<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"vilkar\" />\n  <label class=\"fs-label\" for=\"vilkar\">Jeg godtar vilkårene</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"nyhetsbrev\" checked />\n  <label class=\"fs-label\" for=\"nyhetsbrev\">Send meg nyhetsbrev</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"bekreft\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"fs-label\" for=\"bekreft\">Jeg bekrefter at opplysningene stemmer</label>\n</div>\n\n<div class=\"fs-checkbox-row\">\n  <input class=\"fs-checkbox\" type=\"checkbox\" id=\"arkivert\" checked disabled />\n  <label class=\"fs-label\" for=\"arkivert\">Saken er arkivert</label>\n</div>",
-      "layout": "stabel",
+      "html": "<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"terms\" />\n  <label class=\"lt-label\" for=\"terms\">I accept the terms</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"newsletter\" checked />\n  <label class=\"lt-label\" for=\"newsletter\">Send me newsletters</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"confirm\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"lt-label\" for=\"confirm\">I confirm that the information is correct</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"archived\" checked disabled />\n  <label class=\"lt-label\" for=\"archived\">The case is archived</label>\n</div>",
+      "layout": "stack",
       "maxWidth": "28rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/checkbox/"
+    "url": "https://lo-tek.sobernetics.no/components/checkbox/"
   },
   "radio": {
     "name": "radio",
     "title": "Radio",
-    "description": "Radioknapper for ett valg blant flere. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Ren CSS på et vanlig `<input type=\"radio\">`. Knappene i en gruppe kobles sammen av `name`, og det er den koblingen som gjør at bare én kan være valgt, og at piltastene flytter mellom dem.",
-    "code": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvordan vil du ha svaret?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-digital\" name=\"svar\" value=\"digital\" checked />\n    <label class=\"fs-label\" for=\"svar-digital\">I digital postkasse</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-post\" name=\"svar\" value=\"post\" />\n    <label class=\"fs-label\" for=\"svar-post\">Som brev i posten</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-hentes\" name=\"svar\" value=\"hentes\" disabled />\n    <label class=\"fs-label\" for=\"svar-hentes\">Hentes på kontoret</label>\n  </div>\n</fieldset>",
+    "description": "Radio buttons for one choice among several. A CSS component with two classes and no JavaScript.",
+    "intro": "Plain CSS on an ordinary `<input type=\"radio\">`. The buttons in a group are tied together by `name`, and that is what lets only one be selected, and lets the arrow keys move between them.",
+    "code": "<fieldset class=\"lt-fieldset\">\n  <legend class=\"lt-legend\" data-required=\"symbol\">How do you want to receive the answer?</legend>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-digital\" name=\"reply\" value=\"digital\" checked />\n    <label class=\"lt-label\" for=\"reply-digital\">In your digital mailbox</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-post\" name=\"reply\" value=\"post\" />\n    <label class=\"lt-label\" for=\"reply-post\">As a letter in the post</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-collect\" name=\"reply\" value=\"collect\" disabled />\n    <label class=\"lt-label\" for=\"reply-collect\">Collect at the office</label>\n  </div>\n</fieldset>",
     "demo": {
-      "html": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvordan vil du ha svaret?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-digital\" name=\"svar\" value=\"digital\" checked />\n    <label class=\"fs-label\" for=\"svar-digital\">I digital postkasse</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-post\" name=\"svar\" value=\"post\" />\n    <label class=\"fs-label\" for=\"svar-post\">Som brev i posten</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"svar-hentes\" name=\"svar\" value=\"hentes\" disabled />\n    <label class=\"fs-label\" for=\"svar-hentes\">Hentes på kontoret</label>\n  </div>\n</fieldset>",
-      "layout": "stabel",
+      "html": "<fieldset class=\"lt-fieldset\">\n  <legend class=\"lt-legend\" data-required=\"symbol\">How do you want to receive the answer?</legend>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-digital\" name=\"reply\" value=\"digital\" checked />\n    <label class=\"lt-label\" for=\"reply-digital\">In your digital mailbox</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-post\" name=\"reply\" value=\"post\" />\n    <label class=\"lt-label\" for=\"reply-post\">As a letter in the post</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"reply-collect\" name=\"reply\" value=\"collect\" disabled />\n    <label class=\"lt-label\" for=\"reply-collect\">Collect at the office</label>\n  </div>\n</fieldset>",
+      "layout": "stack",
       "maxWidth": "28rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/radio/"
+    "url": "https://lo-tek.sobernetics.no/components/radio/"
   },
   "textarea": {
     "name": "textarea",
     "title": "Textarea",
-    "description": "Flerlinjet tekstfelt. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Samme utseende og tilstander som [Input](../input/), for svar som blir lengre enn én linje.",
-    "code": "<label class=\"fs-label\" for=\"begrunnelse\">Begrunnelse</label>\n<textarea class=\"fs-textarea\" id=\"begrunnelse\" rows=\"3\"\n  placeholder=\"Skriv en kort begrunnelse\"></textarea>\n\n<label class=\"fs-label\" for=\"melding\">Melding til saksbehandler</label>\n<textarea class=\"fs-textarea\" id=\"melding\"\n  data-state=\"success\">Jeg flytter til ny adresse 1. juni.</textarea>\n\n<label class=\"fs-label\" for=\"svar\">Utfyllende svar</label>\n<textarea class=\"fs-textarea\" id=\"svar\"\n  data-state=\"invalid\" aria-invalid=\"true\">For kort</textarea>\n\n<label class=\"fs-label\" for=\"merknad\">Merknad</label>\n<textarea class=\"fs-textarea\" id=\"merknad\"\n  disabled>Saken er avsluttet og kan ikke endres.</textarea>",
+    "description": "A multi-line text field. A CSS component with one class and no JavaScript.",
+    "intro": "The same look and states as [Input](../input/), for answers longer than one line.",
+    "code": "<label class=\"lt-label\" for=\"reason\">Reason</label>\n<textarea class=\"lt-textarea\" id=\"reason\" rows=\"3\"\n  placeholder=\"Write a short reason\"></textarea>\n\n<label class=\"lt-label\" for=\"message\">Message to the caseworker</label>\n<textarea class=\"lt-textarea\" id=\"message\"\n  data-state=\"success\">I am moving to a new address on 1 June.</textarea>\n\n<label class=\"lt-label\" for=\"answer\">Detailed answer</label>\n<textarea class=\"lt-textarea\" id=\"answer\"\n  data-state=\"invalid\" aria-invalid=\"true\">Too short</textarea>\n\n<label class=\"lt-label\" for=\"note\">Note</label>\n<textarea class=\"lt-textarea\" id=\"note\"\n  disabled>The case is closed and cannot be changed.</textarea>",
     "demo": {
-      "html": "<label class=\"fs-label\" for=\"begrunnelse\">Begrunnelse</label>\n<textarea class=\"fs-textarea\" id=\"begrunnelse\" rows=\"3\"\n  placeholder=\"Skriv en kort begrunnelse\"></textarea>\n\n<label class=\"fs-label\" for=\"melding\">Melding til saksbehandler</label>\n<textarea class=\"fs-textarea\" id=\"melding\"\n  data-state=\"success\">Jeg flytter til ny adresse 1. juni.</textarea>\n\n<label class=\"fs-label\" for=\"svar\">Utfyllende svar</label>\n<textarea class=\"fs-textarea\" id=\"svar\"\n  data-state=\"invalid\" aria-invalid=\"true\">For kort</textarea>\n\n<label class=\"fs-label\" for=\"merknad\">Merknad</label>\n<textarea class=\"fs-textarea\" id=\"merknad\"\n  disabled>Saken er avsluttet og kan ikke endres.</textarea>",
-      "layout": "stabel",
+      "html": "<label class=\"lt-label\" for=\"reason\">Reason</label>\n<textarea class=\"lt-textarea\" id=\"reason\" rows=\"3\"\n  placeholder=\"Write a short reason\"></textarea>\n\n<label class=\"lt-label\" for=\"message\">Message to the caseworker</label>\n<textarea class=\"lt-textarea\" id=\"message\"\n  data-state=\"success\">I am moving to a new address on 1 June.</textarea>\n\n<label class=\"lt-label\" for=\"answer\">Detailed answer</label>\n<textarea class=\"lt-textarea\" id=\"answer\"\n  data-state=\"invalid\" aria-invalid=\"true\">Too short</textarea>\n\n<label class=\"lt-label\" for=\"note\">Note</label>\n<textarea class=\"lt-textarea\" id=\"note\"\n  disabled>The case is closed and cannot be changed.</textarea>",
+      "layout": "stack",
       "maxWidth": "26rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/textarea/"
+    "url": "https://lo-tek.sobernetics.no/components/textarea/"
   },
   "table": {
     "name": "table",
     "title": "Table",
-    "description": "Tabell for data i rader og kolonner. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Klassen settes på et ekte `<table>`. Det er `<th>` med `scope` som gjør at skjermlesere kan si «Beløp, 1 240 kroner» når brukeren står i en celle. Bygger du tabellen av `<div>`-er, finnes ikke den koblingen, og tallene står uten betydning.",
-    "code": "<table class=\"fs-table\" data-variant=\"striped\">\n  <caption>Fakturaer i 2026</caption>\n  <thead>\n    <tr>\n      <th scope=\"col\">Faktura</th>\n      <th scope=\"col\">Forfall</th>\n      <th scope=\"col\" data-align=\"end\">Beløp</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th scope=\"row\">2026-0481</th>\n      <td>4. mars</td>\n      <td data-align=\"end\">1 240 kr</td>\n    </tr>\n    <tr>\n      <th scope=\"row\">2026-0482</th>\n      <td>4. april</td>\n      <td data-align=\"end\">980 kr</td>\n    </tr>\n  </tbody>\n</table>",
+    "description": "A table for data in rows and columns. CSS component with two classes and no JavaScript.",
+    "intro": "The class goes on a real `<table>`. It is `<th>` with `scope` that lets screen readers say \"Amount, £1,240\" when the user is in a cell. If you build the table from `<div>` elements, that connection does not exist, and the numbers have no meaning.",
+    "code": "<table class=\"lt-table\" data-variant=\"striped\">\n  <caption>Invoices in 2026</caption>\n  <thead>\n    <tr>\n      <th scope=\"col\">Invoice</th>\n      <th scope=\"col\">Due</th>\n      <th scope=\"col\" data-align=\"end\">Amount</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th scope=\"row\">2026-0481</th>\n      <td>4 March</td>\n      <td data-align=\"end\">£1,240</td>\n    </tr>\n    <tr>\n      <th scope=\"row\">2026-0482</th>\n      <td>4 April</td>\n      <td data-align=\"end\">£980</td>\n    </tr>\n  </tbody>\n</table>",
     "demo": {
-      "html": "<table class=\"fs-table\" data-variant=\"striped\">\n  <caption>Fakturaer i 2026</caption>\n  <thead>\n    <tr>\n      <th scope=\"col\">Faktura</th>\n      <th scope=\"col\">Forfall</th>\n      <th scope=\"col\" data-align=\"end\">Beløp</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th scope=\"row\">2026-0481</th>\n      <td>4. mars</td>\n      <td data-align=\"end\">1 240 kr</td>\n    </tr>\n    <tr>\n      <th scope=\"row\">2026-0482</th>\n      <td>4. april</td>\n      <td data-align=\"end\">980 kr</td>\n    </tr>\n  </tbody>\n</table>",
-      "layout": "stabel",
+      "html": "<table class=\"lt-table\" data-variant=\"striped\">\n  <caption>Invoices in 2026</caption>\n  <thead>\n    <tr>\n      <th scope=\"col\">Invoice</th>\n      <th scope=\"col\">Due</th>\n      <th scope=\"col\" data-align=\"end\">Amount</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th scope=\"row\">2026-0481</th>\n      <td>4 March</td>\n      <td data-align=\"end\">£1,240</td>\n    </tr>\n    <tr>\n      <th scope=\"row\">2026-0482</th>\n      <td>4 April</td>\n      <td data-align=\"end\">£980</td>\n    </tr>\n  </tbody>\n</table>",
+      "layout": "stack",
       "maxWidth": "34rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/table/"
+    "url": "https://lo-tek.sobernetics.no/components/table/"
   },
   "tooltip": {
     "name": "tooltip",
     "title": "Tooltip",
-    "description": "Liten hjelpetekst som vises på hover og fokus. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "En boble med et tillegg til noe som allerede står på skjermen. Den må aldri bære informasjon brukeren trenger: på en berøringsskjerm finnes hverken hover eller fokus før noe trykkes.",
-    "code": "<span class=\"fs-tooltip\">\n  <button class=\"fs-button\" data-variant=\"ghost\" type=\"button\" aria-describedby=\"arkiv-hint\">\n    Arkiver\n  </button>\n  <span class=\"fs-tooltip__bubble\" role=\"tooltip\" id=\"arkiv-hint\">\n    Saken flyttes til arkivet og kan hentes fram igjen\n  </span>\n</span>",
+    "description": "A small help text shown on hover and focus. CSS component with two classes and no JavaScript.",
+    "intro": "A bubble with an addition to something that is already on the screen. It must never carry information the user needs: on a touch screen there is neither hover nor focus until something is tapped.",
+    "code": "<span class=\"lt-tooltip\">\n  <button class=\"lt-button\" data-variant=\"ghost\" type=\"button\" aria-describedby=\"archive-hint\">\n    Archive\n  </button>\n  <span class=\"lt-tooltip__bubble\" role=\"tooltip\" id=\"archive-hint\">\n    The case is moved to the archive and can be brought back\n  </span>\n</span>",
     "demo": {
-      "html": "<span class=\"fs-tooltip\">\n  <button class=\"fs-button\" data-variant=\"ghost\" type=\"button\" aria-describedby=\"arkiv-hint\">\n    Arkiver\n  </button>\n  <span class=\"fs-tooltip__bubble\" role=\"tooltip\" id=\"arkiv-hint\">\n    Saken flyttes til arkivet og kan hentes fram igjen\n  </span>\n</span>",
-      "layout": "stabel",
+      "html": "<span class=\"lt-tooltip\">\n  <button class=\"lt-button\" data-variant=\"ghost\" type=\"button\" aria-describedby=\"archive-hint\">\n    Archive\n  </button>\n  <span class=\"lt-tooltip__bubble\" role=\"tooltip\" id=\"archive-hint\">\n    The case is moved to the archive and can be brought back\n  </span>\n</span>",
+      "layout": "stack",
       "maxWidth": "30rem",
-      "css": "/* Boblen ligger over utløseren, og trenger litt luft i denne boksen for\n       å ikke bli klippet. I en ekte side er det plassen på siden som avgjør. */\n    .fs-tooltip { margin-block-start: var(--fs-spacing-8); }",
+      "css": "/* The bubble sits above the trigger, and needs some space in this box\n       so it is not clipped. In a real page the space on the page decides. */\n    .lt-tooltip { margin-block-start: var(--lt-spacing-8); }",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/tooltip/"
+    "url": "https://lo-tek.sobernetics.no/components/tooltip/"
   },
   "link": {
     "name": "link",
     "title": "Link",
-    "description": "Lenkestil for navigasjon i løpende tekst. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Lenkestil med tydelig understrek, hover og fokusmarkering. Skal lenken se ut som en knapp, bruk [Button](../button/) på `<a>`-elementet i stedet.",
-    "code": "<p>\n  Søknaden er sendt. Du finner den igjen under\n  <a class=\"fs-link\" href=\"#\">Mine søknader</a>, og vi sender deg en\n  e-post når den er behandlet.\n</p>",
+    "description": "Link style for navigation in running text. A CSS component with one class and no JavaScript.",
+    "intro": "A link style with a clear underline, hover and a focus indicator. If the link should look like a button, use [Button](../button/) on the `<a>` element instead.",
+    "code": "<p>\n  Your application has been sent. You will find it under\n  <a class=\"lt-link\" href=\"#\">My applications</a>, and we will send you an\n  email when it has been processed.\n</p>",
     "demo": {
-      "html": "<p>\n  Søknaden er sendt. Du finner den igjen under\n  <a class=\"fs-link\" href=\"#\">Mine søknader</a>, og vi sender deg en\n  e-post når den er behandlet.\n</p>",
-      "layout": "stabel",
+      "html": "<p>\n  Your application has been sent. You will find it under\n  <a class=\"lt-link\" href=\"#\">My applications</a>, and we will send you an\n  email when it has been processed.\n</p>",
+      "layout": "stack",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/link/"
+    "url": "https://lo-tek.sobernetics.no/components/link/"
   },
   "avatar": {
     "name": "avatar",
     "title": "Avatar",
-    "description": "Profilbilde eller initialer. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "En rund flate med et bilde eller initialer. Komponenten sier ingenting om hvem personen er: det gjør teksten ved siden av, eller en tekst du gir bildet.",
-    "code": "<span class=\"fs-avatar\" data-size=\"small\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" data-size=\"large\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" data-variant=\"square\" aria-hidden=\"true\">KB</span>",
+    "description": "Profile picture or initials. A CSS component with two classes and no JavaScript.",
+    "intro": "A round surface with a picture or initials. The component says nothing about who the person is: the text next to it does that, or a text you give the picture.",
+    "code": "<span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" data-size=\"large\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" data-variant=\"square\" aria-hidden=\"true\">KB</span>",
     "demo": {
-      "html": "<span class=\"fs-avatar\" data-size=\"small\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" data-size=\"large\" aria-hidden=\"true\">ON</span>\n<span class=\"fs-avatar\" data-variant=\"square\" aria-hidden=\"true\">KB</span>",
-      "layout": "rad",
+      "html": "<span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" data-size=\"large\" aria-hidden=\"true\">JS</span>\n<span class=\"lt-avatar\" data-variant=\"square\" aria-hidden=\"true\">KB</span>",
+      "layout": "row",
       "maxWidth": "",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/avatar/"
+    "url": "https://lo-tek.sobernetics.no/components/avatar/"
   },
   "divider": {
     "name": "divider",
     "title": "Divider",
-    "description": "Skillelinje mellom deler av innholdet. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Klassen settes på et vanlig `<hr>`. Nettleserens egen strek har både ramme og høyde, og begge må nullstilles før fargen fra tokenene er den eneste som vises. Den har også auto-marger til sidene, som i en flex-kolonne gjør streken 0 piksler bred. Klassen nullstiller dem, så streken fyller bredden.",
-    "code": "<p>Saken er registrert.</p>\n<hr class=\"fs-divider\" />\n<p>Du får svar innen tre uker.</p>\n<hr class=\"fs-divider\" data-variant=\"strong\" />\n<p>Kontakt oss hvis noe er uklart.</p>\n<hr class=\"fs-divider\" data-variant=\"subtle\" />\n<p>Saksnummer 2026-0481.</p>",
+    "description": "A line between parts of the content. A CSS component with one class and no JavaScript.",
+    "intro": "The class goes on a plain `<hr>`. The browser's own rule has both a border and a height, and both have to be reset before the colour from the tokens is the only one shown. It also has auto margins at the sides, which in a flex column make the line 0 pixels wide. The class resets them, so the line fills the width.",
+    "code": "<p>The case has been registered.</p>\n<hr class=\"lt-divider\" />\n<p>You will get an answer within three weeks.</p>\n<hr class=\"lt-divider\" data-variant=\"strong\" />\n<p>Contact us if anything is unclear.</p>\n<hr class=\"lt-divider\" data-variant=\"subtle\" />\n<p>Case number 2026-0481.</p>",
     "demo": {
-      "html": "<p>Saken er registrert.</p>\n<hr class=\"fs-divider\" />\n<p>Du får svar innen tre uker.</p>\n<hr class=\"fs-divider\" data-variant=\"strong\" />\n<p>Kontakt oss hvis noe er uklart.</p>\n<hr class=\"fs-divider\" data-variant=\"subtle\" />\n<p>Saksnummer 2026-0481.</p>",
-      "layout": "flyt",
+      "html": "<p>The case has been registered.</p>\n<hr class=\"lt-divider\" />\n<p>You will get an answer within three weeks.</p>\n<hr class=\"lt-divider\" data-variant=\"strong\" />\n<p>Contact us if anything is unclear.</p>\n<hr class=\"lt-divider\" data-variant=\"subtle\" />\n<p>Case number 2026-0481.</p>",
+      "layout": "flow",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/divider/"
+    "url": "https://lo-tek.sobernetics.no/components/divider/"
   },
   "heading": {
     "name": "heading",
     "title": "Heading",
-    "description": "Overskrifter i seks størrelser, uavhengig av nivå. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Størrelsen og nivået er to forskjellige ting. Nivået er `<h1>` til `<h6>` og bestemmer strukturen skjermlesere navigerer etter. `data-size` bestemmer bare hvor stor teksten ser ut.",
-    "code": "<h1 class=\"fs-heading\" data-size=\"mega\">Søknad om bostøtte</h1>\n<h2 class=\"fs-heading\" data-size=\"xl\">Om søkeren</h2>\n<h2 class=\"fs-heading\">Boforhold</h2>\n<h3 class=\"fs-heading\" data-size=\"m\">Vedlegg</h3>\n<h4 class=\"fs-heading\" data-size=\"s\">Fødselsattest</h4>\n<h5 class=\"fs-heading\" data-size=\"xs\">Sist endret</h5>",
+    "description": "Headings in six sizes, independent of level. A CSS component with one class and no JavaScript.",
+    "intro": "Size and level are two different things. The level is `<h1>` to `<h6>` and decides the structure screen readers navigate by. `data-size` only decides how large the text looks.",
+    "code": "<h1 class=\"lt-heading\" data-size=\"mega\">Housing benefit application</h1>\n<h2 class=\"lt-heading\" data-size=\"xl\">About the applicant</h2>\n<h2 class=\"lt-heading\">Living situation</h2>\n<h3 class=\"lt-heading\" data-size=\"m\">Attachments</h3>\n<h4 class=\"lt-heading\" data-size=\"s\">Birth certificate</h4>\n<h5 class=\"lt-heading\" data-size=\"xs\">Last changed</h5>",
     "demo": {
-      "html": "<h1 class=\"fs-heading\" data-size=\"mega\">Søknad om bostøtte</h1>\n<h2 class=\"fs-heading\" data-size=\"xl\">Om søkeren</h2>\n<h2 class=\"fs-heading\">Boforhold</h2>\n<h3 class=\"fs-heading\" data-size=\"m\">Vedlegg</h3>\n<h4 class=\"fs-heading\" data-size=\"s\">Fødselsattest</h4>\n<h5 class=\"fs-heading\" data-size=\"xs\">Sist endret</h5>",
-      "layout": "stabel",
+      "html": "<h1 class=\"lt-heading\" data-size=\"mega\">Housing benefit application</h1>\n<h2 class=\"lt-heading\" data-size=\"xl\">About the applicant</h2>\n<h2 class=\"lt-heading\">Living situation</h2>\n<h3 class=\"lt-heading\" data-size=\"m\">Attachments</h3>\n<h4 class=\"lt-heading\" data-size=\"s\">Birth certificate</h4>\n<h5 class=\"lt-heading\" data-size=\"xs\">Last changed</h5>",
+      "layout": "stack",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/heading/"
+    "url": "https://lo-tek.sobernetics.no/components/heading/"
   },
   "label": {
     "name": "label",
     "title": "Label",
-    "description": "Ledetekst for skjemafelt, med markering av påkrevd og valgfritt. CSS-komponent.",
-    "intro": "Riktig typografi på `<label>`, og en fast måte å markere påkrevde og valgfrie felt på. Setter du opp et helt felt, er [Field](../field/) som regel enklere. Den setter `for`, `id` og `aria-describedby` for deg.",
-    "code": "<label class=\"fs-label\" for=\"navn\">Fullt navn</label>\n<input class=\"fs-input\" id=\"navn\" type=\"text\" />\n\n<label class=\"fs-label\" data-required=\"symbol\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" required />\n\n<label class=\"fs-label\" data-required=\"text\" for=\"telefon\">Telefonnummer</label>\n<input class=\"fs-input\" id=\"telefon\" type=\"tel\" required />\n\n<label class=\"fs-label\" data-optional=\"\" for=\"adresse\">Adresse</label>\n<input class=\"fs-input\" id=\"adresse\" type=\"text\" />\n\n<label class=\"fs-label\" aria-disabled=\"true\" for=\"orgnr\">Organisasjonsnummer</label>\n<input class=\"fs-input\" id=\"orgnr\" type=\"text\" disabled />",
+    "description": "A label for form fields, with marking of required and optional. A CSS component.",
+    "intro": "The right typography on `<label>`, and one consistent way to mark required and optional fields. If you are setting up a whole field, [Field](../field/) is usually simpler. It sets `for`, `id` and `aria-describedby` for you.",
+    "code": "<label class=\"lt-label\" for=\"name\">Full name</label>\n<input class=\"lt-input\" id=\"name\" type=\"text\" />\n\n<label class=\"lt-label\" data-required=\"symbol\" for=\"email\">Email address</label>\n<input class=\"lt-input\" id=\"email\" type=\"email\" required />\n\n<label class=\"lt-label\" data-required=\"text\" for=\"phone\">Phone number</label>\n<input class=\"lt-input\" id=\"phone\" type=\"tel\" required />\n\n<label class=\"lt-label\" data-optional=\"\" for=\"address\">Address</label>\n<input class=\"lt-input\" id=\"address\" type=\"text\" />\n\n<label class=\"lt-label\" aria-disabled=\"true\" for=\"org-number\">Organisation number</label>\n<input class=\"lt-input\" id=\"org-number\" type=\"text\" disabled />",
     "demo": {
-      "html": "<label class=\"fs-label\" for=\"navn\">Fullt navn</label>\n<input class=\"fs-input\" id=\"navn\" type=\"text\" />\n\n<label class=\"fs-label\" data-required=\"symbol\" for=\"epost\">E-postadresse</label>\n<input class=\"fs-input\" id=\"epost\" type=\"email\" required />\n\n<label class=\"fs-label\" data-required=\"text\" for=\"telefon\">Telefonnummer</label>\n<input class=\"fs-input\" id=\"telefon\" type=\"tel\" required />\n\n<label class=\"fs-label\" data-optional=\"\" for=\"adresse\">Adresse</label>\n<input class=\"fs-input\" id=\"adresse\" type=\"text\" />\n\n<label class=\"fs-label\" aria-disabled=\"true\" for=\"orgnr\">Organisasjonsnummer</label>\n<input class=\"fs-input\" id=\"orgnr\" type=\"text\" disabled />",
-      "layout": "stabel",
+      "html": "<label class=\"lt-label\" for=\"name\">Full name</label>\n<input class=\"lt-input\" id=\"name\" type=\"text\" />\n\n<label class=\"lt-label\" data-required=\"symbol\" for=\"email\">Email address</label>\n<input class=\"lt-input\" id=\"email\" type=\"email\" required />\n\n<label class=\"lt-label\" data-required=\"text\" for=\"phone\">Phone number</label>\n<input class=\"lt-input\" id=\"phone\" type=\"tel\" required />\n\n<label class=\"lt-label\" data-optional=\"\" for=\"address\">Address</label>\n<input class=\"lt-input\" id=\"address\" type=\"text\" />\n\n<label class=\"lt-label\" aria-disabled=\"true\" for=\"org-number\">Organisation number</label>\n<input class=\"lt-input\" id=\"org-number\" type=\"text\" disabled />",
+      "layout": "stack",
       "maxWidth": "26rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/label/"
+    "url": "https://lo-tek.sobernetics.no/components/label/"
   },
   "fieldset": {
     "name": "fieldset",
     "title": "Fieldset",
-    "description": "Gruppe av kontroller med en felles ledetekst. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "`<fieldset>` med `<legend>` er den ene måten å gi et sett radioknapper eller avkryssingsbokser en felles ledetekst som skjermlesere leser opp før hvert alternativ. En overskrift over gruppen ser likedan ut, men høres ikke.",
-    "code": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvem søker du på vegne av?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"selv\" name=\"soker\" value=\"selv\" checked />\n    <label class=\"fs-label\" for=\"selv\">Meg selv</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"annen\" name=\"soker\" value=\"annen\" />\n    <label class=\"fs-label\" for=\"annen\">En annen person</label>\n  </div>\n</fieldset>",
+    "description": "A group of controls with a shared label. CSS component with two classes and no JavaScript.",
+    "intro": "`<fieldset>` with `<legend>` is the one way to give a set of radio buttons or checkboxes a shared label that screen readers announce before each option. A heading above the group looks the same, but is not heard.",
+    "code": "<fieldset class=\"lt-fieldset\">\n  <legend class=\"lt-legend\" data-required=\"symbol\">Who are you applying on behalf of?</legend>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"self\" name=\"applicant\" value=\"self\" checked />\n    <label class=\"lt-label\" for=\"self\">Myself</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"other\" name=\"applicant\" value=\"other\" />\n    <label class=\"lt-label\" for=\"other\">Another person</label>\n  </div>\n</fieldset>",
     "demo": {
-      "html": "<fieldset class=\"fs-fieldset\">\n  <legend class=\"fs-legend\" data-required=\"symbol\">Hvem søker du på vegne av?</legend>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"selv\" name=\"soker\" value=\"selv\" checked />\n    <label class=\"fs-label\" for=\"selv\">Meg selv</label>\n  </div>\n\n  <div class=\"fs-radio-row\">\n    <input class=\"fs-radio\" type=\"radio\" id=\"annen\" name=\"soker\" value=\"annen\" />\n    <label class=\"fs-label\" for=\"annen\">En annen person</label>\n  </div>\n</fieldset>",
-      "layout": "stabel",
+      "html": "<fieldset class=\"lt-fieldset\">\n  <legend class=\"lt-legend\" data-required=\"symbol\">Who are you applying on behalf of?</legend>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"self\" name=\"applicant\" value=\"self\" checked />\n    <label class=\"lt-label\" for=\"self\">Myself</label>\n  </div>\n\n  <div class=\"lt-radio-row\">\n    <input class=\"lt-radio\" type=\"radio\" id=\"other\" name=\"applicant\" value=\"other\" />\n    <label class=\"lt-label\" for=\"other\">Another person</label>\n  </div>\n</fieldset>",
+      "layout": "stack",
       "maxWidth": "28rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/fieldset/"
+    "url": "https://lo-tek.sobernetics.no/components/fieldset/"
   },
   "help-text": {
     "name": "help-text",
     "title": "Help Text",
-    "description": "Forklarende tekst under et skjemafelt. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Den lille teksten under et felt som forklarer hva systemet forventer. Er teksten en feilmelding, bruk [Error Text](../error-text/).",
-    "code": "<p class=\"fs-help-text\">Du finner nummeret øverst til høyre på fakturaen.</p>\n<p class=\"fs-help-text\" data-variant=\"strong\">Endringen gjelder fra neste månedsskifte.</p>\n<p class=\"fs-help-text\" data-variant=\"success\">Vedlegget er lastet opp.</p>\n<p class=\"fs-help-text\" data-variant=\"warning\">Søknadsfristen går ut om tre dager.</p>",
+    "description": "Explanatory text below a form field. A CSS component with one class and no JavaScript.",
+    "intro": "The small text below a field that explains what the system expects. If the text is an error message, use [Error Text](../error-text/).",
+    "code": "<p class=\"lt-help-text\">You will find the number at the top right of the invoice.</p>\n<p class=\"lt-help-text\" data-variant=\"strong\">The change applies from the start of next month.</p>\n<p class=\"lt-help-text\" data-variant=\"success\">The attachment has been uploaded.</p>\n<p class=\"lt-help-text\" data-variant=\"warning\">The application deadline is in three days.</p>",
     "demo": {
-      "html": "<p class=\"fs-help-text\">Du finner nummeret øverst til høyre på fakturaen.</p>\n<p class=\"fs-help-text\" data-variant=\"strong\">Endringen gjelder fra neste månedsskifte.</p>\n<p class=\"fs-help-text\" data-variant=\"success\">Vedlegget er lastet opp.</p>\n<p class=\"fs-help-text\" data-variant=\"warning\">Søknadsfristen går ut om tre dager.</p>",
-      "layout": "stabel",
+      "html": "<p class=\"lt-help-text\">You will find the number at the top right of the invoice.</p>\n<p class=\"lt-help-text\" data-variant=\"strong\">The change applies from the start of next month.</p>\n<p class=\"lt-help-text\" data-variant=\"success\">The attachment has been uploaded.</p>\n<p class=\"lt-help-text\" data-variant=\"warning\">The application deadline is in three days.</p>",
+      "layout": "stack",
       "maxWidth": "30rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/help-text/"
+    "url": "https://lo-tek.sobernetics.no/components/help-text/"
   },
   "error-text": {
     "name": "error-text",
     "title": "Error Text",
-    "description": "Feilmelding under et skjemafelt. CSS-komponent med én klasse og ingen JavaScript.",
-    "intro": "Meldingen som vises når et felt ikke kan sendes inn slik det står. Den hører rett under feltet, ikke øverst på siden. Skal teksten forklare hva feltet forventer før brukeren har gjort noe, bruk [Help Text](../help-text/).",
-    "code": "<p class=\"fs-error-text\">Skriv en e-postadresse med krøllalfa, for eksempel ola&#64;eksempel.no.</p>\n<p class=\"fs-error-text\" data-variant=\"warning\">Adressen finnes ikke i folkeregisteret. Sjekk at den stemmer.</p>",
+    "description": "Error message below a form field. A CSS component with one class and no JavaScript.",
+    "intro": "The message shown when a field cannot be submitted as it stands. It belongs right below the field, not at the top of the page. If the text should explain what the field expects before the user has done anything, use [Help Text](../help-text/).",
+    "code": "<p class=\"lt-error-text\">Enter an email address with an at sign, for example jane&#64;example.com.</p>\n<p class=\"lt-error-text\" data-variant=\"warning\">We cannot find this address in the population register. Check that it is correct.</p>",
     "demo": {
-      "html": "<p class=\"fs-error-text\">Skriv en e-postadresse med krøllalfa, for eksempel ola&#64;eksempel.no.</p>\n<p class=\"fs-error-text\" data-variant=\"warning\">Adressen finnes ikke i folkeregisteret. Sjekk at den stemmer.</p>",
-      "layout": "stabel",
+      "html": "<p class=\"lt-error-text\">Enter an email address with an at sign, for example jane&#64;example.com.</p>\n<p class=\"lt-error-text\" data-variant=\"warning\">We cannot find this address in the population register. Check that it is correct.</p>",
+      "layout": "stack",
       "maxWidth": "30rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/error-text/"
+    "url": "https://lo-tek.sobernetics.no/components/error-text/"
   },
   "file-upload": {
     "name": "file-upload",
     "title": "File Upload",
-    "description": "Felt for opplasting av filer. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Klassen settes på et vanlig `<input type=\"file\">`. Knappen inni er nettleserens egen, og teksten på den kommer fra operativsystemets språk. Den kan ikke oversettes, så ledeteksten over feltet må si hva som skal lastes opp.",
-    "code": "<label class=\"fs-label\" for=\"vedlegg\">Last opp vedlegg</label>\n<input class=\"fs-file-upload\" type=\"file\" id=\"vedlegg\" multiple accept=\".pdf,.jpg\" aria-describedby=\"vedlegg-hjelp\" />\n<p class=\"fs-help-text\" id=\"vedlegg-hjelp\">PDF eller bilde, opptil 10 MB per fil.</p>",
+    "description": "A field for uploading files. A CSS component with two classes and no JavaScript.",
+    "intro": "The class goes on a plain `<input type=\"file\">`. The button inside is the browser's own, and its text comes from the operating system's language. It cannot be translated, so the label above the field has to say what to upload.",
+    "code": "<label class=\"lt-label\" for=\"attachments\">Upload attachments</label>\n<input class=\"lt-file-upload\" type=\"file\" id=\"attachments\" multiple accept=\".pdf,.jpg\" aria-describedby=\"attachments-help\" />\n<p class=\"lt-help-text\" id=\"attachments-help\">PDF or image, up to 10 MB per file.</p>",
     "demo": {
-      "html": "<label class=\"fs-label\" for=\"vedlegg\">Last opp vedlegg</label>\n<input class=\"fs-file-upload\" type=\"file\" id=\"vedlegg\" multiple accept=\".pdf,.jpg\" aria-describedby=\"vedlegg-hjelp\" />\n<p class=\"fs-help-text\" id=\"vedlegg-hjelp\">PDF eller bilde, opptil 10 MB per fil.</p>",
-      "layout": "stabel",
+      "html": "<label class=\"lt-label\" for=\"attachments\">Upload attachments</label>\n<input class=\"lt-file-upload\" type=\"file\" id=\"attachments\" multiple accept=\".pdf,.jpg\" aria-describedby=\"attachments-help\" />\n<p class=\"lt-help-text\" id=\"attachments-help\">PDF or image, up to 10 MB per file.</p>",
+      "layout": "stack",
       "maxWidth": "32rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/file-upload/"
+    "url": "https://lo-tek.sobernetics.no/components/file-upload/"
   },
   "search": {
     "name": "search",
     "title": "Search",
-    "description": "Søkefelt med forstørrelsesglass. CSS-komponent med to klasser og ingen JavaScript.",
-    "intro": "Et `fs-input` med plass til et forstørrelsesglass. Begge klassene settes, så alle tilstandene og variablene fra [Input](../input/) gjelder her også.",
-    "code": "<form class=\"fs-search-row\" role=\"search\">\n  <label class=\"fs-label fs-sr-only\" for=\"sok\">Søk i saker</label>\n  <input class=\"fs-input fs-search\" type=\"search\" id=\"sok\" name=\"q\" placeholder=\"Søk i saker\" />\n  <button class=\"fs-button\" type=\"submit\">Søk</button>\n</form>",
+    "description": "A search field with a magnifying glass. A CSS component with two classes and no JavaScript.",
+    "intro": "An `lt-input` with room for a magnifying glass. Both classes are set, so every state and variable from [Input](../input/) applies here too.",
+    "code": "<form class=\"lt-search-row\" role=\"search\">\n  <label class=\"lt-label lt-sr-only\" for=\"search\">Search cases</label>\n  <input class=\"lt-input lt-search\" type=\"search\" id=\"search\" name=\"q\" placeholder=\"Search cases\" />\n  <button class=\"lt-button\" type=\"submit\">Search</button>\n</form>",
     "demo": {
-      "html": "<form class=\"fs-search-row\" role=\"search\">\n  <label class=\"fs-label fs-sr-only\" for=\"sok\">Søk i saker</label>\n  <input class=\"fs-input fs-search\" type=\"search\" id=\"sok\" name=\"q\" placeholder=\"Søk i saker\" />\n  <button class=\"fs-button\" type=\"submit\">Søk</button>\n</form>",
-      "layout": "stabel",
+      "html": "<form class=\"lt-search-row\" role=\"search\">\n  <label class=\"lt-label lt-sr-only\" for=\"search\">Search cases</label>\n  <input class=\"lt-input lt-search\" type=\"search\" id=\"search\" name=\"q\" placeholder=\"Search cases\" />\n  <button class=\"lt-button\" type=\"submit\">Search</button>\n</form>",
+      "layout": "stack",
       "maxWidth": "30rem",
       "css": "",
       "fixed": false
     },
-    "url": "https://fristil.sobernetics.no/components/search/"
+    "url": "https://lo-tek.sobernetics.no/components/search/"
   },
-  "kom-i-gang": {
-    "name": "kom-i-gang",
-    "title": "Kom i gang",
-    "description": "Installer Fristil, importer det du trenger, og få den første komponenten på skjermen.",
+  "getting-started": {
+    "name": "getting-started",
+    "title": "Getting started",
+    "description": "Install LO-TEK, import what you need, and get the first component on screen.",
     "intro": "",
-    "code": "npm install @fristil/designsystem\n\n// main.js eller main.ts, øverst\n    import \"@fristil/designsystem/tokens.css\"\n    import \"@fristil/designsystem/button.css\"",
+    "code": "npm install @lo-tek/interfaces\n\n// main.js or main.ts, at the top\n    import \"@lo-tek/interfaces/tokens.css\"\n    import \"@lo-tek/interfaces/button.css\"",
     "demo": null,
-    "url": "https://fristil.sobernetics.no/kom-i-gang/"
+    "url": "https://lo-tek.sobernetics.no/getting-started/"
   },
-  "typesikker-bruk": {
-    "name": "typesikker-bruk",
-    "title": "Typesikker bruk",
-    "description": "Ett navnerom, én form. Autofullføring på hele systemet, uten å binde deg til et rammeverk.",
-    "intro": "Klasser og dataattributter gjør komponentene rammeverksuavhengige, men alt er strenger:",
-    "code": "<button class=\"fs-button\" data-variant=\"secundary\">Lagre utkast</button>\n\nimport { fs } from \"@fristil/designsystem\"\n\n<button {...fs.button({ variant: \"secondary\" })}>Lagre utkast</button>\n<input {...fs.input({ type: \"email\", state: \"invalid\" })} />\n<span {...fs.badge({ color: \"success\" })}>Innvilget</span>\n<a {...fs.link()} href=\"/kvittering\">Se kvittering</a>",
+  "type-safe-use": {
+    "name": "type-safe-use",
+    "title": "Type-safe use",
+    "description": "One namespace, one shape. Autocompletion for the whole system, without tying you to a framework.",
+    "intro": "Classes and data attributes make the components framework-independent, but everything is strings:",
+    "code": "<button class=\"lt-button\" data-variant=\"secundary\">Save draft</button>\n\nimport { lt } from \"@lo-tek/interfaces\"\n\n<button {...lt.button({ variant: \"secondary\" })}>Save draft</button>\n<input {...lt.input({ type: \"email\", state: \"invalid\" })} />\n<span {...lt.badge({ color: \"success\" })}>Approved</span>\n<a {...lt.link()} href=\"/receipt\">View receipt</a>",
     "demo": null,
-    "url": "https://fristil.sobernetics.no/typesikker-bruk/"
+    "url": "https://lo-tek.sobernetics.no/type-safe-use/"
   },
-  "tilgjengelighet": {
-    "name": "tilgjengelighet",
-    "title": "Tilgjengelighet",
-    "description": "Hva Fristil tar seg av sentralt, hva som er kontrollert av tester, og hva du må gjøre selv.",
-    "intro": "Fristil lover at tilgjengelighet er løst ett sted, slik at hver app slipper å løse det på nytt. Denne siden sier hva løftet dekker, og hvor det slutter.",
-    "code": "@media (forced-colors: active) {\n\t.min-valgte-rad {\n\t\tbackground-color: Highlight;\n\t\tcolor: HighlightText;\n\t}\n}\n\n<html lang=\"ar\" dir=\"rtl\">",
+  "accessibility": {
+    "name": "accessibility",
+    "title": "Accessibility",
+    "description": "What LO-TEK handles centrally, what is checked by tests, and what you have to do yourself.",
+    "intro": "LO-TEK promises that accessibility is solved in one place, so each app does not have to solve it again. This page says what the promise covers, and where it ends.",
+    "code": "@media (forced-colors: active) {\n\t.my-selected-row {\n\t\tbackground-color: Highlight;\n\t\tcolor: HighlightText;\n\t}\n}\n\n<html lang=\"ar\" dir=\"rtl\">",
     "demo": null,
-    "url": "https://fristil.sobernetics.no/tilgjengelighet/"
+    "url": "https://lo-tek.sobernetics.no/accessibility/"
   }
 }

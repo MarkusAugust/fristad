@@ -263,7 +263,7 @@ Modulene ligger i `crates/fristad-domain/src/domain/world/crypt/compose/`. Ingen
 ### 8.3 Kister, lapper og bonuser
 
 - **Kister:** innhold fra en liste over komponentene (`craft.rs`), tilfeldig fra nivåets liste, eller sjelden (`rare`).
-- **Lapper:** tittel og tekst med forhåndsvisning i Fristil-dialogen. Kanon gjelder (`docs/kanon.md`).
+- **Lapper:** tittel og tekst med forhåndsvisning i LO-TEK-dialogen. Kanon gjelder (`docs/kanon.md`).
 - **Bonuser:** liv eller utholdenhet.
 
 ### 8.4 Lys og stemning
@@ -400,7 +400,7 @@ Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokument
 
 ## 12. Skjermbildet
 
-**Siden:** `?nivaa` på forhåndsvisningen (bare for eieren, som `?edit`). Fristil-komponenter.
+**Siden:** `?nivaa` på forhåndsvisningen (bare for eieren, som `?edit`). LO-TEK-komponenter.
 
 ```
 ┌ verktøylinje ─────────────────────────────────────────────────────────────┐

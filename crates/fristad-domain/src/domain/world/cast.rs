@@ -138,7 +138,7 @@ pub const MEAD_DRY: &str = "Der er Gorvek borte i regnet igjen. Strupen er tørr
 
 pub const PILGRIM: &[Line] = &[
     a("Jeg har gått fra Nidaros for å se mønsterboka. De sier den aldri sto i veien for noen."),
-    a("Fristil. Navnet alene gjør meg rolig."),
+    a("LO-TEK. Navnet alene gjør meg rolig."),
     a("Byene på veien hit skriver alle på hoffets tunge. Bare her husker noen den gamle boka."),
     a("Ved hver kirke på veien sto budet slått opp: Nulla exceptio. Her har noen revet det ned."),
     a("I hovedstaden sier de at Gorvek aldri fantes. Her sier de at han hogg beistet i stykker. Jeg tror bøndene."),

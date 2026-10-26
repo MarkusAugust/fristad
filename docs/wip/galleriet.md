@@ -1,10 +1,10 @@
 # Galleriveggen: bildet av komponenten i rammen
 
-Eieren: det som henger på trofeveggen skal se ut som selve Fristil-komponenten i standardvarianten, inne i rammen.
+Eieren: det som henger på trofeveggen skal se ut som selve LO-TEK-komponenten i standardvarianten, inne i rammen.
 
 ## Gjort
 
-- `tools/gallery/render.mjs`: Playwright tar `demo`-HTML-en fra `web/docs.json` med `fristil.css` og komponent-JS-en fra `dist-web/` (etter `sh tools/pull-dist.sh`), i lyst tema, skåret ned til standardvarianten (første knapp, første tag osv.; tooltip tvinges synlig, dialogen åpnes med `showModal`), 20rem bred, device scale 2, beskåret til innholdet → `target/gallery/<komponent>.png` + `meta.json`.
+- `tools/gallery/render.mjs`: Playwright tar `demo`-HTML-en fra `web/docs.json` med `lotek.css` og komponent-JS-en fra `dist-web/` (etter `sh tools/pull-dist.sh`), i lyst tema, skåret ned til standardvarianten (første knapp, første tag osv.; tooltip tvinges synlig, dialogen åpnes med `showModal`), 20rem bred, device scale 2, beskåret til innholdet → `target/gallery/<komponent>.png` + `meta.json`.
 - `tools/gallery/pack.py`: kvadratiske 512×512 → `assets/textures/components/<komponent>.jpg`, og kontaktarket `shots/galleriet/kontaktark.png`. Etter koordinatorens innspill: skjermbildet tas med gjennomsiktig bakgrunn (device scale 4), innholdet skaleres så den lengste sida er 80 % av platen, og legges på pergament (#f3ead8 med myk flekkete tekstur og mørkere kanter), så platen ser ut som et oppslag.
 - `tools/models/home.py`: `gallery_piece(name)` er nå en plate med bildet som albedo (uv 0..1 over forsida, sidene peker i polstringen) og gullkant; `gallery_pieces()` eksporterer `gallery_<komponent>.glb` for hvert bilde (`python3 tools/models/home.py pieces`).
 

@@ -1,5 +1,5 @@
 //! Fristad: et spill i en middelalderby, der komponentene fra designsystemet
-//! Fristil er byttet du vinner i kjelleren under borgen.
+//! LO-TEK er byttet du vinner i kjelleren under borgen.
 //!
 //! Hexagonal arkitektur (porter og adaptere):
 //!

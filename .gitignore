@@ -1,6 +1,7 @@
 node_modules/
 target/
 dist/
+!/vendor/lo-tek/dist/
 pkg/
 /shots/
 assets/external/

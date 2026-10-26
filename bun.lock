@@ -5,11 +5,11 @@
     "": {
       "name": "fristad",
       "dependencies": {
-        "@fristil/designsystem": "^0.31.0",
+        "@lo-tek/interfaces": "file:./vendor/lo-tek",
       },
     },
   },
   "packages": {
-    "@fristil/designsystem": ["@fristil/designsystem@0.31.0", "", { "bin": { "fristil": "dist/cli.js" } }, "sha512-FraO8HW5+5FQDXcr1h1ZZqOxOcVJgwIrGJskpBSO21hrN6P0CCgZqEKQEHPshzReiGXVcr1EEJbOOghI5VBn5Q=="],
+    "@lo-tek/interfaces": ["@lo-tek/interfaces@file:vendor/lo-tek", {}],
   }
 }

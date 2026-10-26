@@ -407,11 +407,11 @@ async function checkConflict(d) {
   return new Promise((done) => {
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h2 class="fs-heading" data-size="s">Fila er endret på grenen</h2>
-      <p class="fs-paragraph">${esc(d.path)} på grenen ${SAVE_BRANCH} er lagret et annet sted siden du begynte her (en annen fane eller maskin). Lagrer du, skrives den over.</p>
-      <div class="row"><button class="fs-button" data-variant="danger" id="c-over">Skriv over</button>
-      <button class="fs-button" data-variant="secondary" id="c-open">Åpne den på grenen</button>
-      <button class="fs-button" data-variant="secondary" id="c-cancel">Avbryt</button></div>`;
+    card.innerHTML = `<h2 class="lt-heading" data-size="s">Fila er endret på grenen</h2>
+      <p class="lt-paragraph">${esc(d.path)} på grenen ${SAVE_BRANCH} er lagret et annet sted siden du begynte her (en annen fane eller maskin). Lagrer du, skrives den over.</p>
+      <div class="row"><button class="lt-button" data-variant="danger" id="c-over">Skriv over</button>
+      <button class="lt-button" data-variant="secondary" id="c-open">Åpne den på grenen</button>
+      <button class="lt-button" data-variant="secondary" id="c-cancel">Avbryt</button></div>`;
     const ov = $("overlay");
     ov.replaceChildren(card);
     ov.hidden = false;
@@ -439,20 +439,20 @@ function openDialog() {
     if (k && k.startsWith(DRAFT_PREFIX)) drafts.push(k.slice(DRAFT_PREFIX.length));
   }
   card.innerHTML = `
-    <h2 class="fs-heading" data-size="s">Åpne et nivå</h2>
+    <h2 class="lt-heading" data-size="s">Åpne et nivå</h2>
     <p class="muted">Utkastene i denne nettleseren og nivåene i repoet. Et nivå merket «klar» erstatter det gamle nivået med samme nummer.</p>
-    <div class="doclist">${drafts.map((p) => `<button class="fs-button" data-variant="secondary" data-draft="${p}">Utkast: ${p.replace("assets/levels/", "")}</button>`).join("")}
-    ${names.map((n) => `<button class="fs-button" data-variant="secondary" data-repo="${n}">I repoet: nivaa_${n}.json</button>`).join("")}
-    <button class="fs-button" data-variant="secondary" data-branch="1">Hent dette nivået fra grenen ${SAVE_BRANCH}</button></div>
-    <h2 class="fs-heading" data-size="s">Nytt nivå</h2>
+    <div class="doclist">${drafts.map((p) => `<button class="lt-button" data-variant="secondary" data-draft="${p}">Utkast: ${p.replace("assets/levels/", "")}</button>`).join("")}
+    ${names.map((n) => `<button class="lt-button" data-variant="secondary" data-repo="${n}">I repoet: nivaa_${n}.json</button>`).join("")}
+    <button class="lt-button" data-variant="secondary" data-branch="1">Hent dette nivået fra grenen ${SAVE_BRANCH}</button></div>
+    <h2 class="lt-heading" data-size="s">Nytt nivå</h2>
     <div class="row" style="align-items:flex-end">
-      ${field("Navnet", `<input id="new-name" class="fs-input" value="Nytt nivå">`).replace('class="field"', 'class="field" style="flex:1"')}
-      ${field("Nivå", `<select id="new-n" class="fs-select">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<option>${n}</option>`).join("")}</select>`)}
-      ${field("Temaet", `<select id="new-theme" class="fs-select">${(palette.themes.length ? palette.themes : ["grav"]).map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("")}</select>`)}
-      <button id="new-make" class="fs-button" data-variant="primary" style="margin-bottom:8px">Lag</button>
+      ${field("Navnet", `<input id="new-name" class="lt-input" value="Nytt nivå">`).replace('class="field"', 'class="field" style="flex:1"')}
+      ${field("Nivå", `<select id="new-n" class="lt-select">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<option>${n}</option>`).join("")}</select>`)}
+      ${field("Temaet", `<select id="new-theme" class="lt-select">${(palette.themes.length ? palette.themes : ["grav"]).map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("")}</select>`)}
+      <button id="new-make" class="lt-button" data-variant="primary" style="margin-bottom:8px">Lag</button>
     </div>
     <p class="muted">Det nye nivået begynner med kapellet med døra opp og startstedet. Dra rom og ganger fra paletten inn til åpningene.</p>
-    <div class="row" style="margin-top:12px"><button id="open-cancel" class="fs-button" data-variant="secondary">Avbryt</button></div>`;
+    <div class="row" style="margin-top:12px"><button id="open-cancel" class="lt-button" data-variant="secondary">Avbryt</button></div>`;
   const ov = $("overlay");
   ov.replaceChildren(card);
   ov.hidden = false;
@@ -757,7 +757,7 @@ function buildPalette() {
   const themes = [...new Set(palette.modules.map((m) => m.theme || m.id.split("/")[0]))];
   const pick = document.createElement("select");
   pick.id = "theme";
-  pick.className = "fs-select";
+  pick.className = "lt-select";
   pick.setAttribute("aria-label", "Temaet i paletten");
   pick.innerHTML = themes.map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("") + `<option value="">Alle temaene</option>`;
   pick.value = themes.includes("grav") ? "grav" : themes[0] || "";
@@ -1748,7 +1748,7 @@ function paste() {
 function play(here) {
   if (playing) return;
   setStatus("Bygger nivået …");
-  $("overlay").replaceChildren(Object.assign(document.createElement("div"), { className: "card", innerHTML: "<p class='fs-paragraph'>Bygger verden med nivået …</p>" }));
+  $("overlay").replaceChildren(Object.assign(document.createElement("div"), { className: "card", innerHTML: "<p class='lt-paragraph'>Bygger verden med nivået …</p>" }));
   $("overlay").hidden = false;
   setTimeout(() => {
     const ok = engine.level_play(here);
@@ -1806,7 +1806,7 @@ function esc(s) {
 }
 
 function field(label, html) {
-  return `<div class="field"><span class="fs-label">${label}</span>${html}</div>`;
+  return `<div class="field"><span class="lt-label">${label}</span>${html}</div>`;
 }
 
 function options(list, value) {
@@ -1827,7 +1827,7 @@ function showSelection() {
     if (!o) return (box.innerHTML = "");
     const ov = m.overrides.find((v) => v.opening === o.id);
     box.innerHTML = `<h2>Åpningen</h2><p class="muted">${esc(m.name)} · ${esc(o.id)} · modulen vil ha «${esc(o.kind)}»</p>
-      ${field("Slag", `<select id="op-kind" class="fs-select">${options(palette.openings, ov?.kind || "auto")}</select>`)}
+      ${field("Slag", `<select id="op-kind" class="lt-select">${options(palette.openings, ov?.kind || "auto")}</select>`)}
       ${ov?.id ? `<p class="muted">Id: <code>${esc(ov.id)}</code> (en spak kan kobles hit med K)</p>` : ""}
       <p class="muted">Automatisk: dør mellom rom, gangåpning mot en gang, mur der ingenting møter.</p>`;
     box.querySelector("#op-kind").onchange = (e) => send({ op: "opening", module: m.id, opening: o.id, kind: e.target.value });
@@ -1835,12 +1835,12 @@ function showSelection() {
   }
   if (st.sel.length > 1) {
     box.innerHTML = `<h2>${st.sel.length} valgt</h2><div class="row">
-      <button class="fs-button" data-variant="secondary" id="s-turn">Drei (R)</button>
-      <button class="fs-button" data-variant="secondary" id="s-mirror">Speil (M)</button>
-      <button class="fs-button" data-variant="secondary" id="s-copy">Kopier ved siden av</button>
-      <button class="fs-button" data-variant="secondary" id="s-tpl" title="Ctrl+G">Lagre som mal</button>
-      <button class="fs-button" data-variant="secondary" id="s-mod" title="Ctrl+Shift+G">Lagre som modul</button>
-      <button class="fs-button" data-variant="danger" id="s-del">Slett</button></div>`;
+      <button class="lt-button" data-variant="secondary" id="s-turn">Drei (R)</button>
+      <button class="lt-button" data-variant="secondary" id="s-mirror">Speil (M)</button>
+      <button class="lt-button" data-variant="secondary" id="s-copy">Kopier ved siden av</button>
+      <button class="lt-button" data-variant="secondary" id="s-tpl" title="Ctrl+G">Lagre som mal</button>
+      <button class="lt-button" data-variant="secondary" id="s-mod" title="Ctrl+Shift+G">Lagre som modul</button>
+      <button class="lt-button" data-variant="danger" id="s-del">Slett</button></div>`;
     box.querySelector("#s-tpl").onclick = saveTemplate;
     box.querySelector("#s-mod").onclick = saveModule;
     box.querySelector("#s-turn").onclick = () => turnSelection(false);
@@ -1862,12 +1862,12 @@ function showSelection() {
 function showDoc(box) {
   const h = docHead();
   box.innerHTML = `<h2>Nivået</h2>
-    ${field("Navnet", `<input id="d-name" class="fs-input" value="${esc(h.name)}">`)}
+    ${field("Navnet", `<input id="d-name" class="lt-input" value="${esc(h.name)}">`)}
     <div class="row">
-      ${field("Nummer", `<select id="d-level" class="fs-select">${options([...Array.from({ length: 10 }, (_, k) => [k + 1, String(k + 1)]), ...(typeof h.level === "string" ? [[h.level, h.level]] : [])], h.level)}</select>`)}
-      ${field("Tema", `<select id="d-theme" class="fs-select">${options([["", "Som modulene"], ...palette.themes.map((t) => [t, THEME_NAMES[t] || t])], h.theme)}</select>`)}
+      ${field("Nummer", `<select id="d-level" class="lt-select">${options([...Array.from({ length: 10 }, (_, k) => [k + 1, String(k + 1)]), ...(typeof h.level === "string" ? [[h.level, h.level]] : [])], h.level)}</select>`)}
+      ${field("Tema", `<select id="d-theme" class="lt-select">${options([["", "Som modulene"], ...palette.themes.map((t) => [t, THEME_NAMES[t] || t])], h.theme)}</select>`)}
     </div>
-    ${field("Steinen i hele nivået", `<select id="d-stone" class="fs-select">${stoneOptions(h.stone)}</select>`)}
+    ${field("Steinen i hele nivået", `<select id="d-stone" class="lt-select">${stoneOptions(h.stone)}</select>`)}
     <p class="muted">Velg en modul, en åpning eller en ting på kartet for å endre den. Et nivå merket «klar» erstatter det gamle nivået med samme nummer.</p>
     <h2>Innholdet</h2>${contentList()}`;
   box.querySelectorAll("[data-arm]").forEach((b) => b.addEventListener("click", () => (armThing(b.dataset.arm, null), toast("Klikk på kartet der den skal stå"))));
@@ -1897,13 +1897,13 @@ function contentList() {
 function showModule(box, m) {
   const pm = palette.modules.find((p) => p.id === m.module);
   box.innerHTML = `<h2>Modulen</h2><p class="muted">${esc(pm?.name || m.module)} · dreid ${m.rot * 90}°${m.mirror ? " · speilet" : ""}</p>
-    ${field("Navnet på rommet", `<input id="m-name" class="fs-input" value="${esc(m.name)}">`)}
-    ${field("Hører til rommet (samme rom som en annen modul)", `<select id="m-room" class="fs-select">${options([["", "Sitt eget"], ...st.map.modules.filter((x) => x.id !== m.id).map((x) => [x.room || x.id, x.name])], m.room || "")}</select>`)}
-    ${field("Steinen", `<select id="m-stone" class="fs-select">${stoneOptions(m.stone)}</select>`)}
+    ${field("Navnet på rommet", `<input id="m-name" class="lt-input" value="${esc(m.name)}">`)}
+    ${field("Hører til rommet (samme rom som en annen modul)", `<select id="m-room" class="lt-select">${options([["", "Sitt eget"], ...st.map.modules.filter((x) => x.id !== m.id).map((x) => [x.room || x.id, x.name])], m.room || "")}</select>`)}
+    ${field("Steinen", `<select id="m-stone" class="lt-select">${stoneOptions(m.stone)}</select>`)}
     ${moodFields(m.mood)}
-    <div class="row"><button class="fs-button" data-variant="secondary" id="m-turn">Drei (R)</button>
-    <button class="fs-button" data-variant="secondary" id="m-mirror">Speil (M)</button>
-    <button class="fs-button" data-variant="danger" id="m-del">Slett</button></div>
+    <div class="row"><button class="lt-button" data-variant="secondary" id="m-turn">Drei (R)</button>
+    <button class="lt-button" data-variant="secondary" id="m-mirror">Speil (M)</button>
+    <button class="lt-button" data-variant="danger" id="m-del">Slett</button></div>
     <h2>Åpningene</h2><p class="muted">Klikk en pil på kartet for å velge dør, port, falsk vegg, gang, bue, snarvei eller mur.</p>
     <ul class="muted">${m.openings.map((o) => `<li>${esc(o.id)}: ${esc(o.chosen ? palette.openings.find(([k]) => k === o.chosen)?.[1] || o.chosen : "automatisk")}</li>`).join("")}</ul>
     ${m.removed?.length ? `<h2>Fjernet fra malen</h2><ul class="muted">${m.removed.map((r) => `<li>${esc(r)} <button class="chip" data-restore="${esc(r)}">sett tilbake</button></li>`).join("")}</ul>` : ""}`;
@@ -1950,11 +1950,11 @@ function moodFields(mood) {
   return `<h2>Stemningen</h2>
     ${field(`Fakler (${Math.round((m.torches ?? 0) * 100)} % av festene)`, `<input id="mood-torch" type="range" min="0" max="1" step="0.05" value="${m.torches ?? 0}">`)}
     ${field(`Lysstyrke (${Math.round((m.light ?? 1) * 100)} %)`, `<input id="mood-light" type="range" min="0.1" max="2.5" step="0.05" value="${m.light ?? 1}">`)}
-    <div class="row">${field("Fargen på lysene", `<select id="mood-color" class="fs-select">${options([...LIGHT_COLORS.map(([k, n]) => [k, n]), ["egen", "Egen farge"]], preset)}</select>`)}
+    <div class="row">${field("Fargen på lysene", `<select id="mood-color" class="lt-select">${options([...LIGHT_COLORS.map(([k, n]) => [k, n]), ["egen", "Egen farge"]], preset)}</select>`)}
       <input id="mood-pick" type="color" value="${colorHex(m.color)}" title="Egen farge" aria-label="Egen farge"></div>
     ${field(`Tåke (${Math.round((m.fog ?? 0) * 100)} %)`, `<input id="mood-fog" type="range" min="0" max="1" step="0.05" value="${m.fog ?? 0}">`)}
-    ${field("Lyden", `<select id="mood-sound" class="fs-select">${options(palette.sounds || [["", "Drypp"]], m.sound || "")}</select>`)}
-    <button class="fs-button" data-variant="secondary" id="mood-reset" type="button">Som malen</button>`;
+    ${field("Lyden", `<select id="mood-sound" class="lt-select">${options(palette.sounds || [["", "Drypp"]], m.sound || "")}</select>`)}
+    <button class="lt-button" data-variant="secondary" id="mood-reset" type="button">Som malen</button>`;
 }
 
 function bindMood(box, put) {
@@ -1982,7 +1982,7 @@ function showLight(box, ml) {
     ${field(`Styrke (${(l.intensity ?? 2).toFixed(1)})`, `<input id="l-int" type="range" min="0.2" max="6" step="0.1" value="${l.intensity ?? 2}">`)}
     ${field(`Høyde over gulvet (${(l.pos[1] - st.floor).toFixed(1)} m)`, `<input id="l-h" type="range" min="0.3" max="8" step="0.1" value="${l.pos[1] - st.floor}">`)}
     <label class="row"><input id="l-flicker" type="checkbox"${l.flicker ? " checked" : ""}> Flamme (blafrer)</label>
-    <div class="row" style="margin-top:8px"><button class="fs-button" data-variant="danger" id="l-del">Slett</button></div>`;
+    <div class="row" style="margin-top:8px"><button class="lt-button" data-variant="danger" id="l-del">Slett</button></div>`;
   const on = (id, ev, fn) => box.querySelector(id)?.addEventListener(ev, fn);
   on("#l-color", "change", (e) => put({ color: hexColor(e.target.value) }));
   on("#l-range", "change", (e) => put({ range: Number(e.target.value) }));
@@ -1996,8 +1996,8 @@ function showThing(box, t) {
   const name = palette.things.find(([k]) => k === t.kind)?.[1] || t.kind;
   if (!t.own) {
     box.innerHTML = `<h2>${esc(name)}</h2><p class="muted">Fra modulen ${esc(t.module || "")} (${esc(t.id)}). Det følger modulen. Dra det på kartet for å flytte det i dette nivået, eller endre det her; malen er den samme.</p>
-      <div class="row"><button class="fs-button" data-variant="secondary" id="t-detach">Endre her</button>
-      <button class="fs-button" data-variant="danger" id="t-del">Fjern fra modulen</button></div>`;
+      <div class="row"><button class="lt-button" data-variant="secondary" id="t-detach">Endre her</button>
+      <button class="lt-button" data-variant="danger" id="t-del">Fjern fra modulen</button></div>`;
     box.querySelector("#t-detach").onclick = () => send({ op: "detach", id: t.id }) && showSelection();
     box.querySelector("#t-del").onclick = () => send({ op: "delete", ids: [t.id] });
     return;
@@ -2007,27 +2007,27 @@ function showThing(box, t) {
   let html = `<h2>${esc(name)}</h2><p class="muted">${esc(t.id)} · (${t.pos.map((v) => v.toFixed(1)).join(", ")}) · ${Math.round(d.yaw || 0)}°</p>`;
   const mob = ["mob", "elite", "boss"].includes(t.kind);
   if (mob) {
-    html += field("Slaget", `<select id="t-label" class="fs-select">${options(palette.mobs, d.label || "button")}</select>`);
-    html += `<div class="row">${field("Antall", `<input id="t-n" class="fs-input" type="number" min="1" max="8" value="${d.n || 1}">`)}
-      ${field("Bakhold", `<select id="t-amb" class="fs-select">${options([["", "Nei (patruljerer eller står)"], ["4", "Innen 4 m"], ["8", "Innen 8 m"], ["rom", "Når du kommer inn i rommet"]], ambushValue(d.ambush))}</select>`)}</div>`;
-    html += `<div class="row"><button class="fs-button" data-variant="secondary" id="t-patrol">Patrulje: klikk punkter</button><button class="fs-button" data-variant="secondary" id="t-clear">Tøm patruljen (${(d.patrol || []).length})</button></div>`;
+    html += field("Slaget", `<select id="t-label" class="lt-select">${options(palette.mobs, d.label || "button")}</select>`);
+    html += `<div class="row">${field("Antall", `<input id="t-n" class="lt-input" type="number" min="1" max="8" value="${d.n || 1}">`)}
+      ${field("Bakhold", `<select id="t-amb" class="lt-select">${options([["", "Nei (patruljerer eller står)"], ["4", "Innen 4 m"], ["8", "Innen 8 m"], ["rom", "Når du kommer inn i rommet"]], ambushValue(d.ambush))}</select>`)}</div>`;
+    html += `<div class="row"><button class="lt-button" data-variant="secondary" id="t-patrol">Patrulje: klikk punkter</button><button class="lt-button" data-variant="secondary" id="t-clear">Tøm patruljen (${(d.patrol || []).length})</button></div>`;
   }
-  if (t.kind === "chest") html += field("Det kista gir", `<select id="t-loot" class="fs-select">${options([["", "Fra nivåets liste (tilfeldig)"], ...palette.loot.map((c) => [c, c])], d.loot || "")}</select>`);
-  if (t.kind === "rare") html += field("Den sjeldne komponenten", `<select id="t-label" class="fs-select">${options(palette.loot.map((c) => [c, c]), d.label || "")}</select>`);
+  if (t.kind === "chest") html += field("Det kista gir", `<select id="t-loot" class="lt-select">${options([["", "Fra nivåets liste (tilfeldig)"], ...palette.loot.map((c) => [c, c])], d.loot || "")}</select>`);
+  if (t.kind === "rare") html += field("Den sjeldne komponenten", `<select id="t-label" class="lt-select">${options(palette.loot.map((c) => [c, c]), d.label || "")}</select>`);
   if (t.kind === "lore") {
-    html += field("Tittelen", `<input id="t-title" class="fs-input" value="${esc(d.label || "")}">`);
-    html += field("Teksten (ingen moderne ord: kanon gjelder)", `<textarea id="t-text" class="fs-textarea" rows="7">${esc(d.text || "")}</textarea>`);
+    html += field("Tittelen", `<input id="t-title" class="lt-input" value="${esc(d.label || "")}">`);
+    html += field("Teksten (ingen moderne ord: kanon gjelder)", `<textarea id="t-text" class="lt-textarea" rows="7">${esc(d.text || "")}</textarea>`);
   }
-  if (t.kind === "bonus") html += field("Bonusen", `<select id="t-label" class="fs-select">${options([["liv", "Liv"], ["utholdenhet", "Utholdenhet"]], d.label || "liv")}</select>`);
-  if (t.kind === "trap") html += field("Fella", `<select id="t-label" class="fs-select">${options([["arrows", "Piler"], ["spikes", "Pigger"], ["rocks", "Steiner"], ["pendulum", "Pendel"]], d.label || "arrows")}</select>`);
-  if (t.kind === "hint") html += field("Hintet", `<select id="t-label" class="fs-select">${options([["crack", "Sprekk"], ["draft", "Trekk"], ["sound", "Lyd"]], d.label || "crack")}</select>`);
+  if (t.kind === "bonus") html += field("Bonusen", `<select id="t-label" class="lt-select">${options([["liv", "Liv"], ["utholdenhet", "Utholdenhet"]], d.label || "liv")}</select>`);
+  if (t.kind === "trap") html += field("Fella", `<select id="t-label" class="lt-select">${options([["arrows", "Piler"], ["spikes", "Pigger"], ["rocks", "Steiner"], ["pendulum", "Pendel"]], d.label || "arrows")}</select>`);
+  if (t.kind === "hint") html += field("Hintet", `<select id="t-label" class="lt-select">${options([["crack", "Sprekk"], ["draft", "Trekk"], ["sound", "Lyd"]], d.label || "crack")}</select>`);
   const links = st.map.links.filter((l) => l.from === t.id || l.to === t.id);
   if (["lever", "elite", "hint"].includes(t.kind) || links.length) {
     html += `<h2>Koblingene</h2><ul class="muted">${links.map((l, k) => `<li>${esc(l.from)} → ${esc(l.to)} (${esc(palette.links.find(([x]) => x === l.kind)?.[1] || l.kind)}) ${l.own ? `<button class="chip" data-unlink="${k}">fjern</button>` : ""}</li>`).join("") || "<li>Ingen</li>"}</ul>
-      <button class="fs-button" data-variant="secondary" id="t-link">Koble (K): klikk så på målet</button>`;
+      <button class="lt-button" data-variant="secondary" id="t-link">Koble (K): klikk så på målet</button>`;
   }
-  html += `<div class="row" style="margin-top:8px"><button class="fs-button" data-variant="secondary" id="t-turn">Drei (R)</button><button class="fs-button" data-variant="danger" id="t-del">Slett</button>
-    ${t.template ? `<button class="fs-button" data-variant="secondary" id="t-back" title="Slik modulmalen har det">Tilbake til malen</button>` : ""}</div>`;
+  html += `<div class="row" style="margin-top:8px"><button class="lt-button" data-variant="secondary" id="t-turn">Drei (R)</button><button class="lt-button" data-variant="danger" id="t-del">Slett</button>
+    ${t.template ? `<button class="lt-button" data-variant="secondary" id="t-back" title="Slik modulmalen har det">Tilbake til malen</button>` : ""}</div>`;
   if (t.template) html = `<p class="muted">Endret i dette nivået; malen i modulen ${esc(t.template)} er den samme.</p>` + html;
   box.innerHTML = html;
   const on = (id, ev, fn) => box.querySelector(id)?.addEventListener(ev, fn);

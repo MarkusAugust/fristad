@@ -1,14 +1,14 @@
-// Leser Fristil sine tokens fra pakken og skriver dem som JSON for motoren.
+// Leser LO-TEK sine tokens fra pakken og skriver dem som JSON for motoren.
 //
 // Motoren er skrevet i Rust og kan ikke lese CSS. Dette skriptet er broen:
 // det henter fargene for lyst og mørkt tema og spacing-skalaen, og legger
 // dem i assets/tokens.json, som Rust-koden bygger inn ved kompilering.
-// Oppdateres Fristil, kjøres skriptet på nytt og byen får ny palett.
+// Oppdateres LO-TEK, kjøres skriptet på nytt og byen får ny palett.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 const css = readFileSync(
-  "node_modules/@fristil/designsystem/src/tokens/tokens.css",
+  "node_modules/@lo-tek/interfaces/src/tokens/tokens.css",
   "utf8",
 );
 
@@ -28,7 +28,7 @@ function block(selectorStart: string): string {
 
 function vars(body: string): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of body.matchAll(/--fs-([a-z0-9-]+):\s*([^;]+);/g)) {
+  for (const m of body.matchAll(/--lt-([a-z0-9-]+):\s*([^;]+);/g)) {
     out[m[1]] = m[2].trim();
   }
   return out;
@@ -68,11 +68,11 @@ const lineHeight = Object.fromEntries(
 );
 
 const pkg = JSON.parse(
-  readFileSync("node_modules/@fristil/designsystem/package.json", "utf8"),
+  readFileSync("node_modules/@lo-tek/interfaces/package.json", "utf8"),
 );
 
 const out = {
-  fristil: pkg.version,
+  lotek: pkg.version,
   light: colors(light),
   dark: colors(dark),
   spacing,
@@ -83,6 +83,6 @@ const out = {
 mkdirSync("assets", { recursive: true });
 writeFileSync("assets/tokens.json", JSON.stringify(out, null, 2) + "\n");
 console.log(
-  `Fristil ${pkg.version}: ${Object.keys(out.light).length} farger (lys), ` +
+  `LO-TEK ${pkg.version}: ${Object.keys(out.light).length} farger (lys), ` +
     `${Object.keys(out.dark).length} (mørk), ${Object.keys(spacing).length} spacing-trinn, ${Object.keys(fontSize).length} skriftstørrelser`,
 );

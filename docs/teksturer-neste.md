@@ -28,7 +28,7 @@ teksturer fra eieren (bildegenerator, fotoskann eller Blender).
   - Skall og hud trenger egne teksturer: korrodert plast, glitchy piksler og
     lysende sømmer.
   - Komponentdelene (knappen, tabellen, modalen) trenger UI-flatene fra
-    Fristil som tekstur.
+    LO-TEK som tekstur.
 
 ## Kjelleren
 
@@ -55,10 +55,10 @@ teksturer fra eieren (bildegenerator, fotoskann eller Blender).
 - **Gravsteinene** (`gravestone`) og torgkorset (`market_cross`): hogd stein
   med innskrift.
 
-## Utenfor spillet: skillelinja i Fristil
+## Utenfor spillet: skillelinja i LO-TEK
 
-I Fristil-dokumentasjonen er `<hr class="fs-divider">` usynlig: den får
+I LO-TEK-dokumentasjonen er `<hr class="lt-divider">` usynlig: den får
 nettleserens `margin-inline: auto` i flex-stabelen på docs-siden og blir 0 px
-bred. Rettingen hører hjemme i Fristil: `margin-inline: 0` i `divider.css`
+bred. Rettingen hører hjemme i LO-TEK: `margin-inline: 0` i `divider.css`
 (eller i `Preview.astro`). Spillet viser den riktig med en egen regel
-(`.flate > .fs-divider { margin-inline: 0 }` i boka).
+(`.flate > .lt-divider { margin-inline: 0 }` i boka).

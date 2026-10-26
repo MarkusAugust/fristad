@@ -487,14 +487,14 @@ impl Engine {
         serde_json::Value::Array(v).to_string()
     }
 
-    /// Versjonen av Fristil som komponentene i spillet hører til
+    /// Versjonen av LO-TEK som komponentene i spillet hører til
     /// (`assets/tokens.json`, fra `tools/export-tokens.ts`).
-    pub fn fristil_version(&self) -> String {
+    pub fn lotek_version(&self) -> String {
         #[derive(serde::Deserialize)]
         struct Raw {
-            fristil: String,
+            lotek: String,
         }
-        serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.fristil).unwrap_or_default()
+        serde_json::from_str::<Raw>(include_str!("../../assets/tokens.json")).map(|r| r.lotek).unwrap_or_default()
     }
 
     pub fn weather(&self) -> String {

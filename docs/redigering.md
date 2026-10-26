@@ -10,7 +10,7 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
 ## Hva du gjør
 
 - **Flyge:** i redigeringen flyr du fritt og går gjennom alt, også usynlige vegger. Mellomrom stiger, C synker, Shift går fort.
-- **Katalogen:** et Fristil-panel med alle modellene, bilde og eierens dom (godkjent, underkjent, usikker), med filter. Underkjente ting kan plasseres for å prøve, men Lagre nekter dem til de er godkjent.
+- **Katalogen:** et LO-TEK-panel med alle modellene, bilde og eierens dom (godkjent, underkjent, usikker), med filter. Underkjente ting kan plasseres for å prøve, men Lagre nekter dem til de er godkjent.
 - **Plassere:** dra en ting fra katalogen rett ut i bildet. Et fantom av modellen følger pekeren langs flaten under (bakke, gulv, bord) med en grønn boks rundt når alt er i orden og en rød når det står inni noe, svever eller ikke er godkjent; panelet sier hvorfor. R dreier fantomet en kvart runde (Shift+R den andre veien), og slipp setter tingen ned med bunnen på flaten. Et klikk i katalogen og så klikk i bildet virker som før (Shift setter ut flere). Tingen får en kollider rundt modellen når den er stor nok til at regelen krever det, så den er grønn med en gang.
 - **Fest:** bryteren «Fest» i panelet, eller Ctrl holdt, setter det du setter ut og drar på rutenettet (0,5 m) og vinkelen (15°).
 - **Velge i dybden:** klikk på noe for å velge det. Ligger flere ting under pekeren (kirkas boks dekker gjerdet inni den), står de i en liste i panelet, nærmest først, og et klikk i lista velger (Shift legger til). Klikk igjen på samme sted eller Tab går til det neste bakover, Shift+Tab til det forrige, og Alt+klikk (uten å dra) tar det bakerste med en gang.
@@ -74,7 +74,7 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
   - en ny drevet port `LayoutStore` lagrer.
 - **Applikasjonen:** en redigeringsmodus i økta. Den tar imot kommandoene, oppdaterer `Layout`, bygger verden på nytt der det trengs og sender tilstanden ut. Flyging uten kollisjon gjelder bare i den modusen.
 - **Adapterne:**
-  - nettlaget: Fristil-panelet, håndtakene tegnet over bildet, tastene,
+  - nettlaget: LO-TEK-panelet, håndtakene tegnet over bildet, tastene,
   - `LayoutStore` for GitHub i nettleseren,
   - filene i `adapters/data.rs`,
   - rendereren tegner håndtak og røde markeringer fra `Frame`.
@@ -99,7 +99,7 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
   - **Portene:** `Command::Edit(EditCommand)`, `Event::Edit(EditView)`, `Frame.hidden` (det som er flyttet skjules der det sto og tegnes der det står nå) og lagringsporten `LayoutStore`.
   - **Økta:** i redigeringen flyr du gjennom alt. `prepare_for_edit` laster alle modellene med plass til å flytte dem (`EDIT_RESERVE`), og `prepare_with` bygger spillet på nytt fra de redigerte dataene (P).
 - **Steg 4 (12. oktober):** redigeringen i nettleseren, med `?edit` i adressen.
-  - **Nettlaget** (`web/editor.js`): et Fristil-panel til venstre med tilstanden (grønt eller antall brudd), Angre, Gjør om, Spill (P) og Lagre (kommer i steg 5), det valgte, reglene som brytes, og katalogen. Katalogen har bilde, navn og eierens dom for hver modell, med søk og filter på dom og gruppe. Bildene lages med `tools/qa/thumbs.py` til `assets/catalog/thumbs/` og kopieres til `dist/catalog/`.
+  - **Nettlaget** (`web/editor.js`): et LO-TEK-panel til venstre med tilstanden (grønt eller antall brudd), Angre, Gjør om, Spill (P) og Lagre (kommer i steg 5), det valgte, reglene som brytes, og katalogen. Katalogen har bilde, navn og eierens dom for hver modell, med søk og filter på dom og gruppe. Bildene lages med `tools/qa/thumbs.py` til `assets/catalog/thumbs/` og kopieres til `dist/catalog/`.
   - **Musa er fri:** venstre klikk velger det under pekeren (Shift legger til), eller tar tak i et håndtak og drar. Håndtakene er pilene i rødt, grønt og blått langs aksene og den gule ringen for dreiing, og et drag angres som én handling. Høyre knapp holdt nede ser rundt.
   - **Tastene:**
     - WASD, mellomrom og C flyr, og Shift går fort.

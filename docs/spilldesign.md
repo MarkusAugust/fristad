@@ -8,9 +8,9 @@ Dette er forslagene, fra et samlende premiss til de mest ekstreme. Alt kan bygge
 
 ## Premisset: byen uten designsystem
 
-Du kommer til Fristad den dagen designsystemet forsvant. Byen står, men alt som var Fristil er borte: skiltene er grå bokser med Times New Roman, knappene er nettleserens stygge standardknapper, lenkene er blå og understreket, skjemaene er rå `<input>` uten luft, fargene er borte (hele byen i gråtoner og «unstyled HTML»-estetikk), og innbyggerne står og peker på ting som ikke virker. Porten er låst fordi knappen som åpner den ikke har noen stil.
+Du kommer til Fristad den dagen designsystemet forsvant. Byen står, men alt som var LO-TEK er borte: skiltene er grå bokser med Times New Roman, knappene er nettleserens stygge standardknapper, lenkene er blå og understreket, skjemaene er rå `<input>` uten luft, fargene er borte (hele byen i gråtoner og «unstyled HTML»-estetikk), og innbyggerne står og peker på ting som ikke virker. Porten er låst fordi knappen som åpner den ikke har noen stil.
 
-Spillet er å **hente Fristil tilbake, komponent for komponent**. Hver gang du gjenoppretter en komponent, forvandles bydelen den hører til: fargene kommer tilbake, typografien, skyggene, radiusene. Sluttilstanden er byen slik den ser ut i dag. Da blir det synlig hvorfor et designsystem finnes, og framgangen er dramatisk og visuell, ikke en poengsum.
+Spillet er å **hente LO-TEK tilbake, komponent for komponent**. Hver gang du gjenoppretter en komponent, forvandles bydelen den hører til: fargene kommer tilbake, typografien, skyggene, radiusene. Sluttilstanden er byen slik den ser ut i dag. Da blir det synlig hvorfor et designsystem finnes, og framgangen er dramatisk og visuell, ikke en poengsum.
 
 Dette er det bærende forslaget. De andre er lag oppå det.
 
@@ -30,7 +30,7 @@ Verktøybeltet nederst på skjermen er bygd av de ekte komponentene (badges for 
 | 1. Ankomst | Plakaten og porten | button, link, breadcrumbs | Porten åpnes først når du har fikset knappen (velg primary, trykk F). Brødsmulene i brosteinen lærer deg å gå. |
 | 2. Torget | Torget, oppslagstavla, kiosken | alert, badge, tag, switch, progress, spinner, dialog, toast | Byen er mørk til du finner bryteren. Telefonkiosken ringer: dialogen gir deg første oppdrag fra ordføreren. |
 | 3. Bydelene | Østre, Vestre, Nord, Sør | tabs, card, accordion, table, avatar, divider, tooltip, skeleton, connection-status | Hvert hus har en innbygger som er «sin» komponent (se NPC-ene under). Du får nøkkel til neste hus når du har hjulpet den forrige. |
-| 4. Søknadskontoret | Kontoret sør for Østre gate | input, select, textarea, checkbox, radio, fieldset, label, help-text, error-text, file-upload, search, heading | Søknaden er «bossen»: hvert felt krever en komponent du har gjenopprettet, og vedleggene er ting du har samlet (saksnummeret fra kortet, fylket fra tabellen, fødselsattesten fra Torgils). Valideringen er fienden: feil er ekte `.fs-error-text`. |
+| 4. Søknadskontoret | Kontoret sør for Østre gate | input, select, textarea, checkbox, radio, fieldset, label, help-text, error-text, file-upload, search, heading | Søknaden er «bossen»: hvert felt krever en komponent du har gjenopprettet, og vedleggene er ting du har samlet (saksnummeret fra kortet, fylket fra tabellen, fødselsattesten fra Torgils). Valideringen er fienden: feil er ekte `.lt-error-text`. |
 | 5. Temageneratoren | Tokenparken | tokens (farger, avstander, radius, skrift) | Innvilget søknad gir deg nøkkelen til verkstedet i parken. Der setter du sammen ditt eget tema av tokenene du har plukket i parken, og **hele byen bytter tema live**. Temaet kan eksporteres som ekte CSS (`[data-theme="mitt"]`), så spillet ender i noe du kan bruke på jobben. |
 
 Etter akt 5 åpner veiene til Linelord, Streamlord og Cobble (se «De tre rikene»).
@@ -71,7 +71,7 @@ Veiviserne på torget peker alt til Linelord, Streamlord og Cobble. De blir tre 
 
 3. **Byggemodus.** Etter søknaden får du inspektørhatten: du kan sette ut komponenter på flater i byen (en level-editor) og komponere ekte sider på husveggene. En URL til komposisjonen din kan deles. Byen blir en lekegrind for prototyping, og dokumentasjonen blir et verktøy.
 
-4. **Flerspiller (Railway).** Innbyggerne er andre spillere. Søknaden må fylles ut av et lag (hver har sitt felt). Det finnes en «code review»-boss der de andre stemmer over løsningen din. Chat med Fristils `dialog` og `toast`.
+4. **Flerspiller (Railway).** Innbyggerne er andre spillere. Søknaden må fylles ut av et lag (hver har sitt felt). Det finnes en «code review»-boss der de andre stemmer over løsningen din. Chat med LO-TEKs `dialog` og `toast`.
 
 5. **Dagsyklusen som framgang.** Hvert nivå er en dag. Om natta kan du ikke se komponentene du ikke har gjenopprettet (de lyser ikke). Du må rekke oppdragene før mørket, og lysbryteren er det første du må fikse for å overleve natta.
 
@@ -80,10 +80,10 @@ Veiviserne på torget peker alt til Linelord, Streamlord og Cobble. De blir tre 
 ## Hva som må bygges (grovt)
 
 - **Spilltilstand og manus**: en `Quest`-modell i `domain/` (mål, trinn, betingelser, belønning), lagret i localStorage via nettlaget. Oppdragene skrives som data, ikke kode.
-- **Ustylet tilstand** for hver komponent: et ark til per komponent rendret *uten* Fristil-CSS (bare nettleserens standard), og en «grå» palett for bydelen til den er gjenopprettet. Dette er billig med arkpipelinen vi har.
+- **Ustylet tilstand** for hver komponent: et ark til per komponent rendret *uten* LO-TEK-CSS (bare nettleserens standard), og en «grå» palett for bydelen til den er gjenopprettet. Dette er billig med arkpipelinen vi har.
 - **NPC-er**: figurer (Blender, som dyrene) med enkel animasjon, dialog som ekte `dialog`/`toast`/`alert`-ark, og en tilstandsmaskin.
-- **Verktøybelte og journal** i nettlaget, bygd av Fristils komponenter.
-- **Tokens som gjenstander**: props du kan plukke opp (F), inventar, og kostnader per komponent hentet fra CSS-en (vi kan lese hvilke `--fs-*`-variabler hver komponent bruker automatisk).
+- **Verktøybelte og journal** i nettlaget, bygd av LO-TEKs komponenter.
+- **Tokens som gjenstander**: props du kan plukke opp (F), inventar, og kostnader per komponent hentet fra CSS-en (vi kan lese hvilke `--lt-*`-variabler hver komponent bruker automatisk).
 - **Temageneratoren**: tokens → `[data-theme]`-CSS → paletten i motoren (vi har allerede `Tokens::blend` og palettplassene), eksport som fil.
 - Legacy-kjelleren, rikene, flerspiller og byggemodus er hver sin store utvidelse etter kjernen.
 
@@ -103,14 +103,14 @@ Eieren valgte: fjern alle komponentene som er plassert rundt i byen. Komponenten
 
 - **Trashmobs: de korrupte komponentene.** Komponenter som siden 2026 ble blandet med for mye JavaScript- og forretningslogikk, og har mutert: en Knapp som også validerer, henter data og viser en modal (den slår tre ganger og åpner en dialog du må lukke); et Input som husker alt du har skrevet og hvisker det tilbake; en Tabell som sorterer deg; et Kort med 40 props som bytter form hvert sekund; en Accordion som folder seg rundt deg; en Spinner som aldri stopper og suger tid; en Toast-sverm. De ser ut som komponentene, men feil: varianter blandet, tokens i feil plass, tekst i Comic Sans, `!important`-arr. Du kjenner dem igjen fordi du har sett de riktige i bodene. Når de dør, faller de fra hverandre i det de var bygd av: ren komponent (loot) og en klump forretningslogikk (søppel du kan selge).
 - **Epokene** nedover: tabellayout, floats, `!important`, Bootstrap-hydraen, jQuery-spaghettien, div-suppa, og nederst 2026-mutantene.
-- **Siste bossen: Rammeverket.** Designsystemet selv, som krever at du skriver React, og vil ta livet av deg for å ha vurdert andre språk. Et tårn av JSX som skyter `<Component prop={...} />`-prosjektiler, kaster deg i en «re-render»-løkke, og påstår at ingenting virker uten det. Du vinner ikke med et annet rammeverk (det gjør den bare sintere), men med det Fristil faktisk er: **frittstående** HTML og CSS. Hver komponent du har vunnet og smidd, brukt som ren markup, tar fra den en lagbit, til bare tokenene står igjen. Da får du nøkkelen til temageneratoren.
+- **Siste bossen: Rammeverket.** Designsystemet selv, som krever at du skriver React, og vil ta livet av deg for å ha vurdert andre språk. Et tårn av JSX som skyter `<Component prop={...} />`-prosjektiler, kaster deg i en «re-render»-løkke, og påstår at ingenting virker uten det. Du vinner ikke med et annet rammeverk (det gjør den bare sintere), men med det LO-TEK faktisk er: **frittstående** HTML og CSS. Hver komponent du har vunnet og smidd, brukt som ren markup, tar fra den en lagbit, til bare tokenene står igjen. Da får du nøkkelen til temageneratoren.
 
 ### Spillsløyfa (roguelite)
 
 - Byen er navet og varig: bodene, boka (dokumentasjonen), smia (søknadskontoret), temagenerator (parken). Brønnen på torget er nedgangen.
 - Kjelleren er prosedyrisk per nedstigning. Dør du, mister du det du bar, men beholder en andel tokens og alt som er skrevet i boka. Komponenter du har vunnet én gang kan kjøpes i boden etterpå.
 - Utstyret følger komponentenes betydning (knapp = våpen, alert = skjold, progress = liv, spinner = fryse tid, toast = kast, tooltip = avslør svakhet, tabs = bytte sett, accordion = sekk, breadcrumbs = vei tilbake, link = teleport, divider = vegg, switch = feller, badge/tag = buffer, avatar = følgesvenn, connection-status = varsling).
-- Sammensetning er Fristils egne mønstre, og skjemaet er smia: label + input + help-text + error-text = Felt; felt × n + fieldset + button = Skjema; card + avatar + badge = Profil; dialog + knapper = Bekreftelse. Valideringen er om smiinga lykkes.
+- Sammensetning er LO-TEKs egne mønstre, og skjemaet er smia: label + input + help-text + error-text = Felt; felt × n + fieldset + button = Skjema; card + avatar + badge = Profil; dialog + knapper = Bekreftelse. Valideringen er om smiinga lykkes.
 
 ### Milepæl 1 (ferdig)
 
@@ -127,7 +127,7 @@ Eieren: utstyret skal ikke se ut som komponenter, kampen skal være animert, tre
 5. **Fiendens angrep** varsles med animasjon: den gjør seg klar (reiser seg, gaper) før den stuper. Kan blokkes, pareres eller unngås.
 6. **Fiendetyper** først: korrupt knapp (nærkamp), korrupt input (skyter strenger), korrupt modal (sperrer gangen, tank), tooltip-sverm (små, raske), tabellen som miniboss. De skal se **mye mer monsteraktige** ut enn dagens knapp.
 7. **Utstyr** bygges av komponenter, men ser ut som ekte våpen og utstyr: sverd, skjold, øks, dolk, bue. Tematisk kobling er ok (divider = klinge, button = grep, card = skjoldplate, badge = skjoldbule, progress = bue, tag = pilspiss, tooltip = dolk).
-8. **Skjemaet er verkstedet:** oppskriften er et ekte Fristil-skjema i Skjemakontoret, feltene er plassene, validering er kravene. Avansert utstyr krever fieldset, file-upload og search.
+8. **Skjemaet er verkstedet:** oppskriften er et ekte LO-TEK-skjema i Skjemakontoret, feltene er plassene, validering er kravene. Avansert utstyr krever fieldset, file-upload og search.
 9. **Statistikk:** skade, fart, rekkevidde, blokk, ett spesialtrekk per våpen, sjeldenhetsgrader, ingen tilfeldige rulleverdier.
 10. **NPC-ene** snakker med **vanlige snakkebobler**, ikke designsystemkomponenter. Buttonsmeden (våpen og reparasjon), Skjemakontoret (bygging), Apoteket (drikker), Torgils lærer trekk. De bor i husene rundt torget.
 11. **Fem etasjer per nedstigning**, hver en epoke (2026 forretningslogikk, 2019 klassekomponenter, 2014 jQuery, 2009 tabellayout, 1999 blink), trapp ned bak en rusten port med nøkkel fra minibossen, Rammeverket nederst. En nedstigning er 20 til 30 minutter.

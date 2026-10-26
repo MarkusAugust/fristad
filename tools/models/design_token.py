@@ -6,7 +6,7 @@ som droppes, og plukkes opp når man går over dem»). Kjør:
 En sekskantet brikke, 16 cm over hjørnene og 2,2 cm tykk, som står på kant:
 en kant av smidd jern (`layer_iron`) rundt en glødende flate på hver side
 (`magic_paint`: gløder hele døgnet, i fargen fra instansen, så hvert token
-får sin Fristil-farge; `mobs::TOKEN_COLORS`). Litt fasett i flaten, og et
+får sin LO-TEK-farge; `mobs::TOKEN_COLORS`). Litt fasett i flaten, og et
 lite hull midt i, så den leses som en brikke og ikke en mynt. Origo i
 midten; spillet snurrer den om loddlinja og lar den sveve.
 

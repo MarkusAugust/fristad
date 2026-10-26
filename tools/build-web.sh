@@ -24,14 +24,14 @@ if [ ! -x "$TOOLS/wasm-bindgen" ] || [ "$("$TOOLS/wasm-bindgen" --version | awk 
   fi
 fi
 
-echo "== Fristil"
+echo "== LO-TEK"
 command -v bun >/dev/null 2>&1 || npm install -g bun
 bun install
 # Det nettlaget kaller på musikken, finnes som funksjoner (mjøden frøs spillet).
 bun tools/music-check.mjs
 bun tools/export-tokens.ts
-# Dokumentasjonen hentes ferskt fra GitHub. Feiler det, brukes den som
-# ligger i repoet.
+# Bøkene: dokumentasjonen fra samme LO-TEK-commit som pakken. Feiler
+# hentingen, står web/docs.json fra repoet.
 bun tools/export-docs.ts || echo "Bruker web/docs.json fra repoet"
 
 echo "== Teksturlagene (egne bilder og CC0 fra Poly Haven)"
@@ -82,13 +82,13 @@ mkdir -p dist/music
 cp -r assets/music/. dist/music/
 # Lista over Suno-sporene som finnes (music.js henter ikke de som mangler).
 (cd assets/music/game && ls *.mp3 2>/dev/null | sed 's/\.mp3$//' | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}') > dist/music/game/tracks.json
-cp node_modules/@fristil/designsystem/dist/fristil.css dist/
-# De frittstående web-komponentene (toast, connection-status) importeres som
+cp node_modules/@lo-tek/interfaces/dist/lotek.css dist/
+# Web-komponentene (toast, connection-status, dialogen, fanene) importeres som
 # ES-moduler fra pakken, uten kildekart og typer.
-SRC=node_modules/@fristil/designsystem/dist
+SRC=node_modules/@lo-tek/interfaces/dist
 (cd "$SRC" && find . -name "*.js" ! -name "cli.js" ! -name "react.js" ! -name "*.map") | while read -r f; do
-  mkdir -p "dist/fristil/$(dirname "$f")"
-  cp "$SRC/$f" "dist/fristil/$f"
+  mkdir -p "dist/lotek/$(dirname "$f")"
+  cp "$SRC/$f" "dist/lotek/$f"
 done
 # Modellene ligger ved siden av motoren, gzip-pakket (main.js pakker dem ut).
 sh tools/pack-models.sh dist
@@ -101,4 +101,4 @@ if [ -f assets/external/manifest.json ]; then
   cp -r assets/external/. dist/assets/
 fi
 ls -la dist dist/pkg
-du -sh dist/fristil 2>/dev/null || true
+du -sh dist/lotek 2>/dev/null || true

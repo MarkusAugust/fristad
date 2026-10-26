@@ -1,5 +1,5 @@
 //! Siktet: navnet, verbet for F, handelen for E og en kort forklaring for
-//! det du sikter på, slik det er nå (Fristils tooltip rundt siktekorset).
+//! det du sikter på, slik det er nå (LO-TEKs tooltip rundt siktekorset).
 
 use super::session::Session;
 use crate::domain::craft;

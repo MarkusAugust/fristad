@@ -1,5 +1,5 @@
 //! Baker et SDF-atlas av Inter til `assets/font/`, så teksten på skiltene
-//! og knappene i byen er samme skrift som i Fristil-dokumentasjonen, og er
+//! og knappene i byen er samme skrift som i LO-TEK-dokumentasjonen, og er
 //! skarp uansett avstand.
 //!
 //!   cargo run --release --bin bake_font -- /usr/share/fonts/opentype/inter/Inter-Medium.otf

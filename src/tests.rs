@@ -1042,7 +1042,7 @@ fn skrittene_folger_underlaget() {
 
 /// Kanon (`docs/kanon.md`): ingen moderne ord i det verden sier. Replikkene
 /// (`world/cast.rs`), byen (`assets/layout/town.json`), lappene og navnene i
-/// kryptnivåene og filmens tekster sjekkes. Bøkene viser Fristils ekte
+/// kryptnivåene og filmens tekster sjekkes. Bøkene viser LO-TEKs ekte
 /// dokumentasjon og er unntatt.
 #[test]
 fn kanon_ingen_moderne_ord_i_verden() {
@@ -2845,8 +2845,8 @@ fn dommen_mister_ingenting() {
 }
 
 /// Hvert eksempel i boka har en flate å stå på (eieren 18. oktober: Divider
-/// sto i fire kolonner fordi panelet ikke kjente layouten `flyt` fra
-/// Fristil-docs): `web/docs-flate.css`, som `tools/export-docs.ts` skriver
+/// sto i fire kolonner fordi panelet ikke kjente layouten `flow` fra
+/// LO-TEK-docs): `web/docs-flate.css`, som `tools/export-docs.ts` skriver
 /// rett fra Preview.astro, har en regel for hver layout i `web/docs.json`.
 #[test]
 fn eksemplene_i_boka_har_sin_flate() {

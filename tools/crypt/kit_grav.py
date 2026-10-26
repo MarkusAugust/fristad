@@ -1421,7 +1421,7 @@ def ossuary_shelves(mb, surf, length, y0, y1, levels, mat_shelf="dressed", depth
 
 
 def glitch_seam(mb, surf, u, v0, v1, w=0.5, seed=3):
-    """Fristil-korrupsjonen: en lysende søm i muren, et taggete bånd litt
+    """LO-TEK-korrupsjonen: en lysende søm i muren, et taggete bånd litt
     ut fra flaten med `glitch_seam`-laget som gløder."""
     import random
 

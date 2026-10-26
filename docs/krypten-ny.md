@@ -13,7 +13,7 @@ Bestemt med eieren 10. oktober 2026. Krypten lages på nytt fra bunnen i den mal
   | 3–4 | Kloakken og cisternene | vann, renner, mose, murstein, slim |
   | 5–6 | Gruva og grottene | berg, tømmerstiver, malm, lysende krystaller |
   | 7–8 | Borgen under jorda | søylesaler, statuer, rust, falmede faner |
-  | 9–10 | Den korrupte kjernen | Fristil har tatt over: plast i steinen, glitch, lysende sømmer |
+  | 9–10 | Den korrupte kjernen | LO-TEK har tatt over: plast i steinen, glitch, lysende sømmer |
 
 - **Byggesett og tegnet kart:** hvert tema får et byggesett av moduler i Blender, som murer, buer, gulv, trapper, dører, søyler og hvelv, med malte teksturer. Hvert nivå er et Python-skript som setter modulene sammen etter et kart jeg tegner. Bossarenaene og de store salene kan modelleres for seg.
 - **Finne fram:** kartet med fog of war som i dag, både minikartet og det store kartet på K. Hovedveien skal være lett å lese uansett: tydelige døråpninger, ingen blindgater uten belønning, og trappa ned ser lik ut i alle nivåer.
@@ -29,7 +29,7 @@ Bestemt med eieren 10. oktober 2026. Krypten lages på nytt fra bunnen i den mal
   - **Navigasjonsnett:** hvert nivå får et navmesh, så fiendene følger deg over trapper og ramper og rundt møbler. En test går gjennom hele nivået og sjekker at ingen kan bli sittende fast.
   - **Oppførsel:** noen patruljerer faste runder, andre sover eller vokter.
   - **Nye slag:** hvert tema får 2–3 egne fiendeslag, og de gamle kommer igjen sterkere.
-- **Bossene** står nederst i hvert tema og er store, korrupte Fristil-komponenter. Nivåene uten boss har en elite som bærer nøkkelen til porten ned.
+- **Bossene** står nederst i hvert tema og er store, korrupte LO-TEK-komponenter. Nivåene uten boss har en elite som bærer nøkkelen til porten ned.
 
   | Nivå | Boss | Hvordan den kjemper |
   |---|---|---|
@@ -45,7 +45,7 @@ Bestemt med eieren 10. oktober 2026. Krypten lages på nytt fra bunnen i den mal
   - Hviler du der, får du fullt liv og full utholdenhet, og fiendene kommer tilbake.
   - Dør du, våkner du ved siste hvilested du tente. Det du bar, blir liggende der du døde.
 - **Heisen:** inne i krypten på kirkegården står en heis eller trapp ned til begynnelsen av hvert tema du har nådd (nivå 1, 3, 5, 7 og 9). H og portalen virker som i dag.
-- **Glitch:** Fristil-korrupsjonen synes litt allerede på nivå 1, med en lysende søm i en mur og en stein som flimrer. Den øker jo dypere du kommer, til kjernen der den har tatt over.
+- **Glitch:** LO-TEK-korrupsjonen synes litt allerede på nivå 1, med en lysende søm i en mur og en stein som flimrer. Den øker jo dypere du kommer, til kjernen der den har tatt over.
 - **Lyset:** malt halvmørke. Varme lyskilder som fakler, glør og stearinlys står mot kalde, blålilla skygger, som i WoWs katakomber. Du ser alltid gulvet og veien, men hjørnene er mørke.
 
 ## Rekkefølgen
