@@ -78,6 +78,49 @@ export function placeFootprint(pm, at, rot, mirror) {
   return { cells, openings };
 }
 
+/// Åpningene i nivået som ikke møter noe (og ikke er gjort til mur), utenom
+/// modulene i `skip`: der en ny modul kan kobles på.
+export function freeOpenings(map, skip = []) {
+  const joined = new Set(map.edges.flatMap((e) => [`${e.at[0]},${e.at[2]},${e.side}`, `${e.at[0] + SIDE[e.side][0]},${e.at[2] + SIDE[e.side][1]},${(e.side + 2) & 3}`]));
+  const out = [];
+  for (const m of map.modules) {
+    if (skip.includes(m.id)) continue;
+    for (const o of m.openings) if (o.chosen !== "vegg" && !joined.has(`${o.at[0]},${o.at[1]},${o.side}`)) out.push(o);
+  }
+  return out;
+}
+
+/// Magneten: der modulen `pm` (dreid `rots`, speilet `mirror`) kan stå med en
+/// åpning mot en ledig åpning i nivået, nærmest `want` (ruta pekeren peker på)
+/// og innen `reach` ruter. `taken` er rutene som er opptatt ("i,y,j"). Gir
+/// { at, rot, links } (links: midten av kantene som kobles, i meter) eller null.
+export function snapPlacement(map, pm, want, rots, mirror, taken, skip = [], reach = 1.6) {
+  const free = freeOpenings(map, skip).filter((f) => Math.abs(f.y - want[1]) < 2.5 && Math.hypot(f.at[0] - want[0], f.at[1] - want[2]) < reach + 6);
+  if (!free.length) return null;
+  const freeKey = new Map(free.map((f) => [`${f.at[0] + SIDE[f.side][0]},${f.y},${f.at[1] + SIDE[f.side][1]},${(f.side + 2) & 3}`, f]));
+  let best = null;
+  rots.forEach((rot, k) => {
+    const fp0 = placeFootprint(pm, [0, 0, 0], rot, mirror);
+    for (const f of free) {
+      const c = [f.at[0] + SIDE[f.side][0], f.at[1] + SIDE[f.side][1]];
+      for (const g of fp0.openings) {
+        if (g.side !== ((f.side + 2) & 3)) continue;
+        const at = [c[0] - g.at[0], f.y - g.y, c[1] - g.at[1]];
+        const d = Math.hypot(at[0] - want[0], at[2] - want[2]);
+        if (d > reach) continue;
+        const fp = placeFootprint(pm, at, rot, mirror);
+        if (fp.cells.some((q) => taken.has(q.join()))) continue;
+        const links = fp.openings.filter((o) => freeKey.has(`${o.at[0]},${o.y},${o.at[1]},${o.side}`));
+        const score = d - 0.35 * (links.length - 1) + 0.05 * k;
+        if (!best || score < best.score) {
+          best = { score, at, rot, links: links.map((o) => [o.at[0] * CELL + (SIDE[o.side][0] * CELL) / 2, o.y, o.at[1] * CELL + (SIDE[o.side][1] * CELL) / 2]) };
+        }
+      }
+    }
+  });
+  return best;
+}
+
 // I paletten er åpningene allerede satt ut med rot 0 (siden i nivået er
 // den lokale).
 function sideFromPlaced(_pm, o) {
@@ -181,22 +224,36 @@ export function draw(canvas, st) {
         }
       }
       ctx.lineWidth = 1;
-      // Navnet.
-      const cx = here.reduce((a, c) => a + c[0], 0) / here.length;
-      const cz = here.reduce((a, c) => a + c[2], 0) / here.length;
-      const [lx, ly] = v.toScreen(cx * CELL, cz * CELL);
-      if (s > 7) {
-        ctx.font = `${Math.max(10, Math.min(14, s * 0.8))}px Inter, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = selected ? "#ffe7a8" : "#e7e1d2";
-        ctx.fillText(m.name, lx, ly - (here.length === 1 ? s * 1.2 : 0));
+      // Navnet: øverst til venstre i modulen, kortet av så det aldri går
+      // ut over kanten (og inn i naboens).
+      if (s > 6) {
+        const i0 = Math.min(...here.map((c) => c[0]));
+        const i1 = Math.max(...here.map((c) => c[0]));
+        const j0 = Math.min(...here.map((c) => c[2]));
+        const [lx, ly] = v.toScreen(i0 * CELL - CELL / 2, j0 * CELL - CELL / 2);
+        const room = (i1 - i0 + 1) * CELL * s - 8;
+        ctx.font = `600 ${Math.max(10, Math.min(13, s * 0.7))}px Inter, sans-serif`;
+        const text = fitText(ctx, m.name, room);
+        if (text) {
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          const w = ctx.measureText(text).width;
+          ctx.fillStyle = "rgba(10,11,13,.6)";
+          ctx.fillRect(lx + 3, ly + 3, w + 6, Math.max(10, Math.min(13, s * 0.7)) + 5);
+          ctx.fillStyle = selected ? "#ffe7a8" : "#e7e1d2";
+          ctx.fillText(text, lx + 6, ly + 5);
+        }
       }
     }
   }
-  // Åpningene etter sammenføyningen.
+  // Åpningene etter sammenføyningen; buene og gangene inne i en modul er
+  // bare modulens eget rom og tegnes ikke.
+  const owner = new Map();
+  for (const m of map.modules) for (const c of m.cells) if (onFloor(c[1])) owner.set(`${c[0]},${c[2]}`, m.id);
   for (const e of map.edges) {
     if (!onFloor(e.at[1])) continue;
+    const a = owner.get(`${e.at[0]},${e.at[2]}`);
+    if ((e.kind === "arch" || e.kind === "gang") && a && a === owner.get(`${e.at[0] + SIDE[e.side][0]},${e.at[2] + SIDE[e.side][1]}`)) continue;
     const [di, dj] = SIDE[e.side];
     const mx = e.at[0] * CELL + di * CELL / 2;
     const mz = e.at[2] * CELL + dj * CELL / 2;
@@ -221,7 +278,9 @@ export function draw(canvas, st) {
       const isSel = st.selOpening && st.selOpening.module === m.id && st.selOpening.opening === o.id;
       const free = !joined.has(`${o.at[0]},${o.at[1]},${o.side}`);
       if (!free && !o.chosen && !isSel) continue;
-      arrow(ctx, v, o.at[0], o.at[1], o.side, isSel ? "#ffd36a" : o.chosen ? CHOSEN_COLOR[o.chosen] || "#ddd" : "rgba(220,214,200,.45)", isSel ? 1.3 : 1);
+      // Med en modul i hånda lyser de ledige åpningene: der den kan kobles på.
+      const want = st.ghost && free && o.chosen !== "vegg";
+      arrow(ctx, v, o.at[0], o.at[1], o.side, isSel ? "#ffd36a" : want ? "#7be38f" : o.chosen ? CHOSEN_COLOR[o.chosen] || "#ddd" : "rgba(220,214,200,.45)", isSel ? 1.3 : want ? 1.25 : 1);
     }
   }
   // Stigene og heisene: enden i en annen etasje (⇅ med høyden).
@@ -360,15 +419,40 @@ export function draw(canvas, st) {
     for (const c of g.cells) if (onFloor(c[1])) ctx.fillRect(...rect(c[0], c[2], 0.25));
     ctx.globalAlpha = 1;
     for (const o of g.openings) if (onFloor(o.y)) arrow(ctx, v, o.at[0], o.at[1], o.side, "#e8ffe8", 1);
+    // Magneten: der fantomet kobles til en åpning i nivået.
+    for (const [x, , z] of g.links || []) {
+      const [px, py] = v.toScreen(x, z);
+      ctx.fillStyle = "#57d36a";
+      ctx.strokeStyle = "#0e0f11";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(5, Math.min(9, s * 0.4)), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
   }
   if (st.thingGhost) {
     const [px, py] = v.toScreen(st.thingGhost[0], st.thingGhost[2]);
-    ctx.strokeStyle = "#e8ffe8";
-    ctx.setLineDash([3, 3]);
+    // Utenfor modulene (i fjellet) er fantomet rødt.
+    const inside = owner.has(`${Math.round(st.thingGhost[0] / CELL)},${Math.round(st.thingGhost[2] / CELL)}`);
+    let [glyph, color] = THING_STYLE[st.thingGhost[3]] || (st.thingGhost[3] === "light" ? ["☀", "#ffcf6a"] : ["", "#e8ffe8"]);
+    if (!inside) color = "#e0483c";
+    ctx.fillStyle = "rgba(16,17,20,.7)";
     ctx.beginPath();
     ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.setLineDash([3, 3]);
     ctx.stroke();
     ctx.setLineDash([]);
+    if (glyph) {
+      ctx.fillStyle = color;
+      ctx.font = `600 ${Math.round(r * 1.1)}px Inter, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(glyph, px, py + 0.5);
+    }
   }
   if (st.box) {
     const [a, b, c, d] = st.box;
@@ -415,16 +499,22 @@ export function draw(canvas, st) {
 /// Minikartet nede til høyre: hele nivået med alle etasjene (denne
 /// sterkest), utsnittet kartet viser og 3D-kameraet. Gir ruta det står i
 /// og hvordan et punkt der blir et sted i nivået (`toWorld`), eller null.
-export function miniMap(map, W, H) {
+export function miniMap(map, W, H, view) {
   const cells = map.modules.flatMap((m) => m.cells);
   if (!cells.length || W < 360 || H < 260) return null;
   const xs = cells.map((c) => c[0] * CELL);
   const zs = cells.map((c) => c[2] * CELL);
   const [x0, x1, z0, z1] = [Math.min(...xs) - 6, Math.max(...xs) + 6, Math.min(...zs) - 6, Math.max(...zs) + 6];
+  // Bare når nivået ikke får plass i utsnittet.
+  if (view) {
+    const [a, b] = view.toScreen(x0 + 4, z0 + 4);
+    const [c, d] = view.toScreen(x1 - 4, z1 - 4);
+    if (a >= 0 && b >= 0 && c <= W && d <= H) return null;
+  }
   const w = 170;
   const h = 130;
   const k = Math.min(w / (x1 - x0), h / (z1 - z0));
-  const rect = [W - w - 10, H - h - 30, w, h];
+  const rect = [W - w - 12, 30, w, h];
   const ox = rect[0] + (w - (x1 - x0) * k) / 2;
   const oz = rect[1] + (h - (z1 - z0) * k) / 2;
   return {
@@ -437,7 +527,7 @@ export function miniMap(map, W, H) {
 }
 
 function drawMini(ctx, st, W, H) {
-  const mini = miniMap(st.map, W, H);
+  const mini = miniMap(st.map, W, H, st.view);
   if (!mini) return;
   const [rx, ry, rw, rh] = mini.rect;
   ctx.fillStyle = "rgba(10,11,13,.88)";
@@ -471,6 +561,17 @@ function drawMini(ctx, st, W, H) {
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   ctx.fillText("Oversikt (klikk for å gå dit)", rx, ry - 6);
+}
+
+/// Teksten kortet av med «…» så den får plass i `room` piksler (tom om ikke
+/// engang tre tegn får plass).
+function fitText(ctx, text, room) {
+  if (ctx.measureText(text).width <= room) return text;
+  for (let n = text.length - 1; n >= 3; n--) {
+    const t = text.slice(0, n).trimEnd() + "…";
+    if (ctx.measureText(t).width <= room) return t;
+  }
+  return "";
 }
 
 function sideLine(ctx, v, i, j, w) {

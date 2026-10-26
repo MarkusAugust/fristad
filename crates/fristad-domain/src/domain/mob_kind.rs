@@ -64,6 +64,9 @@ pub enum Kind {
     /// Alle nivåene, i flokk: midden som omringer deg og henger seg i
     /// ankelen din (`mob_mite.rs`).
     TagMite,
+    /// Elite i alle temaene: steinkjempen med skjermen som ansikt, som slår
+    /// begge nevene i bakken og trykker deg ned (`mob_press.rs`).
+    DreadButton,
 }
 
 /// Tallene bak et slag.
@@ -91,7 +94,7 @@ pub struct Stats {
 }
 
 impl Kind {
-    pub const ALL: [Kind; 27] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp, Kind::AlertBat, Kind::Combobox, Kind::DividerWorm, Kind::BadgeBeetle, Kind::TagMite];
+    pub const ALL: [Kind; 28] = [Kind::Button, Kind::Tooltip, Kind::Input, Kind::Toast, Kind::Select, Kind::Modal, Kind::Priest, Kind::Table, Kind::Framework, Kind::Avatar, Kind::Breadcrumb, Kind::Accordion, Kind::Navbar, Kind::Dropdown, Kind::TwinWarden, Kind::Archer, Kind::SkeletonLoader, Kind::GridWarden, Kind::Spinner, Kind::Foreman, Kind::CardSquire, Kind::Wisp, Kind::AlertBat, Kind::Combobox, Kind::DividerWorm, Kind::BadgeBeetle, Kind::TagMite, Kind::DreadButton];
 
     pub fn model(self) -> &'static str {
         match self {
@@ -122,6 +125,7 @@ impl Kind {
             Kind::DividerWorm => "divider_worm",
             Kind::BadgeBeetle => "badge_beetle",
             Kind::TagMite => "tag_mite",
+            Kind::DreadButton => "dread_button",
         }
     }
 
@@ -156,6 +160,7 @@ impl Kind {
             Kind::DividerWorm => "divider-orm",
             Kind::BadgeBeetle => "badge-bille",
             Kind::TagMite => "tag-midd",
+            Kind::DreadButton => "fryktinngytende button",
         }
     }
 
@@ -188,6 +193,7 @@ impl Kind {
             Kind::DividerWorm => "Divider-ormen",
             Kind::BadgeBeetle => "Badge-billen",
             Kind::TagMite => "Tag-midden",
+            Kind::DreadButton => "Den fryktinngytende Button",
         }
     }
 
@@ -222,6 +228,7 @@ impl Kind {
             Kind::DividerWorm => "En orm av flate skiferledd med jernbånd imellom og ett magenta øye. Kommer i flokk. Graver seg ned i gulvet, går under deg og dukker opp der du står: flytt deg når gulvet sprekker.",
             Kind::BadgeBeetle => "En feit bille med et kuppelskall av falmet rød emalje og en kant av anløpet messing, og et stumpt horn foran. Skallet tar det meste forfra. Et stykke unna skraper den med forbeina og stormer rett fram: gå til siden, så løper den i muren, velter og ligger med buken åpen.",
             Kind::TagMite => "En flat midd av gammelt pergament, formet som en merkelapp med en jernring bak der øyet gløder. Kommer i flokk, sprer seg rundt deg og piler inn mot anklene. Den som biter, henger fast og gnager og gjør deg treg: hopp eller kast deg unna for å riste dem av.",
+            Kind::DreadButton => "En steinkjempe dobbelt så høy som en mann, med en rød knapp som ansikt og jernhansker på nevene. Tung og langsom, og steinen tar det meste forfra. Når den løfter begge nevene, hamrer den dem ned foran seg: treffer de, blir du trykket ned og står fast. Parer eller kast deg unna. Bærer nøkkelen.",
         }
     }
 
@@ -266,6 +273,8 @@ impl Kind {
             Kind::BadgeBeetle => (0.4, 0.25, 0.22),
             // 0,23 høy og 0,4 lang.
             Kind::TagMite => (0.23, 0.18, 0.12),
+            // 1,35 høy i modellen (3,5 m som elite).
+            Kind::DreadButton => (1.3, 0.4, 0.0),
             _ => (1.45, 0.5, 0.0),
         }
     }
@@ -291,6 +300,7 @@ impl Kind {
             Kind::DividerWorm => Some(Kind::Breadcrumb),
             Kind::BadgeBeetle => Some(Kind::Avatar),
             Kind::TagMite => Some(Kind::Tooltip),
+            Kind::DreadButton => Some(Kind::Modal),
             _ => None,
         }
     }
@@ -344,6 +354,8 @@ impl Kind {
             Kind::BadgeBeetle => Stats { hp: 32.0, speed: 2.2, damage: 9.0, range: 1.2, reach: 1.6, scale: 1.0, sight: 26.0, cooldown: 1.3, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 0.35, poise: 0.0, tokens: 1 },
             // Piler inn fra ringen rundt deg og henger seg fast (`mob_mite.rs`).
             Kind::TagMite => Stats { hp: 18.0, speed: 3.8, damage: 5.0, range: 1.9, reach: 2.1, scale: 1.0, sight: 26.0, cooldown: 1.0, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 0.0, tokens: 1 },
+            // Begge nevene i bakken (`attack_slam`, 44 bilder); trykket står i `mob_press.rs`.
+            Kind::DreadButton => Stats { hp: 240.0, speed: 1.1, damage: 24.0, range: 2.4, reach: 3.0, scale: 2.0, sight: 26.0, cooldown: 2.0, attack_hit: slam.0, attack_len: slam.1, bolt: None, armor: 0.5, poise: 45.0, tokens: 8 },
             Kind::Framework => Stats { hp: 1400.0, speed: 1.6, damage: 34.0, range: 3.0, reach: 4.0, scale: 2.3, sight: 40.0, cooldown: 1.2, attack_hit: bite.0, attack_len: bite.1, bolt: None, armor: 1.0, poise: 55.0, tokens: 40 },
         };
         Stats { hp: s.hp * TOUGHNESS, ..s }
@@ -374,6 +386,8 @@ impl Kind {
             Kind::Foreman
         } else if has(&["kortknekt", "card"]) {
             Kind::CardSquire
+        } else if has(&["fryktinngytende", "dread"]) {
+            Kind::DreadButton
         } else if has(&["tag-midd", "tag mite", "midd"]) {
             Kind::TagMite
         } else if has(&["badge", "bille"]) {

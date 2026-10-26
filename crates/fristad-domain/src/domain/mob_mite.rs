@@ -107,8 +107,12 @@ pub(super) fn cling(i: usize, m: &mut Mob, dt: f32, player: Vec3, stats: &Stats,
 }
 
 impl Mobs {
-    /// Hvor mye av farten din som er igjen med middene i ankelen.
+    /// Hvor mye av farten din som er igjen med middene i ankelen (ingen
+    /// når hammerslaget har trykket deg ned, `mob_press.rs`).
     pub fn drag(&self) -> f32 {
+        if self.pressed() {
+            return 0.0;
+        }
         (1.0 - DRAG_EACH * self.mobs.iter().filter(|m| m.latched()).count() as f32).max(DRAG_MIN)
     }
 

@@ -37,8 +37,11 @@ mod chain;
 pub mod badge;
 #[path = "mob_strike.rs"]
 mod strike;
+pub use strike::{Pickup, Strike};
 #[path = "mob_mite.rs"]
 pub mod mite;
+#[path = "mob_press.rs"]
+pub mod press;
 pub use chain::Sweep;
 pub use bolts::Bolt;
 use bolts::{BOLT_INSTANCES, BOLT_SPEED};
@@ -189,23 +192,6 @@ impl Mob {
 }
 
 
-/// Det du plukker opp: tokens, og nøkler til portene.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Pickup {
-    Token,
-    Key,
-}
-
-/// Hva et slag mot en fiende førte til.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Strike {
-    pub killed: bool,
-    /// Panseret tok det meste (modalen forfra).
-    pub armored: bool,
-    /// Slaget brøt gjennom balansen til en av de tunge (`poise`).
-    pub staggered: bool,
-}
-
 /// Det som skjedde dette bildet, til spillet.
 #[derive(Default, Debug)]
 pub struct Outcome {
@@ -213,6 +199,8 @@ pub struct Outcome {
     pub bites: Vec<(usize, f32, Vec3)>,
     /// Comboboxens pisk: som bittene, men et hopp eller å dukke går klar.
     pub sweeps: Vec<(usize, f32, Vec3, Sweep)>,
+    /// Bittene som trykker deg ned om de treffer (`mob_press.rs`).
+    pub presses: Vec<usize>,
     pub tokens: u32,
     pub keys: u32,
     /// Lydene fiendene lager, og hvor: varsel før slaget (`windup`,
@@ -244,12 +232,14 @@ pub struct Mobs {
     /// Modellen hvert slag tegnes med: sin egen, eller stedfortrederen
     /// (`Kind::stand_in`) når den egne mangler.
     models: Vec<&'static str>,
+    /// Sekundene du står fast under hammerslaget (`mob_press.rs`).
+    pressed: f32,
 }
 
 impl Mobs {
     pub fn new(crypt: &Crypt, rigs: &[(String, Rig)]) -> Self {
         let (all_rigs, clips, models) = mob_rigs::lookup(rigs);
-        let mut m = Self { mobs: vec![], level: 0, tokens: vec![], keys: vec![], bolts: vec![], seed: 0x9e37_79b9_7f4a_7c15, rigs: all_rigs, clips, models };
+        let mut m = Self { mobs: vec![], level: 0, tokens: vec![], keys: vec![], bolts: vec![], seed: 0x9e37_79b9_7f4a_7c15, rigs: all_rigs, clips, models, pressed: 0.0 };
         m.enter(crypt, 0);
         m
     }
@@ -447,6 +437,7 @@ impl Mobs {
     /// føttene, `in_crypt` om du er nede.
     pub fn update(&mut self, dt: f32, player: Vec3, in_crypt: bool, crypt: &Crypt) -> Outcome {
         let mut out = Outcome::default();
+        self.pressed = (self.pressed - dt).max(0.0);
         let n = self.mobs.len();
         let mut summons: Vec<Vec3> = vec![];
         let mut bolts: Vec<Bolt> = vec![];
@@ -571,6 +562,7 @@ impl Mobs {
                                     if dist <= reach && facing.dot(to_player.normalize_or_zero()) > 0.3 {
                                         out.bites.push((i, stats.damage * if m.elite { 1.8 } else { 1.0 }, m.pos));
                                         mite::bite(m, player, &clips);
+                                        press::land(i, m, &mut out);
                                     }
                                 }
                                 Blow::Spit => {

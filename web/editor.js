@@ -16,7 +16,7 @@
 // står som en liste å klikke i (Tab og Shift+Tab blar, Alt+klikk tar det
 // bakerste), Shift+dra i bildet velger alt innenfor rammen, panelet viser
 // egenskapene til det valgte å skrive i, og historikken er en liste å
-// klikke seg tilbake i. Ctrl+1–9 husker hvor kameraet står, 1–9 går dit.
+// klikke seg tilbake i. Shift+1–9 (eller Ctrl+1–9) husker hvor kameraet står, 1–9 går dit.
 //
 // Det du gjør, huskes som et utkast i nettleseren (`fristad.edit-draft`)
 // ved hver endring og hvert 30. sekund, og Lagre (Ctrl+S) legger det på
@@ -199,13 +199,13 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     <section class="editor-section editor-keys">
       <p class="fs-paragraph" data-size="small">
         <strong>Musa:</strong> dra en ting for å flytte den langs bakken (den settes ned igjen der du slipper), <kbd>Alt</kbd>+dra heiser opp og ned, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+dra dreier (flere valgt dreies samlet), <kbd>Shift</kbd>+klikk velger flere, <kbd>Shift</kbd>+dra velger alt innenfor rammen, <kbd>Alt</kbd>+klikk det bakerste.
-        Dra en modell fra katalogen ut i bildet for å sette den ut (<kbd>R</kbd> dreier 90°, <kbd>Ctrl</kbd> fester). <kbd>Ctrl+1</kbd>–<kbd>9</kbd> husker kameraet, <kbd>1</kbd>–<kbd>9</kbd> går dit.
+        Dra en modell fra katalogen ut i bildet for å sette den ut (<kbd>R</kbd> dreier 90°, <kbd>Ctrl</kbd> fester). <kbd>Shift+1</kbd>–<kbd>9</kbd> husker kameraet, <kbd>1</kbd>–<kbd>9</kbd> går dit.
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
-        Piltastene flytter det valgte langs bakken, <kbd>PgUp</kbd>/<kbd>PgDn</kbd> opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
+        Piltastene flytter det valgte langs bakken, <kbd>+</kbd>/<kbd>−</kbd> (eller <kbd>PgUp</kbd>/<kbd>PgDn</kbd>) opp og ned (<kbd>Alt</kbd> små steg, <kbd>Shift</kbd> store),
         <kbd>Ctrl+G</kbd> lager en gruppe av det valgte (velges, flyttes, dreies og kopieres samlet), <kbd>Ctrl+Shift+G</kbd> løser den opp.
-        En valgt innbygger viser ruta: dra stolpene, klikk på streken for et nytt punkt, <kbd>Delete</kbd> sletter punktet du tok.
+        En valgt innbygger viser ruta: dra stolpene, klikk på streken for et nytt punkt, <kbd>Delete</kbd> eller <kbd>⌫</kbd> sletter punktet du tok.
         <kbd>T</kbd> bytter dag og natt, så lysene (de små korsene) synes; klikk et lys for å endre det.
-        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>R</kbd> en kvart runde, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>Shift+Tab</kbd> det forrige, <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> sletter.
+        <kbd>Q</kbd>/<kbd>E</kbd> dreier, <kbd>R</kbd> en kvart runde, <kbd>Tab</kbd> velger det neste under pekeren (kirka, så gjerdet inni boksen dens), <kbd>Shift+Tab</kbd> det forrige, <kbd>G</kbd> setter ned på det som er under, <kbd>Ctrl+D</kbd> kopierer, <kbd>Delete</kbd> eller <kbd>⌫</kbd> sletter.
       </p>
     </section>`;
   document.body.append(panel);
@@ -302,7 +302,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     sendSnap();
   });
 
-  // Kamerabokmerkene (Ctrl+1–9 husker, 1–9 går dit), i nettleseren.
+  // Kamerabokmerkene (Shift+1–9 eller Ctrl+1–9 husker, 1–9 går dit), i nettleseren.
   function readMarks() {
     try {
       return JSON.parse(localStorage.getItem(MARKS) || "{}");
@@ -881,7 +881,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       case "Digit8":
       case "Digit9":
         e.preventDefault();
-        if (!e.repeat) bookmark(e.code.slice(5), ctrl);
+        // Shift+1–9 husker også (⌘+tall på Mac bytter fane i nettleseren).
+        if (!e.repeat) bookmark(e.code.slice(5), ctrl || e.shiftKey);
         return true;
       case "ArrowUp":
       case "ArrowDown":
@@ -898,6 +899,17 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       case "PageDown":
         e.preventDefault();
         move(0, e.code === "PageUp" ? step : -step, 0);
+        return true;
+      // + og − løfter og senker (som PageUp/PageDown, som små tastaturer mangler).
+      case "Minus":
+      case "Equal":
+      case "Slash":
+      case "NumpadAdd":
+      case "NumpadSubtract":
+        // (⌥ på Mac gir ± og –.)
+        if (!["+", "±", "-", "–"].includes(e.key)) return false;
+        e.preventDefault();
+        move(0, e.key === "+" || e.key === "±" ? step : -step, 0);
         return true;
       case "KeyQ":
       case "KeyE":

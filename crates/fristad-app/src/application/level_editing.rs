@@ -380,7 +380,11 @@ impl Session {
                 at.y = y - 0.3;
                 lights.insert(1, Light { pos: at, radius: 36.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 3.0, always: true, flicker: 0.0, room: None });
             }
-            f.ground_bounce = Vec3::splat(0.03);
+            // Og et jevnt lys ovenfra, så rommene synes når kameraet går
+            // rundt nivået langt unna (lysene over når ikke dit).
+            f.sky_top = Vec3::new(0.16, 0.15, 0.14);
+            f.sky_horizon = Vec3::new(0.08, 0.075, 0.07);
+            f.ground_bounce = Vec3::splat(0.05);
             f.exposure = 0.8;
         } else {
             lights.insert(0, Light { pos: eye - Vec3::Y * 0.9, radius: 11.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.4, always: true, flicker: 0.0, room: None });

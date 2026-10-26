@@ -3488,6 +3488,59 @@ fn middene_omringer_deg_og_henger_seg_fast() {
     assert!((game.mob_latched(0).1 - 1.0).abs() < 1e-3, "farten kom ikke tilbake");
 }
 
+/// Den fryktinngytende Button: hammerslaget med begge nevene treffer og
+/// trykker deg ned, så du står fast og ikke kommer noen vei, og slipper deg
+/// etter `PRESS_SECS`.
+#[test]
+fn den_fryktinngytende_button_trykker_deg_ned() {
+    use crate::domain::mobs::{press, Kind};
+    let mut physics = RapierPhysics::new();
+    let mut game = session(&mut physics);
+    let mut input = Input::default();
+    game.use_first(|u| *u == Use::Descend);
+    for _ in 0..30 {
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let feet = game.feet();
+    let c = game.crypt_now().clone();
+    let at = open_spot(&c, feet, &[2.2, 2.0, 2.5]);
+    game.only_mob(Kind::DreadButton, at);
+    game.turn_mob(0, feet);
+    let to = (at - feet).with_y(0.0).normalize();
+    game.set_look((-to.x).atan2(-to.z), 0.0);
+    let (mut hit, mut pressed) = (0.0f32, false);
+    for _ in 0..(8 * 60) {
+        game.heal();
+        let hp = game.hp_now();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+        hit = hit.max(hp - game.hp_now());
+        if game.pressed_now() {
+            pressed = true;
+            break;
+        }
+    }
+    assert!(hit > 0.0, "hammerslaget traff ikke");
+    assert!(pressed, "hammerslaget trykket deg ikke ned");
+    // Trykket ned: du prøver å gå bort, men står fast.
+    let from = game.feet();
+    input.back = true;
+    for _ in 0..30 {
+        game.heal();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    assert!(game.feet().with_y(0.0).distance(from.with_y(0.0)) < 0.05, "du kom deg unna mens du var trykket ned");
+    for _ in 0..((press::PRESS_SECS * 60.0) as usize) {
+        game.heal();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    let stuck = game.feet();
+    for _ in 0..30 {
+        game.heal();
+        game.update(&mut input, 1.0 / 60.0, &mut physics);
+    }
+    assert!(game.feet().with_y(0.0).distance(stuck.with_y(0.0)) > 0.3, "du kom deg ikke løs etter trykket");
+}
+
 #[test]
 fn markoren_synes_og_treffet_sier_hvor_den_kom_fra() {
     use crate::domain::mobs::Kind;

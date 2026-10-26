@@ -178,7 +178,23 @@ function frame(st, obj, inside) {
 // Åpner visningen for kortet `it` (fra data.json) i dialogen.
 export async function show(it, data, ui) {
   if (!state) state = setup(ui.canvas);
+  // De samlede kortene: én ting om gangen, valgt i lista (`parts`).
+  if (ui.part) {
+    ui.part.hidden = !it.parts || it.parts.length < 2;
+    if (it.parts) {
+      if (ui.part.dataset.for !== it.id) {
+        ui.part.replaceChildren(...it.parts.map((p, k) => new Option(p.label || p.name, String(k))));
+        ui.part.dataset.for = it.id;
+        ui.part.value = "0";
+      }
+      ui.part.onchange = () => show(it, data, ui);
+      it = { ...it, glb: it.parts[Number(ui.part.value) || 0].glb };
+    }
+  }
   const st = state;
+  // Bare den siste visningen setter noe i scenen (byttes tingen mens den
+  // forrige laster, sto begge).
+  const gen = (st.gen = (st.gen || 0) + 1);
   for (const g of st.groups) st.scene.remove(g);
   st.groups = [];
   const layers = data.layers || {};
@@ -260,6 +276,7 @@ export async function show(it, data, ui) {
     }
     level.visible = ui.whole.checked;
   }
+  if (gen !== st.gen) return;
   for (const g of [after, before, level]) if (g) { st.scene.add(g); st.groups.push(g); }
   // Biten du dømmer, lyser svakt når hele nivået står rundt den.
   after.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.userData.base = m.emissive ? m.emissive.clone() : null; } });

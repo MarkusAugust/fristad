@@ -415,6 +415,18 @@
    ],
    "yaw": 180,
    "label": "tag-midd"
+  },
+  {
+   "id": "f15",
+   "kind": "elite",
+   "anchor": "celle:beinhus/c",
+   "pos": [
+    0,
+    0,
+    -2.6
+   ],
+   "yaw": 180,
+   "label": "fryktinngytende button"
   }
  ],
  "links": [

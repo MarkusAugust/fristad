@@ -3,7 +3,8 @@
 // three.js hentes fra npm-pakken i THREE_DIR (CDN-en er sperret i skyen).
 //
 //   PLAYWRIGHT_DIR=/opt/node-tools/node_modules/playwright THREE_DIR=…/package \
-//     node tools/qa/view-test.mjs UT fane kort bilde.png [--whole]
+//     node tools/qa/view-test.mjs UT fane kort bilde.png [--whole] [--part N]
+// (`--part N`: ting nummer N i et samlet kort, fra 0.)
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -34,7 +35,15 @@ await page.waitForSelector(".chip");
 await page.locator(".chip", { hasText: tab }).first().click();
 await page.locator(`#${id} .btn3d`).click();
 await page.waitForFunction(() => document.getElementById("view-status").textContent === "", null, { timeout: 120000 });
-if (process.argv.includes("--whole") === false) await page.uncheck("#view-whole");
+if (process.argv.includes("--whole") === false && (await page.isVisible("#view-whole"))) await page.uncheck("#view-whole");
+const part = process.argv.indexOf("--part");
+if (part > 0) {
+  await page.selectOption("#view-part", process.argv[part + 1]);
+  await page.waitForTimeout(300);
+  await page.waitForFunction(() => document.getElementById("view-status").textContent === "", null, { timeout: 120000 });
+  if (process.env.DEBUG_VIEW) console.log("scene:", await page.evaluate(() => window.__vs.scene.children.map(c => c.name + ":" + c.type).join(", ")));
+  console.log("tingene:", await page.evaluate(() => [...document.querySelectorAll("#view-part option")].map(o => o.textContent).join(", ")));
+}
 await page.waitForTimeout(1500);
 await page.locator("#view").screenshot({ path: out });
 console.log(errors.length ? "FEIL:\n" + errors.join("\n") : "ingen feil i konsollen");

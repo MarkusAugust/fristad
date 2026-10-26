@@ -19,7 +19,7 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
   - dras med musa (eieren 12. oktober): trykk på tingen og dra, så følger den pekeren langs bakken, og det som sto på noe, settes ned igjen der du slipper (i samme angresteg); hold Alt og dra for å heise den opp og ned, og Ctrl (Cmd på Mac) for å dreie den. Med Alt og Ctrl gjelder draget det valgte uansett hvor i bildet du drar. Pekeren viser hva draget gjør. Hvert drag angres for seg,
   - dras med håndtak (piler i tre farger langs aksene, og en ring for dreiing); står pekeren på tingen, er det tingen du tar, ikke pila som går gjennom den,
   - flere valgt (et gjerde i biter) dreies samlet om midten, som én ting,
-  - finjusteres med tastene: piltastene flytter langs bakken, PageUp og PageDown flytter opp og ned, Q og E dreier. Små steg holder du Alt for.
+  - finjusteres med tastene: piltastene flytter langs bakken, + og − (eller PageUp og PageDown) flytter opp og ned, Q og E dreier. Små steg holder du Alt for.
   - kopieres (Ctrl+D) og slettes (Delete).
 - **Grupper:** velg flere ting (i byen eller i samme hus) og trykk «Lag gruppe» (Ctrl+G), med et navn i feltet ved siden av eller tomt for «gruppe 1». Et klikk på en av dem velger hele gruppen, så den flyttes, dreies om midten, kopieres og slettes samlet; en kopi blir en ny gruppe («navn 2»). «Løs opp» (Ctrl+Shift+G) gjør dem til enkeltting igjen, og gruppen står også som egenskapen «gruppe» i panelet.
 - **Rutene:** velg en innbygger, så står punktene på ruta som blå stolper på bakken med en strek mellom (rundt, som hen går). Dra en stolpe for å flytte punktet langs bakken (Fest gjelder), trykk på streken for å legge til et punkt der (og dra det med en gang), og Delete sletter punktet du tok. Hvor lenge hen står ved hvert punkt, står i panelet («punkt N: står (s)», 0 er rett forbi). Flyttes innbyggeren, følger ruta med.
@@ -33,7 +33,7 @@ Eieren plasserer, flytter og dreier alt i byen og krypten selv, inne og ute, i s
 - **Hele hus** flyttes og dreies som andre ting. Det som står inne i et hus, er lagret i husets eget rom og følger med.
 - **Egenskaper:** panelet viser egenskapene til det valgte, og du skriver inn verdiene (Enter eller gå ut av feltet setter dem): x, y og z i verden og dreiningen i grader for alt, fargen for tingene og innbyggerne (fargevelger eller #rrggbb), navnet og replikknøkkelen for innbyggerne, og for merkene i krypten det slaget bruker: spakens «åpner» (id-ene, skilt med komma), portens id, bredde og arena, lappens tittel og tekst, kistens innhold, fiendens slag, antall og runde (punktene x,y,z i nivåets rom, skilt med semikolon), snarveiens rom og hemmelige veggers mål. Lysene i krypten har farge, rekkevidde, styrke og om det blafrer. En gal verdi gir en melding og endrer ingenting. Stedet og dreiningen settes på én ting om gangen; resten på alle som er valgt.
 - **Angre** med Ctrl+Z og gjøre om med Ctrl+Shift+Z, for alt, også egenskapene. Historikken står som en liste i panelet («Flyttet barrel», «Satte ut bench», «Endret lever (…)»), og et klikk på et steg angrer eller gjør om dit.
-- **Kamera:** Ctrl+1–9 husker hvor du står og ser, 1–9 tar deg dit (i nettleseren, `fristad.edit-marks`).
+- **Kamera:** Shift+1–9 (eller Ctrl+1–9; ⌘+tall bytter fane på Mac) husker hvor du står og ser, 1–9 tar deg dit (i nettleseren, `fristad.edit-marks`).
 - **Spill med en gang:** én tast (P) bytter mellom redigering og vanlig spill på samme sted, så du kan gå rundt og kjenne på det.
 
 ## Reglene
@@ -103,7 +103,7 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
   - **Musa er fri:** venstre klikk velger det under pekeren (Shift legger til), eller tar tak i et håndtak og drar. Håndtakene er pilene i rødt, grønt og blått langs aksene og den gule ringen for dreiing, og et drag angres som én handling. Høyre knapp holdt nede ser rundt.
   - **Tastene:**
     - WASD, mellomrom og C flyr, og Shift går fort.
-    - Piltastene flytter langs bakken etter hvor du ser, og PageUp og PageDown flytter opp og ned (Alt gir små steg, Shift store).
+    - Piltastene flytter langs bakken etter hvor du ser, og + og − (eller PageUp og PageDown) flytter opp og ned (Alt gir små steg, Shift store).
     - Q og E dreier, og G setter det valgte ned på det som er under.
     - Ctrl+D kopierer, Delete sletter, og Ctrl+Z eller Ctrl+Shift+Z angrer og gjør om.
     - L starter linjeverktøyet: klikk punkter, så gir Enter en rad av modellen valgt i katalogen og V en usynlig vegg.

@@ -35,6 +35,24 @@ fn cells(doc: &LevelDoc, kit: &KitDef) -> Vec<C> {
         .collect()
 }
 
+/// Det hvert nivå må ha nøyaktig én av: merket, det i «Nivået mangler …»
+/// og flertallet.
+pub const NEEDED: [(&str, &str, &str); 4] = [("start", "et startsted", "startsteder"), ("up", "døra opp", "dører opp"), ("rest", "et hvilested", "hvilesteder"), ("down", "trappa ned", "trapper ned")];
+
+/// Startstedet, døra opp, hvilestedet og trappa ned: nøyaktig én av hver
+/// (det dypeste nivået, `last`, har ingen trapp ned).
+pub fn needed(file: &LevelFile, last: bool) -> Vec<Issue> {
+    let mut out = Vec::new();
+    for (kind, name, many) in NEEDED {
+        let n = file.marks.iter().filter(|m| m.kind == kind).count();
+        if n != 1 && !(kind == "down" && last) {
+            let msg = if n == 0 { format!("Nivået mangler {name}") } else { format!("Nivået har {n} {many} (skal ha én)") };
+            out.push(Issue::warn("innhold", None, msg));
+        }
+    }
+    out
+}
+
 /// Bitene overlapper i volum: to celler i samme rute med volumer som går inn
 /// i hverandre (gulvskive og hvelv er med). To moduler i samme celle er
 /// den samme feilen, og meldes med modulene.

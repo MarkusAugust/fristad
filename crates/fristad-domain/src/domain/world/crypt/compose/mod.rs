@@ -64,7 +64,7 @@ impl Issue {
     fn error(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
         Issue { severity: Severity::Error, rule, at: at.map(mm3), msg }
     }
-    fn warn(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
+    pub(super) fn warn(rule: &'static str, at: Option<Vec3>, msg: String) -> Self {
         Issue { severity: Severity::Warning, rule, at: at.map(mm3), msg }
     }
 }
@@ -506,12 +506,7 @@ impl Compiler {
         report.issues.append(&mut issues);
         file.rooms = rooms;
         // Det et nivå må ha.
-        for kind in ["start", "up", "rest", "down"] {
-            let n = file.marks.iter().filter(|m| m.kind == kind).count();
-            if n != 1 && !(kind == "down" && doc.level.number() == Some(10)) {
-                report.issues.push(Issue::warn("innhold", None, format!("{n} «{kind}» (skal være nøyaktig ett)")));
-            }
-        }
+        report.issues.extend(check::needed(&file, doc.level.number() == Some(10)));
         (file, report)
     }
 }

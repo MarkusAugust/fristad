@@ -189,6 +189,14 @@ MOBS = {
     # Tag-midden (alle nivåene, i flokk): 0,4 m lang og 0,23 m høy, lappen
     # stivt og seks korte bein (`mob_rigid.mite`).
     "tag_mite": dict(height=0.23, size=2048, tris=2800, voxel=0.001, thick=0.0012, rig="mite"),
+    # Den fryktinngytende Button (elite, alle temaene): 3,5 m som elite
+    # (`Stats.scale` 2,0 og `ELITE_SCALE` 1,3), korte brede bein og armene
+    # fritt ned til nevene; slaget er begge nevene i bakken (`attack_slam`).
+    # TRELLIS mistet de magenta sømmene og øynene; de hentes fra bildet
+    # forfra (`glow_front`).
+    "dread_button": dict(glow_front=True, height=3.5 / 2.6, size=2048, tris=18000, voxel=0.005, thick=0.006, style="dread", attack="slam", extra=(),
+                         joints=dict(hip=0.3, knee=0.15, ankle=0.04, chest=0.55, neck=0.76, head=0.84, shoulder=0.68, elbow=0.47, wrist=0.3, tip=0.15,
+                                     arm=0.33, leg=0.05, shoulder_in=0.1, leg_out=0.28)),
     "alert_bat": dict(height=0.25, size=2048, tris=2600, voxel=0.0011, thick=0.0012, rig="bat", loose=0.0002,
                       glow_box=(((18.0, 20.0), dict(x=(0.3, 1.0), y=(-0.22, 0.22), z=(0.5, 0.8))),)),
 }

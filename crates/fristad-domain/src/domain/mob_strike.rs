@@ -4,6 +4,23 @@
 
 use super::*;
 
+/// Det du plukker opp: tokens, og nøkler til portene.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pickup {
+    Token,
+    Key,
+}
+
+/// Hva et slag mot en fiende førte til.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Strike {
+    pub killed: bool,
+    /// Panseret tok det meste (modalen forfra).
+    pub armored: bool,
+    /// Slaget brøt gjennom balansen til en av de tunge (`poise`).
+    pub staggered: bool,
+}
+
 impl Mobs {
     /// Et slag mot fiende `i` fra `from`: skade, rykk bakover, og tokens
     /// om den dør.

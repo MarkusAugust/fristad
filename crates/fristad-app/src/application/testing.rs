@@ -141,6 +141,11 @@ impl Session {
         (self.mobs.mobs.get(i).is_some_and(|m| m.latched()), self.mobs.drag())
     }
 
+    /// Står du fast under hammerslaget (Den fryktinngytende Button)?
+    pub fn pressed_now(&self) -> bool {
+        self.mobs.pressed()
+    }
+
     /// En fiende til av slaget `kind` ved `at`, som har sett deg.
     pub fn add_mob(&mut self, kind: MobKind, at: Vec3) -> usize {
         self.mobs.spawn_aware(kind, at)

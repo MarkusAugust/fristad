@@ -261,7 +261,7 @@ Eieren så på inventaret og Skriptoriet i spillet og vil ha kvaliteten løftet 
 ### 13j. Pussen etter dommen 20. oktober
 - **Gjort:** galleriet er lukket under trappa (enden er mur), har sokkel langs alle murene og trappemuren, fakkel i alle festene og lys under galleriet; plastsømmene i kjernens mur er greinete sprekker med svidd kant, magenta glød og plast som buler ut (`kit_mech.seam`).
 - **Gjort:** Navbaren holder armene lavt og feier i angrepet (`attack_sweep`); kortknekten tasser så knærne holder seg under plata; irrbloset tar ikke kanten av kuben med vingene; bueskytteren holder buen `bow` i venstre hånd (`mob_rigs::HELD`) og skyter fra den; bjørka er én ting i redigeringen (`nature::companions`).
-- **Gjenstår:** buen på bueskytterens rygg er grodd inn i TRELLIS-skallet og står som reservebue (trenger et nytt bilde uten bue på ryggen om den skal bort). Dropdownen, Progress-formannen og spinneren er godkjent og uendret.
+- **Gjenstår:** buen på bueskytterens rygg var grodd inn i TRELLIS-skallet og er trukket inn i kroppen (`mob3d.stow`; knuten og remmene står, og bare et nytt bilde uten bue på ryggen tar dem bort). Dropdownen, Progress-formannen og spinneren er godkjent og uendret.
 
 ## 14. Komponentene: mer å finne, og bytte hos kjøpmannen (eieren 18. oktober, i kø)
 

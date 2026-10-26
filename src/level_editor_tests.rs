@@ -151,7 +151,7 @@ fn nivaaredigeringen_kobler() {
 fn nivaaredigeringen_sier_fra_om_reglene() {
     let mut e = blank();
     // Mangler trappa ned og hvilestedet: advarsler, ikke feil.
-    assert!(e.issues().iter().any(|i| i.rule == "innhold" && i.msg.contains("down")));
+    assert!(e.issues().iter().any(|i| i.rule == "innhold" && i.msg == "Nivået mangler trappa ned"));
     op(&mut e, r#"{"op":"add_module","module":"grav/rom_1x1","at":[0,0,0]}"#);
     assert!(errors(&e).iter().any(|x| x.starts_with("overlapp")), "to moduler i samme rute: {:?}", errors(&e));
     let bad = e.issues().iter().find(|i| i.rule == "overlapp").unwrap();
@@ -638,6 +638,8 @@ fn rett_retter_de_vanlige_bruddene() {
     let lore = op(&mut e, r#"{"op":"add_thing","kind":"lore","at":[2.0,0,2.0]}"#)[0].clone();
     let f = fix(&e, "innhold", &format!("lappen {lore} er tom"));
     assert_eq!(f.what, FixKind::Focus { thing: lore, field: "text" });
+    // Mangler trappa ned: «Sett ut» tar den fra paletten.
+    assert_eq!(fix(&e, "innhold", "Nivået mangler trappa ned").what, FixKind::Arm { kind: "down" });
     // En boss i et vanlig rom: bosshallen.
     let boss = op(&mut e, r#"{"op":"add_thing","kind":"boss","at":[16.0,0,0.0],"label":"navbar"}"#)[0].clone();
     assert_eq!(fix(&e, "takhoyde", &boss).what, FixKind::Palette { module: "grav/bosshall".into() });

@@ -167,6 +167,7 @@ details.pile li .v b { color: var(--ink); text-transform: capitalize; }
   <canvas id="view-canvas"></canvas>
   <div class="tools">
     <span class="nm" id="view-name"></span>
+    <select id="view-part" aria-label="Tingen" hidden></select>
     <select id="view-which" aria-label="Versjon"><option value="etter">Etter (nå)</option><option value="før">Før (det du så)</option></select>
     <label><input type="checkbox" id="view-whole" checked> Hele nivået rundt</label>
     <label><input type="checkbox" id="view-both"> Vis baksidene</label>
@@ -255,7 +256,7 @@ function card(it) {
   const s = document.createElement("div"); s.className = "saved"; s.setAttribute("aria-live", "polite");
   if (it.glb || it.level) {
     const b3 = document.createElement("button"); b3.type = "button"; b3.className = "btn3d";
-    b3.textContent = it.kind === "modul" ? "Se i 3D (modulen med naboene)" : it.level ? "Se i 3D (gå rundt inne i nivået)" : "Se i 3D (roter og zoom)";
+    b3.textContent = it.parts ? `Se i 3D (${it.parts.length > 1 ? "hver ting for seg" : "roter og zoom"})` : it.kind === "modul" ? "Se i 3D (modulen med naboene)" : it.level ? "Se i 3D (gå rundt inne i nivået)" : "Se i 3D (roter og zoom)";
     b3.onclick = () => view3d(it);
     p.append(b3);
   }
@@ -342,7 +343,7 @@ async function view3d(it) {
   const dlg = document.getElementById("view");
   document.getElementById("view-name").textContent = it.name;
   dlg.showModal();
-  const ui = { canvas: document.getElementById("view-canvas"), which: document.getElementById("view-which"), whole: document.getElementById("view-whole"), both: document.getElementById("view-both"), status: document.getElementById("view-status"), clip: document.getElementById("view-clip") };
+  const ui = { canvas: document.getElementById("view-canvas"), which: document.getElementById("view-which"), whole: document.getElementById("view-whole"), both: document.getElementById("view-both"), status: document.getElementById("view-status"), clip: document.getElementById("view-clip"), part: document.getElementById("view-part") };
   try {
     const v = await import("./viewer.js");
     await v.show(it, pageData, ui);
