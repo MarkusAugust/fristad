@@ -213,7 +213,7 @@ async function boot() {
   // Med `?nivaa=`: rett ned i nivået.
   if (NIVAA) engine.descend();
   // Til feilsøking i konsollen og til testene.
-  window.fristad = { engine, openPanel, closePanel, openShop, setGraphics, setQuality, bench: runBench };
+  window.fristad = { engine, openPanel, closePanel, openShop, readDoc, setGraphics, setQuality, bench: runBench };
   // Uten eget valg får WebGL2 enkel grafikk og WebGPU standard.
   setQuality(quality ?? (engine.backend() === "Gl" ? "enkel" : "standard"), false, false);
   if (EDIT && engine.can_edit()) {
@@ -2932,8 +2932,9 @@ function renderDemo(d) {
   root.adoptedStyleSheets = demoSheets;
   const tpl = document.createElement("template");
   tpl.innerHTML = demo.html;
-  // Lenker i eksemplene skal ikke føre noen steder.
-  for (const a of tpl.content.querySelectorAll("a[href]")) a.setAttribute("href", "#");
+  // Lenker i eksemplene skal ikke føre noen steder, men lenkene til et
+  // anker i eksempelet står: fanene i LO-TEK er lenker til panelene sine.
+  for (const a of tpl.content.querySelectorAll("a[href]")) if (!a.getAttribute("href").startsWith("#")) a.setAttribute("href", "#");
   for (const s of tpl.content.querySelectorAll("script")) s.remove();
   const flate = document.createElement("div");
   flate.className = "flate";
