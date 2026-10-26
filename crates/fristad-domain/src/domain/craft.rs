@@ -464,7 +464,7 @@ pub enum WareKind {
     Oil,
 }
 
-pub const SMITH_WARES: &[Ware] = &[
+pub const SCRIPTORIUM_WARES: &[Ware] = &[
     Ware { id: "buy_button", name: "Button", price: 12, what: WareKind::Component("button") },
     Ware { id: "buy_divider", name: "Divider", price: 14, what: WareKind::Component("divider") },
     Ware { id: "buy_badge", name: "Badge", price: 10, what: WareKind::Component("badge") },
@@ -481,15 +481,15 @@ pub const GORVEK_WARES: &[Ware] = &[
 ];
 
 /// Hvor en komponent finnes: i kistene (temaene, fra 1), hos eliten
-/// (temaene), hos Rammeverket, og prisen hos Buttonsmeden om han selger
+/// (temaene), hos Rammeverket, og prisen i Skriptoriet om det selger
 /// den.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Source {
     pub chests: Vec<usize>,
     pub elite: Vec<usize>,
     pub boss: bool,
-    pub smith: Option<u32>,
-    /// Byttet hos Buttonsmeden som gir den (det du gir og hvor mange).
+    pub shop: Option<u32>,
+    /// Byttet i Skriptoriet som gir den (det du gir og hvor mange).
     pub swap: Option<(&'static str, u32)>,
 }
 
@@ -498,7 +498,7 @@ pub fn source(component: &str) -> Source {
         chests: LOOT.iter().enumerate().filter(|(_, l)| l.contains(&component)).map(|(f, _)| f + 1).collect(),
         elite: ELITE_LOOT.iter().enumerate().filter(|(_, c)| **c == component).map(|(f, _)| f + 1).collect(),
         boss: BOSS_LOOT.contains(&component),
-        smith: SMITH_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
+        shop: SCRIPTORIUM_WARES.iter().find(|w| matches!(w.what, WareKind::Component(c) if c == component)).map(|w| w.price),
         swap: crate::domain::loot::SWAPS.iter().find(|s| s.get == component).map(|s| (s.give, s.n)),
     }
 }
@@ -506,11 +506,11 @@ pub fn source(component: &str) -> Source {
 impl Source {
     /// Bare i krypten (ikke til salgs i byen).
     pub fn crypt_only(&self) -> bool {
-        self.smith.is_none()
+        self.shop.is_none()
     }
 
-    /// Hvor den finnes, kort på én linje til skjemaet i Skriptoriet (plan
-    /// 13c): «Kister i Gruva · elite i Kloakken · Buttonsmeden 12 tokens».
+    /// Hvor den finnes, kort på én linje til skjemaet i Smia (plan 13c):
+    /// «Kister i Gruva · elite i Kloakken · Skriptoriet 12 tokens».
     pub fn brief(&self) -> String {
         let name = |f: &usize| THEMES.get(f.wrapping_sub(1)).copied().unwrap_or("krypten");
         let floors = |v: &[usize]| v.iter().map(name).collect::<Vec<_>>().join(" og ");
@@ -524,11 +524,11 @@ impl Source {
         if self.boss {
             parts.push("Rammeverket".to_string());
         }
-        if let Some(price) = self.smith {
-            parts.push(format!("Buttonsmeden {price} tokens"));
+        if let Some(price) = self.shop {
+            parts.push(format!("Skriptoriet {price} tokens"));
         }
         if let Some((give, n)) = self.swap {
-            parts.push(format!("bytte {n} {} hos Buttonsmeden", title(give)));
+            parts.push(format!("bytte {n} {} i Skriptoriet", title(give)));
         }
         let mut line = parts.join(" · ");
         if let Some(first) = line.get(..1) {
@@ -564,14 +564,14 @@ impl Source {
             [a] => a.clone(),
             [rest @ .., last] => format!("{} og {last}", rest.join(", ")),
         };
-        let swap = self.swap.map(|(give, n)| format!(" Buttonsmeden bytter den mot {n} {}.", title(give))).unwrap_or_default();
-        match self.smith {
-            Some(price) => format!("Finnes i krypten ({crypt}) og hos Buttonsmeden for {price} tokens.{swap}"),
+        let swap = self.swap.map(|(give, n)| format!(" Skriptoriet bytter den mot {n} {}.", title(give))).unwrap_or_default();
+        match self.shop {
+            Some(price) => format!("Finnes i krypten ({crypt}) og i Skriptoriet for {price} tokens.{swap}"),
             None => format!("Finnes bare i krypten: {crypt}. Kan ikke kjøpes.{swap}"),
         }
     }
 }
 
 pub fn ware(id: &str) -> Option<Ware> {
-    SMITH_WARES.iter().chain(APOTHECARY_WARES).chain(GORVEK_WARES).copied().find(|w| w.id == id)
+    SCRIPTORIUM_WARES.iter().chain(APOTHECARY_WARES).chain(GORVEK_WARES).copied().find(|w| w.id == id)
 }

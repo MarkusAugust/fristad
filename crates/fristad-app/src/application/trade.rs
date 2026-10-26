@@ -81,17 +81,18 @@ impl Session {
         let name = self.npcs.npcs.get(i).map(|n| n.name).unwrap_or("");
         let wares = |w: &[craft::Ware]| w.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
         match name {
-            "Buttonsmeden" => Some(self.smith_shop()),
+            "Smeden" => Some(Event::Workshop { recipes: self.recipe_views() }),
             "Apotekeren" => Some(Event::Shop { npc: name.into(), wares: wares(craft::APOTHECARY_WARES), swaps: vec![] }),
             "Torgils" => Some(Event::Shop { npc: name.into(), wares: wares(craft::GORVEK_WARES), swaps: vec![] }),
-            "Skriptoriet" => Some(Event::Workshop { recipes: self.recipe_views() }),
+            "Skriptoriet" => Some(self.scriptorium_shop()),
             "Trubaduren" => Some(self.mead_view(i)),
             _ => None,
         }
     }
 
-    /// Buttonsmeden: varene og byttene (plan 14).
-    fn smith_shop(&self) -> Event {
+    /// Skriptoriet: komponentene til salgs og byttene (plan 14; byttet med
+    /// Smia 26. oktober).
+    fn scriptorium_shop(&self) -> Event {
         let have = |c: &str| self.hero.inventory.get(c).copied().unwrap_or(0);
         let swaps = loot::SWAPS
             .iter()
@@ -109,17 +110,17 @@ impl Session {
                 ok: have(s.give) >= s.n && self.hero.coins >= s.fee,
             })
             .collect();
-        let wares = craft::SMITH_WARES.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
-        Event::Shop { npc: "Buttonsmeden".into(), wares, swaps }
+        let wares = craft::SCRIPTORIUM_WARES.iter().map(|w| WareView { id: w.id.into(), name: w.name.into(), price: w.price }).collect();
+        Event::Shop { npc: "Skriptoriet".into(), wares, swaps }
     }
 
-    /// Bytt hos Buttonsmeden. Gir om det gikk; butikken sendes på nytt med
+    /// Bytt i Skriptoriet. Gir om det gikk; butikken sendes på nytt med
     /// det du har nå.
     pub fn swap(&mut self, id: &str) -> bool {
         let (ok, notes) = self.hero.swap(id);
         self.later(notes);
         if ok {
-            let shop = self.smith_shop();
+            let shop = self.scriptorium_shop();
             self.pending.push(shop);
         }
         ok
@@ -168,7 +169,7 @@ impl Session {
             .collect()
     }
 
-    /// Smi etter en oppskrift (fra skjemaet i skriptoriet). Gir om det gikk.
+    /// Smi etter en oppskrift (fra skjemaet i Smia). Gir om det gikk.
     pub fn craft(&mut self, id: &str) -> bool {
         let (ok, notes) = self.hero.craft(id, &mut self.combat);
         self.later(notes);

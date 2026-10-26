@@ -456,7 +456,7 @@ body:has(#panel:not([hidden])) .aimed {
   pointer-events: auto;
 }
 
-/* Menyene (butikken, Skriptoriet og inventaret) har samme oppbygning:
+/* Menyene (butikken, Smia og inventaret) har samme oppbygning:
    tittellinja, eventuelt fanerekken, innholdet som ruller, og en fast
    bunnlinje med knappene. Luft og rytme fra LO-TEKs spacing-tokens: 24 px
    til kantene, 16 px mellom blokkene, 8 px inne i dem. */
@@ -582,7 +582,7 @@ body:has(#panel:not([hidden])) .aimed {
 .gear-ico.big { width: 6.5rem; height: 6.5rem; border-radius: var(--lt-spacing-3); box-shadow: inset 0 0 0 3px var(--r-fill), 0 6px 24px -6px var(--r-fill); }
 .gear-ico.silhouette svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: 0.6; }
 
-/* Menyene med lister (Skriptoriet og inventaret, plan 13c): fast høyde,
+/* Menyene med lister (Smia og inventaret, plan 13c): fast høyde,
    rundt 80 % av vinduet og høyst 760 px. */
 .overlay-inner.menu,
 .menu-dialog {
@@ -654,8 +654,8 @@ body:has(#panel:not([hidden])) .aimed {
 }
 .picker > .menu-tabs { grid-column: 1 / -1; }
 .picker > .menu-tabs + .pick-side, .picker > .menu-tabs ~ .detail { grid-row: 2; }
-/* Buttonsmeden (plan 14): varene i «Kjøp» over hele bredden, og byttene i
-   «Bytte» som lista og detaljene i Skriptoriet. Komponentene har bildet av
+/* Skriptoriet (plan 14): varene i «Kjøp» over hele bredden, og byttene i
+   «Bytte» som lista og detaljene i Smia. Komponentene har bildet av
    seg selv i stedet for et ikon, og avgiften en tokenbrikke. */
 .smith > .shop-buy { grid-column: 1 / -1; grid-row: 2; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--lt-spacing-3) var(--menu-pad) var(--lt-spacing-6); }
 .token-ico { display: grid; place-items: center; color: var(--lt-color-warning-text); }

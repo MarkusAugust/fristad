@@ -244,7 +244,7 @@ impl Hero {
         (true, vec![Note::Sfx("coins"), Note::toast(format!("Kjøpt: {}.", w.name))])
     }
 
-    /// Bytte hos Buttonsmeden (`loot::SWAPS`, plan 14): `n` av en komponent
+    /// Bytte i Skriptoriet (`loot::SWAPS`, plan 14): `n` av en komponent
     /// fra lageret og avgiften i tokens mot én av en dyrere. Avslås uten nok
     /// av begge, og ingenting endres da.
     pub fn swap(&mut self, id: &str) -> (bool, Vec<Note>) {

@@ -32,7 +32,7 @@ LO-TEK er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML 
 |---|---|---|
 | **Mønsterboka** | LO-TEK: designsystemet uavhengig av språk og rammeverk | Det spilleren gjenoppbygger. Komponentene du vinner og smir, og bøkene du leser, er sider av den. |
 | **Tungemålene** | Programmeringsspråkene og rammeverkene byene skrev i | Hver by sitt; mønsterboka kunne leses på alle. |
-| **Skriptoriet**, **skriverne** | Utviklingsteamene | Skriptoriet i Fristad står fortsatt, og der smis komponentene. |
+| **Skriptoriet**, **skriverne** | Utviklingsteamene | Skriptoriet i Fristad står fortsatt. I Skriptoriet tolkes og kopieres komponentene; i Smia smis de til utstyr (eieren 26. oktober). |
 | **Gorvek** | Den som delte Rammeverket | Legendarisk kriger (fra Gallowmark-kanonen), ikke fra Fristad, vanvittig sterk og nesten umenneskelig brutal. Finnes bare i filmen, i lappene i krypten og i det byfolket forteller; han er aldri i byen (eieren 17. oktober). Våpenmesteren på øvingsplassen heter Torgils. |
 | **Mester Ansgar** | Den siste som holdt mønsterboka i Fristad | Gikk ned i krypten med de siste sidene. |
 | **Rådet** | Et sentralt team som aldri har jobbet i et skriptorium | Satt i hovedstaden og skrev komponentboken. |

@@ -83,7 +83,7 @@ await page.mouse.click(480, 270, { button: "right" });
 await page.waitForTimeout(200);
 check((await page.evaluate(() => window.__mouse)).some(([b, d]) => b === 2 && d), "høyre klikk blokker");
 // Butikken: «Tilbake» fanger musa igjen og spillet går.
-await page.evaluate(() => window.fristad.openShop("Buttonsmeden", []));
+await page.evaluate(() => window.fristad.openShop("Skriptoriet", []));
 await page.waitForTimeout(300);
 check(await page.isVisible("#overlay"), "butikken er åpen");
 await page.click("#overlay-close", { force: true, timeout: 120000 });

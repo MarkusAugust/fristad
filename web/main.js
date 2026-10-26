@@ -1297,7 +1297,7 @@ function renderInvGear(e) {
       <div class="inv-slots" role="group" aria-label="Det du har på (velg for å vise bare det slaget)">
         ${slotCard("weapon", "Våpen", wornName("weapon"), "")}
         ${slotCard("shield", "Skjold", wornName("shield"), "")}
-        ${slotCard("armor", "Rustning", worn("armor") === NO_ARMOR ? null : worn("armor"), "Finn eller smi en rustning i Skriptoriet")}
+        ${slotCard("armor", "Rustning", worn("armor") === NO_ARMOR ? null : worn("armor"), "Finn en rustning, eller få den smidd hos Smeden")}
         ${slotCard("lantern", "Lys", lantern, "")}
       </div>
       <div class="pick-side">
@@ -1374,7 +1374,7 @@ function invDetailHtml(sel, worn, pool) {
   const same = !worn || itemKey(worn) === itemKey(sel);
   const action =
     sel.slot === "lantern"
-      ? `<p class="lt-help-text">${sel.id ? "Søkelykta henger i beltet." : "En søkelykt smis i Skriptoriet."} Olje får du hos Apotekeren og på hvilestedene.</p>`
+      ? `<p class="lt-help-text">${sel.id ? "Søkelykta henger i beltet." : "En søkelykt smis hos Smeden."} Olje får du hos Apotekeren og på hvilestedene.</p>`
       : `<div class="detail-actions">
           ${sel.equipped
             ? '<span class="lt-help-text">Du har den på deg. Velg noe annet i lista for å se det mot denne.</span>'
@@ -1683,7 +1683,7 @@ function closeOverlay(resume = true, relock = true) {
 }
 
 // Butikken: én rad per vare (navnet, prisen og «Kjøp»). Lista ruller inne i
-// dialogen når den er lang (plan 13c). Buttonsmeden har også byttene
+// dialogen når den er lang (plan 13c). Skriptoriet har også byttene
 // (plan 14): da står varene og byttene i hver sin fane (`openSmith`).
 function openShop(npc, wares, swaps = []) {
   if (swaps.length) return openSmith(npc, wares, swaps);
@@ -1739,7 +1739,8 @@ function wareList(wares) {
   return list;
 }
 
-// Buttonsmeden (plan 14): fanene «Kjøp» og «Bytte», som Skriptoriet. I
+// Skriptoriet (plan 14; fra Buttonsmeden 26. oktober): fanene «Kjøp» og
+// «Bytte», som Smia. I
 // «Bytte» står ett bytte per rad (det du får, sjeldenheten og hva du gir),
 // de du kan gjøre nå øverst; detaljene viser hva du gir og har, avgiften og
 // hvor komponenten ellers finnes, og «Bytt» står fast i bunnlinja. Etter et
@@ -1922,7 +1923,7 @@ function openMead(e) {
   updateShop();
 }
 
-// Felles for inventaret og Skriptoriet (plan 13a): sjeldenheten i farge
+// Felles for inventaret og Smia (plan 13a): sjeldenheten i farge
 // (LO-TEKs tokens: vanlig grå, sjelden blå, episk lilla, legendarisk gull),
 // ikonet (`icons/<id>.png`), raden med oppsummeringen og
 // sammenligningstabellen.
@@ -2111,7 +2112,7 @@ function bindPickList(root, { select, activate }) {
 const FORGE_GLOWS = ["accent", "brand1", "brand2", "success", "warning", "danger", "brand3"];
 let forgeSkip = null;
 // Esc, E, Enter eller mellomrom hopper over (før de andre tastene, så Esc
-// ikke også lukker skriptoriet).
+// ikke også lukker Smia).
 document.addEventListener("keydown", (e) => {
   if (!forgeSkip || !["Escape", "KeyE", "Enter", "Space"].includes(e.code)) return;
   e.preventDefault();
@@ -2226,7 +2227,8 @@ function forgeAnimation(box, item, done) {
   return finish;
 }
 
-// Skriptoriet (plan 13c, eierens revisjon 18. oktober): en dialog med fast
+// Smia (plan 13c, eierens revisjon 18. oktober; fra Skriptoriet 26.
+// oktober): en dialog med fast
 // høyde. Til venstre filtrene med antall og lista som ruller for seg, med
 // én oppsummering per oppskrift (ikon, navn, sjeldenhet og «Kan smis»,
 // «Mangler N» eller «Har du»); de du kan smi nå øverst, det du har nederst
@@ -2238,7 +2240,7 @@ function forgeAnimation(box, item, done) {
 let workshopFilter = remembered("fristad.workshop.tab", "weapon");
 let workshopSel = null;
 function openWorkshop(recipes) {
-  const body = openOverlay("Skriptoriet", "Søknad om smiing: har du komponentene i lageret, godkjennes skjemaet og tingen smis.");
+  const body = openOverlay("Smia", "Søknad om smiing: har du komponentene i lageret, godkjenner smeden skjemaet og smir tingen.");
   $("overlay").querySelector(".overlay-inner").classList.add("menu");
   let detail = false;
   const lack = (r) => r.needs.reduce((s, [, n, have]) => s + Math.max(0, n - have), 0) + r.requires.filter(([, ok]) => !ok).length;
