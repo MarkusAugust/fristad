@@ -8,19 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="fristil.css">
+  <link rel="stylesheet" href="lotek.css">
   <style>
     [hidden] { display: none !important; }
     :root {
-      --bg: var(--fs-color-neutral-canvas, #15171a);
-      --panel: var(--fs-color-neutral-surface, #1d2024);
-      --line: var(--fs-color-neutral-border-subtle, #30343a);
-      --text: var(--fs-color-neutral-text, #e7e4dc);
-      --muted: var(--fs-color-neutral-text-subtle, #a7a49c);
-      --accent: var(--fs-color-accent-fill, #c9a35a);
-      --danger: var(--fs-color-danger-text, #ff7a6a);
-      --warn: var(--fs-color-warning-text, #e8c25a);
-      --gap: var(--fs-spacing-2, 8px);
+      --bg: var(--lt-color-neutral-canvas, #15171a);
+      --panel: var(--lt-color-neutral-surface, #1d2024);
+      --line: var(--lt-color-neutral-border-subtle, #30343a);
+      --text: var(--lt-color-neutral-text, #e7e4dc);
+      --muted: var(--lt-color-neutral-text-subtle, #a7a49c);
+      --accent: var(--lt-color-accent-fill, #c9a35a);
+      --danger: var(--lt-color-danger-text, #ff7a6a);
+      --warn: var(--lt-color-warning-text, #e8c25a);
+      --gap: var(--lt-spacing-2, 8px);
     }
     html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 14px; overflow: hidden; }
     body { display: grid; grid-template-rows: auto 1fr; }
@@ -28,9 +28,9 @@
     header .group { display: flex; align-items: center; gap: 6px; }
     header .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
     header h1 { font-size: 15px; margin: 0 6px 0 0; font-weight: 600; white-space: nowrap; }
-    .fs-button { white-space: nowrap; }
+    .lt-button { white-space: nowrap; }
     /* Verktøylinja på én linje: små knapper. */
-    header .fs-button, header .fs-select { padding: 4px 10px; font-size: 13px; min-height: 0; line-height: 1.3; }
+    header .lt-button, header .lt-select { padding: 4px 10px; font-size: 13px; min-height: 0; line-height: 1.3; }
     header { flex-wrap: nowrap; overflow-x: auto; }
     @media (max-width: 1500px) { header h1 { display: none; } }
     #maptip { position: absolute; z-index: 5; pointer-events: none; background: rgba(12,13,15,.92); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 12px; max-width: 260px; line-height: 1.35; }
@@ -40,14 +40,14 @@
     #opmenu { position: absolute; z-index: 7; background: rgba(16,17,20,.96); border: 1px solid var(--accent); border-radius: 8px; padding: 6px; max-width: 280px; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
     #maptip .muted { font-size: 11px; }
     #help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); }
-    #help .fs-dialog { max-width: 820px; width: calc(100% - 40px); max-height: 86vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; }
+    #help .lt-dialog { max-width: 820px; width: calc(100% - 40px); max-height: 86vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; }
     #help .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
     #help table { width: 100%; border-collapse: collapse; font-size: 13px; }
     #help td { padding: 3px 4px; vertical-align: top; border-bottom: 1px solid var(--line); }
     #help td:first-child { white-space: nowrap; color: var(--accent); width: 42%; }
     #help h3 { font-size: 13px; margin: 12px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
     #help ol { margin: 4px 0 10px 18px; padding: 0; line-height: 1.5; }
-    .fs-button[aria-pressed="true"] { outline: 2px solid var(--accent); }
+    .lt-button[aria-pressed="true"] { outline: 2px solid var(--accent); }
     main { display: grid; grid-template-columns: 230px 1fr 300px; min-height: 0; }
     #palette, #props { overflow-y: auto; padding: 8px 10px; background: var(--panel); min-height: 0; }
     #palette { border-right: 1px solid var(--line); }
@@ -74,7 +74,7 @@
     .chip { border: 1px solid var(--line); border-radius: 999px; background: #111316; color: var(--text); padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
     #search { width: 100%; box-sizing: border-box; }
     .field { display: grid; gap: 3px; margin: 8px 0; }
-    .field label, .field .fs-label { font-size: 12px; color: var(--muted); }
+    .field label, .field .lt-label { font-size: 12px; color: var(--muted); }
     .field input, .field select, .field textarea { width: 100%; box-sizing: border-box; }
     .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     #issues { list-style: none; margin: 0; padding: 0; }
@@ -104,42 +104,42 @@
   <header>
     <h1>Nivåredigering</h1>
     <div class="group">
-      <button id="open" class="fs-button" data-variant="secondary" type="button" title="Åpne et nivå eller lag et nytt">Åpne …</button>
-      <span id="docname" class="fs-badge" data-variant="neutral">–</span>
-      <span id="docstatus" class="fs-badge" data-variant="warning">Utkast</span>
+      <button id="open" class="lt-button" data-variant="secondary" type="button" title="Åpne et nivå eller lag et nytt">Åpne …</button>
+      <span id="docname" class="lt-badge" data-variant="neutral">–</span>
+      <span id="docstatus" class="lt-badge" data-variant="warning">Utkast</span>
     </div>
     <div class="sep"></div>
     <div class="group">
-      <button id="undo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
-      <button id="redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Y eller Ctrl+Shift+Z">Gjør om</button>
+      <button id="undo" class="lt-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
+      <button id="redo" class="lt-button" data-variant="secondary" type="button" title="Ctrl+Y eller Ctrl+Shift+Z">Gjør om</button>
     </div>
     <div class="sep"></div>
     <div class="group">
-      <label class="fs-label" for="floor">Etasje</label>
-      <select id="floor" class="fs-select" title="Shift+↑ og Shift+↓ (eller PageUp og PageDown)"></select>
-      <button id="cut" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" title="S: i 3D kuttes alt over etasjen bort (som et dukkehus), og kartet viser bare denne etasjen og den under">Snitt</button>
+      <label class="lt-label" for="floor">Etasje</label>
+      <select id="floor" class="lt-select" title="Shift+↑ og Shift+↓ (eller PageUp og PageDown)"></select>
+      <button id="cut" class="lt-button" data-variant="secondary" type="button" aria-pressed="true" title="S: i 3D kuttes alt over etasjen bort (som et dukkehus), og kartet viser bare denne etasjen og den under">Snitt</button>
     </div>
     <div class="group" role="group" aria-label="Visning">
-      <button id="v-map" class="fs-button" data-variant="secondary" type="button" title="Bare kartet (Tab bytter)">Kart</button>
-      <button id="v-split" class="fs-button" data-variant="secondary" type="button" aria-pressed="true" title="Kart og 3D side om side">Delt</button>
-      <button id="v-3d" class="fs-button" data-variant="secondary" type="button" title="Bare 3D">3D</button>
+      <button id="v-map" class="lt-button" data-variant="secondary" type="button" title="Bare kartet (Tab bytter)">Kart</button>
+      <button id="v-split" class="lt-button" data-variant="secondary" type="button" aria-pressed="true" title="Kart og 3D side om side">Delt</button>
+      <button id="v-3d" class="lt-button" data-variant="secondary" type="button" title="Bare 3D">3D</button>
     </div>
-    <button id="light" class="fs-button" data-variant="secondary" type="button" data-mode="work" title="L: arbeidslyset (alt synes) eller spillets lys (faklene, rommene og tåka)">Lys: arbeid</button>
-    <button id="helpbtn" class="fs-button" data-variant="secondary" type="button" title="? (eller F1): tastene og slik bygger du">? Hjelp</button>
+    <button id="light" class="lt-button" data-variant="secondary" type="button" data-mode="work" title="L: arbeidslyset (alt synes) eller spillets lys (faklene, rommene og tåka)">Lys: arbeid</button>
+    <button id="helpbtn" class="lt-button" data-variant="secondary" type="button" title="? (eller F1): tastene og slik bygger du">? Hjelp</button>
     <div class="sep"></div>
     <div class="group">
-      <button id="play" class="fs-button" data-variant="primary" type="button" title="P: spill nivået fra startstedet (Shift+P: der kameraet står). Du kan ikke dø. Esc tilbake.">Spill fra start</button>
-      <button id="play-here" class="fs-button" data-variant="secondary" type="button" title="Shift+P">Spill herfra</button>
+      <button id="play" class="lt-button" data-variant="primary" type="button" title="P: spill nivået fra startstedet (Shift+P: der kameraet står). Du kan ikke dø. Esc tilbake.">Spill fra start</button>
+      <button id="play-here" class="lt-button" data-variant="secondary" type="button" title="Shift+P">Spill herfra</button>
     </div>
     <div class="sep"></div>
     <div class="group">
-      <button id="save" class="fs-button" data-variant="primary" type="button" title="Ctrl+S: lagre på grenen redigering (uten nøkkel: last ned zip)">Lagre</button>
-      <button id="ready" class="fs-button" data-variant="secondary" type="button" title="Merk nivået klart (krever at reglene er grønne)">Merk klart</button>
+      <button id="save" class="lt-button" data-variant="primary" type="button" title="Ctrl+S: lagre på grenen redigering (uten nøkkel: last ned zip)">Lagre</button>
+      <button id="ready" class="lt-button" data-variant="secondary" type="button" title="Merk nivået klart (krever at reglene er grønne)">Merk klart</button>
     </div>
   </header>
   <main>
     <aside id="palette" aria-label="Paletten">
-      <input id="search" class="fs-input" type="search" placeholder="Søk i modulene" aria-label="Søk">
+      <input id="search" class="lt-input" type="search" placeholder="Søk i modulene" aria-label="Søk">
       <div id="modlist"></div>
       <h2>Innhold</h2>
       <div id="thinglist" class="chips"></div>
@@ -166,18 +166,18 @@
     </section>
     <aside id="props" aria-label="Egenskaper og regler">
       <div id="sel"></div>
-      <h2>Reglene <span id="issuecount" class="fs-badge" data-variant="neutral">0</span></h2>
+      <h2>Reglene <span id="issuecount" class="lt-badge" data-variant="neutral">0</span></h2>
       <ul id="issues"></ul>
       <h2>Nivået</h2>
       <div id="stats" class="stats"></div>
     </aside>
   </main>
-  <div id="overlay"><div class="card"><p id="loading" class="fs-paragraph">Laster motoren …</p><progress id="bar" class="fs-progress" max="100" value="0"></progress></div></div>
+  <div id="overlay"><div class="card"><p id="loading" class="lt-paragraph">Laster motoren …</p><progress id="bar" class="lt-progress" max="100" value="0"></progress></div></div>
   <div id="playbar" hidden>Prøvetur: du kan ikke dø. <strong>Esc</strong> tilbake til redigeringen.</div>
   <div id="toast" hidden></div>
   <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="help-title">
-    <div class="fs-dialog">
-      <h2 id="help-title" class="fs-heading" style="margin:0 0 6px">Slik bygger du et nivå</h2>
+    <div class="lt-dialog">
+      <h2 id="help-title" class="lt-heading" style="margin:0 0 6px">Slik bygger du et nivå</h2>
       <ol>
         <li><b>Dra et rom fra paletten</b> til venstre inn på kartet. Nær en ledig åpning (de lyse pilene) snapper det på plass og dreier seg selv; de grønne prikkene viser hvor det kobles. Hold Alt for å sette det fritt.</li>
         <li><b>Sett ut innholdet</b>: startstedet, døra opp, hvilestedet og trappa ned må være med (reglene til høyre sier fra, og «Sett ut» tar dem fram). Så fiender, kister og lapper.</li>
@@ -231,7 +231,7 @@
           </table>
         </div>
       </div>
-      <div class="row" style="justify-content:flex-end;margin-top:12px"><button id="help-close" class="fs-button" data-variant="primary" type="button">Lukk</button></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button id="help-close" class="lt-button" data-variant="primary" type="button">Lukk</button></div>
     </div>
   </div>
   <script type="module" src="nivaa.js"></script>

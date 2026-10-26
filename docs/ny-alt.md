@@ -63,7 +63,7 @@ Et lag slettes først når ingen modell bruker det lenger. Testen `alt_er_ekte_m
 4. **Våpen, skjold, rustninger og armene i førsteperson.** De synes hele tiden, så de må være skarpe tett på. Hvert våpen og skjold får sitt eget malte ark.
 5. **Trær, busker, gress og blomster:** stammer med greiner og barkflis, løvklynger fra atlasene og forbildet for formen. Store, tydelige klynger som i WoW, ikke en sky av små blader.
 6. **Dyrene.**
-7. **Fiendene og bossene** i en egen runde med prompter: én per Fristil-komponent i `docs/krypten-ny.md`.
+7. **Fiendene og bossene** i en egen runde med prompter: én per LO-TEK-komponent i `docs/krypten-ny.md`.
 8. **Rydding:** slett de gamle modellene, teksturene og skriptene og koden som bare de brukte (CLAUDE.md oppdateres).
 
 ## Hvordan arkene brukes

@@ -4,7 +4,7 @@ Dette er kjernen i spillet (eieren 16. oktober: «dette må sikres som en del av
 
 ## Kjernen
 
-Fristil er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML og CSS som hvert team kan bygge akkurat det de trenger av, uten å slåss mot biblioteket. Fortellingen er den samme tanken i 1350: én fri mønsterbok som alle byene delte, og som aldri sto i veien. Motparten er et låst, rammeverksbundet designsystem som alle tvinges til å skrive React i, så stivt at teamene hele tiden må jobbe seg rundt det, og korrumpert av felles forretningslogikk slik et sentralt råd som aldri har arbeidet i et skriptorium mener ting skal være.
+LO-TEK er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML og CSS som hvert team kan bygge akkurat det de trenger av, uten å slåss mot biblioteket. Fortellingen er den samme tanken i 1350: én fri mønsterbok som alle byene delte, og som aldri sto i veien. Motparten er et låst, rammeverksbundet designsystem som alle tvinges til å skrive React i, så stivt at teamene hele tiden må jobbe seg rundt det, og korrumpert av felles forretningslogikk slik et sentralt råd som aldri har arbeidet i et skriptorium mener ting skal være.
 
 ## Grunnfortellingen
 
@@ -30,7 +30,7 @@ Fristil er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML
 
 | I fortellingen | Det betyr | Bruk |
 |---|---|---|
-| **Mønsterboka** | Fristil: designsystemet uavhengig av språk og rammeverk | Det spilleren gjenoppbygger. Komponentene du vinner og smir, og bøkene du leser, er sider av den. |
+| **Mønsterboka** | LO-TEK: designsystemet uavhengig av språk og rammeverk | Det spilleren gjenoppbygger. Komponentene du vinner og smir, og bøkene du leser, er sider av den. |
 | **Tungemålene** | Programmeringsspråkene og rammeverkene byene skrev i | Hver by sitt; mønsterboka kunne leses på alle. |
 | **Skriptoriet**, **skriverne** | Utviklingsteamene | Skriptoriet i Fristad står fortsatt, og der smis komponentene. |
 | **Gorvek** | Den som delte Rammeverket | Legendarisk kriger (fra Gallowmark-kanonen), ikke fra Fristad, vanvittig sterk og nesten umenneskelig brutal. Finnes bare i filmen, i lappene i krypten og i det byfolket forteller; han er aldri i byen (eieren 17. oktober). Våpenmesteren på øvingsplassen heter Torgils. |
@@ -50,7 +50,7 @@ Fristil er et designsystem som er **uavhengig av språk og rammeverk**: ren HTML
 
 ## Tonen
 
-Alvorlig saga med glimt i øyet: episk i formen, med vink til webutvikling som folk i faget kjenner igjen (omveier, lapper, oppgraderingen, «en knapp kunne ikke lenger bare være en knapp»), men aldri som parodi og aldri med moderne ord i verden (ikke React, JavaScript, npm eller props i det figurene sier). Komponentene heter det de heter i Fristil (Button, Tooltip, Modal). Testen `kanon_ingen_moderne_ord_i_verden` sjekker replikkene, byen, kryptnivåene og filmens tekster. Bøkene viser Fristils ekte dokumentasjon og er unntatt.
+Alvorlig saga med glimt i øyet: episk i formen, med vink til webutvikling som folk i faget kjenner igjen (omveier, lapper, oppgraderingen, «en knapp kunne ikke lenger bare være en knapp»), men aldri som parodi og aldri med moderne ord i verden (ikke React, JavaScript, npm eller props i det figurene sier). Komponentene heter det de heter i LO-TEK (Button, Tooltip, Modal). Testen `kanon_ingen_moderne_ord_i_verden` sjekker replikkene, byen, kryptnivåene og filmens tekster. Bøkene viser LO-TEKs ekte dokumentasjon og er unntatt.
 
 ## Krokene i spillet
 

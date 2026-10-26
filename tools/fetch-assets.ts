@@ -93,7 +93,7 @@ const TEXTURES: Record<string, string[]> = {
   snow: [],
   // Høvlet eik til møblene.
   oak_planed: [],
-  // Gravkjelleren (krypten, tema 1) og Fristil-korrupsjonen.
+  // Gravkjelleren (krypten, tema 1) og LO-TEK-korrupsjonen.
   crypt_wall: [],
   crypt_floor: [],
   crypt_vault: [],

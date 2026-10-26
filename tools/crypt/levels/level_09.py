@@ -1,6 +1,6 @@
 """Nivå 9: Overgangen.
 
-Her går borgen over i Fristil. Steinen får sømmer som lyser, speilsalen glitcher mellom
+Her går borgen over i LO-TEK. Steinen får sømmer som lyser, speilsalen glitcher mellom
 to tilstander, og etter brohodet henger gangene i løse luften over tomrommet mellom
 plattformer av plast. Den siste steinen er hvilestedet. Tvillingvokteren bærer nøkkelen.
 """

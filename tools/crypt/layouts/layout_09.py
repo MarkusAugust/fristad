@@ -1,6 +1,6 @@
 """Utlegget for nivå 9, Overgangen (planen: `levels/level_09.py`).
 
-Her går borgen over i Fristil. Trappa fra tronsalen ender i **Sømporten**
+Her går borgen over i LO-TEK. Trappa fra tronsalen ender i **Sømporten**
 (vanlig stein, men fugene lyser), og **Sprekkgangen** fører ned til
 **Speilsalen**: glatt, lys plast i gulvet og to rader søyler som speiler
 hverandre. Rustflekkene i vestmuren skjuler **Det andre rommet** (varig

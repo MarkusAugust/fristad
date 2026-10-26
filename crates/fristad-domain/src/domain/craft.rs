@@ -1,6 +1,6 @@
 //! Utstyret og oppskriftene: komponentene du vinner i kjelleren (kister og
 //! elitefiender) smis til våpen, skjold og rustning hos Skjemakontoret, der
-//! oppskriften er et Fristil-skjema. Utstyret ser ut som ekte våpen
+//! oppskriften er et LO-TEK-skjema. Utstyret ser ut som ekte våpen
 //! (modellene fra `tools/models/arms.py`), men er bygd av komponenter.
 //! Rene data; `game.rs` eier lageret og `combat.rs` bruker tallene.
 
@@ -372,7 +372,7 @@ pub const LOOT: [&[&str]; 5] = [
 pub const GALLERY: [&str; 15] = ["button", "tag", "badge", "divider", "card", "alert", "progress", "label", "help-text", "tooltip", "fieldset", "file-upload", "search", "dialog", "tabs"];
 
 /// Modellen som henger i hver ramme, i samme rekkefølge som `GALLERY`: en
-/// plate med bildet av selve Fristil-komponenten i standardvarianten
+/// plate med bildet av selve LO-TEK-komponenten i standardvarianten
 /// (`assets/textures/components/<komponent>.jpg`, rendret av
 /// `tools/gallery/render.mjs`, bakt inn av `tools/models/home.py`).
 pub const GALLERY_MODELS: [&str; 15] = [
@@ -393,7 +393,7 @@ pub const GALLERY_MODELS: [&str; 15] = [
     "gallery_tabs",
 ];
 
-/// Navnet på en komponent slik Fristil skriver tittelen («help-text» blir
+/// Navnet på en komponent slik LO-TEK skriver tittelen («help-text» blir
 /// «Help Text»), som nettlaget viser den fra `web/docs.json`.
 pub fn title(component: &str) -> String {
     component

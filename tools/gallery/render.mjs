@@ -1,12 +1,12 @@
-// Rendrer Fristil-komponentene i galleriet (craft::GALLERY) slik boka viser
-// dem: `demo`-HTML-en fra web/docs.json med Fristils stilark, i lyst tema,
+// Rendrer LO-TEK-komponentene i galleriet (craft::GALLERY) slik boka viser
+// dem: `demo`-HTML-en fra web/docs.json med LO-TEKs stilark, i lyst tema,
 // skåret ned til standardvarianten, og tar et skarpt skjermbilde av hver
 // (gjennomsiktig bakgrunn, beskåret til innholdet). Skaleringen velges per
 // komponent (`scaleFor`: minst 4, høyst 12), så den lengste sida blir minst
 // `TARGET` piksler og platen på 2048 aldri må forstørre bildet (en liten
 // Badge rendres i 12×, et bredt Card i 5×). Så lager tools/gallery/pack.py
 // kvadratiske 2048×2048-teksturer og kontaktarket. Kjør:
-//   sh tools/pull-dist.sh      (fristil.css og komponent-JS-en i dist-web/)
+//   sh tools/pull-dist.sh      (lotek.css og komponent-JS-en i dist-web/)
 //   PLAYWRIGHT_DIR=/opt/node-tools/node_modules/playwright node tools/gallery/render.mjs [dist-web] [UTKATALOG]
 //   python3 tools/gallery/pack.py UTKATALOG assets/textures/components shots/galleriet/kontaktark.png
 import { createRequire } from "node:module";
@@ -23,20 +23,20 @@ const docs = JSON.parse(await readFile("web/docs.json", "utf8"));
 // er standardvarianten (CSS-velgere på barna av flaten, i rekkefølge); tom
 // liste er hele demoen. `prep` kjøres i siden før bildet tas.
 const GALLERY = {
-  "button": { keep: [".fs-button:not([data-variant])"] },
-  "tag": { keep: [".fs-tag:not([data-variant]):not([aria-disabled])"] },
-  "badge": { keep: [".fs-badge:not([data-color])"] },
-  "divider": { keep: ["p:nth-of-type(1)", ".fs-divider:not([data-variant])", "p:nth-of-type(2)"] },
-  "card": { keep: [".fs-card:not([data-variant])"] },
-  "alert": { keep: [".fs-alert:not([data-color])"] },
-  "progress": { keep: [".fs-progress:not([data-color])"] },
+  "button": { keep: [".lt-button:not([data-variant])"] },
+  "tag": { keep: [".lt-tag:not([data-variant]):not([aria-disabled])"] },
+  "badge": { keep: [".lt-badge:not([data-color])"] },
+  "divider": { keep: ["p:nth-of-type(1)", ".lt-divider:not([data-variant])", "p:nth-of-type(2)"] },
+  "card": { keep: [".lt-card:not([data-variant])"] },
+  "alert": { keep: [".lt-alert:not([data-color])"] },
+  "progress": { keep: [".lt-progress:not([data-color])"] },
   "label": { keep: ["label[for=navn]", "#navn"] },
-  "help-text": { keep: [".fs-help-text:not([data-variant])"] },
-  "tooltip": { keep: [], css: ".fs-tooltip__bubble { visibility: visible !important; opacity: 1 !important; }", padTop: 56 },
+  "help-text": { keep: [".lt-help-text:not([data-variant])"] },
+  "tooltip": { keep: [], css: ".lt-tooltip__bubble { visibility: visible !important; opacity: 1 !important; }", padTop: 56 },
   "fieldset": { keep: [] },
   "file-upload": { keep: [] },
   "search": { keep: [] },
-  "dialog": { keep: ["fs-dialog"], modal: "dialog.fs-dialog", css: ".fs-dialog { max-inline-size: 20rem; }" },
+  "dialog": { keep: ["lt-dialog"], modal: "dialog.lt-dialog", css: ".lt-dialog { max-inline-size: 20rem; }" },
   "tabs": { keep: [] },
 };
 
@@ -48,13 +48,13 @@ const WIDTH = "15rem";
 const FLATE = `
   html, body { margin: 0; background: transparent; }
   body { font-family: "Inter", system-ui, sans-serif; padding: 40px; }
-  .flate { display: flex; gap: var(--fs-spacing-3); padding: var(--fs-spacing-6);
-    max-width: var(--fs-preview-max-width, none); width: max-content;
-    background: transparent; color: var(--fs-color-neutral-text-strong);
-    font-size: var(--fs-font-size-m); line-height: 1.6; }
+  .flate { display: flex; gap: var(--lt-spacing-3); padding: var(--lt-spacing-6);
+    max-width: var(--lt-preview-max-width, none); width: max-content;
+    background: transparent; color: var(--lt-color-neutral-text-strong);
+    font-size: var(--lt-font-size-m); line-height: 1.6; }
   .flate[data-layout="rad"] { flex-wrap: wrap; align-items: center; }
   .flate[data-layout="stabel"] { flex-direction: column; align-items: stretch; width: auto; }
-  .flate > .fs-divider { margin-inline: 0; }
+  .flate > .lt-divider { margin-inline: 0; }
 `;
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".woff2": "font/woff2" };
@@ -90,12 +90,12 @@ for (const [name, spec] of Object.entries(GALLERY)) {
   const demo = docs[name]?.demo;
   if (!demo?.html) { console.error(`${name}: ingen demo i web/docs.json`); process.exitCode = 1; continue; }
   current = `<!doctype html><html lang="nb" data-theme="light"><head><meta charset="utf-8">
-    <link rel="stylesheet" href="/fristil.css"><style>${FLATE}${demo.css ?? ""}${spec.css ?? ""}</style></head>
-    <body><div class="flate" data-layout="${demo.layout || "rad"}" style="--fs-preview-max-width:${WIDTH}">${demo.html}</div>
+    <link rel="stylesheet" href="/lotek.css"><style>${FLATE}${demo.css ?? ""}${spec.css ?? ""}</style></head>
+    <body><div class="flate" data-layout="${demo.layout || "rad"}" style="--lt-preview-max-width:${WIDTH}">${demo.html}</div>
     <script type="module">
-      import { defineFsTabs } from "/fristil/components/ramme/tabs/fs-tabs.js";
-      import { defineFsDialog } from "/fristil/components/ramme/dialog/fs-dialog.js";
-      defineFsTabs(); defineFsDialog(); window.__klar = true;
+      import { defineLtTabs } from "/lotek/components/frame/tabs/lt-tabs.js";
+      import { defineLtDialog } from "/lotek/components/frame/dialog/lt-dialog.js";
+      defineLtTabs(); defineLtDialog(); window.__klar = true;
     </script></body></html>`;
   const shoot = async (page) => {
     await page.goto(`${base}/__gallery?${name}`, { waitUntil: "load" });
@@ -112,7 +112,7 @@ for (const [name, spec] of Object.entries(GALLERY)) {
     await page.waitForTimeout(250);
     // Innholdets rammer (uten flatens polstring), til beskjæringen.
     const box = await page.evaluate(({ modal }) => {
-      const els = modal ? [document.querySelector(modal)] : [...document.querySelector(".flate").children, ...document.querySelectorAll(".fs-tooltip__bubble")];
+      const els = modal ? [document.querySelector(modal)] : [...document.querySelector(".flate").children, ...document.querySelectorAll(".lt-tooltip__bubble")];
       let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
       for (const el of els) {
         const r = el.getBoundingClientRect();

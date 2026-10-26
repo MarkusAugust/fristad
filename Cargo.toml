@@ -2,7 +2,7 @@
 name = "fristad"
 version = "0.1.0"
 edition = "2021"
-description = "Fristad: dokumentasjonen til Fristil som en by du kan gå rundt i."
+description = "Fristad: dokumentasjonen til LO-TEK som en by du kan gå rundt i."
 license = "MIT"
 
 [workspace]

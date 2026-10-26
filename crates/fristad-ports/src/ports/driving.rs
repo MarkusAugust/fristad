@@ -573,7 +573,7 @@ pub struct Prompt {
     pub verb: String,
     pub trade: String,
     /// En kort forklaring av hva dette er og hva du kan gjøre (vises i
-    /// Fristil-tooltipen over siktet).
+    /// LO-TEK-tooltipen over siktet).
     pub info: String,
 }
 

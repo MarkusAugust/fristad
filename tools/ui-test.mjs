@@ -2,7 +2,7 @@
 // (`?uitest` i main.js) og tar skjermbilder i tre størrelser:
 //   node tools/ui-test.mjs DIST UT [WEB]
 // DIST er den ferdige nettsiden (dist-web fra `sh tools/pull-dist.sh`, for
-// fristil.css og pkg/), WEB er mappa med main.js, style.css og index.html
+// lotek.css og pkg/), WEB er mappa med main.js, style.css og index.html
 // (standard web/). Skriver UT-<bredde>-<meny>.png og feiler om en meny
 // stikker utenfor vinduet eller lista ikke ruller for seg.
 import { createRequire } from "node:module";

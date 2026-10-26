@@ -1,17 +1,23 @@
-// Henter dokumentasjonen for komponentene i Fristad fra Fristil sine
-// MDX-sider, og skriver det panelet trenger til web/docs.json.
+// Henter dokumentasjonen for komponentene i Fristad fra LO-TEK (før Fristil)
+// sine MDX-sider, og skriver det panelet trenger til web/docs.json.
 //
 //   bun tools/export-docs.ts                       henter fra GitHub
-//   bun tools/export-docs.ts ../fristil            leser fra en lokal klone
+//   bun tools/export-docs.ts ../lo-tek             leser fra en lokal klone
+//
+// Kjøres ikke av byggingen lenger (26. oktober): LO-TEK-dokumentasjonen er
+// på engelsk, med `<Example>` i stedet for `<Eksempel kode=…>` og engelske
+// sidenavn, og bøkene i spillet står på norsk i web/docs.json (fra Fristil
+// 0.31, med lt- i stedet for fs-). Skriptet leser fortsatt den norske formen
+// og må gjøres om før det kjøres mot LO-TEK.
 //
 // Panelet viser beskrivelsen, ingressen og eksempelkoden fra siden, så
 // teksten i byen er den samme som på dokumentasjonssiden. Forhåndsvisningen
-// (`demo`) er den første på siden, med flaten slik Fristil-docs viser den:
+// (`demo`) er den første på siden, med flaten slik LO-TEK-docs viser den:
 // markupen, `layout`, `maxWidth` og CSS-en som bare gjelder visningen.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fs } from "@fristil/designsystem";
+import { lt as fs } from "@lo-tek/interfaces";
 
 /** Komponentene som finnes i Fristad så langt. */
 const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "breadcrumbs", "progress", "toast", "skeleton", "connection-status", "dialog", "tabs", "card", "accordion", "input", "select", "checkbox", "radio", "textarea", "table", "tooltip", "link", "avatar", "divider", "heading", "label", "fieldset", "help-text", "error-text", "file-upload", "search"];
@@ -20,7 +26,7 @@ const COMPONENTS = ["button", "alert", "tag", "badge", "switch", "spinner", "bre
 const PAGES = ["kom-i-gang", "typesikker-bruk", "tilgjengelighet"];
 
 const local = process.argv[2];
-const RAW = "https://raw.githubusercontent.com/MarkusAugust/fristil/master";
+const RAW = "https://raw.githubusercontent.com/MarkusAugust/lo-tek/master";
 const PATH = "documentation/src/content/docs/components";
 const DEMOS = "documentation/src/components";
 
@@ -151,7 +157,7 @@ async function parse(name: string, mdx: string, page = false) {
   const own = body.search(/^\s*<[A-Z]\w*Demo\s*\/>/m);
   if (!code || (own >= 0 && own < body.search(/^\s*<Eksempel\b/m))) {
     const fences = [...body.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]);
-    const markup = fences.find((f) => /class="fs-|<fs-/.test(f) && !/<link /.test(f)) ?? "";
+    const markup = fences.find((f) => /class="lt-|<lt-/.test(f) && !/<link /.test(f)) ?? "";
     code = markup
       .replace(/<script[\s\S]*?<\/script>/g, "")
       .replace(/<!--[\s\S]*?-->/g, "")
@@ -169,7 +175,7 @@ async function parse(name: string, mdx: string, page = false) {
     intro,
     code,
     demo: page ? null : await demo(body),
-    url: page ? `https://fristil.sobernetics.no/${name}/` : `https://fristil.sobernetics.no/components/${name}/`,
+    url: page ? `https://lo-tek.sobernetics.no/${name}/` : `https://lo-tek.sobernetics.no/components/${name}/`,
   };
 }
 
@@ -179,7 +185,7 @@ for (const name of PAGES) docs[name] = await parse(name, await source(name, "doc
 
 writeFileSync("web/docs.json", JSON.stringify(docs, null, 2) + "\n");
 
-// Flaten eksemplene vises på, rett fra Fristil-docs (Preview.astro): de
+// Flaten eksemplene vises på, rett fra LO-TEK-docs (Preview.astro): de
 // samme layoutene (`rad`, `stabel`, `flyt` …), så panelet aldri mangler en
 // som docs har fått (eieren 18. oktober: Divider sto i fire kolonner fordi
 // panelet ikke kjente `flyt`).

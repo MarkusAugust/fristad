@@ -18,6 +18,7 @@ on:
       - "Cargo.lock"
       - "package.json"
       - "bun.lock"
+      - "vendor/**"
       - ".github/workflows/web.yml"
   workflow_dispatch:
 

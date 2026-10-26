@@ -5,7 +5,7 @@
 Gir utsida (`home.glb`), innsida (`home_interior.glb`, tegnes bare nær) og
 `home_inside.json` med kolliderne, lysene, røyken, senga og rammene på
 galleriveggen, og modellene `gallery_<komponent>` som henger i rammen når
-komponenten er funnet: en plate med bildet av selve Fristil-komponenten
+komponenten er funnet: en plate med bildet av selve LO-TEK-komponenten
 (`assets/textures/components/<komponent>.jpg`, fra `tools/gallery/`) og en
 tynn gullkant.
 
@@ -251,7 +251,7 @@ def component_material(name):
 
 
 def gallery_piece(name):
-    """Komponenten i rammen: en plate med bildet av Fristil-komponenten på
+    """Komponenten i rammen: en plate med bildet av LO-TEK-komponenten på
     forsida og en tynn gullkant. Bygd med forsida mot −Y i Blender (motorens
     +Z), sentrert i origo; økta setter den i rammens pose."""
     s = PLATE

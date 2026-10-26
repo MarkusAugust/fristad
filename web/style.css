@@ -1,5 +1,5 @@
-/* Alt som ikke er Fristil-komponenter: oppsettet rundt verden.
-   Farger, avstander og skrift kommer fra Fristil-tokens. */
+/* Alt som ikke er LO-TEK-komponenter: oppsettet rundt verden.
+   Farger, avstander og skrift kommer fra LO-TEK-tokens. */
 
 /* `hidden` skal alltid skjule, også elementer som har egen `display`. */
 [hidden] {
@@ -8,8 +8,15 @@
 
 /* Tekststørrelsen (eieren 18. oktober: «et hakk større»): rot-fontstørrelsen
    er 18 px ganger `--ui-text` (glideren i Innstillingene, 90–140 %), og
-   Fristils tokens og målene her står i rem, så hele grensesnittet skaleres
+   LO-TEKs tokens og målene her står i rem, så hele grensesnittet skaleres
    likt. Canvaset står som det er. */
+/* Spillet står på norsk: LO-TEKs egne tekster i stilarket (påkrevd og
+   valgfri på ledetekstene; tekstene i web-komponentene står på elementene). */
+:root {
+  --lt-label-required-text: " (påkrevd)";
+  --lt-label-optional-text: " (valgfri)";
+}
+
 html {
   font-size: calc(18px * var(--ui-text, 1));
 }
@@ -19,9 +26,9 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #0b0d12;
-  /* Samme skrifter som Fristil-dokumentasjonen. */
+  /* Samme skrifter som LO-TEK-dokumentasjonen. */
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--fs-color-neutral-text);
+  color: var(--lt-color-neutral-text);
 }
 
 #world {
@@ -38,11 +45,11 @@ kbd {
   min-width: 1.4em;
   padding: 0.05em 0.4em;
   margin-inline-end: 0.15em;
-  border: 1px solid var(--fs-color-neutral-border);
+  border: 1px solid var(--lt-color-neutral-border);
   border-bottom-width: 2px;
-  border-radius: var(--fs-spacing-1);
-  background: var(--fs-color-neutral-surface);
-  color: var(--fs-color-neutral-text-strong);
+  border-radius: var(--lt-spacing-1);
+  background: var(--lt-color-neutral-surface);
+  color: var(--lt-color-neutral-text-strong);
   font: inherit;
   font-size: 0.85em;
   text-align: center;
@@ -82,33 +89,33 @@ code {
 
 .vitals {
   position: absolute;
-  left: var(--fs-spacing-4);
-  top: var(--fs-spacing-4);
+  left: var(--lt-spacing-4);
+  top: var(--lt-spacing-4);
   display: grid;
-  gap: var(--fs-spacing-1);
+  gap: var(--lt-spacing-1);
   width: 13.75rem;
-  padding: var(--fs-spacing-3);
-  border-radius: var(--fs-spacing-2);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  padding: var(--lt-spacing-3);
+  border-radius: var(--lt-spacing-2);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 85%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
 }
 
-/* Minikartet oppe til høyre: et Fristil-panel med kartet over etasjen,
+/* Minikartet oppe til høyre: et LO-TEK-panel med kartet over etasjen,
    som dreier med deg. Det store kartet (K) ligger over bildet, halvt
    gjennomsiktig, og spillet går videre under. */
 /* Høyre side: minikartet og tastene i én kolonne, som slutter over
    stolpene nederst. Tastene krymper og ruller først. */
 .side {
   position: absolute;
-  right: var(--fs-spacing-4);
-  top: var(--fs-spacing-4);
+  right: var(--lt-spacing-4);
+  top: var(--lt-spacing-4);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
   width: min(19rem, calc(100vw - 32px));
-  max-height: calc(100vh - var(--fs-spacing-4) - var(--side-bottom, 7.5rem));
+  max-height: calc(100vh - var(--lt-spacing-4) - var(--side-bottom, 7.5rem));
   pointer-events: none;
 }
 .side > * {
@@ -134,9 +141,9 @@ code {
 .aimed > * { grid-area: 1 / 1; box-sizing: border-box; min-width: 0; }
 /* Er det trangt (lavt vindu eller stor tekst), kortes forklaringen av, så
    kortet holder seg under siktepunktet. */
-.aimed > .fs-card { max-height: calc(50vh - 9rem); overflow: hidden; }
-.aimed > .fs-card > * { flex: none; }
-.aimed > .fs-card > .fs-paragraph {
+.aimed > .lt-card { max-height: calc(50vh - 9rem); overflow: hidden; }
+.aimed > .lt-card > * { flex: none; }
+.aimed > .lt-card > .lt-paragraph {
   flex: 0 1 auto;
   min-height: 0;
   overflow: hidden;
@@ -147,30 +154,30 @@ code {
 /* Der kortet når bort under kolonnen til høyre (`side-short`, regnet ut av
    bredden på vinduet, kortet og kolonnen i main.js), slutter kolonnen over
    den øverste kanten kortet kan få, og tastene ruller i stedet. */
-.side-short .side { max-height: calc(50vh + 1rem - var(--fs-spacing-4)); }
+.side-short .side { max-height: calc(50vh + 1rem - var(--lt-spacing-4)); }
 .side-short #minimap-canvas { width: min(12.5rem, 34vw, 50vh - 8rem); height: min(12.5rem, 34vw, 50vh - 8rem); }
 .target-keys {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--fs-spacing-1) var(--fs-spacing-4);
-  margin: var(--fs-spacing-1) 0 0;
-  font-size: var(--fs-font-size-s);
-  font-weight: var(--fs-font-weight-semibold, 600);
+  gap: var(--lt-spacing-1) var(--lt-spacing-4);
+  margin: var(--lt-spacing-1) 0 0;
+  font-size: var(--lt-font-size-s);
+  font-weight: var(--lt-font-weight-semibold, 600);
 }
-.target-keys kbd { font-size: var(--fs-font-size-xs); }
+.target-keys kbd { font-size: var(--lt-font-size-xs); }
 .target, .foe {
-  --fs-card-padding: var(--fs-spacing-3) var(--fs-spacing-4);
-  gap: var(--fs-spacing-1);
+  --lt-card-padding: var(--lt-spacing-3) var(--lt-spacing-4);
+  gap: var(--lt-spacing-1);
   text-align: center;
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 96%, transparent);
-  border: 1px solid var(--fs-color-neutral-border);
-  border-top: 3px solid var(--fs-color-accent-fill);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 96%, transparent);
+  border: 1px solid var(--lt-color-neutral-border);
+  border-top: 3px solid var(--lt-color-accent-fill);
   box-shadow: 0 10px 34px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(0 0 0 / 0.25);
   overflow: hidden;
   animation: aimed-in 0.12s ease-out;
 }
-.foe { border-top-color: var(--fs-color-danger-fill); }
+.foe { border-top-color: var(--lt-color-danger-fill); }
 @keyframes aimed-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .target, .foe { animation: none; } }
 /* Fienden og det du kan bruke står aldri samtidig (fiendekortet blir
@@ -178,13 +185,13 @@ code {
 .aimed:has(> #target:not([hidden])) > #foe {
   display: none;
 }
-.target .fs-heading, .foe .fs-heading { margin: 0; }
-.target .fs-paragraph, .foe .fs-paragraph { color: var(--fs-color-neutral-text-strong); }
-.foe-head { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--fs-spacing-1); margin: 0; }
+.target .lt-heading, .foe .lt-heading { margin: 0; }
+.target .lt-paragraph, .foe .lt-paragraph { color: var(--lt-color-neutral-text-strong); }
+.foe-head { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--lt-spacing-1); margin: 0; }
 .foe-head:not(:has(> :not([hidden]))) { display: none; }
-#foe-ranged { border-color: var(--fs-color-warning-border); color: var(--fs-color-warning-text); background: var(--fs-color-warning-surface); }
-.foe-hp { display: grid; gap: var(--fs-spacing-1); margin-top: var(--fs-spacing-1); text-align: start; }
-.foe-hp .fs-progress { width: 100%; }
+#foe-ranged { border-color: var(--lt-color-warning-border); color: var(--lt-color-warning-text); background: var(--lt-color-warning-surface); }
+.foe-hp { display: grid; gap: var(--lt-spacing-1); margin-top: var(--lt-spacing-1); text-align: start; }
+.foe-hp .lt-progress { width: 100%; }
 /* Mens en dialog eller boka står, er stolpene og siktekortet borte, så de
    ikke ligger over den (plan 13c). */
 body:has(dialog[open]) .bottom,
@@ -200,12 +207,12 @@ body:has(#panel:not([hidden])) .aimed {
   min-height: 2.5rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  --fs-accordion-padding: var(--fs-spacing-2) var(--fs-spacing-3);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  --lt-accordion-padding: var(--lt-spacing-2) var(--lt-spacing-3);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 85%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
   pointer-events: auto;
-  font-size: var(--fs-font-size-s);
+  font-size: var(--lt-font-size-s);
 }
 .keys-panel summary {
   position: sticky;
@@ -214,26 +221,26 @@ body:has(#panel:not([hidden])) .aimed {
   background: inherit;
   backdrop-filter: inherit;
 }
-.keys-panel summary kbd { margin-left: auto; font-size: var(--fs-font-size-xs); }
-.keys-panel .fs-accordion__content {
-  padding: 0 var(--fs-spacing-2) var(--fs-spacing-2);
+.keys-panel summary kbd { margin-left: auto; font-size: var(--lt-font-size-xs); }
+.keys-panel .lt-accordion__content {
+  padding: 0 var(--lt-spacing-2) var(--lt-spacing-2);
 }
 .keys-table {
-  --fs-table-cell-padding: 3px var(--fs-spacing-1);
-  font-size: var(--fs-font-size-xs);
+  --lt-table-cell-padding: 3px var(--lt-spacing-1);
+  font-size: var(--lt-font-size-xs);
   line-height: 1.3;
 }
 .keys-table th { white-space: nowrap; font-weight: normal; }
-.keys-table kbd { font-size: var(--fs-font-size-xs); }
+.keys-table kbd { font-size: var(--lt-font-size-xs); }
 #fight-keys tr:last-child th, #fight-keys tr:last-child td {
-  border-block-end: 2px solid var(--fs-color-neutral-border-strong);
+  border-block-end: 2px solid var(--lt-color-neutral-border-strong);
 }
 .minimap {
   display: grid;
-  gap: var(--fs-spacing-1);
-  padding: var(--fs-spacing-2);
-  border-radius: var(--fs-spacing-2);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  gap: var(--lt-spacing-1);
+  padding: var(--lt-spacing-2);
+  border-radius: var(--lt-spacing-2);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 85%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
   pointer-events: none;
@@ -242,10 +249,10 @@ body:has(#panel:not([hidden])) .aimed {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
 }
 .minimap-key {
-  font-size: var(--fs-font-size-xs);
+  font-size: var(--lt-font-size-xs);
   opacity: 0.8;
 }
 #minimap-canvas {
@@ -254,7 +261,7 @@ body:has(#panel:not([hidden])) .aimed {
   height: min(12.5rem, 34vw);
   border-radius: 50%;
   background: #120e0b;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fs-color-neutral-border, #888) 70%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lt-color-neutral-border, #888) 70%, transparent);
 }
 .bigmap {
   position: absolute;
@@ -266,17 +273,17 @@ body:has(#panel:not([hidden])) .aimed {
 }
 .bigmap-card {
   display: grid;
-  gap: var(--fs-spacing-2);
-  padding: var(--fs-spacing-4);
-  border-radius: var(--fs-spacing-3);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 78%, transparent);
+  gap: var(--lt-spacing-2);
+  padding: var(--lt-spacing-4);
+  border-radius: var(--lt-spacing-3);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 78%, transparent);
   backdrop-filter: blur(6px);
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
 }
 #bigmap-canvas {
   width: min(40rem, 80vw, 70vh);
   height: min(40rem, 80vw, 70vh);
-  border-radius: var(--fs-spacing-2);
+  border-radius: var(--lt-spacing-2);
   background: #120e0b;
 }
 .legend { font-weight: 700; }
@@ -292,11 +299,11 @@ body:has(#panel:not([hidden])) .aimed {
 .bottom {
   position: absolute;
   left: 50%;
-  bottom: var(--fs-spacing-5);
+  bottom: var(--lt-spacing-5);
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
-  gap: var(--fs-spacing-5);
+  gap: var(--lt-spacing-5);
   width: max-content;
   max-width: calc(100vw - 32px);
   pointer-events: none;
@@ -309,13 +316,13 @@ body:has(#panel:not([hidden])) .aimed {
 }
 .bar {
   display: grid;
-  gap: var(--fs-spacing-1);
+  gap: var(--lt-spacing-1);
   /* To stolper og mellomrommet skal alltid få plass innenfor kantene. */
   width: min(16.25rem, calc((100vw - 2rem - var(--bars-gap)) / 2));
   box-sizing: border-box;
-  padding: var(--fs-spacing-2) var(--fs-spacing-3);
-  border-radius: var(--fs-spacing-2);
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent);
+  padding: var(--lt-spacing-2) var(--lt-spacing-3);
+  border-radius: var(--lt-spacing-2);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 85%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
 }
@@ -339,15 +346,15 @@ body:has(#panel:not([hidden])) .aimed {
   .bar-num { display: none; }
 }
 .bar-num {
-  font-family: var(--fs-font-family-mono, "IBM Plex Mono", monospace);
-  font-size: var(--fs-font-size-xs);
+  font-family: var(--lt-font-family-mono, "IBM Plex Mono", monospace);
+  font-size: var(--lt-font-size-xs);
   font-variant-numeric: tabular-nums;
 }
-.bar .fs-progress {
+.bar .lt-progress {
   width: 100%;
 }
 
-.vitals .fs-badge {
+.vitals .lt-badge {
   justify-self: start;
 }
 
@@ -360,7 +367,7 @@ body:has(#panel:not([hidden])) .aimed {
   border-radius: 0.5rem;
   background: var(--color-neutral-surface, #fff);
 }
-.boss .fs-label {
+.boss .lt-label {
   font-weight: 600;
 }
 
@@ -389,7 +396,7 @@ body:has(#panel:not([hidden])) .aimed {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--fs-color-danger-fill, #d33);
+  background: var(--lt-color-danger-fill, #d33);
   transition: width 80ms linear;
 }
 
@@ -403,7 +410,7 @@ body:has(#panel:not([hidden])) .aimed {
 
 /* Utstyret og lageret i hjørnet. */
 .gear {
-  font-size: var(--fs-font-size-xs);
+  font-size: var(--lt-font-size-xs);
   line-height: 1.4;
 }
 
@@ -419,7 +426,7 @@ body:has(#panel:not([hidden])) .aimed {
 
 .chip {
   font: inherit;
-  font-size: var(--fs-font-size-xs);
+  font-size: var(--lt-font-size-xs);
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid rgb(0 0 0 / 0.2);
@@ -437,7 +444,7 @@ body:has(#panel:not([hidden])) .aimed {
   opacity: 0.6;
 }
 
-/* Butikk og verksted: en Fristil-dialog midt på skjermen med spillet på
+/* Butikk og verksted: en LO-TEK-dialog midt på skjermen med spillet på
    pause. Den ligger i HUD-en (pointer-events: none), så den må ta imot
    musa selv. */
 .overlay {
@@ -451,38 +458,38 @@ body:has(#panel:not([hidden])) .aimed {
 
 /* Menyene (butikken, Skriptoriet og inventaret) har samme oppbygning:
    tittellinja, eventuelt fanerekken, innholdet som ruller, og en fast
-   bunnlinje med knappene. Luft og rytme fra Fristils spacing-tokens: 24 px
+   bunnlinje med knappene. Luft og rytme fra LO-TEKs spacing-tokens: 24 px
    til kantene, 16 px mellom blokkene, 8 px inne i dem. */
 .overlay-inner,
 .menu-dialog {
-  --menu-pad: var(--fs-spacing-6, 24px);
+  --menu-pad: var(--lt-spacing-6, 24px);
   margin: auto;
   padding: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: var(--fs-spacing-3);
+  border-radius: var(--lt-spacing-3);
   box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
 }
 .overlay-inner {
   width: min(35rem, calc(100vw - 32px));
   max-height: min(80vh, 760px);
 }
-.overlay-inner > .fs-dialog__header,
-.menu-dialog > .fs-dialog__header {
+.overlay-inner > .lt-dialog__header,
+.menu-dialog > .lt-dialog__header {
   flex: none;
-  padding: var(--fs-spacing-5) var(--menu-pad) var(--fs-spacing-3);
+  padding: var(--lt-spacing-5) var(--menu-pad) var(--lt-spacing-3);
 }
-.overlay-inner > .fs-dialog__body,
-.menu-dialog > .fs-dialog__body {
+.overlay-inner > .lt-dialog__body,
+.menu-dialog > .lt-dialog__body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 0 var(--menu-pad);
 }
-.menu-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fs-spacing-2) var(--fs-spacing-6); }
-.menu-head .fs-dialog__title { margin: 0; font-size: var(--fs-font-size-xl); }
-.menu-head .fs-dialog__subtitle { flex: 1 0 100%; margin: 0; color: var(--fs-color-neutral-text); }
+.menu-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lt-spacing-2) var(--lt-spacing-6); }
+.menu-head .lt-dialog__title { margin: 0; font-size: var(--lt-font-size-xl); }
+.menu-head .lt-dialog__subtitle { flex: 1 0 100%; margin: 0; color: var(--lt-color-neutral-text); }
 
 /* Bunnlinja: handlingen til venstre (Smi), lukk til høyre. */
 .menu-foot {
@@ -490,16 +497,16 @@ body:has(#panel:not([hidden])) .aimed {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
   margin: 0;
-  padding: var(--fs-spacing-3) var(--menu-pad);
-  border-top: 1px solid var(--fs-color-neutral-border-subtle);
-  background: color-mix(in srgb, var(--fs-color-neutral-surface) 45%, var(--fs-color-neutral-canvas));
+  padding: var(--lt-spacing-3) var(--menu-pad);
+  border-top: 1px solid var(--lt-color-neutral-border-subtle);
+  background: color-mix(in srgb, var(--lt-color-neutral-surface) 45%, var(--lt-color-neutral-canvas));
 }
-.menu-actions .fs-button { white-space: nowrap; }
-.menu-actions { display: flex; align-items: center; gap: var(--fs-spacing-3); flex: 1; min-width: 0; }
+.menu-actions .lt-button { white-space: nowrap; }
+.menu-actions { display: flex; align-items: center; gap: var(--lt-spacing-3); flex: 1; min-width: 0; }
 .menu-actions:empty { display: none; }
-.menu-actions .fs-help-text { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-actions .lt-help-text { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Butikken: én vare per rad, navn til venstre og kjøp til høyre. */
 .wares { margin: 0; }
@@ -507,52 +514,52 @@ body:has(#panel:not([hidden])) .aimed {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 5.5rem;
   align-items: center;
-  gap: var(--fs-spacing-4);
-  padding-block: var(--fs-spacing-3);
+  gap: var(--lt-spacing-4);
+  padding-block: var(--lt-spacing-3);
 }
-.ware-main { display: flex; align-items: center; gap: var(--fs-spacing-3); min-width: 0; }
-.ware-ico { width: 2.75rem; height: 2.75rem; flex: none; object-fit: cover; border-radius: var(--fs-spacing-2); }
+.ware-main { display: flex; align-items: center; gap: var(--lt-spacing-3); min-width: 0; }
+.ware-ico { width: 2.75rem; height: 2.75rem; flex: none; object-fit: cover; border-radius: var(--lt-spacing-2); }
 .ware-text { display: grid; gap: 2px; min-width: 0; }
-.ware-name { font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text-strong); }
-.ware-price { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text); text-align: end; }
-.ware .fs-button { justify-content: center; }
+.ware-name { font-weight: var(--lt-font-weight-semibold, 600); color: var(--lt-color-neutral-text-strong); }
+.ware-price { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--lt-color-neutral-text); text-align: end; }
+.ware .lt-button { justify-content: center; }
 .ware-why { margin: 0; }
 .ware-why:empty { display: none; }
 /* Trubaduren: replikken og ett kjøp, knappen så bred som teksten. */
 .ware.mead { grid-template-columns: minmax(0, 1fr) auto; }
-.mead-text { margin: 0 0 var(--fs-spacing-2); font-style: italic; max-width: 60ch; }
+.mead-text { margin: 0 0 var(--lt-spacing-2); font-style: italic; max-width: 60ch; }
 @media (max-width: 480px) { .ware.mead { grid-template-columns: minmax(0, 1fr); } }
 
-/* Sjeldenheten i farge (plan 13a, Fristils tokens): vanlig grå, sjelden
+/* Sjeldenheten i farge (plan 13a, LO-TEKs tokens): vanlig grå, sjelden
    blå, episk lilla, legendarisk gull. */
 [data-rarity] {
-  --r-fill: var(--fs-color-neutral-fill);
-  --r-surface: var(--fs-color-neutral-surface);
-  --r-text: var(--fs-color-neutral-text-strong);
-  --r-border: var(--fs-color-neutral-border);
+  --r-fill: var(--lt-color-neutral-fill);
+  --r-surface: var(--lt-color-neutral-surface);
+  --r-text: var(--lt-color-neutral-text-strong);
+  --r-border: var(--lt-color-neutral-border);
 }
 [data-rarity="sjelden"] {
-  --r-fill: var(--fs-color-accent-fill);
-  --r-surface: var(--fs-color-accent-surface);
-  --r-text: var(--fs-color-accent-text);
-  --r-border: var(--fs-color-accent-border);
+  --r-fill: var(--lt-color-accent-fill);
+  --r-surface: var(--lt-color-accent-surface);
+  --r-text: var(--lt-color-accent-text);
+  --r-border: var(--lt-color-accent-border);
 }
 [data-rarity="episk"] {
-  --r-fill: var(--fs-color-brand2-fill);
-  --r-surface: var(--fs-color-brand2-surface);
-  --r-text: var(--fs-color-brand2-text);
-  --r-border: var(--fs-color-brand2-border);
+  --r-fill: var(--lt-color-brand2-fill);
+  --r-surface: var(--lt-color-brand2-surface);
+  --r-text: var(--lt-color-brand2-text);
+  --r-border: var(--lt-color-brand2-border);
 }
 [data-rarity="legendarisk"] {
-  --r-fill: var(--fs-color-warning-fill);
-  --r-surface: var(--fs-color-warning-surface);
-  --r-text: var(--fs-color-warning-text);
-  --r-border: var(--fs-color-warning-border);
+  --r-fill: var(--lt-color-warning-fill);
+  --r-surface: var(--lt-color-warning-surface);
+  --r-text: var(--lt-color-warning-text);
+  --r-border: var(--lt-color-warning-border);
 }
 .rarity-tag {
-  --fs-tag-padding: 0 var(--fs-spacing-2);
-  font-size: var(--fs-font-size-xs);
-  font-weight: var(--fs-font-weight-semibold, 600);
+  --lt-tag-padding: 0 var(--lt-spacing-2);
+  font-size: var(--lt-font-size-xs);
+  font-weight: var(--lt-font-weight-semibold, 600);
   line-height: 1.6;
   color: var(--r-text);
   background: var(--r-surface);
@@ -565,14 +572,14 @@ body:has(#panel:not([hidden])) .aimed {
   place-items: center;
   flex: none;
   overflow: hidden;
-  border-radius: var(--fs-spacing-2);
-  background: radial-gradient(circle at 50% 45%, var(--r-surface), var(--fs-color-neutral-surface) 75%);
+  border-radius: var(--lt-spacing-2);
+  background: radial-gradient(circle at 50% 45%, var(--r-surface), var(--lt-color-neutral-surface) 75%);
   box-shadow: inset 0 0 0 2px var(--r-fill);
-  color: var(--fs-color-neutral-text-subtle);
+  color: var(--lt-color-neutral-text-subtle);
 }
 .gear-ico img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .gear-ico.small { width: 2.75rem; height: 2.75rem; }
-.gear-ico.big { width: 6.5rem; height: 6.5rem; border-radius: var(--fs-spacing-3); box-shadow: inset 0 0 0 3px var(--r-fill), 0 6px 24px -6px var(--r-fill); }
+.gear-ico.big { width: 6.5rem; height: 6.5rem; border-radius: var(--lt-spacing-3); box-shadow: inset 0 0 0 3px var(--r-fill), 0 6px 24px -6px var(--r-fill); }
 .gear-ico.silhouette svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: 0.6; }
 
 /* Menyene med lister (Skriptoriet og inventaret, plan 13c): fast høyde,
@@ -584,16 +591,16 @@ body:has(#panel:not([hidden])) .aimed {
   max-height: calc(100vh - 32px);
 }
 .menu-dialog { width: min(73.75rem, calc(100vw - 32px)); }
-.overlay-inner.menu > .fs-dialog__body,
-.menu-dialog > .fs-dialog__body { overflow: hidden; padding: 0; }
+.overlay-inner.menu > .lt-dialog__body,
+.menu-dialog > .lt-dialog__body { overflow: hidden; padding: 0; }
 
-/* Fanerekken (Fristils `fs-tabs__list`): én rad som aldri brytes og
+/* Fanerekken (LO-TEKs `lt-tabs__list`, lenker i en liste): én rad som aldri brytes og
    ruller vannrett når den ikke får plass, med antallet som en liten badge.
    Den valgte fanen har strek under og sterk tekst. */
 .menu-tabs,
-.menu-dialog .fs-tabs__list {
-  --fs-tabs-gap: var(--fs-spacing-1);
-  --fs-tabs-padding: 0 var(--fs-spacing-4);
+.menu-dialog .lt-tabs__list {
+  --lt-tabs-gap: var(--lt-spacing-1);
+  --lt-tabs-padding: 0 var(--lt-spacing-4);
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -601,41 +608,41 @@ body:has(#panel:not([hidden])) .aimed {
   padding-inline: var(--menu-pad);
 }
 .menu-tabs::-webkit-scrollbar,
-.menu-dialog .fs-tabs__list::-webkit-scrollbar { display: none; }
-.menu-tabs button,
-.menu-dialog .fs-tabs__list button {
+.menu-dialog .lt-tabs__list::-webkit-scrollbar { display: none; }
+.menu-tabs a,
+.menu-dialog .lt-tabs__list a {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: var(--fs-spacing-2);
+  gap: var(--lt-spacing-2);
   min-block-size: 2.75rem;
   white-space: nowrap;
-  font-size: var(--fs-font-size-s);
-  font-weight: var(--fs-font-weight-semibold, 600);
-  color: var(--fs-color-neutral-text);
-  border-radius: var(--fs-spacing-1) var(--fs-spacing-1) 0 0;
+  font-size: var(--lt-font-size-s);
+  font-weight: var(--lt-font-weight-semibold, 600);
+  color: var(--lt-color-neutral-text);
+  border-radius: var(--lt-spacing-1) var(--lt-spacing-1) 0 0;
 }
-.menu-tabs button:hover,
-.menu-dialog .fs-tabs__list button:hover { color: var(--fs-color-neutral-text-strong); }
-.menu-tabs button[aria-selected="true"],
-.menu-dialog .fs-tabs__list button[aria-selected="true"] {
-  color: var(--fs-color-accent-text);
-  border-block-end-color: var(--fs-color-accent-fill);
+.menu-tabs a:hover,
+.menu-dialog .lt-tabs__list a:hover { color: var(--lt-color-neutral-text-strong); }
+.menu-tabs a[aria-selected="true"],
+.menu-dialog .lt-tabs__list a[aria-selected="true"] {
+  color: var(--lt-color-accent-text);
+  border-block-end-color: var(--lt-color-accent-fill);
 }
 .tab-count {
   display: inline-block;
   min-width: 1.5em;
-  padding: 0 var(--fs-spacing-1-5, 6px);
+  padding: 0 var(--lt-spacing-1-5, 6px);
   border-radius: 999px;
-  font-size: var(--fs-font-size-xs);
-  font-weight: var(--fs-font-weight-semibold, 600);
+  font-size: var(--lt-font-size-xs);
+  font-weight: var(--lt-font-weight-semibold, 600);
   line-height: 1.6;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  color: var(--fs-color-neutral-text);
-  background: var(--fs-color-neutral-surface);
+  color: var(--lt-color-neutral-text);
+  background: var(--lt-color-neutral-surface);
 }
-[aria-selected="true"] > .tab-count { color: var(--fs-color-accent-text); background: var(--fs-color-accent-surface); }
+[aria-selected="true"] > .tab-count { color: var(--lt-color-accent-text); background: var(--lt-color-accent-surface); }
 
 /* Lista til venstre og detaljene til høyre møtes i én strek. */
 .picker {
@@ -650,30 +657,30 @@ body:has(#panel:not([hidden])) .aimed {
 /* Buttonsmeden (plan 14): varene i «Kjøp» over hele bredden, og byttene i
    «Bytte» som lista og detaljene i Skriptoriet. Komponentene har bildet av
    seg selv i stedet for et ikon, og avgiften en tokenbrikke. */
-.smith > .shop-buy { grid-column: 1 / -1; grid-row: 2; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--fs-spacing-3) var(--menu-pad) var(--fs-spacing-6); }
-.token-ico { display: grid; place-items: center; color: var(--fs-color-warning-text); }
+.smith > .shop-buy { grid-column: 1 / -1; grid-row: 2; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--lt-spacing-3) var(--menu-pad) var(--lt-spacing-6); }
+.token-ico { display: grid; place-items: center; color: var(--lt-color-warning-text); }
 .token-ico svg { width: 60%; height: 60%; fill: currentColor; opacity: 0.85; }
-.swap-rule { margin: var(--fs-spacing-5) 0 0; }
+.swap-rule { margin: var(--lt-spacing-5) 0 0; }
 .pick-side {
   display: flex;
   flex-direction: column;
-  gap: var(--fs-spacing-2);
+  gap: var(--lt-spacing-2);
   min-height: 0;
-  padding: var(--fs-spacing-3);
-  border-inline-end: 1px solid var(--fs-color-neutral-border-subtle);
-  background: color-mix(in srgb, var(--fs-color-neutral-surface) 40%, var(--fs-color-neutral-canvas));
+  padding: var(--lt-spacing-3);
+  border-inline-end: 1px solid var(--lt-color-neutral-border-subtle);
+  background: color-mix(in srgb, var(--lt-color-neutral-surface) 40%, var(--lt-color-neutral-canvas));
 }
 .pick-count {
   display: flex;
   align-items: center;
-  gap: var(--fs-spacing-2);
+  gap: var(--lt-spacing-2);
   margin: 0;
-  padding: var(--fs-spacing-1) var(--fs-spacing-2) 0;
-  font-size: var(--fs-font-size-xs);
-  font-weight: var(--fs-font-weight-semibold, 600);
+  padding: var(--lt-spacing-1) var(--lt-spacing-2) 0;
+  font-size: var(--lt-font-size-xs);
+  font-weight: var(--lt-font-weight-semibold, 600);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--fs-color-neutral-text);
+  color: var(--lt-color-neutral-text);
 }
 .pick-list {
   flex: 1;
@@ -691,32 +698,32 @@ body:has(#panel:not([hidden])) .aimed {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--fs-spacing-3);
-  padding: var(--fs-spacing-2) var(--fs-spacing-3) var(--fs-spacing-2) var(--fs-spacing-2);
-  border-radius: var(--fs-spacing-2);
+  gap: var(--lt-spacing-3);
+  padding: var(--lt-spacing-2) var(--lt-spacing-3) var(--lt-spacing-2) var(--lt-spacing-2);
+  border-radius: var(--lt-spacing-2);
   cursor: pointer;
   user-select: none;
   transition: background-color 0.12s;
 }
-.pick-row:hover { background: var(--fs-color-neutral-surface); }
+.pick-row:hover { background: var(--lt-color-neutral-surface); }
 .pick-row[aria-selected="true"] {
-  background: var(--fs-color-accent-surface);
-  box-shadow: inset 3px 0 0 var(--fs-color-accent-fill);
+  background: var(--lt-color-accent-surface);
+  box-shadow: inset 3px 0 0 var(--lt-color-accent-fill);
 }
-.pick-row:focus-visible { outline: var(--fs-focus-ring); outline-offset: -2px; }
+.pick-row:focus-visible { outline: var(--lt-focus-ring); outline-offset: -2px; }
 .pick-row.dim:not([aria-selected="true"]) .gear-ico,
 .pick-row.dim:not([aria-selected="true"]) .pick-text { opacity: 0.55; }
-.pick-text { display: grid; gap: var(--fs-spacing-1); min-width: 0; }
+.pick-text { display: grid; gap: var(--lt-spacing-1); min-width: 0; }
 .pick-name {
-  font-weight: var(--fs-font-weight-semibold, 600);
+  font-weight: var(--lt-font-weight-semibold, 600);
   line-height: 1.25;
-  color: var(--fs-color-neutral-text-strong);
+  color: var(--lt-color-neutral-text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pick-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fs-spacing-1); }
-.pick-sub { font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text-subtle); }
+.pick-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lt-spacing-1); }
+.pick-sub { font-size: var(--lt-font-size-xs); color: var(--lt-color-neutral-text-subtle); }
 .pick-badge:empty { display: none; }
 
 /* Detaljene for det valgte, som ruller for seg. */
@@ -731,41 +738,41 @@ body:has(#panel:not([hidden])) .aimed {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--fs-spacing-5) var(--menu-pad) var(--fs-spacing-6);
+  padding: var(--lt-spacing-5) var(--menu-pad) var(--lt-spacing-6);
 }
-.detail > .fs-paragraph { padding: var(--fs-spacing-5) var(--menu-pad); }
-.detail-back { display: none; margin: 0 0 var(--fs-spacing-3) calc(-1 * var(--fs-spacing-3)); }
-.detail-head { display: flex; gap: var(--fs-spacing-5); align-items: center; }
-.detail-title { display: grid; gap: var(--fs-spacing-2); min-width: 0; }
-.detail-title .fs-heading { overflow-wrap: break-word; margin: 0; font-size: var(--fs-font-size-xl); line-height: 1.2; }
-.gear-tags { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-1); align-items: center; }
-.gear-tags .fs-tag:not(.rarity-tag) { --fs-tag-padding: 0 var(--fs-spacing-2); font-size: var(--fs-font-size-xs); line-height: 1.6; color: var(--fs-color-neutral-text); }
+.detail > .lt-paragraph { padding: var(--lt-spacing-5) var(--menu-pad); }
+.detail-back { display: none; margin: 0 0 var(--lt-spacing-3) calc(-1 * var(--lt-spacing-3)); }
+.detail-head { display: flex; gap: var(--lt-spacing-5); align-items: center; }
+.detail-title { display: grid; gap: var(--lt-spacing-2); min-width: 0; }
+.detail-title .lt-heading { overflow-wrap: break-word; margin: 0; font-size: var(--lt-font-size-xl); line-height: 1.2; }
+.gear-tags { display: flex; flex-wrap: wrap; gap: var(--lt-spacing-1); align-items: center; }
+.gear-tags .lt-tag:not(.rarity-tag) { --lt-tag-padding: 0 var(--lt-spacing-2); font-size: var(--lt-font-size-xs); line-height: 1.6; color: var(--lt-color-neutral-text); }
 .detail-special { margin: 0; }
-.detail-about { margin: var(--fs-spacing-4) 0 0; max-width: 62ch; color: var(--fs-color-neutral-text); }
+.detail-about { margin: var(--lt-spacing-4) 0 0; max-width: 62ch; color: var(--lt-color-neutral-text); }
 .detail-sub {
-  margin: var(--fs-spacing-6) 0 var(--fs-spacing-2);
-  font-size: var(--fs-font-size-xs);
+  margin: var(--lt-spacing-6) 0 var(--lt-spacing-2);
+  font-size: var(--lt-font-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--fs-color-neutral-text);
+  color: var(--lt-color-neutral-text);
 }
-.compare { width: 100%; font-size: var(--fs-font-size-s); }
-.compare th, .compare td { padding-block: var(--fs-spacing-2); }
-.compare thead th { font-size: var(--fs-font-size-xs); font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text); }
-.compare th[scope="row"] { font-weight: normal; color: var(--fs-color-neutral-text-strong); }
-.compare .low-good { font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text-subtle); }
-.compare td { font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%; padding-inline-start: var(--fs-spacing-5); }
+.compare { width: 100%; font-size: var(--lt-font-size-s); }
+.compare th, .compare td { padding-block: var(--lt-spacing-2); }
+.compare thead th { font-size: var(--lt-font-size-xs); font-weight: var(--lt-font-weight-semibold, 600); color: var(--lt-color-neutral-text); }
+.compare th[scope="row"] { font-weight: normal; color: var(--lt-color-neutral-text-strong); }
+.compare .low-good { font-size: var(--lt-font-size-xs); color: var(--lt-color-neutral-text-subtle); }
+.compare td { font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%; padding-inline-start: var(--lt-spacing-5); }
 .stat-val { display: block; }
-.fs-progress.mini { --fs-progress-height: 4px; display: block; width: 100%; min-width: 4rem; margin-top: 3px; }
+.lt-progress.mini { --lt-progress-height: 4px; display: block; width: 100%; min-width: 4rem; margin-top: 3px; }
 .delta { font-weight: 700; }
-.delta.better { color: var(--fs-color-success-text); }
-.delta.worse { color: var(--fs-color-danger-text); }
+.delta.better { color: var(--lt-color-success-text); }
+.delta.worse { color: var(--lt-color-danger-text); }
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--fs-spacing-2) var(--fs-spacing-3);
-  margin-top: var(--fs-spacing-4);
+  gap: var(--lt-spacing-2) var(--lt-spacing-3);
+  margin-top: var(--lt-spacing-4);
 }
 
 /* Komponentene i en oppskrift: bildet fra galleriet, «har 2 av 3» og en
@@ -774,24 +781,24 @@ body:has(#panel:not([hidden])) .aimed {
 .comp {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
   align-items: center;
-  padding-block: var(--fs-spacing-2);
+  padding-block: var(--lt-spacing-2);
 }
-.comp + .comp { border-top: 1px solid var(--fs-color-neutral-border-subtle); }
-.comp-ico { width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--fs-spacing-1); border: 1px solid var(--fs-color-neutral-border-subtle); background: var(--fs-color-neutral-surface); }
-.comp-main { display: grid; gap: var(--fs-spacing-1); min-width: 0; }
-.comp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--fs-spacing-1) var(--fs-spacing-2); }
-.comp-title { font-weight: var(--fs-font-weight-semibold, 600); color: var(--fs-color-neutral-text-strong); }
-.comp-count { margin-inline-start: auto; font-size: var(--fs-font-size-s); font-variant-numeric: tabular-nums; }
-.comp.have .comp-count { color: var(--fs-color-success-text); }
-.comp.lack .comp-count { color: var(--fs-color-danger-text); }
-.comp-where { margin: 0; font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.comp-name { display: inline-flex; align-items: center; gap: var(--fs-spacing-2); }
+.comp + .comp { border-top: 1px solid var(--lt-color-neutral-border-subtle); }
+.comp-ico { width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--lt-spacing-1); border: 1px solid var(--lt-color-neutral-border-subtle); background: var(--lt-color-neutral-surface); }
+.comp-main { display: grid; gap: var(--lt-spacing-1); min-width: 0; }
+.comp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--lt-spacing-1) var(--lt-spacing-2); }
+.comp-title { font-weight: var(--lt-font-weight-semibold, 600); color: var(--lt-color-neutral-text-strong); }
+.comp-count { margin-inline-start: auto; font-size: var(--lt-font-size-s); font-variant-numeric: tabular-nums; }
+.comp.have .comp-count { color: var(--lt-color-success-text); }
+.comp.lack .comp-count { color: var(--lt-color-danger-text); }
+.comp-where { margin: 0; font-size: var(--lt-font-size-xs); color: var(--lt-color-neutral-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comp-name { display: inline-flex; align-items: center; gap: var(--lt-spacing-2); }
 .comp-name .comp-ico { width: 1.75rem; height: 1.75rem; }
 
 /* Smie-animasjonen (`forgeAnimation`, plan 13c): komponentene flyr inn mot
-   midten og lyser i Fristils fyllfarger (`--glow`), smelter i gløden,
+   midten og lyser i LO-TEKs fyllfarger (`--glow`), smelter i gløden,
    hammeren slår, og ikonet for det nye kommer fram med en kort blink. */
 .forge-host { position: relative; }
 .comp.lit {
@@ -806,18 +813,18 @@ body:has(#panel:not([hidden])) .aimed {
   z-index: 5;
   overflow: hidden;
   cursor: pointer;
-  background: color-mix(in srgb, var(--fs-color-neutral-canvas) 55%, transparent);
+  background: color-mix(in srgb, var(--lt-color-neutral-canvas) 55%, transparent);
   animation: forge-dim 0.35s ease-out both;
 }
-.forge-stage.calm { animation: none; background: color-mix(in srgb, var(--fs-color-neutral-canvas) 85%, transparent); }
+.forge-stage.calm { animation: none; background: color-mix(in srgb, var(--lt-color-neutral-canvas) 85%, transparent); }
 @keyframes forge-dim { from { background: transparent; } }
 .forge-fly {
   position: absolute;
   object-fit: cover;
-  border-radius: var(--fs-spacing-1);
+  border-radius: var(--lt-spacing-1);
   border: 2px solid var(--glow);
   box-shadow: 0 0 0 2px var(--glow), 0 0 22px 6px var(--glow);
-  background: var(--fs-color-neutral-surface);
+  background: var(--lt-color-neutral-surface);
   pointer-events: none;
 }
 .forge-core,
@@ -833,7 +840,7 @@ body:has(#panel:not([hidden])) .aimed {
   height: 9rem;
   border-radius: 50%;
   opacity: 0;
-  background: radial-gradient(circle, #fff8e0 0%, var(--fs-color-warning-fill) 28%, color-mix(in srgb, var(--fs-color-danger-fill) 70%, transparent) 52%, transparent 72%);
+  background: radial-gradient(circle, #fff8e0 0%, var(--lt-color-warning-fill) 28%, color-mix(in srgb, var(--lt-color-danger-fill) 70%, transparent) 52%, transparent 72%);
 }
 .forge-sparks {
   width: 6px;
@@ -841,41 +848,41 @@ body:has(#panel:not([hidden])) .aimed {
   border-radius: 50%;
   opacity: 0;
   background: #fff0b8;
-  box-shadow: 30px -38px 0 var(--fs-color-warning-fill), -34px -26px 0 #ffe39a, 44px 12px 0 var(--fs-color-danger-fill), -40px 24px 0 var(--fs-color-warning-fill), 6px -50px 0 #fff0b8, -12px 44px 0 var(--fs-color-accent-fill), 52px -8px 0 var(--fs-color-brand2-fill), -54px -4px 0 var(--fs-color-success-fill);
+  box-shadow: 30px -38px 0 var(--lt-color-warning-fill), -34px -26px 0 #ffe39a, 44px 12px 0 var(--lt-color-danger-fill), -40px 24px 0 var(--lt-color-warning-fill), 6px -50px 0 #fff0b8, -12px 44px 0 var(--lt-color-accent-fill), 52px -8px 0 var(--lt-color-brand2-fill), -54px -4px 0 var(--lt-color-success-fill);
 }
 .forge-item {
   translate: -50% -50%;
   display: grid;
   justify-items: center;
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
   opacity: 0;
   text-align: center;
 }
 .forge-item .gear-ico.big { box-shadow: 0 0 0 2px var(--r-fill), 0 0 28px var(--r-fill); }
 .forge-text {
   margin: 0;
-  font-size: var(--fs-font-size-l);
-  font-weight: var(--fs-font-weight-semibold, 600);
-  color: var(--fs-color-neutral-text-strong);
+  font-size: var(--lt-font-size-l);
+  font-weight: var(--lt-font-weight-semibold, 600);
+  color: var(--lt-color-neutral-text-strong);
   white-space: nowrap;
 }
 .forge-blink {
   position: absolute;
   inset: 0;
   opacity: 0;
-  background: radial-gradient(circle at var(--forge-x, 50%) var(--forge-y, 42%), #fffbea, color-mix(in srgb, var(--fs-color-warning-fill) 40%, transparent) 60%);
+  background: radial-gradient(circle at var(--forge-x, 50%) var(--forge-y, 42%), #fffbea, color-mix(in srgb, var(--lt-color-warning-fill) 40%, transparent) 60%);
   pointer-events: none;
 }
 .forge-skip {
   position: absolute;
-  top: var(--fs-spacing-3);
-  right: var(--fs-spacing-4);
+  top: var(--lt-spacing-3);
+  right: var(--lt-spacing-4);
   margin: 0;
-  padding: var(--fs-spacing-1) var(--fs-spacing-3);
-  border-radius: var(--fs-spacing-4);
-  background: var(--fs-color-neutral-surface);
-  font-size: var(--fs-font-size-xs);
-  color: var(--fs-color-neutral-text);
+  padding: var(--lt-spacing-1) var(--lt-spacing-3);
+  border-radius: var(--lt-spacing-4);
+  background: var(--lt-color-neutral-surface);
+  font-size: var(--lt-font-size-xs);
+  color: var(--lt-color-neutral-text);
 }
 .forge-stage.calm .forge-core, .forge-stage.calm .forge-sparks, .forge-stage.calm .forge-blink { display: none; }
 
@@ -885,98 +892,98 @@ body:has(#panel:not([hidden])) .aimed {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--fs-spacing-2) var(--fs-spacing-5);
+  gap: var(--lt-spacing-2) var(--lt-spacing-5);
   flex: 1;
   justify-content: flex-end;
 }
-.inv-stats .fs-label { display: grid; grid-template-columns: auto auto; gap: 2px var(--fs-spacing-3); align-items: baseline; min-width: 9rem; font-size: var(--fs-font-size-s); }
-.inv-stats .fs-progress { grid-column: 1 / -1; width: 100%; }
-.inventory-dialog fs-tabs { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.inventory-dialog .fs-tabs__list { flex: none; }
-.inventory-dialog .fs-tabs__panel { flex: 1; min-height: 0; --fs-tabs-panel-space: 0; }
-.inventory-dialog .fs-tabs__panel:not([hidden]) { display: flex; flex-direction: column; }
-.inventory-dialog .fs-tabs__panel > * { flex: 1; min-height: 0; }
-.menu-scroll { overflow: auto; padding: var(--fs-spacing-4) var(--menu-pad); }
+.inv-stats .lt-label { display: grid; grid-template-columns: auto auto; gap: 2px var(--lt-spacing-3); align-items: baseline; min-width: 9rem; font-size: var(--lt-font-size-s); }
+.inv-stats .lt-progress { grid-column: 1 / -1; width: 100%; }
+.inventory-dialog lt-tabs { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.inventory-dialog .lt-tabs__list { flex: none; }
+.inventory-dialog .lt-tabs__panel { flex: 1; min-height: 0; --lt-tabs-panel-space: 0; }
+.inventory-dialog .lt-tabs__panel:not([hidden]) { display: flex; flex-direction: column; }
+.inventory-dialog .lt-tabs__panel > * { flex: 1; min-height: 0; }
+.menu-scroll { overflow: auto; padding: var(--lt-spacing-4) var(--menu-pad); }
 .inv-layout { grid-template-columns: 13.75rem minmax(15rem, 18.75rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .inv-slots {
   display: grid;
   align-content: start;
-  gap: var(--fs-spacing-2);
+  gap: var(--lt-spacing-2);
   overflow-y: auto;
   min-height: 0;
-  padding: var(--fs-spacing-3);
-  border-inline-end: 1px solid var(--fs-color-neutral-border-subtle);
+  padding: var(--lt-spacing-3);
+  border-inline-end: 1px solid var(--lt-color-neutral-border-subtle);
 }
 .slot-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
   align-items: center;
-  padding: var(--fs-spacing-2);
+  padding: var(--lt-spacing-2);
   font: inherit;
   text-align: start;
-  color: var(--fs-color-neutral-text-strong);
+  color: var(--lt-color-neutral-text-strong);
   background: transparent;
-  border: 1px solid var(--fs-color-neutral-border-subtle);
-  border-radius: var(--fs-spacing-2);
+  border: 1px solid var(--lt-color-neutral-border-subtle);
+  border-radius: var(--lt-spacing-2);
   cursor: pointer;
   transition: background-color 0.12s, border-color 0.12s;
 }
-.slot-card:hover { background: var(--fs-color-neutral-surface); }
-.slot-card:focus-visible { outline: var(--fs-focus-ring); outline-offset: 2px; }
-.slot-card[aria-pressed="true"] { background: var(--fs-color-accent-surface); border-color: var(--fs-color-accent-border); box-shadow: inset 3px 0 0 var(--fs-color-accent-fill); }
+.slot-card:hover { background: var(--lt-color-neutral-surface); }
+.slot-card:focus-visible { outline: var(--lt-focus-ring); outline-offset: 2px; }
+.slot-card[aria-pressed="true"] { background: var(--lt-color-accent-surface); border-color: var(--lt-color-accent-border); box-shadow: inset 3px 0 0 var(--lt-color-accent-fill); }
 .slot-card[data-empty] { border-style: dashed; }
-.slot-card[data-empty] .slot-name { font-weight: normal; font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text); }
+.slot-card[data-empty] .slot-name { font-weight: normal; font-size: var(--lt-font-size-xs); color: var(--lt-color-neutral-text); }
 .slot-text { display: grid; gap: 2px; min-width: 0; }
-.slot-text .eyebrow { margin: 0; font-size: var(--fs-font-size-xs); color: var(--fs-color-neutral-text); }
-.slot-name { font-weight: var(--fs-font-weight-semibold, 600); font-size: var(--fs-font-size-s); line-height: 1.25; }
-.inv-layout > .pick-side { border-inline-end: 1px solid var(--fs-color-neutral-border-subtle); }
+.slot-text .eyebrow { margin: 0; font-size: var(--lt-font-size-xs); color: var(--lt-color-neutral-text); }
+.slot-name { font-weight: var(--lt-font-weight-semibold, 600); font-size: var(--lt-font-size-s); line-height: 1.25; }
+.inv-layout > .pick-side { border-inline-end: 1px solid var(--lt-color-neutral-border-subtle); }
 
 /* Lave vinduer: forklaringen under tittelen tar plass fra lista. */
 @media (max-height: 800px) {
-  .overlay-inner.menu .fs-dialog__subtitle { display: none; }
+  .overlay-inner.menu .lt-dialog__subtitle { display: none; }
   .gear-ico.big { width: 5.5rem; height: 5.5rem; }
 }
 /* Middels brede vinduer: plassene på rad over lista og detaljene. */
 @media (max-width: 1000px) {
   .inv-layout { grid-template-columns: minmax(13.75rem, 17.5rem) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .inv-slots { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--fs-color-neutral-border-subtle); }
+  .inv-slots { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--lt-color-neutral-border-subtle); }
   .slot-card .gear-ico.small { width: 2rem; height: 2rem; }
 }
 /* Smal skjerm: lista alene, og detaljene i stedet for lista med «Tilbake». */
 @media (max-width: 720px) {
-  .overlay-inner, .menu-dialog { --menu-pad: var(--fs-spacing-4, 16px); }
+  .overlay-inner, .menu-dialog { --menu-pad: var(--lt-spacing-4, 16px); }
   .picker, .inv-layout { grid-template-columns: minmax(0, 1fr); }
   .picker:not(.show-detail) > .detail { display: none; }
   .picker.show-detail > .pick-side { display: none; }
-  .pick-side { border-inline-end: 0; padding-inline: var(--fs-spacing-2); }
+  .pick-side { border-inline-end: 0; padding-inline: var(--lt-spacing-2); }
   .detail-back { display: inline-flex; }
-  .detail-scroll { padding-top: var(--fs-spacing-3); }
+  .detail-scroll { padding-top: var(--lt-spacing-3); }
   .gear-ico.big { width: 5rem; height: 5rem; }
   .compare .low-good { display: none; }
-  .compare td { padding-inline-start: var(--fs-spacing-3); }
-  .menu-tabs, .menu-dialog .fs-tabs__list { --fs-tabs-gap: 0; padding-inline: var(--fs-spacing-1); }
-  .menu-tabs button, .menu-dialog .fs-tabs__list button { --fs-tabs-padding: 0 7px; gap: 5px; }
+  .compare td { padding-inline-start: var(--lt-spacing-3); }
+  .menu-tabs, .menu-dialog .lt-tabs__list { --lt-tabs-gap: 0; padding-inline: var(--lt-spacing-1); }
+  .menu-tabs a, .menu-dialog .lt-tabs__list a { --lt-tabs-padding: 0 7px; gap: 5px; }
   .tab-count { min-width: 1.3em; padding: 0 5px; }
   /* Plassene som en rad med ikoner: navnet står i lista og detaljene. */
-  .inv-slots { gap: var(--fs-spacing-1); padding: var(--fs-spacing-2); }
-  .slot-card { grid-template-columns: 1fr; justify-items: center; gap: 2px; padding: var(--fs-spacing-1); }
+  .inv-slots { gap: var(--lt-spacing-1); padding: var(--lt-spacing-2); }
+  .slot-card { grid-template-columns: 1fr; justify-items: center; gap: 2px; padding: var(--lt-spacing-1); }
   .slot-card .gear-ico.small { width: 2rem; height: 2rem; }
   .slot-card .slot-name { display: none; }
   .slot-card .slot-text { justify-items: center; }
   .slot-card .eyebrow { font-size: 0.625rem; }
-  .inv-stats { flex-basis: 100%; justify-content: flex-start; gap: var(--fs-spacing-1) var(--fs-spacing-2); }
-  .inv-stats .fs-label { display: flex; gap: var(--fs-spacing-1); }
-  .inv-stats .fs-progress { display: none; }
-  .inv-stats .fs-label { min-width: 0; }
-  .menu-head { gap: var(--fs-spacing-1) var(--fs-spacing-3); }
+  .inv-stats { flex-basis: 100%; justify-content: flex-start; gap: var(--lt-spacing-1) var(--lt-spacing-2); }
+  .inv-stats .lt-label { display: flex; gap: var(--lt-spacing-1); }
+  .inv-stats .lt-progress { display: none; }
+  .inv-stats .lt-label { min-width: 0; }
+  .menu-head { gap: var(--lt-spacing-1) var(--lt-spacing-3); }
   .overlay-inner.menu, .menu-dialog { width: calc(100vw - 16px); max-width: none; }
-  .menu-head .fs-dialog__subtitle { display: none; }
-  .menu-actions .fs-help-text, .menu-actions .craft-name { display: none; }
-  .detail-head { gap: var(--fs-spacing-3); flex-wrap: wrap; }
-  .ware { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--fs-spacing-1); }
+  .menu-head .lt-dialog__subtitle { display: none; }
+  .menu-actions .lt-help-text, .menu-actions .craft-name { display: none; }
+  .detail-head { gap: var(--lt-spacing-3); flex-wrap: wrap; }
+  .ware { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--lt-spacing-1); }
   .ware-price { grid-row: 2; text-align: start; }
-  .ware .fs-button { grid-column: 2; grid-row: 1 / span 2; }
+  .ware .lt-button { grid-column: 2; grid-row: 1 / span 2; }
 }
 
 /* Snakkebobler: hvit boble med spiss, over hodet på den som snakker. */
@@ -1023,9 +1030,9 @@ body:has(#panel:not([hidden])) .aimed {
 
 .perf {
   position: absolute;
-  right: var(--fs-spacing-4);
-  bottom: var(--fs-spacing-3);
-  font-size: var(--fs-font-size-xs);
+  right: var(--lt-spacing-4);
+  bottom: var(--lt-spacing-3);
+  font-size: var(--lt-font-size-xs);
   font-variant-numeric: tabular-nums;
   color: #fff;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
@@ -1071,8 +1078,8 @@ body:has(#panel:not([hidden])) .aimed {
 .gate-card {
   max-width: 34rem;
   display: grid;
-  gap: var(--fs-spacing-3);
-  padding: var(--fs-spacing-8);
+  gap: var(--lt-spacing-3);
+  padding: var(--lt-spacing-8);
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
 }
 
@@ -1080,14 +1087,14 @@ body:has(#panel:not([hidden])) .aimed {
   margin: 0;
 }
 
-.gate-card .fs-button {
+.gate-card .lt-button {
   justify-self: start;
 }
 
 .gate-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--fs-spacing-3);
+  gap: var(--lt-spacing-3);
 }
 
 .gate-actions [hidden] {
@@ -1096,22 +1103,22 @@ body:has(#panel:not([hidden])) .aimed {
 
 .eyebrow {
   margin: 0;
-  font-size: var(--fs-font-size-s);
-  color: var(--fs-color-neutral-text-subtle);
+  font-size: var(--lt-font-size-s);
+  color: var(--lt-color-neutral-text-subtle);
 }
 
 .status {
   display: flex;
   align-items: center;
-  gap: var(--fs-spacing-2);
-  color: var(--fs-color-neutral-text-subtle);
+  gap: var(--lt-spacing-2);
+  color: var(--lt-color-neutral-text-subtle);
 }
 
 .status.error {
-  color: var(--fs-color-danger-text);
+  color: var(--lt-color-danger-text);
 }
 
-.gate-card .fs-progress {
+.gate-card .lt-progress {
   inline-size: 100%;
 }
 
@@ -1122,7 +1129,7 @@ body:has(#panel:not([hidden])) .aimed {
   inset: 0 0 0 auto;
   width: min(30rem, 100vw);
   overflow-y: auto;
-  background: var(--fs-color-neutral-canvas);
+  background: var(--lt-color-neutral-canvas);
   box-shadow: -20px 0 60px rgb(0 0 0 / 0.3);
   animation: slide 220ms ease-out;
 }
@@ -1133,8 +1140,8 @@ body:has(#panel:not([hidden])) .aimed {
 
 .panel-inner {
   display: grid;
-  gap: var(--fs-spacing-3);
-  padding: var(--fs-spacing-8) var(--fs-spacing-6);
+  gap: var(--lt-spacing-3);
+  padding: var(--lt-spacing-8) var(--lt-spacing-6);
 }
 
 .panel-inner > * {
@@ -1142,11 +1149,11 @@ body:has(#panel:not([hidden])) .aimed {
 }
 
 .panel-inner h3 {
-  margin-top: var(--fs-spacing-4);
+  margin-top: var(--lt-spacing-4);
 }
 
 /* Eksempelet fra dokumentasjonen, levende. Flaten og stilene ligger i
-   demoens shadow root (main.js), slik Fristil-docs viser den. */
+   demoens shadow root (main.js), slik LO-TEK-docs viser den. */
 .demo {
   display: block;
 }
@@ -1157,44 +1164,44 @@ body:has(#panel:not([hidden])) .aimed {
 
 .variants {
   display: grid;
-  gap: var(--fs-spacing-2);
+  gap: var(--lt-spacing-2);
 }
 
 .variant {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--fs-spacing-3);
-  padding: var(--fs-spacing-3) var(--fs-spacing-4);
-  border: 1px solid var(--fs-color-neutral-border-subtle);
-  border-radius: var(--fs-spacing-2);
-  background: var(--fs-color-neutral-surface);
+  gap: var(--lt-spacing-3);
+  padding: var(--lt-spacing-3) var(--lt-spacing-4);
+  border: 1px solid var(--lt-color-neutral-border-subtle);
+  border-radius: var(--lt-spacing-2);
+  background: var(--lt-color-neutral-surface);
 }
 
 .variant[data-active="true"] {
-  border-color: var(--fs-color-accent-border);
-  box-shadow: inset 3px 0 0 var(--fs-color-accent-fill);
+  border-color: var(--lt-color-accent-border);
+  box-shadow: inset 3px 0 0 var(--lt-color-accent-fill);
 }
 
 .variant code {
-  color: var(--fs-color-neutral-text-subtle);
+  color: var(--lt-color-neutral-text-subtle);
 }
 
 .code {
   margin: 0;
-  padding: var(--fs-spacing-4);
+  padding: var(--lt-spacing-4);
   overflow-x: auto;
-  border-radius: var(--fs-spacing-2);
-  background: var(--fs-color-neutral-surface);
-  border: 1px solid var(--fs-color-neutral-border-subtle);
-  font-size: var(--fs-font-size-s);
+  border-radius: var(--lt-spacing-2);
+  background: var(--lt-color-neutral-surface);
+  border: 1px solid var(--lt-color-neutral-border-subtle);
+  font-size: var(--lt-font-size-s);
   line-height: 1.6;
 }
 
 .panel-actions {
   display: flex;
-  gap: var(--fs-spacing-2);
-  margin-top: var(--fs-spacing-4);
+  gap: var(--lt-spacing-2);
+  margin-top: var(--lt-spacing-4);
 }
 
 /* Ned i krypten og opp igjen: et kort sort teppe over bildet. */
@@ -1294,27 +1301,27 @@ body:has(#panel:not([hidden])) .aimed {
   100% { opacity: 0; }
 }
 
-/* Kistedialogen: Fristils dialog, litt bredere. */
+/* Kistedialogen: LO-TEKs dialog, litt bredere. */
 .loot {
   width: min(32.5rem, calc(100vw - 32px));
 }
 
 /* Innstillingene: radioknappene på rad med forklaringen bak. */
 .settings-dialog { width: min(35rem, 92vw); position: relative; }
-.settings-dialog .dialog-x { position: absolute; top: var(--fs-spacing-3); right: var(--fs-spacing-3); font-size: 1.4rem; line-height: 1; padding: 4px 10px; }
-.settings-dialog .fs-fieldset { margin-bottom: var(--fs-spacing-4); }
-.settings-dialog .fs-radio-row { display: flex; gap: var(--fs-spacing-2); align-items: baseline; padding: 2px 0; }
-.settings-dialog .fs-help-text { display: inline; }
-.settings-dialog .range-row { display: flex; justify-content: space-between; margin-top: var(--fs-spacing-2); }
-.settings-dialog .range-row output { font-variant-numeric: tabular-nums; color: var(--fs-color-neutral-text-subtle, inherit); }
-.settings-dialog .range { width: 100%; accent-color: var(--fs-color-accent-border, #2563eb); }
-.settings-dialog fieldset .fs-help-text { display: block; margin-top: var(--fs-spacing-2); }
+.settings-dialog .dialog-x { position: absolute; top: var(--lt-spacing-3); right: var(--lt-spacing-3); font-size: 1.4rem; line-height: 1; padding: 4px 10px; }
+.settings-dialog .lt-fieldset { margin-bottom: var(--lt-spacing-4); }
+.settings-dialog .lt-radio-row { display: flex; gap: var(--lt-spacing-2); align-items: baseline; padding: 2px 0; }
+.settings-dialog .lt-help-text { display: inline; }
+.settings-dialog .range-row { display: flex; justify-content: space-between; margin-top: var(--lt-spacing-2); }
+.settings-dialog .range-row output { font-variant-numeric: tabular-nums; color: var(--lt-color-neutral-text-subtle, inherit); }
+.settings-dialog .range { width: 100%; accent-color: var(--lt-color-accent-border, #2563eb); }
+.settings-dialog fieldset .lt-help-text { display: block; margin-top: var(--lt-spacing-2); }
 /* De avanserte grafikkinnstillingene: én bryter per rad, rullbar på små skjermer. */
-.graphics-dialog .fs-dialog__body { max-height: min(70vh, 40rem); overflow-y: auto; }
-.graphics-dialog .gfx-presets { display: flex; flex-wrap: wrap; gap: var(--fs-spacing-2) var(--fs-spacing-4); }
+.graphics-dialog .lt-dialog__body { max-height: min(70vh, 40rem); overflow-y: auto; }
+.graphics-dialog .gfx-presets { display: flex; flex-wrap: wrap; gap: var(--lt-spacing-2) var(--lt-spacing-4); }
 .graphics-dialog .gfx-row { padding: 4px 0; }
-.graphics-dialog .gfx-row .fs-help-text { display: block; }
-.graphics-dialog .gfx-row .fs-select { max-width: 12rem; }
+.graphics-dialog .gfx-row .lt-help-text { display: block; }
+.graphics-dialog .gfx-row .lt-select { max-width: 12rem; }
 
 /* Redigeringen (`?edit`, web/editor.js): panelet til venstre, og HUD-en
    for spillet er borte mens du redigerer. */
@@ -1334,13 +1341,13 @@ body.editing #marks {
   width: min(24rem, 100vw);
   overflow-y: auto;
   box-sizing: border-box;
-  padding: var(--fs-spacing-4, 1rem);
-  background: var(--fs-color-neutral-canvas, #fff);
-  color: var(--fs-color-neutral-text, #222);
-  border-right: 1px solid var(--fs-color-neutral-border, #ccc);
+  padding: var(--lt-spacing-4, 1rem);
+  background: var(--lt-color-neutral-canvas, #fff);
+  color: var(--lt-color-neutral-text, #222);
+  border-right: 1px solid var(--lt-color-neutral-border, #ccc);
   display: flex;
   flex-direction: column;
-  gap: var(--fs-spacing-3, 0.75rem);
+  gap: var(--lt-spacing-3, 0.75rem);
 }
 
 .editor-head,
@@ -1348,7 +1355,7 @@ body.editing #marks {
 .editor-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--fs-spacing-2, 0.5rem);
+  gap: var(--lt-spacing-2, 0.5rem);
   align-items: center;
 }
 
@@ -1362,7 +1369,7 @@ body.editing #marks {
 }
 
 .editor-section > * + * {
-  margin-top: var(--fs-spacing-2, 0.5rem);
+  margin-top: var(--lt-spacing-2, 0.5rem);
 }
 
 .editor-breaches {
@@ -1370,13 +1377,13 @@ body.editing #marks {
   padding-left: 1.1rem;
   max-height: 10rem;
   overflow-y: auto;
-  color: var(--fs-color-danger-text, #a40000);
+  color: var(--lt-color-danger-text, #a40000);
 }
 
 .editor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
-  gap: var(--fs-spacing-2, 0.5rem);
+  gap: var(--lt-spacing-2, 0.5rem);
 }
 
 .editor-item {
@@ -1385,9 +1392,9 @@ body.editing #marks {
   gap: 0.25rem;
   align-items: stretch;
   padding: 0.25rem;
-  border: 1px solid var(--fs-color-neutral-border, #ccc);
-  border-radius: var(--fs-radius-2, 6px);
-  background: var(--fs-color-neutral-surface, #f6f6f6);
+  border: 1px solid var(--lt-color-neutral-border, #ccc);
+  border-radius: var(--lt-radius-2, 6px);
+  background: var(--lt-color-neutral-surface, #f6f6f6);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -1395,15 +1402,15 @@ body.editing #marks {
 }
 
 .editor-item.is-active {
-  outline: 2px solid var(--fs-color-accent-border, #c07000);
+  outline: 2px solid var(--lt-color-accent-border, #c07000);
 }
 
 .editor-item img {
   width: 100%;
   aspect-ratio: 320 / 224;
   object-fit: cover;
-  border-radius: var(--fs-radius-1, 4px);
-  background: var(--fs-color-neutral-border, #ddd);
+  border-radius: var(--lt-radius-1, 4px);
+  background: var(--lt-color-neutral-border, #ddd);
 }
 
 .editor-item-name {
@@ -1432,7 +1439,7 @@ body.editing #marks {
   width: 100%;
   padding: 0.2rem 0.4rem;
   border: 1px solid transparent;
-  border-radius: var(--fs-radius-1, 4px);
+  border-radius: var(--lt-radius-1, 4px);
   background: none;
   color: inherit;
   font: inherit;
@@ -1443,12 +1450,12 @@ body.editing #marks {
 
 .editor-under-item:hover,
 .editor-step:hover {
-  background: var(--fs-color-neutral-surface, #f0f0f0);
+  background: var(--lt-color-neutral-surface, #f0f0f0);
 }
 
 .editor-under-item.is-active,
 .editor-step.is-active {
-  border-color: var(--fs-color-accent-border, #c07000);
+  border-color: var(--lt-color-accent-border, #c07000);
   font-weight: 600;
 }
 
@@ -1458,17 +1465,17 @@ body.editing #marks {
 
 .editor-props {
   display: grid;
-  gap: var(--fs-spacing-2, 0.5rem);
+  gap: var(--lt-spacing-2, 0.5rem);
 }
 
 .editor-prop {
   display: grid;
   grid-template-columns: 7rem 1fr;
-  gap: var(--fs-spacing-2, 0.5rem);
+  gap: var(--lt-spacing-2, 0.5rem);
   align-items: center;
 }
 
-.editor-prop .fs-input {
+.editor-prop .lt-input {
   min-width: 0;
 }
 
@@ -1505,13 +1512,13 @@ body.editing #marks {
   margin-top: 0.4rem;
 }
 
-.editor-grouping .fs-input {
+.editor-grouping .lt-input {
   flex: 1 1 8rem;
   min-width: 0;
 }
 
 #ed-placing[data-state="bad"] {
-  color: var(--fs-color-danger-text, #a40000);
+  color: var(--lt-color-danger-text, #a40000);
 }
 
 /* Rammen når Shift+dra velger. */
@@ -1531,7 +1538,7 @@ body.editor-dragging canvas {
 /* I spillet etter P: merket om at P tar deg tilbake i redigeringen. */
 .editor-back {
   position: fixed;
-  top: var(--fs-spacing-3, 0.75rem);
+  top: var(--lt-spacing-3, 0.75rem);
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
@@ -1736,25 +1743,25 @@ body.filming #bars {
   max-height: 80vh;
   overflow-y: auto;
 }
-.journal-lore h3 { margin: var(--fs-spacing-3) 0 var(--fs-spacing-1); }
+.journal-lore h3 { margin: var(--lt-spacing-3) 0 var(--lt-spacing-1); }
 .journal-lore p { margin: 0; white-space: pre-line; }
 
 /* Lappene og bøkene i krypten: et kort midt på skjermen, og spillet står
    stille mens du leser (openLore i main.js). */
 .lore {
-  --fs-dialog-width: min(38rem, calc(100vw - 32px));
+  --lt-dialog-width: min(38rem, calc(100vw - 32px));
   cursor: pointer;
 }
-.lore .fs-dialog__title {
+.lore .lt-dialog__title {
   font-family: "Uncial Antiqua", serif;
   font-weight: normal;
 }
 .lore .lore-text {
-  font-size: var(--fs-font-size-l);
+  font-size: var(--lt-font-size-l);
   line-height: 1.6;
   white-space: pre-line;
 }
-.lore .fs-dialog__footer {
+.lore .lt-dialog__footer {
   align-items: center;
   justify-content: space-between;
 }

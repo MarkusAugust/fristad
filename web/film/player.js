@@ -16,7 +16,7 @@ export function createFilm({ src = "film/intro.mp4" } = {}) {
     <video class="film-player" playsinline preload="auto"></video>
     <p class="film-rotate">Snu telefonen for større bilde</p>
     <div class="film-loading">Laster filmen …</div>
-    <button type="button" class="fs-button film-skip">Hopp over</button>
+    <button type="button" class="lt-button film-skip">Hopp over</button>
     <div class="film-progress"><div class="film-progress-fill"></div></div>`;
   document.body.appendChild(root);
   document.body.classList.add("filming");

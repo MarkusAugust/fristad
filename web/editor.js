@@ -132,72 +132,72 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   panel.hidden = true;
   panel.innerHTML = `
     <div class="editor-head">
-      <h2 class="fs-heading" data-size="s">Redigering</h2>
-      <span id="ed-state" class="fs-badge">Grønt</span>
+      <h2 class="lt-heading" data-size="s">Redigering</h2>
+      <span id="ed-state" class="lt-badge">Grønt</span>
     </div>
     <div class="editor-actions">
-      <button id="ed-undo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
-      <button id="ed-redo" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+Z">Gjør om</button>
-      <button id="ed-play" class="fs-button" data-variant="primary" type="button" title="P">Spill (P)</button>
-      <button id="ed-save" class="fs-button" data-variant="secondary" type="button" disabled title="Lagre på grenen redigering (Ctrl+S)">Lagre</button>
-      <label class="editor-snap fs-label" title="Fest til rutenettet (0,5 m) og vinkelen (15°). Ctrl holdt gjør det samme mens du drar.">
+      <button id="ed-undo" class="lt-button" data-variant="secondary" type="button" title="Ctrl+Z">Angre</button>
+      <button id="ed-redo" class="lt-button" data-variant="secondary" type="button" title="Ctrl+Shift+Z">Gjør om</button>
+      <button id="ed-play" class="lt-button" data-variant="primary" type="button" title="P">Spill (P)</button>
+      <button id="ed-save" class="lt-button" data-variant="secondary" type="button" disabled title="Lagre på grenen redigering (Ctrl+S)">Lagre</button>
+      <label class="editor-snap lt-label" title="Fest til rutenettet (0,5 m) og vinkelen (15°). Ctrl holdt gjør det samme mens du drar.">
         <input id="ed-snap" type="checkbox"> Fest
       </label>
     </div>
-    <p id="ed-saved" class="fs-help-text" role="status"></p>
+    <p id="ed-saved" class="lt-help-text" role="status"></p>
     <section class="editor-section">
-      <h3 class="fs-heading" data-size="xs">Valgt</h3>
-      <p id="ed-selected" class="fs-paragraph" data-size="small">Ingenting. Klikk på noe i bildet.</p>
+      <h3 class="lt-heading" data-size="xs">Valgt</h3>
+      <p id="ed-selected" class="lt-paragraph" data-size="small">Ingenting. Klikk på noe i bildet.</p>
       <div id="ed-under-box" hidden>
-        <p class="fs-help-text">Under pekeren, nærmest først. Klikk for å velge (<kbd>Shift</kbd> legger til), <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> blar, <kbd>Alt</kbd>+klikk i bildet tar det bakerste.</p>
+        <p class="lt-help-text">Under pekeren, nærmest først. Klikk for å velge (<kbd>Shift</kbd> legger til), <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> blar, <kbd>Alt</kbd>+klikk i bildet tar det bakerste.</p>
         <ol id="ed-under" class="editor-under"></ol>
       </div>
       <div class="editor-grouping">
-        <input id="ed-grp-name" class="fs-input" type="text" placeholder="Navn på gruppen" aria-label="Navn på gruppen">
-        <button id="ed-grp-make" class="fs-button" data-variant="secondary" type="button" title="Ctrl+G">Lag gruppe</button>
-        <button id="ed-grp-free" class="fs-button" data-variant="secondary" type="button" title="Ctrl+Shift+G" disabled>Løs opp</button>
+        <input id="ed-grp-name" class="lt-input" type="text" placeholder="Navn på gruppen" aria-label="Navn på gruppen">
+        <button id="ed-grp-make" class="lt-button" data-variant="secondary" type="button" title="Ctrl+G">Lag gruppe</button>
+        <button id="ed-grp-free" class="lt-button" data-variant="secondary" type="button" title="Ctrl+Shift+G" disabled>Løs opp</button>
       </div>
-      <p id="ed-grp" class="fs-help-text" hidden></p>
-      <p id="ed-route" class="fs-help-text" hidden></p>
+      <p id="ed-grp" class="lt-help-text" hidden></p>
+      <p id="ed-route" class="lt-help-text" hidden></p>
       <div id="ed-wall" hidden>
-        <label class="fs-label" for="ed-wall-h">Høyde på veggen (m)</label>
-        <input id="ed-wall-h" class="fs-input" type="number" min="0.5" max="20" step="0.5" value="3">
+        <label class="lt-label" for="ed-wall-h">Høyde på veggen (m)</label>
+        <input id="ed-wall-h" class="lt-input" type="number" min="0.5" max="20" step="0.5" value="3">
       </div>
     </section>
     <section class="editor-section" id="ed-props-box" hidden>
-      <h3 class="fs-heading" data-size="xs">Egenskaper</h3>
+      <h3 class="lt-heading" data-size="xs">Egenskaper</h3>
       <form id="ed-props" class="editor-props" autocomplete="off"></form>
     </section>
     <section class="editor-section">
-      <h3 class="fs-heading" data-size="xs">Reglene</h3>
+      <h3 class="lt-heading" data-size="xs">Reglene</h3>
       <ul id="ed-breaches" class="editor-breaches"></ul>
     </section>
     <section class="editor-section editor-catalog">
-      <h3 class="fs-heading" data-size="xs">Katalogen</h3>
+      <h3 class="lt-heading" data-size="xs">Katalogen</h3>
       <div class="editor-filters">
-        <input id="ed-search" class="fs-input" type="search" placeholder="Søk" aria-label="Søk i katalogen">
-        <select id="ed-verdict" class="fs-select" aria-label="Dom">
+        <input id="ed-search" class="lt-input" type="search" placeholder="Søk" aria-label="Søk i katalogen">
+        <select id="ed-verdict" class="lt-select" aria-label="Dom">
           <option value="">Alle</option>
           <option value="godkjent">Godkjent</option>
           <option value="underkjent">Underkjent</option>
           <option value="usikker">Usikker</option>
           <option value="none">Ikke vurdert</option>
         </select>
-        <select id="ed-group" class="fs-select" aria-label="Kategori"><option value="">Alle kategorier</option></select>
+        <select id="ed-group" class="lt-select" aria-label="Kategori"><option value="">Alle kategorier</option></select>
       </div>
-      <p id="ed-placing" class="fs-paragraph" data-size="small" hidden></p>
+      <p id="ed-placing" class="lt-paragraph" data-size="small" hidden></p>
       <div id="ed-grid" class="editor-grid"></div>
     </section>
     <section class="editor-section">
-      <h3 class="fs-heading" data-size="xs">Historikk</h3>
+      <h3 class="lt-heading" data-size="xs">Historikk</h3>
       <ol id="ed-history" class="editor-history"></ol>
     </section>
     <section class="editor-section">
-      <h3 class="fs-heading" data-size="xs">Linje</h3>
-      <p class="fs-paragraph" data-size="small"><kbd>L</kbd> begynner: klikk punkter på bakken, <kbd>Enter</kbd> gir en rad av modellen du har valgt i katalogen (gjerde), <kbd>V</kbd> en usynlig vegg, <kbd>Esc</kbd> avbryter.</p>
+      <h3 class="lt-heading" data-size="xs">Linje</h3>
+      <p class="lt-paragraph" data-size="small"><kbd>L</kbd> begynner: klikk punkter på bakken, <kbd>Enter</kbd> gir en rad av modellen du har valgt i katalogen (gjerde), <kbd>V</kbd> en usynlig vegg, <kbd>Esc</kbd> avbryter.</p>
     </section>
     <section class="editor-section editor-keys">
-      <p class="fs-paragraph" data-size="small">
+      <p class="lt-paragraph" data-size="small">
         <strong>Musa:</strong> dra en ting for å flytte den langs bakken (den settes ned igjen der du slipper), <kbd>Alt</kbd>+dra heiser opp og ned, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+dra dreier (flere valgt dreies samlet), <kbd>Shift</kbd>+klikk velger flere, <kbd>Shift</kbd>+dra velger alt innenfor rammen, <kbd>Alt</kbd>+klikk det bakerste.
         Dra en modell fra katalogen ut i bildet for å sette den ut (<kbd>R</kbd> dreier 90°, <kbd>Ctrl</kbd> fester). <kbd>Shift+1</kbd>–<kbd>9</kbd> husker kameraet, <kbd>1</kbd>–<kbd>9</kbd> går dit.
         <kbd>WASD</kbd> fly, <kbd>Mellomrom</kbd>/<kbd>C</kbd> opp og ned, <kbd>Shift</kbd> fort, høyre knapp ser rundt.
@@ -216,7 +216,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   document.body.append(box);
   // I spillet: et lite merke om at P tar deg tilbake i redigeringen.
   const back = document.createElement("p");
-  back.className = "editor-back fs-tag";
+  back.className = "editor-back lt-tag";
   back.hidden = true;
   back.innerHTML = "<kbd>P</kbd> tilbake til redigeringen";
   document.body.append(back);
@@ -244,7 +244,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
         (m) => `<button type="button" class="editor-item${placing === m.name ? " is-active" : ""}" data-model="${esc(m.name)}" title="${esc(m.why || m.name)}">
           <img src="catalog/${esc(m.name)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
           <span class="editor-item-name">${esc(m.name)}</span>
-          <span class="fs-badge" data-variant="${m.verdict === "godkjent" ? "success" : m.verdict === "underkjent" ? "danger" : "warning"}">${esc(VERDICTS[m.verdict] ?? "Ikke vurdert")}</span>
+          <span class="lt-badge" data-variant="${m.verdict === "godkjent" ? "success" : m.verdict === "underkjent" ? "danger" : "warning"}">${esc(VERDICTS[m.verdict] ?? "Ikke vurdert")}</span>
         </button>`,
       )
       .join("");
@@ -334,25 +334,25 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   // økt. Første gang limer du inn en nøkkel; den huskes bare i denne
   // nettleseren, og så lagrer Lagre og Ctrl+S med en gang, uten spørsmål.
   const dialog = document.createElement("dialog");
-  dialog.className = "fs-dialog editor-save";
+  dialog.className = "lt-dialog editor-save";
   dialog.innerHTML = `
-    <h2 class="fs-dialog__title fs-heading" data-size="s">Lagre endringene</h2>
-    <div class="fs-dialog__body">
-      <p class="fs-paragraph" data-size="small">Endringene legges på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet, én commit for hele økta (lagrer du igjen, oppdateres den). Neste gang du redigerer, fortsetter du derfra. Claude kjører testene og slår dem inn i spillet.</p>
-      <label class="fs-label" for="ed-msg">Hva du har endret (kan stå tomt)</label>
-      <input id="ed-msg" class="fs-input" type="text">
+    <h2 class="lt-dialog__title lt-heading" data-size="s">Lagre endringene</h2>
+    <div class="lt-dialog__body">
+      <p class="lt-paragraph" data-size="small">Endringene legges på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet, én commit for hele økta (lagrer du igjen, oppdateres den). Neste gang du redigerer, fortsetter du derfra. Claude kjører testene og slår dem inn i spillet.</p>
+      <label class="lt-label" for="ed-msg">Hva du har endret (kan stå tomt)</label>
+      <input id="ed-msg" class="lt-input" type="text">
       <div id="ed-token-row">
-        <label class="fs-label" for="ed-token">GitHub-nøkkel</label>
-        <input id="ed-token" class="fs-input" type="password" autocomplete="off" placeholder="github_pat_…">
-        <p class="fs-help-text">En finkornet nøkkel (github.com → Settings → Developer settings → Fine-grained tokens) med tilgang bare til fristad-repoet og «Contents: Read and write». Den huskes bare i denne nettleseren.</p>
+        <label class="lt-label" for="ed-token">GitHub-nøkkel</label>
+        <input id="ed-token" class="lt-input" type="password" autocomplete="off" placeholder="github_pat_…">
+        <p class="lt-help-text">En finkornet nøkkel (github.com → Settings → Developer settings → Fine-grained tokens) med tilgang bare til fristad-repoet og «Contents: Read and write». Den huskes bare i denne nettleseren.</p>
       </div>
-      <p id="ed-save-status" class="fs-paragraph" data-size="small" role="status"></p>
+      <p id="ed-save-status" class="lt-paragraph" data-size="small" role="status"></p>
     </div>
-    <div class="fs-dialog__footer">
-      <button type="button" class="fs-button" data-variant="ghost" data-act="forget">Glem nøkkelen</button>
-      <button type="button" class="fs-button" data-variant="secondary" data-act="close">Avbryt</button>
-      <button type="button" class="fs-button" data-variant="secondary" data-act="zip">Last ned zip</button>
-      <button type="button" class="fs-button" data-variant="primary" data-act="save">Lagre</button>
+    <div class="lt-dialog__footer">
+      <button type="button" class="lt-button" data-variant="ghost" data-act="forget">Glem nøkkelen</button>
+      <button type="button" class="lt-button" data-variant="secondary" data-act="close">Avbryt</button>
+      <button type="button" class="lt-button" data-variant="secondary" data-act="zip">Last ned zip</button>
+      <button type="button" class="lt-button" data-variant="primary" data-act="save">Lagre</button>
     </div>`;
   document.body.append(dialog);
   const d$ = (sel) => dialog.querySelector(sel);
@@ -627,9 +627,9 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     list.innerHTML = v.breaches.length
       ? v.breaches
           .slice(0, 30)
-          .map((b) => `<li class="fs-paragraph" data-size="small">${esc(b.why)}</li>`)
-          .join("") + (v.breaches.length > 30 ? `<li class="fs-paragraph" data-size="small">… og ${v.breaches.length - 30} til</li>` : "")
-      : `<li class="fs-paragraph" data-size="small">Alt er grønt.</li>`;
+          .map((b) => `<li class="lt-paragraph" data-size="small">${esc(b.why)}</li>`)
+          .join("") + (v.breaches.length > 30 ? `<li class="lt-paragraph" data-size="small">… og ${v.breaches.length - 30} til</li>` : "")
+      : `<li class="lt-paragraph" data-size="small">Alt er grønt.</li>`;
   }
 
   // Egenskapene til det valgte: et felt per egenskap (tekst, tall, farge).
@@ -644,19 +644,19 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     const field = (p) => {
       const name = esc(p.key);
       const value = esc(p.value);
-      if (p.key === "kind") return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" readonly>`;
-      if (p.key === "text" || p.key === "lines") return `<textarea class="fs-input" name="${name}" rows="3" data-was="${value}">${value}</textarea>`;
+      if (p.key === "kind") return `<input class="lt-input" name="${name}" value="${value}" data-was="${value}" readonly>`;
+      if (p.key === "text" || p.key === "lines") return `<textarea class="lt-input" name="${name}" rows="3" data-was="${value}">${value}</textarea>`;
       if ((p.key === "flicker" && (p.value === "ja" || p.value === "nei")) || p.key === "always")
         return `<input type="checkbox" name="${name}" ${p.value === "ja" ? "checked" : ""} data-was="${value}">`;
       if (p.key === "tint" || p.key === "color")
-        return `<span class="editor-color"><input type="color" data-pick="${name}" value="${/^#[0-9a-f]{6}$/i.test(p.value) ? value : "#ffffff"}" aria-label="Velg farge"><input class="fs-input" name="${name}" value="${value}" data-was="${value}" placeholder="#rrggbb"></span>`;
+        return `<span class="editor-color"><input type="color" data-pick="${name}" value="${/^#[0-9a-f]{6}$/i.test(p.value) ? value : "#ffffff"}" aria-label="Velg farge"><input class="lt-input" name="${name}" value="${value}" data-was="${value}" placeholder="#rrggbb"></span>`;
       // Valgene (fiendeslagene): en liste å velge fra, fri tekst går også.
       if (p.options?.length)
-        return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" list="ed-opt-${name}"><datalist id="ed-opt-${name}">${p.options.map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>`;
+        return `<input class="lt-input" name="${name}" value="${value}" data-was="${value}" list="ed-opt-${name}"><datalist id="ed-opt-${name}">${p.options.map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>`;
       const num = ["x", "y", "z", "yaw", "range", "intensity", "flicker", "width", "height", "n"].includes(p.key) || p.key.startsWith("route.");
-      return `<input class="fs-input" name="${name}" value="${value}" data-was="${value}" ${num ? 'inputmode="decimal"' : ""}>`;
+      return `<input class="lt-input" name="${name}" value="${value}" data-was="${value}" ${num ? 'inputmode="decimal"' : ""}>`;
     };
-    $("ed-props").innerHTML = props.map((p) => `<label class="editor-prop"><span class="fs-label">${esc(p.label)}</span>${field(p)}</label>`).join("");
+    $("ed-props").innerHTML = props.map((p) => `<label class="editor-prop"><span class="lt-label">${esc(p.label)}</span>${field(p)}</label>`).join("");
     // Teksten i et tekstfelt settes når du går ut av det.
     for (const t of $("ed-props").querySelectorAll("textarea")) t.addEventListener("blur", () => setProp(t));
   }

@@ -1,0 +1,14 @@
+{
+  "name": "@lo-tek/interfaces",
+  "version": "0.36.0",
+  "description": "LO-TEK bygd fra github.com/MarkusAugust/lo-tek fec0eb6 (tools/vendor-lotek.sh)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./lotek.css": "./dist/lotek.css",
+    "./tokens.css": "./src/tokens/tokens.css",
+    "./*": "./*"
+  }
+}

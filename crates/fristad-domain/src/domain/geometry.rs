@@ -141,7 +141,7 @@ pub enum Layer {
     Rubble = 52,
     /// Jernbeslått mørk eik nede i krypten: dører, gitter, kister (malt).
     BronzeDoor = 53,
-    /// Fristil-korrupsjonen: lysende sømmer i stein (malt, gløder med `.magic`).
+    /// LO-TEK-korrupsjonen: lysende sømmer i stein (malt, gløder med `.magic`).
     GlitchSeam = 54,
     /// Kloakken: mørk, fuktig tegl (malt).
     SewerBrick = 55,
@@ -255,7 +255,7 @@ pub struct Mat {
     pub roughness: f32,
     pub kind: u8,
     /// 0 bruker `srgb`. 1–15 henter fargen fra paletten, som styres av
-    /// Fristil-tokens og temaet.
+    /// LO-TEK-tokens og temaet.
     pub slot: u8,
     pub flags: u8,
 }
