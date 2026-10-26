@@ -192,6 +192,9 @@ export async function show(it, data, ui) {
     }
   }
   const st = state;
+  // Bare den siste visningen setter noe i scenen (byttes tingen mens den
+  // forrige laster, sto begge).
+  const gen = (st.gen = (st.gen || 0) + 1);
   for (const g of st.groups) st.scene.remove(g);
   st.groups = [];
   const layers = data.layers || {};
@@ -273,6 +276,7 @@ export async function show(it, data, ui) {
     }
     level.visible = ui.whole.checked;
   }
+  if (gen !== st.gen) return;
   for (const g of [after, before, level]) if (g) { st.scene.add(g); st.groups.push(g); }
   // Biten du dømmer, lyser svakt når hele nivået står rundt den.
   after.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) { m.userData.base = m.emissive ? m.emissive.clone() : null; } });
