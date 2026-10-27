@@ -1,0 +1,583 @@
+{
+  "textures": {
+    "wool": {
+      "id": "egen:wool",
+      "name": "Egen wool",
+      "size_m": 0.5,
+      "diffuse": "textures/wool/diffuse.jpg",
+      "normal": "textures/wool/normal.jpg",
+      "rough": "textures/wool/rough.jpg",
+      "height": "textures/wool/height.jpg"
+    },
+    "flagstone": {
+      "id": "egen:flagstone",
+      "name": "Egen flagstone",
+      "size_m": 2,
+      "diffuse": "textures/flagstone/diffuse.jpg",
+      "normal": "textures/flagstone/normal.jpg",
+      "rough": "textures/flagstone/rough.jpg",
+      "height": "textures/flagstone/height.jpg"
+    },
+    "core_stone": {
+      "id": "egen:core_stone",
+      "name": "Egen core_stone",
+      "size_m": 2,
+      "mirror": true,
+      "diffuse": "textures/core_stone/diffuse.jpg",
+      "normal": "textures/core_stone/normal.jpg",
+      "rough": "textures/core_stone/rough.jpg",
+      "height": "textures/core_stone/height.jpg"
+    },
+    "plaster_red": {
+      "id": "egen:plaster_red",
+      "name": "Egen plaster_red",
+      "size_m": 2,
+      "diffuse": "textures/plaster_red/diffuse.jpg",
+      "normal": "textures/plaster_red/normal.jpg",
+      "rough": "textures/plaster_red/rough.jpg",
+      "height": "textures/plaster_red/height.jpg"
+    },
+    "shingles_tar": {
+      "id": "egen:shingles_tar",
+      "name": "Egen shingles_tar",
+      "size_m": 1,
+      "diffuse": "textures/shingles_tar/diffuse.jpg",
+      "normal": "textures/shingles_tar/normal.jpg",
+      "rough": "textures/shingles_tar/rough.jpg",
+      "height": "textures/shingles_tar/height.jpg"
+    },
+    "linen": {
+      "id": "egen:linen",
+      "name": "Egen linen",
+      "size_m": 0.5,
+      "diffuse": "textures/linen/diffuse.jpg",
+      "normal": "textures/linen/normal.jpg",
+      "rough": "textures/linen/rough.jpg",
+      "height": "textures/linen/height.jpg"
+    },
+    "chainmail": {
+      "id": "egen:chainmail",
+      "name": "Egen chainmail",
+      "size_m": 0.2,
+      "diffuse": "textures/chainmail/diffuse.jpg",
+      "normal": "textures/chainmail/normal.jpg",
+      "rough": "textures/chainmail/rough.jpg",
+      "height": "textures/chainmail/height.jpg"
+    },
+    "door_b": {
+      "id": "egen:door_b",
+      "name": "Egen door_b",
+      "size_m": 1,
+      "diffuse": "textures/door_b/diffuse.jpg",
+      "normal": "textures/door_b/normal.jpg",
+      "rough": "textures/door_b/rough.jpg",
+      "height": "textures/door_b/height.jpg"
+    },
+    "timber_grey": {
+      "id": "egen:timber_grey",
+      "name": "Egen timber_grey",
+      "size_m": 1,
+      "diffuse": "textures/timber_grey/diffuse.jpg",
+      "normal": "textures/timber_grey/normal.jpg",
+      "rough": "textures/timber_grey/rough.jpg",
+      "height": "textures/timber_grey/height.jpg"
+    },
+    "ashlar": {
+      "id": "egen:ashlar",
+      "name": "Egen ashlar",
+      "size_m": 2.8,
+      "diffuse": "textures/ashlar/diffuse.jpg",
+      "normal": "textures/ashlar/normal.jpg",
+      "rough": "textures/ashlar/rough.jpg",
+      "height": "textures/ashlar/height.jpg"
+    },
+    "glitch_seam": {
+      "id": "egen:glitch_seam",
+      "name": "Egen glitch_seam",
+      "size_m": 1,
+      "diffuse": "textures/glitch_seam/diffuse.jpg",
+      "normal": "textures/glitch_seam/normal.jpg",
+      "rough": "textures/glitch_seam/rough.jpg",
+      "height": "textures/glitch_seam/height.jpg"
+    },
+    "rubble": {
+      "id": "egen:rubble",
+      "name": "Egen rubble",
+      "size_m": 2,
+      "diffuse": "textures/rubble/diffuse.jpg",
+      "normal": "textures/rubble/normal.jpg",
+      "rough": "textures/rubble/rough.jpg",
+      "height": "textures/rubble/height.jpg"
+    },
+    "snow": {
+      "id": "egen:snow",
+      "name": "Egen snow",
+      "size_m": 2,
+      "diffuse": "textures/snow/diffuse.jpg",
+      "normal": "textures/snow/normal.jpg",
+      "rough": "textures/snow/rough.jpg",
+      "height": "textures/snow/height.jpg"
+    },
+    "ossuary": {
+      "id": "egen:ossuary",
+      "name": "Egen ossuary",
+      "size_m": 1,
+      "diffuse": "textures/ossuary/diffuse.jpg",
+      "normal": "textures/ossuary/normal.jpg",
+      "rough": "textures/ossuary/rough.jpg",
+      "height": "textures/ossuary/height.jpg"
+    },
+    "leather": {
+      "id": "egen:leather",
+      "name": "Egen leather",
+      "size_m": 0.5,
+      "diffuse": "textures/leather/diffuse.jpg",
+      "normal": "textures/leather/normal.jpg",
+      "rough": "textures/leather/rough.jpg",
+      "height": "textures/leather/height.jpg"
+    },
+    "chimney": {
+      "id": "egen:chimney",
+      "name": "Egen chimney",
+      "size_m": 1,
+      "diffuse": "textures/chimney/diffuse.jpg",
+      "normal": "textures/chimney/normal.jpg",
+      "rough": "textures/chimney/rough.jpg",
+      "height": "textures/chimney/height.jpg"
+    },
+    "keep_floor": {
+      "id": "egen:keep_floor",
+      "name": "Egen keep_floor",
+      "size_m": 2,
+      "diffuse": "textures/keep_floor/diffuse.jpg",
+      "normal": "textures/keep_floor/normal.jpg",
+      "rough": "textures/keep_floor/rough.jpg",
+      "height": "textures/keep_floor/height.jpg"
+    },
+    "wall_stone": {
+      "id": "egen:wall_stone",
+      "name": "Egen wall_stone",
+      "size_m": 2.5,
+      "diffuse": "textures/wall_stone/diffuse.jpg",
+      "normal": "textures/wall_stone/normal.jpg",
+      "rough": "textures/wall_stone/rough.jpg",
+      "height": "textures/wall_stone/height.jpg"
+    },
+    "iron": {
+      "id": "egen:iron",
+      "name": "Egen iron",
+      "size_m": 0.8,
+      "diffuse": "textures/iron/diffuse.jpg",
+      "normal": "textures/iron/normal.jpg",
+      "rough": "textures/iron/rough.jpg",
+      "height": "textures/iron/height.jpg"
+    },
+    "keep_ashlar": {
+      "id": "egen:keep_ashlar",
+      "name": "Egen keep_ashlar",
+      "size_m": 2.5,
+      "diffuse": "textures/keep_ashlar/diffuse.jpg",
+      "normal": "textures/keep_ashlar/normal.jpg",
+      "rough": "textures/keep_ashlar/rough.jpg",
+      "height": "textures/keep_ashlar/height.jpg"
+    },
+    "mud": {
+      "id": "egen:mud",
+      "name": "Egen mud",
+      "size_m": 3.4,
+      "diffuse": "textures/mud/diffuse.jpg",
+      "normal": "textures/mud/normal.jpg",
+      "rough": "textures/mud/rough.jpg",
+      "height": "textures/mud/height.jpg"
+    },
+    "earth": {
+      "id": "egen:earth",
+      "name": "Egen earth",
+      "size_m": 2.5,
+      "diffuse": "textures/earth/diffuse.jpg",
+      "normal": "textures/earth/normal.jpg",
+      "rough": "textures/earth/rough.jpg",
+      "height": "textures/earth/height.jpg"
+    },
+    "core_plastic": {
+      "id": "egen:core_plastic",
+      "name": "Egen core_plastic",
+      "size_m": 2,
+      "mirror": true,
+      "diffuse": "textures/core_plastic/diffuse.jpg",
+      "normal": "textures/core_plastic/normal.jpg",
+      "rough": "textures/core_plastic/rough.jpg",
+      "height": "textures/core_plastic/height.jpg"
+    },
+    "tiles": {
+      "id": "egen:tiles",
+      "name": "Egen tiles",
+      "size_m": 2,
+      "diffuse": "textures/tiles/diffuse.jpg",
+      "normal": "textures/tiles/normal.jpg",
+      "rough": "textures/tiles/rough.jpg",
+      "height": "textures/tiles/height.jpg"
+    },
+    "crypt_plaster": {
+      "id": "egen:crypt_plaster",
+      "name": "Egen crypt_plaster",
+      "size_m": 2,
+      "diffuse": "textures/crypt_plaster/diffuse.jpg",
+      "normal": "textures/crypt_plaster/normal.jpg",
+      "rough": "textures/crypt_plaster/rough.jpg",
+      "height": "textures/crypt_plaster/height.jpg"
+    },
+    "plaster_old": {
+      "id": "egen:plaster_old",
+      "name": "Egen plaster_old",
+      "size_m": 2,
+      "diffuse": "textures/plaster_old/diffuse.jpg",
+      "normal": "textures/plaster_old/normal.jpg",
+      "rough": "textures/plaster_old/rough.jpg",
+      "height": "textures/plaster_old/height.jpg"
+    },
+    "grave_slab": {
+      "id": "egen:grave_slab",
+      "name": "Egen grave_slab",
+      "size_m": 2,
+      "diffuse": "textures/grave_slab/diffuse.jpg",
+      "normal": "textures/grave_slab/normal.jpg",
+      "rough": "textures/grave_slab/rough.jpg",
+      "height": "textures/grave_slab/height.jpg"
+    },
+    "gambeson": {
+      "id": "egen:gambeson",
+      "name": "Egen gambeson",
+      "size_m": 0.5,
+      "diffuse": "textures/gambeson/diffuse.jpg",
+      "normal": "textures/gambeson/normal.jpg",
+      "rough": "textures/gambeson/rough.jpg",
+      "height": "textures/gambeson/height.jpg"
+    },
+    "weatherboard": {
+      "id": "egen:weatherboard",
+      "name": "Egen weatherboard",
+      "size_m": 2,
+      "diffuse": "textures/weatherboard/diffuse.jpg",
+      "normal": "textures/weatherboard/normal.jpg",
+      "rough": "textures/weatherboard/rough.jpg",
+      "height": "textures/weatherboard/height.jpg"
+    },
+    "plaster": {
+      "id": "egen:plaster",
+      "name": "Egen plaster",
+      "size_m": 2,
+      "diffuse": "textures/plaster/diffuse.jpg",
+      "normal": "textures/plaster/normal.jpg",
+      "rough": "textures/plaster/rough.jpg",
+      "height": "textures/plaster/height.jpg"
+    },
+    "felt": {
+      "id": "egen:felt",
+      "name": "Egen felt",
+      "size_m": 0.5,
+      "diffuse": "textures/felt/diffuse.jpg",
+      "normal": "textures/felt/normal.jpg",
+      "rough": "textures/felt/rough.jpg",
+      "height": "textures/felt/height.jpg"
+    },
+    "cladding": {
+      "id": "egen:cladding",
+      "name": "Egen cladding",
+      "size_m": 2,
+      "diffuse": "textures/cladding/diffuse.jpg",
+      "normal": "textures/cladding/normal.jpg",
+      "rough": "textures/cladding/rough.jpg",
+      "height": "textures/cladding/height.jpg"
+    },
+    "cobble": {
+      "id": "egen:cobble",
+      "name": "Egen cobble",
+      "size_m": 1.6,
+      "diffuse": "textures/cobble/diffuse.jpg",
+      "normal": "textures/cobble/normal.jpg",
+      "rough": "textures/cobble/rough.jpg",
+      "height": "textures/cobble/height.jpg"
+    },
+    "sewer_brick": {
+      "id": "egen:sewer_brick",
+      "name": "Egen sewer_brick",
+      "size_m": 1.5,
+      "diffuse": "textures/sewer_brick/diffuse.jpg",
+      "normal": "textures/sewer_brick/normal.jpg",
+      "rough": "textures/sewer_brick/rough.jpg",
+      "height": "textures/sewer_brick/height.jpg"
+    },
+    "timber": {
+      "id": "egen:timber",
+      "name": "Egen timber",
+      "size_m": 1,
+      "diffuse": "textures/timber/diffuse.jpg",
+      "normal": "textures/timber/normal.jpg",
+      "rough": "textures/timber/rough.jpg",
+      "height": "textures/timber/height.jpg"
+    },
+    "thatch": {
+      "id": "egen:thatch",
+      "name": "Egen thatch",
+      "size_m": 1.6,
+      "diffuse": "textures/thatch/diffuse.jpg",
+      "normal": "textures/thatch/normal.jpg",
+      "rough": "textures/thatch/rough.jpg",
+      "height": "textures/thatch/height.jpg"
+    },
+    "ruin": {
+      "id": "egen:ruin",
+      "name": "Egen ruin",
+      "size_m": 2.5,
+      "diffuse": "textures/ruin/diffuse.jpg",
+      "normal": "textures/ruin/normal.jpg",
+      "rough": "textures/ruin/rough.jpg",
+      "height": "textures/ruin/height.jpg"
+    },
+    "weatherboard_grey": {
+      "id": "egen:weatherboard_grey",
+      "name": "Egen weatherboard_grey",
+      "size_m": 2,
+      "diffuse": "textures/weatherboard_grey/diffuse.jpg",
+      "normal": "textures/weatherboard_grey/normal.jpg",
+      "rough": "textures/weatherboard_grey/rough.jpg",
+      "height": "textures/weatherboard_grey/height.jpg"
+    },
+    "shingles": {
+      "id": "egen:shingles",
+      "name": "Egen shingles",
+      "size_m": 1.5,
+      "diffuse": "textures/shingles/diffuse.jpg",
+      "normal": "textures/shingles/normal.jpg",
+      "rough": "textures/shingles/rough.jpg",
+      "height": "textures/shingles/height.jpg"
+    },
+    "church_boards": {
+      "id": "egen:church_boards",
+      "name": "Egen church_boards",
+      "size_m": 2,
+      "diffuse": "textures/church_boards/diffuse.jpg",
+      "normal": "textures/church_boards/normal.jpg",
+      "rough": "textures/church_boards/rough.jpg",
+      "height": "textures/church_boards/height.jpg"
+    },
+    "forest_floor": {
+      "id": "egen:forest_floor",
+      "name": "Egen forest_floor",
+      "size_m": 2.2,
+      "diffuse": "textures/forest_floor/diffuse.jpg",
+      "normal": "textures/forest_floor/normal.jpg",
+      "rough": "textures/forest_floor/rough.jpg",
+      "height": "textures/forest_floor/height.jpg"
+    },
+    "sewer_floor": {
+      "id": "egen:sewer_floor",
+      "name": "Egen sewer_floor",
+      "size_m": 2,
+      "diffuse": "textures/sewer_floor/diffuse.jpg",
+      "normal": "textures/sewer_floor/normal.jpg",
+      "rough": "textures/sewer_floor/rough.jpg",
+      "height": "textures/sewer_floor/height.jpg"
+    },
+    "door": {
+      "id": "egen:door",
+      "name": "Egen door",
+      "size_m": 1,
+      "diffuse": "textures/door/diffuse.jpg",
+      "normal": "textures/door/normal.jpg",
+      "rough": "textures/door/rough.jpg",
+      "height": "textures/door/height.jpg"
+    },
+    "wattle": {
+      "id": "egen:wattle",
+      "name": "Egen wattle",
+      "size_m": 1,
+      "diffuse": "textures/wattle/diffuse.jpg",
+      "normal": "textures/wattle/normal.jpg",
+      "rough": "textures/wattle/rough.jpg",
+      "height": "textures/wattle/height.jpg"
+    },
+    "crypt_vault": {
+      "id": "egen:crypt_vault",
+      "name": "Egen crypt_vault",
+      "size_m": 2,
+      "diffuse": "textures/crypt_vault/diffuse.jpg",
+      "normal": "textures/crypt_vault/normal.jpg",
+      "rough": "textures/crypt_vault/rough.jpg",
+      "height": "textures/crypt_vault/height.jpg"
+    },
+    "planks": {
+      "id": "egen:planks",
+      "name": "Egen planks",
+      "size_m": 2,
+      "diffuse": "textures/planks/diffuse.jpg",
+      "normal": "textures/planks/normal.jpg",
+      "rough": "textures/planks/rough.jpg",
+      "height": "textures/planks/height.jpg"
+    },
+    "rock": {
+      "id": "egen:rock",
+      "name": "Egen rock",
+      "size_m": 5,
+      "diffuse": "textures/rock/diffuse.jpg",
+      "normal": "textures/rock/normal.jpg",
+      "rough": "textures/rock/rough.jpg",
+      "height": "textures/rock/height.jpg"
+    },
+    "gravel": {
+      "id": "egen:gravel",
+      "name": "Egen gravel",
+      "size_m": 1,
+      "diffuse": "textures/gravel/diffuse.jpg",
+      "normal": "textures/gravel/normal.jpg",
+      "rough": "textures/gravel/rough.jpg",
+      "height": "textures/gravel/height.jpg"
+    },
+    "oak_planed": {
+      "id": "egen:oak_planed",
+      "name": "Egen oak_planed",
+      "size_m": 2,
+      "diffuse": "textures/oak_planed/diffuse.jpg",
+      "normal": "textures/oak_planed/normal.jpg",
+      "rough": "textures/oak_planed/rough.jpg",
+      "height": "textures/oak_planed/height.jpg"
+    },
+    "crypt_wall": {
+      "id": "egen:crypt_wall",
+      "name": "Egen crypt_wall",
+      "size_m": 2,
+      "diffuse": "textures/crypt_wall/diffuse.jpg",
+      "normal": "textures/crypt_wall/normal.jpg",
+      "rough": "textures/crypt_wall/rough.jpg",
+      "height": "textures/crypt_wall/height.jpg"
+    },
+    "crypt_floor": {
+      "id": "egen:crypt_floor",
+      "name": "Egen crypt_floor",
+      "size_m": 2,
+      "diffuse": "textures/crypt_floor/diffuse.jpg",
+      "normal": "textures/crypt_floor/normal.jpg",
+      "rough": "textures/crypt_floor/rough.jpg",
+      "height": "textures/crypt_floor/height.jpg"
+    },
+    "meadow": {
+      "id": "egen:meadow",
+      "name": "Egen meadow",
+      "size_m": 3,
+      "diffuse": "textures/meadow/diffuse.jpg",
+      "normal": "textures/meadow/normal.jpg",
+      "rough": "textures/meadow/rough.jpg",
+      "height": "textures/meadow/height.jpg"
+    },
+    "straw_floor": {
+      "id": "egen:straw_floor",
+      "name": "Egen straw_floor",
+      "size_m": 1,
+      "diffuse": "textures/straw_floor/diffuse.jpg",
+      "normal": "textures/straw_floor/normal.jpg",
+      "rough": "textures/straw_floor/rough.jpg",
+      "height": "textures/straw_floor/height.jpg"
+    },
+    "logs": {
+      "id": "egen:logs",
+      "name": "Egen logs",
+      "size_m": 1.8,
+      "diffuse": "textures/logs/diffuse.jpg",
+      "normal": "textures/logs/normal.jpg",
+      "rough": "textures/logs/rough.jpg",
+      "height": "textures/logs/height.jpg"
+    },
+    "mine_timber": {
+      "id": "egen:mine_timber",
+      "name": "Egen mine_timber",
+      "size_m": 1.5,
+      "diffuse": "textures/mine_timber/diffuse.jpg",
+      "normal": "textures/mine_timber/normal.jpg",
+      "rough": "textures/mine_timber/rough.jpg",
+      "height": "textures/mine_timber/height.jpg"
+    },
+    "sod": {
+      "id": "egen:sod",
+      "name": "Egen sod",
+      "size_m": 2.5,
+      "diffuse": "textures/sod/diffuse.jpg",
+      "normal": "textures/sod/normal.jpg",
+      "rough": "textures/sod/rough.jpg",
+      "height": "textures/sod/height.jpg"
+    },
+    "bronze_door": {
+      "id": "egen:bronze_door",
+      "name": "Egen bronze_door",
+      "size_m": 1,
+      "diffuse": "textures/bronze_door/diffuse.jpg",
+      "normal": "textures/bronze_door/normal.jpg",
+      "rough": "textures/bronze_door/rough.jpg",
+      "height": "textures/bronze_door/height.jpg"
+    },
+    "mine_rock": {
+      "id": "egen:mine_rock",
+      "name": "Egen mine_rock",
+      "size_m": 3,
+      "diffuse": "textures/mine_rock/diffuse.jpg",
+      "normal": "textures/mine_rock/normal.jpg",
+      "rough": "textures/mine_rock/rough.jpg",
+      "height": "textures/mine_rock/height.jpg"
+    },
+    "plaster_white": {
+      "id": "egen:plaster_white",
+      "name": "Egen plaster_white",
+      "size_m": 2,
+      "diffuse": "textures/plaster_white/diffuse.jpg",
+      "normal": "textures/plaster_white/normal.jpg",
+      "rough": "textures/plaster_white/rough.jpg",
+      "height": "textures/plaster_white/height.jpg"
+    },
+    "crypt_dressed": {
+      "id": "egen:crypt_dressed",
+      "name": "Egen crypt_dressed",
+      "size_m": 2,
+      "diffuse": "textures/crypt_dressed/diffuse.jpg",
+      "normal": "textures/crypt_dressed/normal.jpg",
+      "rough": "textures/crypt_dressed/rough.jpg",
+      "height": "textures/crypt_dressed/height.jpg"
+    },
+    "stone": {
+      "id": "egen:stone",
+      "name": "Egen stone",
+      "size_m": 2,
+      "diffuse": "textures/stone/diffuse.jpg",
+      "normal": "textures/stone/normal.jpg",
+      "rough": "textures/stone/rough.jpg",
+      "height": "textures/stone/height.jpg"
+    },
+    "slate": {
+      "id": "egen:slate",
+      "name": "Egen slate",
+      "size_m": 1.5,
+      "diffuse": "textures/slate/diffuse.jpg",
+      "normal": "textures/slate/normal.jpg",
+      "rough": "textures/slate/rough.jpg",
+      "height": "textures/slate/height.jpg"
+    },
+    "fur": {
+      "id": "egen:fur",
+      "name": "Egen fur",
+      "size_m": 0.5,
+      "diffuse": "textures/fur/diffuse.jpg",
+      "normal": "textures/fur/normal.jpg",
+      "rough": "textures/fur/rough.jpg",
+      "height": "textures/fur/height.jpg"
+    },
+    "trim": {
+      "id": "egen:trim",
+      "name": "Egen trim",
+      "size_m": 1,
+      "diffuse": "textures/trim/diffuse.jpg",
+      "normal": "textures/trim/normal.jpg",
+      "rough": "textures/trim/rough.jpg",
+      "height": "textures/trim/height.jpg"
+    }
+  },
+  "source": "assets/textures (egne) og https://polyhaven.com (CC0)"
+}
