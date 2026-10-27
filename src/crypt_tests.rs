@@ -541,3 +541,60 @@ fn vannet_vet_hvor_dypt_det_er() {
     mech.waters[n] = 1.0;
     assert!(depth(&mech)[n] < 0.1, "når vannet har sunket, er det grunt: {:.2} m", depth(&mech)[n]);
 }
+
+/// Bossene i hvert nivå (Modalen, Tabellen, Dropdownen, Navbaren og
+/// Rammeverket) er sitt eget slag og boss i spillet (eieren 26. oktober: i
+/// nivå 6 og 8 sto stedfortrederne Select og Modal fra før modellene kom), så kampmusikken bytter
+/// til bosssporet (`Mobs::fight`: 2 for en boss, 3 for Rammeverket; `music.js`
+/// spiller `combat_boss` fra 2) når du står ved dem.
+#[test]
+fn bossene_far_bossmusikken() {
+    use crate::domain::mob_kind::Kind;
+    use crate::domain::mobs::Mobs;
+    let c = &world().world.crypt;
+    let want = [("modal", Kind::Modal), ("table", Kind::Table), ("dropdown", Kind::Dropdown), ("navbar", Kind::Navbar), ("rammeverket", Kind::Framework)];
+    let mut found = vec![];
+    for s in c.spawns.iter().filter(|s| s.boss) {
+        let mut mobs = Mobs::new(c, &[]);
+        mobs.enter(c, s.level);
+        let m = mobs.mobs.iter_mut().find(|m| m.boss).unwrap_or_else(|| panic!("bossen «{}» i nivå {} ble ikke satt ut som boss", s.label, s.level));
+        let label = s.label.to_lowercase();
+        let (_, kind) = want.iter().find(|(l, _)| *l == label).unwrap_or_else(|| panic!("ukjent boss «{}» i nivå {}", s.label, s.level));
+        assert_eq!(m.kind, *kind, "bossen «{}» i nivå {} er feil slag", s.label, s.level);
+        m.aware = true;
+        let at = m.pos;
+        let fight = mobs.fight(at);
+        let need = if *kind == Kind::Framework { 3 } else { 2 };
+        assert_eq!(fight, need, "«{}» i nivå {} gir kampmusikk {fight}, ikke bosssporet", s.label, s.level);
+        found.push(label);
+    }
+    for (l, _) in want {
+        assert!(found.iter().any(|f| f == l), "fant ingen boss «{l}» i krypten");
+    }
+}
+
+/// Fiendene spillet setter ut (merkene i `assets/layout/crypt_NN.json`, som
+/// redigeringen lagrer) er de samme som i nivåfila fra `build_level.py`: de
+/// nye fiendene fra 19. oktober kom bare i nivåfila, og spillet satte ut
+/// stedfortrederne (Button for Kortknekten, Breadcrumb for Spinneren …).
+#[test]
+fn fiendene_i_nivaaene_er_de_samme_som_i_nivaafila() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let enemies = |path: String| -> Vec<(String, String)> {
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).expect(&path)).expect(&path);
+        v["marks"].as_array().expect("marks").iter().filter(|m| matches!(m["kind"].as_str(), Some("mob" | "elite" | "boss"))).map(|m| (m["pos"].to_string(), m["label"].as_str().unwrap_or("").to_string())).collect()
+    };
+    let mut bad = vec![];
+    for n in 1..=10 {
+        let (game, built) = (enemies(format!("{root}/assets/layout/crypt_{n:02}.json")), enemies(format!("{root}/assets/models/crypt/crypt_{n:02}.json")));
+        for (g, b) in game.iter().zip(&built) {
+            if g != b {
+                bad.push(format!("nivå {n}: {} i spillet, {} i nivåfila ({})", g.1, b.1, g.0));
+            }
+        }
+        if game.len() != built.len() {
+            bad.push(format!("nivå {n}: {} fiendemerker i spillet, {} i nivåfila", game.len(), built.len()));
+        }
+    }
+    assert!(bad.is_empty(), "\n{}", bad.join("\n"));
+}
