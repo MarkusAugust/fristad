@@ -88,3 +88,11 @@ export let enter = () => {};
 export const onEnter = (f) => {
   enter = f;
 };
+
+// Redigeringsmodusen (`?edit`, bare for eieren; web/editor.js).
+export const EDIT = new URLSearchParams(location.search).has("edit");
+// `?nivaa=test` (eller `brett`): nivådokumentet som eneste kryptnivå, og med
+// `&slaa` bitene slått sammen per rute på 16 m (målingen i fase 0 av
+// nivåredigeringen, `docs/nivaaredigering.md`; `?nivaa=test&bench`).
+export const NIVAA = new URLSearchParams(location.search).get("nivaa") || undefined;
+export const SLAA = new URLSearchParams(location.search).has("slaa");
