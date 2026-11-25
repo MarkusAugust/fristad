@@ -728,7 +728,7 @@ Med instanser blir det ett kall per modell som synes, uansett hvor mange instans
 - `web/editor.js` og `web/github.js`: utkastet, zip og lagringen til grenen `redigering`, som flyttes til felles moduler for `web/nivaa.js`
 - `tools/crypt/kit_grav.py`: geometrifunksjonene og eksporten (okklusjon, `extras.solids`), som `kit_common.py` og `kit_<tema>.py` bygger på
 - `tools/crypt/build_level.py`: dagens regler for murer, nett, tetthet og hemmeligheter, som skal bli kjernekode og så slettes
-- `src/adapters/wgpu/mod.rs` (`draw_all`, instanser og biter) og `src/adapters/delivery.rs` (lasting per tema)
+- `src/adapters/wgpu/passes.rs` og `frame.rs` (`draw_all`, instanser og biter) og `src/adapters/delivery.rs` (lasting per tema)
 - `src/tests.rs` og `src/crypt_tests.rs`: testene reglene skal speile
 
 
