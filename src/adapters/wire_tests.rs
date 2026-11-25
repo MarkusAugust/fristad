@@ -281,8 +281,13 @@ fn nettlaget_kaller_bare_det_motoren_har() {
         }
     }
     let mut bad = BTreeSet::new();
-    for file in ["main.js", "shared.js", "loading.js", "graphics.js", "settings.js", "hud.js", "bench.js", "menus.js", "inventory.js", "shop.js", "workshop.js", "book.js", "map.js", "nivaa.js", "editor.js", "github.js", "nivaa-plan.js"] {
-        let text = std::fs::read_to_string(root().join("web").join(file)).unwrap();
+    // Alle modulene i `web/` (ikke undermappene).
+    let mut files: Vec<_> = std::fs::read_dir(root().join("web")).unwrap().map(|f| f.unwrap().path()).filter(|p| p.extension().is_some_and(|x| x == "js")).collect();
+    files.sort();
+    assert!(files.len() > 10, "fant bare {} moduler i web/", files.len());
+    for path in files {
+        let file = path.file_name().unwrap().to_string_lossy().to_string();
+        let text = std::fs::read_to_string(&path).unwrap();
         let b = text.as_bytes();
         for (name, end) in reads(&text, "engine") {
             // Bare kall: `engine.navn(` og `engine.navn?.(`.
