@@ -598,7 +598,7 @@ impl Session {
     /// Innbyggerne: de går, snakker (boblene som står sendes hvert bilde,
     /// og én tom når de er borte), og siktemålet følger dem.
     fn update_people(&mut self, dt: f32, feet: Vec3, in_crypt: bool, physics: &mut dyn Physics, events: &mut Vec<Event>) {
-        self.tick_song(dt);
+        self.tavern.tick(dt, &mut self.npcs, &mut self.pending);
         let speeches = self.npcs.update(dt, feet);
         self.npc_steps(feet, in_crypt, events);
         for t in &self.targets {
