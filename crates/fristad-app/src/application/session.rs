@@ -30,7 +30,7 @@ use glam::{Affine3A, Vec3};
 use std::collections::HashMap;
 
 use super::audio::Soundscape;
-use super::fight::Hud;
+use super::hud::Hud;
 use super::solids::Solids;
 
 /// Så langt unna kan du sikte på en fiende og få infopanelet (meter).
@@ -388,7 +388,7 @@ impl Session {
         // første vegg).
         let wall = physics.cast_solid(eye, dir, FOE_SIGHT).map_or(FOE_SIGHT, |h| h.distance);
         let foe = if in_crypt { self.aimed_mob.or_else(|| self.mobs.aimed(eye, dir, wall)) } else { None };
-        self.update_foe(foe, dt, &mut events);
+        self.hud.update_foe(foe, dt, &self.mobs, &mut events);
         self.combat.set_block(input.block && in_crypt && !self.paused);
 
         for a in actions {
@@ -424,7 +424,8 @@ impl Session {
         self.cellar_t += ((if in_crypt { 1.0 } else { 0.0 }) - self.cellar_t) * (dt * 4.0).min(1.0);
         self.fight(dt, feet, in_crypt, &mut events);
         self.burn_lamp(dt, in_crypt, &mut events);
-        self.update_hud(dt, in_crypt, &mut events);
+        let cam = self.camera();
+        self.hud.update(dt, in_crypt, feet, &self.mobs, &mut self.hero, &self.combat, &cam, &mut events);
         self.ambience(dt, feet, in_crypt, physics, &mut events);
         events
     }
@@ -581,9 +582,10 @@ impl Session {
         }
         if !speeches.is_empty() || self.bubbles_shown {
             self.bubbles_shown = !speeches.is_empty();
+            let cam = self.camera();
             let bubbles = speeches
                 .iter()
-                .filter_map(|s| self.project(s.pos).map(|(x, y)| Bubble { id: s.npc as u32, x, y, name: s.name.into(), text: s.text.clone() }))
+                .filter_map(|s| cam.in_view(s.pos).map(|(x, y)| Bubble { id: s.npc as u32, x, y, name: s.name.into(), text: s.text.clone() }))
                 .collect();
             events.push(Event::Speech(bubbles));
         }

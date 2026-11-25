@@ -1,6 +1,6 @@
-//! Kameraet redigeringen ser gjennom: øyet, retningen og matrisen bildet
-//! tegnes med, og regningen mellom skjermen og verden. Økta lager det
-//! (`Session::camera`), og redigeringen får det som argument.
+//! Kameraet: øyet, retningen og matrisen bildet tegnes med, og regningen
+//! mellom skjermen og verden. Økta lager det (`Session::camera`), og
+//! redigeringen og det som vises over bildet (`hud.rs`) får det som argument.
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
@@ -46,6 +46,12 @@ impl Camera {
     /// Et punkt i verden på skjermen (0..1 fra øverst til venstre).
     pub fn to_screen(&self, p: Vec3) -> Option<(f32, f32)> {
         self.on_screen(p).map(|v| (v.x / self.aspect, v.y))
+    }
+
+    /// Et punkt i verden på skjermen (0..1), om det er foran kameraet og
+    /// i bildet eller like utenfor kanten (til merkene over bildet).
+    pub fn in_view(&self, p: Vec3) -> Option<(f32, f32)> {
+        self.to_screen(p).filter(|(x, y)| (-0.1..=1.1).contains(x) && (-0.1..=1.1).contains(y))
     }
 
     /// Et punkt på skjermen i enheter av skjermhøyden.
