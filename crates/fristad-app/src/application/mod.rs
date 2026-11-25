@@ -22,6 +22,7 @@ mod goals;
 pub mod level_editing;
 mod prompt;
 pub mod session;
+mod solids;
 mod testing;
 mod tavern;
 mod trade;
