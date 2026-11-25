@@ -2853,13 +2853,13 @@ fn eksemplene_i_boka_har_sin_flate() {
     let root = env!("CARGO_MANIFEST_DIR");
     let docs: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!("{root}/web/docs.json")).expect("docs.json")).expect("docs.json");
     let flate = std::fs::read_to_string(format!("{root}/web/docs-flate.css")).expect("web/docs-flate.css (bun tools/export-docs.ts)");
-    let main = std::fs::read_to_string(format!("{root}/web/main.js")).expect("main.js");
+    let main = std::fs::read_to_string(format!("{root}/web/book.js")).expect("book.js");
     let mut bad = vec![];
     for (name, d) in docs.as_object().expect("docs") {
         let Some(layout) = d["demo"]["layout"].as_str() else { continue };
         let rule = format!("data-layout=\"{layout}\"");
         if !flate.contains(&rule) || !main.contains(&rule) {
-            bad.push(format!("{name}: layouten «{layout}» mangler i docs-flate.css eller reserven i main.js"));
+            bad.push(format!("{name}: layouten «{layout}» mangler i docs-flate.css eller reserven i book.js"));
         }
     }
     assert!(bad.is_empty(), "\n{}", bad.join("\n"));

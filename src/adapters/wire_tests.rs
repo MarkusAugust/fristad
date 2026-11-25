@@ -281,7 +281,7 @@ fn nettlaget_kaller_bare_det_motoren_har() {
         }
     }
     let mut bad = BTreeSet::new();
-    for file in ["main.js", "nivaa.js", "editor.js", "github.js", "nivaa-plan.js"] {
+    for file in ["main.js", "shared.js", "menus.js", "inventory.js", "shop.js", "workshop.js", "book.js", "map.js", "nivaa.js", "editor.js", "github.js", "nivaa-plan.js"] {
         let text = std::fs::read_to_string(root().join("web").join(file)).unwrap();
         let b = text.as_bytes();
         for (name, end) in reads(&text, "engine") {
