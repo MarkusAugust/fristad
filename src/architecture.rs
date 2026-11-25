@@ -158,7 +158,6 @@ const TOO_LONG: &[(&str, usize)] = &[
     ("src/edit_tests.rs", 1002),
     ("src/tests.rs", 3619),
     ("web/editor.js", 1035),
-    ("web/main.js", 1843),
     ("web/nivaa.js", 2163),
 ];
 
@@ -205,7 +204,6 @@ const TOO_WIDE: &[(&str, usize)] = &[
     ("src/mechanism_tests.rs", 4),
     ("src/tests.rs", 8),
     ("web/editor.js", 9),
-    ("web/main.js", 2),
     ("web/nivaa-plan.js", 1),
     ("web/nivaa.js", 16),
 ];
