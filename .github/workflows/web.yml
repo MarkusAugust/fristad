@@ -44,13 +44,10 @@ jobs:
         with:
           path: assets/external
           key: external-assets-${{ hashFiles('tools/fetch-assets.ts', 'assets/textures/**') }}
-      # Teksturlagene før testene: `alle_lagene_har_bilde` krever dem.
       - name: Teksturlagene
         run: bun tools/fetch-assets.ts
-      # Testene (arkitekturen, verden, krypten, fysikken, lydene) før noe
-      # publiseres; feiler de, stopper bygget her.
-      - name: Tester
-        run: cargo test --release --workspace
+      # Testene kjøres ikke her (eieren 25. november: de tok 21 av 27 minutter).
+      # De kjøres lokalt før push: `cargo test --workspace`.
       # Åpningsfilmen klippes ikke her: den klippes én gang med tools/film/cut.py
       # og legges ferdig på grenen `film` (tools/film/publish.sh), som hentes.
       - name: Åpningsfilmen fra grenen film
