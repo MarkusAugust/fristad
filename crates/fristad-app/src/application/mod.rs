@@ -7,13 +7,14 @@
 //!   i `usage`, `prompt`, `fight`, `audio`, `trade`, `goals`, `water` og
 //!   `testing`.
 //! - `view`: bildet rendereren får.
-//! - `editing`: redigeringen i økta (flyging, kommandoene, det flyttede i
-//!   bildet).
+//! - `editing`: redigeringen av byen (`Editing`: kommandoene, det flyttede
+//!   i bildet), med egen tilstand og kameraet (`camera`) som argument.
 //! - `app`: `App`, som eier økta og de drevne adapterne.
 
 pub mod app;
 pub mod assembly;
 mod audio;
+mod camera;
 mod edit_marks;
 mod editing;
 mod fight;

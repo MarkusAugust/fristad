@@ -125,18 +125,12 @@ pub struct Session {
     /// Rammeverket er beseiret (denne turen).
     pub won: bool,
     pub debug: u32,
-    /// Redigeringen (`editing.rs`), når du er i den, og dataene den
-    /// begynner fra (bare med `prepare_for_edit`).
-    pub(super) edit: Option<crate::domain::edit::Editor>,
-    pub edit_data: Option<super::assembly::EditData>,
-    pub(super) edit_ui: super::editing::EditUi,
+    /// Redigeringen av byen (`editing.rs`).
+    pub edit: super::editing::Editing,
     /// Trubaduren og kvadet (`tavern.rs`).
     pub(super) tavern: super::tavern::Troubadour,
     /// Nivåredigeringen (`level_editing.rs`, bare med `?nivaa`).
     pub(super) level: Option<super::level_editing::LevelEditing>,
-    /// Id-ene siste endring laget, og hvorfor den siste ikke gikk.
-    pub level_made: Vec<String>,
-    pub level_error: Option<String>,
     /// Prøveturen i nivåredigeringen: du kan ikke dø.
     pub immortal: bool,
 }
@@ -229,12 +223,8 @@ impl Session {
             cellar_t: 0.0,
             won: false,
             debug: 0,
-            edit: None,
-            edit_data: None,
-            edit_ui: Default::default(),
+            edit: Default::default(),
             level: None,
-            level_made: vec![],
-            level_error: None,
             immortal: false,
         }
     }
@@ -397,7 +387,7 @@ impl Session {
         }
         // I redigeringen flyr du, og ingenting annet skjer, men T og V
         // bytter dag og natt og været, så lysene kan ses om natta.
-        if self.edit.is_some() {
+        if self.editing() {
             self.fly(input, dt);
             self.sky.tick(dt, self.time);
             let in_crypt = self.in_crypt();

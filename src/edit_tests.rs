@@ -194,7 +194,7 @@ fn edit_world() -> &'static crate::application::Prepared {
 fn edit_session(physics: &mut crate::adapters::rapier::RapierPhysics) -> crate::application::Session {
     let p = edit_world();
     let mut s = crate::application::Session::new(&p.world, physics, &crate::application::rigs(&p.models));
-    s.edit_data = p.edit.clone();
+    s.edit.data = p.edit.clone();
     s
 }
 

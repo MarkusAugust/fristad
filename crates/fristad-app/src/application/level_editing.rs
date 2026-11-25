@@ -68,6 +68,9 @@ pub struct LevelEditing {
     pub cut: Option<f32>,
     /// Nivået slik det er bygd på kladdearket (rommene til lyset).
     crypt: crypt::Crypt,
+    /// Id-ene siste endring laget, og hvorfor den siste ikke gikk.
+    pub made: Vec<String>,
+    pub error: Option<String>,
 }
 
 impl LevelEditing {
@@ -91,6 +94,8 @@ impl LevelEditing {
             floor: 0.0,
             cut: None,
             crypt: crypt::Crypt::default(),
+            made: vec![],
+            error: None,
         };
         e.refresh();
         e
@@ -198,6 +203,139 @@ impl LevelEditing {
         }
         out
     }
+
+    /// En kommando fra kartet. Gir om den gjorde noe (feilen står i `error`).
+    pub fn command(&mut self, c: LevelCommand) -> bool {
+        self.active = true;
+        let changed = match c {
+            LevelCommand::Op(op) => match self.editor.apply(op) {
+                Ok(made) => {
+                    self.made = made;
+                    self.error = None;
+                    true
+                }
+                Err(e) => {
+                    self.error = Some(e);
+                    return false;
+                }
+            },
+            LevelCommand::Undo => self.editor.undo(),
+            LevelCommand::Redo => self.editor.redo(),
+            LevelCommand::Open(doc) => {
+                self.editor.open(*doc);
+                true
+            }
+            LevelCommand::Saved => {
+                self.editor.saved();
+                return true;
+            }
+            LevelCommand::Select(ids) => {
+                self.selected = ids;
+                return true;
+            }
+            LevelCommand::WorkLight(on) => {
+                self.work_light = on;
+                return true;
+            }
+            LevelCommand::Floor(y) => {
+                self.floor = y;
+                return true;
+            }
+            LevelCommand::AddModule(def) => {
+                self.editor.add_module(*def);
+                true
+            }
+            LevelCommand::Cut(y) => {
+                self.cut = y;
+                return true;
+            }
+            // Kameraet flyttes av økta (`Session::level_command`).
+            LevelCommand::Place { .. } => return true,
+        };
+        if changed {
+            self.refresh();
+        }
+        changed
+    }
+
+    /// Der strålen (fra, retning) treffer gulvet kartet viser, i dokumentets
+    /// rom.
+    pub fn pick(&self, (o, d): (Vec3, Vec3)) -> Option<Vec3> {
+        let y = self.origin.y + self.floor;
+        if d.y.abs() < 1e-4 {
+            return None;
+        }
+        let t = (y - o.y) / d.y;
+        (t > 0.0 && t < 400.0).then(|| o + d * t - self.origin)
+    }
+
+    /// Bildet i redigeringen: nivået slik det er nå i stedet for det faste,
+    /// uten himmel og tåke, med faklene og arbeidslyset.
+    pub fn frame(&self, f: &mut Frame) {
+        f.instances = self.shown.clone();
+        f.skins.clear();
+        f.hidden = self.hidden.clone();
+        f.band = self.band;
+        // Snittet: alt over planet kuttes bort, og det som ligger helt over
+        // tegnes ikke.
+        f.clip = self.cut.map(|y| self.origin.y + y + CUT_HEIGHT);
+        if let Some(y) = f.clip {
+            f.band.1 = f.band.1.min(y);
+        }
+        f.fog_density = 0.0;
+        f.sun_intensity = 0.0;
+        f.sky_top = Vec3::splat(0.002);
+        f.sky_horizon = Vec3::splat(0.003);
+        f.hurt = 0.0;
+        let eye = f.camera;
+        // Arbeidslyset lyser gjennom murene; spillets lys følger rommene som
+        // nede i krypten (`Crypt::light_mask`).
+        let mut lights: Vec<Light> = if self.work_light { self.lights.iter().map(|x| Light { room: None, ..*x }).collect() } else { self.lights.clone() };
+        lights.sort_by(|a, b| a.pos.distance_squared(eye).total_cmp(&b.pos.distance_squared(eye)));
+        if self.work_light {
+            // Arbeidslyset: et stort, varmt lys over deg og litt mer lys fra
+            // bakken, så alt synes (himmelen er svart, som nede i krypten).
+            lights.insert(0, Light { pos: eye + Vec3::Y * 1.5, radius: 30.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 1.8, always: true, flicker: 0.0, room: None });
+            // Med snittet: et lys like under snittet der du ser, så etasjen
+            // under lyser opp når du ser ned i den ovenfra.
+            if let Some(y) = f.clip.filter(|y| eye.y > *y) {
+                let ahead = -f.view.inverse().z_axis.truncate();
+                let t = if ahead.y < -0.05 { ((y - eye.y) / ahead.y).min(40.0) } else { 0.0 };
+                let mut at = eye + ahead * t;
+                at.y = y - 0.3;
+                lights.insert(1, Light { pos: at, radius: 36.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 3.0, always: true, flicker: 0.0, room: None });
+            }
+            // Og et jevnt lys ovenfra, så rommene synes når kameraet går
+            // rundt nivået langt unna (lysene over når ikke dit).
+            f.sky_top = Vec3::new(0.16, 0.15, 0.14);
+            f.sky_horizon = Vec3::new(0.08, 0.075, 0.07);
+            f.ground_bounce = Vec3::splat(0.05);
+            f.exposure = 0.8;
+        } else {
+            lights.insert(0, Light { pos: eye - Vec3::Y * 0.9, radius: 11.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.4, always: true, flicker: 0.0, room: None });
+            f.ground_bounce = Vec3::splat(0.004);
+            f.exposure = 0.75;
+        }
+        lights.truncate(MAX_LIGHTS);
+        // Rommene til rendereren: da er himmelen svart (ingen skyer når
+        // kameraet står utenfor nivået) og bildet gradert som i kjelleren.
+        // Med arbeidslyset er det én rute langt borte, og alle lys lyser overalt.
+        f.rooms = Some(match (self.work_light, self.crypt.levels.first()) {
+            (false, Some(level)) => RoomLight {
+                boxes: level.rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y - r.sink, r.y + r.h + r.rise)).collect(),
+                masks: lights.iter().map(|x| x.room.map_or(u64::MAX, |(lv, r)| if lv == 0 { self.crypt.light_mask(0, r as usize) } else { 0 })).collect(),
+            },
+            _ => RoomLight { boxes: vec![(Vec2::splat(1.0e6), Vec2::splat(1.0e6 + 1.0), 1.0e6, 1.0e6 + 1.0)], masks: vec![u64::MAX; lights.len()] },
+        });
+        f.lights = lights;
+        // Med spillets lys: tåka i rommet kameraet står i (stemningen).
+        if let Some((lv, r)) = self.crypt.room_at(eye - Vec3::Y * 1.4).filter(|_| !self.work_light) {
+            f.fog_density = self.crypt.levels[lv].rooms[r].fog * 0.09;
+            f.fog_falloff = 1.0e-4;
+            f.fog_color = Vec3::new(0.035, 0.042, 0.045);
+        }
+        f.lines = self.lines();
+    }
 }
 
 impl Session {
@@ -216,62 +354,19 @@ impl Session {
     }
 
     /// En kommando fra kartet. Gir om den gjorde noe (feilen står i
-    /// `level_error`).
+    /// `LevelEditing::error`).
     pub fn level_command(&mut self, c: LevelCommand) -> bool {
         let Some(l) = self.level.as_mut() else { return false };
-        l.active = true;
-        let changed = match c {
-            LevelCommand::Op(op) => match l.editor.apply(op) {
-                Ok(made) => {
-                    self.level_made = made;
-                    self.level_error = None;
-                    true
-                }
-                Err(e) => {
-                    self.level_error = Some(e);
-                    return false;
-                }
-            },
-            LevelCommand::Undo => l.editor.undo(),
-            LevelCommand::Redo => l.editor.redo(),
-            LevelCommand::Open(doc) => {
-                l.editor.open(*doc);
-                true
-            }
-            LevelCommand::Saved => {
-                l.editor.saved();
-                return true;
-            }
-            LevelCommand::Select(ids) => {
-                l.selected = ids;
-                return true;
-            }
-            LevelCommand::WorkLight(on) => {
-                l.work_light = on;
-                return true;
-            }
-            LevelCommand::Floor(y) => {
-                l.floor = y;
-                return true;
-            }
-            LevelCommand::AddModule(def) => {
-                l.editor.add_module(*def);
-                true
-            }
-            LevelCommand::Cut(y) => {
-                l.cut = y;
-                return true;
-            }
-            LevelCommand::Place { at, yaw, pitch } => {
-                let eye = l.to_world(at);
-                self.place(eye, yaw, pitch);
-                return true;
-            }
+        // Kameraet er øktas; resten er redigeringens egen sak.
+        let place = match &c {
+            LevelCommand::Place { at, yaw, pitch } => Some((l.to_world(*at), *yaw, *pitch)),
+            _ => None,
         };
-        if changed {
-            l.refresh();
+        let done = l.command(c);
+        if let Some((eye, yaw, pitch)) = place {
+            self.place(eye, yaw, pitch);
         }
-        changed
+        done
     }
 
     /// Prøveturen i nivået (verden er nettopp bygd med dokumentet som nivå
@@ -324,14 +419,7 @@ impl Session {
     /// Punktet på gulvet kartet viser under pekeren i 3D-vinduet (0..1 fra
     /// øverst til venstre), i dokumentets rom.
     pub fn level_pick(&self, at: (f32, f32)) -> Option<Vec3> {
-        let l = self.level.as_ref()?;
-        let (o, d) = self.screen_ray(at);
-        let y = l.origin.y + l.floor;
-        if d.y.abs() < 1e-4 {
-            return None;
-        }
-        let t = (y - o.y) / d.y;
-        (t > 0.0 && t < 400.0).then(|| o + d * t - l.origin)
+        self.level.as_ref()?.pick(self.screen_ray(at))
     }
 
     /// Ett steg i redigeringen: du flyr fritt (som i byens redigering).
@@ -343,73 +431,11 @@ impl Session {
         self.fly(input, dt);
     }
 
-    /// Bildet i redigeringen: nivået slik det er nå i stedet for det faste,
-    /// uten himmel og tåke, med faklene og arbeidslyset.
+    /// Bildet i redigeringen (`LevelEditing::frame`).
     pub fn level_frame(&self, f: &mut Frame) {
-        let Some(l) = self.level.as_ref().filter(|l| l.active) else { return };
-        f.instances = l.shown.clone();
-        f.skins.clear();
-        f.hidden = l.hidden.clone();
-        f.band = l.band;
-        // Snittet: alt over planet kuttes bort, og det som ligger helt over
-        // tegnes ikke.
-        f.clip = l.cut.map(|y| l.origin.y + y + CUT_HEIGHT);
-        if let Some(y) = f.clip {
-            f.band.1 = f.band.1.min(y);
+        if let Some(l) = self.level.as_ref().filter(|l| l.active) {
+            l.frame(f);
         }
-        f.fog_density = 0.0;
-        f.sun_intensity = 0.0;
-        f.sky_top = Vec3::splat(0.002);
-        f.sky_horizon = Vec3::splat(0.003);
-        f.hurt = 0.0;
-        let eye = f.camera;
-        // Arbeidslyset lyser gjennom murene; spillets lys følger rommene som
-        // nede i krypten (`Crypt::light_mask`).
-        let mut lights: Vec<Light> = if l.work_light { l.lights.iter().map(|x| Light { room: None, ..*x }).collect() } else { l.lights.clone() };
-        lights.sort_by(|a, b| a.pos.distance_squared(eye).total_cmp(&b.pos.distance_squared(eye)));
-        if l.work_light {
-            // Arbeidslyset: et stort, varmt lys over deg og litt mer lys fra
-            // bakken, så alt synes (himmelen er svart, som nede i krypten).
-            lights.insert(0, Light { pos: eye + Vec3::Y * 1.5, radius: 30.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 1.8, always: true, flicker: 0.0, room: None });
-            // Med snittet: et lys like under snittet der du ser, så etasjen
-            // under lyser opp når du ser ned i den ovenfra.
-            if let Some(y) = f.clip.filter(|y| eye.y > *y) {
-                let ahead = -f.view.inverse().z_axis.truncate();
-                let t = if ahead.y < -0.05 { ((y - eye.y) / ahead.y).min(40.0) } else { 0.0 };
-                let mut at = eye + ahead * t;
-                at.y = y - 0.3;
-                lights.insert(1, Light { pos: at, radius: 36.0, color: Vec3::new(1.0, 0.9, 0.78), intensity: 3.0, always: true, flicker: 0.0, room: None });
-            }
-            // Og et jevnt lys ovenfra, så rommene synes når kameraet går
-            // rundt nivået langt unna (lysene over når ikke dit).
-            f.sky_top = Vec3::new(0.16, 0.15, 0.14);
-            f.sky_horizon = Vec3::new(0.08, 0.075, 0.07);
-            f.ground_bounce = Vec3::splat(0.05);
-            f.exposure = 0.8;
-        } else {
-            lights.insert(0, Light { pos: eye - Vec3::Y * 0.9, radius: 11.0, color: Vec3::new(1.0, 0.7, 0.4), intensity: 2.4, always: true, flicker: 0.0, room: None });
-            f.ground_bounce = Vec3::splat(0.004);
-            f.exposure = 0.75;
-        }
-        lights.truncate(MAX_LIGHTS);
-        // Rommene til rendereren: da er himmelen svart (ingen skyer når
-        // kameraet står utenfor nivået) og bildet gradert som i kjelleren.
-        // Med arbeidslyset er det én rute langt borte, og alle lys lyser overalt.
-        f.rooms = Some(match (l.work_light, l.crypt.levels.first()) {
-            (false, Some(level)) => RoomLight {
-                boxes: level.rooms.iter().take(MAX_ROOMS).map(|r| (r.min, r.max, r.y - r.sink, r.y + r.h + r.rise)).collect(),
-                masks: lights.iter().map(|x| x.room.map_or(u64::MAX, |(lv, r)| if lv == 0 { l.crypt.light_mask(0, r as usize) } else { 0 })).collect(),
-            },
-            _ => RoomLight { boxes: vec![(Vec2::splat(1.0e6), Vec2::splat(1.0e6 + 1.0), 1.0e6, 1.0e6 + 1.0)], masks: vec![u64::MAX; lights.len()] },
-        });
-        f.lights = lights;
-        // Med spillets lys: tåka i rommet kameraet står i (stemningen).
-        if let Some((lv, r)) = l.crypt.room_at(eye - Vec3::Y * 1.4).filter(|_| !l.work_light) {
-            f.fog_density = l.crypt.levels[lv].rooms[r].fog * 0.09;
-            f.fog_falloff = 1.0e-4;
-            f.fog_color = Vec3::new(0.035, 0.042, 0.045);
-        }
-        f.lines = l.lines();
     }
 }
 
