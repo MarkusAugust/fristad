@@ -13,6 +13,7 @@ pub mod gltf;
 pub mod layers;
 pub mod rapier;
 pub mod wgpu;
+pub mod wire;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native;

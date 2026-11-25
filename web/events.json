@@ -1,0 +1,352 @@
+{
+  "ambience": {
+    "cellar": "bool",
+    "chasm": "tall",
+    "church": "tall",
+    "fire": "tall",
+    "forge": "tall",
+    "indoor": "bool",
+    "lava": "tall",
+    "meadow": "tall",
+    "night": "bool",
+    "portal": "tall",
+    "rain": "tall",
+    "square": "tall",
+    "tavern": "tall",
+    "water": "tall",
+    "wind": "tall"
+  },
+  "edit": {
+    "edit": {
+      "breaches": [
+        {
+          "ref": {
+            "town": "tall"
+          },
+          "why": "tekst"
+        }
+      ],
+      "can_redo": "bool",
+      "can_undo": "bool",
+      "clean": "bool",
+      "dirty": "bool",
+      "draft": "tall",
+      "error": "tekst",
+      "ghost": [
+        "tekst"
+      ],
+      "group": "tekst",
+      "history": [
+        "tekst"
+      ],
+      "props": [
+        {
+          "key": "tekst",
+          "label": "tekst",
+          "options": [
+            "tekst"
+          ],
+          "value": "tekst"
+        }
+      ],
+      "route_point": "tall",
+      "selected": [
+        {
+          "center": [
+            "tall"
+          ],
+          "half": [
+            "tall"
+          ],
+          "label": "tekst",
+          "pose": [
+            "tall"
+          ],
+          "ref": {
+            "town": "tall"
+          }
+        }
+      ],
+      "snap": "bool",
+      "step": "tall",
+      "under": [
+        {
+          "label": "tekst",
+          "selected": "bool"
+        }
+      ]
+    }
+  },
+  "fade": {},
+  "fetch_level": {
+    "level": "tall"
+  },
+  "fetch_models": {
+    "names": [
+      "tekst"
+    ],
+    "paths": [
+      "tekst"
+    ]
+  },
+  "foe": {
+    "foe": {
+      "hp": "tall",
+      "info": "tekst",
+      "max_hp": "tall",
+      "name": "tekst",
+      "ranged": "bool",
+      "rank": "tekst"
+    }
+  },
+  "goal": {
+    "journal": [
+      {
+        "text": "tekst",
+        "title": "tekst"
+      }
+    ],
+    "text": "tekst"
+  },
+  "haul": {
+    "components": [
+      "tekst"
+    ]
+  },
+  "hud": {
+    "boss": {
+      "hp": "tall",
+      "name": "tekst"
+    },
+    "cellar": "bool",
+    "fight": "tall",
+    "hp": "tall",
+    "keys": "tall",
+    "light": "tall",
+    "stamina": "tall",
+    "tokens": "tall"
+  },
+  "hurt": {
+    "angle": "tall"
+  },
+  "inventory": {
+    "armor": "tekst",
+    "carried": [
+      [
+        "tekst"
+      ]
+    ],
+    "gear": [
+      {
+        "about": "tekst",
+        "equipped": "bool",
+        "id": "tekst",
+        "name": "tekst",
+        "owned": "bool",
+        "rarity": "tekst",
+        "slot": "tekst",
+        "special": "tekst",
+        "stats": [
+          {
+            "label": "tekst",
+            "text": "tekst",
+            "up": "bool",
+            "value": "tall"
+          }
+        ]
+      }
+    ],
+    "lantern": "bool",
+    "max_hp": "tall",
+    "max_stamina": "tall",
+    "read": [
+      "tekst"
+    ],
+    "shield": "tekst",
+    "stash": [
+      [
+        "tekst"
+      ]
+    ],
+    "tokens": "tall",
+    "weapon": "tekst",
+    "weapon_special": "tekst"
+  },
+  "loot": {
+    "component": "tekst"
+  },
+  "lore": {
+    "text": "tekst",
+    "title": "tekst"
+  },
+  "map": {
+    "map": {
+      "level": "tall",
+      "marks": [
+        {
+          "kind": "tekst",
+          "x": "tall",
+          "z": "tall"
+        }
+      ],
+      "name": "tekst",
+      "rooms": [
+        [
+          [
+            "tall"
+          ]
+        ]
+      ]
+    }
+  },
+  "marks": {
+    "marks": [
+      {
+        "id": "tall",
+        "kind": "tekst",
+        "text": "tekst",
+        "value": "tall",
+        "x": "tall",
+        "y": "tall"
+      }
+    ]
+  },
+  "mead": {
+    "npc": "tekst",
+    "price": "tall",
+    "singing": "bool",
+    "text": "tekst"
+  },
+  "open_doc": {
+    "component": "tekst"
+  },
+  "prompt": {
+    "info": "tekst",
+    "label": "tekst",
+    "trade": "tekst",
+    "verb": "tekst"
+  },
+  "shop": {
+    "npc": "tekst",
+    "swaps": [
+      {
+        "fee": "tall",
+        "get": "tekst",
+        "get_have": "tall",
+        "get_rarity": "tekst",
+        "give": "tekst",
+        "give_rarity": "tekst",
+        "have": "tall",
+        "id": "tekst",
+        "n": "tall",
+        "ok": "bool",
+        "source": "tekst"
+      }
+    ],
+    "wares": [
+      {
+        "id": "tekst",
+        "name": "tekst",
+        "price": "tall"
+      }
+    ]
+  },
+  "song": {
+    "on": "bool"
+  },
+  "sound": {
+    "at": [
+      "tall"
+    ],
+    "gain": "tall",
+    "name": "tekst"
+  },
+  "speech": {
+    "bubbles": [
+      {
+        "id": "tall",
+        "name": "tekst",
+        "text": "tekst",
+        "x": "tall",
+        "y": "tall"
+      }
+    ]
+  },
+  "theme": {
+    "theme": "tekst"
+  },
+  "toast": {
+    "text": "tekst"
+  },
+  "warp": {},
+  "weather": {
+    "weather": "tekst"
+  },
+  "where": {
+    "x": "tall",
+    "yaw": "tall",
+    "z": "tall"
+  },
+  "workshop": {
+    "recipes": [
+      {
+        "current": {
+          "about": "tekst",
+          "equipped": "bool",
+          "id": "tekst",
+          "name": "tekst",
+          "owned": "bool",
+          "rarity": "tekst",
+          "slot": "tekst",
+          "special": "tekst",
+          "stats": [
+            {
+              "label": "tekst",
+              "text": "tekst",
+              "up": "bool",
+              "value": "tall"
+            }
+          ]
+        },
+        "id": "tekst",
+        "item": {
+          "about": "tekst",
+          "equipped": "bool",
+          "id": "tekst",
+          "name": "tekst",
+          "owned": "bool",
+          "rarity": "tekst",
+          "slot": "tekst",
+          "special": "tekst",
+          "stats": [
+            {
+              "label": "tekst",
+              "text": "tekst",
+              "up": "bool",
+              "value": "tall"
+            }
+          ]
+        },
+        "name": "tekst",
+        "needs": [
+          [
+            "tekst"
+          ]
+        ],
+        "ok": "bool",
+        "rarity": "tekst",
+        "requires": [
+          [
+            "tekst"
+          ]
+        ],
+        "result": "tekst",
+        "sources": [
+          [
+            "tekst"
+          ]
+        ]
+      }
+    ]
+  }
+}
