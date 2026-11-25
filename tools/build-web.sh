@@ -49,7 +49,7 @@ mkdir -p dist
 cp web/index.html web/main.js web/shared.js web/loading.js web/graphics.js web/settings.js web/hud.js web/bench.js web/menus.js web/inventory.js web/shop.js web/workshop.js web/book.js web/map.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json web/docs-flate.css dist/
 # Nivåredigeringen (`?nivaa`, docs/nivaaredigering.md del 12) og bildene av
 # modulene i paletten (tools/crypt/module_shots.py, i assets/levels/moduler/).
-cp web/nivaa.html web/nivaa.js web/nivaa-plan.js dist/
+cp web/nivaa.html web/nivaa.js web/nivaa-*.js dist/
 for d in assets/levels/moduler/*/; do
   mkdir -p "dist/moduler/$(basename "$d")"
   cp "$d"*.jpg "dist/moduler/$(basename "$d")/" 2>/dev/null || true

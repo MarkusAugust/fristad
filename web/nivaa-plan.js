@@ -649,7 +649,11 @@ export function hit(map, floor, x, z, reach) {
       const o = m.openings.find((o) => o.at[0] === i && o.at[1] === j && o.side === side && onFloor(o.y));
       if (o) return { type: "opening", module: m.id, opening: o.id, side, at: [i, j] };
     }
-    const e = map.edges.find((e) => onFloor(e.at[1]) && ((e.at[0] === i && e.at[2] === j && e.side === side) || (e.at[0] + SIDE[e.side][0] === i && e.at[2] + SIDE[e.side][1] === j && ((e.side + 2) & 3) === side)));
+    const e = map.edges.find(
+      (e) =>
+        onFloor(e.at[1]) &&
+        ((e.at[0] === i && e.at[2] === j && e.side === side) || (e.at[0] + SIDE[e.side][0] === i && e.at[2] + SIDE[e.side][1] === j && ((e.side + 2) & 3) === side)),
+    );
     if (e && e.switch) return { type: "edge", switch: e.switch, kind: e.kind };
   }
   for (const m of map.modules) {
