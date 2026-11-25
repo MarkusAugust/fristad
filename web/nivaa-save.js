@@ -3,7 +3,7 @@
 // konfliktsjekken, eller som zip uten nøkkel.
 
 import { level_blank, level_doc_names, level_doc_source } from "./pkg/fristad.js";
-import { makeZip } from "./editor.js";
+import { makeZip } from "./zip.js";
 import { blobSha, branchFile, branchFiles, commit, SAVE_BRANCH, setToken, token } from "./github.js";
 import { docPath, refresh, send } from "./nivaa-doc.js";
 import { clearPendingModules, clearPendingTemplates, pendingModules, pendingTemplates } from "./nivaa-palette.js";
