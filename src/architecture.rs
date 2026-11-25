@@ -169,7 +169,6 @@ const TOO_LONG: &[(&str, usize)] = &[
 const TOO_WIDE: &[(&str, usize)] = &[
     ("crates/fristad-app/src/application/app.rs", 1),
     ("crates/fristad-app/src/application/audio.rs", 1),
-    ("crates/fristad-app/src/application/fight.rs", 1),
     ("crates/fristad-app/src/application/usage.rs", 3),
     ("crates/fristad-app/src/application/view.rs", 2),
     ("crates/fristad-domain/src/domain/combat.rs", 1),

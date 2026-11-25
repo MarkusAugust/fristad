@@ -4,8 +4,8 @@
 //!
 //! - `assembly`: laster modellene gjennom `ModelSource` og bygger verden.
 //! - `session`: økta, som koordinerer reglene i kjernen med fysikken, delt
-//!   i `usage`, `prompt`, `fight`, `audio`, `trade`, `goals`, `water` og
-//!   `testing`.
+//!   i `usage`, `prompt`, `fight`, `hud`, `audio`, `trade`, `goals`, `water`
+//!   og `testing`.
 //! - `view`: bildet rendereren får.
 //! - `editing`: redigeringen av byen (`Editing`: kommandoene, det flyttede
 //!   i bildet), med egen tilstand og kameraet (`camera`) som argument.
@@ -19,6 +19,7 @@ mod edit_marks;
 mod editing;
 mod fight;
 mod goals;
+mod hud;
 pub mod level_editing;
 mod prompt;
 pub mod session;

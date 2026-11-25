@@ -1,46 +1,17 @@
 //! Kampen i økta: fiendene biter og du hugger (reglene står i
-//! `domain::combat` og `domain::mobs`), og det som vises over bildet:
-//! helsestolpene over fiendene, skadetallene og stolpene nederst.
+//! `domain::combat` og `domain::mobs`). Det som vises over bildet, står i
+//! `hud.rs`.
 
 use super::session::{sfx, Session};
 use crate::domain::combat::CombatEvent;
 use crate::domain::body::Stance;
 use crate::domain::mobs::{Kind as MobKind, Sweep};
 use crate::domain::world::Use;
-use crate::ports::driving::{Event, FoeView, Mark};
-use glam::{Mat4, Vec3};
+use crate::ports::driving::Event;
+use glam::Vec3;
 
-/// Det som vises over bildet, og det som sist ble sendt.
-#[derive(Default)]
-pub(super) struct Hud {
-    /// Skadetall som stiger: (sted, skade, alder, løpenummer).
-    popups: Vec<(Vec3, f32, f32, u32)>,
-    seq: u32,
-    marks_shown: bool,
-    last: Option<(u32, u32, u32, bool, u32, Option<(&'static str, u32)>, u32, u8)>,
-    /// Fienden i infopanelet, sekundene siden du sist siktet på den, og det
-    /// som sist ble sendt.
-    foe: Option<usize>,
-    foe_t: f32,
-    foe_sent: Option<FoeView>,
-}
-
-/// Så lenge står infopanelet etter at siktet har gått av fienden (så det
-/// ikke blinker når den hopper eller du snur deg i kampen).
-const FOE_LINGER: f32 = 0.6;
 /// Så nær den falske veggen må være for at et hugg slår den inn (målt fra øyet til midten av muren).
 const WALL_REACH: f32 = 3.0;
-
-impl Hud {
-    pub fn clear(&mut self) {
-        self.popups.clear();
-    }
-
-    fn popup(&mut self, pos: Vec3, damage: f32) {
-        self.seq = self.seq.wrapping_add(1);
-        self.popups.push((pos, damage, 0.0, self.seq));
-    }
-}
 
 impl Session {
     /// Fiendene: de biter, og du plukker tokens. Under hitstop står alt
@@ -158,29 +129,6 @@ impl Session {
         }
     }
 
-    /// Infopanelet om fienden du sikter på (`aimed`): navnet, hva den er og
-    /// livet, sendt når noe endres, og `None` litt etter at siktet er borte
-    /// eller fienden er død.
-    pub(super) fn update_foe(&mut self, aimed: Option<usize>, dt: f32, events: &mut Vec<Event>) {
-        if aimed.is_some() {
-            self.hud.foe = aimed;
-            self.hud.foe_t = 0.0;
-        } else {
-            self.hud.foe_t += dt;
-        }
-        let view = self.hud.foe.filter(|_| self.hud.foe_t < FOE_LINGER).and_then(|i| self.mobs.mobs.get(i)).filter(|m| m.alive()).map(|m| {
-            let rank = if m.boss || m.kind.boss() { "Boss" } else if m.elite { "Elite" } else { "" };
-            FoeView { name: m.kind.label().into(), info: m.kind.info().into(), rank: rank.into(), hp: m.hp.max(0.0).ceil() as u32, max_hp: m.max_hp.ceil() as u32, ranged: m.kind.stats().bolt.is_some() }
-        });
-        if view.is_none() {
-            self.hud.foe = None;
-        }
-        if view != self.hud.foe_sent {
-            self.hud.foe_sent = view.clone();
-            events.push(Event::Foe(view));
-        }
-    }
-
     /// Tokens som spretter ut `ahead` meter foran deg (til skjermbildene).
     pub fn drop_tokens(&mut self, ahead: f32, n: u32) {
         let f = self.forward().with_y(0.0).normalize_or_zero();
@@ -250,67 +198,6 @@ impl Session {
         if before > 0.0 && after <= 0.0 {
             events.push(Event::Toast("Lykta har sluknet. Mørket lukker seg rundt deg.".into()));
         }
-    }
-
-    /// Merkene over fiendene, stolpene nederst og lageret, sendt når de
-    /// har endret seg.
-    pub(super) fn update_hud(&mut self, dt: f32, in_crypt: bool, events: &mut Vec<Event>) {
-        let marks = self.marks(dt);
-        if !marks.is_empty() || self.hud.marks_shown {
-            self.hud.marks_shown = !marks.is_empty();
-            events.push(Event::Marks(marks));
-        }
-        let boss = if in_crypt { self.mobs.boss().map(|(n, f)| (n, (f * 100.0).ceil() as u32)) } else { None };
-        let h = &self.hero;
-        let fight = if in_crypt { self.mobs.fight(self.body.sole()) } else { 0 };
-        let hud = (h.hp.round().max(0.0) as u32, self.combat.stamina.round().max(0.0) as u32, h.coins, in_crypt, h.keys, boss, (h.lamp.fraction() * 100.0).ceil() as u32, fight);
-        if self.hud.last != Some(hud) {
-            if self.hud.last.as_ref().map(|h| h.2) != Some(self.hero.coins) {
-                self.hero.dirty = true;
-            }
-            self.hud.last = Some(hud);
-            events.push(Event::Hud { hp: hud.0, stamina: hud.1, tokens: hud.2, cellar: hud.3, keys: hud.4, boss: hud.5.map(|(n, f)| (n.to_string(), f)), light: hud.6, fight: hud.7 });
-        }
-        if self.hero.dirty {
-            self.hero.dirty = false;
-            events.push(Event::Inventory(self.inventory_view()));
-        }
-    }
-
-    /// Et punkt i verden til skjermen (0..1), om det er foran kameraet.
-    pub(super) fn project(&self, p: Vec3) -> Option<(f32, f32)> {
-        let view = Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y);
-        let proj = Mat4::perspective_rh(72f32.to_radians(), self.aspect.get(), 0.1, 2500.0);
-        let c = proj * view * p.extend(1.0);
-        if c.w < 0.1 {
-            return None;
-        }
-        let x = (c.x / c.w + 1.0) * 0.5;
-        let y = (1.0 - c.y / c.w) * 0.5;
-        ((-0.1..=1.1).contains(&x) && (-0.1..=1.1).contains(&y)).then_some((x, y))
-    }
-
-    /// Helsestolper over fiender som er truffet, og skadetall som stiger.
-    fn marks(&mut self, dt: f32) -> Vec<Mark> {
-        let mut out = vec![];
-        for (i, m) in self.mobs.mobs.iter().enumerate() {
-            if !m.alive() || m.hit > 3.0 || m.boss {
-                continue;
-            }
-            if let Some((x, y)) = self.project(m.pos + Vec3::Y * 1.65 * m.scale()) {
-                out.push(Mark { id: i as u32, x, y, kind: "bar", value: (m.hp / m.max_hp).clamp(0.0, 1.0), text: String::new() });
-            }
-        }
-        for p in &mut self.hud.popups {
-            p.2 += dt;
-        }
-        self.hud.popups.retain(|p| p.2 < 0.9);
-        for (pos, dmg, age, id) in &self.hud.popups {
-            if let Some((x, y)) = self.project(*pos + Vec3::Y * (0.3 + age * 0.6)) {
-                out.push(Mark { id: 100_000 + id, x, y, kind: "text", value: 1.0 - age / 0.9, text: format!("{}", dmg.round() as i32) });
-            }
-        }
-        out
     }
 }
 
