@@ -20,9 +20,9 @@ use crate::domain::weather::{Daylight, Sky, WeatherKind};
 use crate::domain::world::crypt::map::Map;
 use crate::domain::world::crypt::run::{Happening, Run};
 use crate::domain::world::crypt::{self, Crypt};
-use crate::domain::world::mechanisms::{Mechanisms, Moved};
+use crate::domain::world::mechanisms::Mechanisms;
 use crate::domain::world::portal::Portal;
-use crate::domain::world::{terrain, town};
+use crate::domain::world::terrain;
 use crate::domain::world::{Target, Use, World};
 use crate::ports::driving::{Action, Bubble, Event, Input, MapMark, MapView, Prompt, Shot, Sound};
 use crate::ports::{ColliderId, Physics};
@@ -31,6 +31,7 @@ use std::collections::HashMap;
 
 use super::audio::Soundscape;
 use super::fight::Hud;
+use super::solids::Solids;
 
 /// Så langt unna kan du sikte på en fiende og få infopanelet (meter).
 const FOE_SIGHT: f32 = 30.0;
@@ -64,7 +65,7 @@ impl TargetState {
 }
 
 /// Langt under verden: der kolliderne venter til de trengs.
-fn away() -> Affine3A {
+pub(super) fn away() -> Affine3A {
     Affine3A::from_translation(Vec3::new(0.0, -5000.0, 0.0))
 }
 
@@ -91,8 +92,6 @@ pub struct Session {
     pub(super) spawn_yaw: f32,
     pub(super) crypt_exit: (Vec3, f32),
     pub(super) portal: Portal,
-    /// Kolliderne til portalringen (flyttes inn når den står der).
-    pub(super) portal_solids: Vec<ColliderId>,
     pub(super) map: Map,
     pub(super) herd: Herd,
     pub(super) sound: Soundscape,
@@ -101,12 +100,8 @@ pub struct Session {
     pub(super) crypt: Crypt,
     pub(super) mobs: Mobs,
     pub(super) mech: Mechanisms,
-    /// Kolliderne til fallemmene som holder deg til de faller.
-    pub(super) trap_lids: Vec<Option<ColliderId>>,
-    /// Dekkene på broene over avgrunnene (flyttes når broa senkes).
-    pub(super) bridge_solids: Vec<ColliderId>,
-    /// Dekkene på heisene (bevegelige kollidere).
-    pub(super) lift_solids: Vec<ColliderId>,
+    /// Kolliderne som følger mekanismene og portalen (`solids.rs`).
+    pub(super) solids: Solids,
     /// Hvor lenge siden du sist fikk høre at vannet er for dypt (`water.rs`).
     pub(super) wade_told: f32,
     pub(super) run: Run,
@@ -177,7 +172,6 @@ impl Session {
             spawn_yaw: world.spawn_yaw,
             crypt_exit: world.crypt_exit,
             portal: Portal::new(world.crypt.levels.len()),
-            portal_solids: town::PORTAL_SOLIDS.iter().map(|(_, size)| physics.add_movable(*size * 0.5, away())).collect(),
             map: Map::new(&world.crypt),
             herd: Herd::new(),
             sound: Soundscape::new(world),
@@ -185,30 +179,7 @@ impl Session {
             bubbles_shown: false,
             mobs: Mobs::new(&world.crypt, rigs),
             mech: Mechanisms::new(&world.crypt, wells),
-            trap_lids: world
-                .crypt
-                .trapdoors
-                .iter()
-                .map(|t| t.lid.then(|| physics.add_movable(Vec3::new(t.size.x * 0.5, 0.05, t.size.y * 0.5), crate::domain::world::at(t.pos - Vec3::Y * 0.05, t.yaw))))
-                .collect(),
-            bridge_solids: {
-                let m = Mechanisms::new(&world.crypt, 0);
-                (0..world.crypt.bridges.len())
-                    .map(|n| {
-                        let b = &world.crypt.bridges[n];
-                        physics.add_movable(Vec3::new(b.size.x * 0.5, 0.15, b.size.y * 0.5), m.bridge_collider(&world.crypt, n).unwrap_or_else(away))
-                    })
-                    .collect()
-            },
-            lift_solids: {
-                let m = Mechanisms::new(&world.crypt, 0);
-                (0..world.crypt.lifts.len())
-                    .map(|n| {
-                        let l = &world.crypt.lifts[n];
-                        physics.add_movable(Vec3::new(l.size.x * 0.5, 0.15, l.size.y * 0.5), m.lift_collider(&world.crypt, n).unwrap_or_else(away))
-                    })
-                    .collect()
-            },
+            solids: Solids::new(world, physics),
             wade_told: f32::MAX,
             run: Run::new(&world.crypt),
             crypt: world.crypt.clone(),
@@ -631,12 +602,7 @@ impl Session {
             }
         }
         if let Some(show) = self.portal.shown_changed() {
-            if let Some(t) = self.targets.iter().find(|t| t.target.what == Use::Portal) {
-                t.set_pose(physics, if show { t.target.pose * Affine3A::from_translation(t.target.center) } else { away() });
-                for (id, (c, _)) in self.portal_solids.iter().zip(town::PORTAL_SOLIDS) {
-                    physics.set_pose(*id, if show { t.target.pose * Affine3A::from_translation(c) } else { away() });
-                }
-            }
+            self.solids.show_portal(show, &self.targets, physics);
         }
     }
 
@@ -730,55 +696,9 @@ impl Session {
     fn update_mechanisms(&mut self, physics: &mut dyn Physics, dt: f32, events: &mut Vec<Event>) {
         let (mut moved, drank) = self.mech.tick(dt);
         moved.extend(self.mech.tick_lifts(&self.crypt, dt));
-        let target = |what: Use| self.targets.iter().find(|t| t.target.what == what);
-        for m in moved {
-            match m {
-                Moved::Lift(n) => {
-                    let (Some(pose), Some(id)) = (self.mech.lift_collider(&self.crypt, n), self.lift_solids.get(n)) else { continue };
-                    physics.set_pose(*id, pose);
-                    let deck = self.mech.lift_pose(&self.crypt, n).unwrap_or(pose);
-                    if let Some(t) = target(Use::Lift(n)) {
-                        t.set_pose(physics, deck * Affine3A::from_translation(t.target.center));
-                    }
-                    // Står du på dekket, blir du med det (kapselen følger ikke en kollider som flyttes).
-                    let l = &self.crypt.lifts[n];
-                    let feet = self.body.feet();
-                    let local = deck.inverse().transform_point3(feet);
-                    let dy = self.mech.lift_dy.get(n).copied().unwrap_or(0.0);
-                    if local.x.abs() < l.size.x * 0.5 + 0.3 && local.z.abs() < l.size.y * 0.5 + 0.3 && local.y > -0.6 + dy.min(0.0) && local.y < 0.8 {
-                        let deck_y = deck.translation.y;
-                        self.body.pos.y += deck_y + 0.02 - feet.y;
-                        self.body.vel_y = 0.0;
-                        self.body.grounded = true;
-                    }
-                }
-                Moved::Shortcut(n) => {
-                    if let (Some(pose), Some(t)) = (self.mech.shortcut_collider(&self.crypt, n), target(Use::Shortcut(n))) {
-                        t.set_pose(physics, pose);
-                    }
-                }
-                Moved::Secret(n) => {
-                    if let Some(t) = target(Use::Secret(n)) {
-                        let sink = self.mech.secret_sink(&self.crypt, n);
-                        t.set_pose(physics, t.target.pose * Affine3A::from_translation(t.target.center - Vec3::Y * sink));
-                    }
-                }
-                Moved::Trapdoor(n) => {
-                    if let Some(Some(id)) = self.trap_lids.get(n) {
-                        physics.set_pose(*id, away());
-                    }
-                }
-                Moved::Bridge(n) => {
-                    if let (Some(pose), Some(id)) = (self.mech.bridge_collider(&self.crypt, n), self.bridge_solids.get(n)) {
-                        physics.set_pose(*id, pose);
-                    }
-                }
-                Moved::Gate(n) => {
-                    if let Some(t) = target(Use::Gate(n)) {
-                        t.set_pose(physics, self.mech.gate_lifted(n, t.target.pose) * Affine3A::from_translation(t.target.center));
-                    }
-                }
-            }
+        // Den som står på et dekk som kjørte, blir med.
+        for (n, deck) in self.solids.follow(&moved, &self.mech, &self.crypt, &self.targets, physics) {
+            super::solids::carry(&mut self.body, self.crypt.lifts[n].size, deck, self.mech.lift_dy.get(n).copied().unwrap_or(0.0));
         }
         for _ in 0..drank {
             self.hero.heal(25.0);
