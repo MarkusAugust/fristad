@@ -46,7 +46,7 @@ rm -rf dist
 mkdir -p dist
 "$TOOLS/wasm-bindgen" --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/fristad.wasm
-cp web/index.html web/main.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json web/docs-flate.css dist/
+cp web/index.html web/main.js web/shared.js web/menus.js web/inventory.js web/shop.js web/workshop.js web/book.js web/map.js web/editor.js web/github.js web/music.js web/score.js web/ambience.js web/sounds.js web/style.css web/docs.json web/docs-flate.css dist/
 # Nivåredigeringen (`?nivaa`, docs/nivaaredigering.md del 12) og bildene av
 # modulene i paletten (tools/crypt/module_shots.py, i assets/levels/moduler/).
 cp web/nivaa.html web/nivaa.js web/nivaa-plan.js dist/
